@@ -185,7 +185,7 @@ fn signed_in(t: &Target, provider: &str) -> Result<bool, Failure> {
 /// checkouts git lists for the repo (`worktree.list`) lies.
 pub(crate) fn worktree_of<'a>(repo: &Target<'a>, selector: &str) -> Result<Target<'a>, Failure> {
     let found = orca_map_workspace::resolve(repo.agent, selector)?;
-    if !orca_map_workspace::checkout_of(repo.agent, &repo.workspace, &found)? {
+    if !orca_map_workspace::checkout_of(repo.agent, repo.workspace.as_deref().unwrap_or(""), &found)? {
         return Err(Failure::new(RUNTIME_ERROR, "Access denied: worktree does not belong to repository"));
     }
     Ok(repo.with_workspace(found.workspace))

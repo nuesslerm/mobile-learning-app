@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 239,
+    "served": 254,
     "pending": 4,
-    "notOffered": 64,
+    "notOffered": 49,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -439,9 +439,11 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "wf-mimic-orca-crawl",
-        "test": "orca-v1.4.259-crawl::orca-agentSession.modelCatalog-boundary-full",
-        "agent": [],
+        "suite": "orca-serve-integration",
+        "test": "agent_catalog::the_phone_lists_the_models_of_an_agent_reads_a_chats_options_and_sets_one_and_its_commands_come_from_the_executors_skills",
+        "agent": [
+          "models.list"
+        ],
         "executor": []
       }
     },
@@ -770,9 +772,11 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "wf-mimic-orca-crawl",
-        "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.read-invalid-drop-path",
-        "agent": [],
+        "suite": "orca-serve-integration",
+        "test": "agent_sessions::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
+        "agent": [
+          "attachment.get"
+        ],
         "executor": []
       }
     },
@@ -784,9 +788,11 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "wf-mimic-orca-crawl",
-        "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.readTextChunk-invalid-drop-path",
-        "agent": [],
+        "suite": "orca-serve-integration",
+        "test": "agent_sessions::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
+        "agent": [
+          "attachment.get"
+        ],
         "executor": []
       }
     },
@@ -798,8 +804,8 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "wf-mimic-orca-crawl",
-        "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.uploadAbort-invalid-drop-uploadId",
+        "suite": "orca-serve-integration",
+        "test": "agent_sessions::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
         "agent": [],
         "executor": []
       }
@@ -829,9 +835,11 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "wf-mimic-orca-crawl",
-        "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.uploadCommit-invalid-drop-uploadId",
-        "agent": [],
+        "suite": "orca-serve-integration",
+        "test": "agent_sessions::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
+        "agent": [
+          "upload.put"
+        ],
         "executor": []
       }
     },
@@ -2388,140 +2396,238 @@
       "kind": "rpc",
       "name": "github.project.addIssueCommentBySlug",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.addIssueCommentBySlug-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.project.clearItemField",
       "kind": "rpc",
       "name": "github.project.clearItemField",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.clearItemField-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.project.deleteIssueCommentBySlug",
       "kind": "rpc",
       "name": "github.project.deleteIssueCommentBySlug",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.deleteIssueCommentBySlug-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.project.listAccessible",
       "kind": "rpc",
       "name": "github.project.listAccessible",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data. A hosted_project_* family over gh project and the GraphQL API would have to be added first.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.listAccessible-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.project.listAssignableUsersBySlug",
       "kind": "rpc",
       "name": "github.project.listAssignableUsersBySlug",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.listAssignableUsersBySlug-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.project.listIssueTypesBySlug",
       "kind": "rpc",
       "name": "github.project.listIssueTypesBySlug",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.listIssueTypesBySlug-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.project.listLabelsBySlug",
       "kind": "rpc",
       "name": "github.project.listLabelsBySlug",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.listLabelsBySlug-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.project.listViews",
       "kind": "rpc",
       "name": "github.project.listViews",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.listViews-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.project.resolveRef",
       "kind": "rpc",
       "name": "github.project.resolveRef",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible. A parse-only serve would answer only the refusal case, which the rule does not count.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.resolveRef-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.project.updateIssueBySlug",
       "kind": "rpc",
       "name": "github.project.updateIssueBySlug",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.updateIssueBySlug-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.project.updateIssueCommentBySlug",
       "kind": "rpc",
       "name": "github.project.updateIssueCommentBySlug",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.updateIssueCommentBySlug-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.project.updateIssueTypeBySlug",
       "kind": "rpc",
       "name": "github.project.updateIssueTypeBySlug",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.updateIssueTypeBySlug-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.project.updateItemField",
       "kind": "rpc",
       "name": "github.project.updateItemField",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.updateItemField-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.project.updatePullRequestBySlug",
       "kind": "rpc",
       "name": "github.project.updatePullRequestBySlug",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible: the row is addressed by owner/repo slug with no repo selector, so rca has no workspace to place the gh call in.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.updatePullRequestBySlug-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.project.viewTable",
@@ -2530,7 +2636,7 @@
       "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
+      "reason": "decided 20 Nov under issue 83 O4: the view table (fields with typed values, items with field values, the view filter, grouping, sort and layout) needs a hosted action that reads a project view through GraphQL, which rca does not have, and no success shape of it was ever recorded, so an answer would come from Orca's source alone. docs/gaps/orca-github-project-rows.md",
       "decidedBy": "M12"
     },
     {
@@ -2538,10 +2644,17 @@
       "kind": "rpc",
       "name": "github.project.workItemDetailsBySlug",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible, and the row is addressed by owner/repo slug with no workspace to place a gh call in.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.project.workItemDetailsBySlug-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.removePRReviewers",

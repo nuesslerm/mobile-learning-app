@@ -56,6 +56,17 @@ pub const RUN_VIEW: &str = "hosted_run_view";
 pub const RUN_RERUN: &str = "hosted_run_rerun";
 pub const PR_CHECK_DETAILS: &str = "hosted_pr_check_details";
 pub const PR_AUTO_MERGE: &str = "hosted_pr_auto_merge";
+pub const PROJECT_LIST: &str = "hosted_project_list";
+pub const PROJECT_RESOLVE: &str = "hosted_project_resolve";
+pub const PROJECT_VIEWS: &str = "hosted_project_views";
+pub const PROJECT_FIELD_SET: &str = "hosted_project_field_set";
+pub const PROJECT_FIELD_CLEAR: &str = "hosted_project_field_clear";
+pub const COMMENT_ADD: &str = "hosted_comment_add";
+pub const COMMENT_EDIT: &str = "hosted_comment_edit";
+pub const COMMENT_DELETE: &str = "hosted_comment_delete";
+pub const REPO_ISSUE_TYPES: &str = "hosted_repo_issue_types";
+pub const ISSUE_TYPE_SET: &str = "hosted_issue_type_set";
+pub const ISSUE_UPDATE: &str = "hosted_issue_update";
 pub const AUTH_STATUS: &str = "hosted_auth_status";
 pub const AUTH_LOGIN_START: &str = "hosted_auth_login_start";
 pub const AUTH_LOGIN_WAIT: &str = "hosted_auth_login_wait";
@@ -112,6 +123,13 @@ const WORK_TEXT: Property = Property { name: "search", kind: "string", about: "O
 const PAGE: Property = Property { name: "page", kind: "integer", about: "The page of `limit` items to read (default 1, at most 100)" };
 
 const STATE: Property = Property { name: "state", kind: "string", about: "`open` (default), `closed`, `merged` or `all`" };
+const OWNER: Property = Property { name: "owner", kind: "string", about: "The account or organization that owns the project" };
+const OWNER_TYPE: Property = Property { name: "owner_type", kind: "string", about: "`organization` or `user`" };
+const PROJECT_NUMBER: Property = Property { name: "project_number", kind: "integer", about: "The project's number under its owner" };
+const PROJECT_ID: Property = Property { name: "project", kind: "string", about: "The project's node id" };
+const ITEM_ID: Property = Property { name: "item", kind: "string", about: "The project item's node id" };
+const FIELD_ID: Property = Property { name: "field", kind: "string", about: "The project field's node id" };
+const COMMENT_ID: Property = Property { name: "comment_id", kind: "integer", about: "The issue comment's numeric id" };
 const ADD: Property = Property { name: "add", kind: "array", about: "Names to add" };
 const REMOVE: Property = Property { name: "remove", kind: "array", about: "Names to remove" };
 
@@ -287,6 +305,60 @@ pub const ACTIONS: &[Action] = &[
         [NUMBER, Property { name: "enabled", kind: "boolean", about: "`true` to turn it on, `false` to turn it off" }, Property { name: "method", kind: "string", about: "`merge` (default), `squash` or `rebase` (GitHub; GitLab merges as the project is set to)" }],
         ["number", "enabled"]
     ),
+    action!(PROJECT_LIST, "The GitHub projects the signed-in account can open: its own and those of its organizations (the first 40 and 20 per organization), with the login it is signed in as. Needs the `project` scope.", [], []),
+    action!(
+        PROJECT_RESOLVE,
+        "Find a GitHub project (or, with no `project_number`, only the owner) under an organization or a user; answers its node id and title.",
+        [OWNER, OWNER_TYPE, PROJECT_NUMBER],
+        ["owner", "owner_type"]
+    ),
+    action!(PROJECT_VIEWS, "The saved views of a GitHub project: id, number, name and layout.", [OWNER, OWNER_TYPE, PROJECT_NUMBER], ["owner", "owner_type", "project_number"]),
+    action!(
+        PROJECT_FIELD_SET,
+        "Set one field of a project item: `kind` names how `value` reads (`text`, `date` as YYYY-MM-DD, `single_select` and `iteration` by option or iteration id), `number_value` is the value of `number`.",
+        [
+            PROJECT_ID,
+            ITEM_ID,
+            FIELD_ID,
+            Property { name: "kind", kind: "string", about: "`text`, `number`, `date`, `single_select` or `iteration`" },
+            Property { name: "value", kind: "string", about: "The text, date, option id or iteration id" },
+            Property { name: "number_value", kind: "number", about: "The number, with `kind` `number`" },
+        ],
+        ["project", "item", "field", "kind"]
+    ),
+    action!(PROJECT_FIELD_CLEAR, "Clear one field of a project item.", [PROJECT_ID, ITEM_ID, FIELD_ID], ["project", "item", "field"]),
+    action!(
+        COMMENT_ADD,
+        "Add a comment to an issue or pull request of `repo` through the REST API; answers the new comment's id, author, avatar_url, body, created_at, url and whether the author is a bot.",
+        [ISSUE_NUMBER, BODY],
+        ["repo", "number", "body"]
+    ),
+    action!(COMMENT_EDIT, "Replace the text of an issue or pull request conversation comment of `repo`, by its numeric id.", [COMMENT_ID, BODY], ["repo", "comment_id", "body"]),
+    action!(COMMENT_DELETE, "Delete an issue or pull request conversation comment of `repo`, by its numeric id.", [COMMENT_ID], ["repo", "comment_id"]),
+    action!(REPO_ISSUE_TYPES, "The issue types a repository's organization defines: id, name, color and description; none when the repository has no issue types.", [], ["repo"]),
+    action!(
+        ISSUE_TYPE_SET,
+        "Set an issue's type by id, or clear it when `issue_type` is absent.",
+        [ISSUE_NUMBER, Property { name: "issue_type", kind: "string", about: "The issue type's node id; absent clears the type" }],
+        ["repo", "number"]
+    ),
+    action!(
+        ISSUE_UPDATE,
+        "Change an issue as one request: its state (with a reason, or the issue it duplicates), title and description, and the labels and assignees to add or remove. The steps run in that order and stop at the first that fails.",
+        [
+            ISSUE_NUMBER,
+            Property { name: "state", kind: "string", about: "`closed` or `open`" },
+            Property { name: "state_reason", kind: "string", about: "With `closed`: `completed`, `not_planned` or `duplicate`" },
+            Property { name: "duplicate_of", kind: "integer", about: "The issue this one duplicates, with `state_reason` `duplicate`, and only then" },
+            Property { name: "title", kind: "string", about: "The new title" },
+            BODY,
+            Property { name: "add_labels", kind: "array", about: "Labels to add" },
+            Property { name: "remove_labels", kind: "array", about: "Labels to remove" },
+            Property { name: "add_assignees", kind: "array", about: "Accounts to assign" },
+            Property { name: "remove_assignees", kind: "array", about: "Accounts to unassign" },
+        ],
+        ["repo", "number"]
+    ),
     action!(AUTH_STATUS, "Whether the CLI is installed and signed in on the executor machine, as which account and with which scopes (never the token).", [], []),
     action!(
         AUTH_LOGIN_START,
@@ -422,6 +494,28 @@ pub fn login(value: &str) -> ExecResult<()> {
         Ok(())
     } else {
         Err(bad("an account must be letters, digits, `_`, `-`, `.` (or `org/team`)"))
+    }
+}
+
+/// A GitHub account or organization name: letters, digits and single hyphens, at most 39 characters, no leading or trailing hyphen.
+pub fn owner_name(value: &str) -> ExecResult<()> {
+    let ok = !value.is_empty() && value.len() <= 39 && !value.starts_with('-') && !value.ends_with('-') && !value.contains("--") && value.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-');
+    if ok {
+        Ok(())
+    } else {
+        Err(bad("`owner` must be an account name of letters, digits and single `-`"))
+    }
+}
+
+/// A calendar date as GraphQL's `Date`: `YYYY-MM-DD`.
+pub fn iso_date(value: &str) -> ExecResult<()> {
+    let b = value.as_bytes();
+    let digits = |r: std::ops::Range<usize>| b[r].iter().all(u8::is_ascii_digit);
+    let ok = b.len() == 10 && b[4] == b'-' && b[7] == b'-' && digits(0..4) && digits(5..7) && digits(8..10) && (1..=12).contains(&value[5..7].parse::<u8>().unwrap_or(0)) && (1..=31).contains(&value[8..10].parse::<u8>().unwrap_or(0));
+    if ok {
+        Ok(())
+    } else {
+        Err(bad("`value` must be a date as YYYY-MM-DD"))
     }
 }
 
@@ -567,6 +661,29 @@ pub enum CommentKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OwnerType {
+    Organization,
+    User,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StateReason {
+    Completed,
+    NotPlanned,
+    Duplicate,
+}
+
+/// The value of a project field and how GraphQL types it.
+#[derive(Debug, Clone, PartialEq)]
+pub enum FieldValue {
+    Text(String),
+    Number(f64),
+    Date(String),
+    SingleSelect(String),
+    Iteration(String),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Visibility {
     Private,
     Public,
@@ -620,6 +737,17 @@ pub enum HostedCall {
     RunRerun { run: u64, failed_only: bool },
     PrCheckDetails { check: Option<u64>, run: Option<u64> },
     PrAutoMerge { number: u64, enabled: bool, method: MergeMethod },
+    ProjectList,
+    ProjectResolve { owner: String, owner_type: OwnerType, number: Option<u64> },
+    ProjectViews { owner: String, owner_type: OwnerType, number: u64 },
+    ProjectFieldSet { project: String, item: String, field: String, value: FieldValue },
+    ProjectFieldClear { project: String, item: String, field: String },
+    CommentAdd { number: u64, body: String },
+    CommentEdit { comment_id: u64, body: String },
+    CommentDelete { comment_id: u64 },
+    RepoIssueTypes,
+    IssueTypeSet { number: u64, issue_type: Option<String> },
+    IssueUpdate(Box<IssueUpdate>),
     AuthStatus,
     LoginStart,
     LoginWait { flow: String, wait_ms: u64 },
@@ -676,12 +804,39 @@ impl HostedCall {
             HostedCall::RunRerun { .. } => RUN_RERUN,
             HostedCall::PrCheckDetails { .. } => PR_CHECK_DETAILS,
             HostedCall::PrAutoMerge { .. } => PR_AUTO_MERGE,
+            HostedCall::ProjectList => PROJECT_LIST,
+            HostedCall::ProjectResolve { .. } => PROJECT_RESOLVE,
+            HostedCall::ProjectViews { .. } => PROJECT_VIEWS,
+            HostedCall::ProjectFieldSet { .. } => PROJECT_FIELD_SET,
+            HostedCall::ProjectFieldClear { .. } => PROJECT_FIELD_CLEAR,
+            HostedCall::CommentAdd { .. } => COMMENT_ADD,
+            HostedCall::CommentEdit { .. } => COMMENT_EDIT,
+            HostedCall::CommentDelete { .. } => COMMENT_DELETE,
+            HostedCall::RepoIssueTypes => REPO_ISSUE_TYPES,
+            HostedCall::IssueTypeSet { .. } => ISSUE_TYPE_SET,
+            HostedCall::IssueUpdate(_) => ISSUE_UPDATE,
             HostedCall::AuthStatus => AUTH_STATUS,
             HostedCall::LoginStart => AUTH_LOGIN_START,
             HostedCall::LoginWait { .. } => AUTH_LOGIN_WAIT,
             HostedCall::LoginCancel { .. } => AUTH_LOGIN_CANCEL,
         }
     }
+}
+
+/// What `hosted_issue_update` changes; every part is optional, at least one is given.
+#[derive(Debug, Clone, PartialEq)]
+pub struct IssueUpdate {
+    pub number: u64,
+    /// `Some(true)` closes the issue, `Some(false)` reopens it.
+    pub closed: Option<bool>,
+    pub reason: Option<StateReason>,
+    pub duplicate_of: Option<u64>,
+    pub title: Option<String>,
+    pub body: Option<String>,
+    pub add_labels: Vec<String>,
+    pub remove_labels: Vec<String>,
+    pub add_assignees: Vec<String>,
+    pub remove_assignees: Vec<String>,
 }
 
 /// One validated request of the family.
@@ -711,6 +866,10 @@ impl HostedOp {
             Some("gitlab") => Provider::Gitlab,
             _ => return Err(bad("`provider` must be `github` or `gitlab`")),
         };
+        let github_only = matches!(tool, PROJECT_LIST | PROJECT_RESOLVE | PROJECT_VIEWS | PROJECT_FIELD_SET | PROJECT_FIELD_CLEAR | COMMENT_ADD | COMMENT_EDIT | COMMENT_DELETE | REPO_ISSUE_TYPES | ISSUE_TYPE_SET | ISSUE_UPDATE);
+        if github_only && provider != Provider::Github {
+            return Err(bad(format!("{tool} is GitHub's: `provider` must be `github`")));
+        }
         let host_arg = text_arg(a, "host", host)?;
         let repo = text_arg(a, "repo", |r| slug(provider, r))?;
         let need_repo = |repo: &Option<String>| repo.is_some().then_some(()).ok_or_else(|| bad("`repo` is required"));
@@ -949,6 +1108,110 @@ impl HostedOp {
                 let method = choice(a, "method", MergeMethod::Merge, &[("merge", MergeMethod::Merge), ("squash", MergeMethod::Squash), ("rebase", MergeMethod::Rebase)])?;
                 HostedCall::PrAutoMerge { number: number(a)?, enabled, method }
             }
+            PROJECT_LIST => HostedCall::ProjectList,
+            PROJECT_RESOLVE | PROJECT_VIEWS => {
+                let owner = string(a, "owner")?;
+                owner_name(&owner)?;
+                let owner_type = choice(a, "owner_type", None, &[("organization", Some(OwnerType::Organization)), ("user", Some(OwnerType::User))])?.ok_or_else(|| bad("`owner_type` must be `organization` or `user`"))?;
+                let number = positive(a, "project_number")?;
+                match (tool, number) {
+                    (PROJECT_VIEWS, Some(number)) => HostedCall::ProjectViews { owner, owner_type, number },
+                    (PROJECT_VIEWS, None) => return Err(bad("`project_number` must be a positive integer")),
+                    (_, number) => HostedCall::ProjectResolve { owner, owner_type, number },
+                }
+            }
+            PROJECT_FIELD_SET | PROJECT_FIELD_CLEAR => {
+                let (project, item, field) = (string(a, "project")?, string(a, "item")?, string(a, "field")?);
+                token("project", &project)?;
+                token("item", &item)?;
+                token("field", &field)?;
+                if tool == PROJECT_FIELD_CLEAR {
+                    HostedCall::ProjectFieldClear { project, item, field }
+                } else {
+                    if !a["number_value"].is_null() && !a["number_value"].as_f64().is_some_and(f64::is_finite) {
+                        return Err(bad("`number_value` must be a number"));
+                    }
+                    let kind = choice(a, "kind", None, &[("text", Some(0)), ("number", Some(1)), ("date", Some(2)), ("single_select", Some(3)), ("iteration", Some(4))])?.ok_or_else(|| bad("`kind` must be one of `text`, `number`, `date`, `single_select`, `iteration`"))?;
+                    let value = if kind == 1 {
+                        let n = a["number_value"].as_f64().filter(|n| n.is_finite()).ok_or_else(|| bad("`number_value` must be a number"))?;
+                        FieldValue::Number(n)
+                    } else {
+                        let v = string(a, "value")?;
+                        match kind {
+                            0 => {
+                                body("value", &v)?;
+                                FieldValue::Text(v)
+                            }
+                            2 => {
+                                iso_date(&v)?;
+                                FieldValue::Date(v)
+                            }
+                            3 => {
+                                token("value", &v)?;
+                                FieldValue::SingleSelect(v)
+                            }
+                            _ => {
+                                token("value", &v)?;
+                                FieldValue::Iteration(v)
+                            }
+                        }
+                    };
+                    HostedCall::ProjectFieldSet { project, item, field, value }
+                }
+            }
+            COMMENT_ADD => {
+                need_repo(&repo)?;
+                HostedCall::CommentAdd { number: number(a)?, body: required_body()? }
+            }
+            COMMENT_EDIT | COMMENT_DELETE => {
+                need_repo(&repo)?;
+                let comment_id = positive(a, "comment_id")?.ok_or_else(|| bad("`comment_id` must be a positive integer"))?;
+                if tool == COMMENT_EDIT {
+                    HostedCall::CommentEdit { comment_id, body: required_body()? }
+                } else {
+                    HostedCall::CommentDelete { comment_id }
+                }
+            }
+            REPO_ISSUE_TYPES => {
+                need_repo(&repo)?;
+                HostedCall::RepoIssueTypes
+            }
+            ISSUE_TYPE_SET => {
+                need_repo(&repo)?;
+                let issue_type = text_arg(a, "issue_type", |t| token("issue_type", t))?;
+                HostedCall::IssueTypeSet { number: number(a)?, issue_type }
+            }
+            ISSUE_UPDATE => {
+                need_repo(&repo)?;
+                let closed = choice(a, "state", None, &[("closed", Some(true)), ("open", Some(false))])?;
+                let reason = choice(a, "state_reason", None, &[("completed", Some(StateReason::Completed)), ("not_planned", Some(StateReason::NotPlanned)), ("duplicate", Some(StateReason::Duplicate))])?;
+                let duplicate_of = positive(a, "duplicate_of")?;
+                if reason.is_some() && closed != Some(true) {
+                    return Err(bad("`state_reason` applies with `state` `closed` only"));
+                }
+                match (reason, duplicate_of) {
+                    (Some(StateReason::Duplicate), None) => return Err(bad("`duplicate_of` is required with `state_reason` `duplicate`")),
+                    (Some(StateReason::Duplicate), Some(_)) | (_, None) => {}
+                    (_, Some(_)) => return Err(bad("`duplicate_of` is valid only with `state_reason` `duplicate`")),
+                }
+                let update = IssueUpdate {
+                    number: number(a)?,
+                    closed,
+                    reason,
+                    duplicate_of,
+                    title: title_of("title")?,
+                    body: body_of("body")?,
+                    add_labels: names(a, "add_labels", label)?,
+                    remove_labels: names(a, "remove_labels", label)?,
+                    add_assignees: names(a, "add_assignees", login)?,
+                    remove_assignees: names(a, "remove_assignees", login)?,
+                };
+                let nothing = update.closed.is_none() && update.title.is_none() && update.body.is_none() && [&update.add_labels, &update.remove_labels, &update.add_assignees, &update.remove_assignees].iter().all(|l| l.is_empty());
+                if nothing {
+                    return Err(bad("give at least one of `state`, `title`, `body`, `add_labels`, `remove_labels`, `add_assignees`, `remove_assignees`"));
+                }
+                HostedCall::IssueUpdate(Box::new(update))
+            }
             AUTH_STATUS => HostedCall::AuthStatus,
             AUTH_LOGIN_START => HostedCall::LoginStart,
             AUTH_LOGIN_WAIT => {
@@ -976,6 +1239,8 @@ pub fn minimal_args(action: &Action) -> Value {
             ("provider", _) => serde_json::json!("github"),
             ("repo", _) => serde_json::json!("octo/hello"),
             ("verdict", _) => serde_json::json!("approve"),
+            ("owner_type", _) => serde_json::json!("organization"),
+            ("kind", _) => serde_json::json!("text"),
             ("content", _) => serde_json::json!("+1"),
             ("dest", _) => serde_json::json!("clones/hello"),
             (_, Some("integer")) => serde_json::json!(7),
@@ -993,6 +1258,8 @@ pub fn minimal_args(action: &Action) -> Value {
         PR_REPLY => args.insert("thread".into(), serde_json::json!("PRRT_1")),
         PR_STATE | ISSUE_STATE => args.insert("state".into(), serde_json::json!("closed")),
         PR_CHECK_DETAILS => args.insert("check".into(), serde_json::json!(7)),
+        PROJECT_FIELD_SET => args.insert("value".into(), serde_json::json!("v")),
+        ISSUE_UPDATE => args.insert("title".into(), serde_json::json!("t")),
         _ => None,
     };
     Value::Object(args)
@@ -1141,5 +1408,38 @@ mod tests {
         assert!(github(PR_AUTO_MERGE, json!({"number": 1, "enabled": true, "method": "octopus"})).contains("`method`"));
         let gitlab = HostedOp::parse(PR_REVIEW_COMMENT, &json!({"provider": "gitlab", "number": 1, "body": "x", "commit_id": "abc", "path": "a", "line": 3, "base_sha": "ba5e", "start_sha": "5ca1", "start_line": 2})).unwrap().unwrap_err();
         assert!(gitlab.message.contains("`start_line`"));
+    }
+
+    #[test]
+    fn given_the_project_and_issue_update_actions_when_asked_then_each_value_is_typed_by_its_kind_and_a_contradiction_or_another_provider_is_refused_with_its_key() {
+        let parse = |tool: &str, args: Value| HostedOp::parse(tool, &args).unwrap();
+        let base = json!({"provider": "github", "project": "PVT_1", "item": "PVTI_1", "field": "PVTF_1"});
+        let set = |extra: Value| {
+            let mut a = base.clone();
+            a.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+            parse(PROJECT_FIELD_SET, a)
+        };
+        // Given a value of each kind, Then it is read as that kind
+        assert_eq!(set(json!({"kind": "number", "number_value": 2.5})).unwrap().call, HostedCall::ProjectFieldSet { project: "PVT_1".into(), item: "PVTI_1".into(), field: "PVTF_1".into(), value: FieldValue::Number(2.5) });
+        assert!(matches!(set(json!({"kind": "single_select", "value": "f75ad846"})).unwrap().call, HostedCall::ProjectFieldSet { value: FieldValue::SingleSelect(_), .. }));
+        assert!(matches!(set(json!({"kind": "date", "value": "2026-12-01"})).unwrap().call, HostedCall::ProjectFieldSet { value: FieldValue::Date(_), .. }));
+        // And a number that is no number, a date that is none, a kind that is none and a missing value are refused naming their key
+        for (extra, key) in [(json!({"kind": "number", "number_value": "3"}), "number_value"), (json!({"kind": "date", "value": "2026-13-40"}), "value"), (json!({"kind": "label", "value": "x"}), "kind"), (json!({"kind": "text"}), "value")] {
+            assert!(set(extra).unwrap_err().message.contains(&format!("`{key}`")), "{key}");
+        }
+        // And the actions are GitHub's
+        let gitlab = parse(PROJECT_LIST, json!({"provider": "gitlab"})).unwrap_err();
+        assert!(gitlab.message.contains("GitHub's"), "{gitlab:?}");
+        // And an issue update closes only with a reason it can state: a reason needs `closed`, a duplicate needs its target and only a duplicate has one
+        let update = |extra: Value| {
+            let mut a = json!({"provider": "github", "repo": "octo/hello", "number": 7});
+            a.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+            parse(ISSUE_UPDATE, a)
+        };
+        assert!(update(json!({"state": "open", "state_reason": "completed"})).unwrap_err().message.contains("`state_reason`"));
+        assert!(update(json!({"state": "closed", "state_reason": "duplicate"})).unwrap_err().message.contains("`duplicate_of`"));
+        assert!(update(json!({"state": "closed", "state_reason": "completed", "duplicate_of": 3})).unwrap_err().message.contains("`duplicate_of`"));
+        assert!(update(json!({"state": "closed", "state_reason": "duplicate", "duplicate_of": 3})).is_ok());
+        assert!(update(json!({})).unwrap_err().message.contains("at least one"));
     }
 }

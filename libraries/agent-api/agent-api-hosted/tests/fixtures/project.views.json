@@ -1,0 +1,54 @@
+{
+  "method": "project.views",
+  "exchanges": [
+    {
+      "name": "no workspace is named, so an executor whose gh is signed in answers",
+      "request": {
+        "id": 1,
+        "method": "project.views",
+        "params": {
+          "owner": "acme",
+          "owner_type": "organization",
+          "project_number": 4
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "views": [
+            {
+              "id": "PVTV_1",
+              "number": 1,
+              "name": "Backlog",
+              "layout": "TABLE_LAYOUT"
+            }
+          ]
+        }
+      },
+      "actions": [
+        "hosted_project_views"
+      ]
+    },
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 2,
+        "method": "project.views",
+        "params": {
+          "owner": "acme",
+          "owner_type": "organization"
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`project_number` must be a positive integer"
+        }
+      },
+      "actions": [
+        "hosted_project_views"
+      ]
+    }
+  ]
+}

@@ -14,7 +14,21 @@ use std::time::{Duration, Instant};
 
 const LOGIN_ACTIONS: [&str; 3] = [AUTH_LOGIN_START, AUTH_LOGIN_WAIT, AUTH_LOGIN_CANCEL];
 // Publishing to GitLab ends with a real `git push` (its own test below); GitLab keeps a file's viewed mark in the browser.
-const GITHUB_ONLY: [&str; 2] = [REPO_PUBLISH, PR_FILE_VIEWED];
+const GITHUB_ONLY: [&str; 13] = [
+    REPO_PUBLISH,
+    PR_FILE_VIEWED,
+    exec_hosted::PROJECT_LIST,
+    exec_hosted::PROJECT_RESOLVE,
+    exec_hosted::PROJECT_VIEWS,
+    exec_hosted::PROJECT_FIELD_SET,
+    exec_hosted::PROJECT_FIELD_CLEAR,
+    exec_hosted::COMMENT_ADD,
+    exec_hosted::COMMENT_EDIT,
+    exec_hosted::COMMENT_DELETE,
+    exec_hosted::REPO_ISSUE_TYPES,
+    exec_hosted::ISSUE_TYPE_SET,
+    exec_hosted::ISSUE_UPDATE,
+];
 
 struct Bench {
     root: PathBuf,
@@ -120,7 +134,7 @@ fn no_start(b: &Bench) {
 }
 
 const FREE_TEXT: [&str; 4] = ["title", "body", "description", "search"];
-const LABEL_KEYS: [&str; 3] = ["label", "labels", "add"];
+const LABEL_KEYS: [&str; 5] = ["label", "labels", "add", "add_labels", "remove_labels"];
 
 #[test]
 fn given_every_argument_of_every_action_when_it_carries_text_a_cli_or_shell_could_misread_then_the_request_is_refused_and_no_program_starts() {
@@ -372,11 +386,25 @@ fn given_a_machine_that_is_not_signed_in_or_a_repository_that_does_not_exist_whe
     assert_eq!(missing.code, Code::NotFound, "{missing:?}");
 }
 
+#[test]
+fn given_a_label_removal_when_the_label_is_gone_then_it_succeeds_and_when_the_host_refuses_it_fails() {
+    let b = bench();
+    let args = json!({"provider": "github", "repo": "octo/hello", "number": 7, "remove_labels": ["wip"]});
+    let delete = ["api", "--method=DELETE", "repos/octo/hello/issues/7/labels/wip"];
+    // Given the label is already gone (HTTP 404)
+    b.clis.rules(&[Rule { stderr: "gh: Label does not exist (HTTP 404)\n".into(), exit_code: 1, ..rule("gh", &delete) }], &[]);
+    // When it is removed Then the update is done
+    assert_eq!(call(&b.ex, "a", exec_hosted::ISSUE_UPDATE, args.clone()).unwrap(), json!({"done": true}));
+    // And given the host refuses (HTTP 403) Then the update fails
+    b.clis.rules(&[Rule { stderr: "gh: Resource not accessible (HTTP 403)\n".into(), exit_code: 1, ..rule("gh", &delete) }], &[]);
+    assert!(call(&b.ex, "b", exec_hosted::ISSUE_UPDATE, args).is_err());
+}
+
 fn login_rules(program: &str, args: &[&str], stderr: &str, sleep_ms: u64, hang: bool, exit_code: i32) -> Rule {
     Rule { stderr: stderr.into(), sleep_ms, hang, exit_code, ..rule(program, args) }
 }
 
-const GH_LOGIN: [&str; 5] = ["auth", "login", "--web", "--hostname=github.com", "--git-protocol=https"];
+const GH_LOGIN: [&str; 6] = ["auth", "login", "--web", "--hostname=github.com", "--git-protocol=https", "--scopes=project,read:org"];
 const GH_PROMPT: &str = "! First copy your one-time code: ABCD-1234\nOpen this URL to continue in your web browser: https://github.com/login/device\n";
 
 #[test]

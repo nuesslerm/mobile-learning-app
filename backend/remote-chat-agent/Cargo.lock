@@ -1898,6 +1898,7 @@ dependencies = [
  "async-trait",
  "exec-hosted",
  "exec-proto",
+ "futures-util",
  "rca-agent-core",
  "rca-exec-channel",
  "serde_json",

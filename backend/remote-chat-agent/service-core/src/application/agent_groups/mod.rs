@@ -25,7 +25,7 @@ pub use attachment_staging::StagesAttachments;
 pub use rca_group_attachments::{Attachments, AttachmentsGroup, BlobStore, Clock as AttachmentClock, Ids as AttachmentIds, Put as BlobPut};
 pub use rca_group_catalog::{CatalogGroup, Catalog, Clock as CatalogClock, Speech as CatalogSpeech};
 pub use rca_group_git::GitGroup;
-pub use rca_group_hosted::{ExecutorCredentials, HostCredentials, HostedAuthGroup, HostedCloneGroup, HostedIssueGroup, HostedPrGroup};
+pub use rca_group_hosted::{ExecutorCredentials, HostCredentials, HostedAuthGroup, HostedCloneGroup, HostedIssueGroup, HostedProjectGroup, HostedPrGroup};
 pub use rca_group_browser::BrowserGroup;
 pub use rca_group_preview::{Clock as PreviewClock, Ids as PreviewIds, PreviewGroup, PreviewSessionGroup, PreviewWatchGroup, Previews};
 pub use rca_group_schedules::{Clock as ScheduleClock, Ids as ScheduleIds, ScheduleGroup, ScheduleStore, ScheduleWatchGroup, Schedules, Stored as StoredSchedule, WebhookOutcome, WebhookRequest};
@@ -95,6 +95,7 @@ mod tests {
             Arc::new(GitGroup::new(executors.clone())),
             Arc::new(HostedPrGroup::new(executors.clone())),
             Arc::new(HostedIssueGroup::new(executors.clone())),
+        Arc::new(HostedProjectGroup::new(executors.clone())),
             Arc::new(HostedCloneGroup::new(executors.clone())),
             Arc::new(HostedAuthGroup::new(executors.clone(), Arc::new(ExecutorCredentials::new(executors.clone())))),
             Arc::new(rca_group_agent::AgentThreadsGroup::with_runner(runner.clone())),
@@ -145,7 +146,7 @@ mod tests {
         // When the status is asked
         let status = call(&api, json!({"id": 7, "method": "service.status"})).await;
         // Then the answer lists the twenty-one complete groups, in registration order, and not workspace, though workspace.list is answered
-        assert_eq!(status, json!({"id": 7, "result": {"protocol": 1, "version": "1.2.3", "commit": "abc", "groups": ["service", "service.activity", "state", "state.watch", "files", "files.edit", "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.issue", "hosted.clone", "hosted.auth", "agent.threads", "agent.requests", "agent.queue", "agent.lifecycle", "attachments", "agent.catalog", "preview", "preview.sessions", "preview.watch", "browser", "service.notifications", "service.panes"]}}));
+        assert_eq!(status, json!({"id": 7, "result": {"protocol": 1, "version": "1.2.3", "commit": "abc", "groups": ["service", "service.activity", "state", "state.watch", "files", "files.edit", "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.issue", "hosted.project", "hosted.clone", "hosted.auth", "agent.threads", "agent.requests", "agent.queue", "agent.lifecycle", "attachments", "agent.catalog", "preview", "preview.sessions", "preview.watch", "browser", "service.notifications", "service.panes"]}}));
         assert_eq!(call(&api, json!({"id": 8, "method": "workspace.list"})).await, json!({"id": 8, "result": {"workspaces": []}}));
     }
 

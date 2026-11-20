@@ -1,6 +1,6 @@
 //! `hosted.pr`: pull and merge requests, runs and the repository's candidates for labels and reviewers. `pr.*` and `mr.*` are one set of
 //! methods under two spellings (the provider a request names none gets differs), each answered by one executor action.
-use super::{spec, Spec, GROUP_PR};
+use super::{repo_spec, Spec, GROUP_PR};
 use agent_api_proto::Method;
 
 macro_rules! both {
@@ -12,7 +12,7 @@ macro_rules! both {
         /// The `pr.*` methods, then the `mr.*` ones, in the contract's order.
         pub const METHODS: &[Method] = &[$($pr),*, $($mr),*];
         /// Each method with its action: the `pr.*` ones default to GitHub, the `mr.*` ones to GitLab.
-        pub const SPECS: &[Spec] = &[$(spec($pr, &[$action], Some("github"))),*, $(spec($mr, &[$action], Some("gitlab"))),*];
+        pub const SPECS: &[Spec] = &[$(repo_spec($pr, &[$action], Some("github"))),*, $(repo_spec($mr, &[$action], Some("gitlab"))),*];
     };
 }
 

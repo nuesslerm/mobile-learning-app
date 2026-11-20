@@ -1,11 +1,23 @@
 {
-  "content_hash": "sha256:58c263eb872785d2a94a5fdcf43e62bb6110d45a15e74fe21fdec893c77eff14",
-  "interactions": 168,
+  "content_hash": "sha256:a8681393449c0b753fbd1ee3b1fac1d0aa43b48c716fe8150fc8893bec11b553",
+  "interactions": 202,
   "provenance": {
     "imported_from": [
       {
         "hash": "sha256:751b4ea16618bdc0e741d39f66849d6873ab2342005cbf3e3e44b9521b56fca3",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_auth_status.json"
+      },
+      {
+        "hash": "sha256:9aa3a5448cba2e0631a11578b4f4dcce2aecdefcea4795bd727529770e1bcb1a",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_comment_add.json"
+      },
+      {
+        "hash": "sha256:d817df31fb67459475141b4443bee0a4062d607bd3172461025fc194b67fdbc6",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_comment_delete.json"
+      },
+      {
+        "hash": "sha256:a813cab3470beb24297ce351ef5169dfb548e44eec60b67a5529f54a4aeaf602",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_comment_edit.json"
       },
       {
         "hash": "sha256:4f94f897ccca734f319e6347d00107de34daf462f6523a9fcfeb787ec2160631",
@@ -42,6 +54,14 @@
       {
         "hash": "sha256:2d34bd2a0fa2e7262fc86c5a3d5133d261b58bdbae996ded0784e15ef76bd5b4",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_todos.json"
+      },
+      {
+        "hash": "sha256:691ff4563999298498b627849e18d1a9902a96a57cca1845373fa5c734ca140a",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_type_set.json"
+      },
+      {
+        "hash": "sha256:0e62902517f839b92f3f6b19223f9e29c53e3672655bc1c93fc7aa2271bfbb17",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_update.json"
       },
       {
         "hash": "sha256:d7a6b9f36abd8f141a09f7468c3bdd498b68899963574dd67791e12cbb35a0df",
@@ -156,8 +176,32 @@
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_view.json"
       },
       {
+        "hash": "sha256:8d782a6869eb81298f32539a67f7e8e7e4d7893802620be7a4b489c38b787ffc",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_project_field_clear.json"
+      },
+      {
+        "hash": "sha256:69abd9e9944cef32f634c2988194dd8bbfb84a9c2c6931dd8102d6ab6a3a133e",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_project_field_set.json"
+      },
+      {
+        "hash": "sha256:795a476161e50d0e524c1fa40ec8b7c4c52bf3f7061e66ce5446f3c3826fb203",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_project_list.json"
+      },
+      {
+        "hash": "sha256:04970433ac892168417225fb62c5fa459c48e4a4714db847ca8d4b8ec6af9b99",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_project_resolve.json"
+      },
+      {
+        "hash": "sha256:2a6efe38b0294644852ce603015f9253673516004e0c304bd2b9548f2e109802",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_project_views.json"
+      },
+      {
         "hash": "sha256:abffa63317851a0dfec6d588fbde085bd0ca872da44abf94e490f4eb21aef7e9",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_clone.json"
+      },
+      {
+        "hash": "sha256:81383ae9832e0f07a1ec1a90384e6cc444cba46679b334f0433d0024764bb4ef",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_issue_types.json"
       },
       {
         "hash": "sha256:22188229f362940ef660755d60dd625d113d2b87b0d48f0df2c2bfba0ff89f7c",
@@ -193,7 +237,7 @@
       }
     ],
     "kind": "imported",
-    "note": "imported without a run of gh or glab; the owner-gated real recording against a pinned CLI version is the open next step",
+    "note": "imported without a run of gh or glab; the owner-gated real recording against a pinned CLI version is the open next step; the interactions of hosted_project_*, hosted_comment_*, hosted_repo_issue_types, hosted_issue_type_set and hosted_issue_update are authored doubles written from GitHub documentation and Orca source, not recordings (docs/gaps/orca-github-project-rows.md)",
     "rules_hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
     "source": "the hosted_*.json fixtures of exec-hosted: what gh and glab print for an argv, written by RECORD_HOSTED_FIXTURES from what the executor did against a scripted fake, not recorded from a run of gh or glab (docs/gaps/exec-hosted-fixtures-not-from-real-clis.md)",
     "tool": {

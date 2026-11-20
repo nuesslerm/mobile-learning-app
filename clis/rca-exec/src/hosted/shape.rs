@@ -680,6 +680,86 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
         HostedCall::RunRerun { run, failed_only } => Ok(json!({"run": run, "failed_only": *failed_only && github})),
         HostedCall::PrAutoMerge { number, enabled, .. } => Ok(json!({"number": number, "enabled": enabled})),
         HostedCall::PrCheckDetails { check, run } => check_details(github, check.is_some(), run.is_some(), outputs),
+        HostedCall::ProjectList => {
+            let v = body(&last)?;
+            let viewer = &v["data"]["viewer"];
+            if !viewer.is_object() {
+                return Err(io("gh answered no viewer"));
+            }
+            let login = text(viewer, "login");
+            let row = |n: &Value, owner: Value, owner_type: &str, source: String| json!({"id": text(n, "id"), "owner": owner, "owner_type": owner_type, "number": num(n, "number"), "title": n.get("title").and_then(Value::as_str).unwrap_or(""), "url": n.get("url").and_then(Value::as_str).unwrap_or(""), "source": source});
+            let usable = |n: &&Value| n.get("id").and_then(Value::as_str).is_some() && n.get("number").and_then(Value::as_u64).is_some();
+            let mut projects: Vec<Value> = items(&viewer["projectsV2"], "nodes")
+                .iter()
+                .filter(usable)
+                .map(|n| {
+                    let org = n["owner"]["__typename"] == "Organization";
+                    row(n, if text(&n["owner"], "login").is_null() { login.clone() } else { text(&n["owner"], "login") }, if org { "organization" } else { "user" }, "viewer".into())
+                })
+                .collect();
+            for org in items(&viewer["organizations"], "nodes") {
+                let Some(name) = org.get("login").and_then(Value::as_str) else { continue };
+                projects.extend(items(&org["projectsV2"], "nodes").iter().filter(usable).take(40).map(|n| row(n, json!(name), "organization", format!("org:{name}"))));
+            }
+            Ok(json!({"login": login, "projects": projects}))
+        }
+        HostedCall::ProjectResolve { owner, owner_type, number } => {
+            let v = body(&last)?;
+            let root = match owner_type {
+                exec_hosted::OwnerType::Organization => "organization",
+                exec_hosted::OwnerType::User => "user",
+            };
+            let top = &v["data"][root];
+            if !top.is_object() {
+                return Err(ExecError::new(Code::NotFound, format!("owner not found: {owner}")));
+            }
+            let kind = if root == "organization" { "organization" } else { "user" };
+            match number {
+                None => Ok(json!({"owner": owner, "owner_type": kind, "number": null, "id": null, "title": null})),
+                Some(number) => {
+                    let project = &top["projectV2"];
+                    if text(project, "id").is_null() {
+                        return Err(ExecError::new(Code::NotFound, format!("project not found: {owner}/{number}")));
+                    }
+                    Ok(json!({"owner": owner, "owner_type": kind, "number": number, "id": project["id"], "title": project.get("title").and_then(Value::as_str).unwrap_or("")}))
+                }
+            }
+        }
+        HostedCall::ProjectViews { owner, owner_type, number } => {
+            let v = body(&last)?;
+            let root = match owner_type {
+                exec_hosted::OwnerType::Organization => "organization",
+                exec_hosted::OwnerType::User => "user",
+            };
+            let project = &v["data"][root]["projectV2"];
+            if !project.is_object() {
+                return Err(ExecError::new(Code::NotFound, format!("project not found: {owner}/{number}")));
+            }
+            let views: Vec<Value> = items(&project["views"], "nodes").iter().filter(|n| n.get("id").and_then(Value::as_str).is_some() && n.get("layout").and_then(Value::as_str).is_some()).map(|n| json!({"id": n["id"], "number": num(n, "number"), "name": n.get("name").and_then(Value::as_str).unwrap_or(""), "layout": n["layout"]})).collect();
+            Ok(json!({"views": views}))
+        }
+        HostedCall::ProjectFieldSet { .. } | HostedCall::ProjectFieldClear { .. } | HostedCall::IssueTypeSet { .. } => {
+            let v = body(&last)?;
+            match v.get("errors").and_then(Value::as_array).and_then(|e| e.first()) {
+                Some(first) => Err(io(format!("gh: {}", brief(first["message"].as_str().unwrap_or("the mutation was refused"))))),
+                None => done(),
+            }
+        }
+        HostedCall::CommentAdd { .. } => {
+            let v = body(&last)?;
+            let user = &v["user"];
+            Ok(json!({"comment": {"id": v["id"], "author": text(user, "login"), "avatar_url": text(user, "avatar_url"), "body": v.get("body").and_then(Value::as_str).unwrap_or(""), "created_at": text(&v, "created_at"), "url": text(&v, "html_url"), "is_bot": user["type"] == "Bot"}}))
+        }
+        HostedCall::CommentEdit { .. } | HostedCall::CommentDelete { .. } | HostedCall::IssueUpdate(_) => done(),
+        HostedCall::RepoIssueTypes => {
+            let v = body(&last)?;
+            let types: Vec<Value> = items(&v["data"]["repository"]["issueTypes"], "nodes")
+                .iter()
+                .filter(|n| n.get("id").and_then(Value::as_str).is_some() && n.get("name").and_then(Value::as_str).is_some())
+                .map(|n| json!({"id": n["id"], "name": n["name"], "color": text(n, "color"), "description": text(n, "description")}))
+                .collect();
+            Ok(json!({"types": types}))
+        }
         HostedCall::AuthStatus => {
             let both = format!("{}\n{}", last.stdout, last.stderr);
             let status = parse_auth_status(&both);

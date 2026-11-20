@@ -410,84 +410,54 @@
       "oracle": "mimic"
     },
     "rpc:github.project.listAccessible": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data. A hosted_project_* family over gh project and the GraphQL API would have to be added first.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.project.resolveRef": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible. A parse-only serve would answer only the refusal case, which the rule does not count.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.project.viewTable": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
+      "reason": "decided 20 Nov under issue 83 O4: the view table (fields with typed values, items with field values, the view filter, grouping, sort and layout) needs a hosted action that reads a project view through GraphQL, which rca does not have, and no success shape of it was ever recorded, so an answer would come from Orca's source alone. docs/gaps/orca-github-project-rows.md",
       "decidedBy": "M12"
     },
     "rpc:github.project.listViews": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.project.updateItemField": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.project.clearItemField": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.project.workItemDetailsBySlug": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible, and the row is addressed by owner/repo slug with no workspace to place a gh call in.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.project.listAssignableUsersBySlug": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.project.listIssueTypesBySlug": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.project.listLabelsBySlug": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.project.updateIssueBySlug": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.project.updatePullRequestBySlug": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible: the row is addressed by owner/repo slug with no repo selector, so rca has no workspace to place the gh call in.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.project.updateIssueTypeBySlug": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.project.addIssueCommentBySlug": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.project.updateIssueCommentBySlug": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.project.deleteIssueCommentBySlug": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:gitlab.listWorkItems": {
       "oracle": "mimic"

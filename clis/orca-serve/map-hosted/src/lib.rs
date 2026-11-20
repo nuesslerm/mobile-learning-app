@@ -21,6 +21,7 @@ mod eligibility;
 mod github;
 mod gitlab;
 mod issue;
+mod project;
 mod review;
 mod slug;
 mod time;
@@ -31,7 +32,7 @@ pub mod testing;
 
 /// The agent methods this crate sends: the `pr.*` and `mr.*` ones it reaches, the fetch of a request's head, the git reads and the sign-in status of
 /// review eligibility and creation, and the review template creation reads.
-pub const USES: &[AgentMethod] = &[pr::RUN_RERUN, pr::CHECK_DETAILS, pr::SET_AUTO_MERGE, issue_api::VIEW, issue_api::COMMENTS, pr::FILES, pr::MR_FILES, pr::MR_COMMENTS, pr::MR_THREADS, issue_api::SEARCH, issue_api::COUNT, issue_api::TODOS, issue_api::CREATE, issue_api::EDIT, issue_api::SET_STATE, issue_api::COMMENT, issue_api::LIST, pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::RESOLVE_THREAD, pr::FILE_VIEWED, pr::REPLY, pr::REVIEW_COMMENT, pr::SET_STATE, pr::MR_SET_STATE, pr::MR_COMMENT, pr::COMMENTS, pr::REVIEWS, pr::THREADS, pr::REMOTES, pr::MR_LIST, pr::CREATE, pr::MR_CREATE, auth::DISCOVER, FETCH, BLOB, REFS, UPSTREAM_STATUS, STATUS, orca_map_workspace::FILE_READ];
+pub const USES: &[AgentMethod] = &[agent_api_hosted::project::LIST, agent_api_hosted::project::RESOLVE, agent_api_hosted::project::VIEWS, agent_api_hosted::project::SET_FIELD, agent_api_hosted::project::CLEAR_FIELD, agent_api_hosted::project::COMMENT_ADD, agent_api_hosted::project::COMMENT_EDIT, agent_api_hosted::project::COMMENT_DELETE, agent_api_hosted::project::ISSUE_TYPES, agent_api_hosted::project::SET_ISSUE_TYPE, agent_api_hosted::project::UPDATE_ISSUE, pr::RUN_RERUN, pr::CHECK_DETAILS, pr::SET_AUTO_MERGE, issue_api::VIEW, issue_api::COMMENTS, pr::FILES, pr::MR_FILES, pr::MR_COMMENTS, pr::MR_THREADS, issue_api::SEARCH, issue_api::COUNT, issue_api::TODOS, issue_api::CREATE, issue_api::EDIT, issue_api::SET_STATE, issue_api::COMMENT, issue_api::LIST, pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::RESOLVE_THREAD, pr::FILE_VIEWED, pr::REPLY, pr::REVIEW_COMMENT, pr::SET_STATE, pr::MR_SET_STATE, pr::MR_COMMENT, pr::COMMENTS, pr::REVIEWS, pr::THREADS, pr::REMOTES, pr::MR_LIST, pr::CREATE, pr::MR_CREATE, auth::DISCOVER, FETCH, BLOB, REFS, UPSTREAM_STATUS, STATUS, orca_map_workspace::FILE_READ];
 
 /// `pr.remotes`, for a mapping crate that reads a workspace's remotes and their fetch URLs.
 pub const PR_REMOTES: AgentMethod = pr::REMOTES;
@@ -84,6 +85,21 @@ const METHODS: &[Method] = &[
     Method { name: "github.workItemDetails", kind: Kind::Unary },
     Method { name: "gitlab.workItemDetails", kind: Kind::Unary },
     Method { name: "gitlab.workItemByPath", kind: Kind::Unary },
+    Method { name: "github.project.listAccessible", kind: Kind::Unary },
+    Method { name: "github.project.listLabelsBySlug", kind: Kind::Unary },
+    Method { name: "github.project.listAssignableUsersBySlug", kind: Kind::Unary },
+    Method { name: "github.project.listIssueTypesBySlug", kind: Kind::Unary },
+    Method { name: "github.project.resolveRef", kind: Kind::Unary },
+    Method { name: "github.project.listViews", kind: Kind::Unary },
+    Method { name: "github.project.workItemDetailsBySlug", kind: Kind::Unary },
+    Method { name: "github.project.updateItemField", kind: Kind::Unary },
+    Method { name: "github.project.clearItemField", kind: Kind::Unary },
+    Method { name: "github.project.updateIssueBySlug", kind: Kind::Unary },
+    Method { name: "github.project.updatePullRequestBySlug", kind: Kind::Unary },
+    Method { name: "github.project.updateIssueTypeBySlug", kind: Kind::Unary },
+    Method { name: "github.project.addIssueCommentBySlug", kind: Kind::Unary },
+    Method { name: "github.project.updateIssueCommentBySlug", kind: Kind::Unary },
+    Method { name: "github.project.deleteIssueCommentBySlug", kind: Kind::Unary },
     Method { name: "worktree.resolvePrBase", kind: Kind::Unary },
     Method { name: "worktree.resolveMrBase", kind: Kind::Unary },
 ];
@@ -100,6 +116,10 @@ impl Area for HostedArea {
     }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
+        if project::is_row(method) {
+            project::check(method, params)?;
+            return project::call(&Target::account(ctx.agent), method, params);
+        }
         let repo_list = matches!(method, "github.listLabels" | "github.listAssignableUsers" | "github.resolveReviewThread" | "github.setPRFileViewed" | "github.addPRReviewComment" | "github.addPRReviewCommentReply" | "github.updatePRState" | "gitlab.updateMRState" | "gitlab.addMRComment" | "github.repoSlug" | "hostedReview.getCreationEligibility" | "hostedReview.create");
         let issue_row = matches!(method, "github.createIssue" | "github.updateIssue" | "github.addIssueComment" | "gitlab.createIssue" | "gitlab.updateIssue" | "gitlab.addIssueComment" | "github.countWorkItems" | "github.listWorkItems" | "gitlab.listWorkItems" | "gitlab.todos") || detail::is_row(method);
         let ci_row = matches!(method, "github.rerunPRChecks" | "github.setPRAutoMerge" | "github.prCheckDetails");
@@ -183,7 +203,8 @@ impl Area for HostedArea {
 /// The repository a request names: the agent API and the rca workspace its `repo` selector resolved to.
 pub(crate) struct Target<'a> {
     agent: &'a dyn AgentApi,
-    workspace: String,
+    /// None for a row that names no repository of the phone's: rca routes it to an executor whose gh is signed in.
+    workspace: Option<String>,
 }
 
 pub(crate) fn refusal(error: AgentError) -> Failure {
@@ -198,7 +219,12 @@ pub(crate) fn refusal(error: AgentError) -> Failure {
 impl<'a> Target<'a> {
     fn of(agent: &'a dyn AgentApi, params: &Value) -> Result<Target<'a>, Failure> {
         let selector = text(params, "repo").ok_or_else(|| Failure::invalid("Missing repo selector"))?;
-        Ok(Target { agent, workspace: orca_map_workspace::resolve(agent, selector)?.workspace })
+        Ok(Target { agent, workspace: Some(orca_map_workspace::resolve(agent, selector)?.workspace) })
+    }
+
+    /// The agent API with no workspace: the account's own executor answers.
+    pub(crate) fn account(agent: &'a dyn AgentApi) -> Target<'a> {
+        Target { agent, workspace: None }
     }
 
     /// The group's answer, with a refusal kept as the executor words it.
@@ -207,7 +233,9 @@ impl<'a> Target<'a> {
             Value::Object(map) => map,
             _ => Map::new(),
         };
-        params.insert("workspace".into(), json!(self.workspace));
+        if let Some(workspace) = &self.workspace {
+            params.insert("workspace".into(), json!(workspace));
+        }
         self.agent.request(method.name(), Value::Object(params))
     }
 
@@ -217,7 +245,7 @@ impl<'a> Target<'a> {
 
     /// The same agent API acting in another workspace (a worktree of the repository).
     pub(crate) fn with_workspace(&self, workspace: String) -> Target<'a> {
-        Target { agent: self.agent, workspace }
+        Target { agent: self.agent, workspace: Some(workspace) }
     }
 }
 

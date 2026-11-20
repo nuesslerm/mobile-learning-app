@@ -59,6 +59,8 @@ struct State {
     templates: Vec<(String, String)>,
     /// A refusal of every create as (code, message), and whether the request is opened all the same.
     create_error: Option<(String, String, bool)>,
+    /// Whether an executor whose gh is signed in (with the project scope) is attached: what answers a request that names no workspace.
+    account: bool,
 }
 
 /// What rca's richer answers add to a comment, a review or a thread comment; every part is optional and a default adds none.
@@ -87,6 +89,23 @@ impl Extras<'_> {
 
 #[derive(Clone, Default)]
 pub struct Hosting(Arc<Mutex<State>>);
+
+/// A request with no workspace goes to an executor whose gh is signed in, and is the service's NO_EXECUTOR when there is none.
+fn routed(s: &State, p: &Value) -> Result<(), AgentError> {
+    if p.get("workspace").is_none() && !s.account {
+        return Err(signed_out_refusal(p));
+    }
+    Ok(())
+}
+
+/// A request with no workspace and no signed-in executor is the service's NO_EXECUTOR; one in a workspace is its gh that is signed out.
+fn signed_out_refusal(p: &Value) -> AgentError {
+    if p.get("workspace").is_some() {
+        refused("HOSTED_AUTH", "gh is not signed in")
+    } else {
+        refused("NO_EXECUTOR", "no attached executor is signed in to github")
+    }
+}
 
 fn refused(code: &str, message: impl Into<String>) -> AgentError {
     AgentError::Refused { code: code.into(), message: message.into() }
@@ -328,6 +347,13 @@ impl Hosting {
     }
 
     /// Makes the executor's CLIs report no signed-in account.
+    /// An executor with a signed-in gh answers the requests that name no workspace: the account `octocat` with the user project `Roadmap` (1) and the
+    /// organization `acme`'s project `Platform` (4, views Backlog and Board); `acme/app` has issue types Bug and Task, `acme/plain` none.
+    pub fn project_account(&self) -> &Self {
+        self.0.lock().unwrap().account = true;
+        self
+    }
+
     pub fn signed_out(&self) -> &Self {
         self.0.lock().unwrap().signed_out = true;
         self
@@ -427,6 +453,7 @@ impl Hosting {
         let me = self.clone();
         agent.reply("issue.view", move |p| {
             let s = me.0.lock().unwrap();
+            routed(&s, p)?;
             let (n, provider) = (number(p)?, p["provider"].as_str().unwrap_or("github"));
             if n == 99 {
                 return Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host"));
@@ -439,6 +466,7 @@ impl Hosting {
         let me = self.clone();
         agent.reply("issue.comments", move |p| {
             let (s, n) = (me.0.lock().unwrap(), number(p)?);
+            routed(&s, p)?;
             let provider = p["provider"].as_str().unwrap_or("github");
             Ok(json!({"comments": s.issue_comments.iter().filter(|(pr, x, _)| *x == n && pr == provider).map(|(_, _, c)| c.clone()).collect::<Vec<_>>()}))
         });
@@ -465,6 +493,7 @@ impl Hosting {
         let me = self.clone();
         agent.reply("pr.comments", move |p| {
             let (s, n) = (me.0.lock().unwrap(), number(p)?);
+            routed(&s, p)?;
             Ok(json!({"comments": s.comments.iter().filter(|(x, _)| *x == n).map(|(_, c)| c.clone()).collect::<Vec<_>>()}))
         });
         let me = self.clone();
@@ -486,17 +515,22 @@ impl Hosting {
             let taken = &bytes[..bytes.len().min(max)];
             Ok(json!({"rev": rev, "path": path, "size": bytes.len(), "data": base64::engine::general_purpose::STANDARD.encode(taken), "truncated": taken.len() < bytes.len()}))
         });
+        self.install_projects(agent);
         let me = self.clone();
         agent.reply("pr.labelCandidates", move |p| {
             let s = me.0.lock().unwrap();
-            let labels = s.labels.as_ref().ok_or_else(|| refused("HOSTED_AUTH", "gh is not signed in"))?;
+            let labels = s.labels.as_ref().ok_or_else(|| signed_out_refusal(p))?;
             Ok(json!({"labels": labels.iter().take(p["limit"].as_u64().unwrap_or(200) as usize).map(|(n, c)| json!({"name": n, "color": c, "description": ""})).collect::<Vec<_>>()}))
         });
         for method in ["pr.setState", "mr.setState"] {
-            agent.reply(method, |p| match p["number"].as_u64() {
-                Some(12) => Ok(json!({"number": 12, "state": p["state"]})),
-                Some(99) => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
-                _ => Err(refused("HOSTED_FAILED", "HTTP 404: Not Found")),
+            let me = self.clone();
+            agent.reply(method, move |p| {
+                routed(&me.0.lock().unwrap(), p)?;
+                match p["number"].as_u64() {
+                    Some(12) => Ok(json!({"number": 12, "state": p["state"]})),
+                    Some(99) => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
+                    _ => Err(refused("HOSTED_FAILED", "HTTP 404: Not Found")),
+                }
             });
         }
         agent.reply("mr.comment", |p| {
@@ -595,7 +629,7 @@ impl Hosting {
         let me = self.clone();
         agent.reply("pr.reviewerCandidates", move |p| {
             let s = me.0.lock().unwrap();
-            let users = s.assignees.as_ref().ok_or_else(|| refused("HOSTED_AUTH", "gh is not signed in"))?;
+            let users = s.assignees.as_ref().ok_or_else(|| signed_out_refusal(p))?;
             let avatar = |a: &str| if a.is_empty() { Value::Null } else { json!(a) };
             Ok(json!({"users": users.iter().take(p["limit"].as_u64().unwrap_or(200) as usize).map(|(l, a)| json!({"login": l, "name": null, "avatarUrl": avatar(a)})).collect::<Vec<_>>()}))
         });
@@ -610,6 +644,7 @@ impl Hosting {
 
     fn answer(&self, provider: &'static str, verb: &str, p: &Value) -> Result<Value, AgentError> {
         let mut s = self.0.lock().unwrap();
+        routed(&s, p)?;
         if verb == "list" {
             if let Some(message) = &s.list_error {
                 return Err(refused("HOSTED_FAILED", message.clone()));
@@ -718,5 +753,119 @@ impl Hosting {
             fetched.push(json!({"ref": dest, "sha": sha}));
         }
         Ok(json!({"remote": "origin", "output": "", "refs": fetched}))
+    }
+}
+
+const SCOPE_MESSAGE: &str = "gh exited 1: gh: Your token has not been granted the required scopes to execute this query. The 'id' field requires one of the following scopes: ['read:project'].";
+
+impl Hosting {
+    /// The project methods of `hosted.project`: answered only with a signed-in executor (`project_account`), and never with a workspace.
+    fn install_projects(&self, agent: &ScriptedAgent) {
+        let account = |me: &Hosting, p: &Value| -> Result<(), AgentError> {
+            if p.get("workspace").is_some() {
+                return Err(refused("INVALID_PARAMS", "the double answers project methods for the account, not a workspace"));
+            }
+            if me.0.lock().unwrap().account {
+                Ok(())
+            } else {
+                Err(signed_out_refusal(p))
+            }
+        };
+        let me = self.clone();
+        agent.reply("project.list", move |p| {
+            account(&me, p)?;
+            Ok(json!({"login": "octocat", "projects": [
+                {"id": "PVT_u1", "owner": "octocat", "owner_type": "user", "number": 1, "title": "Roadmap", "url": "https://github.com/users/octocat/projects/1", "source": "viewer"},
+                {"id": "PVT_o1", "owner": "acme", "owner_type": "organization", "number": 4, "title": "Platform", "url": "https://github.com/orgs/acme/projects/4", "source": "org:acme"}]}))
+        });
+        let me = self.clone();
+        agent.reply("project.resolve", move |p| {
+            account(&me, p)?;
+            let (owner, kind) = (p["owner"].as_str().unwrap_or(""), p["owner_type"].as_str().unwrap_or(""));
+            if !matches!((owner, kind), ("acme", "organization") | ("octocat", "user")) {
+                return Err(refused("NOT_FOUND", format!("owner not found: {owner}")));
+            }
+            match (p["project_number"].as_u64(), owner) {
+                (None, _) => Ok(json!({"owner": owner, "owner_type": kind, "number": null, "id": null, "title": null})),
+                (Some(4), "acme") => Ok(json!({"owner": owner, "owner_type": kind, "number": 4, "id": "PVT_o1", "title": "Platform"})),
+                (Some(1), "octocat") => Ok(json!({"owner": owner, "owner_type": kind, "number": 1, "id": "PVT_u1", "title": "Roadmap"})),
+                (Some(n), _) => Err(refused("NOT_FOUND", format!("project not found: {owner}/{n}"))),
+            }
+        });
+        let me = self.clone();
+        agent.reply("project.views", move |p| {
+            account(&me, p)?;
+            match (p["owner"].as_str(), p["project_number"].as_u64()) {
+                (Some("acme"), Some(4)) => Ok(json!({"views": [{"id": "PVTV_1", "number": 1, "name": "Backlog", "layout": "TABLE_LAYOUT"}, {"id": "PVTV_2", "number": 2, "name": "Board", "layout": "BOARD_LAYOUT"}]})),
+                _ => Err(refused("NOT_FOUND", "project not found")),
+            }
+        });
+        for method in ["project.setField", "project.clearField"] {
+            let me = self.clone();
+            agent.reply(method, move |p| {
+                account(&me, p)?;
+                match p["item"].as_str() {
+                    Some("PVTI_noscope") => Err(refused("IO_ERROR", SCOPE_MESSAGE)),
+                    Some(_) => Ok(json!({"done": true})),
+                    None => Err(refused("INVALID_ARGS", "`item` must be a string")),
+                }
+            });
+        }
+        let me = self.clone();
+        agent.reply("project.commentAdd", move |p| {
+            if !me.0.lock().unwrap().account {
+                return Err(signed_out_refusal(p));
+            }
+            match p["number"].as_u64() {
+                Some(7) => Ok(json!({"comment": {"id": 4711, "author": "octocat", "avatar_url": "https://a/octocat.png", "body": p["body"], "created_at": "2026-11-20T09:00:00Z", "url": "https://github.com/acme/app/issues/7#issuecomment-4711", "is_bot": false}})),
+                Some(8) => Ok(json!({"comment": {"id": 4712, "author": "ci-bot", "avatar_url": "https://a/bot.png", "body": p["body"], "created_at": "2026-11-20T09:01:00Z", "url": "https://github.com/acme/app/issues/8#issuecomment-4712", "is_bot": true}})),
+                _ => Err(refused("NOT_FOUND", "gh: gh: Not Found (HTTP 404)")),
+            }
+        });
+        for method in ["project.commentEdit", "project.commentDelete"] {
+            let me = self.clone();
+            agent.reply(method, move |p| {
+                if !me.0.lock().unwrap().account {
+                    return Err(signed_out_refusal(p));
+                }
+                match p["comment_id"].as_u64() {
+                    Some(4711) => Ok(json!({"done": true})),
+                    _ => Err(refused("NOT_FOUND", "gh: gh: Not Found (HTTP 404)")),
+                }
+            });
+        }
+        let me = self.clone();
+        agent.reply("project.issueTypes", move |p| {
+            if !me.0.lock().unwrap().account {
+                return Err(signed_out_refusal(p));
+            }
+            match p["repo"].as_str() {
+                Some("acme/plain") => Err(refused("IO_ERROR", "gh exited 1: gh: Field 'issueTypes' doesn't exist on type 'Repository'")),
+                Some("acme/app") => Ok(json!({"types": [{"id": "IT_1", "name": "Bug", "color": "RED", "description": "Something is broken"}, {"id": "IT_2", "name": "Task", "color": null, "description": null}]})),
+                _ => Err(refused("NOT_FOUND", "gh: gh: Could not resolve to a Repository")),
+            }
+        });
+        let me = self.clone();
+        agent.reply("project.setIssueType", move |p| {
+            if !me.0.lock().unwrap().account {
+                return Err(signed_out_refusal(p));
+            }
+            match p["number"].as_u64() {
+                Some(8) => Err(refused("IO_ERROR", "issue not found: gh named no node id for the issue")),
+                Some(_) => Ok(json!({"done": true})),
+                None => Err(refused("INVALID_ARGS", "`number` must be a positive integer")),
+            }
+        });
+        let me = self.clone();
+        agent.reply("project.updateIssue", move |p| {
+            if !me.0.lock().unwrap().account {
+                return Err(signed_out_refusal(p));
+            }
+            match p["number"].as_u64() {
+                Some(9) => Err(refused("IO_ERROR", "gh exited 1: gh: API rate limit exceeded for user")),
+                Some(_) => Ok(json!({"done": true})),
+                None => Err(refused("INVALID_ARGS", "`number` must be a positive integer")),
+            }
+        });
     }
 }

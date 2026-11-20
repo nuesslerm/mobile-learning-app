@@ -1639,3 +1639,246 @@ fn given_a_failed_check_when_the_phone_opens_its_details_then_the_row_has_the_ou
     assert_eq!(rig.err("github.prCheckDetails", json!({"checkRunId": 0})), ("invalid_argument".into(), "Too small: expected number to be >0".into()));
     assert_eq!(rig.err("github.prCheckDetails", json!({"checkRunId": 31, "repo": "nowhere"})).0, "repo_not_found");
 }
+
+const SIGN_IN: &str = "Sign in to GitHub to load project tasks. Run `gh auth login --hostname github.com`.";
+
+fn auth_required() -> Value {
+    json!({"ok": false, "error": {"host": "github.com", "message": SIGN_IN, "type": "auth_required"}})
+}
+
+/// A rig whose account has a signed-in executor, and what rca was asked of the project methods (never with a workspace).
+fn account_rig() -> Rig {
+    let rig = Rig::new();
+    rig.hosting.project_account();
+    rig
+}
+
+fn project_requests(rig: &Rig) -> Vec<(String, Value)> {
+    rig.agent.requests().into_iter().filter(|(m, _)| m.starts_with("project.")).collect()
+}
+
+#[test]
+fn given_no_signed_in_executor_when_each_project_row_is_asked_with_the_recorded_requests_then_it_is_the_recorded_answer_of_a_machine_that_is_signed_out() {
+    // Given the account has no executor whose gh is signed in (the recorded host was signed out)
+    let mut rig = Rig::new();
+    // When the rows the recorded host answered with its sign-in request are asked with the requests it was recorded with
+    let rows = [
+        ("github.project.addIssueCommentBySlug", json!({"body": "a", "number": 1, "owner": "a", "repo": "a"})),
+        ("github.project.clearItemField", json!({"fieldId": "a", "itemId": "a", "projectId": "a"})),
+        ("github.project.deleteIssueCommentBySlug", json!({"commentId": 1, "owner": "a", "repo": "a"})),
+        ("github.project.listAccessible", json!({})),
+        ("github.project.listAssignableUsersBySlug", json!({"owner": "a", "repo": "a"})),
+        ("github.project.listIssueTypesBySlug", json!({"owner": "a", "repo": "a"})),
+        ("github.project.listLabelsBySlug", json!({"owner": "a", "repo": "a"})),
+        ("github.project.listViews", json!({"owner": "a", "ownerType": "organization", "projectNumber": 1})),
+        ("github.project.updateIssueCommentBySlug", json!({"body": "a", "commentId": 1, "owner": "a", "repo": "a"})),
+        ("github.project.updateIssueTypeBySlug", json!({"issueTypeId": "a", "number": 1, "owner": "a", "repo": "a"})),
+        ("github.project.workItemDetailsBySlug", json!({"number": 1, "owner": "a", "repo": "a", "type": "issue"})),
+    ];
+    for (method, params) in rows {
+        // Then each is the sign-in request the recorded host gave
+        assert_eq!(rig.ok(method, params), auth_required(), "{method}");
+    }
+    // And the rows it answered without reaching a provider are its own words: an unparseable reference, an unknown field kind, and updates that change nothing
+    assert_eq!(rig.ok("github.project.resolveRef", json!({"input": "a"})), json!({"ok": false, "error": {"message": "Could not parse input. Expected a GitHub project URL or `owner/number`.", "reason": "input_unparseable", "type": "validation_error"}}));
+    assert_eq!(rig.ok("github.project.updateItemField", json!({"fieldId": "a", "itemId": "a", "projectId": "a", "value": "a"})), json!({"ok": false, "error": {"message": "Unknown project field mutation kind: undefined", "type": "validation_error"}}));
+    for method in ["github.project.updateIssueBySlug", "github.project.updatePullRequestBySlug"] {
+        assert_eq!(rig.ok(method, json!({"number": 1, "owner": "a", "repo": "a", "updates": {}})), json!({"ok": true}), "{method}");
+    }
+    // And no request named a workspace
+    assert!(rig.agent.requests().iter().all(|(_, p)| p.get("workspace").is_none() || p["workspace"].is_null()));
+}
+
+#[test]
+fn given_a_signed_in_account_when_the_projects_are_listed_and_a_reference_is_resolved_then_the_rows_are_the_hosts_and_no_request_names_a_workspace() {
+    let mut rig = account_rig();
+    // When the accessible projects are listed
+    let listed = rig.ok("github.project.listAccessible", json!({}));
+    // Then they are the account's with their owner kind, source and the host
+    assert_eq!(
+        listed,
+        json!({"ok": true, "projects": [
+            {"id": "PVT_u1", "host": "github.com", "owner": "octocat", "ownerType": "user", "number": 1, "title": "Roadmap", "url": "https://github.com/users/octocat/projects/1", "source": "viewer"},
+            {"id": "PVT_o1", "host": "github.com", "owner": "acme", "ownerType": "organization", "number": 4, "title": "Platform", "url": "https://github.com/orgs/acme/projects/4", "source": "org:acme"}]})
+    );
+    // And a pasted organization address with a view, the shorthand of a user's project (the organization lookup falls through) and a shorthand of an organization all resolve
+    assert_eq!(rig.ok("github.project.resolveRef", json!({"input": " https://github.com/orgs/acme/projects/4/views/2?pane=issue "})), json!({"ok": true, "owner": "acme", "ownerType": "organization", "number": 4, "title": "Platform", "host": "github.com", "viewNumber": 2}));
+    assert_eq!(rig.ok("github.project.resolveRef", json!({"input": "octocat/1"})), json!({"ok": true, "owner": "octocat", "ownerType": "user", "number": 1, "title": "Roadmap", "host": "github.com"}));
+    assert_eq!(rig.ok("github.project.resolveRef", json!({"input": "acme/4"}))["ownerType"], "organization");
+    // And the owner or the project that is not there, a reference of another host, one too large and an empty-looking one are each the host's refusal
+    let error = |rig: &mut Rig, input: &str| rig.ok("github.project.resolveRef", json!({"input": input}))["error"].clone();
+    assert_eq!(error(&mut rig, "ghost/1"), json!({"type": "not_found", "message": "Owner not found.", "reason": "owner_not_found"}));
+    assert_eq!(error(&mut rig, "acme/99"), json!({"type": "not_found", "message": "Project not found.", "reason": "project_not_found"}));
+    assert_eq!(error(&mut rig, "https://evil.example/orgs/acme/projects/4")["reason"], "input_unparseable");
+    assert_eq!(error(&mut rig, "https://user:pw@github.com/orgs/acme/projects/4")["reason"], "input_unparseable");
+    assert_eq!(error(&mut rig, "https://github.com/orgs/acme/projects/4x")["reason"], "input_unparseable");
+    assert_eq!(error(&mut rig, &"a".repeat(2049)), json!({"type": "validation_error", "message": "Project reference is too large to resolve.", "reason": "input_too_large"}));
+    // And a request of the account never named a workspace
+    assert!(!project_requests(&rig).is_empty() && project_requests(&rig).iter().all(|(_, p)| p.get("workspace").is_none()));
+}
+
+#[test]
+fn given_an_enterprise_host_when_a_reference_is_resolved_then_the_host_is_forwarded_and_a_url_of_another_host_is_refused() {
+    let mut rig = account_rig();
+    // When a shorthand names an enterprise host, and an address names it too
+    let shorthand = rig.ok("github.project.resolveRef", json!({"input": "acme/4", "host": "ghe.example.com"}));
+    let address = rig.ok("github.project.resolveRef", json!({"input": "https://ghe.example.com/orgs/acme/projects/4", "host": "ghe.example.com"}));
+    let stray = rig.ok("github.project.resolveRef", json!({"input": "https://ghe.example.com/orgs/acme/projects/4"}));
+    // Then the answers carry the host, the requests forwarded it, and an address of a host the request did not name is not resolved
+    assert_eq!((shorthand["host"].clone(), address["host"].clone(), stray["error"]["reason"].clone()), (json!("ghe.example.com"), json!("ghe.example.com"), json!("input_unparseable")));
+    assert!(project_requests(&rig).iter().all(|(_, p)| p["host"] == "ghe.example.com"));
+}
+
+#[test]
+fn given_a_project_when_its_views_are_listed_then_they_are_the_hosts_rows_and_an_owner_that_is_no_slug_is_refused_before_anything_is_asked() {
+    let mut rig = account_rig();
+    let views = rig.ok("github.project.listViews", json!({"owner": "acme", "ownerType": "organization", "projectNumber": 4}));
+    assert_eq!(views, json!({"ok": true, "views": [{"id": "PVTV_1", "number": 1, "name": "Backlog", "layout": "TABLE_LAYOUT"}, {"id": "PVTV_2", "number": 2, "name": "Board", "layout": "BOARD_LAYOUT"}]}));
+    // And a project that is not there is the host's not-found, an owner with a slash is the invalid slug, and a bad owner type is the schema's
+    assert_eq!(rig.ok("github.project.listViews", json!({"owner": "acme", "ownerType": "organization", "projectNumber": 9}))["error"]["type"], "not_found");
+    let slug = rig.ok("github.project.listViews", json!({"owner": "a/b", "ownerType": "user", "projectNumber": 1}));
+    assert_eq!(slug, json!({"ok": false, "error": {"type": "validation_error", "message": "Invalid owner: \"a/b\" is not a valid GitHub slug.", "reason": "invalid_slug", "detail": "owner", "value": "a/b"}}));
+    assert_eq!(rig.err("github.project.listViews", json!({"owner": "acme", "ownerType": "team", "projectNumber": 1})), ("invalid_argument".into(), "Invalid option: expected one of \"organization\"|\"user\"".into()));
+    assert_eq!(project_requests(&rig).len(), 2);
+}
+
+#[test]
+fn given_every_kind_of_field_value_when_an_item_field_is_written_or_cleared_then_rca_is_asked_the_typed_value_and_the_hosts_refusals_are_classified() {
+    let mut rig = account_rig();
+    let ids = json!({"projectId": "PVT_o1", "itemId": "PVTI_1", "fieldId": "PVTF_1"});
+    let with = |value: Value| {
+        let mut p = ids.clone();
+        p["value"] = value;
+        p
+    };
+    // When a single-select, an iteration, a text, a number and a date are written
+    for value in [json!({"kind": "single-select", "optionId": "f75ad846"}), json!({"kind": "iteration", "iterationId": "c9"}), json!({"kind": "text", "text": "fix"}), json!({"kind": "number", "number": 3.5}), json!({"kind": "date", "date": "2026-12-01"})] {
+        assert_eq!(rig.ok("github.project.updateItemField", with(value)), json!({"ok": true}));
+    }
+    assert_eq!(rig.ok("github.project.clearItemField", ids.clone()), json!({"ok": true}));
+    // Then each reached rca as its kind and value
+    let sent: Vec<(String, Value)> = project_requests(&rig).into_iter().map(|(m, p)| (m, json!({"kind": p["kind"], "value": p["value"], "number_value": p["number_value"]}))).collect();
+    assert_eq!(sent[0].1, json!({"kind": "single_select", "value": "f75ad846", "number_value": null}));
+    assert_eq!(sent[1].1["kind"], "iteration");
+    assert_eq!(sent[3].1, json!({"kind": "number", "value": null, "number_value": 3.5}));
+    assert_eq!((sent[4].1["kind"].clone(), sent[5].0.as_str()), (json!("date"), "project.clearField"));
+    // And a kind the host does not know, a value of the wrong type, a token without the scope and the missing ids are the host's words
+    assert_eq!(rig.ok("github.project.updateItemField", with(json!({"kind": "label"}))), json!({"ok": false, "error": {"type": "validation_error", "message": "Unknown project field mutation kind: label"}}));
+    assert_eq!(rig.ok("github.project.updateItemField", with(json!({"kind": "number", "number": "3"})))["error"]["type"], "validation_error");
+    let mut noscope = ids.clone();
+    noscope["itemId"] = json!("PVTI_noscope");
+    assert_eq!(rig.ok("github.project.clearItemField", noscope)["error"], json!({"type": "scope_missing", "message": "GitHub project access needs additional scopes. Run `gh auth refresh --hostname github.com -s project -s read:org -s repo`.", "host": "github.com"}));
+    assert_eq!(rig.err("github.project.clearItemField", json!({"projectId": "P", "itemId": "I"})), ("invalid_argument".into(), "Missing field ID".into()));
+}
+
+#[test]
+fn given_a_repository_by_slug_when_labels_assignable_users_and_issue_types_are_listed_then_they_are_the_hosts_rows_with_the_seeded_logins_and_a_host_without_types_has_none() {
+    let mut rig = account_rig();
+    rig.hosting.labels(&[("bug", "d73a4a"), ("docs", "0075ca")]).assignees(&[("ada", "https://a/ada.png"), ("bob", "")]);
+    let slug = json!({"owner": "acme", "repo": "app"});
+    assert_eq!(rig.ok("github.project.listLabelsBySlug", slug.clone()), json!({"ok": true, "labels": ["bug", "docs"]}));
+    let mut seeded = slug.clone();
+    seeded["seedLogins"] = json!(["bob", "cy"]);
+    assert_eq!(
+        rig.ok("github.project.listAssignableUsersBySlug", seeded),
+        json!({"ok": true, "users": [{"login": "ada", "name": null, "avatarUrl": "https://a/ada.png"}, {"login": "bob", "name": null, "avatarUrl": ""}, {"login": "cy", "name": null, "avatarUrl": ""}]})
+    );
+    assert_eq!(rig.ok("github.project.listIssueTypesBySlug", slug)["types"], json!([{"id": "IT_1", "name": "Bug", "color": "RED", "description": "Something is broken"}, {"id": "IT_2", "name": "Task", "color": null, "description": null}]));
+    // And a repository whose host has no issue types answers none, and a repository that is not there is the host's not-found
+    assert_eq!(rig.ok("github.project.listIssueTypesBySlug", json!({"owner": "acme", "repo": "plain"})), json!({"ok": true, "types": []}));
+    assert_eq!(rig.ok("github.project.listIssueTypesBySlug", json!({"owner": "acme", "repo": "gone"}))["error"]["type"], "not_found");
+    // And a repository name that is no slug is refused as the host words it, with the reasons and the value
+    assert_eq!(rig.ok("github.project.listLabelsBySlug", json!({"owner": "acme", "repo": ".."}))["error"], json!({"type": "validation_error", "message": "Invalid repo: \"..\" is not a valid GitHub slug.", "reason": "invalid_slug", "detail": "repo", "value": ".."}));
+    assert_eq!(rig.err("github.project.listLabelsBySlug", json!({"owner": "acme", "repo": ""})), ("invalid_argument".into(), "Missing repo".into()));
+}
+
+#[test]
+fn given_an_issue_when_its_type_state_labels_and_comments_are_written_by_slug_then_rca_is_asked_one_request_each_and_the_hosts_answers_and_errors_come_back() {
+    let mut rig = account_rig();
+    let issue = |n: u64, extra: Value| {
+        let mut p = json!({"owner": "acme", "repo": "app", "number": n});
+        p.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        p
+    };
+    // When the type is set and cleared, and the issue is closed, retitled and relabelled in one write
+    assert_eq!(rig.ok("github.project.updateIssueTypeBySlug", issue(7, json!({"issueTypeId": "IT_1"}))), json!({"ok": true}));
+    assert_eq!(rig.ok("github.project.updateIssueTypeBySlug", issue(7, json!({"issueTypeId": null}))), json!({"ok": true}));
+    assert_eq!(rig.ok("github.project.updateIssueBySlug", issue(7, json!({"updates": {"state": "closed", "title": "New", "body": "", "addLabels": ["bug"], "removeLabels": ["wip"], "addAssignees": ["ada"], "removeAssignees": []}}))), json!({"ok": true}));
+    // Then the type reached rca by id, or absent, and the update with its changes and without the empty ones
+    let sent = project_requests(&rig);
+    assert_eq!((sent[0].1["issue_type"].clone(), sent[1].1.get("issue_type").cloned()), (json!("IT_1"), None));
+    assert_eq!(sent[2].1, json!({"repo": "acme/app", "number": 7, "state": "closed", "title": "New", "add_labels": ["bug"], "remove_labels": ["wip"], "add_assignees": ["ada"]}));
+    // And an issue that is not there, a rate limit and a refused change are the host's classified errors
+    assert_eq!(rig.ok("github.project.updateIssueTypeBySlug", issue(8, json!({"issueTypeId": "IT_1"})))["error"], json!({"type": "not_found", "message": "Issue not found.", "reason": "issue_not_found"}));
+    assert_eq!(rig.ok("github.project.updateIssueBySlug", issue(9, json!({"updates": {"state": "open"}})))["error"], json!({"type": "rate_limited", "message": "GitHub rate limit hit. Try again in a few minutes."}));
+    assert_eq!(rig.err("github.project.updateIssueBySlug", issue(7, json!({"updates": {"state": "merged"}}))), ("invalid_argument".into(), "Invalid option: expected one of \"open\"|\"closed\"".into()));
+    assert_eq!(rig.err("github.project.updateIssueBySlug", issue(7, json!({"updates": {"addLabels": [5]}}))), ("invalid_argument".into(), "Invalid input: expected string, received number".into()));
+    assert_eq!(rig.err("github.project.updateIssueBySlug", issue(7, json!({}))), ("invalid_argument".into(), "Invalid input: expected object, received undefined".into()));
+    // And a comment is added as the phone renders it (a bot marked), edited and deleted, a blank one is refused before rca is asked, and a comment that is gone is not found
+    let added = rig.ok("github.project.addIssueCommentBySlug", issue(7, json!({"body": "Thanks"})));
+    assert_eq!(added, json!({"ok": true, "comment": {"id": 4711, "author": "octocat", "authorAvatarUrl": "https://a/octocat.png", "body": "Thanks", "createdAt": "2026-11-20T09:00:00Z", "url": "https://github.com/acme/app/issues/7#issuecomment-4711", "isBot": false}}));
+    assert_eq!(rig.ok("github.project.addIssueCommentBySlug", issue(8, json!({"body": "built"})))["comment"]["isBot"], true);
+    let before = project_requests(&rig).len();
+    assert_eq!(rig.ok("github.project.addIssueCommentBySlug", issue(7, json!({"body": "  "}))), json!({"ok": false, "error": {"type": "validation_error", "message": "Comment body required.", "reason": "comment_body_required"}}));
+    assert_eq!(project_requests(&rig).len(), before);
+    let comment = |id: u64| json!({"owner": "acme", "repo": "app", "commentId": id, "body": "Edited"});
+    assert_eq!(rig.ok("github.project.updateIssueCommentBySlug", comment(4711)), json!({"ok": true}));
+    assert_eq!(rig.ok("github.project.deleteIssueCommentBySlug", comment(4711)), json!({"ok": true}));
+    assert_eq!(rig.ok("github.project.deleteIssueCommentBySlug", comment(1))["error"]["type"], "not_found");
+    assert_eq!(rig.err("github.project.addIssueCommentBySlug", issue(7, json!({"body": ""}))), ("invalid_argument".into(), "Comment body required".into()));
+}
+
+#[test]
+fn given_a_pull_request_when_it_is_updated_by_slug_then_the_title_and_body_are_edited_and_the_state_set_and_nothing_to_change_asks_nothing() {
+    let mut rig = account_rig();
+    rig.hosting.pull_request(12, "Add retry", "feat/retry", "main");
+    let pr = |updates: Value| json!({"owner": "acme", "repo": "app", "number": 12, "updates": updates});
+    // When the title and the state are changed, and then nothing
+    assert_eq!(rig.ok("github.project.updatePullRequestBySlug", pr(json!({"title": "Add retries", "body": "Why", "state": "closed"}))), json!({"ok": true}));
+    let before = rig.agent.requests().len();
+    assert_eq!(rig.ok("github.project.updatePullRequestBySlug", pr(json!({"title": "", "body": ""}))), json!({"ok": true}));
+    // Then rca edited the request by repository and set its state, and the empty update asked nothing
+    let asked: Vec<(String, Value)> = rig.agent.requests().into_iter().filter(|(m, _)| m == "pr.edit" || m == "pr.setState").collect();
+    assert_eq!(asked[0], ("pr.edit".to_string(), json!({"repo": "acme/app", "number": 12, "title": "Add retries", "body": "Why"})));
+    assert_eq!(asked[1], ("pr.setState".to_string(), json!({"repo": "acme/app", "number": 12, "state": "closed"})));
+    assert_eq!(rig.agent.requests().len(), before);
+    // And a request that is not there is the host's not-found
+    assert_eq!(rig.ok("github.project.updatePullRequestBySlug", json!({"owner": "acme", "repo": "app", "number": 5, "updates": {"title": "x"}}))["error"]["type"], "not_found");
+}
+
+#[test]
+fn given_an_issue_and_a_pull_request_when_their_details_are_read_by_slug_then_the_item_body_comments_and_assignees_are_the_hosts_and_a_missing_item_is_not_found() {
+    let mut rig = account_rig();
+    rig.hosting.issue("github", 7, "Upload fails", "Steps", None, &["ada"]).issue_comment(("github", 7), ("501", "ada", "first"), 1_791_100_000_000, None);
+    rig.hosting.pull_request(12, "Add retry", "feat/retry", "main").conversation_comment(12, "IC_9", "ada", "LGTM", 1_791_100_000_000, "https://github.com/acme/app/pull/12#issuecomment-9");
+    let by = |n: u64, kind: &str| json!({"owner": "acme", "repo": "app", "number": n, "type": kind});
+    // When the issue and the pull request are read
+    let issue = rig.ok("github.project.workItemDetailsBySlug", by(7, "issue"));
+    let change = rig.ok("github.project.workItemDetailsBySlug", by(12, "pr"));
+    // Then the issue is its item with the body, the assignees and the comments oldest first, and nothing rca does not report is made up
+    assert_eq!(issue["ok"], true);
+    let details = &issue["details"];
+    assert_eq!(details["item"], json!({"id": "", "type": "issue", "number": 7, "title": "Upload fails", "state": "open", "url": "https://github.com/acme/app/issues/7", "labels": ["bug"], "updatedAt": "2026-10-04T12:30:00.000Z", "author": "octocat"}));
+    assert_eq!((details["body"].clone(), details["assignees"].clone(), details["participants"].clone(), details["comments"][0]["author"].clone()), (json!("Steps"), json!(["ada"]), json!([]), json!("ada")));
+    // And the pull request carries its branches, and its comment is the conversation's
+    assert_eq!((change["details"]["item"]["type"].clone(), change["details"]["item"]["branchName"].clone(), change["details"]["item"]["baseRefName"].clone(), change["details"]["comments"][0]["body"].clone()), (json!("pr"), json!("feat/retry"), json!("main"), json!("LGTM")));
+    // And an item that is not there is the host's item-not-found, and a pull request read as an issue is not an issue
+    assert_eq!(rig.ok("github.project.workItemDetailsBySlug", by(55, "issue")), json!({"ok": false, "error": {"type": "not_found", "message": "Item not found.", "reason": "item_not_found"}}));
+    assert_eq!(rig.err("github.project.workItemDetailsBySlug", by(7, "discussion")), ("invalid_argument".into(), "Invalid option: expected one of \"issue\"|\"pr\"".into()));
+}
+
+#[test]
+fn given_the_table_of_a_project_view_when_it_is_asked_then_the_row_is_not_offered_because_rca_has_no_table_to_answer_it() {
+    let mut rig = account_rig();
+    let (code, _) = rig.err("github.project.viewTable", json!({"owner": "acme", "ownerType": "organization", "projectNumber": 4}));
+    assert_eq!(code, "method_not_found");
+}
+
+#[test]
+fn given_an_enterprise_host_with_no_signed_in_executor_when_a_project_row_is_asked_then_the_hosts_own_refusal_of_an_unauthenticated_host_is_the_answer() {
+    let mut rig = Rig::new();
+    // When a row names an instance no executor is signed in to
+    let answer = rig.ok("github.project.listAccessible", json!({"host": "ghe.example.com"}));
+    // Then it is the host's pre-flight refusal with its words and the host, never the default host's sign-in request
+    assert_eq!(answer, json!({"ok": false, "error": {"type": "auth_required", "message": "GitHub CLI is not authenticated to ghe.example.com. Run gh auth login --hostname ghe.example.com.", "host": "ghe.example.com"}}));
+}

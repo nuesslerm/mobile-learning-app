@@ -18,6 +18,7 @@ testing = []
 async-trait.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
+futures-util.workspace = true
 agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
 agent-api-hosted = { path = "../../../libraries/agent-api/agent-api-hosted" }
 rca-agent-core = { path = "../agent-core" }

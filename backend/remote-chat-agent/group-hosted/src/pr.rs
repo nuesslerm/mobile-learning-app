@@ -1,3 +1,4 @@
+use crate::account::account_channel;
 use crate::refusal::{channel_of, Refused};
 use agent_api_hosted::{self as api, Spec};
 use agent_api_proto::{GroupName, Response};
@@ -7,10 +8,14 @@ use rca_exec_channel::Executors;
 use serde_json::Value;
 use std::sync::Arc;
 
-/// The executor's answer to the one action of `spec`, asked with the params it forwards.
+/// The executor's answer to the one action of `spec`, asked with the params it forwards: the workspace's own executor, or with no workspace
+/// (for a method whose scope allows it) an executor whose CLI is signed in to the provider.
 pub(crate) async fn relay(executors: &Arc<dyn Executors>, spec: &Spec, params: &Value) -> Result<Value, Refused> {
-    let workspace = api::workspace_param(params)?;
-    let channel = channel_of(executors, &workspace)?;
+    let channel = match api::workspace_param(params) {
+        Ok(workspace) => channel_of(executors, &workspace)?,
+        Err(e) if !api::runs_without_workspace(spec, params) => return Err(e.into()),
+        Err(_) => account_channel(executors, spec, params).await?,
+    };
     let action = spec.actions[0];
     Ok(channel.call(action, api::executor_args(spec, action, params)).await?.result)
 }
