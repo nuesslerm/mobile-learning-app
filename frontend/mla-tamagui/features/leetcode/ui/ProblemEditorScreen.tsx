@@ -65,6 +65,7 @@ import { useCodeHistoryStore } from '../state/codeHistoryStore';
 import { useResetCodeRequestStore } from '../state/resetCodeRequestStore';
 
 import { AlternativePicker } from './AlternativePicker';
+import { RunCaseList } from './RunCaseList';
 import { DiffToggle } from './DiffToggle';
 import {
   LanguagePicker,
@@ -902,6 +903,9 @@ export function ProblemEditorScreen({
                   >
                     {runOutcome.compile_error}
                   </Text>
+                ) : null}
+                {runOutcome.results?.length ? (
+                  <RunCaseList results={runOutcome.results} />
                 ) : null}
               </YStack>
             ) : null}
