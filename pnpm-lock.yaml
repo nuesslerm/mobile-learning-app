@@ -314,6 +314,9 @@ importers:
       '@lib/app-di':
         specifier: workspace:*
         version: link:../app-di
+      '@lib/code-editor-api':
+        specifier: workspace:*
+        version: link:../code-editor-api
       '@lib/gesture-geometry':
         specifier: workspace:*
         version: link:../gesture-geometry
