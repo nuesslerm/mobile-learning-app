@@ -48,6 +48,7 @@ COPY backend/remote-chat-agent/group-terminal ./backend/remote-chat-agent/group-
 COPY backend/remote-chat-agent/group-git ./backend/remote-chat-agent/group-git
 COPY backend/remote-chat-agent/group-hosted ./backend/remote-chat-agent/group-hosted
 COPY backend/remote-chat-agent/group-schedules ./backend/remote-chat-agent/group-schedules
+COPY backend/remote-chat-agent/group-gateway ./backend/remote-chat-agent/group-gateway
 COPY backend/remote-chat-agent/group-attachments ./backend/remote-chat-agent/group-attachments
 COPY backend/remote-chat-agent/group-catalog ./backend/remote-chat-agent/group-catalog
 COPY backend/remote-chat-agent/group-preview ./backend/remote-chat-agent/group-preview

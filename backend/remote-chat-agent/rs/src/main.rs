@@ -1,4 +1,4 @@
-use rca_service::{agent_api, Accounts, AttachmentParts, ScheduleParts};
+use rca_service::{agent_api, Accounts, AttachmentParts, GatewayParts, ScheduleParts};
 use rca_service::api::app::{App, Config};
 use rca_service::infrastructure::device_bearers::BearerFile;
 use rca_service::api::routes;
@@ -63,7 +63,7 @@ async fn main() -> ExitCode {
     let bearers = Arc::new(BearerFile::at(ProcessEnv.home_dir().join(".local/state/rca/device-bearers.json")));
     let schedule_parts = ScheduleParts::real(ProcessEnv.home_dir().join(".local/state/rca/schedules.json"));
     let attachment_parts = AttachmentParts::real(ProcessEnv.home_dir().join(".local/state/rca/attachments"));
-    let agent_api = agent_api(&config, Arc::new(rca_group_agent::host::AtWorkspace), state, bearers, Accounts::real(&settings, outbound), schedule_parts, attachment_parts, Arc::new(rca_service::infrastructure::catalog::SpeechOver::new(ports.speech.clone(), speech_engine)));
+    let agent_api = agent_api(&config, Arc::new(rca_group_agent::host::AtWorkspace), state, bearers, Accounts::real(&settings, outbound), schedule_parts, attachment_parts, Arc::new(rca_service::infrastructure::catalog::SpeechOver::new(ports.speech.clone(), speech_engine)), GatewayParts::real());
     let app = Arc::new(App::new(config, ports, agent_api));
     app.start();
     heartbeat::spawn("remote-chat-agent.heartbeat");

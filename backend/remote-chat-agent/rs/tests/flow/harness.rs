@@ -92,7 +92,16 @@ fn fresh_home() -> (PathBuf, tempfile::TempDir) {
     (std::fs::canonicalize(dir.path()).expect("the home has a real path"), dir)
 }
 
+/// What the model gateway stands on in a flow: the provider it calls is a scripted upstream (an authored double, not a recording), and the keys it holds.
+/// Without it the gateway holds no key, so no turn is routed.
+#[derive(Clone)]
+pub struct GatewayDoubles {
+    pub upstream: Arc<rca_group_gateway::testing::ScriptedUpstream>,
+    pub keys: Vec<(&'static str, &'static str)>,
+}
+
 pub struct Options {
+    pub gateway: Option<GatewayDoubles>,
     pub secret: Option<&'static str>,
     pub state_dir: Option<PathBuf>,
     pub hard_timeout_ms: u64,
@@ -111,7 +120,7 @@ pub struct Options {
 
 impl Default for Options {
     fn default() -> Self {
-        Self { secret: Some(SECRET), state_dir: None, hard_timeout_ms: 1_500, heartbeat: Duration::from_secs(15), default_cwd: None, requests_per_minute: rca_service::api::routes::REQUESTS_PER_MINUTE, ledger_error: None, files: None, at_workspace: false, browser: false }
+        Self { gateway: None, secret: Some(SECRET), state_dir: None, hard_timeout_ms: 1_500, heartbeat: Duration::from_secs(15), default_cwd: None, requests_per_minute: rca_service::api::routes::REQUESTS_PER_MINUTE, ledger_error: None, files: None, at_workspace: false, browser: false }
     }
 }
 
@@ -150,18 +159,20 @@ impl Ledgers for FileLedgers {
 /// The agent API `main` serves (`rca_service::agent_api`) for `config`, its CLIs started by `spawner`, its per-device state and its device
 /// bearers kept in the flow's home as the service keeps them.
 pub fn agent_api_for(env: &Env, config: &Config, spawner: Arc<dyn Spawner>) -> AgentApi {
-    agent_api_with(env, config, Arc::new(Fixed(spawner)), ScriptedModelApi::from_fixture(), Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS)))
+    agent_api_with(env, config, Arc::new(Fixed(spawner)), ScriptedModelApi::from_fixture(), Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS)), None)
 }
 
 /// `agent_api_for` with the model the `git.ai` group asks: the providers' directories and logins are the real adapters under the flow's home.
-pub fn agent_api_with(env: &Env, config: &Config, launcher: Arc<dyn CliLauncher>, models: Arc<ScriptedModelApi>, clock: Arc<FakeClock>) -> AgentApi {
+pub fn agent_api_with(env: &Env, config: &Config, launcher: Arc<dyn CliLauncher>, models: Arc<ScriptedModelApi>, clock: Arc<FakeClock>, gateway: Option<GatewayDoubles>) -> AgentApi {
     let root = env.home.join("providers").to_string_lossy().into_owned();
     let accounts = Accounts { dirs: Arc::new(ProviderFiles::at(&root)), models };
     let state = Arc::new(rca_service::infrastructure::agent_state::StateFile::at(env.home.join(".local/state/rca/agent-state.json")));
     let bearers = Arc::new(rca_service::infrastructure::device_bearers::BearerFile::at(env.home.join(".local/state/rca/device-bearers.json")));
     let schedules = rca_service::ScheduleParts { store: Arc::new(rca_service::infrastructure::schedules::ScheduleFile::at(env.home.join(".local/state/rca/schedules.json"))), clock, ids: Arc::new(CountingIds::default()) };
     let attachments = rca_service::AttachmentParts::real(env.home.join(".local/state/rca/attachments"));
-    rca_service::agent_api(config, launcher, state, bearers, accounts, schedules, attachments, Arc::new(rca_group_catalog::testing::ScriptedSpeech::saying("hello world")))
+    let doubles = gateway.unwrap_or_else(|| GatewayDoubles { upstream: rca_group_gateway::testing::ScriptedUpstream::streaming(&[]), keys: Vec::new() });
+    let gateway = rca_service::GatewayParts { store: Arc::new(rca_service::infrastructure::gateway_tokens::MemoryGrants::default()), keys: Arc::new(rca_group_gateway::testing::FixedKeys(doubles.keys)), upstream: doubles.upstream, ids: Arc::new(rca_service::infrastructure::gateway_tokens::RandomTokens), headroom: None };
+    rca_service::agent_api(config, launcher, state, bearers, accounts, schedules, attachments, Arc::new(rca_group_catalog::testing::ScriptedSpeech::saying("hello world")), gateway)
 }
 
 /// The groups the service registers, for the flows that read the table and answer nothing.
@@ -219,7 +230,7 @@ fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, transport: Ar
     let models = ScriptedModelApi::from_fixture();
     let clock = Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS));
     let launcher: Arc<dyn CliLauncher> = if options.at_workspace { Arc::new(AtWorkspace) } else { Arc::new(Fixed(spawn.clone())) };
-    let agent_api = agent_api_with(env, &config, launcher, models.clone(), clock.clone());
+    let agent_api = agent_api_with(env, &config, launcher, models.clone(), clock.clone(), options.gateway);
     let commands_port = Arc::new(CommandsPort(Arc::clone(&commands)));
     let outbound_port = Arc::new(OutboundPort(Arc::clone(&outbound)));
     let settings = env.source().settings();
@@ -314,6 +325,27 @@ impl Call {
 pub struct Sent((Request<Body>, SocketAddr));
 
 impl Service {
+    /// The model gateway `/gateway` answers for.
+    pub fn gateway(&self) -> Arc<rca_group_gateway::Gateway> {
+        Arc::clone(&self.app.model_gateway)
+    }
+
+    /// Like `send`, but the body's failure is the answer: a response whose body breaks part way is the chunks that came and why it ended.
+    pub async fn send_streamed(&self, sent: impl Into<Sent>) -> (StatusCode, Vec<u8>, Option<String>) {
+        let Sent((mut request, peer)) = sent.into();
+        request.extensions_mut().insert(ConnectInfo(peer));
+        let response = self.router.clone().oneshot(request).await.expect("the router answers");
+        let (parts, mut body) = response.into_parts();
+        let mut got = Vec::new();
+        while let Some(frame) = body.frame().await {
+            match frame {
+                Ok(frame) => got.extend(frame.into_data().map(|d| d.to_vec()).unwrap_or_default()),
+                Err(why) => return (parts.status, got, Some(why.to_string())),
+            }
+        }
+        (parts.status, got, None)
+    }
+
     /// A device bearer minted as an operator mints one, with the service secret: its token.
     pub async fn mint(&self, label: &str) -> String {
         let answer = self.send(post("/agent/v1/bearers").secret().json(json!({"label": label}))).await;

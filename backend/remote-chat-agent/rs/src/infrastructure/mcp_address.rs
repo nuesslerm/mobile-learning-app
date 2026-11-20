@@ -26,6 +26,18 @@ impl LoopbackMcp {
         self.bound.store(port, Ordering::SeqCst);
     }
 
+    /// The service's address as a CLI of this host reaches it, without a path.
+    pub fn base_url(&self) -> String {
+        let port = match self.bound.load(Ordering::SeqCst) {
+            0 => self.configured,
+            bound => bound,
+        };
+        match &self.public {
+            Some(base) => base.clone(),
+            None => format!("http://127.0.0.1:{port}"),
+        }
+    }
+
     pub fn url_of(&self, thread: &str) -> String {
         let port = match self.bound.load(Ordering::SeqCst) {
             0 => self.configured,

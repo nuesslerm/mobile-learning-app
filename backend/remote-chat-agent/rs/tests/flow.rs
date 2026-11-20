@@ -50,6 +50,8 @@ mod agent_workspaces;
 mod contracts;
 #[path = "flow/control.rs"]
 mod control;
+#[path = "flow/gateway.rs"]
+mod gateway;
 #[path = "flow/exec_remote.rs"]
 mod exec_remote;
 #[path = "flow/documents.rs"]

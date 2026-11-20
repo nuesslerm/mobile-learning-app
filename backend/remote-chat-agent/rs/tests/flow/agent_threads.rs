@@ -55,7 +55,7 @@ pub(crate) async fn chain_browser(env: &Env, allow: &str) -> Chain {
     chain_in(env, Options { browser: true, ..Options::default() }, &vars).await
 }
 
-async fn chain_with(env: &Env, options: Options) -> Chain {
+pub(crate) async fn chain_with(env: &Env, options: Options) -> Chain {
     chain_in(env, options, &[]).await
 }
 

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["core", "cli-driver", "exec-channel", "agent-core", "group-agent", "group-workspace", "group-state", "group-accounts", "group-terminal", "group-git", "group-hosted", "group-schedules", "group-attachments", "group-catalog", "group-preview", "group-browser", "service-core", "render", "opencode", "speech", "host", "rs"]
+members = ["core", "cli-driver", "exec-channel", "agent-core", "group-agent", "group-workspace", "group-state", "group-accounts", "group-terminal", "group-git", "group-hosted", "group-schedules", "group-gateway", "group-attachments", "group-catalog", "group-preview", "group-browser", "service-core", "render", "opencode", "speech", "host", "rs"]
 
 [workspace.dependencies]
 async-trait = "0.1"

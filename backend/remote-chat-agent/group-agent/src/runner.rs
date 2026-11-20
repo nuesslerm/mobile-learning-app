@@ -9,9 +9,10 @@ use agent_api_agent::lifecycle::LifecycleEvent;
 use agent_api_agent::queue::QueueItem;
 use agent_api_agent::{code, message, FinishReason, Role, Status, ThreadEvent, ThreadView};
 use agent_api_proto::Event;
+use crate::gateway::{NoGateway, TurnGateway};
 use crate::host::CliLauncher;
 use rca_cli_driver::application::turns::Turns;
-use rca_cli_driver::domain::{command_for_host, Driver, TurnRequest};
+use rca_cli_driver::domain::{command_for_host, through_gateway, Command as CliCommand, Driver, GatewayRoute, TurnRequest};
 use rca_exec_channel::remote::ExecutorChannel;
 use rca_exec_channel::Executors;
 use std::sync::{Arc, Weak};
@@ -95,12 +96,19 @@ impl Prepared {
     /// failed, in the log, as one that fails after it began does.
     pub async fn launch(self) -> Result<String, Refusal> {
         let Prepared { runner, thread, turn, driver, channel, workspace, claim, request, said, merge } = self;
-        let command = command_for_host(driver, &request, &runner.mcp.url(&thread), &runner.mcp_token(&thread));
-        for event in [ThreadEvent::TurnStarted {}, ThreadEvent::MessageDelta { role: Role::User, text: said }] {
-            runner.engine.record(&thread, Some(&turn), event)?;
-        }
-        if let Some((source, _)) = &merge {
-            runner.engine.record_value(&thread, Some(&turn), serde_json::to_value(LifecycleEvent::MergeConsumed { source: source.clone() }).unwrap_or_default())?;
+        let command = runner.host_command(driver, &request, &thread);
+        let recorded = (|| {
+            for event in [ThreadEvent::TurnStarted {}, ThreadEvent::MessageDelta { role: Role::User, text: said }] {
+                runner.engine.record(&thread, Some(&turn), event)?;
+            }
+            if let Some((source, _)) = &merge {
+                runner.engine.record_value(&thread, Some(&turn), serde_json::to_value(LifecycleEvent::MergeConsumed { source: source.clone() }).unwrap_or_default())?;
+            }
+            Ok(())
+        })();
+        if let Err(refusal) = recorded {
+            runner.release_route(&thread);
+            return Err(refusal);
         }
         runner.executors.bind(&thread, &workspace);
         let task = TurnTask { runner: Arc::clone(&runner), channel, claim, thread: thread.clone(), turn: turn.clone(), driver, request };
@@ -115,6 +123,7 @@ impl Prepared {
                 let mut task = task;
                 task.record([ThreadEvent::Error { code: CLI_START_FAILED.into(), message: why }, ThreadEvent::TurnFinished { reason: FinishReason::Failed }]);
                 task.claim.finish();
+                runner.release_route(&thread);
                 runner.executors.unbind(&thread);
                 runner.start_next_later(&thread);
             }
@@ -139,6 +148,9 @@ pub struct Runner {
     launcher: Arc<dyn CliLauncher>,
     /// The token each running turn gave its CLI for the service's tool server: the CLI may run on another host than the service.
     mcp_tokens: std::sync::Mutex<std::collections::HashMap<String, String>>,
+    gateway: Arc<dyn TurnGateway>,
+    /// The gateway route each running turn started with: a steer starts another CLI in the same turn, which goes on with the token and the reroute the turn began with.
+    routes: std::sync::Mutex<std::collections::HashMap<String, Option<GatewayRoute>>>,
     in_flight: Arc<InFlight>,
     waiting: Waiting,
     me: Weak<Runner>,
@@ -146,7 +158,12 @@ pub struct Runner {
 
 impl Runner {
     pub fn new(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, launcher: Arc<dyn CliLauncher>, mcp: Arc<dyn McpEndpoint>) -> Arc<Runner> {
-        let runner = Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::default()), mcp, launcher, mcp_tokens: Default::default(), in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
+        Self::with_gateway(engine, executors, launcher, mcp, Arc::new(NoGateway))
+    }
+
+    /// A runner whose turns go through `gateway` when it routes them.
+    pub fn with_gateway(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, launcher: Arc<dyn CliLauncher>, mcp: Arc<dyn McpEndpoint>, gateway: Arc<dyn TurnGateway>) -> Arc<Runner> {
+        let runner = Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::default()), mcp, launcher, mcp_tokens: Default::default(), gateway, routes: Default::default(), in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
         let me = Arc::downgrade(&runner);
         runner.engine.on_settled(Arc::new(move |thread| {
             if let Some(runner) = me.upgrade() {
@@ -170,6 +187,17 @@ impl Runner {
 
     pub fn launcher(&self) -> &Arc<dyn CliLauncher> {
         &self.launcher
+    }
+
+    /// The CLI invocation of the thread's turn at the workspace host: the service's tool server, and the gateway when the turn is routed. The route is
+    /// decided when the turn first asks and kept until it ends.
+    pub fn host_command(&self, driver: Driver, request: &TurnRequest, thread: &str) -> CliCommand {
+        let command = command_for_host(driver, request, &self.mcp_url(thread), &self.mcp_token(thread));
+        let route = self.routes.lock().unwrap_or_else(|p| p.into_inner()).entry(thread.to_string()).or_insert_with(|| self.gateway.route(thread, driver.id(), request.model.as_deref())).clone();
+        match route {
+            Some(route) => through_gateway(driver, command, &route),
+            None => command,
+        }
     }
 
     pub fn mcp_url(&self, thread: &str) -> String {
@@ -281,9 +309,16 @@ impl Runner {
         self.waiting.forget_grants(thread);
     }
 
+    /// The thread's gateway token opens nothing any more.
+    pub fn release_route(&self, thread: &str) {
+        self.routes.lock().unwrap_or_else(|p| p.into_inner()).remove(thread);
+        self.gateway.release(thread);
+    }
+
     /// The thread's requests that wait are answered as unanswerable: its turn is over.
     pub fn release_requests(&self, thread: &str) {
         self.mcp_tokens.lock().unwrap_or_else(|p| p.into_inner()).remove(thread);
+        self.release_route(thread);
         self.waiting.release(thread);
     }
 

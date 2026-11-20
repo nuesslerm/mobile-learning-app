@@ -26,6 +26,7 @@ pub mod convert;
 pub mod edit_stats;
 pub mod exec_remote;
 pub mod file_preview;
+pub mod gateway;
 pub mod inventory;
 pub mod plan;
 pub mod question;
@@ -212,7 +213,7 @@ pub fn router(app: Arc<App>) -> Router {
         .layer(cors_layer(app.config.allowed_origins.clone()))
         .merge(Router::new().route(ws::PATH, get(upgrade)).with_state(Arc::clone(&app)))
         // The channel and the MCP server are called by machines (a long-lived socket, a CLI making many calls), so no rate limit; a tool call may carry a big file.
-        .merge(Router::new().route("/agent/v1/socket", get(agent::socket)).route("/exec/v2/executors", get(exec_remote::channel)).route("/mcp/{thread}", post(exec_remote::mcp_server)).layer(DefaultBodyLimit::max(BODY_LIMIT)).with_state(app))
+        .merge(Router::new().route("/agent/v1/socket", get(agent::socket)).route("/exec/v2/executors", get(exec_remote::channel)).route("/mcp/{thread}", post(exec_remote::mcp_server)).route("/gateway/{provider}/{*rest}", axum::routing::any(gateway::forward)).layer(DefaultBodyLimit::max(BODY_LIMIT)).with_state(app))
         .layer(CatchPanicLayer::custom(|_| respond(500, &json!({ "error": "internal_error" }))))
         .layer(axum::middleware::from_fn(trace::log_request))
         .layer(trace::layer())

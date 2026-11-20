@@ -70,19 +70,43 @@ impl AttachmentParts {
     }
 }
 
+/// What the model gateway stands on: where its tokens are kept, the keys it holds, the providers it calls, the source of its tokens, and the
+/// compression sidecar (none: the stage is off unless the composition root brings one).
+pub struct GatewayParts {
+    pub store: Arc<dyn rca_group_gateway::TokenStore>,
+    pub keys: Arc<dyn rca_group_gateway::KeySource>,
+    pub upstream: Arc<dyn rca_group_gateway::Upstream>,
+    pub ids: Arc<dyn rca_group_gateway::Ids>,
+    pub headroom: Option<Arc<dyn rca_group_gateway::Compressor>>,
+}
+
+impl GatewayParts {
+    /// The real adapters: tokens in memory as digests, keys from the environment, providers over HTTP, tokens from the system's randomness.
+    pub fn real() -> GatewayParts {
+        GatewayParts { store: Arc::new(infrastructure::gateway_tokens::MemoryGrants::default()), keys: Arc::new(infrastructure::gateway_upstream::EnvKeys), upstream: Arc::new(infrastructure::gateway_upstream::HttpUpstream::default()), ids: Arc::new(infrastructure::gateway_tokens::RandomTokens), headroom: None }
+    }
+}
+
 /// The agent API `/agent/v1` answers: the one list of groups, built here for `main` and for the flow tests alike so a registration cannot differ
 /// between them. the `service.activity` sub-group keeps client leases; `state` and `state.watch` share one hub, so a watcher sees every write; `service.status` lists each group once it serves all of its methods; `workspace` answers what it serves but stays unlisted
 /// until the rest of its owner set (`workspace.activate`, `repo.hooks`) is served. `accounts` (provider logins, usage) and `git.ai` (commit messages) stand on `accounts`: directories of the providers, their login commands and a model API. `agent.threads` and its three sub-groups, `agent.requests`, `agent.queue` and `agent.lifecycle`, share one
 /// runner of the CLIs `launcher` starts (at the workspace host), against a thread engine of its own; the runner also answers the MCP tools that wait for a person.
 #[allow(clippy::too_many_arguments)]
-pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn StateStore>, bearers: Arc<dyn DeviceBearers>, accounts: Accounts, schedule_parts: ScheduleParts, attachment_parts: AttachmentParts, speech: Arc<dyn CatalogSpeech>) -> AgentApi {
+pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn StateStore>, bearers: Arc<dyn DeviceBearers>, accounts: Accounts, schedule_parts: ScheduleParts, attachment_parts: AttachmentParts, speech: Arc<dyn CatalogSpeech>, gateway_parts: GatewayParts) -> AgentApi {
     let executors: Arc<Registry> = Arc::new(match &config.state_dir {
         Some(dir) => Registry::with_ledger(Arc::new(infrastructure::workspace_ledger::WorkspaceFile::at(std::path::Path::new(dir).join("agent-api").join("workspaces.json")))),
         None => Registry::default(),
     });
     let threads = Arc::new(EngineThreads::new(thread_engine(config)));
     let mcp = Arc::new(LoopbackMcp::new(config.port).with_public(config.agent_public_url.clone()));
-    let runner = Runner::new(threads.clone(), executors.clone(), launcher, mcp.clone());
+    let model_gateway = {
+        let gateway = rca_group_gateway::Gateway::new(gateway_parts.store, gateway_parts.keys, gateway_parts.upstream, gateway_parts.ids);
+        Arc::new(match gateway_parts.headroom {
+            Some(compressor) => gateway.with_headroom(rca_group_gateway::Rule::any(), compressor),
+            None => gateway,
+        })
+    };
+    let runner = Runner::with_gateway(threads.clone(), executors.clone(), launcher, mcp.clone(), Arc::new(infrastructure::gateway_turns::GatewayTurns::new(model_gateway.clone(), mcp.clone())));
     let hub = Arc::new(StateHub::from_base(state, config.state_seq_base));
     let attachments = Attachments::new(attachment_parts.store, attachment_parts.clock, attachment_parts.ids, executors.clone());
     let agent_threads = Arc::new(AgentThreadsGroup::with_runner(runner.clone()).with_staging(Arc::new(StagesAttachments::new(attachments.clone()))));
@@ -143,5 +167,5 @@ pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn
         Arc::new(NotificationsGroup::new(notifications)),
         Arc::new(PanesGroup::new(panes)),
     ];
-    AgentApi { sockets: Arc::new(ExecutorSockets::new(executors.clone())), agent_socket: Arc::new(AgentSockets), executors, bearers, mcp, threads, tools: runner, groups: rca_agent_core::AgentApi::new(groups).expect("the groups registered here do not clash"), schedules }
+    AgentApi { sockets: Arc::new(ExecutorSockets::new(executors.clone())), agent_socket: Arc::new(AgentSockets), executors, bearers, mcp, threads, tools: runner, model_gateway, groups: rca_agent_core::AgentApi::new(groups).expect("the groups registered here do not clash"), schedules }
 }

@@ -39,4 +39,4 @@ agent-api-agent = { path = "../../../libraries/agent-api/agent-api-agent", featu
 
 [package.metadata.arch]
 type = "rust-group"
-modules = ["checkpoint", "group", "host", "lifecycle", "neutral", "port", "queue", "refusal", "requests", "runner", "staging", "testing", "turns"]
+modules = ["checkpoint", "gateway", "group", "host", "lifecycle", "neutral", "port", "queue", "refusal", "requests", "runner", "staging", "testing", "turns"]

@@ -88,6 +88,7 @@ rca-group-agent = { path = "../group-agent" }
 rca-group-terminal = { path = "../group-terminal" }
 rca-group-git = { path = "../group-git" }
 rca-group-accounts = { path = "../group-accounts" }
+rca-group-gateway = { path = "../group-gateway" }
 agent-api-accounts = { path = "../../../libraries/agent-api/agent-api-accounts" }
 agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
 
@@ -123,6 +124,7 @@ agent-api-catalog = { path = "../../../libraries/agent-api/agent-api-catalog", f
 agent-api-preview = { path = "../../../libraries/agent-api/agent-api-preview", features = ["testing"] }
 agent-api-browser = { path = "../../../libraries/agent-api/agent-api-browser", features = ["testing"] }
 rca-group-schedules = { path = "../group-schedules", features = ["testing"] }
+rca-group-gateway = { path = "../group-gateway", features = ["testing"] }
 rca-group-attachments = { path = "../group-attachments", features = ["testing"] }
 rca-group-catalog = { path = "../group-catalog", features = ["testing"] }
 image = { version = "0.25", default-features = false, features = ["png"] }

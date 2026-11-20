@@ -186,6 +186,12 @@ services:
       OPENCODE_API_KEY: ${OPENCODE_GO_API_KEY:-}
       MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
       KIMI_API_KEY: ${KIMI_API_KEY:-}
+      # The model gateway's own provider keys (group-gateway): optional, held by the service only, never passed on to a CLI. Absent = that provider is not routed.
+      GATEWAY_ANTHROPIC_API_KEY: ${GATEWAY_ANTHROPIC_API_KEY:-}
+      GATEWAY_OPENAI_API_KEY: ${GATEWAY_OPENAI_API_KEY:-}
+      GATEWAY_OPENCODE_GO_API_KEY: ${GATEWAY_OPENCODE_GO_API_KEY:-}
+      GATEWAY_KIMI_API_KEY: ${GATEWAY_KIMI_API_KEY:-}
+      GATEWAY_OPENROUTER_API_KEY: ${GATEWAY_OPENROUTER_API_KEY:-}
       # Claude Code OAuth token — OPTIONAL in the vault (KTD7), only required
       # once AGENT_CLI=claude; the startup gate (src/startupGate.ts) fails
       # fast and by name if it's missing under that mode.

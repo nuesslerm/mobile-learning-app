@@ -1875,6 +1875,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rca-group-gateway"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "rca-agent-core",
+ "rca-group-gateway",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
 name = "rca-group-git"
 version = "0.1.0"
 dependencies = [
@@ -2030,6 +2044,7 @@ dependencies = [
  "rca-group-agent",
  "rca-group-attachments",
  "rca-group-catalog",
+ "rca-group-gateway",
  "rca-group-git",
  "rca-group-schedules",
  "rca-group-terminal",
