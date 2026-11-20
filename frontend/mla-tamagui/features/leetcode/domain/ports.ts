@@ -96,7 +96,6 @@ export interface AudioRecordingPort {
   subscribe(l: (s: { isRecording: boolean; durationMs: number; level: number }) => void): () => void;
 }
 
-// Moved from code-editor/core/EditorMessages.ts.
 export type EditorConfig = {
   initialText: string;
   isDark: boolean;

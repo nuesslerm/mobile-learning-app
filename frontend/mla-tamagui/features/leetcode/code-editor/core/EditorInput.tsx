@@ -69,7 +69,7 @@ type Props = {
  * CodeMirror 6 editor mounted inside a WebView.
  *
  * The HTML template is static; all configuration and edits flow over a
- * bidirectional postMessage protocol (see EditorMessages.ts). Adapted from the
+ * bidirectional postMessage protocol (the message types are in domain/ports.ts). Adapted from the
  * mobile-learning-apps reference: DI/observability, NativeWind, the design-system
  * theme store, and Maestro test guards have been stripped out for this app.
  */
