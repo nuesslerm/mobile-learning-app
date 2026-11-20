@@ -18,6 +18,32 @@ pub const LOGIN_SEND: &str = "login_send";
 pub const LOGIN_STATUS: &str = "login_status";
 pub const LOGIN_CANCEL: &str = "login_cancel";
 pub const LOGOUT: &str = "logout";
+/// An agent CLI's own self-update, run at the executor.
+pub const CLI_UPDATE: &str = "cli_update";
+/// One request to a `codex app-server` started for it and stopped after the answer, under the executor's own Codex login.
+pub const CODEX_APP_SERVER: &str = "codex_app_server_request";
+/// One read of the executor's own Claude account (its usage), under the login the CLI keeps in the executor's home.
+pub const CLAUDE_ACCOUNT: &str = "claude_account_request";
+
+/// The arguments of each agent CLI's self-update. Codex has none of its own (it is updated by the package manager that installed it), so
+/// `cli_update` refuses it. Written from the CLIs' documentation, not run against them here.
+pub const UPDATE_ARGS: [(&str, &[&str]); 2] = [("claude", &["update"]), ("opencode", &["upgrade"])];
+/// The longest an update may run, and the most of its output kept (the tail).
+pub const UPDATE_TIMEOUT_MS: u64 = 300_000;
+pub const UPDATE_OUTPUT_MAX: usize = 4096;
+
+/// The methods of Codex's app-server the executor sends, by name: `account/read` and `account/rateLimits/read` are the ones Orca reads an account
+/// and its limits with; the spend of a reset credit is the one the plan names for it. The last name is not checked against a pinned Codex binary
+/// (none is in the sandbox): the scripted app-server of the flow tests is the only thing that answers it so far.
+pub const CODEX_METHODS: [&str; 3] = ["account/read", "account/rateLimits/read", "account/rateLimitResetCredit/consume"];
+/// How long the app-server may take for its handshake and the one answer, by default and at most.
+pub const APP_SERVER_TIMEOUT_MS: u64 = 20_000;
+pub const APP_SERVER_TIMEOUT_MAX_MS: u64 = 60_000;
+/// Where the Claude account's usage is read, and the longest the read may take.
+pub const CLAUDE_USAGE_URL: &str = "https://api.anthropic.com/api/oauth/usage";
+pub const CLAUDE_REQUESTS: [&str; 1] = ["usage"];
+/// The file, relative to the executor's home, that holds the Claude login's token. The token never leaves the executor.
+pub const CLAUDE_CREDENTIALS: &str = ".claude/.credentials.json";
 
 /// The arguments of each agent CLI's login: a URL and a code on its output, no browser or display at the executor. Written from the CLIs'
 /// documentation, not run against them here: the real-CLI checks of the plan verify them for each pinned version.
@@ -88,6 +114,28 @@ pub const ACTIONS: &[Action] = &[
         about: "Run an agent CLI's own logout at the executor and say whether it now holds a login.",
         properties: &[Property { name: "program", kind: "string", about: "One of claude, codex, opencode" }],
         required: &["program"],
+    },
+    Action {
+        name: CLI_UPDATE,
+        about: "Run an agent CLI's own self-update (claude, opencode) at the executor and return the tail of its output and the version it now reports; codex has none and is refused.",
+        properties: &[Property { name: "program", kind: "string", about: "One of claude, opencode" }],
+        required: &["program"],
+    },
+    Action {
+        name: CODEX_APP_SERVER,
+        about: "Start `codex app-server` at the executor, send it one request (account/read, account/rateLimits/read or the reset-credit spend) and return its answer; the server is stopped after it.",
+        properties: &[
+            Property { name: "method", kind: "string", about: "One of account/read, account/rateLimits/read, account/rateLimitResetCredit/consume" },
+            Property { name: "params", kind: "object", about: "The request's params (an object, default empty)" },
+            Property { name: "timeout_ms", kind: "integer", about: "Give up after this many milliseconds (default 20000, at most 60000)" },
+        ],
+        required: &["method"],
+    },
+    Action {
+        name: CLAUDE_ACCOUNT,
+        about: "Read the executor's own Claude account: `usage` asks the account's usage windows under the login in the executor's home and returns the HTTP status and the body; the token is never returned.",
+        properties: &[Property { name: "request", kind: "string", about: "`usage`" }],
+        required: &["request"],
     },
 ];
 
@@ -291,6 +339,90 @@ pub struct LoggedOut {
     pub signed_in: bool,
 }
 
+/// `cli_update`: the CLI to update (the same names as a login's).
+#[derive(Debug, Clone, PartialEq)]
+pub struct UpdateProgram {
+    pub program: String,
+}
+
+impl UpdateProgram {
+    pub fn parse(args: &Value) -> ExecResult<UpdateProgram> {
+        let program = agent_program(args)?;
+        if !UPDATE_ARGS.iter().any(|(p, _)| *p == program) {
+            return Err(ExecError::invalid_args(format!("{program} has no update command of its own; update it with the package manager that installed it")));
+        }
+        Ok(UpdateProgram { program })
+    }
+
+    pub fn args(&self) -> &'static [&'static str] {
+        UPDATE_ARGS.iter().find(|(p, _)| *p == self.program).map_or(&[], |(_, a)| a)
+    }
+}
+
+/// What an update did: whether the CLI exited 0, its exit code, the tail of its output and the first line of its `--version` afterwards.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CliUpdated {
+    pub program: String,
+    pub ok: bool,
+    pub exit_code: i32,
+    pub output: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+}
+
+/// `codex_app_server_request`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CodexRequest {
+    pub method: String,
+    pub params: Value,
+    pub timeout_ms: u64,
+}
+
+impl CodexRequest {
+    pub fn parse(args: &Value) -> ExecResult<CodexRequest> {
+        let method = string(args, "method")?;
+        if !CODEX_METHODS.contains(&method.as_str()) {
+            return Err(ExecError::invalid_args(format!("`method` is one of {}, not {method:?}", CODEX_METHODS.join(", "))));
+        }
+        let params = match &args["params"] {
+            Value::Null => Value::Object(Default::default()),
+            p @ Value::Object(_) => p.clone(),
+            _ => return Err(ExecError::invalid_args("`params` must be an object")),
+        };
+        let timeout_ms = opt_uint(args, "timeout_ms")?.unwrap_or(APP_SERVER_TIMEOUT_MS).clamp(1, APP_SERVER_TIMEOUT_MAX_MS);
+        Ok(CodexRequest { method, params, timeout_ms })
+    }
+}
+
+/// The app-server's answer to the request: its `result` as it sent it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CodexAnswer {
+    pub result: Value,
+}
+
+/// `claude_account_request`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ClaudeRequest {
+    pub request: String,
+}
+
+impl ClaudeRequest {
+    pub fn parse(args: &Value) -> ExecResult<ClaudeRequest> {
+        let request = string(args, "request")?;
+        if !CLAUDE_REQUESTS.contains(&request.as_str()) {
+            return Err(ExecError::invalid_args(format!("`request` is one of {}, not {request:?}", CLAUDE_REQUESTS.join(", "))));
+        }
+        Ok(ClaudeRequest { request })
+    }
+}
+
+/// The Claude account service's answer: its HTTP status and its body (JSON when it is, else the text as a string).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ClaudeAnswer {
+    pub status: u16,
+    pub body: Value,
+}
+
 /// The first non-empty line of a program's `--version` output, cut to `VERSION_MAX` bytes at a character boundary; none when there is none.
 pub fn version_line(output: &str) -> Option<String> {
     let line = output.lines().map(str::trim).find(|l| !l.is_empty())?;
@@ -378,5 +510,22 @@ mod tests {
         assert_eq!(found, r#"{"program":"claude","installed":true,"path":"/bin/claude","version":"2.1.7"}"#);
         assert_eq!(silent, r#"{"program":"codex","installed":true,"path":"/bin/codex","error":"timed out"}"#);
         assert_eq!(missing, r#"{"program":"opencode","installed":false}"#);
+    }
+
+    #[test]
+    fn given_provider_account_requests_when_parsed_then_only_the_listed_programs_methods_and_reads_are_accepted() {
+        // Given an update for claude and for codex, requests of the app-server with a method of the list, one off it and params that are no object
+        let claude = UpdateProgram::parse(&json!({"program": "claude"})).unwrap();
+        let codex = UpdateProgram::parse(&json!({"program": "codex"})).unwrap_err();
+        let read = CodexRequest::parse(&json!({"method": "account/rateLimits/read", "timeout_ms": 999_999})).unwrap();
+        let off = CodexRequest::parse(&json!({"method": "thread/start"})).unwrap_err();
+        let bad = CodexRequest::parse(&json!({"method": "account/read", "params": []})).unwrap_err();
+        // Then claude has its own update arguments, codex is refused, the timeout is held to its most and the params default to an object
+        assert_eq!(claude.args(), ["update"]);
+        assert!(codex.code == Code::InvalidArgs && codex.message.contains("no update command"), "{codex:?}");
+        assert_eq!((read.timeout_ms, read.params), (APP_SERVER_TIMEOUT_MAX_MS, json!({})));
+        assert!(off.message.contains("account/read") && bad.message.contains("`params` must be an object"));
+        assert_eq!(ClaudeRequest::parse(&json!({"request": "usage"})).unwrap().request, "usage");
+        assert_eq!(ClaudeRequest::parse(&json!({"request": "token"})).unwrap_err().code, Code::InvalidArgs);
     }
 }

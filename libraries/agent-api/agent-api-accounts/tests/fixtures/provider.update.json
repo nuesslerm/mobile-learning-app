@@ -1,0 +1,64 @@
+{
+  "method": "provider.update",
+  "exchanges": [
+    {
+      "name": "runs the provider CLI's own update at the workspace host and gives what it printed and the version it reports",
+      "request": {
+        "id": 1,
+        "method": "provider.update",
+        "params": {
+          "provider": "claudeAgent"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "provider": "claudeAgent",
+          "update": {
+            "ok": true,
+            "exit_code": 0,
+            "output": "Updated to 0.0.0-flow",
+            "version": "0.0.0-flow"
+          }
+        }
+      },
+      "actions": [
+        "cli_update"
+      ]
+    },
+    {
+      "name": "a provider with no update command of its own is refused",
+      "request": {
+        "id": 1,
+        "method": "provider.update",
+        "params": {
+          "provider": "codex"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "NOT_SUPPORTED",
+          "message": "codex has no update command of its own; update it with the package manager that installed it"
+        }
+      }
+    },
+    {
+      "name": "a provider that is none is refused",
+      "request": {
+        "id": 1,
+        "method": "provider.update",
+        "params": {
+          "provider": "gemini"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "UNKNOWN_PROVIDER",
+          "message": "gemini is not a provider; the providers are opencode, claudeAgent, codex"
+        }
+      }
+    }
+  ]
+}

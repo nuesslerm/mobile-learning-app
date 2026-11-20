@@ -16,7 +16,7 @@ pub struct Command {
 }
 
 /// The commands whose effect is the agent API's and whose only mark on the thread's rows is that they were accepted.
-pub const ACCEPTED_ONLY: [&str; 17] = [
+pub const ACCEPTED_ONLY: [&str; 16] = [
     "queue.resume",
     "queued-run.start",
     "queued-run.reorder",
@@ -25,7 +25,6 @@ pub const ACCEPTED_ONLY: [&str; 17] = [
     "queued-message.promote-to-steer",
     "runtime-request.respond",
     "checkpoint.rollback",
-    "prepared-run.retry",
     "subagent.stop",
     "provider-session.detach",
     "notification.delivery.accept",

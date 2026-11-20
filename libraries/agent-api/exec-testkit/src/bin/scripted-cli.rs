@@ -166,43 +166,14 @@ fn write_credential(env: &str, file: &str, content: &str, pasted: &str) {
 /// The version an unscripted program prints (`claude 0.0.0-mimic`); the hermetic host of `mimic-script-host` prints the same.
 const DEFAULT_VERSION: &str = "0.0.0-mimic";
 
-fn main() {
-    let exe = std::env::current_exe().unwrap_or_else(|e| fail(1, &format!("no path of its own: {e}")));
-    let (dir, program) = (exe.parent().unwrap_or(Path::new(".")).to_path_buf(), exe.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_string());
-    let args: Vec<String> = std::env::args().skip(1).collect();
-    let written = std::fs::read_to_string(dir.join(script_file(&program))).ok();
-    // A program nobody scripted answers a version query like the recording host's stub does, so a recorded server and a replayed chain see the same CLIs.
-    let unscripted = Script { turns: Vec::new(), version: Some(format!("{program} {DEFAULT_VERSION}")) };
-    let script: Script = match &written {
-        None => unscripted,
-        Some(text) => serde_json::from_str(text).unwrap_or_default(),
-    };
-    if let (Some(text), [only]) = (&script.version, args.as_slice()) {
-        if only == "--version" {
-            println!("{text}");
-            std::process::exit(0);
-        }
-    }
-    let log = dir.join(log_file(&program));
-    let starts = std::fs::read_to_string(&log).map_or(0, |text| text.lines().count());
-    let turn: Turn = script.turn_for(starts);
-    let invocation = Invocation {
-        program: program.clone(),
-        argv: args.clone(),
-        cwd: std::env::current_dir().map(|d| d.display().to_string()).unwrap_or_default(),
-        env: turn.log_env.iter().map(|name| (name.clone(), std::env::var(name).ok())).collect::<BTreeMap<_, _>>(),
-        listing: turn.list_env.iter().map(|name| (name.clone(), std::env::var_os(name).map(|d| files_below(Path::new(&d))).unwrap_or_default())).collect::<BTreeMap<_, _>>(),
-    };
-    // Logged before anything runs, so a start that hangs or is killed is in the log
-    let mut file = std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap_or_else(|e| fail(1, &format!("{}: {e}", log.display())));
-    let _ = writeln!(file, "{}", serde_json::to_string(&invocation).unwrap_or_default());
-    drop(file);
+/// Plays one turn's steps, then ends the process as the turn says.
+fn play(turn: &Turn, program: &str, args: &[String]) -> ! {
     let mut pasted = String::new();
     for step in &turn.steps {
         match step {
             Step::Line { text } => print(text),
             Step::Sleep { ms } => std::thread::sleep(Duration::from_millis(*ms)),
-            Step::McpCall { id, tool, args: input } => call_tool(&program, &args, id, tool, input),
+            Step::McpCall { id, tool, args: input } => call_tool(program, args, id, tool, input),
             Step::ReadLine => {
                 let mut line = String::new();
                 if std::io::stdin().read_line(&mut line).unwrap_or(0) == 0 {
@@ -220,4 +191,61 @@ fn main() {
         exec_testkit::hang_until_orphaned();
     }
     std::process::exit(turn.exit_code);
+}
+
+/// Codex's app-server on stdio: one JSON request a line, answered from the script by method; it ends when its input does.
+fn serve_app_server(script: &Script) -> ! {
+    for line in std::io::stdin().lock().lines().map_while(Result::ok) {
+        let Ok(request) = serde_json::from_str::<Value>(&line) else { continue };
+        let Some(id) = request.get("id").cloned() else { continue };
+        let method = request["method"].as_str().unwrap_or_default();
+        let mut answer = if method == "initialize" {
+            json!({"result": {"userAgent": "scripted-codex"}})
+        } else {
+            script.app_server.get(method).cloned().unwrap_or_else(|| json!({"error": {"code": -32601, "message": format!("no such method: {method}")}}))
+        };
+        answer["id"] = id;
+        print(&answer.to_string());
+    }
+    std::process::exit(0)
+}
+
+fn main() {
+    let exe = std::env::current_exe().unwrap_or_else(|e| fail(1, &format!("no path of its own: {e}")));
+    let (dir, program) = (exe.parent().unwrap_or(Path::new(".")).to_path_buf(), exe.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_string());
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let written = std::fs::read_to_string(dir.join(script_file(&program))).ok();
+    // A program nobody scripted answers a version query like the recording host's stub does, so a recorded server and a replayed chain see the same CLIs.
+    let unscripted = Script { version: Some(format!("{program} {DEFAULT_VERSION}")), ..Script::default() };
+    let script: Script = match &written {
+        None => unscripted,
+        Some(text) => serde_json::from_str(text).unwrap_or_default(),
+    };
+    if let (Some(text), [only]) = (&script.version, args.as_slice()) {
+        if only == "--version" {
+            println!("{text}");
+            std::process::exit(0);
+        }
+    }
+    if args.first().map(String::as_str) == Some("app-server") && !script.app_server.is_empty() {
+        serve_app_server(&script);
+    }
+    if let Some(turn) = args.first().and_then(|first| script.commands.get(first)) {
+        play(turn, &program, &args);
+    }
+    let log = dir.join(log_file(&program));
+    let starts = std::fs::read_to_string(&log).map_or(0, |text| text.lines().count());
+    let turn: Turn = script.turn_for(starts);
+    let invocation = Invocation {
+        program: program.clone(),
+        argv: args.clone(),
+        cwd: std::env::current_dir().map(|d| d.display().to_string()).unwrap_or_default(),
+        env: turn.log_env.iter().map(|name| (name.clone(), std::env::var(name).ok())).collect::<BTreeMap<_, _>>(),
+        listing: turn.list_env.iter().map(|name| (name.clone(), std::env::var_os(name).map(|d| files_below(Path::new(&d))).unwrap_or_default())).collect::<BTreeMap<_, _>>(),
+    };
+    // Logged before anything runs, so a start that hangs or is killed is in the log; a command start plays no turn, so it is not one
+    let mut file = std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap_or_else(|e| fail(1, &format!("{}: {e}", log.display())));
+    let _ = writeln!(file, "{}", serde_json::to_string(&invocation).unwrap_or_default());
+    drop(file);
+    play(&turn, &program, &args)
 }

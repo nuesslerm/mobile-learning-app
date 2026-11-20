@@ -116,11 +116,11 @@ fn turning(events: Vec<ThreadEvent>) -> Rca {
 }
 
 fn thread() -> AgentThread {
-    AgentThread { thread_id: "t1".into(), instance_id: "claudeAgent".into(), model: Some("m1".into()) }
+    AgentThread { thread_id: "t1".into(), instance_id: "claudeAgent".into(), model: Some("m1".into()), worktree: None }
 }
 
 fn turn() -> AgentTurn {
-    AgentTurn { thread_id: "t1".into(), instance_id: "claudeAgent".into(), model: Some("m1".into()), prompt: "say hi".into(), runtime_mode: "full-access".into(), interaction_mode: "default".into() , attachments: vec![]}
+    AgentTurn { thread_id: "t1".into(), instance_id: "claudeAgent".into(), model: Some("m1".into()), prompt: "say hi".into(), runtime_mode: "full-access".into(), interaction_mode: "default".into() , attachments: vec![], worktree: None}
 }
 
 /// Every event the thread sends after `after` until the sink has seen `count` of them, or what stopped the follow.
@@ -411,6 +411,7 @@ fn every_op() -> Vec<Op> {
         Op::TurnDiff { root: "/work/proj".into(), base: "HEAD".into() },
         Op::ThreadDiff { root: "/work/proj".into() },
         Op::WorktreeCreate { root: "/work/proj".into(), worktree: "wt".into(), branch: "feature/x".into(), base: Some("main".into()) },
+        Op::WorktreeRemove { root: "/work/proj/wt".into() },
         Op::WorktreeSetupCancel { root: "/work/proj".into() },
         Op::TerminalOpen { root: "/work/proj".into(), terminal: "t1.a".into(), cwd: "/work/proj".into(), cols: Some(100), rows: Some(30), env: vec![("TERM".into(), "xterm".into())] },
         Op::TerminalWrite { root: "/work/proj".into(), terminal: "t1.a".into(), data: "ls\n".into() },
@@ -444,6 +445,7 @@ fn every_op() -> Vec<Op> {
         Op::AccountsLogout { provider: "codex".into() },
         Op::UsageSummary,
         Op::ResetCredit { provider: "codex".into() },
+        Op::ServiceLogs { limit: 50, min_level: "warn" },
         Op::ClientActivity(ClientActivity { client: "phone-1".into(), kind: "mobile".into(), visible: true, focused: true, recently_interacted: false, app_state: None, low_power_mode: None, scopes: vec!["server-config".into()], ttl_ms: None, observed_at_ms: 5 }),
     ];
     ops.extend(hosted);

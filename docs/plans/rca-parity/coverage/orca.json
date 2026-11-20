@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 254,
+    "served": 255,
     "pending": 4,
-    "notOffered": 49,
+    "notOffered": 48,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -88,10 +88,17 @@
       "kind": "rpc",
       "name": "accounts.consumeCodexResetCredit",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M10",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's provider.resetCredit is refused NOT_SUPPORTED by the model API the service runs against, and rca keeps no account revision or offer revision, so a spend could only ever be a refusal and the phone's expectedScope has nothing to be checked against. Revisited 20 Nov (issue #83 O2, plan docs/plans/rca-offer-more/plan.md): still not offered: spending a credit changes the billing state of a signed-in Codex account, so only that account can answer it (the host asks Codex's app-server under the account's login, scoped by the account and offer revision the phone read from accounts.list). The executor has no one-shot `codex app-server` request, accounts.list carries no credit or revision, and the recordings hold no Codex account (every recorded call fails on the idempotency key before it reaches one), so no success or spend refusal can be shaped; it needs the owner's Codex login and a credit to record (issue #83, O5).",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-accounts.consumeCodexResetCredit-empty-min",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:accounts.list",

@@ -185,7 +185,7 @@ mod tests {
     }
 
     /// The executor actions only the accounts group calls: the service root registers that group, so this registry lacks its rows (`rca-group-accounts` checks that its rows name each of these).
-    const CALLED_BY_ROOT_GROUPS: [&str; 5] = ["login_start", "login_send", "login_status", "login_cancel", "logout"];
+    const CALLED_BY_ROOT_GROUPS: [&str; 8] = ["login_start", "login_send", "login_status", "login_cancel", "logout", "cli_update", "codex_app_server_request", "claude_account_request"];
 
     /// The actions that no row of `served` calls and that no MCP tool of `tools` reaches. A tool reaches an action only for the model of a CLI
     /// turn, so the tools count while some row starts one.

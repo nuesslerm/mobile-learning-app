@@ -49,11 +49,15 @@ pub fn shell_line(program: &str, args: &[String]) -> String {
 
 #[async_trait]
 impl Spawner for HostSpawner {
-    async fn spawn(&self, program: &str, args: &[String], _cwd: &Path) -> Result<Running, String> {
+    async fn spawn(&self, program: &str, args: &[String], cwd: &Path) -> Result<Running, String> {
         if self.channel.is_closed() {
             return Err("the workspace's executor is gone".into());
         }
-        let request = json!({"command": shell_line(program, args), "timeout_ms": TURN_TIMEOUT_MS});
+        let mut request = json!({"command": shell_line(program, args), "timeout_ms": TURN_TIMEOUT_MS});
+        // The executor runs a command in its root unless it is told a directory (relative to the root, or a worktree's absolute path)
+        if cwd != Path::new(".") {
+            request["cwd"] = json!(cwd.to_string_lossy());
+        }
         let (stream, mut chunks) = mpsc::unbounded_channel();
         let channel = Arc::clone(&self.channel);
         let call = tokio::spawn(async move { channel.call_stream(RUN_COMMAND, request, stream).await });

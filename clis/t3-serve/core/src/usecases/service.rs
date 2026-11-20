@@ -90,6 +90,10 @@ impl Service {
     /// Follows the runs a restart left running; called once, when the server starts.
     pub fn resume_runs(&self) {
         self.1.resume();
+        // A worktree the server was making when it stopped is made again (or found, when it was recorded): the run still waits for it
+        for (thread, run) in self.engine().read(|state| state.entities.iter().flat_map(|(t, e)| e.runs.iter().filter(|r| r["status"] == "preparing" && r["workspacePreparation"].is_object()).map(move |r| (t.clone(), r["id"].as_str().unwrap_or_default().to_string()))).collect::<Vec<_>>()) {
+            self.prepare_run(&thread, &run);
+        }
     }
 
     /// Catches a thread's rows up with its log in the agent API before they are read.
@@ -140,6 +144,7 @@ impl Service {
             Some(Effect::Queue(launch)) => self.1.queue(launch.clone()),
             Some(Effect::Interrupt { thread_id, hold }) => self.1.interrupt(thread_id, *hold),
             Some(Effect::Follow { thread_id, run_id }) => self.1.resume_queue(thread_id, run_id.clone()),
+            Some(Effect::Prepare { thread_id, run_id }) => self.prepare_run(thread_id, run_id),
             None => {}
         }
         Ok(dispatched)

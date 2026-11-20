@@ -21,6 +21,7 @@ use std::time::Duration;
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() -> ExitCode {
+    log::install_clock(|| std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64));
     // The compose healthcheck runs this binary, so the image needs no curl.
     if std::env::args().nth(1).as_deref() == Some("--healthcheck") {
         let port = ProcessEnv.settings().port;

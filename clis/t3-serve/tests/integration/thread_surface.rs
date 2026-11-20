@@ -590,19 +590,79 @@ fn the_requests_rca_cannot_serve_yet_are_refused_with_t3s_words_and_a_refusal_ne
         chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         phone.seed(case, &chain);
-        let projection = phone.message(case, &chain, "t1", "c-m1", "make a note");
-        let run = projection["runs"][0]["id"].as_str().unwrap().to_string();
-        // When a prepared run is retried, a workflow script and a secret are asked for
-        let retry = phone.command(case, &chain, cmd("prepared-run.retry", "t1", json!({"runId": run})));
-        assert!(asked(case).is_empty());
-        assert_eq!(failure(&retry)["message"], format!("Run {run} has no failed workspace preparation to retry."));
+        phone.message(case, &chain, "t1", "c-m1", "make a note");
+        // When a workflow script and a secret are asked for
         let script = phone.call(case, &chain, &["rpc:orchestration.getWorkflowScript"], "orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/home/u/.claude/projects/x/wf.js"}));
         // The script is read at the executor, which here has no Claude projects directory: rca was asked and its refusal is T3's reason
         assert_eq!((failure(&script)["reason"].as_str(), asked(case).is_empty()), (Some("root-unavailable"), false));
         let secret = phone.call(case, &chain, &["rpc:secrets.answerRequest"], "secrets.answerRequest", json!({"threadId": "t1", "turnItemId": "i1", "answer": {"type": "decline"}}));
         // Then each is T3's own refusal, rca was asked only for the script, and no call of them is a served one
         assert_eq!((failure(&secret)["reason"].as_str(), asked(case).is_empty()), (Some("not_found"), true));
-        let refused: Vec<&Value> = case.calls().iter().filter(|c| c["rows"].as_array().unwrap().iter().any(|r| ["command:prepared-run.retry", "rpc:orchestration.getWorkflowScript", "rpc:secrets.answerRequest"].contains(&r.as_str().unwrap()))).collect();
-        assert!(refused.len() == 3 && refused.iter().all(|c| c["ok"] == false), "{refused:?}");
+        let refused: Vec<&Value> = case.calls().iter().filter(|c| c["rows"].as_array().unwrap().iter().any(|r| ["rpc:orchestration.getWorkflowScript", "rpc:secrets.answerRequest"].contains(&r.as_str().unwrap()))).collect();
+        assert!(refused.len() == 2 && refused.iter().all(|c| c["ok"] == false), "{refused:?}");
+    });
+}
+
+#[test]
+fn a_launch_on_a_new_worktree_fails_when_its_branch_is_taken_and_a_retry_prepares_it_through_the_service_and_the_executor_and_runs_the_turn_in_it() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a repository that already has the branch the launch asks for, and a scripted Claude that writes a note
+        let chain = Chain::start();
+        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello")]).printing_version("0.0.0-flow"));
+        chain.repo.git(&["branch", "feature/taken"]);
+        let mut phone = Phone::connect(case, &chain);
+        phone.seed(case, &chain);
+        let launch = json!({
+            "commandId": "c-wt", "creationSource": "mobile", "projectId": "p1", "threadId": "t-wt", "title": "On a worktree", "modelSelection": {"instanceId": "claudeAgent", "model": "opus"},
+            "runtimeMode": "full-access", "interactionMode": "default", "workspaceStrategy": {"type": "worktree", "baseRef": "main", "branch": "feature/taken"},
+            "initialMessage": {"messageId": "m-wt", "text": "make a note", "attachments": []},
+        });
+        // When the phone launches on a new worktree
+        let answer = case.call(&chain.tap, &rows(&["rpc:orchestration.launchThread"]), || {
+            let exit = phone.calls.call("orchestration.launchThread", launch);
+            (exit["_tag"] == "Success", exit)
+        });
+        // Then the launch is answered and the run ends failed with the executor's reason, and the thread names no worktree
+        assert_eq!(success(&answer)["threadId"], "t-wt");
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(40);
+        let failed = loop {
+            let projection = success(&phone.calls.call("orchestration.getThreadProjection", json!({"threadId": "t-wt"}))).clone();
+            if projection["runs"][0]["status"] == "failed" || std::time::Instant::now() > deadline {
+                break projection;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        };
+        let error = failed["turnItems"].as_array().unwrap().iter().find(|i| i["type"] == "error").cloned().expect("an error row");
+        assert_eq!((failed["runs"][0]["status"].as_str(), error["failure"]["code"].as_str(), failed["thread"]["worktreePath"].is_null()), (Some("failed"), Some("workspace_preparation_failed"), true), "{failed}");
+        assert!(chain.cli.invocations("claude").is_empty(), "no turn started before the workspace was ready");
+        // And when the branch is gone and the phone retries the preparation of that run, the worktree is made, recorded on the thread, and the turn runs in it
+        chain.repo.git(&["branch", "-D", "feature/taken"]);
+        let run = failed["runs"][0]["id"].as_str().unwrap().to_string();
+        let done = phone.command_until(case, &chain, cmd("prepared-run.retry", "t-wt", json!({"runId": run})), "t-wt", |p| p["runs"][0]["status"] == "completed");
+        let worktree = done["thread"]["worktreePath"].as_str().expect("the thread records its worktree").to_string();
+        assert!(std::path::Path::new(&worktree).join(".git").exists(), "{worktree} is no checkout");
+        assert_eq!((done["thread"]["branch"].as_str(), chain.cli.invocations("claude").len()), (Some("feature/taken"), 1));
+        assert_eq!(std::fs::canonicalize(&chain.cli.invocations("claude")[0].cwd).unwrap(), std::fs::canonicalize(&worktree).unwrap(), "the CLI started in the worktree");
+    });
+}
+
+#[test]
+fn a_triage_session_is_written_at_the_executor_from_the_services_own_log_and_the_prompt_links_the_playbook() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a service that has run (it wrote events when the phone connected), and a phone allowed to maintain the environment
+        let chain = Chain::start();
+        let scopes: Vec<String> = t3_contracts::scopes::ALL_SCOPES.iter().map(|s| s.to_string()).collect();
+        let mut phone = Phone::connect_with(case, &chain, &scopes);
+        // When the phone prepares a triage and says what it is
+        let answer = phone.call(case, &chain, &["rpc:server.prepareTriage"], "server.prepareTriage", json!({"client": {"label": "Pixel", "appVersion": "1.4.2", "os": "android"}}));
+        // Then the prompt links the playbook at a path the executor holds, and the log file next to it holds the service's own events
+        let prompt = success(&answer)["prompt"].as_str().unwrap().to_string();
+        let path = prompt.strip_prefix("Read [triage-playbook.md](").and_then(|rest| rest.strip_suffix(") and follow it. ")).unwrap_or_else(|| panic!("{prompt}"));
+        let playbook = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("{path}: {e}"));
+        assert!(playbook.contains("Pixel version 1.4.2 on android") && playbook.contains("service-logs.jsonl"), "{playbook}");
+        let logs = std::fs::read_to_string(std::path::Path::new(path).with_file_name("service-logs.jsonl")).unwrap();
+        let events: Vec<Value> = logs.lines().map(|l| serde_json::from_str(l).unwrap()).collect();
+        assert!(!events.is_empty() && events.iter().all(|e| e["event"].is_string() && e["level"].is_string()), "{logs}");
+        assert!(events.iter().any(|e| e["event"] == "server.listening"), "{logs}");
     });
 }

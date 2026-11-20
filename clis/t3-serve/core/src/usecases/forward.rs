@@ -7,7 +7,7 @@ use crate::ports::{AgentError, AgentThread, Op};
 use serde_json::{json, Value};
 
 /// The thread commands this module answers; every other type is decided by the engine alone.
-pub const FORWARDED: [&str; 32] = [
+pub const FORWARDED: [&str; 31] = [
     "thread.archive",
     "thread.unarchive",
     "thread.delete",
@@ -18,7 +18,6 @@ pub const FORWARDED: [&str; 32] = [
     "thread.fork",
     "thread.merge_back",
     "subagent.stop",
-    "prepared-run.retry",
     "provider-session.detach",
     "queue.resume",
     "queued-run.start",
@@ -75,7 +74,7 @@ impl Service {
     pub(crate) fn thread_for_agent(&self, id: &str) -> Option<AgentThread> {
         self.engine().read(|state| {
             let shell = state.threads.get(id)?;
-            Some(AgentThread { thread_id: id.to_string(), instance_id: text(&Value::Object(shell.clone()), "providerInstanceId").unwrap_or_default(), model: shell["modelSelection"]["model"].as_str().map(str::to_string) })
+            Some(AgentThread { thread_id: id.to_string(), instance_id: text(&Value::Object(shell.clone()), "providerInstanceId").unwrap_or_default(), model: shell["modelSelection"]["model"].as_str().map(str::to_string), worktree: shell["worktreePath"].as_str().filter(|p| !p.is_empty()).map(str::to_string) })
         })
     }
 
@@ -125,7 +124,6 @@ impl Service {
             "thread.merge_back" => vec![Op::ThreadMergeBack { thread: run("sourceThreadId")?, into: run("targetThreadId")?, turn: None }],
             // the projection lists no subagent (rca runs no provider-native ones), so the real server refuses every stop and leaves the run running
             "subagent.stop" => return Err("The requested native subagent cannot be stopped on this run.".into()),
-            "prepared-run.retry" => return Err(format!("Run {} has no failed workspace preparation to retry.", run("runId")?)),
             "provider-session.detach" => vec![Op::ThreadDetach { thread, session: run("providerSessionId")? }],
             "queue.resume" => vec![Op::QueueResume { thread, item: None }],
             "queued-run.start" if !self.engine().read(|state| queued_may_start(state, &thread)) => return Err("A queued user message can only be sent now while the thread is stopped.".into()),

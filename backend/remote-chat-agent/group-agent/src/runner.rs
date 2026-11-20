@@ -234,7 +234,8 @@ impl Runner {
             run_id: turn.clone(),
             instance_id: driver.id().into(),
             model: input.model.clone().or_else(|| known.model.clone()),
-            cwd: ".".into(),
+            // A workspace that is a directory or a worktree of its executor is where the CLI runs; the root is the executor's own directory
+            cwd: self.executors.place(&input.workspace).prefix.filter(|p| !p.is_empty()).unwrap_or_else(|| ".".into()),
             prompt: with_context(merge.as_ref(), &input.prompt),
             runtime_mode: input.runtime_mode.clone().unwrap_or_else(|| "full-access".into()),
             interaction_mode: input.interaction_mode.clone().unwrap_or_else(|| "default".into()),

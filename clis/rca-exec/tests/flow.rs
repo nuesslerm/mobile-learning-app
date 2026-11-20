@@ -12,6 +12,8 @@ mod git;
 mod hosted;
 #[path = "flow/preview.rs"]
 mod preview;
+#[path = "flow/provider_account.rs"]
+mod provider_account;
 #[path = "flow/pty.rs"]
 mod pty;
 #[path = "flow/workspace.rs"]

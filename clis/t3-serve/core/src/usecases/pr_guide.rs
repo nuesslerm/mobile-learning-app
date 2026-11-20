@@ -391,8 +391,8 @@ impl Service {
 
     fn turn_text(&self, thread: &str, instance: &str, model: Option<String>, prompt: &str) -> Result<String, String> {
         let agent_error = |e: AgentError| e.message();
-        let mut after = self.agent().ensure_thread(&AgentThread { thread_id: thread.into(), instance_id: instance.into(), model: model.clone() }).map_err(agent_error)?;
-        let turn = self.agent().start_turn(&AgentTurn { thread_id: thread.into(), instance_id: instance.into(), model, prompt: prompt.into(), runtime_mode: "approval-required".into(), interaction_mode: "default".into(), attachments: vec![] }).map_err(agent_error)?;
+        let mut after = self.agent().ensure_thread(&AgentThread { thread_id: thread.into(), instance_id: instance.into(), model: model.clone(), worktree: None }).map_err(agent_error)?;
+        let turn = self.agent().start_turn(&AgentTurn { thread_id: thread.into(), instance_id: instance.into(), model, prompt: prompt.into(), runtime_mode: "approval-required".into(), interaction_mode: "default".into(), attachments: vec![], worktree: None }).map_err(agent_error)?;
         let deadline = Instant::now() + TURN_LIMIT;
         let (mut said, mut failed) = (String::new(), None);
         loop {

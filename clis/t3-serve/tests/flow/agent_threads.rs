@@ -23,9 +23,9 @@ fn crashed_run(h: &Harness, text: &str) -> String {
 
 /// What rca did for the turn while t3 was not following: the thread made and the turn started, its events in the thread's log.
 fn rca_runs(h: &Harness, text: &str) -> String {
-    let thread = AgentThread { thread_id: "t1".into(), instance_id: "opencode".into(), model: None };
+    let thread = AgentThread { thread_id: "t1".into(), instance_id: "opencode".into(), model: None, worktree: None };
     h.agent.ensure_thread(&thread).unwrap();
-    let turn = AgentTurn { thread_id: "t1".into(), instance_id: "opencode".into(), model: None, prompt: text.into(), runtime_mode: "full-access".into(), interaction_mode: "default".into() , attachments: vec![]};
+    let turn = AgentTurn { thread_id: "t1".into(), instance_id: "opencode".into(), model: None, prompt: text.into(), runtime_mode: "full-access".into(), interaction_mode: "default".into() , attachments: vec![], worktree: None};
     h.agent.start_turn(&turn).unwrap()
 }
 

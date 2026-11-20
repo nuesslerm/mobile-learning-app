@@ -15,7 +15,7 @@ use crate::domain::ToolExecutor;
 use base64::Engine;
 use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, EntryKind, FoundEntry, ListDir, MakeDir, PutBlob, PutTemp, ReadChunk, ReadFile, ReadResult, SearchEntries, SessionScan, SessionsFound, Skill, SkillDir, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
 use exec_git::{GitCall, GitDiff, GitOp, Resolution, SetupEvent, SetupResult, SetupStep, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeRemove, WorktreeSetup};
-use exec_proc::{CliDetect, CliFound, LoginCancel, LoginProgram, LoginSend, LoginState, LoginStatus, RunCommand, RunResult};
+use exec_proc::{ClaudeAnswer, ClaudeRequest, CliDetect, CliFound, CliUpdated, CodexAnswer, CodexRequest, UpdateProgram, LoginCancel, LoginProgram, LoginSend, LoginState, LoginStatus, RunCommand, RunResult};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyOpen, PtyOpened, PtyResize, PtyWrite};
 use crate::adapters::git::{Repo, Watches};
 use crate::adapters::hosted::Hosted;
@@ -51,6 +51,7 @@ pub struct LocalExecutor {
     browser: BrowserTable,
     cli_path: Option<String>,
     logins: crate::adapters::logins::Logins,
+    claude_usage_url: String,
     version_timeout: Duration,
     skill_home: Option<PathBuf>,
 }
@@ -73,7 +74,7 @@ fn outside(path: &str) -> ExecError {
 impl LocalExecutor {
     pub fn new(root: &Path) -> Result<LocalExecutor, String> {
         let root = fs::canonicalize(root).map_err(|e| format!("executor root {}: {e}", root.display()))?;
-        Ok(LocalExecutor { root, worktree_base: None, browse_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), browser: BrowserTable::default(), cli_path: None, logins: Default::default(), version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
+        Ok(LocalExecutor { root, worktree_base: None, browse_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), browser: BrowserTable::default(), cli_path: None, logins: Default::default(), claude_usage_url: exec_proc::CLAUDE_USAGE_URL.to_string(), version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
     }
 
     /// Widens confinement to the directory worktrees are made in (created when missing).
@@ -136,6 +137,12 @@ impl LocalExecutor {
         self
     }
 
+    /// Where the Claude account's usage is read in place of Anthropic's (a test serves it on a local port).
+    pub fn with_claude_usage_url(mut self, url: &str) -> LocalExecutor {
+        self.claude_usage_url = url.to_string();
+        self
+    }
+
     /// How long a CLI's `--version` may run before it counts as not answering.
     pub fn with_version_timeout(mut self, limit: Duration) -> LocalExecutor {
         self.version_timeout = limit;
@@ -179,6 +186,16 @@ impl LocalExecutor {
             None => search,
         };
         Ok((path, env_path, home))
+    }
+
+    /// The path the executor's tools are found on and its home, for a request that needs no agent CLI (the Claude usage read, which only needs `curl`).
+    fn tools_target(&self) -> ExecResult<((), String, PathBuf)> {
+        let home = crate::adapters::logins::home_of(self.skill_home.as_ref()).ok_or_else(|| ExecError::new(Code::Io, "the executor has no home"))?;
+        let env_path = match &self.cli_path {
+            Some(own) => format!("{own}:{}", std::env::var("PATH").unwrap_or_default()),
+            None => std::env::var("PATH").unwrap_or_default(),
+        };
+        Ok(((), env_path, home))
     }
 
     fn resolve(&self, path: &str) -> ExecResult<PathBuf> {
@@ -624,6 +641,23 @@ impl ToolExecutor for LocalExecutor {
     fn logout(&self, args: &LoginProgram) -> ExecResult<bool> {
         let (path, search, home) = self.login_target(&args.program)?;
         self.logins.logout(args, &path, &search, &home)
+    }
+
+    fn cli_update(&self, args: &UpdateProgram) -> ExecResult<CliUpdated> {
+        let (path, search, home) = self.login_target(&args.program)?;
+        let (exit_code, output) = crate::adapters::provider_account::update(args, &path, &search, &home, Duration::from_millis(exec_proc::UPDATE_TIMEOUT_MS))?;
+        let version = probe_version(&path, &search, self.version_timeout).ok().flatten();
+        Ok(CliUpdated { program: args.program.clone(), ok: exit_code == 0, exit_code, output, version })
+    }
+
+    fn codex_app_server_request(&self, args: &CodexRequest) -> ExecResult<CodexAnswer> {
+        let (path, search, home) = self.login_target("codex")?;
+        crate::adapters::provider_account::codex(args, &path, &search, &home)
+    }
+
+    fn claude_account_request(&self, _: &ClaudeRequest) -> ExecResult<ClaudeAnswer> {
+        let (_, search, home) = self.tools_target()?;
+        crate::adapters::provider_account::claude_usage(&self.claude_usage_url, &search, &home)
     }
 
     fn skill_scan(&self, args: &SkillScan) -> ExecResult<SkillsFound> {

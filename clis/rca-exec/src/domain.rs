@@ -6,7 +6,7 @@ use exec_hosted::HostedOp;
 use exec_browser::BrowserOp;
 use exec_preview::PreviewOp;
 use exec_git::{DiffResult, GitDiff, GitOp, SetupEvent, SetupResult, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeListed, WorktreeRemove, WorktreeRemoved, WorktreeSetup};
-use exec_proc::{Cancel, CancelResult, CliDetect, CliDetectResult, CliFound, LoggedOut, LoginCancel, LoginCancelled, LoginProgram, LoginSend, LoginStarted, LoginState, LoginStatus, RunCommand, RunResult};
+use exec_proc::{Cancel, CancelResult, ClaudeAnswer, ClaudeRequest, CliDetect, CliDetectResult, CliFound, CliUpdated, CodexAnswer, CodexRequest, LoggedOut, UpdateProgram, LoginCancel, LoginCancelled, LoginProgram, LoginSend, LoginStarted, LoginState, LoginStatus, RunCommand, RunResult};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyListed, PtyOpen, PtyOpened, PtyResize, PtyResized, PtyWrite, PtyWritten};
 use exec_proto::{to_value, Code, ExecError, ExecResult, Stream};
 use serde_json::Value;
@@ -47,6 +47,12 @@ pub trait ToolExecutor: Send + Sync {
     fn login_cancel(&self, args: &LoginCancel) -> ExecResult<bool>;
     /// Runs the CLI's own logout and says whether it still holds a login.
     fn logout(&self, args: &LoginProgram) -> ExecResult<bool>;
+    /// Runs the agent CLI's own self-update and says how it ended and what version the CLI reports after it.
+    fn cli_update(&self, args: &UpdateProgram) -> ExecResult<CliUpdated>;
+    /// Sends one request to a `codex app-server` started for it and returns the answer.
+    fn codex_app_server_request(&self, args: &CodexRequest) -> ExecResult<CodexAnswer>;
+    /// Reads the Claude account's usage under the login in the executor's home.
+    fn claude_account_request(&self, args: &ClaudeRequest) -> ExecResult<ClaudeAnswer>;
     /// The skills of a directory of the workspace and, when asked, of the executor's own home.
     fn skill_scan(&self, args: &SkillScan) -> ExecResult<SkillsFound>;
     /// The sessions the agent CLIs keep in the executor's own home.
@@ -119,6 +125,9 @@ pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value,
         exec_proc::LOGIN_STATUS => Ok(to_value(&ex.login_status(&LoginStatus::parse(args)?)?)),
         exec_proc::LOGIN_CANCEL => Ok(to_value(&LoginCancelled { cancelled: ex.login_cancel(&LoginCancel::parse(args)?)? })),
         exec_proc::LOGOUT => Ok(to_value(&LoggedOut { signed_in: ex.logout(&LoginProgram::parse(args)?)? })),
+        exec_proc::CLI_UPDATE => Ok(to_value(&ex.cli_update(&UpdateProgram::parse(args)?)?)),
+        exec_proc::CODEX_APP_SERVER => Ok(to_value(&ex.codex_app_server_request(&CodexRequest::parse(args)?)?)),
+        exec_proc::CLAUDE_ACCOUNT => Ok(to_value(&ex.claude_account_request(&ClaudeRequest::parse(args)?)?)),
         exec_fs::SKILL_SCAN => Ok(to_value(&ex.skill_scan(&SkillScan::parse(args)?)?)),
         exec_fs::SESSION_SCAN => Ok(to_value(&ex.session_scan(&SessionScan::parse(args)?)?)),
         exec_fs::SEARCH_ENTRIES => Ok(to_value(&ex.search_entries(&SearchEntries::parse(args)?)?)),
@@ -240,6 +249,18 @@ mod tests {
             self.note(exec_proc::LOGOUT);
             Ok(false)
         }
+        fn cli_update(&self, args: &UpdateProgram) -> ExecResult<CliUpdated> {
+            self.note(exec_proc::CLI_UPDATE);
+            Ok(CliUpdated { program: args.program.clone(), ok: true, exit_code: 0, output: String::new(), version: None })
+        }
+        fn codex_app_server_request(&self, _: &CodexRequest) -> ExecResult<CodexAnswer> {
+            self.note(exec_proc::CODEX_APP_SERVER);
+            Ok(CodexAnswer { result: serde_json::json!({}) })
+        }
+        fn claude_account_request(&self, _: &ClaudeRequest) -> ExecResult<ClaudeAnswer> {
+            self.note(exec_proc::CLAUDE_ACCOUNT);
+            Ok(ClaudeAnswer { status: 200, body: serde_json::json!({}) })
+        }
         fn skill_scan(&self, _: &SkillScan) -> ExecResult<SkillsFound> {
             self.note(exec_fs::SKILL_SCAN);
             Ok(SkillsFound { skills: Vec::new(), truncated: false, present: Vec::new() })
@@ -336,6 +357,8 @@ mod tests {
             ("resolution", _) => json!("resolved"),
             ("provider", _) => json!("github"),
             ("program", _) => json!("claude"),
+            ("method", _) if action.name == exec_proc::CODEX_APP_SERVER => json!("account/read"),
+            ("request", _) if action.name == exec_proc::CLAUDE_ACCOUNT => json!("usage"),
             ("repo", _) => json!("o/r"),
             ("port", _) => json!(4000),
             ("verdict", _) => json!("approve"),

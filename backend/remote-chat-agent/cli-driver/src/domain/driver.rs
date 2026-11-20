@@ -50,6 +50,8 @@ pub struct TurnRequest {
 pub struct Command {
     pub program: String,
     pub args: Vec<String>,
+    /// Where the CLI starts: `.` for the executor's own directory, else a directory below it or a worktree's absolute path (the turn's request names it).
+    pub cwd: String,
 }
 
 fn args(items: &[&str]) -> Vec<String> {
@@ -95,7 +97,7 @@ pub fn command_for(driver: Driver, req: &TurnRequest) -> Command {
         a.extend(args(&[if driver == Driver::Codex || driver == Driver::Opencode { "-m" } else { "--model" }, model]));
     }
     a.push(req.prompt.clone());
-    Command { program: driver.program().into(), args: a }
+    Command { program: driver.program().into(), args: a, cwd: req.cwd.clone() }
 }
 
 /// The tool of the service's MCP server that Claude Code asks whether a tool may run, in the permission mode that asks (`approval-required`).
@@ -123,7 +125,7 @@ pub fn command_for_host(driver: Driver, req: &TurnRequest, mcp_url: &str, mcp_to
             command.args.push(prompt);
             let mut wrapped = args(&[&format!("OPENCODE_CONFIG_CONTENT={config}"), &command.program]);
             wrapped.extend(command.args);
-            Command { program: "env".into(), args: wrapped }
+            Command { program: "env".into(), args: wrapped, cwd: req.cwd.clone() }
         }
         Driver::Codex => {
             command.args.push(prompt);

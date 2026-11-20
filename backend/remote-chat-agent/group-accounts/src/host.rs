@@ -2,7 +2,9 @@
 //! `HostDirs` learns which providers hold a login from `cli_detect` and ends one with the executor's `logout`; `HostLogin` runs a login as the
 //! executor's `login_start`, `login_status`, `login_send` and `login_cancel`, polled into the lines and the end a `LoginRun` has. The choice of the
 //! default provider stays with the service (`selection`).
-use crate::ports::{LoginRun, ProviderDirs, ProviderLogin};
+use crate::limits::{claude_limits, codex_limits};
+use crate::ports::{AccountError, LoginRun, ProviderAccounts, ProviderDirs, ProviderLogin};
+use agent_api_accounts::{Limits, ResetOutcome, Updated};
 use async_trait::async_trait;
 use futures_util::stream::StreamExt;
 use rca_cli_driver::domain::{Driver, LoginMethod, DRIVERS};
@@ -201,4 +203,67 @@ impl ProviderLogin for HostLogin {
 
 fn tokio_stream_of(mut rx: mpsc::UnboundedReceiver<String>) -> std::pin::Pin<Box<dyn futures_util::Stream<Item = String> + Send>> {
     futures_util::stream::poll_fn(move |cx| rx.poll_recv(cx)).boxed()
+}
+
+const CLI_UPDATE: &str = "cli_update";
+const CODEX_APP_SERVER: &str = "codex_app_server_request";
+const CLAUDE_ACCOUNT: &str = "claude_account_request";
+
+fn now_ms() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64)
+}
+
+/// The providers' own accounts asked at the executor: Codex's limits and credit through its app-server, Claude's limits through its usage
+/// service, a CLI's update through its own command. The executor holds the logins; what comes back is windows, counts and an outcome.
+pub struct HostAccounts {
+    executors: Arc<dyn Executors>,
+}
+
+impl HostAccounts {
+    pub fn new(executors: Arc<dyn Executors>) -> HostAccounts {
+        HostAccounts { executors }
+    }
+
+    async fn ask(&self, action: &str, args: Value) -> Result<Value, AccountError> {
+        let route = route(self.executors.as_ref()).map_err(AccountError::Unavailable)?;
+        route.channel.call(action, args).await.map(|reply| reply.result).map_err(|e| AccountError::Unavailable(said(e)))
+    }
+}
+
+#[async_trait]
+impl ProviderAccounts for HostAccounts {
+    async fn limits(&self, driver: Driver) -> Result<Option<Limits>, AccountError> {
+        match driver {
+            Driver::Codex => {
+                let answer = self.ask(CODEX_APP_SERVER, json!({"method": "account/rateLimits/read"})).await?;
+                Ok(Some(codex_limits(&answer["result"], now_ms())))
+            }
+            Driver::ClaudeAgent => {
+                let answer = self.ask(CLAUDE_ACCOUNT, json!({"request": "usage"})).await?;
+                match answer["status"].as_u64() {
+                    Some(200) => Ok(Some(claude_limits(&answer["body"], now_ms()))),
+                    Some(status) => Err(AccountError::Unavailable(format!("the Claude usage service answered {status}"))),
+                    None => Err(AccountError::Unavailable("the executor's answer is not the contract's".into())),
+                }
+            }
+            _ => Ok(None),
+        }
+    }
+
+    async fn reset_credit(&self, driver: Driver, key: &str) -> Result<ResetOutcome, AccountError> {
+        if driver != Driver::Codex {
+            return Err(AccountError::NotSupported(format!("{} has no reset credit to spend", driver.id())));
+        }
+        let answer = self.ask(CODEX_APP_SERVER, json!({"method": "account/rateLimitResetCredit/consume", "params": {"idempotencyKey": key}})).await?;
+        let name = answer["result"]["outcome"].as_str().or_else(|| answer["result"]["code"].as_str()).unwrap_or_default();
+        ResetOutcome::parse(name).ok_or_else(|| AccountError::Unavailable(format!("the Codex account answered a spend with {name:?}, which is no outcome")))
+    }
+
+    async fn update(&self, driver: Driver) -> Result<Updated, AccountError> {
+        if driver == Driver::Codex {
+            return Err(AccountError::NotSupported("codex has no update command of its own; update it with the package manager that installed it".into()));
+        }
+        let answer = self.ask(CLI_UPDATE, json!({"program": driver.program()})).await?;
+        serde_json::from_value(json!({"ok": answer["ok"], "exit_code": answer["exit_code"], "output": answer["output"], "version": answer.get("version").cloned().unwrap_or(Value::Null)})).map_err(|e| AccountError::Unavailable(format!("the executor's answer is not the contract's: {e}")))
+    }
 }

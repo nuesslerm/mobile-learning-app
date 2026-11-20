@@ -53,6 +53,14 @@ pub struct Script {
     /// a version probe never shifts which turn a real start plays. Without it a `--version` start is an ordinary start, except for a program that was never scripted: it prints `<name> 0.0.0-mimic`.
     #[serde(default)]
     pub version: Option<String>,
+    /// Plays the turn for a start whose first argument is the key (`update`, `upgrade`), in place of the next turn: such a start is not logged and
+    /// does not shift which turn a real start plays.
+    #[serde(default)]
+    pub commands: std::collections::BTreeMap<String, Turn>,
+    /// For a start as `app-server` (Codex's JSON-RPC server on stdio): the answer to each method, `{"result": ...}` or `{"error": {...}}`. The
+    /// handshake (`initialize`) is always answered; a method not listed is answered with an error. Authored doubles, not recordings.
+    #[serde(default)]
+    pub app_server: std::collections::BTreeMap<String, Value>,
 }
 
 impl Turn {
@@ -114,11 +122,23 @@ impl Turn {
 
 impl Script {
     pub fn of(turns: Vec<Turn>) -> Script {
-        Script { turns, version: None }
+        Script { turns, ..Script::default() }
     }
 
     pub fn printing_version(mut self, text: &str) -> Script {
         self.version = Some(text.into());
+        self
+    }
+
+    /// Plays `turn` when the program is started with `command` as its first argument.
+    pub fn on_command(mut self, command: &str, turn: Turn) -> Script {
+        self.commands.insert(command.into(), turn);
+        self
+    }
+
+    /// Answers `method` of `app-server` with `answer` (`{"result": ...}` or `{"error": {...}}`).
+    pub fn answering_app_server(mut self, method: &str, answer: Value) -> Script {
+        self.app_server.insert(method.into(), answer);
         self
     }
 

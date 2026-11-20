@@ -20,7 +20,7 @@ use infrastructure::ws_channel::ExecutorSockets;
 use rca_agent_core::{DeviceBearers, Group};
 use rca_group_agent::host::CliLauncher;
 use rca_exec_channel::Registry;
-use rca_group_accounts::{AccountsGroup, GitAiGroup, HostDirs, HostLogin, ModelApi, ProviderDirs, Sessions};
+use rca_group_accounts::{AccountsGroup, GitAiGroup, HostAccounts, HostDirs, HostLogin, ModelApi, ProviderDirs, Sessions};
 use rca_group_agent::{AgentLifecycleGroup, AgentQueueGroup, AgentRequestsGroup, AgentThreadsGroup, Runner};
 use rca_service_core::application::agent_groups::{ActivityGroup, EngineThreads, FilesEditGroup, FilesGroup, ServiceGroup, StateGroup, StateHub, StateStore, StateWatchGroup, TerminalGroup, GitGroup, HostedAuthGroup, HostedCloneGroup, HostedIssueGroup, HostedProjectGroup, HostedPrGroup, ExecutorCredentials, WorkspaceGroup, WorktreesGroup, ScheduleClock, ScheduleGroup, ScheduleIds, ScheduleStore, ScheduleWatchGroup, Schedules, ThreadsTrigger, AttachmentClock, AttachmentIds, Attachments, AttachmentsGroup, BlobStore, Catalog, CatalogGroup, CatalogSpeech, StagesAttachments, PreviewGroup, PreviewSessionGroup, PreviewWatchGroup, Previews, BrowserGroup, MemoryPanes, PaneStore, Notifications, NotificationsGroup, Panes, PanesGroup};
 use std::sync::Arc;
@@ -127,7 +127,7 @@ pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn
         Arc::new(HostedCloneGroup::new(executors.clone())),
         Arc::new(HostedAuthGroup::new(executors.clone(), Arc::new(ExecutorCredentials::new(executors.clone())))),
         Arc::new(GitAiGroup::new(executors.clone(), accounts.models.clone())),
-        Arc::new(AccountsGroup::new(Arc::new(Sessions::new(Arc::new(HostDirs::new(executors.clone(), accounts.dirs)), Arc::new(HostLogin::new(executors.clone())))), accounts.models)),
+        Arc::new(AccountsGroup::new(Arc::new(Sessions::new(Arc::new(HostDirs::new(executors.clone(), accounts.dirs)), Arc::new(HostLogin::new(executors.clone())))), Arc::new(HostAccounts::new(executors.clone())))),
         agent_threads,
         Arc::new(AgentRequestsGroup::new(runner.clone())),
         Arc::new(AgentQueueGroup::new(runner.clone())),

@@ -98,7 +98,7 @@ impl Runner {
     pub fn queue(self: &Arc<Self>, launch: Launch) {
         let me = self.clone();
         std::thread::spawn(move || {
-            let thread = AgentThread { thread_id: launch.thread_id.clone(), instance_id: launch.instance_id.clone(), model: launch.model.clone() };
+            let thread = AgentThread { thread_id: launch.thread_id.clone(), instance_id: launch.instance_id.clone(), model: launch.model.clone(), worktree: launch.worktree.clone() };
             let added = me.agent.ensure_thread(&thread).and_then(|_| me.agent.run(&Op::QueueAdd { thread: launch.thread_id.clone(), item: launch.run_id.clone(), prompt: launch.prompt.clone() }));
             if let Err(e) = added {
                 me.log.event("run.queue.failed", &[("run", launch.run_id.clone()), ("error", e.message())]);
@@ -254,7 +254,7 @@ impl Runner {
 
     /// Makes the thread, starts the turn and remembers which run it is: the turn and the number to follow it from.
     fn start(&self, launch: &Launch, stop: &AtomicBool) -> Result<(String, u64), AgentError> {
-        let thread = AgentThread { thread_id: launch.thread_id.clone(), instance_id: launch.instance_id.clone(), model: launch.model.clone() };
+        let thread = AgentThread { thread_id: launch.thread_id.clone(), instance_id: launch.instance_id.clone(), model: launch.model.clone(), worktree: launch.worktree.clone() };
         let after = self.agent.ensure_thread(&thread)?;
         let turn = self.agent.start_turn(&AgentTurn {
             thread_id: launch.thread_id.clone(),
@@ -264,6 +264,7 @@ impl Runner {
             runtime_mode: launch.runtime_mode.clone(),
             interaction_mode: launch.interaction_mode.clone(),
             attachments: launch.attachments.clone(),
+            worktree: launch.worktree.clone(),
         })?;
         self.remember(&turn_key(&launch.thread_id, &turn), &launch.run_id);
         self.remember(&run_key(&launch.run_id), &turn);

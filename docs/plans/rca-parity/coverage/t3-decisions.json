@@ -284,11 +284,6 @@
       "reason": "rca never asks for a secret, so there is no request to answer; the call could only get not_found. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
-    "command:prepared-run.retry": {
-      "state": "not-offered",
-      "reason": "rca prepares no workspace for a run, so there is no failed preparation to retry; the call could only get the refusal. Owner-confirmed (decision 7). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has worktree setup (git_worktree_setup), so a failed preparation exists to retry; served in phase 2 with the new-worktree launch.",
-      "decidedBy": "M12"
-    },
     "rpc:orchestration.getWorkflowScript": {
       "oracle": "mimic"
     },
@@ -300,11 +295,6 @@
     },
     "rpc:pullRequests.subscribeRefreshes": {
       "oracle": "mimic"
-    },
-    "rpc:server.prepareTriage": {
-      "state": "not-offered",
-      "reason": "it starts an in-app triage of the T3 Code install itself: the server writes the session files `t3 triage` writes (its own logs, config and version under T3 home) and clones the T3 Code source from github.com/pingdotgg/t3code into its cache, then hands the phone a prompt for a scratch thread. t3-serve is not that server (it has no T3 home, logs or release to diagnose) and rca-exec has nothing of it to read; the feature would be a network clone of a third party's repository with no state of ours to triage, so there is nothing to build and prove on the executor. The phone's own fallback is the `npx t3 triage` command it offers to copy. Owner-confirmed (decision 7).",
-      "decidedBy": "M12"
     },
     "rpc:subscribeResourceTelemetry": {
       "state": "not-offered",
@@ -964,6 +954,12 @@
     },
     "rpc:subscribeDiscoveredLocalServers": {
       "oracle": "mimic"
+    },
+    "command:prepared-run.retry": {
+      "unrecordable": "the recorded host has no failed workspace preparation to retry (every recorded call of it is a refusal), so no recording shows the served path; the chain test thread_surface proves it: a launch on a worktree whose branch is taken fails, the branch is removed, and the retry prepares the worktree at the executor and runs the turn in it"
+    },
+    "rpc:server.prepareTriage": {
+      "unrecordable": "the recorded host answers with the paths of its own triage folder and writes its own logs, config and T3 source; this server writes the rca service's log (service.logs) and a playbook at the executor, so no replay of it is clean. The behaviour test is tests/flow/settings.rs; no third-party source is fetched (owner decision 7)"
     }
   },
   "reverify": {}

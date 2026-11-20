@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 250,
-    "served": 212,
+    "served": 214,
     "pending": 0,
-    "notOffered": 38,
+    "notOffered": 36,
     "excluded": 0,
     "flagged": 0,
     "answeredByMapper": 0,
@@ -77,11 +77,28 @@
       "kind": "command",
       "name": "prepared-run.retry",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M4",
       "target": "t3-local",
-      "reason": "rca prepares no workspace for a run, so there is no failed preparation to retry; the call could only get the refusal. Owner-confirmed (decision 7). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has worktree setup (git_worktree_setup), so a failed preparation exists to retry; served in phase 2 with the new-worktree launch.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::a_launch_on_a_new_worktree_fails_when_its_branch_is_taken_and_a_retry_prepares_it_through_the_service_and_the_executor_and_runs_the_turn_in_it",
+        "agent": [
+          "state.set",
+          "thread.create",
+          "thread.subscribe",
+          "turn.start",
+          "worktree.create",
+          "worktree.list"
+        ],
+        "executor": [
+          "cli_detect",
+          "git_checkpoint",
+          "git_worktree_add",
+          "git_worktree_list",
+          "run_command"
+        ]
+      }
     },
     {
       "id": "command:provider-session.detach",
@@ -3491,10 +3508,21 @@
       "kind": "rpc",
       "name": "server.prepareTriage",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "it starts an in-app triage of the T3 Code install itself: the server writes the session files `t3 triage` writes (its own logs, config and version under T3 home) and clones the T3 Code source from github.com/pingdotgg/t3code into its cache, then hands the phone a prompt for a scratch thread. t3-serve is not that server (it has no T3 home, logs or release to diagnose) and rca-exec has nothing of it to read; the feature would be a network clone of a third party's repository with no state of ours to triage, so there is nothing to build and prove on the executor. The phone's own fallback is the `npx t3 triage` command it offers to copy. Owner-confirmed (decision 7).",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::a_triage_session_is_written_at_the_executor_from_the_services_own_log_and_the_prompt_links_the_playbook",
+        "agent": [
+          "file.browse",
+          "file.write",
+          "service.logs"
+        ],
+        "executor": [
+          "browse",
+          "write_file"
+        ]
+      }
     },
     {
       "id": "rpc:server.probe",

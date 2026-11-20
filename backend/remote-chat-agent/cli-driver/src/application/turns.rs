@@ -22,7 +22,7 @@ impl Turns {
         if self.running.lock().unwrap_or_else(|p| p.into_inner()).contains_key(thread) {
             return Err(format!("thread {thread} already has a running turn"));
         }
-        let mut process = spawner.spawn(&command.program, &command.args, Path::new(".")).await.map_err(|e| format!("{} could not start: {e}", command.program))?;
+        let mut process = spawner.spawn(&command.program, &command.args, Path::new(&command.cwd)).await.map_err(|e| format!("{} could not start: {e}", command.program))?;
         self.running.lock().unwrap_or_else(|p| p.into_inner()).insert(thread.to_string(), process.kill.clone());
         let (tx, rx) = mpsc::channel(64);
         let (running, thread, stopped) = (self.running.clone(), thread.to_string(), process.kill.clone());
@@ -98,9 +98,9 @@ mod tests {
             let (command, req) = request(driver, "t1");
             // When the turn is launched in a directory
             let events = turns(&spawner).launch(spawner.as_ref(), driver, &req.thread_id, command).await.unwrap();
-            // Then the CLI was started there, and the client got the text and then done (the line that is no JSON says nothing)
+            // Then the CLI was started in the request's directory, and the client got the text and then done (the line that is no JSON says nothing)
             assert_eq!(drain(events).await, vec![ExecEvent::Text("hello".into()), ExecEvent::Done], "{}", driver.id());
-            assert_eq!(spawner.spawned()[0].cwd, Path::new("."), "{}", driver.id());
+            assert_eq!(spawner.spawned()[0].cwd, Path::new("/w"), "{}", driver.id());
         }
     }
 

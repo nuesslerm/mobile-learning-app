@@ -28,9 +28,11 @@ pub const USAGE_SUMMARY: Method = Method::new(GROUP, "usage.summary");
 pub const RESET_CREDIT: Method = Method::new(GROUP, "provider.resetCredit");
 /// The stream of the provider list: its whole state on opening and after each change (a login ended, a provider selected or signed out).
 pub const PROVIDER_SUBSCRIBE: Method = Method::new(GROUP, "provider.subscribe");
+/// Runs the provider CLI's own self-update at the workspace host.
+pub const PROVIDER_UPDATE: Method = Method::new(GROUP, "provider.update");
 
 /// Every method of the group.
-pub const METHODS: &[Method] = &[PROVIDER_LIST, PROVIDER_REFRESH, PROVIDER_SELECT, AUTH_START, AUTH_RESPOND, AUTH_COMPLETE, AUTH_CANCEL, AUTH_SUBSCRIBE, PROVIDER_LOGOUT, USAGE_SUMMARY, RESET_CREDIT, PROVIDER_SUBSCRIBE];
+pub const METHODS: &[Method] = &[PROVIDER_LIST, PROVIDER_REFRESH, PROVIDER_SELECT, AUTH_START, AUTH_RESPOND, AUTH_COMPLETE, AUTH_CANCEL, AUTH_SUBSCRIBE, PROVIDER_LOGOUT, USAGE_SUMMARY, RESET_CREDIT, PROVIDER_SUBSCRIBE, PROVIDER_UPDATE];
 
 /// The `type` of the event of `provider.auth.subscribe`: the session's whole state after a change.
 pub const AUTH_UPDATED: &str = "provider.auth.updated";
@@ -49,6 +51,8 @@ pub mod code {
     pub const LOGIN_UNAVAILABLE: &str = "LOGIN_UNAVAILABLE";
     pub const NOT_SUPPORTED: &str = "NOT_SUPPORTED";
     pub const MODEL_API_UNAVAILABLE: &str = "MODEL_API_UNAVAILABLE";
+    /// The workspace host could not ask the provider's account (no executor, or the executor or the account refused).
+    pub const ACCOUNT_UNAVAILABLE: &str = "ACCOUNT_UNAVAILABLE";
     pub const DIRECTORY_UNAVAILABLE: &str = "DIRECTORY_UNAVAILABLE";
 }
 
@@ -239,36 +243,103 @@ pub fn providers_subscribe_result() -> Value {
     json!({ "topic": "provider", "seq": 0 })
 }
 
-/// What a provider has used, when something the service can reach says.
+/// One rate-limit window of a provider's account: the share of it used, its length and when it resets.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Usage {
-    pub used: u64,
-    pub limit: Option<u64>,
-    pub unit: String,
+pub struct Window {
+    pub used_percent: f64,
+    pub window_minutes: u64,
     pub resets_at_ms: Option<u64>,
 }
 
-/// One row of `usage.summary`: the provider, whether it holds a login, and its usage, null where nothing reports it.
+/// The reset credits an account holds (Codex).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ResetCredits {
+    pub available: u64,
+    pub total_earned: Option<u64>,
+    pub next_expires_ms: Option<u64>,
+}
+
+/// What the provider's own account says of its limits, read at the workspace host under the login its CLI keeps there.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Limits {
+    pub session: Option<Window>,
+    pub weekly: Option<Window>,
+    pub plan: Option<String>,
+    pub credits: Option<ResetCredits>,
+    pub updated_ms: u64,
+}
+
+/// One row of `usage.summary`: the provider, whether it holds a login, its limits when its account answered, and why it did not when it was
+/// asked and could not answer. Both are null for a provider nothing reports on (opencode) and for one that is signed out.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UsageRow {
     pub provider: String,
     pub status: ProviderStatus,
-    pub usage: Option<Usage>,
+    pub limits: Option<Limits>,
+    pub limits_error: Option<String>,
 }
 
 pub fn usage_result(rows: &[UsageRow]) -> Value {
     json!({ "providers": rows })
 }
 
-/// What `provider.resetCredit` gave back: the provider and the credit left.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Credit {
-    pub remaining: u64,
-    pub unit: String,
+/// How the account answered a spend of a reset credit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ResetOutcome {
+    Reset,
+    NothingToReset,
+    NoCredit,
+    AlreadyRedeemed,
 }
 
-pub fn reset_credit_result(provider: &str, credit: &Credit) -> Value {
-    json!({ "provider": provider, "credit": credit })
+impl ResetOutcome {
+    /// The outcome a provider's answer names (`reset`, `nothing_to_reset`, `no_credit`, `already_redeemed`; the camel-case spellings too).
+    pub fn parse(name: &str) -> Option<ResetOutcome> {
+        match name {
+            "reset" => Some(ResetOutcome::Reset),
+            "nothing_to_reset" | "nothingToReset" => Some(ResetOutcome::NothingToReset),
+            "no_credit" | "noCredit" => Some(ResetOutcome::NoCredit),
+            "already_redeemed" | "alreadyRedeemed" => Some(ResetOutcome::AlreadyRedeemed),
+            _ => None,
+        }
+    }
+}
+
+/// The params of `provider.resetCredit`: the provider and the key a retry shares, so one credit is never spent twice (the service makes one
+/// when the caller names none).
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResetParams {
+    pub provider: String,
+    pub idempotency_key: Option<String>,
+}
+
+impl ResetParams {
+    pub fn parse(params: &Value) -> Result<ResetParams, ParamError> {
+        let provider = provider_param(params)?;
+        let idempotency_key = match params.get("idempotency_key") {
+            None | Some(Value::Null) => None,
+            Some(v) => Some(v.as_str().filter(|k| !k.is_empty() && k.len() <= 128).ok_or_else(|| ParamError("idempotency_key must be a non-empty string of at most 128 bytes".into()))?.to_string()),
+        };
+        Ok(ResetParams { provider, idempotency_key })
+    }
+}
+
+pub fn reset_credit_result(provider: &str, outcome: ResetOutcome) -> Value {
+    json!({ "provider": provider, "outcome": outcome })
+}
+
+/// What `provider.update` did: whether the CLI's update exited 0, its exit code, the tail of what it printed and the version the CLI reports after it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Updated {
+    pub ok: bool,
+    pub exit_code: i32,
+    pub output: String,
+    pub version: Option<String>,
+}
+
+pub fn update_result(provider: &str, updated: &Updated) -> Value {
+    json!({ "provider": provider, "update": updated })
 }
 
 #[cfg(test)]
@@ -326,10 +397,22 @@ mod tests {
         assert_eq!(result["selected"], json!("claudeAgent"));
         assert_eq!(result["providers"][0]["status"], json!("signed_out"));
         assert_eq!(list_result(&[])["selected"], Value::Null);
-        assert_eq!(METHODS.len(), 12);
+        assert_eq!(METHODS.len(), 13);
         assert_eq!(check_no_params(&json!({"x": 1})).unwrap_err().0, "provider.subscribe takes no params");
         assert!(check_no_params(&Value::Null).is_ok() && check_no_params(&json!({})).is_ok());
         assert_eq!(providers_event(1, &rows).to_value()["event"]["selected"], json!("claudeAgent"));
         assert!(METHODS.iter().all(|m| m.group() == GROUP));
+    }
+
+    #[test]
+    fn given_reset_params_and_outcomes_when_read_then_a_missing_key_is_allowed_a_bad_one_refused_and_both_spellings_of_an_outcome_are_known() {
+        // Given params with a key, with none and with a number, and the spellings of the outcomes
+        // Then the key is optional, a number is refused and each outcome is read from its snake and camel names
+        assert_eq!(ResetParams::parse(&json!({"provider": "codex", "idempotency_key": "k"})).unwrap().idempotency_key.as_deref(), Some("k"));
+        assert_eq!(ResetParams::parse(&json!({"provider": "codex"})).unwrap().idempotency_key, None);
+        assert_eq!(ResetParams::parse(&json!({"provider": "codex", "idempotency_key": 3})).unwrap_err().0, "idempotency_key must be a non-empty string of at most 128 bytes");
+        assert_eq!(ResetParams::parse(&json!({})).unwrap_err().0, "provider is required");
+        assert_eq!(["reset", "nothing_to_reset", "nothingToReset", "no_credit", "noCredit", "already_redeemed", "alreadyRedeemed", "x"].map(ResetOutcome::parse), [Some(ResetOutcome::Reset), Some(ResetOutcome::NothingToReset), Some(ResetOutcome::NothingToReset), Some(ResetOutcome::NoCredit), Some(ResetOutcome::NoCredit), Some(ResetOutcome::AlreadyRedeemed), Some(ResetOutcome::AlreadyRedeemed), None]);
+        assert_eq!(reset_credit_result("codex", ResetOutcome::NoCredit), json!({"provider": "codex", "outcome": "no_credit"}));
     }
 }

@@ -29,7 +29,7 @@ phone (Orca app) ──▶ orca-serve ──┴──▶ rca-service ◀── r
 | `t3-serve` (`clis/t3-serve`) | server side, beside the service | T3's phone protocol (pairing, its RPCs and events), mapped to `/agent/v1`; our stand-in for the real `t3 serve` | files, CLIs, credentials |
 | `orca-serve` (`clis/orca-serve`) | server side | Orca's E2EE WebSocket RPC, mapped to `/agent/v1` | files, CLIs, credentials |
 | `rca-service` (`backend/remote-chat-agent`) | server side (the VM) | the agent API `/agent/v1`: threads, turns, queue, history, approvals and questions, git, terminals, catalog; the executor registry | a project's files; it never runs a turn's CLI |
-| `rca-exec` (`clis/rca-exec`) | the machine that holds the project | the executor contract: files, git, commands, ptys, `cli_detect`, and starting the turn's CLI in the project folder | thread state |
+| `rca-exec` (`clis/rca-exec`) | the machine that holds the project | the executor contract: files, git, commands, ptys, `cli_detect`, the CLIs' own logins, updates and account reads (`login_*`, `cli_update`, `codex_app_server_request`, `claude_account_request`; the token stays at the executor), and starting the turn's CLI in the project folder | thread state |
 
 ## A turn
 

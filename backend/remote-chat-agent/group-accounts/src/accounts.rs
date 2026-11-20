@@ -1,6 +1,6 @@
 //! The `accounts` group: the providers and their logins, usage and credit. No reply of it carries a token: a provider is a status, a login a
 //! session with the prompt its CLI printed.
-use crate::ports::{ModelApi, ModelError};
+use crate::ports::{AccountError, ProviderAccounts};
 use crate::sessions::{RespondError, Sessions, StartError};
 use agent_api_accounts::{self as api, code, ProviderStatus, ProviderView, UsageRow};
 use agent_api_proto::{code as proto_code, GroupName, Response};
@@ -11,7 +11,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use std::time::Duration;
 
-pub const SERVED: [Served; 12] = [
+pub const SERVED: [Served; 13] = [
     Served::service(api::PROVIDER_LIST, &["cli_detect"]),
     Served::service(api::PROVIDER_REFRESH, &["cli_detect"]),
     Served::service(api::PROVIDER_SELECT, &["cli_detect"]),
@@ -21,13 +21,21 @@ pub const SERVED: [Served; 12] = [
     Served::service(api::AUTH_CANCEL, &["login_cancel"]),
     Served::service(api::AUTH_SUBSCRIBE, &[]),
     Served::service(api::PROVIDER_LOGOUT, &["login_cancel", "logout", "cli_detect"]),
-    Served::service(api::USAGE_SUMMARY, &["cli_detect"]),
-    Served::service(api::RESET_CREDIT, &[]),
+    Served::service(api::USAGE_SUMMARY, &["cli_detect", "claude_account_request", "codex_app_server_request"]),
+    Served::service(api::RESET_CREDIT, &["codex_app_server_request"]),
     Served::service(api::PROVIDER_SUBSCRIBE, &["cli_detect"]),
+    Served::service(api::PROVIDER_UPDATE, &["cli_update"]),
 ];
 
 /// How often `provider.subscribe` looks again: a login the CLI finishes on its own is seen by reading the executor's credential files.
 const WATCH_EVERY: Duration = Duration::from_secs(2);
+
+/// The key of a spend whose caller named none: no two are alike within the process or across restarts.
+fn fresh_key() -> String {
+    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let ms = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis());
+    format!("rca-{ms}-{}", COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst))
+}
 
 struct Refusal(&'static str, String);
 
@@ -64,12 +72,12 @@ fn view_in(sessions: &Sessions, driver: Driver) -> ProviderView {
 
 pub struct AccountsGroup {
     sessions: Arc<Sessions>,
-    models: Arc<dyn ModelApi>,
+    accounts: Arc<dyn ProviderAccounts>,
 }
 
 impl AccountsGroup {
-    pub fn new(sessions: Arc<Sessions>, models: Arc<dyn ModelApi>) -> AccountsGroup {
-        AccountsGroup { sessions, models }
+    pub fn new(sessions: Arc<Sessions>, accounts: Arc<dyn ProviderAccounts>) -> AccountsGroup {
+        AccountsGroup { sessions, accounts }
     }
 
     fn view_of(&self, driver: Driver) -> ProviderView {
@@ -192,23 +200,45 @@ impl AccountsGroup {
         Ok(json!({ "provider": self.view_of(driver) }))
     }
 
+    /// One row for each provider; a provider that holds a login is asked for its limits at the host, and one that could not answer says why.
     async fn usage(&self) -> Answer {
         self.sessions.dirs().refresh().await;
         let mut rows = Vec::new();
         for driver in DRIVERS {
-            let usage = self.models.usage(driver.id()).await.ok().flatten();
-            rows.push(UsageRow { provider: driver.id().to_string(), status: status_in(&self.sessions, driver), usage });
+            let status = status_in(&self.sessions, driver);
+            let asked = if status == ProviderStatus::SignedIn { self.accounts.limits(driver).await } else { Ok(None) };
+            let (limits, limits_error) = match asked {
+                Ok(limits) => (limits, None),
+                Err(AccountError::NotSupported(why) | AccountError::Unavailable(why)) => (None, Some(why)),
+            };
+            rows.push(UsageRow { provider: driver.id().to_string(), status, limits, limits_error });
         }
         Ok(api::usage_result(&rows))
     }
 
     async fn reset_credit(&self, params: &Value) -> Answer {
-        let driver = driver_named(&api::provider_param(params)?)?;
-        match self.models.reset_credit(driver.id()).await {
-            Ok(credit) => Ok(api::reset_credit_result(driver.id(), &credit)),
-            Err(ModelError::NotSupported(why)) => Err(refuse(code::NOT_SUPPORTED, why)),
-            Err(ModelError::Unavailable(why)) => Err(refuse(code::MODEL_API_UNAVAILABLE, why)),
+        let p = api::ResetParams::parse(params)?;
+        let driver = driver_named(&p.provider)?;
+        let key = p.idempotency_key.unwrap_or_else(fresh_key);
+        match self.accounts.reset_credit(driver, &key).await {
+            Ok(outcome) => Ok(api::reset_credit_result(driver.id(), outcome)),
+            Err(e) => Err(account_refusal(e)),
         }
+    }
+
+    async fn update(&self, params: &Value) -> Answer {
+        let driver = driver_named(&api::provider_param(params)?)?;
+        match self.accounts.update(driver).await {
+            Ok(updated) => Ok(api::update_result(driver.id(), &updated)),
+            Err(e) => Err(account_refusal(e)),
+        }
+    }
+}
+
+fn account_refusal(e: AccountError) -> Refusal {
+    match e {
+        AccountError::NotSupported(why) => refuse(code::NOT_SUPPORTED, why),
+        AccountError::Unavailable(why) => refuse(code::ACCOUNT_UNAVAILABLE, why),
     }
 }
 
@@ -245,6 +275,7 @@ impl Group for AccountsGroup {
             api::PROVIDER_LOGOUT => self.logout(params).await,
             api::USAGE_SUMMARY => self.usage().await,
             api::RESET_CREDIT => self.reset_credit(params).await,
+            api::PROVIDER_UPDATE => self.update(params).await,
             other => unreachable!("{} is not a method of accounts", other.name()),
         };
         match answer {

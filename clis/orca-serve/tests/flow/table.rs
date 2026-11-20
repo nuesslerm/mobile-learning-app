@@ -9,7 +9,7 @@ fn scan() -> BTreeMap<String, Value> {
 }
 
 #[test]
-fn given_the_assembled_table_when_read_against_the_reference_scan_then_every_served_method_is_a_phone_row_of_the_right_kind() {
+fn given_the_assembled_table_when_read_against_the_reference_scan_then_every_served_method_is_a_phone_or_desktop_row_of_the_right_kind() {
     // Given the table the server is built with and the scan of the pinned reference
     let h = harness();
     let table = h.host.api();
@@ -20,7 +20,8 @@ fn given_the_assembled_table_when_read_against_the_reference_scan_then_every_ser
     for m in methods {
         let name = m["method"].as_str().unwrap();
         let row = scan.get(name).unwrap_or_else(|| panic!("{name} is no method of the pinned reference"));
-        assert_eq!(row["phone"], true, "{name} is not a method the phone calls");
+        // A desktop-only row (the host sign-in rows) is served for the desktop client; every other served method is one the phone calls
+        assert!(row["phone"] == true || row["desktop"] == true, "{name} is not a method the phone or the desktop calls");
         if m["state"] == "served" {
             assert_eq!(m["streaming"] == true, row["subscription"] == true, "{name}: streaming does not match the scan");
         }

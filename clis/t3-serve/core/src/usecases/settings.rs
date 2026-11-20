@@ -383,8 +383,12 @@ impl Service {
         if self.configured_instance(instance, "consume-reset-credit").is_err() {
             return Err(QueryFailure::Error(json!({"_tag": "ProviderSetupError", "instanceId": instance, "operation": "consume-reset-credit", "detail": "Provider instance not found."})));
         }
-        self.agent().run(&Op::ResetCredit { provider: instance.into() }).map_err(|e| QueryFailure::Error(json!({"_tag": "UsageLimitSourceError", "detail": e.message()})))?;
-        Ok(json!({"outcome": "reset"}))
+        let spent = self.agent().run(&Op::ResetCredit { provider: instance.into() }).map_err(|e| QueryFailure::Error(json!({"_tag": "UsageLimitSourceError", "detail": e.message()})))?;
+        // The account's own answer: a credit that was not spent is the account saying so, not a reset
+        match spent["outcome"].as_str() {
+            Some("reset") => Ok(json!({"outcome": "reset"})),
+            other => Err(QueryFailure::Error(json!({"_tag": "UsageLimitSourceError", "detail": format!("The account did not reset a limit: {}", other.unwrap_or("no outcome").replace('_', " "))}))),
+        }
     }
 
     fn catalog_models(&self) -> Vec<(String, String)> {
@@ -429,9 +433,11 @@ impl Service {
         let sources: Vec<Value> = summary["providers"].as_array().into_iter().flatten().filter_map(|row| {
             let instance = row["provider"].as_str()?;
             let kind = usage_kind(instance)?;
-            let message = match (&row["usage"], row["status"].as_str()) {
-                (Value::Object(usage), _) => Some(format!("{} of {} {}", usage["used"], usage["limit"].as_u64().map_or("an unknown limit".to_string(), |l| l.to_string()), usage["unit"].as_str().unwrap_or_default())),
-                (_, Some("signed_in")) => Some("The provider reports no usage".to_string()),
+            let window = |name: &str, label: &str| row["limits"][name]["used_percent"].as_f64().map(|used| format!("{used}% of the {label} limit used"));
+            let message = match (&row["limits"], row["limits_error"].as_str(), row["status"].as_str()) {
+                (Value::Object(_), ..) => Some([window("session", "session"), window("weekly", "weekly")].into_iter().flatten().collect::<Vec<_>>().join(", ")).filter(|m| !m.is_empty()).or_else(|| Some("The account reports no windows".to_string())),
+                (_, Some(why), _) => Some(format!("The account could not be asked: {why}")),
+                (_, _, Some("signed_in")) => Some("The provider reports no usage".to_string()),
                 _ => Some("The provider is signed out".to_string()),
             };
             Some(json!({

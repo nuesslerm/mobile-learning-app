@@ -1,6 +1,6 @@
 //! What the accounts need from outside, owned here and implemented by the service's adapters (doubles behind the `testing` feature): the
 //! providers' directories, the start of a CLI's login, and the model the service itself asks.
-use agent_api_accounts::{Credit, Usage};
+use agent_api_accounts::{Limits, ResetOutcome, Updated};
 use async_trait::async_trait;
 use futures_util::Stream;
 use rca_cli_driver::domain::{Driver, LoginMethod};
@@ -69,11 +69,28 @@ pub enum ModelError {
     NotSupported(String),
 }
 
-/// The model API the service asks for itself (a commit message, usage, a credit), with a key from the secrets registry, never one a mapper sent.
+/// The model API the service asks for itself (a commit message), with a key from the secrets registry, never one a mapper sent.
 #[async_trait]
 pub trait ModelApi: Send + Sync {
     async fn complete(&self, request: Completion) -> Result<Completed, ModelError>;
-    /// What `provider` has used, when the API reports it.
-    async fn usage(&self, provider: &str) -> Result<Option<Usage>, ModelError>;
-    async fn reset_credit(&self, provider: &str) -> Result<Credit, ModelError>;
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum AccountError {
+    /// The provider has no such thing (no account to ask, no update command of its own).
+    NotSupported(String),
+    /// The workspace host or the provider's account could not answer.
+    Unavailable(String),
+}
+
+/// What the providers' own accounts say and do, asked at the workspace host under the login each CLI keeps in its home (decision 9): the
+/// service holds no token and reads none.
+#[async_trait]
+pub trait ProviderAccounts: Send + Sync {
+    /// The limits of the provider's account, or none for a provider with no account to ask.
+    async fn limits(&self, driver: Driver) -> Result<Option<Limits>, AccountError>;
+    /// Spends a reset credit of the provider's account; `key` is shared by the retries of one spend.
+    async fn reset_credit(&self, driver: Driver, key: &str) -> Result<ResetOutcome, AccountError>;
+    /// Runs the provider CLI's own update.
+    async fn update(&self, driver: Driver) -> Result<Updated, AccountError>;
 }

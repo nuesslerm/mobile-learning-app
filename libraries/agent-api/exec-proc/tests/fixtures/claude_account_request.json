@@ -1,0 +1,41 @@
+{
+  "action": "claude_account_request",
+  "exchanges": [
+    {
+      "name": "refuses a request that is none of the account reads",
+      "request": {
+        "id": "c1",
+        "tool": "claude_account_request",
+        "args": {
+          "request": "token"
+        }
+      },
+      "response": {
+        "id": "c1",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`request` is one of usage, not \"token\""
+        }
+      }
+    },
+    {
+      "name": "refuses a read when the executor's home holds no Claude login",
+      "request": {
+        "id": "c2",
+        "tool": "claude_account_request",
+        "args": {
+          "request": "usage"
+        }
+      },
+      "response": {
+        "id": "c2",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "claude holds no login here"
+        }
+      }
+    }
+  ]
+}

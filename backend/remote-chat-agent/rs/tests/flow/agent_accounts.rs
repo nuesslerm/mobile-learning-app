@@ -167,8 +167,10 @@ fn recorded() -> Vec<Fixture> {
 /// token is kept after half a second), Claude by paste.
 async fn replay_rig(env: &Env) -> Chain {
     let chain = chain(env).await;
-    chain.cli.script("codex", &Script::of(vec![codex_login("recorded-codex-token")]).printing_version("0.0.0-flow"));
-    chain.cli.script("claude", &Script::of(vec![claude_login()]).printing_version("0.0.0-flow"));
+    // The app-server answers and the update command are authored doubles: no real Codex or Claude binary was run for the recorded exchanges
+    let limits = json!({"rateLimits": {"primary": {"usedPercent": 40, "windowDurationMins": 300, "resetsAt": 1_900_000_000}, "secondary": {"usedPercent": 10, "windowDurationMins": 10080, "resetsAt": 1_900_500_000}}, "rateLimitResetCredits": {"availableCount": 2}});
+    chain.cli.script("codex", &Script::of(vec![codex_login("recorded-codex-token")]).printing_version("0.0.0-flow").answering_app_server("account/rateLimits/read", json!({"result": limits})).answering_app_server("account/rateLimitResetCredit/consume", json!({"result": {"outcome": "reset"}})));
+    chain.cli.script("claude", &Script::of(vec![claude_login()]).printing_version("0.0.0-flow").on_command("update", Turn::default().then_line("Updated to 0.0.0-flow")));
     chain
 }
 
@@ -311,7 +313,7 @@ async fn ask_for_text(api: &HttpModelApi) -> Result<rca_group_accounts::Complete
 }
 
 #[tokio::test]
-async fn given_no_key_or_a_failing_endpoint_when_a_completion_is_asked_then_it_is_unavailable_with_why_and_usage_and_credit_are_not_offered() {
+async fn given_no_key_or_a_failing_endpoint_when_a_completion_is_asked_then_it_is_unavailable_with_why() {
     // Given an API with no key, and one whose service answers 500, 200 with no message, and 200 with no JSON
     let (keyless, silent) = http_model("https://models.example.test/v1", None);
     let (api, outbound) = http_model("https://models.example.test/v1", Some("k"));
@@ -332,7 +334,4 @@ async fn given_no_key_or_a_failing_endpoint_when_a_completion_is_asked_then_it_i
     assert_eq!(reason(server), "the model API answered 500");
     assert_eq!(reason(empty), "the model API answered with no message");
     assert!(reason(down).contains("connection refused"));
-    // And usage is not reported and a credit cannot be reset
-    assert_eq!(api.usage("codex").await, Ok(None));
-    assert!(matches!(api.reset_credit("codex").await, Err(ModelError::NotSupported(_))));
 }

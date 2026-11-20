@@ -1,8 +1,8 @@
 //! The accounts and git.ai groups over the doubles: the providers' status, a login by device code and by a pasted code, how one ends or is
 //! cancelled, the events of a session and their resume, logout, usage, credit, and the commit message a model writes for a change.
-use crate::testing::{Ending, LoginScript, MemoryDirs, ScriptedLogin, ScriptedModelApi};
-use crate::{commit_message_prompt, pull_request_prompt, read_pull_request_fields, tidy_message, AccountsGroup, GitAiGroup, ModelError, Sessions, GIT_AI_SERVED, PULL_REQUEST_SYSTEM, SERVED};
-use agent_api_accounts::{self as api, Credit, Usage};
+use crate::testing::{Ending, LoginScript, MemoryDirs, ScriptedAccounts, ScriptedLogin, ScriptedModelApi};
+use crate::{commit_message_prompt, pull_request_prompt, read_pull_request_fields, tidy_message, AccountError, AccountsGroup, GitAiGroup, HostAccounts, ModelError, ProviderAccounts, Sessions, GIT_AI_SERVED, PULL_REQUEST_SYSTEM, SERVED};
+use agent_api_accounts::{self as api, Limits, ResetCredits, ResetOutcome, Updated, Window};
 use agent_api_git::ai::{self, PullRequestParams, Style};
 use agent_api_proto::Event;
 use async_trait::async_trait;
@@ -36,16 +36,16 @@ struct Rig {
     api: AgentApi,
     dirs: Arc<MemoryDirs>,
     login: Arc<ScriptedLogin>,
-    models: Arc<ScriptedModelApi>,
+    accounts: Arc<ScriptedAccounts>,
 }
 
 fn rig() -> Rig {
     let dirs = MemoryDirs::new();
     let login = ScriptedLogin::new(dirs.clone());
-    let models = ScriptedModelApi::replying("feat: add notes", "double-model");
+    let accounts = ScriptedAccounts::new();
     let sessions = Arc::new(Sessions::waiting(dirs.clone(), login.clone(), Duration::from_millis(500)));
-    let groups: Vec<Arc<dyn Group>> = vec![Arc::new(AccountsGroup::new(sessions, models.clone()))];
-    Rig { api: AgentApi::new(groups).unwrap(), dirs, login, models }
+    let groups: Vec<Arc<dyn Group>> = vec![Arc::new(AccountsGroup::new(sessions, accounts.clone()))];
+    Rig { api: AgentApi::new(groups).unwrap(), dirs, login, accounts }
 }
 
 impl Rig {
@@ -66,10 +66,10 @@ fn error_code(answered: &Value) -> &str {
 #[test]
 fn given_the_served_rows_when_compared_with_the_contracts_then_each_method_is_there_in_order_and_only_git_ai_calls_an_executor_action() {
     // Given the rows of the two groups
-    // Then accounts serves the contract's methods in order calling only cli_detect and the login actions, and git.ai calls git_diff
+    // Then accounts serves the contract's methods in order calling only cli_detect, the login actions and the account actions, and git.ai calls git_diff
     assert_eq!(SERVED.iter().map(|s| s.method).collect::<Vec<_>>(), api::METHODS);
-    assert!(SERVED.iter().all(|s| s.actions.iter().all(|a| ["cli_detect", "login_start", "login_send", "login_status", "login_cancel", "logout"].contains(a))));
-    for action in ["login_start", "login_send", "login_status", "login_cancel", "logout"] {
+    assert!(SERVED.iter().all(|s| s.actions.iter().all(|a| ["cli_detect", "login_start", "login_send", "login_status", "login_cancel", "logout", "cli_update", "codex_app_server_request", "claude_account_request"].contains(a))));
+    for action in ["login_start", "login_send", "login_status", "login_cancel", "logout", "cli_update", "codex_app_server_request", "claude_account_request"] {
         assert!(SERVED.iter().any(|s| s.actions.contains(&action)), "no accounts row calls {action}");
     }
     assert_eq!(GIT_AI_SERVED.iter().map(|s| (s.method, s.actions.to_vec())).collect::<Vec<_>>(), [(ai::GENERATE_COMMIT_MESSAGE, vec![exec_git::GIT_DIFF]), (ai::GENERATE_PULL_REQUEST_FIELDS, vec![exec_git::GIT_COMPARE, exec_git::GIT_DIFF])]);
@@ -328,26 +328,107 @@ async fn given_a_login_running_when_its_provider_logs_out_then_the_login_is_canc
     assert_eq!(rig.login.kills(), 1);
 }
 
+fn window(used: f64, minutes: u64) -> Window {
+    Window { used_percent: used, window_minutes: minutes, resets_at_ms: Some(1_700_000_000_000) }
+}
+
 #[tokio::test]
-async fn given_a_model_api_when_usage_and_credit_are_asked_then_the_rows_show_what_it_reports_and_a_credit_it_cannot_give_is_refused_by_its_reason() {
-    // Given usage the API reports for one provider, one login, and a model API that has no credit to reset
+async fn given_accounts_that_answer_when_usage_is_asked_then_only_a_signed_in_provider_is_asked_and_a_refusal_is_the_rows_reason() {
+    // Given Codex signed in with limits, Claude signed in whose account cannot answer, and opencode signed out
     let rig = rig();
     rig.dirs.sign_in(Driver::Codex);
-    rig.models.with_usage("codex", Usage { used: 12, limit: Some(100), unit: "requests".into(), resets_at_ms: Some(1_700_000_000_000) });
-    // When the summary is asked and a credit reset
+    rig.dirs.sign_in(Driver::ClaudeAgent);
+    let limits = Limits { session: Some(window(12.5, 300)), weekly: None, plan: Some("plus".into()), credits: Some(ResetCredits { available: 2, total_earned: None, next_expires_ms: None }), updated_ms: 5 };
+    rig.accounts.with_limits(Driver::Codex, Ok(Some(limits.clone())));
+    rig.accounts.with_limits(Driver::ClaudeAgent, Err(AccountError::Unavailable("the Claude usage service answered 401".into())));
+    rig.accounts.with_limits(Driver::Opencode, Ok(Some(limits.clone())));
+    // When the summary is asked
     let summary = rig.ask("usage.summary", json!({})).await;
-    let none = rig.ask("provider.resetCredit", json!({"provider": "codex"})).await;
-    rig.models.with_credit(Credit { remaining: 3, unit: "resets".into() });
-    let some = rig.ask("provider.resetCredit", json!({"provider": "codex"})).await;
-    // Then each provider has a row with its status, the usage only where reported, and the credit reply names the provider and what is left
+    // Then each provider has a row; Codex carries its limits, Claude the reason, and the signed-out provider was not asked
     let rows = summary["result"]["providers"].as_array().unwrap();
     assert_eq!(rows.len(), DRIVERS.len());
-    let codex = rows.iter().find(|r| r["provider"] == "codex").unwrap();
-    assert_eq!((codex["status"].clone(), codex["usage"].clone()), (json!("signed_in"), json!({"used": 12, "limit": 100, "unit": "requests", "resets_at_ms": 1_700_000_000_000u64})));
-    assert!(rows.iter().filter(|r| r["provider"] != "codex").all(|r| r["usage"].is_null()));
-    assert_eq!(error_code(&none), "NOT_SUPPORTED");
-    assert_eq!(some["result"], json!({"provider": "codex", "credit": {"remaining": 3, "unit": "resets"}}));
+    let row = |name: &str| rows.iter().find(|r| r["provider"] == name).unwrap().clone();
+    assert_eq!((row("codex")["status"].clone(), row("codex")["limits"]["session"]["used_percent"].clone(), row("codex")["limits"]["credits"]["available"].clone(), row("codex")["limits_error"].clone()), (json!("signed_in"), json!(12.5), json!(2), Value::Null));
+    assert_eq!((row("claudeAgent")["limits"].clone(), row("claudeAgent")["limits_error"].clone()), (Value::Null, json!("the Claude usage service answered 401")));
+    assert_eq!((row("opencode")["status"].clone(), row("opencode")["limits"].clone(), row("opencode")["limits_error"].clone()), (json!("signed_out"), Value::Null, Value::Null));
+}
+
+#[tokio::test]
+async fn given_a_credit_and_an_update_when_asked_then_the_outcome_and_the_update_come_back_and_a_retry_shares_its_key_and_refusals_have_their_codes() {
+    // Given Codex's account answering a spend and Claude's CLI an update, and nothing for the other providers
+    let rig = rig();
+    rig.accounts.with_spend(Driver::Codex, Ok(ResetOutcome::AlreadyRedeemed));
+    rig.accounts.with_update(Driver::ClaudeAgent, Ok(Updated { ok: true, exit_code: 0, output: "Updated".into(), version: Some("2.2.0".into()) }));
+    rig.accounts.with_spend(Driver::ClaudeAgent, Err(AccountError::Unavailable("the executor is gone".into())));
+    // When a credit is spent with a key, and with none twice, and an update is run
+    let keyed = rig.ask("provider.resetCredit", json!({"provider": "codex", "idempotency_key": "k-1"})).await;
+    rig.ask("provider.resetCredit", json!({"provider": "codex"})).await;
+    rig.ask("provider.resetCredit", json!({"provider": "codex"})).await;
+    let update = rig.ask("provider.update", json!({"provider": "claudeAgent"})).await;
+    // Then the outcome and the update are the account's, a named key is passed on, and two spends with no key get two different keys
+    assert_eq!(keyed["result"], json!({"provider": "codex", "outcome": "already_redeemed"}));
+    assert_eq!(update["result"], json!({"provider": "claudeAgent", "update": {"ok": true, "exit_code": 0, "output": "Updated", "version": "2.2.0"}}));
+    let keys = rig.accounts.keys();
+    assert_eq!((keys[0].as_str(), keys.len(), keys[1] != keys[2] && !keys[1].is_empty()), ("k-1", 3, true));
+    // And a provider with no credit or update is NOT_SUPPORTED, an account that could not answer is ACCOUNT_UNAVAILABLE, and a bad provider or key is refused first
+    assert_eq!(error_code(&rig.ask("provider.update", json!({"provider": "codex"})).await), "NOT_SUPPORTED");
+    assert_eq!(error_code(&rig.ask("provider.resetCredit", json!({"provider": "claudeAgent"})).await), "ACCOUNT_UNAVAILABLE");
     assert_eq!(error_code(&rig.ask("provider.resetCredit", json!({"provider": "gemini"})).await), "UNKNOWN_PROVIDER");
+    assert_eq!(error_code(&rig.ask("provider.resetCredit", json!({"provider": "codex", "idempotency_key": 3})).await), "INVALID_PARAMS");
+}
+
+/// An executor that answers the account actions as the real one does, from `answer(action, args)`, and the accounts over it.
+fn host_accounts(answer: impl Fn(&str, &Value) -> Result<Value, RemoteError> + Send + Sync + 'static) -> (HostAccounts, Arc<ScriptedChannel>) {
+    let channel = ScriptedChannel::new(move |tool, args| answer(tool, args).map(|result| ActionOutput { result, output: String::new() }));
+    let executors: Arc<Registry> = Arc::default();
+    executors.open_executor("e1", "w1", channel.clone()).unwrap();
+    (HostAccounts::new(executors), channel)
+}
+
+#[tokio::test]
+async fn given_an_executor_when_the_host_accounts_are_asked_then_codex_goes_through_its_app_server_claude_through_its_usage_and_a_token_is_never_asked_for() {
+    // Given an executor answering Codex's app-server, Claude's usage and an update
+    let (accounts, channel) = host_accounts(|tool, args| match (tool, args["method"].as_str(), args["request"].as_str()) {
+        ("codex_app_server_request", Some("account/rateLimits/read"), _) => Ok(json!({"result": {"rateLimits": {"primary": {"usedPercent": 40, "windowDurationMins": 300, "resetsAt": 1_900_000_000}}, "rateLimitResetCredits": {"availableCount": 1}}})),
+        ("codex_app_server_request", Some("account/rateLimitResetCredit/consume"), _) => Ok(json!({"result": {"code": "no_credit"}})),
+        ("claude_account_request", _, Some("usage")) => Ok(json!({"status": 200, "body": {"five_hour": {"utilization": 7}}})),
+        ("cli_update", ..) => Ok(json!({"program": args["program"], "ok": false, "exit_code": 3, "output": "no network"})),
+        other => Err(RemoteError::Action { code: "UNKNOWN_TOOL".into(), message: format!("{other:?}") }),
+    });
+    // When each provider's limits are read, a credit is spent, and updates are run
+    let codex = accounts.limits(Driver::Codex).await.unwrap().unwrap();
+    let claude = accounts.limits(Driver::ClaudeAgent).await.unwrap().unwrap();
+    let opencode = accounts.limits(Driver::Opencode).await.unwrap();
+    let spent = accounts.reset_credit(Driver::Codex, "key-9").await;
+    let updated = accounts.update(Driver::Opencode).await.unwrap();
+    // Then Codex's windows and credits and Claude's session are read, opencode has no account, and the spend is the account's outcome with the key sent as the app-server expects it
+    assert_eq!((codex.session.unwrap().used_percent, codex.credits.unwrap().available), (40.0, 1));
+    assert_eq!((claude.session.unwrap().used_percent, opencode), (7.0, None));
+    assert_eq!(spent, Ok(ResetOutcome::NoCredit));
+    assert_eq!((updated.ok, updated.exit_code, updated.output.as_str(), updated.version), (false, 3, "no network", None));
+    let spend = channel.calls().into_iter().find(|(_, a)| a["method"] == "account/rateLimitResetCredit/consume").unwrap();
+    assert_eq!(spend.1["params"], json!({"idempotencyKey": "key-9"}));
+}
+
+#[tokio::test]
+async fn given_executors_that_fail_or_answer_oddly_when_the_host_accounts_are_asked_then_each_is_unavailable_with_its_words_and_codex_has_no_update() {
+    // Given an executor refusing everything, one answering a usage with status 401, one answering a spend with an unknown outcome, and none attached
+    let (refusing, _) = host_accounts(|_, _| Err(RemoteError::Action { code: "IO_ERROR".into(), message: "the Codex app-server did not answer in time".into() }));
+    let (unauthorised, _) = host_accounts(|_, _| Ok(json!({"status": 401, "body": {"error": "expired"}})));
+    let (odd, _) = host_accounts(|_, _| Ok(json!({"result": {"outcome": "maybe"}})));
+    let nobody = HostAccounts::new(Arc::<Registry>::default());
+    // When each is asked
+    let timed_out = refusing.limits(Driver::Codex).await;
+    let refused = unauthorised.limits(Driver::ClaudeAgent).await;
+    let unknown = odd.reset_credit(Driver::Codex, "k").await;
+    let none = nobody.limits(Driver::Codex).await;
+    // Then each is unavailable with its reason, a provider without credit or update is not supported, and nothing was asked for no executor
+    assert_eq!(timed_out, Err(AccountError::Unavailable("the Codex app-server did not answer in time".into())));
+    assert_eq!(refused, Err(AccountError::Unavailable("the Claude usage service answered 401".into())));
+    assert!(matches!(unknown, Err(AccountError::Unavailable(why)) if why.contains("maybe")));
+    assert!(matches!(none, Err(AccountError::Unavailable(why)) if why.contains("no executor")));
+    assert!(matches!(refusing.update(Driver::Codex).await, Err(AccountError::NotSupported(_))));
+    assert!(matches!(refusing.reset_credit(Driver::ClaudeAgent, "k").await, Err(AccountError::NotSupported(_))));
 }
 
 fn ai_rig(diff: &str, models: Arc<ScriptedModelApi>) -> (AgentApi, Arc<ScriptedChannel>) {

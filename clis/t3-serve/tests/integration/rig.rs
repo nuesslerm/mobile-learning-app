@@ -339,6 +339,24 @@ impl Phone {
         })
     }
 
+    /// A command whose work goes on after it is accepted (a preparation that makes a worktree, then starts a run): served when it was accepted and
+    /// the thread reached `expect` within the settle time, so the window holds the executor actions of all of it.
+    pub fn command_until(&mut self, case: &mut Case, chain: &Chain, command: Value, thread: &str, expect: impl Fn(&Value) -> bool) -> Value {
+        let kind = command["type"].as_str().expect("a command has a type").to_string();
+        let row = format!("command:{kind}");
+        case.call(&chain.tap, &rows(&["rpc:orchestration.dispatchCommand", &row]), || {
+            let exit = self.calls.call("orchestration.dispatchCommand", command);
+            let deadline = Instant::now() + SETTLE;
+            loop {
+                let projection = success(&self.calls.call("orchestration.getThreadProjection", json!({"threadId": thread}))).clone();
+                if expect(&projection) || Instant::now() > deadline {
+                    return (exit["_tag"] == "Success" && expect(&projection), projection);
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
+        })
+    }
+
     /// A command that starts a run, which ends when the thread has no running run: served when it was accepted and the thread settled with
     /// `expect` true of its projection, so the window holds the executor tools the run used.
     pub fn command_settled(&mut self, case: &mut Case, chain: &Chain, command: Value, thread: &str, expect: impl Fn(&Value) -> bool) -> Value {

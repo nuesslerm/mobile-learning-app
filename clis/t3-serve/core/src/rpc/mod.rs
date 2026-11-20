@@ -409,7 +409,7 @@ impl Connection {
                 }
                 Err(failure) => vec![self.answered(&id, tag, Err(failure))],
             },
-            "provider.auth.start" | "provider.auth.respond" | "provider.auth.complete" | "provider.auth.cancel" | "provider.auth.logout" | "provider.chatgpt.reconnect-profile" | "provider.chatgpt.import-profile" | "provider.consumeResetCredit" | "server.refreshProviders" | "server.updateProvider" | "server.updateSettings" | "server.getUsageSummary" | "server.refreshUsageRates" | "server.getHostResources" => {
+            "provider.auth.start" | "provider.auth.respond" | "provider.auth.complete" | "provider.auth.cancel" | "provider.auth.logout" | "provider.chatgpt.reconnect-profile" | "provider.chatgpt.import-profile" | "provider.consumeResetCredit" | "server.refreshProviders" | "server.updateProvider" | "server.updateSettings" | "server.getUsageSummary" | "server.refreshUsageRates" | "server.getHostResources" | "server.prepareTriage" => {
                 let answer = match tag {
                     "provider.auth.start" => self.svc.provider_auth_start(payload),
                     "provider.auth.respond" => self.svc.provider_auth_respond(payload),
@@ -424,6 +424,7 @@ impl Connection {
                     "server.updateSettings" => self.svc.update_settings(payload),
                     "server.getUsageSummary" => self.svc.usage_summary(payload),
                     "server.refreshUsageRates" => Ok(self.svc.refresh_usage_rates()),
+                    "server.prepareTriage" => self.svc.prepare_triage(payload),
                     _ => self.svc.host_resources(),
                 };
                 vec![self.answered(&id, tag, answer.map(Some))]

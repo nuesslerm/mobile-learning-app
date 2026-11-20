@@ -18,6 +18,8 @@ pub enum Effect {
     Interrupt { thread_id: String, hold: bool },
     /// Follows the queued turn the agent API starts: the one of `run_id`, else whichever starts next.
     Follow { thread_id: String, run_id: Option<String> },
+    /// Prepares the workspace the preparing run `run_id` waits for (its worktree and setup), then releases or fails the run.
+    Prepare { thread_id: String, run_id: String },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -31,6 +33,8 @@ pub struct Launch {
     pub interaction_mode: String,
     /// Ids of the attachments the message carries.
     pub attachments: Vec<String>,
+    /// The worktree the thread works in, when it has one.
+    pub worktree: Option<String>,
 }
 
 #[derive(Debug, Default)]
@@ -80,7 +84,7 @@ fn one(d: EventDraft) -> Result<Decision, String> {
 }
 
 /// The commands the thread decider builds; the rest of the decoder's union is refused with a typed error.
-pub const SUPPORTED: [&str; 29] = [
+pub const SUPPORTED: [&str; 30] = [
     "thread.settle",
     "thread.unsettle",
     "thread.snooze",
@@ -110,6 +114,7 @@ pub const SUPPORTED: [&str; 29] = [
     "prepared-run.fail",
     "prepared-run.progress",
     "prepared-run.release",
+    "prepared-run.retry",
 ];
 
 fn row_event(kind: &str, shell: &Map<String, Value>, at: Millis) -> EventDraft {
@@ -297,13 +302,7 @@ pub fn decide_thread(state: &State, cmd: &Command, ctx: &Ctx) -> Result<Decision
         "run.interrupt" => interrupt(state, id, cmd.str("runId"), cmd.str("reason"), cmd.body.get("holdQueue") == Some(&json!(true)), ctx),
         "queued-run.start" if active_run(state, id).is_some() || !queued_may_start(state, id) => Err("A queued user message can only be sent now while the thread is stopped.".into()),
         "queued-run.edit" | "queued-run.cancel" | "queued-run.reorder" | "queued-run.start" if queued_run(state, id, cmd.str("runId")).is_some() => queue_command(state, id, cmd, ctx),
-        "prepared-run.fail" | "prepared-run.progress" | "prepared-run.release" => {
-            let run = cmd.require("runId")?;
-            match run_named(state, id, run) {
-                Some(r) if r["status"] == "preparing" => Err(format!("command type {} is not supported by this server", cmd.kind)),
-                _ => Err(format!("Run {run} is not awaiting workspace preparation.")),
-            }
-        }
+        "prepared-run.fail" | "prepared-run.progress" | "prepared-run.release" | "prepared-run.retry" => prepared_run(state, id, &shell, cmd, ctx),
         "queue.resume" => Ok(Decision { drafts: vec![draft("thread.command-accepted", Some(id), shell["projectId"].as_str(), now, json!({"commandType": cmd.kind}))], effect: Some(Effect::Follow { thread_id: id.to_string(), run_id: None }) }),
         kind if ACCEPTED_ONLY.contains(&kind) => one(draft("thread.command-accepted", Some(id), shell["projectId"].as_str(), now, json!({"commandType": kind}))),
         "thread.pin" => {
@@ -469,6 +468,12 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
         "providerInstanceId": instance, "modelSelection": shell["modelSelection"], "requestedAt": at, "startedAt": if queued || preparing { Value::Null } else { at.clone().into() }, "completedAt": null,
         "nativeThreadId": native, "sessionUuid": session, "queueRank": if queued { json!(rank) } else { Value::Null }, "updatedAt": at,
     });
+    let mut run = run;
+    // A launch that makes its own worktree hands the strategy to the run: the workspace is prepared for it, and again when a retry asks
+    let preparation = cmd.body.get("dispatchMode").and_then(|m| m.get("workspaceStrategy")).filter(|w| preparing && w["type"] == "worktree").cloned();
+    if let Some(strategy) = &preparation {
+        run["workspacePreparation"] = strategy.clone();
+    }
     let t = Some(thread);
     let mut drafts = vec![draft("message.updated", t, None, ctx.now, message_entity)];
     if !queued {
@@ -496,8 +501,15 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
         runtime_mode: shell["runtimeMode"].as_str().unwrap_or("full-access").to_string(),
         interaction_mode: shell["interactionMode"].as_str().unwrap_or("default").to_string(),
         attachments: attachments.iter().filter_map(|a| a["id"].as_str().map(str::to_string)).collect(),
+        worktree: shell["worktreePath"].as_str().filter(|p| !p.is_empty()).map(str::to_string),
     };
-    let effect = if queued { Some(Effect::Queue(launch)) } else if preparing { None } else { Some(Effect::Launch(launch)) };
+    let effect = if queued {
+        Some(Effect::Queue(launch))
+    } else if preparing {
+        preparation.map(|_| Effect::Prepare { thread_id: thread.to_string(), run_id: run_id.clone() })
+    } else {
+        Some(Effect::Launch(launch))
+    };
     Ok(Decision { drafts, effect })
 }
 
@@ -509,6 +521,98 @@ fn user_item(thread: &str, run: &Value, provider_thread: &str, message: &str, te
         "nativeItemRef": null, "nodeId": runs::node_id(run_id), "ordinal": runs::item_ordinal(run["ordinal"].as_u64().unwrap_or(0), 1), "parentItemId": null, "providerThreadId": provider_thread,
         "providerTurnId": null, "runId": run_id, "startedAt": at, "status": "completed", "text": text, "threadId": thread, "title": null, "type": "user_message", "updatedAt": at,
     })
+}
+
+/// The title the workspace row of a preparing run carries; it is also how the row is found again.
+const PREPARING: &str = "Preparing workspace";
+/// The code of the failure a workspace preparation leaves on its run: a retry looks for it.
+pub const PREPARATION_FAILED: &str = "workspace_preparation_failed";
+
+fn preparation_item(state: &State, thread: &str, run: &str) -> Option<Value> {
+    state.entities.get(thread)?.turn_items.iter().find(|i| i["runId"] == run && i["type"] == "command_execution" && i["input"] == PREPARING).cloned()
+}
+
+fn failure_item(state: &State, thread: &str, run: &str) -> Option<Value> {
+    state.entities.get(thread)?.turn_items.iter().find(|i| i["runId"] == run && i["type"] == "error" && i["failure"]["code"] == PREPARATION_FAILED && i["status"] == "failed").cloned()
+}
+
+/// `prepared-run.progress|release|fail|retry`, after the pin's `Orchestrator`: the run waits for its workspace (`preparing`), the worktree and the setup
+/// script are the service's work, and each of them reports here. A release starts the run's turn; a failure leaves the run failed with a workspace row and
+/// an error row, which a retry takes back before it asks for the preparation again.
+fn prepared_run(state: &State, thread: &str, shell: &Map<String, Value>, cmd: &Command, ctx: &Ctx) -> Result<Decision, String> {
+    let run_id = cmd.require("runId")?;
+    let wanted = if cmd.kind == "prepared-run.retry" { "failed" } else { "preparing" };
+    let not_waiting = || format!("Run {run_id} is not awaiting workspace preparation.");
+    let run = run_named(state, thread, run_id).filter(|r| r["status"] == wanted).ok_or_else(|| if cmd.kind == "prepared-run.retry" { format!("Run {run_id} has no failed workspace preparation to retry.") } else { not_waiting() })?;
+    let item = preparation_item(state, thread, run_id).ok_or_else(|| if cmd.kind == "prepared-run.retry" { format!("Run {run_id} has no failed workspace preparation to retry.") } else { not_waiting() })?;
+    let (at, t) = (iso(ctx.now), Some(thread));
+    let changed = |mut row: Value, patch: Vec<(&str, Value)>| {
+        for (k, v) in patch {
+            row[k] = v;
+        }
+        row["updatedAt"] = at.clone().into();
+        row
+    };
+    match cmd.kind.as_str() {
+        "prepared-run.progress" => {
+            let title = match cmd.str("phase") {
+                Some("worktree") => "Preparing worktree",
+                Some("setup") => "Starting setup script",
+                _ => return Err("prepared-run.progress needs a phase of worktree or setup".into()),
+            };
+            Ok(Decision { drafts: vec![draft("turn-item.updated", t, None, ctx.now, changed(item, vec![("title", title.into())]))], effect: None })
+        }
+        "prepared-run.release" => {
+            let done = changed(item, vec![("status", "completed".into()), ("title", "Workspace ready".into()), ("output", "Workspace preparation completed.".into()), ("exitCode", 0.into()), ("completedAt", at.clone().into())]);
+            let started = changed(run.clone(), vec![("status", "running".into()), ("startedAt", at.clone().into())]);
+            let message = state.entities.get(thread).and_then(|e| e.messages.iter().find(|m| m["id"] == run["userMessageId"])).cloned().unwrap_or(Value::Null);
+            let launch = Launch {
+                thread_id: thread.to_string(),
+                run_id: run_id.to_string(),
+                instance_id: run["providerInstanceId"].as_str().unwrap_or_default().to_string(),
+                model: run["modelSelection"]["model"].as_str().map(str::to_string),
+                prompt: message["text"].as_str().unwrap_or_default().to_string(),
+                runtime_mode: shell["runtimeMode"].as_str().unwrap_or("full-access").to_string(),
+                interaction_mode: shell["interactionMode"].as_str().unwrap_or("default").to_string(),
+                attachments: message["attachments"].as_array().into_iter().flatten().filter_map(|a| a["id"].as_str().map(str::to_string)).collect(),
+                worktree: shell["worktreePath"].as_str().filter(|p| !p.is_empty()).map(str::to_string),
+            };
+            Ok(Decision { drafts: vec![draft("turn-item.updated", t, None, ctx.now, done), draft("run.updated", t, None, ctx.now, started)], effect: Some(Effect::Launch(launch)) })
+        }
+        "prepared-run.fail" => {
+            let failure = cmd.body.get("failure").filter(|f| f.is_object()).ok_or("prepared-run.fail needs a failure")?;
+            let message = failure["message"].as_str().unwrap_or("Workspace preparation failed.");
+            let instance = run["providerInstanceId"].as_str().unwrap_or_default();
+            let ended = changed(item.clone(), vec![("status", "failed".into()), ("title", "Workspace preparation failed".into()), ("output", message.into()), ("exitCode", 1.into()), ("completedAt", at.clone().into())]);
+            let nth = items_of(state, thread, run_id) + 1;
+            let mut error = failure.clone();
+            error["code"] = PREPARATION_FAILED.into();
+            let row = json!({
+                "completedAt": at, "failure": error, "id": format!("turn-item:provider:{instance}:native-item:workspace-preparation-failure{}", runs::enc(&format!(":{run_id}"))), "nativeItemRef": null,
+                "nodeId": item["nodeId"], "ordinal": runs::item_ordinal(run["ordinal"].as_u64().unwrap_or(0), nth), "parentItemId": null, "providerThreadId": item["providerThreadId"], "providerTurnId": null,
+                "runId": run_id, "startedAt": at, "status": "failed", "threadId": thread, "title": "Workspace preparation failed", "type": "error", "updatedAt": at,
+            });
+            let failed = changed(run, vec![("status", "failed".into()), ("completedAt", at.clone().into())]);
+            Ok(Decision { drafts: vec![draft("turn-item.updated", t, None, ctx.now, ended), draft("turn-item.updated", t, None, ctx.now, row), draft("run.updated", t, None, ctx.now, failed)], effect: None })
+        }
+        _ => {
+            let failed_item = failure_item(state, thread, run_id).filter(|_| run["workspacePreparation"].is_object() && !is_archived(shell)).ok_or_else(|| format!("Run {run_id} has no failed workspace preparation to retry."))?;
+            if active_run(state, thread).is_some() || state.entities.get(thread).is_some_and(|e| e.runs.iter().any(|r| r["id"] != run["id"] && matches!(r["status"].as_str(), Some("preparing" | "starting")))) {
+                return Err("Another run is active on this thread.".into());
+            }
+            let mut again = changed(item, vec![("status", "running".into()), ("title", PREPARING.into()), ("completedAt", Value::Null)]);
+            if let Some(row) = again.as_object_mut() {
+                row.remove("output");
+                row.remove("exitCode");
+            }
+            let drafts = vec![
+                draft("turn-item.updated", t, None, ctx.now, changed(failed_item, vec![("status", "cancelled".into())])),
+                draft("turn-item.updated", t, None, ctx.now, again),
+                draft("run.updated", t, None, ctx.now, changed(run, vec![("status", "preparing".into()), ("completedAt", Value::Null)])),
+            ];
+            Ok(Decision { drafts, effect: Some(Effect::Prepare { thread_id: thread.to_string(), run_id: run_id.to_string() }) })
+        }
+    }
 }
 
 /// A queued run that left the queue: its turn began, so its user message is now a row of the timeline. A run that follows an interrupted one has the
@@ -1255,13 +1359,75 @@ mod tests {
         let sent = with(&mut state, Family::Thread, json!({"type": "message.dispatch", "commandId": "d", "threadId": "t", "message": {"messageId": "m2", "text": "again"}, "dispatchMode": {"type": "defer_start"}})).unwrap();
         let on = |state: &mut State, kind: &str, run: &str| thread_with(state, json!({"type": kind, "commandId": format!("p-{kind}-{run}"), "threadId": "t", "runId": run})).unwrap_err();
         let (failed_run, preparing_run) = (on(&mut state, "prepared-run.release", &run), on(&mut state, "prepared-run.progress", "run:thread:t:ordinal:2"));
-        // Then it starts nothing, the run is preparing with a running workspace row, and only the run that is not preparing is refused in T3's words
+        // Then it starts nothing (it names no workspace to prepare), the run is preparing with a running workspace row, and only the run that is not preparing is refused in T3's words
         let second = &state.entities["t"].runs[1];
         assert_eq!((sent.effect, second["status"].as_str(), second["startedAt"].is_null()), (None, Some("preparing"), true));
         let workspace = state.entities["t"].turn_items.iter().find(|i| i["type"] == "command_execution").unwrap();
         assert_eq!((workspace["title"].as_str(), workspace["status"].as_str(), workspace["ordinal"].as_u64()), (Some("Preparing workspace"), Some("running"), Some(2_000_002)));
         assert_eq!(failed_run, format!("Run {run} is not awaiting workspace preparation."));
-        assert!(preparing_run.contains("not supported"), "{preparing_run}");
+        assert!(preparing_run.contains("needs a phase"), "{preparing_run}");
+    }
+
+    /// A thread with a run that waits for a worktree to be made from `main`.
+    fn preparing() -> (State, String) {
+        let mut state = live();
+        let sent = thread_with(&mut state, json!({"type": "message.dispatch", "commandId": "d", "threadId": "t", "message": {"messageId": "m1", "text": "build it"}, "dispatchMode": {"type": "defer_start", "workspaceStrategy": {"type": "worktree", "baseRef": "main", "branch": "feature/x"}}})).unwrap();
+        let Some(Effect::Prepare { run_id, .. }) = sent.effect else { panic!("no preparation: {:?}", sent.effect) };
+        (state, run_id)
+    }
+
+    fn prepared(state: &mut State, kind: &str, run: &str, extra: Value) -> Result<Decision, String> {
+        let mut command = json!({"type": kind, "commandId": format!("c-{kind}-{}", state.last_sequence), "threadId": "t", "runId": run});
+        command.as_object_mut().unwrap().extend(extra.as_object().cloned().unwrap_or_default());
+        thread_with(state, command)
+    }
+
+    #[test]
+    fn a_deferred_message_that_names_a_worktree_asks_for_its_preparation_and_progress_and_release_move_the_workspace_row_and_start_the_run() {
+        // Given a run that waits for a worktree
+        let (mut state, run) = preparing();
+        let row = |state: &State| state.entities["t"].turn_items.iter().find(|i| i["type"] == "command_execution").cloned().unwrap();
+        // Then the run keeps the strategy it will be prepared by, and is preparing
+        assert_eq!((state.entities["t"].runs[0]["workspacePreparation"]["baseRef"].clone(), state.entities["t"].runs[0]["status"].clone()), (json!("main"), json!("preparing")));
+        // When each phase is reported, and then the run is released
+        prepared(&mut state, "prepared-run.progress", &run, json!({"phase": "worktree"})).unwrap();
+        let worktree = row(&state)["title"].clone();
+        prepared(&mut state, "prepared-run.progress", &run, json!({"phase": "setup"})).unwrap();
+        let setup = row(&state)["title"].clone();
+        let released = prepared(&mut state, "prepared-run.release", &run, json!({})).unwrap();
+        // Then the row's title follows the phase, and the release completes it, starts the run and asks the engine to launch its turn with the message
+        assert_eq!((worktree, setup), (json!("Preparing worktree"), json!("Starting setup script")));
+        let done = row(&state);
+        assert_eq!((done["status"].clone(), done["title"].clone(), done["exitCode"].clone(), done["completedAt"].is_null()), (json!("completed"), json!("Workspace ready"), json!(0), false));
+        assert_eq!((state.entities["t"].runs[0]["status"].clone(), state.entities["t"].runs[0]["startedAt"].is_null()), (json!("running"), false));
+        let Some(Effect::Launch(launch)) = released.effect else { panic!("no launch") };
+        assert_eq!((launch.run_id, launch.prompt), (run.clone(), "build it".to_string()));
+        // And a run that was released is no longer awaiting preparation
+        assert_eq!(prepared(&mut state, "prepared-run.release", &run, json!({})).unwrap_err(), format!("Run {run} is not awaiting workspace preparation."));
+    }
+
+    #[test]
+    fn a_failed_preparation_leaves_the_run_failed_with_an_error_row_and_a_retry_takes_it_back_and_asks_again_only_for_that_failure() {
+        // Given a preparing run, and a retry before anything failed
+        let (mut state, run) = preparing();
+        let early = prepared(&mut state, "prepared-run.retry", &run, json!({})).unwrap_err();
+        // When the preparation fails with a reason
+        prepared(&mut state, "prepared-run.fail", &run, json!({"failure": {"class": "validation_error", "message": "base main is not a branch", "code": null, "retryable": false}})).unwrap();
+        // Then the run is failed, the workspace row says why and the error row carries the preparation code
+        let items = &state.entities["t"].turn_items;
+        let work = items.iter().find(|i| i["type"] == "command_execution").unwrap();
+        let error = items.iter().find(|i| i["type"] == "error").unwrap();
+        assert_eq!((state.entities["t"].runs[0]["status"].clone(), work["status"].clone(), work["output"].clone(), error["failure"]["code"].clone()), (json!("failed"), json!("failed"), json!("base main is not a branch"), json!("workspace_preparation_failed")));
+        assert_eq!(early, format!("Run {run} has no failed workspace preparation to retry."));
+        // And a retry cancels the error row, puts the workspace row and the run back to preparing and asks for the preparation again
+        let retried = prepared(&mut state, "prepared-run.retry", &run, json!({})).unwrap();
+        let items = &state.entities["t"].turn_items;
+        let work = items.iter().find(|i| i["type"] == "command_execution").unwrap();
+        assert_eq!((state.entities["t"].runs[0]["status"].clone(), state.entities["t"].runs[0]["completedAt"].clone(), work["status"].clone(), work["title"].clone(), work.get("output").is_none()), (json!("preparing"), Value::Null, json!("running"), json!("Preparing workspace"), true));
+        assert_eq!(items.iter().find(|i| i["type"] == "error").unwrap()["status"], json!("cancelled"));
+        assert_eq!(retried.effect, Some(Effect::Prepare { thread_id: "t".into(), run_id: run.clone() }));
+        // And a second retry has no failure to take back
+        assert_eq!(prepared(&mut state, "prepared-run.retry", &run, json!({})).unwrap_err(), format!("Run {run} has no failed workspace preparation to retry."));
     }
 
     #[test]

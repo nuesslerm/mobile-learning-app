@@ -305,15 +305,19 @@ fn the_usage_summary_has_a_source_for_each_provider_the_accounts_group_lists_and
 }
 
 #[test]
-fn a_reset_credit_the_model_api_gave_back_is_a_reset_and_a_refusal_is_the_usage_source_error_with_the_agent_apis_words() {
-    // Given the recorded credit reset for codex
+fn a_reset_credit_the_account_spent_is_a_reset_and_any_other_outcome_or_refusal_is_the_usage_source_error_with_the_accounts_words() {
+    // Given the recorded credit spend for codex
     let (h, mut rpc) = started();
-    reply(&h, "provider.resetCredit", Ok(recorded("provider.resetCredit", "gives back the credit")));
+    reply(&h, "provider.resetCredit", Ok(recorded("provider.resetCredit", "spends a credit")));
     // When the phone consumes it
     let reset = rpc.call("provider.consumeResetCredit", json!({"instanceId": "codex"}));
     // Then the agent API was asked for codex and the outcome is a reset
     assert_eq!(ops(&h), [Op::ResetCredit { provider: "codex".into() }]);
     assert_eq!(success(&reset), &json!({"outcome": "reset"}));
+    // When the account says there was nothing to reset
+    reply(&h, "provider.resetCredit", Ok(json!({"provider": "codex", "outcome": "nothing_to_reset"})));
+    let nothing = rpc.call("provider.consumeResetCredit", json!({"instanceId": "codex"}));
+    assert_eq!((failure(&nothing)["_tag"].as_str(), failure(&nothing)["detail"].as_str()), (Some("UsageLimitSourceError"), Some("The account did not reset a limit: nothing to reset")));
     // When the agent API refuses, and when the request names a usage limit source this server does not have
     forget_ops(&h);
     reply(&h, "provider.resetCredit", Err(refused("provider.resetCredit", "a provider that is none")));
@@ -410,4 +414,52 @@ fn the_database_storage_stream_says_how_big_the_database_is_and_what_a_vacuum_gi
     let mut other = connect_with(&h, PairingRequest { scopes: t3_contracts::scopes::ALL_SCOPES.iter().map(|s| s.to_string()).collect(), ..PairingRequest::default() });
     let again = other.send("server.getDatabaseStorage", json!({}));
     assert_eq!(other.chunk(&again), [Value::Null]);
+}
+
+fn file_writes(h: &Harness) -> Vec<(String, String)> {
+    ops(h).into_iter().filter_map(|op| if let Op::FileWrite { path, content, .. } = op { Some((path, content)) } else { None }).collect()
+}
+
+#[test]
+fn a_triage_session_is_a_playbook_and_the_services_own_log_written_at_the_executor_and_the_prompt_links_the_playbook() {
+    // Given a service that keeps two events in its log
+    let (h, mut rpc) = started();
+    reply(&h, "service.logs", Ok(json!({"lines": [{"at_ms": 1, "level": "info", "event": "server.listening", "meta": {"port": 8080}}, {"at_ms": 2, "level": "warn", "event": "exec.channel.closed", "meta": {"executor": "e1"}}], "kept": 40})));
+    // When the phone asks to prepare a triage and says what it is
+    let answer = rpc.call("server.prepareTriage", json!({"client": {"label": "Pixel", "appVersion": "1.4.2", "os": "android"}}));
+    // Then the log is asked of the service, at info and above, and both files are written under one folder named for the time
+    let prompt = success(&answer)["prompt"].as_str().unwrap().to_string();
+    assert_eq!(ops(&h)[0], Op::ServiceLogs { limit: 500, min_level: "info" });
+    let written = file_writes(&h);
+    let folder = written[0].0.rsplit_once('/').unwrap().0.to_string();
+    assert!(folder.starts_with("triage/20") && written.iter().all(|(path, _)| path.starts_with(&folder)), "{written:?}");
+    assert_eq!((written[0].0.ends_with("/service-logs.jsonl"), written[1].0.ends_with("/triage-playbook.md")), (true, true));
+    // And the log file holds one event a line as the service wrote it, and the playbook names the client, says what the log holds and fetches nothing from outside
+    let lines: Vec<&str> = written[0].1.lines().collect();
+    assert_eq!((lines.len(), lines[1].contains("exec.channel.closed")), (2, true));
+    let playbook = &written[1].1;
+    assert!(playbook.contains("Pixel version 1.4.2 on android") && playbook.contains("the last 2 of the 40 events the service keeps"), "{playbook}");
+    assert!(!playbook.contains("github.com") && playbook.contains("no third-party source were fetched"), "{playbook}");
+    // And the prompt links the playbook at the absolute path the executor serves
+    assert_eq!(prompt, format!("Read [triage-playbook.md](/workspace/{folder}/triage-playbook.md) and follow it. "));
+}
+
+#[test]
+fn a_triage_when_the_log_cannot_be_read_still_writes_a_playbook_that_says_so_and_a_refused_write_is_the_prepare_error_and_a_client_is_required() {
+    // Given a service whose log cannot be read
+    let (h, mut rpc) = started();
+    reply(&h, "service.logs", Err(AgentError::Failed("service.logs is not served".into())));
+    // When a triage is prepared, then again with the executor refusing to write, and once with no client
+    let degraded = rpc.call("server.prepareTriage", json!({"client": {}}));
+    let playbook = file_writes(&h).into_iter().find(|(path, _)| path.ends_with("triage-playbook.md")).unwrap().1;
+    forget_ops(&h);
+    h.agent.responder.lock().unwrap().replace(Box::new(|op| matches!(op, Op::FileWrite { .. }).then(|| Err(AgentError::Failed("disk full".into())))));
+    let refused_write = rpc.call("server.prepareTriage", json!({"client": {"label": "x"}}));
+    let none = rpc.call("server.prepareTriage", json!({}));
+    // Then the first still answers a prompt, and its playbook says the log was empty and why and names an unknown client
+    assert!(success(&degraded)["prompt"].as_str().unwrap().starts_with("Read [triage-playbook.md]("));
+    assert!(playbook.contains("empty: the service's log could not be read (service.logs is not served)") && playbook.contains("an unknown client"), "{playbook}");
+    // And the refused write is the pin's prepare error, and a payload with no client is the decoder's defect
+    assert_eq!((failure(&refused_write)["_tag"].as_str(), failure(&refused_write)["cause"].as_str()), (Some("ServerPrepareTriageError"), Some("disk full")));
+    assert_eq!(none["cause"][0]["defect"], "Missing key\n  at [\"client\"]");
 }

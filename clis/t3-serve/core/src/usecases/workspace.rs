@@ -336,6 +336,16 @@ impl SetupFold {
         self.outcome.is_some()
     }
 
+    /// How the setup ended: none while it runs, else ok, or the words of what stopped it.
+    pub fn result(&self) -> Option<Result<(), String>> {
+        match (self.outcome?, self.phase(), self.failed_step) {
+            (true, ..) => Some(Ok(())),
+            (false, "cancelled", _) => Some(Err("Worktree setup cancelled.".into())),
+            (false, _, Some((_, code))) => Some(Err(format!("Setup script exited with {code}."))),
+            (false, ..) => Some(Err("Setup script failed.".into())),
+        }
+    }
+
     /// Takes the events of a batch; whether any was new.
     pub fn take(&mut self, batch: &SetupBatch, now: i64) -> bool {
         let mut changed = false;

@@ -1,6 +1,6 @@
 //! The doubles of the crate's ports: the providers' directories in memory, a login that plays a script, and a model that answers from a fixture.
-use crate::ports::{Completed, Completion, LoginRun, ModelApi, ModelError, ProviderDirs, ProviderLogin};
-use agent_api_accounts::{Credit, Usage};
+use crate::ports::{AccountError, Completed, Completion, LoginRun, ModelApi, ModelError, ProviderAccounts, ProviderDirs, ProviderLogin};
+use agent_api_accounts::{Limits, ResetOutcome, Updated};
 use async_trait::async_trait;
 use rca_cli_driver::domain::{Driver, LoginMethod};
 use std::collections::{HashMap, HashSet};
@@ -188,18 +188,16 @@ impl ProviderLogin for ScriptedLogin {
     }
 }
 
-/// The model as a double: it answers each completion with a text, notes the request, and reports the usage and credit it was given.
+/// The model as a double: it answers each completion with a text and notes the request.
 pub struct ScriptedModelApi {
     reply: Mutex<Result<Completed, ModelError>>,
     pull_request: Mutex<Option<Completed>>,
     requests: Mutex<Vec<Completion>>,
-    usage: Mutex<HashMap<String, Usage>>,
-    credit: Mutex<Option<Credit>>,
 }
 
 impl ScriptedModelApi {
     pub fn replying(text: &str, model: &str) -> Arc<ScriptedModelApi> {
-        Arc::new(ScriptedModelApi { reply: Mutex::new(Ok(Completed { text: text.into(), model: model.into() })), pull_request: Mutex::new(None), requests: Mutex::default(), usage: Mutex::default(), credit: Mutex::new(None) })
+        Arc::new(ScriptedModelApi { reply: Mutex::new(Ok(Completed { text: text.into(), model: model.into() })), pull_request: Mutex::new(None), requests: Mutex::default() })
     }
 
     /// The model that answers with the message the `git.ai` fixture records (`agent-api-git`) and gives the credit the accounts fixture records,
@@ -210,10 +208,6 @@ impl ScriptedModelApi {
         let recorded = success("git.generateCommitMessage");
         let result = &recorded.response["result"];
         let api = ScriptedModelApi::replying(result["message"].as_str().expect("a recorded message"), result["model"].as_str().expect("a recorded model"));
-        // The credit the accounts fixture records for a reset is the one this model has to give
-        let accounts = agent_api_accounts::testing::fixtures();
-        let credit = accounts.iter().filter(|f| f.method == "provider.resetCredit").flat_map(|f| &f.exchanges).find(|e| e.succeeds()).expect("the accounts fixture records a credit");
-        api.with_credit(serde_json::from_value(credit.response["result"]["credit"].clone()).expect("a recorded credit"));
         // And the pull request fields the git.ai fixture records, as the JSON the model is asked for
         let fields = &success("git.generatePullRequestFields").response["result"];
         let text = serde_json::json!({"title": fields["title"], "body": fields["body"], "draft": fields["draft"]}).to_string();
@@ -228,14 +222,6 @@ impl ScriptedModelApi {
 
     pub fn fails(&self, error: ModelError) {
         *lock(&self.reply) = Err(error);
-    }
-
-    pub fn with_usage(&self, provider: &str, usage: Usage) {
-        lock(&self.usage).insert(provider.into(), usage);
-    }
-
-    pub fn with_credit(&self, credit: Credit) {
-        *lock(&self.credit) = Some(credit);
     }
 
     pub fn requests(&self) -> Vec<Completion> {
@@ -253,12 +239,52 @@ impl ModelApi for ScriptedModelApi {
             (_, reply, _) => reply,
         }
     }
+}
 
-    async fn usage(&self, provider: &str) -> Result<Option<Usage>, ModelError> {
-        Ok(lock(&self.usage).get(provider).cloned())
+/// The providers' own accounts as a double: the limits, the spend outcome and the update each provider was given, and the keys the spends used.
+#[derive(Default)]
+pub struct ScriptedAccounts {
+    limits: Mutex<HashMap<&'static str, Result<Option<Limits>, AccountError>>>,
+    spends: Mutex<HashMap<&'static str, Result<ResetOutcome, AccountError>>>,
+    updates: Mutex<HashMap<&'static str, Result<Updated, AccountError>>>,
+    keys: Mutex<Vec<String>>,
+}
+
+impl ScriptedAccounts {
+    pub fn new() -> Arc<ScriptedAccounts> {
+        Arc::default()
     }
 
-    async fn reset_credit(&self, provider: &str) -> Result<Credit, ModelError> {
-        lock(&self.credit).clone().ok_or_else(|| ModelError::NotSupported(format!("{provider} has no credit the service can reset")))
+    pub fn with_limits(&self, driver: Driver, answer: Result<Option<Limits>, AccountError>) {
+        lock(&self.limits).insert(driver.id(), answer);
+    }
+
+    pub fn with_spend(&self, driver: Driver, answer: Result<ResetOutcome, AccountError>) {
+        lock(&self.spends).insert(driver.id(), answer);
+    }
+
+    pub fn with_update(&self, driver: Driver, answer: Result<Updated, AccountError>) {
+        lock(&self.updates).insert(driver.id(), answer);
+    }
+
+    /// The idempotency keys the spends were made with, in order.
+    pub fn keys(&self) -> Vec<String> {
+        lock(&self.keys).clone()
+    }
+}
+
+#[async_trait]
+impl ProviderAccounts for ScriptedAccounts {
+    async fn limits(&self, driver: Driver) -> Result<Option<Limits>, AccountError> {
+        lock(&self.limits).get(driver.id()).cloned().unwrap_or(Ok(None))
+    }
+
+    async fn reset_credit(&self, driver: Driver, key: &str) -> Result<ResetOutcome, AccountError> {
+        lock(&self.keys).push(key.to_string());
+        lock(&self.spends).get(driver.id()).cloned().unwrap_or_else(|| Err(AccountError::NotSupported(format!("{} has no reset credit to spend", driver.id()))))
+    }
+
+    async fn update(&self, driver: Driver) -> Result<Updated, AccountError> {
+        lock(&self.updates).get(driver.id()).cloned().unwrap_or_else(|| Err(AccountError::NotSupported(format!("{} has no update command of its own", driver.id()))))
     }
 }

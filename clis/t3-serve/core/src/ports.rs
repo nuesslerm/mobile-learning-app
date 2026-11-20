@@ -161,6 +161,8 @@ pub struct AgentThread {
     pub thread_id: String,
     pub instance_id: String,
     pub model: Option<String>,
+    /// The worktree the thread works in, when it has one: its turns run in the workspace that worktree is (the executor's own when none matches).
+    pub worktree: Option<String>,
 }
 
 /// One turn to run on a thread: the message and the thread's modes.
@@ -174,6 +176,8 @@ pub struct AgentTurn {
     pub interaction_mode: String,
     /// Ids of the attachments kept by the agent API (`upload.put`) that the turn's workspace is given before the CLI starts.
     pub attachments: Vec<String>,
+    /// The worktree the thread works in, when it has one: the turn runs in the workspace that worktree is.
+    pub worktree: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -299,6 +303,8 @@ pub enum Op {
     /// The changes under `root` since the revision it is at.
     ThreadDiff { root: String },
     WorktreeCreate { root: String, worktree: String, branch: String, base: Option<String> },
+    /// The worktree at the directory `root` removed, whatever it holds (`worktree.remove`, forced), with its branch kept.
+    WorktreeRemove { root: String },
     WorktreeSetupCancel { root: String },
     /// The terminals of a project's directory: `terminal` is the name in the agent API (T3's thread and terminal ids joined), `cwd` the
     /// directory the shell starts in.
@@ -342,6 +348,8 @@ pub enum Op {
     AccountsLogout { provider: String },
     UsageSummary,
     ResetCredit { provider: String },
+    /// The last events the service wrote itself (`service` group), at or above `min_level` (`info`, `warn` or `error`).
+    ServiceLogs { limit: u32, min_level: &'static str },
     /// A request of the hosted source control groups (`pr.*`, `clone.*`, `sourceControl.*`): `method` is the agent API method, `root` the
     /// project's directory (it picks the workspace) and `params` the method's params without the workspace.
     Hosted { method: &'static str, root: String, params: Value },
@@ -401,6 +409,7 @@ impl Op {
             Op::TurnDiff { .. } => "turn.diff",
             Op::ThreadDiff { .. } => "thread.diff",
             Op::WorktreeCreate { .. } => "worktree.create",
+            Op::WorktreeRemove { .. } => "worktree.remove",
             Op::WorktreeSetupCancel { .. } => "worktree.setup.cancel",
             Op::TerminalOpen { .. } => "terminal.open",
             Op::TerminalWrite { .. } => "terminal.write",
@@ -433,6 +442,7 @@ impl Op {
             Op::AccountsLogout { .. } => "provider.logout",
             Op::UsageSummary => "usage.summary",
             Op::ResetCredit { .. } => "provider.resetCredit",
+            Op::ServiceLogs { .. } => "service.logs",
             Op::Hosted { method, .. } | Op::Schedule { method, .. } | Op::Attachment { method, .. } | Op::Preview { method, .. } | Op::Speech { method, .. } | Op::Catalog { method, .. } => method,
         }
     }
