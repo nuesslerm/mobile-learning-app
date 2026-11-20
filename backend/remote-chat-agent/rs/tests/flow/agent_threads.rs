@@ -45,7 +45,14 @@ pub(crate) async fn chain(env: &Env) -> Chain {
 
 /// The chain with the `browser` group on, and an executor whose browser may reach the host:port pairs of `allow`.
 pub(crate) async fn chain_browser(env: &Env, allow: &str) -> Chain {
-    chain_in(env, Options { browser: true, ..Options::default() }, &[("RCA_EXEC_BROWSER_ALLOW".to_string(), allow.to_string()), ("RCA_EXEC_BROWSER_NO_SANDBOX".to_string(), "1".to_string())]).await
+    let mut vars = vec![("RCA_EXEC_BROWSER_ALLOW".to_string(), allow.to_string()), ("RCA_EXEC_BROWSER_NO_SANDBOX".to_string(), "1".to_string())];
+    // The executor runs under a fresh HOME, so a Playwright Chromium under the real one has to be named.
+    if std::env::var_os("PLAYWRIGHT_BROWSERS_PATH").is_none() {
+        if let Some(home) = std::env::var_os("HOME") {
+            vars.push(("PLAYWRIGHT_BROWSERS_PATH".to_string(), std::path::Path::new(&home).join(".cache/ms-playwright").to_string_lossy().into_owned()));
+        }
+    }
+    chain_in(env, Options { browser: true, ..Options::default() }, &vars).await
 }
 
 async fn chain_with(env: &Env, options: Options) -> Chain {

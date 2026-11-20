@@ -18,7 +18,8 @@ fn the_phone_opens_a_tab_on_a_dev_server_and_navigates_clicks_scrolls_and_types_
         // Given the chain with the browser on and an executor that may reach one dev server, started through the service
         let port = free_port();
         let allow = format!("127.0.0.1:{port}");
-        let chain = Chain::start_with_env(None, &[("RCA_BROWSER", "1"), ("RCA_EXEC_BROWSER_ALLOW", &allow), ("RCA_EXEC_BROWSER_NO_SANDBOX", "1")]);
+        let browsers = std::env::var("PLAYWRIGHT_BROWSERS_PATH").unwrap_or_else(|_| format!("{}/.cache/ms-playwright", std::env::var("HOME").unwrap_or_default()));
+        let chain = Chain::start_with_env(None, &[("RCA_BROWSER", "1"), ("RCA_EXEC_BROWSER_ALLOW", &allow), ("RCA_EXEC_BROWSER_NO_SANDBOX", "1"), ("PLAYWRIGHT_BROWSERS_PATH", &browsers)]);
         let mut rca = chain.direct();
         let server = rca.call("preview", "preview.start", json!({"workspace": "w1", "command": command(""), "port": port, "ready_timeout_ms": 10_000})).expect("the dev server starts");
         let mut phone = Phone::connect(case, &chain);
