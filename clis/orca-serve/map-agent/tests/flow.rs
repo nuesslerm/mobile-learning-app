@@ -1620,6 +1620,28 @@ fn given_the_dictation_settings_when_a_phone_lists_sets_up_and_dictates_then_the
 }
 
 #[test]
+fn given_two_phones_setting_up_dictation_at_once_when_both_read_the_kept_voice_settings_first_then_both_changes_are_kept() {
+    // Given two connections of one host whose reads of the kept settings overlap
+    let rig = Rig::new();
+    let agent: Arc<dyn AgentApi> = Arc::new(orca_core::testing::OverlappingReads::over(rig.agent.clone(), Duration::from_millis(300)));
+    let host = Host::new("rt".into(), vec![Box::new(AgentArea::default())], agent, Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+    // When one phone turns dictation on and the other picks hold mode at the same moment
+    let phones: Vec<_> = [json!({"enabled": true}), json!({"dictationMode": "hold"})]
+        .into_iter()
+        .map(|params| {
+            let mut conn = host.connection("dev", "tok", vec![]);
+            std::thread::spawn(move || serde_json::from_str::<Value>(&conn.on_message(&json!({"id": "r1", "method": "speech.dictation.setup", "params": params}).to_string())[0]).unwrap())
+        })
+        .collect();
+    for phone in phones {
+        assert_eq!(phone.join().unwrap()["ok"], true);
+    }
+    // Then the kept voice settings hold both
+    let kept = rig.agent.state_get("orca", "settings").unwrap().unwrap();
+    assert_eq!((kept["voice"]["enabled"].clone(), kept["voice"]["dictationMode"].clone()), (json!(true), json!("hold")));
+}
+
+#[test]
 fn given_the_one_model_when_it_is_downloaded_deleted_or_another_is_chosen_then_each_is_answered_as_the_host_answers_a_model_it_cannot_do_that_to() {
     // Given a service with a speech engine
     let mut rig = Rig::new();

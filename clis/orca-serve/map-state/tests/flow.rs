@@ -1,6 +1,7 @@
 //! The settings, quick-command and UI rows through the `Host` dispatcher with rca's state doubled: each change is read back by the row that reads it,
 //! and by a second connection of the same rca (what a restart of the server finds).
 use orca_core::testing::{RevocablePrincipals, ScriptedAgent};
+use orca_core::AgentApi as _;
 use orca_core::{Connection, Host, HostInfo, ServiceStatus};
 use orca_map_state::StateArea;
 use serde_json::{json, Value};
@@ -260,4 +261,26 @@ fn given_model_picks_when_applied_then_the_model_is_the_agents_default_with_its_
     assert_eq!(rig.err("settings.mutateNativeChatSessionOptions", json!({})).1, "Invalid discriminator value. Expected 'apply-picks' | 'clear-model-if-missing'");
     assert_eq!(rig.err("settings.mutateNativeChatSessionOptions", Value::Null).1, "Invalid discriminator value. Expected 'apply-picks' | 'clear-model-if-missing'");
     assert_eq!(rig.err("settings.mutateNativeChatSessionOptions", json!("wrong")).1, "Invalid input: expected object, received string");
+}
+
+#[test]
+fn given_two_phones_changing_settings_at_once_when_both_read_the_kept_settings_first_then_both_changes_are_kept() {
+    // Given two connections of one host whose reads of the kept settings overlap
+    let scripted = Arc::new(ScriptedAgent::serving(ServiceStatus { protocol: 1, version: "v".into(), commit: "c".into(), groups: vec![] }));
+    let agent: Arc<dyn orca_core::AgentApi> = Arc::new(orca_core::testing::OverlappingReads::over(scripted.clone(), std::time::Duration::from_millis(300)));
+    let host = Host::new("rt".into(), vec![Box::new(StateArea)], agent, Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+    // When each phone changes a different setting at the same moment
+    let phones: Vec<_> = [json!({"compactWorktreeCards": true}), json!({"defaultTaskViewPreset": "prs"})]
+        .into_iter()
+        .map(|patch| {
+            let mut conn = host.connection("dev", "tok", vec![]);
+            std::thread::spawn(move || serde_json::from_str::<Value>(&conn.on_message(&json!({"id": "r1", "method": "settings.update", "params": patch}).to_string())[0]).unwrap())
+        })
+        .collect();
+    for phone in phones {
+        assert_eq!(phone.join().unwrap()["ok"], true);
+    }
+    // Then the kept settings hold both
+    let kept = scripted.state_get("orca", "settings").unwrap().unwrap();
+    assert_eq!((kept["compactWorktreeCards"].clone(), kept["defaultTaskViewPreset"].clone()), (json!(true), json!("prs")));
 }

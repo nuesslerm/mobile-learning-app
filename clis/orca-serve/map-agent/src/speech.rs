@@ -138,6 +138,7 @@ pub(crate) fn configure(agent: &dyn AgentApi, params: &Value) -> Result<Value, F
     if model.as_deref().is_some_and(|m| !m.is_empty() && m != MODEL_ID) {
         return Err(plain("voice_model_unknown"));
     }
+    let turn = orca_core::kept_state_turn();
     let mut next = voice(agent)?;
     if let Some(enabled) = given.get("enabled") {
         let Some(enabled) = enabled.as_bool() else { return Err(Failure::invalid(format!("Invalid input: expected boolean, received {}", received(enabled)))) };
@@ -163,6 +164,7 @@ pub(crate) fn configure(agent: &dyn AgentApi, params: &Value) -> Result<Value, F
     let mut settings = agent.state_get(SCOPE, "settings").map_err(crate::agent::refusal)?.and_then(|s| s.as_object().cloned()).unwrap_or_default();
     settings.insert("voice".into(), Value::Object(next));
     state_set(agent, "settings", Value::Object(settings))?;
+    drop(turn);
     setup(agent)
 }
 

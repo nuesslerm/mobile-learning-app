@@ -74,6 +74,7 @@ pub(crate) fn update(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
             kept_patch.insert(key.clone(), json!(text.trim()));
         }
     }
+    let _turn = orca_core::kept_state_turn();
     let mut settings = store::read_object(agent, SETTINGS)?;
     settings.extend(kept_patch);
     store::write(agent, SETTINGS, Value::Object(settings.clone()))?;

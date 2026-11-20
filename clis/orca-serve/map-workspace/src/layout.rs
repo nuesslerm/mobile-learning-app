@@ -35,6 +35,7 @@ fn keep(agent: &dyn AgentApi, key: &str, value: Value) -> Result<(), Failure> {
 
 /// Opens `record` (replacing a tab of the same id) and puts it in front.
 fn open(agent: &dyn AgentApi, workspace: &str, record: Value) -> Result<(), Failure> {
+    let _turn = orca_core::kept_state_turn();
     let mut tabs = kept(agent, workspace)?;
     let id = record["id"].clone();
     match tabs.iter_mut().find(|t| t["id"] == id) {
@@ -47,6 +48,7 @@ fn open(agent: &dyn AgentApi, workspace: &str, record: Value) -> Result<(), Fail
 
 /// Closes a kept tab: whether there was one. The front tab falls back to the default pick when it was this one.
 pub fn close(agent: &dyn AgentApi, workspace: &str, tab: &str) -> Result<bool, Failure> {
+    let _turn = orca_core::kept_state_turn();
     let mut tabs = kept(agent, workspace)?;
     let before = tabs.len();
     tabs.retain(|t| t["id"] != tab);

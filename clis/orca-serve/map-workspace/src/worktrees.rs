@@ -161,6 +161,7 @@ pub(crate) fn remove(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
     }
     let managed = targets(agent)?.into_iter().find(|t| t.kind == "worktree" && t.root_path == c.path).ok_or_else(|| Failure::new(RUNTIME_ERROR, NOT_MANAGED))?;
     ask(agent, WORKTREE_REMOVE.name(), json!({"workspace": managed.workspace, "force": params["force"] == true}))?;
+    let _turn = orca_core::kept_state_turn();
     let mut names = array(agent, &retired_key(&repo.workspace))?;
     let retired = Value::String(basename(&c.path).to_string());
     if !names.contains(&retired) {
@@ -173,11 +174,13 @@ pub(crate) fn remove(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
 pub(crate) fn set(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let (repo, c) = find(agent, selector(params)?)?;
     let key = meta_key(&id_of(&repo.workspace, &c.path));
+    let turn = orca_core::kept_state_turn();
     let mut meta = object(agent, &key)?;
     for (k, v) in params.as_object().into_iter().flatten().filter(|(k, _)| k.as_str() != "worktree") {
         meta.insert(k.clone(), v.clone());
     }
     put(agent, &key, Value::Object(meta))?;
+    drop(turn);
     Ok(json!({"worktree": record(agent, &repo, &c)?}))
 }
 

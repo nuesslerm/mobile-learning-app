@@ -28,6 +28,7 @@ pub(crate) fn mutate(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
     match params["type"].as_str() {
         Some("apply-picks") => {
             let picks = params["picks"].as_array().filter(|p| (1..=8).contains(&p.len())).ok_or_else(|| Failure::invalid("Invalid input: picks must hold 1 to 8 picks"))?;
+            let _turn = orca_core::kept_state_turn();
             let mut settings = store::read_object(agent, SETTINGS)?;
             let mut all = settings.get("nativeChatSessionOptions").and_then(Value::as_object).cloned().unwrap_or_default();
             let mut mine = all.get(chat_agent).and_then(Value::as_object).cloned().unwrap_or_default();

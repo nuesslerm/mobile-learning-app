@@ -890,10 +890,21 @@ pub fn remotes_of(printed: &str) -> Vec<Value> {
         let Some(url) = rest.strip_suffix("(fetch)").filter(|u| u.ends_with(char::is_whitespace)).map(str::trim_end).filter(|u| !u.is_empty()) else { continue };
         if !seen.contains(&name) {
             seen.push(name);
-            remotes.push(json!({"name": name, "url": url}));
+            remotes.push(json!({"name": name, "url": without_credentials(url)}));
         }
     }
     remotes
+}
+
+/// An http(s) URL without the userinfo a token is often put in (`https://user:token@host/...`); other forms (`git@host:path`, `ssh://git@host/...`) carry a login name only.
+fn without_credentials(url: &str) -> String {
+    for scheme in ["https://", "http://"] {
+        if let Some(rest) = url.strip_prefix(scheme) {
+            let (authority, tail) = rest.split_at(rest.find('/').unwrap_or(rest.len()));
+            return format!("{scheme}{}{tail}", authority.rsplit_once('@').map_or(authority, |(_, host)| host));
+        }
+    }
+    url.to_string()
 }
 
 /// A sign-in prompt: the one-time code (GitHub) and the address to open. `None` until the address has been printed.
@@ -939,6 +950,15 @@ mod tests {
         // Then each name keeps its first fetch URL, and nothing else is a remote
         assert_eq!(remotes, vec![json!({"name": "origin", "url": "git@github.com:octo/hello.git"}), json!({"name": "up", "url": "https://x/a b.git"})]);
         assert_eq!(remotes_of(""), Vec::<Value>::new());
+    }
+
+    #[test]
+    fn given_remote_urls_with_userinfo_when_read_then_an_http_token_is_stripped_and_a_login_name_of_ssh_stays() {
+        // Given remotes whose https URLs carry a token, a user and password, and an ssh form with a login name
+        let printed = "a\thttps://ghp_secret@github.com/octo/hello.git (fetch)\nb\thttps://user:pa%40ss@gitlab.com:8443/g/p.git (fetch)\nc\tssh://git@host/x.git (fetch)\nd\thttps://host (fetch)\n";
+        // When read, Then only the https userinfo is gone and the rest of each URL is kept
+        let urls: Vec<String> = remotes_of(printed).iter().map(|r| r["url"].as_str().unwrap().to_string()).collect();
+        assert_eq!(urls, ["https://github.com/octo/hello.git", "https://gitlab.com:8443/g/p.git", "ssh://git@host/x.git", "https://host"]);
     }
 
     #[test]

@@ -234,3 +234,19 @@ fn given_rca_cannot_list_its_providers_when_the_phone_subscribes_then_it_is_refu
     rig.providers.signed_in("codex");
     assert_eq!(rig.events_after_waiting().len(), 1);
 }
+
+#[test]
+fn given_an_open_accounts_stream_when_the_phone_drops_without_unsubscribing_then_the_stream_is_ended_and_rca_is_not_asked_again() {
+    // Given a phone with an open accounts stream
+    let mut rig = Rig::new();
+    rig.frames("accounts.subscribe", json!({}));
+    assert_eq!(rig.conn.open_streams(), 1);
+    // When the connection closes with no `accounts.unsubscribe`
+    rig.conn.close();
+    let asked = rig.agent.calls().iter().filter(|m| m.as_str() == "provider.list").count();
+    // Then no stream is left, and a later change in the providers is never read for it
+    assert_eq!(rig.conn.open_streams(), 0);
+    rig.providers.signed_in("codex");
+    assert_eq!(rig.events_after_waiting(), Vec::<Value>::new());
+    assert_eq!(rig.agent.calls().iter().filter(|m| m.as_str() == "provider.list").count(), asked);
+}

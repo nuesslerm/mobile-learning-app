@@ -164,3 +164,39 @@ impl Principals for RevocablePrincipals {
         !self.0.lock().unwrap().iter().any(|d| d == device_id)
     }
 }
+
+/// An agent whose reads of kept state wait (up to `window`) for a second reader before answering, so two connections that read, change and write one
+/// key overlap on every run when nothing makes them take turns.
+pub struct OverlappingReads {
+    inner: Arc<ScriptedAgent>,
+    window: Duration,
+    readers: Mutex<u32>,
+    arrived: std::sync::Condvar,
+}
+
+impl OverlappingReads {
+    pub fn over(inner: Arc<ScriptedAgent>, window: Duration) -> Self {
+        Self { inner, window, readers: Mutex::new(0), arrived: std::sync::Condvar::new() }
+    }
+}
+
+impl AgentApi for OverlappingReads {
+    fn status(&self) -> Result<ServiceStatus, AgentError> {
+        self.inner.status()
+    }
+
+    fn state_get(&self, scope: &str, key: &str) -> Result<Option<Value>, AgentError> {
+        let read = self.inner.state_get(scope, key);
+        let mut readers = self.readers.lock().unwrap();
+        *readers += 1;
+        self.arrived.notify_all();
+        if *readers % 2 == 1 {
+            let _ = self.arrived.wait_timeout_while(readers, self.window, |n| *n % 2 == 1).unwrap();
+        }
+        read
+    }
+
+    fn request(&self, method: &'static str, params: Value) -> Result<Value, AgentError> {
+        self.inner.request(method, params)
+    }
+}

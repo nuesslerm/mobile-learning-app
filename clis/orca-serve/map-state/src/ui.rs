@@ -11,6 +11,7 @@ pub(crate) fn get(agent: &dyn AgentApi) -> Result<Value, Failure> {
 
 pub(crate) fn set(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let updates = ui_params::parse(params)?;
+    let _turn = orca_core::kept_state_turn();
     let kept = store::read_object(agent, UI)?;
     let next = ui_state::apply(&kept, &updates);
     if next != kept {

@@ -518,3 +518,26 @@ fn given_a_long_patch_and_answers_of_a_model_when_the_prompt_is_built_and_read_t
     assert_eq!(read_pull_request_fields("```\n{\"title\":\"t\",\"body\":\"b\",\"draft\":true}\n```"), Some(("t".into(), "b".into(), true)));
     assert_eq!((read_pull_request_fields(""), read_pull_request_fields("[]"), read_pull_request_fields("{\"title\":\"  \"}"), read_pull_request_fields("{\"title\":\"t\",\"body\":1}")), (None, None, None, None));
 }
+
+async fn watch_providers(rig: &Rig) -> (tokio::task::JoinHandle<()>, mpsc::UnboundedReceiver<Event>) {
+    let (tx, events) = mpsc::unbounded_channel();
+    let connection = Connection::new(Arc::new(Queue(tx)));
+    rig.api.dispatch_on(BUILD, &json!({"id": 1, "method": "provider.subscribe", "params": {}}).to_string(), &connection).await;
+    (tokio::spawn(connection.take_following().pop().unwrap().job), events)
+}
+
+#[tokio::test]
+async fn given_a_provider_watcher_when_its_peer_is_gone_then_the_watcher_ends_at_the_next_change_and_one_aborted_by_the_transport_polls_no_more() {
+    // Given two followers of the provider list, each with its job running as the transport runs it
+    let rig = rig();
+    let (gone, mut gone_events) = watch_providers(&rig).await;
+    let (aborted, _kept) = watch_providers(&rig).await;
+    gone_events.recv().await.expect("the first list");
+    // When one peer goes away and the other connection closes (the transport aborts its job), and a provider then signs in
+    drop(gone_events);
+    aborted.abort();
+    rig.dirs.sign_in(Driver::Codex);
+    // Then the watcher of the gone peer ends on its own and the aborted one is finished
+    tokio::time::timeout(Duration::from_secs(6), gone).await.expect("the watcher ends once the peer is gone").unwrap();
+    assert!(aborted.await.unwrap_err().is_cancelled());
+}

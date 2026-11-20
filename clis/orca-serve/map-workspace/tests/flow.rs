@@ -787,3 +787,32 @@ fn given_executors_when_the_ssh_rows_are_called_then_each_is_a_target_that_reads
     assert_eq!(rig.err("ssh.connect", json!({"targetId": "a"})), ("runtime_error".to_string(), "SSH connection unavailable".to_string()));
     assert_eq!(rig.err("ssh.getState", json!({"targetId": 7})).0, "invalid_argument");
 }
+
+#[test]
+fn given_two_phones_opening_files_of_one_worktree_at_once_when_both_read_the_kept_tabs_first_then_both_tabs_are_kept() {
+    // Given one worktree and two connections whose reads of the kept tabs overlap
+    let scripted = Arc::new(ScriptedAgent::serving(ServiceStatus { protocol: 1, version: "v".into(), commit: "c".into(), groups: vec![] }));
+    let files = Workspaces::default();
+    files.workspace("feat", "worktree", Some("/srv/wt/feat")).put("feat", "a.ts", b"a").put("feat", "b.ts", b"b");
+    files.install(&scripted);
+    let agent: Arc<dyn AgentApi> = Arc::new(orca_core::testing::OverlappingReads::over(scripted.clone(), std::time::Duration::from_millis(300)));
+    let host = Host::new("rt".into(), vec![Box::new(WorkspaceArea)], agent, Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+    // When each phone opens a different file at the same moment
+    let phones: Vec<_> = ["a.ts", "b.ts"]
+        .into_iter()
+        .map(|file| {
+            let mut conn = host.connection("dev", "tok", vec![]);
+            std::thread::spawn(move || {
+                let frame = json!({"id": "r1", "method": "files.open", "params": {"worktree": "path:/srv/wt/feat", "relativePath": file}}).to_string();
+                serde_json::from_str::<Value>(&conn.on_message(&frame)[0]).unwrap()
+            })
+        })
+        .collect();
+    for phone in phones {
+        assert_eq!(phone.join().unwrap()["ok"], true);
+    }
+    // Then neither tab replaced the other
+    let mut ids: Vec<String> = scripted.state_get("orca", "tabs.extra.feat").unwrap().unwrap().as_array().unwrap().iter().map(|t| t["id"].as_str().unwrap().to_string()).collect();
+    ids.sort();
+    assert_eq!(ids, ["file:a.ts", "file:b.ts"]);
+}

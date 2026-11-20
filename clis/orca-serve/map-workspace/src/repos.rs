@@ -107,6 +107,7 @@ pub(crate) fn groups(agent: &dyn AgentApi) -> Result<Value, Failure> {
 pub(crate) fn update(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let t = repo_of(agent, params)?;
     let updates = params.get("updates").and_then(Value::as_object).ok_or_else(|| Failure::invalid("Missing repo updates"))?;
+    let turn = orca_core::kept_state_turn();
     let mut meta = object(agent, &repo_key(&t.workspace))?;
     for (k, v) in updates.iter().filter(|(k, _)| !matches!(k.as_str(), "id" | "path")) {
         if v.is_null() {
@@ -116,6 +117,7 @@ pub(crate) fn update(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
         }
     }
     put(agent, &repo_key(&t.workspace), Value::Object(meta))?;
+    drop(turn);
     Ok(json!({"repo": repo_row(agent, &t)?}))
 }
 
@@ -137,6 +139,7 @@ pub(crate) fn save_sparse_preset(agent: &dyn AgentApi, params: &Value) -> Result
     let name = text(params, "name").filter(|s| !s.is_empty()).ok_or_else(|| Failure::invalid("Missing preset name"))?;
     let dirs: Vec<&str> = params["directories"].as_array().map(|a| a.iter().filter_map(Value::as_str).collect()).ok_or_else(|| Failure::invalid("Missing preset directories"))?;
     let key = presets_key(&t.workspace);
+    let _turn = orca_core::kept_state_turn();
     let mut all = array(agent, &key)?;
     let now = now_ms();
     let id = text(params, "id").filter(|s| !s.is_empty()).map(str::to_string).unwrap_or_else(|| format!("preset-{}", all.len() + 1));

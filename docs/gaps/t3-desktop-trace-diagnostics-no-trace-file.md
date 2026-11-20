@@ -1,3 +1,11 @@
+---
+status: open
+area: t3-serve
+paths:
+  - "packages/contracts/src/server.ts"
+opened: 2026-11-20
+last_verified: 2026-11-20
+---
 # t3 serve answers `server.getTraceDiagnostics` with the not-found error, which no recording holds
 
 The one recorded success of `server.getTraceDiagnostics` (crawl cassette) is the pinned server reading its own `server.trace.ndjson`. t3 serve
