@@ -481,7 +481,7 @@ fn the_lab_scripts_boot_a_slim_redroid_safely_and_report_its_features() {
     assert!(screen.contains("androidboot.redroid_width=720") && screen.contains("androidboot.redroid_dpi=320"), "{screen}");
     assert_eq!(json_out(&second)["device"], json!("rdl-bench"));
     assert!(script_of(&second).contains("docker run -d --name rdl-bench --privileged --cpus 1.5 -p 5556:5555 -v rdl-bench-data:/data"), "{}", out(&second));
-    assert!(expo.contains("Expo-Go-57.0.9.apk") && expo.contains("pm install -r /data/local/tmp/expogo.apk"), "{expo}");
+    assert!(expo.contains("Expo-Go-58.0.5.apk") && expo.contains("pm install -r /data/local/tmp/expogo.apk"), "{expo}");
     assert!(expo.rfind("expogo.apk").unwrap() > expo.find("boot_fresh || exit 1").unwrap(), "Expo Go goes in after the device booted");
     // and WF_ANDROID_NAME names the container when --name does not
     assert!(script_of(&android(&s, &["start-device", "--dry-run"], &[("WF_ANDROID_NAME", "rdl-2")])).contains("docker run -d --name rdl-2 "));

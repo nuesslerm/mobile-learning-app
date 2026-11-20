@@ -460,7 +460,7 @@ Usage: `wf android start-device [--name N] [--screen WxH@dpi] [--port P] [--with
 | Option | Meaning |
 |---|---|
 | `--screen <WxH@dpi>` | screen (default: 480x1040@213: a Galaxy S25 in dp, 360 x 780, fewer pixels than 540x960@240) |
-| `--expo-go` | install Expo Go 57.0.9 once booted (also on a device that is already running) |
+| `--expo-go` | install Expo Go 58.0.5 once booted (also on a device that is already running) |
 | `--with <features>` | keep these features on, comma separated (camera,files,...) |
 | `--slim` | apply the slim set to a device that is already running |
 | `--stock` | enable every package again (no slimming) |
@@ -490,7 +490,7 @@ JSON line. Not lease-guarded: nobody holds a lease on a device that is not runni
 
 Options:
   --screen <WxH@dpi>     screen (default: 480x1040@213: a Galaxy S25 in dp, 360 x 780, fewer pixels than 540x960@240)
-  --expo-go              install Expo Go 57.0.9 once booted (also on a device that is already running)
+  --expo-go              install Expo Go 58.0.5 once booted (also on a device that is already running)
   --with <features>      keep these features on, comma separated (camera,files,...)
   --slim                 apply the slim set to a device that is already running
   --stock                enable every package again (no slimming)

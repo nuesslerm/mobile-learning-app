@@ -13,7 +13,7 @@ const DEFAULT_SCREEN: &str = "480x1040@213";
 /// Build.PRODUCT with "emulator" in it is what Expo Go's emulator check reads: from a device it takes for real hardware it
 /// asks EAS as EXPO_DEVICE, and EAS answers an anonymous EXPO_DEVICE 403 for an update of a project that requires sign-in.
 const PRODUCT: &str = "wf_redroid_emulator";
-const EXPO_GO_URL: &str = "https://github.com/expo/expo-go-releases/releases/download/Expo-Go-57.0.9/Expo-Go-57.0.9.apk";
+const EXPO_GO_URL: &str = "https://github.com/expo/expo-go-releases/releases/download/Expo-Go-58.0.5/Expo-Go-58.0.5.apk";
 
 fn parse_screen(s: &str) -> Option<(u32, u32, u32)> {
     let (size, dpi) = s.split_once('@')?;
@@ -37,7 +37,7 @@ pub struct Up {
 
 fn expo_go_script(name: &str) -> String {
     format!(
-        "apk=/tmp/expo-go-57.0.9.apk\n\
+        "apk=/tmp/expo-go-58.0.5.apk\n\
 [ -s $apk ] || curl -sSL -o $apk '{EXPO_GO_URL}'\n\
 docker cp $apk {name}:/data/local/tmp/expogo.apk\n\
 if docker exec {name} pm install -r /data/local/tmp/expogo.apk >/dev/null 2>&1; then echo 'Expo Go installed'; else echo 'Expo Go install failed'; exit 1; fi\n"
