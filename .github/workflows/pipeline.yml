@@ -985,7 +985,9 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       # the branch pointers outlive the run: the planner of the next push and `wf ship eas --latest` read them from the state ref
       - name: Push the EAS pointers to the state ref
-        if: ${{ inputs.ship && success() }}
+        # the pointers exist only where the publish ran: a push that is no longer the head of dev publishes nothing, and a missing
+        # pointer file made this step (and so the whole run) red
+        if: ${{ inputs.ship && needs.plan.outputs.is_head == 'true' && success() }}
         run: |
           for pointer in "$RUNNER_TEMP"/eas-pointer/latest-*.json; do
             wf bucket state write "eas/$(basename "$pointer")" --file "$pointer" --message "eas: $(basename "$pointer") at $GITHUB_SHA"
