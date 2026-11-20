@@ -160,9 +160,11 @@ function pure({ allow = ['zod'], src = 'src' } = {}) {
 }
 
 /** Core, ports, adapters, testing: a library's folder names mapped to roles. */
-function hexagonal({ core = ['core'], ports = ['ports'], adapters = ['adapters'], testing = ['testing'], coreNpm = [], src = 'src' } = {}) {
+function hexagonal({ core = ['core'], ports = ['ports'], adapters = ['adapters'], testing = ['testing'], coreNpm = [], libraries = [], src = 'src' } = {}) {
   const group = (names) => `^${pfx(src)}${dirs(names)}/`;
   const prod = { pathNot: TESTS };
+  const libs = ['logging', ...libraries].join('|');
+  const libraryPaths = libraries.length ? `(^|/)frontend/libraries/(${libraries.join('|')})/|^\\.\\./(${libraries.join('|')})/src/` : '^$';
   return {
     forbidden: [
       rule('core-imports-core-and-ports', 'core imports core and ports only', { path: group(core), ...prod }, { path: `${group(adapters)}|${group(testing)}` }),
@@ -176,7 +178,8 @@ function hexagonal({ core = ['core'], ports = ['ports'], adapters = ['adapters']
         { path: pkgPath('expo[^/]*|@expo|react-native|@react-native|@react-native-async-storage'), pathNot: coreNpm.length ? pkgPath(coreNpm.join('|')) : '^$' },
       ),
       rule('library-does-not-import-the-app', 'no library imports frontend/mla-tamagui', { path: `^${pfx(src)}` }, { path: '(^|/)mla-tamagui/' }),
-      rule('library-imports-only-logging', 'a hexagonal library may import @lib/logging only', { path: `^${pfx(src)}` }, { path: '(^|/)frontend/libraries/(?!logging/)|^\\.\\./(?!logging/)[^/]+/src/' }),
+      rule('library-imports-only-logging', `a hexagonal library may import ${libs.replace(/\|/g, ', ')} only`, { path: `^${pfx(src)}` }, { path: `(^|/)frontend/libraries/(?!(?:${libs})/)|^\\.\\./(?!(?:${libs})/)[^/]+/src/` }),
+      ...(libraries.length ? [rule('only-adapters-import-libraries', `only adapters and testing import ${libraries.join(', ')}`, { path: `${group(core)}|${group(ports)}`, ...prod }, { path: libraryPaths })] : []),
       noCircular(),
     ],
     options: options(),

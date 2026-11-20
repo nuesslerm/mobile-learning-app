@@ -10,6 +10,7 @@ packages:
   - infra/oracle-cloud/watchdog
   - frontend/libraries/app-config
   - frontend/libraries/app-di
+  - frontend/libraries/code-editor-api
   - libraries/browser-client
   - frontend/libraries/lint-rules
   - frontend/libraries/flow-test-harness

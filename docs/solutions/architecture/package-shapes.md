@@ -34,5 +34,5 @@ The table below is generated from the manifest: edit the manifest, then run `wf 
 | `rust-testkit` | rust | no | none | `lib.rs` | `*.rs`, `bin` | none | `rust-contract`, `rust-testkit` | none |
 | `hexagonal-feature` | ts | no | domain; data -> domain; state -> domain; ui -> domain, state; di -> domain, data, state; routes -> di, ui; testing -> domain, data, state, ui, di, routes | `index.ts or index.tsx`, `domain`, `state`, `ui`, `di`, `routes` | `index.ts`, `index.tsx`, `__tests__`, `__mocks__`, `project.json` | none | none | none |
 | `presentation-feature` | ts | no | state; ui -> state; routes -> ui | `index.ts or index.tsx`, `ui`, `routes` | `index.ts`, `index.tsx`, `__tests__`, `__mocks__`, `project.json` | `domain`, `data`, `di` | none | none |
-| `hexagonal-library` | ts | no | ports; core -> ports; adapters -> core, ports; testing -> core, ports, adapters | `index.ts`, `core` | `index.ts` | none | none | none |
+| `hexagonal-library` | ts | no | ports; core -> ports; adapters -> core, ports; testing -> core, ports, adapters | `index.ts`, `core` | `index.ts` | none | `hexagonal-library` | none |
 <!-- END generated:shape-table -->

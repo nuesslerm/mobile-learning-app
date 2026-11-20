@@ -210,7 +210,7 @@
       "requiredFiles": ["index.ts"],
       "requiredAnyOf": [["core"]],
       "allowedRoot": ["index.ts"],
-      "mayDependOn": [],
+      "mayDependOn": ["hexagonal-library"],
       "mayDevDependOn": []
     }
   }

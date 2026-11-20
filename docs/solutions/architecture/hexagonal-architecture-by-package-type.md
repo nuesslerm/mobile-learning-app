@@ -165,7 +165,7 @@ A flat `src/` with a barrel; no ports, adapters or DI; imports only relative mod
 ### 12. Hexagonal library
 
 - Core (types, rules, functions or hooks taking ports as parameters), ports named after the need (`LogPersistence`, `DocumentTreeDriver`, `KeyValueStorage`; no port for a device service with one call site, such as rn-agentation's clipboard), adapters (the only files that import Expo modules or AsyncStorage, or touch `fetch`, `window` or `process.env`; platform forks live here), testing exported as `./testing`. The host app is the composition root. Existing folder names map to roles in each library's dependency-cruiser config.
-- Between packages: no library imports `frontend/mla-tamagui`; a hexagonal library may import `@lib/logging` only.
+- Between packages: no library imports `frontend/mla-tamagui`; a hexagonal library may import `@lib/logging` only, plus the libraries it names in its depcruise `libraries` option (`@lib/code-editor-api` names `webview-rpc`, and only its adapters and testing ring import it); the layout check allows the type-level edge, the preset narrows it to the named package.
 - Today: `@lib/logging` and `@lib/rn-agentation` already have ports; no library has a layer check, and six frontend libraries have no `lint` script.
 
 ### 13. Component library

@@ -51,6 +51,7 @@
     "@feature/settings": "workspace:*",
     "@lib/app-config": "workspace:*",
     "@lib/app-di": "workspace:*",
+    "@lib/code-editor-api": "workspace:*",
     "@lib/logging": "workspace:*",
     "@lib/rn-agentation": "workspace:*",
     "@lib/tamagui-design-system": "workspace:*",
