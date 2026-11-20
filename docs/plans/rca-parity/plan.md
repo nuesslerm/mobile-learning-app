@@ -217,7 +217,7 @@ Arrows are path dependencies, and therefore Nx edges (`cargo-crates.js:30-49`).
 
 **backend/remote-chat-agent/** (Rust service shape: the `core` crates are pure, and `rs` holds adapters, api and `main.rs`)
 - `rca-thread-core`: today's `domain/` and `application/`, the engine and the only seq owner.
-- `rca-cli-driver`: `Driver`, `command_for_remote` (`domain/driver.rs`), `translate` (`domain/translate.rs`), the `Spawner` port (`application/ports.rs`) and the per-provider env rule.
+- `rca-cli-driver`: `Driver`, `command_for` and `command_for_host` (`domain/driver.rs`), `translate` (`domain/translate.rs`), the `Spawner` port (`application/ports.rs`) and the per-provider env rule.
 - `rca-exec-channel` → exec-proto and the exec family contracts: `remote.rs`, `mcp.rs` and the registry by executor. It owns the `Executors` port.
 - `rca-agent-core` → agent-api-proto: the `Group` trait, dispatch over registered groups, and the thread-event view over `rca-thread-core`. It owns `DeviceBearers`. It names no group.
 - Group crates, each → agent-api-proto, its own `agent-api-<group>`, rca-agent-core, and only the exec family contracts it calls. Each owns its ports, with doubles behind `testing`:

@@ -94,8 +94,7 @@ fn authority() -> String {
     base().trim_start_matches("http://").trim_end_matches('/').to_string()
 }
 
-/// Every provider whose turn can run through an executor, from the driver rules and not from a list here: a provider the service cannot run
-/// remotely yet (Codex, until its builtins can be turned off) is not one a real turn is asked of.
+/// Every provider whose turn can run through an executor, from the driver rules and not from a list here.
 fn remote_providers() -> Vec<&'static str> {
     DRIVERS.into_iter().map(Driver::id).collect()
 }
