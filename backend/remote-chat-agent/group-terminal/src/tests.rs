@@ -1,7 +1,7 @@
 //! The terminal group over an executor registry and a double of an executor that owns ptys: what each method asks of the executor, how output
 //! is numbered and replayed, what an attach older than the kept tail is given, how the pump attaches again from its offset after the
 //! executor's channel is replaced, and how a terminal the service lost is adopted.
-use crate::{Clock, TerminalGroup};
+use crate::{Clock, MemorySleep, SleepStore, TerminalGroup};
 use agent_api_proto::{Event, Method};
 use agent_api_terminal::{self as api, b64};
 use async_trait::async_trait;
@@ -202,11 +202,15 @@ struct Rig {
 }
 
 fn rig() -> Rig {
-    let host = Arc::new(Host::default());
+    rig_keeping(Arc::new(MemorySleep::default()), Arc::new(Host::default()))
+}
+
+/// A service whose sleeping workspaces are in `store` and whose executor is `host`: a second rig over the same two is a service that restarted.
+fn rig_keeping(store: Arc<dyn SleepStore>, host: Arc<Host>) -> Rig {
     let channel = Connection1::new(&host);
     let executors: Arc<Registry> = Arc::default();
     executors.open_executor("e1", "w1", channel.clone()).unwrap();
-    let group: Arc<dyn Group> = Arc::new(TerminalGroup::new(executors.clone(), Arc::new(Tick(AtomicU64::new(1000)))));
+    let group: Arc<dyn Group> = Arc::new(TerminalGroup::new(executors.clone(), Arc::new(Tick(AtomicU64::new(1000)))).with_sleep_store(store));
     Rig { api: AgentApi::new(vec![group]).unwrap(), host, executors, channel }
 }
 
@@ -417,4 +421,127 @@ fn given_the_rows_of_the_group_when_compared_with_the_contract_then_each_method_
     assert_eq!(crate::SERVED.iter().map(|s| s.method).collect::<Vec<_>>(), api::METHODS);
     let pty: Vec<&str> = exec_pty::ACTIONS.iter().map(|a| a.name).collect();
     assert!(crate::SERVED.iter().flat_map(|s| s.actions).all(|a| pty.contains(a)));
+}
+
+fn asked(host: &Host, tool: &str) -> Vec<Value> {
+    host.asked.lock().unwrap().iter().filter(|(t, _)| t == tool).map(|(_, a)| a.clone()).collect()
+}
+
+#[tokio::test]
+async fn given_two_shells_when_the_workspace_sleeps_then_both_are_closed_at_the_executor_and_kept_with_their_title_and_size_and_a_second_sleep_keeps_the_new_one_too() {
+    // Given two running shells, one renamed
+    let rig = rig();
+    rig.open("t1").await;
+    rig.open("t2").await;
+    rig.ask(api::RENAME, json!({"workspace": "w1", "terminal": "t2", "title": "server"})).await;
+    // When the workspace sleeps
+    let slept = rig.ask(api::SLEEP, json!({"workspace": "w1"})).await;
+    // Then both shells are closed at the executor and kept by name with title, cwd and size, and the call says it was the first sleep
+    assert_eq!(slept["result"], json!({"workspace": "w1", "already": false, "slept": [
+        {"terminal": "t1", "title": "t1", "cwd": "/repo", "cols": 100, "rows": 30},
+        {"terminal": "t2", "title": "server", "cwd": "/repo", "cols": 100, "rows": 30}]}));
+    assert!(rig.host.ptys.lock().unwrap().is_empty());
+    assert_eq!(rig.ask(api::LIST, json!({"workspace": "w1"})).await["result"]["terminals"], json!([]));
+    let sleeping = rig.ask(api::SLEEPING, json!({})).await;
+    assert_eq!((sleeping["result"]["sleeping"][0]["workspace"].clone(), sleeping["result"]["sleeping"][0]["slept_at_ms"].is_u64(), sleeping["result"]["sleeping"][0]["terminals"].as_array().map(Vec::len)), (json!("w1"), true, Some(2)));
+    // And a shell opened in the sleeping workspace is closed by the next sleep and kept with the others
+    rig.open("t3").await;
+    let again = rig.ask(api::SLEEP, json!({"workspace": "w1"})).await;
+    assert_eq!((again["result"]["already"].clone(), again["result"]["slept"][0]["terminal"].clone()), (json!(true), json!("t3")));
+    assert_eq!(rig.ask(api::SLEEPING, json!({"workspace": "w1"})).await["result"]["sleeping"][0]["terminals"].as_array().map(Vec::len), Some(3));
+}
+
+#[tokio::test]
+async fn given_a_sleeping_workspace_when_it_wakes_then_each_shell_starts_again_with_its_name_title_and_size_and_nothing_stays_kept() {
+    // Given a renamed shell that slept
+    let rig = rig();
+    rig.open("t1").await;
+    rig.ask(api::RENAME, json!({"workspace": "w1", "terminal": "t1", "title": "build"})).await;
+    rig.ask(api::SLEEP, json!({"workspace": "w1"})).await;
+    // When the workspace wakes
+    let woke = rig.ask(api::WAKE, json!({"workspace": "w1"})).await;
+    // Then the executor was asked to open the shell again at its size, the terminal is running with its title, and the sleep is gone
+    let woken = &woke["result"]["woken"][0];
+    assert_eq!((woken["terminal"].clone(), woken["title"].clone(), woken["cols"].clone(), woken["rows"].clone(), woken["status"].clone()), (json!("t1"), json!("build"), json!(100), json!(30), json!("running")));
+    assert_eq!(woke["result"]["failed"], json!([]));
+    let reopened = asked(&rig.host, "pty_open");
+    assert_eq!((reopened.len(), reopened[1]["cols"].clone(), reopened[1]["rows"].clone(), reopened[1]["cwd"].clone()), (2, json!(100), json!(30), json!("/repo")));
+    assert_eq!(rig.ask(api::LIST, json!({"workspace": "w1"})).await["result"]["terminals"][0]["title"], json!("build"));
+    assert_eq!(rig.ask(api::SLEEPING, json!({})).await["result"], json!({"sleeping": []}));
+    // And a second wake finds nothing to start
+    assert_eq!(rig.ask(api::WAKE, json!({"workspace": "w1"})).await["result"], json!({"workspace": "w1", "woken": [], "failed": []}));
+}
+
+#[tokio::test]
+async fn given_a_sleep_kept_in_a_store_when_the_service_restarts_then_the_new_service_lists_it_and_wakes_the_shell() {
+    // Given a shell that slept in a service, and a store that outlives it
+    let store: Arc<dyn SleepStore> = Arc::new(MemorySleep::default());
+    let host = Arc::new(Host::default());
+    let before = rig_keeping(store.clone(), host.clone());
+    before.open("t1").await;
+    before.ask(api::SLEEP, json!({"workspace": "w1"})).await;
+    drop(before);
+    // When a new service starts over the same store and executor
+    let after = rig_keeping(store, host);
+    // Then it lists the sleep and wakes the shell
+    assert_eq!(after.ask(api::SLEEPING, json!({})).await["result"]["sleeping"][0]["terminals"][0]["terminal"], json!("t1"));
+    let woke = after.ask(api::WAKE, json!({"workspace": "w1"})).await;
+    assert_eq!(woke["result"]["woken"][0]["status"], json!("running"));
+    assert_eq!(after.ask(api::SLEEPING, json!({})).await["result"], json!({"sleeping": []}));
+}
+
+#[tokio::test]
+async fn given_a_shell_whose_pty_is_already_gone_when_the_workspace_sleeps_then_it_is_kept_all_the_same_and_a_wake_with_no_executor_leaves_the_sleep_kept() {
+    // Given a terminal whose pty the executor no longer has
+    let rig = rig();
+    rig.open("t1").await;
+    rig.host.ptys.lock().unwrap().clear();
+    // When the workspace sleeps, Then the shell is kept for the wake
+    let slept = rig.ask(api::SLEEP, json!({"workspace": "w1"})).await;
+    assert_eq!(slept["result"]["slept"][0]["terminal"], json!("t1"));
+    // And when the executor is gone, a wake is refused and the sleep stays kept
+    rig.channel.close(4001);
+    let refused = rig.ask(api::WAKE, json!({"workspace": "w1"})).await;
+    assert_eq!(code(&refused), json!("NO_EXECUTOR"));
+    assert_eq!(rig.ask(api::SLEEPING, json!({})).await["result"]["sleeping"][0]["terminals"][0]["terminal"], json!("t1"));
+}
+
+#[tokio::test]
+async fn given_bad_params_when_a_workspace_sleeps_or_wakes_then_each_is_refused_by_name_and_a_workspace_without_an_executor_cannot_sleep() {
+    let rig = rig();
+    assert_eq!(rig.ask(api::SLEEP, json!({})).await["error"]["message"], json!("workspace is required"));
+    assert_eq!(rig.ask(api::WAKE, json!({})).await["error"]["message"], json!("workspace is required"));
+    assert_eq!(rig.ask(api::SLEEPING, json!({"workspace": 3})).await["error"]["message"], json!("workspace must be a non-empty string"));
+    assert_eq!(code(&rig.ask(api::SLEEP, json!({"workspace": "nowhere"})).await), json!("NO_EXECUTOR"));
+    assert_eq!(rig.ask(api::SLEEPING, json!({})).await["result"], json!({"sleeping": []}));
+}
+
+#[tokio::test]
+async fn given_a_workspace_with_no_shells_and_no_record_when_it_sleeps_then_nothing_is_kept_and_the_workspace_is_not_listed_as_sleeping() {
+    // Given a workspace with no terminals and a store with no record
+    let store = Arc::new(MemorySleep::default());
+    let rig = rig_keeping(store.clone(), Arc::new(Host::default()));
+    // When it sleeps
+    let slept = rig.ask(api::SLEEP, json!({"workspace": "w1"})).await;
+    // Then it closed nothing, says it was the first sleep, and no record was written
+    assert_eq!(slept["result"], json!({"workspace": "w1", "already": false, "slept": []}));
+    assert_eq!(store.load().unwrap(), Vec::new());
+    assert_eq!(rig.ask(api::SLEEPING, json!({})).await["result"], json!({"sleeping": []}));
+}
+
+#[tokio::test]
+async fn given_sleeping_records_whose_cwd_lies_outside_the_workspace_or_climbs_out_of_it_when_it_wakes_then_each_shell_starts_in_the_workspace_and_one_inside_keeps_its_cwd() {
+    // Given a workspace placed under /base/proj and a store holding three shells that slept with an outside cwd, a cwd with a dotdot and an inside one
+    let store = Arc::new(MemorySleep::default());
+    let shell = |terminal: &str, cwd: &str| api::SleptTerminal { terminal: terminal.into(), title: terminal.into(), cwd: cwd.into(), cols: 100, rows: 30 };
+    store.save(&[api::SleepingWorkspace { workspace: "proj".into(), slept_at_ms: 1, terminals: vec![shell("t1", "/etc"), shell("t2", "/base/proj/../secret"), shell("t3", "/base/proj/src")] }]).unwrap();
+    let rig = rig_keeping(store.clone(), Arc::new(Host::default()));
+    rig.executors.add_workspace_at("e1", "proj", rca_exec_channel::Place { prefix: Some("/base/proj".into()), worktree: None }).unwrap();
+    // When the workspace wakes
+    let woke = rig.ask(api::WAKE, json!({"workspace": "proj"})).await;
+    // Then all three started, the outside and climbing cwds fell back to the workspace's place, and the inside one stayed
+    assert_eq!((woke["result"]["woken"].as_array().map(Vec::len), woke["result"]["failed"].clone()), (Some(3), json!([])));
+    let cwds: Vec<Value> = asked(&rig.host, "pty_open").iter().map(|a| a["cwd"].clone()).collect();
+    assert_eq!(cwds, [json!("/base/proj"), json!("/base/proj"), json!("/base/proj/src")]);
+    assert_eq!(store.load().unwrap(), Vec::new());
 }

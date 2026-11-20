@@ -23,6 +23,18 @@
       "reason": "the scope of the token the phone paired with: the recording sidecar paired with a runtime-scope token, while this server stamps a paired phone as mobile",
       "phase": "R10",
       "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.claude.error",
+      "reason": "why the recording host could not read Claude's usage (no login there, in the host's own words); rca reads no usage limits and says so in its own words",
+      "phase": "O2",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.codex.error",
+      "reason": "why the recording host could not read Codex's usage (no login there, in the host's own words); rca reads no usage limits and says so in its own words",
+      "phase": "O2",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
     }
   ],
   "omitted": [

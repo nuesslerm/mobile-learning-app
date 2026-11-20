@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 197,
+    "served": 210,
     "pending": 4,
-    "notOffered": 106,
+    "notOffered": 93,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -90,7 +90,7 @@
       "desktop": true,
       "state": "not-offered",
       "milestone": "M10",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's provider.resetCredit is refused NOT_SUPPORTED by the model API the service runs against, and rca keeps no account revision or offer revision, so a spend could only ever be a refusal and the phone's expectedScope has nothing to be checked against.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's provider.resetCredit is refused NOT_SUPPORTED by the model API the service runs against, and rca keeps no account revision or offer revision, so a spend could only ever be a refusal and the phone's expectedScope has nothing to be checked against. Revisited 20 Nov (issue #83 O2, plan docs/plans/rca-offer-more/plan.md): still not offered: spending a credit changes the billing state of a signed-in Codex account, so only that account can answer it (the host asks Codex's app-server under the account's login, scoped by the account and offer revision the phone read from accounts.list). The executor has no one-shot `codex app-server` request, accounts.list carries no credit or revision, and the recordings hold no Codex account (every recorded call fails on the idempotency key before it reaches one), so no success or spend refusal can be shaped; it needs the owner's Codex login and a credit to record (issue #83, O5).",
       "decidedBy": "M12"
     },
     {
@@ -167,19 +167,33 @@
       "name": "accounts.subscribe",
       "subscription": true,
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M10",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host pushes the account list with rate limits, the system default and the per-runtime active accounts, and rca has no push stream of provider changes, so a polled provider.list snapshot would be a poorer list that changes late.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-recorded",
+        "test": "orca-v1.4.259-recorded::orca-accounts.subscribe",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:accounts.unsubscribe",
       "kind": "rpc",
       "name": "accounts.unsubscribe",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M10",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it ends the stream accounts.subscribe opens, which this host does not offer.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-accounts.unsubscribe-invalid-drop-subscriptionId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agent.launch",
@@ -217,19 +231,33 @@
       "id": "rpc:agentActivity.clear",
       "kind": "rpc",
       "name": "agentActivity.clear",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M7",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it marks or clears the panes of the desktop's Agents list by pane key, and this host has no desktop panes.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentActivity.clear-invalid-drop-paneKeys",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentActivity.setRead",
       "kind": "rpc",
       "name": "agentActivity.setRead",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M7",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it marks or clears the panes of the desktop's Agents list by pane key, and this host has no desktop panes.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentActivity.setRead-invalid-drop-paneKeys",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentSession.agents",
@@ -1559,20 +1587,34 @@
       "kind": "rpc",
       "name": "git.cancelGenerateCommitMessage",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M10",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's commit message generation is one request that runs to its end and has no cancel, so an accepted cancel would stop nothing.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.cancelGenerateCommitMessage-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:git.cancelGeneratePullRequestFields",
       "kind": "rpc",
       "name": "git.cancelGeneratePullRequestFields",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M10",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: there is no generation of pull request text in rca to cancel (git.generatePullRequestFields is not offered).",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.cancelGeneratePullRequestFields-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:git.checkout",
@@ -1700,7 +1742,7 @@
       "desktop": true,
       "state": "not-offered",
       "milestone": "M10",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: models.list exists but rca's commit message generation uses the one model its environment configures and ignores the phone's pick, so an offered list would change nothing; reverify when git.generateCommitMessage takes a model.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: models.list exists but rca's commit message generation uses the one model its environment configures and ignores the phone's pick, so an offered list would change nothing; reverify when git.generateCommitMessage takes a model. Revisited 20 Nov (issue #83 O2, plan docs/plans/rca-offer-more/plan.md): still not offered, for a second reason: the host answers `{success, capability, models, defaultModelId, catalogOrigin}` from the models its agent CLI reports for the agent id (a probe or the spec catalog), the recordings hold no success (every recorded call is selector_not_found, `invalid_argument` or `Unknown TUI agent`), and the service's model API (`ModelApi`) takes no model and reports no catalog, so a list built here would be invented and its capability and thinking levels have no source.",
       "decidedBy": "M12"
     },
     {
@@ -1759,10 +1801,17 @@
       "kind": "rpc",
       "name": "git.generatePullRequestFields",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M10",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's git.ai group writes a commit message only; no method writes a pull request title and body, and one composed in the mapper would pass without a model.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.generatePullRequestFields-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:git.history",
@@ -3182,10 +3231,17 @@
       "id": "rpc:notifications.getMissedSince",
       "kind": "rpc",
       "name": "notifications.getMissedSince",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-notifications.getMissedSince-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:notifications.registerPush",
@@ -3201,10 +3257,17 @@
       "kind": "rpc",
       "name": "notifications.subscribe",
       "subscription": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-recorded",
+        "test": "orca-v1.4.259-recorded::orca-notifications.subscribe",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:notifications.testPush",
@@ -3228,10 +3291,17 @@
       "id": "rpc:notifications.unsubscribe",
       "kind": "rpc",
       "name": "notifications.unsubscribe",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-notifications.unsubscribe-invalid-drop-subscriptionId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:orchestration.partyLocation",
@@ -4286,10 +4356,17 @@
       "kind": "rpc",
       "name": "worktree.activate",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M8",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it wakes the worktree's sleeping agents and terminals, rca keeps no sleeping panes and has no wake call, and an answer that only stores a flag would pass without doing what the row does (the reverify note asks for proof on the terminal and agent groups).",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-worktree.activate-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:worktree.create",
@@ -4363,10 +4440,17 @@
       "id": "rpc:worktree.ps",
       "kind": "rpc",
       "name": "worktree.ps",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M8",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: each row reports the worktree's live terminals and agents next to its links and sort state, and an answer built from the worktree list and a terminal count alone would pass without the activity half the row exists for (the reverify note asks for it); rca has no per-worktree activity read.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-worktree.ps-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:worktree.resolveMrBase",
@@ -4457,10 +4541,17 @@
       "kind": "rpc",
       "name": "worktree.sleep",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M8",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it stops the worktree's agents and closes its terminals; rca's terminal.close deletes the terminal where the host keeps a sleeping pane, so a later activate could not restore the shells, and the step cannot be undone.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-worktree.sleep-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "transport:e2ee.handshake",

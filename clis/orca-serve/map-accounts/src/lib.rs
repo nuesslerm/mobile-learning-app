@@ -1,13 +1,16 @@
 //! Orca's accounts rows over rca's accounts group. Orca keeps any number of logins per provider; rca keeps one per provider CLI, so each signed-in
 //! provider is the one account of its kind: its id is the provider's name (`claudeAgent`, `codex`), and it is the active one when it is the provider
 //! rca's turns use (`provider.select`). rca keeps no email, no time of a login and no rate-limit windows, so the account is labelled by its provider's
-//! name, `updatedAt` is 0 and the limits are the host's "unavailable" status. Streams of account changes, the reset credit and the other rows of Orca's accounts group are
-//! not mapped and stay pending.
+//! name, `updatedAt` is 0 and the limits are the host's "unavailable" status. `accounts.subscribe` opens with the snapshot and sends a new one when the list
+//! of providers changes (rca has no push of provider changes, so the stream lists them at most every `POLL`). The reset credit and the other rows of Orca's
+//! accounts group are not mapped and stay pending.
 use agent_api_accounts::{PROVIDER_LIST, PROVIDER_SELECT};
 use agent_api_proto::Method as AgentMethod;
 use orca_core::wire::{Failure, RUNTIME_ERROR};
-use orca_core::{Area, AgentApi, AgentError, Ctx, Kind, Method};
+use orca_core::{Area, AgentApi, AgentError, Ctx, Kind, Method, Subscription};
 use serde_json::{json, Value};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
@@ -16,6 +19,11 @@ pub const ACCOUNTS_LIST: &str = "accounts.list";
 pub const ACCOUNTS_SELECT_CLAUDE: &str = "accounts.selectClaude";
 pub const ACCOUNTS_SELECT_CODEX: &str = "accounts.selectCodex";
 pub const ACCOUNTS_SELECT_CODEX_FOR_TARGET: &str = "accounts.selectCodexForTarget";
+pub const ACCOUNTS_SUBSCRIBE: &str = "accounts.subscribe";
+pub const ACCOUNTS_UNSUBSCRIBE: &str = "accounts.unsubscribe";
+
+const POLL: Duration = Duration::from_millis(500);
+const STREAM_PREFIX: &str = "accounts-";
 
 /// The agent methods this crate sends: a flow test holds the list to the methods really sent.
 pub const USES: &[AgentMethod] = &[PROVIDER_LIST, PROVIDER_SELECT];
@@ -25,6 +33,8 @@ const METHODS: &[Method] = &[
     Method { name: ACCOUNTS_SELECT_CLAUDE, kind: Kind::Unary },
     Method { name: ACCOUNTS_SELECT_CODEX, kind: Kind::Unary },
     Method { name: ACCOUNTS_SELECT_CODEX_FOR_TARGET, kind: Kind::Unary },
+    Method { name: ACCOUNTS_SUBSCRIBE, kind: Kind::Streaming },
+    Method { name: ACCOUNTS_UNSUBSCRIBE, kind: Kind::Unary },
 ];
 
 const CLAUDE: &str = "claudeAgent";
@@ -69,8 +79,62 @@ impl Area for AccountsArea {
                 }
                 select(ctx.agent, CODEX, params)
             }
+            ACCOUNTS_UNSUBSCRIBE => {
+                let id = params.get("subscriptionId").and_then(Value::as_str).filter(|s| !s.is_empty()).ok_or_else(|| Failure::invalid("Missing subscriptionId"))?;
+                // the host cleans up whatever id it is given and answers the same: an id of no stream of this connection ends nothing
+                ctx.subscriptions.cancel(id);
+                Ok(json!({"unsubscribed": true}))
+            }
             other => Err(Failure::new(orca_core::wire::METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
         }
+    }
+
+    fn open(&self, ctx: &mut Ctx, method: &str, _params: &Value) -> Result<Box<dyn Subscription>, Failure> {
+        match method {
+            ACCOUNTS_SUBSCRIBE => {
+                let first = snapshot(ctx.agent)?;
+                let id = ctx.subscription_id(STREAM_PREFIX);
+                let ready = json!({"type": "ready", "subscriptionId": id, "snapshot": first});
+                Ok(Box::new(Watch { id, agent: ctx.agent_handle.clone(), ready: Some(ready), last: first, asked: Instant::now() }))
+            }
+            other => Err(Failure::new(orca_core::wire::METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
+        }
+    }
+}
+
+struct Watch {
+    id: String,
+    agent: Arc<dyn AgentApi>,
+    ready: Option<Value>,
+    last: Value,
+    asked: Instant,
+}
+
+impl Subscription for Watch {
+    fn id(&self) -> &str {
+        &self.id
+    }
+
+    fn poll(&mut self) -> Vec<Value> {
+        if let Some(ready) = self.ready.take() {
+            return vec![ready];
+        }
+        if self.asked.elapsed() < POLL {
+            return Vec::new();
+        }
+        self.asked = Instant::now();
+        // a list that cannot be read now is read again at the next poll: the phone keeps the last snapshot it has
+        match snapshot(self.agent.as_ref()) {
+            Ok(now) if now != self.last => {
+                self.last = now.clone();
+                vec![json!({"type": "snapshot", "snapshot": now})]
+            }
+            _ => Vec::new(),
+        }
+    }
+
+    fn end(&mut self) -> Vec<Value> {
+        vec![json!({"type": "end"})]
     }
 }
 

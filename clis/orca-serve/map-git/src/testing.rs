@@ -31,6 +31,8 @@ struct State {
     rebase_stops_on: Option<String>,
     model_down: bool,
     asked_model: Vec<Vec<String>>,
+    asked_pull_request: Vec<Value>,
+    branch_ahead: u32,
     blobs: Vec<(String, String, Vec<u8>)>,
     unmerged: Vec<String>,
     urls: Vec<(String, String)>,
@@ -59,6 +61,8 @@ impl Default for Repos {
             rebase_stops_on: None,
             model_down: false,
             asked_model: Vec::new(),
+            asked_pull_request: Vec::new(),
+            branch_ahead: 0,
             blobs: Vec::new(),
             unmerged: Vec::new(),
             urls: Vec::new(),
@@ -169,6 +173,17 @@ impl Repos {
         self.0.lock().unwrap().asked_model.clone()
     }
 
+    /// The branch holds `n` commits its base lacks.
+    pub fn branch_ahead(&self, n: u32) -> &Self {
+        self.0.lock().unwrap().branch_ahead = n;
+        self
+    }
+
+    /// The params each pull request generation was asked with (the workspace left out).
+    pub fn pull_request_asked(&self) -> Vec<Value> {
+        self.0.lock().unwrap().asked_pull_request.clone()
+    }
+
     pub fn columns(&self, path: &str) -> Option<(String, String)> {
         self.0.lock().unwrap().files.iter().find(|f| f.path == path).map(|f| (f.index.clone(), f.worktree.clone()))
     }
@@ -218,6 +233,19 @@ impl Repos {
             }
             s.asked_model.push(staged.clone());
             Ok(json!({"message": format!("feat: change {}", staged.join(", ")), "model": "double-model"}))
+        });
+        on("git.generatePullRequestFields", |s, p| {
+            if s.model_down {
+                return Err(refused("MODEL_API_UNAVAILABLE", "no model is configured"));
+            }
+            if s.branch_ahead == 0 {
+                return Err(refused("NO_BRANCH_CHANGES", format!("the branch has no commit that {} lacks", p["base"].as_str().unwrap_or_default())));
+            }
+            let mut asked = p.clone();
+            asked.as_object_mut().unwrap().remove("workspace");
+            s.asked_pull_request.push(asked);
+            let title = p["title"].as_str().filter(|t| !t.is_empty()).map_or_else(|| format!("Merge {} into {}", s.branch, p["base"].as_str().unwrap_or_default()), String::from);
+            Ok(json!({"base": p["base"], "title": title, "body": "## Problem\n\nx\n\n## Solution\n\ny", "draft": p["draft"], "model": "double-model"}))
         });
         on("git.compare", compare);
         on("pr.remotes", |s, _| match &s.remotes_error {

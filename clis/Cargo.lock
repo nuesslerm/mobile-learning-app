@@ -1781,14 +1781,18 @@ dependencies = [
 name = "orca-map-workspace"
 version = "0.1.0"
 dependencies = [
+ "agent-api-agent",
  "agent-api-git",
  "agent-api-proto",
+ "agent-api-service",
  "agent-api-state",
+ "agent-api-terminal",
  "agent-api-workspace",
  "base64 0.22.1",
  "orca-core",
  "orca-map-workspace",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]

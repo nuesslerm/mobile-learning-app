@@ -20,6 +20,8 @@ mod agent_git;
 mod agent_hosted;
 #[path = "flow/agent_lifecycle.rs"]
 mod agent_lifecycle;
+#[path = "flow/agent_notifications.rs"]
+mod agent_notifications;
 #[path = "flow/agent_preview.rs"]
 mod agent_preview;
 #[path = "flow/agent_queue.rs"]

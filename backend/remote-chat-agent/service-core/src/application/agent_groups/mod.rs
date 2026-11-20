@@ -8,6 +8,8 @@ mod engine_contract;
 #[cfg(test)]
 mod engine_groups;
 pub mod activity;
+pub mod notifications;
+pub mod panes;
 mod engine_lifecycle;
 pub mod engine_threads;
 pub mod attachment_staging;
@@ -17,6 +19,8 @@ pub mod service;
 pub use engine_threads::EngineThreads;
 
 pub use activity::{ActivityClock, ActivityGroup};
+pub use notifications::{Notifications, NotificationsGroup};
+pub use panes::{MemoryPanes, PaneRecord, PaneStore, Panes, PanesGroup};
 pub use attachment_staging::StagesAttachments;
 pub use rca_group_attachments::{Attachments, AttachmentsGroup, BlobStore, Clock as AttachmentClock, Ids as AttachmentIds, Put as BlobPut};
 pub use rca_group_catalog::{CatalogGroup, Catalog, Clock as CatalogClock, Speech as CatalogSpeech};
@@ -24,7 +28,8 @@ pub use rca_group_git::GitGroup;
 pub use rca_group_hosted::{ExecutorCredentials, HostCredentials, HostedAuthGroup, HostedCloneGroup, HostedIssueGroup, HostedPrGroup};
 pub use rca_group_preview::{Clock as PreviewClock, Ids as PreviewIds, PreviewGroup, PreviewSessionGroup, PreviewWatchGroup, Previews};
 pub use rca_group_schedules::{Clock as ScheduleClock, Ids as ScheduleIds, ScheduleGroup, ScheduleStore, ScheduleWatchGroup, Schedules, Stored as StoredSchedule, WebhookOutcome, WebhookRequest};
-pub use rca_group_terminal::TerminalGroup;
+pub use agent_api_terminal::{SleepingWorkspace, SleptTerminal};
+pub use rca_group_terminal::{MemorySleep, SleepStore, TerminalGroup};
 pub use schedule_trigger::ThreadsTrigger;
 pub use rca_group_workspace::{FilesEditGroup, FilesGroup, WorkspaceGroup, WorktreesGroup};
 pub use service::ServiceGroup;
@@ -100,6 +105,8 @@ mod tests {
             Arc::new(PreviewGroup::new(executors.clone())),
             Arc::new(PreviewSessionGroup::new(previews.clone())),
             Arc::new(PreviewWatchGroup::new(previews)),
+            Arc::new(NotificationsGroup::new(Notifications::new(Arc::new(TestClock), "test-epoch".into()))),
+            Arc::new(PanesGroup::new(Panes::new(Arc::new(TestClock), Arc::new(MemoryPanes::default()), Arc::new(rca_group_agent::testing::MemoryThreads::default())))),
         ]
     }
 
@@ -114,7 +121,7 @@ mod tests {
     }
 
     fn contract_methods() -> Vec<Method> {
-        [service_api::METHODS, state_api::METHODS, state_api::watch::METHODS, workspace_api::METHODS, workspace_api::edit::METHODS, workspace_api::worktrees::METHODS, agent_api_terminal::METHODS, agent_api_git::METHODS, agent_api_hosted::all_methods().as_slice(), threads_api::METHODS, threads_api::requests::METHODS, threads_api::queue::METHODS, threads_api::lifecycle::METHODS, agent_api_attachments::METHODS, agent_api_catalog::METHODS, agent_api_preview::METHODS, agent_api_preview::sessions::METHODS, agent_api_preview::watch::METHODS].concat()
+        [service_api::METHODS, state_api::METHODS, state_api::watch::METHODS, workspace_api::METHODS, workspace_api::edit::METHODS, workspace_api::worktrees::METHODS, agent_api_terminal::METHODS, agent_api_git::METHODS, agent_api_hosted::all_methods().as_slice(), threads_api::METHODS, threads_api::requests::METHODS, threads_api::queue::METHODS, threads_api::lifecycle::METHODS, agent_api_attachments::METHODS, agent_api_catalog::METHODS, agent_api_preview::METHODS, agent_api_preview::sessions::METHODS, agent_api_preview::watch::METHODS, service_api::notifications::METHODS, service_api::panes::METHODS].concat()
     }
 
     #[tokio::test]
@@ -130,13 +137,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn given_the_twenty_three_groups_when_status_is_asked_then_it_names_the_protocol_the_build_and_the_complete_groups_in_order() {
+    async fn given_the_twenty_five_groups_when_status_is_asked_then_it_names_the_protocol_the_build_and_the_complete_groups_in_order() {
         // Given a service that registered service, service.activity, state, state.watch, files, files.edit, workspace, workspace.worktrees, terminal, git, hosted.pr, hosted.clone, hosted.auth, agent.threads and its three sub-groups, preview and its two sub-groups, workspace having methods of its owner set still to serve
         let api = registered();
         // When the status is asked
         let status = call(&api, json!({"id": 7, "method": "service.status"})).await;
         // Then the answer lists the twenty-one complete groups, in registration order, and not workspace, though workspace.list is answered
-        assert_eq!(status, json!({"id": 7, "result": {"protocol": 1, "version": "1.2.3", "commit": "abc", "groups": ["service", "service.activity", "state", "state.watch", "files", "files.edit", "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.issue", "hosted.clone", "hosted.auth", "agent.threads", "agent.requests", "agent.queue", "agent.lifecycle", "attachments", "agent.catalog", "preview", "preview.sessions", "preview.watch"]}}));
+        assert_eq!(status, json!({"id": 7, "result": {"protocol": 1, "version": "1.2.3", "commit": "abc", "groups": ["service", "service.activity", "state", "state.watch", "files", "files.edit", "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.issue", "hosted.clone", "hosted.auth", "agent.threads", "agent.requests", "agent.queue", "agent.lifecycle", "attachments", "agent.catalog", "preview", "preview.sessions", "preview.watch", "service.notifications", "service.panes"]}}));
         assert_eq!(call(&api, json!({"id": 8, "method": "workspace.list"})).await, json!({"id": 8, "result": {"workspaces": []}}));
     }
 

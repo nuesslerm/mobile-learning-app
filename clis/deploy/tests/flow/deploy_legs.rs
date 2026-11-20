@@ -126,7 +126,7 @@ fn a_push_ships_exactly_the_legs_built_from_what_it_changed() {
         ("the wire contracts' own workspace lockfile, which no image reads", "libraries/agent-api/Cargo.lock", vec![], false),
         ("the agent.threads contract's code, which the agent service builds its action table with", "libraries/agent-api/agent-api-agent/src/events.rs", vec!["remote-chat-agent", "t3-serve", "orca-serve"], false),
         ("the attachments contract's code, which the agent service, the T3 server and the Orca server build with", "libraries/agent-api/agent-api-attachments/src/lib.rs", vec!["remote-chat-agent", "t3-serve", "orca-serve"], false),
-        ("the catalog contract's code, which the agent service and the Orca server build with (the T3 server only copies it for the workspace manifest)", "libraries/agent-api/agent-api-catalog/src/lib.rs", vec!["remote-chat-agent", "orca-serve"], false),
+        ("the catalog contract's code, which the agent service, the T3 server (its voice routes call the speech methods) and the Orca server build with", "libraries/agent-api/agent-api-catalog/src/lib.rs", vec!["remote-chat-agent", "t3-serve", "orca-serve"], false),
         ("the catalog group's code, a crate of the agent service", "backend/remote-chat-agent/group-catalog/src/service.rs", vec!["remote-chat-agent"], false),
         ("the voice edit DSL cassette, which the agent service's flow test replays and no image holds", "backend/remote-chat-agent/rs/tests/cassettes/voice-edit-dsl/interactions.jsonl", vec![], false),
         ("the Rust port's mimic driver, an example of the service core that the cassette test runs", "backend/remote-chat-agent/service-core/examples/mimic_voice_dsl.rs", vec![], false),

@@ -1,9 +1,9 @@
 //! The accounts and git.ai groups over the doubles: the providers' status, a login by device code and by a pasted code, how one ends or is
 //! cancelled, the events of a session and their resume, logout, usage, credit, and the commit message a model writes for a change.
 use crate::testing::{Ending, LoginScript, MemoryDirs, ScriptedLogin, ScriptedModelApi};
-use crate::{commit_message_prompt, tidy_message, AccountsGroup, GitAiGroup, ModelError, Sessions, GIT_AI_SERVED, SERVED};
+use crate::{commit_message_prompt, pull_request_prompt, read_pull_request_fields, tidy_message, AccountsGroup, GitAiGroup, ModelError, Sessions, GIT_AI_SERVED, PULL_REQUEST_SYSTEM, SERVED};
 use agent_api_accounts::{self as api, Credit, Usage};
-use agent_api_git::ai::{self, Style};
+use agent_api_git::ai::{self, PullRequestParams, Style};
 use agent_api_proto::Event;
 use async_trait::async_trait;
 use rca_agent_core::{AgentApi, Build, Connection, EventSink, Group};
@@ -72,7 +72,7 @@ fn given_the_served_rows_when_compared_with_the_contracts_then_each_method_is_th
     for action in ["login_start", "login_send", "login_status", "login_cancel", "logout"] {
         assert!(SERVED.iter().any(|s| s.actions.contains(&action)), "no accounts row calls {action}");
     }
-    assert_eq!(GIT_AI_SERVED.iter().map(|s| (s.method, s.actions.to_vec())).collect::<Vec<_>>(), [(ai::GENERATE_COMMIT_MESSAGE, vec![exec_git::GIT_DIFF])]);
+    assert_eq!(GIT_AI_SERVED.iter().map(|s| (s.method, s.actions.to_vec())).collect::<Vec<_>>(), [(ai::GENERATE_COMMIT_MESSAGE, vec![exec_git::GIT_DIFF]), (ai::GENERATE_PULL_REQUEST_FIELDS, vec![exec_git::GIT_COMPARE, exec_git::GIT_DIFF])]);
 }
 
 #[tokio::test]
@@ -405,4 +405,91 @@ fn given_answers_of_a_model_when_tidied_then_fences_and_quotes_go_and_an_empty_a
     assert_eq!(tidy_message("```\nchore: c\n```\n").as_deref(), Some("chore: c"));
     assert_eq!(tidy_message("  \"docs: d\"  ").as_deref(), Some("docs: d"));
     assert_eq!((tidy_message(""), tidy_message("   "), tidy_message("\"\""), tidy_message("```\n```")), (None, None, None, None));
+}
+
+fn pr_rig(compare: Value, models: Arc<ScriptedModelApi>) -> (AgentApi, Arc<ScriptedChannel>) {
+    let channel = ScriptedChannel::new(move |tool, _| match tool {
+        "git_compare" => Ok(ActionOutput { result: compare.clone(), output: String::new() }),
+        "git_diff" => Ok(ActionOutput { result: json!({"diff": "diff --git a/t.txt b/t.txt\n+t\n"}), output: String::new() }),
+        other => Err(RemoteError::Action { code: "UNKNOWN_TOOL".into(), message: other.into() }),
+    });
+    let executors: Arc<Registry> = Arc::default();
+    executors.open_executor("e1", "w1", channel.clone()).unwrap();
+    let groups: Vec<Arc<dyn Group>> = vec![Arc::new(GitAiGroup::new(executors, models))];
+    (AgentApi::new(groups).unwrap(), channel)
+}
+
+async fn generate_pull_request(api: &AgentApi, params: Value) -> Value {
+    api.dispatch_text(BUILD, &json!({"id": 1, "method": "git.generatePullRequestFields", "params": params}).to_string()).await
+}
+
+fn ahead_by_one() -> Value {
+    json!({"base": "main", "head": "HEAD", "merge_base": "abc123", "ahead": 1, "behind": 0, "truncated": false,
+        "commits": [{"sha": "d3", "subject": "add t.txt"}], "files": [{"path": "t.txt", "status": "added", "additions": 1, "deletions": 0}]})
+}
+
+#[tokio::test]
+async fn given_a_branch_ahead_of_its_base_when_pull_request_fields_are_generated_then_the_model_is_given_the_commits_and_the_patch_from_the_merge_base_and_its_json_comes_back() {
+    // Given a branch one commit ahead of main and a model that wraps its JSON in a code fence
+    let models = ScriptedModelApi::replying("unused", "m");
+    models.replying_to_pull_requests("```json\n{\"title\": \" Add t.txt \", \"body\": \"## Problem\\nnone\", \"draft\": true}\n```", "double-model");
+    let (api, channel) = pr_rig(ahead_by_one(), models.clone());
+    // When the fields are generated against main with a title the person typed
+    let answered = generate_pull_request(&api, json!({"workspace": "w1", "base": "main", "title": "wip", "body": "", "draft": false})).await;
+    // Then the executor was asked how HEAD differs from main and then for the patch from the merge base, nothing was written
+    assert_eq!(channel.calls(), [("git_compare".to_string(), json!({"base": "main", "head": "HEAD", "limit": 30})), ("git_diff".to_string(), json!({"base": "abc123", "head": "HEAD"}))]);
+    // And the model was given the commit, the file, the patch and the person's title, and the fields are the model's, with the base asked for
+    let asked = models.requests();
+    assert!(asked.len() == 1 && asked[0].system == PULL_REQUEST_SYSTEM, "{asked:?}");
+    for part in ["- add t.txt", "added t.txt (+1 -0)", "+t\n", "Current title: wip", "Base branch: main"] {
+        assert!(asked[0].prompt.contains(part), "{part}: {}", asked[0].prompt);
+    }
+    assert_eq!(answered["result"], json!({"base": "main", "title": "Add t.txt", "body": "## Problem\nnone", "draft": true, "model": "double-model"}));
+}
+
+#[tokio::test]
+async fn given_no_commit_ahead_a_bad_answer_a_failing_model_or_a_bad_request_when_fields_are_asked_then_each_is_refused_with_its_own_code_and_the_model_is_asked_only_for_a_real_change() {
+    // Given a branch that is not ahead of its base, and a model that must not be asked
+    let models = ScriptedModelApi::replying("x", "m");
+    let (level, _) = pr_rig(json!({"merge_base": "abc", "ahead": 0, "behind": 0, "commits": [], "files": []}), models.clone());
+    let nothing = generate_pull_request(&level, json!({"workspace": "w1", "base": "main"})).await;
+    // And answers of the model that are not the fields: prose, a JSON without a title, a title that is not text
+    let mut refused = Vec::new();
+    for text in ["I would call it Add t.txt", "{\"body\": \"b\"}", "{\"title\": 3}", "{\"title\": \"t\", \"draft\": \"yes\"}"] {
+        let models = ScriptedModelApi::replying("x", "m");
+        models.replying_to_pull_requests(text, "m");
+        let (api, _) = pr_rig(ahead_by_one(), models);
+        refused.push(error_code(&generate_pull_request(&api, json!({"workspace": "w1", "base": "main"})).await).to_string());
+    }
+    // And a model that is down, a workspace with no executor and requests that are not valid
+    let down = ScriptedModelApi::replying("x", "m");
+    down.fails(ModelError::Unavailable("no key".into()));
+    let (failing, _) = pr_rig(ahead_by_one(), down);
+    let failed = generate_pull_request(&failing, json!({"workspace": "w1", "base": "main"})).await;
+    let no_executor = generate_pull_request(&level, json!({"workspace": "w2", "base": "main"})).await;
+    // Then each is refused by its code, and the first never reached the model
+    assert_eq!(error_code(&nothing), "NO_BRANCH_CHANGES");
+    assert!(models.requests().is_empty());
+    assert_eq!(refused, ["MODEL_API_UNAVAILABLE"; 4]);
+    assert_eq!((error_code(&failed), failed["error"]["message"].clone()), ("MODEL_API_UNAVAILABLE", json!("no key")));
+    assert_eq!(error_code(&no_executor), "NO_EXECUTOR");
+    for params in [json!({"workspace": "w1"}), json!({"workspace": "w1", "base": "--upload-pack=x"}), json!({"base": "main"})] {
+        assert_eq!(error_code(&generate_pull_request(&level, params).await), "INVALID_PARAMS");
+    }
+}
+
+#[test]
+fn given_a_long_patch_and_answers_of_a_model_when_the_prompt_is_built_and_read_then_the_patch_is_cut_with_a_note_and_only_a_titled_json_object_is_the_fields() {
+    // Given a form and a patch of 30 000 characters
+    let p = PullRequestParams::parse(&json!({"workspace": "w1", "base": "main"})).unwrap();
+    let long = "\u{2603}".repeat(30_000);
+    // When the prompt is built
+    let prompt = pull_request_prompt(&p, "- c", "added a", &long);
+    // Then the patch is cut at 24 000 characters with a note and an empty form is said to be empty
+    assert_eq!(prompt.prompt.matches('\u{2603}').count(), 24_000);
+    assert!(prompt.prompt.contains("cut here") && prompt.prompt.contains("Current title: (empty)") && prompt.prompt.contains("Current draft: false"));
+    // And the fields are read from plain or fenced JSON, with an absent body and draft defaulting, and nothing else is fields
+    assert_eq!(read_pull_request_fields("{\"title\":\"t\"}"), Some(("t".into(), String::new(), false)));
+    assert_eq!(read_pull_request_fields("```\n{\"title\":\"t\",\"body\":\"b\",\"draft\":true}\n```"), Some(("t".into(), "b".into(), true)));
+    assert_eq!((read_pull_request_fields(""), read_pull_request_fields("[]"), read_pull_request_fields("{\"title\":\"  \"}"), read_pull_request_fields("{\"title\":\"t\",\"body\":1}")), (None, None, None, None));
 }

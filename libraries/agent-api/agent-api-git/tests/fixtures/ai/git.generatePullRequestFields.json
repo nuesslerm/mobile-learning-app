@@ -1,0 +1,107 @@
+{
+  "method": "git.generatePullRequestFields",
+  "exchanges": [
+    {
+      "name": "writes the title, body and draft flag for a branch that is ahead of its base",
+      "before": [
+        {
+          "id": 1,
+          "method": "git.createRef",
+          "params": {
+            "workspace": "w1",
+            "name": "topic",
+            "checkout": true
+          }
+        },
+        {
+          "id": 1,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "t.txt",
+            "content": "t\n"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.stage",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "t.txt"
+            ]
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.commit",
+          "params": {
+            "workspace": "w1",
+            "message": "on topic"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "git.generatePullRequestFields",
+        "params": {
+          "workspace": "w1",
+          "base": "main",
+          "title": "",
+          "body": "",
+          "draft": false
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "base": "main",
+          "title": "Describe the temp repo",
+          "body": "## Problem\n\nThe temp repo has no description.\n\n## Solution\n\nAdd one.",
+          "draft": false,
+          "model": "double-model"
+        }
+      },
+      "actions": [
+        "git_compare",
+        "git_diff"
+      ]
+    },
+    {
+      "name": "a branch that is not ahead of the base it is compared with has nothing to describe",
+      "request": {
+        "id": 1,
+        "method": "git.generatePullRequestFields",
+        "params": {
+          "workspace": "w1",
+          "base": "topic"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "NO_BRANCH_CHANGES",
+          "message": "the branch has no commit that topic lacks"
+        }
+      }
+    },
+    {
+      "name": "a base that could be an option is refused before the executor is asked",
+      "request": {
+        "id": 1,
+        "method": "git.generatePullRequestFields",
+        "params": {
+          "workspace": "w1",
+          "base": "--output=x"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "base must be a branch or revision name"
+        }
+      }
+    }
+  ]
+}

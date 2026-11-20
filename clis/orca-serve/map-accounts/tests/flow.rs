@@ -148,3 +148,89 @@ fn given_a_wrong_typed_refresh_flag_when_the_accounts_are_listed_then_it_is_refu
     assert_eq!(refused, ("invalid_argument".into(), "Invalid input: expected boolean, received string".into()));
     rig.ok("accounts.list", json!({"refreshUsage": false, "refreshStaleUsage": true}));
 }
+
+impl Rig {
+    fn frames(&mut self, method: &str, params: Value) -> (String, Vec<Value>) {
+        self.n += 1;
+        let id = format!("r{}", self.n);
+        let frame = json!({"id": id, "method": method, "params": params}).to_string();
+        let out = self.conn.on_message(&frame).iter().map(|f| serde_json::from_str(f).unwrap()).collect();
+        (id, out)
+    }
+
+    fn events_after_waiting(&mut self) -> Vec<Value> {
+        std::thread::sleep(std::time::Duration::from_millis(600));
+        self.conn.poll().iter().map(|f| serde_json::from_str::<Value>(f).unwrap()["result"].clone()).collect()
+    }
+}
+
+#[test]
+fn given_a_phone_watching_the_accounts_when_a_provider_signs_in_then_it_gets_the_snapshot_first_and_a_new_one_only_for_the_change() {
+    // Given Codex signed in and a phone that subscribes
+    let mut rig = Rig::new();
+    rig.providers.signed_in("codex");
+    let (id, frames) = rig.frames("accounts.subscribe", json!({}));
+    // Then the stream opens with `ready`, the id of the stream and the snapshot accounts.list answers
+    assert_eq!(frames.len(), 1, "{frames:?}");
+    assert_eq!((frames[0]["id"].clone(), frames[0]["streaming"].clone(), frames[0]["result"]["type"].clone()), (json!(id), json!(true), json!("ready")));
+    let stream = frames[0]["result"]["subscriptionId"].as_str().unwrap().to_string();
+    assert!(stream.starts_with("accounts-"), "{stream}");
+    assert_eq!(frames[0]["result"]["snapshot"], rig.ok("accounts.list", json!({})));
+    // When nothing changed for longer than the stream's poll
+    assert_eq!(rig.events_after_waiting(), Vec::<Value>::new());
+    // And when Claude signs in
+    rig.providers.signed_in("claudeAgent");
+    let events = rig.events_after_waiting();
+    // Then one `snapshot` event carries the list with Claude's account
+    assert_eq!(events.len(), 1, "{events:?}");
+    assert_eq!(events[0]["type"], "snapshot");
+    assert_eq!(ids(&events[0]["snapshot"]["claude"]), vec!["claudeAgent".to_string()]);
+    assert_eq!(events[0]["snapshot"], rig.ok("accounts.list", json!({})));
+    // And a list that is unchanged is not sent again
+    assert_eq!(rig.events_after_waiting(), Vec::<Value>::new());
+}
+
+#[test]
+fn given_an_open_accounts_stream_when_the_phone_unsubscribes_then_the_stream_ends_and_an_unknown_id_ends_nothing() {
+    // Given an open stream
+    let mut rig = Rig::new();
+    let (id, frames) = rig.frames("accounts.subscribe", json!({}));
+    let stream = frames[0]["result"]["subscriptionId"].clone();
+    // When the phone unsubscribes from an id that is none of its streams
+    assert_eq!(rig.ok("accounts.unsubscribe", json!({"subscriptionId": "accounts-other-1"})), json!({"unsubscribed": true}));
+    // Then the stream still runs: a change still reaches it
+    rig.providers.signed_in("codex");
+    assert_eq!(rig.events_after_waiting().len(), 1);
+    // When it unsubscribes from the stream
+    let (_, closing) = rig.frames("accounts.unsubscribe", json!({"subscriptionId": stream}));
+    // Then the answer is `unsubscribed`, the stream closes with `end` on its own request, and no change reaches the phone after it
+    let answer = closing.iter().find(|f| f["result"]["unsubscribed"] == true).unwrap_or_else(|| panic!("{closing:?}"));
+    assert_eq!(answer["ok"], true);
+    let end = closing.iter().find(|f| f["id"] == json!(id)).unwrap_or_else(|| panic!("{closing:?}"));
+    assert_eq!((end["streaming"].clone(), end["result"].clone()), (json!(true), json!({"type": "end"})));
+    rig.providers.signed_in("claudeAgent");
+    assert_eq!(rig.events_after_waiting(), Vec::<Value>::new());
+    // And a missing or mistyped id is refused in the words of the host
+    assert_eq!(rig.err("accounts.unsubscribe", json!({"subscriptionId": 7})), ("invalid_argument".into(), "Missing subscriptionId".into()));
+    assert_eq!(rig.err("accounts.unsubscribe", json!({})).1, "Missing subscriptionId");
+}
+
+#[test]
+fn given_rca_cannot_list_its_providers_when_the_phone_subscribes_then_it_is_refused_and_a_later_failed_read_keeps_the_stream_open() {
+    // Given an rca whose provider list lacks the providers
+    let mut rig = Rig::new();
+    rig.providers.answer_list_with(&rig.agent, json!({"selected": null}));
+    // When the phone subscribes, Then it is refused naming what was missing
+    let (_, frames) = rig.frames("accounts.subscribe", json!({}));
+    assert_eq!(frames[0]["ok"], false);
+    assert!(frames[0]["error"]["message"].as_str().unwrap().contains("no providers list"), "{frames:?}");
+    // Given a stream that opened, When rca then answers an unreadable list, Then the stream stays open and sends nothing
+    let mut rig = Rig::new();
+    rig.frames("accounts.subscribe", json!({}));
+    rig.providers.answer_list_with(&rig.agent, json!({"selected": null}));
+    assert_eq!(rig.events_after_waiting(), Vec::<Value>::new());
+    // And once rca answers again with a change, the phone gets it
+    rig.providers.install(&rig.agent);
+    rig.providers.signed_in("codex");
+    assert_eq!(rig.events_after_waiting().len(), 1);
+}

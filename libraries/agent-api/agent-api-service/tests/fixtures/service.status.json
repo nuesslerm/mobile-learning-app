@@ -32,7 +32,9 @@
             "agent.catalog",
             "preview",
             "preview.sessions",
-            "preview.watch"
+            "preview.watch",
+            "service.notifications",
+            "service.panes"
           ]
         }
       },
@@ -71,7 +73,9 @@
             "agent.catalog",
             "preview",
             "preview.sessions",
-            "preview.watch"
+            "preview.watch",
+            "service.notifications",
+            "service.panes"
           ]
         }
       },

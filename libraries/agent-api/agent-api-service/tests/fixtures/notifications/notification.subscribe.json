@@ -1,0 +1,64 @@
+{
+  "method": "notification.subscribe",
+  "exchanges": [
+    {
+      "name": "opens the stream from now and says which epoch the seq counts in",
+      "request": {
+        "id": 1,
+        "method": "notification.subscribe",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "topic": "notifications",
+          "epoch": "<volatile>",
+          "seq": 0,
+          "reset": false
+        }
+      },
+      "volatile": [
+        "/result/epoch"
+      ]
+    },
+    {
+      "name": "a seq ahead of the stream cannot be resumed, so the stream starts from now and says reset",
+      "request": {
+        "id": 1,
+        "method": "notification.subscribe",
+        "params": {
+          "after_seq": 9
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "topic": "notifications",
+          "epoch": "<volatile>",
+          "seq": 0,
+          "reset": true
+        }
+      },
+      "volatile": [
+        "/result/epoch"
+      ]
+    },
+    {
+      "name": "a field the contract does not have is refused",
+      "request": {
+        "id": 1,
+        "method": "notification.subscribe",
+        "params": {
+          "scope": "x"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "unknown field `scope`"
+        }
+      }
+    }
+  ]
+}

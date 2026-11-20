@@ -311,6 +311,20 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     rig.ok("worktree.prefetchCreateBase", json!({"repo": "main"}));
     rig.ok("worktree.rm", json!({"worktree": id}));
     rig.ok("worktree.listRetiredNames", json!({"repo": "main"}));
+    rig.agent.reply("terminal.list", |p| Ok(json!({"workspace": p["workspace"], "terminals": []})));
+    rig.agent.reply("pane.list", |_| Ok(json!({"panes": [pane("a", "main", "done", true, 1)]})));
+    rig.agent.reply("pane.mark", |_| Ok(json!({"marked": 1})));
+    rig.agent.reply("terminal.sleeping", |_| Ok(json!({"sleeping": [{"workspace": "main", "slept_at_ms": 1, "terminals": []}]})));
+    rig.agent.reply("terminal.sleep", |p| Ok(json!({"workspace": p["workspace"], "slept": [], "already": false})));
+    rig.agent.reply("terminal.wake", |p| Ok(json!({"workspace": p["workspace"], "woken": [], "failed": []})));
+    rig.agent.reply("thread.list", |_| Ok(json!({"threads": [{"id": "r", "workspace": "main", "status": "running"}]})));
+    rig.agent.reply("thread.forceStop", |_| Ok(json!({})));
+    rig.agent.reply("notification.since", |_| Ok(json!({"epoch": "e", "notifications": []})));
+    rig.ok("worktree.ps", json!({}));
+    rig.ok("worktree.sleep", sel.clone());
+    rig.ok("worktree.activate", sel.clone());
+    rig.ok("agentActivity.setRead", json!({"paneKeys": ["thread:a"], "read": true}));
+    rig.ok("notifications.getMissedSince", json!({"lastSeenSeq": 0}));
     // When the methods asked of the agent API are collected
     let sent: BTreeSet<String> = rig.agent.requests().into_iter().map(|(m, _)| m).collect();
     // Then they are the list the crate declares (state reads are the port's own call)
@@ -503,4 +517,196 @@ fn given_a_list_asked_for_a_zero_limit_or_a_repo_nobody_holds_when_it_is_asked_t
     assert_eq!(rig.err("worktree.list", json!({"limit": 0, "repo": "nobody"})), ("invalid_limit".to_string(), "invalid_limit".to_string()));
     // And a repo no workspace holds is the host's repo_not_found
     assert_eq!(rig.err("worktree.list", json!({"repo": "nobody"})), ("repo_not_found".to_string(), "repo_not_found".to_string()));
+}
+
+// ---- activity: notifications, agent activity, worktree.ps, sleep and activate ----
+
+fn terminal_info(terminal: &str, status: &str, updated_at: u64) -> Value {
+    json!({"workspace": "main", "terminal": terminal, "title": terminal, "cwd": "/main", "cols": 80, "rows": 24, "status": status, "exit_code": null, "pid": 1, "offset": 0, "base_offset": 0, "updated_at": updated_at})
+}
+
+fn pane(thread: &str, workspace: &str, state: &str, unread: bool, at: u64) -> Value {
+    json!({"pane": format!("thread:{thread}"), "thread": thread, "title": format!("title {thread}"), "workspace": workspace, "state": state, "listed": true, "unread": unread, "clearable": state != "working", "sort_at_ms": at, "state_started_at_ms": at})
+}
+
+/// A service with a main checkout running one terminal and one finished unread agent, and a linked worktree that sleeps.
+fn busy() -> Rig {
+    let mut rig = Rig::new();
+    rig.files.linked_worktree("main", "feat2", "feat2");
+    rig.agent.reply("terminal.list", |p| Ok(json!({"workspace": p["workspace"], "terminals": if p["workspace"] == "main" { vec![terminal_info("t1", "running", 65_000), terminal_info("t0", "exited", 90_000)] } else { vec![] }})));
+    rig.agent.reply("pane.list", |_| Ok(json!({"panes": [pane("a", "main", "done", true, 4_000), pane("n", "main", "idle", false, 0), pane("w", "feat2", "working", false, 7_000)]})));
+    rig.agent.reply("terminal.sleeping", |_| Ok(json!({"sleeping": []})));
+    let _ = &mut rig;
+    rig
+}
+
+#[test]
+fn given_a_main_checkout_with_a_terminal_and_a_finished_agent_when_worktree_ps_is_asked_then_each_row_has_its_terminals_agents_and_the_status_they_make() {
+    // Given a main checkout with a running terminal and a done unread agent, and a worktree whose agent works
+    let mut rig = busy();
+    // When the rows are asked for
+    let ps = rig.ok("worktree.ps", json!({}));
+    // Then the main row is unread first, with one live terminal, its output time, the done agent as the pane list shows it, and status done
+    assert_eq!((ps["totalCount"].clone(), ps["truncated"].clone(), ps["hostScope"].clone()), (json!(2), json!(false), json!({"hostIds": [], "omittedHostIds": ["local"]})));
+    let main = &ps["worktrees"][0];
+    assert_eq!((main["worktreeId"].clone(), main["unread"].clone(), main["liveTerminalCount"].clone(), main["hasAttachedPty"].clone(), main["lastOutputAt"].clone(), main["status"].clone(), main["isMainWorktree"].clone(), main["terminalPlatform"].clone()), (json!("main::/main"), json!(true), json!(1), json!(true), json!(65_000), json!("done"), json!(true), json!("linux")));
+    assert_eq!(main["agents"], json!([{
+        "paneKey": "thread:a", "parentPaneKey": null, "state": "done", "agentType": null, "prompt": "", "taskTitle": null, "displayName": null, "conversationName": "title a",
+        "lastAssistantMessage": null, "toolName": null, "toolInput": null, "interrupted": false, "stateStartedAt": 4000, "updatedAt": 4000,
+        "activity": {"listed": true, "status": "done", "unread": true, "clearable": true, "sortAt": 4000, "title": "title a"}}]));
+    // And the worktree whose agent works is working with no terminal, and a never-run pane is no agent row
+    let feat = &ps["worktrees"][1];
+    assert_eq!((feat["worktreeId"].clone(), feat["status"].clone(), feat["liveTerminalCount"].clone(), feat["lastOutputAt"].clone(), feat["agents"][0]["state"].clone(), feat["unread"].clone()), (json!("main::/base/feat2"), json!("working"), json!(0), Value::Null, json!("working"), json!(false)));
+    assert_eq!(main["agents"].as_array().unwrap().len(), 1);
+    // And a limit cuts the page, saying so, and one that is no whole number above zero is refused as the host refuses it
+    let cut = rig.ok("worktree.ps", json!({"limit": 1}));
+    assert_eq!((cut["worktrees"].as_array().unwrap().len(), cut["totalCount"].clone(), cut["truncated"].clone()), (1, json!(2), json!(true)));
+    for bad in [json!(0), json!(1.5), json!(-2)] {
+        assert_eq!(rig.err("worktree.ps", json!({"limit": bad})), ("invalid_limit".to_string(), "invalid_limit".to_string()));
+    }
+    assert_eq!(rig.err("worktree.ps", json!({"acceptRowDelta": false})).0, "invalid_argument");
+}
+
+#[test]
+fn given_a_caller_that_sends_snapshot_ids_when_the_rows_change_then_it_gets_the_id_then_unchanged_then_the_rows_it_does_not_hold() {
+    // Given the rows of a busy service asked for with row deltas accepted
+    let mut rig = busy();
+    let first = rig.ok("worktree.ps", json!({"acceptRowDelta": true}));
+    let id = first["snapshotId"].as_str().unwrap().to_string();
+    // Then the reply has an id of 32 characters and its preview is blank
+    assert_eq!((id.len(), first["worktrees"][0]["preview"].clone(), first["worktrees"][0]["lastOutputAt"].clone()), (32, json!(""), json!(60_000)));
+    // And asking again with that id answers unchanged
+    assert_eq!(rig.ok("worktree.ps", json!({"afterSnapshotId": id, "acceptRowDelta": true})), json!({"unchanged": true, "snapshotId": id}));
+    // When the agent of the main checkout is read, the reply names the base and gives the unchanged row as its place in the base
+    rig.agent.reply("pane.list", |_| Ok(json!({"panes": [pane("a", "main", "done", false, 4_000), pane("w", "feat2", "working", false, 7_000)]})));
+    let next = rig.ok("worktree.ps", json!({"afterSnapshotId": id, "acceptRowDelta": true}));
+    assert_eq!((next["baseSnapshotId"].clone(), next.get("worktrees").is_none(), next["totalCount"].clone()), (json!(id), true, json!(2)));
+    let rows = next["rowsFromBase"].as_array().unwrap();
+    assert!(rows[0].is_object() && rows[0]["unread"] == false, "{next}");
+    assert_eq!(rows[1], json!(1));
+    // And an id the host never gave gets the whole reply with a new id
+    let unknown = rig.ok("worktree.ps", json!({"afterSnapshotId": "zzz", "acceptRowDelta": true}));
+    assert!(unknown["worktrees"].is_array() && unknown["snapshotId"].is_string());
+}
+
+#[test]
+fn given_a_worktree_with_a_working_agent_when_it_sleeps_and_is_activated_then_the_agent_is_stopped_and_the_terminals_slept_and_woken_and_its_finished_agents_are_read() {
+    // Given a service where the linked worktree's workspace runs a thread
+    let mut rig = busy();
+    rig.agent.reply("thread.list", |_| Ok(json!({"threads": [
+        {"id": "w", "title": "w", "workspace": "feat2", "status": "running"}, {"id": "x", "title": "x", "workspace": "main", "status": "running"}, {"id": "i", "title": "i", "workspace": "feat2", "status": "idle"}]})));
+    rig.agent.reply("thread.forceStop", |_| Ok(json!({})));
+    rig.agent.reply("terminal.sleep", |p| Ok(json!({"workspace": p["workspace"], "slept": [], "already": false})));
+    // When the worktree sleeps
+    let slept = rig.ok("worktree.sleep", json!({"worktree": "main::/base/feat2"}));
+    // Then the reply names it, only its running thread was stopped, and its terminals were put to sleep
+    assert_eq!(slept, json!({"worktreeId": "main::/base/feat2"}));
+    let sent = rig.agent.requests();
+    assert_eq!(sent.iter().filter(|(m, _)| m == "thread.forceStop").map(|(_, p)| p.clone()).collect::<Vec<_>>(), [json!({"thread": "w"})]);
+    assert_eq!(sent.iter().find(|(m, _)| m == "terminal.sleep").map(|(_, p)| p.clone()), Some(json!({"workspace": "feat2"})));
+    // And with markChatsAsleep false no agent is stopped
+    let before = sent.iter().filter(|(m, _)| m == "thread.forceStop").count();
+    rig.ok("worktree.sleep", json!({"worktree": "feat2", "markChatsAsleep": false}));
+    assert_eq!(rig.agent.requests().iter().filter(|(m, _)| m == "thread.forceStop").count(), before);
+    // When the worktree wakes: a finished unread agent of main is read, and the sleeping terminals start again
+    rig.agent.reply("terminal.sleeping", |_| Ok(json!({"sleeping": [{"workspace": "main", "slept_at_ms": 1, "terminals": []}]})));
+    rig.agent.reply("pane.mark", |_| Ok(json!({"marked": 1})));
+    rig.agent.reply("terminal.wake", |p| Ok(json!({"workspace": p["workspace"], "woken": [], "failed": []})));
+    let woke = rig.ok("worktree.activate", json!({"worktree": "main::/main", "navigation": "caller"}));
+    // Then the reply is the host's, the unread pane was marked read and the workspace woken
+    assert_eq!(woke, json!({"repoId": "main", "worktreeId": "main::/main", "activated": true, "sleepingAgentWake": "not-applicable"}));
+    let sent = rig.agent.requests();
+    assert_eq!(sent.iter().find(|(m, _)| m == "pane.mark").map(|(_, p)| p.clone()), Some(json!({"panes": ["thread:a"], "mark": "read"})));
+    assert_eq!(sent.iter().find(|(m, _)| m == "terminal.wake").map(|(_, p)| p.clone()), Some(json!({"workspace": "main"})));
+    // And a selector nobody has, a missing one and a bad option are refused in the host's words
+    assert_eq!(rig.err("worktree.sleep", json!({"worktree": "ghost"})).0, "selector_not_found");
+    assert_eq!(rig.err("worktree.activate", json!({})), ("invalid_argument".to_string(), "Missing worktree selector".to_string()));
+    assert_eq!(rig.err("worktree.sleep", json!({"worktree": "feat2", "markChatsAsleep": "no"})).1, "Invalid input: expected boolean, received string");
+    // And a service that cannot stop the shells is not reported as asleep
+    rig.agent.reply("terminal.sleep", |_| Err(orca_core::AgentError::Refused { code: "NO_EXECUTOR".into(), message: "no executor is attached for workspace feat2".into() }));
+    assert_eq!(rig.err("worktree.sleep", json!({"worktree": "feat2"})), ("runtime_error".to_string(), "no executor is attached for workspace feat2".to_string()));
+}
+
+#[test]
+fn given_pane_keys_when_agent_activity_is_set_or_cleared_then_the_service_is_asked_to_mark_them_and_the_host_answers_applied_and_a_bad_list_is_refused() {
+    // Given a service that marks panes
+    let mut rig = Rig::new();
+    rig.agent.reply("pane.mark", |p| Ok(json!({"marked": p["panes"].as_array().map_or(0, Vec::len)})));
+    // When two panes are set read, one unread and one cleared
+    assert_eq!(rig.ok("agentActivity.setRead", json!({"paneKeys": ["thread:a", "thread:b"], "read": true})), json!({"applied": true}));
+    assert_eq!(rig.ok("agentActivity.setRead", json!({"paneKeys": ["thread:a"], "read": false})), json!({"applied": true}));
+    assert_eq!(rig.ok("agentActivity.clear", json!({"paneKeys": ["thread:b"]})), json!({"applied": true}));
+    // Then the marks went to the service in that order
+    let marks: Vec<Value> = rig.agent.requests().into_iter().filter(|(m, _)| m == "pane.mark").map(|(_, p)| p).collect();
+    assert_eq!(marks, [json!({"panes": ["thread:a", "thread:b"], "mark": "read"}), json!({"panes": ["thread:a"], "mark": "unread"}), json!({"panes": ["thread:b"], "mark": "clear"})]);
+    // And each bad list is refused as the host's schema refuses it, before the service is asked
+    assert_eq!(rig.err("agentActivity.clear", json!({})).1, "Invalid input: expected array, received undefined");
+    assert_eq!(rig.err("agentActivity.clear", json!({"paneKeys": "x"})).1, "Invalid input: expected array, received string");
+    assert_eq!(rig.err("agentActivity.clear", json!({"paneKeys": []})).1, "Too small: expected array to have >=1 items");
+    assert_eq!(rig.err("agentActivity.setRead", json!({"paneKeys": ["a"]})).1, "Invalid input: expected boolean, received undefined");
+    assert_eq!(rig.agent.requests().iter().filter(|(m, _)| m == "pane.mark").count(), 3);
+}
+
+#[test]
+fn given_a_journal_when_missed_notifications_are_asked_and_the_stream_is_opened_then_entries_come_as_the_hosts_events_with_the_worktree_and_pane_and_unsubscribe_ends_the_stream() {
+    // Given a journal with one entry about a thread that runs in the main workspace
+    let mut rig = Rig::new();
+    let entry = json!({"seq": 1, "id": "n-abcd-1", "cause": "turn.completed", "title": "Fix build", "body": "Finished", "thread_id": "a", "workspace": "main", "at_ms": 7});
+    let shown = entry.clone();
+    rig.agent.reply("notification.since", move |p| Ok(json!({"epoch": "e-1", "notifications": if p["after_seq"] == 0 { vec![shown.clone()] } else { vec![] }})));
+    // When a phone that saw nothing, and one that saw it, ask what they missed
+    let all = rig.ok("notifications.getMissedSince", json!({"lastSeenSeq": 0, "deliveredPushes": [{"notificationId": "x", "notificationEpoch": "e-0", "notificationSeq": 0}]}));
+    let none = rig.ok("notifications.getMissedSince", json!({"lastSeenSeq": 1, "epoch": "e-1"}));
+    // Then the first gets the entry in the host's words, with no push dismissed, and the second gets none
+    assert_eq!(all, json!({"epoch": "e-1", "dismissedPushes": [], "notifications": [{
+        "type": "notification", "source": "agent-task-complete", "title": "Fix build", "body": "Finished", "worktreeId": "main::/main", "paneKey": "thread:a",
+        "notificationId": "n-abcd-1", "notificationSeq": 1, "notificationEpoch": "e-1", "emittedAt": 7, "agentState": "done", "desktopAway": true}]}));
+    assert_eq!(none, json!({"epoch": "e-1", "notifications": []}));
+    assert_eq!(rig.agent.requests().iter().filter(|(m, _)| m == "notification.since").map(|(_, p)| p.clone()).collect::<Vec<_>>(), [json!({"after_seq": 0}), json!({"after_seq": 1, "epoch": "e-1"})]);
+    // And a request without lastSeenSeq or with a negative or fractional one is refused in the host's words
+    assert_eq!(rig.err("notifications.getMissedSince", json!({})).1, "Invalid input: expected number, received undefined");
+    assert_eq!(rig.err("notifications.getMissedSince", json!({"lastSeenSeq": -1})).1, "lastSeenSeq must be a non-negative integer");
+    assert_eq!(rig.err("notifications.getMissedSince", json!({"lastSeenSeq": 0.5})).1, "Invalid input: expected int, received number");
+    // When the stream is opened and a waiting entry is made, a finished one and an entry of another kind of event come
+    let feed = rig.agent.script_stream("notification.subscribe", &json!({}), Ok(json!({"topic": "notifications", "epoch": "e-1", "seq": 1, "reset": false})), vec![]);
+    let opened = rig.conn.on_message(&json!({"id": "s1", "method": "notifications.subscribe", "params": {}}).to_string());
+    let frames: Vec<Value> = opened.iter().map(|f| serde_json::from_str::<Value>(f).unwrap()["result"].clone()).collect();
+    let id = frames[0]["subscriptionId"].as_str().unwrap().to_string();
+    assert_eq!(frames[0], json!({"type": "ready", "subscriptionId": id, "epoch": "e-1"}));
+    let mut waiting = entry.clone();
+    waiting["cause"] = "input.requested".into();
+    waiting["body"] = "which?".into();
+    feed.push(2, "notification.posted", {
+        let mut data = waiting.as_object().unwrap().clone();
+        data.remove("seq");
+        Value::Object(data)
+    });
+    feed.push(3, "schedule.run", json!({}));
+    let live: Vec<Value> = rig.conn.poll().iter().map(|f| serde_json::from_str::<Value>(f).unwrap()["result"].clone()).collect();
+    // Then only the entry comes, as a waiting notification numbered 2
+    assert_eq!(live.len(), 1);
+    assert_eq!((live[0]["notificationSeq"].clone(), live[0]["agentState"].clone(), live[0]["body"].clone(), live[0]["type"].clone()), (json!(2), json!("waiting"), json!("which?"), json!("notification")));
+    // And unsubscribing ends the stream with the end frame, answers true, and an id nobody holds answers true as well
+    let ended = rig.conn.on_message(&json!({"id": "u1", "method": "notifications.unsubscribe", "params": {"subscriptionId": id}}).to_string());
+    let results: Vec<Value> = ended.iter().map(|f| serde_json::from_str::<Value>(f).unwrap()["result"].clone()).collect();
+    assert!(results.contains(&json!({"unsubscribed": true})) && results.contains(&json!({"type": "end"})), "{results:?}");
+    assert_eq!(rig.ok("notifications.unsubscribe", json!({"subscriptionId": "nobody"})), json!({"unsubscribed": true}));
+    assert_eq!(rig.err("notifications.unsubscribe", json!({"subscriptionId": 7})).1, "Missing subscriptionId");
+}
+
+#[test]
+fn given_the_methods_of_the_activity_rows_when_the_area_is_read_then_each_is_served_and_the_agent_methods_they_send_are_all_in_uses() {
+    // Given the rows this module serves
+    let rig = Rig::new();
+    let methods: BTreeSet<&str> = ["worktree.ps", "worktree.sleep", "worktree.activate", "agentActivity.setRead", "agentActivity.clear", "notifications.getMissedSince", "notifications.subscribe", "notifications.unsubscribe"].into_iter().collect();
+    // Then each is in the area's method list and none is declared not offered
+    let area = <WorkspaceArea as orca_core::Area>::methods(&WorkspaceArea);
+    assert!(methods.iter().all(|m| area.iter().any(|a| a.name == *m)));
+    assert!(NOT_OFFERED.iter().all(|n| !methods.contains(n.name)));
+    // And the agent methods it sends are listed in USES
+    let uses: BTreeSet<&str> = USES.iter().map(|m| m.name()).collect();
+    for m in ["notification.since", "pane.list", "pane.mark", "terminal.list", "terminal.sleep", "terminal.wake", "terminal.sleeping", "thread.list", "thread.forceStop"] {
+        assert!(uses.contains(m), "{m}");
+    }
+    drop(rig);
 }

@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use super::engine_lifecycle::{body, cursor, engine_shelf, hit_of, queue_item, shelf_result, state_of};
 use agent_api_agent::lifecycle::{self, ThreadState};
 use agent_api_agent::queue::QueueItem;
-use rca_group_agent::{Command as Lifecycle, Decided, EngineError, Follow, NewThread, Page, Refused, Subscription, ThreadEngine};
+use rca_group_agent::{Command as Lifecycle, Decided, EngineError, Follow, NewThread, Page, RecordedHook, Refused, Subscription, ThreadEngine};
 use remote_chat_agent_core::application::engine::{Engine, NeutralView, NEUTRAL_EVENT};
 use remote_chat_agent_core::domain::types::{Body, Command, Event, Session, ThreadItem};
 use serde_json::{Map, Value};
@@ -22,11 +22,12 @@ type SettledHook = Arc<dyn Fn(&str) + Send + Sync>;
 pub struct EngineThreads {
     engine: Arc<Engine>,
     settled: Mutex<Option<SettledHook>>,
+    recorded: Mutex<Option<RecordedHook>>,
 }
 
 impl EngineThreads {
     pub fn new(engine: Arc<Engine>) -> EngineThreads {
-        EngineThreads { engine, settled: Mutex::new(None) }
+        EngineThreads { engine, settled: Mutex::new(None), recorded: Mutex::new(None) }
     }
 }
 
@@ -151,13 +152,23 @@ impl ThreadEngine for EngineThreads {
     }
 
     fn record(&self, thread: &str, turn: Option<&str>, event: ThreadEvent) -> Result<u64, EngineError> {
+        let heard = event.clone();
         let body = Body::NeutralEvent { turn_id: turn.map(String::from), event: serde_json::to_value(&event).map_err(failed)? };
         let receipt = self.engine.dispatch(Command { command_id: format!("agent-api:event:{}", self.engine.new_id()), thread_id: thread.to_string(), body }, ACTOR).map_err(failed)?;
-        receipt.events.first().and_then(|event| u64::try_from(event.sequence).ok()).ok_or_else(|| failed(format!("the engine recorded no event for thread {thread}")))
+        let seq = receipt.events.first().and_then(|event| u64::try_from(event.sequence).ok()).ok_or_else(|| failed(format!("the engine recorded no event for thread {thread}")))?;
+        let hook = self.recorded.lock().unwrap_or_else(|p| p.into_inner()).clone();
+        if let Some(hook) = hook {
+            hook(thread, turn, &heard);
+        }
+        Ok(seq)
     }
 
     fn new_id(&self) -> String {
         self.engine.new_id()
+    }
+
+    fn on_recorded(&self, hook: RecordedHook) {
+        *self.recorded.lock().unwrap_or_else(|p| p.into_inner()) = Some(hook);
     }
 
     fn on_settled(&self, hook: SettledHook) {

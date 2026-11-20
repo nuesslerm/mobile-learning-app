@@ -46,7 +46,7 @@ async fn given_a_paired_mapper_when_it_asks_status_and_keeps_a_value_then_it_rea
     // When a mapper asks for the status, Then it gets the protocol and the groups this build serves
     let mut socket = open(port, Some(&token)).await.expect("the socket opens");
     let status = ask(&mut socket, r#"{"id": 1, "method": "service.status"}"#).await;
-    assert_eq!((status["id"].clone(), status["result"]["protocol"].clone(), status["result"]["groups"].clone()), (json!(1), json!(1), json!(["service", "service.activity", "state", "state.watch", "files", "files.edit", "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.issue", "hosted.clone", "hosted.auth", "git.ai", "accounts", "agent.threads", "agent.requests", "agent.queue", "agent.lifecycle", "schedules", "schedules.watch", "attachments", "agent.catalog", "preview", "preview.sessions", "preview.watch"])));
+    assert_eq!((status["id"].clone(), status["result"]["protocol"].clone(), status["result"]["groups"].clone()), (json!(1), json!(1), json!(["service", "service.activity", "state", "state.watch", "files", "files.edit", "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.issue", "hosted.clone", "hosted.auth", "git.ai", "accounts", "agent.threads", "agent.requests", "agent.queue", "agent.lifecycle", "schedules", "schedules.watch", "attachments", "agent.catalog", "preview", "preview.sessions", "preview.watch", "service.notifications", "service.panes"])));
     // When it keeps a device's quick commands and asks again on a new socket, Then the value comes back; another device sees none
     let set = ask(&mut socket, r#"{"id": "s", "method": "state.set", "params": {"scope": "phone-a", "key": "quickCommands", "value": ["git status", "ls"]}}"#).await;
     assert_eq!(set, json!({"id": "s", "result": {}}));
@@ -125,7 +125,7 @@ async fn given_an_attached_executor_when_a_mapper_lists_workspaces_and_reads_fil
     let detached = ask(&mut socket, r#"{"id": 5, "method": "file.read", "params": {"workspace": "w2", "path": "README.md"}}"#).await;
     assert_eq!(detached["error"]["code"], json!("NO_EXECUTOR"));
     // And the status lists the complete groups: files, agent.threads and its three sub-groups now, workspace not yet
-    assert_eq!(ask(&mut socket, r#"{"id": 6, "method": "service.status"}"#).await["result"]["groups"], json!(["service", "service.activity", "state", "state.watch", "files", "files.edit", "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.issue", "hosted.clone", "hosted.auth", "git.ai", "accounts", "agent.threads", "agent.requests", "agent.queue", "agent.lifecycle", "schedules", "schedules.watch", "attachments", "agent.catalog", "preview", "preview.sessions", "preview.watch"]));
+    assert_eq!(ask(&mut socket, r#"{"id": 6, "method": "service.status"}"#).await["result"]["groups"], json!(["service", "service.activity", "state", "state.watch", "files", "files.edit", "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.issue", "hosted.clone", "hosted.auth", "git.ai", "accounts", "agent.threads", "agent.requests", "agent.queue", "agent.lifecycle", "schedules", "schedules.watch", "attachments", "agent.catalog", "preview", "preview.sessions", "preview.watch", "service.notifications", "service.panes"]));
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

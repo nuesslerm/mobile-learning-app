@@ -1,0 +1,52 @@
+{
+  "method": "pane.list",
+  "exchanges": [
+    {
+      "name": "lists no panes from a service that has no thread",
+      "request": {
+        "id": 1,
+        "method": "pane.list",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "panes": []
+        }
+      }
+    },
+    {
+      "name": "one workspace asked for that has no thread lists none",
+      "request": {
+        "id": 1,
+        "method": "pane.list",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "panes": []
+        }
+      }
+    },
+    {
+      "name": "a workspace that is no name is refused",
+      "request": {
+        "id": 1,
+        "method": "pane.list",
+        "params": {
+          "workspace": ""
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "workspace must be a non-empty string"
+        }
+      }
+    }
+  ]
+}

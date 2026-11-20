@@ -136,14 +136,6 @@
         "orca-agent.launchReplay-boundary-limit-sessionId",
         "orca-agent.launchReplay-empty-min",
         "orca-agent.launchReplay-invalid-wrong-type-agent",
-        "orca-agentActivity.clear-invalid-drop-paneKeys",
-        "orca-agentActivity.clear-invalid-no-payload",
-        "orca-agentActivity.clear-invalid-wrong-type-paneKeys",
-        "orca-agentActivity.clear-valid-min",
-        "orca-agentActivity.setRead-invalid-drop-paneKeys",
-        "orca-agentActivity.setRead-invalid-no-payload",
-        "orca-agentActivity.setRead-invalid-wrong-type-paneKeys",
-        "orca-agentActivity.setRead-valid-min",
         "orca-agentHooks.prepareCodexForWslPane-boundary-limit-codexHome",
         "orca-agentHooks.prepareCodexForWslPane-invalid-drop-codexHome",
         "orca-agentHooks.prepareCodexForWslPane-invalid-no-payload",
@@ -1087,10 +1079,6 @@
         "orca-git.forkSync-valid-min",
         "orca-git.generateCommitMessage-boundary-full",
         "orca-git.generatePullRequestFields-boundary-full",
-        "orca-git.generatePullRequestFields-invalid-drop-worktree",
-        "orca-git.generatePullRequestFields-invalid-no-payload",
-        "orca-git.generatePullRequestFields-invalid-wrong-type-worktree",
-        "orca-git.generatePullRequestFields-valid-min",
         "orca-git.mutationInFlight-invalid-drop-worktree",
         "orca-git.mutationInFlight-invalid-no-payload",
         "orca-git.mutationInFlight-invalid-wrong-type-worktree",
@@ -1547,9 +1535,6 @@
         "orca-managedServer.update-invalid-no-payload",
         "orca-managedServer.update-invalid-wrong-type-selector",
         "orca-managedServer.update-valid-min",
-        "orca-notifications.getMissedSince-invalid-drop-lastSeenSeq",
-        "orca-notifications.getMissedSince-invalid-no-payload",
-        "orca-notifications.getMissedSince-invalid-wrong-type-lastSeenSeq",
         "orca-notifications.registerPush-boundary-full",
         "orca-notifications.registerPush-boundary-limit-token",
         "orca-notifications.registerPush-empty-min",
@@ -2278,11 +2263,6 @@
         "orca-workspacePorts.scanHost-invalid-no-payload",
         "orca-workspacePorts.scanHost-invalid-wrong-type-worktree",
         "orca-workspacePorts.scanHost-valid-min",
-        "orca-worktree.activate-boundary-full",
-        "orca-worktree.activate-invalid-drop-worktree",
-        "orca-worktree.activate-invalid-no-payload",
-        "orca-worktree.activate-invalid-wrong-type-worktree",
-        "orca-worktree.activate-valid-min",
         "orca-worktree.adoptProvisionedRoot-boundary-full",
         "orca-worktree.adoptProvisionedRoot-invalid-drop-repo",
         "orca-worktree.adoptProvisionedRoot-invalid-no-payload",
@@ -2316,7 +2296,6 @@
         "orca-worktree.previewNestedRemoval-invalid-no-payload",
         "orca-worktree.previewNestedRemoval-invalid-wrong-type-worktree",
         "orca-worktree.previewNestedRemoval-valid-min",
-        "orca-worktree.ps-boundary-full",
         "orca-worktree.restore-boundary-full",
         "orca-worktree.restore-invalid-drop-worktree",
         "orca-worktree.restore-invalid-no-payload",
@@ -2329,11 +2308,6 @@
         "orca-worktree.runApprovedSetup-invalid-wrong-type-worktree",
         "orca-worktree.runApprovedSetup-valid-min",
         "orca-worktree.set-boundary-full",
-        "orca-worktree.sleep-boundary-full",
-        "orca-worktree.sleep-invalid-drop-worktree",
-        "orca-worktree.sleep-invalid-no-payload",
-        "orca-worktree.sleep-invalid-wrong-type-worktree",
-        "orca-worktree.sleep-valid-min",
         "orca-worktree.teardownMissingTerminals-boundary-full",
         "orca-worktree.teardownMissingTerminals-invalid-drop-repo",
         "orca-worktree.teardownMissingTerminals-invalid-no-payload",
@@ -2698,10 +2672,7 @@
         "orca-workspacePorts.scan-valid-min",
         "orca-worktree.persistSortOrder-boundary-full",
         "orca-worktree.persistSortOrder-valid-min",
-        "orca-worktree.ps-boundary-limit-afterSnapshotId",
-        "orca-worktree.ps-invalid-no-payload",
         "orca-worktree.ps-invalid-wrong-type-limit",
-        "orca-worktree.ps-valid-min",
         "orca-worktree.resolveCallerParent-boundary-full",
         "orca-worktree.resolveCallerParent-invalid-no-payload",
         "orca-worktree.resolveCallerParent-invalid-wrong-type-envParentWorkspace",
@@ -3065,9 +3036,6 @@
         "orca-aiVault.listSessions-invalid-no-payload",
         "orca-aiVault.listSessions-invalid-wrong-type-limit",
         "orca-aiVault.listSessions-valid-min",
-        "orca-notifications.getMissedSince-boundary-full",
-        "orca-notifications.getMissedSince-boundary-limit-lastSeenSeq",
-        "orca-notifications.getMissedSince-valid-min",
         "orca-pairing.delegatedMobileDevice.sync-boundary-full",
         "orca-projectGroup.create-boundary-full",
         "orca-projectGroup.create-valid-min",
@@ -3089,6 +3057,8 @@
         "steps._:s2c:0.[0].payload.result extra drift"
       ],
       "ids": [
+        "orca-agentActivity.clear-valid-min",
+        "orca-agentActivity.setRead-valid-min",
         "orca-agentSession.agents-invalid-no-payload",
         "orca-agentSession.agents-valid-min",
         "orca-agentSessionAttachment.uploadAbort-boundary-limit-uploadId",
@@ -3180,6 +3150,17 @@
       ]
     },
     {
+      "class": "missing at steps._:s2c:*.[*].payload.result.ui.jiraSavedFilterState",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.ui.jiraSavedFilterState missing breaking"
+      ],
+      "ids": [
+        "orca-ui.set-boundary-full",
+        "orca-ui.set-valid-min"
+      ]
+    },
+    {
       "class": "changed at steps._:s2c:*.[*].payload.result.rateLimits.claude.error",
       "severity": "drift",
       "diffs": [
@@ -3191,14 +3172,13 @@
       ]
     },
     {
-      "class": "missing at steps._:s2c:*.[*].payload.result.ui.jiraSavedFilterState",
-      "severity": "breaking",
+      "class": "changed at steps._:s2c:*.[*].payload.result.snapshotId",
+      "severity": "drift",
       "diffs": [
-        "steps._:s2c:0.[0].payload.result.ui.jiraSavedFilterState missing breaking"
+        "steps._:s2c:0.[0].payload.result.snapshotId changed drift"
       ],
       "ids": [
-        "orca-ui.set-valid-min",
-        "orca-ui.set-boundary-full"
+        "orca-worktree.ps-boundary-limit-afterSnapshotId"
       ]
     }
   ]

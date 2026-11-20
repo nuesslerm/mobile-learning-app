@@ -18,7 +18,7 @@ pub mod testing;
 
 pub use group::{AgentThreadsGroup, SERVED};
 pub use lifecycle::AgentLifecycleGroup;
-pub use port::{Command, Decided, EngineError, Follow, NewThread, Page, Refused, Subscription, ThreadEngine};
+pub use port::{Command, Decided, EngineError, Follow, NewThread, Page, RecordedHook, Refused, Subscription, ThreadEngine};
 pub use queue::AgentQueueGroup;
 pub use requests::AgentRequestsGroup;
 pub use runner::{McpEndpoint, Runner};

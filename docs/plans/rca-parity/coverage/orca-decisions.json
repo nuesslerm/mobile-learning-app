@@ -312,9 +312,7 @@
       "oracle": "mimic"
     },
     "rpc:notifications.getMissedSince": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:notifications.registerPush": {
       "state": "not-offered",
@@ -322,9 +320,7 @@
       "decidedBy": "M12"
     },
     "rpc:notifications.subscribe": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:notifications.testPush": {
       "state": "not-offered",
@@ -337,9 +333,7 @@
       "decidedBy": "M12"
     },
     "rpc:notifications.unsubscribe": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:speech.dictation.cancel": {
       "oracle": "mimic"
@@ -401,14 +395,10 @@
       "oracle": "mimic"
     },
     "rpc:agentActivity.setRead": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it marks or clears the panes of the desktop's Agents list by pane key, and this host has no desktop panes.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:agentActivity.clear": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it marks or clears the panes of the desktop's Agents list by pane key, and this host has no desktop panes.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:git.remoteCommitUrl": {
       "oracle": "mimic"
@@ -430,18 +420,16 @@
     },
     "rpc:accounts.consumeCodexResetCredit": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's provider.resetCredit is refused NOT_SUPPORTED by the model API the service runs against, and rca keeps no account revision or offer revision, so a spend could only ever be a refusal and the phone's expectedScope has nothing to be checked against.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's provider.resetCredit is refused NOT_SUPPORTED by the model API the service runs against, and rca keeps no account revision or offer revision, so a spend could only ever be a refusal and the phone's expectedScope has nothing to be checked against. Revisited 20 Nov (issue #83 O2, plan docs/plans/rca-offer-more/plan.md): still not offered: spending a credit changes the billing state of a signed-in Codex account, so only that account can answer it (the host asks Codex's app-server under the account's login, scoped by the account and offer revision the phone read from accounts.list). The executor has no one-shot `codex app-server` request, accounts.list carries no credit or revision, and the recordings hold no Codex account (every recorded call fails on the idempotency key before it reaches one), so no success or spend refusal can be shaped; it needs the owner's Codex login and a credit to record (issue #83, O5).",
       "decidedBy": "M12"
     },
     "rpc:git.discoverCommitMessageModels": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: models.list exists but rca's commit message generation uses the one model its environment configures and ignores the phone's pick, so an offered list would change nothing; reverify when git.generateCommitMessage takes a model.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: models.list exists but rca's commit message generation uses the one model its environment configures and ignores the phone's pick, so an offered list would change nothing; reverify when git.generateCommitMessage takes a model. Revisited 20 Nov (issue #83 O2, plan docs/plans/rca-offer-more/plan.md): still not offered, for a second reason: the host answers `{success, capability, models, defaultModelId, catalogOrigin}` from the models its agent CLI reports for the agent id (a probe or the spec catalog), the recordings hold no success (every recorded call is selector_not_found, `invalid_argument` or `Unknown TUI agent`), and the service's model API (`ModelApi`) takes no model and reports no catalog, so a list built here would be invented and its capability and thinking levels have no source.",
       "decidedBy": "M12"
     },
     "rpc:git.generatePullRequestFields": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's git.ai group writes a commit message only; no method writes a pull request title and body, and one composed in the mapper would pass without a model.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:settings.getAgentLaunch": {
       "state": "not-offered",
@@ -713,19 +701,13 @@
       "decidedBy": "M12"
     },
     "rpc:worktree.activate": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it wakes the worktree's sleeping agents and terminals, rca keeps no sleeping panes and has no wake call, and an answer that only stores a flag would pass without doing what the row does (the reverify note asks for proof on the terminal and agent groups).",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:worktree.ps": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: each row reports the worktree's live terminals and agents next to its links and sort state, and an answer built from the worktree list and a terminal count alone would pass without the activity half the row exists for (the reverify note asks for it); rca has no per-worktree activity read.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:worktree.sleep": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it stops the worktree's agents and closes its terminals; rca's terminal.close deletes the terminal where the host keeps a sleeping pane, so a later activate could not restore the shells, and the step cannot be undone.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:files.resolveTerminalPath": {
       "state": "not-offered",
@@ -752,24 +734,16 @@
       "oracle": "mimic"
     },
     "rpc:accounts.subscribe": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host pushes the account list with rate limits, the system default and the per-runtime active accounts, and rca has no push stream of provider changes, so a polled provider.list snapshot would be a poorer list that changes late.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:accounts.unsubscribe": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it ends the stream accounts.subscribe opens, which this host does not offer.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:git.cancelGenerateCommitMessage": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's commit message generation is one request that runs to its end and has no cancel, so an accepted cancel would stop nothing.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:git.cancelGeneratePullRequestFields": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: there is no generation of pull request text in rca to cancel (git.generatePullRequestFields is not offered).",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:hostedReview.getCreationEligibility": {
       "oracle": "mimic"
@@ -1256,12 +1230,9 @@
     "rpc:browser.screencast": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there are no frames of a page to stream",
     "rpc:browser.screencast.unsubscribe": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no frame stream to end",
     "rpc:browser.tabCreate": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so a tab would be opened that shows nothing",
-    "rpc:notifications.getMissedSince": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no numbered feed to read what a phone missed from",
     "rpc:notifications.registerPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so a push token would be stored for nothing to send to",
-    "rpc:notifications.subscribe": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to open",
     "rpc:notifications.testPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no sender to deliver a test push",
-    "rpc:notifications.unregisterPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no stored push token to remove",
-    "rpc:notifications.unsubscribe": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to end"
+    "rpc:notifications.unregisterPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no stored push token to remove"
   },
   "traceNoise": {
     "rpc:layout.*": "the desktop window's workspace layout (apply, snapshots, held panes, view reports, subscribe): the scan finds no phone caller, and the recorded crawl drives the host's whole method surface, so its trace names them without a phone row to serve",

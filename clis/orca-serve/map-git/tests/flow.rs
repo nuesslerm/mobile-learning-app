@@ -372,6 +372,75 @@ fn given_rca_answers_a_generation_without_a_message_when_it_is_asked_then_the_ca
     assert!(message.contains("no message"), "{message}");
 }
 
+#[test]
+fn given_a_branch_ahead_of_its_base_when_pull_request_fields_are_generated_then_the_answer_is_the_models_fields_in_the_phones_shape_and_nothing_is_opened() {
+    // Given a branch two commits ahead of main
+    let mut rig = Rig::new();
+    rig.repo.branch_ahead(2);
+    // When the phone asks for the fields with the form as it stands
+    let generated = rig.ok("git.generatePullRequestFields", json!({"base": "main", "title": "", "body": "", "draft": true, "provider": "github", "useTemplate": false, "agentCmdOverrides": {}}));
+    // Then the answer is `success` with the fields (the base is the one asked for), and rca was given the form without the phone's agent settings
+    assert_eq!(generated, json!({"success": true, "fields": {"base": "main", "title": "Merge main into main", "body": "## Problem\n\nx\n\n## Solution\n\ny", "draft": true}}));
+    assert_eq!(rig.repo.pull_request_asked(), [json!({"base": "main", "title": "", "body": "", "draft": true})]);
+    assert_eq!(rig.repo.subjects(), ["first"]);
+}
+
+#[test]
+fn given_no_commit_ahead_or_no_model_when_pull_request_fields_are_generated_then_the_answer_is_a_failed_generation_with_rca_s_reason() {
+    // Given a branch level with its base
+    let mut level = Rig::new();
+    // When the phone asks, Then it is a failed generation naming the base, and the model was not asked
+    let nothing = level.ok("git.generatePullRequestFields", json!({"base": "main", "title": "t", "body": "b", "draft": false}));
+    assert_eq!(nothing, json!({"success": false, "error": "the branch has no commit that main lacks"}));
+    assert!(level.repo.pull_request_asked().is_empty());
+    // Given a branch ahead and a service without a model, Then that is a failed generation too, with the service's words
+    let mut down = Rig::new();
+    down.repo.branch_ahead(1);
+    down.repo.model_down();
+    assert_eq!(down.ok("git.generatePullRequestFields", json!({"base": "main", "title": "t", "body": "b", "draft": false})), json!({"success": false, "error": "no model is configured"}));
+    // And an answer of rca that lacks a field is refused, not read as an empty title
+    let mut bad = Rig::new();
+    bad.agent.reply("git.generatePullRequestFields", |_| Ok(json!({"base": "main", "title": " ", "body": "", "draft": false})));
+    let (code, message) = bad.err("git.generatePullRequestFields", json!({"base": "main", "title": "", "body": "", "draft": false}));
+    assert_eq!(code, "runtime_error");
+    assert!(message.contains("no title"), "{message}");
+}
+
+#[test]
+fn given_params_the_host_schema_refuses_when_pull_request_fields_are_asked_then_each_is_refused_in_its_words_before_the_selector_is_resolved_and_rca_is_asked_for_nothing() {
+    let mut rig = Rig::new();
+    rig.repo.branch_ahead(1);
+    let form = || json!({"worktree": "a", "base": "main", "title": "", "body": "", "draft": false});
+    let without = |key: &str| {
+        let mut p = form();
+        p.as_object_mut().unwrap().remove(key);
+        p
+    };
+    let with = |key: &str, v: Value| {
+        let mut p = form();
+        p[key] = v;
+        p
+    };
+    for (params, says) in [
+        (without("worktree"), "Missing worktree selector"),
+        (without("base"), "Invalid input: expected string, received undefined"),
+        (with("base", json!("")), "Missing base branch"),
+        (with("title", json!(3)), "Invalid input: expected string, received number"),
+        (without("body"), "Invalid input: expected string, received undefined"),
+        (with("draft", json!("no")), "Invalid input: expected boolean, received string"),
+        (without("draft"), "Invalid input: expected boolean, received undefined"),
+    ] {
+        // When it is sent, Then it is refused as invalid_argument with that sentence (a selector no workspace owns would otherwise be selector_not_found)
+        let r = rig.conn.on_message(&json!({"id": "x", "method": "git.generatePullRequestFields", "params": params}).to_string());
+        let r: Value = serde_json::from_str(&r[0]).unwrap();
+        assert_eq!((r["error"]["code"].clone(), r["error"]["message"].clone()), (json!("invalid_argument"), json!(says)), "{params}");
+    }
+    assert!(rig.repo.pull_request_asked().is_empty());
+    // And a valid form for a worktree no workspace owns is the selector error
+    let r = rig.conn.on_message(&json!({"id": "x", "method": "git.generatePullRequestFields", "params": form()}).to_string());
+    assert_eq!(serde_json::from_str::<Value>(&r[0]).unwrap()["error"]["code"], "selector_not_found");
+}
+
 const OLD: &str = "1111111111111111111111111111111111111111";
 const NEW: &str = "2222222222222222222222222222222222222222";
 

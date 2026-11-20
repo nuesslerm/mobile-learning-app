@@ -12,11 +12,11 @@ use serde_json::{json, Map, Value};
 
 const NOT_MANAGED: &str = "Worktree is not managed by this host";
 
-struct Checkout {
-    path: String,
-    head: String,
-    branch: String,
-    is_main: bool,
+pub(crate) struct Checkout {
+    pub(crate) path: String,
+    pub(crate) head: String,
+    pub(crate) branch: String,
+    pub(crate) is_main: bool,
 }
 
 fn meta_key(id: &str) -> String {
@@ -27,7 +27,7 @@ fn retired_key(repo: &str) -> String {
     format!("orca.retired-names.{repo}")
 }
 
-fn checkouts(agent: &dyn AgentApi, repo: &str) -> Result<Vec<Checkout>, Failure> {
+pub(crate) fn checkouts(agent: &dyn AgentApi, repo: &str) -> Result<Vec<Checkout>, Failure> {
     let listed = ask(agent, WORKTREE_LIST.name(), json!({"workspace": repo}))?;
     Ok(listed["worktrees"]
         .as_array()
@@ -51,7 +51,7 @@ fn basename(path: &str) -> &str {
     path.trim_end_matches('/').rsplit('/').next().unwrap_or(path)
 }
 
-fn record(agent: &dyn AgentApi, repo: &Target, c: &Checkout) -> Result<Value, Failure> {
+pub(crate) fn record(agent: &dyn AgentApi, repo: &Target, c: &Checkout) -> Result<Value, Failure> {
     let id = id_of(&repo.workspace, &c.path);
     let full = if c.branch.is_empty() { String::new() } else { format!("refs/heads/{}", c.branch) };
     let mut row = Map::new();
@@ -85,7 +85,7 @@ fn record(agent: &dyn AgentApi, repo: &Target, c: &Checkout) -> Result<Value, Fa
 }
 
 /// `id:<repo>::<path>`, `path:<path>`, a bare id or path, or a branch name, as the host's worktree selector reads them.
-fn find(agent: &dyn AgentApi, selector: &str) -> Result<(Target, Checkout), Failure> {
+pub(crate) fn find(agent: &dyn AgentApi, selector: &str) -> Result<(Target, Checkout), Failure> {
     let selector = selector.trim();
     let want = selector.strip_prefix("id:").or_else(|| selector.strip_prefix("path:")).unwrap_or(selector);
     for repo in repo_targets(agent)?.into_iter().filter(|t| t.kind == "root") {
@@ -97,7 +97,7 @@ fn find(agent: &dyn AgentApi, selector: &str) -> Result<(Target, Checkout), Fail
     Err(Failure::new("selector_not_found", "selector_not_found"))
 }
 
-fn selector(params: &Value) -> Result<&str, Failure> {
+pub(crate) fn selector(params: &Value) -> Result<&str, Failure> {
     text(params, "worktree").filter(|s| !s.is_empty()).ok_or_else(|| Failure::invalid("Missing worktree selector"))
 }
 

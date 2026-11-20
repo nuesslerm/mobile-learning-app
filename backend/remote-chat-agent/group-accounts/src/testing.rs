@@ -191,6 +191,7 @@ impl ProviderLogin for ScriptedLogin {
 /// The model as a double: it answers each completion with a text, notes the request, and reports the usage and credit it was given.
 pub struct ScriptedModelApi {
     reply: Mutex<Result<Completed, ModelError>>,
+    pull_request: Mutex<Option<Completed>>,
     requests: Mutex<Vec<Completion>>,
     usage: Mutex<HashMap<String, Usage>>,
     credit: Mutex<Option<Credit>>,
@@ -198,21 +199,31 @@ pub struct ScriptedModelApi {
 
 impl ScriptedModelApi {
     pub fn replying(text: &str, model: &str) -> Arc<ScriptedModelApi> {
-        Arc::new(ScriptedModelApi { reply: Mutex::new(Ok(Completed { text: text.into(), model: model.into() })), requests: Mutex::default(), usage: Mutex::default(), credit: Mutex::new(None) })
+        Arc::new(ScriptedModelApi { reply: Mutex::new(Ok(Completed { text: text.into(), model: model.into() })), pull_request: Mutex::new(None), requests: Mutex::default(), usage: Mutex::default(), credit: Mutex::new(None) })
     }
 
     /// The model that answers with the message the `git.ai` fixture records (`agent-api-git`) and gives the credit the accounts fixture records,
     /// so a replay of the fixtures is a replay of what the contracts say.
     pub fn from_fixture() -> Arc<ScriptedModelApi> {
         let fixtures = agent_api_git::testing::ai_fixtures();
-        let recorded = fixtures.iter().flat_map(|f| &f.exchanges).find(|e| e.succeeds()).expect("the git.ai fixture records a success");
+        let success = |method: &str| fixtures.iter().filter(|f| f.method == method).flat_map(|f| &f.exchanges).find(|e| e.succeeds()).unwrap_or_else(|| panic!("the git.ai fixture of {method} records a success"));
+        let recorded = success("git.generateCommitMessage");
         let result = &recorded.response["result"];
         let api = ScriptedModelApi::replying(result["message"].as_str().expect("a recorded message"), result["model"].as_str().expect("a recorded model"));
         // The credit the accounts fixture records for a reset is the one this model has to give
         let accounts = agent_api_accounts::testing::fixtures();
         let credit = accounts.iter().filter(|f| f.method == "provider.resetCredit").flat_map(|f| &f.exchanges).find(|e| e.succeeds()).expect("the accounts fixture records a credit");
         api.with_credit(serde_json::from_value(credit.response["result"]["credit"].clone()).expect("a recorded credit"));
+        // And the pull request fields the git.ai fixture records, as the JSON the model is asked for
+        let fields = &success("git.generatePullRequestFields").response["result"];
+        let text = serde_json::json!({"title": fields["title"], "body": fields["body"], "draft": fields["draft"]}).to_string();
+        *lock(&api.pull_request) = Some(Completed { text, model: fields["model"].as_str().expect("a recorded model").into() });
         api
+    }
+
+    /// Makes the model answer a pull request request (the one whose system text is `PULL_REQUEST_SYSTEM`) with `text`.
+    pub fn replying_to_pull_requests(&self, text: &str, model: &str) {
+        *lock(&self.pull_request) = Some(Completed { text: text.into(), model: model.into() });
     }
 
     pub fn fails(&self, error: ModelError) {
@@ -235,8 +246,12 @@ impl ScriptedModelApi {
 #[async_trait]
 impl ModelApi for ScriptedModelApi {
     async fn complete(&self, request: Completion) -> Result<Completed, ModelError> {
+        let for_pull_request = request.system == crate::PULL_REQUEST_SYSTEM;
         lock(&self.requests).push(request);
-        lock(&self.reply).clone()
+        match (for_pull_request, lock(&self.reply).clone(), lock(&self.pull_request).clone()) {
+            (true, Ok(_), Some(answer)) => Ok(answer),
+            (_, reply, _) => reply,
+        }
     }
 
     async fn usage(&self, provider: &str) -> Result<Option<Usage>, ModelError> {

@@ -9,6 +9,9 @@ use std::sync::Arc;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EngineError(pub String);
 
+/// What an engine calls after it recorded an event of a thread: the thread, the turn the event belongs to, and the event.
+pub type RecordedHook = Arc<dyn Fn(&str, Option<&str>, &agent_api_agent::ThreadEvent) + Send + Sync>;
+
 /// A thread to create. `workspace`, `driver` and `model` are the defaults of its turns.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewThread {
@@ -101,6 +104,10 @@ pub trait ThreadEngine: Send + Sync {
 
     /// Registers what the engine calls, with the thread, for each thread whose running turn it settled as interrupted when it started.
     fn on_settled(&self, _hook: Arc<dyn Fn(&str) + Send + Sync>) {}
+
+    /// Registers what the engine calls, with the thread, the turn and the event, after `record` kept an event: who keeps a journal of what
+    /// happened to the threads listens here. The one hook of an engine; a second registration replaces the first.
+    fn on_recorded(&self, _hook: RecordedHook) {}
 
     // What follows is the thread's lifecycle (`agent.requests`, `agent.queue`, `agent.lifecycle`). An engine that keeps none, such as the double
     // of the threads group, refuses it all.

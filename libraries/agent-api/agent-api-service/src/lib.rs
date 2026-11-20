@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 pub mod activity;
+pub mod notifications;
+pub mod panes;
 #[cfg(feature = "testing")]
 pub mod testing;
 

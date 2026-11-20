@@ -1,6 +1,7 @@
 //! Orca's workspace and file rows over rca: `files.*` (list, search, read, preview, chunk, directory, stat, create), `folderWorkspace.list` and
 //! `mobileRelay.projectSections`. An Orca repo or worktree is an rca workspace (`repo.list`), a file is read through the executor of that
 //! workspace (`file.*`), and nothing here touches a disk. The rows that name a desktop editor tab are not offered.
+mod activity;
 mod agent;
 mod catalog;
 mod files;
@@ -62,9 +63,17 @@ pub const WORKTREE_RM: &str = "worktree.rm";
 pub const WORKTREE_SET: &str = "worktree.set";
 pub const WORKTREE_LIST_RETIRED_NAMES: &str = "worktree.listRetiredNames";
 pub const WORKTREE_PREFETCH_CREATE_BASE: &str = "worktree.prefetchCreateBase";
+pub const WORKTREE_PS: &str = "worktree.ps";
+pub const WORKTREE_SLEEP: &str = "worktree.sleep";
+pub const WORKTREE_ACTIVATE: &str = "worktree.activate";
+pub const AGENT_ACTIVITY_SET_READ: &str = "agentActivity.setRead";
+pub const AGENT_ACTIVITY_CLEAR: &str = "agentActivity.clear";
+pub const NOTIFICATIONS_GET_MISSED_SINCE: &str = "notifications.getMissedSince";
+pub const NOTIFICATIONS_SUBSCRIBE: &str = "notifications.subscribe";
+pub const NOTIFICATIONS_UNSUBSCRIBE: &str = "notifications.unsubscribe";
 
 /// The agent methods this crate sends: its calls read this list, and a flow test holds it to the methods really sent.
-pub const USES: &[AgentMethod] = &[REPO_LIST, FILE_LIST, FILE_READ_CHUNK, FILE_STAT, FILE_CREATE, FILE_SEARCH, SET, REFS, FETCH, WORKTREE_CREATE, WORKTREE_LIST, WORKTREE_REMOVE];
+pub const USES: &[AgentMethod] = &[REPO_LIST, FILE_LIST, FILE_READ_CHUNK, FILE_STAT, FILE_CREATE, FILE_SEARCH, SET, REFS, FETCH, WORKTREE_CREATE, WORKTREE_LIST, WORKTREE_REMOVE, agent_api_service::notifications::SINCE, agent_api_service::panes::LIST, agent_api_service::panes::MARK, agent_api_terminal::LIST, agent_api_terminal::SLEEP, agent_api_terminal::WAKE, agent_api_terminal::SLEEPING, agent_api_agent::THREAD_LIST, agent_api_agent::lifecycle::THREAD_FORCE_STOP];
 
 const METHODS: &[Method] = &[
     Method { name: FILES_LIST, kind: Kind::Unary },
@@ -95,6 +104,14 @@ const METHODS: &[Method] = &[
     Method { name: WORKTREE_SET, kind: Kind::Unary },
     Method { name: WORKTREE_LIST_RETIRED_NAMES, kind: Kind::Unary },
     Method { name: WORKTREE_PREFETCH_CREATE_BASE, kind: Kind::Unary },
+    Method { name: WORKTREE_PS, kind: Kind::Unary },
+    Method { name: WORKTREE_SLEEP, kind: Kind::Unary },
+    Method { name: WORKTREE_ACTIVATE, kind: Kind::Unary },
+    Method { name: AGENT_ACTIVITY_SET_READ, kind: Kind::Unary },
+    Method { name: AGENT_ACTIVITY_CLEAR, kind: Kind::Unary },
+    Method { name: NOTIFICATIONS_GET_MISSED_SINCE, kind: Kind::Unary },
+    Method { name: NOTIFICATIONS_SUBSCRIBE, kind: Kind::Streaming },
+    Method { name: NOTIFICATIONS_UNSUBSCRIBE, kind: Kind::Unary },
 ];
 
 /// Each reason equals the one in `docs/plans/rca-parity/coverage/orca-decisions.json`; a flow test compares them.
@@ -151,6 +168,20 @@ impl Area for WorkspaceArea {
             WORKTREE_SET => worktrees::set(agent, params),
             WORKTREE_LIST_RETIRED_NAMES => worktrees::retired_names(agent, params),
             WORKTREE_PREFETCH_CREATE_BASE => worktrees::prefetch_create_base(agent, params),
+            WORKTREE_PS => activity::ps(agent, &ctx.host.platform, params),
+            WORKTREE_SLEEP => activity::sleep(agent, params),
+            WORKTREE_ACTIVATE => activity::activate(agent, params),
+            AGENT_ACTIVITY_SET_READ => activity::set_read(agent, params),
+            AGENT_ACTIVITY_CLEAR => activity::clear(agent, params),
+            NOTIFICATIONS_GET_MISSED_SINCE => activity::missed_since(agent, params),
+            NOTIFICATIONS_UNSUBSCRIBE => activity::unsubscribe(ctx, params),
+            other => Err(Failure::new(wire::METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
+        }
+    }
+
+    fn open(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Box<dyn orca_core::Subscription>, Failure> {
+        match method {
+            NOTIFICATIONS_SUBSCRIBE => activity::open_feed(ctx, params),
             other => Err(Failure::new(wire::METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
         }
     }

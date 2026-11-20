@@ -238,6 +238,39 @@ async fn given_a_staged_change_in_the_repository_when_a_message_is_generated_the
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_a_branch_with_a_commit_when_pull_request_fields_are_generated_then_the_model_is_given_the_patch_from_the_merge_base_and_nothing_moves() {
+    // Given a topic branch with one commit, and a commit on main after the branch left it
+    let env = Env::new(&[]);
+    let chain = chain(&env).await;
+    chain.repo.git(&["checkout", "-q", "-b", "topic"]);
+    chain.repo.write("notes.txt", "kept on the branch\n");
+    chain.repo.git(&["add", "notes.txt"]);
+    chain.repo.git(&["commit", "-q", "-m", "add notes"]);
+    chain.repo.git(&["checkout", "-q", "main"]);
+    chain.repo.write("main-only.txt", "main moved on\n");
+    chain.repo.git(&["add", "main-only.txt"]);
+    chain.repo.git(&["commit", "-q", "-m", "main moves on"]);
+    chain.repo.git(&["checkout", "-q", "topic"]);
+    let head = chain.repo.head();
+    let mut agent = chain.agent().await;
+    // When the fields are generated against main
+    let answered = agent.ask("git.generatePullRequestFields", json!({"workspace": "w1", "base": "main", "title": "", "body": "", "draft": false})).await;
+    // Then the answer is the model's fields, and the model was given the commit, the file and the branch's own patch, not what main gained
+    assert_eq!(answered["result"]["title"], json!("Describe the temp repo"), "{answered}");
+    let asked: Vec<Completion> = chain.models().requests();
+    assert_eq!(asked.len(), 1);
+    for part in ["- add notes", "notes.txt", "+kept on the branch"] {
+        assert!(asked[0].prompt.contains(part), "{part}: {}", asked[0].prompt);
+    }
+    assert!(!asked[0].prompt.contains("main-only.txt"), "{}", asked[0].prompt);
+    // And the head did not move, and a base git does not know is refused by the executor's words, without the model
+    assert_eq!(chain.repo.head(), head);
+    let unknown = agent.ask("git.generatePullRequestFields", json!({"workspace": "w1", "base": "nope"})).await;
+    assert!(unknown.get("error").is_some(), "{unknown}");
+    assert_eq!(chain.models().requests().len(), 1);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_nothing_staged_when_a_message_is_generated_then_it_is_refused_without_asking_the_model() {
     // Given a clean repository
     let env = Env::new(&[]);

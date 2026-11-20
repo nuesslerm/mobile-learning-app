@@ -3,7 +3,6 @@
 mod client_events;
 mod pairing;
 mod status;
-mod streams;
 mod trackers;
 
 pub use pairing::PairingArea;
@@ -30,8 +29,6 @@ const METHODS: &[Method] = &[
     Method { name: CLIENT_CAPABILITIES_UPDATE, kind: Kind::Unary },
     Method { name: CLIENT_EVENTS_SUBSCRIBE, kind: Kind::Streaming },
     Method { name: CLIENT_EVENTS_UNSUBSCRIBE, kind: Kind::Unary },
-    Method { name: streams::ACCOUNTS_UNSUBSCRIBE, kind: Kind::Unary },
-    Method { name: streams::NOTIFICATIONS_UNSUBSCRIBE, kind: Kind::Unary },
     Method { name: "linear.status", kind: Kind::Unary },
     Method { name: "linear.selectWorkspace", kind: Kind::Unary },
     Method { name: "linear.listTeams", kind: Kind::Unary },
@@ -69,7 +66,7 @@ impl Area for SettingsArea {
             STATS_SUMMARY => Ok(json!({"firstEventAt": null, "totalAgentTimeMs": 0, "totalAgentsSpawned": 0, "totalPRsCreated": 0})),
             CLIENT_CAPABILITIES_UPDATE => status::update_client_capabilities(ctx, params),
             CLIENT_EVENTS_UNSUBSCRIBE => client_events::unsubscribe(ctx, params),
-            other => streams::call(other, params).or_else(|| trackers::call(other, params)).unwrap_or_else(|| Err(Failure::new(wire::METHOD_NOT_FOUND, format!("Unknown method: {other}")))),
+            other => trackers::call(other, params).unwrap_or_else(|| Err(Failure::new(wire::METHOD_NOT_FOUND, format!("Unknown method: {other}")))),
         }
     }
 

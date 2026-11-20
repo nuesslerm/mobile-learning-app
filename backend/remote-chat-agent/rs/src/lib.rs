@@ -22,7 +22,7 @@ use rca_group_agent::host::CliLauncher;
 use rca_exec_channel::Registry;
 use rca_group_accounts::{AccountsGroup, GitAiGroup, HostDirs, HostLogin, ModelApi, ProviderDirs, Sessions};
 use rca_group_agent::{AgentLifecycleGroup, AgentQueueGroup, AgentRequestsGroup, AgentThreadsGroup, Runner};
-use rca_service_core::application::agent_groups::{ActivityGroup, EngineThreads, FilesEditGroup, FilesGroup, ServiceGroup, StateGroup, StateHub, StateStore, StateWatchGroup, TerminalGroup, GitGroup, HostedAuthGroup, HostedCloneGroup, HostedIssueGroup, HostedPrGroup, ExecutorCredentials, WorkspaceGroup, WorktreesGroup, ScheduleClock, ScheduleGroup, ScheduleIds, ScheduleStore, ScheduleWatchGroup, Schedules, ThreadsTrigger, AttachmentClock, AttachmentIds, Attachments, AttachmentsGroup, BlobStore, Catalog, CatalogGroup, CatalogSpeech, StagesAttachments, PreviewGroup, PreviewSessionGroup, PreviewWatchGroup, Previews};
+use rca_service_core::application::agent_groups::{ActivityGroup, EngineThreads, FilesEditGroup, FilesGroup, ServiceGroup, StateGroup, StateHub, StateStore, StateWatchGroup, TerminalGroup, GitGroup, HostedAuthGroup, HostedCloneGroup, HostedIssueGroup, HostedPrGroup, ExecutorCredentials, WorkspaceGroup, WorktreesGroup, ScheduleClock, ScheduleGroup, ScheduleIds, ScheduleStore, ScheduleWatchGroup, Schedules, ThreadsTrigger, AttachmentClock, AttachmentIds, Attachments, AttachmentsGroup, BlobStore, Catalog, CatalogGroup, CatalogSpeech, StagesAttachments, PreviewGroup, PreviewSessionGroup, PreviewWatchGroup, Previews, MemoryPanes, PaneStore, Notifications, NotificationsGroup, Panes, PanesGroup};
 use std::sync::Arc;
 
 /// What the `accounts` and `git.ai` groups stand on: where the choice of the default provider is kept, and the model the service asks. The logins are the executor's.
@@ -89,6 +89,22 @@ pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn
     if let Err(failure) = schedules.recover() {
         rca_service_core::application::log::error!("schedules.recover_failed", code = failure.code, message = failure.message);
     }
+    let notifications = {
+        let h = infrastructure::ambient::random_hex(16);
+        Notifications::new(Arc::new(SystemClock), format!("{}-{}-4{}-8{}-{}", &h[0..8], &h[8..12], &h[13..16], &h[17..20], &h[20..32]))
+    };
+    let pane_store: Arc<dyn PaneStore> = match &config.state_dir {
+        Some(dir) => Arc::new(infrastructure::panes::PaneFile::at(std::path::Path::new(dir).join("agent-api").join("panes.json"))),
+        None => Arc::new(MemoryPanes::default()),
+    };
+    let panes = Panes::new(Arc::new(SystemClock), pane_store, runner.engine().clone());
+    {
+        let (journal, marks, engine) = (notifications.clone(), panes.clone(), runner.engine().clone());
+        runner.engine().on_recorded(Arc::new(move |thread, _turn, event| {
+            marks.hear(thread, event);
+            journal.hear(engine.as_ref(), thread, event);
+        }));
+    }
     let previews = Previews::new(Arc::new(infrastructure::previews::SystemClock), Arc::new(infrastructure::previews::RandomIds), config.state_seq_base);
     let groups: Vec<Arc<dyn Group>> = vec![
         Arc::new(ServiceGroup),
@@ -99,7 +115,10 @@ pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn
         Arc::new(FilesEditGroup::new(executors.clone())),
         Arc::new(WorkspaceGroup::new(executors.clone())),
         Arc::new(WorktreesGroup::new(executors.clone())),
-        Arc::new(TerminalGroup::new(executors.clone(), Arc::new(SystemClock))),
+        Arc::new(match &config.state_dir {
+            Some(dir) => TerminalGroup::new(executors.clone(), Arc::new(SystemClock)).with_sleep_store(Arc::new(infrastructure::sleeping::SleepFile::at(std::path::Path::new(dir).join("agent-api").join("sleeping-terminals.json")))),
+            None => TerminalGroup::new(executors.clone(), Arc::new(SystemClock)),
+        }),
         Arc::new(GitGroup::new(executors.clone())),
         Arc::new(HostedPrGroup::new(executors.clone())),
         Arc::new(HostedIssueGroup::new(executors.clone())),
@@ -118,6 +137,8 @@ pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn
         Arc::new(PreviewGroup::new(executors.clone())),
         Arc::new(PreviewSessionGroup::new(previews.clone())),
         Arc::new(PreviewWatchGroup::new(previews)),
+        Arc::new(NotificationsGroup::new(notifications)),
+        Arc::new(PanesGroup::new(panes)),
     ];
     AgentApi { sockets: Arc::new(ExecutorSockets::new(executors.clone())), agent_socket: Arc::new(AgentSockets), executors, bearers, mcp, threads, tools: runner, groups: rca_agent_core::AgentApi::new(groups).expect("the groups registered here do not clash"), schedules }
 }
