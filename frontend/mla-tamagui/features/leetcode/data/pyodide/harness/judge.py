@@ -111,6 +111,23 @@ def _typing_namespace():
     }
 
 
+def _read(buf):
+    # a solution that closes sys.stdout closes the buffer it was redirected to
+    try:
+        return buf.getvalue()
+    except BaseException:
+        return ''
+
+
+def _describe(exc):
+    # an exception whose own __str__ raises must not take the run down with it
+    try:
+        text = str(exc)
+    except BaseException:
+        text = '<unprintable>'
+    return type(exc).__name__ + ': ' + text
+
+
 def _norm(x):
     return json.dumps(x, sort_keys=True, default=str)
 
@@ -231,7 +248,10 @@ def _jsonable(value):
         json.dumps(value, default=str)
         return value
     except Exception:
-        return str(value)
+        try:
+            return str(value)
+        except BaseException:
+            return '<unprintable>'
 
 
 def _scrub(value):
@@ -255,8 +275,10 @@ def _char_column(line, byte_offset):
     return len(line.encode('utf-8')[:byte_offset].decode('utf-8', 'ignore')) + 1
 
 
-def _location(exc, lines):
-    if isinstance(exc, SyntaxError):
+def _location(exc, lines, ns, compiling):
+    # only the learner's own compile reports a position in the learner's file: a SyntaxError raised later, by eval or ast.literal_eval,
+    # is about the snippet it was given
+    if compiling and isinstance(exc, SyntaxError):
         if exc.lineno is None:
             return None
         at = {'line': exc.lineno}
@@ -264,8 +286,11 @@ def _location(exc, lines):
             at['column'] = exc.offset
         return at
     frame = None
-    for summary in traceback.extract_tb(exc.__traceback__):
-        if summary.filename == USER_FILE and summary.lineno:
+    # `<string>` is every exec's default filename (dataclasses and namedtuple generate code with it): the learner's frames are the ones
+    # that run in the learner's namespace
+    summaries = traceback.extract_tb(exc.__traceback__)
+    for summary, (live, _) in zip(summaries, traceback.walk_tb(exc.__traceback__)):
+        if summary.filename == USER_FILE and summary.lineno and live.f_globals is ns:
             frame = summary
     if frame is None:
         return None
@@ -297,15 +322,15 @@ def _case(solution, method, case, cfg, ns, lines):
         passed = _compare(actual, expected, mode)
     except BaseException as exc:
         _guard.disarm()
-        error = type(exc).__name__ + ': ' + str(exc)
-        error_at = _location(exc, lines)
+        error = _describe(exc)
+        error_at = _location(exc, lines, ns, False)
     row = {
         'pass': passed,
         'input': inputs,
         'actual': _jsonable(actual),
         'expected': expected,
-        'stdout': out.getvalue(),
-        'stderr': err.getvalue(),
+        'stdout': _read(out),
+        'stderr': _read(err),
         'error': error,
         'elapsed_ms': round((time.perf_counter() - started) * 1000, 2),
     }
@@ -335,26 +360,28 @@ def _run(payload, on_case):
     lines = code.split('\n')
     ns = _typing_namespace()
     boot_out = _Capped()
+    compiling = True
     try:
         compiled = compile(code, USER_FILE, 'exec')
+        compiling = False
         _guard.arm(cfg['timeout_s'], 'Timeout: module-level code exceeded the ' + str(cfg['timeout_s']) + 's limit')
         with contextlib.redirect_stdout(boot_out):
             exec(compiled, ns)
         _guard.disarm()
     except BaseException as exc:
         _guard.disarm()
-        at = _location(exc, lines)
+        at = _location(exc, lines, ns, compiling)
         if isinstance(exc, TimeoutError):
             return _failed('timeout', str(exc), at)
-        return _failed('compile', 'CompileError: ' + str(exc), at)
+        return _failed('compile', 'CompileError: ' + _describe(exc).split(': ', 1)[1], at)
     solution = ns.get('Solution')
     if solution is None:
         return _failed('compile', 'No Solution class defined')
     results, started = [], time.monotonic()
     for index, case in enumerate(payload.get('testCases', [])):
         row = _case(solution, payload.get('methodName', 'twoSum'), case, cfg, ns, lines)
-        if index == 0 and boot_out.getvalue():
-            row['stdout'] = boot_out.getvalue() + row['stdout']
+        if index == 0 and _read(boot_out):
+            row['stdout'] = _read(boot_out) + row['stdout']
         results.append(row)
         if on_case is not None:
             try:

@@ -61,4 +61,37 @@ describe('the deliberate differences from the backend', () => {
     expect(raw).toMatchObject({ ok: false, error_kind: 'compile' });
     expect(raw.error_at?.line).toBeGreaterThan(0);
   });
+
+  it('given a multi-byte character before the failing token on its line, when it runs, then the column still counts characters', () => {
+    const source = named.EXCEPTION_AFTER_ACCENT ?? '';
+    const row = judge.run(twoSum(source, 1)).results?.[0];
+    const line = source.split('\n')[2] ?? '';
+    expect(row?.error_at).toEqual({ line: 3, column: line.indexOf('undefined_name') + 1 });
+  });
+
+  it('given a syntax error raised at run time by eval, when it runs, then the row points at the learner’s line and not at line 1 of the snippet', () => {
+    const row = judge.run(twoSum(named.EVAL_SYNTAX_ERROR ?? '', 1)).results?.[0];
+    expect(row?.error).toMatch(/^SyntaxError/);
+    expect(row?.error_at?.line).toBe(4);
+  });
+
+  it('given an error raised inside code a library generated with exec, when it runs, then the row points at the learner’s own line', () => {
+    const source = named.DATACLASS_ORDER_ERROR ?? '';
+    const row = judge.run(twoSum(source, 1)).results?.[0];
+    expect(row?.error).toMatch(/^TypeError/);
+    expect(row?.error_at?.line).toBe(7);
+    expect(row?.error_at?.line).toBeLessThanOrEqual(source.split('\n').length);
+  });
+
+  it('given a solution that closes sys.stdout, when it runs, then every case still gets its row and the run is not lost', () => {
+    const raw = judge.run(twoSum(named.CLOSES_STDOUT ?? '', 3));
+    expect(raw.ok).toBe(true);
+    expect(raw.results).toHaveLength(3);
+  });
+
+  it('given an exception whose own text cannot be produced, when it runs, then the row names the exception and the run goes on', () => {
+    const raw = judge.run(twoSum(named.UNPRINTABLE_EXCEPTION ?? '', 2));
+    expect(raw.ok).toBe(true);
+    expect(raw.results?.map((r) => r.error)).toEqual(['Boom: <unprintable>', 'Boom: <unprintable>']);
+  });
 });
