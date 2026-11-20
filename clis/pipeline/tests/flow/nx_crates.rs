@@ -56,6 +56,16 @@ fn lock(entries: &[Locked]) -> String {
     text
 }
 
+/// The remote chat agent's own `test:integration` up to its cargo call (the task's folder for the run records, removed first, and the variable
+/// that points the suites at it), then a stand-in suite that leaves a trace there and logs the run, as the real cargo test would.
+fn svc_integration_script(rca: &Value) -> String {
+    let real = rca["scripts"]["test:integration"].as_str().expect("the remote chat agent has a test:integration script");
+    let setup = &real[..real.find("cargo ").expect("the script runs cargo")];
+    let suite = r#"echo "@fx/svc test:integration" >> "$RAN_LOG"; mkdir -p "$WF_TEST_OUTPUT_DIR/svc-suite"; printf "{}" > "$WF_TEST_OUTPUT_DIR/svc-suite/trace.json"; printf "{}" > "$WF_TEST_OUTPUT_DIR/svc-suite/report.json""#;
+    // the trailing comment is the cargo call the Nx plugin reads the crate from (`-p <crate>`)
+    format!("{setup}sh -c '{suite}' # cargo test --locked -p svc --test integration --manifest-path Cargo.toml")
+}
+
 /// Three cargo workspaces: `clis` (kit, tool with flow groups, and tool-alpha and assets-gen nested in what tool reads, and chain, whose
 /// integration tests run the service of another workspace and the helper of a third), `libraries` (helper, which tool and svc use, and
 /// helper-plugin nested in it) and `backend/svc`, a package opted in as the remote chat agent is.
@@ -144,7 +154,7 @@ if [ "$sub" = test ] && [ -n "$WF_TEST_OUTPUT_DIR" ]; then mkdir -p "$WF_TEST_OU
         let script = |name: &str, original: &str| format!("echo '@fx/svc {name}' >> \"$RAN_LOG\" # {original}");
         let scripts = json!({
             "test:flow": script("test:flow", "cargo test --locked -p svc --test flow --manifest-path Cargo.toml"),
-            "test:integration": script("test:integration", "cargo test --locked -p svc --test integration --manifest-path Cargo.toml"),
+            "test:integration": svc_integration_script(&rca),
         });
         put_file(&ws, "backend/svc/package.json", &serde_json::to_string_pretty(&json!({ "name": "@fx/svc", "private": true, "scripts": scripts, "nx": rca["nx"] })).unwrap());
         put_file(&ws, "backend/svc/Cargo.toml", "[workspace]\nmembers = [\"core\", \"rs\"]\nresolver = \"2\"\n");
@@ -495,7 +505,7 @@ fn an_integration_task_replayed_from_the_cache_restores_the_trace_its_run_left()
     assert_eq!(f.runs("integration-tests"), every_integration(), "the first run runs every task");
     let records = f.ws.join(".agents/tmp/test-output");
     let traces = |dir: &std::path::Path| -> Vec<String> {
-        let mut found: Vec<String> = ["chain/cargo-integration/chain-suite", "chain/cargo-integration-north/chain-suite", "chain/cargo-integration-south/chain-suite", "svc/cargo-integration/svc-suite"]
+        let mut found: Vec<String> = ["chain/cargo-integration/chain-suite", "chain/cargo-integration-north/chain-suite", "chain/cargo-integration-south/chain-suite", "remote-chat-agent/test-integration/svc-suite"]
             .iter()
             .filter(|rel| dir.join(rel).join("trace.json").is_file() && dir.join(rel).join("report.json").is_file())
             .map(|rel| rel.to_string())
@@ -506,6 +516,7 @@ fn an_integration_task_replayed_from_the_cache_restores_the_trace_its_run_left()
     let written = traces(&records);
     assert!(written.contains(&"chain/cargo-integration-north/chain-suite".to_string()), "each task writes its own folder: {written:?}");
     assert!(written.contains(&"chain/cargo-integration/chain-suite".to_string()), "{written:?}");
+    assert!(written.contains(&"remote-chat-agent/test-integration/svc-suite".to_string()), "a package crate's script leaves its records in the folder its outputs name: {written:?}");
     let north = std::fs::read_to_string(records.join("chain/cargo-integration-north/chain-suite/trace.json")).unwrap();
     assert!(north.contains("sets::north::"), "the group's folder holds the group's own run: {north}");
 

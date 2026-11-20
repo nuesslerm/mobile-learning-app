@@ -753,7 +753,7 @@ jobs:
         run: |
           found=0
           # each integration task writes its run records under .agents/tmp/test-output/<crate>/<task>/<suite>/ (Nx outputs of the task), so a task
-          # Nx replayed from the cache restores them and its shard still publishes a bundle (vm-ops-api's and remote-chat-agent's scripts still write to $WF_TEST_OUTPUT_DIR, so only a run that executed them publishes). A chain's run record (t3-serve-integration,
+          # Nx replayed from the cache restores them and its shard still publishes a bundle. A chain's run record (t3-serve-integration,
           # orca-serve-integration) and a mimic replay's (wf-mimic-*) carry their method-hit trace (trace.json) into the bundle `wf mimic coverage --traces` reads
           # a replay feature leaves its record one or two levels under its suite folder (wf-mimic-t3-recorded/<feature>/<set>/), so the record is found by its report.json
           while IFS= read -r report; do
