@@ -10,6 +10,7 @@ import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
 import { ProblemCatalog } from '../domain/problemCatalog';
 import { useLeetCodeAuthStore } from '../state/authStore';
+import { RunnerSettingRow } from './RunnerSettingRow';
 
 const CONTENT_STYLE = { paddingBottom: 24 } as const;
 
@@ -224,6 +225,7 @@ export function ProblemListScreen(): React.ReactElement {
         scrollViewTestID="LeetcodeListScroll"
       >
         <AuthRow />
+        <RunnerSettingRow />
         {categories.map((category) => (
           <Fragment key={category.id}>
             <Text

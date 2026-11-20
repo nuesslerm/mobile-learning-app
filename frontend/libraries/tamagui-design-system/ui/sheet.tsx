@@ -2,6 +2,7 @@ import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetFlatList,
   BottomSheetScrollView,
+  BottomSheetTextInput,
   type BottomSheetBackdropProps,
 } from '@gorhom/bottom-sheet';
 import { Logger } from '@lib/logging';
@@ -238,6 +239,9 @@ export function Sheet({
 // so the list scroll and the sheet pan both claim the touch and neither works.
 Sheet.ScrollView = BottomSheetScrollView;
 Sheet.FlatList = BottomSheetFlatList;
+// A text field in a sheet must be this one: gorhom only lifts the sheet above the keyboard for the inputs it knows. A plain RN TextInput
+// takes focus, the keyboard rises over the sheet's lower half and covers the control the sheet exists for (a Send button, say).
+Sheet.TextInput = BottomSheetTextInput;
 
 export type SheetHeaderProps = {
   children: ReactNode;

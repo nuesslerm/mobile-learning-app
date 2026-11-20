@@ -5,8 +5,8 @@
  * A plain in-app feature: one package, no separate mocks or implementation package.
  */
 
-// The on-device runner's provider: the app root mounts it so the interpreter outlives the screens
-export { PyodideRunnerProvider } from './data/pyodide/PyodideRunnerProvider';
+// The on-device runner: the app root mounts it so the interpreter outlives the screens
+export { DeviceRunnerRoot } from './di/DeviceRunnerRoot';
 
 // Screens (ui layer)
 export { ProblemListScreen } from './ui/ProblemListScreen';
