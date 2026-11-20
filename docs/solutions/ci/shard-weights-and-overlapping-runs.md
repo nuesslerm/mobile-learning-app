@@ -77,3 +77,8 @@ Runner slots at peak per caller, with the core callers at 3 shards:
 | mobile e2e | `head`, `preflight` and `plan` | `plan` only |
 
 Every run also saves `report` (one slot) and the 3 s `trigger` job per caller. The three core callers together peak at 9 test runners instead of 18, which leaves the other callers room under the 20-slot cap.
+
+## Several pushes in a row (owner, 20 Nov)
+
+Every sharded test job (`core-tests`, `integration-tests`, `cli-e2e-tests`) has the concurrency group `hosted-<job>-<key>`, the key being the shard's input fingerprint (`wf ci plan shard-keys`; `core-tests` combines its flow and typecheck shard keys), `-fresh` for a run with the caches off. Identical work from two pushes minutes apart waits as a pending job, which holds no runner and no slot of the cap, and replays from the Nx cache; a fix push changes the inputs, so it starts at once; nothing running is cancelled. A pending job that a newer one replaces ends `cancelled`, and the deploy, clis and eas-update gates read `cancelled` as not passed (`success` or `skipped` only; `!= 'failure'` let it through). `install-wf` caches the built `wf` binaries by the `clis/` tree (exact key), so a commit that leaves `clis/` alone builds nothing in `wf-build`. Not done, on purpose: a marker that ends a released waiter in seconds instead of an Nx replay, and skipping a run a newer commit covers; both wait for the numbers of `CI_RUN_PROFILE` and `CI_CONCURRENCY` (docs/solutions/ci/parallelism-telemetry.md). Push a batch of commits once; push separately only a fix to a red run.
+

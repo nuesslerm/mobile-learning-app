@@ -156,6 +156,8 @@ jobs:
       shards: ${{ steps.shards.outputs.list }}
       shard_count: ${{ steps.shards.outputs.count }}
       integration_shard_keys: ${{ steps.shardkeys.outputs.integration }}
+      core_shard_keys: ${{ steps.shardkeys.outputs.core }}
+      cli_e2e_shard_keys: ${{ steps.shardkeys.outputs.cli_e2e }}
       legs: ${{ steps.legs.outputs.legs }}
       eas_update: ${{ steps.legs.outputs.eas_update }}
       fresh: ${{ steps.tags.outputs.fresh }}
@@ -262,6 +264,14 @@ jobs:
         run: |
           # a leading empty key: an expression has no arithmetic, so the 1-based matrix.shard indexes the array directly
           echo "integration=$(wf ci plan shard-keys --stage integration-tests --count "${{ steps.shards.outputs.count }}" --plan "$RUNNER_TEMP/plan.json" | jq -c '[""] + .')" >> "$GITHUB_OUTPUT"
+          # core-tests shard i runs flow shard i and typecheck shard N+1-i; cli-e2e keys are the stage's own. Same inputs, same group: the push that follows waits as a pending job
+          # and replays; a fix changes the inputs, so it starts at once. A fresh run (cache off) is a group of its own.
+          n="${{ steps.shards.outputs.count }}"
+          flow=$(wf ci plan shard-keys --stage flow-tests --count "$n" --plan "$RUNNER_TEMP/plan.json")
+          unit=$(wf ci plan shard-keys --stage typecheck-lint-unit-tests --count "$n" --plan "$RUNNER_TEMP/plan.json")
+          core=$(jq -cn --argjson f "$flow" --argjson u "$unit" --argjson n "$n" '[range(0; $n) | "\($f[.])/\($u[$n - 1 - .])"] | .[]' | while read -r k; do printf '%s' "$k" | sha256sum | cut -c1-24; done | jq -R . | jq -sc '[""] + .')
+          echo "core=$core" >> "$GITHUB_OUTPUT"
+          echo "cli_e2e=$(wf ci plan shard-keys --stage cli-e2e-tests --count "$n" --plan "$RUNNER_TEMP/plan.json" | jq -c '[""] + .')" >> "$GITHUB_OUTPUT"
       # What is deployed is what runs: a service's own container image tag (sha-<short>) names the commit it was built
       # from, so there is no record to keep in sync. This also fails in seconds if the runner cannot reach the vault or vm-ops-api.
       - name: Which services changed since the commit they run?
@@ -313,7 +323,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 40
     concurrency:
-      group: ${{ format('hosted-core-tests-{0}-{1}', github.run_id, matrix.shard) }}
+      group: ${{ format('hosted-core-tests-{0}{1}', fromJSON(needs.plan.outputs.core_shard_keys)[matrix.shard], needs.plan.outputs.fresh == 'true' && '-fresh' || '') }}
       cancel-in-progress: false
     strategy:
       fail-fast: false
@@ -424,7 +434,7 @@ jobs:
   clis:
     name: clis
     needs: [plan, core-tests, integration-tests, cli-e2e-tests, wf-build]
-    if: ${{ (!cancelled() && inputs.ship && inputs.deploy && needs.wf-build.result == 'success' && needs.plan.result == 'success' && needs.core-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure') && (inputs.stages == 'all' || inputs.stages == 'cli') }}
+    if: ${{ (!cancelled() && inputs.ship && inputs.deploy && needs.wf-build.result == 'success' && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.core-tests.result) && contains(fromJSON('["success","skipped"]'), needs.integration-tests.result) && contains(fromJSON('["success","skipped"]'), needs.cli-e2e-tests.result)) && (inputs.stages == 'all' || inputs.stages == 'cli') }}
     # the install call below needs an arm64 wf and the tailnet, which the deploy runner joins
     runs-on: ${{ fromJSON(inputs.deploy_runner) }}
     timeout-minutes: 10
@@ -559,7 +569,7 @@ jobs:
     name: deploy (${{ matrix.app }})
     needs: [plan, core-tests, integration-tests, cli-e2e-tests, deploy-build, clis, wf-build]
     # a red test deploys nothing; a stage the plan left empty is skipped, not failed
-    if: ${{ (!cancelled() && inputs.deploy && needs.plan.outputs.is_head == 'true' && needs.plan.result == 'success' && needs.core-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && needs.deploy-build.result == 'success' && (needs.clis.result == 'success' || needs.wf-build.result == 'success') && needs.plan.outputs.legs != '[]') && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
+    if: ${{ (!cancelled() && inputs.deploy && needs.plan.outputs.is_head == 'true' && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.core-tests.result) && contains(fromJSON('["success","skipped"]'), needs.integration-tests.result) && contains(fromJSON('["success","skipped"]'), needs.cli-e2e-tests.result) && needs.deploy-build.result == 'success' && (needs.clis.result == 'success' || needs.wf-build.result == 'success') && needs.plan.outputs.legs != '[]') && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
     runs-on: ${{ fromJSON(inputs.deploy_runner) }}
     timeout-minutes: 100
     concurrency:
@@ -769,7 +779,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 65
     concurrency:
-      group: ${{ format('hosted-cli-e2e-tests-{0}-{1}', github.run_id, matrix.shard) }}
+      group: ${{ format('hosted-cli-e2e-tests-{0}{1}', fromJSON(needs.plan.outputs.cli_e2e_shard_keys)[matrix.shard], needs.plan.outputs.fresh == 'true' && '-fresh' || '') }}
       cancel-in-progress: false
     strategy:
       fail-fast: false
@@ -875,7 +885,7 @@ jobs:
     name: eas-update
     needs: [plan, core-tests, integration-tests, cli-e2e-tests, clis]
     # a red test stage does not skip the job or the publish below (the e2e jobs read its result)
-    if: ${{ (!cancelled() && needs.plan.result == 'success' && needs.clis.result != 'failure' && needs.plan.outputs.eas_update == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
+    if: ${{ (!cancelled() && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && needs.plan.outputs.eas_update == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 25
     # contents: write for the push of refs/wf/state (wf bucket state write); a job's permissions replace the workflow's, so the others stay listed
@@ -990,7 +1000,7 @@ jobs:
   eas-update-e2e:
     name: eas-update-e2e
     needs: [plan, clis]
-    if: ${{ (!cancelled() && inputs.ship && inputs.e2e && needs.plan.result == 'success' && needs.clis.result != 'failure' && needs.plan.outputs.eas_update == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
+    if: ${{ (!cancelled() && inputs.ship && inputs.e2e && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && needs.plan.outputs.eas_update == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 25
     permissions:
@@ -1061,7 +1071,7 @@ jobs:
   # The focused browser e2e tests the push reaches, against a web export of this commit built and served on the runner.
   browser-e2e-tests:
     needs: [plan, core-tests, clis, cli-e2e-tests]
-    if: ${{ (!cancelled() && inputs.e2e && needs.plan.result == 'success' && needs.clis.result != 'failure' && needs.plan.outputs.browser_e2e_tests != '0' && needs.plan.outputs.run_browser == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
+    if: ${{ (!cancelled() && inputs.e2e && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && needs.plan.outputs.browser_e2e_tests != '0' && needs.plan.outputs.run_browser == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
     uses: ./.github/workflows/e2e-tests.yml
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
@@ -1076,7 +1086,7 @@ jobs:
   # The focused Android e2e tests, last: the device boots once, cold, and every test runs on it warm, one after another.
   android-e2e-tests:
     needs: [plan, core-tests, clis, cli-e2e-tests]
-    if: ${{ (!cancelled() && inputs.e2e && needs.plan.result == 'success' && needs.clis.result != 'failure' && needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
+    if: ${{ (!cancelled() && inputs.e2e && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
     # two devices, each with its part of the tests (dealt over the stage's weights in shard-weights.json): the tests are 13 of the job's 24 minutes
     strategy:
       fail-fast: false

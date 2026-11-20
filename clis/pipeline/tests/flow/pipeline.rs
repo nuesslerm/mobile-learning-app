@@ -399,7 +399,7 @@ fn a_red_test_stage_does_not_hide_the_e2e_jobs_but_still_blocks_the_deploy_but_n
         let needs = pipeline_line(&block, "needs");
         // Then they still wait on, and are skipped by, a red test, and neither parity job is a condition of shipping
         for t in tests {
-            assert!(cond.contains(&format!("needs.{t}.result != 'failure'")), "{job} if: {cond}");
+            assert!(cond.contains(&format!("contains(fromJSON('[\"success\",\"skipped\"]'), needs.{t}.result)")), "{job} if: {cond}");
             assert!(needs.contains(t), "{job} needs: {needs}");
         }
         assert!(!cond.contains("parity") && !needs.contains("parity"), "{job}");
@@ -782,4 +782,17 @@ fn a_probe_says_why_each_test_it_would_run_misses_against_the_earlier_runs_of_th
     assert_eq!(of("e2e-shaky:e2e-android")["verdict"], "never-stored", "{why}");
     let kept: Value = serde_json::from_str(&std::fs::read_to_string(format!("{history}/nx-inputs/e2e-android.json")).unwrap()).unwrap();
     assert_eq!(kept["tasks"]["e2e-typing:e2e-android"].as_array().map(Vec::len), Some(1), "a probe records nothing: {kept}");
+}
+
+#[test]
+fn given_the_pipeline_when_the_sharded_test_jobs_are_read_then_their_concurrency_groups_name_their_inputs_not_the_run() {
+    // Given the pipeline workflow
+    let text = std::fs::read_to_string(crate::support::repo_root().join(".github/workflows/pipeline.yml")).unwrap();
+    // When the concurrency groups of the sharded test jobs are read
+    for (job, keys) in [("core-tests", "core_shard_keys"), ("integration-tests", "integration_shard_keys"), ("cli-e2e-tests", "cli_e2e_shard_keys")] {
+        let block = pipeline_job(&text, job);
+        let group = block.lines().find(|l| l.trim_start().starts_with("group:")).unwrap_or_else(|| panic!("no group in {job}"));
+        // Then the group holds the shard's input key, so identical work waits as a pending job and a fix with other inputs starts at once
+        assert!(group.contains(keys) && !group.contains("run_id"), "{job}: {group}");
+    }
 }
