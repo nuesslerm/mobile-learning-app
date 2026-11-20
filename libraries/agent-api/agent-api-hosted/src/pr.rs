@@ -47,4 +47,7 @@ both! {
     (REMOTES, MR_REMOTES, "remotes", exec_hosted::REPO_REMOTES),
     (RUN_LIST, MR_RUN_LIST, "runs", exec_hosted::RUN_LIST),
     (RUN_VIEW, MR_RUN_VIEW, "run", exec_hosted::RUN_VIEW),
+    (RUN_RERUN, MR_RUN_RERUN, "rerun", exec_hosted::RUN_RERUN),
+    (CHECK_DETAILS, MR_CHECK_DETAILS, "checkDetails", exec_hosted::PR_CHECK_DETAILS),
+    (SET_AUTO_MERGE, MR_SET_AUTO_MERGE, "setAutoMerge", exec_hosted::PR_AUTO_MERGE),
 }

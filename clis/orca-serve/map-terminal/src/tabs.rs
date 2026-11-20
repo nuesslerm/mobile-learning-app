@@ -1,11 +1,10 @@
-//! `session.tabs.*`: a worktree's terminals as the phone's tabs. rca has terminals only, so a tab is a terminal (no file, browser or chat tabs,
-//! groups or layout) and the foreground tab is phone-owned state under `tabs.active.<workspace>`. A paired device counts as a mobile client, so a
-//! close needs no stated reason.
+//! `session.tabs.*`: a worktree's terminals as the phone's tabs, then the kept layout's (`orca_map_workspace::layout`); no browser tabs or groups,
+//! the foreground tab is phone state under `tabs.active.<workspace>`, and a paired device is a mobile client, so a close needs no reason.
 use crate::{ask, handle_of};
 use agent_api_terminal::{CLOSE, LIST, OPEN};
 use orca_core::wire::{Failure, RUNTIME_ERROR};
 use orca_core::{AgentApi, Ctx, Subscription};
-use orca_map_workspace::Target;
+use orca_map_workspace::{layout, Target};
 use serde_json::{json, Value};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -44,10 +43,14 @@ fn terminals(agent: &dyn AgentApi, workspace: &str) -> Result<Vec<Value>, Failur
     Ok(ask(agent, LIST, json!({"workspace": workspace}))?["terminals"].as_array().cloned().unwrap_or_default())
 }
 
-/// The foreground tab: the one the phone chose while it still exists, else the first running terminal.
-fn foreground(list: &[Value], chosen: Option<String>) -> Option<String> {
+/// The foreground tab: the one the phone chose while it still exists, else the first running terminal, else the first tab.
+fn foreground(list: &[Value], extras: &[Value], chosen: Option<String>) -> Option<String> {
     let name = |t: &Value| t["terminal"].as_str().unwrap_or_default().to_string();
-    chosen.filter(|c| list.iter().any(|t| name(t) == *c)).or_else(|| list.iter().find(|t| t["status"] == "running").or(list.first()).map(name))
+    let id = |t: &Value| t["id"].as_str().unwrap_or_default().to_string();
+    chosen
+        .filter(|c| list.iter().any(|t| name(t) == *c) || extras.iter().any(|t| id(t) == *c))
+        .or_else(|| list.iter().find(|t| t["status"] == "running").or(list.first()).map(name))
+        .or_else(|| extras.first().map(id))
 }
 
 /// A number that moves when the tabs do and stays a safe integer.
@@ -61,8 +64,9 @@ fn version(tabs: &[Value], active: &Option<String>) -> u64 {
 
 fn snapshot(agent: &dyn AgentApi, target: &Target, chosen: Option<String>) -> Result<Value, Failure> {
     let list = terminals(agent, &target.workspace)?;
-    let active = foreground(&list, chosen);
-    let tabs: Vec<Value> = list
+    let extras = layout::kept(agent, &target.workspace)?;
+    let active = foreground(&list, &extras, chosen);
+    let mut tabs: Vec<Value> = list
         .iter()
         .map(|t| {
             let name = t["terminal"].as_str().unwrap_or_default();
@@ -73,8 +77,9 @@ fn snapshot(agent: &dyn AgentApi, target: &Target, chosen: Option<String>) -> Re
             tab
         })
         .collect();
+    tabs.extend(extras.iter().map(|t| layout::project(target, t, active.as_deref())));
     let version = version(&tabs, &active);
-    let active_type = active.as_ref().map(|_| "terminal");
+    let active_type = active.as_ref().and_then(|a| tabs.iter().find(|t| t["id"] == a.as_str())).map(|t| t["type"].clone());
     Ok(json!({"worktree": target.id, "publicationEpoch": format!("rca:{}", target.workspace), "snapshotVersion": version, "activeGroupId": null, "activeTabId": active, "activeTabType": active_type, "tabs": tabs}))
 }
 
@@ -87,9 +92,9 @@ pub(crate) fn list(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failur
     read(agent, &target)
 }
 
-/// The tab must be one of the worktree's terminals.
+/// The tab must be one of the worktree's terminals or of its kept layout.
 fn existing(agent: &dyn AgentApi, target: &Target, tab: &str) -> Result<(), Failure> {
-    if terminals(agent, &target.workspace)?.iter().any(|t| t["terminal"] == tab) { Ok(()) } else { Err(Failure::new(RUNTIME_ERROR, "tab_not_found")) }
+    if terminals(agent, &target.workspace)?.iter().any(|t| t["terminal"] == tab) || layout::kept(agent, &target.workspace)?.iter().any(|t| t["id"] == tab) { Ok(()) } else { Err(Failure::new(RUNTIME_ERROR, "tab_not_found")) }
 }
 
 pub(crate) fn activate(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
@@ -106,6 +111,9 @@ pub(crate) fn close(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failu
     let tab = tab_id(params)?;
     let target = orca_map_workspace::resolve(agent, selected)?;
     existing(agent, &target, tab)?;
+    if layout::close(agent, &target.workspace, tab)? {
+        return Ok(json!({"closed": true}));
+    }
     ask(agent, CLOSE, json!({"workspace": target.workspace, "terminal": tab}))?;
     if active_of(agent, &target.workspace).as_deref() == Some(tab) {
         set_active(agent, &target.workspace, None)?;

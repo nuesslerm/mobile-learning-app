@@ -1,7 +1,7 @@
 //! The pure core of `rca-exec`: the executor port with the actions every model uses (`docs/plans/rca-client/protocol.md`), and the one function
 //! that maps a wire request `{tool, args}` onto it. The arguments and results are the contract crates' (`libraries/agent-api`). No I/O;
 //! paths are relative to the executor's root.
-use exec_fs::{Browse, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, ListDir, ListResult, MakeDir, MakeDirResult, PutBlob, PutBlobResult, PutTemp, PutTempResult, ReadChunk, ReadFile, ReadResult, SearchEntries, SkillScan, SkillsFound, Stat, StatResult, WriteFile, WriteResult};
+use exec_fs::{Browse, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, ListDir, ListResult, MakeDir, MakeDirResult, PutBlob, PutBlobResult, PutTemp, PutTempResult, ReadChunk, ReadFile, ReadResult, SearchEntries, SessionScan, SessionsFound, SkillScan, SkillsFound, Stat, StatResult, WriteFile, WriteResult};
 use exec_hosted::HostedOp;
 use exec_browser::BrowserOp;
 use exec_preview::PreviewOp;
@@ -49,6 +49,8 @@ pub trait ToolExecutor: Send + Sync {
     fn logout(&self, args: &LoginProgram) -> ExecResult<bool>;
     /// The skills of a directory of the workspace and, when asked, of the executor's own home.
     fn skill_scan(&self, args: &SkillScan) -> ExecResult<SkillsFound>;
+    /// The sessions the agent CLIs keep in the executor's own home.
+    fn session_scan(&self, args: &SessionScan) -> ExecResult<SessionsFound>;
     fn search_entries(&self, args: &SearchEntries) -> ExecResult<EntriesResult>;
     fn git_worktree_add(&self, args: &WorktreeAdd) -> ExecResult<WorktreeAdded>;
     /// True when the worktree was removed.
@@ -118,6 +120,7 @@ pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value,
         exec_proc::LOGIN_CANCEL => Ok(to_value(&LoginCancelled { cancelled: ex.login_cancel(&LoginCancel::parse(args)?)? })),
         exec_proc::LOGOUT => Ok(to_value(&LoggedOut { signed_in: ex.logout(&LoginProgram::parse(args)?)? })),
         exec_fs::SKILL_SCAN => Ok(to_value(&ex.skill_scan(&SkillScan::parse(args)?)?)),
+        exec_fs::SESSION_SCAN => Ok(to_value(&ex.session_scan(&SessionScan::parse(args)?)?)),
         exec_fs::SEARCH_ENTRIES => Ok(to_value(&ex.search_entries(&SearchEntries::parse(args)?)?)),
         exec_git::GIT_WORKTREE_ADD => Ok(to_value(&ex.git_worktree_add(&WorktreeAdd::parse(args)?)?)),
         exec_git::GIT_WORKTREE_REMOVE => Ok(to_value(&WorktreeRemoved { removed: ex.git_worktree_remove(&WorktreeRemove::parse(args)?)? })),
@@ -240,6 +243,10 @@ mod tests {
         fn skill_scan(&self, _: &SkillScan) -> ExecResult<SkillsFound> {
             self.note(exec_fs::SKILL_SCAN);
             Ok(SkillsFound { skills: Vec::new(), truncated: false, present: Vec::new() })
+        }
+        fn session_scan(&self, _: &SessionScan) -> ExecResult<SessionsFound> {
+            self.note(exec_fs::SESSION_SCAN);
+            Ok(SessionsFound { sessions: Vec::new(), truncated: false })
         }
         fn browse(&self, _: &Browse) -> ExecResult<BrowseResult> {
             self.note(exec_fs::BROWSE);

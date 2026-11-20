@@ -87,23 +87,14 @@
     "rpc:linear.*": "M12",
     "rpc:jira.*": "M12",
     "rpc:speech.*": "M12",
-    "rpc:notifications.*": "M12"
+    "rpc:notifications.*": "M12",
+    "rpc:ssh.*": "M12"
   },
   "targets": {},
   "unrecordableTests": {
     "terminal_pty::a_phone_streams_a_real_shell_over_the_binary_stream_types_into_it_and_resumes_with_only_what_it_missed_and_the_stream_ends_when_it_asks": "a pty's output: the headless orcad has no open app window and answers every terminal row with that refusal, so no recording holds the bytes a shell prints, what typed input runs, a resumed stream or a resize; the recorded replay serves the rows and this test keeps the pty check"
   },
   "decisions": {
-    "rpc:ssh.connect": {
-      "state": "not-offered",
-      "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach",
-      "decidedBy": "M12"
-    },
-    "rpc:ssh.getState": {
-      "state": "not-offered",
-      "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach",
-      "decidedBy": "M12"
-    },
     "rpc:pairing.getEndpoints": {
       "state": "not-offered",
       "reason": "owner-confirmed (decision 7): a product choice, not something the chain cannot prove (the pinned host lets a directly paired phone call it): a phone is paired with this one host by its own offer, which already carries the endpoint; there is no desktop whose other addresses it could list",
@@ -122,31 +113,6 @@
     "http:mobile/src/diagnostics/connection-diagnostics-submission.ts#1": {
       "state": "excluded",
       "reason": "owner-confirmed (decision 7): the phone posts its redacted connection report to the constant https://www.onorca.dev/v1/feedback after an explicit tap; no host is involved, as with the other fixed third-party fetches"
-    },
-    "rpc:ssh.listTargetSummaries": {
-      "state": "not-offered",
-      "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach",
-      "decidedBy": "M12"
-    },
-    "rpc:files.open": {
-      "state": "not-offered",
-      "reason": "owner-confirmed (decision 7): it opens an editor tab in the desktop's own window and this host has no desktop; the phone reads a file with files.read and files.readPreview",
-      "decidedBy": "M6"
-    },
-    "rpc:files.openDiff": {
-      "state": "not-offered",
-      "reason": "owner-confirmed (decision 7): it opens a diff tab in the desktop's own window and this host has no desktop",
-      "decidedBy": "M6"
-    },
-    "rpc:markdown.readTab": {
-      "state": "not-offered",
-      "reason": "owner-confirmed (decision 7): it reads a markdown editor tab of the desktop by its tab id and this host has no tab; the phone's own fallback reads the file with files.read",
-      "decidedBy": "M6"
-    },
-    "rpc:markdown.saveTab": {
-      "state": "not-offered",
-      "reason": "owner-confirmed (decision 7): it saves a markdown editor tab of the desktop by its tab id and this host has no tab to save",
-      "decidedBy": "M6"
     },
     "http:mobile/src/app-update/app-store-update-source.ts#1": {
       "state": "excluded",
@@ -168,23 +134,8 @@
       "state": "excluded",
       "reason": "third-party fetch: the troubleshooter probes DNS over dns.google; no host is involved"
     },
-    "rpc:aiVault.listSessions": {
-      "state": "not-offered",
-      "reason": "owner-confirmed (decision 7): it lists the session files the CLIs keep in the host's own home directory, which rca does not keep; the chats of this host are rca threads, which agentSession.* already serves. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the CLIs now run at the executor's host (owner decision of 18 Nov), so their session files are readable there; served in phase 3 with the host session vault.",
-      "decidedBy": "M7"
-    },
-    "rpc:aiVault.prepareSessionResume": {
-      "state": "not-offered",
-      "reason": "owner-confirmed (decision 7): it prepares the resume of a CLI session file from the host's disk for a desktop terminal to open; rca has no such file and no desktop terminal. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the CLIs now run at the executor's host (owner decision of 18 Nov), so their session files are readable there; served in phase 3 with the host session vault.",
-      "decidedBy": "M7"
-    },
     "rpc:preflight.check": {
       "oracle": "mimic"
-    },
-    "rpc:agentSession.reveal": {
-      "state": "not-offered",
-      "reason": "owner-confirmed (decision 7): it shows the chat's tab in the desktop's own window and this host has no desktop",
-      "decidedBy": "M7"
     },
     "rpc:mobileWeb.bundle.chunk": {
       "oracle": "mimic"
@@ -409,11 +360,6 @@
     "rpc:settings.getAgentLaunch": {
       "state": "not-offered",
       "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the answer projects launch choices, permission mode and command overrides of settings that rca neither keeps nor reads at launch, so reporting permissionMode 'yolo' and per-agent flags would state behaviour no rca turn follows.",
-      "decidedBy": "M12"
-    },
-    "rpc:settings.mutateNativeChatSessionOptions": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host stores the picked model and effort per agent as the launch default for new chats; rca has no per-agent default that a launch reads, so ok:true would acknowledge state never used.",
       "decidedBy": "M12"
     },
     "rpc:github.addPRReviewComment": {
@@ -1175,6 +1121,39 @@
       "decidedBy": "M11"
     },
     "rpc:speech.models.list": {
+      "oracle": "mimic"
+    },
+    "rpc:ssh.connect": {
+      "oracle": "mimic"
+    },
+    "rpc:ssh.getState": {
+      "oracle": "mimic"
+    },
+    "rpc:ssh.listTargetSummaries": {
+      "unrecordable": "the recorded orcad has no SSH target configured and lists none, where this host lists its attached executor as the one target (a known gap in cassettes/orca-v1.4.259-recorded/known-gaps.json); the mapper's flow test (map-workspace/tests/flow.rs) and the chain test (tests/integration/layout_vault.rs) keep the behaviour, a shape taken from the pinned source"
+    },
+    "rpc:files.open": {
+      "oracle": "mimic"
+    },
+    "rpc:files.openDiff": {
+      "oracle": "mimic"
+    },
+    "rpc:markdown.readTab": {
+      "oracle": "mimic"
+    },
+    "rpc:markdown.saveTab": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.reveal": {
+      "oracle": "mimic"
+    },
+    "rpc:aiVault.listSessions": {
+      "oracle": "mimic"
+    },
+    "rpc:aiVault.prepareSessionResume": {
+      "oracle": "mimic"
+    },
+    "rpc:settings.mutateNativeChatSessionOptions": {
       "oracle": "mimic"
     }
   },

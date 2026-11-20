@@ -16,17 +16,19 @@ pub const MODELS_LIST: Method = Method::new(GROUP, "models.list");
 pub const AGENTS_DETECT: Method = Method::new(GROUP, "agents.detect");
 pub const SKILLS_LIST: Method = Method::new(GROUP, "skills.list");
 pub const COMMANDS_LIST: Method = Method::new(GROUP, "commands.list");
+/// The sessions the agent CLIs keep in an executor's own home (the host CLI session vault).
+pub const SESSIONS_LIST: Method = Method::new(GROUP, "sessions.list");
 /// Whether the service can turn a recording into text, and with which engine.
 pub const SPEECH_STATUS: Method = Method::new(GROUP, "speech.status");
 /// The words in one recording (the service's own speech engine: no executor is asked).
 pub const SPEECH_TRANSCRIBE: Method = Method::new(GROUP, "speech.transcribe");
 
 /// Every method of the group.
-pub const METHODS: &[Method] = &[MODELS_LIST, AGENTS_DETECT, SKILLS_LIST, COMMANDS_LIST, SPEECH_STATUS, SPEECH_TRANSCRIBE];
+pub const METHODS: &[Method] = &[MODELS_LIST, AGENTS_DETECT, SKILLS_LIST, COMMANDS_LIST, SESSIONS_LIST, SPEECH_STATUS, SPEECH_TRANSCRIBE];
 
 /// The executor actions each method may ask, in the order it asks them. `models.list` answers from the table alone, and `commands.list` asks
 /// only when it is given a workspace (the skills the driver reads are commands too).
-pub const ACTIONS: &[(Method, &[&str])] = &[(MODELS_LIST, &[]), (AGENTS_DETECT, &["cli_detect"]), (SKILLS_LIST, &["skill_scan"]), (COMMANDS_LIST, &["skill_scan"]), (SPEECH_STATUS, &[]), (SPEECH_TRANSCRIBE, &[])];
+pub const ACTIONS: &[(Method, &[&str])] = &[(MODELS_LIST, &[]), (AGENTS_DETECT, &["cli_detect"]), (SKILLS_LIST, &["skill_scan"]), (COMMANDS_LIST, &["skill_scan"]), (SESSIONS_LIST, &["session_scan"]), (SPEECH_STATUS, &[]), (SPEECH_TRANSCRIBE, &[])];
 
 /// The drivers a request may name (`agent.threads` calls them `instance_id`): the ids of the service's driver table, which a test of the
 /// service holds equal.
@@ -307,6 +309,79 @@ pub struct CommandsResult {
     pub commands: Vec<Command>,
 }
 
+/// The CLIs whose sessions `sessions.list` reads: the drivers that keep session files in the executor's home.
+pub const SESSION_AGENTS: [&str; 2] = ["claude", "codex"];
+
+/// `sessions.list`: the sessions the agent CLIs keep in an executor's own home, newest file first. `executor` names the executor (none is the
+/// only one attached), `agents` the CLIs to read (default both), `limit` the most to return (default 100, at most 500).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SessionsParams {
+    #[serde(default)]
+    pub executor: Option<String>,
+    #[serde(default)]
+    pub agents: Option<Vec<String>>,
+    #[serde(default)]
+    pub limit: Option<u64>,
+}
+
+impl SessionsParams {
+    pub fn parse(params: &Value) -> Result<SessionsParams, ParamError> {
+        let p: SessionsParams = read(params)?;
+        if let Some(executor) = &p.executor {
+            check_name("executor", executor)?;
+        }
+        if let Some(agents) = &p.agents {
+            let mut seen: Vec<&str> = Vec::new();
+            for agent in agents {
+                if !SESSION_AGENTS.contains(&agent.as_str()) || seen.contains(&agent.as_str()) {
+                    return Err(ParamError(format!("agents is a list of {} without repeats", SESSION_AGENTS.join(" and "))));
+                }
+                seen.push(agent);
+            }
+            if agents.is_empty() {
+                return Err(ParamError(format!("agents is a list of {} without repeats", SESSION_AGENTS.join(" and "))));
+            }
+        }
+        Ok(p)
+    }
+}
+
+/// One session file of a CLI. `path` is the file as `~/<path>`: where the executor's home is never leaves it. The times are the ISO strings the
+/// file holds; `modified_ms` is the file's own modification time.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VaultSession {
+    pub agent: String,
+    pub session_id: String,
+    pub path: String,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branch: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    pub modified_ms: u64,
+    pub message_count: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_prompt: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_prompt: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SessionsResult {
+    /// The executor that was asked, by the name it attached under.
+    pub executor: String,
+    pub sessions: Vec<VaultSession>,
+    /// The executor stopped at `limit`: there are more.
+    pub truncated: bool,
+}
+
 /// The recording formats `speech.transcribe` takes (the engines read them through ffmpeg or the sidecar).
 pub const SPEECH_FORMATS: [&str; 6] = ["wav", "webm", "m4a", "mp3", "ogg", "flac"];
 
@@ -377,6 +452,7 @@ mod tests {
             "agents.detect" => DetectParams::parse(params).map(drop),
             "skills.list" => SkillsParams::parse(params).map(drop),
             "commands.list" => CommandsParams::parse(params).map(drop),
+            "sessions.list" => SessionsParams::parse(params).map(drop),
             "speech.status" => SpeechStatusParams::parse(params).map(drop),
             "speech.transcribe" => SpeechTranscribeParams::parse(params).map(drop),
             other => panic!("{other} is no method of the group"),
@@ -390,6 +466,7 @@ mod tests {
             "agents.detect" => read(serde_json::from_value::<DetectResult>(result.clone()).map(drop)),
             "skills.list" => read(serde_json::from_value::<SkillsResult>(result.clone()).map(drop)),
             "commands.list" => read(serde_json::from_value::<CommandsResult>(result.clone()).map(drop)),
+            "sessions.list" => read(serde_json::from_value::<SessionsResult>(result.clone()).map(drop)),
             "speech.status" => read(serde_json::from_value::<SpeechStatusResult>(result.clone()).map(drop)),
             "speech.transcribe" => read(serde_json::from_value::<SpeechTranscribeResult>(result.clone()).map(drop)),
             other => panic!("{other} is no method of the group"),
@@ -440,7 +517,7 @@ mod tests {
         for (method, actions) in ACTIONS {
             assert!(actions.iter().all(|a| known.contains(a)), "{}: {actions:?}", method.name());
         }
-        assert_eq!(ACTIONS.iter().flat_map(|(_, a)| a.iter().copied()).collect::<std::collections::BTreeSet<_>>(), [exec_fs::SKILL_SCAN, exec_proc::CLI_DETECT].into());
+        assert_eq!(ACTIONS.iter().flat_map(|(_, a)| a.iter().copied()).collect::<std::collections::BTreeSet<_>>(), [exec_fs::SESSION_SCAN, exec_fs::SKILL_SCAN, exec_proc::CLI_DETECT].into());
         // And the tools reported are the ones the executor's `cli_detect` looks for besides the agent CLIs
         assert_eq!(TOOLS, exec_proc::TOOL_CLIS);
         // And every recorded exchange asks no action outside its row, a success of a method that has some asks them all, and a method with none asks none
@@ -518,6 +595,9 @@ mod tests {
         ];
         // Then each says what is wrong
         assert_eq!(bad[0], "driver is one of opencode, claudeAgent, codex");
+        assert!(SessionsParams::parse(&json!({"agents": ["opencode"]})).is_err() && SessionsParams::parse(&json!({"agents": ["codex", "codex"]})).is_err() && SessionsParams::parse(&json!({"agents": []})).is_err());
+        assert_eq!(SessionsParams::parse(&json!({"agents": ["claude"], "limit": 5})).unwrap().limit, Some(5));
+        assert_eq!(SessionsParams::parse(&json!({"executor": " "})).unwrap_err().0, "executor is required");
         assert!(bad[1].contains("driver") && bad[2].contains("cwd"), "{bad:?}");
         assert_eq!((bad[3].as_str(), bad[4].as_str()), ("executor is required", "workspace is required"));
         // And a detection that names nothing is for the only executor, not refreshed; a null params is the same

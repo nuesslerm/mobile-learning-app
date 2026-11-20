@@ -78,8 +78,17 @@ pub const RESOLVE_MUTATION: &str = "mutation($thread:ID!){resolveReviewThread(in
 pub const UNRESOLVE_MUTATION: &str = "mutation($thread:ID!){unresolveReviewThread(input:{threadId:$thread}){thread{id isResolved}}}";
 pub const MARK_VIEWED_MUTATION: &str = "mutation($pullRequestId:ID!,$path:String!){markFileAsViewed(input:{pullRequestId:$pullRequestId,path:$path}){pullRequest{id}}}";
 pub const UNMARK_VIEWED_MUTATION: &str = "mutation($pullRequestId:ID!,$path:String!){unmarkFileAsViewed(input:{pullRequestId:$pullRequestId,path:$path}){pullRequest{id}}}";
+pub const ENABLE_AUTO_MERGE_MUTATION: &str = "mutation($pullRequestId:ID!,$mergeMethod:PullRequestMergeMethod!,$expectedHeadOid:GitObjectID){enablePullRequestAutoMerge(input:{pullRequestId:$pullRequestId,mergeMethod:$mergeMethod,expectedHeadOid:$expectedHeadOid}){pullRequest{id}}}";
 pub const EDIT_ISSUE_COMMENT_MUTATION: &str = "mutation($id:ID!,$body:String!){updateIssueComment(input:{id:$id,body:$body}){issueComment{id}}}";
 pub const EDIT_REVIEW_COMMENT_MUTATION: &str = "mutation($id:ID!,$body:String!){updatePullRequestReviewComment(input:{pullRequestReviewCommentId:$id,body:$body}){pullRequestReviewComment{id}}}";
+
+fn merge_method_enum(method: MergeMethod) -> &'static str {
+    match method {
+        MergeMethod::Merge => "MERGE",
+        MergeMethod::Squash => "SQUASH",
+        MergeMethod::Rebase => "REBASE",
+    }
+}
 
 fn step(program: Program, args: Vec<String>) -> Step {
     Step { program, args, stdin: None, ok_exits: vec![0], cwd: Cwd::Root }
@@ -349,6 +358,15 @@ pub fn follow(op: &HostedOp, outputs: &[Output]) -> Result<Option<Step>, String>
             Ok(mine.map(|id| step(program, vec!["api".into(), "--method=DELETE".into(), format!("{collection}/{id}")])))
         }
         (HostedCall::PrCreate { .. }, Provider::Gitlab, _) => next_merge_request_step(op, outputs),
+        (HostedCall::PrAutoMerge { method, enabled: true, .. }, Provider::Github, 1) => {
+            let view = parse(&outputs[0])?;
+            let id = view["id"].as_str().ok_or("gh named no node id for the pull request")?;
+            let mut args = strs(&["api", "graphql"]);
+            args.extend([format!("-f=pullRequestId={id}"), format!("-f=mergeMethod={}", merge_method_enum(*method))]);
+            args.extend(view["headRefOid"].as_str().map(|oid| format!("-f=expectedHeadOid={oid}")));
+            args.push(format!("-f=query={ENABLE_AUTO_MERGE_MUTATION}"));
+            Ok(Some(step(Program::Gh, args)))
+        }
         _ => Ok(None),
     }
 }
@@ -691,6 +709,32 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             args.push(format!("--json={RUN_FIELDS},jobs"));
             one(gh(args))
         }
+        HostedCall::RunRerun { run, failed_only } => {
+            let mut args = strs(&["run", "rerun", &run.to_string()]);
+            repo_flag(&mut args);
+            if *failed_only {
+                args.push("--failed".into());
+            }
+            one(gh(args))
+        }
+        HostedCall::PrCheckDetails { check, run } => {
+            let tolerated = |path: String| {
+                let mut s = gh(vec!["api".into(), path]);
+                s.ok_exits = vec![0, 1];
+                s
+            };
+            let mut steps = Vec::new();
+            if let Some(check) = check {
+                steps.push(gh(vec!["api".into(), format!("{}/check-runs/{check}", rest_repo())]));
+                steps.push(tolerated(format!("{}/check-runs/{check}/annotations?per_page=20", rest_repo())));
+            }
+            if let Some(run) = run {
+                steps.push(tolerated(format!("{}/actions/runs/{run}/jobs?per_page=100", rest_repo())));
+            }
+            Ok(steps)
+        }
+        HostedCall::PrAutoMerge { number, enabled: false, .. } => one(gh(pr(&["merge"], *number, strs(&["--disable-auto"])))),
+        HostedCall::PrAutoMerge { number, enabled: true, .. } => one(view(*number, "id,headRefOid")),
         HostedCall::AuthStatus => {
             let mut s = gh(strs(&["auth", "status"]));
             s.args.extend(op.host.iter().map(|h| format!("--hostname={h}")));
@@ -899,6 +943,29 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             one(api("GET", format!("{}/pipelines?{query}", project())))
         }
         HostedCall::RunView { run } => Ok(vec![api("GET", format!("{}/pipelines/{run}", project())), api("GET", format!("{}/pipelines/{run}/jobs?per_page=100", project()))]),
+        HostedCall::RunRerun { run, .. } => one(api("POST", format!("{}/pipelines/{run}/retry", project()))),
+        HostedCall::PrCheckDetails { check, run } => {
+            let mut steps = Vec::new();
+            if let Some(check) = check {
+                steps.push(api("GET", format!("{}/jobs/{check}", project())));
+                let mut trace = api("GET", format!("{}/jobs/{check}/trace", project()));
+                trace.ok_exits = vec![0, 1];
+                steps.push(trace);
+            }
+            if let Some(run) = run {
+                let mut jobs = api("GET", format!("{}/pipelines/{run}/jobs?per_page=100", project()));
+                jobs.ok_exits = vec![0, 1];
+                steps.push(jobs);
+            }
+            Ok(steps)
+        }
+        HostedCall::PrAutoMerge { number, enabled: false, .. } => one(api("POST", mr(*number, "/cancel_merge_when_pipeline_succeeds"))),
+        HostedCall::PrAutoMerge { number, enabled: true, method } => {
+            if *method == MergeMethod::Rebase {
+                return Err("GitLab merges as the project is set to (merge or squash); a rebase merge is a project setting".into());
+            }
+            one(with_json(api("PUT", mr(*number, "/merge")), serde_json::json!({"squash": *method == MergeMethod::Squash, "merge_when_pipeline_succeeds": true})))
+        }
         HostedCall::AuthStatus => {
             let mut s = glab(strs(&["auth", "status"]));
             s.args.extend(op.host.iter().map(|h| format!("--hostname={h}")));

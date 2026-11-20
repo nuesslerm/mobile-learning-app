@@ -20,6 +20,7 @@ pub const PUT_BLOB: &str = "put_blob";
 pub const PUT_TEMP: &str = "put_temp";
 pub const MAKE_DIR: &str = "make_dir";
 pub const SKILL_SCAN: &str = "skill_scan";
+pub const SESSION_SCAN: &str = "session_scan";
 
 /// Where `skill_scan` looks for skills, below the scanned directory and below the executor's home: one directory per skill, holding `SKILL.md`.
 pub const SKILL_DIRS: [&str; 3] = [".claude/skills", ".agents/skills", ".codex/skills"];
@@ -32,6 +33,17 @@ pub const SKILL_READ_MAX: u64 = 64 << 10;
 /// The longest name and description kept.
 pub const SKILL_NAME_MAX: usize = 200;
 pub const SKILL_DESCRIPTION_MAX: usize = 1000;
+
+/// The agent CLIs whose session files `session_scan` reads, below the executor's home: `~/.claude/projects/<project>/<id>.jsonl` and
+/// `~/.codex/sessions/<year>/<month>/<day>/rollout-*.jsonl`; the line formats come from the CLIs' own files, unpinned.
+pub const SESSION_AGENTS: [&str; 2] = ["claude", "codex"];
+/// The most sessions one `session_scan` returns; a larger `limit` is cut to it.
+pub const SESSIONS_MAX: usize = 500;
+const SESSIONS_DEFAULT: usize = 100;
+/// How much of one session file is read; a longer file counts the messages of this much.
+pub const SESSION_READ_MAX: u64 = 4 << 20;
+/// The longest prompt and title kept.
+pub const PROMPT_MAX: usize = 300;
 
 /// The most bytes one `read_chunk` returns; a longer `length` is cut to it.
 pub const CHUNK_MAX: u64 = 1 << 20;
@@ -115,6 +127,15 @@ pub const ACTIONS: &[Action] = &[
             Property { name: "home_dirs", kind: "array", about: "The skill directories to list below the home, relative and without `..` (default the same three)" },
         ],
         required: &["root"],
+    },
+    Action {
+        name: SESSION_SCAN,
+        about: "List the sessions the agent CLIs (claude, codex) keep in the executor's own home, newest file first: id, title, directory, branch, model, times, message count, first and last prompt, and the file as ~/<path>.",
+        properties: &[
+            Property { name: "agents", kind: "array", about: "The CLIs to list, each claude or codex (default both)" },
+            Property { name: "limit", kind: "integer", about: "The most sessions to return (default 100, at most 500)" },
+        ],
+        required: &[],
     },
 ];
 
@@ -457,6 +478,165 @@ pub fn front_matter(text: &str) -> (Option<String>, Option<String>) {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct SessionScan {
+    pub agents: Vec<String>,
+    pub limit: usize,
+}
+
+impl SessionScan {
+    pub fn parse(args: &Value) -> ExecResult<SessionScan> {
+        let limit = opt_uint(args, "limit")?.map_or(SESSIONS_DEFAULT, |l| (l as usize).clamp(1, SESSIONS_MAX));
+        let agents = match args.get("agents").filter(|v| !v.is_null()) {
+            None => SESSION_AGENTS.iter().map(|a| a.to_string()).collect(),
+            Some(given) => {
+                let list = given.as_array().filter(|l| !l.is_empty() && l.len() <= SESSION_AGENTS.len()).ok_or_else(|| ExecError::invalid_args("`agents` must be a list of one or two CLIs"))?;
+                let mut agents: Vec<String> = Vec::new();
+                for agent in list {
+                    let name = agent.as_str().filter(|a| SESSION_AGENTS.contains(a)).ok_or_else(|| ExecError::invalid_args(format!("`agents` names claude or codex, not {agent}")))?;
+                    if agents.iter().any(|a| a == name) {
+                        return Err(ExecError::invalid_args(format!("`agents` names {name} twice")));
+                    }
+                    agents.push(name.to_string());
+                }
+                agents
+            }
+        };
+        Ok(SessionScan { agents, limit })
+    }
+}
+
+/// One session file of a CLI. `path` is `~/<path>` (the home's own location never leaves the executor); the times are the file's own
+/// ISO strings, `modified_ms` is the file's modification time.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VaultSession {
+    pub agent: String,
+    pub session_id: String,
+    pub path: String,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branch: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    pub modified_ms: u64,
+    pub message_count: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_prompt: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_prompt: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SessionsFound {
+    pub sessions: Vec<VaultSession>,
+    pub truncated: bool,
+}
+
+/// What one session file says about itself.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Digest {
+    pub session_id: Option<String>,
+    pub title: Option<String>,
+    pub cwd: Option<String>,
+    pub branch: Option<String>,
+    pub model: Option<String>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub message_count: u64,
+    pub first_prompt: Option<String>,
+    pub last_prompt: Option<String>,
+}
+
+fn text_of(content: &Value, kinds: &[&str]) -> Option<String> {
+    let text = match content {
+        Value::String(s) => s.clone(),
+        Value::Array(blocks) => blocks.iter().filter(|b| b.get("type").and_then(Value::as_str).is_some_and(|t| kinds.contains(&t))).filter_map(|b| b.get("text").and_then(Value::as_str)).collect::<Vec<_>>().join("\n"),
+        _ => return None,
+    };
+    let text = text.trim();
+    (!text.is_empty()).then(|| text.to_string())
+}
+
+fn string_at(value: &Value, key: &str) -> Option<String> {
+    value.get(key).and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string)
+}
+
+/// The digest of a session file's text for `agent` claude or codex. A non-JSON line is skipped; a prompt is a user message that is text,
+/// not a tool result or the CLI's own context block.
+pub fn digest(agent: &str, text: &str) -> Digest {
+    let mut d = Digest::default();
+    let prompt = |d: &mut Digest, text: String| {
+        let text = cut(&text, PROMPT_MAX);
+        d.first_prompt.get_or_insert_with(|| text.clone());
+        d.last_prompt = Some(text);
+    };
+    for line in text.lines() {
+        let Ok(entry) = serde_json::from_str::<Value>(line) else { continue };
+        let stamp = string_at(&entry, "timestamp");
+        let kind = entry.get("type").and_then(Value::as_str).unwrap_or_default();
+        if agent == "codex" {
+            let payload = entry.get("payload").unwrap_or(&Value::Null);
+            match kind {
+                "session_meta" => {
+                    d.session_id = d.session_id.take().or_else(|| string_at(payload, "id"));
+                    d.cwd = d.cwd.take().or_else(|| string_at(payload, "cwd"));
+                    d.branch = d.branch.take().or_else(|| payload.get("git").and_then(|g| string_at(g, "branch")));
+                    d.created_at = d.created_at.take().or_else(|| string_at(payload, "timestamp")).or(stamp.clone());
+                }
+                "turn_context" => d.model = d.model.take().or_else(|| string_at(payload, "model")),
+                "response_item" if payload.get("type").and_then(Value::as_str) == Some("message") => {
+                    match payload.get("role").and_then(Value::as_str) {
+                        Some("user") => {
+                            if let Some(t) = text_of(&payload["content"], &["input_text"]).filter(|t| !t.starts_with("<environment_context") && !t.starts_with("<user_instructions")) {
+                                d.message_count += 1;
+                                prompt(&mut d, t);
+                            }
+                        }
+                        Some("assistant") => d.message_count += 1,
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
+        } else {
+            if entry.get("isSidechain").and_then(Value::as_bool) == Some(true) {
+                continue;
+            }
+            match kind {
+                "summary" => d.title = d.title.take().or_else(|| string_at(&entry, "summary")),
+                "user" | "assistant" => {
+                    d.session_id = d.session_id.take().or_else(|| string_at(&entry, "sessionId"));
+                    d.cwd = d.cwd.take().or_else(|| string_at(&entry, "cwd"));
+                    d.branch = d.branch.take().or_else(|| string_at(&entry, "gitBranch"));
+                    d.created_at = d.created_at.take().or(stamp.clone());
+                    let message = entry.get("message").unwrap_or(&Value::Null);
+                    if kind == "assistant" {
+                        d.model = string_at(message, "model").or(d.model.take());
+                        d.message_count += 1;
+                    } else if entry.get("isMeta").and_then(Value::as_bool) != Some(true) {
+                        if let Some(t) = text_of(&message["content"], &["text"]) {
+                            d.message_count += 1;
+                            prompt(&mut d, t);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        if stamp.is_some() {
+            d.updated_at = stamp;
+        }
+    }
+    d.title = d.title.or_else(|| d.first_prompt.clone());
+    d
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Browse {
     pub path: String,
     pub show_hidden: bool,
@@ -547,6 +727,7 @@ mod tests {
                 PUT_TEMP => PutTemp::parse(args).map(drop),
                 MAKE_DIR => MakeDir::parse(args).map(drop),
                 SKILL_SCAN => SkillScan::parse(args).map(drop),
+                SESSION_SCAN => SessionScan::parse(args).map(drop),
                 other => panic!("{other} is not parsed here"),
             };
             assert!(parse(&Value::Object(full.clone())).is_ok(), "{}", action.name);
@@ -660,5 +841,43 @@ mod tests {
         let (_, description) = front_matter(&text);
         // Then it is the cap's bytes and whole characters
         assert_eq!(description.map(|d| (d.len(), d.chars().all(|c| c == 'é'))), Some((SKILL_DESCRIPTION_MAX, true)));
+    }
+
+    #[test]
+    fn given_session_files_of_each_cli_when_digested_then_prompts_and_facts_come_out() {
+        // Given a claude file with a summary, a context-free prompt, a tool result and a reply, and a codex file with its context block
+        let claude = concat!(
+            r#"{"type":"summary","summary":"Fix the build"}"#, "\n",
+            r#"{"type":"user","sessionId":"s1","cwd":"/w","gitBranch":"main","timestamp":"2026-11-01T10:00:00Z","message":{"role":"user","content":"fix it"}}"#, "\n",
+            r#"{"type":"assistant","timestamp":"2026-11-01T10:00:05Z","message":{"role":"assistant","model":"claude-x","content":[{"type":"text","text":"ok"}]}}"#, "\n",
+            r#"{"type":"user","timestamp":"2026-11-01T10:00:09Z","message":{"role":"user","content":[{"type":"tool_result","content":"x"}]}}"#, "\n",
+            "not json\n",
+        );
+        let codex = concat!(
+            r#"{"type":"session_meta","payload":{"id":"c1","cwd":"/w","timestamp":"2026-11-02T09:00:00Z","git":{"branch":"dev"}}}"#, "\n",
+            r#"{"type":"turn_context","payload":{"model":"gpt-x"}}"#, "\n",
+            r#"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"<environment_context>x"}]}}"#, "\n",
+            r#"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"add a test"}]}}"#, "\n",
+            r#"{"timestamp":"2026-11-02T09:01:00Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"done"}]}}"#, "\n",
+        );
+        // When digested
+        let (c, x) = (digest("claude", claude), digest("codex", codex));
+        // Then each says what its file holds, and a summary is the claude title
+        assert_eq!((c.session_id.as_deref(), c.title.as_deref(), c.cwd.as_deref(), c.branch.as_deref(), c.model.as_deref()), (Some("s1"), Some("Fix the build"), Some("/w"), Some("main"), Some("claude-x")));
+        assert_eq!((c.message_count, c.first_prompt.as_deref(), c.updated_at.as_deref()), (2, Some("fix it"), Some("2026-11-01T10:00:09Z")));
+        assert_eq!((x.session_id.as_deref(), x.title.as_deref(), x.branch.as_deref(), x.model.as_deref()), (Some("c1"), Some("add a test"), Some("dev"), Some("gpt-x")));
+        assert_eq!((x.message_count, x.created_at.as_deref(), x.updated_at.as_deref()), (2, Some("2026-11-02T09:00:00Z"), Some("2026-11-02T09:01:00Z")));
+    }
+
+    #[test]
+    fn given_a_session_scan_request_when_parsed_then_both_clis_and_a_clamped_limit_are_the_default() {
+        // Given no arguments, a one-CLI list, and lists that name an unknown or repeated CLI
+        let all = SessionScan::parse(&json!({})).unwrap();
+        let one = SessionScan::parse(&json!({"agents": ["codex"], "limit": 0})).unwrap();
+        // Then the defaults fill in, the limit is clamped, and a bad list is INVALID_ARGS
+        assert_eq!((all.agents.len(), all.limit, one.agents, one.limit), (2, 100, vec!["codex".to_string()], 1));
+        for bad in [json!({"agents": ["opencode"]}), json!({"agents": ["codex", "codex"]}), json!({"agents": []})] {
+            assert_eq!(SessionScan::parse(&bad).unwrap_err().code, Code::InvalidArgs, "{bad}");
+        }
     }
 }

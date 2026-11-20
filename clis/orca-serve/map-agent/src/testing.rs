@@ -309,6 +309,7 @@ struct CatalogState {
     discover_refused: bool,
     discovers: Vec<Value>,
     skills: Vec<Value>,
+    sessions: Vec<Value>,
     detections: Vec<Value>,
     speech: Option<String>,
     heard: Vec<(usize, String)>,
@@ -357,6 +358,13 @@ impl Catalog {
         self
     }
 
+    /// A CLI session file the executor found in its home.
+    pub fn session(&self, agent: &str, id: &str, cwd: &str, title: &str, modified_ms: u64) -> &Catalog {
+        let path = format!("~/.{agent}/sessions/{id}.jsonl");
+        self.0.lock().unwrap().sessions.push(json!({"agent": agent, "session_id": id, "path": path, "title": title, "cwd": cwd, "modified_ms": modified_ms, "message_count": 2, "first_prompt": title, "last_prompt": "and then"}));
+        self
+    }
+
     /// The `agents.detect` requests the executor was asked: their params, in order.
     pub fn detections(&self) -> Vec<Value> {
         self.0.lock().unwrap().detections.clone()
@@ -378,7 +386,7 @@ impl Catalog {
     }
 
     pub fn install(&self, agent: &ScriptedAgent) {
-        for method in ["models.list", "agents.detect", "skills.list", "commands.list", "sourceControl.discover", "speech.status", "speech.transcribe"] {
+        for method in ["models.list", "agents.detect", "skills.list", "sessions.list", "commands.list", "sourceControl.discover", "speech.status", "speech.transcribe"] {
             let me = self.clone();
             agent.reply(method, move |p| me.answer(method, p));
         }
@@ -445,6 +453,11 @@ impl Catalog {
                 let signed = state.signed_in.iter().any(|s| s == provider);
                 let host = if provider == "github" { "github.com" } else { "gitlab.com" };
                 Ok(json!({"providers": [{"provider": provider, "installed": true, "signed_in": signed, "host": host, "account": signed.then_some("octo"), "scopes": []}]}))
+            }
+            "sessions.list" => {
+                let limit = p["limit"].as_u64().unwrap_or(100) as usize;
+                let all: Vec<Value> = state.sessions.to_vec();
+                Ok(json!({"executor": EXECUTOR, "sessions": all.iter().take(limit).cloned().collect::<Vec<_>>(), "truncated": all.len() > limit}))
             }
             "skills.list" => {
                 if p["workspace"].as_str().is_none_or(|w| w.is_empty()) {

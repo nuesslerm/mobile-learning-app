@@ -613,3 +613,20 @@ fn given_a_review_thread_named_by_its_node_id_alone_when_it_is_resolved_then_git
     assert!(refused.message.contains("`number`"), "{refused:?}");
     no_start(&g);
 }
+
+#[test]
+fn given_a_request_to_turn_auto_merge_on_when_it_runs_on_github_then_it_goes_through_the_enable_mutation_and_gh_never_merges() {
+    // Given the recorded exchanges that turn auto-merge on for GitHub, one of them for a pull request GitHub says is clean
+    let recorded = fixtures().into_iter().find(|f| f.action == exec_hosted::PR_AUTO_MERGE).unwrap();
+    let turned_on: Vec<&Exchange> = recorded.exchanges.iter().filter(|e| e.request["args"]["provider"] == "github" && e.request["args"]["enabled"] == true).collect();
+    assert!(turned_on.len() >= 3);
+    for exchange in turned_on {
+        // When the executor runs it
+        let (response, starts, _) = replay(exchange);
+        // Then the pull request is read for its node id, the enable mutation is the last program started, and no start is `gh pr merge`
+        assert_eq!(response, exchange.response, "{}", exchange.name);
+        let argv = |s: &Value| s.as_array().unwrap().iter().map(|a| a.as_str().unwrap().to_string()).collect::<Vec<_>>();
+        assert!(starts.iter().map(argv).all(|a| !(a[1] == "pr" && a[2] == "merge")), "{}: {starts:?}", exchange.name);
+        assert_eq!(&argv(starts.last().unwrap())[1..3], ["api", "graphql"], "{}", exchange.name);
+    }
+}

@@ -1,6 +1,6 @@
 {
-  "content_hash": "sha256:fdab08d52fa4514490a1070195865e5ab5ece0f80a6d8ac68983c0ff70632a6c",
-  "interactions": 147,
+  "content_hash": "sha256:58c263eb872785d2a94a5fdcf43e62bb6110d45a15e74fe21fdec893c77eff14",
+  "interactions": 168,
   "provenance": {
     "imported_from": [
       {
@@ -46,6 +46,14 @@
       {
         "hash": "sha256:d7a6b9f36abd8f141a09f7468c3bdd498b68899963574dd67791e12cbb35a0df",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_view.json"
+      },
+      {
+        "hash": "sha256:685902ce017b9349dd7902576f2bf9ebfa02f403be8d6f0f8159c70707edaa0f",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_auto_merge.json"
+      },
+      {
+        "hash": "sha256:a829b264c7b77343ab8b88d84f870b8869d8bb43df347187a1144842cf67e678",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_check_details.json"
       },
       {
         "hash": "sha256:cb041e18265f58aec8aa50b05ba492a63b97b18d77ed1772281482f3b41b495c",
@@ -174,6 +182,10 @@
       {
         "hash": "sha256:c65ef8a9860505860a07f41e9632f778a3adc627f41e15083c628e6b3250e279",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_run_list.json"
+      },
+      {
+        "hash": "sha256:e8c2e86f82a815385166ea0f3ac0c0129fb8bf46ced06833062844000517d30a",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_run_rerun.json"
       },
       {
         "hash": "sha256:d8c6d24aa802500ef0bbacb2d33a291e9d0a1343121fa6b49f92e70138203864",

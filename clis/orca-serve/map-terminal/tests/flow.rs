@@ -9,6 +9,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 
 struct Rig {
+    files: Workspaces,
     terminals: Terminals,
     conn: Connection,
     n: u32,
@@ -23,8 +24,8 @@ impl Rig {
         let terminals = Terminals::default();
         terminals.terminal("main", "t1", true).terminal("feat", "t2", true).terminal("feat", "gone", false);
         terminals.install(&agent);
-        let host = Host::new("rt".into(), vec![Box::new(TerminalArea)], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
-        Rig { terminals, conn: host.connection("dev", "tok", vec![]), n: 0 }
+        let host = Host::new("rt".into(), vec![Box::new(TerminalArea), Box::new(orca_map_workspace::WorkspaceArea)], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+        Rig { files, terminals, conn: host.connection("dev", "tok", vec![]), n: 0 }
     }
 
     fn call(&mut self, method: &str, params: Value) -> Value {
@@ -435,4 +436,30 @@ fn given_the_double_when_an_offset_is_past_the_end_or_a_terminal_is_missing_then
     let gone = json!({"workspace": "w", "terminal": "nope"});
     assert_eq!(code(rig.agent.follow("terminal.attach", "t", gone.clone(), "after_offset").map(|_| ())), "UNKNOWN_TERMINAL");
     assert_eq!(code(rig.agent.request("terminal.read", gone).map(|_| ())), "UNKNOWN_TERMINAL");
+}
+
+#[test]
+fn given_opened_files_when_the_tabs_are_listed_activated_and_closed_then_the_kept_layout_sits_beside_the_terminals() {
+    // Given a worktree with a running terminal, a markdown file and a source file
+    let mut rig = Rig::new();
+    let feat = json!({"worktree": "path:/srv/wt/feat"});
+    rig.files.put("feat", "README.md", b"# hi").put("feat", "a.ts", b"x");
+    // When the phone opens the markdown file, a diff and the source file
+    rig.ok("files.open", json!({"worktree": "path:/srv/wt/feat", "relativePath": "README.md"}));
+    rig.ok("files.openDiff", json!({"worktree": "path:/srv/wt/feat", "relativePath": "a.ts", "staged": true}));
+    rig.ok("files.open", json!({"worktree": "path:/srv/wt/feat", "relativePath": "a.ts"}));
+    // Then the terminals come first, then the kept tabs in opening order with the last opened in front, each as the host shapes it
+    let listed = rig.ok("session.tabs.list", feat.clone());
+    assert_eq!(tabs_of(&listed), [("gone".to_string(), false), ("t2".to_string(), false), ("markdown:README.md".to_string(), false), ("diff:staged:a.ts".to_string(), false), ("file:a.ts".to_string(), true)]);
+    assert_eq!((listed["activeTabId"].clone(), listed["activeTabType"].clone()), (json!("file:a.ts"), json!("file")));
+    assert_eq!(listed["tabs"][2], json!({"id": "markdown:README.md", "title": "README.md", "filePath": "/srv/wt/feat/README.md", "relativePath": "README.md", "isDirty": false, "isActive": false, "color": null, "isPinned": false, "type": "markdown", "language": "markdown", "mode": "edit", "sourceFileId": "/srv/wt/feat/README.md", "sourceFilePath": "/srv/wt/feat/README.md", "sourceRelativePath": "README.md", "documentVersion": "file:/srv/wt/feat/README.md"}));
+    assert_eq!((listed["tabs"][3]["mode"].clone(), listed["tabs"][3]["diffSource"].clone(), listed["tabs"][4]["language"].clone()), (json!("diff"), json!("staged"), json!("typescript")));
+    // When the markdown tab is activated, Then it is in front and its type is markdown
+    let activated = rig.ok("session.tabs.activate", json!({"worktree": "path:/srv/wt/feat", "tabId": "markdown:README.md"}));
+    assert_eq!((activated["activeTabId"].clone(), activated["activeTabType"].clone()), (json!("markdown:README.md"), json!("markdown")));
+    // When the front tab is closed, Then it leaves the layout, no terminal is closed, and the default tab is in front again
+    assert_eq!(rig.ok("session.tabs.close", json!({"worktree": "path:/srv/wt/feat", "tabId": "markdown:README.md"})), json!({"closed": true}));
+    assert!(rig.terminals.exists("feat", "t2"));
+    let after = rig.ok("session.tabs.list", feat);
+    assert_eq!(tabs_of(&after), [("gone".to_string(), false), ("t2".to_string(), true), ("diff:staged:a.ts".to_string(), false), ("file:a.ts".to_string(), false)]);
 }

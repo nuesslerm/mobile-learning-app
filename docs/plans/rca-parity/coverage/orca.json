@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 228,
+    "served": 239,
     "pending": 4,
-    "notOffered": 75,
+    "notOffered": 64,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -630,10 +630,17 @@
       "kind": "rpc",
       "name": "agentSession.reveal",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M7",
-      "reason": "owner-confirmed (decision 7): it shows the chat's tab in the desktop's own window and this host has no desktop",
-      "decidedBy": "M7"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.reveal-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentSession.rewind",
@@ -850,20 +857,34 @@
       "kind": "rpc",
       "name": "aiVault.listSessions",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M7",
-      "reason": "owner-confirmed (decision 7): it lists the session files the CLIs keep in the host's own home directory, which rca does not keep; the chats of this host are rca threads, which agentSession.* already serves. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the CLIs now run at the executor's host (owner decision of 18 Nov), so their session files are readable there; served in phase 3 with the host session vault.",
-      "decidedBy": "M7"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-aiVault.listSessions-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:aiVault.prepareSessionResume",
       "kind": "rpc",
       "name": "aiVault.prepareSessionResume",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M7",
-      "reason": "owner-confirmed (decision 7): it prepares the resume of a CLI session file from the host's disk for a desktop terminal to open; rca has no such file and no desktop terminal. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the CLIs now run at the executor's host (owner decision of 18 Nov), so their session files are readable there; served in phase 3 with the host session vault.",
-      "decidedBy": "M7"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-aiVault.prepareSessionResume-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:automation.create",
@@ -1365,19 +1386,33 @@
       "id": "rpc:files.open",
       "kind": "rpc",
       "name": "files.open",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M6",
-      "reason": "owner-confirmed (decision 7): it opens an editor tab in the desktop's own window and this host has no desktop; the phone reads a file with files.read and files.readPreview",
-      "decidedBy": "M6"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-files.open-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:files.openDiff",
       "kind": "rpc",
       "name": "files.openDiff",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M6",
-      "reason": "owner-confirmed (decision 7): it opens a diff tab in the desktop's own window and this host has no desktop",
-      "decidedBy": "M6"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-files.openDiff-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:files.pathsExist",
@@ -3159,19 +3194,33 @@
       "id": "rpc:markdown.readTab",
       "kind": "rpc",
       "name": "markdown.readTab",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M6",
-      "reason": "owner-confirmed (decision 7): it reads a markdown editor tab of the desktop by its tab id and this host has no tab; the phone's own fallback reads the file with files.read",
-      "decidedBy": "M6"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-markdown.readTab-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:markdown.saveTab",
       "kind": "rpc",
       "name": "markdown.saveTab",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M6",
-      "reason": "owner-confirmed (decision 7): it saves a markdown editor tab of the desktop by its tab id and this host has no tab to save",
-      "decidedBy": "M6"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-markdown.saveTab-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:mobileRelay.hosts.list",
@@ -3937,10 +3986,17 @@
       "kind": "rpc",
       "name": "settings.mutateNativeChatSessionOptions",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M10",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host stores the picked model and effort per agent as the launch default for new chats; rca has no per-agent default that a launch reads, so ok:true would acknowledge state never used.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-settings.mutateNativeChatSessionOptions-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:settings.update",
@@ -4145,27 +4201,50 @@
       "kind": "rpc",
       "name": "ssh.connect",
       "desktop": true,
-      "state": "not-offered",
-      "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach",
-      "decidedBy": "M12"
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-ssh.connect-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:ssh.getState",
       "kind": "rpc",
       "name": "ssh.getState",
       "desktop": true,
-      "state": "not-offered",
-      "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach",
-      "decidedBy": "M12"
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-ssh.getState-invalid-drop-targetId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:ssh.listTargetSummaries",
       "kind": "rpc",
       "name": "ssh.listTargetSummaries",
       "desktop": true,
-      "state": "not-offered",
-      "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach",
-      "decidedBy": "M12"
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "orca-serve-integration",
+        "test": "layout_vault::the_phone_opens_a_markdown_tab_reads_and_saves_it_and_opens_a_diff_and_the_ssh_rows_name_the_executor",
+        "agent": [
+          "repo.list"
+        ],
+        "executor": []
+      }
     },
     {
       "id": "rpc:stats.summary",

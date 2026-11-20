@@ -39,11 +39,11 @@ pub fn image_mime(name: &str) -> Option<&'static str> {
     PREVIEW_MIME.iter().find(|(e, m)| *e == ext && m.starts_with("image/")).map(|(_, m)| *m)
 }
 
-fn plain(message: &str) -> Failure {
+pub(crate) fn plain(message: &str) -> Failure {
     Failure::new(RUNTIME_ERROR, message)
 }
 
-fn extension(path: &str) -> String {
+pub(crate) fn extension(path: &str) -> String {
     let name = path.rsplit(['/', '\\']).next().unwrap_or(path);
     match name.rfind('.') {
         Some(i) if i > 0 => name[i..].to_lowercase(),
@@ -51,7 +51,7 @@ fn extension(path: &str) -> String {
     }
 }
 
-fn is_binary_path(path: &str) -> bool {
+pub(crate) fn is_binary_path(path: &str) -> bool {
     BINARY.contains(&extension(path).as_str())
 }
 
@@ -77,7 +77,7 @@ fn clean(path: &str, root_ok: bool) -> Result<&str, Failure> {
     }
 }
 
-fn basename(path: &str) -> &str {
+pub(crate) fn basename(path: &str) -> &str {
     path.rsplit(['/', '\\']).next().unwrap_or(path)
 }
 

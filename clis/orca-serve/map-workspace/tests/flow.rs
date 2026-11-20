@@ -1,6 +1,7 @@
 //! The files rows through the `Host` dispatcher with an in-memory workspace set as rca: each reply is read the way the phone reads it, and the
 //! agent methods the mapper sent are held to its `USES` list. Given/When/Then in each test.
 use orca_core::testing::{RevocablePrincipals, ScriptedAgent};
+use orca_core::AgentApi;
 use orca_core::{Host, HostInfo, ServiceStatus};
 use orca_map_workspace::testing::Workspaces;
 use orca_map_workspace::{WorkspaceArea, NOT_OFFERED, USES};
@@ -295,6 +296,12 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     rig.ok("files.readDir", with(json!({"relativePath": ""})));
     rig.ok("files.stat", with(json!({"relativePath": "a.txt"})));
     rig.ok("files.createFile", with(json!({"relativePath": "n.txt"})));
+    rig.files.put("main", "n.md", b"# n");
+    rig.ok("files.open", with(json!({"relativePath": "n.md"})));
+    rig.ok("files.openDiff", with(json!({"relativePath": "n.md"})));
+    let version = rig.ok("markdown.readTab", json!({"worktree": "main", "tabId": "markdown:n.md"}))["version"].clone();
+    rig.ok("markdown.saveTab", json!({"worktree": "main", "tabId": "markdown:n.md", "baseVersion": version, "content": "# m"}));
+    rig.ok("ssh.listTargetSummaries", json!({}));
     rig.ok("mobileRelay.projectSections", json!({}));
     rig.ok("repo.list", json!({}));
     rig.ok("repo.update", json!({"repo": "main", "updates": {"displayName": "M"}}));
@@ -330,25 +337,6 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     // Then they are the list the crate declares (state reads are the port's own call)
     let declared: BTreeSet<String> = USES.iter().map(|m| m.name().to_string()).collect();
     assert_eq!(sent, declared);
-}
-
-#[test]
-fn given_the_rows_the_area_does_not_offer_when_called_then_each_answers_not_offered_with_its_reason_which_is_the_decisions_files() {
-    // Given the decisions file and a host with the area
-    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../docs/plans/rca-parity/coverage/orca-decisions.json");
-    let decisions: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
-    let mut rig = Rig::new();
-    assert!(!NOT_OFFERED.is_empty());
-    for row in NOT_OFFERED {
-        // When the row is called
-        let r = rig.call(row.name, json!({"worktree": "main", "relativePath": "a.txt"}));
-        // Then it answers not_offered with the reason and the milestone the decisions file records for it, byte for byte
-        let d = &decisions["decisions"][format!("rpc:{}", row.name)];
-        assert_eq!(d["state"], "not-offered", "{}", row.name);
-        assert_eq!((r["error"]["code"].clone(), r["error"]["data"].clone()), (json!("not_offered"), json!({"decidedBy": d["decidedBy"]})), "{}", row.name);
-        assert_eq!(r["error"]["message"], format!("{} is not offered by this host: {}", row.name, d["reason"].as_str().unwrap()), "{}", row.name);
-        assert_eq!(row.reason, d["reason"].as_str().unwrap());
-    }
 }
 
 #[test]
@@ -709,4 +697,93 @@ fn given_the_methods_of_the_activity_rows_when_the_area_is_read_then_each_is_ser
         assert!(uses.contains(m), "{m}");
     }
     drop(rig);
+}
+
+fn open_tabs(rig: &Rig, workspace: &str) -> Value {
+    rig.agent.state_get("orca", &format!("tabs.extra.{workspace}")).unwrap().unwrap_or(json!([]))
+}
+
+#[test]
+fn given_files_when_opened_then_each_is_a_kept_tab_with_the_hosts_kind_and_a_missing_file_or_a_directory_is_refused() {
+    // Given a worktree with a source file, a markdown file, an image and a directory
+    let mut rig = Rig::new();
+    rig.files.put("feat", "src/a.ts", b"x").put("feat", "README.md", b"# hi").put("feat", "logo.png", b"\x89PNG");
+    let wt = "path:/srv/wt/feat";
+    // When each is opened
+    let text = rig.ok("files.open", json!({"worktree": wt, "relativePath": "src/a.ts", "line": 3}));
+    let md = rig.ok("files.open", json!({"worktree": wt, "relativePath": "README.md"}));
+    let img = rig.ok("files.open", json!({"worktree": wt, "relativePath": "logo.png"}));
+    // Then the answer names the worktree id and the kind, and the kept tabs hold them in order with the last opened in front
+    assert_eq!(text, json!({"worktree": "feat::/srv/wt/feat", "relativePath": "src/a.ts", "kind": "text", "opened": true}));
+    assert_eq!((md["kind"].clone(), img["kind"].clone()), (json!("markdown"), json!("image")));
+    let ids: Vec<Value> = open_tabs(&rig, "feat").as_array().unwrap().iter().map(|t| t["id"].clone()).collect();
+    assert_eq!(ids, [json!("file:src/a.ts"), json!("markdown:README.md"), json!("file:logo.png")]);
+    assert_eq!(rig.agent.state_get("orca", "tabs.active.feat").unwrap(), Some(json!("file:logo.png")));
+    // And opening one again keeps one tab, a missing file, a directory and an unsafe path are refused, and no tab was added by them
+    rig.ok("files.open", json!({"worktree": wt, "relativePath": "src/a.ts"}));
+    assert_eq!(open_tabs(&rig, "feat").as_array().unwrap().len(), 3);
+    assert_eq!(rig.err("files.open", json!({"worktree": wt, "relativePath": "nope.ts"})).1, "ENOENT: no such file or directory, open '/srv/wt/feat/nope.ts'");
+    assert_eq!(rig.err("files.open", json!({"worktree": wt, "relativePath": "src"})).1, "EISDIR: illegal operation on a directory, open '/srv/wt/feat/src'");
+    assert_eq!(rig.err("files.open", json!({"worktree": wt, "relativePath": "../x"})).1, "invalid_relative_path");
+    assert_eq!(rig.err("files.open", json!({"worktree": "a", "relativePath": "a"})).0, "selector_not_found");
+    assert_eq!(rig.err("files.open", json!({"relativePath": "a"})).0, "invalid_argument");
+    assert_eq!(open_tabs(&rig, "feat").as_array().unwrap().len(), 3);
+}
+
+#[test]
+fn given_a_diff_request_when_opened_then_a_diff_tab_for_its_side_is_kept_without_needing_the_file() {
+    // Given a worktree
+    let mut rig = Rig::new();
+    // When a staged and an unstaged diff of a renamed file are opened
+    let staged = rig.ok("files.openDiff", json!({"worktree": "path:/srv/wt/feat", "relativePath": "gone.md", "staged": true, "oldPath": "old.md"}));
+    rig.ok("files.openDiff", json!({"worktree": "path:/srv/wt/feat", "relativePath": "gone.md"}));
+    // Then the answer is the host's, and two diff tabs are kept, the staged one with its old path
+    assert_eq!(staged, json!({"worktree": "feat::/srv/wt/feat", "relativePath": "gone.md", "kind": "markdown", "opened": true}));
+    let tabs = open_tabs(&rig, "feat");
+    assert_eq!((tabs[0]["id"].clone(), tabs[0]["diffSource"].clone(), tabs[0]["oldPath"].clone()), (json!("diff:staged:gone.md"), json!("staged"), json!("old.md")));
+    assert_eq!(tabs[1]["id"], json!("diff:unstaged:gone.md"));
+}
+
+#[test]
+fn given_a_markdown_tab_when_read_and_saved_then_the_file_is_the_document_and_a_stale_version_conflicts() {
+    // Given a markdown tab opened on a file
+    let mut rig = Rig::new();
+    let wt = "path:/srv/wt/feat";
+    rig.files.put("feat", "README.md", b"# one\n").put("feat", "a.ts", b"x");
+    rig.ok("files.open", json!({"worktree": wt, "relativePath": "README.md"}));
+    let tab = "markdown:README.md";
+    // When it is read
+    let read = rig.ok("markdown.readTab", json!({"worktree": wt, "tabId": tab}));
+    // Then the answer is the file with its version, editable
+    assert_eq!(read, json!({"tabId": tab, "filePath": "/srv/wt/feat/README.md", "relativePath": "README.md", "content": "# one\n", "isDirty": false, "version": orca_map_workspace::layout::content_version("# one\n"), "source": "file", "editable": true}));
+    // When it is saved on that version
+    let saved = rig.ok("markdown.saveTab", json!({"worktree": wt, "tabId": tab, "baseVersion": read["version"], "content": "# two\n"}));
+    // Then the file holds the new text and the answer carries the new version
+    assert_eq!(saved, json!({"tabId": tab, "isDirty": false, "version": orca_map_workspace::layout::content_version("# two\n"), "content": "# two\n"}));
+    assert_eq!(rig.files.read("feat", "README.md").unwrap(), b"# two\n");
+    // And a save on the old version conflicts and leaves the file, the same save again succeeds, and an unknown or non-markdown tab is not found
+    assert_eq!(rig.err("markdown.saveTab", json!({"worktree": wt, "tabId": tab, "baseVersion": read["version"], "content": "# three\n"})).1, "conflict");
+    assert_eq!(rig.files.read("feat", "README.md").unwrap(), b"# two\n");
+    rig.ok("markdown.saveTab", json!({"worktree": wt, "tabId": tab, "baseVersion": read["version"], "content": "# two\n"}));
+    rig.ok("files.open", json!({"worktree": wt, "relativePath": "a.ts"}));
+    assert_eq!(rig.err("markdown.readTab", json!({"worktree": wt, "tabId": "file:a.ts"})).1, "tab_not_found");
+    assert_eq!(rig.err("markdown.readTab", json!({"worktree": "a", "tabId": "a"})).0, "selector_not_found");
+    assert_eq!(rig.err("markdown.saveTab", json!({"worktree": wt, "tabId": tab, "baseVersion": "v", "content": "x".repeat(256 * 1024 + 1)})).1, "file_too_large");
+}
+
+#[test]
+fn given_executors_when_the_ssh_rows_are_called_then_each_is_a_target_that_reads_connected_while_attached() {
+    // Given the host's one attached executor
+    let mut rig = Rig::new();
+    // When the targets are listed, one is read, and a connect is asked for it and for a stranger
+    let listed = rig.ok("ssh.listTargetSummaries", json!({}));
+    let state = rig.ok("ssh.getState", json!({"targetId": "e1"}));
+    let connected = rig.ok("ssh.connect", json!({"targetId": "e1"}));
+    // Then the target is the executor and connected, the state is the host's shape, and an unknown target has no state and cannot connect
+    assert_eq!(listed, json!({"targets": [{"id": "e1", "label": "e1", "connected": true, "connectionStatus": "connected"}]}));
+    assert_eq!(state, json!({"state": {"targetId": "e1", "status": "connected", "error": null, "reconnectAttempt": 0}}));
+    assert_eq!(connected, state);
+    assert_eq!(rig.ok("ssh.getState", json!({"targetId": "a"})), json!({"state": null}));
+    assert_eq!(rig.err("ssh.connect", json!({"targetId": "a"})), ("runtime_error".to_string(), "SSH connection unavailable".to_string()));
+    assert_eq!(rig.err("ssh.getState", json!({"targetId": 7})).0, "invalid_argument");
 }

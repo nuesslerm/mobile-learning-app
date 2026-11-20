@@ -1,11 +1,13 @@
 //! Orca's workspace and file rows over rca: `files.*` (list, search, read, preview, chunk, directory, stat, create), `folderWorkspace.list` and
 //! `mobileRelay.projectSections`. An Orca repo or worktree is an rca workspace (`repo.list`), a file is read through the executor of that
-//! workspace (`file.*`), and nothing here touches a disk. The rows that name a desktop editor tab are not offered.
+//! workspace (`file.*`), and nothing here touches a disk. The rows that open an editor, diff or markdown tab write the server-kept layout (`layout`).
 mod activity;
 mod agent;
 mod catalog;
 mod files;
+pub mod layout;
 mod repos;
+mod ssh;
 mod worktrees;
 pub mod natural;
 mod target;
@@ -21,7 +23,7 @@ pub use agent_api_workspace::FILE_READ;
 /// `file.stat` and `file.readChunk` of the agent API, for a mapping crate that reads a working file of any size in pieces.
 pub use agent_api_workspace::edit::{FILE_READ_CHUNK, FILE_STAT};
 
-use agent_api_workspace::edit::{FILE_CREATE, FILE_SEARCH};
+use agent_api_workspace::edit::{FILE_CREATE, FILE_SEARCH, FILE_WRITE};
 use agent_api_proto::Method as AgentMethod;
 use agent_api_git::{FETCH, REFS};
 use agent_api_state::SET;
@@ -44,6 +46,9 @@ pub const FILES_OPEN: &str = "files.open";
 pub const FILES_OPEN_DIFF: &str = "files.openDiff";
 pub const MARKDOWN_READ_TAB: &str = "markdown.readTab";
 pub const MARKDOWN_SAVE_TAB: &str = "markdown.saveTab";
+pub const SSH_CONNECT: &str = "ssh.connect";
+pub const SSH_GET_STATE: &str = "ssh.getState";
+pub const SSH_LIST_TARGET_SUMMARIES: &str = "ssh.listTargetSummaries";
 pub const FOLDER_WORKSPACE_LIST: &str = "folderWorkspace.list";
 pub const PROJECT_SECTIONS: &str = "mobileRelay.projectSections";
 pub const REPO_LIST_ROW: &str = "repo.list";
@@ -73,7 +78,7 @@ pub const NOTIFICATIONS_SUBSCRIBE: &str = "notifications.subscribe";
 pub const NOTIFICATIONS_UNSUBSCRIBE: &str = "notifications.unsubscribe";
 
 /// The agent methods this crate sends: its calls read this list, and a flow test holds it to the methods really sent.
-pub const USES: &[AgentMethod] = &[REPO_LIST, FILE_LIST, FILE_READ_CHUNK, FILE_STAT, FILE_CREATE, FILE_SEARCH, SET, REFS, FETCH, WORKTREE_CREATE, WORKTREE_LIST, WORKTREE_REMOVE, agent_api_service::notifications::SINCE, agent_api_service::panes::LIST, agent_api_service::panes::MARK, agent_api_terminal::LIST, agent_api_terminal::SLEEP, agent_api_terminal::WAKE, agent_api_terminal::SLEEPING, agent_api_agent::THREAD_LIST, agent_api_agent::lifecycle::THREAD_FORCE_STOP];
+pub const USES: &[AgentMethod] = &[REPO_LIST, FILE_LIST, FILE_READ_CHUNK, FILE_STAT, FILE_CREATE, FILE_SEARCH, FILE_WRITE, SET, REFS, FETCH, WORKTREE_CREATE, WORKTREE_LIST, WORKTREE_REMOVE, agent_api_service::notifications::SINCE, agent_api_service::panes::LIST, agent_api_service::panes::MARK, agent_api_terminal::LIST, agent_api_terminal::SLEEP, agent_api_terminal::WAKE, agent_api_terminal::SLEEPING, agent_api_agent::THREAD_LIST, agent_api_agent::lifecycle::THREAD_FORCE_STOP];
 
 const METHODS: &[Method] = &[
     Method { name: FILES_LIST, kind: Kind::Unary },
@@ -85,6 +90,13 @@ const METHODS: &[Method] = &[
     Method { name: FILES_STAT, kind: Kind::Unary },
     Method { name: FILES_PATHS_EXIST, kind: Kind::Unary },
     Method { name: FILES_CREATE_FILE, kind: Kind::Unary },
+    Method { name: FILES_OPEN, kind: Kind::Unary },
+    Method { name: FILES_OPEN_DIFF, kind: Kind::Unary },
+    Method { name: MARKDOWN_READ_TAB, kind: Kind::Unary },
+    Method { name: MARKDOWN_SAVE_TAB, kind: Kind::Unary },
+    Method { name: SSH_CONNECT, kind: Kind::Unary },
+    Method { name: SSH_GET_STATE, kind: Kind::Unary },
+    Method { name: SSH_LIST_TARGET_SUMMARIES, kind: Kind::Unary },
     Method { name: FOLDER_WORKSPACE_LIST, kind: Kind::Unary },
     Method { name: PROJECT_SECTIONS, kind: Kind::Unary },
     Method { name: REPO_LIST_ROW, kind: Kind::Unary },
@@ -115,12 +127,7 @@ const METHODS: &[Method] = &[
 ];
 
 /// Each reason equals the one in `docs/plans/rca-parity/coverage/orca-decisions.json`; a flow test compares them.
-pub const NOT_OFFERED: &[NotOffered] = &[
-    NotOffered { name: FILES_OPEN, reason: "owner-confirmed (decision 7): it opens an editor tab in the desktop's own window and this host has no desktop; the phone reads a file with files.read and files.readPreview", decided_by: "M6" },
-    NotOffered { name: FILES_OPEN_DIFF, reason: "owner-confirmed (decision 7): it opens a diff tab in the desktop's own window and this host has no desktop", decided_by: "M6" },
-    NotOffered { name: MARKDOWN_READ_TAB, reason: "owner-confirmed (decision 7): it reads a markdown editor tab of the desktop by its tab id and this host has no tab; the phone's own fallback reads the file with files.read", decided_by: "M6" },
-    NotOffered { name: MARKDOWN_SAVE_TAB, reason: "owner-confirmed (decision 7): it saves a markdown editor tab of the desktop by its tab id and this host has no tab to save", decided_by: "M6" },
-];
+pub const NOT_OFFERED: &[NotOffered] = &[];
 
 pub struct WorkspaceArea;
 
@@ -149,6 +156,13 @@ impl Area for WorkspaceArea {
             FILES_STAT => files::stat(agent, params),
             FILES_PATHS_EXIST => files::paths_exist(agent, params),
             FILES_CREATE_FILE => files::create_file(agent, params),
+            FILES_OPEN => layout::open_file(agent, params),
+            FILES_OPEN_DIFF => layout::open_diff(agent, params),
+            MARKDOWN_READ_TAB => layout::read_tab(agent, params),
+            MARKDOWN_SAVE_TAB => layout::save_tab(agent, params),
+            SSH_CONNECT => ssh::connect(agent, params),
+            SSH_GET_STATE => ssh::get_state(agent, params),
+            SSH_LIST_TARGET_SUMMARIES => ssh::list_summaries(agent),
             FOLDER_WORKSPACE_LIST => catalog::folder_workspaces(agent),
             PROJECT_SECTIONS => Ok(catalog::project_sections()),
             REPO_LIST_ROW => repos::list(agent, params),

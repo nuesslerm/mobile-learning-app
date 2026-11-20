@@ -89,14 +89,28 @@ enum Started {
     Refused(Value),
 }
 
+/// The permission a chat runs with, from the saved choice: a mode rca has no equivalent of asks, never grants more access.
+fn runtime_mode(saved: &str) -> &'static str {
+    match saved {
+        "full-access" => "full-access",
+        "accept-edits" => "auto-accept-edits",
+        _ => "approval-required",
+    }
+}
+
 fn start_turn(agent: &dyn AgentApi, thread: &str, prompt: &str, attachments: &[String], model: Option<&str>, view: &Value) -> Result<Started, Failure> {
     let (Some(workspace), Some(driver)) = (view["workspace"].as_str(), view["driver"].as_str()) else {
         return Ok(Started::Refused(refused("agent_session_identity_required", "the session has no workspace or agent to run in")));
     };
     let mut params = json!({"thread": thread, "workspace": workspace, "driver": driver, "prompt": prompt});
     let picked = crate::catalog::stored_model(agent, thread)?;
-    if let Some(m) = model.or(picked.as_deref()).or(view["model"].as_str()) {
+    let settings = crate::agent::state_get(agent, "settings")?.unwrap_or(Value::Null);
+    let default_model = agent_of(driver).and_then(|a| settings["nativeChatSessionOptions"][a]["model"].as_str());
+    if let Some(m) = model.or(picked.as_deref()).or(view["model"].as_str()).or(default_model) {
         params["model"] = m.into();
+    }
+    if let Some(mode) = settings["nativeChatPermissionMode"].as_str() {
+        params["runtime_mode"] = runtime_mode(mode).into();
     }
     if !attachments.is_empty() {
         params["attachments"] = json!(attachments);
@@ -369,4 +383,22 @@ pub(crate) fn send_recorded(agent: &dyn AgentApi, params: &Value) -> Result<Valu
     }
     journal::view(agent, &session)?;
     Ok(json!({"recorded": crate::ops::send_recorded(agent, &session, &id)?}))
+}
+
+/// `agentSession.reveal`: the chat's tab in the worktree's server-kept layout, in front. A chat this host no longer has, or one of an agent it
+/// does not run, is refused with the host's words.
+pub(crate) fn reveal(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    let session = session_id(params)?;
+    let thread = match view(agent, session) {
+        Ok(t) => t,
+        Err(f) if f.message == "agent_session_not_found" => return Ok(refused("agent_session_not_found", "This chat is no longer on this host.")),
+        Err(f) => return Err(f),
+    };
+    let Some(chat_agent) = thread["driver"].as_str().and_then(agent_of) else {
+        return Ok(refused("structured_agent_session_unsupported", "This host cannot open that chat."));
+    };
+    let target = orca_map_workspace::resolve(agent, thread["workspace"].as_str().unwrap_or_default())?;
+    let title = thread["title"].as_str().filter(|t| !t.is_empty()).unwrap_or("Chat");
+    orca_map_workspace::layout::open_chat(agent, &target.workspace, session, chat_agent, title)?;
+    Ok(json!({"ok": true, "sessionId": session, "workspaceId": target.id, "agent": chat_agent, "readable": true}))
 }

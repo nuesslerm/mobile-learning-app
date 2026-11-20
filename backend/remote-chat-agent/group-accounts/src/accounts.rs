@@ -11,7 +11,7 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use std::time::Duration;
 
-pub const SERVED: [Served; 11] = [
+pub const SERVED: [Served; 12] = [
     Served::service(api::PROVIDER_LIST, &["cli_detect"]),
     Served::service(api::PROVIDER_REFRESH, &["cli_detect"]),
     Served::service(api::PROVIDER_SELECT, &["cli_detect"]),
@@ -23,7 +23,11 @@ pub const SERVED: [Served; 11] = [
     Served::service(api::PROVIDER_LOGOUT, &["login_cancel", "logout", "cli_detect"]),
     Served::service(api::USAGE_SUMMARY, &["cli_detect"]),
     Served::service(api::RESET_CREDIT, &[]),
+    Served::service(api::PROVIDER_SUBSCRIBE, &["cli_detect"]),
 ];
+
+/// How often `provider.subscribe` looks again: a login the CLI finishes on its own is seen by reading the executor's credential files.
+const WATCH_EVERY: Duration = Duration::from_secs(2);
 
 struct Refusal(&'static str, String);
 
@@ -43,6 +47,21 @@ fn driver_named(name: &str) -> Result<Driver, Refusal> {
     Driver::parse(name).ok_or_else(|| refuse(code::UNKNOWN_PROVIDER, format!("{name} is not a provider; the providers are {}", DRIVERS.iter().map(|d| d.id()).collect::<Vec<_>>().join(", "))))
 }
 
+fn status_in(sessions: &Sessions, driver: Driver) -> ProviderStatus {
+    if sessions.pending_for(driver) {
+        ProviderStatus::Authenticating
+    } else if sessions.dirs().signed_in(driver) {
+        ProviderStatus::SignedIn
+    } else {
+        ProviderStatus::SignedOut
+    }
+}
+
+fn view_in(sessions: &Sessions, driver: Driver) -> ProviderView {
+    let selected = sessions.dirs().selected() == Some(driver);
+    ProviderView { provider: driver.id().to_string(), status: status_in(sessions, driver), selected, auth_methods: login_methods(driver).into_iter().map(|m| m.name().to_string()).collect() }
+}
+
 pub struct AccountsGroup {
     sessions: Arc<Sessions>,
     models: Arc<dyn ModelApi>,
@@ -53,19 +72,8 @@ impl AccountsGroup {
         AccountsGroup { sessions, models }
     }
 
-    fn status_of(&self, driver: Driver) -> ProviderStatus {
-        if self.sessions.pending_for(driver) {
-            ProviderStatus::Authenticating
-        } else if self.sessions.dirs().signed_in(driver) {
-            ProviderStatus::SignedIn
-        } else {
-            ProviderStatus::SignedOut
-        }
-    }
-
     fn view_of(&self, driver: Driver) -> ProviderView {
-        let selected = self.sessions.dirs().selected() == Some(driver);
-        ProviderView { provider: driver.id().to_string(), status: self.status_of(driver), selected, auth_methods: login_methods(driver).into_iter().map(|m| m.name().to_string()).collect() }
+        view_in(&self.sessions, driver)
     }
 
     async fn list(&self) -> Value {
@@ -151,6 +159,28 @@ impl AccountsGroup {
         Ok(api::subscribe_result(&p.auth, seq))
     }
 
+    /// Opens with the list as it is and sends the whole list again whenever it differs from the last one sent.
+    fn subscribe_providers(&self, params: &Value, call: &Call<'_>) -> Answer {
+        api::check_no_params(params)?;
+        let (sessions, sink) = (self.sessions.clone(), call.connection.sink());
+        call.connection.follow("provider", async move {
+            let (mut seq, mut last) = (0u64, None::<Vec<ProviderView>>);
+            loop {
+                sessions.dirs().refresh().await;
+                let now: Vec<ProviderView> = DRIVERS.iter().map(|d| view_in(&sessions, *d)).collect();
+                if last.as_ref() != Some(&now) {
+                    seq += 1;
+                    if !sink.send_replay(&api::providers_event(seq, &now)).await {
+                        return;
+                    }
+                    last = Some(now);
+                }
+                tokio::time::sleep(WATCH_EVERY).await;
+            }
+        });
+        Ok(api::providers_subscribe_result())
+    }
+
     async fn logout(&self, params: &Value) -> Answer {
         let driver = driver_named(&api::provider_param(params)?)?;
         self.sessions.cancel_for(driver);
@@ -167,7 +197,7 @@ impl AccountsGroup {
         let mut rows = Vec::new();
         for driver in DRIVERS {
             let usage = self.models.usage(driver.id()).await.ok().flatten();
-            rows.push(UsageRow { provider: driver.id().to_string(), status: self.status_of(driver), usage });
+            rows.push(UsageRow { provider: driver.id().to_string(), status: status_in(&self.sessions, driver), usage });
         }
         Ok(api::usage_result(&rows))
     }
@@ -211,6 +241,7 @@ impl Group for AccountsGroup {
             api::AUTH_COMPLETE => self.complete(params).await,
             api::AUTH_CANCEL => self.cancel(params),
             api::AUTH_SUBSCRIBE => self.subscribe(params, &call),
+            api::PROVIDER_SUBSCRIBE => self.subscribe_providers(params, &call),
             api::PROVIDER_LOGOUT => self.logout(params).await,
             api::USAGE_SUMMARY => self.usage().await,
             api::RESET_CREDIT => self.reset_credit(params).await,

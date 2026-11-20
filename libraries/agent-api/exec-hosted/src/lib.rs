@@ -53,6 +53,9 @@ pub const ISSUE_COUNT: &str = "hosted_issue_count";
 pub const ISSUE_TODOS: &str = "hosted_issue_todos";
 pub const RUN_LIST: &str = "hosted_run_list";
 pub const RUN_VIEW: &str = "hosted_run_view";
+pub const RUN_RERUN: &str = "hosted_run_rerun";
+pub const PR_CHECK_DETAILS: &str = "hosted_pr_check_details";
+pub const PR_AUTO_MERGE: &str = "hosted_pr_auto_merge";
 pub const AUTH_STATUS: &str = "hosted_auth_status";
 pub const AUTH_LOGIN_START: &str = "hosted_auth_login_start";
 pub const AUTH_LOGIN_WAIT: &str = "hosted_auth_login_wait";
@@ -266,6 +269,24 @@ pub const ACTIONS: &[Action] = &[
     ),
     action!(RUN_LIST, "Recent workflow runs (GitHub) or pipelines (GitLab).", [Property { name: "branch", kind: "string", about: "Only runs of this branch" }, LIMIT], []),
     action!(RUN_VIEW, "One run with its jobs.", [Property { name: "run", kind: "integer", about: "The run's id" }], ["run"]),
+    action!(
+        RUN_RERUN,
+        "Start a run again: GitHub reruns the whole workflow run or, with `failed_only`, its failed jobs; GitLab retries the pipeline's failed jobs (it has no rerun of the passed ones).",
+        [Property { name: "run", kind: "integer", about: "The run's id" }, Property { name: "failed_only", kind: "boolean", about: "Only the failed jobs (GitHub; GitLab always retries only those)" }],
+        ["run"]
+    ),
+    action!(
+        PR_CHECK_DETAILS,
+        "One check in depth: its output, annotations and the jobs of its run with their steps and the tail of a failed job's log. GitHub reads a check run (`check`) and the jobs of a workflow run (`run`); GitLab reads a job (`check`) and, with `run`, the jobs of its pipeline. One of the two is required.",
+        [Property { name: "check", kind: "integer", about: "GitHub: a check run's id (an Actions job's id is its check run's id); GitLab: a job's id" }, Property { name: "run", kind: "integer", about: "GitHub: the workflow run's id; GitLab: the pipeline's id" }],
+        []
+    ),
+    action!(
+        PR_AUTO_MERGE,
+        "Turn auto-merge on or off for a pull or merge request: GitHub asks for it through the enable mutation, which refuses a pull request that is already clean (it never merges at once); GitLab sets or cancels merge when the pipeline succeeds, which merges at once when the pipeline has already passed.",
+        [NUMBER, Property { name: "enabled", kind: "boolean", about: "`true` to turn it on, `false` to turn it off" }, Property { name: "method", kind: "string", about: "`merge` (default), `squash` or `rebase` (GitHub; GitLab merges as the project is set to)" }],
+        ["number", "enabled"]
+    ),
     action!(AUTH_STATUS, "Whether the CLI is installed and signed in on the executor machine, as which account and with which scopes (never the token).", [], []),
     action!(
         AUTH_LOGIN_START,
@@ -596,6 +617,9 @@ pub enum HostedCall {
     IssueTodos { limit: u64 },
     RunList { branch: Option<String>, limit: u64 },
     RunView { run: u64 },
+    RunRerun { run: u64, failed_only: bool },
+    PrCheckDetails { check: Option<u64>, run: Option<u64> },
+    PrAutoMerge { number: u64, enabled: bool, method: MergeMethod },
     AuthStatus,
     LoginStart,
     LoginWait { flow: String, wait_ms: u64 },
@@ -649,6 +673,9 @@ impl HostedCall {
             HostedCall::IssueTodos { .. } => ISSUE_TODOS,
             HostedCall::RunList { .. } => RUN_LIST,
             HostedCall::RunView { .. } => RUN_VIEW,
+            HostedCall::RunRerun { .. } => RUN_RERUN,
+            HostedCall::PrCheckDetails { .. } => PR_CHECK_DETAILS,
+            HostedCall::PrAutoMerge { .. } => PR_AUTO_MERGE,
             HostedCall::AuthStatus => AUTH_STATUS,
             HostedCall::LoginStart => AUTH_LOGIN_START,
             HostedCall::LoginWait { .. } => AUTH_LOGIN_WAIT,
@@ -906,6 +933,22 @@ impl HostedOp {
                 Some(run) if run > 0 => HostedCall::RunView { run },
                 _ => return Err(bad("`run` must be a positive integer")),
             },
+            RUN_RERUN => match opt_uint(a, "run")? {
+                Some(run) if run > 0 => HostedCall::RunRerun { run, failed_only: flag(a, "failed_only") },
+                _ => return Err(bad("`run` must be a positive integer")),
+            },
+            PR_CHECK_DETAILS => {
+                let (check, run) = (positive(a, "check")?, positive(a, "run")?);
+                if check.is_none() && run.is_none() {
+                    return Err(bad("give `check` or `run`"));
+                }
+                HostedCall::PrCheckDetails { check, run }
+            }
+            PR_AUTO_MERGE => {
+                let enabled = a.get("enabled").and_then(Value::as_bool).ok_or_else(|| bad("`enabled` must be true or false"))?;
+                let method = choice(a, "method", MergeMethod::Merge, &[("merge", MergeMethod::Merge), ("squash", MergeMethod::Squash), ("rebase", MergeMethod::Rebase)])?;
+                HostedCall::PrAutoMerge { number: number(a)?, enabled, method }
+            }
             AUTH_STATUS => HostedCall::AuthStatus,
             AUTH_LOGIN_START => HostedCall::LoginStart,
             AUTH_LOGIN_WAIT => {
@@ -949,6 +992,7 @@ pub fn minimal_args(action: &Action) -> Value {
         // a reply names its thread or (GitHub) a comment of it, one of the two
         PR_REPLY => args.insert("thread".into(), serde_json::json!("PRRT_1")),
         PR_STATE | ISSUE_STATE => args.insert("state".into(), serde_json::json!("closed")),
+        PR_CHECK_DETAILS => args.insert("check".into(), serde_json::json!(7)),
         _ => None,
     };
     Value::Object(args)
@@ -1088,6 +1132,13 @@ mod tests {
         assert!(github(PR_REVIEW_COMMENT, json!({"number": 1, "body": "x", "commit_id": "abc", "path": "a", "line": 3, "start_line": -2})).contains("`start_line`"));
         assert!(github(PR_FILE_VIEWED, json!({"pull_request": "PR_1", "path": ""})).contains("`path`"));
         assert!(github(PR_FILE_VIEWED, json!({"pull_request": "PR 1", "path": "a"})).contains("`pull_request`"));
+        assert!(github(PR_CHECK_DETAILS, json!({})).contains("`check` or `run`"));
+        assert!(github(PR_CHECK_DETAILS, json!({"check": 0})).contains("`check`"));
+        assert!(github(PR_CHECK_DETAILS, json!({"check": 3, "run": "9"})).contains("`run`"));
+        assert!(github(RUN_RERUN, json!({"run": 0})).contains("`run`"));
+        assert!(github(PR_AUTO_MERGE, json!({"number": 1})).contains("`enabled`"));
+        assert!(github(PR_AUTO_MERGE, json!({"number": 1, "enabled": "yes"})).contains("`enabled`"));
+        assert!(github(PR_AUTO_MERGE, json!({"number": 1, "enabled": true, "method": "octopus"})).contains("`method`"));
         let gitlab = HostedOp::parse(PR_REVIEW_COMMENT, &json!({"provider": "gitlab", "number": 1, "body": "x", "commit_id": "abc", "path": "a", "line": 3, "base_sha": "ba5e", "start_sha": "5ca1", "start_line": 2})).unwrap().unwrap_err();
         assert!(gitlab.message.contains("`start_line`"));
     }

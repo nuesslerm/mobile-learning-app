@@ -3,7 +3,7 @@
 //! by `git.fetch` into a ref of its own), `hostedReview.getCreationEligibility`, read from the remotes, the default base and the sign-in, and `hostedReview.create`, which rechecks those
 //! with the branch's own state before `pr.create` or `mr.create`. A row's `repo` selector names an rca workspace, and a request names no repository, so the executor uses the one
 //! the workspace's remote names (a `prRepo` or `projectRef` of the phone names another). A row the CLIs cannot do, or whose answer needs what rca does
-//! not hold (issues and work items, projects, auto-merge, rate limits, accounts), is not mapped and stays pending.
+//! not hold (projects, rate limits, accounts), is not mapped and stays pending.
 use agent_api_git::{BLOB, FETCH, REFS, STATUS, UPSTREAM_STATUS};
 use agent_api_hosted::{auth, issue as issue_api, pr};
 use agent_api_proto::Method as AgentMethod;
@@ -14,6 +14,7 @@ use serde_json::{json, Map, Value};
 mod failure;
 mod base;
 mod checks;
+mod ci;
 mod create;
 mod detail;
 mod eligibility;
@@ -30,7 +31,7 @@ pub mod testing;
 
 /// The agent methods this crate sends: the `pr.*` and `mr.*` ones it reaches, the fetch of a request's head, the git reads and the sign-in status of
 /// review eligibility and creation, and the review template creation reads.
-pub const USES: &[AgentMethod] = &[issue_api::VIEW, issue_api::COMMENTS, pr::FILES, pr::MR_FILES, pr::MR_COMMENTS, pr::MR_THREADS, issue_api::SEARCH, issue_api::COUNT, issue_api::TODOS, issue_api::CREATE, issue_api::EDIT, issue_api::SET_STATE, issue_api::COMMENT, issue_api::LIST, pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::RESOLVE_THREAD, pr::FILE_VIEWED, pr::REPLY, pr::REVIEW_COMMENT, pr::SET_STATE, pr::MR_SET_STATE, pr::MR_COMMENT, pr::COMMENTS, pr::REVIEWS, pr::THREADS, pr::REMOTES, pr::MR_LIST, pr::CREATE, pr::MR_CREATE, auth::DISCOVER, FETCH, BLOB, REFS, UPSTREAM_STATUS, STATUS, orca_map_workspace::FILE_READ];
+pub const USES: &[AgentMethod] = &[pr::RUN_RERUN, pr::CHECK_DETAILS, pr::SET_AUTO_MERGE, issue_api::VIEW, issue_api::COMMENTS, pr::FILES, pr::MR_FILES, pr::MR_COMMENTS, pr::MR_THREADS, issue_api::SEARCH, issue_api::COUNT, issue_api::TODOS, issue_api::CREATE, issue_api::EDIT, issue_api::SET_STATE, issue_api::COMMENT, issue_api::LIST, pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::RESOLVE_THREAD, pr::FILE_VIEWED, pr::REPLY, pr::REVIEW_COMMENT, pr::SET_STATE, pr::MR_SET_STATE, pr::MR_COMMENT, pr::COMMENTS, pr::REVIEWS, pr::THREADS, pr::REMOTES, pr::MR_LIST, pr::CREATE, pr::MR_CREATE, auth::DISCOVER, FETCH, BLOB, REFS, UPSTREAM_STATUS, STATUS, orca_map_workspace::FILE_READ];
 
 /// `pr.remotes`, for a mapping crate that reads a workspace's remotes and their fetch URLs.
 pub const PR_REMOTES: AgentMethod = pr::REMOTES;
@@ -52,6 +53,9 @@ const METHODS: &[Method] = &[
     Method { name: "gitlab.updateMRState", kind: Kind::Unary },
     Method { name: "gitlab.addMRComment", kind: Kind::Unary },
     Method { name: "github.mergePR", kind: Kind::Unary },
+    Method { name: "github.rerunPRChecks", kind: Kind::Unary },
+    Method { name: "github.setPRAutoMerge", kind: Kind::Unary },
+    Method { name: "github.prCheckDetails", kind: Kind::Unary },
     Method { name: "github.updatePRTitle", kind: Kind::Unary },
     Method { name: "github.updatePR", kind: Kind::Unary },
     Method { name: "github.markPRReadyForReview", kind: Kind::Unary },
@@ -98,7 +102,10 @@ impl Area for HostedArea {
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
         let repo_list = matches!(method, "github.listLabels" | "github.listAssignableUsers" | "github.resolveReviewThread" | "github.setPRFileViewed" | "github.addPRReviewComment" | "github.addPRReviewCommentReply" | "github.updatePRState" | "gitlab.updateMRState" | "gitlab.addMRComment" | "github.repoSlug" | "hostedReview.getCreationEligibility" | "hostedReview.create");
         let issue_row = matches!(method, "github.createIssue" | "github.updateIssue" | "github.addIssueComment" | "gitlab.createIssue" | "gitlab.updateIssue" | "gitlab.addIssueComment" | "github.countWorkItems" | "github.listWorkItems" | "gitlab.listWorkItems" | "gitlab.todos") || detail::is_row(method);
-        if method == "github.addPRReviewComment" {
+        let ci_row = matches!(method, "github.rerunPRChecks" | "github.setPRAutoMerge" | "github.prCheckDetails");
+        if ci_row {
+            ci::check_params(method, params)?;
+        } else if method == "github.addPRReviewComment" {
             github::check_review_comment_params(params)?;
         } else if method == "gitlab.addMRComment" {
             gitlab::check_comment(params)?;
@@ -118,7 +125,7 @@ impl Area for HostedArea {
         }
         let target = match Target::of(ctx.agent, params) {
             Err(f) if f.code == "selector_not_found" && method.starts_with("worktree.resolve") => return Ok(json!({"error": "Repo not found", "errorCode": "repoNotFound"})),
-            Err(f) if f.code == "selector_not_found" && (repo_list || issue_row) => return Err(Failure::new("repo_not_found", "repo_not_found")),
+            Err(f) if f.code == "selector_not_found" && (repo_list || issue_row || ci_row) => return Err(Failure::new("repo_not_found", "repo_not_found")),
             other => other?,
         };
         match method {
@@ -135,6 +142,9 @@ impl Area for HostedArea {
             "gitlab.updateMRState" => gitlab::set_state(&target, params),
             "gitlab.addMRComment" => gitlab::comment(&target, params),
             "github.mergePR" => github::merge(&target, params),
+            "github.rerunPRChecks" => ci::rerun(&target, params),
+            "github.setPRAutoMerge" => ci::auto_merge(&target, params),
+            "github.prCheckDetails" => ci::check_details(&target, params),
             "github.updatePRTitle" => github::update_title(&target, params),
             "github.updatePR" => github::update(&target, params),
             "github.markPRReadyForReview" => github::ready(&target, params, false),

@@ -941,6 +941,181 @@
         "complete": true,
         "tests": 50,
         "passed": 28
+      },
+      {
+        "suite": "orca-serve-integration",
+        "sha": "d17780ce549c4521c886dfbe12e27b9be7e86974",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "d17780ce549c4521c886dfbe12e27b9be7e86974",
+        "complete": true,
+        "tests": 612,
+        "passed": 55
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 6,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "d17780ce549c4521c886dfbe12e27b9be7e86974",
+        "complete": true,
+        "tests": 163,
+        "passed": 18
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 7,
+        "passed": 6
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "d17780ce549c4521c886dfbe12e27b9be7e86974",
+        "complete": true,
+        "tests": 735,
+        "passed": 228
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 69,
+        "passed": 51
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "d17780ce549c4521c886dfbe12e27b9be7e86974",
+        "complete": true,
+        "tests": 435,
+        "passed": 59
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 17,
+        "passed": 13
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "d17780ce549c4521c886dfbe12e27b9be7e86974",
+        "complete": true,
+        "tests": 209,
+        "passed": 129
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 31,
+        "passed": 30
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "d17780ce549c4521c886dfbe12e27b9be7e86974",
+        "complete": true,
+        "tests": 446,
+        "passed": 219
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 62,
+        "passed": 32
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "d17780ce549c4521c886dfbe12e27b9be7e86974",
+        "complete": true,
+        "tests": 33,
+        "passed": 17
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 8,
+        "passed": 8
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "d17780ce549c4521c886dfbe12e27b9be7e86974",
+        "complete": true,
+        "tests": 34,
+        "passed": 29
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 7,
+        "passed": 7
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "d17780ce549c4521c886dfbe12e27b9be7e86974",
+        "complete": true,
+        "tests": 388,
+        "passed": 86
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 25,
+        "passed": 21
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "d17780ce549c4521c886dfbe12e27b9be7e86974",
+        "complete": true,
+        "tests": 53,
+        "passed": 20
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 9,
+        "passed": 8
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "d17780ce549c4521c886dfbe12e27b9be7e86974",
+        "complete": true,
+        "tests": 276,
+        "passed": 88
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 21,
+        "passed": 19
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "d17780ce549c4521c886dfbe12e27b9be7e86974",
+        "complete": true,
+        "tests": 603,
+        "passed": 180
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 53,
+        "passed": 34
       }
     ]
   },
@@ -1203,6 +1378,15 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:agentSession.reveal": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agentSession.reveal-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:agentSession.rewind": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-agentSession.rewind-boundary-limit-itemId",
@@ -1293,6 +1477,24 @@
     "rpc:agentSessionAttachment.uploadStart": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.uploadStart-invalid-drop-sessionId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:aiVault.listSessions": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-aiVault.listSessions-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:aiVault.prepareSessionResume": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-aiVault.prepareSessionResume-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -1536,6 +1738,24 @@
     "rpc:files.list": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-files.list-invalid-drop-worktree",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:files.open": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-files.open-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:files.openDiff": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-files.openDiff-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -2262,6 +2482,24 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:markdown.readTab": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-markdown.readTab-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:markdown.saveTab": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-markdown.saveTab-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:mobileRelay.hosts.list": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-mobileRelay.hosts.list-empty-empty-object",
@@ -2613,6 +2851,15 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:settings.mutateNativeChatSessionOptions": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-settings.mutateNativeChatSessionOptions-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:settings.update": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-settings.update-boundary-limit-machineName",
@@ -2711,6 +2958,32 @@
       "oracle": "mimic",
       "diff": "allowlisted",
       "cassette": "recorded"
+    },
+    "rpc:ssh.connect": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-ssh.connect-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:ssh.getState": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-ssh.getState-invalid-drop-targetId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:ssh.listTargetSummaries": {
+      "suite": "orca-serve-integration",
+      "test": "layout_vault::the_phone_opens_a_markdown_tab_reads_and_saves_it_and_opens_a_diff_and_the_ssh_rows_name_the_executor",
+      "agent": [
+        "repo.list"
+      ],
+      "executor": []
     },
     "rpc:stats.summary": {
       "suite": "wf-mimic-orca-crawl",

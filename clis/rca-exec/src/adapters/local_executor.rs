@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use crate::domain::ToolExecutor;
 use base64::Engine;
-use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, EntryKind, FoundEntry, ListDir, MakeDir, PutBlob, PutTemp, ReadChunk, ReadFile, ReadResult, SearchEntries, Skill, SkillDir, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
+use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, EntryKind, FoundEntry, ListDir, MakeDir, PutBlob, PutTemp, ReadChunk, ReadFile, ReadResult, SearchEntries, SessionScan, SessionsFound, Skill, SkillDir, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
 use exec_git::{GitCall, GitDiff, GitOp, Resolution, SetupEvent, SetupResult, SetupStep, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeRemove, WorktreeSetup};
 use exec_proc::{CliDetect, CliFound, LoginCancel, LoginProgram, LoginSend, LoginState, LoginStatus, RunCommand, RunResult};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyOpen, PtyOpened, PtyResize, PtyWrite};
@@ -326,6 +326,21 @@ fn scan_skills(base: &Path, jail: &Path, dirs: &[String], scope: SkillScope, lab
     }
 }
 
+/// Every `*.jsonl` file below `dir`, at most `depth` directories deep, with its modification time in milliseconds. A link is not followed.
+fn session_files(dir: &Path, depth: usize, out: &mut Vec<(PathBuf, u64)>) {
+    let Ok(read) = fs::read_dir(dir) else { return };
+    for entry in read.flatten() {
+        let Ok(kind) = entry.file_type() else { continue };
+        let path = entry.path();
+        if kind.is_dir() && depth > 0 {
+            session_files(&path, depth - 1, out);
+        } else if kind.is_file() && path.extension().is_some_and(|e| e == "jsonl") {
+            let modified = entry.metadata().ok().and_then(|m| m.modified().ok()).and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0, |d| d.as_millis() as u64);
+            out.push((path, modified));
+        }
+    }
+}
+
 impl ToolExecutor for LocalExecutor {
     fn run_command(&self, id: &str, args: &RunCommand, output: &mut dyn FnMut(Stream, &str)) -> ExecResult<RunResult> {
         let cwd = match &args.cwd {
@@ -623,6 +638,47 @@ impl ToolExecutor for LocalExecutor {
             scan_skills(&home, &home, &args.home_dirs, SkillScope::Home, &|p| format!("~/{}", p.strip_prefix(&home).unwrap_or(p).to_string_lossy()), &mut found);
         }
         Ok(found)
+    }
+
+    fn session_scan(&self, args: &SessionScan) -> ExecResult<SessionsFound> {
+        let Some(home) = self.skill_home.as_ref().and_then(|h| fs::canonicalize(h).ok()) else { return Ok(SessionsFound { sessions: Vec::new(), truncated: false }) };
+        let mut files: Vec<(&str, PathBuf, u64)> = Vec::new();
+        for agent in &args.agents {
+            let (base, depth) = if agent == "claude" { (".claude/projects", 1) } else { (".codex/sessions", 3) };
+            let mut found = Vec::new();
+            session_files(&home.join(base), depth, &mut found);
+            files.extend(found.into_iter().filter(|(p, _)| fs::canonicalize(p).is_ok_and(|c| c.starts_with(&home))).map(|(p, m)| (agent.as_str(), p, m)));
+        }
+        files.sort_by(|a, b| b.2.cmp(&a.2).then_with(|| a.1.cmp(&b.1)));
+        let truncated = files.len() > args.limit;
+        let mut sessions = Vec::new();
+        for (agent, path, modified_ms) in files.into_iter().take(args.limit) {
+            let Ok(opened) = fs::File::open(&path) else { continue };
+            let mut head = Vec::new();
+            if opened.take(exec_fs::SESSION_READ_MAX).read_to_end(&mut head).is_err() {
+                continue;
+            }
+            let d = exec_fs::digest(agent, &String::from_utf8_lossy(&head));
+            let stem = path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+            let session_id = d.session_id.unwrap_or_else(|| stem.clone());
+            let title = d.title.unwrap_or_else(|| stem.clone());
+            sessions.push(exec_fs::VaultSession {
+                agent: agent.to_string(),
+                session_id,
+                path: format!("~/{}", path.strip_prefix(&home).unwrap_or(&path).to_string_lossy()),
+                title,
+                cwd: d.cwd,
+                branch: d.branch,
+                model: d.model,
+                created_at: d.created_at,
+                updated_at: d.updated_at,
+                modified_ms,
+                message_count: d.message_count,
+                first_prompt: d.first_prompt,
+                last_prompt: d.last_prompt,
+            });
+        }
+        Ok(SessionsFound { sessions, truncated })
     }
 
     fn search_entries(&self, args: &SearchEntries) -> ExecResult<EntriesResult> {

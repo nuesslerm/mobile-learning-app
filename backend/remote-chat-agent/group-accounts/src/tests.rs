@@ -223,9 +223,13 @@ struct Follower {
 }
 
 async fn follow(rig: &Rig, params: Value) -> Follower {
+    follow_method(rig, "provider.auth.subscribe", params).await
+}
+
+async fn follow_method(rig: &Rig, method: &str, params: Value) -> Follower {
     let (tx, events) = mpsc::unbounded_channel();
     let connection = Connection::new(Arc::new(Queue(tx)));
-    let answer = rig.api.dispatch_on(BUILD, &json!({"id": 1, "method": "provider.auth.subscribe", "params": params}).to_string(), &connection).await;
+    let answer = rig.api.dispatch_on(BUILD, &json!({"id": 1, "method": method, "params": params}).to_string(), &connection).await;
     for followed in connection.take_following() {
         tokio::spawn(followed.job);
     }
@@ -262,6 +266,27 @@ async fn given_a_session_when_it_is_followed_from_the_start_and_from_a_seq_then_
     assert_eq!((live.seq, live.data["auth"]["status"].clone()), (last + 1, json!("cancelled")));
     assert_eq!(also.seq, last + 1);
     assert_eq!(error_code(&rig.ask("provider.auth.subscribe", json!({"auth": "auth-99"})).await), "UNKNOWN_AUTH");
+}
+
+#[tokio::test]
+async fn given_the_provider_stream_when_a_provider_signs_in_then_the_whole_list_is_sent_again_and_nothing_is_sent_while_it_is_unchanged() {
+    // Given providers that hold no login, and a follower of the provider list
+    let rig = rig();
+    let mut stream = follow_method(&rig, "provider.subscribe", json!({})).await;
+    // Then the answer names the topic, and the first event is the list as it is now, numbered 1
+    assert_eq!(stream.answer["result"], json!({"topic": "provider", "seq": 0}));
+    let first = stream.next().await;
+    assert_eq!((first.seq, first.kind.as_str(), first.data["selected"].clone()), (1, "provider.updated", Value::Null));
+    assert!(first.data["providers"].as_array().unwrap().iter().all(|p| p["status"] == json!("signed_out")));
+    // When Codex gets a login behind the service's back
+    rig.dirs.sign_in(Driver::Codex);
+    // Then the next event is the whole list again, with Codex signed in, numbered 2
+    let second = stream.next().await;
+    let codex = second.data["providers"].as_array().unwrap().iter().find(|p| p["provider"] == json!("codex")).unwrap().clone();
+    assert_eq!((second.seq, codex["status"].clone()), (2, json!("signed_in")));
+    // And nothing is sent while the list does not change, and params are refused
+    assert!(tokio::time::timeout(Duration::from_millis(2500), stream.events.recv()).await.is_err());
+    assert_eq!(error_code(&rig.ask("provider.subscribe", json!({"provider": "codex"})).await), "INVALID_PARAMS");
 }
 
 #[tokio::test]

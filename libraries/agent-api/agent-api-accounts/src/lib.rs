@@ -26,12 +26,17 @@ pub const AUTH_SUBSCRIBE: Method = Method::new(GROUP, "provider.auth.subscribe")
 pub const PROVIDER_LOGOUT: Method = Method::new(GROUP, "provider.logout");
 pub const USAGE_SUMMARY: Method = Method::new(GROUP, "usage.summary");
 pub const RESET_CREDIT: Method = Method::new(GROUP, "provider.resetCredit");
+/// The stream of the provider list: its whole state on opening and after each change (a login ended, a provider selected or signed out).
+pub const PROVIDER_SUBSCRIBE: Method = Method::new(GROUP, "provider.subscribe");
 
 /// Every method of the group.
-pub const METHODS: &[Method] = &[PROVIDER_LIST, PROVIDER_REFRESH, PROVIDER_SELECT, AUTH_START, AUTH_RESPOND, AUTH_COMPLETE, AUTH_CANCEL, AUTH_SUBSCRIBE, PROVIDER_LOGOUT, USAGE_SUMMARY, RESET_CREDIT];
+pub const METHODS: &[Method] = &[PROVIDER_LIST, PROVIDER_REFRESH, PROVIDER_SELECT, AUTH_START, AUTH_RESPOND, AUTH_COMPLETE, AUTH_CANCEL, AUTH_SUBSCRIBE, PROVIDER_LOGOUT, USAGE_SUMMARY, RESET_CREDIT, PROVIDER_SUBSCRIBE];
 
 /// The `type` of the event of `provider.auth.subscribe`: the session's whole state after a change.
 pub const AUTH_UPDATED: &str = "provider.auth.updated";
+
+/// The `type` of the event of `provider.subscribe`: the whole provider list after a change.
+pub const PROVIDERS_UPDATED: &str = "provider.updated";
 
 /// The codes of this group's refusals.
 pub mod code {
@@ -214,6 +219,26 @@ pub fn subscribe_result(auth: &str, seq: u64) -> Value {
     json!({ "auth": auth, "topic": format!("provider.auth/{auth}"), "seq": seq })
 }
 
+/// `provider.subscribe` takes no params (null and `{}` are the same).
+pub fn check_no_params(params: &Value) -> Result<(), ParamError> {
+    match params {
+        Value::Null => Ok(()),
+        Value::Object(map) if map.is_empty() => Ok(()),
+        _ => Err(ParamError("provider.subscribe takes no params".into())),
+    }
+}
+
+/// The event of a change of the provider list, numbered `seq` in the subscription's own count (from 1): the whole list as `provider.list` shows it.
+pub fn providers_event(seq: u64, providers: &[ProviderView]) -> Event {
+    let Value::Object(data) = list_result(providers) else { unreachable!("a list result is an object") };
+    Event { seq, thread: None, turn: None, kind: PROVIDERS_UPDATED.to_string(), data }
+}
+
+/// The answer to `provider.subscribe`: the topic and where the numbering stands (0: the first event is the list as it is now).
+pub fn providers_subscribe_result() -> Value {
+    json!({ "topic": "provider", "seq": 0 })
+}
+
 /// What a provider has used, when something the service can reach says.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Usage {
@@ -301,7 +326,10 @@ mod tests {
         assert_eq!(result["selected"], json!("claudeAgent"));
         assert_eq!(result["providers"][0]["status"], json!("signed_out"));
         assert_eq!(list_result(&[])["selected"], Value::Null);
-        assert_eq!(METHODS.len(), 11);
+        assert_eq!(METHODS.len(), 12);
+        assert_eq!(check_no_params(&json!({"x": 1})).unwrap_err().0, "provider.subscribe takes no params");
+        assert!(check_no_params(&Value::Null).is_ok() && check_no_params(&json!({})).is_ok());
+        assert_eq!(providers_event(1, &rows).to_value()["event"]["selected"], json!("claudeAgent"));
         assert!(METHODS.iter().all(|m| m.group() == GROUP));
     }
 }

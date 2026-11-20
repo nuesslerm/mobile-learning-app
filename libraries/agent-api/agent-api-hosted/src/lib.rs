@@ -2,7 +2,7 @@
 //! workspace with the credentials its machine already holds (`exec-hosted`). The service holds no token. Four sub-groups:
 //!
 //! - `hosted.pr`: `pr.*` and the same methods as `mr.*` (the neutral spelling for GitLab's merge requests; they differ only in the provider a
-//!   request that names none gets: `github` for `pr.*`, `gitlab` for `mr.*`), `pr.runs` and `pr.run`, and the repository's label and reviewer candidates.
+//!   request that names none gets: `github` for `pr.*`, `gitlab` for `mr.*`), `pr.runs`, `pr.run` and `pr.rerun`, `pr.checkDetails`, `pr.setAutoMerge`, and the repository's label and reviewer candidates.
 //! - `hosted.issue`: a repository's issues for GitHub and GitLab (list, view, search and count over issues and pull or merge requests, comments, edit, state, create) and the account's to-dos.
 //! - `hosted.clone`: `clone.start` clones into a directory of the workspace and stays observable (`clone.status`, `clone.subscribe`) until it
 //!   ends or `clone.cancel` stops it; retrying is starting again.

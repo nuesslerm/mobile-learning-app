@@ -1539,3 +1539,103 @@ fn given_the_recorded_answers_of_the_real_host_for_the_work_item_rows_when_repla
         assert_eq!(raw(&mut rig, method, params)["result"], Value::Null, "{method}");
     }
 }
+
+fn asked_with(rig: &Rig, method: &str) -> Vec<Value> {
+    rig.agent.requests().into_iter().filter(|(m, _)| m == method).map(|(_, p)| p).collect()
+}
+
+#[test]
+fn given_a_pull_request_with_failed_actions_checks_when_the_phone_reruns_them_then_each_run_is_started_once_and_the_row_answers_the_count() {
+    // Given pull requests whose checks belong to Actions runs 100 and 200, to none, to a run the token may not rerun, and to a good and a refused run
+    let mut rig = Rig::new();
+    rig.hosting.remote("origin", "https://github.com/acme/app.git");
+    rig.hosting.pull_request(12, "Add retry", "feat/retry", "main").checks("github", 12, &[("build@100", "fail"), ("test@100", "fail"), ("e2e@200", "pass"), ("legacy", "fail")]);
+    rig.hosting.pull_request(15, "Other CI", "other", "main").checks("github", 15, &[("ci", "fail")]);
+    rig.hosting.pull_request(16, "Locked", "locked", "main").checks("github", 16, &[("x@500", "fail")]);
+    rig.hosting.pull_request(17, "Half", "half", "main").checks("github", 17, &[("a@100", "cancel"), ("b@500", "fail")]);
+    // When the phone reruns all the checks, then only the failed ones
+    let all = rig.ok("github.rerunPRChecks", json!({"prNumber": 12}));
+    let failed = rig.ok("github.rerunPRChecks", json!({"prNumber": 12, "failedOnly": true}));
+    // Then each distinct run is started once, with failed_only as asked, and the count is the runs started
+    assert_eq!((all, failed), (json!({"ok": true, "count": 2}), json!({"ok": true, "count": 1})));
+    let runs: Vec<(Value, Value)> = asked_with(&rig, "pr.rerun").into_iter().map(|p| (p["run"].clone(), p["failed_only"].clone())).collect();
+    assert_eq!(runs, [(json!(100), json!(false)), (json!(200), json!(false)), (json!(100), json!(true))]);
+    // And a pull request whose checks have no Actions run has nothing to rerun, in the host's words, and nothing is started
+    let before = asked_with(&rig, "pr.rerun").len();
+    assert_eq!(rig.ok("github.rerunPRChecks", json!({"prNumber": 15, "failedOnly": true})), json!({"ok": false, "error": "No failed GitHub Actions checks to rerun.", "errorCode": "github.noFailedChecks"}));
+    assert_eq!(rig.ok("github.rerunPRChecks", json!({"prNumber": 15}))["errorCode"], "github.noRerunnableChecks");
+    assert_eq!(asked_with(&rig, "pr.rerun").len(), before);
+    // And a refused rerun is the host's classified failure, and one refused after another started names how many were started
+    assert_eq!(rig.ok("github.rerunPRChecks", json!({"prNumber": 16}))["errorCode"], "github.rerunPermissionDenied");
+    let partial = rig.ok("github.rerunPRChecks", json!({"prNumber": 17}));
+    assert_eq!(partial, json!({"ok": false, "error": "You don't have permission to rerun checks on this repository. Check your GitHub token scopes. (1 rerun already started)"}));
+    // And a bad request is refused in key order and an unknown repository is the host's repo-not-found
+    assert_eq!(rig.err("github.rerunPRChecks", json!({"prNumber": 1, "repo": 7})), ("invalid_argument".into(), "Missing repo selector".into()));
+    assert_eq!(rig.err("github.rerunPRChecks", json!({"prNumber": 0})), ("invalid_argument".into(), "Too small: expected number to be >0".into()));
+    assert_eq!(rig.err("github.rerunPRChecks", json!({"prNumber": 12, "repo": "nowhere"})).0, "repo_not_found");
+}
+
+#[test]
+fn given_a_workspace_with_no_remote_when_the_phone_reruns_checks_sets_auto_merge_or_opens_check_details_then_the_repository_is_unresolved_as_the_host_answers_it() {
+    // Given a workspace whose repository has no remote
+    let mut rig = Rig::new();
+    // When the phone asks for each of the three
+    let unresolved = json!({"ok": false, "error": "Could not resolve GitHub owner/repo for this repository", "errorCode": "github.repoUnresolved"});
+    let rerun = rig.ok("github.rerunPRChecks", json!({"prNumber": 12}));
+    let auto = rig.ok("github.setPRAutoMerge", json!({"prNumber": 12, "enabled": true}));
+    let details = rig.ok("github.prCheckDetails", json!({"checkRunId": 31}));
+    // Then the first two are the host's unresolved failure and the third is null, and the executor is asked nothing about a pull request or a check
+    assert_eq!((rerun, auto, details), (unresolved.clone(), unresolved, Value::Null));
+    assert_eq!(rig.asked_hosted().iter().filter(|m| m.as_str() != "pr.remotes").count(), 0);
+}
+
+#[test]
+fn given_a_pull_request_when_the_phone_turns_auto_merge_on_and_off_then_the_row_answers_ok_or_the_hosts_classified_failure() {
+    // Given pull requests where GitHub accepts auto-merge, where the pull request can already merge, and where gh fails otherwise
+    let mut rig = Rig::new();
+    rig.hosting.remote("origin", "https://github.com/acme/app.git");
+    // When the phone turns it on with no method, off with one, and asks on the pull requests GitHub refuses
+    let on = rig.ok("github.setPRAutoMerge", json!({"prNumber": 12, "enabled": true}));
+    let off = rig.ok("github.setPRAutoMerge", json!({"prNumber": 12, "enabled": false, "method": "merge"}));
+    let clean = rig.ok("github.setPRAutoMerge", json!({"prNumber": 13, "enabled": true}));
+    let failed_on = rig.ok("github.setPRAutoMerge", json!({"prNumber": 14, "enabled": true}));
+    let failed_off = rig.ok("github.setPRAutoMerge", json!({"prNumber": 14, "enabled": false}));
+    // Then the answers are the host's, squash is the method nothing names, and the pull request is never merged
+    assert_eq!((on, off), (json!({"ok": true}), json!({"ok": true})));
+    assert_eq!(clean, json!({"ok": false, "error": "This pull request can already be merged. Use Merge instead of auto-merge.", "errorCode": "github.autoMergeAlreadyMergeable"}));
+    assert_eq!((failed_on["errorCode"].clone(), failed_on["error"].clone()), (json!("github.autoMergeEnableFailed"), json!("Failed to enable auto-merge for pull request: gh exited 1: boom")));
+    assert_eq!(failed_off["errorCode"], "github.autoMergeDisableFailed");
+    let asked: Vec<(Value, Value, Value)> = asked_with(&rig, "pr.setAutoMerge").into_iter().take(2).map(|p| (p["enabled"].clone(), p["method"].clone(), p["number"].clone())).collect();
+    assert_eq!(asked, [(json!(true), json!("squash"), json!(12)), (json!(false), json!("merge"), json!(12))]);
+    assert!(asked_with(&rig, "pr.merge").is_empty());
+    // And a bad request is refused in key order, as the host's schema words it
+    assert_eq!(rig.err("github.setPRAutoMerge", json!({"prNumber": 12})), ("invalid_argument".into(), "Invalid input: expected boolean, received undefined".into()));
+    assert_eq!(rig.err("github.setPRAutoMerge", json!({"prNumber": 12, "enabled": true, "method": "octopus"})), ("invalid_argument".into(), "Invalid option: expected one of \"merge\"|\"squash\"|\"rebase\"".into()));
+    assert_eq!(rig.err("github.setPRAutoMerge", json!({"prNumber": 12, "enabled": true, "repo": "nowhere"})).0, "repo_not_found");
+}
+
+#[test]
+fn given_a_failed_check_when_the_phone_opens_its_details_then_the_row_has_the_output_annotations_and_the_jobs_of_the_run() {
+    // Given a check run whose workflow run is named by its address
+    let mut rig = Rig::new();
+    rig.hosting.remote("origin", "https://github.com/acme/app.git");
+    let url = "https://github.com/acme/app/actions/runs/100/job/31";
+    // When the phone opens it with the name of the check, and again without a name
+    let named = rig.ok("github.prCheckDetails", json!({"checkRunId": 31, "checkName": "build", "url": url}));
+    let unnamed = rig.ok("github.prCheckDetails", json!({"checkRunId": 31}));
+    // Then it is the host's row: the output, the annotation and times as text, and only the exact-name job of the run (all of them with no name)
+    assert_eq!((named["name"].clone(), named["status"].clone(), named["conclusion"].clone(), named["title"].clone(), named["text"].clone()), (json!("build"), json!("completed"), json!("failure"), json!("Build failed"), Value::Null));
+    assert_eq!((named["startedAt"].clone(), named["url"].clone(), named["detailsUrl"].clone()), (json!("2026-10-02T10:00:00.000Z"), json!("https://github.com/acme/app/runs/31"), json!("https://github.com/acme/app/actions/runs/100/job/31")));
+    assert_eq!(named["annotations"], json!([{"path": "src/lib.rs", "startLine": 3, "endLine": 4, "annotationLevel": "failure", "title": null, "message": "expected `;`", "rawDetails": null}]));
+    assert_eq!(named["jobs"].as_array().unwrap().len(), 1);
+    assert_eq!((named["jobs"][0]["name"].clone(), named["jobs"][0]["logTail"].clone(), named["jobs"][0]["steps"][0]["name"].clone(), named["jobs"][0]["steps"][1]["name"].clone()), (json!("build"), Value::Null, json!("Run tests"), json!("Unnamed step")));
+    assert_eq!(unnamed["jobs"].as_array().unwrap().len(), 2);
+    // And rca was asked for the check and, from the address, the run; a request with no id is the bare row and asks nothing; a failed read is the host's error
+    assert_eq!(asked_with(&rig, "pr.checkDetails")[0], json!({"workspace": "main", "check": 31, "run": 100}));
+    let before = asked_with(&rig, "pr.checkDetails").len();
+    let bare = rig.ok("github.prCheckDetails", json!({"checkName": "lint", "url": "https://ci.example.test/1"}));
+    assert_eq!((bare["name"].clone(), bare["url"].clone(), bare["jobs"].clone(), asked_with(&rig, "pr.checkDetails").len()), (json!("lint"), json!("https://ci.example.test/1"), json!([]), before));
+    assert_eq!(rig.err("github.prCheckDetails", json!({"checkRunId": 404})), ("runtime_error".into(), "Could not load check details.".into()));
+    assert_eq!(rig.err("github.prCheckDetails", json!({"checkRunId": 0})), ("invalid_argument".into(), "Too small: expected number to be >0".into()));
+    assert_eq!(rig.err("github.prCheckDetails", json!({"checkRunId": 31, "repo": "nowhere"})).0, "repo_not_found");
+}

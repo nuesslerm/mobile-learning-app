@@ -84,6 +84,8 @@ impl Workspaces {
         let me = self.clone();
         agent.reply("file.create", move |p| me.create(p));
         let me = self.clone();
+        agent.reply("file.write", move |p| me.write(p));
+        let me = self.clone();
         agent.reply("file.search", move |p| me.search(p));
         let me = self.clone();
         agent.reply("worktree.list", move |p| me.worktree_list(p));
@@ -164,6 +166,15 @@ impl Workspaces {
         let content = p["content"].as_str().unwrap_or("").as_bytes().to_vec();
         let bytes = content.len();
         s.files.insert((w, path), content);
+        Ok(json!({"bytes": bytes}))
+    }
+
+    fn write(&self, p: &Value) -> Result<Value, AgentError> {
+        let w = self.ws(p)?;
+        let path = p["path"].as_str().unwrap_or_default().to_string();
+        let content = p["content"].as_str().unwrap_or("").as_bytes().to_vec();
+        let bytes = content.len();
+        self.0.lock().unwrap().files.insert((w, path), content);
         Ok(json!({"bytes": bytes}))
     }
 

@@ -181,6 +181,28 @@ async fn given_named_skill_directories_when_skills_are_listed_then_the_executor_
 }
 
 #[tokio::test]
+async fn given_sessions_in_an_executors_home_when_listed_then_the_executors_answer_comes_back_under_its_name_and_the_asked_agents_and_limit_are_passed_on() {
+    // Given an executor whose session_scan finds one claude session
+    let rig = rig(|tool, args| match tool {
+        "session_scan" => {
+            assert_eq!(args, &json!({"agents": ["claude"], "limit": 5}));
+            ok(json!({"sessions": [{"agent": "claude", "session_id": "s1", "path": "~/.claude/projects/p/s1.jsonl", "title": "Fix it", "cwd": "/w", "modified_ms": 9, "message_count": 2, "first_prompt": "fix it"}], "truncated": true}))
+        }
+        other => panic!("{other}"),
+    });
+    // When the sessions of claude are listed with a limit
+    let listed = rig.ask(api::SESSIONS_LIST, json!({"agents": ["claude"], "limit": 5})).await;
+    // Then the session comes back with the executor that was asked, and the cut is reported
+    assert_eq!(listed["result"]["executor"], json!("e1"));
+    assert_eq!(listed["result"]["sessions"][0]["path"], json!("~/.claude/projects/p/s1.jsonl"));
+    assert_eq!(listed["result"]["truncated"], json!(true));
+    // And a CLI that keeps no sessions is refused before the executor is asked, and an executor's refusal keeps its code
+    let before = rig.channel.calls().len();
+    let bad = rig.ask(api::SESSIONS_LIST, json!({"agents": ["opencode"]})).await;
+    assert_eq!((bad["error"]["code"].clone(), rig.channel.calls().len()), (json!("INVALID_PARAMS"), before));
+}
+
+#[tokio::test]
 async fn given_a_speech_engine_when_a_recording_is_transcribed_then_its_words_come_back_and_a_missing_engine_or_a_failure_is_refused_as_unavailable() {
     // Given a service whose engine hears a recording and says "hello world"
     let rig = rig(|_, _| ok(json!({})));

@@ -237,3 +237,27 @@ fn given_ui_values_outside_their_range_when_set_then_each_is_normalised_as_orca_
     assert_eq!(ui["worktreeCardProperties"], json!(["status", "unread", "ci", "host"]));
     assert_eq!(ui["featureTipsSeenIds"], json!([]));
 }
+
+#[test]
+fn given_model_picks_when_applied_then_the_model_is_the_agents_default_with_its_options_kept_per_model_and_bad_input_is_refused_as_the_host_words_it() {
+    // Given a fresh host
+    let mut rig = Rig::new();
+    // When two picks are applied for claude: an effort on opus, then the model sonnet that is not adopted as the default
+    let first = rig.ok("settings.mutateNativeChatSessionOptions", json!({"type": "apply-picks", "agent": "claude", "picks": [{"modelId": "opus", "optionId": "effort", "value": "high"}]}));
+    rig.ok("settings.mutateNativeChatSessionOptions", json!({"type": "apply-picks", "agent": "claude", "picks": [{"modelId": "sonnet", "optionId": "effort", "value": "low", "adoptModelAsLaunchDefault": false}]}));
+    // Then the answer is ok, and the settings keep opus as the default with both models' values
+    assert_eq!(first, json!({"ok": true}));
+    let kept = rig.ok("settings.get", json!({}))["settings"]["nativeChatSessionOptions"].clone();
+    assert_eq!(kept, json!({"claude": {"model": "opus", "valuesByModel": {"opus": {"effort": "high"}, "sonnet": {"effort": "low"}}}}));
+    // And a restarted server reads the same, a clear is a no-op, and unknown agents and shapes are refused
+    assert_eq!(rig.after_restart().ok("settings.get", json!({}))["settings"]["nativeChatSessionOptions"], kept);
+    let writes = rig.writes();
+    assert_eq!(rig.ok("settings.mutateNativeChatSessionOptions", json!({"type": "clear-model-if-missing", "agent": "claude", "availableModelIds": ["x"]})), json!({"ok": true}));
+    assert_eq!(rig.writes(), writes);
+    let apply = |agent: &str| json!({"type": "apply-picks", "agent": agent, "picks": [{"modelId": "a", "optionId": "model", "value": "a"}]});
+    assert_eq!(rig.err("settings.mutateNativeChatSessionOptions", apply("a")), ("invalid_argument".to_string(), "Unknown agent".to_string()));
+    assert_eq!(rig.err("settings.mutateNativeChatSessionOptions", json!({"type": "apply-picks"})).1, "Invalid input: expected string, received undefined");
+    assert_eq!(rig.err("settings.mutateNativeChatSessionOptions", json!({})).1, "Invalid discriminator value. Expected 'apply-picks' | 'clear-model-if-missing'");
+    assert_eq!(rig.err("settings.mutateNativeChatSessionOptions", Value::Null).1, "Invalid discriminator value. Expected 'apply-picks' | 'clear-model-if-missing'");
+    assert_eq!(rig.err("settings.mutateNativeChatSessionOptions", json!("wrong")).1, "Invalid input: expected object, received string");
+}

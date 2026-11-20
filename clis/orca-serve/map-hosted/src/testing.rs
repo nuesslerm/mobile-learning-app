@@ -108,6 +108,14 @@ fn neutral(r: &Request) -> Value {
     })
 }
 
+/// A check named `name@100` is a job of Actions run 100; any other is a check of some other CI.
+fn check_url(name: &str) -> String {
+    match name.split_once('@') {
+        Some((_, run)) => format!("https://github.com/acme/app/actions/runs/{run}/job/1"),
+        None => format!("https://example.test/checks/{name}"),
+    }
+}
+
 impl Hosting {
     fn add(&self, provider: &'static str, number: u64, title: &str, head_ref: &str, base_ref: &str) -> &Self {
         let mut s = self.0.lock().unwrap();
@@ -540,6 +548,28 @@ impl Hosting {
             Some(99) => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
             _ => Err(refused("HOSTED_FAILED", "HTTP 404: Not Found")),
         });
+        agent.reply("pr.rerun", |p| match p["run"].as_u64() {
+            Some(500) => Err(refused("HOSTED_FAILED", "HTTP 403: Resource not accessible by integration")),
+            Some(run) => Ok(json!({"run": run, "failed_only": p["failed_only"].as_bool().unwrap_or(false)})),
+            None => Err(refused("INVALID_ARGS", "`run` must be a positive integer")),
+        });
+        agent.reply("pr.setAutoMerge", |p| match p["number"].as_u64() {
+            Some(13) => Err(refused("HOSTED_FAILED", "gh exited 1: GraphQL: Pull request Pull request is in clean status (enablePullRequestAutoMerge)")),
+            Some(14) => Err(refused("HOSTED_FAILED", "gh exited 1: boom")),
+            Some(n) => Ok(json!({"number": n, "enabled": p["enabled"]})),
+            None => Err(refused("INVALID_ARGS", "`number` must be a positive integer")),
+        });
+        agent.reply("pr.checkDetails", |p| match p["check"].as_u64().or_else(|| p["run"].as_u64()) {
+            Some(404) => Err(refused("NOT_FOUND", "gh: gh: Not Found (HTTP 404)")),
+            Some(_) => Ok(json!({"check": {"name": "build", "status": "completed", "conclusion": "failure", "url": "https://github.com/acme/app/runs/31", "details_url": "https://github.com/acme/app/actions/runs/100/job/31",
+                "started_at_ms": 1790935200000u64, "completed_at_ms": 1790935500000u64, "title": "Build failed", "summary": "1 error", "text": null,
+                "annotations": [{"path": "src/lib.rs", "start_line": 3, "end_line": 4, "level": "failure", "title": null, "message": "expected `;`", "raw_details": null}],
+                "jobs": [
+                    {"id": 30, "name": "lint", "status": "completed", "conclusion": "success", "started_at_ms": null, "completed_at_ms": null, "url": null, "log_tail": null, "steps": []},
+                    {"id": 31, "name": "build", "status": "completed", "conclusion": "failure", "started_at_ms": 1790935200000u64, "completed_at_ms": 1790935500000u64, "url": "https://github.com/acme/app/actions/runs/100/job/31", "log_tail": null,
+                        "steps": [{"name": "Run tests", "status": "completed", "conclusion": "failure", "started_at_ms": 1790935260000u64, "completed_at_ms": 1790935500000u64}, {"name": null, "status": null, "conclusion": null, "started_at_ms": null, "completed_at_ms": null}]}]}})),
+            None => Err(refused("INVALID_ARGS", "give `check` or `run`")),
+        });
         agent.reply("pr.comment", |p| match p["number"].as_u64() {
             Some(12) => Ok(json!({"done": true, "url": "https://github.com/acme/app/pull/12#issuecomment-77"})),
             _ => Err(refused("HOSTED_FAILED", "HTTP 404: Not Found")),
@@ -602,7 +632,7 @@ impl Hosting {
             "view" => Ok(json!({"pr": neutral(r)})),
             "checks" => {
                 let count = |state: &str| r.checks.iter().filter(|c| c.1 == state).count();
-                Ok(json!({"checks": r.checks.iter().map(|(name, state)| json!({"name": name, "state": state, "workflow": "CI", "url": format!("https://example.test/checks/{name}"), "started_at_ms": 1, "completed_at_ms": null})).collect::<Vec<_>>(), "pass": count("pass"), "fail": count("fail"), "pending": count("pending")}))
+                Ok(json!({"checks": r.checks.iter().map(|(name, state)| json!({"name": name, "state": state, "workflow": "CI", "url": check_url(name), "started_at_ms": 1, "completed_at_ms": null})).collect::<Vec<_>>(), "pass": count("pass"), "fail": count("fail"), "pending": count("pending")}))
             }
             "merge" => {
                 let method = p["method"].as_str().ok_or_else(|| refused("INVALID_ARGS", "`method` is required here"))?;

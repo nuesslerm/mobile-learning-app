@@ -18,6 +18,7 @@ mod rewind;
 mod session;
 mod status_stream;
 mod stream;
+mod vault;
 mod clipboard;
 mod speech;
 
@@ -43,6 +44,7 @@ pub const AGENT_SESSION_ITEM: &str = "agentSession.item";
 pub const AGENT_SESSION_SUBSCRIBE: &str = "agentSession.subscribe";
 pub const AGENT_SESSION_UNSUBSCRIBE: &str = "agentSession.unsubscribe";
 pub const AGENT_SESSION_HOLD: &str = "agentSession.hold";
+pub const AGENT_SESSION_REVEAL: &str = "agentSession.reveal";
 pub const AGENT_SESSION_RELEASE: &str = "agentSession.release";
 pub const AGENT_SESSION_CURRENT_REQUESTS: &str = "agentSession.currentRequests";
 pub const AGENT_SESSION_SEND_RECORDED: &str = "agentSession.sendRecorded";
@@ -88,6 +90,8 @@ pub const PREFLIGHT_DETECT_AGENTS: &str = "preflight.detectAgents";
 pub const PREFLIGHT_DETECT_REMOTE_AGENTS: &str = "preflight.detectRemoteAgents";
 pub const PREFLIGHT_REFRESH_AGENTS: &str = "preflight.refreshAgents";
 pub const SKILLS_DISCOVER: &str = "skills.discover";
+pub const AI_VAULT_LIST_SESSIONS: &str = "aiVault.listSessions";
+pub const AI_VAULT_PREPARE_SESSION_RESUME: &str = "aiVault.prepareSessionResume";
 pub const AGENT_LAUNCH: &str = "agent.launch";
 pub const AGENT_LAUNCH_REPLAY: &str = "agent.launchReplay";
 pub const NATIVE_CHAT_READ_SESSION: &str = "nativeChat.readSession";
@@ -95,7 +99,7 @@ pub const NATIVE_CHAT_UNSUBSCRIBE: &str = "nativeChat.unsubscribe";
 pub const NATIVE_CHAT_SUBSCRIBE: &str = "nativeChat.subscribe";
 
 /// The agent methods this crate sends: its calls read this list, and a flow test holds it to the methods really sent.
-pub const USES: &[AgentMethod] = &[THREAD_LIST, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START, THREAD_FORCE_STOP, THREAD_ROLLBACK, queue::QUEUE_ADD, queue::QUEUE_LIST, queue::QUEUE_EDIT, queue::QUEUE_MOVE, queue::QUEUE_DELETE, queue::QUEUE_RESUME, queue::TURN_STEER, agent_api_attachments::UPLOAD_PUT, agent_api_attachments::GET, agent_api_attachments::STAGE, requests::APPROVAL_ANSWER, requests::INPUT_ANSWER, requests::INPUT_DISMISS, agent_api_state::SET, agent_api_catalog::MODELS_LIST, agent_api_catalog::AGENTS_DETECT, agent_api_catalog::SKILLS_LIST, agent_api_catalog::COMMANDS_LIST, agent_api_catalog::SPEECH_STATUS, agent_api_catalog::SPEECH_TRANSCRIBE, orca_map_hosted::AUTH_DISCOVER];
+pub const USES: &[AgentMethod] = &[THREAD_LIST, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START, THREAD_FORCE_STOP, THREAD_ROLLBACK, agent_api_catalog::SESSIONS_LIST, queue::QUEUE_ADD, queue::QUEUE_LIST, queue::QUEUE_EDIT, queue::QUEUE_MOVE, queue::QUEUE_DELETE, queue::QUEUE_RESUME, queue::TURN_STEER, agent_api_attachments::UPLOAD_PUT, agent_api_attachments::GET, agent_api_attachments::STAGE, requests::APPROVAL_ANSWER, requests::INPUT_ANSWER, requests::INPUT_DISMISS, agent_api_state::SET, agent_api_catalog::MODELS_LIST, agent_api_catalog::AGENTS_DETECT, agent_api_catalog::SKILLS_LIST, agent_api_catalog::COMMANDS_LIST, agent_api_catalog::SPEECH_STATUS, agent_api_catalog::SPEECH_TRANSCRIBE, orca_map_hosted::AUTH_DISCOVER];
 
 const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_CREATE, kind: Kind::Unary },
@@ -108,6 +112,7 @@ const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_SUBSCRIBE_STATUS, kind: Kind::Streaming },
     Method { name: AGENT_SESSION_UNSUBSCRIBE, kind: Kind::Unary },
     Method { name: AGENT_SESSION_HOLD, kind: Kind::Unary },
+    Method { name: AGENT_SESSION_REVEAL, kind: Kind::Unary },
     Method { name: AGENT_SESSION_RELEASE, kind: Kind::Unary },
     Method { name: AGENT_SESSION_CURRENT_REQUESTS, kind: Kind::Unary },
     Method { name: AGENT_SESSION_SEND_RECORDED, kind: Kind::Unary },
@@ -152,6 +157,8 @@ const METHODS: &[Method] = &[
     Method { name: PREFLIGHT_DETECT_REMOTE_AGENTS, kind: Kind::Unary },
     Method { name: PREFLIGHT_REFRESH_AGENTS, kind: Kind::Unary },
     Method { name: SKILLS_DISCOVER, kind: Kind::Unary },
+    Method { name: AI_VAULT_LIST_SESSIONS, kind: Kind::Unary },
+    Method { name: AI_VAULT_PREPARE_SESSION_RESUME, kind: Kind::Unary },
     Method { name: AGENT_LAUNCH, kind: Kind::Unary },
     Method { name: AGENT_LAUNCH_REPLAY, kind: Kind::Unary },
     Method { name: NATIVE_CHAT_READ_SESSION, kind: Kind::Unary },
@@ -160,13 +167,10 @@ const METHODS: &[Method] = &[
 
 /// Each reason equals the one in `docs/plans/rca-parity/coverage/orca-decisions.json`; a flow test compares them.
 pub const NOT_OFFERED: &[NotOffered] = &[
-    NotOffered { name: "aiVault.listSessions", reason: "owner-confirmed (decision 7): it lists the session files the CLIs keep in the host's own home directory, which rca does not keep; the chats of this host are rca threads, which agentSession.* already serves. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the CLIs now run at the executor's host (owner decision of 18 Nov), so their session files are readable there; served in phase 3 with the host session vault.", decided_by: "M7" },
-    NotOffered { name: "aiVault.prepareSessionResume", reason: "owner-confirmed (decision 7): it prepares the resume of a CLI session file from the host's disk for a desktop terminal to open; rca has no such file and no desktop terminal. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the CLIs now run at the executor's host (owner decision of 18 Nov), so their session files are readable there; served in phase 3 with the host session vault.", decided_by: "M7" },
     NotOffered { name: "orchestration.partyLocation", reason: "owner-confirmed (decision 7): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate", decided_by: "M7" },
     NotOffered { name: "orchestration.partyOpen", reason: "owner-confirmed (decision 7): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database", decided_by: "M7" },
     NotOffered { name: "orchestration.workerAutoClose", reason: "owner-confirmed (decision 7): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers", decided_by: "M7" },
     NotOffered { name: "orchestration.workerKeepOpen", reason: "owner-confirmed (decision 7): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers", decided_by: "M7" },
-    NotOffered { name: "agentSession.reveal", reason: "owner-confirmed (decision 7): it shows the chat's tab in the desktop's own window and this host has no desktop", decided_by: "M7" },
     NotOffered { name: "agentSession.readVisual", reason: "owner-confirmed (decision 7): it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read", decided_by: "M7" },
 ];
 
@@ -210,6 +214,7 @@ impl Area for AgentArea {
             AGENT_SESSION_ITEM => session::item(agent, params),
             AGENT_SESSION_UNSUBSCRIBE => unsubscribe(ctx, params),
             AGENT_SESSION_HOLD => session::hold(agent, params),
+            AGENT_SESSION_REVEAL => session::reveal(agent, params),
             AGENT_SESSION_RELEASE => session::release(params),
             AGENT_SESSION_CURRENT_REQUESTS => session::current_requests(agent, params),
             AGENT_SESSION_SEND_RECORDED => session::send_recorded(agent, params),
@@ -254,6 +259,8 @@ impl Area for AgentArea {
             PREFLIGHT_DETECT_REMOTE_AGENTS => catalog::detect_remote_agents(agent, params),
             PREFLIGHT_REFRESH_AGENTS => catalog::refresh_agents(agent, params),
             SKILLS_DISCOVER => skills::discover(agent, params),
+            AI_VAULT_LIST_SESSIONS => vault::list_sessions(agent, params),
+            AI_VAULT_PREPARE_SESSION_RESUME => vault::prepare_resume(params),
             AGENT_LAUNCH => launch::launch(agent, params),
             AGENT_LAUNCH_REPLAY => launch::replay(agent, params),
             NATIVE_CHAT_READ_SESSION => session::read_session(agent, params),

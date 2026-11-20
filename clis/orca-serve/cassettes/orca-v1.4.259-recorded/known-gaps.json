@@ -23,15 +23,12 @@
         "orca-github.markPRDraft",
         "orca-github.markPRReadyForReview",
         "orca-github.mergePR",
-        "orca-github.prCheckDetails",
         "orca-github.prChecks",
         "orca-github.prComments",
         "orca-github.prFileContents",
         "orca-github.prForBranch",
         "orca-github.removePRReviewers",
         "orca-github.requestPRReviewers",
-        "orca-github.rerunPRChecks",
-        "orca-github.setPRAutoMerge",
         "orca-github.updatePR",
         "orca-github.updatePRTitle",
         "orca-gitlab.mergeMR",
@@ -47,8 +44,6 @@
         "orca-repo.searchRefs",
         "orca-repo.sparsePresets",
         "orca-repo.update",
-        "orca-settings.mutateNativeChatSessionOptions",
-        "orca-ssh.connect",
         "orca-worktree.create",
         "orca-worktree.listRetiredNames",
         "orca-worktree.prefetchCreateBase"
@@ -63,7 +58,6 @@
         "steps._:s2c:0.[0].payload.error extra drift"
       ],
       "ids": [
-        "orca-aiVault.prepareSessionResume",
         "orca-github.project.addIssueCommentBySlug",
         "orca-github.project.clearItemField",
         "orca-github.project.deleteIssueCommentBySlug",
@@ -84,8 +78,6 @@
         "orca-orchestration.partyLocation",
         "orca-orchestration.partyOpen",
         "orca-settings.getAgentLaunch",
-        "orca-ssh.getState",
-        "orca-ssh.listTargetSummaries",
         "orca-terminal.getAutoRestoreFit",
         "orca-terminal.setAutoRestoreFit"
       ]
@@ -100,11 +92,6 @@
       ],
       "ids": [
         "orca-agentSession.readVisual",
-        "orca-agentSession.reveal",
-        "orca-files.open",
-        "orca-files.openDiff",
-        "orca-markdown.readTab",
-        "orca-markdown.saveTab",
         "orca-orchestration.workerAutoClose",
         "orca-orchestration.workerKeepOpen",
         "orca-pairing.getEndpoints",
@@ -151,19 +138,6 @@
       "ids": [
         "orca-agentSession.cancelUsageLimitContinue",
         "orca-agentSession.createSupport"
-      ]
-    },
-    {
-      "class": "missing at steps._:s2c:*.[*].payload.result",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload._meta.runtimeId changed drift",
-        "steps._:s2c:0.[0].payload.ok changed drift",
-        "steps._:s2c:0.[0].payload.result missing breaking",
-        "steps._:s2c:0.[0].payload.error extra drift"
-      ],
-      "ids": [
-        "orca-aiVault.listSessions"
       ]
     },
     {
@@ -235,6 +209,16 @@
       ],
       "ids": [
         "orca-transport.e2ee.handshake"
+      ]
+    },
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.result.targets",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.targets changed breaking"
+      ],
+      "ids": [
+        "orca-ssh.listTargetSummaries"
       ]
     }
   ]

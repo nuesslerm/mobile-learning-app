@@ -677,6 +677,9 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
                 Ok(json!({"run": gl_run(&run), "jobs": jobs}))
             }
         }
+        HostedCall::RunRerun { run, failed_only } => Ok(json!({"run": run, "failed_only": *failed_only && github})),
+        HostedCall::PrAutoMerge { number, enabled, .. } => Ok(json!({"number": number, "enabled": enabled})),
+        HostedCall::PrCheckDetails { check, run } => check_details(github, check.is_some(), run.is_some(), outputs),
         HostedCall::AuthStatus => {
             let both = format!("{}\n{}", last.stdout, last.stderr);
             let status = parse_auth_status(&both);
@@ -684,6 +687,77 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
         }
         HostedCall::LoginStart | HostedCall::LoginWait { .. } | HostedCall::LoginCancel { .. } => Err(io("a sign-in flow is answered by the executor, not shaped from a program's output")),
     }
+}
+
+/// What of a failed job's log the answer keeps: its last characters, where the error is.
+const LOG_TAIL_MAX: usize = 16 * 1024;
+
+fn log_tail(log: &str) -> Value {
+    let skip = log.chars().count().saturating_sub(LOG_TAIL_MAX);
+    let tail: String = log.chars().skip(skip).collect();
+    if tail.trim().is_empty() {
+        Value::Null
+    } else {
+        json!(tail)
+    }
+}
+
+/// A list a tolerated step printed; a failed step or non-array output is empty, as the host answers.
+fn tolerated_list(out: &Output, key: Option<&str>) -> Vec<Value> {
+    if out.exit_code != 0 || out.truncated {
+        return Vec::new();
+    }
+    let Ok(v) = serde_json::from_str::<Value>(&out.stdout) else { return Vec::new() };
+    let list = match key {
+        Some(k) => v.get(k),
+        None => Some(&v),
+    };
+    list.and_then(Value::as_array).cloned().unwrap_or_default()
+}
+
+fn check_details(github: bool, with_check: bool, with_run: bool, outputs: &[Output]) -> ExecResult<Value> {
+    let program = if github { "gh" } else { "glab" };
+    let mut at = 0;
+    let mut take = || {
+        at += 1;
+        outputs.get(at - 1)
+    };
+    let (check_out, second_out) = if with_check { (take(), take()) } else { (None, None) };
+    let jobs_out = if with_run { take() } else { None };
+    let check = check_out.map(|o| json_of(program, o)).transpose()?;
+    if github {
+        let c = check.unwrap_or(Value::Null);
+        let output = &c["output"];
+        let annotations: Vec<Value> = second_out
+            .map(|o| tolerated_list(o, None))
+            .unwrap_or_default()
+            .iter()
+            .map(|a| json!({"path": text(a, "path"), "start_line": num(a, "start_line"), "end_line": num(a, "end_line"), "level": text(a, "annotation_level"), "title": text(a, "title"), "message": a.get("message").and_then(Value::as_str).unwrap_or(""), "raw_details": text(a, "raw_details")}))
+            .collect();
+        let steps_of = |j: &Value| -> Vec<Value> { items(j, "steps").iter().map(|s| json!({"name": text(s, "name"), "status": text(s, "status"), "conclusion": text(s, "conclusion"), "started_at_ms": ms(s, "started_at"), "completed_at_ms": ms(s, "completed_at")})).collect() };
+        let jobs: Vec<Value> = jobs_out
+            .map(|o| tolerated_list(o, Some("jobs")))
+            .unwrap_or_default()
+            .iter()
+            .map(|j| json!({"id": num(j, "id"), "name": text(j, "name"), "status": text(j, "status"), "conclusion": text(j, "conclusion"), "started_at_ms": ms(j, "started_at"), "completed_at_ms": ms(j, "completed_at"), "url": text(j, "html_url"), "log_tail": Value::Null, "steps": steps_of(j)}))
+            .collect();
+        return Ok(json!({"check": {"name": text(&c, "name"), "status": text(&c, "status"), "conclusion": text(&c, "conclusion"), "url": text(&c, "html_url"), "details_url": text(&c, "details_url"),
+            "started_at_ms": ms(&c, "started_at"), "completed_at_ms": ms(&c, "completed_at"), "title": text(output, "title"), "summary": text(output, "summary"), "text": text(output, "text"), "annotations": annotations, "jobs": jobs}}));
+    }
+    let job_row = |j: &Value, trace: Value| {
+        let (status, conclusion) = run_status(j.get("status").and_then(Value::as_str).unwrap_or(""));
+        json!({"id": num(j, "id"), "name": text(j, "name"), "status": status, "conclusion": conclusion, "started_at_ms": ms(j, "started_at"), "completed_at_ms": ms(j, "finished_at"), "url": text(j, "web_url"), "log_tail": trace, "steps": []})
+    };
+    let c = check.unwrap_or(Value::Null);
+    let trace = second_out.filter(|o| o.exit_code == 0 && !o.truncated).map_or(Value::Null, |o| log_tail(&o.stdout));
+    let jobs: Vec<Value> = match jobs_out {
+        Some(o) => tolerated_list(o, None).iter().map(|j| job_row(j, if j.get("id") == c.get("id") { trace.clone() } else { Value::Null })).collect(),
+        None if c.is_object() => vec![job_row(&c, trace)],
+        None => Vec::new(),
+    };
+    let (status, conclusion) = run_status(c.get("status").and_then(Value::as_str).unwrap_or(""));
+    Ok(json!({"check": {"name": text(&c, "name"), "status": if c.is_object() { json!(status) } else { Value::Null }, "conclusion": conclusion, "url": text(&c, "web_url"), "details_url": text(&c, "web_url"),
+        "started_at_ms": ms(&c, "started_at"), "completed_at_ms": ms(&c, "finished_at"), "title": Value::Null, "summary": text(&c, "failure_reason"), "text": Value::Null, "annotations": [], "jobs": jobs}}))
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]

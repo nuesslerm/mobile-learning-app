@@ -800,7 +800,7 @@ fn given_the_rows_the_area_does_not_offer_when_called_then_each_answers_not_offe
         assert!(row.reason.starts_with("owner-confirmed (decision 7)"), "{}", row.name);
     }
     // And the rows the owner decision names are all among them
-    for name in ["aiVault.listSessions", "aiVault.prepareSessionResume", "orchestration.partyLocation", "orchestration.partyOpen", "orchestration.workerAutoClose", "orchestration.workerKeepOpen", "agentSession.reveal", "agentSession.readVisual"] {
+    for name in ["orchestration.partyLocation", "orchestration.partyOpen", "orchestration.workerAutoClose", "orchestration.workerKeepOpen", "agentSession.readVisual"] {
         assert!(NOT_OFFERED.iter().any(|r| r.name == name), "{name}");
     }
 }
@@ -852,6 +852,7 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     rig.ok("speech.dictation.chunk", json!({"dictationId": "d9", "audioBase64": pcm_chunk(10), "sampleRate": 16000}));
     rig.ok("speech.dictation.finish", json!({"dictationId": "d9"}));
     rig.ok("skills.discover", json!({"worktreeId": "feat"}));
+    rig.ok("aiVault.listSessions", json!({}));
     let (mut q, ids) = queued_rig();
     let fp = body_fingerprint("claude_q", "one");
     q.ok("agentSession.queuedMessageUpdate", mutation("claude_q", "e1", json!({"messageId": ids[0], "expectedBodyFingerprint": fp, "text": "uno"})));
@@ -1104,6 +1105,33 @@ fn given_the_double_of_the_catalog_when_its_answers_are_read_as_the_contract_the
     serde_json::from_value::<agent_api_catalog::SkillsResult>(ask("skills.list", json!({"workspace": "main"}))).unwrap();
     // And each driver the contract names is one this crate maps to an Orca agent
     assert_eq!(orca_map_agent::drivers_served(), agent_api_catalog::DRIVERS.to_vec());
+}
+
+#[test]
+fn given_cli_sessions_in_the_executors_home_when_the_vault_is_listed_then_each_is_a_scan_row_with_its_resume_line_and_a_matching_fingerprint_is_unchanged() {
+    // Given two sessions of the executor
+    let mut rig = Rig::new();
+    rig.catalog.session("claude", "s1", "/srv/wt/feat", "fix the build", 1_793_494_861_123).session("codex", "c1", "/srv/other", "add a test", 1_000);
+    // When the vault is listed, and again scoped to one worktree
+    let all = rig.ok("aiVault.listSessions", json!({}));
+    let scoped = rig.ok("aiVault.listSessions", json!({"scopePaths": ["/srv/wt/feat"], "scopeOnly": true}));
+    // Then the rows carry the host's fields, the resume line, and a path below ~
+    assert_eq!(all["issues"], json!([]));
+    let first = &all["sessions"][0];
+    assert_eq!((first["id"].clone(), first["modifiedAt"].clone(), first["resumeCommand"].clone(), first["filePath"].clone()), (json!("claude:s1"), json!("2026-11-01T01:01:01.123Z"), json!("cd '/srv/wt/feat' && claude --resume 's1'"), json!("~/.claude/sessions/s1.jsonl")));
+    assert_eq!(all["sessions"][1]["resumeCommand"], json!("cd '/srv/other' && codex resume 'c1'"));
+    assert_eq!(scoped["sessions"].as_array().unwrap().len(), 1);
+    // And a request that names the last fingerprint is answered unchanged, a forced one is not, and a bad fingerprint is refused by the schema's words
+    let fp = rig.ok("aiVault.listSessions", json!({"afterFingerprint": "0".repeat(64)}))["fingerprint"].clone();
+    let same = rig.ok("aiVault.listSessions", json!({"afterFingerprint": fp}));
+    assert_eq!((same["unchanged"].clone(), same["sessions"].clone()), (json!(true), json!([])));
+    assert!(rig.ok("aiVault.listSessions", json!({"afterFingerprint": fp, "force": true}))["sessions"].as_array().unwrap().len() == 2);
+    assert_eq!(rig.err("aiVault.listSessions", json!({"afterFingerprint": "a"})).1, "Invalid string: must match pattern /^[0-9a-f]{64}$/");
+    assert_eq!(rig.err("aiVault.listSessions", json!({"limit": 5000})).1, "Limit exceeds maximum");
+    // And a resume is prepared with nothing to copy, and a malformed one is refused
+    let args = json!({"agent": "codex", "filePath": "~/.codex/sessions/c1.jsonl", "codexHome": null});
+    assert_eq!(rig.ok("aiVault.prepareSessionResume", args), json!({"useRealCodexHome": false}));
+    assert_eq!(rig.err("aiVault.prepareSessionResume", json!(null)).1, "Invalid input");
 }
 
 #[test]
@@ -1609,4 +1637,47 @@ fn given_the_one_model_when_it_is_downloaded_deleted_or_another_is_chosen_then_e
     // And with no engine at the service no model is listed
     let mut bare = Rig::new();
     assert_eq!(bare.ok("speech.models.list", json!({}))["models"], json!([]));
+}
+
+#[test]
+fn given_a_saved_default_model_and_permission_when_a_chat_sends_then_the_turn_runs_on_them_unless_the_send_names_a_model() {
+    // Given the settings the phone saved: claude's default model and the accept-edits permission
+    let mut rig = Rig::new();
+    rig.agent.set_state("orca", "settings", json!({"nativeChatPermissionMode": "accept-edits", "nativeChatSessionOptions": {"claude": {"model": "sonnet", "valuesByModel": {}}}}));
+    rig.idle("claude_a");
+    let send = |op: &str, extra: Value| {
+        let mut p = json!({"envelope": env("claude_a", op, "f"), "body": body("go")});
+        p.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        p
+    };
+    // When a send names no model, and a later one names opus
+    rig.ok("agentSession.send", send("a1", json!({})));
+    rig.idle("claude_c");
+    rig.ok("agentSession.send", json!({"envelope": env("claude_c", "c1", "f"), "body": body("go"), "options": {"model": "opus"}}));
+    // Then the first ran on the saved model and both under the saved permission as rca names it
+    let turns = sent(&rig, "turn.start");
+    assert_eq!(turns.iter().map(|p| (p["model"].clone(), p["runtime_mode"].clone())).collect::<Vec<_>>(), vec![(json!("sonnet"), json!("auto-accept-edits")), (json!("opus"), json!("auto-accept-edits"))]);
+    // And a saved mode rca has no equivalent of (auto) asks for approval rather than granting more
+    rig.agent.set_state("orca", "settings", json!({"nativeChatPermissionMode": "auto"}));
+    rig.idle("claude_b");
+    rig.ok("agentSession.send", json!({"envelope": env("claude_b", "b1", "f"), "body": body("go")}));
+    assert_eq!(sent(&rig, "turn.start").last().unwrap()["runtime_mode"], json!("approval-required"));
+}
+
+#[test]
+fn given_a_chat_when_revealed_then_its_tab_is_kept_in_front_in_its_worktree_and_a_missing_chat_or_agent_is_refused_in_the_hosts_words() {
+    // Given an idle chat in the main workspace and a thread of an agent this host does not run
+    let mut rig = Rig::new();
+    rig.idle("claude_a");
+    rig.agent.request("thread.create", json!({"thread": "codex_x", "workspace": "main", "driver": "someOther"})).ok();
+    // When the chat is revealed
+    let revealed = rig.ok("agentSession.reveal", json!({"sessionId": "claude_a"}));
+    // Then the answer names the chat, its workspace id and agent, and the chat's tab is kept and in front
+    assert_eq!(revealed, json!({"ok": true, "sessionId": "claude_a", "workspaceId": "main::", "agent": "claude", "readable": true}));
+    assert_eq!(rig.agent.state_get("orca", "tabs.extra.main").unwrap().unwrap()[0], json!({"id": "claude_a", "kind": "agent-session", "sessionId": "claude_a", "agent": "claude", "title": "Chat"}));
+    assert_eq!(rig.agent.state_get("orca", "tabs.active.main").unwrap(), Some(json!("claude_a")));
+    // And a chat the host does not have, one of an agent it cannot open, and a malformed id are refused
+    assert_eq!(rig.ok("agentSession.reveal", json!({"sessionId": "claude_gone"})), json!({"ok": false, "refusal": {"code": "agent_session_not_found", "message": "This chat is no longer on this host."}}));
+    assert_eq!(rig.ok("agentSession.reveal", json!({"sessionId": "codex_x"}))["refusal"]["code"], json!("structured_agent_session_unsupported"));
+    assert_eq!(rig.err("agentSession.reveal", json!({"sessionId": "a"})), ("invalid_argument".to_string(), "Invalid agent session id".to_string()));
 }

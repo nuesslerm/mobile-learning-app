@@ -75,6 +75,34 @@ async fn given_skills_on_the_executor_and_others_on_the_service_when_listed_then
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_cli_sessions_in_the_executors_home_and_others_on_the_service_when_listed_then_only_the_executors_come_back_named_below_a_tilde() {
+    // Given a claude and a codex session file in the executor's home, and a claude session in the service's own home
+    let env = Env::new(&[]);
+    let rig = rig(&env).await;
+    let claude = concat!(r#"{"type":"user","sessionId":"sess-1","cwd":"/work/app","gitBranch":"main","timestamp":"2026-11-01T10:00:00Z","message":{"role":"user","content":"fix the build"}}"#, "\n");
+    let codex = concat!(r#"{"type":"session_meta","payload":{"id":"cx-1","cwd":"/work/app","timestamp":"2026-11-02T09:00:00Z","git":{"branch":"dev"}}}"#, "\n");
+    let put = |home: &std::path::Path, file: &str, text: &str| {
+        let at = home.join(file);
+        std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+        std::fs::write(at, text).unwrap();
+    };
+    put(&rig.executor_home(), ".claude/projects/-work-app/sess-1.jsonl", claude);
+    put(&rig.executor_home(), ".codex/sessions/2026/11/02/rollout-cx-1.jsonl", codex);
+    put(&env.home, ".claude/projects/-svc/on-the-service.jsonl", claude);
+    let mut agent = rig.agent().await;
+    // When the sessions are listed, and then only codex's
+    let all = agent.ask("sessions.list", json!({})).await;
+    let codex_only = agent.ask("sessions.list", json!({"agents": ["codex"]})).await;
+    // Then both of the executor's come back by a path that does not say where the home is, and none of the service's
+    let mut found: Vec<(&str, &str, &str)> = all["result"]["sessions"].as_array().unwrap().iter().map(|s| (s["agent"].as_str().unwrap(), s["session_id"].as_str().unwrap(), s["path"].as_str().unwrap())).collect();
+    found.sort();
+    assert_eq!(found, [("claude", "sess-1", "~/.claude/projects/-work-app/sess-1.jsonl"), ("codex", "cx-1", "~/.codex/sessions/2026/11/02/rollout-cx-1.jsonl")], "{all}");
+    assert!(!all.to_string().contains(rig.executor_home().to_str().unwrap()) && !all.to_string().contains("on-the-service"), "{all}");
+    assert_eq!(all["result"]["executor"], json!("w1"));
+    assert_eq!(codex_only["result"]["sessions"].as_array().unwrap().len(), 1, "{codex_only}");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_the_models_of_a_driver_when_listed_then_the_default_the_turn_takes_is_among_them() {
     // Given the service
     let env = Env::new(&[]);

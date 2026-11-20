@@ -1,7 +1,7 @@
 //! The use cases of the group over the executors and the table of the drivers.
 use crate::ports::{Clock, Refusal, Speech};
 use crate::table;
-use agent_api_catalog::{code, message, skill_dirs, Command, CommandKind, CommandsParams, CommandsResult, DetectParams, DetectResult, DetectedAgent, DetectedTool, ModelsParams, ModelsResult, Scope, SkillsParams, SkillsResult, SpeechStatusResult, SpeechTranscribeParams, SpeechTranscribeResult, DRIVERS, TOOLS};
+use agent_api_catalog::{code, message, skill_dirs, Command, CommandKind, CommandsParams, CommandsResult, DetectParams, DetectResult, DetectedAgent, DetectedTool, ModelsParams, ModelsResult, Scope, SessionsParams, SessionsResult, VaultSession, SkillsParams, SkillsResult, SpeechStatusResult, SpeechTranscribeParams, SpeechTranscribeResult, DRIVERS, TOOLS};
 use agent_api_proto::code as proto_code;
 use exec_proto::Code;
 use rca_exec_channel::remote::RemoteError;
@@ -95,6 +95,25 @@ impl Catalog {
             args["home_dirs"] = json!(d);
         }
         read(channel.call(exec_fs::SKILL_SCAN, args).await.map_err(relay)?.result)
+    }
+
+    /// The sessions the agent CLIs keep in an executor's own home, as its `session_scan` found them.
+    pub async fn sessions(&self, p: SessionsParams) -> Result<SessionsResult, Refusal> {
+        let route = self.executors.route_new(p.executor.as_deref()).map_err(|e| match e {
+            RouteError::UnknownExecutor(name) => Refusal::new(code::UNKNOWN_EXECUTOR, message::unknown_executor(&name)),
+            RouteError::AmbiguousExecutor(all) => Refusal::new(proto_code::INVALID_PARAMS, format!("several executors are attached ({}): name one", all.join(", "))),
+            RouteError::NoExecutor | RouteError::UnknownWorkspace(_) => Refusal::new(Code::NoExecutor.as_str(), "no executor is attached"),
+        })?;
+        let mut args = json!({});
+        if let Some(agents) = &p.agents {
+            args["agents"] = json!(agents);
+        }
+        if let Some(limit) = p.limit {
+            args["limit"] = json!(limit);
+        }
+        let found: exec_fs::SessionsFound = read(route.channel.call(exec_fs::SESSION_SCAN, args).await.map_err(relay)?.result)?;
+        let sessions = found.sessions.into_iter().map(|s| VaultSession { agent: s.agent, session_id: s.session_id, path: s.path, title: s.title, cwd: s.cwd, branch: s.branch, model: s.model, created_at: s.created_at, updated_at: s.updated_at, modified_ms: s.modified_ms, message_count: s.message_count, first_prompt: s.first_prompt, last_prompt: s.last_prompt }).collect();
+        Ok(SessionsResult { executor: route.executor, sessions, truncated: found.truncated })
     }
 
     pub async fn skills(&self, p: SkillsParams) -> Result<SkillsResult, Refusal> {

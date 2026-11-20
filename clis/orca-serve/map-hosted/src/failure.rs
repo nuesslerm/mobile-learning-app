@@ -16,6 +16,15 @@ fn copy(code: &str) -> &'static str {
         "github.pullRequestPermissionDenied" => "You don't have permission to edit this pull request. Check your GitHub token scopes.",
         "github.pullRequestNotFound" => "Pull request not found — it may have been deleted.",
         "github.pullRequestUpdateFailed" => "Failed to update pull request: {{detail}}",
+        "github.autoMergeAlreadyMergeable" => "This pull request can already be merged. Use Merge instead of auto-merge.",
+        "github.autoMergeEnableFailed" => "Failed to enable auto-merge for pull request: {{detail}}",
+        "github.autoMergeDisableFailed" => "Failed to disable auto-merge for pull request: {{detail}}",
+        "github.noFailedChecks" => "No failed GitHub Actions checks to rerun.",
+        "github.noRerunnableChecks" => "No rerunnable checks found.",
+        "github.rerunPermissionDenied" => "You don't have permission to rerun checks on this repository. Check your GitHub token scopes.",
+        "github.rerunTargetNotFound" => "GitHub resource to rerun was not found — it may have expired or been deleted.",
+        "github.rerunRejected" => "Could not rerun checks — {{detail}}",
+        "github.rerunFailed" => "Failed to rerun checks: {{detail}}",
         "gitlab.projectUnresolved" => "Could not resolve GitLab project for this repository",
         "gitlab.unexpectedResponse" => "Unexpected response from GitLab",
         _ => "{{detail}}",
@@ -32,7 +41,7 @@ pub fn code_host(code: &str, detail: Option<&str>) -> Value {
 }
 
 /// gh found no GitHub remote for the folder: the host checks this before it runs gh at all.
-fn unresolved(lower: &str) -> bool {
+pub(crate) fn unresolved(lower: &str) -> bool {
     ["none of the git remotes", "no git remotes", "not a git repository"].iter().any(|w| lower.contains(w))
 }
 
@@ -68,6 +77,11 @@ pub fn gh(stderr: &str) -> Value {
 
 /// A failed gh call as the host answers a pull request update (`classifyPullRequestUpdateError` with its default action).
 pub fn pr_update(stderr: &str) -> Value {
+    pr_update_as(stderr, "github.pullRequestUpdateFailed")
+}
+
+/// `classifyPullRequestUpdateError` for the action whose failure code is `action`.
+fn pr_update_as(stderr: &str, action: &str) -> Value {
     if unresolved(&stderr.to_lowercase()) {
         return code_host("github.repoUnresolved", None);
     }
@@ -76,9 +90,37 @@ pub fn pr_update(stderr: &str) -> Value {
         ("permission_denied", ..) => code_host("github.pullRequestPermissionDenied", None),
         ("not_found", ..) => code_host("github.pullRequestNotFound", None),
         ("validation_error", ..) => code_host("invalidUpdate", Some(trimmed)),
-        ("unknown", ..) => code_host("github.pullRequestUpdateFailed", Some(trimmed)),
+        ("unknown", ..) => code_host(action, Some(trimmed)),
         (_, code, detail) => code_host(code, detail.as_deref()),
     }
+}
+
+/// `classifySetAutoMergeError`: GitHub refuses auto-merge for a pull request that is clean, which the host words on its own.
+pub fn auto_merge(stderr: &str, enabled: bool) -> Value {
+    if enabled && stderr.to_lowercase().contains("in clean status") {
+        return code_host("github.autoMergeAlreadyMergeable", None);
+    }
+    pr_update_as(stderr, if enabled { "github.autoMergeEnableFailed" } else { "github.autoMergeDisableFailed" })
+}
+
+/// `classifyRerunChecksError`: a rerun that failed after `started` runs were started names them, since a rerun is not idempotent; with none started it is the
+/// classified failure itself.
+pub fn rerun(stderr: &str, started: usize) -> Value {
+    if unresolved(&stderr.to_lowercase()) {
+        return code_host("github.repoUnresolved", None);
+    }
+    let trimmed = stderr.trim();
+    let failure = match classify(stderr) {
+        ("permission_denied", ..) => code_host("github.rerunPermissionDenied", None),
+        ("not_found", ..) => code_host("github.rerunTargetNotFound", None),
+        ("validation_error", ..) => code_host("github.rerunRejected", Some(trimmed)),
+        ("issues_disabled" | "unknown", ..) => code_host("github.rerunFailed", Some(trimmed)),
+        (_, code, detail) => code_host(code, detail.as_deref()),
+    };
+    if started == 0 {
+        return failure;
+    }
+    json!({"ok": false, "error": format!("{} ({started} rerun{} already started)", failure["error"].as_str().unwrap_or_default(), if started == 1 { "" } else { "s" })})
 }
 
 /// A failed glab call as the host answers a merge request update: an unresolved project by its code, anything else by glab's words.
@@ -92,6 +134,18 @@ pub fn glab(stderr: &str) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn given_a_failed_rerun_or_auto_merge_when_classified_then_each_is_the_hosts_code_and_a_partial_rerun_counts_what_started() {
+        // Given gh's words for a clean pull request, a token that may not rerun, and a rerun that failed after one started
+        // Then each is the host's code and text, and the partial rerun is the host's sentence with no code
+        assert_eq!(auto_merge("gh exited 1: GraphQL: Pull request Pull request is in clean status (enablePullRequestAutoMerge)", true)["errorCode"], "github.autoMergeAlreadyMergeable");
+        assert_eq!(auto_merge("gh exited 1: boom", true)["errorCode"], "github.autoMergeEnableFailed");
+        assert_eq!(auto_merge("gh exited 1: boom", false)["errorCode"], "github.autoMergeDisableFailed");
+        assert_eq!(rerun("HTTP 403: Resource not accessible", 0)["errorCode"], "github.rerunPermissionDenied");
+        assert_eq!(rerun("HTTP 403: Resource not accessible", 2), json!({"ok": false, "error": "You don't have permission to rerun checks on this repository. Check your GitHub token scopes. (2 reruns already started)"}));
+        assert_eq!(rerun("boom", 1)["error"], "Failed to rerun checks: boom (1 rerun already started)");
+    }
 
     #[test]
     fn given_what_gh_printed_when_a_failure_is_classified_then_it_is_the_hosts_code_text_and_detail() {
