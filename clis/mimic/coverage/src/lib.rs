@@ -22,7 +22,7 @@ use coverage::{Decisions, Problem, PIN_BUMP};
 use methods::MethodsList;
 use ports::{Evidence, History, Traces, Tree};
 use serde_json::{json, Value};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const COVERAGE_DIR: &str = "docs/plans/rca-parity/coverage";
 
@@ -134,11 +134,32 @@ fn in_slice(prefixes: &[String], row: &str) -> bool {
     prefixes.iter().any(|p| row.starts_with(p.as_str()))
 }
 
-/// The evidence a sliced refresh leaves: the checked-in entries of the rows outside the slice, and the traces' entries of the rows inside it.
+/// The evidence a sliced refresh leaves: the checked-in entries of the rows outside the slice, and the traces' entries of the rows inside it (a row it did not reach keeps its checked-in entry, see `carry_over`).
 fn slice_of(prefixes: &[String], checked_in: Option<&str>, served: BTreeMap<String, evidence::Entry>) -> BTreeMap<String, evidence::Entry> {
     let mut kept: BTreeMap<String, evidence::Entry> = checked_in.and_then(|t| evidence::parse(t).ok()).unwrap_or_default().into_iter().filter(|(id, _)| !in_slice(prefixes, id)).collect();
     kept.extend(served.into_iter().filter(|(id, _)| in_slice(prefixes, id)));
     kept
+}
+
+/// A refresh adds what its traces prove and drops nothing a run merely did not reach: a row the checked-in evidence serves, that is still
+/// tracked and servable, and that no supplied trace serves keeps its entry, unless its test ran in a complete run of its suite and did not
+/// pass (failed, or gone). Only rows inside `scope` (every row when empty) are touched. Returns the rows kept and the rows un-served.
+fn carry_over(checked_in: Option<&str>, served: &mut BTreeMap<String, evidence::Entry>, rows: &[evidence::RowSpec], not_offered: &dyn Fn(&str) -> bool, ran: &BTreeMap<String, BTreeSet<String>>, scope: &[String]) -> (Vec<String>, Vec<String>) {
+    let before = checked_in.and_then(|t| evidence::parse(t).ok()).unwrap_or_default();
+    let (mut kept, mut unserved) = (vec![], vec![]);
+    for (id, entry) in before.into_iter().filter(|(id, _)| scope.is_empty() || in_slice(scope, id)) {
+        let servable = rows.iter().any(|r| r.id == id && !r.held && (r.mimic || r.unrecordable));
+        if !servable || not_offered(&id) || served.contains_key(&id) {
+            continue;
+        }
+        if ran.get(&entry.suite).is_some_and(|tests| !tests.contains(&entry.test)) {
+            unserved.push(id);
+        } else {
+            served.insert(id.clone(), entry);
+            kept.push(id);
+        }
+    }
+    (kept, unserved)
 }
 
 pub fn run(req: &Request, tree: &dyn Tree, history: &dyn History, traces: &dyn Traces, oracle: &dyn Evidence) -> Outcome {
@@ -192,6 +213,7 @@ pub fn run(req: &Request, tree: &dyn Tree, history: &dyn History, traces: &dyn T
     let checked_in = tree.read(&evidence_path);
     let mut problems = vec![];
     let refreshed = req.traces.is_some();
+    let (mut preserved, mut unserved, mut carried): (Vec<String>, Vec<String>, Vec<String>) = (vec![], vec![], vec![]);
     let (evidence, evidence_text) = match &req.traces {
         None => match checked_in.as_deref().map(evidence::parse) {
             Some(Ok(rows)) => (rows, None),
@@ -219,9 +241,16 @@ pub fn run(req: &Request, tree: &dyn Tree, history: &dyn History, traces: &dyn T
             problems.extend(evidence::unknown_problem(evidence::unknown_rows(&calls, &known).into_iter().filter(|r| !decisions.is_trace_noise(r)).collect()));
             let mut served = evidence::resolve(&calls, &rows, oracle);
             // a row decided not offered is not served, whatever a call of it did
-            served.retain(|id, _| !decisions.rows.get(id).is_some_and(|d| matches!(d.get("state").and_then(Value::as_str), Some("not-offered" | "excluded"))));
+            let not_offered = |id: &str| decisions.rows.get(id).is_some_and(|d| matches!(d.get("state").and_then(Value::as_str), Some("not-offered" | "excluded")));
+            served.retain(|id, _| !not_offered(id));
+            (preserved, unserved) = carry_over(checked_in.as_deref(), &mut served, &rows, &not_offered, &evidence::passed(app.name(), &loaded), &req.rows);
             let served = if req.rows.is_empty() { served } else { slice_of(&req.rows, checked_in.as_deref(), served) };
-            let text = evidence::document(app.name(), evidence::source_json(source, runs), &served);
+            carried = preserved.clone();
+            if !req.rows.is_empty() {
+                carried.extend(checked_in.as_deref().map(evidence::carried_of).unwrap_or_default().into_iter().filter(|id| !in_slice(&req.rows, id) && served.contains_key(id)));
+                carried.sort();
+            }
+            let text = evidence::document(app.name(), evidence::source_json(source, runs), &served, &carried);
             (served, Some(text))
         }
     };
@@ -246,7 +275,7 @@ pub fn run(req: &Request, tree: &dyn Tree, history: &dyn History, traces: &dyn T
     }
     // the evidence file is its rows: the same rows read from another run (its path, its commit) leave it as it is
     let mut changed: Vec<String> = files.iter().filter(|(p, text)| *p != evidence_path && tree.read(p).as_deref() != Some(text.as_str())).map(|(p, _)| p.clone()).collect();
-    if refreshed && (unstable.is_some() || checked_in.as_deref().map(evidence::parse).and_then(Result::ok).as_ref() != Some(&evidence)) {
+    if refreshed && (unstable.is_some() || checked_in.as_deref().map(evidence::parse).and_then(Result::ok).as_ref() != Some(&evidence) || checked_in.as_deref().map(evidence::carried_of).unwrap_or_default() != carried) {
         changed.insert(0, evidence_path.clone());
     }
     if req.mode == Mode::Check && !changed.is_empty() {
@@ -264,7 +293,7 @@ pub fn run(req: &Request, tree: &dyn Tree, history: &dyn History, traces: &dyn T
         "reference": {"dir": reference, "head": head, "pin": commit, "atPin": at_pin},
         "counts": list.counts,
         "summary": cov.json["summary"],
-        "evidence": json!({"file": app.evidence_file(), "rows": evidence.len(), "refreshedFrom": req.traces.as_deref().and_then(evidence::stable_source)}),
+        "evidence": json!({"file": app.evidence_file(), "rows": evidence.len(), "preserved": preserved, "unserved": unserved, "refreshedFrom": req.traces.as_deref().and_then(evidence::stable_source)}),
         "problems": problems.iter().map(Problem::to_json).collect::<Vec<_>>(),
     });
     let writes = if req.mode == Mode::Write { files.into_iter().filter(|(p, _)| changed.contains(p)).collect() } else { vec![] };

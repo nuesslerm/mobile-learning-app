@@ -109,6 +109,18 @@ pub fn calls(app: &str, texts: &[(String, String)]) -> Result<(Vec<Call>, Vec<Va
     Ok((out, runs))
 }
 
+/// The passing tests of every complete run of `app` in `texts`, by suite: a suite listed here ran in full, so an evidence entry naming one of
+/// its tests that is not listed failed or no longer exists. Call after `calls` has validated the texts.
+pub fn passed(app: &str, texts: &[(String, String)]) -> BTreeMap<String, BTreeSet<String>> {
+    let mut out: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    for trace in texts.iter().filter_map(|(_, t)| serde_json::from_str::<Value>(t).ok()).filter(|t| t["app"] == app && t["complete"] == true) {
+        let Some(suite) = trace["suite"].as_str() else { continue };
+        let names = trace["tests"].as_array().into_iter().flatten().filter(|t| t["verdict"] == "pass").filter_map(|t| t["test"].as_str().map(String::from));
+        out.entry(suite.to_string()).or_default().extend(names);
+    }
+    out
+}
+
 /// What a row's call must show: the agent method its target names, if it forwards.
 pub fn required_method(target: Option<&str>) -> Option<&str> {
     target.and_then(|t| t.strip_prefix("agent:"))
@@ -163,16 +175,26 @@ pub fn parse(text: &str) -> Result<BTreeMap<String, Entry>, String> {
     rows.iter().map(|(id, e)| Entry::from_json(e).map(|e| (id.clone(), e)).ok_or_else(|| format!("{id}: an entry needs a suite and a test"))).collect()
 }
 
-/// The evidence file for `rows`, and where they came from (`source`: what `--traces` named and the runs read).
-pub fn document(app: &str, source: Value, rows: &BTreeMap<String, Entry>) -> String {
+/// The evidence file for `rows`, and where they came from (`source`: what `--traces` named and the runs read). `carried` are the rows kept
+/// from an earlier refresh that `source` did not reach; the file names them, since `source` did not prove them.
+pub fn document(app: &str, source: Value, rows: &BTreeMap<String, Entry>, carried: &[String]) -> String {
     let rows: Map<String, Value> = rows.iter().map(|(id, e)| (id.clone(), e.to_json())).collect();
-    crate::methods::pretty(&json!({
+    let mut doc = json!({
         "schema": EVIDENCE_SCHEMA,
         "app": app,
-        "generatedBy": format!("wf mimic coverage --app {app} --traces <dir|bundle>"),
+        "generatedBy": format!("wf mimic coverage --app {app} --traces <dir|bundle>; a row in `carried` was kept from an earlier refresh, not proved by `source`"),
         "source": source,
         "rows": rows,
-    }))
+    });
+    if !carried.is_empty() {
+        doc["carried"] = json!(carried);
+    }
+    crate::methods::pretty(&doc)
+}
+
+/// The rows the checked-in evidence file records as carried.
+pub fn carried_of(text: &str) -> Vec<String> {
+    serde_json::from_str::<Value>(text).ok().and_then(|v| v["carried"].as_array().map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())).unwrap_or_default()
 }
 
 /// A `--traces` source as the evidence file records it: a URL, or a path inside the repository. An absolute path or one through a scratch
@@ -269,7 +291,7 @@ mod tests {
     #[test]
     fn the_evidence_file_round_trips_and_a_file_of_another_schema_is_refused() {
         let rows = BTreeMap::from([("rpc:x".to_string(), Entry { suite: "chain".into(), test: "a::t".into(), agent: vec!["file.list".into()], executor: vec!["list_dir".into()], oracle: None, diff: None, cassette: None })]);
-        assert_eq!(parse(&document("t3", json!({}), &rows)).unwrap(), rows);
+        assert_eq!(parse(&document("t3", json!({}), &rows, &[])).unwrap(), rows);
         assert!(parse(r#"{"schema": 9, "rows": {}}"#).unwrap_err().contains("schema 9"));
         assert!(parse(r#"{"schema": 1, "rows": {"rpc:x": {}}}"#).unwrap_err().contains("rpc:x"));
         // and a trace of another schema or one that is not JSON is an error naming where it was read
@@ -302,7 +324,7 @@ mod tests {
         let only_drift = calls("t3", &[trace(true, json!([replayed("a::drift", "recorded", "drift")]))]).unwrap().0;
         assert!(resolve(&only_drift, &row(true), &oracle).is_empty());
         // And the entry round-trips through the evidence file
-        assert_eq!(parse(&document("t3", json!({}), &served)).unwrap(), served);
+        assert_eq!(parse(&document("t3", json!({}), &served, &[])).unwrap(), served);
     }
 
     #[test]

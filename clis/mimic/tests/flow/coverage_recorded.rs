@@ -86,9 +86,12 @@ impl World {
         let traces = self.dir.path().join("traces");
         std::fs::create_dir_all(traces.join("wf-mimic-recorded")).unwrap();
         std::fs::write(traces.join("wf-mimic-recorded/trace.json"), trace).unwrap();
+        // a refresh keeps what an earlier run proved, so each read starts from no evidence to show what this trace alone serves
+        let file = self.dir.path().join(format!("docs/plans/rca-parity/coverage/{}-evidence.json", self.app));
+        let _ = std::fs::remove_file(&file);
         let run = coverage(self.dir.path(), &["--app", self.app, "--traces", traces.to_str().unwrap()]);
         assert_eq!(run.code, 0, "{}", run.stdout);
-        let evidence: Value = serde_json::from_str(&read(&self.dir.path().join(format!("docs/plans/rca-parity/coverage/{}-evidence.json", self.app)))).unwrap();
+        let evidence: Value = serde_json::from_str(&read(&file)).unwrap();
         evidence["rows"].as_object().unwrap().iter().filter(|(_, e)| e["oracle"] == "mimic").map(|(row, _)| row.clone()).collect()
     }
 }

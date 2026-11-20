@@ -499,3 +499,151 @@ fn a_row_served_by_a_behaviour_test_needs_an_unrecordable_reason_and_a_check_nam
     unrecordable(&f, &[probe.as_str()]);
     assert!(problems(&f.run(&["--check"])).iter().all(|(r, _)| r != "served-without-oracle"));
 }
+
+/// A bundle dir holding one run of the chain suite (or of `suite` when given) with `tests`.
+fn bundle(suite: &str, tests: &[(&str, &str, Calls)]) -> tempfile::TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    let text = trace(true, tests).replace("\"suite\": \"t3-serve-integration\"", &format!("\"suite\": \"{suite}\""));
+    std::fs::write(dir.path().join("trace.json"), text).unwrap();
+    dir
+}
+
+const CHAIN: &str = "t3-serve-integration";
+
+/// Tables whose evidence serves rows a and b by `chain::old` and row c by `chain::keep`, from a first run.
+fn served_by_a_first_run() -> (Fixture, [String; 3]) {
+    let f = Fixture::at_pin("t3");
+    assert_eq!(f.run(&[]).code, 0);
+    let rows: Vec<String> = f.methods().into_iter().filter(|(id, r)| r["phone"] == true && id.starts_with("rpc:")).map(|(id, _)| id).collect();
+    let ids = [rows[0].clone(), rows[1].clone(), rows[2].clone()];
+    unrecordable(&f, &[&ids[0], &ids[1], &ids[2]]);
+    let first = bundle(CHAIN, &[("chain::old", "pass", vec![(vec![&ids[0], &ids[1]], true, vec![], vec![])]), ("chain::keep", "pass", vec![(vec![&ids[2]], true, vec![], vec![])])]);
+    assert_eq!(f.run(&["--traces", first.path().to_str().unwrap()]).code, 0);
+    assert!(["a", "b", "c"].iter().zip(&ids).all(|(_, id)| f.coverage_rows()[id.as_str()]["state"] == "served"));
+    (f, ids)
+}
+
+fn state(f: &Fixture, id: &str) -> String {
+    f.coverage_rows()[id]["state"].as_str().unwrap().to_string()
+}
+
+#[test]
+fn a_row_the_refreshing_bundle_never_reached_stays_served_and_the_evidence_file_names_it_as_carried() {
+    // Given rows served by a first run, and a bundle of another suite that serves none of them
+    let (f, [a, b, _]) = served_by_a_first_run();
+    let other = bundle("other-suite", &[("other::t", "pass", vec![])]);
+
+    // When the evidence is refreshed from that bundle
+    let run = f.run(&["--traces", other.path().to_str().unwrap()]);
+
+    // Then the rows are still served, and a later check against the same bundle finds nothing stale
+    assert_eq!((run.code, problems(&run)), (0, vec![]), "{}", run.stdout);
+    assert_eq!((state(&f, &a), state(&f, &b)), ("served".to_string(), "served".to_string()));
+    assert_eq!(problems(&f.run(&["--check", "--traces", other.path().to_str().unwrap()])), vec![]);
+    // And the file tells a carried row from one its traces proved
+    let carried = f.json(&f.table("-evidence.json"))["carried"].clone();
+    assert!(carried.as_array().unwrap().contains(&json!(a)) && carried.as_array().unwrap().contains(&json!(b)), "{carried}");
+}
+
+#[test]
+fn a_row_whose_test_failed_in_the_refreshing_run_is_no_longer_served_and_a_check_against_that_run_agrees() {
+    // Given rows served by chain::old, and a complete run of the same suite in which chain::old failed
+    let (f, [a, b, c]) = served_by_a_first_run();
+    let failing = bundle(CHAIN, &[("chain::old", "fail", vec![(vec![&a, &b], true, vec![], vec![])]), ("chain::keep", "pass", vec![(vec![&c], true, vec![], vec![])])]);
+
+    // When the evidence is refreshed from that run
+    let run = f.run(&["--traces", failing.path().to_str().unwrap()]);
+
+    // Then the rows chain::old served are pending again, the row of the passing test stays served, and the report names the dropped rows
+    assert_eq!((run.code, problems(&run)), (0, vec![]), "{}", run.stdout);
+    assert_eq!((state(&f, &a), state(&f, &b), state(&f, &c)), ("pending".to_string(), "pending".to_string(), "served".to_string()));
+    assert_eq!(run.json["evidence"]["unserved"], json!([a, b]));
+    assert_eq!(problems(&f.run(&["--check", "--traces", failing.path().to_str().unwrap()])), vec![]);
+}
+
+#[test]
+fn a_row_whose_test_was_renamed_or_removed_loses_its_evidence_when_its_suite_ran_in_full() {
+    // Given rows served by chain::old, and a complete run of the same suite in which only chain::new exists and serves row a
+    let (f, [a, b, _]) = served_by_a_first_run();
+    let renamed = bundle(CHAIN, &[("chain::new", "pass", vec![(vec![&a], true, vec![], vec![])])]);
+
+    // When the evidence is refreshed from that run
+    let run = f.run(&["--traces", renamed.path().to_str().unwrap()]);
+
+    // Then row a is served by the new name and row b, which nothing serves now, is pending
+    assert_eq!((run.code, problems(&run)), (0, vec![]), "{}", run.stdout);
+    assert_eq!((state(&f, &a), state(&f, &b)), ("served".to_string(), "pending".to_string()));
+    assert_eq!(f.coverage_rows()[a.as_str()]["evidence"]["test"], "chain::new");
+}
+
+#[test]
+fn a_row_held_by_a_reverify_note_or_decided_not_offered_is_not_kept_by_a_refresh() {
+    // Given rows served by a first run, a reverify note on row a and a not-offered decision on row b
+    let (f, [a, b, c]) = served_by_a_first_run();
+    let mut decisions = f.json(&f.table("-decisions.json"));
+    decisions["reverify"] = json!({a.clone(): "the mapper answers it with a canned value"});
+    decisions["decisions"][b.as_str()] = json!({"state": "not-offered", "reason": "a fixture row the server does not offer"});
+    f.write(&f.table("-decisions.json"), &serde_json::to_string_pretty(&decisions).unwrap());
+    let other = bundle("other-suite", &[("other::t", "pass", vec![])]);
+
+    // When the evidence is refreshed from a bundle that reaches none of them
+    f.run(&["--traces", other.path().to_str().unwrap()]);
+
+    // Then neither is served and the untouched row c still is
+    assert_eq!((state(&f, &a), state(&f, &b), state(&f, &c)), ("pending".to_string(), "not-offered".to_string(), "served".to_string()));
+}
+
+#[test]
+fn a_sliced_refresh_keeps_an_unreached_row_inside_the_slice_and_leaves_rows_outside_it_alone() {
+    // Given rows a, b and c served by a first run, and a bundle of another suite that reaches none
+    let (f, [a, b, c]) = served_by_a_first_run();
+    let other = bundle("other-suite", &[("other::t", "pass", vec![])]);
+
+    // When the slice of row a is refreshed from it
+    let run = f.run(&["--traces", other.path().to_str().unwrap(), "--rows", &a]);
+
+    // Then every row is still served, and the file names only the row the slice carried
+    assert_eq!((run.code, problems(&run)), (0, vec![]), "{}", run.stdout);
+    assert_eq!((state(&f, &a), state(&f, &b), state(&f, &c)), ("served".to_string(), "served".to_string(), "served".to_string()));
+    assert_eq!(f.json(&f.table("-evidence.json"))["carried"], json!([a]));
+}
+
+#[test]
+fn a_sliced_refresh_from_a_run_where_a_row_s_test_failed_drops_that_row_only() {
+    // Given rows served by chain::old, and a run in which chain::old failed
+    let (f, [a, b, _]) = served_by_a_first_run();
+    let failing = bundle(CHAIN, &[("chain::old", "fail", vec![(vec![&a, &b], true, vec![], vec![])])]);
+
+    // When the slice of row a is refreshed from it
+    f.run(&["--traces", failing.path().to_str().unwrap(), "--rows", &a]);
+
+    // Then row a is pending and row b, outside the slice, is still served
+    assert_eq!((state(&f, &a), state(&f, &b)), ("pending".to_string(), "served".to_string()));
+}
+
+#[test]
+fn a_row_hit_only_by_a_replay_trace_stays_served_when_a_chain_only_bundle_refreshes_the_evidence() {
+    // Given a probe row decided oracle: mimic and served by a clean replay of a recorded cassette
+    let f = Fixture::at_pin("t3");
+    assert_eq!(f.run(&[]).code, 0);
+    let rows: Vec<String> = f.methods().into_iter().filter(|(id, r)| r["phone"] == true && id.starts_with("rpc:")).map(|(id, _)| id).collect();
+    let (probe, other) = (rows[0].as_str(), rows[1].as_str());
+    let mut decisions = f.json(&f.table("-decisions.json"));
+    decisions["decisions"][probe] = json!({"oracle": "mimic"});
+    f.write(&f.table("-decisions.json"), &serde_json::to_string_pretty(&decisions).unwrap());
+    unrecordable(&f, &[other]);
+    let out = tempfile::tempdir().unwrap();
+    std::fs::write(out.path().join("trace.json"), replay_trace(probe, &[("set::z", "recorded", &["clean"])])).unwrap();
+    assert_eq!(f.run(&["--traces", out.path().to_str().unwrap()]).code, 0);
+    assert_eq!(f.coverage_rows()[probe]["state"], "served");
+
+    // When a chain-only bundle, which calls another row, refreshes the evidence
+    std::fs::write(out.path().join("trace.json"), trace(true, &[("chain::t", "pass", vec![(vec![other], true, vec![], vec![])])])).unwrap();
+    let run = f.run(&["--traces", out.path().to_str().unwrap()]);
+
+    // Then the replay-served row stays served with its mimic evidence, and the chain row is served too
+    assert_eq!((run.code, problems(&run)), (0, vec![]), "{}", run.stdout);
+    let table = f.coverage_rows();
+    assert_eq!((table[probe]["state"].as_str(), table[probe]["evidence"]["oracle"].as_str(), table[probe]["evidence"]["diff"].as_str()), (Some("served"), Some("mimic"), Some("clean")));
+    assert_eq!(table[other]["state"], "served");
+}
