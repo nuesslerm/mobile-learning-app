@@ -1,6 +1,6 @@
 import { isolateHistory, redo, undo } from '@codemirror/commands';
-import { Annotation, EditorSelection, StateField, Transaction, type EditorState } from '@codemirror/state';
-import type { EditorView } from '@codemirror/view';
+import { Annotation, EditorSelection, EditorState, StateField, Transaction } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 import type { Change, ConfigPatch, DocumentHost, EditorConfig, EditorError, EngineCore, Language, Origin, SelRange, Selection } from '@lib/code-editor-api';
 
 type Entry = { revision: number; changes: Change[]; selection: SelRange; origin: Origin; label?: string; length: number };
@@ -10,6 +10,13 @@ const TAIL = 64;
 // marks a transaction the typed API made, and carries its label
 export const apiCall = Annotation.define<{ label?: string }>();
 let revisionBase = 0;
+// set while the host types a keystroke, so the transaction an input handler makes (auto-closed brackets) is the call's too
+let typing: { label?: string } | null = null;
+
+/** Marks every document change made while `host.type` runs as the typed API's, in its own undo step. */
+export const typingCalls = EditorState.transactionExtender.of((tr) =>
+  typing && tr.docChanged ? { annotations: [apiCall.of(typing), isolateHistory.of('full')] } : null
+);
 
 /** The revision a state created from now on starts at: the head the typed API had when the document was replaced. */
 export function setRevisionBase(revision: number): void {
@@ -85,6 +92,21 @@ export function createCm6Host(deps: Cm6HostDeps): DocumentHost {
           ...(entry.label ? { label: entry.label } : {}),
         });
       }
+    },
+    type(text, label) {
+      const editor = view();
+      const { from, to } = editor.state.selection.main;
+      // the path a typed key takes: input handlers (closeBrackets) first, then an insert marked as typing, which indentOnInput re-indents
+      const insert = () => editor.state.update(editor.state.replaceSelection(text), { scrollIntoView: true, userEvent: 'input.type' });
+      typing = label ? { label } : {};
+      try {
+        const handled = editor.state.facet(EditorView.inputHandler).some((handler) => handler(editor, from, to, text, insert));
+        if (!handled) editor.dispatch(insert());
+      } finally {
+        typing = null;
+      }
+      host.sync();
+      deps.core()?.ingestSelection(selectionOf(editor.state));
     },
     commit({ changes, selection, label }) {
       const editor = view();

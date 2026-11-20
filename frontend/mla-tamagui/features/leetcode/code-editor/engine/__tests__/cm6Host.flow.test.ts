@@ -1,10 +1,11 @@
+import { closeBrackets } from '@codemirror/autocomplete';
 import { history, undo } from '@codemirror/commands';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import { createDocumentMirror, createEditorEngine, type EditorEvent, type EngineCore } from '@lib/code-editor-api';
+import { createDocumentMirror, createEditorEngine, type ApplyParams, type EditorEvent, type EngineCore } from '@lib/code-editor-api';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { createCm6Host, revisionField, setRevisionBase } from '../cm6Host';
+import { createCm6Host, revisionField, setRevisionBase, typingCalls } from '../cm6Host';
 
 // A real EditorView in jsdom whose own update listener is broken: the host's pump must not depend on it.
 const views: EditorView[] = [];
@@ -15,7 +16,7 @@ afterEach(() => {
 function mount(doc: string) {
   setRevisionBase(0);
   const swallowed: unknown[] = [];
-  const extensions = [history(), revisionField, EditorView.exceptionSink.of((error) => swallowed.push(error)), EditorView.updateListener.of(() => { throw new Error('the listener broke'); })];
+  const extensions = [history(), closeBrackets(), revisionField, typingCalls, EditorView.exceptionSink.of((error) => swallowed.push(error)), EditorView.updateListener.of(() => { throw new Error('the listener broke'); })];
   const view = new EditorView({ state: EditorState.create({ doc, extensions }), parent: document.body.appendChild(document.createElement('div')) });
   views.push(view);
   let core: EngineCore | null = null;
@@ -80,5 +81,73 @@ describe('the CodeMirror host', () => {
       check();
     });
     expect(mirror.revision()).toBe(70);
+  });
+
+  const typeStep = (text: string): ApplyParams => ({ steps: [{ op: 'type', text }] });
+
+  it('given the caret at the end, when "(" is typed through the api, then closeBrackets adds the pair as one api change with the caret between, and one undo takes it back', async () => {
+    // Given a document and the engine over a view with closeBrackets
+    const { view, core, events } = mount('f');
+    view.dispatch({ selection: { anchor: 1 } });
+
+    // When a keystroke is typed through the typed API
+    const reply = await core.request('apply', typeStep('('));
+
+    // Then the pair is there, the caret sits between, the change is the call's and one undo step
+    expect(view.state.doc.toString()).toBe('f()');
+    expect(view.state.selection.main.head).toBe(2);
+    expect(reply).toMatchObject({ ok: true, value: { landed: [null] } });
+    expect(events).toMatchObject([{ origin: 'api', changes: [{ from: 1, to: 1, insert: '()' }] }]);
+    undo(view);
+    expect(view.state.doc.toString()).toBe('f');
+  });
+
+  it('given a pair the api auto-closed, when ")" is typed through the api, then it steps over the closer: the text stays and the caret moves past it', async () => {
+    // Given "(" typed through the api, which closed the pair and tracked it
+    const { view, core } = mount('f');
+    view.dispatch({ selection: { anchor: 1 } });
+    await core.request('apply', typeStep('('));
+
+    // When ")" is typed
+    const reply = await core.request('apply', typeStep(')'));
+
+    // Then the text is the same, the caret is past the closer, and the one change CodeMirror records replaces the closer with itself
+    expect(view.state.doc.toString()).toBe('f()');
+    expect(view.state.selection.main.head).toBe(3);
+    expect(reply).toMatchObject({ ok: true, value: { changes: [{ from: 2, to: 3, insert: ')' }] } });
+  });
+
+  it('given a plain character, when it is typed through the api, then it is inserted at the caret as an api change', async () => {
+    const { view, core, events } = mount('ab');
+    view.dispatch({ selection: { anchor: 1 } });
+
+    await core.request('apply', typeStep('x'));
+
+    expect(view.state.doc.toString()).toBe('axb');
+    expect(events).toMatchObject([{ origin: 'api', changes: [{ from: 1, to: 1, insert: 'x' }] }]);
+  });
+
+  it('given the person typing before and after an api keystroke, when undo runs, then there are three steps in that order', async () => {
+    const { view, core } = mount('');
+    view.dispatch({ changes: { from: 0, insert: 'a' }, userEvent: 'input.type', selection: { anchor: 1 } });
+    await core.request('apply', typeStep('b'));
+    view.dispatch({ changes: { from: 2, insert: 'c' }, userEvent: 'input.type', selection: { anchor: 3 } });
+    expect(view.state.doc.toString()).toBe('abc');
+
+    undo(view);
+    expect(view.state.doc.toString()).toBe('ab');
+    undo(view);
+    expect(view.state.doc.toString()).toBe('a');
+    undo(view);
+    expect(view.state.doc.toString()).toBe('');
+  });
+
+  it('given a view that is not typing through the api, when the person types, then the change is the person\'s: the call marker does not leak', async () => {
+    const { view, core, events } = mount('');
+    await core.request('apply', typeStep('a'));
+    view.dispatch({ changes: { from: 1, insert: 'b' }, userEvent: 'input.type', selection: { anchor: 2 } });
+    await core.request('read', {});
+
+    expect(events.map((event) => event.type === 'changed' && event.origin)).toEqual(['api', 'user']);
   });
 });

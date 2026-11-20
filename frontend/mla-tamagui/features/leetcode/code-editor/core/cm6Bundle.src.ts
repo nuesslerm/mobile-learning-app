@@ -54,7 +54,7 @@ import {
 } from '@lib/code-editor-api';
 import { Logger } from '@lib/logging';
 import { createPageTransport } from '@lib/webview-rpc';
-import { createCm6Host, revisionField, selectionOf, setRevisionBase } from '../engine/cm6Host';
+import { createCm6Host, revisionField, selectionOf, setRevisionBase, typingCalls } from '../engine/cm6Host';
 import {
   toEditorConfig,
   toLegacyPatch,
@@ -513,6 +513,7 @@ function buildState(cfg: EditorConfig, doc: string, selection?: SelRange) {
       highlightPlugin,
       diffPlugin,
       revisionField,
+      typingCalls,
       configCompartment.of(buildConfigExtensions(cfg)),
       keymap.of([
         ...defaultKeymap,
