@@ -16,8 +16,6 @@ local base = env.base or (not android and "http://127.0.0.1:8800/mla-tamagui" or
 assert_true(base, "pass --env base=<update link>; wf test run does")
 local pkg = env.package or "host.exp.exponent"
 os.execute("mkdir -p " .. out)
--- POST /api/tamil/check is the marker (remote-chat-agent, a vision model): the stub answers LOOKS RIGHT, so the pads, strokes and verdict badge are what the test proves
-device:add_network_stub("POST", "*/api/tamil/check", { body_file = "e2e/stubs/tamil-check-looks-right.json", headers = { ["content-type"] = "application/json" } })
 -- The screen in pixels (540x960 on the first device, 480x1040 now, a Galaxy S25 in dp). The width is 360 dp at any density, so a page scroll measured
 -- on the first device (605 px) scales by SW / 540.
 local SW, SH = 540, 960
@@ -202,6 +200,10 @@ local from, to = tostring(env.letters or "1-6"):match("^(%d+)-(%d+)$")
 assert_true(from ~= nil, "letters is a range like 3-4, not " .. tostring(env.letters))
 if runs("vowels") then lesson("uyir-1", tonumber(from), tonumber(to)) end
 if runs("consonant") then lesson("uyirmei-k", 1, 1) end
+-- POST /api/tamil/check is the marker (remote-chat-agent, a vision model): the stub answers LOOKS RIGHT, so the pads, strokes and verdict badge are what the test proves
+if runs("write") or runs("words") then
+  device:add_network_stub("POST", "*/api/tamil/check", { json_body = { ok = true, score = 96, summary = "Stubbed verdict: the marker is not reached, so no test needs a backend." } })
+end
 local ok_write = not runs("write") or writepad("uyir-a")
 local ok_words = true
 if runs("words") then
