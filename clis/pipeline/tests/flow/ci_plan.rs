@@ -351,3 +351,28 @@ fn given_a_plan_with_flow_and_typecheck_units_when_the_typecheck_shard_keys_are_
     assert_eq!(a.iter().collect::<std::collections::BTreeSet<_>>().len(), 3);
     assert_eq!(a, b);
 }
+
+#[test]
+fn a_legs_plan_with_no_lookup_asks_no_service_for_its_running_commit_and_lists_every_leg_as_unknown() {
+    // Given a pointer directory for the latest update and a checkout with no git history
+    let dir = tempfile::tempdir().unwrap();
+    let pointers = dir.path().join("pointers");
+    std::fs::create_dir_all(&pointers).unwrap();
+    std::fs::write(pointers.join("latest-dev.json"), r#"{"commit":"0000000000000000000000000000000000000000"}"#).unwrap();
+    let gh = dir.path().join("gh-output");
+
+    // When the legs are planned with --no-lookup
+    let run = run_wf(
+        &["ci", "plan", "legs", "--no-lookup", "--github-output"],
+        &RunOpts::default().cwd(dir.path()).env("GITHUB_OUTPUT", &gh.display().to_string()).env("WF_EAS_POINTER_DIR", &pointers.display().to_string()),
+    );
+
+    // Then it succeeds, every leg is listed with its running commit unknown, and the update's decision still comes from the pointer
+    assert_eq!(run.exit_code, 0, "{}{}", run.stdout, run.stderr);
+    let plan: Value = serde_json::from_str(run.stdout.trim()).unwrap_or_else(|_| panic!("{}{}", run.stdout, run.stderr));
+    let legs = plan["legs"].as_array().unwrap();
+    assert!(!legs.is_empty());
+    assert!(legs.iter().all(|l| l["why"] == json!(["its running commit is unknown"])), "{plan}");
+    assert!(plan["easUpdate"]["why"][0].as_str().unwrap().contains("0000000000000000000000000000000000000000"), "{plan}");
+    assert!(!run.stderr.contains("status unavailable"), "{}", run.stderr);
+}

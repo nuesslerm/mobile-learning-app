@@ -217,13 +217,13 @@ pub(crate) fn expected_revisions(packages: &[&str], sha: &str, dir: &Path) -> Ve
 
 /// The legs a push deploys, each with why (`also` names services that deploy whatever changed), and whether it publishes an EAS Update; `since` stands in for every leg's running
 /// commit and for the commit of the latest update (no vm-ops-api and no bucket asked). `latest_update` reads the commit the latest
-/// EAS Update was published from and the backend hosts it dials that have moved: `deploy` (its `ship_eas`) holds the pointer, which this crate cannot reach.
-pub fn plan(force: bool, also: &[String], since: Option<&str>, github_output: bool, latest_update: impl FnOnce() -> Result<(String, Vec<String>), String>) -> Result<Option<i32>, String> {
+/// EAS Update was published from and the backend hosts it dials that have moved; `no_lookup` asks no service for its running commit (each reads as unknown, so each leg lists as changed): `deploy` (its `ship_eas`) holds the pointer, which this crate cannot reach.
+pub fn plan(force: bool, also: &[String], since: Option<&str>, no_lookup: bool, github_output: bool, latest_update: impl FnOnce() -> Result<(String, Vec<String>), String>) -> Result<Option<i32>, String> {
     let (legs, update): (Vec<(&str, Vec<String>)>, Vec<String>) = if force {
         (std::iter::once(VM_OPS_API).chain(DEPLOY_LEGS.iter().map(|l| l.app)).chain(std::iter::once(AGENT_SHELL)).map(|a| (a, vec!["--force".to_string()])).collect(), vec!["--force".to_string()])
     } else {
         let mut reasons = Reasons { affected: Vec::new(), dir: None };
-        let running = |app: &str| since.map(str::to_string).or_else(|| running_commit(app));
+        let running = |app: &str| since.map(str::to_string).or_else(|| if no_lookup { None } else { running_commit(app) });
         let mut legs = Vec::new();
         for leg in DEPLOY_LEGS {
             let why = image_changes(None, running(leg.app), leg.app)?;
@@ -232,7 +232,7 @@ pub fn plan(force: bool, also: &[String], since: Option<&str>, github_output: bo
             }
         }
         // first: the other legs deploy through it, so a change to how it deploys reaches them in the same run
-        let vm_ops = since.map(str::to_string).or_else(|| running_commit(VM_OPS_API));
+        let vm_ops = running(VM_OPS_API);
         // the watchdog and the Rust port are its images; its compose project is part of the leg's hash
         let why = image_changes(None, vm_ops, VM_OPS_API)?;
         if !why.is_empty() {

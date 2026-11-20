@@ -13,7 +13,7 @@ use wf_kit::args::{parse_spec, Positional, Spec};
 
 const WORDS: &str = "tags | tests | shard-keys | shard-weights | legs | mimic";
 const TAGS: Spec = Spec { values: &["sha", "services"], flags: &["fresh", "github-output"], positional: Positional::None, ..Spec::NONE };
-const LEGS: Spec = Spec { values: &["since", "also"], flags: &["force", "github-output"], positional: Positional::None, ..Spec::NONE };
+const LEGS: Spec = Spec { values: &["since", "also"], flags: &["force", "github-output", "no-lookup"], positional: Positional::None, ..Spec::NONE };
 const MIMIC: Spec = Spec { values: &["message", "file", "sha", "root"], flags: &["github-output"], positional: Positional::None, ..Spec::NONE };
 
 fn say(value: &Value, code: i32) -> Option<i32> {
@@ -153,7 +153,7 @@ fn latest_update() -> Result<(String, Vec<String>), String> {
 fn legs(args: &[String]) -> Option<i32> {
     let p = parse_spec(args, &LEGS)?;
     let also: Vec<String> = p.val("also").map(|a| a.split(',').map(|n| n.trim().to_string()).filter(|n| !n.is_empty()).collect()).unwrap_or_default();
-    match crate::legs::plan(p.flag("force"), &also, p.val("since"), p.flag("github-output"), latest_update) {
+    match crate::legs::plan(p.flag("force"), &also, p.val("since"), p.flag("no-lookup"), p.flag("github-output"), latest_update) {
         Ok(code) => code,
         Err(message) => {
             wf_kit::wf_err!("wf: {message}");

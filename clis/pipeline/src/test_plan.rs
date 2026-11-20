@@ -1003,19 +1003,44 @@ fn run_e2e_stage(nx: &Path, root: &Path, stage: &str, names: &[String], rest: &[
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn given_the_android_tests_when_dealt_to_two_shards_then_every_test_is_on_exactly_one_and_the_heaviest_has_a_shard_to_itself_with_the_light_ones_beside_the_next() {
+    fn dealt(stage: &str, names: &[&str]) -> (Vec<String>, Vec<String>) {
         use super::{shard_names, Weights};
-        let names: Vec<String> = ["voice-edit", "editor-typing", "stubbed-run-local", "tamil-writing"].iter().map(|n| n.to_string()).collect();
-        let weights = Weights { units: [("editor-typing".to_string(), 400), ("tamil-writing".to_string(), 240), ("voice-edit".to_string(), 150), ("stubbed-run-local".to_string(), 25)].into(), default: 100 };
+        let names: Vec<String> = names.iter().map(|n| n.to_string()).collect();
+        let weights = Weights::of_stage(stage);
+        let sorted = |mut v: Vec<String>| {
+            v.sort();
+            v
+        };
+        (sorted(shard_names(&names, 1, 2, &weights)), sorted(shard_names(&names, 2, 2, &weights)))
+    }
 
-        let (one, two) = (shard_names(&names, 1, 2, &weights), shard_names(&names, 2, 2, &weights));
+    #[test]
+    fn given_the_android_tests_when_dealt_to_two_shards_then_every_test_is_on_exactly_one_and_the_two_shards_carry_about_the_same_seconds() {
+        // Given the seven focused android tests
+        let names = ["voice-edit", "editor-typing", "stubbed-run-local", "tamil-writing", "local-run", "review-sheet-keyboard", "pyodide-spike"];
 
+        // When they are dealt over the stage's weights
+        let (one, two) = dealt("android-e2e-tests", &names);
+
+        // Then the longest test and the light ones are on shard 1 (221 s) and the next two on shard 2 (217 s)
+        assert_eq!(one, ["local-run", "pyodide-spike", "review-sheet-keyboard", "stubbed-run-local", "voice-edit"]);
+        assert_eq!(two, ["editor-typing", "tamil-writing"]);
+    }
+
+    #[test]
+    fn given_the_browser_tests_when_dealt_to_two_shards_then_every_test_is_on_exactly_one_and_the_slowest_two_are_apart() {
+        // Given the focused browser tests
+        let names = ["voice-edit", "editor-typing", "tamil-writing", "app-routes", "pyodide-spike", "local-run", "review-sheet-keyboard"];
+
+        // When they are dealt over the stage's weights
+        let (one, two) = dealt("browser-e2e-tests", &names);
+
+        // Then each test is on one shard and voice-edit and editor-typing are on different shards
         let mut all: Vec<String> = one.iter().chain(&two).cloned().collect();
         all.sort();
-        assert_eq!(all, ["editor-typing", "stubbed-run-local", "tamil-writing", "voice-edit"]);
-        assert_eq!(one, ["editor-typing"]);
-        assert_eq!(two, ["stubbed-run-local", "tamil-writing", "voice-edit"]);
+        assert_eq!(all, ["app-routes", "editor-typing", "local-run", "pyodide-spike", "review-sheet-keyboard", "tamil-writing", "voice-edit"]);
+        assert_ne!(one.contains(&"voice-edit".to_string()), one.contains(&"editor-typing".to_string()));
+        assert_eq!((one.len(), two.len()), (4, 3));
     }
 
     #[test]
