@@ -18,5 +18,5 @@ pub use registry::{Executors, Place, Registry, Route, RouteError, WorkspaceError
 
 /// Every action of the executor contract, whichever family crate defines it.
 pub fn contract_actions() -> impl Iterator<Item = &'static exec_proto::Action> {
-    [exec_fs::ACTIONS, exec_proc::ACTIONS, exec_git::ACTIONS, exec_pty::ACTIONS, exec_hosted::ACTIONS, exec_preview::ACTIONS].into_iter().flatten()
+    [exec_fs::ACTIONS, exec_proc::ACTIONS, exec_git::ACTIONS, exec_pty::ACTIONS, exec_hosted::ACTIONS, exec_preview::ACTIONS, exec_browser::ACTIONS].into_iter().flatten()
 }

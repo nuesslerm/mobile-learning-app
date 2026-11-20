@@ -43,7 +43,16 @@ pub(crate) async fn chain(env: &Env) -> Chain {
     chain_with(env, Options::default()).await
 }
 
+/// The chain with the `browser` group on, and an executor whose browser may reach the host:port pairs of `allow`.
+pub(crate) async fn chain_browser(env: &Env, allow: &str) -> Chain {
+    chain_in(env, Options { browser: true, ..Options::default() }, &[("RCA_EXEC_BROWSER_ALLOW".to_string(), allow.to_string()), ("RCA_EXEC_BROWSER_NO_SANDBOX".to_string(), "1".to_string())]).await
+}
+
 async fn chain_with(env: &Env, options: Options) -> Chain {
+    chain_in(env, options, &[]).await
+}
+
+async fn chain_in(env: &Env, options: Options, exec_env: &[(String, String)]) -> Chain {
     let cli = ScriptedCli::install();
     env.use_path(&cli.path());
     let repo = TempRepo::new();
@@ -51,7 +60,7 @@ async fn chain_with(env: &Env, options: Options) -> Chain {
     let port = svc.listen().await;
     let host_home = env.home.join("host");
     std::fs::create_dir_all(&host_home).expect("the host's home is made");
-    let exec = tokio::task::block_in_place(|| RcaExec::serve_with_home(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &cli.path(), Some(&host_home)));
+    let exec = tokio::task::block_in_place(|| RcaExec::serve_with_env(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &cli.path(), Some(&host_home), exec_env));
     let token = svc.mint("flow mapper").await;
     Chain { _svc: svc, port, cli, repo, exec: Some(exec), host_home, token }
 }

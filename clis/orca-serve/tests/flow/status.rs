@@ -122,7 +122,7 @@ use serde_json::Value;
 #[test]
 fn given_the_methods_a_mapper_uses_when_the_startup_groups_are_derived_then_each_group_but_the_unlisted_workspace_is_required() {
     // Given the methods the workspace and agent mappers declare
-    let wanted: Vec<&str> = orca_map_workspace::USES.iter().chain(orca_map_agent::USES).chain(orca_map_terminal::USES).chain(orca_map_git::USES).chain(orca_map_accounts::USES).chain(orca_map_state::USES).chain(orca_map_hosted::USES).chain(orca_map_schedules::USES).map(|m| m.group().as_str()).filter(|g| *g != "workspace").collect();
+    let wanted: Vec<&str> = orca_map_workspace::USES.iter().chain(orca_map_agent::USES).chain(orca_map_terminal::USES).chain(orca_map_git::USES).chain(orca_map_accounts::USES).chain(orca_map_state::USES).chain(orca_map_hosted::USES).chain(orca_map_schedules::USES).chain(orca_map_browser::USES).map(|m| m.group().as_str()).filter(|g| *g != "workspace").collect();
     // When the startup check's groups are derived
     let needed = orca_serve::adapters::rca::needed_groups();
     // Then every one of them is required, and the unlisted group is not

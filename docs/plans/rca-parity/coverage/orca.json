@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 210,
+    "served": 228,
     "pending": 4,
-    "notOffered": 93,
+    "notOffered": 75,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -988,10 +988,17 @@
       "kind": "rpc",
       "name": "browser.back",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-browser.back-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:browser.dialogAccept",
@@ -1000,7 +1007,7 @@
       "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "reason": "Agent decision of 20 Nov (O2, exec-browser): the executor drives a page over CDP and keeps no dialog state. Chromium holds a page's JavaScript dialog (alert, confirm, prompt, beforeunload) open and every other command on that page waits behind it, so answering one needs the page to report it (`Page.javascriptDialogOpening`) and a command that answers while another waits; `exec-browser` keeps neither, so there is never an open dialog for the phone to accept or dismiss. Not built, remainder of O2.",
       "decidedBy": "M12"
     },
     {
@@ -1010,7 +1017,7 @@
       "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "reason": "Agent decision of 20 Nov (O2, exec-browser): the executor drives a page over CDP and keeps no dialog state. Chromium holds a page's JavaScript dialog (alert, confirm, prompt, beforeunload) open and every other command on that page waits behind it, so answering one needs the page to report it (`Page.javascriptDialogOpening`) and a command that answers while another waits; `exec-browser` keeps neither, so there is never an open dialog for the phone to accept or dismiss. Not built, remainder of O2.",
       "decidedBy": "M12"
     },
     {
@@ -1018,99 +1025,169 @@
       "kind": "rpc",
       "name": "browser.forward",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-browser.forward-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:browser.goto",
       "kind": "rpc",
       "name": "browser.goto",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-browser.goto-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:browser.keyboardInsertText",
       "kind": "rpc",
       "name": "browser.keyboardInsertText",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-browser.keyboardInsertText-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:browser.keypress",
       "kind": "rpc",
       "name": "browser.keypress",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-browser.keypress-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:browser.mouseClick",
       "kind": "rpc",
       "name": "browser.mouseClick",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-browser.mouseClick-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:browser.mouseDown",
       "kind": "rpc",
       "name": "browser.mouseDown",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-browser.mouseDown-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:browser.mouseMove",
       "kind": "rpc",
       "name": "browser.mouseMove",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-browser.mouseMove-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:browser.mouseUp",
       "kind": "rpc",
       "name": "browser.mouseUp",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-browser.mouseUp-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:browser.mouseWheel",
       "kind": "rpc",
       "name": "browser.mouseWheel",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-browser.mouseWheel-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:browser.reload",
       "kind": "rpc",
       "name": "browser.reload",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-browser.reload-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:browser.screencast",
@@ -1120,17 +1197,24 @@
       "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "reason": "Agent decision of 20 Nov (O2, exec-browser): a screencast is a stream of JPEG frames in 0x62 binary frames that the phone credits with `browser.screencast.ack`; `exec-browser` answers one picture per call (`browser_screenshot`) and has no frame stream, so the subscription is not offered. Not built, remainder of O2.",
       "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.screencast.ack",
       "kind": "rpc",
       "name": "browser.screencast.ack",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-browser.screencast.ack-boundary-limit-seq",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:browser.screencast.unsubscribe",
@@ -1138,7 +1222,7 @@
       "name": "browser.screencast.unsubscribe",
       "state": "not-offered",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "reason": "Agent decision of 20 Nov (O2, exec-browser): it ends a screencast subscription, and this host opens none (`browser.screencast` is not offered), so there is no subscription to end; the recorded host answers it `browser_unavailable` only because it has no browser.",
       "decidedBy": "M12"
     },
     {
@@ -1146,10 +1230,17 @@
       "kind": "rpc",
       "name": "browser.tabCreate",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-browser.tabCreate-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:clipboard.abortImageUpload",
@@ -2594,30 +2685,51 @@
       "kind": "rpc",
       "name": "github.workItem",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.workItem-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.workItemByOwnerRepo",
       "kind": "rpc",
       "name": "github.workItemByOwnerRepo",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.workItemByOwnerRepo-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.workItemDetails",
       "kind": "rpc",
       "name": "github.workItemDetails",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.workItemDetails-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:gitlab.addIssueComment",
@@ -2777,20 +2889,34 @@
       "kind": "rpc",
       "name": "gitlab.workItemByPath",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-gitlab.workItemByPath-boundary-limit-iid",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:gitlab.workItemDetails",
       "kind": "rpc",
       "name": "gitlab.workItemDetails",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-gitlab.workItemDetails-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:host.platform",

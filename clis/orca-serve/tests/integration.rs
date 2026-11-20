@@ -8,6 +8,8 @@
 mod agent_sessions;
 #[path = "integration/agent_catalog.rs"]
 mod agent_catalog;
+#[path = "integration/browser.rs"]
+mod browser;
 #[path = "integration/mimic_x2.rs"]
 mod mimic_x2;
 #[path = "integration/mimic_x6.rs"]

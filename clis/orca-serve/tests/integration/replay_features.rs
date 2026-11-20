@@ -158,7 +158,7 @@ macro_rules! feature_test {
         )*
     };
 }
-feature_test!(orca_core, orca_map_accounts, orca_map_agent, orca_map_git, orca_map_hosted, orca_map_mobile, orca_map_schedules, orca_map_settings, orca_map_state, orca_map_terminal, orca_map_workspace);
+feature_test!(orca_core, orca_map_accounts, orca_map_agent, orca_map_browser, orca_map_git, orca_map_hosted, orca_map_mobile, orca_map_schedules, orca_map_settings, orca_map_state, orca_map_terminal, orca_map_workspace);
 
 #[test]
 fn every_crate_that_declares_replay_rows_has_a_test_above_and_so_a_task_of_its_own() {

@@ -32,6 +32,8 @@ mod agent_requests;
 mod agent_schedules;
 #[path = "flow/agent_attachments.rs"]
 mod agent_attachments;
+#[path = "flow/agent_browser.rs"]
+mod agent_browser;
 #[path = "flow/agent_catalog.rs"]
 mod agent_catalog;
 #[path = "flow/agent_state.rs"]

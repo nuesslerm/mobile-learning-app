@@ -73,6 +73,9 @@ ls:
   backend/remote-chat-agent/group-attachments/src:
     .dir: regex:src
     .rs: snake_case
+  backend/remote-chat-agent/group-browser/src:
+    .dir: regex:src
+    .rs: snake_case
   backend/remote-chat-agent/group-catalog/src:
     .dir: regex:src
     .rs: snake_case
@@ -274,6 +277,12 @@ ls:
   libraries/agent-api/agent-api-attachments/src/*:
     .dir: snake_case
     .rs: snake_case
+  libraries/agent-api/agent-api-browser/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-browser/src/*:
+    .dir: snake_case
+    .rs: snake_case
   libraries/agent-api/agent-api-catalog/src:
     .dir: regex:(src|testing)
     .rs: snake_case
@@ -338,6 +347,12 @@ ls:
     .dir: regex:(src|testing)
     .rs: snake_case
   libraries/agent-api/agent-api-workspace/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-browser/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-browser/src/*:
     .dir: snake_case
     .rs: snake_case
   libraries/agent-api/exec-fs/src:

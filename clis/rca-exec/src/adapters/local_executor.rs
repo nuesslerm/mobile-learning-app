@@ -21,8 +21,10 @@ use crate::adapters::git::{Repo, Watches};
 use crate::adapters::hosted::Hosted;
 use crate::hosted::plan::Paths;
 use exec_hosted::{HostedCall, HostedOp};
+use crate::adapters::browser::BrowserTable;
 use crate::adapters::preview::PreviewTable;
 use crate::adapters::pty::{PtyTable, Spawn};
+use exec_browser::{BrowserOp, Policy};
 use exec_preview::PreviewOp;
 use serde_json::Value;
 use exec_proto::{Code, ExecError, ExecResult, Stream};
@@ -46,6 +48,7 @@ pub struct LocalExecutor {
     watches: Watches,
     hosted: Hosted,
     previews: PreviewTable,
+    browser: BrowserTable,
     cli_path: Option<String>,
     logins: crate::adapters::logins::Logins,
     version_timeout: Duration,
@@ -70,7 +73,7 @@ fn outside(path: &str) -> ExecError {
 impl LocalExecutor {
     pub fn new(root: &Path) -> Result<LocalExecutor, String> {
         let root = fs::canonicalize(root).map_err(|e| format!("executor root {}: {e}", root.display()))?;
-        Ok(LocalExecutor { root, worktree_base: None, browse_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), cli_path: None, logins: Default::default(), version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
+        Ok(LocalExecutor { root, worktree_base: None, browse_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), browser: BrowserTable::default(), cli_path: None, logins: Default::default(), version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
     }
 
     /// Widens confinement to the directory worktrees are made in (created when missing).
@@ -114,6 +117,16 @@ impl LocalExecutor {
     /// The `PATH` the hosted CLIs (`gh`, `glab`) are looked up on, in place of the executor's own.
     pub fn with_hosted_path(mut self, path: &str) -> LocalExecutor {
         self.hosted = Hosted::default().with_path(path);
+        self
+    }
+
+    /// What the browser's pages may reach beyond the public internet (`host:port` pairs), how long a page may sit unused and how many may be open.
+    pub fn with_browser(mut self, policy: Policy, idle: Duration, max_pages: usize, chromium: Option<PathBuf>) -> LocalExecutor {
+        let table = BrowserTable::new(policy, idle, max_pages);
+        self.browser = match chromium {
+            Some(exe) => table.with_chromium(exe),
+            None => table,
+        };
         self
     }
 
@@ -795,6 +808,21 @@ impl ToolExecutor for LocalExecutor {
             PreviewOp::Stop(stop) => Ok(exec_proto::to_value(&self.previews.stop(&stop.id))),
             PreviewOp::List => Ok(exec_proto::to_value(&self.previews.list())),
         }
+    }
+
+    fn browser_op(&self, op: &BrowserOp) -> ExecResult<Value> {
+        let b = &self.browser;
+        let out = match op {
+            BrowserOp::Open { key, url } => exec_proto::to_value(&b.open(key, url.as_deref())?),
+            BrowserOp::Goto { key, url } => exec_proto::to_value(&b.goto(key, url)?),
+            BrowserOp::History { key, direction } => exec_proto::to_value(&b.history(key, *direction)?),
+            BrowserOp::Eval { key, expression } => exec_proto::to_value(&b.eval(key, expression)?),
+            BrowserOp::Screenshot { key } => exec_proto::to_value(&b.screenshot(key)?),
+            BrowserOp::Input { key, input } => exec_proto::to_value(&b.input(key, input)?),
+            BrowserOp::Close { key } => exec_proto::to_value(&b.close(key)),
+            BrowserOp::List => exec_proto::to_value(&b.list()),
+        };
+        Ok(out)
     }
 
     fn hosted_op(&self, id: &str, op: &HostedOp) -> ExecResult<Value> {

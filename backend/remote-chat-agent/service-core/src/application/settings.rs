@@ -30,6 +30,8 @@ pub struct Settings {
     pub opencode_db_path: Option<String>,
     pub telegram_bot_token: String,
     pub agent_public_url: Option<String>,
+    /// `RCA_BROWSER` (1 or true): the `browser` group answers; off by default, because Chromium needs memory the VM does not yet have to spare.
+    pub browser: bool,
     pub tamil_check_scratch_dir: Option<PathBuf>,
     pub voice_edit_agent: Option<String>,
     pub voice_edit_prompt_v1: bool,
@@ -98,6 +100,7 @@ impl Settings {
             opencode_db_path: get("OPENCODE_DB_PATH"),
             telegram_bot_token: get("TELEGRAM_BOT_TOKEN").unwrap_or_default(),
             agent_public_url: get("AGENT_PUBLIC_URL"),
+            browser: get("RCA_BROWSER").is_some_and(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "1" | "true")),
             tamil_check_scratch_dir: set("TAMIL_CHECK_SCRATCH_DIR").map(PathBuf::from),
             voice_edit_agent: get("VOICE_EDIT_AGENT"),
             voice_edit_prompt_v1: get("VOICE_EDIT_PROMPT_VARIANT").as_deref() == Some("v1"),
@@ -192,7 +195,7 @@ mod tests {
         for name in &names {
             let value = match name.as_str() {
                 n if n.ends_with("_VARIANT") => "v1".to_string(),
-                n if n.ends_with("_STATS") => "1".to_string(),
+                n if n.ends_with("_STATS") || n == "RCA_BROWSER" => "1".to_string(),
                 n if n == "PORT" || n.ends_with("_MS") || n.ends_with("_HOURS") || n.ends_with("_TURNS") => "7".to_string(),
                 n => format!("sentinel-{n}"),
             };

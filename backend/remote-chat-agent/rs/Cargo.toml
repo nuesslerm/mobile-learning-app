@@ -34,6 +34,8 @@ inputs = [
   "../../../libraries/agent-api/agent-api-catalog/tests/fixtures/**",
   "../../../libraries/agent-api/agent-api-preview/tests/fixtures/**",
   "../../../libraries/agent-api/exec-preview/tests/fixtures/**",
+  "../../../libraries/agent-api/agent-api-browser/tests/fixtures/**",
+  "../../../libraries/agent-api/exec-browser/tests/fixtures/**",
 ]
 
 # The integration test (tests/integration.rs) replays the voice edit DSL cassette through the `wf-mimic` binary and leaves its run record
@@ -119,6 +121,7 @@ agent-api-schedules = { path = "../../../libraries/agent-api/agent-api-schedules
 agent-api-attachments = { path = "../../../libraries/agent-api/agent-api-attachments", features = ["testing"] }
 agent-api-catalog = { path = "../../../libraries/agent-api/agent-api-catalog", features = ["testing"] }
 agent-api-preview = { path = "../../../libraries/agent-api/agent-api-preview", features = ["testing"] }
+agent-api-browser = { path = "../../../libraries/agent-api/agent-api-browser", features = ["testing"] }
 rca-group-schedules = { path = "../group-schedules", features = ["testing"] }
 rca-group-attachments = { path = "../group-attachments", features = ["testing"] }
 rca-group-catalog = { path = "../group-catalog", features = ["testing"] }

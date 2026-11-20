@@ -24,6 +24,7 @@ COPY clis/orca-serve ./clis/orca-serve
 COPY libraries/agent-api/agent-api-accounts ./libraries/agent-api/agent-api-accounts
 COPY libraries/agent-api/agent-api-agent ./libraries/agent-api/agent-api-agent
 COPY libraries/agent-api/agent-api-attachments ./libraries/agent-api/agent-api-attachments
+COPY libraries/agent-api/agent-api-browser ./libraries/agent-api/agent-api-browser
 COPY libraries/agent-api/agent-api-catalog ./libraries/agent-api/agent-api-catalog
 COPY libraries/agent-api/agent-api-terminal ./libraries/agent-api/agent-api-terminal
 COPY libraries/agent-api/agent-api-client ./libraries/agent-api/agent-api-client
@@ -34,6 +35,7 @@ COPY libraries/agent-api/agent-api-proto ./libraries/agent-api/agent-api-proto
 COPY libraries/agent-api/agent-api-service ./libraries/agent-api/agent-api-service
 COPY libraries/agent-api/agent-api-state ./libraries/agent-api/agent-api-state
 COPY libraries/agent-api/agent-api-workspace ./libraries/agent-api/agent-api-workspace
+COPY libraries/agent-api/exec-browser ./libraries/agent-api/exec-browser
 COPY libraries/agent-api/exec-fs ./libraries/agent-api/exec-fs
 COPY libraries/agent-api/exec-git ./libraries/agent-api/exec-git
 COPY libraries/agent-api/exec-hosted ./libraries/agent-api/exec-hosted
@@ -43,7 +45,7 @@ COPY libraries/agent-api/exec-proto ./libraries/agent-api/exec-proto
 COPY libraries/agent-api/exec-testkit/Cargo.toml ./libraries/agent-api/exec-testkit/Cargo.toml
 RUN mkdir -p libraries/agent-api/exec-testkit/src && : > libraries/agent-api/exec-testkit/src/lib.rs
 WORKDIR /src/clis
-RUN sed -i 's|^members = .*|members = ["wf-kit", "orca-serve", "orca-serve/crypto", "orca-serve/core", "orca-serve/map-settings", "orca-serve/map-mobile", "orca-serve/map-workspace", "orca-serve/map-agent", "orca-serve/map-terminal", "orca-serve/map-git", "orca-serve/map-accounts", "orca-serve/map-state", "orca-serve/map-hosted", "orca-serve/map-schedules"]|' Cargo.toml
+RUN sed -i 's|^members = .*|members = ["wf-kit", "orca-serve", "orca-serve/crypto", "orca-serve/core", "orca-serve/map-settings", "orca-serve/map-mobile", "orca-serve/map-workspace", "orca-serve/map-agent", "orca-serve/map-terminal", "orca-serve/map-git", "orca-serve/map-accounts", "orca-serve/map-state", "orca-serve/map-hosted", "orca-serve/map-schedules", "orca-serve/map-browser"]|' Cargo.toml
 # --bin: the recipe keeps this binary's crates only, so a sibling's manifest does not move it.
 RUN --mount=type=cache,id=cargo-registry-orca-serve,target=/usr/local/cargo/registry \
     cargo chef prepare --recipe-path /recipe.json --bin orca-serve

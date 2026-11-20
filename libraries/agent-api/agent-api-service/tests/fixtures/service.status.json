@@ -33,6 +33,7 @@
             "preview",
             "preview.sessions",
             "preview.watch",
+            "browser",
             "service.notifications",
             "service.panes"
           ]
@@ -74,6 +75,7 @@
             "preview",
             "preview.sessions",
             "preview.watch",
+            "browser",
             "service.notifications",
             "service.panes"
           ]

@@ -71,13 +71,13 @@ fn given_a_launched_browser_when_its_page_is_attached_and_driven_then_each_comma
     let dir = TempDir::new("launch");
 
     // When a browser executable that dies at once is launched
-    let broken = cdp::launch::launch(&fake_chromium(&dir, "broken", "exit 3"), &[], &[], true);
+    let broken = cdp::launch::launch(&fake_chromium(&dir, "broken", "exit 3"), &[], &[], true, false);
     // Then the launch fails naming why
     assert_eq!(broken.err().as_deref(), Some("the browser exited before opening its DevTools port"));
 
     // When the browser is launched with an argument and an environment variable
     let exe = fake_chromium(&dir, "chrome", &format!("echo 'DevTools listening on ws://127.0.0.1:{}/devtools/browser/fake' >&2\nexec sleep 60", browser.port));
-    let launched = cdp::launch::launch(&exe, &["--window-size=500,900".into()], &[("FAKE_ENV".into(), "set".into())], true).unwrap();
+    let launched = cdp::launch::launch(&exe, &["--window-size=500,900".into()], &[("FAKE_ENV".into(), "set".into())], true, false).unwrap();
     // Then it runs headless with a throwaway profile and an ephemeral DevTools port, and its endpoint is read from stderr;
     // a sideways drag at a scroller's start is no swipe-back that navigates the page away
     assert_eq!(launched.endpoint, browser.endpoint);

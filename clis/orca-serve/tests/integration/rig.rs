@@ -95,7 +95,9 @@ impl Chain {
         let base_dir = tempfile::Builder::new().prefix("orca-chain-worktrees-").tempdir().unwrap();
         let base = base_dir.path().to_path_buf();
         let home = tempfile::Builder::new().prefix("orca-chain-home-").tempdir().unwrap();
-        let exec = RcaExec::serve_with_home(&tap.url(), "w1", &repo, SECRET, &["--worktree-base", base.to_str().unwrap()], &hermetic_path(&cli), Some(home.path()));
+        // What names `RCA_EXEC_` in `env` is the executor's own (the hosts its browser may reach), the rest the service's.
+        let exec_env: Vec<(String, String)> = env.iter().filter(|(k, _)| k.starts_with("RCA_EXEC_")).map(|(k, v)| (k.to_string(), v.to_string())).collect();
+        let exec = RcaExec::serve_with_env(&tap.url(), "w1", &repo, SECRET, &["--worktree-base", base.to_str().unwrap()], &hermetic_path(&cli), Some(home.path()), &exec_env);
         let bearer = service.mint("orca chain");
         let state = tempfile::Builder::new().prefix("orca-chain-").tempdir().unwrap();
         let errlog = state.path().join("serve.err");

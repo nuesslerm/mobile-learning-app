@@ -35,3 +35,20 @@ pub fn rollup(details: &[Value]) -> &'static str {
         "neutral"
     }
 }
+
+/// The host's `summarizeProviderChecks` of its own check details: each check is passed, failed (a cancelled one too, counted again as cancelled), pending
+/// while it has no conclusion, or neutral; the state is `none` with no check.
+pub fn summary(details: &[Value]) -> Value {
+    let count = |keep: &dyn Fn(Option<&str>) -> bool| details.iter().filter(|d| keep(d["conclusion"].as_str())).count();
+    let passed = count(&|c| matches!(c, Some("success" | "skipped")));
+    let failed = count(&|c| matches!(c, Some("failure" | "cancelled")));
+    let pending = count(&|c| c.is_none());
+    let state = match (details.len(), failed, pending, passed) {
+        (0, ..) => "none",
+        (_, f, ..) if f > 0 => "failure",
+        (_, _, p, _) if p > 0 => "pending",
+        (_, _, _, s) if s > 0 => "success",
+        _ => "neutral",
+    };
+    json!({"state": state, "total": details.len(), "passed": passed, "failed": failed, "cancelled": count(&|c| c == Some("cancelled")), "pending": pending, "neutral": details.len() - passed - failed - pending})
+}

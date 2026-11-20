@@ -1,0 +1,43 @@
+{
+  "action": "browser_input",
+  "exchanges": [
+    {
+      "name": "refuses a pointer move without coordinates",
+      "request": {
+        "id": "b1",
+        "tool": "browser_input",
+        "args": {
+          "key": "t1",
+          "kind": "mouse_move"
+        }
+      },
+      "response": {
+        "id": "b1",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`x` must be a number between -10000000 and 10000000"
+        }
+      }
+    },
+    {
+      "name": "finds no page under a key that was never opened",
+      "request": {
+        "id": "b1",
+        "tool": "browser_input",
+        "args": {
+          "key": "t1",
+          "kind": "mouse_down"
+        }
+      },
+      "response": {
+        "id": "b1",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no page is open for key t1"
+        }
+      }
+    }
+  ]
+}

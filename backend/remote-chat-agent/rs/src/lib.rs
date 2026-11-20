@@ -22,7 +22,7 @@ use rca_group_agent::host::CliLauncher;
 use rca_exec_channel::Registry;
 use rca_group_accounts::{AccountsGroup, GitAiGroup, HostDirs, HostLogin, ModelApi, ProviderDirs, Sessions};
 use rca_group_agent::{AgentLifecycleGroup, AgentQueueGroup, AgentRequestsGroup, AgentThreadsGroup, Runner};
-use rca_service_core::application::agent_groups::{ActivityGroup, EngineThreads, FilesEditGroup, FilesGroup, ServiceGroup, StateGroup, StateHub, StateStore, StateWatchGroup, TerminalGroup, GitGroup, HostedAuthGroup, HostedCloneGroup, HostedIssueGroup, HostedPrGroup, ExecutorCredentials, WorkspaceGroup, WorktreesGroup, ScheduleClock, ScheduleGroup, ScheduleIds, ScheduleStore, ScheduleWatchGroup, Schedules, ThreadsTrigger, AttachmentClock, AttachmentIds, Attachments, AttachmentsGroup, BlobStore, Catalog, CatalogGroup, CatalogSpeech, StagesAttachments, PreviewGroup, PreviewSessionGroup, PreviewWatchGroup, Previews, MemoryPanes, PaneStore, Notifications, NotificationsGroup, Panes, PanesGroup};
+use rca_service_core::application::agent_groups::{ActivityGroup, EngineThreads, FilesEditGroup, FilesGroup, ServiceGroup, StateGroup, StateHub, StateStore, StateWatchGroup, TerminalGroup, GitGroup, HostedAuthGroup, HostedCloneGroup, HostedIssueGroup, HostedPrGroup, ExecutorCredentials, WorkspaceGroup, WorktreesGroup, ScheduleClock, ScheduleGroup, ScheduleIds, ScheduleStore, ScheduleWatchGroup, Schedules, ThreadsTrigger, AttachmentClock, AttachmentIds, Attachments, AttachmentsGroup, BlobStore, Catalog, CatalogGroup, CatalogSpeech, StagesAttachments, PreviewGroup, PreviewSessionGroup, PreviewWatchGroup, Previews, BrowserGroup, MemoryPanes, PaneStore, Notifications, NotificationsGroup, Panes, PanesGroup};
 use std::sync::Arc;
 
 /// What the `accounts` and `git.ai` groups stand on: where the choice of the default provider is kept, and the model the service asks. The logins are the executor's.
@@ -74,6 +74,7 @@ impl AttachmentParts {
 /// between them. the `service.activity` sub-group keeps client leases; `state` and `state.watch` share one hub, so a watcher sees every write; `service.status` lists each group once it serves all of its methods; `workspace` answers what it serves but stays unlisted
 /// until the rest of its owner set (`workspace.activate`, `repo.hooks`) is served. `accounts` (provider logins, usage) and `git.ai` (commit messages) stand on `accounts`: directories of the providers, their login commands and a model API. `agent.threads` and its three sub-groups, `agent.requests`, `agent.queue` and `agent.lifecycle`, share one
 /// runner of the CLIs `launcher` starts (at the workspace host), against a thread engine of its own; the runner also answers the MCP tools that wait for a person.
+#[allow(clippy::too_many_arguments)]
 pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn StateStore>, bearers: Arc<dyn DeviceBearers>, accounts: Accounts, schedule_parts: ScheduleParts, attachment_parts: AttachmentParts, speech: Arc<dyn CatalogSpeech>) -> AgentApi {
     let executors: Arc<Registry> = Arc::new(match &config.state_dir {
         Some(dir) => Registry::with_ledger(Arc::new(infrastructure::workspace_ledger::WorkspaceFile::at(std::path::Path::new(dir).join("agent-api").join("workspaces.json")))),
@@ -137,6 +138,7 @@ pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn
         Arc::new(PreviewGroup::new(executors.clone())),
         Arc::new(PreviewSessionGroup::new(previews.clone())),
         Arc::new(PreviewWatchGroup::new(previews)),
+        Arc::new(BrowserGroup::new(executors.clone(), config.browser)),
         Arc::new(NotificationsGroup::new(notifications)),
         Arc::new(PanesGroup::new(panes)),
     ];

@@ -21,7 +21,7 @@ const BASE_GROUPS: &[&str] = &["service", "state"];
 /// The groups of `BASE_GROUPS` and of every method a mapping crate declares in its `USES`, so a new method cannot drift from the startup check.
 pub fn needed_groups() -> Vec<&'static str> {
     let mut groups: Vec<&'static str> = BASE_GROUPS.to_vec();
-    for m in orca_map_workspace::USES.iter().chain(orca_map_agent::USES).chain(orca_map_terminal::USES).chain(orca_map_git::USES).chain(orca_map_accounts::USES).chain(orca_map_state::USES).chain(orca_map_hosted::USES).chain(orca_map_schedules::USES) {
+    for m in orca_map_workspace::USES.iter().chain(orca_map_agent::USES).chain(orca_map_terminal::USES).chain(orca_map_git::USES).chain(orca_map_accounts::USES).chain(orca_map_state::USES).chain(orca_map_hosted::USES).chain(orca_map_schedules::USES).chain(orca_map_browser::USES) {
         let g = m.group().as_str();
         if g != "workspace" && !groups.contains(&g) {
             groups.push(g);

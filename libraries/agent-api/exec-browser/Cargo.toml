@@ -1,0 +1,20 @@
+[package]
+name = "exec-browser"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The executor's browser actions (browser_open, browser_goto, browser_history, browser_eval, browser_screenshot, browser_input, browser_close, browser_list): a headless Chromium at the executor, one page per key, its addresses validated here (http or https, no loopback, link-local, private or metadata host unless the executor's own allowlist names it)"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["exec-proto/testing"]
+
+[dependencies]
+exec-proto = { path = "../exec-proto" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[package.metadata.arch]
+type = "rust-contract"

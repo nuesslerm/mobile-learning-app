@@ -3,6 +3,7 @@
 //! paths are relative to the executor's root.
 use exec_fs::{Browse, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, ListDir, ListResult, MakeDir, MakeDirResult, PutBlob, PutBlobResult, PutTemp, PutTempResult, ReadChunk, ReadFile, ReadResult, SearchEntries, SkillScan, SkillsFound, Stat, StatResult, WriteFile, WriteResult};
 use exec_hosted::HostedOp;
+use exec_browser::BrowserOp;
 use exec_preview::PreviewOp;
 use exec_git::{DiffResult, GitDiff, GitOp, SetupEvent, SetupResult, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeListed, WorktreeRemove, WorktreeRemoved, WorktreeSetup};
 use exec_proc::{Cancel, CancelResult, CliDetect, CliDetectResult, CliFound, LoggedOut, LoginCancel, LoginCancelled, LoginProgram, LoginSend, LoginStarted, LoginState, LoginStatus, RunCommand, RunResult};
@@ -72,6 +73,8 @@ pub trait ToolExecutor: Send + Sync {
     /// One preview action (`preview_start`, `preview_stop`, `preview_list`) and its result as the wire carries it; `preview_start` returns once
     /// the server accepts connections.
     fn preview_op(&self, op: &PreviewOp) -> ExecResult<Value>;
+    /// One browser action (`browser_open` .. `browser_list`) and its result as the wire carries it; the browser starts with the first page.
+    fn browser_op(&self, op: &BrowserOp) -> ExecResult<Value>;
 }
 
 /// Runs one wire request on the executor and returns its `result` object. `stream` receives `run_command`'s output frames, `events` the
@@ -130,11 +133,12 @@ pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value,
         exec_pty::PTY_CLOSE => Ok(to_value(&ex.pty_close(&PtyClose::parse(args)?)?)),
         exec_pty::PTY_LIST => Ok(to_value(&PtyListed { ptys: ex.pty_list()? })),
         exec_pty::PTY_ATTACH => Ok(to_value(&ex.pty_attach(id, &PtyAttach::parse(args)?, &mut |offset, bytes| binary(exec_pty::encode_frame(id, offset, bytes)), &mut |e| events(to_value(&e)))?)),
-        other => match (GitOp::parse(other, args), HostedOp::parse(other, args), PreviewOp::parse(other, args)) {
-            (Some(op), _, _) => ex.git_op(id, &op?, events),
-            (None, Some(op), _) => ex.hosted_op(id, &op?),
-            (None, None, Some(op)) => ex.preview_op(&op?),
-            (None, None, None) => Err(ExecError::new(Code::UnknownTool, format!("unknown tool {other}"))),
+        other => match (GitOp::parse(other, args), HostedOp::parse(other, args), PreviewOp::parse(other, args), BrowserOp::parse(other, args)) {
+            (Some(op), _, _, _) => ex.git_op(id, &op?, events),
+            (None, Some(op), _, _) => ex.hosted_op(id, &op?),
+            (None, None, Some(op), _) => ex.preview_op(&op?),
+            (None, None, None, Some(op)) => ex.browser_op(&op?),
+            (None, None, None, None) => Err(ExecError::new(Code::UnknownTool, format!("unknown tool {other}"))),
         },
     }
 }
@@ -304,15 +308,21 @@ mod tests {
             });
             Ok(json!({}))
         }
+        fn browser_op(&self, op: &BrowserOp) -> ExecResult<Value> {
+            self.note(op.action());
+            Ok(json!({}))
+        }
     }
 
     fn actions() -> Vec<&'static exec_proto::Action> {
-        [exec_fs::ACTIONS, exec_proc::ACTIONS, exec_git::ACTIONS, exec_pty::ACTIONS, exec_hosted::ACTIONS, exec_preview::ACTIONS].into_iter().flatten().collect()
+        [exec_fs::ACTIONS, exec_proc::ACTIONS, exec_git::ACTIONS, exec_pty::ACTIONS, exec_hosted::ACTIONS, exec_preview::ACTIONS, exec_browser::ACTIONS].into_iter().flatten().collect()
     }
 
     /// A value of the kind the action's table gives the property (a search kind is "content"), so the minimal request parses.
     fn placeholder(action: &exec_proto::Action, key: &str) -> Value {
         match (key, action.properties.iter().find(|p| p.name == key).map(|p| p.kind)) {
+            ("kind", _) if action.name == exec_browser::BROWSER_INPUT => json!("mouse_down"),
+            ("direction", _) => json!("back"),
             ("kind", _) => json!("content"),
             ("programs", _) => json!(["claude"]),
             ("op", _) => json!("abort"),

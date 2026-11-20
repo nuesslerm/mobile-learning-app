@@ -23,7 +23,7 @@ impl VisualBrowser {
         let exe = find_chromium().ok_or("no Chromium found (set WF_CHROMIUM or install one with Playwright)")?;
         let mut chrome_args = vec!["--autoplay-policy=no-user-gesture-required".to_string()];
         chrome_args.extend(tailnet_socks_arg(std::env::var("WF_SOCKS_PORT").ok().as_deref()));
-        let launched = launch(&exe, &chrome_args, &[], true)?;
+        let launched = launch(&exe, &chrome_args, &[], true, false)?;
         let setup = (|| -> Res<Attached> {
             let mut page = Attached::attach(&launched.endpoint)?;
             page.set_metrics(viewport.0, viewport.1, 1.0, false)?;

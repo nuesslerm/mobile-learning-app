@@ -33,3 +33,7 @@ rca's hosted group serves only GitHub and GitLab, and the mapper has no ICU coll
 
 A recorded Orca scenario whose workspace origin is an Enterprise host or an SSH alias, then a `hosted_*` executor action that runs
 `gh auth status` or `ssh -G` at the workspace host and a mapper arm that reads it.
+
+## The work-item detail rows leave out what no rca method reports
+
+`github.workItem`, `github.workItemByOwnerRepo`, `github.workItemDetails`, `gitlab.workItemDetails` and `gitlab.workItemByPath` are composed from `issue.view`, `pr.view` (`mr.view`), their comments, checks and files. The pinned host's answers carry more, and the mapper leaves each of these out rather than inventing it: an issue's timeline items, participants and body images; a pull request's `baseSha`, `pullRequestId`, participants, viewed marks, `latestReviews`, `reviewRequests` (rca lists users and teams together), `isCrossRepository`, auto-merge and merge-queue state; a merge request's pipeline and jobs, reviewers, approval state, `baseSha`, `startSha`, the thread of a plain note and the global id in its row id (the row id is `gitlab-<kind>-<path>-<iid>`, as the list rows have it). Without the base SHA the phone cannot open a file's diff from these rows. Unlike the host, a GitHub address on an Enterprise host answers null, a pasted GitHub repository must be the workspace's upstream or origin (a preview any repository once a github.com remote exists), and a GitLab host must be gitlab.com or a host of one of the workspace's remotes.

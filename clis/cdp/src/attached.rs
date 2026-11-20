@@ -255,10 +255,20 @@ fn answer_fetch(routes: &Routes, event: Value, fire: crate::Fire) {
 impl Attached {
     /// Attaches to the first page of the browser, opening a blank one when it has none.
     pub fn attach(endpoint: &str) -> Result<Attached, String> {
+        Self::attach_with(endpoint, false)
+    }
+
+    /// Opens a page of its own in the browser and attaches to it, whatever pages the browser has.
+    pub fn attach_new(endpoint: &str) -> Result<Attached, String> {
+        Self::attach_with(endpoint, true)
+    }
+
+    fn attach_with(endpoint: &str, fresh: bool) -> Result<Attached, String> {
         let cdp = Cdp::connect(&browser_ws_url(endpoint)?)?;
         let targets = cdp.call("Target.getTargets", json!({}))?;
         let existing = targets["targetInfos"]
             .as_array()
+            .filter(|_| !fresh)
             .and_then(|all| all.iter().find(|t| t["type"] == "page" && !t["url"].as_str().unwrap_or("").starts_with("devtools://")))
             .and_then(|t| t["targetId"].as_str().map(str::to_string));
         let target_id = match existing {
@@ -271,6 +281,75 @@ impl Attached {
             attached.page_call(&format!("{domain}.enable"), json!({}))?;
         }
         Ok(attached)
+    }
+
+    /// The address and title the page shows now.
+    pub fn location(&mut self) -> Result<(String, String), String> {
+        let at = self.eval_page("JSON.stringify([location.href, document.title])")?;
+        let pair: Vec<String> = serde_json::from_str(at.as_str().unwrap_or("[]")).map_err(|e| e.to_string())?;
+        match pair.as_slice() {
+            [url, title] => Ok((url.clone(), title.clone())),
+            _ => Err("the page did not report its address".to_string()),
+        }
+    }
+
+    /// Fails every request of the page (and of what it loads or is redirected to) for which `allow` answers false, and lets the rest through.
+    pub fn guard_requests(&mut self, allow: std::sync::Arc<dyn Fn(&str) -> bool + Send + Sync>) -> Result<(), String> {
+        self.page_call("Fetch.enable", json!({ "patterns": [{ "urlPattern": "*", "requestStage": "Request" }] }))?;
+        self.cdp.on_paused(std::sync::Arc::new(move |event, fire| {
+            let params = &event["params"];
+            let session = event["sessionId"].as_str().map(str::to_string);
+            let id = params["requestId"].as_str().unwrap_or_default();
+            let denied = !allow(params["request"]["url"].as_str().unwrap_or_default());
+            let _ = if denied { fire.send("Fetch.failRequest", json!({ "requestId": id, "errorReason": "AccessDenied" }), session.as_deref()) } else { fire.send("Fetch.continueRequest", json!({ "requestId": id }), session.as_deref()) };
+        }));
+        Ok(())
+    }
+
+    /// One step through the page's history (`-1` back, `1` forward), waiting for the new document; an error when there is no such entry.
+    pub fn history_step(&mut self, delta: i64) -> Result<(), String> {
+        let history = self.page_call("Page.getNavigationHistory", json!({}))?;
+        let at = history["currentIndex"].as_i64().unwrap_or(0) + delta;
+        let entry = usize::try_from(at).ok().and_then(|i| history["entries"].get(i)).and_then(|e| e["id"].as_i64()).ok_or_else(|| format!("the page has no {} entry in its history", if delta < 0 { "earlier" } else { "later" }))?;
+        let _ = self.eval_page("window.__wfLeaving = true");
+        self.page_call("Page.navigateToHistoryEntry", json!({ "entryId": entry }))?;
+        self.wait_for_new_document("history")
+    }
+
+    /// Reloads the page and waits for the new document.
+    pub fn reload(&mut self) -> Result<(), String> {
+        let _ = self.eval_page("window.__wfLeaving = true");
+        self.page_call("Page.reload", json!({}))?;
+        self.wait_for_new_document("reload")
+    }
+
+    fn wait_for_new_document(&mut self, what: &str) -> Result<(), String> {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+        loop {
+            if self.eval_page("!window.__wfLeaving && document.readyState === 'complete'").is_ok_and(|v| v == json!(true)) {
+                return Ok(());
+            }
+            if std::time::Instant::now() >= deadline {
+                return Err(format!("page.{what}: the page did not finish loading within 30 s"));
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+    }
+
+    /// One raw pointer event (`Input.dispatchMouseEvent` params), for callers that track the pointer themselves.
+    pub fn mouse_event(&mut self, params: Value) -> Result<(), String> {
+        self.page_call("Input.dispatchMouseEvent", params)?;
+        Ok(())
+    }
+
+    /// Closes the page; the browser keeps running.
+    pub fn close_page(self) {
+        self.close_target();
+    }
+
+    /// Closes the page's target through the connection this page holds, so a holder that cannot give the page up (a `Drop`) still closes it.
+    pub fn close_target(&self) {
+        let _ = self.cdp.call("Target.closeTarget", json!({ "targetId": self.target_id }));
     }
 
     pub fn session_id(&self) -> String {

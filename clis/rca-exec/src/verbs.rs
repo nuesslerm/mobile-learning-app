@@ -12,6 +12,8 @@ use wf_kit::args::{parse_spec, Parsed, Positional, Spec};
 
 const SERVE: Spec = Spec { values: &["rca-url", "workspace", "executor", "root", "worktree-base", "browse-allow", "secret-env", "reconnect-for"], flags: &["reconnect", "git-hooks"], positional: Positional::None, ..Spec::NONE };
 const DEFAULT_BEARER_ENV: &str = "CHAT_AGENT_API_SECRET";
+/// Hosts a browser page may reach beyond the public internet, as `host:port,host:port` (none by default).
+const BROWSER_ALLOW_ENV: &str = "RCA_EXEC_BROWSER_ALLOW";
 /// How long `--reconnect` keeps trying to reach rca again: a redeploy of rca (pull, up, two verifications) on the VM takes minutes, not seconds.
 const DEFAULT_RECONNECT_SECS: u64 = 900;
 
@@ -78,8 +80,12 @@ fn serve_verb(p: &Parsed) -> Option<i32> {
         Some(base) => e.with_worktree_base(&PathBuf::from(base)),
         None => Ok(e),
     });
+    let policy = match exec_browser::Policy::parse(&std::env::var(BROWSER_ALLOW_ENV).unwrap_or_default()) {
+        Ok(policy) => policy,
+        Err(error) => return Some(failure(error, "name the hosts a browser page may reach beyond the public internet as host:port,host:port", json!({}))),
+    };
     let executor: Arc<dyn ToolExecutor> = match built.and_then(|e| e.with_browse_allow(&allow)) {
-        Ok(executor) => Arc::new(executor.with_git_hooks(p.flag("git-hooks")).with_skill_home(std::env::var_os("HOME").map(PathBuf::from).as_deref())),
+        Ok(executor) => Arc::new(executor.with_git_hooks(p.flag("git-hooks")).with_skill_home(std::env::var_os("HOME").map(PathBuf::from).as_deref()).with_browser(policy, std::time::Duration::from_millis(exec_browser::IDLE_MS), exec_browser::MAX_PAGES, None)),
         Err(error) => return Some(failure(error, "pass an existing directory as --root; --worktree-base must be a directory outside it and --browse-allow existing directories", json!({}))),
     };
     let channel = match ExecChannel::open_as(url, p.val("executor"), workspace, &bearer, executor.clone()) {

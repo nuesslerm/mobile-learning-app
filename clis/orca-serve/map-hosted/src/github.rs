@@ -37,7 +37,7 @@ pub(crate) fn check_label_params(params: &Value) -> Result<(), Failure> {
 }
 
 /// `{host, user}`: a host name (optionally with a port) and a user of 1 to 255 characters without whitespace or NUL.
-fn gh_account_binding(v: &Value) -> bool {
+pub(crate) fn gh_account_binding(v: &Value) -> bool {
     let (Some(host), Some(user)) = (v.get("host").and_then(Value::as_str), v.get("user").and_then(Value::as_str)) else { return false };
     let host = host.trim().to_lowercase();
     let user = user.trim();

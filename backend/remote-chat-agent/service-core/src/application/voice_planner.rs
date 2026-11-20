@@ -168,7 +168,7 @@ impl Planner {
         Ok(Planned {
             transcript: parsed.transcript,
             alternatives,
-            meta: Meta { model: format!("{}/{}", model.0, model.1), variant: variant.to_string(), agent, session_reused, usage: turn.usage, ms: self.client.now_ms().saturating_sub(started) as u64, retried },
+            meta: Meta { model: format!("{}/{}", model.0, model.1), variant: variant.to_string(), agent, session_reused, usage: turn.usage, ms: self.client.now_ms().saturating_sub(started), retried },
         })
     }
 

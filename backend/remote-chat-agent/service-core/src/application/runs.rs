@@ -412,6 +412,7 @@ fn ladders() -> &'static LadderFile {
 }
 
 /// Runs the request to its end and answers with the result as `RunResult` is serialised.
+#[allow(clippy::too_many_arguments)]
 pub fn run(runtime: &Handle, client: &Client, commands: &dyn Commands, ledgers: &dyn Ledgers, fs: &Arc<dyn WorkspaceFiles>, hosts: &dyn RunHosts, request: &Request, ids: &dyn IdSource) -> Result<Value, Refused> {
     reap(runtime, client, fs.as_ref());
     let settings = client.env().settings();

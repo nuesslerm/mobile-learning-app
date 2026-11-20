@@ -25,6 +25,8 @@ struct Request {
     review_decision: Option<String>,
     updated_ms: u64,
     merged_with: Option<String>,
+    url: Option<String>,
+    assignees: Vec<String>,
 }
 
 #[derive(Default)]
@@ -39,6 +41,9 @@ struct State {
     assignees: Option<Vec<(String, String)>>,
     view_error: Option<String>,
     comments: Vec<(u64, Value)>,
+    issues: Vec<Value>,
+    issue_comments: Vec<(String, u64, Value)>,
+    files: Vec<(u64, Value)>,
     threads: Vec<(u64, Value)>,
     reviews: Vec<(u64, Value)>,
     blobs: Vec<(String, String, Vec<u8>)>,
@@ -99,7 +104,7 @@ fn neutral(r: &Request) -> Value {
     json!({
         "number": r.number, "title": r.title, "body": r.body, "state": r.state, "draft": r.draft, "author": "octocat", "head_ref": r.head_ref, "base_ref": r.base_ref, "head_sha": r.head_sha,
         "labels": r.labels, "reviewers": r.reviewers, "mergeable": r.mergeable, "review_decision": r.review_decision, "updated_at_ms": r.updated_ms, "created_at_ms": 1_790_847_000_000u64,
-        "url": format!("https://example.test/{}/{}", r.provider, r.number), "changed_files": 2, "additions": 4, "deletions": 1, "assignees": [], "merged_at_ms": null, "closed_at_ms": null,
+        "url": r.url.clone().unwrap_or_else(|| format!("https://example.test/{}/{}", r.provider, r.number)), "changed_files": 2, "additions": 4, "deletions": 1, "assignees": r.assignees, "merged_at_ms": null, "closed_at_ms": null,
     })
 }
 
@@ -126,6 +131,8 @@ impl Hosting {
             review_decision: None,
             updated_ms: 1_790_936_130_000 + number,
             merged_with: None,
+            url: None,
+            assignees: Vec::new(),
         });
         self
     }
@@ -169,6 +176,33 @@ impl Hosting {
 
     pub fn approved(&self, provider: &str, number: u64) -> &Self {
         self.change(provider, number, |r| r.review_decision = Some("approved".into()))
+    }
+
+    pub fn address(&self, provider: &str, number: u64, url: &str) -> &Self {
+        self.change(provider, number, |r| r.url = Some(url.into()))
+    }
+
+    pub fn assigned(&self, provider: &str, number: u64, logins: &[&str]) -> &Self {
+        self.change(provider, number, |r| r.assignees = logins.iter().map(|l| l.to_string()).collect())
+    }
+
+    /// An issue of `provider` as `issue.view` answers it, at the address the provider gives issues (`url` overrides it).
+    pub fn issue(&self, provider: &str, number: u64, title: &str, body: &str, url: Option<&str>, assignees: &[&str]) -> &Self {
+        let url = url.map_or_else(|| if provider == "gitlab" { format!("https://gitlab.com/grp/proj/-/issues/{number}") } else { format!("https://github.com/acme/app/issues/{number}") }, str::to_string);
+        self.0.lock().unwrap().issues.push(json!({"provider": provider, "number": number, "title": title, "body": body, "state": "open", "author": "octocat", "labels": ["bug"], "created_at_ms": 1_791_014_400_000u64, "updated_at_ms": 1_791_117_000_000u64, "closed_at_ms": null, "url": url, "assignees": assignees}));
+        self
+    }
+
+    /// A comment of issue `number` as `issue.comments` answers it.
+    pub fn issue_comment(&self, (provider, number): (&str, u64), (id, author, body): (&str, &str, &str), created_ms: u64, url: Option<&str>) -> &Self {
+        self.0.lock().unwrap().issue_comments.push((provider.into(), number, json!({"id": id, "author": author, "body": body, "created_at_ms": created_ms, "url": url})));
+        self
+    }
+
+    /// A changed file of request `number` as `pr.files` answers it.
+    pub fn changed_file(&self, number: u64, path: &str, additions: u64, deletions: u64, status: Option<&str>) -> &Self {
+        self.0.lock().unwrap().files.push((number, json!({"path": path, "additions": additions, "deletions": deletions, "status": status})));
+        self
     }
 
     /// The request as the group's `view` answers it now.
@@ -381,6 +415,44 @@ impl Hosting {
                 Some(message) => Err(refused("IO_ERROR", message.clone())),
                 None => Ok(json!({"remotes": s.remotes.iter().map(|(n, u)| json!({"name": n, "url": u})).collect::<Vec<_>>()})),
             }
+        });
+        let me = self.clone();
+        agent.reply("issue.view", move |p| {
+            let s = me.0.lock().unwrap();
+            let (n, provider) = (number(p)?, p["provider"].as_str().unwrap_or("github"));
+            if n == 99 {
+                return Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host"));
+            }
+            let found = s.issues.iter().find(|i| i["number"] == n && i["provider"] == provider).ok_or_else(|| refused("NOT_FOUND", "gh: GraphQL: Could not resolve to an issue or pull request with the number"))?;
+            let mut issue = found.clone();
+            issue.as_object_mut().unwrap().remove("provider");
+            Ok(json!({"issue": issue}))
+        });
+        let me = self.clone();
+        agent.reply("issue.comments", move |p| {
+            let (s, n) = (me.0.lock().unwrap(), number(p)?);
+            let provider = p["provider"].as_str().unwrap_or("github");
+            Ok(json!({"comments": s.issue_comments.iter().filter(|(pr, x, _)| *x == n && pr == provider).map(|(_, _, c)| c.clone()).collect::<Vec<_>>()}))
+        });
+        for name in ["pr.files", "mr.files"] {
+            let me = self.clone();
+            agent.reply(name, move |p| {
+                let (s, n) = (me.0.lock().unwrap(), number(p)?);
+                if n == 98 {
+                    return Err(refused("HOSTED_FAILED", "gh: rate limit"));
+                }
+                Ok(json!({"files": s.files.iter().filter(|(x, _)| *x == n).map(|(_, f)| f.clone()).collect::<Vec<_>>()}))
+            });
+        }
+        let me = self.clone();
+        agent.reply("mr.comments", move |p| {
+            let (s, n) = (me.0.lock().unwrap(), number(p)?);
+            Ok(json!({"comments": s.comments.iter().filter(|(x, _)| *x == n).map(|(_, c)| c.clone()).collect::<Vec<_>>()}))
+        });
+        let me = self.clone();
+        agent.reply("mr.threads", move |p| {
+            let (s, n) = (me.0.lock().unwrap(), number(p)?);
+            Ok(json!({"threads": s.threads.iter().filter(|(x, _)| *x == n).map(|(_, t)| t.clone()).collect::<Vec<_>>()}))
         });
         let me = self.clone();
         agent.reply("pr.comments", move |p| {

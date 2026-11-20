@@ -51,6 +51,7 @@ orca-map-accounts = { path = "map-accounts" }
 orca-map-state = { path = "map-state" }
 orca-map-hosted = { path = "map-hosted" }
 orca-map-schedules = { path = "map-schedules" }
+orca-map-browser = { path = "map-browser" }
 sha2 = "0.10"
 libc = "0.2"
 agent-api-client = { path = "../../libraries/agent-api/agent-api-client" }

@@ -10,7 +10,9 @@ last_verified: 2026-11-05
 links:
   - "docs/plans/rca-parity/plan.md"
 ---
-# `device_*` and `browser_*` executor actions are not built, and the preview tabs have no browser behind them
+# `device_*` executor actions are not built, and the preview tabs have no browser behind them
+
+Update 20 Nov: the `browser_*` actions are built (`exec-browser`, run by `rca-exec` over `clis/cdp`) and the service answers them through its `browser` group (`agent-api-browser`, `rca-group-browser`), off unless `RCA_BROWSER=1`. The preview tabs (`preview.sessions`) still draw no page of their own and `preview.open` with the `server` runtime is still refused by name; only the Orca phone's browser rows use the new group. The text below is the state of 5 Nov and holds for `device_*`.
 
 ## What is broken
 

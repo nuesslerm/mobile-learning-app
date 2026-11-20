@@ -1,0 +1,23 @@
+[package]
+name = "agent-api-browser"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The agent API's browser group (`browser`: browser.open/goto/history/eval/screenshot/input/close/pages): a headless Chromium run by the executor that owns the workspace, one page per thread or workspace, off unless the service is configured for it"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["agent-api-proto/testing"]
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto" }
+exec-browser = { path = "../exec-browser" }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+agent-api-proto = { path = "../agent-api-proto", features = ["testing"] }
+
+[package.metadata.arch]
+type = "rust-contract"

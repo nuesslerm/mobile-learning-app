@@ -36,6 +36,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "agent-api-browser"
+version = "0.1.0"
+dependencies = [
+ "agent-api-proto",
+ "exec-browser",
+ "serde_json",
+]
+
+[[package]]
 name = "agent-api-catalog"
 version = "0.1.0"
 dependencies = [
@@ -544,6 +553,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1a05365e3b1c6d1650318537c7460c6923f1abdd272ad6842baa2b509957a06"
 dependencies = [
  "num-traits",
+]
+
+[[package]]
+name = "exec-browser"
+version = "0.1.0"
+dependencies = [
+ "exec-proto",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1753,6 +1771,7 @@ name = "rca-exec-channel"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "exec-browser",
  "exec-fs",
  "exec-git",
  "exec-hosted",
@@ -1818,6 +1837,21 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "tokio",
+]
+
+[[package]]
+name = "rca-group-browser"
+version = "0.1.0"
+dependencies = [
+ "agent-api-browser",
+ "agent-api-proto",
+ "async-trait",
+ "exec-browser",
+ "exec-proto",
+ "rca-agent-core",
+ "rca-exec-channel",
+ "serde_json",
  "tokio",
 ]
 
@@ -1964,6 +1998,7 @@ dependencies = [
  "agent-api-accounts",
  "agent-api-agent",
  "agent-api-attachments",
+ "agent-api-browser",
  "agent-api-catalog",
  "agent-api-git",
  "agent-api-hosted",
@@ -2030,6 +2065,7 @@ version = "0.1.0"
 dependencies = [
  "agent-api-agent",
  "agent-api-attachments",
+ "agent-api-browser",
  "agent-api-catalog",
  "agent-api-git",
  "agent-api-hosted",
@@ -2052,6 +2088,7 @@ dependencies = [
  "rca-exec-channel",
  "rca-group-agent",
  "rca-group-attachments",
+ "rca-group-browser",
  "rca-group-catalog",
  "rca-group-git",
  "rca-group-hosted",

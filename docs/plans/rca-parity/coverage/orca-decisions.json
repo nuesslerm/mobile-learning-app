@@ -7,7 +7,8 @@
     "traceNoise": "Row id or `prefix*` to why a trace may name a row the phone does not reach (the crawl drives the whole host surface): `wf mimic coverage --traces` does not report such a row as unknown-trace-row. A row the phone reaches never needs one, and a mistyped row a test names is not noise.",
     "unrecordable": "A served row no recording can show (a pty's output, a restart, a clock, an interaction no recorded set holds): a row decision with an `unrecordable` reason, or the top-level `unrecordableTests` map of `file::test` (or `file::*`) to the reason; `wf mimic coverage --by-oracle` classes it (d). A served row with neither `\"oracle\": \"mimic\"` nor this reason fails `wf mimic coverage --check` (rule served-without-oracle).",
     "decisions": "Rows with a state other than pending: not-offered needs a reason and a decidedBy milestone, excluded a reason. Flagged (ORCA_SIDEBAR_INPUTS_IS_MAIN) and off-allowlist rows are classed by the scan itself. No row is marked served here: served needs run-bundle evidence. A row may carry `\"oracle\": \"mimic\"` (docs/plans/mimic/plan.md): only a `wf mimic replay --suite` trace whose call is labelled clean or allowlisted on a `recorded` cassette serves it, never a behaviour test.",
-    "knownGapReasons": "Why a recorded case stays a listed breaking gap instead of being fixed: rpc:ui.set (crawl ids orca-ui.set-valid-min and orca-ui.set-boundary-full, `ui.jiraSavedFilterState` missing): the crawl sets it with ui.mutateJiraSavedFilters, a method the phone never calls (orca-methods.json: phone false, allowlist execution-host). The table test `every_served_method_is_a_phone_row...` is kept without an exception list: a served non-phone row would let the table claim methods nothing in the product reaches, and the exception would be this one row's. Serving the method only to replay one crawl field is not parity of anything the phone does, so the two cases stay gap-listed (breaking) until the crawl stops depending on the order of a desktop-only write."
+    "knownGapReasons": "Why a recorded case stays a listed breaking gap instead of being fixed: rpc:ui.set (crawl ids orca-ui.set-valid-min and orca-ui.set-boundary-full, `ui.jiraSavedFilterState` missing): the crawl sets it with ui.mutateJiraSavedFilters, a method the phone never calls (orca-methods.json: phone false, allowlist execution-host). The table test `every_served_method_is_a_phone_row...` is kept without an exception list: a served non-phone row would let the table claim methods nothing in the product reaches, and the exception would be this one row's. Serving the method only to replay one crawl field is not parity of anything the phone does, so the two cases stay gap-listed (breaking) until the crawl stops depending on the order of a desktop-only write.",
+    "browser": "O2 exec-browser (20 Nov): thirteen phone rows (goto, reload, back, forward, tabCreate, keypress, keyboardInsertText, mouseMove, mouseDown, mouseUp, mouseClick, mouseWheel, screencast.ack) are answered through rca's `browser` group by the executor's headless Chromium (CDP through `clis/cdp`), `screencast.ack` crediting nothing because no screencast is ever open. The group is OFF by default in the service (`RCA_BROWSER=1` turns it on) and refuses every method with `BROWSER_DISABLED`, which the mapper answers as the recorded host does without a desktop browser (`browser_unavailable`): the VM memory cap for Chromium is still a Blocked item of issue #83 (`docs/gaps/vm-memory-saturation.md`), so the flag stays off on the VM until that cap exists; a page cap of 3 per executor and an idle close of 5 minutes (the browser stops with its last page) are the executor's own limits. A page address is http or https only, with no credentials, and no loopback, unspecified, link-local, metadata, private or shared-address host unless the executor's `RCA_EXEC_BROWSER_ALLOW` names `host:port`; the executor launches its Chromium in the Chrome sandbox (`RCA_EXEC_BROWSER_NO_SANDBOX` set adds `--no-sandbox`, for a container that cannot run it, CI and the tests) through its own filtering proxy (`--proxy-server`, `--proxy-bypass-list=<-loopback>` so loopback is not exempt), so every connection the browser makes (a page, a redirect, a subresource, a page script's WebSocket or fetch) is an HTTP CONNECT or plain HTTP request the proxy judges: it resolves the name itself once, refuses the connection when the name does not resolve or any answer is loopback, unspecified, multicast, link-local (the metadata addresses 169.254.0.0/16 and fd00:ec2::254), private, shared (100.64.0.0/10), 192.0.0.0/24, 198.18.0.0/15 or reserved (an IPv4 address inside a mapped, compatible, NAT64 64:ff9b::/96 or 6to4 2002::/16 IPv6 address is judged as that IPv4 address), or an internal name, unless `RCA_EXEC_BROWSER_ALLOW` names that `host:port`, and connects to the address it checked, so a DNS answer that changes between the check and the connection is not followed; WebRTC UDP outside the proxy is disabled. The page address is also checked before each navigation. Not served from the request: `expectUrl` (refused by name), a browser profile, a split pane, a client placement, and a key chord such as Control+Shift+K (refused by name; single characters and Enter, Backspace, Tab, Escape, the arrows, Home and End are pressed)."
   },
   "milestones": {
     "transport:*": "M5",
@@ -211,89 +212,63 @@
       "reason": "owner-confirmed (decision 7): it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read",
       "decidedBy": "M7"
     },
+    "rpc:browser.goto": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.reload": {
+      "oracle": "mimic"
+    },
     "rpc:browser.back": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
+    },
+    "rpc:browser.forward": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.tabCreate": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.keypress": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.keyboardInsertText": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.mouseMove": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.mouseDown": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.mouseUp": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.mouseClick": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.mouseWheel": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.screencast.ack": {
+      "oracle": "mimic"
     },
     "rpc:browser.dialogAccept": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "reason": "Agent decision of 20 Nov (O2, exec-browser): the executor drives a page over CDP and keeps no dialog state. Chromium holds a page's JavaScript dialog (alert, confirm, prompt, beforeunload) open and every other command on that page waits behind it, so answering one needs the page to report it (`Page.javascriptDialogOpening`) and a command that answers while another waits; `exec-browser` keeps neither, so there is never an open dialog for the phone to accept or dismiss. Not built, remainder of O2.",
       "decidedBy": "M12"
     },
     "rpc:browser.dialogDismiss": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
-    },
-    "rpc:browser.forward": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
-    },
-    "rpc:browser.goto": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
-    },
-    "rpc:browser.keyboardInsertText": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
-    },
-    "rpc:browser.keypress": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
-    },
-    "rpc:browser.mouseClick": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
-    },
-    "rpc:browser.mouseDown": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
-    },
-    "rpc:browser.mouseMove": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
-    },
-    "rpc:browser.mouseUp": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
-    },
-    "rpc:browser.mouseWheel": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
-    },
-    "rpc:browser.reload": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "reason": "Agent decision of 20 Nov (O2, exec-browser): the executor drives a page over CDP and keeps no dialog state. Chromium holds a page's JavaScript dialog (alert, confirm, prompt, beforeunload) open and every other command on that page waits behind it, so answering one needs the page to report it (`Page.javascriptDialogOpening`) and a command that answers while another waits; `exec-browser` keeps neither, so there is never an open dialog for the phone to accept or dismiss. Not built, remainder of O2.",
       "decidedBy": "M12"
     },
     "rpc:browser.screencast": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
-    },
-    "rpc:browser.screencast.ack": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "reason": "Agent decision of 20 Nov (O2, exec-browser): a screencast is a stream of JPEG frames in 0x62 binary frames that the phone credits with `browser.screencast.ack`; `exec-browser` answers one picture per call (`browser_screenshot`) and has no frame stream, so the subscription is not offered. Not built, remainder of O2.",
       "decidedBy": "M12"
     },
     "rpc:browser.screencast.unsubscribe": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
-      "decidedBy": "M12"
-    },
-    "rpc:browser.tabCreate": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "reason": "Agent decision of 20 Nov (O2, exec-browser): it ends a screencast subscription, and this host opens none (`browser.screencast` is not offered), so there is no subscription to end; the recorded host answers it `browser_unavailable` only because it has no browser.",
       "decidedBy": "M12"
     },
     "rpc:clipboard.abortImageUpload": {
@@ -468,19 +443,13 @@
       "oracle": "mimic"
     },
     "rpc:github.workItem": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.workItemByOwnerRepo": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.workItemDetails": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.createIssue": {
       "oracle": "mimic"
@@ -578,14 +547,10 @@
       "oracle": "mimic"
     },
     "rpc:gitlab.workItemDetails": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:gitlab.workItemByPath": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:gitlab.createIssue": {
       "oracle": "mimic"
@@ -1214,22 +1179,10 @@
     }
   },
   "reverify": {
-    "rpc:browser.back": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page history to go back in",
-    "rpc:browser.dialogAccept": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page whose dialog could be accepted",
-    "rpc:browser.dialogDismiss": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page whose dialog could be dismissed",
-    "rpc:browser.forward": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page history to go forward in",
-    "rpc:browser.goto": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to navigate",
-    "rpc:browser.keyboardInsertText": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to insert text into",
-    "rpc:browser.keypress": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to type into",
-    "rpc:browser.mouseClick": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to click",
-    "rpc:browser.mouseDown": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to press on",
-    "rpc:browser.mouseMove": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to move over",
-    "rpc:browser.mouseUp": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to release on",
-    "rpc:browser.mouseWheel": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to scroll",
-    "rpc:browser.reload": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to reload",
-    "rpc:browser.screencast": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there are no frames of a page to stream",
-    "rpc:browser.screencast.unsubscribe": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no frame stream to end",
-    "rpc:browser.tabCreate": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so a tab would be opened that shows nothing",
+    "rpc:browser.dialogAccept": "reverify when `exec-browser` keeps dialog state: a page's open dialog reported by `Page.javascriptDialogOpening` and answered by `Page.handleJavaScriptDialog` while another command waits",
+    "rpc:browser.dialogDismiss": "reverify when `exec-browser` keeps dialog state: a page's open dialog reported by `Page.javascriptDialogOpening` and answered by `Page.handleJavaScriptDialog` while another command waits",
+    "rpc:browser.screencast": "reverify when `exec-browser` keeps a frame stream: JPEG frames from `Page.startScreencast` sent in 0x62 binary frames and credited by `browser.screencast.ack`",
+    "rpc:browser.screencast.unsubscribe": "reverify when `exec-browser` keeps a frame stream: JPEG frames from `Page.startScreencast` sent in 0x62 binary frames and credited by `browser.screencast.ack`",
     "rpc:notifications.registerPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so a push token would be stored for nothing to send to",
     "rpc:notifications.testPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no sender to deliver a test push",
     "rpc:notifications.unregisterPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no stored push token to remove"

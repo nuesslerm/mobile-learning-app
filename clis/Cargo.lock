@@ -46,6 +46,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "agent-api-browser"
+version = "0.1.0"
+dependencies = [
+ "agent-api-proto",
+ "exec-browser",
+ "serde_json",
+]
+
+[[package]]
 name = "agent-api-catalog"
 version = "0.1.0"
 dependencies = [
@@ -755,6 +764,15 @@ checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "exec-browser"
+version = "0.1.0"
+dependencies = [
+ "exec-proto",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1691,6 +1709,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "orca-map-browser"
+version = "0.1.0"
+dependencies = [
+ "agent-api-browser",
+ "agent-api-proto",
+ "exec-browser",
+ "orca-core",
+ "orca-map-browser",
+ "orca-map-workspace",
+ "serde_json",
+]
+
+[[package]]
 name = "orca-map-git"
 version = "0.1.0"
 dependencies = [
@@ -1813,6 +1844,7 @@ dependencies = [
  "orca-crypto",
  "orca-map-accounts",
  "orca-map-agent",
+ "orca-map-browser",
  "orca-map-git",
  "orca-map-hosted",
  "orca-map-mobile",
@@ -2084,6 +2116,8 @@ name = "rca-exec"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "cdp",
+ "exec-browser",
  "exec-fs",
  "exec-git",
  "exec-hosted",
@@ -2093,6 +2127,7 @@ dependencies = [
  "exec-pty",
  "exec-testkit",
  "libc",
+ "serde",
  "serde_json",
  "tempfile",
  "tungstenite",

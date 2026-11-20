@@ -1,6 +1,6 @@
 //! The console-sink line pins run in a binary of their own: the sink is the process-global tracing subscriber, so a service started by
 //! a sibling flow would write its startup lines into the capture.
-#![allow(dead_code)]
+#![allow(dead_code, unused_imports)]
 
 #[path = "flow/doubles.rs"]
 mod doubles;

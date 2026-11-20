@@ -51,6 +51,7 @@ COPY backend/remote-chat-agent/group-schedules ./backend/remote-chat-agent/group
 COPY backend/remote-chat-agent/group-attachments ./backend/remote-chat-agent/group-attachments
 COPY backend/remote-chat-agent/group-catalog ./backend/remote-chat-agent/group-catalog
 COPY backend/remote-chat-agent/group-preview ./backend/remote-chat-agent/group-preview
+COPY backend/remote-chat-agent/group-browser ./backend/remote-chat-agent/group-browser
 COPY backend/remote-chat-agent/service-core ./backend/remote-chat-agent/service-core
 COPY backend/remote-chat-agent/render ./backend/remote-chat-agent/render
 COPY backend/remote-chat-agent/opencode ./backend/remote-chat-agent/opencode
@@ -69,6 +70,7 @@ COPY libraries/agent-api/agent-api-schedules ./libraries/agent-api/agent-api-sch
 COPY libraries/agent-api/agent-api-attachments ./libraries/agent-api/agent-api-attachments
 COPY libraries/agent-api/agent-api-catalog ./libraries/agent-api/agent-api-catalog
 COPY libraries/agent-api/agent-api-preview ./libraries/agent-api/agent-api-preview
+COPY libraries/agent-api/agent-api-browser ./libraries/agent-api/agent-api-browser
 COPY libraries/agent-api/agent-api-accounts ./libraries/agent-api/agent-api-accounts
 COPY libraries/agent-api/exec-proto ./libraries/agent-api/exec-proto
 COPY libraries/agent-api/exec-fs ./libraries/agent-api/exec-fs
@@ -76,6 +78,7 @@ COPY libraries/agent-api/exec-proc ./libraries/agent-api/exec-proc
 COPY libraries/agent-api/exec-git ./libraries/agent-api/exec-git
 COPY libraries/agent-api/exec-hosted ./libraries/agent-api/exec-hosted
 COPY libraries/agent-api/exec-preview ./libraries/agent-api/exec-preview
+COPY libraries/agent-api/exec-browser ./libraries/agent-api/exec-browser
 COPY libraries/agent-api/exec-pty ./libraries/agent-api/exec-pty
 # The test kit is a dev-dependency of the service, which cargo resolves though it never builds it: its manifest is the whole of it here, so an
 # edit to its code or recordings is in no image. Cargo refuses a path dependency that names no target, so it gets an empty library.

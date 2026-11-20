@@ -1380,3 +1380,162 @@ fn given_a_workspace_when_the_phone_lists_counts_and_reads_to_dos_then_each_row_
     assert_eq!(rig.ok("gitlab.listWorkItems", json!({"query": "unresolved"}))["error"], json!({"type": "not_found", "message": "No GitLab project found for this repository."}));
     assert_eq!(rig.err("gitlab.todos", json!({"repo": "nope"})).0, "repo_not_found");
 }
+
+fn raw(rig: &mut Rig, method: &str, params: Value) -> Value {
+    rig.n += 1;
+    let frame = json!({"id": format!("r{}", rig.n), "method": method, "params": params}).to_string();
+    serde_json::from_str(&rig.conn.on_message(&frame)[0]).unwrap()
+}
+
+#[test]
+fn given_a_github_issue_and_pull_request_when_the_work_item_is_read_then_each_is_the_hosts_row_and_the_type_decides_which_is_asked() {
+    // Given issue 7, pull request 12 with a check and an assignee, and issue 13 that GitHub's issue route answers with a pull request's address
+    let mut rig = Rig::new();
+    rig.hosting.issue("github", 7, "Upload retries are silent", "Steps", None, &["hubot"]).issue("github", 13, "Same as a pull", "", Some("https://github.com/acme/app/pull/13"), &[]);
+    rig.hosting.pull_request(12, "Add retry", "feat/retry", "main").checks("github", 12, &[("build", "pass"), ("lint", "pending")]).assigned("github", 12, &["octocat"]).approved("github", 12);
+    rig.hosting.pull_request(13, "Same as a pull", "feat/same", "main");
+    // When the phone reads them by number, with and without a type
+    let issue = rig.ok("github.workItem", json!({"number": 7}));
+    let pull = rig.ok("github.workItem", json!({"number": 12, "type": "pr"}));
+    let by_number = rig.ok("github.workItem", json!({"number": 12}));
+    let as_issue = rig.ok("github.workItem", json!({"number": 13, "type": "issue"}));
+    let untyped = rig.ok("github.workItem", json!({"number": 13}));
+    // Then the issue is its row with assignees, the pull request carries head, counts, decision, mergeability and the checks' summary, and a number of neither is null
+    assert_eq!(issue, json!({"id": "issue:7", "type": "issue", "number": 7, "title": "Upload retries are silent", "state": "open", "url": "https://github.com/acme/app/issues/7", "labels": ["bug"], "updatedAt": "2026-10-04T12:30:00Z", "author": "octocat", "assignees": [{"login": "hubot", "name": null, "avatarUrl": ""}]}));
+    assert_eq!(pull["id"], "pr:12");
+    assert_eq!(pull, by_number);
+    assert_eq!(
+        (pull["headSha"].clone(), pull["additions"].clone(), pull["changedFiles"].clone(), pull["reviewDecision"].clone(), pull["mergeable"].clone(), pull["assignees"].clone(), pull["branchName"].clone(), pull.get("prRepo").cloned()),
+        (json!(format!("{:040x}", 12 * 4096 + 1)), json!(4), json!(2), json!("APPROVED"), json!("MERGEABLE"), json!([{"login": "octocat", "name": null, "avatarUrl": ""}]), json!("feat/retry"), None)
+    );
+    assert_eq!(pull["checksSummary"], json!({"state": "pending", "total": 2, "passed": 1, "failed": 0, "cancelled": 0, "pending": 1, "neutral": 0}));
+    assert_eq!((as_issue, untyped["id"].clone()), (Value::Null, json!("pr:13")));
+    assert_eq!(rig.ok("github.workItem", json!({"number": 500})), Value::Null);
+    // And a provider that refuses the read is the host's null, never an error
+    assert_eq!(rig.ok("github.workItem", json!({"number": 99})), Value::Null);
+}
+
+#[test]
+fn given_a_repository_the_phone_names_when_its_work_item_is_read_then_only_the_workspaces_own_repositories_are_read_and_a_preview_reads_any_on_its_host() {
+    // Given a workspace whose origin is acme/app and pull request 12 and issue 7 the executor can read
+    let mut rig = Rig::new();
+    rig.hosting.remote("origin", "https://github.com/acme/app.git").issue("github", 7, "Upload", "b", None, &[]);
+    rig.hosting.pull_request(12, "Add retry", "feat/retry", "main").checks("github", 12, &[("build", "pass")]);
+    let named = |owner: &str, repo: &str, number: u64, kind: &str, extra: Value| with(json!({"owner": owner, "ownerRepo": repo, "number": number, "type": kind}), extra);
+    // When it is read for the origin, for another repository, for another repository as a preview, and on an Enterprise host
+    let own = rig.ok("github.workItemByOwnerRepo", named("Acme", "App", 12, "pr", json!({})));
+    let other = rig.ok("github.workItemByOwnerRepo", named("octo", "hello", 12, "pr", json!({})));
+    let preview = rig.ok("github.workItemByOwnerRepo", named("octo", "hello", 12, "pr", json!({"preview": true})));
+    let enterprise = rig.ok("github.workItemByOwnerRepo", named("Acme", "App", 12, "pr", json!({"host": "ghe.example.com", "preview": true})));
+    let issue = rig.ok("github.workItemByOwnerRepo", named("acme", "app", 7, "issue", json!({})));
+    // Then the origin's pull request names its repository and has its checks, the other repository is null, a preview reads it without checks or decision, and Enterprise is null
+    assert_eq!(own["prRepo"], json!({"owner": "Acme", "repo": "App", "host": "github.com"}));
+    assert_eq!(own["checksSummary"]["state"], "success");
+    assert_eq!((other, enterprise), (Value::Null, Value::Null));
+    assert_eq!((preview.get("checksSummary").cloned(), preview.get("reviewDecision").cloned(), preview["prRepo"]["repo"].clone()), (None, None, json!("hello")));
+    assert_eq!(issue["id"], "issue:7");
+    let asked: Vec<Value> = rig.agent.requests().into_iter().filter(|(m, _)| m == "pr.view").map(|(_, p)| p).collect();
+    assert_eq!(asked[0], json!({"workspace": "main", "number": 12, "repo": "Acme/App"}));
+    assert_eq!(asked.len(), 2);
+    // And the schema is refused in its key order
+    assert_eq!(rig.err("github.workItemByOwnerRepo", json!({"repo": "main", "ownerRepo": "a", "number": 1, "type": "pr"})), ("invalid_argument".into(), "Missing owner".into()));
+    assert_eq!(rig.err("github.workItemByOwnerRepo", json!({"owner": "a", "ownerRepo": "a", "number": 1})), ("invalid_argument".into(), "Invalid option: expected one of \"issue\"|\"pr\"".into()));
+    assert_eq!(rig.err("github.workItemByOwnerRepo", json!({"owner": "a", "ownerRepo": "a", "number": 0, "type": "pr"})), ("invalid_argument".into(), "Too small: expected number to be >0".into()));
+}
+
+#[test]
+fn given_an_issue_and_a_pull_request_when_their_details_are_read_then_each_has_its_body_comments_and_what_rca_reports_of_it() {
+    // Given issue 7 with two comments, and pull request 12 with a check, two files, a conversation comment and a review thread
+    let mut rig = Rig::new();
+    rig.hosting
+        .issue("github", 7, "Upload", "The uploader gives up.", None, &["hubot"])
+        .issue_comment(("github", 7), ("IC_2", "hubot", "Later"), 1_791_018_060_000, Some("https://github.com/acme/app/issues/7#issuecomment-92"))
+        .issue_comment(("github", 7), ("IC_1", "octocat", "On it."), 1_791_018_000_000, Some("https://github.com/acme/app/issues/7#issuecomment-91"));
+    rig.hosting.pull_request(12, "Add retry", "feat/retry", "main").checks("github", 12, &[("build", "pass")]);
+    rig.hosting
+        .changed_file(12, "src/up.rs", 2, 1, None)
+        .changed_file(12, "README.md", 5, 0, Some("modified"))
+        .conversation_comment(12, "IC_kwDOAbc", "octocat", "Looks good", 1_790_936_200_000, "https://example.test/pull/12#issuecomment-5001");
+    // When the phone reads both, and a pull request whose files cannot be listed
+    let issue = rig.ok("github.workItemDetails", json!({"number": 7, "type": "issue"}));
+    let pull = rig.ok("github.workItemDetails", json!({"number": 12, "type": "pr"}));
+    rig.hosting.pull_request(98, "No files", "feat/nf", "main");
+    let no_files = rig.ok("github.workItemDetails", json!({"number": 98, "type": "pr"}));
+    // Then the issue answers its body, comments oldest first and assignees, the pull request its head, checks, files and comments, and no base is claimed
+    assert_eq!(issue["body"], "The uploader gives up.");
+    assert_eq!(issue["comments"].as_array().unwrap().iter().map(|c| c["id"].clone()).collect::<Vec<_>>(), vec![json!(91), json!(92)]);
+    assert_eq!(issue["assignees"], json!(["hubot"]));
+    assert_eq!(issue["item"]["id"], "issue:7");
+    assert_eq!(pull["checks"], json!([{"name": "build", "status": "completed", "conclusion": "success", "url": "https://example.test/checks/build"}]));
+    assert_eq!(pull["files"], json!([{"path": "src/up.rs", "additions": 2, "deletions": 1}, {"path": "README.md", "additions": 5, "deletions": 0, "status": "modified"}]));
+    assert_eq!((pull["comments"][0]["id"].clone(), pull["filesUnavailable"].clone(), pull["headSha"].clone(), pull.get("baseSha").cloned()), (json!(5001), json!(false), json!(format!("{:040x}", 12 * 4096 + 1)), None));
+    assert_eq!(pull["item"]["checksSummary"]["state"], "success");
+    assert_eq!((no_files["filesUnavailable"].clone(), no_files.get("files").cloned()), (json!(true), None));
+    // And a number the provider refuses is null, an unreadable number on a refresh is an error, and the account expectation is checked
+    assert_eq!(rig.ok("github.workItemDetails", json!({"number": 99, "type": "issue"})), Value::Null);
+    assert_eq!(rig.err("github.workItemDetails", json!({"number": 7, "expectedGhAccount": "a"})), ("invalid_argument".into(), "Invalid GitHub account expectation".into()));
+    assert_eq!(rig.err("github.workItemDetails", json!({"number": 7, "canonical": "yes"})), ("invalid_argument".into(), "Invalid input: expected boolean, received string".into()));
+}
+
+#[test]
+fn given_gitlab_issues_and_merge_requests_when_read_by_path_and_in_detail_then_each_is_the_hosts_row_with_its_project_and_threads() {
+    // Given a workspace whose origin is on gitlab.com, issue 3 with a note, and merge request 4 with a note, a thread on a line and two files
+    let mut rig = Rig::new();
+    rig.hosting.remote("origin", "git@git.corp.example:grp/proj.git").issue("gitlab", 3, "Upload fails", "Steps", None, &["bot"]).issue_comment(("gitlab", 3), ("92", "bot", "On it."), 1_791_018_000_000, None);
+    rig.hosting.merge_request(4, "Add retry", "feat/retry", "main").address("gitlab", 4, "https://gitlab.com/grp/proj/-/merge_requests/4").conflicting("gitlab", 4);
+    rig.hosting
+        .conversation_comment(4, "601", "tanuki", "Why retry here?", 1_790_943_000_000, "")
+        .conversation_comment(4, "603", "tanuki", "plain", 1_790_943_100_000, "")
+        .review_thread(4, "d1a2", "src/up.rs", Some(3), (true, false), &[(601, "tanuki", "Why retry here?", 1_790_943_000_000)])
+        .changed_file(4, "src/up.rs", 2, 1, Some("modified"));
+    // When the phone reads the issue and the merge request by path, in detail, and a project on a host no remote names
+    let issue = rig.ok("gitlab.workItemByPath", json!({"host": "gitlab.com", "path": "grp/proj", "iid": 3, "type": "issue"}));
+    let mr = rig.ok("gitlab.workItemByPath", json!({"host": "gitlab.com", "path": "grp/proj", "iid": 4, "type": "mr"}));
+    let issue_details = rig.ok("gitlab.workItemDetails", json!({"iid": 3, "type": "issue"}));
+    let mr_details = rig.ok("gitlab.workItemDetails", json!({"iid": 4, "type": "mr", "projectRef": {"host": "git.corp.example", "path": "grp/proj"}}));
+    let foreign = rig.ok("gitlab.workItemByPath", json!({"host": "evil.example", "path": "grp/proj", "iid": 3, "type": "issue"}));
+    // Then each row names its project, the merge request its branches and mergeability, and the details their body, notes (the thread's with its mark), assignees and files
+    assert_eq!(issue["id"], "gitlab-issue-grp/proj-3");
+    assert_eq!((issue["projectRef"].clone(), issue["repoId"].clone(), issue["state"].clone()), (json!({"host": "gitlab.com", "path": "grp/proj"}), json!("grp/proj"), json!("opened")));
+    assert_eq!((mr["type"].clone(), mr["branchName"].clone(), mr["mergeable"].clone()), (json!("mr"), json!("feat/retry"), json!("CONFLICTING")));
+    assert_eq!((issue_details["assignees"].clone(), issue_details["body"].clone(), issue_details["comments"][0]["id"].clone()), (json!(["bot"]), json!("Steps"), json!(92)));
+    assert!(issue_details["item"].get("repoId").is_none());
+    assert_eq!(mr_details["comments"][0], json!({"id": 601, "author": "tanuki", "authorAvatarUrl": "", "body": "Why retry here?", "createdAt": "2026-10-02T12:10:00.000Z", "url": "", "isBot": false, "threadId": "d1a2", "isResolved": true, "path": "src/up.rs", "line": 3}));
+    assert_eq!(mr_details["comments"][1]["id"], 603);
+    assert!(mr_details["comments"][1].get("threadId").is_none());
+    assert_eq!(mr_details["files"], json!([{"path": "src/up.rs", "status": "modified", "additions": 2, "deletions": 1}]));
+    assert_eq!(foreign, Value::Null);
+    let asked: Vec<Value> = rig.agent.requests().into_iter().filter(|(m, _)| m == "mr.view").map(|(_, p)| p).collect();
+    assert_eq!(asked[0], json!({"workspace": "main", "number": 4, "provider": "gitlab", "repo": "grp/proj"}));
+    assert_eq!(asked[1], json!({"workspace": "main", "number": 4, "provider": "gitlab", "repo": "grp/proj", "host": "git.corp.example"}));
+    // And a review detail the phone does not want is skipped, and the schema is refused in key order
+    let light = rig.ok("gitlab.workItemDetails", json!({"iid": 4, "type": "mr", "includeReviewDetails": false}));
+    assert!(light.get("files").is_none());
+    assert_eq!(rig.err("gitlab.workItemDetails", json!({"iid": 4, "type": "issue", "projectRef": {"host": "h"}})), ("invalid_argument".into(), "Missing GitLab project path".into()));
+    assert_eq!(rig.err("gitlab.workItemByPath", json!({"host": "gitlab.com", "path": "p", "iid": 1, "type": "pr"})), ("invalid_argument".into(), "Invalid option: expected one of \"issue\"|\"mr\"".into()));
+}
+
+#[test]
+fn given_the_recorded_answers_of_the_real_host_for_the_work_item_rows_when_replayed_then_each_is_the_recorded_refusal_or_null() {
+    // Given the crawl's interactions of the five rows (an unknown repository, missing and mistyped parameters) and the scenario's null for a repository with no remote
+    let cassette = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../cassettes/orca-v1.4.259-crawl/interactions.jsonl");
+    let rows = ["rpc:github.workItem", "rpc:github.workItemByOwnerRepo", "rpc:github.workItemDetails", "rpc:gitlab.workItemDetails", "rpc:gitlab.workItemByPath"];
+    let mut rig = Rig::new();
+    let mut compared = 0;
+    for line in std::fs::read_to_string(cassette).unwrap().lines() {
+        let i: Value = serde_json::from_str(line).unwrap();
+        if !rows.contains(&i["row"].as_str().unwrap_or("")) || i["steps"].as_array().is_none_or(|s| s.len() != 2) {
+            continue;
+        }
+        let (asked, recorded) = (&i["steps"][0]["payload"], &i["steps"][1]["payload"]);
+        // When it is replayed through the mapper
+        let got = raw(&mut rig, asked["method"].as_str().unwrap(), asked["params"].clone());
+        // Then the error is the recorded one
+        assert_eq!((got["ok"].clone(), got["error"]["code"].clone(), got["error"]["message"].clone()), (recorded["ok"].clone(), recorded["error"]["code"].clone(), recorded["error"]["message"].clone()), "{}", i["id"]);
+        compared += 1;
+    }
+    assert!(compared >= 25, "{compared}");
+    for (method, params) in [("github.workItem", json!({"number": 1, "repo": "main"})), ("github.workItemDetails", json!({"number": 1, "repo": "main"})), ("github.workItemByOwnerRepo", json!({"number": 1, "owner": "a", "ownerRepo": "a", "repo": "main", "type": "issue"})), ("gitlab.workItemDetails", json!({"iid": 1, "type": "issue", "repo": "main"})), ("gitlab.workItemByPath", json!({"host": "a", "iid": 1, "path": "a", "repo": "main", "type": "issue"}))] {
+        assert_eq!(raw(&mut rig, method, params)["result"], Value::Null, "{method}");
+    }
+}

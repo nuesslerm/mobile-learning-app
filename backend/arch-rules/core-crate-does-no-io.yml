@@ -12,6 +12,7 @@ files:
   - "**/remote-chat-agent/group-accounts/src/**/*.rs"
   - "**/remote-chat-agent/group-agent/src/**/*.rs"
   - "**/remote-chat-agent/group-attachments/src/**/*.rs"
+  - "**/remote-chat-agent/group-browser/src/**/*.rs"
   - "**/remote-chat-agent/group-catalog/src/**/*.rs"
   - "**/remote-chat-agent/group-git/src/**/*.rs"
   - "**/remote-chat-agent/group-hosted/src/**/*.rs"

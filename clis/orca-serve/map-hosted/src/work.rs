@@ -99,7 +99,7 @@ fn failed_list(message: &str) -> Value {
     json!({"type": "unknown", "message": message})
 }
 
-fn github_time(ms: Option<u64>) -> String {
+pub(crate) fn github_time(ms: Option<u64>) -> String {
     ms.map_or_else(String::new, |t| time::iso(t).replace(".000Z", "Z"))
 }
 
@@ -113,7 +113,7 @@ pub fn count(t: &Target, params: &Value) -> Result<Value, Failure> {
     }
 }
 
-fn github_item(i: &Value) -> Value {
+pub(crate) fn github_item(i: &Value) -> Value {
     let pr = i["kind"] == "pr";
     let state = match (i["state"].as_str(), i["draft"] == true) {
         (Some("merged"), _) => "merged",
@@ -180,11 +180,12 @@ fn project_of(url: &str) -> Option<(String, String)> {
     Some((host.to_string(), path.to_string()))
 }
 
-fn gitlab_item(i: &Value) -> Value {
+/// A GitLab row of the phone; `project` is the (host, path) a request named, else the one the row's address names.
+pub(crate) fn gitlab_item(i: &Value, project: Option<(String, String)>) -> Value {
     let mr = i["kind"] == "pr";
     let number = i["number"].as_u64().unwrap_or(0);
     let url = i["url"].as_str().unwrap_or("");
-    let (host, path) = project_of(url).unwrap_or_default();
+    let (host, path) = project.or_else(|| project_of(url)).unwrap_or_default();
     let state = match (i["state"].as_str(), i["draft"] == true) {
         (Some("merged"), _) => "merged",
         (Some("closed"), _) => "closed",
@@ -242,7 +243,7 @@ pub fn list_gitlab(t: &Target, params: &Value) -> Result<Value, Failure> {
     };
     match t.try_ask(issue::SEARCH, args) {
         Ok(v) => {
-            let items: Vec<Value> = v["items"].as_array().map_or_else(Vec::new, |a| a.iter().map(gitlab_item).collect());
+            let items: Vec<Value> = v["items"].as_array().map_or_else(Vec::new, |a| a.iter().map(|i| gitlab_item(i, None)).collect());
             let more = v["truncated"] == true;
             let seen = (page - 1) * per_page + items.len() as u64;
             Ok(json!({"items": items, "page": page, "perPage": per_page, "totalCount": seen + u64::from(more), "totalPages": if seen == 0 { 0 } else { page + u64::from(more) }}))

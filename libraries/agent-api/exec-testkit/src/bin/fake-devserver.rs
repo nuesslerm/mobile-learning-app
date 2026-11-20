@@ -35,13 +35,19 @@ fn main() {
             std::process::exit(3);
         });
     }
+    // One thread per connection: a browser opens several at once and leaves some idle, which must not hold up the one that has a request.
     for stream in listener.incoming().flatten() {
-        let mut stream = stream;
-        let mut buf = [0u8; 1024];
-        let _ = stream.read(&mut buf);
-        let mut names: Vec<String> = std::env::vars().map(|(k, _)| k).collect();
-        names.sort();
-        let body = serde_json::json!({"env": names, "cwd": std::env::current_dir().map(|d| d.display().to_string()).unwrap_or_default(), "pid": std::process::id(), "port_env": std::env::var("PORT").unwrap_or_default()}).to_string();
-        let _ = write!(stream, "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len());
+        std::thread::spawn(move || {
+            let mut stream = stream;
+            let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
+            let mut buf = [0u8; 1024];
+            if stream.read(&mut buf).unwrap_or(0) == 0 {
+                return;
+            }
+            let mut names: Vec<String> = std::env::vars().map(|(k, _)| k).collect();
+            names.sort();
+            let body = serde_json::json!({"env": names, "cwd": std::env::current_dir().map(|d| d.display().to_string()).unwrap_or_default(), "pid": std::process::id(), "port_env": std::env::var("PORT").unwrap_or_default()}).to_string();
+            let _ = write!(stream, "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len());
+        });
     }
 }

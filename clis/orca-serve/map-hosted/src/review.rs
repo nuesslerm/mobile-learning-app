@@ -55,7 +55,7 @@ fn numeric_id(c: &Value) -> Option<u64> {
     c["database_id"].as_u64().or_else(|| c["id"].as_u64()).or_else(|| c["id"].as_str().and_then(|s| s.parse().ok())).or_else(|| c["url"].as_str().and_then(|u| u.rsplit_once('-')).and_then(|(_, n)| n.parse().ok()))
 }
 
-fn comment_row(c: &Value, at_key: &str) -> Option<(u64, Value)> {
+pub(crate) fn comment_row(c: &Value, at_key: &str) -> Option<(u64, Value)> {
     let id = numeric_id(c)?;
     let at = c[at_key].as_u64().or_else(|| c["created_at_ms"].as_u64());
     let mut row = json!({
@@ -113,7 +113,11 @@ fn has_visible_body(body: &str) -> bool {
 /// `github.prComments`: the conversation comments, the review summaries and the review thread comments of the pull request, oldest first, as the host
 /// answers them. `bodyImageUrls` is left out: it is transient display data the host never persists.
 pub fn pr_comments(t: &Target, params: &Value) -> Result<Value, Failure> {
-    let args = with_repo(json!({"number": number(params, "prNumber", "PR")?}), params, "prRepo")?;
+    pull_comments(t, with_repo(json!({"number": number(params, "prNumber", "PR")?}), params, "prRepo")?)
+}
+
+/// The comments of the pull request `args` name (its `number` and, for another repository, `repo`).
+pub(crate) fn pull_comments(t: &Target, args: Value) -> Result<Value, Failure> {
     let conversation = t.ask(pr::COMMENTS, args.clone())?;
     let threads = t.ask(pr::THREADS, args.clone())?;
     let reviews = t.ask(pr::REVIEWS, args)?;

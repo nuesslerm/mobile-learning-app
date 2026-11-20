@@ -24,7 +24,6 @@ use rca_service::Accounts;
 use rca_service_core::application::environment::Environment;
 use rca_service_core::testing::MapEnv;
 use rca_service_core::application::ports::Ports;
-use rca_service_core::application::settings::Settings;
 use serde_json::{json, Value};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -72,11 +71,6 @@ impl Env {
         *self.path.lock().unwrap_or_else(|e| e.into_inner()) = Some(path.to_string_lossy().into_owned());
     }
 
-    /// Where the providers' directories are in this flow: below the home, as the service's `Accounts::real` is given.
-    pub fn providers_root(&self) -> PathBuf {
-        self.home.join("providers")
-    }
-
     pub fn set(&self, name: &str, value: &str) {
         self.map.set(name, value);
     }
@@ -111,11 +105,13 @@ pub struct Options {
     pub files: Option<Arc<dyn remote_chat_agent_core::application::ports::WorkspaceFiles>>,
     /// The CLI of a turn runs at the workspace host through the executor, as in production; otherwise the flow's spawner starts it.
     pub at_workspace: bool,
+    /// The `browser` group answers instead of refusing.
+    pub browser: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Self { secret: Some(SECRET), state_dir: None, hard_timeout_ms: 1_500, heartbeat: Duration::from_secs(15), default_cwd: None, requests_per_minute: rca_service::api::routes::REQUESTS_PER_MINUTE, ledger_error: None, files: None, at_workspace: false }
+        Self { secret: Some(SECRET), state_dir: None, hard_timeout_ms: 1_500, heartbeat: Duration::from_secs(15), default_cwd: None, requests_per_minute: rca_service::api::routes::REQUESTS_PER_MINUTE, ledger_error: None, files: None, at_workspace: false, browser: false }
     }
 }
 
@@ -171,7 +167,7 @@ pub fn agent_api_with(env: &Env, config: &Config, launcher: Arc<dyn CliLauncher>
 /// The groups the service registers, for the flows that read the table and answer nothing.
 pub fn agent_api(env: &Env) -> AgentApi {
     let home = env.home.to_string_lossy().into_owned();
-    let config = Config { port: 0, allowed_origins: Vec::new(), api_secret: Some(SECRET.into()), commit: "flow-sha".into(), default_cwd: home.clone(), hard_timeout_ms: 1_500, state_dir: None, exec_root: home, heartbeat: Duration::from_secs(15), requests_per_minute: 120, edit_stats_flush: Duration::from_millis(50), state_seq_base: 0, agent_public_url: None };
+    let config = Config { port: 0, allowed_origins: Vec::new(), api_secret: Some(SECRET.into()), commit: "flow-sha".into(), default_cwd: home.clone(), hard_timeout_ms: 1_500, state_dir: None, exec_root: home, heartbeat: Duration::from_secs(15), requests_per_minute: 120, edit_stats_flush: Duration::from_millis(50), state_seq_base: 0, agent_public_url: None, browser: false };
     agent_api_for(env, &config, ScriptedSpawner::new())
 }
 
@@ -201,6 +197,7 @@ pub fn service_spawning(env: &Env, options: Options, spawner: Arc<dyn Spawner>) 
     build(env, options, opencode, transport, FakeCommands::new(), FakeOutbound::new(), spawner, ScriptedSpawner::new())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, transport: Arc<dyn remote_chat_agent_core::application::ports::Opencode>, commands: Arc<FakeCommands>, outbound: Arc<FakeOutbound>, spawn: Arc<dyn Spawner>, spawner: Arc<ScriptedSpawner>) -> Service {
     let default_cwd = options.default_cwd.unwrap_or_else(|| env.home.to_string_lossy().into_owned());
     let config = Config {
@@ -217,6 +214,7 @@ fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, transport: Ar
         edit_stats_flush: Duration::from_millis(50),
         state_seq_base: 0,
         agent_public_url: None,
+        browser: options.browser,
     };
     let models = ScriptedModelApi::from_fixture();
     let clock = Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS));

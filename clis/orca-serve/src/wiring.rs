@@ -10,6 +10,7 @@ use orca_map_settings::{PairingArea, SettingsArea};
 use orca_map_agent::AgentArea;
 use orca_map_accounts::AccountsArea;
 use orca_map_git::GitArea;
+use orca_map_browser::BrowserArea;
 use orca_map_hosted::HostedArea;
 use orca_map_schedules::SchedulesArea;
 use orca_map_state::StateArea;
@@ -34,7 +35,7 @@ pub struct Settings {
 
 /// Every area of the server. A mapping crate is added here and nowhere else.
 pub fn areas(web: MobileWebArea) -> Vec<Box<dyn Area>> {
-    vec![Box::new(SettingsArea), Box::new(PairingArea), Box::new(web), Box::new(RelayArea), Box::new(WorkspaceArea), Box::new(AgentArea::default()), Box::new(TerminalArea), Box::new(GitArea), Box::new(AccountsArea), Box::new(StateArea), Box::new(HostedArea), Box::new(SchedulesArea)]
+    vec![Box::new(SettingsArea), Box::new(PairingArea), Box::new(web), Box::new(RelayArea), Box::new(WorkspaceArea), Box::new(AgentArea::default()), Box::new(TerminalArea), Box::new(GitArea), Box::new(AccountsArea), Box::new(StateArea), Box::new(HostedArea), Box::new(SchedulesArea), Box::new(BrowserArea)]
 }
 
 /// The bundle source of a settings value: the directory, or none.

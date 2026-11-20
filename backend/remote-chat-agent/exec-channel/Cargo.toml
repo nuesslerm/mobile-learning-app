@@ -26,6 +26,7 @@ exec-git = { path = "../../../libraries/agent-api/exec-git" }
 exec-pty = { path = "../../../libraries/agent-api/exec-pty" }
 exec-hosted = { path = "../../../libraries/agent-api/exec-hosted" }
 exec-preview = { path = "../../../libraries/agent-api/exec-preview" }
+exec-browser = { path = "../../../libraries/agent-api/exec-browser" }
 
 [package.metadata.arch]
 type = "rust-flat-core"
