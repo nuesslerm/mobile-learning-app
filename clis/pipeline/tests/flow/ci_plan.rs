@@ -412,3 +412,31 @@ fn given_a_plan_when_it_is_dealt_over_any_number_of_shards_then_the_union_of_the
         assert!(!whole.is_empty(), "{stage} planned units");
     }
 }
+
+const CODEX_PROVISION: &str = "[provision]\nreal_agents = [\"claude\", \"codex\"]\nreal_agents_pin = \"p.json\"\n[provision.toolchain]\nnode = \"24\"\n";
+const OPENCODE_PROVISION: &str = "[provision]\nreal_agents = [\"opencode\"]\nreal_agents_pin = \"p.json\"\n[provision.toolchain]\nnode = \"24\"\n";
+
+#[test]
+fn a_record_marker_holds_at_most_one_set_that_runs_codex_for_real_because_its_login_rotates_and_is_written_back() {
+    // Given a checkout with two sets that run Codex for real, one that runs only opencode, and one with no real agent
+    let root = checkout(&["a/plain"]);
+    add_set(root.path(), "b/one", CODEX_PROVISION);
+    add_set(root.path(), "c/two", CODEX_PROVISION);
+    add_set(root.path(), "d/oc", OPENCODE_PROVISION);
+    // When a marker names both Codex sets
+    let both = mimic(root.path(), "[record one two]");
+    // Then it is refused naming the sets and the reason, and no job is planned
+    assert_eq!(both.run.exit_code, 2, "{}", both.json);
+    let error = both.json["error"].as_str().unwrap();
+    assert!(error.contains("one") && error.contains("two") && error.contains("single-use"), "{error}");
+    // And one Codex set with the others is planned with exactly one job that holds the codex credential
+    let one = mimic(root.path(), "[record one oc plain]");
+    assert_eq!(one.run.exit_code, 0, "{}", one.json);
+    let jobs = one.json["matrix"]["include"].as_array().unwrap();
+    let codex: Vec<&str> = jobs.iter().filter(|j| j["codex"] == json!(true)).map(|j| j["name"].as_str().unwrap()).collect();
+    assert_eq!(codex, ["one"], "{jobs:?}");
+    // And two Codex sets are fine to replay (a replay installs no real agent, so no login is held)
+    std::fs::write(root.path().join("b/one/cassette.json"), "{}").unwrap();
+    std::fs::write(root.path().join("c/two/cassette.json"), "{}").unwrap();
+    assert_eq!(mimic(root.path(), "[replay one two]").run.exit_code, 0);
+}

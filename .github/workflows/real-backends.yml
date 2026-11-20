@@ -82,3 +82,29 @@ jobs:
           path: ${{ runner.temp }}/real-backend-${{ matrix.leg }}.json
           if-no-files-found: ignore
           retention-days: 14
+  aggregate:
+    # R16: lists the three backends with the agent methods each answered, and fails when a backend's record is missing (its job never got as far as a result) or says it did not pass.
+    name: three backends
+    needs: turn
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        continue-on-error: true
+        with:
+          pattern: real-backend-*
+          path: ${{ runner.temp }}/real-backends
+      - name: Aggregate
+        run: python3 -I tooling/real-backends/aggregate.py --dir "$RUNNER_TEMP/real-backends" --out "$RUNNER_TEMP/real-backends.json" --summary "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          name: real-backends
+          path: ${{ runner.temp }}/real-backends.json
+          if-no-files-found: ignore
+          retention-days: 14

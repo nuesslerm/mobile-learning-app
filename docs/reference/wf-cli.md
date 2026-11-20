@@ -4169,6 +4169,7 @@ Commands:
   coverage [options]          Scan the pinned reference and write, or check, the app's method list and coverage table
   track <verb> [options]      Is the pinned reference the newest release of the real server: check, bump, plan, report
   capture [options] <record|replay> <set>  Provision a set's reference, then run its chunked record or replay and diff table
+  scan [options] <dir...>     Scan a real-agent run's output for the exact values of its credentials
   fetch [options] <run-id|latest>  Download a published run into this checkout
   import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set
   export [options] <format> <set>  Rebuild the legacy files of an imported set and check their hashes
@@ -4720,6 +4721,37 @@ Output (schema mimic-capture/1):
   replay: {schema, ok, action, set, dir, run, captured, provision, candidates: [{candidate, severity, summary}],
   differences, wall_seconds, warnings, next}
   --check and --provision only: {schema, ok, action, set, dir, captured: false, provision, warnings, next}
+```
+
+</details>
+
+### `wf mimic scan`
+
+Scan the output of a chain run that used real agent CLIs for the exact value of each
+
+Usage: `wf mimic scan [options] <dir...>`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf mimic scan [options] <dir...>
+
+Scan the output of a chain run that used real agent CLIs for the exact value of each
+credential it held (and for token shapes) before anything is published. The CLIs that
+ran for real are named by --clis or T3_CHAIN_CLIS (scripted, real, or real:claude,codex,
+opencode); their values are read in memory (the vault, or the caller's environment
+without one) and compared against every file under each directory. Nothing is printed
+but the file and the registry key of a finding, never a value. A run with no real CLI
+is skipped only when it is said to be scripted: with neither --clis nor T3_CHAIN_CLIS the
+scan fails (exit 2) instead of guessing.
+
+Options:
+  --clis <mode>        scripted | real | real:<names> (required unless $T3_CHAIN_CLIS is set)
+  -h, --help           display help for command
+
+Output (schema mimic-scan/1):
+  {schema, ok, real_clis, scanned, findings: ["<file> holds the value of <KEY>"], warnings, next}
+Exit 0 clean or skipped, 1 findings (hold the output back), 2 no mode, a missing key or a bad directory.
 ```
 
 </details>

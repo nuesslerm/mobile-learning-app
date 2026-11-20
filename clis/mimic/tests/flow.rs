@@ -27,6 +27,8 @@ mod fixtures;
 mod help;
 #[path = "flow/import.rs"]
 mod import;
+#[path = "flow/real_clis.rs"]
+mod real_clis;
 #[path = "flow/record.rs"]
 mod record;
 #[path = "flow/record_references.rs"]

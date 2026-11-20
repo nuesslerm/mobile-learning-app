@@ -13,6 +13,8 @@ pub struct SetFacts {
     pub toolchain: BTreeMap<String, String>,
     pub cassette: bool,
     pub candidates: Vec<String>,
+    /// The agent CLIs its provision block runs for real (`real_agents`).
+    pub real_agents: Vec<String>,
 }
 
 /// The checkout the plan reads: every directory that holds a mimic.toml (from the root, sorted) and one set's facts.
@@ -65,6 +67,12 @@ pub fn plan(marker: Marker, src: &dyn SetSource) -> Result<MarkerPlan, Refusal> 
         check(&facts, marker.action, word).map_err(|e| refuse(e, "fix the set or drop it from the marker"))?;
         let name = dir.file_name().map_or_else(|| word.clone(), |n| n.to_string_lossy().into_owned());
         sets.push(SetPlan { name, dir, facts });
+    }
+    if marker.action == Action::Record {
+        let codex: Vec<&str> = sets.iter().filter(|s| s.facts.real_agents.iter().any(|a| a == "codex")).map(|s| s.name.as_str()).collect();
+        if codex.len() > 1 {
+            return Err(refuse(format!("sets {} all run Codex for real: its login's refresh token is single-use, so one record holds the codex credential at a time and writes the rotated login back", codex.join(", ")), "name one of them per push, the next after its login was written back"));
+        }
     }
     Ok(MarkerPlan { marker, sets })
 }

@@ -210,14 +210,18 @@ fn read_table(path: &Path) -> Result<toml::Table, String> {
 }
 
 /// What a `[provision]` table pins: its toolchains and whether the drivers are installed (default: when node is pinned).
-fn provision_facts(table: &toml::Table, origin: &str) -> Result<(BTreeMap<String, String>, bool), String> {
+/// Toolchains, whether the drivers are installed, and the agent CLIs run for real.
+type Provisioned = (BTreeMap<String, String>, bool, Vec<String>);
+
+fn provision_facts(table: &toml::Table, origin: &str) -> Result<Provisioned, String> {
     let toolchain: BTreeMap<String, String> = table.get("toolchain").and_then(|t| t.as_table()).map(|t| t.iter().filter_map(|(k, v)| v.as_str().map(|v| (k.clone(), v.to_string()))).collect()).unwrap_or_default();
     let drivers = table.get("drivers").and_then(|d| d.as_bool()).unwrap_or(toolchain.contains_key("node"));
-    let real = table.get("real_agents").and_then(|s| s.as_array()).is_some_and(|s| !s.is_empty());
+    let real_agents: Vec<String> = table.get("real_agents").and_then(|s| s.as_array()).map(|s| s.iter().filter_map(|a| a.as_str().map(str::to_string)).collect()).unwrap_or_default();
+    let real = !real_agents.is_empty();
     if table.get("step").and_then(|s| s.as_array()).is_none_or(|s| s.is_empty()) && !drivers && !real {
         return Err(format!("{origin}: no [[step]] and no drivers: a reference with nothing to install or build needs no [provision]"));
     }
-    Ok((toolchain, drivers))
+    Ok((toolchain, drivers, real_agents))
 }
 
 impl SetSource for Disk {
@@ -249,10 +253,11 @@ impl SetSource for Disk {
             }
             (None, None) => None,
         };
-        if let Some((toolchain, drivers)) = found {
+        if let Some((toolchain, drivers, real_agents)) = found {
             facts.provision = true;
             facts.toolchain = toolchain;
             facts.drivers = drivers;
+            facts.real_agents = real_agents;
         }
         Ok(facts)
     }
@@ -263,6 +268,7 @@ fn matrix_job(s: &mimic_plan_core::SetPlan) -> Value {
     json!({
         "name": s.name, "dir": s.dir.display().to_string(), "provision": s.facts.provision, "drivers": s.facts.drivers,
         "node": tool("node"), "python": tool("python"), "go": tool("go"), "rust": tool("rust"),
+        "codex": s.facts.real_agents.iter().any(|a| a == "codex"),
         "checkpoint": s.dir.join("raw/checkpoint").display().to_string(), "candidates": s.facts.candidates,
     })
 }

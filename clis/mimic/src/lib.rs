@@ -6,6 +6,7 @@ pub mod child_env;
 pub mod leak_scan;
 pub mod config;
 pub mod provision;
+pub mod real_clis;
 mod help_table;
 mod verbs;
 

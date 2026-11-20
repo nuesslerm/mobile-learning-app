@@ -965,3 +965,37 @@ fn given_a_login_codex_refreshed_in_ci_when_it_is_rotated_then_only_a_changed_re
     assert_eq!(stranger.exit_code, 1);
     assert!(stranger.stderr.contains("another account") && stranger_writes.is_empty(), "{}", stranger.stderr);
 }
+
+#[test]
+fn given_a_rotated_codex_login_when_the_next_run_reads_the_vault_then_it_starts_from_the_rotated_login_and_a_second_refresh_is_written_in_turn() {
+    // Given a vault with the old Codex login, and a run that refreshed it
+    let v = Vault::new();
+    let old = r#"{"tokens":{"access_token":"at-old","refresh_token":"rt-old","account_id":"acct-1"}}"#;
+    let first = r#"{"tokens":{"access_token":"at-one","refresh_token":"rt-one","account_id":"acct-1"}}"#;
+    let second = r#"{"tokens":{"access_token":"at-two","refresh_token":"rt-two","account_id":"acct-1"}}"#;
+    v.holds("ci-token", json!([{ "id": "cx", "key": "CODEX_OAUTH_JSON_B64", "value": b64(old) }]));
+    let ci = [("BWS_CI_DEPLOY_ACCESS_TOKEN", "ci-token")];
+    let (one, two) = (v.dir.path().join("one.json"), v.dir.path().join("two.json"));
+    std::fs::write(&one, first).unwrap();
+    std::fs::write(&two, second).unwrap();
+    let rotate = |file: &std::path::Path| v.wf(&["rotate-login", "codex", "--from", &file.display().to_string()], &ci, None);
+
+    // When the refreshed login is rotated and the vault then holds what was written, the same run's login is rotated again, and the next run's refresh follows
+    let written = rotate(&one);
+    let wrote = v.writes();
+    v.forget();
+    v.holds("ci-token", json!([{ "id": "cx", "key": "CODEX_OAUTH_JSON_B64", "value": b64(first) }]));
+    let again = rotate(&one);
+    let nothing = v.writes();
+    v.forget();
+    let next = rotate(&two);
+    let next_writes = v.writes();
+
+    // Then the first rotation wrote the first login, the repeat found the vault already holding it (the next run starts from it), and the second refresh is the one written next
+    assert_eq!((written.exit_code, written.stdout.as_str()), (0, "CODEX_OAUTH_JSON_B64: updated\n"), "{}", written.stderr);
+    assert_eq!(wrote, [format!("secret edit --value {} --output none -- cx | token=ci-token url=", b64(first))]);
+    assert_eq!((again.exit_code, again.stdout.as_str()), (0, "CODEX_OAUTH_JSON_B64: unchanged\n"), "{}", again.stderr);
+    assert!(nothing.is_empty(), "{nothing:?}");
+    assert_eq!((next.exit_code, next.stdout.as_str()), (0, "CODEX_OAUTH_JSON_B64: updated\n"), "{}", next.stderr);
+    assert_eq!(next_writes, [format!("secret edit --value {} --output none -- cx | token=ci-token url=", b64(second))]);
+}

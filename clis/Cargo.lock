@@ -2738,6 +2738,7 @@ dependencies = [
  "toml",
  "tungstenite",
  "wf-kit",
+ "wf-mimic",
 ]
 
 [[package]]
@@ -3310,6 +3311,7 @@ dependencies = [
 name = "wf-mimic"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "cli-http",
  "mimic-core",
  "mimic-coverage-core",
