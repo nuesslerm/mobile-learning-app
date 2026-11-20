@@ -1859,7 +1859,7 @@ wf ci plan mimic --file - --github-output < message.txt
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf ci plan <tags|tests|shard-keys|legs|mimic> [options]
+Usage: wf ci plan <tags|tests|shard-keys|shard-weights|legs|mimic> [options]
 
 Everything the pipeline decides before its jobs run, in one place; the plan job of
 pipeline.yml and the mimic-record and track-contracts workflows call it. Each
@@ -1867,6 +1867,9 @@ subcommand prints one JSON object (exit 0) or {schema: "ci-plan/1", ok: false, e
 next} (exit 2 for a refusal); with --github-output it also appends the step outputs
 its jobs read to $GITHUB_OUTPUT.
 
+  shard-weights [--write] [--sealed-file <path>] [--out <path>]
+                         the flow and integration units' costs as the CI database measured them (`NX_TASKS`, the median over runs, in seconds),
+                         merged into data/shard-weights.json; without --write it only prints them.
   shard-keys --stage <s> --count <n> --plan <file>
                          one key per shard (a JSON array) from the crates it runs, the same in every commit that plans the same crates: the
                          integration shards' concurrency group: the crates plus a fingerprint of their inputs, so a later commit with the same crates and inputs queues

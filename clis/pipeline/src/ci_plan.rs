@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use wf_kit::args::{parse_spec, Positional, Spec};
 
-const WORDS: &str = "tags | tests | shard-keys | legs | mimic";
+const WORDS: &str = "tags | tests | shard-keys | shard-weights | legs | mimic";
 const TAGS: Spec = Spec { values: &["sha", "services"], flags: &["fresh", "github-output"], positional: Positional::None, ..Spec::NONE };
 const LEGS: Spec = Spec { values: &["since", "also"], flags: &["force", "github-output"], positional: Positional::None, ..Spec::NONE };
 const MIMIC: Spec = Spec { values: &["message", "file", "sha", "root"], flags: &["github-output"], positional: Positional::None, ..Spec::NONE };
@@ -45,6 +45,7 @@ pub fn run(rest: &[String]) -> Option<i32> {
             Some(crate::e2e_tests::plan(&parse_spec(&words, &spec)?))
         }
         "shard-keys" => shard_keys(args),
+        "shard-weights" => crate::shard_weights::run(args),
         "legs" => legs(args),
         "mimic" => mimic(args),
         other => refused(&format!("wf ci plan {other}: no such plan"), &format!("wf ci plan <{WORDS}> (wf ci plan --help)")),
