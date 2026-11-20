@@ -1,7 +1,7 @@
 name: CI (GitHub-hosted deploy)
 
-# The CI's deploy stage: pipeline.yml with `stages: deploy`, a run of its own on every push: the image builds, the integration tests (which run what the images hold), the deploy legs
-# and their verification, and the production EAS Update. It waits for neither the flow tests nor the e2e suites and they do not wait for it. Integration shards queue per crate set
+# The CI's deploy stage: pipeline.yml with `stages: deploy`, a run of its own on every push: the image builds, the integration tests (which run what the images hold) and the deploy legs
+# and their verification. It waits for neither the flow tests nor the e2e suites and they do not wait for it. Integration shards queue per crate set
 # and input fingerprint (docs/solutions/ci/shard-weights-and-overlapping-runs.md). It has its own pull request comment.
 on:
   push:

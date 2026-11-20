@@ -1,6 +1,6 @@
 name: CI (GitHub-hosted e2e)
 
-# The CI's e2e stage: pipeline.yml with `stages: e2e`, a run of its own on every push: the browser suite against a web export built on its runner and the Android suite on
+# The CI's e2e stage: pipeline.yml with `stages: e2e`, a run of its own on every push: the production EAS Update, the browser suite against a web export built on its runner and the Android suite on
 # the SDK emulator against its own backends and its own EAS Update (branch e2e). Neither waits for the flow tests, the integration tests or the deploy. It has its own pull request comment.
 on:
   push:

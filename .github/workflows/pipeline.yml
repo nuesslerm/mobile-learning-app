@@ -3,8 +3,8 @@ name: Pipeline
 # The one CI pipeline, called by ci-hosted.yml on GitHub-hosted runners. The job graph is static: wf-build, preflight, plan, flow-tests and
 # typecheck-lint-unit-tests, clis, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, eas-update-e2e, the e2e suites, report.
 # `ship` publishes (latest images, the EAS Update), `deploy` runs the deploy legs, `e2e` runs the device suites, `stages` picks one stage of them: ci-hosted.yml runs
-# `core` (flow, unit, cli-e2e), ci-hosted-deploy.yml `deploy` (the image builds, the integration tests, the deploy, its verification and the production EAS Update) and
-# ci-hosted-e2e.yml `e2e`: three runs of one graph that do not wait for each other.
+# `core` (flow, unit, cli-e2e), ci-hosted-deploy.yml `deploy` (the image builds, the integration tests, the deploy and its verification) and ci-hosted-e2e.yml `e2e`
+# (the production EAS Update, the Android e2e update and the browser and Android suites): three runs of one graph that do not wait for each other.
 # Rules: docs/solutions/ci/ci-pipeline-on-the-vm.md
 on:
   workflow_call:
@@ -899,7 +899,7 @@ jobs:
     name: eas-update
     needs: [head, plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, clis]
     # a red test stage does not skip the job or the publish below (the e2e jobs read its result)
-    if: ${{ (!cancelled() && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.clis.result != 'failure' && needs.plan.outputs.eas_update == 'true') && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
+    if: ${{ (!cancelled() && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.clis.result != 'failure' && needs.plan.outputs.eas_update == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 25
     # contents: write for the push of refs/wf/state (wf bucket state write); a job's permissions replace the workflow's, so the others stay listed
