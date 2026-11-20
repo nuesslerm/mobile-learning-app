@@ -781,7 +781,7 @@ export function editorContract(name: string, make: MakeSubject): void {
 
       it('given a 200 KB document, when it is read, then it round-trips', async (ctx) => {
         needs(ctx, 'transportEvents');
-        const big = 'x'.repeat(200_000);
+        const big = `${'x'.repeat(99)}\n`.repeat(2000);
         await start(big);
         expect((await snapshot()).text).toHaveLength(big.length);
       });

@@ -28,6 +28,7 @@ import {
 } from '@codemirror/language';
 import {
   Compartment,
+  EditorSelection,
   EditorState,
   RangeSetBuilder,
   StateEffect,
@@ -42,7 +43,23 @@ import {
   ViewPlugin,
   type ViewUpdate,
 } from '@codemirror/view';
+import {
+  createDeferredEngine,
+  createEditorEngine,
+  serveEditor,
+  type ConfigPatch,
+  type EditorEngine,
+  type EngineCore,
+  type SelRange,
+} from '@lib/code-editor-api';
 import { Logger } from '@lib/logging';
+import { createPageTransport } from '@lib/webview-rpc';
+import { createCm6Host, revisionField, selectionOf, setRevisionBase } from '../engine/cm6Host';
+import {
+  toEditorConfig,
+  toLegacyPatch,
+  type LegacyEditorConfig,
+} from '../engine/configPatch';
 declare global {
   type ReactNativeWebViewBridge = {
     postMessage: (msg: string) => void;
@@ -66,6 +83,17 @@ declare global {
   interface Window {
     ReactNativeWebView?: ReactNativeWebViewBridge;
     __editor__?: EditorHandle;
+    /** the typed editor API: the same engine the host reaches over the rpc channel */
+    __editorEngine__?: EditorEngine;
+    /** set by the page html in tests only */
+    __EDITOR_DEBUG__?: boolean;
+    __editorDebug__?: {
+      simulateUser(
+        spec:
+          | { kind: 'type'; text: string }
+          | { kind: 'select'; anchor: number; head?: number }
+      ): void;
+    };
   }
 }
 
@@ -211,20 +239,7 @@ const diffPlugin = ViewPlugin.fromClass(
     },
   }
 );
-type EditorConfig = {
-  initialText: string;
-  isDark: boolean;
-  fontSize: number;
-  lineHeight: number;
-  wordWrap: boolean;
-  language: string;
-  cursorColor: string;
-  selectionColor: string;
-  backgroundColor: string;
-  gutterColor: string;
-  borderColor: string;
-  tabSize: number;
-};
+type EditorConfig = LegacyEditorConfig;
 type MessagePayload = Record<string, unknown>;
 function isRecord(value: unknown): value is MessagePayload {
   return typeof value === 'object' && value !== null;
@@ -415,8 +430,11 @@ function buildConfigExtensions(cfg: EditorConfig) {
 // ─── Editor instance ──────────────────────────────────────────────────────────
 let view: EditorView | null = null;
 let currentConfig: EditorConfig | null = null;
-function createEditor(cfg: EditorConfig) {
-  currentConfig = cfg;
+let core: EngineCore | null = null;
+let host: ReturnType<typeof createCm6Host> | null = null;
+const randomId = () =>
+  Date.now().toString(36) + Math.random().toString(36).slice(2);
+function buildState(cfg: EditorConfig, doc: string, selection?: SelRange) {
   const lang = cfg.language === 'python' ? python() : cpp();
   const updateListener = EditorView.updateListener.of((update) => {
     if (update.docChanged) {
@@ -433,11 +451,22 @@ function createEditor(cfg: EditorConfig) {
       });
     }
   });
+  const apiListener = EditorView.updateListener.of((update) => {
+    try {
+      host?.sync();
+      if (!update.docChanged && update.selectionSet) {
+        core?.ingestSelection(selectionOf(update.state));
+      }
+    } catch (error) {
+      Logger.withError(error).warn('editor.api.ingest_failed');
+    }
+  });
   const touchHandler = EditorView.domEventHandlers({
     focus: () => {
       Logger.info('cm6.focus', {
         method: 'focus',
       });
+      core?.ingestFocus(true);
       postToRN({
         type: 'focused',
       });
@@ -446,6 +475,7 @@ function createEditor(cfg: EditorConfig) {
       Logger.info('cm6.blur', {
         method: 'blur',
       });
+      core?.ingestFocus(false);
       postToRN({
         type: 'blurred',
       });
@@ -464,8 +494,11 @@ function createEditor(cfg: EditorConfig) {
       }, 50);
     },
   });
-  const state = EditorState.create({
-    doc: cfg.initialText,
+  return EditorState.create({
+    doc,
+    ...(selection
+      ? { selection: EditorSelection.single(selection.anchor, selection.head) }
+      : {}),
     extensions: [
       lineNumbers(),
       history(),
@@ -479,6 +512,7 @@ function createEditor(cfg: EditorConfig) {
       fieldMarkerPlugin,
       highlightPlugin,
       diffPlugin,
+      revisionField,
       configCompartment.of(buildConfigExtensions(cfg)),
       keymap.of([
         ...defaultKeymap,
@@ -487,11 +521,31 @@ function createEditor(cfg: EditorConfig) {
         indentWithTab,
       ]),
       updateListener,
+      apiListener,
       touchHandler,
     ],
   });
+}
+/** Applies a typed-API config patch through the same module state the old `updateConfig` message uses. */
+function applyApiConfig(patch: ConfigPatch) {
+  if (!view || !currentConfig) {
+    return {
+      ok: false as const,
+      error: { code: 'not-ready' as const, message: 'the editor has not been created yet' },
+    };
+  }
+  currentConfig = { ...currentConfig, ...toLegacyPatch(patch) };
+  view.dispatch({
+    effects: configCompartment.reconfigure(buildConfigExtensions(currentConfig)),
+  });
+  return { ok: true as const, config: toEditorConfig(currentConfig) };
+}
+function createEditor(cfg: EditorConfig) {
+  view?.destroy();
+  currentConfig = cfg;
+  setRevisionBase(0);
   view = new EditorView({
-    state,
+    state: buildState(cfg, cfg.initialText),
     parent: (() => {
       const editorRoot = document.getElementById('editor');
       if (!editorRoot) {
@@ -500,6 +554,20 @@ function createEditor(cfg: EditorConfig) {
       return editorRoot;
     })(),
   });
+  host = createCm6Host({
+    view: () => view as EditorView,
+    core: () => core,
+    languages: () => [currentConfig?.language === 'python' ? 'python' : 'cpp'],
+    configure: applyApiConfig,
+    buildState: (text, selection) =>
+      buildState(currentConfig as EditorConfig, text, selection),
+  });
+  core = createEditorEngine(host, {
+    instance: randomId(),
+    logDepth: 256,
+    logError: (error) => Logger.withError(error).warn('editor.api.internal'),
+  });
+  deferredEngine.bind(core);
   disableTextAssist(document.documentElement);
   disableTextAssist(document.body);
   disableTextAssist(view.contentDOM);
@@ -510,6 +578,16 @@ function createEditor(cfg: EditorConfig) {
     ...getEditorState(view),
   });
 }
+
+// ─── Typed editor API ─────────────────────────────────────────────────────────
+// Served beside the old messages on the same channel: its rpc frames carry `v` and `kind` and no `type`, so the switch below ignores them.
+const deferredEngine = createDeferredEngine((error) =>
+  Logger.withError(error).warn('editor.api.internal')
+);
+serveEditor(deferredEngine, createPageTransport(window), (error) =>
+  Logger.withError(error).warn('editor.api.serve_failed')
+);
+window.__editorEngine__ = deferredEngine;
 
 // ─── Message handler ──────────────────────────────────────────────────────────
 window.addEventListener('message', (event) => {
@@ -794,3 +872,25 @@ window.__editor__ = {
     if (view) redo(view);
   },
 };
+
+// ─── Test hook (page html sets __EDITOR_DEBUG__ in tests only) ─────────────────
+// What a person's touch does, for the contract suite: it never exposes the view.
+if (window.__EDITOR_DEBUG__) {
+  window.__editorDebug__ = {
+    simulateUser(spec) {
+      if (!view) return;
+      if (spec.kind === 'type') {
+        view.dispatch(
+          view.state.update(view.state.replaceSelection(spec.text), {
+            userEvent: 'input.type',
+          })
+        );
+      } else {
+        view.dispatch({
+          selection: EditorSelection.single(spec.anchor, spec.head ?? spec.anchor),
+          userEvent: 'select.pointer',
+        });
+      }
+    },
+  };
+}

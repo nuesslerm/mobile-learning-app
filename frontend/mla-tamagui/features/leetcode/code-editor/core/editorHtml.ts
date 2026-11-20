@@ -4,7 +4,7 @@ import { CM6_BUNDLE_JS } from './cm6Bundle';
  * Static HTML template for the CodeMirror 6 WebView.
  * All configuration is delivered via postMessage after the WebView signals 'ready'.
  */
-export function buildEditorHtml(): string {
+export function buildEditorHtml(options: { debug?: boolean } = {}): string {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -66,7 +66,7 @@ export function buildEditorHtml(): string {
     };
   })();
 </script>
-<script>${CM6_BUNDLE_JS}</script>
+${options.debug ? '<script>window.__EDITOR_DEBUG__ = true;</script>\n' : ''}<script>${CM6_BUNDLE_JS}</script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     if (window.ReactNativeWebView) {
