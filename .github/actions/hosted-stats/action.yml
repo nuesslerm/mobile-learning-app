@@ -24,7 +24,8 @@ runs:
     # a job that went red says so at once: the failed step as a Better Stack log line (ci.job.failed) and a refreshed run comment, while the rest of the
     # run still goes; best effort, never a second failure (the Actions API shows a step's result at once, a job's log only when it ends)
     - name: Report the failure now
-      if: ${{ inputs.mode == 'upload' && failure() }}
+      # always(): failure() inside a composite action sees only this action's own steps, so the script asks the API whether a step of the job is red
+      if: ${{ inputs.mode == 'upload' && always() }}
       shell: bash
       continue-on-error: true
       env:
@@ -35,6 +36,7 @@ runs:
       run: |
         command -v wf > /dev/null || exit 0
         out=$(timeout 60 wf ci failed 2>/dev/null) || true
+        [ "$(jq -r '(.failed_steps // []) | length' <<<"$out" 2>/dev/null || echo 0)" -gt 0 ] || exit 0
         echo "$out"
         step=$(jq -r '.failed_steps[0] // ""' <<<"$out" 2>/dev/null)
         job=$(jq -r '.job // "${{ inputs.job }}"' <<<"$out" 2>/dev/null)
