@@ -367,7 +367,7 @@ fn judge_run(env: &Env, push_to_dev: bool, cold: bool, hosted: bool, limits: &Li
     let health = assess(&logs, push_to_dev);
     v.findings.extend(health.findings.iter().map(|f| Finding { kind: f.kind.to_string(), run: Some(env.run.clone()), subject: f.job.clone(), hard: matches!(f.kind, "degraded" | "rejected-write" | "seeded-lost"), waste_secs: 0, message: f.detail.clone() }));
     v.stages = health.stages.iter().map(|(_, stage, replayed, total)| (stage.clone(), *replayed, *total)).collect();
-    let save_job = var("WF_PNPM_SAVE_JOB").unwrap_or_else(|| "flow-tests".to_string());
+    let save_job = var("WF_PNPM_SAVE_JOB").unwrap_or_else(|| "core-tests".to_string());
     for (job, seconds) in pnpm_packed_outside(&logs, &save_job) {
         v.findings.push(Finding { kind: "pnpm-packed-outside-flow-tests".to_string(), run: Some(env.run.clone()), subject: job.clone(), hard: false, waste_secs: seconds as i64, message: format!("{job} packed and uploaded the pnpm store ({seconds:.0} s); only {save_job} should") });
     }

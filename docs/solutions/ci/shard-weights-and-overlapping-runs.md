@@ -18,7 +18,7 @@ tags: [ci, shards, concurrency, nx-cache]
 
 ## Overlapping runs
 
-`ci-hosted.yml` groups runs per commit (`ci-hosted-<sha>`), so a push never waits for an older run and a red shard is fixed and re-run at once; no run is cancelled, and every run is measured to its end. Per-job groups still serialise what must not overlap (the deploy per app). The `head` job in `pipeline.yml` gates the deploy and the production EAS publish on the commit still being the head of `dev`, so a slow older run never puts older code over newer.
+`ci-hosted.yml` groups runs per commit (`ci-hosted-<sha>`), so a push never waits for an older run and a red shard is fixed and re-run at once; no run is cancelled, and every run is measured to its end. Per-job groups still serialise what must not overlap (the deploy per app). The `Is this commit the head of dev` step of the `plan` job in `pipeline.yml` (output `is_head`; it was a job of its own, which took a runner slot for 3 s) gates the deploy and the production EAS publish on the commit still being the head of `dev`, so a slow older run never puts older code over newer.
 
 ## The e2e jobs are per commit too
 
@@ -26,7 +26,7 @@ tags: [ci, shards, concurrency, nx-cache]
 
 ## The e2e jobs do not wait for the integration tests
 
-`browser-e2e-tests` runs against a web export built on its own runner and `android-e2e-tests` against its own backends, so neither reads the deploy or the production EAS Update, which both wait for every stage including the slowest integration shard (about 800 s). They now need `plan`, `flow-tests`, `typecheck-lint-unit-tests`, `clis` and `cli-e2e-tests`; Android also needs `eas-update-e2e`, the job that publishes the branch `e2e` update and hands its pointer over, split out of `eas-update` (which keeps the production publish gated on the tests).
+`browser-e2e-tests` runs against a web export built on its own runner and `android-e2e-tests` against its own backends, so neither reads the deploy or the production EAS Update, which both wait for every stage including the slowest integration shard (about 800 s). They now need `plan`, `core-tests`, `clis` and `cli-e2e-tests`; Android also needs `eas-update-e2e`, the job that publishes the branch `e2e` update and hands its pointer over, split out of `eas-update` (which keeps the production publish gated on the tests).
 
 ## Integration shards queue per crate set and inputs
 
@@ -59,3 +59,21 @@ A push to `dev` starts six runs of the one pipeline graph, each for a stage (`st
 ## The 20-job cap and how many shards (owner, 19 Nov)
 
 GitHub-hosted runners are free for a public repository but the account runs at most 20 jobs at once, whatever the workflow; the rest queue. The first six-workflow push ran 68 jobs and jobs waited up to 267 s for a slot (the push before it, 736 s), so a shard is not free: each repeats 1 to 3 minutes of setup and takes a slot. The callers therefore deal each stage over few shards (3 for the core areas and the cli publish, 4 for the integration tests, whose heaviest unit is 542 s; the repository variable `HOSTED_SHARDS` is no longer read: each caller states its own number in its `with:`) and the Android e2e over 2 devices. Measure the effect with `CI_JOBS.QUEUED` before adding a shard.
+
+## Four cores per runner, fewer runners (owner, 20 Nov)
+
+A hosted runner is 4 vCPU and 16 GB, and the account's 20 slots are shared by all six callers, so a slot that holds two cores' worth of work is half wasted. Two changes, stage names untouched (the test plan, `shard-weights.json`, the run bundles and the last-green logic still say `flow-tests` and `typecheck-lint-unit-tests`; only job names changed):
+
+- **`core-tests` is one job per shard.** It replaces the separate `flow-tests` and `typecheck-lint-unit-tests` jobs. Shard `i/N` starts `wf test run --stage flow-tests --parallel 2 --shard i/N` and `wf test run --stage typecheck-lint-unit-tests --parallel 2 --shard (N+1-i)/N` as two background processes (2 + 2 Nx tasks = 4 cores), waits for both and fails if either failed. Both stages use the caller's one `shards` count (`plan` step `shards`), so a caller's core run goes from 2N shard jobs to N. The typecheck stage takes the mirrored shard because the weighted dealing puts the heaviest units on shard 1 in both stages: mirrored, the machine with the heaviest flow units has the lightest typecheck units. Each stage is still dealt by its own weights. The run bundle is still published as `test-runs-flow-tests-<i>`. Output lines carry a `[flow-tests]` or `[typecheck-lint-unit-tests]` prefix. The job's Nx cache key is `core-tests-<i>of<N>` (the first run after the change starts cold), its sccache key stays `flow-tests`, its sampler and ledger name is `core-tests-<i>` (the ledger rows keep the stage as `JOB`, `nx_ledger::record`, so `wf ci plan shard-weights` still reads them).
+- **`plan` also runs the preflight and the head check.** The `preflight` job (58 s of setup for a check that waits on the network) and the `head` job (3 s, a runner slot all the same) are steps of `plan`: `wf ci preflight` starts in the background right after the setup, the plan steps run beside it, and `Collect the preflight` prints its output at the end. That step keeps the old `continue-on-error`, so a red preflight is an error annotation and a line in the log, not a stop; remove that line to make it stop the run (every job needs `plan`). `plan` also calls `wf ci concurrency --phase start` (the start of the run's concurrency record) and the report job runs `wf ci resources` and `wf ci concurrency` after `Timings`.
+
+Runner slots at peak per caller, with the core callers at 3 shards:
+
+| Caller | Before | After |
+| --- | --- | --- |
+| core mobile, core cli, core backend (each) | 6 (3 flow + 3 typecheck), 2 earlier (preflight + plan), 4 at the e2e wait | 3 (`core-tests`), 1 (`plan`) |
+| cli publish | `wf-build` 1, `preflight` + `plan` 2, 3 cli-e2e, `clis` 1 | 1, `plan` 1, 3 cli-e2e, `clis` 1 |
+| service deploy | `head` 1 beside `wf-build`, 4 integration, deploy legs | no `head` slot; the rest as before |
+| mobile e2e | `head`, `preflight` and `plan` | `plan` only |
+
+Every run also saves `report` (one slot) and the 3 s `trigger` job per caller. The three core callers together peak at 9 test runners instead of 18, which leaves the other callers room under the 20-slot cap.

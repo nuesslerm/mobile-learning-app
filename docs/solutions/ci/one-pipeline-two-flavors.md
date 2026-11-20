@@ -34,19 +34,15 @@ flowchart TD
     x64["x64"]
     arm["arm64 (hosted only)"]
   end
-  wfb --> preflight
-  wfb --> plan
-  plan --> flow["flow-tests (shards)"]
-  plan --> tc["typecheck-lint-unit-tests (shards)"]
+  wfb --> plan["plan<br/>plan, preflight, head of dev"]
+  plan --> core["core-tests (shards)<br/>flow-tests + typecheck-lint-unit-tests"]
   plan --> integ["integration-tests"]
   plan --> clie2e["cli-e2e-tests"]
   plan --> dbuild["deploy-build (one leg per app)"]
-  flow --> clis["clis<br/>publish to the VM volume"]
-  tc --> clis
+  core --> clis["clis<br/>publish to the VM volume"]
   integ --> clis
   clie2e --> clis
-  flow --> deploy["deploy (one leg per app)"]
-  tc --> deploy
+  core --> deploy["deploy (one leg per app)"]
   integ --> deploy
   dbuild --> deploy
   clis --> eas["eas-update"]
@@ -64,8 +60,8 @@ flowchart TD
 
 Three waves:
 
-1. **Build and plan.** `wf-build` builds this commit's `wf` (the Rust CLI that wraps every `clis/*` crate) once per kind of machine. `preflight` and `plan` run beside each other once it is done.
-2. **Tests and builds together.** Flow, typecheck/lint/unit, integration, cli-e2e and the image builds start at once. A build never waits for a test and a test never waits for a check. A red test discards the work already done.
+1. **Build and plan.** `wf-build` builds this commit's `wf` (the Rust CLI that wraps every `clis/*` crate) once per kind of machine. `plan` runs once it is done; the preflight and the head-of-dev check are steps of it, running beside the plan steps.
+2. **Tests and builds together.** `core-tests` (the flow stage and the typecheck/lint/unit stage side by side on each machine), integration, cli-e2e and the image builds start at once. A build never waits for a test and a test never waits for a check. A red test discards the work already done.
 3. **Everything irreversible, then the end-to-end tests.** `clis` publishes binaries, `deploy` redeploys, `eas-update` publishes the phone bundle. All three need green tests. Deployment verification and the browser and Android e2e tests need the deploy and the EAS update.
 
 ## What each machine-building job is

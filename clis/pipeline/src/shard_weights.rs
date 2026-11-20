@@ -8,9 +8,13 @@ use wf_bucket::ci_db::{self, Working};
 const STAGES: [&str; 2] = ["flow-tests", "integration-tests"];
 const FLOOR_S: u64 = 5;
 
-/// The stage a job belongs to: `flow-tests (3/6)` is `flow-tests`.
-fn stage_of(job: &str) -> Option<&'static str> {
+/// The stage a job belongs to: `flow-tests (3/6)` is `flow-tests`; a `core-tests` job runs two stages, told apart by the task's target.
+fn stage_of(job: &str, task: &str) -> Option<&'static str> {
     let base = job.split(" (").next().unwrap_or(job);
+    if base == "core-tests" {
+        let target = task.split(':').nth(1).unwrap_or_default();
+        return ["test:flow", "test:contract", "cargo-flow", "cargo-contract"].contains(&target).then_some("flow-tests");
+    }
     STAGES.into_iter().find(|s| *s == base)
 }
 
@@ -28,7 +32,7 @@ pub fn costs(rows: &[Value]) -> BTreeMap<String, BTreeMap<String, u64>> {
     let mut sums: BTreeMap<(String, String), BTreeMap<String, u64>> = BTreeMap::new();
     for row in rows {
         let (Some(job), Some(task), Some(run), Some(ms)) = (row["JOB"].as_str(), row["TASK"].as_str(), row["RUN_ID"].as_str(), row["MS"].as_u64()) else { continue };
-        let Some(stage) = stage_of(job) else { continue };
+        let Some(stage) = stage_of(job, task) else { continue };
         let Some(unit) = unit_of(stage, task) else { continue };
         *sums.entry((stage.to_string(), unit)).or_default().entry(run.to_string()).or_default() += ms;
     }
@@ -104,6 +108,16 @@ mod tests {
 
     fn row(run: &str, job: &str, task: &str, ms: u64) -> Value {
         json!({"RUN_ID": run, "JOB": job, "TASK": task, "MS": ms})
+    }
+
+    #[test]
+    fn given_a_core_tests_job_when_costs_are_made_then_only_its_flow_tasks_count_for_flow_tests() {
+        // Given a core-tests shard that ran a flow task and a typecheck task
+        let rows = vec![row("1", "core-tests (1/3)", "crate-pipeline:cargo-flow", 40_000), row("1", "core-tests (1/3)", "crate-pipeline:typecheck", 90_000)];
+        // When the costs are made
+        let costs = costs(&rows);
+        // Then the flow stage holds the flow task's seconds and nothing of the typecheck
+        assert_eq!(costs["flow-tests"]["crate-pipeline"], 40);
     }
 
     #[test]

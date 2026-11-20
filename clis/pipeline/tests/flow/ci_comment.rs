@@ -783,12 +783,12 @@ fn the_cpu_seconds_threshold_is_what_names_a_run_and_a_pnpm_pack_outside_flow_te
     let github = audit_github(&timed_job(500, "typecheck-lint-unit-tests", "success", 600), pack, &[]);
     // When the run is audited
     let r = Audit::new("pnpm", &[], "", json!({ "cpuSecondsThreshold": 1 })).run(&github, true);
-    // Then the pack is named with the job that did it, and only flow-tests may do it
+    // Then the pack is named with the job that did it, and only core-tests may do it
     let out = last_json(&r);
     let found: Vec<&Value> = out["findings"].as_array().unwrap().iter().filter(|f| f["kind"] == "pnpm-packed-outside-flow-tests").collect();
     assert_eq!(found.len(), 1, "{out}");
     assert_eq!(found[0]["subject"], "typecheck-lint-unit-tests", "{out}");
-    let own = audit_github(&timed_job(500, "flow-tests", "success", 600), pack, &[]);
+    let own = audit_github(&timed_job(500, "core-tests", "success", 600), pack, &[]);
     let r = Audit::new("pnpm-own", &[], "", json!({})).run(&own, true);
     assert!(!kinds(&last_json(&r)).contains(&"pnpm-packed-outside-flow-tests".to_string()), "{}{}", r.stdout, r.stderr);
 }

@@ -277,7 +277,7 @@ fn scope_check_of_the_repository_names_every_declared_job_and_prints_the_same_re
     assert_eq!(first.stdout, second.stdout);
     let report: Value = serde_json::from_str(&first.stdout).unwrap_or_else(|e| panic!("{e}: {}", first.stdout));
     assert_eq!(first.exit_code, if report["ok"] == json!(true) { 0 } else { 1 });
-    assert!(report["jobs"].as_array().unwrap().iter().any(|j| j["id"] == "pipeline.yml:flow-tests" && j["class"] == "deploy"));
+    assert!(report["jobs"].as_array().unwrap().iter().any(|j| j["id"] == "pipeline.yml:core-tests" && j["class"] == "deploy"));
     for violation in report["violations"].as_array().unwrap() {
         let text = violation.as_str().unwrap();
         assert!(!["declared in job-scopes.json", "unknown group", "not a registry key", "has no class"].iter().any(|m| text.contains(m)), "{text}");
