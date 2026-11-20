@@ -35,13 +35,21 @@ pub fn ask(port: u16) -> serde_json::Value {
     serde_json::from_str(answer.split("\r\n\r\n").nth(1).unwrap_or("{}")).unwrap_or_else(|e| panic!("{answer}: {e}"))
 }
 
-/// A port nothing listens on, in `exec_preview`'s range, different at each call of a process (tests that start servers run side by side).
+/// A port nothing listens on, in `exec_preview`'s range, never handed out twice at once: each call takes a lock on a file named for the port that it keeps until its process ends, so test processes that run side by side (several crates, two stages on one runner) do not collide.
 pub fn free_port() -> u16 {
     static NEXT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    static HELD: std::sync::Mutex<Vec<std::fs::File>> = std::sync::Mutex::new(Vec::new());
+    let dir = std::env::temp_dir().join("exec-testkit-ports");
+    std::fs::create_dir_all(&dir).expect("the port lock directory is made");
     for _ in 0..6000 {
         let step = NEXT.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let port = 3000 + ((std::process::id() * 37 + step * 101) % 7000) as u16;
+        let Ok(lock) = std::fs::OpenOptions::new().create(true).truncate(false).write(true).open(dir.join(port.to_string())) else { continue };
+        if lock.try_lock().is_err() {
+            continue;
+        }
         if std::net::TcpListener::bind(("127.0.0.1", port)).is_ok() {
+            HELD.lock().unwrap().push(lock);
             return port;
         }
     }
