@@ -622,26 +622,6 @@ window.addEventListener('message', (event) => {
         });
       }
       break;
-    case 'setText':
-      if (view) {
-        const text = getStringProp(msg, 'text');
-        if (text === undefined) {
-          return;
-        }
-        view.dispatch({
-          changes: {
-            from: 0,
-            to: view.state.doc.length,
-            insert: text,
-          },
-        });
-        postToRN({
-          type: 'hydrated',
-          text: view.state.doc.toString(),
-          ...getEditorState(view),
-        });
-      }
-      break;
     case 'insertAt': {
       if (!view) break;
       const pos = getNumberProp(msg, 'pos') ?? view.state.selection.main.head;

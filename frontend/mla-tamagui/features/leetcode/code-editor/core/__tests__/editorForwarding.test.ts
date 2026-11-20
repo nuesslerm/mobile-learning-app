@@ -15,7 +15,6 @@ const SAMPLES: { [K in ToEditorMessage['type']]: Extract<ToEditorMessage, { type
   typeText: { type: 'typeText', text: 'x' },
   undo: { type: 'undo' },
   redo: { type: 'redo' },
-  setText: { type: 'setText', text: 'x' },
   blur: { type: 'blur' },
   highlightRange: { type: 'highlightRange', start: 0, end: 1 },
   clearHighlights: { type: 'clearHighlights' },

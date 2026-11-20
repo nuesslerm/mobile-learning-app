@@ -8,13 +8,11 @@ import { toConfigPatch, type LegacyConfigPatch } from '../engine/configPatch';
 export const FORWARDED_TYPES = ['undo', 'redo', 'updateConfig', 'focus', 'setSelection', 'insertAt', 'typeText'] as const;
 /**
  * The messages that still travel as fire-and-forget scripts, and why: `init` creates the editor; `blur` waits for an iOS check of
- * the blur trick; `setText` needs the diff sync; the highlight and diff marks move with the runner jump and voice edit. The list
- * only shrinks.
+ * the blur trick; the highlight and diff marks move with the runner jump and voice edit. The list only shrinks.
  */
 export const LEGACY_TYPES = [
   'init',
   'blur',
-  'setText',
   'highlightRange',
   'clearHighlights',
   'showDiff',

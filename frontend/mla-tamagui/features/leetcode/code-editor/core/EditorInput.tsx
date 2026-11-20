@@ -199,12 +199,11 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       (request: {
         next: (current: { text: string; selection: Selection }) => { text: string; selection?: Selection };
         label: string;
-        /** false: a write that works on the editor's own text has nothing to send the old script when the typed path is gone */
-        oldScriptFallback?: boolean;
       }): Promise<void> => {
         const run = async () => {
           const { client } = apiBridge;
           let lastCode = 'none';
+          let lastRead: string | null = null;
           for (let attempt = 0; attempt < 3; attempt += 1) {
             if (!isReadyRef.current) return;
             const read = await client.getText();
@@ -212,6 +211,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
               lastCode = read.error.code;
               break;
             }
+            lastRead = read.value.text;
             const range = read.value.selection.ranges[read.value.selection.main] ?? { anchor: 0, head: 0 };
             const next = request.next({
               text: read.value.text,
@@ -225,20 +225,18 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             if (reply.error.code !== 'stale') break;
           }
           if (!isReadyRef.current) return;
-          Logger.warn('editor.write.failed', { label: request.label, code: lastCode, oldScript: request.oldScriptFallback !== false });
-          if (request.oldScriptFallback === false) return;
-          // the typed path could not write: the old script still can
-          const next = request.next({ text: lastWebViewTextRef.current, selection: { start: 0, end: 0 } });
-          lastWebViewTextRef.current = next.text;
-          sendMessage({ type: 'setText', text: next.text });
-          if (next.selection) {
-            sendMessage({ type: 'setSelection', start: next.selection.start, end: next.selection.end });
+          // The write did not land. The editor is the truth about what is on screen, so React is brought back to it (a divergence here
+          // once ran code the editor never showed) and the failure is logged.
+          Logger.warn('editor.write.failed', { label: request.label, code: lastCode, healed: lastRead !== null });
+          if (lastRead !== null) {
+            lastWebViewTextRef.current = lastRead;
+            onChangeText(lastRead);
           }
         };
         writeChainRef.current = writeChainRef.current.then(run, run);
         return writeChainRef.current;
       },
-      [apiBridge, sendMessage]
+      [apiBridge, onChangeText]
     );
 
     const updateHydrated = useCallback(
@@ -322,7 +320,6 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
               return result;
             },
             label: 'toolbar.transform',
-            oldScriptFallback: false,
           });
         },
         undo() {

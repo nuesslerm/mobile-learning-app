@@ -121,7 +121,6 @@ export type ToEditorMessage =
   | { type: 'typeText'; text: string }
   | { type: 'undo' }
   | { type: 'redo' }
-  | { type: 'setText'; text: string }
   | { type: 'blur' }
   | { type: 'highlightRange'; start: number; end: number; durationMs?: number }
   | { type: 'clearHighlights' }
