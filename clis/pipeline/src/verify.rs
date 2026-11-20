@@ -271,6 +271,10 @@ fn is_cm6_input(f: &str) -> bool {
         || f.starts_with("frontend/libraries/logging/")
 }
 
+fn is_pyodide_input(f: &str) -> bool {
+    f == "pnpm-lock.yaml" || f == "frontend/mla-tamagui/scripts/pyodide-bundle.mjs" || f.starts_with("frontend/mla-tamagui/features/leetcode/data/pyodide/")
+}
+
 pub struct Package {
     pub name: String,
     pub(crate) dir: String,
@@ -542,7 +546,7 @@ fn fixture_gate(root: &Path, files: &[String]) -> i32 {
     0
 }
 
-/// `check --staged [--files ...]`: lint, the budget, `dead_refs`, the editor bundle and the tests of what is staged (or named).
+/// `check --staged [--files ...]`: lint, the budget, `dead_refs`, the editor bundle, the Pyodide bundle and the tests of what is staged (or named).
 pub fn staged(args: &[String], dead_refs: DeadRefs) -> Option<i32> {
     let p = parse_spec(args, &STAGED)?;
     let files_arg: Option<Vec<String>> = p.flag("files").then(|| p.values("files").into_iter().map(str::to_string).collect());
@@ -593,6 +597,15 @@ pub fn staged(args: &[String], dead_refs: DeadRefs) -> Option<i32> {
         let code = match &gate {
             Some(g) => run_nx(&g.nx, &root, "check:editor-bundle", &["mla-tamagui".to_string()], &g.env()),
             None => exec("pnpm --filter mla-tamagui run check:editor-bundle"),
+        };
+        if code != 0 {
+            return Some(if lint_code != 0 { lint_code } else { code });
+        }
+    }
+    if files.iter().any(|f| is_pyodide_input(f)) {
+        let code = match &gate {
+            Some(g) => run_nx(&g.nx, &root, "check:pyodide", &["mla-tamagui".to_string()], &g.env()),
+            None => exec("pnpm --filter mla-tamagui run check:pyodide"),
         };
         if code != 0 {
             return Some(if lint_code != 0 { lint_code } else { code });

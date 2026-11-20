@@ -238,7 +238,17 @@ fn the_staged_gate_runs_through_nx() {
     assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), bundle.clone()]);
     let stale = json!([{ "match": "check:editor-bundle", "code": 4 }]);
     assert_eq!(w.staged(&["--files", "frontend/libraries/logging/src/z.ts"], stale, &[]).exit_code, 4);
-    assert_eq!(w.calls(), [LS.to_string(), lint_root, bundle]);
+    assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), bundle]);
+
+    // Given a change to the Pyodide runner's generated page or vendored files, Then its freshness check runs before the gate too, and a stale one stops it
+    let page = "frontend/mla-tamagui/features/leetcode/data/pyodide/pyodidePage.ts";
+    w.put(page, "export {};\n");
+    let pyodide = nx("check:pyodide", &["mla-tamagui"]);
+    assert_eq!(w.staged(&["--files", page], json!([]), &[]).exit_code, 0);
+    assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), pyodide.clone()]);
+    let stale = json!([{ "match": "check:pyodide", "code": 4 }]);
+    assert_eq!(w.staged(&["--files", page], stale, &[]).exit_code, 4);
+    assert_eq!(w.calls(), [LS.to_string(), lint_root, pyodide]);
 
     // Given a gated budget over its limit, Then lint ran, the gate did not, and the failure names the budget
     w.put("CLAUDE.md", &"x".repeat(10_000));

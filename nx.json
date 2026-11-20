@@ -189,6 +189,26 @@
           ]
         }
       ]
+    },
+    "check:pyodide": {
+      "cache": true,
+      "inputs": [
+        {
+          "fileset": "{projectRoot}/features/leetcode/data/pyodide/**"
+        },
+        {
+          "fileset": "{projectRoot}/scripts/pyodide-bundle.mjs"
+        },
+        {
+          "fileset": "{projectRoot}/package.json"
+        },
+        {
+          "externalDependencies": [
+            "esbuild",
+            "pyodide"
+          ]
+        }
+      ]
     }
   },
   "pluginsConfig": {
