@@ -18,11 +18,10 @@ import {
 
 import { X } from '../icons';
 import { useOpenSheetStore } from '../lib/openSheetStore';
-import { useSheetKeyboardLift } from '../lib/sheetKeyboardLift';
+import { useKeyboardFrame } from '../lib/keyboard/useKeyboardFrame';
 import { useTheme } from '../primitives';
 
 import { Icon } from './icon';
-import { SheetTextInput } from './sheet-text-input';
 
 export type SheetProps = {
   open: boolean;
@@ -192,8 +191,12 @@ export function Sheet({
   // control the sheet exists to offer.
   useDismissKeyboardWhileOpen(open);
 
-  // 0 on a phone, where gorhom does this itself; on web the keyboard's height while one of the sheet's own fields has focus
-  const keyboardLift = useSheetKeyboardLift();
+  // The sheet rises above the keyboard by the keyboard's height. Opening a sheet puts the keyboard away, so a keyboard that rises while
+  // one is open is for a field in it. gorhom's own lift is not relied on: it only acts for its own input, and on the CI emulator it did
+  // not move the sheet at all (Expo Go, edge to edge), while the keyboard source below is what the toolbar rail already follows there.
+  // The same code runs on web, where the browser tests and the flow tests see it.
+  const keyboard = useKeyboardFrame();
+  const keyboardLift = open && keyboard.visible ? keyboard.height : 0;
 
   const mounted = useMountedAfterFirstFrame();
 
@@ -244,7 +247,6 @@ export function Sheet({
 // so the list scroll and the sheet pan both claim the touch and neither works.
 Sheet.ScrollView = BottomSheetScrollView;
 Sheet.FlatList = BottomSheetFlatList;
-Sheet.TextInput = SheetTextInput;
 
 export type SheetHeaderProps = {
   children: ReactNode;

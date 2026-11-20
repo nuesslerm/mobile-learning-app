@@ -30,7 +30,7 @@ const inset = () => screen.getByTestId('ProblemEditorVoiceReviewSheet').closest(
 afterEach(() => act(async () => setKeyboard(0)));
 
 describe('the voice-edit review sheet and the keyboard', () => {
-  it('given the sheet is open in text mode, when the keyboard rises for its transcript field, then the sheet rises above it, and it settles when the field lets go', async () => {
+  it('given the sheet is open in text mode, when the keyboard rises for its transcript field, then the sheet rises above it, and it settles when the keyboard goes down', async () => {
     // Given the editor with its text-edit sheet open and the keyboard down
     await app.render('/leetcode/two-sum', {
       overrides: { leetcode: { gateway: gateway(), voice: createFakeVoiceEditTransport() as unknown as VoiceEditTransportPort, audio: createFakeAudioRecorder() } },

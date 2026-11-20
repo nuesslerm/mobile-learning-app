@@ -1,6 +1,7 @@
 import { Button, IconButton, Spinner, Text } from '@lib/tamagui-design-system';
 import { Sheet, SheetHeader } from '@lib/tamagui-design-system/ui/sheet';
 import { Pause, Play, RotateCcw, Send, X } from '@lib/tamagui-design-system/icons';
+import { TextInput } from 'react-native';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
 import { useVoicePlayback } from '../state/useVoicePlayback';
@@ -130,7 +131,7 @@ export function VoiceReviewSheet({
             <Text variant="muted">Transcribing…</Text>
           </XStack>
         ) : (
-          <Sheet.TextInput
+          <TextInput
             testID={`${testID}-TranscriptInput`}
             value={transcript}
             onChangeText={onTranscriptChange}

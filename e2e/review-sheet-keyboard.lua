@@ -49,16 +49,21 @@ device:clear_logs()
 run_flow("type an edit", function()
   device:tap_on({id='ProblemEditorTextEditStartButton'})
   device:extended_wait_until{condition=function() return device:get_element({id='ProblemEditorVoiceReviewSheet-TranscriptInput'}) ~= nil end, timeout=15000, label='the sheet opened'}
-  -- the sheet takes the keyboard down when it opens; a person taps the field to type
-  device:tap_on({id='ProblemEditorVoiceReviewSheet-TranscriptInput'})
-  -- Android's AOSP keyboard asks once, the first time it serves a text field, to read the contacts, and the keyboard stays down until the
-  -- dialog is answered; a person answers it, and the field is tapped again
-  if android and device:extended_wait_until{visible={text='.*access your contacts.*'}, timeout=3000, optional=true} then
-    device:tap_on({text='.*DON.T ALLOW.*'})
+  -- the sheet takes the keyboard down when it opens; a person taps the field to type, and taps it again when the first tap did not take (a tap
+  -- on a sheet that is still settling can land beside the field: one hosted browser run never got its keyboard)
+  local function keyboard_up() local k = device:get_device_state('keyboard') return k.visible and k.bounds ~= nil end
+  for _ = 1, 4 do
     device:tap_on({id='ProblemEditorVoiceReviewSheet-TranscriptInput'})
+    -- Android's AOSP keyboard asks once, the first time it serves a text field, to read the contacts, and the keyboard stays down until the
+    -- dialog is answered; a person answers it, and the field is tapped again
+    if android and device:extended_wait_until{visible={text='.*access your contacts.*'}, timeout=2000, optional=true} then
+      device:tap_on({text='.*DON.T ALLOW.*'})
+      device:tap_on({id='ProblemEditorVoiceReviewSheet-TranscriptInput'})
+    end
+    -- the state flips before the keyboard is drawn, so its rectangle is waited for too
+    if device:extended_wait_until{condition=keyboard_up, timeout=3000, optional=true} then break end
   end
-  -- the state flips before the keyboard is drawn, so its rectangle is waited for too
-  device:extended_wait_until{condition=function() local k = device:get_device_state('keyboard') return k.visible and k.bounds ~= nil end, timeout=8000, label='the keyboard rose over the sheet'}
+  device:extended_wait_until{condition=keyboard_up, timeout=8000, label='the keyboard rose over the sheet'}
 end)
 
 -- everything the person needs to finish the edit is above the keyboard
@@ -70,8 +75,8 @@ local function above(id)
   assert_true(e ~= nil, id .. " is not on screen")
   return e.bounds.bottom <= kb.bounds.top + 2, e.bounds.bottom
 end
--- the sheet itself has risen above the keyboard. The browser twin of gorhom's lift follows gorhom's rule (only a Sheet.TextInput lifts it), so
--- a plain TextInput in the sheet leaves its bottom edge behind the keyboard here, whatever room the content leaves above it
+-- the sheet itself has risen above the keyboard: the design-system Sheet lifts itself by the keyboard's height (the same code on web and on a
+-- phone), so a sheet that stops doing it leaves its bottom edge behind the keyboard here, whatever room the content leaves above it
 if not android then
   local function sheet_bottom() local s = device:get_element({id='ProblemEditorVoiceReviewSheet'}) return s and s.bounds.bottom end
   device:extended_wait_until{condition=function() local b = sheet_bottom() return b ~= nil and b <= kb.bounds.top + 2 end, timeout=5000, optional=true, label='the sheet rose above the keyboard'}
