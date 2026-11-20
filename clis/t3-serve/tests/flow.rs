@@ -9,6 +9,14 @@ mod access;
 mod agent_threads;
 #[path = "flow/binary.rs"]
 mod binary;
+#[path = "flow/desktop_admin.rs"]
+mod desktop_admin;
+#[path = "flow/desktop_profile.rs"]
+mod desktop_profile;
+#[path = "flow/desktop_threads.rs"]
+mod desktop_threads;
+#[path = "flow/desktop_vcs.rs"]
+mod desktop_vcs;
 #[path = "flow/crawl_decode.rs"]
 mod crawl_decode;
 #[path = "flow/client_activity.rs"]

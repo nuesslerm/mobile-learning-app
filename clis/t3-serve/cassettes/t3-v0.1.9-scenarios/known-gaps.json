@@ -2,6 +2,53 @@
   "schema": "mimic-known-gaps/2",
   "groups": [
     {
+      "class": "kind at steps.ws:s2c:*.[*].payload.exit.value.attempts.[*].startedAt",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:2.[0].payload.exit.value.attempts.[0].startedAt kind breaking",
+        "steps.ws:s2c:2.[0].payload.exit.value.attempts.[0].status changed drift",
+        "steps.ws:s2c:2.[0].payload.exit.value.attempts.[0].nativeThreadId extra drift",
+        "steps.ws:s2c:2.[0].payload.exit.value.nodes.[0].startedAt kind breaking",
+        "steps.ws:s2c:2.[0].payload.exit.value.nodes.[0].status changed drift",
+        "steps.ws:s2c:2.[0].payload.exit.value.providerSessions changed breaking",
+        "steps.ws:s2c:2.[0].payload.exit.value.providerThreads.[0].nativeThreadRef kind breaking",
+        "steps.ws:s2c:2.[0].payload.exit.value.providerThreads.[0].providerSessionId changed drift",
+        "steps.ws:s2c:2.[0].payload.exit.value.providerThreads.[0].status changed drift",
+        "steps.ws:s2c:2.[0].payload.exit.value.runs.[0].startedAt kind breaking",
+        "steps.ws:s2c:2.[0].payload.exit.value.runs.[0].status changed drift",
+        "steps.ws:s2c:2.[0].payload.exit.value.turnItems changed breaking",
+        "steps.ws:s2c:2.[0].payload.exit.value.visibleTurnItems changed breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].completedAt kind breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].startedAt kind breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].status changed drift",
+        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].nativeThreadId extra drift",
+        "steps.ws:s2c:t2.[0].payload.exit.value.nodes.[0].completedAt kind breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.nodes.[0].startedAt kind breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.nodes.[0].status changed drift",
+        "steps.ws:s2c:t2.[0].payload.exit.value.providerSessions changed breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.providerThreads.[0].nativeThreadRef kind breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.providerThreads.[0].providerSessionId changed drift",
+        "steps.ws:s2c:t2.[0].payload.exit.value.providerThreads.[0].status changed drift",
+        "steps.ws:s2c:t2.[0].payload.exit.value.runs.[0].completedAt kind breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.runs.[0].startedAt kind breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.runs.[0].status changed drift"
+      ],
+      "ids": [
+        "t3-scn-command-notification.delivery.accept",
+        "t3-scn-command-prepared-run.fail",
+        "t3-scn-command-prepared-run.progress",
+        "t3-scn-command-prepared-run.release",
+        "t3-scn-command-prepared-run.retry",
+        "t3-scn-command-queued-run.cancel",
+        "t3-scn-command-queued-run.edit",
+        "t3-scn-command-queued-run.reorder",
+        "t3-scn-command-queued-run.start",
+        "t3-scn-command-run.interrupt",
+        "t3-scn-command-subagent.stop",
+        "t3-scn-rpc-assets.persistChatAttachments"
+      ]
+    },
+    {
       "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause.cause",
       "severity": "drift",
       "diffs": [
@@ -20,24 +67,6 @@
         "t3-scn-command-thread.snooze",
         "t3-scn-command-thread.unarchive",
         "t3-scn-command-thread.user-input.dismiss"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
-      ],
-      "ids": [
-        "t3-scn-command-thread.title.regeneration.complete",
-        "t3-scn-rpc-agentSessions.import",
-        "t3-scn-rpc-orchestration.forceStopThread",
-        "t3-scn-rpc-orchestration.searchThread",
-        "t3-scn-rpc-projects.listIgnoredFiles",
-        "t3-scn-rpc-projects.searchContents",
-        "t3-scn-rpc-review.getBranchCommits"
       ]
     },
     {
@@ -91,6 +120,21 @@
         "t3-scn-rpc-pullRequests.filesViewed",
         "t3-scn-rpc-review.getDiffFileContents",
         "t3-scn-rpc-vcs.createRef"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
+      ],
+      "ids": [
+        "t3-scn-command-thread.title.regeneration.complete",
+        "t3-scn-rpc-agentSessions.import",
+        "t3-scn-rpc-orchestration.forceStopThread",
+        "t3-scn-rpc-projects.searchContents"
       ]
     },
     {
@@ -159,32 +203,6 @@
       ],
       "ids": [
         "t3-scn-rpc-git.runStackedAction"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:*.[*].payload.values",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.values missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit extra drift",
-        "steps.ws:s2c:1.[1] missing breaking"
-      ],
-      "ids": [
-        "t3-scn-rpc-orchestration.searchThreadStream"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause extra drift",
-        "steps.ws:s2c:2.[0].payload.exit.value.thread.tags missing breaking"
-      ],
-      "ids": [
-        "t3-scn-command-thread.tag.set"
       ]
     },
     {
@@ -401,53 +419,7 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value.thread.activeOrderKey",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:2.[0].payload.exit.value.thread.activeOrderKey missing breaking"
-      ],
-      "ids": [
-        "t3-scn-command-thread.active.reorder"
-      ]
-    },
-    {
-      "class": "status at steps.ws:s2c:*.[*].payload.exit.value.attempts.[*].status",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:2.[0].payload.exit.value.attempts.[0].startedAt kind breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.attempts.[0].status changed drift",
-        "steps.ws:s2c:2.[0].payload.exit.value.attempts.[0].nativeThreadId extra drift",
-        "steps.ws:s2c:2.[0].payload.exit.value.nodes.[0].startedAt kind breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.nodes.[0].status changed drift",
-        "steps.ws:s2c:2.[0].payload.exit.value.providerSessions changed breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.providerThreads.[0].nativeThreadRef kind breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.providerThreads.[0].providerSessionId changed drift",
-        "steps.ws:s2c:2.[0].payload.exit.value.providerThreads.[0].status changed drift",
-        "steps.ws:s2c:2.[0].payload.exit.value.runs.[0].startedAt kind breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.runs.[0].status changed drift",
-        "steps.ws:s2c:2.[0].payload.exit.value.turnItems changed breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.visibleTurnItems changed breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].completedAt kind breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].startedAt kind breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].status changed drift",
-        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].nativeThreadId extra drift",
-        "steps.ws:s2c:t2.[0].payload.exit.value.nodes.[0].completedAt kind breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.nodes.[0].startedAt kind breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.nodes.[0].status changed drift",
-        "steps.ws:s2c:t2.[0].payload.exit.value.providerSessions changed breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.providerThreads.[0].nativeThreadRef kind breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.providerThreads.[0].providerSessionId changed drift",
-        "steps.ws:s2c:t2.[0].payload.exit.value.providerThreads.[0].status changed drift",
-        "steps.ws:s2c:t2.[0].payload.exit.value.runs.[0].completedAt kind breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.runs.[0].startedAt kind breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.runs.[0].status changed drift"
-      ],
-      "ids": [
-        "t3-scn-rpc-assets.persistChatAttachments"
-      ]
-    },
-    {
-      "class": "status at steps.ws:s2c:*.[*].payload.exit.value.attempts.[*].status",
+      "class": "kind at steps.ws:s2c:*.[*].payload.exit.value.attempts.[*].startedAt",
       "severity": "breaking",
       "diffs": [
         "steps.ws:s2c:2.[0].payload.exit.value.attempts.[0].startedAt kind breaking",
@@ -516,53 +488,27 @@
       ]
     },
     {
-      "class": "status at steps.ws:s2c:*.[*].payload.exit.value.attempts.[*].status",
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value.thread.activeOrderKey",
       "severity": "breaking",
       "diffs": [
-        "steps.ws:s2c:2.[0].payload.exit.value.attempts.[0].startedAt kind breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.attempts.[0].status changed drift",
-        "steps.ws:s2c:2.[0].payload.exit.value.attempts.[0].nativeThreadId extra drift",
-        "steps.ws:s2c:2.[0].payload.exit.value.nodes.[0].startedAt kind breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.nodes.[0].status changed drift",
-        "steps.ws:s2c:2.[0].payload.exit.value.providerSessions changed breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.providerThreads.[0].nativeThreadRef kind breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.providerThreads.[0].providerSessionId changed drift",
-        "steps.ws:s2c:2.[0].payload.exit.value.providerThreads.[0].status changed drift",
-        "steps.ws:s2c:2.[0].payload.exit.value.runs.[0].startedAt kind breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.runs.[0].status changed drift",
-        "steps.ws:s2c:2.[0].payload.exit.value.turnItems changed breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.visibleTurnItems changed breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].completedAt kind breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].startedAt kind breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].status changed drift",
-        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].nativeThreadId extra drift",
-        "steps.ws:s2c:t2.[0].payload.exit.value.nodes.[0].completedAt kind breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.nodes.[0].startedAt kind breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.nodes.[0].status changed drift",
-        "steps.ws:s2c:t2.[0].payload.exit.value.providerSessions changed breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.providerThreads.[0].nativeThreadRef kind breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.providerThreads.[0].providerSessionId changed drift",
-        "steps.ws:s2c:t2.[0].payload.exit.value.providerThreads.[0].status changed drift",
-        "steps.ws:s2c:t2.[0].payload.exit.value.runs.[0].completedAt kind breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.runs.[0].startedAt kind breaking",
-        "steps.ws:s2c:t2.[0].payload.exit.value.runs.[0].status changed drift"
+        "steps.ws:s2c:2.[0].payload.exit.value.thread.activeOrderKey missing breaking"
       ],
       "ids": [
-        "t3-scn-command-notification.delivery.accept",
-        "t3-scn-command-prepared-run.fail",
-        "t3-scn-command-prepared-run.progress",
-        "t3-scn-command-prepared-run.release",
-        "t3-scn-command-prepared-run.retry",
-        "t3-scn-command-queued-run.cancel",
-        "t3-scn-command-queued-run.edit",
-        "t3-scn-command-queued-run.reorder",
-        "t3-scn-command-queued-run.start",
-        "t3-scn-command-run.interrupt",
-        "t3-scn-command-subagent.stop"
+        "t3-scn-command-thread.active.reorder"
       ]
     },
     {
-      "class": "status at steps.ws:s2c:*.[*].payload.exit.value.attempts.[*].status",
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value.thread.tags",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:2.[0].payload.exit.value.thread.tags missing breaking"
+      ],
+      "ids": [
+        "t3-scn-command-thread.tag.set"
+      ]
+    },
+    {
+      "class": "kind at steps.ws:s2c:s1.[*].payload.exit.value.attempts.[*].startedAt",
       "severity": "breaking",
       "diffs": [
         "steps.ws:s2c:s1.[0].payload.exit.value.attempts.[0].startedAt kind breaking",

@@ -548,6 +548,12 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             one(gh(args))
         }
         HostedCall::RepoRemotes => one(step(Program::Git, strs(&["remote", "-v"]))),
+        HostedCall::RepoStarred => {
+            let mut s = step(Program::Gh, vec!["api".into(), format!("user/starred/{}", op.repo.clone().unwrap_or_default())]);
+            s.missing_ok = true;
+            one(s)
+        }
+        HostedCall::RepoStar => one(step(Program::Gh, vec!["api".into(), "--method=PUT".into(), format!("user/starred/{}", op.repo.clone().unwrap_or_default())])),
         HostedCall::RepoLabels { limit } => {
             let mut args = strs(&["label", "list"]);
             repo_flag(&mut args);
@@ -900,6 +906,7 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
     match &op.call {
         HostedCall::RepoView => one(api("GET", project())),
         HostedCall::RepoRemotes => one(step(Program::Git, strs(&["remote", "-v"]))),
+        HostedCall::RepoStarred | HostedCall::RepoStar => Err("starring is a GitHub feature".into()),
         HostedCall::RepoLabels { limit } => one(api("GET", format!("{}/labels?per_page={limit}", project()))),
         HostedCall::RepoReviewers { limit } => one(api("GET", format!("{}/members/all?per_page={limit}", project()))),
         HostedCall::RepoClone { .. } => {

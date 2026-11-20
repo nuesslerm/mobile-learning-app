@@ -34,7 +34,7 @@ pub struct RcaAgent {
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 134] = [
+pub const USES: [Method; 138] = [
     STATUS,
     THREAD_CREATE,
     THREAD_SUBSCRIBE,
@@ -102,6 +102,7 @@ pub const USES: [Method; 134] = [
     git::COMMIT,
     git::PUSH,
     git::INIT,
+    git::IGNORED,
     git::SUBSCRIBE,
     WORKSPACE_CREATE,
     WORKSPACE_REMOVE,
@@ -141,6 +142,8 @@ pub const USES: [Method; 134] = [
     hosted::pr::REVIEWER_CANDIDATES,
     hosted::auth::DISCOVER,
     hosted::auth::APP_ACCESS,
+    hosted::auth::STARRED,
+    hosted::auth::STAR,
     hosted::auth::LOOKUP_REPOSITORY,
     hosted::auth::PUBLISH_REPOSITORY,
     hosted::auth::SIGN_IN_START,
@@ -169,6 +172,7 @@ pub const USES: [Method; 134] = [
     preview::watch::SUBSCRIBE,
     catalog::SPEECH_STATUS,
     catalog::SPEECH_TRANSCRIBE,
+    catalog::SESSIONS_LIST,
 ];
 
 /// The groups the mapper calls that `service.status` does not list: `workspace` is served, but its owner methods `workspace.activate` and
@@ -421,6 +425,7 @@ impl RcaAgent {
             Op::GitBlob { root, rev, path } => (git::BLOB, json!({"workspace": self.place(client, root, "")?.0, "rev": rev, "path": path})),
             Op::GitStage { root, paths } => (git::STAGE, json!({"workspace": self.place(client, root, "")?.0, "paths": paths})),
             Op::GitCommit { root, message } => (git::COMMIT, json!({"workspace": self.place(client, root, "")?.0, "message": message})),
+            Op::GitIgnored { root } => (git::IGNORED, json!({"workspace": self.place(client, root, "")?.0})),
             Op::GitPush { root, set_upstream } => (git::PUSH, json!({"workspace": self.place(client, root, "")?.0, "set_upstream": set_upstream})),
             Op::Hosted { method, root, params } => {
                 let found = hosted::all_methods().into_iter().find(|m| m.name() == *method).ok_or_else(|| AgentError::Failed(format!("{method} is no hosted method of the agent API")))?;
@@ -507,11 +512,15 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
             let found = [catalog::SPEECH_STATUS, catalog::SPEECH_TRANSCRIBE].into_iter().find(|m| m.name() == *method).ok_or_else(|| AgentError::Failed(format!("{method} is no speech method of the agent API")))?;
             (found, params.clone())
         }
+        Op::Catalog { method, params } => {
+            let found = [catalog::SESSIONS_LIST].into_iter().find(|m| m.name() == *method).ok_or_else(|| AgentError::Failed(format!("{method} is no host-reading method of the agent API")))?;
+            (found, params.clone())
+        }
         Op::WorkspaceCreate { workspace, path } => (WORKSPACE_CREATE, json!({"workspace": workspace, "path": path})),
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -523,7 +532,7 @@ fn is_accounts(op: &Op) -> bool {
 
 /// The requests whose refusals keep the service's own codes (`CLI_NOT_INSTALLED`, `PROVIDER_NOT_SIGNED_IN`, the executor's).
 fn is_hosted(op: &Op) -> bool {
-    matches!(op, Op::Hosted { .. } | Op::Schedule { .. } | Op::Attachment { .. } | Op::Preview { .. } | Op::Speech { .. })
+    matches!(op, Op::Hosted { .. } | Op::Schedule { .. } | Op::Attachment { .. } | Op::Preview { .. } | Op::Speech { .. } | Op::Catalog { .. })
 }
 
 /// The requests about directories and workspaces whose refusals keep the codes the app tells apart (`ALREADY_EXISTS`, `PATH_OUTSIDE_ROOT`,

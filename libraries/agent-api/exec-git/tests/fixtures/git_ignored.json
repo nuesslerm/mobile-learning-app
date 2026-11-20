@@ -1,0 +1,119 @@
+{
+  "action": "git_ignored",
+  "exchanges": [
+    {
+      "name": "lists the ignored files with their sizes and skips a directory that holds only ignored files",
+      "setup": {
+        "files": {
+          ".gitignore": "*.log\nbuild/\n",
+          "a.txt": "one\n",
+          "debug.log": "abc\n",
+          "trace.log": "xy\n",
+          "build/out.o": "x\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "ign1",
+        "tool": "git_ignored",
+        "args": {}
+      },
+      "response": {
+        "id": "ign1",
+        "ok": true,
+        "result": {
+          "files": [
+            {
+              "path": "debug.log",
+              "size": 4
+            },
+            {
+              "path": "trace.log",
+              "size": 3
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "name": "stops at the limit and says so",
+      "setup": {
+        "files": {
+          ".gitignore": "*.log\nbuild/\n",
+          "a.txt": "one\n",
+          "debug.log": "abc\n",
+          "trace.log": "xy\n",
+          "build/out.o": "x\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "ign2",
+        "tool": "git_ignored",
+        "args": {
+          "limit": 1
+        }
+      },
+      "response": {
+        "id": "ign2",
+        "ok": true,
+        "result": {
+          "files": [
+            {
+              "path": "debug.log",
+              "size": 4
+            }
+          ],
+          "truncated": true
+        }
+      }
+    },
+    {
+      "name": "lists none for a repository that ignores nothing",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "ign3",
+        "tool": "git_ignored",
+        "args": {}
+      },
+      "response": {
+        "id": "ign3",
+        "ok": true,
+        "result": {
+          "files": [],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "name": "refuses a limit of zero",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "ign4",
+        "tool": "git_ignored",
+        "args": {
+          "limit": 0
+        }
+      },
+      "response": {
+        "id": "ign4",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`limit` must be between 1 and 5000"
+        }
+      }
+    }
+  ]
+}

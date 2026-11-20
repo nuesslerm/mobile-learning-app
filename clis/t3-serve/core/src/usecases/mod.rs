@@ -1,5 +1,8 @@
 pub mod access;
 pub mod activity;
+pub mod desk_admin;
+pub mod desk_threads;
+pub mod desk_vcs;
 pub mod engine;
 pub mod forward;
 pub mod history;

@@ -8,18 +8,18 @@
     "commit": "24e77473ecf41bc1f7142529c7911c1c1aae1d76"
   },
   "summary": {
-    "rows": 222,
-    "served": 185,
+    "rows": 250,
+    "served": 212,
     "pending": 0,
-    "notOffered": 37,
+    "notOffered": 38,
     "excluded": 0,
     "flagged": 0,
     "answeredByMapper": 0,
     "byKind": {
       "command": 40,
-      "http": 23,
+      "http": 27,
       "mutation": 3,
-      "rpc": 156
+      "rpc": 180
     },
     "pendingByMilestone": {},
     "desktop": {
@@ -67,7 +67,8 @@
         ],
         "executor": [
           "git_checkpoint",
-          "put_blob"
+          "put_blob",
+          "run_command"
         ]
       }
     },
@@ -137,8 +138,9 @@
           "turn.steer"
         ],
         "executor": [
+          "cancel",
           "git_checkpoint",
-          "write_file"
+          "run_command"
         ]
       }
     },
@@ -214,7 +216,9 @@
           "turn.start"
         ],
         "executor": [
-          "git_checkpoint"
+          "cancel",
+          "git_checkpoint",
+          "run_command"
         ],
         "oracle": "mimic",
         "diff": "allowlisted",
@@ -239,7 +243,9 @@
           "turn.start"
         ],
         "executor": [
-          "git_checkpoint"
+          "cancel",
+          "git_checkpoint",
+          "run_command"
         ],
         "oracle": "mimic",
         "diff": "allowlisted",
@@ -262,7 +268,7 @@
           "thread.create"
         ],
         "executor": [
-          "write_file"
+          "run_command"
         ]
       }
     },
@@ -271,19 +277,11 @@
       "kind": "command",
       "name": "subagent.stop",
       "desktop": true,
-      "state": "served",
+      "state": "not-offered",
       "milestone": "M4",
       "target": "agent:workflow.stop",
-      "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::a_workflow_stop_and_a_subagent_stop_each_end_the_running_turn_through_rca_and_a_stop_with_nothing_running_is_not_asked_of_rca",
-        "agent": [
-          "thread.create",
-          "thread.subscribe",
-          "workflow.stop"
-        ],
-        "executor": []
-      }
+      "reason": "no native subagent exists on a run of rca: the pinned server refuses the command (the requested native subagent cannot be stopped on this run) and the run keeps going, and t3 serve answers the same refusal, so no agent method serves it (t3-v0.1.9-agent-cues records the refusal)",
+      "decidedBy": "M4"
     },
     {
       "id": "command:thread.active.reorder",
@@ -681,7 +679,9 @@
           "turn.start"
         ],
         "executor": [
-          "git_checkpoint"
+          "cancel",
+          "git_checkpoint",
+          "run_command"
         ],
         "oracle": "mimic",
         "diff": "allowlisted",
@@ -782,7 +782,7 @@
           "thread.create"
         ],
         "executor": [
-          "write_file"
+          "run_command"
         ]
       }
     },
@@ -805,6 +805,23 @@
       }
     },
     {
+      "id": "http:auth.browserSession",
+      "kind": "http",
+      "name": "auth.browserSession",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-auth.browserSession-invalid-drop-credential",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
       "id": "http:auth.pairingCredential",
       "kind": "http",
       "name": "auth.pairingCredential",
@@ -814,6 +831,57 @@
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
         "test": "t3-v0.1.9-crawl::t3-http-auth.pairingCredential-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "http:auth.revokeClient",
+      "kind": "http",
+      "name": "auth.revokeClient",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-auth.revokeClient-invalid-drop-sessionId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "http:auth.revokeOtherClients",
+      "kind": "http",
+      "name": "auth.revokeOtherClients",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-auth.revokeOtherClients-empty-empty-object",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "http:auth.revokePairingLink",
+      "kind": "http",
+      "name": "auth.revokePairingLink",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-auth.revokePairingLink-invalid-drop-id",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -1230,6 +1298,27 @@
       }
     },
     {
+      "id": "rpc:agentSessions.scan",
+      "kind": "rpc",
+      "name": "agentSessions.scan",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-agentSessions.scan-invalid-no-payload",
+        "agent": [
+          "sessions.list"
+        ],
+        "executor": [
+          "session_scan"
+        ],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
       "id": "rpc:assets.createUrl",
       "kind": "rpc",
       "name": "assets.createUrl",
@@ -1290,6 +1379,23 @@
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
         "test": "t3-v0.1.9-crawl::t3-rpc-attachments.delete-invalid-drop-attachmentId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:cloud.getRelayClientStatus",
+      "kind": "rpc",
+      "name": "cloud.getRelayClientStatus",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-cloud.getRelayClientStatus-invalid-no-payload",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -1706,6 +1812,24 @@
       }
     },
     {
+      "id": "rpc:orchestration.getWorktreeThreadIds",
+      "kind": "rpc",
+      "name": "orchestration.getWorktreeThreadIds",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "milestone": "M4",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getWorktreeThreadIds-invalid-drop-worktreePath",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
       "id": "rpc:orchestration.launchThread",
       "kind": "rpc",
       "name": "orchestration.launchThread",
@@ -1715,6 +1839,43 @@
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
         "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.launchThread-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:orchestration.searchThread",
+      "kind": "rpc",
+      "name": "orchestration.searchThread",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "milestone": "M4",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.searchThread-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:orchestration.searchThreadStream",
+      "kind": "rpc",
+      "name": "orchestration.searchThreadStream",
+      "subscription": true,
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "milestone": "M4",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.searchThreadStream-boundary-full",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -1858,6 +2019,24 @@
       "decidedBy": "M12"
     },
     {
+      "id": "rpc:peerLinks.unlink",
+      "kind": "rpc",
+      "name": "peerLinks.unlink",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "milestone": "M5",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-peerLinks.unlink-invalid-drop-environmentId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
       "id": "rpc:preview.adjust",
       "kind": "rpc",
       "name": "preview.adjust",
@@ -1867,6 +2046,24 @@
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
         "test": "t3-v0.1.9-crawl::t3-rpc-preview.adjust-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:preview.clearProfile",
+      "kind": "rpc",
+      "name": "preview.clearProfile",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-preview.clearProfile-invalid-drop-profileId",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -1920,6 +2117,42 @@
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
         "test": "t3-v0.1.9-crawl::t3-rpc-preview.open-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:preview.reportProfiles",
+      "kind": "rpc",
+      "name": "preview.reportProfiles",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-preview.reportProfiles-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:preview.reportStatus",
+      "kind": "rpc",
+      "name": "preview.reportStatus",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-preview.reportStatus-invalid-drop-threadId",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -2066,6 +2299,24 @@
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
         "test": "t3-v0.1.9-crawl::t3-rpc-projects.listEntries-invalid-drop-cwd",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:projects.listIgnoredFiles",
+      "kind": "rpc",
+      "name": "projects.listIgnoredFiles",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "milestone": "M6",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-projects.listIgnoredFiles-invalid-drop-cwd",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -2247,6 +2498,25 @@
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
         "test": "t3-v0.1.9-crawl::t3-rpc-provider.auth.subscribe-invalid-drop-instanceId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:provider.chatgpt.handoff.subscribe",
+      "kind": "rpc",
+      "name": "provider.chatgpt.handoff.subscribe",
+      "subscription": true,
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-provider.chatgpt.handoff.subscribe-boundary-full",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -2878,6 +3148,24 @@
       }
     },
     {
+      "id": "rpc:review.getBranchCommits",
+      "kind": "rpc",
+      "name": "review.getBranchCommits",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "milestone": "M9",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-review.getBranchCommits-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
       "id": "rpc:review.getDiffFileContents",
       "kind": "rpc",
       "name": "review.getDiffFileContents",
@@ -2921,6 +3209,42 @@
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
         "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.delete-invalid-drop-id",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.getWebhookDelivery",
+      "kind": "rpc",
+      "name": "scheduledTasks.getWebhookDelivery",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.getWebhookDelivery-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.listWebhookDeliveries",
+      "kind": "rpc",
+      "name": "scheduledTasks.listWebhookDeliveries",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.listWebhookDeliveries-boundary-full",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -3077,6 +3401,75 @@
       }
     },
     {
+      "id": "rpc:server.getProcessDiagnostics",
+      "kind": "rpc",
+      "name": "server.getProcessDiagnostics",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-server.getProcessDiagnostics-invalid-no-payload",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:server.getProcessResourceHistory",
+      "kind": "rpc",
+      "name": "server.getProcessResourceHistory",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-server.getProcessResourceHistory-boundary-limit-windowMs",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:server.getResourceTelemetryHistory",
+      "kind": "rpc",
+      "name": "server.getResourceTelemetryHistory",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-server.getResourceTelemetryHistory-boundary-limit-windowMs",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:server.getStorageCleanupReport",
+      "kind": "rpc",
+      "name": "server.getStorageCleanupReport",
+      "subscription": true,
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-server.getStorageCleanupReport-invalid-no-payload",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
       "id": "rpc:server.getUsageSummary",
       "kind": "rpc",
       "name": "server.getUsageSummary",
@@ -3157,6 +3550,57 @@
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
         "test": "t3-v0.1.9-crawl::t3-rpc-server.reportClientActivity-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:server.retryResourceTelemetry",
+      "kind": "rpc",
+      "name": "server.retryResourceTelemetry",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-server.retryResourceTelemetry-invalid-no-payload",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:server.runStorageCleanup",
+      "kind": "rpc",
+      "name": "server.runStorageCleanup",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-server.runStorageCleanup-invalid-no-payload",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:server.signalProcess",
+      "kind": "rpc",
+      "name": "server.signalProcess",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-server.signalProcess-boundary-limit-pid",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -3315,6 +3759,36 @@
       }
     },
     {
+      "id": "rpc:sourceControl.star",
+      "kind": "rpc",
+      "name": "sourceControl.star",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.star-invalid-drop-provider",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:sourceControl.starred",
+      "kind": "rpc",
+      "name": "sourceControl.starred",
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.starred-invalid-drop-provider",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
       "id": "rpc:subscribeDeviceState",
       "kind": "rpc",
       "name": "subscribeDeviceState",
@@ -3324,6 +3798,24 @@
       "milestone": "M12",
       "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
       "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:subscribeDiscoveredLocalServers",
+      "kind": "rpc",
+      "name": "subscribeDiscoveredLocalServers",
+      "subscription": true,
+      "desktop": true,
+      "phone": false,
+      "state": "served",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-subscribeDiscoveredLocalServers-invalid-wrong-type-configuredUrls",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:subscribePreviewEvents",

@@ -430,6 +430,7 @@ fn every_op() -> Vec<Op> {
         Op::WorktreeList { root: "/work/proj".into() },
         Op::GitPull { root: "/work/proj".into() },
         Op::GitBlob { root: "/work/proj".into(), rev: "HEAD".into(), path: "a.txt".into() },
+        Op::GitIgnored { root: "/work/proj".into() },
         Op::GitStage { root: "/work/proj".into(), paths: vec![".".into()] },
         Op::GitCommit { root: "/work/proj".into(), message: "m".into() },
         Op::GitPush { root: "/work/proj".into(), set_upstream: true },
@@ -452,6 +453,7 @@ fn every_op() -> Vec<Op> {
     ops.extend(agent_api_preview::sessions::METHODS.iter().chain(agent_api_preview::watch::METHODS).filter(|m| USES.contains(m)).map(|m| Op::Preview { method: m.name(), params: json!({"thread": "t1", "tab": "tab-1"}) }));
     ops.push(Op::Speech { method: agent_api_catalog::SPEECH_STATUS.name(), params: json!({}) });
     ops.push(Op::Speech { method: agent_api_catalog::SPEECH_TRANSCRIBE.name(), params: json!({"audio": "AAAA", "format": "wav"}) });
+    ops.push(Op::Catalog { method: agent_api_catalog::SESSIONS_LIST.name(), params: json!({"limit": 500}) });
     ops.push(Op::Schedule { method: agent_api_schedules::UPSERT.name(), root: Some("/work/proj".into()), params: json!({"title": "t", "prompt": "p", "enabled": true, "schedule": {"type": "webhook"}, "driver": "claudeAgent"}) });
     ops.extend(by_id);
     ops

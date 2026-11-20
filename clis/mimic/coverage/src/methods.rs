@@ -107,6 +107,11 @@ impl MethodsList {
     pub fn phone_rows(&self) -> impl Iterator<Item = &Row> {
         self.rows.iter().filter(|r| r.phone)
     }
+
+    /// The phone rows, and the rows only the desktop app reaches that the decisions file names: a desktop row is tracked once it is decided.
+    pub fn tracked_rows<'a>(&'a self, named: &'a dyn Fn(&str) -> bool) -> impl Iterator<Item = &'a Row> {
+        self.rows.iter().filter(move |r| r.phone || (r.extra.get("desktop") == Some(&Value::Bool(true)) && named(&r.id)))
+    }
 }
 
 /// Two-space JSON with a final newline, the form every checked-in file of this crate takes.

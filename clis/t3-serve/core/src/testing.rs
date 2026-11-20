@@ -201,6 +201,18 @@ impl AuthStore for MemStore {
         d.grants.retain(|hash, (_, _, used)| *used || !hash.starts_with(id));
         Ok(d.grants.len() < before)
     }
+
+    fn list_tokens(&self, now: Millis) -> StoreResult<Vec<TokenRecord>> {
+        let mut tokens: Vec<TokenRecord> = self.data().tokens.values().filter(|t| t.expires_at > now).cloned().collect();
+        tokens.sort_by(|a, b| (a.expires_at, &a.id).cmp(&(b.expires_at, &b.id)));
+        Ok(tokens)
+    }
+
+    fn list_grants(&self, now: Millis) -> StoreResult<Vec<(String, GrantRecord, Millis)>> {
+        let mut grants: Vec<_> = self.data().grants.iter().filter(|(_, (_, expires, used))| !*used && *expires > now).map(|(hash, (grant, expires, _))| (hash.clone(), grant.clone(), *expires)).collect();
+        grants.sort_by(|a, b| (a.2, &a.0).cmp(&(b.2, &b.0)));
+        Ok(grants)
+    }
 }
 
 impl MetaStore for MemStore {

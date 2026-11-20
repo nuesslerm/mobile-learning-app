@@ -114,6 +114,10 @@ pub trait AuthStore: Send + Sync {
     fn revoke_other_tokens(&self, keep_id: &str, now: Millis) -> StoreResult<usize>;
     /// Deletes a pairing code nobody redeemed yet, by the id the mint answered with; whether there was one.
     fn revoke_grant(&self, id: &str) -> StoreResult<bool>;
+    /// The bearers that have not expired by `now`.
+    fn list_tokens(&self, now: Millis) -> StoreResult<Vec<TokenRecord>>;
+    /// The pairing codes nobody redeemed and that have not expired by `now`, each with the hash its id is a prefix of.
+    fn list_grants(&self, now: Millis) -> StoreResult<Vec<(String, GrantRecord, Millis)>>;
 }
 
 /// Small durable values: the environment id.
@@ -325,6 +329,8 @@ pub enum Op {
     GitStage { root: String, paths: Vec<String> },
     GitCommit { root: String, message: String },
     GitPush { root: String, set_upstream: bool },
+    /// The files git ignores in the project's directory, with their sizes (`files`, `truncated`).
+    GitIgnored { root: String },
     /// The provider CLIs and their logins (`accounts` group). A reply names a status and a login prompt, never a token.
     AccountsList,
     AccountsRefresh { provider: Option<String> },
@@ -349,6 +355,8 @@ pub enum Op {
     Preview { method: &'static str, params: Value },
     /// A request of the catalog group's speech methods (`speech.status`, `speech.transcribe`): the service's own engine, the executor is never asked.
     Speech { method: &'static str, params: Value },
+    /// A request of the catalog group that reads the executor's own host (`sessions.list`): `method` is the agent API method.
+    Catalog { method: &'static str, params: Value },
 }
 
 impl Op {
@@ -414,6 +422,7 @@ impl Op {
             Op::GitStage { .. } => "git.stage",
             Op::GitCommit { .. } => "git.commit",
             Op::GitPush { .. } => "git.push",
+            Op::GitIgnored { .. } => "git.ignored",
             Op::AccountsList => "provider.list",
             Op::AccountsRefresh { .. } => "provider.refresh",
             Op::AccountsSelect { .. } => "provider.select",
@@ -424,7 +433,7 @@ impl Op {
             Op::AccountsLogout { .. } => "provider.logout",
             Op::UsageSummary => "usage.summary",
             Op::ResetCredit { .. } => "provider.resetCredit",
-            Op::Hosted { method, .. } | Op::Schedule { method, .. } | Op::Attachment { method, .. } | Op::Preview { method, .. } | Op::Speech { method, .. } => method,
+            Op::Hosted { method, .. } | Op::Schedule { method, .. } | Op::Attachment { method, .. } | Op::Preview { method, .. } | Op::Speech { method, .. } | Op::Catalog { method, .. } => method,
         }
     }
 }

@@ -209,12 +209,13 @@ pub fn run(req: &Request, tree: &dyn Tree, history: &dyn History, traces: &dyn T
                 Err(e) => return refusal(app, e, "the traces are written by exec_testkit::trace (method-trace/1): rerun the chain".into()),
             };
             let targets = &decisions.targets;
+            let named = |id: &str| decisions.rows.contains_key(id) || decisions.targets.contains_key(id);
             let rows: Vec<evidence::RowSpec> = list
-                .phone_rows()
+                .tracked_rows(&named)
                 .filter(|r| !matches!(r.class.as_deref(), Some("flagged" | "offAllowlist")))
                 .map(|r| evidence::RowSpec { id: r.id.as_str(), target: targets.get(&r.id).map(String::as_str), held: decisions.reverify.contains_key(&r.id), mimic: decisions.mimic(&r.id), unrecordable: decisions.rows.get(&r.id).is_some_and(|d| d.get("unrecordable").and_then(Value::as_str).is_some_and(|w| !w.trim().is_empty())) })
                 .collect();
-            let known: std::collections::BTreeSet<&str> = list.phone_rows().map(|r| r.id.as_str()).collect();
+            let known: std::collections::BTreeSet<&str> = list.tracked_rows(&named).map(|r| r.id.as_str()).collect();
             problems.extend(evidence::unknown_problem(evidence::unknown_rows(&calls, &known).into_iter().filter(|r| !decisions.is_trace_noise(r)).collect()));
             let mut served = evidence::resolve(&calls, &rows, oracle);
             // a row decided not offered is not served, whatever a call of it did

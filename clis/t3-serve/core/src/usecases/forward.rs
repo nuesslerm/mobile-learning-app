@@ -7,7 +7,7 @@ use crate::ports::{AgentError, AgentThread, Op};
 use serde_json::{json, Value};
 
 /// The thread commands this module answers; every other type is decided by the engine alone.
-pub const FORWARDED: [&str; 31] = [
+pub const FORWARDED: [&str; 32] = [
     "thread.archive",
     "thread.unarchive",
     "thread.delete",
@@ -39,6 +39,7 @@ pub const FORWARDED: [&str; 31] = [
     "thread.pull-request.link",
     "thread.pull-request.unlink",
     "thread.pull-request.watch",
+    "thread.tag.set",
 ];
 
 /// Commands kept in `state` as well, by the key of the value that changed.
@@ -147,6 +148,13 @@ impl Service {
                     (None, Some(answers)) => vec![Op::InputAnswer { thread, request, answer: answer_text(answers) }],
                     (None, None) => return Err("runtime-request.respond needs a decision or answers".into()),
                 }
+            }
+            "thread.tag.set" => {
+                let tag = run("tag")?;
+                if tag.is_empty() || tag.len() > 64 || tag.contains(':') {
+                    return Err("tag must be 1 to 64 characters without a colon".into());
+                }
+                vec![Op::StateSet { scope: "t3".into(), key: format!("thread.tag:{thread}:{tag}"), value: json!({"tagged": cmd.body.get("tagged").and_then(Value::as_bool).unwrap_or(false)}) }]
             }
             "thread.user-input.dismiss" => vec![Op::InputDismiss { thread, request: run("requestId")? }],
             "checkpoint.rollback" => {

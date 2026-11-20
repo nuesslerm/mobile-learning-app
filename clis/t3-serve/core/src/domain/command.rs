@@ -16,7 +16,7 @@ pub struct Command {
 }
 
 /// The commands whose effect is the agent API's and whose only mark on the thread's rows is that they were accepted.
-pub const ACCEPTED_ONLY: [&str; 16] = [
+pub const ACCEPTED_ONLY: [&str; 17] = [
     "queue.resume",
     "queued-run.start",
     "queued-run.reorder",
@@ -33,6 +33,7 @@ pub const ACCEPTED_ONLY: [&str; 16] = [
     "thread.pull-request.link",
     "thread.pull-request.unlink",
     "thread.pull-request.watch",
+    "thread.tag.set",
 ];
 
 const PROJECT_TYPES: [&str; 4] = ["project.create", "project.update", "project.archive", "project.delete"];

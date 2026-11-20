@@ -16,6 +16,8 @@ pub const REPO_REVIEWERS: &str = "hosted_repo_reviewers";
 pub const REPO_CLONE: &str = "hosted_repo_clone";
 pub const REPO_PUBLISH: &str = "hosted_repo_publish";
 pub const REPO_REMOTES: &str = "hosted_repo_remotes";
+pub const REPO_STARRED: &str = "hosted_repo_starred";
+pub const REPO_STAR: &str = "hosted_repo_star";
 pub const PR_LIST: &str = "hosted_pr_list";
 pub const PR_VIEW: &str = "hosted_pr_view";
 pub const PR_DIFF: &str = "hosted_pr_diff";
@@ -137,6 +139,8 @@ const REMOVE: Property = Property { name: "remove", kind: "array", about: "Names
 pub const ACTIONS: &[Action] = &[
     action!(REPO_VIEW, "The repository's name, url, default branch, visibility and the signed-in account's permission.", [], []),
     action!(REPO_REMOTES, "The workspace repository's remotes and their fetch URLs, as git lists them, read locally with no network call; none when it has no remote.", [], []),
+    action!(REPO_STARRED, "Whether the signed-in account has starred the repository (GitHub).", [], ["repo"]),
+    action!(REPO_STAR, "Star the repository as the signed-in account (GitHub); starring one already starred keeps it starred.", [], ["repo"]),
     action!(REPO_LABELS, "The labels a repository defines.", [LIMIT], []),
     action!(REPO_REVIEWERS, "The accounts that may be asked to review (the repository's collaborators or members).", [LIMIT], []),
     action!(
@@ -697,6 +701,8 @@ pub enum HostedCall {
     RepoClone { dest: String },
     RepoPublish { dir: String, visibility: Visibility, description: Option<String> },
     RepoRemotes,
+    RepoStarred,
+    RepoStar,
     PrList { state: PrState, author: Option<String>, label: Option<String>, base: Option<String>, head: Option<String>, search: Option<String>, limit: u64 },
     PrView { number: u64 },
     PrDiff { number: u64 },
@@ -764,6 +770,8 @@ impl HostedCall {
             HostedCall::RepoClone { .. } => REPO_CLONE,
             HostedCall::RepoPublish { .. } => REPO_PUBLISH,
             HostedCall::RepoRemotes => REPO_REMOTES,
+            HostedCall::RepoStarred => REPO_STARRED,
+            HostedCall::RepoStar => REPO_STAR,
             HostedCall::PrList { .. } => PR_LIST,
             HostedCall::PrView { .. } => PR_VIEW,
             HostedCall::PrDiff { .. } => PR_DIFF,
@@ -866,7 +874,7 @@ impl HostedOp {
             Some("gitlab") => Provider::Gitlab,
             _ => return Err(bad("`provider` must be `github` or `gitlab`")),
         };
-        let github_only = matches!(tool, PROJECT_LIST | PROJECT_RESOLVE | PROJECT_VIEWS | PROJECT_FIELD_SET | PROJECT_FIELD_CLEAR | COMMENT_ADD | COMMENT_EDIT | COMMENT_DELETE | REPO_ISSUE_TYPES | ISSUE_TYPE_SET | ISSUE_UPDATE);
+        let github_only = matches!(tool, PROJECT_LIST | PROJECT_RESOLVE | PROJECT_VIEWS | PROJECT_FIELD_SET | PROJECT_FIELD_CLEAR | COMMENT_ADD | COMMENT_EDIT | COMMENT_DELETE | REPO_ISSUE_TYPES | ISSUE_TYPE_SET | ISSUE_UPDATE | REPO_STARRED | REPO_STAR);
         if github_only && provider != Provider::Github {
             return Err(bad(format!("{tool} is GitHub's: `provider` must be `github`")));
         }
@@ -903,6 +911,10 @@ impl HostedOp {
         let call = match tool {
             REPO_VIEW => HostedCall::RepoView,
             REPO_REMOTES => HostedCall::RepoRemotes,
+            REPO_STARRED | REPO_STAR => {
+                need_repo(&repo)?;
+                if tool == REPO_STAR { HostedCall::RepoStar } else { HostedCall::RepoStarred }
+            }
             REPO_LABELS => HostedCall::RepoLabels { limit: limit(a)? },
             REPO_REVIEWERS => HostedCall::RepoReviewers { limit: limit(a)? },
             REPO_CLONE => {

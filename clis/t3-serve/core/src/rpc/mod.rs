@@ -2,6 +2,8 @@
 //! Scope checks come first, from the table in `t3-contracts`; an RPC this server does not build answers a declared failure.
 use crate::domain::command::Family;
 use crate::ports::AgentError;
+use crate::usecases::desk_admin::Admin;
+use crate::usecases::desk_threads::{self, Desk};
 use crate::usecases::engine::{thread_event_frame, Failure, Published, Subscription};
 use crate::usecases::launch::LaunchFailure;
 use crate::usecases::queries::QueryFailure;
@@ -133,7 +135,7 @@ impl Connection {
             match s.pacer.next_chunk() {
                 Some(values) => out.push(rpc::chunk(&s.id, values)),
                 None if s.ending && s.pacer.drained() => {
-                    out.push(rpc::exit_success(&s.id, None));
+                    out.push(rpc::exit_success(&s.id, Some(Value::Null)));
                     s.id = Value::Null;
                 }
                 None => {}
@@ -578,6 +580,26 @@ impl Connection {
                 self.open(id, Kind::Followed { _stop: StopSetup(stop) }, 0, vec![first]);
                 vec![]
             }
+            _ if crate::usecases::desk_admin::handles(tag) => match self.svc.desk_admin(tag, payload, &self.principal) {
+                Ok(Admin::Answer(result)) => vec![rpc::exit_success(&id, Some(result))],
+                Ok(Admin::Open(frames)) => {
+                    self.open(id, Kind::Idle, 0, frames);
+                    vec![]
+                }
+                Err(failure) => vec![self.answered(&id, tag, Err(failure))],
+            },
+            _ if crate::usecases::desk_vcs::handles(tag) => vec![self.answered(&id, tag, self.svc.desk_vcs(tag, payload).map(Some))],
+            _ if desk_threads::handles(tag) => match self.svc.desk_threads(tag, payload) {
+                Ok(Desk::Answer(result)) => vec![rpc::exit_success(&id, Some(result))],
+                Ok(Desk::Finite(frames)) => {
+                    self.open(id, Kind::Idle, 0, frames);
+                    if let Some(stream) = self.streams.last_mut() {
+                        stream.ending = true;
+                    }
+                    vec![]
+                }
+                Err(failure) => vec![self.answered(&id, tag, Err(failure))],
+            },
             other => {
                 self.svc.log("rpc.unsupported", &[("tag", other.to_string()), ("known", "true".into())]);
                 vec![rpc::exit_failure(&id, wire::unsupported_error(other))]

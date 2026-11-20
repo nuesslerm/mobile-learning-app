@@ -388,6 +388,8 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
         }
         HostedCall::RepoClone { .. } => Ok(json!({"repo": op.repo})),
         HostedCall::RepoRemotes => Ok(json!({"remotes": remotes_of(&last.stdout)})),
+        HostedCall::RepoStarred => Ok(json!({"starred": last.exit_code == 0})),
+        HostedCall::RepoStar => Ok(json!({"starred": true})),
         HostedCall::RepoPublish { .. } => {
             let printed = outputs.iter().map(|o| format!("{}\n{}", o.stdout, o.stderr)).collect::<String>();
             Ok(json!({"repo": op.repo, "url": first_url(&printed), "remote": "origin"}))

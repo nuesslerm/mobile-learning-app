@@ -152,6 +152,20 @@ impl AuthStore for SqliteStore {
     fn revoke_grant(&self, id: &str) -> StoreResult<bool> {
         Ok(self.conn().execute("DELETE FROM grants WHERE substr(hash, 1, length(?1)) = ?1 AND used_at IS NULL", [id]).map_err(err)? > 0)
     }
+
+    fn list_tokens(&self, now: Millis) -> StoreResult<Vec<TokenRecord>> {
+        let conn = self.conn();
+        let mut query = conn.prepare("SELECT id, scopes, label, expires_at FROM tokens WHERE expires_at > ?1 ORDER BY expires_at, id").map_err(err)?;
+        let rows = query.query_map([now], |r| Ok(TokenRecord { id: r.get(0)?, scopes: scopes_of(&r.get::<_, String>(1)?), label: r.get(2)?, expires_at: r.get(3)? })).map_err(err)?;
+        rows.collect::<Result<_, _>>().map_err(err)
+    }
+
+    fn list_grants(&self, now: Millis) -> StoreResult<Vec<(String, GrantRecord, Millis)>> {
+        let conn = self.conn();
+        let mut query = conn.prepare("SELECT hash, scopes, label, expires_at FROM grants WHERE used_at IS NULL AND expires_at > ?1 ORDER BY expires_at, hash").map_err(err)?;
+        let rows = query.query_map([now], |r| Ok((r.get::<_, String>(0)?, GrantRecord { scopes: scopes_of(&r.get::<_, String>(1)?), label: r.get(2)? }, r.get::<_, i64>(3)?))).map_err(err)?;
+        rows.collect::<Result<_, _>>().map_err(err)
+    }
 }
 
 impl MetaStore for SqliteStore {

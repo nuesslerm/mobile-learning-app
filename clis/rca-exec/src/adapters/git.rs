@@ -4,7 +4,7 @@
 //! Push, pull and fetch go to a remote the repository has configured, with whatever credentials this machine's git finds.
 use base64::Engine;
 use exec_git::{
-    BlobResult, Checkpointed, CommitDone, CommitInfo, CompareResult, DiffFile, DiscardDone, DiscardScope, FastForwarded, Fetched, FetchedRef, GitCall, GitEvent, GitStatus, HeadMoved, InitDone, InitFile, Integrated, LogResult, MergeStrategy, PathsDone, PullStrategy, Pushed,
+    BlobResult, Checkpointed, CommitDone, CommitInfo, CompareResult, DiffFile, DiscardDone, DiscardScope, FastForwarded, Fetched, FetchedRef, GitCall, GitEvent, GitStatus, HeadMoved, IgnoredFile, IgnoredFiles, InitDone, InitFile, Integrated, LogResult, MergeStrategy, PathsDone, PullStrategy, Pushed,
     RefCreated, Refspec, RefInfo, RefKind, RefsResult, Resolution, Resolved, Step, StatusFile, UpstreamStatus, Watched, BLOB_MAX, STATUS_FILES_CAP,
 };
 use exec_proto::{to_value, Code, ExecError, ExecResult};
@@ -400,6 +400,21 @@ impl Repo {
         let files_truncated = files.len() > STATUS_FILES_CAP;
         files.truncate(STATUS_FILES_CAP);
         Ok(CompareResult { base: base.to_string(), head: head.to_string(), merge_base, ahead, behind, commits, files, truncated: truncated || files_truncated })
+    }
+
+    /// The regular files git ignores, sorted by path: `--directory` reports a directory of nothing but ignored files as one entry, which is
+    /// skipped, so build output and dependencies drop out.
+    pub fn ignored(&self, limit: usize) -> ExecResult<IgnoredFiles> {
+        let args = ["-c", "core.fsmonitor=false", "ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "--no-empty-directory", "-z"];
+        let out = self.run(&args)?;
+        if !out.ok() {
+            return Err(fail(&args, &out));
+        }
+        let mut paths: Vec<String> = nul_tokens(&out).into_iter().filter(|p| !p.ends_with('/')).collect();
+        paths.sort();
+        let truncated = paths.len() > limit;
+        let files = paths.iter().take(limit).filter_map(|p| std::fs::symlink_metadata(self.dir.join(p)).ok().filter(|m| m.is_file()).map(|m| IgnoredFile { path: p.clone(), size: m.len() })).collect();
+        Ok(IgnoredFiles { files, truncated })
     }
 
     pub fn upstream(&self) -> ExecResult<UpstreamStatus> {
@@ -881,6 +896,7 @@ impl Repo {
             GitCall::Log { rev, path, limit, skip } => to_value(&self.log(rev.as_deref(), path.as_deref(), *limit, *skip)?),
             GitCall::Compare { base, head, limit } => to_value(&self.compare(base, head, *limit)?),
             GitCall::Upstream => to_value(&self.upstream()?),
+            GitCall::Ignored { limit } => to_value(&self.ignored(*limit)?),
             GitCall::Stage { paths } => to_value(&self.stage(paths)?),
             GitCall::Unstage { paths } => to_value(&self.unstage(paths)?),
             GitCall::Discard { paths, scope, untracked, source } => to_value(&self.discard(paths, *scope, *untracked, source.as_deref())?),

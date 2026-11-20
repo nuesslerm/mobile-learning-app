@@ -39,6 +39,7 @@ pub const GIT_BLOB: &str = "git_blob";
 pub const GIT_WATCH: &str = "git_watch";
 pub const GIT_INIT: &str = "git_init";
 pub const GIT_CHECKPOINT: &str = "git_checkpoint";
+pub const GIT_IGNORED: &str = "git_ignored";
 
 /// The actions that stay open after their request: `git_watch` streams the status until a `cancel` names it (or `max_events` is reached).
 pub const LONG: &[&str] = &[GIT_WATCH];
@@ -206,6 +207,12 @@ pub const ACTIONS: &[Action] = &[
         about: "Record the working tree as it is now (tracked and untracked files, not ignored ones) as a commit under `refs/rca/checkpoints/<thread>/<turn>`, built on a private index: the repository's index, branch, HEAD and files are never touched. Restore it with `git_discard` (`scope` all, `untracked`, `source` that ref).",
         properties: &[WORKTREE, Property { name: "thread", kind: "string", about: "The thread the checkpoint belongs to: letters, digits, `.`, `_` and `-`" }, Property { name: "turn", kind: "string", about: "The turn that is about to start: letters, digits, `.`, `_` and `-`; a checkpoint of the same turn is replaced" }],
         required: &["thread", "turn"],
+    },
+    Action {
+        name: GIT_IGNORED,
+        about: "The files git ignores in the working tree, as `path` and `size` sorted by path: a directory that holds only ignored files is skipped, as are links and anything that is no regular file.",
+        properties: &[WORKTREE, Property { name: "limit", kind: "integer", about: "At most this many files (default 200)" }],
+        required: &[],
     },
 ];
 

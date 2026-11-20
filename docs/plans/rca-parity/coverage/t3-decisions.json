@@ -835,7 +835,9 @@
       "unrecordable": "no recording shows it: the recorded interactions never reach agent method input.dismiss (a dismissed question needs a scripted turn that asks one, which no recorded set holds); the behaviour test thread_surface is the only check of it. Not stageable yet (R12): the real T3 raises an approval or a question only when claude sends a control_request over the Claude SDK protocol, which the scripted CLI never prints (its steps are Line, Sleep, McpCall, ReadLine, Credential) and the reference host refuses McpCall, while the candidate raises one only through the executor MCP tool approval_prompt or ask_user: one case cannot hold the same cue on both sides."
     },
     "command:subagent.stop": {
-      "unrecordable": "no recording shows it: the set t3-v0.1.9-agent-cues records the call, and the reference refused it (The requested native subagent cannot be stopped on this run: the scripted hanging turn raised no native subagent n1, so no agent method answered OK), and its hosted slice replay (run 44226420138, rows=command:subagent.stop) is breaking with one difference; the behaviour test thread_surface is the only check of it"
+      "state": "not-offered",
+      "reason": "no native subagent exists on a run of rca: the pinned server refuses the command (the requested native subagent cannot be stopped on this run) and the run keeps going, and t3 serve answers the same refusal, so no agent method serves it (t3-v0.1.9-agent-cues records the refusal)",
+      "decidedBy": "M4"
     },
     "command:thread.unarchive": {
       "unrecordable": "no recording shows it: the set t3-v0.1.9-agent-cues records it (archive then unarchive, both answered Success, hosted run 44215259574), but its hosted slice replay (run 44224411126, rows=command:thread.unarchive) is breaking with one difference whose detail the replay artifact does not carry; the behaviour test thread_surface is the only check of it"
@@ -877,6 +879,90 @@
       "oracle": "mimic"
     },
     "rpc:subscribeVcsBranch": {
+      "oracle": "mimic"
+    },
+    "http:auth.browserSession": {
+      "oracle": "mimic"
+    },
+    "http:auth.revokeClient": {
+      "oracle": "mimic"
+    },
+    "http:auth.revokeOtherClients": {
+      "oracle": "mimic"
+    },
+    "http:auth.revokePairingLink": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSessions.scan": {
+      "oracle": "mimic"
+    },
+    "rpc:cloud.getRelayClientStatus": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getWorktreeThreadIds": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.searchThread": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.searchThreadStream": {
+      "oracle": "mimic"
+    },
+    "rpc:peerLinks.unlink": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.clearProfile": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.reportProfiles": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.reportStatus": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.listIgnoredFiles": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.chatgpt.handoff.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:review.getBranchCommits": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.getWebhookDelivery": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.listWebhookDeliveries": {
+      "oracle": "mimic"
+    },
+    "rpc:server.getProcessDiagnostics": {
+      "oracle": "mimic"
+    },
+    "rpc:server.getProcessResourceHistory": {
+      "oracle": "mimic"
+    },
+    "rpc:server.getResourceTelemetryHistory": {
+      "oracle": "mimic"
+    },
+    "rpc:server.getStorageCleanupReport": {
+      "oracle": "mimic"
+    },
+    "rpc:server.retryResourceTelemetry": {
+      "oracle": "mimic"
+    },
+    "rpc:server.runStorageCleanup": {
+      "oracle": "mimic"
+    },
+    "rpc:server.signalProcess": {
+      "oracle": "mimic"
+    },
+    "rpc:sourceControl.star": {
+      "unrecordable": "the pinned server's recording of this row is the signed-out refusal; the starred and not-starred answers are the authored doubles of exec-hosted (hosted_repo_star and hosted_repo_starred: 204 and 404 written from GitHub documentation, not recorded), so no recording shows the success path (docs/gaps/orca-github-project-rows.md)"
+    },
+    "rpc:sourceControl.starred": {
+      "unrecordable": "the pinned server's recording of this row is the signed-out refusal; the starred and not-starred answers are the authored doubles of exec-hosted (hosted_repo_star and hosted_repo_starred: 204 and 404 written from GitHub documentation, not recorded), so no recording shows the success path (docs/gaps/orca-github-project-rows.md)"
+    },
+    "rpc:subscribeDiscoveredLocalServers": {
       "oracle": "mimic"
     }
   },

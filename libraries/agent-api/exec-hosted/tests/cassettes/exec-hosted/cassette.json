@@ -1,6 +1,6 @@
 {
-  "content_hash": "sha256:a8681393449c0b753fbd1ee3b1fac1d0aa43b48c716fe8150fc8893bec11b553",
-  "interactions": 202,
+  "content_hash": "sha256:b7c621f7279f5833c1fe26a3418ebe32e1a957d5354047019926b1965e03c31f",
+  "interactions": 209,
   "provenance": {
     "imported_from": [
       {
@@ -220,6 +220,14 @@
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_reviewers.json"
       },
       {
+        "hash": "sha256:44e5cba0cb4803b11f8eecec806cff459ad0afe2db05d8ad0cc311877ff155c8",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_star.json"
+      },
+      {
+        "hash": "sha256:12bd401451ba39b1f6121f86233d816c25b228c1df4679855d033fe929930120",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_starred.json"
+      },
+      {
         "hash": "sha256:8f6d38f61bf82f8f9c72f1c349e73fd56830f86ef867b1dac99e24ffde5e57c8",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_view.json"
       },
@@ -237,7 +245,7 @@
       }
     ],
     "kind": "imported",
-    "note": "imported without a run of gh or glab; the owner-gated real recording against a pinned CLI version is the open next step; the interactions of hosted_project_*, hosted_comment_*, hosted_repo_issue_types, hosted_issue_type_set and hosted_issue_update are authored doubles written from GitHub documentation and Orca source, not recordings (docs/gaps/orca-github-project-rows.md)",
+    "note": "imported without a run of gh or glab; the owner-gated real recording against a pinned CLI version is the open next step; the interactions of hosted_repo_star and hosted_repo_starred (204 for a starred repository, 404 for one that is not), hosted_project_*, hosted_comment_*, hosted_repo_issue_types, hosted_issue_type_set and hosted_issue_update are authored doubles written from GitHub documentation and Orca source, not recordings (docs/gaps/orca-github-project-rows.md)",
     "rules_hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
     "source": "the hosted_*.json fixtures of exec-hosted: what gh and glab print for an argv, written by RECORD_HOSTED_FIXTURES from what the executor did against a scripted fake, not recorded from a run of gh or glab (docs/gaps/exec-hosted-fixtures-not-from-real-clis.md)",
     "tool": {

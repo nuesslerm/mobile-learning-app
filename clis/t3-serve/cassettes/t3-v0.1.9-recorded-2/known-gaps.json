@@ -2,18 +2,6 @@
   "schema": "mimic-known-gaps/2",
   "groups": [
     {
-      "class": "kind at steps.http:ret:_.[*].payload.body",
-      "severity": "breaking",
-      "diffs": [
-        "steps.http:ret:_.[2].payload.body kind breaking",
-        "steps.http:ret:_.[2].payload.headers.content-type changed drift",
-        "steps.http:ret:_.[2].payload.status changed breaking"
-      ],
-      "ids": [
-        "t3-http-connect.relayConfig"
-      ]
-    },
-    {
       "class": "changed at steps.ws:s2c:*.[*].payload.exit._tag",
       "severity": "drift",
       "diffs": [
@@ -38,6 +26,18 @@
       "ids": [
         "t3-http-voice.setCloudKey",
         "t3-http-voice.transcribeCloud"
+      ]
+    },
+    {
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type changed drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-connect.relayConfig"
       ]
     },
     {

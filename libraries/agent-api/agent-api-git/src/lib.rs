@@ -34,9 +34,11 @@ pub const CONFLICT_RESOLVE: Method = Method::new(GROUP, "git.conflictResolve");
 pub const BLOB: Method = Method::new(GROUP, "git.blob");
 /// A repository made in a directory below the root, optionally with first files committed (the one request that is not about the workspace's own repository).
 pub const INIT: Method = Method::new(GROUP, "git.init");
+/// The files git ignores in the workspace's repository, with their sizes.
+pub const IGNORED: Method = Method::new(GROUP, "git.ignored");
 pub const SUBSCRIBE: Method = Method::new(GROUP, "git.subscribe");
 
-pub const METHODS: &[Method] = &[STATUS, REFS, HISTORY, DIFF, COMPARE, STAGE, UNSTAGE, DISCARD, COMMIT, CHECKOUT, CREATE_REF, FETCH, PULL, PUSH, FAST_FORWARD, UPSTREAM_STATUS, MERGE, REBASE, CONFLICT_RESOLVE, BLOB, INIT, SUBSCRIBE];
+pub const METHODS: &[Method] = &[STATUS, REFS, HISTORY, DIFF, COMPARE, STAGE, UNSTAGE, DISCARD, COMMIT, CHECKOUT, CREATE_REF, FETCH, PULL, PUSH, FAST_FORWARD, UPSTREAM_STATUS, MERGE, REBASE, CONFLICT_RESOLVE, BLOB, INIT, IGNORED, SUBSCRIBE];
 
 /// The kind of the event of `git.subscribe`.
 pub mod kind {
@@ -56,7 +58,7 @@ const fn spec(method: Method, action: &'static str, keys: &'static [&'static str
 }
 
 /// Every method but `git.subscribe`, in the contract's order.
-pub const SPECS: [Spec; 21] = [
+pub const SPECS: [Spec; 22] = [
     spec(STATUS, exec_git::GIT_STATUS, &[]),
     spec(REFS, exec_git::GIT_REFS, &["kind", "query", "limit"]),
     spec(HISTORY, exec_git::GIT_LOG, &["rev", "path", "limit", "skip"]),
@@ -78,6 +80,7 @@ pub const SPECS: [Spec; 21] = [
     spec(CONFLICT_RESOLVE, exec_git::GIT_CONFLICT_RESOLVE, &["path", "resolution", "content"]),
     spec(BLOB, exec_git::GIT_BLOB, &["rev", "path", "max_bytes"]),
     spec(INIT, exec_git::GIT_INIT, &["path", "initial_branch", "files", "message"]),
+    spec(IGNORED, exec_git::GIT_IGNORED, &["limit"]),
 ];
 
 pub fn spec_of(method: Method) -> Option<&'static Spec> {

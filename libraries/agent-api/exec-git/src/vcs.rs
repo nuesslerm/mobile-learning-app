@@ -11,6 +11,8 @@ pub const LOG_DEFAULT: usize = 50;
 pub const LOG_MAX: usize = 500;
 pub const REFS_DEFAULT: usize = 500;
 pub const REFS_MAX: usize = 5000;
+pub const IGNORED_DEFAULT: usize = 200;
+pub const IGNORED_MAX: usize = 5000;
 /// The most files a status lists; `truncated` says there were more.
 pub const STATUS_FILES_CAP: usize = 5000;
 pub const PATHS_MAX: usize = 1000;
@@ -223,6 +225,7 @@ pub enum GitCall {
     Watch { interval_ms: u64, max_events: Option<u64> },
     Init { path: String, initial_branch: Option<String>, files: Vec<InitFile>, message: String },
     Checkpoint { thread: String, turn: String },
+    Ignored { limit: usize },
 }
 
 /// A first file of `git_init`: `path` is inside the new repository.
@@ -383,6 +386,7 @@ impl GitOp {
                 crate::checkpoint_id("turn", &turn)?;
                 Ok(GitCall::Checkpoint { thread, turn })
             },
+            crate::GIT_IGNORED => |a| Ok(GitCall::Ignored { limit: limit(a, IGNORED_DEFAULT, IGNORED_MAX)? }),
             _ => return None,
         };
         Some(parse_target(args).and_then(|worktree| make(args).map(|call| GitOp { worktree, call })))
@@ -412,6 +416,7 @@ impl GitOp {
             GitCall::Watch { .. } => crate::GIT_WATCH,
             GitCall::Init { .. } => crate::GIT_INIT,
             GitCall::Checkpoint { .. } => crate::GIT_CHECKPOINT,
+            GitCall::Ignored { .. } => crate::GIT_IGNORED,
         }
     }
 }
@@ -501,6 +506,18 @@ pub struct CommitInfo {
     pub authored_ms: i64,
     pub subject: String,
     pub body: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IgnoredFile {
+    pub path: String,
+    pub size: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IgnoredFiles {
+    pub files: Vec<IgnoredFile>,
+    pub truncated: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

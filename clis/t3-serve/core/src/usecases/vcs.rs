@@ -62,7 +62,7 @@ pub(super) fn manager_unrouted(operation: &str, cwd: &str) -> QueryFailure {
 }
 
 /// A review read of a directory beyond the workspace root.
-fn review_outside(operation: &str, what: &str, cwd: &str) -> QueryFailure {
+pub(super) fn review_outside(operation: &str, what: &str, cwd: &str) -> QueryFailure {
     QueryFailure::Error(json!({"_tag": "VcsRepositoryDetectionError", "operation": format!("ReviewService.{operation}"), "cwd": cwd, "detail": format!("Review {what} cwd must stay within the configured workspace root.")}))
 }
 
@@ -138,7 +138,7 @@ fn halves(root: &str, status: &Value, has_remote: bool, counts: &HashMap<String,
     (local, remote)
 }
 
-fn not_a_repo(e: &AgentError) -> bool {
+pub(super) fn not_a_repo(e: &AgentError) -> bool {
     e.message().contains("not a git repository")
 }
 

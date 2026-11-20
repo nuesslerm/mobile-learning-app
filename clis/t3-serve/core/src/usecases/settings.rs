@@ -5,7 +5,7 @@ use super::queries::{field, QueryFailure};
 use super::service::Service;
 use crate::ports::{AgentError, Follow, Op};
 use serde_json::{json, Map, Value};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
@@ -37,6 +37,8 @@ pub struct Held {
     pub(super) guide_runs: Mutex<HashMap<String, Value>>,
     /// The pull request refresh epoch: an invalidate that tells readers bumps it, and the refresh stream sends each new value.
     refreshes: std::sync::atomic::AtomicU64,
+    /// The host readings the resource history rows answer from; each read of a history takes one more, so the ring holds what was asked for.
+    pub(super) telemetry: Mutex<VecDeque<super::desk_admin::Reading>>,
 }
 
 impl Held {
@@ -488,9 +490,16 @@ impl Service {
         vec![self.storage_cleanup_report("automatic")]
     }
 
-    /// `agentSessions.scan`: the sessions of other agents' CLIs found on this host to import. rca's host keeps none for t3 to find.
+    /// `agentSessions.scan`: the projects the sessions of the CLIs on the executor's host were run in, found by the agent API's `sessions.list`.
     pub fn scan_agent_sessions(&self) -> Value {
-        json!({"candidates": [], "scannedAt": iso(self.now_ms())})
+        let scanned_at = iso(self.now_ms());
+        match self.agent().run(&Op::Catalog { method: "sessions.list", params: json!({"limit": 500}) }) {
+            Ok(found) => self.session_candidates(found["sessions"].as_array().map(Vec::as_slice).unwrap_or_default(), scanned_at),
+            Err(e) => {
+                self.log("agent.sessions.scan.failed", &[("error", e.message())]);
+                json!({"candidates": [], "scannedAt": scanned_at})
+            }
+        }
     }
 
     /// `cloud.getRelayClientStatus`: the relay client is not installed on this server, and `version` is the one the pin installs.

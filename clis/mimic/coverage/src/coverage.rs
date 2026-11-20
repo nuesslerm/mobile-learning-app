@@ -114,7 +114,8 @@ pub fn build(list: &MethodsList, decisions: &Decisions, answered: &BTreeMap<Stri
     let app = list.app.as_str();
     let (mut out, mut problems) = (vec![], vec![]);
     let (mut unassigned, mut untargeted, mut incomplete, mut unproven, mut unreached, mut no_oracle) = (vec![], vec![], vec![], vec![], vec![], vec![]);
-    for row in list.phone_rows() {
+    let named = |id: &str| decisions.rows.contains_key(id) || decisions.targets.contains_key(id);
+    for row in list.tracked_rows(&named) {
         let mut o = Map::new();
         o.insert("id".into(), row.id.clone().into());
         o.insert("kind".into(), row.kind.clone().into());
@@ -124,6 +125,9 @@ pub fn build(list: &MethodsList, decisions: &Decisions, answered: &BTreeMap<Stri
         }
         if row.extra.get("desktop") == Some(&Value::Bool(true)) {
             o.insert("desktop".into(), true.into());
+        }
+        if !row.phone {
+            o.insert("phone".into(), false.into());
         }
         let decision = decisions.rows.get(&row.id);
         let (state, reason, decided) = match (row.class.as_deref(), decision) {
@@ -195,7 +199,7 @@ pub fn build(list: &MethodsList, decisions: &Decisions, answered: &BTreeMap<Stri
         }
         out.push(Value::Object(o));
     }
-    let ids: Vec<&str> = list.phone_rows().map(|r| r.id.as_str()).collect();
+    let ids: Vec<&str> = list.tracked_rows(&named).map(|r| r.id.as_str()).collect();
     let stale: Vec<String> = decisions.targets.keys().chain(decisions.rows.keys()).chain(decisions.reverify.keys()).chain(decisions.milestones.iter().map(|(p, _)| p).filter(|p| !p.ends_with('*'))).filter(|k| !ids.contains(&k.as_str())).cloned().collect();
     // evidence for a row the table does not serve (gone from the phone, decided not offered, or held) is evidence of nothing
     for id in evidence.keys() {
@@ -241,7 +245,7 @@ pub fn build(list: &MethodsList, decisions: &Decisions, answered: &BTreeMap<Stri
         "byKind": by_kind,
         "pendingByMilestone": by_milestone,
         "desktop": {
-            "phoneRowsTheDesktopReaches": out.iter().filter(|r| r["desktop"] == true).count(),
+            "phoneRowsTheDesktopReaches": out.iter().filter(|r| r["desktop"] == true && r["phone"] != false).count(),
             "desktopOnly": list.rows.iter().filter(|r| !r.phone && r.extra.get("desktop") == Some(&Value::Bool(true))).count(),
             "ipcChannels": list.counts["desktop"]["ipcChannels"].clone(),
         },
@@ -283,6 +287,10 @@ fn markdown(app: &str, doc: &Value) -> String {
         "\nDesktop client: {} of these rows are also reached by the desktop app, {} rows only by it (`desktop: true`, `phone: false` in `{app}-methods.json`), and its preload bridge opens {} IPC channels of its own. Desktop rows are not gated here.\n",
         d["phoneRowsTheDesktopReaches"], d["desktopOnly"], d["ipcChannels"]
     ));
+    let tracked = doc["rows"].as_array().into_iter().flatten().filter(|r| r["phone"] == false).count();
+    if tracked > 0 {
+        md.push_str(&format!("\n{tracked} of the desktop-only rows are tracked in this table (client `desktop`): the decisions file names them, and they are served on the same evidence as a phone row.\n"));
+    }
     md.push_str("\n| Row | Client | State | Milestone | Target | Note |\n| --- | --- | --- | --- | --- | --- |\n");
     let cell = |v: &Value| v.as_str().unwrap_or("").replace('|', "\\|");
     for r in doc["rows"].as_array().into_iter().flatten() {
@@ -290,7 +298,11 @@ fn markdown(app: &str, doc: &Value) -> String {
         let proof = r["evidence"]["test"].as_str().map(|t| format!("evidence: `{}` `{t}`{}", r["evidence"]["suite"].as_str().unwrap_or(""), mimic_note(&r["evidence"]))).unwrap_or_default();
         let held = r["reverify"].as_str().map(|w| format!("reverify: {}", w.replace('|', "\\|"))).unwrap_or_default();
         let note = [cell(&r["reason"]), cell(&r["note"]), proof, held, r["decidedBy"].as_str().map(|d| format!("decided by {d}")).unwrap_or_default()].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join("; ");
-        let client = if r["desktop"] == true { "phone, desktop" } else { "phone" };
+        let client = match (r["phone"] != false, r["desktop"] == true) {
+            (false, _) => "desktop",
+            (true, true) => "phone, desktop",
+            _ => "phone",
+        };
         md.push_str(&format!("| `{}`{sub} | {client} | {} | {} | {} | {note} |\n", cell(&r["id"]), cell(&r["state"]), cell(&r["milestone"]), cell(&r["target"])));
     }
     md
@@ -357,6 +369,20 @@ mod tests {
         assert!(c.markdown.contains("| `rpc:a.both` | phone, desktop |") && c.markdown.contains("| `rpc:c.phone` | phone |"), "{}", c.markdown);
         // And the desktop-only row adds nothing pending
         assert_eq!(c.pending, 2);
+    }
+
+    #[test]
+    fn a_desktop_only_row_the_decisions_name_is_tracked_with_the_desktop_as_its_client() {
+        // Given a row only the desktop reaches and a decision that names it
+        let mut desk = Row::new("rpc", "b.desk");
+        desk.extra.insert("desktop".into(), true.into());
+        let l = list(vec![phone("rpc", "a.phone"), desk]);
+        let decisions = Decisions::parse(r#"{"milestones": {"rpc:*": "M1"}, "decisions": {"rpc:b.desk": {"oracle": "mimic"}}}"#).unwrap();
+        // When the table is built
+        let c = build(&l, &decisions, &BTreeMap::new(), &BTreeMap::new(), &crate::testing::AdmitOnly::default());
+        // Then the row is in the table as a desktop row
+        assert_eq!(c.json["rows"].as_array().unwrap().len(), 2);
+        assert!(c.markdown.contains("| `rpc:b.desk` | desktop |"), "{}", c.markdown);
     }
 
     #[test]

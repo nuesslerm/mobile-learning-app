@@ -1032,6 +1032,342 @@
         "complete": true,
         "tests": 3,
         "passed": 2
+      },
+      {
+        "suite": "t3-serve-integration",
+        "sha": "cccc4ffd8141c53c3b71ed807508ac4974fe0046",
+        "complete": true,
+        "tests": 29,
+        "passed": 29
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 17,
+        "passed": 17
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 1,
+        "passed": 0
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 3,
+        "passed": 3
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 2,
+        "passed": 0
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 10,
+        "passed": 10
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 832,
+        "passed": 625
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 42,
+        "passed": 39
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 38,
+        "passed": 29
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 39,
+        "passed": 34
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 88,
+        "passed": 41
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 43,
+        "passed": 37
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "2ca858754a84b1b1909a18e8c4d4c46ebc20682f",
+        "complete": true,
+        "tests": 6,
+        "passed": 3
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 228,
+        "passed": 219
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 15,
+        "passed": 15
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 16,
+        "passed": 16
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 14,
+        "passed": 14
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 20,
+        "passed": 8
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 41,
+        "passed": 41
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 34,
+        "passed": 34
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 77,
+        "passed": 72
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 5,
+        "passed": 5
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 14,
+        "passed": 3
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 77,
+        "passed": 60
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 5,
+        "passed": 5
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 6,
+        "passed": 6
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "4bcdc1d603c7b15fffcf56af0c095864d58cd419",
+        "complete": true,
+        "tests": 13,
+        "passed": 9
       }
     ]
   },
@@ -1057,7 +1393,8 @@
       ],
       "executor": [
         "git_checkpoint",
-        "put_blob"
+        "put_blob",
+        "run_command"
       ]
     },
     "command:provider-session.detach": {
@@ -1089,8 +1426,9 @@
         "turn.steer"
       ],
       "executor": [
+        "cancel",
         "git_checkpoint",
-        "write_file"
+        "run_command"
       ]
     },
     "command:queued-run.cancel": {
@@ -1139,7 +1477,9 @@
         "turn.start"
       ],
       "executor": [
-        "git_checkpoint"
+        "cancel",
+        "git_checkpoint",
+        "run_command"
       ],
       "oracle": "mimic",
       "diff": "allowlisted",
@@ -1155,7 +1495,9 @@
         "turn.start"
       ],
       "executor": [
-        "git_checkpoint"
+        "cancel",
+        "git_checkpoint",
+        "run_command"
       ],
       "oracle": "mimic",
       "diff": "allowlisted",
@@ -1169,18 +1511,8 @@
         "thread.create"
       ],
       "executor": [
-        "write_file"
+        "run_command"
       ]
-    },
-    "command:subagent.stop": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::a_workflow_stop_and_a_subagent_stop_each_end_the_running_turn_through_rca_and_a_stop_with_nothing_running_is_not_asked_of_rca",
-      "agent": [
-        "thread.create",
-        "thread.subscribe",
-        "workflow.stop"
-      ],
-      "executor": []
     },
     "command:thread.active.reorder": {
       "suite": "wf-mimic-t3-recorded",
@@ -1377,7 +1709,9 @@
         "turn.start"
       ],
       "executor": [
-        "git_checkpoint"
+        "cancel",
+        "git_checkpoint",
+        "run_command"
       ],
       "oracle": "mimic",
       "diff": "allowlisted",
@@ -1433,7 +1767,7 @@
         "thread.create"
       ],
       "executor": [
-        "write_file"
+        "run_command"
       ]
     },
     "command:thread.visit": {
@@ -1445,9 +1779,45 @@
       "diff": "allowlisted",
       "cassette": "recorded"
     },
+    "http:auth.browserSession": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-auth.browserSession-invalid-drop-credential",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
     "http:auth.pairingCredential": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-http-auth.pairingCredential-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:auth.revokeClient": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-auth.revokeClient-invalid-drop-sessionId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:auth.revokeOtherClients": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-auth.revokeOtherClients-empty-empty-object",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:auth.revokePairingLink": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-auth.revokePairingLink-invalid-drop-id",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -1649,6 +2019,19 @@
       "diff": "allowlisted",
       "cassette": "recorded"
     },
+    "rpc:agentSessions.scan": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-agentSessions.scan-invalid-no-payload",
+      "agent": [
+        "sessions.list"
+      ],
+      "executor": [
+        "session_scan"
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
     "rpc:assets.createUrl": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-assets.createUrl-invalid-drop-resource",
@@ -1679,6 +2062,15 @@
     "rpc:attachments.delete": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-attachments.delete-invalid-drop-attachmentId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:cloud.getRelayClientStatus": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-cloud.getRelayClientStatus-invalid-no-payload",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -1846,9 +2238,36 @@
       "diff": "allowlisted",
       "cassette": "recorded"
     },
+    "rpc:orchestration.getWorktreeThreadIds": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getWorktreeThreadIds-invalid-drop-worktreePath",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
     "rpc:orchestration.launchThread": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.launchThread-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:orchestration.searchThread": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.searchThread-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:orchestration.searchThreadStream": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.searchThreadStream-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -1908,9 +2327,27 @@
       "diff": "allowlisted",
       "cassette": "recorded"
     },
+    "rpc:peerLinks.unlink": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-peerLinks.unlink-invalid-drop-environmentId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
     "rpc:preview.adjust": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-preview.adjust-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:preview.clearProfile": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-preview.clearProfile-invalid-drop-profileId",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -1940,6 +2377,24 @@
     "rpc:preview.open": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-preview.open-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:preview.reportProfiles": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-preview.reportProfiles-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:preview.reportStatus": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-preview.reportStatus-invalid-drop-threadId",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -2022,6 +2477,15 @@
     "rpc:projects.listEntries": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-projects.listEntries-invalid-drop-cwd",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:projects.listIgnoredFiles": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-projects.listIgnoredFiles-invalid-drop-cwd",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -2112,6 +2576,15 @@
     "rpc:provider.auth.subscribe": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-provider.auth.subscribe-invalid-drop-instanceId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:provider.chatgpt.handoff.subscribe": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-provider.chatgpt.handoff.subscribe-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -2428,6 +2901,15 @@
       "diff": "allowlisted",
       "cassette": "recorded"
     },
+    "rpc:review.getBranchCommits": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-review.getBranchCommits-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
     "rpc:review.getDiffFileContents": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-review.getDiffFileContents-invalid-drop-cwd",
@@ -2449,6 +2931,24 @@
     "rpc:scheduledTasks.delete": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.delete-invalid-drop-id",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:scheduledTasks.getWebhookDelivery": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.getWebhookDelivery-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:scheduledTasks.listWebhookDeliveries": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.listWebhookDeliveries-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -2525,6 +3025,42 @@
       "diff": "allowlisted",
       "cassette": "recorded"
     },
+    "rpc:server.getProcessDiagnostics": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.getProcessDiagnostics-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.getProcessResourceHistory": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.getProcessResourceHistory-boundary-limit-windowMs",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.getResourceTelemetryHistory": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.getResourceTelemetryHistory-boundary-limit-windowMs",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.getStorageCleanupReport": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.getStorageCleanupReport-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
     "rpc:server.getUsageSummary": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-server.getUsageSummary-boundary-full",
@@ -2555,6 +3091,33 @@
     "rpc:server.reportClientActivity": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-server.reportClientActivity-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.retryResourceTelemetry": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.retryResourceTelemetry-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.runStorageCleanup": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.runStorageCleanup-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.signalProcess": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.signalProcess-boundary-limit-pid",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -2618,6 +3181,27 @@
     "rpc:sourceControl.signInWait": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.signInWait-invalid-drop-provider",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:sourceControl.star": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.star-invalid-drop-provider",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:sourceControl.starred": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.starred-invalid-drop-provider",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:subscribeDiscoveredLocalServers": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-subscribeDiscoveredLocalServers-invalid-wrong-type-configuredUrls",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

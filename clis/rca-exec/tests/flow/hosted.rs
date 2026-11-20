@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 
 const LOGIN_ACTIONS: [&str; 3] = [AUTH_LOGIN_START, AUTH_LOGIN_WAIT, AUTH_LOGIN_CANCEL];
 // Publishing to GitLab ends with a real `git push` (its own test below); GitLab keeps a file's viewed mark in the browser.
-const GITHUB_ONLY: [&str; 13] = [
+const GITHUB_ONLY: [&str; 15] = [
     REPO_PUBLISH,
     PR_FILE_VIEWED,
     exec_hosted::PROJECT_LIST,
@@ -28,6 +28,8 @@ const GITHUB_ONLY: [&str; 13] = [
     exec_hosted::REPO_ISSUE_TYPES,
     exec_hosted::ISSUE_TYPE_SET,
     exec_hosted::ISSUE_UPDATE,
+    exec_hosted::REPO_STARRED,
+    exec_hosted::REPO_STAR,
 ];
 
 struct Bench {
