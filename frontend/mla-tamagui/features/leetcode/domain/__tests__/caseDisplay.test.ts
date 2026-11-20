@@ -53,6 +53,12 @@ describe('clip', () => {
     expect(clip(value)).toEqual(expected);
   });
 
+  it('Given a very long run of whitespace before text, When clipped, Then it is quick (a backtracking trim was quadratic)', () => {
+    const started = Date.now();
+    clip(`${' '.repeat(200_000)}x`);
+    expect(Date.now() - started).toBeLessThan(500);
+  });
+
   it('Given an emoji that straddles the limit, When clipped, Then it is kept whole or left out, never cut in half', () => {
     const { text } = clip(`${'a'.repeat(71)}😀 and more`);
     expect(text).toBe(`${'a'.repeat(71)}😀…`);

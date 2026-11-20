@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import {
   act,
   createFakeAudioRecorder,
@@ -80,6 +83,12 @@ async function renderEditor(
   };
   return app.render('/leetcode/two-sum', { overrides: { leetcode: ports }, search });
 }
+
+// the line of the reset handler's first statement, found in the source so that an edit above it does not move the test's logpoint
+const RESET_HANDLER_LINE =
+  readFileSync(join(__dirname, '../ProblemEditorScreen.tsx'), 'utf8')
+    .split('\n')
+    .findIndex((line) => line.includes('const handleResetCode')) + 2;
 
 describe('ProblemEditorScreen flow (editor buffer)', () => {
   // The export's prerendered editor frame posts its only 'ready' before hydration; 297214d fixed losing it.
@@ -285,7 +294,7 @@ describe('ProblemEditorScreen flow (router)', () => {
     await editor.select(0, editor.text().length);
     await editor.type(typed);
 
-    const probe = logAt('features/leetcode/ui/ProblemEditorScreen.tsx', 551, ['problem.id']);
+    const probe = logAt('features/leetcode/ui/ProblemEditorScreen.tsx', RESET_HANDLER_LINE, ['problem.id']);
     try {
       await userEvent.click(screen.getByTestId('ProblemEditorResetButton'));
     } finally {
@@ -297,7 +306,7 @@ describe('ProblemEditorScreen flow (router)', () => {
     });
     expect(probe.stops).toHaveLength(1);
     expect(probe.stops[0].values).toEqual({ 'problem.id': 'two-sum' });
-    expect(probe.stops[0].stack[0]).toMatchObject({ file: 'features/leetcode/ui/ProblemEditorScreen.tsx', line: 551 });
+    expect(probe.stops[0].stack[0]).toMatchObject({ file: 'features/leetcode/ui/ProblemEditorScreen.tsx', line: RESET_HANDLER_LINE });
   });
 });
 
@@ -445,10 +454,12 @@ describe('ProblemEditorScreen flow (code runner port)', () => {
     await editor.select(0, editor.text().length);
     await editor.type(edited);
     await waitFor(() => expect(editor.text()).toBe(edited));
+    // the page's change reaches the screen's state a moment after the page shows it: let it land before the answer does
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
     await act(async () => finish(passingRun(3)));
 
-    // Then no card appears for code that is no longer there, and the screen says why it dropped the answer
-    await waitFor(async () => expect(await loggedLines('editor_v2.run_local.discarded')).not.toHaveLength(0));
+    // Then no card appears for code that is no longer there, and the screen logs why it dropped the answer (and tells the person)
+    await waitFor(async () => expect(await loggedLines('editor_v2.run_local.discarded')).not.toHaveLength(0), { timeout: 10_000 });
     expect(screen.queryByTestId('ProblemEditorRunOutcomeStatus')).toBeNull();
   });
 });

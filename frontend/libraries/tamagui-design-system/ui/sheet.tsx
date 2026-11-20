@@ -15,6 +15,7 @@ import {
   Text as RNText,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { X } from '../icons';
 import { useOpenSheetStore } from '../lib/openSheetStore';
@@ -191,14 +192,19 @@ export function Sheet({
   // control the sheet exists to offer.
   useDismissKeyboardWhileOpen(open);
 
-  // The sheet rises above the keyboard by the keyboard's height. Opening a sheet puts the keyboard away, so a keyboard that rises while
-  // one is open is for a field in it. gorhom's own lift is not relied on: it only acts for its own input, and on the CI emulator it did
-  // not move the sheet at all (Expo Go, edge to edge), while the keyboard source below is what the toolbar rail already follows there.
-  // The container is moved, not shrunk: a `bottomInset` shrinks the container the percent snap points are taken of, and a sheet that
-  // is 70% of what is left above a keyboard clips its own Send button on a small phone. The strip the move uncovers at the bottom is
-  // the keyboard's. The same code runs on web, where the browser tests and the flow tests see it.
+  // The sheet's bottom edge goes up to the keyboard's top (`bottomInset`). Opening a sheet puts the keyboard away, so a keyboard that
+  // rises while one is open is for a field in it. gorhom's own lift is not relied on: it only acts for its own input, and on the CI
+  // emulator it did not move the sheet at all (Expo Go, edge to edge); the keyboard source is the one the toolbar rail follows. The same
+  // code runs on web, where the browser tests and the flow tests see it.
+  //
+  // The sheet gets smaller by the keyboard's height (its percent points are of the room that is left), so a sheet with a field should
+  // be tall enough for that room: VoiceReviewSheet takes 95% in its text mode. Changing the snap points while the sheet is open is not
+  // an option: it takes the focus from the field (the keyboard goes down again).
   const keyboard = useKeyboardFrame();
-  const keyboardLift = open && keyboard.visible ? keyboard.height : 0;
+  const insets = useSafeAreaInsets();
+  // Android's keyboard events leave out the navigation bar that the keyboard also covers (the toolbar rail adds it the same way), and
+  // the sheet's container ends at the bottom of the window
+  const keyboardLift = open && keyboard.visible ? keyboard.height + (Platform.OS === 'android' ? insets.bottom : 0) : 0;
 
   const mounted = useMountedAfterFirstFrame();
 
@@ -219,7 +225,7 @@ export function Sheet({
       keyboardBehavior="interactive"
       // gorhom default is 'none', which leaves the keyboard up over the sheet.
       keyboardBlurBehavior="restore"
-      containerStyle={keyboardLift > 0 ? { transform: [{ translateY: -keyboardLift }] } : undefined}
+      bottomInset={keyboardLift}
       android_keyboardInputMode="adjustResize"
       // color2, NOT `background`: a sheet painted in the page's own background
       // is invisible on the dark theme -- on a device the only things that read

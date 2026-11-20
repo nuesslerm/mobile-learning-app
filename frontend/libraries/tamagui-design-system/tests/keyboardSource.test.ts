@@ -17,11 +17,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 type Listener = (event: unknown) => void;
 
 const listeners = new Map<string, Listener[]>();
+// what the real Keyboard module says about a keyboard that is already up when a source starts
+let alreadyUp: { height: number } | undefined;
 
 // oxlint-disable-next-line no-restricted-properties -- mocks a platform or native module the library reaches without a port; Phase 4 gives it one and deletes the mock
 vi.mock('react-native', () => ({
   Platform: { OS: 'ios' },
   Keyboard: {
+    isVisible: () => alreadyUp !== undefined,
+    metrics: () => alreadyUp,
     addListener: (name: string, fn: Listener) => {
       listeners.set(name, [...(listeners.get(name) ?? []), fn]);
       return {
@@ -55,6 +59,7 @@ async function freshStore() {
 describe('given the native keyboard source', () => {
   beforeEach(() => {
     listeners.clear();
+    alreadyUp = undefined;
   });
 
   it('when the keyboard shows, then the store carries its height and transition', async () => {
@@ -71,6 +76,18 @@ describe('given the native keyboard source', () => {
     expect(store.getState().visible).toBe(true);
     expect(store.getState().height).toBe(336);
     expect(store.getState().duration).toBe(250);
+    stop();
+  });
+
+  it('when the source starts while the keyboard is already up, then the store carries its height with no event to hear', async () => {
+    // a screen that mounts while the keyboard is up (or after a stop that missed the hide) would otherwise read a store that is stale
+    alreadyUp = { height: 291 };
+    const store = await freshStore();
+    const { startKeyboardSource } = await import('../lib/keyboard/keyboardSource');
+    const stop = startKeyboardSource();
+
+    expect(store.getState().visible).toBe(true);
+    expect(store.getState().height).toBe(291);
     stop();
   });
 

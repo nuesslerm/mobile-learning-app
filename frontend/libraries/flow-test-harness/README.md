@@ -256,7 +256,7 @@ captures it (a canvas's paths, markdown, chart marks).
 | --- | --- |
 | `react-native-gesture-handler` | ships untranspiled Flow syntax jsdom cannot parse; drives the real gesture callbacks from DOM pointer events |
 | `react-native-reanimated` | has no worklet runtime in jsdom; values and animations collapse to plain numbers |
-| `@gorhom/bottom-sheet` | a native sheet needs native layout and gesture runtimes; renders passthrough Views with a `data-sheet` marker (`data-active-offset-y` when the web-only pan window is set, `data-keyboard-lift`: how far the design-system Sheet moves up for the keyboard) |
+| `@gorhom/bottom-sheet` | a native sheet needs native layout and gesture runtimes; renders passthrough Views with a `data-sheet` marker (`data-active-offset-y` when the web-only pan window is set, `data-keyboard-lift`: how far the design-system Sheet lifts its bottom edge for the keyboard) |
 | `react-native-safe-area-context` | supplies the insets and frame a device would: an iPhone 15 Pro's (59 top, 34 bottom) unless a test calls `setSafeAreaDevice('iphone-se' \| 'ipad-pro-11' \| 'none')`; the setup file resets it after every test |
 | `react-native-screens` | ships Flow-typed entry points jsdom cannot parse; its web overlay is a plain wrapper |
 | `react-native-markdown-display` | renders the markdown source as plain text |

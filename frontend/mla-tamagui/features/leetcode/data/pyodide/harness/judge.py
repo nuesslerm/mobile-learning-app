@@ -275,7 +275,16 @@ def _char_column(line, byte_offset):
     return len(line.encode('utf-8')[:byte_offset].decode('utf-8', 'ignore')) + 1
 
 
-def _location(exc, lines, ns, compiling):
+def _code_objects(code):
+    # the learner's compiled module and every function, class body and lambda nested in it
+    found = {code}
+    for const in code.co_consts:
+        if isinstance(const, type(code)):
+            found |= _code_objects(const)
+    return found
+
+
+def _location(exc, lines, owned, compiling):
     # only the learner's own compile reports a position in the learner's file: a SyntaxError raised later, by eval or ast.literal_eval,
     # is about the snippet it was given
     if compiling and isinstance(exc, SyntaxError):
@@ -286,11 +295,11 @@ def _location(exc, lines, ns, compiling):
             at['column'] = exc.offset
         return at
     frame = None
-    # `<string>` is every exec's default filename (dataclasses and namedtuple generate code with it): the learner's frames are the ones
-    # that run in the learner's namespace
+    # `<string>` is every exec's and eval's default filename (dataclasses and namedtuple generate code with it, and a learner's own
+    # eval(...) runs in the learner's namespace): the learner's frames are the ones whose code was compiled from the learner's source
     summaries = traceback.extract_tb(exc.__traceback__)
     for summary, (live, _) in zip(summaries, traceback.walk_tb(exc.__traceback__)):
-        if summary.filename == USER_FILE and summary.lineno and live.f_globals is ns:
+        if summary.lineno and live.f_code in owned:
             frame = summary
     if frame is None:
         return None
@@ -323,7 +332,7 @@ def _case(solution, method, case, cfg, ns, lines):
     except BaseException as exc:
         _guard.disarm()
         error = _describe(exc)
-        error_at = _location(exc, lines, ns, False)
+        error_at = _location(exc, lines, cfg['owned'], False)
     row = {
         'pass': passed,
         'input': inputs,
@@ -355,6 +364,7 @@ def _run(payload, on_case):
         'paramTypes': payload.get('paramTypes') or {},
         'returnType': payload.get('returnType'),
         'inPlace': payload.get('inPlace'),
+        'owned': (),
         'timeout_s': max(1, math.ceil(payload.get('timeoutMs', 5000) / 1000)),
     }
     lines = code.split('\n')
@@ -364,13 +374,14 @@ def _run(payload, on_case):
     try:
         compiled = compile(code, USER_FILE, 'exec')
         compiling = False
+        cfg['owned'] = _code_objects(compiled)
         _guard.arm(cfg['timeout_s'], 'Timeout: module-level code exceeded the ' + str(cfg['timeout_s']) + 's limit')
         with contextlib.redirect_stdout(boot_out):
             exec(compiled, ns)
         _guard.disarm()
     except BaseException as exc:
         _guard.disarm()
-        at = _location(exc, lines, ns, compiling)
+        at = _location(exc, lines, cfg['owned'], compiling)
         if isinstance(exc, TimeoutError):
             return _failed('timeout', str(exc), at)
         return _failed('compile', 'CompileError: ' + _describe(exc).split(': ', 1)[1], at)

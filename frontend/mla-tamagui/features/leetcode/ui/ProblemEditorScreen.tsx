@@ -296,6 +296,7 @@ export function ProblemEditorScreen({
       if (latest.text !== editorText || latest.lang !== lang) {
         // the code that ran is no longer in the editor: its verdict would sit over code it never judged
         Logger.info('editor_v2.run_local.discarded', { problemId: problem?.id, lang, ms: Date.now() - startedAt });
+        toast('Code changed while it ran', { description: 'Run it again to see its result.' });
         return;
       }
       setRunOutcome(result);

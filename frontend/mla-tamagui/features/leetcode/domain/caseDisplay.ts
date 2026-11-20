@@ -23,7 +23,7 @@ export const CLIP_LENGTH = 72;
  * glyph). A trailing newline is not a second line: `print('x')` leaves `x\n`, and a value that fits is not offered for expanding.
  */
 export function clip(text: string, limit = CLIP_LENGTH): { text: string; clipped: boolean } {
-  const lines = text.replace(/\s+$/u, '').split(/\r?\n/);
+  const lines = text.trimEnd().split(/\r?\n/);
   const characters = Array.from(lines.find((line) => line.trim() !== '') ?? '');
   const clipped = lines.length > 1 || characters.length > limit;
   return { text: clipped ? `${characters.slice(0, limit).join('')}…` : characters.join(''), clipped };

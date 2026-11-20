@@ -94,4 +94,10 @@ describe('the deliberate differences from the backend', () => {
     expect(raw.ok).toBe(true);
     expect(raw.results?.map((r) => r.error)).toEqual(['Boom: <unprintable>', 'Boom: <unprintable>']);
   });
+
+  it('given an error raised inside the learner’s own eval, when it runs, then the row points at the line that called eval', () => {
+    const row = judge.run(twoSum(named.EVAL_RUNTIME_ERROR ?? '', 1)).results?.[0];
+    expect(row?.error).toBe('ZeroDivisionError: division by zero');
+    expect(row?.error_at?.line).toBe(3);
+  });
 });

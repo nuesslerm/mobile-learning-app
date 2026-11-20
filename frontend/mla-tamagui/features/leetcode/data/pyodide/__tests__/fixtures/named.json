@@ -16,5 +16,6 @@
   "EVAL_SYNTAX_ERROR": "import ast\nclass Solution:\n    def twoSum(self, nums, target):\n        ast.literal_eval(\"[1,\")\n        return [0, 1]\n",
   "DATACLASS_ORDER_ERROR": "from dataclasses import dataclass\n@dataclass(order=True)\nclass P:\n    a: int\nclass Solution:\n    def twoSum(self, nums, target):\n        return P(None) < P(1)\n",
   "CLOSES_STDOUT": "import sys\nclass Solution:\n    def twoSum(self, nums, target):\n        sys.stdout.close()\n        return [0, 1]\n",
-  "UNPRINTABLE_EXCEPTION": "class Boom(Exception):\n    def __str__(self):\n        raise RuntimeError(\"no\")\nclass Solution:\n    def twoSum(self, nums, target):\n        raise Boom()\n"
+  "UNPRINTABLE_EXCEPTION": "class Boom(Exception):\n    def __str__(self):\n        raise RuntimeError(\"no\")\nclass Solution:\n    def twoSum(self, nums, target):\n        raise Boom()\n",
+  "EVAL_RUNTIME_ERROR": "class Solution:\n    def twoSum(self, nums, target):\n        return eval(\"1/0\")\n"
 }

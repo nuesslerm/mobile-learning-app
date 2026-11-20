@@ -26,6 +26,9 @@ export function startKeyboardSource(): () => void {
     setKeyboardHidden({ duration: event.duration, easing: event.easing ?? null });
   };
 
+  // a source that starts while the keyboard is up (a screen that mounts then) has no event to hear
+  if (Keyboard.isVisible()) setKeyboardShown(Keyboard.metrics()?.height ?? 0, { duration: 0 });
+
   const show = Keyboard.addListener(showEvent, onShow);
   const hide = Keyboard.addListener(hideEvent, onHide);
   Logger.info('keyboard.source.started', { platform: Platform.OS, showEvent, hideEvent });

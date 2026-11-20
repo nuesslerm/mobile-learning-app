@@ -29,6 +29,9 @@ export function useKeyboardFrame(): KeyboardFrame {
       if (refCount === 0) {
         stop?.();
         stop = null;
+        // nothing listens any more, so what the store holds would go stale (a keyboard that hid meanwhile stays "visible"); the next
+        // source seeds it again from the real state
+        useKeyboardStore.getState().setKeyboardHidden();
       }
     };
   }, []);

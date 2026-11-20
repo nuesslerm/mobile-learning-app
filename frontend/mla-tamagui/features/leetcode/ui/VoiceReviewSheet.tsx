@@ -1,4 +1,4 @@
-import { Button, IconButton, Spinner, Text } from '@lib/tamagui-design-system';
+import { Button, IconButton, Spinner, Text, useKeyboardFrame } from '@lib/tamagui-design-system';
 import { Sheet, SheetHeader } from '@lib/tamagui-design-system/ui/sheet';
 import { Pause, Play, RotateCcw, Send, X } from '@lib/tamagui-design-system/icons';
 import { TextInput } from 'react-native';
@@ -84,13 +84,15 @@ export function VoiceReviewSheet({
   onSend,
   testID = 'VoiceReviewSheet',
 }: VoiceReviewSheetProps) {
+  const keyboard = useKeyboardFrame();
   return (
     <Sheet
       open
       onOpenChange={(next) => {
         if (!next) onCancel();
       }}
-      snapPoints={[70, 50]}
+      // in text mode the keyboard is up and the sheet gets the room that is left above it: tall enough for the field and Send there
+      snapPoints={mode === 'text' ? [95, 80] : [70, 50]}
       testID={testID}
     >
       <SheetHeader testID={`${testID}-Header`}>
@@ -143,7 +145,7 @@ export function VoiceReviewSheet({
                 : 'What you said…'
             }
             style={{
-              minHeight: 88,
+              minHeight: keyboard.visible ? 56 : 88,
               borderRadius: 8,
               borderWidth: 1,
               borderColor: '#8884',
