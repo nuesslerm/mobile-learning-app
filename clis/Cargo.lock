@@ -2738,7 +2738,6 @@ dependencies = [
  "toml",
  "tungstenite",
  "wf-kit",
- "wf-mimic",
 ]
 
 [[package]]

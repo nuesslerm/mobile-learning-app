@@ -74,5 +74,3 @@ docs/
 frontend/mobile-learning-app/.expo
 **/.turbo
 **/coverage
-# a crate named coverage: the mimic coverage crate is in t3-serve's cargo closure
-!/clis/mimic/coverage

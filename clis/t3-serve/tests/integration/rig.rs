@@ -78,25 +78,6 @@ impl Direct {
     }
 }
 
-/// The real agent CLIs of a chain (`T3_CHAIN_CLIS`, default scripted): the credentials resolved in memory and the directory of the pinned binaries.
-pub struct Real {
-    pub resolved: wf_mimic::real_clis::Resolved,
-    pub bin: PathBuf,
-    _home: tempfile::TempDir,
-}
-
-/// The mode of this run: `Ok(None)` for scripted, the real CLIs resolved otherwise, or what is missing (the key's name, never a value).
-pub fn real_from_env() -> Result<Option<Real>, String> {
-    let clis = wf_mimic::real_clis::parse_mode(std::env::var(wf_mimic::real_clis::MODE_ENV).ok().as_deref())?;
-    if clis.is_empty() {
-        return Ok(None);
-    }
-    let bin = std::env::var_os("MIMIC_REAL_CLI_DIR").map(PathBuf::from).ok_or("T3_CHAIN_CLIS asks for real CLIs and MIMIC_REAL_CLI_DIR names no directory of them")?;
-    let home = tempfile::Builder::new().prefix("t3-chain-real-").tempdir().map_err(|e| e.to_string())?;
-    let resolved = wf_mimic::real_clis::Resolved::load(&clis, home.path())?;
-    Ok(Some(Real { resolved, bin, _home: home }))
-}
-
 pub struct Chain {
     pub tap: Tap,
     pub cli: ScriptedCli,
@@ -105,8 +86,6 @@ pub struct Chain {
     pub addr: SocketAddr,
     pub state: tempfile::TempDir,
     _dirs: tempfile::TempDir,
-    /// The real CLIs' credentials, when `T3_CHAIN_CLIS` asks for them (the login file lives in a directory this owns).
-    pub real: Option<Real>,
     server: Child,
     errlog: PathBuf,
     _exec: RcaExec,
@@ -129,7 +108,6 @@ impl Chain {
 
     /// `start`, with `env` also in the service's environment (the address of its speech sidecar).
     pub fn start_with_env(env: &[(&str, &str)]) -> Chain {
-        let real = real_from_env().unwrap_or_else(|e| panic!("the real CLIs of this chain: {e}"));
         let cli = ScriptedCli::install();
         let repo = TempRepo::new();
         let service = RcaService::start_with_env(SECRET, &cli.path(), env);
@@ -142,24 +120,12 @@ impl Chain {
         }
         std::fs::write(shared.join("notes.txt"), "not a directory").unwrap();
         let flags = ["--worktree-base", base.to_str().unwrap(), "--browse-allow", shared.to_str().unwrap()];
-        let exec = match &real {
-            None => RcaExec::serve_on(&tap.url(), "w1", &repo, SECRET, &flags, &cli.path()),
-            Some(real) => {
-                // the real binaries come first on the executor's PATH and the scripted ones stay behind them for the names not run for real
-                let path = std::env::join_paths(std::iter::once(real.bin.clone()).chain(std::env::split_paths(&cli.path()))).expect("a PATH of two directories");
-                let mut env = real.resolved.executor_env();
-                // Claude Code refuses its skip-permissions flag as root unless it is told it runs in a sandbox
-                if std::process::Command::new("id").arg("-u").output().is_ok_and(|o| o.stdout.starts_with(b"0\n")) {
-                    env.push(("IS_SANDBOX".into(), "1".into()));
-                }
-                RcaExec::serve_with_env(&tap.url(), "w1", &repo, SECRET, &flags, &path, Some(real.resolved.home()), &env)
-            }
-        };
+        let exec = RcaExec::serve_on(&tap.url(), "w1", &repo, SECRET, &flags, &cli.path());
         let bearer = service.mint("t3 chain");
         let state = tempfile::Builder::new().prefix("t3-serve-chain-").tempdir().unwrap();
         let errlog = state.path().join("serve.err");
         let (server, addr) = spawn_serve(state.path(), &errlog, &tap.url(), &bearer);
-        Chain { tap, cli, repo, service, addr, state, _dirs: dirs, real, server, errlog, _exec: exec }
+        Chain { tap, cli, repo, service, addr, state, _dirs: dirs, server, errlog, _exec: exec }
     }
 
     /// A pairing code minted by a separate `t3-serve pair` on the server's state directory, as an operator hands one to a phone, with the scopes the

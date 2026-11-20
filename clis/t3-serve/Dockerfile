@@ -18,16 +18,6 @@ COPY .cargo/config.toml /src/.cargo/config.toml
 FROM chef AS planner
 COPY clis/Cargo.toml clis/Cargo.lock ./clis/
 COPY clis/wf-kit ./clis/wf-kit
-# The integration rig's dev-dependency on wf-mimic pulls these path crates into the cargo closure; the build compiles none of them.
-COPY clis/blob-cache ./clis/blob-cache
-COPY clis/http ./clis/http
-COPY clis/mimic ./clis/mimic
-COPY clis/mimic/coverage ./clis/mimic/coverage
-COPY clis/mimic/plan ./clis/mimic/plan
-COPY clis/secrets ./clis/secrets
-COPY clis/wf-bucket ./clis/wf-bucket
-COPY clis/wf-testkit ./clis/wf-testkit
-COPY clis/wf-vmops ./clis/wf-vmops
 COPY clis/t3-serve ./clis/t3-serve
 # The wire contracts are copied one crate at a time: `wf` hashes the image from the crates its Dockerfile names, and a whole-directory COPY
 # would be dropped from the hash because that directory holds a workspace manifest. Their tests are not in the context (.dockerignore).
