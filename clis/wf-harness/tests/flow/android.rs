@@ -784,6 +784,8 @@ fn editor_screen(text: &str) -> String {
         node("EditorSyntax-Equals", "[200,500][280,548]", ""),
         node("EditorSyntax-Colon", "[300,500][380,548]", ""),
         node("EditorActionToolbar", "[0,560][480,606]", ""),
+        node("EditorAction-Undo", "[330,570][370,600]", ""),
+        node("EditorAction-Redo", "[380,570][420,600]", ""),
         node("EditorAction-Done", "[441,570][479,600]", ""),
     ]
     .join("")
@@ -811,6 +813,8 @@ fn editor_typing(prefix: &str, after_last_line: &[(&str, String)]) -> (SlotSandb
     let at = |n: usize| format!("<hierarchy>{}</hierarchy>", editor_screen(&typed_up_to(n, "")));
     let mut seq: Vec<(&str, String)> = vec![("exp://", route.clone()), ("input tap", dialog.into()), ("input tap", route), ("input tap", at(1)), ("input tap", at(1)), ("keyevent 66", at(2)), ("input tap", at(2)), ("keyevent 66", at(3)), ("keyevent 66", at(4))];
     seq.extend(after_last_line.iter().map(|(part, xml)| (*part, xml.clone())));
+    seq.push(("input tap 350 585", at(3)));
+    seq.push(("input tap 400 585", format!("<hierarchy>{}</hierarchy>", editor_screen(&typed_up_to(4, TWO_SUM_LINES[3])))));
     let lines: Vec<String> = seq.iter().enumerate().map(|(n, (part, xml))| format!("{part}|{}", s.file(&format!("screen-{n}.xml"), xml.as_str()))).collect();
     let seq_file = s.file("screens", lines.join("\n") + "\n");
     let out_dir = s.repo.join("out").display().to_string();
