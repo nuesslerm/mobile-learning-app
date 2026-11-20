@@ -83,6 +83,37 @@ describe('the editor port forwarding', () => {
     expect(legacy).toEqual([]);
   });
 
+  it('given a setSelection message, when it is posted, then the typed select lands, the editor is focused and the old path saw nothing', async () => {
+    const { fake, legacy, post } = setup();
+
+    post({ type: 'setSelection', start: 1, end: 2 });
+    await settled();
+
+    expect(fake.peek().selection.ranges[0]).toEqual({ anchor: 1, head: 2 });
+    expect(fake.peek().focused).toBe(true);
+    expect(legacy).toEqual([]);
+  });
+
+  it('given a setSelection past the end of the text, when it is posted, then nothing moves and the old script is not asked to throw', async () => {
+    const { fake, legacy, post } = setup();
+
+    post({ type: 'setSelection', start: 0, end: 99 });
+    await settled();
+
+    expect(fake.peek().selection.ranges[0]).toEqual({ anchor: 0, head: 0 });
+    expect(legacy).toEqual([]);
+  });
+
+  it('given no editor behind the engine yet, when setSelection is posted, then the old script gets it', async () => {
+    const legacy: ToEditorMessage[] = [];
+    const post = createForwardingPost(createEditorClient(createDeferredEngine(() => undefined)), (msg) => legacy.push(msg));
+
+    post({ type: 'setSelection', start: 1, end: 1 });
+    await settled();
+
+    expect(legacy).toEqual([{ type: 'setSelection', start: 1, end: 1 }]);
+  });
+
   it('given no editor behind the engine yet, when focus is posted, then the old script gets it so the focus is not lost', async () => {
     // Given an engine with no page bound
     const legacy: ToEditorMessage[] = [];

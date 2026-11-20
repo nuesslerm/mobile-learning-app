@@ -5,16 +5,14 @@ import type { ToEditorMessage } from '../../domain/ports';
 import { toConfigPatch, type LegacyConfigPatch } from '../engine/configPatch';
 
 /** The messages that reach the page through the typed editor API. */
-export const FORWARDED_TYPES = ['undo', 'redo', 'updateConfig', 'focus'] as const;
+export const FORWARDED_TYPES = ['undo', 'redo', 'updateConfig', 'focus', 'setSelection'] as const;
 /**
  * The messages that still travel as fire-and-forget scripts, and why: `init` creates the editor; `blur` waits for an iOS check of
- * the blur trick; `setSelection` waits for the select step on the toolbar's keys; `insertAt`/`typeText`/`setText` need the typing
- * step and the diff sync; the highlight and diff marks move with the runner jump and voice edit. The list only shrinks.
+ * the blur trick; `insertAt`/`typeText`/`setText` need the typing step and the diff sync; the highlight and diff marks move with the runner jump and voice edit. The list only shrinks.
  */
 export const LEGACY_TYPES = [
   'init',
   'blur',
-  'setSelection',
   'insertAt',
   'typeText',
   'setText',
@@ -31,6 +29,10 @@ type Unlisted = Exclude<
 >;
 export const everyMessageIsListed: [Unlisted] extends [never] ? true : never =
   true;
+
+// the replies that say the typed path could not run at all: an idempotent message is sent again on the old script
+const typedPathUnavailable = (reply: Reply<unknown>) =>
+  !reply.ok && ['not-ready', 'unsupported', 'transport'].includes(reply.error.code);
 
 const reportFailure = (type: string) => (reply: Reply<unknown>) => {
   if (!reply.ok)
@@ -65,6 +67,18 @@ export function createForwardingPost(
           if (reply.ok) return;
           reportFailure('focus')(reply);
           legacyPost(msg);
+        });
+        return;
+      case 'setSelection':
+        // out-of-range or invalid is logged and nothing moves, where the old script threw inside the page
+        void client.select(msg.start, msg.end).then((reply) => {
+          if (reply.ok) {
+            // the old script focused the editor with the selection
+            void client.focus().then(reportFailure('setSelection'));
+            return;
+          }
+          reportFailure('setSelection')(reply);
+          if (typedPathUnavailable(reply)) legacyPost(msg);
         });
         return;
       default:
