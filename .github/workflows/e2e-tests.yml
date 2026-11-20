@@ -42,8 +42,8 @@ on:
       plan:
         type: string
         required: false
-      # how the same run's eas-update job ended (success, failure, cancelled, skipped; empty on a dispatch): which update the
-      # android update units may load
+      # how the same run's eas-update job ended (success, failure, cancelled, skipped; empty on a dispatch), or `wait`: the job started beside the eas-update-e2e job and
+      # reads how it ended just before its tests: which update the android update units may load
       eas_update:
         type: string
         required: false
@@ -127,7 +127,7 @@ jobs:
       # absent when the eas-update job was skipped or this is a dispatch: the tests then fall back to the pointer's own source
       - name: Download the EAS pointers of this run
         id: eas_pointer
-        if: ${{ inputs.eas_update != '' }}
+        if: ${{ inputs.eas_update != '' && inputs.eas_update != 'wait' }}
         continue-on-error: true
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -277,6 +277,36 @@ jobs:
             jq -e '.boot.completed == true and .boot.activityService == true and .restartProven == true and .disabledTotal >= 40' "$RUNNER_TEMP/device-features.json"
           fi
       # runs the misses and replays the cached passes, whose earlier runs (bundles included) go in the summary
+      # `wait`: this job started beside the run's eas-update-e2e job (its 13 minutes overlap this job's setup and the device's boot) and the first update unit is the
+      # first to read its pointer, so the job waits for it here, where it is needed, and takes how it ended as WF_EAS_UPDATE_RESULT
+      - name: Wait for this run's EAS Update
+        id: eas_wait
+        if: ${{ inputs.eas_update == 'wait' && steps.pick.outputs.any == 'true' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          result=""
+          for _ in $(seq 1 150); do
+            result=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '[.jobs[] | select(.name | endswith("eas-update-e2e"))][0].conclusion // empty' 2>/dev/null || true)
+            [ -z "$result" ] || break
+            sleep 10
+          done
+          [ -n "$result" ] || result=timed_out
+          echo "the EAS Update of this run ended: $result"
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+          echo "WF_EAS_UPDATE_RESULT=$result" >> "$GITHUB_ENV"
+      - name: Download the EAS pointers of this run (after the wait)
+        id: eas_pointer_late
+        if: ${{ steps.eas_wait.outputs.result == 'success' }}
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: eas-pointer
+          path: ${{ runner.temp }}/eas-pointer
+      - name: Point the tests at the downloaded EAS pointers (after the wait)
+        if: ${{ steps.eas_pointer_late.outcome == 'success' }}
+        run: echo "WF_EAS_POINTER_DIR=$RUNNER_TEMP/eas-pointer" >> "$GITHUB_ENV"
       - name: Run the e2e tests
         if: steps.pick.outputs.any == 'true' || steps.pick.outputs.replay > 0
         # bash with pipefail: the step fails when wf test run does, not when tee does

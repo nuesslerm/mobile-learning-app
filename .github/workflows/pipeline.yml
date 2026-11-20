@@ -1106,7 +1106,7 @@ jobs:
 
   # The focused Android e2e tests, last: the device boots once, cold, and every test runs on it warm, one after another.
   android-e2e-tests:
-    needs: [plan, flow-tests, typecheck-lint-unit-tests, clis, cli-e2e-tests, eas-update-e2e]
+    needs: [plan, flow-tests, typecheck-lint-unit-tests, clis, cli-e2e-tests]
     if: ${{ (!cancelled() && inputs.e2e && needs.plan.result == 'success' && needs.clis.result != 'failure' && needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
     uses: ./.github/workflows/e2e-tests.yml
     secrets:
@@ -1118,8 +1118,9 @@ jobs:
       plan: ${{ needs.plan.outputs.plan }}
       sha: ${{ github.sha }}
       base: ${{ github.event.before }}
-      # update units load this push's update, error when its publish failed, and after a skipped one load the pointer's only if it is this commit's app
-      eas_update: ${{ needs.eas-update-e2e.result }}
+      # update units load this push's update, error when its publish failed, and after a skipped one load the pointer's only if it is this commit's app; `wait`: this job starts beside
+      # eas-update-e2e and waits for it just before its tests (the publish and the device's setup overlap)
+      eas_update: ${{ (inputs.ship && inputs.e2e && needs.plan.outputs.eas_update == 'true') && 'wait' || '' }}
 
   # Every run reports where it is read (`wf ci comment`): a table of the jobs with their cache hits and latency, Nx replays, docker layers, EAS
   # seconds and the e2e units, in the job summary and as a comment on the open PR; a red run also gets the cause of each failure as a comment on
