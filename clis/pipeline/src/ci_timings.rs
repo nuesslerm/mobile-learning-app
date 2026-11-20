@@ -16,7 +16,7 @@ const PROGRESS: Spec = Spec { values: &["run"], positional: Positional::None, ..
 /// A step shorter than this is not a gauge: the series would be many and say nothing.
 const STEP_MIN_S: i64 = 5;
 
-fn stamp(job: &Value, key: &str) -> Option<i64> {
+pub(crate) fn stamp(job: &Value, key: &str) -> Option<i64> {
     job[key].as_str().and_then(epoch_of)
 }
 
@@ -38,7 +38,7 @@ fn shard_of(name: &str) -> String {
     split(name.rsplit(" / ").next().unwrap_or(name)).1
 }
 
-fn api_env(run: Option<String>) -> Result<Env, String> {
+pub(crate) fn api_env(run: Option<String>) -> Result<Env, String> {
     let token = var("GITHUB_TOKEN").or_else(gh_token).ok_or("GITHUB_TOKEN is not set and `gh auth token` gave none")?;
     let repo = var("GITHUB_REPOSITORY").or_else(origin_repo).ok_or("GITHUB_REPOSITORY is not set and the origin remote is not a GitHub repository")?;
     let run = run.or_else(|| var("GITHUB_RUN_ID")).ok_or("--run <id> is required outside a CI run")?;
@@ -72,7 +72,7 @@ fn origin_repo() -> Option<String> {
     Some(path.trim_end_matches(".git").trim_matches('/').rsplitn(3, '/').take(2).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("/"))
 }
 
-fn now() -> i64 {
+pub(crate) fn now() -> i64 {
     var("WF_CI_NOW").and_then(|n| epoch_of(&n)).unwrap_or_else(|| SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64))
 }
 
@@ -185,11 +185,115 @@ fn keep_jobs(env: &Env, run: &Value, run_id: &str, jobs: &[Value]) {
                 started,
                 step: Some(step).filter(|s| !s.is_empty() && s != "-"),
                 excerpt: Some(excerpt).filter(|e| !e.is_empty()),
+                queued_s: created.filter(|_| started > 0).map(|c| (started - c).max(0)),
+                runner: j["runner_name"].as_str().filter(|r| !r.is_empty()).map(str::to_string),
             })
         })
         .collect();
     if let Err(why) = wf_bucket::ci_db::record_jobs_local(&rows) {
         wf_kit::wf_err!("wf: ci jobs not recorded: {why}");
+    }
+    if let Err(why) = wf_bucket::ci_db::record_steps_local(&step_rows(run_id, jobs)) {
+        wf_kit::wf_err!("wf: ci steps not recorded: {why}");
+    }
+}
+
+/// Every step of every finished job (`CI_STEPS`), so the fixed per-runner overhead (checkout, toolchain, cache restore) is a query.
+pub(crate) fn step_rows(run_id: &str, jobs: &[Value]) -> Vec<wf_bucket::ci_db::StepRow> {
+    let mut out = Vec::new();
+    for j in jobs.iter().filter(|j| j["conclusion"].is_string()) {
+        let Some(job) = j["name"].as_str() else { continue };
+        for (index, s) in j["steps"].as_array().map(Vec::as_slice).unwrap_or_default().iter().enumerate() {
+            let (started, completed) = (stamp(s, "started_at"), stamp(s, "completed_at"));
+            out.push(wf_bucket::ci_db::StepRow {
+                run: run_id.to_string(),
+                job: job.to_string(),
+                step_no: s["number"].as_i64().unwrap_or(index as i64 + 1),
+                step: s["name"].as_str().unwrap_or_default().to_string(),
+                started,
+                completed,
+                duration_s: started.zip(completed).map(|(a, b)| (b - a).max(0)),
+                conclusion: s["conclusion"].as_str().map(str::to_string),
+            });
+        }
+    }
+    out
+}
+
+/// Jobs closer than this are one hand-over: a job starts within a couple of seconds of the job it waited for ending.
+const HANDOVER_S: i64 = 2;
+
+/// The run's parallelism from its jobs' intervals: runner seconds, the most jobs at once, the average, the waits for a runner and the critical path (the chain
+/// of jobs from the last to finish back through whichever finished last before each started; the API does not say which job needs which).
+pub(crate) fn profile(run: &Value, run_id: &str, jobs: &[Value]) -> wf_bucket::ci_db::RunProfile {
+    struct Span {
+        name: String,
+        from: i64,
+        to: i64,
+        queue: i64,
+    }
+    let spans: Vec<Span> = jobs
+        .iter()
+        .filter_map(|j| {
+            let (from, to) = (stamp(j, "started_at")?, stamp(j, "completed_at")?);
+            (to > from && j["conclusion"] != "skipped").then(|| Span { name: j["name"].as_str().unwrap_or_default().to_string(), from, to, queue: stamp(j, "created_at").map_or(0, |c| (from - c).max(0)) })
+        })
+        .collect();
+    let mut events: Vec<(i64, i64)> = spans.iter().flat_map(|s| [(s.from, 1), (s.to, -1)]).collect();
+    events.sort();
+    let (mut now, mut peak) = (0, 0);
+    for (_, delta) in events {
+        now += delta;
+        peak = peak.max(now);
+    }
+    let runner_s: i64 = spans.iter().map(|s| s.to - s.from).sum();
+    let created = stamp(run, "run_started_at").or_else(|| stamp(run, "created_at")).or_else(|| spans.iter().map(|s| s.from).min());
+    let wall = created.zip(spans.iter().map(|s| s.to).max()).map_or(0, |(a, b)| (b - a).max(0));
+    let mut chain: Vec<&Span> = spans.iter().max_by_key(|s| s.to).into_iter().collect();
+    while let Some(current) = chain.last().copied() {
+        let before = spans.iter().filter(|s| s.from < current.from && s.to <= current.from + HANDOVER_S).max_by_key(|s| s.to);
+        match before {
+            Some(s) => chain.push(s),
+            None => break,
+        }
+    }
+    chain.reverse();
+    let ratio = |a: f64, b: f64| if b > 0.0 { a / b } else { 0.0 };
+    wf_bucket::ci_db::RunProfile {
+        run: run_id.to_string(),
+        workflow: run["name"].as_str().unwrap_or_default().to_string(),
+        wall_s: wall as f64,
+        runner_s: runner_s as f64,
+        peak_jobs: peak,
+        avg_jobs: ratio(runner_s as f64, wall as f64),
+        queue_s_total: spans.iter().map(|s| s.queue).sum::<i64>() as f64,
+        queue_s_max: spans.iter().map(|s| s.queue).max().unwrap_or(0) as f64,
+        jobs: spans.len() as i64,
+        critical_path_job: chain.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(" > "),
+        critical_path_s: chain.first().zip(chain.last()).map_or(0.0, |(a, b)| (b.to - a.from) as f64),
+        parallel_efficiency: ratio(runner_s as f64, wall as f64 * peak as f64),
+    }
+}
+
+fn profile_json(p: &wf_bucket::ci_db::RunProfile) -> Value {
+    json!({
+        "workflow": p.workflow, "wall_s": p.wall_s, "runner_s": p.runner_s, "peak_jobs": p.peak_jobs, "avg_jobs": p.avg_jobs, "queue_s_total": p.queue_s_total, "queue_s_max": p.queue_s_max,
+        "jobs": p.jobs, "critical_path_job": p.critical_path_job, "critical_path_s": p.critical_path_s, "parallel_efficiency": p.parallel_efficiency,
+    })
+}
+
+/// `ci.run.*{run=<id>, workflow}`: the run's parallelism as gauges.
+fn profile_gauges(g: &mut Gauges, p: &wf_bucket::ci_db::RunProfile) {
+    for (metric, value) in [
+        ("ci.run.runner_s", p.runner_s),
+        ("ci.run.peak_jobs", p.peak_jobs as f64),
+        ("ci.run.avg_jobs", p.avg_jobs),
+        ("ci.run.queue_s_total", p.queue_s_total),
+        ("ci.run.queue_s_max", p.queue_s_max),
+        ("ci.run.critical_path_s", p.critical_path_s),
+        ("ci.run.parallel_efficiency", p.parallel_efficiency),
+    ] {
+        g.set(metric, &p.run, &p.workflow, value);
     }
 }
 
@@ -206,12 +310,18 @@ fn timings(rest: &[String]) -> Option<i32> {
     };
     let table = rows(&run, &jobs);
     keep_jobs(&env, &run, &env.run, &jobs);
+    let shape = profile(&run, &env.run, &jobs);
+    if let Err(why) = wf_bucket::ci_db::record_run_profile_local(&shape) {
+        wf_kit::wf_err!("wf: ci run profile not recorded: {why}");
+    }
     let mut sent = false;
     if parsed.flag("send") {
-        gauges(&table, &env.run).send();
+        let mut g = gauges(&table, &env.run);
+        profile_gauges(&mut g, &shape);
+        g.send();
         sent = true;
     }
-    println!("{}", json!({"ok": true, "run": env.run, "sent": sent, "timings": table}));
+    println!("{}", json!({"ok": true, "run": env.run, "sent": sent, "timings": table, "profile": profile_json(&shape)}));
     Some(0)
 }
 

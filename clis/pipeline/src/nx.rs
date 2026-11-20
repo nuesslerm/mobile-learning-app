@@ -42,8 +42,9 @@ pub fn run_many(nx: &Path, root: &Path, stage: &str, target: &str, projects: &[S
     let passed = traced_status(&mut cmd);
     let (cpu_after, written_after) = children_cost();
     let seconds = since.elapsed().map(|d| d.as_secs_f64()).unwrap_or(0.0);
-    eprintln!("wf: nx cost {}", serde_json::json!({ "target": target, "cpuSeconds": ((cpu_after - cpu_before) * 10.0).round() / 10.0, "writtenBytes": written_after.saturating_sub(written_before), "seconds": (seconds * 10.0).round() / 10.0 }));
-    crate::nx_ledger::emit(since, stage, target);
+    let cpu_seconds = ((cpu_after - cpu_before) * 10.0).round() / 10.0;
+    eprintln!("wf: nx cost {}", serde_json::json!({ "target": target, "cpuSeconds": cpu_seconds, "writtenBytes": written_after.saturating_sub(written_before), "seconds": (seconds * 10.0).round() / 10.0 }));
+    crate::nx_ledger::emit(since, stage, target, cpu_seconds);
     passed
 }
 

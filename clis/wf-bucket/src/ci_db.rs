@@ -128,7 +128,7 @@ fn blob_to_columns(table: &str, cols: &[(&str, &str)], source: &str) -> String {
     )
 }
 
-/// The typed tables of the CI ledger, as `HEALTH_RPT` had them.
+/// The typed tables of the CI ledger, as `HEALTH_RPT` had them, and the parallelism telemetry (`docs/solutions/ci/parallelism-telemetry.md`).
 pub fn ensure_ledger(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS NX_TASKS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, JOB TEXT NOT NULL, TASK TEXT NOT NULL,
@@ -136,13 +136,36 @@ pub fn ensure_ledger(conn: &Connection) -> Result<(), String> {
          CREATE TABLE IF NOT EXISTS CI_METRICS (RUN_ID TEXT NOT NULL, TS INTEGER NOT NULL, METRIC TEXT NOT NULL, SCOPE TEXT NOT NULL, NAME TEXT NOT NULL, VALUE REAL NOT NULL,
            PRIMARY KEY (RUN_ID, TS, METRIC, SCOPE, NAME));
          CREATE TABLE IF NOT EXISTS CI_JOBS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, KIND TEXT NOT NULL, JOB TEXT NOT NULL,
-           SECS INTEGER NOT NULL, QUEUED INTEGER NOT NULL, PRIMARY KEY (RUN_ID, JOB));",
+           SECS INTEGER NOT NULL, QUEUED INTEGER NOT NULL, PRIMARY KEY (RUN_ID, JOB));
+         CREATE TABLE IF NOT EXISTS CI_JOB_RESOURCES (RUN_ID TEXT NOT NULL, JOB TEXT NOT NULL, WORKFLOW TEXT, RUNNER TEXT, CORES INTEGER, SAMPLES INTEGER, CPU_AVG REAL, CPU_P95 REAL,
+           CPU_MAX REAL, IOWAIT_AVG REAL, MEM_AVG_MB REAL, MEM_PEAK_MB REAL, MEM_TOTAL_MB REAL, SWAP_PEAK_MB REAL, LOAD1_MAX REAL, PSI_CPU_MAX REAL, PSI_MEM_MAX REAL, PSI_IO_MAX REAL,
+           READ_MB REAL, WRITE_MB REAL, DURATION_S REAL, IDLE_S REAL, SATURATED_S REAL, PRIMARY KEY (RUN_ID, JOB));
+         CREATE TABLE IF NOT EXISTS CI_TASK_RESOURCES (RUN_ID TEXT NOT NULL, JOB TEXT NOT NULL, TASK TEXT NOT NULL, STARTED INTEGER NOT NULL, ENDED INTEGER, SECONDS REAL, CPU_S REAL,
+           CORES_USED REAL, CONCURRENT INTEGER, CPU_AVG REAL, MEM_PEAK_MB REAL, PRIMARY KEY (RUN_ID, JOB, TASK, STARTED));
+         CREATE TABLE IF NOT EXISTS CI_STEPS (RUN_ID TEXT NOT NULL, JOB TEXT NOT NULL, STEP_NO INTEGER NOT NULL, STEP TEXT, STARTED INTEGER, COMPLETED INTEGER, DURATION_S INTEGER,
+           CONCLUSION TEXT, PRIMARY KEY (RUN_ID, JOB, STEP_NO));
+         CREATE TABLE IF NOT EXISTS CI_RUN_PROFILE (RUN_ID TEXT NOT NULL PRIMARY KEY, WORKFLOW TEXT, WALL_S REAL, RUNNER_S REAL, PEAK_JOBS INTEGER, AVG_JOBS REAL, QUEUE_S_TOTAL REAL,
+           QUEUE_S_MAX REAL, JOBS INTEGER, CRITICAL_PATH_JOB TEXT, CRITICAL_PATH_S REAL, PARALLEL_EFFICIENCY REAL);
+         CREATE TABLE IF NOT EXISTS CI_CONCURRENCY (TS INTEGER NOT NULL, RUN_ID TEXT NOT NULL, PHASE TEXT NOT NULL, WORKFLOW TEXT NOT NULL, BUSY INTEGER NOT NULL, QUEUED INTEGER NOT NULL,
+           RUNS_ACTIVE INTEGER NOT NULL, CAP INTEGER NOT NULL, HEADROOM INTEGER NOT NULL, PRIMARY KEY (RUN_ID, PHASE, TS, WORKFLOW));",
     )
     .map_err(sql)?;
-    // what a job ended as, when it started (0: never) and the concurrency group it queued in: added to a database that had the first seven columns
-    for (column, kind) in [("CONCLUSION", "TEXT"), ("STARTED", "INTEGER"), ("GROUP_KEY", "TEXT"), ("STEP", "TEXT"), ("EXCERPT", "TEXT")] {
-        if !has_column(conn, "main", "CI_JOBS", column)? {
-            conn.execute_batch(&format!("ALTER TABLE CI_JOBS ADD COLUMN {column} {kind}")).map_err(sql)?;
+    // columns added later, to a database that had the first ones: what a job ended as, when it started (0: never), the concurrency group it queued in, the wait
+    // from creation to start (QUEUED_S, null when it never started), the runner it ran on; a task's interval (epoch ms) and its share of the stage's CPU seconds
+    for (table, column, kind) in [
+        ("CI_JOBS", "CONCLUSION", "TEXT"),
+        ("CI_JOBS", "STARTED", "INTEGER"),
+        ("CI_JOBS", "GROUP_KEY", "TEXT"),
+        ("CI_JOBS", "STEP", "TEXT"),
+        ("CI_JOBS", "EXCERPT", "TEXT"),
+        ("CI_JOBS", "QUEUED_S", "INTEGER"),
+        ("CI_JOBS", "RUNNER", "TEXT"),
+        ("NX_TASKS", "STARTED_MS", "INTEGER"),
+        ("NX_TASKS", "ENDED_MS", "INTEGER"),
+        ("NX_TASKS", "CPU_S", "REAL"),
+    ] {
+        if !has_column(conn, "main", table, column)? {
+            conn.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN {column} {kind}")).map_err(sql)?;
         }
     }
     Ok(())
@@ -201,6 +224,10 @@ pub struct LedgerTask {
     pub outcome: String,
     pub ms: i64,
     pub passed: bool,
+    /// The interval Nx reports (epoch ms; 0 when unknown) and the task's share of the stage's CPU seconds.
+    pub started_ms: i64,
+    pub ended_ms: i64,
+    pub cpu_s: f64,
 }
 
 /// Writes tasks to the typed `NX_TASKS` table of the job's local database, which the report job merges into the sealed one with the other rows. A task already
@@ -212,8 +239,8 @@ pub fn record_tasks_local(tasks: &[LedgerTask]) -> Result<bool, String> {
     let tx = conn.transaction().map_err(sql)?;
     for t in tasks {
         tx.execute(
-            "INSERT OR IGNORE INTO NX_TASKS (RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-            rusqlite::params![t.run, t.sha, t.ts, t.job, t.task, t.hash, t.outcome, t.ms, t.passed as i64],
+            "INSERT OR IGNORE INTO NX_TASKS (RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED, STARTED_MS, ENDED_MS, CPU_S) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+            rusqlite::params![t.run, t.sha, t.ts, t.job, t.task, t.hash, t.outcome, t.ms, t.passed as i64, t.started_ms, t.ended_ms, t.cpu_s],
         )
         .map_err(sql)?;
     }
@@ -262,6 +289,9 @@ pub struct JobRow {
     pub group_key: Option<String>,
     pub step: Option<String>,
     pub excerpt: Option<String>,
+    /// Seconds from the job's creation to its start (`None` when it never started) and the runner that ran it.
+    pub queued_s: Option<i64>,
+    pub runner: Option<String>,
 }
 
 /// Writes jobs to the typed `CI_JOBS` table of the job's local database (the report job merges it); a job already there for the run is kept once.
@@ -273,13 +303,210 @@ pub fn record_jobs_local(jobs: &[JobRow]) -> Result<bool, String> {
     let tx = conn.transaction().map_err(sql)?;
     for j in jobs {
         tx.execute(
-            "INSERT OR IGNORE INTO CI_JOBS (RUN_ID, SHA, TS, KIND, JOB, SECS, QUEUED, CONCLUSION, STARTED, GROUP_KEY, STEP, EXCERPT) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-            rusqlite::params![j.run, j.sha, j.ts, j.kind, j.job, j.secs, j.queued, j.conclusion, j.started, j.group_key, j.step, j.excerpt],
+            "INSERT OR IGNORE INTO CI_JOBS (RUN_ID, SHA, TS, KIND, JOB, SECS, QUEUED, CONCLUSION, STARTED, GROUP_KEY, STEP, EXCERPT, QUEUED_S, RUNNER) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+            rusqlite::params![j.run, j.sha, j.ts, j.kind, j.job, j.secs, j.queued, j.conclusion, j.started, j.group_key, j.step, j.excerpt, j.queued_s, j.runner],
         )
         .map_err(sql)?;
     }
     tx.commit().map_err(sql)?;
     Ok(true)
+}
+
+/// The tasks of the job-local database at `path` (the job's own `NX_TASKS`), the columns a database written before the intervals existed lacks reading as 0.
+pub fn tasks_of(path: &Path) -> Result<Vec<LedgerTask>, String> {
+    let conn = open_at(path)?;
+    ensure_ledger(&conn)?;
+    let mut stmt = conn
+        .prepare("SELECT RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED, COALESCE(STARTED_MS, 0), COALESCE(ENDED_MS, 0), COALESCE(CPU_S, 0) FROM NX_TASKS")
+        .map_err(sql)?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(LedgerTask {
+                run: r.get(0)?,
+                sha: r.get(1)?,
+                ts: r.get(2)?,
+                job: r.get(3)?,
+                task: r.get(4)?,
+                hash: r.get(5)?,
+                outcome: r.get(6)?,
+                ms: r.get(7)?,
+                passed: r.get::<_, i64>(8)? != 0,
+                started_ms: r.get(9)?,
+                ended_ms: r.get(10)?,
+                cpu_s: r.get(11)?,
+            })
+        })
+        .map_err(sql)?;
+    rows.collect::<Result<_, _>>().map_err(sql)
+}
+
+type Cells = Vec<rusqlite::types::Value>;
+
+fn real(v: Option<f64>) -> rusqlite::types::Value {
+    v.map_or(rusqlite::types::Value::Null, rusqlite::types::Value::Real)
+}
+
+fn text(v: &str) -> rusqlite::types::Value {
+    rusqlite::types::Value::Text(v.to_string())
+}
+
+fn int(v: i64) -> rusqlite::types::Value {
+    rusqlite::types::Value::Integer(v)
+}
+
+/// Runs one `INSERT OR IGNORE` per row of cells into the job's local database; `false`, and nothing written, without one.
+fn insert_local(statement: &str, rows: Vec<Cells>) -> Result<bool, String> {
+    let Some(path) = local_path() else { return Ok(false) };
+    let mut conn = open_at(&path)?;
+    ensure_ledger(&conn)?;
+    let tx = conn.transaction().map_err(sql)?;
+    for cells in rows {
+        tx.execute(statement, rusqlite::params_from_iter(cells)).map_err(sql)?;
+    }
+    tx.commit().map_err(sql)?;
+    Ok(true)
+}
+
+/// One job's runner samples boiled down (`CI_JOB_RESOURCES`): what the machine did while the job ran.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct JobResources {
+    pub run: String,
+    pub job: String,
+    pub workflow: String,
+    pub runner: String,
+    pub cores: i64,
+    pub samples: i64,
+    pub cpu_avg: f64,
+    pub cpu_p95: f64,
+    pub cpu_max: f64,
+    pub iowait_avg: f64,
+    pub mem_avg_mb: f64,
+    pub mem_peak_mb: f64,
+    pub mem_total_mb: f64,
+    pub swap_peak_mb: f64,
+    pub load1_max: f64,
+    pub psi_cpu_max: f64,
+    pub psi_mem_max: f64,
+    pub psi_io_max: f64,
+    pub read_mb: f64,
+    pub write_mb: f64,
+    pub duration_s: f64,
+    pub idle_s: f64,
+    pub saturated_s: f64,
+}
+
+pub fn record_job_resources_local(rows: &[JobResources]) -> Result<bool, String> {
+    let cells = rows
+        .iter()
+        .map(|r| {
+            let f = |v: f64| real(Some(v));
+            vec![
+                text(&r.run), text(&r.job), text(&r.workflow), text(&r.runner), int(r.cores), int(r.samples), f(r.cpu_avg), f(r.cpu_p95), f(r.cpu_max), f(r.iowait_avg), f(r.mem_avg_mb),
+                f(r.mem_peak_mb), f(r.mem_total_mb), f(r.swap_peak_mb), f(r.load1_max), f(r.psi_cpu_max), f(r.psi_mem_max), f(r.psi_io_max), f(r.read_mb), f(r.write_mb), f(r.duration_s),
+                f(r.idle_s), f(r.saturated_s),
+            ]
+        })
+        .collect();
+    insert_local(
+        "INSERT OR IGNORE INTO CI_JOB_RESOURCES (RUN_ID, JOB, WORKFLOW, RUNNER, CORES, SAMPLES, CPU_AVG, CPU_P95, CPU_MAX, IOWAIT_AVG, MEM_AVG_MB, MEM_PEAK_MB, MEM_TOTAL_MB, SWAP_PEAK_MB, LOAD1_MAX, \
+         PSI_CPU_MAX, PSI_MEM_MAX, PSI_IO_MAX, READ_MB, WRITE_MB, DURATION_S, IDLE_S, SATURATED_S) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23)",
+        cells,
+    )
+}
+
+/// One Nx task that ran, with what the job's samples say about its interval (`CI_TASK_RESOURCES`); the sample columns are null when no sample overlaps it.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct TaskResources {
+    pub run: String,
+    pub job: String,
+    pub task: String,
+    pub started: i64,
+    pub ended: i64,
+    pub seconds: f64,
+    pub cpu_s: f64,
+    pub cores_used: f64,
+    pub concurrent: i64,
+    pub cpu_avg: Option<f64>,
+    pub mem_peak_mb: Option<f64>,
+}
+
+pub fn record_task_resources_local(rows: &[TaskResources]) -> Result<bool, String> {
+    let cells = rows
+        .iter()
+        .map(|r| vec![text(&r.run), text(&r.job), text(&r.task), int(r.started), int(r.ended), real(Some(r.seconds)), real(Some(r.cpu_s)), real(Some(r.cores_used)), int(r.concurrent), real(r.cpu_avg), real(r.mem_peak_mb)])
+        .collect();
+    insert_local("INSERT OR IGNORE INTO CI_TASK_RESOURCES (RUN_ID, JOB, TASK, STARTED, ENDED, SECONDS, CPU_S, CORES_USED, CONCURRENT, CPU_AVG, MEM_PEAK_MB) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)", cells)
+}
+
+/// One step of one job (`CI_STEPS`): the fixed per-runner overhead (checkout, toolchain, cache restore) is the sum of the setup steps.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StepRow {
+    pub run: String,
+    pub job: String,
+    pub step_no: i64,
+    pub step: String,
+    pub started: Option<i64>,
+    pub completed: Option<i64>,
+    pub duration_s: Option<i64>,
+    pub conclusion: Option<String>,
+}
+
+pub fn record_steps_local(rows: &[StepRow]) -> Result<bool, String> {
+    let opt = |v: Option<i64>| v.map_or(rusqlite::types::Value::Null, int);
+    let cells = rows
+        .iter()
+        .map(|r| vec![text(&r.run), text(&r.job), int(r.step_no), text(&r.step), opt(r.started), opt(r.completed), opt(r.duration_s), r.conclusion.as_deref().map_or(rusqlite::types::Value::Null, text)])
+        .collect();
+    insert_local("INSERT OR IGNORE INTO CI_STEPS (RUN_ID, JOB, STEP_NO, STEP, STARTED, COMPLETED, DURATION_S, CONCLUSION) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)", cells)
+}
+
+/// One run's parallelism (`CI_RUN_PROFILE`).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct RunProfile {
+    pub run: String,
+    pub workflow: String,
+    pub wall_s: f64,
+    pub runner_s: f64,
+    pub peak_jobs: i64,
+    pub avg_jobs: f64,
+    pub queue_s_total: f64,
+    pub queue_s_max: f64,
+    pub jobs: i64,
+    pub critical_path_job: String,
+    pub critical_path_s: f64,
+    pub parallel_efficiency: f64,
+}
+
+pub fn record_run_profile_local(row: &RunProfile) -> Result<bool, String> {
+    let f = |v: f64| real(Some(v));
+    let cells = vec![vec![
+        text(&row.run), text(&row.workflow), f(row.wall_s), f(row.runner_s), int(row.peak_jobs), f(row.avg_jobs), f(row.queue_s_total), f(row.queue_s_max), int(row.jobs),
+        text(&row.critical_path_job), f(row.critical_path_s), f(row.parallel_efficiency),
+    ]];
+    insert_local(
+        "INSERT OR IGNORE INTO CI_RUN_PROFILE (RUN_ID, WORKFLOW, WALL_S, RUNNER_S, PEAK_JOBS, AVG_JOBS, QUEUE_S_TOTAL, QUEUE_S_MAX, JOBS, CRITICAL_PATH_JOB, CRITICAL_PATH_S, PARALLEL_EFFICIENCY) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+        cells,
+    )
+}
+
+/// One reading of the account's runners (`CI_CONCURRENCY`): jobs in progress (`busy`) and queued of one workflow, or of all (`workflow` = `all`), against the cap.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ConcurrencyRow {
+    pub ts: i64,
+    pub run: String,
+    pub phase: String,
+    pub workflow: String,
+    pub busy: i64,
+    pub queued: i64,
+    pub runs_active: i64,
+    pub cap: i64,
+    pub headroom: i64,
+}
+
+pub fn record_concurrency_local(rows: &[ConcurrencyRow]) -> Result<bool, String> {
+    let cells = rows.iter().map(|r| vec![int(r.ts), text(&r.run), text(&r.phase), text(&r.workflow), int(r.busy), int(r.queued), int(r.runs_active), int(r.cap), int(r.headroom)]).collect();
+    insert_local("INSERT OR IGNORE INTO CI_CONCURRENCY (TS, RUN_ID, PHASE, WORKFLOW, BUSY, QUEUED, RUNS_ACTIVE, CAP, HEADROOM) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)", cells)
 }
 
 /// Copies every table of `from` into `into`, skipping rows `into` already holds (by primary key). A table `into` lacks is made with
@@ -412,7 +639,7 @@ mod tests {
     static ENV: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     fn task(hash: &str) -> LedgerTask {
-        LedgerTask { run: "1".into(), sha: "abc".into(), ts: 10, job: "flow-tests (1/6)".into(), task: "app:test".into(), hash: hash.into(), outcome: "ran".into(), ms: 4200, passed: true }
+        LedgerTask { run: "1".into(), sha: "abc".into(), ts: 10, job: "flow-tests (1/6)".into(), task: "app:test".into(), hash: hash.into(), outcome: "ran".into(), ms: 4200, passed: true, started_ms: 1_000, ended_ms: 5_200, cpu_s: 3.5 }
     }
 
     #[test]
@@ -510,5 +737,65 @@ mod tests {
         let (n, command, ms, extra): (i64, String, i64, String) =
             conn.query_row("SELECT COUNT(*), MAX(COMMAND), MAX(DURATION_MS), MAX(EXTRA) FROM WF_USAGE", [], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))).unwrap();
         assert_eq!((n, command.as_str(), ms, extra.as_str()), (1, "ci comment", 19927, "{\"new_field\":true}"));
+    }
+
+    #[test]
+    fn given_a_job_that_measured_its_runner_when_the_rows_are_recorded_and_merged_then_each_telemetry_table_holds_them_once() {
+        let _env = ENV.lock().unwrap_or_else(|p| p.into_inner());
+        let dir = tempfile::tempdir().unwrap();
+        let (db, sealed) = (dir.path().join("rows.sqlite"), dir.path().join("sealed.sqlite"));
+        std::env::set_var("WF_CI_DB", &db);
+        let job = JobResources { run: "9".into(), job: "core-tests".into(), workflow: "CI core".into(), runner: "GitHub Actions 7".into(), cores: 4, samples: 12, cpu_p95: 97.0, saturated_s: 35.0, ..Default::default() };
+        let task = TaskResources { run: "9".into(), job: "core-tests".into(), task: "app:test".into(), started: 100, ended: 130, seconds: 30.0, cpu_s: 60.0, cores_used: 2.0, concurrent: 2, cpu_avg: Some(55.0), mem_peak_mb: None };
+        let step = StepRow { run: "9".into(), job: "core-tests".into(), step_no: 3, step: "Set up job".into(), started: Some(10), completed: Some(14), duration_s: Some(4), conclusion: Some("success".into()) };
+        let profile = RunProfile { run: "9".into(), workflow: "CI core".into(), wall_s: 600.0, runner_s: 1800.0, peak_jobs: 4, parallel_efficiency: 0.75, critical_path_job: "plan > core-tests".into(), ..Default::default() };
+        let busy = ConcurrencyRow { ts: 5, run: "9".into(), phase: "start".into(), workflow: "all".into(), busy: 17, queued: 3, runs_active: 4, cap: 20, headroom: 3 };
+
+        let first = (
+            record_job_resources_local(std::slice::from_ref(&job)),
+            record_task_resources_local(std::slice::from_ref(&task)),
+            record_steps_local(std::slice::from_ref(&step)),
+            record_run_profile_local(&profile),
+            record_concurrency_local(std::slice::from_ref(&busy)),
+        );
+        record_job_resources_local(&[job]).unwrap();
+        record_steps_local(&[step]).unwrap();
+
+        std::env::remove_var("WF_CI_DB");
+        let into = open_at(&sealed).unwrap();
+        merge(&into, &db).unwrap();
+        let count = |t: &str| into.query_row(&format!("SELECT COUNT(*) FROM {t}"), [], |r| r.get::<_, i64>(0)).unwrap();
+        let (p95, saturated, runner): (f64, f64, String) = into.query_row("SELECT CPU_P95, SATURATED_S, RUNNER FROM CI_JOB_RESOURCES", [], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap();
+        let (cores, mem): (f64, Option<f64>) = into.query_row("SELECT CORES_USED, MEM_PEAK_MB FROM CI_TASK_RESOURCES", [], |r| Ok((r.get(0)?, r.get(1)?))).unwrap();
+        let headroom: i64 = into.query_row("SELECT HEADROOM FROM CI_CONCURRENCY", [], |r| r.get(0)).unwrap();
+        assert!(matches!(first, (Ok(true), Ok(true), Ok(true), Ok(true), Ok(true))));
+        assert_eq!(["CI_JOB_RESOURCES", "CI_TASK_RESOURCES", "CI_STEPS", "CI_RUN_PROFILE", "CI_CONCURRENCY"].map(count), [1, 1, 1, 1, 1]);
+        assert_eq!((p95, saturated, runner.as_str(), cores, mem, headroom), (97.0, 35.0, "GitHub Actions 7", 2.0, None, 3));
+    }
+
+    #[test]
+    fn given_a_sealed_database_from_before_the_parallelism_columns_when_a_job_database_is_merged_then_jobs_and_tasks_gain_their_columns() {
+        let dir = tempfile::tempdir().unwrap();
+        let (old, job) = (dir.path().join("old.sqlite"), dir.path().join("job.sqlite"));
+        let conn = Connection::open(&old).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE CI_JOBS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, KIND TEXT NOT NULL, JOB TEXT NOT NULL, SECS INTEGER NOT NULL, QUEUED INTEGER NOT NULL, PRIMARY KEY (RUN_ID, JOB));
+             INSERT INTO CI_JOBS VALUES ('1','a',1,'k','j',5,0);
+             CREATE TABLE NX_TASKS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, JOB TEXT NOT NULL, TASK TEXT NOT NULL, HASH TEXT NOT NULL, OUTCOME TEXT NOT NULL, MS INTEGER NOT NULL, PASSED INTEGER NOT NULL, PRIMARY KEY (RUN_ID, TASK, HASH));
+             INSERT INTO NX_TASKS VALUES ('1','a',1,'j','t','h','ran',5,1);",
+        )
+        .unwrap();
+        let j = open_at(&job).unwrap();
+        ensure_ledger(&j).unwrap();
+        j.execute("INSERT INTO CI_JOBS (RUN_ID, SHA, TS, KIND, JOB, SECS, QUEUED, QUEUED_S, RUNNER) VALUES ('2','b',2,'k','j',7,1,4,'GitHub Actions 3')", []).unwrap();
+        j.execute("INSERT INTO NX_TASKS (RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED, STARTED_MS, ENDED_MS, CPU_S) VALUES ('2','b',2,'j','t','h2','ran',9000,1,1000,10000,18.0)", []).unwrap();
+        drop(j);
+
+        merge(&conn, &job).unwrap();
+
+        let (n, queued_s, runner): (i64, i64, String) = conn.query_row("SELECT COUNT(*), MAX(QUEUED_S), MAX(RUNNER) FROM CI_JOBS", [], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap();
+        let tasks = tasks_of(&old).unwrap();
+        assert_eq!((n, queued_s, runner.as_str()), (2, 4, "GitHub Actions 3"));
+        assert_eq!(tasks.iter().map(|t| (t.started_ms, t.ended_ms, t.cpu_s)).collect::<Vec<_>>(), [(0, 0, 0.0), (1000, 10000, 18.0)]);
     }
 }

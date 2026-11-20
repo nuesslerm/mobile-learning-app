@@ -2,9 +2,9 @@ Usage: wf ci timings [--run <id>] [--send]
 
 What a run's jobs took, from the Actions API: for each finished job its duration, the time it waited for a
 runner and its steps of 5 seconds or more; for each stage with several shards the spread (the slowest shard less
-the fastest) and the slowest shard; the run's wall time. Prints one JSON line {ok, run, sent, timings}. With
+the fastest) and the slowest shard; the run's wall time; the run's profile (runner seconds, peak and average concurrent jobs, queue waits, critical path, parallel efficiency). Prints one JSON line {ok, run, sent, timings, profile}. The jobs (with queued_s and the runner), every step and the profile are kept as rows of CI_JOBS, CI_STEPS and CI_RUN_PROFILE. With
 --send the same numbers go as gauges to the Better Stack source of the cache gauges (ci.job.duration_s,
-ci.job.queue_s, ci.step.duration_s, ci.stage.spread_s, ci.run.wall_s), best effort: a refusing or missing source
+ci.job.queue_s, ci.step.duration_s, ci.stage.spread_s, ci.run.wall_s, ci.run.runner_s, peak_jobs, avg_jobs, queue_s_total, queue_s_max, critical_path_s, parallel_efficiency), best effort: a refusing or missing source
 costs a log line and never fails the run. In a CI run the run, repository and token are the run's own; elsewhere
 pass --run <id> with GITHUB_TOKEN (or `gh` signed in) and GITHUB_REPOSITORY (or an origin remote on GitHub).
 

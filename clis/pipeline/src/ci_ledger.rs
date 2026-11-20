@@ -115,7 +115,7 @@ impl Ledger for DbLedger {
         let t = sqlite_text;
         self.write(
             rows.iter()
-                .map(|o| format!("INSERT OR IGNORE INTO NX_TASKS VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {})", t(&o.run), t(&o.sha), o.ts, t(&o.job), t(&o.task), t(&o.hash), t(&o.outcome), o.ms, i32::from(o.passed)))
+                .map(|o| format!("INSERT OR IGNORE INTO NX_TASKS (RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED) VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {})", t(&o.run), t(&o.sha), o.ts, t(&o.job), t(&o.task), t(&o.hash), t(&o.outcome), o.ms, i32::from(o.passed)))
                 .collect(),
             &format!("{} tasks", rows.len()),
         )

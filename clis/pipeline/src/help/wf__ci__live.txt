@@ -9,7 +9,7 @@ the runner for the run, so an update downloads each only once.
 
 The comment is the last on the page: the CI comments of other runs are deleted,
 this run's is edited in place and made when the run has none. Every job of the CI
-calls it when it starts, the preflight job first (`start` is the same, spelled for
+calls it when it starts, the wf-build job first (`start` is the same, spelled for
 that job), and the report job ends the run with `wf ci comment`.
 
 Nothing is posted when the branch has no open pull request. A failure to comment

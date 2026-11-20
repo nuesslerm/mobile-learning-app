@@ -5,22 +5,22 @@ use serde_json::{json, Value};
 
 const TOKEN: &str = "flowtesttoken-0123456789";
 
-fn step(name: &str, from: &str, to: &str) -> Value {
+pub(crate) fn step(name: &str, from: &str, to: &str) -> Value {
     json!({"name": name, "status": "completed", "conclusion": "success", "started_at": format!("2026-11-19T{from}Z"), "completed_at": format!("2026-11-19T{to}Z")})
 }
 
-fn job(name: &str, created: &str, started: &str, completed: &str, steps: Vec<Value>) -> Value {
+pub(crate) fn job(name: &str, created: &str, started: &str, completed: &str, steps: Vec<Value>) -> Value {
     json!({"id": 1, "name": name, "status": "completed", "conclusion": "success", "created_at": format!("2026-11-19T{created}Z"), "started_at": format!("2026-11-19T{started}Z"), "completed_at": format!("2026-11-19T{completed}Z"), "steps": steps})
 }
 
-fn served(routes: &[(&str, Value)]) -> MockServer {
+pub(crate) fn served(routes: &[(&str, Value)]) -> MockServer {
     let server = MockServer::start(None);
     let table: Vec<(String, MockReply)> = routes.iter().map(|(p, b)| (format!("GET {p}"), MockReply::json(200, b.clone()))).collect();
     server.routes(&table.iter().map(|(k, v)| (k.as_str(), v.clone())).collect::<Vec<_>>());
     server
 }
 
-fn wf(server: &MockServer, args: &[&str], extra: &[(&str, &str)]) -> RunResult {
+pub(crate) fn wf(server: &MockServer, args: &[&str], extra: &[(&str, &str)]) -> RunResult {
     let mut argv = vec!["ci"];
     argv.extend(args);
     let mut opts = RunOpts::default()
@@ -37,7 +37,7 @@ fn wf(server: &MockServer, args: &[&str], extra: &[(&str, &str)]) -> RunResult {
     run_wf(&argv, &opts)
 }
 
-fn line(r: &RunResult) -> Value {
+pub(crate) fn line(r: &RunResult) -> Value {
     serde_json::from_str(r.stdout.trim()).unwrap_or_else(|e| panic!("{e}: {}{}", r.stdout, r.stderr))
 }
 

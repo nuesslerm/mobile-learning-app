@@ -1911,6 +1911,7 @@ dependencies = [
  "png",
  "rca-core",
  "regex",
+ "rusqlite",
  "secrets",
  "serde_json",
  "sha2",

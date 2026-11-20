@@ -2022,7 +2022,7 @@ the runner for the run, so an update downloads each only once.
 
 The comment is the last on the page: the CI comments of other runs are deleted,
 this run's is edited in place and made when the run has none. Every job of the CI
-calls it when it starts, the preflight job first (`start` is the same, spelled for
+calls it when it starts, the wf-build job first (`start` is the same, spelled for
 that job), and the report job ends the run with `wf ci comment`.
 
 Nothing is posted when the branch has no open pull request. A failure to comment
@@ -2121,9 +2121,9 @@ Usage: wf ci timings [--run <id>] [--send]
 
 What a run's jobs took, from the Actions API: for each finished job its duration, the time it waited for a
 runner and its steps of 5 seconds or more; for each stage with several shards the spread (the slowest shard less
-the fastest) and the slowest shard; the run's wall time. Prints one JSON line {ok, run, sent, timings}. With
+the fastest) and the slowest shard; the run's wall time; the run's profile (runner seconds, peak and average concurrent jobs, queue waits, critical path, parallel efficiency). Prints one JSON line {ok, run, sent, timings, profile}. The jobs (with queued_s and the runner), every step and the profile are kept as rows of CI_JOBS, CI_STEPS and CI_RUN_PROFILE. With
 --send the same numbers go as gauges to the Better Stack source of the cache gauges (ci.job.duration_s,
-ci.job.queue_s, ci.step.duration_s, ci.stage.spread_s, ci.run.wall_s), best effort: a refusing or missing source
+ci.job.queue_s, ci.step.duration_s, ci.stage.spread_s, ci.run.wall_s, ci.run.runner_s, peak_jobs, avg_jobs, queue_s_total, queue_s_max, critical_path_s, parallel_efficiency), best effort: a refusing or missing source
 costs a log line and never fails the run. In a CI run the run, repository and token are the run's own; elsewhere
 pass --run <id> with GITHUB_TOKEN (or `gh` signed in) and GITHUB_REPOSITORY (or an origin remote on GitHub).
 
@@ -2161,6 +2161,78 @@ Actions API shows no log of a running job, so the step is the finest grain; the 
 Options:
   --run <id>  the run to read (default GITHUB_RUN_ID)
   -h, --help  display help for command
+```
+
+</details>
+
+### `wf ci resources`
+
+What each job's runner did and what each Nx task saw of it
+
+Usage: `wf ci resources [--stats <dir>] [--ledgers <dir>] [--run <id>] [--send]`
+
+Examples:
+
+```sh
+wf ci resources --stats "$RUNNER_TEMP/runner-stats" --send
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci resources [--stats <dir>] [--ledgers <dir>] [--run <id>] [--send]
+
+What each job's runner did while it ran, from the sampler's stats-<job>.jsonl files (the report job downloads them to
+WF_CI_RUNNER_STATS_DIR): one row per job in CI_JOB_RESOURCES (cores, CPU average / p95 / max, I/O wait, memory and swap
+peaks, load, PSI cpu / memory / io peaks, disk read and write MB, duration, idle_s with the CPU under 25%, saturated_s with
+the CPU over 90% or CPU pressure over 20). The tasks Nx ran in a job (the NX_TASKS rows in the job's own database,
+<--ledgers>/ci-db-<job>/rows.sqlite, default $RUNNER_TEMP/ci-db) are joined with the samples over their interval:
+CI_TASK_RESOURCES holds, per task, seconds, its share of the stage's CPU seconds (Nx reports CPU per run, so it is split by
+milliseconds), cores_used, how many tasks ran at once, and the CPU average and memory peak the job showed meanwhile. The
+job is the artifact's name, taken from the data. The rows go to the job-local database (`wf ci db merge` carries them on).
+Prints one JSON line {ok, run, sent, jobs, tasks}. With --send the same numbers go as gauges (ci.job.cpu_avg, cpu_p95,
+cpu_max, iowait_avg, mem_peak_mb, swap_peak_mb, psi_cpu_max, psi_mem_max, psi_io_max, idle_s, saturated_s; scope = job,
+name = workflow), best effort.
+
+Options:
+  --stats <dir>    the directory of stats-<job>.jsonl files (default WF_CI_RUNNER_STATS_DIR)
+  --ledgers <dir>  the directory of ci-db-<job>/rows.sqlite files (default $RUNNER_TEMP/ci-db)
+  --run <id>       the run the rows belong to (default GITHUB_RUN_ID)
+  --send           also send the gauges
+  -h, --help       display help for command
+```
+
+</details>
+
+### `wf ci concurrency`
+
+Busy and queued runner slots of the account against the cap of 20
+
+Usage: `wf ci concurrency [--phase start|end] [--run <id>]`
+
+Examples:
+
+```sh
+wf ci concurrency --phase start
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci concurrency [--phase start|end] [--run <id>]
+
+How many of the account's runner slots are taken right now, from the Actions API: the jobs in progress (busy) and queued
+of the repository's in-progress and queued runs, per workflow and in all (workflow `all`), against the cap of 20
+concurrent jobs (WF_CI_RUNNER_CAP overrides it). One row per workflow in CI_CONCURRENCY (TS, RUN_ID, PHASE, WORKFLOW,
+BUSY, QUEUED, RUNS_ACTIVE, CAP, HEADROOM; headroom is the account's, the cap less every busy job) in the job-local
+database, and the gauges ci.runners.busy, ci.runners.queued and ci.runners.headroom (scope = workflow, name = phase).
+Prints one JSON line {ok, run, phase, cap, busy, queued, runs_active, headroom, workflows}. Best effort: it always exits 0,
+an unreadable API is {ok:false, error, next}. The repository and token are the run's own (GITHUB_REPOSITORY, GITHUB_TOKEN).
+
+Options:
+  --phase <start|end>  where in the run the reading is taken (default start)
+  --run <id>           the run the row belongs to (default GITHUB_RUN_ID)
+  -h, --help           display help for command
 ```
 
 </details>

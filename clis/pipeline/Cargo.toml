@@ -48,6 +48,8 @@ wf-testkit = { path = "../wf-testkit" }
 # The tests of `wf test run --stage` double vm-ops-api with the fake this crate ships.
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
 tempfile = "3"
+# The telemetry flow tests seed a job's local database (NX_TASKS rows) the way a job leaves it.
+rusqlite = { version = "0.37", features = ["bundled"] }
 
 [package.metadata.arch]
 type = "cli-crate"

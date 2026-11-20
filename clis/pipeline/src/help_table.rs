@@ -10,6 +10,8 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("ci comment", false, include_str!("help/wf__ci__comment.txt")),
     ("ci timings", false, include_str!("help/wf__ci__timings.txt")),
     ("ci progress", false, include_str!("help/wf__ci__progress.txt")),
+    ("ci resources", false, include_str!("help/wf__ci__resources.txt")),
+    ("ci concurrency", false, include_str!("help/wf__ci__concurrency.txt")),
     ("ci failed", false, include_str!("help/wf__ci__failed.txt")),
     ("ci cache-health", false, include_str!("help/wf__ci__cache-health.txt")),
     ("ci db", false, include_str!("help/wf__ci__db.txt")),

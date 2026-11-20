@@ -1117,6 +1117,8 @@ pub fn run(args: &[String]) -> Option<i32> {
         "plan" => return crate::ci_plan::run(rest),
         "tidy" => return crate::ci_tidy::run(rest),
         "timings" | "progress" | "failed" => return crate::ci_timings::run(verb, rest),
+        "resources" => return crate::ci_resources::run(verb, rest),
+        "concurrency" => return crate::ci_concurrency::run(verb, rest),
         _ => {}
     }
     if verb != "comment" {
