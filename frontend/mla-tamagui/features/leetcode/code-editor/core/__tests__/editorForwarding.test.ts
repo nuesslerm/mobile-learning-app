@@ -1,4 +1,4 @@
-import { createEditorClient } from '@lib/code-editor-api';
+import { createDeferredEngine, createEditorClient } from '@lib/code-editor-api';
 import { createFakeEditor } from '@lib/code-editor-api/testing';
 import { describe, expect, it } from 'vitest';
 
@@ -67,6 +67,33 @@ describe('the editor port forwarding', () => {
     // Then the text came back and the old path saw nothing
     expect(fake.text()).toBe('Zabc');
     expect(legacy).toEqual([]);
+  });
+
+  it('given a focus message, when it is posted, then the editor reports focused and the old path saw nothing', async () => {
+    // Given a blurred editor and a forwarding port
+    const { fake, legacy, post } = setup();
+    expect(fake.peek().focused).toBe(false);
+
+    // When focus is posted
+    post(SAMPLES.focus);
+    await settled();
+
+    // Then the typed call focused it and nothing went to the old path
+    expect(fake.peek().focused).toBe(true);
+    expect(legacy).toEqual([]);
+  });
+
+  it('given no editor behind the engine yet, when focus is posted, then the old script gets it so the focus is not lost', async () => {
+    // Given an engine with no page bound
+    const legacy: ToEditorMessage[] = [];
+    const post = createForwardingPost(createEditorClient(createDeferredEngine(() => undefined)), (msg) => legacy.push(msg));
+
+    // When focus is posted
+    post(SAMPLES.focus);
+    await settled();
+
+    // Then the typed call was refused as not ready and the old path took the message
+    expect(legacy).toEqual([SAMPLES.focus]);
   });
 
   it('given the ten keys EditorInput sends, when updateConfig is posted, then it is applied through the typed API', async () => {

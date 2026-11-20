@@ -5,15 +5,14 @@ import type { ToEditorMessage } from '../../domain/ports';
 import { toConfigPatch, type LegacyConfigPatch } from '../engine/configPatch';
 
 /** The messages that reach the page through the typed editor API. */
-export const FORWARDED_TYPES = ['undo', 'redo', 'updateConfig'] as const;
+export const FORWARDED_TYPES = ['undo', 'redo', 'updateConfig', 'focus'] as const;
 /**
- * The messages that still travel as fire-and-forget scripts, and why: `init` creates the editor; `focus`/`blur`/`setSelection`
- * wait for the toolbar to use the API and an iOS check of the blur trick; `insertAt`/`typeText`/`setText` need the typing step and
- * the diff sync; the highlight and diff marks move with the runner jump and voice edit. The list only shrinks.
+ * The messages that still travel as fire-and-forget scripts, and why: `init` creates the editor; `blur` waits for an iOS check of
+ * the blur trick; `setSelection` waits for the select step on the toolbar's keys; `insertAt`/`typeText`/`setText` need the typing
+ * step and the diff sync; the highlight and diff marks move with the runner jump and voice edit. The list only shrinks.
  */
 export const LEGACY_TYPES = [
   'init',
-  'focus',
   'blur',
   'setSelection',
   'insertAt',
@@ -60,6 +59,14 @@ export function createForwardingPost(
         void client.setConfig(patch).then(reportFailure('updateConfig'));
         return;
       }
+      case 'focus':
+        // idempotent, so a reply that did not focus the editor (not ready yet, a lost channel) falls back to the old script
+        void client.focus().then((reply) => {
+          if (reply.ok) return;
+          reportFailure('focus')(reply);
+          legacyPost(msg);
+        });
+        return;
       default:
         legacyPost(msg);
     }
