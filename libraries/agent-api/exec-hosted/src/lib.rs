@@ -48,6 +48,9 @@ pub const ISSUE_COMMENT: &str = "hosted_issue_comment";
 pub const ISSUE_EDIT: &str = "hosted_issue_edit";
 pub const ISSUE_STATE: &str = "hosted_issue_state";
 pub const ISSUE_CREATE: &str = "hosted_issue_create";
+pub const ISSUE_SEARCH: &str = "hosted_issue_search";
+pub const ISSUE_COUNT: &str = "hosted_issue_count";
+pub const ISSUE_TODOS: &str = "hosted_issue_todos";
 pub const RUN_LIST: &str = "hosted_run_list";
 pub const RUN_VIEW: &str = "hosted_run_view";
 pub const AUTH_STATUS: &str = "hosted_auth_status";
@@ -97,6 +100,13 @@ macro_rules! action {
         Action { name: $name, about: $about, properties: &[PROVIDER, HOST, REPO, TIMEOUT, $($p),*], required: &["provider", $($r),*] }
     };
 }
+
+const WORK_KIND: Property = Property { name: "kind", kind: "string", about: "`all` (default: issues and pull or merge requests), `issue` or `pr`" };
+const WORK_STATE: Property = Property { name: "state", kind: "string", about: "`open` (default), `closed`, `merged` (only with kind `pr`) or `all`" };
+const WORK_AUTHOR: Property = Property { name: "author", kind: "string", about: "Only this account's" };
+const WORK_LABEL: Property = Property { name: "label", kind: "string", about: "Only with this label" };
+const WORK_TEXT: Property = Property { name: "search", kind: "string", about: "Only matching this text" };
+const PAGE: Property = Property { name: "page", kind: "integer", about: "The page of `limit` items to read (default 1, at most 100)" };
 
 const STATE: Property = Property { name: "state", kind: "string", about: "`open` (default), `closed`, `merged` or `all`" };
 const ADD: Property = Property { name: "add", kind: "array", about: "Names to add" };
@@ -241,6 +251,19 @@ pub const ACTIONS: &[Action] = &[
         [Property { name: "title", kind: "string", about: "The title, one line" }, BODY, Property { name: "labels", kind: "array", about: "Labels to put on it" }],
         ["title"]
     ),
+    action!(
+        ISSUE_SEARCH,
+        "Issues and pull or merge requests of the repository that match a search, most recently updated first, with the total the provider counts.",
+        [WORK_KIND, WORK_STATE, WORK_AUTHOR, WORK_LABEL, WORK_TEXT, LIMIT, PAGE],
+        []
+    ),
+    action!(ISSUE_COUNT, "How many issues and pull or merge requests of the repository match a search.", [WORK_KIND, WORK_STATE, WORK_AUTHOR, WORK_LABEL, WORK_TEXT], []),
+    action!(
+        ISSUE_TODOS,
+        "What the signed-in account is asked to look at: GitLab's pending to-dos, GitHub's unread notifications. Account-wide, never one repository's.",
+        [LIMIT],
+        []
+    ),
     action!(RUN_LIST, "Recent workflow runs (GitHub) or pipelines (GitLab).", [Property { name: "branch", kind: "string", about: "Only runs of this branch" }, LIMIT], []),
     action!(RUN_VIEW, "One run with its jobs.", [Property { name: "run", kind: "integer", about: "The run's id" }], ["run"]),
     action!(AUTH_STATUS, "Whether the CLI is installed and signed in on the executor machine, as which account and with which scopes (never the token).", [], []),
@@ -345,6 +368,28 @@ pub fn ref_name(key: &str, value: &str) -> ExecResult<()> {
 pub fn label(value: &str) -> ExecResult<()> {
     if value.is_empty() || value.chars().count() > 50 || value.starts_with('-') || value.trim() != value || value.contains(',') || value.chars().any(control) {
         return Err(bad("a label must be 1-50 printable characters with no comma and no leading `-`"));
+    }
+    Ok(())
+}
+
+/// A label that goes into a quoted search word: no quote or backslash, which would end the quote early.
+pub fn work_label(value: &str) -> ExecResult<()> {
+    label(value)?;
+    if value.contains(['"', '\\']) {
+        return Err(bad("a label to search for must not hold a quote or a backslash"));
+    }
+    Ok(())
+}
+
+/// Free search text: one line, and no qualifier that moves the search off the workspace repository.
+pub fn search_text(value: &str) -> ExecResult<()> {
+    one_line("search", value, 256)?;
+    let scoped = value.split_whitespace().any(|w| {
+        let w = w.trim_start_matches('-').to_ascii_lowercase();
+        ["repo:", "org:", "user:", "owner:"].iter().any(|q| w.starts_with(q))
+    });
+    if scoped {
+        return Err(bad("`search` must not hold a repo:, org:, user: or owner: qualifier"));
     }
     Ok(())
 }
@@ -467,6 +512,13 @@ pub enum PrState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WorkKind {
+    Issue,
+    Pr,
+    All,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Verdict {
     Approve,
     RequestChanges,
@@ -539,6 +591,9 @@ pub enum HostedCall {
     IssueEdit { number: u64, title: Option<String>, body: Option<String> },
     IssueState { number: u64, closed: bool },
     IssueCreate { title: String, body: Option<String>, labels: Vec<String> },
+    IssueSearch { kind: WorkKind, state: PrState, author: Option<String>, label: Option<String>, search: Option<String>, limit: u64, page: u64 },
+    IssueCount { kind: WorkKind, state: PrState, author: Option<String>, label: Option<String>, search: Option<String> },
+    IssueTodos { limit: u64 },
     RunList { branch: Option<String>, limit: u64 },
     RunView { run: u64 },
     AuthStatus,
@@ -589,6 +644,9 @@ impl HostedCall {
             HostedCall::IssueEdit { .. } => ISSUE_EDIT,
             HostedCall::IssueState { .. } => ISSUE_STATE,
             HostedCall::IssueCreate { .. } => ISSUE_CREATE,
+            HostedCall::IssueSearch { .. } => ISSUE_SEARCH,
+            HostedCall::IssueCount { .. } => ISSUE_COUNT,
+            HostedCall::IssueTodos { .. } => ISSUE_TODOS,
             HostedCall::RunList { .. } => RUN_LIST,
             HostedCall::RunView { .. } => RUN_VIEW,
             HostedCall::AuthStatus => AUTH_STATUS,
@@ -680,14 +738,14 @@ impl HostedOp {
                 label: text_arg(a, "label", label)?,
                 base: branch_of("base")?,
                 head: branch_of("head")?,
-                search: text_arg(a, "search", |s| one_line("search", s, 256))?,
+                search: text_arg(a, "search", search_text)?,
                 limit: limit(a)?,
             },
             ISSUE_LIST => HostedCall::IssueList {
                 state: choice(a, "state", PrState::Open, &[("open", PrState::Open), ("closed", PrState::Closed), ("all", PrState::All)])?,
                 author: text_arg(a, "author", login)?,
                 label: text_arg(a, "label", label)?,
-                search: text_arg(a, "search", |s| one_line("search", s, 256))?,
+                search: text_arg(a, "search", search_text)?,
                 limit: limit(a)?,
             },
             ISSUE_VIEW => HostedCall::IssueView { number: number(a)? },
@@ -709,6 +767,25 @@ impl HostedOp {
                 one_line("title", &title, TITLE_MAX)?;
                 HostedCall::IssueCreate { title, body: body_of("body")?, labels: names(a, "labels", label)? }
             }
+            ISSUE_SEARCH | ISSUE_COUNT => {
+                let kind = choice(a, "kind", WorkKind::All, &[("all", WorkKind::All), ("issue", WorkKind::Issue), ("pr", WorkKind::Pr)])?;
+                let state = choice(a, "state", PrState::Open, &[("open", PrState::Open), ("closed", PrState::Closed), ("merged", PrState::Merged), ("all", PrState::All)])?;
+                if state == PrState::Merged && kind != WorkKind::Pr {
+                    return Err(bad("`state` `merged` applies to `kind` `pr` only"));
+                }
+                let (author, label, search) = (text_arg(a, "author", login)?, text_arg(a, "label", work_label)?, text_arg(a, "search", search_text)?);
+                if tool == ISSUE_COUNT {
+                    HostedCall::IssueCount { kind, state, author, label, search }
+                } else {
+                    let page = match opt_uint(a, "page")? {
+                        None => 1,
+                        Some(n) if (1..=100).contains(&n) => n,
+                        Some(_) => return Err(bad("`page` must be 1-100")),
+                    };
+                    HostedCall::IssueSearch { kind, state, author, label, search, limit: limit(a)?, page }
+                }
+            }
+            ISSUE_TODOS => HostedCall::IssueTodos { limit: limit(a)? },
             PR_VIEW => HostedCall::PrView { number: number(a)? },
             PR_DIFF => HostedCall::PrDiff { number: number(a)? },
             PR_CHECKS => HostedCall::PrChecks { number: number(a)? },
@@ -885,6 +962,21 @@ mod tests {
     /// Arguments that satisfy an action, derived from its own table: every required property gets a value of its kind.
     fn minimal(action: &Action) -> Value {
         crate::minimal_args(action)
+    }
+
+    #[test]
+    fn given_a_search_or_label_that_would_leave_the_repository_or_break_the_quote_when_asked_then_it_is_refused() {
+        // Given searches and labels a caller might send
+        // When they are checked
+        // Then a scope qualifier, a quote and a backslash are refused, plain words pass
+        assert!(search_text("flaky login").is_ok());
+        for bad_search in ["repo:victim/private flaky", "-repo:a/b x", "x ORG:acme", "user:bob"] {
+            assert!(search_text(bad_search).is_err(), "{bad_search}");
+        }
+        assert!(work_label("bug").is_ok());
+        for bad_label in ["x\\", "a\"b"] {
+            assert!(work_label(bad_label).is_err(), "{bad_label}");
+        }
     }
 
     #[test]

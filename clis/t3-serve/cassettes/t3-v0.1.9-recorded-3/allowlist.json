@@ -105,6 +105,72 @@
       "reason": "compared by presence only",
       "phase": "1",
       "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "body.models",
+      "reason": "the speech models the host lists are its own state: the recording host lists its downloadable local models (a Parakeet and a Nemotron among 59, none installed), where this server lists rca's own speech engine (rca-whisper, installed and active) when the service has one",
+      "phase": "O1",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "body.model",
+      "reason": "the speech status names the model the host holds: the recording host has its local Parakeet model chosen and not downloaded (state missing-model, its size, its language, its streaming and model-linking abilities and unload timeout), where this server reports rca's own engine (rca-whisper, ready, no download, no streaming, no linking, language detection, no fixed language)",
+      "phase": "O1",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "body.modelId",
+      "reason": "the speech status names the model the host holds: the recording host has its local Parakeet model chosen and not downloaded (state missing-model, its size, its language, its streaming and model-linking abilities and unload timeout), where this server reports rca's own engine (rca-whisper, ready, no download, no streaming, no linking, language detection, no fixed language)",
+      "phase": "O1",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "body.modelUnloadTimeout",
+      "reason": "the speech status names the model the host holds: the recording host has its local Parakeet model chosen and not downloaded (state missing-model, its size, its language, its streaming and model-linking abilities and unload timeout), where this server reports rca's own engine (rca-whisper, ready, no download, no streaming, no linking, language detection, no fixed language)",
+      "phase": "O1",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "body.size",
+      "reason": "the speech status names the model the host holds: the recording host has its local Parakeet model chosen and not downloaded (state missing-model, its size, its language, its streaming and model-linking abilities and unload timeout), where this server reports rca's own engine (rca-whisper, ready, no download, no streaming, no linking, language detection, no fixed language)",
+      "phase": "O1",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "body.state",
+      "reason": "the speech status names the model the host holds: the recording host has its local Parakeet model chosen and not downloaded (state missing-model, its size, its language, its streaming and model-linking abilities and unload timeout), where this server reports rca's own engine (rca-whisper, ready, no download, no streaming, no linking, language detection, no fixed language)",
+      "phase": "O1",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "body.languages",
+      "reason": "the speech status names the model the host holds: the recording host has its local Parakeet model chosen and not downloaded (state missing-model, its size, its language, its streaming and model-linking abilities and unload timeout), where this server reports rca's own engine (rca-whisper, ready, no download, no streaming, no linking, language detection, no fixed language)",
+      "phase": "O1",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "body.supportsBufferedStreaming",
+      "reason": "the speech status names the model the host holds: the recording host has its local Parakeet model chosen and not downloaded (state missing-model, its size, its language, its streaming and model-linking abilities and unload timeout), where this server reports rca's own engine (rca-whisper, ready, no download, no streaming, no linking, language detection, no fixed language)",
+      "phase": "O1",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "body.supportsLanguageDetection",
+      "reason": "the speech status names the model the host holds: the recording host has its local Parakeet model chosen and not downloaded (state missing-model, its size, its language, its streaming and model-linking abilities and unload timeout), where this server reports rca's own engine (rca-whisper, ready, no download, no streaming, no linking, language detection, no fixed language)",
+      "phase": "O1",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "body.supportsModelLinking",
+      "reason": "the speech status names the model the host holds: the recording host has its local Parakeet model chosen and not downloaded (state missing-model, its size, its language, its streaming and model-linking abilities and unload timeout), where this server reports rca's own engine (rca-whisper, ready, no download, no streaming, no linking, language detection, no fixed language)",
+      "phase": "O1",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "body.supportsStreaming",
+      "reason": "the speech status names the model the host holds: the recording host has its local Parakeet model chosen and not downloaded (state missing-model, its size, its language, its streaming and model-linking abilities and unload timeout), where this server reports rca's own engine (rca-whisper, ready, no download, no streaming, no linking, language detection, no fixed language)",
+      "phase": "O1",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
     }
   ]
 }

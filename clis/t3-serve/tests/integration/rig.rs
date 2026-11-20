@@ -103,9 +103,14 @@ impl Chain {
     /// The service, and the executor with the scripted CLIs first on its `PATH` (a turn's CLI runs where the workspace is), attached for workspace `w1` through the tap on a new repository, and
     /// `t3-serve serve` pointed at the tap with a bearer the operator minted. It returns once serve says it listens.
     pub fn start() -> Chain {
+        Chain::start_with_env(&[])
+    }
+
+    /// `start`, with `env` also in the service's environment (the address of its speech sidecar).
+    pub fn start_with_env(env: &[(&str, &str)]) -> Chain {
         let cli = ScriptedCli::install();
         let repo = TempRepo::new();
-        let service = RcaService::start(SECRET, &cli.path());
+        let service = RcaService::start_with_env(SECRET, &cli.path(), env);
         let tap = Tap::to(service.addr());
         let dirs = tempfile::Builder::new().prefix("t3-serve-dirs-").tempdir().unwrap();
         let root = std::fs::canonicalize(dirs.path()).unwrap();

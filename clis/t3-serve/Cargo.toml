@@ -21,7 +21,7 @@ test = false
 [package.metadata.flow]
 # The replay of the imported cassettes links mimic-core as a dev-dependency: an edit to it reruns the flow task.
 uses = ["mimic-core"]
-inputs = ["cassettes/**", "../../docs/plans/rca-parity/coverage/t3-methods.json", "../../libraries/agent-api/agent-api-service/tests/fixtures/**", "../../libraries/agent-api/agent-api-workspace/tests/fixtures/**", "../../libraries/agent-api/agent-api-agent/tests/fixtures/**", "../../libraries/agent-api/agent-api-terminal/tests/fixtures/**", "../../libraries/agent-api/agent-api-git/tests/fixtures/**", "../../libraries/agent-api/agent-api-accounts/tests/fixtures/**", "../../libraries/agent-api/agent-api-hosted/tests/fixtures/**", "../../libraries/agent-api/agent-api-schedules/tests/fixtures/**", "../../libraries/agent-api/agent-api-attachments/tests/fixtures/**", "../../libraries/agent-api/agent-api-preview/tests/fixtures/**"]
+inputs = ["cassettes/**", "../../docs/plans/rca-parity/coverage/t3-methods.json", "../../libraries/agent-api/agent-api-service/tests/fixtures/**", "../../libraries/agent-api/agent-api-workspace/tests/fixtures/**", "../../libraries/agent-api/agent-api-agent/tests/fixtures/**", "../../libraries/agent-api/agent-api-terminal/tests/fixtures/**", "../../libraries/agent-api/agent-api-git/tests/fixtures/**", "../../libraries/agent-api/agent-api-accounts/tests/fixtures/**", "../../libraries/agent-api/agent-api-hosted/tests/fixtures/**", "../../libraries/agent-api/agent-api-schedules/tests/fixtures/**", "../../libraries/agent-api/agent-api-attachments/tests/fixtures/**", "../../libraries/agent-api/agent-api-preview/tests/fixtures/**", "../../libraries/agent-api/agent-api-catalog/tests/fixtures/**"]
 
 # The integration chain (tests/integration.rs) runs the built binaries t3-serve, rca-service and rca-exec against each other, and the scripted CLI
 # that exec-testkit builds from its own workspace: a change to any of the last three reruns it (`uses`, with their workspaces' manifests and
@@ -44,6 +44,7 @@ t3-store = { path = "store" }
 t3-http = { path = "http" }
 agent-api-accounts = { path = "../../libraries/agent-api/agent-api-accounts" }
 agent-api-agent = { path = "../../libraries/agent-api/agent-api-agent" }
+agent-api-catalog = { path = "../../libraries/agent-api/agent-api-catalog" }
 agent-api-client = { path = "../../libraries/agent-api/agent-api-client" }
 agent-api-proto = { path = "../../libraries/agent-api/agent-api-proto" }
 agent-api-service = { path = "../../libraries/agent-api/agent-api-service" }

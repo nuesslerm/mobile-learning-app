@@ -124,6 +124,7 @@
     "clis/t3-serve -> libraries/agent-api/agent-api-accounts",
     "clis/t3-serve -> libraries/agent-api/agent-api-agent",
     "clis/t3-serve -> libraries/agent-api/agent-api-attachments",
+    "clis/t3-serve -> libraries/agent-api/agent-api-catalog",
     "clis/t3-serve -> libraries/agent-api/agent-api-client",
     "clis/t3-serve -> libraries/agent-api/agent-api-git",
     "clis/t3-serve -> libraries/agent-api/agent-api-hosted",

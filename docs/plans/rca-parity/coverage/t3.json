@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 222,
-    "served": 179,
+    "served": 185,
     "pending": 0,
-    "notOffered": 43,
+    "notOffered": 37,
     "excluded": 0,
     "flagged": 0,
     "answeredByMapper": 0,
@@ -1011,10 +1011,19 @@
       "kind": "http",
       "name": "voice.cancelModelDownload",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-voice.cancelModelDownload-boundary-limit-modelId",
+        "agent": [
+          "speech.status"
+        ],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "http:voice.cloudKeys",
@@ -1041,30 +1050,57 @@
       "kind": "http",
       "name": "voice.downloadModel",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-voice.downloadModel-boundary-limit-modelId",
+        "agent": [
+          "speech.status"
+        ],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "http:voice.models",
       "kind": "http",
       "name": "voice.models",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-voice.models-empty-empty-object",
+        "agent": [
+          "speech.status"
+        ],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "http:voice.selectModel",
       "kind": "http",
       "name": "voice.selectModel",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-voice.selectModel-boundary-limit-modelId",
+        "agent": [
+          "speech.status"
+        ],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "http:voice.setCloudKey",
@@ -1081,20 +1117,36 @@
       "kind": "http",
       "name": "voice.status",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-voice.status-empty-empty-object",
+        "agent": [
+          "speech.status"
+        ],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "http:voice.transcribe",
       "kind": "http",
       "name": "voice.transcribe",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-voice.transcribe-invalid-no-payload",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "http:voice.transcribeCloud",

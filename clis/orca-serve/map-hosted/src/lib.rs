@@ -22,13 +22,14 @@ mod issue;
 mod review;
 mod slug;
 mod time;
+mod work;
 
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 
 /// The agent methods this crate sends: the `pr.*` and `mr.*` ones it reaches, the fetch of a request's head, the git reads and the sign-in status of
 /// review eligibility and creation, and the review template creation reads.
-pub const USES: &[AgentMethod] = &[issue_api::CREATE, issue_api::EDIT, issue_api::SET_STATE, issue_api::COMMENT, issue_api::LIST, pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::RESOLVE_THREAD, pr::FILE_VIEWED, pr::REPLY, pr::REVIEW_COMMENT, pr::SET_STATE, pr::MR_SET_STATE, pr::MR_COMMENT, pr::COMMENTS, pr::REVIEWS, pr::THREADS, pr::REMOTES, pr::MR_LIST, pr::CREATE, pr::MR_CREATE, auth::DISCOVER, FETCH, BLOB, REFS, UPSTREAM_STATUS, STATUS, orca_map_workspace::FILE_READ];
+pub const USES: &[AgentMethod] = &[issue_api::SEARCH, issue_api::COUNT, issue_api::TODOS, issue_api::CREATE, issue_api::EDIT, issue_api::SET_STATE, issue_api::COMMENT, issue_api::LIST, pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::RESOLVE_THREAD, pr::FILE_VIEWED, pr::REPLY, pr::REVIEW_COMMENT, pr::SET_STATE, pr::MR_SET_STATE, pr::MR_COMMENT, pr::COMMENTS, pr::REVIEWS, pr::THREADS, pr::REMOTES, pr::MR_LIST, pr::CREATE, pr::MR_CREATE, auth::DISCOVER, FETCH, BLOB, REFS, UPSTREAM_STATUS, STATUS, orca_map_workspace::FILE_READ];
 
 /// `pr.remotes`, for a mapping crate that reads a workspace's remotes and their fetch URLs.
 pub const PR_REMOTES: AgentMethod = pr::REMOTES;
@@ -69,6 +70,10 @@ const METHODS: &[Method] = &[
     Method { name: "gitlab.createIssue", kind: Kind::Unary },
     Method { name: "gitlab.updateIssue", kind: Kind::Unary },
     Method { name: "gitlab.addIssueComment", kind: Kind::Unary },
+    Method { name: "github.countWorkItems", kind: Kind::Unary },
+    Method { name: "github.listWorkItems", kind: Kind::Unary },
+    Method { name: "gitlab.listWorkItems", kind: Kind::Unary },
+    Method { name: "gitlab.todos", kind: Kind::Unary },
     Method { name: "worktree.resolvePrBase", kind: Kind::Unary },
     Method { name: "worktree.resolveMrBase", kind: Kind::Unary },
 ];
@@ -86,7 +91,7 @@ impl Area for HostedArea {
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
         let repo_list = matches!(method, "github.listLabels" | "github.listAssignableUsers" | "github.resolveReviewThread" | "github.setPRFileViewed" | "github.addPRReviewComment" | "github.addPRReviewCommentReply" | "github.updatePRState" | "gitlab.updateMRState" | "gitlab.addMRComment" | "github.repoSlug" | "hostedReview.getCreationEligibility" | "hostedReview.create");
-        let issue_row = matches!(method, "github.createIssue" | "github.updateIssue" | "github.addIssueComment" | "gitlab.createIssue" | "gitlab.updateIssue" | "gitlab.addIssueComment");
+        let issue_row = matches!(method, "github.createIssue" | "github.updateIssue" | "github.addIssueComment" | "gitlab.createIssue" | "gitlab.updateIssue" | "gitlab.addIssueComment" | "github.countWorkItems" | "github.listWorkItems" | "gitlab.listWorkItems" | "gitlab.todos");
         if method == "github.addPRReviewComment" {
             github::check_review_comment_params(params)?;
         } else if method == "gitlab.addMRComment" {
@@ -141,6 +146,10 @@ impl Area for HostedArea {
             "gitlab.createIssue" => issue::create(issue::Host::Gitlab, &target, params),
             "gitlab.updateIssue" => issue::update(issue::Host::Gitlab, &target, params),
             "gitlab.addIssueComment" => issue::comment(issue::Host::Gitlab, &target, params),
+            "github.countWorkItems" => work::count(&target, params),
+            "github.listWorkItems" => work::list_github(&target, params),
+            "gitlab.listWorkItems" => work::list_gitlab(&target, params),
+            "gitlab.todos" => work::todos(&target, params),
             "worktree.resolvePrBase" => base::resolve(&target, params, false),
             "worktree.resolveMrBase" => base::resolve(&target, params, true),
             other => Err(Failure::new(METHOD_NOT_FOUND, format!("Unknown method: {other}"))),

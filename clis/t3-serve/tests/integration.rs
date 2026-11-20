@@ -24,3 +24,5 @@ mod scripted_turn_replay;
 mod terminal_pty;
 #[path = "integration/thread_surface.rs"]
 mod thread_surface;
+#[path = "integration/voice.rs"]
+mod voice;

@@ -474,28 +474,24 @@
       "oracle": "mimic"
     },
     "rpc:github.listWorkItems": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's hosted group is pull and merge requests, runs, clones and sign-in, with no issue or work item method, so the row would be answered without the provider's issues. An issue family (gh issue, gh api graphql, glab issue) would have to be added to agent-api-hosted and exec-hosted first.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.countWorkItems": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it counts the issues and pull requests of a repository for the work-item list, and rca has no issue or work item method (the same reason as github.listWorkItems).",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.workItem": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
       "decidedBy": "M12"
     },
     "rpc:github.workItemByOwnerRepo": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
       "decidedBy": "M12"
     },
     "rpc:github.workItemDetails": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
       "decidedBy": "M12"
     },
     "rpc:github.createIssue": {
@@ -591,18 +587,16 @@
       "decidedBy": "M12"
     },
     "rpc:gitlab.listWorkItems": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:gitlab.workItemDetails": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
       "decidedBy": "M12"
     },
     "rpc:gitlab.workItemByPath": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
       "decidedBy": "M12"
     },
     "rpc:gitlab.createIssue": {
@@ -615,9 +609,7 @@
       "oracle": "mimic"
     },
     "rpc:gitlab.todos": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: a GitLab to-do is a notification of the provider's own, and rca's hosted group reads none. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:linear.status": {
       "state": "not-offered",
@@ -1275,6 +1267,7 @@
     "rpc:layout.*": "the desktop window's workspace layout (apply, snapshots, held panes, view reports, subscribe): the scan finds no phone caller, and the recorded crawl drives the host's whole method surface, so its trace names them without a phone row to serve",
     "rpc:sidebarInputs.*": "the desktop sidebar's inputs (activity, desktop and review facts, paired server rows, workspace rows and creations, temporal, report view): no phone caller in the scan; the crawl names them, and the two phone rows (read, repoIcons) are flagged rows the scan classes itself",
     "rpc:sidebarSession.begin": "opens the desktop sidebar's input session: no phone caller in the scan, named by the crawl alone",
-    "rpc:session.readTerminalScrollback": "reads a terminal's scrollback for the desktop's execution host: no phone caller in the scan (the phone reads a terminal through terminal.subscribe, a pending M8 row), named by the crawl alone"
+    "rpc:session.readTerminalScrollback": "reads a terminal's scrollback for the desktop's execution host: no phone caller in the scan (the phone reads a terminal through terminal.subscribe, a pending M8 row), named by the crawl alone",
+    "rpc:runtimeEnvironment.wakeRecipeVm": "wakes the desktop's recipe VM for a remote runtime environment: registered but with no phone caller in the scan, named by the crawl alone"
   }
 }

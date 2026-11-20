@@ -22,46 +22,6 @@
       ]
     },
     {
-      "class": "missing at steps.http:ret:_.[*].payload.body.acceleration",
-      "severity": "breaking",
-      "diffs": [
-        "steps.http:ret:_.[2].payload.body.acceleration missing breaking",
-        "steps.http:ret:_.[2].payload.body.benchmarkTier missing breaking",
-        "steps.http:ret:_.[2].payload.body.gpuDevices missing breaking",
-        "steps.http:ret:_.[2].payload.body.languages missing breaking",
-        "steps.http:ret:_.[2].payload.body.model missing breaking",
-        "steps.http:ret:_.[2].payload.body.modelId missing breaking",
-        "steps.http:ret:_.[2].payload.body.modelUnloadTimeout missing breaking",
-        "steps.http:ret:_.[2].payload.body.size missing breaking",
-        "steps.http:ret:_.[2].payload.body.state missing breaking",
-        "steps.http:ret:_.[2].payload.body.supported missing breaking",
-        "steps.http:ret:_.[2].payload.body.supportsBufferedStreaming missing breaking",
-        "steps.http:ret:_.[2].payload.body.supportsLanguageDetection missing breaking",
-        "steps.http:ret:_.[2].payload.body.supportsModelLinking missing breaking",
-        "steps.http:ret:_.[2].payload.body.supportsStreaming missing breaking",
-        "steps.http:ret:_.[2].payload.body.supportsTranslation missing breaking",
-        "steps.http:ret:_.[2].payload.body.code extra drift",
-        "steps.http:ret:_.[2].payload.body.message extra drift",
-        "steps.http:ret:_.[2].payload.status changed breaking"
-      ],
-      "ids": [
-        "t3-http-voice.status"
-      ]
-    },
-    {
-      "class": "missing at steps.http:ret:_.[*].payload.body.models",
-      "severity": "breaking",
-      "diffs": [
-        "steps.http:ret:_.[2].payload.body.models missing breaking",
-        "steps.http:ret:_.[2].payload.body.code extra drift",
-        "steps.http:ret:_.[2].payload.body.message extra drift",
-        "steps.http:ret:_.[2].payload.status changed breaking"
-      ],
-      "ids": [
-        "t3-http-voice.models"
-      ]
-    },
-    {
       "class": "missing at steps.http:ret:_.[*].payload.body.openai",
       "severity": "breaking",
       "diffs": [

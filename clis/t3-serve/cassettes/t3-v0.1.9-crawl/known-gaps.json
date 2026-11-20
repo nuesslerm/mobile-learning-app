@@ -30,10 +30,6 @@
         "t3-http-orchestration.threadSnapshot-empty-empty-object",
         "t3-http-orchestration.threadSnapshot-invalid-no-payload",
         "t3-http-projects.mutate-valid-min",
-        "t3-http-voice.cancelModelDownload-invalid-drop-modelId",
-        "t3-http-voice.cancelModelDownload-invalid-wrong-type-modelId",
-        "t3-http-voice.downloadModel-invalid-drop-modelId",
-        "t3-http-voice.downloadModel-invalid-wrong-type-modelId",
         "t3-http-voice.linkModels-invalid-drop-path",
         "t3-http-voice.linkModels-invalid-wrong-type-path",
         "t3-http-voice.postProcess-boundary-full",
@@ -41,8 +37,6 @@
         "t3-http-voice.postProcess-invalid-wrong-type-options",
         "t3-http-voice.removeModel-invalid-drop-modelId",
         "t3-http-voice.removeModel-invalid-wrong-type-modelId",
-        "t3-http-voice.selectModel-invalid-drop-modelId",
-        "t3-http-voice.selectModel-invalid-wrong-type-modelId",
         "t3-http-voice.setCloudKey-invalid-drop-key",
         "t3-http-voice.setCloudKey-invalid-no-payload",
         "t3-http-voice.setCloudKey-invalid-wrong-type-key",
@@ -79,15 +73,9 @@
         "t3-http-mcpOAuth.token-valid-min",
         "t3-http-projects.mutate-invalid-no-payload",
         "t3-http-projects.mutate-invalid-wrong-type",
-        "t3-http-voice.cancelModelDownload-invalid-no-payload",
-        "t3-http-voice.downloadModel-invalid-no-payload",
         "t3-http-voice.linkModels-invalid-no-payload",
         "t3-http-voice.postProcess-invalid-no-payload",
         "t3-http-voice.removeModel-invalid-no-payload",
-        "t3-http-voice.selectModel-invalid-no-payload",
-        "t3-http-voice.transcribe-invalid-no-payload",
-        "t3-http-voice.transcribe-invalid-wrong-type",
-        "t3-http-voice.transcribe-valid-min",
         "t3-http-voice.updateAcceleration-invalid-no-payload",
         "t3-http-voice.updateModelUnloadTimeout-invalid-no-payload"
       ]
@@ -170,16 +158,12 @@
         "steps.http:ret:_.[2].payload.status changed breaking"
       ],
       "ids": [
-        "t3-http-voice.downloadModel-boundary-limit-modelId",
-        "t3-http-voice.downloadModel-valid-min",
         "t3-http-voice.linkModels-valid-min",
         "t3-http-voice.postProcess-valid-min",
         "t3-http-voice.prepareModel-empty-empty-object",
         "t3-http-voice.prepareModel-invalid-no-payload",
         "t3-http-voice.removeModel-boundary-limit-modelId",
-        "t3-http-voice.removeModel-valid-min",
-        "t3-http-voice.selectModel-boundary-limit-modelId",
-        "t3-http-voice.selectModel-valid-min"
+        "t3-http-voice.removeModel-valid-min"
       ]
     },
     {
@@ -316,12 +300,8 @@
         "steps.http:ret:_.[2].payload.status changed breaking"
       ],
       "ids": [
-        "t3-http-voice.cancelModelDownload-boundary-limit-modelId",
-        "t3-http-voice.cancelModelDownload-valid-min",
         "t3-http-voice.cloudModels-empty-empty-object",
-        "t3-http-voice.cloudModels-invalid-no-payload",
-        "t3-http-voice.models-empty-empty-object",
-        "t3-http-voice.models-invalid-no-payload"
+        "t3-http-voice.cloudModels-invalid-no-payload"
       ]
     },
     {
@@ -382,8 +362,6 @@
         "steps.http:ret:_.[2].payload.status changed breaking"
       ],
       "ids": [
-        "t3-http-voice.status-empty-empty-object",
-        "t3-http-voice.status-invalid-no-payload",
         "t3-http-voice.updateAcceleration-valid-min",
         "t3-http-voice.updateModelUnloadTimeout-valid-min"
       ]

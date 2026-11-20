@@ -2670,6 +2670,7 @@ dependencies = [
  "agent-api-accounts",
  "agent-api-agent",
  "agent-api-attachments",
+ "agent-api-catalog",
  "agent-api-client",
  "agent-api-git",
  "agent-api-hosted",

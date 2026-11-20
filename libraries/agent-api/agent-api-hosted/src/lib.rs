@@ -3,7 +3,7 @@
 //!
 //! - `hosted.pr`: `pr.*` and the same methods as `mr.*` (the neutral spelling for GitLab's merge requests; they differ only in the provider a
 //!   request that names none gets: `github` for `pr.*`, `gitlab` for `mr.*`), `pr.runs` and `pr.run`, and the repository's label and reviewer candidates.
-//! - `hosted.issue`: `issue.list` and `issue.view`, for GitHub and GitLab.
+//! - `hosted.issue`: a repository's issues for GitHub and GitLab (list, view, search and count over issues and pull or merge requests, comments, edit, state, create) and the account's to-dos.
 //! - `hosted.clone`: `clone.start` clones into a directory of the workspace and stays observable (`clone.status`, `clone.subscribe`) until it
 //!   ends or `clone.cancel` stops it; retrying is starting again.
 //! - `hosted.auth`: `sourceControl.*`: what the machine is signed in to, repository lookup and publish, and the CLI's web sign-in.

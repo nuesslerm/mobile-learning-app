@@ -19,5 +19,6 @@ pub mod settings;
 pub mod sourcecontrol;
 pub mod terminal;
 pub mod vcs;
+pub mod voice;
 pub mod workspace;
 pub mod attachments;

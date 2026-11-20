@@ -450,6 +450,8 @@ fn every_op() -> Vec<Op> {
     let by_id = agent_api_schedules::METHODS.iter().filter(|m| **m != agent_api_schedules::UPSERT && USES.contains(m)).map(|m| Op::Schedule { method: m.name(), root: None, params: json!({"id": "s1", "enabled": true}) });
     ops.extend(agent_api_attachments::METHODS.iter().filter(|m| USES.contains(m)).map(|m| Op::Attachment { method: m.name(), params: json!({"id": "att-1"}) }));
     ops.extend(agent_api_preview::sessions::METHODS.iter().chain(agent_api_preview::watch::METHODS).filter(|m| USES.contains(m)).map(|m| Op::Preview { method: m.name(), params: json!({"thread": "t1", "tab": "tab-1"}) }));
+    ops.push(Op::Speech { method: agent_api_catalog::SPEECH_STATUS.name(), params: json!({}) });
+    ops.push(Op::Speech { method: agent_api_catalog::SPEECH_TRANSCRIBE.name(), params: json!({"audio": "AAAA", "format": "wav"}) });
     ops.push(Op::Schedule { method: agent_api_schedules::UPSERT.name(), root: Some("/work/proj".into()), params: json!({"title": "t", "prompt": "p", "enabled": true, "schedule": {"type": "webhook"}, "driver": "claudeAgent"}) });
     ops.extend(by_id);
     ops

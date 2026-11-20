@@ -174,6 +174,51 @@ fn gl_issue(v: &Value) -> Value {
     })
 }
 
+fn gh_work(v: &Value) -> Value {
+    let pr = v.get("pull_request").filter(|p| p.is_object());
+    let merged = pr.is_some_and(|p| p.get("merged_at").is_some_and(|m| !m.is_null()));
+    let state = if merged { json!("merged") } else { lower(v, "state") };
+    json!({
+        "kind": if pr.is_some() { "pr" } else { "issue" }, "number": v.get("number"), "title": text(v, "title"), "state": state, "draft": v.get("draft").and_then(Value::as_bool).unwrap_or(false),
+        "author": login_of(v, "user", "login"), "author_avatar_url": login_of(v, "user", "avatar_url"), "labels": names(v, "labels", "name"), "url": text(v, "html_url"),
+        "created_at_ms": ms(v, "created_at"), "updated_at_ms": ms(v, "updated_at"), "comments": num(v, "comments"), "head_ref": Value::Null, "base_ref": Value::Null,
+    })
+}
+
+fn gl_work(v: &Value, kind: &str) -> Value {
+    json!({
+        "kind": kind, "number": v.get("iid"), "title": text(v, "title"), "state": gl_state(v), "draft": v.get("draft").or_else(|| v.get("work_in_progress")).and_then(Value::as_bool).unwrap_or(false),
+        "author": login_of(v, "author", "username"), "author_avatar_url": login_of(v, "author", "avatar_url"), "labels": json!(items(v, "labels").iter().filter_map(Value::as_str).collect::<Vec<_>>()), "url": text(v, "web_url"),
+        "created_at_ms": ms(v, "created_at"), "updated_at_ms": ms(v, "updated_at"), "comments": num(v, "user_notes_count"), "head_ref": text(v, "source_branch"), "base_ref": text(v, "target_branch"),
+    })
+}
+
+/// What a read with `--include` counted: the `X-Total` header GitLab prints before the body, or (past its 10 000 limit it omits one) the rows of the body.
+fn gl_total(out: &Output) -> u64 {
+    let (head, rest) = out.stdout.split_once("\r\n\r\n").or_else(|| out.stdout.split_once("\n\n")).unwrap_or(("", out.stdout.as_str()));
+    let header = head.lines().find_map(|l| l.split_once(':').filter(|(k, _)| k.eq_ignore_ascii_case("x-total")).and_then(|(_, n)| n.trim().parse::<u64>().ok()));
+    header.unwrap_or_else(|| serde_json::from_str::<Value>(rest).ok().and_then(|v| v.as_array().map(|a| a.len() as u64)).unwrap_or(0))
+}
+
+fn gh_todo(n: &Value) -> Value {
+    let url = n["subject"].get("url").and_then(Value::as_str).map(|u| u.replacen("https://api.github.com/repos/", "https://github.com/", 1).replacen("/pulls/", "/pull/", 1));
+    let number = url.as_deref().and_then(|u| u.rsplit('/').next()).and_then(|n| n.parse::<u64>().ok());
+    json!({
+        "id": id_string(n, "id"), "action": text(n, "reason"), "target_type": login_of(n, "subject", "type"), "number": number, "title": login_of(n, "subject", "title"), "url": url,
+        "repo": login_of(n, "repository", "full_name"), "author": Value::Null, "author_avatar_url": Value::Null, "updated_at_ms": ms(n, "updated_at"),
+        "state": if n.get("unread").and_then(Value::as_bool) == Some(false) { "done" } else { "pending" },
+    })
+}
+
+fn gl_todo(t: &Value) -> Value {
+    let target = t.get("target").filter(|x| x.is_object()).unwrap_or(&Value::Null);
+    json!({
+        "id": id_string(t, "id"), "action": text(t, "action_name"), "target_type": text(t, "target_type"), "number": target.get("iid").and_then(Value::as_u64), "title": text(target, "title"),
+        "url": text(t, "target_url").as_str().map_or_else(|| text(target, "web_url"), |u| json!(u)), "repo": login_of(t, "project", "path_with_namespace"), "author": login_of(t, "author", "username"),
+        "author_avatar_url": login_of(t, "author", "avatar_url"), "updated_at_ms": ms(t, "updated_at"), "state": if t.get("state").and_then(Value::as_str) == Some("done") { "done" } else { "pending" },
+    })
+}
+
 fn gl_state(v: &Value) -> Value {
     match v.get("state").and_then(Value::as_str) {
         Some("opened") => json!("open"),
@@ -397,6 +442,38 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
         HostedCall::IssueCreate { .. } => {
             let v = body(&last)?;
             Ok(json!({"number": v.get("iid"), "url": text(&v, "web_url")}))
+        }
+        HostedCall::IssueSearch { kind, limit, page, .. } => {
+            if github {
+                let v = body(&last)?;
+                let total = v.get("total_count").and_then(Value::as_u64);
+                let truncated = total.is_some_and(|t| t > page * (*limit).min(100));
+                return Ok(json!({"truncated": truncated, "total": total, "items": items(&v, "items").iter().map(gh_work).collect::<Vec<_>>()}));
+            }
+            let kinds: &[&str] = match kind {
+                exec_hosted::WorkKind::Issue => &["issue"],
+                exec_hosted::WorkKind::Pr => &["pr"],
+                exec_hosted::WorkKind::All => &["issue", "pr"],
+            };
+            let (mut all, mut full) = (Vec::new(), false);
+            for (out, kind) in outputs.iter().zip(kinds) {
+                let rows = body(out)?;
+                let rows = rows.as_array().ok_or_else(|| io(format!("{program} did not print a list")))?;
+                full |= rows.len() as u64 >= *limit;
+                all.extend(rows.iter().map(|r| gl_work(r, kind)));
+            }
+            all.sort_by_key(|r| std::cmp::Reverse(r["updated_at_ms"].as_u64()));
+            all.truncate(*limit as usize);
+            Ok(json!({"truncated": full, "total": Value::Null, "items": all}))
+        }
+        HostedCall::IssueCount { .. } => {
+            let count: u64 = if github { last.stdout.trim().parse().map_err(|_| io(format!("gh printed no count: {}", brief(&last.stdout))))? } else { outputs.iter().map(gl_total).sum() };
+            Ok(json!({"count": count}))
+        }
+        HostedCall::IssueTodos { .. } => {
+            let v = body(&last)?;
+            let rows = v.as_array().ok_or_else(|| io(format!("{program} did not print a list")))?;
+            Ok(json!({"todos": rows.iter().map(|r| if github { gh_todo(r) } else { gl_todo(r) }).collect::<Vec<_>>()}))
         }
         HostedCall::PrView { .. } => {
             let v = body(&last)?;

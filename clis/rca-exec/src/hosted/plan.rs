@@ -2,7 +2,7 @@
 //! with, or the local `git remote -v`), the text sent on stdin and the exit codes that still carry an answer. Pure: nothing is run here. Every value reaches the CLI as the
 //! value of a `--flag=value` or a `-f key=value` field, or as a path, an id or a number the contract already checked, so none can be an option.
 use super::shape::Output;
-use exec_hosted::{CommentKind, HostedCall, HostedOp, MergeMethod, PrState, Provider, ReactTarget, Verdict, Visibility};
+use exec_hosted::{CommentKind, HostedCall, HostedOp, MergeMethod, PrState, Provider, ReactTarget, Verdict, Visibility, WorkKind};
 use serde_json::{json, Value};
 use std::path::PathBuf;
 
@@ -231,6 +231,89 @@ fn next_merge_request_step(op: &HostedOp, outputs: &[Output]) -> Result<Option<S
         })
         .collect::<Result<Vec<_>, String>>()?;
     new_merge_request(op, &target, &ids).map(Some)
+}
+
+/// The words of a GitHub search for work items: the repository, what kind, its state, the account, the label and the free text.
+fn github_work_query(repo: &str, kind: WorkKind, state: PrState, author: &Option<String>, label: &Option<String>, search: &Option<String>) -> String {
+    let mut words = vec![format!("repo:{repo}")];
+    words.extend(match kind {
+        WorkKind::Issue => Some("is:issue".to_string()),
+        WorkKind::Pr => Some("is:pr".to_string()),
+        WorkKind::All => None,
+    });
+    words.extend(match state {
+        PrState::Open => Some("is:open"),
+        PrState::Closed => Some("is:closed"),
+        PrState::Merged => Some("is:merged"),
+        PrState::All => None,
+    }.map(String::from));
+    words.extend(author.iter().map(|a| format!("author:{a}")));
+    words.extend(label.iter().map(|l| format!("label:\"{}\"", l.replace('"', "\\\""))));
+    words.extend(search.iter().cloned());
+    words.join(" ")
+}
+
+/// The fields of a search or a count of work items.
+struct Work<'a> {
+    kind: WorkKind,
+    state: PrState,
+    author: &'a Option<String>,
+    label: &'a Option<String>,
+    search: &'a Option<String>,
+    /// `per_page` and `page`, `(1, 1)` for a count.
+    paging: (u64, u64),
+    count_only: bool,
+}
+
+impl Work<'_> {
+    fn of(call: &HostedCall) -> Option<Work<'_>> {
+        match call {
+            HostedCall::IssueSearch { kind, state, author, label, search, limit, page } => Some(Work { kind: *kind, state: *state, author, label, search, paging: (*limit, *page), count_only: false }),
+            HostedCall::IssueCount { kind, state, author, label, search } => Some(Work { kind: *kind, state: *state, author, label, search, paging: (1, 1), count_only: true }),
+            _ => None,
+        }
+    }
+}
+
+fn github_work_step(op: &HostedOp, w: &Work) -> Step {
+    let mut args = strs(&["api", "--method=GET", "search/issues"]);
+    match &op.repo {
+        Some(r) => args.push(format!("-f=q={}", github_work_query(r, w.kind, w.state, w.author, w.label, w.search))),
+        None => args.push(format!("-F=q={}", github_work_query("{owner}/{repo}", w.kind, w.state, w.author, w.label, w.search))),
+    }
+    args.push(format!("-f=per_page={}", w.paging.0.min(100)));
+    if w.count_only {
+        args.push("--jq=.total_count".into());
+    } else {
+        args.extend([format!("-f=page={}", w.paging.1), "-f=sort=updated".into(), "-f=order=desc".into()]);
+    }
+    step(Program::Gh, args)
+}
+
+/// The GitLab reads of a search or count: the project's issues and its merge requests, each one request, whichever the kind asks for.
+fn gitlab_work_steps(op: &HostedOp, w: &Work) -> Vec<Step> {
+    let project = gitlab_project(op);
+    let state = match w.state {
+        PrState::Open => "opened",
+        PrState::Closed => "closed",
+        PrState::Merged => "merged",
+        PrState::All => "all",
+    };
+    let mut steps = Vec::new();
+    for (resource, wanted) in [("issues", w.kind != WorkKind::Pr), ("merge_requests", w.kind != WorkKind::Issue)] {
+        if !wanted {
+            continue;
+        }
+        let mut query = vec![format!("state={state}"), format!("per_page={}", w.paging.0), format!("page={}", w.paging.1), "order_by=updated_at".into(), "sort=desc".into()];
+        for (key, value) in [("author_username", w.author), ("labels", w.label), ("search", w.search)] {
+            query.extend(value.iter().map(|v| format!("{key}={}", encode(v))));
+        }
+        let mut args = strs(&["api"]);
+        args.extend(w.count_only.then(|| "--include".to_string()));
+        args.push(format!("{project}/{resource}?{}", query.join("&")));
+        steps.push(step(Program::Glab, args));
+    }
+    steps
 }
 
 /// The step that follows the steps run so far, when what it asks depends on what they printed: the stack's own read after the list that found
@@ -468,6 +551,8 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             s.stdin = Some(body.clone().unwrap_or_default());
             one(s)
         }
+        HostedCall::IssueSearch { .. } | HostedCall::IssueCount { .. } => one(github_work_step(op, &Work::of(&op.call).expect("a search or a count"))),
+        HostedCall::IssueTodos { limit } => one(gh(vec!["api".into(), "--method=GET".into(), "notifications".into(), format!("-f=per_page={limit}")])),
         HostedCall::PrView { number } => one(view(*number, PR_FIELDS)),
         HostedCall::PrDiff { number } => one(gh(pr(&["diff"], *number, strs(&["--color=never"])))),
         HostedCall::PrChecks { number } => {
@@ -723,6 +808,8 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             }
             one(with_json(api("POST", format!("{}/issues", project())), v))
         }
+        HostedCall::IssueSearch { .. } | HostedCall::IssueCount { .. } => Ok(gitlab_work_steps(op, &Work::of(&op.call).expect("a search or a count"))),
+        HostedCall::IssueTodos { limit } => one(api("GET", format!("todos?state=pending&per_page={limit}"))),
         HostedCall::PrView { number } => one(api("GET", mr(*number, ""))),
         HostedCall::PrDiff { number } => one(glab(mr_cmd(&["diff"], *number, strs(&["--color=never"])))),
         HostedCall::PrChecks { number } => one(api("GET", mr(*number, "/pipelines"))),

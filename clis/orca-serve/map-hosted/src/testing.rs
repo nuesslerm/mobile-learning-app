@@ -444,6 +444,24 @@ impl Hosting {
             Some("acme/unresolved") => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
             _ => Ok(json!({"issues": [], "truncated": false})),
         });
+        agent.reply("issue.search", |p| match (p["provider"].as_str(), p["search"].as_str()) {
+            (_, Some("unresolved")) => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
+            (Some("gitlab"), _) => Ok(json!({"truncated": true, "total": null, "items": [
+                {"kind": "pr", "number": 8, "title": "Retry uploads", "state": "open", "draft": true, "author": "bot", "author_avatar_url": null, "labels": [], "url": "https://gitlab.com/grp/proj/-/merge_requests/8", "created_at_ms": 1791190800000u64, "updated_at_ms": 1791194400000u64, "comments": 0, "head_ref": "retry", "base_ref": "main"},
+                {"kind": "issue", "number": 3, "title": "Upload fails", "state": "closed", "draft": false, "author": "tanuki", "author_avatar_url": null, "labels": ["bug"], "url": "https://gitlab.com/grp/proj/-/issues/3", "created_at_ms": 1791014400000u64, "updated_at_ms": 1791117000000u64, "comments": 4, "head_ref": null, "base_ref": null}]})),
+            _ => Ok(json!({"truncated": false, "total": 2, "items": [
+                {"kind": "pr", "number": 9, "title": "Retry uploads", "state": "open", "draft": true, "author": "hubot", "author_avatar_url": "https://avatars.example/hubot", "labels": ["enhancement"], "url": "https://github.com/acme/app/pull/9", "created_at_ms": 1791190800000u64, "updated_at_ms": 1791280800000u64, "comments": 2, "head_ref": null, "base_ref": null},
+                {"kind": "issue", "number": 7, "title": "Upload retries are silent", "state": "open", "draft": false, "author": "octocat", "author_avatar_url": null, "labels": ["bug"], "url": "https://github.com/acme/app/issues/7", "created_at_ms": 1791014400000u64, "updated_at_ms": 1791117000000u64, "comments": 3, "head_ref": null, "base_ref": null}]})),
+        });
+        agent.reply("issue.count", |p| match p["search"].as_str() {
+            Some("unresolved") => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
+            Some(_) => Ok(json!({"count": 1})),
+            None => Ok(json!({"count": 12})),
+        });
+        agent.reply("issue.todos", |p| match p["limit"].as_u64() {
+            Some(50) => Ok(json!({"todos": [{"id": "77", "action": "review_requested", "target_type": "MergeRequest", "number": 8, "title": "Retry uploads", "url": "https://gitlab.com/grp/proj/-/merge_requests/8", "repo": "grp/proj", "author": "tanuki", "author_avatar_url": "https://gitlab.example/t.png", "updated_at_ms": 1791194400000u64, "state": "pending"}]})),
+            _ => Err(refused("HOSTED_FAILED", "glab: 401 Unauthorized")),
+        });
         agent.reply("issue.comment", |p| match p["number"].as_u64() {
             Some(7) if p["provider"] == "gitlab" => Ok(json!({"done": true, "url": null, "id": "92", "body": p["body"]})),
             Some(7) => Ok(json!({"done": true, "url": "https://github.com/acme/app/issues/7#issuecomment-91"})),

@@ -9,6 +9,7 @@ use t3_contracts::environment::ORCHESTRATION_PROTOCOL_HEADER;
 use t3_contracts::wire;
 use t3_core::usecases::attachments::{ASSET_PREFIX, MAX_UPLOAD_BYTES, UPLOAD_PREFIX};
 use t3_core::usecases::history::EnvironmentRequest;
+use t3_core::usecases::voice::MAX_BODY_BYTES as MAX_VOICE_BYTES;
 use t3_core::{Refusal, Service};
 
 const MAX_HEAD: usize = 16 * 1024;
@@ -19,6 +20,7 @@ const UPLOAD_TIMEOUT: Duration = Duration::from_secs(120);
 const HOOKS: &str = "/api/hooks/";
 /// `GET /api/orchestration/threads/:threadId/history` and `.../transcript`.
 const THREADS: &str = "/api/orchestration/threads/";
+const VOICE_TRANSCRIBE: &str = "/api/voice/transcribe";
 
 pub struct Request {
     pub method: String,
@@ -26,6 +28,8 @@ pub struct Request {
     pub query: Vec<(String, String)>,
     pub headers: Vec<(String, String)>,
     pub body: Vec<u8>,
+    /// A transcribe request longer than the route reads: its body was left unread.
+    pub oversized: bool,
 }
 
 impl Request {
@@ -79,10 +83,14 @@ fn read_request(stream: &mut TcpStream) -> Result<Request, &'static str> {
     let headers: Vec<(String, String)> = lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_ascii_lowercase(), v.trim().to_string())).collect();
     let length: usize = headers.iter().find(|(k, _)| k == "content-length").and_then(|(_, v)| v.parse().ok()).unwrap_or(0);
     let upload = method == "POST" && path.starts_with(&format!("{UPLOAD_PREFIX}/"));
-    if length > if upload { MAX_UPLOAD_BYTES as usize } else { MAX_BODY } {
+    let voice = method == "POST" && path == VOICE_TRANSCRIBE;
+    if length > if upload { MAX_UPLOAD_BYTES as usize } else if voice { MAX_VOICE_BYTES } else { MAX_BODY } {
+        if voice {
+            return Ok(Request { method, path: path.to_string(), query: pairs(query), headers, body: Vec::new(), oversized: true });
+        }
         return Err("request body too large");
     }
-    if upload {
+    if upload || voice {
         let _ = stream.set_read_timeout(Some(UPLOAD_TIMEOUT));
     }
     let mut body = buf[head_end + 4..].to_vec();
@@ -93,7 +101,7 @@ fn read_request(stream: &mut TcpStream) -> Result<Request, &'static str> {
         }
     }
     body.truncate(length);
-    Ok(Request { method, path: path.to_string(), query: pairs(query), headers, body })
+    Ok(Request { method, path: path.to_string(), query: pairs(query), headers, body, oversized: false })
 }
 
 const CORS_PREFLIGHT: &str = "Access-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: authorization, content-type, b3, traceparent, x-t3-orchestration-protocol\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\n";
@@ -139,6 +147,10 @@ fn respond_unsupported(stream: &mut TcpStream) {
     const TEXT: &str = "Unsupported content-type: text/plain";
     let head = format!("HTTP/1.1 415 {}\r\n{COMMON}Content-Type: text/plain\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", reason(415), TEXT.len());
     let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.write_all(TEXT.as_bytes())).and_then(|()| stream.flush());
+}
+
+fn is_octet_stream(request: &Request) -> bool {
+    request.header("content-type").is_some_and(|t| t.to_ascii_lowercase().contains("application/octet-stream"))
 }
 
 fn is_json(request: &Request) -> bool {
@@ -204,6 +216,13 @@ fn refused(stream: &mut TcpStream, r: Refusal, extra: &str) {
         return respond_bare(stream, r.status);
     }
     respond_with(stream, r.status, &r.body, extra);
+}
+
+fn voice_answer(stream: &mut TcpStream, answer: Result<Value, Refusal>) {
+    match answer {
+        Ok(body) => respond(stream, 200, &body),
+        Err(r) => refused(stream, r, ""),
+    }
 }
 
 pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
@@ -303,6 +322,28 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
                 Ok(body) => respond(&mut stream, 200, &body),
                 Err(r) => refused(&mut stream, r, ""),
             }
+        }
+        ("GET", "/api/voice/status") => voice_answer(&mut stream, svc.voice_status(auth)),
+        ("GET", "/api/voice/models") => voice_answer(&mut stream, svc.voice_models(auth, &request.query)),
+        ("POST", path @ ("/api/voice/models/select" | "/api/voice/models/download" | "/api/voice/models/cancel")) => {
+            if !is_json(&request) {
+                return respond_unsupported(&mut stream);
+            }
+            let answer = match path {
+                "/api/voice/models/select" => svc.voice_select_model(auth, &request.body),
+                "/api/voice/models/download" => svc.voice_download_model(auth, &request.body),
+                _ => svc.voice_cancel_model_download(auth, &request.body),
+            };
+            voice_answer(&mut stream, answer)
+        }
+        ("POST", VOICE_TRANSCRIBE) => {
+            if !is_octet_stream(&request) {
+                return respond_unsupported(&mut stream);
+            }
+            if request.oversized {
+                return refused(&mut stream, svc.voice_body_too_large(auth), "");
+            }
+            voice_answer(&mut stream, svc.voice_transcribe(auth, &request.body))
         }
         ("POST", path) if path.starts_with(&format!("{UPLOAD_PREFIX}/")) => {
             let length = request.header("content-length").and_then(|v| v.parse::<u64>().ok());

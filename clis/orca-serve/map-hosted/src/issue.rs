@@ -15,7 +15,7 @@ pub enum Host {
 }
 
 impl Host {
-    fn provider(self) -> &'static str {
+    pub(crate) fn provider(self) -> &'static str {
         match self {
             Host::Github => "github",
             Host::Gitlab => "gitlab",

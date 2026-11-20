@@ -347,6 +347,8 @@ pub enum Op {
     /// A request of the `preview.sessions` group (`preview.open`, `preview.resize`, ..., `preview.subscribe` for where the stream stands): `method` is
     /// the agent API method.
     Preview { method: &'static str, params: Value },
+    /// A request of the catalog group's speech methods (`speech.status`, `speech.transcribe`): the service's own engine, the executor is never asked.
+    Speech { method: &'static str, params: Value },
 }
 
 impl Op {
@@ -422,7 +424,7 @@ impl Op {
             Op::AccountsLogout { .. } => "provider.logout",
             Op::UsageSummary => "usage.summary",
             Op::ResetCredit { .. } => "provider.resetCredit",
-            Op::Hosted { method, .. } | Op::Schedule { method, .. } | Op::Attachment { method, .. } | Op::Preview { method, .. } => method,
+            Op::Hosted { method, .. } | Op::Schedule { method, .. } | Op::Attachment { method, .. } | Op::Preview { method, .. } | Op::Speech { method, .. } => method,
         }
     }
 }

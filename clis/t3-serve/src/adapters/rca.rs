@@ -11,6 +11,7 @@ use agent_api_proto::{thread_topic, Event, GroupName, Method, PROTOCOL};
 use agent_api_service::activity::ClientActivityParams;
 use agent_api_service::{StatusResult, CLIENT_ACTIVITY, STATUS};
 use agent_api_accounts as accounts;
+use agent_api_catalog as catalog;
 use agent_api_git as git;
 use agent_api_preview as preview;
 use agent_api_schedules as schedules;
@@ -33,7 +34,7 @@ pub struct RcaAgent {
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 132] = [
+pub const USES: [Method; 134] = [
     STATUS,
     THREAD_CREATE,
     THREAD_SUBSCRIBE,
@@ -166,6 +167,8 @@ pub const USES: [Method; 132] = [
     preview::sessions::CLOSE,
     preview::sessions::LIST,
     preview::watch::SUBSCRIBE,
+    catalog::SPEECH_STATUS,
+    catalog::SPEECH_TRANSCRIBE,
 ];
 
 /// The groups the mapper calls that `service.status` does not list: `workspace` is served, but its owner methods `workspace.activate` and
@@ -500,6 +503,10 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
             let found = attachments::METHODS.iter().find(|m| m.name() == *method).copied().ok_or_else(|| AgentError::Failed(format!("{method} is no attachments method of the agent API")))?;
             (found, params.clone())
         }
+        Op::Speech { method, params } => {
+            let found = [catalog::SPEECH_STATUS, catalog::SPEECH_TRANSCRIBE].into_iter().find(|m| m.name() == *method).ok_or_else(|| AgentError::Failed(format!("{method} is no speech method of the agent API")))?;
+            (found, params.clone())
+        }
         Op::WorkspaceCreate { workspace, path } => (WORKSPACE_CREATE, json!({"workspace": workspace, "path": path})),
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
@@ -516,7 +523,7 @@ fn is_accounts(op: &Op) -> bool {
 
 /// The requests whose refusals keep the service's own codes (`CLI_NOT_INSTALLED`, `PROVIDER_NOT_SIGNED_IN`, the executor's).
 fn is_hosted(op: &Op) -> bool {
-    matches!(op, Op::Hosted { .. } | Op::Schedule { .. } | Op::Attachment { .. } | Op::Preview { .. })
+    matches!(op, Op::Hosted { .. } | Op::Schedule { .. } | Op::Attachment { .. } | Op::Preview { .. } | Op::Speech { .. })
 }
 
 /// The requests about directories and workspaces whose refusals keep the codes the app tells apart (`ALREADY_EXISTS`, `PATH_OUTSIDE_ROOT`,

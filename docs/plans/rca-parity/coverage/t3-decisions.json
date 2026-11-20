@@ -389,19 +389,13 @@
       "decidedBy": "M12"
     },
     "http:voice.downloadModel": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "http:voice.cancelModelDownload": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "http:voice.selectModel": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:provider.auth.removeMethod": {
       "state": "not-offered",
@@ -409,19 +403,13 @@
       "decidedBy": "M10"
     },
     "http:voice.models": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "http:voice.status": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "http:voice.transcribe": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "command:queue.resume": {
       "oracle": "mimic"

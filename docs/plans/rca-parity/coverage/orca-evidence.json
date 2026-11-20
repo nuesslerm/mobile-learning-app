@@ -521,6 +521,90 @@
         "complete": true,
         "tests": 62,
         "passed": 20
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 1091,
+        "passed": 55
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 163,
+        "passed": 18
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 735,
+        "passed": 214
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 209,
+        "passed": 125
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 446,
+        "passed": 172
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 62,
+        "passed": 24
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 33,
+        "passed": 17
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 34,
+        "passed": 29
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 416,
+        "passed": 94
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 53,
+        "passed": 16
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 276,
+        "passed": 88
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 535,
+        "passed": 119
       }
     ]
   },
@@ -1320,6 +1404,15 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:github.countWorkItems": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-github.countWorkItems-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:github.createIssue": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-github.createIssue-boundary-full",
@@ -1341,6 +1434,15 @@
     "rpc:github.listLabels": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-github.listLabels-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:github.listWorkItems": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-github.listWorkItems-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -1509,9 +1611,27 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:gitlab.listWorkItems": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-gitlab.listWorkItems-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:gitlab.mergeMR": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-gitlab.mergeMR-invalid-drop-repo",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:gitlab.todos": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-gitlab.todos-invalid-drop-repo",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

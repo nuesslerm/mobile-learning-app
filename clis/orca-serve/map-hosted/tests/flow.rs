@@ -1348,3 +1348,35 @@ fn given_a_workspace_when_the_phone_creates_updates_and_comments_on_issues_then_
     assert_eq!(rig.err("github.updateIssue", json!({"number": 0, "updates": {}})), ("invalid_argument".into(), "Too small: expected number to be >0".into()));
     assert_eq!(rig.err("github.updateIssue", json!({"number": 7, "updates": {"state": "merged"}})), ("invalid_argument".into(), "Invalid option: expected one of \"open\"|\"closed\"".into()));
 }
+
+#[test]
+fn given_a_workspace_when_the_phone_lists_counts_and_reads_to_dos_then_each_row_is_the_hosts_answer_over_the_search_count_and_todo_methods_of_rca() {
+    // Given a workspace whose provider answers a search, a count and the to-dos
+    let mut rig = Rig::new();
+    // When the phone lists GitHub work items with a query, counts them, lists GitLab's, and reads the to-dos
+    let listed = rig.ok("github.listWorkItems", json!({"query": "is:pr author:hubot label:\"good first issue\" retries", "limit": 10, "page": 2}));
+    let counted = rig.ok("github.countWorkItems", json!({}));
+    let counted_query = rig.ok("github.countWorkItems", json!({"query": "is:closed crash"}));
+    let gitlab = rig.ok("gitlab.listWorkItems", json!({"state": "all", "perPage": 2, "query": "upload"}));
+    let todos = rig.ok("gitlab.todos", json!({}));
+    // Then the GitHub list is the rows the phone renders, the counts are bare numbers, GitLab's list holds merge request and issue with their project, and a to-do is the host's row
+    assert_eq!(listed["items"][0], json!({"id": "pr:9", "type": "pr", "number": 9, "title": "Retry uploads", "state": "draft", "url": "https://github.com/acme/app/pull/9", "labels": ["enhancement"], "updatedAt": "2026-10-06T10:00:00Z", "author": "hubot", "authorAvatarUrl": "https://avatars.example/hubot", "branchName": "", "baseRefName": ""}));
+    assert_eq!(listed["items"][1]["commentCount"], 3);
+    assert_eq!(listed["sources"], json!({"issues": null, "prs": null, "originCandidate": null, "upstreamCandidate": null}));
+    assert_eq!((counted, counted_query), (json!(12), json!(1)));
+    assert_eq!(gitlab["items"][0]["type"], "mr");
+    assert_eq!((gitlab["items"][0]["state"].clone(), gitlab["items"][0]["projectRef"].clone(), gitlab["items"][0]["repoId"].clone()), (json!("draft"), json!({"host": "gitlab.com", "path": "grp/proj"}), json!("grp/proj")));
+    assert_eq!((gitlab["items"][1]["state"].clone(), gitlab["totalCount"].clone(), gitlab["totalPages"].clone()), (json!("closed"), json!(3), json!(2)));
+    assert_eq!(todos, json!([{"id": 77, "actionName": "review_requested", "targetType": "MergeRequest", "targetIid": 8, "targetTitle": "Retry uploads", "targetUrl": "https://gitlab.com/grp/proj/-/merge_requests/8", "projectPath": "grp/proj", "authorUsername": "tanuki", "authorAvatarUrl": "https://gitlab.example/t.png", "updatedAt": "2026-10-05T10:00:00.000Z", "state": "pending"}]));
+    // And rca was asked with the filters the query names, the rest as search text, the page and the provider each host names
+    let asked: Vec<(String, Value)> = rig.agent.requests().into_iter().filter(|(m, _)| m.starts_with("issue.")).collect();
+    assert_eq!(asked[0], ("issue.search".to_string(), json!({"workspace": "main", "provider": "github", "state": "open", "kind": "pr", "author": "hubot", "label": "good first issue", "search": "retries", "limit": 10, "page": 2})));
+    assert_eq!(asked[1], ("issue.count".to_string(), json!({"workspace": "main", "provider": "github", "state": "open"})));
+    assert_eq!(asked[2], ("issue.count".to_string(), json!({"workspace": "main", "provider": "github", "state": "closed", "search": "crash"})));
+    assert_eq!(asked[3], ("issue.search".to_string(), json!({"workspace": "main", "provider": "gitlab", "state": "all", "limit": 2, "page": 1, "search": "upload"})));
+    // And a project the executor cannot resolve is the host's empty answers, and an unknown folder is repo_not_found
+    assert_eq!(rig.ok("github.countWorkItems", json!({"query": "unresolved"})), json!(0));
+    assert_eq!(rig.ok("github.listWorkItems", json!({"query": "unresolved"}))["errors"]["issues"]["type"], "unknown");
+    assert_eq!(rig.ok("gitlab.listWorkItems", json!({"query": "unresolved"}))["error"], json!({"type": "not_found", "message": "No GitLab project found for this repository."}));
+    assert_eq!(rig.err("gitlab.todos", json!({"repo": "nope"})).0, "repo_not_found");
+}

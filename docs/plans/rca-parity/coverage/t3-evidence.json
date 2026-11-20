@@ -997,6 +997,41 @@
         "complete": true,
         "tests": 13,
         "passed": 8
+      },
+      {
+        "suite": "t3-serve-integration",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 57,
+        "passed": 22
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 3,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 4,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "8507357e4f4ecd6cc8df9dd764a1505f1a6f0029",
+        "complete": true,
+        "tests": 3,
+        "passed": 2
       }
     ]
   },
@@ -1500,6 +1535,70 @@
     "http:pullRequests.diff": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-http-pullRequests.diff-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:voice.cancelModelDownload": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-voice.cancelModelDownload-boundary-limit-modelId",
+      "agent": [
+        "speech.status"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:voice.downloadModel": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-voice.downloadModel-boundary-limit-modelId",
+      "agent": [
+        "speech.status"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:voice.models": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-voice.models-empty-empty-object",
+      "agent": [
+        "speech.status"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:voice.selectModel": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-voice.selectModel-boundary-limit-modelId",
+      "agent": [
+        "speech.status"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:voice.status": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-voice.status-empty-empty-object",
+      "agent": [
+        "speech.status"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:voice.transcribe": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-voice.transcribe-invalid-no-payload",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

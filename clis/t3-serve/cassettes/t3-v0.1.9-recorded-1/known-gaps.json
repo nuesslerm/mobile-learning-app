@@ -10,9 +10,7 @@
         "steps.http:ret:_.[2].payload.status changed breaking"
       ],
       "ids": [
-        "t3-http-connect.linkProof",
-        "t3-http-voice.selectModel",
-        "t3-http-voice.transcribe"
+        "t3-http-connect.linkProof"
       ]
     },
     {

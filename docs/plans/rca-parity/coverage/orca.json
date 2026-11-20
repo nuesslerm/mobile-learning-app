@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 193,
+    "served": 197,
     "pending": 4,
-    "notOffered": 110,
+    "notOffered": 106,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -2007,10 +2007,17 @@
       "kind": "rpc",
       "name": "github.countWorkItems",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it counts the issues and pull requests of a repository for the work-item list, and rca has no issue or work item method (the same reason as github.listWorkItems).",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.countWorkItems-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.createIssue",
@@ -2068,10 +2075,17 @@
       "kind": "rpc",
       "name": "github.listWorkItems",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's hosted group is pull and merge requests, runs, clones and sign-in, with no issue or work item method, so the row would be answered without the provider's issues. An issue family (gh issue, gh api graphql, glab issue) would have to be added to agent-api-hosted and exec-hosted first.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.listWorkItems-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.markPRDraft",
@@ -2533,7 +2547,7 @@
       "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
       "decidedBy": "M12"
     },
     {
@@ -2543,7 +2557,7 @@
       "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
       "decidedBy": "M12"
     },
     {
@@ -2553,7 +2567,7 @@
       "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
       "decidedBy": "M12"
     },
     {
@@ -2612,10 +2626,17 @@
       "kind": "rpc",
       "name": "gitlab.listWorkItems",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-gitlab.listWorkItems-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:gitlab.mergeMR",
@@ -2639,10 +2660,17 @@
       "kind": "rpc",
       "name": "gitlab.todos",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: a GitLab to-do is a notification of the provider's own, and rca's hosted group reads none. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-gitlab.todos-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:gitlab.updateIssue",
@@ -2702,7 +2730,7 @@
       "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
       "decidedBy": "M12"
     },
     {
@@ -2712,7 +2740,7 @@
       "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule; corrected 20 Nov (issue #83, O2): rca now serves the issue family (hosted.issue: list, view, search, count, to-dos, comments, edit, state, create), so the reason is no longer that rca has no issue method. This row reads one work item with its full details (body, comments, and for a pull or merge request its files and checks), which no single rca method answers; it is served when a mapping composes issue.view, pr.view and their comments and a recorded answer replays clean.",
       "decidedBy": "M12"
     },
     {
