@@ -35,6 +35,17 @@ pub struct JobRow {
     pub queued: i64,
 }
 
+/// One job that queued in a concurrency group (`CI_JOBS.GROUP_KEY`): when it started (epoch seconds, 0 when it never did), how long it ran and how it ended.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GroupJob {
+    pub run: String,
+    pub job: String,
+    pub group_key: String,
+    pub started: i64,
+    pub secs: i64,
+    pub conclusion: String,
+}
+
 /// The sha and the task hashes of one run.
 pub type RunHashes = (String, BTreeMap<String, String>);
 
@@ -50,6 +61,8 @@ pub trait Ledger {
     fn previous(&self, run: &str) -> Result<Option<RunHashes>, String>;
     /// Each job's seconds in the newest `runs` cold runs, newest first.
     fn cold_jobs(&self, runs: usize) -> Result<BTreeMap<String, Vec<i64>>, String>;
+    /// The jobs with a concurrency group that were still running at or after `since` (epoch seconds): one that started before it and held the group into it counts.
+    fn group_jobs(&self, since: i64) -> Result<Vec<GroupJob>, String>;
 }
 
 /// The store this environment names: a file when `WF_CI_LEDGER_FILE` is set, else the sealed CI database when `CI_DB_KEY` is readable,
@@ -161,6 +174,16 @@ impl Ledger for DbLedger {
         let rows = self.rows(&format!("SELECT RUN_ID, TS, JOB, SECS FROM CI_JOBS WHERE KIND = 'cold' AND TS IN (SELECT DISTINCT TS FROM CI_JOBS WHERE KIND = 'cold' ORDER BY TS DESC LIMIT {runs})"))?;
         Ok(newest_runs(&rows, runs, |r| (text_of(r, "RUN_ID"), int(r, "TS"), text_of(r, "JOB"), int(r, "SECS"))))
     }
+
+    fn group_jobs(&self, since: i64) -> Result<Vec<GroupJob>, String> {
+        self.ensure()?;
+        let rows = self.rows(&format!("SELECT RUN_ID, JOB, GROUP_KEY, STARTED, SECS, CONCLUSION FROM CI_JOBS WHERE GROUP_KEY IS NOT NULL AND STARTED > 0 AND STARTED + SECS >= {since}"))?;
+        Ok(rows.iter().map(|r| group_job_of(r, "RUN_ID", "JOB", "GROUP_KEY", "STARTED", "SECS", "CONCLUSION")).collect())
+    }
+}
+
+fn group_job_of(r: &Value, run: &str, job: &str, key: &str, started: &str, secs: &str, conclusion: &str) -> GroupJob {
+    GroupJob { run: text_of(r, run), job: text_of(r, job), group_key: text_of(r, key), started: int(r, started), secs: int(r, secs), conclusion: text_of(r, conclusion) }
 }
 
 // ---- file ----
@@ -221,6 +244,11 @@ impl Ledger for FileLedger {
     fn cold_jobs(&self, runs: usize) -> Result<BTreeMap<String, Vec<i64>>, String> {
         let jobs: Vec<Value> = self.lines().into_iter().filter(|l| l["t"] == "job" && l["kind"] == "cold").collect();
         Ok(newest_runs(&jobs, runs, |j| (j["run"].as_str().unwrap_or("").to_string(), j["ts"].as_i64().unwrap_or(0), j["job"].as_str().unwrap_or("").to_string(), j["secs"].as_i64().unwrap_or(0))))
+    }
+
+    fn group_jobs(&self, since: i64) -> Result<Vec<GroupJob>, String> {
+        let keyed = |l: &Value| l["t"] == "job" && l["group_key"].is_string() && l["started"].as_i64().unwrap_or(0) > 0 && l["started"].as_i64().unwrap_or(0) + l["secs"].as_i64().unwrap_or(0) >= since;
+        Ok(self.lines().iter().filter(|l| keyed(l)).map(|r| group_job_of(r, "run", "job", "group_key", "started", "secs", "conclusion")).collect())
     }
 }
 
@@ -388,6 +416,10 @@ impl Ledger for Ords {
         let rows = self.query(&sql)?;
         Ok(newest_runs(&rows, runs, |r| (text_of(r, "run_id"), int(r, "ts"), text_of(r, "job"), int(r, "secs"))))
     }
+
+    fn group_jobs(&self, _since: i64) -> Result<Vec<GroupJob>, String> {
+        Err("the HEALTH_RPT ledger keeps no concurrency groups".to_string())
+    }
 }
 
 #[cfg(test)]
@@ -426,6 +458,26 @@ mod tests {
         let (sha, hashes) = ledger.previous("3").unwrap().unwrap();
         assert_eq!((sha.as_str(), hashes.len()), ("sha-2", 2));
         assert_eq!(ledger.cold_jobs(2).unwrap()["flow"], [300, 200]);
+    }
+
+    #[test]
+    fn given_jobs_with_groups_in_the_sealed_database_when_asked_then_only_started_grouped_jobs_that_held_the_window_come_back() {
+        // Given a working copy with a started grouped job, an ungrouped one, a grouped one that never started, one that ended before the window and one that began before it and ran into it
+        let ledger = DbLedger::over(wf_bucket::ci_db::Working::from_sealed([4u8; 32], None).unwrap());
+        ledger.ensure().unwrap();
+        let conn = ledger.work.connect().unwrap();
+        for (run, job, group, started) in [("1", "a", Some("k"), 500), ("1", "b", None, 500), ("2", "c", Some("k"), 0), ("3", "d", Some("k"), 50), ("4", "e", Some("k"), 90)] {
+            conn.execute("INSERT INTO CI_JOBS (RUN_ID, SHA, TS, KIND, JOB, SECS, QUEUED, CONCLUSION, STARTED, GROUP_KEY) VALUES (?1, 's', 1, 'flow-tests', ?2, 30, 0, 'cancelled', ?3, ?4)", rusqlite::params![run, job, started, group]).unwrap();
+        }
+        drop(conn);
+
+        // When the grouped jobs since 100 are asked for
+        let found = ledger.group_jobs(100).unwrap();
+
+        // Then only the two grouped jobs that held the window are returned with their numbers
+        let mut found = found;
+        found.sort_by(|a, b| a.run.cmp(&b.run));
+        assert_eq!(found.iter().map(|j| (j.run.as_str(), j.started, j.secs, j.conclusion.as_str())).collect::<Vec<_>>(), [("1", 500, 30, "cancelled"), ("4", 90, 30, "cancelled")]);
     }
 
     #[test]

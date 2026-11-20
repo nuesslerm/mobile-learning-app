@@ -870,6 +870,147 @@ fn the_audit_judges_the_hosted_workflow_too_and_calls_a_scheduled_or_dispatched_
     assert!(out["notes"].to_string().contains("GitHub-hosted"), "{out}");
 }
 
+const HOSTED_FILES: [&str; 6] = ["ci-hosted.yml", "ci-hosted-core-mobile.yml", "ci-hosted-core-cli.yml", "ci-hosted-cli-publish.yml", "ci-hosted-service-deploy.yml", "ci-hosted-mobile-e2e.yml"];
+
+#[test]
+fn the_audit_judges_the_runs_of_all_six_hosted_workflows_and_a_missing_one_is_a_note_not_a_failure() {
+    // Given one push run in each of five workflows, and a sixth workflow (the e2e one) that GitHub answers 404 for
+    let github = Github::start();
+    let run = |id: u64, started: i64| json!({ "id": id, "head_sha": SHA, "event": "push", "run_started_at": iso(BASE + started) });
+    let mut table: Vec<(String, MockReply)> = Vec::new();
+    for (n, file) in HOSTED_FILES.iter().take(5).enumerate() {
+        let id = 100 + n as u64;
+        table.push((format!("GET /repos/o/r/actions/workflows/{file}/runs?branch=dev&status=completed&per_page=50"), MockReply::json(200, json!({ "workflow_runs": [run(id, 100 + n as i64 * 10)] }))));
+        table.push((format!("GET /repos/o/r/actions/workflows/{file}/runs?branch=dev&per_page=30"), MockReply::json(200, json!({ "workflow_runs": [] }))));
+        table.push((format!("GET /repos/o/r/actions/runs/{id}/jobs?per_page=100&page=1"), MockReply::json(200, json!({ "total_count": 1, "jobs": [timed_job(600 + id, "flow-tests", "success", 600)] }))));
+        table.push((format!("GET /repos/o/r/actions/jobs/{}/logs", 600 + id), MockReply::text(200, "ok\n")));
+    }
+    table.push(("GET /repos/o/r/actions/workflows/ci-hosted-mobile-e2e.yml/runs?branch=dev&status=completed&per_page=50".into(), MockReply::json(404, json!({ "message": "Not Found" }))));
+    github.server.routes(&table.iter().map(|(k, v)| (k.as_str(), v.clone())).collect::<Vec<_>>());
+
+    // When the audit lists the window
+    let r = Audit::new("six", &[], "", json!({})).run_with(&github, &["--dry-run", "--since", &(BASE - 1000).to_string()]);
+
+    // Then the runs of the five workflows are judged oldest first, the exit code is 0 and only the sixth workflow is a note
+    let out = last_json(&r);
+    let runs: Vec<&str> = out["runs"].as_array().unwrap().iter().map(|r| r["run"].as_str().unwrap()).collect();
+    assert_eq!((r.exit_code, runs), (0, vec!["100", "101", "102", "103", "104"]), "{}{}", r.stdout, r.stderr);
+    let notes = out["notes"].to_string();
+    assert!(notes.contains("ci-hosted-mobile-e2e.yml") && !notes.contains("ci-hosted-core-cli.yml could not"), "{notes}");
+}
+
+fn group_job(run: &str, job: &str, key: &str, started: i64, secs: i64, conclusion: &str) -> Value {
+    json!({ "t": "job", "run": run, "sha": "s", "ts": (BASE + started) * 1000, "kind": "push", "job": job, "secs": secs, "queued": 0, "group_key": key, "started": BASE + started, "conclusion": conclusion })
+}
+
+fn audit_groups(name: &str, rows: &[Value]) -> Value {
+    let github = audit_github(&timed_job(500, "flow-tests", "success", 600), "ok\n", &[]);
+    let r = Audit::new(name, rows, "", json!({})).run_with(&github, &["--run", "77", "--dry-run", "--since", &(BASE - 1000).to_string()]);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    last_json(&r)
+}
+
+#[test]
+fn two_runs_that_held_one_concurrency_group_at_the_same_time_are_named_and_back_to_back_runs_are_not() {
+    // Given two jobs of different runs in group k1 whose intervals overlap, and two in group k2 where the second starts when the first ends
+    let rows = [
+        group_job("70", "integration-tests (1/4)", "k1", 100, 300, "success"),
+        group_job("71", "integration-tests (1/4)", "k1", 250, 200, "success"),
+        group_job("70", "integration-tests (2/4)", "k2", 100, 100, "success"),
+        group_job("71", "integration-tests (2/4)", "k2", 200, 100, "success"),
+    ];
+
+    // When the audit runs
+    let out = audit_groups("overlap", &rows);
+
+    // Then exactly the overlap of k1 is a hard finding, on the later run, naming both runs and the group
+    assert_eq!(kinds(&out), ["group-overlap"], "{out}");
+    let f = &out["findings"][0];
+    let message = f["message"].as_str().unwrap();
+    assert_eq!((f["run"].clone(), f["hard"].clone()), (json!("71"), json!(true)), "{out}");
+    assert!(message.contains("run 70") && message.contains("run 71") && message.contains("`k1`"), "{message}");
+    assert!(!f["next"].as_str().unwrap().is_empty(), "{out}");
+}
+
+#[test]
+fn a_job_cancelled_after_it_started_is_named_and_one_replaced_while_waiting_is_not() {
+    // Given a job of group k1 that was cancelled after 40 s of running, and one of group k2 that was cancelled while pending (it never started)
+    let mut pending = group_job("71", "integration-tests (2/4)", "k2", 0, 0, "cancelled");
+    pending["started"] = json!(0);
+    let rows = [group_job("70", "integration-tests (1/4)", "k1", 100, 40, "cancelled"), pending];
+
+    // When the audit runs
+    let out = audit_groups("cancelled", &rows);
+
+    // Then only the started one is a finding
+    assert_eq!(kinds(&out), ["cancelled-while-running"], "{out}");
+    assert!(out["findings"][0]["message"].as_str().unwrap().contains("run 70"), "{out}");
+}
+
+#[test]
+fn a_run_cancelled_by_hand_ends_several_started_jobs_at_once_and_is_not_a_finding() {
+    // Given run 70 whose three running jobs were all cancelled together, and run 71 with one running job cancelled alone
+    let rows = [
+        group_job("70", "integration-tests (1/4)", "k1", 100, 40, "cancelled"),
+        group_job("70", "integration-tests (2/4)", "k2", 100, 41, "cancelled"),
+        group_job("70", "core-tests (1/2)", "k3", 100, 40, "cancelled"),
+        group_job("71", "integration-tests (1/4)", "k4", 100, 40, "cancelled"),
+    ];
+
+    // When the audit runs
+    let out = audit_groups("operator-cancel", &rows);
+
+    // Then only the lone kill of run 71 is named
+    assert_eq!(kinds(&out), ["cancelled-while-running"], "{out}");
+    assert!(out["findings"][0]["message"].as_str().unwrap().contains("run 71"), "{out}");
+}
+
+#[test]
+fn two_workflows_that_plan_the_same_shard_key_run_side_by_side_and_are_not_one_group() {
+    // Given core-tests (1/2) of two workflows recorded under their own full group strings (the same shard key `none`), running at the same time
+    let rows = [
+        group_job("70", "core-tests (1/2)", "hosted-core-tests-CI core cli-none", 100, 300, "success"),
+        group_job("71", "core-tests (1/2)", "hosted-core-tests-CI core mobile-none", 120, 300, "success"),
+    ];
+
+    // When the audit runs
+    let out = audit_groups("two-workflows", &rows);
+
+    // Then nothing is found
+    assert_eq!((kinds(&out), out["ok"].clone()), (Vec::<String>::new(), json!(true)), "{out}");
+}
+
+#[test]
+fn jobs_of_different_groups_that_run_side_by_side_and_a_ledger_with_no_groups_are_clean() {
+    // Given overlapping jobs in different groups, and a job with no group
+    let mut ungrouped = group_job("72", "lint", "x", 100, 300, "success");
+    ungrouped["group_key"] = Value::Null;
+    let rows = [group_job("70", "integration-tests (1/4)", "k1", 100, 300, "success"), group_job("71", "integration-tests (2/4)", "k2", 120, 300, "success"), ungrouped];
+
+    // When the audit runs
+    let out = audit_groups("clean", &rows);
+
+    // Then nothing is found
+    assert_eq!((kinds(&out), out["ok"].clone()), (Vec::<String>::new(), json!(true)), "{out}");
+}
+
+#[test]
+fn a_task_run_again_under_a_hash_another_run_already_ran_is_the_duplicate_the_single_flight_should_prevent() {
+    // Given run 70 ran app:t under hash h1, the task was replayed from the cache under another hash before, and run 77 runs app:t under h1 as well
+    let now = BASE * 1000;
+    let earlier = [earlier_task("69", now - 20_000, "app:t", "h0", "hit", 50), earlier_task("70", now - 10_000, "app:t", "h1", "ran", 80_000)];
+    let github = audit_github(&timed_job(500, "flow-tests", "success", 600), &ledger_line(&[("app:t", "h1", "ran", 82_000)]), &[]);
+
+    // When the audit runs
+    let r = Audit::new("duplicate", &earlier, "app\n", json!({})).run(&github, true);
+
+    // Then the duplicate is a correctness finding naming the earlier run
+    let out = last_json(&r);
+    assert_eq!(kinds(&out), ["should-have-hit"], "{out}");
+    let f = &out["findings"][0];
+    assert!(f["message"].as_str().unwrap().contains("run 70") && f["hard"] == json!(true), "{out}");
+}
+
 #[test]
 fn an_audit_whose_workflow_cannot_be_listed_exits_0_with_no_runs_and_says_so() {
     // Given a GitHub that answers 404 for the CI workflow
@@ -1458,7 +1599,14 @@ fn the_audit_of_a_called_workflow_judges_a_job_by_its_own_name_and_never_judges_
 
 // ---- one comment per workflow: converging duplicates and pruning old heads ----
 
-const WORKFLOW_LABELS: [(&str, &str); 2] = [("ci-hosted.yml", "GitHub-hosted core backend services"), ("ci-hosted-core-cli.yml", "GitHub-hosted core cli")];
+const WORKFLOW_LABELS: [(&str, &str); 6] = [
+    ("ci-hosted.yml", "backend_core+lint+pre-release-testing"),
+    ("ci-hosted-core-mobile.yml", "mobile_core+lint+pre-release-testing"),
+    ("ci-hosted-core-cli.yml", "cli_core+lint+pre-release-testing"),
+    ("ci-hosted-cli-publish.yml", "cli_build+publish+release-testing"),
+    ("ci-hosted-service-deploy.yml", "backend_build+deploy+release-testing"),
+    ("ci-hosted-mobile-e2e.yml", "mobile_build+publish+release-testing"),
+];
 
 /// A workspace whose `.github/workflows` hold the labels of the current workflows.
 fn workspace_with_labels() -> String {
@@ -1875,7 +2023,7 @@ fn the_report_has_a_headline_with_wall_runner_seconds_peak_jobs_efficiency_the_c
     ]);
 
     // When the report is built
-    let body = dry_body(&github, &[("WF_CI_CORE_SHARD_KEYS", "[\"k1\",\"k2\"]")]);
+    let body = dry_body(&github, &[("WF_CI_CORE_SHARD_KEYS", "[\"k1\",\"k2\"]"), ("GITHUB_WORKFLOW", "CI core")]);
 
     // Then the headline carries the profile's numbers, and the verdict names the critical path, the wait and the fixed cost
     assert!(body.contains("wall 10m 00s · runner time 23m 20s"), "{body}");
@@ -1883,7 +2031,7 @@ fn the_report_has_a_headline_with_wall_runner_seconds_peak_jobs_efficiency_the_c
     assert!(body.contains("The critical path is plan &gt; core-tests (1/2) (10m 00s, 100% of the wall time)"), "{body}");
     assert!(body.contains("Jobs waited 3m 00s for a runner in total, 45s at worst"), "{body}");
     assert!(body.contains("| setup-job | 2m 40s | 4 | 40s |"), "{body}");
-    assert!(body.contains("core-tests (1/2) queued 45s; its concurrency group key is `k1`") && body.contains("plan waited 45s for a runner"), "{body}");
+    assert!(body.contains("core-tests (1/2) queued 45s; its concurrency group is `hosted-core-tests-CI core-k1`") && body.contains("plan waited 45s for a runner"), "{body}");
 }
 
 #[test]

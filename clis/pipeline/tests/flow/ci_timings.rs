@@ -167,7 +167,7 @@ fn given_a_shard_replaced_while_pending_when_the_timings_are_kept_then_it_is_a_c
     let key = "0707070707070707070707070707070707070707070707070707070707070707";
 
     // When the report job keeps the timings with the plan's shard keys and merges
-    let r = wf(&server, &["timings", "--run", "80"], &[("WF_CI_DB", &local.display().to_string()), ("WF_CI_SHARD_KEYS", r#"["k-one","k-two"]"#)]);
+    let r = wf(&server, &["timings", "--run", "80"], &[("WF_CI_DB", &local.display().to_string()), ("WF_CI_SHARD_KEYS", r#"["k-one","k-two"]"#), ("GITHUB_WORKFLOW", "CI core")]);
     let merged = wf(&server, &["db", "merge", "--sealed-file", &sealed.display().to_string(), &local.display().to_string()], &[("CI_DB_KEY", key)]);
 
     // Then the replaced shard is a cancelled row with no start, the 240 s it waited and its group, and the shard that ran has its own group
@@ -175,7 +175,7 @@ fn given_a_shard_replaced_while_pending_when_the_timings_are_kept_then_it_is_a_c
     let q = wf(&server, &["db", "query", "--sealed-file", &sealed.display().to_string(), "SELECT JOB, CONCLUSION, STARTED > 0 AS started, SECS, QUEUED, GROUP_KEY FROM CI_JOBS ORDER BY JOB"], &[("CI_DB_KEY", key)]);
     assert_eq!(
         line(&q)["rows"],
-        json!([{"JOB": "integration-tests (1/2)", "CONCLUSION": "success", "started": 1, "SECS": 540, "QUEUED": 5, "GROUP_KEY": "k-one"}, {"JOB": "integration-tests (2/2)", "CONCLUSION": "cancelled", "started": 0, "SECS": 0, "QUEUED": 240, "GROUP_KEY": "k-two"}]),
+        json!([{"JOB": "integration-tests (1/2)", "CONCLUSION": "success", "started": 1, "SECS": 540, "QUEUED": 5, "GROUP_KEY": "hosted-integration-CI core-k-one"}, {"JOB": "integration-tests (2/2)", "CONCLUSION": "cancelled", "started": 0, "SECS": 0, "QUEUED": 240, "GROUP_KEY": "hosted-integration-CI core-k-two"}]),
         "{}{}",
         q.stdout,
         q.stderr

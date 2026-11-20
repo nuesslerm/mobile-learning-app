@@ -1181,6 +1181,7 @@ jobs:
           WF_CI_LEDGERS: ${{ runner.temp }}/ci-db
           WF_CI_CORE_SHARD_KEYS: ${{ needs.plan.outputs.core_shard_keys }}
           WF_CI_SHARD_KEYS: ${{ needs.plan.outputs.integration_shard_keys }}
+          WF_CI_FRESH: ${{ needs.plan.outputs.fresh }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
@@ -1192,6 +1193,8 @@ jobs:
         timeout-minutes: 3
         env:
           WF_CI_SHARD_KEYS: ${{ needs.plan.outputs.integration_shard_keys }}
+          WF_CI_CORE_SHARD_KEYS: ${{ needs.plan.outputs.core_shard_keys }}
+          WF_CI_FRESH: ${{ needs.plan.outputs.fresh }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}

@@ -285,6 +285,25 @@ fn scope_check_of_the_repository_names_every_declared_job_and_prints_the_same_re
 }
 
 #[test]
+fn scope_check_of_the_repository_classifies_the_trigger_of_every_hosted_workflow_as_open_and_keyless() {
+    // Given the repository's six hosted CI workflows, each with a `trigger` job
+    let files = ["ci-hosted.yml", "ci-hosted-core-mobile.yml", "ci-hosted-core-cli.yml", "ci-hosted-cli-publish.yml", "ci-hosted-service-deploy.yml", "ci-hosted-mobile-e2e.yml"];
+
+    // When the scopes are checked
+    let r = run_wf(&["secret", "scope-check", "--json"], &RunOpts::default().clean_env().cwd(&repo_root()));
+    let report: Value = serde_json::from_str(&r.stdout).unwrap_or_else(|e| panic!("{e}: {}", r.stdout));
+
+    // Then every trigger is a declared open job and none is reported as unclassified or undeclared
+    for file in files {
+        let id = format!("{file}:trigger");
+        let entry = report["jobs"].as_array().unwrap().iter().find(|j| j["id"] == json!(id)).unwrap_or_else(|| panic!("{id} missing from {}", r.stdout));
+        assert_eq!(entry["class"], "open", "{entry}");
+    }
+    let text = report["violations"].to_string();
+    assert!(!text.contains("ci-hosted"), "{text}");
+}
+
+#[test]
 fn scope_check_lets_a_deploy_job_verify_a_group_whose_vm_only_key_it_never_reads() {
     // Given a deploy job that verifies the group of vm-ops-api (which carries VM_PROVISION_GITHUB_TOKEN for the VM), and one that names the key itself
     let planted = Planted::new(

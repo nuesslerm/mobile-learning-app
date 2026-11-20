@@ -307,7 +307,9 @@ mod workflow_file_tests {
 
     #[test]
     fn given_the_workflow_ref_of_a_caller_when_the_file_is_read_then_each_ci_workflow_is_its_own_and_anything_else_is_the_default() {
-        assert_eq!(workflow_file(Some("o/r/.github/workflows/ci-hosted-core-mobile.yml@refs/heads/dev")), "ci-hosted-core-mobile.yml");
+        for file in ["ci-hosted.yml", "ci-hosted-core-mobile.yml", "ci-hosted-core-cli.yml", "ci-hosted-cli-publish.yml", "ci-hosted-service-deploy.yml", "ci-hosted-mobile-e2e.yml"] {
+            assert_eq!(workflow_file(Some(&format!("o/r/.github/workflows/{file}@refs/heads/dev"))), file);
+        }
         assert_eq!(workflow_file(Some("o/r/.github/workflows/ci-hosted.yml@refs/heads/dev")), "ci-hosted.yml");
         assert_eq!(workflow_file(Some("o/r/.github/workflows/cold-ci.yml@refs/heads/dev")), "ci-hosted.yml");
         assert_eq!(workflow_file(None), "ci-hosted.yml");

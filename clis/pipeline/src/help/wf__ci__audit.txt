@@ -2,8 +2,10 @@ Usage: wf ci audit [options]
 
 The nightly audit of CI on dev (04:00 Berlin time, .github/workflows/ci-audit.yml).
 It never gates or fails a push and always exits 0: it reads the completed runs of
-the CI workflow on dev since --since (default the last 24 hours), judges them and
-prints one JSON verdict with the findings and, for each finding, the next step.
+the six hosted CI workflows on dev (ci-hosted.yml and the five ci-hosted-*.yml;
+one that cannot be listed is a note) since --since (default the last 24 hours),
+judges them and prints one JSON verdict with the findings and, for each finding,
+the next step.
 A run's wall time says little (a cold run and a replayed one differ by an hour),
 so each unit of work is judged against itself in the ledger (HEALTH_RPT.CI_TASKS
 and CI_JOBS in the autonomous database; WF_CI_LEDGER_FILE names a JSON lines
@@ -46,6 +48,11 @@ Findings (kind: what it means):
                     first; 0 turns it off
   cpu-iowait        the CPU's own I/O wait peak over the run above cpuIowaitPeak
                     percent (from reporting-service; skipped when unreachable)
+  group-overlap     two jobs of one concurrency group (CI_JOBS.GROUP_KEY) ran at
+                    the same time, so the group did not serialise them. Hard.
+  cancelled-while-running
+                    a job (CI_JOBS.STARTED > 0) was cancelled after it started:
+                    a running job was killed, not a waiting one replaced
   cold-slower       on a forced cold run, a job over the median of the last four
                     cold runs plus slackPercent and slackSeconds
 

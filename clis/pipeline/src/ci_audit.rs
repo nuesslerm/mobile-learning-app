@@ -9,7 +9,7 @@
 use crate::ci_cache_health::{assess, fields, get};
 use crate::ci_comment::{cell, cut, epoch, json_of, list_jobs_of, log_lines, read_log, redact, send, text, var, Env};
 use crate::ci_insights::span;
-use crate::ci_ledger::{JobRow, Observed};
+use crate::ci_ledger::{GroupJob, JobRow, Observed};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use wf_kit::args::{parse_spec, Positional, Spec};
@@ -256,11 +256,16 @@ fn io_wait_peaks(env: &Env, from_ms: i64, to_ms: i64) -> (Option<f64>, Option<f6
     (summary["signals"]["psi_io"]["peak"].as_f64(), summary["signals"]["cpu_iowait"]["peak"].as_f64(), cpu_secs)
 }
 
-/// When the other runs of the workflow held the runner, from their start to their last update.
+/// When the other runs of the six workflows held the runner, from their start to their last update; a workflow that cannot be listed adds none.
 fn other_runs(env: &Env) -> Vec<(i64, i64)> {
-    let url = format!("{}/repos/{}/actions/workflows/ci-hosted.yml/runs?branch={}&per_page=30", env.api, env.repo, env.branch);
-    let Ok(reply) = send(env, "GET", &url, None).and_then(|r| json_of(r, "listing the runs")) else { return Vec::new() };
-    reply["workflow_runs"].as_array().map(Vec::as_slice).unwrap_or_default().iter().filter(|r| r["id"].to_string().trim_matches('"') != env.run).filter_map(|r| Some((epoch(&r["run_started_at"])?, epoch(&r["updated_at"])?))).collect()
+    WORKFLOWS
+        .iter()
+        .filter_map(|(file, _)| {
+            let url = format!("{}/repos/{}/actions/workflows/{file}/runs?branch={}&per_page=30", env.api, env.repo, env.branch);
+            send(env, "GET", &url, None).and_then(|r| json_of(r, "listing the runs")).ok()
+        })
+        .flat_map(|reply| reply["workflow_runs"].as_array().map(Vec::as_slice).unwrap_or_default().iter().filter(|r| r["id"].to_string().trim_matches('"') != env.run).filter_map(|r| Some((epoch(&r["run_started_at"])?, epoch(&r["updated_at"])?))).collect::<Vec<_>>())
+        .collect()
 }
 
 /// Projects `nx` says the commits `base..head` changed or that depend on what changed.
@@ -288,9 +293,33 @@ fn next_step(kind: &str) -> &'static str {
         "degraded" | "rejected-write" | "seeded-lost" => "Read the cache layer's event in the job log (`wf cache health`, docs/solutions/ci/cache-layers.md): a degraded store, a full bucket or a lost entry; fix the store or its guard. A correctness fault.",
         "pnpm-save-slow" => "The store is packed for nothing: find what grew it (`wf cache save pnpm` bytes) and trim it.",
         "drift" => "Read the drift report of the job (which task hashed differently and the cause it names) and make that input stable.",
+        "group-overlap" => "Two jobs of one concurrency group ran at once: read the `concurrency` block of the job in the caller (the group must be the same string in both runs and `cancel-in-progress` must not release it) and `wf ci plan shard-keys` for the key.",
+        "cancelled-while-running" => "A job was cancelled after it had started and the rest of its run was not: a manual cancel of that one job or a group with `cancel-in-progress: true` did it (`wf vm ops cancel-run --all` and a cancel of the whole run end several jobs and are not reported); check the run's cancel event, and fix the group if it was not a person.",
         "replayed-nothing" => "The push gate seeded the stage and CI replayed none of it: compare the gate's hashes with CI's (`wf test drift`) and fix the one that differs.",
         _ => "Read the finding's message and the run's job log, fix the cause through the normal gate, or record it in the findings inbox issue.",
     }
+}
+
+/// The concurrency-group decisions over the jobs of the window: pure. Two jobs of one group that ran at the same time mean the group did not
+/// serialise them; a job cancelled after it started means a running job was killed, not a waiting one replaced (a run with several such jobs was cancelled by hand and is left out).
+pub fn judge_groups(jobs: &[GroupJob]) -> Vec<Finding> {
+    let mut out = Vec::new();
+    let finding = |kind: &str, run: &str, subject: &str, message: String| Finding { kind: kind.to_string(), run: Some(run.to_string()), subject: subject.to_string(), hard: kind == "group-overlap", waste_secs: 0, message };
+    let ran: Vec<&GroupJob> = jobs.iter().filter(|j| j.started > 0 && j.secs > 0).collect();
+    for (i, a) in ran.iter().enumerate() {
+        for b in ran.iter().skip(i + 1).filter(|b| b.group_key == a.group_key && (b.run != a.run || b.job != a.job)) {
+            if a.started < b.started + b.secs && b.started < a.started + a.secs {
+                let (first, second) = if a.started <= b.started { (a, b) } else { (b, a) };
+                out.push(finding("group-overlap", &second.run, &second.job, format!("{} of run {} started at {} while {} of run {} (started {}, {}) still held the concurrency group `{}`", second.job, second.run, second.started, first.job, first.run, first.started, span(first.secs), first.group_key)));
+            }
+        }
+    }
+    let killed = |j: &&GroupJob| j.started > 0 && j.conclusion == "cancelled";
+    // Cancelling a run by hand ends all its running jobs at once; a broken group kills one job
+    for j in jobs.iter().filter(killed).filter(|j| jobs.iter().filter(killed).filter(|o| o.run == j.run).count() == 1) {
+        out.push(finding("cancelled-while-running", &j.run, &j.job, format!("{} of run {} was cancelled {} after it started (group `{}`): a running job was killed", j.job, j.run, span(j.secs), j.group_key)));
+    }
+    out
 }
 
 /// One thing the audit found, in one run or over the window.
@@ -437,8 +466,15 @@ pub fn is_cold(event: &str, head_message: &str) -> bool {
     matches!(event, "workflow_dispatch" | "schedule") || head_message.contains("[cache:no]")
 }
 
-/// The workflows whose runs are judged, as (file, runs on a GitHub-hosted machine): the one every push to `dev` runs.
-const WORKFLOWS: [(&str, bool); 1] = [("ci-hosted.yml", true)];
+/// The workflows whose runs are judged, as (file, runs on a GitHub-hosted machine): the six one push to `dev` starts.
+const WORKFLOWS: [(&str, bool); 6] = [
+    ("ci-hosted.yml", true),
+    ("ci-hosted-core-mobile.yml", true),
+    ("ci-hosted-core-cli.yml", true),
+    ("ci-hosted-cli-publish.yml", true),
+    ("ci-hosted-service-deploy.yml", true),
+    ("ci-hosted-mobile-e2e.yml", true),
+];
 
 /// A completed run to judge: its id, head sha, whether it is cold, and whether it ran on GitHub-hosted machines.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -524,9 +560,15 @@ fn attempt(args: &Args) -> Result<Value, String> {
             findings.push(Finding { kind: "hit-ratio".to_string(), run: None, subject: stage.clone(), hard: false, waste_secs: 0, message: format!("{stage} replayed {replayed} of {total} task(s) over the window ({}%, floor {}%)", ratio(*replayed, *total), limits.hit_ratio_floor_pct) });
         }
     }
+    let mut group_note = None;
+    match ledger.as_ref().map_err(String::clone).and_then(|l| l.group_jobs(since)) {
+        Ok(jobs) => findings.extend(judge_groups(&jobs)),
+        Err(reason) => group_note = Some(format!("concurrency groups were not judged ({})", cut(&reason, 120))),
+    }
     let judged = verdicts.iter().filter(|v| v.judged).count();
     let mut notes: Vec<String> = verdicts.iter().flat_map(|v| v.notes.iter().map(|n| format!("run {}: {n}", v.run))).collect::<BTreeSet<_>>().into_iter().collect();
     notes.extend(listing_notes);
+    notes.extend(group_note);
     if verdicts.is_empty() {
         notes.push("no completed CI run on dev in the window".to_string());
     }

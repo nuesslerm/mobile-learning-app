@@ -108,7 +108,7 @@ pub(crate) fn gather(env: &Env, jobs: &[&Value], finished: bool) -> Telemetry {
         let name = text(j, "name");
         let key = crate::ci_timings::group_of(&crate::ci_timings::stage_name(&name), &crate::ci_timings::shard_of(&name));
         t.waits.push(match key {
-            Some(key) => format!("{} queued {}; its concurrency group key is `{key}`, so it waits while an identical-input shard of another run holds it", cell(&name), span(queued)),
+            Some(key) => format!("{} queued {}; its concurrency group is `{key}`, so it waits while an identical-input shard of another run holds it", cell(&name), span(queued)),
             None => format!("{} waited {} for a runner", cell(&name), span(queued)),
         });
     }
