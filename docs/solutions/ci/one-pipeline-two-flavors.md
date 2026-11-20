@@ -62,7 +62,7 @@ Three waves:
 
 1. **Build and plan.** `wf-build` builds this commit's `wf` (the Rust CLI that wraps every `clis/*` crate) once per kind of machine. `plan` runs once it is done; the preflight and the head-of-dev check are steps of it, running beside the plan steps.
 2. **Tests and builds together.** `core-tests` (the flow stage and the typecheck/lint/unit stage side by side on each machine), integration, cli-e2e and the image builds start at once. A build never waits for a test and a test never waits for a check. A red test discards the work already done.
-3. **Everything irreversible, then the end-to-end tests.** `clis` publishes binaries, `deploy` redeploys, `eas-update` publishes the phone bundle. All three need green tests. Deployment verification and the browser and Android e2e tests need the deploy and the EAS update.
+3. **Everything irreversible, then the end-to-end tests.** `clis` publishes binaries, `deploy` redeploys, `eas-update` publishes the phone bundle. `clis` and `deploy` need green tests; `eas-update` needs only `plan` and `wf-build` and starts beside the tests (its pointer is written by `eas-promote` after green tests). Deployment verification and the browser and Android e2e tests need the deploy and the EAS update.
 
 ## What each machine-building job is
 

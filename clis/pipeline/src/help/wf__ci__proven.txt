@@ -1,0 +1,21 @@
+Usage: wf ci proven --stage <stage> --count <n> --plan <file> [--fresh] [--no-lookup] [--github-output]
+
+Which shards of a test stage already passed on the same inputs, so the workflow gives them no runner. A shard passed when a job marked it: the
+marker is a GitHub Actions cache entry named `proven-<stage>-<fingerprint>` that the shard's job saves after it passed (never a push of the
+state ref, which a job cannot do), and this verb asks the Actions cache API for it, on the run's own ref (GITHUB_REF). The fingerprint is the shard's
+key (its crates, what they depend on, the lock file) and the git object ids of what every test reads (.github, nx.json, mise.toml,
+rust-toolchain.toml, tooling, e2e). A shard of packages, a shard with no unit and a shard of a crate that declares `package.metadata.flow` inputs always run:
+their key does not cover what they read. --fresh (a run with the caches off) and --no-lookup prove nothing. An unreadable API proves nothing either.
+Prints one JSON line {schema: "ci-proven/1", ok, stage, count, run: [shards to run], proven: [shards to skip], shards: [{shard, key, proven, why}], warnings}.
+With --github-output it appends <stage_with_underscores>_run_shards=<json list> and <stage_with_underscores>_proof_keys=<json list, "" first so the 1-based
+matrix shard indexes it, "" for a shard that cannot be marked> to $GITHUB_OUTPUT. The repository and token are the run's own (GITHUB_REPOSITORY, GITHUB_TOKEN).
+
+Options:
+  --stage <stage>      the stage whose shards are asked about (integration-tests, cli-e2e-tests, ...)
+  --count <n>          how many shards the stage is dealt over
+  --plan <file>        the plan (`wf ci plan tests --json`)
+  --repo <dir>         the checkout the fingerprints are read from (default the current repository)
+  --fresh              prove nothing: every shard runs
+  --no-lookup          prove nothing, but still print the keys
+  --github-output      also write the step outputs
+  -h, --help           display help for command

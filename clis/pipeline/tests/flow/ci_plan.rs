@@ -376,3 +376,39 @@ fn a_legs_plan_with_no_lookup_asks_no_service_for_its_running_commit_and_lists_e
     assert!(plan["easUpdate"]["why"][0].as_str().unwrap().contains("0000000000000000000000000000000000000000"), "{plan}");
     assert!(!run.stderr.contains("status unavailable"), "{}", run.stderr);
 }
+
+#[test]
+fn given_a_plan_when_it_is_dealt_over_any_number_of_shards_then_the_union_of_the_shards_is_the_unsharded_unit_list_with_no_unit_twice() {
+    // Given a plan of crates with integration groups, flow crates and a package, for each stage a shard count may be set to
+    let unit = |kind: &str, c: &str, group: Option<&str>| match group {
+        Some(g) => json!({"kind": kind, "crate": c, "group": g}),
+        None => json!({"kind": kind, "crate": c}),
+    };
+    let integration: Vec<Value> = [("alpha", "a"), ("alpha", "b"), ("beta", "a"), ("gamma", "a"), ("delta", "x"), ("delta", "y"), ("delta", "z")].iter().map(|(c, g)| unit("integration", c, Some(g))).collect();
+    let flow: Vec<Value> = ["alpha", "beta", "gamma", "delta", "epsilon"].iter().map(|c| unit("flow", c, None)).chain([json!({"kind": "flow", "package": "@x/app", "dir": "app"})]).collect();
+    let typecheck: Vec<Value> = ["alpha", "beta", "gamma", "zeta"].iter().map(|c| unit("unit", c, None)).chain([json!({"kind": "typecheck", "package": "@x/app", "dir": "app"})]).collect();
+    let plan = json!({"sha": "aaa", "stages": {"integration-tests": integration, "flow-tests": flow, "typecheck-lint-unit-tests": typecheck}});
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("plan.json");
+    std::fs::write(&file, plan.to_string()).unwrap();
+    let units = |stage: &str, count: &str| -> Vec<Vec<String>> {
+        let r = run_wf(&["ci", "plan", "shard-keys", "--stage", stage, "--count", count, "--plan", &file.display().to_string(), "--units"], &RunOpts::default());
+        assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+        serde_json::from_str(r.stdout.trim()).unwrap()
+    };
+
+    for stage in ["integration-tests", "flow-tests", "typecheck-lint-unit-tests"] {
+        // When the unsharded list (one shard) and every split up to six shards are asked
+        let whole = &units(stage, "1")[0];
+        for count in 1..=6 {
+            let shards = units(stage, &count.to_string());
+            let mut union: Vec<String> = shards.iter().flatten().cloned().collect();
+            union.sort();
+
+            // Then the shards together hold exactly the unsharded units, each once
+            assert_eq!(shards.len(), count);
+            assert_eq!(&union, whole, "{stage} over {count} shards");
+        }
+        assert!(!whole.is_empty(), "{stage} planned units");
+    }
+}

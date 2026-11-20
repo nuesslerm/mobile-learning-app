@@ -821,6 +821,68 @@ fn key_of(mine: &[Value], repo: &Path, sha: &str) -> String {
     format!("{:016x}-{:016x}", fnv(&keys.join(",")), fnv(&lines.join("\n")))
 }
 
+/// The unit keys one shard of `stage` runs, sorted: what `wf ci plan shard-keys --units` prints, so the deal can be checked against the plan's whole list.
+pub fn shard_unit_keys_in_plan(stage: &str, plan: &Value, index: usize, count: usize) -> Vec<String> {
+    let mut keys: Vec<String> = shard_in_plan(stage, plan, index, count).iter().map(unit_key).collect();
+    keys.sort();
+    keys.dedup();
+    keys
+}
+
+/// What an edit to any of these changes for every crate's tests, so a proof of a shard names them (the shard key covers only the crates and what they depend on).
+const PROOF_GLOBALS: &[&str] = &[".github", "nx.json", ".nxignore", "mise.toml", "rust-toolchain.toml", "tooling", "e2e"];
+
+/// Programs a test spawns that are not the crate's own binary or a Cargo dependency, so the key does not cover them.
+const EXTERNAL_SPAWNS: &[&str] = &["docker", "wf_binary", "WF_BIN", "Command::new(\"wf\")", "opencode", "mimic_bin", "Command::new(\"node\")", "ffmpeg", "chromium", "Command::new(java)"];
+
+fn tests_text(dir: &Path, out: &mut String) {
+    for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            tests_text(&path, out);
+        } else if path.extension().is_some_and(|e| e == "rs") {
+            out.push_str(&std::fs::read_to_string(&path).unwrap_or_default());
+        }
+    }
+}
+
+/// Why a unit reads inputs the shard key does not cover (a `package.metadata.flow` or `integration` table, or a test that spawns an outside program), if it does.
+fn external_inputs(repo: &Path, t: &Value) -> Option<&'static str> {
+    let manifest = t["manifest"].as_str().and_then(|m| std::fs::read_to_string(repo.join(m)).ok()).unwrap_or_default();
+    if manifest.contains("package.metadata.flow") {
+        return Some("declares flow inputs outside its directory");
+    }
+    if manifest.contains("package.metadata.integration") {
+        return Some("declares integration inputs outside its directory");
+    }
+    let mut text = String::new();
+    tests_text(&repo.join(t["dir"].as_str()?).join("tests"), &mut text);
+    EXTERNAL_SPAWNS.iter().any(|p| text.contains(p)).then_some("spawns a program outside its dependencies")
+}
+
+/// The fingerprint that proves a shard passed, or why it cannot be proven: the shard's key plus the git object ids of `PROOF_GLOBALS`. Only a shard of crates that
+/// read nothing outside their dependencies is provable: a package (its workspace dependencies are not in the key) and a crate with a `package.metadata.flow` table
+/// (inputs and binaries outside its dir), an `integration` table, or tests that spawn an outside program always run.
+pub fn shard_proof_in_plan(stage: &str, plan: &Value, index: usize, count: usize, repo: &Path, sha: &str) -> Result<String, String> {
+    let mine = shard_in_plan(stage, plan, index, count);
+    if mine.is_empty() {
+        return Err("the shard has no unit".to_string());
+    }
+    for t in &mine {
+        if t["crate"].as_str().is_none() {
+            return Err(format!("{} is a package, whose workspace dependencies the key does not cover", unit_key(t)));
+        }
+        if let Some(why) = external_inputs(repo, t) {
+            return Err(format!("{} {why}", unit_key(t)));
+        }
+    }
+    if let Err(e) = rust_crates(repo) {
+        return Err(format!("cannot read the crate graph: {e}"));
+    }
+    let globals: Vec<String> = PROOF_GLOBALS.iter().map(|p| format!("{p}={}", object_id(repo, sha, p))).collect();
+    Ok(format!("{}-{:016x}", key_of(&mine, repo, sha), fnv(&globals.join("\n"))))
+}
+
 /// One shard's e2e tests by name: the names dealt longest first over the stage's weights, as the package stages' units are.
 pub fn shard_names(names: &[String], index: usize, count: usize, weights: &Weights) -> Vec<String> {
     let mut keys: Vec<String> = names.to_vec();

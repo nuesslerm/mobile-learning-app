@@ -14,6 +14,9 @@ inputs:
   suffix:
     description: Splits a scope further, for example a matrix shard that builds its own state
     default: all
+  save:
+    description: Whether this job may save (one writer per key, so of several jobs that restore the same key only the one that owns it saves)
+    default: "true"
 runs:
   using: composite
   steps:
@@ -47,7 +50,7 @@ runs:
         paths: frontend/mla-tamagui/node_modules/.cache/app-build
     - name: Decide the save
       id: decide
-      if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') && (inputs.mode == 'save') }}
+      if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') && (inputs.mode == 'save') && inputs.save == 'true' }}
       shell: bash
       run: |
         f="$RUNNER_TEMP/metro-cache-${{ inputs.scope }}.env"

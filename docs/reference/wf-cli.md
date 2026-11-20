@@ -1876,10 +1876,11 @@ its jobs read to $GITHUB_OUTPUT.
                          the split of one run (default the newest in CI_UNITS) set against what it measured: per stage and re-dealt shard (spans do not
                          record their shard) the seconds the committed weights predicted and the seconds the units took, as JSON and a markdown `table`; --send also gives them as the gauges
                          ci.shard.predicted_s and ci.shard.actual_s. The run's comment carries the same table.
-  shard-keys --stage <s> --count <n> --plan <file>
+  shard-keys --stage <s> --count <n> --plan <file> [--units]
                          one key per shard (a JSON array) from the crates it runs, the same in every commit that plans the same crates: the
                          integration shards' concurrency group: the crates plus a fingerprint of their inputs, so a later commit with the same crates and inputs queues
-                         behind the earlier one and a changed crate starts at once. [--repo <dir>] for the repository.
+                         behind the earlier one and a changed crate starts at once. [--repo <dir>] for the repository. --units prints each shard's unit names instead
+                         (a JSON array of arrays), so the shards' union can be set against the plan's whole list.
   tests [options]        every test a change needs, by CI stage; runs nothing. Scope: --all, --changed [--base <ref>] (default
                          HEAD~1; `last-green`: the newest commit on dev whose CI passed, via gh), or e2e test names; [--sha S]. Package tests (flow test:flow, integration
                          test:integration, typecheck, lint, unit test:unit, deployment-verification test:verify:deployed) follow pnpm's
@@ -2286,6 +2287,46 @@ an unreadable API is {ok:false, error, next}. The repository and token are the r
 Options:
   --phase <start|end>  where in the run the reading is taken (default start)
   --run <id>           the run the row belongs to (default GITHUB_RUN_ID)
+  -h, --help           display help for command
+```
+
+</details>
+
+### `wf ci proven`
+
+The shards of a stage that already passed on the same inputs
+
+Usage: `wf ci proven --stage <stage> --count <n> --plan <file> [--fresh] [--no-lookup] [--github-output]`
+
+Examples:
+
+```sh
+wf ci proven --stage integration-tests --count 4 --plan plan.json --github-output
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci proven --stage <stage> --count <n> --plan <file> [--fresh] [--no-lookup] [--github-output]
+
+Which shards of a test stage already passed on the same inputs, so the workflow gives them no runner. A shard passed when a job marked it: the
+marker is a GitHub Actions cache entry named `proven-<stage>-<fingerprint>` that the shard's job saves after it passed (never a push of the
+state ref, which a job cannot do), and this verb asks the Actions cache API for it, on the run's own ref (GITHUB_REF). The fingerprint is the shard's
+key (its crates, what they depend on, the lock file) and the git object ids of what every test reads (.github, nx.json, mise.toml,
+rust-toolchain.toml, tooling, e2e). A shard of packages, a shard with no unit and a shard of a crate that declares `package.metadata.flow` inputs always run:
+their key does not cover what they read. --fresh (a run with the caches off) and --no-lookup prove nothing. An unreadable API proves nothing either.
+Prints one JSON line {schema: "ci-proven/1", ok, stage, count, run: [shards to run], proven: [shards to skip], shards: [{shard, key, proven, why}], warnings}.
+With --github-output it appends <stage_with_underscores>_run_shards=<json list> and <stage_with_underscores>_proof_keys=<json list, "" first so the 1-based
+matrix shard indexes it, "" for a shard that cannot be marked> to $GITHUB_OUTPUT. The repository and token are the run's own (GITHUB_REPOSITORY, GITHUB_TOKEN).
+
+Options:
+  --stage <stage>      the stage whose shards are asked about (integration-tests, cli-e2e-tests, ...)
+  --count <n>          how many shards the stage is dealt over
+  --plan <file>        the plan (`wf ci plan tests --json`)
+  --repo <dir>         the checkout the fingerprints are read from (default the current repository)
+  --fresh              prove nothing: every shard runs
+  --no-lookup          prove nothing, but still print the keys
+  --github-output      also write the step outputs
   -h, --help           display help for command
 ```
 

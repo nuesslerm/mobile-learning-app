@@ -9,6 +9,7 @@ mod ci_comment;
 mod ci_timings;
 mod ci_units;
 mod ci_concurrency;
+mod ci_proven;
 mod ci_resources;
 mod shard_weights;
 mod ci_db_verb;

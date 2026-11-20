@@ -160,6 +160,10 @@ jobs:
       integration_shard_keys: ${{ steps.shardkeys.outputs.integration }}
       core_shard_keys: ${{ steps.shardkeys.outputs.core }}
       cli_e2e_shard_keys: ${{ steps.shardkeys.outputs.cli_e2e }}
+      integration_run_shards: ${{ steps.proven.outputs.integration_tests_run_shards || steps.shards.outputs.list }}
+      integration_proof_keys: ${{ steps.proven.outputs.integration_tests_proof_keys || '[]' }}
+      cli_e2e_run_shards: ${{ steps.proven.outputs.cli_e2e_tests_run_shards || steps.shards.outputs.list }}
+      cli_e2e_proof_keys: ${{ steps.proven.outputs.cli_e2e_tests_proof_keys || '[]' }}
       legs: ${{ steps.legs.outputs.legs || steps.nolegs.outputs.legs }}
       eas_update: ${{ steps.legs.outputs.eas_update || steps.nolegs.outputs.eas_update }}
       fresh: ${{ steps.tags.outputs.fresh }}
@@ -274,6 +278,21 @@ jobs:
           core=$(jq -cn --argjson f "$flow" --argjson u "$unit" --argjson n "$n" '[range(0; $n) | "\($f[.])/\($u[$n - 1 - .])"] | .[]' | while read -r k; do printf '%s' "$k" | sha256sum | cut -c1-24; done | jq -R . | jq -sc '[""] + .')
           echo "core=$core" >> "$GITHUB_OUTPUT"
           echo "cli_e2e=$(wf ci plan shard-keys --stage cli-e2e-tests --count "$n" --plan "$RUNNER_TEMP/plan.json" | jq -c '[""] + .')" >> "$GITHUB_OUTPUT"
+      # A shard whose crates, their dependencies and the shared test inputs are the ones a passing shard of an earlier run marked needs no runner (docs/solutions/ci/proven-work-skip.md):
+      # the matrix of the job keeps the others. Best effort: a failed step leaves every shard to run.
+      - name: Which shards already passed on these inputs
+        id: proven
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          COUNT: ${{ steps.shards.outputs.count }}
+          FRESH: ${{ steps.tags.outputs.fresh }}
+        run: |
+          fresh=(); [ "$FRESH" != true ] || fresh=(--fresh)
+          for stage in integration-tests cli-e2e-tests; do
+            wf ci proven --stage "$stage" --count "$COUNT" --plan "$RUNNER_TEMP/plan.json" --github-output "${fresh[@]}"
+          done
       # Only the deploy and e2e jobs read the legs and the EAS Update flag; a core or cli run asks the vault and vm-ops-api for 46 s of nothing
       - name: No legs in a core or cli run
         id: nolegs
@@ -301,7 +320,7 @@ jobs:
         continue-on-error: true
         run: |
           pid=$(cat "$RUNNER_TEMP/guard.pid" 2>/dev/null || true)
-          for _ in 1 2 3 4 5; do [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+          for _ in 1 2 3 4 5; do if ! { [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; }; then break; fi; sleep 1; done
           line=$(tail -n 1 "$RUNNER_TEMP/guard.json" 2>/dev/null || true)
           if [ -z "$line" ]; then echo "wf: storage guard produced no line yet"; exit 0; fi
           echo "wf: storage guard $line"
@@ -503,7 +522,7 @@ jobs:
   deploy-build:
     name: build (${{ matrix.app }})
     needs: [plan, wf-build]
-    if: ${{ (!cancelled() && inputs.deploy && needs.plan.result == 'success' && needs.plan.outputs.legs != '[]' && needs.wf-build.result == 'success') && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
+    if: ${{ (!cancelled() && inputs.deploy && needs.plan.outputs.is_head == 'true' && needs.plan.result == 'success' && needs.plan.outputs.legs != '[]' && needs.wf-build.result == 'success') && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
     runs-on: ${{ fromJSON(inputs.deploy_runner) }}
     timeout-minutes: 100
     concurrency:
@@ -689,7 +708,7 @@ jobs:
   integration-tests:
     name: integration-tests${{ needs.plan.outputs.shard_count > 1 && format(' ({0}/{1})', matrix.shard, needs.plan.outputs.shard_count) || '' }}
     needs: [plan]
-    if: ${{ (!cancelled() && needs.plan.result == 'success' && needs.plan.outputs.integration_tests != '0' && needs.plan.outputs.run_service == 'true') && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
+    if: ${{ (!cancelled() && needs.plan.result == 'success' && needs.plan.outputs.integration_tests != '0' && needs.plan.outputs.integration_run_shards != '[]' && needs.plan.outputs.run_service == 'true') && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 40
     concurrency:
@@ -698,7 +717,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+        shard: ${{ fromJSON(needs.plan.outputs.integration_run_shards) }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -779,6 +798,18 @@ jobs:
       - name: Deinitialize the reference trees
         if: always()
         run: git submodule deinit -f references/orca references/t3code || true
+      # the shard passed: its fingerprint is marked for the plan of a later run (a cache entry, one writer per key; none on a fresh run)
+      - name: Mark this shard as proven
+        if: ${{ success() && needs.plan.outputs.fresh != 'true' && fromJSON(needs.plan.outputs.integration_proof_keys)[matrix.shard] != '' }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/proven"
+          echo "$GITHUB_SHA" > "$RUNNER_TEMP/proven/marker"
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        if: ${{ success() && needs.plan.outputs.fresh != 'true' && fromJSON(needs.plan.outputs.integration_proof_keys)[matrix.shard] != '' }}
+        continue-on-error: true
+        with:
+          path: ${{ runner.temp }}/proven/marker
+          key: ${{ fromJSON(needs.plan.outputs.integration_proof_keys)[matrix.shard] }}
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
         with:
@@ -788,7 +819,7 @@ jobs:
   cli-e2e-tests:
     name: cli-e2e-tests${{ needs.plan.outputs.shard_count > 1 && format(' ({0}/{1})', matrix.shard, needs.plan.outputs.shard_count) || '' }}
     needs: [plan]
-    if: ${{ (!cancelled() && needs.plan.result == 'success' && needs.plan.outputs.cli_e2e_tests != '0' && needs.plan.outputs.run_service == 'true') && (inputs.stages == 'all' || inputs.stages == 'cli') }}
+    if: ${{ (!cancelled() && needs.plan.result == 'success' && needs.plan.outputs.cli_e2e_tests != '0' && needs.plan.outputs.cli_e2e_run_shards != '[]' && needs.plan.outputs.run_service == 'true') && (inputs.stages == 'all' || inputs.stages == 'cli') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 65
     concurrency:
@@ -797,7 +828,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+        shard: ${{ fromJSON(needs.plan.outputs.cli_e2e_run_shards) }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -844,6 +875,18 @@ jobs:
           mode: save
           stage: cli-e2e-tests
           save: ${{ matrix.shard == 1 }}
+      # the shard passed: its fingerprint is marked for the plan of a later run (a cache entry, one writer per key; none on a fresh run)
+      - name: Mark this shard as proven
+        if: ${{ success() && needs.plan.outputs.fresh != 'true' && fromJSON(needs.plan.outputs.cli_e2e_proof_keys)[matrix.shard] != '' }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/proven"
+          echo "$GITHUB_SHA" > "$RUNNER_TEMP/proven/marker"
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        if: ${{ success() && needs.plan.outputs.fresh != 'true' && fromJSON(needs.plan.outputs.cli_e2e_proof_keys)[matrix.shard] != '' }}
+        continue-on-error: true
+        with:
+          path: ${{ runner.temp }}/proven/marker
+          key: ${{ fromJSON(needs.plan.outputs.cli_e2e_proof_keys)[matrix.shard] }}
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
         with:
@@ -854,7 +897,7 @@ jobs:
     name: deployment-verification-tests
     needs: [plan, core-tests, clis, deploy, cli-e2e-tests, eas-update]
     # the one e2e job that dials a deployed service: with legs it needs a successful deploy (which already means the tests passed), a leg that was planned but did not run leaves a service at an older commit
-    if: ${{ (!cancelled() && needs.plan.result == 'success' && (needs.deploy.result == 'success' || needs.plan.outputs.legs == '[]') && (needs.clis.result == 'success' || !inputs.ship) && (needs.plan.outputs.deployment_verification_tests != '0' || needs.plan.outputs.legs != '[]') && needs.plan.outputs.run_service == 'true' && (inputs.deploy || needs.plan.outputs.legs == '[]')) && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
+    if: ${{ (!cancelled() && needs.plan.outputs.is_head == 'true' && needs.plan.result == 'success' && (needs.deploy.result == 'success' || needs.plan.outputs.legs == '[]') && (needs.clis.result == 'success' || !inputs.ship) && (needs.plan.outputs.deployment_verification_tests != '0' || needs.plan.outputs.legs != '[]') && needs.plan.outputs.run_service == 'true' && (inputs.deploy || needs.plan.outputs.legs == '[]')) && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 20
     concurrency:
@@ -896,15 +939,14 @@ jobs:
   # from this commit, so a failed publish is repaired by the next push. Without `ship` the bundle is exported and nothing is uploaded.
   eas-update:
     name: eas-update
-    needs: [plan, core-tests, integration-tests, cli-e2e-tests, clis]
-    # a red test stage does not skip the job or the publish below (the e2e jobs read its result)
-    if: ${{ (!cancelled() && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && needs.plan.outputs.eas_update == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
+    # what the publish reads is the plan (is_head, eas_update) and the wf artifact; the tests gate the promotion (eas-promote), not the publish
+    needs: [plan, wf-build]
+    if: ${{ (!cancelled() && needs.plan.result == 'success' && needs.wf-build.result == 'success' && needs.plan.outputs.is_head == 'true' && needs.plan.outputs.eas_update == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 25
-    # contents: write for the push of refs/wf/state (wf bucket state write); a job's permissions replace the workflow's, so the others stay listed
     permissions:
       actions: read
-      contents: write
+      contents: read
       pull-requests: write
     concurrency:
       group: ${{ format('hosted-eas-update-{0}', github.run_id) }}
@@ -983,15 +1025,15 @@ jobs:
             echo "Source maps: $(jq -r '.maps.uploaded // .maps.error' <<<"$summary") under $(jq -r '.maps.base // "-"' <<<"$summary"); latest-dev pointer: $(jq -r '.pointers.latest // .pointers.error // "-"' <<<"$summary")"
             echo "BetterStack forwarder: $forwarder"
           } >> "$GITHUB_STEP_SUMMARY"
-      # the branch pointers outlive the run: the planner of the next push and `wf ship eas --latest` read them from the state ref
-      - name: Push the EAS pointers to the state ref
-        # the pointers exist only where the publish ran: a push that is no longer the head of dev publishes nothing, and a missing
-        # pointer file made this step (and so the whole run) red
-        if: ${{ inputs.ship && needs.plan.outputs.is_head == 'true' && success() }}
-        run: |
-          for pointer in "$RUNNER_TEMP"/eas-pointer/latest-*.json; do
-            wf bucket state write "eas/$(basename "$pointer")" --file "$pointer" --message "eas: $(basename "$pointer") at $GITHUB_SHA"
-          done
+      # the pointers wait for the tests in eas-promote, which writes them to the state ref
+      - name: Hand the EAS pointers to eas-promote
+        if: ${{ inputs.ship && success() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: eas-pointer-production
+          path: ${{ runner.temp }}/eas-pointer
+          retention-days: 2
+          if-no-files-found: error
       - name: Export the EAS bundle (not published)
         if: ${{ !inputs.ship }}
         timeout-minutes: 20
@@ -1010,12 +1052,55 @@ jobs:
           mode: upload
           job: eas-update
 
+  # The production update is published beside the tests; its pointer (what the planner of the next push and `wf ship eas --latest` read from the state ref)
+  # moves only when the tests passed, so a red run's update is republished by the next push.
+  eas-promote:
+    name: eas-promote
+    needs: [plan, wf-build, core-tests, integration-tests, cli-e2e-tests, clis, eas-update]
+    if: ${{ (!cancelled() && inputs.ship && needs.plan.result == 'success' && needs.wf-build.result == 'success' && needs.eas-update.result == 'success' && needs.plan.outputs.is_head == 'true' && contains(fromJSON('["success","skipped"]'), needs.core-tests.result) && contains(fromJSON('["success","skipped"]'), needs.integration-tests.result) && contains(fromJSON('["success","skipped"]'), needs.cli-e2e-tests.result) && contains(fromJSON('["success","skipped"]'), needs.clis.result)) && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 10
+    # contents: write for the push of refs/wf/state (wf bucket state write); a job's permissions replace the workflow's, so the others stay listed
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: ${{ format('hosted-eas-promote-{0}', github.run_id) }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-job
+        with:
+          wf-source: artifact
+          job: eas-promote
+          install: "false"
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: eas-pointer-production
+          path: ${{ runner.temp }}/eas-pointer
+      - name: Push the EAS pointers to the state ref
+        run: |
+          for pointer in "$RUNNER_TEMP"/eas-pointer/latest-*.json; do
+            wf bucket state write "eas/$(basename "$pointer")" --file "$pointer" --message "eas: $(basename "$pointer") at $GITHUB_SHA"
+          done
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() }}
+        with:
+          mode: upload
+          job: eas-promote
+
   # The EAS Update the Android e2e tests load (branch e2e, the runner's own backends at 10.0.2.2), and the pointer they read. It is its own job so the
   # Android e2e needs neither the integration tests nor the production ship that waits for them.
   eas-update-e2e:
     name: eas-update-e2e
     needs: [plan, clis]
-    if: ${{ (!cancelled() && inputs.ship && inputs.e2e && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && needs.plan.outputs.eas_update == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
+    if: ${{ (!cancelled() && inputs.ship && inputs.e2e && needs.plan.outputs.is_head == 'true' && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && needs.plan.outputs.eas_update == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 25
     permissions:
@@ -1108,7 +1193,8 @@ jobs:
   # The focused Android e2e tests, last: the device boots once, cold, and every test runs on it warm, one after another.
   android-e2e-tests:
     needs: [plan, core-tests, clis, cli-e2e-tests]
-    if: ${{ (!cancelled() && inputs.e2e && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
+    # head only, as eas-update-e2e whose update it loads
+    if: ${{ (!cancelled() && inputs.e2e && needs.plan.outputs.is_head == 'true' && needs.plan.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.clis.result) && needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
     # two devices, each with its part of the tests (dealt over the stage's weights in shard-weights.json): the tests are 13 of the job's 24 minutes
     strategy:
       fail-fast: false
@@ -1135,7 +1221,7 @@ jobs:
   # the pushed commit. A failure to report never turns the run's result into the report's; a cache that degraded, lost or refused a write does.
   report:
     name: report
-    needs: [wf-build, plan, core-tests, clis, deploy-build, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, eas-update-e2e, browser-e2e-tests, android-e2e-tests]
+    needs: [wf-build, plan, core-tests, clis, deploy-build, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, eas-promote, eas-update-e2e, browser-e2e-tests, android-e2e-tests]
     if: ${{ always() }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 15

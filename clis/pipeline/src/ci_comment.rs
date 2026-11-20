@@ -1276,6 +1276,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         "timings" | "progress" | "failed" => return crate::ci_timings::run(verb, rest),
         "resources" => return crate::ci_resources::run(verb, rest),
         "concurrency" => return crate::ci_concurrency::run(verb, rest),
+        "proven" => return crate::ci_proven::run(verb, rest),
         _ => {}
     }
     if verb != "comment" {

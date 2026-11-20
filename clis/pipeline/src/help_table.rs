@@ -13,6 +13,7 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("ci progress", false, include_str!("help/wf__ci__progress.txt")),
     ("ci resources", false, include_str!("help/wf__ci__resources.txt")),
     ("ci concurrency", false, include_str!("help/wf__ci__concurrency.txt")),
+    ("ci proven", false, include_str!("help/wf__ci__proven.txt")),
     ("ci failed", false, include_str!("help/wf__ci__failed.txt")),
     ("ci cache-health", false, include_str!("help/wf__ci__cache-health.txt")),
     ("ci db", false, include_str!("help/wf__ci__db.txt")),

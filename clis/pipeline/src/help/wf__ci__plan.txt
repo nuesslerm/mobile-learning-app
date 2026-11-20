@@ -15,10 +15,11 @@ its jobs read to $GITHUB_OUTPUT.
                          the split of one run (default the newest in CI_UNITS) set against what it measured: per stage and re-dealt shard (spans do not
                          record their shard) the seconds the committed weights predicted and the seconds the units took, as JSON and a markdown `table`; --send also gives them as the gauges
                          ci.shard.predicted_s and ci.shard.actual_s. The run's comment carries the same table.
-  shard-keys --stage <s> --count <n> --plan <file>
+  shard-keys --stage <s> --count <n> --plan <file> [--units]
                          one key per shard (a JSON array) from the crates it runs, the same in every commit that plans the same crates: the
                          integration shards' concurrency group: the crates plus a fingerprint of their inputs, so a later commit with the same crates and inputs queues
-                         behind the earlier one and a changed crate starts at once. [--repo <dir>] for the repository.
+                         behind the earlier one and a changed crate starts at once. [--repo <dir>] for the repository. --units prints each shard's unit names instead
+                         (a JSON array of arrays), so the shards' union can be set against the plan's whole list.
   tests [options]        every test a change needs, by CI stage; runs nothing. Scope: --all, --changed [--base <ref>] (default
                          HEAD~1; `last-green`: the newest commit on dev whose CI passed, via gh), or e2e test names; [--sha S]. Package tests (flow test:flow, integration
                          test:integration, typecheck, lint, unit test:unit, deployment-verification test:verify:deployed) follow pnpm's

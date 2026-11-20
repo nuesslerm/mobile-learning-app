@@ -26,7 +26,7 @@ fn refused(error: &str, next: &str) -> Option<i32> {
 }
 
 /// Appends `key=value` lines to the file `GITHUB_OUTPUT` names: a value never holds a newline.
-fn github_output<K: AsRef<str>>(pairs: &[(K, String)]) -> Result<(), String> {
+pub(crate) fn github_output<K: AsRef<str>>(pairs: &[(K, String)]) -> Result<(), String> {
     let path = std::env::var_os("GITHUB_OUTPUT").ok_or("--github-output needs GITHUB_OUTPUT")?;
     let mut file = std::fs::OpenOptions::new().create(true).append(true).open(&path).map_err(|e| format!("cannot write GITHUB_OUTPUT: {e}"))?;
     for (key, value) in pairs {
@@ -55,7 +55,7 @@ pub fn run(rest: &[String]) -> Option<i32> {
 /// `wf ci plan shard-keys --stage <stage> --count <n> --plan <file>`: one key per shard, a JSON array, from the crates each shard runs. A workflow
 /// makes it the concurrency group, so a later commit's shard of the same crates queues behind the earlier one (the newest pending job wins).
 fn shard_keys(args: &[String]) -> Option<i32> {
-    let spec = Spec { values: &["stage", "count", "plan", "repo"], positional: Positional::None, ..Spec::NONE };
+    let spec = Spec { values: &["stage", "count", "plan", "repo"], flags: &["units"], positional: Positional::None, ..Spec::NONE };
     let p = parse_spec(args, &spec)?;
     let (Some(stage), Some(plan_path)) = (p.val("stage"), p.val("plan")) else { return refused("shard-keys wants --stage and --plan", "wf ci plan shard-keys --stage integration-tests --count 4 --plan plan.json") };
     let count = p.val("count").and_then(|c| c.parse::<usize>().ok()).filter(|c| *c >= 1).unwrap_or(1);
@@ -65,6 +65,11 @@ fn shard_keys(args: &[String]) -> Option<i32> {
     };
     let repo = p.val("repo").map(PathBuf::from).unwrap_or_else(wf_kit::root::repo_root);
     let sha = plan["sha"].as_str().filter(|s| !s.is_empty()).unwrap_or("HEAD").to_string();
+    if p.flag("units") {
+        let units: Vec<Vec<String>> = (1..=count).map(|i| crate::test_plan::shard_unit_keys_in_plan(stage, &plan, i, count)).collect();
+        println!("{}", json!(units));
+        return Some(0);
+    }
     let keys: Vec<String> = (1..=count).map(|i| crate::test_plan::shard_key_in_plan(stage, &plan, i, count, &repo, &sha)).collect();
     println!("{}", json!(keys));
     Some(0)
