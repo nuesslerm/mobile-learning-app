@@ -66,6 +66,7 @@
           "turn.start"
         ],
         "executor": [
+          "cli_detect",
           "git_checkpoint",
           "put_blob",
           "run_command"
@@ -180,6 +181,7 @@
           "turn.start"
         ],
         "executor": [
+          "cli_detect",
           "git_checkpoint"
         ],
         "oracle": "mimic",
@@ -206,6 +208,7 @@
           "turn.start"
         ],
         "executor": [
+          "cli_detect",
           "git_checkpoint"
         ],
         "oracle": "mimic",
@@ -234,6 +237,7 @@
         ],
         "executor": [
           "cancel",
+          "cli_detect",
           "git_checkpoint",
           "run_command"
         ],
@@ -261,6 +265,7 @@
         ],
         "executor": [
           "cancel",
+          "cli_detect",
           "git_checkpoint",
           "run_command"
         ],
@@ -697,6 +702,7 @@
         ],
         "executor": [
           "cancel",
+          "cli_detect",
           "git_checkpoint",
           "run_command"
         ],

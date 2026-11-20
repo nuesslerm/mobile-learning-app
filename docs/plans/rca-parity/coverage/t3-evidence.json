@@ -5,11 +5,340 @@
   "source": {
     "runs": [
       {
-        "suite": "t3-serve-integration",
-        "sha": "a24451f1ab79dc2ae9eb345d06071896600b3ae3",
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 38,
+        "passed": 29
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 10,
+        "passed": 10
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 42,
+        "passed": 39
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 832,
+        "passed": 625
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 0
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 39,
+        "passed": 34
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 88,
+        "passed": 41
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 3,
+        "passed": 3
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 20,
+        "passed": 8
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 15,
+        "passed": 15
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 77,
+        "passed": 60
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 228,
+        "passed": 219
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 14,
+        "passed": 14
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 13,
+        "passed": 9
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 5,
+        "passed": 5
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 6,
+        "passed": 6
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 16,
+        "passed": 16
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
         "complete": true,
         "tests": 2,
         "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 77,
+        "passed": 72
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 34,
+        "passed": 34
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 41,
+        "passed": 41
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 5,
+        "passed": 5
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 14,
+        "passed": 3
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "t3-serve-integration",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 29,
+        "passed": 29
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 17,
+        "passed": 17
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 6,
+        "passed": 3
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 43,
+        "passed": 37
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 1,
+        "passed": 0
       }
     ]
   },
@@ -34,6 +363,7 @@
         "turn.start"
       ],
       "executor": [
+        "cli_detect",
         "git_checkpoint",
         "put_blob",
         "run_command"
@@ -103,6 +433,7 @@
         "turn.start"
       ],
       "executor": [
+        "cli_detect",
         "git_checkpoint"
       ],
       "oracle": "mimic",
@@ -120,6 +451,7 @@
         "turn.start"
       ],
       "executor": [
+        "cli_detect",
         "git_checkpoint"
       ],
       "oracle": "mimic",
@@ -139,6 +471,7 @@
       ],
       "executor": [
         "cancel",
+        "cli_detect",
         "git_checkpoint",
         "run_command"
       ],
@@ -157,6 +490,7 @@
       ],
       "executor": [
         "cancel",
+        "cli_detect",
         "git_checkpoint",
         "run_command"
       ],
@@ -371,6 +705,7 @@
       ],
       "executor": [
         "cancel",
+        "cli_detect",
         "git_checkpoint",
         "run_command"
       ],
