@@ -8,7 +8,6 @@ import {
   Check,
   ClipboardPaste,
   Copy,
-  Pencil,
   RotateCcw,
   RotateCw,
 } from '@lib/tamagui-design-system/icons';
@@ -16,14 +15,12 @@ import React, { useCallback } from 'react';
 import { Keyboard } from 'react-native';
 
 import type { EditorInputHandle } from '../core/EditorInput';
-import { getWordAtSelection } from '../core/editing';
 import type { Selection } from '../core/types';
 
 type Props = {
   editorRef: React.RefObject<EditorInputHandle | null>;
   source: string;
   selection: Selection;
-  onRenameSymbol?: (symbolName: string) => void;
   onDone: () => void;
   children?: React.ReactNode;
 };
@@ -32,7 +29,6 @@ export function ActionToolbar({
   editorRef,
   source,
   selection,
-  onRenameSymbol,
   onDone,
   children,
 }: Props) {
@@ -43,7 +39,6 @@ export function ActionToolbar({
           Math.min(selection.start, selection.end),
           Math.max(selection.start, selection.end)
         );
-  const renameTarget = getWordAtSelection(source, selection);
   const hasSelection = selectedText.length > 0;
 
   const refocusEditor = useCallback(() => {
@@ -79,13 +74,6 @@ export function ActionToolbar({
     }
     refocusEditor();
   }, [editorRef, refocusEditor, source]);
-
-  const handleRename = useCallback(() => {
-    Logger.info('toolbar.rename_press', { hasTarget: renameTarget != null });
-    if (renameTarget) {
-      onRenameSymbol?.(renameTarget);
-    }
-  }, [onRenameSymbol, renameTarget]);
 
   return (
     <KeyboardToolbarRail testID="EditorActionToolbar">
@@ -132,15 +120,6 @@ export function ActionToolbar({
           Logger.info('toolbar.paste_tap', { sourceLength: source.length });
           void handlePaste();
         }}
-      />
-      <KeyboardToolbarButton
-        testID="EditorAction-Rename"
-        accessibilityLabel="Rename symbol"
-        label="Rename"
-        icon={Pencil}
-        tone="accent"
-        disabled={!renameTarget}
-        onPress={handleRename}
       />
       <KeyboardToolbarButton
         testID="EditorAction-Done"

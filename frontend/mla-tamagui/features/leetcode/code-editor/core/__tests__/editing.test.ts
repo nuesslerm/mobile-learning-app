@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   INDENT_UNIT,
   dedent,
-  getWordAtSelection,
   indent,
   moveLeft,
   moveRight,
@@ -115,27 +114,5 @@ describe('moveLeft and moveRight', () => {
     expect(moveLeft('abcdef', { start: 4, end: 2 })).toEqual(caret(2));
     expect(moveRight('abcdef', { start: 2, end: 4 })).toEqual(caret(4));
     expect(moveRight('abcdef', { start: 4, end: 2 })).toEqual(caret(4));
-  });
-});
-
-describe('getWordAtSelection', () => {
-  it('given a caret inside, at either end of, or beside an identifier, when it is read, then the whole identifier returns', () => {
-    expect(getWordAtSelection('foo_bar = 1', caret(3))).toBe('foo_bar');
-    expect(getWordAtSelection('foo_bar = 1', caret(0))).toBe('foo_bar');
-    expect(getWordAtSelection('foo_bar = 1', caret(7))).toBe('foo_bar');
-  });
-
-  it('given a caret between two non-identifier characters, when it is read, then it is null', () => {
-    expect(getWordAtSelection('foo_bar = 1', caret(8))).toBeNull();
-  });
-
-  it('given a selection, when it is read, then it must be exactly an identifier', () => {
-    expect(getWordAtSelection('foo_bar', { start: 4, end: 7 })).toBe('bar');
-    expect(getWordAtSelection('foo_bar = 1', { start: 4, end: 9 })).toBeNull();
-    expect(getWordAtSelection('foo_bar', { start: 0, end: 7 })).toBe('foo_bar');
-  });
-
-  it('given a word that starts with a digit, when it is read, then it is not an identifier', () => {
-    expect(getWordAtSelection('9lives', caret(2))).toBeNull();
   });
 });

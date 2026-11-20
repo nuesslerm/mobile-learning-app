@@ -12,14 +12,13 @@ import type { EditorInputHandle } from '../core/EditorInput';
 import { BUILTIN_KEYS, type KeyActionContext } from '../core/toolbarKeys';
 import type { Selection } from '../core/types';
 
-const ACTION_KEY_IDS = new Set(['Undo', 'Redo', 'RenameSymbol']);
+const ACTION_KEY_IDS = new Set(['Undo', 'Redo']);
 
 type Props = {
   editorRef: React.RefObject<EditorInputHandle | null>;
   source: string;
   selection: Selection;
   onConfigure: () => void;
-  onRenameSymbol?: (symbolName: string) => void;
 };
 
 export function SyntaxToolbar({
@@ -27,12 +26,11 @@ export function SyntaxToolbar({
   source,
   selection,
   onConfigure,
-  onRenameSymbol,
 }: Props) {
   const items = useToolbarConfigStore((s) => s.items);
   const ctx: KeyActionContext = useMemo(
-    () => ({ editorRef, text: source, selection, onRenameSymbol }),
-    [editorRef, onRenameSymbol, selection, source]
+    () => ({ editorRef, text: source, selection }),
+    [editorRef, selection, source]
   );
 
   return (

@@ -23,6 +23,7 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
       "ProblemEditorDiffToggle",
@@ -42,37 +43,12 @@
       "ProblemPlanComposer",
       "ProblemPlanMicButton",
       "ProblemPlanTextInput",
-      "ProblemPlanAddButton",
-      "EditorHelperRails",
-      "EditorSyntaxToolbar",
-      "EditorSyntax-Tab",
-      "EditorSyntax-Dedent",
-      "EditorSyntax-Paren",
-      "EditorSyntax-Bracket",
-      "EditorSyntax-Brace",
-      "EditorSyntax-Quote",
-      "EditorSyntax-Apostrophe",
-      "EditorSyntax-Colon",
-      "EditorSyntax-Equals",
-      "EditorSyntax-Underscore",
-      "EditorSyntax-Dot",
-      "EditorSyntax-Comment",
-      "EditorSyntax-Newline",
-      "EditorSyntax-Left",
-      "EditorSyntax-Right",
-      "EditorSyntax-Configure",
-      "EditorActionToolbar",
-      "EditorAction-Undo",
-      "EditorAction-Redo",
-      "EditorAction-Copy",
-      "EditorAction-Paste",
-      "EditorAction-Rename",
-      "EditorAction-Done"
+      "ProblemPlanAddButton"
     ],
-    "text": "Plan\nCode\nPython\nDiff\nFormat\nRun Local\nRun\nReset\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nRename\nDone"
+    "text": "Plan\nCode\nPython\nDiff\nFormat\nRun Local\nRun\nReset"
   },
   "timings": {
-    "render_ms": 262
+    "render_ms": 238
   },
   "name": "voiceeditflow/final-given-the-problem-editor-with-an-injected-voice-dea925.dark",
   "image": {

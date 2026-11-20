@@ -147,37 +147,3 @@ export function moveRight(text: string, sel: Selection): Selection {
       : Math.max(sel.start, sel.end);
   return { start: pos, end: pos };
 }
-
-function isIdent(ch: string): boolean {
-  return /[a-zA-Z0-9_]/.test(ch);
-}
-
-/** Extract the Python identifier under or adjacent to the cursor. Returns null if none. */
-export function getWordAtSelection(
-  text: string,
-  sel: Selection
-): string | null {
-  if (sel.start !== sel.end) {
-    const word = text.slice(
-      Math.min(sel.start, sel.end),
-      Math.max(sel.start, sel.end)
-    );
-    return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(word) ? word : null;
-  }
-
-  const pos = sel.start;
-  if (
-    (pos >= text.length || !isIdent(text[pos])) &&
-    (pos === 0 || !isIdent(text[pos - 1]))
-  ) {
-    return null;
-  }
-
-  let start = pos;
-  while (start > 0 && isIdent(text[start - 1])) start--;
-  let end = pos;
-  while (end < text.length && isIdent(text[end])) end++;
-
-  const word = text.slice(start, end);
-  return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(word) ? word : null;
-}

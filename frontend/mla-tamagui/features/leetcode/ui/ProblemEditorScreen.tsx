@@ -532,16 +532,6 @@ export function ProblemEditorScreen({
     void voiceEdit.confirmSend();
   }, [voiceEdit, problem?.id]);
 
-  const handleRenameSymbol = React.useCallback(
-    (symbol: string) => {
-      Logger.info('editor_v2.rename_symbol_request', {
-        symbolLength: symbol.length,
-        problemId: problem?.id,
-      });
-    },
-    [problem?.id]
-  );
-
   const accepted = runOutcome?.status_msg === 'Accepted';
 
   const problemSubtitle = problem
@@ -715,7 +705,6 @@ export function ProblemEditorScreen({
               });
               router.push('/leetcode/toolbar');
             }}
-            onRenameSymbol={handleRenameSymbol}
             onDismissKeyboard={dismissEditorKeyboard}
           />
         )}

@@ -27,7 +27,6 @@ export const builtinKeyIdSchema = z.enum([
   'Right',
   'Undo',
   'Redo',
-  'RenameSymbol',
 ]);
 export type BuiltinKeyId = z.infer<typeof builtinKeyIdSchema>;
 

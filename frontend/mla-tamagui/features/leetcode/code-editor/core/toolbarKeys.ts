@@ -23,7 +23,6 @@ import {
   CornerDownLeft,
   Hash,
   Parentheses,
-  Pencil,
   RotateCcw,
   RotateCw,
 } from '@lib/tamagui-design-system/icons';
@@ -33,7 +32,6 @@ import type { EditorInputHandle } from './EditorInput';
 import {
   INDENT_UNIT,
   dedent,
-  getWordAtSelection,
   indent,
   moveLeft,
   moveRight,
@@ -46,7 +44,6 @@ export type KeyActionContext = {
   editorRef: RefObject<EditorInputHandle | null>;
   text: string;
   selection: Selection;
-  onRenameSymbol?: (symbolName: string) => void;
 };
 export type BuiltinKeyDef = {
   /** Human-readable name shown on the configure screen. */
@@ -179,17 +176,6 @@ export const BUILTIN_KEYS: Record<BuiltinKeyId, BuiltinKeyDef> = {
     run: (ctx) => {
       Logger.info('toolbar.redo.run', {});
       ctx.editorRef.current?.redo();
-    },
-  },
-  RenameSymbol: {
-    name: 'Rename symbol',
-    icon: Pencil,
-    run: (ctx) => {
-      const word = getWordAtSelection(ctx.text, ctx.selection);
-      Logger.info('toolbar.rename.run', {
-        hasWord: Boolean(word),
-      });
-      if (word) ctx.onRenameSymbol?.(word);
     },
   },
 };

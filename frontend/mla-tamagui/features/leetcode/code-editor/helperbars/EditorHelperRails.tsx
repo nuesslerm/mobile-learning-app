@@ -11,7 +11,6 @@ type Props = {
   source: string;
   selection: Selection;
   onConfigure: () => void;
-  onRenameSymbol?: (symbolName: string) => void;
   onDismissKeyboard: () => void;
   voiceButton?: React.ReactNode;
 };
@@ -21,7 +20,6 @@ export function EditorHelperRails({
   source,
   selection,
   onConfigure,
-  onRenameSymbol,
   onDismissKeyboard,
   voiceButton,
 }: Props) {
@@ -32,13 +30,11 @@ export function EditorHelperRails({
         source={source}
         selection={selection}
         onConfigure={onConfigure}
-        onRenameSymbol={onRenameSymbol}
       />
       <ActionToolbar
         editorRef={editorRef}
         source={source}
         selection={selection}
-        onRenameSymbol={onRenameSymbol}
         onDone={onDismissKeyboard}
       >
         {voiceButton}
