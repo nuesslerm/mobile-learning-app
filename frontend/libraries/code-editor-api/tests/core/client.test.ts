@@ -74,3 +74,20 @@ function hostOf(fake: ReturnType<typeof createFakeEditor>) {
     maxSelections: 1,
   };
 }
+
+describe('an editor whose host cannot type', () => {
+  it('given a host without the type method, when hello and a type step are sent, then the step is not announced and the call is unsupported', async () => {
+    // Given a fake editor without the optional host method
+    const fake = createFakeEditor({ text: 'abc', typing: false });
+    const client = createEditorClient(fake.engine);
+
+    // When hello and a type step are sent
+    const hello = unwrap(await client.hello());
+    const reply = await client.transact([{ op: 'type', text: 'x' }]);
+
+    // Then the step is not announced, the call is unsupported, and the text is unchanged
+    expect(hello.capabilities.steps).toEqual(['replace', 'move', 'select']);
+    expect(reply).toMatchObject({ ok: false, error: { code: 'unsupported', what: 'step:type' } });
+    expect(fake.text()).toBe('abc');
+  });
+});

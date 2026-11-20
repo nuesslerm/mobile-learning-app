@@ -9,6 +9,8 @@ export type FakeEditorOptions = {
   readonly instance?: string;
   readonly logDepth?: number;
   readonly languages?: readonly Language[];
+  /** false: a host without the optional `type` method, which then does not announce the step */
+  readonly typing?: boolean;
   /** where errors thrown by event listeners and the host go; a test reads them back through `internalErrors` */
   readonly logError?: (error: unknown) => void;
 };
@@ -73,6 +75,16 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
     selection: () => selectionOf(selection),
     hasFocus: () => focused,
     sync: () => undefined,
+    ...(options.typing === false
+      ? {}
+      : {
+          type(typed: string, label?: string) {
+            const insert = normalizeText(typed);
+            const from = Math.min(selection.anchor, selection.head);
+            const to = Math.max(selection.anchor, selection.head);
+            edit([{ from, to, insert }], { anchor: from + insert.length, head: from + insert.length }, `api.${label ?? 'type'}`, true, 'api', label);
+          },
+        }),
     commit({ changes, selection: next, label }) {
       if (changes.length === 0) {
         if (next) reselect(next, 'select.api');

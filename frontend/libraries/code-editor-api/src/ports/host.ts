@@ -9,6 +9,7 @@ export interface DocumentHost { // the driven port: what the engine core needs f
   selection(): Selection;
   hasFocus(): boolean;
   sync(): void; // deliver to core.ingest every transaction not yet delivered; idempotent, called before each request
+  type?(text: string, label?: string): void; // one keystroke at the live selection: input handlers (auto-closed brackets) first, else a replace of the selection; at most one transaction, one undo step; core.ingest has run for it before this returns. Announced as the `type` step only when present
   commit(edit: Commit): void; // one transaction = one undo step; core.ingest must have run for it before this returns
   history(direction: 'undo' | 'redo'): boolean; // true when something was applied; core.ingest has run
   load(text: string, selection?: SelRange): HostLoad; // replace the document, reset history, next revision = previous head + 1

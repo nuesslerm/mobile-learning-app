@@ -6,6 +6,7 @@ import { normalizeText } from './changes';
 export type Parsed<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: EditorError };
 
 const MAX_STEPS = 10_000;
+const MAX_TYPED = 64; // a keystroke, not a paste
 const LABEL = /^[a-z0-9][a-z0-9.-]{0,31}$/;
 const LANGUAGES: readonly string[] = ['python', 'javascript', 'cpp'];
 const PALETTE_KEYS = ['cursor', 'selection', 'background', 'gutter', 'border'] as const;
@@ -64,6 +65,12 @@ function parseStep(value: unknown, index: number, steps: readonly unknown[]): Pa
     const head = parsePoint(value.head, `${path}.head`, steps);
     return head.ok ? { ok: true, value: { op: 'select', anchor: anchor.value, head: head.value } } : head;
   }
+  if (value.op === 'type') {
+    if (typeof value.text !== 'string') return bad(`${path}.text`, 'text is a string');
+    const text = normalizeText(value.text);
+    if (text.length === 0 || text.length > MAX_TYPED) return bad(`${path}.text`, `a type step takes 1 to ${MAX_TYPED} characters: a keystroke, not a paste`);
+    return { ok: true, value: { op: 'type', text } };
+  }
   return { ok: false, error: { code: 'unsupported', message: `this editor has no step ${value.op}`, what: `step:${value.op}` } };
 }
 
@@ -76,6 +83,7 @@ export function parseApply(params: unknown): Parsed<ApplyParams> {
     if (!step.ok) return step;
     steps.push(step.value);
   }
+  if (steps.length > 1 && steps.some((step) => step.op === 'type')) return bad('steps', 'a type step is the only step of its call');
   if (params.at !== undefined && !isInt(params.at)) return bad('at', 'at is a revision: a non-negative integer');
   if (params.stale !== undefined && params.stale !== 'reject' && params.stale !== 'map') return bad('stale', 'stale is reject or map');
   if (params.instance !== undefined && typeof params.instance !== 'string') return bad('instance', 'instance is a string');

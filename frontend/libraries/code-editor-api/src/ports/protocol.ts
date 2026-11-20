@@ -23,7 +23,8 @@ export type Point =
 export type Step =
   | { readonly op: 'replace'; readonly range: Target; readonly text: string; readonly expect?: string } // insertAt = empty range, delete = text ''
   | { readonly op: 'move'; readonly range: Target; readonly to: Pos; readonly expect?: string }
-  | { readonly op: 'select'; readonly anchor: Point; readonly head?: Point };
+  | { readonly op: 'select'; readonly anchor: Point; readonly head?: Point }
+  | { readonly op: 'type'; readonly text: string }; // one keystroke at the live selection, through the editor's input handlers; the only step of its call
 export type StepOp = Step['op'];
 
 export type Stale = 'reject' | 'map';

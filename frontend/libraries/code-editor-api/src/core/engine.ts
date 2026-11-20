@@ -69,7 +69,7 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
       ready: true,
       capabilities: {
         requests: REQUEST_NAMES,
-        steps: ['replace', 'move', 'select'],
+        steps: host.type ? ['replace', 'move', 'select', 'type'] : ['replace', 'move', 'select'],
         events: ['ready', 'changed', 'selection', 'focus'],
         languages: host.languages(),
         maxSelections: host.maxSelections,
@@ -99,6 +99,17 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     if (behind && (stale === 'reject' || at < log.floor())) {
       return failure({ code: 'stale', message: `the call was made at revision ${at}, the head is ${head}`, head, floor: log.floor() });
     }
+    const typed = steps[0];
+    if (typed?.op === 'type') {
+      // a keystroke acts on what is selected now, so there is nothing to map: a call made at another revision is stale
+      if (!host.type) return failure({ code: 'unsupported', message: 'this editor has no type step', what: 'step:type' });
+      if (behind) return failure({ code: 'stale', message: `the call was made at revision ${at}, the head is ${head}`, head, floor: log.floor() });
+      delivered = null;
+      host.type(typed.text, label);
+      host.sync();
+      const update = delivered as HostUpdate | null;
+      return success({ changes: update?.changes ?? [], selection: host.selection(), landed: [null] }, head);
+    }
     const from = at ?? head;
     const lengthThen = behind ? (log.lengthAt(from) ?? 0) : host.doc.length;
     const live = mainRange(host.selection());
@@ -106,6 +117,7 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     const rebasePos = (pos: number, assoc: 1 | -1) => (behind ? log.mapPos(pos, from, assoc) : pos);
     const resolved: ResolvedStep[] = [];
     for (const [index, step] of steps.entries()) {
+      if (step.op === 'type') return invalid(`steps[${index}]`, 'a type step is the only step of its call');
       if (step.op === 'select') {
         const point = (value: typeof step.anchor): typeof step.anchor | EditorError => {
           if (typeof value === 'number') return value > lengthThen ? outOf(index) : rebasePos(value, 1);

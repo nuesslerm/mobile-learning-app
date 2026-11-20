@@ -19,8 +19,19 @@ describe('the wire validators', () => {
     ['an at that is not an integer', { steps: [], at: 'x' }, 'invalid'],
     ['a stale policy that is neither', { steps: [], stale: 'maybe' }, 'invalid'],
     ['an illegal label', { steps: [], label: 'Bad Label' }, 'invalid'],
+    ['a type step with no text', { steps: [{ op: 'type' }] }, 'invalid'],
+    ['a type step with empty text', { steps: [{ op: 'type', text: '' }] }, 'invalid'],
+    ['a type step with a paste', { steps: [{ op: 'type', text: 'x'.repeat(65) }] }, 'invalid'],
+    ['a type step beside another step', { steps: [{ op: 'type', text: 'x' }, { op: 'select', anchor: 0 }] }, 'invalid'],
+    ['a type step of one keystroke', { steps: [{ op: 'type', text: '(' }] }, 'ok'],
+    ['a type step of the longest keystroke', { steps: [{ op: 'type', text: 'x'.repeat(64) }] }, 'ok'],
   ])('given %s, when apply params are parsed, then they are %s', (_name, params, expected) => {
     expect(code(parseApply(params))).toBe(expected);
+  });
+
+  it('given a type step with CRLF, when parsed, then it is one LF', () => {
+    const parsed = parseApply({ steps: [{ op: 'type', text: '\r\n' }] });
+    expect(parsed.ok && parsed.value.steps[0]).toEqual({ op: 'type', text: '\n' });
   });
 
   it('given step text with CRLF, when parsed, then text and expect are normalised', () => {

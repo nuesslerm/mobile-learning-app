@@ -121,6 +121,7 @@ export function editorContract(name: string, make: MakeSubject): void {
 
         // When each op is sent
         for (const op of advertised) {
+          if (op === 'type') continue; // it edits the text and has its own cases in the type group
           expect(samples[op], `an advertised step op has no contract case: ${op}`).toBeDefined();
           expect((await client.transact([samples[op] as Step])).ok).toBe(true);
         }
@@ -314,6 +315,61 @@ export function editorContract(name: string, make: MakeSubject): void {
         const reply = unwrap(await client.replaceRange({ from: 0, to: 0 }, 'a\r\nb'));
         expect(reply).toMatchObject({ changes: [{ insert: 'a\nb' }], landed: [{ from: 0, to: 3 }] });
         expect((await snapshot()).text).toBe(`a\nb${TEN}`);
+      });
+    });
+
+    describe('type', () => {
+      const typeStep = (text: string): Step => ({ op: 'type', text });
+      const advertises = async () => unwrap(await client.hello()).capabilities.steps.includes('type');
+
+      it('given a caret, when a keystroke is typed, then it goes in there, the caret follows, the change says api, and one undo takes it back', async (ctx) => {
+        // Given an engine that offers the step and a caret in the middle
+        if (!(await advertises())) return ctx.skip();
+        await start(TEN, { anchor: 3, head: 3 });
+        const seen = record('changed');
+
+        // When one keystroke is typed
+        const result = unwrap(await client.transact([typeStep('x')]));
+
+        // Then the text, the caret, the event and the undo step are those of one call
+        expect(result.changes).toEqual([{ from: 3, to: 3, insert: 'x' }]);
+        expect(result.landed).toEqual([null]);
+        expect((await snapshot()).text).toBe('012x3456789');
+        expect(result.selection.ranges[0]).toEqual({ anchor: 4, head: 4 });
+        expect(seen).toMatchObject([{ origin: 'api', changes: [{ from: 3, to: 3, insert: 'x' }] }]);
+        unwrap(await client.undo());
+        expect((await snapshot()).text).toBe(TEN);
+      });
+
+      it('given a selection, when a keystroke is typed, then it replaces the selection', async (ctx) => {
+        if (!(await advertises())) return ctx.skip();
+        await start(TEN, { anchor: 2, head: 5 });
+
+        unwrap(await client.transact([typeStep('Z')]));
+
+        const after = await snapshot();
+        expect(after.text).toBe('01Z56789');
+        expect(after.selection.ranges[0]).toEqual({ anchor: 3, head: 3 });
+      });
+
+      it('given an empty text, a long text or another step beside it, when typed, then the call is invalid and nothing changes', async (ctx) => {
+        if (!(await advertises())) return ctx.skip();
+        const base = await start();
+
+        expect(failed(await client.transact([typeStep('')])).code).toBe('invalid');
+        expect(failed(await client.transact([typeStep('x'.repeat(65))])).code).toBe('invalid');
+        expect(failed(await client.transact([typeStep('x'), replace(0, 0, 'y')])).code).toBe('invalid');
+        expect(await snapshot()).toMatchObject({ text: TEN, revision: base });
+      });
+
+      it('given a call made at an older revision, when a keystroke is typed, then it is stale even with map, and at the head it applies', async (ctx) => {
+        if (!(await advertises())) return ctx.skip();
+        const base = await start();
+        unwrap(await client.insertAt(0, 'A'));
+
+        expect(failed(await client.transact([typeStep('x')], { at: base })).code).toBe('stale');
+        expect(failed(await client.transact([typeStep('x')], { at: base, stale: 'map' })).code).toBe('stale');
+        expect((await client.transact([typeStep('x')], { at: base + 1 })).ok).toBe(true);
       });
     });
 

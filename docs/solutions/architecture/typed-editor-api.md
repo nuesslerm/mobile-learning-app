@@ -27,6 +27,7 @@ Text is canonical. Every client edits it through seven typed requests on one eng
 
 - A call is one transaction, one revision (when the text changed) and one undo step. Steps are simultaneous and positions are in the document at `at`. Overlapping steps are refused: CodeMirror would merge them silently.
 - `at` older than the head is `stale` unless the call says `stale: 'map'`, which maps ranges through the revision log and answers `range-lost` or `text-mismatch` (with `expect`) rather than editing the wrong text. A lost reply is retried with the same `at`: the retry is `stale`, so nothing applies twice.
+- The `type` step is one keystroke (1 to 64 characters) at the live selection, through the editor's input handlers, so the editor's own rules (auto-closed brackets, re-indent) apply; it is the only step of its call, it acts on the head (`at` older than it is `stale`, `map` or not) and its `landed` is `[null]`. A host that has no `type` method does not announce it and answers `unsupported`.
 - Events of a call arrive before its reply. A `changed` event's `from` that does not follow the mirror's revision means a lost message: resync.
 - The engine owns the selection mapping: an empty caret stays before text inserted at it, a range stays inward, and a range wholly inside replaced text collapses to a caret after the replacement (CodeMirror's own mapping leaves a range turned inside out).
 - Contract failures resolve as `{ok: false, error}`; transport failures reject at the engine and resolve as `transport` through the client.
