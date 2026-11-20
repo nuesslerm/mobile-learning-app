@@ -1022,7 +1022,6 @@ dependencies = [
  "signal-hook",
  "sourcemap",
  "tempfile",
- "tiny_http",
  "wf-bucket",
  "wf-kit",
  "wf-vmops",

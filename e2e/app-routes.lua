@@ -40,14 +40,12 @@ for n, r in ipairs(ROUTES) do
       if line:find('route.change', 1, true) then return true end
     end
   end, timeout=ms, interval=250, optional=true} end
-  -- the static page is visible before its scripts have loaded and hydrated; the harness's file server now and then stalls a first
-  -- load for many seconds, so one reload is allowed before the page counts as never having hydrated
-  local landed = route_changed(15000)
+  -- the static page is visible before its scripts have loaded and hydrated
+  local landed = route_changed(30000)
   if not landed then
-    device:open_link(base .. r.path)
-    landed = route_changed(30000)
+    local seen = device:get_logs{level='debug'}
+    assert_true(false, ("%s: no route.change line in the app log (%d log lines, first: %s)"):format(r.path, #seen, tostring(seen[1])))
   end
-  assert_true(landed, r.path .. ": no route.change line in the app log")
   device:clear_logs()
 end
 log("app routes: " .. #ROUTES .. " rendered")
