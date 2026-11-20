@@ -49,6 +49,8 @@ const built = await esbuild.build({
   write: false,
   platform: 'browser',
   target: ['es2020'],
+  // the judge harness is Python text the page runs
+  loader: { '.py': 'text' },
   // pyodide.mjs imports Node's modules and ws behind an IN_NODE test that is false in a WebView
   external: ['node:*', 'ws'],
   define: { 'process.env.NODE_ENV': '"production"' },
