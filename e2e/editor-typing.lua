@@ -303,7 +303,7 @@ for _, p in ipairs(SOL) do
     device:press_key('Ctrl+End') -- typing goes on at the end of the buffer
   end
   local b0 = buffer() or ""
-  if (b0:match("([^\n]*)$") or ""):match("%S") then device:press_key('Enter') end
+  if (b0:match("([^\n]*)$") or ""):match("%S") then enter() end
 
   device:take_screenshot(("%s/%s-start.png"):format(out, p.id))
   local rail = device:get_element({id='EditorHelperRails'})

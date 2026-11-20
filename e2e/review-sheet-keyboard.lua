@@ -66,29 +66,39 @@ run_flow("type an edit", function()
   device:extended_wait_until{condition=keyboard_up, timeout=8000, label='the keyboard rose over the sheet'}
 end)
 
--- everything the person needs to finish the edit is above the keyboard
-local kb = device:get_device_state('keyboard')
-device:take_screenshot(out .. "/sheet-with-keyboard.png")
-assert_true(kb.bounds ~= nil, "the keyboard reports no bounds")
-local function above(id)
-  local e = device:get_element({id=id})
-  assert_true(e ~= nil, id .. " is not on screen")
-  return e.bounds.bottom <= kb.bounds.top + 2, e.bounds.bottom
-end
--- the sheet itself has risen above the keyboard: the design-system Sheet lifts itself by the keyboard's height (the same code on web and on a
--- phone), so a sheet that stops doing it leaves its bottom edge behind the keyboard here, whatever room the content leaves above it
-if not android then
-  local function sheet_bottom() local s = device:get_element({id='ProblemEditorVoiceReviewSheet'}) return s and s.bounds.bottom end
-  device:extended_wait_until{condition=function() local b = sheet_bottom() return b ~= nil and b <= kb.bounds.top + 2 end, timeout=5000, optional=true, label='the sheet rose above the keyboard'}
-  local b = sheet_bottom()
-  assert_true(b ~= nil and b <= kb.bounds.top + 2, ("the sheet did not rise above the keyboard (bottom %s, keyboard top %d)"):format(tostring(b), kb.bounds.top))
-end
-local ok_input, input_bottom = above('ProblemEditorVoiceReviewSheet-TranscriptInput')
-local ok_send, send_bottom = above('ProblemEditorVoiceReviewSheet-Send')
-log(("keyboard top %d, transcript input bottom %d, Send bottom %d"):format(kb.bounds.top, input_bottom, send_bottom))
-assert_true(ok_input, "the transcript field is behind the keyboard")
-assert_true(ok_send, ("the Send button is behind the keyboard (bottom %d, keyboard top %d)"):format(send_bottom, kb.bounds.top))
--- a warning in the page's console fails every browser run (gorhom's own input logged one on every focus in react-native-web)
-local warnings = device:get_logs()
-assert_true(#warnings == 0, "JS warnings with the sheet open: " .. tostring(warnings[1]))
-log("review sheet keyboard: pass")
+local ok, failure = pcall(function()
+  -- everything the person needs to finish the edit is above the keyboard
+  local kb = device:get_device_state('keyboard')
+  device:take_screenshot(out .. "/sheet-with-keyboard.png")
+  assert_true(kb.bounds ~= nil, "the keyboard reports no bounds")
+  local function above(id)
+    local e = device:get_element({id=id})
+    assert_true(e ~= nil, id .. " is not on screen")
+    return e.bounds.bottom <= kb.bounds.top + 2, e.bounds.bottom
+  end
+  -- the sheet itself has risen above the keyboard: the design-system Sheet lifts itself by the keyboard's height (the same code on web and on a
+  -- phone), so a sheet that stops doing it leaves its bottom edge behind the keyboard here, whatever room the content leaves above it
+  if not android then
+    local function sheet_bottom() local s = device:get_element({id='ProblemEditorVoiceReviewSheet'}) return s and s.bounds.bottom end
+    device:extended_wait_until{condition=function() local b = sheet_bottom() return b ~= nil and b <= kb.bounds.top + 2 end, timeout=5000, optional=true, label='the sheet rose above the keyboard'}
+    local b = sheet_bottom()
+    assert_true(b ~= nil and b <= kb.bounds.top + 2, ("the sheet did not rise above the keyboard (bottom %s, keyboard top %d)"):format(tostring(b), kb.bounds.top))
+  end
+  local ok_input, input_bottom = above('ProblemEditorVoiceReviewSheet-TranscriptInput')
+  local ok_send, send_bottom = above('ProblemEditorVoiceReviewSheet-Send')
+  log(("keyboard top %d, transcript input bottom %d, Send bottom %d"):format(kb.bounds.top, input_bottom, send_bottom))
+  assert_true(ok_input, "the transcript field is behind the keyboard")
+  assert_true(ok_send, ("the Send button is behind the keyboard (bottom %d, keyboard top %d)"):format(send_bottom, kb.bounds.top))
+  -- a warning in the page's console fails every browser run (gorhom's own input logged one on every focus in react-native-web)
+  local warnings = device:get_logs()
+  assert_true(#warnings == 0, "JS warnings with the sheet open: " .. tostring(warnings[1]))
+  log("review sheet keyboard: pass")
+end)
+-- the next test on this device finds the app as it was: the sheet closed and the keyboard down (the keyboard this test raised was left up, and
+-- the stubbed-run-local that follows it on the hosted Android shard then saw the rail of a keyboard that was gone)
+pcall(function()
+  if device:get_element({id='ProblemEditorVoiceReviewSheet-Close'}) then device:tap_on({id='ProblemEditorVoiceReviewSheet-Close'}) end
+  device:extended_wait_until{condition=function() return not device:get_device_state('keyboard').visible end, timeout=5000, optional=true}
+  if android and device:get_device_state('keyboard').visible then device:press_key('Back') end
+end)
+if not ok then error(failure, 0) end
