@@ -227,6 +227,14 @@ for _, p in ipairs(SOL) do
     end
     device:open_link(link)
     wait_route({id='ProblemEditorRunLocalButton'}, 240)
+    -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: wait for the first route.change
+    if not android then
+      device:extended_wait_until{condition=function()
+        for _, l in ipairs(device:get_logs{level='info'}) do
+          if l:find('route.change', 1, true) then return true end
+        end
+      end, timeout=60000, interval=250, label='the page hydrated'}
+    end
   end)
   -- the web editor autofocuses on open and its keyboard covers Reset, so an unseeded run lowers it; the Android one waits for a tap
   local focused = not android and device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true}
@@ -292,23 +300,7 @@ for _, p in ipairs(SOL) do
   done()
   if android then r.keyboard_after_done = device:get_device_state('keyboard').visible end
   device:take_screenshot(("%s/%s-keyboard-down.png"):format(out, p.id))
-  -- a part whose lines did not read back is not run: its Run would time out and hide the line that went missing (reported below)
-  if r.final and r.lines_match then
-    run_flow("run local", function()
-      device:tap_on({id='ProblemEditorRunLocalButton'})
-      device:assert_visible({id='ProblemEditorRunOutcomeTotals'})
-    end)
-    r.run_local = text_of("ProblemEditorRunOutcomeTotals")
-    device:take_screenshot(("%s/%s-result.png"):format(out, p.id))
-    -- the status bar clock changes every minute; the rest of the result screen is the same on every run
-    -- the "All tests passed" toast slides over the editor for a few seconds; the golden is the screen after it
-    if android and env.golden ~= "off" then
-      -- the toast is drawn outside the accessibility tree, so no selector sees it; its white card covers the dark editor, so
-      -- wait until that point is dark again
-      device:extended_wait_until{condition=function() local c = device:get_pixel('83%,20.5%') return not (c.r > 200 and c.g > 200 and c.b > 200) end, timeout=20000, label='result toast gone'}
-      device:assert_screenshot("editor-" .. p.id .. "-result", { ignore = { { 0, 0, SW, from_top(40) } } })
-    end
-  end
+  -- Run Local reached the backend, and no test starts one: its outcome step returns with the on-device runner (issue 86, B5)
   r.warnings = device:get_logs()
 end
 result.input = { keys = keys, toolbar_taps = toolbar.taps, toolbar_typed_on_keyboard = toolbar.typed }
@@ -332,7 +324,6 @@ for _, p in ipairs(SOL) do
   assert_true(r.toolbar_above_keyboard, p.id .. ": toolbar not above the keyboard")
   assert_true(r.lines_match, ("%s: typed code does not match: missing %s; the field read %s"):format(p.id, json.encode(r.missing),
     r.field_read_empty and "empty" or "..." .. json.encode(r.buffer_tail)))
-  assert_true(not r.final or (r.run_local and r.run_local:match("passed")), p.id .. ": Run Local did not pass: " .. tostring(r.run_local))
   assert_true(#r.warnings == 0, p.id .. ": JS warnings: " .. tostring(r.warnings[1]))
 end
 log(json.encode(result.input))

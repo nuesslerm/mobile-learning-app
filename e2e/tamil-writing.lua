@@ -6,9 +6,9 @@ units: part=vowels letters=1-2; part=vowels letters=3-4; part=vowels letters=5-6
 focus: true
 features: tamil-writing
 ---]]
--- device-lab Tamil writing: traced letters (guide), a write path (template) and three words against the live marker backend.
+-- device-lab Tamil writing: traced letters (guide), a write path (template) and three words, with the marker answered by a stub: no test starts or needs a backend.
 -- wf android|browser test e2e/tamil-writing.lua --env out=<dir> [--env base=<exp://u.expo.dev/<projectId>/group/<group>/-- | http://127.0.0.1:8800/mla-tamagui>] [--env package=host.exp.exponent]
--- Gates: every traced letter at least 90% on the line, write path and words "LOOKS RIGHT" (one retry per word), zero JS warnings
+-- Gates: every traced letter at least 90% on the line, write path and words "LOOKS RIGHT" from the stubbed marker (one retry per word), zero JS warnings
 -- per lesson and word. Input is touch only (the strokes follow the pad's own guide/template). The test records itself.
 local android = device.platform == "android"
 local out = env.out or (".agents/tmp/runs/tamil-writing-" .. device.platform)
@@ -16,6 +16,8 @@ local base = env.base or (not android and "http://127.0.0.1:8800/mla-tamagui" or
 assert_true(base, "pass --env base=<update link>; wf test run does")
 local pkg = env.package or "host.exp.exponent"
 os.execute("mkdir -p " .. out)
+-- POST /api/tamil/check is the marker (remote-chat-agent, a vision model): the stub answers LOOKS RIGHT, so the pads, strokes and verdict badge are what the test proves
+device:add_network_stub("POST", "*/api/tamil/check", { body_file = "e2e/stubs/tamil-check-looks-right.json", headers = { ["content-type"] = "application/json" } })
 -- The screen in pixels (540x960 on the first device, 480x1040 now, a Galaxy S25 in dp). The width is 360 dp at any density, so a page scroll measured
 -- on the first device (605 px) scales by SW / 540.
 local SW, SH = 540, 960
@@ -70,6 +72,14 @@ local function open_route(path, wait_for, timeout) run_flow("open route", functi
     end
   end
   device:assert_visible(wait_for, {timeout=30000})
+  -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: wait for the first route.change
+  if not android then
+    device:extended_wait_until{condition=function()
+      for _, l in ipairs(device:get_logs{level='info'}) do
+        if l:find('route.change', 1, true) then return true end
+      end
+    end, timeout=60000, interval=250, label='the page hydrated'}
+  end
   close_dev_menu()
 end) end
 
@@ -157,7 +167,7 @@ local function writepad(name)
     -- scroll_until_visible drags from the screen's centre, which is the pad: the page is dragged at its left edge instead
     if not device:get_element({id='TamilWriteCheck'}) then scroll_down() end
     device:tap_on({id='TamilWriteCheck'})
-    device:extended_wait_until{visible={id='TamilWriteVerdictBadge'}, timeout=90000, optional=true} -- the check is a real backend call; a miss is read as "no verdict" below
+    device:extended_wait_until{visible={id='TamilWriteVerdictBadge'}, timeout=90000, optional=true} -- the stubbed marker answers; a miss is read as "no verdict" below
     device:take_screenshot(("%s/%s-a%d-verdict.png"):format(out, name, attempt))
     verdict = text_of("TamilWriteVerdictBadge") or "no verdict"
     local w = device:get_logs()

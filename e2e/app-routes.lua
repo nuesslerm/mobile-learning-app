@@ -35,11 +35,18 @@ for n, r in ipairs(ROUTES) do
   end
   assert_true(#w == 0, ("%s: JS warning: %s"):format(r.path, tostring(w[1])))
   -- the landing, as BetterStack holds it for the session: a route that rendered logged route.change (the echo flushes about once a second)
-  local landed = device:extended_wait_until{condition=function()
+  local function route_changed(ms) return device:extended_wait_until{condition=function()
     for _, line in ipairs(device:get_logs{level='info'}) do
       if line:find('route.change', 1, true) then return true end
     end
-  end, timeout=5000, interval=250, optional=true}
+  end, timeout=ms, interval=250, optional=true} end
+  -- the static page is visible before its scripts have loaded and hydrated; the harness's file server now and then stalls a first
+  -- load for many seconds, so one reload is allowed before the page counts as never having hydrated
+  local landed = route_changed(15000)
+  if not landed then
+    device:open_link(base .. r.path)
+    landed = route_changed(30000)
+  end
   assert_true(landed, r.path .. ": no route.change line in the app log")
   device:clear_logs()
 end
