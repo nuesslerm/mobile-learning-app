@@ -8,3 +8,4 @@ export * from './core/validate';
 export * from './core/engine';
 export * from './core/client';
 export * from './core/mirror';
+export * from './adapters';

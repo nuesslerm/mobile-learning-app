@@ -606,6 +606,7 @@ export function editorContract(name: string, make: MakeSubject): void {
         needs(ctx, 'userTypes');
         await start();
         const seen = record('changed');
+        await client.hello(); // a request after the subscription proves the page has it before the person types
         await hooks().userTypes?.('q');
         await snapshot();
         expect(seen).toHaveLength(1);
