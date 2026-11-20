@@ -407,8 +407,8 @@ mod tests {
                     let parsed = Request::from_value(request).unwrap_or_else(|_| panic!("{what}: not a request"));
                     assert!(METHODS.iter().chain(watch::METHODS).any(|m| m.name() == parsed.method), "{what}: {}", parsed.method);
                 }
-                // And the service calls no executor action to answer, but the checkpoint a turn it starts takes first (`git_checkpoint`)
-                let expected: &[&str] = if method == "schedule.runNow" && exchange.succeeds() { &["git_checkpoint"] } else { &[] };
+                // And the service calls no executor action to answer, but the detection of the turn's CLI and the checkpoint it takes first
+                let expected: &[&str] = if method == "schedule.runNow" && exchange.succeeds() { &["cli_detect", "git_checkpoint"] } else { &[] };
                 assert_eq!((exchange.request["method"].as_str(), exchange.actions.iter().map(String::as_str).collect::<Vec<_>>()), (Some(method), expected.to_vec()), "{what}");
                 if exchange.succeeds() {
                     assert_eq!(parse_params(method, &exchange.request["params"]), Ok(()), "{what}");

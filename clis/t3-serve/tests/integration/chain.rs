@@ -36,7 +36,7 @@ fn a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_th
     exec_testkit::case!(SUITE, |case| {
         // Given the chain, a CLI whose turn writes notes/a.txt through its MCP tool, and a paired phone with its streams open on the thread
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello from the model")]));
+        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello from the model")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         assert_eq!(success(&phone.call(case, &chain, &["rpc:server.probe"], "server.probe", json!({}))), &json!({}));
         phone.stream(case, &chain, &["rpc:subscribeServerConfig"], "subscribeServerConfig", json!({}));
@@ -74,7 +74,7 @@ fn what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_ex
     exec_testkit::case!(SUITE, |case| {
         // Given a thread whose turn wrote notes/a.txt
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello from the model")]));
+        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello from the model")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         phone.seed(case, &chain);
         phone.message(case, &chain, "t1", "c-m1", "make a note");
@@ -106,7 +106,7 @@ fn a_launch_creates_the_thread_runs_its_first_message_through_rca_and_answers_wi
     exec_testkit::case!(SUITE, |case| {
         // Given a project on the repository and a CLI whose turn writes launched.txt
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![writes("launched.txt", "from a launch")]));
+        chain.cli.script("claude", &Script::of(vec![writes("launched.txt", "from a launch")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let project = json!({"type": "project.create", "commandId": "c-p1", "projectId": "p1", "title": "Chain", "workspaceRoot": chain.repo.path().display().to_string()});
         success(&phone.call(case, &chain, &["rpc:projects.mutate", "mutation:project.create"], "projects.mutate", project));
@@ -139,7 +139,7 @@ fn an_interrupt_and_a_stop_each_end_the_turn_the_cli_is_running_by_telling_rca_t
     exec_testkit::case!(SUITE, |case| {
         // Given a thread whose CLI starts a turn and stays
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![stays()]));
+        chain.cli.script("claude", &Script::of(vec![stays()]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         phone.seed(case, &chain);
         for (n, (command, row, method)) in [("run.interrupt", "command:run.interrupt", "turn.interrupt"), ("thread.stop", "command:thread.stop", "thread.forceStop")].into_iter().enumerate() {

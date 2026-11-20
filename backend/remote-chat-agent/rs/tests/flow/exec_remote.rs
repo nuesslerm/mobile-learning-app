@@ -99,6 +99,11 @@ async fn open_channel(port: u16, workspace: &str, secret: Option<&str>) -> Resul
 
 impl Executor {
     async fn connect(port: u16, workspace: &str) -> Executor {
+        Executor::connect_having(port, workspace, None).await
+    }
+
+    /// An executor that answers `cli_detect` for the CLIs it `has` (and says nothing else is supported), as the executor of a host does.
+    async fn connect_having(port: u16, workspace: &str, has: Option<Vec<String>>) -> Executor {
         let (write, mut read) = open_channel(port, workspace, Some(SECRET)).await.expect("the channel opens");
         let sink: Sink = Arc::new(tokio::sync::Mutex::new(write));
         let close_code = Arc::new(Mutex::new(None));
@@ -112,7 +117,15 @@ impl Executor {
                     }
                     Message::Text(text) => {
                         let request: Value = serde_json::from_str(&text).expect("a JSON request");
-                        let frame = json!({"id": request["id"].clone(), "ok": false, "error": {"code": "UNSUPPORTED", "message": "not in this executor"}});
+                        let detect = has.as_ref().filter(|_| request["tool"] == "cli_detect");
+                        let frame = match detect {
+                            Some(has) => {
+                                let asked = request["args"]["programs"].as_array().cloned().unwrap_or_default();
+                                let clis: Vec<Value> = asked.iter().filter_map(Value::as_str).map(|p| json!({"program": p, "installed": has.iter().any(|h| h == p)})).collect();
+                                json!({"id": request["id"].clone(), "ok": true, "result": {"clis": clis}, "output": ""})
+                            }
+                            None => json!({"id": request["id"].clone(), "ok": false, "error": {"code": "UNSUPPORTED", "message": "not in this executor"}}),
+                        };
                         let _ = reply.lock().await.send(Message::Text(frame.to_string().into())).await;
                     }
                     _ => {}
@@ -241,11 +254,15 @@ async fn given_clis_that_print_their_streams_when_turns_run_then_each_becomes_th
     let mut agent = mapper(&svc, port).await;
     followed(&mut agent, "t1", "w1", "claudeAgent").await;
     followed(&mut agent, "t2", "w1", "opencode").await;
+    followed(&mut agent, "t3", "w1", "codex").await;
+    svc.spawner.script("codex", CliScript { lines: vec![r#"{"type":"item.completed","item":{"type":"agent_message","text":"from codex"}}"#.into()], ..CliScript::default() });
     // When a turn runs on each
     agent.ask("turn.start", turn("t1", "w1", "claudeAgent")).await;
     let claude = agent.events_through("turn.finished").await;
     agent.ask("turn.start", turn("t2", "w1", "opencode")).await;
     let opencode = agent.events_through("turn.finished").await;
+    agent.ask("turn.start", turn("t3", "w1", "codex")).await;
+    agent.events_through("turn.finished").await;
     // Then Claude Code's are its tool call, the call's output and finish, the text and a completed finish, each of the thread that ran
     assert_eq!(kinds(&claude), ["turn.started", "message.delta", "tool.started", "tool.output", "tool.finished", "message.delta", "turn.finished"]);
     assert_eq!((claude[2].data["tool"].clone(), claude[2].data["args"].clone(), claude[3].data["data"].clone()), (json!("Bash"), json!({"command": "ls"}), json!("a.txt")));
@@ -258,6 +275,12 @@ async fn given_clis_that_print_their_streams_when_turns_run_then_each_becomes_th
     let spawned = svc.spawner.spawned();
     assert_eq!((spawned[0].program.as_str(), spawned[0].cwd.clone()), ("claude", std::path::PathBuf::from(".")));
     assert!(spawned[0].args.windows(2).any(|w| w == ["--model", "m1"]) && spawned[0].args.contains(&"stream-json".to_string()) && spawned[0].args.contains(&"make a note".to_string()), "{:?}", spawned[0].args);
+    // And all three run at that root with the prompt, none with its own tools switched off or its tool list narrowed
+    assert_eq!(spawned.iter().map(|s| (s.program.as_str(), s.cwd.clone())).collect::<Vec<_>>(), [("claude", ".".into()), ("env", ".".into()), ("codex", ".".into())]);
+    assert!(spawned.iter().all(|s| s.args.contains(&"make a note".to_string())), "{spawned:?}");
+    let switched_off = ["--tools", "--allowedTools", "--allowed-tools", "--disallowedTools", "--disallowed-tools", "--no-builtin-tools"];
+    assert!(spawned.iter().all(|s| !s.args.iter().any(|a| switched_off.contains(&a.as_str()) || a.contains("\"tools\":"))), "{spawned:?}");
+    assert!(spawned[1].args.iter().any(|a| a == "opencode") && spawned[2].args.contains(&"exec".to_string()), "{spawned:?}");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -292,6 +315,28 @@ async fn given_clis_that_fail_when_turns_run_then_each_thread_logs_an_error_with
     assert_eq!(error(&missing).map(|(code, _)| code), Some(json!("CLI_START_FAILED")));
     assert!(error(&missing).unwrap().1.as_str().unwrap().contains("not found"), "{:?}", error(&missing));
     assert_eq!(missing.last().unwrap().data["reason"], json!("failed"));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn given_an_executor_without_claude_when_a_turn_names_claude_code_then_it_is_refused_naming_the_cli_and_the_cli_it_has_still_runs() {
+    // Given an executor for the workspace that reports codex installed and claude missing
+    let env = Env::new(&[]);
+    let svc = service(&env, Options::default());
+    let port = svc.listen().await;
+    let _executor = Executor::connect_having(port, "w1", Some(vec!["codex".into()])).await;
+    svc.spawner.script("codex", CliScript { lines: vec![r#"{"type":"item.completed","item":{"type":"agent_message","text":"from codex"}}"#.into()], ..CliScript::default() });
+    let mut agent = mapper(&svc, port).await;
+    followed(&mut agent, "t1", "w1", "claudeAgent").await;
+    followed(&mut agent, "t2", "w1", "codex").await;
+    // When a turn names claude code, and another names codex
+    let refused = agent.ask("turn.start", turn("t1", "w1", "claudeAgent")).await;
+    let started = agent.ask("turn.start", turn("t2", "w1", "codex")).await;
+    let ran = agent.events_through("turn.finished").await;
+    // Then the first is refused naming claude and nothing ran for it, and the second ran to its finish
+    assert_eq!(refused["error"], json!({"code": "CLI_NOT_INSTALLED", "message": "claude is not installed on the executor of workspace w1"}));
+    assert!(started.get("result").is_some(), "{started}");
+    assert_eq!(ran.last().map(|e| e.data["reason"].clone()), Some(json!("completed")));
+    assert_eq!(svc.spawner.spawned().iter().map(|s| s.program.clone()).collect::<Vec<_>>(), ["codex"]);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -381,10 +426,11 @@ async fn given_a_cli_on_another_host_when_it_presents_the_turns_token_then_the_t
     // When the same caller from another address presents that token, a wrong one, and the token for another thread's route
     let served = remote(&bearer).await;
     let wrong = remote("Bearer not-the-token").await;
+    let bare = svc.send(post("/mcp/t1").from([10, 1, 2, 3]).json(call.clone())).await;
     let elsewhere = svc.send(post("/mcp/t2").from([10, 1, 2, 3]).header("authorization", &bearer).json(call.clone())).await;
     // Then only the right token on its own thread's route is served
     assert_eq!(served.status, StatusCode::OK, "{}", served.json());
-    assert_eq!((wrong.status, elsewhere.status), (StatusCode::FORBIDDEN, StatusCode::FORBIDDEN));
+    assert_eq!((wrong.status, bare.status, elsewhere.status), (StatusCode::FORBIDDEN, StatusCode::FORBIDDEN, StatusCode::FORBIDDEN));
     // And once the turn is over the token no longer opens the route
     agent.ask("turn.interrupt", json!({"thread": "t1"})).await;
     agent.events_through("turn.finished").await;

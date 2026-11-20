@@ -22,7 +22,7 @@ pub const SERVED: [Served; 8] = [
     Served::service(threads::THREAD_HISTORY, &[]),
     Served::service(threads::THREAD_TRANSCRIPT, &[]),
     // Every row that starts a turn takes the checkpoint (`checkpoint::take`); the recorded exchange of this one is the contract's evidence
-    Served::cli(threads::TURN_START, &[exec_git::GIT_CHECKPOINT]),
+    Served::cli(threads::TURN_START, &[rca_exec_channel::CLI_DETECT, exec_git::GIT_CHECKPOINT]),
     Served::cli(threads::TURN_INTERRUPT, &[]),
 ];
 
@@ -117,6 +117,7 @@ impl AgentThreadsGroup {
         let thread = self.thread(&p.thread)?;
         let input = TurnInput { workspace: p.workspace.clone(), driver: p.driver.clone(), model: p.model.clone(), prompt: p.prompt.clone(), runtime_mode: p.runtime_mode.clone(), interaction_mode: p.interaction_mode.clone() };
         let mut prepared = self.runner.prepare(&p.thread, &Known::of(&thread), None, input)?;
+        prepared.require_cli().await?;
         if let Some(staging) = self.staging.as_ref().filter(|_| !ids.is_empty()) {
             prepared.note_files(&staging.stage(&p.workspace, &ids).await?);
         }
@@ -215,8 +216,21 @@ mod tests {
     }
 
     fn rig() -> Rig {
+        rig_with(&["opencode", "claude", "codex"])
+    }
+
+    /// A rig whose executor has the named CLIs and answers every other action with an empty result.
+    fn rig_with(installed: &'static [&'static str]) -> Rig {
         let (engine, spawner, executors) = (Arc::new(MemoryThreads::default()), ScriptedSpawner::new(), Arc::new(Registry::default()));
-        let channel = ScriptedChannel::new(|_, _| Ok(ActionOutput { result: json!({}), output: String::new() }));
+        let channel = ScriptedChannel::new(move |tool, args| {
+            let result = if tool == "cli_detect" {
+                let asked = args["programs"].as_array().cloned().unwrap_or_default();
+                json!({"clis": asked.iter().filter_map(|p| p.as_str()).map(|p| json!({"program": p, "installed": installed.contains(&p)})).collect::<Vec<_>>()})
+            } else {
+                json!({})
+            };
+            Ok(ActionOutput { result, output: String::new() })
+        });
         executors.open("w1", channel.clone() as Arc<dyn ExecutorChannel>).unwrap();
         let group = AgentThreadsGroup::new(engine.clone(), executors.clone(), Arc::new(crate::host::Fixed(spawner.clone())), Arc::new(Mcp));
         Rig { api: AgentApi::new(vec![Arc::new(group)]).unwrap(), engine, spawner, executors, channel }
@@ -488,6 +502,25 @@ mod tests {
         let errors: Vec<(Value, Value)> = events.iter().filter(|e| e.kind == "error").map(|e| (e.data["code"].clone(), e.data["message"].clone())).collect();
         assert_eq!(errors, [(json!("CLI_START_FAILED"), json!("claude could not start: not found")), (json!("CLI_ERROR"), json!("exited with 1: not logged in"))]);
         assert_eq!(events.iter().filter(|e| e.kind == "turn.finished").map(|e| e.data["reason"].clone()).collect::<Vec<_>>(), [json!("failed"), json!("failed")]);
+    }
+
+    #[tokio::test]
+    async fn given_an_executor_without_claude_when_a_turn_names_claude_code_then_it_is_refused_naming_the_cli_nothing_is_recorded_and_a_present_cli_still_runs() {
+        // Given an executor that has codex but not claude
+        let rig = rig_with(&["codex"]);
+        rig.create("t").await;
+        rig.spawner.script("codex", CliScript { lines: vec![], ..CliScript::default() });
+        // When a turn names claude code
+        let refused = rig.start("t").await;
+        // Then it is refused up front naming the CLI, no CLI was spawned, the log is empty and the thread is free
+        assert_eq!(refused["error"], json!({"code": "CLI_NOT_INSTALLED", "message": "claude is not installed on the executor of workspace w1"}));
+        assert!(rig.engine.events_of("t").is_empty() && rig.spawner.kills() == 0);
+        // When a turn names the CLI it has
+        let started = rig.ask("turn.start", json!({"thread": "t", "workspace": "w1", "driver": "codex", "prompt": "p"})).await;
+        rig.wait_idle("t").await;
+        // Then it runs
+        assert!(started["result"]["turn"].is_string(), "{started}");
+        assert!(rig.kinds("t").contains(&"turn.started".to_string()));
     }
 
     #[tokio::test]

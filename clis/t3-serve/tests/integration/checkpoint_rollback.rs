@@ -21,7 +21,7 @@ fn write(id: &str, path: &str, content: &str) -> Turn {
 /// Turn one writes notes/a.txt; turn two rewrites it, rewrites the committed README.md and adds notes/b.txt.
 fn two_turns() -> Script {
     let second = write("k1", "notes/a.txt", "two\n").then_calling("k2", "write_file", json!({"path": "README.md", "content": "changed\n"})).then_calling("k3", "write_file", json!({"path": "notes/b.txt", "content": "new\n", "create_dirs": true})).then_line(&said("done"));
-    Script::of(vec![write("k1", "notes/a.txt", "one\n").then_line(&said("done")), second])
+    Script::of(vec![write("k1", "notes/a.txt", "one\n").then_line(&said("done")), second]).printing_version("0.0.0-flow")
 }
 
 fn read(chain: &Chain, path: &str) -> Option<String> {
@@ -109,7 +109,7 @@ fn a_checkpoint_never_touches_the_index_the_branch_or_the_files_it_records() {
         let chain = Chain::start();
         std::fs::write(chain.repo.path().join("staged.txt"), "mine\n").unwrap();
         chain.repo.git(&["add", "staged.txt"]);
-        chain.cli.script("claude", &Script::of(vec![write("k1", "notes/a.txt", "one\n").then_line(&said("done"))]));
+        chain.cli.script("claude", &Script::of(vec![write("k1", "notes/a.txt", "one\n").then_line(&said("done"))]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         phone.seed(case, &chain);
         phone.message(case, &chain, "t1", "c-m1", "make a note");

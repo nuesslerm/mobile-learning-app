@@ -11,8 +11,8 @@ use serde_json::Value;
 use std::sync::Arc;
 
 // `schedule.runNow` starts a turn of a CLI, which the model of that turn then calls the MCP tools of;
-// the checkpoint it takes first is `git_checkpoint`, named here so this crate keeps no dependency on exec-git.
-const SERVED: [Served; 7] = [Served::service(api::LIST, &[]), Served::service(api::UPSERT, &[]), Served::service(api::SET_ENABLED, &[]), Served::service(api::DELETE, &[]), Served::cli(api::RUN_NOW, &["git_checkpoint"]), Served::service(api::ROTATE_WEBHOOK_TOKEN, &[]), Served::service(api::RUNS, &[])];
+// the CLI detection and the checkpoint it takes first are `cli_detect` and `git_checkpoint`, named here so this crate keeps no dependency on exec-git.
+const SERVED: [Served; 7] = [Served::service(api::LIST, &[]), Served::service(api::UPSERT, &[]), Served::service(api::SET_ENABLED, &[]), Served::service(api::DELETE, &[]), Served::cli(api::RUN_NOW, &["cli_detect", "git_checkpoint"]), Served::service(api::ROTATE_WEBHOOK_TOKEN, &[]), Served::service(api::RUNS, &[])];
 const WATCH_SERVED: [Served; 1] = [Served::service(watch::SUBSCRIBE, &[])];
 
 pub struct ScheduleGroup {

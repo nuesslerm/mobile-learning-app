@@ -259,7 +259,7 @@ mod tests {
         let uses: Vec<(&str, Uses)> = declared.iter().map(|s| (s.method.name(), s.uses)).collect();
         assert_eq!(uses.iter().filter(|(_, u)| *u == Uses::Cli).map(|(m, _)| *m).collect::<Vec<_>>(), ["turn.start", "turn.interrupt"]);
         assert_eq!(uses.iter().filter(|(_, u)| *u == Uses::Service).count(), 6);
-        assert_eq!(declared.iter().filter(|s| !s.actions.is_empty()).map(|s| (s.method.name(), s.actions.to_vec())).collect::<Vec<_>>(), [("turn.start", vec![exec_git::GIT_CHECKPOINT])]);
+        assert_eq!(declared.iter().filter(|s| !s.actions.is_empty()).map(|s| (s.method.name(), s.actions.to_vec())).collect::<Vec<_>>(), [("turn.start", vec!["cli_detect", exec_git::GIT_CHECKPOINT])]);
     }
 
     #[test]

@@ -64,7 +64,7 @@ fn settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_
     exec_testkit::case!(SUITE, |case| {
         // Given a thread whose Claude Code announced a conversation and wrote a note, and rca's shelves read through the side door
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[init("sess-1"), said("writing the note")]).then_calling("k1", "write_file", json!({"path": "notes/a.txt", "content": "hello", "create_dirs": true})).then_line(&said("done"))]));
+        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[init("sess-1"), said("writing the note")]).then_calling("k1", "write_file", json!({"path": "notes/a.txt", "content": "hello", "create_dirs": true})).then_line(&said("done"))]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         phone.seed(case, &chain);
@@ -152,7 +152,7 @@ fn queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_s
     exec_testkit::case!(SUITE, |case| {
         // Given a thread whose first turn stays, then a steered turn that writes steered.txt and a queued turn that writes queued.txt
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![stays(), writes("steered.txt", "steered"), writes("queued.txt", "from the queue")]));
+        chain.cli.script("claude", &Script::of(vec![stays(), writes("steered.txt", "steered"), writes("queued.txt", "from the queue")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         phone.seed(case, &chain);
@@ -220,7 +220,7 @@ fn a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_star
     exec_testkit::case!(SUITE, |case| {
         // Given a thread whose first turn stays and whose later turns write queued.txt, and three messages queued behind the running turn
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![stays(), writes("queued.txt", "from the queue")]));
+        chain.cli.script("claude", &Script::of(vec![stays(), writes("queued.txt", "from the queue")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         phone.seed(case, &chain);
@@ -272,7 +272,7 @@ fn resuming_a_held_queue_starts_its_items_one_after_the_other_through_rca_with_t
     exec_testkit::case!(SUITE, |case| {
         // Given a thread force stopped with two items queued behind its turn, so the queue is held
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![stays(), writes("first.txt", "one"), writes("second.txt", "two")]));
+        chain.cli.script("claude", &Script::of(vec![stays(), writes("first.txt", "one"), writes("second.txt", "two")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         phone.seed(case, &chain);
@@ -307,7 +307,7 @@ fn a_workflow_stop_ends_the_running_turn_through_rca_a_stop_with_nothing_running
     exec_testkit::case!(SUITE, |case| {
         // Given a thread whose CLI starts a turn and stays, each time
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![stays()]));
+        chain.cli.script("claude", &Script::of(vec![stays()]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         phone.seed(case, &chain);
         // When the phone stops a workflow of a thread that runs nothing
@@ -385,7 +385,7 @@ fn a_turn_waits_for_the_phones_approval_or_answer_and_runs_on_only_when_it_gets_
                 asking("approval_prompt", json!({"tool_name": "write_file", "input": {"path": "a.txt"}}), "a.txt"),
                 asking("ask_user", json!({"question": "which one?", "options": ["a", "b"]}), "b.txt"),
                 asking("ask_user", json!({"question": "sure?"}), "c.txt"),
-            ]),
+            ]).printing_version("0.0.0-flow"),
         );
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
@@ -485,7 +485,7 @@ fn a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_wh
             .then_calling("k1", "write_file", json!({"path": "notes/a.txt", "content": "hello from the model", "create_dirs": true}))
             .then_calling("k2", "run_command", json!({"command": "printf 'out-%s' whales"}))
             .then_line(&said("done"));
-        chain.cli.script("claude", &Script::of(vec![turn]));
+        chain.cli.script("claude", &Script::of(vec![turn]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         phone.seed(case, &chain);
@@ -587,7 +587,7 @@ fn the_requests_rca_cannot_serve_yet_are_refused_with_t3s_words_and_a_refusal_ne
     exec_testkit::case!(SUITE, |case| {
         // Given a thread that ran a turn
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello")]));
+        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         phone.seed(case, &chain);
         let projection = phone.message(case, &chain, "t1", "c-m1", "make a note");

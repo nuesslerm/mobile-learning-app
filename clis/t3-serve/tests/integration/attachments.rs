@@ -110,7 +110,7 @@ fn an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_
         assert!(!chain.repo.path().join(".rca").exists());
         // When the phone sends a message that names both and the CLI's turn reads the note at the path the prompt gives
         let note_at = staged(&note_id, "notes.txt");
-        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[said("reading the note")]).then_calling("k1", "read_file", json!({"path": note_at})).then_line(&said("read it"))]));
+        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[said("reading the note")]).then_calling("k1", "read_file", json!({"path": note_at})).then_line(&said("read it"))]).printing_version("0.0.0-flow"));
         let attachments = vec![json!({"type": "image", "id": image_id, "name": "shot.png", "mimeType": "image/png", "sizeBytes": 3000}), json!({"type": "file", "id": note_id, "name": "notes.txt", "mimeType": "text/plain", "sizeBytes": note.len()})];
         let projection = phone.command_settled(case, &chain, dispatch("c-a1", "look at these", attachments.clone()), "t1", completed);
         // Then the executor wrote each below the attachment directory, byte for byte, and the window names put_blob (the ignore file and the two)
@@ -170,7 +170,7 @@ fn a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_clim
     exec_testkit::case!(SUITE, |case| {
         // Given the chain, a paired phone and a CLI whose turns only answer
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[said("seen")])]));
+        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[said("seen")])]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect_with(case, &chain, &all_scopes());
         phone.seed(case, &chain);
         // When a file named for a path outside the repository is uploaded and sent
@@ -222,7 +222,7 @@ fn an_upload_of_the_most_the_service_keeps_is_kept_whole_staged_by_the_executor_
     exec_testkit::case!(SUITE, |case| {
         // Given the chain, a paired phone, and a file of exactly the most an attachment may hold
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[said("seen")])]));
+        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[said("seen")])]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect_with(case, &chain, &all_scopes());
         phone.seed(case, &chain);
         let bytes = binary(MAX_BYTES as usize);

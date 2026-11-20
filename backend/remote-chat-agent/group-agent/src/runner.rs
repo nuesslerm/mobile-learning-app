@@ -79,6 +79,18 @@ impl Prepared {
         self.request.prompt = format!("{}\n\nFiles attached to this message, in the workspace:{list}", self.request.prompt);
     }
 
+    /// Refuses the turn, naming the CLI, when the workspace's executor reports it missing. An executor that cannot answer the detection is not
+    /// taken for one without the CLI: the launch then says why it could not start.
+    pub async fn require_cli(&self) -> Result<(), Refusal> {
+        let program = self.driver.program();
+        let Ok(answer) = self.channel.call(rca_exec_channel::CLI_DETECT, serde_json::json!({"programs": [program]})).await else { return Ok(()) };
+        let Ok(found) = serde_json::from_value::<rca_exec_channel::CliDetectResult>(answer.result) else { return Ok(()) };
+        if found.clis.iter().any(|c| c.program == program && c.installed) {
+            return Ok(());
+        }
+        Err(Refusal::new(code::CLI_NOT_INSTALLED, message::cli_not_installed(program, &self.workspace)))
+    }
+
     /// Records the turn's start and its prompt, and runs its CLI; the turn is followed on a task of its own. A CLI that cannot start ends the turn
     /// failed, in the log, as one that fails after it began does.
     pub async fn launch(self) -> Result<String, Refusal> {

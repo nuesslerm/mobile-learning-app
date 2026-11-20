@@ -104,7 +104,7 @@ fn a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_
     exec_testkit::case!(SUITE, |case| {
         // Given the chain, a CLI whose turn writes notes/a.txt through its MCP tool, a paired phone and a chat it created
         let chain = Chain::start(None);
-        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello from the model")]));
+        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello from the model")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         let made = phone.call(case, &chain, &["rpc:agentSession.create"], "agentSession.create", create_params("claude_s1", "c1", None));
@@ -170,7 +170,7 @@ fn a_chat_created_with_a_message_and_a_launch_each_run_a_turn_once_and_a_retry_o
     exec_testkit::case!(SUITE, |case| {
         // Given the chain, a CLI that writes a file in each of its two turns, and a paired phone
         let chain = Chain::start(None);
-        chain.cli.script("claude", &Script::of(vec![writes("created.txt", "from a create"), writes("launched.txt", "from a launch")]));
+        chain.cli.script("claude", &Script::of(vec![writes("created.txt", "from a create"), writes("launched.txt", "from a launch")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         // When a chat is created with its first message, and the same create is sent again
@@ -210,7 +210,7 @@ fn a_turn_that_asks_for_approval_and_a_question_waits_until_the_phone_answers_an
     exec_testkit::case!(SUITE, |case| {
         // Given a CLI whose turns ask the person through the service's MCP tools before they write: an approval, then a question
         let chain = Chain::start(None);
-        chain.cli.script("claude", &Script::of(vec![asking("approval_prompt", json!({"tool_name": "write_file", "input": {"path": "a.txt"}}), "a.txt"), asking("ask_user", json!({"question": "which one?", "options": ["a", "b"]}), "b.txt")]));
+        chain.cli.script("claude", &Script::of(vec![asking("approval_prompt", json!({"tool_name": "write_file", "input": {"path": "a.txt"}}), "a.txt"), asking("ask_user", json!({"question": "which one?", "options": ["a", "b"]}), "b.txt")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         phone.call(case, &chain, &["rpc:agentSession.create"], "agentSession.create", create_params("claude_p1", "c1", None));
@@ -267,7 +267,7 @@ fn queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_tu
     exec_testkit::case!(SUITE, |case| {
         // Given a turn that stays running, three queued messages, and CLI turns that only answer afterwards
         let chain = Chain::start(None);
-        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[said("working")]).hanging(), Turn::replaying(&[said("ok")]), Turn::replaying(&[said("ok")]), Turn::replaying(&[said("ok")])]));
+        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[said("working")]).hanging(), Turn::replaying(&[said("ok")]), Turn::replaying(&[said("ok")]), Turn::replaying(&[said("ok")])]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         let s = "claude_q1";
@@ -332,7 +332,7 @@ fn an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_re
     exec_testkit::case!(SUITE, |case| {
         // Given a chat and a png of more than one 384 KiB chunk, and a CLI whose turn only answers
         let chain = Chain::start(None);
-        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[said("seen")])]));
+        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[said("seen")])]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         let png: Vec<u8> = (0..500 * 1024u32).map(|i| (i * 31 % 251) as u8).collect();
@@ -389,7 +389,7 @@ fn a_conversation_command_reaches_the_cli_as_the_prompt_it_reads_and_runs_as_a_t
     exec_testkit::case!(SUITE, |case| {
         // Given a chat whose CLI answers each turn
         let chain = Chain::start(None);
-        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[said("compacted")]), Turn::replaying(&[said("cleared")])]));
+        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[said("compacted")]), Turn::replaying(&[said("cleared")])]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         let s = "claude_k1";

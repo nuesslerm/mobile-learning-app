@@ -87,7 +87,7 @@ impl Chain {
     }
 
     pub(crate) fn script(&self, turns: Vec<Turn>) {
-        self.cli.script("claude", &Script::of(turns));
+        self.cli.script("claude", &Script::of(turns).printing_version("0.0.0-flow"));
     }
 }
 
@@ -419,7 +419,7 @@ async fn given_an_opencode_thread_whose_turn_named_a_session_when_the_service_an
     chain.cli.script("opencode", &Script::of(vec![
         Turn::replaying(&[opencode_said("ses_resume_1", "first answer")]),
         Turn::replaying(&[opencode_said("ses_resume_1", "second answer")]),
-    ]));
+    ]).printing_version("0.0.0-flow"));
     let mut agent = chain.agent().await;
     let made = agent.ask("thread.create", json!({"thread": "t1", "title": "Notes", "workspace": "w1", "driver": "opencode"})).await;
     assert!(made.get("result").is_some(), "{made}");
@@ -470,7 +470,7 @@ async fn crashed_with_a_queued_prompt(env: &Env, options: &(dyn Fn() -> Options 
                 Turn::replaying(&[opencode_said("ses_queue_1", "working")]).then_sleeping(60_000),
                 Turn::replaying(&[opencode_said("ses_queue_1", "queued answer")]),
                 Turn::replaying(&[opencode_said("ses_queue_1", "continued")]),
-            ]));
+            ]).printing_version("0.0.0-flow"));
             let mut agent = chain.agent().await;
             let made = agent.ask("thread.create", json!({"thread": "t1", "title": "Notes", "workspace": "w1", "driver": "opencode"})).await;
             assert!(made.get("result").is_some(), "{made}");

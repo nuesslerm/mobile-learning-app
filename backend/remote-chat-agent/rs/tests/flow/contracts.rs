@@ -111,7 +111,7 @@ fn every_method_of_the_schedules_groups_has_recorded_exchanges_that_call_no_exec
     named.sort_unstable();
     assert_eq!(named, methods.into_iter().collect::<Vec<_>>());
     for fixture in &recorded {
-        let expected: Vec<&str> = if fixture.method == "schedule.runNow" { vec!["git_checkpoint"] } else { vec![] };
+        let expected: Vec<&str> = if fixture.method == "schedule.runNow" { vec!["cli_detect", "git_checkpoint"] } else { vec![] };
         assert_eq!(declared_actions(&fixture.method), expected, "{}", fixture.method);
         // And a refusal calls none, a success the declared ones
         assert!(fixture.exchanges.iter().all(|e| if e.succeeds() { e.actions == expected } else { e.actions.is_empty() }), "{}", fixture.method);

@@ -33,7 +33,7 @@ Pre-2026-10 history: [archive](archive/README.md).
 - mla-tamagui-e2e · No real-browser check that the service-report dashboard renders themed · 29d · [service-report-no-real-render-check](gaps/service-report-no-real-render-check.md)
 - mobile-app · Nothing in the app has been verified on a real device or simulator from a session (blocked) · 96d · [no-real-device-verification](gaps/no-real-device-verification.md)
 - rca · `wf rca ask --runbook` still drives a local opencode, and a remote run reports no token usage · 24d · [rca-runbook-and-remote-run-usage](gaps/rca-runbook-and-remote-run-usage.md)
-- rca · The agent CLIs now run at the workspace host; four follow-ups remain · 2d · [rca-cli-at-host-follow-ups](gaps/rca-cli-at-host-follow-ups.md)
+- rca · The agent CLIs now run at the workspace host; five follow-ups remain · 2d · [rca-cli-at-host-follow-ups](gaps/rca-cli-at-host-follow-ups.md)
 - rca-parity · The hosted fixtures and the GitLab argv are written from documentation, not recorded from gh and glab · 16d · [exec-hosted-fixtures-not-from-real-clis](gaps/exec-hosted-fixtures-not-from-real-clis.md)
 - rca-parity · The scripted CLI replays cassettes that were written, not recorded · 16d · [exec-testkit-recordings-not-from-real-clis](gaps/exec-testkit-recordings-not-from-real-clis.md)
 - rca-parity · The pinned T3 server has not been run by `wf mimic verify --live` · 16d · [t3-conformance-live-runs-against-a-mock-not-the-pinned-server](gaps/t3-conformance-live-runs-against-a-mock-not-the-pinned-server.md)

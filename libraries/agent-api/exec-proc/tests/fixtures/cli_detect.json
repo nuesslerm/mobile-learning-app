@@ -88,6 +88,41 @@
       ]
     },
     {
+      "name": "answers one agent CLI before a turn starts, and it is installed",
+      "setup": {
+        "clis": {
+          "claude": "2.1.7 (Claude Code)"
+        }
+      },
+      "request": {
+        "id": "d6",
+        "tool": "cli_detect",
+        "args": {
+          "programs": [
+            "claude"
+          ]
+        }
+      },
+      "response": {
+        "id": "d6",
+        "ok": true,
+        "result": {
+          "clis": [
+            {
+              "program": "claude",
+              "installed": true,
+              "path": "/executor/bin/claude",
+              "version": "2.1.7 (Claude Code)",
+              "signed_in": false
+            }
+          ]
+        }
+      },
+      "volatile": [
+        "/result/clis/0/path"
+      ]
+    },
+    {
       "name": "finds a program that prints no version and gives it none",
       "setup": {
         "clis": {
