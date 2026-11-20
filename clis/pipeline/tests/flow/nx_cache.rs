@@ -586,9 +586,9 @@ fn a_change_in_a_wf_crate_plans_the_flow_tests_of_exactly_the_crates_that_build_
         (got != want).then(|| format!("{file}\n  got      {got:?}\n  expected {want:?}"))
     };
     let wrong: Vec<String> = [
-        by_crate("clis/secrets/src/secrets/util.rs", &["secrets", "rca", "wf-bucket", "wf-lib", "wf-login", "deploy", "wf-vmops", "wf", "pipeline", "wf-harness", "harness-flow", "wf-bench", "wf-mimic", "orca-map-mobile"]),
-        by_crate("clis/wf-vmops/src/vm_exec.rs", &["wf-vmops", "rca", "wf-bench", "wf-harness", "wf-login", "pipeline", "deploy", "wf", "harness-flow", "wf-bucket", "wf-mimic", "orca-map-mobile"]),
-        by_crate("clis/wf-bucket/src/cache_runs.rs", &["wf-bucket", "pipeline", "deploy", "wf", "wf-harness", "harness-flow", "wf-bench", "wf-mimic", "orca-map-mobile"]),
+        by_crate("clis/secrets/src/secrets/util.rs", &["secrets", "rca", "wf-bucket", "wf-lib", "wf-login", "deploy", "wf-vmops", "wf", "pipeline", "wf-harness", "harness-flow", "wf-bench", "wf-mimic", "orca-map-mobile", "t3-serve"]),
+        by_crate("clis/wf-vmops/src/vm_exec.rs", &["wf-vmops", "rca", "wf-bench", "wf-harness", "wf-login", "pipeline", "deploy", "wf", "harness-flow", "wf-bucket", "wf-mimic", "orca-map-mobile", "t3-serve"]),
+        by_crate("clis/wf-bucket/src/cache_runs.rs", &["wf-bucket", "pipeline", "deploy", "wf", "wf-harness", "harness-flow", "wf-bench", "wf-mimic", "orca-map-mobile", "t3-serve"]),
     ].into_iter().flatten().collect();
     assert!(wrong.is_empty(), "{}", wrong.join("\n"));
     // When a file of the VM crate changes, Then its tests are planned, and the planner's, the `wf vm` crate's and wf's, which build it
