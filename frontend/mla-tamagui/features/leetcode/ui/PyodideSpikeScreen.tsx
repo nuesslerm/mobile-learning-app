@@ -9,7 +9,11 @@ import { WebView } from 'react-native-webview';
 type Names = 'asm' | 'lock' | 'wasm' | 'stdlib';
 export type PyodideSpikeAssets = Record<Names, number>;
 
+// where the WebView loads the page from: a file beside the assets on a phone (so file access can be granted to that directory), html on the web
+type PageSource = { uri: string; directory: string } | { html: string };
+
 const CHUNK_BYTES = 393216;
+const READY_TIMEOUT_MS = 90_000;
 
 function base64Of(bytes: Uint8Array): string {
   let binary = '';
@@ -31,25 +35,19 @@ async function pushChunks(client: RpcClient, name: Names, uri: string): Promise<
   }
 }
 
-async function waitForPage(client: RpcClient): Promise<number> {
-  const started = Date.now();
-  while (Date.now() - started < 90_000) {
-    try {
-      await client.call('ping', undefined, { timeoutMs: 1000 });
-      return Date.now() - started;
-    } catch (error) {
-      // the page has not loaded its script yet (or the WebView has not mounted): look again in a moment, never in a tight loop
-      Logger.debug('pyodide_spike.page_not_ready', { message: error instanceof Error ? error.message : String(error) });
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
-  }
-  throw new Error('the Pyodide page never answered');
-}
-
 async function roundTrip(client: RpcClient, calls: number): Promise<number> {
   const started = Date.now();
   for (let i = 0; i < calls; i += 1) await client.call('ping');
   return Math.round(((Date.now() - started) / calls) * 10) / 10;
+}
+
+function pageSourceOf(wasmUri: string, pageHtml: string): PageSource {
+  if (!wasmUri.startsWith('file:')) return { html: pageHtml };
+  const directory = wasmUri.slice(0, wasmUri.lastIndexOf('/') + 1);
+  const file = new File(`${directory}pyodide-page.html`);
+  if (!file.exists) file.create();
+  file.writeSync(pageHtml);
+  return { uri: file.uri, directory };
 }
 
 /**
@@ -62,8 +60,8 @@ export function PyodideSpikeScreen({ assets, pageHtml }: { assets: PyodideSpikeA
   const [client] = useState(() => createRpcClient(transport, { timeoutMs: 240_000 }));
   const [steps, setSteps] = useState<string[]>([]);
   const [result, setResult] = useState<string>('');
-  // undefined until the assets are on disk, null when they are not files (the web): the WebView mounts after, so its page loads once
-  const [directory, setDirectory] = useState<string | null | undefined>(undefined);
+  // undefined until the assets are on disk: the WebView mounts after, so its page loads once
+  const [page, setPage] = useState<PageSource | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,39 +78,53 @@ export function PyodideSpikeScreen({ assets, pageHtml }: { assets: PyodideSpikeA
       if (!cancelled) setResult(JSON.stringify({ error: message, marks }));
     };
 
+    // subscribed before the WebView exists, so the page's one `ready` event cannot be missed
+    const ready = new Promise<void>((resolve, reject) => {
+      const stop = client.subscribe('ready', () => {
+        stop();
+        resolve();
+      });
+      setTimeout(() => reject(new Error('the Pyodide page never said it was ready')), READY_TIMEOUT_MS);
+    });
+
     (async () => {
       const names = Object.keys(assets) as Names[];
       const loaded = await Promise.all(names.map((name) => Asset.fromModule(assets[name]).downloadAsync()));
       const uris = Object.fromEntries(names.map((name, i) => [name, loaded[i]?.localUri ?? loaded[i]?.uri ?? ''])) as Record<Names, string>;
       mark('assetsResolved');
-      const wasm = uris.wasm;
-      setDirectory(wasm.startsWith('file:') ? wasm.slice(0, wasm.lastIndexOf('/') + 1) : null);
-      const pageMs = await waitForPage(client);
-      mark('pageReady', { pageMs });
+      const source = pageSourceOf(uris.wasm, pageHtml);
+      const mounted = Date.now();
+      setPage(source);
+      await ready;
+      mark('pageReady', { pageMs: Date.now() - mounted, pageFromFile: 'uri' in source });
       const roundTripMs = await roundTrip(client, 20);
       let strategy = 'pull';
+      let pullError: string | null = null;
+      const transferStarted = Date.now();
       try {
         await client.call('pull', uris, { timeoutMs: 120_000 });
       } catch (error) {
         strategy = 'chunks';
-        Logger.info('pyodide_spike.pull_failed', { message: error instanceof Error ? error.message : String(error) });
+        pullError = error instanceof Error ? error.message : String(error);
+        Logger.warn('pyodide_spike.pull_failed', { message: pullError });
         for (const name of names) await pushChunks(client, name, uris[name]);
       }
-      mark('filesInPage', { strategy });
+      const transferMs = Date.now() - transferStarted;
+      mark('filesInPage', { strategy, transferMs });
       const boot = await client.call<{ importMs: number; loadMs: number; version: string }>('boot', undefined, { timeoutMs: 240_000 });
       mark('booted', boot);
       const first = await client.call<{ stdout: string; value: string | null; error: string | null; ms: number }>('run', { code: 'print(1 + 1)' });
       mark('ran');
       const warm = await client.call<{ ms: number; value: string | null }>('run', { code: 'sum(i * i for i in range(1_000_000))' });
       const memory = await client.call('memory');
-      if (!cancelled) setResult(JSON.stringify({ strategy, roundTripMs, boot, first, warm, memory, marks }));
+      if (!cancelled) setResult(JSON.stringify({ strategy, pullError, transferMs, roundTripMs, boot, first, warm, memory, marks }));
     })().catch(failure);
 
     return () => {
       cancelled = true;
       client.close();
     };
-  }, [assets, client]);
+  }, [assets, client, pageHtml]);
 
   return (
     <View style={{ flex: 1, padding: 16 }} testID="PyodideSpikeScreen">
@@ -122,19 +134,19 @@ export function PyodideSpikeScreen({ assets, pageHtml }: { assets: PyodideSpikeA
           {result}
         </Text>
       </ScrollView>
-      {directory === undefined ? null : (
+      {page === undefined ? null : (
         <View pointerEvents="none" style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }}>
           <WebView<object>
             allowFileAccess
             allowFileAccessFromFileURLs
             allowUniversalAccessFromFileURLs
-            allowingReadAccessToURL={directory ?? undefined}
+            allowingReadAccessToURL={'directory' in page ? page.directory : undefined}
             javaScriptEnabled
             mixedContentMode="always"
             onMessage={(event) => transport.receive(event.nativeEvent.data)}
             originWhitelist={['*']}
             ref={webRef}
-            source={{ html: pageHtml, baseUrl: directory ?? 'file:///' }}
+            source={'uri' in page ? { uri: page.uri } : { html: page.html }}
             testID="PyodideSpikeWebView"
           />
         </View>
