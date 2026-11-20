@@ -12,7 +12,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   type LeetCodeGatewayPort,
-  type LeetCodePorts,
+  type LeetCodePortOverrides,
   type RunResponse,
   type VoiceEditTransportPort,
 } from '../..';
@@ -45,7 +45,7 @@ function fakeGateway(): LeetCodeGatewayPort {
   };
 }
 
-async function renderVoiceEditor(ports: LeetCodePorts) {
+async function renderVoiceEditor(ports: LeetCodePortOverrides) {
   return app.render('/leetcode/two-sum', { overrides: { leetcode: ports } });
 }
 

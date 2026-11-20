@@ -20,6 +20,9 @@ export const testCaseSchema = z.object({
 
 export type TestCase = z.infer<typeof testCaseSchema>;
 
+/** Where in the learner's code an error was raised, 1-based: the editor jumps to it. */
+export type ErrorLocation = { line: number; column?: number };
+
 export type TestResult = {
   pass: boolean;
   input?: Record<string, unknown>;
@@ -28,6 +31,7 @@ export type TestResult = {
   stdout: string;
   stderr: string;
   error: string | null;
+  error_at?: ErrorLocation;
   elapsed_ms: number;
 };
 
@@ -44,6 +48,8 @@ export type RunResponse = {
   compile_error?: string;
   full_compile_error?: string;
   runtime_error?: string;
+  /** The line of the compile or runtime error, when the runner can tell. */
+  error_at?: ErrorLocation;
   code_answer?: string[];
   expected_code_answer?: string[];
   std_output_list?: string[];
@@ -57,14 +63,4 @@ export type ExecResponse = {
   stderr: string;
   error: string | null;
   elapsed_ms: number;
-};
-
-export type ExecutionBackend = {
-  readonly supportedLanguages: string[];
-  runCode: (
-    code: string,
-    methodName: string,
-    testCases: TestCase[]
-  ) => Promise<RunResponse>;
-  isReady: () => boolean;
 };

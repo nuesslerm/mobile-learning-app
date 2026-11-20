@@ -27,7 +27,7 @@ type SubmitParams = {
   questionId: number;
   code: string;
 };
-type RunLocalParams = {
+export type RunCodeParams = {
   lang: string;
   code: string;
   methodName: string;
@@ -44,7 +44,7 @@ export interface LeetCodeGatewayPort {
   test(p: TestParams): Promise<RunResponse>;
   submit(p: SubmitParams): Promise<RunResponse>;
   poll(id: string): Promise<RunResponse>;
-  runLocal(p: RunLocalParams): Promise<RunResponse>;
+  runLocal(p: RunCodeParams): Promise<RunResponse>;
   format(p: FormatParams): Promise<string>;
   loginCaptureStatus(): Promise<LoginCaptureStatus>;
 }
@@ -141,11 +141,23 @@ export interface CodeEditorPort {
   onMessage(l: (m: FromEditorMessage) => void): () => void;
 }
 
+/**
+ * Runs a solution against a problem's test cases and says, per case, what went in, what was expected and what came
+ * out. A runner is wherever the code runs: the leetcode-backend through the gateway, or the device itself.
+ */
+export interface CodeRunnerPort {
+  run(p: RunCodeParams): Promise<RunResponse>;
+}
+
 export interface LeetCodePorts {
   gateway: LeetCodeGatewayPort;
   voice: VoiceEditTransportPort;
   audio: AudioRecordingPort;
+  runner: CodeRunnerPort;
 }
+
+/** What a caller may supply; the container fills the rest (the runner defaults to the gateway's). */
+export type LeetCodePortOverrides = Partial<LeetCodePorts>;
 
 export class VoiceEditTransportError extends Error {
   constructor(

@@ -14,7 +14,9 @@ export { usePlanStore } from './plan';
 
 // Ports -- pure types consumed by screens and harness doubles
 export type {
+  CodeRunnerPort,
   LeetCodeGatewayPort,
+  LeetCodePortOverrides,
   LeetCodePorts,
   VoiceEditTransportPort,
 } from './domain/ports';

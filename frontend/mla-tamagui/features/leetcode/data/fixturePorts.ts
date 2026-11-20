@@ -1,4 +1,5 @@
 import type { RunResponse } from '../domain';
+import { createGatewayCodeRunner } from './gatewayCodeRunner';
 import type {
   EditAlternative,
   VoiceEditResponse,
@@ -186,9 +187,11 @@ function createFixtureAudio(): AudioRecordingPort {
 }
 
 export function createFixturePorts(): LeetCodePorts {
+  const gateway = createFixtureGateway();
   return {
-    gateway: createFixtureGateway(),
+    gateway,
     voice: createFixtureVoice(),
     audio: createFixtureAudio(),
+    runner: createGatewayCodeRunner(gateway),
   };
 }

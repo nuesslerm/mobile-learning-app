@@ -157,7 +157,7 @@ export function ProblemEditorScreen({
   // The gateway is the fetch client for leetcode-backend. It backs three
   // buttons: `Run Local` and `Format` execute on the backend with no
   // leetcode.com/session, while `Run` needs an auth'd session.
-  const { gateway } = useLeetCodePorts();
+  const { gateway, runner } = useLeetCodePorts();
   const scrollRef = React.useRef<ScrollViewInstance>(null);
   // Which outcome has already been scrolled to, so a re-layout (keyboard
   // raise, rotation) does not yank the page back.
@@ -280,7 +280,7 @@ export function ProblemEditorScreen({
     setRunOutcome(null);
     const startedAt = Date.now();
     try {
-      const result = await gateway.runLocal({
+      const result = await runner.run({
         lang,
         code: editorText,
         methodName: problem?.methodName ?? 'twoSum',
@@ -335,7 +335,7 @@ export function ProblemEditorScreen({
     } finally {
       setLocalRunning(false);
     }
-  }, [editorText, gateway, problem, lang]);
+  }, [editorText, runner, problem, lang]);
 
   // Run: submit the current code + the custom testInput to the auth'd
   // LeetCode bridge and await the judge result. Mirrors V1's `runTest`

@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   usePlanStore,
   type LeetCodeGatewayPort,
-  type LeetCodePorts,
+  type LeetCodePortOverrides,
   type RunResponse,
   type VoiceEditTransportPort,
 } from '../../features/leetcode';
@@ -72,7 +72,7 @@ function fakeGateway(): LeetCodeGatewayPort {
 const PROBLEM = 'valid-palindrome';
 
 async function renderPlan() {
-  const ports: LeetCodePorts = {
+  const ports: LeetCodePortOverrides = {
     gateway: fakeGateway(),
     voice: {
       ...createFakeVoiceEditTransport(),

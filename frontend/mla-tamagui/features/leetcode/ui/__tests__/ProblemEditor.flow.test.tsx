@@ -16,6 +16,7 @@ import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLin
 import { describe, expect, it, vi } from 'vitest';
 
 import { createLiveLeetCodeGateway } from '../../data/webBridgeClient';
+import { createFakeCodeRunner, failingRun, passingRun } from '../../testing';
 
 // Native Expo/RN modules the screen's module graph pulls in but that cannot
 // load under jsdom. They are never exercised here -- the ports (audio, voice)
@@ -29,8 +30,9 @@ import { createLiveLeetCodeGateway } from '../../data/webBridgeClient';
 
 import {
   useLeetCodeAuthStore,
+  type CodeRunnerPort,
   type LeetCodeGatewayPort,
-  type LeetCodePorts,
+  type LeetCodePortOverrides,
   type RunResponse,
   type VoiceEditTransportPort,
 } from '../..';
@@ -60,11 +62,16 @@ function fakeGateway(): { gateway: LeetCodeGatewayPort } {
   };
 }
 
-async function renderEditor(gateway: LeetCodeGatewayPort, search?: Record<string, string>): Promise<FlowSession> {
-  const ports: LeetCodePorts = {
+async function renderEditor(
+  gateway: LeetCodeGatewayPort,
+  search?: Record<string, string>,
+  runner?: CodeRunnerPort
+): Promise<FlowSession> {
+  const ports: LeetCodePortOverrides = {
     gateway,
     voice: createFakeVoiceEditTransport() as unknown as VoiceEditTransportPort,
     audio: createFakeAudioRecorder(),
+    ...(runner ? { runner } : {}),
   };
   return app.render('/leetcode/two-sum', { overrides: { leetcode: ports }, search });
 }
@@ -366,5 +373,38 @@ describe('ProblemEditorScreen flow (keyboard)', () => {
     // Then the dismissal is logged, so the result does not land under the keyboard, and the editor has let go of the caret
     await waitFor(() => expect(editor.focused()).toBe(false));
     expect(await loggedLines('editor_v2.keyboard_dismiss')).not.toHaveLength(0);
+  });
+});
+
+describe('ProblemEditorScreen flow (code runner port)', () => {
+  it('given a runner whose last case fails, when the user runs the tests, then the card shows that runner\'s verdict and the gateway is not asked', async () => {
+    // Given the editor with a runner that fails its last case, and a gateway that must not be reached
+    const { gateway } = fakeGateway();
+    const runner = createFakeCodeRunner(() => failingRun(3));
+    const session = await renderEditor(gateway, undefined, runner);
+    await session.editor();
+
+    // When the user presses Run Local
+    await userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
+
+    // Then the card reports the runner's wrong answer and tally, the runner was asked for this problem, the gateway was not
+    await waitFor(() => expect(screen.getByTestId('ProblemEditorRunOutcomeStatus').textContent).toBe('Wrong Answer'));
+    expect(screen.getByTestId('ProblemEditorRunOutcomeTotals').textContent).toBe('2 / 3 test cases passed');
+    expect(runner.calls).toEqual([expect.objectContaining({ lang: 'python3', methodName: 'twoSum' })]);
+    expect(gateway.runLocal).not.toHaveBeenCalled();
+  });
+
+  it('given a runner whose cases all pass, when the user runs the tests, then the card shows it accepted', async () => {
+    // Given the editor with a runner that passes every case
+    const { gateway } = fakeGateway();
+    const session = await renderEditor(gateway, undefined, createFakeCodeRunner(() => passingRun(4)));
+    await session.editor();
+
+    // When the user presses Run Local
+    await userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
+
+    // Then the card shows Accepted with every case passed
+    await waitFor(() => expect(screen.getByTestId('ProblemEditorRunOutcomeStatus').textContent).toBe('Accepted'));
+    expect(screen.getByTestId('ProblemEditorRunOutcomeTotals').textContent).toBe('4 / 4 test cases passed');
   });
 });
