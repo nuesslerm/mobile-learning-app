@@ -1,7 +1,7 @@
 name: CI (GitHub-hosted)
 
-# The CI's core stage: pipeline.yml on GitHub-hosted runners, the flow, unit and cli-e2e tests. The image builds, the integration tests and the deploy, and the browser and
-# Android suites are runs of their own (ci-hosted-deploy.yml, ci-hosted-e2e.yml), so none of them waits for another. Every push spends minutes; the repo variable HOSTED_CI=off switches it
+# The CI's core stage: pipeline.yml on GitHub-hosted runners, the flow, lint, typecheck and unit tests. The cli stage, the image builds with the integration tests and the deploy, and the
+# browser and Android suites are runs of their own (ci-hosted-cli.yml, ci-hosted-deploy.yml, ci-hosted-e2e.yml), so none of them waits for another. Every push spends minutes; the repo variable HOSTED_CI=off switches it
 # off at once, the deploy legs run only with HOSTED_DEPLOY=on (no VM since the Oracle account was terminated), the e2e suites always run (they start their backends on the runner), HOSTED_SHARDS sets the machines per test stage (docs/solutions/ci/hosted-minutes.md).
 on:
   push:

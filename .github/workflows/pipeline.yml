@@ -2,9 +2,9 @@ name: Pipeline
 
 # The one CI pipeline, called by ci-hosted.yml on GitHub-hosted runners. The job graph is static: wf-build, preflight, plan, flow-tests and
 # typecheck-lint-unit-tests, clis, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, eas-update-e2e, the e2e suites, report.
-# `ship` publishes (latest images, the EAS Update), `deploy` runs the deploy legs, `e2e` runs the device suites, `stages` picks one stage of them: ci-hosted.yml runs
-# `core` (flow, unit, cli-e2e), ci-hosted-deploy.yml `deploy` (the image builds, the integration tests, the deploy and its verification) and ci-hosted-e2e.yml `e2e`
-# (the production EAS Update, the Android e2e update and the browser and Android suites): three runs of one graph that do not wait for each other.
+# `ship` publishes (latest images, the EAS Update), `deploy` runs the deploy legs, `e2e` runs the device suites, `stages` picks one stage of them, so a push is four runs of one
+# graph that do not wait for each other: ci-hosted.yml `core` (flow, lint, typecheck and unit tests), ci-hosted-cli.yml `cli` (the wf build and release, and the cli e2e tests),
+# ci-hosted-deploy.yml `deploy` (the image builds, the integration tests, the deploy and its verification) and ci-hosted-e2e.yml `e2e` (the EAS Updates and the browser and Android suites).
 # Rules: docs/solutions/ci/ci-pipeline-on-the-vm.md
 on:
   workflow_call:
@@ -34,7 +34,7 @@ on:
         type: boolean
         default: false
       stages:
-        description: Which stages this run does, so a workflow of its own can run one of them (all, core, deploy or e2e); the shared jobs (wf-build, preflight, plan, report) always run
+        description: Which stages this run does, so a workflow of its own can run one of them (all, core, cli, deploy or e2e); the shared jobs (wf-build, preflight, plan, report) always run
         type: string
         default: all
       label:
@@ -430,7 +430,7 @@ jobs:
   clis:
     name: clis
     needs: [plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, wf-build]
-    if: ${{ (!cancelled() && inputs.ship && inputs.deploy && needs.wf-build.result == 'success' && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure') && (inputs.stages == 'all' || inputs.stages == 'core') }}
+    if: ${{ (!cancelled() && inputs.ship && inputs.deploy && needs.wf-build.result == 'success' && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure') && (inputs.stages == 'all' || inputs.stages == 'cli') }}
     # the install call below needs an arm64 wf and the tailnet, which the deploy runner joins
     runs-on: ${{ fromJSON(inputs.deploy_runner) }}
     timeout-minutes: 10
@@ -789,7 +789,7 @@ jobs:
   cli-e2e-tests:
     name: cli-e2e-tests${{ needs.plan.outputs.shard_count > 1 && format(' ({0}/{1})', matrix.shard, needs.plan.outputs.shard_count) || '' }}
     needs: [plan]
-    if: ${{ (!cancelled() && needs.plan.result == 'success' && needs.plan.outputs.cli_e2e_tests != '0' && needs.plan.outputs.run_service == 'true') && (inputs.stages == 'all' || inputs.stages == 'core') }}
+    if: ${{ (!cancelled() && needs.plan.result == 'success' && needs.plan.outputs.cli_e2e_tests != '0' && needs.plan.outputs.run_service == 'true') && (inputs.stages == 'all' || inputs.stages == 'cli') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 65
     concurrency:
