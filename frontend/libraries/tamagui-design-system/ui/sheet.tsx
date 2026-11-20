@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 
 import { X } from '../icons';
+import { InSheetProvider } from '../lib/inSheet';
 import { useOpenSheetStore } from '../lib/openSheetStore';
 import { useSheetKeyboardLift } from '../lib/sheetKeyboardLift';
 import { useTheme } from '../primitives';
@@ -233,7 +234,7 @@ export function Sheet({
         : {})}
     >
       <View testID={testID} style={styles.frame}>
-        {children}
+        <InSheetProvider value>{children}</InSheetProvider>
       </View>
     </BottomSheet>
   );

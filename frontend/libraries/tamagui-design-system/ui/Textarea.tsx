@@ -1,9 +1,12 @@
-import { Platform } from 'react-native';
+import { Platform, type TextInputProps } from 'react-native';
 
+import { useInSheet } from '../lib/inSheet';
 import {
   TextArea as TamaguiTextArea,
   type TextAreaProps as TamaguiTextAreaProps,
 } from '../primitives';
+
+import { SheetFieldInput } from './sheet-field';
 
 export type TextareaProps = TamaguiTextAreaProps & {
   /** Web-only class hook from app #1's surface; accepted and ignored. */
@@ -21,6 +24,8 @@ export type TextareaProps = TamaguiTextAreaProps & {
  * muted placeholder, 0.5 opacity when not editable -- expressed as theme
  * tokens only. numberOfLines keeps app #1's platform split: initial height
  * on web, maximum height on native.
+ *
+ * Inside a `Sheet` it renders the sheet's own input (`SheetFieldInput`), so the sheet lifts above the keyboard.
  */
 export function Textarea({
   multiline = true,
@@ -29,6 +34,18 @@ export function Textarea({
   editable,
   ...props
 }: TextareaProps) {
+  const inSheet = useInSheet();
+  if (inSheet) {
+    return (
+      <SheetFieldInput
+        look="textarea"
+        multiline={multiline}
+        numberOfLines={typeof numberOfLines === 'number' ? numberOfLines : undefined}
+        editable={editable}
+        {...(props as TextInputProps)}
+      />
+    );
+  }
   return (
     <TamaguiTextArea
       multiline={multiline}
