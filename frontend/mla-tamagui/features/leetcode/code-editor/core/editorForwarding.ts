@@ -5,16 +5,15 @@ import type { ToEditorMessage } from '../../domain/ports';
 import { toConfigPatch, type LegacyConfigPatch } from '../engine/configPatch';
 
 /** The messages that reach the page through the typed editor API. */
-export const FORWARDED_TYPES = ['undo', 'redo', 'updateConfig', 'focus', 'setSelection', 'insertAt'] as const;
+export const FORWARDED_TYPES = ['undo', 'redo', 'updateConfig', 'focus', 'setSelection', 'insertAt', 'typeText'] as const;
 /**
  * The messages that still travel as fire-and-forget scripts, and why: `init` creates the editor; `blur` waits for an iOS check of
- * the blur trick; `typeText`/`setText` need the typing step and the diff sync; the highlight and diff marks move with the
- * runner jump and voice edit. The list only shrinks.
+ * the blur trick; `setText` needs the diff sync; the highlight and diff marks move with the runner jump and voice edit. The list
+ * only shrinks.
  */
 export const LEGACY_TYPES = [
   'init',
   'blur',
-  'typeText',
   'setText',
   'highlightRange',
   'clearHighlights',
@@ -107,6 +106,14 @@ export function createForwardingPost(
           });
         return;
       }
+      case 'typeText':
+        // a keystroke through the editor's input handlers; a text that is not one (too long), or a page that cannot type, takes the old script
+        void client.transact([{ op: 'type', text: msg.text }]).then((reply) => {
+          if (reply.ok) return;
+          reportFailure('typeText')(reply);
+          if (editNotApplied(reply) || (!reply.ok && reply.error.code === 'invalid')) legacyPost(msg);
+        });
+        return;
       default:
         legacyPost(msg);
     }

@@ -179,6 +179,39 @@ describe('the editor port forwarding', () => {
     expect(lost).toEqual([]);
   });
 
+  it('given a caret, when typeText is posted, then the keystroke is typed through the api as one undo step and the old path saw nothing', async () => {
+    const { fake, client, legacy, post } = setup();
+    await client.select(3);
+
+    post({ type: 'typeText', text: ':' });
+    await settled();
+
+    expect(fake.text()).toBe('abc:');
+    expect(fake.peek().selection.ranges[0]).toEqual({ anchor: 4, head: 4 });
+    await client.undo();
+    expect(fake.text()).toBe('abc');
+    expect(legacy).toEqual([]);
+  });
+
+  it('given a text of more than a keystroke, a host that cannot type, or no editor yet, when typeText is posted, then the old script gets it', async () => {
+    const { fake, legacy, post } = setup();
+    const long = { type: 'typeText', text: 'x'.repeat(65) } as const;
+    post(long);
+    await settled();
+    expect(legacy).toEqual([long]);
+    expect(fake.text()).toBe('abc');
+
+    const noType = createFakeEditor({ text: 'abc', typing: false });
+    const viaNoType: ToEditorMessage[] = [];
+    createForwardingPost(createEditorClient(noType.engine), (msg) => viaNoType.push(msg))({ type: 'typeText', text: '(' });
+    const early: ToEditorMessage[] = [];
+    createForwardingPost(createEditorClient(createDeferredEngine(() => undefined)), (msg) => early.push(msg))({ type: 'typeText', text: '(' });
+    await settled();
+    expect(viaNoType).toEqual([{ type: 'typeText', text: '(' }]);
+    expect(early).toEqual([{ type: 'typeText', text: '(' }]);
+    expect(noType.text()).toBe('abc');
+  });
+
   it('given no editor behind the engine yet, when setSelection is posted, then the old script gets it', async () => {
     const legacy: ToEditorMessage[] = [];
     const post = createForwardingPost(createEditorClient(createDeferredEngine(() => undefined)), (msg) => legacy.push(msg));
