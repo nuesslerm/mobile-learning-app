@@ -273,7 +273,7 @@ describe('ProblemEditorScreen flow (router)', () => {
     await editor.select(0, editor.text().length);
     await editor.type(typed);
 
-    const probe = logAt('features/leetcode/ui/ProblemEditorScreen.tsx', 533, ['problem.id']);
+    const probe = logAt('features/leetcode/ui/ProblemEditorScreen.tsx', 540, ['problem.id']);
     try {
       await userEvent.click(screen.getByTestId('ProblemEditorResetButton'));
     } finally {
@@ -285,7 +285,7 @@ describe('ProblemEditorScreen flow (router)', () => {
     });
     expect(probe.stops).toHaveLength(1);
     expect(probe.stops[0].values).toEqual({ 'problem.id': 'two-sum' });
-    expect(probe.stops[0].stack[0]).toMatchObject({ file: 'features/leetcode/ui/ProblemEditorScreen.tsx', line: 533 });
+    expect(probe.stops[0].stack[0]).toMatchObject({ file: 'features/leetcode/ui/ProblemEditorScreen.tsx', line: 540 });
   });
 });
 
@@ -331,5 +331,40 @@ describe('ProblemEditorScreen flow (syntax toolbar)', () => {
 
     // Then the line reads "else:" at the depth of its if
     await waitFor(() => expect(editor.text().split('\n').at(-1)).toBe('        else:'));
+  });
+});
+
+describe('ProblemEditorScreen flow (keyboard)', () => {
+  it('given the editor holds the caret, when the user taps the page outside the editor, then the editor lets go of it and the screen logs the dismissal', async () => {
+    // Given the hydrated editor with the caret in it
+    const { gateway } = fakeGateway();
+    const session = await renderEditor(gateway);
+    const editor = await session.editor();
+    await editor.focus();
+    expect(editor.focused()).toBe(true);
+    await forgetLoggedLines();
+
+    // When the user taps the row under the editor, which is part of the page and not of the editor
+    await session.tap('ProblemEditorDiffRow');
+
+    // Then the editor no longer holds the caret, and the dismissal is in the log
+    await waitFor(() => expect(editor.focused()).toBe(false));
+    expect(await loggedLines('editor_v2.keyboard_dismiss')).not.toHaveLength(0);
+  });
+
+  it('given the editor holds the caret, when the user presses Run Local, then the screen dismisses the keyboard before it runs', async () => {
+    // Given the hydrated editor with the caret in it
+    const { gateway } = fakeGateway();
+    const session = await renderEditor(gateway);
+    const editor = await session.editor();
+    await editor.focus();
+    await forgetLoggedLines();
+
+    // When the user presses Run Local
+    await session.tap('ProblemEditorRunLocalButton');
+
+    // Then the dismissal is logged, so the result does not land under the keyboard, and the editor has let go of the caret
+    await waitFor(() => expect(editor.focused()).toBe(false));
+    expect(await loggedLines('editor_v2.keyboard_dismiss')).not.toHaveLength(0);
   });
 });

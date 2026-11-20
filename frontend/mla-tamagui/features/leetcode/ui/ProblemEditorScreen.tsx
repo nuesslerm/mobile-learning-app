@@ -44,7 +44,7 @@ import {
   Wand2,
 } from '@lib/tamagui-design-system/icons';
 import React from 'react';
-import { TextInput, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
+import { Pressable, TextInput, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import { XStack, YStack, useTheme } from '@lib/tamagui-design-system/primitives';
 
 import { useLeetCodePorts } from '../state/ports';
@@ -137,6 +137,13 @@ export function ProblemEditorScreen({
   );
   const inputRef = React.useRef<React.ElementRef<typeof TextInput>>(null);
   const editorRef = React.useRef<EditorInputHandle>(null);
+  // The editor's focus lives in a WebView that React Native does not track, so Keyboard.dismiss() and the scroll view's
+  // tap-away reach nothing; the editor is told to blur itself.
+  const dismissEditorKeyboard = React.useCallback(() => {
+    Logger.debug('editor_v2.keyboard_dismiss', { problemId: problem?.id });
+    editorRef.current?.blur();
+    inputRef.current?.blur();
+  }, [problem?.id]);
   const [localRunning, setLocalRunning] = React.useState(false);
   const [runOutcome, setRunOutcome] = React.useState<RunResponse | null>(null);
   // The buffer the current outcome describes. A result is a claim about the
@@ -598,8 +605,7 @@ export function ProblemEditorScreen({
                     Logger.info('editor_v2.info_tap', {
                       problemId: problem?.id,
                     });
-                    editorRef.current?.blur();
-                    inputRef.current?.blur();
+                    dismissEditorKeyboard();
                     if (problem)
                       router.push(`/leetcode/${problem.id}/description`);
                   },
@@ -634,8 +640,7 @@ export function ProblemEditorScreen({
                         problemId: problem?.id,
                         count: historyCount,
                       });
-                      editorRef.current?.blur();
-                      inputRef.current?.blur();
+                      dismissEditorKeyboard();
                       if (!problem) return;
                       // Register the restore target BEFORE pushing: the sheet
                       // is its own route, so it shares no React tree with this
@@ -698,13 +703,7 @@ export function ProblemEditorScreen({
               router.push('/leetcode/toolbar');
             }}
             onRenameSymbol={handleRenameSymbol}
-            onDismissKeyboard={() => {
-              Logger.debug('editor_v2.keyboard_dismiss', {
-                problemId: problem?.id,
-              });
-              editorRef.current?.blur();
-              inputRef.current?.blur();
-            }}
+            onDismissKeyboard={dismissEditorKeyboard}
           />
         )}
       >
@@ -713,211 +712,224 @@ export function ProblemEditorScreen({
           testID="ProblemEditorScroll"
           keyboardShouldPersistTaps="handled"
         >
-          {/* Editor (CodeMirror WebView) — fixed min-h so the ScrollView has
-              something concrete to scroll past when the keyboard shrinks the
-              visible area. */}
-          <YStack
-            flex={1}
-            minH={EDITOR_MIN_HEIGHT}
-            px="$3"
-            py="$2"
-            testID="ProblemEditorEditorZone"
+          {/* A tap anywhere outside the editor lowers its keyboard: the WebView takes its own touches, so only the
+              rest of the page reaches this. */}
+          <Pressable
+            accessible={false}
+            onPress={dismissEditorKeyboard}
+            style={{ flexGrow: 1 }}
+            testID="ProblemEditorTapAway"
           >
-            <EditorInput
-              ref={editorRef}
-              testID="ProblemEditorInput"
-              value={editorText}
-              onChangeText={handleEditorChange}
-              onSelectionChange={setEditorSelection}
-            />
-          </YStack>
-
-          <XStack
-            items="center"
-            justify="space-between"
-            px="$3"
-            pt="$2"
-            testID="ProblemEditorDiffRow"
-          >
-            <LanguagePicker
-              value={lang}
-              onOpen={() => setLanguageSheetOpen(true)}
-              testID="ProblemEditorLanguagePicker"
-            />
-            {diffRange ? (
-              <DiffToggle
-                enabled={diffMode}
-                onToggle={handleDiffToggle}
-                testID="ProblemEditorDiffToggle"
-              />
-            ) : null}
-          </XStack>
-
-          {/* Action row — Format / Run Local / Run, mirrors V1's action row
-              minus the Submit button which the user explicitly dropped. */}
-          <XStack
-            items="center"
-            gap="$2.5"
-            px="$3"
-            py="$1.5"
-            testID="ProblemEditorActions"
-          >
-            <Button
-              testID="ProblemEditorFormatButton"
-              variant="outline"
-              size="$2"
-              pressLog="off"
-              onPress={() => {
-                Logger.info('editor_v2.format.tap', { problemId: problem?.id });
-                void handleFormat();
-              }}
-            >
-              Format
-            </Button>
-            <Button
-              testID="ProblemEditorRunLocalButton"
-              variant="outline"
-              size="$2"
-              disabled={localRunning}
-              pressLog="off"
-              onPress={() => {
-                Logger.info('editor_v2.run_local.tap', {
-                  problemId: problem?.id,
-                });
-                void handleRunLocally();
-              }}
-            >
-              {localRunning ? 'Running…' : 'Run Local'}
-            </Button>
-            <Button
-              testID="ProblemEditorRunButton"
-              variant="outline"
-              size="$2"
-              disabled={!canRun}
-              pressLog="off"
-              onPress={() => {
-                Logger.info('editor_v2.run.tap', { problemId: problem?.id });
-                void runTest();
-              }}
-            >
-              {runState === 'testing' ? 'Running…' : 'Run'}
-            </Button>
-            <Button
-              testID="ProblemEditorResetButton"
-              variant="outline"
-              size="$2"
-              pressLog="off"
-              onPress={handleResetCode}
-            >
-              Reset
-            </Button>
-            <YStack flex={1} />
-            <IconButton
-              testID="ProblemEditorTextEditStartButton"
-              icon={Pencil}
-              variant="default"
-              aria-label="Type an edit instruction"
-              pressLog="off"
-              onPress={() => {
-                Logger.info('editor_v2.text_edit_button.tap', {
-                  problemId: problem?.id,
-                });
-                editorRef.current?.blur();
-                inputRef.current?.blur();
-                handleTextEditStart();
-              }}
-            />
-            <IconButton
-              testID="ProblemEditorVoiceStartButton"
-              icon={Mic}
-              variant="default"
-              aria-label="Start voice edit"
-              pressLog="off"
-              onPress={() => {
-                Logger.info('editor_v2.voice_start_button.tap', {
-                  problemId: problem?.id,
-                });
-                editorRef.current?.blur();
-                inputRef.current?.blur();
-                void handleVoiceStart();
-              }}
-            />
-          </XStack>
-
-          {/* Run Local result — server-executed pass/fail summary. */}
-          {runOutcome ? (
+            {/* Editor (CodeMirror WebView) — fixed min-h so the ScrollView has
+                something concrete to scroll past when the keyboard shrinks the
+                visible area. */}
             <YStack
-              mx="$3"
-              mb="$1"
+              flex={1}
+              minH={EDITOR_MIN_HEIGHT}
               px="$3"
               py="$2"
-              rounded="$3"
-              borderWidth={1}
-              borderColor={accepted ? '$green9' : '$red9'}
-              onLayout={revealRunOutcome}
-              testID="ProblemEditorRunOutcome"
+              testID="ProblemEditorEditorZone"
             >
-              <Text
-                variant="strong"
-                color={accepted ? '$green10' : '$red10'}
-                testID="ProblemEditorRunOutcomeStatus"
-              >
-                {runOutcome.status_msg}
-              </Text>
-              {runOutcome.total_testcases > 0 ? (
-                <Text variant="muted" testID="ProblemEditorRunOutcomeTotals">
-                  {`${runOutcome.total_correct} / ${runOutcome.total_testcases} test cases passed`}
-                </Text>
-              ) : null}
-              {runOutcome.runtime_error ? (
-                <Text
-                  variant="code"
-                  color="$red10"
-                  testID="ProblemEditorRunOutcomeRuntimeError"
-                >
-                  {runOutcome.runtime_error}
-                </Text>
-              ) : null}
-              {runOutcome.compile_error ? (
-                <Text
-                  variant="code"
-                  color="$red10"
-                  testID="ProblemEditorRunOutcomeCompileError"
-                >
-                  {runOutcome.compile_error}
-                </Text>
-              ) : null}
+              <EditorInput
+                ref={editorRef}
+                testID="ProblemEditorInput"
+                value={editorText}
+                onChangeText={handleEditorChange}
+                onSelectionChange={setEditorSelection}
+              />
             </YStack>
-          ) : null}
 
-          {/* TestInput — fixed min-h, also scrollable. */}
-          <YStack
-            minH={TEST_INPUT_MIN_HEIGHT}
-            px="$3"
-            py="$2"
-            testID="ProblemEditorTestInputZone"
-          >
-            <TextInput
-              ref={inputRef}
-              testID="ProblemEditorTestInput"
-              value={testInput}
-              onChangeText={setTestInput}
-              multiline
-              placeholder="Custom test input"
-              // A bare RN TextInput defaults to black text, which vanished on the dark theme.
-              placeholderTextColor={theme.color10?.val}
-              style={{
-                color: theme.color?.val,
-                flex: 1,
-                borderRadius: 8,
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                fontFamily: 'Menlo, Courier, monospace',
-                fontSize: 13,
-                textAlignVertical: 'top',
-              }}
-            />
-          </YStack>
+            <XStack
+              items="center"
+              justify="space-between"
+              px="$3"
+              pt="$2"
+              testID="ProblemEditorDiffRow"
+            >
+              <LanguagePicker
+                value={lang}
+                onOpen={() => setLanguageSheetOpen(true)}
+                testID="ProblemEditorLanguagePicker"
+              />
+              {diffRange ? (
+                <DiffToggle
+                  enabled={diffMode}
+                  onToggle={handleDiffToggle}
+                  testID="ProblemEditorDiffToggle"
+                />
+              ) : null}
+            </XStack>
+
+            {/* Action row — Format / Run Local / Run, mirrors V1's action row
+                minus the Submit button which the user explicitly dropped. */}
+            <XStack
+              items="center"
+              gap="$2.5"
+              px="$3"
+              py="$1.5"
+              testID="ProblemEditorActions"
+            >
+              <Button
+                testID="ProblemEditorFormatButton"
+                variant="outline"
+                size="$2"
+                pressLog="off"
+                onPress={() => {
+                  Logger.info('editor_v2.format.tap', { problemId: problem?.id });
+                  dismissEditorKeyboard();
+                  void handleFormat();
+                }}
+              >
+                Format
+              </Button>
+              <Button
+                testID="ProblemEditorRunLocalButton"
+                variant="outline"
+                size="$2"
+                disabled={localRunning}
+                pressLog="off"
+                onPress={() => {
+                  Logger.info('editor_v2.run_local.tap', {
+                    problemId: problem?.id,
+                  });
+                  dismissEditorKeyboard();
+                  void handleRunLocally();
+                }}
+              >
+                {localRunning ? 'Running…' : 'Run Local'}
+              </Button>
+              <Button
+                testID="ProblemEditorRunButton"
+                variant="outline"
+                size="$2"
+                disabled={!canRun}
+                pressLog="off"
+                onPress={() => {
+                  Logger.info('editor_v2.run.tap', { problemId: problem?.id });
+                  dismissEditorKeyboard();
+                  void runTest();
+                }}
+              >
+                {runState === 'testing' ? 'Running…' : 'Run'}
+              </Button>
+              <Button
+                testID="ProblemEditorResetButton"
+                variant="outline"
+                size="$2"
+                pressLog="off"
+                onPress={() => {
+                  dismissEditorKeyboard();
+                  handleResetCode();
+                }}
+              >
+                Reset
+              </Button>
+              <YStack flex={1} />
+              <IconButton
+                testID="ProblemEditorTextEditStartButton"
+                icon={Pencil}
+                variant="default"
+                aria-label="Type an edit instruction"
+                pressLog="off"
+                onPress={() => {
+                  Logger.info('editor_v2.text_edit_button.tap', {
+                    problemId: problem?.id,
+                  });
+                  dismissEditorKeyboard();
+                  handleTextEditStart();
+                }}
+              />
+              <IconButton
+                testID="ProblemEditorVoiceStartButton"
+                icon={Mic}
+                variant="default"
+                aria-label="Start voice edit"
+                pressLog="off"
+                onPress={() => {
+                  Logger.info('editor_v2.voice_start_button.tap', {
+                    problemId: problem?.id,
+                  });
+                  dismissEditorKeyboard();
+                  void handleVoiceStart();
+                }}
+              />
+            </XStack>
+
+            {/* Run Local result — server-executed pass/fail summary. */}
+            {runOutcome ? (
+              <YStack
+                mx="$3"
+                mb="$1"
+                px="$3"
+                py="$2"
+                rounded="$3"
+                borderWidth={1}
+                borderColor={accepted ? '$green9' : '$red9'}
+                onLayout={revealRunOutcome}
+                testID="ProblemEditorRunOutcome"
+              >
+                <Text
+                  variant="strong"
+                  color={accepted ? '$green10' : '$red10'}
+                  testID="ProblemEditorRunOutcomeStatus"
+                >
+                  {runOutcome.status_msg}
+                </Text>
+                {runOutcome.total_testcases > 0 ? (
+                  <Text variant="muted" testID="ProblemEditorRunOutcomeTotals">
+                    {`${runOutcome.total_correct} / ${runOutcome.total_testcases} test cases passed`}
+                  </Text>
+                ) : null}
+                {runOutcome.runtime_error ? (
+                  <Text
+                    variant="code"
+                    color="$red10"
+                    testID="ProblemEditorRunOutcomeRuntimeError"
+                  >
+                    {runOutcome.runtime_error}
+                  </Text>
+                ) : null}
+                {runOutcome.compile_error ? (
+                  <Text
+                    variant="code"
+                    color="$red10"
+                    testID="ProblemEditorRunOutcomeCompileError"
+                  >
+                    {runOutcome.compile_error}
+                  </Text>
+                ) : null}
+              </YStack>
+            ) : null}
+
+            {/* TestInput — fixed min-h, also scrollable. */}
+            <YStack
+              minH={TEST_INPUT_MIN_HEIGHT}
+              px="$3"
+              py="$2"
+              testID="ProblemEditorTestInputZone"
+            >
+              <TextInput
+                ref={inputRef}
+                testID="ProblemEditorTestInput"
+                value={testInput}
+                onChangeText={setTestInput}
+                multiline
+                placeholder="Custom test input"
+                // A bare RN TextInput defaults to black text, which vanished on the dark theme.
+                placeholderTextColor={theme.color10?.val}
+                style={{
+                  color: theme.color?.val,
+                  flex: 1,
+                  borderRadius: 8,
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  fontFamily: 'Menlo, Courier, monospace',
+                  fontSize: 13,
+                  textAlignVertical: 'top',
+                }}
+              />
+            </YStack>
+          </Pressable>
         </KeyboardToolbarAwareScrollView>
       </KeyboardToolbarTarget>
       <LanguageSheet

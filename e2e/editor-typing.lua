@@ -238,7 +238,12 @@ for _, p in ipairs(SOL) do
   end)
   -- the web editor autofocuses on open and its keyboard covers Reset, so an unseeded run lowers it; the Android one waits for a tap
   local focused = not android and device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true}
-  if focused and not seeded then done(); focused = false end
+  if focused and not seeded then
+    -- a tap on the page outside the editor lowers its keyboard, as the Done key does: the row under the editor has nothing at its middle
+    device:tap_on({id='ProblemEditorDiffRow'})
+    device:assert_not_visible({id='EditorHelperRails'})
+    focused = false
+  end
   if not seeded then
     device:tap_on({id='ProblemEditorResetButton'})
     -- the dialog is not in Android's accessibility tree (known gap): there the button is tapped where the dialog draws it

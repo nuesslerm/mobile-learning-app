@@ -17,6 +17,10 @@ export type FlowCodeEditor = {
   type(text: string): Promise<void>;
   select(start: number, end?: number): Promise<void>;
   setText(text: string): Promise<void>;
+  /** Puts the caret in the editor, as a tap on it does. */
+  focus(): Promise<void>;
+  /** Whether CodeMirror's content element holds the document's focus. */
+  focused(): boolean;
   /** Text of each diff decoration CodeMirror is currently drawing. */
   diffRanges(): string[];
 };
@@ -52,6 +56,8 @@ export async function mountedCodeEditor(container: HTMLElement): Promise<FlowCod
     });
   };
 
+  const contentFocused = () => doc.activeElement?.classList.contains('cm-content') === true;
+
   return {
     text: () => driver.getText(),
     selection: () => driver.getSelection(),
@@ -75,6 +81,12 @@ export async function mountedCodeEditor(container: HTMLElement): Promise<FlowCod
         () => driver.setText(text),
         () => driver.getText() === text
       ),
+    focus: () =>
+      change(
+        () => (doc.querySelector('.cm-content') as HTMLElement | null)?.focus(),
+        contentFocused
+      ),
+    focused: contentFocused,
     diffRanges: () =>
       Array.from(doc.querySelectorAll('.cm-diff-change'), (el) => el.textContent ?? ''),
   };
