@@ -104,7 +104,7 @@
     "@tamagui/metro-plugin": "^2.7.7",
     "@types/react": "catalog:",
     "@typescript/native": "catalog:",
-    "babel-preset-expo": "~57.0.10",
+    "babel-preset-expo": "~58.0.0",
     "dependency-cruiser": "^17.4.3",
     "oxlint": "catalog:",
     "typescript": "catalog:"
