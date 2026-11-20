@@ -48,7 +48,7 @@ jobs:
     with:
       runner: '"ubuntu-24.04"'
       deploy_runner: '"ubuntu-24.04-arm"'
-      shards: ${{ fromJSON(vars.HOSTED_SHARDS || '4') }}
+      shards: 4
       ship: true
       # no VM since 13 Nov (the Oracle account was terminated): the deploy legs need it, so they run only when the repository variable says on; the e2e suites need nothing deployed
       deploy: ${{ vars.HOSTED_DEPLOY == 'on' }}

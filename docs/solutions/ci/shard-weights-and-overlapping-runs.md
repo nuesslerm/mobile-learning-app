@@ -14,7 +14,7 @@ tags: [ci, shards, concurrency, nx-cache]
 
 ## The split
 
-`clis/pipeline` deals the flow and integration tests to the `HOSTED_SHARDS` machines by unit key, not round-robin. A unit is a package, a crate (`crate-<crate>`) or, for integration and e2e groups, `crate-<crate>/<group>`; its weight is in `clis/pipeline/data/shard-weights.json` (a default per stage, an entry for each heavy unit). The units are dealt longest first to the lightest shard (`assign` in `test_plan.rs`), so the same commit always puts the same unit on the same shard and a shard's Nx cache key and CI timing row mean the same thing from run to run. Change the weights when a unit's measured time moves; the tests in `shard_tests` pin the dealing.
+`clis/pipeline` deals the flow and integration tests to the caller's `shards` machines by unit key, not round-robin. A unit is a package, a crate (`crate-<crate>`) or, for integration and e2e groups, `crate-<crate>/<group>`; its weight is in `clis/pipeline/data/shard-weights.json` (a default per stage, an entry for each heavy unit). The units are dealt longest first to the lightest shard (`assign` in `test_plan.rs`), so the same commit always puts the same unit on the same shard and a shard's Nx cache key and CI timing row mean the same thing from run to run. Change the weights when a unit's measured time moves; the tests in `shard_tests` pin the dealing.
 
 ## Overlapping runs
 
@@ -58,4 +58,4 @@ A push to `dev` starts six runs of the one pipeline graph, each for a stage (`st
 
 ## The 20-job cap and how many shards (owner, 19 Nov)
 
-GitHub-hosted runners are free for a public repository but the account runs at most 20 jobs at once, whatever the workflow; the rest queue. The first six-workflow push ran 68 jobs and jobs waited up to 267 s for a slot (the push before it, 736 s), so a shard is not free: each repeats 1 to 3 minutes of setup and takes a slot. The callers therefore deal each stage over few shards (3 for the core areas and the cli publish, 4 for the integration tests, whose heaviest unit is 542 s; `HOSTED_SHARDS` overrides every caller) and the Android e2e over 2 devices. Measure the effect with `CI_JOBS.QUEUED` before adding a shard.
+GitHub-hosted runners are free for a public repository but the account runs at most 20 jobs at once, whatever the workflow; the rest queue. The first six-workflow push ran 68 jobs and jobs waited up to 267 s for a slot (the push before it, 736 s), so a shard is not free: each repeats 1 to 3 minutes of setup and takes a slot. The callers therefore deal each stage over few shards (3 for the core areas and the cli publish, 4 for the integration tests, whose heaviest unit is 542 s; the repository variable `HOSTED_SHARDS` is no longer read: each caller states its own number in its `with:`) and the Android e2e over 2 devices. Measure the effect with `CI_JOBS.QUEUED` before adding a shard.
