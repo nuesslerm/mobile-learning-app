@@ -1108,12 +1108,19 @@ jobs:
   android-e2e-tests:
     needs: [plan, flow-tests, typecheck-lint-unit-tests, clis, cli-e2e-tests]
     if: ${{ (!cancelled() && inputs.e2e && needs.plan.result == 'success' && needs.clis.result != 'failure' && needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true') && (inputs.stages == 'all' || inputs.stages == 'e2e') }}
+    # two devices, each with its part of the tests (dealt over the stage's weights in shard-weights.json): the tests are 13 of the job's 24 minutes
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     uses: ./.github/workflows/e2e-tests.yml
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
     with:
       runner: ${{ inputs.runner }}
       platform: android
+      shard: ${{ matrix.shard }}
+      shards: 2
       fresh: ${{ needs.plan.outputs.fresh == 'true' }}
       plan: ${{ needs.plan.outputs.plan }}
       sha: ${{ github.sha }}

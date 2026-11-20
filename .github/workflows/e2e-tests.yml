@@ -47,6 +47,13 @@ on:
       eas_update:
         type: string
         required: false
+      # this job's part of the platform's tests (`wf test run --shard <shard>/<shards>`, the tests dealt over the stage's weights), so a slow suite runs on several devices
+      shard:
+        type: number
+        default: 1
+      shards:
+        type: number
+        default: 1
       runner:
         type: string
         default: '"ubuntu-24.04"'
@@ -82,12 +89,12 @@ permissions:
 
 jobs:
   e2e-tests:
-    name: ${{ inputs.platform }}-e2e-tests
+    name: ${{ inputs.platform }}-e2e-tests${{ inputs.shards > 1 && format(' ({0}/{1})', inputs.shard, inputs.shards) || '' }}
     runs-on: ${{ fromJSON(inputs.runner || '"ubuntu-24.04"') }}
     # both jobs build the backends, cold; the browser job also builds the export (about 4 min); the Android one boots the device
     timeout-minutes: 70
     concurrency:
-      group: e2e-tests-${{ inputs.platform }}-${{ github.sha }}
+      group: e2e-tests-${{ inputs.platform }}-${{ inputs.shard }}-${{ github.sha }}
       cancel-in-progress: false
     env:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
@@ -119,7 +126,7 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/setup-job
         with:
-          job: ${{ inputs.platform }}-e2e-tests
+          job: ${{ inputs.platform }}-e2e-tests-${{ inputs.shard }}
           keep-android: ${{ inputs.platform == 'android' }}
           apt-packages: ${{ inputs.platform == 'android' && 'ffmpeg libpulse0 libnss3 libxkbcommon0 libgl1' || 'ffmpeg' }}
           # the tests reach only backends this job starts on loopback
@@ -153,7 +160,7 @@ jobs:
         run: |
           if [ -n "$PLAN" ]; then
             printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
-            select="--stage $PLATFORM-e2e-tests --plan $RUNNER_TEMP/plan.json${{ inputs.fresh && ' --fresh' || '' }}"
+            select="--stage $PLATFORM-e2e-tests --plan $RUNNER_TEMP/plan.json${{ inputs.fresh && ' --fresh' || '' }}${{ inputs.shards > 1 && format(' --shard {0}/{1}', inputs.shard, inputs.shards) || '' }}"
             # Nx replays every focused test whose feature code, test case and app shell are unchanged; the rest run
             # shellcheck disable=SC2086
             wf test run $select --probe | tee "$RUNNER_TEMP/probe.json"
@@ -320,7 +327,7 @@ jobs:
         if: ${{ !cancelled() && (steps.pick.outputs.any == 'true' || steps.pick.outputs.replay > 0) }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: test-runs-${{ inputs.platform }}-e2e
+          name: test-runs-${{ inputs.platform }}-e2e-${{ inputs.shard }}
           path: ${{ runner.temp }}/test-runs
           retention-days: 10
           if-no-files-found: ignore

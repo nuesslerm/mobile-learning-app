@@ -47,7 +47,7 @@ jobs:
     with:
       runner: '"ubuntu-24.04"'
       deploy_runner: '"ubuntu-24.04-arm"'
-      shards: ${{ fromJSON(vars.HOSTED_SHARDS || '6') }}
+      shards: ${{ fromJSON(vars.HOSTED_SHARDS || '3') }}
       ship: true
       deploy: false
       e2e: false

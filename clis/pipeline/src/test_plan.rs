@@ -670,7 +670,14 @@ pub fn run_stage(stage: &str, plan: &Value, rest: &[String]) -> i32 {
         }
     };
     if matches!(stage, "browser-e2e-tests" | "android-e2e-tests") {
-        let names: Vec<String> = tests.iter().filter_map(|t| t["name"].as_str().map(str::to_string)).collect();
+        let mut names: Vec<String> = tests.iter().filter_map(|t| t["name"].as_str().map(str::to_string)).collect();
+        if let Some(i) = rest.iter().position(|a| a == "--shard") {
+            let Some((index, count)) = rest.get(i + 1).and_then(|v| parse_shard(v)) else {
+                println!("{}", json!({ "ok": false, "stage": stage, "error": "--shard wants <index>/<count> with 1 <= index <= count", "next": "--shard 2/3" }));
+                return 2;
+            };
+            names = shard_names(&names, index, count, &Weights::of_stage(stage));
+        }
         return run_e2e_stage(&nx, &root, stage, &names, rest);
     }
     let parallel = match rest.iter().position(|a| a == "--parallel") {
@@ -803,6 +810,15 @@ pub fn shard_key(stage: &str, tests: &[Value], index: usize, count: usize, repo:
     }
     let lines: Vec<String> = inputs.iter().map(|p| format!("{p}={}", object_id(repo, sha, p))).collect();
     format!("{:016x}-{:016x}", fnv(&keys.join(",")), fnv(&lines.join("\n")))
+}
+
+/// One shard's e2e tests by name: the names dealt longest first over the stage's weights, as the package stages' units are.
+pub fn shard_names(names: &[String], index: usize, count: usize, weights: &Weights) -> Vec<String> {
+    let mut keys: Vec<String> = names.to_vec();
+    keys.sort();
+    keys.dedup();
+    let at = assign(&keys, count, weights);
+    keys.into_iter().zip(at).filter(|(_, shard)| *shard == index - 1).map(|(name, _)| name).collect()
 }
 
 /// One shard's tests of `stage`: its units by `assign` over the weights of the stage.
@@ -955,6 +971,21 @@ fn run_e2e_stage(nx: &Path, root: &Path, stage: &str, names: &[String], rest: &[
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn given_the_android_tests_when_dealt_to_two_shards_then_every_test_is_on_exactly_one_and_the_heaviest_has_a_shard_to_itself_with_the_light_ones_beside_the_next() {
+        use super::{shard_names, Weights};
+        let names: Vec<String> = ["voice-edit", "editor-typing", "stubbed-run-local", "tamil-writing"].iter().map(|n| n.to_string()).collect();
+        let weights = Weights { units: [("editor-typing".to_string(), 400), ("tamil-writing".to_string(), 240), ("voice-edit".to_string(), 150), ("stubbed-run-local".to_string(), 25)].into(), default: 100 };
+
+        let (one, two) = (shard_names(&names, 1, 2, &weights), shard_names(&names, 2, 2, &weights));
+
+        let mut all: Vec<String> = one.iter().chain(&two).cloned().collect();
+        all.sort();
+        assert_eq!(all, ["editor-typing", "stubbed-run-local", "tamil-writing", "voice-edit"]);
+        assert_eq!(one, ["editor-typing"]);
+        assert_eq!(two, ["stubbed-run-local", "tamil-writing", "voice-edit"]);
+    }
+
     #[test]
     fn given_a_plan_of_all_areas_when_one_area_is_kept_then_only_its_tests_stay_and_an_e2e_test_with_no_directory_stays() {
         use super::retain_area;

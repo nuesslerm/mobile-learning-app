@@ -58,6 +58,15 @@
         "crate-orca-serve/replay-orca-map-schedules": 5,
         "crate-orca-serve/replay-orca-map-state": 5
       }
+    },
+    "android-e2e-tests": {
+      "default": 100,
+      "units": {
+        "editor-typing": 400,
+        "tamil-writing": 240,
+        "voice-edit": 150,
+        "stubbed-run-local": 25
+      }
     }
   }
 }
