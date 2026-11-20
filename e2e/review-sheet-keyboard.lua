@@ -51,6 +51,12 @@ run_flow("type an edit", function()
   device:extended_wait_until{condition=function() return device:get_element({id='ProblemEditorVoiceReviewSheet-TranscriptInput'}) ~= nil end, timeout=15000, label='the sheet opened'}
   -- the sheet takes the keyboard down when it opens; a person taps the field to type
   device:tap_on({id='ProblemEditorVoiceReviewSheet-TranscriptInput'})
+  -- Android's AOSP keyboard asks once, the first time it serves a text field, to read the contacts, and the keyboard stays down until the
+  -- dialog is answered; a person answers it, and the field is tapped again
+  if android and device:extended_wait_until{visible={text='.*access your contacts.*'}, timeout=3000, optional=true} then
+    device:tap_on({text='.*DON.T ALLOW.*'})
+    device:tap_on({id='ProblemEditorVoiceReviewSheet-TranscriptInput'})
+  end
   -- the state flips before the keyboard is drawn, so its rectangle is waited for too
   device:extended_wait_until{condition=function() local k = device:get_device_state('keyboard') return k.visible and k.bounds ~= nil end, timeout=8000, label='the keyboard rose over the sheet'}
 end)
