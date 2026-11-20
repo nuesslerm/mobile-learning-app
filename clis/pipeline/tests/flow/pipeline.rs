@@ -792,7 +792,7 @@ fn given_the_pipeline_when_the_sharded_test_jobs_are_read_then_their_concurrency
     for (job, keys) in [("core-tests", "core_shard_keys"), ("integration-tests", "integration_shard_keys"), ("cli-e2e-tests", "cli_e2e_shard_keys")] {
         let block = pipeline_job(&text, job);
         let group = block.lines().find(|l| l.trim_start().starts_with("group:")).unwrap_or_else(|| panic!("no group in {job}"));
-        // Then the group holds the shard's input key, so identical work waits as a pending job and a fix with other inputs starts at once
-        assert!(group.contains(keys) && !group.contains("run_id"), "{job}: {group}");
+        // Then the group holds the caller workflow and the shard's input key, so identical work of one workflow waits (and two workflows of one commit never cancel each other) as a pending job and a fix with other inputs starts at once
+        assert!(group.contains(keys) && group.contains("github.workflow") && !group.contains("run_id"), "{job}: {group}");
     }
 }

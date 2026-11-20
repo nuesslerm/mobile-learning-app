@@ -323,7 +323,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 40
     concurrency:
-      group: ${{ format('hosted-core-tests-{0}{1}', fromJSON(needs.plan.outputs.core_shard_keys)[matrix.shard], needs.plan.outputs.fresh == 'true' && '-fresh' || '') }}
+      group: ${{ format('hosted-core-tests-{0}-{1}{2}', github.workflow, fromJSON(needs.plan.outputs.core_shard_keys)[matrix.shard], needs.plan.outputs.fresh == 'true' && '-fresh' || '') }}
       cancel-in-progress: false
     strategy:
       fail-fast: false
@@ -681,7 +681,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 40
     concurrency:
-      group: ${{ format('hosted-integration-{0}', fromJSON(needs.plan.outputs.integration_shard_keys)[matrix.shard]) }}
+      group: ${{ format('hosted-integration-{0}-{1}', github.workflow, fromJSON(needs.plan.outputs.integration_shard_keys)[matrix.shard]) }}
       cancel-in-progress: false
     strategy:
       fail-fast: false
@@ -780,7 +780,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 65
     concurrency:
-      group: ${{ format('hosted-cli-e2e-tests-{0}{1}', fromJSON(needs.plan.outputs.cli_e2e_shard_keys)[matrix.shard], needs.plan.outputs.fresh == 'true' && '-fresh' || '') }}
+      group: ${{ format('hosted-cli-e2e-tests-{0}-{1}{2}', github.workflow, fromJSON(needs.plan.outputs.cli_e2e_shard_keys)[matrix.shard], needs.plan.outputs.fresh == 'true' && '-fresh' || '') }}
       cancel-in-progress: false
     strategy:
       fail-fast: false
