@@ -124,6 +124,9 @@
           "^production",
           {
             "fileset": "{workspaceRoot}/docs/solutions/workflow/eas-publishing.md"
+          },
+          {
+            "fileset": "{workspaceRoot}/backend/leetcode-backend/rs/harness/python.py"
           }
         ]
       }

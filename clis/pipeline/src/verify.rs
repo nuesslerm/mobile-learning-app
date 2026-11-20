@@ -272,7 +272,10 @@ fn is_cm6_input(f: &str) -> bool {
 }
 
 fn is_pyodide_input(f: &str) -> bool {
-    f == "pnpm-lock.yaml" || f == "frontend/mla-tamagui/scripts/pyodide-bundle.mjs" || f.starts_with("frontend/mla-tamagui/features/leetcode/data/pyodide/")
+    f == "pnpm-lock.yaml"
+        || f == "frontend/mla-tamagui/scripts/pyodide-bundle.mjs"
+        || f.starts_with("frontend/mla-tamagui/features/leetcode/data/pyodide/")
+        || f.starts_with("frontend/libraries/webview-rpc/")
 }
 
 pub struct Package {

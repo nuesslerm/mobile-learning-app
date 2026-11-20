@@ -248,7 +248,14 @@ fn the_staged_gate_runs_through_nx() {
     assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), pyodide.clone()]);
     let stale = json!([{ "match": "check:pyodide", "code": 4 }]);
     assert_eq!(w.staged(&["--files", page], stale, &[]).exit_code, 4);
-    assert_eq!(w.calls(), [LS.to_string(), lint_root, pyodide]);
+    assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), pyodide.clone()]);
+
+    // Given a change to the rpc library the page bundles, Then the page's freshness check runs too: the generated page carries a copy of it
+    let rpc = "frontend/libraries/webview-rpc/src/core/server.ts";
+    w.put(rpc, "export {};\n");
+    let r = w.staged(&["--files", rpc], json!([]), &[]);
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    assert!(w.calls().contains(&pyodide), "{:?}", w.calls());
 
     // Given a gated budget over its limit, Then lint ran, the gate did not, and the failure names the budget
     w.put("CLAUDE.md", &"x".repeat(10_000));

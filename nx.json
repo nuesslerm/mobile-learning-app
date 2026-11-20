@@ -200,6 +200,9 @@
           "fileset": "{projectRoot}/scripts/pyodide-bundle.mjs"
         },
         {
+          "fileset": "{workspaceRoot}/frontend/libraries/webview-rpc/src/**"
+        },
+        {
           "fileset": "{projectRoot}/package.json"
         },
         {
