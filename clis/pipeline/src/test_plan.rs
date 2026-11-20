@@ -1084,8 +1084,13 @@ mod shard_tests {
         let weighted = assign(&keys, 6, &weights);
         let by_name: Vec<usize> = (0..keys.len()).map(|i| i % 6).collect();
         let (busiest, old_busiest) = (*loads(&keys, &weighted, 6, &weights).iter().max().unwrap(), *loads(&keys, &by_name, 6, &weights).iter().max().unwrap());
-        // Then the busiest shard costs at most 60 % of what it did, and a second deal is the same one
-        assert!(busiest * 100 <= old_busiest * 60, "{busiest} against {old_busiest}");
+        // Then the busiest shard is no worse than the name-order deal's and within 4/3 of the least any deal could do (the heaviest unit, or an even share), whatever the
+        // weights are, and a second deal is the same one
+        let costs: Vec<u64> = keys.iter().map(|k| weights.cost(k)).collect();
+        let (total, heaviest) = (costs.iter().sum::<u64>(), costs.iter().copied().max().unwrap_or(0));
+        let best_possible = heaviest.max(total.div_ceil(6));
+        assert!(busiest <= old_busiest, "{busiest} against {old_busiest}");
+        assert!(busiest * 3 <= best_possible * 4, "{busiest} against the least possible {best_possible}");
         assert_eq!(assign(&keys, 6, &weights), weighted);
     }
 
