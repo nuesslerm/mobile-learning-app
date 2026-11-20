@@ -7,7 +7,8 @@ use serde_json::{json, Value};
 const KEY: &str = "0707070707070707070707070707070707070707070707070707070707070707";
 
 fn opts() -> RunOpts {
-    RunOpts::default().env("CI_DB_KEY", KEY).env("WF_CI_DB", "off")
+    // GITHUB_RUN_ID is the run `--report` reports when no `--run` is given: on a hosted runner it names the run itself, which the sealed file does not hold
+    RunOpts::default().env("CI_DB_KEY", KEY).env("WF_CI_DB", "off").env("GITHUB_RUN_ID", "")
 }
 
 /// A job-local database with the rows a job leaves, merged into a sealed file the verbs read with `--sealed-file`.
