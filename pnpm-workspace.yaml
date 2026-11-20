@@ -20,6 +20,7 @@ packages:
   - frontend/libraries/rn-agentation
   - frontend/libraries/tamagui-design-system
   - frontend/libraries/voice-edit-dsl
+  - frontend/libraries/webview-rpc
   - tooling/*
 
 catalog:

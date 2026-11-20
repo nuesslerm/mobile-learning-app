@@ -196,6 +196,22 @@
       "forbiddenDirs": ["domain", "data", "di"],
       "mayDependOn": [],
       "mayDevDependOn": []
+    },
+    "hexagonal-library": {
+      "ecosystem": "ts",
+      "pure": false,
+      "ringRoots": ["src"],
+      "rings": {
+        "ports": [],
+        "core": ["ports"],
+        "adapters": ["core", "ports"],
+        "testing": ["core", "ports", "adapters"]
+      },
+      "requiredFiles": ["index.ts"],
+      "requiredAnyOf": [["core"]],
+      "allowedRoot": ["index.ts"],
+      "mayDependOn": [],
+      "mayDevDependOn": []
     }
   }
 }

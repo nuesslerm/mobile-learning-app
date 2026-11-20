@@ -29,6 +29,12 @@
       "@lib/voice-edit-dsl": [
         "../libraries/voice-edit-dsl/src/index.ts"
       ],
+      "@lib/webview-rpc": [
+        "../libraries/webview-rpc/src/index.ts"
+      ],
+      "@lib/webview-rpc/testing": [
+        "../libraries/webview-rpc/src/testing/index.ts"
+      ],
       "@app/remote-chat-agent-contracts": [
         "../libraries/remote-chat-agent-contracts/src/index.ts"
       ],
