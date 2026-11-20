@@ -701,6 +701,7 @@ jobs:
       - uses: ./.github/actions/install-test-deps
         with:
           rust: "true"
+          playwright: "true"
           references: "true"
       - name: The test plan
         env:
