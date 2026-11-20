@@ -1,11 +1,16 @@
-Usage: wf ci failed [--runner <name>] [--run <id>]
+Usage: wf ci failed [--runner <name>] [--run <id>] [--notify]
 
 The step of the job you are in that went red, read live from the Actions API while the job (and the rest of its steps) still runs; a
 job's log text is only published when it ends, its steps are not. The job is the running one on this runner (RUNNER_NAME). Prints one JSON line
-{ok, run, job, url, failed_steps}; the shared job-end step sends it to Better Stack as the log line `ci.job.failed` and refreshes the run's
-pull request comment (`wf ci live`). Exit 0 always: a report from inside a failing job is never a second failure.
+{ok, run, job, url, failed_steps, annotations, task, logged, live, notified}. When a step is red it
+  - sends the log line `ci.job.failed` (run, job, step, task, excerpt, sha, scrubbed, annotations) to the OTLP logs ingest (logged),
+  - refreshes the run's pull request comment (`wf ci live`), which then shows the job as "failing now" (live),
+  - with --notify, posts the same fields as one JSON body to CI_FAILURE_HOOK_URL (environment, else the vault); without a URL that is a no-op (notified: null).
+annotations is how many error annotations the API shows for the running job (null: unreadable). Exit 0 always: a report from inside a failing job
+is never a second failure. WF_CI_LOGS=off skips the log line.
 
 Options:
   --runner <name>  the runner whose running job to read (default RUNNER_NAME)
   --run <id>       the run (default GITHUB_RUN_ID)
+  --notify         post to CI_FAILURE_HOOK_URL
   -h, --help       display help for command

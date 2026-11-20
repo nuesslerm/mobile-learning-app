@@ -1,5 +1,6 @@
 //! `wf ci timings` and `wf ci progress` through the built binary, against a loopback fake of the Actions API: the run, its jobs with their steps and
 //! the last green run of the branch.
+use crate::support::otlp::gauges;
 use crate::support::{run_wf, MockReply, MockServer, RunOpts, RunResult};
 use serde_json::{json, Value};
 
@@ -29,6 +30,7 @@ pub(crate) fn wf(server: &MockServer, args: &[&str], extra: &[(&str, &str)]) -> 
         .env("GITHUB_API_URL", &format!("http://127.0.0.1:{}", server.port))
         .env("GITHUB_REF_NAME", "dev")
         .env("WF_CI_METRICS", "off")
+        .env("WF_CI_LOGS", "off")
         .env("NO_PROXY", "127.0.0.1")
         .env("no_proxy", "127.0.0.1");
     for (k, v) in extra {
@@ -211,4 +213,133 @@ fn given_a_failed_job_when_the_timings_are_kept_then_the_failed_step_and_the_lin
     let row = &line(&q)["rows"][0];
     assert_eq!((row["CONCLUSION"].as_str(), row["STEP"].as_str()), (Some("failure"), Some("Flow tests")), "{row}");
     assert!(row["EXCERPT"].as_str().is_some_and(|e| e.contains("panicked at src/lib.rs")), "{row}");
+}
+
+/// A run whose job on runner "GitHub Actions 7" is running with its test step red; `annotations` is what the check run's annotations route answers (none: no route).
+fn red_running_run(annotations: Option<Value>) -> MockServer {
+    let run = json!({"id": 79, "status": "in_progress", "created_at": "2026-11-19T10:00:00Z", "run_started_at": "2026-11-19T10:00:00Z", "head_sha": "abc"});
+    let jobs = json!({"total_count": 1, "jobs": [
+        {"id": 1, "name": "run / flow-tests (1/6)", "status": "in_progress", "conclusion": null, "runner_name": "GitHub Actions 7", "html_url": "https://github.test/job/1",
+         "steps": [{"name": "Flow tests", "status": "completed", "conclusion": "failure"}, {"name": "Upload", "status": "pending", "conclusion": null}]},
+    ]});
+    let server = MockServer::start(None);
+    let mut table = vec![
+        ("GET /repos/o/r/actions/runs/79".to_string(), MockReply::json(200, run)),
+        ("GET /repos/o/r/actions/runs/79/jobs?per_page=100&page=1".to_string(), MockReply::json(200, jobs)),
+        ("GET /repos/o/r/pulls?head=o:dev&state=open&per_page=1".to_string(), MockReply::json(200, json!([]))),
+    ];
+    if let Some(list) = annotations {
+        table.push(("GET /repos/o/r/check-runs/1/annotations".to_string(), MockReply::json(200, list)));
+    }
+    server.routes(&table.iter().map(|(k, v)| (k.as_str(), v.clone())).collect::<Vec<_>>());
+    server
+}
+
+/// The log lines a stand-in OTLP logs ingest received: (message, attributes by key).
+fn logged(ingest: &MockServer) -> Vec<(String, std::collections::BTreeMap<String, String>)> {
+    let mut out = Vec::new();
+    for request in ingest.requests().iter().filter(|r| r.method == "POST" && r.url.ends_with("/v1/logs")) {
+        let body: Value = serde_json::from_str(&request.body).unwrap_or(Value::Null);
+        for record in body["resourceLogs"].as_array().into_iter().flatten().flat_map(|r| r["scopeLogs"].as_array().into_iter().flatten()).flat_map(|s| s["logRecords"].as_array().into_iter().flatten()) {
+            let attrs = record["attributes"].as_array().into_iter().flatten().filter_map(|a| Some((a["key"].as_str()?.to_string(), a["value"]["stringValue"].as_str()?.to_string()))).collect();
+            out.push((record["body"]["stringValue"].as_str().unwrap_or_default().to_string(), attrs));
+        }
+    }
+    out
+}
+
+#[test]
+fn given_a_job_with_a_red_step_and_an_annotation_when_failed_runs_then_the_log_line_carries_the_failure_and_the_annotation_count() {
+    // Given a running job with a red step whose annotations the API shows (two), and a stand-in logs ingest
+    let server = red_running_run(Some(json!([{"annotation_level": "failure"}, {"annotation_level": "failure"}])));
+    let ingest = MockServer::start(None);
+    ingest.queue(vec![MockReply::json(200, json!({}))], true);
+    let base = format!("http://127.0.0.1:{}", ingest.port);
+
+    // When the job's end step runs `wf ci failed`
+    let r = wf(&server, &["failed", "--run", "79"], &[("WF_CI_LOGS", ""), ("WF_CI_LOGS_BASE", &base), ("GITHUB_RUN_ID", "79"), ("GITHUB_SHA", "abc1234"), ("RUNNER_NAME", "GitHub Actions 7")]);
+
+    // Then the verb exits 0 and reports the count, and the ingest got one `ci.job.failed` line with run, job, step, sha and the count, marked scrubbed
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    let out = line(&r);
+    assert_eq!((out["annotations"].clone(), out["logged"].clone()), (json!(2), json!({"sent": true})), "{out}");
+    let lines = logged(&ingest);
+    assert_eq!(lines.len(), 1, "{lines:?}");
+    let (message, attrs) = &lines[0];
+    assert_eq!(message, "ci.job.failed");
+    let get = |k: &str| attrs.get(k).map(String::as_str);
+    assert_eq!((get("run"), get("job"), get("step"), get("sha"), get("scrubbed"), get("annotations")), (Some("79"), Some("flow-tests (1/6)"), Some("Flow tests"), Some("abc1234"), Some("env-secrets"), Some("2")), "{attrs:?}");
+}
+
+#[test]
+fn given_a_job_whose_annotations_the_api_does_not_show_when_failed_runs_then_the_count_is_unreadable_in_the_json_and_in_the_line() {
+    // Given the same running job, but no annotations route (the API answers 404)
+    let server = red_running_run(None);
+    let ingest = MockServer::start(None);
+    ingest.queue(vec![MockReply::json(200, json!({}))], true);
+    let base = format!("http://127.0.0.1:{}", ingest.port);
+
+    // When failed runs
+    let r = wf(&server, &["failed", "--run", "79"], &[("WF_CI_LOGS", ""), ("WF_CI_LOGS_BASE", &base), ("GITHUB_RUN_ID", "79"), ("GITHUB_SHA", "abc1234"), ("RUNNER_NAME", "GitHub Actions 7")]);
+
+    // Then the JSON says null and the line says unreadable, and the step is still reported
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert_eq!((line(&r)["annotations"].clone(), line(&r)["failed_steps"].clone()), (json!(null), json!(["Flow tests"])));
+    assert_eq!(logged(&ingest)[0].1.get("annotations").map(String::as_str), Some("unreadable"));
+}
+
+#[test]
+fn given_a_failure_hook_when_failed_runs_with_notify_then_one_json_post_reaches_it_and_without_notify_or_a_url_nothing_is_posted() {
+    // Given a red running job, a logs ingest that is down, and a hook that answers 200
+    let server = red_running_run(Some(json!([])));
+    let hook = MockServer::start(None);
+    hook.queue(vec![MockReply::json(200, json!({}))], true);
+    let url = format!("http://127.0.0.1:{}/hook", hook.port);
+    let gone = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+    let down = format!("http://127.0.0.1:{gone}");
+    let env = [("WF_CI_LOGS", ""), ("WF_CI_LOGS_BASE", down.as_str()), ("GITHUB_RUN_ID", "79"), ("GITHUB_SHA", "abc1234"), ("RUNNER_NAME", "GitHub Actions 7"), ("CI_FAILURE_HOOK_URL", url.as_str())];
+
+    // When failed runs without --notify, and then with it
+    let quiet = wf(&server, &["failed", "--run", "79"], &env);
+    assert!(hook.requests().is_empty(), "posted without --notify: {:?}", hook.requests());
+    let r = wf(&server, &["failed", "--run", "79", "--notify"], &env);
+
+    // Then the notified run exits 0 though the log ingest is down, and the hook got the run, job, step, task and sha as JSON
+    assert_eq!((quiet.exit_code, r.exit_code), (0, 0), "{}{}", r.stdout, r.stderr);
+    assert!(line(&r)["logged"]["error"].is_string(), "{}", line(&r));
+    assert_eq!(line(&r)["notified"], json!({"status": 200}));
+    let posts: Vec<Value> = hook.requests().iter().filter(|q| q.method == "POST" && q.url == "/hook").map(|q| serde_json::from_str(&q.body).unwrap()).collect();
+    assert_eq!(posts.len(), 1, "{posts:?}");
+    assert_eq!((posts[0]["event"].clone(), posts[0]["run"].clone(), posts[0]["job"].clone(), posts[0]["step"].clone(), posts[0]["sha"].clone()), (json!("ci.job.failed"), json!("79"), json!("flow-tests (1/6)"), json!("Flow tests"), json!("abc1234")), "{:?}", posts[0]);
+
+    // And with no URL, --notify is a no-op that still exits 0
+    let none = wf(&server, &["failed", "--run", "79", "--notify"], &[("WF_CI_LOGS", ""), ("WF_CI_LOGS_BASE", down.as_str()), ("GITHUB_RUN_ID", "79"), ("GITHUB_SHA", "abc1234"), ("RUNNER_NAME", "GitHub Actions 7"), ("CI_FAILURE_HOOK_URL", "")]);
+    assert_eq!((none.exit_code, line(&none)["notified"].clone()), (0, json!(null)), "{}{}", none.stdout, none.stderr);
+}
+
+#[test]
+fn given_a_finished_run_when_timings_are_sent_then_a_stand_in_source_receives_every_gauge_the_verb_documents() {
+    // Given a run of two shards of a stage and a single job, and a stand-in OTLP metrics source
+    let run = json!({"id": 77, "status": "completed", "conclusion": "success", "created_at": "2026-11-19T10:00:00Z", "run_started_at": "2026-11-19T10:00:00Z", "head_sha": "abc", "workflow_id": 5, "head_branch": "dev"});
+    let jobs = json!({"total_count": 3, "jobs": [
+        job("run / flow-tests (1/6)", "10:00:00", "10:00:02", "10:10:02", vec![step("Flow tests", "10:03:03", "10:10:00")]),
+        job("run / flow-tests (2/6)", "10:00:00", "10:00:30", "10:15:30", vec![step("Flow tests", "10:08:31", "10:15:30")]),
+        job("run / wf-build", "10:00:00", "10:00:01", "10:02:01", vec![]),
+    ]});
+    let server = served(&[("/repos/o/r/actions/runs/77", run), ("/repos/o/r/actions/runs/77/jobs?per_page=100&page=1", jobs)]);
+    let source = MockServer::start(None);
+
+    // When the timings are read with --send
+    let r = wf(&server, &["timings", "--run", "77", "--send"], &[("WF_CI_METRICS", "on"), ("WF_CI_METRICS_BASE", &format!("http://127.0.0.1:{}", source.port))]);
+
+    // Then the source got the job, queue, step, spread and wall gauges with their labels
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    let seen = gauges(&source.requests());
+    let value = |metric: &str, scope: &str, name: &str| seen.iter().find(|g| g.metric == metric && g.scope == scope && g.name == name).map(|g| g.value);
+    assert_eq!(value("ci.job.duration_s", "flow-tests", "1/6"), Some(600.0), "{seen:?}");
+    assert_eq!(value("ci.job.duration_s", "flow-tests", "2/6"), Some(900.0));
+    assert_eq!(value("ci.job.queue_s", "flow-tests", "2/6"), Some(30.0));
+    assert_eq!(value("ci.step.duration_s", "flow-tests", "Flow tests"), Some(419.0));
+    assert_eq!(value("ci.stage.spread_s", "flow-tests", "all"), Some(300.0));
+    assert_eq!(value("ci.run.wall_s", "77", "all"), Some(930.0));
 }

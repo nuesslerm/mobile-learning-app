@@ -7,6 +7,7 @@ mod ci_audit;
 mod ci_cache_health;
 mod ci_comment;
 mod ci_timings;
+mod ci_units;
 mod ci_concurrency;
 mod ci_resources;
 mod shard_weights;

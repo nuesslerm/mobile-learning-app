@@ -175,3 +175,98 @@ fn a_run_with_the_shared_cache_switched_off_says_so_in_a_line_and_a_warn_event()
     // And the store was never asked
     assert!(bucket.requests().is_empty());
 }
+
+fn metric_rows(db: &std::path::Path) -> Vec<(String, String, String)> {
+    let conn = rusqlite::Connection::open(db).unwrap();
+    let mut stmt = conn.prepare("SELECT METRIC, SCOPE, NAME FROM CI_METRICS ORDER BY METRIC, NAME").unwrap();
+    stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap().collect::<Result<_, _>>().unwrap()
+}
+
+#[test]
+fn a_job_whose_metrics_source_is_down_still_leaves_every_reading_as_a_row_of_ci_metrics() {
+    // Given a cold bucket, a job-local database, and a metrics source that is not listening
+    let (_bucket, url) = bucket(503);
+    let dir = tempfile::tempdir().unwrap();
+    let bin = pnpm_with_store(dir.path());
+    let db = dir.path().join("rows.sqlite");
+    let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+    let opts = RunOpts::default()
+        .env("BUILD_CACHE_READ_PAR_URL", &url)
+        .env("WF_CI_METRICS_BASE", &format!("http://127.0.0.1:{closed}"))
+        .env("WF_CI_DB", &db.display().to_string())
+        .env("GITHUB_RUN_ID", "4242")
+        .bin_dir(&bin);
+
+    // When the pnpm store is restored
+    let r = run_wf(&["cache", "restore", "pnpm"], &opts);
+
+    // Then the run is not red, and the database holds the step's seconds and the degradation the source never received
+    assert_eq!(r.exit_code, 0, "{r:?}");
+    let rows = metric_rows(&db);
+    assert!(rows.iter().any(|(m, s, n)| (m.as_str(), s.as_str(), n.as_str()) == ("ci.cache.step_seconds", "pnpm", "restore")), "{rows:?}");
+    assert!(rows.iter().any(|(m, s, n)| (m.as_str(), s.as_str(), n.as_str()) == ("ci.cache.degraded", "pnpm", "unreachable")), "{rows:?}");
+}
+
+#[test]
+fn a_job_with_no_local_database_and_a_working_source_writes_no_rows_and_still_sends() {
+    // Given a cold bucket, a working metrics source and no database
+    let (_bucket, url) = bucket(503);
+    let source = MockServer::start(None);
+    let dir = tempfile::tempdir().unwrap();
+    let bin = pnpm_with_store(dir.path());
+
+    // When the pnpm store is restored with the database switched off
+    let r = run_wf(&["cache", "restore", "pnpm"], &opts(&url, &source).env("WF_CI_DB", "off").bin_dir(&bin));
+
+    // Then the source got the gauges and nothing complained about a missing database
+    assert_eq!(r.exit_code, 0, "{r:?}");
+    assert!(has(&gauges(&source.requests()), "ci.cache.step_seconds", "pnpm", "restore").is_some());
+    assert!(event(&r, "ci.metrics.not_kept").is_none(), "{r:?}");
+}
+
+#[test]
+fn a_gauge_the_catalogue_does_not_name_is_refused_and_a_catalogued_one_is_kept() {
+    // Given a batch of one catalogued name and one that was never documented
+    let mut batch = wf_bucket::ci_metrics::Gauges::new();
+
+    // When both are set
+    batch.set("ci.run.wall_s", "4242", "all", 1900.0).set("ci.run.wal_s", "4242", "all", 1.0);
+
+    // Then only the catalogued reading is held, and the refused name is told
+    assert_eq!(batch.readings().iter().map(|r| r.metric.as_str()).collect::<Vec<_>>(), ["ci.run.wall_s"]);
+    assert_eq!(batch.rejected(), ["ci.run.wal_s"]);
+}
+
+#[test]
+fn every_gauge_name_the_ci_crates_send_is_in_the_catalogue_and_every_catalogue_entry_is_sent_by_someone() {
+    // Given the sources of the crates that build gauges, and the names that are events or file names, not gauges
+    let not_gauges = ["ci.metrics.not_kept", "ci.metrics.refused", "ci.metrics.timeout", "ci.metrics.unknown", "ci.job.failed", "ci.sealed", "ci.sqlite"];
+    let mut found = std::collections::BTreeSet::new();
+    let mut stack = vec![wf_testkit::repo_root().join("clis")];
+    while let Some(dir) = stack.pop() {
+        for entry in std::fs::read_dir(&dir).unwrap().flatten() {
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+            if path.is_dir() {
+                if !matches!(name.as_str(), "target" | "tests" | "node_modules" | ".git" | "telemetry") {
+                    stack.push(path);
+                }
+            } else if name.ends_with(".rs") && !name.ends_with("ci_metric_catalog.rs") {
+                for literal in std::fs::read_to_string(&path).unwrap_or_default().split('"').skip(1).step_by(2) {
+                    let parts: Vec<&str> = literal.split('.').collect();
+                    let word = |p: &&str| !p.is_empty() && p.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_');
+                    if parts.len() == 3 && parts[0] == "ci" && parts.iter().all(word) && !not_gauges.contains(&literal) {
+                        found.insert(literal.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // When they are compared with the catalogue
+    let catalogued: std::collections::BTreeSet<String> = wf_bucket::ci_metric_catalog::CATALOG.iter().map(|m| m.name.to_string()).collect();
+
+    // Then no name is sent that the catalogue lacks, and none is catalogued that nothing sends
+    assert_eq!(found.difference(&catalogued).collect::<Vec<_>>(), Vec::<&String>::new(), "sent but not catalogued");
+    assert_eq!(catalogued.difference(&found).collect::<Vec<_>>(), Vec::<&String>::new(), "catalogued but never sent");
+}

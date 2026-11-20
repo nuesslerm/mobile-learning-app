@@ -1869,8 +1869,13 @@ its jobs read to $GITHUB_OUTPUT.
 
                          --area mobile|cli|backend keeps one area's tests (the app and the workspace root, clis/, the rest) for a core workflow of its own.
   shard-weights [--write] [--sealed-file <path>] [--out <path>]
-                         the flow and integration units' costs as the CI database measured them (`NX_TASKS`, the median over runs, in seconds),
-                         merged into data/shard-weights.json; without --write it only prints them.
+                         the flow, typecheck, integration, cli-e2e, browser and Android units' costs as the CI database measured them (the shard runner's own
+                         spans, `CI_UNITS`; a unit with none falls back to its Nx tasks, `NX_TASKS`; the median over runs, in seconds), merged into
+                         data/shard-weights.json; without --write it only prints them.
+  shard-weights --report [--run <id>] [--send] [--sealed-file <path>]
+                         the split of one run (default the newest in CI_UNITS) set against what it measured: per stage and re-dealt shard (spans do not
+                         record their shard) the seconds the committed weights predicted and the seconds the units took, as JSON and a markdown `table`; --send also gives them as the gauges
+                         ci.shard.predicted_s and ci.shard.actual_s. The run's comment carries the same table.
   shard-keys --stage <s> --count <n> --plan <file>
                          one key per shard (a JSON array) from the crates it runs, the same in every commit that plans the same crates: the
                          integration shards' concurrency group: the crates plus a fingerprint of their inputs, so a later commit with the same crates and inputs queues
@@ -2290,7 +2295,7 @@ Options:
 
 The step of the running job that went red, read live
 
-Usage: `wf ci failed [--runner <name>] [--run <id>]`
+Usage: `wf ci failed [--runner <name>] [--run <id>] [--notify]`
 
 Examples:
 
@@ -2301,16 +2306,21 @@ wf ci failed --runner "GitHub Actions 7"
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf ci failed [--runner <name>] [--run <id>]
+Usage: wf ci failed [--runner <name>] [--run <id>] [--notify]
 
 The step of the job you are in that went red, read live from the Actions API while the job (and the rest of its steps) still runs; a
 job's log text is only published when it ends, its steps are not. The job is the running one on this runner (RUNNER_NAME). Prints one JSON line
-{ok, run, job, url, failed_steps}; the shared job-end step sends it to Better Stack as the log line `ci.job.failed` and refreshes the run's
-pull request comment (`wf ci live`). Exit 0 always: a report from inside a failing job is never a second failure.
+{ok, run, job, url, failed_steps, annotations, task, logged, live, notified}. When a step is red it
+  - sends the log line `ci.job.failed` (run, job, step, task, excerpt, sha, scrubbed, annotations) to the OTLP logs ingest (logged),
+  - refreshes the run's pull request comment (`wf ci live`), which then shows the job as "failing now" (live),
+  - with --notify, posts the same fields as one JSON body to CI_FAILURE_HOOK_URL (environment, else the vault); without a URL that is a no-op (notified: null).
+annotations is how many error annotations the API shows for the running job (null: unreadable). Exit 0 always: a report from inside a failing job
+is never a second failure. WF_CI_LOGS=off skips the log line.
 
 Options:
   --runner <name>  the runner whose running job to read (default RUNNER_NAME)
   --run <id>       the run (default GITHUB_RUN_ID)
+  --notify         post to CI_FAILURE_HOOK_URL
   -h, --help       display help for command
 ```
 

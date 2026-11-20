@@ -32,6 +32,11 @@ fn bounded(limit: Duration) -> Result<Value, String> {
     rx.recv_timeout(limit).unwrap_or_else(|_| Err(format!("gave up after {}s: GitHub did not finish answering, the live comment is skipped", limit.as_secs_f32())))
 }
 
+/// The comment brought up to date once, bounded, as the answer of the verb: used by `wf ci failed` so a red step shows in the run's comment at once.
+pub(crate) fn refresh() -> Value {
+    bounded(bound()).unwrap_or_else(|reason| json!({ "ok": false, "posted": false, "reason": redact(&reason, &var("GITHUB_TOKEN").unwrap_or_default()) }))
+}
+
 /// `wf ci live [start]` (`start` is the same, spelled for the job that begins the run). A failure to comment is reported and never fails
 /// the step: exit 0 either way.
 pub fn run(args: &[String]) -> Option<i32> {

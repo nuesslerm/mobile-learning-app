@@ -7,8 +7,8 @@ use serde_json::{json, Value};
 use std::path::PathBuf;
 
 /// A temp tree with a small pnpm workspace in a git repo of two commits, focused e2e tests and a fake harness.
-struct Workspace {
-    s: SlotSandbox,
+pub(crate) struct Workspace {
+    pub(crate) s: SlotSandbox,
     root: PathBuf,
 }
 
@@ -48,7 +48,7 @@ case "$projects" in *e2e-shaky*) exit 1;; esac
 exit 0"#;
 
 impl Workspace {
-    fn new(prefix: &str) -> Workspace {
+    pub(crate) fn new(prefix: &str) -> Workspace {
         let s = SlotSandbox::new(prefix);
         s.stub("pnpm", PNPM);
         s.stub("nx", NX);
@@ -82,7 +82,7 @@ impl Workspace {
         std::fs::write(p, text).unwrap();
     }
 
-    fn path(&self, sub: &str) -> String {
+    pub(crate) fn path(&self, sub: &str) -> String {
         self.root.join(sub).display().to_string()
     }
 
@@ -97,7 +97,7 @@ impl Workspace {
     }
 
     /// `wf <args>` on this workspace, with `extra` environment last.
-    fn wf(&self, args: &[&str], extra: &[(&str, String)]) -> RunResult {
+    pub(crate) fn wf(&self, args: &[&str], extra: &[(&str, String)]) -> RunResult {
         let mut envs = vec![
             ("WF_TEST_E2E_DIR", self.path("e2e")),
             ("WF_TEST_REPO", self.path("repo")),
@@ -111,7 +111,7 @@ impl Workspace {
     }
 
     /// `wf ci plan tests --changed --base <base> --json --github-output`: the plan (also saved as plan.json) and the GITHUB_OUTPUT text.
-    fn plan(&self, base: &str) -> (Value, String) {
+    pub(crate) fn plan(&self, base: &str) -> (Value, String) {
         let out = self.path("gh-output");
         let _ = std::fs::remove_file(&out);
         let r = self.wf(&["ci", "plan", "tests", "--changed", "--base", base, "--json", "--github-output"], &[("GITHUB_OUTPUT", out.clone())]);

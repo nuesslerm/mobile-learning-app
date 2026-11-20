@@ -19,6 +19,10 @@ mod check;
 mod ci_comment;
 #[path = "flow/ci_timings.rs"]
 mod ci_timings;
+#[path = "flow/ci_units.rs"]
+mod ci_units;
+#[path = "flow/shard_weights.rs"]
+mod shard_weights;
 #[path = "flow/ci_parallelism.rs"]
 mod ci_parallelism;
 #[path = "flow/ci_db.rs"]

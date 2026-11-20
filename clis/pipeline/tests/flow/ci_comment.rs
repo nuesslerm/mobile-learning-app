@@ -2043,3 +2043,29 @@ fn the_comment_stays_under_the_cap_with_every_section_present() {
     let body = posted_body(&github.sent("POST")[0]);
     assert!(body.len() < 60_000 && body.contains("### Jobs"), "{}", body.len());
 }
+
+#[test]
+fn a_job_that_still_runs_with_a_red_step_is_a_failing_now_row_at_the_top_of_the_live_comment() {
+    // Given a run whose flow-tests job is still running with its test step already red, beside a passed plan job and a job that runs without failure
+    let github = Github::start();
+    let mut red = job(501, "flow-tests (2/6)", "failure", "2026-10-23T10:03:05Z", json!([{ "name": "Set up job", "conclusion": "success" }, { "name": "Flow tests", "conclusion": "failure" }, { "name": "Upload", "conclusion": null }]));
+    red["status"] = json!("in_progress");
+    red["conclusion"] = Value::Null;
+    red["completed_at"] = Value::Null;
+    let mut well = job(505, "integration-tests (1/4)", "success", "2026-10-23T10:03:05Z", json!([{ "name": "Integration", "conclusion": null }]));
+    well["status"] = json!("in_progress");
+    well["conclusion"] = Value::Null;
+    well["completed_at"] = Value::Null;
+    github.serve(&json!([job(500, "plan", "success", "2026-10-23T10:00:20Z", json!([])), red, well]), json!([]), created(), updated());
+
+    // When the comment is previewed while the run goes on
+    let preview = github.comment_wf(&["--dry-run"]);
+
+    // Then the body says the run is going with a failure, names the job and the red step as failing now, and leaves the healthy running job out of it
+    let body = last_json(&preview)["body"].as_str().unwrap_or_default().to_string();
+    assert_eq!(preview.exit_code, 0, "{}{}", preview.stdout, preview.stderr);
+    assert!(body.contains("running, a job failed"), "{body}");
+    assert!(body.contains("### 🟠 flow-tests (2/6) failing now") && body.contains("step **Flow tests** is red, the job still runs"), "{body}");
+    assert!(!body.contains("integration-tests (1/4) failing now"), "{body}");
+    assert!(body.find("failing now") < body.find("### Jobs"), "{body}");
+}

@@ -907,7 +907,8 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
     let now = wf_kit::time::now_ms() as i64 / 1000;
     let running = shown.iter().any(|(j, _)| j["status"] != "completed");
     let wall = started.zip(if running { Some(now) } else { ended }).filter(|(f, t)| t >= f).map(|(f, t)| seconds(t - f));
-    let (verdict, mark) = match (running, failures.is_empty()) {
+    let failing = failing_now(&shown, now);
+    let (verdict, mark) = match (running, failures.is_empty() && failing.is_empty()) {
         (true, true) => ("running", "🟡"),
         (true, false) => ("running, a job failed", "🟠"),
         (false, true) => ("passed", "✅"),
@@ -915,6 +916,7 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
     };
     let title = format!("## {mark} CI ({}) {verdict} · `{short}` · {}{}", env.label.as_deref().unwrap_or("GitHub-hosted"), env.branch, wall.as_ref().map_or(String::new(), |w| format!(" · {w}")));
     let mut out = format!("{}\n{title}\n[Commit `{short}`]({base}/commit/{}) · [run {}]({run}) · runner `{}`\n\n", live_marker(env), env.sha, env.run, env.runner);
+    out.push_str(&failing_now_block(&failing));
     out.push_str(failures_block(failures, skipped).trim_start_matches('\n'));
 
     let count = |pred: &dyn Fn(&Value) -> bool| shown.iter().filter(|(j, _)| pred(j)).count();
@@ -996,6 +998,30 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
         }
         out.truncate(cut_at);
         out.push_str("\n\n*The rest is in the run.*\n");
+    }
+    out
+}
+
+/// The jobs still running with a step that already went red: (job, step, link, how long the job has run), so the report shows a failure while the job's other steps go on.
+fn failing_now(jobs: &[(&Value, Stats)], now: i64) -> Vec<(String, String, String, String)> {
+    jobs.iter()
+        .filter(|(j, _)| j["status"] == "in_progress")
+        .filter_map(|(j, _)| {
+            let step = j["steps"].as_array()?.iter().find(|s| matches!(s["conclusion"].as_str(), Some("failure" | "timed_out")))?;
+            let ran = epoch(&j["started_at"]).map_or_else(|| "-".to_string(), |from| seconds((now - from).max(0)));
+            Some((text(j, "name"), text(step, "name"), text(j, "html_url"), ran))
+        })
+        .collect()
+}
+
+fn failing_now_block(rows: &[(String, String, String, String)]) -> String {
+    let mut out = String::new();
+    for (name, step, url, ran) in rows {
+        let link = if url.is_empty() { String::new() } else { format!(" · [open the job]({url})") };
+        out.push_str(&format!("> ### 🟠 {} failing now\n> step **{}** is red, the job still runs ({ran} in){link}\n>\n", html(name), html(step)));
+    }
+    if !out.is_empty() {
+        out.push('\n');
     }
     out
 }

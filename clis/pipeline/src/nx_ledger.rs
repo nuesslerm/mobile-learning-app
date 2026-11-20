@@ -94,7 +94,7 @@ pub fn slow_tasks(tasks: &[TaskRun]) -> Vec<(&str, f64)> {
 }
 
 /// The stage's event and gauges: `ci.nx.tasks{stage,outcome}`, `ci.nx.replay_ratio{stage}` and `ci.nx.task_s{stage,task}` for each task that ran for 2 s or more.
-fn report(stage: &str, target: &str, tasks: &[TaskRun]) {
+fn report(stage: &str, target: &str, tasks: &[TaskRun], units: &[wf_bucket::ci_db::UnitSpan]) {
     use wf_bucket::ci_metrics::{event, Gauges, ALL};
     let (ran, hit, _) = replay_ratio(tasks);
     let (stage_ran, stage_hit) = {
@@ -111,6 +111,7 @@ fn report(stage: &str, target: &str, tasks: &[TaskRun]) {
     for (task, seconds) in slow_tasks(tasks) {
         gauges.set("ci.nx.task_s", stage, task, seconds);
     }
+    crate::ci_units::gauges(&mut gauges, units);
     gauges.send();
 }
 
@@ -129,7 +130,9 @@ pub fn emit(since: SystemTime, stage: &str, target: &str, cpu_seconds: f64) {
     let list: Vec<Value> = tasks.iter().map(|t| json!({ "task": t.task, "hash": t.hash, "outcome": t.outcome, "ms": t.ms, "passed": t.passed })).collect();
     eprintln!("wf: nx ledger {}", json!({ "tasks": list }));
     record(stage, &tasks, cpu_seconds);
-    report(stage, target, &tasks);
+    let units = crate::ci_units::spans(&std::env::var("GITHUB_RUN_ID").unwrap_or_default(), stage, &tasks);
+    crate::ci_units::record(&units);
+    report(stage, target, &tasks, &units);
     why(since, "stage");
 }
 
@@ -163,7 +166,7 @@ fn record(stage: &str, tasks: &[TaskRun], cpu_seconds: f64) {
     let var = |key: &str| std::env::var(key).ok().filter(|v| !v.is_empty());
     let (Some(run), Some(sha)) = (var("GITHUB_RUN_ID"), var("GITHUB_SHA")) else { return };
     // core-tests runs two stages in one job; the shard weights read the stage as the job
-    let job = var("GITHUB_JOB").map(|j| if j == "core-tests" { stage.to_string() } else { j }).unwrap_or_default();
+    let job = crate::ci_units::job_of(stage);
     let ts = wf_kit::time::now_ms() as i64;
     let rows: Vec<crate::ci_ledger::Observed> = tasks.iter().map(|t| crate::ci_ledger::Observed { run: run.clone(), sha: sha.clone(), ts, job: job.clone(), task: t.task.clone(), hash: t.hash.clone(), outcome: t.outcome.to_string(), ms: t.ms, passed: t.passed }).collect();
     // A CI job writes to its own local database and the report job merges it into the sealed one: a job's token cannot push the state ref (the push was refused

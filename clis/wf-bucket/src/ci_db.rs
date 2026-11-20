@@ -146,6 +146,8 @@ pub fn ensure_ledger(conn: &Connection) -> Result<(), String> {
            CONCLUSION TEXT, PRIMARY KEY (RUN_ID, JOB, STEP_NO));
          CREATE TABLE IF NOT EXISTS CI_RUN_PROFILE (RUN_ID TEXT NOT NULL PRIMARY KEY, WORKFLOW TEXT, WALL_S REAL, RUNNER_S REAL, PEAK_JOBS INTEGER, AVG_JOBS REAL, QUEUE_S_TOTAL REAL,
            QUEUE_S_MAX REAL, JOBS INTEGER, CRITICAL_PATH_JOB TEXT, CRITICAL_PATH_S REAL, PARALLEL_EFFICIENCY REAL);
+         CREATE TABLE IF NOT EXISTS CI_UNITS (RUN_ID TEXT NOT NULL, JOB TEXT NOT NULL, STAGE TEXT NOT NULL, UNIT TEXT NOT NULL, STARTED_MS INTEGER NOT NULL, ENDED_MS INTEGER,
+           MS INTEGER, OUTCOME TEXT NOT NULL, PRIMARY KEY (RUN_ID, JOB, STAGE, UNIT));
          CREATE TABLE IF NOT EXISTS CI_CONCURRENCY (TS INTEGER NOT NULL, RUN_ID TEXT NOT NULL, PHASE TEXT NOT NULL, WORKFLOW TEXT NOT NULL, BUSY INTEGER NOT NULL, QUEUED INTEGER NOT NULL,
            RUNS_ACTIVE INTEGER NOT NULL, CAP INTEGER NOT NULL, HEADROOM INTEGER NOT NULL, PRIMARY KEY (RUN_ID, PHASE, TS, WORKFLOW));",
     )
@@ -310,6 +312,80 @@ pub fn record_jobs_local(jobs: &[JobRow]) -> Result<bool, String> {
     }
     tx.commit().map_err(sql)?;
     Ok(true)
+}
+
+/// One test unit of a stage (`CI_UNITS`): the package, `crate-<crate>` or `crate-<crate>/<group>` the weighted shards deal out, with the interval it ran in. A row
+/// is written when the unit starts (`outcome` `running`, no end) and replaced when it ends (`ran` or `hit`, with its milliseconds and end).
+pub struct UnitSpan {
+    pub run: String,
+    pub job: String,
+    pub stage: String,
+    pub unit: String,
+    pub started_ms: i64,
+    pub ended_ms: Option<i64>,
+    pub ms: Option<i64>,
+    pub outcome: String,
+}
+
+/// Writes unit spans to the typed `CI_UNITS` table of the job's local database (never pushed: the report job's merge folds it into the sealed one). A span ends the
+/// `running` row of its unit and adds to an ended one; the `running` rows of the stages the spans name that nothing replaced are dropped, since the call that ends a stage's run is the one that
+/// wrote them. `false`, and nothing written, without a local database.
+pub fn record_units_local(spans: &[UnitSpan]) -> Result<bool, String> {
+    let Some(path) = local_path() else { return Ok(false) };
+    let mut conn = open_at(&path)?;
+    ensure_ledger(&conn)?;
+    let tx = conn.transaction().map_err(sql)?;
+    for u in spans {
+        // a unit a stage's second Nx call runs again adds to its row: the unit is the whole of what the stage ran for it
+        tx.execute(
+            "INSERT INTO CI_UNITS (RUN_ID, JOB, STAGE, UNIT, STARTED_MS, ENDED_MS, MS, OUTCOME) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+             ON CONFLICT (RUN_ID, JOB, STAGE, UNIT) DO UPDATE SET
+               STARTED_MS = MIN(CI_UNITS.STARTED_MS, CASE WHEN excluded.STARTED_MS > 0 THEN excluded.STARTED_MS ELSE CI_UNITS.STARTED_MS END),
+               ENDED_MS = MAX(COALESCE(CI_UNITS.ENDED_MS, 0), COALESCE(excluded.ENDED_MS, 0)),
+               MS = CASE WHEN CI_UNITS.OUTCOME = 'running' THEN excluded.MS ELSE COALESCE(CI_UNITS.MS, 0) + COALESCE(excluded.MS, 0) END,
+               OUTCOME = CASE WHEN excluded.OUTCOME = 'running' THEN CI_UNITS.OUTCOME
+                              WHEN CI_UNITS.OUTCOME = 'running' THEN excluded.OUTCOME
+                              WHEN 'failed' IN (CI_UNITS.OUTCOME, excluded.OUTCOME) THEN 'failed'
+                              WHEN 'ran' IN (CI_UNITS.OUTCOME, excluded.OUTCOME) THEN 'ran' ELSE 'hit' END",
+            rusqlite::params![u.run, u.job, u.stage, u.unit, u.started_ms, u.ended_ms, u.ms, u.outcome],
+        )
+        .map_err(sql)?;
+    }
+    for u in spans.iter().filter(|u| u.outcome != "running") {
+        tx.execute("DELETE FROM CI_UNITS WHERE RUN_ID = ?1 AND JOB = ?2 AND STAGE = ?3 AND OUTCOME = 'running'", rusqlite::params![u.run, u.job, u.stage]).map_err(sql)?;
+    }
+    tx.commit().map_err(sql)?;
+    Ok(true)
+}
+
+/// Drops the `running` rows of a stage of a job: the run ended and left no task to replace them.
+pub fn clear_running_units(run: &str, job: &str, stage: &str) -> Result<(), String> {
+    let Some(path) = local_path().filter(|p| p.exists()) else { return Ok(()) };
+    let conn = open_at(&path)?;
+    ensure_ledger(&conn)?;
+    conn.execute("DELETE FROM CI_UNITS WHERE RUN_ID = ?1 AND JOB = ?2 AND STAGE = ?3 AND OUTCOME = 'running'", rusqlite::params![run, job, stage]).map(|_| ()).map_err(sql)
+}
+
+/// Every unit row of the database at `path` (a job's local file or an unsealed copy of the shared one), for the run `run` when given.
+pub fn units_of(path: &Path, run: Option<&str>) -> Result<Vec<UnitSpan>, String> {
+    let conn = open_at(path)?;
+    ensure_ledger(&conn)?;
+    let mut stmt = conn.prepare("SELECT RUN_ID, JOB, STAGE, UNIT, STARTED_MS, ENDED_MS, MS, OUTCOME FROM CI_UNITS WHERE (?1 IS NULL OR RUN_ID = ?1) ORDER BY STAGE, UNIT").map_err(sql)?;
+    let rows = stmt
+        .query_map([run], |r| Ok(UnitSpan { run: r.get(0)?, job: r.get(1)?, stage: r.get(2)?, unit: r.get(3)?, started_ms: r.get(4)?, ended_ms: r.get(5)?, ms: r.get(6)?, outcome: r.get(7)? }))
+        .map_err(sql)?;
+    rows.collect::<Result<_, _>>().map_err(sql)
+}
+
+/// The units of the database at `path` that have not ended: what a job is running now.
+pub fn running_units_of(path: &Path) -> Result<Vec<UnitSpan>, String> {
+    let conn = open_at(path)?;
+    ensure_ledger(&conn)?;
+    let mut stmt = conn.prepare("SELECT RUN_ID, JOB, STAGE, UNIT, STARTED_MS FROM CI_UNITS WHERE OUTCOME = 'running' ORDER BY STARTED_MS, UNIT").map_err(sql)?;
+    let rows = stmt
+        .query_map([], |r| Ok(UnitSpan { run: r.get(0)?, job: r.get(1)?, stage: r.get(2)?, unit: r.get(3)?, started_ms: r.get(4)?, ended_ms: None, ms: None, outcome: "running".to_string() }))
+        .map_err(sql)?;
+    rows.collect::<Result<_, _>>().map_err(sql)
 }
 
 /// The tasks of the job-local database at `path` (the job's own `NX_TASKS`), the columns a database written before the intervals existed lacks reading as 0.

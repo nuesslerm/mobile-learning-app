@@ -26,7 +26,7 @@ secrets = { path = "../secrets" }
 blob-cache = { path = "../blob-cache" }
 cli-http = { path = "../http" }
 wf-vmops = { path = "../wf-vmops" }
-telemetry = { version = "0.1", registry = "mla", features = ["metrics"] }
+telemetry = { version = "0.1", registry = "mla", features = ["metrics", "oneshot"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
 hex = "0.4"

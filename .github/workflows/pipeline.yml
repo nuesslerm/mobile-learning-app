@@ -1225,6 +1225,13 @@ jobs:
           mapfile -t files < <(find "$RUNNER_TEMP/ci-db" "$RUNNER_TEMP/wf-ci-db" -name rows.sqlite 2>/dev/null)
           [ "${#files[@]}" -gt 0 ] || { echo "no job kept CI database rows"; exit 0; }
           wf ci db merge "${files[@]}"
+      # the split of the shards this run had, as predicted by the committed weights against the unit spans the shards measured (CI_UNITS, merged just above); best effort
+      - name: Shard report
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: wf ci plan shard-weights --report --send --run "$GITHUB_RUN_ID"
       - name: Cache health
         timeout-minutes: 5
         env:

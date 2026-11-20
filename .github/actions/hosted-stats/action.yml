@@ -21,8 +21,8 @@ runs:
         mkdir -p "$(dirname "$STATS_FILE")"
         # the runner kills what still carries the step's tracking id when the step ends, which setsid does not clear
         env -u RUNNER_TRACKING_ID setsid nohup bash "${{ github.action_path }}/../hosted-setup/sampler.sh" "$STATS_FILE" > /dev/null 2>&1 &
-    # a job that went red says so at once: the failed step as a Better Stack log line (ci.job.failed) and a refreshed run comment, while the rest of the
-    # run still goes; best effort, never a second failure (the Actions API shows a step's result at once, a job's log only when it ends)
+    # a job that went red says so at once (`wf ci failed --notify`): the failed step as a Better Stack log line (ci.job.failed), a refreshed run comment and the
+    # failure hook, while the rest of the run still goes; best effort, never a second failure (the Actions API shows a step's result at once, a job's log only when it ends)
     - name: Report the failure now
       # always(): failure() inside a composite action sees only this action's own steps, so the script asks the API whether a step of the job is red
       if: ${{ inputs.mode == 'upload' && always() }}
@@ -35,22 +35,14 @@ runs:
         GITHUB_SHA: ${{ github.sha }}
       run: |
         command -v wf > /dev/null || exit 0
-        out=$(timeout 60 wf ci failed 2>/dev/null) || true
+        # `wf ci failed` sends the ci.job.failed log line, refreshes the run comment and posts to CI_FAILURE_HOOK_URL itself
+        out=$(timeout 120 wf ci failed --notify 2>/dev/null) || true
         [ "$(jq -r '(.failed_steps // []) | length' <<<"$out" 2>/dev/null || echo 0)" -gt 0 ] || exit 0
         echo "$out"
         step=$(jq -r '.failed_steps[0] // ""' <<<"$out" 2>/dev/null)
         job=$(jq -r '.job // "${{ inputs.job }}"' <<<"$out" 2>/dev/null)
-        annotations=$(jq -r '.annotations // "unreadable"' <<<"$out" 2>/dev/null)
         # an error annotation too: whether the API shows it while the job runs is told by the `annotations` count the next red job reports
         echo "::error title=ci.job.failed::$job: $step"
-        timeout 30 wf log emit --service wf-ci --level error --message ci.job.failed --attr "run=$GITHUB_RUN_ID" --attr "job=$job" --attr "step=$step" --attr "sha=$GITHUB_SHA" --attr "annotations=$annotations" > /dev/null 2>&1 || true
-        timeout 60 wf ci live > /dev/null 2>&1 || true
-        # the hook to subscribe to: one JSON post to the URL the vault holds (CI_FAILURE_HOOK_URL), when there is one
-        hook=$(timeout 30 wf secret get CI_FAILURE_HOOK_URL 2>/dev/null || true)
-        if [ -n "$hook" ]; then
-          body=$(jq -cn --arg run "$GITHUB_RUN_ID" --arg job "$job" --arg step "$step" --arg sha "$GITHUB_SHA" --arg url "$(jq -r '.url // ""' <<<"$out")" --arg annotations "$annotations" '{event: "ci.job.failed", run: $run, job: $job, step: $step, sha: $sha, url: $url, annotations: $annotations}')
-          curl -sS --max-time 15 -X POST -H 'Content-Type: application/json' -d "$body" "$hook" > /dev/null 2>&1 || true
-        fi
     - name: Upload the runner samples
       if: ${{ inputs.mode == 'upload' }}
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

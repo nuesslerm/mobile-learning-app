@@ -734,7 +734,7 @@ impl Weights {
         Weights { units, default: at["default"].as_u64().unwrap_or(1).max(1) }
     }
 
-    fn cost(&self, key: &str) -> u64 {
+    pub(crate) fn cost(&self, key: &str) -> u64 {
         self.units.get(key).copied().unwrap_or(self.default)
     }
 }

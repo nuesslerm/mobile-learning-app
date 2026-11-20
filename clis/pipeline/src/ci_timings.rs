@@ -4,7 +4,7 @@
 //! spread of each stage's shards (the slowest shard less the fastest, the number the weighted split exists to shrink) and the run's wall time. They go
 //! to Better Stack as gauges (`--send`; best effort, never a failure) and are printed, so a person or an agent reads the same rows. `progress` reads
 //! a running run: which jobs are not done, which step each is in and for how long, against what the same job took in the last green run of the branch.
-use crate::ci_comment::{epoch_of, json_of, list_jobs_of, send, var, Env};
+use crate::ci_comment::{epoch_of, excerpt_of, json_of, list_jobs_of, redact, send, text, var, Env};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -373,6 +373,23 @@ pub(crate) fn live(jobs: &[Value], expected: &BTreeMap<String, i64>, at: i64) ->
     json!({"jobs_total": jobs.len(), "done": done, "running": running, "not_started": waiting, "open": open})
 }
 
+/// The units the job-local database says are running: the rows exist only on the runner of the job that wrote them, so this is the answer on that runner and empty elsewhere.
+fn running_units() -> Vec<wf_bucket::ci_db::UnitSpan> {
+    wf_bucket::ci_db::local_path().filter(|p| p.exists()).and_then(|p| wf_bucket::ci_db::running_units_of(&p).ok()).unwrap_or_default()
+}
+
+/// `running_units` as a field of the view, and as `unit` on the open job of that stage, with how long the unit has run.
+fn attach_units(view: &mut Value, units: &[wf_bucket::ci_db::UnitSpan], at: i64) {
+    view["running_units"] = json!(units.iter().map(|u| json!({"stage": u.stage, "unit": u.unit, "running_s": (at - u.started_ms / 1000).max(0)})).collect::<Vec<_>>());
+    for open in view["open"].as_array_mut().into_iter().flatten() {
+        let stage = stage_name(open["job"].as_str().unwrap_or_default());
+        let names: Vec<&str> = units.iter().filter(|u| u.stage == stage || u.job == stage).map(|u| u.unit.as_str()).collect();
+        if !names.is_empty() {
+            open["unit"] = json!(names.join(", "));
+        }
+    }
+}
+
 fn progress(rest: &[String]) -> Option<i32> {
     let parsed = parse_spec(rest, &PROGRESS)?;
     let env = match api_env(parsed.val("run").map(str::to_string)) {
@@ -384,15 +401,39 @@ fn progress(rest: &[String]) -> Option<i32> {
         Ok(pair) => pair,
         Err(why) => return Some(fail(&why, "check the run id and the token's actions:read scope")),
     };
-    let view = live(&jobs, &expected(&env, &run), now());
+    let mut view = live(&jobs, &expected(&env, &run), now());
+    attach_units(&mut view, &running_units(), now());
     println!("{}", json!({"ok": true, "run": env.run, "head": run["head_sha"], "status": run["status"], "conclusion": run["conclusion"], "progress": view}));
     Some(0)
 }
 
-const FAILED: Spec = Spec { values: &["run", "runner"], positional: Positional::None, ..Spec::NONE };
+const FAILED: Spec = Spec { flags: &["notify"], values: &["run", "runner"], positional: Positional::None, ..Spec::NONE };
 
-/// `wf ci failed`: the step of this job that went red, read live from the Actions API (a job's log text is not published until it ends, but its steps
-/// are). The job is the one running on this runner. Always exits 0: it is a report from inside a failing job, never a second failure.
+/// The first Nx task of this job that failed, from the job-local database the stage's ledger wrote (empty outside a hosted job or before any task finished red).
+fn failing_task() -> String {
+    let Some(path) = wf_bucket::ci_db::local_path().filter(|p| p.exists()) else { return String::new() };
+    wf_bucket::ci_db::tasks_of(&path).unwrap_or_default().into_iter().find(|t| !t.passed).map(|t| t.task).unwrap_or_default()
+}
+
+/// The URL the failure hook posts to: `CI_FAILURE_HOOK_URL` from the environment, else the vault; none is a no-op.
+fn hook_url() -> Option<String> {
+    var("CI_FAILURE_HOOK_URL").or_else(|| secrets::load_values(&["CI_FAILURE_HOOK_URL"]).get("CI_FAILURE_HOOK_URL").cloned().flatten().filter(|v| !v.is_empty()))
+}
+
+/// One JSON post of the failure to the hook. `Null` when there is no URL; otherwise `{status}` or `{error}`.
+fn notify(body: &Value, token: &str) -> Value {
+    let Some(url) = hook_url() else { return Value::Null };
+    let sent = cli_http::Request::new("POST", &url).header("User-Agent", "wf-ci-failed").timeout(std::time::Duration::from_secs(15)).json(body).send();
+    match sent {
+        Ok(reply) => json!({"status": reply.status}),
+        Err(why) => json!({"error": crate::ci_comment::redact(&why.to_string(), token).replace(&url, "[hook]")}),
+    }
+}
+
+/// `wf ci failed [--notify]`: the step of this job that went red, read live from the Actions API (a job's log text is not published until it ends, but its steps
+/// are). The job is the one running on this runner. When a step is red it also sends the `ci.job.failed` line (run, job, step, task, excerpt, sha, scrubbed) to the
+/// OTLP logs ingest, refreshes the run's comment (`wf ci live`) so it shows the job as failing now, and with `--notify` posts the same fields to `CI_FAILURE_HOOK_URL`.
+/// Always exits 0: it is a report from inside a failing job, never a second failure.
 fn failed(rest: &[String]) -> Option<i32> {
     let parsed = parse_spec(rest, &FAILED)?;
     let env = match api_env(parsed.val("run").map(str::to_string)) {
@@ -422,7 +463,34 @@ fn failed(rest: &[String]) -> Option<i32> {
         .filter(|r| r.ok())
         .and_then(|r| serde_json::from_str::<Value>(&r.text()).ok())
         .and_then(|v| v.as_array().map(Vec::len));
-    println!("{}", json!({"ok": true, "run": env.run, "job": job["name"], "url": job["html_url"], "failed_steps": steps, "annotations": annotations}));
+    let mut out = json!({"ok": true, "run": env.run, "job": job["name"], "url": job["html_url"], "failed_steps": steps, "annotations": annotations});
+    if let Some(step) = steps.first() {
+        let sha = if env.sha.is_empty() { var("GITHUB_SHA").unwrap_or_default() } else { env.sha.clone() };
+        let (job_name, task) = (text(job, "name"), failing_task());
+        let (_, excerpt) = excerpt_of(&env, job);
+        let fields = [
+            ("run", env.run.clone()),
+            ("job", job_name.clone()),
+            ("step", step.clone()),
+            ("task", task.clone()),
+            ("excerpt", redact(&excerpt, &env.token)),
+            ("sha", sha.clone()),
+            ("scrubbed", "env-secrets".to_string()),
+            ("annotations", annotations.map_or_else(|| "unreadable".to_string(), |n| n.to_string())),
+        ];
+        out["task"] = json!(task);
+        out["logged"] = if var("WF_CI_LOGS").as_deref() == Some("off") {
+            json!({"skipped": "WF_CI_LOGS=off"})
+        } else {
+            wf_bucket::ci_metrics::log("error", "ci.job.failed", &fields).map_or_else(|why| json!({"error": redact(&why, &env.token)}), |()| json!({"sent": true}))
+        };
+        out["live"] = crate::ci_live::refresh();
+        if parsed.flag("notify") {
+            let body = json!({"event": "ci.job.failed", "run": env.run, "job": job_name, "step": step, "task": task, "sha": sha, "url": job["html_url"], "annotations": annotations, "excerpt": wf_bucket::ci_metrics::scrub(&redact(&excerpt, &env.token))});
+            out["notified"] = notify(&body, &env.token);
+        }
+    }
+    println!("{out}");
     Some(0)
 }
 

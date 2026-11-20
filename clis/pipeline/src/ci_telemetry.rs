@@ -24,6 +24,8 @@ pub(crate) struct Telemetry {
     /// (job, its tasks, its cores)
     pub tasks: Vec<(String, Vec<TaskResources>, i64)>,
     pub concurrency: Option<String>,
+    /// The run's shard split against what the shards measured (`shard-weights --report`), from the jobs' unit spans.
+    pub shards: Vec<crate::shard_weights::StageReport>,
 }
 
 pub(crate) struct Parts {
@@ -113,7 +115,9 @@ pub(crate) fn gather(env: &Env, jobs: &[&Value], finished: bool) -> Telemetry {
         });
     }
     let mut start = None;
+    let mut spans: Vec<wf_bucket::ci_db::UnitSpan> = Vec::new();
     for (job, file) in ledger_files() {
+        spans.extend(wf_bucket::ci_db::units_of(&file, Some(&env.run)).unwrap_or_default().into_iter().filter(|u| u.outcome != "running"));
         if let Ok(tasks) = wf_bucket::ci_db::tasks_of(&file) {
             let (mine, other): (Vec<_>, Vec<_>) = tasks.into_iter().partition(|x| x.run == env.run);
             let used = if mine.is_empty() { other } else { mine };
@@ -127,6 +131,8 @@ pub(crate) fn gather(env: &Env, jobs: &[&Value], finished: bool) -> Telemetry {
             start = start.or_else(|| rows.into_iter().find(|r| r.run == env.run && r.phase == "start" && r.workflow == crate::ci_concurrency::TOTAL));
         }
     }
+    let names: Vec<String> = jobs.iter().map(|j| text(j, "name")).collect();
+    t.shards = crate::shard_weights::report(&spans, &crate::shard_weights::shard_counts(names.iter().map(String::as_str)));
     let end = finished.then(|| crate::ci_concurrency::read(env).ok()).flatten().map(|runs| crate::ci_concurrency::count(&runs));
     let end = end.and_then(|c| c.get(crate::ci_concurrency::TOTAL).copied());
     t.concurrency = match (start, end) {
@@ -203,6 +209,9 @@ pub(crate) fn section(t: &Telemetry, failed: &[String]) -> Parts {
             rows.push_str(&format!("| {} | {concurrent} | {} | {cores_used:.1}{of} |\n", cell(job), if names.is_empty() { "-".to_string() } else { names.join(", ") }));
         }
         parts.details.push_str(&format!("\n<details><summary>In-runner parallelism (Nx tasks at once per job, cores used)</summary>\n\n| Job | Tasks at once | Stages in parallel | Cores used |\n|---|---|---|---|\n{rows}\n</details>\n"));
+    }
+    if !t.shards.is_empty() {
+        parts.details.push_str(&format!("\n<details><summary>Shard split: predicted vs actual seconds per shard</summary>\n\n{}\n</details>\n", crate::shard_weights::table(&t.shards)));
     }
     parts
 }
