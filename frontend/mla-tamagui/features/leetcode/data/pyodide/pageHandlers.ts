@@ -10,8 +10,8 @@ type Chunk = { name: PyodideFileName; index: number; total: number; data: string
 /** What the page's handlers need from the world around them, so the same handlers run in a WebView, in the browser harness and in Node tests. */
 export type PageDeps = {
   readFile(url: string): Promise<ArrayBuffer>;
-  /** Boots the interpreter from the files the page holds; the spike's `run` reads what Python printed through `onOutput`. */
-  boot(files: Partial<Record<PyodideFileName, Uint8Array>>, onOutput: (line: string) => void): Promise<{ python: PyodideInterface; importMs: number; loadMs: number }>;
+  /** Boots the interpreter from the files the page holds. */
+  boot(files: Partial<Record<PyodideFileName, Uint8Array>>): Promise<{ python: PyodideInterface; importMs: number; loadMs: number }>;
   /** The judge harness (data/pyodide/harness/judge.py) as source text. */
   harnessSource: string;
   emit(topic: string, data?: unknown): void;
@@ -38,7 +38,6 @@ type JudgeRun = (payloadJson: string, onCase: (row: string) => void) => string;
 export function createPageHandlers(deps: PageDeps): RpcHandlers {
   const files: Partial<Record<PyodideFileName, Uint8Array>> = {};
   const pieces = new Map<PyodideFileName, Uint8Array[]>();
-  const output: string[] = [];
   let python: PyodideInterface | undefined;
   let judge: JudgeRun | undefined;
 
@@ -69,7 +68,7 @@ export function createPageHandlers(deps: PageDeps): RpcHandlers {
     },
 
     async boot() {
-      const booted = await deps.boot(files, (line) => output.push(line));
+      const booted = await deps.boot(files);
       python = booted.python;
       // a private namespace, so nothing the harness defines lands in Pyodide's globals
       const namespace = python.globals.get('dict')();
@@ -82,17 +81,6 @@ export function createPageHandlers(deps: PageDeps): RpcHandlers {
       if (!judge) throw new Error('the interpreter has not booted');
       const { runId, payload } = params as JudgeParams;
       return judge(JSON.stringify(payload), (row) => deps.emit('case', { runId, row }));
-    },
-
-    async run(params) {
-      if (!python) throw new Error('the interpreter has not booted');
-      output.length = 0;
-      const started = deps.now();
-      const outcome = await python.runPythonAsync((params as { code: string }).code).then(
-        (result: unknown) => ({ value: result === undefined ? null : String(result), error: null as string | null }),
-        (thrown: unknown) => ({ value: null as string | null, error: thrown instanceof Error ? thrown.message : String(thrown) })
-      );
-      return { stdout: output.join('\n'), ...outcome, ms: Math.round(deps.now() - started) };
     },
 
     memory() {

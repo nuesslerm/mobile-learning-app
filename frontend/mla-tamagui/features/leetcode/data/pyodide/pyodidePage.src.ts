@@ -23,7 +23,7 @@ function readFile(url: string): Promise<ArrayBuffer> {
   });
 }
 
-const boot: PageDeps['boot'] = async (files, onOutput) => {
+const boot: PageDeps['boot'] = async (files) => {
   const need = (name: 'asm' | 'lock' | 'wasm' | 'stdlib'): Uint8Array => {
     const file = files[name];
     if (!file) throw new Error(`the ${name} file has not arrived`);
@@ -46,8 +46,9 @@ const boot: PageDeps['boot'] = async (files, onOutput) => {
     // a solution that calls input() reads end of file instead of waiting for a prompt that cannot come
     stdin: () => null,
     env: { PYTHONHASHSEED: '0' },
-    stdout: onOutput,
-    stderr: onOutput,
+    // what a solution prints is the judge's to capture per case; anything else is dropped
+    stdout: () => undefined,
+    stderr: () => undefined,
   });
   window.fetch = realFetch;
   return { python, importMs: Math.round(imported - started), loadMs: Math.round(performance.now() - imported) };
