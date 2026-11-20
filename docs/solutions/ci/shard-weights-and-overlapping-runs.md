@@ -51,3 +51,7 @@ SELECT RUN_ID, JOB, STEP, EXCERPT FROM CI_JOBS WHERE CONCLUSION IN ('failure', '
 ```
 
 A job that goes red also sends the Better Stack log line `ci.job.failed` (run, job, step, sha, and `annotations`: how many error annotations the API showed for the running job, which tells whether they are readable live) and posts one JSON line to `CI_FAILURE_HOOK_URL` when the vault holds one.
+
+## Three workflows on one push (owner, 19 Nov)
+
+A push to `dev` starts three runs of the one pipeline graph, each for a stage of its own (`stages` input of `pipeline.yml`): `ci-hosted.yml` (`core`: flow, unit, cli-e2e, the ships and the deploy), `ci-hosted-integration.yml` (`integration`) and `ci-hosted-e2e.yml` (`e2e`: the browser and Android suites and the Android EAS Update). Each has its own concurrency group, its own pull request comment (a `label` of its own) and its own result, and the shared jobs (`wf-build`, `preflight`, `plan`, `report`) run in each. The deploy and the production EAS Update no longer wait for the integration tests. `wf vm ops cancel-run`, `wf ci audit` and the `last-green` base look at `ci-hosted.yml` only, so "green" for them is the core stage.

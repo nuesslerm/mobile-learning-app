@@ -58,12 +58,31 @@ fn the_hosted_caller_adds_only_a_trigger_gate_and_calls_the_same_pipeline() {
 }
 
 #[test]
+fn the_integration_and_e2e_callers_are_runs_of_their_own_of_the_same_pipeline_each_for_one_stage_with_a_label_and_a_group_of_its_own() {
+    for (caller, stage, group) in [("ci-hosted-integration.yml", "integration", "ci-hosted-integration-"), ("ci-hosted-e2e.yml", "e2e", "ci-hosted-e2e-")] {
+        // Given a stage caller
+        let text = workflow(caller);
+
+        // When its jobs, its `run` job and its concurrency group are read
+        let run = job_block(&text, "run");
+
+        // Then it holds the commit gate and a `run` that calls the pipeline for its one stage, under its own label and its own group
+        assert_eq!(jobs(&text), set(&["trigger", "run"]), "{caller} jobs");
+        assert!(run.contains("    uses: ./.github/workflows/pipeline.yml\n") && !run.contains("runs-on:") && !run.contains("steps:"), "{caller} holds job logic");
+        assert!(run.contains(&format!("      stages: {stage}\n")), "{caller} runs the {stage} stage");
+        assert!(run.contains("      label: GitHub-hosted "), "{caller} has a label of its own, so its pull request comment is its own");
+        assert!(text.contains(&format!("  group: {group}${{{{ github.sha }}}}\n")), "{caller} has a concurrency group of its own");
+    }
+    assert!(job_block(&workflow("ci-hosted.yml"), "run").contains("      stages: core\n"), "ci-hosted.yml runs the core stage");
+}
+
+#[test]
 fn every_input_and_secret_a_caller_passes_is_declared_by_the_pipeline() {
     // Given the callers' `with:` and `secrets:` and the pipeline's declared inputs and secrets
     let declared_inputs = keys_under(&workflow("pipeline.yml"), "    inputs:");
     let declared_secrets = keys_under(&workflow("pipeline.yml"), "    secrets:");
 
-    for caller in ["ci-hosted.yml", "cold-ci.yml"] {
+    for caller in ["ci-hosted.yml", "ci-hosted-integration.yml", "ci-hosted-e2e.yml", "cold-ci.yml"] {
         // When what each passes is compared with what the pipeline declares
         let run = job_block(&workflow(caller), "run").to_string();
         let inputs = keys_under(&run, "    with:");
