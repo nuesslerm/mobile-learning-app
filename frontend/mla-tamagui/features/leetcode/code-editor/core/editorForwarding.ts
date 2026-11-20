@@ -5,14 +5,13 @@ import type { ToEditorMessage } from '../../domain/ports';
 import { toConfigPatch, type LegacyConfigPatch } from '../engine/configPatch';
 
 /** The messages that reach the page through the typed editor API. */
-export const FORWARDED_TYPES = ['undo', 'redo', 'updateConfig', 'focus', 'setSelection', 'insertAt', 'typeText'] as const;
+export const FORWARDED_TYPES = ['undo', 'redo', 'updateConfig', 'focus', 'blur', 'setSelection', 'insertAt', 'typeText'] as const;
 /**
- * The messages that still travel as fire-and-forget scripts, and why: `init` creates the editor; `blur` waits for an iOS check of
- * the blur trick; the highlight and diff marks move with the runner jump and voice edit. The list only shrinks.
+ * The messages that still travel as fire-and-forget scripts, and why: `init` creates the editor; the highlight and diff marks move
+ * with the runner jump and voice edit. The list only shrinks. (`blur` is forwarded except on iOS, see `ForwardingOptions`.)
  */
 export const LEGACY_TYPES = [
   'init',
-  'blur',
   'highlightRange',
   'clearHighlights',
   'showDiff',
@@ -32,14 +31,23 @@ const reportFailure = (type: string) => (reply: Reply<unknown>) => {
     Logger.warn('editor.port.forward_failed', { type, code: reply.error.code });
 };
 
+export type ForwardingOptions = {
+  /**
+   * false on iOS: the page's own script for `blur` is the one proven there (the keyboard comes back on the next tap), and the typed
+   * `blur` runs the same hidden-button trick but nobody has watched it on an iPhone yet. It becomes true there when a person has.
+   */
+  readonly blurThroughApi: boolean;
+};
+
 /**
  * The editor port's `post`: every message that acts on the document or the view is a typed API call, and a call the editor
  * refuses (not ready yet, a position outside the text, a lost channel) is logged and does nothing. The few messages that are not in
- * the API (`init`, `blur`, the marks, and an `updateConfig` the API cannot express) take the old script path.
+ * the API (`init`, the marks, an `updateConfig` the API cannot express, and `blur` on iOS) take the old script path.
  */
 export function createForwardingPost(
   client: EditorClient,
-  legacyPost: (msg: ToEditorMessage) => void
+  legacyPost: (msg: ToEditorMessage) => void,
+  options: ForwardingOptions = { blurThroughApi: true }
 ): (msg: ToEditorMessage) => void {
   return (msg) => {
     switch (msg.type) {
@@ -60,6 +68,10 @@ export function createForwardingPost(
       }
       case 'focus':
         void client.focus().then(reportFailure('focus'));
+        return;
+      case 'blur':
+        if (options.blurThroughApi) void client.blur().then(reportFailure('blur'));
+        else legacyPost(msg);
         return;
       case 'setSelection':
         void client.select(msg.start, msg.end).then((reply) => {

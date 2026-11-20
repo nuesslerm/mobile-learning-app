@@ -159,7 +159,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         );
       };
       return {
-        post: createForwardingPost(apiBridge.client, legacyPost),
+        post: createForwardingPost(apiBridge.client, legacyPost, { blurThroughApi: Platform.OS !== 'ios' }),
         onMessage(listener) {
           messageListenersRef.current.add(listener);
           return () => {

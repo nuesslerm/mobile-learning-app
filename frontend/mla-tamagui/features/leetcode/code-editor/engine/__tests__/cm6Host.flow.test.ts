@@ -150,4 +150,42 @@ describe('the CodeMirror host', () => {
 
     expect(events.map((event) => event.type === 'changed' && event.origin)).toEqual(['api', 'user']);
   });
+
+  it('given a page with the hidden blur button, when the api blurs the editor, then the focus goes to the button and is released next frame', async () => {
+    // Given a focused editor in a page that has the button the page html carries
+    const { view, core } = mount('abc');
+    const button = document.createElement('button');
+    button.id = 'kb-blur-target';
+    document.body.appendChild(button);
+    view.focus();
+    expect(view.hasFocus).toBe(true);
+    const frames: FrameRequestCallback[] = [];
+    const raf = window.requestAnimationFrame;
+    window.requestAnimationFrame = (callback) => frames.push(callback);
+
+    try {
+      // When the api blurs it
+      const reply = await core.request('view', { focus: false });
+
+      // Then the editor has let go with the button holding the focus, and a frame later nothing does
+      expect(reply).toMatchObject({ ok: true, value: { focused: false } });
+      expect(view.hasFocus).toBe(false);
+      expect(document.activeElement).toBe(button);
+      frames.forEach((frame) => frame(0));
+      expect(document.activeElement).not.toBe(button);
+    } finally {
+      window.requestAnimationFrame = raf;
+      button.remove();
+    }
+  });
+
+  it('given a page without that button, when the api blurs the editor, then the editor is blurred directly', async () => {
+    const { view, core } = mount('abc');
+    view.focus();
+
+    const reply = await core.request('view', { focus: false });
+
+    expect(reply).toMatchObject({ ok: true, value: { focused: false } });
+    expect(view.hasFocus).toBe(false);
+  });
 });

@@ -82,6 +82,35 @@ describe('the editor port forwarding', () => {
     expect(legacy).toEqual([]);
   });
 
+  it('given a focused editor, when blur is posted, then the editor lets go through the api and the old path saw nothing', async () => {
+    const { fake, client, legacy, post } = setup();
+    await client.focus();
+    expect(fake.peek().focused).toBe(true);
+
+    post(SAMPLES.blur);
+    await settled();
+
+    expect(fake.peek().focused).toBe(false);
+    expect(legacy).toEqual([]);
+  });
+
+  it('given iOS, when blur is posted, then the page\'s own script gets it and the api is not asked', async () => {
+    // Given a forwarder told that blur is not proven through the api on this platform
+    const fake = createFakeEditor({ text: 'abc' });
+    const client = createEditorClient(fake.engine);
+    await client.focus();
+    const legacy: ToEditorMessage[] = [];
+    const post = createForwardingPost(client, (msg) => legacy.push(msg), { blurThroughApi: false });
+
+    // When blur is posted
+    post(SAMPLES.blur);
+    await settled();
+
+    // Then the script has it and the editor is still focused, because only the script's own handler lets go
+    expect(legacy).toEqual([SAMPLES.blur]);
+    expect(fake.peek().focused).toBe(true);
+  });
+
   it('given a setSelection message, when it is posted, then the typed select lands, the editor is focused and the old path saw nothing', async () => {
     const { fake, legacy, post } = setup();
 

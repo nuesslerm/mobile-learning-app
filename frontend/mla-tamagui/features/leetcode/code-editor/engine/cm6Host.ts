@@ -69,6 +69,22 @@ export type Cm6HostDeps = {
   buildState: (text: string, selection?: SelRange) => EditorState;
 };
 
+/**
+ * Lets go of the focus the way the page's html has always done it: iOS WKWebView treats a script `blur()` on the contenteditable as
+ * the editor having resigned on purpose and does not bring the keyboard back on the next tap, so the focus goes to a hidden button
+ * for a frame instead. A page without that button (a test host) takes the plain blur.
+ */
+function blurEditor(editor: EditorView): void {
+  const doc = editor.contentDOM.ownerDocument;
+  const target = doc.getElementById('kb-blur-target');
+  if (!target) {
+    editor.contentDOM.blur();
+    return;
+  }
+  target.focus();
+  (doc.defaultView ?? window).requestAnimationFrame(() => target.blur());
+}
+
 /** The live CodeMirror view as the typed API's document host. */
 export function createCm6Host(deps: Cm6HostDeps): DocumentHost {
   const { view } = deps;
@@ -136,7 +152,7 @@ export function createCm6Host(deps: Cm6HostDeps): DocumentHost {
     configure: (patch) => deps.configure(patch),
     setFocus(focused) {
       if (focused) view().focus();
-      else view().contentDOM.blur();
+      else blurEditor(view());
     },
     languages: deps.languages,
     maxSelections: 1,
