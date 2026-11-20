@@ -16,10 +16,9 @@ import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEdit
 
 // The net under every change to how the toolbar's keys reach the editor: each key is tapped on the real CodeMirror and what it
 // leaves behind is asserted, then the toolbar's Undo. A case marked "pinned" records today's behavior, known quirk or not, so a
-// later change to it is a decision with a commit message and not a side effect. A case marked "known gap" states what a key should do
-// and fails today (it.fails), so the commit that fixes the gap has to flip it: the transform keys (Tab on a selection, Dedent, Comment,
-// Newline) send the whole document back through setText, and the page's reply to it sends the old text again before the new one
-// settles, which loses the key's caret and its undo step. (The wrap of a selection was one of them until it became a typed key.)
+// later change to it is a decision with a commit message and not a side effect. (Until the editor's text sync wrote through the
+// typed API, Undo after Tab on a selection, Dedent and Newline restored nothing, and Comment lost its caret: the page's reply to a
+// whole-document setText sent the old text back before the new one settled. Those cases were it.fails and flipped with that change.)
 
 const ACCEPTED: RunResponse = {
   source: 'backend-run',
@@ -99,34 +98,20 @@ describe('the syntax toolbar on the real editor (indentation and lines)', () => 
     await undoRestores(session, editor, 'x = 1');
   });
 
-  it('given two lines selected, when Tab is tapped, then both are indented and the block stays selected', async () => {
+  it('given two lines selected, when Tab is tapped, then both are indented and the block stays selected, and Undo restores the text', async () => {
     const { session, editor } = await prepare('a\nb', 0, 3);
     await session.tap('EditorSyntax-Tab');
     await eventually(() => expect(editor.text()).toBe('    a\n    b'));
     await eventually(() => expect(editor.selection()).toEqual({ start: 0, end: 11 }));
+    await undoRestores(session, editor, 'a\nb');
   });
 
-  // known gap: the transform goes through setText, which leaves no undo step
-  it.fails('given two lines selected and indented by Tab, when Undo is tapped, then the text before the key returns', async () => {
-    const { session, editor } = await prepare('a\nb', 0, 3);
-    await session.tap('EditorSyntax-Tab');
-    await eventually(() => expect(editor.text()).toBe('    a\n    b'));
-    await undoRestores(session, editor, 'a\nb', 2_000);
-  });
-
-  it('given an indented line and the caret after its text, when Dedent is tapped, then a level goes and the caret keeps its place in the text', async () => {
+  it('given an indented line and the caret after its text, when Dedent is tapped, then a level goes and the caret keeps its place in the text, and Undo restores the text', async () => {
     const { session, editor } = await prepare('    x', 5);
     await session.tap('EditorSyntax-Dedent');
     await eventually(() => expect(editor.text()).toBe('x'));
     await eventually(() => expect(editor.selection()).toEqual(caret(1)));
-  });
-
-  // known gap: the transform goes through setText, which leaves no undo step
-  it.fails('given an indented line dedented by Dedent, when Undo is tapped, then the text before the key returns', async () => {
-    const { session, editor } = await prepare('    x', 5);
-    await session.tap('EditorSyntax-Dedent');
-    await eventually(() => expect(editor.text()).toBe('x'));
-    await undoRestores(session, editor, '    x', 2_000);
+    await undoRestores(session, editor, '    x');
   });
 
   it('given a plain line, when Comment is tapped twice, then it is commented and uncommented with the caret after the text each time', async () => {
@@ -139,28 +124,22 @@ describe('the syntax toolbar on the real editor (indentation and lines)', () => 
     await eventually(() => expect(editor.selection()).toEqual(caret(5)));
   });
 
-  // pinned, known quirk: the transform puts the caret at 2 (see the unit test of toggleComment), the key's own caret is lost and it stays at 0
-  it('given the caret at the start of an indented line, when Comment is tapped, then the line is commented and the caret stays at 0 (pinned, known quirk)', async () => {
+  // pinned, known quirk: the caret moves by the marker's length even from before the marker's place (the unit test of toggleComment pins the same)
+  it('given the caret at the start of an indented line, when Comment is tapped, then the line is commented and the caret lands inside the indent (pinned, known quirk)', async () => {
     const { session, editor } = await prepare('    x', 0);
     await session.tap('EditorSyntax-Comment');
     await eventually(() => expect(editor.text()).toBe('    # x'));
-    await eventually(() => expect(editor.selection()).toEqual(caret(0)));
+    await eventually(() => expect(editor.selection()).toEqual(caret(2)));
   });
 
-  it('given a line that ends in a colon, when Newline is tapped, then the next line starts one level deeper', async () => {
+  it('given a line that ends in a colon, when Newline is tapped, then the next line starts one level deeper, and Undo restores the text', async () => {
     const { session, editor } = await prepare('if x:', 5);
     await session.tap('EditorSyntax-Newline');
     await eventually(() => expect(editor.text()).toBe('if x:\n    '));
     await eventually(() => expect(editor.selection()).toEqual(caret(10)));
+    await undoRestores(session, editor, 'if x:');
   });
 
-  // known gap: the transform goes through setText, which leaves no undo step
-  it.fails('given a line broken by Newline, when Undo is tapped, then the text before the key returns', async () => {
-    const { session, editor } = await prepare('if x:', 5);
-    await session.tap('EditorSyntax-Newline');
-    await eventually(() => expect(editor.text()).toBe('if x:\n    '));
-    await undoRestores(session, editor, 'if x:', 2_000);
-  });
 });
 
 describe('the syntax toolbar on the real editor (caret keys)', () => {

@@ -25,6 +25,7 @@ import type {
   FromEditorMessage,
   ToEditorMessage,
 } from '../../domain/ports';
+import { planWrite } from './documentWrite';
 import { createForwardingPost } from './editorForwarding';
 import { buildEditorHtml } from './editorHtml';
 import {
@@ -184,6 +185,45 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         editorPort.post(msg);
       },
       [editorPort]
+    );
+
+    // The one writer of the document from outside the editor (the value sync, the reconcile at hydration): the hunk that differs,
+    // applied at the revision it was planned against, so it is one undo step and a keystroke that landed meanwhile makes the call
+    // stale (it is planned again) instead of being overwritten. The text is a thunk so a queued write uses the latest value.
+    const writeChainRef = useRef<Promise<void>>(Promise.resolve());
+    const writeDocument = useCallback(
+      (request: { text: () => string; selection?: Selection; label: string }): Promise<void> => {
+        const run = async () => {
+          const { client } = apiBridge;
+          let lastCode = 'none';
+          for (let attempt = 0; attempt < 3; attempt += 1) {
+            if (!isReadyRef.current) return;
+            const read = await client.getText();
+            if (!read.ok) {
+              lastCode = read.error.code;
+              break;
+            }
+            const steps = planWrite(read.value.text, request.text(), request.selection);
+            if (steps.length === 0) return;
+            const reply = await client.transact(steps, { at: read.revision, label: request.label });
+            if (reply.ok) return;
+            lastCode = reply.error.code;
+            if (reply.error.code !== 'stale') break;
+          }
+          if (!isReadyRef.current) return;
+          // the typed path could not write: the old script still can
+          Logger.warn('editor.write.fell_back', { label: request.label, code: lastCode });
+          const text = request.text();
+          lastWebViewTextRef.current = text;
+          sendMessage({ type: 'setText', text });
+          if (request.selection) {
+            sendMessage({ type: 'setSelection', start: request.selection.start, end: request.selection.end });
+          }
+        };
+        writeChainRef.current = writeChainRef.current.then(run, run);
+        return writeChainRef.current;
+      },
+      [apiBridge, sendMessage]
     );
 
     const updateHydrated = useCallback(
@@ -379,9 +419,9 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       if (!isInitializedRef.current) return;
       if (value !== lastWebViewTextRef.current) {
         lastWebViewTextRef.current = value;
-        sendMessage({ type: 'setText', text: value });
+        void writeDocument({ text: () => valueRef.current, label: 'react.value' });
       }
-    }, [value, sendMessage]);
+    }, [value, writeDocument]);
 
     const updateHydratedRef = useRef(updateHydrated);
     updateHydratedRef.current = updateHydrated;
@@ -430,15 +470,14 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
               const { text, sel } = queuedTextRef.current;
               queuedTextRef.current = null;
               lastWebViewTextRef.current = text;
-              sendMessage({ type: 'setText', text });
-              queuedSelectionRef.current = sel;
+              void writeDocument({ text: () => text, selection: sel, label: 'react.queued' });
             } else if (m.text !== valueRef.current) {
               Logger.info('editor.hydrated.reconciled', {
                 viewLength: m.text.length,
                 valueLength: valueRef.current.length,
               });
               lastWebViewTextRef.current = valueRef.current;
-              sendMessage({ type: 'setText', text: valueRef.current });
+              void writeDocument({ text: () => valueRef.current, label: 'react.reconcile' });
             }
             if (queuedSelectionRef.current != null) {
               const selection = queuedSelectionRef.current;
@@ -490,6 +529,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         onSelectionChange,
         sendMessage,
         updateHydrated,
+        writeDocument,
       ]
     );
 

@@ -355,6 +355,27 @@ describe('ProblemEditorScreen flow (syntax toolbar)', () => {
   });
 });
 
+describe('ProblemEditorScreen flow (writes from outside the editor)', () => {
+  it('given the code formatted by the gateway, when the user taps Undo, then the code before the format returns in one step', async () => {
+    // Given the hydrated editor and the code it shows
+    const { gateway } = fakeGateway();
+    const session = await renderEditor(gateway);
+    const editor = await session.editor();
+    const before = editor.text();
+
+    // When the gateway's format replaces the buffer, and the user taps the toolbar's Undo
+    await userEvent.click(screen.getByTestId('ProblemEditorFormatButton'));
+    await waitFor(() => expect(editor.text()).toBe(`# formatted\n${before}`), { timeout: 5_000 });
+    Object.assign(window, { __MCP_KEYBOARD_VISIBLE__: true });
+    window.dispatchEvent(new Event('mcp:keyboardframe'));
+    await screen.findByTestId('EditorAction-Undo', {}, { timeout: 5_000 });
+    await session.tap('EditorAction-Undo');
+
+    // Then the format is one undo step and the code is what it was
+    await waitFor(() => expect(editor.text()).toBe(before), { timeout: 5_000 });
+  });
+});
+
 describe('ProblemEditorScreen flow (keyboard)', () => {
   it('given the editor holds the caret, when the user taps the page outside the editor, then the editor lets go of it and the screen logs the dismissal', async () => {
     // Given the hydrated editor with the caret in it
