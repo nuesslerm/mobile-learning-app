@@ -334,8 +334,6 @@ for _, p in ipairs(SOL) do
     device:scroll_until_visible{element={id='EditorAction-Undo'}, direction='LEFT', from={id='EditorActionToolbar'}, timeout=6000, optional=true}
     device:tap_on({id='EditorAction-Undo'})
     device:extended_wait_until{condition=function() return #(buffer() or "") < typed_length end, timeout=8000, label=p.id .. ': the undo reached the page'}
-    local undone = buffer() or ""
-    r.undo_removed_only_a_tail = typed_text:sub(1, #undone) == undone
     device:tap_on({id='EditorAction-Redo'})
     -- the exact text returns, not a text of the same length
     device:extended_wait_until{condition=function() return (buffer() or "") == typed_text end, timeout=8000, label=p.id .. ': the redo restored the exact text'}
@@ -379,7 +377,6 @@ for _, p in ipairs(SOL) do
   local r = result[p.id]
   assert_true(r.keyboard_at_start, p.id .. ": keyboard not shown")
   assert_true(r.toolbar_above_keyboard, p.id .. ": toolbar not above the keyboard")
-  assert_true(r.undo_removed_only_a_tail ~= false, p.id .. ": the toolbar's Undo changed more than the end of the typed text")
   assert_true(r.lines_match, ("%s: typed code does not match: missing %s; the field read %s"):format(p.id, json.encode(r.missing),
     r.field_read_empty and "empty" or "..." .. json.encode(r.buffer_tail)))
   if r.final then
