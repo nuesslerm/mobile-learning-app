@@ -213,6 +213,10 @@ while true do
     heard = text_of("ProblemEditorVoiceReviewSheet-TranscriptInput")
     -- read while the line is fresh: on the cold first chunk the app's startup logging fills the device log buffer before the plan answers, and the line is gone by the end of the turn
     transcribe_logged = device:extended_wait_until{condition=function() return info_log():find("voice_edit.transcribe.response", 1, true) end, timeout=10000, optional=true}
+    -- a stray tap on the transcript can raise the keyboard, which leaves Send below the lifted sheet: Back lowers the keyboard and keeps the sheet
+    if android and not device:extended_wait_until{visible={id='ProblemEditorVoiceReviewSheet-Send'}, timeout=3000, optional=true} and device:get_device_state('keyboard').visible then
+      device:back()
+    end
     -- the sheet slides up: its input is in the tree before Send is on screen
     device:assert_visible({id='ProblemEditorVoiceReviewSheet-Send'}, {timeout=30000})
   end)
