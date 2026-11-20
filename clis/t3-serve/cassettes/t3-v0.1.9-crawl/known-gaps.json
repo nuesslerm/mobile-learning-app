@@ -128,8 +128,6 @@
         "t3-rpc-device.list-invalid-no-payload",
         "t3-rpc-device.list-valid-min",
         "t3-rpc-server.acceptAcpRegistryUrlAuth-valid-min",
-        "t3-rpc-server.prepareTriage-boundary-full",
-        "t3-rpc-server.prepareTriage-valid-min",
         "t3-rpc-server.searchAcpRegistry-valid-min",
         "t3-rpc-server.uninstallAcpRegistryManagedBinary-valid-min"
       ]
@@ -1034,6 +1032,17 @@
       "ids": [
         "t3-rpc-server.refreshUsageRates-invalid-no-payload",
         "t3-rpc-server.refreshUsageRates-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.prompt",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.prompt changed drift"
+      ],
+      "ids": [
+        "t3-rpc-server.prepareTriage-boundary-full",
+        "t3-rpc-server.prepareTriage-valid-min"
       ]
     },
     {
