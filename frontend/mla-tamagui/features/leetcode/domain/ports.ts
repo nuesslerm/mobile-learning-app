@@ -153,13 +153,35 @@ export interface CodeEditorPort {
  */
 export interface CodeRunnerPort {
   run(p: RunCodeParams): Promise<RunResponse>;
+  /** Starts what the runner needs before its first run; a runner that needs nothing leaves it out. */
+  warmUp?(): void;
+}
+
+/** Where Run Local executes: the leetcode-backend, or this device. */
+export type RunnerChoice = 'backend' | 'device';
+
+export type CodeRunnerStage = 'assets' | 'page' | 'pull' | 'boot' | 'wait';
+
+/** A runner that could not run at all (as opposed to a run that failed its cases): it never started, or it was closed under the call. */
+export class CodeRunnerError extends Error {
+  constructor(
+    public readonly kind: 'unavailable' | 'closed',
+    message: string,
+    public readonly stage?: CodeRunnerStage
+  ) {
+    super(message);
+    this.name = 'CodeRunnerError';
+  }
 }
 
 export interface LeetCodePorts {
   gateway: LeetCodeGatewayPort;
   voice: VoiceEditTransportPort;
   audio: AudioRecordingPort;
+  /** The runner Run Local calls: it follows the setting. */
   runner: CodeRunnerPort;
+  /** The on-device runner the setting can choose; a flow may supply its own. */
+  deviceRunner: CodeRunnerPort;
 }
 
 /** What a caller may supply; the container fills the rest (the runner defaults to the gateway's). */

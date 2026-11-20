@@ -193,5 +193,6 @@ export function createFixturePorts(): LeetCodePorts {
     voice: createFixtureVoice(),
     audio: createFixtureAudio(),
     runner: createGatewayCodeRunner(gateway),
+    deviceRunner: createGatewayCodeRunner(gateway),
   };
 }

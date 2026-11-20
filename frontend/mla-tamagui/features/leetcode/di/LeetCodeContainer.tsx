@@ -5,9 +5,12 @@ import { useMemo, type ReactNode } from 'react';
 import type { AudioRecordingPort, LeetCodePortOverrides, LeetCodePorts } from '../domain/ports';
 import { ExpoAudioRecorderProvider, useExpoAudioRecordingPort } from '../data/ExpoAudioRecorderAdapter';
 import { createGatewayCodeRunner } from '../data/gatewayCodeRunner';
+import { createSelectingCodeRunner } from '../data/selectingCodeRunner';
+import { createUnavailableCodeRunner } from '../data/unavailableCodeRunner';
 import { createLiveVoiceEditTransport } from '../data/voiceEditTransport';
 import { createLiveLeetCodeGateway } from '../data/webBridgeClient';
 import { LeetCodeContainerProvider } from '../state/ports';
+import { useRunnerSettingStore, whenRunnerSettingHydrated } from '../state/runnerSettingStore';
 
 const DEFAULT_BACKEND_BASE_URL = 'http://localhost:8789';
 
@@ -19,11 +22,22 @@ export function createDefaultContainer(
     createLiveLeetCodeGateway(
       appConfig.leetcodeBackendBaseUrl ?? DEFAULT_BACKEND_BASE_URL
     );
+  const deviceRunner = overrides.deviceRunner ?? createUnavailableCodeRunner();
   return {
     gateway,
     voice: overrides.voice ?? createLiveVoiceEditTransport(),
     audio: overrides.audio,
-    runner: overrides.runner ?? createGatewayCodeRunner(gateway),
+    deviceRunner,
+    runner:
+      overrides.runner ??
+      createSelectingCodeRunner({
+        choose: async () => {
+          await whenRunnerSettingHydrated();
+          return useRunnerSettingStore.getState().runner;
+        },
+        current: () => useRunnerSettingStore.getState().runner,
+        runners: { backend: createGatewayCodeRunner(gateway), device: deviceRunner },
+      }),
   };
 }
 
