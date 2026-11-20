@@ -26,6 +26,9 @@ config.cacheStores = [new FileStore({ root: path.join(__dirname, 'node_modules',
 config.resolver.unstable_enableSymlinks = true;
 config.resolver.unstable_enablePackageExports = true;
 
+// Pyodide ships as assets: the interpreter and its library archive, and two text files renamed .bin so they are not bundled as source.
+config.resolver.assetExts = [...config.resolver.assetExts, 'wasm', 'bin'];
+
 // Shrinks Metro's crawl/watch surface for this monorepo -- see
 // mobile-learning-app/metro.config.js's matching block for the full
 // rationale (why `dist/**` and nested node_modules are deliberately left
