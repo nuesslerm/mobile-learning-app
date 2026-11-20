@@ -33,6 +33,7 @@ import {
   getPalette,
   useCodeEditorSettingsStore,
 } from './editorSettings';
+import type { EditResult } from './editing';
 import type { Selection } from './types';
 
 // App default 400ms flush — same cadence as every other Logger.
@@ -48,8 +49,10 @@ export type EditorInputHandle = {
   insertAtCursor: (text: string, cursorOffset?: number) => void;
   /** Text as if typed at the caret: auto-closed brackets, re-indented `else:` and the rest of what typing does. */
   typeText: (text: string) => void;
-  /** Replace the whole document and place the selection in one round-trip. */
+  /** Replace the whole document and place the selection: one hunk, one undo step. */
   setTextAndSelection: (text: string, sel: Selection) => void;
+  /** Apply a pure whole-document edit to the editor's own text and selection (the toolbar's Tab on a selection, Dedent, Comment, Newline). */
+  transformDocument: (transform: (text: string, sel: Selection) => EditResult) => void;
   undo: () => void;
   redo: () => void;
   showDiff: (start: number, end: number) => void;
@@ -187,12 +190,18 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       [editorPort]
     );
 
-    // The one writer of the document from outside the editor (the value sync, the reconcile at hydration): the hunk that differs,
-    // applied at the revision it was planned against, so it is one undo step and a keystroke that landed meanwhile makes the call
-    // stale (it is planned again) instead of being overwritten. The text is a thunk so a queued write uses the latest value.
+    // The one writer of the document from outside the editor (the value sync, the reconcile at hydration, the whole-document keys of
+    // the toolbar): the hunk that differs, applied at the revision it was planned against, so it is one undo step and a keystroke
+    // that landed meanwhile makes the call stale (it is planned again) instead of being overwritten. `next` is given the editor's
+    // own text and selection when the write runs, so a queued write uses the latest value and a key works on what is really there.
     const writeChainRef = useRef<Promise<void>>(Promise.resolve());
     const writeDocument = useCallback(
-      (request: { text: () => string; selection?: Selection; label: string }): Promise<void> => {
+      (request: {
+        next: (current: { text: string; selection: Selection }) => { text: string; selection?: Selection };
+        label: string;
+        /** false: a write that works on the editor's own text has nothing to send the old script when the typed path is gone */
+        oldScriptFallback?: boolean;
+      }): Promise<void> => {
         const run = async () => {
           const { client } = apiBridge;
           let lastCode = 'none';
@@ -203,7 +212,12 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
               lastCode = read.error.code;
               break;
             }
-            const steps = planWrite(read.value.text, request.text(), request.selection);
+            const range = read.value.selection.ranges[read.value.selection.main] ?? { anchor: 0, head: 0 };
+            const next = request.next({
+              text: read.value.text,
+              selection: { start: Math.min(range.anchor, range.head), end: Math.max(range.anchor, range.head) },
+            });
+            const steps = planWrite(read.value.text, next.text, next.selection);
             if (steps.length === 0) return;
             const reply = await client.transact(steps, { at: read.revision, label: request.label });
             if (reply.ok) return;
@@ -211,13 +225,14 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             if (reply.error.code !== 'stale') break;
           }
           if (!isReadyRef.current) return;
+          Logger.warn('editor.write.failed', { label: request.label, code: lastCode, oldScript: request.oldScriptFallback !== false });
+          if (request.oldScriptFallback === false) return;
           // the typed path could not write: the old script still can
-          Logger.warn('editor.write.fell_back', { label: request.label, code: lastCode });
-          const text = request.text();
-          lastWebViewTextRef.current = text;
-          sendMessage({ type: 'setText', text });
-          if (request.selection) {
-            sendMessage({ type: 'setSelection', start: request.selection.start, end: request.selection.end });
+          const next = request.next({ text: lastWebViewTextRef.current, selection: { start: 0, end: 0 } });
+          lastWebViewTextRef.current = next.text;
+          sendMessage({ type: 'setText', text: next.text });
+          if (next.selection) {
+            sendMessage({ type: 'setSelection', start: next.selection.start, end: next.selection.end });
           }
         };
         writeChainRef.current = writeChainRef.current.then(run, run);
@@ -294,8 +309,21 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           // Keep our mirror in sync so the value-sync effect doesn't echo the
           // change back as a redundant setText once React state catches up.
           lastWebViewTextRef.current = text;
-          sendMessage({ type: 'setText', text });
-          sendMessage({ type: 'setSelection', start: sel.start, end: sel.end });
+          void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.text' });
+        },
+        transformDocument(transform: (text: string, sel: Selection) => EditResult) {
+          Logger.info('editor.transform_document', { effect: 'transformDocument' });
+          if (!isReadyRef.current || !isInitializedRef.current) return;
+          // the editor's own text and caret, not React's, which can be a keystroke behind
+          void writeDocument({
+            next: (current) => {
+              const result = transform(current.text, current.selection);
+              lastWebViewTextRef.current = result.text;
+              return result;
+            },
+            label: 'toolbar.transform',
+            oldScriptFallback: false,
+          });
         },
         undo() {
           Logger.info('editor.undo', { effect: 'undo' });
@@ -316,11 +344,12 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             start: from,
             end: to,
           });
-          sendMessage({ type: 'showDiff', start: from, end: to });
+          // after the write that put the changed text there, which now lands a few round trips after the call
+          void writeChainRef.current.then(() => sendMessage({ type: 'showDiff', start: from, end: to }));
         },
         hideDiff() {
           Logger.info('editor.hide_diff', { effect: 'hideDiff' });
-          sendMessage({ type: 'hideDiff' });
+          void writeChainRef.current.then(() => sendMessage({ type: 'hideDiff' }));
         },
       }),
       [sendMessage]
@@ -419,7 +448,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       if (!isInitializedRef.current) return;
       if (value !== lastWebViewTextRef.current) {
         lastWebViewTextRef.current = value;
-        void writeDocument({ text: () => valueRef.current, label: 'react.value' });
+        void writeDocument({ next: () => ({ text: valueRef.current }), label: 'react.value' });
       }
     }, [value, writeDocument]);
 
@@ -470,14 +499,14 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
               const { text, sel } = queuedTextRef.current;
               queuedTextRef.current = null;
               lastWebViewTextRef.current = text;
-              void writeDocument({ text: () => text, selection: sel, label: 'react.queued' });
+              void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.queued' });
             } else if (m.text !== valueRef.current) {
               Logger.info('editor.hydrated.reconciled', {
                 viewLength: m.text.length,
                 valueLength: valueRef.current.length,
               });
               lastWebViewTextRef.current = valueRef.current;
-              void writeDocument({ text: () => valueRef.current, label: 'react.reconcile' });
+              void writeDocument({ next: () => ({ text: valueRef.current }), label: 'react.reconcile' });
             }
             if (queuedSelectionRef.current != null) {
               const selection = queuedSelectionRef.current;

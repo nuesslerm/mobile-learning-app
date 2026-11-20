@@ -56,9 +56,6 @@ export type BuiltinKeyDef = {
   label?: string;
   run: (ctx: KeyActionContext) => void;
 };
-function applyEdit(ctx: KeyActionContext, result: EditResult): void {
-  ctx.editorRef.current?.setTextAndSelection(result.text, result.selection);
-}
 function pairRun(open: string) {
   return (ctx: KeyActionContext): void => {
     // Typed, not inserted: the editor's bracket handling adds the pair (a plain insert left typing the closer to add a second one)
@@ -74,7 +71,7 @@ function symbolRun(char: string) {
 }
 function transformRun(fn: (text: string, sel: Selection) => EditResult) {
   return (ctx: KeyActionContext): void => {
-    applyEdit(ctx, fn(ctx.text, ctx.selection));
+    ctx.editorRef.current?.transformDocument(fn);
   };
 }
 export const BUILTIN_KEYS: Record<BuiltinKeyId, BuiltinKeyDef> = {
@@ -86,7 +83,7 @@ export const BUILTIN_KEYS: Record<BuiltinKeyId, BuiltinKeyDef> = {
         hasSelection: ctx.selection.start !== ctx.selection.end,
       });
       if (ctx.selection.start !== ctx.selection.end) {
-        applyEdit(ctx, indent(ctx.text, ctx.selection));
+        ctx.editorRef.current?.transformDocument(indent);
       } else {
         ctx.editorRef.current?.insertAtCursor(INDENT_UNIT);
       }
