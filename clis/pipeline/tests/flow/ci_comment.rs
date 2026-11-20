@@ -1164,6 +1164,7 @@ fn health_wf_with(github: &Github, event: &str, extra: &[(&str, &str)]) -> RunRe
         .env("GITHUB_SERVER_URL", "https://github.com")
         .env("GITHUB_REF_NAME", "dev")
         .env("GITHUB_EVENT_NAME", event)
+        .env("WF_CI_PUSH_GATE", "on")
         .env("WF_CI_LOG_CACHE", &log_cache())
         .env("NO_PROXY", "127.0.0.1")
         .env("no_proxy", "127.0.0.1");
