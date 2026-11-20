@@ -6,6 +6,7 @@ import type { AudioRecordingPort, LeetCodePortOverrides, LeetCodePorts } from '.
 import { ExpoAudioRecorderProvider, useExpoAudioRecordingPort } from '../data/ExpoAudioRecorderAdapter';
 import { createGatewayCodeRunner } from '../data/gatewayCodeRunner';
 import { createSelectingCodeRunner } from '../data/selectingCodeRunner';
+import { useOptionalPyodideCodeRunner } from '../data/pyodide/PyodideRunnerProvider';
 import { createUnavailableCodeRunner } from '../data/unavailableCodeRunner';
 import { createLiveVoiceEditTransport } from '../data/voiceEditTransport';
 import { createLiveLeetCodeGateway } from '../data/webBridgeClient';
@@ -44,9 +45,11 @@ export function createDefaultContainer(
 function LeetCodePortsFromOverrides({ children }: { children: ReactNode }) {
   const o = useDependencyOverrides<LeetCodePortOverrides>('leetcode');
   const audio = useExpoAudioRecordingPort();
+  // the on-device runner the root provides, when the tree has one
+  const device = useOptionalPyodideCodeRunner();
   const ports = useMemo(
-    () => createDefaultContainer({ ...o, audio: o.audio ?? audio }),
-    [o, audio]
+    () => createDefaultContainer({ ...o, audio: o.audio ?? audio, deviceRunner: o.deviceRunner ?? device }),
+    [o, audio, device]
   );
   return <LeetCodeContainerProvider value={ports}>{children}</LeetCodeContainerProvider>;
 }
