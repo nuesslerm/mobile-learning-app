@@ -52,7 +52,13 @@ local ok, failure = pcall(function()
   end
   device:assert_screenshot("two-sum-before-run")
   -- a run leaves the code as it was: the screen scrolls down to the result card, which puts the first lines of the editor behind the header
-  local code_before = (device:get_element({id='CodeEditorInput'}) or {}).text
+  -- an unfocused Android editor does not expose its text on the input node: the starter is then read from the node that shows it
+  local function editor_text()
+    local t = (device:get_element({id='CodeEditorInput'}) or {}).text
+    if t and t ~= "" then return t end
+    return (device:get_element({text='.*def twoSum.*'}) or {}).text
+  end
+  local code_before = editor_text()
   assert_true(code_before and code_before:find("def twoSum", 1, true), "the editor does not hold the starter before the run: " .. tostring(code_before))
   -- a reused app may still show an earlier run's outcome on this screen, so the stubbed one is waited for, not the first
   local shown
@@ -85,7 +91,7 @@ local ok, failure = pcall(function()
     log("tcp", (device:run_shell("cat /proc/net/tcp /proc/net/tcp6 | grep -iE ':2255|:2253' | head -20")))
   end
   assert_true(shown, "the stubbed 3 of 3 is not on screen: " .. totals)
-  assert_true((device:get_element({id='CodeEditorInput'}) or {}).text == code_before, "the run changed the code in the editor")
+  assert_true(editor_text() == code_before, "the run changed the code in the editor")
   device:assert_visible({text='.*Accepted.*'}, {timeout=5000, label='stubbed run shown as Accepted'})
   assert_true(not device:extended_wait_until{visible={text='.*Unknown error.*'}, timeout=1000, optional=true}, "the app could not read the stubbed answer")
   device:assert_screenshot("two-sum-stubbed-result")
