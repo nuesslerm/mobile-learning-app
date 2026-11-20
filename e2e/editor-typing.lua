@@ -114,6 +114,11 @@ local function sym(c)
   return ok
 end
 local function keyboard_down() return not device:get_device_state('keyboard').visible end
+local function api_calls()
+  local n = 0
+  for _, l in ipairs(device:get_logs{level='debug'}) do if l:find('editor.api.call', 1, true) then n = n + 1 end end
+  return n
+end
 local function done() -- the only way a user dismisses the keyboard: Done at the end of the toolbar
   -- a tap on a row still moving after its swipe stops the row instead of pressing Done: a user taps again
   for _ = 1, 3 do
@@ -310,6 +315,18 @@ for _, p in ipairs(SOL) do
   r.lines_match = #missing == 0
   r.missing = missing
   r.field_read_empty = b == ""
+  -- the toolbar's Undo and Redo reach the page as calls of the typed editor API (issue 86, B1): the text goes back, returns, and each call is logged
+  local typed_length = #(buffer() or "")
+  local api_before = api_calls()
+  device:scroll_until_visible{element={id='EditorAction-Undo'}, direction='LEFT', from={id='EditorActionToolbar'}, timeout=6000, optional=true}
+  device:tap_on({id='EditorAction-Undo'})
+  device:extended_wait_until{condition=function() return #(buffer() or "") < typed_length end, timeout=8000, label=p.id .. ': the undo reached the page'}
+  device:tap_on({id='EditorAction-Redo'})
+  device:extended_wait_until{condition=function() return #(buffer() or "") == typed_length end, timeout=8000, label=p.id .. ': the redo reached the page'}
+  -- the app's debug log is read on the web; the phone's console is not a promised channel
+  if not android then
+    device:extended_wait_until{condition=function() return api_calls() >= api_before + 2 end, timeout=5000, interval=250, label=p.id .. ': both calls were logged as typed API calls'}
+  end
   done()
   if android then r.keyboard_after_done = device:get_device_state('keyboard').visible end
   device:take_screenshot(("%s/%s-keyboard-down.png"):format(out, p.id))

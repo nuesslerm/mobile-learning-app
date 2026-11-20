@@ -1,5 +1,11 @@
+import { createEditorClient, toRemoteEngine } from '@lib/code-editor-api';
 import { Logger } from '@lib/logging';
 import { View } from '@lib/tamagui-design-system';
+import {
+  createRpcClient,
+  createWebViewHostTransport,
+  decode,
+} from '@lib/webview-rpc';
 import React, {
   forwardRef,
   useCallback,
@@ -8,6 +14,7 @@ import React, {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
 import { Platform } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
@@ -18,6 +25,7 @@ import type {
   FromEditorMessage,
   ToEditorMessage,
 } from '../../domain/ports';
+import { createForwardingPost } from './editorForwarding';
 import { buildEditorHtml } from './editorHtml';
 import {
   getCodeFont,
@@ -126,24 +134,36 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     const messageListenersRef = useRef<Set<(m: FromEditorMessage) => void>>(
       new Set()
     );
-    const editorPort = useMemo<CodeEditorPort>(
-      () => ({
-        post(msg: ToEditorMessage) {
-          const webView = webViewRef.current;
-          if (!webView) return;
-          webView.injectJavaScript(
-            `window.dispatchEvent(new MessageEvent('message', { data: ${JSON.stringify(JSON.stringify(msg))} })); true;`
-          );
-        },
+    // The typed editor API over the same WebView: rpc frames come back through onMessage, requests go down as injected scripts.
+    const [apiBridge] = useState(() => {
+      const transport = createWebViewHostTransport(() => webViewRef.current);
+      const engine = toRemoteEngine(
+        createRpcClient(transport, { timeoutMs: 5000 }),
+        (error) => Logger.withError(error).warn('editor.api.remote_failed')
+      );
+      const client = createEditorClient(engine, {
+        trace: (call) => Logger.debug('editor.api.call', { ...call }),
+      });
+      return { transport, client };
+    });
+    const editorPort = useMemo<CodeEditorPort>(() => {
+      const legacyPost = (msg: ToEditorMessage) => {
+        const webView = webViewRef.current;
+        if (!webView) return;
+        webView.injectJavaScript(
+          `window.dispatchEvent(new MessageEvent('message', { data: ${JSON.stringify(JSON.stringify(msg))} })); true;`
+        );
+      };
+      return {
+        post: createForwardingPost(apiBridge.client, legacyPost),
         onMessage(listener) {
           messageListenersRef.current.add(listener);
           return () => {
             messageListenersRef.current.delete(listener);
           };
         },
-      }),
-      []
-    );
+      };
+    }, [apiBridge]);
 
     const sendMessage = useCallback(
       (msg: ToEditorMessage) => {
@@ -251,7 +271,11 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           const max = lastWebViewTextRef.current.length;
           const from = Math.max(0, Math.min(start, end, max));
           const to = Math.min(Math.max(start, end), max);
-          Logger.info('editor.show_diff', { effect: 'showDiff', start: from, end: to });
+          Logger.info('editor.show_diff', {
+            effect: 'showDiff',
+            start: from,
+            end: to,
+          });
           sendMessage({ type: 'showDiff', start: from, end: to });
         },
         hideDiff() {
@@ -475,19 +499,27 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     handleEditorMessageRef.current = handleEditorMessage;
 
     // The WebView's onMessage feeds this editor first, then any port subscribers.
-    const handleMessage = useCallback((event: WebViewMessageEvent) => {
-      let msg: FromEditorMessage;
-      try {
-        msg = JSON.parse(event.nativeEvent.data) as FromEditorMessage;
-      } catch (err) {
-        Logger.withError(err).debug('editor.message.parse_skip');
-        return;
-      }
-      handleEditorMessageRef.current(msg);
-      for (const listener of messageListenersRef.current) {
-        listener(msg);
-      }
-    }, []);
+    const handleMessage = useCallback(
+      (event: WebViewMessageEvent) => {
+        // A typed-API frame goes to the rpc client and never enters the old path, whose listeners expect a `type`.
+        if (decode(event.nativeEvent.data).type !== 'foreign') {
+          apiBridge.transport.receive(event.nativeEvent.data);
+          return;
+        }
+        let msg: FromEditorMessage;
+        try {
+          msg = JSON.parse(event.nativeEvent.data) as FromEditorMessage;
+        } catch (err) {
+          Logger.withError(err).debug('editor.message.parse_skip');
+          return;
+        }
+        handleEditorMessageRef.current(msg);
+        for (const listener of messageListenersRef.current) {
+          listener(msg);
+        }
+      },
+      [apiBridge]
+    );
 
     return (
       <View
