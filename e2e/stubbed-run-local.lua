@@ -41,14 +41,16 @@ local ok, failure = pcall(function()
   end)
   -- the web export's first load hydrates a cold deep link with React #419 (docs/gaps/web-export-cold-deep-link-hydration-418.md); the stubbed interaction itself must stay clean
   device:clear_logs()
-  device:assert_screenshot("two-sum-before-run")
-  -- the editor may open focused with the keyboard over the action row; Done at the end of the toolbar lowers it (on Android
-  -- the editor often opens unfocused, with no keyboard and no toolbar to lower)
-  if not (android and not device:get_device_state('keyboard').visible) then
+  -- the editor may open focused with the keyboard over the action row, and a slow page focuses it late (the hosted run that took this
+  -- screenshot with the rail half up differed by 11%): focus is waited for, Done at the end of the toolbar lowers it, and the shot is
+  -- taken of the settled screen (on Android the editor often opens unfocused, with no keyboard and no toolbar to lower)
+  device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true}
+  if device:get_element({id='EditorHelperRails'}) or device:get_device_state('keyboard').visible then
     device:scroll_until_visible{element={id='EditorAction-Done'}, direction='RIGHT', from={id='EditorActionToolbar'}}
     device:tap_on({id='EditorAction-Done'})
     device:assert_not_visible({id='EditorHelperRails'})
   end
+  device:assert_screenshot("two-sum-before-run")
   -- a run leaves the code as it was: the screen scrolls down to the result card, which puts the first lines of the editor behind the header
   local code_before = (device:get_element({id='CodeEditorInput'}) or {}).text
   assert_true(code_before and code_before:find("def twoSum", 1, true), "the editor does not hold the starter before the run: " .. tostring(code_before))

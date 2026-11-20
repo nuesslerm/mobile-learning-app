@@ -132,6 +132,17 @@ local function done() -- the only way a user dismisses the keyboard: Done at the
     device:assert_not_visible({id='EditorHelperRails'})
   end
 end
+-- Android sometimes loses an Enter key between two typed lines (docs/gaps/android-editor-typing-drops-a-newline.md: `return False` and
+-- `else:` read back as one line): a person sees the line did not break and presses it again. The buffer must grow by the newline; the read
+-- lags the editor by up to a second or so, so the second press waits for that much.
+local function enter()
+  if not android then device:press_key('Enter') return end
+  local before = #(buffer() or "")
+  for _ = 1, 3 do
+    device:press_key('Enter')
+    if device:extended_wait_until{condition=function() return #(buffer() or "") > before end, timeout=2500, optional=true} then return end
+  end
+end
 local keys = 0
 local used_keys = {}
 local function typ(s) keys = keys + #s; device:input_text(s) end
@@ -306,7 +317,7 @@ for _, p in ipairs(SOL) do
   device:take_screenshot(("%s/%s-toolbar-visible.png"):format(out, p.id))
 
   for n = first, last do
-    if n > first then device:press_key('Enter') end
+    if n > first then enter() end
     line(p.id, n - 1, p.lines[n][1], p.lines[n][2], n == 1)
   end
   r.keyboard_while_typing_end = device:get_device_state('keyboard').visible
