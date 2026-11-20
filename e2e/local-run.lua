@@ -8,7 +8,7 @@ features: leetcode
 -- Run Local on the device (issue 86, B2): with "This device" chosen on the problem list, Python runs in the hidden Pyodide page and the
 -- backend is never asked (a stub counts the requests that would reach it). A good solution is Accepted over all 12 cases, a solution that
 -- raises on one input shows 11 / 12 and the error, one that never ends is stopped by the per-case limit, a syntax error shows the compile
--- error. The setting is put back to the server at the end: later tests on this device expect the backend.
+-- error. The setting is put back to the default (this device) at the end: later tests on this device expect it.
 -- wf browser test e2e/local-run.lua --env base=http://127.0.0.1:8800/mla-tamagui
 -- wf android test e2e/local-run.lua --env base=exp://u.expo.dev/<projectId>/group/<group>/--
 local android = device.platform == "android"
@@ -136,7 +136,7 @@ local ok, failure = pcall(function()
 
   assert_true(#device:get_network_stub_hits() == 0, "a run reached the backend")
 end)
--- later tests on this device expect the backend: the setting goes back even when a step failed
-pcall(function() choose('backend') end)
+-- later tests on this device expect the default: the setting goes back even when a step failed
+pcall(function() choose('device') end)
 if not ok then error(failure, 0) end
 log("local run: pass")

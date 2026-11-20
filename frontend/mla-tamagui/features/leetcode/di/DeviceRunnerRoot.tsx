@@ -1,24 +1,8 @@
-import { useEffect, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
-import { PyodideRunnerProvider, useOptionalPyodideCodeRunner } from '../data/pyodide/PyodideRunnerProvider';
-import { useRunnerSettingStore } from '../state/runnerSettingStore';
+import { PyodideRunnerProvider } from '../data/pyodide/PyodideRunnerProvider';
 
-/** Starts the interpreter as soon as the device is the chosen runner (at launch with a saved choice, or when it is picked), so the first run is not the one that waits for the boot. */
-function WarmOnChoice() {
-  const runner = useOptionalPyodideCodeRunner();
-  const choice = useRunnerSettingStore((s) => s.runner);
-  useEffect(() => {
-    if (choice === 'device') runner?.warmUp?.();
-  }, [choice, runner]);
-  return null;
-}
-
-/** The app root's mount of the on-device runner: the provider, and the warm-up that follows the setting. */
+/** The app root's mount of the on-device runner. It loads nothing at launch: the editor warms it when it opens a problem, and a run loads it if that has not happened yet. */
 export function DeviceRunnerRoot({ children }: { children: ReactNode }) {
-  return (
-    <PyodideRunnerProvider>
-      <WarmOnChoice />
-      {children}
-    </PyodideRunnerProvider>
-  );
+  return <PyodideRunnerProvider>{children}</PyodideRunnerProvider>;
 }

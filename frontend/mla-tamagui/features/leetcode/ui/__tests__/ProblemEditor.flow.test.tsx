@@ -13,9 +13,10 @@ import {
 
 import { app } from '../../../../tests/flow/app';
 import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLines';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createLiveLeetCodeGateway } from '../../data/webBridgeClient';
+import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSettingStore';
 import { createFakeCodeRunner, failingRun, passingRun } from '../../testing';
 
 // Native Expo/RN modules the screen's module graph pulls in but that cannot
@@ -62,11 +63,15 @@ function fakeGateway(): { gateway: LeetCodeGatewayPort } {
   };
 }
 
+// the runs here go through the gateway, so the setting is the server unless a test hands in its own runner
+afterEach(() => useRunnerSettingStore.setState({ runner: DEFAULT_RUNNER }));
+
 async function renderEditor(
   gateway: LeetCodeGatewayPort,
   search?: Record<string, string>,
   runner?: CodeRunnerPort
 ): Promise<FlowSession> {
+  if (!runner) useRunnerSettingStore.setState({ runner: 'backend' });
   const ports: LeetCodePortOverrides = {
     gateway,
     voice: createFakeVoiceEditTransport() as unknown as VoiceEditTransportPort,

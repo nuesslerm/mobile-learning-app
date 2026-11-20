@@ -16,16 +16,16 @@ vi.mock('@react-native-async-storage/async-storage', () => {
 });
 
 describe('useRunnerSettingStore', () => {
-  it('Given no stored value, When the store is read, Then Run Local uses the backend', async () => {
+  it('Given no stored value, When the store is read, Then Run Local uses this device', async () => {
     await whenRunnerSettingHydrated();
-    expect(useRunnerSettingStore.getState().runner).toBe(DEFAULT_RUNNER);
+    expect(useRunnerSettingStore.getState().runner).toBe('device');
+    expect(DEFAULT_RUNNER).toBe('device');
   });
 
-  it('Given the person picks the device, When the store is rehydrated from storage, Then the choice survives', async () => {
-    await AsyncStorage.setItem('leetcode-runner', JSON.stringify({ state: { runner: 'device' }, version: 1 }));
+  it('Given the person picks the server, When the store is rehydrated from storage, Then the choice survives', async () => {
+    await AsyncStorage.setItem('leetcode-runner', JSON.stringify({ state: { runner: 'backend' }, version: 1 }));
     await useRunnerSettingStore.persist.rehydrate();
-    expect(useRunnerSettingStore.getState().runner).toBe('device');
-    useRunnerSettingStore.getState().setRunner('backend');
+    expect(useRunnerSettingStore.getState().runner).toBe('backend');
   });
 
   it('Given a stored value that is neither runner, When the store rehydrates, Then it falls back to the default', async () => {

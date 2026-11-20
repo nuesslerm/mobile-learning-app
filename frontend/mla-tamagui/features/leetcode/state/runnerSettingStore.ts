@@ -6,7 +6,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { RunnerChoice } from '../domain/ports';
 
-export const DEFAULT_RUNNER: RunnerChoice = 'backend';
+export const DEFAULT_RUNNER: RunnerChoice = 'device';
 const runnerChoiceSchema = z.enum(['backend', 'device']);
 
 type RunnerSettingState = {

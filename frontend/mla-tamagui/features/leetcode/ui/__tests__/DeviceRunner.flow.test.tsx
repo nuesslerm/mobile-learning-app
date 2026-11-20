@@ -5,7 +5,7 @@ import { app } from '../../../../tests/flow/app';
 import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLines';
 import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../..';
 import { createPyodideRunner, type PyodideRunner, type RunnerLimits } from '../../data/pyodide/pyodideRunner';
-import { useRunnerSettingStore } from '../../state/runnerSettingStore';
+import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSettingStore';
 import { answers, createFakePageHost, HANG, type FakePageHost, type FakePageScript } from '../../testing';
 
 const BACKEND_RUN: RunResponse = { source: 'backend-run', kind: 'test', state: 'SUCCESS', requestId: 'backend', run_success: true, status_msg: 'Accepted', total_correct: 5, total_testcases: 5 };
@@ -41,7 +41,7 @@ async function renderEditor(gateway: LeetCodeGatewayPort, runner: PyodideRunner)
 const press = () => userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
 const status = () => screen.getByTestId('ProblemEditorRunOutcomeStatus').textContent;
 
-afterEach(() => useRunnerSettingStore.setState({ runner: 'backend' }));
+afterEach(() => useRunnerSettingStore.setState({ runner: DEFAULT_RUNNER }));
 
 describe('Run Local on the device', () => {
   it('given the device is chosen, when the user runs the tests, then the on-device runner answers over every case and the backend is not asked', async () => {
@@ -61,6 +61,7 @@ describe('Run Local on the device', () => {
   });
 
   it('given the backend is chosen, when the user runs the tests, then the backend answers and no page is loaded', async () => {
+    useRunnerSettingStore.setState({ runner: 'backend' });
     const { gateway, host, runner } = setup();
     await renderEditor(gateway, runner);
     await press();

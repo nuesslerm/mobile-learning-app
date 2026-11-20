@@ -11,6 +11,7 @@ if device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, op
   device:assert_not_visible({id='EditorHelperRails'})
 end
 device:tap_on({id='ProblemEditorRunLocalButton'})
-local totals = device:assert_visible({id='ProblemEditorRunOutcomeTotals'}).text or ""
+-- the run executes on the device: the first one loads the interpreter
+local totals = device:assert_visible({id='ProblemEditorRunOutcomeTotals'}, {timeout=90000}).text or ""
 log(totals)
 assert_true(totals:find("passed", 1, true), "the outcome totals do not say passed: " .. totals)

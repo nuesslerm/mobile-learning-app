@@ -332,7 +332,17 @@ for _, p in ipairs(SOL) do
   done()
   if android then r.keyboard_after_done = device:get_device_state('keyboard').visible end
   device:take_screenshot(("%s/%s-keyboard-down.png"):format(out, p.id))
-  -- Run Local reached the backend, and no test starts one: its outcome step returns with the on-device runner (issue 86, B5)
+  -- Run Local answers on the device (issue 86, B5), so no backend runs for this test; a part whose lines did not read back is not run,
+  -- because its outcome would hide the line that went missing (reported below)
+  if r.final and r.lines_match then
+    run_flow("run local", function()
+      device:tap_on({id='ProblemEditorRunLocalButton'})
+      -- the first run of a launch loads the interpreter
+      device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals'}, timeout=90000, label=p.id .. ': the run outcome'}
+    end)
+    r.run_local = text_of("ProblemEditorRunOutcomeTotals")
+    device:take_screenshot(("%s/%s-result.png"):format(out, p.id))
+  end
   r.warnings = device:get_logs()
 end
 result.input = { keys = keys, toolbar_taps = toolbar.taps, toolbar_typed_on_keyboard = toolbar.typed }
@@ -356,6 +366,10 @@ for _, p in ipairs(SOL) do
   assert_true(r.toolbar_above_keyboard, p.id .. ": toolbar not above the keyboard")
   assert_true(r.lines_match, ("%s: typed code does not match: missing %s; the field read %s"):format(p.id, json.encode(r.missing),
     r.field_read_empty and "empty" or "..." .. json.encode(r.buffer_tail)))
+  if r.final then
+    local got, of = (r.run_local or ""):match("(%d+) / (%d+)")
+    assert_true(got and got == of, p.id .. ": Run Local did not pass every case: " .. tostring(r.run_local))
+  end
   assert_true(#r.warnings == 0, p.id .. ": JS warnings: " .. tostring(r.warnings[1]))
 end
 log(json.encode(result.input))
