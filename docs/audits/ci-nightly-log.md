@@ -55,3 +55,11 @@ One entry per night, appended by the nightly audit session (the "Nightly audit c
 - Earlier fixes checked: none listed in the last 7 days.
 - Tracker: t3 still behind: pinned 0.1.9, latest 0.1.10. Cause of the failing "Check the pins" step found from the log of run 44283880083: `error: no matching package named rca-core found` (exit 101). `rca-core` is a dependency from the registry `mla` (`backend/remote-chat-agent/host/Cargo.toml`, `service-core/Cargo.toml`), and the hosted runner of `track-contracts.yml` has no way to resolve it. Same failure in the runs of 2026-11-16, 2026-11-17 and 2026-11-18. Not fixed here: it needs the registry configuration and its credential in the workflow (a secret, owner item), or building `wf` with the path dependency. Nothing landed.
 - Not recorded in inbox issue `#79` (`gh issue` is blocked in this session). Owner items: the `mla` registry access of the track-contracts runner; the cache misses.
+
+## 2026-11-20
+
+- Verdict: run 44506536687 (scheduled 2026-11-19 10:31 UTC, about 18 h old), `ok: false`, 305 findings, 0 hard (down from 75 on 2026-11-19): every finding is `replayed-nothing` (browser-e2e-tests, flow-tests shards and others, 0 s of waste each). The `should-have-hit` cache misses on the cargo stages are gone; no fix of this session did that, so the cause is unknown (a change on `dev` or the cache generation, not traced).
+- Fixes landed: none. `wf ci audit` cannot run here (no `bws`, no ledger credentials). Next night: confirm 0 hard findings holds before closing the cache-miss item.
+- Earlier fixes checked: none listed in the last 7 days.
+- Tracker: t3 still behind: pinned 0.1.9, latest 0.1.10. Run 44505935412 (2026-11-19 10:28 UTC) failed in "Check the pins" again with `no matching package named rca-core found`: the runner of `track-contracts.yml` cannot resolve the `mla` registry (owner item, see 2026-11-19). Fifth failing run in a row. Nothing landed.
+- Not recorded in inbox issue `#79` (`gh issue` is blocked in this session).
