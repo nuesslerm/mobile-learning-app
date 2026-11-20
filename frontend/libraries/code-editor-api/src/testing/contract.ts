@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, type TestContext 
 import { createEditorClient, unwrap, type EditorClient } from '../core/client';
 import { createDocumentMirror } from '../core/mirror';
 import type { EditorEngine } from '../ports/engine';
-import { REQUEST_NAMES, type EditorError, type EditorEvent, type EventType, type Reply, type RequestName, type SelRange, type Step } from '../ports/protocol';
+import { REQUEST_NAMES, type EditorError, type EditorEvent, type EventType, type Range, type Reply, type RequestName, type SelRange, type Step } from '../ports/protocol';
 
 export type SubjectHooks = {
   userTypes?(text: string): Promise<void> | void;
@@ -690,6 +690,89 @@ export function editorContract(name: string, make: MakeSubject): void {
         tracked.release();
         unwrap(await client.insertAt(0, 'B'));
         expect(tracked.get()).toEqual(kept);
+      });
+
+      it('given a held range, when an api insert lands before it, then it shifts and reading it returns the original text', async () => {
+        // Given a held range over "45"
+        await start();
+        const mirror = await mirrorOf();
+        const held = mirror.track({ from: 4, to: 6 });
+
+        // When text is inserted before it
+        unwrap(await client.insertAt(1, 'XYZ'));
+
+        // Then it holds the same characters at the new place
+        const range = held.get();
+        expect(range).toEqual({ from: 7, to: 9 });
+        expect(unwrap(await client.getText(range as Range)).text).toBe('45');
+        expect(held.touched()).toBe(false);
+      });
+
+      it('given a held range, when the person types before, at the edges and inside it, then the edges stay outside and an inside edit touches it', async (ctx) => {
+        needs(ctx, 'userTypes', 'userSelects');
+        // Given a held range over "345" and the caret before it
+        await start(TEN, { anchor: 0, head: 0 });
+        const mirror = await mirrorOf();
+        const held = mirror.track({ from: 3, to: 6 });
+
+        // When the person types before the range, at its start, at its end, then inside
+        await hooks().userTypes?.('ab');
+        await snapshot();
+        expect(held.get()).toEqual({ from: 5, to: 8 });
+        await hooks().userSelects?.(5);
+        await snapshot();
+        await hooks().userTypes?.('c');
+        await snapshot();
+        expect(held.get()).toEqual({ from: 6, to: 9 });
+        await hooks().userSelects?.(9);
+        await snapshot();
+        await hooks().userTypes?.('d');
+        await snapshot();
+        expect(held.get()).toEqual({ from: 6, to: 9 });
+        expect(held.touched()).toBe(false);
+        await hooks().userSelects?.(7);
+        await snapshot();
+        await hooks().userTypes?.('e');
+        await snapshot();
+
+        // Then the range grew by the inner edit and still reads as the original characters plus it
+        expect(held.get()).toEqual({ from: 6, to: 10 });
+        expect(held.touched()).toBe(true);
+        expect(unwrap(await client.getText(held.get() as Range)).text).toBe('3e45');
+      });
+
+      it('given a held range after an api edit, when it is undone and redone, then the range follows each step', async () => {
+        // Given a held range and an api insert before it
+        await start();
+        const mirror = await mirrorOf();
+        const held = mirror.track({ from: 4, to: 6 });
+        unwrap(await client.insertAt(0, 'AB'));
+        expect(held.get()).toEqual({ from: 6, to: 8 });
+
+        // When the edit is undone, then redone
+        unwrap(await client.undo());
+        expect(held.get()).toEqual({ from: 4, to: 6 });
+        unwrap(await client.redo());
+
+        // Then the range is back after the insert and reads the same characters
+        expect(held.get()).toEqual({ from: 6, to: 8 });
+        expect(unwrap(await client.getText(held.get() as Range)).text).toBe('45');
+      });
+
+      it('given a selection and an api edit that moves it, when undo runs once, then text and selection are exactly as before the call', async () => {
+        // Given a selection over "234"
+        await start(TEN, { anchor: 2, head: 5 });
+        const before = await snapshot();
+
+        // When an edit that also moves the selection is applied and undone once
+        unwrap(await client.transact([replace(7, 9, 'QQQ'), { op: 'select', anchor: 0 }]));
+        expect((await snapshot()).text).toBe('0123456QQQ9');
+        unwrap(await client.undo());
+
+        // Then the text and the selection are those of before
+        const after = await snapshot();
+        expect(after.text).toBe(before.text);
+        expect(after.selection).toEqual(before.selection);
       });
 
       it('given a new editor instance, when a tracked range is read, then it is null', async (ctx) => {

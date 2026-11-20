@@ -328,13 +328,17 @@ for _, p in ipairs(SOL) do
   r.field_read_empty = b == ""
   -- the toolbar's Undo and Redo reach the page as calls of the typed editor API (issue 86, B1): the text goes back, returns, and each call is logged
   if r.lines_match then
-    local typed_length = #(buffer() or "")
+    local typed_text = buffer() or ""
+    local typed_length = #typed_text
     local api_before = api_calls()
     device:scroll_until_visible{element={id='EditorAction-Undo'}, direction='LEFT', from={id='EditorActionToolbar'}, timeout=6000, optional=true}
     device:tap_on({id='EditorAction-Undo'})
     device:extended_wait_until{condition=function() return #(buffer() or "") < typed_length end, timeout=8000, label=p.id .. ': the undo reached the page'}
+    local undone = buffer() or ""
+    r.undo_removed_only_a_tail = typed_text:sub(1, #undone) == undone
     device:tap_on({id='EditorAction-Redo'})
-    device:extended_wait_until{condition=function() return #(buffer() or "") == typed_length end, timeout=8000, label=p.id .. ': the redo reached the page'}
+    -- the exact text returns, not a text of the same length
+    device:extended_wait_until{condition=function() return (buffer() or "") == typed_text end, timeout=8000, label=p.id .. ': the redo restored the exact text'}
     -- the app's debug log is read on the web; the phone's console is not a promised channel
     if not android then
       device:extended_wait_until{condition=function() return api_calls() >= api_before + 2 end, timeout=5000, interval=250, label=p.id .. ': both calls were logged as typed API calls'}
@@ -375,6 +379,7 @@ for _, p in ipairs(SOL) do
   local r = result[p.id]
   assert_true(r.keyboard_at_start, p.id .. ": keyboard not shown")
   assert_true(r.toolbar_above_keyboard, p.id .. ": toolbar not above the keyboard")
+  assert_true(r.undo_removed_only_a_tail ~= false, p.id .. ": the toolbar's Undo changed more than the end of the typed text")
   assert_true(r.lines_match, ("%s: typed code does not match: missing %s; the field read %s"):format(p.id, json.encode(r.missing),
     r.field_read_empty and "empty" or "..." .. json.encode(r.buffer_tail)))
   if r.final then
