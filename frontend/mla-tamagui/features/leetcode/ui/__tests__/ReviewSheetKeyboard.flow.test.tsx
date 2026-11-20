@@ -24,8 +24,8 @@ function setKeyboard(height: number) {
   window.dispatchEvent(new Event('mcp:keyboardframe'));
 }
 
-// the harness's sheet reports the inset the design system asks of it
-const inset = () => screen.getByTestId('ProblemEditorVoiceReviewSheet').closest('[data-sheet]')?.getAttribute('data-bottom-inset');
+// the harness's sheet reports how far the design system moves it up
+const inset = () => screen.getByTestId('ProblemEditorVoiceReviewSheet').closest('[data-sheet]')?.getAttribute('data-keyboard-lift');
 
 afterEach(() => act(async () => setKeyboard(0)));
 

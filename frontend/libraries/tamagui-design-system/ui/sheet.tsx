@@ -194,7 +194,9 @@ export function Sheet({
   // The sheet rises above the keyboard by the keyboard's height. Opening a sheet puts the keyboard away, so a keyboard that rises while
   // one is open is for a field in it. gorhom's own lift is not relied on: it only acts for its own input, and on the CI emulator it did
   // not move the sheet at all (Expo Go, edge to edge), while the keyboard source below is what the toolbar rail already follows there.
-  // The same code runs on web, where the browser tests and the flow tests see it.
+  // The container is moved, not shrunk: a `bottomInset` shrinks the container the percent snap points are taken of, and a sheet that
+  // is 70% of what is left above a keyboard clips its own Send button on a small phone. The strip the move uncovers at the bottom is
+  // the keyboard's. The same code runs on web, where the browser tests and the flow tests see it.
   const keyboard = useKeyboardFrame();
   const keyboardLift = open && keyboard.visible ? keyboard.height : 0;
 
@@ -217,7 +219,7 @@ export function Sheet({
       keyboardBehavior="interactive"
       // gorhom default is 'none', which leaves the keyboard up over the sheet.
       keyboardBlurBehavior="restore"
-      bottomInset={keyboardLift}
+      containerStyle={keyboardLift > 0 ? { transform: [{ translateY: -keyboardLift }] } : undefined}
       android_keyboardInputMode="adjustResize"
       // color2, NOT `background`: a sheet painted in the page's own background
       // is invisible on the dark theme -- on a device the only things that read

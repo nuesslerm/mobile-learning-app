@@ -6,7 +6,7 @@ const RN = require('react-native-web');
 const Box = (props) =>
   React.createElement(RN.View, { testID: props.testID }, props.children);
 // `data-active-offset-y` mirrors the one prop the design-system Sheet sets only on web, so a flow test can assert each platform branch;
-// `data-bottom-inset` mirrors the lift the web twin of gorhom's keyboard handling asks for, which no jsdom layout can show.
+// `data-keyboard-lift` mirrors how far the design-system Sheet moves its container up for the keyboard, which no jsdom layout can show.
 const Sheet = (props) =>
   React.createElement(
     RN.View,
@@ -14,7 +14,7 @@ const Sheet = (props) =>
       testID: props.testID,
       dataSet: {
         sheet: 'true',
-        ...(props.bottomInset != null ? { bottomInset: String(props.bottomInset) } : {}),
+        keyboardLift: String(-(props.containerStyle?.transform?.[0]?.translateY ?? 0)),
         ...(props.activeOffsetY
           ? { activeOffsetY: JSON.stringify(props.activeOffsetY) }
           : {}),
