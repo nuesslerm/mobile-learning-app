@@ -158,8 +158,8 @@ jobs:
       integration_shard_keys: ${{ steps.shardkeys.outputs.integration }}
       core_shard_keys: ${{ steps.shardkeys.outputs.core }}
       cli_e2e_shard_keys: ${{ steps.shardkeys.outputs.cli_e2e }}
-      legs: ${{ steps.legs.outputs.legs }}
-      eas_update: ${{ steps.legs.outputs.eas_update }}
+      legs: ${{ steps.legs.outputs.legs || steps.nolegs.outputs.legs }}
+      eas_update: ${{ steps.legs.outputs.eas_update || steps.nolegs.outputs.eas_update }}
       fresh: ${{ steps.tags.outputs.fresh }}
       run_flow: ${{ steps.tags.outputs.run_flow }}
       run_unit: ${{ steps.tags.outputs.run_unit }}
@@ -272,10 +272,18 @@ jobs:
           core=$(jq -cn --argjson f "$flow" --argjson u "$unit" --argjson n "$n" '[range(0; $n) | "\($f[.])/\($u[$n - 1 - .])"] | .[]' | while read -r k; do printf '%s' "$k" | sha256sum | cut -c1-24; done | jq -R . | jq -sc '[""] + .')
           echo "core=$core" >> "$GITHUB_OUTPUT"
           echo "cli_e2e=$(wf ci plan shard-keys --stage cli-e2e-tests --count "$n" --plan "$RUNNER_TEMP/plan.json" | jq -c '[""] + .')" >> "$GITHUB_OUTPUT"
+      # Only the deploy and e2e jobs read the legs and the EAS Update flag; a core or cli run asks the vault and vm-ops-api for 46 s of nothing
+      - name: No legs in a core or cli run
+        id: nolegs
+        if: ${{ inputs.stages == 'core' || inputs.stages == 'cli' }}
+        run: |
+          echo "legs=[]" >> "$GITHUB_OUTPUT"
+          echo "eas_update=false" >> "$GITHUB_OUTPUT"
       # What is deployed is what runs: a service's own container image tag (sha-<short>) names the commit it was built
       # from, so there is no record to keep in sync. This also fails in seconds if the runner cannot reach the vault or vm-ops-api.
       - name: Which services changed since the commit they run?
         id: legs
+        if: ${{ inputs.stages != 'core' && inputs.stages != 'cli' }}
         timeout-minutes: 3
         env:
           FORCE_SHIP: ${{ steps.tags.outputs.force_ship }}

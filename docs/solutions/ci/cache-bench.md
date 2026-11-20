@@ -29,7 +29,7 @@ Details that decide what a number means:
 - `--fresh` is how the Nx cache is off in the compile jobs: it sets `NX_SKIP_NX_CACHE=true` and starts no build-cache shim. The `nx` job leaves it off. `WF_BLOB_CACHE=off` is set for every job, as in `pipeline.yml`, so no job reaches a bucket.
 - `CARGO_INCREMENTAL=0` and a fixed `CARGO_TARGET_DIR` are set in all three compile variants, so they compile the same work; the pipeline's own default (incremental) is not what is compared.
 - The narrow change is one comment line appended to a source file in the job's workspace. It is never committed. A comment changes the file's hash and mtime but not what the compiler produces, so it is the gentlest realistic push; a real push that changes code reruns more.
-- `playwright` is a control: its marker file also skips `--with-deps` (apt). The cold step already installed those packages on the same runner, so the number does not show that cost on a fresh machine.
+- `playwright` is a control (the pipeline's own layer, in `install-test-deps`, also caches the .deb files, so it needs no marker): its marker file also skips `--with-deps` (apt). The cold step already installed those packages on the same runner, so the number does not show that cost on a fresh machine.
 
 ## How to run it
 

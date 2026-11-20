@@ -328,3 +328,26 @@ fn given_two_commits_when_one_changes_a_crates_files_then_its_shard_key_changes_
     assert_ne!(a1, a2);
     assert_eq!(a2, a3);
 }
+
+#[test]
+fn given_a_plan_with_flow_and_typecheck_units_when_the_typecheck_shard_keys_are_asked_then_every_shard_has_a_distinct_key_and_the_same_plan_gives_the_same_keys() {
+    // Given a plan of three flow crates and six typecheck crates
+    let unit = |kind: &str, c: &str| json!({"kind": kind, "crate": c});
+    let flow: Vec<Value> = ["alpha", "beta", "gamma"].iter().map(|c| unit("flow", c)).collect();
+    let typecheck: Vec<Value> = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta"].iter().map(|c| unit("unit", c)).collect();
+    let plan = json!({"sha": "aaa", "stages": {"flow-tests": flow, "typecheck-lint-unit-tests": typecheck}});
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("plan.json");
+    std::fs::write(&file, plan.to_string()).unwrap();
+    let keys = || -> Vec<String> {
+        let r = run_wf(&["ci", "plan", "shard-keys", "--stage", "typecheck-lint-unit-tests", "--count", "3", "--plan", &file.display().to_string()], &RunOpts::default());
+        assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+        serde_json::from_str(r.stdout.trim()).unwrap()
+    };
+    // When the keys are asked twice
+    let (a, b) = (keys(), keys());
+    // Then each of the three shards holds units and has a key of its own, and the second ask is the first
+    assert!(a.iter().all(|k| k != "none"), "{a:?}");
+    assert_eq!(a.iter().collect::<std::collections::BTreeSet<_>>().len(), 3);
+    assert_eq!(a, b);
+}

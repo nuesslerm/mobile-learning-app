@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "about": "Seconds each flow and integration unit costs on a shard (its build, its tests, its replays), dealt out longest first onto the least loaded shard (`shard_of`). A unit missing here costs the stage's default. Seeded 19 Nov from the shard times of run 44529824328 (flow 4 to 13 minutes, integration 5 to 11); replace with measured task times once the ledger holds them. Keys are the unit names of `wf ci plan tests --json`: a package, `crate-<crate>`, or `crate-<crate>/<group>` for the groups of an integration suite. Measured units regenerated from NX_TASKS (median of the ran tasks over 19 run(s)) by `wf ci plan shard-weights --write`.",
+  "about": "Seconds each flow and integration unit costs on a shard (its build, its tests, its replays), dealt out longest first onto the least loaded shard (`shard_of`). A unit missing here costs the stage's default. Seeded 19 Nov from the shard times of run 44529824328 (flow 4 to 13 minutes, integration 5 to 11); replace with measured task times once the ledger holds them. Keys are the unit names of `wf ci plan tests --json`: a package, `crate-<crate>`, or `crate-<crate>/<group>` for the groups of an integration suite. Measured units regenerated from NX_TASKS (median of the ran tasks over 19 run(s)) by `wf ci plan shard-weights --write`. typecheck-lint-unit-tests and cli-e2e-tests weights (20 Nov) are the median seconds per unit of the ran tasks in NX_TASKS (a crate's unit, clippy and smoke tasks add up); the typecheck deal starts from the flow load of the machine it mirrors (`shard_in_plan`).",
   "stages": {
     "flow-tests": {
       "default": 40,
@@ -30,6 +30,66 @@
         "@feature/settings": 10
       }
     },
+    "typecheck-lint-unit-tests": {
+      "default": 20,
+      "units": {
+        "crate-orca-serve": 91,
+        "crate-wf": 79,
+        "crate-cdp": 77,
+        "crate-pipeline": 74,
+        "crate-orca-map-schedules": 66,
+        "crate-harness-browser": 65,
+        "crate-orca-map-terminal": 65,
+        "crate-rca-exec": 63,
+        "crate-wf-vmops": 60,
+        "crate-harness-android": 58,
+        "crate-wf-lib": 56,
+        "crate-t3-core": 54,
+        "crate-harness-core": 53,
+        "crate-orca-map-workspace": 53,
+        "crate-orca-map-agent": 48,
+        "crate-orca-map-hosted": 47,
+        "crate-orca-map-state": 42,
+        "crate-wf-login": 41,
+        "crate-wf-bucket": 40,
+        "crate-orca-core": 38,
+        "@lib/flow-test-harness": 37,
+        "crate-rca": 37,
+        "crate-orca-map-git": 34,
+        "crate-t3-contracts": 33,
+        "crate-wf-mimic": 33,
+        "crate-deploy": 29,
+        "crate-secrets": 29,
+        "crate-harness-flow": 26,
+        "crate-t3-serve": 26,
+        "crate-exec-testkit": 25,
+        "crate-t3-store": 21,
+        "crate-wf-harness": 18,
+        "crate-wf-bench": 17,
+        "crate-exec-hosted": 16,
+        "crate-orca-map-settings": 16,
+        "mla-tamagui": 15,
+        "@feature/coding-agent": 14,
+        "crate-agent-api-terminal": 13,
+        "crate-agent-api-browser": 12,
+        "crate-agent-api-service": 12,
+        "crate-t3-http": 12,
+        "@lib/tamagui-design-system": 9,
+        "crate-agent-api-git": 9,
+        "crate-exec-browser": 9,
+        "crate-orca-map-browser": 9,
+        "crate-agent-api-hosted": 7,
+        "@lib/rn-agentation": 6,
+        "crate-orca-map-mobile": 6,
+        "@app/remote-chat-agent": 5,
+        "@feature/service-report": 5,
+        "@feature/settings": 5,
+        "@lib/app-config": 5,
+        "@lib/webview-rpc": 5,
+        "crate-orca-map-accounts": 5,
+        "expo-hello-world-app-2-workspace": 5
+      }
+    },
     "integration-tests": {
       "default": 30,
       "units": {
@@ -57,6 +117,16 @@
         "crate-orca-serve/replay-orca-map-mobile": 5,
         "crate-orca-serve/replay-orca-map-schedules": 5,
         "crate-orca-serve/replay-orca-map-state": 5
+      }
+    },
+    "cli-e2e-tests": {
+      "default": 30,
+      "units": {
+        "crate-wf-harness": 82,
+        "crate-wf-bench": 44,
+        "crate-wf": 42,
+        "crate-wf-login": 26,
+        "crate-harness-flow": 21
       }
     },
     "android-e2e-tests": {

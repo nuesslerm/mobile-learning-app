@@ -692,7 +692,7 @@ pub fn run_stage(stage: &str, plan: &Value, rest: &[String]) -> i32 {
     };
     let tests = match rest.iter().position(|a| a == "--shard") {
         Some(i) => match rest.get(i + 1).and_then(|v| parse_shard(v)) {
-            Some((index, count)) => shard_of(stage, &tests, index, count),
+            Some((index, count)) => shard_in_plan(stage, plan, index, count),
             None => {
                 println!("{}", json!({ "ok": false, "stage": stage, "error": "--shard wants <index>/<count> with 1 <= index <= count", "next": "--shard 2/4" }));
                 return 2;
@@ -742,9 +742,14 @@ impl Weights {
 /// The shard (0-based) of each unit, in the order of `keys`: the units longest first, each onto the shard with the least so far, a tie to the lowest
 /// shard and a tie of costs to the name, so every machine of a stage computes the same split from the same plan and the same weights.
 pub fn assign(keys: &[String], count: usize, weights: &Weights) -> Vec<usize> {
+    assign_onto(keys, count, weights, &[])
+}
+
+/// `assign` onto shards that already carry `base` seconds each (a missing entry is none): the deal that fills what another stage left on the same machine.
+pub fn assign_onto(keys: &[String], count: usize, weights: &Weights, base: &[u64]) -> Vec<usize> {
     let mut order: Vec<usize> = (0..keys.len()).collect();
     order.sort_by(|a, b| weights.cost(&keys[*b]).cmp(&weights.cost(&keys[*a])).then_with(|| keys[*a].cmp(&keys[*b])));
-    let mut load = vec![0u64; count];
+    let mut load: Vec<u64> = (0..count).map(|s| base.get(s).copied().unwrap_or(0)).collect();
     let mut at = vec![0usize; keys.len()];
     for i in order {
         let shard = (0..count).min_by_key(|s| (load[*s], *s)).unwrap_or(0);
@@ -773,8 +778,12 @@ fn object_id(repo: &Path, sha: &str, path: &str) -> String {
 /// `sha` of their directories and of the directories of the crates they depend on, and of the lock file). The same crates with the same inputs are the same
 /// key in every commit, so a workflow can queue them and the later one replays the earlier one's cached result; changed inputs are another key and run at
 /// once. An empty shard is `none`.
-pub fn shard_key(stage: &str, tests: &[Value], index: usize, count: usize, repo: &Path, sha: &str) -> String {
-    let mine = shard_of(stage, tests, index, count);
+pub fn shard_key_in_plan(stage: &str, plan: &Value, index: usize, count: usize, repo: &Path, sha: &str) -> String {
+    key_of(&shard_in_plan(stage, plan, index, count), repo, sha)
+}
+
+fn key_of(mine: &[Value], repo: &Path, sha: &str) -> String {
+    let mine = mine.to_vec();
     let mut keys: Vec<String> = mine.iter().map(unit_key).collect();
     keys.sort();
     keys.dedup();
@@ -827,10 +836,33 @@ pub fn shard_of(stage: &str, tests: &[Value], index: usize, count: usize) -> Vec
 }
 
 pub fn shard_with(tests: &[Value], index: usize, count: usize, weights: &Weights) -> Vec<Value> {
+    shard_onto(tests, index, count, weights, &[])
+}
+
+/// `shard_of` for a stage of a plan. A `core-tests` machine runs flow shard i beside typecheck shard `count + 1 - i`, so the typecheck deal starts from
+/// what the flow deal put on the machine it mirrors: the machine, not the stage, is what ends the job.
+pub fn shard_in_plan(stage: &str, plan: &Value, index: usize, count: usize) -> Vec<Value> {
+    let tests = plan["stages"][stage].as_array().cloned().unwrap_or_default();
+    if stage != "typecheck-lint-unit-tests" {
+        return shard_of(stage, &tests, index, count);
+    }
+    let flow_tests = plan["stages"]["flow-tests"].as_array().cloned().unwrap_or_default();
+    let flow = Weights::of_stage("flow-tests");
+    let mut flow_keys: Vec<String> = flow_tests.iter().map(unit_key).collect();
+    flow_keys.sort();
+    flow_keys.dedup();
+    let at = assign(&flow_keys, count, &flow);
+    let mut flow_load = vec![0u64; count];
+    flow_keys.iter().zip(at).for_each(|(k, s)| flow_load[s] += flow.cost(k));
+    let base: Vec<u64> = (0..count).map(|s| flow_load[count - 1 - s]).collect();
+    shard_onto(&tests, index, count, &Weights::of_stage(stage), &base)
+}
+
+fn shard_onto(tests: &[Value], index: usize, count: usize, weights: &Weights, base: &[u64]) -> Vec<Value> {
     let mut keys: Vec<String> = tests.iter().map(unit_key).collect();
     keys.sort();
     keys.dedup();
-    let at = assign(&keys, count, weights);
+    let at = assign_onto(&keys, count, weights, base);
     tests.iter().filter(|t| keys.iter().position(|k| *k == unit_key(t)).is_some_and(|p| at[p] == index - 1)).cloned().collect()
 }
 
@@ -1105,6 +1137,53 @@ mod shard_tests {
         let mut load = vec![0u64; count];
         keys.iter().zip(at).for_each(|(k, s)| load[*s] += weights.cost(k));
         load
+    }
+
+    fn unit_test(c: &str) -> Value {
+        json!({"kind": "unit", "crate": c})
+    }
+
+    fn flow_test(c: &str) -> Value {
+        json!({"kind": "flow", "crate": c})
+    }
+
+    #[test]
+    fn given_a_flow_stage_that_loads_one_machine_when_typecheck_is_dealt_then_the_machines_flow_heavy_part_gets_the_lighter_typecheck_and_every_unit_runs_once() {
+        // Given a plan whose flow stage has crate-pipeline (409 s, alone on its shard) and light crates, and many typecheck units
+        let flow: Vec<Value> = ["crate-pipeline", "crate-deploy", "crate-rca"].iter().map(|c| flow_test(c.trim_start_matches("crate-"))).collect();
+        let unit: Vec<Value> = ["wf", "cdp", "harness-browser", "rca-exec", "wf-vmops", "harness-core", "orca-serve", "pipeline"].iter().map(|c| unit_test(c)).collect();
+        let plan = json!({"stages": {"flow-tests": flow, "typecheck-lint-unit-tests": unit}});
+        // When typecheck is dealt to three shards, as core-tests runs it mirrored against the flow shards
+        let parts: Vec<Vec<Value>> = (1..=3).map(|i| shard_in_plan("typecheck-lint-unit-tests", &plan, i, 3)).collect();
+        let flow_shard = |i: usize| shard_in_plan("flow-tests", &plan, i, 3);
+        // Then every typecheck unit is on exactly one shard
+        let mut all: Vec<String> = parts.iter().flatten().map(unit_key).collect();
+        all.sort();
+        let mut want: Vec<String> = plan["stages"]["typecheck-lint-unit-tests"].as_array().unwrap().iter().map(unit_key).collect();
+        want.sort();
+        assert_eq!(all, want);
+        // And the machine that runs the heaviest flow shard holds the fewest typecheck seconds
+        let heavy = (1..=3).find(|i| flow_shard(*i).iter().any(|t| unit_key(t) == "crate-pipeline")).unwrap();
+        let w = Weights::of_stage("typecheck-lint-unit-tests");
+        let seconds = |part: &Vec<Value>| part.iter().map(|t| w.cost(&unit_key(t))).sum::<u64>();
+        let mirrored = &parts[3 - heavy];
+        assert!(parts.iter().all(|p| seconds(mirrored) <= seconds(p)), "{:?}", parts.iter().map(seconds).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn given_the_cli_e2e_units_and_their_weights_when_dealt_to_three_shards_then_every_unit_is_on_one_shard_and_the_busiest_is_within_the_bound_of_the_best_possible() {
+        // Given the cli-e2e stage's committed weights and a plan of its crates
+        let w = Weights::of_stage("cli-e2e-tests");
+        let keys: Vec<String> = w.units.keys().cloned().collect();
+        assert!(keys.len() >= 3, "the cli-e2e stage has measured units");
+        // When they are dealt to three shards
+        let at = assign(&keys, 3, &w);
+        // Then the busiest shard holds no more than the heaviest unit or an even share plus one more unit's worth (LPT)
+        let load = loads(&keys, &at, 3, &w);
+        let costs: Vec<u64> = keys.iter().map(|k| w.cost(k)).collect();
+        let best = costs.iter().copied().max().unwrap().max(costs.iter().sum::<u64>().div_ceil(3));
+        assert!(*load.iter().max().unwrap() * 3 <= best * 4, "{load:?} against {best}");
+        assert_eq!(at.len(), keys.len());
     }
 
     #[test]

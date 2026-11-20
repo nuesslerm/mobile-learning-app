@@ -1,11 +1,11 @@
-//! `wf ci plan shard-weights [--write] [--sealed-file <path>] [--out <path>]`: the cost of each flow and integration unit as the CI database measured it
+//! `wf ci plan shard-weights [--write] [--sealed-file <path>] [--out <path>]`: the cost of each flow, typecheck, integration and cli-e2e unit as the CI database measured it
 //! (`NX_TASKS`: the milliseconds of every task that ran), in the format of `data/shard-weights.json`, so the shard split follows what the stages took and
 //! not a guess. A unit's cost in one run is the sum of its tasks that ran; its weight is the median over the runs, in seconds.
 use serde_json::{json, Map, Value};
 use std::collections::BTreeMap;
 use wf_bucket::ci_db::{self, Working};
 
-const STAGES: [&str; 2] = ["flow-tests", "integration-tests"];
+const STAGES: [&str; 4] = ["flow-tests", "typecheck-lint-unit-tests", "integration-tests", "cli-e2e-tests"];
 const FLOOR_S: u64 = 5;
 
 /// The stage a job belongs to: `flow-tests (3/6)` is `flow-tests`; a `core-tests` job runs two stages, told apart by the task's target.
@@ -23,6 +23,9 @@ fn unit_of(stage: &str, task: &str) -> Option<String> {
     let (project, target) = task.split_once(':')?;
     if stage == "integration-tests" && project.starts_with("crate-") && target.starts_with("replay-") {
         return Some(format!("{project}/{target}"));
+    }
+    if stage == "cli-e2e-tests" && project.starts_with("crate-") && target.starts_with("cargo-e2e-") && target != "cargo-e2e-smoke" {
+        return Some(format!("{project}/{}", &target["cargo-e2e-".len()..]));
     }
     Some(project.to_string())
 }
@@ -141,6 +144,24 @@ mod tests {
         assert_eq!(c["integration-tests"]["crate-t3-serve/replay-t3-core-core"], 598);
         assert_eq!(c["integration-tests"]["crate-t3-serve"], 51);
         assert!(!c.contains_key("deploy-build"));
+    }
+
+    #[test]
+    fn given_typecheck_and_cli_e2e_tasks_when_costs_are_made_then_each_stage_holds_its_units_and_a_crates_smoke_and_e2e_tasks_add_up() {
+        // Given a crate's unit and clippy tasks, its e2e and smoke tasks, and an e2e group task
+        let rows = vec![
+            row("1", "typecheck-lint-unit-tests", "crate-wf:cargo-unit", 52_000),
+            row("1", "typecheck-lint-unit-tests", "crate-wf:cargo-clippy", 30_000),
+            row("1", "cli-e2e-tests", "crate-wf:cargo-e2e", 43_000),
+            row("1", "cli-e2e-tests", "crate-wf:cargo-e2e-smoke", 41_000),
+            row("1", "cli-e2e-tests", "crate-wf-harness:cargo-e2e-record", 20_000),
+        ];
+        // When the costs are made
+        let c = costs(&rows);
+        // Then typecheck sums the crate's tasks, cli-e2e sums its crate and names a group as a unit of its own
+        assert_eq!(c["typecheck-lint-unit-tests"]["crate-wf"], 82);
+        assert_eq!(c["cli-e2e-tests"]["crate-wf"], 84);
+        assert_eq!(c["cli-e2e-tests"]["crate-wf-harness/record"], 20);
     }
 
     #[test]

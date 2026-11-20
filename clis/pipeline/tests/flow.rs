@@ -25,6 +25,8 @@ mod ci_parallelism;
 mod ci_db;
 #[path = "flow/ci_plan.rs"]
 mod ci_plan;
+#[path = "flow/ci_setup_cost.rs"]
+mod ci_setup_cost;
 #[path = "flow/e2e_backends.rs"]
 mod e2e_backends;
 #[path = "flow/expected_revisions.rs"]

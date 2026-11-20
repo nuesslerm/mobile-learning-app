@@ -63,10 +63,9 @@ fn shard_keys(args: &[String]) -> Option<i32> {
         Ok(plan) => plan,
         Err(e) => return refused(&format!("cannot read the plan {plan_path}: {e}"), "wf ci plan tests --json > plan.json"),
     };
-    let tests = plan["stages"][stage].as_array().cloned().unwrap_or_default();
     let repo = p.val("repo").map(PathBuf::from).unwrap_or_else(wf_kit::root::repo_root);
     let sha = plan["sha"].as_str().filter(|s| !s.is_empty()).unwrap_or("HEAD").to_string();
-    let keys: Vec<String> = (1..=count).map(|i| crate::test_plan::shard_key(stage, &tests, i, count, &repo, &sha)).collect();
+    let keys: Vec<String> = (1..=count).map(|i| crate::test_plan::shard_key_in_plan(stage, &plan, i, count, &repo, &sha)).collect();
     println!("{}", json!(keys));
     Some(0)
 }

@@ -87,7 +87,35 @@ runs:
       with:
         path: .git/modules/references
         key: ${{ steps.refs-key.outputs.key }}
+    # The Chromium build and the system packages' .deb files, cached by the Playwright version and the runner image, so a run installs them from disk
+    # (dpkg, no mirror) and the apt mirror's stalls stop being a cost; a miss takes the install below and saves what it fetched.
+    - name: Key of the Playwright cache
+      id: pw-key
+      if: ${{ inputs.playwright == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') }}
+      shell: bash
+      run: |
+        # no ImageVersion (a container job): no key, so debs built for one image are never restored onto another
+        [ -n "${ImageVersion:-}" ] || exit 0
+        version=$(pnpm --filter @lib/browser-client exec playwright --version | tr -c '0-9a-z.\n' '_')
+        echo "key=playwright-$version-$ImageVersion-$(uname -m)" >> "$GITHUB_OUTPUT"
+    - name: Restore Chromium and the system packages
+      id: pw-cache
+      if: ${{ inputs.playwright == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && steps.pw-key.outputs.key != '' }}
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: |
+          ~/.cache/ms-playwright
+          ~/playwright-debs
+        key: ${{ steps.pw-key.outputs.key }}
+    - uses: ./.github/actions/cache-summary
+      if: ${{ inputs.playwright == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && steps.pw-key.outputs.key != '' }}
+      with:
+        layer: playwright
+        hit: ${{ steps.pw-cache.outputs.cache-hit }}
+        matched-key: ${{ steps.pw-cache.outputs.cache-matched-key }}
+        paths: ~/.cache/ms-playwright ~/playwright-debs
     - name: Chromium for Playwright
+      id: playwright
       if: ${{ inputs.playwright == 'true' }}
       shell: bash
       run: |
@@ -95,8 +123,20 @@ runs:
         version=$(pnpm --filter @lib/browser-client exec playwright --version | tr -c '0-9a-z.\n' '_')
         marker="$HOME/.cache/ms-playwright/.installed-$version"
         [ -f "$marker" ] && exit 0
-        # apt can stall on a mirror with no output for the rest of the job: bound each try, kill the stuck apt, try again
         sudo=$([ "$(id -u)" = 0 ] || echo sudo)
+        debs="$HOME/playwright-debs"
+        # a restored cache holds the browser and the .deb files, never the marker: the system packages are this machine's own to install
+        if ls "$debs"/*.deb >/dev/null 2>&1; then
+          if $sudo dpkg -i "$debs"/*.deb && timeout -k 10 150 pnpm --filter @lib/browser-client exec playwright install chromium; then
+            mkdir -p "$(dirname "$marker")" && touch "$marker"; echo "playwright: installed from the cache"; exit 0
+          fi
+          echo "playwright: the cached packages did not install; the mirror path follows"
+          $sudo dpkg --configure -a || true
+        fi
+        # a try keeps the .deb files it downloads, for the cache save below
+        mkdir -p "$debs/partial" && chmod -R a+rwX "$debs"
+        printf 'Dir::Cache::Archives "%s";\nAPT::Keep-Downloaded-Packages "true";\n' "$debs" | $sudo tee /etc/apt/apt.conf.d/81ci-debs >/dev/null
+        # apt can stall on a mirror with no output for the rest of the job: bound each try, kill the stuck apt, try again
         # a try is bounded to 150 s (the system packages take 20 to 40 s when the mirror answers; one stalled shard of run 44591379311 lost 457 s to a 420 s bound),
         # and after the first failure the sources point at one mirror directly, as hosted-apt does
         current="mirror+file:/etc/apt/apt-mirrors.txt"
@@ -117,6 +157,28 @@ runs:
           fi
         done
         exit 1
+    - name: Prepare the Playwright cache save
+      id: pw-prep
+      if: ${{ inputs.playwright == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && steps.pw-key.outputs.key != '' && steps.pw-cache.outputs.cache-hit != 'true' && steps.playwright.outcome == 'success' }}
+      shell: bash
+      run: |
+        sudo=$([ "$(id -u)" = 0 ] || echo sudo)
+        $sudo rm -f /etc/apt/apt.conf.d/81ci-debs
+        rm -rf "$HOME/playwright-debs/partial" "$HOME/playwright-debs/lock"
+        # an install that downloaded nothing (marker exit, image with the packages) would save an entry no later run can use
+        if ls "$HOME"/playwright-debs/*.deb >/dev/null 2>&1 && [ -n "$(ls -A "$HOME/.cache/ms-playwright" 2>/dev/null)" ]; then
+          # the marker would tell a fresh runner the system packages are installed
+          rm -f "$HOME"/.cache/ms-playwright/.installed-*
+          echo "save=true" >> "$GITHUB_OUTPUT"
+        fi
+    - name: Save the Playwright cache
+      if: ${{ inputs.playwright == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && steps.pw-prep.outputs.save == 'true' }}
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: |
+          ~/.cache/ms-playwright
+          ~/playwright-debs
+        key: ${{ steps.pw-key.outputs.key }}
     - name: Device-frame page
       if: ${{ inputs.browser-harness == 'true' }}
       shell: bash
