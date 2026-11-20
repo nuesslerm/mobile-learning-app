@@ -150,32 +150,29 @@ describe('the editor port forwarding', () => {
     expect(fake.peek().selection.ranges[0]).toEqual({ anchor: 5, head: 5 });
   });
 
-  it('given a positive offset or one past the insert, when insertAt is posted, then the old script places the caret', async () => {
-    const { fake, legacy, post } = setup();
+  it('given an offset past the end of the insert or before its start, when insertAt is posted, then the caret is held at the nearest end of the insert', async () => {
+    const { fake, client, legacy, post } = setup();
+    await client.select(1);
 
-    post({ type: 'insertAt', text: 'x', offset: 2 });
-    post({ type: 'insertAt', text: 'x', offset: -2 });
+    post({ type: 'insertAt', text: 'xy', offset: 5 });
     await settled();
+    expect(fake.text()).toBe('axybc');
+    expect(fake.peek().selection.ranges[0]).toEqual({ anchor: 3, head: 3 });
 
-    expect(legacy).toEqual([
-      { type: 'insertAt', text: 'x', offset: 2 },
-      { type: 'insertAt', text: 'x', offset: -2 },
-    ]);
-    expect(fake.text()).toBe('abc');
+    post({ type: 'insertAt', text: 'Q', offset: -9 });
+    await settled();
+    expect(fake.text()).toBe('axyQbc');
+    expect(fake.peek().selection.ranges[0]).toEqual({ anchor: 3, head: 3 });
+    expect(legacy).toEqual([]);
   });
 
-  it('given no editor behind the engine yet, when insertAt is posted, then the old script gets it; a transport failure does not repeat an edit that may have landed', async () => {
+  it('given no editor behind the engine yet or a lost channel, when insertAt is posted, then nothing is sent to the old script and nothing is repeated', async () => {
     const legacy: ToEditorMessage[] = [];
-    const post = createForwardingPost(createEditorClient(createDeferredEngine(() => undefined)), (msg) => legacy.push(msg));
-    post({ type: 'insertAt', text: 'x' });
-    await settled();
-    expect(legacy).toEqual([{ type: 'insertAt', text: 'x' }]);
-
-    const lost: ToEditorMessage[] = [];
+    createForwardingPost(createEditorClient(createDeferredEngine(() => undefined)), (msg) => legacy.push(msg))({ type: 'insertAt', text: 'x' });
     const closed = { request: () => Promise.reject(Object.assign(new Error('gone'), { code: 'closed' })), listen: () => () => undefined };
-    createForwardingPost(createEditorClient(closed), (msg) => lost.push(msg))({ type: 'insertAt', text: 'x' });
+    createForwardingPost(createEditorClient(closed), (msg) => legacy.push(msg))({ type: 'insertAt', text: 'x' });
     await settled();
-    expect(lost).toEqual([]);
+    expect(legacy).toEqual([]);
   });
 
   it('given a caret, when typeText is posted, then the keystroke is typed through the api as one undo step and the old path saw nothing', async () => {
@@ -192,46 +189,28 @@ describe('the editor port forwarding', () => {
     expect(legacy).toEqual([]);
   });
 
-  it('given a text of more than a keystroke, a host that cannot type, or no editor yet, when typeText is posted, then the old script gets it', async () => {
+  it('given a text of more than a keystroke, a host that cannot type, or no editor yet, when typeText is posted, then nothing changes and nothing goes to the old script', async () => {
     const { fake, legacy, post } = setup();
-    const long = { type: 'typeText', text: 'x'.repeat(65) } as const;
-    post(long);
-    await settled();
-    expect(legacy).toEqual([long]);
-    expect(fake.text()).toBe('abc');
-
+    post({ type: 'typeText', text: 'x'.repeat(65) });
     const noType = createFakeEditor({ text: 'abc', typing: false });
-    const viaNoType: ToEditorMessage[] = [];
-    createForwardingPost(createEditorClient(noType.engine), (msg) => viaNoType.push(msg))({ type: 'typeText', text: '(' });
-    const early: ToEditorMessage[] = [];
-    createForwardingPost(createEditorClient(createDeferredEngine(() => undefined)), (msg) => early.push(msg))({ type: 'typeText', text: '(' });
+    createForwardingPost(createEditorClient(noType.engine), (msg) => legacy.push(msg))({ type: 'typeText', text: '(' });
+    createForwardingPost(createEditorClient(createDeferredEngine(() => undefined)), (msg) => legacy.push(msg))({ type: 'typeText', text: '(' });
     await settled();
-    expect(viaNoType).toEqual([{ type: 'typeText', text: '(' }]);
-    expect(early).toEqual([{ type: 'typeText', text: '(' }]);
+
+    expect(fake.text()).toBe('abc');
     expect(noType.text()).toBe('abc');
+    expect(legacy).toEqual([]);
   });
 
-  it('given no editor behind the engine yet, when setSelection is posted, then the old script gets it', async () => {
+  it('given no editor behind the engine yet, when focus or setSelection is posted, then they are logged and nothing goes to the old script', async () => {
     const legacy: ToEditorMessage[] = [];
     const post = createForwardingPost(createEditorClient(createDeferredEngine(() => undefined)), (msg) => legacy.push(msg));
 
+    post({ type: 'focus' });
     post({ type: 'setSelection', start: 1, end: 1 });
     await settled();
 
-    expect(legacy).toEqual([{ type: 'setSelection', start: 1, end: 1 }]);
-  });
-
-  it('given no editor behind the engine yet, when focus is posted, then the old script gets it so the focus is not lost', async () => {
-    // Given an engine with no page bound
-    const legacy: ToEditorMessage[] = [];
-    const post = createForwardingPost(createEditorClient(createDeferredEngine(() => undefined)), (msg) => legacy.push(msg));
-
-    // When focus is posted
-    post(SAMPLES.focus);
-    await settled();
-
-    // Then the typed call was refused as not ready and the old path took the message
-    expect(legacy).toEqual([SAMPLES.focus]);
+    expect(legacy).toEqual([]);
   });
 
   it('given the ten keys EditorInput sends, when updateConfig is posted, then it is applied through the typed API', async () => {

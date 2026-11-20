@@ -14,8 +14,6 @@ import {
   defaultKeymap,
   historyKeymap,
   indentWithTab,
-  undo,
-  redo,
 } from '@codemirror/commands';
 import { cpp } from '@codemirror/lang-cpp';
 import { python } from '@codemirror/lang-python';
@@ -64,25 +62,8 @@ declare global {
   type ReactNativeWebViewBridge = {
     postMessage: (msg: string) => void;
   };
-  type EditorHandle = {
-    getText(): string;
-    getSelection(): {
-      start: number;
-      end: number;
-    } | null;
-    setSelection(start: number, end: number): void;
-    insertText(text: string, offset?: number): void;
-    replaceSelection(text: string): void;
-    setText(text: string): void;
-    focus(): void;
-    blur(): void;
-    undo(): void;
-    redo(): void;
-  };
-
   interface Window {
     ReactNativeWebView?: ReactNativeWebViewBridge;
-    __editor__?: EditorHandle;
     /** the typed editor API: the same engine the host reaches over the rpc channel */
     __editorEngine__?: EditorEngine;
     /** set by the page html in tests only */
@@ -622,94 +603,8 @@ window.addEventListener('message', (event) => {
         });
       }
       break;
-    case 'insertAt': {
-      if (!view) break;
-      const pos = getNumberProp(msg, 'pos') ?? view.state.selection.main.head;
-      const text = getStringProp(msg, 'text') ?? '';
-      const offset = getNumberProp(msg, 'offset') ?? 0;
-      view.dispatch({
-        changes: {
-          from: pos,
-          to: pos,
-          insert: text,
-        },
-        selection: {
-          anchor: pos + text.length + offset,
-        },
-      });
-      break;
-    }
-    case 'typeText': {
-      if (!view) break;
-      const editor = view;
-      const text = getStringProp(msg, 'text') ?? '';
-      const { from, to } = editor.state.selection.main;
-      // The path a typed key takes: input handlers (closeBrackets) first, then an insert marked as typing,
-      // which indentOnInput re-indents.
-      const insert = () =>
-        editor.state.update(editor.state.replaceSelection(text), {
-          scrollIntoView: true,
-          userEvent: 'input.type',
-        });
-      const handled = editor.state
-        .facet(EditorView.inputHandler)
-        .some((handler) => handler(editor, from, to, text, insert));
-      if (!handled) editor.dispatch(insert());
-      break;
-    }
-    case 'replaceSelection': {
-      if (!view) break;
-      const sel = view.state.selection.main;
-      const text = getStringProp(msg, 'text') ?? '';
-      view.dispatch({
-        changes: {
-          from: sel.from,
-          to: sel.to,
-          insert: text,
-        },
-        selection: {
-          anchor: sel.from + text.length,
-        },
-      });
-      break;
-    }
-    case 'setSelection':
-      if (view) {
-        const start = getNumberProp(msg, 'start');
-        if (start === undefined) {
-          return;
-        }
-        const end = getNumberProp(msg, 'end') ?? start;
-        view.dispatch({
-          selection: {
-            anchor: start,
-            head: end,
-          },
-        });
-        view.focus();
-      }
-      break;
-    case 'focus':
-      view?.focus();
-      break;
     case 'blur':
       view?.contentDOM.blur();
-      break;
-    case 'undo':
-      if (view) undo(view);
-      break;
-    case 'redo':
-      if (view) redo(view);
-      break;
-    case 'getState':
-      if (view) {
-        postToRN({
-          type: 'stateResponse',
-          requestId: msg.requestId,
-          text: view.state.doc.toString(),
-          ...getEditorState(view),
-        });
-      }
       break;
     case 'highlightRange': {
       if (!view) break;
@@ -746,113 +641,6 @@ window.addEventListener('message', (event) => {
     }
   }
 });
-
-// ─── Web test driver ──────────────────────────────────────────────────────────
-// Expose editor handle for Playwright / web E2E so web tests share the same
-// imperative API as mobile (editorRef.current.*).
-window.__editor__ = {
-  getText() {
-    Logger.info('cm6.getText', {
-      method: 'getText',
-    });
-    return view?.state.doc.toString() ?? '';
-  },
-  getSelection() {
-    Logger.info('cm6.getSelection', {
-      method: 'getSelection',
-    });
-    if (!view) return null;
-    const sel = view.state.selection.main;
-    return {
-      start: sel.from,
-      end: sel.to,
-    };
-  },
-  setSelection(start: number, end: number) {
-    Logger.info('cm6.setSelection', {
-      method: 'setSelection',
-    });
-    if (!view) return;
-    view.dispatch({
-      selection: {
-        anchor: start,
-        head: end,
-      },
-    });
-    view.focus();
-  },
-  insertText(text: string, offset?: number) {
-    Logger.info('cm6.insertText', {
-      method: 'insertText',
-    });
-    if (!view) return;
-    const pos = view.state.selection.main.head;
-    view.dispatch({
-      changes: {
-        from: pos,
-        to: pos,
-        insert: text,
-      },
-      selection: {
-        anchor: pos + text.length + (offset ?? 0),
-      },
-    });
-  },
-  replaceSelection(text: string) {
-    Logger.info('cm6.replaceSelection', {
-      method: 'replaceSelection',
-    });
-    if (!view) return;
-    const sel = view.state.selection.main;
-    view.dispatch({
-      changes: {
-        from: sel.from,
-        to: sel.to,
-        insert: text,
-      },
-      selection: {
-        anchor: sel.from + text.length,
-      },
-    });
-  },
-  setText(text: string) {
-    Logger.info('cm6.setText', {
-      method: 'setText',
-    });
-    if (!view) return;
-    view.dispatch({
-      changes: {
-        from: 0,
-        to: view.state.doc.length,
-        insert: text,
-      },
-    });
-  },
-  focus() {
-    Logger.info('cm6.focus', {
-      method: 'focus',
-    });
-    view?.focus();
-  },
-  blur() {
-    Logger.info('cm6.blur', {
-      method: 'blur',
-    });
-    view?.contentDOM.blur();
-  },
-  undo() {
-    Logger.info('cm6.undo', {
-      method: 'undo',
-    });
-    if (view) undo(view);
-  },
-  redo() {
-    Logger.info('cm6.redo', {
-      method: 'redo',
-    });
-    if (view) redo(view);
-  },
-};
 
 // ─── Test hook (page html sets __EDITOR_DEBUG__ in tests only) ─────────────────
 // What a person's touch does, for the contract suite: it never exposes the view.

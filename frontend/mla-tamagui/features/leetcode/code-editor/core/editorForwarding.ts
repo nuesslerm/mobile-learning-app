@@ -27,20 +27,16 @@ type Unlisted = Exclude<
 export const everyMessageIsListed: [Unlisted] extends [never] ? true : never =
   true;
 
-// the replies that say the typed path could not run at all: an idempotent message is sent again on the old script
-const typedPathUnavailable = (reply: Reply<unknown>) =>
-  !reply.ok && ['not-ready', 'unsupported', 'transport'].includes(reply.error.code);
-
-// the replies that prove an edit was not applied (a transport failure does not: the edit may have landed)
-const editNotApplied = (reply: Reply<unknown>) =>
-  !reply.ok && ['not-ready', 'unsupported'].includes(reply.error.code);
-
 const reportFailure = (type: string) => (reply: Reply<unknown>) => {
   if (!reply.ok)
     Logger.warn('editor.port.forward_failed', { type, code: reply.error.code });
 };
 
-/** The editor port's `post`: the forwarded messages become typed API calls, everything else takes the old script path. */
+/**
+ * The editor port's `post`: every message that acts on the document or the view is a typed API call, and a call the editor
+ * refuses (not ready yet, a position outside the text, a lost channel) is logged and does nothing. The few messages that are not in
+ * the API (`init`, `blur`, the marks, and an `updateConfig` the API cannot express) take the old script path.
+ */
 export function createForwardingPost(
   client: EditorClient,
   legacyPost: (msg: ToEditorMessage) => void
@@ -63,54 +59,31 @@ export function createForwardingPost(
         return;
       }
       case 'focus':
-        // idempotent, so a reply that did not focus the editor (not ready yet, a lost channel) falls back to the old script
-        void client.focus().then((reply) => {
-          if (reply.ok) return;
-          reportFailure('focus')(reply);
-          legacyPost(msg);
-        });
+        void client.focus().then(reportFailure('focus'));
         return;
       case 'setSelection':
-        // out-of-range or invalid is logged and nothing moves, where the old script threw inside the page
         void client.select(msg.start, msg.end).then((reply) => {
-          if (reply.ok) {
-            // the old script focused the editor with the selection
-            void client.focus().then(reportFailure('setSelection'));
-            return;
-          }
           reportFailure('setSelection')(reply);
-          if (typedPathUnavailable(reply)) legacyPost(msg);
+          // a selection from the toolbar brings the editor into focus, as a tap would
+          if (reply.ok) void client.focus().then(reportFailure('setSelection'));
         });
         return;
       case 'insertAt': {
         const text = msg.text.replace(/\r\n?/g, '\n');
-        const offset = msg.offset ?? 0;
-        // a caret past the end of the insert is not a point inside it: the old script places it
-        if (offset > 0 || -offset > text.length) {
-          legacyPost(msg);
-          return;
-        }
-        // at the selection, replacing it, and the caret where the old script put it: after the text, `offset` back from its end
-        // (a point's offset is not negative, so it is counted from the start)
+        // after the text, `offset` back from its end (a point's offset is not negative, so it is counted from the start); a caret
+        // past the end of the insert, or before its start, is held at the nearest end of it
+        const offset = Math.max(-text.length, Math.min(0, msg.offset ?? 0));
         void client
           .transact([
             { op: 'replace', range: 'selection', text },
             { op: 'select', anchor: { step: 0, edge: 'start', offset: text.length + offset } },
           ])
-          .then((reply) => {
-            if (reply.ok) return;
-            reportFailure('insertAt')(reply);
-            if (editNotApplied(reply)) legacyPost(msg);
-          });
+          .then(reportFailure('insertAt'));
         return;
       }
       case 'typeText':
-        // a keystroke through the editor's input handlers; a text that is not one (too long), or a page that cannot type, takes the old script
-        void client.transact([{ op: 'type', text: msg.text }]).then((reply) => {
-          if (reply.ok) return;
-          reportFailure('typeText')(reply);
-          if (editNotApplied(reply) || (!reply.ok && reply.error.code === 'invalid')) legacyPost(msg);
-        });
+        // one keystroke through the editor's input handlers (a text longer than that is invalid and logged)
+        void client.transact([{ op: 'type', text: msg.text }]).then(reportFailure('typeText'));
         return;
       default:
         legacyPost(msg);
