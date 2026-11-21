@@ -20,7 +20,7 @@ Before asking the user for anything, try it yourself; ask only after a concrete 
 
 ## Code architecture
 
-Ports and adapters: dependencies point inward to a pure core (`domain/` does no I/O), adapters implement the core's ports, one composition root wires them. A feature (`frontend/mla-tamagui/features/<name>`) is only the ring folders `domain/ data/ state/ ui/ di/ routes/ testing/`, a capability is a sub-folder inside each ring, and it imports no other feature. For feature work or a folder-moving refactor, show the user the final folder tree before any file moves. Shapes, checks, tree format: `docs/solutions/architecture/hexagonal-architecture-by-package-type.md` ("Showing a structure"), `docs/solutions/architecture/code-architecture-rules.md`.
+Dependencies point inward to a pure core (`domain/` does no I/O), adapters implement its ports, one composition root wires them. A feature (`frontend/mla-tamagui/features/<name>`) is only the ring folders `domain/ data/ state/ ui/ di/ routes/ testing/`, a capability is a sub-folder inside each ring, and it imports no other feature. For feature work or a folder-moving refactor, show the user the final folder tree before any file moves. Shapes, checks, tree format: `docs/solutions/architecture/hexagonal-architecture-by-package-type.md` ("Showing a structure"), `docs/solutions/architecture/code-architecture-rules.md`.
 
 ## Comments
 
