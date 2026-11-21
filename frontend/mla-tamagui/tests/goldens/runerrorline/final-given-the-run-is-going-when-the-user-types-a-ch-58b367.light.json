@@ -1,0 +1,93 @@
+{
+  "suite": "runerrorline",
+  "step": "final-given-the-run-is-going-when-the-user-types-a-ch-58b367",
+  "scheme": "light",
+  "snapshot": "runerrorline/final-given-the-run-is-going-when-the-user-types-a-ch-58b367.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 1100,
+    "page_height": 1100
+  },
+  "summary": {
+    "testids": [
+      "ProblemWorkspaceTabs",
+      "ProblemWorkspaceTab-plan",
+      "ProblemWorkspaceTab-code",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorActions",
+      "ProblemEditorFormatButton",
+      "ProblemEditorRunLocalButton",
+      "ProblemEditorRunButton",
+      "ProblemEditorResetButton",
+      "ProblemEditorTextEditStartButton",
+      "ProblemEditorVoiceStartButton",
+      "ProblemEditorRunOutcome",
+      "ProblemEditorRunOutcomeStatus",
+      "ProblemEditorRunOutcomeTotals",
+      "ProblemEditorRunOutcomeRuntimeError",
+      "ProblemEditorRunCases",
+      "ProblemEditorRunCase-2",
+      "ProblemEditorRunCase-2-Verdict",
+      "ProblemEditorRunCase-2-Time",
+      "ProblemEditorRunCase-2-Input-Toggle",
+      "ProblemEditorRunCase-2-Input",
+      "ProblemEditorRunCase-2-Expected-Toggle",
+      "ProblemEditorRunCase-2-Expected",
+      "ProblemEditorRunCase-2-Actual-Toggle",
+      "ProblemEditorRunCase-2-Actual",
+      "ProblemEditorRunCase-2-Stdout-Toggle",
+      "ProblemEditorRunCase-2-Stdout",
+      "ProblemEditorRunCase-0",
+      "ProblemEditorRunCase-0-Verdict",
+      "ProblemEditorRunCase-0-Time",
+      "ProblemEditorRunCase-0-Input-Toggle",
+      "ProblemEditorRunCase-0-Input",
+      "ProblemEditorRunCase-0-Expected-Toggle",
+      "ProblemEditorRunCase-0-Expected",
+      "ProblemEditorRunCase-0-Actual-Toggle",
+      "ProblemEditorRunCase-0-Actual",
+      "ProblemEditorRunCase-1",
+      "ProblemEditorRunCase-1-Verdict",
+      "ProblemEditorRunCase-1-Time",
+      "ProblemEditorRunCase-1-Input-Toggle",
+      "ProblemEditorRunCase-1-Input",
+      "ProblemEditorRunCase-1-Expected-Toggle",
+      "ProblemEditorRunCase-1-Expected",
+      "ProblemEditorRunCase-1-Actual-Toggle",
+      "ProblemEditorRunCase-1-Actual",
+      "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
+      "ProblemEditorTestInput",
+      "ProblemPlanTab",
+      "ProblemPlanSteps",
+      "ProblemPlanComposer"
+    ],
+    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nWrong Answer\n2 / 3 test cases passed\nKeyError: 9\nCase 3 · failed\n1 ms\nInput\ncase = 2\nExpected\n2\nActual\n-1\nOutput\nsaw -1\nCase 1 · passed\n1 ms\nInput\ncase = 0\nExpected\n0\nActual\n0\nCase 2 · passed\n1 ms\nInput\ncase = 1\nExpected\n1\nActual\n1\nOne JSON value per line: nums, target\nRun input\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew lin"
+  },
+  "timings": {
+    "render_ms": 341
+  },
+  "name": "runerrorline/final-given-the-run-is-going-when-the-user-types-a-ch-58b367.light",
+  "image": {
+    "width": 360,
+    "height": 1048
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

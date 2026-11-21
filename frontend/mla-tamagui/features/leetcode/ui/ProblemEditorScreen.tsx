@@ -53,6 +53,7 @@ import {
   type EditorInputHandle,
 } from './editor/EditorInput';
 import type { EditOutcome, EditTarget } from '../domain/editor/voiceEditPlan';
+import type { ErrorCheckpoint, ErrorPlace } from '../domain/editor/errorJump';
 import type { PlanEditor } from '../plan';
 import { toEditorLanguage } from '../domain/editor/languageProfile';
 import { completionEntriesFor } from '../domain/completionEntries';
@@ -61,6 +62,7 @@ import { type Selection } from '../domain/editor/types';
 import { EditorHelperRails } from './editor/helperbars/EditorHelperRails';
 import { ProblemCatalog } from '../domain/problemCatalog';
 import { customInputMessage, parameterNames, parseCustomInput, writeCustomInput } from '../domain/run/customCase';
+import { customOutcomeOf } from '../domain/run/customOutcome';
 import { runParamsFor } from '../domain/run/runParams';
 import { compactVoiceError } from '../domain/voiceEditIdentity';
 import { useVoiceApply } from '../state/useVoiceApply';
@@ -166,6 +168,23 @@ export function ProblemEditorScreen({
   // (format, language switch, voice apply) back through onChangeText, and an
   // echo carries identical text.
   const outcomeSourceRef = React.useRef<string | null>(null);
+  // The error mark of the card on screen. `live` once one was asked for; `token` moves whenever the card goes, so a mark that lands after that is taken away.
+  const jumpRef = React.useRef({ token: 0, live: false });
+  const clearCard = React.useCallback(() => {
+    setCard(null);
+    const jump = jumpRef.current;
+    jump.token += 1;
+    if (!jump.live) return;
+    jump.live = false;
+    void editorRef.current?.clearErrorLine();
+  }, []);
+  const jumpToError = React.useCallback(async (checkpoint: ErrorCheckpoint, place: ErrorPlace | undefined) => {
+    const jump = jumpRef.current;
+    const { token } = jump;
+    if (place) jump.live = true;
+    await editorRef.current?.showErrorLine(checkpoint, place);
+    if (place && jump.token !== token) void editorRef.current?.clearErrorLine();
+  }, []);
   // the buffer and the language as they are now, for a run that finishes after the person has gone on typing
   const latestBufferRef = React.useRef({ text: editorText, lang });
   React.useEffect(() => {
@@ -271,9 +290,9 @@ export function ProblemEditorScreen({
       snapshot('language-switch');
       setLang(nextLang);
       setEditorText(pickStarterCode(problem?.starterCode, nextLang));
-      setCard(null);
+      clearCard();
     },
-    [availableLanguages, lang, problem?.id, problem?.starterCode, snapshot]
+    [availableLanguages, lang, problem?.id, problem?.starterCode, snapshot, clearCard]
   );
 
   const handleFormat = React.useCallback(async () => {
@@ -307,17 +326,20 @@ export function ProblemEditorScreen({
     const source = outcomeSourceRef.current;
     if (source !== null && next !== source) {
       outcomeSourceRef.current = null;
-      setCard(null);
+      clearCard();
     }
-  }, []);
+  }, [clearCard]);
 
   const runLocal = React.useCallback(
-    async (mode: RunCard['mode'], params: RunCodeParams, inputs?: Record<string, unknown>) => {
+    async (mode: RunCard['mode'], given: RunCodeParams, inputs?: Record<string, unknown>) => {
       setRunning(mode);
-      setCard(null);
+      clearCard();
       const startedAt = Date.now();
       const cardOf = (response: RunResponse): RunCard => (mode === 'custom' ? { mode, response, inputs: inputs ?? {} } : { mode, response });
       try {
+        // The run is made on the text the editor holds at one revision, so a reported line names a line of it; with no answer in time it runs on the screen's text.
+        const checkpoint = (await editorRef.current?.checkpoint()) ?? null;
+        const params = checkpoint ? { ...given, code: checkpoint.text } : given;
         const result = await runner.run(params);
         const latest = latestBufferRef.current;
         if (latest.text !== params.code || latest.lang !== params.lang) {
@@ -328,6 +350,7 @@ export function ProblemEditorScreen({
         }
         setCard(cardOf(result));
         outcomeSourceRef.current = params.code;
+        if (checkpoint) void jumpToError(checkpoint, mode === 'custom' ? customOutcomeOf(result, inputs ?? {}).errorAt : result.error_at);
         // a typed case has no verdict: the response's tally and status describe a comparison that did not happen
         Logger.info('editor_v2.run_local.result', {
           mode,
@@ -361,14 +384,14 @@ export function ProblemEditorScreen({
           })
         );
         Logger.withError(err)
-          .withMetadata({ problemId: problem?.id, mode, lang: params.lang, ms: Date.now() - startedAt })
+          .withMetadata({ problemId: problem?.id, mode, lang: given.lang, ms: Date.now() - startedAt })
           .error('editor_v2.run_local.error');
         toast.error('Run failed', { description: err instanceof Error ? err.message : 'The backend did not respond.' });
       } finally {
         setRunning(null);
       }
     },
-    [runner, problem]
+    [runner, problem, clearCard, jumpToError]
   );
 
   const handleRunLocally = React.useCallback(
@@ -551,7 +574,7 @@ export function ProblemEditorScreen({
         // genuinely irreversible -- the dialog said so. Snapshot first.
         snapshot('reset');
         setEditorText(pickStarterCode(problem.starterCode, lang));
-        setCard(null);
+        clearCard();
         // The diff range belongs to the code that was just discarded.
         setDiffRange(null);
         setDiffMode(false);
@@ -562,7 +585,7 @@ export function ProblemEditorScreen({
       },
     });
     router.push(`/leetcode/${problem.id}/reset-code`);
-  }, [problem, lang, snapshot]);
+  }, [problem, lang, snapshot, clearCard]);
 
   return (
     <View flex={1} bg="$background" testID="ProblemEditorScreen">
