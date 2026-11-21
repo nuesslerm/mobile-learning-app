@@ -54,7 +54,7 @@ Every new or changed skill, hook, harness lever or workflow gets a cheap benchma
 
 ## Tests: what counts as verification
 
-Say which type ran (runbook, browser/Android e2e, deployment verification, integration, flow, unit; if only unit, say so plainly): `docs/solutions/testing/verification-ladder.md`. Every recordable test run publishes a recording, every harness run ends with a report, every CI test run publishes a run bundle (`wf test publish`); Given/When/Then in every test; test behavior, never the implementation; every `wf` verb answers an agent in one call with stable JSON. Visually verify anything visual and show it via `SendUserFile`. Mobile definition of done: an EAS Update (`wf ship eas --initial-route <route>`). All rules: `docs/solutions/testing/verification-rules.md`.
+Say which type ran (runbook, browser/Android e2e, deployment verification, integration, flow, unit; if only unit, say so plainly): `docs/solutions/testing/verification-ladder.md`. Every recordable run publishes a recording, every harness run a report, every CI run a bundle (`wf test publish`); no flaky test: root-cause a pass-after-fail, never rerun it; Given/When/Then in every test; test behavior, never the implementation; every `wf` verb answers an agent in one call with stable JSON. Visually verify anything visual and show it via `SendUserFile`. Mobile definition of done: an EAS Update (`wf ship eas --initial-route <route>`). All rules: `docs/solutions/testing/verification-rules.md`.
 
 ## The Oracle Cloud VM
 
