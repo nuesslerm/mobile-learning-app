@@ -99,13 +99,16 @@ local function bring_into_view(id)
   return false
 end
 local toolbar = { taps = 0, typed = 0 }
+local function count_of(text, c)
+  return select(2, text:gsub(c:gsub("%p", "%%%0"), ""))
+end
 local function sym(c)
-  local before = #(buffer() or "")
+  local before = count_of(buffer() or "", c)
   local ok = bring_into_view(SYM[c]) and device:tap_on({id=SYM[c]}, {optional=true}) ~= nil
-  -- the editor applies a toolbar key asynchronously, over the WebView bridge: a person waits to see it before typing on
-  -- (job 1a13959cdf8-6c840 typed past a late "=" and ":" after a fixed one-second pause)
+  -- the editor applies a toolbar key asynchronously, over the WebView bridge: a person waits to see that very character before typing
+  -- on (the text only growing says nothing: other input may be what grew it, and the key then lands after the text typed past it)
   if ok then
-    device:extended_wait_until{condition=function() return #(buffer() or '') > before end, timeout=8000, label='toolbar key landed'}
+    device:extended_wait_until{condition=function() return count_of(buffer() or '', c) > before end, timeout=8000, label=("the toolbar key %s landed"):format(c)}
   end
   if ok then toolbar.taps = toolbar.taps + 1 else toolbar.typed = toolbar.typed + 1 end
   return ok
