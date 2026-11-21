@@ -83,11 +83,22 @@ export const BUILTIN_KEYS: Record<BuiltinKeyId, BuiltinKeyDef> = {
       Logger.info('toolbar.tab.run', {
         hasSelection: ctx.selection.start !== ctx.selection.end,
       });
-      if (ctx.selection.start !== ctx.selection.end) {
-        ctx.editorRef.current?.transformDocument(indent);
-      } else {
-        ctx.editorRef.current?.insertAtCursor(INDENT_UNIT);
+      const indentNow = () => {
+        if (ctx.selection.start !== ctx.selection.end) {
+          ctx.editorRef.current?.transformDocument(indent);
+        } else {
+          ctx.editorRef.current?.insertAtCursor(INDENT_UNIT);
+        }
+      };
+      const editor = ctx.editorRef.current;
+      if (!editor?.isCompletionOpen()) {
+        indentNow();
+        return;
       }
+      // a suggestion is on show: the key takes it, and if the list went away in the meantime it indents as it always did
+      void editor.acceptCompletion().then((accepted) => {
+        if (!accepted) indentNow();
+      });
     },
   },
   Dedent: {

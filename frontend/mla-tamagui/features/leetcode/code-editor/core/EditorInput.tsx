@@ -1,4 +1,4 @@
-import { createEditorClient, toRemoteEngine, type Language } from '@lib/code-editor-api';
+import { createEditorClient, toRemoteEngine, type CompletionEntry, type Language } from '@lib/code-editor-api';
 import { Logger } from '@lib/logging';
 import { View } from '@lib/tamagui-design-system';
 import {
@@ -53,6 +53,10 @@ export type EditorInputHandle = {
   setTextAndSelection: (text: string, sel: Selection) => void;
   /** Apply a pure whole-document edit to the editor's own text and selection (the toolbar's Tab on a selection, Dedent, Comment, Newline). */
   transformDocument: (transform: (text: string, sel: Selection) => EditResult) => void;
+  /** Whether the editor shows its suggestion list now, as far as the last event said. */
+  isCompletionOpen: () => boolean;
+  /** Takes the suggestion the list has selected; false when nothing was open or taken. */
+  acceptCompletion: () => Promise<boolean>;
   undo: () => void;
   redo: () => void;
   showDiff: (start: number, end: number) => void;
@@ -68,6 +72,8 @@ type Props = {
   tabSize?: number;
   /** The language the editor highlights and indents in; changing it switches the live editor. */
   language?: Language;
+  /** Suggestions while typing: off when absent or not enabled. The names are what the problem's own signature adds. */
+  completion?: { enabled: boolean; entries: readonly CompletionEntry[] };
   testID?: string;
 };
 
@@ -89,6 +95,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       onFocusChange,
       tabSize = 4,
       language = 'python',
+      completion,
       testID,
     },
     ref
@@ -122,6 +129,11 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     const languageRef = useRef(language);
     languageRef.current = language;
     const appliedLanguageRef = useRef(language);
+    // the suggestion config the page was last given, and whether its list is open: the Indent key takes a suggestion only while one is shown
+    const completionRef = useRef(completion);
+    completionRef.current = completion;
+    const sentCompletionRef = useRef<string | null>(null);
+    const completionOpenRef = useRef(false);
     const initLanguageRef = useRef(language);
 
     const paletteId = useCodeEditorSettingsStore((s) => s.paletteId);
@@ -308,6 +320,13 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             label: 'toolbar.transform',
           });
         },
+        isCompletionOpen() {
+          return completionOpenRef.current;
+        },
+        async acceptCompletion() {
+          const reply = await apiBridge.client.transact([{ op: 'complete' }]);
+          return reply.ok && reply.value.changes.length > 0;
+        },
         undo() {
           Logger.info('editor.undo', { effect: 'undo' });
           sendMessage({ type: 'undo' });
@@ -336,7 +355,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           void writeChainRef.current.then(() => sendMessage({ type: 'hideDiff' }));
         },
       }),
-      [sendMessage]
+      [sendMessage, apiBridge]
     );
 
     const editorConfig = useMemo<EditorConfig>(
@@ -435,6 +454,32 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       sendMessage({ type: 'updateConfig', config: { language } });
     }, [language, sendMessage]);
 
+    // The suggestion config goes to the page through the typed API, once the page has hydrated (a page that starts again forgets it) and
+    // on every change of it after that.
+    const sendCompletion = useCallback(() => {
+      const wanted = completionRef.current ?? { enabled: false, entries: [] };
+      const key = JSON.stringify(wanted);
+      if (sentCompletionRef.current === key || (sentCompletionRef.current === null && !wanted.enabled)) return;
+      sentCompletionRef.current = key;
+      void apiBridge.client.setConfig({ completion: wanted }).then((reply) => {
+        if (!reply.ok) Logger.warn('editor.completion.config_failed', { code: reply.error.code });
+      });
+    }, [apiBridge]);
+    const completionKey = JSON.stringify(completion ?? null);
+    useEffect(() => {
+      if (hydratedRef.current) sendCompletion();
+    }, [completionKey, sendCompletion]);
+    // Subscribed once the page has hydrated, and again when it hydrates anew: a subscription asked for before the page can answer is a request
+    // that dies with the screen. The list is closed in a page that has just started.
+    const completionListenerRef = useRef<(() => void) | null>(null);
+    const listenForCompletion = useCallback(() => {
+      completionListenerRef.current?.();
+      completionOpenRef.current = false;
+      completionListenerRef.current = apiBridge.client.on('completion', (event) => {
+        completionOpenRef.current = event.open;
+      });
+    }, [apiBridge]);
+
     // When the store changes `value` from outside (e.g. replaceAll), push the
     // new text to CM6. Skip if CM6 was the source of the change to avoid loops.
 
@@ -500,6 +545,9 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
               });
               void writeDocument({ next: () => ({ text: valueRef.current }), label: 'react.reconcile' });
             }
+            sentCompletionRef.current = null;
+            sendCompletion();
+            listenForCompletion();
             // a switch made between init and hydration was dropped: the page was not ready for it
             if (languageRef.current !== initLanguageRef.current) {
               initLanguageRef.current = languageRef.current;
@@ -553,6 +601,8 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         onChangeText,
         onFocusChange,
         onSelectionChange,
+        listenForCompletion,
+        sendCompletion,
         sendMessage,
         updateHydrated,
         writeDocument,

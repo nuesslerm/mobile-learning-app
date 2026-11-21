@@ -54,6 +54,8 @@ import {
 } from '../code-editor/core/EditorInput';
 import { applyVoiceEdit } from '../code-editor/core/applyVoiceEdit';
 import { toEditorLanguage } from '../code-editor/core/languageProfile';
+import { completionEntriesFor } from '../domain/completionEntries';
+import { useAutocompleteSettingStore } from '../state/autocompleteSettingStore';
 import { type Selection } from '../code-editor/core/types';
 import { EditorHelperRails } from '../code-editor/helperbars/EditorHelperRails';
 import { ProblemCatalog } from '../domain/problemCatalog';
@@ -129,6 +131,12 @@ export function ProblemEditorScreen({
 
   const [lang, setLang] = React.useState<EditorLanguage>('python3');
   const editorLanguage = toEditorLanguage(lang) ?? 'python';
+  const autocomplete = useAutocompleteSettingStore((s) => s.autocomplete);
+  // the suggestions follow the language: the problem's own names from its starter, and the language's keywords
+  const completion = React.useMemo(
+    () => ({ enabled: autocomplete, entries: problem ? completionEntriesFor(problem, editorLanguage) : [] }),
+    [autocomplete, problem, editorLanguage]
+  );
   const [editorText, setEditorText] = React.useState(
     () => seed || pickStarterCode(problem?.starterCode, lang)
   );
@@ -746,6 +754,7 @@ export function ProblemEditorScreen({
                 ref={editorRef}
                 testID="ProblemEditorInput"
                 language={editorLanguage}
+                completion={completion}
                 value={editorText}
                 onChangeText={handleEditorChange}
                 onSelectionChange={setEditorSelection}
