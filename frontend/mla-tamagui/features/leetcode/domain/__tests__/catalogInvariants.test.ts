@@ -13,7 +13,7 @@ const paramsOf = (starter: string, method: string): string[] => {
 describe('the catalog the harness runs', () => {
   it('given every problem with cases, when its inputs are read, then their keys are the starter method parameters in order', () => {
     // Given the problems with bundled cases, When each case's input keys are compared with the starter's parameters
-    for (const problem of withCases) {
+    for (const problem of withCases.filter((p) => !p.harness)) {
       const starter = problem.starterCode.python3 ?? '';
       const expected = paramsOf(starter, problem.methodName ?? '');
       for (const testCase of problem.testCases ?? []) expect(Object.keys(testCase.inputs), problem.id).toEqual(expected);

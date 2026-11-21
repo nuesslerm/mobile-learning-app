@@ -1,5 +1,5 @@
 import type { TestCase } from '../../domain/run/execution';
-import type { NodeType } from '../../domain/models';
+import type { Harness, NodeType } from '../../domain/models';
 
 /** What the page's `judge` call takes: the learner's code, the cases, and what the harness needs to build and compare values. */
 export type JudgePayload = {
@@ -9,6 +9,7 @@ export type JudgePayload = {
   paramTypes?: Record<string, NodeType>;
   returnType?: NodeType | null;
   inPlace?: string | null;
+  harness?: Harness | null;
   /** the limit of one case (and of the module-level code), as the backend's 5 s */
   timeoutMs?: number;
   /** the limit of the whole run: past it the harness stops with the backend's process-limit message */

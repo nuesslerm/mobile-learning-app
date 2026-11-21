@@ -15,5 +15,6 @@ export function runParamsFor(problem: Blind75Problem, lang: string, code: string
     paramTypes: problem.paramTypes,
     returnType: problem.returnType,
     inPlace: problem.inPlaceParam ?? null,
+    harness: problem.harness ?? null,
   };
 }

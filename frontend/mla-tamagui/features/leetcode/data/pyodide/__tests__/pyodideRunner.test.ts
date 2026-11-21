@@ -167,4 +167,13 @@ describe('the Pyodide runner', () => {
     const judge = host.calls.find((c) => c.method === 'judge')?.params as { payload: Record<string, unknown> };
     expect(judge.payload).toMatchObject({ paramTypes: node.paramTypes, returnType: node.returnType, inPlace: null, timeoutMs: 5000, processLimitMs: 100 });
   });
+
+  it('Given a run with a harness, When it is sent to the page, Then the judge call’s payload carries it, and a run without one carries none', async () => {
+    const { host, runner } = setup();
+    await runner.run({ ...params(), harness: { kind: 'design', className: 'Trie' } });
+    await runner.run(params());
+    const payloads = host.calls.filter((c) => c.method === 'judge').map((c) => (c.params as { payload: Record<string, unknown> }).payload);
+    expect(payloads[0]).toMatchObject({ harness: { kind: 'design', className: 'Trie' } });
+    expect(payloads[1]?.harness).toBeFalsy();
+  });
 });

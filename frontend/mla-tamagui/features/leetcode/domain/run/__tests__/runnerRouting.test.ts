@@ -17,4 +17,9 @@ describe('needsDevice', () => {
     expect(needsDevice(params([caseWith('exact'), caseWith('sorted'), caseWith('setOfSorted'), caseWith(undefined)]))).toBe(false);
     expect(needsDevice(params([]))).toBe(false);
   });
+
+  it('Given a harness, When needsDevice is asked, Then it is true, and a null harness or none is false', () => {
+    expect(needsDevice({ ...params([caseWith('exact')]), harness: { kind: 'design', className: 'Trie' } })).toBe(true);
+    expect(needsDevice({ ...params([caseWith('exact')]), harness: null })).toBe(false);
+  });
 });

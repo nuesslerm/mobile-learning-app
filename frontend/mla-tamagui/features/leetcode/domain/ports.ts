@@ -5,7 +5,7 @@
 
 import type { EditorClient } from '@lib/code-editor-api';
 import type { RunResponse, TestCase } from './run/execution';
-import type { NodeType } from './models';
+import type { Harness, NodeType } from './models';
 import type {
   ClientEditStat,
   EditSource,
@@ -39,6 +39,8 @@ export type RunCodeParams = {
   returnType?: NodeType | null;
   /** The parameter the solution mutates instead of returning: that value is what is compared. */
   inPlace?: string | null;
+  /** A problem that is a class, not a `Solution` method: only the device runner can run it. */
+  harness?: Harness | null;
 };
 type FormatParams = { lang: string; code: string };
 

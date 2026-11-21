@@ -47,6 +47,13 @@ describe('createSelectingCodeRunner', () => {
     expect(log).toEqual(['device', 'backend']);
   });
 
+  it('Given the backend setting, When a Python run with a harness is made, Then the device runner answers and the backend is not called', async () => {
+    const { log, selecting } = setup('backend');
+    await selecting.run({ ...params('python3'), harness: { kind: 'design', className: 'Trie' } });
+    await selecting.run({ ...params('python3'), harness: null });
+    expect(log).toEqual(['device', 'backend']);
+  });
+
   it('Given each setting, When warmUp is called, Then only the device setting warms the device runner', () => {
     const device = setup('device');
     device.selecting.warmUp?.();

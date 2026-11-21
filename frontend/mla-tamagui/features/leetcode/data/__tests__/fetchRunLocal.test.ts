@@ -14,7 +14,7 @@ describe('fetchRunLocal', () => {
     });
 
     // When a run is posted with the widened params
-    await fetchRunLocal('http://backend', { lang: 'python3', code: 'c', methodName: 'm', testCases: [], paramTypes: { head: 'ListNode' }, returnType: null, inPlace: 'matrix' } as Parameters<typeof fetchRunLocal>[1]);
+    await fetchRunLocal('http://backend', { lang: 'python3', code: 'c', methodName: 'm', testCases: [], paramTypes: { head: 'ListNode' }, returnType: null, inPlace: 'matrix', harness: { kind: 'design', className: 'Trie' } } as Parameters<typeof fetchRunLocal>[1]);
 
     // Then nothing else leaves the device
     expect(Object.keys(body as object).sort()).toEqual(['code', 'lang', 'methodName', 'testCases']);

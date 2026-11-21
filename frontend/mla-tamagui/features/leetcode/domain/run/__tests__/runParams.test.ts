@@ -40,6 +40,7 @@ describe('runParamsFor', () => {
       paramTypes: {},
       returnType: null,
       inPlace: 'matrix',
+      harness: null,
     });
   });
 

@@ -237,6 +237,7 @@ export function createPyodideRunner(config: { host: PageHost; limits?: Partial<R
         ...(params.paramTypes ? { paramTypes: params.paramTypes } : {}),
         ...(params.returnType === undefined ? {} : { returnType: params.returnType }),
         ...(params.inPlace === undefined ? {} : { inPlace: params.inPlace }),
+        ...(params.harness === undefined ? {} : { harness: params.harness }),
         timeoutMs: limits.caseMs,
         processLimitMs: limits.runMs,
       },

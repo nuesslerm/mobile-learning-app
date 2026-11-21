@@ -15,7 +15,7 @@ describe('completionEntriesFor', () => {
       const entries = completionEntriesFor(candidate, 'python');
       expect(labelsOf(entries), candidate.id).toContain(candidate.methodName);
       const first = candidate.testCases?.[0];
-      if (first) {
+      if (first && !candidate.harness) {
         const parameters = entries.filter((entry) => entry.type === 'variable').map((entry) => entry.label).filter((label) => label !== 'self');
         expect(parameters, candidate.id).toEqual(Object.keys(first.inputs));
       }

@@ -323,7 +323,25 @@ def _location(exc, lines, owned, compiling):
     return at
 
 
-def _case(solution, method, case, cfg, ns, lines):
+def _design(cls, inputs, results, step):
+    # LeetCode's design shape: operations[0] builds the instance, each later one is a method call, and the answer is every return value
+    operations, arguments = inputs.get('operations'), inputs.get('arguments')
+    if not isinstance(operations, list) or not isinstance(arguments, list) or not all(isinstance(a, list) for a in arguments):
+        raise ValueError("a design case needs a list 'operations' and a list of argument lists 'arguments'")
+    if not operations or len(operations) != len(arguments):
+        raise ValueError('operations and arguments must have the same length, at least one (%d and %d)' % (len(operations), len(arguments)))
+    obj = None
+    for index, (name, args) in enumerate(zip(operations, arguments)):
+        step[:] = [index, name]
+        if index == 0:
+            obj = cls(*args)
+            results.append(None)
+        else:
+            results.append(getattr(obj, name)(*args))
+    step.clear()
+
+
+def _case(cls, method, case, cfg, ns, lines):
     inputs = case.get('inputs', {})
     expected = case.get('expected')
     mode = case.get('compareMode', 'exact')
@@ -331,21 +349,31 @@ def _case(solution, method, case, cfg, ns, lines):
     started = time.perf_counter()
     actual = error = error_at = None
     passed = False
+    partial, step = [], []
     try:
-        args = _to_args(copy.deepcopy(inputs), cfg['paramTypes'], ns)
-        _guard.arm(cfg['timeout_s'], 'Code execution timed out (' + str(cfg['timeout_s']) + 's limit)')
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            returned = getattr(solution(), method)(*args)
-        _guard.disarm()
-        place = cfg['inPlace']
-        if place is None:
-            actual = _to_value(cfg['returnType'], returned)
+        if cfg['harness'] is not None:
+            actual = partial
+            _guard.arm(cfg['timeout_s'], 'Code execution timed out (' + str(cfg['timeout_s']) + 's limit)')
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                _design(cls, copy.deepcopy(inputs), partial, step)
+            _guard.disarm()
         else:
-            actual = _to_value(cfg['paramTypes'].get(place), args[list(inputs).index(place)])
+            args = _to_args(copy.deepcopy(inputs), cfg['paramTypes'], ns)
+            _guard.arm(cfg['timeout_s'], 'Code execution timed out (' + str(cfg['timeout_s']) + 's limit)')
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                returned = getattr(cls(), method)(*args)
+            _guard.disarm()
+            place = cfg['inPlace']
+            if place is None:
+                actual = _to_value(cfg['returnType'], returned)
+            else:
+                actual = _to_value(cfg['paramTypes'].get(place), args[list(inputs).index(place)])
         passed = _compare(actual, expected, mode)
     except BaseException as exc:
         _guard.disarm()
         error = _describe(exc)
+        if step:
+            error += ' (operation %d: %s)' % tuple(step)
         error_at = _location(exc, lines, cfg['owned'], False)
     row = {
         'pass': passed,
@@ -378,6 +406,7 @@ def _run(payload, on_case):
         'paramTypes': payload.get('paramTypes') or {},
         'returnType': payload.get('returnType'),
         'inPlace': payload.get('inPlace'),
+        'harness': payload.get('harness'),
         'owned': (),
         'timeout_s': max(1, math.ceil(payload.get('timeoutMs', 5000) / 1000)),
     }
@@ -399,12 +428,13 @@ def _run(payload, on_case):
         if isinstance(exc, TimeoutError):
             return _failed('timeout', str(exc), at)
         return _failed('compile', 'CompileError: ' + _describe(exc).split(': ', 1)[1], at)
-    solution = ns.get('Solution')
-    if solution is None:
-        return _failed('compile', 'No Solution class defined')
+    class_name = cfg['harness']['className'] if cfg['harness'] else 'Solution'
+    cls = ns.get(class_name)
+    if cls is None:
+        return _failed('compile', 'No ' + class_name + ' class defined')
     results, started = [], time.monotonic()
     for index, case in enumerate(payload.get('testCases', [])):
-        row = _case(solution, payload.get('methodName', 'twoSum'), case, cfg, ns, lines)
+        row = _case(cls, payload.get('methodName', 'twoSum'), case, cfg, ns, lines)
         if index == 0 and _read(boot_out):
             row['stdout'] = _read(boot_out) + row['stdout']
         results.append(row)

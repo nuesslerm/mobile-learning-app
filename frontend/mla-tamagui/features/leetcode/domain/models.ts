@@ -25,6 +25,10 @@ export const nodeTypeSchema = z.enum([
 ]);
 export type NodeType = z.infer<typeof nodeTypeSchema>;
 
+/** How a problem that is not one `Solution` method is run: each case is a list of operations on one fresh instance of `className`. */
+export const harnessSchema = z.discriminatedUnion('kind', [z.object({ kind: z.literal('design'), className: z.string() })]);
+export type Harness = z.infer<typeof harnessSchema>;
+
 export const problemSchema = z.object({
   id: z.string(),
   leetcodeId: z.number(),
@@ -39,6 +43,7 @@ export const problemSchema = z.object({
   methodName: z.string().nullable(),
   /** The parameter the solution mutates instead of returning (`-> None` problems): the harness compares it. */
   inPlaceParam: z.string().optional(),
+  harness: harnessSchema.optional(),
   paramTypes: z.record(z.string(), nodeTypeSchema),
   returnType: nodeTypeSchema.nullable(),
   testCases: z.array(testCaseSchema).nullable(),

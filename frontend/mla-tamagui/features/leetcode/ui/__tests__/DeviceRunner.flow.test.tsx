@@ -5,6 +5,8 @@ import { app } from '../../../../tests/flow/app';
 import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLines';
 import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../..';
 import { createPyodideRunner, type PyodideRunner, type RunnerLimits } from '../../data/pyodide/pyodideRunner';
+import { ProblemCatalog } from '../../domain/problemCatalog';
+import type { JudgeParams } from '../../data/pyodide/judgeProtocol';
 import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSettingStore';
 import { answers, createFakePageHost, HANG, type FakePageHost, type FakePageScript } from '../../testing';
 
@@ -67,6 +69,33 @@ describe('Run Local on the device', () => {
     await press();
     await waitFor(() => expect(gateway.runLocal).toHaveBeenCalledTimes(1));
     expect(host.loads).toBe(0);
+  });
+
+  it('given the backend is chosen and a problem with a harness, when the user runs the tests, then the device runner answers with the harness in its call and the backend is not asked', async () => {
+    // Given the backend chosen and a problem the backend cannot run (no catalog problem has a harness yet, so two-sum is given one for this test)
+    useRunnerSettingStore.setState({ runner: 'backend' });
+    const problem = ProblemCatalog.getByIdOrThrow('two-sum');
+    problem.harness = { kind: 'design', className: 'Trie' };
+    try {
+      const calls: JudgeParams[] = [];
+      const { gateway, runner } = setup({
+        judge: (call) => {
+          calls.push(call);
+          return answers.allPass(call);
+        },
+      });
+      await renderEditor(gateway, runner);
+
+      // When the user presses Run Local
+      await press();
+
+      // Then the page answers, its call carries the harness, and the backend was never asked
+      await waitFor(() => expect(status()).toBe('Accepted'));
+      expect(calls[0]?.payload.harness).toEqual({ kind: 'design', className: 'Trie' });
+      expect(gateway.runLocal).not.toHaveBeenCalled();
+    } finally {
+      delete problem.harness;
+    }
   });
 
   it('given the page answers a wrong answer, when the user runs the tests, then the card says Wrong Answer with the tally', async () => {
