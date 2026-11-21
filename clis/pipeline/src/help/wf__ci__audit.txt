@@ -2,7 +2,7 @@ Usage: wf ci audit [options]
 
 The nightly audit of CI on dev (04:00 Berlin time, .github/workflows/ci-audit.yml).
 It never gates or fails a push and always exits 0: it reads the completed runs of
-the six hosted CI workflows on dev (ci-hosted.yml and the five ci-hosted-*.yml;
+the six hosted CI workflows on dev (the six ci-hosted-*.yml;
 one that cannot be listed is a note) since --since (default the last 24 hours),
 judges them and prints one JSON verdict with the findings and, for each finding,
 the next step.

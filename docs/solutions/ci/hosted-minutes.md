@@ -42,7 +42,7 @@ Decision (U3.5): the stop rule did not trigger (no run above 15 minutes, 3 minut
 
 ## The hosted twin of the CI, against the VM CI (9 Nov 2026)
 
-`.github/workflows/ci-hosted.yml` ("CI (GitHub-hosted)") runs on every push to `dev` next to the VM CI: it builds `wf` once, then plan, typecheck-lint-unit-tests, flow-tests and integration-tests on `ubuntu-latest` (x64, 2 vCPU) through the tailnet, with its own pull request comment. It deploys nothing. `HOSTED_CI=off` (repo variable) switches it off.
+`.github/workflows/ci-hosted-backend-core.yml` ("CI (GitHub-hosted)") runs on every push to `dev` next to the VM CI: it builds `wf` once, then plan, typecheck-lint-unit-tests, flow-tests and integration-tests on `ubuntu-latest` (x64, 2 vCPU) through the tailnet, with its own pull request comment. It deploys nothing. `HOSTED_CI=off` (repo variable) switches it off.
 
 | Job | Hosted run 2 (cold, x64) | VM CI run 1237 (Nx cache, arm64) | Hosted billed (rounded up per job) |
 | --- | --- | --- | --- |

@@ -40,7 +40,7 @@ git commit --allow-empty -m "[cache-bench] measure the cache layers"
 git fetch origin dev && git rebase origin/dev && git push origin dev
 ```
 
-`ci-hosted.yml` starts no pipeline run for an empty commit, so the bench does not displace a queued run. The cost of the push trigger: every normal push to `dev` leaves one skipped bench job on the checks list. That is accepted until `main` has the file; then the `workflow_dispatch` route (a `[cache-bench]` entry in `scheduled-triggers.yml` that dispatches `cache-bench.yml` with `message` and `sha`) can be used and the push trigger removed. `scheduled-triggers.yml` does not list the tag today, so a tagged commit starts exactly one run.
+`ci-hosted-backend-core.yml` starts no pipeline run for an empty commit, so the bench does not displace a queued run. The cost of the push trigger: every normal push to `dev` leaves one skipped bench job on the checks list. That is accepted until `main` has the file; then the `workflow_dispatch` route (a `[cache-bench]` entry in `scheduled-triggers.yml` that dispatches `cache-bench.yml` with `message` and `sha`) can be used and the push trigger removed. `scheduled-triggers.yml` does not list the tag today, so a tagged commit starts exactly one run.
 
 ## How to read the BENCH lines
 

@@ -469,12 +469,12 @@ pub fn is_cold(event: &str, head_message: &str) -> bool {
 
 /// The workflows whose runs are judged, as (file, runs on a GitHub-hosted machine): the six one push to `dev` starts.
 const WORKFLOWS: [(&str, bool); 6] = [
-    ("ci-hosted.yml", true),
-    ("ci-hosted-core-mobile.yml", true),
-    ("ci-hosted-core-cli.yml", true),
+    ("ci-hosted-backend-core.yml", true),
+    ("ci-hosted-mobile-core.yml", true),
+    ("ci-hosted-cli-core.yml", true),
     ("ci-hosted-cli-publish.yml", true),
-    ("ci-hosted-service-deploy.yml", true),
-    ("ci-hosted-mobile-e2e.yml", true),
+    ("ci-hosted-backend-deploy.yml", true),
+    ("ci-hosted-mobile-publish.yml", true),
 ];
 
 /// A completed run to judge: its id, head sha, whether it is cold, and whether it ran on GitHub-hosted machines.

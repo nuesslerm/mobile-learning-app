@@ -287,7 +287,7 @@ fn scope_check_of_the_repository_names_every_declared_job_and_prints_the_same_re
 #[test]
 fn scope_check_of_the_repository_classifies_the_trigger_of_every_hosted_workflow_as_open_and_keyless() {
     // Given the repository's six hosted CI workflows, each with a `trigger` job
-    let files = ["ci-hosted.yml", "ci-hosted-core-mobile.yml", "ci-hosted-core-cli.yml", "ci-hosted-cli-publish.yml", "ci-hosted-service-deploy.yml", "ci-hosted-mobile-e2e.yml"];
+    let files = ["ci-hosted-backend-core.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "ci-hosted-cli-publish.yml", "ci-hosted-backend-deploy.yml", "ci-hosted-mobile-publish.yml"];
 
     // When the scopes are checked
     let r = run_wf(&["secret", "scope-check", "--json"], &RunOpts::default().clean_env().cwd(&repo_root()));

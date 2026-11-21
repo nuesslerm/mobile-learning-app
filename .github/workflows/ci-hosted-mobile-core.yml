@@ -1,7 +1,6 @@
-name: backend_core+lint+pre-release-testing
+name: mobile_core+lint+pre-release-testing
 
-# backend_core+lint+pre-release-testing: pipeline.yml with `stages: core` and `area: backend`, a run of its own on every push: the flow, lint, typecheck and unit tests of the backend services and
-# their libraries. (The file keeps its name, which wf vm ops cancel-run, wf ci audit and the last-green base look for.) Its pull request comment is its own.
+# mobile_core+lint+pre-release-testing: pipeline.yml with `stages: core` and `area: mobile`, a run of its own on every push: the flow, lint, typecheck and unit tests of the mobile area. Its pull request comment is its own.
 on:
   push:
     branches: [dev]
@@ -9,7 +8,7 @@ on:
 # One run per commit: a push never waits for an older run (a red shard of the older one is fixed and re-run at once), and a still-pending shard may be replaced by a newer run of
 # the same inputs (that run then ends cancelled or superseded); every other run is measured to its end. What must not overlap is serialised per job (deploy per app) and what ships first checks that its commit is still the head of dev.
 concurrency:
-  group: ci-hosted-${{ github.sha }}
+  group: ci-hosted-mobile-core-${{ github.sha }}
   cancel-in-progress: false
 
 permissions:
@@ -53,8 +52,8 @@ jobs:
       deploy: false
       e2e: false
       stages: core
-      label: backend_core+lint+pre-release-testing
-      area: backend
+      label: mobile_core+lint+pre-release-testing
+      area: mobile
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
       TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}

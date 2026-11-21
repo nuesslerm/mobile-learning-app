@@ -12,7 +12,7 @@ The scheduled task itself is "Nightly audit clock (daily)" (cron `CRON_TZ=Europe
 
 ## The audit job
 
-`wf ci audit` (schema and every finding kind: `wf ci audit --help`) reads every completed run of `ci-hosted.yml` on `dev` of the last 24 hours (a scheduled or dispatched run counts as cold; a hosted run is judged for tasks and caches, not for time) and prints one JSON line:
+`wf ci audit` (schema and every finding kind: `wf ci audit --help`) reads every completed run of `ci-hosted-backend-core.yml` on `dev` of the last 24 hours (a scheduled or dispatched run counts as cold; a hosted run is judged for tasks and caches, not for time) and prints one JSON line:
 
 - `findings[]`: `{kind, run, subject, hard, wasteSeconds, message, next}`. `hard` marks a correctness fault (the cache did not serve a result it held, refused a write, lost an entry, served a poisoned pass); the rest are cost over a threshold. `next` is the step to take.
 - What it judges: CPU-seconds per run against the ledger and `cpuSecondsThreshold`, the cache layers' health (`wf ci cache-health`'s findings), a pnpm store packed by any job other than `flow-tests`, the replay ratio of every Nx stage over the window, hash drift, slower-than-history tasks, runner waits, idle gaps, I/O stalls and, for a forced cold run, jobs slower than the recent cold runs. After it the job reruns the two package stages through the cache and with `--fresh`: a kind that passes cached and fails fresh is a `cache-poisoned` finding, and the cache moves to a new generation (`wf cache purge nx`).

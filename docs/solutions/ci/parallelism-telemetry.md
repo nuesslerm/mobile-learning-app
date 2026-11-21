@@ -15,7 +15,7 @@ tags: [ci, telemetry, parallelism, runners, ci-database, betterstack]
 
 ## The two questions
 
-Hosted runners are 4 vCPU / 16 GB and the account runs at most 20 jobs at once, across every caller workflow (`ci-hosted.yml`, `-core-mobile`, `-core-cli`, `-cli-publish`, `-service-deploy`, `-mobile-e2e`; all call `pipeline.yml`). Two things decide how fast a push is green and what it costs:
+Hosted runners are 4 vCPU / 16 GB and the account runs at most 20 jobs at once, across every caller workflow (`ci-hosted-backend-core.yml`, `-mobile-core`, `-cli-core`, `-cli-publish`, `-backend-deploy`, `-mobile-publish`; all call `pipeline.yml`). Two things decide how fast a push is green and what it costs:
 
 - **In-runner parallelism**: is `wf test run ... --parallel 2` right for 4 cores and 16 GB? Too low leaves the machine idle, too high thrashes it (CPU pressure, swap, memory peak).
 - **Cross-runner parallelism**: every extra job pays a fixed cost (checkout, toolchain, cache restore; measured: report 52 s, preflight 58 s, plan 104 s, wf-build 131 s) and takes one of the 20 slots; fewer, fuller jobs leave headroom for other runs, more, smaller jobs shorten the run until the cap makes them queue.

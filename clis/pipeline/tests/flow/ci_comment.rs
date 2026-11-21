@@ -628,7 +628,7 @@ fn audit_github_of(jobs: &[Value], log: &str, others: &[(i64, i64)]) -> Github {
     let github = Github::start();
     let runs: Vec<Value> = others.iter().enumerate().map(|(i, (a, b))| json!({ "id": 900 + i, "run_started_at": iso(BASE + a), "updated_at": iso(BASE + b) })).collect();
     github.server.routes(&[
-        ("GET /repos/o/r/actions/workflows/ci-hosted.yml/runs?branch=dev&per_page=30", MockReply::json(200, json!({ "workflow_runs": runs }))),
+        ("GET /repos/o/r/actions/workflows/ci-hosted-backend-core.yml/runs?branch=dev&per_page=30", MockReply::json(200, json!({ "workflow_runs": runs }))),
         ("GET /repos/o/r/actions/runs/77/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": jobs.len(), "jobs": jobs }))),
         ("GET /repos/o/r/actions/jobs/500/logs", MockReply::text(200, log)),
     ]);
@@ -830,8 +830,8 @@ fn the_audit_without_a_run_judges_every_completed_run_on_dev_since_the_given_tim
     let github = Github::start();
     let run = |id: u64, started: i64, event: &str| json!({ "id": id, "head_sha": SHA, "event": event, "run_started_at": iso(BASE + started) });
     github.server.routes(&[
-        ("GET /repos/o/r/actions/workflows/ci-hosted.yml/runs?branch=dev&status=completed&per_page=50", MockReply::json(200, json!({ "workflow_runs": [run(78, 5000, "push"), run(77, 100, "push"), run(60, -90_000, "push"), run(61, 200, "pull_request")] }))),
-        ("GET /repos/o/r/actions/workflows/ci-hosted.yml/runs?branch=dev&per_page=30", MockReply::json(200, json!({ "workflow_runs": [] }))),
+        ("GET /repos/o/r/actions/workflows/ci-hosted-backend-core.yml/runs?branch=dev&status=completed&per_page=50", MockReply::json(200, json!({ "workflow_runs": [run(78, 5000, "push"), run(77, 100, "push"), run(60, -90_000, "push"), run(61, 200, "pull_request")] }))),
+        ("GET /repos/o/r/actions/workflows/ci-hosted-backend-core.yml/runs?branch=dev&per_page=30", MockReply::json(200, json!({ "workflow_runs": [] }))),
         ("GET /repos/o/r/actions/runs/77/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": 1, "jobs": [timed_job(500, "flow-tests", "success", 600)] }))),
         ("GET /repos/o/r/actions/jobs/500/logs", MockReply::text(200, &ledger_line(&[("app:lint", "h1", "ran", 95_000)]))),
         ("GET /repos/o/r/actions/runs/78/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": 1, "jobs": [timed_job(501, "flow-tests", "failure", 600)] }))),
@@ -854,8 +854,8 @@ fn the_audit_judges_the_hosted_workflow_too_and_calls_a_scheduled_or_dispatched_
     let github = Github::start();
     let run = |id: u64, started: i64, event: &str| json!({ "id": id, "head_sha": SHA, "event": event, "run_started_at": iso(BASE + started) });
     github.server.routes(&[
-        ("GET /repos/o/r/actions/workflows/ci-hosted.yml/runs?branch=dev&status=completed&per_page=50", MockReply::json(200, json!({ "workflow_runs": [run(78, 200, "schedule"), run(79, 300, "push")] }))),
-        ("GET /repos/o/r/actions/workflows/ci-hosted.yml/runs?branch=dev&per_page=30", MockReply::json(200, json!({ "workflow_runs": [] }))),
+        ("GET /repos/o/r/actions/workflows/ci-hosted-backend-core.yml/runs?branch=dev&status=completed&per_page=50", MockReply::json(200, json!({ "workflow_runs": [run(78, 200, "schedule"), run(79, 300, "push")] }))),
+        ("GET /repos/o/r/actions/workflows/ci-hosted-backend-core.yml/runs?branch=dev&per_page=30", MockReply::json(200, json!({ "workflow_runs": [] }))),
         ("GET /repos/o/r/actions/runs/78/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": 1, "jobs": [timed_job(501, "flow-tests", "success", 600)] }))),
         ("GET /repos/o/r/actions/jobs/501/logs", MockReply::text(200, &ledger_line(&[("app:lint", "h1", "ran", 95_000)]))),
         ("GET /repos/o/r/actions/runs/79/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": 1, "jobs": [timed_job(502, "flow-tests", "failure", 600)] }))),
@@ -870,7 +870,7 @@ fn the_audit_judges_the_hosted_workflow_too_and_calls_a_scheduled_or_dispatched_
     assert!(out["notes"].to_string().contains("GitHub-hosted"), "{out}");
 }
 
-const HOSTED_FILES: [&str; 6] = ["ci-hosted.yml", "ci-hosted-core-mobile.yml", "ci-hosted-core-cli.yml", "ci-hosted-cli-publish.yml", "ci-hosted-service-deploy.yml", "ci-hosted-mobile-e2e.yml"];
+const HOSTED_FILES: [&str; 6] = ["ci-hosted-backend-core.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "ci-hosted-cli-publish.yml", "ci-hosted-backend-deploy.yml", "ci-hosted-mobile-publish.yml"];
 
 #[test]
 fn the_audit_judges_the_runs_of_all_six_hosted_workflows_and_a_missing_one_is_a_note_not_a_failure() {
@@ -885,7 +885,7 @@ fn the_audit_judges_the_runs_of_all_six_hosted_workflows_and_a_missing_one_is_a_
         table.push((format!("GET /repos/o/r/actions/runs/{id}/jobs?per_page=100&page=1"), MockReply::json(200, json!({ "total_count": 1, "jobs": [timed_job(600 + id, "flow-tests", "success", 600)] }))));
         table.push((format!("GET /repos/o/r/actions/jobs/{}/logs", 600 + id), MockReply::text(200, "ok\n")));
     }
-    table.push(("GET /repos/o/r/actions/workflows/ci-hosted-mobile-e2e.yml/runs?branch=dev&status=completed&per_page=50".into(), MockReply::json(404, json!({ "message": "Not Found" }))));
+    table.push(("GET /repos/o/r/actions/workflows/ci-hosted-mobile-publish.yml/runs?branch=dev&status=completed&per_page=50".into(), MockReply::json(404, json!({ "message": "Not Found" }))));
     github.server.routes(&table.iter().map(|(k, v)| (k.as_str(), v.clone())).collect::<Vec<_>>());
 
     // When the audit lists the window
@@ -896,7 +896,7 @@ fn the_audit_judges_the_runs_of_all_six_hosted_workflows_and_a_missing_one_is_a_
     let runs: Vec<&str> = out["runs"].as_array().unwrap().iter().map(|r| r["run"].as_str().unwrap()).collect();
     assert_eq!((r.exit_code, runs), (0, vec!["100", "101", "102", "103", "104"]), "{}{}", r.stdout, r.stderr);
     let notes = out["notes"].to_string();
-    assert!(notes.contains("ci-hosted-mobile-e2e.yml") && !notes.contains("ci-hosted-core-cli.yml could not"), "{notes}");
+    assert!(notes.contains("ci-hosted-mobile-publish.yml") && !notes.contains("ci-hosted-cli-core.yml could not"), "{notes}");
 }
 
 fn group_job(run: &str, job: &str, key: &str, started: i64, secs: i64, conclusion: &str) -> Value {
@@ -1058,7 +1058,7 @@ fn an_audit_whose_workflow_cannot_be_listed_exits_0_with_no_runs_and_says_so() {
     // Given a GitHub that answers 404 for the CI workflow
     let github = Github::start();
     github.server.routes(&[
-        ("GET /repos/o/r/actions/workflows/ci-hosted.yml/runs?branch=dev&status=completed&per_page=50", MockReply::json(404, json!({ "message": "Not Found" }))),
+        ("GET /repos/o/r/actions/workflows/ci-hosted-backend-core.yml/runs?branch=dev&status=completed&per_page=50", MockReply::json(404, json!({ "message": "Not Found" }))),
     ]);
     // When the audit runs
     let r = Audit::new("no-hosted", &[], "", json!({})).run_with(&github, &["--dry-run", "--since", &(BASE - 1000).to_string()]);
@@ -1066,7 +1066,7 @@ fn an_audit_whose_workflow_cannot_be_listed_exits_0_with_no_runs_and_says_so() {
     let out = last_json(&r);
     let notes = out["notes"].to_string();
     assert_eq!((r.exit_code, out["runs"].as_array().unwrap().len()), (0, 0), "{}{}", r.stdout, r.stderr);
-    assert!(notes.contains("ci-hosted.yml"), "{notes}");
+    assert!(notes.contains("ci-hosted-backend-core.yml"), "{notes}");
 }
 
 #[test]
@@ -1642,12 +1642,12 @@ fn the_audit_of_a_called_workflow_judges_a_job_by_its_own_name_and_never_judges_
 // ---- one comment per workflow: converging duplicates and pruning old heads ----
 
 const WORKFLOW_LABELS: [(&str, &str); 6] = [
-    ("ci-hosted.yml", "backend_core+lint+pre-release-testing"),
-    ("ci-hosted-core-mobile.yml", "mobile_core+lint+pre-release-testing"),
-    ("ci-hosted-core-cli.yml", "cli_core+lint+pre-release-testing"),
+    ("ci-hosted-backend-core.yml", "backend_core+lint+pre-release-testing"),
+    ("ci-hosted-mobile-core.yml", "mobile_core+lint+pre-release-testing"),
+    ("ci-hosted-cli-core.yml", "cli_core+lint+pre-release-testing"),
     ("ci-hosted-cli-publish.yml", "cli_build+publish+release-testing"),
-    ("ci-hosted-service-deploy.yml", "backend_build+deploy+release-testing"),
-    ("ci-hosted-mobile-e2e.yml", "mobile_build+publish+release-testing"),
+    ("ci-hosted-backend-deploy.yml", "backend_build+deploy+release-testing"),
+    ("ci-hosted-mobile-publish.yml", "mobile_build+publish+release-testing"),
 ];
 
 /// A workspace whose `.github/workflows` hold the labels of the current workflows.

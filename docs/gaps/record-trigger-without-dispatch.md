@@ -15,7 +15,7 @@ links: []
 
 Agent sessions in this repo reach GitHub through an egress proxy that answers 403 to `workflow_dispatch` and to the Actions API (listing runs, downloading an artifact), so a dispatched
 capture could be started and read only by a human. The same constraint shaped the Gem sync: an EMPTY commit to `dev` whose message carries a marker is a plain `git push`, which the proxy
-allows, and the CI pipeline ignores it (`ci-hosted.yml` starts an empty commit only with a `[services:...]` or `[cache:...]` tag). `mimic-record.yml` follows that pattern (`[record <set>...]`, `[replay <set>...]`, parsed by `wf ci plan mimic`).
+allows, and the CI pipeline ignores it (`ci-hosted-backend-core.yml` starts an empty commit only with a `[services:...]` or `[cache:...]` tag). `mimic-record.yml` follows that pattern (`[record <set>...]`, `[replay <set>...]`, parsed by `wf ci plan mimic`).
 For the same reason the cassette set also travels through the verification-artifacts bucket (`wf mimic capture record --publish` / `wf mimic fetch`, plain HTTPS), with the Actions artifact as the human-facing copy.
 
 ## What has not been seen

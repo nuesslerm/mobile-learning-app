@@ -152,9 +152,9 @@ pub(crate) fn resolve_base(raw: Option<&str>, sha: &str) -> String {
 }
 
 /// The workflow file this run belongs to (the caller's, `GITHUB_WORKFLOW_REF` names it): each workflow of a push has its own last green, or a mobile run would skip the tests a
-/// mobile run left red because the backend run of the same commit passed. `ci-hosted.yml` outside Actions.
+/// mobile run left red because the backend run of the same commit passed. `ci-hosted-backend-core.yml` outside Actions.
 fn workflow_file(reference: Option<&str>) -> String {
-    reference.and_then(|r| r.split_once(".github/workflows/")).and_then(|(_, rest)| rest.split('@').next()).filter(|f| f.starts_with("ci-hosted") && f.ends_with(".yml")).map_or_else(|| "ci-hosted.yml".to_string(), str::to_string)
+    reference.and_then(|r| r.split_once(".github/workflows/")).and_then(|(_, rest)| rest.split('@').next()).filter(|f| f.starts_with("ci-hosted") && f.ends_with(".yml")).map_or_else(|| "ci-hosted-backend-core.yml".to_string(), str::to_string)
 }
 
 fn last_green(sha: &str) -> Option<String> {
@@ -307,11 +307,11 @@ mod workflow_file_tests {
 
     #[test]
     fn given_the_workflow_ref_of_a_caller_when_the_file_is_read_then_each_ci_workflow_is_its_own_and_anything_else_is_the_default() {
-        for file in ["ci-hosted.yml", "ci-hosted-core-mobile.yml", "ci-hosted-core-cli.yml", "ci-hosted-cli-publish.yml", "ci-hosted-service-deploy.yml", "ci-hosted-mobile-e2e.yml"] {
+        for file in ["ci-hosted-backend-core.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "ci-hosted-cli-publish.yml", "ci-hosted-backend-deploy.yml", "ci-hosted-mobile-publish.yml"] {
             assert_eq!(workflow_file(Some(&format!("o/r/.github/workflows/{file}@refs/heads/dev"))), file);
         }
-        assert_eq!(workflow_file(Some("o/r/.github/workflows/ci-hosted.yml@refs/heads/dev")), "ci-hosted.yml");
-        assert_eq!(workflow_file(Some("o/r/.github/workflows/cold-ci.yml@refs/heads/dev")), "ci-hosted.yml");
-        assert_eq!(workflow_file(None), "ci-hosted.yml");
+        assert_eq!(workflow_file(Some("o/r/.github/workflows/ci-hosted-backend-core.yml@refs/heads/dev")), "ci-hosted-backend-core.yml");
+        assert_eq!(workflow_file(Some("o/r/.github/workflows/cold-ci.yml@refs/heads/dev")), "ci-hosted-backend-core.yml");
+        assert_eq!(workflow_file(None), "ci-hosted-backend-core.yml");
     }
 }

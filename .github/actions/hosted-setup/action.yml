@@ -1,6 +1,6 @@
 name: Hosted setup
 description: >-
-  What a test job of the GitHub-hosted flavor of the CI (pipeline.yml, called by ci-hosted.yml) needs before its own steps: the tailnet (the private cargo registry), node
+  What a test job of the GitHub-hosted flavor of the CI (pipeline.yml, called by ci-hosted-backend-core.yml) needs before its own steps: the tailnet (the private cargo registry), node
   and pnpm, the Rust toolchain, bws, and the `wf` the job `wf` built, put on PATH. The caller has checked the repository out.
 inputs:
   tailnet:

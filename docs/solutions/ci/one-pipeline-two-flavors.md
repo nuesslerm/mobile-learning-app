@@ -15,7 +15,7 @@ tags: [ci, pipeline, concurrency, hosted, vm, wf-build, deploy]
 
 # The CI pipeline
 
-`.github/workflows/pipeline.yml` is one reusable workflow, called by `ci-hosted.yml` ("CI (GitHub-hosted)": ships, deploys, runs the device suites) on every push to `dev` and by `cold-ci.yml` weekly. It runs on GitHub-hosted runners, up to 20 jobs at once (free plan limit). The self-hosted flavor (`deploy.yml`, the VM's own runner, one job at a time) and the VM runner itself were removed on 2026-11-13.
+`.github/workflows/pipeline.yml` is one reusable workflow, called by `ci-hosted-backend-core.yml` ("CI (GitHub-hosted)": ships, deploys, runs the device suites) on every push to `dev` and by `cold-ci.yml` weekly. It runs on GitHub-hosted runners, up to 20 jobs at once (free plan limit). The self-hosted flavor (`deploy.yml`, the VM's own runner, one job at a time) and the VM runner itself were removed on 2026-11-13.
 
 | | |
 | --- | --- |
@@ -93,7 +93,7 @@ Image builds fetch the shared libraries from the public libs bucket over plain H
 
 ## Concurrency groups
 
-- The workflow group is `ci-hosted-<sha>` (runs of different commits overlap, so a red shard is fixed and re-run at once); the deploy lock is `hosted-deploy-<app>`; the `head` job gates the deploy and the production EAS publish on the commit still being the head of `dev`.
+- The caller's workflow group is `<file stem>-<sha>` (runs of different commits overlap, so a red shard is fixed and re-run at once); the deploy lock is `hosted-deploy-<app>` (no workflow in it: the VM is shared); the `head` job gates the deploy and the production EAS publish on the commit still being the head of `dev`.
 - GitHub replaces a *pending* run in a group and never a running one, so a newer push supersedes a queued run only.
 - The deploy lock is per app with `cancel-in-progress: false`: two deploys of one app never overlap, deploys of different apps do.
 

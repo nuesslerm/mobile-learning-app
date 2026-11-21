@@ -4,7 +4,7 @@ use crate::support::{run_wf, MockReply, MockServer, RunOpts};
 use serde_json::{json, Value};
 
 const PAT: &str = "github_pat_11AAAAAAA0zzzzzzzzzzzz_secretsecretsecret";
-const WORKFLOWS: [&str; 6] = ["ci-hosted.yml", "ci-hosted-core-mobile.yml", "ci-hosted-core-cli.yml", "ci-hosted-cli-publish.yml", "ci-hosted-service-deploy.yml", "ci-hosted-mobile-e2e.yml"];
+const WORKFLOWS: [&str; 6] = ["ci-hosted-backend-core.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "ci-hosted-cli-publish.yml", "ci-hosted-backend-deploy.yml", "ci-hosted-mobile-publish.yml"];
 
 fn list(workflow: &str) -> String {
     format!("GET /repos/nuesslerm/mobile-learning-app/actions/workflows/{workflow}/runs?branch=dev&per_page=100")
@@ -14,8 +14,8 @@ fn cancel_route(id: u64) -> String {
     format!("POST /repos/nuesslerm/mobile-learning-app/actions/runs/{id}/cancel")
 }
 
-/// Runs spread over two of the six workflows (the other four list none): ci-hosted.yml holds a pending, a running and a finished run,
-/// ci-hosted-core-cli.yml a queued one.
+/// Runs spread over two of the six workflows (the other four list none): ci-hosted-backend-core.yml holds a pending, a running and a finished run,
+/// ci-hosted-cli-core.yml a queued one.
 fn github(cancel_status: u16) -> MockServer {
     let server = MockServer::start(None);
     let backend = json!({ "workflow_runs": [
@@ -25,9 +25,9 @@ fn github(cancel_status: u16) -> MockServer {
     ] });
     let cli = json!({ "workflow_runs": [{ "id": 9002, "run_number": 1229, "status": "queued" }] });
     let mut table: Vec<(String, MockReply)> = WORKFLOWS.iter().map(|w| (list(w), MockReply::json(200, json!({ "workflow_runs": [] })))).collect();
-    table.retain(|(k, _)| *k != list("ci-hosted.yml") && *k != list("ci-hosted-core-cli.yml"));
-    table.push((list("ci-hosted.yml"), MockReply::json(200, backend)));
-    table.push((list("ci-hosted-core-cli.yml"), MockReply::json(200, cli)));
+    table.retain(|(k, _)| *k != list("ci-hosted-backend-core.yml") && *k != list("ci-hosted-cli-core.yml"));
+    table.push((list("ci-hosted-backend-core.yml"), MockReply::json(200, backend)));
+    table.push((list("ci-hosted-cli-core.yml"), MockReply::json(200, cli)));
     for id in [9003, 9002, 9001] {
         table.push((cancel_route(id), MockReply::json(cancel_status, if id == 9003 { json!({ "message": "reply-body-xyz" }) } else { json!({}) })));
     }
@@ -145,16 +145,16 @@ fn all_cancels_every_unfinished_run() {
 
 #[test]
 fn runs_queued_in_two_workflows_are_both_cancelled_and_the_running_ones_of_either_are_left_alone() {
-    // Given a queued run in ci-hosted-core-mobile.yml and one in ci-hosted-mobile-e2e.yml, and a running run in ci-hosted-service-deploy.yml
+    // Given a queued run in ci-hosted-mobile-core.yml and one in ci-hosted-mobile-publish.yml, and a running run in ci-hosted-backend-deploy.yml
     let server = MockServer::start(None);
     let mut table: Vec<(String, MockReply)> = WORKFLOWS.iter().map(|w| (list(w), MockReply::json(200, json!({ "workflow_runs": [] })))).collect();
     let set = |table: &mut Vec<(String, MockReply)>, workflow: &str, runs: Value| {
         table.retain(|(k, _)| *k != list(workflow));
         table.push((list(workflow), MockReply::json(200, json!({ "workflow_runs": runs }))));
     };
-    set(&mut table, "ci-hosted-core-mobile.yml", json!([{ "id": 7001, "run_number": 11, "status": "queued" }]));
-    set(&mut table, "ci-hosted-mobile-e2e.yml", json!([{ "id": 7002, "run_number": 5, "status": "waiting" }]));
-    set(&mut table, "ci-hosted-service-deploy.yml", json!([{ "id": 7003, "run_number": 9, "status": "in_progress" }]));
+    set(&mut table, "ci-hosted-mobile-core.yml", json!([{ "id": 7001, "run_number": 11, "status": "queued" }]));
+    set(&mut table, "ci-hosted-mobile-publish.yml", json!([{ "id": 7002, "run_number": 5, "status": "waiting" }]));
+    set(&mut table, "ci-hosted-backend-deploy.yml", json!([{ "id": 7003, "run_number": 9, "status": "in_progress" }]));
     for id in [7001, 7002, 7003] {
         table.push((cancel_route(id), MockReply::json(202, json!({}))));
     }
@@ -174,11 +174,11 @@ fn runs_queued_in_two_workflows_are_both_cancelled_and_the_running_ones_of_eithe
 
 #[test]
 fn a_run_number_shared_by_two_workflows_cancels_the_unfinished_run_not_the_finished_one() {
-    // Given run number 50 finished in ci-hosted.yml and still running in ci-hosted-core-cli.yml
+    // Given run number 50 finished in ci-hosted-backend-core.yml and still running in ci-hosted-cli-core.yml
     let server = MockServer::start(None);
-    let mut table: Vec<(String, MockReply)> = WORKFLOWS.iter().filter(|w| !["ci-hosted.yml", "ci-hosted-core-cli.yml"].contains(w)).map(|w| (list(w), MockReply::json(200, json!({ "workflow_runs": [] })))).collect();
-    table.push((list("ci-hosted.yml"), MockReply::json(200, json!({ "workflow_runs": [{ "id": 8001, "run_number": 50, "status": "completed" }] }))));
-    table.push((list("ci-hosted-core-cli.yml"), MockReply::json(200, json!({ "workflow_runs": [{ "id": 8002, "run_number": 50, "status": "in_progress" }] }))));
+    let mut table: Vec<(String, MockReply)> = WORKFLOWS.iter().filter(|w| !["ci-hosted-backend-core.yml", "ci-hosted-cli-core.yml"].contains(w)).map(|w| (list(w), MockReply::json(200, json!({ "workflow_runs": [] })))).collect();
+    table.push((list("ci-hosted-backend-core.yml"), MockReply::json(200, json!({ "workflow_runs": [{ "id": 8001, "run_number": 50, "status": "completed" }] }))));
+    table.push((list("ci-hosted-cli-core.yml"), MockReply::json(200, json!({ "workflow_runs": [{ "id": 8002, "run_number": 50, "status": "in_progress" }] }))));
     table.push((cancel_route(8002), MockReply::json(202, json!({}))));
     server.routes(&table.iter().map(|(k, v)| (k.as_str(), v.clone())).collect::<Vec<_>>());
 
@@ -192,11 +192,11 @@ fn a_run_number_shared_by_two_workflows_cancels_the_unfinished_run_not_the_finis
 
 #[test]
 fn a_workflow_github_cannot_list_does_not_stop_the_cancel_of_the_others() {
-    // Given ci-hosted-core-cli.yml answers 404 (renamed or disabled) and ci-hosted.yml holds a queued run
+    // Given ci-hosted-cli-core.yml answers 404 (renamed or disabled) and ci-hosted-backend-core.yml holds a queued run
     let server = MockServer::start(None);
-    let mut table: Vec<(String, MockReply)> = WORKFLOWS.iter().filter(|w| !["ci-hosted.yml", "ci-hosted-core-cli.yml"].contains(w)).map(|w| (list(w), MockReply::json(200, json!({ "workflow_runs": [] })))).collect();
-    table.push((list("ci-hosted.yml"), MockReply::json(200, json!({ "workflow_runs": [{ "id": 6001, "run_number": 3, "status": "queued" }] }))));
-    table.push((list("ci-hosted-core-cli.yml"), MockReply::json(404, json!({ "message": "Not Found" }))));
+    let mut table: Vec<(String, MockReply)> = WORKFLOWS.iter().filter(|w| !["ci-hosted-backend-core.yml", "ci-hosted-cli-core.yml"].contains(w)).map(|w| (list(w), MockReply::json(200, json!({ "workflow_runs": [] })))).collect();
+    table.push((list("ci-hosted-backend-core.yml"), MockReply::json(200, json!({ "workflow_runs": [{ "id": 6001, "run_number": 3, "status": "queued" }] }))));
+    table.push((list("ci-hosted-cli-core.yml"), MockReply::json(404, json!({ "message": "Not Found" }))));
     table.push((cancel_route(6001), MockReply::json(202, json!({}))));
     server.routes(&table.iter().map(|(k, v)| (k.as_str(), v.clone())).collect::<Vec<_>>());
 

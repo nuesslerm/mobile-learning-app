@@ -15,7 +15,7 @@ Source: `grep -rnE "BWS_|bws |wf secret (get|sync-env|verify)|secrets\.[A-Z_]+|s
 | --- | --- | --- | --- |
 | `.github/workflows/pipeline.yml` | `EXPO_PUBLIC_BETTERSTACK_TOKEN`, `BETTERSTACK_INGEST_HOST` | `wf secret get --backend bitwarden` in the job | `build-env <app>` (returns only the public `EXPO_PUBLIC_*` values the web/EAS build bakes in) |
 | `.github/workflows/e2e-tests.yml` (~L237) | same two keys | same | `build-env <app>` |
-| `.github/workflows/ci-hosted.yml` | every repo secret | `secrets: inherit` on reusable workflow calls | none: the callee gets `id-token: write` only |
+| `.github/workflows/ci-hosted-backend-core.yml` | every repo secret | `secrets: inherit` on reusable workflow calls | none: the callee gets `id-token: write` only |
 | `wf ship` preflight (`wf secret verify`) | the app's secrets, Docker Hub token | runner holds a Bitwarden read token | `verify-secrets <app>` (returns present/usable per key, never a value) |
 | `wf ship`, `vm-ops-api` request signing | request-signing key (`VM_GATEWAY_AUTH_SEED`) | resolved with bws at job time | `deploy <app> --ref`: the broker signs and calls vm-ops-api |
 | `backend/remote-chat-agent/docker-compose.prod.yml` (L306-307) | same two vars in a service container | env passed to the container | removed; broker-materialised tmpfs files (service injection) |

@@ -7761,7 +7761,7 @@ Example (from anywhere on the tailnet; the script is one line):
 
 #### `wf vm ops cancel-run`
 
-Cancels CI runs of dev (ci-hosted.yml), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token cannot. Where that token is not in the environment (a sandbox), the verb runs itself on agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run (its run number as the Actions tab shows it, or its id); it must exist among the latest 100 runs of dev and not have completed. --queued cancels every run that is still waiting for a runner (queued, waiting, pending, requested) and leaves running ones alone. --all cancels every run that has not finished.
+Cancels CI runs of dev (ci-hosted-backend-core.yml), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token cannot. Where that token is not in the environment (a sandbox), the verb runs itself on agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run (its run number as the Actions tab shows it, or its id); it must exist among the latest 100 runs of dev and not have completed. --queued cancels every run that is still waiting for a runner (queued, waiting, pending, requested) and leaves running ones alone. --all cancels every run that has not finished.
 
 Usage: `wf vm ops cancel-run (--run <number> | --queued | --all) [options]`
 
@@ -7776,7 +7776,7 @@ wf vm ops cancel-run --all
 ```text
 Usage: wf vm ops cancel-run (--run <number> | --queued | --all) [options]
 
-Cancels CI runs of dev (ci-hosted.yml), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token
+Cancels CI runs of dev (ci-hosted-backend-core.yml), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token
 cannot. Where that token is not in the environment (a sandbox), the verb runs itself on
 agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run
 (its run number as the Actions tab shows it, or its id); it must exist among the

@@ -1,11 +1,11 @@
 name: Pipeline
 
-# The one CI pipeline, called by ci-hosted.yml on GitHub-hosted runners. The job graph is static: wf-build, plan (which also runs the preflight and
+# The one CI pipeline, called by ci-hosted-backend-core.yml on GitHub-hosted runners. The job graph is static: wf-build, plan (which also runs the preflight and
 # the head-of-dev check), core-tests (the flow stage and the typecheck, lint and unit stage side by side on one machine), clis, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, eas-update-e2e, the e2e suites, report.
 # `ship` publishes (latest images, the EAS Update), `deploy` runs the deploy legs, `e2e` runs the device suites, `stages` picks one stage of them and `area` one area of the core
-# stage, so a push is six runs of one graph that do not wait for each other: ci-hosted-core-mobile.yml, ci-hosted-core-cli.yml and ci-hosted.yml (backend services) run `core`
-# (flow, lint, typecheck and unit tests) for their area, ci-hosted-cli-publish.yml `cli` (the wf build and release, and the cli e2e tests), ci-hosted-service-deploy.yml `deploy`
-# (the image builds, the integration tests, the deploy and its verification) and ci-hosted-mobile-e2e.yml `e2e` (the EAS Updates and the browser and Android suites).
+# stage, so a push is six runs of one graph that do not wait for each other: ci-hosted-mobile-core.yml, ci-hosted-cli-core.yml and ci-hosted-backend-core.yml (backend services) run `core`
+# (flow, lint, typecheck and unit tests) for their area, ci-hosted-cli-publish.yml `cli` (the wf build and release, and the cli e2e tests), ci-hosted-backend-deploy.yml `deploy`
+# (the image builds, the integration tests, the deploy and its verification) and ci-hosted-mobile-publish.yml `e2e` (the EAS Updates and the browser and Android suites).
 # Rules: docs/solutions/ci/ci-pipeline-on-the-vm.md
 on:
   workflow_call:
@@ -89,9 +89,6 @@ jobs:
     runs-on: ${{ matrix.arch == 'arm64' && fromJSON(inputs.deploy_runner) || fromJSON(inputs.runner) }}
     # a cold cache builds wf here (up to an hour)
     timeout-minutes: 70
-    concurrency:
-      group: ${{ format('hosted-wf-build-{0}-{1}', github.run_id, matrix.arch) }}
-      cancel-in-progress: false
     strategy:
       fail-fast: false
       matrix:
@@ -900,9 +897,6 @@ jobs:
     if: ${{ (!cancelled() && needs.plan.outputs.is_head == 'true' && needs.plan.result == 'success' && (needs.deploy.result == 'success' || needs.plan.outputs.legs == '[]') && (needs.clis.result == 'success' || !inputs.ship) && (needs.plan.outputs.deployment_verification_tests != '0' || needs.plan.outputs.legs != '[]') && needs.plan.outputs.run_service == 'true' && (inputs.deploy || needs.plan.outputs.legs == '[]')) && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 20
-    concurrency:
-      group: ${{ format('hosted-deployment-verification-tests-{0}', github.run_id) }}
-      cancel-in-progress: false
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -948,9 +942,6 @@ jobs:
       actions: read
       contents: read
       pull-requests: write
-    concurrency:
-      group: ${{ format('hosted-eas-update-{0}', github.run_id) }}
-      cancel-in-progress: false
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -1065,9 +1056,6 @@ jobs:
       actions: read
       contents: write
       pull-requests: write
-    concurrency:
-      group: ${{ format('hosted-eas-promote-{0}', github.run_id) }}
-      cancel-in-progress: false
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -1107,9 +1095,6 @@ jobs:
       actions: read
       contents: write
       pull-requests: write
-    concurrency:
-      group: ${{ format('hosted-eas-update-e2e-{0}', github.run_id) }}
-      cancel-in-progress: false
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
