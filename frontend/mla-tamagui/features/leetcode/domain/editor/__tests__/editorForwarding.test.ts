@@ -2,7 +2,7 @@ import { createDeferredEngine, createEditorClient } from '@lib/code-editor-api';
 import { createFakeEditor } from '@lib/code-editor-api/testing';
 import { describe, expect, it } from 'vitest';
 
-import type { ToEditorMessage } from '../../../domain/ports';
+import type { ToEditorMessage } from '../../ports';
 import { createForwardingPost, everyMessageIsListed, FORWARDED_TYPES, LEGACY_TYPES } from '../editorForwarding';
 
 // one sample of every message: a new ToEditorMessage type fails to compile here until it is given a sample

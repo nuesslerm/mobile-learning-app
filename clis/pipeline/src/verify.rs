@@ -268,8 +268,8 @@ pub fn is_code(f: &str) -> bool {
 /// bridge under it, logging), so a change to any of them stales `cm6Bundle.ts` until it is rebuilt.
 fn is_cm6_input(f: &str) -> bool {
     f == "pnpm-lock.yaml"
-        || f.starts_with("frontend/mla-tamagui/features/leetcode/code-editor/core/")
-        || f.starts_with("frontend/mla-tamagui/features/leetcode/code-editor/engine/")
+        || f.starts_with("frontend/mla-tamagui/features/leetcode/data/editor/cm6/")
+        || f.starts_with("frontend/mla-tamagui/features/leetcode/domain/editor/")
         || f.starts_with("frontend/libraries/code-editor-api/src/")
         || f.starts_with("frontend/libraries/webview-rpc/src/")
         || f.starts_with("frontend/libraries/logging/")

@@ -3,6 +3,7 @@
 // their runtime modules (data/, hooks/, code-editor/) so this layer stays
 // dependency-free.
 
+import type { EditorClient } from '@lib/code-editor-api';
 import type { RunResponse, TestCase } from './execution';
 import type { NodeType } from './models';
 import type {
@@ -129,7 +130,7 @@ export type ToEditorMessage =
 
 type EditorSelection = { start: number; end: number };
 
-// Mirrors the webview's postMessage protocol (see code-editor/cm6Bundle.src.ts).
+// Mirrors the webview's postMessage protocol (see data/editor/cm6/cm6Bundle.src.ts).
 export type FromEditorMessage =
   | { type: 'ready' }
   | { type: 'hydrated'; text: string; selection: EditorSelection }
@@ -139,6 +140,18 @@ export type FromEditorMessage =
   | { type: 'error'; message: string }
   | { type: 'contentChanged'; text: string; selection: EditorSelection }
   | { type: 'selectionChanged'; selection: EditorSelection };
+
+/** What the editor view hands the page it shows: a WebView that takes scripts. */
+export type WebViewHandle = { injectJavaScript(script: string): void };
+
+/**
+ * The page the code editor runs in and the typed editor API over it: `html` is what the WebView loads; `connect` gives the client that
+ * makes the calls and `receive`, which takes each raw message the WebView posts back.
+ */
+export interface EditorBridgePort {
+  html(): string;
+  connect(webView: () => WebViewHandle | null): { client: EditorClient; receive(raw: string): void };
+}
 
 export interface CodeEditorPort {
   post(msg: ToEditorMessage): void;
@@ -173,6 +186,8 @@ export class CodeRunnerError extends Error {
 }
 
 export interface LeetCodePorts {
+  /** The CodeMirror page and the typed editor API over it. */
+  editorBridge: EditorBridgePort;
   gateway: LeetCodeGatewayPort;
   voice: VoiceEditTransportPort;
   audio: AudioRecordingPort;

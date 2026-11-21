@@ -54,14 +54,14 @@ import {
 } from '@lib/code-editor-api';
 import { Logger } from '@lib/logging';
 import { createPageTransport } from '@lib/webview-rpc';
-import { createCm6Host, revisionField, selectionOf, setRevisionBase, typingCalls } from '../engine/cm6Host';
+import { createCm6Host, revisionField, selectionOf, setRevisionBase, typingCalls } from './cm6Host';
 import {
   toEditorConfig,
   toLegacyPatch,
   type LegacyEditorConfig,
-} from '../../domain/editor/configPatch';
-import { completionExtensions } from '../engine/completionExtension';
-import { languageCompartment, languageExtension } from '../engine/languageExtensions';
+} from '../../../domain/editor/configPatch';
+import { completionExtensions } from './completionExtension';
+import { languageCompartment, languageExtension } from './languageExtensions';
 declare global {
   type ReactNativeWebViewBridge = {
     postMessage: (msg: string) => void;

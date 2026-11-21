@@ -3,6 +3,7 @@ import { appConfig } from '@lib/app-config';
 import { useMemo, type ReactNode } from 'react';
 
 import type { AudioRecordingPort, LeetCodePortOverrides, LeetCodePorts } from '../domain/ports';
+import { createWebViewEditorBridge } from '../data/editor/cm6/webViewEditorBridge';
 import { ExpoAudioRecorderProvider, useExpoAudioRecordingPort } from '../data/ExpoAudioRecorderAdapter';
 import { createGatewayCodeRunner } from '../data/gatewayCodeRunner';
 import { createSelectingCodeRunner } from '../data/selectingCodeRunner';
@@ -25,6 +26,7 @@ export function createDefaultContainer(
     );
   const deviceRunner = overrides.deviceRunner ?? createUnavailableCodeRunner();
   return {
+    editorBridge: overrides.editorBridge ?? createWebViewEditorBridge(),
     gateway,
     voice: overrides.voice ?? createLiveVoiceEditTransport(),
     audio: overrides.audio,

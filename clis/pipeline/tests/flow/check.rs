@@ -242,8 +242,8 @@ fn the_staged_gate_runs_through_nx() {
 
     // And so does a change to anything else the page imports: the CodeMirror host and the editor API
     for imported in [
-        "frontend/mla-tamagui/features/leetcode/code-editor/engine/cm6Host.ts",
-        "frontend/mla-tamagui/features/leetcode/code-editor/core/languageExtensions.ts",
+        "frontend/mla-tamagui/features/leetcode/data/editor/cm6/cm6Host.ts",
+        "frontend/mla-tamagui/features/leetcode/data/editor/cm6/languageExtensions.ts",
         "frontend/libraries/code-editor-api/src/core/engine.ts",
     ] {
         w.put(imported, "export {};\n");

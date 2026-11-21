@@ -1,4 +1,5 @@
 import type { RunResponse } from '../domain';
+import { createWebViewEditorBridge } from './editor/cm6/webViewEditorBridge';
 import { createGatewayCodeRunner } from './gatewayCodeRunner';
 import type {
   EditAlternative,
@@ -189,6 +190,7 @@ function createFixtureAudio(): AudioRecordingPort {
 export function createFixturePorts(): LeetCodePorts {
   const gateway = createFixtureGateway();
   return {
+    editorBridge: createWebViewEditorBridge(),
     gateway,
     voice: createFixtureVoice(),
     audio: createFixtureAudio(),

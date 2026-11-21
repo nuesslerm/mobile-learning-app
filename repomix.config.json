@@ -43,7 +43,7 @@
       ".gemini-context-cache/**",
       "lefthook_output.txt",
       "gate-output.txt",
-      "frontend/mla-tamagui/features/leetcode/code-editor/core/cm6Bundle.ts",
+      "frontend/mla-tamagui/features/leetcode/data/editor/cm6/cm6Bundle.ts",
       "frontend/mla-tamagui/features/leetcode/domain/blind75.json"
     ]
   },

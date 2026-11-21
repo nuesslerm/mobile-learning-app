@@ -175,10 +175,10 @@
       "cache": true,
       "inputs": [
         {
-          "fileset": "{projectRoot}/features/leetcode/code-editor/core/**"
+          "fileset": "{projectRoot}/features/leetcode/data/editor/cm6/**"
         },
         {
-          "fileset": "{projectRoot}/features/leetcode/code-editor/engine/**"
+          "fileset": "{projectRoot}/features/leetcode/domain/editor/**"
         },
         {
           "fileset": "{workspaceRoot}/frontend/libraries/code-editor-api/src/**"

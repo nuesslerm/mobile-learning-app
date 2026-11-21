@@ -1,11 +1,7 @@
-import { createEditorClient, toRemoteEngine, type CompletionEntry, type Language } from '@lib/code-editor-api';
+import type { CompletionEntry, Language } from '@lib/code-editor-api';
 import { Logger } from '@lib/logging';
 import { View } from '@lib/tamagui-design-system';
-import {
-  createRpcClient,
-  createWebViewHostTransport,
-  decode,
-} from '@lib/webview-rpc';
+import { decode } from '@lib/webview-rpc';
 import React, {
   forwardRef,
   useCallback,
@@ -25,9 +21,9 @@ import type {
   FromEditorMessage,
   ToEditorMessage,
 } from '../../domain/ports';
-import { writeThrough, type WriteRequest } from './documentWrite';
-import { createForwardingPost } from './editorForwarding';
-import { buildEditorHtml } from './editorHtml';
+import { writeThrough, type WriteRequest } from '../../domain/editor/documentWrite';
+import { createForwardingPost } from '../../domain/editor/editorForwarding';
+import { useLeetCodePorts } from '../../state/ports';
 import {
   getCodeFont,
   getPalette,
@@ -149,7 +145,8 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     const borderColor = isDark ? '#3e4451' : '#dadce0';
 
     // HTML is static — no config injected. All config flows via postMessage.
-    const html = useMemo(() => buildEditorHtml(), []);
+    const { editorBridge } = useLeetCodePorts();
+    const html = useMemo(() => editorBridge.html(), [editorBridge]);
 
     // One CodeEditorPort per editor instance, bound to this WebView: post()
     // drives the injectJavaScript channel, onMessage() fans webview events out
@@ -159,17 +156,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       new Set()
     );
     // The typed editor API over the same WebView: rpc frames come back through onMessage, requests go down as injected scripts.
-    const [apiBridge] = useState(() => {
-      const transport = createWebViewHostTransport(() => webViewRef.current);
-      const engine = toRemoteEngine(
-        createRpcClient(transport, { timeoutMs: 5000 }),
-        (error) => Logger.withError(error).warn('editor.api.remote_failed')
-      );
-      const client = createEditorClient(engine, {
-        trace: (call) => Logger.debug('editor.api.call', { ...call }),
-      });
-      return { transport, client };
-    });
+    const [apiBridge] = useState(() => editorBridge.connect(() => webViewRef.current));
     const editorPort = useMemo<CodeEditorPort>(() => {
       const legacyPost = (msg: ToEditorMessage) => {
         const webView = webViewRef.current;
@@ -619,7 +606,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       (event: WebViewMessageEvent) => {
         // A typed-API frame goes to the rpc client and never enters the old path, whose listeners expect a `type`.
         if (decode(event.nativeEvent.data).type !== 'foreign') {
-          apiBridge.transport.receive(event.nativeEvent.data);
+          apiBridge.receive(event.nativeEvent.data);
           return;
         }
         let msg: FromEditorMessage;

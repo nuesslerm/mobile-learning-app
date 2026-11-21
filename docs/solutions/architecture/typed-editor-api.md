@@ -21,7 +21,7 @@ Text is canonical. Every client edits it through seven typed requests on one eng
 - `core/`: pure. Changes and mapping (`mapPos` is CodeMirror's rule over the individual change list), the revision log, `planBatch`, the validators, `createEditorEngine(host)` with its FIFO queue, `createEditorClient` (sugar that never rejects), `createDocumentMirror`.
 - `adapters/`: `serveEditor` (page side) and `toRemoteEngine` (host side) over `@lib/webview-rpc`, the only imports of it (the preset's `libraries` option).
 - `testing/`: `createFakeEditor` (a string host under the same core), `editorContract` (the suite), `withFaults`.
-- The CodeMirror host is `features/leetcode/code-editor/engine/cm6Host.ts`, served beside the old messages from `cm6Bundle.src.ts`.
+- The CodeMirror host is `features/leetcode/data/editor/cm6/cm6Host.ts`, served beside the old messages from `cm6Bundle.src.ts` in the same folder; the view reaches the page through the leetcode feature's `EditorBridgePort`.
 
 ## Rules a client can rely on
 
