@@ -1,13 +1,14 @@
 import { closeBrackets } from '@codemirror/autocomplete';
-import { history, undo } from '@codemirror/commands';
+import { defaultKeymap, history, indentWithTab, undo } from '@codemirror/commands';
 import { cpp } from '@codemirror/lang-cpp';
 import { python } from '@codemirror/lang-python';
 import { EditorState } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
-import { classify, createDocumentMirror, createEditorEngine, enclosingBlock, unwrap, type ApplyParams, type EditorEvent, type EngineCore, type EngineOptions, type Language } from '@lib/code-editor-api';
-import { afterEach, describe, expect, it } from 'vitest';
+import { EditorView, keymap } from '@codemirror/view';
+import { classify, createDocumentMirror, createEditorEngine, enclosingBlock, unwrap, type ApplyParams, type CompletionEntry, type EditorEvent, type EngineCore, type EngineOptions, type Language } from '@lib/code-editor-api';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { createCm6Host, revisionField, setRevisionBase, typingCalls } from '../cm6Host';
+import { completionExtensions } from '../completionExtension';
 
 // A real EditorView in jsdom whose own update listener is broken: the host's pump must not depend on it.
 const views: EditorView[] = [];
@@ -15,11 +16,12 @@ afterEach(() => {
   for (const view of views.splice(0)) view.destroy();
 });
 
-function mount(doc: string, options: { language?: Language; engine?: Pick<EngineOptions, 'now' | 'yieldToEvents' | 'treeSliceMs'> } = {}) {
+function mount(doc: string, options: { language?: Language; engine?: Pick<EngineOptions, 'now' | 'yieldToEvents' | 'treeSliceMs'>; completion?: { enabled: boolean; entries: readonly CompletionEntry[] }; brokenListener?: boolean } = {}) {
   const language = options.language ?? 'python';
   setRevisionBase(0);
   const swallowed: unknown[] = [];
-  const extensions = [language === 'cpp' ? cpp() : python(), history(), closeBrackets(), revisionField, typingCalls, EditorView.exceptionSink.of((error) => swallowed.push(error)), EditorView.updateListener.of(() => { throw new Error('the listener broke'); })];
+  const completion = options.completion ? completionExtensions({ language, enabled: options.completion.enabled, entries: options.completion.entries, onOpenChange: (open) => core?.ingestCompletion(open) }) : [];
+  const extensions = [language === 'cpp' ? cpp() : python(), history(), closeBrackets(), revisionField, typingCalls, EditorView.exceptionSink.of((error) => swallowed.push(error)), ...(options.brokenListener === false ? [] : [EditorView.updateListener.of(() => { throw new Error('the listener broke'); })]), completion, keymap.of([...defaultKeymap, indentWithTab])];
   const view = new EditorView({ state: EditorState.create({ doc, extensions }), parent: document.body.appendChild(document.createElement('div')) });
   views.push(view);
   let core: EngineCore | null = null;
@@ -287,3 +289,130 @@ describe('the CodeMirror host answering tree', () => {
   });
 });
 
+describe('the CodeMirror host with completion', () => {
+  // jsdom has no layout: the popup measures a text range to place itself, which the flow harness's frames answer with nothing as well
+  beforeAll(() => {
+    const proto = Range.prototype as { getClientRects?: () => unknown; getBoundingClientRect?: () => unknown };
+    proto.getClientRects ??= () => [];
+    proto.getBoundingClientRect ??= () => ({ x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0 });
+  });
+  const entries: CompletionEntry[] = [{ label: 'nums', type: 'variable', detail: 'List[int]' }];
+  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const eventually = async (check: () => boolean, message: string) => {
+    const deadline = Date.now() + 3_000;
+    while (!check()) {
+      if (Date.now() > deadline) throw new Error(message);
+      await wait(20);
+    }
+  };
+  const labelsOf = (): string[] => Array.from(document.querySelectorAll('.cm-tooltip-autocomplete li[role=option]'), (option) => option.textContent ?? '');
+  const key = (view: EditorView, name: string, keyCode: number) => view.contentDOM.dispatchEvent(new KeyboardEvent('keydown', { key: name, keyCode, bubbles: true, cancelable: true }));
+  async function typed(core: EngineCore, text: string) {
+    for (const char of text) await core.request('apply', { steps: [{ op: 'type', text: char }] });
+  }
+  async function opened(text = 'ret') {
+    const page = mount('', { completion: { enabled: true, entries }, brokenListener: false });
+    page.view.focus();
+    await typed(page.core, text);
+    await eventually(() => labelsOf().length > 0, 'the completion never opened');
+    return page;
+  }
+
+  it('given python and entries, when r, e, t are typed through the api, then the list opens with return first', async () => {
+    await opened();
+
+    expect(labelsOf()[0]).toBe('return');
+  });
+
+  it('given the list open, when the host completes, then the text is return as one api change and one undo restores ret', async () => {
+    const { core, view, events } = await opened();
+    const before = events.length;
+
+    const reply = await core.request('apply', { steps: [{ op: 'complete' }] });
+
+    expect(reply).toMatchObject({ ok: true });
+    expect(view.state.doc.toString()).toBe('return');
+    expect(events.slice(before)).toMatchObject([{ origin: 'api', changes: [{ from: 0, to: 3, insert: 'return' }] }]);
+    await core.request('history', { direction: 'undo' });
+    expect(view.state.doc.toString()).toBe('ret');
+  });
+
+  it('given the list open, when a finger presses the return option, then it is accepted as the person\'s own change with its own undo step and the list is gone', async () => {
+    const { core, view, events } = await opened();
+    const before = events.length;
+    const option = Array.from(document.querySelectorAll('.cm-tooltip-autocomplete li[role=option]')).find((li) => li.textContent === 'return') as HTMLElement;
+
+    option.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0 }));
+    await core.request('read', {});
+
+    expect(view.state.doc.toString()).toBe('return');
+    expect(events.slice(before)).toMatchObject([{ origin: 'user' }]);
+    await eventually(() => labelsOf().length === 0, 'the list stayed open');
+    await core.request('history', { direction: 'undo' });
+    expect(view.state.doc.toString()).toBe('ret');
+  });
+
+  it('given the list open, when Enter is pressed, then a new line is inserted and nothing is accepted', async () => {
+    const { view } = await opened();
+
+    key(view, 'Enter', 13);
+
+    expect(view.state.doc.toString()).toBe('ret\n');
+  });
+
+  it('given the list open, when Tab is pressed, then it is accepted; given it closed, Tab indents', async () => {
+    const { view } = await opened();
+
+    key(view, 'Tab', 9);
+    expect(view.state.doc.toString()).toBe('return');
+
+    const closed = mount('x', { completion: { enabled: true, entries }, brokenListener: false });
+    closed.view.focus();
+    key(closed.view, 'Tab', 9);
+    expect(closed.view.state.doc.toString()).toMatch(/^\s+x$|^x\s+$/);
+  });
+
+  it('given the list open, when focus leaves for 300 ms, then it closes; given focus back within 50 ms, it stays', async () => {
+    const away = await opened();
+    away.view.contentDOM.blur();
+    await wait(300);
+    expect(labelsOf()).toEqual([]);
+    away.view.destroy();
+
+    const back = await opened();
+    back.view.contentDOM.blur();
+    await wait(50);
+    back.view.focus();
+    await wait(300);
+    expect(labelsOf().length).toBeGreaterThan(0);
+  });
+
+  it('given a completion just accepted, when an opening bracket is typed through the api, then closeBrackets adds the pair', async () => {
+    const { core, view } = await opened();
+    await core.request('apply', { steps: [{ op: 'complete' }] });
+
+    await core.request('apply', { steps: [{ op: 'type', text: '(' }] });
+
+    expect(view.state.doc.toString()).toBe('return()');
+  });
+
+  it('given completion switched off, when ret is typed and 400 ms pass, then there is no list and no autocomplete attribute', async () => {
+    const { core, view } = mount('', { completion: { enabled: false, entries }, brokenListener: false });
+    view.focus();
+
+    await typed(core, 'ret');
+    await wait(400);
+
+    expect(document.querySelector('.cm-tooltip-autocomplete')).toBeNull();
+    expect(view.contentDOM.getAttribute('aria-autocomplete')).toBeNull();
+  });
+
+  it('given the host completes with nothing open, then the call is ok and changes nothing', async () => {
+    const { core, view } = mount('abc', { completion: { enabled: true, entries }, brokenListener: false });
+
+    const reply = await core.request('apply', { steps: [{ op: 'complete' }] });
+
+    expect(reply).toMatchObject({ ok: true, value: { changes: [] } });
+    expect(view.state.doc.toString()).toBe('abc');
+  });
+});

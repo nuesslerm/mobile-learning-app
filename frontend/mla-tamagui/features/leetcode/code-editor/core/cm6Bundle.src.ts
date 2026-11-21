@@ -45,6 +45,7 @@ import {
   isLanguage,
   LANGUAGE_NAMES,
   serveEditor,
+  type CompletionConfig,
   type ConfigPatch,
   type EditorEngine,
   type EngineCore,
@@ -59,6 +60,7 @@ import {
   toLegacyPatch,
   type LegacyEditorConfig,
 } from '../engine/configPatch';
+import { completionExtensions } from '../engine/completionExtension';
 import { languageCompartment, languageExtension } from '../engine/languageExtensions';
 declare global {
   type ReactNativeWebViewBridge = {
@@ -350,6 +352,16 @@ function getEditorState(view: EditorView) {
 
 // ─── Extension builder (recreated on config changes via Compartment) ──────────
 const configCompartment = new Compartment();
+// the completion the typed API configured; off until it says otherwise, and kept across a load and a language switch
+const completionCompartment = new Compartment();
+let currentCompletion: CompletionConfig = { enabled: false, entries: [] };
+const completionFor = (language: string) =>
+  completionExtensions({
+    language: languageOf(language),
+    enabled: currentCompletion.enabled,
+    entries: currentCompletion.entries,
+    onOpenChange: (open) => core?.ingestCompletion(open),
+  });
 function buildConfigExtensions(cfg: EditorConfig) {
   const theme = EditorView.theme(
     {
@@ -497,6 +509,7 @@ function buildState(cfg: EditorConfig, doc: string, selection?: SelRange) {
         fallback: true,
       }),
       languageCompartment.of(languageExtension(languageOf(cfg.language))),
+      completionCompartment.of(completionFor(cfg.language)),
       fieldMarkerPlugin,
       highlightPlugin,
       diffPlugin,
@@ -525,6 +538,7 @@ function applyConfigPatch(patch: Partial<EditorConfig>) {
   const effects = [configCompartment.reconfigure(buildConfigExtensions(currentConfig))];
   if (next !== before) {
     effects.push(languageCompartment.reconfigure(languageExtension(languageOf(next))));
+    effects.push(completionCompartment.reconfigure(completionFor(next)));
     Logger.info('editor.language.set', { from: before, to: next });
   }
   view.dispatch({ effects });
@@ -538,7 +552,11 @@ function applyApiConfig(patch: ConfigPatch) {
     };
   }
   applyConfigPatch(toLegacyPatch(patch));
-  return { ok: true as const, config: toEditorConfig(currentConfig) };
+  if (patch.completion) {
+    currentCompletion = patch.completion;
+    view.dispatch({ effects: completionCompartment.reconfigure(completionFor(currentConfig.language)) });
+  }
+  return { ok: true as const, config: toEditorConfig(currentConfig, currentCompletion) };
 }
 function createEditor(cfg: EditorConfig) {
   view?.destroy();

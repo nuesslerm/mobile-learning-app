@@ -30,6 +30,14 @@ describe('the config patch mapping', () => {
     expect(toLegacyPatch({ language: 'cpp', wrap: false })).toEqual({ language: 'cpp', wordWrap: false });
   });
 
+  it('given a completion config, when the page config is shown to the typed API, then it carries completion, and without one the key is absent', () => {
+    const legacy: LegacyEditorConfig = { initialText: '', language: 'python', ...ALL };
+    const completion = { enabled: true, entries: [{ label: 'nums' }] };
+
+    expect(toEditorConfig(legacy, completion).completion).toEqual(completion);
+    expect('completion' in toEditorConfig(legacy)).toBe(false);
+  });
+
   it.each(['python', 'javascript', 'cpp'] as const)('given the page on %s, when its config is shown to the typed API, then it reports that language', (language) => {
     expect(toEditorConfig({ initialText: '', language, ...ALL }).language).toBe(language);
   });

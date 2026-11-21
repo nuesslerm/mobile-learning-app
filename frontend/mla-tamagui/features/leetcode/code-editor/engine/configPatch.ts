@@ -1,4 +1,4 @@
-import { isLanguage, type ConfigPatch, type EditorConfig } from '@lib/code-editor-api';
+import { isLanguage, type CompletionConfig, type ConfigPatch, type EditorConfig } from '@lib/code-editor-api';
 
 /** The config the page and the old `init` / `updateConfig` messages speak. */
 export type LegacyEditorConfig = {
@@ -59,7 +59,7 @@ export function toLegacyPatch(patch: ConfigPatch): LegacyConfigPatch {
   };
 }
 
-export function toEditorConfig(legacy: LegacyEditorConfig): EditorConfig {
+export function toEditorConfig(legacy: LegacyEditorConfig, completion?: CompletionConfig): EditorConfig {
   return {
     language: isLanguage(legacy.language) ? legacy.language : 'python',
     wrap: legacy.wordWrap,
@@ -67,5 +67,6 @@ export function toEditorConfig(legacy: LegacyEditorConfig): EditorConfig {
     fontSize: legacy.fontSize,
     lineHeight: legacy.lineHeight,
     palette: { dark: legacy.isDark, cursor: legacy.cursorColor, selection: legacy.selectionColor, background: legacy.backgroundColor, gutter: legacy.gutterColor, border: legacy.borderColor },
+    ...(completion ? { completion } : {}),
   };
 }

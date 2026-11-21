@@ -1,3 +1,4 @@
+import { acceptCompletion } from '@codemirror/autocomplete';
 import { isolateHistory, redo, undo } from '@codemirror/commands';
 import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import { Annotation, EditorSelection, EditorState, StateField, Transaction } from '@codemirror/state';
@@ -146,6 +147,20 @@ export function createCm6Host(deps: Cm6HostDeps): DocumentHost {
         read: (range, detail) => readSyntaxNode(best, language, range, detail),
       };
       return snapshot;
+    },
+    complete(label) {
+      const editor = view();
+      // the same marker a typed key gets: the transaction the accepted completion makes is the call's, in its own undo step
+      typing = label ? { label } : {};
+      let accepted = false;
+      try {
+        accepted = acceptCompletion(editor);
+      } finally {
+        typing = null;
+      }
+      host.sync();
+      deps.core()?.ingestSelection(selectionOf(editor.state));
+      return accepted;
     },
     commit({ changes, selection, label }) {
       const editor = view();
