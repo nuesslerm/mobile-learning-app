@@ -43,6 +43,10 @@ Text is canonical. Every client edits it through seven typed requests on one eng
 
 A new operation is a request name, a step op, an optional field, an event type or an optional host method, announced in `hello.capabilities`; an unknown one answers `unsupported`. Give it a case in `testing/contract.ts` and it runs on the fake, over both transports and on the real CodeMirror bundle.
 
+## The page's syntax and suggestions
+
+The page offers python, javascript and cpp (`hello.capabilities.languages`) and switches between them with `configure({language})`, in one compartment, without touching the text, selection, revision or undo history. It answers `tree` from the live state (`ensureSyntaxTree` in slices the engine paces) and, once `configure({completion: {enabled, entries}})` has turned it on, offers the `complete` step and the `completion` event; a load and a language switch keep the config. Completion is off until configured, and the app configures it from the problem list's Suggestions row (off by default).
+
 ## What proves it
 
-`pnpm --filter @lib/code-editor-api test` (the suite on the fake, over a loopback and the emulated WebView, a 16,000-operation differential test against real CodeMirror state and history, a ChangeSet conformance test) and the real-bundle flow test `cm6Engine.contract.flow.test.tsx`. Not provable there: typing through the DOM and IME, soft-keyboard focus, layout, Android bridge timing: the Chromium and Android editor-typing e2e cover those.
+`pnpm --filter @lib/code-editor-api test` (the suite on the fake, over a loopback and the emulated WebView, a 16,000-operation differential test against real CodeMirror state and history, a ChangeSet conformance test, the fake's tree parsers and the class tables against the real grammars) and the real-bundle flow tests: `cm6Engine.contract.flow.test.tsx` runs the editor contract and the tree contract for each language, `cm6Language`, `cm6Completion` and the host's `cm6Host.flow.test.ts` the rest. The browser runs `e2e/editor-language.lua` and `e2e/editor-completion.lua` show the switch and the list on a phone frame. Not provable there: typing through the DOM and IME, soft-keyboard focus, layout, Android bridge timing: the Chromium and Android editor-typing e2e cover those.
