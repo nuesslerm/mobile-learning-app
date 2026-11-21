@@ -25,6 +25,14 @@ export type MakeSubject = (options: { bound: boolean }) => Promise<Subject>;
 
 const TEN = '0123456789';
 const replace = (from: number, to: number, text: string, expect?: string): Step => ({ op: 'replace', range: { from, to }, text, ...(expect === undefined ? {} : { expect }) });
+/** The real editor opens its completion a moment after the keystroke, so shared cases poll for what they expect instead of assuming it is synchronous. */
+export async function eventually(check: () => boolean, message: string, timeoutMs = 2_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!check()) {
+    if (Date.now() > deadline) throw new Error(message);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
 const failed = (reply: Reply<unknown>): EditorError => {
   if (reply.ok) throw new Error('the call was expected to fail');
   return reply.error;
@@ -144,7 +152,7 @@ export function editorContract(name: string, make: MakeSubject, options: Contrac
 
         // When each op is sent
         for (const op of advertised) {
-          if (op === 'type') continue; // it edits the text and has its own cases in the type group
+          if (op === 'type' || op === 'complete') continue; // they edit the text and have their own cases in the type and complete groups
           expect(samples[op], `an advertised step op has no contract case: ${op}`).toBeDefined();
           expect((await client.transact([samples[op] as Step])).ok).toBe(true);
         }
@@ -338,6 +346,99 @@ export function editorContract(name: string, make: MakeSubject, options: Contrac
         const reply = unwrap(await client.replaceRange({ from: 0, to: 0 }, 'a\r\nb'));
         expect(reply).toMatchObject({ changes: [{ insert: 'a\nb' }], landed: [{ from: 0, to: 3 }] });
         expect((await snapshot()).text).toBe(`a\nb${TEN}`);
+      });
+    });
+
+    describe('complete', () => {
+      const completeStep: Step = { op: 'complete' };
+      const entries = [{ label: 'quokka_total', type: 'variable', detail: 'int' }, { label: 'numbers' }];
+      const advertises = async () => {
+        const capabilities = unwrap(await client.hello()).capabilities;
+        return capabilities.steps.includes('complete') && capabilities.steps.includes('type');
+      };
+      const typed = async (text: string) => {
+        for (const char of text) unwrap(await client.transact([{ op: 'type', text: char }]));
+      };
+      const configureCompletion = async (enabled: boolean) => {
+        unwrap(await client.setConfig({ completion: { enabled, entries } }));
+        cleanups.push(() => void client.setConfig({ completion: { enabled: false, entries: [] } }));
+      };
+      const opened = (seen: EditorEvent[], open: boolean) => seen.filter((event) => event.type === 'completion' && event.open === open);
+
+      it('given entries configured and a prefix typed with type steps, when the editor opens its completion, then one open event arrives and complete applies the entry as one api change that one undo takes back', async (ctx) => {
+        // Given completion on with an entry and a caret in an empty document
+        if (!(await advertises())) return ctx.skip();
+        await configureCompletion(true);
+        await start('');
+        const seen = record('completion', 'changed');
+
+        // When a prefix of the entry is typed and the editor has opened its list
+        await typed('qu');
+        await eventually(() => opened(seen, true).length === 1, 'the completion never opened');
+        const changesBefore = seen.filter((event) => event.type === 'changed').length;
+        const result = unwrap(await client.transact([completeStep]));
+
+        // Then the entry replaces the prefix in one change, the list closes, and one undo restores the prefix
+        expect(result.changes).toEqual([{ from: 0, to: 2, insert: 'quokka_total' }]);
+        expect(result.landed).toEqual([null]);
+        expect((await snapshot()).text).toBe('quokka_total');
+        expect(seen.filter((event) => event.type === 'changed').slice(changesBefore)).toMatchObject([{ origin: 'api' }]);
+        await eventually(() => opened(seen, false).length === 1, 'the completion never closed');
+        expect(opened(seen, true)).toHaveLength(1);
+        unwrap(await client.undo());
+        expect((await snapshot()).text).toBe('qu');
+      });
+
+      it('given nothing open, when complete is applied, then it is ok, changes nothing and the revision does not move', async (ctx) => {
+        if (!(await advertises())) return ctx.skip();
+        const base = await start('abc');
+
+        const reply = await client.transact([completeStep]);
+
+        expect(unwrap(reply).changes).toEqual([]);
+        expect(reply.revision).toBe(base);
+        expect((await snapshot()).text).toBe('abc');
+      });
+
+      it('given a call at an older revision, when complete is applied, then it is stale even with map', async (ctx) => {
+        if (!(await advertises())) return ctx.skip();
+        const base = await start('qu');
+        unwrap(await client.insertAt(0, 'x'));
+
+        const error = failed(await client.transact([completeStep], { at: base, stale: 'map' }));
+
+        expect(error.code).toBe('stale');
+        expect((await snapshot()).text).toBe('xqu');
+      });
+
+      it('given complete beside another step, when applied, then the call is invalid and nothing changes', async (ctx) => {
+        if (!(await advertises())) return ctx.skip();
+        const base = await start('qu');
+
+        const error = failed(await client.transact([completeStep, replace(0, 0, 'x')]));
+
+        expect(error.code).toBe('invalid');
+        expect(await snapshot()).toMatchObject({ text: 'qu', revision: base });
+      });
+
+      it('given completion switched off, when a prefix is typed, then no completion event arrives', async (ctx) => {
+        if (!(await advertises())) return ctx.skip();
+        await configureCompletion(false);
+        await start('');
+        const seen = record('completion');
+
+        await typed('qu');
+        await new Promise((resolve) => setTimeout(resolve, 250));
+
+        expect(seen).toEqual([]);
+      });
+
+      it('given an entry label with a space, when completion is configured, then the call is invalid and names the entry', async (ctx) => {
+        if (!(await advertises())) return ctx.skip();
+
+        const error = failed(await client.setConfig({ completion: { enabled: true, entries: [{ label: 'a b' }] } }));
+
+        expect(error).toMatchObject({ code: 'invalid', path: expect.stringContaining('completion.entries[0]') });
       });
     });
 

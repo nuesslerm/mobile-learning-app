@@ -12,6 +12,8 @@ export type FakeEditorOptions = {
   readonly languages?: readonly Language[];
   /** false: a host without the optional `type` method, which then does not announce the step */
   readonly typing?: boolean;
+  /** false: a host without the optional `complete` method, which then announces neither the step, the event nor the config */
+  readonly completion?: boolean;
   /** gives the host an optional `tree()`, which makes the engine announce the request: `true` for the fake's own tiny parsers, `parse` to replace them, or a function that makes the snapshot */
   readonly tree?: true | { readonly parse?: TreeParse } | ((text: string, language: Language) => TreeSnapshot);
   /** the engine's clock, parse turn and slice length, so a test can pace a parse */
@@ -53,6 +55,7 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
   let clock = 1_000_000;
   let past: HistoryState = emptyHistory;
   let slowBy = 1;
+  let completionOpen = false;
   const errors: unknown[] = [];
   const sink: { core: EngineCore | null } = { core: null };
   const core = (): EngineCore => {
@@ -62,6 +65,19 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
 
   const report = (changes: readonly Change[], origin: Origin, label?: string) =>
     core().ingest({ revision: core().revision() + 1, changes, selection: selectionOf(selection), origin, length: text.length, ...(label ? { label } : {}) });
+
+  // The model is trivial on purpose: the word before the caret, two characters at least, is a strict prefix of an entry. The real editor opens its list later and ranks more.
+  const wordBeforeCaret = (): string => (selection.anchor === selection.head ? (/[A-Za-z_]\w*$/.exec(text.slice(0, selection.head))?.[0] ?? '') : '');
+  const suggestion = () => {
+    const word = wordBeforeCaret();
+    if (!config.completion?.enabled || word.length < 2) return null;
+    return config.completion.entries.find((entry) => entry.label.length > word.length && entry.label.toLowerCase().startsWith(word.toLowerCase())) ?? null;
+  };
+  const setCompletion = (open: boolean) => {
+    if (open === completionOpen) return;
+    completionOpen = open;
+    core().ingestCompletion(open);
+  };
 
   const edit = (changes: readonly Change[], next: SelRange | undefined, userEvent: string, isolated: boolean, origin: Origin, label?: string) => {
     const before = text;
@@ -76,6 +92,7 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
     selection = next;
     past = recordSelection(past, before, clock, userEvent);
     core().ingestSelection(selectionOf(selection));
+    setCompletion(false);
   };
 
   const snapshotFor = (source: string, language: Language): TreeSnapshot => {
@@ -97,6 +114,20 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
             const from = Math.min(selection.anchor, selection.head);
             const to = Math.max(selection.anchor, selection.head);
             edit([{ from, to, insert }], { anchor: from + insert.length, head: from + insert.length }, `api.${label ?? 'type'}`, true, 'api', label);
+            setCompletion(suggestion() !== null);
+          },
+        }),
+    ...(options.completion === false
+      ? {}
+      : {
+          complete(label?: string) {
+            const hit = completionOpen ? suggestion() : null;
+            if (!hit) return false;
+            const to = selection.head;
+            const from = to - wordBeforeCaret().length;
+            edit([{ from, to, insert: hit.label }], { anchor: from + hit.label.length, head: from + hit.label.length }, `api.${label ?? 'complete'}`, true, 'api', label);
+            setCompletion(false);
+            return true;
           },
         }),
     ...(options.tree ? { tree: (): TreeSnapshot => snapshotFor(text, config.language) } : {}),
@@ -106,6 +137,7 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
         return;
       }
       edit(changes, next, `api.${label ?? 'apply'}`, true, 'api', label);
+      setCompletion(false);
     },
     history(direction) {
       const popped = pop(past, direction === 'undo' ? 'done' : 'undone', text, selection);
@@ -114,16 +146,19 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
       selection = popped.selection;
       past = popped.next;
       report(popped.apply, 'history');
+      setCompletion(false);
       return true;
     },
     load(next, range) {
       text = normalizeText(next);
       selection = range ?? { anchor: 0, head: 0 };
       past = emptyHistory;
+      setCompletion(false);
       return { text, selection: selectionOf(selection), revision: core().revision() + 1 };
     },
     configure(patch: ConfigPatch) {
       config = { ...config, ...patch, palette: { ...config.palette, ...patch.palette } };
+      if (patch.completion) setCompletion(false);
       return { ok: true, config };
     },
     setFocus(next) {
@@ -146,6 +181,7 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
       const from = Math.min(selection.anchor, selection.head);
       const to = Math.max(selection.anchor, selection.head);
       edit([{ from, to, insert }], { anchor: from + insert.length, head: from + insert.length }, 'input.type', false, 'user');
+      setCompletion(suggestion() !== null);
     },
     userSelects(anchor, head = anchor) {
       reselect({ anchor, head }, 'select.pointer');

@@ -78,7 +78,7 @@ function hostOf(fake: ReturnType<typeof createFakeEditor>) {
 describe('an editor whose host cannot type', () => {
   it('given a host without the type method, when hello and a type step are sent, then the step is not announced and the call is unsupported', async () => {
     // Given a fake editor without the optional host method
-    const fake = createFakeEditor({ text: 'abc', typing: false });
+    const fake = createFakeEditor({ text: 'abc', typing: false, completion: false });
     const client = createEditorClient(fake.engine);
 
     // When hello and a type step are sent
@@ -88,6 +88,23 @@ describe('an editor whose host cannot type', () => {
     // Then the step is not announced, the call is unsupported, and the text is unchanged
     expect(hello.capabilities.steps).toEqual(['replace', 'move', 'select']);
     expect(reply).toMatchObject({ ok: false, error: { code: 'unsupported', what: 'step:type' } });
+    expect(fake.text()).toBe('abc');
+  });
+});
+
+describe('an editor whose host cannot complete', () => {
+  it('given a host without the complete method, when hello, a complete step and a completion config are sent, then none is announced and each is unsupported', async () => {
+    const fake = createFakeEditor({ text: 'abc', completion: false });
+    const client = createEditorClient(fake.engine);
+
+    const hello = unwrap(await client.hello());
+    const step = await client.transact([{ op: 'complete' }]);
+    const config = await client.setConfig({ completion: { enabled: true, entries: [] } });
+
+    expect(hello.capabilities.steps).toEqual(['replace', 'move', 'select', 'type']);
+    expect(hello.capabilities.events).not.toContain('completion');
+    expect(step).toMatchObject({ ok: false, error: { code: 'unsupported', what: 'step:complete' } });
+    expect(config).toMatchObject({ ok: false, error: { code: 'unsupported', what: 'config:completion' } });
     expect(fake.text()).toBe('abc');
   });
 });
