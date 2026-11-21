@@ -238,7 +238,18 @@ fn the_staged_gate_runs_through_nx() {
     assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), bundle.clone()]);
     let stale = json!([{ "match": "check:editor-bundle", "code": 4 }]);
     assert_eq!(w.staged(&["--files", "frontend/libraries/logging/src/z.ts"], stale, &[]).exit_code, 4);
-    assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), bundle]);
+    assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), bundle.clone()]);
+
+    // And so does a change to anything else the page imports: the CodeMirror host and the editor API
+    for imported in [
+        "frontend/mla-tamagui/features/leetcode/code-editor/engine/cm6Host.ts",
+        "frontend/mla-tamagui/features/leetcode/code-editor/core/languageExtensions.ts",
+        "frontend/libraries/code-editor-api/src/core/engine.ts",
+    ] {
+        w.put(imported, "export {};\n");
+        assert_eq!(w.staged(&["--files", imported], json!([]), &[]).exit_code, 0, "{imported}");
+        assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), bundle.clone()], "{imported}");
+    }
 
     // Given a change to the Pyodide runner's generated page or vendored files, Then its freshness check runs before the gate too, and a stale one stops it
     let page = "frontend/mla-tamagui/features/leetcode/data/pyodide/pyodidePage.ts";
@@ -250,12 +261,13 @@ fn the_staged_gate_runs_through_nx() {
     assert_eq!(w.staged(&["--files", page], stale, &[]).exit_code, 4);
     assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), pyodide.clone()]);
 
-    // Given a change to the rpc library the page bundles, Then the page's freshness check runs too: the generated page carries a copy of it
+    // Given a change to the rpc library the editor page and the Pyodide page both bundle, Then both freshness checks run: each generated page carries a copy of it
     let rpc = "frontend/libraries/webview-rpc/src/core/server.ts";
     w.put(rpc, "export {};\n");
     let r = w.staged(&["--files", rpc], json!([]), &[]);
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
     assert!(w.calls().contains(&pyodide), "{:?}", w.calls());
+    assert!(w.calls().contains(&bundle), "{:?}", w.calls());
 
     // Given a gated budget over its limit, Then lint ran, the gate did not, and the failure names the budget
     w.put("CLAUDE.md", &"x".repeat(10_000));

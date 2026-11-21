@@ -175,7 +175,19 @@
       "cache": true,
       "inputs": [
         {
-          "fileset": "{projectRoot}/features/leetcode/code-editor/core/cm6Bundle*.ts"
+          "fileset": "{projectRoot}/features/leetcode/code-editor/core/**"
+        },
+        {
+          "fileset": "{projectRoot}/features/leetcode/code-editor/engine/**"
+        },
+        {
+          "fileset": "{workspaceRoot}/frontend/libraries/code-editor-api/src/**"
+        },
+        {
+          "fileset": "{workspaceRoot}/frontend/libraries/webview-rpc/src/**"
+        },
+        {
+          "fileset": "{workspaceRoot}/frontend/libraries/logging/src/**"
         },
         {
           "fileset": "{projectRoot}/scripts/cm6-bundle.mjs"

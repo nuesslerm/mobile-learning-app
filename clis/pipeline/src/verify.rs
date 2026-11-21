@@ -264,10 +264,14 @@ pub fn is_code(f: &str) -> bool {
     [".ts", ".tsx", ".mts", ".cts", ".js", ".mjs", ".cjs", ".json"].iter().any(|e| f.ends_with(e))
 }
 
+/// What the editor page's bundle is built from: the page source and every module it imports (the host, the editor API and the
+/// bridge under it, logging), so a change to any of them stales `cm6Bundle.ts` until it is rebuilt.
 fn is_cm6_input(f: &str) -> bool {
     f == "pnpm-lock.yaml"
-        || f == "frontend/mla-tamagui/features/leetcode/code-editor/core/cm6Bundle.ts"
-        || f == "frontend/mla-tamagui/features/leetcode/code-editor/core/cm6Bundle.src.ts"
+        || f.starts_with("frontend/mla-tamagui/features/leetcode/code-editor/core/")
+        || f.starts_with("frontend/mla-tamagui/features/leetcode/code-editor/engine/")
+        || f.starts_with("frontend/libraries/code-editor-api/src/")
+        || f.starts_with("frontend/libraries/webview-rpc/src/")
         || f.starts_with("frontend/libraries/logging/")
 }
 
