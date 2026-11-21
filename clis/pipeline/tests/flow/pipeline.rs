@@ -54,6 +54,7 @@ impl Workspace {
         s.stub("nx", NX);
         let root = s.repo.parent().unwrap().join("ws");
         let w = Workspace { s, root };
+        w.write("home/.keep", "");
         w.write("repo/package.json", r#"{"name":"ws","scripts":{"typecheck":"tsc"}}"#);
         w.write("repo/libraries/lib/package.json", r#"{"name":"lib","scripts":{"typecheck":"tsc","test:unit":"vitest"}}"#);
         w.write("repo/frontend/app/package.json", r#"{"name":"app","dependencies":{"lib":"workspace:*"},"scripts":{"test:flow":"vitest","typecheck":"tsc","lint":"eslint"}}"#);
@@ -104,6 +105,8 @@ impl Workspace {
             // a commit with explicit paths runs the hook with the real repository's temporary index in the environment
             ("GIT_INDEX_FILE", self.path("repo/.git/index")),
             ("WF_NX_BIN", self.s.bin_dir.join("nx").display().to_string()),
+            // the nx stub leaves its run.json under HOME, and the test process's one shared home would hand one test the file another test's stage just wrote
+            ("HOME", self.path("home")),
         ];
         envs.extend(extra.iter().cloned());
         let refs: Vec<(&str, &str)> = envs.iter().map(|(k, v)| (*k, v.as_str())).collect();

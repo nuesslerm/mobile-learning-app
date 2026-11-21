@@ -208,12 +208,14 @@ if [ "$sub" = test ] && [ -n "$WF_TEST_OUTPUT_DIR" ]; then mkdir -p "$WF_TEST_OU
     fn stage(&self, stage: &str) -> (RunResult, Ran) {
         let log = self.aside.join("ran.log");
         let _ = std::fs::remove_file(&log);
+        std::fs::create_dir_all(self.aside.join("home")).unwrap();
         let plan = self.aside.join(format!("{stage}.json"));
         let opts = RunOpts::default()
             .bin_dir(&self.aside.join("bin"))
             .cwd(&self.ws)
             .timeout(Duration::from_secs(300))
             .env("WF_TEST_REPO", &self.ws.display().to_string())
+            .env("HOME", &self.aside.join("home").display().to_string())
             .env("RAN_LOG", &log.display().to_string())
             .env("NX_DAEMON", "false")
             .env("FX_PLATFORM", self.platform.get())
