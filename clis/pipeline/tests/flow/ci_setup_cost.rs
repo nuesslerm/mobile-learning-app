@@ -380,7 +380,7 @@ fn both_eas_jobs_that_push_a_pointer_write_the_phases_of_the_push_into_the_job_s
 }
 
 #[test]
-fn the_core_tests_step_names_what_outlives_its_stages_and_never_kills_it_because_the_runners_own_processes_share_its_session() {
+fn the_core_tests_step_kills_only_the_processes_that_hold_its_own_output_pipe_open_and_names_them() {
     // Given the core-tests job
     let job = job_block(&read(".github/workflows/pipeline.yml"), "core-tests");
 
@@ -388,13 +388,16 @@ fn the_core_tests_step_names_what_outlives_its_stages_and_never_kills_it_because
     let step = job.split("- name: Flow, typecheck, lint and unit tests").nth(1).expect("the test step is there");
     let step = step.split("- uses: ./.github/actions/nx-cache").next().unwrap();
 
-    // Then after the stages are waited for, the processes of the step's session that are not its own descendants and are not the runner's are named in a warning, and nothing is killed
+    // Then after the stages are waited for, a process is picked only because its stdout or stderr is the pipe of the step's own, the runner's processes are skipped by name,
+    // each is named in a warning, and only the picked ones are killed (a session-wide kill took the runner down)
     let waited = step.find("wait \"${pids[$i]}\"").expect("it waits for the stages");
     let after = &step[waited..];
-    assert!(after.contains("ss[$1]=$3"), "{after}");
+    assert!(after.contains("readlink /proc/$$/fd/1"), "{after}");
+    assert!(after.contains("readlink \"$p/fd/1\""), "{after}");
+    assert!(after.contains("Runner*|*runsvc*|*provjobd*|*actions-runner*"), "{after}");
     assert!(after.contains("title=left behind"), "{after}");
-    assert!(after.contains("Runner|runsvc|provjobd|actions-runner"), "{after}");
-    assert!(!after.contains("kill -KILL") && !after.contains("xargs"), "{after}");
+    assert!(after.contains("kill -KILL \"${holders[@]}\""), "{after}");
+    assert!(!after.contains("pgrep -s") && !after.contains("ps -eo"), "{after}");
 }
 
 #[test]

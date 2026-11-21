@@ -427,14 +427,24 @@ jobs:
           for i in "${!pids[@]}"; do
             wait "${pids[$i]}" || { echo "::error title=${names[$i]}::the ${names[$i]} stage failed on this machine"; rc=1; }
           done
-          # name what outlived the stages, never kill it: the step shares its session with the runner's own processes, and killing those hangs the job with no log
-          sid=$(ps -o sid= -p $$ | tr -d ' ')
-          left=$(ps -eo pid=,ppid=,sid=,args= | awk -v s="$sid" -v me="$$" '{ pp[$1]=$2; ss[$1]=$3; c=$0; sub(/^ *[0-9]+ +[0-9]+ +[0-9]+ +/, "", c); cmd[$1]=c }
-            END { for (q in pp) { if (ss[q] != s || q == me || cmd[q] ~ /Runner|runsvc|provjobd|actions-runner/) continue; x=q; mine=0; while (x in pp && x > 1) { if (x == me) { mine=1; break } x=pp[x] } if (!mine) print q, cmd[q] } }')
-          if [ -n "$left" ]; then
-            echo "::warning title=left behind::a process outlived the stages:"
-            echo "$left"
-          fi
+          # a process a test left behind can hold this step's output pipe open, and the runner then waits for it past every timeout with no log: kill the processes whose
+          # stdout or stderr is this step's own pipe (never the runner's, which holds the other end) and name them
+          me_out=$(readlink /proc/$$/fd/1 2>/dev/null); me_err=$(readlink /proc/$$/fd/2 2>/dev/null)
+          holders=()
+          for p in /proc/[0-9]*; do
+            pid=${p#/proc/}
+            [ "$pid" = "$$" ] && continue
+            read -r _ _ _ ppid _ < "$p/stat" 2>/dev/null || continue
+            [ "$ppid" = "$$" ] && continue
+            o=$(readlink "$p/fd/1" 2>/dev/null); e=$(readlink "$p/fd/2" 2>/dev/null)
+            if { [ -n "$me_out" ] && { [ "$o" = "$me_out" ] || [ "$e" = "$me_out" ]; }; } || { [ -n "$me_err" ] && { [ "$o" = "$me_err" ] || [ "$e" = "$me_err" ]; }; }; then
+              cmd=$(tr '\0' ' ' < "$p/cmdline" 2>/dev/null)
+              case "$cmd" in *Runner*|*runsvc*|*provjobd*|*actions-runner*) continue;; esac
+              holders+=("$pid")
+              echo "::warning title=left behind::pid $pid held this step's output open: $cmd"
+            fi
+          done
+          [ "${#holders[@]}" -eq 0 ] || kill -KILL "${holders[@]}" 2>/dev/null || true
           sleep 1
           exit $rc
       - uses: ./.github/actions/nx-cache
