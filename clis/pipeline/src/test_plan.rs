@@ -156,6 +156,8 @@ struct Crate {
     integration_files: Vec<String>,
     /// `[package.metadata.integration] uses`: the crates whose binaries the integration tests run, which the flow tests do not.
     integration_uses: Vec<String>,
+    /// `[package.metadata.integration] evidence`: the coverage app (`orca`, `t3`) whose evidence file the suite's method-hit traces refresh.
+    integration_evidence: Option<String>,
     /// `[package.metadata.integration.groups]`: the parts of the integration suite that are an Nx task each (`cargo-integration-<group>`), each with its libtest filter.
     integration_groups: Vec<(String, String)>,
     /// `[package.metadata.integration.replay] sets`: the recorded sets a candidate crate replays by feature.
@@ -219,6 +221,7 @@ fn rust_crates(root: &Path) -> Result<Vec<Crate>, String> {
             let grouped_files: Vec<String> = groups_table.into_iter().flat_map(|t| t.values()).filter_map(|spec| spec.get("files")).filter_map(toml::Value::as_array).flatten().filter_map(toml::Value::as_str).map(str::to_string).collect();
             let integration_files = integration_list("inputs").into_iter().chain(grouped_files).map(|g| normalize(&dir.join(g)).to_string_lossy().to_string()).collect();
             let integration_uses = integration_list("uses");
+            let integration_evidence = integration.and_then(|f| f.get("evidence")).and_then(toml::Value::as_str).map(str::to_string);
             let replay = integration.and_then(|f| f.get("replay")).and_then(toml::Value::as_table);
             let strings = |v: Option<&toml::Value>| -> Vec<String> { v.and_then(toml::Value::as_array).into_iter().flatten().filter_map(toml::Value::as_str).map(str::to_string).collect() };
             let replay_sets = strings(replay.and_then(|r| r.get("sets")));
@@ -232,7 +235,7 @@ fn rust_crates(root: &Path) -> Result<Vec<Crate>, String> {
                     replay_features.push(ReplayFeature { name: Some(feature.clone()), rows: strings(spec.get("rows")), files });
                 }
             }
-            out.push(Crate { name: name.to_string(), dir: normalize(&dir).to_string_lossy().to_string(), manifest: manifest.to_string(), deps, e2e_groups, flow_groups, flow_files, flow_uses, integration_files, integration_uses, integration_groups, replay_sets, replay_features });
+            out.push(Crate { name: name.to_string(), dir: normalize(&dir).to_string_lossy().to_string(), manifest: manifest.to_string(), deps, e2e_groups, flow_groups, flow_files, flow_uses, integration_files, integration_uses, integration_evidence, integration_groups, replay_sets, replay_features });
         }
     }
     Ok(out)
@@ -402,6 +405,11 @@ fn replay_entries(root: &Path, crates: &[Crate], scope: &Scope, reached: &HashSe
     out
 }
 
+/// The rows of `docs/plans/rca-parity/coverage/<app>.json` no evidence serves yet (its `summary.pending`); `None` when the table is missing or unreadable.
+fn pending_rows(root: &Path, app: &str) -> Option<u64> {
+    std::fs::read_to_string(root.join(format!("docs/plans/rca-parity/coverage/{app}.json"))).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).and_then(|v| v["summary"]["pending"].as_u64())
+}
+
 /// A crate's integration entries: the suite, and for a crate with integration groups the rest of it (its filters skipped) and one entry per group,
 /// each the Nx task `cargo-integration-<group>` replayed on its own inputs.
 fn integration_entry(root: &Path, c: &Crate, reason: &str) -> Vec<(String, Value)> {
@@ -516,6 +524,17 @@ fn crate_tests(root: &Path, scope: &Scope, packages: &[Package], every: Vec<Crat
     integration_only.sort();
     for (name, reason) in integration_only {
         let Some(c) = crates.iter().find(|c| c.name == name) else { continue };
+        out.extend(integration_entry(root, c, &reason));
+    }
+    // a chain that declares `evidence` runs whatever changed (the Nx cache replays it): the bundle it publishes refreshes the table, so a served table must not stop it
+    let planned: HashSet<String> = out.iter().filter(|(stage, _)| stage == "integration-tests").filter_map(|(_, v)| v["crate"].as_str().map(str::to_string)).collect();
+    for c in crates.iter().filter(|c| !known.contains(&c.name) && !planned.contains(&c.name)) {
+        let Some(app) = c.integration_evidence.as_deref() else { continue };
+        let reason = match pending_rows(root, app) {
+            Some(0) => format!("its trace bundle keeps the {app} coverage table's evidence current"),
+            Some(pending) => format!("{pending} pending row(s) of the {app} coverage table wait for the trace bundle of this suite"),
+            None => format!("the {app} coverage table named by `evidence` is missing or unreadable, so its rows cannot be shown served"),
+        };
         out.extend(integration_entry(root, c, &reason));
     }
     out.extend(replay_entries(root, &crates, scope, &reached));
@@ -1133,7 +1152,7 @@ mod tests {
     use serde_json::json;
 
     fn crate_at(dir: &str) -> Crate {
-        Crate { name: "svc".into(), dir: dir.into(), manifest: format!("{dir}/Cargo.toml"), deps: vec![], e2e_groups: vec![], flow_groups: vec![], flow_files: vec![], flow_uses: vec![], integration_files: vec![], integration_uses: vec![], integration_groups: vec![], replay_sets: vec![], replay_features: vec![] }
+        Crate { name: "svc".into(), dir: dir.into(), manifest: format!("{dir}/Cargo.toml"), deps: vec![], e2e_groups: vec![], flow_groups: vec![], flow_files: vec![], flow_uses: vec![], integration_files: vec![], integration_uses: vec![], integration_evidence: None, integration_groups: vec![], replay_sets: vec![], replay_features: vec![] }
     }
 
     #[test]

@@ -647,3 +647,23 @@ fn a_row_hit_only_by_a_replay_trace_stays_served_when_a_chain_only_bundle_refres
     assert_eq!((table[probe]["state"].as_str(), table[probe]["evidence"]["oracle"].as_str(), table[probe]["evidence"]["diff"].as_str()), (Some("served"), Some("mimic"), Some("clean")));
     assert_eq!(table[other]["state"], "served");
 }
+
+#[test]
+fn a_refresh_from_the_bundle_of_one_suite_keeps_the_runs_it_did_not_read_in_the_evidence_source_and_a_reread_suite_replaces_its_own() {
+    // Given rows served by a first run of the chain suite, whose run the evidence source lists
+    let (f, ids) = served_by_a_first_run();
+    let runs = |f: &Fixture| -> Vec<(String, u64)> { f.json(&f.table("-evidence.json"))["source"]["runs"].as_array().unwrap().iter().map(|r| (r["suite"].as_str().unwrap().to_string(), r["tests"].as_u64().unwrap())).collect() };
+    assert_eq!(runs(&f), [(CHAIN.to_string(), 2)]);
+
+    // When the evidence is refreshed from the bundle of another suite alone
+    let other = bundle("other-suite", &[("other::t", "pass", vec![])]);
+    assert_eq!(f.run(&["--traces", other.path().to_str().unwrap()]).code, 0);
+
+    // Then the source lists the chain's earlier run beside the one just read, with the rows it carried still served
+    assert_eq!(runs(&f), [(CHAIN.to_string(), 2), ("other-suite".to_string(), 1)]);
+
+    // And a second read of the chain suite that changes its rows replaces its own entry and leaves the other suite's
+    let again = bundle(CHAIN, &[("chain::new", "pass", vec![(vec![&ids[0], &ids[1]], true, vec![], vec![])]), ("chain::keep", "pass", vec![(vec![&ids[2]], true, vec![], vec![])]), ("chain::extra", "pass", vec![])]);
+    assert_eq!(f.run(&["--traces", again.path().to_str().unwrap()]).code, 0);
+    assert_eq!(runs(&f), [("other-suite".to_string(), 1), (CHAIN.to_string(), 3)]);
+}

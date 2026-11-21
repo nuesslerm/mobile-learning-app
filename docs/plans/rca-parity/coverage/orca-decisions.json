@@ -1123,6 +1123,18 @@
     },
     "rpc:settings.mutateNativeChatSessionOptions": {
       "oracle": "mimic"
+    },
+    "rpc:agentSession.agents": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner (only the 18 Nov structured-session decision is the owner's); it takes the row out of oracle comparison. decided 18 Nov: orca-serve accepts agent-session.structured.v1, as the pinned phone declares it and refusing it breaks the phone. The recorded orcad refuses the declaration, so the recorded answer is structured_agent_session_unsupported (clientCapabilityMissing) where this server answers the call itself: that difference is a known gap, and the chain tests (clis/orca-serve/tests/integration/agent_catalog.rs, agent_sessions.rs) keep the behaviour. Reversible by refusing the declaration in map-settings"
+    },
+    "rpc:agentSession.subscribeStatus": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner (only the 18 Nov structured-session decision is the owner's); it takes the row out of oracle comparison. decided 18 Nov: orca-serve accepts agent-session.structured.v1, as the pinned phone declares it and refusing it breaks the phone. The recorded orcad refuses the declaration, so the recorded answer is structured_agent_session_unsupported (clientCapabilityMissing) where this server answers the call itself: that difference is a known gap, and the chain tests (clis/orca-serve/tests/integration/agent_catalog.rs, agent_sessions.rs) keep the behaviour. Reversible by refusing the declaration in map-settings"
+    },
+    "rpc:agentSession.createSupport": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner (only the 18 Nov structured-session decision is the owner's); it takes the row out of oracle comparison. the recording of this row failed: its scenario's worktree.create was refused by the recorded orcad (Invalid worktree name), so createSupport was never sent and no recording holds its answer; and under the 18 Nov decision (orca-serve accepts agent-session.structured.v1, which the recorded orcad refuses) the recorded answer would be the structured refusal where this server answers. The chain test (clis/orca-serve/tests/integration/agent_catalog.rs) keeps the behaviour"
+    },
+    "rpc:runtime.clientCapabilities.update": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner (only the 18 Nov structured-session decision is the owner's); it takes the row out of oracle comparison. decided 18 Nov: orca-serve accepts agent-session.structured.v1, which the phone declares through this call. The recorded orcad refuses a valid declaration (client_capabilities_update_unsupported) where this server echoes it, and answers a malformed one with invalid_argument as this server does (the recorded crawl and the flow test in tests/flow/status.rs agree on those): the valid-declaration difference is a known gap, and the chain test (tests/integration/agent_sessions.rs) keeps the behaviour. Reversible by refusing the declaration in map-settings"
     }
   },
   "reverify": {

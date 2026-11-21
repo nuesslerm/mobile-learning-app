@@ -796,3 +796,83 @@ fn given_the_pipeline_when_the_sharded_test_jobs_are_read_then_their_concurrency
         assert!(group.contains(keys) && group.contains("github.workflow") && !group.contains("run_id"), "{job}: {group}");
     }
 }
+
+/// A cargo workspace of the chain `chain` (an integration suite whose traces refresh the `demo` coverage table) and the unrelated `other`, with the
+/// table's `pending` count.
+fn evidence_workspace(prefix: &str, pending: u64) -> Workspace {
+    let w = Workspace::new(prefix);
+    let lib = |name: &str, meta: &str| format!("[package]\nname = \"{name}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n{meta}");
+    w.write("repo/tools/Cargo.toml", "[workspace]\nmembers = [\"chain\", \"other\"]\nresolver = \"2\"\n");
+    w.write("repo/tools/chain/Cargo.toml", &lib("chain", "\n[package.metadata.integration]\nevidence = \"demo\"\n"));
+    w.write("repo/tools/other/Cargo.toml", &lib("other", ""));
+    for f in ["chain/src/main.rs", "chain/tests/integration.rs", "other/src/main.rs"] {
+        w.write(&format!("repo/tools/{f}"), "fn main() {}\n");
+    }
+    w.write("repo/docs/plans/rca-parity/coverage/demo.json", &json!({ "summary": { "rows": 9, "served": 9 - pending, "pending": pending } }).to_string());
+    w.commit("a chain and an unrelated crate");
+    w
+}
+
+fn integration_crates(v: &Value) -> Vec<(String, String)> {
+    v["stages"]["integration-tests"].as_array().unwrap().iter().map(|t| (t["crate"].as_str().unwrap().to_string(), t["why"][0].as_str().unwrap().to_string())).collect()
+}
+
+#[test]
+fn a_chain_whose_traces_would_serve_pending_rows_is_planned_for_a_change_that_does_not_reach_it_and_is_never_proven_so_its_bundle_is_published_every_time() {
+    // Given a coverage table with two pending rows and a commit that changes only the unrelated crate
+    let w = evidence_workspace("wf-evidence-plan-pending-", 2);
+    w.write("repo/tools/other/src/main.rs", "fn main() {\n}\n");
+    w.commit("change the unrelated crate");
+
+    // When the commit is planned
+    let (v, _) = w.plan("HEAD~1");
+
+    // Then the chain's suite is planned once, for the rows, and nothing of the unrelated crate's is
+    assert_eq!(integration_crates(&v), [("chain".to_string(), "2 pending row(s) of the demo coverage table wait for the trace bundle of this suite".to_string())], "{v}");
+    // And no shard holding it is skipped as proven, whatever the cache says
+    let r = w.wf(&["ci", "proven", "--stage", "integration-tests", "--count", "1", "--plan", &w.path("plan.json"), "--no-lookup"], &[]);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    let proven = last_json(&r);
+    assert_eq!((proven["run"].clone(), proven["proven"].clone()), (json!([1]), json!([])), "{proven}");
+}
+
+#[test]
+fn a_chain_whose_table_has_every_row_served_is_still_planned_for_a_change_that_does_not_reach_it() {
+    // Given a coverage table with every row served, and a commit that changes only the unrelated crate
+    let w = evidence_workspace("wf-evidence-plan-served-", 0);
+    w.write("repo/tools/other/src/main.rs", "fn main() {\n}\n");
+    w.commit("change the unrelated crate");
+    // When it is planned, Then the chain's suite is planned once, to keep the evidence current
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(integration_crates(&v), [("chain".to_string(), "its trace bundle keeps the demo coverage table's evidence current".to_string())], "{v}");
+
+    // And a commit that changes the chain plans it for the change, not for the table
+    w.write("repo/tools/chain/src/main.rs", "fn main() {\n}\n");
+    w.commit("change the chain");
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(integration_crates(&v), [("chain".to_string(), "changed".to_string())], "{v}");
+}
+
+#[test]
+fn a_chain_naming_an_evidence_table_that_does_not_exist_is_planned_and_says_so() {
+    // Given a chain whose `evidence` names no table, and a commit that changes only the unrelated crate
+    let w = evidence_workspace("wf-evidence-plan-typo-", 0);
+    w.write("repo/docs/plans/rca-parity/coverage/demo.json", "not json");
+    w.commit("break the table");
+    w.write("repo/tools/other/src/main.rs", "fn main() {\n}\n");
+    w.commit("change the unrelated crate");
+    // When it is planned, Then the chain is planned and the reason names the missing table
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(integration_crates(&v), [("chain".to_string(), "the demo coverage table named by `evidence` is missing or unreadable, so its rows cannot be shown served".to_string())], "{v}");
+}
+
+#[test]
+fn a_chain_a_change_reaches_is_planned_once_when_its_table_has_pending_rows() {
+    // Given pending rows and a commit that changes the chain itself
+    let w = evidence_workspace("wf-evidence-plan-reached-", 3);
+    w.write("repo/tools/chain/src/main.rs", "fn main() {\n}\n");
+    w.commit("change the chain");
+    // When it is planned, Then the chain's suite has one entry, for the change
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(integration_crates(&v), [("chain".to_string(), "changed".to_string())], "{v}");
+}

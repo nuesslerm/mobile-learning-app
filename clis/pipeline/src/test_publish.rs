@@ -4,7 +4,8 @@
 //! newest first in `<out>/index.json`. `<out>` is `--out`, else `WF_TEST_RUNS_DIR`, else `$RUNNER_TEMP/test-runs`. The same call posts the run's `HEALTH_RPT.TEST_RUNS` row with the bundle's
 //! report URL as `report_path`, so the dashboards and the reporter see one record per run. The bundle's `cache` block is what the
 //! build-cache shim did since the last publish (`cache_runs`), `null` when no shim ran. Its `traces` list the method-hit traces
-//! (`trace.json`) of an integration chain beside its run record, which `wf mimic coverage --traces` reads.
+//! (`trace.json`) of an integration chain beside its run record, which `wf mimic coverage --traces` reads, and `traceRuns` each trace's run
+//! (`suite`, `sha`, `complete`, `tests`, `passed`).
 use crate::test_metrics;
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
@@ -139,6 +140,24 @@ fn bundle_json(run_id: &str, kind: &Kind, row: &Map<String, Value>, files: &[(St
     })
 }
 
+/// What each method-hit trace of the bundle says about its run (`suite`, `sha`, `complete`, `tests`, `passed`), so a coverage refresh and a
+/// reader see which runs the bundle holds without opening every trace. A trace that is not `method-trace/1` JSON is listed with a `problem`.
+fn trace_runs(dir: &Path, files: &[(String, u64)]) -> Vec<Value> {
+    pick(files, |r| r == "trace.json" || r.ends_with("/trace.json"))
+        .into_iter()
+        .map(|rel| {
+            let trace = std::fs::read_to_string(dir.join(rel)).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).filter(|t| t["schema"] == "method-trace/1");
+            match trace {
+                Some(t) => {
+                    let tests = t["tests"].as_array().cloned().unwrap_or_default();
+                    json!({ "path": rel, "app": t["app"], "suite": t["suite"], "sha": t["sha"], "complete": t["complete"] == true, "tests": tests.len(), "passed": tests.iter().filter(|x| x["verdict"] == "pass").count() })
+                }
+                None => json!({ "path": rel, "problem": "not a method-trace/1 file" }),
+            }
+        })
+        .collect()
+}
+
 /// The index entry a reporter lists runs by.
 /// The facts a gate reads without opening the report: the screen (with its density on Android), the speed, the warnings and
 /// the timing.
@@ -235,6 +254,7 @@ pub fn publish(dir: &Path, ran_on: &str, record: bool, out: Option<&str>) -> Res
         row.insert("report_path".into(), json!(format!("{base}#{run_id}/{rel}")));
     }
     let mut bundle = bundle_json(&run_id, &kind, &row, &files, &notes, &base, &published_at);
+    bundle["traceRuns"] = json!(trace_runs(dir, &files));
     let taken = cache_runs::pending(now_ms());
     bundle["cache"] = cache_runs::block(&taken);
     if let Some(rel) = files.iter().map(|(r, _)| r.as_str()).find(|r| *r == "report.json" || *r == "rec/report.json") {

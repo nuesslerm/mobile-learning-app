@@ -37,6 +37,8 @@ mod ci_setup_cost;
 mod e2e_backends;
 #[path = "flow/expected_revisions.rs"]
 mod expected_revisions;
+#[path = "flow/integration_bundles.rs"]
+mod integration_bundles;
 #[path = "flow/layout.rs"]
 mod layout;
 #[path = "flow/pipeline.rs"]

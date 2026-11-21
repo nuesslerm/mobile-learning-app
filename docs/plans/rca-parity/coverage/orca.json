@@ -9,8 +9,8 @@
   },
   "summary": {
     "rows": 317,
-    "served": 255,
-    "pending": 4,
+    "served": 259,
+    "pending": 0,
     "notOffered": 48,
     "excluded": 7,
     "flagged": 3,
@@ -20,10 +20,7 @@
       "rpc": 309,
       "transport": 1
     },
-    "pendingByMilestone": {
-      "M5": 1,
-      "M7": 3
-    },
+    "pendingByMilestone": {},
     "desktop": {
       "phoneRowsTheDesktopReaches": 250,
       "desktopOnly": 290,
@@ -271,8 +268,14 @@
       "kind": "rpc",
       "name": "agentSession.agents",
       "desktop": true,
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "orca-serve-integration",
+        "test": "agent_catalog::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
+        "agent": [],
+        "executor": []
+      }
     },
     {
       "id": "rpc:agentSession.cancel",
@@ -367,8 +370,17 @@
       "kind": "rpc",
       "name": "agentSession.createSupport",
       "desktop": true,
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "orca-serve-integration",
+        "test": "agent_catalog::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
+        "agent": [
+          "agents.detect",
+          "repo.list"
+        ],
+        "executor": []
+      }
     },
     {
       "id": "rpc:agentSession.currentRequests",
@@ -742,8 +754,17 @@
       "name": "agentSession.subscribeStatus",
       "subscription": true,
       "desktop": true,
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "orca-serve-integration",
+        "test": "agent_sessions::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+        "agent": [
+          "thread.history",
+          "thread.list"
+        ],
+        "executor": []
+      }
     },
     {
       "id": "rpc:agentSession.threadGoal",
@@ -3918,8 +3939,14 @@
       "id": "rpc:runtime.clientCapabilities.update",
       "kind": "rpc",
       "name": "runtime.clientCapabilities.update",
-      "state": "pending",
-      "milestone": "M5"
+      "state": "served",
+      "milestone": "M5",
+      "evidence": {
+        "suite": "orca-serve-integration",
+        "test": "agent_sessions::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+        "agent": [],
+        "executor": []
+      }
     },
     {
       "id": "rpc:runtime.clientEvents.subscribe",

@@ -214,6 +214,14 @@ pub fn unstable_source(text: &str) -> Option<String> {
     stable_source(traces).is_none().then(|| traces.to_string())
 }
 
+/// The runs the evidence file lists after a refresh: the ones just read, and the earlier file's runs of suites this refresh did not read.
+/// A refresh from the bundle of one chain therefore keeps the provenance of the rows it carried over from the other suites.
+pub fn merge_runs(checked_in: Option<&str>, runs: Vec<Value>) -> Vec<Value> {
+    let read: BTreeSet<String> = runs.iter().filter_map(|r| r["suite"].as_str().map(String::from)).collect();
+    let before = checked_in.and_then(|t| serde_json::from_str::<Value>(t).ok()).and_then(|v| v["source"]["runs"].as_array().cloned()).unwrap_or_default();
+    before.into_iter().filter(|r| r["suite"].as_str().is_some_and(|s| !read.contains(s))).chain(runs).collect()
+}
+
 /// The `source` object of the evidence file.
 pub fn source_json(traces: &str, runs: Vec<Value>) -> Value {
     match stable_source(traces) {

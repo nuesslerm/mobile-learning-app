@@ -250,7 +250,7 @@ pub fn run(req: &Request, tree: &dyn Tree, history: &dyn History, traces: &dyn T
                 carried.extend(checked_in.as_deref().map(evidence::carried_of).unwrap_or_default().into_iter().filter(|id| !in_slice(&req.rows, id) && served.contains_key(id)));
                 carried.sort();
             }
-            let text = evidence::document(app.name(), evidence::source_json(source, runs), &served, &carried);
+            let text = evidence::document(app.name(), evidence::source_json(source, evidence::merge_runs(checked_in.as_deref(), runs)), &served, &carried);
             (served, Some(text))
         }
     };

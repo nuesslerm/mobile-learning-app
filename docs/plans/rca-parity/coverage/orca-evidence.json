@@ -17,6 +17,13 @@
         "complete": true,
         "tests": 7,
         "passed": 7
+      },
+      {
+        "suite": "orca-serve-integration",
+        "sha": null,
+        "complete": false,
+        "tests": 8,
+        "passed": 8
       }
     ]
   },
@@ -120,6 +127,12 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:agentSession.agents": {
+      "suite": "orca-serve-integration",
+      "test": "agent_catalog::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
+      "agent": [],
+      "executor": []
+    },
     "rpc:agentSession.cancel": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-agentSession.cancel-boundary-full",
@@ -155,6 +168,15 @@
       "oracle": "mimic",
       "diff": "clean",
       "cassette": "recorded"
+    },
+    "rpc:agentSession.createSupport": {
+      "suite": "orca-serve-integration",
+      "test": "agent_catalog::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
+      "agent": [
+        "agents.detect",
+        "repo.list"
+      ],
+      "executor": []
     },
     "rpc:agentSession.currentRequests": {
       "suite": "wf-mimic-orca-crawl",
@@ -343,6 +365,15 @@
       "oracle": "mimic",
       "diff": "clean",
       "cassette": "recorded"
+    },
+    "rpc:agentSession.subscribeStatus": {
+      "suite": "orca-serve-integration",
+      "test": "agent_sessions::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+      "agent": [
+        "thread.history",
+        "thread.list"
+      ],
+      "executor": []
     },
     "rpc:agentSession.unsubscribe": {
       "suite": "wf-mimic-orca-crawl",
@@ -1813,6 +1844,12 @@
       "oracle": "mimic",
       "diff": "clean",
       "cassette": "recorded"
+    },
+    "rpc:runtime.clientCapabilities.update": {
+      "suite": "orca-serve-integration",
+      "test": "agent_sessions::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+      "agent": [],
+      "executor": []
     },
     "rpc:runtime.clientEvents.subscribe": {
       "suite": "wf-mimic-orca-recorded",

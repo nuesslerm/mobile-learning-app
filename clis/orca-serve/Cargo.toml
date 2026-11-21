@@ -28,6 +28,8 @@ inputs = ["../../docs/plans/rca-parity/coverage/orca-methods.json", "../../docs/
 [package.metadata.integration]
 uses = ["rca-service", "rca-exec", "exec-testkit", "wf-mimic", "mimic-core"]
 inputs = ["../../docs/plans/rca-parity/coverage/orca-methods.json", "map-mobile/fixtures/orca-mobile-bundle/**", "map-mobile/examples/**", "cassettes/**", "../../tooling/mimic-drivers/src/**", "../../tooling/orca-conformance/orca-pin.json", "../../tooling/mimic-drivers/package.json", "../../pnpm-lock.yaml"]
+# `evidence`: while the Orca table has pending rows, this chain is planned on every push, since its trace bundle is what serves them (`wf ci plan tests`).
+evidence = "orca"
 
 # The recorded sets replayed by feature (tests/integration/replay_features.rs): each mapping crate names its rows in its own
 # `[package.metadata.integration.replay]`, and `wf test plan` makes one Nx task of each, `replay-<crate>`, instead of one replay of everything.
