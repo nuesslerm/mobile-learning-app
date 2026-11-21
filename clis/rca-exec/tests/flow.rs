@@ -122,17 +122,24 @@ fn confinement_refuses_dotdot_and_a_symlink_out_while_a_sibling_inside_the_root_
 
 #[test]
 fn run_command_streams_stdout_and_stderr_as_they_arrive_and_reports_the_exit_code() {
-    // Given a command that prints, waits, then prints on both streams and exits 3
+    // Given a command that prints, then waits for a file only the sink creates (once it has been handed the first chunk), then prints on stderr and exits 3
     let dir = tempfile::tempdir().unwrap();
     let ex = executor(dir.path());
-    let started = Instant::now();
-    let mut arrivals: Vec<(Duration, Stream, String)> = Vec::new();
-    let r = ex.run_command("r", &RunCommand { command: "echo first; sleep 0.4; echo second >&2; exit 3".into(), cwd: None, timeout_ms: 10_000, env: vec![("GREETING".into(), "hi".into())] }, &mut |s, d| arrivals.push((started.elapsed(), s, d.to_string()))).unwrap();
-    // Then the first chunk reached the sink while the command was still sleeping, the stderr one later, on its own stream
+    let go = dir.path().join("go");
+    let mut arrivals: Vec<(Stream, String)> = Vec::new();
+    let command = format!("echo first; until [ -e '{}' ]; do sleep 0.01; done; echo second >&2; exit 3", go.display());
+    let r = ex
+        .run_command("r", &RunCommand { command, cwd: None, timeout_ms: 10_000, env: vec![("GREETING".into(), "hi".into())] }, &mut |s, d| {
+            if d == "first\n" {
+                std::fs::write(&go, "").unwrap();
+            }
+            arrivals.push((s, d.to_string()));
+        })
+        .unwrap();
+    // Then the first chunk reached the sink while the command was still running (a command that was heard only at its end would wait out its timeout), the stderr one after, on its own stream
     assert_eq!((r.exit_code, r.timed_out, r.cancelled, r.truncated), (3, false, false, false));
-    assert_eq!((arrivals[0].1, arrivals[0].2.as_str()), (Stream::Stdout, "first\n"));
-    assert_eq!((arrivals[1].1, arrivals[1].2.as_str()), (Stream::Stderr, "second\n"));
-    assert!(arrivals[0].0 < Duration::from_millis(300) && arrivals[1].0 >= Duration::from_millis(400), "{arrivals:?}");
+    assert_eq!((arrivals[0].0, arrivals[0].1.as_str()), (Stream::Stdout, "first\n"));
+    assert_eq!((arrivals[1].0, arrivals[1].1.as_str()), (Stream::Stderr, "second\n"));
     // And the extra environment and the working directory reach the process
     let (_, frames) = run(&ex, "e", "pwd; echo $0", 5000);
     assert!(frames[0].1.starts_with(dir.path().canonicalize().unwrap().to_str().unwrap()));
