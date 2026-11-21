@@ -341,6 +341,25 @@ def _design(cls, inputs, results, step):
     step.clear()
 
 
+def _reachable_ids(root):
+    seen, stack = set(), [root]
+    while stack:
+        node = stack.pop()
+        if node is None or id(node) in seen:
+            continue
+        seen.add(id(node))
+        stack.extend((getattr(node, 'left', None), getattr(node, 'right', None)))
+    return seen
+
+
+def _round_trip(cls, harness, args):
+    encoded = getattr(cls(), harness['encode'])(*args)
+    if not isinstance(encoded, str):
+        raise TypeError(harness['encode'] + ' must return a str, got ' + type(encoded).__name__)
+    # a new instance, as LeetCode requires the codec to be stateless: one that keeps the input on self fails
+    return getattr(cls(), harness['decode'])(encoded)
+
+
 def _case(cls, method, case, cfg, ns, lines):
     inputs = case.get('inputs', {})
     expected = case.get('expected')
@@ -350,13 +369,26 @@ def _case(cls, method, case, cfg, ns, lines):
     actual = error = error_at = None
     passed = False
     partial, step = [], []
+    harness = cfg['harness']
+    kind = harness['kind'] if harness else None
     try:
-        if cfg['harness'] is not None:
+        if kind == 'design':
             actual = partial
             _guard.arm(cfg['timeout_s'], 'Code execution timed out (' + str(cfg['timeout_s']) + 's limit)')
             with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
                 _design(cls, copy.deepcopy(inputs), partial, step)
             _guard.disarm()
+        elif kind == 'roundTrip':
+            param_kind = next(iter(cfg['paramTypes'].values()), None)
+            args = _to_args(copy.deepcopy(inputs), cfg['paramTypes'], ns)
+            built = _reachable_ids(args[0]) if param_kind == 'TreeNode' else set()
+            _guard.arm(cfg['timeout_s'], 'Code execution timed out (' + str(cfg['timeout_s']) + 's limit)')
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                decoded = _round_trip(cls, harness, args)
+            _guard.disarm()
+            if built & _reachable_ids(decoded):
+                raise ValueError('the returned tree is the input tree, not a decoded copy')
+            actual = _to_value(param_kind, decoded)
         else:
             args = _to_args(copy.deepcopy(inputs), cfg['paramTypes'], ns)
             _guard.arm(cfg['timeout_s'], 'Code execution timed out (' + str(cfg['timeout_s']) + 's limit)')

@@ -25,8 +25,11 @@ export const nodeTypeSchema = z.enum([
 ]);
 export type NodeType = z.infer<typeof nodeTypeSchema>;
 
-/** How a problem that is not one `Solution` method is run: each case is a list of operations on one fresh instance of `className`. */
-export const harnessSchema = z.discriminatedUnion('kind', [z.object({ kind: z.literal('design'), className: z.string() })]);
+/** How a problem that is not one `Solution` method is run: `design` is a list of operations on one fresh instance of `className`, `roundTrip` is the input through `encode` and then, on a new instance, `decode`. */
+export const harnessSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('design'), className: z.string() }),
+  z.object({ kind: z.literal('roundTrip'), className: z.string(), encode: z.string(), decode: z.string() }),
+]);
 export type Harness = z.infer<typeof harnessSchema>;
 
 export const problemSchema = z.object({
