@@ -1,6 +1,6 @@
 import { isLanguage, type CompletionConfig, type ConfigPatch, type EditorConfig } from '@lib/code-editor-api';
 
-/** The config the page and the old `init` / `updateConfig` messages speak. */
+/** The config the page and the old `init` message speak. */
 export type LegacyEditorConfig = {
   initialText: string;
   isDark: boolean;

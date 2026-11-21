@@ -7,16 +7,10 @@ import { toConfigPatch, type LegacyConfigPatch } from './configPatch';
 /** The messages that reach the page through the typed editor API. */
 export const FORWARDED_TYPES = ['undo', 'redo', 'updateConfig', 'focus', 'blur', 'setSelection', 'insertAt', 'typeText'] as const;
 /**
- * The messages that still travel as fire-and-forget scripts, and why: `init` creates the editor; the highlight and diff marks move
- * with the runner jump and voice edit. The list only shrinks. (`blur` is forwarded except on iOS, see `ForwardingOptions`.)
+ * The messages that still travel as fire-and-forget scripts, and why: `init` creates the editor, and the typed engine binds only once
+ * it exists. The list only shrinks. (`blur` is forwarded except on iOS, see `ForwardingOptions`.)
  */
-export const LEGACY_TYPES = [
-  'init',
-  'highlightRange',
-  'clearHighlights',
-  'showDiff',
-  'hideDiff',
-] as const;
+export const LEGACY_TYPES = ['init'] as const;
 
 // a message type that is on neither list fails the build here
 type Unlisted = Exclude<
@@ -41,8 +35,8 @@ export type ForwardingOptions = {
 
 /**
  * The editor port's `post`: every message that acts on the document or the view is a typed API call, and a call the editor
- * refuses (not ready yet, a position outside the text, a lost channel) is logged and does nothing. The few messages that are not in
- * the API (`init`, the marks, an `updateConfig` the API cannot express, and `blur` on iOS) take the old script path.
+ * refuses (not ready yet, a position outside the text, a lost channel) is logged and does nothing, as is an `updateConfig` the API
+ * cannot express. The messages that are not in the API (`init`, and `blur` on iOS) take the old script path.
  */
 export function createForwardingPost(
   client: EditorClient,
@@ -60,7 +54,7 @@ export function createForwardingPost(
       case 'updateConfig': {
         const patch = toConfigPatch(msg.config as LegacyConfigPatch);
         if (!patch) {
-          legacyPost(msg);
+          Logger.warn('editor.port.forward_failed', { type: 'updateConfig', code: 'unmapped-config' });
           return;
         }
         void client.setConfig(patch).then(reportFailure('updateConfig'));

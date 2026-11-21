@@ -16,10 +16,6 @@ const SAMPLES: { [K in ToEditorMessage['type']]: Extract<ToEditorMessage, { type
   undo: { type: 'undo' },
   redo: { type: 'redo' },
   blur: { type: 'blur' },
-  highlightRange: { type: 'highlightRange', start: 0, end: 1 },
-  clearHighlights: { type: 'clearHighlights' },
-  showDiff: { type: 'showDiff', start: 0, end: 1 },
-  hideDiff: { type: 'hideDiff' },
 };
 
 function setup() {
@@ -259,11 +255,13 @@ describe('the editor port forwarding', () => {
     expect(legacy).toEqual([]);
   });
 
-  it('given an updateConfig with a key the typed API does not carry, when it is posted, then it stays on the old path', async () => {
-    const { legacy, post } = setup();
-    const message: ToEditorMessage = { type: 'updateConfig', config: { initialText: 'x', wordWrap: true } };
-    post(message);
+  it('given an updateConfig with a key the typed API does not carry, when it is posted, then nothing goes to the old script and the editor keeps its config', async () => {
+    const { client, fake, legacy, post } = setup();
+    const before = await client.setConfig({});
+    post({ type: 'updateConfig', config: { initialText: 'x', wordWrap: true } });
     await settled();
-    expect(legacy).toEqual([message]);
+    expect(legacy).toEqual([]);
+    expect(await client.setConfig({})).toEqual(before);
+    expect(fake.peek().revision).toBe(0);
   });
 });

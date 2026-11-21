@@ -15,13 +15,6 @@ export function buildEditorHtml(options: { debug?: boolean } = {}): string {
   #editor { height: 100%; }
   .cm-editor { height: 100%; }
   .cm-editor .cm-scroller { overflow: auto; }
-  @keyframes highlightFlash {
-     0% { background-color: rgba(255, 235, 59, 0.6); }
-    100% { background-color: transparent; }
-  }
-  .cm-highlight-flash {
-    animation: highlightFlash 3000ms ease-out forwards;
-  }
   .cm-diff-change {
     background-color: rgba(34, 197, 94, 0.25);
   }

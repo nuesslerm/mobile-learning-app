@@ -27,7 +27,6 @@ import {
   EditorSelection,
   EditorState,
   RangeSetBuilder,
-  StateEffect,
 } from '@codemirror/state';
 import { oneDark } from '@codemirror/theme-one-dark';
 import {
@@ -35,7 +34,6 @@ import {
   keymap,
   lineNumbers,
   Decoration,
-  type DecorationSet,
   ViewPlugin,
   type ViewUpdate,
 } from '@codemirror/view';
@@ -126,105 +124,6 @@ const fieldMarkerPlugin = ViewPlugin.fromClass(
     },
   }
 );
-/**
- * A mark over [from, to], clamped to the document. React sends ranges from
- * its own copy of the text, which can be ahead of or behind the view (a
- * reset, a lost message); a decoration past the end of the document made
- * every later `dispatch` throw a RangeError, and the editor silently stopped
- * taking text. The plugins also map their marks through every change now.
- */
-function markRange(view: EditorView, from: number, to: number, mark: Decoration): DecorationSet {
-  const max = view.state.doc.length;
-  const start = Math.max(0, Math.min(from, to, max));
-  const end = Math.min(Math.max(from, to), max);
-  if (end <= start) return Decoration.none;
-  const builder = new RangeSetBuilder<Decoration>();
-  builder.add(start, end, mark);
-  return builder.finish();
-}
-const HIGHLIGHT_FLASH_DURATION = 3000;
-const highlightMark = Decoration.mark({
-  class: 'cm-highlight-flash',
-});
-const highlightPlugin = ViewPlugin.fromClass(
-  class {
-    decorations: DecorationSet = Decoration.none;
-    private timeout: ReturnType<typeof setTimeout> | null = null;
-    addHighlight(
-      view: EditorView,
-      from: number,
-      to: number,
-      durationMs = HIGHLIGHT_FLASH_DURATION
-    ) {
-      Logger.info('cm6.addHighlight', {
-        method: 'addHighlight',
-      });
-      this.decorations = markRange(view, from, to, highlightMark);
-      view.dispatch({
-        effects: StateEffect.appendConfig.of([]),
-      });
-      if (this.timeout) clearTimeout(this.timeout);
-      this.timeout = setTimeout(() => {
-        this.decorations = Decoration.none;
-        view.dispatch({
-          effects: StateEffect.appendConfig.of([]),
-        });
-      }, durationMs);
-    }
-    clear() {
-      Logger.info('cm6.clear', {
-        method: 'clear',
-      });
-      if (this.timeout) clearTimeout(this.timeout);
-      this.decorations = Decoration.none;
-    }
-    update(update: ViewUpdate) {
-      if (update.docChanged) this.decorations = this.decorations.map(update.changes);
-    }
-  },
-  {
-    decorations: (v) => {
-      Logger.info('cm6.decorations', {
-        method: 'decorations',
-      });
-      return v.decorations;
-    },
-  }
-);
-const diffMark = Decoration.mark({
-  class: 'cm-diff-change',
-});
-const diffPlugin = ViewPlugin.fromClass(
-  class {
-    decorations: DecorationSet = Decoration.none;
-    showDiff(view: EditorView, from: number, to: number) {
-      Logger.info('cm6.showDiff', {
-        method: 'showDiff',
-      });
-      this.decorations = markRange(view, from, to, diffMark);
-      view.dispatch({
-        effects: StateEffect.appendConfig.of([]),
-      });
-    }
-    hideDiff() {
-      Logger.info('cm6.hideDiff', {
-        method: 'hideDiff',
-      });
-      this.decorations = Decoration.none;
-    }
-    update(update: ViewUpdate) {
-      if (update.docChanged) this.decorations = this.decorations.map(update.changes);
-    }
-  },
-  {
-    decorations: (v) => {
-      Logger.info('cm6.diffDecorations', {
-        method: 'diffDecorations',
-      });
-      return v.decorations;
-    },
-  }
-);
 type EditorConfig = LegacyEditorConfig;
 type MessagePayload = Record<string, unknown>;
 function isRecord(value: unknown): value is MessagePayload {
@@ -281,34 +180,6 @@ function parseEditorConfig(value: unknown): EditorConfig | null {
     borderColor,
     tabSize,
   };
-}
-function parseEditorConfigPatch(value: unknown): Partial<EditorConfig> | null {
-  if (!isRecord(value)) {
-    return null;
-  }
-  const patch: Partial<EditorConfig> = {};
-  const initialText = getStringProp(value, 'initialText');
-  const fontSize = getNumberProp(value, 'fontSize');
-  const lineHeight = getNumberProp(value, 'lineHeight');
-  const cursorColor = getStringProp(value, 'cursorColor');
-  const selectionColor = getStringProp(value, 'selectionColor');
-  const backgroundColor = getStringProp(value, 'backgroundColor');
-  const gutterColor = getStringProp(value, 'gutterColor');
-  const borderColor = getStringProp(value, 'borderColor');
-  const tabSize = getNumberProp(value, 'tabSize');
-  if (initialText !== undefined) patch.initialText = initialText;
-  if (typeof value.isDark === 'boolean') patch.isDark = value.isDark;
-  if (fontSize !== undefined) patch.fontSize = fontSize;
-  if (lineHeight !== undefined) patch.lineHeight = lineHeight;
-  if (typeof value.wordWrap === 'boolean') patch.wordWrap = value.wordWrap;
-  if (typeof value.language === 'string') patch.language = value.language;
-  if (cursorColor !== undefined) patch.cursorColor = cursorColor;
-  if (selectionColor !== undefined) patch.selectionColor = selectionColor;
-  if (backgroundColor !== undefined) patch.backgroundColor = backgroundColor;
-  if (gutterColor !== undefined) patch.gutterColor = gutterColor;
-  if (borderColor !== undefined) patch.borderColor = borderColor;
-  if (tabSize !== undefined) patch.tabSize = tabSize;
-  return Object.keys(patch).length > 0 ? patch : null;
 }
 function getMessagePayload(data: unknown): MessagePayload | null {
   if (typeof data !== 'string') {
@@ -519,8 +390,6 @@ function buildState(cfg: EditorConfig, doc: string, selection?: SelRange) {
       languageCompartment.of(languageExtension(languageOf(cfg.language))),
       completionCompartment.of(completionFor(cfg.language)),
       fieldMarkerPlugin,
-      highlightPlugin,
-      diffPlugin,
       marksField,
       revisionField,
       typingCalls,
@@ -537,7 +406,7 @@ function buildState(cfg: EditorConfig, doc: string, selection?: SelRange) {
     ],
   });
 }
-/** The one way a config patch lands, for the typed API and the old `updateConfig` message: the language moves in its own compartment, in the same dispatch as the rest. */
+/** The one way a config patch lands: the language moves in its own compartment, in the same dispatch as the rest. */
 function applyConfigPatch(patch: Partial<EditorConfig>) {
   if (!view || !currentConfig) return;
   const before = currentConfig.language;
@@ -552,7 +421,7 @@ function applyConfigPatch(patch: Partial<EditorConfig>) {
   }
   view.dispatch({ effects });
 }
-/** Applies a typed-API config patch through the same module state the old `updateConfig` message uses. */
+/** Applies a typed-API config patch. */
 function applyApiConfig(patch: ConfigPatch) {
   if (!view || !currentConfig) {
     return {
@@ -632,51 +501,9 @@ window.addEventListener('message', (event) => {
       createEditor(config);
       break;
     }
-    case 'updateConfig':
-      if (view && currentConfig) {
-        const configPatch = parseEditorConfigPatch(msg.config);
-        if (!configPatch) {
-          return;
-        }
-        applyConfigPatch(configPatch);
-      }
-      break;
     case 'blur':
       view?.contentDOM.blur();
       break;
-    case 'highlightRange': {
-      if (!view) break;
-      const start = getNumberProp(msg, 'start');
-      const end = getNumberProp(msg, 'end');
-      const durationMs = getNumberProp(msg, 'durationMs');
-      if (start !== undefined && end !== undefined) {
-        const plugin = view.plugin(highlightPlugin);
-        plugin?.addHighlight(view, start, end, durationMs ?? undefined);
-      }
-      break;
-    }
-    case 'clearHighlights': {
-      if (!view) break;
-      const plugin = view.plugin(highlightPlugin);
-      plugin?.clear();
-      break;
-    }
-    case 'showDiff': {
-      if (!view) break;
-      const start = getNumberProp(msg, 'start');
-      const end = getNumberProp(msg, 'end');
-      if (start !== undefined && end !== undefined) {
-        const plugin = view.plugin(diffPlugin);
-        plugin?.showDiff(view, start, end);
-      }
-      break;
-    }
-    case 'hideDiff': {
-      if (!view) break;
-      const plugin = view.plugin(diffPlugin);
-      plugin?.hideDiff();
-      break;
-    }
   }
 });
 
