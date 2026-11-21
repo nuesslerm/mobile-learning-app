@@ -6,7 +6,7 @@ import {
   DEFAULT_PALETTE_ID,
   type CodePalette,
   type CodePaletteId,
-} from '../highlighting/palettes';
+} from './palettes';
 /**
  * Self-contained editor settings — palette, font size, and word wrap.
  *

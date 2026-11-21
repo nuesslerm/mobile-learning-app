@@ -1,6 +1,6 @@
 import { diffChange, normalizeText, type EditorClient, type Point, type Step } from '@lib/code-editor-api';
 
-import type { Selection } from './types';
+import type { Selection } from '../../domain/editor/types';
 
 /**
  * The steps that turn the editor's `current` text into `next` as one hunk (the common start and end are kept, so what the person

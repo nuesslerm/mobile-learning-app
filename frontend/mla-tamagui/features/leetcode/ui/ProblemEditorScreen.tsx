@@ -52,11 +52,11 @@ import {
   EditorInput,
   type EditorInputHandle,
 } from '../code-editor/core/EditorInput';
-import { applyVoiceEdit } from '../code-editor/core/applyVoiceEdit';
-import { toEditorLanguage } from '../code-editor/core/languageProfile';
+import { applyVoiceEdit } from '../domain/editor/applyVoiceEdit';
+import { toEditorLanguage } from '../domain/editor/languageProfile';
 import { completionEntriesFor } from '../domain/completionEntries';
 import { useAutocompleteSettingStore } from '../state/autocompleteSettingStore';
-import { type Selection } from '../code-editor/core/types';
+import { type Selection } from '../domain/editor/types';
 import { EditorHelperRails } from '../code-editor/helperbars/EditorHelperRails';
 import { ProblemCatalog } from '../domain/problemCatalog';
 import { runParamsFor } from '../domain/runParams';

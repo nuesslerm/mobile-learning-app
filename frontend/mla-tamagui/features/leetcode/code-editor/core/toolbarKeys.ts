@@ -30,7 +30,7 @@ import type { Language } from '@lib/code-editor-api';
 import type { RefObject } from 'react';
 
 import type { EditorInputHandle } from './EditorInput';
-import { profileOf, type LanguageProfile } from './languageProfile';
+import { profileOf, type LanguageProfile } from '../../domain/editor/languageProfile';
 import {
   INDENT_UNIT,
   dedent,
@@ -40,8 +40,8 @@ import {
   smartNewline,
   toggleComment,
   type EditResult,
-} from './editing';
-import type { Selection } from './types';
+} from '../../domain/editor/editing';
+import type { Selection } from '../../domain/editor/types';
 export type KeyActionContext = {
   editorRef: RefObject<EditorInputHandle | null>;
   text: string;

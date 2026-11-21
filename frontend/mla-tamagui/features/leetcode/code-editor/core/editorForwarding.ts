@@ -2,7 +2,7 @@ import type { EditorClient, Reply } from '@lib/code-editor-api';
 import { Logger } from '@lib/logging';
 
 import type { ToEditorMessage } from '../../domain/ports';
-import { toConfigPatch, type LegacyConfigPatch } from '../engine/configPatch';
+import { toConfigPatch, type LegacyConfigPatch } from '../../domain/editor/configPatch';
 
 /** The messages that reach the page through the typed editor API. */
 export const FORWARDED_TYPES = ['undo', 'redo', 'updateConfig', 'focus', 'blur', 'setSelection', 'insertAt', 'typeText'] as const;

@@ -15,7 +15,7 @@ import React, { useCallback } from 'react';
 import { Keyboard } from 'react-native';
 
 import type { EditorInputHandle } from '../core/EditorInput';
-import type { Selection } from '../core/types';
+import type { Selection } from '../../domain/editor/types';
 
 type Props = {
   editorRef: React.RefObject<EditorInputHandle | null>;

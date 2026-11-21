@@ -32,9 +32,9 @@ import {
   getCodeFont,
   getPalette,
   useCodeEditorSettingsStore,
-} from './editorSettings';
-import type { EditResult } from './editing';
-import type { Selection } from './types';
+} from '../../state/editor/editorSettings';
+import type { EditResult } from '../../domain/editor/editing';
+import type { Selection } from '../../domain/editor/types';
 
 // App default 400ms flush — same cadence as every other Logger.
 

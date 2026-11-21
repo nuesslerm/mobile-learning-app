@@ -6,7 +6,7 @@ import { EditorView } from '@codemirror/view';
 import { LANGUAGE_NAMES, type Language } from '@lib/code-editor-api';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { LANGUAGE_PROFILES } from '../../core/languageProfile';
+import { LANGUAGE_PROFILES } from '../../../domain/editor/languageProfile';
 import { languageCompartment, languageExtension } from '../languageExtensions';
 
 const views: EditorView[] = [];

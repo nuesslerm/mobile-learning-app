@@ -11,7 +11,7 @@ import React, { useMemo } from 'react';
 import { useToolbarConfigStore } from '../../state/toolbarConfigStore';
 import type { EditorInputHandle } from '../core/EditorInput';
 import { BUILTIN_KEYS, type KeyActionContext } from '../core/toolbarKeys';
-import type { Selection } from '../core/types';
+import type { Selection } from '../../domain/editor/types';
 
 const ACTION_KEY_IDS = new Set(['Undo', 'Redo']);
 

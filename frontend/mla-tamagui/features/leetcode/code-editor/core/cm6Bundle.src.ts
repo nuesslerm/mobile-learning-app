@@ -59,7 +59,7 @@ import {
   toEditorConfig,
   toLegacyPatch,
   type LegacyEditorConfig,
-} from '../engine/configPatch';
+} from '../../domain/editor/configPatch';
 import { completionExtensions } from '../engine/completionExtension';
 import { languageCompartment, languageExtension } from '../engine/languageExtensions';
 declare global {
