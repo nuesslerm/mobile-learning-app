@@ -292,7 +292,7 @@ fn given_two_commits_when_one_changes_a_crates_files_then_its_shard_key_changes_
     // Given a repo with two crates and a plan for each commit
     let repo = tempfile::tempdir().unwrap();
     let git = |args: &[&str]| {
-        let out = std::process::Command::new("git").args(args).current_dir(repo.path()).env("GIT_AUTHOR_NAME", "t").env("GIT_AUTHOR_EMAIL", "t@t").env("GIT_COMMITTER_NAME", "t").env("GIT_COMMITTER_EMAIL", "t@t").output().unwrap();
+        let out = crate::support::git_command().args(args).current_dir(repo.path()).env("GIT_AUTHOR_NAME", "t").env("GIT_AUTHOR_EMAIL", "t@t").env("GIT_COMMITTER_NAME", "t").env("GIT_COMMITTER_EMAIL", "t@t").output().unwrap();
         assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
         String::from_utf8_lossy(&out.stdout).trim().to_string()
     };
