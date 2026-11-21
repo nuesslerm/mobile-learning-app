@@ -1,0 +1,20 @@
+DESCRIPTION
+  Mint a pairing token for a running T3 Code server and print it as a QR code.
+
+USAGE
+  t3 pair [flags]
+
+FLAGS
+  --base-dir string                 Explicit T3 Code data directory; runtime state is stored under userdata (equivalent to T3CODE_HOME).
+  --scope choice                    Authorization scope to grant. Repeat for multiple scopes; replaces the default set: orchestration:read, orchestration:operate, settings:write, providers:manage, environment:maintain, preview:operate, diagnostics:read, terminal:read, terminal:operate, source-control:write, filesystem:read, filesystem:write, relay:read, access:read, access:write, relay:write. (choices: orchestration:read, orchestration:operate, settings:write, providers:manage, environment:maintain, preview:operate, diagnostics:read, terminal:read, terminal:operate, filesystem:read, filesystem:write, source-control:write, access:read, access:write, relay:read, relay:write)
+  --ttl string                      Token TTL, for example `5m`, `1h`, or `15 minutes`. Defaults to 5 minutes.
+  --label string                    Optional label shown in the server's connections list.
+  --tailscale                       Publish the server over Tailscale Serve HTTPS and pair through the tailnet URL.
+  --tailscale-serve-port integer    HTTPS port for Tailscale Serve when --tailscale is enabled.
+
+GLOBAL FLAGS
+  --help, -h                                                          Show help information
+  --version, -v                                                       Show version information
+  --wizard                                                            Start wizard mode for a command
+  --completions <bash|zsh|fish|powershell|sh|pwsh>                    Print shell completion script (choices: bash, zsh, fish, powershell, sh, pwsh)
+  --log-level <all|trace|debug|info|warn|warning|error|fatal|none>    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)

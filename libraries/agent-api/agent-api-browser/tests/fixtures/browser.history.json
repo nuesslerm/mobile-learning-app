@@ -1,0 +1,26 @@
+{
+  "method": "browser.history",
+  "exchanges": [
+    {
+      "name": "finds no page for the workspace's own key",
+      "request": {
+        "id": 1,
+        "method": "browser.history",
+        "params": {
+          "workspace": "w1",
+          "direction": "back"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no page is open for key w1"
+        }
+      },
+      "actions": [
+        "browser_history"
+      ]
+    }
+  ]
+}

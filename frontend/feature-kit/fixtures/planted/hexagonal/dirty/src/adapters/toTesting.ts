@@ -1,0 +1,2 @@
+import '../testing/t';
+export {};

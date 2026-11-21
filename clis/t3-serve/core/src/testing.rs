@@ -178,6 +178,41 @@ impl AuthStore for MemStore {
             _ => None,
         })
     }
+
+    fn revoke_token(&self, id: &str) -> StoreResult<bool> {
+        let mut d = self.data();
+        d.tickets.retain(|_, (t, _, _)| t.token_id != id);
+        let before = d.tokens.len();
+        d.tokens.retain(|_, t| t.id != id);
+        Ok(d.tokens.len() < before)
+    }
+
+    fn revoke_other_tokens(&self, keep_id: &str, _now: Millis) -> StoreResult<usize> {
+        let mut d = self.data();
+        d.tickets.retain(|_, (t, _, _)| t.token_id == keep_id);
+        let before = d.tokens.len();
+        d.tokens.retain(|_, t| t.id == keep_id);
+        Ok(before - d.tokens.len())
+    }
+
+    fn revoke_grant(&self, id: &str) -> StoreResult<bool> {
+        let mut d = self.data();
+        let before = d.grants.len();
+        d.grants.retain(|hash, (_, _, used)| *used || !hash.starts_with(id));
+        Ok(d.grants.len() < before)
+    }
+
+    fn list_tokens(&self, now: Millis) -> StoreResult<Vec<TokenRecord>> {
+        let mut tokens: Vec<TokenRecord> = self.data().tokens.values().filter(|t| t.expires_at > now).cloned().collect();
+        tokens.sort_by(|a, b| (a.expires_at, &a.id).cmp(&(b.expires_at, &b.id)));
+        Ok(tokens)
+    }
+
+    fn list_grants(&self, now: Millis) -> StoreResult<Vec<(String, GrantRecord, Millis)>> {
+        let mut grants: Vec<_> = self.data().grants.iter().filter(|(_, (_, expires, used))| !*used && *expires > now).map(|(hash, (grant, expires, _))| (hash.clone(), grant.clone(), *expires)).collect();
+        grants.sort_by(|a, b| (a.2, &a.0).cmp(&(b.2, &b.0)));
+        Ok(grants)
+    }
 }
 
 impl MetaStore for MemStore {
@@ -208,6 +243,8 @@ pub struct ScriptedAgent {
     /// else is finished here (failed when `fail` says why, completed otherwise).
     pub script: Mutex<Vec<AgentEventKind>>,
     pub fail: Mutex<Option<String>>,
+    /// While set, a turn is not started at all: the provider cannot open.
+    pub start_error: Mutex<Option<AgentError>>,
     /// While true a turn runs until it is interrupted, when it finishes `Interrupted`.
     pub hold: std::sync::atomic::AtomicBool,
     pub created: Mutex<Vec<AgentThread>>,
@@ -215,6 +252,8 @@ pub struct ScriptedAgent {
     pub interrupted: Mutex<Vec<String>>,
     /// While set, `history` answers it instead of the log.
     pub history_error: Mutex<Option<AgentError>>,
+    /// While set, `list_dir` answers it: a folder the executor does not have.
+    pub dir_error: Mutex<Option<AgentError>>,
     /// While true, `history` sends the log from its first event whatever number it is asked after.
     pub resend: std::sync::atomic::AtomicBool,
     /// The methods asked, in order, by their agent API names.
@@ -308,6 +347,9 @@ impl AgentApi for ScriptedAgent {
     fn start_turn(&self, turn: &AgentTurn) -> Result<String, AgentError> {
         self.called("turn.start");
         self.turns.lock().unwrap().push(turn.clone());
+        if let Some(error) = self.start_error.lock().unwrap().clone() {
+            return Err(error);
+        }
         let id = {
             let mut agents = self.state();
             if agents.running.contains_key(&turn.thread_id) {
@@ -388,6 +430,9 @@ impl AgentApi for ScriptedAgent {
 
     fn list_dir(&self, root: &str, path: &str) -> Result<Vec<DirEntry>, AgentError> {
         self.called("file.list");
+        if let Some(error) = self.dir_error.lock().unwrap().clone() {
+            return Err(error);
+        }
         let prefix = format!("{root}/{}", path.trim_matches('/'));
         let prefix = prefix.trim_end_matches('/').to_string() + "/";
         let files = self.files.lock().unwrap();

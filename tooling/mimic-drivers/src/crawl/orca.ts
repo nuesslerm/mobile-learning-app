@@ -93,7 +93,7 @@ export async function orcaCrawl(): Promise<Report> {
     sources: [
       { name: 'registry', available: found.length > 0, found: found.length },
       { name: 'schema', available: schemas.size > 0, found: schemas.size, note: `${found.length - schemas.size} methods have no readable params schema` },
-      { name: 'mobile-calls', available: mobileBody.length > 0, found: mobile, note: 'quoted method names under mobile/src, plus the reachability scan of the catalog (wf parity coverage)' },
+      { name: 'mobile-calls', available: mobileBody.length > 0, found: mobile, note: 'quoted method names under mobile/src, plus the reachability scan of the catalog (wf mimic coverage)' },
       { name: 'cli-source', available: cliBody.length > 0, found: endpoints.filter((e) => e.users.includes('cli')).length, note: 'quoted method names under src/cli' },
       { name: 'cli-help', available: specs.length > 0, found: specs.length, note: 'the CLI command specs (src/cli/specs): path and summary of each command `orca --help` prints' },
       { name: 'catalog', available: catalog.length > 0, found: catalog.length },
@@ -104,7 +104,7 @@ export async function orcaCrawl(): Promise<Report> {
     cases,
     blind: [
       { class: 'methods registered only at runtime', missing_source: 'a running orcad (its registry after plugins and dynamic registration)', detail: 'a method whose name is computed, not a literal of a defineMethod block, is not in the source scan' },
-      { class: 'mobile call sites with a computed method name', missing_source: 'the type-level call graph of mobile/src (wf parity coverage lists the dynamic sites)', detail: 'sendRequest(method) with a variable: the names come from the callers, which the quoted-name scan sees only where they are literals' },
+      { class: 'mobile call sites with a computed method name', missing_source: 'the type-level call graph of mobile/src (wf mimic coverage lists the dynamic sites)', detail: 'sendRequest(method) with a variable: the names come from the callers, which the quoted-name scan sees only where they are literals' },
       { class: 'native module calls', missing_source: 'the Swift and Kotlin sources of mobile/modules', detail: 'a method a native module sends by name is not scanned' }
     ]
   }

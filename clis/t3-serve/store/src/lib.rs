@@ -134,6 +134,38 @@ impl AuthStore for SqliteStore {
         }
         conn.query_row("SELECT token_id, scopes, use FROM tickets WHERE hash = ?1", [hash], |r| Ok(TicketRecord { token_id: r.get(0)?, scopes: scopes_of(&r.get::<_, String>(1)?), use_: r.get(2)? })).optional().map_err(err)
     }
+
+    fn revoke_token(&self, id: &str) -> StoreResult<bool> {
+        let conn = self.conn();
+        conn.execute("DELETE FROM tickets WHERE token_id = ?1", [id]).map_err(err)?;
+        Ok(conn.execute("DELETE FROM tokens WHERE id = ?1", [id]).map_err(err)? > 0)
+    }
+
+    fn revoke_other_tokens(&self, keep_id: &str, now: Millis) -> StoreResult<usize> {
+        let conn = self.conn();
+        conn.execute("DELETE FROM tickets WHERE token_id != ?1", [keep_id]).map_err(err)?;
+        // The expired ones go too, but a count of what was live is what the caller reads
+        conn.execute("DELETE FROM tokens WHERE id != ?1 AND expires_at <= ?2", params![keep_id, now]).map_err(err)?;
+        conn.execute("DELETE FROM tokens WHERE id != ?1", [keep_id]).map_err(err)
+    }
+
+    fn revoke_grant(&self, id: &str) -> StoreResult<bool> {
+        Ok(self.conn().execute("DELETE FROM grants WHERE substr(hash, 1, length(?1)) = ?1 AND used_at IS NULL", [id]).map_err(err)? > 0)
+    }
+
+    fn list_tokens(&self, now: Millis) -> StoreResult<Vec<TokenRecord>> {
+        let conn = self.conn();
+        let mut query = conn.prepare("SELECT id, scopes, label, expires_at FROM tokens WHERE expires_at > ?1 ORDER BY expires_at, id").map_err(err)?;
+        let rows = query.query_map([now], |r| Ok(TokenRecord { id: r.get(0)?, scopes: scopes_of(&r.get::<_, String>(1)?), label: r.get(2)?, expires_at: r.get(3)? })).map_err(err)?;
+        rows.collect::<Result<_, _>>().map_err(err)
+    }
+
+    fn list_grants(&self, now: Millis) -> StoreResult<Vec<(String, GrantRecord, Millis)>> {
+        let conn = self.conn();
+        let mut query = conn.prepare("SELECT hash, scopes, label, expires_at FROM grants WHERE used_at IS NULL AND expires_at > ?1 ORDER BY expires_at, hash").map_err(err)?;
+        let rows = query.query_map([now], |r| Ok((r.get::<_, String>(0)?, GrantRecord { scopes: scopes_of(&r.get::<_, String>(1)?), label: r.get(2)? }, r.get::<_, i64>(3)?))).map_err(err)?;
+        rows.collect::<Result<_, _>>().map_err(err)
+    }
 }
 
 impl MetaStore for SqliteStore {

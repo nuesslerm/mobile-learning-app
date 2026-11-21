@@ -13,7 +13,7 @@ import { PRESET_COLORS } from '@lib/tamagui-design-system/theme/presetColors';
 import * as React from 'react';
 import { ScrollView, useColorScheme } from 'react-native';
 
-import { backTo } from './backTo';
+import { backTo } from '@lib/tamagui-design-system/lib/backTo';
 
 function ThemeTile({
   presetId,

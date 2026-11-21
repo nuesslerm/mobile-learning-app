@@ -1,18 +1,18 @@
 //! Orca's git rows (the ones the phone calls) over rca's git group and its `git.ai` sub-group. The phone's `worktree` selector names an rca workspace, and every row is
-//! one or a few `git.*` requests to the executor that owns it: nothing here runs git or touches a disk. The rows whose answer needs what rca does not
-//! hold are not mapped and stay pending: `git.diff` (the index side of a file), `git.branchDiff` and `git.commitDiff` (they need `git.blob`, which
-//! this mapper does not send), `git.remoteCommitUrl` (no remote address), the cancel rows of the commit message and pull request fields (rca's
-//! generation runs to its end), `git.discoverCommitMessageModels` (one configured model, no list) and `git.generatePullRequestFields` (no group
-//! writes pull request text).
-use agent_api_git::ai::GENERATE_COMMIT_MESSAGE;
-use agent_api_git::{CHECKOUT, COMMIT, COMPARE, CONFLICT_RESOLVE, DISCARD, FAST_FORWARD, FETCH, HISTORY, MERGE, PULL, PUSH, REBASE, REFS, STAGE, STATUS, UNSTAGE, UPSTREAM_STATUS};
+//! one or a few `git.*` requests to the executor that owns it (and `git.diff` reads the working tree's side through `file.stat` and `file.readChunk`):
+//! nothing here runs git or touches a disk; `git.remoteCommitUrl` reads origin's URL from the hosted group's `pr.remotes`. The rows whose answer
+//! needs what rca does not hold is not mapped and stays pending: `git.discoverCommitMessageModels` (one configured model, no list).
+use agent_api_git::ai::{GENERATE_COMMIT_MESSAGE, GENERATE_PULL_REQUEST_FIELDS};
+use agent_api_git::{BLOB, CHECKOUT, COMMIT, COMPARE, CONFLICT_RESOLVE, DISCARD, FAST_FORWARD, FETCH, HISTORY, MERGE, PULL, PUSH, REBASE, REFS, STAGE, STATUS, UNSTAGE, UPSTREAM_STATUS};
 use agent_api_proto::Method as AgentMethod;
+use orca_map_workspace::{FILE_READ_CHUNK, FILE_STAT};
 use orca_core::wire::{Failure, METHOD_NOT_FOUND, RUNTIME_ERROR};
 use orca_core::{Area, AgentApi, AgentError, Ctx, Kind, Method};
 use serde_json::{json, Map, Value};
 
 mod ai;
 mod compare;
+mod diff;
 mod read;
 mod sync;
 mod write;
@@ -21,6 +21,8 @@ mod write;
 pub mod testing;
 
 pub const GIT_STATUS: &str = "git.status";
+pub const GIT_DIFF: &str = "git.diff";
+pub const GIT_REMOTE_COMMIT_URL: &str = "git.remoteCommitUrl";
 pub const GIT_UPSTREAM_STATUS: &str = "git.upstreamStatus";
 pub const GIT_HISTORY: &str = "git.history";
 pub const GIT_LOCAL_BRANCHES: &str = "git.localBranches";
@@ -43,12 +45,19 @@ pub const GIT_RESOLVE_CONFLICT: &str = "git.resolveConflict";
 pub const GIT_BRANCH_COMPARE: &str = "git.branchCompare";
 pub const GIT_COMMIT_COMPARE: &str = "git.commitCompare";
 pub const GIT_GENERATE_COMMIT_MESSAGE: &str = "git.generateCommitMessage";
+pub const GIT_GENERATE_PULL_REQUEST_FIELDS: &str = "git.generatePullRequestFields";
+pub const GIT_CANCEL_GENERATE_COMMIT_MESSAGE: &str = "git.cancelGenerateCommitMessage";
+pub const GIT_CANCEL_GENERATE_PULL_REQUEST_FIELDS: &str = "git.cancelGeneratePullRequestFields";
+pub const GIT_BRANCH_DIFF: &str = "git.branchDiff";
+pub const GIT_COMMIT_DIFF: &str = "git.commitDiff";
 
 /// The agent methods this crate sends: a flow test holds the list to the methods really sent.
-pub const USES: &[AgentMethod] = &[STATUS, REFS, HISTORY, COMPARE, STAGE, UNSTAGE, DISCARD, COMMIT, CHECKOUT, FETCH, PULL, PUSH, FAST_FORWARD, UPSTREAM_STATUS, MERGE, REBASE, CONFLICT_RESOLVE, GENERATE_COMMIT_MESSAGE];
+pub const USES: &[AgentMethod] = &[STATUS, REFS, HISTORY, COMPARE, STAGE, UNSTAGE, DISCARD, COMMIT, CHECKOUT, FETCH, PULL, PUSH, FAST_FORWARD, UPSTREAM_STATUS, MERGE, REBASE, CONFLICT_RESOLVE, GENERATE_COMMIT_MESSAGE, GENERATE_PULL_REQUEST_FIELDS, BLOB, FILE_STAT, FILE_READ_CHUNK, orca_map_hosted::PR_REMOTES];
 
 const METHODS: &[Method] = &[
     Method { name: GIT_STATUS, kind: Kind::Unary },
+    Method { name: GIT_DIFF, kind: Kind::Unary },
+    Method { name: GIT_REMOTE_COMMIT_URL, kind: Kind::Unary },
     Method { name: GIT_UPSTREAM_STATUS, kind: Kind::Unary },
     Method { name: GIT_HISTORY, kind: Kind::Unary },
     Method { name: GIT_LOCAL_BRANCHES, kind: Kind::Unary },
@@ -71,6 +80,11 @@ const METHODS: &[Method] = &[
     Method { name: GIT_BRANCH_COMPARE, kind: Kind::Unary },
     Method { name: GIT_COMMIT_COMPARE, kind: Kind::Unary },
     Method { name: GIT_GENERATE_COMMIT_MESSAGE, kind: Kind::Unary },
+    Method { name: GIT_GENERATE_PULL_REQUEST_FIELDS, kind: Kind::Unary },
+    Method { name: GIT_CANCEL_GENERATE_COMMIT_MESSAGE, kind: Kind::Unary },
+    Method { name: GIT_CANCEL_GENERATE_PULL_REQUEST_FIELDS, kind: Kind::Unary },
+    Method { name: GIT_BRANCH_DIFF, kind: Kind::Unary },
+    Method { name: GIT_COMMIT_DIFF, kind: Kind::Unary },
 ];
 
 pub struct GitArea;
@@ -85,9 +99,26 @@ impl Area for GitArea {
     }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
+        // the pinned host checks every param of these two rows before it resolves the selector
+        let working = if method == GIT_DIFF { Some(diff::working_params(params)?) } else { None };
+        if method == GIT_REMOTE_COMMIT_URL {
+            read::check_commit_url(params)?;
+        }
+        if method == GIT_GENERATE_PULL_REQUEST_FIELDS {
+            ai::check_pull_request_fields(params)?;
+        }
         let repo = Repo::of(ctx.agent, params)?;
+        if let Some(p) = working {
+            return diff::working(&repo, &p, ctx.request_id);
+        }
         match method {
             GIT_STATUS => read::status(&repo),
+            GIT_REMOTE_COMMIT_URL => read::remote_commit_url(&repo, params),
+            GIT_GENERATE_PULL_REQUEST_FIELDS => ai::generate_pull_request_fields(&repo, params),
+            // a generation here is one blocking call to rca, so there is none left running to stop: the pinned host answers the same `ok` when none is
+            GIT_CANCEL_GENERATE_COMMIT_MESSAGE | GIT_CANCEL_GENERATE_PULL_REQUEST_FIELDS => Ok(json!({"ok": true})),
+            GIT_BRANCH_DIFF => diff::branch(&repo, params),
+            GIT_COMMIT_DIFF => diff::commit(&repo, params),
             GIT_UPSTREAM_STATUS => read::upstream_status(&repo, params),
             GIT_HISTORY => read::history(&repo, params),
             GIT_LOCAL_BRANCHES => read::local_branches(&repo),
@@ -121,7 +152,7 @@ pub(crate) struct Repo<'a> {
     workspace: String,
 }
 
-fn refusal(error: AgentError) -> Failure {
+pub(crate) fn refusal(error: AgentError) -> Failure {
     match error {
         AgentError::Refused { code, message } => match code.as_str() {
             "UNKNOWN_WORKSPACE" => Failure::new("selector_not_found", "selector_not_found"),

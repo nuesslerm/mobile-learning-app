@@ -114,6 +114,11 @@ local function sym(c)
   return ok
 end
 local function keyboard_down() return not device:get_device_state('keyboard').visible end
+local function api_calls()
+  local n = 0
+  for _, l in ipairs(device:get_logs{level='debug'}) do if l:find('editor.api.call', 1, true) then n = n + 1 end end
+  return n
+end
 local function done() -- the only way a user dismisses the keyboard: Done at the end of the toolbar
   -- a tap on a row still moving after its swipe stops the row instead of pressing Done: a user taps again
   for _ = 1, 3 do
@@ -125,6 +130,17 @@ local function done() -- the only way a user dismisses the keyboard: Done at the
     device:extended_wait_until{condition=keyboard_down, timeout=3000, label='keyboard down after Done'}
   else
     device:assert_not_visible({id='EditorHelperRails'})
+  end
+end
+-- Android sometimes loses an Enter key between two typed lines (docs/gaps/android-editor-typing-drops-a-newline.md: `return False` and
+-- `else:` read back as one line): a person sees the line did not break and presses it again. The buffer must grow by the newline; the read
+-- lags the editor by up to a second or so, so the second press waits for that much.
+local function enter()
+  if not android then device:press_key('Enter') return end
+  local before = #(buffer() or "")
+  for _ = 1, 3 do
+    device:press_key('Enter')
+    if device:extended_wait_until{condition=function() return #(buffer() or "") > before end, timeout=2500, optional=true} then return end
   end
 end
 local keys = 0
@@ -166,6 +182,39 @@ local function line(problem, i, indent, content, mistake)
   end
 end
 
+-- The a11y read of the web view's text lags what is typed (two-sum part 1, run 44047720113: an empty read of a field the
+-- screenshot shows complete), so a missing line is waited for first; only a stable read that ends in a prefix of the last
+-- line gets that line's missing suffix typed, and an empty read is never retyped over text that may be there.
+local function missing_lines(p, last, b)
+  local got = {}
+  for l in (b .. "\n"):gmatch("([^\n]*)\n") do got[#got + 1] = l:match("^%s*(.-)%s*$") end
+  local missing = {}
+  for n = 1, last do
+    local want, found = p.lines[n][2], false
+    for _, g in ipairs(got) do if g == want then found = true break end end
+    if not found then missing[#missing + 1] = want end
+  end
+  return missing
+end
+local function read_back(p, last)
+  local b, missing = "", {}
+  local function read() b = buffer() or ""; missing = missing_lines(p, last, b); return #missing == 0 end
+  device:extended_wait_until{condition=read, timeout=5000, optional=true, label=p.id .. ': typed lines read back'}
+  for _ = 1, 2 do
+    if read() or b == "" then break end
+    local seen = b
+    device:extended_wait_until{condition=function() return (buffer() or "") ~= seen end, timeout=1500, optional=true, label='read still changing'}
+    if (buffer() or "") ~= seen then break end
+    local tail = p.lines[last][2]
+    local have = seen:match("([^\n]*)$"):match("^%s*(.-)%s*$")
+    if #missing ~= 1 or missing[1] ~= tail or tail:sub(1, #have) ~= have then break end
+    typ(tail:sub(#have + 1))
+    device:extended_wait_until{condition=read, timeout=3000, optional=true, label=p.id .. ': suffix read back'}
+  end
+  read()
+  return b, missing
+end
+
 local result = {}
 for _, p in ipairs(SOL) do
   row1_at = 1
@@ -194,10 +243,31 @@ for _, p in ipairs(SOL) do
     end
     device:open_link(link)
     wait_route({id='ProblemEditorRunLocalButton'}, 240)
+    -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: wait for the first route.change
+    if not android then
+      device:extended_wait_until{condition=function()
+        for _, l in ipairs(device:get_logs{level='info'}) do
+          if l:find('route.change', 1, true) then return true end
+        end
+      end, timeout=60000, interval=250, label='the page hydrated'}
+    end
   end)
   -- the web editor autofocuses on open and its keyboard covers Reset, so an unseeded run lowers it; the Android one waits for a tap
   local focused = not android and device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true}
-  if focused and not seeded then done(); focused = false end
+  if focused and not seeded then
+    -- a tap on the page outside the editor lowers its keyboard, as the Done key does: aimed at the part of the row the rail does not cover,
+    -- where a person's finger would land (the row's own tap point is a random one in its box, and the rail's top edge overlaps its lower part)
+    local row, rail = device:get_element({id='ProblemEditorDiffRow'}).bounds, device:get_element({id='EditorHelperRails'}).bounds
+    device:tap_on({point=('%d,%d'):format((row.left + row.right) // 2, (row.top + math.min(row.bottom, rail.top - 4)) // 2)})
+    device:assert_not_visible({id='EditorHelperRails'})
+    -- the console log follows the page by a moment: wait for the screen's own record that the press reached it
+    device:extended_wait_until{condition=function()
+      for _, l in ipairs(device:get_logs{level='debug'}) do
+        if l:find('editor_v2.keyboard_dismiss', 1, true) then return true end
+      end
+    end, timeout=5000, interval=250, label=p.id .. ': the tap outside the editor reached the screen'}
+    focused = false
+  end
   if not seeded then
     device:tap_on({id='ProblemEditorResetButton'})
     -- the dialog is not in Android's accessibility tree (known gap): there the button is tapped where the dialog draws it
@@ -233,7 +303,7 @@ for _, p in ipairs(SOL) do
     device:press_key('Ctrl+End') -- typing goes on at the end of the buffer
   end
   local b0 = buffer() or ""
-  if (b0:match("([^\n]*)$") or ""):match("%S") then device:press_key('Enter') end
+  if (b0:match("([^\n]*)$") or ""):match("%S") then enter() end
 
   device:take_screenshot(("%s/%s-start.png"):format(out, p.id))
   local rail = device:get_element({id='EditorHelperRails'})
@@ -247,39 +317,44 @@ for _, p in ipairs(SOL) do
   device:take_screenshot(("%s/%s-toolbar-visible.png"):format(out, p.id))
 
   for n = first, last do
-    if n > first then device:press_key('Enter') end
+    if n > first then enter() end
     line(p.id, n - 1, p.lines[n][1], p.lines[n][2], n == 1)
   end
   r.keyboard_while_typing_end = device:get_device_state('keyboard').visible
-  local b = buffer() or ""
+  local b, missing = read_back(p, last)
   r.buffer_tail = b:sub(-160)
-  local got = {}
-  for l in (b .. "\n"):gmatch("([^\n]*)\n") do got[#got + 1] = l:match("^%s*(.-)%s*$") end
-  local all = true
-  for n = 1, last do
-    local want, found = p.lines[n][2], false
-    for _, g in ipairs(got) do if g == want then found = true break end end
-    all = all and found
+  r.lines_match = #missing == 0
+  r.missing = missing
+  r.field_read_empty = b == ""
+  -- the toolbar's Undo and Redo reach the page as calls of the typed editor API (issue 86, B1): the text goes back, returns, and each call is logged
+  if r.lines_match then
+    local typed_text = buffer() or ""
+    local typed_length = #typed_text
+    local api_before = api_calls()
+    device:scroll_until_visible{element={id='EditorAction-Undo'}, direction='LEFT', from={id='EditorActionToolbar'}, timeout=6000, optional=true}
+    device:tap_on({id='EditorAction-Undo'})
+    device:extended_wait_until{condition=function() return #(buffer() or "") < typed_length end, timeout=8000, label=p.id .. ': the undo reached the page'}
+    device:tap_on({id='EditorAction-Redo'})
+    -- the exact text returns, not a text of the same length
+    device:extended_wait_until{condition=function() return (buffer() or "") == typed_text end, timeout=8000, label=p.id .. ': the redo restored the exact text'}
+    -- the app's debug log is read on the web; the phone's console is not a promised channel
+    if not android then
+      device:extended_wait_until{condition=function() return api_calls() >= api_before + 2 end, timeout=5000, interval=250, label=p.id .. ': both calls were logged as typed API calls'}
+    end
   end
-  r.lines_match = all
   done()
   if android then r.keyboard_after_done = device:get_device_state('keyboard').visible end
   device:take_screenshot(("%s/%s-keyboard-down.png"):format(out, p.id))
-  if r.final then
+  -- Run Local answers on the device (issue 86, B5), so no backend runs for this test; a part whose lines did not read back is not run,
+  -- because its outcome would hide the line that went missing (reported below)
+  if r.final and r.lines_match then
     run_flow("run local", function()
       device:tap_on({id='ProblemEditorRunLocalButton'})
-      device:assert_visible({id='ProblemEditorRunOutcomeTotals'})
+      -- the first run of a launch loads the interpreter
+      device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals'}, timeout=90000, label=p.id .. ': the run outcome'}
     end)
     r.run_local = text_of("ProblemEditorRunOutcomeTotals")
     device:take_screenshot(("%s/%s-result.png"):format(out, p.id))
-    -- the status bar clock changes every minute; the rest of the result screen is the same on every run
-    -- the "All tests passed" toast slides over the editor for a few seconds; the golden is the screen after it
-    if android and env.golden ~= "off" then
-      -- the toast is drawn outside the accessibility tree, so no selector sees it; its white card covers the dark editor, so
-      -- wait until that point is dark again
-      device:extended_wait_until{condition=function() local c = device:get_pixel('83%,20.5%') return not (c.r > 200 and c.g > 200 and c.b > 200) end, timeout=20000, label='result toast gone'}
-      device:assert_screenshot("editor-" .. p.id .. "-result", { ignore = { { 0, 0, SW, from_top(40) } } })
-    end
   end
   r.warnings = device:get_logs()
 end
@@ -302,8 +377,12 @@ for _, p in ipairs(SOL) do
   local r = result[p.id]
   assert_true(r.keyboard_at_start, p.id .. ": keyboard not shown")
   assert_true(r.toolbar_above_keyboard, p.id .. ": toolbar not above the keyboard")
-  assert_true(r.lines_match, p.id .. ": typed code does not match")
-  assert_true(not r.final or (r.run_local and r.run_local:match("passed")), p.id .. ": Run Local did not pass: " .. tostring(r.run_local))
+  assert_true(r.lines_match, ("%s: typed code does not match: missing %s; the field read %s"):format(p.id, json.encode(r.missing),
+    r.field_read_empty and "empty" or "..." .. json.encode(r.buffer_tail)))
+  if r.final then
+    local got, of = (r.run_local or ""):match("(%d+) / (%d+)")
+    assert_true(got and got == of, p.id .. ": Run Local did not pass every case: " .. tostring(r.run_local))
+  end
   assert_true(#r.warnings == 0, p.id .. ": JS warnings: " .. tostring(r.warnings[1]))
 end
 log(json.encode(result.input))

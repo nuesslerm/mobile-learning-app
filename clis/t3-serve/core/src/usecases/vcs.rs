@@ -43,6 +43,29 @@ fn command_error(operation: &str, cwd: &str, detail: &str) -> Value {
     error
 }
 
+/// A directory the pinned server finds no repository in: it resolves a relative one against a directory of its own that holds none.
+pub(super) fn outside_repository(cwd: &str) -> bool {
+    !cwd.starts_with('/')
+}
+
+fn no_driver(cwd: &str) -> Value {
+    json!({"name": "VcsUnsupportedOperationError", "message": format!("VCS operation is unsupported for unknown in VcsDriverRegistry.resolve: No supported VCS repository was detected at {cwd}.")})
+}
+
+/// A git command refused before it ran, because no driver serves the directory.
+fn command_unrouted(operation: &str, cwd: &str) -> QueryFailure {
+    QueryFailure::Error(json!({"_tag": "GitCommandError", "operation": format!("GitWorkflowService.{operation}"), "command": "vcs-route", "cwd": cwd, "detail": "Failed to resolve the VCS driver for this Git command.", "cause": no_driver(cwd)}))
+}
+
+pub(super) fn manager_unrouted(operation: &str, cwd: &str) -> QueryFailure {
+    QueryFailure::Error(json!({"_tag": "GitManagerError", "operation": format!("GitWorkflowService.{operation}"), "cwd": cwd, "detail": "Failed to resolve the VCS driver for this Git workflow.", "cause": no_driver(cwd)}))
+}
+
+/// A review read of a directory beyond the workspace root.
+pub(super) fn review_outside(operation: &str, what: &str, cwd: &str) -> QueryFailure {
+    QueryFailure::Error(json!({"_tag": "VcsRepositoryDetectionError", "operation": format!("ReviewService.{operation}"), "cwd": cwd, "detail": format!("Review {what} cwd must stay within the configured workspace root.")}))
+}
+
 fn manager_error(operation: &str, cwd: &str, detail: &str) -> Value {
     json!({"_tag": "GitManagerError", "operation": operation, "cwd": cwd, "detail": detail})
 }
@@ -115,7 +138,7 @@ fn halves(root: &str, status: &Value, has_remote: bool, counts: &HashMap<String,
     (local, remote)
 }
 
-fn not_a_repo(e: &AgentError) -> bool {
+pub(super) fn not_a_repo(e: &AgentError) -> bool {
     e.message().contains("not a git repository")
 }
 
@@ -136,6 +159,8 @@ pub struct StatusFold {
     has_remote: bool,
     local: Value,
     remote: Value,
+    /// A branch subscription: the frames are `{refName}` and only the branch moves them.
+    branch_only: bool,
 }
 
 impl StatusFold {
@@ -153,12 +178,16 @@ impl Service {
     /// The status, the upstream and the change counts of the repository at `root`, as the two halves of `VcsStatusResult`. A directory that is no
     /// repository is a status that says so.
     fn git_halves(&self, root: &str) -> Result<(Value, Value, bool), AgentError> {
+        let no_repository = || {
+            let local = json!({"isRepo": false, "hasPrimaryRemote": false, "isDefaultRef": false, "refName": null, "hasWorkingTreeChanges": false, "workingTree": {"files": [], "insertions": 0, "deletions": 0}});
+            Ok((local, json!({"hasUpstream": false, "aheadCount": 0, "behindCount": 0, "pr": null}), false))
+        };
+        if outside_repository(root) {
+            return no_repository();
+        }
         let status = match self.agent().run(&Op::GitStatus { root: root.into() }) {
             Ok(status) => status,
-            Err(e) if not_a_repo(&e) => {
-                let local = json!({"isRepo": false, "hasPrimaryRemote": false, "isDefaultRef": false, "refName": null, "hasWorkingTreeChanges": false, "workingTree": {"files": [], "insertions": 0, "deletions": 0}});
-                return Ok((local, json!({"hasUpstream": false, "aheadCount": 0, "behindCount": 0, "pr": null}), false));
-            }
+            Err(e) if not_a_repo(&e) => return no_repository(),
             Err(e) => return Err(e),
         };
         let has_remote = self.agent().run(&Op::GitUpstream { root: root.into() }).map(|u| u["remotes"].as_array().is_some_and(|r| !r.is_empty())).unwrap_or(false);
@@ -181,11 +210,41 @@ impl Service {
         let root = field(payload, "cwd")?;
         let (local, remote, has_remote) = self.git_halves(root).map_err(|e| QueryFailure::Error(manager_error("subscribeStatus", root, &e.message())))?;
         let first = json!({"_tag": "snapshot", "local": local, "remote": remote});
-        Ok((StatusFold { root: root.into(), has_remote, local, remote }, first))
+        Ok((StatusFold { root: root.into(), has_remote, local, remote, branch_only: false }, first))
+    }
+
+    /// `vcs.init`: a repository made by the executor in the folder `cwd` (an absolute folder below its root); a repository that is there stays as it is.
+    pub fn vcs_init(&self, payload: &Value) -> Result<(), QueryFailure> {
+        let cwd = field(payload, "cwd")?;
+        if outside_repository(cwd) || payload.get("kind").and_then(Value::as_str).is_some_and(|k| k == "jj") {
+            return Err(QueryFailure::Error(t3_contracts::wire::unsupported_error("vcs.init")));
+        }
+        let failed = |detail: String| QueryFailure::Error(manager_error("init", cwd, &detail));
+        let root = self.root().map_err(failed)?;
+        let path = super::projects::relative(&root, cwd).ok_or_else(|| failed(format!("{cwd} is outside the folder this server serves ({root}).")))?;
+        let path = if path.is_empty() { ".".to_string() } else { path };
+        self.agent().run(&Op::GitInit { path, initial_branch: None, files: Vec::new(), message: None }).map(drop).map_err(|e| failed(e.message()))
+    }
+
+    /// `vcs.refreshBranch`: reads the repository once so its branch is current; the answer carries nothing.
+    pub fn vcs_refresh_branch(&self, payload: &Value) -> Result<(), QueryFailure> {
+        let root = field(payload, "cwd")?;
+        self.git_halves(root).map(|_| ()).map_err(|e| QueryFailure::Error(manager_error("refreshBranch", root, &e.message())))
+    }
+
+    /// `subscribeVcsBranch`: the branch name, and then a frame each time it changes.
+    pub fn open_vcs_branch(&self, payload: &Value) -> Result<(StatusFold, Value), QueryFailure> {
+        let root = field(payload, "cwd")?;
+        let (local, remote, has_remote) = self.git_halves(root).map_err(|e| QueryFailure::Error(manager_error("subscribeBranch", root, &e.message())))?;
+        let first = json!({"refName": local["refName"]});
+        Ok((StatusFold { root: root.into(), has_remote, local, remote, branch_only: true }, first))
     }
 
     /// Follows the status on a thread of its own, sending a frame for each half that changed until the app's stream is gone or `stop` is set.
     pub fn follow_vcs_status(&self, mut fold: StatusFold, id: Value, to: Sender<(Value, Value)>, stop: Arc<AtomicBool>) {
+        if outside_repository(&fold.root) {
+            return;
+        }
         let svc = self.clone();
         std::thread::spawn(move || {
             let root = fold.root.clone();
@@ -196,13 +255,20 @@ impl Service {
                 let Some(status) = status else { return Follow::Continue };
                 let (local, remote) = halves(&root, &status, fold.has_remote, &svc.git_counts(&root));
                 let mut frames = Vec::new();
-                if local != fold.local {
-                    frames.push(json!({"_tag": "localUpdated", "local": local}));
+                if fold.branch_only {
+                    if local["refName"] != fold.local["refName"] {
+                        frames.push(json!({"refName": local["refName"]}));
+                    }
                     fold.local = local;
-                }
-                if remote != fold.remote {
-                    frames.push(json!({"_tag": "remoteUpdated", "remote": remote}));
-                    fold.remote = remote;
+                } else {
+                    if local != fold.local {
+                        frames.push(json!({"_tag": "localUpdated", "local": local}));
+                        fold.local = local;
+                    }
+                    if remote != fold.remote {
+                        frames.push(json!({"_tag": "remoteUpdated", "remote": remote}));
+                        fold.remote = remote;
+                    }
                 }
                 if frames.into_iter().any(|frame| to.send((id.clone(), frame)).is_err()) {
                     return Follow::Stop;
@@ -218,6 +284,9 @@ impl Service {
     /// `vcs.listRefs`: the branches (and remote branches) a page at a time.
     pub fn vcs_list_refs(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let root = field(payload, "cwd")?;
+        if outside_repository(root) {
+            return Ok(json!({"refs": [], "isRepo": false, "hasPrimaryRemote": false, "nextCursor": null, "totalCount": 0}));
+        }
         let fail = |e: AgentError| QueryFailure::Error(command_error("listRefs", root, &e.message()));
         let kind = match text_of(payload, "refKind") {
             Some("local") => Some("branch"),
@@ -257,6 +326,9 @@ impl Service {
     /// `vcs.switchRef`: a branch checked out, or for a remote branch a local one made to track it.
     pub fn vcs_switch_ref(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let (root, name) = (field(payload, "cwd")?, field(payload, "refName")?);
+        if outside_repository(root) {
+            return Err(command_unrouted("switchRef", root));
+        }
         let fail = |e: AgentError| QueryFailure::Error(command_error("switchRef", root, &e.message()));
         let remote = self.agent().run(&Op::GitRefs { root: root.into(), kind: Some("remote"), limit: REFS_ASK }).map(|r| r["refs"].as_array().is_some_and(|refs| refs.iter().any(|x| x["name"] == name))).unwrap_or(false);
         let local = self.agent().run(&Op::GitRefs { root: root.into(), kind: Some("branch"), limit: REFS_ASK }).map(|r| r["refs"].as_array().is_some_and(|refs| refs.iter().any(|x| x["name"] == name))).unwrap_or(false);
@@ -267,6 +339,9 @@ impl Service {
     /// `vcs.createRef`: a branch created at the head, switched to when asked.
     pub fn vcs_create_ref(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let (root, name) = (field(payload, "cwd")?, field(payload, "refName")?);
+        if outside_repository(root) {
+            return Err(command_unrouted("createRef", root));
+        }
         let checkout = payload.get("switchRef").and_then(Value::as_bool).unwrap_or(false);
         self.agent().run(&Op::GitCreateRef { root: root.into(), name: name.into(), from: None, checkout }).map_err(|e| QueryFailure::Error(command_error("createRef", root, &e.message())))?;
         Ok(json!({"refName": name}))
@@ -275,6 +350,9 @@ impl Service {
     /// `vcs.pull`: the current branch fast-forwarded from its upstream; a pull that would not fast-forward is the refusal.
     pub fn vcs_pull(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let root = field(payload, "cwd")?;
+        if outside_repository(root) {
+            return Err(command_unrouted("pullCurrentBranch", root));
+        }
         let fail = |detail: &str| QueryFailure::Error(command_error("pull", root, detail));
         let before = self.agent().run(&Op::GitUpstream { root: root.into() }).map_err(|e| fail(&e.message()))?;
         let Some(branch) = text_of(&before, "branch") else { return Err(fail("not on a branch (detached HEAD)")) };
@@ -302,6 +380,9 @@ impl Service {
     /// `review.getDiffPreview`: the working tree against the head, the branch against `baseRef`, and one commit, each as a source.
     pub fn review_diff_preview(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let root = field(payload, "cwd")?;
+        if outside_repository(root) {
+            return Err(review_outside("getDiffPreview", "diff preview", root));
+        }
         let fail = |e: AgentError| QueryFailure::Error(command_error("reviewDiffPreview", root, &e.message()));
         let file = payload.get("file").filter(|f| f.is_object());
         let only = file.and_then(|f| text_of(f, "sourceKind"));
@@ -330,6 +411,9 @@ impl Service {
         let root = field(payload, "cwd")?;
         let (kind, change) = (field(payload, "sourceKind")?, field(payload, "changeType")?);
         let (old_path, new_path) = (field(payload, "oldPath")?, field(payload, "newPath")?);
+        if outside_repository(root) {
+            return Err(review_outside("getDiffFileContents", "diff file contents", root));
+        }
         let (base, head) = (text_of(payload, "baseRef"), text_of(payload, "headRef"));
         let fail = |e: AgentError| QueryFailure::Error(command_error("reviewDiffFileContents", root, &e.message()));
         let blob = |rev: &str, path: &str| -> Result<String, QueryFailure> {
@@ -361,6 +445,9 @@ impl Service {
         let (action_id, root, action) = (field(payload, "actionId")?.to_string(), field(payload, "cwd")?.to_string(), field(payload, "action")?.to_string());
         if !["commit", "push", "create_pr", "commit_push", "commit_push_pr"].contains(&action.as_str()) {
             return Err(QueryFailure::Defect("Expected a stacked action\n  at [\"action\"]".into()));
+        }
+        if outside_repository(&root) {
+            return Err(manager_unrouted("runStackedAction", &root));
         }
         let message = text_of(payload, "commitMessage").map(str::to_string);
         let paths: Vec<String> = payload.get("filePaths").and_then(Value::as_array).map(|p| p.iter().filter_map(Value::as_str).map(str::to_string).collect()).unwrap_or_default();

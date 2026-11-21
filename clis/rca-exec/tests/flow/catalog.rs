@@ -116,6 +116,29 @@ fn given_skill_directories_that_link_out_when_scanned_then_only_skills_inside_th
 }
 
 #[test]
+fn given_skill_directories_the_caller_names_when_scanned_then_only_those_are_read_and_the_ones_that_exist_are_reported() {
+    // Given a root with a skill below .trae/skills and an empty .kiro/skills, and a home with one below .config/opencode/skills
+    let ((_r, root), (_h, home)) = (dir(), dir());
+    skill(&root, ".trae/skills", "fmt", "---\nname: fmt\n---\n");
+    std::fs::create_dir_all(root.join(".kiro/skills")).unwrap();
+    skill(&root, ".claude/skills", "ignored", "---\nname: ignored\n---\n");
+    skill(&home, ".config/opencode/skills", "lint", "---\nname: lint\n---\n");
+    let ex = LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home));
+    // When the caller names the directories of the root and of the home
+    let args = json!({"root": ".", "home": true, "dirs": [".trae/skills", ".kiro/skills", ".grok/skills"], "home_dirs": [".config/opencode/skills"]});
+    let result = call(&ex, "skill_scan", args).unwrap();
+    // Then only the named directories are read, in their order
+    let found: Vec<(&str, &str)> = result["skills"].as_array().unwrap().iter().map(|s| (s["name"].as_str().unwrap(), s["dir"].as_str().unwrap())).collect();
+    assert_eq!(found, [("fmt", ".trae/skills"), ("lint", ".config/opencode/skills")]);
+    // And the directories that exist are reported, an empty one too, a missing one not
+    assert_eq!(result["present"], json!([{"scope": "workspace", "dir": ".trae/skills"}, {"scope": "workspace", "dir": ".kiro/skills"}, {"scope": "home", "dir": ".config/opencode/skills"}]));
+    // And a directory that climbs out or is absolute is refused before anything is read
+    for bad in ["../x", "/etc", "~/x", "a//b"] {
+        assert_eq!(call(&ex, "skill_scan", json!({"root": ".", "dirs": [bad]})).unwrap_err().code, Code::InvalidArgs, "{bad}");
+    }
+}
+
+#[test]
 fn given_more_skills_than_the_most_when_scanned_then_the_most_come_back_in_order_and_the_answer_says_it_stopped() {
     // Given one skill more than the contract's most, named so their order is the number's
     let ((_r, root), most) = (dir(), exec_fs::SKILLS_MAX);
@@ -162,4 +185,139 @@ fn given_the_scripted_clis_on_the_executors_path_when_detected_then_each_reports
     // Then the two report their versions, the third is absent, and the scripts' logs hold no start
     assert_eq!((found(&result, "claude")["version"].clone(), found(&result, "codex")["version"].clone(), found(&result, "opencode")["installed"].clone()), (json!("2.1.7 (Claude Code)"), json!("codex-cli 0.9.1"), json!(false)));
     assert!(cli.invocations("claude").is_empty() && cli.invocations("codex").is_empty());
+}
+
+#[test]
+fn given_a_claude_projects_directory_when_a_file_is_read_in_its_scope_then_only_files_below_it_are_read_and_a_link_out_is_refused() {
+    // Given a home whose .claude/projects holds a script and a link to a file outside it, and a file outside
+    let ((_r, root), (_h, home), (_o, outside)) = (dir(), dir(), dir());
+    let projects = home.join(".claude/projects/p");
+    std::fs::create_dir_all(&projects).unwrap();
+    std::fs::write(projects.join("flow.js"), "export const a = 1").unwrap();
+    std::fs::write(outside.join("secret.js"), "x").unwrap();
+    symlink(outside.join("secret.js"), projects.join("linked.js")).unwrap();
+    let ex = LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home));
+    let read = |path: &std::path::Path| call(&ex, "read_chunk", json!({"path": path.to_str().unwrap(), "scope": "claudeProjects"}));
+    // When the script is read, a link out, a file outside, and the directory itself
+    let script = read(&projects.join("flow.js")).unwrap();
+    let linked = read(&projects.join("linked.js")).unwrap_err();
+    let elsewhere = read(&outside.join("secret.js")).unwrap_err();
+    let dir_read = read(&projects).unwrap_err();
+    // Then the script is its bytes, the link and the file outside are outside the root, and a directory is no file
+    assert_eq!((script["bytes"].clone(), script["eof"].clone()), (json!(18), json!(true)));
+    assert_eq!((linked.code, elsewhere.code, dir_read.code), (Code::PathOutsideRoot, Code::PathOutsideRoot, Code::NotAFile));
+    // And without the scope the same absolute path is outside the workspace
+    assert_eq!(call(&ex, "read_chunk", json!({"path": projects.join("flow.js").to_str().unwrap()})).unwrap_err().code, Code::PathOutsideRoot);
+}
+
+fn login_cli(bin: &std::path::Path) {
+    use std::os::unix::fs::PermissionsExt;
+    let script = r#"#!/bin/sh
+case "$1 $2" in
+  "auth login")
+    echo "Open https://example.test/oauth to sign in"
+    echo "Paste code:"
+    read code
+    if [ "$code" = "bad" ]; then echo "Invalid code" >&2; exit 1; fi
+    mkdir -p "$HOME/.claude"
+    printf '{"t":"%s"}' "$code" > "$HOME/.claude/.credentials.json"
+    echo "Logged in"
+    ;;
+  "auth logout") rm -f "$HOME/.claude/.credentials.json" ;;
+  *) echo "claude 1.0" ;;
+esac
+"#;
+    let path = bin.join("claude");
+    std::fs::write(&path, script).unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+}
+
+/// The login's status once it has ended, polled for at most five seconds.
+fn ended(ex: &LocalExecutor, flow: &str) -> Value {
+    for _ in 0..250 {
+        let state = call(ex, "login_status", json!({"flow": flow})).unwrap();
+        if state["ended"] == true {
+            return state;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    panic!("the login {flow} did not end");
+}
+
+#[test]
+fn given_an_agent_cli_with_a_login_when_it_is_started_answered_and_ended_then_the_executors_home_holds_the_login_and_a_wrong_code_fails_with_the_cli_s_words() {
+    // Given an executor whose home is empty and which has a claude that prompts for a code and writes its credential file
+    let ((_r, root), (_h, home), (_b, bin)) = (dir(), dir(), dir());
+    login_cli(&bin);
+    let ex = LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home)).with_cli_path(bin.to_str().unwrap());
+    // When a login is started and its output read
+    let flow = call(&ex, "login_start", json!({"program": "claude"})).unwrap()["flow"].as_str().unwrap().to_string();
+    let mut printed = String::new();
+    for _ in 0..250 {
+        let state = call(&ex, "login_status", json!({"flow": flow, "after": printed.len()})).unwrap();
+        printed.push_str(state["output"].as_str().unwrap());
+        if printed.contains("Paste code:") {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    // Then the address and the prompt are in it and the CLI holds no login yet
+    assert!(printed.contains("https://example.test/oauth") && printed.contains("Paste code:"), "{printed}");
+    assert_eq!(call(&ex, "login_status", json!({"flow": flow})).unwrap()["signed_in"], false);
+    // And when the code is sent, the login ends well and the credential file is in the home
+    call(&ex, "login_send", json!({"flow": flow, "text": "abc"})).unwrap();
+    let done = ended(&ex, &flow);
+    assert_eq!((done["ok"].clone(), done["signed_in"].clone()), (json!(true), json!(true)), "{done}");
+    assert_eq!(std::fs::read_to_string(home.join(".claude/.credentials.json")).unwrap(), r#"{"t":"abc"}"#);
+    // And an ended login takes no more input, a status of the whole output starts at 0 and a logout takes the login away
+    assert_eq!(call(&ex, "login_send", json!({"flow": flow, "text": "x"})).unwrap_err().code, Code::NotFound);
+    assert!(call(&ex, "login_status", json!({"flow": flow})).unwrap()["output"].as_str().unwrap().contains("Logged in"));
+    assert_eq!(call(&ex, "logout", json!({"program": "claude"})).unwrap()["signed_in"], false);
+    // And a wrong code ends the login as failed with the CLI's words
+    let second = call(&ex, "login_start", json!({"program": "claude"})).unwrap()["flow"].as_str().unwrap().to_string();
+    call(&ex, "login_send", json!({"flow": second, "text": "bad"})).unwrap();
+    let failed = ended(&ex, &second);
+    assert_eq!((failed["ok"].clone(), failed["signed_in"].clone()), (json!(false), json!(false)), "{failed}");
+    assert!(failed["error"].as_str().unwrap().contains("Invalid code"), "{failed}");
+}
+
+#[test]
+fn given_logins_the_caller_gets_wrong_when_asked_then_each_is_refused_and_a_running_login_is_stopped_and_forgotten_by_a_cancel() {
+    // Given an executor with a claude and no codex
+    let ((_r, root), (_h, home), (_b, bin)) = (dir(), dir(), dir());
+    login_cli(&bin);
+    let ex = LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home)).with_cli_path(bin.to_str().unwrap());
+    // When a program that is no agent CLI, one that is missing, an unknown flow and a program-less request are asked for
+    let shell = call(&ex, "login_start", json!({"program": "sh"})).unwrap_err();
+    let missing = call(&ex, "login_start", json!({"program": "codex"})).unwrap_err();
+    let unknown = call(&ex, "login_status", json!({"flow": "login-99"})).unwrap_err();
+    let none = call(&ex, "login_start", json!({})).unwrap_err();
+    // Then each is refused with its own words
+    assert_eq!((shell.code, missing.code, unknown.code, none.code), (Code::InvalidArgs, Code::NotFound, Code::NotFound, Code::InvalidArgs));
+    assert!(missing.message.contains("codex is not installed here"), "{missing:?}");
+    // And a running login is stopped by a cancel, which forgets it, and a second cancel finds none
+    let flow = call(&ex, "login_start", json!({"program": "claude"})).unwrap()["flow"].as_str().unwrap().to_string();
+    assert_eq!(call(&ex, "login_cancel", json!({"flow": flow})).unwrap()["cancelled"], true);
+    assert_eq!(call(&ex, "login_status", json!({"flow": flow})).unwrap_err().code, Code::NotFound);
+    assert_eq!(call(&ex, "login_cancel", json!({"flow": flow})).unwrap()["cancelled"], false);
+}
+
+#[test]
+fn given_an_agent_cli_when_the_executors_home_holds_its_credential_file_then_the_detection_says_it_is_signed_in_and_a_tool_or_a_missing_cli_says_nothing() {
+    // Given an executor with a claude and a git, and a home with no login
+    let ((_r, root), (_h, home), (_b, bin)) = (dir(), dir(), dir());
+    login_cli(&bin);
+    let path = bin.join("git");
+    std::fs::write(&path, "#!/bin/sh\necho git 2.43\n").unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let ex = LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home)).with_cli_path(bin.to_str().unwrap());
+    let detect = || call(&ex, "cli_detect", json!({"programs": ["claude", "codex", "git"]})).unwrap()["clis"].clone();
+    // When it is detected before and after the credential file is written
+    let before = detect();
+    std::fs::create_dir_all(home.join(".claude")).unwrap();
+    std::fs::write(home.join(".claude/.credentials.json"), "{}").unwrap();
+    let after = detect();
+    // Then claude is signed out and then signed in, and codex (missing) and git (a tool) carry no such field
+    assert_eq!((before[0]["signed_in"].clone(), after[0]["signed_in"].clone()), (json!(false), json!(true)), "{before} {after}");
+    assert!(after[1].get("signed_in").is_none() && after[2].get("signed_in").is_none(), "{after}");
 }

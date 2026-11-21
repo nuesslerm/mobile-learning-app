@@ -210,12 +210,12 @@ const handleResetCode = React.useCallback(() => {
 }, [problem, lang, snapshot]);
 ```
 
-Rename's in-app trigger is **not wired yet**. `handleRenameSymbol` in
-`ProblemEditorScreen.tsx` only logs `editor_v2.rename_symbol_request`; nothing
-calls `useRenameSymbolRequestStore.getState().request(...)` or pushes
-`/leetcode/<id>/rename`, so the toolbar's rename action never opens the
-overlay, the route is reachable only by URL, and the store's payload is always
-`null`. When it is wired it takes the same shape: request
+Rename's in-app trigger **does not exist**. The toolbar's Rename button and the
+screen's handler (which only logged `editor_v2.rename_symbol_request`) were
+removed in C4 of issue 86 because they did nothing; nothing calls
+`useRenameSymbolRequestStore.getState().request(...)` or pushes
+`/leetcode/<id>/rename`, so the route is reachable only by URL and the store's
+payload is always `null`. When a trigger is added it takes this shape: request
 `{ problemId, target, onConfirm, onCancel }`, then push
 `/leetcode/<id>/rename?symbol=<encoded symbol>`.
 

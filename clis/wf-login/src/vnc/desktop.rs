@@ -101,6 +101,12 @@ fn spawn_detached(mut command: Command, event: &str, fields: Vec<(&'static str, 
     }
 }
 
+/// Where a tool's login command writes its output (`VNC_AUTH_LOGIN_LOG_DIR`, default `/tmp`).
+pub fn login_log_path(tool: &str) -> String {
+    let dir = std::env::var("VNC_AUTH_LOGIN_LOG_DIR").ok().filter(|v| !v.is_empty()).unwrap_or_else(|| "/tmp".to_string());
+    format!("{}/vnc-auth-login-{}.log", dir.trim_end_matches('/'), file_safe(tool))
+}
+
 fn file_safe(name: &str) -> String {
     name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '_' }).collect()
 }
@@ -245,7 +251,9 @@ impl Launcher {
     /// Runs the tool's login command in the background, its output kept in a log file. It finds the browser through
     /// `$BROWSER`; no display is needed, only a name for the tools that refuse to open a browser without one.
     pub fn run_login(&self, tool: &str, command: &str) {
-        let script = format!("{command} >/tmp/vnc-auth-login-{}.log 2>&1", file_safe(tool));
+        // Fresh and owner-only before the command starts: the log may hold the token the command prints (`outputSecret`).
+        let log = login_log_path(tool);
+        let script = format!("rm -f {log}; (umask 077; : > {log}); {command} >{log} 2>&1");
         let mut login = Command::new("s6-setuidgid");
         login.args([&self.user, "bash", "-lc", &script]).env("BROWSER", "chromium").env("DISPLAY", ":99");
         spawn_detached(login, "vnc_auth.desktop_launcher.spawn_failed", vec![("tool", tool.to_string())]);

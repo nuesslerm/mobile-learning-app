@@ -68,6 +68,7 @@
         }
       },
       "actions": [
+        "cli_detect",
         "git_checkpoint"
       ],
       "volatile": [

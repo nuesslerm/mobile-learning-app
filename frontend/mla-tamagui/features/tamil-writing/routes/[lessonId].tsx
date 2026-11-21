@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { TamilLessonScreen, tamilPageParams } from '@/features/tamil-writing';
+import { TamilLessonScreen } from '../ui/TamilLessonScreen';
+import { tamilPageParams } from '../di/pageParams';
 
 export const generateStaticParams = tamilPageParams.lessons;
 

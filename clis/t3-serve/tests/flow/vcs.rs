@@ -257,6 +257,31 @@ fn the_status_stream_is_a_snapshot_and_then_a_frame_for_each_half_that_changed_a
     assert!(h.agent.calls.lock().unwrap().contains(&"git.subscribe"));
 }
 
+#[test]
+fn the_branch_stream_is_the_branch_name_and_then_a_frame_only_when_it_changes_and_a_refresh_answers_with_nothing() {
+    // Given a repository whose status stream says: the same branch, a file more, then another branch
+    let (h, mut rpc) = started();
+    let on = |branch: &str, files: Value| {
+        let mut status = status_with(files, 0);
+        status["branch"] = json!(branch);
+        status
+    };
+    reply(&h, "git.status", Ok(on("main", json!([]))));
+    reply(&h, "git.upstreamStatus", Ok(recorded("git.upstreamStatus", "no upstream")));
+    h.agent.git_statuses.lock().unwrap().insert(ROOT.into(), vec![on("main", json!([])), on("main", json!([changed("a.txt")])), on("feat", json!([changed("a.txt")]))]);
+    // When the phone refreshes the branch and subscribes to it
+    let refreshed = rpc.call("vcs.refreshBranch", json!({"cwd": ROOT}));
+    let id = rpc.send("subscribeVcsBranch", json!({"cwd": ROOT}));
+    let mut frames: Vec<Value> = Vec::new();
+    while frames.len() < 2 {
+        frames.extend(rpc.chunk(&id));
+    }
+    // Then the refresh succeeded with no value, the first frame is the branch, the second the new branch, and a changed file made no frame
+    assert_eq!(refreshed["_tag"], "Success", "{refreshed}");
+    assert!(refreshed.get("value").is_some_and(Value::is_null), "{refreshed}");
+    assert_eq!(frames, [json!({"refName": "main"}), json!({"refName": "feat"})]);
+}
+
 fn progress(rpc: &mut Rpc, id: &Value) -> Vec<Value> {
     let mut frames: Vec<Value> = Vec::new();
     loop {
@@ -322,4 +347,46 @@ fn a_stacked_action_that_cannot_run_ends_with_a_failed_frame_naming_the_phase_a_
     assert_eq!(last(&rejected), ("action_failed".into(), json!("push"), "this repository has no remote configured".into()));
     assert_eq!((last(&pr).0, last(&pr).1), ("action_failed".into(), json!("push")));
     assert!(ops(&h).iter().all(|o| o.method() != "git.commit"));
+}
+
+#[test]
+fn a_directory_that_is_no_path_of_the_executors_machine_is_no_repository_and_the_rows_that_need_a_repository_refuse_it_in_the_pinned_servers_words() {
+    // Given a relative directory, which the pinned server resolves against a directory of its own that holds no repository
+    let (h, mut rpc) = started();
+    let cwd = "rel";
+    let no_driver = json!({"name": "VcsUnsupportedOperationError", "message": "VCS operation is unsupported for unknown in VcsDriverRegistry.resolve: No supported VCS repository was detected at rel."});
+    // When the phone lists refs, switches, creates a ref, pulls, reads two reviews and starts a stacked action in it
+    let listed = rpc.call("vcs.listRefs", json!({"cwd": cwd}));
+    let routed = ["vcs.switchRef", "vcs.createRef", "vcs.pull"].map(|tag| rpc.call(tag, json!({"cwd": cwd, "refName": "b"})));
+    let reviews = [("review.getDiffPreview", json!({"cwd": cwd})), ("review.getDiffFileContents", json!({"cwd": cwd, "sourceKind": "working-tree", "changeType": "change", "oldPath": "a", "newPath": "a", "baseRef": "a", "headRef": "a"}))].map(|(tag, payload)| rpc.call(tag, payload));
+    let stacked = rpc.call("git.runStackedAction", json!({"cwd": cwd, "actionId": "x", "action": "commit"}));
+    let prepared = rpc.call("git.preparePullRequestThread", json!({"cwd": cwd, "reference": "7", "mode": "local"}));
+    // Then the list says it is no repository, each git command is the unrouted command error, each review the workspace root error, the stacked action the manager error, and the executor was never asked
+    assert_eq!(success(&listed), &json!({"refs": [], "isRepo": false, "hasPrimaryRemote": false, "nextCursor": null, "totalCount": 0}));
+    for (exit, operation) in routed.iter().zip(["switchRef", "createRef", "pullCurrentBranch"]) {
+        assert_eq!(failure(exit), &json!({"_tag": "GitCommandError", "operation": format!("GitWorkflowService.{operation}"), "command": "vcs-route", "cwd": cwd, "detail": "Failed to resolve the VCS driver for this Git command.", "cause": no_driver}));
+    }
+    for (exit, operation, what) in reviews.iter().zip([("getDiffPreview", "diff preview"), ("getDiffFileContents", "diff file contents")]).map(|(e, (o, w))| (e, o, w)) {
+        assert_eq!(failure(exit), &json!({"_tag": "VcsRepositoryDetectionError", "operation": format!("ReviewService.{operation}"), "cwd": cwd, "detail": format!("Review {what} cwd must stay within the configured workspace root.")}));
+    }
+    assert_eq!(failure(&stacked), &json!({"_tag": "GitManagerError", "operation": "GitWorkflowService.runStackedAction", "cwd": cwd, "detail": "Failed to resolve the VCS driver for this Git workflow.", "cause": no_driver}));
+    assert_eq!(failure(&prepared), &json!({"_tag": "GitManagerError", "operation": "GitWorkflowService.preparePullRequestThread", "cwd": cwd, "detail": "Failed to resolve the VCS driver for this Git workflow.", "cause": no_driver}));
+    assert!(ops(&h).is_empty(), "{:?}", ops(&h));
+}
+
+#[test]
+fn a_repository_is_made_by_the_executor_in_an_absolute_folder_below_its_root_and_a_relative_or_jj_one_is_unsupported() {
+    // Given a server over an agent API whose executor is rooted at /workspace
+    let (h, mut rpc) = started();
+    // When the phone asks for a repository in /workspace/demo
+    let made = rpc.call("vcs.init", json!({"cwd": ROOT}));
+    // Then the answer carries nothing, and the executor was asked to init the folder below its root with no files and no commit
+    assert!(success(&made).is_null());
+    assert!(ops(&h).contains(&Op::GitInit { path: "demo".into(), initial_branch: None, files: vec![], message: None }), "{:?}", ops(&h));
+    // When the folder is relative or the kind is jj
+    for payload in [json!({"cwd": "demo"}), json!({"cwd": ROOT, "kind": "jj"})] {
+        let refused = rpc.call("vcs.init", payload);
+        // Then the phone is told the operation is not supported
+        assert_eq!(failure(&refused)["_tag"], "UnsupportedOperationError");
+    }
 }

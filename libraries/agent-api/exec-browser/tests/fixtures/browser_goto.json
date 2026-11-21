@@ -1,0 +1,43 @@
+{
+  "action": "browser_goto",
+  "exchanges": [
+    {
+      "name": "refuses credentials in the address",
+      "request": {
+        "id": "b1",
+        "tool": "browser_goto",
+        "args": {
+          "key": "t1",
+          "url": "https://user:pw@example.com/"
+        }
+      },
+      "response": {
+        "id": "b1",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`url` must be an http or https address of at most 2048 bytes: a host is needed and credentials are not allowed"
+        }
+      }
+    },
+    {
+      "name": "finds no page under a key that was never opened",
+      "request": {
+        "id": "b1",
+        "tool": "browser_goto",
+        "args": {
+          "key": "t1",
+          "url": "https://example.com/"
+        }
+      },
+      "response": {
+        "id": "b1",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no page is open for key t1"
+        }
+      }
+    }
+  ]
+}

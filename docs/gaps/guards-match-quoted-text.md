@@ -2,7 +2,7 @@
 status: open
 area: agent-guards
 paths:
-  - "scripts/guards/**"
+  - "libraries/hook-runtime/src/guards/**"
   - "libraries/hook-runtime/src/guard.mjs"
   - "libraries/hook-runtime/src/deny.json"
   - ".agents/config/permissions.json"
@@ -22,10 +22,10 @@ links: []
   pattern in `libraries/hook-runtime/src/deny.json` is anchored. `git commit -m "do not run git reset --hard"`
   now passes; a real `git reset --hard`, or one inside `$( )`, is still blocked.
 - What still matches quoted text is the `condition` scripts: `runCondition` hands each one the whole
-  command as `GUARD_COMMAND`. `scripts/guards/block-raw-playwright.mjs` tests its playwright regex
+  command as `GUARD_COMMAND`. `libraries/hook-runtime/src/guards/block-raw-playwright.mjs` tests its playwright regex
   against that whole string, so any Bash call with a `node` segment is refused when another segment,
   such as a `cat > f <<EOF` heredoc body or a commit message, merely contains `require('playwright')`.
-- `scripts/guards/block-secret-exposure.mjs` also reads `GUARD_COMMAND`, but its own parser skips quoted
+- `libraries/hook-runtime/src/guards/block-secret-exposure.mjs` also reads `GUARD_COMMAND`, but its own parser skips quoted
   text, so a commit message quoting a leak passes. It still reads heredoc bodies and comments as commands:
   `cat > f <<EOF` whose body has the line `wf secret get KEY | head -c 4` is refused, and so is
   `cat f # note; wf secret get KEY | head -c 4`.

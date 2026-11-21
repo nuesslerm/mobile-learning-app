@@ -1,0 +1,51 @@
+{
+  "method": "project.updateIssue",
+  "exchanges": [
+    {
+      "name": "no workspace is named, so an executor whose gh is signed in answers",
+      "request": {
+        "id": 1,
+        "method": "project.updateIssue",
+        "params": {
+          "repo": "octo/hello",
+          "number": 7,
+          "state": "closed",
+          "state_reason": "not_planned",
+          "add_labels": [
+            "bug"
+          ]
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "done": true
+        }
+      },
+      "actions": [
+        "hosted_issue_update"
+      ]
+    },
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 2,
+        "method": "project.updateIssue",
+        "params": {
+          "repo": "octo/hello",
+          "number": 7
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "give at least one of `state`, `title`, `body`, `add_labels`, `remove_labels`, `add_assignees`, `remove_assignees`"
+        }
+      },
+      "actions": [
+        "hosted_issue_update"
+      ]
+    }
+  ]
+}

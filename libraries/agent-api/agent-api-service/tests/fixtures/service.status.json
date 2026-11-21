@@ -21,7 +21,7 @@
             "state.watch",
             "files",
             "files.edit",
-            "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.clone", "hosted.auth", "git.ai", "accounts",
+            "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.issue", "hosted.project", "hosted.clone", "hosted.auth", "git.ai", "accounts",
             "agent.threads",
             "agent.requests",
             "agent.queue",
@@ -32,7 +32,10 @@
             "agent.catalog",
             "preview",
             "preview.sessions",
-            "preview.watch"
+            "preview.watch",
+            "browser",
+            "service.notifications",
+            "service.panes"
           ]
         }
       },
@@ -60,7 +63,7 @@
             "state.watch",
             "files",
             "files.edit",
-            "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.clone", "hosted.auth", "git.ai", "accounts",
+            "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.issue", "hosted.project", "hosted.clone", "hosted.auth", "git.ai", "accounts",
             "agent.threads",
             "agent.requests",
             "agent.queue",
@@ -71,7 +74,10 @@
             "agent.catalog",
             "preview",
             "preview.sessions",
-            "preview.watch"
+            "preview.watch",
+            "browser",
+            "service.notifications",
+            "service.panes"
           ]
         }
       },

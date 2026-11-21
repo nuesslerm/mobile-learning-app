@@ -1,17 +1,17 @@
 name: Track contracts
 
-# Follows the real T3 and Orca servers the phone apps are conformed to. For each app the marker names, `wf parity track plan` compares the pin
+# Follows the real T3 and Orca servers the phone apps are conformed to. For each app the marker names, `wf mimic track plan` compares the pin
 # (tooling/t3-conformance/t3-pin.json, tooling/orca-conformance/orca-pin.json) with the newest release (npm `t3`; the newest GitHub release of
 # stablyai/orca). An app that is not behind is done. For an app that is, the legs of the record machinery of mimic-record.yml record each of
 # its cassette sets against the newest release (the pin is bumped in the runner's checkout only, nothing is committed), resumable in chunks, and
 # replay the new set against our candidate; the last job rebuilds the method lists and coverage tables from the new source and publishes the
-# drift report with the new contracts as one artifact and as a run bundle (`wf test publish`, verification/test-runs/<runId>/).
+# drift report with the new contracts as one artifact and as a run bundle (`wf test publish`, the `test-runs-track-contracts` artifact).
 #
 # Started daily at 02:23 UTC by its own schedule (an empty message means `[track t3 orca]`), on a GitHub-hosted runner, or by scheduled-triggers.yml
 # (dispatch) on an EMPTY commit to dev tagged `[track t3|orca]`, never by `push` itself:
 #     git commit --allow-empty -m "[track orca chunk=15 fresh]" && git push origin dev     (15 minute chunks, no checkpoint)
 # A record that runs out of its budget uploads its checkpoint and exits red; the same marker again resumes it. The marker grammar is
-# `wf parity track --help`. GitHub runs a schedule only from main, hours late. Only the plan job joins the tailnet (to build wf); the legs that run
+# `wf mimic track --help`. GitHub runs a schedule only from main, hours late. Only the plan job joins the tailnet (to build wf); the legs that run
 # provisioned third-party code get wf as an artifact and the vault token only after the record.
 on:
   schedule:
@@ -39,7 +39,7 @@ jobs:
   plan:
     name: Check the pins
     if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') }}
-    runs-on: ${{ fromJSON(vars.RUNNER_TAG_TRACK_CONTRACTS || '["ubuntu-24.04"]') }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       actions: read
@@ -84,7 +84,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set +e
-          printf '%s' "$COMMIT_MESSAGE" | wf parity track plan --file - > "$RUNNER_TEMP/plan.json"
+          printf '%s' "$COMMIT_MESSAGE" | wf mimic track plan --file - > "$RUNNER_TEMP/plan.json"
           code=$?
           set -e
           cat "$RUNNER_TEMP/plan.json"
@@ -103,13 +103,8 @@ jobs:
             echo "record=$([ -n "$record_marker" ] && echo true || echo false)"
           } >> "$GITHUB_OUTPUT"
           if [ -n "$record_marker" ]; then
-            # the capture matrix is the one `wf mimic trigger` builds for the same sets: provisioning, toolchains and checkpoints are its data
-            printf '%s' "$record_marker" | wf mimic trigger --file - > "$RUNNER_TEMP/matrix.json" || { cat "$RUNNER_TEMP/matrix.json"; fail "$RUNNER_TEMP/matrix.json"; }
-            {
-              echo "chunk=$(jq -r .chunk "$RUNNER_TEMP/matrix.json")"
-              echo "fresh=$(jq -r .fresh "$RUNNER_TEMP/matrix.json")"
-              echo "matrix=$(jq -c .matrix "$RUNNER_TEMP/matrix.json")"
-            } >> "$GITHUB_OUTPUT"
+            # the capture matrix is the one `wf ci plan mimic` builds for the same sets: provisioning, toolchains and checkpoints are its data
+            printf '%s' "$record_marker" | wf ci plan mimic --file - --github-output > "$RUNNER_TEMP/matrix.json" || { cat "$RUNNER_TEMP/matrix.json"; fail "$RUNNER_TEMP/matrix.json"; }
           fi
       - name: Keep the plan for the report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -122,7 +117,7 @@ jobs:
     name: record ${{ matrix.name }}
     needs: plan
     if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && needs.plan.outputs.record == 'true' }}
-    runs-on: ${{ fromJSON(vars.RUNNER_TAG_TRACK_CONTRACTS || '["ubuntu-24.04"]') }}
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
@@ -145,7 +140,7 @@ jobs:
           persist-credentials: false
           ref: ${{ inputs.sha || github.sha }}
           fetch-depth: 1
-      # One setup step per toolchain a [provision] block can pin (TOOLCHAINS in clis/mimic/src/provision.rs); `wf mimic trigger` emits each as a matrix key.
+      # One setup step per toolchain a [provision] block can pin (TOOLCHAINS in clis/mimic/src/provision.rs); `wf ci plan mimic` emits each as a matrix key.
       - name: Node of the set's provision block
         if: ${{ matrix.node != '' }}
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -186,7 +181,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           for app in $DRIFTED; do
-            wf parity track bump --app "$app"
+            wf mimic track bump --app "$app"
           done
       - name: Find the checkpoint of an earlier run
         id: checkpoint
@@ -208,10 +203,39 @@ jobs:
           run-id: ${{ steps.checkpoint.outputs.run_id }}
           github-token: ${{ github.token }}
       - name: Provision the reference
-        # The pinned source and the install and build steps of the set's [provision] block, niced like the job. No step holds a secret and
-        # nothing is written to GITHUB_ENV: the block's env reaches the record through `wf mimic job` alone
+        # The pinned source and the install and build steps of the set's [provision] block, niced like the job, with no credential in the environment
+        # of what it builds. No step holds a secret and nothing is written to GITHUB_ENV. The record below finds the marker and skips this phase.
         if: ${{ matrix.provision == true }}
-        run: nice -n 19 wf mimic provision "$SET_DIR" --when record
+        run: nice -n 19 wf mimic capture record "$SET_DIR" --provision only
+      - name: Derive the corpus of the newest source
+        # A crawl, scenario or recorded set lists what the pinned source defines, and that list is derived, never written by hand: in this checkout
+        # only, the source is checked out at the bumped pin, the methods list (and the crawl) are made again and the set's corpus is the new one,
+        # so the record is of the newest API and not of the old list. The same derivation runs locally (`wf mimic crawl`, `cli.ts scenarios`) when the set lands.
+        if: ${{ matrix.provision == true && (endsWith(matrix.name, '-crawl') || endsWith(matrix.name, '-scenarios') || contains(matrix.name, '-recorded')) }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          app="${SET_NAME%%-*}"
+          case "$app" in t3) ref=t3code ;; orca) ref=orca ;; *) echo "no reference tree for $app"; exit 1 ;; esac
+          pin=$(jq -r .commit "tooling/$app-conformance/$app-pin.json")
+          url=$(git config -f .gitmodules "submodule.references/$ref.url")
+          rm -rf "references/$ref"; mkdir -p "references/$ref"
+          git -C "references/$ref" init -q
+          git -C "references/$ref" remote add origin "$url"
+          for try in 1 2 3; do git -C "references/$ref" -c gc.auto=0 -c maintenance.auto=false fetch -q --depth 1 origin "$pin" && break; sleep 5; done
+          git -C "references/$ref" checkout -q FETCH_HEAD
+          pnpm install --frozen-lockfile --filter mimic-drivers
+          wf mimic coverage --app "$app"
+          case "$SET_NAME" in
+            *-recorded*) node tooling/mimic-drivers/src/cli.ts refresh-corpus "$app" clis/*/cassettes/"$app"-recorded* ;;
+            *)
+              api=$(ls -d clis/*/cassettes/"$app"-api)
+              wf mimic crawl "$api"
+              case "$SET_NAME" in
+                *-crawl) cp "$api/corpus.json" "$SET_DIR/corpus.json" ;;
+                *-scenarios) node tooling/mimic-drivers/src/cli.ts scenarios "$app" ;;
+              esac ;;
+          esac
       - name: Record against the newest release
         id: job
         run: |
@@ -221,7 +245,7 @@ jobs:
           mkdir -p "$OUT_DIR"
           set +e
           # shellcheck disable=SC2086
-          nice -n 19 wf mimic job record "$SET_DIR" $flags --run "$GITHUB_RUN_ID" --out "$OUT_DIR" > "$OUT_DIR/$SET_NAME.record.json"
+          nice -n 19 wf mimic capture record "$SET_DIR" --provision skip --publish $flags --run "$GITHUB_RUN_ID" --out "$OUT_DIR" > "$OUT_DIR/$SET_NAME.record.json"
           code=$?
           set -e
           cat "$OUT_DIR/$SET_NAME.record.json"
@@ -244,7 +268,7 @@ jobs:
         # The drift: what the adapter answers differently from the newest release. A difference is a finding for the report, not a failed leg.
         if: ${{ success() && toJSON(matrix.candidates) != '[]' }}
         continue-on-error: true
-        run: nice -n 19 wf mimic job replay "$SET_DIR" --run "$GITHUB_RUN_ID" --out "$RUNNER_TEMP/mimic-out" > "$RUNNER_TEMP/mimic-out/$SET_NAME.replay.stdout.txt"
+        run: nice -n 19 wf mimic capture replay "$SET_DIR" --provision auto --run "$GITHUB_RUN_ID" --out "$RUNNER_TEMP/mimic-out" > "$RUNNER_TEMP/mimic-out/$SET_NAME.replay.stdout.txt"
       - name: Upload the masked set
         # raw/ was deleted by the job; the exclusion is the second lock
         if: ${{ success() }}
@@ -264,16 +288,6 @@ jobs:
           path: ${{ runner.temp }}/mimic-out/*.json
           retention-days: 14
           if-no-files-found: ignore
-      - uses: ./.github/actions/install-bws
-        # after the capture: nothing the provisioned reference ran saw the vault
-        if: ${{ success() }}
-      - name: Publish the set to the bucket
-        # The transport an agent session can reach: `wf mimic fetch <run-id>`. The write link comes from the vault and is never printed.
-        if: ${{ success() }}
-        env:
-          SECRETS_BACKEND: bitwarden
-          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
-        run: wf mimic publish "$SET_DIR" --run "$GITHUB_RUN_ID"
 
   drop-checkpoints:
     name: Drop finished checkpoints
@@ -304,7 +318,7 @@ jobs:
     needs: [plan, capture]
     # runs after a failed or unfinished capture too: the report says which set did not finish
     if: ${{ always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && needs.plan.result == 'success' }}
-    runs-on: ${{ fromJSON(vars.RUNNER_TAG_TRACK_CONTRACTS || '["ubuntu-24.04"]') }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
       actions: read
@@ -355,7 +369,7 @@ jobs:
           pattern: track-set-*
           path: ${{ runner.temp }}/contracts/cassettes
       - name: Rebuild the method lists and coverage tables from the new source
-        # The pin is moved in this checkout, the reference is fetched at the commit it names (public, shallow) and `wf parity coverage` rescans it:
+        # The pin is moved in this checkout, the reference is fetched at the commit it names (public, shallow) and `wf mimic coverage` rescans it:
         # the new method list is the contract of the newest release, and a problem of the table is what the adapters still owe
         if: ${{ env.DRIFTED != '' }}
         env:
@@ -363,17 +377,21 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/inputs" "$RUNNER_TEMP/contracts/pins" "$RUNNER_TEMP/contracts/coverage"
           for app in $DRIFTED; do
-            wf parity track bump --app "$app"
+            wf mimic track bump --app "$app"
             case "$app" in
               t3) dir=references/t3code; pin=tooling/t3-conformance/t3-pin.json ;;
               orca) dir=references/orca; pin=tooling/orca-conformance/orca-pin.json ;;
             esac
             commit=$(jq -r .commit "$pin")
-            git submodule update --init --depth 1 "$dir"
-            git -C "$dir" fetch --depth 1 origin "$commit"
+            url=$(git config -f .gitmodules "submodule.$dir.url")
+            rm -rf "$dir"; mkdir -p "$dir"
+            git -C "$dir" init -q
+            git -C "$dir" remote add origin "$url"
+            # a submodule update races git's background maintenance on a shallow clone ("shallow file has changed")
+            for try in 1 2 3; do git -C "$dir" -c gc.auto=0 -c maintenance.auto=false fetch -q --depth 1 origin "$commit" && break; sleep 5; done
             git -C "$dir" checkout -q --detach "$commit"
             set +e
-            wf parity coverage --app "$app" > "$RUNNER_TEMP/inputs/coverage-$app.json"
+            wf mimic coverage --app "$app" > "$RUNNER_TEMP/inputs/coverage-$app.json"
             set -e
             cat "$RUNNER_TEMP/inputs/coverage-$app.json"
             cp "$pin" "$RUNNER_TEMP/contracts/pins/"
@@ -383,7 +401,7 @@ jobs:
         id: report
         run: |
           mkdir -p "$RUNNER_TEMP/inputs" "$RUNNER_TEMP/bundle"
-          wf parity track report --plan "$RUNNER_TEMP/plan/plan.json" --inputs "$RUNNER_TEMP/inputs" --out "$RUNNER_TEMP/bundle" --run "$GITHUB_RUN_ID" --sha "$GITHUB_SHA"
+          wf mimic track report --plan "$RUNNER_TEMP/plan/plan.json" --inputs "$RUNNER_TEMP/inputs" --out "$RUNNER_TEMP/bundle" --run "$GITHUB_RUN_ID" --sha "$GITHUB_SHA"
           cat "$RUNNER_TEMP/bundle/summary.md" >> "$GITHUB_STEP_SUMMARY"
           # the contracts a run bundle holds (the cassettes are the artifact's and the bucket's set run, not the bundle's)
           mkdir -p "$RUNNER_TEMP/bundle/contracts"
@@ -399,12 +417,19 @@ jobs:
           retention-days: 14
           if-no-files-found: error
       - uses: ./.github/actions/install-bws
-      - name: Publish the run bundle
-        # verification/test-runs/<runId>/ in the verification-artifacts bucket: where an agent session whose proxy refuses the Actions API reads it
+      - name: Write the run bundle
+        # the metrics row is posted from here, so the vault credentials stay
         env:
           SECRETS_BACKEND: bitwarden
           BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
         run: wf test publish "$RUNNER_TEMP/bundle" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Upload the run bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-runs-track-contracts
+          path: ${{ runner.temp }}/test-runs
+          retention-days: 10
+          if-no-files-found: error
       # an initialized references/t3code breaks the next job's actions/checkout (its recursive submodule step fails on a nested gitlink without a url)
       - name: Reference trees
         if: always()

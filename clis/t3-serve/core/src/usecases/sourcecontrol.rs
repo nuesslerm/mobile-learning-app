@@ -31,6 +31,19 @@ fn repository_error(provider: &str, operation: &str, e: &AgentError) -> QueryFai
     QueryFailure::Error(json!({"_tag": "SourceControlRepositoryError", "provider": provider, "operation": operation, "detail": if detail.is_empty() { "the executor refused without saying why".to_string() } else { detail }}))
 }
 
+/// The providers T3's registry holds; a provider outside it is refused before any host is asked.
+const REGISTERED: [&str; 7] = ["github", "cursor-origin", "gitlab", "gitcafe", "forgejo", "bitbucket", "azure-devops"];
+
+/// What T3 answers for a provider its registry does not hold: a fixed detail and the registry's own words as the cause.
+fn unregistered(provider: &str, operation: &str, step: &str) -> Option<QueryFailure> {
+    (!REGISTERED.contains(&provider)).then(|| {
+        QueryFailure::Error(json!({
+            "_tag": "SourceControlRepositoryError", "provider": provider, "operation": operation, "detail": "The source control operation could not be completed.",
+            "cause": {"name": "SourceControlProviderError", "message": format!("Source control provider {provider} failed in {step}: No {provider} source control provider is registered.")},
+        }))
+    })
+}
+
 fn sign_in_error(provider: &str, host: &str, reason: &str, detail: &str) -> QueryFailure {
     QueryFailure::Error(json!({"_tag": "SourceControlSignInError", "provider": provider, "host": host, "reason": reason, "detail": detail}))
 }
@@ -133,6 +146,9 @@ impl Service {
     /// `sourceControl.lookupRepository`
     pub fn sc_lookup_repository(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let (provider, repository) = (field(payload, "provider")?, field(payload, "repository")?);
+        if let Some(refused) = unregistered(provider, "lookupRepository", "getRepositoryCloneUrls") {
+            return Err(refused);
+        }
         let root = payload["cwd"].as_str().unwrap_or_default();
         let answer = self.hosted("sourceControl.lookupRepository", root, json!({"provider": provider, "repo": repository})).map_err(|e| repository_error(provider, "lookupRepository", &e))?;
         let repo = &answer["repo"];
@@ -142,6 +158,9 @@ impl Service {
     /// `sourceControl.publishRepository`: the project's repository created on the host and pushed.
     pub fn sc_publish_repository(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let (cwd, provider, repository) = (field(payload, "cwd")?, field(payload, "provider")?, field(payload, "repository")?);
+        if let Some(refused) = unregistered(provider, "publishRepository", "createRepository") {
+            return Err(refused);
+        }
         let visibility = payload["visibility"].as_str().unwrap_or("private");
         let published = self.hosted("sourceControl.publishRepository", cwd, json!({"provider": provider, "repo": repository, "visibility": visibility})).map_err(|e| repository_error(provider, "publishRepository", &e))?;
         let branch = self.agent().run(&Op::GitStatus { root: cwd.into() }).ok().and_then(|s| s["branch"].as_str().map(str::to_string)).unwrap_or_else(|| "main".into());
@@ -155,6 +174,9 @@ impl Service {
     /// `sourceControl.appAccess`: whether the signed-in account reaches the repository.
     pub fn sc_app_access(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let (provider, repository) = (field(payload, "provider")?, field(payload, "repository")?);
+        if !REGISTERED.contains(&provider) {
+            return Ok(json!({"status": "signed-out"}));
+        }
         let host = payload["host"].as_str().filter(|h| !["github.com", "gitlab.com"].contains(h));
         let mut params = json!({"provider": provider, "repo": repository});
         if let Some(host) = host {
@@ -245,6 +267,11 @@ impl Service {
         let remote = payload["remoteUrl"].as_str().filter(|r| !r.is_empty());
         let from_remote = remote.and_then(repository_of);
         let provider = payload["provider"].as_str().map(str::to_string).unwrap_or_else(|| provider_of(from_remote.as_ref().map(|(h, _)| h.as_str())).to_string());
+        if named.is_some() || remote.is_some() {
+            if let Some(refused) = unregistered(&provider, "cloneRepository", "getRepositoryCloneUrls") {
+                return Err(refused);
+            }
+        }
         let (host, repo) = match (named, from_remote) {
             (Some(repo), found) => (found.map_or_else(|| host_of(&provider), |(h, _)| h), repo.to_string()),
             (None, Some((host, repo))) => (host, repo),

@@ -18,6 +18,7 @@ pub struct Harness {
     pub service: Service,
     server: Option<t3_http::Running>,
     pub addr: std::net::SocketAddr,
+    guest_host: Option<String>,
 }
 
 /// 2026-11-01T00:00:00Z
@@ -28,16 +29,23 @@ impl Harness {
     pub fn start() -> Harness {
         let clock = Arc::new(FixedClock::at(START_MS));
         let (log, store, ids) = (Arc::new(MemLog::default()), Arc::new(MemStore::default()), Arc::new(SeqIds::seeded(0x9E37_79B9_7F4A_7C15)));
-        Harness::over(clock, log, store, ids, Arc::new(ScriptedAgent::default()))
+        Harness::over(clock, log, store, ids, Arc::new(ScriptedAgent::default()), None)
+    }
+
+    /// A server whose host names `host` as the address guest links point at (`T3_GUEST_HOST`).
+    pub fn start_with_guest_host(host: &str) -> Harness {
+        let clock = Arc::new(FixedClock::at(START_MS));
+        let (log, store, ids) = (Arc::new(MemLog::default()), Arc::new(MemStore::default()), Arc::new(SeqIds::seeded(0x9E37_79B9_7F4A_7C15)));
+        Harness::over(clock, log, store, ids, Arc::new(ScriptedAgent::default()), Some(host.to_string()))
     }
 
     /// A server started again on the store, the log and the agent API this one has: what a restart of `t3 serve` is. Nothing is resumed until
     /// `service.resume_runs()` is called, as `t3 serve` does at startup.
     pub fn restart(&self) -> Harness {
-        Harness::over(self.clock.clone(), self.log.clone(), self.store.clone(), self.ids.clone(), self.agent.clone())
+        Harness::over(self.clock.clone(), self.log.clone(), self.store.clone(), self.ids.clone(), self.agent.clone(), self.guest_host.clone())
     }
 
-    fn over(clock: Arc<FixedClock>, log: Arc<MemLog>, store: Arc<MemStore>, ids: Arc<SeqIds>, agent: Arc<ScriptedAgent>) -> Harness {
+    fn over(clock: Arc<FixedClock>, log: Arc<MemLog>, store: Arc<MemStore>, ids: Arc<SeqIds>, agent: Arc<ScriptedAgent>, guest_host: Option<String>) -> Harness {
         let catalog = StaticCatalog(vec![CatalogModel { slug: "rca-default".into(), name: "rca default".into() }]);
         let engine = Arc::new(Engine::open(store.clone() as Arc<dyn EventStore>, clock.clone() as Arc<dyn Clock>, ids.clone() as Arc<dyn Ids>).expect("a readable log"));
         let env = EnvironmentInfo { id: ENVIRONMENT_ID.into(), label: "test rca".into(), os: "linux".into(), arch: "arm64".into(), server_version: "0.1.0-test".into(), cwd: "/workspace".into() };
@@ -55,10 +63,11 @@ impl Harness {
             meta: store.clone() as Arc<dyn MetaStore>,
             host: host.clone() as Arc<dyn HostProbe>,
             storage: storage.clone() as Arc<dyn StorageProbe>,
+            guest_host: guest_host.clone(),
         });
         let server = t3_http::serve("127.0.0.1:0", service.clone()).expect("loopback");
         let addr = server.addr();
-        Harness { clock, log, store, ids, agent, host, storage, service, server: Some(server), addr }
+        Harness { clock, log, store, ids, agent, host, storage, service, server: Some(server), addr, guest_host }
     }
 
     pub fn pair(&self, request: PairingRequest) -> Pairing {

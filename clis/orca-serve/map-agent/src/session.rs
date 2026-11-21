@@ -1,7 +1,7 @@
 //! The session rows over `agent.threads`: a session is a thread (the session id is the thread id), a send is a turn, a cancel a forced stop.
 use crate::agent::{ask, refused_code};
 use crate::fold::{fold, Item};
-use crate::journal::{self, cursor, load, page, view, EPOCH, FENCE};
+use crate::journal::{self, cursor, epoch_of, load, page, view, FENCE};
 use crate::ops::{lookup, record, refused, Envelope};
 use agent_api_agent::lifecycle::THREAD_FORCE_STOP;
 use agent_api_agent::{code as thread_code, queue, requests, THREAD_CREATE, TURN_START};
@@ -20,7 +20,7 @@ pub(crate) fn text<'a>(params: &'a Value, key: &str) -> Option<&'a str> {
 }
 
 fn session_id(params: &Value) -> Result<&str, Failure> {
-    text(params, "sessionId").ok_or_else(|| Failure::invalid("Invalid session id"))
+    agent_session_id(params)
 }
 
 /// The Orca agent ids this host runs, and the rca driver each one is.
@@ -40,6 +40,15 @@ pub fn agent_of(driver: &str) -> Option<&'static str> {
 
 pub(crate) fn unsupported() -> Failure {
     Failure::new(orca_core::wire::RUNTIME_ERROR, "structured_agent_session_unsupported")
+}
+
+/// `params.sessionId` as an agent session id: a string of the `<agent>_<token>` shape.
+pub(crate) fn agent_session_id(params: &Value) -> Result<&str, Failure> {
+    let session = orca_core::wire::string_field(params, "sessionId")?.ok_or_else(|| Failure::invalid("Invalid input: expected string, received undefined"))?;
+    if !crate::ids::is_session_id(session) {
+        return Err(Failure::invalid("Invalid agent session id"));
+    }
+    Ok(session)
 }
 
 /// The text of a send body and the attachment ids of its `image-ref` blocks, in order.
@@ -75,19 +84,33 @@ pub(crate) fn finish(agent: &dyn AgentApi, env: &Envelope, answer: Value) -> Res
 }
 
 /// What a start or steer of a turn answers: the turn, or the refusal the phone shows.
-enum Started {
+pub(crate) enum Started {
     Turn,
     Refused(Value),
 }
 
-fn start_turn(agent: &dyn AgentApi, thread: &str, prompt: &str, attachments: &[String], model: Option<&str>, view: &Value) -> Result<Started, Failure> {
+/// The permission a chat runs with, from the saved choice: a mode rca has no equivalent of asks, never grants more access.
+fn runtime_mode(saved: &str) -> &'static str {
+    match saved {
+        "full-access" => "full-access",
+        "accept-edits" => "auto-accept-edits",
+        _ => "approval-required",
+    }
+}
+
+pub(crate) fn start_turn(agent: &dyn AgentApi, thread: &str, prompt: &str, attachments: &[String], model: Option<&str>, view: &Value) -> Result<Started, Failure> {
     let (Some(workspace), Some(driver)) = (view["workspace"].as_str(), view["driver"].as_str()) else {
         return Ok(Started::Refused(refused("agent_session_identity_required", "the session has no workspace or agent to run in")));
     };
     let mut params = json!({"thread": thread, "workspace": workspace, "driver": driver, "prompt": prompt});
     let picked = crate::catalog::stored_model(agent, thread)?;
-    if let Some(m) = model.or(picked.as_deref()).or(view["model"].as_str()) {
+    let settings = crate::agent::state_get(agent, "settings")?.unwrap_or(Value::Null);
+    let default_model = agent_of(driver).and_then(|a| settings["nativeChatSessionOptions"][a]["model"].as_str());
+    if let Some(m) = model.or(picked.as_deref()).or(view["model"].as_str()).or(default_model) {
         params["model"] = m.into();
+    }
+    if let Some(mode) = settings["nativeChatPermissionMode"].as_str() {
+        params["runtime_mode"] = runtime_mode(mode).into();
     }
     if !attachments.is_empty() {
         params["attachments"] = json!(attachments);
@@ -138,6 +161,9 @@ pub(crate) fn send(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failur
 
 /// `agentSession.create` for a new chat: the thread, and the first message as its first turn.
 pub(crate) fn create(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    if !params["envelope"].is_object() {
+        return Err(Failure::invalid("Invalid input"));
+    }
     if params.get("providerHandle").is_some() {
         return Err(unsupported());
     }
@@ -258,7 +284,7 @@ pub(crate) fn history(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fai
     let reset = match (direction, from) {
         ("tail", _) => None,
         (_, None) => Some("epoch_changed"),
-        (_, Some(c)) if c["epoch"] != EPOCH => Some("epoch_changed"),
+        (_, Some(c)) if c["epoch"] != epoch_of(&loaded.folded).as_str() => Some("epoch_changed"),
         (_, Some(c)) if c["sequence"].as_u64().unwrap_or(0) > loaded.folded.last_seq => Some("cursor_ahead"),
         _ => None,
     };
@@ -285,8 +311,9 @@ pub(crate) fn hold(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failur
     Ok(json!({"held": true}))
 }
 
-pub(crate) fn release() -> Value {
-    json!({"released": true})
+pub(crate) fn release(params: &Value) -> Result<Value, Failure> {
+    agent_session_id(params)?;
+    Ok(json!({"released": true}))
 }
 
 /// A version the phone echoes back: the same while the open requests are the same.
@@ -305,7 +332,7 @@ pub(crate) fn current_requests(agent: &dyn AgentApi, params: &Value) -> Result<V
     let items: Vec<Value> = loaded.folded.items.iter().filter(|i| i.is_pending_prompt()).map(Item::render).collect();
     let json = serde_json::to_string(&items).unwrap_or_default();
     let version = version_of(session, &json);
-    let marker = json!({"contract": "agent-session.current-requests.v1", "sessionId": session, "epoch": EPOCH, "publisher": "rca", "revision": loaded.folded.last_seq, "owner": format!("rca:{session}"), "version": version});
+    let marker = json!({"contract": "agent-session.current-requests.v1", "sessionId": session, "epoch": epoch_of(&loaded.folded), "publisher": "rca", "revision": loaded.folded.last_seq, "owner": format!("rca:{session}"), "version": version});
     if params["version"] != version.as_str() {
         return Ok(json!({"marker": marker, "json": "", "nextCursor": 0, "restart": true}));
     }
@@ -322,14 +349,56 @@ pub(crate) fn current_requests(agent: &dyn AgentApi, params: &Value) -> Result<V
 
 /// `nativeChat.readSession`: the transcript as the phone's chat rows, newest window first, paged by the row offset (the event's `seq`).
 pub(crate) fn read_session(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
-    let session = session_id(params)?;
+    let session = text(params, "sessionId").ok_or_else(|| Failure::invalid("Invalid session id"))?;
+    if params["agent"].as_str().is_none_or(str::is_empty) {
+        return Err(Failure::invalid("Missing agent"));
+    }
     let limit = params["limit"].as_u64().map_or(journal::DEFAULT_LIMIT, |l| l.max(1) as usize);
-    let (events, _) = journal::events_after(agent, session, 0)?;
+    let (events, _) = match journal::events_after(agent, session, 0) {
+        Err(f) if f.message == "agent_session_not_found" => return Ok(json!({"error": "Transcript unavailable"})),
+        read => read?,
+    };
     view(agent, session)?;
     let folded = fold(&events);
     let all: Vec<&Item> = folded.items.iter().filter(|i| i.body["kind"] == "message" && params["beforeOffset"].as_u64().is_none_or(|b| i.sequence < b)).collect();
     let start = all.len().saturating_sub(limit);
-    let messages: Vec<Value> = all[start..].iter().map(|i| json!({"id": i.id, "role": i.body["role"], "blocks": i.body["blocks"], "timestamp": null, "source": "transcript", "transcriptOffset": i.sequence})).collect();
+    let messages: Vec<Value> = all[start..].iter().map(|i| json!({"id": i.id, "role": i.body["role"], "blocks": i.body["blocks"], "timestamp": null, "source": "transcript", "transcriptOffset": i.sequence, "transcriptOrder": i.sequence})).collect();
     let before = all.get(start).map_or_else(|| params["beforeOffset"].as_u64().unwrap_or(0), |i| i.sequence);
     Ok(json!({"messages": messages, "hasMore": start > 0, "beforeOffset": before}))
+}
+
+/// `agentSession.sendRecorded`: `{sessionId, clientMessageId}` and nothing else; `{recorded}` says whether the host holds the send's answer.
+pub(crate) fn send_recorded(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    let required = |key: &str, message: &str| -> Result<String, Failure> {
+        match orca_core::wire::string_field(params, key)? {
+            None => Err(Failure::invalid("Invalid input: expected string, received undefined")),
+            Some("") => Err(Failure::invalid(message.to_string())),
+            Some(s) => Ok(s.to_string()),
+        }
+    };
+    let session = required("sessionId", "Invalid session id")?;
+    let id = required("clientMessageId", "Invalid client message id")?;
+    if let Some(key) = params.as_object().and_then(|o| o.keys().find(|k| !matches!(k.as_str(), "sessionId" | "clientMessageId"))) {
+        return Err(Failure::invalid(format!("Unrecognized key: \"{key}\"")));
+    }
+    journal::view(agent, &session)?;
+    Ok(json!({"recorded": crate::ops::send_recorded(agent, &session, &id)?}))
+}
+
+/// `agentSession.reveal`: the chat's tab in the worktree's server-kept layout, in front. A chat this host no longer has, or one of an agent it
+/// does not run, is refused with the host's words.
+pub(crate) fn reveal(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    let session = session_id(params)?;
+    let thread = match view(agent, session) {
+        Ok(t) => t,
+        Err(f) if f.message == "agent_session_not_found" => return Ok(refused("agent_session_not_found", "This chat is no longer on this host.")),
+        Err(f) => return Err(f),
+    };
+    let Some(chat_agent) = thread["driver"].as_str().and_then(agent_of) else {
+        return Ok(refused("structured_agent_session_unsupported", "This host cannot open that chat."));
+    };
+    let target = orca_map_workspace::resolve(agent, thread["workspace"].as_str().unwrap_or_default())?;
+    let title = thread["title"].as_str().filter(|t| !t.is_empty()).unwrap_or("Chat");
+    orca_map_workspace::layout::open_chat(agent, &target.workspace, session, chat_agent, title)?;
+    Ok(json!({"ok": true, "sessionId": session, "workspaceId": target.id, "agent": chat_agent, "readable": true}))
 }

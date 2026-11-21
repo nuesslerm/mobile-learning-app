@@ -16,7 +16,7 @@
 // keyboard toolbar is the V1-style `EditorHelperRails` (toolbar keys +
 // VoiceCommandButton) hosted by `KeyboardToolbarTarget`. Results panel
 // and rename dialog are intentionally omitted (deferred to V1).
-import type { RunResponse } from '../domain';
+import type { RunCodeParams, RunResponse } from '../domain';
 import { Logger } from '@lib/logging';
 import { toast } from 'sonner-native';
 
@@ -44,28 +44,35 @@ import {
   Wand2,
 } from '@lib/tamagui-design-system/icons';
 import React from 'react';
-import { ScrollView, TextInput, type LayoutChangeEvent } from 'react-native';
+import { Pressable, TextInput, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import { XStack, YStack, useTheme } from '@lib/tamagui-design-system/primitives';
 
-import { useLeetCodePorts } from '../di/LeetCodeContainer';
+import { useLeetCodePorts } from '../state/ports';
 import {
   EditorInput,
   type EditorInputHandle,
-} from '../code-editor/core/EditorInput';
-import { applyVoiceEdit } from '../code-editor/core/applyVoiceEdit';
-import { type Selection } from '../code-editor/core/types';
-import { EditorHelperRails } from '../code-editor/helperbars/EditorHelperRails';
-import { ProblemCatalog } from '../data/problemCatalog';
-import { compactVoiceError } from '../data/voiceEditIdentity';
-import { useVoiceEdit } from '../hooks/useVoiceEdit';
+} from './editor/EditorInput';
+import { applyVoiceEdit } from '../domain/editor/applyVoiceEdit';
+import { toEditorLanguage } from '../domain/editor/languageProfile';
+import { completionEntriesFor } from '../domain/completionEntries';
+import { useAutocompleteSettingStore } from '../state/autocompleteSettingStore';
+import { type Selection } from '../domain/editor/types';
+import { EditorHelperRails } from './editor/helperbars/EditorHelperRails';
+import { ProblemCatalog } from '../domain/problemCatalog';
+import { customInputMessage, parameterNames, parseCustomInput, writeCustomInput } from '../domain/run/customCase';
+import { runParamsFor } from '../domain/run/runParams';
+import { compactVoiceError } from '../domain/voiceEditIdentity';
+import { useVoiceEdit } from '../state/useVoiceEdit';
 import { useLeetCodeAuthStore } from '../state/authStore';
 import { useCodeHistoryRequestStore } from '../state/codeHistoryRequestStore';
 import { useCodeHistoryStore } from '../state/codeHistoryStore';
 import { useResetCodeRequestStore } from '../state/resetCodeRequestStore';
 
 import { AlternativePicker } from './AlternativePicker';
+import { RunOutcomeCard, type RunCard } from './run/RunOutcomeCard';
 import { DiffToggle } from './DiffToggle';
 import {
+  EDITOR_LANGUAGES,
   LanguagePicker,
   LanguageSheet,
   type EditorLanguage,
@@ -79,14 +86,6 @@ import { VoiceReviewSheet } from './VoiceReviewSheet';
 // the visible area below the editor's flex share.
 const EDITOR_MIN_HEIGHT = 280;
 const TEST_INPUT_MIN_HEIGHT = 200;
-
-function defaultTestInput(problem: ReturnType<typeof ProblemCatalog.getById>) {
-  const testCase = problem?.testCases?.[0];
-  if (!testCase) return '';
-  return Object.values(testCase.inputs)
-    .map((v) => JSON.stringify(v))
-    .join('\n');
-}
 
 function pickStarterCode(
   starterCode: Record<string, string> | undefined,
@@ -103,6 +102,10 @@ function runErrorKind(result: RunResponse): 'compile' | 'runtime' | 'none' {
   if (result.compile_error) return 'compile';
   return result.runtime_error ? 'runtime' : 'none';
 }
+
+const subscribeNever = () => () => undefined;
+// False while the web export's prerendered page hydrates (it has no problem yet), true from the next render on and always on a phone.
+const useHydrated = () => React.useSyncExternalStore(subscribeNever, () => true, () => false);
 
 export function ProblemEditorScreen({
   id,
@@ -124,6 +127,13 @@ export function ProblemEditorScreen({
   );
 
   const [lang, setLang] = React.useState<EditorLanguage>('python3');
+  const editorLanguage = toEditorLanguage(lang) ?? 'python';
+  const autocomplete = useAutocompleteSettingStore((s) => s.autocomplete);
+  // the suggestions follow the language: the problem's own names from its starter, and the language's keywords
+  const completion = React.useMemo(
+    () => ({ enabled: autocomplete, entries: problem ? completionEntriesFor(problem, editorLanguage) : [] }),
+    [autocomplete, problem, editorLanguage]
+  );
   const [editorText, setEditorText] = React.useState(
     () => seed || pickStarterCode(problem?.starterCode, lang)
   );
@@ -132,13 +142,24 @@ export function ProblemEditorScreen({
     end: 0,
   });
 
-  const [testInput, setTestInput] = React.useState(() =>
-    problem ? defaultTestInput(problem) : ''
-  );
+  const [testInput, setTestInput] = React.useState(() => {
+    const first = problem?.testCases?.[0];
+    return first ? writeCustomInput(first) : '';
+  });
+  const [inputError, setInputError] = React.useState<string | null>(null);
+  const hydrated = useHydrated();
+  const argumentNames = React.useMemo(() => (problem && hydrated ? parameterNames(problem) : []), [problem, hydrated]);
   const inputRef = React.useRef<React.ElementRef<typeof TextInput>>(null);
   const editorRef = React.useRef<EditorInputHandle>(null);
-  const [localRunning, setLocalRunning] = React.useState(false);
-  const [runOutcome, setRunOutcome] = React.useState<RunResponse | null>(null);
+  // The editor's focus lives in a WebView that React Native does not track, so Keyboard.dismiss() and the scroll view's
+  // tap-away reach nothing; the editor is told to blur itself.
+  const dismissEditorKeyboard = React.useCallback(() => {
+    Logger.debug('editor_v2.keyboard_dismiss', { problemId: problem?.id });
+    editorRef.current?.blur();
+    inputRef.current?.blur();
+  }, [problem?.id]);
+  const [running, setRunning] = React.useState<RunCard['mode'] | null>(null);
+  const [card, setCard] = React.useState<RunCard | null>(null);
   // The buffer the current outcome describes. A result is a claim about the
   // code that produced it, so once the code moves the card is describing
   // something that no longer exists -- run to Accepted, edit the solution into
@@ -147,11 +168,16 @@ export function ProblemEditorScreen({
   // (format, language switch, voice apply) back through onChangeText, and an
   // echo carries identical text.
   const outcomeSourceRef = React.useRef<string | null>(null);
+  // the buffer and the language as they are now, for a run that finishes after the person has gone on typing
+  const latestBufferRef = React.useRef({ text: editorText, lang });
+  React.useEffect(() => {
+    latestBufferRef.current = { text: editorText, lang };
+  }, [editorText, lang]);
   // The gateway is the fetch client for leetcode-backend. It backs three
   // buttons: `Run Local` and `Format` execute on the backend with no
   // leetcode.com/session, while `Run` needs an auth'd session.
-  const { gateway } = useLeetCodePorts();
-  const scrollRef = React.useRef<ScrollView>(null);
+  const { gateway, runner } = useLeetCodePorts();
+  const scrollRef = React.useRef<ScrollViewInstance>(null);
   // Which outcome has already been scrolled to, so a re-layout (keyboard
   // raise, rotation) does not yank the page back.
   const revealedOutcomeRef = React.useRef<unknown>(null);
@@ -162,8 +188,8 @@ export function ProblemEditorScreen({
   // rails, so the content is reachable; nothing was bringing it into view at
   // the one moment the user is waiting for it.
   const revealRunOutcome = (event: LayoutChangeEvent) => {
-    if (revealedOutcomeRef.current === runOutcome) return;
-    revealedOutcomeRef.current = runOutcome;
+    if (revealedOutcomeRef.current === card) return;
+    revealedOutcomeRef.current = card;
     const { y } = event.nativeEvent.layout;
     Logger.info('editor_v2.run_outcome.reveal', { y });
     scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
@@ -216,8 +242,18 @@ export function ProblemEditorScreen({
   const requestUnsavedChanges = useUnsavedChangesRequestStore((s) => s.request);
   const [languageSheetOpen, setLanguageSheetOpen] = React.useState(false);
 
+  // Only a language the problem has a starter for: without one the buffer would be another language's code under this one's name
+  const availableLanguages = React.useMemo(
+    () => EDITOR_LANGUAGES.filter((candidate) => problem?.starterCode?.[candidate] !== undefined),
+    [problem?.starterCode]
+  );
+
   const handleLanguageChange = React.useCallback(
     (nextLang: EditorLanguage) => {
+      if (!availableLanguages.includes(nextLang)) {
+        Logger.warn('editor_v2.language_change.refused', { to: nextLang, problemId: problem?.id });
+        return;
+      }
       Logger.info('editor_v2.language_change', {
         from: lang,
         to: nextLang,
@@ -228,9 +264,9 @@ export function ProblemEditorScreen({
       snapshot('language-switch');
       setLang(nextLang);
       setEditorText(pickStarterCode(problem?.starterCode, nextLang));
-      setRunOutcome(null);
+      setCard(null);
     },
-    [lang, problem?.id, problem?.starterCode, snapshot]
+    [availableLanguages, lang, problem?.id, problem?.starterCode, snapshot]
   );
 
   const handleFormat = React.useCallback(async () => {
@@ -264,71 +300,88 @@ export function ProblemEditorScreen({
     const source = outcomeSourceRef.current;
     if (source !== null && next !== source) {
       outcomeSourceRef.current = null;
-      setRunOutcome(null);
+      setCard(null);
     }
   }, []);
 
-  const handleRunLocally = React.useCallback(async () => {
-    setLocalRunning(true);
-    setRunOutcome(null);
-    const startedAt = Date.now();
-    try {
-      const result = await gateway.runLocal({
-        lang,
-        code: editorText,
-        methodName: problem?.methodName ?? 'twoSum',
-        testCases: problem?.testCases ?? [],
-      });
-      setRunOutcome(result);
-      outcomeSourceRef.current = editorText;
-      Logger.info('editor_v2.run_local.result', {
-        state: result.state,
-        totalCorrect: result.total_correct,
-        totalTestcases: result.total_testcases,
-        problemId: problem?.id,
-        lang,
-        statusMsg: result.status_msg,
-        errorKind: runErrorKind(result),
-        ms: Date.now() - startedAt,
-      });
-      // A run that reaches the backend and fails its tests is not an error --
-      // it is the normal case while solving. Only the transport failing is.
-      const passed =
-        result.state === 'SUCCESS' &&
-        result.total_correct === result.total_testcases;
-      const tally = `${result.total_correct}/${result.total_testcases} tests`;
-      if (passed) toast.success('All tests passed', { description: tally });
-      else
-        toast.error('Tests failed', {
-          description: `${tally} · ${result.status_msg}`,
-        });
-    } catch (err) {
-      setRunOutcome({
-        source: 'backend-run',
-        kind: 'test',
-        state: 'FAILURE',
-        requestId: '',
-        run_success: false,
-        status_msg: 'Error',
-        total_correct: 0,
-        total_testcases: 0,
-        runtime_error: err instanceof Error ? err.message : String(err),
-      });
-      Logger.withError(err)
-        .withMetadata({
+  const runLocal = React.useCallback(
+    async (mode: RunCard['mode'], params: RunCodeParams, inputs?: Record<string, unknown>) => {
+      setRunning(mode);
+      setCard(null);
+      const startedAt = Date.now();
+      const cardOf = (response: RunResponse): RunCard => (mode === 'custom' ? { mode, response, inputs: inputs ?? {} } : { mode, response });
+      try {
+        const result = await runner.run(params);
+        const latest = latestBufferRef.current;
+        if (latest.text !== params.code || latest.lang !== params.lang) {
+          // the code that ran is no longer in the editor: its verdict would sit over code it never judged
+          Logger.info('editor_v2.run_local.discarded', { problemId: problem?.id, mode, lang: params.lang, ms: Date.now() - startedAt });
+          toast('Code changed while it ran', { description: 'Run it again to see its result.' });
+          return;
+        }
+        setCard(cardOf(result));
+        outcomeSourceRef.current = params.code;
+        // a typed case has no verdict: the response's tally and status describe a comparison that did not happen
+        Logger.info('editor_v2.run_local.result', {
+          mode,
           problemId: problem?.id,
-          lang,
+          lang: params.lang,
+          errorKind: runErrorKind(result),
           ms: Date.now() - startedAt,
-        })
-        .error('editor_v2.run_local.error');
-      toast.error('Run failed', {
-        description:
-          err instanceof Error ? err.message : 'The backend did not respond.',
-      });
-    } finally {
-      setLocalRunning(false);
+          ...(mode === 'tests'
+            ? { state: result.state, totalCorrect: result.total_correct, totalTestcases: result.total_testcases, statusMsg: result.status_msg }
+            : {}),
+        });
+        if (mode === 'custom') return;
+        // A run that reaches the backend and fails its tests is not an error --
+        // it is the normal case while solving. Only the transport failing is.
+        const passed = result.state === 'SUCCESS' && result.total_correct === result.total_testcases;
+        const tally = `${result.total_correct}/${result.total_testcases} tests`;
+        if (passed) toast.success('All tests passed', { description: tally });
+        else toast.error('Tests failed', { description: `${tally} · ${result.status_msg}` });
+      } catch (err) {
+        setCard(
+          cardOf({
+            source: 'backend-run',
+            kind: 'test',
+            state: 'FAILURE',
+            requestId: '',
+            run_success: false,
+            status_msg: 'Error',
+            total_correct: 0,
+            total_testcases: 0,
+            runtime_error: err instanceof Error ? err.message : String(err),
+          })
+        );
+        Logger.withError(err)
+          .withMetadata({ problemId: problem?.id, mode, lang: params.lang, ms: Date.now() - startedAt })
+          .error('editor_v2.run_local.error');
+        toast.error('Run failed', { description: err instanceof Error ? err.message : 'The backend did not respond.' });
+      } finally {
+        setRunning(null);
+      }
+    },
+    [runner, problem]
+  );
+
+  const handleRunLocally = React.useCallback(
+    () =>
+      runLocal('tests', problem ? runParamsFor(problem, lang, editorText) : { lang, code: editorText, methodName: '', testCases: [] }),
+    [runLocal, problem, lang, editorText]
+  );
+
+  // Run input: the typed arguments as one case with no expected value, so the card shows what the code returned and no verdict.
+  const handleRunInput = React.useCallback(() => {
+    if (!problem) return;
+    const parsed = parseCustomInput(testInput, argumentNames);
+    if (!parsed.ok) {
+      Logger.info('editor_v2.run_local.invalid_input', { problemId: problem.id, kind: parsed.problem.kind });
+      setInputError(customInputMessage(parsed.problem));
+      return;
     }
-  }, [editorText, gateway, problem, lang]);
+    setInputError(null);
+    void runLocal('custom', runParamsFor(problem, lang, editorText, [parsed.testCase]), parsed.testCase.inputs);
+  }, [problem, testInput, argumentNames, runLocal, lang, editorText]);
 
   // Run: submit the current code + the custom testInput to the auth'd
   // LeetCode bridge and await the judge result. Mirrors V1's `runTest`
@@ -512,18 +565,6 @@ export function ProblemEditorScreen({
     void voiceEdit.confirmSend();
   }, [voiceEdit, problem?.id]);
 
-  const handleRenameSymbol = React.useCallback(
-    (symbol: string) => {
-      Logger.info('editor_v2.rename_symbol_request', {
-        symbolLength: symbol.length,
-        problemId: problem?.id,
-      });
-    },
-    [problem?.id]
-  );
-
-  const accepted = runOutcome?.status_msg === 'Accepted';
-
   const problemSubtitle = problem
     ? `${problem.category} · ${problem.difficulty[0]?.toUpperCase()}${problem.difficulty.slice(1)}`
     : undefined;
@@ -541,7 +582,7 @@ export function ProblemEditorScreen({
         // genuinely irreversible -- the dialog said so. Snapshot first.
         snapshot('reset');
         setEditorText(pickStarterCode(problem.starterCode, lang));
-        setRunOutcome(null);
+        setCard(null);
         // The diff range belongs to the code that was just discarded.
         setDiffRange(null);
         setDiffMode(false);
@@ -598,8 +639,7 @@ export function ProblemEditorScreen({
                     Logger.info('editor_v2.info_tap', {
                       problemId: problem?.id,
                     });
-                    editorRef.current?.blur();
-                    inputRef.current?.blur();
+                    dismissEditorKeyboard();
                     if (problem)
                       router.push(`/leetcode/${problem.id}/description`);
                   },
@@ -634,8 +674,7 @@ export function ProblemEditorScreen({
                         problemId: problem?.id,
                         count: historyCount,
                       });
-                      editorRef.current?.blur();
-                      inputRef.current?.blur();
+                      dismissEditorKeyboard();
                       if (!problem) return;
                       // Register the restore target BEFORE pushing: the sheet
                       // is its own route, so it shares no React tree with this
@@ -691,20 +730,14 @@ export function ProblemEditorScreen({
             editorRef={editorRef}
             source={editorText}
             selection={editorSelection}
+            language={editorLanguage}
             onConfigure={() => {
               Logger.info('editor_v2.toolbar_configure', {
                 problemId: problem?.id,
               });
               router.push('/leetcode/toolbar');
             }}
-            onRenameSymbol={handleRenameSymbol}
-            onDismissKeyboard={() => {
-              Logger.debug('editor_v2.keyboard_dismiss', {
-                problemId: problem?.id,
-              });
-              editorRef.current?.blur();
-              inputRef.current?.blur();
-            }}
+            onDismissKeyboard={dismissEditorKeyboard}
           />
         )}
       >
@@ -713,210 +746,226 @@ export function ProblemEditorScreen({
           testID="ProblemEditorScroll"
           keyboardShouldPersistTaps="handled"
         >
-          {/* Editor (CodeMirror WebView) — fixed min-h so the ScrollView has
-              something concrete to scroll past when the keyboard shrinks the
-              visible area. */}
-          <YStack
-            flex={1}
-            minH={EDITOR_MIN_HEIGHT}
-            px="$3"
-            py="$2"
-            testID="ProblemEditorEditorZone"
-          >
-            <EditorInput
-              ref={editorRef}
-              testID="ProblemEditorInput"
-              value={editorText}
-              onChangeText={handleEditorChange}
-              onSelectionChange={setEditorSelection}
-            />
-          </YStack>
-
-          <XStack
-            items="center"
-            justify="space-between"
-            px="$3"
-            pt="$2"
-            testID="ProblemEditorDiffRow"
-          >
-            <LanguagePicker
-              value={lang}
-              onOpen={() => setLanguageSheetOpen(true)}
-              testID="ProblemEditorLanguagePicker"
-            />
-            {diffRange ? (
-              <DiffToggle
-                enabled={diffMode}
-                onToggle={handleDiffToggle}
-                testID="ProblemEditorDiffToggle"
-              />
-            ) : null}
-          </XStack>
-
-          {/* Action row — Format / Run Local / Run, mirrors V1's action row
-              minus the Submit button which the user explicitly dropped. */}
-          <XStack
-            items="center"
-            gap="$2.5"
-            px="$3"
-            py="$1.5"
-            testID="ProblemEditorActions"
-          >
-            <Button
-              testID="ProblemEditorFormatButton"
-              variant="outline"
-              size="$2"
-              pressLog="off"
-              onPress={() => {
-                Logger.info('editor_v2.format.tap', { problemId: problem?.id });
-                void handleFormat();
-              }}
-            >
-              Format
-            </Button>
-            <Button
-              testID="ProblemEditorRunLocalButton"
-              variant="outline"
-              size="$2"
-              disabled={localRunning}
-              pressLog="off"
-              onPress={() => {
-                Logger.info('editor_v2.run_local.tap', {
-                  problemId: problem?.id,
-                });
-                void handleRunLocally();
-              }}
-            >
-              {localRunning ? 'Running…' : 'Run Local'}
-            </Button>
-            <Button
-              testID="ProblemEditorRunButton"
-              variant="outline"
-              size="$2"
-              disabled={!canRun}
-              pressLog="off"
-              onPress={() => {
-                Logger.info('editor_v2.run.tap', { problemId: problem?.id });
-                void runTest();
-              }}
-            >
-              {runState === 'testing' ? 'Running…' : 'Run'}
-            </Button>
-            <Button
-              testID="ProblemEditorResetButton"
-              variant="outline"
-              size="$2"
-              pressLog="off"
-              onPress={handleResetCode}
-            >
-              Reset
-            </Button>
-            <YStack flex={1} />
-            <IconButton
-              testID="ProblemEditorTextEditStartButton"
-              icon={Pencil}
-              variant="default"
-              aria-label="Type an edit instruction"
-              pressLog="off"
-              onPress={() => {
-                Logger.info('editor_v2.text_edit_button.tap', {
-                  problemId: problem?.id,
-                });
-                editorRef.current?.blur();
-                inputRef.current?.blur();
-                handleTextEditStart();
-              }}
-            />
-            <IconButton
-              testID="ProblemEditorVoiceStartButton"
-              icon={Mic}
-              variant="default"
-              aria-label="Start voice edit"
-              pressLog="off"
-              onPress={() => {
-                Logger.info('editor_v2.voice_start_button.tap', {
-                  problemId: problem?.id,
-                });
-                editorRef.current?.blur();
-                inputRef.current?.blur();
-                void handleVoiceStart();
-              }}
-            />
-          </XStack>
-
-          {/* Run Local result — server-executed pass/fail summary. */}
-          {runOutcome ? (
+          {/* A tap on the page outside the editor lowers its keyboard. The editor sits beside that Pressable and not
+              inside it: a view that claims the touch responder above the WebView makes Android cancel the WebView's
+              own touches (a long press, a caret drag) once the finger moves. */}
+          <YStack style={{ flexGrow: 1 }}>
+            {/* Editor (CodeMirror WebView) — fixed min-h so the ScrollView has
+                something concrete to scroll past when the keyboard shrinks the
+                visible area. */}
             <YStack
-              mx="$3"
-              mb="$1"
+              flex={1}
+              minH={EDITOR_MIN_HEIGHT}
               px="$3"
               py="$2"
-              rounded="$3"
-              borderWidth={1}
-              borderColor={accepted ? '$green9' : '$red9'}
-              onLayout={revealRunOutcome}
-              testID="ProblemEditorRunOutcome"
+              testID="ProblemEditorEditorZone"
             >
-              <Text
-                variant="strong"
-                color={accepted ? '$green10' : '$red10'}
-                testID="ProblemEditorRunOutcomeStatus"
+              <EditorInput
+                ref={editorRef}
+                testID="ProblemEditorInput"
+                language={editorLanguage}
+                completion={completion}
+                value={editorText}
+                onChangeText={handleEditorChange}
+                onSelectionChange={setEditorSelection}
+                onHydratedChange={(hydrated) => {
+                  // the page may have been dropped while idle: bring it back while the person reads the problem, not at Run
+                  if (hydrated) runner.warmUp?.();
+                }}
+              />
+            </YStack>
+
+            <Pressable
+              accessible={false}
+              onPress={dismissEditorKeyboard}
+              testID="ProblemEditorTapAway"
+            >
+            <XStack
+              items="center"
+              justify="space-between"
+              px="$3"
+              pt="$2"
+              testID="ProblemEditorDiffRow"
+            >
+              <LanguagePicker
+                value={lang}
+                onOpen={() => setLanguageSheetOpen(true)}
+                // exactly one: the page the web export prerenders has no problem yet (no languages), and a trigger disabled there
+                // would not match the enabled one a problem with two languages hydrates into
+                disabled={availableLanguages.length === 1}
+                testID="ProblemEditorLanguagePicker"
+              />
+              {diffRange ? (
+                <DiffToggle
+                  enabled={diffMode}
+                  onToggle={handleDiffToggle}
+                  testID="ProblemEditorDiffToggle"
+                />
+              ) : null}
+            </XStack>
+
+            {/* Action row — Format / Run Local / Run, mirrors V1's action row
+                minus the Submit button which the user explicitly dropped. */}
+            <XStack
+              items="center"
+              gap="$2.5"
+              px="$3"
+              py="$1.5"
+              testID="ProblemEditorActions"
+            >
+              <Button
+                testID="ProblemEditorFormatButton"
+                variant="outline"
+                size="$2"
+                pressLog="off"
+                onPress={() => {
+                  Logger.info('editor_v2.format.tap', { problemId: problem?.id });
+                  dismissEditorKeyboard();
+                  void handleFormat();
+                }}
               >
-                {runOutcome.status_msg}
-              </Text>
-              {runOutcome.total_testcases > 0 ? (
-                <Text variant="muted" testID="ProblemEditorRunOutcomeTotals">
-                  {`${runOutcome.total_correct} / ${runOutcome.total_testcases} test cases passed`}
+                Format
+              </Button>
+              <Button
+                testID="ProblemEditorRunLocalButton"
+                variant="outline"
+                size="$2"
+                disabled={running !== null}
+                pressLog="off"
+                onPress={() => {
+                  Logger.info('editor_v2.run_local.tap', {
+                    mode: 'tests',
+                    problemId: problem?.id,
+                  });
+                  dismissEditorKeyboard();
+                  void handleRunLocally();
+                }}
+              >
+                {running === 'tests' ? 'Running…' : 'Run Local'}
+              </Button>
+              <Button
+                testID="ProblemEditorRunButton"
+                variant="outline"
+                size="$2"
+                disabled={!canRun}
+                pressLog="off"
+                onPress={() => {
+                  Logger.info('editor_v2.run.tap', { problemId: problem?.id });
+                  dismissEditorKeyboard();
+                  void runTest();
+                }}
+              >
+                {runState === 'testing' ? 'Running…' : 'Run'}
+              </Button>
+              <Button
+                testID="ProblemEditorResetButton"
+                variant="outline"
+                size="$2"
+                pressLog="off"
+                onPress={() => {
+                  dismissEditorKeyboard();
+                  handleResetCode();
+                }}
+              >
+                Reset
+              </Button>
+              <YStack flex={1} />
+              <IconButton
+                testID="ProblemEditorTextEditStartButton"
+                icon={Pencil}
+                variant="default"
+                aria-label="Type an edit instruction"
+                pressLog="off"
+                onPress={() => {
+                  Logger.info('editor_v2.text_edit_button.tap', {
+                    problemId: problem?.id,
+                  });
+                  dismissEditorKeyboard();
+                  handleTextEditStart();
+                }}
+              />
+              <IconButton
+                testID="ProblemEditorVoiceStartButton"
+                icon={Mic}
+                variant="default"
+                aria-label="Start voice edit"
+                pressLog="off"
+                onPress={() => {
+                  Logger.info('editor_v2.voice_start_button.tap', {
+                    problemId: problem?.id,
+                  });
+                  dismissEditorKeyboard();
+                  void handleVoiceStart();
+                }}
+              />
+            </XStack>
+
+            {/* Run Local result — server-executed pass/fail summary. */}
+            {card ? <RunOutcomeCard card={card} onLayout={revealRunOutcome} /> : null}
+
+            {/* TestInput — fixed min-h, also scrollable. */}
+            <YStack
+              minH={TEST_INPUT_MIN_HEIGHT}
+              px="$3"
+              py="$2"
+              gap="$2"
+              testID="ProblemEditorTestInputZone"
+            >
+              <XStack items="center" gap="$2.5">
+                <Text variant="muted" flex={1} testID="ProblemEditorTestInputHint">
+                  {!problem || !hydrated ? '' : argumentNames.length > 0 ? `One JSON value per line: ${argumentNames.join(', ')}` : 'No bundled cases for this problem'}
                 </Text>
-              ) : null}
-              {runOutcome.runtime_error ? (
-                <Text
-                  variant="code"
-                  color="$red10"
-                  testID="ProblemEditorRunOutcomeRuntimeError"
+                <Button
+                  testID="ProblemEditorRunInputButton"
+                  variant="outline"
+                  size="$2"
+                  disabled={running !== null || argumentNames.length === 0}
+                  pressLog="off"
+                  onPress={() => {
+                    Logger.info('editor_v2.run_local.tap', {
+                      mode: 'custom',
+                      problemId: problem?.id,
+                    });
+                    dismissEditorKeyboard();
+                    handleRunInput();
+                  }}
                 >
-                  {runOutcome.runtime_error}
-                </Text>
-              ) : null}
-              {runOutcome.compile_error ? (
-                <Text
-                  variant="code"
-                  color="$red10"
-                  testID="ProblemEditorRunOutcomeCompileError"
-                >
-                  {runOutcome.compile_error}
+                  {running === 'custom' ? 'Running…' : 'Run input'}
+                </Button>
+              </XStack>
+              <TextInput
+                ref={inputRef}
+                testID="ProblemEditorTestInput"
+                value={testInput}
+                onChangeText={(text) => {
+                  setTestInput(text);
+                  setInputError(null);
+                }}
+                multiline
+                autoCorrect={false}
+                autoCapitalize="none"
+                spellCheck={false}
+                placeholder="Custom test input"
+                // A bare RN TextInput defaults to black text, which vanished on the dark theme.
+                placeholderTextColor={theme.color10?.val}
+                style={{
+                  color: theme.color?.val,
+                  flex: 1,
+                  borderRadius: 8,
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  fontFamily: 'Menlo, Courier, monospace',
+                  fontSize: 13,
+                  textAlignVertical: 'top',
+                }}
+              />
+              {inputError ? (
+                <Text variant="small" color="$red10" role="alert" testID="ProblemEditorTestInputError">
+                  {inputError}
                 </Text>
               ) : null}
             </YStack>
-          ) : null}
-
-          {/* TestInput — fixed min-h, also scrollable. */}
-          <YStack
-            minH={TEST_INPUT_MIN_HEIGHT}
-            px="$3"
-            py="$2"
-            testID="ProblemEditorTestInputZone"
-          >
-            <TextInput
-              ref={inputRef}
-              testID="ProblemEditorTestInput"
-              value={testInput}
-              onChangeText={setTestInput}
-              multiline
-              placeholder="Custom test input"
-              // A bare RN TextInput defaults to black text, which vanished on the dark theme.
-              placeholderTextColor={theme.color10?.val}
-              style={{
-                color: theme.color?.val,
-                flex: 1,
-                borderRadius: 8,
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                fontFamily: 'Menlo, Courier, monospace',
-                fontSize: 13,
-                textAlignVertical: 'top',
-              }}
-            />
+            </Pressable>
           </YStack>
         </KeyboardToolbarAwareScrollView>
       </KeyboardToolbarTarget>
@@ -925,6 +974,7 @@ export function ProblemEditorScreen({
         onOpenChange={setLanguageSheetOpen}
         value={lang}
         onChange={handleLanguageChange}
+        languages={availableLanguages}
         testID="ProblemEditorLanguagePicker"
       />
       {voiceEdit.state.phase === 'planning' ? (

@@ -10,30 +10,28 @@ use tokio::sync::mpsc;
 
 type Kill = Arc<dyn Fn() + Send + Sync>;
 
+#[derive(Default)]
 pub struct Turns {
-    spawner: Arc<dyn Spawner>,
     running: Arc<Mutex<HashMap<String, Kill>>>,
 }
 
 impl Turns {
-    pub fn new(spawner: Arc<dyn Spawner>) -> Turns {
-        Turns { spawner, running: Arc::new(Mutex::new(HashMap::new())) }
-    }
-
-    /// Starts `command` for `thread` in `cwd`. `Err` is a refusal before anything ran (busy thread, program not startable); after that the
+    /// Starts `command` for `thread` with `spawner`, where that puts it (the workspace host). `Err` is a refusal before anything ran (busy thread, program not startable); after that the
     /// events arrive on the channel and the last one is `Done` or `Error`.
-    pub async fn launch(&self, driver: Driver, thread: &str, command: Command, cwd: &Path) -> Result<mpsc::Receiver<ExecEvent>, String> {
+    pub async fn launch(&self, spawner: &dyn Spawner, driver: Driver, thread: &str, command: Command) -> Result<mpsc::Receiver<ExecEvent>, String> {
         if self.running.lock().unwrap_or_else(|p| p.into_inner()).contains_key(thread) {
             return Err(format!("thread {thread} already has a running turn"));
         }
-        let mut process = self.spawner.spawn(&command.program, &command.args, cwd).await.map_err(|e| format!("{} could not start: {e}", command.program))?;
+        let mut process = spawner.spawn(&command.program, &command.args, Path::new(&command.cwd)).await.map_err(|e| format!("{} could not start: {e}", command.program))?;
         self.running.lock().unwrap_or_else(|p| p.into_inner()).insert(thread.to_string(), process.kill.clone());
         let (tx, rx) = mpsc::channel(64);
         let (running, thread, stopped) = (self.running.clone(), thread.to_string(), process.kill.clone());
         tokio::spawn(async move {
             let mut failed: Option<String> = None;
+            let mut announced: Option<String> = None;
             while let Some(line) = process.lines.next().await {
-                let session = session_of(driver, &line).map(ExecEvent::Session);
+                // opencode names its conversation on every line: say it once
+                let session = session_of(driver, &line).filter(|id| announced.as_deref() != Some(id)).inspect(|id| announced = Some(id.clone())).map(ExecEvent::Session);
                 for event in session.into_iter().chain(translate(driver, &line)) {
                     if let ExecEvent::Error(m) = &event {
                         failed.get_or_insert_with(|| m.clone());
@@ -82,8 +80,8 @@ mod tests {
         all
     }
 
-    fn turns(spawner: &Arc<ScriptedSpawner>) -> Turns {
-        Turns::new(spawner.clone())
+    fn turns(_: &Arc<ScriptedSpawner>) -> Turns {
+        Turns::default()
     }
 
     #[tokio::test]
@@ -99,28 +97,32 @@ mod tests {
             spawner.script(driver.program(), CliScript { lines: vec![line.into(), "not json".into()], ..CliScript::default() });
             let (command, req) = request(driver, "t1");
             // When the turn is launched in a directory
-            let events = turns(&spawner).launch(driver, &req.thread_id, command, Path::new("/w")).await.unwrap();
-            // Then the CLI was started there, and the client got the text and then done (the line that is no JSON says nothing)
+            let events = turns(&spawner).launch(spawner.as_ref(), driver, &req.thread_id, command).await.unwrap();
+            // Then the CLI was started in the request's directory, and the client got the text and then done (the line that is no JSON says nothing)
             assert_eq!(drain(events).await, vec![ExecEvent::Text("hello".into()), ExecEvent::Done], "{}", driver.id());
             assert_eq!(spawner.spawned()[0].cwd, Path::new("/w"), "{}", driver.id());
         }
     }
 
     #[tokio::test]
-    async fn given_a_claude_cli_that_announces_its_conversation_when_a_turn_runs_then_the_session_is_the_first_event_and_the_other_drivers_have_none() {
-        // Given Claude Code printing its init line and a text, and opencode printing a line that carries a session_id
+    async fn given_a_cli_that_announces_its_conversation_when_a_turn_runs_then_the_session_is_the_first_event_and_said_once_and_codex_has_none() {
+        // Given Claude Code printing its init line and a text, opencode printing two lines that carry its sessionID, and Codex printing a line with a session_id
         let spawner = ScriptedSpawner::new();
         spawner.script("claude", CliScript { lines: vec![r#"{"type":"system","subtype":"init","session_id":"s-9"}"#.into(), r#"{"type":"assistant","message":{"content":[{"type":"text","text":"hi"}]}}"#.into()], ..CliScript::default() });
-        spawner.script("opencode", CliScript { lines: vec![r#"{"type":"system","subtype":"init","session_id":"s-9"}"#.into()], ..CliScript::default() });
+        spawner.script("opencode", CliScript { lines: vec![r#"{"type":"step_start","sessionID":"ses_9"}"#.into(), r#"{"type":"step_finish","sessionID":"ses_9"}"#.into()], ..CliScript::default() });
+        spawner.script("codex", CliScript { lines: vec![r#"{"type":"system","subtype":"init","session_id":"s-9"}"#.into()], ..CliScript::default() });
         let turns = turns(&spawner);
         // When each turn runs
         let (command, _) = request(Driver::ClaudeAgent, "a");
-        let claude = drain(turns.launch(Driver::ClaudeAgent, "a", command, Path::new("/w")).await.unwrap()).await;
+        let claude = drain(turns.launch(spawner.as_ref(), Driver::ClaudeAgent, "a", command).await.unwrap()).await;
         let (command, _) = request(Driver::Opencode, "b");
-        let opencode = drain(turns.launch(Driver::Opencode, "b", command, Path::new("/w")).await.unwrap()).await;
-        // Then Claude Code's events open with its session and opencode's have none
+        let opencode = drain(turns.launch(spawner.as_ref(), Driver::Opencode, "b", command).await.unwrap()).await;
+        let (command, _) = request(Driver::Codex, "c");
+        let codex = drain(turns.launch(spawner.as_ref(), Driver::Codex, "c", command).await.unwrap()).await;
+        // Then Claude Code's and opencode's events open with their session, once, and Codex's have none
         assert_eq!(claude, vec![ExecEvent::Session("s-9".into()), ExecEvent::Text("hi".into()), ExecEvent::Done]);
-        assert_eq!(opencode, vec![ExecEvent::Done]);
+        assert_eq!(opencode, vec![ExecEvent::Session("ses_9".into()), ExecEvent::Done]);
+        assert_eq!(codex, vec![ExecEvent::Done]);
     }
 
     #[tokio::test]
@@ -133,11 +135,11 @@ mod tests {
         let turns = turns(&spawner);
         // When each turn is launched
         let (command, _) = request(Driver::Opencode, "a");
-        let refused = turns.launch(Driver::Opencode, "a", command, Path::new("/w")).await.err();
+        let refused = turns.launch(spawner.as_ref(), Driver::Opencode, "a", command).await.err();
         let (command, _) = request(Driver::Codex, "b");
-        let failed = drain(turns.launch(Driver::Codex, "b", command, Path::new("/w")).await.unwrap()).await;
+        let failed = drain(turns.launch(spawner.as_ref(), Driver::Codex, "b", command).await.unwrap()).await;
         let (command, _) = request(Driver::ClaudeAgent, "c");
-        let reported = drain(turns.launch(Driver::ClaudeAgent, "c", command, Path::new("/w")).await.unwrap()).await;
+        let reported = drain(turns.launch(spawner.as_ref(), Driver::ClaudeAgent, "c", command).await.unwrap()).await;
         // Then the first is refused before anything ran, the second ends in the stderr tail, and the third ends with the error it reported
         assert_eq!(refused.as_deref(), Some("opencode could not start: not found"));
         assert_eq!(failed, vec![ExecEvent::Error("exited with 1: not logged in".into())]);
@@ -151,11 +153,11 @@ mod tests {
         spawner.script("claude", CliScript { lines: vec![r#"{"type":"assistant","message":{"content":[{"type":"text","text":"working"}]}}"#.into()], hold: true, ..CliScript::default() });
         let turns = turns(&spawner);
         let (command, _) = request(Driver::ClaudeAgent, "t");
-        let mut first = turns.launch(Driver::ClaudeAgent, "t", command.clone(), Path::new("/w")).await.unwrap();
+        let mut first = turns.launch(spawner.as_ref(), Driver::ClaudeAgent, "t", command.clone()).await.unwrap();
         assert_eq!(first.recv().await, Some(ExecEvent::Text("working".into())));
         // When the same thread starts a second turn, and another thread starts one
-        let again = turns.launch(Driver::ClaudeAgent, "t", command.clone(), Path::new("/w")).await.err();
-        let mut elsewhere = turns.launch(Driver::ClaudeAgent, "other", command.clone(), Path::new("/w")).await.unwrap();
+        let again = turns.launch(spawner.as_ref(), Driver::ClaudeAgent, "t", command.clone()).await.err();
+        let mut elsewhere = turns.launch(spawner.as_ref(), Driver::ClaudeAgent, "other", command.clone()).await.unwrap();
         // Then the second is refused, the other thread runs, and a thread that has no turn has nothing to interrupt
         assert_eq!(again.as_deref(), Some("thread t already has a running turn"));
         assert_eq!(elsewhere.recv().await, Some(ExecEvent::Text("working".into())));
@@ -165,7 +167,7 @@ mod tests {
         assert_eq!(drain(first).await, vec![ExecEvent::Done]);
         assert_eq!(spawner.kills(), 1);
         assert!(!turns.interrupt("t"));
-        assert!(turns.launch(Driver::ClaudeAgent, "t", command, Path::new("/w")).await.is_ok());
+        assert!(turns.launch(spawner.as_ref(), Driver::ClaudeAgent, "t", command).await.is_ok());
     }
 
     #[tokio::test]
@@ -175,7 +177,7 @@ mod tests {
         let line = r#"{"type":"text","part":{"text":"x"}}"#;
         spawner.script("opencode", CliScript { lines: vec![line.into(); 200], hold: true, ..CliScript::default() });
         let (command, _) = request(Driver::Opencode, "t");
-        let mut events = turns(&spawner).launch(Driver::Opencode, "t", command, Path::new("/w")).await.unwrap();
+        let mut events = turns(&spawner).launch(spawner.as_ref(), Driver::Opencode, "t", command).await.unwrap();
         assert!(events.recv().await.is_some());
         // When the client goes away
         drop(events);

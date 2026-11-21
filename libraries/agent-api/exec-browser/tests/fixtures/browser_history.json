@@ -1,0 +1,43 @@
+{
+  "action": "browser_history",
+  "exchanges": [
+    {
+      "name": "finds no page under a key that was never opened",
+      "request": {
+        "id": "b1",
+        "tool": "browser_history",
+        "args": {
+          "key": "t1",
+          "direction": "back"
+        }
+      },
+      "response": {
+        "id": "b1",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no page is open for key t1"
+        }
+      }
+    },
+    {
+      "name": "refuses a direction that is not back, forward or reload",
+      "request": {
+        "id": "b1",
+        "tool": "browser_history",
+        "args": {
+          "key": "t1",
+          "direction": "up"
+        }
+      },
+      "response": {
+        "id": "b1",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`direction` must be back, forward or reload"
+        }
+      }
+    }
+  ]
+}

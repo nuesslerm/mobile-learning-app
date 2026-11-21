@@ -1,0 +1,22 @@
+{
+  "action": "login_cancel",
+  "exchanges": [
+    {
+      "name": "says nothing was stopped for a login that is not running, and never fails",
+      "request": {
+        "id": "c1",
+        "tool": "login_cancel",
+        "args": {
+          "flow": "login-99"
+        }
+      },
+      "response": {
+        "id": "c1",
+        "ok": true,
+        "result": {
+          "cancelled": false
+        }
+      }
+    }
+  ]
+}

@@ -17,7 +17,7 @@ Decided with the owner: scope is backends, then CLIs; markdown moves to `pulldow
 | `multipart.rs` | axum `multipart` (multer) |
 | `curl.rs`, `opencode.rs` TcpStream client | `reqwest` (rustls, no default features); SSE read with `eventsource-stream` |
 | `proc.rs` | `tokio::process` |
-| `telemetry.rs`, `log.rs` | `tracing`, `tracing-subscriber` (JSON), `opentelemetry-otlp` (http-proto) + `tracing-opentelemetry`; secret redaction as one small subscriber layer |
+| `telemetry.rs`, `log.rs` | `tracing`, `tracing-subscriber` (JSON), hand-written OTLP/HTTP JSON over `ureq` from one export thread (no opentelemetry crates); secret redaction as one small subscriber layer |
 | `zod.rs` issue JSON | `serde` + `serde_path_to_error`; library error text is the response |
 | `util.rs` random hex, base64, percent-encoding | `getrandom`/`uuid`, `base64`, `percent-encoding` |
 | `md.rs` regex chain, `fancy-regex` | `pulldown-cmark` (HTML differs: viewer expectations re-baselined) |
@@ -53,7 +53,7 @@ Since 2026-10-21 the rules for every package type, these services included, and 
 ## Phases (stacked small PRs, each rebased on `origin/dev`, draft PR, lefthook green)
 0. Docs first: sharpen `docs/solutions/testing/verification-ladder.md` and `CONCEPTS.md` with the tier definitions above (one small PR; not a generated file, so no `sync:agent-config`; check `wf check --budget`).
 0b. Baseline: the existing `docs/audits/benchmarks/rca-post-rust.json` (n=5) and VM numbers are the "before"; both black-box suites (rca 304 tests, leetcode-backend blackbox) are the oracle, run unchanged except where a deliberate change is listed. Change the expectation first, see it red, then implement.
-1. `backend/service-kit` crate (workspace member): tracing + OTLP init, redaction layer, CORS and limit layers, health, shutdown. Dockerfiles of both services and the `wf ship --changed` extras get the new path (leetcode-backend build broke once on a missing workspace member COPY).
+1. `backend/service-kit` crate (workspace member): tracing + OTLP init, redaction layer, CORS and limit layers, health, shutdown. Dockerfiles of both services and the `wf ci plan legs` extras get the new path (leetcode-backend build broke once on a missing workspace member COPY).
 2. `leetcode-backend` as the pilot (2k lines, smallest): axum, reqwest, tracing, governor, tokio::process for the Python/Node harness. Measure before going on.
 3. `remote-chat-agent`, slices: (a) axum router, CORS, limits, JSON; (b) reqwest for `curl.rs` and `opencode.rs` incl. SSE, `tokio::process`; (c) WebSocket and multipart; (d) tracing/OTLP; (e) `pulldown-cmark`, serde errors, small utils; (f) orchestration engine and reactor from threads to tokio tasks; (g) extract the `core` crate (domain, application, ports) with its flow tests.
 4. CLIs: `rca-core`, `cdp`, `agent-config-sync`, then `wf` by command group, starting from the survey.
@@ -71,10 +71,10 @@ Zod-style error JSON becomes serde error text (8 black-box assertions; check the
 - Tiers: e2e runbook checks on the deployed services first (health, WS probe, voice, convert via `wf vm exec`), then the integration (black-box) suites, then Rust flow and unit tests; say which tier ran.
 - Each PR: `cargo clippy -D warnings`, `cargo test` (flow and unit), black-box integration suites on the new binary, `wf check --staged`.
 - Benchmark n=5 with the same method as `rca-post-rust.json`; image size; no resident Node process for the services.
-- Deploy through the dev pipeline (`wf ship --changed` legs), then confirm sha at `/health` and a BetterStack query that returns lines from the new tracing path.
+- Deploy through the dev pipeline (`wf ci plan legs` legs), then confirm sha at `/health` and a BetterStack query that returns lines from the new tracing path.
 
 ## Rules
-Tests first; never the Agent tool; never bypass lefthook; `--force-with-lease` only; fetch and rebase `origin/dev`; one stacked draft PR per phase or slice (merging is the owner's, not a done-when item); do not destroy vault secrets or tfstate history; every new crate goes into the Dockerfile COPY lines and the `wf ship --changed` extras; log every slice's benchmark in `docs/audits/2026-09-02-token-diet-decision-log.md`; if the classifier denies an action, stop that outcome and report it once. Step 0 of the work: commit this plan to `docs/plans/rust-services/standard-crates.md` in the first PR, so references to it survive the session.
+Tests first; never the Agent tool; never bypass lefthook; `--force-with-lease` only; fetch and rebase `origin/dev`; one stacked draft PR per phase or slice (merging is the owner's, not a done-when item); do not destroy vault secrets or tfstate history; every new crate goes into the Dockerfile COPY lines and the `wf ci plan legs` extras; log every slice's benchmark in `docs/audits/2026-09-02-token-diet-decision-log.md`; if the classifier denies an action, stop that outcome and report it once. Step 0 of the work: commit this plan to `docs/plans/rust-services/standard-crates.md` in the first PR, so references to it survive the session.
 Benchmarks: n=5, same method as `docs/audits/benchmarks/rca-post-rust.json`. Baselines: leetcode-backend 0.63 MB binary, 5.7 ms cold start, 2.5 MB idle RSS (measured 2026-10-09); dependency-cost spike for an axum + reqwest + OTLP service: 4.1 MB binary, 9.8 ms start, 6.6 MB RSS; rca-service as in `rca-post-rust.json`.
 
 ## Done when (each shown with command output)

@@ -4,6 +4,7 @@ use serde_json::{json, Map, Value};
 use std::collections::BTreeMap;
 use t3_contracts::history::projected_rows;
 use t3_contracts::rows::{project_defaults, thread_defaults, thread_projection_row};
+use t3_contracts::runs;
 use t3_contracts::time::iso;
 
 #[derive(Debug, Clone, Default)]
@@ -19,6 +20,10 @@ pub struct State {
     pub projects: BTreeMap<String, Map<String, Value>>,
     pub threads: BTreeMap<String, Map<String, Value>>,
     pub entities: BTreeMap<String, Entities>,
+    /// Per thread, the projection keys an event has set that the base row leaves out.
+    pub projection_extras: BTreeMap<String, Map<String, Value>>,
+    /// Deleted threads: the real server still answers their projection, with `deletedAt` set.
+    pub deleted: BTreeMap<String, Map<String, Value>>,
 }
 
 /// What folding one event did to the shell.
@@ -39,6 +44,21 @@ pub fn event_json(e: &StoredEvent) -> Value {
         "type": e.kind,
         "payload": e.payload,
     })
+}
+
+/// The keys of a thread row that the real projection carries only after an event of that kind set them: the recorded pin leaves `pinOrderKey` out, the unpin and the settle carry it as null.
+fn projection_extras(kind: &str) -> &'static [&'static str] {
+    match kind {
+        "thread.settled" => &["activeOrderKey", "pinOrderKey", "pinnedAt", "unsettledAt"],
+        "thread.unsettled" => &["unsettledAt"],
+        "thread.pinned" => &["pinnedAt"],
+        "thread.unpinned" => &["pinOrderKey", "pinnedAt"],
+        "thread.auto-settle-set" => &["autoSettleDisabledAt"],
+        "thread.snoozed" => &["limitRecovery"],
+        "thread.unarchived" => &["guestShare", "titleRegeneration"],
+        "thread.metadata-updated" => &["titleRegeneration"],
+        _ => &[],
+    }
 }
 
 fn merge(into: &mut Map<String, Value>, patch: &Value) {
@@ -114,8 +134,14 @@ impl State {
             }
             "thread.deleted" => {
                 if let Some(id) = &e.thread_id {
-                    applied.removed_from = self.threads.remove(id).map(|s| location(&s));
+                    let removed = self.threads.remove(id);
+                    if let Some(mut shell) = removed.clone() {
+                        shell.insert("deletedAt".into(), Value::String(iso(e.occurred_at)));
+                        self.deleted.insert(id.clone(), shell);
+                    }
+                    applied.removed_from = removed.map(|s| location(&s));
                     self.entities.remove(id);
+                    self.projection_extras.entry(id.clone()).or_default().insert("titleRegeneration".into(), e.payload.get("titleRegeneration").cloned().unwrap_or(Value::Null));
                 }
             }
             kind if kind.starts_with("thread.") => {
@@ -129,16 +155,24 @@ impl State {
                             applied.shell_changed |= shell.insert(k.clone(), v.clone()).as_ref() != Some(v);
                         }
                     }
+                    if let Some(id) = &e.thread_id {
+                        let extras = self.projection_extras.entry(id.clone()).or_default();
+                        for key in projection_extras(kind) {
+                            extras.insert((*key).into(), e.payload.get(*key).or_else(|| shell.get(*key)).cloned().unwrap_or(Value::Null));
+                        }
+                    }
                 }
             }
             "run.created" | "run.updated" => {
                 if let Some(id) = &e.thread_id {
                     let entities = self.entities.entry(id.clone()).or_default();
                     upsert(&mut entities.runs, &e.payload);
-                    if let Some(shell) = self.threads.get_mut(id) {
+                    let provider_thread = entities.runs.first().map(|first| runs::provider_thread_id(first["providerInstanceId"].as_str().unwrap_or(""), first["id"].as_str().unwrap_or("")));
+                    let waiting = matches!(e.payload["status"].as_str(), Some("queued" | "cancelled"));
+                    if let (false, Some(shell)) = (waiting, self.threads.get_mut(id)) {
                         let run = &e.payload;
                         let running = run["status"] == "running";
-                        let set = [
+                        let mut set = vec![
                             ("status", json!(if running { "running" } else { "idle" })),
                             ("activeRunId", if running { run["id"].clone() } else { Value::Null }),
                             ("latestRunId", run["id"].clone()),
@@ -147,13 +181,22 @@ impl State {
                             ("latestRunCompletedAt", run["completedAt"].clone()),
                             ("latestRunStopRequested", json!(run["stopRequested"] == true)),
                             ("lastError", run.get("error").cloned().unwrap_or(Value::Null)),
+                            ("activeProviderThreadId", provider_thread.map_or(Value::Null, Value::from)),
                             ("updatedAt", updated_at),
                         ];
+                        if e.kind == "run.created" {
+                            set.push(("lastVisitedAt", run["requestedAt"].clone()));
+                        }
                         set.into_iter().for_each(|(k, v)| {
                             shell.insert(k.into(), v);
                         });
                         applied.shell_changed = true;
                     }
+                }
+            }
+            "message.removed" => {
+                if let Some(entities) = e.thread_id.as_ref().and_then(|id| self.entities.get_mut(id)) {
+                    entities.messages.retain(|m| m["id"] != e.payload["id"]);
                 }
             }
             "message.updated" => {
@@ -224,28 +267,45 @@ impl State {
     }
 
     pub fn thread_projection(&self, id: &str) -> Option<Value> {
-        let shell = self.threads.get(id)?;
+        self.projection_of(self.threads.get(id)?, id)
+    }
+
+    /// A projection read, which still answers for a deleted thread.
+    pub fn thread_projection_read(&self, id: &str) -> Option<Value> {
+        self.projection_of(self.threads.get(id).or_else(|| self.deleted.get(id))?, id)
+    }
+
+    fn projection_of(&self, shell: &Map<String, Value>, id: &str) -> Option<Value> {
         let empty = Entities::default();
         let entities = self.entities.get(id).unwrap_or(&empty);
+        let workspace = shell["worktreePath"].as_str().or_else(|| shell["projectId"].as_str().and_then(|p| self.projects.get(p)).and_then(|p| p["workspaceRoot"].as_str()));
+        let rows = runs::derive(id, shell, &entities.runs, workspace);
         let mut out = Map::new();
-        out.insert("thread".into(), thread_projection_row(shell));
+        let mut thread = thread_projection_row(shell);
+        if let Some(row) = thread.as_object_mut() {
+            row.insert("activeProviderThreadId".into(), rows.active_provider_thread.clone());
+            if let Some(extras) = self.projection_extras.get(id) {
+                row.extend(extras.clone());
+            }
+        }
+        out.insert("thread".into(), thread);
         let list = |items: &Vec<Value>| Value::Array(items.clone());
         let none = || json!([]);
         for (key, value) in [
-            ("runs", list(&entities.runs)),
-            ("attempts", none()),
-            ("nodes", none()),
+            ("runs", Value::Array(rows.runs)),
+            ("attempts", Value::Array(rows.attempts)),
+            ("nodes", Value::Array(rows.nodes)),
             ("subagents", none()),
-            ("providerSessions", none()),
-            ("providerThreads", none()),
+            ("providerSessions", Value::Array(rows.provider_sessions)),
+            ("providerThreads", Value::Array(rows.provider_threads)),
             ("providerTurns", none()),
             ("runtimeRequests", none()),
             ("messages", list(&entities.messages)),
             ("plans", none()),
             ("turnItems", list(&entities.turn_items)),
-            ("checkpointScopes", none()),
+            ("checkpointScopes", Value::Array(rows.checkpoint_scopes)),
             ("checkpoints", none()),
-            ("contextHandoffs", none()),
+            ("contextHandoffs", Value::Array(rows.context_handoffs)),
             ("contextTransfers", none()),
             ("visibleTurnItems", Value::Array(projected_rows(id, &entities.turn_items))),
         ] {

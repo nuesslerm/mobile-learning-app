@@ -3,48 +3,425 @@
 # Nothing else may sit at the root of a `src/`; inside a layer any snake_case module is fine. The direction of
 # the imports between the layers is checked by `backend/arch-rules` (ast-grep). A rule applies to the key's own directory
 # and everything below it until a deeper key overrides it, so the `*` keys release the layers' contents. remote-chat-agent's
-# `cli-driver`, `exec-channel`, `agent-core`, `group-agent` and `group-workspace` crates are cores split out of its `core`: the first has the two layers, the others are flat.
+# `exec-channel` and `agent-core` crates are flat cores split out of its `core`.
 # Its `service-core` is the core of the service crate `rs`: the use cases and the ports they call out through, with the two layers.
+# The keys of the generated ls-lint region below come from `clis/pipeline/data/package-types.json` (each package's `[package.metadata.arch]`
+# type, and `modules` for a flat adapter); `wf check --layout --write` rewrites them, `wf check --layout` fails on drift. Edit the manifest, not the region.
+# The keys below it are the crates that declare no type yet.
 ls:
-  backend/*/core/src:
+  # BEGIN generated:ls-lint
+  backend/leetcode-auth-cookie-capture/core/src:
     .dir: regex:(src|domain|application|testing)
     .rs: regex:(lib|testing)
-  backend/*/core/src/*:
+  backend/leetcode-auth-cookie-capture/core/src/*:
     .dir: snake_case
     .rs: snake_case
-  backend/*/rs/src:
+  backend/leetcode-auth-cookie-capture/rs/src:
     .dir: regex:(src|api|infrastructure)
     .rs: regex:(lib|main|compose|ports)
-  backend/*/rs/src/*:
+  backend/leetcode-auth-cookie-capture/rs/src/*:
     .dir: regex:(api|infrastructure)
     .rs: snake_case
-  backend/*/rs/src/*/*:
+  backend/leetcode-auth-cookie-capture/rs/src/*/*:
     .dir: snake_case
     .rs: snake_case
-  backend/*/service-core/src:
-    .dir: regex:(src|domain|application)
+  backend/leetcode-backend/core/src:
+    .dir: regex:(src|domain|application|testing)
     .rs: regex:(lib|testing)
-  backend/*/service-core/src/*:
+  backend/leetcode-backend/core/src/*:
     .dir: snake_case
     .rs: snake_case
-  backend/*/cli-driver/src:
-    .dir: regex:(src|domain|application)
+  backend/leetcode-backend/rs/src:
+    .dir: regex:(src|api|infrastructure)
+    .rs: regex:(lib|main|compose|ports)
+  backend/leetcode-backend/rs/src/*:
+    .dir: regex:(api|infrastructure)
+    .rs: snake_case
+  backend/leetcode-backend/rs/src/*/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/remote-chat-agent/agent-core/src:
+    .dir: snake_case
+    .rs: snake_case
+  backend/remote-chat-agent/agent-core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/remote-chat-agent/cli-driver/src:
+    .dir: regex:(src|domain|application|testing)
     .rs: regex:(lib|testing)
-  backend/*/cli-driver/src/*:
+  backend/remote-chat-agent/cli-driver/src/*:
     .dir: snake_case
     .rs: snake_case
+  backend/remote-chat-agent/core/src:
+    .dir: regex:(src|domain|application|testing)
+    .rs: regex:(lib|testing)
+  backend/remote-chat-agent/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/remote-chat-agent/exec-channel/src:
+    .dir: snake_case
+    .rs: snake_case
+  backend/remote-chat-agent/exec-channel/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/remote-chat-agent/group-accounts/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/remote-chat-agent/group-agent/src:
+    .dir: regex:src
+    .rs: regex:(lib|checkpoint|gateway|group|host|lifecycle|neutral|port|queue|refusal|requests|runner|staging|testing|turns)
+  backend/remote-chat-agent/group-attachments/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/remote-chat-agent/group-browser/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/remote-chat-agent/group-catalog/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/remote-chat-agent/group-gateway/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/remote-chat-agent/group-git/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/remote-chat-agent/group-hosted/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/remote-chat-agent/group-preview/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/remote-chat-agent/group-schedules/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/remote-chat-agent/group-state/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/remote-chat-agent/group-terminal/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/remote-chat-agent/group-workspace/src:
+    .dir: regex:src
+    .rs: regex:(lib|edit|files|relay|setup|tests|workspaces|worktrees)
+  backend/remote-chat-agent/host/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/remote-chat-agent/opencode/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/remote-chat-agent/rs/src:
+    .dir: regex:(src|api|infrastructure)
+    .rs: regex:(lib|main|compose|ports)
+  backend/remote-chat-agent/rs/src/*:
+    .dir: regex:(api|infrastructure)
+    .rs: snake_case
+  backend/remote-chat-agent/rs/src/*/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/remote-chat-agent/service-core/src:
+    .dir: regex:(src|domain|application|testing)
+    .rs: regex:(lib|testing)
+  backend/remote-chat-agent/service-core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/remote-chat-agent/speech/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/reporting-service/core/src:
+    .dir: regex:(src|domain|application|testing)
+    .rs: regex:(lib|testing)
+  backend/reporting-service/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/reporting-service/rs/src:
+    .dir: regex:(src|api|infrastructure)
+    .rs: regex:(lib|main|compose|ports)
+  backend/reporting-service/rs/src/*:
+    .dir: regex:(api|infrastructure)
+    .rs: snake_case
+  backend/reporting-service/rs/src/*/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/service-kit/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/service-kit/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/vm-ops-api/core/src:
+    .dir: regex:(src|domain|application|testing)
+    .rs: regex:(lib|testing)
+  backend/vm-ops-api/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/vm-ops-api/rs/src:
+    .dir: regex:(src|api|infrastructure)
+    .rs: regex:(lib|main|compose|ports)
+  backend/vm-ops-api/rs/src/*:
+    .dir: regex:(api|infrastructure)
+    .rs: snake_case
+  backend/vm-ops-api/rs/src/*/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/watchdog/core/src:
+    .dir: regex:(src|domain|application|testing)
+    .rs: regex:(lib|testing)
+  backend/watchdog/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/watchdog/rs/src:
+    .dir: regex:(src|api|infrastructure)
+    .rs: regex:(lib|main|compose|ports)
+  backend/watchdog/rs/src/*:
+    .dir: regex:(api|infrastructure)
+    .rs: snake_case
+  backend/watchdog/rs/src/*/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/cdp/src:
+    .dir: regex:src
+    .rs: snake_case
+  clis/cdp/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/http/src:
+    .dir: regex:src
+    .rs: snake_case
+  clis/http/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/mimic/core/src:
+    .dir: snake_case
+    .rs: snake_case
+  clis/mimic/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/mimic/coverage/src:
+    .dir: snake_case
+    .rs: snake_case
+  clis/mimic/coverage/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/mimic/plan/src:
+    .dir: snake_case
+    .rs: snake_case
+  clis/mimic/plan/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/mimic/script/core/src:
+    .dir: snake_case
+    .rs: snake_case
+  clis/mimic/script/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/orca-serve/core/src:
+    .dir: snake_case
+    .rs: snake_case
+  clis/orca-serve/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/rca-exec/src:
+    .dir: regex:(src|domain|adapters|bin)
+    .rs: snake_case
+  clis/rca-exec/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/rca-exec/src/bin:
+    .dir: kebab-case
+    .rs: kebab-case
+  clis/t3-serve/contracts/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  clis/t3-serve/contracts/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/t3-serve/core/src:
+    .dir: snake_case
+    .rs: snake_case
+  clis/t3-serve/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/telemetry/src:
+    .dir: regex:src
+    .rs: snake_case
+  clis/telemetry/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/telemetry/src/bin:
+    .dir: kebab-case
+    .rs: kebab-case
+  clis/wf-kit/src:
+    .dir: regex:src
+    .rs: snake_case
+  clis/wf-kit/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/wf-testkit/src:
+    .dir: regex:(src|bin)
+    .rs: snake_case
+  clis/wf-testkit/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-accounts/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-accounts/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-agent/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-agent/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-attachments/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-attachments/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-browser/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-browser/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-catalog/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-catalog/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-client/src:
+    .dir: regex:src
+    .rs: snake_case
+  libraries/agent-api/agent-api-client/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-git/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-git/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-hosted/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-hosted/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-preview/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-preview/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-proto/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-proto/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-schedules/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-schedules/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-service/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-service/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-state/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-state/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-terminal/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-terminal/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-workspace/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/agent-api-workspace/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-browser/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-browser/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-fs/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-fs/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-git/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-git/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-hosted/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-hosted/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-preview/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-preview/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-proc/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-proc/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-proto/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-proto/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-pty/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-pty/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-testkit/src:
+    .dir: regex:(src|bin)
+    .rs: snake_case
+  libraries/agent-api/exec-testkit/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-testkit/src/bin:
+    .dir: kebab-case
+    .rs: kebab-case
+  libraries/rca-core/src:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/rca-core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  # END generated:ls-lint
   backend/*/exec-channel/src:
     .dir: regex:src
     .rs: regex:(lib|mcp|placed|registry|remote|testing)
   backend/*/agent-core/src:
     .dir: regex:src
     .rs: regex:(lib|bearers|connection)
-  backend/*/group-agent/src:
-    .dir: regex:src
-    .rs: regex:(lib|checkpoint|group|lifecycle|neutral|port|queue|refusal|requests|runner|staging|testing|turns)
-  backend/*/group-workspace/src:
-    .dir: regex:src
-    .rs: regex:(lib|edit|files|relay|setup|tests|workspaces|worktrees)
   backend/*/opencode/src:
     .dir: regex:src
     .rs: regex:(lib|backend|http|testing|tests)
@@ -54,3 +431,20 @@ ls:
   backend/*/host/src:
     .dir: regex:src
     .rs: regex:(lib|proc|exec|file_store|files|docs|runs|tests)
+  libraries/hook-runtime/src:
+    .dir: kebab-case
+    .mjs: kebab-case
+    .mts: kebab-case
+    .json: kebab-case
+  scripts:
+    .dir: kebab-case
+    .mjs: kebab-case
+    .sh: kebab-case
+  scripts/*:
+    .dir: kebab-case
+    .mjs: kebab-case
+    .sh: kebab-case
+  tooling/browser-harness/*/src:
+    .dir: kebab-case
+    .ts: camelCase | PascalCase
+    .tsx: camelCase | PascalCase

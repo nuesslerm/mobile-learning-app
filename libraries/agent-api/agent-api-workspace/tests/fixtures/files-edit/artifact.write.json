@@ -1,0 +1,75 @@
+{
+  "method": "artifact.write",
+  "exchanges": [
+    {
+      "name": "replaces the content of a file and answers its new identity and fingerprint",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "notes.txt",
+          "content": "changed\n",
+          "fingerprint": "a9bc80cca21f28b3"
+        },
+        "id": 1,
+        "method": "artifact.write"
+      },
+      "response": {
+        "result": {
+          "path": "/root/notes.txt",
+          "bytes": 8,
+          "identity": "0:0:8:0.0:0.0",
+          "fingerprint": "617edd5024bb1003"
+        },
+        "id": 1
+      },
+      "actions": [
+        "artifact_write"
+      ]
+    },
+    {
+      "name": "relays the executor's CHANGED and leaves the file as it was",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "notes.txt",
+          "content": "x",
+          "fingerprint": "0000000000000001"
+        },
+        "id": 2,
+        "method": "artifact.write"
+      },
+      "response": {
+        "error": {
+          "code": "CHANGED",
+          "message": "notes.txt changed since it was granted"
+        },
+        "id": 2
+      },
+      "actions": [
+        "artifact_write"
+      ]
+    },
+    {
+      "name": "relays the executor's refusal of a path outside the places it was allowed",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "/etc/hostname",
+          "content": "x"
+        },
+        "id": 3,
+        "method": "artifact.write"
+      },
+      "response": {
+        "error": {
+          "code": "PATH_OUTSIDE_ROOT",
+          "message": "/etc/hostname is outside the root"
+        },
+        "id": 3
+      },
+      "actions": [
+        "artifact_write"
+      ]
+    }
+  ]
+}

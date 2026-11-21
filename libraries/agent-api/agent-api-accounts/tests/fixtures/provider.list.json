@@ -39,7 +39,10 @@
           ],
           "selected": null
         }
-      }
+      },
+      "actions": [
+        "cli_detect"
+      ]
     }
   ]
 }

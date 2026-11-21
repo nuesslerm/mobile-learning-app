@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 use std::collections::{HashMap, VecDeque};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
-use std::process::{Child, ChildStdin, Command, Stdio};
+use std::process::{Child, ChildStdin, Stdio};
 use std::sync::mpsc::{channel, Receiver, RecvTimeoutError};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
@@ -19,6 +19,8 @@ pub struct StdioSpec {
     pub command: Vec<String>,
     pub cwd: Option<PathBuf>,
     pub env: Vec<(String, String)>,
+    /// Names the set declares for this program (`[reference] env_from_vault`): their values come from this process's environment.
+    pub pass: Vec<String>,
     pub timeout: Duration,
 }
 
@@ -46,8 +48,8 @@ impl StdioDriver {
 
     fn spawn(&self) -> Result<Live, DriverError> {
         let (program, args) = self.spec.command.split_first().ok_or_else(|| err("the driver command is empty"))?;
-        let mut command = Command::new(program);
-        command.args(args).envs(self.spec.env.iter().map(|(k, v)| (k, v))).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
+        let mut command = crate::child_env::ChildEnv::base().pass(&self.spec.pass).with(self.spec.env.iter().cloned()).command(program);
+        command.args(args).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
         if let Some(cwd) = &self.spec.cwd {
             command.current_dir(cwd);
         }

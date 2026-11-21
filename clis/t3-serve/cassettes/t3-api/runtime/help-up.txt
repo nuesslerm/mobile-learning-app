@@ -1,0 +1,38 @@
+DESCRIPTION
+  Set up remote access and the T3 Code background service. Access flags skip the question, and routes not named keep their settings. Without a terminal, a needed restart runs without asking and stops running agent turns.
+
+USAGE
+  t3 up [flags]
+
+FLAGS
+  --base-dir string    Explicit T3 Code data directory; runtime state is stored under userdata (equivalent to T3CODE_HOME).
+  --connect            Allow access through T3 Connect with your T3 account. Turn off with --no-connect.
+  --lan                Allow LAN and tailnet connections. Anyone there can reach the port; a pairing code is the only lock. Turn off with --no-lan.
+  --yes                Ask nothing. Keep the access settings; a new machine gets T3 Connect. A restart stops running agent turns.
+  --headless           Sign in with a URL and code on any device. Automatic without a terminal or over SSH.
+
+GLOBAL FLAGS
+  --help, -h                                                          Show help information
+  --version, -v                                                       Show version information
+  --wizard                                                            Start wizard mode for a command
+  --completions <bash|zsh|fish|powershell|sh|pwsh>                    Print shell completion script (choices: bash, zsh, fish, powershell, sh, pwsh)
+  --log-level <all|trace|debug|info|warn|warning|error|fatal|none>    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
+
+EXAMPLES
+  # Choose remote access.
+  t3 up
+
+  # Turn on T3 Connect. Keep other settings.
+  t3 up --connect
+
+  # Allow LAN access with pairing codes.
+  t3 up --lan
+
+  # Stop LAN access.
+  t3 up --no-lan
+
+  # Take the defaults with no questions.
+  t3 up --yes
+
+  # Read the settings from a script.
+  t3 status --json

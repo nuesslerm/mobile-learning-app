@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { FlatList } from 'react-native';
 import { router } from 'expo-router';
-import { useDependencyOverrides } from '@lib/app-di';
 import type { OrchestrationThreadSummary } from '@app/remote-chat-agent-contracts/orchestration';
 import type { ModelSelection } from '../domain';
 import { Logger } from '@lib/logging';
@@ -13,11 +12,9 @@ import {
 } from '@lib/tamagui-design-system';
 import { Plus } from '@lib/tamagui-design-system/icons';
 
-import type { OrchestrationGateway } from '../data/orchestrationGateway';
-import { useGateway } from '../integration/useGateway';
-import { useShellSubscription } from '../integration/useShellSubscription';
+import { useGateway } from '../state/useGateway';
+import { useShellSubscription } from '../state/useShellSubscription';
 import { useGatewayStore } from '../state/gatewayStore';
-import type { CodingAgentTransport } from '../state/gatewayStore';
 import { useThreadShellStore } from '../state/threadShellStore';
 import { ConnectionBanner } from './ConnectionBanner';
 import { DispatchRunsSection } from './DispatchRunsSection';
@@ -98,10 +95,6 @@ export function ThreadListScreen(): React.ReactElement {
   useGateway();
   useShellSubscription();
   const threads = useThreadShellStore((state) => state.threads);
-  const { gateway: overriddenGateway } =
-    useDependencyOverrides<{ gateway: OrchestrationGateway }>('coding-agent');
-  const dispatchTransport: CodingAgentTransport =
-    overriddenGateway !== undefined ? 'fixture' : 'ws';
 
   const visibleThreads = useMemo(
     () => threads.filter((thread) => !thread.deletedAt),
@@ -169,7 +162,7 @@ export function ThreadListScreen(): React.ReactElement {
           data={visibleThreads}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <ThreadRow thread={item} />}
-          ListFooterComponent={<DispatchRunsSection transport={dispatchTransport} />}
+          ListFooterComponent={<DispatchRunsSection />}
           contentContainerStyle={{ padding: 16, gap: 8 }}
         />
       )}

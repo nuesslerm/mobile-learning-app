@@ -17,3 +17,13 @@ impl Refusal {
         Refusal { code: code.into(), message: message.into() }
     }
 }
+
+/// The service's speech-to-text engine: what `speech.status` names and what `speech.transcribe` asks. The service's adapter implements it over the
+/// engine its environment picks.
+#[async_trait::async_trait]
+pub trait Speech: Send + Sync {
+    /// The engine's name, or none when the service has none.
+    fn engine(&self) -> Option<String>;
+    /// The words in one recording (`format` is its file extension); the error is the engine's own words.
+    async fn transcribe(&self, audio: Vec<u8>, format: &str) -> Result<String, String>;
+}

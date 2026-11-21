@@ -20,7 +20,7 @@ function stub(name, body) {
 
 function runScript() {
   return spawnSync('bash', [script], {
-    env: { PATH: `${dir}:/usr/bin:/bin`, STUB_LOG: log },
+    env: { PATH: `${dir}:/usr/bin:/bin`, STUB_LOG: log, DOCKERHUB_TOKEN: 'test-token' },
     encoding: 'utf8',
   });
 }

@@ -5,6 +5,7 @@
 pub mod descriptor;
 mod desktop;
 mod engine;
+mod http;
 mod listener;
 mod log;
 mod relay;
@@ -77,26 +78,11 @@ fn listen() -> Result<(), i32> {
     let control = bind(("0.0.0.0", port))?;
     let port = control.local_addr().map_or(port, |a| a.port());
 
-    // The only place `wf` runs an async runtime: the gate and the control channel are long-lived servers.
-    let runtime = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().map_err(|e| {
-        wf_kit::wf_err!("wf: cannot start the listener runtime: {e}");
-        1
-    })?;
-    runtime.block_on(async move {
-        let (gate, control) = (into_tokio(gate)?, into_tokio(control)?);
-        tokio::spawn(view::serve(gate, viewer_launcher, tokens));
-        log::info("vnc_auth.gate.listening", &[("gatePort", gate_port.to_string())]);
-        log::info("vnc_auth.listener.listening", &[("port", port.to_string())]);
-        listener::serve(control, deps).await;
-        Ok(())
-    })
-}
-
-fn into_tokio(listener: TcpListener) -> Result<tokio::net::TcpListener, i32> {
-    listener.set_nonblocking(true).and_then(|()| tokio::net::TcpListener::from_std(listener)).map_err(|e| {
-        wf_kit::wf_err!("wf: cannot use the listening socket: {e}");
-        1
-    })
+    std::thread::spawn(move || view::serve(gate, viewer_launcher, tokens));
+    log::info("vnc_auth.gate.listening", &[("gatePort", gate_port.to_string())]);
+    log::info("vnc_auth.listener.listening", &[("port", port.to_string())]);
+    listener::serve(control, deps);
+    Ok(())
 }
 
 /// `wf secret login listener` (no arguments): runs until the process is stopped.

@@ -24,6 +24,9 @@ pub struct Setup {
     /// A bare repository `remote.git` in the worktree base, added as `origin` with the first branch pushed and tracking it (needs `commit`).
     #[serde(default)]
     pub remote: bool,
+    /// Records origin's HEAD as pointing at the first branch, as `git clone` records it (needs `remote`).
+    #[serde(default)]
+    pub remote_head: bool,
     /// For each number, a commit on top of the first branch pushed to the remote as `refs/pull/<n>/head` (how a host keeps a pull request's
     /// head) with a file `pull-<n>.txt`; needs `remote`.
     #[serde(default)]

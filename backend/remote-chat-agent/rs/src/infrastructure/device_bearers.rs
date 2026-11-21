@@ -2,7 +2,8 @@
 //! and renamed over it, readable by the service's user only. A token is 244 bits from the system's randomness and is never written: only its digest is.
 use rca_agent_core::bearers::{Book, TOKEN_PREFIX};
 use rca_agent_core::{Bearer, DeviceBearers, Minted};
-use rca_service_core::domain::util::{iso_now, random_hex};
+use super::ambient::random_hex;
+use rca_service_core::domain::util::iso_now;
 use std::io::Write;
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::PathBuf;

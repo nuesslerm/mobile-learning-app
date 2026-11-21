@@ -1,11 +1,12 @@
 //! The pure core of `rca-exec`: the executor port with the actions every model uses (`docs/plans/rca-client/protocol.md`), and the one function
 //! that maps a wire request `{tool, args}` onto it. The arguments and results are the contract crates' (`libraries/agent-api`). No I/O;
 //! paths are relative to the executor's root.
-use exec_fs::{Browse, BrowseResult, ChunkResult, CreateFile, EditFile, EditResult, EntriesResult, Entry, Found, ListDir, ListResult, MakeDir, MakeDirResult, PutBlob, PutBlobResult, ReadChunk, ReadFile, ReadResult, Search, SearchEntries, SkillScan, SkillsFound, Stat, StatResult, WriteFile, WriteResult};
+use exec_fs::{Browse, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, ListDir, ListResult, MakeDir, MakeDirResult, PutBlob, PutBlobResult, PutTemp, PutTempResult, ReadChunk, ReadFile, ReadResult, SearchEntries, SecretFilePut, SecretFilePutResult, ArtifactRead, ArtifactStat, ArtifactStatResult, ArtifactWrite, ArtifactWriteResult, SessionScan, SessionsFound, SkillScan, SkillsFound, Stat, StatResult, WriteFile, WriteResult};
 use exec_hosted::HostedOp;
+use exec_browser::BrowserOp;
 use exec_preview::PreviewOp;
 use exec_git::{DiffResult, GitDiff, GitOp, SetupEvent, SetupResult, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeListed, WorktreeRemove, WorktreeRemoved, WorktreeSetup};
-use exec_proc::{Cancel, CancelResult, CliDetect, CliDetectResult, CliFound, RunCommand, RunResult};
+use exec_proc::{Cancel, CancelResult, ClaudeAnswer, ClaudeRequest, CliDetect, CliDetectResult, CliFound, CliUpdated, CodexAnswer, CodexRequest, LoggedOut, UpdateProgram, LoginCancel, LoginCancelled, LoginProgram, LoginSend, LoginStarted, LoginState, LoginStatus, McpAnswer, McpRequest, ProcSample, RunCommand, RunResult};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyListed, PtyOpen, PtyOpened, PtyResize, PtyResized, PtyWrite, PtyWritten};
 use exec_proto::{to_value, Code, ExecError, ExecResult, Stream};
 use serde_json::Value;
@@ -18,9 +19,7 @@ pub trait ToolExecutor: Send + Sync {
     /// Returns the bytes written.
     fn write_file(&self, args: &WriteFile) -> ExecResult<usize>;
     /// Returns the replacements made.
-    fn edit_file(&self, args: &EditFile) -> ExecResult<usize>;
     fn list_dir(&self, args: &ListDir) -> ExecResult<Vec<Entry>>;
-    fn search(&self, args: &Search) -> ExecResult<Found>;
     /// Kills the process group of the running `run_command` `id`; false when none is running under that id.
     fn cancel(&self, id: &str) -> bool;
     /// The working tree's `git diff` against `base` (the index when none), limited to `path` when given.
@@ -31,13 +30,45 @@ pub trait ToolExecutor: Send + Sync {
     fn create_file(&self, args: &CreateFile) -> ExecResult<usize>;
     /// Writes the decoded bytes to a path that does not exist yet; returns the bytes written.
     fn put_blob(&self, args: &PutBlob) -> ExecResult<u64>;
+    /// Writes the decoded bytes to a new folder of the executor's temporary directory; returns the file's absolute path and the bytes written.
+    fn put_temp(&self, args: &PutTemp) -> ExecResult<(String, u64)>;
     /// Makes the directory, and its parents when asked; false when it was there already (only `parents` accepts that).
     fn make_dir(&self, args: &MakeDir) -> ExecResult<bool>;
+    /// Writes the secret to a new file of mode 0600; returns the bytes written. The value is in no result and no error.
+    fn secret_file_put(&self, args: &SecretFilePut) -> ExecResult<u64>;
+    /// A file a terminal printed, below the root, the worktree base or a directory allowed for artifacts: its canonical path, identity and fingerprint.
+    fn artifact_stat(&self, args: &ArtifactStat) -> ExecResult<ArtifactStatResult>;
+    /// A byte range of such a file; refused with CHANGED when the identity or fingerprint given no longer match.
+    fn artifact_read(&self, args: &ArtifactRead) -> ExecResult<ChunkResult>;
+    /// Replaces the content of such a file under the same check, atomically.
+    fn artifact_write(&self, args: &ArtifactWrite) -> ExecResult<ArtifactWriteResult>;
     fn browse(&self, args: &Browse) -> ExecResult<BrowseResult>;
     /// The agent CLIs named, in order, with where each lies on the executor's path and what its `--version` prints.
     fn cli_detect(&self, args: &CliDetect) -> ExecResult<Vec<CliFound>>;
+    /// Starts the agent CLI's own login at this executor (its home, no workspace) and returns the id of the flow.
+    fn login_start(&self, args: &LoginProgram) -> ExecResult<String>;
+    /// Sends one line to the running login's input.
+    fn login_send(&self, args: &LoginSend) -> ExecResult<()>;
+    /// What the login printed from an offset, whether it ended and how, and whether the CLI holds a login now.
+    fn login_status(&self, args: &LoginStatus) -> ExecResult<LoginState>;
+    /// Stops the login and forgets it; false when there was none.
+    fn login_cancel(&self, args: &LoginCancel) -> ExecResult<bool>;
+    /// Runs the CLI's own logout and says whether it still holds a login.
+    fn logout(&self, args: &LoginProgram) -> ExecResult<bool>;
+    /// Runs the agent CLI's own self-update and says how it ended and what version the CLI reports after it.
+    fn cli_update(&self, args: &UpdateProgram) -> ExecResult<CliUpdated>;
+    /// Sends one request to a `codex app-server` started for it and returns the answer.
+    fn codex_app_server_request(&self, args: &CodexRequest) -> ExecResult<CodexAnswer>;
+    /// Reads the Claude account's usage under the login in the executor's home.
+    fn claude_account_request(&self, args: &ClaudeRequest) -> ExecResult<ClaudeAnswer>;
+    /// The executor's own process and everything below it, once.
+    fn proc_sample(&self) -> ExecResult<ProcSample>;
+    /// Starts the stdio MCP server the workspace's `.mcp.json` names, sends it one request and stops it.
+    fn mcp_request(&self, args: &McpRequest) -> ExecResult<McpAnswer>;
     /// The skills of a directory of the workspace and, when asked, of the executor's own home.
     fn skill_scan(&self, args: &SkillScan) -> ExecResult<SkillsFound>;
+    /// The sessions the agent CLIs keep in the executor's own home.
+    fn session_scan(&self, args: &SessionScan) -> ExecResult<SessionsFound>;
     fn search_entries(&self, args: &SearchEntries) -> ExecResult<EntriesResult>;
     fn git_worktree_add(&self, args: &WorktreeAdd) -> ExecResult<WorktreeAdded>;
     /// True when the worktree was removed.
@@ -62,6 +93,8 @@ pub trait ToolExecutor: Send + Sync {
     /// One preview action (`preview_start`, `preview_stop`, `preview_list`) and its result as the wire carries it; `preview_start` returns once
     /// the server accepts connections.
     fn preview_op(&self, op: &PreviewOp) -> ExecResult<Value>;
+    /// One browser action (`browser_open` .. `browser_list`) and its result as the wire carries it; the browser starts with the first page.
+    fn browser_op(&self, op: &BrowserOp) -> ExecResult<Value>;
 }
 
 /// Runs one wire request on the executor and returns its `result` object. `stream` receives `run_command`'s output frames, `events` the
@@ -76,9 +109,7 @@ pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value,
         exec_proc::RUN_COMMAND => Ok(to_value(&ex.run_command(id, &RunCommand::parse(args)?, stream)?)),
         exec_fs::READ_FILE => Ok(to_value(&ex.read_file(&ReadFile::parse(args)?)?)),
         exec_fs::WRITE_FILE => Ok(to_value(&WriteResult { bytes: ex.write_file(&WriteFile::parse(args)?)? })),
-        exec_fs::EDIT_FILE => Ok(to_value(&EditResult { replacements: ex.edit_file(&EditFile::parse(args)?)? })),
         exec_fs::LIST_DIR => Ok(to_value(&ListResult { entries: ex.list_dir(&ListDir::parse(args)?)? })),
-        exec_fs::SEARCH => Ok(to_value(&ex.search(&Search::parse(args)?)?)),
         exec_proc::CANCEL => Ok(to_value(&CancelResult { cancelled: Cancel::parse(args).id.is_some_and(|target| ex.cancel(&target)) })),
         exec_git::GIT_DIFF => Ok(to_value(&DiffResult { diff: ex.git_diff(&GitDiff::parse(args)?)? })),
         exec_fs::STAT => Ok(to_value(&ex.stat(&Stat::parse(args)?)?)),
@@ -88,13 +119,38 @@ pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value,
             let blob = PutBlob::parse(args)?;
             Ok(to_value(&PutBlobResult { bytes: ex.put_blob(&blob)?, path: blob.path }))
         }
+        exec_fs::PUT_TEMP => {
+            let (path, bytes) = ex.put_temp(&PutTemp::parse(args)?)?;
+            Ok(to_value(&PutTempResult { path, bytes }))
+        }
         exec_fs::MAKE_DIR => {
             let dir = MakeDir::parse(args)?;
             Ok(to_value(&MakeDirResult { created: ex.make_dir(&dir)?, path: dir.path }))
         }
+        exec_fs::SECRET_FILE_PUT => {
+            let secret = SecretFilePut::parse(args)?;
+            Ok(to_value(&SecretFilePutResult { bytes: ex.secret_file_put(&secret)?, path: secret.path }))
+        }
+        exec_proc::PROC_SAMPLE => Ok(to_value(&ex.proc_sample()?)),
+        exec_proc::MCP_REQUEST => Ok(to_value(&ex.mcp_request(&McpRequest::parse(args)?)?)),
+        exec_fs::ARTIFACT_STAT => Ok(to_value(&ex.artifact_stat(&ArtifactStat::parse(args)?)?)),
+        exec_fs::ARTIFACT_READ => Ok(to_value(&ex.artifact_read(&ArtifactRead::parse(args)?)?)),
+        exec_fs::ARTIFACT_WRITE => Ok(to_value(&ex.artifact_write(&ArtifactWrite::parse(args)?)?)),
         exec_fs::BROWSE => Ok(to_value(&ex.browse(&Browse::parse(args)?)?)),
         exec_proc::CLI_DETECT => Ok(to_value(&CliDetectResult { clis: ex.cli_detect(&CliDetect::parse(args)?)? })),
+        exec_proc::LOGIN_START => Ok(to_value(&LoginStarted { flow: ex.login_start(&LoginProgram::parse(args)?)? })),
+        exec_proc::LOGIN_SEND => {
+            ex.login_send(&LoginSend::parse(args)?)?;
+            Ok(to_value(&serde_json::json!({})))
+        }
+        exec_proc::LOGIN_STATUS => Ok(to_value(&ex.login_status(&LoginStatus::parse(args)?)?)),
+        exec_proc::LOGIN_CANCEL => Ok(to_value(&LoginCancelled { cancelled: ex.login_cancel(&LoginCancel::parse(args)?)? })),
+        exec_proc::LOGOUT => Ok(to_value(&LoggedOut { signed_in: ex.logout(&LoginProgram::parse(args)?)? })),
+        exec_proc::CLI_UPDATE => Ok(to_value(&ex.cli_update(&UpdateProgram::parse(args)?)?)),
+        exec_proc::CODEX_APP_SERVER => Ok(to_value(&ex.codex_app_server_request(&CodexRequest::parse(args)?)?)),
+        exec_proc::CLAUDE_ACCOUNT => Ok(to_value(&ex.claude_account_request(&ClaudeRequest::parse(args)?)?)),
         exec_fs::SKILL_SCAN => Ok(to_value(&ex.skill_scan(&SkillScan::parse(args)?)?)),
+        exec_fs::SESSION_SCAN => Ok(to_value(&ex.session_scan(&SessionScan::parse(args)?)?)),
         exec_fs::SEARCH_ENTRIES => Ok(to_value(&ex.search_entries(&SearchEntries::parse(args)?)?)),
         exec_git::GIT_WORKTREE_ADD => Ok(to_value(&ex.git_worktree_add(&WorktreeAdd::parse(args)?)?)),
         exec_git::GIT_WORKTREE_REMOVE => Ok(to_value(&WorktreeRemoved { removed: ex.git_worktree_remove(&WorktreeRemove::parse(args)?)? })),
@@ -110,11 +166,12 @@ pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value,
         exec_pty::PTY_CLOSE => Ok(to_value(&ex.pty_close(&PtyClose::parse(args)?)?)),
         exec_pty::PTY_LIST => Ok(to_value(&PtyListed { ptys: ex.pty_list()? })),
         exec_pty::PTY_ATTACH => Ok(to_value(&ex.pty_attach(id, &PtyAttach::parse(args)?, &mut |offset, bytes| binary(exec_pty::encode_frame(id, offset, bytes)), &mut |e| events(to_value(&e)))?)),
-        other => match (GitOp::parse(other, args), HostedOp::parse(other, args), PreviewOp::parse(other, args)) {
-            (Some(op), _, _) => ex.git_op(id, &op?, events),
-            (None, Some(op), _) => ex.hosted_op(id, &op?),
-            (None, None, Some(op)) => ex.preview_op(&op?),
-            (None, None, None) => Err(ExecError::new(Code::UnknownTool, format!("unknown tool {other}"))),
+        other => match (GitOp::parse(other, args), HostedOp::parse(other, args), PreviewOp::parse(other, args), BrowserOp::parse(other, args)) {
+            (Some(op), _, _, _) => ex.git_op(id, &op?, events),
+            (None, Some(op), _, _) => ex.hosted_op(id, &op?),
+            (None, None, Some(op), _) => ex.preview_op(&op?),
+            (None, None, None, Some(op)) => ex.browser_op(&op?),
+            (None, None, None, None) => Err(ExecError::new(Code::UnknownTool, format!("unknown tool {other}"))),
         },
     }
 }
@@ -153,17 +210,9 @@ mod tests {
             self.note(exec_fs::WRITE_FILE);
             Ok(0)
         }
-        fn edit_file(&self, _: &EditFile) -> ExecResult<usize> {
-            self.note(exec_fs::EDIT_FILE);
-            Ok(0)
-        }
         fn list_dir(&self, _: &ListDir) -> ExecResult<Vec<Entry>> {
             self.note(exec_fs::LIST_DIR);
             Ok(Vec::new())
-        }
-        fn search(&self, _: &Search) -> ExecResult<Found> {
-            self.note(exec_fs::SEARCH);
-            Ok(Found { matches: Vec::new(), truncated: false })
         }
         fn cancel(&self, id: &str) -> bool {
             self.note(exec_proc::CANCEL);
@@ -185,6 +234,10 @@ mod tests {
             self.note(exec_fs::PUT_BLOB);
             Ok(0)
         }
+        fn put_temp(&self, _: &PutTemp) -> ExecResult<(String, u64)> {
+            self.note(exec_fs::PUT_TEMP);
+            Ok((String::new(), 0))
+        }
         fn create_file(&self, _: &CreateFile) -> ExecResult<usize> {
             self.note(exec_fs::CREATE_FILE);
             Ok(0)
@@ -197,9 +250,69 @@ mod tests {
             self.note(exec_proc::CLI_DETECT);
             Ok(Vec::new())
         }
+        fn login_start(&self, _: &LoginProgram) -> ExecResult<String> {
+            self.note(exec_proc::LOGIN_START);
+            Ok("flow-1".into())
+        }
+        fn login_send(&self, _: &LoginSend) -> ExecResult<()> {
+            self.note(exec_proc::LOGIN_SEND);
+            Ok(())
+        }
+        fn login_status(&self, _: &LoginStatus) -> ExecResult<LoginState> {
+            self.note(exec_proc::LOGIN_STATUS);
+            Ok(LoginState { output: String::new(), next: 0, ended: false, ok: None, error: None, signed_in: false })
+        }
+        fn login_cancel(&self, _: &LoginCancel) -> ExecResult<bool> {
+            self.note(exec_proc::LOGIN_CANCEL);
+            Ok(true)
+        }
+        fn logout(&self, _: &LoginProgram) -> ExecResult<bool> {
+            self.note(exec_proc::LOGOUT);
+            Ok(false)
+        }
+        fn cli_update(&self, args: &UpdateProgram) -> ExecResult<CliUpdated> {
+            self.note(exec_proc::CLI_UPDATE);
+            Ok(CliUpdated { program: args.program.clone(), ok: true, exit_code: 0, output: String::new(), version: None })
+        }
+        fn codex_app_server_request(&self, _: &CodexRequest) -> ExecResult<CodexAnswer> {
+            self.note(exec_proc::CODEX_APP_SERVER);
+            Ok(CodexAnswer { result: serde_json::json!({}) })
+        }
+        fn claude_account_request(&self, _: &ClaudeRequest) -> ExecResult<ClaudeAnswer> {
+            self.note(exec_proc::CLAUDE_ACCOUNT);
+            Ok(ClaudeAnswer { status: 200, body: serde_json::json!({}) })
+        }
         fn skill_scan(&self, _: &SkillScan) -> ExecResult<SkillsFound> {
             self.note(exec_fs::SKILL_SCAN);
-            Ok(SkillsFound { skills: Vec::new(), truncated: false })
+            Ok(SkillsFound { skills: Vec::new(), truncated: false, present: Vec::new() })
+        }
+        fn session_scan(&self, _: &SessionScan) -> ExecResult<SessionsFound> {
+            self.note(exec_fs::SESSION_SCAN);
+            Ok(SessionsFound { sessions: Vec::new(), truncated: false })
+        }
+        fn secret_file_put(&self, _: &SecretFilePut) -> ExecResult<u64> {
+            self.note(exec_fs::SECRET_FILE_PUT);
+            Ok(0)
+        }
+        fn proc_sample(&self) -> ExecResult<ProcSample> {
+            self.note(exec_proc::PROC_SAMPLE);
+            Ok(ProcSample { sampled_at_ms: 0, ticks_per_second: 100, processes: Vec::new(), count: 0, total_rss_kib: 0, total_cpu_ticks: 0, truncated: false })
+        }
+        fn mcp_request(&self, _: &McpRequest) -> ExecResult<McpAnswer> {
+            self.note(exec_proc::MCP_REQUEST);
+            Ok(McpAnswer { result: json!({}) })
+        }
+        fn artifact_stat(&self, args: &ArtifactStat) -> ExecResult<ArtifactStatResult> {
+            self.note(exec_fs::ARTIFACT_STAT);
+            Ok(ArtifactStatResult { path: args.path.clone(), kind: exec_fs::EntryKind::File, size: 0, modified_ms: 0, changed_ms: 0, identity: String::new(), fingerprint: None, binary: false })
+        }
+        fn artifact_read(&self, _: &ArtifactRead) -> ExecResult<ChunkResult> {
+            self.note(exec_fs::ARTIFACT_READ);
+            Ok(ChunkResult { data: String::new(), offset: 0, bytes: 0, total_bytes: 0, eof: true })
+        }
+        fn artifact_write(&self, args: &ArtifactWrite) -> ExecResult<ArtifactWriteResult> {
+            self.note(exec_fs::ARTIFACT_WRITE);
+            Ok(ArtifactWriteResult { path: args.path.clone(), bytes: 0, identity: String::new(), fingerprint: None })
         }
         fn browse(&self, _: &Browse) -> ExecResult<BrowseResult> {
             self.note(exec_fs::BROWSE);
@@ -268,20 +381,30 @@ mod tests {
             });
             Ok(json!({}))
         }
+        fn browser_op(&self, op: &BrowserOp) -> ExecResult<Value> {
+            self.note(op.action());
+            Ok(json!({}))
+        }
     }
 
     fn actions() -> Vec<&'static exec_proto::Action> {
-        [exec_fs::ACTIONS, exec_proc::ACTIONS, exec_git::ACTIONS, exec_pty::ACTIONS, exec_hosted::ACTIONS, exec_preview::ACTIONS].into_iter().flatten().collect()
+        [exec_fs::ACTIONS, exec_proc::ACTIONS, exec_git::ACTIONS, exec_pty::ACTIONS, exec_hosted::ACTIONS, exec_preview::ACTIONS, exec_browser::ACTIONS].into_iter().flatten().collect()
     }
 
     /// A value of the kind the action's table gives the property (a search kind is "content"), so the minimal request parses.
     fn placeholder(action: &exec_proto::Action, key: &str) -> Value {
         match (key, action.properties.iter().find(|p| p.name == key).map(|p| p.kind)) {
+            ("kind", _) if action.name == exec_browser::BROWSER_INPUT => json!("mouse_down"),
+            ("direction", _) => json!("back"),
             ("kind", _) => json!("content"),
             ("programs", _) => json!(["claude"]),
             ("op", _) => json!("abort"),
             ("resolution", _) => json!("resolved"),
             ("provider", _) => json!("github"),
+            ("program", _) => json!("claude"),
+            ("method", _) if action.name == exec_proc::CODEX_APP_SERVER => json!("account/read"),
+            ("method", _) if action.name == exec_proc::MCP_REQUEST => json!("tools/list"),
+            ("request", _) if action.name == exec_proc::CLAUDE_ACCOUNT => json!("usage"),
             ("repo", _) => json!("o/r"),
             ("port", _) => json!(4000),
             ("verdict", _) => json!("approve"),
@@ -300,12 +423,9 @@ mod tests {
     fn given_every_action_of_the_contract_when_a_request_names_it_then_the_executor_is_asked_for_that_action_and_no_other() {
         for action in actions() {
             // Given a request with the arguments the action requires
-            let mut args: serde_json::Map<String, Value> = action.required.iter().map(|k| (k.to_string(), placeholder(action, k))).collect();
-            // Two hosted actions need one of several optional arguments
-            match action.name {
-                exec_hosted::PR_EDIT => args.insert("title".into(), json!("t")),
-                exec_hosted::PR_LABELS | exec_hosted::PR_REQUEST_REVIEWERS => args.insert("add".into(), json!(["a"])),
-                _ => None,
+            let args: serde_json::Map<String, Value> = match exec_hosted::ACTIONS.iter().find(|a| a.name == action.name) {
+                Some(hosted) => exec_hosted::minimal_args(hosted).as_object().cloned().unwrap_or_default(),
+                None => action.required.iter().map(|k| (k.to_string(), placeholder(action, k))).collect(),
             };
             let ex = Recorder::default();
             // When it is executed

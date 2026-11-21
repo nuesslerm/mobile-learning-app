@@ -1,8 +1,0 @@
-id: pure-module-does-no-io
-valid:
-  - use exec_proto::{to_value, Code, ExecError};
-  - use std::sync::Mutex;
-invalid:
-  - use std::{fs, io};
-  - use std::process::Command;
-  - 'fn f() { let _ = std::fs::read_to_string("x"); }'

@@ -64,6 +64,14 @@ impl Attachments {
             found.push((view, bytes));
         }
         let mut files = Vec::new();
+        if p.temp {
+            for (view, bytes) in found {
+                let wrote = channel.call(exec_fs::PUT_TEMP, serde_json::json!({"name": view.name, "data": STANDARD.encode(&bytes)})).await.map_err(|e| Refusal::new(e.code(), e.message()))?;
+                let path = wrote.result["path"].as_str().unwrap_or_default().to_string();
+                files.push(StagedFile { id: view.id, name: view.name, path, size_bytes: view.size_bytes });
+            }
+            return Ok(StageResult { files });
+        }
         let put = |path: String, bytes: Vec<u8>| {
             let channel = channel.clone();
             let place = place.clone();

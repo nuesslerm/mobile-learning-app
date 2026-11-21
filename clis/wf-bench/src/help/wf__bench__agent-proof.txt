@@ -10,7 +10,7 @@ Pass = the script exits 0. Exit 0 when it passed, 1 otherwise.
 Arms:
   sonnet     claude -p --model sonnet --output-format json (no tools, no MCP,
              outside the repo); cost and tokens from its JSON
-  opencode   the cheap-model ladder (`wf offload ask`'s rotation, read-only, caller
+  opencode   the cheap-model ladder (`wf rca ask`'s rotation, read-only, caller
              agent-proof); the first rung that answers
   scripted   no agent: runs --script (default
              e2e/agent-proof.lua), the floor

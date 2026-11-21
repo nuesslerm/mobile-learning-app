@@ -23,6 +23,7 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
       "ProblemEditorActions",
@@ -33,6 +34,8 @@
       "ProblemEditorTextEditStartButton",
       "ProblemEditorVoiceStartButton",
       "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
       "ProblemEditorTestInput",
       "ProblemPlanTab",
       "ProblemPlanSteps",
@@ -41,10 +44,10 @@
       "ProblemPlanTextInput",
       "ProblemPlanAddButton"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset"
+    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
   },
   "timings": {
-    "render_ms": 311
+    "render_ms": 363
   },
   "name": "problemeditor/final-given-an-open-editor-when-a-link-to-the-same-pr-832d32.dark",
   "image": {

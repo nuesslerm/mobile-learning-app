@@ -34,6 +34,8 @@ inputs = [
   "../../../libraries/agent-api/agent-api-catalog/tests/fixtures/**",
   "../../../libraries/agent-api/agent-api-preview/tests/fixtures/**",
   "../../../libraries/agent-api/exec-preview/tests/fixtures/**",
+  "../../../libraries/agent-api/agent-api-browser/tests/fixtures/**",
+  "../../../libraries/agent-api/exec-browser/tests/fixtures/**",
 ]
 
 # The integration test (tests/integration.rs) replays the voice edit DSL cassette through the `wf-mimic` binary and leaves its run record
@@ -51,12 +53,11 @@ name = "rca-service"
 path = "src/main.rs"
 
 [dependencies]
+uuid.workspace = true
 agent-api-attachments = { path = "../../../libraries/agent-api/agent-api-attachments" }
 async-trait.workspace = true
 axum.workspace = true
 base64.workspace = true
-dirs.workspace = true
-eventsource-stream.workspace = true
 futures-util.workspace = true
 percent-encoding.workspace = true
 reqwest.workspace = true
@@ -84,14 +85,15 @@ rca-cli-driver = { path = "../cli-driver" }
 rca-exec-channel = { path = "../exec-channel" }
 rca-agent-core = { path = "../agent-core" }
 rca-group-agent = { path = "../group-agent" }
-rca-group-workspace = { path = "../group-workspace" }
 rca-group-terminal = { path = "../group-terminal" }
 rca-group-git = { path = "../group-git" }
 rca-group-accounts = { path = "../group-accounts" }
+rca-group-gateway = { path = "../group-gateway" }
 agent-api-accounts = { path = "../../../libraries/agent-api/agent-api-accounts" }
 agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
 
 [dev-dependencies]
+remote-chat-agent-opencode = { path = "../opencode", features = ["testing"] }
 rca-service-core = { path = "../service-core", features = ["testing"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std"] }
 remote-chat-agent-core = { path = "../core", features = ["testing"] }
@@ -120,14 +122,17 @@ agent-api-schedules = { path = "../../../libraries/agent-api/agent-api-schedules
 agent-api-attachments = { path = "../../../libraries/agent-api/agent-api-attachments", features = ["testing"] }
 agent-api-catalog = { path = "../../../libraries/agent-api/agent-api-catalog", features = ["testing"] }
 agent-api-preview = { path = "../../../libraries/agent-api/agent-api-preview", features = ["testing"] }
-exec-preview = { path = "../../../libraries/agent-api/exec-preview" }
+agent-api-browser = { path = "../../../libraries/agent-api/agent-api-browser", features = ["testing"] }
 rca-group-schedules = { path = "../group-schedules", features = ["testing"] }
+rca-group-gateway = { path = "../group-gateway", features = ["testing"] }
 rca-group-attachments = { path = "../group-attachments", features = ["testing"] }
 rca-group-catalog = { path = "../group-catalog", features = ["testing"] }
-rca-group-preview = { path = "../group-preview", features = ["testing"] }
 image = { version = "0.25", default-features = false, features = ["png"] }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 service-kit = { version = "0.1", registry = "mla", features = ["e2e", "blackbox"] }
 http-body-util.workspace = true
 tokio-tungstenite = { version = "0.29", default-features = false, features = ["handshake"] }
 tower = { workspace = true, features = ["util"] }
+
+[package.metadata.arch]
+type = "rust-rs"

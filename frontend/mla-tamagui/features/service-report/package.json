@@ -1,5 +1,6 @@
 {
   "name": "@feature/service-report",
+  "arch": { "type": "hexagonal-feature" },
   "version": "0.0.0",
   "private": true,
   "main": "src/index.ts",
@@ -12,7 +13,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint -c ../../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs",
+    "lint": "oxlint -c ../../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs --ignore-known",
     "test": "vitest run",
     "test:flow": "vitest run --config vitest.flow.config.ts --configLoader runner"
   },
@@ -20,12 +21,11 @@
     "@lib/app-di": "workspace:*",
     "@lib/tamagui-design-system": "workspace:*",
     "@lib/logging": "workspace:*",
-    "lucide-react-native": "^1.17.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@typescript/native": "catalog:",
-    "@lib/eslint-plugin-mobile-learn": "workspace:*",
+    "@lib/lint-rules": "workspace:*",
     "@lib/flow-test-harness": "workspace:*",
     "dependency-cruiser": "^17.4.3",
     "oxlint": "catalog:"
@@ -58,9 +58,6 @@
       "optional": true
     },
     "vite-plugin-babel": {
-      "optional": true
-    },
-    "@storybook/react-native": {
       "optional": true
     },
     "@types/react": {

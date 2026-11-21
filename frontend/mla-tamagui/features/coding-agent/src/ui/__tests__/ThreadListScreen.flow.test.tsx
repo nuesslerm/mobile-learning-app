@@ -1,8 +1,8 @@
 import {
   FIXTURE_IDS,
   FIXTURE_THREADS,
-} from '../../domain';
-import { createFixtureGateway } from '@feature/coding-agent/testing';
+} from '../../testing';
+import { createFixturePorts } from '@feature/coding-agent/testing';
 import {
   routerHarness,
   screen,
@@ -17,7 +17,7 @@ const FX_THREAD_PREFIX = 'fx-thread-';
 
 function renderList() {
   return app.render('/coding-agent', {
-    overrides: { 'coding-agent': { gateway: createFixtureGateway() } },
+    overrides: { 'coding-agent': createFixturePorts() },
     search: { transport: 'fixture' },
   });
 }

@@ -58,7 +58,8 @@ fn release_verb(p: &Parsed) -> Option<i32> {
         let library = catalog.library(&p.positional[0]).ok_or_else(|| Failure::new(format!("{} is not in libraries.json", p.positional[0])))?;
         let registry = catalog.registry(&library.registry).ok_or_else(|| Failure::new("the library's registry is not in libraries.json"))?;
         let publisher = wiring::publisher(registry)?;
-        release::release(&root, &catalog, &p.positional[0], how, publisher.as_ref(), &crate::adapters::guard::GitGuard(root.clone()))
+        let vault = secrets::all_values().map_err(|e| Failure::new(format!("the vault cannot be read: {e}")).next("a release compares the files against the vault's values; set BWS_ACCESS_TOKEN (or BWS_ADMIN_ACCESS_TOKEN) and retry"))?;
+        release::release(&root, &catalog, &p.positional[0], how, publisher.as_ref(), &crate::adapters::guard::GitGuard { root: root.clone(), vault })
     });
     finish("release", outcome)
 }
@@ -66,7 +67,7 @@ fn release_verb(p: &Parsed) -> Option<i32> {
 fn status_verb(_: &Parsed) -> Option<i32> {
     let root = wf_kit::root::repo_root();
     let outcome = catalog(&root).and_then(|catalog| {
-        let store = wiring::first_bucket(&catalog).and_then(|r| wiring::index_source(r).ok());
+        let store = wiring::first_indexed(&catalog).and_then(|r| wiring::index_source(r).ok());
         status::status(&catalog, &WorkingTree(root.clone()), store.as_deref())
     });
     finish("status", outcome)

@@ -32,3 +32,6 @@ http-body-util.workspace = true
 leetcode-auth-cookie-capture-core = { path = "../core", features = ["testing"] }
 tempfile.workspace = true
 tower = { workspace = true, features = ["util"] }
+
+[package.metadata.arch]
+type = "rust-rs"

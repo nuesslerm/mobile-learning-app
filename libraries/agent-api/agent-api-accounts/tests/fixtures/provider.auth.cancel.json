@@ -33,7 +33,10 @@
             "error": null
           }
         }
-      }
+      },
+      "actions": [
+        "login_cancel"
+      ]
     },
     {
       "name": "a session that has ended cannot be cancelled",

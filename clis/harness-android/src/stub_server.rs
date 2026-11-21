@@ -107,10 +107,20 @@ fn answer(out: &mut TcpStream, stub: &Stub) -> std::io::Result<()> {
     out.write_all(&stub.body)
 }
 
+/// The address to dial for a Host header: the emulator's alias of the runner (10.0.2.2, what a baked-in local backend url names) is the
+/// runner's own loopback from here.
+fn upstream(host: &str) -> String {
+    let addr = if host.contains(':') { host.to_string() } else { format!("{host}:80") };
+    match addr.strip_prefix(crate::android_emulator::STUB_HOST) {
+        Some(port) if port.starts_with(':') => format!("127.0.0.1{port}"),
+        _ => addr,
+    }
+}
+
 /// Sends the request on to the host it names, as one request on a fresh connection, and copies the answer back.
 fn forward(out: &mut TcpStream, req: &Request) -> Result<(), String> {
     let host = req.header("host").ok_or("no Host header to forward to")?;
-    let addr = if host.contains(':') { host.to_string() } else { format!("{host}:80") };
+    let addr = upstream(host);
     let mut up = TcpStream::connect(&addr).map_err(|e| format!("cannot reach {addr}: {e}"))?;
     let path = req.target.strip_prefix("http://").and_then(|t| t.find('/').map(|i| &t[i..])).unwrap_or(&req.target);
     let mut head = format!("{} {} HTTP/1.1\r\n", req.method, path);
@@ -123,11 +133,21 @@ fn forward(out: &mut TcpStream, req: &Request) -> Result<(), String> {
 }
 
 fn serve(conn: TcpStream, stubs: &Mutex<Vec<Stub>>, hits: &Mutex<Vec<Value>>) {
+    let peer = conn.peer_addr().map(|a| a.to_string()).unwrap_or_default();
+    // one line per connection and per request: a request that reaches the device's DNAT rule but never the stub is told from one the stub dropped by these
+    eprintln!("stub: accepted {peer}");
     let _ = conn.set_read_timeout(Some(Duration::from_secs(60)));
     let Ok(mut out) = conn.try_clone() else { return };
     let mut r = BufReader::new(conn);
-    let Ok(req) = read_request(&mut r) else { return };
+    let req = match read_request(&mut r) {
+        Ok(req) => req,
+        Err(e) => {
+            eprintln!("stub: {peer} sent no request: {e}");
+            return;
+        }
+    };
     let url = req.url();
+    eprintln!("stub: {peer} {} {url} ({} body bytes)", req.method, req.body.len());
     let stub = stubs.lock().ok().and_then(|s| matching_stub(&s, &req.method, &url));
     match stub {
         Some(stub) => {
@@ -172,5 +192,18 @@ impl StubServer {
 
     pub fn hits(&self) -> Vec<Value> {
         self.hits.lock().map(|h| h.clone()).unwrap_or_default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::upstream;
+
+    #[test]
+    fn given_the_emulators_host_alias_when_a_request_is_forwarded_then_it_dials_the_runners_loopback_and_other_hosts_unchanged() {
+        assert_eq!(upstream("10.0.2.2:8789"), "127.0.0.1:8789");
+        assert_eq!(upstream("leetcode-backend-prod:8789"), "leetcode-backend-prod:8789");
+        assert_eq!(upstream("10.0.2.22:8789"), "10.0.2.22:8789");
+        assert_eq!(upstream("example.com"), "example.com:80");
     }
 }

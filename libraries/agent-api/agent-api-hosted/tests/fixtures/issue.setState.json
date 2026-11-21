@@ -1,0 +1,29 @@
+{
+  "method": "issue.setState",
+  "exchanges": [
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "issue.setState",
+        "params": {
+          "repo": "octo/hello",
+          "number": 0,
+          "state": "closed",
+          "provider": "github",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`number` must be a positive integer"
+        }
+      },
+      "actions": [
+        "hosted_issue_state"
+      ]
+    }
+  ]
+}

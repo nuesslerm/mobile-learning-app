@@ -1,6 +1,6 @@
 //! `attachments.*` and `assets.*` through the real router and HTTP routes over an agent double that keeps attachments as the agent API does:
 //! what a phone's upload URL and asset URL are, what each route checks before it asks the agent API anything, the bytes that cross, and
-//! the attachments a message or a launch carries into the turn. The chain (`tests/integration/attachments_m12.rs`) runs the same calls through the
+//! the attachments a message or a launch carries into the turn. The chain (`tests/integration/attachments.rs`) runs the same calls through the
 //! real service and executor.
 use super::support::*;
 use base64::engine::general_purpose::STANDARD;
@@ -261,13 +261,16 @@ fn chat_attachments_sent_as_data_urls_are_kept_under_ids_and_answered_as_the_mes
         vec![store["mine"].1.clone(), store[&made].1.clone()]
     };
     assert_eq!(held, vec![bytes.clone(), bytes.clone()]);
-    // When the size is not the data's, the data is no base64, or the type is no image, Then each is the pin's PersistChatAttachmentsError and nothing more is kept
+    // When the size is not the data's or the data is no base64, Then each is the pin's PersistChatAttachmentsError and nothing more is kept
     let before = asked(&h).len();
-    for (bad, says) in [(sent(None, &url, 8, "image/png"), "holds 7 bytes"), (sent(None, "data:image/png;base64,***", 3, "image/png"), "not base64"), (sent(None, "plain text", 3, "image/png"), "not a base64 data URL"), (sent(None, &url, 7, "text/plain"), "only images")] {
+    for (bad, says) in [(sent(None, &url, 8, "image/png"), "holds 7 bytes"), (sent(None, "data:image/png;base64,***", 3, "image/png"), "not base64"), (sent(None, "plain text", 3, "image/png"), "not a base64 data URL")] {
         let exit = rpc.call("assets.persistChatAttachments", bad);
         assert_eq!(failure(&exit)["_tag"], "PersistChatAttachmentsError", "{exit}");
         assert!(failure(&exit)["message"].as_str().unwrap().contains(says), "{exit}");
     }
+    // And a type that is no image is the decoder's defect, as the real server answered
+    let exit = rpc.call("assets.persistChatAttachments", sent(None, &url, 7, "text/plain"));
+    assert_eq!(exit["cause"][0]["defect"], "Expected a string matching the RegExp ^image\\/\n  at [\"attachments\"][0][\"mimeType\"]", "{exit}");
     assert_eq!(asked(&h).len(), before);
 }
 
@@ -278,7 +281,7 @@ fn a_message_with_attachments_carries_their_ids_into_the_turn_and_shows_them_on_
     let image = json!({"type": "image", "id": "pending-a1", "name": "shot.png", "mimeType": "image/png", "sizeBytes": 4});
     let file = json!({"type": "file", "id": "pending-b2", "name": "notes.txt", "mimeType": "text/plain", "sizeBytes": 9});
     // When a message naming them is dispatched
-    let exit = rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "commandId": "c-1", "threadId": "t1", "message": {"messageId": "m-1", "text": "look at these", "attachments": [image, file]}}));
+    let exit = rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-1", "threadId": "t1", "messageId": "m-1", "text": "look at these", "attachments": [image, file]}));
     success(&exit);
     let projection = settled(&mut rpc, "t1");
     // Then the turn was started with their ids in order, and the message's row shows them as the phone sent them
@@ -287,10 +290,10 @@ fn a_message_with_attachments_carries_their_ids_into_the_turn_and_shows_them_on_
     let row = projection["messages"].as_array().unwrap().iter().find(|m| m["id"] == "m-1").expect("the message row").clone();
     assert_eq!(row["attachments"], json!([image, file]));
     // When a message names an attachment with no usable id, or too many, Then the command is refused and no turn starts
-    let bad = rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "commandId": "c-2", "threadId": "t1", "message": {"messageId": "m-2", "text": "x", "attachments": [{"type": "image", "id": "no spaces allowed", "name": "a", "mimeType": "image/png", "sizeBytes": 1}]}}));
+    let bad = rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-2", "threadId": "t1", "messageId": "m-2", "text": "x", "attachments": [{"type": "image", "id": "no spaces allowed", "name": "a", "mimeType": "image/png", "sizeBytes": 1}]}));
     assert!(failure(&bad).to_string().contains("every attachment needs an id"), "{bad}");
     let many: Vec<Value> = (0..101).map(|i| json!({"type": "file", "id": format!("f{i}"), "name": "a", "mimeType": "text/plain", "sizeBytes": 1})).collect();
-    let too_many = rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "commandId": "c-3", "threadId": "t1", "message": {"messageId": "m-3", "text": "x", "attachments": many}}));
+    let too_many = rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-3", "threadId": "t1", "messageId": "m-3", "text": "x", "attachments": many}));
     assert!(failure(&too_many).to_string().contains("up to 100 files"), "{too_many}");
     assert_eq!(h.agent.turns.lock().unwrap().len(), 1);
 }

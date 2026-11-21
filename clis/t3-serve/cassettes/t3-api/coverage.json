@@ -506,6 +506,16 @@
       }
     },
     {
+      "row": "command:thread.tag.set",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "command:thread.title.regeneration.complete",
       "status": "case",
       "input": "schema",
@@ -927,6 +937,171 @@
       }
     },
     {
+      "row": "http:voice.cancelModelDownload",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:voice.cloudKeys",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:voice.cloudModels",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:voice.downloadModel",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:voice.linkModels",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:voice.models",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:voice.postProcess",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:voice.prepareModel",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:voice.removeModel",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:voice.selectModel",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:voice.setCloudKey",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:voice.status",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:voice.transcribe",
+      "status": "case",
+      "input": "empty",
+      "cases": 3,
+      "classes": {
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:voice.transcribeCloud",
+      "status": "case",
+      "input": "empty",
+      "cases": 3,
+      "classes": {
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:voice.updateAcceleration",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:voice.updateModelUnloadTimeout",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "http:webhooks.webhookGet",
       "status": "case",
       "input": "empty",
@@ -1337,6 +1512,16 @@
       }
     },
     {
+      "row": "rpc:orchestration.getNativeChildWork",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:orchestration.getOlderSettledThreads",
       "status": "case",
       "input": "schema",
@@ -1358,11 +1543,33 @@
       }
     },
     {
+      "row": "rpc:orchestration.getThreadLinkMetadata",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:orchestration.getThreadProjection",
       "status": "case",
       "input": "schema",
       "cases": 4,
       "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.getThreadTitles",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
         "invalid": 3,
         "valid": 1
       }
@@ -1465,6 +1672,16 @@
     },
     {
       "row": "rpc:orchestration.subscribeCommandOutput",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.subscribePromptSuggestion",
       "status": "case",
       "input": "schema",
       "cases": 4,
@@ -1798,6 +2015,16 @@
       }
     },
     {
+      "row": "rpc:provider.auth.removeMethod",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:provider.auth.respond",
       "status": "case",
       "input": "schema",
@@ -1864,8 +2091,9 @@
       "row": "rpc:provider.consumeResetCredit",
       "status": "case",
       "input": "schema",
-      "cases": 3,
+      "cases": 4,
       "classes": {
+        "boundary": 1,
         "invalid": 2,
         "valid": 1
       }
@@ -2120,10 +2348,10 @@
       "row": "rpc:pullRequests.reviewerCandidates",
       "status": "case",
       "input": "schema",
-      "cases": 6,
+      "cases": 4,
       "classes": {
-        "boundary": 2,
-        "invalid": 3,
+        "boundary": 1,
+        "invalid": 2,
         "valid": 1
       }
     },
@@ -2603,6 +2831,17 @@
       }
     },
     {
+      "row": "rpc:server.listTextGeneratorModels",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:server.logoutAcpRegistry",
       "status": "case",
       "input": "schema",
@@ -2635,6 +2874,16 @@
     },
     {
       "row": "rpc:server.probe",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.reclaimDatabaseSpace",
       "status": "case",
       "input": "schema",
       "cases": 2,
@@ -2877,6 +3126,16 @@
       }
     },
     {
+      "row": "rpc:sourceControl.star",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:sourceControl.starred",
       "status": "case",
       "input": "schema",
@@ -2975,6 +3234,16 @@
       "cases": 2,
       "classes": {
         "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:subscribeVcsBranch",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
         "valid": 1
       }
     },
@@ -3118,6 +3387,16 @@
     },
     {
       "row": "rpc:vcs.pull",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:vcs.refreshBranch",
       "status": "case",
       "input": "schema",
       "cases": 4,

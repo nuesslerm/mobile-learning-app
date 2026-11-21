@@ -142,7 +142,7 @@ fn vm_logs_queries_betterstack_over_https_and_prints_one_line_per_row() {
     assert!(r.stderr.contains("See `wf secret list` for where each value comes from."), "{}", r.stderr);
 }
 
-const APPS: [&str; 9] = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"];
+const APPS: [&str; 8] = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"];
 
 /// vm-ops-api for `wf vm recover`: routes by method and path, a queue per route, entries that answer only once `oci` dropped a
 /// flag file for an action, and entries that drop the connection as a host that is down does.
@@ -861,7 +861,7 @@ fn the_recreate_preflight_passes_only_when_state_secrets_ci_and_plan_all_hold() 
     assert_eq!((r.exit_code, failed(&v)), (1, vec!["ci".to_string()]));
     assert!(detail(&v, "ci").contains("CI #42 (in_progress, abcdef123)"), "{v}");
     assert!(v["next"].as_str().unwrap().starts_with("fix the failed checks"));
-    // Given a run only queued, Then the ci check passes and says it waits for the new runner
+    // Given a run only queued, Then the ci check passes and says it is only queued
     set_runs(json!({ "queued": [{ "id": 43, "name": "CI", "head_sha": "abcdef1234567" }] }));
     let q = verdict(&preflight(&[]));
     assert!(failed(&q).is_empty(), "{q}");

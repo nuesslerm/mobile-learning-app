@@ -1,0 +1,18 @@
+{
+  "transcript": "then move the pointer on the shorter side inward",
+  "alternatives": [
+    {
+      "id": "stub-1",
+      "label": "Move the shorter side inward",
+      "summary": "Then move the pointer on the shorter side inward.",
+      "confidence": 0.95,
+      "commands": [
+        {
+          "type": "insertAfterLine",
+          "line": 7,
+          "text": "            if height[left] < height[right]:\n                left += 1\n            else:\n                right -= 1"
+        }
+      ]
+    }
+  ]
+}

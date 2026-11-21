@@ -36,16 +36,18 @@ pub async fn channel(State(app): State<Arc<App>>, req: Req, upgrade: Result<WebS
     }
 }
 
-/// `POST /mcp/{thread}`: one JSON-RPC message of the thread's tool server. Only a loopback peer is let in: the CLI runs in this container.
-pub async fn mcp_server(State(app): State<Arc<App>>, ConnectInfo(peer): ConnectInfo<SocketAddr>, Path(thread): Path<String>, body: Bytes) -> Response {
-    if !peer.ip().to_canonical().is_loopback() {
+/// `POST /mcp/{thread}`: one JSON-RPC message of the thread's tool server. A loopback peer is let in (a CLI on this host), and so is a caller that
+/// presents the bearer token of the thread's running turn (a CLI on the workspace host).
+pub async fn mcp_server(State(app): State<Arc<App>>, ConnectInfo(peer): ConnectInfo<SocketAddr>, Path(thread): Path<String>, headers: axum::http::HeaderMap, body: Bytes) -> Response {
+    let bearer = headers.get(axum::http::header::AUTHORIZATION).and_then(|v| v.to_str().ok()).and_then(|v| v.strip_prefix("Bearer "));
+    if !peer.ip().to_canonical().is_loopback() && !bearer.is_some_and(|token| app.service_tools.admits(&thread, token)) {
         tracing::warn!(event = "mcp.refused.non_loopback", peer = %peer);
-        return failure(403, "MCP_LOOPBACK_ONLY", "the MCP server answers loopback callers only");
+        return failure(403, "MCP_LOOPBACK_ONLY", "the MCP server answers loopback callers and the bearer of the thread's running turn only");
     }
     let Ok(message) = serde_json::from_slice::<Value>(&body) else {
         return respond(400, &json!({"jsonrpc": "2.0", "id": null, "error": {"code": -32700, "message": "parse error"}}));
     };
-    match mcp::handle(&thread, app.executors.for_thread(&thread), Some(app.service_tools.as_ref()), &message).await {
+    match mcp::handle(&thread, Some(app.service_tools.as_ref()), &message).await {
         Some(reply) => respond(200, &reply),
         None => super::empty(202),
     }

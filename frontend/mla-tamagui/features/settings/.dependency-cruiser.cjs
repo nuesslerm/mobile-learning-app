@@ -1,3 +1,3 @@
-const { featureDepcruiseConfig } = require('../../../feature-kit/depcruise.feature.cjs');
+const { presentationFeature } = require('../../../feature-kit/depcruise.presets.cjs');
 
-module.exports = featureDepcruiseConfig();
+module.exports = presentationFeature({ root: 'src', appPrefix: '../../' });

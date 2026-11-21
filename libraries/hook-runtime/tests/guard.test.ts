@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -126,6 +126,27 @@ describe('given rules with conditions', () => {
 
   it('when the real secret-exposure script sees no secret source, then cat stays allowed', () => {
     expect(verdict('cat package.json')).toBeNull();
+  });
+});
+
+describe('given a rule whose condition script is missing', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'guard-missing-'));
+  const loaded = { rules: [{ command: 'cat', condition: 'scripts/gone.mjs', reason: 'cat with a secret' }] };
+
+  it('when Bash runs, then every command fails closed and names the script', () => {
+    const reason = decide(bash('ls'), { root: dir, loaded });
+    expect(reason).toContain('condition script does not exist');
+    expect(reason).toContain('scripts/gone.mjs');
+  });
+
+  it('when Edit runs, then it is allowed so the list can be repaired', () => {
+    expect(decide({ tool_name: 'Edit', tool_input: { file_path: join(dir, 'x.txt') } }, { root: dir, loaded })).toBeNull();
+  });
+
+  it('when the script exists, then the rule decides as before', () => {
+    mkdirSync(join(dir, 'scripts'));
+    writeFileSync(join(dir, 'scripts/gone.mjs'), 'process.exit(1);\n');
+    expect(decide(bash('cat a'), { root: dir, loaded })).toBeNull();
   });
 });
 

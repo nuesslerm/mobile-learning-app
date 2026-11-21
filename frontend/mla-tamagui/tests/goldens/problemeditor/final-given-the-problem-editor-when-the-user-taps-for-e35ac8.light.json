@@ -23,6 +23,7 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
       "ProblemEditorActions",
@@ -33,6 +34,8 @@
       "ProblemEditorTextEditStartButton",
       "ProblemEditorVoiceStartButton",
       "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
       "ProblemEditorTestInput",
       "ProblemPlanTab",
       "ProblemPlanSteps",
@@ -41,10 +44,10 @@
       "ProblemPlanTextInput",
       "ProblemPlanAddButton"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset"
+    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
   },
   "timings": {
-    "render_ms": 261
+    "render_ms": 390
   },
   "name": "problemeditor/final-given-the-problem-editor-when-the-user-taps-for-e35ac8.light",
   "image": {

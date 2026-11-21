@@ -1,0 +1,48 @@
+{
+  "method": "project.setIssueType",
+  "exchanges": [
+    {
+      "name": "no workspace is named, so an executor whose gh is signed in answers",
+      "request": {
+        "id": 1,
+        "method": "project.setIssueType",
+        "params": {
+          "repo": "octo/hello",
+          "number": 7,
+          "issue_type": "IT_1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "done": true
+        }
+      },
+      "actions": [
+        "hosted_issue_type_set"
+      ]
+    },
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 2,
+        "method": "project.setIssueType",
+        "params": {
+          "repo": "octo/hello",
+          "number": 0,
+          "issue_type": "IT_1"
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`number` must be a positive integer"
+        }
+      },
+      "actions": [
+        "hosted_issue_type_set"
+      ]
+    }
+  ]
+}

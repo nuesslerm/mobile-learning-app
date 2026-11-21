@@ -11,10 +11,12 @@ pub mod remote;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 
+/// The action that starts a program at the executor: what a turn's CLI runs through.
+pub use exec_proc::{CliDetectResult, CLI_DETECT, MCP_REQUEST, PROC_SAMPLE, RUN_COMMAND};
 pub use placed::Placed;
-pub use registry::{Executors, Place, Registry, Route, RouteError, WorkspaceError};
+pub use registry::{Executors, Place, Registry, Route, RouteError, WorkspaceError, WorkspaceLedger};
 
 /// Every action of the executor contract, whichever family crate defines it.
 pub fn contract_actions() -> impl Iterator<Item = &'static exec_proto::Action> {
-    [exec_fs::ACTIONS, exec_proc::ACTIONS, exec_git::ACTIONS, exec_pty::ACTIONS, exec_hosted::ACTIONS, exec_preview::ACTIONS].into_iter().flatten()
+    [exec_fs::ACTIONS, exec_proc::ACTIONS, exec_git::ACTIONS, exec_pty::ACTIONS, exec_hosted::ACTIONS, exec_preview::ACTIONS, exec_browser::ACTIONS].into_iter().flatten()
 }

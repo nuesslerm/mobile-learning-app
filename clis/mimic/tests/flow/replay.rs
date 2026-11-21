@@ -207,3 +207,53 @@ fn the_sdk_replays_a_set_in_process_with_the_same_verdict_as_the_cli() {
     // Then it is clean, as the CLI found the same program
     assert!(verdict.ok() && verdict.summary.clean == set.cassette.interactions.len(), "{verdict:?}");
 }
+
+#[test]
+fn a_slice_of_rows_replays_only_the_interactions_of_the_rows_that_start_with_a_prefix() {
+    // Given a recorded set whose interactions name their rows
+    let w = recorded();
+    let all = w.interactions();
+    let wanted = |prefix: &str| all.iter().filter(|i| i["row"].as_str().is_some_and(|r| r.starts_with(prefix))).count();
+    assert!(wanted("rpc:echo") > 0 && wanted("rpc:echo") < all.len(), "the fixture has more than one row");
+    // When one row's slice is replayed
+    let r = w.run("replay", &["--candidate", "same", "--rows", "rpc:echo"]);
+    // Then only its interactions were chosen and compared
+    assert_eq!((r.code, r.json["chosen"].clone(), r.json["summary"]["total"].clone()), (0, json!(wanted("rpc:echo")), json!(wanted("rpc:echo"))), "{}", r.json);
+    // And a prefix that names no row is refused with the way a prefix matches, and --only narrows the slice to the ids both name
+    let none = w.run("replay", &["--candidate", "same", "--rows", "rpc:no-such-row"]);
+    assert_eq!(none.code, 2, "{}", none.json);
+    assert!(none.json["error"].as_str().unwrap().contains("rpc:no-such-row") && none.json["error"].as_str().unwrap().contains("prefix"), "{}", none.json);
+    let id = all.iter().find(|i| i["row"].as_str().is_some_and(|r| r.starts_with("rpc:echo"))).unwrap()["id"].as_str().unwrap().to_string();
+    let narrowed = w.run("replay", &["--candidate", "same", "--rows", "rpc:echo", "--only", &id]);
+    assert_eq!(narrowed.json["chosen"], json!(1), "{}", narrowed.json);
+}
+
+#[test]
+fn the_known_gaps_of_a_slice_are_checked_and_written_by_the_verb_and_the_other_rows_are_kept() {
+    // Given a recorded set and a candidate that drops a key of every object it answers
+    let w = recorded();
+    let all = w.interactions();
+    let echo = |i: &Value| i["row"].as_str().is_some_and(|r| r.starts_with("rpc:echo"));
+    // When its differences are checked against a set that lists none, Then they are new and the check fails
+    let unlisted = w.run("replay", &["--candidate", "drop", "--gaps", "check"]);
+    assert_eq!(unlisted.code, 1, "{}", unlisted.json);
+    assert!(!unlisted.json["gaps"]["new"].as_array().unwrap().is_empty(), "{}", unlisted.json);
+    // When they are written and checked again, Then the check is clean
+    let written = w.run("replay", &["--candidate", "drop", "--gaps", "write"]);
+    assert_eq!(written.code, 0, "{}", written.json);
+    let listed = |w: &World| -> Vec<String> { serde_json::from_str::<Value>(&w.read("known-gaps.json")).unwrap()["groups"].as_array().unwrap().iter().flat_map(|g| g["ids"].as_array().unwrap().iter().map(|i| i.as_str().unwrap().to_string())).collect() };
+    let before = listed(&w);
+    assert!(before.len() > all.iter().filter(|i| echo(i)).count(), "the candidate differs on more than the echo row: {before:?}");
+    assert_eq!(w.run("replay", &["--candidate", "drop", "--gaps", "check"]).code, 0);
+    // When the same program is replayed over the echo slice only, Then the echo gaps are stale and the check says so
+    let stale = w.run("replay", &["--candidate", "same", "--rows", "rpc:echo", "--gaps", "check"]);
+    assert_eq!(stale.code, 1, "{}", stale.json);
+    assert!(!stale.json["gaps"]["stale"].as_array().unwrap().is_empty() && stale.json["gaps"]["new"].as_array().unwrap().is_empty(), "{}", stale.json);
+    // And writing that slice drops the echo rows from the file and keeps every other row's gaps
+    assert_eq!(w.run("replay", &["--candidate", "same", "--rows", "rpc:echo", "--gaps", "write"]).code, 0);
+    let after = listed(&w);
+    assert!(after.iter().all(|id| !all.iter().any(|i| i["id"] == id.as_str() && echo(i))), "{after:?}");
+    assert_eq!(after.len(), before.len() - all.iter().filter(|i| echo(i)).count().min(before.len()), "{after:?}");
+    // And a mode that is neither check nor write is refused
+    assert_eq!(w.run("replay", &["--candidate", "same", "--gaps", "maybe"]).code, 2);
+}

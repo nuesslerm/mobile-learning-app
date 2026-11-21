@@ -12,7 +12,7 @@ import {
   type OrchestrationThreadActivity,
 } from '@app/remote-chat-agent-contracts/orchestration';
 
-import { type DispatchRunDetail, type DispatchRunLine, parseDispatchRunLine } from '../contracts/dispatchRuns';
+import { type DispatchRunDetail, type DispatchRunLine, parseDispatchRunLine } from './dispatchRuns';
 import type { ThreadFeedEntry } from './threadFeed';
 import type { WorkLogEntry, WorkLogKind } from './workLog';
 import { sniffToolPayload } from './toolPayload';

@@ -6,6 +6,7 @@ pub mod blackbox;
 #[cfg(feature = "e2e")]
 pub mod e2e;
 pub mod heartbeat;
+#[cfg(feature = "rate-limit")]
 pub mod rate_limit;
 pub mod secrets;
 pub mod shutdown;

@@ -1,0 +1,28 @@
+{
+  "method": "mr.setAutoMerge",
+  "exchanges": [
+    {
+      "name": "the mr spelling reaches the same action and defaults to gitlab",
+      "request": {
+        "id": 1,
+        "method": "mr.setAutoMerge",
+        "params": {
+          "number": 1,
+          "enabled": true,
+          "method": "octopus",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`method` must be one of `merge`, `squash`, `rebase`"
+        }
+      },
+      "actions": [
+        "hosted_pr_auto_merge"
+      ]
+    }
+  ]
+}

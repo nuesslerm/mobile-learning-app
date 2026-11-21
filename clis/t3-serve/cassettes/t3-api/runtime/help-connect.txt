@@ -1,0 +1,24 @@
+DESCRIPTION
+  Set up T3 Connect for this machine. Same as `t3 up --connect`.
+
+USAGE
+  t3 connect <subcommand> [flags]
+
+FLAGS
+  --base-dir string    Explicit T3 Code data directory; runtime state is stored under userdata (equivalent to T3CODE_HOME).
+  --headless           Sign in with a URL and code on any device. Automatic without a terminal or over SSH.
+
+GLOBAL FLAGS
+  --help, -h                                                          Show help information
+  --version, -v                                                       Show version information
+  --wizard                                                            Start wizard mode for a command
+  --completions <bash|zsh|fish|powershell|sh|pwsh>                    Print shell completion script (choices: bash, zsh, fish, powershell, sh, pwsh)
+  --log-level <all|trace|debug|info|warn|warning|error|fatal|none>    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
+
+SUBCOMMANDS
+  login      Authorize the T3 Connect CLI without enabling remote access.
+  link       Authorize this environment for T3 Connect on next start.
+  publish    Toggle publishing agent activity (push notifications and Live Activities) to your mobile clients.
+  status     Show T3 Connect setup and check that other devices can reach this machine.
+  unlink     Disable T3 Connect while retaining the stored authorization.
+  logout     Disable T3 Connect and clear the stored CLI authorization.

@@ -7,8 +7,8 @@ use crate::domain::decider::{decide, materialize_internal, Context, Decision};
 use crate::domain::lifecycle::Lifecycle;
 use crate::domain::projector::{project, NeutralThread, ReadModel};
 use crate::domain::queries::{self, Cursor, SearchHit, Shelf, ShelfPage};
-use crate::domain::types::*;
-use crate::domain::ids::{Clock, IdSource};
+use crate::domain::types::{Activity, Body, Command, Event, Receipt, Session, ShellItem, Summary, Thread, ThreadItem};
+use super::ports::{Clock, IdSource};
 use serde_json::json;
 use std::sync::{Arc, Mutex, MutexGuard};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver as Receiver, UnboundedSender as Sender};
@@ -384,6 +384,7 @@ impl Engine {
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::types::ModelSelection;
     use super::*;
     use crate::application::store::MemoryStore;
     use crate::testing::{CountingIds, FixedClock};

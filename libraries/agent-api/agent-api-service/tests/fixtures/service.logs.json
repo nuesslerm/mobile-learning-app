@@ -1,0 +1,61 @@
+{
+  "method": "service.logs",
+  "exchanges": [
+    {
+      "name": "gives the last events the service wrote, newest last, and how many it keeps",
+      "request": {
+        "id": 1,
+        "method": "service.logs",
+        "params": {
+          "limit": 50,
+          "min_level": "info"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "lines": [],
+          "kept": 0
+        }
+      },
+      "volatile": [
+        "/result/lines",
+        "/result/kept"
+      ]
+    },
+    {
+      "name": "a limit out of range is refused",
+      "request": {
+        "id": 1,
+        "method": "service.logs",
+        "params": {
+          "limit": 0
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "limit must be an integer from 1 to 1000"
+        }
+      }
+    },
+    {
+      "name": "a level that is none is refused",
+      "request": {
+        "id": 1,
+        "method": "service.logs",
+        "params": {
+          "min_level": "debug"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "min_level must be info, warn or error"
+        }
+      }
+    }
+  ]
+}

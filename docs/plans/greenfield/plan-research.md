@@ -137,7 +137,7 @@ Columns:
 
 ## 6. Sandbox lifetime
 - This cannot be measured inside one session without going idle.
-- It is measured in P3: a `wf offload worker` heartbeat log plus the lease expiry it causes.
+- It is measured in P3: a `wf rca worker` heartbeat log plus the lease expiry it causes.
 - Leases keep the design correct either way.
 
 ## 7. VM incidents during P0
@@ -148,6 +148,6 @@ Columns:
 - **23:50:** two VM timing jobs ended `exit=1` straight after the worktree sync with no script output.
   - Cause: `wf vm job start <name> -- bash -c '<script>'` joins argv into `eval '<joined>'` without shell-quoting, so `bash -c` received only `cd`.
   - Workaround: pass the script as one argument.
-  - Fix belongs in P6 (`wf offload worker` takes a script file, never a joined argv).
+  - Fix belongs in P6 (`wf rca worker` takes a script file, never a joined argv).
 - `wf vm job logs <name> --follow` exited 0 before the job's output ended. The job itself finished `exit=0` with every result line in `output.log`, so the follow stream truncates.
-  - Fix belongs in P6 (`wf offload worker` reads the job's own exit and output files).
+  - Fix belongs in P6 (`wf rca worker` reads the job's own exit and output files).

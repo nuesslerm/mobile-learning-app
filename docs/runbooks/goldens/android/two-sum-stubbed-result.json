@@ -1,7 +1,7 @@
 {
   "platform": "android",
   "step": 2,
-  "last_action": "tap id:ProblemEditorRunLocalButton",
+  "last_action": "tap_on{id='ProblemEditorRunLocalButton'}",
   "warnings": [],
   "summary": null,
   "screen": {
@@ -9,8 +9,8 @@
     "height": 1040
   },
   "timings": {
-    "since_start_ms": 7509,
-    "capture_ms": 205
+    "since_start_ms": 4946,
+    "capture_ms": 128
   },
   "tolerance": {
     "threshold": 0.1,

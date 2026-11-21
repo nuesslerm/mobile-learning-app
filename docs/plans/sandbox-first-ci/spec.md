@@ -20,7 +20,7 @@ CI run `39234982117` at `5fa8024a7` (19 Oct), one job after another on the VM's 
 
 | Job | Minutes | Notes |
 | --- | --- | --- |
-| plan | 0.4 | `wf test plan`, `wf ship --changed` |
+| plan | 0.4 | `wf ci plan tests`, `wf ci plan legs` |
 | flow-tests | 6.8 | the step itself 6.5 (cold run on 2 OCPU, vitest on one worker) |
 | typecheck-lint-unit-tests | 0.6 | mostly Nx replays on this push |
 | clis | 0.1 | the wf build was already current |

@@ -1,0 +1,128 @@
+{
+  "method": "schedule.runs",
+  "exchanges": [
+    {
+      "name": "answers the schedule's runs newest first, each with when it began",
+      "before": [
+        {
+          "id": "setup-runs",
+          "method": "schedule.upsert",
+          "params": {
+            "id": "s-runs",
+            "title": "Nightly",
+            "prompt": "run the checks",
+            "enabled": true,
+            "schedule": {
+              "type": "interval",
+              "every_ms": 60000
+            },
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        },
+        {
+          "id": "setup-run-now",
+          "method": "schedule.runNow",
+          "params": {
+            "id": "s-runs"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "schedule.runs",
+        "params": {
+          "id": "s-runs"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "runs": [
+            {
+              "run": "run-1",
+              "schedule": "s-runs",
+              "source": "manual",
+              "at_ms": 1700000000000,
+              "state": "started",
+              "thread": "<volatile>",
+              "turn": "<volatile>",
+              "error": null
+            }
+          ]
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/result/runs/0/thread",
+        "/result/runs/0/turn"
+      ]
+    },
+    {
+      "name": "answers every schedule's runs when no id is named",
+      "request": {
+        "id": 2,
+        "method": "schedule.runs",
+        "params": {}
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "runs": [
+            {
+              "run": "run-1",
+              "schedule": "s-runs",
+              "source": "manual",
+              "at_ms": 1700000000000,
+              "state": "started",
+              "thread": "<volatile>",
+              "turn": "<volatile>",
+              "error": null
+            }
+          ]
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/result/runs/0/thread",
+        "/result/runs/0/turn"
+      ]
+    },
+    {
+      "name": "answers SCHEDULE_NOT_FOUND for an id no schedule has",
+      "request": {
+        "id": 3,
+        "method": "schedule.runs",
+        "params": {
+          "id": "nope"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "SCHEDULE_NOT_FOUND",
+          "message": "no schedule has the id nope"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses a param the method does not take",
+      "request": {
+        "id": 4,
+        "method": "schedule.runs",
+        "params": {
+          "limit": 1
+        }
+      },
+      "response": {
+        "id": 4,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "unknown field `limit`, expected `id`"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

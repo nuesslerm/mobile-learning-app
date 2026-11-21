@@ -31,7 +31,7 @@ pub struct Catalog {
 }
 
 pub const REGISTRY_KINDS: [&str; 4] = ["cargo-sparse", "crates-io", "npm", "npm-tarball"];
-pub const PUBLISHERS: [&str; 4] = ["bucket-sparse", "cargo-publish", "npm-publish", "npm-tarball"];
+pub const PUBLISHERS: [&str; 5] = ["bucket-sparse", "git-sparse", "cargo-publish", "npm-publish", "npm-tarball"];
 
 impl Catalog {
     pub fn registry(&self, alias: &str) -> Option<&Registry> {

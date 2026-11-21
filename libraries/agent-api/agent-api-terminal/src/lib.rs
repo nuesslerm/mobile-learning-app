@@ -17,14 +17,21 @@ pub const GROUP: GroupName = GroupName::new("terminal");
 pub const OPEN: Method = Method::new(GROUP, "terminal.open");
 pub const WRITE: Method = Method::new(GROUP, "terminal.write");
 pub const RESIZE: Method = Method::new(GROUP, "terminal.resize");
+pub const READ: Method = Method::new(GROUP, "terminal.read");
 pub const CLOSE: Method = Method::new(GROUP, "terminal.close");
 pub const CLEAR: Method = Method::new(GROUP, "terminal.clear");
 pub const LIST: Method = Method::new(GROUP, "terminal.list");
 pub const RENAME: Method = Method::new(GROUP, "terminal.rename");
 pub const ATTACH: Method = Method::new(GROUP, "terminal.attach");
 pub const SUBSCRIBE: Method = Method::new(GROUP, "terminal.subscribe");
+/// Closes the shells of a workspace and keeps what it takes to start them again (name, title, cwd, size), across a restart of the service.
+pub const SLEEP: Method = Method::new(GROUP, "terminal.sleep");
+/// Starts again the shells a sleep kept for a workspace.
+pub const WAKE: Method = Method::new(GROUP, "terminal.wake");
+/// The workspaces that sleep, with the shells each keeps.
+pub const SLEEPING: Method = Method::new(GROUP, "terminal.sleeping");
 
-pub const METHODS: &[Method] = &[OPEN, WRITE, RESIZE, CLOSE, CLEAR, LIST, RENAME, ATTACH, SUBSCRIBE];
+pub const METHODS: &[Method] = &[OPEN, WRITE, RESIZE, CLOSE, CLEAR, LIST, RENAME, ATTACH, SUBSCRIBE, READ, SLEEP, WAKE, SLEEPING];
 
 pub mod code {
     /// No terminal of that name in the workspace.
@@ -33,6 +40,8 @@ pub mod code {
     pub const TERMINAL_EXITED: &str = "TERMINAL_EXITED";
     /// The attach asked for an offset the stream has not reached.
     pub const OFFSET_AHEAD: &str = "OFFSET_AHEAD";
+    /// The service could not read or write the sleeping workspaces; nothing changed that it can tell.
+    pub const SLEEP_UNAVAILABLE: &str = "SLEEP_UNAVAILABLE";
 }
 
 /// Most output the service keeps of one terminal for a later attach.
@@ -249,6 +258,26 @@ pub struct ListResult {
     pub terminals: Vec<TerminalInfo>,
 }
 
+/// The answer to `terminal.read`: the bytes of the kept tail from `after_offset` (or all of it), as one answer with no stream after it. The params are
+/// those of `terminal.attach`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ReadResult {
+    pub workspace: String,
+    pub terminal: String,
+    pub after_offset: Option<u64>,
+    /// The offset of the first byte of `data`: the caller's, or the oldest kept byte when it asked for none or an older one.
+    pub start_offset: u64,
+    /// The offset the stream stands at: `data` ends there.
+    pub offset: u64,
+    /// True when `after_offset` was before the oldest kept byte, so bytes were missed.
+    pub reset: bool,
+    pub data: String,
+    pub cols: u16,
+    pub rows: u16,
+    pub status: Status,
+    pub exit_code: Option<i32>,
+}
+
 /// The answer to `terminal.attach`: where the replay starts and ends. The replay and then the live output follow as events.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AttachResult {
@@ -275,6 +304,60 @@ pub struct SubscribeResult {
     pub seq: u64,
     /// True when `after_seq` was older than the events kept: `terminals` replaces what the caller held.
     pub reset: bool,
+}
+
+/// A shell a sleep closed: what starts it again.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SleptTerminal {
+    pub terminal: String,
+    pub title: String,
+    pub cwd: String,
+    pub cols: u16,
+    pub rows: u16,
+}
+
+/// A workspace whose shells sleep, and since when.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SleepingWorkspace {
+    pub workspace: String,
+    pub slept_at_ms: u64,
+    pub terminals: Vec<SleptTerminal>,
+}
+
+/// The answer to `terminal.sleep`: the shells this call closed, and whether the workspace already slept (a second sleep closes the shells
+/// opened since and keeps them with the others).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SleepResult {
+    pub workspace: String,
+    pub slept: Vec<SleptTerminal>,
+    pub already: bool,
+}
+
+/// A shell a wake could not start again: it stays kept, so a later wake tries it once more.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WakeFailure {
+    pub terminal: String,
+    pub code: String,
+    pub message: String,
+}
+
+/// The answer to `terminal.wake`: the shells started again (none for a workspace that did not sleep) and the ones that could not be.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WakeResult {
+    pub workspace: String,
+    pub woken: Vec<TerminalInfo>,
+    pub failed: Vec<WakeFailure>,
+}
+
+/// The answer to `terminal.sleeping`: every workspace that sleeps, by name, or only the one asked for.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SleepingResult {
+    pub sleeping: Vec<SleepingWorkspace>,
+}
+
+/// The params of `terminal.sleeping`: a workspace to look at, or none for every one.
+pub fn optional_workspace(params: &Value) -> Result<Option<String>, ParamError> {
+    optional_text(params, "workspace")
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -397,10 +480,21 @@ mod tests {
         let out = output_event("w", "t", 10, &bytes);
         let snap = snapshot_event(&info(), 4, &bytes, true);
         // Then seq is the offset after the last byte, in both, and the data decodes to the bytes
-        assert_eq!((out.seq, out.thread.clone(), out.topic()), (14, None, None));
+        assert_eq!((out.seq, out.thread.clone(), out.topic()), (14, None, Some("terminal/w/t".to_string())));
         assert_eq!(b64::decode(out.data["data"].as_str().unwrap()), Some(bytes.to_vec()));
         assert_eq!((snap.seq, snap.data["start_offset"].clone(), snap.data["offset"].clone(), snap.data["reset"].clone(), snap.data["status"].clone()), (8, json!(4), json!(8), json!(true), json!("running")));
         assert_eq!(out.to_value()["event"]["type"], json!("terminal.output"));
+    }
+
+    #[test]
+    fn given_the_params_of_sleep_wake_and_sleeping_when_read_then_a_workspace_is_required_but_for_sleeping() {
+        assert_eq!(workspace_param(&json!({})).unwrap_err().0, "workspace is required");
+        assert_eq!(optional_workspace(&json!({})).unwrap(), None);
+        assert_eq!(optional_workspace(&json!({"workspace": "w"})).unwrap().as_deref(), Some("w"));
+        assert_eq!(optional_workspace(&json!({"workspace": 3})).unwrap_err().0, "workspace must be a non-empty string");
+        let kept = SleepingWorkspace { workspace: "w".into(), slept_at_ms: 9, terminals: vec![SleptTerminal { terminal: "t".into(), title: "t".into(), cwd: "/r".into(), cols: 80, rows: 24 }] };
+        assert_eq!(serde_json::from_value::<SleepingWorkspace>(serde_json::to_value(&kept).unwrap()).unwrap(), kept);
+        assert_eq!(METHODS.iter().filter(|m| [SLEEP, WAKE, SLEEPING].contains(m)).count(), 3);
     }
 
     #[test]

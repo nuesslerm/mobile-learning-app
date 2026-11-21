@@ -1,0 +1,30 @@
+[
+  {
+    "type": "dependency",
+    "from": "theme/fonts.ts",
+    "to": "primitives.tsx",
+    "unresolvedTo": "../primitives",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "theme-imports-lib"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "theme/tamagui.config.ts",
+    "to": "primitives.tsx",
+    "unresolvedTo": "../primitives",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "theme-imports-lib"
+    }
+  }
+]

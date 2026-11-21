@@ -11,7 +11,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { ScrollViewProps } from 'react-native';
+import type { ScrollViewInstance, ScrollViewProps } from 'react-native';
 import { Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -222,7 +222,7 @@ export type KeyboardToolbarAwareScrollViewProps = ScrollViewProps & {
 };
 
 export const KeyboardToolbarAwareScrollView = forwardRef<
-  ScrollView,
+  ScrollViewInstance,
   KeyboardToolbarAwareScrollViewProps
 >(function KeyboardToolbarAwareScrollView(
   {

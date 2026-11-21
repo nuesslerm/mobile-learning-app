@@ -1,0 +1,86 @@
+{
+  "method": "sessions.list",
+  "exchanges": [
+    {
+      "name": "answers a home with no session files with an empty list, from the only executor",
+      "request": {
+        "id": 1,
+        "method": "sessions.list",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "executor": "w1",
+          "sessions": [],
+          "truncated": false
+        }
+      },
+      "actions": [
+        "session_scan"
+      ]
+    },
+    {
+      "name": "reads only the CLIs it is asked for",
+      "request": {
+        "id": 2,
+        "method": "sessions.list",
+        "params": {
+          "agents": [
+            "codex"
+          ],
+          "limit": 10
+        }
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "executor": "w1",
+          "sessions": [],
+          "truncated": false
+        }
+      },
+      "actions": [
+        "session_scan"
+      ]
+    },
+    {
+      "name": "refuses a CLI that keeps no sessions here",
+      "request": {
+        "id": 3,
+        "method": "sessions.list",
+        "params": {
+          "agents": [
+            "opencode"
+          ]
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "agents is a list of claude and codex without repeats"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses an executor nobody attached",
+      "request": {
+        "id": 4,
+        "method": "sessions.list",
+        "params": {
+          "executor": "e9"
+        }
+      },
+      "response": {
+        "id": 4,
+        "error": {
+          "code": "UNKNOWN_EXECUTOR",
+          "message": "no executor named e9 is attached"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

@@ -1,13 +1,16 @@
 //! The hosted source control of the agent API: pull and merge requests, runs, clones and the provider sign-in, done by the executor that owns a
-//! workspace with the credentials its machine already holds (`exec-hosted`). The service holds no token. Three sub-groups:
+//! workspace with the credentials its machine already holds (`exec-hosted`). The service holds no token. Four sub-groups:
 //!
 //! - `hosted.pr`: `pr.*` and the same methods as `mr.*` (the neutral spelling for GitLab's merge requests; they differ only in the provider a
-//!   request that names none gets: `github` for `pr.*`, `gitlab` for `mr.*`), `pr.runs` and `pr.run`, and the repository's label and reviewer candidates.
+//!   request that names none gets: `github` for `pr.*`, `gitlab` for `mr.*`), `pr.runs`, `pr.run` and `pr.rerun`, `pr.checkDetails`, `pr.setAutoMerge`, and the repository's label and reviewer candidates.
+//! - `hosted.issue`: a repository's issues for GitHub and GitLab (list, view, search and count over issues and pull or merge requests, comments, edit, state, create) and the account's to-dos.
+//! - `hosted.project`: GitHub Projects (the accounts' projects, their views, a project item's fields), and the issue and comment writes the project
+//!   view makes by repository slug (issue types, comments by id, one-request issue updates), each asked of an executor whose gh is signed in.
 //! - `hosted.clone`: `clone.start` clones into a directory of the workspace and stays observable (`clone.status`, `clone.subscribe`) until it
 //!   ends or `clone.cancel` stops it; retrying is starting again.
 //! - `hosted.auth`: `sourceControl.*`: what the machine is signed in to, repository lookup and publish, and the CLI's web sign-in.
 //!
-//! Every method takes `workspace` and forwards the params the executor action it names lists (snake_case, times in milliseconds); results and
+//! A method takes `workspace` and forwards the params the executor action it names lists (snake_case, times in milliseconds); results and
 //! refusals are the executor's own, so a refusal's code is the executor's and its message says which of `NOT_INSTALLED` and `NOT_SIGNED_IN`
 //! applies (`code_of`).
 use agent_api_proto::{text, Event, GroupName, Method, ParamError};
@@ -18,9 +21,13 @@ pub mod testing;
 
 pub mod auth;
 pub mod clone;
+pub mod issue;
 pub mod pr;
+pub mod project;
 
 pub const GROUP_PR: GroupName = GroupName::new("hosted.pr");
+pub const GROUP_ISSUE: GroupName = GroupName::new("hosted.issue");
+pub const GROUP_PROJECT: GroupName = GroupName::new("hosted.project");
 pub const GROUP_CLONE: GroupName = GroupName::new("hosted.clone");
 pub const GROUP_AUTH: GroupName = GroupName::new("hosted.auth");
 
@@ -34,22 +41,53 @@ pub mod code {
     pub const CLONE_NOT_FOUND: &str = "CLONE_NOT_FOUND";
 }
 
-/// What answers one request method: the executor actions it makes in order (none when the service answers on its own), and the provider a
-/// request without one gets.
+/// Which executor a request with no `workspace` goes to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Scope {
+    /// The workspace's own executor; a request with no `workspace` is refused.
+    Workspace,
+    /// The workspace's executor, or, with no `workspace`, an executor whose CLI is signed in to the provider; the request names its repository in `repo`.
+    Repo,
+    /// The same, for a request that names no repository (a project, the account's to-dos); `needs` is a scope of the sign-in that an executor holding it is preferred for.
+    Account { needs: Option<&'static str> },
+}
+
+/// What answers one request method: the executor actions it makes in order (none when the service answers on its own), the provider a
+/// request without one gets, and where a request with no workspace goes.
 #[derive(Debug, Clone, Copy)]
 pub struct Spec {
     pub method: Method,
     pub actions: &'static [&'static str],
     pub default_provider: Option<&'static str>,
+    pub scope: Scope,
 }
 
 pub const fn spec(method: Method, actions: &'static [&'static str], default_provider: Option<&'static str>) -> Spec {
-    Spec { method, actions, default_provider }
+    Spec { method, actions, default_provider, scope: Scope::Workspace }
+}
+
+/// A method that also runs with no workspace when its request names a `repo`.
+pub const fn repo_spec(method: Method, actions: &'static [&'static str], default_provider: Option<&'static str>) -> Spec {
+    Spec { method, actions, default_provider, scope: Scope::Repo }
+}
+
+/// A method of the account, not of a repository: no workspace and no repo needed.
+pub const fn account_spec(method: Method, actions: &'static [&'static str], default_provider: Option<&'static str>, needs: Option<&'static str>) -> Spec {
+    Spec { method, actions, default_provider, scope: Scope::Account { needs } }
 }
 
 /// `workspace` of every method of the family.
 pub fn workspace_param(params: &Value) -> Result<String, ParamError> {
     text(params, "workspace").map(str::to_string).ok_or_else(|| ParamError("workspace is required".into()))
+}
+
+/// Whether a request with no `workspace` may still run: the method's scope lets it, and a repository method names its `repo`.
+pub fn runs_without_workspace(spec: &Spec, params: &Value) -> bool {
+    match spec.scope {
+        Scope::Workspace => false,
+        Scope::Repo => text(params, "repo").is_some(),
+        Scope::Account { .. } => true,
+    }
 }
 
 /// The names of the properties of an executor action (they are the params a method forwards to it).
@@ -103,12 +141,12 @@ pub fn clone_event(seq: u64, workspace: &str, clone: &str, state: &str, repo: &s
 
 /// Every method of the three sub-groups.
 pub fn all_methods() -> Vec<Method> {
-    pr::METHODS.iter().chain(clone::METHODS).chain(auth::METHODS).copied().collect()
+    pr::METHODS.iter().chain(issue::METHODS).chain(project::METHODS).chain(clone::METHODS).chain(auth::METHODS).copied().collect()
 }
 
 /// Every spec of the family.
 pub fn all_specs() -> Vec<Spec> {
-    pr::SPECS.iter().chain(clone::SPECS).chain(auth::SPECS).copied().collect()
+    pr::SPECS.iter().chain(issue::SPECS).chain(project::SPECS).chain(clone::SPECS).chain(auth::SPECS).copied().collect()
 }
 
 #[cfg(test)]

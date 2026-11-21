@@ -1,5 +1,5 @@
 //! What the schedules groups stand on. The service's adapters implement them; `testing` has the doubles.
-use agent_api_schedules::TaskView;
+use agent_api_schedules::{RunView, TaskView};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
@@ -9,6 +9,9 @@ pub struct Stored {
     pub task: TaskView,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token_digest: Option<String>,
+    /// The runs kept, oldest first, each with when it began.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub runs: Vec<RunView>,
 }
 
 /// Where the schedules live: the adapter keeps them across restarts.

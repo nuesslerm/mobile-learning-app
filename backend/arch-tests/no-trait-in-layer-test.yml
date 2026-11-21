@@ -1,0 +1,9 @@
+id: no-trait-in-layer
+valid:
+  - "pub struct Clock { now: u64 }"
+  - "pub fn now(clock: &dyn Fn() -> u64) -> u64 { clock() }"
+  - "#[cfg(test)] mod tests { trait Fake { fn go(&self); } }"
+invalid:
+  - "pub trait Clock: Send + Sync { fn now(&self) -> u64; }"
+  - "trait ResponseExt { fn ok(self) -> u8; }"
+  - "pub(crate) unsafe trait Marker {}"

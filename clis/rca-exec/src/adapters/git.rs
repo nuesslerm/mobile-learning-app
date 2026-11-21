@@ -4,7 +4,7 @@
 //! Push, pull and fetch go to a remote the repository has configured, with whatever credentials this machine's git finds.
 use base64::Engine;
 use exec_git::{
-    BlobResult, Checkpointed, CommitDone, CommitInfo, CompareResult, DiffFile, DiscardDone, DiscardScope, FastForwarded, Fetched, FetchedRef, GitCall, GitEvent, GitStatus, HeadMoved, InitDone, InitFile, Integrated, LogResult, MergeStrategy, PathsDone, PullStrategy, Pushed,
+    BlobResult, Checkpointed, CommitDone, CommitInfo, CompareResult, DiffFile, DiscardDone, DiscardScope, FastForwarded, Fetched, FetchedRef, GitCall, GitEvent, GitStatus, HeadMoved, IgnoredFile, IgnoredFiles, InitDone, InitFile, Integrated, LogResult, MergeStrategy, PathsDone, PullStrategy, Pushed,
     RefCreated, Refspec, RefInfo, RefKind, RefsResult, Resolution, Resolved, Step, StatusFile, UpstreamStatus, Watched, BLOB_MAX, STATUS_FILES_CAP,
 };
 use exec_proto::{to_value, Code, ExecError, ExecResult};
@@ -402,10 +402,26 @@ impl Repo {
         Ok(CompareResult { base: base.to_string(), head: head.to_string(), merge_base, ahead, behind, commits, files, truncated: truncated || files_truncated })
     }
 
+    /// The regular files git ignores, sorted by path: `--directory` reports a directory of nothing but ignored files as one entry, which is
+    /// skipped, so build output and dependencies drop out.
+    pub fn ignored(&self, limit: usize) -> ExecResult<IgnoredFiles> {
+        let args = ["-c", "core.fsmonitor=false", "ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "--no-empty-directory", "-z"];
+        let out = self.run(&args)?;
+        if !out.ok() {
+            return Err(fail(&args, &out));
+        }
+        let mut paths: Vec<String> = nul_tokens(&out).into_iter().filter(|p| !p.ends_with('/')).collect();
+        paths.sort();
+        let truncated = paths.len() > limit;
+        let files = paths.iter().take(limit).filter_map(|p| std::fs::symlink_metadata(self.dir.join(p)).ok().filter(|m| m.is_file()).map(|m| IgnoredFile { path: p.clone(), size: m.len() })).collect();
+        Ok(IgnoredFiles { files, truncated })
+    }
+
     pub fn upstream(&self) -> ExecResult<UpstreamStatus> {
         let branch = self.current_branch()?;
         let remotes = self.remotes()?;
-        let mut status = UpstreamStatus { branch: branch.clone(), has_upstream: false, upstream: None, remote: None, ahead: 0, behind: 0, remotes };
+        let origin_head = self.query(&["symbolic-ref", "-q", "refs/remotes/origin/HEAD"])?.map(|r| r.strip_prefix("refs/remotes/").unwrap_or(&r).to_string());
+        let mut status = UpstreamStatus { branch: branch.clone(), has_upstream: false, upstream: None, remote: None, ahead: 0, behind: 0, remotes, origin_head };
         let Some(branch) = branch else { return Ok(status) };
         let heads = format!("refs/heads/{branch}");
         let line = self.query(&["for-each-ref", "--format=%(upstream:short)%09%(upstream:remotename)", &heads])?.unwrap_or_default();
@@ -507,6 +523,10 @@ impl Repo {
     fn snapshot(&self, name: &str, head: Option<&str>, real: &Path, private: &Path) -> ExecResult<Checkpointed> {
         if real.is_file() {
             std::fs::copy(real, private).map_err(|e| io("git checkpoint", e))?;
+            // Git trusts an entry's stat data only when it is older than the index file: the copy keeps the original's time, or an edit of the same size made in the
+            // same second as the last index write would look unchanged and be missed.
+            let modified = std::fs::metadata(real).and_then(|m| m.modified()).map_err(|e| io("git checkpoint", e))?;
+            std::fs::OpenOptions::new().write(true).open(private).and_then(|f| f.set_modified(modified)).map_err(|e| io("git checkpoint", e))?;
         }
         let path = private.to_string_lossy().into_owned();
         let env = [("GIT_INDEX_FILE", path.as_str()), ("GIT_AUTHOR_NAME", "rca"), ("GIT_AUTHOR_EMAIL", "rca@localhost"), ("GIT_COMMITTER_NAME", "rca"), ("GIT_COMMITTER_EMAIL", "rca@localhost")];
@@ -824,14 +844,19 @@ impl Repo {
         Ok(Resolved { path: path.to_string(), remaining: self.conflicts()? })
     }
 
-    pub fn blob(&self, rev: &str, path: &str, max_bytes: u64) -> ExecResult<BlobResult> {
-        let spec = format!("{rev}:{path}");
+    /// A file at `rev`, or as staged (stage 0) when no revision is named; an unmerged path is not a file of the index.
+    pub fn blob(&self, rev: Option<&str>, path: &str, max_bytes: u64) -> ExecResult<BlobResult> {
+        let spec = format!("{}:{path}", rev.unwrap_or(""));
+        let place = rev.map_or("in the index".to_string(), |r| format!("at {r}"));
         let kind = self.run(&["cat-file", "-t", &spec])?;
         if !kind.ok() {
-            return Err(ExecError::new(Code::NotFound, format!("{path} does not exist at {rev}")));
+            if rev.is_none() && self.conflicts()?.iter().any(|c| c == path) {
+                return Err(ExecError::new(Code::NotAFile, format!("{path} is not merged in the index")));
+            }
+            return Err(ExecError::new(Code::NotFound, format!("{path} does not exist {place}")));
         }
         if kind.text().trim() != "blob" {
-            return Err(ExecError::new(Code::NotAFile, format!("{path} is not a file at {rev}")));
+            return Err(ExecError::new(Code::NotAFile, format!("{path} is not a file {place}")));
         }
         let size: u64 = self.ok(&["cat-file", "-s", &spec])?.trim().parse().unwrap_or(0);
         let args = ["cat-file", "blob", spec.as_str()];
@@ -840,7 +865,7 @@ impl Repo {
             return Err(fail(&args, &out));
         }
         let binary = out.stdout.iter().take(8000).any(|b| *b == 0);
-        Ok(BlobResult { rev: rev.to_string(), path: path.to_string(), size, truncated: size > out.stdout.len() as u64, binary, data: base64::engine::general_purpose::STANDARD.encode(&out.stdout) })
+        Ok(BlobResult { rev: rev.map(str::to_string), path: path.to_string(), size, truncated: size > out.stdout.len() as u64, binary, data: base64::engine::general_purpose::STANDARD.encode(&out.stdout) })
     }
 
     /// Looks at the status every `interval` and sends it when it differs from the last one sent, until `cancelled` or `max_events` were sent.
@@ -871,6 +896,7 @@ impl Repo {
             GitCall::Log { rev, path, limit, skip } => to_value(&self.log(rev.as_deref(), path.as_deref(), *limit, *skip)?),
             GitCall::Compare { base, head, limit } => to_value(&self.compare(base, head, *limit)?),
             GitCall::Upstream => to_value(&self.upstream()?),
+            GitCall::Ignored { limit } => to_value(&self.ignored(*limit)?),
             GitCall::Stage { paths } => to_value(&self.stage(paths)?),
             GitCall::Unstage { paths } => to_value(&self.unstage(paths)?),
             GitCall::Discard { paths, scope, untracked, source } => to_value(&self.discard(paths, *scope, *untracked, source.as_deref())?),
@@ -884,7 +910,7 @@ impl Repo {
             GitCall::Merge { step, target, strategy, message } => to_value(&self.merge(*step, target.as_deref(), *strategy, message.as_deref())?),
             GitCall::Rebase { step, onto } => to_value(&self.rebase(*step, onto.as_deref())?),
             GitCall::ConflictResolve { path, resolution, content } => to_value(&self.conflict_resolve(path, *resolution, content.as_deref(), confined)?),
-            GitCall::Blob { rev, path, max_bytes } => to_value(&self.blob(rev, path, *max_bytes)?),
+            GitCall::Blob { rev, path, max_bytes } => to_value(&self.blob(rev.as_deref(), path, *max_bytes)?),
             GitCall::Watch { interval_ms, max_events } => to_value(&self.watch(Duration::from_millis(*interval_ms), *max_events, cancelled, events)?),
             GitCall::Checkpoint { thread, turn } => to_value(&self.checkpoint(thread, turn)?),
             GitCall::Init { path, initial_branch, files, message } => to_value(&self.init(path, initial_branch.as_deref(), files, message)?),

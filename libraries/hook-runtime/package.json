@@ -12,6 +12,7 @@
     }
   },
   "scripts": {
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings",
     "test": "vitest run",
     "test:unit": "vitest run --exclude 'tests/e2e/**' --exclude 'tests/integration/**' --exclude '**/*.integration.test.*' --exclude '**/*.e2e.test.*'"
   }

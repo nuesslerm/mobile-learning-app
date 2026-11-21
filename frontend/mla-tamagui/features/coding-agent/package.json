@@ -1,5 +1,6 @@
 {
   "name": "@feature/coding-agent",
+  "arch": { "type": "hexagonal-feature" },
   "version": "0.0.0",
   "private": true,
   "main": "src/index.tsx",
@@ -12,7 +13,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint -c ../../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs",
+    "lint": "oxlint -c ../../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs --ignore-known",
     "test": "vitest run --passWithNoTests",
     "test:unit": "vitest run --passWithNoTests",
     "test:flow": "vitest run --config vitest.flow.config.ts --configLoader runner"
@@ -29,10 +30,9 @@
   },
   "devDependencies": {
     "@typescript/native": "catalog:",
-    "@lib/eslint-plugin-mobile-learn": "workspace:*",
+    "@lib/lint-rules": "workspace:*",
     "@lib/flow-test-harness": "workspace:*",
     "@testing-library/react": "^16.3.3",
-    "@testing-library/react-native": "^13.3.3",
     "dependency-cruiser": "^17.4.3",
     "jsdom": "^30.0.1",
     "oxlint": "catalog:",

@@ -12,7 +12,7 @@ const OPEN_KEY_2: &str = "HEALTH_REPORTS_ORDS_BASE_URL";
 const DEPLOY_KEY: &str = "GROQ_API_KEY";
 const VM_KEY: &str = "VM_STATE_RESTIC_PASSWORD";
 const WRITE_KEY: &str = "BUILD_CACHE_WRITE_PAR_URL";
-const BUNDLE_KEY: &str = "VERIFICATION_ARTIFACTS_PAR_URL";
+const BUNDLE_KEY: &str = "BLOB_S3_WRITE_CREDENTIAL";
 const PUBLIC_TOKEN_KEY: &str = "EXPO_PUBLIC_BETTERSTACK_TOKEN";
 const PUBLIC_HOST_KEY: &str = "BETTERSTACK_INGEST_HOST";
 
@@ -77,7 +77,7 @@ fn ci_without_a_scope_token_reads_as_it_always_did() {
     // When CI has only the deploy-read token and asks for a ci-deploy key and for a vm key
     let deploy = ci(&v, &["get", DEPLOY_KEY], &[("CI", "true"), ("BWS_ADMIN_ACCESS_TOKEN", READ)]);
     let vm = ci(&v, &["get", VM_KEY], &[("CI", "true"), ("BWS_ADMIN_ACCESS_TOKEN", READ)]);
-    // Then both come from the read token, so the VM runner keeps working until its container-level token is removed
+    // Then both come from the read token, so a job without scope tokens still reads from the one token
     assert_eq!((deploy.exit_code, deploy.stdout.as_str()), (0, "deploy-value-cccc\n"), "{}", deploy.stderr);
     assert_eq!((vm.exit_code, vm.stdout.as_str()), (0, "restic-value-1234\n"), "{}", vm.stderr);
 
@@ -277,11 +277,30 @@ fn scope_check_of_the_repository_names_every_declared_job_and_prints_the_same_re
     assert_eq!(first.stdout, second.stdout);
     let report: Value = serde_json::from_str(&first.stdout).unwrap_or_else(|e| panic!("{e}: {}", first.stdout));
     assert_eq!(first.exit_code, if report["ok"] == json!(true) { 0 } else { 1 });
-    assert!(report["jobs"].as_array().unwrap().iter().any(|j| j["id"] == "pipeline.yml:flow-tests" && j["class"] == "deploy"));
+    assert!(report["jobs"].as_array().unwrap().iter().any(|j| j["id"] == "pipeline.yml:core-tests" && j["class"] == "deploy"));
     for violation in report["violations"].as_array().unwrap() {
         let text = violation.as_str().unwrap();
         assert!(!["declared in job-scopes.json", "unknown group", "not a registry key", "has no class"].iter().any(|m| text.contains(m)), "{text}");
     }
+}
+
+#[test]
+fn scope_check_of_the_repository_classifies_the_trigger_of_every_hosted_workflow_as_open_and_keyless() {
+    // Given the repository's six hosted CI workflows, each with a `trigger` job
+    let files = ["ci-hosted-backend-core.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "ci-hosted-cli-publish.yml", "ci-hosted-backend-deploy.yml", "ci-hosted-mobile-publish.yml"];
+
+    // When the scopes are checked
+    let r = run_wf(&["secret", "scope-check", "--json"], &RunOpts::default().clean_env().cwd(&repo_root()));
+    let report: Value = serde_json::from_str(&r.stdout).unwrap_or_else(|e| panic!("{e}: {}", r.stdout));
+
+    // Then every trigger is a declared open job and none is reported as unclassified or undeclared
+    for file in files {
+        let id = format!("{file}:trigger");
+        let entry = report["jobs"].as_array().unwrap().iter().find(|j| j["id"] == json!(id)).unwrap_or_else(|| panic!("{id} missing from {}", r.stdout));
+        assert_eq!(entry["class"], "open", "{entry}");
+    }
+    let text = report["violations"].to_string();
+    assert!(!text.contains("ci-hosted"), "{text}");
 }
 
 #[test]
@@ -334,7 +353,7 @@ fn one_project_serves_both_scopes_to_the_one_ci_token_and_verify_reports_exactly
     let env = push_to_dev();
     let open: Vec<String> = scope_keys("ci-open").into_iter().map(|(k, _)| k).collect();
     let deploy: Vec<String> = scope_keys("ci-deploy").into_iter().map(|(k, _)| k).collect();
-    assert_eq!(open.len(), 6);
+    assert_eq!(open.len(), 9);
 
     // When every ci-open key is read in GitHub Actions with both tokens set
     for key in &open {
@@ -398,8 +417,8 @@ fn verify_scope_in_ci_names_a_key_missing_from_the_ci_project() {
     assert!(only_token(&v, OPEN_TOKEN), "{:?}", v.calls());
 }
 
-fn parity(v: &Vault, args: &[&str]) -> (i32, Value, String) {
-    let mut full = vec!["parity", "--json"];
+fn scope_compare(v: &Vault, args: &[&str]) -> (i32, Value, String) {
+    let mut full = vec!["scope-compare", "--json"];
     full.extend_from_slice(args);
     let r = ci(v, &full, &push_to_dev());
     let text: String = format!("{}{}", r.stdout, r.stderr).lines().filter(|l| !l.starts_with("::add-mask::")).collect::<Vec<_>>().join("\n");
@@ -413,13 +432,13 @@ fn scope_of<'a>(report: &'a Value, scope: &str) -> &'a Value {
 const NONCE: &str = "shared-run-nonce-0123456789";
 
 #[test]
-fn parity_of_two_runner_kinds_with_one_nonce_is_identical_and_a_divergent_value_or_missing_key_shows() {
+fn scope_compare_of_two_runner_kinds_with_one_nonce_is_identical_and_a_divergent_value_or_missing_key_shows() {
     let v = two_projects();
 
-    // When two runner kinds (a VM runner and a hosted one: same tokens, one with a different working directory and workflow event
-    // variables) run the parity verb with the same nonce
-    let (vm_code, vm_run, vm_text) = parity(&v, &["--nonce", NONCE]);
-    let hosted = ci(&v, &["parity", "--json", "--nonce", NONCE], &[("CI", "true"), ("GITHUB_ACTIONS", "true"), ("GITHUB_EVENT_NAME", "push"), ("GITHUB_REF", "refs/heads/dev"), ("BWS_CI_DEPLOY_ACCESS_TOKEN", DEPLOY_TOKEN), ("RUNNER_NAME", "hosted-1")]);
+    // When two runners (same tokens, one with a different working directory and workflow event
+    // variables) run the scope-compare verb with the same nonce
+    let (vm_code, vm_run, vm_text) = scope_compare(&v, &["--nonce", NONCE]);
+    let hosted = ci(&v, &["scope-compare", "--json", "--nonce", NONCE], &[("CI", "true"), ("GITHUB_ACTIONS", "true"), ("GITHUB_EVENT_NAME", "push"), ("GITHUB_REF", "refs/heads/dev"), ("BWS_CI_DEPLOY_ACCESS_TOKEN", DEPLOY_TOKEN), ("RUNNER_NAME", "hosted-1")]);
     // Then the reports are byte-identical, hold exactly the registry keys of each scope, and carry a hash per key
     assert_eq!((vm_code, hosted.exit_code), (0, 0), "{}", hosted.stderr);
     assert_eq!(hosted.stdout, serde_json::to_string_pretty(&vm_run).unwrap() + "\n");
@@ -443,7 +462,7 @@ fn parity_of_two_runner_kinds_with_one_nonce_is_identical_and_a_divergent_value_
     }
     deploy.extend(project_of("ci-open", "open"));
     v.holds(DEPLOY_TOKEN, Value::Array(deploy));
-    let (code, drifted, text) = parity(&v, &["--nonce", NONCE]);
+    let (code, drifted, text) = scope_compare(&v, &["--nonce", NONCE]);
     // Then it exits 1, names the missing key, differs from the first run in the changed value's hash and the held names' hash only,
     // and leaves the ci-open scope identical
     assert_eq!(code, 1, "{text}");
@@ -460,13 +479,13 @@ fn parity_of_two_runner_kinds_with_one_nonce_is_identical_and_a_divergent_value_
 }
 
 #[test]
-fn parity_hashes_depend_on_the_nonce_and_a_nonce_is_generated_when_none_is_given() {
+fn scope_compare_hashes_depend_on_the_nonce_and_a_nonce_is_generated_when_none_is_given() {
     let v = two_projects();
 
     // When the verb runs twice without a nonce, and once with an explicit one that is too short
-    let (_, first, _) = parity(&v, &[]);
-    let (_, second, _) = parity(&v, &[]);
-    let short = ci(&v, &["parity", "--json", "--nonce", "short"], &push_to_dev());
+    let (_, first, _) = scope_compare(&v, &[]);
+    let (_, second, _) = scope_compare(&v, &[]);
+    let short = ci(&v, &["scope-compare", "--json", "--nonce", "short"], &push_to_dev());
 
     // Then each run prints its own nonce, the hashes of the same values differ between them, the names hashes do not, and a short
     // nonce is refused naming the rule
@@ -480,7 +499,7 @@ fn parity_hashes_depend_on_the_nonce_and_a_nonce_is_generated_when_none_is_given
 }
 
 #[test]
-fn parity_lists_a_key_only_deploy_groups_call_optional_as_missing_optional_without_failing() {
+fn scope_compare_lists_a_key_only_deploy_groups_call_optional_as_missing_optional_without_failing() {
     // Given a ci-deploy project that lacks GROQ_API_KEY, which no deploy group requires (the app falls back without it)
     let v = two_projects();
     let mut deploy = held(&scope_keys("ci-deploy"));
@@ -488,8 +507,8 @@ fn parity_lists_a_key_only_deploy_groups_call_optional_as_missing_optional_witho
     deploy.extend(project_of("ci-open", "open"));
     v.holds(DEPLOY_TOKEN, Value::Array(deploy));
 
-    // When the parity verb runs
-    let (code, report, text) = parity(&v, &["--nonce", NONCE]);
+    // When the scope-compare verb runs
+    let (code, report, text) = scope_compare(&v, &["--nonce", NONCE]);
 
     // Then it passes, lists the key as missingOptional and not as missing, and prints no value
     assert_eq!(code, 0, "{text}");

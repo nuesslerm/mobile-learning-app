@@ -17,7 +17,7 @@ import {
 } from 'react';
 import { Platform } from 'react-native';
 
-import type { AudioRecordingPort, VoiceRecording } from '../contracts/ports';
+import type { AudioRecordingPort, VoiceRecording } from '../domain/ports';
 
 const METERING_UPDATE_INTERVAL_MS = 100;
 

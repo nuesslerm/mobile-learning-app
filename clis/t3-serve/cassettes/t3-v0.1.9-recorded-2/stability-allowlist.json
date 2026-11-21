@@ -1,0 +1,10 @@
+{
+ "schema": "mimic-stability-allowlist/1",
+ "entries": [
+  {
+   "id": "t3-rpc-server.discoverSourceControl",
+   "cause": "volatile",
+   "reason": "the record's two attempts of this request disagreed on a host that has the stub agent CLIs and no source-control tools; the answer is the host's and is not pinned by the corpus"
+  }
+ ]
+}

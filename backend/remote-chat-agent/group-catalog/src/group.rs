@@ -1,6 +1,6 @@
 use crate::ports::Refusal;
 use crate::service::Catalog;
-use agent_api_catalog::{self as api, CommandsParams, DetectParams, ModelsParams, SkillsParams};
+use agent_api_catalog::{self as api, CommandsParams, DetectParams, ModelsParams, SessionsParams, SkillsParams, SpeechStatusParams, SpeechTranscribeParams};
 use agent_api_proto::{code, GroupName, Response};
 use async_trait::async_trait;
 use rca_agent_core::{Call, Group, Served};
@@ -8,7 +8,7 @@ use serde::Serialize;
 use serde_json::Value;
 use std::sync::Arc;
 
-pub const SERVED: [Served; 4] = [Served::service(api::MODELS_LIST, &[]), Served::service(api::AGENTS_DETECT, &[exec_proc::CLI_DETECT]), Served::service(api::SKILLS_LIST, &[exec_fs::SKILL_SCAN]), Served::service(api::COMMANDS_LIST, &[exec_fs::SKILL_SCAN])];
+pub const SERVED: [Served; 7] = [Served::service(api::MODELS_LIST, &[]), Served::service(api::AGENTS_DETECT, &[exec_proc::CLI_DETECT]), Served::service(api::SKILLS_LIST, &[exec_fs::SKILL_SCAN]), Served::service(api::COMMANDS_LIST, &[exec_fs::SKILL_SCAN]), Served::service(api::SESSIONS_LIST, &[exec_fs::SESSION_SCAN]), Served::service(api::SPEECH_STATUS, &[]), Served::service(api::SPEECH_TRANSCRIBE, &[])];
 
 pub struct CatalogGroup {
     catalog: Arc<Catalog>,
@@ -55,6 +55,18 @@ impl Group for CatalogGroup {
             },
             "commands.list" => match CommandsParams::parse(params) {
                 Ok(p) => value(self.catalog.commands(p).await),
+                Err(e) => Err(invalid(e)),
+            },
+            "sessions.list" => match SessionsParams::parse(params) {
+                Ok(p) => value(self.catalog.sessions(p).await),
+                Err(e) => Err(invalid(e)),
+            },
+            "speech.status" => match SpeechStatusParams::parse(params) {
+                Ok(_) => value(Ok(self.catalog.speech_status())),
+                Err(e) => Err(invalid(e)),
+            },
+            "speech.transcribe" => match SpeechTranscribeParams::parse(params) {
+                Ok(p) => value(self.catalog.transcribe(p).await),
                 Err(e) => Err(invalid(e)),
             },
             other => unreachable!("{other} is no method of catalog (SERVED)"),

@@ -1,0 +1,53 @@
+{
+  "method": "artifact.stat",
+  "exchanges": [
+    {
+      "name": "describes a file: its canonical path, identity and fingerprint",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "notes.txt"
+        },
+        "id": 1,
+        "method": "artifact.stat"
+      },
+      "response": {
+        "result": {
+          "path": "/root/notes.txt",
+          "kind": "file",
+          "size": 6,
+          "modified_ms": 0,
+          "changed_ms": 0,
+          "identity": "0:0:6:0.0:0.0",
+          "fingerprint": "a9bc80cca21f28b3",
+          "binary": false
+        },
+        "id": 1
+      },
+      "actions": [
+        "artifact_stat"
+      ]
+    },
+    {
+      "name": "relays the executor's refusal of a path outside the places it was allowed for artifacts, whether or not the file exists",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "/etc/hostname"
+        },
+        "id": 2,
+        "method": "artifact.stat"
+      },
+      "response": {
+        "error": {
+          "code": "PATH_OUTSIDE_ROOT",
+          "message": "/etc/hostname is outside the root"
+        },
+        "id": 2
+      },
+      "actions": [
+        "artifact_stat"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 //! The files rows through the `Host` dispatcher with an in-memory workspace set as rca: each reply is read the way the phone reads it, and the
 //! agent methods the mapper sent are held to its `USES` list. Given/When/Then in each test.
 use orca_core::testing::{RevocablePrincipals, ScriptedAgent};
+use orca_core::AgentApi;
 use orca_core::{Host, HostInfo, ServiceStatus};
 use orca_map_workspace::testing::Workspaces;
 use orca_map_workspace::{WorkspaceArea, NOT_OFFERED, USES};
@@ -21,7 +22,7 @@ impl Rig {
         let files = Workspaces::default();
         files.workspace("main", "root", None).workspace("docs", "directory", Some("/srv/docs")).workspace("feat", "worktree", Some("/srv/wt/feat"));
         files.install(&agent);
-        let host = Host::new("rt".into(), vec![Box::new(WorkspaceArea)], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+        let host = Host::new("rt".into(), vec![Box::new(WorkspaceArea::default())], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
         Rig { agent, files, conn: host.connection("dev", "tok", vec![]), n: 0 }
     }
 
@@ -179,6 +180,21 @@ fn given_a_file_and_a_folder_when_stat_then_size_kind_and_time_are_the_executors
 }
 
 #[test]
+fn given_a_batch_of_paths_when_checked_then_each_answers_whether_it_is_there_in_order_and_a_bad_batch_is_refused_whole() {
+    // Given a file and a folder
+    let mut rig = Rig::new();
+    rig.files.put("main", "d/f.txt", &payload(7));
+    // When a present file, a present folder and a missing path are checked together
+    let found = rig.ok("files.pathsExist", json!({"worktree": "main", "relativePaths": ["d/f.txt", "d", "nope.txt"]}));
+    // Then the answers are in the order asked: there, there, absent
+    assert_eq!(found, json!([{"exists": true}, {"exists": true}, {"exists": false}]));
+    // And an empty batch answers an empty list, a path outside the worktree and a batch of more than 128 are refused whole
+    assert_eq!(rig.ok("files.pathsExist", json!({"worktree": "main", "relativePaths": []})), json!([]));
+    assert_eq!(rig.err("files.pathsExist", json!({"worktree": "main", "relativePaths": ["../x"]})).0, "runtime_error");
+    assert_eq!(rig.err("files.pathsExist", json!({"worktree": "main", "relativePaths": vec!["a"; 129]})).0, "runtime_error");
+}
+
+#[test]
 fn given_a_new_name_when_a_file_is_created_then_it_is_there_empty_and_creating_it_again_is_refused() {
     // Given a workspace without the file
     let mut rig = Rig::new();
@@ -243,20 +259,18 @@ fn given_an_image_a_text_file_and_a_binary_when_previewed_then_each_is_answered_
 }
 
 #[test]
-fn given_projects_when_the_catalog_is_read_then_roots_and_directories_are_listed_named_as_stored_and_worktrees_are_not() {
+fn given_projects_when_the_catalog_and_folder_workspaces_are_read_then_the_catalog_is_null_as_with_no_desktop_window_and_folders_are_the_stored_rows() {
     // Given workspaces of the three kinds and a stored name for one
     let mut rig = Rig::new();
     rig.agent.set_state("orca", "orca.repo.docs", json!({"displayName": "Docs site", "badgeColor": "#ff0000"}));
     // When the phone reads the catalog and the folder workspaces
     let sections = rig.ok("mobileRelay.projectSections", json!({}));
     let folders = rig.ok("folderWorkspace.list", json!({}));
-    // Then the repos are the root and the directory, the directory carries its stored name and colour, and the worktree is no project
-    let repos = sections["catalog"]["repos"].as_array().unwrap();
-    let ids: Vec<&str> = repos.iter().map(|r| r["id"].as_str().unwrap()).collect();
+    // Then the catalog is null (the pinned host answers so when no desktop window published one), and the repos are still listed by repo.list
+    assert_eq!(sections, json!({"catalog": null}));
+    let listed = rig.ok("repo.list", json!({}));
+    let ids: Vec<&str> = listed["repos"].as_array().unwrap().iter().map(|r| r["id"].as_str().unwrap()).collect();
     assert_eq!(ids, ["docs", "main"]);
-    assert_eq!((repos[0]["displayName"].clone(), repos[0]["badgeColor"].clone(), repos[0]["path"].clone()), (json!("Docs site"), json!("#ff0000"), json!("/srv/docs")));
-    assert_eq!(sections["catalog"]["projects"], json!([{"id": "docs", "displayName": "Docs site"}, {"id": "main", "displayName": "main"}]));
-    assert_eq!(sections["catalog"]["projectOrderBy"], "manual");
     // And no folder workspace is listed until one is stored, and then it is the stored row
     assert_eq!(folders, json!({"folderWorkspaces": []}));
     rig.agent.set_state("orca", "orca.folder-workspaces", json!([{"id": "f1", "name": "Scratch"}]));
@@ -267,7 +281,7 @@ fn given_projects_when_the_catalog_is_read_then_roots_and_directories_are_listed
 fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exactly_the_ones_listed() {
     // Given each served files row called once, so that every code path sends what it sends
     let mut rig = Rig::new();
-    rig.files.put("main", "a.txt", b"x").put("main", "i.png", &[1]);
+    rig.files.put("main", "a.txt", b"x").put("main", "i.png", &[1]).artifact("/var/log/b.txt", b"log");
     let sel = json!({"worktree": "main"});
     let with = |extra: Value| {
         let mut p = sel.clone();
@@ -282,6 +296,19 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     rig.ok("files.readDir", with(json!({"relativePath": ""})));
     rig.ok("files.stat", with(json!({"relativePath": "a.txt"})));
     rig.ok("files.createFile", with(json!({"relativePath": "n.txt"})));
+    let tap = rig.ok("files.resolveTerminalPath", with(json!({"pathText": "/var/log/b.txt"})));
+    let granted = with(json!({"grantId": tap["openTarget"]["grantId"], "absolutePath": "/var/log/b.txt"}));
+    rig.ok("files.readTerminalArtifact", granted.clone());
+    rig.ok("files.readTerminalArtifactPreview", granted.clone());
+    let mut save = granted.clone();
+    save["content"] = json!("logged");
+    rig.ok("files.writeTerminalArtifact", save);
+    rig.files.put("main", "n.md", b"# n");
+    rig.ok("files.open", with(json!({"relativePath": "n.md"})));
+    rig.ok("files.openDiff", with(json!({"relativePath": "n.md"})));
+    let version = rig.ok("markdown.readTab", json!({"worktree": "main", "tabId": "markdown:n.md"}))["version"].clone();
+    rig.ok("markdown.saveTab", json!({"worktree": "main", "tabId": "markdown:n.md", "baseVersion": version, "content": "# m"}));
+    rig.ok("ssh.listTargetSummaries", json!({}));
     rig.ok("mobileRelay.projectSections", json!({}));
     rig.ok("repo.list", json!({}));
     rig.ok("repo.update", json!({"repo": "main", "updates": {"displayName": "M"}}));
@@ -298,30 +325,25 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     rig.ok("worktree.prefetchCreateBase", json!({"repo": "main"}));
     rig.ok("worktree.rm", json!({"worktree": id}));
     rig.ok("worktree.listRetiredNames", json!({"repo": "main"}));
+    rig.agent.reply("terminal.list", |p| Ok(json!({"workspace": p["workspace"], "terminals": []})));
+    rig.agent.reply("pane.list", |_| Ok(json!({"panes": [pane("a", "main", "done", true, 1)]})));
+    rig.agent.reply("pane.mark", |_| Ok(json!({"marked": 1})));
+    rig.agent.reply("terminal.sleeping", |_| Ok(json!({"sleeping": [{"workspace": "main", "slept_at_ms": 1, "terminals": []}]})));
+    rig.agent.reply("terminal.sleep", |p| Ok(json!({"workspace": p["workspace"], "slept": [], "already": false})));
+    rig.agent.reply("terminal.wake", |p| Ok(json!({"workspace": p["workspace"], "woken": [], "failed": []})));
+    rig.agent.reply("thread.list", |_| Ok(json!({"threads": [{"id": "r", "workspace": "main", "status": "running"}]})));
+    rig.agent.reply("thread.forceStop", |_| Ok(json!({})));
+    rig.agent.reply("notification.since", |_| Ok(json!({"epoch": "e", "notifications": []})));
+    rig.ok("worktree.ps", json!({}));
+    rig.ok("worktree.sleep", sel.clone());
+    rig.ok("worktree.activate", sel.clone());
+    rig.ok("agentActivity.setRead", json!({"paneKeys": ["thread:a"], "read": true}));
+    rig.ok("notifications.getMissedSince", json!({"lastSeenSeq": 0}));
     // When the methods asked of the agent API are collected
     let sent: BTreeSet<String> = rig.agent.requests().into_iter().map(|(m, _)| m).collect();
     // Then they are the list the crate declares (state reads are the port's own call)
     let declared: BTreeSet<String> = USES.iter().map(|m| m.name().to_string()).collect();
     assert_eq!(sent, declared);
-}
-
-#[test]
-fn given_the_rows_the_area_does_not_offer_when_called_then_each_answers_not_offered_with_its_reason_which_is_the_decisions_files() {
-    // Given the decisions file and a host with the area
-    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../docs/plans/rca-parity/coverage/orca-decisions.json");
-    let decisions: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
-    let mut rig = Rig::new();
-    assert!(!NOT_OFFERED.is_empty());
-    for row in NOT_OFFERED {
-        // When the row is called
-        let r = rig.call(row.name, json!({"worktree": "main", "relativePath": "a.txt"}));
-        // Then it answers not_offered with the reason and the milestone the decisions file records for it, byte for byte
-        let d = &decisions["decisions"][format!("rpc:{}", row.name)];
-        assert_eq!(d["state"], "not-offered", "{}", row.name);
-        assert_eq!((r["error"]["code"].clone(), r["error"]["data"].clone()), (json!("not_offered"), json!({"decidedBy": d["decidedBy"]})), "{}", row.name);
-        assert_eq!(r["error"]["message"], format!("{} is not offered by this host: {}", row.name, d["reason"].as_str().unwrap()), "{}", row.name);
-        assert_eq!(row.reason, d["reason"].as_str().unwrap());
-    }
 }
 
 #[test]
@@ -469,4 +491,500 @@ fn given_a_repo_with_and_without_a_remote_when_the_create_base_is_prefetched_the
     // Then both answer null and only the repo with a remote was fetched
     assert_eq!((with, without), (Value::Null, Value::Null));
     assert_eq!(rig.files.fetched(), ["main"]);
+}
+
+#[test]
+fn given_a_wrong_typed_snapshot_id_when_the_repos_are_listed_then_it_is_refused_and_a_string_is_accepted() {
+    // Given a host
+    let mut rig = Rig::new();
+    // When the phone lists the repos after a snapshot id of the wrong type, and of the right one
+    let refused = rig.err("repo.list", json!({"afterSnapshotId": 7}));
+    // Then the first is refused as the schema refuses it, and the second is answered
+    assert_eq!(refused, ("invalid_argument".into(), "Invalid input: expected string, received number".into()));
+    rig.ok("repo.list", json!({"afterSnapshotId": "a"}));
+}
+
+#[test]
+fn given_a_list_asked_for_a_zero_limit_or_a_repo_nobody_holds_when_it_is_asked_then_it_says_so_in_the_hosts_codes() {
+    // Given the workspaces of a host
+    let mut rig = Rig::new();
+    // When the phone lists worktrees with a limit of zero and a repo that does not exist, Then the limit is refused first
+    assert_eq!(rig.err("worktree.list", json!({"limit": 0, "repo": "nobody"})), ("invalid_limit".to_string(), "invalid_limit".to_string()));
+    // And a repo no workspace holds is the host's repo_not_found
+    assert_eq!(rig.err("worktree.list", json!({"repo": "nobody"})), ("repo_not_found".to_string(), "repo_not_found".to_string()));
+}
+
+// ---- activity: notifications, agent activity, worktree.ps, sleep and activate ----
+
+fn terminal_info(terminal: &str, status: &str, updated_at: u64) -> Value {
+    json!({"workspace": "main", "terminal": terminal, "title": terminal, "cwd": "/main", "cols": 80, "rows": 24, "status": status, "exit_code": null, "pid": 1, "offset": 0, "base_offset": 0, "updated_at": updated_at})
+}
+
+fn pane(thread: &str, workspace: &str, state: &str, unread: bool, at: u64) -> Value {
+    json!({"pane": format!("thread:{thread}"), "thread": thread, "title": format!("title {thread}"), "workspace": workspace, "state": state, "listed": true, "unread": unread, "clearable": state != "working", "sort_at_ms": at, "state_started_at_ms": at})
+}
+
+/// A service with a main checkout running one terminal and one finished unread agent, and a linked worktree that sleeps.
+fn busy() -> Rig {
+    let mut rig = Rig::new();
+    rig.files.linked_worktree("main", "feat2", "feat2");
+    rig.agent.reply("terminal.list", |p| Ok(json!({"workspace": p["workspace"], "terminals": if p["workspace"] == "main" { vec![terminal_info("t1", "running", 65_000), terminal_info("t0", "exited", 90_000)] } else { vec![] }})));
+    rig.agent.reply("pane.list", |_| Ok(json!({"panes": [pane("a", "main", "done", true, 4_000), pane("n", "main", "idle", false, 0), pane("w", "feat2", "working", false, 7_000)]})));
+    rig.agent.reply("terminal.sleeping", |_| Ok(json!({"sleeping": []})));
+    let _ = &mut rig;
+    rig
+}
+
+#[test]
+fn given_a_main_checkout_with_a_terminal_and_a_finished_agent_when_worktree_ps_is_asked_then_each_row_has_its_terminals_agents_and_the_status_they_make() {
+    // Given a main checkout with a running terminal and a done unread agent, and a worktree whose agent works
+    let mut rig = busy();
+    // When the rows are asked for
+    let ps = rig.ok("worktree.ps", json!({}));
+    // Then the main row is unread first, with one live terminal, its output time, the done agent as the pane list shows it, and status done
+    assert_eq!((ps["totalCount"].clone(), ps["truncated"].clone(), ps["hostScope"].clone()), (json!(2), json!(false), json!({"hostIds": [], "omittedHostIds": ["local"]})));
+    let main = &ps["worktrees"][0];
+    assert_eq!((main["worktreeId"].clone(), main["unread"].clone(), main["liveTerminalCount"].clone(), main["hasAttachedPty"].clone(), main["lastOutputAt"].clone(), main["status"].clone(), main["isMainWorktree"].clone(), main["terminalPlatform"].clone()), (json!("main::/main"), json!(true), json!(1), json!(true), json!(65_000), json!("done"), json!(true), json!("linux")));
+    assert_eq!(main["agents"], json!([{
+        "paneKey": "thread:a", "parentPaneKey": null, "state": "done", "agentType": null, "prompt": "", "taskTitle": null, "displayName": null, "conversationName": "title a",
+        "lastAssistantMessage": null, "toolName": null, "toolInput": null, "interrupted": false, "stateStartedAt": 4000, "updatedAt": 4000,
+        "activity": {"listed": true, "status": "done", "unread": true, "clearable": true, "sortAt": 4000, "title": "title a"}}]));
+    // And the worktree whose agent works is working with no terminal, and a never-run pane is no agent row
+    let feat = &ps["worktrees"][1];
+    assert_eq!((feat["worktreeId"].clone(), feat["status"].clone(), feat["liveTerminalCount"].clone(), feat["lastOutputAt"].clone(), feat["agents"][0]["state"].clone(), feat["unread"].clone()), (json!("main::/base/feat2"), json!("working"), json!(0), Value::Null, json!("working"), json!(false)));
+    assert_eq!(main["agents"].as_array().unwrap().len(), 1);
+    // And a limit cuts the page, saying so, and one that is no whole number above zero is refused as the host refuses it
+    let cut = rig.ok("worktree.ps", json!({"limit": 1}));
+    assert_eq!((cut["worktrees"].as_array().unwrap().len(), cut["totalCount"].clone(), cut["truncated"].clone()), (1, json!(2), json!(true)));
+    for bad in [json!(0), json!(1.5), json!(-2)] {
+        assert_eq!(rig.err("worktree.ps", json!({"limit": bad})), ("invalid_limit".to_string(), "invalid_limit".to_string()));
+    }
+    assert_eq!(rig.err("worktree.ps", json!({"acceptRowDelta": false})).0, "invalid_argument");
+}
+
+#[test]
+fn given_a_caller_that_sends_snapshot_ids_when_the_rows_change_then_it_gets_the_id_then_unchanged_then_the_rows_it_does_not_hold() {
+    // Given the rows of a busy service asked for with row deltas accepted
+    let mut rig = busy();
+    let first = rig.ok("worktree.ps", json!({"acceptRowDelta": true}));
+    let id = first["snapshotId"].as_str().unwrap().to_string();
+    // Then the reply has an id of 32 characters and its preview is blank
+    assert_eq!((id.len(), first["worktrees"][0]["preview"].clone(), first["worktrees"][0]["lastOutputAt"].clone()), (32, json!(""), json!(60_000)));
+    // And asking again with that id answers unchanged
+    assert_eq!(rig.ok("worktree.ps", json!({"afterSnapshotId": id, "acceptRowDelta": true})), json!({"unchanged": true, "snapshotId": id}));
+    // When the agent of the main checkout is read, the reply names the base and gives the unchanged row as its place in the base
+    rig.agent.reply("pane.list", |_| Ok(json!({"panes": [pane("a", "main", "done", false, 4_000), pane("w", "feat2", "working", false, 7_000)]})));
+    let next = rig.ok("worktree.ps", json!({"afterSnapshotId": id, "acceptRowDelta": true}));
+    assert_eq!((next["baseSnapshotId"].clone(), next.get("worktrees").is_none(), next["totalCount"].clone()), (json!(id), true, json!(2)));
+    let rows = next["rowsFromBase"].as_array().unwrap();
+    assert!(rows[0].is_object() && rows[0]["unread"] == false, "{next}");
+    assert_eq!(rows[1], json!(1));
+    // And an id the host never gave gets the whole reply with a new id
+    let unknown = rig.ok("worktree.ps", json!({"afterSnapshotId": "zzz", "acceptRowDelta": true}));
+    assert!(unknown["worktrees"].is_array() && unknown["snapshotId"].is_string());
+}
+
+#[test]
+fn given_a_worktree_with_a_working_agent_when_it_sleeps_and_is_activated_then_the_agent_is_stopped_and_the_terminals_slept_and_woken_and_its_finished_agents_are_read() {
+    // Given a service where the linked worktree's workspace runs a thread
+    let mut rig = busy();
+    rig.agent.reply("thread.list", |_| Ok(json!({"threads": [
+        {"id": "w", "title": "w", "workspace": "feat2", "status": "running"}, {"id": "x", "title": "x", "workspace": "main", "status": "running"}, {"id": "i", "title": "i", "workspace": "feat2", "status": "idle"}]})));
+    rig.agent.reply("thread.forceStop", |_| Ok(json!({})));
+    rig.agent.reply("terminal.sleep", |p| Ok(json!({"workspace": p["workspace"], "slept": [], "already": false})));
+    // When the worktree sleeps
+    let slept = rig.ok("worktree.sleep", json!({"worktree": "main::/base/feat2"}));
+    // Then the reply names it, only its running thread was stopped, and its terminals were put to sleep
+    assert_eq!(slept, json!({"worktreeId": "main::/base/feat2"}));
+    let sent = rig.agent.requests();
+    assert_eq!(sent.iter().filter(|(m, _)| m == "thread.forceStop").map(|(_, p)| p.clone()).collect::<Vec<_>>(), [json!({"thread": "w"})]);
+    assert_eq!(sent.iter().find(|(m, _)| m == "terminal.sleep").map(|(_, p)| p.clone()), Some(json!({"workspace": "feat2"})));
+    // And with markChatsAsleep false no agent is stopped
+    let before = sent.iter().filter(|(m, _)| m == "thread.forceStop").count();
+    rig.ok("worktree.sleep", json!({"worktree": "feat2", "markChatsAsleep": false}));
+    assert_eq!(rig.agent.requests().iter().filter(|(m, _)| m == "thread.forceStop").count(), before);
+    // When the worktree wakes: a finished unread agent of main is read, and the sleeping terminals start again
+    rig.agent.reply("terminal.sleeping", |_| Ok(json!({"sleeping": [{"workspace": "main", "slept_at_ms": 1, "terminals": []}]})));
+    rig.agent.reply("pane.mark", |_| Ok(json!({"marked": 1})));
+    rig.agent.reply("terminal.wake", |p| Ok(json!({"workspace": p["workspace"], "woken": [], "failed": []})));
+    let woke = rig.ok("worktree.activate", json!({"worktree": "main::/main", "navigation": "caller"}));
+    // Then the reply is the host's, the unread pane was marked read and the workspace woken
+    assert_eq!(woke, json!({"repoId": "main", "worktreeId": "main::/main", "activated": true, "sleepingAgentWake": "not-applicable"}));
+    let sent = rig.agent.requests();
+    assert_eq!(sent.iter().find(|(m, _)| m == "pane.mark").map(|(_, p)| p.clone()), Some(json!({"panes": ["thread:a"], "mark": "read"})));
+    assert_eq!(sent.iter().find(|(m, _)| m == "terminal.wake").map(|(_, p)| p.clone()), Some(json!({"workspace": "main"})));
+    // And a selector nobody has, a missing one and a bad option are refused in the host's words
+    assert_eq!(rig.err("worktree.sleep", json!({"worktree": "ghost"})).0, "selector_not_found");
+    assert_eq!(rig.err("worktree.activate", json!({})), ("invalid_argument".to_string(), "Missing worktree selector".to_string()));
+    assert_eq!(rig.err("worktree.sleep", json!({"worktree": "feat2", "markChatsAsleep": "no"})).1, "Invalid input: expected boolean, received string");
+    // And a service that cannot stop the shells is not reported as asleep
+    rig.agent.reply("terminal.sleep", |_| Err(orca_core::AgentError::Refused { code: "NO_EXECUTOR".into(), message: "no executor is attached for workspace feat2".into() }));
+    assert_eq!(rig.err("worktree.sleep", json!({"worktree": "feat2"})), ("runtime_error".to_string(), "no executor is attached for workspace feat2".to_string()));
+}
+
+#[test]
+fn given_pane_keys_when_agent_activity_is_set_or_cleared_then_the_service_is_asked_to_mark_them_and_the_host_answers_applied_and_a_bad_list_is_refused() {
+    // Given a service that marks panes
+    let mut rig = Rig::new();
+    rig.agent.reply("pane.mark", |p| Ok(json!({"marked": p["panes"].as_array().map_or(0, Vec::len)})));
+    // When two panes are set read, one unread and one cleared
+    assert_eq!(rig.ok("agentActivity.setRead", json!({"paneKeys": ["thread:a", "thread:b"], "read": true})), json!({"applied": true}));
+    assert_eq!(rig.ok("agentActivity.setRead", json!({"paneKeys": ["thread:a"], "read": false})), json!({"applied": true}));
+    assert_eq!(rig.ok("agentActivity.clear", json!({"paneKeys": ["thread:b"]})), json!({"applied": true}));
+    // Then the marks went to the service in that order
+    let marks: Vec<Value> = rig.agent.requests().into_iter().filter(|(m, _)| m == "pane.mark").map(|(_, p)| p).collect();
+    assert_eq!(marks, [json!({"panes": ["thread:a", "thread:b"], "mark": "read"}), json!({"panes": ["thread:a"], "mark": "unread"}), json!({"panes": ["thread:b"], "mark": "clear"})]);
+    // And each bad list is refused as the host's schema refuses it, before the service is asked
+    assert_eq!(rig.err("agentActivity.clear", json!({})).1, "Invalid input: expected array, received undefined");
+    assert_eq!(rig.err("agentActivity.clear", json!({"paneKeys": "x"})).1, "Invalid input: expected array, received string");
+    assert_eq!(rig.err("agentActivity.clear", json!({"paneKeys": []})).1, "Too small: expected array to have >=1 items");
+    assert_eq!(rig.err("agentActivity.setRead", json!({"paneKeys": ["a"]})).1, "Invalid input: expected boolean, received undefined");
+    assert_eq!(rig.agent.requests().iter().filter(|(m, _)| m == "pane.mark").count(), 3);
+}
+
+#[test]
+fn given_a_journal_when_missed_notifications_are_asked_and_the_stream_is_opened_then_entries_come_as_the_hosts_events_with_the_worktree_and_pane_and_unsubscribe_ends_the_stream() {
+    // Given a journal with one entry about a thread that runs in the main workspace
+    let mut rig = Rig::new();
+    let entry = json!({"seq": 1, "id": "n-abcd-1", "cause": "turn.completed", "title": "Fix build", "body": "Finished", "thread_id": "a", "workspace": "main", "at_ms": 7});
+    let shown = entry.clone();
+    rig.agent.reply("notification.since", move |p| Ok(json!({"epoch": "e-1", "notifications": if p["after_seq"] == 0 { vec![shown.clone()] } else { vec![] }})));
+    // When a phone that saw nothing, and one that saw it, ask what they missed
+    let all = rig.ok("notifications.getMissedSince", json!({"lastSeenSeq": 0, "deliveredPushes": [{"notificationId": "x", "notificationEpoch": "e-0", "notificationSeq": 0}]}));
+    let none = rig.ok("notifications.getMissedSince", json!({"lastSeenSeq": 1, "epoch": "e-1"}));
+    // Then the first gets the entry in the host's words, with no push dismissed, and the second gets none
+    assert_eq!(all, json!({"epoch": "e-1", "dismissedPushes": [], "notifications": [{
+        "type": "notification", "source": "agent-task-complete", "title": "Fix build", "body": "Finished", "worktreeId": "main::/main", "paneKey": "thread:a",
+        "notificationId": "n-abcd-1", "notificationSeq": 1, "notificationEpoch": "e-1", "emittedAt": 7, "agentState": "done", "desktopAway": true}]}));
+    assert_eq!(none, json!({"epoch": "e-1", "notifications": []}));
+    assert_eq!(rig.agent.requests().iter().filter(|(m, _)| m == "notification.since").map(|(_, p)| p.clone()).collect::<Vec<_>>(), [json!({"after_seq": 0}), json!({"after_seq": 1, "epoch": "e-1"})]);
+    // And a request without lastSeenSeq or with a negative or fractional one is refused in the host's words
+    assert_eq!(rig.err("notifications.getMissedSince", json!({})).1, "Invalid input: expected number, received undefined");
+    assert_eq!(rig.err("notifications.getMissedSince", json!({"lastSeenSeq": -1})).1, "lastSeenSeq must be a non-negative integer");
+    assert_eq!(rig.err("notifications.getMissedSince", json!({"lastSeenSeq": 0.5})).1, "Invalid input: expected int, received number");
+    // When the stream is opened and a waiting entry is made, a finished one and an entry of another kind of event come
+    let feed = rig.agent.script_stream("notification.subscribe", &json!({}), Ok(json!({"topic": "notifications", "epoch": "e-1", "seq": 1, "reset": false})), vec![]);
+    let opened = rig.conn.on_message(&json!({"id": "s1", "method": "notifications.subscribe", "params": {}}).to_string());
+    let frames: Vec<Value> = opened.iter().map(|f| serde_json::from_str::<Value>(f).unwrap()["result"].clone()).collect();
+    let id = frames[0]["subscriptionId"].as_str().unwrap().to_string();
+    assert_eq!(frames[0], json!({"type": "ready", "subscriptionId": id, "epoch": "e-1"}));
+    let mut waiting = entry.clone();
+    waiting["cause"] = "input.requested".into();
+    waiting["body"] = "which?".into();
+    feed.push(2, "notification.posted", {
+        let mut data = waiting.as_object().unwrap().clone();
+        data.remove("seq");
+        Value::Object(data)
+    });
+    feed.push(3, "schedule.run", json!({}));
+    let live: Vec<Value> = rig.conn.poll().iter().map(|f| serde_json::from_str::<Value>(f).unwrap()["result"].clone()).collect();
+    // Then only the entry comes, as a waiting notification numbered 2
+    assert_eq!(live.len(), 1);
+    assert_eq!((live[0]["notificationSeq"].clone(), live[0]["agentState"].clone(), live[0]["body"].clone(), live[0]["type"].clone()), (json!(2), json!("waiting"), json!("which?"), json!("notification")));
+    // And unsubscribing ends the stream with the end frame, answers true, and an id nobody holds answers true as well
+    let ended = rig.conn.on_message(&json!({"id": "u1", "method": "notifications.unsubscribe", "params": {"subscriptionId": id}}).to_string());
+    let results: Vec<Value> = ended.iter().map(|f| serde_json::from_str::<Value>(f).unwrap()["result"].clone()).collect();
+    assert!(results.contains(&json!({"unsubscribed": true})) && results.contains(&json!({"type": "end"})), "{results:?}");
+    assert_eq!(rig.ok("notifications.unsubscribe", json!({"subscriptionId": "nobody"})), json!({"unsubscribed": true}));
+    assert_eq!(rig.err("notifications.unsubscribe", json!({"subscriptionId": 7})).1, "Missing subscriptionId");
+}
+
+#[test]
+fn given_the_methods_of_the_activity_rows_when_the_area_is_read_then_each_is_served_and_the_agent_methods_they_send_are_all_in_uses() {
+    // Given the rows this module serves
+    let rig = Rig::new();
+    let methods: BTreeSet<&str> = ["worktree.ps", "worktree.sleep", "worktree.activate", "agentActivity.setRead", "agentActivity.clear", "notifications.getMissedSince", "notifications.subscribe", "notifications.unsubscribe"].into_iter().collect();
+    // Then each is in the area's method list and none is declared not offered
+    let area = <WorkspaceArea as orca_core::Area>::methods(&WorkspaceArea::default());
+    assert!(methods.iter().all(|m| area.iter().any(|a| a.name == *m)));
+    assert!(NOT_OFFERED.iter().all(|n| !methods.contains(n.name)));
+    // And the agent methods it sends are listed in USES
+    let uses: BTreeSet<&str> = USES.iter().map(|m| m.name()).collect();
+    for m in ["notification.since", "pane.list", "pane.mark", "terminal.list", "terminal.sleep", "terminal.wake", "terminal.sleeping", "thread.list", "thread.forceStop"] {
+        assert!(uses.contains(m), "{m}");
+    }
+    drop(rig);
+}
+
+fn open_tabs(rig: &Rig, workspace: &str) -> Value {
+    rig.agent.state_get("orca", &format!("tabs.extra.{workspace}")).unwrap().unwrap_or(json!([]))
+}
+
+#[test]
+fn given_files_when_opened_then_each_is_a_kept_tab_with_the_hosts_kind_and_a_missing_file_or_a_directory_is_refused() {
+    // Given a worktree with a source file, a markdown file, an image and a directory
+    let mut rig = Rig::new();
+    rig.files.put("feat", "src/a.ts", b"x").put("feat", "README.md", b"# hi").put("feat", "logo.png", b"\x89PNG");
+    let wt = "path:/srv/wt/feat";
+    // When each is opened
+    let text = rig.ok("files.open", json!({"worktree": wt, "relativePath": "src/a.ts", "line": 3}));
+    let md = rig.ok("files.open", json!({"worktree": wt, "relativePath": "README.md"}));
+    let img = rig.ok("files.open", json!({"worktree": wt, "relativePath": "logo.png"}));
+    // Then the answer names the worktree id and the kind, and the kept tabs hold them in order with the last opened in front
+    assert_eq!(text, json!({"worktree": "feat::/srv/wt/feat", "relativePath": "src/a.ts", "kind": "text", "opened": true}));
+    assert_eq!((md["kind"].clone(), img["kind"].clone()), (json!("markdown"), json!("image")));
+    let ids: Vec<Value> = open_tabs(&rig, "feat").as_array().unwrap().iter().map(|t| t["id"].clone()).collect();
+    assert_eq!(ids, [json!("file:src/a.ts"), json!("markdown:README.md"), json!("file:logo.png")]);
+    assert_eq!(rig.agent.state_get("orca", "tabs.active.feat").unwrap(), Some(json!("file:logo.png")));
+    // And opening one again keeps one tab, a missing file, a directory and an unsafe path are refused, and no tab was added by them
+    rig.ok("files.open", json!({"worktree": wt, "relativePath": "src/a.ts"}));
+    assert_eq!(open_tabs(&rig, "feat").as_array().unwrap().len(), 3);
+    assert_eq!(rig.err("files.open", json!({"worktree": wt, "relativePath": "nope.ts"})).1, "ENOENT: no such file or directory, open '/srv/wt/feat/nope.ts'");
+    assert_eq!(rig.err("files.open", json!({"worktree": wt, "relativePath": "src"})).1, "EISDIR: illegal operation on a directory, open '/srv/wt/feat/src'");
+    assert_eq!(rig.err("files.open", json!({"worktree": wt, "relativePath": "../x"})).1, "invalid_relative_path");
+    assert_eq!(rig.err("files.open", json!({"worktree": "a", "relativePath": "a"})).0, "selector_not_found");
+    assert_eq!(rig.err("files.open", json!({"relativePath": "a"})).0, "invalid_argument");
+    assert_eq!(open_tabs(&rig, "feat").as_array().unwrap().len(), 3);
+}
+
+#[test]
+fn given_a_diff_request_when_opened_then_a_diff_tab_for_its_side_is_kept_without_needing_the_file() {
+    // Given a worktree
+    let mut rig = Rig::new();
+    // When a staged and an unstaged diff of a renamed file are opened
+    let staged = rig.ok("files.openDiff", json!({"worktree": "path:/srv/wt/feat", "relativePath": "gone.md", "staged": true, "oldPath": "old.md"}));
+    rig.ok("files.openDiff", json!({"worktree": "path:/srv/wt/feat", "relativePath": "gone.md"}));
+    // Then the answer is the host's, and two diff tabs are kept, the staged one with its old path
+    assert_eq!(staged, json!({"worktree": "feat::/srv/wt/feat", "relativePath": "gone.md", "kind": "markdown", "opened": true}));
+    let tabs = open_tabs(&rig, "feat");
+    assert_eq!((tabs[0]["id"].clone(), tabs[0]["diffSource"].clone(), tabs[0]["oldPath"].clone()), (json!("diff:staged:gone.md"), json!("staged"), json!("old.md")));
+    assert_eq!(tabs[1]["id"], json!("diff:unstaged:gone.md"));
+}
+
+#[test]
+fn given_a_markdown_tab_when_read_and_saved_then_the_file_is_the_document_and_a_stale_version_conflicts() {
+    // Given a markdown tab opened on a file
+    let mut rig = Rig::new();
+    let wt = "path:/srv/wt/feat";
+    rig.files.put("feat", "README.md", b"# one\n").put("feat", "a.ts", b"x");
+    rig.ok("files.open", json!({"worktree": wt, "relativePath": "README.md"}));
+    let tab = "markdown:README.md";
+    // When it is read
+    let read = rig.ok("markdown.readTab", json!({"worktree": wt, "tabId": tab}));
+    // Then the answer is the file with its version, editable
+    assert_eq!(read, json!({"tabId": tab, "filePath": "/srv/wt/feat/README.md", "relativePath": "README.md", "content": "# one\n", "isDirty": false, "version": orca_map_workspace::layout::content_version("# one\n"), "source": "file", "editable": true}));
+    // When it is saved on that version
+    let saved = rig.ok("markdown.saveTab", json!({"worktree": wt, "tabId": tab, "baseVersion": read["version"], "content": "# two\n"}));
+    // Then the file holds the new text and the answer carries the new version
+    assert_eq!(saved, json!({"tabId": tab, "isDirty": false, "version": orca_map_workspace::layout::content_version("# two\n"), "content": "# two\n"}));
+    assert_eq!(rig.files.read("feat", "README.md").unwrap(), b"# two\n");
+    // And a save on the old version conflicts and leaves the file, the same save again succeeds, and an unknown or non-markdown tab is not found
+    assert_eq!(rig.err("markdown.saveTab", json!({"worktree": wt, "tabId": tab, "baseVersion": read["version"], "content": "# three\n"})).1, "conflict");
+    assert_eq!(rig.files.read("feat", "README.md").unwrap(), b"# two\n");
+    rig.ok("markdown.saveTab", json!({"worktree": wt, "tabId": tab, "baseVersion": read["version"], "content": "# two\n"}));
+    rig.ok("files.open", json!({"worktree": wt, "relativePath": "a.ts"}));
+    assert_eq!(rig.err("markdown.readTab", json!({"worktree": wt, "tabId": "file:a.ts"})).1, "tab_not_found");
+    assert_eq!(rig.err("markdown.readTab", json!({"worktree": "a", "tabId": "a"})).0, "selector_not_found");
+    assert_eq!(rig.err("markdown.saveTab", json!({"worktree": wt, "tabId": tab, "baseVersion": "v", "content": "x".repeat(256 * 1024 + 1)})).1, "file_too_large");
+}
+
+#[test]
+fn given_executors_when_the_ssh_rows_are_called_then_each_is_a_target_that_reads_connected_while_attached() {
+    // Given the host's one attached executor
+    let mut rig = Rig::new();
+    // When the targets are listed, one is read, and a connect is asked for it and for a stranger
+    let listed = rig.ok("ssh.listTargetSummaries", json!({}));
+    let state = rig.ok("ssh.getState", json!({"targetId": "e1"}));
+    let connected = rig.ok("ssh.connect", json!({"targetId": "e1"}));
+    // Then the target is the executor and connected, the state is the host's shape, and an unknown target has no state and cannot connect
+    assert_eq!(listed, json!({"targets": [{"id": "e1", "label": "e1", "connected": true, "connectionStatus": "connected"}]}));
+    assert_eq!(state, json!({"state": {"targetId": "e1", "status": "connected", "error": null, "reconnectAttempt": 0}}));
+    assert_eq!(connected, state);
+    assert_eq!(rig.ok("ssh.getState", json!({"targetId": "a"})), json!({"state": null}));
+    assert_eq!(rig.err("ssh.connect", json!({"targetId": "a"})), ("runtime_error".to_string(), "SSH connection unavailable".to_string()));
+    assert_eq!(rig.err("ssh.getState", json!({"targetId": 7})).0, "invalid_argument");
+}
+
+#[test]
+fn given_two_phones_opening_files_of_one_worktree_at_once_when_both_read_the_kept_tabs_first_then_both_tabs_are_kept() {
+    // Given one worktree and two connections whose reads of the kept tabs overlap
+    let scripted = Arc::new(ScriptedAgent::serving(ServiceStatus { protocol: 1, version: "v".into(), commit: "c".into(), groups: vec![] }));
+    let files = Workspaces::default();
+    files.workspace("feat", "worktree", Some("/srv/wt/feat")).put("feat", "a.ts", b"a").put("feat", "b.ts", b"b");
+    files.install(&scripted);
+    let agent: Arc<dyn AgentApi> = Arc::new(orca_core::testing::OverlappingReads::over(scripted.clone(), std::time::Duration::from_millis(300)));
+    let host = Host::new("rt".into(), vec![Box::new(WorkspaceArea::default())], agent, Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+    // When each phone opens a different file at the same moment
+    let phones: Vec<_> = ["a.ts", "b.ts"]
+        .into_iter()
+        .map(|file| {
+            let mut conn = host.connection("dev", "tok", vec![]);
+            std::thread::spawn(move || {
+                let frame = json!({"id": "r1", "method": "files.open", "params": {"worktree": "path:/srv/wt/feat", "relativePath": file}}).to_string();
+                serde_json::from_str::<Value>(&conn.on_message(&frame)[0]).unwrap()
+            })
+        })
+        .collect();
+    for phone in phones {
+        assert_eq!(phone.join().unwrap()["ok"], true);
+    }
+    // Then neither tab replaced the other
+    let mut ids: Vec<String> = scripted.state_get("orca", "tabs.extra.feat").unwrap().unwrap().as_array().unwrap().iter().map(|t| t["id"].as_str().unwrap().to_string()).collect();
+    ids.sort();
+    assert_eq!(ids, ["file:a.ts", "file:b.ts"]);
+}
+
+fn tap(rig: &mut Rig, path: &str) -> Value {
+    rig.ok("files.resolveTerminalPath", json!({"worktree": "main", "pathText": path}))
+}
+
+fn grant(resolved: &Value) -> Value {
+    json!({"worktree": "main", "grantId": resolved["openTarget"]["grantId"], "absolutePath": resolved["absolutePath"]})
+}
+
+#[test]
+fn given_a_path_below_a_workspace_with_a_known_root_when_tapped_then_it_opens_as_that_workspaces_file_and_no_grant_is_made() {
+    // Given a docs workspace rooted at /srv/docs holding a.txt
+    let mut rig = Rig::new();
+    rig.files.put("docs", "a.txt", b"x").put("docs", "sub/b.txt", b"y");
+    // When an absolute path, a relative path against a terminal cwd, a directory and a missing file are tapped
+    let abs = rig.ok("files.resolveTerminalPath", json!({"worktree": "docs", "pathText": "/srv/docs/a.txt"}));
+    let rel = rig.ok("files.resolveTerminalPath", json!({"worktree": "docs", "pathText": "b.txt", "cwd": "/srv/docs/sub"}));
+    let dir = rig.ok("files.resolveTerminalPath", json!({"worktree": "docs", "pathText": "sub"}));
+    let gone = rig.ok("files.resolveTerminalPath", json!({"worktree": "docs", "pathText": "nope.txt"}));
+    // Then the first two open as worktree files, the directory is one, the missing file is absent, and rca was asked for no artifact
+    let open = |rel: &str, abs: &str| json!({"worktree": "docs::/srv/docs", "relativePath": rel, "absolutePath": abs, "exists": true, "isDirectory": false, "openTarget": {"kind": "worktree-file", "provider": "local", "relativePath": rel, "absolutePath": abs}});
+    assert_eq!(abs, open("a.txt", "/srv/docs/a.txt"));
+    assert_eq!(rel, open("sub/b.txt", "/srv/docs/sub/b.txt"));
+    assert_eq!(dir, json!({"worktree": "docs::/srv/docs", "relativePath": "sub", "absolutePath": "/srv/docs/sub", "exists": true, "isDirectory": true}));
+    assert_eq!(gone, json!({"worktree": "docs::/srv/docs", "relativePath": "nope.txt", "absolutePath": "/srv/docs/nope.txt", "exists": false, "isDirectory": false}));
+    assert!(rig.agent.requests().iter().all(|(m, _)| m != "artifact.stat"));
+}
+
+#[test]
+fn given_a_file_outside_the_workspace_when_tapped_then_it_is_granted_and_read_previewed_and_saved_under_the_grant() {
+    // Given a log the executor serves beyond its root
+    let mut rig = Rig::new();
+    rig.files.artifact("/var/log/build.log", b"first line\n");
+    // When it is tapped
+    let resolved = tap(&mut rig, "/var/log/build.log");
+    // Then the answer is an absolute-file grant with the file's size
+    let id = resolved["openTarget"]["grantId"].as_str().unwrap().to_string();
+    assert_eq!(resolved, json!({"worktree": "main::", "relativePath": null, "absolutePath": "/var/log/build.log", "exists": true, "isDirectory": false, "openTarget": {"kind": "absolute-file", "provider": "local", "absolutePath": "/var/log/build.log", "grantId": id, "byteLength": 11}}));
+    // When it is read, previewed and saved, and read again
+    let read = rig.ok("files.readTerminalArtifact", grant(&resolved));
+    let preview = rig.ok("files.readTerminalArtifactPreview", grant(&resolved));
+    let mut save = grant(&resolved);
+    save["content"] = json!("second\n");
+    let saved = rig.ok("files.writeTerminalArtifact", save);
+    let again = rig.ok("files.readTerminalArtifact", grant(&resolved));
+    // Then each answers as the host's rows do, and the file on the executor holds the saved text
+    assert_eq!(read, json!({"worktree": "main::", "relativePath": "/var/log/build.log", "content": "first line\n", "truncated": false, "byteLength": 11}));
+    assert_eq!(preview, json!({"content": "first line\n", "isBinary": false}));
+    assert_eq!(saved, json!({"ok": true}));
+    assert_eq!(again["content"], "second\n");
+    assert_eq!(rig.files.artifact_bytes("/var/log/build.log").unwrap(), b"second\n");
+}
+
+#[test]
+fn given_a_granted_file_when_someone_else_rewrites_it_then_read_and_save_are_refused_as_stale_and_the_rewrite_survives() {
+    // Given a grant for a file
+    let mut rig = Rig::new();
+    rig.files.artifact("/tmp/x.txt", b"mine");
+    let resolved = tap(&mut rig, "/tmp/x.txt");
+    // When another writer replaces the file and the phone reads and then saves
+    rig.files.rewrite_artifact("/tmp/x.txt", b"theirs");
+    let read = rig.err("files.readTerminalArtifact", grant(&resolved));
+    let mut save = grant(&resolved);
+    save["content"] = json!("overwrite");
+    let write = rig.err("files.writeTerminalArtifact", save);
+    // Then both are refused as stale and the other writer's text stands
+    assert_eq!(read.1, "terminal_file_grant_stale");
+    assert_eq!(write.1, "terminal_file_grant_stale");
+    assert_eq!(rig.files.artifact_bytes("/tmp/x.txt").unwrap(), b"theirs");
+}
+
+#[test]
+fn given_a_grant_when_used_for_another_path_or_unknown_or_expired_then_it_is_refused_with_the_hosts_codes() {
+    // Given a grant for one file
+    let mut rig = Rig::new();
+    rig.files.artifact("/tmp/a.txt", b"a").artifact("/tmp/b.txt", b"b");
+    let resolved = tap(&mut rig, "/tmp/a.txt");
+    // When it is used for the other file, an unknown id is used, and a missing grant id is sent
+    let mut other = grant(&resolved);
+    other["absolutePath"] = json!("/tmp/b.txt");
+    let mismatch = rig.err("files.readTerminalArtifact", other);
+    let mut unknown = grant(&resolved);
+    unknown["grantId"] = json!("00000000-0000-4000-8000-000000000000");
+    let expired = rig.err("files.readTerminalArtifact", unknown);
+    let missing = rig.call("files.readTerminalArtifact", json!({"worktree": "main", "absolutePath": "/tmp/a.txt"}));
+    // Then the host's messages answer, and the grant itself still reads
+    assert_eq!(mismatch.1, "terminal_file_grant_mismatch");
+    assert_eq!(expired.1, "terminal_file_grant_expired");
+    assert_eq!(missing["error"]["message"], "Missing terminal artifact grant");
+    assert_eq!(rig.ok("files.readTerminalArtifact", grant(&resolved))["content"], "a");
+}
+
+#[test]
+fn given_a_grant_minted_for_one_device_when_another_device_uses_it_then_it_is_refused_and_the_owner_still_reads() {
+    // Given a host with a file and two paired devices on it
+    let agent = Arc::new(ScriptedAgent::serving(ServiceStatus { protocol: 1, version: "v".into(), commit: "c".into(), groups: vec![] }));
+    let files = Workspaces::default();
+    files.workspace("main", "root", None).artifact("/tmp/a.txt", b"a");
+    files.install(&agent);
+    let host = Host::new("rt".into(), vec![Box::new(WorkspaceArea::default())], agent, Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+    let (mut first, mut second) = (host.connection("phone-a", "tok", vec![]), host.connection("phone-b", "tok", vec![]));
+    let ask = |conn: &mut orca_core::connection::Connection, method: &str, params: Value| -> Value { serde_json::from_str(&conn.on_message(&json!({"id": "1", "method": method, "params": params}).to_string())[0]).unwrap() };
+    // When device A taps the path and device B presents A's grant for the same worktree and path
+    let resolved = ask(&mut first, "files.resolveTerminalPath", json!({"worktree": "main", "pathText": "/tmp/a.txt"}))["result"].clone();
+    let stolen = ask(&mut second, "files.readTerminalArtifact", grant(&resolved));
+    let stolen_write = ask(&mut second, "files.writeTerminalArtifact", json!({"worktree": "main", "grantId": resolved["openTarget"]["grantId"], "absolutePath": "/tmp/a.txt", "content": "x"}));
+    // Then B is refused as a mismatch for the read and the write, and A's grant still reads
+    assert_eq!((stolen["ok"].clone(), stolen["error"]["message"].clone()), (json!(false), json!("terminal_file_grant_mismatch")));
+    assert_eq!((stolen_write["ok"].clone(), stolen_write["error"]["message"].clone()), (json!(false), json!("terminal_file_grant_mismatch")));
+    assert_eq!(ask(&mut first, "files.readTerminalArtifact", grant(&resolved))["result"]["content"], "a");
+}
+
+#[test]
+fn given_grants_that_live_no_time_when_the_phone_uses_one_then_it_has_expired() {
+    // Given a host whose grants expire at once
+    let agent = Arc::new(ScriptedAgent::serving(ServiceStatus { protocol: 1, version: "v".into(), commit: "c".into(), groups: vec![] }));
+    let files = Workspaces::default();
+    files.workspace("main", "root", None).artifact("/tmp/a.txt", b"a");
+    files.install(&agent);
+    let area = WorkspaceArea::with_grants(orca_map_workspace::Grants::with_ttl(std::time::Duration::ZERO));
+    let host = Host::new("rt".into(), vec![Box::new(area)], agent, Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+    let mut rig_conn = host.connection("dev", "tok", vec![]);
+    let mut call = |id: &str, method: &str, params: Value| -> Value { serde_json::from_str(&rig_conn.on_message(&json!({"id": id, "method": method, "params": params}).to_string())[0]).unwrap() };
+    // When a path is tapped and its grant used
+    let resolved = call("1", "files.resolveTerminalPath", json!({"worktree": "main", "pathText": "/tmp/a.txt"}));
+    let read = call("2", "files.readTerminalArtifact", json!({"worktree": "main", "grantId": resolved["result"]["openTarget"]["grantId"], "absolutePath": "/tmp/a.txt"}));
+    // Then the grant is gone
+    assert_eq!(read["error"]["message"], "terminal_file_grant_expired");
+}
+
+#[test]
+fn given_the_executor_serves_nothing_outside_its_root_when_a_path_there_is_tapped_then_it_is_refused_and_no_grant_exists() {
+    // Given an executor that refuses everything under /etc as outside
+    let mut rig = Rig::new();
+    rig.files.refuse_outside("/etc");
+    // When /etc/hostname is tapped
+    let refused = rig.err("files.resolveTerminalPath", json!({"worktree": "main", "pathText": "/etc/hostname"}));
+    // Then the phone is told why, and a path the executor does not have is absent
+    assert_eq!(refused.1, "Files outside this workspace are not granted on this host.");
+    let absent = tap(&mut rig, "/srv/none.txt");
+    assert_eq!((absent["exists"].clone(), absent["openTarget"].clone()), (json!(false), Value::Null));
+}
+
+#[test]
+fn given_a_directory_a_binary_file_a_home_path_and_oversized_text_when_tapped_or_saved_then_each_is_told_apart() {
+    // Given a directory with a file, a binary file and a text file
+    let mut rig = Rig::new();
+    rig.files.artifact("/data/d/f.txt", b"f").artifact("/data/p.bin", &[0, 1, 2]).artifact("/data/t.txt", b"t");
+    // When each is tapped, with a home path too
+    let dir = tap(&mut rig, "/data/d");
+    let bin = tap(&mut rig, "/data/p.bin");
+    let home = tap(&mut rig, "~/notes.txt");
+    let text = tap(&mut rig, "/data/t.txt");
+    // Then the directory carries no grant, the binary one is marked and not read as text, and the home path is absent
+    assert_eq!(dir, json!({"worktree": "main::", "relativePath": null, "absolutePath": "/data/d", "exists": true, "isDirectory": true}));
+    assert_eq!(bin["openTarget"]["binary"], true);
+    assert_eq!(home, json!({"worktree": "main::", "relativePath": null, "absolutePath": null, "exists": false, "isDirectory": false}));
+    assert_eq!(rig.err("files.readTerminalArtifact", grant(&bin)).1, "binary_file");
+    // And a save over the 512 KiB the host allows is refused unwritten, a save with no content is invalid
+    let mut big = grant(&text);
+    big["content"] = json!("x".repeat(512 * 1024 + 1));
+    assert_eq!(rig.err("files.writeTerminalArtifact", big).1, "file_too_large");
+    assert_eq!(rig.call("files.writeTerminalArtifact", grant(&text))["error"]["message"], "Missing file content");
+    assert_eq!(rig.files.artifact_bytes("/data/t.txt").unwrap(), b"t");
 }

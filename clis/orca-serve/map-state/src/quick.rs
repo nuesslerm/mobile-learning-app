@@ -65,6 +65,7 @@ fn normalized(command: &Value) -> Result<Value, Failure> {
 
 pub(crate) fn update(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let mutation = &params["mutation"];
+    let _turn = orca_core::kept_state_turn();
     let mut commands = list(agent)?;
     match mutation["type"].as_str() {
         Some("upsert") => {

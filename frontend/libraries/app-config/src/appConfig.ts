@@ -77,6 +77,12 @@ type EnvConfig = {
    * Tailscale URL of the Oracle box running backend/reporting-service).
    */
   reportingBaseUrl?: string;
+  /** ORDS auto-REST endpoint of the health-reports table (`EXPO_PUBLIC_HEALTH_REPORTS_ORDS_BASE_URL`); unset until the database is provisioned. */
+  healthReportsOrdsBaseUrl?: string;
+  /** ORDS basic-auth user; the reader defaults to `health_rpt` when unset. */
+  healthReportsOrdsUser?: string;
+  /** ORDS basic-auth password (`EXPO_PUBLIC_HEALTH_REPORTS_ORDS_PASSWORD`); never logged. */
+  healthReportsOrdsPassword?: string;
 };
 const CONFIG: Record<AppEnv, EnvConfig> = {
   development: {
@@ -121,6 +127,15 @@ export const appConfig: EnvConfig = {
   } : {}),
   ...(process.env.EXPO_PUBLIC_REPORTING_BASE_URL ? {
     reportingBaseUrl: process.env.EXPO_PUBLIC_REPORTING_BASE_URL
+  } : {}),
+  ...(process.env.EXPO_PUBLIC_HEALTH_REPORTS_ORDS_BASE_URL ? {
+    healthReportsOrdsBaseUrl: process.env.EXPO_PUBLIC_HEALTH_REPORTS_ORDS_BASE_URL
+  } : {}),
+  ...(process.env.EXPO_PUBLIC_HEALTH_REPORTS_ORDS_USER ? {
+    healthReportsOrdsUser: process.env.EXPO_PUBLIC_HEALTH_REPORTS_ORDS_USER
+  } : {}),
+  ...(process.env.EXPO_PUBLIC_HEALTH_REPORTS_ORDS_PASSWORD ? {
+    healthReportsOrdsPassword: process.env.EXPO_PUBLIC_HEALTH_REPORTS_ORDS_PASSWORD
   } : {}),
   // eslint-disable-next-line no-restricted-syntax -- local escape; switching to Zod/guards would not improve runtime safety here
   initialRoute: resolveInitialRoute({

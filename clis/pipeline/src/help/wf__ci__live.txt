@@ -7,9 +7,10 @@ job is in, the minutes per job as a vertical bar chart, what the cache hit, the
 slowest tests and steps, the VM's numbers). The logs of finished jobs are kept on
 the runner for the run, so an update downloads each only once.
 
-The comment is the last on the page: the CI comments of other runs are deleted,
-this run's is edited in place and made when the run has none. Every job of the CI
-calls it when it starts, the preflight job first (`start` is the same, spelled for
+This run's comment is edited in place and made when the run has none; the CI
+comments of older heads are deleted (`wf ci prune`). A run that a newer run of
+the same workflow has passed writes nothing. Every job of the CI
+calls it when it starts, the wf-build job first (`start` is the same, spelled for
 that job), and the report job ends the run with `wf ci comment`.
 
 Nothing is posted when the branch has no open pull request. A failure to comment
@@ -19,7 +20,8 @@ Environment: GITHUB_TOKEN (actions: read, pull-requests: write),
 GITHUB_REPOSITORY, GITHUB_RUN_ID and GITHUB_SHA; optional GITHUB_API_URL,
 GITHUB_SERVER_URL, GITHUB_REF_NAME (the branch whose pull request it is),
 WF_VM_STATS_URL and WF_CI_LOG_CACHE (the directory finished jobs' logs are kept
-in, default ~/.cache/wf/ci-logs).
+in, default ~/.cache/wf/ci-logs) and WF_CI_LIVE_BOUND_MS (the most the verb
+waits on GitHub, default 15000; past it, it logs that it gave up and exits 0).
 
 Output: one JSON line {ok, posted, action?, commentId?, reason?}; action is
 created or updated.

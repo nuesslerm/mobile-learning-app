@@ -6,12 +6,11 @@
  * leetcode's `authStore`.
  */
 
-import { useDependencyOverrides } from '@lib/app-di';
 import { Logger } from '@lib/logging';
-import type { HealthReport } from '../contracts';
+import type { HealthReport } from '../domain';
 import { useCallback, useEffect, useState } from 'react';
 
-import { fetchHealthReportHistory } from '../data/ordsClient';
+import { useServiceReportPorts } from './ports';
 
 
 type HealthReportHistoryState =
@@ -29,14 +28,12 @@ export function useHealthReportHistory(): UseHealthReportHistoryResult {
     status: 'loading',
   });
 
-  const { fetchHealthReportHistory: overriddenFetch } =
-    useDependencyOverrides<{
-      fetchHealthReportHistory: typeof fetchHealthReportHistory;
-    }>('service-report');
+  const { healthReports } = useServiceReportPorts();
 
   const refresh = useCallback(() => {
     setState({ status: 'loading' });
-    (overriddenFetch ?? fetchHealthReportHistory)()
+    healthReports
+      .fetchHistory()
       .then((result) => {
         if (result.status === 'ready') {
           setState({ status: 'ready', reports: result.reports });
@@ -51,7 +48,7 @@ export function useHealthReportHistory(): UseHealthReportHistoryResult {
           error: err instanceof Error ? err.message : String(err),
         });
       });
-  }, [overriddenFetch]);
+  }, [healthReports]);
 
   useEffect(() => {
     refresh();

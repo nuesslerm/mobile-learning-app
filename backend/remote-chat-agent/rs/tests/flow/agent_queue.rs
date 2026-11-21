@@ -30,7 +30,7 @@ fn turns_started(events: &[Event]) -> Vec<String> {
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_prompts_queued_behind_a_running_turn_when_it_ends_then_each_runs_by_itself_through_the_executor_in_the_order_the_calls_left_it_and_the_follower_saw_each_change() {
     // Given a first turn that writes a file and waits, and two queued turns that each write a file, a mapper following the thread
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![
         Turn::replaying(&[said("first")]).then_calling("k1", "write_file", write("notes/first.txt", "1")).then_sleeping(1500),
@@ -85,7 +85,7 @@ async fn given_prompts_queued_behind_a_running_turn_when_it_ends_then_each_runs_
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_running_turn_when_it_is_steered_then_its_cli_is_killed_and_the_next_writes_its_file_through_the_executor_in_the_same_turn() {
     // Given a turn that says it is going right and stays up, and the CLI the steer starts, which writes a file
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![
         Turn::replaying(&[json!({"type": "system", "subtype": "init", "session_id": "s-1"}).to_string(), said("going right")]).hanging(),
@@ -118,7 +118,7 @@ async fn given_a_running_turn_when_it_is_steered_then_its_cli_is_killed_and_the_
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_forced_stop_when_the_turn_ends_then_the_queue_waits_until_it_is_resumed_and_the_resumed_turn_writes_its_file_through_the_executor() {
     // Given a turn that stays up with a prompt queued behind it, and the turn the queue runs after, which writes a file
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("stuck")]).hanging(), Turn::replaying(&[said("resumed")]).then_calling("k1", "write_file", write("notes/after.txt", "after"))]);
     let mut agent = chain.agent().await;
@@ -154,7 +154,7 @@ async fn given_a_forced_stop_when_the_turn_ends_then_the_queue_waits_until_it_is
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_resume_from_beyond_the_newest_event_when_the_thread_changes_then_the_new_socket_replays_nothing_and_is_sent_the_change_live() {
     // Given a thread with a queued prompt, and a mapper that knew a later seq than the thread has (the service started again over a shorter log)
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     let mut agent = chain.agent().await;
     create(&mut agent, "t1").await;

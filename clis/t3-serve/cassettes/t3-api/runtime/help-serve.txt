@@ -1,0 +1,29 @@
+DESCRIPTION
+  Run T3 Code in this terminal without opening a browser, and print pairing details. The background service runs this. To set up access from your other devices, run `t3 up`.
+
+USAGE
+  t3 serve [flags] [<cwd>]
+
+ARGUMENTS
+  cwd string    Working directory for provider sessions (defaults to the current directory). (optional)
+
+FLAGS
+  --mode choice                              Runtime mode. `desktop` keeps loopback defaults unless overridden. (choices: web, desktop)
+  --port integer                             Port for the HTTP/WebSocket server.
+  --host string                              Host/interface to bind (for example 127.0.0.1, 0.0.0.0, or a Tailnet IP).
+  --base-dir string                          Explicit T3 Code data directory; runtime state is stored under userdata (equivalent to T3CODE_HOME).
+  --dev-url string                           Dev web URL to proxy/redirect to (equivalent to VITE_DEV_SERVER_URL).
+  --no-browser                               Disable automatic browser opening.
+  --bootstrap-fd integer                     Read one-time bootstrap secrets from the given file descriptor.
+  --auto-bootstrap-project-from-cwd          Create a project for the current working directory on startup when missing.
+  --log-websocket-events, --log-ws-events    Emit server-side logs for outbound WebSocket push traffic (equivalent to T3CODE_LOG_WS_EVENTS).
+  --tailscale-serve                          Configure Tailscale Serve to expose this backend over HTTPS on the Tailnet.
+  --tailscale-serve-port integer             HTTPS port for Tailscale Serve when --tailscale-serve is enabled.
+  --lan                                      Accept connections from your local network and tailnet, not only this machine (equivalent to T3CODE_LAN).
+
+GLOBAL FLAGS
+  --help, -h                                                          Show help information
+  --version, -v                                                       Show version information
+  --wizard                                                            Start wizard mode for a command
+  --completions <bash|zsh|fish|powershell|sh|pwsh>                    Print shell completion script (choices: bash, zsh, fish, powershell, sh, pwsh)
+  --log-level <all|trace|debug|info|warn|warning|error|fatal|none>    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)

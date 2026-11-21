@@ -108,10 +108,13 @@ await session.drag('slider-thumb', { x: 0, y: 0.5 }, { x: 1, y: 0.5 });
 The editor is the real one. On web the app renders CodeMirror in an iframe
 (`lib/webview/ReactNativeWebView.web.tsx`, the page from `editorHtml.ts` with the
 real CM6 bundle), and flow tests run exactly that page inside jsdom.
-`session.editor()` waits until it has hydrated, then drives it through the
-bundle's own web test driver `window.__editor__`, the API the Playwright e2e
-tier uses. Every change goes through CodeMirror, so the app receives the same
-bridge messages a user's typing produces. No test sends a bridge message.
+`session.editor()` waits until the page's typed editor API is ready, then drives
+the editor through it (`window.__editorEngine__`, the API the app's own toolbar,
+runner and voice edit use): a client makes the calls and a document mirror gives
+synchronous reads of the text and the selection. Every change goes through
+CodeMirror, so the app receives the same bridge messages a user's typing
+produces. Focus and what the editor draws (the diff and error marks) are read from
+the iframe's DOM. No test sends a bridge message.
 
 ```ts
 const editor = await session.editor();
@@ -120,6 +123,8 @@ await editor.type('return []');
 expect(editor.text()).toContain('return []');
 expect(editor.diffRanges()).toEqual(['return [1, 2]']); // CodeMirror's .cm-diff-change marks
 ```
+
+`editor.keys(text)` types keystrokes through the editor's input handlers, and `editor.completions()`, `editor.completionOpen()` and `editor.pickCompletion(label)` read and press the suggestion list. `editor.tree()`, `editor.statementAt(pos)` and `editor.enclosingBlock(pos)` read the syntax tree the editor holds, through the same typed API. `editor.marks()` lists the marks the typed API holds (hidden ones too), `editor.errorLines()` is the text CodeMirror draws under `.cm-run-error` and `editor.revealedLine()` is the 1-based line of the last range the API revealed (the engine's record of it, since jsdom has no layout to scroll). `editor.config()` reads the config the editor has now (language, tab size, palette) and `editor.press('Enter')` presses a key on CodeMirror's content element, so its own keymap and the language's grammar act on it.
 
 ### Rendering like the web export
 
@@ -256,7 +261,7 @@ captures it (a canvas's paths, markdown, chart marks).
 | --- | --- |
 | `react-native-gesture-handler` | ships untranspiled Flow syntax jsdom cannot parse; drives the real gesture callbacks from DOM pointer events |
 | `react-native-reanimated` | has no worklet runtime in jsdom; values and animations collapse to plain numbers |
-| `@gorhom/bottom-sheet` | a native sheet needs native layout and gesture runtimes; renders passthrough Views with a `data-sheet` marker (and `data-active-offset-y` when the web-only pan window is set) |
+| `@gorhom/bottom-sheet` | a native sheet needs native layout and gesture runtimes; renders passthrough Views with a `data-sheet` marker (`data-active-offset-y` when the web-only pan window is set, `data-keyboard-lift`: how far the design-system Sheet lifts its bottom edge for the keyboard) |
 | `react-native-safe-area-context` | supplies the insets and frame a device would: an iPhone 15 Pro's (59 top, 34 bottom) unless a test calls `setSafeAreaDevice('iphone-se' \| 'ipad-pro-11' \| 'none')`; the setup file resets it after every test |
 | `react-native-screens` | ships Flow-typed entry points jsdom cannot parse; its web overlay is a plain wrapper |
 | `react-native-markdown-display` | renders the markdown source as plain text |

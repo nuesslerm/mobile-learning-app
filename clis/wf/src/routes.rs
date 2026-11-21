@@ -2,10 +2,10 @@
 //! There is one spelling for everything; a first word not listed here is an unknown command.
 //!
 //! A handler gets the words after its command word and returns `None` for a shape it does not serve, which is reported as
-//! unsupported. Verbs: `check`, `ship`, `offload` (`run`, `ask`, `plan` and `worker` only say they are gone). Devices: `android`, `browser`. Nouns: `vm`, `secret`, `repo`, `cache`, `lib`, `t3`, `exec`, `mimic`, `parity`, `ci`.
+//! unsupported. Verbs: `check`, `ship`, `rca` (`run`, `ask`, `plan` and `worker` only say they are gone). Devices: `android`, `browser`. Nouns: `vm`, `secret`, `repo`, `cache`, `lib`, `t3`, `exec`, `mimic`, `ci`.
 //! `t3`, `exec` and `mimic` run separate binaries (`external`), and so does `help` for them.
 use crate::{external, log_emit};
-use pipeline::{dead_refs, e2e_run, export_site, test_results, visual};
+use pipeline::{arch_rules, dead_refs, e2e_run, export_site, test_results, visual};
 use wf_kit::args::{parse_spec, probe, Positional, Spec};
 use pipeline::verify;
 
@@ -27,13 +27,13 @@ pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[
     ("bench", wf_bench::run),
     ("knowledge", knowledge::run),
     ("agent-config", agent_config_sync::verb::run),
-    ("offload", offload::offload),
+    ("rca", rca::rca),
     ("cache", wf_bucket::cache::run),
+    ("bucket", wf_bucket::bucket_run),
     ("lib", wf_lib::run),
     ("t3", external::t3),
     ("exec", external::exec),
     ("mimic", external::mimic),
-    ("parity", parity::run),
     ("help", external::help),
     ("log", log),
     ("worker", worker_gone),
@@ -81,35 +81,39 @@ fn check(rest: &[String]) -> Option<i32> {
             return Some(dead_refs::run(&wf_kit::root::repo_root(), !left.is_empty()));
         }
     }
+    if rest == ["--arch"] {
+        return Some(arch_rules::run(&wf_kit::root::repo_root()));
+    }
     let args = without(rest, "--deployed").unwrap_or_else(|| rest.to_vec());
     // The mode is the one whose option is on the line, wherever it stands.
-    let modes = probe(&args, &[&verify::STAGED, &pipeline::pushed::PUSHED, &deploy::verify_tier3::DRY_RUN, &verify::BUDGET, &deploy::verify_tier3::SPEC])?;
-    if modes.flag("pushed") {
+    let modes = probe(&args, &[&verify::STAGED, &pipeline::pushed::PUSHED, &deploy::verify_tier3::DRY_RUN, &verify::BUDGET, &deploy::verify_tier3::SPEC, &pipeline::layout::LAYOUT])?;
+    if modes.flag("layout") {
+        pipeline::layout::run(&args)
+    } else if modes.flag("pushed") {
         pipeline::pushed::run(&args)
     } else if modes.flag("staged") {
-        verify::staged(&args, dead_refs::gate)
+        verify::staged(&args, |root| dead_refs::gate(root).or_else(|| arch_rules::gate(root)))
     } else if modes.flag("dry-run") {
         deploy::verify_tier3::dry_run(&args)
-    } else if modes.flag("budget") || modes.flag("blast-radius") || modes.flag("unused-deps") || modes.flag("workspace-crossings") || modes.flag("cargo-inputs") {
+    } else if modes.flag("budget") || modes.flag("unused-workspace-deps") || modes.flag("unused-deps") || modes.flag("workspace-crossings") || modes.flag("ts-packages") || modes.flag("cargo-inputs") {
         verify::budget(&args)
     } else {
         deploy::verify_tier3::run(&args)
     }
 }
 
-/// `check --drift`: the generated agent config and the editor bundle (the app's own `check:editor-bundle` script) are both fresh.
+/// `check --drift`: the generated agent config, the editor bundle and the Pyodide bundle (the app's own `check:editor-bundle` and `check:pyodide` scripts) are all fresh.
 fn drift() -> i32 {
     let config = agent_config_sync::verb::run(&words(&["sync", "--check"], &[])).unwrap_or(2);
-    let bundle = std::process::Command::new("pnpm")
-        .args(["--filter", "mla-tamagui", "run", "check:editor-bundle"])
-        .current_dir(wf_kit::root::repo_root())
-        .status()
-        .map_or(2, |s| s.code().unwrap_or(2));
-    if config != 0 {
-        config
-    } else {
-        bundle
-    }
+    let check = |script: &str| {
+        std::process::Command::new("pnpm")
+            .args(["--filter", "mla-tamagui", "run", script])
+            .current_dir(wf_kit::root::repo_root())
+            .status()
+            .map_or(2, |s| s.code().unwrap_or(2))
+    };
+    let (bundle, pyodide) = (check("check:editor-bundle"), check("check:pyodide"));
+    [config, bundle, pyodide].into_iter().find(|code| *code != 0).unwrap_or(0)
 }
 
 /// `test`: planning and running the CI stages (`pipeline`), the e2e runner, preparing the web export, publishing a run, and the results of runs.
@@ -124,7 +128,7 @@ fn test(rest: &[String]) -> Option<i32> {
             println!("wf test export is now `wf test prepare --web`: it prepares what the browser e2e tests run against, which is not a test");
             return Some(2);
         }
-        Some("plan" | "drift") => return pipeline::run_test(rest),
+        Some("drift" | "backends") => return pipeline::run_test(rest),
         Some("publish") => return pipeline::run_test(rest),
         Some("goldens") => return wf_harness::run_test(rest),
         Some("run") if rest.iter().any(|a| a == "--stage") => return pipeline::run_test(rest),
@@ -149,9 +153,9 @@ fn test(rest: &[String]) -> Option<i32> {
     })
 }
 
-/// `ask`, `plan` and `worker` live under `offload` now: each prints the spelling that replaced it and exits 2.
+/// `ask`, `plan` and `worker` live under `rca` now: each prints the spelling that replaced it and exits 2.
 fn moved(old: &str, new: &str, rest: &[String]) -> Option<i32> {
-    println!("{}", serde_json::json!({ "error": format!("wf {old} is gone: it is `wf offload {new}`"), "next": format!("wf offload {new} {}", rest.join(" ")).trim() }));
+    println!("{}", serde_json::json!({ "error": format!("wf {old} is gone: it is `wf rca {new}`"), "next": format!("wf rca {new} {}", rest.join(" ")).trim() }));
     Some(2)
 }
 
@@ -188,7 +192,7 @@ fn repo(rest: &[String]) -> Option<i32> {
         (verb, tail) if verb == "bench" => format!("wf bench {}", tail.join(" ")),
         (verb, tail) if verb == "knowledge" => format!("wf knowledge {}", tail.join(" ")),
         (verb, tail) if verb == "sync" => format!("wf agent-config sync {}", tail.join(" ")),
-        (verb, tail) if verb == "ladder" => format!("wf offload ladder {}", tail.join(" ")),
+        (verb, tail) if verb == "ladder" => format!("wf rca ladder {}", tail.join(" ")),
         (verb, _) if verb == "bundle" => "pnpm --filter mla-tamagui run build:editor-bundle (or check:editor-bundle)".to_string(),
         _ => return None,
     };
@@ -208,4 +212,17 @@ fn log(args: &[String]) -> Option<i32> {
 fn mcp_guard(rest: &[String]) -> Option<i32> {
     println!("{}", serde_json::json!({ "error": "wf mcp-guard is gone", "next": format!("wf agent-config mcp-guard {}", rest.join(" ")).trim() }));
     Some(2)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn the_thin_pipeline_binary_knows_every_word_the_router_routes() {
+        // Given the router's table and the word list the thin binary scans dead references with
+        let routed: Vec<&str> = super::COMMANDS.iter().map(|(n, _)| *n).collect();
+
+        // When they are compared
+        // Then they are the same words in the same order
+        assert_eq!(routed, pipeline::ROUTER_WORDS);
+    }
 }

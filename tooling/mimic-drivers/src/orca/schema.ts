@@ -4,7 +4,7 @@
 // `safeParse` of the same schema. Orca's selectors are `unknown().transform().pipe(string)` wrappers whose JSON Schema is `{}`, so the
 // walk follows the `pipe` to its output side instead of going through `z.toJSONSchema`.
 import { readdirSync, readFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { bundleModule } from '../bundle.ts'
 import { repoRoot } from '../lock.ts'
 import { assertAtPin, orcaRoot } from '../orca-lib/pin.ts'
@@ -19,10 +19,13 @@ const METHODS_DIR = 'src/main/runtime/rpc/methods'
 
 /** `name: 'ns.x'` followed by the next `params: Ident`, per method file; Ident resolved through the file's own import lines. */
 export function registeredParams(namespace: string, root: string = orcaRoot()): { method: string; schemaName: string | null; module: string | null }[] {
-  const dir = join(root, METHODS_DIR)
+  const base = join(root, METHODS_DIR)
   const out: { method: string; schemaName: string | null; module: string | null }[] = []
-  for (const file of readdirSync(dir).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts')).sort()) {
-    const text = readFileSync(join(dir, file), 'utf8')
+  // The method files sit in one folder per namespace since 1.4.259 (flat before): the walk takes both.
+  const files = readdirSync(base, { recursive: true, encoding: 'utf8' }).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts')).sort()
+  for (const file of files) {
+    const dir = dirname(join(base, file))
+    const text = readFileSync(join(base, file), 'utf8')
     const imports = new Map<string, string>()
     for (const m of text.matchAll(/import\s*\{([^}]*)\}\s*from\s*'([^']+)'/g)) {
       for (const part of m[1]!.split(',')) {

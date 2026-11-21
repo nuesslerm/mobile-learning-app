@@ -1,11 +1,12 @@
 {
   "name": "@infra/watchdog",
-  "description": "Recreates unhealthy or restart-looping compose containers on the VM. The daemon is Rust (backend/watchdog); its flow tests drive the run loop in-process (backend/watchdog/rs/tests/flow.rs).",
+  "description": "Recreates unhealthy or restart-looping compose containers on the VM. The daemon is Rust (backend/watchdog); its flow tests drive the run loop in-process (backend/watchdog/rs/tests/flow.rs). Its unit tests also cover the scripts of the agent-shell image (`../agent-shell/tests`), which have no package of their own: a TypeScript package outside frontend/ is not allowed.",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test:flow": "CARGO_TARGET_DIR=../../../backend/target cargo test --locked -p watchdog-rs --test flow --manifest-path ../../../backend/watchdog/Cargo.toml"
+    "test:flow": "CARGO_TARGET_DIR=../../../backend/target cargo test --locked -p watchdog-rs --test flow --manifest-path ../../../backend/watchdog/Cargo.toml",
+    "test:unit": "node --test ../agent-shell/tests/*.test.mjs"
   },
   "nx": {
     "targets": {
@@ -19,6 +20,15 @@
               "crate-watchdog-rs"
             ]
           },
+          {
+            "externalDependencies": []
+          }
+        ]
+      },
+      "test:unit": {
+        "inputs": [
+          "default",
+          "{workspaceRoot}/infra/oracle-cloud/agent-shell/**",
           {
             "externalDependencies": []
           }

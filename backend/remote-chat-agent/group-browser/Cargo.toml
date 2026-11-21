@@ -1,0 +1,28 @@
+[package]
+name = "rca-group-browser"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The browser group of the service's agent API: a headless Chromium run by the executor that owns the workspace, one page per thread or workspace; the service starts no browser, and the group refuses every method unless the service was configured for it"
+
+[lib]
+name = "rca_group_browser"
+path = "src/lib.rs"
+doctest = false
+
+[dependencies]
+async-trait.workspace = true
+serde_json.workspace = true
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+agent-api-browser = { path = "../../../libraries/agent-api/agent-api-browser" }
+rca-agent-core = { path = "../agent-core" }
+rca-exec-channel = { path = "../exec-channel" }
+exec-proto = { path = "../../../libraries/agent-api/exec-proto" }
+exec-browser = { path = "../../../libraries/agent-api/exec-browser" }
+
+[dev-dependencies]
+tokio.workspace = true
+rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
+
+[package.metadata.arch]
+type = "rust-group"

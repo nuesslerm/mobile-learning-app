@@ -61,7 +61,7 @@ fn given_the_served_rows_when_compared_with_the_contract_then_each_method_has_on
     let rows: Vec<(Method, Vec<&str>)> = SERVED.iter().map(|s| (s.method, s.actions.to_vec())).collect();
     // Then the rows are the contract's methods in order and only the one that writes into a workspace names an executor action
     assert_eq!(rows.iter().map(|r| r.0).collect::<Vec<_>>(), api::METHODS);
-    assert_eq!(rows.iter().filter(|r| !r.1.is_empty()).map(|r| (r.0, r.1.clone())).collect::<Vec<_>>(), [(api::STAGE, vec!["put_blob"])]);
+    assert_eq!(rows.iter().filter(|r| !r.1.is_empty()).map(|r| (r.0, r.1.clone())).collect::<Vec<_>>(), [(api::STAGE, vec!["put_blob", "put_temp"])]);
 }
 
 #[tokio::test]

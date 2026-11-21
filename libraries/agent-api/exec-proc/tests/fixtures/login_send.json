@@ -1,0 +1,43 @@
+{
+  "action": "login_send",
+  "exchanges": [
+    {
+      "name": "refuses a line for a login that is not running",
+      "request": {
+        "id": "s1",
+        "tool": "login_send",
+        "args": {
+          "flow": "login-99",
+          "text": "abc"
+        }
+      },
+      "response": {
+        "id": "s1",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no login login-99 is running here"
+        }
+      }
+    },
+    {
+      "name": "refuses text that is more than one line",
+      "request": {
+        "id": "s2",
+        "tool": "login_send",
+        "args": {
+          "flow": "login-99",
+          "text": "a\nb"
+        }
+      },
+      "response": {
+        "id": "s2",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`text` is one line of at most 4096 bytes"
+        }
+      }
+    }
+  ]
+}

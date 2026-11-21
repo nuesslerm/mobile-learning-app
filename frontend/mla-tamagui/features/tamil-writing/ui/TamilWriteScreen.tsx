@@ -6,11 +6,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
-import {
-  checkWriting,
-  WritingCheckError,
-  type WritingVerdict,
-} from '../data/tamilWritingCheck';
+import { WritingCheckError, type WritingVerdict } from '../domain/ports';
+import { useTamilWritingPorts } from '../state/ports';
 import { strokesToSvg, type CanvasSize, type Stroke } from '../domain/strokes';
 import { getWritingSubject, subjectPosition } from '../domain/tracks';
 import { useTamilProgressStore } from '../state/tamilProgressStore';
@@ -43,6 +40,7 @@ const VERDICT_HEIGHT = 60;
 export function TamilWriteScreen({ subjectId }: TamilWriteScreenProps) {
   const insets = useSafeAreaInsets();
   const recordAttempt = useTamilProgressStore((state) => state.recordAttempt);
+  const { writingCheck } = useTamilWritingPorts();
 
   const subject = useMemo(() => getWritingSubject(subjectId), [subjectId]);
   const position = useMemo(() => subjectPosition(subjectId), [subjectId]);
@@ -66,7 +64,7 @@ export function TamilWriteScreen({ subjectId }: TamilWriteScreenProps) {
     setVerdict(null);
     const startedAt = Date.now();
     try {
-      const result = await checkWriting({
+      const result = await writingCheck.check({
         characterId: subject.id,
         glyph: subject.glyph,
         transliteration: subject.transliteration,
@@ -98,7 +96,7 @@ export function TamilWriteScreen({ subjectId }: TamilWriteScreenProps) {
     } finally {
       setChecking(false);
     }
-  }, [subject, canvasSize, recordAttempt, strokes]);
+  }, [subject, canvasSize, recordAttempt, strokes, writingCheck]);
 
   const missing = !subject;
   useEffect(() => {

@@ -1,6 +1,6 @@
 //! The deploy plan's contract (owner, 18 Oct): a push ships exactly the legs whose image is built from what it changed, and
 //! nothing else. The workspace is a git repository made from this repository's files; each case commits one edit on top of
-//! the same base and asks `wf ship --changed --since <base>`, the real planner with real git and pnpm, which legs ship and whether
+//! the same base and asks `wf ci plan legs --since <base>`, the real planner with real git and pnpm, which legs ship and whether
 //! the push publishes an EAS Update (what the app bundles changed since the commit of the latest update, which `--since` stands in for).
 use crate::support::{repo_root, run_wf, RunOpts};
 use serde_json::{json, Value};
@@ -45,7 +45,7 @@ impl Repo {
         Repo { dir, base }
     }
 
-    /// Commits `edit` on top of the base and returns the plan `wf ship --changed --since <base>` prints.
+    /// Commits `edit` on top of the base and returns the plan `wf ci plan legs --since <base>` prints.
     fn plan_after(&self, edit: impl FnOnce(&Path)) -> Value {
         self.plan_with(&[], edit)
     }
@@ -56,7 +56,7 @@ impl Repo {
         edit(self.dir.path());
         git(self.dir.path(), &["add", "-A"]);
         git(self.dir.path(), &["commit", "-qm", "case", "--no-verify", "--allow-empty"]);
-        let mut args = vec!["ship", "--changed", "--since", self.base.as_str()];
+        let mut args = vec!["ci", "plan", "legs", "--since", self.base.as_str()];
         args.extend_from_slice(extra);
         let r = run_wf(&args, &RunOpts::default().cwd(self.dir.path()).timeout(Duration::from_secs(120)));
         assert_eq!(r.exit_code, 0, "{}\n{}", r.stdout, r.stderr);
@@ -126,7 +126,7 @@ fn a_push_ships_exactly_the_legs_built_from_what_it_changed() {
         ("the wire contracts' own workspace lockfile, which no image reads", "libraries/agent-api/Cargo.lock", vec![], false),
         ("the agent.threads contract's code, which the agent service builds its action table with", "libraries/agent-api/agent-api-agent/src/events.rs", vec!["remote-chat-agent", "t3-serve", "orca-serve"], false),
         ("the attachments contract's code, which the agent service, the T3 server and the Orca server build with", "libraries/agent-api/agent-api-attachments/src/lib.rs", vec!["remote-chat-agent", "t3-serve", "orca-serve"], false),
-        ("the catalog contract's code, which the agent service and the Orca server build with (the T3 server only copies it for the workspace manifest)", "libraries/agent-api/agent-api-catalog/src/lib.rs", vec!["remote-chat-agent", "orca-serve"], false),
+        ("the catalog contract's code, which the agent service, the T3 server (its voice routes call the speech methods) and the Orca server build with", "libraries/agent-api/agent-api-catalog/src/lib.rs", vec!["remote-chat-agent", "t3-serve", "orca-serve"], false),
         ("the catalog group's code, a crate of the agent service", "backend/remote-chat-agent/group-catalog/src/service.rs", vec!["remote-chat-agent"], false),
         ("the voice edit DSL cassette, which the agent service's flow test replays and no image holds", "backend/remote-chat-agent/rs/tests/cassettes/voice-edit-dsl/interactions.jsonl", vec![], false),
         ("the Rust port's mimic driver, an example of the service core that the cassette test runs", "backend/remote-chat-agent/service-core/examples/mimic_voice_dsl.rs", vec![], false),
@@ -134,7 +134,7 @@ fn a_push_ships_exactly_the_legs_built_from_what_it_changed() {
         ("the agent service's integration test, which replays the DSL cassette through wf-mimic and is no image's input", "backend/remote-chat-agent/rs/tests/integration.rs", vec![], false),
         ("the Orca chain's integration test of the mobile bundle replay", "clis/orca-serve/tests/integration/mimic_x2.rs", vec![], false),
         ("the Orca oracle's integration test of the dual-target replay", "clis/orca-serve/tests/integration/mimic_x6.rs", vec![], false),
-        ("the Orca oracle's cassette", "clis/orca-serve/cassettes/orca-files/cassette.json", vec![], false),
+        ("the Orca oracle's cassette", "clis/orca-serve/cassettes/orca-v1.4.259-files/cassette.json", vec![], false),
         ("the voice edit DSL library the cassette pins, which the app bundles and the services never read", "frontend/libraries/voice-edit-dsl/src/validator.ts", vec![], true),
         ("the agent.threads contract's recorded exchanges", "libraries/agent-api/agent-api-agent/tests/fixtures/thread.get.json", vec![], false),
         ("the agent.threads contract's recorded events", "libraries/agent-api/agent-api-agent/tests/fixtures/thread-events.jsonl", vec![], false),
@@ -170,7 +170,7 @@ fn a_push_ships_exactly_the_legs_built_from_what_it_changed() {
         ("wf outside the listener, which no image holds", "clis/wf/src/main.rs", vec![], false),
         ("the mimic core's code, of which the Orca and T3 images copy only the manifest and stub the library, so no image rebuilds", "clis/mimic/core/src/differ.rs", vec![], false),
         ("the mimic CLI's adapters, which no image holds", "clis/mimic/src/adapters/stdio.rs", vec![], false),
-        ("the mimic core's manifest, which the Orca and T3 images copy to resolve the dev-dependency of their replay tests", "clis/mimic/core/Cargo.toml", vec!["t3-serve", "orca-serve"], false),
+        ("the mimic core's manifest, a library the Orca and T3 images take from the registry, so no image rebuilds", "clis/mimic/core/Cargo.toml", vec![], false),
         ("the T3 server's imported cassettes, read by its tests only", "clis/t3-serve/cassettes/t3-v0.1.6/interactions.jsonl", vec![], false),
         ("the CLIs' lockfile", "clis/Cargo.lock", vec![], false),
         ("the Nx config", "nx.json", vec![], false),
@@ -209,7 +209,7 @@ fn a_push_ships_exactly_the_legs_built_from_what_it_changed() {
         append(repo.dir.path(), edit);
         git(repo.dir.path(), &["add", "-A"]);
         git(repo.dir.path(), &["commit", "-qm", "case", "--no-verify"]);
-        let r = run_wf(&["ship", "--changed", "--since", &repo.base, "--github-output"], &RunOpts::default().cwd(repo.dir.path()).env("GITHUB_OUTPUT", &out.display().to_string()).timeout(Duration::from_secs(120)));
+        let r = run_wf(&["ci", "plan", "legs", "--since", &repo.base, "--github-output"], &RunOpts::default().cwd(repo.dir.path()).env("GITHUB_OUTPUT", &out.display().to_string()).timeout(Duration::from_secs(120)));
         assert_eq!(r.exit_code, 0, "{}\n{}", r.stdout, r.stderr);
         std::fs::read_to_string(&out).unwrap()
     };
@@ -217,7 +217,7 @@ fn a_push_ships_exactly_the_legs_built_from_what_it_changed() {
     // Then the eas-update job's condition is a line of its own beside the legs
     assert!(app.lines().any(|l| l == "eas_update=true") && app.lines().any(|l| l.starts_with("legs=")), "{app}");
     assert!(backend.lines().any(|l| l == "eas_update=false") && backend.contains("leetcode-backend"), "{backend}");
-    let forced = run_wf(&["ship", "--changed", "--force"], &RunOpts::default().cwd(repo.dir.path()).timeout(Duration::from_secs(120)));
+    let forced = run_wf(&["ci", "plan", "legs", "--force"], &RunOpts::default().cwd(repo.dir.path()).timeout(Duration::from_secs(120)));
     assert_eq!(serde_json::from_str::<Value>(forced.stdout.trim()).unwrap()["easUpdate"], json!({ "publish": true, "why": ["--force"] }), "{}", forced.stdout);
 
     // When the lockfile of a service with its own workspace moves the same crate, Then that service alone ships
@@ -238,7 +238,7 @@ fn a_push_ships_exactly_the_legs_built_from_what_it_changed() {
     std::fs::write(repo.dir.path().join("pnpm-workspace.yaml"), "packages: [\n").unwrap();
     git(repo.dir.path(), &["add", "-A"]);
     git(repo.dir.path(), &["commit", "-qm", "broken workspace", "--no-verify"]);
-    let broken = run_wf(&["ship", "--changed", "--since", &repo.base], &RunOpts::default().cwd(repo.dir.path()).timeout(Duration::from_secs(120)));
+    let broken = run_wf(&["ci", "plan", "legs", "--since", &repo.base], &RunOpts::default().cwd(repo.dir.path()).timeout(Duration::from_secs(120)));
     // Then the update is published saying pnpm could not tell, instead of reading its silence as "nothing changed"
     assert_eq!(broken.exit_code, 0, "{}\n{}", broken.stdout, broken.stderr);
     let why = serde_json::from_str::<Value>(broken.stdout.trim()).unwrap()["easUpdate"]["why"][0].as_str().unwrap().to_string();

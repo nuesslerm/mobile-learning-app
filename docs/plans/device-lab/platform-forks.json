@@ -6,15 +6,15 @@
       "why": "drawer width: a CSS min() string is valid on web only, native computes pixels",
       "residual": "style arithmetic; the native arm is Math.min(width * 0.78, 320)"
     },
-    "frontend/mla-tamagui/features/leetcode/hooks/useVoiceEdit.ts": {
+    "frontend/mla-tamagui/features/leetcode/state/useVoiceEdit.ts": {
       "class": "instrumentation",
       "why": "Platform.OS is recorded on the edit-stats row, no behaviour"
     },
-    "frontend/mla-tamagui/features/leetcode/plan/hooks/useLiveTranscript.ts": {
+    "frontend/mla-tamagui/features/leetcode/plan/state/useLiveTranscript.ts": {
       "class": "instrumentation",
       "why": "Platform.OS is recorded on the edit-stats row, no behaviour"
     },
-    "frontend/mla-tamagui/features/leetcode/plan/hooks/usePlanRealize.ts": {
+    "frontend/mla-tamagui/features/leetcode/plan/state/usePlanRealize.ts": {
       "class": "instrumentation",
       "why": "Platform.OS is recorded on the edit-stats row, no behaviour"
     },

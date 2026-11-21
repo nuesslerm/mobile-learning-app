@@ -18,7 +18,7 @@ import {
 import { ScrollView } from 'react-native';
 
 import { SettingsRow } from './SettingsRow';
-import { backTo } from './backTo';
+import { backTo } from '@lib/tamagui-design-system/lib/backTo';
 
 export function SettingsIndexScreen() {
   const activeThemeId = usePresetThemeStore((s) => s.activeThemeId);

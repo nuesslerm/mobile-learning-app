@@ -1,7 +1,6 @@
 //! The project rows of M12 through the real router over the agent double: what a project the phone makes asks of the agent API (the folder
 //! checked, made a workspace, kept in `state`, forgotten), what `projects.ensureScratch`, `projects.createNew` and `projects.createFromThread`
-//! ask the executor to make, and what the phone is told. The chain (`tests/integration/projects_m12.rs`) runs the same calls through the real
-//! service and executor and looks at the folders themselves.
+//! ask the executor to make, and what the phone is told. The recorded `project.create` and `project.delete` are replayed by the `workspace` feature.
 use super::support::*;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
@@ -139,7 +138,7 @@ fn a_thread_the_phone_creates_exists_in_the_agent_api_at_once_with_its_instance_
     success(&rpc.call("projects.mutate", project("p1", "/workspace/demo")));
     h.agent.ops.lock().unwrap().clear();
     // When the phone creates a thread that is to run Claude Code on a model
-    let create = json!({"type": "thread.create", "commandId": "c-t1", "threadId": "t1", "projectId": "p1", "title": "Notes", "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}});
+    let create = json!({"type": "thread.create", "commandId": "c-t1", "threadId": "t1", "projectId": "p1", "title": "Notes", "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}, "createdBy": "user", "creationSource": "mobile", "runtimeMode": "full-access", "interactionMode": "default", "branch": null, "worktreePath": null});
     success(&rpc.call("orchestration.dispatchCommand", create.clone()));
     // Then the agent API was asked for the thread, before any turn, with the instance and the model
     let made = h.agent.created.lock().unwrap().clone();
@@ -295,4 +294,28 @@ fn a_project_cannot_be_made_from_a_thread_that_is_unknown_has_a_project_or_is_st
     }
     // And no project was made
     assert_eq!(projects_of(&mut rpc).len(), 2);
+}
+
+#[test]
+fn a_project_made_with_create_workspace_root_if_missing_has_its_folder_made_by_the_executor_before_it_is_checked() {
+    // Given an executor whose folder /workspace/fresh is not there until it is asked to make it
+    let (h, mut rpc) = started();
+    let made = Arc::new(Mutex::new(false));
+    let seen = made.clone();
+    *h.agent.responder.lock().unwrap() = Some(Box::new(move |op| match op {
+        Op::FileMkdir { path, parents: true } if path == "fresh" => {
+            *seen.lock().unwrap() = true;
+            Some(Ok(json!({"path": path, "created": true})))
+        }
+        Op::FileBrowse { path, .. } if path == "/workspace/fresh" && !*seen.lock().unwrap() => Some(refused(agent_codes::NOT_FOUND, "/workspace/fresh does not exist")),
+        _ => None,
+    }));
+    // When the phone makes a project on it and says to make the folder if it is missing
+    let mut command = project("p1", "/workspace/fresh");
+    command["createWorkspaceRootIfMissing"] = json!(true);
+    let exit = rpc.call("projects.mutate", command);
+    // Then the executor was asked to make the folder below its root, and the project is a workspace of it
+    assert_eq!(success(&exit)["id"], "p1");
+    assert!(ops(&h).contains(&Op::FileMkdir { path: "fresh".into(), parents: true }), "{:?}", ops(&h));
+    assert!(ops(&h).contains(&Op::WorkspaceCreate { workspace: "project-p1".into(), path: "fresh".into() }));
 }

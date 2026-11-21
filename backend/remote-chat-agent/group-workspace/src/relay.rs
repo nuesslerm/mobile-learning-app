@@ -97,15 +97,30 @@ pub(crate) fn executor_args(method: agent_api_proto::Method, mut params: FilePar
             params.path = place.prefix.clone();
             Ok(params.executor_args())
         }
-        edit::FILE_BROWSE => {
+        edit::FILE_BROWSE | edit::ARTIFACT_STAT | edit::ARTIFACT_READ | edit::ARTIFACT_WRITE => {
             // An absolute path is the executor's to allow or refuse; a relative one is the workspace's
             if let Some(path) = params.path.clone().filter(|p| !std::path::Path::new(p).is_absolute()) {
                 params.path = Some(place_path(&path)?);
             }
+            let mut args = params.executor_args();
+            // Below a prefix the executor serves the workspace and its allowed artifact directories, not the rest of its root
+            if method != edit::FILE_BROWSE {
+                if let Some(prefix) = &place.prefix {
+                    args["within"] = json!(prefix);
+                }
+            }
+            Ok(args)
+        }
+        FILE_READ | FILE_LIST | edit::FILE_READ_CHUNK | edit::FILE_WRITE | edit::FILE_CREATE | edit::FILE_STAT | edit::FILE_MKDIR | edit::FILE_PUT_SECRET => {
+            params.path = params.path.take().map(|p| place_path(&p)).transpose()?;
             Ok(params.executor_args())
         }
-        FILE_READ | FILE_LIST | edit::FILE_READ_CHUNK | edit::FILE_WRITE | edit::FILE_CREATE | edit::FILE_STAT | edit::FILE_MKDIR => {
-            params.path = params.path.take().map(|p| place_path(&p)).transpose()?;
+        edit::PROCESS_SAMPLE => Ok(params.executor_args()),
+        edit::MCP_REQUEST => {
+            // The executor reads `.mcp.json` at its own root, so a workspace below it or a worktree would be answered with the wrong servers
+            if place.prefix.is_some() || place.worktree.is_some() {
+                return Err(Refusal::invalid("mcp.request runs in an executor's root workspace only"));
+            }
             Ok(params.executor_args())
         }
         other => unreachable!("{} is no file method", other.name()),

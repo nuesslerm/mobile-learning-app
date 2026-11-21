@@ -19,3 +19,6 @@ async-trait.workspace = true
 futures-util.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
+
+[package.metadata.arch]
+type = "rust-core"

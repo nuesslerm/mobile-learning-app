@@ -5,7 +5,7 @@ use crate::domain::{self, Request};
 use crate::ports::{Clock, Ids, Refusal, RunRequest, ScheduleStore, Started, Stored, TurnTrigger};
 use agent_api_proto::Event;
 use agent_api_schedules::watch::{self, SubscribeResult};
-use agent_api_schedules::{code, message, MutationResult, RunNowResult, RunSource, RunState, RunStatus, RunView, Schedule, TaskView, UpsertParams, WebhookView};
+use agent_api_schedules::{code, message, MutationResult, RunNowResult, RunSource, RunState, RunStatus, RunView, Schedule, TaskView, UpsertParams, WebhookView, MAX_RUNS_KEPT};
 use rca_agent_core::token_digest;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -138,11 +138,25 @@ impl Schedules {
             let stale: Vec<&mut Stored> = all.iter_mut().filter(|s| s.task.last_run_status == RunStatus::Running).collect();
             let count = stale.len();
             for s in stale {
+                let error = "the service restarted while the turn ran".to_string();
+                for run in s.runs.iter_mut().filter(|r| r.state == RunState::Started) {
+                    (run.state, run.error) = (RunState::Failed, Some(error.clone()));
+                }
                 s.task.last_run_status = RunStatus::Failed;
-                s.task.last_run_error = Some("the service restarted while the turn ran".into());
+                s.task.last_run_error = Some(error);
             }
             Ok(count)
         })
+    }
+
+    /// The runs kept of the schedule `id`, or of every schedule: newest first by when each began, then by id.
+    pub fn runs(&self, id: Option<&str>) -> Result<Vec<RunView>, Failure> {
+        let mut runs: Vec<RunView> = match id {
+            Some(id) => self.stored(id)?.runs,
+            None => self.store.load().map_err(Failure::unavailable)?.into_iter().flat_map(|s| s.runs).collect(),
+        };
+        runs.sort_by(|a, b| b.at_ms.cmp(&a.at_ms).then_with(|| a.run.cmp(&b.run)));
+        Ok(runs)
     }
 
     pub fn list(&self) -> Result<Vec<TaskView>, Failure> {
@@ -160,7 +174,7 @@ impl Schedules {
                 Some(at) => all[at].clone(),
                 None => {
                     let id = p.id.clone().unwrap_or_else(|| self.ids.id("sch"));
-                    Stored { task: blank(&id, now, &p), token_digest: None }
+                    Stored { task: blank(&id, now, &p), token_digest: None, runs: Vec::new() }
                 }
             };
             let task = &mut stored.task;
@@ -327,9 +341,15 @@ impl Schedules {
 
     fn record_if_running(&self, run: &RunView, status: RunStatus) -> Result<(), Failure> {
         self.edit(|all, pending| {
-            if let Some(s) = all.iter_mut().find(|s| s.task.id == run.schedule && s.task.last_run_status == RunStatus::Running) {
-                s.task.last_run_status = status;
-                s.task.last_run_error = run.error.clone();
+            if let Some(s) = all.iter_mut().find(|s| s.task.id == run.schedule) {
+                // the kept run keeps when it began; only how it ended changes
+                if let Some(kept) = s.runs.iter_mut().find(|r| r.run == run.run) {
+                    (kept.state, kept.error) = (run.state, run.error.clone());
+                }
+                if s.task.last_run_status == RunStatus::Running {
+                    s.task.last_run_status = status;
+                    s.task.last_run_error = run.error.clone();
+                }
             }
             let run = run.clone();
             pending.push(Box::new(move |seq| watch::run_event(seq, &run)));
@@ -340,11 +360,14 @@ impl Schedules {
     /// Notes the run on its schedule (`status` none leaves the status alone) and announces it.
     fn record(&self, run: &RunView, status: Option<RunStatus>) -> Result<(), Failure> {
         self.edit(|all, pending| {
-            if let (Some(s), Some(status)) = (all.iter_mut().find(|s| s.task.id == run.schedule), status) {
-                s.task.last_run_ms = Some(run.at_ms);
-                s.task.last_run_status = status;
-                s.task.last_run_error = run.error.clone();
-                s.task.run_count += 1;
+            if let Some(s) = all.iter_mut().find(|s| s.task.id == run.schedule) {
+                keep(&mut s.runs, run.clone());
+                if let Some(status) = status {
+                    s.task.last_run_ms = Some(run.at_ms);
+                    s.task.last_run_status = status;
+                    s.task.last_run_error = run.error.clone();
+                    s.task.run_count += 1;
+                }
             }
             let run = run.clone();
             pending.push(Box::new(move |seq| watch::run_event(seq, &run)));
@@ -395,5 +418,14 @@ fn blank(id: &str, now: u64, p: &UpsertParams) -> TaskView {
         run_count: 0,
         webhook: None,
         meta: None,
+    }
+}
+
+/// A run added to a schedule's kept runs; the oldest finished one goes while more than `MAX_RUNS_KEPT` finished ones are kept.
+fn keep(runs: &mut Vec<RunView>, run: RunView) {
+    runs.push(run);
+    while runs.iter().filter(|r| r.state != RunState::Started).count() > MAX_RUNS_KEPT {
+        let Some(oldest) = runs.iter().position(|r| r.state != RunState::Started) else { break };
+        runs.remove(oldest);
     }
 }

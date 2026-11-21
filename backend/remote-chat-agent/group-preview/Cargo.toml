@@ -29,3 +29,6 @@ exec-preview = { path = "../../../libraries/agent-api/exec-preview" }
 [dev-dependencies]
 agent-api-preview = { path = "../../../libraries/agent-api/agent-api-preview", features = ["testing"] }
 rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
+
+[package.metadata.arch]
+type = "rust-group"

@@ -245,13 +245,128 @@ fn a_release_publishes_only_committed_pushed_files_free_of_credentials_and_other
     repo.push();
 
     // Given a file the package would carry that git does not track
-    std::fs::create_dir_all(repo.work().join("libs/fixture-core/data")).unwrap();
-    repo.write("libs/fixture-core/data/extra.json", "{}\n");
+    std::fs::create_dir_all(repo.work().join("libs/fixture-core/src")).unwrap();
+    repo.write("libs/fixture-core/src/extra.rs", "pub const X: u32 = 1;\n");
     refused("untracked file", "is not tracked by git");
     repo.settle();
 
     // Given a credential-shaped string in a committed, pushed file
-    repo.write("libs/fixture-core/data/extra.json", "{ \"token\": \"ghp_0123456789abcdefghijklmnopqrstuvwxyz\" }\n");
+    repo.write("libs/fixture-core/src/extra.rs", "pub const T: &str = \"ghp_0123456789abcdefghijklmnopqrstuvwxyz\";\n");
     repo.settle();
     refused("a credential", "a GitHub token");
+
+    // Given a wider shape: a secret-named value assigned a literal
+    repo.write("libs/fixture-core/src/extra.rs", "pub const API_TOKEN: &str = \"abc123def456ghi789jkl\";\n");
+    repo.settle();
+    refused("a named literal", "a secret-named value assigned a literal");
+}
+
+#[test]
+fn a_release_refuses_a_file_that_holds_a_value_the_vault_holds_and_a_manifest_that_names_nothing_to_ship() {
+    // Given a library whose source holds a value the environment backend holds as a registered secret
+    let mut repo = Repo::new(&libraries_json("mla", "", ""));
+    repo.env.push(("GROQ_API_KEY".into(), "correct-horse-battery-staple".into()));
+    repo.write("libs/fixture-core/src/extra.rs", "pub const HOST: &str = \"correct-horse-battery-staple\";\n");
+    repo.settle();
+
+    // When it is released
+    let r = repo.lib(&["release", "fixture-core", "patch"]);
+
+    // Then it is refused with the way out, nothing is uploaded and the manifest is as it was
+    assert_eq!(r.exit_code, 1, "{}{}", r.stdout, r.stderr);
+    let error = last_json(&r)["error"].as_str().unwrap().to_string();
+    assert!(error.contains("a value the vault holds") && !error.contains("correct-horse-battery-staple"), "{error}");
+    assert!(last_json(&r)["next"].as_str().unwrap().contains("at runtime"), "{}", r.stdout);
+    assert!(repo.bucket.names().is_empty());
+
+    // Given the value gone and the manifest without an include list
+    repo.write("libs/fixture-core/src/extra.rs", "pub const HOST: &str = \"example.org\";\n");
+    let manifest = repo.read("libs/fixture-core/Cargo.toml").replace("include = [\"src/**\", \"Cargo.toml\"]\n", "");
+    repo.write("libs/fixture-core/Cargo.toml", &manifest);
+    repo.settle();
+
+    // When it is released, Then the manifest is asked to name what ships
+    let r = repo.lib(&["release", "fixture-core", "patch"]);
+    assert_eq!(r.exit_code, 1, "{}{}", r.stdout, r.stderr);
+    assert!(last_json(&r)["error"].as_str().unwrap().contains("no `include` list"), "{}", r.stdout);
+    assert!(repo.bucket.names().is_empty());
+}
+
+fn git_registry() -> String {
+    libraries_json("mla", "", "").replace(r#""tokenEnv": "LIBS_WRITE_PAR_URL", "publish": "bucket-sparse", "indexUrl": "@INDEX@""#, r#""publish": "git-sparse", "indexUrl": "https://raw.example.org/dev/registry/index/""#)
+}
+
+fn origin_has(repo: &Repo, path: &str) -> bool {
+    std::process::Command::new("git").arg("-C").arg(repo.dir.path().join("origin.git")).args(["cat-file", "-e", &format!("dev:{path}")]).status().unwrap().success()
+}
+
+#[test]
+fn a_release_to_a_git_registry_commits_the_crate_and_its_index_to_dev_and_needs_no_link() {
+    // Given a library whose registry is the repository itself
+    let repo = Repo::new(&git_registry());
+
+    // When it is released as a patch
+    let r = repo.lib(&["release", "fixture-core", "patch"]);
+
+    // Then the crate, its index file and config.json are committed under registry/ and pushed, and the bucket was not used
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert_eq!(last_json(&r)["publisher"], "git-sparse");
+    assert!(repo.bucket.names().is_empty());
+    for path in ["registry/crates/fixture-core/0.1.1.crate", "registry/index/fi/xt/fixture-core", "registry/index/config.json"] {
+        assert!(origin_has(&repo, path), "{path}");
+    }
+    assert!(repo.read("registry/index/config.json").contains("https://raw.example.org/dev/registry/crates/{crate}/{version}.crate"), "{}", repo.read("registry/index/config.json"));
+    assert!(repo.read("libs/fixture-core/Cargo.toml").contains("version = \"0.1.1\""));
+
+    // When the same version is released again, Then it is refused as already released
+    repo.write("libs/fixture-core/Cargo.toml", &repo.read("libs/fixture-core/Cargo.toml").replace("0.1.1", "0.1.0"));
+    repo.settle();
+    let again = repo.lib(&["release", "fixture-core", "patch"]);
+    assert_eq!(again.exit_code, 1, "{}", again.stdout);
+    assert!(last_json(&again)["error"].as_str().unwrap().contains("already released"), "{}", again.stdout);
+}
+
+#[test]
+fn a_release_to_a_git_registry_is_refused_while_origin_holds_registry_entries_this_checkout_lacks() {
+    // Given origin/dev with a registry file this checkout has not pulled
+    let repo = Repo::new(&git_registry());
+    let other = repo.dir.path().join("other");
+    let origin = repo.dir.path().join("origin.git");
+    let run = |dir: &std::path::Path, args: &[&str]| assert!(std::process::Command::new("git").arg("-C").arg(dir).args(args).status().unwrap().success(), "{args:?}");
+    run(repo.dir.path(), &["clone", "-q", "-b", "dev", origin.to_str().unwrap(), "other"]);
+    write(&other.join("registry/index/zz/zz/zzzz"), "{}\n");
+    run(&other, &["add", "-A"]);
+    run(&other, &["-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-q", "-m", "registry entry"]);
+    run(&other, &["push", "-q", "origin", "dev"]);
+
+    // When the library is released
+    let r = repo.lib(&["release", "fixture-core", "patch"]);
+
+    // Then it is refused with the way out and the manifest is as it was
+    assert_eq!(r.exit_code, 1, "{}{}", r.stdout, r.stderr);
+    assert!(last_json(&r)["next"].as_str().unwrap().contains("pull --rebase"), "{}", r.stdout);
+    assert!(repo.read("libs/fixture-core/Cargo.toml").contains("version = \"0.1.0\""));
+}
+
+#[test]
+fn a_release_to_a_git_registry_commits_with_a_hook_that_uses_git_and_refuses_while_something_else_is_staged() {
+    // Given a pre-commit hook that runs git in a repository of its own, as the gate's tests do, and a file staged outside registry/
+    let repo = Repo::new(&git_registry());
+    let hook = repo.work().join(".git/hooks/pre-commit");
+    write(&hook, "#!/bin/sh\nd=$(mktemp -d) && git -C \"$d\" init -q && echo x > \"$d/f\" && git -C \"$d\" add -A\n");
+    std::process::Command::new("chmod").arg("+x").arg(&hook).status().unwrap();
+    repo.write("notes.txt", "staged\n");
+    git(&repo.work(), &["add", "notes.txt"]);
+
+    // When the library is released, Then it is refused naming the staged file and the manifest is as it was
+    let refused = repo.lib(&["release", "fixture-core", "patch"]);
+    assert_eq!(refused.exit_code, 1, "{}", refused.stdout);
+    assert!(last_json(&refused)["error"].as_str().unwrap().contains("notes.txt is staged"), "{}", refused.stdout);
+    assert!(repo.read("libs/fixture-core/Cargo.toml").contains("version = \"0.1.0\""));
+
+    // Given it unstaged, When it is released, Then the hook ran and the commit reached origin
+    git(&repo.work(), &["reset", "-q", "notes.txt"]);
+    let r = repo.lib(&["release", "fixture-core", "patch"]);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert!(origin_has(&repo, "registry/index/config.json"));
 }

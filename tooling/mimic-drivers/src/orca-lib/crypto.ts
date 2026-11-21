@@ -2,6 +2,7 @@
 // Every key, nonce and token is a case input (a fixed fill byte), never drawn from randomness, so a recording is reproducible.
 import { bundleModule } from '../bundle.ts'
 import { ret, type Json, type Op, type Reply } from '../protocol.ts'
+import { existsSync } from 'node:fs'
 import { assertAtPin, orcaRoot } from './pin.ts'
 
 type Bytes = Uint8Array
@@ -32,17 +33,24 @@ function load(): Promise<Lib> {
   lib ??= (async () => {
     assertAtPin()
     const root = orcaRoot()
-    const shared = `${root}/src/shared`
+    // Orca moved these modules under src/shared/remote-runtime (1.4.259): the first location that exists at the pin is bundled.
+    const at = (name: string, ...dirs: string[]): string => {
+      const dir = dirs.find((d) => ['ts', 'tsx'].some((ext) => existsSync(`${root}/${d}/${name}.${ext}`)))
+      if (!dir) throw new Error(`${name} is in none of ${dirs.join(', ')} of the Orca checkout at the pin: Orca moved the module again`)
+      return `${root}/${dir}/${name}`
+    }
+    const e2ee = ['src/shared', 'src/shared/remote-runtime/e2ee']
+    const node = ['src/shared', 'src/shared/remote-runtime/e2ee/node']
     return bundleModule<Lib>(`
 import nacl from 'tweetnacl'
-import { PairedE2EEV2ClientSession } from '${shared}/paired-e2ee-v2-client-session'
-import { NODE_PAIRED_E2EE_PRIMITIVES as P } from '${shared}/paired-e2ee-node-primitives'
-import { DesktopMobileE2EEV2Session } from '${root}/src/main/runtime/rpc/mobile-e2ee-v2-desktop-session'
-import { createMobileE2EEV2Fixture, MOBILE_E2EE_V2_VECTOR } from '${shared}/mobile-e2ee-v2-fixtures'
-import { encodeMobileE2EEV2Transcript, validateMobileE2EEV2Handshake } from '${shared}/mobile-e2ee-v2-contract'
-import { deriveMobileE2EEV2KeySchedule } from '${shared}/mobile-e2ee-v2-node-key-schedule'
-import { pairedE2EEV2TokenAuth } from '${shared}/paired-e2ee-client-handshake'
-import { encodePairingFixturePayload } from '${shared}/mobile-relay-pairing-fixtures'
+import { PairedE2EEV2ClientSession } from '${at('paired-e2ee-v2-client-session', ...e2ee)}'
+import { NODE_PAIRED_E2EE_PRIMITIVES as P } from '${at('paired-e2ee-node-primitives', ...node)}'
+import { DesktopMobileE2EEV2Session } from '${at('mobile-e2ee-v2-desktop-session', 'src/main/runtime/rpc', 'src/main/runtime/rpc/mobile/e2ee')}'
+import { createMobileE2EEV2Fixture, MOBILE_E2EE_V2_VECTOR } from '${at('mobile-e2ee-v2-fixtures', ...e2ee)}'
+import { encodeMobileE2EEV2Transcript, validateMobileE2EEV2Handshake } from '${at('mobile-e2ee-v2-contract', ...e2ee)}'
+import { deriveMobileE2EEV2KeySchedule } from '${at('mobile-e2ee-v2-node-key-schedule', ...node)}'
+import { pairedE2EEV2TokenAuth } from '${at('paired-e2ee-client-handshake', ...e2ee)}'
+import { encodePairingFixturePayload } from '${at('mobile-relay-pairing-fixtures', 'src/shared', 'src/shared/remote-runtime/relay')}'
 export { nacl, PairedE2EEV2ClientSession, P, DesktopMobileE2EEV2Session, createMobileE2EEV2Fixture, MOBILE_E2EE_V2_VECTOR }
 export { encodeMobileE2EEV2Transcript, validateMobileE2EEV2Handshake, deriveMobileE2EEV2KeySchedule, pairedE2EEV2TokenAuth, encodePairingFixturePayload }
 `)

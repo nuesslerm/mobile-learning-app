@@ -2,18 +2,10 @@
 //! (`Record::new` is `#[track_caller]`), every request carries its `Source`, and everything is scrubbed like every other sink.
 
 use crate::redact::{key_is_sensitive, Redactor, REDACTED};
-use crate::destination::why;
+use crate::otlp;
 use crate::{Destination, Site, Source};
-use opentelemetry::logs::{AnyValue, LogRecord as _, Logger as _, LoggerProvider as _, Severity};
-use opentelemetry::{InstrumentationScope, Key, KeyValue};
-use opentelemetry_otlp::{LogExporter, Protocol, WithExportConfig as _, WithHttpConfig as _};
-use opentelemetry_sdk::logs::{LogBatch, LogExporter as _, SdkLoggerProvider};
-use opentelemetry_sdk::Resource;
 use serde_json::{Map, Value};
-use std::collections::HashMap;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
-const TIMEOUT: Duration = Duration::from_secs(10);
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct Record {
     /// `debug`, `info`, `warn` or `error`; anything else is sent as info.
@@ -72,71 +64,23 @@ fn scrubbed(redactor: &Redactor, key: &str, value: &Value) -> Value {
     }
 }
 
-fn any_value(value: Value) -> AnyValue {
-    match value {
-        Value::Bool(b) => AnyValue::Boolean(b),
-        Value::Number(n) => n.as_i64().map_or_else(|| AnyValue::Double(n.as_f64().unwrap_or(0.0)), AnyValue::Int),
-        Value::String(s) => AnyValue::from(s),
-        other => AnyValue::from(other.to_string()),
-    }
-}
-
-/// The level's severity and its text; anything but debug, warn and error is info.
-fn severity(level: &str) -> (Severity, &'static str) {
-    match level {
-        "debug" => (Severity::Debug, "DEBUG"),
-        "warn" => (Severity::Warn, "WARN"),
-        "error" => (Severity::Error, "ERROR"),
-        _ => (Severity::Info, "INFO"),
-    }
-}
-
 /// Sends `record` to the ingest the environment names; false when there is none or the export failed.
 pub fn emit(source: &Source, record: &Record) -> bool {
     Destination::from_env().is_some_and(|destination| send(&destination, source, std::slice::from_ref(record)).is_ok())
 }
 
-/// Sends `records` in one request: `Ok` only on a 2xx, otherwise `HTTP <status>` or the transport error. The exporter's
-/// blocking client may not be created or dropped on a Tokio worker, so it runs on a thread of its own.
+/// Sends `records` in one request: `Ok` only on a 2xx, otherwise `HTTP <status>` or the transport error.
 pub fn send(destination: &Destination, source: &Source, records: &[Record]) -> Result<(), String> {
-    std::thread::scope(|scope| scope.spawn(|| export(destination, source, records)).join()).unwrap_or_else(|_| Err("the exporter panicked".to_string()))
-}
-
-fn export(destination: &Destination, source: &Source, records: &[Record]) -> Result<(), String> {
-    let mut exporter = LogExporter::builder()
-        .with_http()
-        .with_protocol(Protocol::HttpJson)
-        .with_endpoint(destination.endpoint("/v1/logs"))
-        .with_timeout(TIMEOUT)
-        .with_headers(HashMap::from([("Authorization".to_string(), format!("Bearer {}", destination.token()))]))
-        .build()
-        .map_err(|e| e.to_string())?;
-    let resource = Resource::builder_empty()
-        .with_service_name(source.service.clone())
-        .with_attributes(source.attributes().into_iter().map(|(k, v)| KeyValue::new(k, v)))
-        .build();
-    exporter.set_resource(&resource);
-    let scope = InstrumentationScope::builder(source.service.clone()).build();
-    let logger = SdkLoggerProvider::builder().build().logger_with_scope(scope.clone());
     let redactor = Redactor::from_env(Vec::new());
-    let logs: Vec<_> = records
+    let logs = records
         .iter()
         .map(|record| {
-            let (number, text) = severity(record.level);
-            let mut log = logger.create_log_record();
-            log.set_timestamp(record.at);
-            log.set_observed_timestamp(record.at);
-            log.set_severity_number(number);
-            log.set_severity_text(text);
-            log.set_body(AnyValue::from(redactor.scrub(&record.message).into_owned()));
             let code = record.site.iter().flat_map(Site::attributes).map(|(k, v)| (k.to_string(), v));
-            let attributes = record.attributes.iter().map(|(k, v)| (k.clone(), scrubbed(&redactor, k, v))).chain(code);
-            log.add_attributes(attributes.map(|(k, v)| (Key::from(k), any_value(v))));
-            log
+            let pairs = record.attributes.iter().map(|(k, v)| (k.clone(), scrubbed(&redactor, k, v))).chain(code);
+            otlp::log_record(record.at, record.level, &redactor.scrub(&record.message), otlp::attributes(pairs))
         })
         .collect();
-    let batch: Vec<_> = logs.iter().map(|log| (log, &scope)).collect();
-    futures_executor::block_on(exporter.export(LogBatch::new(&batch))).map_err(|e| why(&e.to_string()))
+    otlp::post(destination, "/v1/logs", &otlp::logs_body(otlp::resource(source), &source.service, logs))
 }
 
 #[cfg(test)]

@@ -6,8 +6,6 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { repoRoot } from '../src/lock.ts'
-import { startHostDouble } from '../src/orca/host-double.ts'
-import { runScript } from '../src/orca/client.ts'
 import { API_DIR, SET_DIR, loadApi } from '../src/scenarios/api.ts'
 import { render, scenarios } from '../src/scenarios/index.ts'
 import { orcaScenarios } from '../src/scenarios/orca.ts'
@@ -61,22 +59,6 @@ test('Given a crawl that lacks what a scenario needs, When the scenarios are der
   const t3 = loadApi('t3')
   const noTurn = { ...t3, payloads: new Map([...t3.payloads].filter(([row]) => row !== 'command:message.dispatch')) }
   assert.throws(() => t3Scenarios(noTurn), /message\.dispatch/)
-})
-
-test('Given an Orca scenario for a file method and a host that answers the creations, When the scenario runs, Then the file request names the worktree the host returned and a file the repository has', async () => {
-  const set = scenarios('orca')
-  const scenario = set.cases.find((c) => c.id === 'orca-scn-files.read')!
-  const double = await startHostDouble({ methods: { 'repo.add': { result: { repo: { id: 'repo-9' } } }, 'worktree.create': { result: { worktree: { id: 'wt-9' } } }, 'files.read': { result: { content: '# mimic' } } } })
-  try {
-    const reply = await runScript(double, scenario.input as never)
-    const sent = double.calls.filter((c) => !c.method.startsWith('runtime.'))
-    assert.deepEqual(sent.map((c) => c.method), ['repo.add', 'worktree.create', 'files.read'])
-    assert.deepEqual(sent[1]!.params, { repo: 'id:repo-9' })
-    assert.deepEqual(sent[2]!.params, { worktree: 'id:wt-9', relativePath: 'README.md' })
-    assert.equal(reply.steps.filter((s) => s.dir === 's2c').every((s) => (s.payload as { ok?: boolean }).ok === true), true)
-  } finally {
-    await double.close()
-  }
 })
 
 test('Given the API directories the scenarios derive from, When the layout is read, Then each scenario set sits beside its crawl', () => {

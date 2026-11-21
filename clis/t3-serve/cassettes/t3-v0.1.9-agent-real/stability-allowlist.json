@@ -1,0 +1,10 @@
+{
+ "schema": "mimic-stability-allowlist/1",
+ "entries": [
+  {
+   "id": "t3-real-queued-message.promote-to-steer",
+   "cause": "volatile",
+   "reason": "the case promotes a message queued behind a really running turn (sleep 90), and the progress events that turn streams while it is promoted differ between two runs of the same server"
+  }
+ ]
+}

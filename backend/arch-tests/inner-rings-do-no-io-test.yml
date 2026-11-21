@@ -1,0 +1,11 @@
+id: inner-rings-do-no-io
+valid:
+  - "use std::collections::HashMap;"
+  - "use std::path::PathBuf;"
+  - "fn f(files: &dyn Files) -> String { files.read(p) }"
+invalid:
+  - "use std::fs;"
+  - "use std::{fs, io};"
+  - "fn f() { let v = std::env::var(\"X\"); }"
+  - "fn f() { std::process::Command::new(\"git\"); }"
+  - "use tokio::net::TcpStream;"

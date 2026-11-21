@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test:flow": "cargo test --locked --manifest-path Cargo.toml -p vm-ops-api-core -p vm-ops-api-rs",
-    "test:integration": "cargo build --locked --manifest-path Cargo.toml -p vm-ops-api-rs --target-dir ../target && VM_OPS_API_CMD=\"$PWD/../target/debug/vm-ops-api-rs\" cargo test --locked --manifest-path integration/Cargo.toml --target-dir ../target"
+    "test:integration": "D=\"$PWD/../../.agents/tmp/test-output/vm-ops-api/test-integration\" && rm -rf \"$D\" && cargo build --locked --manifest-path Cargo.toml -p vm-ops-api-rs --target-dir ../target && VM_OPS_API_CMD=\"$PWD/../target/debug/vm-ops-api-rs\" WF_TEST_OUTPUT_DIR=\"$D\" cargo test --locked --manifest-path integration/Cargo.toml --target-dir ../target"
   },
   "nx": {
     "targets": {
@@ -28,6 +28,9 @@
           {
             "externalDependencies": []
           }
+        ],
+        "outputs": [
+          "{workspaceRoot}/.agents/tmp/test-output/vm-ops-api/test-integration"
         ]
       }
     }

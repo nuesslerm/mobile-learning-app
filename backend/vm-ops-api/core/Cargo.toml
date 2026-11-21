@@ -28,3 +28,6 @@ url.workspace = true
 [dev-dependencies]
 base64.workspace = true
 tokio = { workspace = true, features = ["rt", "macros"] }
+
+[package.metadata.arch]
+type = "rust-core"

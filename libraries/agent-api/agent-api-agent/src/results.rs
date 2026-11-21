@@ -200,7 +200,7 @@ mod tests {
             at(12, "u1", ThreadEvent::PlanUpdated { plan: "1. a".into() }),
             at(13, "u1", ThreadEvent::PlanUpdated { plan: "1. a\n2. b".into() }),
             at(14, "u1", ThreadEvent::Usage(crate::events::Usage { input_tokens: 1, output_tokens: 1, cache_read_tokens: None })),
-            at(15, "u1", ThreadEvent::TurnFinished { reason: FinishReason::Completed }),
+            at(15, "u1", ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None }),
             at(16, "u2", ThreadEvent::TurnStarted {}),
             at(17, "u2", ThreadEvent::MessageDelta { role: Role::Assistant, text: "Again".into() }),
             at(18, "u2", ThreadEvent::Error { code: "RATE_LIMITED".into(), message: "slow down".into() }),

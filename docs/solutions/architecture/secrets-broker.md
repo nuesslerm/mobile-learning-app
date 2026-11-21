@@ -13,7 +13,7 @@ Status: deferred 2026-11-08 (see docs/plans/public-mirror/plan.md); was proposed
 
 Secrets reach callers directly today. CI jobs and VM containers hold Bitwarden read tokens (three exist: deploy read, deploy edit, CI read), run `wf secret get --backend bitwarden`, or inherit every GitHub secret through `secrets: inherit`. Two goals make that unacceptable:
 
-1. Run CI on GitHub-hosted runners as well as the VM runner, from a public mirror of this repo. A hosted job and a fork PR must never be able to read a secret.
+1. Run CI on GitHub-hosted runners, from a public mirror of this repo. A hosted job and a fork PR must never be able to read a secret.
 2. No raw secret reachable by any CI job or VM container, except through an allowed operation.
 
 ## Decision
@@ -30,7 +30,7 @@ Initial catalogue (each row maps to the inventory):
 | --- | --- | --- |
 | `verify-secrets <app>` | per key: present and usable | `wf secret verify` in the ship preflight |
 | `deploy <app> --ref <sha>` | the deploy result | request signing for `vm-ops-api` in `wf ship` |
-| `build-env <app>` | the allowlisted public keys (see below) | `wf secret get` of `EXPO_PUBLIC_*` in `deploy.yml`, `e2e-tests.yml` |
+| `build-env <app>` | the allowlisted public keys (see below) | `wf secret get` of `EXPO_PUBLIC_*` in `pipeline.yml`, `e2e-tests.yml` |
 | `eas-publish` | the update link | EAS token on the runner |
 | `rotate-ts-key`, `check-ts-key-expiry` | result only | the two `tailscale-*` workflows and their BWS tokens |
 | `tailscale-acl apply` | result only | `tailscale-acl.yml` |
@@ -51,7 +51,6 @@ A client bundle is extractable by anyone with the app, so no injection scheme ma
 The broker verifies identity itself; it trusts no header a caller sets.
 
 - GitHub-hosted job: the GitHub OIDC JWT (issuer `token.actions.githubusercontent.com`, signature via JWKS, short expiry, audience set to the broker). Checked claims: `repository`, `ref`, `sha`, `job_workflow_ref` (a reusable workflow at a full commit sha), `runner_environment`, `event_name`. Any `pull_request*` event is denied. A fork PR gets no OIDC token at all.
-- VM runner job: the same OIDC token, plus the caller's tailnet identity (whois) carrying `tag:ci-self-hosted`.
 - Transport for hosted runners: an ephemeral tailnet node joined by Tailscale workload identity federation (`tag:ci-gh-hosted`), no stored tailnet secret. The ACL lets that tag reach only the broker port. No public ingress to the VM. Fallback if federation is unavailable: a Tailscale OAuth client scoped to `auth_keys` for that one tag, as an environment-scoped secret on a protected branch.
 
 ### 5. Policy and version pins
@@ -75,7 +74,7 @@ A new workflow, binary or image is denied until a reviewed commit bumps the poli
 
 ### 7. Credentials
 
-The broker holds one Bitwarden read credential and one edit credential. The edit credential is reachable only from `rotate-*` operations. After cutover every earlier token (deploy read, CI read, the copy in the runner and `remote-chat-agent` compose files) is rotated and removed.
+The broker holds one Bitwarden read credential and one edit credential. The edit credential is reachable only from `rotate-*` operations. After cutover every earlier token (deploy read, CI read, the copy in the `remote-chat-agent` compose file) is rotated and removed.
 
 ## Package shape
 
@@ -89,7 +88,7 @@ Per `docs/solutions/architecture/hexagonal-architecture-by-package-type.md`:
 
 | Threat | Mitigation |
 | --- | --- |
-| Fork PR runs workflow code | No OIDC token for forks; `pull_request*` denied; no secrets in hosted workflows; no self-hosted runner reachable from fork events |
+| Fork PR runs workflow code | No OIDC token for forks; `pull_request*` denied; no secrets in hosted workflows; no self-hosted runner exists |
 | Compromised or malicious step in an allowed job | Operations return results only; policy pins workflow sha and `wf` hash; a modified binary is denied |
 | Stolen OIDC token | Short expiry, audience bound to the broker, claims tie it to one repo, ref, sha and workflow |
 | Compromised container asks for other keys | Identity is image digest and compose project; scope comes from the registry |
@@ -101,13 +100,13 @@ Per `docs/solutions/architecture/hexagonal-architecture-by-package-type.md`:
 ## Rollout
 
 1. Shadow mode: the broker runs each operation beside the old path and the results are compared.
-2. Enforce per operation, then delete the old path (`BWS_*` from runner and compose env, GitHub secrets, `secrets: inherit`, `bws` from `agent-base`, `.github/actions/install-bws`).
+2. Enforce per operation, then delete the old path (`BWS_*` from compose env, GitHub secrets, `secrets: inherit`, `bws` from `agent-base`, `.github/actions/install-bws`).
 3. Rotate every previous credential.
 4. Negative probes that prove the request arrived and was denied: wrong `sha`, unpinned workflow, `pull_request` event, wrong tag, modified `wf` binary, a container asking for another service's secrets.
 
 ## Consequences
 
-- Hosted and VM runners are interchangeable for any job that needs no VM-local resource; secrets never leave the VM.
+- Secrets never leave the VM.
 - Every new secret use needs a catalogue entry and a policy rule, which is the point and the cost.
 - The broker is a single point of failure for deploys and secret-using CI; the VM's own recoverability rules (`infra/oracle-cloud/AGENTS.md`) apply to it.
 - Open: whether `build-env` signatures are verified by the workflow or by `wf`; decide in the implementation plan.

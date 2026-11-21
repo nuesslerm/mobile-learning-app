@@ -1,0 +1,18 @@
+{
+  "transcript": "add a while loop that runs while left is less than right",
+  "alternatives": [
+    {
+      "id": "stub-1",
+      "label": "Add the while loop",
+      "summary": "Add a while loop that runs while left is less than right.",
+      "confidence": 0.95,
+      "commands": [
+        {
+          "type": "insertAfterLine",
+          "line": 3,
+          "text": "        while left < right:"
+        }
+      ]
+    }
+  ]
+}

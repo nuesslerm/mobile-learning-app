@@ -1,8 +1,7 @@
 import * as React from 'react';
 import {
   Platform,
-  type NativeSyntheticEvent,
-  type TextInputContentSizeChangeEventData,
+  type TextInputContentSizeChangeEvent,
 } from 'react-native';
 
 import { ArrowUp, Square } from '../icons';
@@ -26,7 +25,7 @@ export function useAutoGrowInput(
 ) {
   const [measured, setMeasured] = React.useState(min);
   const onContentSizeChange = React.useCallback(
-    (e: NativeSyntheticEvent<TextInputContentSizeChangeEventData>) => {
+    (e: TextInputContentSizeChangeEvent) => {
       setMeasured(
         Math.min(max, Math.max(min, e.nativeEvent.contentSize.height))
       );
@@ -133,7 +132,7 @@ function ComposerInput({
   height: number;
   atMax: boolean;
   onContentSizeChange: (
-    e: NativeSyntheticEvent<TextInputContentSizeChangeEventData>
+    e: TextInputContentSizeChangeEvent
   ) => void;
 }): React.ReactElement {
   return (

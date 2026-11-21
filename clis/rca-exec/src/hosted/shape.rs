@@ -68,6 +68,53 @@ fn items<'a>(v: &'a Value, key: &str) -> &'a [Value] {
     v.get(key).and_then(Value::as_array).map_or(&[], Vec::as_slice)
 }
 
+/// A connection of a pull request: a `gh pr view --json` list, or the nodes of the GraphQL read.
+fn pr_nodes<'a>(v: &'a Value, key: &str) -> &'a [Value] {
+    match v.get(key).and_then(Value::as_array) {
+        Some(rows) => rows,
+        None => items(&v["data"]["repository"]["pullRequest"][key], "nodes"),
+    }
+}
+
+/// Adds `rows` to `into`; a row whose node id is already there replaces it in place, so a node shown on two pages counts once.
+fn merge_by_id(into: &mut Vec<Value>, rows: impl IntoIterator<Item = Value>) {
+    for row in rows {
+        let at = row.get("id").and_then(Value::as_str).and_then(|id| into.iter().position(|r| r.get("id").and_then(Value::as_str) == Some(id)));
+        match at {
+            Some(i) => into[i] = row,
+            None => into.push(row),
+        }
+    }
+}
+
+/// The nodes of a connection of the pull request across all the pages that were read.
+fn paged_nodes(program: &str, outputs: &[Output], key: &str) -> ExecResult<Vec<Value>> {
+    let mut all = Vec::new();
+    for out in outputs {
+        merge_by_id(&mut all, pr_nodes(&json_of(program, out)?, key).to_vec());
+    }
+    Ok(all)
+}
+
+/// The review threads of every page, each with the comments of its own further pages (the answers about one thread, `data.node`).
+fn paged_threads(program: &str, outputs: &[Output]) -> ExecResult<Vec<Value>> {
+    let mut threads: Vec<Value> = Vec::new();
+    for out in outputs {
+        let v = json_of(program, out)?;
+        let node = &v["data"]["node"];
+        if !node.is_object() {
+            merge_by_id(&mut threads, pr_nodes(&v, "reviewThreads").to_vec());
+            continue;
+        }
+        let more = items(&node["comments"], "nodes").to_vec();
+        let Some(thread) = threads.iter_mut().find(|t| t.get("id") == node.get("id")) else { continue };
+        let mut merged = items(&thread["comments"], "nodes").to_vec();
+        merge_by_id(&mut merged, more);
+        thread["comments"]["nodes"] = json!(merged);
+    }
+    Ok(threads)
+}
+
 fn names(v: &Value, key: &str, field: &str) -> Value {
     json!(items(v, key).iter().filter_map(|i| i.get(field).and_then(Value::as_str)).collect::<Vec<_>>())
 }
@@ -112,6 +159,66 @@ fn gh_pr(v: &Value) -> Value {
     })
 }
 
+fn gh_issue(v: &Value) -> Value {
+    json!({
+        "number": v.get("number"), "title": text(v, "title"), "state": lower(v, "state"), "author": login_of(v, "author", "login"), "labels": names(v, "labels", "name"),
+        "url": text(v, "url"), "created_at_ms": ms(v, "createdAt"), "updated_at_ms": ms(v, "updatedAt"),
+    })
+}
+
+fn gl_issue(v: &Value) -> Value {
+    json!({
+        "number": v.get("iid"), "title": text(v, "title"), "state": gl_state(v), "author": login_of(v, "author", "username"),
+        "labels": json!(items(v, "labels").iter().filter_map(Value::as_str).collect::<Vec<_>>()), "url": text(v, "web_url"),
+        "created_at_ms": ms(v, "created_at"), "updated_at_ms": ms(v, "updated_at"),
+    })
+}
+
+fn gh_work(v: &Value) -> Value {
+    let pr = v.get("pull_request").filter(|p| p.is_object());
+    let merged = pr.is_some_and(|p| p.get("merged_at").is_some_and(|m| !m.is_null()));
+    let state = if merged { json!("merged") } else { lower(v, "state") };
+    json!({
+        "kind": if pr.is_some() { "pr" } else { "issue" }, "number": v.get("number"), "title": text(v, "title"), "state": state, "draft": v.get("draft").and_then(Value::as_bool).unwrap_or(false),
+        "author": login_of(v, "user", "login"), "author_avatar_url": login_of(v, "user", "avatar_url"), "labels": names(v, "labels", "name"), "url": text(v, "html_url"),
+        "created_at_ms": ms(v, "created_at"), "updated_at_ms": ms(v, "updated_at"), "comments": num(v, "comments"), "head_ref": Value::Null, "base_ref": Value::Null,
+    })
+}
+
+fn gl_work(v: &Value, kind: &str) -> Value {
+    json!({
+        "kind": kind, "number": v.get("iid"), "title": text(v, "title"), "state": gl_state(v), "draft": v.get("draft").or_else(|| v.get("work_in_progress")).and_then(Value::as_bool).unwrap_or(false),
+        "author": login_of(v, "author", "username"), "author_avatar_url": login_of(v, "author", "avatar_url"), "labels": json!(items(v, "labels").iter().filter_map(Value::as_str).collect::<Vec<_>>()), "url": text(v, "web_url"),
+        "created_at_ms": ms(v, "created_at"), "updated_at_ms": ms(v, "updated_at"), "comments": num(v, "user_notes_count"), "head_ref": text(v, "source_branch"), "base_ref": text(v, "target_branch"),
+    })
+}
+
+/// What a read with `--include` counted: the `X-Total` header GitLab prints before the body, or (past its 10 000 limit it omits one) the rows of the body.
+fn gl_total(out: &Output) -> u64 {
+    let (head, rest) = out.stdout.split_once("\r\n\r\n").or_else(|| out.stdout.split_once("\n\n")).unwrap_or(("", out.stdout.as_str()));
+    let header = head.lines().find_map(|l| l.split_once(':').filter(|(k, _)| k.eq_ignore_ascii_case("x-total")).and_then(|(_, n)| n.trim().parse::<u64>().ok()));
+    header.unwrap_or_else(|| serde_json::from_str::<Value>(rest).ok().and_then(|v| v.as_array().map(|a| a.len() as u64)).unwrap_or(0))
+}
+
+fn gh_todo(n: &Value) -> Value {
+    let url = n["subject"].get("url").and_then(Value::as_str).map(|u| u.replacen("https://api.github.com/repos/", "https://github.com/", 1).replacen("/pulls/", "/pull/", 1));
+    let number = url.as_deref().and_then(|u| u.rsplit('/').next()).and_then(|n| n.parse::<u64>().ok());
+    json!({
+        "id": id_string(n, "id"), "action": text(n, "reason"), "target_type": login_of(n, "subject", "type"), "number": number, "title": login_of(n, "subject", "title"), "url": url,
+        "repo": login_of(n, "repository", "full_name"), "author": Value::Null, "author_avatar_url": Value::Null, "updated_at_ms": ms(n, "updated_at"),
+        "state": if n.get("unread").and_then(Value::as_bool) == Some(false) { "done" } else { "pending" },
+    })
+}
+
+fn gl_todo(t: &Value) -> Value {
+    let target = t.get("target").filter(|x| x.is_object()).unwrap_or(&Value::Null);
+    json!({
+        "id": id_string(t, "id"), "action": text(t, "action_name"), "target_type": text(t, "target_type"), "number": target.get("iid").and_then(Value::as_u64), "title": text(target, "title"),
+        "url": text(t, "target_url").as_str().map_or_else(|| text(target, "web_url"), |u| json!(u)), "repo": login_of(t, "project", "path_with_namespace"), "author": login_of(t, "author", "username"),
+        "author_avatar_url": login_of(t, "author", "avatar_url"), "updated_at_ms": ms(t, "updated_at"), "state": if t.get("state").and_then(Value::as_str) == Some("done") { "done" } else { "pending" },
+    })
+}
+
 fn gl_state(v: &Value) -> Value {
     match v.get("state").and_then(Value::as_str) {
         Some("opened") => json!("open"),
@@ -128,6 +235,52 @@ fn gl_mr(v: &Value) -> Value {
         "labels": json!(items(v, "labels").iter().filter_map(Value::as_str).collect::<Vec<_>>()), "url": text(v, "web_url"),
         "created_at_ms": ms(v, "created_at"), "updated_at_ms": ms(v, "updated_at"), "review_decision": Value::Null,
     })
+}
+
+const REACTION_ORDER: [(&str, &str); 8] = [("THUMBS_UP", "+1"), ("THUMBS_DOWN", "-1"), ("LAUGH", "laugh"), ("CONFUSED", "confused"), ("HEART", "heart"), ("HOORAY", "hooray"), ("ROCKET", "rocket"), ("EYES", "eyes")];
+
+fn reactions(v: &Value) -> Value {
+    let groups = items(v, "reactionGroups");
+    let rows: Vec<Value> = REACTION_ORDER
+        .iter()
+        .filter_map(|(content, name)| {
+            let g = groups.iter().find(|g| g.get("content").and_then(Value::as_str) == Some(content))?;
+            let count = ["reactors", "users", "reactions"].iter().find_map(|k| g.get(*k).and_then(|r| r.get("totalCount")).and_then(Value::as_u64)).or_else(|| g.get("count").and_then(Value::as_u64)).unwrap_or(0);
+            (count > 0).then(|| json!({"content": name, "count": count, "viewer_has_reacted": g.get("viewerHasReacted").and_then(Value::as_bool).unwrap_or(false)}))
+        })
+        .collect();
+    json!(rows)
+}
+
+/// The GraphQL-only fields of a GitHub comment, review or thread comment. `gh --json` rows (they also name viewerDidAuthor and reactionGroups) and the
+/// older thread query lack the author's avatar and type, and a deleted author in the new query is the null author beside viewerDidAuthor: only
+/// those rows get the fields, so what the old queries answered is unchanged.
+fn gh_extras(c: &Value) -> Value {
+    let author = c.get("author").filter(|a| a.is_object());
+    let marked = match author {
+        Some(a) => a.get("avatarUrl").is_some() || a.get("__typename").is_some(),
+        None => c.get("author").is_some() && c.get("viewerDidAuthor").is_some(),
+    };
+    if !marked {
+        return json!({});
+    }
+    json!({
+        "database_id": num(c, "databaseId"),
+        "avatar_url": author.map_or(Value::Null, |a| text(a, "avatarUrl")),
+        "is_bot": author.is_some_and(|a| a.get("__typename").and_then(Value::as_str) == Some("Bot")),
+        "viewer_did_author": c.get("viewerDidAuthor").and_then(Value::as_bool).unwrap_or(false),
+        "reaction_subject_id": text(c, "id"),
+        "reactions": reactions(c),
+    })
+}
+
+/// The fields only the GraphQL thread query reads; an older thread row has none.
+fn thread_extras(t: &Value) -> Value {
+    if !["startLine", "originalLine", "originalStartLine", "diffSide", "rootHunk"].iter().any(|k| t.get(*k).is_some()) {
+        return json!({});
+    }
+    let hunk = items(&t["rootHunk"], "nodes").first().map_or(Value::Null, |n| text(n, "diffHunk"));
+    json!({"start_line": num(t, "startLine"), "original_line": num(t, "originalLine"), "original_start_line": num(t, "originalStartLine"), "diff_side": text(t, "diffSide"), "root_diff_hunk": hunk})
 }
 
 fn extend(base: Value, more: Value) -> Value {
@@ -230,10 +383,13 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
         HostedCall::RepoReviewers { .. } => {
             let v = body(&last)?;
             let key = if github { "login" } else { "username" };
-            let users: Vec<Value> = v.as_array().map_or(&[][..], Vec::as_slice).iter().map(|u| json!({"login": text(u, key), "name": text(u, "name")})).collect();
+            let users: Vec<Value> = v.as_array().map_or(&[][..], Vec::as_slice).iter().map(|u| json!({"login": text(u, key), "name": text(u, "name"), "avatarUrl": text(u, "avatar_url")})).collect();
             Ok(json!({"users": users}))
         }
         HostedCall::RepoClone { .. } => Ok(json!({"repo": op.repo})),
+        HostedCall::RepoRemotes => Ok(json!({"remotes": remotes_of(&last.stdout)})),
+        HostedCall::RepoStarred => Ok(json!({"starred": last.exit_code == 0})),
+        HostedCall::RepoStar => Ok(json!({"starred": true})),
         HostedCall::RepoPublish { .. } => {
             let printed = outputs.iter().map(|o| format!("{}\n{}", o.stdout, o.stderr)).collect::<String>();
             Ok(json!({"repo": op.repo, "url": first_url(&printed), "remote": "origin"}))
@@ -249,6 +405,77 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
                 })
                 .collect();
             Ok(json!({"truncated": rows.len() as u64 >= *limit, "prs": prs}))
+        }
+        HostedCall::IssueList { limit, .. } => {
+            let v = body(&last)?;
+            let rows = v.as_array().ok_or_else(|| io(format!("{program} did not print a list")))?;
+            let issues: Vec<Value> = rows.iter().map(|r| if github { gh_issue(r) } else { gl_issue(r) }).collect();
+            Ok(json!({"truncated": rows.len() as u64 >= *limit, "issues": issues}))
+        }
+        HostedCall::IssueView { .. } => {
+            let v = body(&last)?;
+            let issue = if github {
+                extend(gh_issue(&v), json!({"body": v.get("body").and_then(Value::as_str).unwrap_or(""), "closed_at_ms": ms(&v, "closedAt"), "assignees": names(&v, "assignees", "login")}))
+            } else {
+                extend(gl_issue(&v), json!({"body": v.get("description").and_then(Value::as_str).unwrap_or(""), "closed_at_ms": ms(&v, "closed_at"), "assignees": names(&v, "assignees", "username")}))
+            };
+            Ok(json!({"issue": issue}))
+        }
+        HostedCall::IssueComments { .. } => {
+            let v = body(&last)?;
+            let comments: Vec<Value> = if github {
+                items(&v, "comments").iter().map(|c| json!({"id": id_string(c, "id"), "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")})).collect()
+            } else {
+                v.as_array().map_or(&[][..], Vec::as_slice).iter().filter(|n| n.get("system").and_then(Value::as_bool) != Some(true)).map(|n| json!({"id": id_string(n, "id"), "author": login_of(n, "author", "username"), "body": n.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(n, "created_at"), "url": Value::Null})).collect()
+            };
+            Ok(json!({"comments": comments}))
+        }
+        HostedCall::IssueComment { .. } if github => Ok(json!({"done": true, "url": first_url(&last.stdout)})),
+        HostedCall::IssueComment { .. } => {
+            let v = body(&last)?;
+            Ok(json!({"done": true, "url": null, "id": id_string(&v, "id"), "body": v["body"]}))
+        }
+        HostedCall::IssueEdit { .. } => done(),
+        HostedCall::IssueState { number, closed } => Ok(json!({"number": number, "state": if *closed { "closed" } else { "open" }})),
+        HostedCall::IssueCreate { .. } if github => {
+            let url = first_url(&last.stdout).map(str::to_string);
+            Ok(json!({"number": url.as_deref().and_then(|u| number_after(u, "/issues/")), "url": url}))
+        }
+        HostedCall::IssueCreate { .. } => {
+            let v = body(&last)?;
+            Ok(json!({"number": v.get("iid"), "url": text(&v, "web_url")}))
+        }
+        HostedCall::IssueSearch { kind, limit, page, .. } => {
+            if github {
+                let v = body(&last)?;
+                let total = v.get("total_count").and_then(Value::as_u64);
+                let truncated = total.is_some_and(|t| t > page * (*limit).min(100));
+                return Ok(json!({"truncated": truncated, "total": total, "items": items(&v, "items").iter().map(gh_work).collect::<Vec<_>>()}));
+            }
+            let kinds: &[&str] = match kind {
+                exec_hosted::WorkKind::Issue => &["issue"],
+                exec_hosted::WorkKind::Pr => &["pr"],
+                exec_hosted::WorkKind::All => &["issue", "pr"],
+            };
+            let (mut all, mut full) = (Vec::new(), false);
+            for (out, kind) in outputs.iter().zip(kinds) {
+                let rows = body(out)?;
+                let rows = rows.as_array().ok_or_else(|| io(format!("{program} did not print a list")))?;
+                full |= rows.len() as u64 >= *limit;
+                all.extend(rows.iter().map(|r| gl_work(r, kind)));
+            }
+            all.sort_by_key(|r| std::cmp::Reverse(r["updated_at_ms"].as_u64()));
+            all.truncate(*limit as usize);
+            Ok(json!({"truncated": full, "total": Value::Null, "items": all}))
+        }
+        HostedCall::IssueCount { .. } => {
+            let count: u64 = if github { last.stdout.trim().parse().map_err(|_| io(format!("gh printed no count: {}", brief(&last.stdout))))? } else { outputs.iter().map(gl_total).sum() };
+            Ok(json!({"count": count}))
+        }
+        HostedCall::IssueTodos { .. } => {
+            let v = body(&last)?;
+            let rows = v.as_array().ok_or_else(|| io(format!("{program} did not print a list")))?;
+            Ok(json!({"todos": rows.iter().map(|r| if github { gh_todo(r) } else { gl_todo(r) }).collect::<Vec<_>>()}))
         }
         HostedCall::PrView { .. } => {
             let v = body(&last)?;
@@ -297,36 +524,34 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
             Ok(json!({"pass": count("pass"), "fail": count("fail"), "pending": count("pending"), "checks": checks}))
         }
         HostedCall::PrComments { .. } => {
-            let v = body(&last)?;
             let comments: Vec<Value> = if github {
-                items(&v, "comments").iter().map(|c| json!({"id": id_string(c, "id"), "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")})).collect()
+                paged_nodes(program, outputs, "comments")?.iter().map(|c| extend(json!({"id": id_string(c, "id"), "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")}), gh_extras(c))).collect()
             } else {
-                v.as_array().map_or(&[][..], Vec::as_slice).iter().filter(|n| n.get("system").and_then(Value::as_bool) != Some(true)).map(|n| json!({"id": id_string(n, "id"), "author": login_of(n, "author", "username"), "body": n.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(n, "created_at"), "url": Value::Null})).collect()
+                body(&last)?.as_array().map_or(&[][..], Vec::as_slice).iter().filter(|n| n.get("system").and_then(Value::as_bool) != Some(true)).map(|n| json!({"id": id_string(n, "id"), "author": login_of(n, "author", "username"), "body": n.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(n, "created_at"), "url": Value::Null})).collect()
             };
             Ok(json!({"comments": comments}))
         }
         HostedCall::PrReviews { .. } => {
-            let v = body(&last)?;
             let reviews: Vec<Value> = if github {
-                items(&v, "reviews").iter().map(|r| json!({"id": id_string(r, "id"), "author": login_of(r, "author", "login"), "state": lower(r, "state"), "body": r.get("body").and_then(Value::as_str).unwrap_or(""), "submitted_at_ms": ms(r, "submittedAt")})).collect()
+                paged_nodes(program, outputs, "reviews")?.iter().map(|r| extend(json!({"id": id_string(r, "id"), "author": login_of(r, "author", "login"), "state": lower(r, "state"), "body": r.get("body").and_then(Value::as_str).unwrap_or(""), "submitted_at_ms": ms(r, "submittedAt")}), gh_extras(r))).collect()
             } else {
+                let v = body(&last)?;
                 items(&v, "approved_by").iter().map(|a| json!({"id": id_string(&a["user"], "id"), "author": login_of(a, "user", "username"), "state": "approved", "body": "", "submitted_at_ms": Value::Null})).collect()
             };
             Ok(json!({"reviews": reviews}))
         }
         HostedCall::PrThreads { .. } => {
-            let v = body(&last)?;
             let threads: Vec<Value> = if github {
-                let nodes = v["data"]["repository"]["pullRequest"]["reviewThreads"]["nodes"].as_array().map_or(&[][..], Vec::as_slice);
-                nodes
+                paged_threads(program, outputs)?
                     .iter()
                     .map(|t| {
-                        let comments: Vec<Value> = items(&t["comments"], "nodes").iter().map(|c| json!({"id": id_string(c, "databaseId"), "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")})).collect();
-                        json!({"id": text(t, "id"), "resolved": t.get("isResolved").and_then(Value::as_bool).unwrap_or(false), "outdated": t.get("isOutdated").and_then(Value::as_bool).unwrap_or(false), "path": text(t, "path"), "line": num(t, "line"), "comments": comments})
+                        let comments: Vec<Value> = items(&t["comments"], "nodes").iter().map(|c| extend(json!({"id": if c.get("id").is_some_and(Value::is_string) { id_string(c, "id") } else { id_string(c, "databaseId") }, "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")}), gh_extras(c))).collect();
+                        extend(json!({"id": text(t, "id"), "resolved": t.get("isResolved").and_then(Value::as_bool).unwrap_or(false), "outdated": t.get("isOutdated").and_then(Value::as_bool).unwrap_or(false), "path": text(t, "path"), "line": num(t, "line"), "comments": comments}), thread_extras(t))
                     })
                     .collect()
             } else {
-                v.as_array()
+                body(&last)?
+                    .as_array()
                     .map_or(&[][..], Vec::as_slice)
                     .iter()
                     .filter(|d| items(d, "notes").first().and_then(|n| n.get("resolvable")).and_then(Value::as_bool) == Some(true))
@@ -356,16 +581,43 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
             };
             Ok(json!({"files": files}))
         }
+        HostedCall::PrCreate { .. } if !github => {
+            let created = outputs.iter().filter_map(|o| serde_json::from_str::<Value>(&o.stdout).ok()).find(|v| v["iid"].is_u64() && v["web_url"].is_string());
+            match created {
+                Some(v) => Ok(json!({"number": v["iid"], "url": v["web_url"]})),
+                None => Err(io(format!("{program} printed no address for the new request: {}", brief(&last.stdout)))),
+            }
+        }
         HostedCall::PrCreate { .. } => {
             let printed = format!("{}\n{}", last.stdout, last.stderr);
-            let marker = if github { "/pull/" } else { "/merge_requests/" };
-            let url = printed.split_whitespace().rev().find(|w| w.contains(marker));
-            match (url.and_then(|u| number_after(u, marker)), url) {
+            let url = printed.split_whitespace().rev().find(|w| w.contains("/pull/"));
+            match (url.and_then(|u| number_after(u, "/pull/")), url) {
                 (Some(number), Some(url)) => Ok(json!({"number": number, "url": url.trim_end_matches(['.', ',', ')'])})),
                 _ => Err(io(format!("{program} printed no address for the new request: {}", brief(&printed)))),
             }
         }
-        HostedCall::PrComment { .. } => Ok(json!({"done": true, "url": first_url(&last.stdout)})),
+        HostedCall::PrComment { .. } if github => Ok(json!({"done": true, "url": first_url(&last.stdout)})),
+        HostedCall::PrComment { .. } => {
+            let v = body(&last)?;
+            let a = &v["author"];
+            Ok(json!({"done": true, "url": null, "id": id_string(&v, "id"), "database_id": v["id"], "author": text(a, "username"), "avatar_url": text(a, "avatar_url"), "is_bot": a["state"] == "bot", "body": v["body"], "created_at": text(&v, "created_at")}))
+        }
+        HostedCall::PrReply { comment_id: Some(_), .. } => {
+            let v = body(&last)?;
+            let user = &v["user"];
+            Ok(json!({"id": text(&v, "node_id"), "database_id": v["id"], "url": text(&v, "html_url"), "author": text(user, "login"), "avatar_url": text(user, "avatar_url"), "is_bot": user["type"] == "Bot", "body": v["body"], "created_at": text(&v, "created_at"), "path": text(&v, "path"), "line": v["line"]}))
+        }
+        HostedCall::PrReviewComment { .. } if github => {
+            let v = body(&last)?;
+            let user = &v["user"];
+            Ok(json!({"id": text(&v, "node_id"), "database_id": v["id"], "thread": null, "url": text(&v, "html_url"), "author": text(user, "login"), "avatar_url": text(user, "avatar_url"), "is_bot": user["type"] == "Bot", "body": v["body"], "created_at": text(&v, "created_at"), "path": text(&v, "path"), "line": v["line"], "start_line": v["start_line"]}))
+        }
+        HostedCall::PrReviewComment { .. } => {
+            let v = body(&last)?;
+            let n = items(&v, "notes").first().cloned().unwrap_or(Value::Null);
+            let a = &n["author"];
+            Ok(json!({"id": id_string(&n, "id"), "database_id": n["id"], "thread": text(&v, "id"), "url": null, "author": text(a, "username"), "avatar_url": text(a, "avatar_url"), "is_bot": a["state"] == "bot" || a["bot"] == true, "body": n["body"], "created_at": text(&n, "created_at"), "path": n["position"]["new_path"], "line": n["position"]["new_line"], "start_line": null}))
+        }
         HostedCall::PrReply { .. } => {
             let v = body(&last)?;
             if github {
@@ -399,6 +651,8 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
             };
             Ok(json!({"thread": thread, "resolved": state}))
         }
+        HostedCall::PrFileViewed { pull_request, path, viewed } => Ok(json!({"pull_request": pull_request, "path": path, "viewed": viewed})),
+        HostedCall::PrState { number, closed } => Ok(json!({"number": number, "state": if *closed { "closed" } else { "open" }})),
         HostedCall::PrEdit { .. } | HostedCall::PrReady { .. } | HostedCall::PrReview { .. } | HostedCall::PrRequestReviewers { .. } | HostedCall::PrLabels { .. } | HostedCall::PrUpdateBranch { .. } | HostedCall::PrMerge { .. } => done(),
         HostedCall::RunList { .. } => {
             let v = body(&last)?;
@@ -425,6 +679,89 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
                 Ok(json!({"run": gl_run(&run), "jobs": jobs}))
             }
         }
+        HostedCall::RunRerun { run, failed_only } => Ok(json!({"run": run, "failed_only": *failed_only && github})),
+        HostedCall::PrAutoMerge { number, enabled, .. } => Ok(json!({"number": number, "enabled": enabled})),
+        HostedCall::PrCheckDetails { check, run } => check_details(github, check.is_some(), run.is_some(), outputs),
+        HostedCall::ProjectList => {
+            let v = body(&last)?;
+            let viewer = &v["data"]["viewer"];
+            if !viewer.is_object() {
+                return Err(io("gh answered no viewer"));
+            }
+            let login = text(viewer, "login");
+            let row = |n: &Value, owner: Value, owner_type: &str, source: String| json!({"id": text(n, "id"), "owner": owner, "owner_type": owner_type, "number": num(n, "number"), "title": n.get("title").and_then(Value::as_str).unwrap_or(""), "url": n.get("url").and_then(Value::as_str).unwrap_or(""), "source": source});
+            let usable = |n: &&Value| n.get("id").and_then(Value::as_str).is_some() && n.get("number").and_then(Value::as_u64).is_some();
+            let mut projects: Vec<Value> = items(&viewer["projectsV2"], "nodes")
+                .iter()
+                .filter(usable)
+                .map(|n| {
+                    let org = n["owner"]["__typename"] == "Organization";
+                    row(n, if text(&n["owner"], "login").is_null() { login.clone() } else { text(&n["owner"], "login") }, if org { "organization" } else { "user" }, "viewer".into())
+                })
+                .collect();
+            for org in items(&viewer["organizations"], "nodes") {
+                let Some(name) = org.get("login").and_then(Value::as_str) else { continue };
+                projects.extend(items(&org["projectsV2"], "nodes").iter().filter(usable).take(40).map(|n| row(n, json!(name), "organization", format!("org:{name}"))));
+            }
+            Ok(json!({"login": login, "projects": projects}))
+        }
+        HostedCall::ProjectResolve { owner, owner_type, number } => {
+            let v = body(&last)?;
+            let root = match owner_type {
+                exec_hosted::OwnerType::Organization => "organization",
+                exec_hosted::OwnerType::User => "user",
+            };
+            let top = &v["data"][root];
+            if !top.is_object() {
+                return Err(ExecError::new(Code::NotFound, format!("owner not found: {owner}")));
+            }
+            let kind = if root == "organization" { "organization" } else { "user" };
+            match number {
+                None => Ok(json!({"owner": owner, "owner_type": kind, "number": null, "id": null, "title": null})),
+                Some(number) => {
+                    let project = &top["projectV2"];
+                    if text(project, "id").is_null() {
+                        return Err(ExecError::new(Code::NotFound, format!("project not found: {owner}/{number}")));
+                    }
+                    Ok(json!({"owner": owner, "owner_type": kind, "number": number, "id": project["id"], "title": project.get("title").and_then(Value::as_str).unwrap_or("")}))
+                }
+            }
+        }
+        HostedCall::ProjectViews { owner, owner_type, number } => {
+            let v = body(&last)?;
+            let root = match owner_type {
+                exec_hosted::OwnerType::Organization => "organization",
+                exec_hosted::OwnerType::User => "user",
+            };
+            let project = &v["data"][root]["projectV2"];
+            if !project.is_object() {
+                return Err(ExecError::new(Code::NotFound, format!("project not found: {owner}/{number}")));
+            }
+            let views: Vec<Value> = items(&project["views"], "nodes").iter().filter(|n| n.get("id").and_then(Value::as_str).is_some() && n.get("layout").and_then(Value::as_str).is_some()).map(|n| json!({"id": n["id"], "number": num(n, "number"), "name": n.get("name").and_then(Value::as_str).unwrap_or(""), "layout": n["layout"]})).collect();
+            Ok(json!({"views": views}))
+        }
+        HostedCall::ProjectFieldSet { .. } | HostedCall::ProjectFieldClear { .. } | HostedCall::IssueTypeSet { .. } => {
+            let v = body(&last)?;
+            match v.get("errors").and_then(Value::as_array).and_then(|e| e.first()) {
+                Some(first) => Err(io(format!("gh: {}", brief(first["message"].as_str().unwrap_or("the mutation was refused"))))),
+                None => done(),
+            }
+        }
+        HostedCall::CommentAdd { .. } => {
+            let v = body(&last)?;
+            let user = &v["user"];
+            Ok(json!({"comment": {"id": v["id"], "author": text(user, "login"), "avatar_url": text(user, "avatar_url"), "body": v.get("body").and_then(Value::as_str).unwrap_or(""), "created_at": text(&v, "created_at"), "url": text(&v, "html_url"), "is_bot": user["type"] == "Bot"}}))
+        }
+        HostedCall::CommentEdit { .. } | HostedCall::CommentDelete { .. } | HostedCall::IssueUpdate(_) => done(),
+        HostedCall::RepoIssueTypes => {
+            let v = body(&last)?;
+            let types: Vec<Value> = items(&v["data"]["repository"]["issueTypes"], "nodes")
+                .iter()
+                .filter(|n| n.get("id").and_then(Value::as_str).is_some() && n.get("name").and_then(Value::as_str).is_some())
+                .map(|n| json!({"id": n["id"], "name": n["name"], "color": text(n, "color"), "description": text(n, "description")}))
+                .collect();
+            Ok(json!({"types": types}))
+        }
         HostedCall::AuthStatus => {
             let both = format!("{}\n{}", last.stdout, last.stderr);
             let status = parse_auth_status(&both);
@@ -432,6 +769,77 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
         }
         HostedCall::LoginStart | HostedCall::LoginWait { .. } | HostedCall::LoginCancel { .. } => Err(io("a sign-in flow is answered by the executor, not shaped from a program's output")),
     }
+}
+
+/// What of a failed job's log the answer keeps: its last characters, where the error is.
+const LOG_TAIL_MAX: usize = 16 * 1024;
+
+fn log_tail(log: &str) -> Value {
+    let skip = log.chars().count().saturating_sub(LOG_TAIL_MAX);
+    let tail: String = log.chars().skip(skip).collect();
+    if tail.trim().is_empty() {
+        Value::Null
+    } else {
+        json!(tail)
+    }
+}
+
+/// A list a tolerated step printed; a failed step or non-array output is empty, as the host answers.
+fn tolerated_list(out: &Output, key: Option<&str>) -> Vec<Value> {
+    if out.exit_code != 0 || out.truncated {
+        return Vec::new();
+    }
+    let Ok(v) = serde_json::from_str::<Value>(&out.stdout) else { return Vec::new() };
+    let list = match key {
+        Some(k) => v.get(k),
+        None => Some(&v),
+    };
+    list.and_then(Value::as_array).cloned().unwrap_or_default()
+}
+
+fn check_details(github: bool, with_check: bool, with_run: bool, outputs: &[Output]) -> ExecResult<Value> {
+    let program = if github { "gh" } else { "glab" };
+    let mut at = 0;
+    let mut take = || {
+        at += 1;
+        outputs.get(at - 1)
+    };
+    let (check_out, second_out) = if with_check { (take(), take()) } else { (None, None) };
+    let jobs_out = if with_run { take() } else { None };
+    let check = check_out.map(|o| json_of(program, o)).transpose()?;
+    if github {
+        let c = check.unwrap_or(Value::Null);
+        let output = &c["output"];
+        let annotations: Vec<Value> = second_out
+            .map(|o| tolerated_list(o, None))
+            .unwrap_or_default()
+            .iter()
+            .map(|a| json!({"path": text(a, "path"), "start_line": num(a, "start_line"), "end_line": num(a, "end_line"), "level": text(a, "annotation_level"), "title": text(a, "title"), "message": a.get("message").and_then(Value::as_str).unwrap_or(""), "raw_details": text(a, "raw_details")}))
+            .collect();
+        let steps_of = |j: &Value| -> Vec<Value> { items(j, "steps").iter().map(|s| json!({"name": text(s, "name"), "status": text(s, "status"), "conclusion": text(s, "conclusion"), "started_at_ms": ms(s, "started_at"), "completed_at_ms": ms(s, "completed_at")})).collect() };
+        let jobs: Vec<Value> = jobs_out
+            .map(|o| tolerated_list(o, Some("jobs")))
+            .unwrap_or_default()
+            .iter()
+            .map(|j| json!({"id": num(j, "id"), "name": text(j, "name"), "status": text(j, "status"), "conclusion": text(j, "conclusion"), "started_at_ms": ms(j, "started_at"), "completed_at_ms": ms(j, "completed_at"), "url": text(j, "html_url"), "log_tail": Value::Null, "steps": steps_of(j)}))
+            .collect();
+        return Ok(json!({"check": {"name": text(&c, "name"), "status": text(&c, "status"), "conclusion": text(&c, "conclusion"), "url": text(&c, "html_url"), "details_url": text(&c, "details_url"),
+            "started_at_ms": ms(&c, "started_at"), "completed_at_ms": ms(&c, "completed_at"), "title": text(output, "title"), "summary": text(output, "summary"), "text": text(output, "text"), "annotations": annotations, "jobs": jobs}}));
+    }
+    let job_row = |j: &Value, trace: Value| {
+        let (status, conclusion) = run_status(j.get("status").and_then(Value::as_str).unwrap_or(""));
+        json!({"id": num(j, "id"), "name": text(j, "name"), "status": status, "conclusion": conclusion, "started_at_ms": ms(j, "started_at"), "completed_at_ms": ms(j, "finished_at"), "url": text(j, "web_url"), "log_tail": trace, "steps": []})
+    };
+    let c = check.unwrap_or(Value::Null);
+    let trace = second_out.filter(|o| o.exit_code == 0 && !o.truncated).map_or(Value::Null, |o| log_tail(&o.stdout));
+    let jobs: Vec<Value> = match jobs_out {
+        Some(o) => tolerated_list(o, None).iter().map(|j| job_row(j, if j.get("id") == c.get("id") { trace.clone() } else { Value::Null })).collect(),
+        None if c.is_object() => vec![job_row(&c, trace)],
+        None => Vec::new(),
+    };
+    let (status, conclusion) = run_status(c.get("status").and_then(Value::as_str).unwrap_or(""));
+    Ok(json!({"check": {"name": text(&c, "name"), "status": if c.is_object() { json!(status) } else { Value::Null }, "conclusion": conclusion, "url": text(&c, "web_url"), "details_url": text(&c, "web_url"),
+        "started_at_ms": ms(&c, "started_at"), "completed_at_ms": ms(&c, "finished_at"), "title": Value::Null, "summary": text(&c, "failure_reason"), "text": Value::Null, "annotations": [], "jobs": jobs}}))
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -467,6 +875,38 @@ pub fn parse_auth_status(text: &str) -> AuthStatus {
     status
 }
 
+/// The remotes `git remote -v` printed, in its order: each name once, with its first fetch URL (a partial clone adds a ` [filter]` suffix).
+pub fn remotes_of(printed: &str) -> Vec<Value> {
+    let mut seen: Vec<&str> = Vec::new();
+    let mut remotes = Vec::new();
+    for line in printed.lines() {
+        let line = line.trim();
+        let Some((name, rest)) = line.split_once(char::is_whitespace) else { continue };
+        let rest = rest.trim();
+        let rest = match rest.rfind('[') {
+            Some(at) if rest.ends_with(']') && !rest[at + 1..rest.len() - 1].contains(']') && rest[..at].trim_end().ends_with("(fetch)") => rest[..at].trim_end(),
+            _ => rest,
+        };
+        let Some(url) = rest.strip_suffix("(fetch)").filter(|u| u.ends_with(char::is_whitespace)).map(str::trim_end).filter(|u| !u.is_empty()) else { continue };
+        if !seen.contains(&name) {
+            seen.push(name);
+            remotes.push(json!({"name": name, "url": without_credentials(url)}));
+        }
+    }
+    remotes
+}
+
+/// An http(s) URL without the userinfo a token is often put in (`https://user:token@host/...`); other forms (`git@host:path`, `ssh://git@host/...`) carry a login name only.
+fn without_credentials(url: &str) -> String {
+    for scheme in ["https://", "http://"] {
+        if let Some(rest) = url.strip_prefix(scheme) {
+            let (authority, tail) = rest.split_at(rest.find('/').unwrap_or(rest.len()));
+            return format!("{scheme}{}{tail}", authority.rsplit_once('@').map_or(authority, |(_, host)| host));
+        }
+    }
+    url.to_string()
+}
+
 /// A sign-in prompt: the one-time code (GitHub) and the address to open. `None` until the address has been printed.
 pub fn parse_login_prompt(text: &str) -> Option<(Option<String>, String)> {
     let url = first_url(text)?.to_string();
@@ -499,6 +939,26 @@ mod tests {
         assert_eq!(parse_login_prompt("! First copy your one-time code: ABCD-1234\n"), None);
         assert_eq!(parse_login_prompt("! First copy your one-time code: ABCD-1234\nOpen this URL to continue in your web browser: https://github.com/login/device\n"), Some((Some("ABCD-1234".into()), "https://github.com/login/device".into())));
         assert_eq!(parse_login_prompt("Opening https://gitlab.com/oauth/authorize?x=1 in your browser."), Some((None, "https://gitlab.com/oauth/authorize?x=1".into())));
+    }
+
+    #[test]
+    fn given_what_git_remote_v_printed_when_read_then_each_remote_is_named_once_with_its_fetch_url_in_gits_order() {
+        // Given fetch and push lines, a partial clone's filter suffix and a line that is no remote
+        let printed = "origin\tgit@github.com:octo/hello.git (fetch)\norigin\tgit@github.com:octo/hello.git (push)\nup\thttps://x/a b.git (fetch) [blob:none]\nup\thttps://x/other (fetch)\nweird\n";
+        // When read
+        let remotes = remotes_of(printed);
+        // Then each name keeps its first fetch URL, and nothing else is a remote
+        assert_eq!(remotes, vec![json!({"name": "origin", "url": "git@github.com:octo/hello.git"}), json!({"name": "up", "url": "https://x/a b.git"})]);
+        assert_eq!(remotes_of(""), Vec::<Value>::new());
+    }
+
+    #[test]
+    fn given_remote_urls_with_userinfo_when_read_then_an_http_token_is_stripped_and_a_login_name_of_ssh_stays() {
+        // Given remotes whose https URLs carry a token, a user and password, and an ssh form with a login name
+        let printed = "a\thttps://ghp_secret@github.com/octo/hello.git (fetch)\nb\thttps://user:pa%40ss@gitlab.com:8443/g/p.git (fetch)\nc\tssh://git@host/x.git (fetch)\nd\thttps://host (fetch)\n";
+        // When read, Then only the https userinfo is gone and the rest of each URL is kept
+        let urls: Vec<String> = remotes_of(printed).iter().map(|r| r["url"].as_str().unwrap().to_string()).collect();
+        assert_eq!(urls, ["https://github.com/octo/hello.git", "https://gitlab.com:8443/g/p.git", "ssh://git@host/x.git", "https://host"]);
     }
 
     #[test]

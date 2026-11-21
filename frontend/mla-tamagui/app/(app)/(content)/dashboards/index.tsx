@@ -1,1 +1,1 @@
-export { default } from '@/components/dashboards/routes/index';
+export { default } from '@/features/dashboards/routes/index';

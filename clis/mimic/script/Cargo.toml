@@ -1,0 +1,14 @@
+# The step interpreter of `wf mimic` and its adapters: versioned libraries (libraries.json), so a consumer takes a released version and updates
+# gradually. A workspace of their own: wf-mimic, t3-serve and orca-serve resolve them from the mla registry, never by path.
+[workspace]
+resolver = "2"
+members = ["core", "net", "host", "orca"]
+
+[profile.dev]
+debug = "line-tables-only"
+
+# A library edited against its siblings: their manifests name them by registry version only, as they are packaged; this builds them from the tree.
+[patch.mla]
+mimic-script-core = { path = "core" }
+mimic-script-net = { path = "net" }
+mimic-script-host = { path = "host" }

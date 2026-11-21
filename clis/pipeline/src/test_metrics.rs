@@ -290,15 +290,22 @@ pub fn query_rows(q: &Value, limit: usize) -> Result<Vec<Value>, String> {
 /// Posts the row or logs one line saying why not; the outcome as JSON (`posted`, `runId`, `reason`).
 pub(crate) fn post_best_effort(row: &Map<String, Value>) -> Value {
     let run_id = row["run_id"].as_str().unwrap_or_default().to_string();
+    let kept = match wf_bucket::ci_db::record("TEST_RESULTS", row) {
+        Ok(kept) => kept,
+        Err(e) => {
+            logfmt::mcp("warn", SOURCE, "test run row not kept in the CI database", &[("run_id", run_id.clone()), ("error", e)]);
+            false
+        }
+    };
     let outcome = writer_ords().map_err(|e| ("disabled", e)).and_then(|cfg| post(&cfg, row).map_err(|e| ("failed", e)));
     match outcome {
         Ok(()) => {
             logfmt::mcp("info", SOURCE, "test run row posted", &[("run_id", run_id.clone())]);
-            json!({ "posted": true, "runId": run_id })
+            json!({ "posted": true, "runId": run_id, "keptInCiDb": kept })
         }
         Err((reason, error)) => {
             logfmt::mcp("warn", SOURCE, "test run row not posted", &[("reason", reason.to_string()), ("run_id", run_id.clone()), ("error", error.clone())]);
-            json!({ "posted": false, "runId": run_id, "reason": reason, "error": error })
+            json!({ "posted": false, "runId": run_id, "reason": reason, "error": error, "keptInCiDb": kept })
         }
     }
 }

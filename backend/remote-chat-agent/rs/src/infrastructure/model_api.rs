@@ -1,8 +1,7 @@
 //! The `ModelApi` over an OpenAI-compatible chat endpoint (Kimi Code by default, `KIMI_API_KEY` from the secrets registry): the service's own
 //! requests for a commit message. The key goes in the `Authorization` header of the one configured address and nowhere else, and no reply of
-//! the agent API carries it. Usage and credit are not reported by this API, so they are not offered. Not run against the real endpoint.
+//! the agent API carries it. It asks for nothing else: the providers' own accounts are asked at the workspace host. Not run against the real endpoint.
 use async_trait::async_trait;
-use agent_api_accounts::{Credit, Usage};
 use remote_chat_agent_core::application::ports::{Outbound, Payload, Post};
 use rca_service_core::application::settings::Settings;
 use rca_group_accounts::{Completed, Completion, ModelApi, ModelError};
@@ -45,13 +44,5 @@ impl ModelApi for HttpModelApi {
         let body: Value = serde_json::from_slice(&answer.body).map_err(|_| ModelError::Unavailable("the model API answered with no JSON".into()))?;
         let text = answer_text(&body).ok_or_else(|| ModelError::Unavailable("the model API answered with no message".into()))?;
         Ok(Completed { text, model: body["model"].as_str().unwrap_or(&self.model).to_string() })
-    }
-
-    async fn usage(&self, _provider: &str) -> Result<Option<Usage>, ModelError> {
-        Ok(None)
-    }
-
-    async fn reset_credit(&self, provider: &str) -> Result<Credit, ModelError> {
-        Err(ModelError::NotSupported(format!("{provider} has no credit the service can reset")))
     }
 }

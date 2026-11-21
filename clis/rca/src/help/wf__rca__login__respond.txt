@@ -1,0 +1,7 @@
+Usage: wf rca login respond <auth> <text>
+
+Sends the code a person pasted to a login that waits for one (a paste login), one line.
+Prints {ok, result: {auth, status, ...}}.
+
+Options:
+  -h, --help  display help for command

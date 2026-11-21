@@ -7,7 +7,7 @@ mod fake_browser;
 
 use base64::engine::general_purpose::{STANDARD, STANDARD_NO_PAD};
 use base64::Engine as _;
-use cdp::attached::{device_frame_url, fitted_shell_size, Attached};
+use cdp::attached::{device_frame_url, fitted_shell_size, Attached, Stub};
 use cdp::{json_endpoint, Cdp};
 use doubles::{fake_chromium, fake_ffmpeg, upstream, TempDir};
 use fake_browser::{attach_reply, closed_port, png_gray, png_size, value, Call, FakeBrowser, NO_REPLY};
@@ -71,13 +71,13 @@ fn given_a_launched_browser_when_its_page_is_attached_and_driven_then_each_comma
     let dir = TempDir::new("launch");
 
     // When a browser executable that dies at once is launched
-    let broken = cdp::launch::launch(&fake_chromium(&dir, "broken", "exit 3"), &[], &[], true);
+    let broken = cdp::launch::launch(&fake_chromium(&dir, "broken", "exit 3"), &[], &[], true, false);
     // Then the launch fails naming why
     assert_eq!(broken.err().as_deref(), Some("the browser exited before opening its DevTools port"));
 
     // When the browser is launched with an argument and an environment variable
     let exe = fake_chromium(&dir, "chrome", &format!("echo 'DevTools listening on ws://127.0.0.1:{}/devtools/browser/fake' >&2\nexec sleep 60", browser.port));
-    let launched = cdp::launch::launch(&exe, &["--window-size=500,900".into()], &[("FAKE_ENV".into(), "set".into())], true).unwrap();
+    let launched = cdp::launch::launch(&exe, &["--window-size=500,900".into()], &[("FAKE_ENV".into(), "set".into())], true, false).unwrap();
     // Then it runs headless with a throwaway profile and an ephemeral DevTools port, and its endpoint is read from stderr;
     // a sideways drag at a scroller's start is no swipe-back that navigates the page away
     assert_eq!(launched.endpoint, browser.endpoint);
@@ -523,6 +523,40 @@ fn given_proxied_urls_when_the_page_requests_them_then_this_process_fetches_them
     page.network_proxy(&format!("http://127.0.0.1:{closed}/*"), false).unwrap();
     // Then the page stops pausing requests
     assert_eq!(browser.calls().last().map(|c| c.method.clone()).as_deref(), Some("Fetch.disable"));
+}
+
+#[test]
+fn given_a_paused_upload_whose_body_holds_lone_surrogate_escapes_when_a_stub_matches_then_the_stub_answers_it() {
+    // Given a page with a stub for the upload route
+    let browser = FakeBrowser::start(|call, _| match attach_reply(call) {
+        Some(reply) => Ok(reply),
+        None if call.method.starts_with("Fetch.") => Ok(json!({})),
+        None => Err(format!("'{}' wasn't found", call.method)),
+    });
+    let mut page = Attached::attach(&browser.endpoint).unwrap();
+    page.network_stub(Stub { method: Some("POST".into()), pattern: "*/api/voice-transcribe".into(), status: 200, headers: vec![], body: br#"{"transcript":"hi"}"#.to_vec(), delay_ms: 0 }).unwrap();
+
+    // When the browser pauses the upload of recorded audio: postData holds stray surrogate escapes, as binary data is written
+    // (a strict JSON parser refuses such a message)
+    let paused = |id: &str, post_data: &str| format!(r#"{{"method":"Fetch.requestPaused","sessionId":"S1","params":{{"requestId":"{id}","request":{{"url":"http://127.0.0.1:8787/api/voice-transcribe","method":"POST","headers":{{}},"postData":"{post_data}"}}}}}}"#);
+    browser.emit_raw(&paused("U1", r"--b\r\n\ud83d\u0000\udc00"));
+    let answer = browser.wait_for(|c| c.params["requestId"] == "U1");
+
+    // Then the stub answered it on the page's session and counts it as a hit
+    assert_eq!((answer.method.as_str(), answer.session.as_deref()), ("Fetch.fulfillRequest", Some("S1")));
+    assert_eq!(answer.params["responseCode"], 200);
+    assert_eq!(STANDARD.decode(answer.params["body"].as_str().unwrap()).unwrap(), br#"{"transcript":"hi"}"#);
+    // (the hit is recorded just after the answer is sent)
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let hits = loop {
+        let hits = page.network_stub_hits(false);
+        if !hits.is_empty() || Instant::now() > deadline {
+            break hits;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    assert_eq!(hits.len(), 1, "{hits:?}");
+    assert_eq!(hits[0]["url"], "http://127.0.0.1:8787/api/voice-transcribe");
 }
 
 #[test]

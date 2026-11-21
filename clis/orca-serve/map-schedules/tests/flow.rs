@@ -1,6 +1,6 @@
 //! The automation rows through the `Host` dispatcher with schedules in memory as rca's `schedules` group: each reply is read the way the phone reads it, and a
 //! change is read back from the schedule rca keeps. Given/When/Then in each test.
-use agent_api_schedules::Schedule;
+use agent_api_schedules::{RunSource, RunState, Schedule};
 use orca_core::testing::{RevocablePrincipals, ScriptedAgent};
 use orca_core::{Connection, Host, HostInfo, ServiceStatus};
 use orca_map_schedules::testing::{Schedules, NOW_MS};
@@ -188,7 +188,8 @@ fn given_a_list_for_another_owner_or_a_schedule_rca_answers_unreadably_when_aske
     let mut rig = Rig::new();
     rig.ok("automation.create", weekday_nine());
     // When the phone lists the orphans, Then there are none; and for an ssh target the call is refused
-    assert_eq!(rig.ok("automation.list", json!({"selector": {"kind": "orphan"}})), json!({"automations": [], "items": []}));
+    assert_eq!(rig.ok("automation.list", json!({"selector": {"kind": "orphan"}})), json!({"automations": [], "items": [], "orphanCount": 0}));
+    assert_eq!(rig.err("automation.list", json!({"selector": "wrong"})), ("invalid_argument".into(), "Invalid input: expected object, received string".into()));
     assert!(rig.err("automation.list", json!({"selector": {"kind": "ssh", "targetId": "t", "expectedTargetGeneration": 1}})).1.contains("no ssh targets"));
     // When rca answers a schedule whose automation record has lost its fields
     rig.agent.reply("schedule.list", |_| Ok(json!({"tasks": [{"id": "s9", "title": "t", "prompt": "p", "enabled": true, "schedule": {"type": "interval", "every_ms": 60000}, "workspace": "main", "driver": "codex", "model": null, "thread": null, "runtime_mode": null, "interaction_mode": null, "created_at_ms": 1, "updated_at_ms": 1, "next_run_ms": 2, "last_run_ms": null, "last_run_status": "never", "last_run_error": null, "run_count": 0, "webhook": null, "meta": {"orca": {"project_id": "p"}}}]})));
@@ -196,4 +197,109 @@ fn given_a_list_for_another_owner_or_a_schedule_rca_answers_unreadably_when_aske
     let (code, message) = rig.err("automation.list", json!({}));
     assert_eq!(code, "runtime_error");
     assert!(message.contains("s9") && message.contains("unreadable") && message.contains("missing field"), "{message}");
+}
+
+#[test]
+fn given_no_automations_when_the_phone_lists_them_then_the_list_carries_the_orphan_count_the_host_adds() {
+    // Given a host with no automation
+    let mut rig = Rig::new();
+    // When the phone lists them
+    let listed = rig.ok("automation.list", json!({}));
+    // Then the list is empty with no orphans
+    assert_eq!(listed, json!({"automations": [], "items": [], "orphanCount": 0}));
+}
+
+/// The phone's row of a run of the weekday automation, as the host writes it.
+fn row(id: &str, automation: &str, at: u64, status: &str, trigger: &str, thread: Option<&str>, error: Option<&str>) -> Value {
+    let began = matches!(status, "dispatched" | "completed");
+    json!({"id": id, "automationId": automation, "title": "Morning triage", "scheduledFor": at, "status": status, "trigger": trigger, "workspaceId": "id:main::/srv/main",
+        "workspaceDisplayName": null, "sessionKind": "chat", "chatSessionId": thread, "terminalSessionId": null, "terminalPaneKey": null, "terminalPtyId": null,
+        "outputSnapshot": null, "precheckResult": null, "usage": null, "error": error, "startedAt": began.then_some(at), "dispatchedAt": began.then_some(at), "createdAt": at})
+}
+
+fn asked_runs(rig: &Rig) -> Vec<Value> {
+    rig.agent.requests().into_iter().filter(|(m, _)| m == "schedule.runs").map(|(_, p)| p).collect()
+}
+
+#[test]
+fn given_no_automation_when_the_runs_are_read_then_the_answer_is_the_hosts_empty_list_whatever_the_payload() {
+    // Given no automation
+    let mut rig = Rig::new();
+    // When the phone reads the runs with an empty payload and with none
+    // Then both are the empty list, read from rca's kept runs of every schedule
+    assert_eq!((rig.ok("automation.runs", json!({})), rig.ok("automation.runs", Value::Null)), (json!({"runs": []}), json!({"runs": []})));
+    assert_eq!(asked_runs(&rig), [json!({}), json!({})]);
+}
+
+#[test]
+fn given_an_automations_runs_and_a_foreign_schedules_run_when_the_runs_are_read_then_they_are_its_runs_newest_first_as_the_hosts_rows() {
+    // Given an automation that ran on its timer, was skipped, and was run by hand, and a schedule another client made that ran too
+    let mut rig = Rig::new();
+    rig.schedules.foreign("t3-1", "A T3 task");
+    let id = rig.ok("automation.create", weekday_nine())["automation"]["id"].as_str().unwrap().to_string();
+    let done = rig.schedules.ran(&id, NOW_MS - 60_000, RunState::Succeeded, RunSource::Timer, None);
+    let skipped = rig.schedules.ran(&id, NOW_MS - 30_000, RunState::Skipped, RunSource::Timer, Some("the previous turn of this schedule still runs"));
+    rig.schedules.ran("t3-1", NOW_MS - 10_000, RunState::Succeeded, RunSource::Timer, None);
+    let manual = rig.ok("automation.runNow", json!({"id": id}))["run"]["id"].as_str().unwrap().to_string();
+    // When the phone reads the automation's runs, and every run
+    let mine = rig.ok("automation.runs", json!({"automationId": id}));
+    let every = rig.ok("automation.runs", json!({}));
+    // Then they are its three runs newest first, each as the host's row, and the other client's run is in neither
+    let expected = json!({"runs": [
+        row(&manual, &id, NOW_MS, "dispatched", "manual", Some("thread-4"), None),
+        row(&skipped, &id, NOW_MS - 30_000, "skipped_unavailable", "scheduled", None, Some("the previous turn of this schedule still runs")),
+        row(&done, &id, NOW_MS - 60_000, "completed", "scheduled", Some("thread-1"), None),
+    ]});
+    assert_eq!((&mine, &every), (&expected, &expected));
+    assert_eq!(asked_runs(&rig), [json!({"id": id}), json!({})]);
+    // When the automation is deleted, Then its runs are gone with it
+    rig.ok("automation.delete", json!({"id": id}));
+    assert_eq!(rig.ok("automation.runs", json!({})), json!({"runs": []}));
+}
+
+#[test]
+fn given_three_runs_when_paged_then_each_page_and_its_cursor_are_the_hosts_and_a_limit_that_is_no_number_is_the_whole_list() {
+    // Given an automation with three runs a minute apart
+    let mut rig = Rig::new();
+    let id = rig.ok("automation.create", weekday_nine())["automation"]["id"].as_str().unwrap().to_string();
+    let runs: Vec<String> = (0..3).map(|i| rig.schedules.ran(&id, NOW_MS + i * 60_000, RunState::Succeeded, RunSource::Timer, None)).collect();
+    let ids = |page: &Value| page["runs"].as_array().unwrap().iter().map(|r| r["id"].as_str().unwrap().to_string()).collect::<Vec<_>>();
+    // When the phone pages two at a time
+    let first = rig.ok("automation.runs", json!({"automationId": id, "limit": 2}));
+    let cursor = format!("{}:{}", NOW_MS + 60_000, runs[1]);
+    // Then the first page is the two newest with a cursor after them, and the next page is the last run with none
+    assert_eq!((ids(&first), first["nextCursor"].clone()), (vec![runs[2].clone(), runs[1].clone()], json!(cursor)));
+    let second = rig.ok("automation.runs", json!({"automationId": id, "limit": 2, "cursor": cursor}));
+    assert_eq!((ids(&second), second["nextCursor"].clone()), (vec![runs[0].clone()], Value::Null));
+    // And a limit of zero or a fraction is one run, a legacy offset skips that many, and a preview is the page shape
+    assert_eq!(ids(&rig.ok("automation.runs", json!({"automationId": id, "limit": 0}))), [runs[2].clone()]);
+    assert_eq!(ids(&rig.ok("automation.runs", json!({"automationId": id, "limit": 1.5}))), [runs[2].clone()]);
+    assert_eq!(ids(&rig.ok("automation.runs", json!({"automationId": id, "cursor": "2"}))), [runs[0].clone()]);
+    let preview = rig.ok("automation.runs", json!({"automationId": id, "preview": true, "limit": 30}));
+    assert_eq!((preview["runs"].as_array().map(Vec::len), preview["nextCursor"].clone()), (Some(3), Value::Null));
+    // And a limit that is a string or negative, or an empty cursor, is no limit: the whole list without a cursor
+    for params in [json!({"automationId": id, "limit": "5"}), json!({"automationId": id, "limit": -1}), json!({"automationId": id, "cursor": ""})] {
+        let all = rig.ok("automation.runs", params.clone());
+        assert_eq!((ids(&all).len(), all.get("nextCursor").is_none()), (3, true), "{params}");
+    }
+}
+
+#[test]
+fn given_a_run_id_when_read_then_the_one_run_comes_back_and_each_wrong_request_is_the_hosts_refusal() {
+    // Given an automation run by hand once, and a schedule another client made
+    let mut rig = Rig::new();
+    rig.schedules.foreign("t3-1", "A T3 task");
+    let id = rig.ok("automation.create", weekday_nine())["automation"]["id"].as_str().unwrap().to_string();
+    let run = rig.ok("automation.runNow", json!({"id": id}))["run"].clone();
+    // When the phone reads that run by its id, Then it is the run as runNow answered it
+    assert_eq!(rig.ok("automation.runs", json!({"automationId": id, "runId": run["id"]})), json!({"run": run}));
+    // And each wrong request is the host's own refusal
+    let runtime = |m: &str| ("runtime_error".to_string(), m.to_string());
+    assert_eq!(rig.err("automation.runs", json!({"automationId": id, "runId": "run-99"})), runtime("Automation run not found."));
+    assert_eq!(rig.err("automation.runs", json!({"runId": "run-1"})), runtime("A run id requires an automation id."));
+    assert_eq!(rig.err("automation.runs", json!({"expectedOwner": {"selector": {"kind": "self"}}})), runtime("An expected owner requires an automation id."));
+    assert_eq!(rig.err("automation.runs", json!({"automationId": "wrong"})), runtime("Automation not found."));
+    assert_eq!(rig.err("automation.runs", json!({"automationId": "t3-1"})), runtime("Automation not found."));
+    assert_eq!(rig.err("automation.runs", json!({"automationId": "a", "cursor": "a", "expectedOwner": {"selector": {"kind": "self"}}, "limit": 0, "preview": true, "runId": "a"})), runtime("Automation not found."));
+    assert_eq!(rig.err("automation.runs", json!({"automationId": id, "expectedOwner": {"selector": {"kind": "ssh", "targetId": "box"}}})).0, "invalid_argument");
 }

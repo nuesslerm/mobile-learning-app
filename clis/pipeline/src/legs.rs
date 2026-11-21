@@ -1,4 +1,4 @@
-//! The deploy legs and the planning step CI runs behind `wf ship --changed`: which services a push deploys and whether it publishes
+//! The deploy legs and the planning step CI runs behind `wf ci plan legs`: which services a push deploys and whether it publishes
 //! an EAS Update, and the commit a service's deployment verification test should find. A service ships when the hash of what its images are
 //! built from (`image_hash`) differs between the commit it runs and HEAD; the app's update when its package graph moved.
 use wf_vmops::services::{running_commit, VM_OPS_API};
@@ -37,6 +37,10 @@ const DEPLOY_LEGS: &[Leg] = &[
 ];
 
 /// The mobile app's pnpm package: what the EAS planner counts changes against (no service runs it).
+/// The agent workspace: no package of its own, planned from the hash of its image inputs like vm-ops-api, and deployed last so a redeploy that restarts it
+/// (which ends the exec jobs running in it) comes after every other leg.
+const AGENT_SHELL: &str = "agent-shell";
+
 pub const APP_PACKAGE: &str = "mla-tamagui";
 
 /* ---------- plan ---------- */
@@ -131,6 +135,25 @@ impl Reasons {
     }
 }
 
+/// Why the app's own image is not the one built at `sha`: empty when its hash is the same at `sha` as at HEAD.
+fn primary_image_changes(dir: Option<&Path>, sha: &str, image: &str) -> Result<Vec<String>, String> {
+    if !git_ok(dir, &["cat-file", "-e", &format!("{sha}^{{commit}}")]) {
+        return Ok(vec![format!("its running commit {sha} is not in this checkout")]);
+    }
+    let now = crate::image_hash::hash(dir, "HEAD", image)?;
+    Ok(match crate::image_hash::hash(dir, sha, image) {
+        Ok(then) if then == now => Vec::new(),
+        Ok(then) => vec![format!("its own image ({image}) inputs changed since {sha}: {then} -> {now}")],
+        Err(e) => vec![format!("its own image inputs at {sha} cannot be hashed: {e}")],
+    })
+}
+
+/// The images among `images` whose hash differs between the commit a service runs and HEAD (`then` and `now` hash one image); an image that cannot be
+/// hashed at either commit counts as changed, since nothing shows it unchanged.
+fn changed_images<'a>(images: &[&'a str], then: &dyn Fn(&str) -> Result<String, String>, now: &dyn Fn(&str) -> Result<String, String>) -> Vec<&'a str> {
+    images.iter().copied().filter(|image| !matches!((then(image), now(image)), (Ok(a), Ok(b)) if a == b)).collect()
+}
+
 /// Why a service ships: empty when the hash of what its images are built from is the same at `running`, the commit it runs, as at HEAD.
 fn image_changes(dir: Option<&Path>, running: Option<String>, app: &str) -> Result<Vec<String>, String> {
     let Some(sha) = running else { return Ok(vec!["its running commit is unknown".into()]) };
@@ -140,7 +163,11 @@ fn image_changes(dir: Option<&Path>, running: Option<String>, app: &str) -> Resu
     let now = crate::image_hash::leg_hash(dir, "HEAD", app)?;
     Ok(match crate::image_hash::leg_hash(dir, &sha, app) {
         Ok(then) if then == now => Vec::new(),
-        Ok(then) => vec![format!("its image inputs changed since {sha}: {then} -> {now}")],
+        Ok(then) => {
+            let moved = changed_images(&crate::image_hash::images_of(app), &|image| crate::image_hash::hash(dir, &sha, image), &|image| crate::image_hash::hash(dir, "HEAD", image));
+            let what = if moved.is_empty() { "its compose project".to_string() } else { moved.join(", ") };
+            vec![format!("its image inputs changed since {sha} ({what}): {then} -> {now}")]
+        }
         Err(e) => vec![format!("its image inputs at {sha} cannot be hashed: {e}")],
     })
 }
@@ -165,7 +192,12 @@ fn expected_commit(dir: &Path, app: &str, running: Option<String>, sha: &str) ->
     if sha.starts_with(&running) {
         return (sha.to_string(), "its image is built from the pushed commit".into());
     }
-    match image_changes(Some(dir), Some(running.clone()), app) {
+    // an app whose services run images of their own is checked on its own image alone: a sidecar's change moves that sidecar, not the commit the app reports
+    let changes = match crate::image_hash::service_images(app).first() {
+        Some(own) => primary_image_changes(Some(dir), &running, own.image),
+        None => image_changes(Some(dir), Some(running.clone()), app),
+    };
+    match changes {
         Ok(why) if why.is_empty() => (running, "nothing its image is built from changed since".into()),
         Ok(why) => (sha.to_string(), why.join("; ")),
         Err(e) => (sha.to_string(), e),
@@ -185,13 +217,13 @@ pub(crate) fn expected_revisions(packages: &[&str], sha: &str, dir: &Path) -> Ve
 
 /// The legs a push deploys, each with why (`also` names services that deploy whatever changed), and whether it publishes an EAS Update; `since` stands in for every leg's running
 /// commit and for the commit of the latest update (no vm-ops-api and no bucket asked). `latest_update` reads the commit the latest
-/// EAS Update was published from and the backend hosts it dials that have moved: `deploy` (its `ship_eas`) holds the pointer, which this crate cannot reach.
-pub fn plan(force: bool, also: &[String], since: Option<&str>, github_output: bool, latest_update: impl FnOnce() -> Result<(String, Vec<String>), String>) -> Result<Option<i32>, String> {
+/// EAS Update was published from and the backend hosts it dials that have moved; `no_lookup` asks no service for its running commit (each reads as unknown, so each leg lists as changed): `deploy` (its `ship_eas`) holds the pointer, which this crate cannot reach.
+pub fn plan(force: bool, also: &[String], since: Option<&str>, no_lookup: bool, github_output: bool, latest_update: impl FnOnce() -> Result<(String, Vec<String>), String>) -> Result<Option<i32>, String> {
     let (legs, update): (Vec<(&str, Vec<String>)>, Vec<String>) = if force {
-        (std::iter::once(VM_OPS_API).chain(DEPLOY_LEGS.iter().map(|l| l.app)).map(|a| (a, vec!["--force".to_string()])).collect(), vec!["--force".to_string()])
+        (std::iter::once(VM_OPS_API).chain(DEPLOY_LEGS.iter().map(|l| l.app)).chain(std::iter::once(AGENT_SHELL)).map(|a| (a, vec!["--force".to_string()])).collect(), vec!["--force".to_string()])
     } else {
         let mut reasons = Reasons { affected: Vec::new(), dir: None };
-        let running = |app: &str| since.map(str::to_string).or_else(|| running_commit(app));
+        let running = |app: &str| since.map(str::to_string).or_else(|| if no_lookup { None } else { running_commit(app) });
         let mut legs = Vec::new();
         for leg in DEPLOY_LEGS {
             let why = image_changes(None, running(leg.app), leg.app)?;
@@ -200,15 +232,20 @@ pub fn plan(force: bool, also: &[String], since: Option<&str>, github_output: bo
             }
         }
         // first: the other legs deploy through it, so a change to how it deploys reaches them in the same run
-        let vm_ops = since.map(str::to_string).or_else(|| running_commit(VM_OPS_API));
+        let vm_ops = running(VM_OPS_API);
         // the watchdog and the Rust port are its images; its compose project is part of the leg's hash
         let why = image_changes(None, vm_ops, VM_OPS_API)?;
         if !why.is_empty() {
             legs.insert(0, (VM_OPS_API, why));
         }
+        // last: a redeploy recreates its containers and ends the exec jobs running in them, so every other leg is done first
+        let why = image_changes(None, running(AGENT_SHELL), AGENT_SHELL)?;
+        if !why.is_empty() {
+            legs.push((AGENT_SHELL, why));
+        }
         // `--also`: named services deploy whatever changed
         for name in also {
-            let Some(app) = std::iter::once(VM_OPS_API).chain(DEPLOY_LEGS.iter().map(|l| l.app)).find(|a| a == name) else { continue };
+            let Some(app) = std::iter::once(VM_OPS_API).chain(DEPLOY_LEGS.iter().map(|l| l.app)).chain(std::iter::once(AGENT_SHELL)).find(|a| a == name) else { continue };
             if !legs.iter().any(|(a, _)| *a == app) {
                 let leg = (app, vec!["forced".to_string()]);
                 if app == VM_OPS_API { legs.insert(0, leg) } else { legs.push(leg) }
@@ -247,4 +284,22 @@ pub fn plan(force: bool, also: &[String], since: Option<&str>, github_output: bo
         }
     }
     Ok(Some(0))
+}
+
+#[cfg(test)]
+mod changed_images_tests {
+    use super::changed_images;
+
+    #[test]
+    fn given_the_hashes_of_three_images_when_one_moved_and_one_cannot_be_hashed_then_those_two_are_named() {
+        // Given three images, the second moved between the two commits and the third cannot be hashed at the running one
+        let then = |image: &str| if image == "stt" { Err("no Dockerfile".to_string()) } else { Ok(format!("{image}-1")) };
+        let now = |image: &str| Ok(if image == "opencode-server" { "opencode-server-2".to_string() } else { format!("{image}-1") });
+
+        // When the changed images are listed
+        let moved = changed_images(&["remote-chat-agent", "opencode-server", "stt"], &then, &now);
+
+        // Then the moved one and the one that cannot be shown unchanged are named, in order
+        assert_eq!(moved, ["opencode-server", "stt"]);
+    }
 }

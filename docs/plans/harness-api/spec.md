@@ -915,7 +915,7 @@ No renames yet.
 
 ### 7. The Lua binder, `run` → `test`, and all 11 e2e scripts
 
-The binder exposes exactly the command table, and the old names raise `renamed: use device:<new>`. The script rewrite is one `wf offload ask --batch e2e/*.lua` unit with this mapping, then reviewed:
+The binder exposes exactly the command table, and the old names raise `renamed: use device:<new>`. The script rewrite is one `wf rca ask --batch e2e/*.lua` unit with this mapping, then reviewed:
 - `open` → `open_link`
 - `tap(s)` → `tap_on(sel)`; delete a preceding wait on the same selector; `pcall(tap)` by its three rules (see `tap_on`)
 - `type_text` → `input_text`

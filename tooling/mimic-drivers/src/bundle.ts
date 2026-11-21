@@ -21,14 +21,14 @@ const pinnedFrom = (resolveDir: string): Plugin => ({
 
 /** The exports of an entry file made of `export *` / `import` lines over modules in the reference tree. `resolveDir` is where the
  * pinned packages come from: this package by default, the reference's own workspace package when it ships what the app runs. */
-export type Stub = { filter: RegExp; contents: string }
+export type Stub = { filter: RegExp; contents: string; /** where the stub's own imports resolve from (a stub that wraps the real module) */ resolveDir?: string }
 
 const stubbing = (stubs: Stub[]): Plugin => ({
   name: 'stubs',
   setup(b) {
     stubs.forEach((stub, i) => {
       b.onResolve({ filter: stub.filter }, (args) => ({ path: args.path, namespace: `stub-${i}` }))
-      b.onLoad({ filter: /.*/, namespace: `stub-${i}` }, () => ({ contents: stub.contents, loader: 'js' }))
+      b.onLoad({ filter: /.*/, namespace: `stub-${i}` }, () => ({ contents: stub.contents, loader: 'js', resolveDir: stub.resolveDir }))
     })
   }
 })

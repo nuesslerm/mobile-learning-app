@@ -64,7 +64,8 @@ impl WorkspaceGroup {
         if place.worktree.is_some() {
             return Err(Refusal::new(code::NOT_REMOVABLE, format!("{workspace} is a worktree: remove it with worktree.remove")));
         }
-        if place == Place::default() {
+        let attached = self.executors.owner(&workspace).is_some_and(|owner| self.executors.executors().contains(&owner));
+        if place == Place::default() && attached {
             return Err(Refusal::new(code::NOT_REMOVABLE, format!("{workspace} is an executor's root workspace")));
         }
         let removed = self.executors.remove_workspace(&workspace);

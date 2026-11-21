@@ -1,0 +1,27 @@
+{
+  "method": "browser.goto",
+  "exchanges": [
+    {
+      "name": "finds no page under a key that was never opened",
+      "request": {
+        "id": 1,
+        "method": "browser.goto",
+        "params": {
+          "workspace": "w1",
+          "thread": "t1",
+          "url": "https://example.com/"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no page is open for key t1"
+        }
+      },
+      "actions": [
+        "browser_goto"
+      ]
+    }
+  ]
+}

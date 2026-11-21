@@ -2,6 +2,7 @@
 //! a paired device, and only then the core's `Connection`. The close codes and reasons are the reference's (`e2ee-channel.ts`): 4001 for a
 //! handshake or auth failure, 4002 for the handshake deadline, 4003 for too many frames that do not open.
 use crate::http::{self, Head};
+use orca_core::area::Out;
 use orca_core::{Connection, Host};
 use orca_crypto::auth::{authenticate, Authenticated};
 use orca_crypto::legacy::LegacyChannel;
@@ -116,7 +117,7 @@ fn upgrade(mut stream: TcpStream, head: &Head, shared: &Shared, stop: &AtomicBoo
             Ok(Message::Binary(bytes)) => socket.on_binary(&bytes),
             Ok(Message::Close(_)) => break,
             Ok(_) => Ok(vec![]),
-            Err(Error::Io(e)) if matches!(e.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut) => Ok(vec![]),
+            Err(Error::Io(e)) if matches!(e.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut | ErrorKind::Interrupted) => Ok(vec![]),
             Err(_) => break,
         };
         // Any traffic, pings included, must not keep an unauthenticated socket past the deadline.
@@ -208,6 +209,19 @@ impl Socket {
         Some(Message::text(sealed))
     }
 
+    fn seal_binary(&mut self, bytes: &[u8]) -> Option<Message> {
+        let entropy = self.shared.entropy.clone();
+        let keyed = match &mut self.stage {
+            Stage::Auth(k) | Stage::Ready { keyed: k, .. } => k,
+            Stage::Hello => return None,
+        };
+        let sealed = match keyed {
+            Keyed::V2(s) => s.seal_binary(bytes)?,
+            Keyed::Legacy(c) => c.seal_bytes(entropy.as_ref(), bytes),
+        };
+        Some(Message::binary(sealed))
+    }
+
     fn on_text(&mut self, text: &str) -> Step {
         match self.stage {
             Stage::Hello => self.hello(text),
@@ -232,12 +246,11 @@ impl Socket {
             Keyed::V2(s) => s.open_binary(bytes).ok(),
             Keyed::Legacy(c) => c.open_bytes(bytes),
         };
-        match opened {
-            // No area takes binary streams yet: the frame is opened, so the counter stays in step, and dropped.
-            Some(_) => *failures = 0,
-            None => return Self::failure(failures),
-        }
-        Ok(vec![])
+        let Some(plain) = opened else { return Self::failure(failures) };
+        *failures = 0;
+        let Stage::Ready { connection, .. } = &mut self.stage else { return Ok(vec![]) };
+        let frames = connection.on_binary(&plain);
+        self.seal_all(frames)
     }
 
     fn failure(failures: &mut u32) -> Step {
@@ -303,19 +316,23 @@ impl Socket {
         let Some(plain) = plain else { return Self::failure(failures) };
         *failures = 0;
         let Stage::Ready { connection, .. } = &mut self.stage else { return Ok(vec![]) };
-        let frames = connection.on_message(&plain);
+        let frames = connection.on_message_out(&plain);
         self.seal_all(frames)
     }
 
     fn poll(&mut self) -> Vec<Message> {
         let Stage::Ready { connection, .. } = &mut self.stage else { return vec![] };
-        let frames = connection.poll();
+        let frames = connection.poll_out();
         self.seal_all(frames).unwrap_or_default()
     }
 
     // A spent counter cannot seal: the socket is re-keyed by reconnecting.
-    fn seal_all(&mut self, frames: Vec<String>) -> Step {
-        frames.iter().map(|f| self.seal(f).ok_or_else(|| Close::new(1013, "Outbound reply buffer overflow"))).collect()
+    fn seal_all(&mut self, frames: Vec<Out>) -> Step {
+        let sealed = |frame: &Out, socket: &mut Self| match frame {
+            Out::Text(text) => socket.seal(text),
+            Out::Binary(bytes) => socket.seal_binary(bytes),
+        };
+        frames.iter().map(|f| sealed(f, self).ok_or_else(|| Close::new(1013, "Outbound reply buffer overflow"))).collect()
     }
 }
 

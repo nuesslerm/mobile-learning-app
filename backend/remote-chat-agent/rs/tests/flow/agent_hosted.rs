@@ -113,7 +113,7 @@ async fn given_a_machine_signed_out_when_a_phone_signs_in_then_it_gets_the_code_
     // Given gh signed out until its web login is approved: the login prints the code and the address, then ends; the status shows octocat
     let env = Env::new(&[]);
     let rig = rig(&env).await;
-    let login = Rule { stderr: "! First copy your one-time code: ABCD-1234\nOpen this URL to continue in your web browser: https://github.com/login/device\n".into(), sleep_ms: 600, ..rule("gh", &["auth", "login", "--web", "--hostname=github.com", "--git-protocol=https"]) };
+    let login = Rule { stderr: "! First copy your one-time code: ABCD-1234\nOpen this URL to continue in your web browser: https://github.com/login/device\n".into(), sleep_ms: 600, ..rule("gh", &["auth", "login", "--web", "--hostname=github.com", "--git-protocol=https", "--scopes=project,read:org"]) };
     let status = Rule { stdout: "github.com\n  ✓ Logged in to github.com account octocat (keyring)\n  - Token: gho_SECRETTOKEN0000\n  - Token scopes: 'repo'\n".into(), ..rule("gh", &["auth", "status"]) };
     rig.clis.rules(&[login, status], &[]);
     let mut agent = rig.agent().await;
@@ -138,7 +138,7 @@ async fn given_a_sign_in_in_progress_when_the_phone_cancels_it_then_gh_is_stoppe
     // Given a login that stays open
     let env = Env::new(&[]);
     let rig = rig(&env).await;
-    let login = Rule { stderr: "! First copy your one-time code: WXYZ-9999\nOpen this URL to continue in your web browser: https://github.com/login/device\n".into(), hang: true, ..rule("gh", &["auth", "login", "--web", "--hostname=github.com", "--git-protocol=https"]) };
+    let login = Rule { stderr: "! First copy your one-time code: WXYZ-9999\nOpen this URL to continue in your web browser: https://github.com/login/device\n".into(), hang: true, ..rule("gh", &["auth", "login", "--web", "--hostname=github.com", "--git-protocol=https", "--scopes=project,read:org"]) };
     rig.clis.rules(&[login], &[]);
     let mut agent = rig.agent().await;
     let started = ok(&mut agent, "sourceControl.signInStart", w(json!({"provider": "github"}))).await;
@@ -210,4 +210,29 @@ async fn given_arguments_that_would_reach_a_cli_as_options_or_leave_the_root_whe
     }
     // Then no program was started
     assert_eq!(rig.clis.argvs(), Vec::<Vec<String>>::new());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_no_workspace_when_a_project_method_is_asked_then_the_executor_whose_gh_is_signed_in_answers_and_a_signed_out_machine_is_no_executor() {
+    // Given an executor whose gh is signed out
+    let env = Env::new(&[]);
+    let rig = rig(&env).await;
+    let signed_out = Rule { exit_code: 1, stderr: "You are not logged into any GitHub hosts. To log in, run: gh auth login\n".into(), ..rule("gh", &["auth", "status"]) };
+    rig.clis.rules(&[signed_out], &[]);
+    let mut agent = rig.agent().await;
+    // When the projects are listed with no workspace
+    let refused = agent.ask("project.list", json!({})).await;
+    // Then no executor answers, and only gh's status was asked
+    assert_eq!((refused["error"]["code"].clone(), refused["error"]["message"].clone()), (json!("NO_EXECUTOR"), json!("no attached executor is signed in to github")));
+    assert_eq!(rig.clis.argvs(), vec![vec!["gh".to_string(), "auth".into(), "status".into()]]);
+    // And once gh is signed in with the project scope, the same request is answered from gh's GraphQL reply, still with no workspace
+    let status = Rule { stdout: "github.com\n  ✓ Logged in to github.com account octocat (keyring)\n  - Token scopes: 'project', 'read:org', 'repo'\n".into(), ..rule("gh", &["auth", "status"]) };
+    let reply = json!({"data": {"viewer": {"login": "octocat", "projectsV2": {"nodes": [{"id": "PVT_1", "number": 3, "title": "Roadmap", "url": "https://github.com/users/octocat/projects/3", "owner": {"__typename": "User", "login": "octocat"}}]}, "organizations": {"nodes": []}}}});
+    let graphql = Rule { prefix: true, stdout: reply.to_string(), ..rule("gh", &["api", "graphql"]) };
+    rig.clis.rules(&[status, graphql], &[]);
+    let listed = ok(&mut agent, "project.list", json!({})).await;
+    assert_eq!(listed, json!({"login": "octocat", "projects": [{"id": "PVT_1", "owner": "octocat", "owner_type": "user", "number": 3, "title": "Roadmap", "url": "https://github.com/users/octocat/projects/3", "source": "viewer"}]}));
+    // And the sign-in's scopes were asked for the project query, which gh got as JSON on stdin and not as a flag value
+    let query = rig.clis.starts("gh").into_iter().find(|s| s.argv.first().map(String::as_str) == Some("api")).expect("gh api ran");
+    assert!(query.stdin.contains("projectsV2") && query.argv.iter().all(|a| !a.contains("projectsV2")), "{:?}", query.argv);
 }

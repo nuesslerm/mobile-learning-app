@@ -1,0 +1,10 @@
+{
+ "schema": "mimic-stability-allowlist/1",
+ "entries": [
+  {
+   "id": "orca-status.get",
+   "cause": "text-change",
+   "reason": "hostDescriptor.machineBinding is a 43-character base64url fingerprint of the orcad host that is new on every start; a stable value of the corpus has no such shape, but the stabilizer reads it as free text, so it is listed instead of masked by a pattern that would also hide a real change"
+  }
+ ]
+}

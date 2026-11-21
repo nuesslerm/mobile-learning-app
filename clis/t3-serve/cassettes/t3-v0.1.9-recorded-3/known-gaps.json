@@ -1,0 +1,74 @@
+{
+  "schema": "mimic-known-gaps/2",
+  "groups": [
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.capabilities.cloudVoiceTranscription",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[0].payload.body.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.fileAttachments missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.freshContext missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.mcpApprovalCodes missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.mcpHostedApproval missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.modelCatalogRefresh missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.oneTimeSchedules missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.scheduledTaskThreadModes missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.vcsBranchStatus missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.voiceTranscription missing breaking",
+        "steps.http:ret:_.[0].payload.body.databaseMigration changed drift"
+      ],
+      "ids": [
+        "t3-http-metadata.descriptor"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.openai",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.openai missing breaking",
+        "steps.http:ret:_.[2].payload.body.openrouter missing breaking",
+        "steps.http:ret:_.[2].payload.body.xai missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-voice.cloudKeys"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.values missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit extra drift"
+      ],
+      "ids": [
+        "t3-rpc-subscribeDeviceState"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
+      ],
+      "ids": [
+        "t3-rpc-device.configure"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values.[*].snapshot.threads.[*].latestRunBackgroundWake",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].snapshot.threads.[0].latestRunBackgroundWake missing breaking"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.subscribeShell"
+      ]
+    }
+  ]
+}

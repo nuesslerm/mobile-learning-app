@@ -15,7 +15,7 @@ import type {
 } from '../domain';
 import { create } from 'zustand';
 
-import type { DispatchRunsGateway } from '../data/dispatchRunsGateway';
+import type { DispatchRunsGateway } from '../domain/ports';
 
 export type DispatchRunsStatus = 'idle' | 'loading' | 'ready' | 'error';
 type DispatchRunsListFilter = { agent?: string; q?: string };

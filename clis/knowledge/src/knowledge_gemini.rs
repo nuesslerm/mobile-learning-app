@@ -1,5 +1,5 @@
 //! `wf knowledge index --gemini`: one markdown bundle for the Gemini Gem. `repomix --compress` yields a skeleton of the
-//! repository, `wf offload ask` drafts `ARCHITECTURE.md` from it, and the bundle is that file followed by the full repomix
+//! repository, `wf rca ask` drafts `ARCHITECTURE.md` from it, and the bundle is that file followed by the full repomix
 //! pack, uploaded over one Drive file in place (same file id, so the Gem's attachment never moves).
 use crate::gem_drive::{self, Part};
 use crate::gem_split::split_pack;
@@ -23,7 +23,7 @@ const INCLUDE: &str = "backend/**,clis/**,frontend/mla-tamagui/**,infra/**";
 const SKELETON_INCLUDE: &str = "backend/**/Cargo.toml,clis/**/Cargo.toml,**/package.json,**/lib.rs,**/main.rs,**/index.ts,**/AGENTS.md,docs/solutions/architecture/**";
 /// Generated data and recorded fixtures that would fill a Doc without teaching the Gem anything: stroke tables, golden snapshots,
 /// the secret-key registry, generated modules, recorded fixtures and benchmark baselines, recorded contract data.
-const PACK_IGNORE: &str = "**/scripts/tamil-strokes/**,**/registry.json,**/*.snap,**/*.generated.ts,**/*.generated.rs,**/*.generated.json,**/fixtures/**,**/baselines/**,**/contracts/data/**,**/cassettes/**,**/help/*.txt,clis/mimic/**,clis/parity/**";
+const PACK_IGNORE: &str = "**/scripts/tamil-strokes/**,**/registry.json,**/*.snap,**/*.generated.ts,**/*.generated.rs,**/*.generated.json,**/fixtures/**,**/baselines/**,**/contracts/data/**,**/cassettes/**,**/help/*.txt,clis/mimic/**,clis/mimic/**";
 /// A Doc holds about 1,024,000 characters; a part stays under this. A Gem takes 10 files: the architecture Doc and at most nine parts.
 const PART_CHARS: usize = 1_000_000;
 const MAX_DOCS: usize = 10;
@@ -63,7 +63,7 @@ fn read(root: &Path, rel: &str) -> Result<String, String> {
     std::fs::read_to_string(root.join(rel)).map_err(|e| format!("{rel}: {e}"))
 }
 
-/// One `wf offload ask` run as the read-only agent on the prompt file, served by the rca service; its stdout is the document. It runs
+/// One `wf rca ask` run as the read-only agent on the prompt file, served by the rca service; its stdout is the document. It runs
 /// in a directory of its own: the prompt carries every input, and the repository's agent instructions are not the draft's.
 fn ask(root: &Path, prompt_file: &Path) -> Result<String, String> {
     let cwd = std::env::temp_dir().join("gem-draft-ask");
@@ -74,14 +74,14 @@ fn ask(root: &Path, prompt_file: &Path) -> Result<String, String> {
     let run = Command::new("timeout")
         .arg(ASK_TIMEOUT_SECS.to_string())
         .arg(&wf)
-        .args(["offload", "ask", "--agent", "read-only", "--shape", "document", "--prompt-file"])
+        .args(["rca", "ask", "--agent", "read-only", "--shape", "document", "--prompt-file"])
         .arg(if prompt_file.is_absolute() { prompt_file.to_path_buf() } else { root.join(prompt_file) })
         .current_dir(&cwd)
         .stdin(Stdio::null())
         .output()
-        .map_err(|e| format!("{wf} offload ask failed to start: {e}"))?;
+        .map_err(|e| format!("{wf} rca ask failed to start: {e}"))?;
     if !run.status.success() {
-        return Err(format!("wf offload ask exited {}: {}", run.status.code().unwrap_or(1), String::from_utf8_lossy(&run.stderr).trim()));
+        return Err(format!("wf rca ask exited {}: {}", run.status.code().unwrap_or(1), String::from_utf8_lossy(&run.stderr).trim()));
     }
     Ok(String::from_utf8_lossy(&run.stdout).trim().to_string())
 }
@@ -165,15 +165,17 @@ fn generate(o: &Options) -> Result<Value, String> {
     }
     std::fs::create_dir_all(&o.cache_dir).map_err(|e| e.to_string())?;
     let architecture_path = o.cache_dir.join("ARCHITECTURE.md");
-    if o.summarize {
+    let fell_back = !o.summarize && !architecture_path.exists();
+    if fell_back {
+        println!("no cached {}: --no-summary fell back to a full summary run", architecture_path.display());
+    }
+    if o.summarize || fell_back {
         let skeleton_path = o.cache_dir.join("skeleton.md");
         println!("packing the compressed skeleton");
         repomix(&root, &["--compress", "--include", SKELETON_INCLUDE], &skeleton_path)?;
         println!("drafting ARCHITECTURE.md");
         let draft = draft_architecture(&root, o, &skeleton_path)?;
         std::fs::write(&architecture_path, format!("{draft}\n")).map_err(|e| e.to_string())?;
-    } else if !architecture_path.exists() {
-        return Err(format!("--no-summary needs a cached {}", architecture_path.display()));
     }
     println!("packing the full source");
     let pack_path = o.cache_dir.join("pack.md");

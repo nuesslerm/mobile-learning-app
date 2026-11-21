@@ -20,12 +20,17 @@ pub const SET_ENABLED: Method = Method::new(GROUP, "schedule.setEnabled");
 pub const DELETE: Method = Method::new(GROUP, "schedule.delete");
 pub const RUN_NOW: Method = Method::new(GROUP, "schedule.runNow");
 pub const ROTATE_WEBHOOK_TOKEN: Method = Method::new(GROUP, "schedule.rotateWebhookToken");
+/// The runs a schedule (or every schedule) kept, newest first.
+pub const RUNS: Method = Method::new(GROUP, "schedule.runs");
 
 /// Every method of the group.
-pub const METHODS: &[Method] = &[LIST, UPSERT, SET_ENABLED, DELETE, RUN_NOW, ROTATE_WEBHOOK_TOKEN];
+pub const METHODS: &[Method] = &[LIST, UPSERT, SET_ENABLED, DELETE, RUN_NOW, ROTATE_WEBHOOK_TOKEN, RUNS];
 
 /// The shortest interval an `upsert` accepts: a stored schedule with a shorter one (an older client) still runs.
 pub const MIN_INTERVAL_MS: u64 = 60_000;
+
+/// The finished runs a schedule keeps; an older finished one goes when a newer one is kept, a run that is still going never does.
+pub const MAX_RUNS_KEPT: usize = 100;
 
 /// The most a schedule's `meta` holds, as JSON text.
 pub const MAX_META_BYTES: usize = 8 * 1024;
@@ -219,6 +224,24 @@ impl IdParams {
     }
 }
 
+/// `schedule.runs`: the runs of the schedule `id`, or of every schedule when it is left out.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RunsParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+}
+
+impl RunsParams {
+    pub fn parse(params: &Value) -> Result<RunsParams, ParamError> {
+        let parsed: RunsParams = read(params)?;
+        if parsed.id.as_deref().is_some_and(|id| id.trim().is_empty()) {
+            return Err(ParamError("id must not be empty".into()));
+        }
+        Ok(parsed)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RunStatus {
@@ -320,6 +343,13 @@ pub struct RunView {
     pub error: Option<String>,
 }
 
+/// The kept runs, newest first (`at_ms` here is when a run began, then its id): at most `MAX_RUNS_KEPT` finished ones per schedule, and none of
+/// a deleted schedule.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RunsResult {
+    pub runs: Vec<RunView>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RunNowResult {
     pub task: TaskView,
@@ -339,6 +369,7 @@ mod tests {
             "schedule.setEnabled" => SetEnabledParams::parse(params).map(drop),
             "schedule.delete" | "schedule.runNow" | "schedule.rotateWebhookToken" => IdParams::parse(params).map(drop),
             "schedule.subscribe" => watch::SubscribeParams::parse(params).map(drop),
+            "schedule.runs" => RunsParams::parse(params).map(drop),
             other => panic!("{other} is no method of the group"),
         }
     }
@@ -351,6 +382,7 @@ mod tests {
             "schedule.delete" => read(serde_json::from_value::<DeleteResult>(result.clone()).map(drop)),
             "schedule.runNow" => read(serde_json::from_value::<RunNowResult>(result.clone()).map(drop)),
             "schedule.subscribe" => read(serde_json::from_value::<watch::SubscribeResult>(result.clone()).map(drop)),
+            "schedule.runs" => read(serde_json::from_value::<RunsResult>(result.clone()).map(drop)),
             other => panic!("{other} is no method of the group"),
         }
     }
@@ -375,8 +407,8 @@ mod tests {
                     let parsed = Request::from_value(request).unwrap_or_else(|_| panic!("{what}: not a request"));
                     assert!(METHODS.iter().chain(watch::METHODS).any(|m| m.name() == parsed.method), "{what}: {}", parsed.method);
                 }
-                // And the service calls no executor action to answer, but the checkpoint a turn it starts takes first (`git_checkpoint`)
-                let expected: &[&str] = if method == "schedule.runNow" && exchange.succeeds() { &["git_checkpoint"] } else { &[] };
+                // And the service calls no executor action to answer, but the detection of the turn's CLI and the checkpoint it takes first
+                let expected: &[&str] = if method == "schedule.runNow" && exchange.succeeds() { &["cli_detect", "git_checkpoint"] } else { &[] };
                 assert_eq!((exchange.request["method"].as_str(), exchange.actions.iter().map(String::as_str).collect::<Vec<_>>()), (Some(method), expected.to_vec()), "{what}");
                 if exchange.succeeds() {
                     assert_eq!(parse_params(method, &exchange.request["params"]), Ok(()), "{what}");
@@ -430,7 +462,9 @@ mod tests {
     #[test]
     fn given_the_methods_of_the_group_when_listed_then_they_are_of_this_group_with_the_owners_names() {
         let names: Vec<&str> = METHODS.iter().map(|m| m.name()).collect();
-        assert_eq!(names, ["schedule.list", "schedule.upsert", "schedule.setEnabled", "schedule.delete", "schedule.runNow", "schedule.rotateWebhookToken"]);
+        assert_eq!(names, ["schedule.list", "schedule.upsert", "schedule.setEnabled", "schedule.delete", "schedule.runNow", "schedule.rotateWebhookToken", "schedule.runs"]);
+        assert_eq!(RunsParams::parse(&json!({"id": " "})).unwrap_err().0, "id must not be empty");
+        assert_eq!(RunsParams::parse(&Value::Null), Ok(RunsParams { id: None }));
         assert!(METHODS.iter().all(|m| m.group() == GROUP) && GROUP.as_str() == "schedules");
         assert_eq!((time_of_day_minutes("09:30"), time_of_day_minutes("9:30"), time_of_day_minutes("23:59"), time_of_day_minutes("12:60")), (Some(570), Some(570), Some(1439), None));
         assert_eq!(webhook_path("s1"), "/hooks/v1/schedules/s1");

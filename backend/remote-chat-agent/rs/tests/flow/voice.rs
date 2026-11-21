@@ -240,6 +240,21 @@ async fn given_a_spoken_instruction_and_code_when_a_voice_edit_is_planned_then_t
     let empty = svc.send(plan(json!({ "transcript": "x" }))).await.json();
     assert!(empty["message"].as_str().unwrap().starts_with("LLM stream failed: opencode finished the turn without emitting any content"));
 
+    // When a turn ends having said nothing once, then one more turn on a fresh session answers and the plan is a 200
+    oc.forget_requests();
+    let turn = Arc::new(AtomicUsize::new(0));
+    let (counted, good) = (Arc::clone(&turn), json_text.clone());
+    oc.on_prompt(Arc::new(move |p: &Prompt| {
+        if counted.fetch_add(1, Ordering::SeqCst) == 0 {
+            vec![ev("message.updated", json!({ "sessionID": p.session, "info": { "id": "m", "role": "assistant", "sessionID": p.session } })), idle(&p.session)]
+        } else {
+            (answers(good.clone()))(p)
+        }
+    }));
+    let transient = svc.send(plan(json!({ "transcript": "x", "editId": "transient-1" }))).await;
+    assert_eq!((transient.status, oc.find("POST", "*/prompt_async").len()), (StatusCode::OK, 2));
+    assert_eq!(row(&svc, "transient-1").await["session_reused"], 0);
+
     // When opencode cannot see the directory, then 500 names it and nothing is prompted.
     oc.forget_requests();
     oc.respond("GET", "/find/file", 500, json!({ "error": "NotFound" }));

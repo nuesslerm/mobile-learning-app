@@ -3,7 +3,7 @@
 use crate::neutral::{Calls, CLI_START_FAILED, EXECUTOR_GONE};
 use crate::runner::Runner;
 use agent_api_agent::{FinishReason, ThreadEvent};
-use rca_cli_driver::domain::{command_for_remote, Driver, ExecEvent, TurnRequest};
+use rca_cli_driver::domain::{Driver, ExecEvent, TurnRequest};
 use rca_exec_channel::remote::{ExecutorChannel, RemoteError};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -152,7 +152,18 @@ impl TurnTask {
             tokio::select! {
                 next = events.recv() => match next {
                     None | Some(ExecEvent::Done) => return true,
-                    Some(ExecEvent::Session(id)) => *session = Some(id),
+                    Some(ExecEvent::Session(id)) => {
+                        // kept the moment it is announced: a restart in the middle of the turn leaves the thread able to go on with it
+                        *session = Some(id);
+                        self.keep_session(session.as_deref());
+                    }
+                    // The CLI ran at the executor, so its process ending in error while the channel is gone is the executor going away, however the two news race
+                    Some(ExecEvent::Error(_)) if self.channel.is_closed() => {
+                        self.runner.turns().interrupt(&self.thread);
+                        self.record([ThreadEvent::Error { code: EXECUTOR_GONE.into(), message: RemoteError::ExecutorGone.message() }]);
+                        *failed = true;
+                        return false;
+                    }
                     Some(event) => {
                         *failed |= matches!(event, ExecEvent::Error(_));
                         self.record(calls.events(event));
@@ -174,8 +185,9 @@ impl TurnTask {
         if session.is_some() {
             self.request.resume = session.clone();
         }
-        let command = command_for_remote(self.driver, &self.request, &self.runner.mcp_url(&self.thread)).map_err(|why| why.0)?;
-        self.runner.turns().launch(self.driver, &self.thread, command, self.runner.cli_cwd()).await
+        let command = self.runner.host_command(self.driver, &self.request, &self.thread);
+        let spawner = self.runner.launcher().spawner(&self.channel);
+        self.runner.turns().launch(spawner.as_ref(), self.driver, &self.thread, command).await
     }
 
     /// Follows the CLI into the log until the turn ends (a steer starts another CLI in the same turn), records `interrupted`, `failed` or
@@ -204,7 +216,7 @@ impl TurnTask {
         let reason = if end.interrupted { FinishReason::Interrupted } else if failed { FinishReason::Failed } else { FinishReason::Completed };
         // The executor is let go before the finish is recorded: whoever sees the thread idle may start a turn that binds it again
         self.runner.executors().unbind(&self.thread);
-        self.record([ThreadEvent::TurnFinished { reason }]);
+        self.record([ThreadEvent::TurnFinished { reason, cause: None }]);
         self.runner.release_requests(&self.thread);
         self.runner.start_next_later(&self.thread);
     }

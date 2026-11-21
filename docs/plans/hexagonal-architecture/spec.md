@@ -583,7 +583,7 @@ One row per package. A Rust service's core and rs crates share a row. Effort: no
 
 ## Migration
 
-Each unit is one commit. Each commit goes through lefthook, lands on `dev` (`git fetch origin dev && git rebase origin/dev`) and leaves every gate green. A unit that moves code does not change behaviour in the same commit. A unit that fixes debt deletes its own baseline or `ignores` entries in that commit. Mechanical units (moves, renames, import rewrites) go to `wf offload ask --batch` per `.claude/rules/delegation.md`; rule design and review stay with Claude.
+Each unit is one commit. Each commit goes through lefthook, lands on `dev` (`git fetch origin dev && git rebase origin/dev`) and leaves every gate green. A unit that moves code does not change behaviour in the same commit. A unit that fixes debt deletes its own baseline or `ignores` entries in that commit. Mechanical units (moves, renames, import rewrites) go to `wf rca ask --batch` per `.claude/rules/delegation.md`; rule design and review stay with Claude.
 
 The order: docs first, so every later unit cites the doc; gates and rules next, because they are cheap and make every later unit measurable; then the packages, highest value first.
 - The reference feature leetcode does not meet its own rule, and the two gap docs record that.

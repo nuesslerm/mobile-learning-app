@@ -1,0 +1,18 @@
+{
+  "transcript": "after that line, declare left as zero and right as the last index of s",
+  "alternatives": [
+    {
+      "id": "stub-1",
+      "label": "Declare left and right",
+      "summary": "After that line, declare left as zero and right as the last index of s.",
+      "confidence": 0.95,
+      "commands": [
+        {
+          "type": "insertAfterLine",
+          "line": 3,
+          "text": "        left, right = 0, len(s) - 1"
+        }
+      ]
+    }
+  ]
+}

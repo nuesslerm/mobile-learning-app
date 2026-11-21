@@ -25,6 +25,8 @@ struct Request {
     review_decision: Option<String>,
     updated_ms: u64,
     merged_with: Option<String>,
+    url: Option<String>,
+    assignees: Vec<String>,
 }
 
 #[derive(Default)]
@@ -35,11 +37,75 @@ struct State {
     /// The refs a fetch made in the repository.
     local: BTreeMap<String, String>,
     fetch_error: Option<String>,
+    labels: Option<Vec<(String, String)>>,
+    assignees: Option<Vec<(String, String)>>,
     view_error: Option<String>,
+    comments: Vec<(u64, Value)>,
+    issues: Vec<Value>,
+    issue_comments: Vec<(String, u64, Value)>,
+    files: Vec<(u64, Value)>,
+    threads: Vec<(u64, Value)>,
+    reviews: Vec<(u64, Value)>,
+    blobs: Vec<(String, String, Vec<u8>)>,
+    remotes: Vec<(String, String)>,
+    remotes_error: Option<String>,
+    origin_head: Option<String>,
+    signed_out: bool,
+    list_error: Option<String>,
+    branch: Option<String>,
+    dirty: bool,
+    upstream: Option<(bool, u64, u64)>,
+    upstream_error: Option<String>,
+    templates: Vec<(String, String)>,
+    /// A refusal of every create as (code, message), and whether the request is opened all the same.
+    create_error: Option<(String, String, bool)>,
+    /// Whether an executor whose gh is signed in (with the project scope) is attached: what answers a request that names no workspace.
+    account: bool,
+}
+
+/// What rca's richer answers add to a comment, a review or a thread comment; every part is optional and a default adds none.
+#[derive(Clone, Default)]
+pub struct Extras<'a> {
+    pub database_id: Option<u64>,
+    pub avatar_url: Option<&'a str>,
+    pub is_bot: bool,
+    pub viewer_did_author: bool,
+    pub reaction_subject_id: Option<&'a str>,
+    /// (content, count, viewer has reacted)
+    pub reactions: &'a [(&'a str, u64, bool)],
+}
+
+impl Extras<'_> {
+    fn merge(&self, row: &mut Value) {
+        let reactions: Vec<Value> = self.reactions.iter().map(|(c, n, v)| json!({"content": c, "count": n, "viewer_has_reacted": v})).collect();
+        row["database_id"] = json!(self.database_id);
+        row["avatar_url"] = json!(self.avatar_url);
+        row["is_bot"] = json!(self.is_bot);
+        row["viewer_did_author"] = json!(self.viewer_did_author);
+        row["reaction_subject_id"] = json!(self.reaction_subject_id);
+        row["reactions"] = json!(reactions);
+    }
 }
 
 #[derive(Clone, Default)]
 pub struct Hosting(Arc<Mutex<State>>);
+
+/// A request with no workspace goes to an executor whose gh is signed in, and is the service's NO_EXECUTOR when there is none.
+fn routed(s: &State, p: &Value) -> Result<(), AgentError> {
+    if p.get("workspace").is_none() && !s.account {
+        return Err(signed_out_refusal(p));
+    }
+    Ok(())
+}
+
+/// A request with no workspace and no signed-in executor is the service's NO_EXECUTOR; one in a workspace is its gh that is signed out.
+fn signed_out_refusal(p: &Value) -> AgentError {
+    if p.get("workspace").is_some() {
+        refused("HOSTED_AUTH", "gh is not signed in")
+    } else {
+        refused("NO_EXECUTOR", "no attached executor is signed in to github")
+    }
+}
 
 fn refused(code: &str, message: impl Into<String>) -> AgentError {
     AgentError::Refused { code: code.into(), message: message.into() }
@@ -57,8 +123,16 @@ fn neutral(r: &Request) -> Value {
     json!({
         "number": r.number, "title": r.title, "body": r.body, "state": r.state, "draft": r.draft, "author": "octocat", "head_ref": r.head_ref, "base_ref": r.base_ref, "head_sha": r.head_sha,
         "labels": r.labels, "reviewers": r.reviewers, "mergeable": r.mergeable, "review_decision": r.review_decision, "updated_at_ms": r.updated_ms, "created_at_ms": 1_790_847_000_000u64,
-        "url": format!("https://example.test/{}/{}", r.provider, r.number), "changed_files": 2, "additions": 4, "deletions": 1, "assignees": [], "merged_at_ms": null, "closed_at_ms": null,
+        "url": r.url.clone().unwrap_or_else(|| format!("https://example.test/{}/{}", r.provider, r.number)), "changed_files": 2, "additions": 4, "deletions": 1, "assignees": r.assignees, "merged_at_ms": null, "closed_at_ms": null,
     })
+}
+
+/// A check named `name@100` is a job of Actions run 100; any other is a check of some other CI.
+fn check_url(name: &str) -> String {
+    match name.split_once('@') {
+        Some((_, run)) => format!("https://github.com/acme/app/actions/runs/{run}/job/1"),
+        None => format!("https://example.test/checks/{name}"),
+    }
 }
 
 impl Hosting {
@@ -84,6 +158,8 @@ impl Hosting {
             review_decision: None,
             updated_ms: 1_790_936_130_000 + number,
             merged_with: None,
+            url: None,
+            assignees: Vec::new(),
         });
         self
     }
@@ -129,6 +205,33 @@ impl Hosting {
         self.change(provider, number, |r| r.review_decision = Some("approved".into()))
     }
 
+    pub fn address(&self, provider: &str, number: u64, url: &str) -> &Self {
+        self.change(provider, number, |r| r.url = Some(url.into()))
+    }
+
+    pub fn assigned(&self, provider: &str, number: u64, logins: &[&str]) -> &Self {
+        self.change(provider, number, |r| r.assignees = logins.iter().map(|l| l.to_string()).collect())
+    }
+
+    /// An issue of `provider` as `issue.view` answers it, at the address the provider gives issues (`url` overrides it).
+    pub fn issue(&self, provider: &str, number: u64, title: &str, body: &str, url: Option<&str>, assignees: &[&str]) -> &Self {
+        let url = url.map_or_else(|| if provider == "gitlab" { format!("https://gitlab.com/grp/proj/-/issues/{number}") } else { format!("https://github.com/acme/app/issues/{number}") }, str::to_string);
+        self.0.lock().unwrap().issues.push(json!({"provider": provider, "number": number, "title": title, "body": body, "state": "open", "author": "octocat", "labels": ["bug"], "created_at_ms": 1_791_014_400_000u64, "updated_at_ms": 1_791_117_000_000u64, "closed_at_ms": null, "url": url, "assignees": assignees}));
+        self
+    }
+
+    /// A comment of issue `number` as `issue.comments` answers it.
+    pub fn issue_comment(&self, (provider, number): (&str, u64), (id, author, body): (&str, &str, &str), created_ms: u64, url: Option<&str>) -> &Self {
+        self.0.lock().unwrap().issue_comments.push((provider.into(), number, json!({"id": id, "author": author, "body": body, "created_at_ms": created_ms, "url": url})));
+        self
+    }
+
+    /// A changed file of request `number` as `pr.files` answers it.
+    pub fn changed_file(&self, number: u64, path: &str, additions: u64, deletions: u64, status: Option<&str>) -> &Self {
+        self.0.lock().unwrap().files.push((number, json!({"path": path, "additions": additions, "deletions": deletions, "status": status})));
+        self
+    }
+
     /// The request as the group's `view` answers it now.
     pub fn view(&self, provider: &str, number: u64) -> Value {
         let s = self.0.lock().unwrap();
@@ -157,8 +260,380 @@ impl Hosting {
     }
 
     /// Makes `agent` answer the methods of `USES` from these requests.
+    /// The labels the repository holds as (name, color); with none set, reading them is refused as when `gh` is not signed in.
+    pub fn labels(&self, labels: &[(&str, &str)]) -> &Self {
+        self.0.lock().unwrap().labels = Some(labels.iter().map(|(n, c)| (n.to_string(), c.to_string())).collect());
+        self
+    }
+
+    /// The accounts the repository can assign as (login, avatar url); with none set, reading them is refused as when `gh` is not signed in.
+    pub fn assignees(&self, users: &[(&str, &str)]) -> &Self {
+        self.0.lock().unwrap().assignees = Some(users.iter().map(|(l, a)| (l.to_string(), a.to_string())).collect());
+        self
+    }
+
+    /// A conversation comment of pull request `number`, whose id is a node id as `gh pr view` prints it.
+    pub fn conversation_comment(&self, number: u64, node_id: &str, author: &str, body: &str, created_ms: u64, url: &str) -> &Self {
+        self.0.lock().unwrap().comments.push((number, json!({"id": node_id, "author": author, "body": body, "created_at_ms": created_ms, "url": url})));
+        self
+    }
+
+    /// A review thread of pull request `number` with its comments as (database id, author, body, time).
+    pub fn review_thread(&self, number: u64, id: &str, path: &str, line: Option<u64>, (resolved, outdated): (bool, bool), comments: &[(u64, &str, &str, u64)]) -> &Self {
+        let rows: Vec<Value> = comments.iter().map(|(c, a, b, at)| json!({"id": c.to_string(), "author": a, "body": b, "created_at_ms": at, "url": format!("https://example.test/pull/{number}#discussion_r{c}")})).collect();
+        self.0.lock().unwrap().threads.push((number, json!({"id": id, "resolved": resolved, "outdated": outdated, "path": path, "line": line, "comments": rows})));
+        self
+    }
+
+    /// Gives the conversation comment last added the richer fields of rca's answer.
+    pub fn conversation_comment_extras(&self, extras: &Extras) -> &Self {
+        if let Some((_, row)) = self.0.lock().unwrap().comments.last_mut() {
+            extras.merge(row);
+        }
+        self
+    }
+
+    /// Gives the comment `index` of the thread last added the richer fields of rca's answer.
+    pub fn thread_comment_extras(&self, index: usize, extras: &Extras) -> &Self {
+        if let Some(row) = self.0.lock().unwrap().threads.last_mut().and_then(|(_, t)| t["comments"].get_mut(index)) {
+            extras.merge(row);
+        }
+        self
+    }
+
+    /// Gives the thread last added its start line, original lines, side and the diff hunk of its first comment.
+    pub fn thread_hunk(&self, (start_line, original_line, original_start_line): (Option<u64>, Option<u64>, Option<u64>), diff_side: &str, hunk: &str) -> &Self {
+        if let Some((_, t)) = self.0.lock().unwrap().threads.last_mut() {
+            t["start_line"] = json!(start_line);
+            t["original_line"] = json!(original_line);
+            t["original_start_line"] = json!(original_start_line);
+            t["diff_side"] = json!(diff_side);
+            t["root_diff_hunk"] = json!(hunk);
+        }
+        self
+    }
+
+    /// A review of pull request `number` as (node id, author, state, body, submitted ms), with the richer fields when `extras` is given.
+    pub fn review(&self, number: u64, (node_id, author, state, body): (&str, &str, &str, &str), submitted_ms: Option<u64>, extras: Option<&Extras>) -> &Self {
+        let mut row = json!({"id": node_id, "author": author, "state": state, "body": body, "submitted_at_ms": submitted_ms});
+        if let Some(extras) = extras {
+            extras.merge(&mut row);
+        }
+        self.0.lock().unwrap().reviews.push((number, row));
+        self
+    }
+
+    /// The file `path` as commit `rev` holds it.
+    pub fn blob(&self, rev: &str, path: &str, bytes: &[u8]) -> &Self {
+        self.0.lock().unwrap().blobs.push((rev.into(), path.into(), bytes.to_vec()));
+        self
+    }
+
+    /// A remote of the workspace repository with its fetch URL, listed in the order added.
+    pub fn remote(&self, name: &str, url: &str) -> &Self {
+        self.0.lock().unwrap().remotes.push((name.into(), url.into()));
+        self
+    }
+
+    /// Makes listing the remotes fail with `message`, as git does outside a repository.
+    pub fn remotes_fail(&self, message: &str) {
+        self.0.lock().unwrap().remotes_error = Some(message.into());
+    }
+
+    /// The remote-tracking branch origin's HEAD points at, as git records it on clone.
+    pub fn origin_head(&self, branch: &str) -> &Self {
+        self.0.lock().unwrap().origin_head = Some(branch.into());
+        self
+    }
+
+    /// Makes the executor's CLIs report no signed-in account.
+    /// An executor with a signed-in gh answers the requests that name no workspace: the account `octocat` with the user project `Roadmap` (1) and the
+    /// organization `acme`'s project `Platform` (4, views Backlog and Board); `acme/app` has issue types Bug and Task, `acme/plain` none.
+    pub fn project_account(&self) -> &Self {
+        self.0.lock().unwrap().account = true;
+        self
+    }
+
+    pub fn signed_out(&self) -> &Self {
+        self.0.lock().unwrap().signed_out = true;
+        self
+    }
+
+    /// Makes every `list` of requests fail with `message`.
+    pub fn list_fails(&self, message: &str) {
+        self.0.lock().unwrap().list_error = Some(message.into());
+    }
+
+    /// The branch checked out in the workspace (`feat/x` until set); `HEAD` detaches it.
+    pub fn on_branch(&self, name: &str) -> &Self {
+        self.0.lock().unwrap().branch = Some(name.into());
+        self
+    }
+
+    /// Gives the workspace a change not committed.
+    pub fn dirty(&self) -> &Self {
+        self.0.lock().unwrap().dirty = true;
+        self
+    }
+
+    /// Whether the branch tracks an upstream, and how far ahead of and behind it it is (tracked and even until set).
+    pub fn upstream(&self, has: bool, ahead: u64, behind: u64) -> &Self {
+        self.0.lock().unwrap().upstream = Some((has, ahead, behind));
+        self
+    }
+
+    /// Makes reading the upstream fail with `message`.
+    pub fn upstream_fails(&self, message: &str) {
+        self.0.lock().unwrap().upstream_error = Some(message.into());
+    }
+
+    /// A file of the workspace a review template may be read from.
+    pub fn template(&self, path: &str, text: &str) -> &Self {
+        self.0.lock().unwrap().templates.push((path.into(), text.into()));
+        self
+    }
+
+    /// Makes every create refused with `code` and `message`; with `opened`, the request is opened all the same, as when the CLI's answer is lost.
+    pub fn create_fails(&self, code: &str, message: &str, opened: bool) {
+        self.0.lock().unwrap().create_error = Some((code.into(), message.into(), opened));
+    }
+
+    fn branch(s: &State) -> String {
+        s.branch.clone().unwrap_or_else(|| "feat/x".into())
+    }
+
     pub fn install(&self, agent: &ScriptedAgent) {
-        for (name, provider) in [("pr.list", "github"), ("pr.view", "github"), ("pr.checks", "github"), ("pr.merge", "github"), ("pr.edit", "github"), ("pr.ready", "github"), ("pr.requestReviewers", "github"), ("mr.view", "gitlab"), ("mr.edit", "gitlab"), ("mr.ready", "gitlab"), ("mr.setLabels", "gitlab"), ("mr.merge", "gitlab")] {
+        let me = self.clone();
+        agent.reply("git.status", move |_| {
+            let s = me.0.lock().unwrap();
+            let branch = Hosting::branch(&s);
+            let detached = branch == "HEAD";
+            let files = if s.dirty { json!([{"path": "notes.txt", "index": "?", "worktree": "?", "conflicted": false}]) } else { json!([]) };
+            Ok(json!({"branch": if detached { Value::Null } else { json!(branch) }, "head": format!("{:040x}", 7), "detached": detached, "ahead": 0, "behind": 0, "files": files, "truncated": false, "clean": !s.dirty}))
+        });
+        let me = self.clone();
+        agent.reply("file.read", move |p| {
+            let s = me.0.lock().unwrap();
+            let path = p["path"].as_str().ok_or_else(|| refused("INVALID_PARAMS", "path is required"))?;
+            let (_, text) = s.templates.iter().find(|(f, _)| f == path).ok_or_else(|| refused("NOT_FOUND", format!("{path} does not exist")))?;
+            Ok(json!({"content": text, "total_lines": text.lines().count(), "truncated": false}))
+        });
+        for (name, provider) in [("pr.create", "github"), ("mr.create", "gitlab")] {
+            let me = self.clone();
+            agent.reply(name, move |p| me.create(provider, p));
+        }
+        let me = self.clone();
+        agent.reply("git.upstreamStatus", move |_| {
+            let s = me.0.lock().unwrap();
+            if let Some(message) = &s.upstream_error {
+                return Err(refused("GIT_FAILED", message.clone()));
+            }
+            let (has, ahead, behind) = s.upstream.unwrap_or((true, 0, 0));
+            let branch = Hosting::branch(&s);
+            let mut up = json!({"branch": branch, "has_upstream": has, "upstream": if has { json!(format!("origin/{branch}")) } else { Value::Null }, "remote": if has { json!("origin") } else { Value::Null }, "ahead": ahead, "behind": behind, "remotes": s.remotes.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>()});
+            if let Some(head) = &s.origin_head {
+                up["origin_head"] = json!(head);
+            }
+            Ok(up)
+        });
+        let me = self.clone();
+        agent.reply("sourceControl.discover", move |p| {
+            let provider = p["provider"].as_str().filter(|x| matches!(*x, "github" | "gitlab")).ok_or_else(|| refused("INVALID_PARAMS", "provider must be github or gitlab"))?;
+            let signed_in = !me.0.lock().unwrap().signed_out;
+            Ok(json!({"providers": [{"provider": provider, "installed": true, "signed_in": signed_in, "host": p["host"], "account": if signed_in { json!("octocat") } else { Value::Null }, "scopes": []}]}))
+        });
+        let me = self.clone();
+        agent.reply("pr.remotes", move |_| {
+            let s = me.0.lock().unwrap();
+            match &s.remotes_error {
+                Some(message) => Err(refused("IO_ERROR", message.clone())),
+                None => Ok(json!({"remotes": s.remotes.iter().map(|(n, u)| json!({"name": n, "url": u})).collect::<Vec<_>>()})),
+            }
+        });
+        let me = self.clone();
+        agent.reply("issue.view", move |p| {
+            let s = me.0.lock().unwrap();
+            routed(&s, p)?;
+            let (n, provider) = (number(p)?, p["provider"].as_str().unwrap_or("github"));
+            if n == 99 {
+                return Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host"));
+            }
+            let found = s.issues.iter().find(|i| i["number"] == n && i["provider"] == provider).ok_or_else(|| refused("NOT_FOUND", "gh: GraphQL: Could not resolve to an issue or pull request with the number"))?;
+            let mut issue = found.clone();
+            issue.as_object_mut().unwrap().remove("provider");
+            Ok(json!({"issue": issue}))
+        });
+        let me = self.clone();
+        agent.reply("issue.comments", move |p| {
+            let (s, n) = (me.0.lock().unwrap(), number(p)?);
+            routed(&s, p)?;
+            let provider = p["provider"].as_str().unwrap_or("github");
+            Ok(json!({"comments": s.issue_comments.iter().filter(|(pr, x, _)| *x == n && pr == provider).map(|(_, _, c)| c.clone()).collect::<Vec<_>>()}))
+        });
+        for name in ["pr.files", "mr.files"] {
+            let me = self.clone();
+            agent.reply(name, move |p| {
+                let (s, n) = (me.0.lock().unwrap(), number(p)?);
+                if n == 98 {
+                    return Err(refused("HOSTED_FAILED", "gh: rate limit"));
+                }
+                Ok(json!({"files": s.files.iter().filter(|(x, _)| *x == n).map(|(_, f)| f.clone()).collect::<Vec<_>>()}))
+            });
+        }
+        let me = self.clone();
+        agent.reply("mr.comments", move |p| {
+            let (s, n) = (me.0.lock().unwrap(), number(p)?);
+            Ok(json!({"comments": s.comments.iter().filter(|(x, _)| *x == n).map(|(_, c)| c.clone()).collect::<Vec<_>>()}))
+        });
+        let me = self.clone();
+        agent.reply("mr.threads", move |p| {
+            let (s, n) = (me.0.lock().unwrap(), number(p)?);
+            Ok(json!({"threads": s.threads.iter().filter(|(x, _)| *x == n).map(|(_, t)| t.clone()).collect::<Vec<_>>()}))
+        });
+        let me = self.clone();
+        agent.reply("pr.comments", move |p| {
+            let (s, n) = (me.0.lock().unwrap(), number(p)?);
+            routed(&s, p)?;
+            Ok(json!({"comments": s.comments.iter().filter(|(x, _)| *x == n).map(|(_, c)| c.clone()).collect::<Vec<_>>()}))
+        });
+        let me = self.clone();
+        agent.reply("pr.threads", move |p| {
+            let (s, n) = (me.0.lock().unwrap(), number(p)?);
+            Ok(json!({"threads": s.threads.iter().filter(|(x, _)| *x == n).map(|(_, t)| t.clone()).collect::<Vec<_>>()}))
+        });
+        let me = self.clone();
+        agent.reply("pr.reviews", move |p| {
+            let (s, n) = (me.0.lock().unwrap(), number(p)?);
+            Ok(json!({"reviews": s.reviews.iter().filter(|(x, _)| *x == n).map(|(_, r)| r.clone()).collect::<Vec<_>>()}))
+        });
+        let me = self.clone();
+        agent.reply("git.blob", move |p| {
+            use base64::Engine;
+            let (s, rev, path) = (me.0.lock().unwrap(), p["rev"].as_str().unwrap_or(""), p["path"].as_str().unwrap_or(""));
+            let max = p["max_bytes"].as_u64().ok_or_else(|| refused("INVALID_ARGS", "`max_bytes` is required here"))? as usize;
+            let (_, _, bytes) = s.blobs.iter().find(|(r, f, _)| r == rev && f == path).ok_or_else(|| refused("GIT_FAILED", "path does not exist in that revision"))?;
+            let taken = &bytes[..bytes.len().min(max)];
+            Ok(json!({"rev": rev, "path": path, "size": bytes.len(), "data": base64::engine::general_purpose::STANDARD.encode(taken), "truncated": taken.len() < bytes.len()}))
+        });
+        self.install_projects(agent);
+        let me = self.clone();
+        agent.reply("pr.labelCandidates", move |p| {
+            let s = me.0.lock().unwrap();
+            let labels = s.labels.as_ref().ok_or_else(|| signed_out_refusal(p))?;
+            Ok(json!({"labels": labels.iter().take(p["limit"].as_u64().unwrap_or(200) as usize).map(|(n, c)| json!({"name": n, "color": c, "description": ""})).collect::<Vec<_>>()}))
+        });
+        for method in ["pr.setState", "mr.setState"] {
+            let me = self.clone();
+            agent.reply(method, move |p| {
+                routed(&me.0.lock().unwrap(), p)?;
+                match p["number"].as_u64() {
+                    Some(12) => Ok(json!({"number": 12, "state": p["state"]})),
+                    Some(99) => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
+                    _ => Err(refused("HOSTED_FAILED", "HTTP 404: Not Found")),
+                }
+            });
+        }
+        agent.reply("mr.comment", |p| {
+            let body = p["body"].as_str().filter(|b| !b.trim().is_empty()).ok_or_else(|| refused("INVALID_ARGS", "`body` must not be empty"))?;
+            match p["number"].as_u64() {
+                Some(12) => Ok(json!({"done": true, "url": null, "id": "88", "database_id": 88, "author": "tanuki", "avatar_url": "https://gitlab.example/a.png", "is_bot": false, "body": body, "created_at": "2026-11-19T02:00:00.000Z"})),
+                Some(99) => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository points to a known GitLab host")),
+                _ => Err(refused("HOSTED_FAILED", "glab: 404 Not Found")),
+            }
+        });
+        agent.reply("issue.create", |p| match p["title"].as_str() {
+            Some("unresolved") => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
+            Some(_) if p["provider"] == "gitlab" => Ok(json!({"number": 4, "url": "https://gitlab.com/grp/proj/-/issues/4"})),
+            Some(_) => Ok(json!({"number": 8, "url": "https://github.com/acme/app/issues/8"})),
+            None => Err(refused("INVALID_ARGS", "`title` is required")),
+        });
+        for method in ["issue.setState", "issue.edit"] {
+            agent.reply(method, |p| match p["number"].as_u64() {
+                Some(7) => Ok(json!({"done": true, "number": 7, "state": p["state"]})),
+                Some(99) => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
+                _ => Err(refused("HOSTED_FAILED", "HTTP 404: Not Found")),
+            });
+        }
+        agent.reply("issue.list", |p| match p["repo"].as_str() {
+            Some("acme/unresolved") => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
+            _ => Ok(json!({"issues": [], "truncated": false})),
+        });
+        agent.reply("issue.search", |p| match (p["provider"].as_str(), p["search"].as_str()) {
+            (_, Some("unresolved")) => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
+            (Some("gitlab"), _) => Ok(json!({"truncated": true, "total": null, "items": [
+                {"kind": "pr", "number": 8, "title": "Retry uploads", "state": "open", "draft": true, "author": "bot", "author_avatar_url": null, "labels": [], "url": "https://gitlab.com/grp/proj/-/merge_requests/8", "created_at_ms": 1791190800000u64, "updated_at_ms": 1791194400000u64, "comments": 0, "head_ref": "retry", "base_ref": "main"},
+                {"kind": "issue", "number": 3, "title": "Upload fails", "state": "closed", "draft": false, "author": "tanuki", "author_avatar_url": null, "labels": ["bug"], "url": "https://gitlab.com/grp/proj/-/issues/3", "created_at_ms": 1791014400000u64, "updated_at_ms": 1791117000000u64, "comments": 4, "head_ref": null, "base_ref": null}]})),
+            _ => Ok(json!({"truncated": false, "total": 2, "items": [
+                {"kind": "pr", "number": 9, "title": "Retry uploads", "state": "open", "draft": true, "author": "hubot", "author_avatar_url": "https://avatars.example/hubot", "labels": ["enhancement"], "url": "https://github.com/acme/app/pull/9", "created_at_ms": 1791190800000u64, "updated_at_ms": 1791280800000u64, "comments": 2, "head_ref": null, "base_ref": null},
+                {"kind": "issue", "number": 7, "title": "Upload retries are silent", "state": "open", "draft": false, "author": "octocat", "author_avatar_url": null, "labels": ["bug"], "url": "https://github.com/acme/app/issues/7", "created_at_ms": 1791014400000u64, "updated_at_ms": 1791117000000u64, "comments": 3, "head_ref": null, "base_ref": null}]})),
+        });
+        agent.reply("issue.count", |p| match p["search"].as_str() {
+            Some("unresolved") => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
+            Some(_) => Ok(json!({"count": 1})),
+            None => Ok(json!({"count": 12})),
+        });
+        agent.reply("issue.todos", |p| match p["limit"].as_u64() {
+            Some(50) => Ok(json!({"todos": [{"id": "77", "action": "review_requested", "target_type": "MergeRequest", "number": 8, "title": "Retry uploads", "url": "https://gitlab.com/grp/proj/-/merge_requests/8", "repo": "grp/proj", "author": "tanuki", "author_avatar_url": "https://gitlab.example/t.png", "updated_at_ms": 1791194400000u64, "state": "pending"}]})),
+            _ => Err(refused("HOSTED_FAILED", "glab: 401 Unauthorized")),
+        });
+        agent.reply("issue.comment", |p| match p["number"].as_u64() {
+            Some(7) if p["provider"] == "gitlab" => Ok(json!({"done": true, "url": null, "id": "92", "body": p["body"]})),
+            Some(7) => Ok(json!({"done": true, "url": "https://github.com/acme/app/issues/7#issuecomment-91"})),
+            Some(99) => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
+            _ => Err(refused("HOSTED_FAILED", "HTTP 404: Not Found")),
+        });
+        agent.reply("pr.rerun", |p| match p["run"].as_u64() {
+            Some(500) => Err(refused("HOSTED_FAILED", "HTTP 403: Resource not accessible by integration")),
+            Some(run) => Ok(json!({"run": run, "failed_only": p["failed_only"].as_bool().unwrap_or(false)})),
+            None => Err(refused("INVALID_ARGS", "`run` must be a positive integer")),
+        });
+        agent.reply("pr.setAutoMerge", |p| match p["number"].as_u64() {
+            Some(13) => Err(refused("HOSTED_FAILED", "gh exited 1: GraphQL: Pull request Pull request is in clean status (enablePullRequestAutoMerge)")),
+            Some(14) => Err(refused("HOSTED_FAILED", "gh exited 1: boom")),
+            Some(n) => Ok(json!({"number": n, "enabled": p["enabled"]})),
+            None => Err(refused("INVALID_ARGS", "`number` must be a positive integer")),
+        });
+        agent.reply("pr.checkDetails", |p| match p["check"].as_u64().or_else(|| p["run"].as_u64()) {
+            Some(404) => Err(refused("NOT_FOUND", "gh: gh: Not Found (HTTP 404)")),
+            Some(_) => Ok(json!({"check": {"name": "build", "status": "completed", "conclusion": "failure", "url": "https://github.com/acme/app/runs/31", "details_url": "https://github.com/acme/app/actions/runs/100/job/31",
+                "started_at_ms": 1790935200000u64, "completed_at_ms": 1790935500000u64, "title": "Build failed", "summary": "1 error", "text": null,
+                "annotations": [{"path": "src/lib.rs", "start_line": 3, "end_line": 4, "level": "failure", "title": null, "message": "expected `;`", "raw_details": null}],
+                "jobs": [
+                    {"id": 30, "name": "lint", "status": "completed", "conclusion": "success", "started_at_ms": null, "completed_at_ms": null, "url": null, "log_tail": null, "steps": []},
+                    {"id": 31, "name": "build", "status": "completed", "conclusion": "failure", "started_at_ms": 1790935200000u64, "completed_at_ms": 1790935500000u64, "url": "https://github.com/acme/app/actions/runs/100/job/31", "log_tail": null,
+                        "steps": [{"name": "Run tests", "status": "completed", "conclusion": "failure", "started_at_ms": 1790935260000u64, "completed_at_ms": 1790935500000u64}, {"name": null, "status": null, "conclusion": null, "started_at_ms": null, "completed_at_ms": null}]}]}})),
+            None => Err(refused("INVALID_ARGS", "give `check` or `run`")),
+        });
+        agent.reply("pr.comment", |p| match p["number"].as_u64() {
+            Some(12) => Ok(json!({"done": true, "url": "https://github.com/acme/app/pull/12#issuecomment-77"})),
+            _ => Err(refused("HOSTED_FAILED", "HTTP 404: Not Found")),
+        });
+        agent.reply("pr.reply", |p| match p["comment_id"].as_u64() {
+            Some(9003) => Ok(json!({"id": "PRRC_kwDOAB", "database_id": 9004, "url": "https://github.com/acme/app/pull/12#discussion_r9004", "author": "octocat", "avatar_url": "https://avatars.example/1", "is_bot": false, "body": p["body"], "created_at": "2026-11-19T02:00:00Z", "path": null, "line": null})),
+            _ => Err(refused("HOSTED_FAILED", "gh: Not Found (HTTP 404)")),
+        });
+        agent.reply("pr.reviewComment", |p| match p["commit_id"].as_str() {
+            Some("abc1234") => Ok(json!({"id": "PRRC_kwDOAC", "database_id": 9100, "thread": null, "url": "https://github.com/acme/app/pull/12#discussion_r9100", "author": "octocat", "avatar_url": "https://avatars.example/1", "is_bot": false, "body": p["body"], "created_at": "2026-11-19T03:00:00Z", "path": p["path"], "line": p["line"], "start_line": p["start_line"]})),
+            Some("dead") => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known GitHub host")),
+            Some("0") => Ok(json!({"id": "PRRC_0", "database_id": 0, "thread": null, "url": null, "author": "octocat", "avatar_url": null, "is_bot": false, "body": p["body"], "created_at": null, "path": null, "line": null, "start_line": null})),
+            _ => Err(refused("HOSTED_FAILED", "gh: Validation Failed (HTTP 422)")),
+        });
+        agent.reply("pr.resolveThread", |p| match p["thread"].as_str() {
+            Some(t) if t.starts_with("PRRT_") => Ok(json!({"thread": t, "resolved": p["resolved"]})),
+            _ => Err(refused("HOSTED_FAILED", "Could not resolve to a node with the global id")),
+        });
+        agent.reply("pr.fileViewed", |p| match p["pull_request"].as_str() {
+            Some(id) if id.starts_with("PR_") => Ok(json!({"pull_request": id, "path": p["path"], "viewed": p["viewed"]})),
+            _ => Err(refused("NOT_FOUND", "gh: GraphQL: Could not resolve to a node with the global id of 'x' (markFileAsViewed)")),
+        });
+        let me = self.clone();
+        agent.reply("pr.reviewerCandidates", move |p| {
+            let s = me.0.lock().unwrap();
+            let users = s.assignees.as_ref().ok_or_else(|| signed_out_refusal(p))?;
+            let avatar = |a: &str| if a.is_empty() { Value::Null } else { json!(a) };
+            Ok(json!({"users": users.iter().take(p["limit"].as_u64().unwrap_or(200) as usize).map(|(l, a)| json!({"login": l, "name": null, "avatarUrl": avatar(a)})).collect::<Vec<_>>()}))
+        });
+        for (name, provider) in [("pr.list", "github"), ("pr.view", "github"), ("pr.checks", "github"), ("pr.merge", "github"), ("pr.edit", "github"), ("pr.ready", "github"), ("pr.requestReviewers", "github"), ("mr.list", "gitlab"), ("mr.view", "gitlab"), ("mr.edit", "gitlab"), ("mr.ready", "gitlab"), ("mr.setLabels", "gitlab"), ("mr.merge", "gitlab")] {
             let me = self.clone();
             let verb = name.split_once('.').map_or(name, |(_, v)| v).to_string();
             agent.reply(name, move |p| me.answer(provider, &verb, p));
@@ -169,11 +644,15 @@ impl Hosting {
 
     fn answer(&self, provider: &'static str, verb: &str, p: &Value) -> Result<Value, AgentError> {
         let mut s = self.0.lock().unwrap();
+        routed(&s, p)?;
         if verb == "list" {
-            let head = p["head"].as_str();
+            if let Some(message) = &s.list_error {
+                return Err(refused("HOSTED_FAILED", message.clone()));
+            }
+            let (head, base) = (p["head"].as_str(), p["base"].as_str());
             let state = p["state"].as_str().ok_or_else(|| refused("INVALID_ARGS", "`state` is required here"))?;
             let limit = p["limit"].as_u64().ok_or_else(|| refused("INVALID_ARGS", "`limit` is required here"))? as usize;
-            let mut found: Vec<&Request> = s.requests.iter().filter(|r| r.provider == provider && head.is_none_or(|h| r.head_ref == h) && (state == "all" || r.state == state)).collect();
+            let mut found: Vec<&Request> = s.requests.iter().filter(|r| r.provider == provider && head.is_none_or(|h| r.head_ref == h) && base.is_none_or(|b| r.base_ref == b) && (state == "all" || r.state == state)).collect();
             found.sort_by_key(|r| std::cmp::Reverse(r.updated_ms));
             return Ok(json!({"prs": found.iter().take(limit).map(|r| neutral(r)).collect::<Vec<_>>(), "truncated": found.len() > limit}));
         }
@@ -188,7 +667,7 @@ impl Hosting {
             "view" => Ok(json!({"pr": neutral(r)})),
             "checks" => {
                 let count = |state: &str| r.checks.iter().filter(|c| c.1 == state).count();
-                Ok(json!({"checks": r.checks.iter().map(|(name, state)| json!({"name": name, "state": state, "workflow": "CI", "url": format!("https://example.test/checks/{name}"), "started_at_ms": 1, "completed_at_ms": null})).collect::<Vec<_>>(), "pass": count("pass"), "fail": count("fail"), "pending": count("pending")}))
+                Ok(json!({"checks": r.checks.iter().map(|(name, state)| json!({"name": name, "state": state, "workflow": "CI", "url": check_url(name), "started_at_ms": 1, "completed_at_ms": null})).collect::<Vec<_>>(), "pass": count("pass"), "fail": count("fail"), "pending": count("pending")}))
             }
             "merge" => {
                 let method = p["method"].as_str().ok_or_else(|| refused("INVALID_ARGS", "`method` is required here"))?;
@@ -241,6 +720,24 @@ impl Hosting {
         }
     }
 
+    fn create(&self, provider: &'static str, p: &Value) -> Result<Value, AgentError> {
+        let title = p["title"].as_str().filter(|t| !t.is_empty()).ok_or_else(|| refused("INVALID_ARGS", "`title` must be one line of 1-256 characters"))?;
+        let head = p["head"].as_str().filter(|h| !h.is_empty()).ok_or_else(|| refused("INVALID_ARGS", "`head` is required here"))?;
+        let number = self.0.lock().unwrap().requests.iter().filter(|r| r.provider == provider).map(|r| r.number).max().unwrap_or(0) + 1;
+        let error = self.0.lock().unwrap().create_error.clone();
+        if error.as_ref().is_none_or(|(_, _, opened)| *opened) {
+            self.add(provider, number, title, head, p["base"].as_str().unwrap_or("main"));
+            self.change(provider, number, |r| {
+                r.body = p["body"].as_str().unwrap_or("").into();
+                r.draft = p["draft"] == true;
+            });
+        }
+        match error {
+            Some((code, message, _)) => Err(refused(&code, message)),
+            None => Ok(json!({"number": number, "url": format!("https://example.test/{provider}/{number}")})),
+        }
+    }
+
     fn fetch(&self, p: &Value) -> Result<Value, AgentError> {
         let mut s = self.0.lock().unwrap();
         if let Some(message) = s.fetch_error.clone() {
@@ -256,5 +753,119 @@ impl Hosting {
             fetched.push(json!({"ref": dest, "sha": sha}));
         }
         Ok(json!({"remote": "origin", "output": "", "refs": fetched}))
+    }
+}
+
+const SCOPE_MESSAGE: &str = "gh exited 1: gh: Your token has not been granted the required scopes to execute this query. The 'id' field requires one of the following scopes: ['read:project'].";
+
+impl Hosting {
+    /// The project methods of `hosted.project`: answered only with a signed-in executor (`project_account`), and never with a workspace.
+    fn install_projects(&self, agent: &ScriptedAgent) {
+        let account = |me: &Hosting, p: &Value| -> Result<(), AgentError> {
+            if p.get("workspace").is_some() {
+                return Err(refused("INVALID_PARAMS", "the double answers project methods for the account, not a workspace"));
+            }
+            if me.0.lock().unwrap().account {
+                Ok(())
+            } else {
+                Err(signed_out_refusal(p))
+            }
+        };
+        let me = self.clone();
+        agent.reply("project.list", move |p| {
+            account(&me, p)?;
+            Ok(json!({"login": "octocat", "projects": [
+                {"id": "PVT_u1", "owner": "octocat", "owner_type": "user", "number": 1, "title": "Roadmap", "url": "https://github.com/users/octocat/projects/1", "source": "viewer"},
+                {"id": "PVT_o1", "owner": "acme", "owner_type": "organization", "number": 4, "title": "Platform", "url": "https://github.com/orgs/acme/projects/4", "source": "org:acme"}]}))
+        });
+        let me = self.clone();
+        agent.reply("project.resolve", move |p| {
+            account(&me, p)?;
+            let (owner, kind) = (p["owner"].as_str().unwrap_or(""), p["owner_type"].as_str().unwrap_or(""));
+            if !matches!((owner, kind), ("acme", "organization") | ("octocat", "user")) {
+                return Err(refused("NOT_FOUND", format!("owner not found: {owner}")));
+            }
+            match (p["project_number"].as_u64(), owner) {
+                (None, _) => Ok(json!({"owner": owner, "owner_type": kind, "number": null, "id": null, "title": null})),
+                (Some(4), "acme") => Ok(json!({"owner": owner, "owner_type": kind, "number": 4, "id": "PVT_o1", "title": "Platform"})),
+                (Some(1), "octocat") => Ok(json!({"owner": owner, "owner_type": kind, "number": 1, "id": "PVT_u1", "title": "Roadmap"})),
+                (Some(n), _) => Err(refused("NOT_FOUND", format!("gh: gh: Could not resolve to a ProjectV2 with the number {n}."))),
+            }
+        });
+        let me = self.clone();
+        agent.reply("project.views", move |p| {
+            account(&me, p)?;
+            match (p["owner"].as_str(), p["project_number"].as_u64()) {
+                (Some("acme"), Some(4)) => Ok(json!({"views": [{"id": "PVTV_1", "number": 1, "name": "Backlog", "layout": "TABLE_LAYOUT"}, {"id": "PVTV_2", "number": 2, "name": "Board", "layout": "BOARD_LAYOUT"}]})),
+                _ => Err(refused("NOT_FOUND", format!("gh: gh: Could not resolve to a ProjectV2 with the number {}.", p["project_number"]))),
+            }
+        });
+        for method in ["project.setField", "project.clearField"] {
+            let me = self.clone();
+            agent.reply(method, move |p| {
+                account(&me, p)?;
+                match p["item"].as_str() {
+                    Some("PVTI_noscope") => Err(refused("IO_ERROR", SCOPE_MESSAGE)),
+                    Some(_) => Ok(json!({"done": true})),
+                    None => Err(refused("INVALID_ARGS", "`item` must be a string")),
+                }
+            });
+        }
+        let me = self.clone();
+        agent.reply("project.commentAdd", move |p| {
+            if !me.0.lock().unwrap().account {
+                return Err(signed_out_refusal(p));
+            }
+            match p["number"].as_u64() {
+                Some(7) => Ok(json!({"comment": {"id": 4711, "author": "octocat", "avatar_url": "https://a/octocat.png", "body": p["body"], "created_at": "2026-11-20T09:00:00Z", "url": "https://github.com/acme/app/issues/7#issuecomment-4711", "is_bot": false}})),
+                Some(8) => Ok(json!({"comment": {"id": 4712, "author": "ci-bot", "avatar_url": "https://a/bot.png", "body": p["body"], "created_at": "2026-11-20T09:01:00Z", "url": "https://github.com/acme/app/issues/8#issuecomment-4712", "is_bot": true}})),
+                _ => Err(refused("NOT_FOUND", "gh: gh: Not Found (HTTP 404)")),
+            }
+        });
+        for method in ["project.commentEdit", "project.commentDelete"] {
+            let me = self.clone();
+            agent.reply(method, move |p| {
+                if !me.0.lock().unwrap().account {
+                    return Err(signed_out_refusal(p));
+                }
+                match p["comment_id"].as_u64() {
+                    Some(4711) => Ok(json!({"done": true})),
+                    _ => Err(refused("NOT_FOUND", "gh: gh: Not Found (HTTP 404)")),
+                }
+            });
+        }
+        let me = self.clone();
+        agent.reply("project.issueTypes", move |p| {
+            if !me.0.lock().unwrap().account {
+                return Err(signed_out_refusal(p));
+            }
+            match p["repo"].as_str() {
+                Some("acme/plain") => Err(refused("IO_ERROR", "gh exited 1: gh: Field 'issueTypes' doesn't exist on type 'Repository'")),
+                Some("acme/app") => Ok(json!({"types": [{"id": "IT_1", "name": "Bug", "color": "RED", "description": "Something is broken"}, {"id": "IT_2", "name": "Task", "color": null, "description": null}]})),
+                _ => Err(refused("NOT_FOUND", "gh: gh: Could not resolve to a Repository")),
+            }
+        });
+        let me = self.clone();
+        agent.reply("project.setIssueType", move |p| {
+            if !me.0.lock().unwrap().account {
+                return Err(signed_out_refusal(p));
+            }
+            match p["number"].as_u64() {
+                Some(8) => Err(refused("IO_ERROR", "issue not found: gh named no node id for the issue")),
+                Some(_) => Ok(json!({"done": true})),
+                None => Err(refused("INVALID_ARGS", "`number` must be a positive integer")),
+            }
+        });
+        let me = self.clone();
+        agent.reply("project.updateIssue", move |p| {
+            if !me.0.lock().unwrap().account {
+                return Err(signed_out_refusal(p));
+            }
+            match p["number"].as_u64() {
+                Some(9) => Err(refused("IO_ERROR", "gh exited 1: gh: API rate limit exceeded for user")),
+                Some(_) => Ok(json!({"done": true})),
+                None => Err(refused("INVALID_ARGS", "`number` must be a positive integer")),
+            }
+        });
     }
 }

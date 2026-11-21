@@ -2,7 +2,7 @@ use orca_core::ServiceStatus;
 use serde_json::Value;
 use std::path::PathBuf;
 
-pub use orca_serve::testing::{Harness, PhoneClient, RUNTIME_ID};
+pub use orca_serve::testing::{Harness, PhoneClient, PROBE_PAYLOAD, RUNTIME_ID};
 pub use serde_json::json;
 
 pub fn repo_root() -> PathBuf {

@@ -1,0 +1,45 @@
+{
+  "action": "logout",
+  "exchanges": [
+    {
+      "name": "runs the CLI's own logout and says it holds no login",
+      "setup": {
+        "clis": {
+          "claude": "2.1.7 (Claude Code)"
+        }
+      },
+      "request": {
+        "id": "o1",
+        "tool": "logout",
+        "args": {
+          "program": "claude"
+        }
+      },
+      "response": {
+        "id": "o1",
+        "ok": true,
+        "result": {
+          "signed_in": false
+        }
+      }
+    },
+    {
+      "name": "refuses an agent CLI the executor does not have",
+      "request": {
+        "id": "o2",
+        "tool": "logout",
+        "args": {
+          "program": "codex"
+        }
+      },
+      "response": {
+        "id": "o2",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "codex is not installed here"
+        }
+      }
+    }
+  ]
+}

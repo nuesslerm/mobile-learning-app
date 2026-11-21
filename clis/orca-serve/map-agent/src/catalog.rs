@@ -4,8 +4,8 @@
 use crate::agent::{ask, refusal, refused_code, state_set};
 use crate::journal::view;
 use crate::ops::{lookup, refused, Envelope};
-use crate::session::{accepted, agent_of, driver_of, finish, now_ms, text, unsupported};
-use agent_api_catalog::{code as catalog_code, AGENTS_DETECT, COMMANDS_LIST, DRIVERS, MODELS_LIST, SKILLS_LIST};
+use crate::session::{accepted, agent_of, agent_session_id, driver_of, finish, now_ms, text, unsupported};
+use agent_api_catalog::{code as catalog_code, AGENTS_DETECT, COMMANDS_LIST, DRIVERS, MODELS_LIST};
 use orca_core::wire::{Failure, RUNTIME_ERROR};
 use orca_core::{AgentApi, AgentError};
 use serde_json::{json, Map, Value};
@@ -57,10 +57,24 @@ fn session_driver(thread: &Value) -> Result<&str, Failure> {
 }
 
 fn session_id(params: &Value) -> Result<&str, Failure> {
-    text(params, "sessionId").ok_or_else(|| Failure::invalid("Invalid session id"))
+    agent_session_id(params)
 }
 
 /// `agentSession.options`: the models of the session's driver and the model its next turn runs on.
+/// `agentSession.agents`: the agents this host runs and what a session of each can do, before any session exists. Nothing here is an installed-CLI
+/// check (the pinned host's list is static too). A session here compacts, rewinds to a user message and takes images, holds a follow-up for a running turn until it ends, and has no goal,
+/// context meter or fork; approvals are answered by this host.
+pub(crate) fn agents(params: &Value) -> Result<Value, Failure> {
+    if let Some(key) = params.as_object().and_then(|o| o.keys().next()) {
+        return Err(Failure::invalid(format!("Unrecognized key: \"{key}\"")));
+    }
+    let capabilities = json!({"rewind": true, "compact": true, "threadGoal": false, "contextUsage": false, "imagePrompts": true, "steering": "queue", "approvalEnforcement": "orca"});
+    let served: Vec<&str> = drivers_served().into_iter().filter_map(agent_of).collect();
+    // the built-ins in the pinned host's order, then any other
+    let agents: Vec<Value> = ["claude", "codex", "opencode"].into_iter().filter(|a| served.contains(a)).map(|a| json!({"agent": a, "capabilities": capabilities})).collect();
+    Ok(json!({"agents": agents}))
+}
+
 pub(crate) fn options(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let session = session_id(params)?;
     let thread = view(agent, session)?;
@@ -75,7 +89,7 @@ pub(crate) fn options(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fai
     if named.is_none() {
         current["defaulted"] = json!(["model"]);
     }
-    Ok(json!({"models": model_options(&catalog), "current": current, "acceptsImages": true, "conversationCommands": ["clear", "compact"], "compactInstructions": true}))
+    Ok(json!({"models": model_options(&catalog), "current": current, "acceptsImages": true, "rewind": {"supported": true}, "conversationCommands": ["clear", "compact"], "compactInstructions": true}))
 }
 
 /// `agentSession.setOption`: the model of the session's next turns. The turn takes no effort and no permission mode of the phone's, so those keys are refused.
@@ -111,7 +125,11 @@ pub(crate) fn set_option(agent: &dyn AgentApi, params: &Value) -> Result<Value, 
 
 /// `agentSession.modelCatalog`: the models of an agent, from the service's table (a listing the driver does not make by itself).
 pub(crate) fn model_catalog(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
-    let driver = driver_of(text(params, "agent").ok_or_else(|| Failure::invalid("Invalid agent"))?).ok_or_else(unsupported)?;
+    let id = text(params, "agent").ok_or_else(|| Failure::invalid("Invalid agent"))?;
+    if params.get("sessionId").is_some() {
+        agent_session_id(params)?;
+    }
+    let driver = driver_of(id).ok_or_else(unsupported)?;
     let catalog = models_of(agent, driver)?;
     Ok(json!({"origin": "probe", "models": model_options(&catalog), "fetchedAt": now_ms(), "defaultHoldsInEveryWorkspace": true}))
 }
@@ -160,6 +178,63 @@ fn detect(agent: &dyn AgentApi, executor: Option<&str>, refresh: bool) -> Result
     agent.request(AGENTS_DETECT.name(), p)
 }
 
+/// `preflight.check`: git, gh and glab as the executor finds them, and gh's and glab's sign-in at the workspace host (only for one that is
+/// installed, as the host asks). Bitbucket, Azure DevOps and Gitea are the host's answer for a machine where none is configured: rca keeps no
+/// credentials for them. `force` asks the executor again, past the service's kept answer.
+pub(crate) fn preflight_check(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    if !params.is_null() && !params.is_object() {
+        return Err(Failure::invalid(format!("Invalid input: expected object, received {}", orca_core::wire::received(params))));
+    }
+    let force = match params.get("force") {
+        None => false,
+        Some(Value::Bool(b)) => *b,
+        Some(other) => return Err(Failure::invalid(format!("Invalid input: expected boolean, received {}", orca_core::wire::received(other)))),
+    };
+    let found = detect(agent, None, force).map_err(refusal)?;
+    let installed = |program: &str| found["tools"].as_array().into_iter().flatten().any(|t| t["program"] == program && t["installed"] == true && t.get("error").is_none_or(Value::is_null));
+    let (git, gh, glab) = (installed("git"), installed("gh"), installed("glab"));
+    let workspace = if gh || glab {
+        let all = orca_map_workspace::targets(agent)?;
+        let root = all.iter().find(|t| t.kind == "root").or(all.first()).ok_or_else(|| Failure::new(RUNTIME_ERROR, "no executor is attached"))?;
+        Some(root.workspace.clone())
+    } else {
+        None
+    };
+    // the host counts any failure of `auth status` as signed out
+    let signed_in = |there: bool, provider: &str| -> Result<bool, Failure> {
+        let Some(workspace) = workspace.as_deref().filter(|_| there) else { return Ok(false) };
+        match agent.request(orca_map_hosted::AUTH_DISCOVER.name(), json!({"workspace": workspace, "provider": provider})) {
+            Ok(v) => Ok(v["providers"][0]["signed_in"] == true),
+            Err(AgentError::Refused { .. }) => Ok(false),
+            Err(failed) => Err(refusal(failed)),
+        }
+    };
+    let (gh_auth, glab_auth) = (signed_in(gh, "github")?, signed_in(glab, "gitlab")?);
+    let none = json!({"configured": false, "authenticated": false, "account": null, "baseUrl": null, "tokenConfigured": false});
+    Ok(json!({
+        "git": {"installed": git},
+        "gh": {"installed": gh, "authenticated": gh_auth},
+        "glab": {"installed": glab, "authenticated": glab_auth},
+        "bitbucket": {"configured": false, "authenticated": false, "account": null},
+        "azureDevOps": none,
+        "gitea": none,
+    }))
+}
+
+/// The optional string keys of a detection call and the host id, which only this machine (`local`) answers to.
+fn detection_target(params: &Value, keys: &[&str]) -> Result<(), Failure> {
+    for key in keys {
+        orca_core::wire::string_field(params, key)?;
+    }
+    if params.get("userInitiated").is_some_and(|v| !v.is_boolean()) {
+        return Err(Failure::invalid(format!("Invalid input: expected boolean, received {}", orca_core::wire::received(&params["userInitiated"]))));
+    }
+    if orca_core::wire::string_field(params, "worktreeHostId")?.is_some_and(|h| h != "local") {
+        return Err(Failure::invalid("Invalid host id"));
+    }
+    Ok(())
+}
+
 fn no_project(params: &Value) -> Result<(), Failure> {
     if params.get("project").is_some_and(|p| !p.is_null()) {
         return Err(Failure::invalid("Detection for a project is not offered by this host"));
@@ -169,14 +244,16 @@ fn no_project(params: &Value) -> Result<(), Failure> {
 
 /// `preflight.detectAgents`: the Orca ids of the agents whose CLI the executor has.
 pub(crate) fn detect_agents(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    detection_target(params, &["repoId", "worktreeId", "worktreeHostId"])?;
     no_project(params)?;
     Ok(json!(installed(&detect(agent, None, false).map_err(refusal)?)))
 }
 
-/// `preflight.refreshAgents`: the same list asked of the executor again; the executor's own PATH is what it searches, so no shell is hydrated.
-pub(crate) fn refresh_agents(agent: &dyn AgentApi, _params: &Value) -> Result<Value, Failure> {
+/// `preflight.refreshAgents`: the same list asked of the executor again, answered with the path facts the reference reports (its shell was hydrated).
+pub(crate) fn refresh_agents(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    detection_target(params, &["repoId", "worktreeId", "worktreeHostId"])?;
     let found = detect(agent, None, true).map_err(refusal)?;
-    Ok(json!({"agents": installed(&found), "addedPathSegments": [], "shellHydrationOk": false, "pathSource": "sync_seed_only", "pathFailureReason": null}))
+    Ok(json!({"agents": installed(&found), "addedPathSegments": [], "shellHydrationOk": true, "pathSource": "shell_hydrate", "pathFailureReason": "none"}))
 }
 
 /// `preflight.detectRemoteAgents`: the executor named by the connection id, which an unknown one is a machine the host cannot reach.
@@ -204,53 +281,6 @@ pub(crate) fn create_support(agent: &dyn AgentApi, params: &Value) -> Result<Val
         return Ok(json!({"supported": false, "reason": "agent"}));
     }
     Ok(json!({"supported": true}))
-}
-
-/// The skills directories of the executor and the agent each belongs to (`None` is the shared one): what the phone reads a skill's providers by.
-const DIRS: [(&str, &str, Option<&str>); 3] = [(".claude/skills", "claude", Some("claude")), (".agents/skills", "agent-skills", None), (".codex/skills", "codex", Some("codex"))];
-
-fn dir_row(dir: &str) -> Option<(&'static str, Option<&'static str>)> {
-    DIRS.iter().find(|(d, ..)| *d == dir).map(|(_, provider, owner)| (*provider, *owner))
-}
-
-/// `skills.discover`: the skills of one workspace and of the executor's home, as `skill_scan` found them.
-pub(crate) fn skills_discover(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
-    let selector = match (text(params, "worktreeId"), text(params, "cwd")) {
-        (Some(id), _) => format!("id:{id}"),
-        (None, Some(cwd)) => format!("path:{cwd}"),
-        (None, None) => return Err(Failure::invalid("Skill discovery needs a workspace")),
-    };
-    let target = orca_map_workspace::resolve(agent, &selector)?;
-    let listed = ask(agent, SKILLS_LIST.name(), json!({"workspace": target.workspace}))?;
-    let kinds: Option<Vec<&str>> = params["sourceKinds"].as_array().map(|k| k.iter().filter_map(Value::as_str).collect());
-    let names: Option<Vec<&str>> = params["names"].as_array().map(|k| k.iter().filter_map(Value::as_str).collect());
-    let (mut skills, mut found) = (Vec::new(), Vec::new());
-    for s in listed["skills"].as_array().into_iter().flatten() {
-        let (Some(dir), Some(name), Some(path)) = (s["dir"].as_str(), s["name"].as_str(), s["path"].as_str()) else { continue };
-        let Some((provider, _)) = dir_row(dir) else { continue };
-        let home = s["scope"] == "home";
-        let kind = if home { "home" } else { "repo" };
-        let root = if home { format!("~/{dir}") } else { format!("{}/{dir}", target.root_path.trim_end_matches('/')) };
-        let file = if home { path.to_string() } else { format!("{}/{path}", target.root_path.trim_end_matches('/')) };
-        found.push((kind, dir.to_string(), root.clone()));
-        if kinds.as_ref().is_some_and(|k| !k.contains(&kind)) || names.as_ref().is_some_and(|n| !n.contains(&name)) {
-            continue;
-        }
-        let directory = file.rsplit_once('/').map_or(file.clone(), |(d, _)| d.to_string());
-        skills.push(json!({"id": format!("{kind}:{file}"), "name": name, "description": s["description"], "providers": [provider], "sourceKind": kind, "sourceLabel": format!("{} {dir}", if home { "Home" } else { "Project" }), "rootPath": root, "directoryPath": directory, "skillFilePath": file, "installed": true, "updatedAt": null}));
-    }
-    let mut sources = Vec::new();
-    for (kind, home) in [("repo", false), ("home", true)] {
-        for (dir, provider, owner) in DIRS {
-            let path = if home { format!("~/{dir}") } else { format!("{}/{dir}", target.root_path.trim_end_matches('/')) };
-            if kinds.as_ref().is_some_and(|k| !k.contains(&kind)) {
-                continue;
-            }
-            let exists = found.iter().any(|(k, _, p)| *k == kind && *p == path);
-            sources.push(json!({"id": format!("{kind}:{path}"), "label": format!("{} {dir}", if home { "Home" } else { "Project" }), "path": path, "sourceKind": kind, "providers": [provider], "owner": owner, "exists": exists}));
-        }
-    }
-    Ok(json!({"skills": skills, "sources": sources, "scannedAt": now_ms()}))
 }
 
 /// Every driver of the contract has an Orca agent id here: a flow test holds this to the catalog's `DRIVERS`.

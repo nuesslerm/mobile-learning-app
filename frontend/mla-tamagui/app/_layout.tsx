@@ -21,6 +21,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'sonner-native';
 import { TamaguiProvider, Theme } from '@lib/tamagui-design-system/primitives';
 
+import { DeviceRunnerRoot } from '@/features/leetcode';
+
 import { AgentationMarkerLog } from '../app-shell/AgentationMarkerLog';
 import { DebugFab } from '../app-shell/DebugFab';
 import { RouteLogger } from '../app-shell/RouteLogger';
@@ -94,6 +96,7 @@ export default function RootLayout() {
                 and header buttons via Stack.Screen -- the editor's Info button
                 is the only way into the problem description. Only the drawer
                 group hides its header, because its screens carry their own. */}
+            <DeviceRunnerRoot>
             <Stack>
               {/* `title` even though the header is hidden: a child route's
                   back button labels itself from its PARENT's title, so without
@@ -110,7 +113,7 @@ export default function RootLayout() {
               {/* Full screens, so they keep a header -- but it has to be the
                   app's own, or the title falls back to the route pattern. */}
               <Stack.Screen
-                name="coding-agent/[threadId]/settings"
+                name="coding-agent"
                 options={{
                   presentation: 'transparentModal',
                   headerShown: false,
@@ -118,6 +121,7 @@ export default function RootLayout() {
                 }}
               />
             </Stack>
+            </DeviceRunnerRoot>
             <RouteLogger />
             <DebugFab />
             {/* AgentationMarkerLog calls useAgentation, which throws

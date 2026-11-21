@@ -1,29 +1,351 @@
 {
   "schema": 1,
   "app": "t3",
-  "generatedBy": "wf parity coverage --app t3 --traces <dir|bundle>",
+  "generatedBy": "wf mimic coverage --app t3 --traces <dir|bundle>; a row in `carried` was kept from an earlier refresh, not proved by `source`",
   "source": {
     "runs": [
       {
         "suite": "wf-mimic-t3-recorded",
-        "sha": null,
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
         "complete": true,
-        "tests": 158,
-        "passed": 82
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 38,
+        "passed": 29
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 10,
+        "passed": 10
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 42,
+        "passed": 39
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 832,
+        "passed": 625
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 0
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 39,
+        "passed": 34
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 88,
+        "passed": 41
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 3,
+        "passed": 3
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 20,
+        "passed": 8
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 15,
+        "passed": 15
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 77,
+        "passed": 60
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 228,
+        "passed": 219
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 14,
+        "passed": 14
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 13,
+        "passed": 9
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 5,
+        "passed": 5
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 6,
+        "passed": 6
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 16,
+        "passed": 16
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 77,
+        "passed": 72
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 34,
+        "passed": 34
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 41,
+        "passed": 41
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 5,
+        "passed": 5
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 14,
+        "passed": 3
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 17,
+        "passed": 17
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 6,
+        "passed": 3
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 43,
+        "passed": 37
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
+        "complete": true,
+        "tests": 1,
+        "passed": 0
       },
       {
         "suite": "t3-serve-integration",
-        "sha": "6b791822b5821696ecd91d957c21d0531c057491",
+        "sha": "fffcca0e80d0367494a46c60ea44c21c5f642ceb",
         "complete": true,
-        "tests": 65,
-        "passed": 65
+        "tests": 1,
+        "passed": 1
       }
     ]
   },
   "rows": {
     "command:checkpoint.rollback": {
       "suite": "t3-serve-integration",
-      "test": "rollback_m12::a_rollback_puts_the_files_back_to_how_the_first_dropped_turn_found_them_and_a_rollback_that_drops_nothing_touches_none",
+      "test": "checkpoint_rollback::a_rollback_puts_the_files_back_to_how_the_first_dropped_turn_found_them_and_a_rollback_that_drops_nothing_touches_none",
       "agent": [
         "thread.create",
         "thread.rollback"
@@ -34,15 +356,36 @@
     },
     "command:message.dispatch": {
       "suite": "t3-serve-integration",
-      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "test": "attachments::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
       "agent": [
         "thread.create",
         "thread.subscribe",
         "turn.start"
       ],
       "executor": [
+        "cli_detect",
         "git_checkpoint",
-        "put_blob"
+        "put_blob",
+        "run_command"
+      ]
+    },
+    "command:prepared-run.retry": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::a_launch_on_a_new_worktree_fails_when_its_branch_is_taken_and_a_retry_prepares_it_through_the_service_and_the_executor_and_runs_the_turn_in_it",
+      "agent": [
+        "state.set",
+        "thread.create",
+        "thread.subscribe",
+        "turn.start",
+        "worktree.create",
+        "worktree.list"
+      ],
+      "executor": [
+        "cli_detect",
+        "git_checkpoint",
+        "git_worktree_add",
+        "git_worktree_list",
+        "run_command"
       ]
     },
     "command:provider-session.detach": {
@@ -55,16 +398,16 @@
       "executor": []
     },
     "command:queue.resume": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::resuming_a_held_queue_starts_its_items_one_after_the_other_through_rca_with_the_executor_writing_for_each",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-recorded-2::t3-command-queue.resume",
       "agent": [
         "queue.resume",
         "thread.create"
       ],
-      "executor": [
-        "git_checkpoint",
-        "write_file"
-      ]
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:queued-message.promote-to-steer": {
       "suite": "t3-serve-integration",
@@ -74,47 +417,86 @@
         "turn.steer"
       ],
       "executor": [
+        "cancel",
         "git_checkpoint",
-        "write_file"
+        "run_command"
       ]
     },
     "command:queued-run.cancel": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_steers_the_running_turn_before_the_rest_start_by_themselves",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-turns::t3-agent-queued-run.cancel",
       "agent": [
+        "queue.add",
         "queue.delete",
-        "thread.create"
-      ],
-      "executor": []
-    },
-    "command:queued-run.edit": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_steers_the_running_turn_before_the_rest_start_by_themselves",
-      "agent": [
-        "queue.edit",
-        "thread.create"
-      ],
-      "executor": []
-    },
-    "command:queued-run.start": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_starts_it_or_resumes_the_queue_and_rca_refuses_it_on_an_archived_thread",
-      "agent": [
-        "queue.resume",
-        "thread.create"
+        "thread.create",
+        "thread.subscribe",
+        "turn.start"
       ],
       "executor": [
+        "cli_detect",
+        "git_checkpoint"
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "command:queued-run.edit": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-turns::t3-agent-queued-run.edit",
+      "agent": [
+        "queue.add",
+        "queue.edit",
+        "thread.create",
+        "thread.subscribe",
+        "turn.start"
+      ],
+      "executor": [
+        "cli_detect",
+        "git_checkpoint"
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "command:queued-run.start": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-methods::t3-method-queued-run.start",
+      "agent": [
+        "queue.add",
+        "queue.resume",
+        "thread.create",
+        "thread.forceStop",
+        "thread.subscribe",
+        "turn.start"
+      ],
+      "executor": [
+        "cancel",
+        "cli_detect",
         "git_checkpoint",
-        "write_file"
-      ]
+        "run_command"
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:run.interrupt": {
-      "suite": "t3-serve-integration",
-      "test": "chain::an_interrupt_and_a_stop_each_end_the_turn_the_cli_is_running_by_telling_rca_to_interrupt_it",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-turns::t3-agent-run.interrupt",
       "agent": [
-        "turn.interrupt"
+        "thread.create",
+        "thread.subscribe",
+        "turn.interrupt",
+        "turn.start"
       ],
-      "executor": []
+      "executor": [
+        "cancel",
+        "cli_detect",
+        "git_checkpoint",
+        "run_command"
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:runtime-request.respond": {
       "suite": "t3-serve-integration",
@@ -124,59 +506,61 @@
         "thread.create"
       ],
       "executor": [
-        "write_file"
+        "run_command"
       ]
     },
-    "command:subagent.stop": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::a_workflow_stop_and_a_subagent_stop_each_end_the_running_turn_through_rca_and_a_stop_with_nothing_running_is_not_asked_of_rca",
-      "agent": [
-        "thread.create",
-        "workflow.stop"
-      ],
-      "executor": []
-    },
     "command:thread.active.reorder": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-      "agent": [
-        "state.set"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.active.reorder-invalid-drop-commandId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.archive": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_starts_it_or_resumes_the_queue_and_rca_refuses_it_on_an_archived_thread",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.archive-valid-golden",
       "agent": [
         "thread.archive",
         "thread.create"
       ],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.auto-settle.set": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-      "agent": [
-        "state.set"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.auto-settle.set-invalid-drop-commandId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.create": {
-      "suite": "t3-serve-integration",
-      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-methods::t3-method-thread.create",
       "agent": [
         "thread.create"
       ],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.delete": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-recorded-2::t3-command-thread.delete",
       "agent": [
         "thread.create",
         "thread.delete"
       ],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.fork": {
       "suite": "t3-serve-integration",
@@ -187,21 +571,35 @@
       ],
       "executor": []
     },
-    "command:thread.interaction-mode.set": {
+    "command:thread.guest-message.dismiss": {
       "suite": "t3-serve-integration",
-      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-      "agent": [
-        "state.set"
-      ],
+      "test": "guest_share::the_owner_turns_sharing_on_makes_a_link_a_guest_writes_through_it_and_the_owner_dismisses_the_message_and_closes_the_link",
+      "agent": [],
       "executor": []
     },
-    "command:thread.mark-unread": {
+    "command:thread.guest-share.close": {
       "suite": "t3-serve-integration",
-      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-      "agent": [
-        "state.set"
-      ],
+      "test": "guest_share::the_owner_turns_sharing_on_makes_a_link_a_guest_writes_through_it_and_the_owner_dismisses_the_message_and_closes_the_link",
+      "agent": [],
       "executor": []
+    },
+    "command:thread.interaction-mode.set": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.interaction-mode.set-invalid-drop-commandId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "command:thread.mark-unread": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.mark-unread-invalid-drop-commandId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.merge_back": {
       "suite": "t3-serve-integration",
@@ -213,24 +611,26 @@
       "executor": []
     },
     "command:thread.metadata.update": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-      "agent": [
-        "state.set"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.metadata.update-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.model-selection.set": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-      "agent": [
-        "state.set"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.model-selection.set-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.pin": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-command-thread.pin",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.pin-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -238,75 +638,92 @@
       "cassette": "recorded"
     },
     "command:thread.pin.reorder": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-      "agent": [
-        "state.set"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.pin.reorder-invalid-drop-commandId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.pull-request.link": {
-      "suite": "t3-serve-integration",
-      "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
-      "agent": [
-        "state.get",
-        "state.set"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.pull-request.link-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.pull-request.unlink": {
-      "suite": "t3-serve-integration",
-      "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
-      "agent": [
-        "state.get",
-        "state.set"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.pull-request.unlink-invalid-drop-commandId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.pull-request.watch": {
-      "suite": "t3-serve-integration",
-      "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
-      "agent": [
-        "state.get",
-        "state.set"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.pull-request.watch-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.runtime-mode.set": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-      "agent": [
-        "state.set"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.runtime-mode.set-invalid-drop-commandId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.settle": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-scenarios::t3-scn-command-thread.settle",
       "agent": [
         "thread.create",
         "thread.settle"
       ],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.snooze": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-turns::t3-agent-thread.snooze",
       "agent": [
         "thread.create",
         "thread.settle"
       ],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.stop": {
-      "suite": "t3-serve-integration",
-      "test": "chain::an_interrupt_and_a_stop_each_end_the_turn_the_cli_is_running_by_telling_rca_to_interrupt_it",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-turns::t3-agent-thread.stop",
       "agent": [
+        "thread.create",
+        "thread.forceStop",
         "thread.subscribe",
-        "turn.interrupt",
         "turn.start"
       ],
-      "executor": []
+      "executor": [
+        "cancel",
+        "cli_detect",
+        "git_checkpoint",
+        "run_command"
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.unarchive": {
       "suite": "t3-serve-integration",
@@ -318,30 +735,37 @@
       "executor": []
     },
     "command:thread.unpin": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-      "agent": [
-        "state.set"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.unpin-invalid-drop-commandId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.unsettle": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-scenarios::t3-scn-command-thread.unsettle",
       "agent": [
         "thread.create",
         "thread.settle"
       ],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.unsnooze": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-scenarios::t3-scn-command-thread.unsnooze",
       "agent": [
         "thread.create",
         "thread.settle"
       ],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.user-input.dismiss": {
       "suite": "t3-serve-integration",
@@ -351,26 +775,66 @@
         "thread.create"
       ],
       "executor": [
-        "write_file"
+        "run_command"
       ]
     },
     "command:thread.visit": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-      "agent": [
-        "state.set"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-command-thread.visit-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:auth.browserSession": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-auth.browserSession-invalid-drop-credential",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "http:auth.pairingCredential": {
-      "suite": "t3-serve-integration",
-      "test": "local_m5::a_pairing_code_minted_over_http_pairs_a_second_device_with_only_the_delegated_scopes_and_a_device_without_access_write_is_refused",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-auth.pairingCredential-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:auth.revokeClient": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-auth.revokeClient-invalid-drop-sessionId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:auth.revokeOtherClients": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-auth.revokeOtherClients-empty-empty-object",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:auth.revokePairingLink": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-auth.revokePairingLink-invalid-drop-id",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "http:auth.session": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-http-auth.session",
+      "test": "t3-v0.1.9-crawl::t3-http-auth.session-empty-empty-object",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -379,7 +843,7 @@
     },
     "http:auth.token": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-http-auth.token",
+      "test": "t3-v0.1.9-crawl::t3-http-auth.token-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -388,7 +852,7 @@
     },
     "http:auth.webSocketTicket": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-http-auth.webSocketTicket",
+      "test": "t3-v0.1.9-crawl::t3-http-auth.webSocketTicket-empty-empty-object",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -396,191 +860,288 @@
       "cassette": "recorded"
     },
     "http:auth.webSocketTicketFor": {
-      "suite": "t3-serve-integration",
-      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-auth.webSocketTicketFor-empty-empty-object",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "http:metadata.descriptor": {
       "suite": "t3-serve-integration",
-      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "test": "attachments::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
       "agent": [],
       "executor": []
     },
     "http:orchestration.shellSnapshot": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-orchestration.shellSnapshot-empty-empty-object",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "http:orchestration.threadBoundedSnapshot": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
-      "agent": [
-        "thread.history"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-orchestration.threadBoundedSnapshot-empty-empty-object",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "http:orchestration.threadHistoryPage": {
-      "suite": "t3-serve-integration",
-      "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
-      "agent": [
-        "thread.history"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-orchestration.threadHistoryPage-empty-empty-object",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "http:orchestration.threadTranscript": {
-      "suite": "t3-serve-integration",
-      "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
-      "agent": [
-        "thread.history"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-orchestration.threadTranscript-empty-empty-object",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "http:pullRequests.diff": {
-      "suite": "t3-serve-integration",
-      "test": "hosted_m11::a_pull_request_is_read_from_gh_through_rca_and_the_phone_gets_its_summary_preview_detail_checks_and_diff",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-pullRequests.diff-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:voice.cancelModelDownload": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-voice.cancelModelDownload-boundary-limit-modelId",
       "agent": [
-        "pr.diff",
-        "worktree.list"
+        "speech.status"
       ],
-      "executor": [
-        "git_worktree_list",
-        "hosted_pr_diff"
-      ]
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:voice.downloadModel": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-voice.downloadModel-boundary-limit-modelId",
+      "agent": [
+        "speech.status"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:voice.models": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-voice.models-empty-empty-object",
+      "agent": [
+        "speech.status"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:voice.selectModel": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-voice.selectModel-boundary-limit-modelId",
+      "agent": [
+        "speech.status"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:voice.status": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-voice.status-empty-empty-object",
+      "agent": [
+        "speech.status"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:voice.transcribe": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-http-voice.transcribe-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "mutation:project.create": {
-      "suite": "t3-serve-integration",
-      "test": "projects_m12::a_project_below_the_root_is_a_workspace_of_rca_with_its_settings_in_rcas_state_a_delete_forgets_both_and_a_folder_outside_the_root_or_not_there_is_refused",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-methods::t3-method-project.create",
       "agent": [
         "file.browse",
+        "file.mkdir",
         "state.set",
         "workspace.create"
       ],
       "executor": [
-        "browse"
-      ]
+        "browse",
+        "make_dir"
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "mutation:project.delete": {
-      "suite": "t3-serve-integration",
-      "test": "projects_m12::a_project_below_the_root_is_a_workspace_of_rca_with_its_settings_in_rcas_state_a_delete_forgets_both_and_a_folder_outside_the_root_or_not_there_is_refused",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-methods::t3-method-project.delete",
       "agent": [
         "file.browse",
+        "file.mkdir",
         "state.set",
+        "workspace.create",
         "workspace.remove"
       ],
       "executor": [
-        "browse"
-      ]
+        "browse",
+        "make_dir"
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "mutation:project.update": {
-      "suite": "t3-serve-integration",
-      "test": "chain::a_project_is_renamed_and_deleted_and_the_shell_the_phone_reads_afterwards_no_longer_lists_it",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-mutation-project.update-invalid-drop-commandId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:agentSessions.scan": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-agentSessions.scan-invalid-no-payload",
       "agent": [
-        "state.set"
+        "sessions.list"
       ],
-      "executor": []
+      "executor": [
+        "session_scan"
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:assets.createUrl": {
-      "suite": "t3-serve-integration",
-      "test": "attachments_m12::an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_rca_exec_for_the_turn_and_come_back_through_asset_urls_and_a_delete_takes_one_away",
-      "agent": [
-        "attachment.get"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-assets.createUrl-invalid-drop-resource",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:assets.persistChatAttachments": {
-      "suite": "t3-serve-integration",
-      "test": "attachments_m12::an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_rca_exec_for_the_turn_and_come_back_through_asset_urls_and_a_delete_takes_one_away",
-      "agent": [
-        "upload.put"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-assets.persistChatAttachments-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:attachments.createUploadUrl": {
-      "suite": "t3-serve-integration",
-      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-attachments.createUploadUrl-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:attachments.delete": {
-      "suite": "t3-serve-integration",
-      "test": "attachments_m12::an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_rca_exec_for_the_turn_and_come_back_through_asset_urls_and_a_delete_takes_one_away",
-      "agent": [
-        "attachment.delete"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-attachments.delete-invalid-drop-attachmentId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:cloud.getRelayClientStatus": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-cloud.getRelayClientStatus-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:filesystem.browse": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-filesystem.browse",
+      "test": "t3-v0.1.9-crawl::t3-rpc-filesystem.browse-invalid-drop-partialPath",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:filesystem.getMetadata": {
-      "suite": "t3-serve-integration",
-      "test": "workspace_m6::a_file_is_written_searched_and_measured_in_the_repository_and_a_directory_outside_it_is_browsed_only_inside_the_allowlist",
-      "agent": [
-        "file.stat"
-      ],
-      "executor": [
-        "stat"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-filesystem.getMetadata-invalid-drop-paths",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:git.preparePullRequestThread": {
-      "suite": "t3-serve-integration",
-      "test": "prs_m12::a_pull_request_is_prepared_in_a_worktree_at_its_fetched_head_and_the_same_worktree_is_found_again",
-      "agent": [
-        "git.fetch",
-        "pr.view",
-        "worktree.create",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_fetch",
-        "git_worktree_add",
-        "git_worktree_list",
-        "hosted_pr_view"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-git.preparePullRequestThread-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:git.runStackedAction": {
-      "suite": "t3-serve-integration",
-      "test": "vcs_m9::a_commit_and_push_are_stacked_with_progress_a_pull_brings_what_another_clone_pushed_and_the_status_stream_follows_the_repository",
-      "agent": [
-        "git.commit",
-        "git.diff",
-        "git.push",
-        "git.stage",
-        "git.status",
-        "git.subscribe",
-        "git.upstreamStatus",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_commit",
-        "git_diff",
-        "git_push",
-        "git_stage",
-        "git_status",
-        "git_upstream",
-        "git_worktree_list"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-git.runStackedAction-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:orchestration.dispatchCommand": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-orchestration.dispatchCommand",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.dispatchCommand-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:orchestration.forceStopThread": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-orchestration.forceStopThread",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.forceStopThread-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:orchestration.getArchivedShellSnapshot": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-orchestration.getArchivedShellSnapshot",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getArchivedShellSnapshot-invalid-no-payload",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -588,80 +1149,176 @@
       "cassette": "recorded"
     },
     "rpc:orchestration.getFullThreadDiff": {
-      "suite": "t3-serve-integration",
-      "test": "workspace_m6::a_worktree_made_for_a_new_branch_is_a_checkout_under_the_base_whose_files_and_diff_are_the_worktrees_and_not_the_repositorys",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getFullThreadDiff-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:orchestration.getNativeChildWork": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-queries::t3-query-getNativeChildWork",
       "agent": [
-        "thread.diff",
-        "worktree.list"
+        "thread.create"
       ],
-      "executor": [
-        "git_diff",
-        "git_worktree_list"
-      ]
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:orchestration.getOlderSettledThreads": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-orchestration.getOlderSettledThreads",
-      "agent": [],
-      "executor": []
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getOlderSettledThreads-boundary-full",
+      "agent": [
+        "thread.shelf"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:orchestration.getThreadFamily": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-orchestration.getThreadFamily",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getThreadFamily-invalid-drop-threadId",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:orchestration.getThreadLinkMetadata": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-queries::t3-query-getThreadLinkMetadata",
+      "agent": [
+        "thread.create"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:orchestration.getThreadProjection": {
-      "suite": "t3-serve-integration",
-      "test": "chain::a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_the_run_on_its_streams",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getThreadProjection-invalid-drop-threadId",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:orchestration.getThreadTitles": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-queries::t3-query-getThreadTitles",
+      "agent": [
+        "thread.create"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:orchestration.getTurnDiff": {
-      "suite": "t3-serve-integration",
-      "test": "workspace_m6::the_diff_of_a_thread_is_what_git_shows_in_its_directory_for_the_whole_thread_and_for_its_turns",
-      "agent": [
-        "turn.diff",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_diff",
-        "git_worktree_list"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getTurnDiff-boundary-limit-fromTurnCount",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:orchestration.getTurnItem": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
-      "agent": [
-        "thread.history"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getTurnItem-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:orchestration.getWorkflowScript": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getWorkflowScript-invalid-drop-threadId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:orchestration.getWorktreeThreadIds": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getWorktreeThreadIds-invalid-drop-worktreePath",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:orchestration.launchThread": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-orchestration.launchThread",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.launchThread-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:orchestration.searchThread": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.searchThread-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:orchestration.searchThreadStream": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.searchThreadStream-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:orchestration.searchThreads": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
-      "agent": [
-        "thread.search"
-      ],
-      "executor": []
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.searchThreads-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:orchestration.stopWorkflow": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-orchestration.stopWorkflow",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.stopWorkflow-invalid-drop-threadId",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:orchestration.subscribeCommandOutput": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-orchestration.subscribeCommandOutput",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.subscribeCommandOutput-invalid-drop-threadId",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:orchestration.subscribePromptSuggestion": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-queries::t3-query-subscribePromptSuggestion",
+      "agent": [
+        "thread.create"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:orchestration.subscribeShell": {
       "suite": "t3-serve-integration",
@@ -671,7 +1328,16 @@
     },
     "rpc:orchestration.subscribeThread": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-orchestration.subscribeThread",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.subscribeThread-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:peerLinks.unlink": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-peerLinks.unlink-invalid-drop-environmentId",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -679,518 +1345,755 @@
       "cassette": "recorded"
     },
     "rpc:preview.adjust": {
-      "suite": "t3-serve-integration",
-      "test": "preview_m12::tabs_are_opened_listed_resized_adjusted_reported_and_closed_and_a_second_phone_following_the_stream_sees_each_change_in_order",
-      "agent": [
-        "preview.adjust"
-      ],
-      "executor": []
-    },
-    "rpc:preview.close": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-preview.close",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:preview.list": {
-      "suite": "t3-serve-integration",
-      "test": "preview_m12::tabs_are_opened_listed_resized_adjusted_reported_and_closed_and_a_second_phone_following_the_stream_sees_each_change_in_order",
-      "agent": [
-        "preview.list"
-      ],
-      "executor": []
-    },
-    "rpc:preview.open": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-preview.open",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:preview.resize": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-preview.resize",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:projectClone.cancel": {
-      "suite": "t3-serve-integration",
-      "test": "hosted_m11::a_clone_makes_the_project_runs_gh_in_the_executor_streams_its_end_is_cancelled_when_it_hangs_and_retries",
-      "agent": [
-        "clone.cancel"
-      ],
-      "executor": []
-    },
-    "rpc:projectClone.retry": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-projectClone.retry",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:projectClone.start": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-projectClone.start",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:projects.createFromThread": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-projects.createFromThread",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:projects.createNew": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-projects.createNew",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:projects.ensureScratch": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-projects.ensureScratch",
+      "test": "t3-v0.1.9-crawl::t3-rpc-preview.adjust-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
       "diff": "allowlisted",
       "cassette": "recorded"
     },
-    "rpc:projects.listEntries": {
-      "suite": "t3-serve-integration",
-      "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
-      "agent": [
-        "file.list",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "list_dir"
-      ]
+    "rpc:preview.clearProfile": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-preview.clearProfile-invalid-drop-profileId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
-    "rpc:projects.mutate": {
-      "suite": "t3-serve-integration",
-      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+    "rpc:preview.close": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-preview.close-boundary-full",
+      "agent": [
+        "preview.close"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:preview.list": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-preview.list-invalid-drop-threadId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:preview.open": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-preview.open-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:preview.reportProfiles": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-preview.reportProfiles-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:preview.reportStatus": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-preview.reportStatus-invalid-drop-threadId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:preview.resize": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-preview.resize-invalid-drop-threadId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:projectClone.cancel": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-projectClone.cancel-invalid-drop-projectId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:projectClone.retry": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-projectClone.retry-invalid-drop-projectId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:projectClone.start": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-projectClone.start-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:projects.createFromThread": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-projects.createFromThread-invalid-drop-threadId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:projects.createNew": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-projects.createNew-invalid-drop-name",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:projects.ensureScratch": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-projects.ensureScratch-invalid-no-payload",
       "agent": [
         "file.browse",
-        "state.set"
+        "file.mkdir",
+        "file.write",
+        "state.set",
+        "workspace.create"
       ],
       "executor": [
-        "browse"
-      ]
+        "browse",
+        "make_dir",
+        "write_file"
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:projects.listEntries": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-projects.listEntries-invalid-drop-cwd",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:projects.listIgnoredFiles": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-projects.listIgnoredFiles-invalid-drop-cwd",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:projects.mutate": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-projects.mutate-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:projects.readFile": {
-      "suite": "t3-serve-integration",
-      "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
-      "agent": [
-        "file.read",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "read_file"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-projects.readFile-invalid-drop-cwd",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:projects.searchEntries": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-projects.searchEntries",
+      "test": "t3-v0.1.9-crawl::t3-rpc-projects.searchEntries-invalid-drop-cwd",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:projects.writeFile": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-projects.writeFile",
+      "test": "t3-v0.1.9-crawl::t3-rpc-projects.writeFile-invalid-drop-cwd",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:provider.auth.cancel": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-provider.auth.cancel",
+      "test": "t3-v0.1.9-crawl::t3-rpc-provider.auth.cancel-invalid-drop-instanceId",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:provider.auth.complete": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-provider.auth.complete",
+      "test": "t3-v0.1.9-crawl::t3-rpc-provider.auth.complete-invalid-drop-instanceId",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:provider.auth.logout": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-provider.auth.logout",
+      "test": "t3-v0.1.9-crawl::t3-rpc-provider.auth.logout-invalid-drop-instanceId",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:provider.auth.respond": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-provider.auth.respond",
+      "test": "t3-v0.1.9-crawl::t3-rpc-provider.auth.respond-invalid-drop-instanceId",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:provider.auth.start": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-provider.auth.start",
+      "test": "t3-v0.1.9-crawl::t3-rpc-provider.auth.start-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:provider.auth.subscribe": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-provider.auth.subscribe",
+      "test": "t3-v0.1.9-crawl::t3-rpc-provider.auth.subscribe-invalid-drop-instanceId",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:provider.chatgpt.handoff.subscribe": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-provider.chatgpt.handoff.subscribe-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.activity": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-pullRequests.activity",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.activity-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.changeBreakdown": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-pullRequests.changeBreakdown",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.changeBreakdown-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.checks": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-pullRequests.checks",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.checks-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.comment": {
-      "suite": "t3-serve-integration",
-      "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
-      "agent": [
-        "pr.comment",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "hosted_pr_comment"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.comment-invalid-drop-body",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.detail": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-pullRequests.detail",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.detail-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.diffFileContents": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-pullRequests.diffFileContents",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.diffFileContents-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.filesViewed": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-pullRequests.filesViewed",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.filesViewed-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.filterOptions": {
-      "suite": "t3-serve-integration",
-      "test": "hosted_m11::the_list_stats_and_filters_and_who_gh_is_signed_in_as_come_from_the_repositorys_own_remote_and_the_hosts_answers",
-      "agent": [
-        "pr.labelCandidates",
-        "sourceControl.lookupRepository",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "hosted_repo_labels",
-        "hosted_repo_view"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.filterOptions-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.generateReviewGuide": {
-      "suite": "t3-serve-integration",
-      "test": "prs_m12::a_review_guide_is_written_by_a_model_turn_of_the_real_service_over_gh_s_diff_checked_against_it_and_kept_in_rcas_state",
-      "agent": [
-        "pr.view",
-        "state.get",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "hosted_pr_view"
-      ]
-    },
-    "rpc:pullRequests.labelCandidates": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-pullRequests.labelCandidates",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:pullRequests.linkedThreads": {
-      "suite": "t3-serve-integration",
-      "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.generateReviewGuide-boundary-limit-number",
       "agent": [
         "state.get"
       ],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:pullRequests.invalidate": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.invalidate-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:pullRequests.labelCandidates": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.labelCandidates-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:pullRequests.linkedThreads": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.linkedThreads-boundary-full",
+      "agent": [
+        "state.get"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.list": {
-      "suite": "t3-serve-integration",
-      "test": "hosted_m11::the_list_stats_and_filters_and_who_gh_is_signed_in_as_come_from_the_repositorys_own_remote_and_the_hosts_answers",
-      "agent": [
-        "pr.list",
-        "sourceControl.discover",
-        "sourceControl.lookupRepository",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "hosted_auth_status",
-        "hosted_pr_list",
-        "hosted_repo_view"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.list-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.listStats": {
-      "suite": "t3-serve-integration",
-      "test": "hosted_m11::the_list_stats_and_filters_and_who_gh_is_signed_in_as_come_from_the_repositorys_own_remote_and_the_hosts_answers",
-      "agent": [
-        "pr.files",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "hosted_pr_files"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.listStats-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.preview": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-pullRequests.preview",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.preview-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.replyToThread": {
-      "suite": "t3-serve-integration",
-      "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
-      "agent": [
-        "pr.reply",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "hosted_pr_reply"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.replyToThread-invalid-drop-threadId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:pullRequests.reportState": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.reportState-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.requestReviewers": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-pullRequests.requestReviewers",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.requestReviewers-invalid-drop-reviewers",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.reviewGuide": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-pullRequests.reviewGuide",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.reviewGuide-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.reviewerCandidates": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-pullRequests.reviewerCandidates",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.reviewerCandidates-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.routing": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-pullRequests.routing",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.routing-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.routingIdentity": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-pullRequests.routingIdentity",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.routingIdentity-invalid-drop-host",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.runAction": {
-      "suite": "t3-serve-integration",
-      "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
-      "agent": [
-        "pr.merge",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "hosted_pr_merge"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.runAction-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.setFilesViewed": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-pullRequests.setFilesViewed",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.setFilesViewed-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.setLabels": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-pullRequests.setLabels",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.setLabels-invalid-drop-labels",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.setReaction": {
-      "suite": "t3-serve-integration",
-      "test": "prs_m12::a_reaction_is_added_then_taken_back_by_deleting_the_accounts_own_reaction_and_a_comment_is_edited_with_its_text_on_stdin",
-      "agent": [
-        "pr.react",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "hosted_pr_react"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.setReaction-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.setThreadResolution": {
-      "suite": "t3-serve-integration",
-      "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
-      "agent": [
-        "pr.resolveThread",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "hosted_pr_resolve_thread"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.setThreadResolution-invalid-drop-threadId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.stack": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-pullRequests.stack",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.stack-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.submitReview": {
-      "suite": "t3-serve-integration",
-      "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
-      "agent": [
-        "pr.review",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "hosted_pr_review"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.submitReview-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:pullRequests.subscribeRefreshes": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.subscribeRefreshes-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.summary": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-pullRequests.summary",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.summary-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.threadComments": {
-      "suite": "t3-serve-integration",
-      "test": "hosted_m11::the_activity_a_thread_the_breakdown_and_the_candidates_are_read_from_gh_and_know_what_the_pull_request_already_has",
-      "agent": [
-        "pr.threads",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "hosted_pr_threads"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.threadComments-invalid-drop-threadId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.update": {
-      "suite": "t3-serve-integration",
-      "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
-      "agent": [
-        "pr.edit",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "hosted_pr_edit"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.update-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:pullRequests.updateComment": {
-      "suite": "t3-serve-integration",
-      "test": "prs_m12::a_reaction_is_added_then_taken_back_by_deleting_the_accounts_own_reaction_and_a_comment_is_edited_with_its_text_on_stdin",
-      "agent": [
-        "pr.editComment",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "hosted_pr_comment_edit"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.updateComment-invalid-drop-commentId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:review.getBranchCommits": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-review.getBranchCommits-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:review.getDiffFileContents": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-review.getDiffFileContents",
+      "test": "t3-v0.1.9-crawl::t3-rpc-review.getDiffFileContents-invalid-drop-cwd",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:review.getDiffPreview": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-review.getDiffPreview",
+      "test": "t3-v0.1.9-crawl::t3-rpc-review.getDiffPreview-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:scheduledTasks.delete": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-scheduledTasks.delete",
+      "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.delete-invalid-drop-id",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:scheduledTasks.getWebhookDelivery": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.getWebhookDelivery-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:scheduledTasks.listWebhookDeliveries": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.listWebhookDeliveries-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:scheduledTasks.rotateWebhookToken": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-scheduledTasks.rotateWebhookToken",
+      "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.rotateWebhookToken-invalid-drop-id",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:scheduledTasks.runNow": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-scheduledTasks.runNow",
+      "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.runNow-invalid-drop-id",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:scheduledTasks.setEnabled": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-scheduledTasks.setEnabled",
+      "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.setEnabled-invalid-drop-id",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:scheduledTasks.subscribe": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-scheduledTasks.subscribe",
-      "agent": [],
+      "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.subscribe-invalid-no-payload",
+      "agent": [
+        "schedule.list",
+        "schedule.subscribe"
+      ],
       "executor": [],
       "oracle": "mimic",
       "diff": "allowlisted",
       "cassette": "recorded"
     },
     "rpc:scheduledTasks.upsert": {
-      "suite": "t3-serve-integration",
-      "test": "schedules_m12::a_scheduled_task_is_saved_followed_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
-      "agent": [
-        "schedule.subscribe",
-        "schedule.upsert",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list"
-      ]
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.upsert-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:server.discoverSourceControl": {
-      "suite": "t3-serve-integration",
-      "test": "hosted_m11::the_sign_in_shows_the_cli_code_and_address_waits_for_the_account_cancels_another_and_discovery_says_who_is_signed_in_with_no_token_in_any_answer",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.discoverSourceControl-valid-min",
       "agent": [
         "sourceControl.discover"
       ],
       "executor": [
         "hosted_auth_status"
-      ]
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:server.getDatabaseStorage": {
-      "suite": "t3-serve-integration",
-      "test": "settings_m10::the_database_storage_stream_measures_the_state_database_serve_keeps_in_its_state_directory",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.getDatabaseStorage-invalid-no-payload",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.getProcessDiagnostics": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.getProcessDiagnostics-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.getProcessResourceHistory": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.getProcessResourceHistory-boundary-limit-windowMs",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.getResourceTelemetryHistory": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.getResourceTelemetryHistory-boundary-limit-windowMs",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.getStorageCleanupReport": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.getStorageCleanupReport-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:server.getUsageSummary": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-server.getUsageSummary",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.getUsageSummary-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.prepareTriage": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::a_triage_session_is_written_at_the_executor_from_the_services_own_log_and_the_prompt_links_the_playbook",
+      "agent": [
+        "file.browse",
+        "file.write",
+        "service.logs"
+      ],
+      "executor": [
+        "browse",
+        "write_file"
+      ]
     },
     "rpc:server.probe": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-server.probe",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.probe-invalid-no-payload",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -1198,80 +2101,155 @@
       "cassette": "recorded"
     },
     "rpc:server.refreshProviders": {
-      "suite": "t3-serve-integration",
-      "test": "settings_m10::two_providers_sign_in_by_a_device_code_and_a_pasted_code_each_in_its_own_directory_and_a_turn_then_runs_in_the_signed_in_ones_alone",
-      "agent": [
-        "provider.list",
-        "provider.refresh"
-      ],
-      "executor": []
-    },
-    "rpc:server.reportClientActivity": {
-      "suite": "t3-serve-integration",
-      "test": "local_m5::a_clients_activity_is_kept_by_the_real_service_and_a_client_without_the_diagnostics_scope_never_reaches_it",
-      "agent": [
-        "service.clientActivity"
-      ],
-      "executor": []
-    },
-    "rpc:server.updateSettings": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-server.updateSettings",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:sourceControl.appAccess": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-sourceControl.appAccess",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:sourceControl.lookupRepository": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-sourceControl.lookupRepository",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:sourceControl.publishRepository": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-sourceControl.publishRepository",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:sourceControl.signInCancel": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-sourceControl.signInCancel",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:sourceControl.signInStart": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-sourceControl.signInStart",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:sourceControl.signInWait": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-sourceControl.signInWait",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:subscribePreviewEvents": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-subscribePreviewEvents",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.refreshProviders-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
       "diff": "allowlisted",
       "cassette": "recorded"
     },
-    "rpc:subscribeProjectClones": {
-      "suite": "t3-serve-integration",
-      "test": "hosted_m11::a_clone_makes_the_project_runs_gh_in_the_executor_streams_its_end_is_cancelled_when_it_hangs_and_retries",
-      "agent": [
-        "clone.status"
-      ],
+    "rpc:server.reportClientActivity": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.reportClientActivity-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.retryResourceTelemetry": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.retryResourceTelemetry-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.runStorageCleanup": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.runStorageCleanup-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.signalProcess": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.signalProcess-boundary-limit-pid",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.updateSettings": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.updateSettings-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:sourceControl.appAccess": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.appAccess-invalid-drop-provider",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:sourceControl.lookupRepository": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.lookupRepository-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:sourceControl.publishRepository": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.publishRepository-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:sourceControl.signInCancel": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.signInCancel-invalid-drop-provider",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:sourceControl.signInStart": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.signInStart-invalid-drop-provider",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:sourceControl.signInWait": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.signInWait-invalid-drop-provider",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:sourceControl.star": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.star-invalid-drop-provider",
+      "agent": [],
       "executor": []
+    },
+    "rpc:sourceControl.starred": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.starred-invalid-drop-provider",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:subscribeDiscoveredLocalServers": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-subscribeDiscoveredLocalServers-invalid-wrong-type-configuredUrls",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:subscribePreviewEvents": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-subscribePreviewEvents-invalid-no-payload",
+      "agent": [
+        "preview.subscribe"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:subscribeProjectClones": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-subscribeProjectClones-invalid-no-payload",
+      "agent": [
+        "clone.subscribe"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:subscribeServerConfig": {
       "suite": "t3-serve-integration",
@@ -1289,150 +2267,209 @@
     },
     "rpc:subscribeTerminalMetadata": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-subscribeTerminalMetadata",
-      "agent": [],
-      "executor": [],
-      "oracle": "mimic",
-      "diff": "allowlisted",
-      "cassette": "recorded"
-    },
-    "rpc:subscribeVcsStatus": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-subscribeVcsStatus",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:subscribeWorktreeSetup": {
-      "suite": "t3-serve-integration",
-      "test": "workspace_m6::the_setup_of_a_worktree_rca_started_is_followed_by_the_phone_to_done_and_a_long_one_is_cancelled_by_it",
+      "test": "t3-v0.1.9-crawl::t3-rpc-subscribeTerminalMetadata-invalid-no-payload",
       "agent": [
-        "worktree.list",
-        "worktree.setup.subscribe"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "worktree_setup"
-      ]
-    },
-    "rpc:terminal.attach": {
-      "suite": "t3-serve-integration",
-      "test": "terminal_m8::a_terminal_cannot_start_outside_the_executors_root_and_the_executors_environment_does_not_reach_the_shell",
-      "agent": [
-        "terminal.attach",
         "terminal.list",
         "worktree.list"
       ],
       "executor": [
         "git_worktree_list",
         "pty_list"
-      ]
-    },
-    "rpc:terminal.clear": {
-      "suite": "t3-serve-integration",
-      "test": "terminal_m8::a_terminal_is_attached_typed_into_resized_observed_cleared_listed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
-      "agent": [
-        "terminal.clear",
-        "worktree.list"
       ],
-      "executor": [
-        "git_worktree_list",
-        "pty_write"
-      ]
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
-    "rpc:terminal.close": {
+    "rpc:subscribeVcsBranch": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-terminal.close",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:terminal.observe": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-terminal.observe",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:terminal.open": {
-      "suite": "t3-serve-integration",
-      "test": "terminal_m8::a_terminal_cannot_start_outside_the_executors_root_and_the_executors_environment_does_not_reach_the_shell",
+      "test": "t3-v0.1.9-agent-methods::t3-method-subscribeVcsBranch",
       "agent": [
-        "terminal.open",
-        "worktree.list"
-      ],
-      "executor": [
-        "git_worktree_list",
-        "pty_list",
-        "pty_open"
-      ]
-    },
-    "rpc:terminal.resize": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-terminal.resize",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:terminal.write": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-terminal.write",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:vcs.createRef": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-vcs.createRef",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:vcs.createWorktree": {
-      "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-vcs.createWorktree",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:vcs.listRefs": {
-      "suite": "t3-serve-integration",
-      "test": "vcs_m9::the_status_refs_and_diffs_of_the_repository_are_read_and_a_branch_is_made_and_switched_to_through_the_executors_git",
-      "agent": [
-        "git.refs",
+        "file.browse",
+        "git.diff",
+        "git.init",
+        "git.status",
+        "git.subscribe",
         "git.upstreamStatus",
         "worktree.list"
       ],
       "executor": [
-        "git_refs",
+        "browse",
+        "git_diff",
+        "git_init",
+        "git_status",
         "git_upstream",
         "git_worktree_list"
-      ]
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:subscribeVcsStatus": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-subscribeVcsStatus-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:subscribeWorktreeSetup": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-subscribeWorktreeSetup-invalid-drop-threadId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:terminal.attach": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-terminal.attach-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:terminal.clear": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-terminal.clear-invalid-drop-terminalId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:terminal.close": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-terminal.close-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:terminal.observe": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-terminal.observe-invalid-drop-terminalId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:terminal.open": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-terminal.open-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:terminal.resize": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-terminal.resize-boundary-limit-cols",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:terminal.write": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-terminal.write-invalid-drop-data",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:vcs.createRef": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-vcs.createRef-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:vcs.createWorktree": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-vcs.createWorktree-invalid-drop-path",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:vcs.listRefs": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-vcs.listRefs-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:vcs.pull": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-vcs.pull",
+      "test": "t3-v0.1.9-crawl::t3-rpc-vcs.pull-invalid-drop-cwd",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
-    "rpc:vcs.refreshStatus": {
+    "rpc:vcs.refreshBranch": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-vcs.refreshStatus",
-      "agent": [],
-      "executor": []
-    },
-    "rpc:vcs.switchRef": {
-      "suite": "t3-serve-integration",
-      "test": "vcs_m9::the_status_refs_and_diffs_of_the_repository_are_read_and_a_branch_is_made_and_switched_to_through_the_executors_git",
+      "test": "t3-v0.1.9-agent-methods::t3-method-vcs.refreshBranch",
       "agent": [
-        "git.checkout",
-        "git.refs",
+        "file.browse",
+        "git.diff",
+        "git.init",
+        "git.status",
+        "git.upstreamStatus",
         "worktree.list"
       ],
       "executor": [
-        "git_checkout",
-        "git_refs",
+        "browse",
+        "git_diff",
+        "git_init",
+        "git_status",
+        "git_upstream",
         "git_worktree_list"
-      ]
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:vcs.refreshStatus": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-vcs.refreshStatus-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:vcs.switchRef": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-vcs.switchRef-invalid-drop-cwd",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:worktreeSetup.cancel": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-worktreeSetup.cancel",
+      "test": "t3-v0.1.9-crawl::t3-rpc-worktreeSetup.cancel-invalid-drop-threadId",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     }
   }
 }

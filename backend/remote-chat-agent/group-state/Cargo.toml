@@ -23,3 +23,6 @@ agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto", featu
 
 [features]
 testing = []
+
+[package.metadata.arch]
+type = "rust-group"

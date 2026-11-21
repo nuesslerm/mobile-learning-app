@@ -12,11 +12,11 @@ use serde_json::{json, Map, Value};
 
 const NOT_MANAGED: &str = "Worktree is not managed by this host";
 
-struct Checkout {
-    path: String,
-    head: String,
-    branch: String,
-    is_main: bool,
+pub(crate) struct Checkout {
+    pub(crate) path: String,
+    pub(crate) head: String,
+    pub(crate) branch: String,
+    pub(crate) is_main: bool,
 }
 
 fn meta_key(id: &str) -> String {
@@ -27,8 +27,8 @@ fn retired_key(repo: &str) -> String {
     format!("orca.retired-names.{repo}")
 }
 
-fn checkouts(agent: &dyn AgentApi, repo: &Target) -> Result<Vec<Checkout>, Failure> {
-    let listed = ask(agent, WORKTREE_LIST.name(), json!({"workspace": repo.workspace}))?;
+pub(crate) fn checkouts(agent: &dyn AgentApi, repo: &str) -> Result<Vec<Checkout>, Failure> {
+    let listed = ask(agent, WORKTREE_LIST.name(), json!({"workspace": repo}))?;
     Ok(listed["worktrees"]
         .as_array()
         .map(|rows| {
@@ -41,11 +41,17 @@ fn checkouts(agent: &dyn AgentApi, repo: &Target) -> Result<Vec<Checkout>, Failu
         .unwrap_or_default())
 }
 
+/// Whether `found` is a checkout of the repository workspace `repo`: that workspace, or a worktree workspace lying where one of the checkouts git
+/// lists for it lies.
+pub fn checkout_of(agent: &dyn AgentApi, repo: &str, found: &Target) -> Result<bool, Failure> {
+    Ok(found.workspace == repo || (found.kind == "worktree" && !found.root_path.is_empty() && checkouts(agent, repo)?.iter().any(|c| c.path == found.root_path)))
+}
+
 fn basename(path: &str) -> &str {
     path.trim_end_matches('/').rsplit('/').next().unwrap_or(path)
 }
 
-fn record(agent: &dyn AgentApi, repo: &Target, c: &Checkout) -> Result<Value, Failure> {
+pub(crate) fn record(agent: &dyn AgentApi, repo: &Target, c: &Checkout) -> Result<Value, Failure> {
     let id = id_of(&repo.workspace, &c.path);
     let full = if c.branch.is_empty() { String::new() } else { format!("refs/heads/{}", c.branch) };
     let mut row = Map::new();
@@ -79,11 +85,11 @@ fn record(agent: &dyn AgentApi, repo: &Target, c: &Checkout) -> Result<Value, Fa
 }
 
 /// `id:<repo>::<path>`, `path:<path>`, a bare id or path, or a branch name, as the host's worktree selector reads them.
-fn find(agent: &dyn AgentApi, selector: &str) -> Result<(Target, Checkout), Failure> {
+pub(crate) fn find(agent: &dyn AgentApi, selector: &str) -> Result<(Target, Checkout), Failure> {
     let selector = selector.trim();
     let want = selector.strip_prefix("id:").or_else(|| selector.strip_prefix("path:")).unwrap_or(selector);
     for repo in repo_targets(agent)?.into_iter().filter(|t| t.kind == "root") {
-        let found = checkouts(agent, &repo)?.into_iter().find(|c| id_of(&repo.workspace, &c.path) == want || c.path == want || (!c.branch.is_empty() && c.branch == want));
+        let found = checkouts(agent, &repo.workspace)?.into_iter().find(|c| id_of(&repo.workspace, &c.path) == want || c.path == want || (!c.branch.is_empty() && c.branch == want));
         if let Some(c) = found {
             return Ok((repo, c));
         }
@@ -91,18 +97,21 @@ fn find(agent: &dyn AgentApi, selector: &str) -> Result<(Target, Checkout), Fail
     Err(Failure::new("selector_not_found", "selector_not_found"))
 }
 
-fn selector(params: &Value) -> Result<&str, Failure> {
+pub(crate) fn selector(params: &Value) -> Result<&str, Failure> {
     text(params, "worktree").filter(|s| !s.is_empty()).ok_or_else(|| Failure::invalid("Missing worktree selector"))
 }
 
 pub(crate) fn list(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    if params.get("limit").is_some_and(|l| l.as_u64().is_none_or(|n| n == 0)) {
+        return Err(Failure::new("invalid_limit", "invalid_limit"));
+    }
     let repos = match text(params, "repo").filter(|s| !s.is_empty()) {
-        Some(_) => vec![repo_of(agent, params)?],
+        Some(_) => vec![repo_of(agent, params).map_err(|e| if e.code == "selector_not_found" { Failure::new("repo_not_found", "repo_not_found") } else { e })?],
         None => repo_targets(agent)?.into_iter().filter(|t| t.kind == "root").collect(),
     };
     let mut rows = Vec::new();
     for repo in &repos {
-        for c in checkouts(agent, repo)? {
+        for c in checkouts(agent, &repo.workspace)? {
             rows.push(record(agent, repo, &c)?);
         }
     }
@@ -127,7 +136,7 @@ pub(crate) fn create(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
     let repo = repo_of(agent, params)?;
     let name = match text(params, "name").map(safe_name).filter(|n| !n.is_empty()) {
         Some(n) => n,
-        None => format!("wt-{}", checkouts(agent, &repo)?.len() + 1),
+        None => format!("wt-{}", checkouts(agent, &repo.workspace)?.len() + 1),
     };
     let mut args = json!({"workspace": repo.workspace, "worktree": name, "branch": name});
     if let Some(base) = text(params, "baseBranch").filter(|b| !b.is_empty()) {
@@ -152,6 +161,7 @@ pub(crate) fn remove(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
     }
     let managed = targets(agent)?.into_iter().find(|t| t.kind == "worktree" && t.root_path == c.path).ok_or_else(|| Failure::new(RUNTIME_ERROR, NOT_MANAGED))?;
     ask(agent, WORKTREE_REMOVE.name(), json!({"workspace": managed.workspace, "force": params["force"] == true}))?;
+    let _turn = orca_core::kept_state_turn();
     let mut names = array(agent, &retired_key(&repo.workspace))?;
     let retired = Value::String(basename(&c.path).to_string());
     if !names.contains(&retired) {
@@ -164,11 +174,13 @@ pub(crate) fn remove(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
 pub(crate) fn set(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let (repo, c) = find(agent, selector(params)?)?;
     let key = meta_key(&id_of(&repo.workspace, &c.path));
+    let turn = orca_core::kept_state_turn();
     let mut meta = object(agent, &key)?;
     for (k, v) in params.as_object().into_iter().flatten().filter(|(k, _)| k.as_str() != "worktree") {
         meta.insert(k.clone(), v.clone());
     }
     put(agent, &key, Value::Object(meta))?;
+    drop(turn);
     Ok(json!({"worktree": record(agent, &repo, &c)?}))
 }
 

@@ -22,8 +22,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, TextInput } from 'react-native';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
-import { useLiveTranscript } from '../hooks/useLiveTranscript';
-import { usePlanRealize } from '../hooks/usePlanRealize';
+import { useLiveTranscript } from '../state/useLiveTranscript';
+import { usePlanRealize } from '../state/usePlanRealize';
 import { usePlanStore } from '../state/planStore';
 
 export type PlanTabProps = {

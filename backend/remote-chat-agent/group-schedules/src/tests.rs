@@ -3,7 +3,7 @@ use crate::ports::{Refusal, Stored};
 use crate::service::{Schedules, WebhookOutcome};
 use crate::testing::{CountingIds, FakeClock, MemoryStore, ScriptedTrigger};
 use agent_api_proto::Event;
-use agent_api_schedules::{RunSource, RunState, RunStatus, Schedule, UpsertParams};
+use agent_api_schedules::{RunSource, RunState, RunStatus, RunView, Schedule, UpsertParams, MAX_RUNS_KEPT};
 use serde_json::{json, Value};
 use std::sync::Arc;
 use std::time::Duration;
@@ -327,4 +327,64 @@ fn given_a_stream_that_keeps_two_events_when_callers_open_it_then_a_caller_withi
     assert_eq!([&fresh, &last, &inside, &behind, &ahead].map(|o| o.from), [1003, 1003, 1001, 1003, 1003]);
     assert_eq!(rig.schedules.since(1001).events.iter().map(|e| e.seq).collect::<Vec<_>>(), [1002, 1003]);
     assert!(rig.schedules.since(1000).lost && !rig.schedules.since(1001).lost);
+}
+
+fn kept(rig: &Rig, id: Option<&str>) -> Vec<(String, u64, RunState, Option<String>)> {
+    rig.schedules.runs(id).unwrap().into_iter().map(|r: RunView| (r.run, r.at_ms, r.state, r.error)).collect()
+}
+
+#[tokio::test]
+async fn given_runs_started_skipped_failed_and_ended_when_listed_then_each_is_kept_newest_first_with_its_start_time_and_its_end_state() {
+    // Given a schedule whose first turn starts, a due run skipped while it runs, then the turn ends after the clock moved on
+    let rig = rig();
+    rig.schedules.upsert(params(every_minute(), true)).unwrap();
+    rig.clock.advance(MINUTE);
+    rig.schedules.tick().await;
+    rig.clock.advance(MINUTE);
+    rig.schedules.tick().await;
+    rig.clock.advance(MINUTE / 2);
+    rig.trigger.end("tu-1", Ok(()));
+    settled(&rig, "sch-1", RunStatus::Succeeded).await;
+    // When a manual run is refused, and the runs are listed
+    rig.trigger.refuse_with(Some(Refusal { code: "NO_EXECUTOR".into(), message: "no executor serves w1".into() }));
+    let _ = rig.schedules.run_now("sch-1").await;
+    // Then each run is kept newest first, the ended one at the time it began and with how it ended, the skip and the refusal with their reasons
+    let at = NOW + 2 * MINUTE + MINUTE / 2;
+    assert_eq!(kept(&rig, Some("sch-1")), [
+        ("run-3".to_string(), at, RunState::Failed, Some("no executor serves w1".to_string())),
+        ("run-2".to_string(), NOW + 2 * MINUTE, RunState::Skipped, Some("the previous turn of this schedule still runs".to_string())),
+        ("run-1".to_string(), NOW + MINUTE, RunState::Succeeded, None),
+    ]);
+    // And every schedule's runs are the same list here, and an unknown schedule has none to list
+    assert_eq!(kept(&rig, None).len(), 3);
+    assert_eq!(rig.schedules.runs(Some("nope")).unwrap_err().code, "SCHEDULE_NOT_FOUND");
+    // When the schedule is deleted, Then its runs go with it
+    rig.schedules.delete("sch-1").unwrap();
+    assert!(kept(&rig, None).is_empty());
+}
+
+#[tokio::test]
+async fn given_more_finished_runs_than_kept_and_a_crash_while_one_ran_when_listed_then_the_newest_are_kept_and_the_running_one_is_failed() {
+    // Given a schedule whose manual runs are each refused, one more than are kept, and then one that starts
+    let rig = rig();
+    rig.schedules.upsert(params(every_minute(), false)).unwrap();
+    rig.trigger.refuse_with(Some(Refusal { code: "NO_EXECUTOR".into(), message: "none".into() }));
+    for _ in 0..=MAX_RUNS_KEPT {
+        rig.clock.advance(1);
+        let _ = rig.schedules.run_now("sch-1").await;
+    }
+    rig.trigger.refuse_with(None);
+    rig.clock.advance(1);
+    rig.schedules.run_now("sch-1").await.unwrap();
+    // When the runs are listed
+    let runs = kept(&rig, Some("sch-1"));
+    // Then the oldest finished run went, the newest finished ones and the running one stay
+    assert_eq!(runs.len(), MAX_RUNS_KEPT + 1);
+    assert_eq!((runs[0].0.as_str(), runs[0].2), ("run-102", RunState::Started));
+    assert_eq!(runs.last().unwrap().0, "run-2");
+    // When the service starts again after a crash while that turn ran
+    assert_eq!(rig.schedules.recover().unwrap(), 1);
+    // Then the run that was going is failed with the reason
+    let newest = kept(&rig, Some("sch-1")).remove(0);
+    assert_eq!((newest.0.as_str(), newest.2, newest.3.as_deref()), ("run-102", RunState::Failed, Some("the service restarted while the turn ran")));
 }

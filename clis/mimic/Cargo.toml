@@ -31,7 +31,7 @@ test = false
 
 # The flow test compares the help texts with the reference the owner reads and the imported CLI sets rebuild from their cassettes; the provenance scan classifies the contract fixtures of agent-api.
 [package.metadata.flow]
-inputs = ["../../docs/reference/wf-cli.md", "../../libraries/agent-api/exec-testkit/cassettes/**", "../../libraries/agent-api/exec-hosted/tests/cassettes/**", "../../libraries/agent-api/fixture-provenance.json", "../../libraries/agent-api/*/tests/fixtures/**", "../../tooling/t3-conformance/goldens/**", "../../tooling/t3-conformance/allowlist.json", "../../tooling/t3-conformance/t3-pin.json", "../../tooling/orca-conformance/orca-pin.json", "../../docs/plans/rca-parity/coverage/*-methods.json", "../t3-serve/cassettes/**", "../orca-serve/cassettes/**"]
+inputs = ["../../docs/reference/wf-cli.md", "../../libraries/agent-api/exec-testkit/cassettes/**", "../../libraries/agent-api/exec-hosted/tests/cassettes/**", "../../libraries/agent-api/fixture-provenance.json", "../../libraries/agent-api/*/tests/fixtures/**", "../../tooling/t3-conformance/goldens/**", "../../tooling/t3-conformance/allowlist.json", "../../tooling/t3-conformance/t3-pin.json", "../../tooling/orca-conformance/orca-pin.json", "../../docs/plans/rca-parity/coverage/*-methods.json", "../t3-serve/cassettes/**", "../orca-serve/cassettes/**", "tests/fixtures/**", "../../docs/plans/rca-parity/coverage/**", "../t3-serve/tests/integration/**", "../orca-serve/tests/integration/**", "../t3-serve/contracts/src/rpc.rs", "../t3-serve/core/src/domain/decider.rs", "../t3-serve/core/src/domain/command.rs", "../t3-serve/http/src/http.rs"]
 
 [features]
 testing = ["mimic-core/testing"]
@@ -39,7 +39,16 @@ testing = ["mimic-core/testing"]
 [dependencies]
 wf-kit = { path = "../wf-kit" }
 wf-bucket = { path = "../wf-bucket" }
-mimic-core = { path = "core" }
+secrets = { path = "../secrets" }
+cli-http = { path = "../http" }
+rca-exec = { path = "../rca-exec" }
+mimic-coverage-core = { path = "coverage" }
+mimic-plan-core = { path = "plan" }
+mimic-core = { version = "0.1.2", registry = "mla" }
+mimic-script-core = { version = "0.1.7", registry = "mla" }
+mimic-script-host = { version = "0.1.14", registry = "mla" }
+mimic-script-orca = { version = "0.1.3", registry = "mla" }
+base64 = "0.22"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = { version = "0.8", default-features = false, features = ["parse"] }
@@ -47,7 +56,11 @@ toml = { version = "0.8", default-features = false, features = ["parse"] }
 # The pre-push gate runs the flow test without features: the self dev-dependency builds the toy for it.
 [dev-dependencies]
 wf-mimic = { path = ".", features = ["testing"] }
-mimic-core = { path = "core", features = ["testing"] }
+mimic-core = { version = "0.1.2", registry = "mla", features = ["testing"] }
+mimic-coverage-core = { path = "coverage", features = ["testing"] }
 tempfile = "3"
 tiny_http = "0.12"
-regex = "1"
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+
+[package.metadata.arch]
+type = "cli-crate"

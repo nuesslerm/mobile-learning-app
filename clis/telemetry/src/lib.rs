@@ -7,6 +7,8 @@ pub mod redact;
 mod destination;
 mod metrics;
 mod source;
+#[cfg(any(feature = "oneshot", feature = "metrics"))]
+mod otlp;
 #[cfg(feature = "metrics")]
 mod otlp_metrics;
 #[cfg(feature = "testing")]

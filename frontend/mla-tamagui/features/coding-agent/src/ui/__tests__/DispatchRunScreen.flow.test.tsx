@@ -1,4 +1,4 @@
-import { createFixtureGateway } from '@feature/coding-agent/testing';
+import { createFixturePorts } from '@feature/coding-agent/testing';
 import { act, screen, userEvent, waitFor } from '@lib/flow-test-harness';
 import { Linking } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
@@ -9,7 +9,7 @@ function renderRun(
   runId: string
 ): Promise<Awaited<ReturnType<typeof app.render>>> {
   return app.render(`/coding-agent/runs/${runId}`, {
-    overrides: { 'coding-agent': { gateway: createFixtureGateway() } },
+    overrides: { 'coding-agent': createFixturePorts() },
     search: { transport: 'fixture' },
   });
 }
@@ -49,6 +49,7 @@ describe('DispatchRunScreen flow (fixture transport)', () => {
   });
 
   it('given the finished fixture run, when the dashboard button is clicked, then Linking.openURL is called with the run URL', async () => {
+    // oxlint-disable-next-line no-restricted-properties -- spy on the React Native Linking module, not a project module
     const openURLSpy = vi
       .spyOn(Linking, 'openURL')
       .mockResolvedValue(undefined as never);

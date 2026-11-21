@@ -1,0 +1,674 @@
+import type { CompletionEntry, Language } from '@lib/code-editor-api';
+import { Logger } from '@lib/logging';
+import { View } from '@lib/tamagui-design-system';
+import { decode } from '@lib/webview-rpc';
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { Platform } from 'react-native';
+import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+
+import type {
+  CodeEditorPort,
+  EditorConfig,
+  FromEditorMessage,
+  ToEditorMessage,
+} from '../../domain/ports';
+import { writeThrough, type WriteRequest } from '../../domain/editor/documentWrite';
+import { createForwardingPost } from '../../domain/editor/editorForwarding';
+import { useLeetCodePorts } from '../../state/ports';
+import {
+  getCodeFont,
+  getPalette,
+  useCodeEditorSettingsStore,
+} from '../../state/editor/editorSettings';
+import type { EditResult } from '../../domain/editor/editing';
+import type { Selection } from '../../domain/editor/types';
+
+// App default 400ms flush — same cadence as every other Logger.
+
+// A cold phone WebView takes seconds to evaluate the CodeMirror bundle; past
+// this without 'hydrated' the editor is dead or blank.
+const HYDRATE_TIMEOUT_MS = 15_000;
+
+export type EditorInputHandle = {
+  focus: () => void;
+  blur: () => void;
+  applySelection: (sel: Selection) => void;
+  insertAtCursor: (text: string, cursorOffset?: number) => void;
+  /** Text as if typed at the caret: auto-closed brackets, re-indented `else:` and the rest of what typing does. */
+  typeText: (text: string) => void;
+  /** Replace the whole document and place the selection: one hunk, one undo step. */
+  setTextAndSelection: (text: string, sel: Selection) => void;
+  /** Apply a pure whole-document edit to the editor's own text and selection (the toolbar's Tab on a selection, Dedent, Comment, Newline). */
+  transformDocument: (transform: (text: string, sel: Selection) => EditResult) => void;
+  /** Whether the editor shows its suggestion list now, as far as the last event said. */
+  isCompletionOpen: () => boolean;
+  /** Takes the suggestion the list has selected; false when nothing was open or taken. */
+  acceptCompletion: () => Promise<boolean>;
+  undo: () => void;
+  redo: () => void;
+  showDiff: (start: number, end: number) => void;
+  hideDiff: () => void;
+};
+
+type Props = {
+  value: string;
+  onChangeText: (text: string) => void;
+  onSelectionChange: (sel: Selection) => void;
+  onHydratedChange?: (hydrated: boolean) => void;
+  onFocusChange?: (focused: boolean) => void;
+  tabSize?: number;
+  /** The language the editor highlights and indents in; changing it switches the live editor. */
+  language?: Language;
+  /** Suggestions while typing: off when absent or not enabled. The names are what the problem's own signature adds. */
+  completion?: { enabled: boolean; entries: readonly CompletionEntry[] };
+  testID?: string;
+};
+
+/**
+ * CodeMirror 6 editor mounted inside a WebView.
+ *
+ * The HTML template is static; all configuration and edits flow over a
+ * bidirectional postMessage protocol (the message types are in domain/ports.ts). Adapted from the
+ * mobile-learning-apps reference: DI/observability, NativeWind, the design-system
+ * theme store, and Maestro test guards have been stripped out for this app.
+ */
+export const EditorInput = forwardRef<EditorInputHandle, Props>(
+  function EditorInput(
+    {
+      value,
+      onChangeText,
+      onSelectionChange,
+      onHydratedChange,
+      onFocusChange,
+      tabSize = 4,
+      language = 'python',
+      completion,
+      testID,
+    },
+    ref
+  ) {
+    const webViewRef = useRef<WebView>(null);
+    const isReadyRef = useRef(false);
+    const hydratedRef = useRef(false);
+    const queuedFocusRef = useRef(false);
+    const queuedSelectionRef = useRef<Selection | null>(null);
+    /**
+     * A programmatic text write that arrived before the WebView could take
+     * it. `sendMessage` drops messages while the view is not ready, and
+     * `setTextAndSelection` used to record the text as delivered anyway --
+     * so after a remount (leaving the reset-code route, a Metro reload) a
+     * voice edit updated React state, the view kept the starter code, the
+     * value-sync effect believed the view already had the edit, and Run
+     * Local compiled code the editor never showed. Seen live: the editor
+     * displayed the 68-character stub while the backend reported a
+     * CompileError on a `while` at line 5.
+     */
+    const queuedTextRef = useRef<{ text: string; sel: Selection } | null>(null);
+    const valueRef = useRef(value);
+    valueRef.current = value;
+    const initialValueRef = useRef(value);
+    // Tracks the last text CM6 reported via contentChanged, so we can detect
+    // external store changes (e.g. replaceAll) and push them back to CM6.
+    const lastWebViewTextRef = useRef(value);
+    // Tracks whether we've sent the 'init' message to the editor.
+    const isInitializedRef = useRef(false);
+    // the language the page was last told: `init` carries it, a later change is posted as an update
+    const languageRef = useRef(language);
+    languageRef.current = language;
+    const appliedLanguageRef = useRef(language);
+    // the suggestion config the page was last given, and whether its list is open: the Indent key takes a suggestion only while one is shown
+    const completionRef = useRef(completion);
+    completionRef.current = completion;
+    const sentCompletionRef = useRef<string | null>(null);
+    const completionOpenRef = useRef(false);
+    const initLanguageRef = useRef(language);
+
+    const paletteId = useCodeEditorSettingsStore((s) => s.paletteId);
+    const fontSize = useCodeEditorSettingsStore((s) => s.fontSize);
+    const wordWrap = useCodeEditorSettingsStore((s) => s.wordWrap);
+    const palette = getPalette(paletteId);
+    const { lineHeight } = getCodeFont(fontSize);
+    const isDark = palette.appearance === 'dark';
+    // Editor chrome colors (gutter + border) are intentionally tied to the
+    // editor palette's appearance, not the OS theme — they live inside the
+    // embedded WebView, so the surrounding app's tokens don't apply.
+    const gutterColor = isDark ? '#5c6370' : '#9aa0a6';
+    const borderColor = isDark ? '#3e4451' : '#dadce0';
+
+    // HTML is static — no config injected. All config flows via postMessage.
+    const { editorBridge } = useLeetCodePorts();
+    const html = useMemo(() => editorBridge.html(), [editorBridge]);
+
+    // One CodeEditorPort per editor instance, bound to this WebView: post()
+    // drives the injectJavaScript channel, onMessage() fans webview events out
+    // to subscribers (the webview stub in flow tests routes through the same
+    // shape).
+    const messageListenersRef = useRef<Set<(m: FromEditorMessage) => void>>(
+      new Set()
+    );
+    // The typed editor API over the same WebView: rpc frames come back through onMessage, requests go down as injected scripts.
+    const [apiBridge] = useState(() => editorBridge.connect(() => webViewRef.current));
+    const editorPort = useMemo<CodeEditorPort>(() => {
+      const legacyPost = (msg: ToEditorMessage) => {
+        const webView = webViewRef.current;
+        if (!webView) return;
+        webView.injectJavaScript(
+          `window.dispatchEvent(new MessageEvent('message', { data: ${JSON.stringify(JSON.stringify(msg))} })); true;`
+        );
+      };
+      return {
+        post: createForwardingPost(apiBridge.client, legacyPost, { blurThroughApi: Platform.OS !== 'ios' }),
+        onMessage(listener) {
+          messageListenersRef.current.add(listener);
+          return () => {
+            messageListenersRef.current.delete(listener);
+          };
+        },
+      };
+    }, [apiBridge]);
+
+    const sendMessage = useCallback(
+      (msg: ToEditorMessage) => {
+        if (!isReadyRef.current) return;
+        if (
+          msg.type === 'focus' ||
+          msg.type === 'blur' ||
+          msg.type === 'init' ||
+          msg.type === 'setSelection'
+        ) {
+          Logger.debug('editor.send_message', {
+            type: msg.type,
+            ...(msg.type === 'setSelection'
+              ? { start: msg.start, end: msg.end }
+              : {}),
+          });
+        }
+        editorPort.post(msg);
+      },
+      [editorPort]
+    );
+
+    // The one writer of the document from outside the editor (the value sync, the reconcile at hydration, voice and plan edits, the
+    // whole-document keys of the toolbar): the hunk that differs, applied at the revision it was planned against, so it is one undo
+    // step and a keystroke that landed meanwhile makes the call stale (it is planned again) instead of being overwritten. `next` is
+    // given the editor's own text and selection when the write runs, so a queued write uses the latest value and a key works on
+    // what is really there. The mirror (`lastWebViewTextRef`) moves only when the write has landed or needed nothing, or when the
+    // editor says what it holds: a mirror set ahead of the editor once ran code the editor never showed.
+    const writeChainRef = useRef<Promise<void>>(Promise.resolve());
+    const writeDocument = useCallback(
+      (request: WriteRequest & {
+        /** the old script focused the editor with the selection that came with a text: voice and plan edits keep that */
+        focus?: boolean;
+      }): Promise<void> => {
+        const run = async () => {
+          const outcome = await writeThrough(apiBridge.client, request, () => isReadyRef.current);
+          if (!outcome) return;
+          if (outcome.landed) {
+            lastWebViewTextRef.current = outcome.text;
+            if (request.focus) void apiBridge.client.focus();
+            return;
+          }
+          // The write did not land: React is brought back to what the editor holds now, and if the editor cannot be read the mirror
+          // keeps what the editor last reported, so the value sync tries again the next time it runs.
+          Logger.warn('editor.write.failed', { label: request.label, code: outcome.code, healed: outcome.editorText !== null });
+          if (outcome.editorText !== null) {
+            lastWebViewTextRef.current = outcome.editorText;
+            onChangeText(outcome.editorText);
+          }
+        };
+        writeChainRef.current = writeChainRef.current.then(run, run);
+        return writeChainRef.current;
+      },
+      [apiBridge, onChangeText]
+    );
+
+    const updateHydrated = useCallback(
+      (next: boolean) => {
+        if (hydratedRef.current === next) {
+          return;
+        }
+        Logger.info('editor.update_hydrated', { next });
+        hydratedRef.current = next;
+        onHydratedChange?.(next);
+      },
+      [onHydratedChange]
+    );
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus() {
+          Logger.info('editor.focus', { effect: 'focus' });
+          if (!isReadyRef.current || !isInitializedRef.current) {
+            queuedFocusRef.current = true;
+            return;
+          }
+          sendMessage({ type: 'focus' });
+        },
+        blur() {
+          Logger.debug('editor.blur', {
+            isReady: isReadyRef.current,
+            isInitialized: isInitializedRef.current,
+            hasWebView: webViewRef.current != null,
+          });
+          sendMessage({ type: 'blur' });
+          // On web the iframe stays focused after the internal contenteditable
+          // blur, so we must blur the iframe itself so document.activeElement
+          // is cleared and the keyboard toolbar hides.
+          if (Platform.OS === 'web') {
+            (webViewRef.current as unknown as { blur?: () => void })?.blur?.();
+          }
+        },
+        applySelection(sel: Selection) {
+          Logger.info('editor.apply_selection', { effect: 'applySelection' });
+          if (!isReadyRef.current || !isInitializedRef.current) {
+            queuedSelectionRef.current = sel;
+            return;
+          }
+          sendMessage({ type: 'setSelection', start: sel.start, end: sel.end });
+        },
+        insertAtCursor(text: string, cursorOffset?: number) {
+          Logger.info('editor.insert_at_cursor', { effect: 'insertAtCursor' });
+          sendMessage({ type: 'insertAt', text, offset: cursorOffset });
+        },
+        typeText(text: string) {
+          Logger.info('editor.type_text', { effect: 'typeText' });
+          sendMessage({ type: 'typeText', text });
+        },
+        setTextAndSelection(text: string, sel: Selection) {
+          Logger.info('editor.set_text_and_selection', {
+            effect: 'setTextAndSelection',
+            queued: !isReadyRef.current || !isInitializedRef.current,
+          });
+          if (!isReadyRef.current || !isInitializedRef.current) {
+            // Deliver on `hydrated`, like focus and selection already do. The
+            // mirror is left alone: it must describe what the view HAS, not
+            // what it was asked for.
+            queuedTextRef.current = { text, sel };
+            return;
+          }
+          void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.text', focus: true });
+        },
+        transformDocument(transform: (text: string, sel: Selection) => EditResult) {
+          Logger.info('editor.transform_document', { effect: 'transformDocument' });
+          if (!isReadyRef.current || !isInitializedRef.current) return;
+          // the editor's own text and caret, not React's, which can be a keystroke behind
+          void writeDocument({
+            next: (current) => transform(current.text, current.selection),
+            label: 'toolbar.transform',
+          });
+        },
+        isCompletionOpen() {
+          return completionOpenRef.current;
+        },
+        async acceptCompletion() {
+          const reply = await apiBridge.client.transact([{ op: 'complete' }]);
+          return reply.ok && reply.value.changes.length > 0;
+        },
+        undo() {
+          Logger.info('editor.undo', { effect: 'undo' });
+          sendMessage({ type: 'undo' });
+        },
+        redo() {
+          Logger.info('editor.redo', { effect: 'redo' });
+          sendMessage({ type: 'redo' });
+        },
+        showDiff(start: number, end: number) {
+          // After the write that put the changed text there, which lands a few round trips after the call, and clamped to the text
+          // the view then has, not React's: a range past the view's end once left a decoration it could not map.
+          void writeChainRef.current.then(() => {
+            const max = lastWebViewTextRef.current.length;
+            const from = Math.max(0, Math.min(start, end, max));
+            const to = Math.min(Math.max(start, end), max);
+            Logger.info('editor.show_diff', {
+              effect: 'showDiff',
+              start: from,
+              end: to,
+            });
+            sendMessage({ type: 'showDiff', start: from, end: to });
+          });
+        },
+        hideDiff() {
+          Logger.info('editor.hide_diff', { effect: 'hideDiff' });
+          void writeChainRef.current.then(() => sendMessage({ type: 'hideDiff' }));
+        },
+      }),
+      [sendMessage, apiBridge]
+    );
+
+    const editorConfig = useMemo<EditorConfig>(
+      () => ({
+        initialText: isInitializedRef.current ? initialValueRef.current : value,
+        isDark,
+        fontSize,
+        lineHeight,
+        wordWrap,
+        language,
+        cursorColor: palette.cursor,
+        selectionColor: palette.selection,
+        backgroundColor: palette.background,
+        gutterColor,
+        borderColor,
+        tabSize,
+        noAutoFocus: false,
+      }),
+      [
+        fontSize,
+        lineHeight,
+        palette,
+        isDark,
+        gutterColor,
+        borderColor,
+        tabSize,
+        value,
+        wordWrap,
+        language,
+      ]
+    );
+
+    // Render-phase sync: before the WebView initializes, keep the pending initial text aligned with the latest React value
+    if (!isInitializedRef.current) {
+      initialValueRef.current = value;
+      lastWebViewTextRef.current = value;
+    }
+
+    const initializeEditor = useCallback(() => {
+      Logger.info('editor.initialize', { effect: 'initializeEditor' });
+      if (!isReadyRef.current || isInitializedRef.current) {
+        return;
+      }
+
+      isInitializedRef.current = true;
+      appliedLanguageRef.current = editorConfig.language as Language;
+      initLanguageRef.current = editorConfig.language as Language;
+      updateHydrated(false);
+      sendMessage({ type: 'init', config: editorConfig });
+      if (!editorConfig.noAutoFocus) {
+        sendMessage({ type: 'focus' });
+      }
+    }, [editorConfig, sendMessage, updateHydrated]);
+
+    useEffect(() => {
+      Logger.debug('editor.settings_sync', { effect: 'settingsSync' });
+      if (!isInitializedRef.current) {
+        return;
+      }
+      // Settings changed after the editor was initialized — update live.
+      sendMessage({
+        type: 'updateConfig',
+        config: {
+          isDark,
+          fontSize,
+          lineHeight,
+          wordWrap,
+          cursorColor: palette.cursor,
+          selectionColor: palette.selection,
+          backgroundColor: palette.background,
+          gutterColor,
+          borderColor,
+          tabSize,
+        },
+      });
+    }, [
+      paletteId,
+      fontSize,
+      wordWrap,
+      tabSize,
+      sendMessage,
+      isDark,
+      lineHeight,
+      palette.cursor,
+      palette.selection,
+      palette.background,
+      gutterColor,
+      borderColor,
+    ]);
+
+    // A language switch goes on the wire before the text write the screen makes for it: requests are answered in order, so the
+    // page changes grammar first and the new starter lands under it.
+    useEffect(() => {
+      if (!isInitializedRef.current || appliedLanguageRef.current === language) return;
+      appliedLanguageRef.current = language;
+      sendMessage({ type: 'updateConfig', config: { language } });
+    }, [language, sendMessage]);
+
+    // The suggestion config goes to the page through the typed API, once the page has hydrated (a page that starts again forgets it) and
+    // on every change of it after that.
+    const sendCompletion = useCallback(() => {
+      const wanted = completionRef.current ?? { enabled: false, entries: [] };
+      const key = JSON.stringify(wanted);
+      if (sentCompletionRef.current === key || (sentCompletionRef.current === null && !wanted.enabled)) return;
+      sentCompletionRef.current = key;
+      void apiBridge.client.setConfig({ completion: wanted }).then((reply) => {
+        if (!reply.ok) Logger.warn('editor.completion.config_failed', { code: reply.error.code });
+      });
+    }, [apiBridge]);
+    const completionKey = JSON.stringify(completion ?? null);
+    useEffect(() => {
+      if (hydratedRef.current) sendCompletion();
+    }, [completionKey, sendCompletion]);
+    // Subscribed once the page has hydrated, and again when it hydrates anew: a subscription asked for before the page can answer is a request
+    // that dies with the screen. The list is closed in a page that has just started.
+    const completionListenerRef = useRef<(() => void) | null>(null);
+    const listenForCompletion = useCallback(() => {
+      completionListenerRef.current?.();
+      completionOpenRef.current = false;
+      completionListenerRef.current = apiBridge.client.on('completion', (event) => {
+        completionOpenRef.current = event.open;
+      });
+    }, [apiBridge]);
+
+    // When the store changes `value` from outside (e.g. replaceAll), push the
+    // new text to CM6. Skip if CM6 was the source of the change to avoid loops.
+
+    useEffect(() => {
+      Logger.debug('editor.value_sync', { effect: 'valueSync' });
+      if (!isInitializedRef.current) return;
+      if (value !== lastWebViewTextRef.current) {
+        void writeDocument({ next: () => ({ text: valueRef.current }), label: 'react.value' });
+      }
+    }, [value, writeDocument]);
+
+    const updateHydratedRef = useRef(updateHydrated);
+    updateHydratedRef.current = updateHydrated;
+
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        if (hydratedRef.current) return;
+        Logger.warn('editor.hydrate.timeout', {
+          ready: isReadyRef.current,
+          initialized: isInitializedRef.current,
+          ms: HYDRATE_TIMEOUT_MS,
+        });
+      }, HYDRATE_TIMEOUT_MS);
+      return () => clearTimeout(timer);
+    }, []);
+
+    useLayoutEffect(() => {
+      Logger.debug('editor.cleanup', { effect: 'cleanup' });
+      return () => {
+        isReadyRef.current = false;
+        isInitializedRef.current = false;
+        queuedFocusRef.current = false;
+        queuedSelectionRef.current = null;
+        queuedTextRef.current = null;
+        updateHydratedRef.current(false);
+      };
+    }, []);
+
+    const handleEditorMessage = useCallback(
+      (m: FromEditorMessage) => {
+        switch (m.type) {
+          case 'ready':
+            Logger.info('editor.webview.ready', {});
+            isReadyRef.current = true;
+            initializeEditor();
+            break;
+          case 'hydrated':
+            lastWebViewTextRef.current = m.text;
+            updateHydrated(true);
+            // The view hydrated from whatever `initialText` was when it
+            // mounted; React state may have moved since. Reconcile to state
+            // -- a queued programmatic write first (it carries a selection),
+            // otherwise the current value -- so the editor never shows code
+            // other than what Run Local will run.
+            if (queuedTextRef.current != null) {
+              const { text, sel } = queuedTextRef.current;
+              queuedTextRef.current = null;
+              void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.queued', focus: true });
+            } else if (m.text !== valueRef.current) {
+              Logger.info('editor.hydrated.reconciled', {
+                viewLength: m.text.length,
+                valueLength: valueRef.current.length,
+              });
+              void writeDocument({ next: () => ({ text: valueRef.current }), label: 'react.reconcile' });
+            }
+            sentCompletionRef.current = null;
+            sendCompletion();
+            listenForCompletion();
+            // a switch made between init and hydration was dropped: the page was not ready for it
+            if (languageRef.current !== initLanguageRef.current) {
+              initLanguageRef.current = languageRef.current;
+              sendMessage({ type: 'updateConfig', config: { language: languageRef.current } });
+            }
+            if (queuedSelectionRef.current != null) {
+              const selection = queuedSelectionRef.current;
+              queuedSelectionRef.current = null;
+              sendMessage({
+                type: 'setSelection',
+                start: selection.start,
+                end: selection.end,
+              });
+            } else {
+              queuedSelectionRef.current = null;
+            }
+            if (queuedFocusRef.current) {
+              queuedFocusRef.current = false;
+              sendMessage({ type: 'focus' });
+            } else {
+              queuedFocusRef.current = false;
+            }
+            onSelectionChange(m.selection);
+            break;
+          case 'focused':
+            onFocusChange?.(true);
+            break;
+          case 'blurred':
+            onFocusChange?.(false);
+            break;
+          case 'log':
+            Logger.debug('editor.webview.log', { message: m.message });
+            break;
+          case 'error':
+            Logger.warn('editor.webview.js_error', {
+              message: m.message.slice(0, 200),
+            });
+            break;
+          case 'contentChanged':
+            lastWebViewTextRef.current = m.text;
+            onChangeText(m.text);
+            onSelectionChange(m.selection);
+            break;
+          case 'selectionChanged':
+            onSelectionChange(m.selection);
+            break;
+        }
+      },
+      [
+        initializeEditor,
+        onChangeText,
+        onFocusChange,
+        onSelectionChange,
+        listenForCompletion,
+        sendCompletion,
+        sendMessage,
+        updateHydrated,
+        writeDocument,
+      ]
+    );
+
+    // Dispatched through a ref, not an effect subscription: the webview's one
+    // 'ready' can arrive before effects run, and a dropped 'ready' means no init.
+    const handleEditorMessageRef = useRef(handleEditorMessage);
+    handleEditorMessageRef.current = handleEditorMessage;
+
+    // The WebView's onMessage feeds this editor first, then any port subscribers.
+    const handleMessage = useCallback(
+      (event: WebViewMessageEvent) => {
+        // A typed-API frame goes to the rpc client and never enters the old path, whose listeners expect a `type`.
+        if (decode(event.nativeEvent.data).type !== 'foreign') {
+          apiBridge.receive(event.nativeEvent.data);
+          return;
+        }
+        let msg: FromEditorMessage;
+        try {
+          msg = JSON.parse(event.nativeEvent.data) as FromEditorMessage;
+        } catch (err) {
+          Logger.withError(err).debug('editor.message.parse_skip');
+          return;
+        }
+        handleEditorMessageRef.current(msg);
+        for (const listener of messageListenersRef.current) {
+          listener(msg);
+        }
+      },
+      [apiBridge]
+    );
+
+    return (
+      <View
+        testID={testID ?? 'CodeEditorContainer'}
+        flex={1}
+        overflow="hidden"
+        rounded="$3"
+        style={{ backgroundColor: palette.background }}
+      >
+        <WebView<object>
+          testID="CodeEditorInput"
+          ref={webViewRef}
+          source={{ html }}
+          onMessage={handleMessage}
+          onLoadStart={() => {
+            Logger.info('editor.webview.load_start', {});
+          }}
+          onLoadEnd={() => {
+            Logger.info('editor.webview.load_end', {});
+          }}
+          onError={(e) => {
+            Logger.warn('editor.webview.error', {
+              desc: e.nativeEvent.description,
+            });
+          }}
+          onHttpError={(e) => {
+            Logger.warn('editor.webview.http_error', {
+              statusCode: e.nativeEvent.statusCode,
+            });
+          }}
+          onRenderProcessGone={(e) => {
+            Logger.error('editor.webview.process_gone', {
+              didCrash: e.nativeEvent.didCrash,
+            });
+          }}
+          originWhitelist={['*']}
+          javaScriptEnabled
+          domStorageEnabled={false}
+          bounces={false}
+          scrollEnabled={false}
+          keyboardDisplayRequiresUserAction={false}
+          hideKeyboardAccessoryView
+          allowsInlineMediaPlayback
+          style={{ flex: 1, backgroundColor: palette.background }}
+        />
+      </View>
+    );
+  }
+);

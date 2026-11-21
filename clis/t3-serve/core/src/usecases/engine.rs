@@ -5,7 +5,8 @@ use crate::domain::command::{Command, Family};
 use crate::domain::decider::{decide, decide_adopt, decide_run_step, Ctx, Effect, Rejection, RunStep};
 use crate::domain::state::{event_json, State};
 use crate::ports::{Clock, EventDraft, EventStore, Ids, StoreError, StoredEvent};
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
+use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
@@ -23,6 +24,8 @@ pub enum Failure {
     Defect(String),
     Refused { command_id: String, command_type: String, message: String },
     ProjectNotEmpty { command_id: String, project_id: String },
+    ThreadMissing { command_id: String, command_type: String, thread_id: String },
+    PreviouslyRejected { command_id: String, command_type: String, reason: String },
 }
 
 pub struct Dispatched {
@@ -37,7 +40,12 @@ pub struct Dispatched {
 struct Inner {
     state: State,
     subscribers: Vec<Sender<Arc<Published>>>,
+    /// Command ids refused for a missing thread, with the first refusal's message; the pin refuses a repeat with it (a restart forgets them).
+    rejected: HashMap<String, String>,
 }
+
+/// Bound on remembered refusals, so a client cannot grow them without end; past it the oldest knowledge is dropped whole.
+const MAX_REJECTED: usize = 10_000;
 
 pub struct Engine {
     store: Arc<dyn EventStore>,
@@ -56,7 +64,7 @@ impl Engine {
         for event in store.read_after(0)? {
             state.apply(&event);
         }
-        Ok(Engine { store, clock, ids, inner: Mutex::new(Inner { state, subscribers: Vec::new() }) })
+        Ok(Engine { store, clock, ids, inner: Mutex::new(Inner { state, subscribers: Vec::new(), rejected: HashMap::new() }) })
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
@@ -90,16 +98,37 @@ impl Engine {
 
     pub fn dispatch(&self, family: Family, raw: &Value) -> Result<Dispatched, Failure> {
         let cmd = Command::parse(raw, family).map_err(Failure::Defect)?;
+        self.run(family, cmd)
+    }
+
+    /// A command the server issues itself (`SERVER_ONLY`), which no client can dispatch.
+    pub fn dispatch_server(&self, body: Map<String, Value>) -> Result<Dispatched, Failure> {
+        let cmd = Command::server(body).map_err(Failure::Defect)?;
+        self.run(Family::Thread, cmd)
+    }
+
+    fn run(&self, family: Family, cmd: Command) -> Result<Dispatched, Failure> {
         let mut inner = self.lock();
         let refuse = |m: String| Failure::Refused { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), message: m };
         let project_row = |inner: &Inner| (family == Family::Project).then(|| cmd.str("projectId").and_then(|id| inner.state.project_row(id))).flatten();
         if let Some(receipt) = self.store.receipt(&cmd.command_id).map_err(|e| refuse(e.0))? {
             return Ok(Dispatched { sequence: receipt.sequence, row: project_row(&inner), effect: None, replayed: true });
         }
+        if let Some(reason) = inner.rejected.get(&cmd.command_id).filter(|_| family == Family::Thread) {
+            return Err(Failure::PreviouslyRejected { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), reason: reason.clone() });
+        }
         let new_id = || uuid(self.ids.as_ref());
-        let decision = decide(&inner.state, family, &cmd, &Ctx { now: self.clock.now_ms(), new_id: &new_id }).map_err(|r| match r {
+        let decided = decide(&inner.state, family, &cmd, &Ctx { now: self.clock.now_ms(), new_id: &new_id });
+        let decision = decided.map_err(|r| match r {
             Rejection::Refused(m) => refuse(m),
             Rejection::ProjectNotEmpty(project_id) => Failure::ProjectNotEmpty { command_id: cmd.command_id.clone(), project_id },
+            Rejection::ThreadMissing(thread_id) => {
+                if inner.rejected.len() >= MAX_REJECTED {
+                    inner.rejected.clear();
+                }
+                inner.rejected.insert(cmd.command_id.clone(), t3_contracts::wire::projection_load_failed(&thread_id));
+                Failure::ThreadMissing { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), thread_id }
+            }
         })?;
         let stored = self.commit(&mut inner, decision.drafts, &cmd.command_id, Some((&cmd.command_id, &cmd.kind))).map_err(|e| refuse(e.0))?;
         let sequence = stored.last().map_or(inner.state.last_sequence, |e| e.sequence);
@@ -151,6 +180,14 @@ impl Engine {
         self.commit(&mut inner, drafts, command_id, receipt.then_some((command_id, "agent.event"))).map(|_| ())
     }
 
+    /// A queued run the agent API did not accept ends cancelled, with its message taken back.
+    pub fn cancel_queued(&self, thread_id: &str, run_id: &str) -> Result<(), StoreError> {
+        let mut inner = self.lock();
+        let Some(run) = inner.state.entities.get(thread_id).and_then(|e| e.runs.iter().find(|r| r["id"] == run_id && r["status"] == "queued")).cloned() else { return Ok(()) };
+        let drafts = crate::domain::decider::cancelled(&run, self.clock.now_ms());
+        self.commit(&mut inner, drafts, &format!("queue-failed-{run_id}"), None).map(|_| ())
+    }
+
     pub fn thread_exists(&self, thread_id: &str) -> bool {
         self.lock().state.threads.contains_key(thread_id)
     }
@@ -159,6 +196,17 @@ impl Engine {
     pub fn active_run(&self, thread_id: &str) -> Option<String> {
         let inner = self.lock();
         inner.state.entities.get(thread_id)?.runs.iter().rev().find(|r| r["status"] == "running").and_then(|r| r["id"].as_str().map(str::to_string))
+    }
+
+    /// The run that starts next from the thread's queue.
+    pub fn next_queued(&self, thread_id: &str) -> Option<String> {
+        let inner = self.lock();
+        crate::domain::decider::queued_runs(&inner.state, thread_id).first().and_then(|r| r["id"].as_str().map(str::to_string))
+    }
+
+    /// Whether the thread's rows hold a run of this id.
+    pub fn knows_run(&self, thread_id: &str, run_id: &str) -> bool {
+        self.lock().state.entities.get(thread_id).is_some_and(|e| e.runs.iter().any(|r| r["id"] == run_id))
     }
 
     /// Every thread with a run that is running, and that run.
@@ -193,10 +241,11 @@ impl Engine {
     pub fn thread_start(&self, thread_id: &str, after: Option<u64>) -> Result<(Vec<Value>, u64), String> {
         let inner = self.lock();
         let last = inner.state.last_sequence;
-        let Some(projection) = inner.state.thread_projection(thread_id) else {
-            return Err(format!("thread {thread_id} was not found"));
-        };
+        // A subscriber that has the log up to a sequence asks for what follows, whether or not it holds the thread: only a snapshot needs the projection
         let Some(after) = Self::replayable(after, last) else {
+            let Some(projection) = inner.state.thread_projection(thread_id) else {
+                return Err(format!("thread {thread_id} was not found"));
+            };
             return Ok((vec![json!({"kind": "snapshot", "snapshotSequence": last, "projection": projection})], last));
         };
         let events = self.store.read_after(after).map_err(|e| e.0)?;
@@ -205,7 +254,7 @@ impl Engine {
     }
 
     pub fn thread_projection(&self, thread_id: &str) -> Option<Value> {
-        self.lock().state.thread_projection(thread_id)
+        self.lock().state.thread_projection_read(thread_id)
     }
 
     /// The directory a project's files live under, for the file RPCs.

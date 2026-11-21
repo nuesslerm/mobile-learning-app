@@ -22,3 +22,6 @@ tokio.workspace = true
 agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
 agent-api-schedules = { path = "../../../libraries/agent-api/agent-api-schedules" }
 rca-agent-core = { path = "../agent-core" }
+
+[package.metadata.arch]
+type = "rust-group"

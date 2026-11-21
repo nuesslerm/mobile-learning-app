@@ -1,12 +1,17 @@
 {
   "registries": [
-    { "alias": "mla", "kind": "cargo-sparse", "tokenEnv": "LIBS_INDEX_WRITE_PAR_URL", "publish": "bucket-sparse",
-      "indexUrl": "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/" },
+    { "alias": "mla", "kind": "cargo-sparse", "publish": "git-sparse",
+      "indexUrl": "https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/" },
     { "alias": "crates-io", "kind": "crates-io", "url": "sparse+https://index.crates.io/", "tokenEnv": "CARGO_REGISTRY_TOKEN", "publish": "cargo-publish" }
   ],
   "libraries": [
     { "name": "service-kit", "kind": "rust", "path": "backend/service-kit", "registry": "mla" },
     { "name": "telemetry", "kind": "rust", "path": "clis/telemetry", "registry": "mla" },
+    { "name": "mimic-core", "kind": "rust", "path": "clis/mimic/core", "registry": "mla" },
+    { "name": "mimic-script-core", "kind": "rust", "path": "clis/mimic/script/core", "registry": "mla" },
+    { "name": "mimic-script-net", "kind": "rust", "path": "clis/mimic/script/net", "registry": "mla" },
+    { "name": "mimic-script-host", "kind": "rust", "path": "clis/mimic/script/host", "registry": "mla" },
+    { "name": "mimic-script-orca", "kind": "rust", "path": "clis/mimic/script/orca", "registry": "mla" },
     { "name": "rca-core", "kind": "rust", "path": "libraries/rca-core", "registry": "mla" },
     { "name": "rca-ladder", "kind": "rust", "path": "libraries/rca-core/plugins/ladder", "registry": "mla" }
   ]

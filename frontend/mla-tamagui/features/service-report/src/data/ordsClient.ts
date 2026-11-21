@@ -13,25 +13,16 @@
  */
 
 import { Logger } from '@lib/logging';
-import {
-  sortReportsByGeneratedAtDesc,
-  type HealthReport,
-} from '../contracts';
+import { sortReportsByGeneratedAtDesc } from '../domain';
 import { z } from 'zod';
 
-import { encodeBase64 } from '../lib/base64';
+import { encodeBase64 } from '../domain/base64';
+import type { HealthReportHistoryResult, HealthReportsPort, OrdsConnection } from '../domain/ports';
 import {
   ordsRowSchema,
   parseHealthReportRows,
-} from '../use-cases/parseHealthReportRows';
+} from '../domain/parseHealthReportRows';
 
-const DEFAULT_ORDS_USER = 'health_rpt';
-
-// Env var NAMES for user-facing messages only — the actual reads below use
-// literal `process.env.EXPO_PUBLIC_...` member access (not a dynamic
-// `process.env[name]` lookup) because Expo's babel plugin only inlines
-// statically-analyzable member expressions at build time; a dynamic access
-// would silently read `undefined` in a built/web bundle.
 const ENV_BASE_URL_NAME = 'EXPO_PUBLIC_HEALTH_REPORTS_ORDS_BASE_URL';
 const ENV_PASSWORD_NAME = 'EXPO_PUBLIC_HEALTH_REPORTS_ORDS_PASSWORD';
 
@@ -43,28 +34,14 @@ const ordsEnvelopeSchema = z.object({
   count: z.number().optional(),
 });
 
-export type HealthReportHistoryResult =
-  | { status: 'not-configured'; reason: string }
-  | { status: 'unreachable'; error: string }
-  | { status: 'ready'; reports: HealthReport[]; skippedRowCount: number };
-
-type OrdsConfig = { baseUrl: string; user: string; password: string };
-
-function loadConfig(): OrdsConfig | null {
-  const baseUrl = process.env.EXPO_PUBLIC_HEALTH_REPORTS_ORDS_BASE_URL;
-  const password = process.env.EXPO_PUBLIC_HEALTH_REPORTS_ORDS_PASSWORD;
-  if (!baseUrl || !password) return null;
-  const user =
-    process.env.EXPO_PUBLIC_HEALTH_REPORTS_ORDS_USER || DEFAULT_ORDS_USER;
-  return { baseUrl, user, password };
-}
-
-function authHeader(config: OrdsConfig): string {
+function authHeader(config: OrdsConnection): string {
   return `Basic ${encodeBase64(`${config.user}:${config.password}`)}`;
 }
 
-export async function fetchHealthReportHistory(): Promise<HealthReportHistoryResult> {
-  const config = loadConfig();
+async function fetchHealthReportHistory(
+  config: OrdsConnection | undefined,
+  fetchImpl: typeof fetch
+): Promise<HealthReportHistoryResult> {
   if (!config) {
     Logger.info('service_report.fetch_not_configured');
     return {
@@ -77,7 +54,7 @@ export async function fetchHealthReportHistory(): Promise<HealthReportHistoryRes
 
   let response: Response;
   try {
-    response = await fetch(config.baseUrl, {
+    response = await fetchImpl(config.baseUrl, {
       method: 'GET',
       headers: { Authorization: authHeader(config) },
     });
@@ -128,4 +105,8 @@ export async function fetchHealthReportHistory(): Promise<HealthReportHistoryRes
   });
 
   return { status: 'ready', reports: sorted, skippedRowCount };
+}
+
+export function createOrdsHealthReports(config: OrdsConnection | undefined, fetchImpl: typeof fetch = fetch): HealthReportsPort {
+  return { fetchHistory: () => fetchHealthReportHistory(config, fetchImpl) };
 }

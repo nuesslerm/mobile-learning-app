@@ -3,9 +3,13 @@ name = "rca-core"
 version = "0.1.2"
 edition = "2021"
 publish = false
+# What a published crate holds: fixtures, cassettes and tests stay out unless named here (`wf lib release` refuses a manifest without it).
+include = ["src/**", "data/**", "Cargo.toml"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
 sha2 = "0.10"
-time = { version = "0.3", features = ["formatting", "parsing", "macros"] }
+
+[package.metadata.arch]
+type = "rust-flat-core"

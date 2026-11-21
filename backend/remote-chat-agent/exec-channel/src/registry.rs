@@ -100,12 +100,22 @@ pub trait Executors: Send + Sync {
     fn route_worktree(&self, workspace: &str) -> Result<Route, RouteError>;
 }
 
+/// Where the registry keeps which executor owns which workspace and where it lies, so a restart of the service forgets none of them.
+pub trait WorkspaceLedger: Send + Sync {
+    /// Every persisted `(workspace, executor, place)`; empty when there is nothing yet or it cannot be read.
+    fn load(&self) -> Vec<(String, String, Place)>;
+    /// Replaces the persisted ownership and places with these.
+    fn save(&self, owners: &HashMap<String, String>, places: &HashMap<String, Place>);
+}
+
 #[derive(Default)]
 struct Attached {
     channels: HashMap<String, Arc<dyn ExecutorChannel>>,
     owners: HashMap<String, String>,
     places: HashMap<String, Place>,
     threads: HashMap<String, String>,
+    /// Executors the ledger named that have not attached since this boot: a new executor may take over their root.
+    restored: std::collections::HashSet<String>,
 }
 
 /// The open channel of each executor, the owner of each workspace, and the workspace each running thread acts on. A second open for an
@@ -114,9 +124,29 @@ struct Attached {
 #[derive(Default)]
 pub struct Registry {
     attached: Mutex<Attached>,
+    ledger: Option<Arc<dyn WorkspaceLedger>>,
 }
 
 impl Registry {
+    /// A registry that starts from what `ledger` holds (owned, not routable until the owner attaches) and saves every change to ownership or places.
+    pub fn with_ledger(ledger: Arc<dyn WorkspaceLedger>) -> Registry {
+        let mut attached = Attached::default();
+        for (workspace, executor, place) in ledger.load() {
+            if place != Place::default() {
+                attached.places.insert(workspace.clone(), place);
+            }
+            attached.restored.insert(executor.clone());
+            attached.owners.insert(workspace, executor);
+        }
+        Registry { attached: Mutex::new(attached), ledger: Some(ledger) }
+    }
+
+    fn persist(&self, attached: &Attached) {
+        if let Some(ledger) = &self.ledger {
+            ledger.save(&attached.owners, &attached.places);
+        }
+    }
+
     fn attached(&self) -> std::sync::MutexGuard<'_, Attached> {
         self.attached.lock().unwrap_or_else(|p| p.into_inner())
     }
@@ -126,9 +156,14 @@ impl Registry {
         let replaced = {
             let mut attached = self.attached();
             if let Some(owner) = attached.owners.get(root).filter(|o| o.as_str() != executor) {
-                return Err(WorkspaceError::Taken { workspace: root.to_string(), owner: owner.clone() });
+                if !attached.restored.contains(owner.as_str()) || attached.channels.contains_key(owner.as_str()) {
+                    return Err(WorkspaceError::Taken { workspace: root.to_string(), owner: owner.clone() });
+                }
             }
-            attached.owners.insert(root.to_string(), executor.to_string());
+            attached.restored.remove(executor);
+            if attached.owners.insert(root.to_string(), executor.to_string()).as_deref() != Some(executor) {
+                self.persist(&attached);
+            }
             attached.channels.insert(executor.to_string(), channel)
         };
         if let Some(old) = replaced {
@@ -238,6 +273,7 @@ impl Executors for Registry {
             _ => {
                 attached.owners.insert(workspace.to_string(), executor.to_string());
                 attached.places.insert(workspace.to_string(), place);
+                self.persist(&attached);
                 Ok(())
             }
         }
@@ -246,7 +282,11 @@ impl Executors for Registry {
     fn remove_workspace(&self, workspace: &str) -> bool {
         let mut attached = self.attached();
         attached.places.remove(workspace);
-        attached.owners.remove(workspace).is_some()
+        let known = attached.owners.remove(workspace).is_some();
+        if known {
+            self.persist(&attached);
+        }
+        known
     }
 
     fn route_new(&self, executor: Option<&str>) -> Result<Route, RouteError> {
@@ -458,5 +498,58 @@ mod tests {
         // And a removed workspace is no longer anyone's
         assert!(registry.remove_workspace("repo/wt") && !registry.remove_workspace("repo/wt"));
         assert!(registry.get("repo/wt").is_none() && registry.owner("repo/wt").is_none());
+    }
+
+    #[derive(Default)]
+    struct MemoryLedger(Mutex<Vec<(String, String, Place)>>);
+
+    impl WorkspaceLedger for MemoryLedger {
+        fn load(&self) -> Vec<(String, String, Place)> {
+            self.0.lock().unwrap().clone()
+        }
+
+        fn save(&self, owners: &HashMap<String, String>, places: &HashMap<String, Place>) {
+            let mut rows: Vec<_> = owners.iter().map(|(w, e)| (w.clone(), e.clone(), places.get(w).cloned().unwrap_or_default())).collect();
+            rows.sort_by(|a, b| a.0.cmp(&b.0));
+            *self.0.lock().unwrap() = rows;
+        }
+    }
+
+    #[tokio::test]
+    async fn given_a_ledger_when_the_registry_is_built_again_then_workspaces_are_known_but_route_only_once_their_executor_attaches_and_a_drop_leaves_the_ledger() {
+        // Given a registry over a ledger, an executor with a root and a worktree workspace made for it
+        let ledger = Arc::new(MemoryLedger::default());
+        let first = Registry::with_ledger(ledger.clone());
+        attach(&first, "box", "repo");
+        let place = Place { prefix: Some("/base/wt".into()), worktree: Some("wt".into()) };
+        first.add_workspace_at("box", "wt", place.clone()).unwrap();
+        first.add_workspace_at("box", "gone", Place::default()).unwrap();
+        // When a new registry is built over the same ledger
+        let second = Registry::with_ledger(ledger.clone());
+        // Then the workspaces, their owner and the place are known, and none routes yet
+        assert_eq!((second.known_workspaces(), second.owner("wt"), second.place("wt")), (vec!["gone".to_string(), "repo".to_string(), "wt".to_string()], Some("box".to_string()), place));
+        assert!(second.get("wt").is_none() && second.workspaces().is_empty());
+        assert_eq!(second.route_worktree("wt").err(), Some(RouteError::NoExecutor));
+        // And they route the moment the same executor id attaches
+        let (channel, _) = attach(&second, "box", "repo");
+        assert!(second.get("wt").is_some_and(|c| Arc::ptr_eq(&c, &channel)) && same(second.route_worktree("wt"), &channel));
+        // And dropping a workspace removes it from the ledger
+        assert!(second.remove_workspace("gone"));
+        assert_eq!(ledger.load().into_iter().map(|row| row.0).collect::<Vec<_>>(), ["repo", "wt"]);
+    }
+
+    #[tokio::test]
+    async fn given_a_ledger_owner_that_has_not_attached_when_another_executor_claims_its_root_then_it_takes_over_but_a_live_owner_is_never_displaced() {
+        // Given a registry restored from a ledger that names executor `old` as the owner of root `repo`
+        let ledger = Arc::new(MemoryLedger::default());
+        attach(&Registry::with_ledger(ledger.clone()), "old", "repo");
+        let restored = Registry::with_ledger(ledger.clone());
+        // When another executor opens the same root before `old` has attached since the boot
+        let (channel, _) = attach(&restored, "new", "repo");
+        // Then it owns the root and routes, and the ledger says so
+        assert!(restored.owner("repo").as_deref() == Some("new") && restored.get("repo").is_some_and(|c| Arc::ptr_eq(&c, &channel)));
+        assert_eq!(ledger.load().into_iter().map(|row| (row.0, row.1)).collect::<Vec<_>>(), [("repo".to_string(), "new".to_string())]);
+        // And an executor that is attached now is never displaced by a third one
+        assert!(matches!(restored.open_executor("third", "repo", Channel::new(Arc::new(RecordingSink::default()))), Err(WorkspaceError::Taken { .. })));
     }
 }

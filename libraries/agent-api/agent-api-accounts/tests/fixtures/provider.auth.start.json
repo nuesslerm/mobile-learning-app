@@ -23,7 +23,12 @@
             "error": null
           }
         }
-      }
+      },
+      "actions": [
+        "login_start",
+        "login_status",
+        "cli_detect"
+      ]
     },
     {
       "name": "a method the CLI lacks is refused",

@@ -1,0 +1,19 @@
+{
+  "transcript": "set s to only its alphanumeric characters in lowercase",
+  "alternatives": [
+    {
+      "id": "stub-1",
+      "label": "Filter s to lowercase alphanumerics",
+      "summary": "Set s to only its alphanumeric characters in lowercase.",
+      "confidence": 0.95,
+      "commands": [
+        {
+          "type": "replaceLines",
+          "startLine": 3,
+          "endLine": 3,
+          "newText": "        s = \"\".join(c.lower() for c in s if c.isalnum())"
+        }
+      ]
+    }
+  ]
+}

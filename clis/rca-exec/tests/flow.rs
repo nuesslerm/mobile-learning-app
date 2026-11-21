@@ -1,5 +1,9 @@
 //! The flow tests of `rca-exec` (`docs/plans/rca-client/protocol.md`): the local adapter on a real temp directory with real processes, and
 //! the channel client against an in-test WebSocket server that plays rca. Nothing here doubles the executor.
+#[path = "flow/artifacts.rs"]
+mod artifacts;
+#[path = "flow/browser.rs"]
+mod browser;
 #[path = "flow/catalog.rs"]
 mod catalog;
 #[path = "flow/contracts.rs"]
@@ -8,8 +12,12 @@ mod contracts;
 mod git;
 #[path = "flow/hosted.rs"]
 mod hosted;
+#[path = "flow/mcp_secret_sampling.rs"]
+mod mcp_secret_sampling;
 #[path = "flow/preview.rs"]
 mod preview;
+#[path = "flow/provider_account.rs"]
+mod provider_account;
 #[path = "flow/pty.rs"]
 mod pty;
 #[path = "flow/workspace.rs"]
@@ -21,7 +29,7 @@ use std::os::unix::fs::symlink;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use exec_fs::{EditFile, EntryKind, ListDir, ReadFile, Search, SearchKind, WriteFile};
+use exec_fs::{EntryKind, ListDir, ReadFile, WriteFile};
 use exec_proc::{RunCommand, RunResult};
 use exec_proto::{Code, ExecResult, Stream};
 use rca_exec::domain::{execute, ToolExecutor};
@@ -60,48 +68,22 @@ fn wait_for(what: &str, mut ok: impl FnMut() -> bool) {
 }
 
 #[test]
-fn write_read_edit_list_and_search_do_the_thing_on_disk() {
+fn write_read_and_list_do_the_thing_on_disk() {
     // Given an executor rooted at a real directory
     let dir = tempfile::tempdir().unwrap();
     let ex = executor(dir.path());
-    // When a file is written (with its parent created), read in a window, edited and listed
+    // When a file is written (with its parent created), read in a window and listed
     assert_eq!(ex.write_file(&WriteFile { path: "src/a.txt".into(), content: "one\ntwo\nthree\nfour\n".into(), create_dirs: true }).unwrap(), 19);
     let window = ex.read_file(&ReadFile { path: "src/a.txt".into(), offset: 1, limit: Some(2) }).unwrap();
-    assert_eq!(ex.edit_file(&EditFile { path: "src/a.txt".into(), old: "three".into(), new: "3".into(), replace_all: false }).unwrap(), 1);
-    // Then the bytes on disk are the edited ones and the reads and listings report them
-    assert_eq!(std::fs::read_to_string(dir.path().join("src/a.txt")).unwrap(), "one\ntwo\n3\nfour\n");
+    // Then the bytes on disk are the written ones and the reads and listings report them
+    assert_eq!(std::fs::read_to_string(dir.path().join("src/a.txt")).unwrap(), "one\ntwo\nthree\nfour\n");
     assert_eq!((window.content.as_str(), window.total_lines), ("two\nthree\n", 4));
     let top = ex.list_dir(&ListDir { path: ".".into(), depth: 1 }).unwrap();
     assert_eq!(top.iter().map(|e| (e.name.as_str(), e.kind)).collect::<Vec<_>>(), [("src", EntryKind::Dir)]);
     let deep = ex.list_dir(&ListDir { path: ".".into(), depth: 2 }).unwrap();
-    assert_eq!(deep.iter().map(|e| (e.name.as_str(), e.size)).collect::<Vec<_>>(), [("src", deep[0].size), ("src/a.txt", 15)]);
-    // And both searches find it, content with its line
-    ex.write_file(&WriteFile { path: "b.rs".into(), content: "fn main() {}\n".into(), create_dirs: false }).unwrap();
-    let content = ex.search(&Search { pattern: "^f.u.$".into(), path: ".".into(), glob: None, kind: SearchKind::Content }).unwrap();
-    assert_eq!(content.matches.iter().map(|m| (m.path.as_str(), m.line)).collect::<Vec<_>>(), [("src/a.txt", Some(4))]);
-    let files = ex.search(&Search { pattern: "**/*.txt".into(), path: ".".into(), glob: None, kind: SearchKind::Files }).unwrap();
-    assert_eq!(files.matches.iter().map(|m| m.path.as_str()).collect::<Vec<_>>(), ["src/a.txt"]);
-    let globbed = ex.search(&Search { pattern: "main".into(), path: ".".into(), glob: Some("*.rs".into()), kind: SearchKind::Content }).unwrap();
-    assert_eq!(globbed.matches.len(), 1);
+    assert_eq!(deep.iter().map(|e| (e.name.as_str(), e.size)).collect::<Vec<_>>(), [("src", deep[0].size), ("src/a.txt", 19)]);
     // And a missing file is NOT_FOUND
     assert_eq!(ex.read_file(&ReadFile { path: "nope".into(), offset: 0, limit: None }).unwrap_err().code, Code::NotFound);
-}
-
-#[test]
-fn an_edit_that_matches_twice_is_ambiguous_until_replace_all_and_a_missing_old_is_not_found() {
-    // Given a file where "x" occurs twice
-    let dir = tempfile::tempdir().unwrap();
-    let ex = executor(dir.path());
-    write(&ex, "f", "x and x").unwrap();
-    let edit = |old: &str, replace_all| ex.edit_file(&EditFile { path: "f".into(), old: old.into(), new: "y".into(), replace_all });
-    // When the edit is made without replace_all, Then it is refused and the file is untouched
-    assert_eq!(edit("x", false).unwrap_err().code, Code::EditAmbiguous);
-    assert_eq!(std::fs::read_to_string(dir.path().join("f")).unwrap(), "x and x");
-    // And an absent `old` is a different code
-    assert_eq!(edit("zzz", false).unwrap_err().code, Code::EditNotFound);
-    // And with replace_all both are replaced
-    assert_eq!(edit("x", true).unwrap(), 2);
-    assert_eq!(std::fs::read_to_string(dir.path().join("f")).unwrap(), "y and y");
 }
 
 #[test]
@@ -376,6 +358,17 @@ fn serve_process(url: &str, root: &Path, bearer: Option<&str>) -> std::process::
     command.spawn().unwrap()
 }
 
+fn serve_reconnecting(url: &str, root: &Path, window_secs: u64) -> std::process::Child {
+    std::process::Command::new(BIN)
+        .args(["serve", "--rca-url", url, "--workspace", "w 1", "--root", root.to_str().unwrap(), "--secret-env", "RCA_TEST_BEARER", "--reconnect", "--reconnect-for", &window_secs.to_string()])
+        .env("RCA_TEST_BEARER", "tok")
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap()
+}
+
 fn json_lines(child: std::process::Child) -> (i32, Vec<Value>) {
     let out = child.wait_with_output().unwrap();
     (out.status.code().unwrap(), String::from_utf8(out.stdout).unwrap().lines().map(|l| serde_json::from_str(l).unwrap_or_else(|e| panic!("{e}: {l}"))).collect())
@@ -401,6 +394,57 @@ fn the_serve_verb_attaches_to_rca_for_its_workspace_executes_a_request_and_ends_
     assert_eq!((wrote["ok"].clone(), std::fs::read_to_string(dir.path().join("made.txt")).unwrap()), (json!(true), "by rca".to_string()));
     assert_eq!(code, 0);
     assert_eq!(lines, [json!({"ok": true, "event": "attached", "workspace": "w 1", "executor": "w 1", "root": dir.path().to_str().unwrap(), "rcaUrl": url}), json!({"ok": true, "event": "closed", "closeCode": 1000})]);
+}
+
+#[test]
+fn with_reconnect_the_executor_attaches_again_when_rca_comes_back_after_being_down_and_serves_the_next_request() {
+    // Given an executor served with --reconnect, attached to an in-test rca
+    let dir = tempfile::tempdir().unwrap();
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let url = format!("http://{address}");
+    let seen: Seen = Arc::default();
+    let child = serve_reconnecting(&url, dir.path(), 30);
+    let ws = accept(&listener, &seen);
+    // When rca goes away (its connection and its listener are gone), stays down for a while, and comes back on the same address
+    drop(ws);
+    drop(listener);
+    std::thread::sleep(Duration::from_millis(1500));
+    let listener = TcpListener::bind(address).unwrap();
+    let mut ws = accept(&listener, &seen);
+    // Then the executor is attached again for the same workspace, and the request rca sends now is served
+    send(&mut ws, json!({"id": "w1", "tool": "write_file", "args": {"path": "after.txt", "content": "after the restart"}}));
+    let (_, wrote) = until_result(&mut ws, "w1");
+    // (a clean close would make --reconnect attach again: only a replacement, close 4001, ends the process)
+    ws.close(Some(tungstenite::protocol::CloseFrame { code: 4001.into(), reason: "replaced".into() })).unwrap();
+    while ws.read().is_ok() {}
+    let (code, lines) = json_lines(child);
+    assert_eq!(seen.lock().unwrap().iter().map(|(uri, _)| uri.clone()).collect::<Vec<_>>(), ["/exec/v2/executors?workspace=w%201", "/exec/v2/executors?workspace=w%201"]);
+    assert_eq!((wrote["ok"].clone(), std::fs::read_to_string(dir.path().join("after.txt")).unwrap()), (json!(true), "after the restart".to_string()));
+    assert_eq!(code, 1);
+    assert_eq!(lines.iter().map(|l| l["event"].as_str().unwrap_or_default().to_string()).collect::<Vec<_>>(), ["attached", "reattached", ""]);
+    assert_eq!((lines[2]["ok"].clone(), lines[2]["closeCode"].clone()), (json!(false), json!(4001)));
+}
+
+#[test]
+fn with_reconnect_an_executor_whose_rca_does_not_come_back_within_the_window_says_so_and_exits_1() {
+    // Given an executor served with --reconnect and a one second window, attached to an in-test rca
+    let dir = tempfile::tempdir().unwrap();
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let child = serve_reconnecting(&url, dir.path(), 1);
+    let ws = accept(&listener, &Seen::default());
+    // When rca goes away and never comes back
+    drop(ws);
+    drop(listener);
+    let started = Instant::now();
+    let (code, lines) = json_lines(child);
+    // Then, after the window and not before, it printed that it gave up, with the next step, and exited 1
+    assert!(started.elapsed() >= Duration::from_secs(1) && started.elapsed() < Duration::from_secs(30), "{:?}", started.elapsed());
+    assert_eq!(code, 1);
+    let last = lines.last().unwrap();
+    assert_eq!((last["ok"].clone(), last["event"].clone()), (json!(false), json!("gave_up")));
+    assert!(last["error"].as_str().unwrap().contains("could not reconnect to rca within 1s") && last["next"].is_string(), "{last}");
 }
 
 #[test]

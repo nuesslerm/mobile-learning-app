@@ -216,3 +216,22 @@ pub trait WorkspaceFiles: Send + Sync {
     /// A fresh directory `<base>/<prefix><random>` readable by its owner only (`base` is created when missing); the caller removes it.
     fn temp_dir(&self, base: &Path, prefix: &str) -> Result<std::path::PathBuf, String>;
 }
+
+/// The wall clock, in milliseconds since the Unix epoch.
+pub trait Clock: Send + Sync {
+    fn now_ms(&self) -> u64;
+
+    /// ISO-8601 with milliseconds and a Z, as `Date#toISOString`.
+    fn now_iso(&self) -> String {
+        crate::domain::ids::iso_from_ms(self.now_ms())
+    }
+}
+
+/// Fresh identifiers.
+pub trait IdSource: Send + Sync {
+    /// A random (version 4) UUID, as `crypto.randomUUID`.
+    fn uuid(&self) -> String;
+
+    /// `n` random bytes (at most 16) as lowercase hex.
+    fn hex(&self, n: usize) -> String;
+}

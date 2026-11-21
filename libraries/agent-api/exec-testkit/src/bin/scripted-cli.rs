@@ -6,7 +6,7 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 fn fail(code: i32, message: &str) -> ! {
@@ -81,18 +81,51 @@ fn print(line: &str) {
     let _ = out.flush();
 }
 
-/// A tool call as the named CLI prints it, the call first and then, when the service answered, its result.
-fn call_tool(program: &str, args: &[String], id: &str, tool: &str, input: &Value) {
-    if program == "codex" {
-        fail(2, "codex cannot use the executor channel yet: its MCP flags are not confirmed");
+/// What the CLI's own file and shell tools do, in the directory it was started in (the workspace host's), as `(text, is_error)`; none for a tool
+/// only the service answers (`approval_prompt`, `ask_user`), which goes through the MCP server.
+fn run_own_tool(tool: &str, input: &Value) -> Option<(String, bool)> {
+    let path = || input["path"].as_str().unwrap_or_default().to_string();
+    match tool {
+        "write_file" => {
+            let (target, content) = (PathBuf::from(path()), input["content"].as_str().unwrap_or_default());
+            if let Some(parent) = target.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            Some(match std::fs::write(&target, content) {
+                Ok(()) => (format!("wrote {} bytes", content.len()), false),
+                Err(e) => (format!("{}: {e}", target.display()), true),
+            })
+        }
+        "read_file" => Some(match std::fs::read_to_string(path()) {
+            Ok(content) => (content, false),
+            Err(e) => (format!("{}: {e}", path()), true),
+        }),
+        "run_command" => {
+            let out = std::process::Command::new("sh").arg("-c").arg(input["command"].as_str().unwrap_or_default()).output().unwrap_or_else(|e| fail(3, &e.to_string()));
+            let (mut text, code) = (String::from_utf8_lossy(&out.stdout).into_owned(), out.status.code().unwrap_or(-1));
+            if code != 0 {
+                text.push_str(&format!("\n[exit code {code}]"));
+            }
+            Some((text, code != 0))
+        }
+        _ => None,
     }
-    let Some(url) = mcp_url(args) else { fail(3, "no MCP server in --mcp-config or OPENCODE_CONFIG_CONTENT") };
+}
+
+/// A tool call as the named CLI prints it, the call first and then its result.
+fn call_tool(program: &str, args: &[String], id: &str, tool: &str, input: &Value) {
     if program == "claude" {
         print(&json!({"type": "assistant", "message": {"content": [{"type": "tool_use", "id": id, "name": format!("mcp__executor__{tool}"), "input": input}]}}).to_string());
     }
-    let answer = post(&url, &json!({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": tool, "arguments": input}})).unwrap_or_else(|e| fail(3, &e));
-    let result = &answer["result"];
-    let (text, is_error) = (result["content"][0]["text"].clone(), result["isError"] == true);
+    let (text, is_error) = match run_own_tool(tool, input) {
+        Some(done) => done,
+        None => {
+            let Some(url) = mcp_url(args) else { fail(3, "no MCP server in --mcp-config or OPENCODE_CONFIG_CONTENT") };
+            let answer = post(&url, &json!({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": tool, "arguments": input}})).unwrap_or_else(|e| fail(3, &e));
+            let result = &answer["result"];
+            (result["content"][0]["text"].as_str().unwrap_or_default().to_string(), result["isError"] == true)
+        }
+    };
     if program == "claude" {
         print(&json!({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": id, "content": text, "is_error": is_error}]}}).to_string());
     } else {
@@ -130,37 +163,17 @@ fn write_credential(env: &str, file: &str, content: &str, pasted: &str) {
     std::fs::write(&path, content.replace("{paste}", pasted)).unwrap_or_else(|e| fail(5, &format!("{}: {e}", path.display())));
 }
 
-fn main() {
-    let exe = std::env::current_exe().unwrap_or_else(|e| fail(1, &format!("no path of its own: {e}")));
-    let (dir, program) = (exe.parent().unwrap_or(Path::new(".")).to_path_buf(), exe.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_string());
-    let args: Vec<String> = std::env::args().skip(1).collect();
-    let script: Script = std::fs::read_to_string(dir.join(script_file(&program))).ok().and_then(|text| serde_json::from_str(&text).ok()).unwrap_or_default();
-    if let (Some(text), [only]) = (&script.version, args.as_slice()) {
-        if only == "--version" {
-            println!("{text}");
-            std::process::exit(0);
-        }
-    }
-    let log = dir.join(log_file(&program));
-    let starts = std::fs::read_to_string(&log).map_or(0, |text| text.lines().count());
-    let turn: Turn = script.turn_for(starts);
-    let invocation = Invocation {
-        program: program.clone(),
-        argv: args.clone(),
-        cwd: std::env::current_dir().map(|d| d.display().to_string()).unwrap_or_default(),
-        env: turn.log_env.iter().map(|name| (name.clone(), std::env::var(name).ok())).collect::<BTreeMap<_, _>>(),
-        listing: turn.list_env.iter().map(|name| (name.clone(), std::env::var_os(name).map(|d| files_below(Path::new(&d))).unwrap_or_default())).collect::<BTreeMap<_, _>>(),
-    };
-    // Logged before anything runs, so a start that hangs or is killed is in the log
-    let mut file = std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap_or_else(|e| fail(1, &format!("{}: {e}", log.display())));
-    let _ = writeln!(file, "{}", serde_json::to_string(&invocation).unwrap_or_default());
-    drop(file);
+/// The version an unscripted program prints (`claude 0.0.0-mimic`); the hermetic host of `mimic-script-host` prints the same.
+const DEFAULT_VERSION: &str = "0.0.0-mimic";
+
+/// Plays one turn's steps, then ends the process as the turn says.
+fn play(turn: &Turn, program: &str, args: &[String]) -> ! {
     let mut pasted = String::new();
     for step in &turn.steps {
         match step {
             Step::Line { text } => print(text),
             Step::Sleep { ms } => std::thread::sleep(Duration::from_millis(*ms)),
-            Step::McpCall { id, tool, args: input } => call_tool(&program, &args, id, tool, input),
+            Step::McpCall { id, tool, args: input } => call_tool(program, args, id, tool, input),
             Step::ReadLine => {
                 let mut line = String::new();
                 if std::io::stdin().read_line(&mut line).unwrap_or(0) == 0 {
@@ -175,9 +188,64 @@ fn main() {
         eprintln!("{}", turn.stderr);
     }
     if turn.hang {
-        loop {
-            std::thread::sleep(Duration::from_secs(3600));
-        }
+        exec_testkit::hang_until_orphaned();
     }
     std::process::exit(turn.exit_code);
+}
+
+/// Codex's app-server on stdio: one JSON request a line, answered from the script by method; it ends when its input does.
+fn serve_app_server(script: &Script) -> ! {
+    for line in std::io::stdin().lock().lines().map_while(Result::ok) {
+        let Ok(request) = serde_json::from_str::<Value>(&line) else { continue };
+        let Some(id) = request.get("id").cloned() else { continue };
+        let method = request["method"].as_str().unwrap_or_default();
+        let mut answer = if method == "initialize" {
+            json!({"result": {"userAgent": "scripted-codex"}})
+        } else {
+            script.app_server.get(method).cloned().unwrap_or_else(|| json!({"error": {"code": -32601, "message": format!("no such method: {method}")}}))
+        };
+        answer["id"] = id;
+        print(&answer.to_string());
+    }
+    std::process::exit(0)
+}
+
+fn main() {
+    let exe = std::env::current_exe().unwrap_or_else(|e| fail(1, &format!("no path of its own: {e}")));
+    let (dir, program) = (exe.parent().unwrap_or(Path::new(".")).to_path_buf(), exe.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_string());
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let written = std::fs::read_to_string(dir.join(script_file(&program))).ok();
+    // A program nobody scripted answers a version query like the recording host's stub does, so a recorded server and a replayed chain see the same CLIs.
+    let unscripted = Script { version: Some(format!("{program} {DEFAULT_VERSION}")), ..Script::default() };
+    let script: Script = match &written {
+        None => unscripted,
+        Some(text) => serde_json::from_str(text).unwrap_or_default(),
+    };
+    if let (Some(text), [only]) = (&script.version, args.as_slice()) {
+        if only == "--version" {
+            println!("{text}");
+            std::process::exit(0);
+        }
+    }
+    if args.first().map(String::as_str) == Some("app-server") && !script.app_server.is_empty() {
+        serve_app_server(&script);
+    }
+    if let Some(turn) = args.first().and_then(|first| script.commands.get(first)) {
+        play(turn, &program, &args);
+    }
+    let log = dir.join(log_file(&program));
+    let starts = std::fs::read_to_string(&log).map_or(0, |text| text.lines().count());
+    let turn: Turn = script.turn_for(starts);
+    let invocation = Invocation {
+        program: program.clone(),
+        argv: args.clone(),
+        cwd: std::env::current_dir().map(|d| d.display().to_string()).unwrap_or_default(),
+        env: turn.log_env.iter().map(|name| (name.clone(), std::env::var(name).ok())).collect::<BTreeMap<_, _>>(),
+        listing: turn.list_env.iter().map(|name| (name.clone(), std::env::var_os(name).map(|d| files_below(Path::new(&d))).unwrap_or_default())).collect::<BTreeMap<_, _>>(),
+    };
+    // Logged before anything runs, so a start that hangs or is killed is in the log; a command start plays no turn, so it is not one
+    let mut file = std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap_or_else(|e| fail(1, &format!("{}: {e}", log.display())));
+    let _ = writeln!(file, "{}", serde_json::to_string(&invocation).unwrap_or_default());
+    drop(file);
+    play(&turn, &program, &args)
 }

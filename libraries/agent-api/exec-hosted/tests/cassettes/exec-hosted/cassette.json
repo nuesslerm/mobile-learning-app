@@ -1,6 +1,6 @@
 {
-  "content_hash": "sha256:72a2bbcdd05c9dde2f7a56e87288257fa7ef0db04f62eb424a57e720f32036b1",
-  "interactions": 95,
+  "content_hash": "sha256:d57eac9f0b9dd3053bf692d2404df8385ff9c3c74a6cdb4f91c6fd22a832c88d",
+  "interactions": 206,
   "provenance": {
     "imported_from": [
       {
@@ -8,11 +8,79 @@
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_auth_status.json"
       },
       {
+        "hash": "sha256:9aa3a5448cba2e0631a11578b4f4dcce2aecdefcea4795bd727529770e1bcb1a",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_comment_add.json"
+      },
+      {
+        "hash": "sha256:d817df31fb67459475141b4443bee0a4062d607bd3172461025fc194b67fdbc6",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_comment_delete.json"
+      },
+      {
+        "hash": "sha256:a813cab3470beb24297ce351ef5169dfb548e44eec60b67a5529f54a4aeaf602",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_comment_edit.json"
+      },
+      {
+        "hash": "sha256:4f94f897ccca734f319e6347d00107de34daf462f6523a9fcfeb787ec2160631",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_comment.json"
+      },
+      {
+        "hash": "sha256:d86635f5f876421f53ad618e68ca0f7c00531931201ff3b6a43d5f720aa8068d",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_comments.json"
+      },
+      {
+        "hash": "sha256:06187aa3c47d78aac8d2c52ddd740356b04e9de55990fba3528908103ba74893",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_count.json"
+      },
+      {
+        "hash": "sha256:4a6715379e0fee017dd513984d56cea0aed4b65e58b902ac691f79b98933bdf3",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_create.json"
+      },
+      {
+        "hash": "sha256:c89a498ab529219cd31505acf8cde8617f37d9a54f7af7048456dd9eba8e285f",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_edit.json"
+      },
+      {
+        "hash": "sha256:7799ecd2386ad7032d67a22cbf8107dff1f52ea5a1c40453960bc5865e5283f7",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_list.json"
+      },
+      {
+        "hash": "sha256:7a51206d333a68842d7be93e4c121f172dad4f17302d4c25105b0f4059c84ceb",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_search.json"
+      },
+      {
+        "hash": "sha256:83ba2a4f65e19a173e671df69e7c45094f15f18dca93fb99e428ec6336ba3bad",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_state.json"
+      },
+      {
+        "hash": "sha256:2d34bd2a0fa2e7262fc86c5a3d5133d261b58bdbae996ded0784e15ef76bd5b4",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_todos.json"
+      },
+      {
+        "hash": "sha256:691ff4563999298498b627849e18d1a9902a96a57cca1845373fa5c734ca140a",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_type_set.json"
+      },
+      {
+        "hash": "sha256:0e62902517f839b92f3f6b19223f9e29c53e3672655bc1c93fc7aa2271bfbb17",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_update.json"
+      },
+      {
+        "hash": "sha256:d7a6b9f36abd8f141a09f7468c3bdd498b68899963574dd67791e12cbb35a0df",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_view.json"
+      },
+      {
+        "hash": "sha256:685902ce017b9349dd7902576f2bf9ebfa02f403be8d6f0f8159c70707edaa0f",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_auto_merge.json"
+      },
+      {
+        "hash": "sha256:a829b264c7b77343ab8b88d84f870b8869d8bb43df347187a1144842cf67e678",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_check_details.json"
+      },
+      {
         "hash": "sha256:cb041e18265f58aec8aa50b05ba492a63b97b18d77ed1772281482f3b41b495c",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_checks.json"
       },
       {
-        "hash": "sha256:ffaf29e018bb1d0cbc6eda43c41408e085a3d4e8339808d5ba9439a620ccc7d9",
+        "hash": "sha256:880fc0485a52e57e1df5325c6957f8ab06d9cac5529ce67f100048c0ef7f2a97",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_comment.json"
       },
       {
@@ -20,11 +88,11 @@
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_comment_edit.json"
       },
       {
-        "hash": "sha256:99f2bca557c4740f7694b357c4ff47770b97475e8af906ae4be793b4dc2aa8bf",
+        "hash": "sha256:c41eb9e149c601e90c88cddebe942c6f6c3b4cbc90a402f08a3943431d8a1d25",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_comments.json"
       },
       {
-        "hash": "sha256:6c0d1bf8cec66e7b760b239d02b89b0500752329385ca0a114c843ceea4c82c9",
+        "hash": "sha256:4a8bd6a9c32d9d7429ce38f2b77b74b60e3f37356f49ed369855f653d27145a1",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_create.json"
       },
       {
@@ -34,6 +102,10 @@
       {
         "hash": "sha256:87e2f3b32dbd07ff3983eb0f397bc999d1d3f22564f5e092aa800c36749163ae",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_edit.json"
+      },
+      {
+        "hash": "sha256:3896e8e5fe87aeb5a19afc718c2b85de69790b8909b279bd770fdc027b620716",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_file_viewed.json"
       },
       {
         "hash": "sha256:2c3c9087b3ef1231aa5a3913c667562b1bebbe9e2a216aafdf97fef77ba59504",
@@ -60,7 +132,7 @@
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_ready.json"
       },
       {
-        "hash": "sha256:127b6c3941de25eccfa298e3be0628fb774d0fe4e5ddafe237e5176893f407f2",
+        "hash": "sha256:b1df1c20bb1b2111460137ba183d6962b1ec275f8b1f2001010cbbd0dd18d91d",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_reply.json"
       },
       {
@@ -76,7 +148,11 @@
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_review.json"
       },
       {
-        "hash": "sha256:e01bcd57c364ce0824cb8c7286b4c479ce2e903d5b70c2acb67dabcf30617a27",
+        "hash": "sha256:5364042c05458a70bd17657c1d47a706b3481c747b29df5dc9b2179fa81c0fd6",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_review_comment.json"
+      },
+      {
+        "hash": "sha256:3f3104b0c101e48434eb364da7c66540294be6fa0106a2356cb7ff058b722cc6",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_reviews.json"
       },
       {
@@ -84,7 +160,11 @@
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_stack.json"
       },
       {
-        "hash": "sha256:8b9d7081a74da8c7a3e421b1b4def5b60ad38310e97f17b18717d97663e4417a",
+        "hash": "sha256:21c9acaab50d6975c74acfd33862fd7206121af3e04e32a1e47260bc06da6a6c",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_state.json"
+      },
+      {
+        "hash": "sha256:1c377b8fb0b27fbb0987c789b826a2a1d2506f0be3054bf9df6a5c7def8648e7",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_threads.json"
       },
       {
@@ -96,8 +176,28 @@
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_view.json"
       },
       {
+        "hash": "sha256:69abd9e9944cef32f634c2988194dd8bbfb84a9c2c6931dd8102d6ab6a3a133e",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_project_field_set.json"
+      },
+      {
+        "hash": "sha256:03c8546680f6fda00f90910b981213e159700dfe5995ba30bb83cbb56366351d",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_project_list.json"
+      },
+      {
+        "hash": "sha256:7bd4c7db857fb01ce60273e5f164d1929c726a34a8a8c6ce4e2ac088d0bab357",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_project_resolve.json"
+      },
+      {
+        "hash": "sha256:2a6efe38b0294644852ce603015f9253673516004e0c304bd2b9548f2e109802",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_project_views.json"
+      },
+      {
         "hash": "sha256:abffa63317851a0dfec6d588fbde085bd0ca872da44abf94e490f4eb21aef7e9",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_clone.json"
+      },
+      {
+        "hash": "sha256:81383ae9832e0f07a1ec1a90384e6cc444cba46679b334f0433d0024764bb4ef",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_issue_types.json"
       },
       {
         "hash": "sha256:22188229f362940ef660755d60dd625d113d2b87b0d48f0df2c2bfba0ff89f7c",
@@ -108,8 +208,20 @@
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_publish.json"
       },
       {
-        "hash": "sha256:1d7afb1a5d77a66e198909bb45f5167d07578f23f551f65482949eda5d4d2bc5",
+        "hash": "sha256:cfbf46c72a74e5bbb74c70b7ae66abd51ec57cd9e88a20fc989d6d9a6545796b",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_remotes.json"
+      },
+      {
+        "hash": "sha256:ef35aa7b7e82ed9025a9c1950c998e90bb63d2fc201eb253935c2fecf99b6770",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_reviewers.json"
+      },
+      {
+        "hash": "sha256:44e5cba0cb4803b11f8eecec806cff459ad0afe2db05d8ad0cc311877ff155c8",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_star.json"
+      },
+      {
+        "hash": "sha256:12bd401451ba39b1f6121f86233d816c25b228c1df4679855d033fe929930120",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_starred.json"
       },
       {
         "hash": "sha256:8f6d38f61bf82f8f9c72f1c349e73fd56830f86ef867b1dac99e24ffde5e57c8",
@@ -120,12 +232,16 @@
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_run_list.json"
       },
       {
+        "hash": "sha256:e8c2e86f82a815385166ea0f3ac0c0129fb8bf46ced06833062844000517d30a",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_run_rerun.json"
+      },
+      {
         "hash": "sha256:d8c6d24aa802500ef0bbacb2d33a291e9d0a1343121fa6b49f92e70138203864",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_run_view.json"
       }
     ],
     "kind": "imported",
-    "note": "imported without a run of gh or glab; the owner-gated real recording against a pinned CLI version is the open next step",
+    "note": "imported without a run of gh or glab; the owner-gated real recording against a pinned CLI version is the open next step; the interactions of hosted_repo_star and hosted_repo_starred (204 for a starred repository, 404 for one that is not), hosted_project_* for the cases the recording did not cover (an organization-owned project, a date and a single-select field, an enterprise host, the read:project refusal and the refusals made before gh starts), hosted_comment_*, hosted_repo_issue_types, hosted_issue_type_set and hosted_issue_update are authored doubles written from GitHub documentation and Orca source, not recordings (docs/gaps/orca-github-project-rows.md); the recorded hosted_project_* interactions (a viewer's projects, a user project resolved and missing, its views, a text and a number field set, a field cleared) live in the set exec-hosted-projects",
     "rules_hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
     "source": "the hosted_*.json fixtures of exec-hosted: what gh and glab print for an argv, written by RECORD_HOSTED_FIXTURES from what the executor did against a scripted fake, not recorded from a run of gh or glab (docs/gaps/exec-hosted-fixtures-not-from-real-clis.md)",
     "tool": {

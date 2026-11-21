@@ -1,12 +1,12 @@
 //! One-shot runs (`use-cases/runOnce.ts`): a prompt put to the models of a ladder, one after the other, until one gives an answer that
 //! passes the output checks. What decides which model is next, which pools are cold, how a failure is classed and what a run leaves in
-//! the run log is `rca-core`, which `wf offload ask` shares; this module is the attempt (a turn against opencode, its tool calls folded
+//! the run log is `rca-core`, which `wf rca ask` shares; this module is the attempt (a turn against opencode, its tool calls folded
 //! into events), the two files, the diff of what a run wrote, and the result as JSON.
 
 use super::opencode_client::Client;
 use crate::application::one_shot;
 use remote_chat_agent_core::application::ports::Commands;
-use super::log;
+use remote_chat_agent_core::application::ports::IdSource;
 use super::settings::Settings;
 use rca_core::run_log::{parse_run_log, RunLogEntry};
 use rca_ladder::store::CooldownStore;
@@ -77,10 +77,10 @@ fn within_limits(files: &[AttachedFile]) -> Result<(), String> {
 }
 
 impl Staged {
-    fn create(fs: Arc<dyn WorkspaceFiles>, files: &[AttachedFile], settings: &Settings) -> Result<Self, String> {
+    fn create(fs: Arc<dyn WorkspaceFiles>, files: &[AttachedFile], settings: &Settings, ids: &dyn IdSource) -> Result<Self, String> {
         within_limits(files)?;
         sweep(fs.as_ref(), settings);
-        let dir = settings.ask_root.join(crate::domain::util::uuid_v4());
+        let dir = settings.ask_root.join(ids.uuid());
         fs.create_dir(&dir).map_err(|e| format!("cannot stage the files: {e}"))?;
         let mut staged = Self { fs, dir, originals: HashMap::new(), delivered: HashMap::new(), keep: false };
         staged.lay(files)?;
@@ -354,10 +354,6 @@ pub trait RunHosts: Send + Sync {
     fn open<'a>(&self, setup: HostSetup<'a>) -> Box<dyn AttemptHost + 'a>;
 }
 
-fn now() -> i64 {
-    log::now_ms() as i64
-}
-
 fn verdict_json(verdict: &Verdict) -> Value {
     if verdict.ok {
         return json!({ "ok": true });
@@ -416,7 +412,8 @@ fn ladders() -> &'static LadderFile {
 }
 
 /// Runs the request to its end and answers with the result as `RunResult` is serialised.
-pub fn run(runtime: &Handle, client: &Client, commands: &dyn Commands, ledgers: &dyn Ledgers, fs: &Arc<dyn WorkspaceFiles>, hosts: &dyn RunHosts, request: &Request) -> Result<Value, Refused> {
+#[allow(clippy::too_many_arguments)]
+pub fn run(runtime: &Handle, client: &Client, commands: &dyn Commands, ledgers: &dyn Ledgers, fs: &Arc<dyn WorkspaceFiles>, hosts: &dyn RunHosts, request: &Request, ids: &dyn IdSource) -> Result<Value, Refused> {
     reap(runtime, client, fs.as_ref());
     let settings = client.env().settings();
     let (cwd, mut staged) = match (&request.cwd, &request.session) {
@@ -427,7 +424,7 @@ pub fn run(runtime: &Handle, client: &Client, commands: &dyn Commands, ledgers: 
             (staged.dir.to_string_lossy().into_owned(), Some(staged))
         }
         (None, None) => {
-            let staged = Staged::create(Arc::clone(fs), &request.files, &settings).map_err(Refused::Invalid)?;
+            let staged = Staged::create(Arc::clone(fs), &request.files, &settings, ids).map_err(Refused::Invalid)?;
             (staged.dir.to_string_lossy().into_owned(), Some(staged))
         }
     };
@@ -443,14 +440,14 @@ pub fn run(runtime: &Handle, client: &Client, commands: &dyn Commands, ledgers: 
     let pins = if request.models.is_empty() {
         // The ladder of the shape, ranked by how its models have fared, minus the pools that are cold.
         let stats = (!settings.ladder_ignore_stats).then(|| shape_stats(&read_run_log(fs.as_ref(), &run_log_path), &shape));
-        let cold = cold_pools(&cooldowns, now()).into_iter().collect();
+        let cold = cold_pools(&cooldowns, client.now_ms() as i64).into_iter().collect();
         resolve_ladder(&shape, ladders, &cold, stats.as_ref(), None)
     } else {
         request.models.clone()
     };
     let claude_session_id = settings.claude_session_id.clone();
     let input = RunInput {
-        run_id: crate::domain::util::uuid_v4(),
+        run_id: ids.uuid(),
         cwd: cwd.clone(),
         writes_expected: shape.starts_with("implementer:") && request.auto,
         prompt: request.prompt.clone(),
@@ -462,7 +459,7 @@ pub fn run(runtime: &Handle, client: &Client, commands: &dyn Commands, ledgers: 
         caller: request.caller.clone().unwrap_or_else(|| "dispatch".into()),
         tier: None,
         claude_session_id,
-        run_started_at: now(),
+        run_started_at: client.now_ms() as i64,
     };
     let setup = HostSetup { runtime, client, commands, fs: fs.as_ref(), prompt: request.prompt.clone(), cwd: cwd.clone(), pinned_cli: request.cli.clone(), agent_cli: settings.agent_cli.clone(), ledger: ledger_store, run_log_path, session: request.session.clone(), agent: request.agent.clone(), variant: request.variant.clone(), title: request.title.clone(), auto: request.auto, attach: request.attach.clone(), command: request.command.clone() };
     let mut host = hosts.open(setup);
@@ -501,14 +498,14 @@ pub fn run_log(fs: &dyn WorkspaceFiles, settings: &Settings, limit: Option<usize
 }
 
 /// Warms `pool` again in the shared ledger; false when it was not cold.
-pub fn clear_cooldown(runtime: &Handle, ledgers: &dyn Ledgers, pool: &str) -> Result<bool, String> {
+pub fn clear_cooldown(runtime: &Handle, client: &Client, ledgers: &dyn Ledgers, pool: &str) -> Result<bool, String> {
     let store = ledgers.open(runtime, "")?;
     let ledger = store.read();
     if let Some(why) = store.last_error() {
         return Err(format!("the pool cooldowns could not be read: {why}"));
     }
-    let was_cold = ledger.get(pool).and_then(|e| rca_core::time::parse(&e.cold_until)).is_some_and(|until| until > now());
-    let next = rca_ladder::pool_ledger::clear_cooldown(&ledger, pool, now());
+    let was_cold = ledger.get(pool).and_then(|e| rca_core::time::parse(&e.cold_until)).is_some_and(|until| until > client.now_ms() as i64);
+    let next = rca_ladder::pool_ledger::clear_cooldown(&ledger, pool, client.now_ms() as i64);
     store.write(&next).map_err(|e| e.to_string())?;
     Ok(was_cold)
 }

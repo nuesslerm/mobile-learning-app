@@ -10,7 +10,7 @@ use super::log;
 use futures_util::StreamExt;
 use serde_json::{json, Map, Value};
 use std::collections::HashSet;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 /// The first request to a directory boots its opencode instance, which installs the dependencies of its plugins and tools first: as long
 /// as `opencode run` waits for the same.
@@ -155,11 +155,11 @@ fn usage_of(tokens: &Value) -> Usage {
 }
 
 /// The next event that parses as JSON, waiting no longer than the silence limit or what is left of the caller's budget.
-async fn next_event(stream: &mut DataStream, idle: Duration, deadline: Option<Instant>) -> Result<Option<Value>, ReadError> {
+async fn next_event(client: &Client, stream: &mut DataStream, idle: Duration, deadline: Option<u64>) -> Result<Option<Value>, ReadError> {
     loop {
         let wait = match deadline {
             Some(d) => {
-                let left = d.saturating_duration_since(Instant::now());
+                let left = Duration::from_millis(d.saturating_sub(client.now_ms()));
                 if left.is_zero() {
                     return Err(ReadError::Budget);
                 }
@@ -168,7 +168,7 @@ async fn next_event(stream: &mut DataStream, idle: Duration, deadline: Option<In
             None => idle,
         };
         match tokio::time::timeout(wait, stream.next()).await {
-            Err(_) => return Err(if deadline.is_some_and(|d| Instant::now() >= d) { ReadError::Budget } else { ReadError::Idle }),
+            Err(_) => return Err(if deadline.is_some_and(|d| client.now_ms() >= d) { ReadError::Budget } else { ReadError::Idle }),
             Ok(None) => return Ok(None),
             Ok(Some(Err(e))) => return Err(ReadError::Io(e)),
             Ok(Some(Ok(data))) => {
@@ -186,15 +186,15 @@ enum ReadError {
     Io(String),
 }
 
-/// Runs one turn. `deadline` is the caller's own wall-clock budget on top of the silence limit.
-pub async fn run(client: &Client, message: &str, turn: &Turn, deadline: Option<Instant>) -> Result<Reply, Failure> {
+/// Runs one turn. `deadline` is the caller's own budget on top of the silence limit, as a time on the client's clock in milliseconds.
+pub async fn run(client: &Client, message: &str, turn: &Turn, deadline: Option<u64>) -> Result<Reply, Failure> {
     run_capturing(client, message, turn, deadline, &mut Captured::default()).await
 }
 
 /// `run`, keeping the text and the tool calls in `captured` even when the turn then fails.
-pub async fn run_capturing(client: &Client, message: &str, turn: &Turn, deadline: Option<Instant>, captured: &mut Captured) -> Result<Reply, Failure> {
+pub async fn run_capturing(client: &Client, message: &str, turn: &Turn, deadline: Option<u64>, captured: &mut Captured) -> Result<Reply, Failure> {
     let cwd = &turn.cwd;
-    let started = Instant::now();
+    let started = client.now_ms();
     probe(client, cwd).await?;
 
     let session_id = match &turn.session_id {
@@ -300,7 +300,7 @@ pub async fn run_capturing(client: &Client, message: &str, turn: &Turn, deadline
     let idle = response_timeout(client);
 
     loop {
-        let event = match next_event(&mut stream, idle, deadline).await {
+        let event = match next_event(client, &mut stream, idle, deadline).await {
             Ok(Some(event)) => event,
             Ok(None) => break,
             Err(ReadError::Idle) => {
@@ -340,7 +340,7 @@ pub async fn run_capturing(client: &Client, message: &str, turn: &Turn, deadline
         }
         if kind == "session.idle" {
             if seen_busy {
-                diag("stream.idle.terminal", &[("sessionId", json!(session_id)), ("cwd", json!(cwd)), ("ms", json!(started.elapsed().as_millis() as u64)), ("eventCount", json!(events))]);
+                diag("stream.idle.terminal", &[("sessionId", json!(session_id)), ("cwd", json!(cwd)), ("ms", json!(client.now_ms().saturating_sub(started))), ("eventCount", json!(events))]);
                 break;
             }
             continue;

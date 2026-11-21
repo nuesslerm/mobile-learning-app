@@ -12,14 +12,22 @@ pub(crate) struct Params {
     pub offset: u64,
 }
 
+/// A string field as the schema reads it: a missing or other-typed value is the type error, a string is for the caller's own checks.
+pub(crate) fn typed_string(v: Option<&Value>) -> Result<Option<&str>, Failure> {
+    match v {
+        Some(Value::String(s)) => Ok(Some(s)),
+        other => Err(Failure::invalid(format!("Invalid input: expected string, received {}", other.map_or("undefined", orca_core::wire::received)))),
+    }
+}
+
 pub(crate) fn params(v: &Value) -> Result<Params, Failure> {
     let invalid = |m: &str| Failure::invalid(m.to_string());
     let o = v.as_object().ok_or_else(|| invalid("Invalid input: expected object"))?;
     if o.keys().any(|k| !matches!(k.as_str(), "buildId" | "path" | "offset")) {
         return Err(invalid("Unrecognized key in bundle window params"));
     }
-    let build_id = o.get("buildId").and_then(Value::as_str).filter(|b| manifest::is_sha256(b)).ok_or_else(|| invalid("Invalid buildId: expected a sha-256 hex"))?;
-    let path = o.get("path").and_then(Value::as_str).filter(|p| manifest::is_asset_path(p)).ok_or_else(|| invalid("Invalid path: expected a portable asset path"))?;
+    let build_id = typed_string(o.get("buildId"))?.filter(|b| manifest::is_sha256(b)).ok_or_else(|| invalid("Invalid buildId: expected a sha-256 hex"))?;
+    let path = typed_string(o.get("path"))?.filter(|p| manifest::is_asset_path(p)).ok_or_else(|| invalid("Invalid path: expected a portable asset path"))?;
     // JSON has one number type: 2.0 is the integer 2 to the phone
     let offset = o.get("offset").and_then(|n| n.as_u64().or_else(|| n.as_f64().filter(|f| f.fract() == 0.0 && *f >= 0.0).map(|f| f as u64))).filter(|n| *n <= MAX_ASSET_BYTES);
     Ok(Params { build_id: build_id.into(), path: path.into(), offset: offset.ok_or_else(|| invalid("Invalid offset: expected an integer from 0 to 10485760"))? })

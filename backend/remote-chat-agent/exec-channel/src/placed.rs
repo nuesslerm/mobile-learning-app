@@ -33,7 +33,6 @@ impl Placed {
                 Some(name) => args["worktree"] = json!(name),
                 None => args["path"] = json!(join(&string(&args, "path").unwrap_or_else(|| ".".into()))?),
             },
-            exec_fs::SEARCH => args["path"] = json!(join(&string(&args, "path").unwrap_or_else(|| ".".into()))?),
             exec_fs::SEARCH_ENTRIES => args["path"] = self.place.prefix.clone().map_or(Value::Null, Value::from),
             exec_fs::BROWSE => {
                 if let Some(path) = string(&args, "path").filter(|p| !std::path::Path::new(p).is_absolute()) {
@@ -90,7 +89,6 @@ mod tests {
             ("write_file", json!({"path": "b.txt", "content": "x"})),
             ("run_command", json!({"command": "ls"})),
             ("run_command", json!({"command": "ls", "cwd": "sub"})),
-            ("search", json!({"pattern": "p", "kind": "content"})),
             ("git_diff", json!({"path": "a.rs"})),
             ("search_entries", json!({"query": "q"})),
             ("cancel", json!({"id": "a1"})),
@@ -106,7 +104,6 @@ mod tests {
                 json!({"path": "/base/wt/b.txt", "content": "x"}),
                 json!({"command": "ls", "cwd": "/base/wt"}),
                 json!({"command": "ls", "cwd": "/base/wt/sub"}),
-                json!({"pattern": "p", "kind": "content", "path": "/base/wt"}),
                 json!({"path": "a.rs", "worktree": "wt"}),
                 json!({"query": "q", "path": "/base/wt"}),
                 json!({"id": "a1"}),

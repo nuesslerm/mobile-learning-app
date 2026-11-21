@@ -85,6 +85,13 @@ impl FakeBrowser {
         }
     }
 
+    /// An event as the JSON text the browser writes, for what a `Value` cannot hold (a lone surrogate escape).
+    pub fn emit_raw(&self, text: &str) {
+        for tx in self.outboxes.lock().unwrap().iter() {
+            let _ = tx.send(text.to_string());
+        }
+    }
+
     /// The first command matching `pick` once it has arrived (a fire-and-forget answer from the client's own thread).
     pub fn wait_for(&self, pick: impl Fn(&Call) -> bool) -> Call {
         let deadline = Instant::now() + Duration::from_secs(10);

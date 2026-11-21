@@ -116,11 +116,11 @@ fn turning(events: Vec<ThreadEvent>) -> Rca {
 }
 
 fn thread() -> AgentThread {
-    AgentThread { thread_id: "t1".into(), instance_id: "claudeAgent".into(), model: Some("m1".into()) }
+    AgentThread { thread_id: "t1".into(), instance_id: "claudeAgent".into(), model: Some("m1".into()), worktree: None }
 }
 
 fn turn() -> AgentTurn {
-    AgentTurn { thread_id: "t1".into(), instance_id: "claudeAgent".into(), model: Some("m1".into()), prompt: "say hi".into(), runtime_mode: "full-access".into(), interaction_mode: "default".into() , attachments: vec![]}
+    AgentTurn { thread_id: "t1".into(), instance_id: "claudeAgent".into(), model: Some("m1".into()), prompt: "say hi".into(), runtime_mode: "full-access".into(), interaction_mode: "default".into() , attachments: vec![], worktree: None}
 }
 
 /// Every event the thread sends after `after` until the sink has seen `count` of them, or what stopped the follow.
@@ -152,7 +152,7 @@ fn a_turn_is_created_started_and_followed_in_the_contracts_words_and_every_event
         ThreadEvent::FileChanged { path: "a.txt".into(), op: agent_api_agent::FileOp::Edit },
         ThreadEvent::Usage(Default::default()),
         ThreadEvent::MessageDelta { role: Role::Assistant, text: "Done: a.txt".into() },
-        ThreadEvent::TurnFinished { reason: FinishReason::Completed },
+        ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None },
     ];
     let count = events.len() + 1;
     let rca = turning(events);
@@ -274,8 +274,8 @@ fn the_groups_a_mapper_needs_are_those_of_the_methods_it_really_sends() {
     let rca = rca(Box::new(move |request| match request["method"].as_str().unwrap() {
         "service.status" => vec![answer(request, status.clone())],
         "thread.create" => vec![answer(request, view(BEFORE).to_result())],
-        "turn.start" => vec![answer(request, json!({"thread": "t1", "turn": TURN})), event(TURN, BEFORE + 1, ThreadEvent::TurnFinished { reason: FinishReason::Completed })],
-        "thread.subscribe" => vec![answer(request, json!({"topic": "thread/t1", "after_seq": BEFORE, "last_seq": BEFORE})), event(TURN, BEFORE + 1, ThreadEvent::TurnFinished { reason: FinishReason::Completed })],
+        "turn.start" => vec![answer(request, json!({"thread": "t1", "turn": TURN})), event(TURN, BEFORE + 1, ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None })],
+        "thread.subscribe" => vec![answer(request, json!({"topic": "thread/t1", "after_seq": BEFORE, "last_seq": BEFORE})), event(TURN, BEFORE + 1, ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None })],
         "thread.history" => vec![answer(request, json!({"events": [], "last_seq": BEFORE, "more": false}))],
         "turn.interrupt" => vec![answer(request, json!({"thread": "t1", "turn": TURN}))],
         "file.list" => vec![answer(request, entries.clone())],
@@ -411,6 +411,7 @@ fn every_op() -> Vec<Op> {
         Op::TurnDiff { root: "/work/proj".into(), base: "HEAD".into() },
         Op::ThreadDiff { root: "/work/proj".into() },
         Op::WorktreeCreate { root: "/work/proj".into(), worktree: "wt".into(), branch: "feature/x".into(), base: Some("main".into()) },
+        Op::WorktreeRemove { root: "/work/proj/wt".into() },
         Op::WorktreeSetupCancel { root: "/work/proj".into() },
         Op::TerminalOpen { root: "/work/proj".into(), terminal: "t1.a".into(), cwd: "/work/proj".into(), cols: Some(100), rows: Some(30), env: vec![("TERM".into(), "xterm".into())] },
         Op::TerminalWrite { root: "/work/proj".into(), terminal: "t1.a".into(), data: "ls\n".into() },
@@ -430,6 +431,7 @@ fn every_op() -> Vec<Op> {
         Op::WorktreeList { root: "/work/proj".into() },
         Op::GitPull { root: "/work/proj".into() },
         Op::GitBlob { root: "/work/proj".into(), rev: "HEAD".into(), path: "a.txt".into() },
+        Op::GitIgnored { root: "/work/proj".into() },
         Op::GitStage { root: "/work/proj".into(), paths: vec![".".into()] },
         Op::GitCommit { root: "/work/proj".into(), message: "m".into() },
         Op::GitPush { root: "/work/proj".into(), set_upstream: true },
@@ -443,6 +445,7 @@ fn every_op() -> Vec<Op> {
         Op::AccountsLogout { provider: "codex".into() },
         Op::UsageSummary,
         Op::ResetCredit { provider: "codex".into() },
+        Op::ServiceLogs { limit: 50, min_level: "warn" },
         Op::ClientActivity(ClientActivity { client: "phone-1".into(), kind: "mobile".into(), visible: true, focused: true, recently_interacted: false, app_state: None, low_power_mode: None, scopes: vec!["server-config".into()], ttl_ms: None, observed_at_ms: 5 }),
     ];
     ops.extend(hosted);
@@ -450,6 +453,9 @@ fn every_op() -> Vec<Op> {
     let by_id = agent_api_schedules::METHODS.iter().filter(|m| **m != agent_api_schedules::UPSERT && USES.contains(m)).map(|m| Op::Schedule { method: m.name(), root: None, params: json!({"id": "s1", "enabled": true}) });
     ops.extend(agent_api_attachments::METHODS.iter().filter(|m| USES.contains(m)).map(|m| Op::Attachment { method: m.name(), params: json!({"id": "att-1"}) }));
     ops.extend(agent_api_preview::sessions::METHODS.iter().chain(agent_api_preview::watch::METHODS).filter(|m| USES.contains(m)).map(|m| Op::Preview { method: m.name(), params: json!({"thread": "t1", "tab": "tab-1"}) }));
+    ops.push(Op::Speech { method: agent_api_catalog::SPEECH_STATUS.name(), params: json!({}) });
+    ops.push(Op::Speech { method: agent_api_catalog::SPEECH_TRANSCRIBE.name(), params: json!({"audio": "AAAA", "format": "wav"}) });
+    ops.push(Op::Catalog { method: agent_api_catalog::SESSIONS_LIST.name(), params: json!({"limit": 500}) });
     ops.push(Op::Schedule { method: agent_api_schedules::UPSERT.name(), root: Some("/work/proj".into()), params: json!({"title": "t", "prompt": "p", "enabled": true, "schedule": {"type": "webhook"}, "driver": "claudeAgent"}) });
     ops.extend(by_id);
     ops

@@ -11,11 +11,11 @@ import { Logger } from '@lib/logging';
 import { create } from 'zustand';
 
 import type {
+  CodingAgentTransport,
   OrchestrationGateway,
   OrchestrationGatewayStatus,
-} from '../data/orchestrationGateway';
+} from '../domain/ports';
 
-export type CodingAgentTransport = 'ws' | 'fixture';
 
 type GatewayState = {
   gateway: OrchestrationGateway | null;

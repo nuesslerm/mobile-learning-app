@@ -1,4 +1,4 @@
-export {
-  createFixtureGateway,
-  type FixtureGateway,
-} from '../data/fixtureGateway';
+export { createFixtureGateway, type FixtureGateway } from './fixtureGateway';
+export * from './fixtures';
+export { createFixtureDispatchRunsGateway } from './fixtureDispatchRuns';
+export { createFixturePorts } from './fixturePorts';

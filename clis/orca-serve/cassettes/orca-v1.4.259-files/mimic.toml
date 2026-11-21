@@ -1,0 +1,29 @@
+# The Orca oracle (mimic plan X6). One driver (the phone's own transport) for both targets; which host it talks to is the run's
+# environment: ORCA_ORCAD_CHECKOUT (orcad built at the pin, the VM) or ORCA_PAIRING_URI (a running host, a double, orca-serve).
+corpus = "corpus.json"
+allowlist = "allowlist.json"
+
+[reference]
+name = "orca"
+driver = "script"
+pin = "../../../../tooling/orca-conformance/orca-pin.json"
+version_pointer = "/version"
+commit_pointer = "/commit"
+live_when_named = "orcad is built at the pin on the VM (arm64): verify <set> --live runs it, --all --live never does"
+timeout_ms = 600000
+
+# The phone's own client behind the Rust step interpreter (the sidecar); the host to pair with comes from the environment, by name only.
+[reference.script]
+target = "orca"
+sidecar = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "sidecar", "orca"]
+env_pass = ["ORCA_ORCAD_CHECKOUT", "ORCA_PAIRING_URI", "ORCA_ENDPOINT", "ORCA_DEVICE_TOKEN", "ORCA_SERVER_PUBLIC_KEY_B64", "MIMIC_ORCA_ROOT"]
+session = false
+
+[candidate.orca-serve]
+driver = "script"
+
+[candidate.orca-serve.script]
+target = "orca"
+sidecar = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "sidecar", "orca"]
+env_pass = ["ORCA_PAIRING_URI", "MIMIC_ORCA_ROOT"]
+session = false

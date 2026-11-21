@@ -16,3 +16,6 @@ testing = ["dep:agent-api-proto", "agent-api-proto/testing"]
 agent-api-proto = { path = "../agent-api-proto", optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
+
+[package.metadata.arch]
+type = "rust-contract"

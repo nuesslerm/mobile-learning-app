@@ -1,0 +1,71 @@
+{
+  "action": "login_start",
+  "exchanges": [
+    {
+      "name": "starts the agent CLI's own login at the executor and answers the id of the flow",
+      "setup": {
+        "clis": {
+          "claude": "2.1.7 (Claude Code)"
+        }
+      },
+      "request": {
+        "id": "l1",
+        "tool": "login_start",
+        "args": {
+          "program": "claude"
+        }
+      },
+      "response": {
+        "id": "l1",
+        "ok": true,
+        "result": {
+          "flow": "login-1"
+        }
+      },
+      "volatile": [
+        "/result/flow"
+      ]
+    },
+    {
+      "name": "refuses a program that is no agent CLI",
+      "request": {
+        "id": "l2",
+        "tool": "login_start",
+        "args": {
+          "program": "sh"
+        }
+      },
+      "response": {
+        "id": "l2",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`program` is one of claude, codex, opencode, not \"sh\""
+        }
+      }
+    },
+    {
+      "name": "refuses an agent CLI the executor does not have",
+      "setup": {
+        "clis": {
+          "claude": "2.1.7 (Claude Code)"
+        }
+      },
+      "request": {
+        "id": "l3",
+        "tool": "login_start",
+        "args": {
+          "program": "codex"
+        }
+      },
+      "response": {
+        "id": "l3",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "codex is not installed here"
+        }
+      }
+    }
+  ]
+}

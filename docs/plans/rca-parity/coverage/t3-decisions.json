@@ -4,9 +4,11 @@
   "notes": {
     "milestones": "Row id or `prefix*` to the milestone of docs/plans/rca-parity/plan.md section 6 in which the row becomes served; the longest match wins. A row t3 serve answers today keeps the milestone of its agent method: M3 re-verifies the existing rows through the real chain.",
     "targets": "Every command and project mutation: `agent:<method>` (forwarded to the agent API), `state:<key>` (device state) or `t3-local` (a projection t3 serve keeps itself), per plan section 2 Commands.",
-    "decisions": "Rows with a state other than pending: not-offered needs a reason and a decidedBy milestone, excluded a reason. No row is marked served here: a row is served by the evidence in t3-evidence.json (a passing test of a complete chain run and its method-hit trace, `wf parity coverage --app t3 --traces`).",
+    "unrecordable": "A served row no recording can show (a pty's output, a restart, a clock, an interaction no recorded set holds): a row decision with an `unrecordable` reason, or the top-level `unrecordableTests` map of `file::test` (or `file::*`) to the reason; `wf mimic coverage --by-oracle` classes it (d). A served row with neither `\"oracle\": \"mimic\"` nor this reason fails `wf mimic coverage --check` (rule served-without-oracle).",
+    "traceNoise": "Row id or `prefix*` to why a trace may name a row the phone does not reach (the crawl drives the whole host surface): `wf mimic coverage --traces` does not report such a row as unknown-trace-row. A row the phone reaches never needs one, and a mistyped row a test names is not noise.",
+    "decisions": "Rows with a state other than pending: not-offered needs a reason and a decidedBy milestone, excluded a reason. No row is marked served here: a row is served by the evidence in t3-evidence.json: a clean or allowlisted replay of the recording (`\"oracle\": \"mimic\"`), or, with an `unrecordable` reason, a passing behaviour test and its method-hit trace (`wf mimic coverage --app t3 --traces`).",
     "reverify": "Row id to why a trace hit does not serve it yet: the mapper refuses it or answers without doing it. A call that only passes by refusing never counts; remove the note in the commit that makes the answer functional and reverified through the chain.",
-    "proposed": "Decision 4 (hosted credentials) is the proposed default awaiting owner confirmation: the service holds no GitHub or GitLab token and the executor machine's own gh and glab sign-in is used. The pull-request link, unlink and watch commands are kept in the agent API's state (state:thread.pullRequests), a target the owner has not confirmed either. M12 pull request rows, proposed defaults awaiting owner confirmation: a pull request's head is read from the project's own repository (git fetch of refs/pull/N/head or refs/merge-requests/N/head into refs/rca/, never a branch), so diffFileContents and preparePullRequestThread run no host CLI; the branch a pull request gets is always t3code/pr-N/<head> (T3 uses the head's own name for a same-repository pull request, which the CLIs do not say); a review guide is a model turn over the diff on a thread of its own with the model settings name (reviewGuideModelSelection, then textGenerationModelSelection, then defaultModelSelection), kept in the agent API's state, with its run (Running, Failed) in this process only; the thread's pull request links are shown to the phone through pullRequests.linkedThreads, not through the thread shell's pullRequests list."
+    "proposed": "Decision 4 (hosted credentials) is the owner-confirmed (decision 7): the service holds no GitHub or GitLab token and the executor machine's own gh and glab sign-in is used. The pull-request link, unlink and watch commands are kept in the agent API's state (state:thread.pullRequests), a target the owner has not confirmed either. M12 pull request rows, owner-confirmed (decision 7): a pull request's head is read from the project's own repository (git fetch of refs/pull/N/head or refs/merge-requests/N/head into refs/rca/, never a branch), so diffFileContents and preparePullRequestThread run no host CLI; the branch a pull request gets is always t3code/pr-N/<head> (T3 uses the head's own name for a same-repository pull request, which the CLIs do not say); a review guide is a model turn over the diff on a thread of its own with the model settings name (reviewGuideModelSelection, then textGenerationModelSelection, then defaultModelSelection), kept in the agent API's state, with its run (Running, Failed) in this process only; the thread's pull request links are shown to the phone through pullRequests.linkedThreads, not through the thread shell's pullRequests list."
   },
   "milestones": {
     "rpc:server.probe": "M3",
@@ -37,6 +39,8 @@
     "rpc:subscribeTerminalMetadata": "M8",
     "rpc:vcs.*": "M9",
     "rpc:subscribeVcsStatus": "M9",
+    "rpc:subscribeVcsBranch": "M9",
+    "http:voice.*": "M12",
     "rpc:git.runStackedAction": "M9",
     "rpc:review.*": "M9",
     "rpc:provider.*": "M10",
@@ -92,7 +96,7 @@
   "targets": {
     "command:thread.create": "agent:thread.create",
     "command:message.dispatch": "agent:turn.start",
-    "command:thread.stop": "agent:turn.interrupt",
+    "command:thread.stop": "agent:thread.forceStop",
     "command:run.interrupt": "agent:turn.interrupt",
     "command:thread.archive": "agent:thread.archive",
     "command:thread.unarchive": "agent:thread.archive",
@@ -134,185 +138,158 @@
     "mutation:project.update": "state:project.settings",
     "mutation:project.delete": "agent:workspace.remove"
   },
+  "unrecordableTests": {},
   "decisions": {
     "rpc:device.action": {
       "state": "not-offered",
-      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
       "decidedBy": "M12"
     },
     "rpc:device.close": {
       "state": "not-offered",
-      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
       "decidedBy": "M12"
     },
     "rpc:device.configure": {
       "state": "not-offered",
-      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
       "decidedBy": "M12"
     },
     "rpc:device.detail": {
       "state": "not-offered",
-      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
       "decidedBy": "M12"
     },
     "rpc:device.list": {
       "state": "not-offered",
-      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
       "decidedBy": "M12"
     },
     "rpc:device.open": {
       "state": "not-offered",
-      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
       "decidedBy": "M12"
     },
     "rpc:device.shutdown": {
       "state": "not-offered",
-      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
       "decidedBy": "M12"
     },
     "rpc:subscribeDeviceState": {
       "state": "not-offered",
-      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
-      "decidedBy": "M12"
-    },
-    "command:thread.guest-message.dismiss": {
-      "state": "not-offered",
-      "reason": "guest sharing needs a public guest endpoint and a guest identity on the service; rca has no guest concept and no share can exist through the chain, so the dismiss and close commands could only pass on an empty set. Proposed default awaiting owner confirmation.",
-      "decidedBy": "M12"
-    },
-    "command:thread.guest-share.close": {
-      "state": "not-offered",
-      "reason": "guest sharing needs a public guest endpoint and a guest identity on the service; rca has no guest concept and no share can exist through the chain, so the dismiss and close commands could only pass on an empty set. Proposed default awaiting owner confirmation.",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
       "decidedBy": "M12"
     },
     "http:connect.linkProof": {
       "state": "not-offered",
-      "reason": "T3 Connect and relay need an environment signing key and a hosted relay account (a person's credential); the service holds none and the mapper never mints one. Proposed default awaiting owner confirmation.",
+      "reason": "T3 Connect and relay need an environment signing key and a hosted relay account (a person's credential); the service holds none and the mapper never mints one. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "http:connect.relayConfig": {
       "state": "not-offered",
-      "reason": "T3 Connect and relay need an environment signing key and a hosted relay account (a person's credential); the service holds none and the mapper never mints one. Proposed default awaiting owner confirmation.",
+      "reason": "T3 Connect and relay need an environment signing key and a hosted relay account (a person's credential); the service holds none and the mapper never mints one. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:peerLinks.answerRequest": {
       "state": "not-offered",
-      "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Proposed default awaiting owner confirmation.",
+      "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:peerLinks.link": {
       "state": "not-offered",
-      "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Proposed default awaiting owner confirmation.",
+      "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:peerLinks.list": {
       "state": "not-offered",
-      "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Proposed default awaiting owner confirmation.",
+      "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:mcpApps.callTool": {
       "state": "not-offered",
-      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Proposed default awaiting owner confirmation.",
+      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:mcpApps.readResource": {
       "state": "not-offered",
-      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Proposed default awaiting owner confirmation.",
+      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:mcpApps.toolInfo": {
       "state": "not-offered",
-      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Proposed default awaiting owner confirmation.",
+      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:mcpApps.updateModelContext": {
       "state": "not-offered",
-      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Proposed default awaiting owner confirmation.",
+      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:server.commitDesktopUpdate": {
       "state": "not-offered",
-      "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Proposed default awaiting owner confirmation.",
+      "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:server.updateServer": {
       "state": "not-offered",
-      "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Proposed default awaiting owner confirmation.",
+      "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:server.updateServerWithProgress": {
       "state": "not-offered",
-      "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Proposed default awaiting owner confirmation.",
+      "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:provider.uploadFeedback": {
       "state": "not-offered",
-      "reason": "uploading provider feedback sends a transcript to the T3 vendor's endpoint; the owner has not approved sending any thread data off the service. Proposed default awaiting owner confirmation.",
+      "reason": "uploading provider feedback sends a transcript to the T3 vendor's endpoint; the owner has not approved sending any thread data off the service. Owner-confirmed (decision 7). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): correction: the feedback goes to OpenAI under the person's own account, not to the T3 vendor; it stays not offered until the owner decides (issue #83, Blocked).",
       "decidedBy": "M12"
     },
     "rpc:provider.chatgpt.import-profile": {
       "state": "not-offered",
-      "reason": "a ChatGPT profile is a credential: importing or reconnecting one would pass tokens through the mapper, which never holds one, and the Codex CLI behind rca keeps its own login. Proposed default awaiting owner confirmation.",
+      "reason": "a ChatGPT profile is a credential: importing or reconnecting one would pass tokens through the mapper, which never holds one, and the Codex CLI behind rca keeps its own login. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:provider.chatgpt.reconnect-profile": {
       "state": "not-offered",
-      "reason": "a ChatGPT profile is a credential: importing or reconnecting one would pass tokens through the mapper, which never holds one, and the Codex CLI behind rca keeps its own login. Proposed default awaiting owner confirmation.",
+      "reason": "a ChatGPT profile is a credential: importing or reconnecting one would pass tokens through the mapper, which never holds one, and the Codex CLI behind rca keeps its own login. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:provider.consumeResetCredit": {
       "state": "not-offered",
-      "reason": "the service's model API reports no reset credit and rca keeps no price table; the rows could only pass by refusing. Proposed default awaiting owner confirmation.",
+      "reason": "the service's model API reports no reset credit and rca keeps no price table; the rows could only pass by refusing. Owner-confirmed (decision 7). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): correction: the rates are a public price table (LiteLLM's), not reset credits; served in phase 1 from that table.",
       "decidedBy": "M12"
     },
     "rpc:server.refreshUsageRates": {
       "state": "not-offered",
-      "reason": "the service's model API reports no reset credit and rca keeps no price table; the rows could only pass by refusing. Proposed default awaiting owner confirmation.",
+      "reason": "the service's model API reports no reset credit and rca keeps no price table; the rows could only pass by refusing. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:server.updateProvider": {
       "state": "not-offered",
-      "reason": "the provider CLIs ship inside the service's image, so a version is updated by shipping an image, not by an RPC; the row could only pass by refusing. Proposed default awaiting owner confirmation.",
+      "reason": "the provider CLIs ship inside the service's image, so a version is updated by shipping an image, not by an RPC; the row could only pass by refusing. Owner-confirmed (decision 7). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the CLIs run at the executor's host, not in the service's image; updating one is a host action (cli_update) planned in phase 2.",
       "decidedBy": "M12"
     },
     "rpc:secrets.answerRequest": {
       "state": "not-offered",
-      "reason": "rca never asks for a secret, so there is no request to answer; the call could only get not_found. Proposed default awaiting owner confirmation.",
-      "decidedBy": "M12"
-    },
-    "command:prepared-run.retry": {
-      "state": "not-offered",
-      "reason": "rca prepares no workspace for a run, so there is no failed preparation to retry; the call could only get the refusal. Proposed default awaiting owner confirmation.",
+      "reason": "rca never asks for a secret, so there is no request to answer; the call could only get not_found. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "rpc:orchestration.getWorkflowScript": {
-      "state": "not-offered",
-      "reason": "rca starts no Claude workflow scripts of its own, so a thread has none to show; an owner who wants it gets an executor action that reads one file by absolute path under the Claude projects root, with .. and links refused and 1 MiB truncation, outside the workspace confinement. Proposed default awaiting owner confirmation.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:pullRequests.invalidate": {
-      "state": "not-offered",
-      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Proposed default awaiting owner confirmation.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:pullRequests.reportState": {
-      "state": "not-offered",
-      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Proposed default awaiting owner confirmation.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:pullRequests.subscribeRefreshes": {
-      "state": "not-offered",
-      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Proposed default awaiting owner confirmation.",
-      "decidedBy": "M12"
-    },
-    "rpc:server.prepareTriage": {
-      "state": "not-offered",
-      "reason": "it starts an in-app triage of the T3 Code install itself: the server writes the session files `t3 triage` writes (its own logs, config and version under T3 home) and clones the T3 Code source from github.com/pingdotgg/t3code into its cache, then hands the phone a prompt for a scratch thread. t3-serve is not that server (it has no T3 home, logs or release to diagnose) and rca-exec has nothing of it to read; the feature would be a network clone of a third party's repository with no state of ours to triage, so there is nothing to build and prove on the executor. The phone's own fallback is the `npx t3 triage` command it offers to copy. Proposed default awaiting owner confirmation.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:subscribeResourceTelemetry": {
       "state": "not-offered",
-      "reason": "the stream is a process monitor of the T3 install itself: samples of the T3 server, its provider and terminal roots and the Electron processes (categories `server`, `provider-root`, `electron-main`, ...) taken by a protocol-3 resource-monitor sidecar, plus update state and host power. t3-serve has no such process tree and rca-exec has no process-sampling action; the one honest part, the executor host's CPU and memory, would ship with an empty process list that the phone's resource view would present as a healthy idle server. Proposed default awaiting owner confirmation.",
+      "reason": "the stream is a process monitor of the T3 install itself: samples of the T3 server, its provider and terminal roots and the Electron processes (categories `server`, `provider-root`, `electron-main`, ...) taken by a protocol-3 resource-monitor sidecar, plus update state and host power. t3-serve has no such process tree and rca-exec has no process-sampling action; the one honest part, the executor host's CPU and memory, would ship with an empty process list that the phone's resource view would present as a healthy idle server. Owner-confirmed (decision 7).",
       "decidedBy": "M12"
     },
     "http:auth.token": {
@@ -321,7 +298,31 @@
     "rpc:orchestration.subscribeThread": {
       "oracle": "mimic"
     },
+    "rpc:orchestration.getThreadTitles": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getThreadLinkMetadata": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getNativeChildWork": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.subscribePromptSuggestion": {
+      "oracle": "mimic"
+    },
     "rpc:subscribePreviewEvents": {
+      "oracle": "mimic"
+    },
+    "rpc:server.getDatabaseStorage": {
+      "oracle": "mimic"
+    },
+    "command:thread.unsnooze": {
+      "oracle": "mimic"
+    },
+    "command:thread.settle": {
+      "oracle": "mimic"
+    },
+    "command:thread.unsettle": {
       "oracle": "mimic"
     },
     "command:thread.pin": {
@@ -347,7 +348,662 @@
     },
     "rpc:subscribeTerminalMetadata": {
       "oracle": "mimic"
+    },
+    "http:voice.cloudKeys": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4.",
+      "decidedBy": "M12"
+    },
+    "http:voice.setCloudKey": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
+      "decidedBy": "M12"
+    },
+    "http:voice.cloudModels": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
+      "decidedBy": "M12"
+    },
+    "http:voice.transcribeCloud": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
+      "decidedBy": "M12"
+    },
+    "http:voice.downloadModel": {
+      "oracle": "mimic"
+    },
+    "http:voice.cancelModelDownload": {
+      "oracle": "mimic"
+    },
+    "http:voice.selectModel": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.auth.removeMethod": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca keeps no provider sign-in methods of its own: an agent CLI is signed in on the executor's machine, outside the service, so there is no method to remove.",
+      "decidedBy": "M10"
+    },
+    "http:voice.models": {
+      "oracle": "mimic"
+    },
+    "http:voice.status": {
+      "oracle": "mimic"
+    },
+    "http:voice.transcribe": {
+      "oracle": "mimic"
+    },
+    "command:queue.resume": {
+      "oracle": "mimic"
+    },
+    "command:thread.active.reorder": {
+      "oracle": "mimic"
+    },
+    "command:thread.archive": {
+      "oracle": "mimic"
+    },
+    "command:thread.auto-settle.set": {
+      "oracle": "mimic"
+    },
+    "command:thread.delete": {
+      "oracle": "mimic"
+    },
+    "command:thread.interaction-mode.set": {
+      "oracle": "mimic"
+    },
+    "command:thread.mark-unread": {
+      "oracle": "mimic"
+    },
+    "command:thread.metadata.update": {
+      "oracle": "mimic"
+    },
+    "command:thread.model-selection.set": {
+      "oracle": "mimic"
+    },
+    "command:thread.pin.reorder": {
+      "oracle": "mimic"
+    },
+    "command:thread.pull-request.link": {
+      "oracle": "mimic"
+    },
+    "command:thread.pull-request.unlink": {
+      "oracle": "mimic"
+    },
+    "command:thread.pull-request.watch": {
+      "oracle": "mimic"
+    },
+    "command:thread.runtime-mode.set": {
+      "oracle": "mimic"
+    },
+    "command:thread.unpin": {
+      "oracle": "mimic"
+    },
+    "command:thread.visit": {
+      "oracle": "mimic"
+    },
+    "http:auth.pairingCredential": {
+      "oracle": "mimic"
+    },
+    "http:auth.webSocketTicketFor": {
+      "oracle": "mimic"
+    },
+    "http:orchestration.shellSnapshot": {
+      "oracle": "mimic"
+    },
+    "http:orchestration.threadBoundedSnapshot": {
+      "oracle": "mimic"
+    },
+    "http:orchestration.threadHistoryPage": {
+      "oracle": "mimic"
+    },
+    "http:orchestration.threadTranscript": {
+      "oracle": "mimic"
+    },
+    "http:pullRequests.diff": {
+      "oracle": "mimic"
+    },
+    "mutation:project.update": {
+      "oracle": "mimic"
+    },
+    "rpc:assets.createUrl": {
+      "oracle": "mimic"
+    },
+    "rpc:assets.persistChatAttachments": {
+      "oracle": "mimic"
+    },
+    "rpc:attachments.createUploadUrl": {
+      "oracle": "mimic"
+    },
+    "rpc:attachments.delete": {
+      "oracle": "mimic"
+    },
+    "rpc:filesystem.browse": {
+      "oracle": "mimic"
+    },
+    "rpc:filesystem.getMetadata": {
+      "oracle": "mimic"
+    },
+    "rpc:git.preparePullRequestThread": {
+      "oracle": "mimic"
+    },
+    "rpc:git.runStackedAction": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.dispatchCommand": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.forceStopThread": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getFullThreadDiff": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getOlderSettledThreads": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getThreadFamily": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getThreadProjection": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getTurnDiff": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getTurnItem": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.launchThread": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.searchThreads": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.stopWorkflow": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.subscribeCommandOutput": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.adjust": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.close": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.list": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.open": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.resize": {
+      "oracle": "mimic"
+    },
+    "rpc:projectClone.cancel": {
+      "oracle": "mimic"
+    },
+    "rpc:projectClone.retry": {
+      "oracle": "mimic"
+    },
+    "rpc:projectClone.start": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.createFromThread": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.createNew": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.listEntries": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.mutate": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.readFile": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.searchEntries": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.writeFile": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.auth.cancel": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.auth.complete": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.auth.logout": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.auth.respond": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.auth.start": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.auth.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.activity": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.changeBreakdown": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.checks": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.comment": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.detail": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.diffFileContents": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.filesViewed": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.filterOptions": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.generateReviewGuide": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.labelCandidates": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.linkedThreads": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.list": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.listStats": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.preview": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.replyToThread": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.requestReviewers": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.reviewGuide": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.reviewerCandidates": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.routing": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.routingIdentity": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.runAction": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.setFilesViewed": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.setLabels": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.setReaction": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.setThreadResolution": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.stack": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.submitReview": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.summary": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.threadComments": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.update": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.updateComment": {
+      "oracle": "mimic"
+    },
+    "rpc:review.getDiffFileContents": {
+      "oracle": "mimic"
+    },
+    "rpc:review.getDiffPreview": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.delete": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.rotateWebhookToken": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.runNow": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.setEnabled": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.upsert": {
+      "oracle": "mimic"
+    },
+    "rpc:server.discoverSourceControl": {
+      "oracle": "mimic"
+    },
+    "rpc:server.getUsageSummary": {
+      "oracle": "mimic"
+    },
+    "rpc:server.refreshProviders": {
+      "oracle": "mimic"
+    },
+    "rpc:server.reportClientActivity": {
+      "oracle": "mimic"
+    },
+    "rpc:sourceControl.appAccess": {
+      "oracle": "mimic"
+    },
+    "rpc:sourceControl.lookupRepository": {
+      "oracle": "mimic"
+    },
+    "rpc:sourceControl.publishRepository": {
+      "oracle": "mimic"
+    },
+    "rpc:sourceControl.signInCancel": {
+      "oracle": "mimic"
+    },
+    "rpc:sourceControl.signInStart": {
+      "oracle": "mimic"
+    },
+    "rpc:sourceControl.signInWait": {
+      "oracle": "mimic"
+    },
+    "rpc:subscribeProjectClones": {
+      "oracle": "mimic"
+    },
+    "rpc:subscribeVcsStatus": {
+      "oracle": "mimic"
+    },
+    "rpc:subscribeWorktreeSetup": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.attach": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.clear": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.close": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.observe": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.open": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.resize": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.write": {
+      "oracle": "mimic"
+    },
+    "rpc:vcs.createRef": {
+      "oracle": "mimic"
+    },
+    "rpc:vcs.createWorktree": {
+      "oracle": "mimic"
+    },
+    "rpc:vcs.listRefs": {
+      "oracle": "mimic"
+    },
+    "rpc:vcs.pull": {
+      "oracle": "mimic"
+    },
+    "rpc:vcs.refreshStatus": {
+      "oracle": "mimic"
+    },
+    "rpc:vcs.switchRef": {
+      "oracle": "mimic"
+    },
+    "rpc:worktreeSetup.cancel": {
+      "oracle": "mimic"
+    },
+    "command:run.interrupt": {
+      "oracle": "mimic"
+    },
+    "command:thread.stop": {
+      "oracle": "mimic"
+    },
+    "command:queued-run.edit": {
+      "oracle": "mimic"
+    },
+    "command:queued-run.cancel": {
+      "oracle": "mimic"
+    },
+    "command:thread.snooze": {
+      "oracle": "mimic"
+    },
+    "command:thread.fork": {
+      "unrecordable": "a real opencode turn is recorded for it (t3-v0.1.9-agent-real, hosted Mimic run 44285191911), but the chain candidate differs from that recording in known-gaps.json of the set (it captures no checkpoints, has no provider-instance create and its scripted opencode answers differently), so no replay of it is clean or allowlisted; the behaviour test thread_surface is the check of it"
+    },
+    "command:thread.merge_back": {
+      "unrecordable": "a real opencode turn is recorded for it (t3-v0.1.9-agent-real, hosted Mimic run 44285191911), but the chain candidate differs from that recording in known-gaps.json of the set (it captures no checkpoints, has no provider-instance create and its scripted opencode answers differently), so no replay of it is clean or allowlisted; the behaviour test thread_surface is the check of it"
+    },
+    "command:queued-message.promote-to-steer": {
+      "unrecordable": "a real opencode turn is recorded for it (t3-v0.1.9-agent-real), but the progress events of the running turn it promotes against differ between two runs of the same server (stability-allowlist.json, cause volatile), so no replay can decide it; the behaviour test thread_surface is the check of it"
+    },
+    "command:queued-run.start": {
+      "oracle": "mimic"
+    },
+    "command:runtime-request.respond": {
+      "unrecordable": "no recording shows it: the recorded interactions never reach agent method approval.answer (an answered approval needs a scripted turn that raises one, which no recorded set holds); the behaviour test thread_surface is the only check of it. Not stageable yet (R12): the real T3 raises an approval or a question only when claude sends a control_request over the Claude SDK protocol, which the scripted CLI never prints (its steps are Line, Sleep, McpCall, ReadLine, Credential) and the reference host refuses McpCall, while the candidate raises one only through the executor MCP tool approval_prompt or ask_user: one case cannot hold the same cue on both sides."
+    },
+    "command:thread.user-input.dismiss": {
+      "unrecordable": "no recording shows it: the recorded interactions never reach agent method input.dismiss (a dismissed question needs a scripted turn that asks one, which no recorded set holds); the behaviour test thread_surface is the only check of it. Not stageable yet (R12): the real T3 raises an approval or a question only when claude sends a control_request over the Claude SDK protocol, which the scripted CLI never prints (its steps are Line, Sleep, McpCall, ReadLine, Credential) and the reference host refuses McpCall, while the candidate raises one only through the executor MCP tool approval_prompt or ask_user: one case cannot hold the same cue on both sides."
+    },
+    "command:subagent.stop": {
+      "state": "not-offered",
+      "reason": "no native subagent exists on a run of rca: the pinned server refuses the command (the requested native subagent cannot be stopped on this run) and the run keeps going, and t3 serve answers the same refusal, so no agent method serves it (t3-v0.1.9-agent-cues records the refusal)",
+      "decidedBy": "M4"
+    },
+    "command:thread.unarchive": {
+      "unrecordable": "no recording shows it: the set t3-v0.1.9-agent-cues records it (archive then unarchive, both answered Success, hosted run 44215259574), but its hosted slice replay (run 44224411126, rows=command:thread.unarchive) is breaking with one difference whose detail the replay artifact does not carry; the behaviour test thread_surface is the only check of it"
+    },
+    "command:provider-session.detach": {
+      "unrecordable": "no recording shows it as an answered agent method: the set t3-v0.1.9-agent-cues records the call and the reference refused it (Provider session sess-1 does not belong to thread agent-thread, so no agent method answered OK); its hosted slice replay (run 44225611671, rows=command:provider-session.detach) is allowlisted, but a refusal is not an answer of thread.detach and no run-bundle trace evidence of it exists yet, so the row stays served by the behaviour test thread_surface"
+    },
+    "command:thread.create": {
+      "oracle": "mimic"
+    },
+    "command:message.dispatch": {
+      "unrecordable": "no recording shows it: the recorded replay differs on a breaking gap listed in known-gaps.json (the attachment upload path waits for the 0.1.9 version split); the behaviour test attachments is the only check of it"
+    },
+    "http:metadata.descriptor": {
+      "unrecordable": "no recording shows it: the recorded replay differs on breaking gaps listed in known-gaps.json (the descriptor waits for the 0.1.9 version split); the behaviour test attachments is the only check of it"
+    },
+    "command:checkpoint.rollback": {
+      "unrecordable": "a real opencode turn is recorded for it (t3-v0.1.9-agent-real, hosted Mimic run 44285191911), but the chain candidate differs from that recording in known-gaps.json of the set (it captures no checkpoints, has no provider-instance create and its scripted opencode answers differently), so no replay of it is clean or allowlisted; the behaviour test checkpoint_rollback is the check of it"
+    },
+    "mutation:project.create": {
+      "oracle": "mimic"
+    },
+    "mutation:project.delete": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.subscribeShell": {
+      "unrecordable": "no recording shows it: the recorded streams of the row differ on breaking gaps listed in known-gaps.json and no recorded interaction answers it through the chain with a labelled call; the behaviour test chain is the only check of it"
+    },
+    "rpc:subscribeServerConfig": {
+      "unrecordable": "no recording shows it: the recorded streams of the row differ on breaking gaps listed in known-gaps.json and no recorded interaction answers it through the chain with a labelled call; the behaviour test chain is the only check of it"
+    },
+    "rpc:subscribeServerLifecycle": {
+      "unrecordable": "no recording shows it: the recorded streams of the row differ on breaking gaps listed in known-gaps.json and no recorded interaction answers it through the chain with a labelled call; the behaviour test chain is the only check of it"
+    },
+    "rpc:server.updateSettings": {
+      "oracle": "mimic"
+    },
+    "rpc:vcs.refreshBranch": {
+      "oracle": "mimic"
+    },
+    "rpc:subscribeVcsBranch": {
+      "oracle": "mimic"
+    },
+    "http:auth.browserSession": {
+      "oracle": "mimic"
+    },
+    "http:auth.revokeClient": {
+      "oracle": "mimic"
+    },
+    "http:auth.revokeOtherClients": {
+      "oracle": "mimic"
+    },
+    "http:auth.revokePairingLink": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSessions.scan": {
+      "oracle": "mimic"
+    },
+    "rpc:cloud.getRelayClientStatus": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getWorktreeThreadIds": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.searchThread": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.searchThreadStream": {
+      "oracle": "mimic"
+    },
+    "rpc:peerLinks.unlink": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.clearProfile": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.reportProfiles": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.reportStatus": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.listIgnoredFiles": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.chatgpt.handoff.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:review.getBranchCommits": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.getWebhookDelivery": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.listWebhookDeliveries": {
+      "oracle": "mimic"
+    },
+    "rpc:server.getProcessDiagnostics": {
+      "oracle": "mimic"
+    },
+    "rpc:server.getProcessResourceHistory": {
+      "oracle": "mimic"
+    },
+    "rpc:server.getResourceTelemetryHistory": {
+      "oracle": "mimic"
+    },
+    "rpc:server.getStorageCleanupReport": {
+      "oracle": "mimic"
+    },
+    "rpc:server.retryResourceTelemetry": {
+      "oracle": "mimic"
+    },
+    "rpc:server.runStorageCleanup": {
+      "oracle": "mimic"
+    },
+    "rpc:server.signalProcess": {
+      "oracle": "mimic"
+    },
+    "rpc:sourceControl.star": {
+      "unrecordable": "the pinned server's recording of this row is the signed-out refusal; the starred and not-starred answers are the authored doubles of exec-hosted (hosted_repo_star and hosted_repo_starred: 204 and 404 written from GitHub documentation, not recorded), so no recording shows the success path (docs/gaps/orca-github-project-rows.md)"
+    },
+    "rpc:sourceControl.starred": {
+      "unrecordable": "the pinned server's recording of this row is the signed-out refusal; the starred and not-starred answers are the authored doubles of exec-hosted (hosted_repo_star and hosted_repo_starred: 204 and 404 written from GitHub documentation, not recorded), so no recording shows the success path (docs/gaps/orca-github-project-rows.md)"
+    },
+    "rpc:subscribeDiscoveredLocalServers": {
+      "oracle": "mimic"
+    },
+    "command:prepared-run.retry": {
+      "unrecordable": "the recorded host has no failed workspace preparation to retry (every recorded call of it is a refusal), so no recording shows the served path; the chain test thread_surface proves it: a launch on a worktree whose branch is taken fails, the branch is removed, and the retry prepares the worktree at the executor and runs the turn in it"
+    },
+    "rpc:server.prepareTriage": {
+      "unrecordable": "the recorded host answers with the paths of its own triage folder and writes its own logs, config and T3 source; this server writes the rca service's log (service.logs) and a playbook at the executor, so no replay of it is clean. The behaviour test is tests/flow/settings.rs; no third-party source is fetched (owner decision 7)"
+    },
+    "command:thread.guest-message.dismiss": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recordings hold only the failure shape of the share (GuestShareCreateError disabled); no recording shows an enabled share, a guest or a guest message, so the row's success shape is authored from the pinned source. Agent decision under the safer-option rule: guest sharing is served but off, since the owner's setting guestSharingEnabled is off by default and a link also needs the host's address (T3_GUEST_HOST); reversible by turning that one setting off. The chain test (tests/integration/guest_share.rs) keeps the behaviour (docs/gaps/t3-mcp-secret-guest-telemetry-no-success-shape.md)"
+    },
+    "command:thread.guest-share.close": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recordings hold only the failure shape of the share (GuestShareCreateError disabled); no recording shows an enabled share, a guest or a guest message, so the row's success shape is authored from the pinned source. Agent decision under the safer-option rule: guest sharing is served but off, since the owner's setting guestSharingEnabled is off by default and a link also needs the host's address (T3_GUEST_HOST); reversible by turning that one setting off. The chain test (tests/integration/guest_share.rs) keeps the behaviour (docs/gaps/t3-mcp-secret-guest-telemetry-no-success-shape.md)"
     }
   },
-  "reverify": {}
+  "reverify": {},
+  "traceNoise": {
+    "command:delegated_task.*": "the host's delegated-task commands (request, wake policy, completion-delivery acknowledge and dispose), issued between agents inside the host: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "command:notification.delivery.accept": "the host's own notification-delivery acceptance: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "command:prepared-run.fail": "the host's prepared-run lifecycle reports (the phone only retries one: command:prepared-run.retry): the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "command:prepared-run.progress": "the host's prepared-run lifecycle reports (the phone only retries one: command:prepared-run.retry): the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "command:prepared-run.release": "the host's prepared-run lifecycle reports (the phone only retries one: command:prepared-run.retry): the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "command:provider.switch": "a host-internal or desktop command the phone never issues: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "command:queued-run.reorder": "a host-internal or desktop command the phone never issues: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "command:thread.auto-settle": "a host-internal or desktop command the phone never issues: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "command:thread.created.record": "a host-internal or desktop command the phone never issues: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "command:thread.pull-request-link.sync": "a host-internal or desktop command the phone never issues: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "command:thread.pull-request.sync": "a host-internal or desktop command the phone never issues: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "command:thread.tag.set": "a host-internal or desktop command the phone never issues: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "command:thread.title.regeneration.complete": "a host-internal or desktop command the phone never issues: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "http:projects.snapshot": "a host HTTP route for desktop and external callers: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "http:webhooks.*": "a host HTTP route for desktop and external callers: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:agentSessions.import": "a desktop-only host method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:device.easAccount": "a desktop-only host method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:device.simlockIdentity": "a desktop-only host method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:device.testHost": "a desktop-only host method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:git.resolvePullRequest": "a desktop-only host method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:guestShare.create": "a desktop-only host method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:preview.stopLocalServer": "a desktop-only host method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:projects.searchContents": "a desktop-only host method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:provider.install.*": "the desktop's provider install flow (start, cancel, remove, subscribe): the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.acceptAcpRegistryUrlAuth": "the desktop's ACP registry management: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.checkOtlpEndpoint": "a desktop settings method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.deleteAcpRegistrySession": "the desktop's ACP registry management: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.disableAcpRegistryProvider": "the desktop's ACP registry management: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.getNpmRelease": "a desktop settings method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.importAcpRegistrySession": "the desktop's ACP registry management: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.listAcpRegistryProviders": "the desktop's ACP registry management: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.listAcpRegistrySessions": "the desktop's ACP registry management: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.listTextGeneratorModels": "a desktop settings method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.logoutAcpRegistry": "the desktop's ACP registry management: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.prepareAcpRegistryAgent": "the desktop's ACP registry management: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.removeKeybinding": "a desktop settings method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.searchAcpRegistry": "the desktop's ACP registry management: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.setAcpRegistryProvider": "the desktop's ACP registry management: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.uninstallAcpRegistryManagedBinary": "the desktop's ACP registry management: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:server.upsertKeybinding": "a desktop settings method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:shell.openInEditor": "a desktop-only host method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:sourceControl.cloneRepository": "a desktop-only host method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:vcs.init": "a desktop-only host method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve",
+    "rpc:vcs.removeWorktree": "a desktop-only host method: the scan finds no phone caller, and the recorded crawl and scenarios drive the host's whole method surface, so their trace names it without a phone row to serve"
+  }
 }

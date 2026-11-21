@@ -193,7 +193,7 @@ fn top<T: Clone>(items: &[T], n: usize, key: impl Fn(&T) -> f64) -> Vec<T> {
 pub fn where_time_went(jobs: &[JobTime], facts: &[(String, LogFacts)]) -> String {
     let Some((wall, busy, idle)) = busy_and_idle(jobs) else { return String::new() };
     let mut out = String::from("\n### ⏱️ Where the time went\n\n");
-    out.push_str(&format!("- **{} wall** = {} of jobs running + **{} waiting between them** (the jobs run one at a time on one runner)\n", span(wall), span(busy), span(idle)));
+    out.push_str(&format!("- **{} wall** = {} of jobs running + **{} waiting between them** (a stretch counts once, however many jobs ran in it)\n", span(wall), span(busy), span(idle)));
     let slow = top(&jobs.iter().filter_map(|j| Some((j.name.clone(), j.secs()?))).collect::<Vec<_>>(), 3, |(_, s)| *s as f64);
     if !slow.is_empty() {
         let list = slow.iter().map(|(n, s)| format!("**{n}** {} ({}% of the run)", span(*s), (*s as f64 * 100.0 / wall.max(1) as f64).round())).collect::<Vec<_>>().join(", ");
@@ -310,17 +310,21 @@ pub fn detail_blocks(jobs: &[JobTime], facts: &[(String, LogFacts)]) -> String {
     out
 }
 
-/// What the Nx stages cost on the two-core VM: CPU seconds, the share of both cores they kept busy, and the bytes they wrote, per job.
-pub fn cost_block(facts: &[(String, LogFacts)]) -> String {
+/// What the Nx stages cost on the runner: CPU seconds, the share of its cores they kept busy (when the sampler said how many it has), and the bytes they wrote, per job.
+pub fn cost_block(facts: &[(String, LogFacts)], cores: Option<u32>) -> String {
     let rows: Vec<String> = facts
         .iter()
         .flat_map(|(job, f)| f.nx_cost.iter().map(move |(target, cpu, written, secs)| (job, target, *cpu, *written, *secs)))
-        .map(|(job, target, cpu, written, secs)| format!("| {job} | {target} | {cpu:.0} s | {:.0}% | {} | {secs:.0} s |\n", cpu / (secs * 2.0).max(0.1) * 100.0, bytes(written as f64)))
+        .map(|(job, target, cpu, written, secs)| {
+            let share = cores.map_or(String::new(), |c| format!("{:.0}% | ", cpu / (secs * f64::from(c)).max(0.1) * 100.0));
+            format!("| {job} | {target} | {cpu:.0} s | {share}{} | {secs:.0} s |\n", bytes(written as f64))
+        })
         .collect();
     if rows.is_empty() {
         return String::new();
     }
-    format!("\n<details><summary>CPU and disk writes per Nx stage (children of the stage, 2 cores)</summary>\n\n| Job | Stage | CPU | Of both cores | Written | Wall |\n|---|---|---|---|---|---|\n{}\n</details>\n", rows.concat())
+    let (of, head, rule) = cores.map_or((String::new(), "", ""), |c| (format!(", {c} cores"), "Of all cores | ", "---|"));
+    format!("\n<details><summary>CPU and disk writes per Nx stage (children of the stage{of})</summary>\n\n| Job | Stage | CPU | {head}Written | Wall |\n|---|---|---|{rule}---|---|\n{}\n</details>\n", rows.concat())
 }
 
 #[cfg(test)]

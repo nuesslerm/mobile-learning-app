@@ -44,7 +44,7 @@ impl State {
     pub fn tail_from(&self, offset: u64, cap: usize) -> (u64, &[u8]) {
         let start = offset.max(self.base);
         let at = (start - self.base) as usize;
-        (start, &self.tail[at..(at + cap).min(self.tail.len())])
+        (start, &self.tail[at..at.saturating_add(cap).min(self.tail.len())])
     }
 
     fn feed(&mut self, offset: u64, data: &[u8]) {

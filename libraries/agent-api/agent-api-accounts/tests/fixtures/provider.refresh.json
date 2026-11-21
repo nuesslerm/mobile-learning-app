@@ -41,7 +41,10 @@
           ],
           "selected": null
         }
-      }
+      },
+      "actions": [
+        "cli_detect"
+      ]
     },
     {
       "name": "a provider that is none is refused",

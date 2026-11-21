@@ -104,6 +104,10 @@ fn isolate(command: &mut Command) {
     });
     for (key, _) in std::env::vars_os() {
         let name = key.to_string_lossy();
+        // a commit hook points these at the outer repo's temporary index; a fixture's own git must not read it
+        if ["GIT_INDEX_FILE", "GIT_DIR", "GIT_WORK_TREE", "GIT_PREFIX"].contains(&&*name) {
+            command.env_remove(&key);
+        }
         // the outer `wf test run` hands its Nx the build-cache shim: a fixture's own Nx must not replay from the real bucket
         if ["BWS_", "AWS_", "CLOUDSDK_", "NX_SELF_HOSTED_"].iter().any(|p| name.starts_with(p)) || ["GH_TOKEN", "GITHUB_TOKEN"].contains(&&*name) || registered.iter().any(|r| *r == name) {
             command.env_remove(&key);
@@ -120,6 +124,10 @@ fn isolate(command: &mut Command) {
     }
     // CI's e2e job exports a speed; only a test that sets one runs faster than a user
     command.env_remove("WF_TEST_SPEED");
+    // the pipeline's kill switch for a store that is gone must not turn a test of the cache off
+    command.env_remove("WF_BLOB_CACHE");
+    // inside a hosted job a fixture's `wf` would write its usage rows into that job's real CI database
+    command.env("WF_CI_DB", "off");
     command.env("WF_TAILNET_SOCKS", "127.0.0.1:1").env("SECRETS_BACKEND", "macos").env("SECRETS_LOG_BETTERSTACK", "false");
     // the developer's ~/.config/wf/.env holds real keys; a test that wants one gives wf its own HOME
     let real = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| "/tmp".into()));

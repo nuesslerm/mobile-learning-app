@@ -36,10 +36,18 @@ fn dispatch_failed(message: impl Into<String>) -> QueryFailure {
     QueryFailure::Error(json!({"_tag": "OrchestrationDispatchCommandError", "message": message.into()}))
 }
 
+/// A refusal of the scratch promotion: the dispatch error whose cause is the promotion's own, as the pin words it.
+fn promotion_failed(message: impl Into<String>) -> QueryFailure {
+    let message = message.into();
+    QueryFailure::Error(json!({"_tag": "OrchestrationDispatchCommandError", "message": message, "cause": {"message": message, "name": "ScratchThreadPromotionError"}}))
+}
+
 fn failure_text(failure: Failure) -> String {
     match failure {
         Failure::Defect(message) | Failure::Refused { message, .. } => message,
         Failure::ProjectNotEmpty { project_id, .. } => format!("Project {project_id} is not empty."),
+        Failure::ThreadMissing { thread_id, .. } => format!("No orchestration projection exists for thread {thread_id}."),
+        Failure::PreviouslyRejected { command_id, reason, .. } => format!("Command {command_id} was previously rejected: {reason}"),
     }
 }
 
@@ -49,7 +57,7 @@ pub fn workspace_name(project: &str) -> String {
 }
 
 /// `dir` relative to `root` (empty for `root` itself), or none when `dir` is not below it.
-fn relative(root: &str, dir: &str) -> Option<String> {
+pub(super) fn relative(root: &str, dir: &str) -> Option<String> {
     let (root, dir) = (root.trim_end_matches('/'), dir.trim_end_matches('/'));
     if dir == root {
         return Some(String::new());
@@ -145,7 +153,14 @@ impl Service {
     }
 
     /// Checks the project's folder with the agent API and, below the root, makes it the workspace named for the project (none for the root itself).
-    fn register_project(&self, id: &str, dir: &str, moved: bool) -> Result<(), String> {
+    fn register_project(&self, id: &str, dir: &str, moved: bool, make: bool) -> Result<(), String> {
+        // `createWorkspaceRootIfMissing`: the executor makes the folder (never this server) before it is checked
+        if make {
+            let root = self.served_path(".").map_err(|e| e.message())?;
+            if let Some(below) = relative(&root, dir).filter(|r| !r.is_empty()) {
+                self.agent().run(&Op::FileMkdir { path: below, parents: true }).map_err(|e| e.message())?;
+            }
+        }
         let (_, relative) = self.below_root(dir)?;
         let workspace = workspace_name(id);
         if relative.is_empty() {
@@ -184,9 +199,12 @@ impl Service {
         let id = cmd.require("projectId")?;
         let known = self.engine().read(|state| state.projects.contains_key(id));
         match cmd.kind.as_str() {
-            "project.create" if !known => self.register_project(id, cmd.require("workspaceRoot")?, false),
+            "project.create" if !known => {
+                let make = cmd.body.get("createWorkspaceRootIfMissing").and_then(Value::as_bool).unwrap_or(false);
+                self.register_project(id, cmd.require("workspaceRoot")?, false, make)
+            }
             "project.update" if known => match cmd.str("workspaceRoot") {
-                Some(root) if self.engine().project_root(id).as_deref() != Some(root) => self.register_project(id, root, true),
+                Some(root) if self.engine().project_root(id).as_deref() != Some(root) => self.register_project(id, root, true, false),
                 _ => Ok(()),
             },
             _ => Ok(()),
@@ -295,7 +313,7 @@ impl Service {
     }
 
     /// The executor's root, without a trailing slash.
-    fn root(&self) -> Result<String, String> {
+    pub(super) fn root(&self) -> Result<String, String> {
         Ok(self.served_path(".").map_err(|e| e.message())?.trim_end_matches('/').to_string())
     }
 
@@ -325,14 +343,14 @@ impl Service {
     pub fn create_from_thread(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let thread = field(payload, "threadId")?;
         let _one = self.lock_projects();
-        let shell = self.engine().read(|state| state.threads.get(thread).cloned()).ok_or_else(|| dispatch_failed("Thread not found."))?;
+        let shell = self.engine().read(|state| state.threads.get(thread).cloned()).ok_or_else(|| promotion_failed("Thread not found."))?;
         let title = shell.get("title").and_then(Value::as_str).unwrap_or("Project").to_string();
         let project = shell.get("projectId").and_then(Value::as_str).unwrap_or_default().to_string();
         let scratch = format!("{}/{SCRATCH}", self.root().map_err(dispatch_failed)?);
         let own = shell.get("worktreePath").and_then(Value::as_str).filter(|p| !p.is_empty()).map(str::to_string).or_else(|| self.engine().project_root(&project));
         let is_scratch = self.is_scratch_project(&project, &scratch);
         let already = own.as_deref().is_some_and(|folder| self.engine().project_root(&project).as_deref() == Some(folder)) && !is_scratch;
-        let refused = || dispatch_failed("Only a No project thread with its own folder can become a project.");
+        let refused = || promotion_failed("Only a No project thread with its own folder can become a project.");
         let folder = own.filter(|folder| folder.rsplit_once('/').is_some_and(|(parent, _)| parent == scratch) && (is_scratch || already)).ok_or_else(refused)?;
         let moving: Vec<(String, String)> = self.engine().read(|state| {
             let text = |row: &serde_json::Map<String, Value>, key: &str| row.get(key).and_then(Value::as_str).map(str::to_string);
@@ -340,7 +358,7 @@ impl Service {
             state.threads.iter().filter(|(id, row)| (is_scratch && id.as_str() == thread) || (text(row, "worktreePath").as_deref() == Some(folder.as_str()) && in_scratch(row))).map(|(id, row)| (id.clone(), text(row, "title").unwrap_or_else(|| "This thread".into()))).collect()
         });
         if let Some((_, busy)) = moving.iter().find(|(id, _)| self.engine().active_run(id).is_some()) {
-            return Err(dispatch_failed(format!("\"{busy}\" is still working. Finish or stop it first.")));
+            return Err(promotion_failed(format!("\"{busy}\" is still working. Finish or stop it first.")));
         }
         let id = match self.project_at(&folder) {
             Some(id) => id,

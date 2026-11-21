@@ -11,6 +11,7 @@ use std::sync::Arc;
 struct Rig {
     agent: Arc<ScriptedAgent>,
     repo: Repos,
+    ws: Workspaces,
     conn: Connection,
     n: u32,
 }
@@ -18,16 +19,24 @@ struct Rig {
 impl Rig {
     fn new() -> Rig {
         let agent = Arc::new(ScriptedAgent::serving(ServiceStatus { protocol: 1, version: "v".into(), commit: "c".into(), groups: vec![] }));
-        Workspaces::default().workspace("main", "root", Some("/srv/main")).install(&agent);
+        let ws = Workspaces::default();
+        ws.workspace("main", "root", Some("/srv/main")).install(&agent);
         let repo = Repos::default();
         repo.install(&agent);
         let host = Host::new("rt".into(), vec![Box::new(GitArea)], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
-        Rig { agent, repo, conn: host.connection("dev", "tok", vec![]), n: 0 }
+        Rig { agent, repo, ws, conn: host.connection("dev", "tok", vec![]), n: 0 }
     }
 
     fn call(&mut self, method: &str, mut params: Value) -> Value {
         self.n += 1;
         params["worktree"] = json!("main");
+        let frame = json!({"id": format!("r{}", self.n), "method": method, "params": params}).to_string();
+        serde_json::from_str(&self.conn.on_message(&frame)[0]).unwrap()
+    }
+
+    /// A request sent as the phone built it, with no selector added.
+    fn raw(&mut self, method: &str, params: Value) -> Value {
+        self.n += 1;
         let frame = json!({"id": format!("r{}", self.n), "method": method, "params": params}).to_string();
         serde_json::from_str(&self.conn.on_message(&frame)[0]).unwrap()
     }
@@ -48,6 +57,11 @@ impl Rig {
     fn entries(&mut self) -> Vec<String> {
         let status = self.ok("git.status", json!({}));
         status["entries"].as_array().unwrap().iter().map(|e| format!("{}:{}:{}", e["area"].as_str().unwrap(), e["status"].as_str().unwrap(), e["path"].as_str().unwrap())).collect()
+    }
+
+    /// What rca was asked about the repository and its files.
+    fn sent_all(&self) -> Vec<(String, Value)> {
+        self.agent.requests().into_iter().filter(|(m, _)| m.starts_with("git.") || m.starts_with("file.")).collect()
     }
 
     fn sent(&self) -> Vec<(String, Value)> {
@@ -356,4 +370,380 @@ fn given_rca_answers_a_generation_without_a_message_when_it_is_asked_then_the_ca
     let (code, message) = rig.err("git.generateCommitMessage", json!({}));
     assert_eq!(code, "runtime_error");
     assert!(message.contains("no message"), "{message}");
+}
+
+#[test]
+fn given_a_branch_ahead_of_its_base_when_pull_request_fields_are_generated_then_the_answer_is_the_models_fields_in_the_phones_shape_and_nothing_is_opened() {
+    // Given a branch two commits ahead of main
+    let mut rig = Rig::new();
+    rig.repo.branch_ahead(2);
+    // When the phone asks for the fields with the form as it stands
+    let generated = rig.ok("git.generatePullRequestFields", json!({"base": "main", "title": "", "body": "", "draft": true, "provider": "github", "useTemplate": false, "agentCmdOverrides": {}}));
+    // Then the answer is `success` with the fields (the base is the one asked for), and rca was given the form without the phone's agent settings
+    assert_eq!(generated, json!({"success": true, "fields": {"base": "main", "title": "Merge main into main", "body": "## Problem\n\nx\n\n## Solution\n\ny", "draft": true}}));
+    assert_eq!(rig.repo.pull_request_asked(), [json!({"base": "main", "title": "", "body": "", "draft": true})]);
+    assert_eq!(rig.repo.subjects(), ["first"]);
+}
+
+#[test]
+fn given_no_commit_ahead_or_no_model_when_pull_request_fields_are_generated_then_the_answer_is_a_failed_generation_with_rca_s_reason() {
+    // Given a branch level with its base
+    let mut level = Rig::new();
+    // When the phone asks, Then it is a failed generation naming the base, and the model was not asked
+    let nothing = level.ok("git.generatePullRequestFields", json!({"base": "main", "title": "t", "body": "b", "draft": false}));
+    assert_eq!(nothing, json!({"success": false, "error": "the branch has no commit that main lacks"}));
+    assert!(level.repo.pull_request_asked().is_empty());
+    // Given a branch ahead and a service without a model, Then that is a failed generation too, with the service's words
+    let mut down = Rig::new();
+    down.repo.branch_ahead(1);
+    down.repo.model_down();
+    assert_eq!(down.ok("git.generatePullRequestFields", json!({"base": "main", "title": "t", "body": "b", "draft": false})), json!({"success": false, "error": "no model is configured"}));
+    // And an answer of rca that lacks a field is refused, not read as an empty title
+    let mut bad = Rig::new();
+    bad.agent.reply("git.generatePullRequestFields", |_| Ok(json!({"base": "main", "title": " ", "body": "", "draft": false})));
+    let (code, message) = bad.err("git.generatePullRequestFields", json!({"base": "main", "title": "", "body": "", "draft": false}));
+    assert_eq!(code, "runtime_error");
+    assert!(message.contains("no title"), "{message}");
+}
+
+#[test]
+fn given_params_the_host_schema_refuses_when_pull_request_fields_are_asked_then_each_is_refused_in_its_words_before_the_selector_is_resolved_and_rca_is_asked_for_nothing() {
+    let mut rig = Rig::new();
+    rig.repo.branch_ahead(1);
+    let form = || json!({"worktree": "a", "base": "main", "title": "", "body": "", "draft": false});
+    let without = |key: &str| {
+        let mut p = form();
+        p.as_object_mut().unwrap().remove(key);
+        p
+    };
+    let with = |key: &str, v: Value| {
+        let mut p = form();
+        p[key] = v;
+        p
+    };
+    for (params, says) in [
+        (without("worktree"), "Missing worktree selector"),
+        (without("base"), "Invalid input: expected string, received undefined"),
+        (with("base", json!("")), "Missing base branch"),
+        (with("title", json!(3)), "Invalid input: expected string, received number"),
+        (without("body"), "Invalid input: expected string, received undefined"),
+        (with("draft", json!("no")), "Invalid input: expected boolean, received string"),
+        (without("draft"), "Invalid input: expected boolean, received undefined"),
+    ] {
+        // When it is sent, Then it is refused as invalid_argument with that sentence (a selector no workspace owns would otherwise be selector_not_found)
+        let r = rig.conn.on_message(&json!({"id": "x", "method": "git.generatePullRequestFields", "params": params}).to_string());
+        let r: Value = serde_json::from_str(&r[0]).unwrap();
+        assert_eq!((r["error"]["code"].clone(), r["error"]["message"].clone()), (json!("invalid_argument"), json!(says)), "{params}");
+    }
+    assert!(rig.repo.pull_request_asked().is_empty());
+    // And a valid form for a worktree no workspace owns is the selector error
+    let r = rig.conn.on_message(&json!({"id": "x", "method": "git.generatePullRequestFields", "params": form()}).to_string());
+    assert_eq!(serde_json::from_str::<Value>(&r[0]).unwrap()["error"]["code"], "selector_not_found");
+}
+
+const OLD: &str = "1111111111111111111111111111111111111111";
+const NEW: &str = "2222222222222222222222222222222222222222";
+
+fn pad(c: char) -> String {
+    c.to_string().repeat(40)
+}
+
+#[test]
+fn given_two_commits_when_a_files_branch_diff_is_read_then_it_is_the_text_of_each_side_and_a_missing_side_is_empty() {
+    // Given a repository whose merge base holds a file, whose head changed it and added another
+    let mut rig = Rig::new();
+    rig.repo.blob(OLD, "src/a.txt", b"one\ntwo\n").blob(NEW, "src/a.txt", b"one\n2\n").blob(NEW, "src/new.txt", b"fresh\n");
+    // When the phone reads the diff of the changed file and of the added one
+    let compare = json!({"mergeBase": OLD, "headOid": NEW});
+    let changed = rig.ok("git.branchDiff", json!({"filePath": "src/a.txt", "compare": compare}));
+    let added = rig.ok("git.branchDiff", json!({"filePath": "src/new.txt", "compare": compare}));
+    // Then the first is the two texts, the second has an empty original
+    assert_eq!(changed, json!({"kind": "text", "originalContent": "one\ntwo\n", "modifiedContent": "one\n2\n", "originalIsBinary": false, "modifiedIsBinary": false}));
+    assert_eq!((added["originalContent"].clone(), added["modifiedContent"].clone()), (json!(""), json!("fresh\n")));
+    // And a rename reads the original side under the old path
+    rig.repo.blob(OLD, "old/name.txt", b"same\n").blob(NEW, "new/name.txt", b"same\n");
+    let renamed = rig.ok("git.branchDiff", json!({"filePath": "new/name.txt", "oldPath": "old/name.txt", "compare": compare}));
+    assert_eq!((renamed["originalContent"].clone(), renamed["modifiedContent"].clone()), (json!("same\n"), json!("same\n")));
+}
+
+#[test]
+fn given_a_commit_when_a_files_commit_diff_is_read_then_the_parent_is_the_original_and_a_root_commit_has_none() {
+    // Given a commit, its parent, and a root commit, each holding the file
+    let mut rig = Rig::new();
+    let (parent, commit, root) = (pad('a'), pad('b'), pad('c'));
+    rig.repo.blob(&parent, "f.txt", b"before").blob(&commit, "f.txt", b"after").blob(&root, "f.txt", b"first");
+    // When the phone reads the commit's diff, and the root commit's (no parent, and a null one)
+    let diff = rig.ok("git.commitDiff", json!({"filePath": "f.txt", "commitOid": commit, "parentOid": parent}));
+    let first = rig.ok("git.commitDiff", json!({"filePath": "f.txt", "commitOid": root}));
+    let first_null = rig.ok("git.commitDiff", json!({"filePath": "f.txt", "commitOid": root, "parentOid": null}));
+    // Then the parent is the original side, and a root commit's original is empty
+    assert_eq!((diff["originalContent"].clone(), diff["modifiedContent"].clone()), (json!("before"), json!("after")));
+    assert_eq!((first["originalContent"].clone(), first["modifiedContent"].clone()), (json!(""), json!("first")));
+    assert_eq!(first, first_null);
+}
+
+#[test]
+fn given_binary_and_oversized_files_when_diffed_then_the_result_is_binary_with_the_preview_the_pinned_host_gives_or_the_text_is_withheld() {
+    // Given a png with a NUL byte, a binary with no preview, and a text file far past the render limit
+    let mut rig = Rig::new();
+    let (a, b) = (pad('a'), pad('b'));
+    rig.repo.blob(&a, "pic.png", b"\x89PNG\0old").blob(&b, "pic.png", b"\x89PNG\0new").blob(&b, "data.bin", b"\0\x01\x02").blob(&b, "big.txt", &vec![b'x'; 6_000_001]);
+    // When each is read through the commit diff
+    let png = rig.ok("git.commitDiff", json!({"filePath": "pic.png", "commitOid": b, "parentOid": a}));
+    let bin = rig.ok("git.commitDiff", json!({"filePath": "data.bin", "commitOid": b}));
+    let big = rig.ok("git.commitDiff", json!({"filePath": "big.txt", "commitOid": b}));
+    // Then the image is binary on both sides with its bytes in base64 and its mime type, the other has no content, and the big text is withheld with its counts
+    assert_eq!((png["kind"].clone(), png["isImage"].clone(), png["mimeType"].clone(), png["originalIsBinary"].clone(), png["modifiedIsBinary"].clone()), (json!("binary"), json!(true), json!("image/png"), json!(true), json!(true)));
+    assert_eq!((png["originalContent"].clone(), png["modifiedContent"].clone()), (json!("iVBORwBvbGQ="), json!("iVBORwBuZXc=")));
+    assert_eq!((bin["kind"].clone(), bin["modifiedContent"].clone(), bin["originalIsBinary"].clone(), bin["modifiedIsBinary"].clone(), bin.get("mimeType").cloned()), (json!("binary"), json!(""), json!(false), json!(true), None));
+    assert_eq!((big["kind"].clone(), big["modifiedContent"].clone(), big["largeDiffRenderLimit"]["reason"].clone(), big["largeDiffRenderLimit"]["characterCount"].clone()), (json!("text"), json!(""), json!("character-count"), json!(6_000_001)));
+}
+
+#[test]
+fn given_malformed_diff_requests_when_made_then_each_is_refused_in_the_order_and_words_of_the_pinned_schema() {
+    // Given a host with a workspace
+    let mut rig = Rig::new();
+    let cases = [
+        ("git.branchDiff", json!({}), "Missing file path"),
+        ("git.branchDiff", json!({"filePath": "a"}), "Invalid input: expected object, received undefined"),
+        ("git.branchDiff", json!({"filePath": "a", "compare": {}}), "Invalid input: expected string, received undefined"),
+        ("git.branchDiff", json!({"filePath": "a", "compare": {"headOid": "abc", "mergeBase": OLD}}), "Expected a full git object id"),
+        ("git.commitDiff", json!({"filePath": "a"}), "Invalid input: expected string, received undefined"),
+        ("git.commitDiff", json!({"filePath": "a", "commitOid": "xyz"}), "Expected a full git object id"),
+        ("git.commitDiff", json!({"filePath": "a", "commitOid": OLD, "oldPath": 3}), "Invalid input: expected string, received number"),
+    ];
+    // When each is sent, Then it is refused as invalid_argument with that sentence, and rca is asked for no blob
+    for (method, params, message) in cases {
+        assert_eq!(rig.err(method, params.clone()), ("invalid_argument".to_string(), message.to_string()), "{method} {params}");
+    }
+    assert!(rig.sent().iter().all(|(m, _)| m != "git.blob"));
+}
+
+#[test]
+fn given_no_generation_running_when_the_phone_cancels_one_then_the_host_says_ok_and_a_selector_no_workspace_owns_is_refused() {
+    // Given a host with a workspace and no generation in flight
+    let mut rig = Rig::new();
+    // When the phone cancels a commit-message generation and a pull-request-fields generation
+    let message = rig.ok("git.cancelGenerateCommitMessage", json!({}));
+    let fields = rig.ok("git.cancelGeneratePullRequestFields", json!({}));
+    // Then each is ok, and neither asked rca for anything of git
+    assert_eq!((message, fields), (json!({"ok": true}), json!({"ok": true})));
+    assert!(rig.sent().is_empty(), "{:?}", rig.sent());
+    // And a worktree no workspace owns is the selector error, as for every row
+    let r = rig.conn.on_message(&json!({"id": "x", "method": "git.cancelGenerateCommitMessage", "params": {"worktree": "nope"}}).to_string());
+    let r: Value = serde_json::from_str(&r[0]).unwrap();
+    assert_eq!(r["error"]["code"], "selector_not_found");
+}
+
+#[test]
+fn given_diff_paths_the_host_would_not_accept_when_asked_then_they_are_the_plain_runtime_error_and_a_path_with_a_trailing_slash_or_backslash_is_normalized() {
+    // Given a repository with a file under a directory
+    let mut rig = Rig::new();
+    let commit = pad('b');
+    rig.repo.blob(&commit, "src/a.txt", b"hello");
+    // When bad paths are asked for (after a valid schema), Then each is the host's invalid_relative_path error and rca reads no blob
+    for bad in ["../x", "/abs", "C:/x", "a//b", "./a", ".", "/", "///"] {
+        assert_eq!(rig.err("git.commitDiff", json!({"filePath": bad, "commitOid": commit})), ("runtime_error".to_string(), "invalid_relative_path".to_string()), "{bad}");
+    }
+    assert!(rig.sent().iter().all(|(m, _)| m != "git.blob"));
+    // And a backslash path and a trailing slash read the same file, and an empty oldPath is no oldPath
+    let read = rig.ok("git.commitDiff", json!({"filePath": "src\\a.txt", "commitOid": commit, "oldPath": ""}));
+    assert_eq!(read["modifiedContent"], json!("hello"));
+}
+
+fn text_diff(original: &str, modified: &str) -> Value {
+    json!({"kind": "text", "originalContent": original, "modifiedContent": modified, "originalIsBinary": false, "modifiedIsBinary": false})
+}
+
+const MAX: u64 = 8 << 20;
+
+#[test]
+fn given_a_staged_edit_when_the_staged_diff_is_read_then_it_is_head_against_the_index_and_rca_is_asked_for_the_two_blobs_only() {
+    // Given a file committed as one line, staged as another and edited again in the working tree
+    let mut rig = Rig::new();
+    rig.repo.blob("HEAD", "a.txt", b"one\n").staged("a.txt", b"two\n");
+    rig.ws.put("main", "a.txt", b"three\n");
+    // When the phone reads its staged diff
+    let diff = rig.ok("git.diff", json!({"filePath": "a.txt", "staged": true}));
+    // Then it is HEAD against the index, and rca was asked for the two blobs and nothing of the working tree
+    assert_eq!(diff, text_diff("one\n", "two\n"));
+    assert_eq!(rig.sent_all(), [("git.blob".to_string(), json!({"rev": "HEAD", "path": "a.txt", "max_bytes": MAX, "workspace": "main"})), ("git.blob".to_string(), json!({"path": "a.txt", "max_bytes": MAX, "workspace": "main"}))]);
+}
+
+#[test]
+fn given_unstaged_edits_when_read_then_the_index_is_the_original_an_untracked_file_falls_back_to_head_and_compare_against_head_skips_the_index() {
+    // Given a file committed, staged with a change and edited again, and a file only in the working tree
+    let mut rig = Rig::new();
+    rig.repo.blob("HEAD", "a.txt", b"one\n").staged("a.txt", b"two\n").blob("HEAD", "gone-from-index.txt", b"head\n");
+    rig.ws.put("main", "a.txt", b"three\n").put("main", "new.txt", b"x\n").put("main", "gone-from-index.txt", b"tree\n");
+    // When the phone reads the unstaged diffs
+    let edited = rig.ok("git.diff", json!({"filePath": "a.txt", "staged": false}));
+    let untracked = rig.ok("git.diff", json!({"filePath": "new.txt", "staged": false}));
+    let fallback = rig.ok("git.diff", json!({"filePath": "gone-from-index.txt", "staged": false}));
+    let against_head = rig.ok("git.diff", json!({"filePath": "a.txt", "staged": false, "compareAgainstHead": true}));
+    // Then the index is the original side, a file nowhere in git has an empty one, a file the index lacks is read at HEAD, and HEAD is read when asked
+    assert_eq!((edited, untracked, fallback, against_head), (text_diff("two\n", "three\n"), text_diff("", "x\n"), text_diff("head\n", "tree\n"), text_diff("one\n", "three\n")));
+}
+
+#[test]
+fn given_a_conflicted_file_when_its_unstaged_diff_is_read_then_the_original_is_empty_not_head() {
+    // Given a file conflicted by a merge: the index holds only its unmerged stages
+    let mut rig = Rig::new();
+    rig.repo.blob("HEAD", "c.txt", b"base\n").unmerged("c.txt");
+    rig.ws.put("main", "c.txt", b"<<<<<<< ours\n");
+    // When the phone reads its unstaged diff
+    let diff = rig.ok("git.diff", json!({"filePath": "c.txt", "staged": false}));
+    // Then the original side is empty, as the pinned host reads an index entry it cannot read, and is not HEAD's
+    assert_eq!(diff, text_diff("", "<<<<<<< ours\n"));
+}
+
+#[test]
+fn given_a_deleted_png_when_read_staged_and_unstaged_then_the_binary_result_says_modified_deleted_with_the_old_bytes_in_base64() {
+    // Given a committed image that is deleted and staged, and a second one deleted in the working tree only
+    let png = b"\x89PNG\0\x01";
+    let mut rig = Rig::new();
+    rig.repo.blob("HEAD", "a.png", png).blob("HEAD", "b.png", png).staged("b.png", png);
+    // When the phone reads the staged diff of the first and the unstaged diff of the second
+    let staged = rig.ok("git.diff", json!({"filePath": "a.png", "staged": true}));
+    let unstaged = rig.ok("git.diff", json!({"filePath": "b.png", "staged": false}));
+    // Then each is a binary image result with the old bytes for preview, an empty new side, and the deletion said last
+    use base64::Engine;
+    let expected = json!({"kind": "binary", "originalContent": base64::engine::general_purpose::STANDARD.encode(png), "modifiedContent": "", "originalIsBinary": true, "modifiedIsBinary": false, "isImage": true, "mimeType": "image/png", "modifiedDeleted": true});
+    assert_eq!((&staged, &unstaged), (&expected, &expected));
+    assert_eq!(staged.as_object().unwrap().keys().next_back().unwrap(), "modifiedDeleted");
+}
+
+#[test]
+fn given_a_staged_rename_when_read_then_the_original_is_read_at_the_old_path_and_the_unstaged_diff_ignores_it() {
+    // Given a file renamed and changed in the index, unchanged in the working tree since
+    let mut rig = Rig::new();
+    rig.repo.blob("HEAD", "old.txt", b"one\n").staged("new.txt", b"one\nmore\n");
+    rig.ws.put("main", "new.txt", b"one\nmore\n");
+    // When the phone reads the staged diff naming the old path, and the unstaged one
+    let staged = rig.ok("git.diff", json!({"filePath": "new.txt", "oldPath": "old.txt", "staged": true}));
+    let unstaged = rig.ok("git.diff", json!({"filePath": "new.txt", "oldPath": "old.txt", "staged": false}));
+    // Then the staged original is the old path at HEAD, and the unstaged one is the index at the new path
+    assert_eq!((staged, unstaged), (text_diff("one\n", "one\nmore\n"), text_diff("one\nmore\n", "one\nmore\n")));
+}
+
+#[test]
+fn given_a_working_file_over_ten_mib_when_read_then_it_is_binary_too_large_and_no_chunk_is_read() {
+    // Given an untracked working file one byte over the host's 10 MiB
+    let mut rig = Rig::new();
+    rig.ws.put("main", "big.log", &vec![b'a'; (10 << 20) + 1]);
+    // When the phone reads its unstaged diff
+    let diff = rig.ok("git.diff", json!({"filePath": "big.log", "staged": false}));
+    // Then the new side is withheld as too large, and only its size was asked
+    assert_eq!(diff, json!({"kind": "binary", "originalContent": "", "modifiedContent": "", "originalIsBinary": false, "modifiedIsBinary": true, "tooLarge": true}));
+    assert!(rig.sent_all().iter().all(|(m, _)| m != "file.readChunk"), "{:?}", rig.sent_all());
+}
+
+#[test]
+fn given_a_diff_larger_than_the_reply_budget_when_read_then_it_is_diff_too_large_with_the_budget() {
+    // Given a staged file and a working file of 2.5 million characters each, under the render limit but not the remote reply's
+    let n = 2_500_000;
+    let mut rig = Rig::new();
+    rig.repo.staged("w.txt", &vec![b'x'; n]);
+    rig.ws.put("main", "w.txt", &vec![b'y'; n]);
+    // When the phone reads its unstaged diff as request r1
+    let reply = rig.call("git.diff", json!({"filePath": "w.txt", "staged": false}));
+    // Then it is refused with the host's code, words and the budget left after the request id
+    assert_eq!(reply["error"], json!({"code": "diff_too_large", "message": "This diff is too large to open over a remote connection.", "data": {"maxBytes": 4 * 1024 * 1024 - 4096 - "\"r1\"".len()}}));
+}
+
+#[test]
+fn given_malformed_git_diff_requests_when_made_then_each_is_refused_in_the_order_and_words_of_the_pinned_schema_before_the_selector_is_resolved() {
+    let mut rig = Rig::new();
+    let cases = [
+        (Value::Null, "Missing worktree selector"),
+        (json!({"filePath": "a", "staged": true}), "Missing worktree selector"),
+        (json!({"worktree": 7, "filePath": "a", "staged": true}), "Missing worktree selector"),
+        (json!({"worktree": "", "filePath": "a", "staged": true}), "Missing worktree selector"),
+        (json!({"worktree": "nope", "staged": true}), "Missing file path"),
+        (json!({"worktree": "nope", "filePath": 5, "staged": true}), "Missing file path"),
+        (json!({"worktree": "nope", "filePath": "a"}), "Invalid input: expected boolean, received undefined"),
+        (json!({"worktree": "nope", "filePath": "a", "staged": "yes"}), "Invalid input: expected boolean, received string"),
+        (json!({"worktree": "nope", "filePath": "a", "staged": true, "compareAgainstHead": null}), "Invalid input: expected boolean, received null"),
+        (json!({"worktree": "nope", "filePath": "a", "staged": true, "oldPath": 5}), "Invalid input: expected string, received number"),
+    ];
+    for (params, message) in cases {
+        // Given a request that breaks the schema (with an unknown selector where it names one)
+        // When it is sent
+        let reply = rig.raw("git.diff", params.clone());
+        // Then it is the schema's first complaint, before any selector or repository is looked at
+        assert_eq!((reply["error"]["code"].clone(), reply["error"]["message"].clone()), (json!("invalid_argument"), json!(message)), "{params}");
+    }
+    assert_eq!(rig.sent_all(), []);
+    // And a valid request with an unknown selector is the selector's refusal, and a path that leaves the tree is the host's plain error
+    assert_eq!(rig.raw("git.diff", json!({"worktree": "nope", "filePath": "a", "staged": true}))["error"]["code"], "selector_not_found");
+    assert_eq!(rig.err("git.diff", json!({"filePath": "../a", "staged": true})), ("runtime_error".to_string(), "invalid_relative_path".to_string()));
+    assert_eq!(rig.err("git.diff", json!({"filePath": "a", "oldPath": "/abs", "staged": false})), ("runtime_error".to_string(), "invalid_relative_path".to_string()));
+}
+
+fn remotes_asked(rig: &Rig) -> Vec<Value> {
+    rig.agent.requests().into_iter().filter(|(m, _)| m == "pr.remotes").map(|(_, p)| p).collect()
+}
+
+const SHA: &str = "AbCdEf0123456789abcdef0123456789abcdef01";
+
+#[test]
+fn given_an_origin_on_a_public_forge_when_the_commit_url_is_read_then_it_is_the_forges_commit_page_and_rca_was_asked_the_remotes_once() {
+    // Given an origin on github.com and an upstream on gitlab.com
+    let mut rig = Rig::new();
+    rig.repo.remote_url("upstream", "https://gitlab.com/up/stream.git").remote_url("origin", "git@github.com:Octo/Hello.git");
+    // When the phone asks for a commit's page, with a key the schema does not know
+    let page = rig.ok("git.remoteCommitUrl", json!({"sha": SHA, "extra": 1}));
+    // Then it is origin's GitHub commit page with the sha as given, and rca was asked the remotes once, naming the workspace only
+    assert_eq!(page, json!(format!("https://github.com/Octo/Hello/commit/{SHA}")));
+    assert_eq!(remotes_asked(&rig), [json!({"workspace": "main"})]);
+    // And a GitLab origin with a subgroup, a Bitbucket one and a 64 hex id are each that forge's page
+    for (url, want) in [("https://gitlab.com/grp/sub/proj.git", "https://gitlab.com/grp/sub/proj/-/commit/"), ("git@bitbucket.org:team/repo.git", "https://bitbucket.org/team/repo/commits/")] {
+        let mut rig = Rig::new();
+        rig.repo.remote_url("origin", url);
+        let sha = "a".repeat(64);
+        assert_eq!(rig.ok("git.remoteCommitUrl", json!({"sha": sha})), json!(format!("{want}{sha}")));
+    }
+}
+
+#[test]
+fn given_no_origin_or_an_origin_no_public_forge_hosts_when_the_commit_url_is_read_then_it_is_null() {
+    let cases: [&[(&str, &str)]; 6] = [&[], &[("upstream", "git@github.com:o/r.git")], &[("origin", "https://www.github.com/a/b")], &[("origin", "https://ghe.example.com/a/b")], &[("origin", "/srv/local.git")], &[("origin", "https://github.com/onlyowner")]];
+    for remotes in cases {
+        // Given a repository whose origin is missing, only an upstream, or on no public forge
+        let mut rig = Rig::new();
+        for (name, url) in remotes {
+            rig.repo.remote_url(name, url);
+        }
+        // When the commit page is read, Then there is none
+        assert_eq!(rig.ok("git.remoteCommitUrl", json!({"sha": SHA})), Value::Null, "{remotes:?}");
+    }
+    // And a folder git refuses is null too, as the host swallows git's error
+    let mut rig = Rig::new();
+    rig.repo.remotes_fail("git exited 128: fatal: not a git repository (or any of the parent directories): .git");
+    assert_eq!(rig.ok("git.remoteCommitUrl", json!({"sha": SHA})), Value::Null);
+}
+
+#[test]
+fn given_a_bad_worktree_or_sha_when_the_commit_url_is_read_then_it_is_the_hosts_schema_refusal_before_the_selector_and_rca_was_asked_nothing() {
+    let mut rig = Rig::new();
+    let cases = [
+        (Value::Null, "Missing worktree selector"),
+        (json!({}), "Missing worktree selector"),
+        (json!({"sha": "a"}), "Missing worktree selector"),
+        (json!({"worktree": 7, "sha": "a"}), "Missing worktree selector"),
+        (json!({"worktree": "nowhere", "sha": "a"}), "Expected a full git object id"),
+        (json!({"worktree": "nowhere"}), "Expected a full git object id"),
+        (json!({"worktree": "nowhere", "sha": &SHA[..39]}), "Expected a full git object id"),
+        (json!({"worktree": "nowhere", "sha": 7}), "Expected a full git object id"),
+        (json!({"worktree": "nowhere", "sha": format!(" {}", &SHA[1..])}), "Expected a full git object id"),
+    ];
+    for (params, message) in cases {
+        // Given a request whose selector or object id breaks the schema
+        // When it is sent, Then it is the schema's first complaint
+        let reply = rig.raw("git.remoteCommitUrl", params.clone());
+        assert_eq!((reply["error"]["code"].clone(), reply["error"]["message"].clone()), (json!("invalid_argument"), json!(message)), "{params}");
+    }
+    // And a valid request naming no workspace is the selector's refusal, and none of them asked rca for remotes
+    assert_eq!(rig.raw("git.remoteCommitUrl", json!({"worktree": "nowhere", "sha": SHA}))["error"], json!({"code": "selector_not_found", "message": "selector_not_found"}));
+    assert_eq!(remotes_asked(&rig), Vec::<Value>::new());
 }

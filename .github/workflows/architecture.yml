@@ -49,6 +49,8 @@ jobs:
           cache: pnpm
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.5
 
       - name: Install dependencies
         run: pnpm install
@@ -61,8 +63,12 @@ jobs:
       - name: Check simplicity budget
         run: wf check --budget
 
+      - name: Check package layout (type, placement, edges, generated regions)
+        # Proves shape and edges only; the same verb lefthook runs on a commit that touches a manifest or a package type.
+        run: wf check --layout --strict
+
       - name: Test ESLint plugin (vitest)
-        run: pnpm --filter @lib/eslint-plugin-mobile-learn run test
+        run: pnpm --filter @lib/lint-rules run test
 
       - name: Flow tests of the wf surface
         # The wf binary was built by install-wf above; the flow tests drive it as a child process, through stub tools.
@@ -86,6 +92,8 @@ jobs:
           cache: pnpm
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.5
 
       - name: Install dependencies
         run: pnpm install
@@ -95,9 +103,6 @@ jobs:
 
       - name: Lint
         run: pnpm --filter mla-tamagui run lint
-
-      - name: Check architecture boundaries (dependency-cruiser)
-        run: pnpm --filter mla-tamagui run arch
 
       - name: Check the Rust services' folder layout and layer imports (ls-lint, ast-grep)
         run: pnpm run arch:services

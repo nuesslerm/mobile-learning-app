@@ -20,27 +20,26 @@ const BEARER_ENV: &str = "RCA_EXEC_TESTKIT_BEARER";
 /// How long the executor may take to attach.
 const ATTACH_WAIT: Duration = Duration::from_secs(20);
 
-/// `<target>/<profile>/deps/<test binary>` is where a test runs from, so the target directory is three levels up.
-fn target_dir() -> PathBuf {
-    if let Some(dir) = std::env::var_os("CARGO_TARGET_DIR") {
-        return dir.into();
-    }
-    let exe = std::env::current_exe().expect("the test binary has a path");
-    exe.ancestors().nth(3).expect("the test binary sits under a target directory").to_path_buf()
-}
-
-/// Builds `rca-exec` from the `clis` workspace into `<target>/rca-exec-build`, a build directory of its own so the cargo that runs the tests
-/// (which holds the lock of its own) is not waited for. A lock file keeps two test binaries that start together from building at once.
+/// Builds `rca-exec` into the target directory of the `clis` workspace it belongs to, which no test run holds the cargo lock of, so a
+/// build there is never waited on by the cargo that runs the tests. The build runs in every run (cargo skips it when nothing changed), so a
+/// stale binary is never tested. A lock file keeps two test binaries that start together from building at once.
 fn build() -> PathBuf {
-    let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../clis/Cargo.toml");
-    let build_dir = target_dir().join("rca-exec-build");
-    std::fs::create_dir_all(&build_dir).unwrap_or_else(|e| panic!("{}: {e}", build_dir.display()));
-    let lock = std::fs::File::create(build_dir.join(".build.lock")).expect("a lock file");
+    let clis = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../clis");
+    let target = clis.join("target");
+    std::fs::create_dir_all(&target).unwrap_or_else(|e| panic!("{}: {e}", target.display()));
+    let lock = std::fs::File::create(target.join(".exec-testkit-build.lock")).expect("a lock file");
     lock.lock().expect("the build lock");
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
-    let status = Command::new(cargo).args(["build", "--locked", "--quiet", "-p", "rca-exec", "--bin", "rca-exec", "--manifest-path"]).arg(&manifest).arg("--target-dir").arg(&build_dir).status().expect("cargo starts");
+    let status = Command::new(cargo)
+        .args(["build", "--locked", "--quiet", "-p", "rca-exec", "--bin", "rca-exec", "--manifest-path"])
+        .arg(clis.join("Cargo.toml"))
+        .arg("--target-dir")
+        .arg(&target)
+        .env_remove("CARGO_TARGET_DIR")
+        .status()
+        .expect("cargo starts");
     assert!(status.success(), "building rca-exec failed");
-    build_dir.join("debug").join("rca-exec")
+    target.join("debug").join("rca-exec")
 }
 
 /// The program `named` (the value of `RCA_EXEC_BIN`) points at, or else the one `build` makes.
@@ -86,6 +85,12 @@ impl RcaExec {
 
     /// Like `serve_on`, with the executor's `HOME` set to `home` (whose skills directories `skill_scan` then reads).
     pub fn serve_with_home(rca_url: &str, workspace: &str, repo: &TempRepo, bearer: &str, flags: &[&str], path: &std::ffi::OsStr, home: Option<&std::path::Path>) -> RcaExec {
+        RcaExec::serve_with_env(rca_url, workspace, repo, bearer, flags, path, home, &[])
+    }
+
+    /// Like `serve_with_home`, with more environment variables for the executor (the credential a real agent CLI it runs reads).
+    #[allow(clippy::too_many_arguments)]
+    pub fn serve_with_env(rca_url: &str, workspace: &str, repo: &TempRepo, bearer: &str, flags: &[&str], path: &std::ffi::OsStr, home: Option<&std::path::Path>, env: &[(String, String)]) -> RcaExec {
         let mut child = Command::new(binary())
             .args(["serve", "--rca-url", rca_url, "--workspace", workspace, "--root"])
             .arg(repo.path())
@@ -95,6 +100,7 @@ impl RcaExec {
             .envs(repo.git_env())
             .env("PATH", path)
             .envs(home.map(|h| ("HOME", h)))
+            .envs(env.iter().map(|(k, v)| (k, v)))
             .env(BEARER_ENV, bearer)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())

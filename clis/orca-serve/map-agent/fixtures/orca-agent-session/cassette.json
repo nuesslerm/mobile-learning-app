@@ -1,5 +1,5 @@
 {
-  "content_hash": "sha256:e9a486dc4e53e31484e974a7573d076b4b36844a18a1eef0567067dcba966f1c",
+  "content_hash": "sha256:2812b9e082ac6892c6f5a52fcfffc47291c5d19f61e7c9fead1104ebdb76f717",
   "corpus": {
     "hash": "sha256:91b959156ea7d84fbe0e1ed20e8a43605744a771eab1efca7bbd837f8c995794",
     "path": "corpus.json"
@@ -14,15 +14,15 @@
       "version": "1"
     },
     "kind": "recorded",
-    "recorded_at": "2026-11-05T22:06:55.719Z",
+    "recorded_at": "2026-11-14T22:52:33.355Z",
     "rules_hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
     "seed": 0,
     "target": {
-      "commit": "dc7cd7bebbf9eb45d79edc89f3f836c75be78dea",
+      "commit": "980c0024741812bd7ae934c0c22144d9926a784e",
       "name": "orca",
       "pin_file": "../../../../../tooling/orca-conformance/orca-pin.json",
-      "pin_hash": "sha256:16dbdfb1c529c0e72d5bb33c44208fdec3291ccfab309514c843b8e03c974875",
-      "version": "1.4.214"
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2",
+      "version": "1.4.259"
     },
     "tool": {
       "mimic": "0.1.0"

@@ -166,12 +166,12 @@ fn without_an_rca_url_a_message_fails_its_run_saying_no_agent_api_is_configured_
     let mut rpc = socket_for(&server, &token);
     seed(&mut rpc);
     // When a message is dispatched
-    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "commandId": "c-m", "threadId": "t1", "message": {"messageId": "m1", "text": "go"}})));
+    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m", "threadId": "t1", "messageId": "m1", "text": "go"})));
     let p = settled(&mut rpc, "t1");
-    // Then the run failed with the reason, an error row says the same, and the thread takes another message
-    assert_eq!((p["runs"][0]["status"].as_str(), p["runs"][0]["error"].as_str()), (Some("failed"), Some("no agent API is configured (start serve with --rca-url)")));
-    assert!(p["turnItems"].as_array().unwrap().iter().any(|i| i["type"] == "error"));
-    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "commandId": "c-n", "threadId": "t1", "message": {"messageId": "m2", "text": "again"}})));
+    // Then the run failed unopened, an error row says the provider session failed to open, and the thread takes another message
+    let failure = p["turnItems"].as_array().unwrap().iter().find(|i| i["type"] == "error").map(|i| i["failure"]["message"].clone());
+    assert_eq!((p["runs"][0]["status"].as_str(), p["runs"][0]["startedAt"].is_null(), failure), (Some("failed"), true, Some(json!("Failed to open opencode provider session provider-session:provider-instance:opencode:shared."))));
+    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-n", "threadId": "t1", "messageId": "m2", "text": "again"})));
     server.stop();
 }
 
@@ -367,7 +367,7 @@ fn serve_against_rca_without_a_device_bearer_or_a_workspace_refuses_to_start_and
     let no_workspace = serve(Some("flow-rca-bearer"), None);
     // Then each exits 1 saying which setting is missing and how to get it, and rca was sent neither the secret nor a request
     assert_eq!((no_bearer.0, no_bearer.1.clone()), (Some(1), json!(false)), "{}", no_bearer.2);
-    assert!(no_bearer.2.contains("T3_RCA_BEARER") && no_bearer.2.contains("wf offload bearers mint"), "{}", no_bearer.2);
+    assert!(no_bearer.2.contains("T3_RCA_BEARER") && no_bearer.2.contains("wf rca bearers mint"), "{}", no_bearer.2);
     assert_eq!((no_workspace.0, no_workspace.1.clone()), (Some(1), json!(false)), "{}", no_workspace.2);
     assert!(no_workspace.2.contains("--rca-workspace"), "{}", no_workspace.2);
     assert_eq!((no_bearer.3, no_workspace.3), ((0, 0), (0, 0)));

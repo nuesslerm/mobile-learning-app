@@ -25,6 +25,11 @@ impl MapEnv {
     pub fn unset(&self, name: &str) {
         self.vars.lock().unwrap_or_else(|e| e.into_inner()).remove(name);
     }
+
+    /// Every variable set in this map.
+    pub fn all(&self) -> Vec<(String, String)> {
+        self.vars.lock().unwrap_or_else(|e| e.into_inner()).iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+    }
 }
 
 impl Environment for MapEnv {

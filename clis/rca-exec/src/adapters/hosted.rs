@@ -177,7 +177,7 @@ impl Hosted {
             return Err(io(format!("{} was cancelled", step.program.name())));
         }
         let out = Output { exit_code: status.code().unwrap_or_else(|| 128 + status.signal().unwrap_or(0)), stdout: String::from_utf8_lossy(&stdout).into_owned(), stderr: String::from_utf8_lossy(&stderr).into_owned(), truncated };
-        if truncated || step.ok_exits.contains(&out.exit_code) {
+        if truncated || step.ok_exits.contains(&out.exit_code) || (step.missing_ok && format!("{}{}", out.stderr, out.stdout).contains("404")) {
             Ok(out)
         } else {
             Err(failure(op, step, &out))
@@ -233,7 +233,7 @@ impl Hosted {
         if self.flows.lock().unwrap().len() >= MAX_FLOWS {
             return Err(io("too many sign-ins are waiting: cancel one"));
         }
-        let step = Step { program: if op.provider == Provider::Github { Program::Gh } else { Program::Glab }, args: crate::hosted::plan::login_args(op), stdin: None, ok_exits: vec![0], cwd: Cwd::Root };
+        let step = Step { program: if op.provider == Provider::Github { Program::Gh } else { Program::Glab }, args: crate::hosted::plan::login_args(op), stdin: None, ok_exits: vec![0], missing_ok: false, cwd: Cwd::Root };
         let mut cmd = command(&step, root, &self.extra_env(op));
         cmd.stdin(Stdio::null());
         let mut child = cmd.spawn().map_err(|e| spawn_error(step.program, e))?;

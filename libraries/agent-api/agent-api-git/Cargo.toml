@@ -15,3 +15,6 @@ testing = ["agent-api-proto/testing"]
 agent-api-proto = { path = "../agent-api-proto" }
 exec-git = { path = "../exec-git" }
 serde_json = { version = "1", features = ["preserve_order"] }
+
+[package.metadata.arch]
+type = "rust-contract"

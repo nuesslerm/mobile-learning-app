@@ -164,11 +164,15 @@ fn login(tool: &Descriptor, copy: bool, clear: bool) -> Result<(), i32> {
                 let reply: Value = serde_json::from_str(&reply).unwrap_or(Value::Null);
                 why_not = reply["check"].as_str().unwrap_or_default().trim().to_string();
                 if reply["ready"] == json!(true) {
-                    if copy {
+                    if copy && reply["files"].is_array() {
                         if let Err(e) = store_files(&reply["files"]) {
                             eprintln!("{}: the credential arrived but could not be stored: {e}", tool.id);
                             return Err(1);
                         }
+                    }
+                    // Stored before /auth/done: done deletes the login log, the printed token's only other copy, so a failed store keeps it for a retry.
+                    if publish_output_secret(tool, &reply["outputSecret"]).is_err() {
+                        return Err(1);
                     }
                     let _ = listener.post("/auth/done", &json!({ "sessionId": session_id }), " ");
                     println!("{}: authenticated ✓ ({})", tool.id, if copy { "credential copied to this machine" } else { "the login stays on the VM; agent-shell has its credential" });
@@ -210,6 +214,27 @@ fn publish_to_vault(tool: &Descriptor, files: &Value) {
     }
 }
 
+/// Stores the secret the login command printed, as the plain string, under the descriptor's own vault key (never one the listener
+/// names). Unlike a file mirror this is the only copy of the credential, so a failure fails the login; the messages name the key
+/// and never the value, even when the vault's own error echoes it.
+fn publish_output_secret(tool: &Descriptor, reply: &Value) -> Result<(), ()> {
+    let Some(spec) = &tool.output_secret else { return Ok(()) };
+    let Some(value) = reply["value"].as_str().filter(|v| !v.is_empty()) else {
+        eprintln!("{}: the listener sent no secret to store as {}", tool.id, spec.key);
+        return Err(());
+    };
+    match secrets::update_secret_value(&spec.key, value) {
+        Ok(()) => {
+            println!("{}: vault secret {} updated", tool.id, spec.key);
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("{}: could not update the vault secret {}: {}", tool.id, spec.key, e.replace(value, "<redacted>"));
+            Err(())
+        }
+    }
+}
+
 /// `--clear`: forgets the tool's login on this machine (the files its config declares copyable, gcloud's account) and in the
 /// VM's login container (its credential files, a revoke, the browser's cookies), so the login that follows starts from nothing.
 /// agent-shell's relayed copy stays until that login overwrites it.
@@ -219,6 +244,12 @@ fn clear_login(listener: &Listener, tool: &Descriptor) -> Result<(), i32> {
         match secrets::update_secret_value(&vault.key, LOGGED_OUT) {
             Ok(()) => println!("{}: vault secret {} cleared", tool.id, vault.key),
             Err(e) => eprintln!("{}: could not clear the vault secret {}: {e}", tool.id, vault.key),
+        }
+    }
+    if let Some(spec) = &tool.output_secret {
+        match secrets::update_secret_value(&spec.key, LOGGED_OUT) {
+            Ok(()) => println!("{}: vault secret {} cleared", tool.id, spec.key),
+            Err(e) => eprintln!("{}: could not clear the vault secret {}: {e}", tool.id, spec.key),
         }
     }
     if tool.id == "gcloud" {
@@ -371,7 +402,10 @@ pub fn run(args: &[String]) -> Option<i32> {
         "list" => {
             parse_none(rest, &[], &[])?;
             for t in TOOLS {
-                println!("{t}");
+                match builtin(t).and_then(|d| d.vault.map(|v| v.key).or(d.output_secret.map(|o| o.key))) {
+                    Some(key) => println!("{t}: vault {key}"),
+                    None => println!("{t}"),
+                }
             }
             Some(0)
         }

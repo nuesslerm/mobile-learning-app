@@ -1,6 +1,6 @@
 # Re-record the real T3 and Orca servers on the VM
 
-The cassettes `clis/t3-serve/cassettes/t3-recorded-{1,2,3}` and `clis/orca-serve/cassettes/orca-recorded` are what the pinned reference servers answered on the
+The cassettes `clis/t3-serve/cassettes/t3-v0.1.9-recorded-{1,2,3}` and `clis/orca-serve/cassettes/orca-v1.4.259-recorded` are what the pinned reference servers answered on the
 VM, kind `recorded`. Nothing in them is written by hand: the inputs come from the phone coverage tables (`docs/plans/rca-parity/coverage/<app>-methods.json`),
 the answers from the real server. Re-record when a pin (`tooling/t3-conformance/t3-pin.json`, `tooling/orca-conformance/orca-pin.json`), a
 driver (`tooling/mimic-drivers/src`) or a corpus generator changes: the replay tests and `wf mimic verify` fail on a stale pin hash.
@@ -12,37 +12,45 @@ empty environment, and the pairing material never leaves the VM's temp dirs (the
 
 ## Trigger a capture from a commit (any set, any app)
 
-A record or a replay of any set runs on the VM's `gh-runner` without an agent session driving it: push an EMPTY commit to `dev` whose message carries a
-marker. `mimic-record.yml` starts only for such a commit (the gate of `scheduled-triggers.yml`: the commit changes no file, so `deploy.yml` starts no CI run
-either), queues behind CI on the one runner, and runs niced.
+A record or a replay of any set runs on a GitHub-hosted runner without an agent session driving it: push an EMPTY commit to `dev` whose message carries a
+marker. `mimic-record.yml` starts only for such a commit (the gate of `scheduled-triggers.yml`: the commit changes no file, so the CI pipeline starts no run
+either) and runs niced.
 
 ```sh
-git commit --allow-empty -m "[record t3-recorded-1 orca-recorded]" && git push origin dev    # record two sets, one after the other
-git commit --allow-empty -m "[record orca-recorded chunk=15 fresh]" && git push origin dev   # 15 minute chunks, ignore an earlier checkpoint
-git commit --allow-empty -m "[replay t3-recorded-1]" && git push origin dev                  # replay against the candidates, diff table in the summary
+git commit --allow-empty -m "[record t3-v0.1.9-recorded-1 orca-v1.4.259-recorded]" && git push origin dev    # record two sets, one after the other
+git commit --allow-empty -m "[record orca-v1.4.259-recorded chunk=15 fresh]" && git push origin dev   # 15 minute chunks, ignore an earlier checkpoint
+git commit --allow-empty -m "[replay t3-v0.1.9-recorded-1]" && git push origin dev                  # replay against the candidates, diff table in the summary
 ```
 
-Grammar, one marker per message on a line of its own that begins with `[` (a mention of the text mid-line in prose starts nothing), parsed by `wf mimic trigger` (`--help` is the one place it is written down): `[record <set>... [chunk=<minutes>] [fresh]]` or
+Grammar, one marker per message on a line of its own that begins with `[` (a mention of the text mid-line in prose starts nothing), parsed by `wf ci plan mimic` (`--help` is the one place it is written down): `[record <set>... [chunk=<minutes>] [fresh]]` or
 `[replay <set>...]`. A `<set>` is a cassette set directory with a `mimic.toml`, by its name or by its path from the repository root when two share a name. A malformed
 marker, an unknown set (the error lists the known ones), a record of a set with no `[reference]`, corpus or `[provision]`, or a replay of a set with no cassette or candidate,
 fails the first job with the reason in the run summary.
 
-What a run does per set, one at a time (`max-parallel: 1`): sets up the toolchains the set pins (node, python, go, rust), runs `wf mimic provision` (the pinned source and the install and build steps of its
-`[provision]` block, reused while that block and commit are unchanged), then `wf mimic job record` (`wf mimic record <set> --resume --max-minutes <chunk>` in a loop,
-default 10 minutes a chunk, 120 minutes of chunks, hard job timeout 240) or `wf mimic job replay`. A record that runs out of its budget uploads its checkpoint (`<set>/raw/checkpoint`) as an
-artifact kept 3 days and exits red (a failed leg uploads nothing, and neither does a checkpoint with a token-shaped value in it); the same marker again restores the newest checkpoint of `dev` and goes on, but only when it was recorded against the same provision block (with its source commit), corpus and reference pin: `wf mimic job` drops any other and starts over, and `fresh` is the only way to drop a checkpoint on purpose. A published record deletes its checkpoint artifacts. A finished record has `raw/` deleted, is verified, is scanned for token-shaped values (a hit holds it
-back) and is published twice: as the workflow artifact `mimic-set-<set>` (14 days), and to the verification-artifacts bucket as a run, which works from an agent session whose
-proxy refuses the Actions API. The run summary has the counts, the stability (`1 - nondeterministic / interactions`), the wall time and the commands:
+What a run does per set, one at a time (`max-parallel: 1`): sets up the toolchains the set pins (node, python, go, rust), runs `wf mimic capture record` or `wf mimic capture replay`, one verb in four phases: provision (the pinned source and the install and build steps of the set's
+`[provision]` block, reused while that block and commit are unchanged, in the default-deny child environment of the verb), the capture (`wf mimic record <set> --resume --max-minutes <chunk>` in a loop,
+default 10 minutes a chunk, 120 minutes of chunks, hard job timeout 240, or the replay against the candidates) the stop of a chain candidate and, for a record the workflow starts with `--publish`, the publish of the masked set once the reference is gone. `--provision only|skip` runs the first phase alone or leaves it out (a missing or stale marker is refused, naming the command). A record that runs out of its budget uploads its checkpoint (`<set>/raw/checkpoint`) as an
+artifact kept 3 days and exits red (a failed leg uploads nothing, and neither does a checkpoint with a token-shaped value in it); the same marker again restores the newest checkpoint of `dev` and goes on, but only when it was recorded against the same provision block (with its source commit), corpus and reference pin: `wf mimic capture` drops any other and starts over, and `fresh` is the only way to drop a checkpoint on purpose. A published record deletes its checkpoint artifacts. A finished record has `raw/` deleted, is verified, is scanned for token-shaped values and for the exact value of every key its reference declared (a hit holds it
+back, naming the key and the file, never the value) and is published twice: as the workflow artifact `mimic-set-<set>` (14 days), and by the verb's publish phase to the state ref `refs/wf/state` as a run (`wf mimic fetch <run-id>`), which works from an agent session whose
+proxy refuses the Actions API (the push needs `contents: write`; a refused push is a warning, not a red record). The run summary has the counts, the stability (`1 - nondeterministic / interactions`), the wall time and the commands:
 
 ```sh
 wf mimic fetch <run-id>               # or: wf mimic fetch latest --set <name>
-wf mimic verify clis/t3-serve/cassettes/t3-recorded-1
-git add clis/t3-serve/cassettes/t3-recorded-1 && git commit -m "mimic: re-record t3-recorded-1"
+wf mimic verify clis/t3-serve/cassettes/t3-v0.1.9-recorded-1
+git add clis/t3-serve/cassettes/t3-v0.1.9-recorded-1 && git commit -m "mimic: re-record t3-v0.1.9-recorded-1"
 ```
 
-`wf mimic record --resume --max-minutes <n>` is what the chunked job calls: it stops cleanly at the first batch boundary after `n` minutes (a decimal is fine, and every call records at least one batch), leaves its state under `<set>/raw/checkpoint` (bound to the corpus, rules, seed and batching: a changed one refuses to resume) and prints `complete:false`; the call that finishes prints `complete:true`. A killed call loses at most its current batch. It is the same checkpoint the crawl sets use (`--chunk`, `--write-chunk`), so every set kind (`t3-recorded-*`, `orca-recorded`, the scenarios and the crawls) goes through one path.
+`wf mimic record --resume --max-minutes <n>` is what the chunked job calls: it stops cleanly at the first batch boundary after `n` minutes (a decimal is fine, and every call records at least one batch), leaves its state under `<set>/raw/checkpoint` (bound to the corpus, rules, seed and batching: a changed one refuses to resume) and prints `complete:false`; the call that finishes prints `complete:true`. A killed call loses at most its current batch. It is the same checkpoint the crawl sets use (`--chunk`, `--write-chunk`), so every set kind (`t3-v*-recorded-*`, `orca-v1.4.259-recorded`, the scenarios and the crawls) goes through one path.
 A `wf-mimic` without it fails a `[record ...]` at once with a message naming both flags; `[replay ...]` does not need it. Why a dispatch is not used:
 `docs/gaps/record-trigger-without-dispatch.md`.
+
+### What a replay marker runs as the candidate
+
+A replay needs the candidate running. `[candidate.<n>.script] target = "chain"` with a `launch` command (`{work}` and `{repo}` of the provision block are filled in) makes `wf mimic replay` start it itself: the command prints one JSON line `{"ok":true,"event":"listening","addr","workspace","mint","cli_dir"}`, serves until its stdin closes, and the replay plays it as a `url` target (the `mint` command gets `--scope` of the scopes the recorded session was granted) and closes its stdin afterwards. `--addr` on the verb still plays against a server the caller started, and starts nothing (the integration tests do that).
+
+T3 (every `t3-v0.1.9-*` set): the launch command is `chain-bin/chain`, `clis/t3-serve/examples/chain.rs`, the same `Chain::start` rig as `tests/integration` (`t3-serve serve` over the real `rca-service` and `rca-exec` with the scripted CLIs). Its flags `--t3-serve --rca-service --rca-exec --scripted-cli` name the binaries; the `when = "replay"` steps of `tooling/mimic-drivers/provision/t3.toml` build them into `{work}/chain-bin` (debug builds, about 20 to 40 minutes cold on a hosted runner, rca-service being the long one). `wf mimic capture replay` forwards `--work-root` and `--root`, and with `rows=` runs the slice with `--gaps check` and prints the diff table in the run summary.
+
+Orca (`orca-v1.4.259-recorded`, `-crawl`, `-scenarios`): the same with `target = "orca"` and a `launch` command. The launcher is `chain-bin/chain`, `clis/orca-serve/examples/chain.rs` (the `Chain::start` rig of `tests/integration`: `orca-serve serve` over the real `rca-service` and `rca-exec`, with the scripted CLIs); its flags `--orca-serve --rca-service --rca-exec --scripted-cli` name the binaries the `when = "replay"` steps of `tooling/mimic-drivers/provision/orca.toml` built. Instead of `addr` and `mint` its listening line carries `pairing`, the link `orca-serve pair` printed: the replay gives it as `ORCA_PAIRING_URI` to the sidecar child only (no environment variable of the caller or the capture is added) and closes the launcher's stdin when the replay ends.
 
 ### Add a new clone: data, not workflow YAML
 
@@ -52,7 +60,7 @@ A new reference (another CLI or server) is a cassette set whose `mimic.toml` say
 ```toml
 workdir = "orca"                    # under the work root, default the set's name
 
-[toolchain]                         # set up first by the workflow, checked again by `wf mimic provision`: node, python, go (24, 22.14, 22.14.0) and rust (those or stable)
+[toolchain]                         # set up first by the workflow, checked again by `wf mimic capture`: node, python, go (24, 22.14, 22.14.0) and rust (those or stable)
 node = "24"
 # drivers = false                   # default true with node: the repository's own mimic drivers are installed before a record's steps
 
@@ -71,10 +79,10 @@ when = "record"                     # record (default), replay (builds the candi
 timeout_minutes = 45                # 1 to 180, default 30
 ```
 
-Check it offline with `wf mimic provision <set> --check`; the flow test `every_set_of_the_repository_that_declares_provisioning_validates` does so for every set in the repository.
-Steps run with the caller's environment minus every credential-looking variable and write to stderr. A set's `[env]` is refused when it names a variable that changes how programs are found or loaded (`PATH`, `HOME`, `LD_*`, `NODE_OPTIONS`, `*_PROXY`, ...), and it reaches the record through `wf mimic job` only, never `$GITHUB_ENV`; provision and capture run before the vault is set up. A clone of a Rust, Go or Python program pins its toolchain in `[toolchain]` and needs no YAML. `provision_file` is relative to the `mimic.toml`, or to the repository root when it starts with `//` (`//tooling/mimic-drivers/provision/t3.toml`).
+Check it offline with `wf mimic capture record <set> --check` (`replay` for the replay steps); the flow test `every_set_of_the_repository_that_declares_provisioning_validates` does so for every set in the repository.
+Every child the verb starts (the steps, git, the record, verify and replay children, the reference and its sidecar, a candidate launcher) runs in one default-deny environment built in `clis/mimic/src/child_env.rs`: an allowlist of the caller's variables (`PATH`, `HOME`, locale, temp and CA settings, toolchain homes, `MIMIC_*`, `WF_*`, `T3_*`, `GIT_CONFIG_*`) minus any name that looks like a credential, plus the block's `[env]` and what the set names (`env_pass`; `[reference] env_from_vault = { OPENCODE_API_KEY = "OPENCODE_GO_API_KEY" }`: the variable the reference reads and the registry key that holds it, read in memory from the vault for a record only and given to the reference alone). `BWS_*` and `GITHUB_*` enter no child. Steps write to stderr. A set's `[env]` is refused when it names a variable that changes how programs are found or loaded (`PATH`, `HOME`, `LD_*`, `NODE_OPTIONS`, `*_PROXY`, ...), and it reaches the capture phase of `wf mimic capture` only (the provisioning children get the `[env]` of the block and the step but never a credential), never `$GITHUB_ENV`; the verb runs before the vault is set up. A clone of a Rust, Go or Python program pins its toolchain in `[toolchain]` and needs no YAML. `provision_file` is relative to the `mimic.toml`, or to the repository root when it starts with `//` (`//tooling/mimic-drivers/provision/t3.toml`).
 
-`wf mimic job record` runs the record with `--recorded-on ci` and the stability check on. A set whose reference is not deterministic says so, and adds flags, in its `mimic.toml`:
+`wf mimic capture record` runs the record with `--recorded-on ci` and the stability check on. A set whose reference is not deterministic says so, and adds flags, in its `mimic.toml`:
 
 ```toml
 [record]
@@ -83,8 +91,29 @@ args = ["--keep-raw"]               # extra `wf mimic record` flags (never --res
 ```
 
 With `allow_nondeterministic` (or without it, when the record fails) the job output carries `differences`: for each interaction whose two stability passes differed after masking (the first 40), the first 8 JSON pointers into the interaction where they differed, as `{"path": "/steps/0/payload/id", "first": "string(len 36)", "second": "string(len 36)"}`. Only the kind and length of each side is shown, never the value (a capture may hold a secret). Which interactions vary changes from run to run (only the sampled ones are run twice, and ids, timestamps and counters differ each time), so look for the same path or key recurring across interactions and mask that, not the interaction. Add to `rules.json`, using only the kinds `wf mimic --help` lists: a `pointer` rule (`{"kind": "pointer", "pointer": "/steps/0/payload/id", "interaction": "thread.pin"}`; the pointer is the reported path, `interaction` is optional and scopes it to one id), or, when the same key recurs, `volatile-number` / `volatile-string` with `{"keys": {"<key>": "<placeholder>"}}`, `timestamp` with `keys`, `sequence` with `keys`, or `token` with `pattern` and `placeholder`. Then push the marker again; the list of differences shrinks to what is still unmasked.
- Not yet declared:
-the `t3-scenarios` and `orca-scenarios`-style sets that need a scripted CLI built first (`T3_CLI_DIR`): add a step that builds it, then the block.
+ The scripted agent CLIs: the `provision` blocks of both apps (`tooling/mimic-drivers/provision/{t3,orca}.toml`) build exec-testkit's `scripted-cli` and place it under the names `claude`, `codex` and `opencode` in `{work}/scripted-clis`, and `MIMIC_CLI_DIR` (read by every script target as `cli_dir`, `T3_CLI_DIR` still works) puts that directory first on the server's or the sidecar's `PATH`. The replay rigs install the same program, so a recorded host and a replayed chain see the same CLIs.
+
+### Real agent CLIs in a recording (R11)
+
+The default of the scripted CLIs (`claude`, `codex`, `opencode` from exec-testkit) stays for the mimic integration and replay tests, which never read a key. A set that needs a finished real turn behind a row (`checkpoint.rollback`, `thread.fork` and `thread.merge_back` on a thread with a finished turn, `queued-message.promote-to-steer` on a really running turn) runs opencode for real, with the cheap model, and only in its record:
+
+```toml
+# the provision block (or provision_file): tooling/mimic-drivers/provision/t3-real.toml
+real_agents = ["opencode"]            # claude, codex and opencode can run for real; the others of the three stay scripted
+real_agents_pin = "real-agents-pin.json"   # required: version and the sha256 of each platform's asset (tooling/mimic-drivers/provision/real-agents-pin.json)
+
+# mimic.toml
+[reference]
+env_from_vault = { MIMIC_CRED_OPENCODE__OPENCODE_API_KEY = "OPENCODE_GO_API_KEY" }   # names only: MIMIC_CRED_<cli>__<variable the cli reads>, the registry key that holds its value; the host hands it to that CLI alone
+```
+
+`wf mimic capture record` installs the pinned asset (`<release>/opencode-<platform>.tar.gz`, refused unless it hashes to the pin, then `opencode --version` must print the pinned version) into `{work}/real-clis`, exports `MIMIC_REAL_CLI_DIR` to the capture, and the host puts that directory on the reference's `PATH` without the stub or the scripted copy of each real agent (the others stay scripted). `claude` (2.1.327) and `codex` (0.170.0) are pinned as registry tarballs: the platform entry names `url` and `bin` (the program's path inside the archive) beside `sha256`, and the install links `real-clis/<name>` to it. A credential is declared as `MIMIC_CRED_<CLI>__<VAR>` (`MIMIC_CRED_CLAUDE__CLAUDE_CODE_OAUTH_TOKEN`, `MIMIC_CRED_CODEX__CODEX_OAUTH_JSON_B64`): the host's per-CLI wrapper hands that CLI its own variable and no other CLI's; Codex gets a private `CODEX_HOME` with its decoded login, removed when it exits, and a login Codex rotates is not written back (a rotated one means `wf secret login codex` again). `--agents-cache <dir>` (assets by file name, still hash-checked) replaces the download. The key is read from the vault in memory (`secrets::load_values`, the call every `wf` verb that resolves a registry key makes) by the capture verb only, handed through the child environment builder to the reference process and no other child, and never written, printed or logged: no file, argv, `GITHUB_ENV`, log line or cassette. A missing key fails the record naming the key. Before a set is published the raw recording, the checkpoint and the masked files are scanned for the exact value (a hit holds the set back, naming the key and the file, never the value).
+
+To update a pin: set `version` and each platform's `bytes` and `sha256` from the release asset (`curl -L .../opencode-linux-x64.tar.gz | sha256sum`; for a registry tarball also check the download against `npm view <package>@<version> dist.integrity`).
+
+How T3 0.1.9 starts opencode (`references/t3code/packages/provider-opencode/src/server/OpenCodeRuntime.ts`): `opencode serve --hostname=127.0.0.1 --port=<free>` as a child of the T3 server (minimum opencode 1.14.19, the pin is 1.19.0), with the environment of the T3 process (the key reaches opencode only by being in T3's environment) and `OPENCODE_CONFIG_CONTENT`, which defaults to `{}`. So no provider config is needed beyond the key: opencode reads `OPENCODE_API_KEY` for its `opencode-go` provider (`libraries/agent-api/exec-testkit/src/opencode.rs` sets the same variable). What is not verified is which model the T3 thread must name (`{"instanceId": "opencode", "model": ...}`), and whether `serve` reaches the model under the hermetic `HOME`: one hosted probe is needed before the first record of `t3-v0.1.9-agent-real`, a `[record t3-v0.1.9-agent-real]` marker whose first run only needs to show the opencode turn finishing.
+
+A spawned server (T3) needs mimic-script-host 0.1.9 (the host puts `real-clis` on `PATH` and takes the variables the verb hands it); until `clis/mimic` adopts the release, `wf mimic capture record` of such a set is refused before anything starts, naming this. Orca sidecars and stdio references work now.
 
 ### Land new rules together with the re-record
 
@@ -110,7 +139,7 @@ wf mimic crawl --all --check            # offline: the committed files still cov
 wf mimic crawl --all --check --fresh    # with the trees checked out: the same crawl again is byte-equal
 ```
 
-The guard fails when the catalog of the pinned source (`docs/plans/rca-parity/coverage/<app>-methods.json`, from `wf parity coverage`) lists a row the
+The guard fails when the catalog of the pinned source (`docs/plans/rca-parity/coverage/<app>-methods.json`, from `wf mimic coverage`) lists a row the
 crawl lacks, an endpoint has no case and no skip reason, a schema-derived endpoint lacks a valid or an invalid input, or the pin moved since the crawl.
 What the crawl cannot see is listed per app under `blind` in `inventory.json` with the source that would show it (a running server, the release
 binary's `--help`); capture those on the VM and feed them back with `wf mimic crawl <dir>` after adding `--runtime <captured dir>` to the `command` of
@@ -123,7 +152,7 @@ recorded sets are re-recorded from `t3-api` and `orca-api`.
 
 The crawl asks every method against an empty server (T3: after the session prelude). The scenario sets ask the methods that need stored state with that
 state present: `node tooling/mimic-drivers/src/cli.ts scenarios <orca|t3>` reads the committed crawl (no reference tree needed) and writes `corpus.json` and
-`scenarios.json` of `clis/orca-serve/cassettes/orca-scenarios` and `clis/t3-serve/cassettes/t3-scenarios`. A method whose valid payload names an entity key
+`scenarios.json` of `clis/orca-serve/cassettes/orca-v1.4.259-scenarios` and `clis/t3-serve/cassettes/t3-v0.1.9-scenarios`. A method whose valid payload names an entity key
 (Orca `repo`, `worktree`, `terminal`; T3 `threadId`, `projectId`, `cwd`, and `messageId`/`runId` after a turn) gets the chain that creates the entity,
 then itself with the captured id, then a list readback; the stories (repo, worktree, files, git, terminal, settings and host state for Orca; thread and
 project lifecycles and one scripted turn for T3) only choose methods and their order, every payload is the crawl's. `scenarios.json` lists each endpoint as
@@ -133,12 +162,12 @@ scenario, or when the crawl lacks a payload a scenario needs.
 
 Each scenario is one `script` case, so one fresh server, user data and HOME. Orca `setup: [{"git":"main"}]` makes a real one-commit repository (fixed
 dates, so the commit id is stable) and `{git.main}` is its path; the scratch and user-data paths are masked in the steps. T3 turns need the scripted CLI:
-build exec-testkit's `scripted-cli` once and export `T3_CLI_DIR=<dir holding its claude/codex>` for the record (the driver puts it first on the server's
+build exec-testkit's `scripted-cli` once and export `MIMIC_CLI_DIR=<dir holding its claude/codex>` (`T3_CLI_DIR` works too) for the record (the driver puts it first on the server's
 PATH; no model credentials). Record like any set: `wf mimic record clis/<crate>/cassettes/<app>-scenarios` (section 3), then `wf mimic stabilize`.
 
 ## 1. Once per VM: the pinned T3 release, Node 24 and the pinned Orca build (about 5 minutes)
 
-T3 is the pinned release (`t3-pin.json`: version, sha256 of the linux-arm64 tarball); the Provisioner (`tooling/mimic-drivers/src/t3/release.ts`) downloads it
+T3 is the pinned release (`t3-pin.json`: version, sha256 of the linux-arm64 tarball); the provisioner (`clis/mimic/script/host/src/provision.rs`, sha-verified, shared by every `driver = "script"` set) downloads it
 into `T3_RELEASE_CACHE` and refuses it when the pin and the release's `SHA256SUMS` do not both name the tarball's hash.
 
 Orca needs Node 24 (the VM has 22) and is built from the pinned commit; the VM has no checkout, so fetch exactly the pin:
@@ -215,7 +244,7 @@ wf vm exec pack.sh --artifact r1/t3-set.tgz --artifact r1/orca-set.tgz --out /tm
 tar xzf /tmp/r1-art/r1/t3-sets.tgz  -C clis/t3-serve/cassettes
 tar xzf /tmp/r1-art/r1/orca-set.tgz -C clis/orca-serve/cassettes
 rm -rf clis/*/cassettes/*-recorded*/raw    # raw/capture.jsonl holds the unmasked run: never commit it
-for s in clis/t3-serve/cassettes/t3-recorded-* clis/orca-serve/cassettes/orca-recorded; do wf mimic verify $s; done   # offline: hashes, kind, pin
+for s in clis/t3-serve/cassettes/t3-v*-recorded-* clis/orca-serve/cassettes/orca-v1.4.259-recorded; do wf mimic verify $s; done   # offline: hashes, kind, pin
 grep -lE 'eyJ[A-Za-z0-9_-]{10}|Bearer [A-Za-z0-9]{8}' clis/*/cassettes/*-recorded*/interactions.jsonl   # must print nothing: tokens are masked
 ```
 
@@ -229,8 +258,8 @@ rules, each with `--allow-nondeterministic`, niced and one server at a time (scr
 holds the unmasked capture), bring them back (step 4), then locally:
 
 ```sh
-wf mimic stabilize clis/t3-serve/cassettes/t3-recorded-1 /tmp/r2/t3-new-1 /tmp/r2/t3-new-2 /tmp/r2/t3-new-3            # dry run: the proposals and what stays unstable
-wf mimic stabilize clis/t3-serve/cassettes/t3-recorded-1 /tmp/r2/t3-new-1 /tmp/r2/t3-new-2 /tmp/r2/t3-new-3 --write    # rules.json, masked interactions, tags, stability.json
+wf mimic stabilize clis/t3-serve/cassettes/t3-v0.1.9-recorded-1 /tmp/r2/t3-new-1 /tmp/r2/t3-new-2 /tmp/r2/t3-new-3            # dry run: the proposals and what stays unstable
+wf mimic stabilize clis/t3-serve/cassettes/t3-v0.1.9-recorded-1 /tmp/r2/t3-new-1 /tmp/r2/t3-new-2 /tmp/r2/t3-new-3 --write    # rules.json, masked interactions, tags, stability.json
 ```
 
 The first recording is the set that is rewritten; the others are only compared (cases missing from one are `unobserved`, not judged). The proposals are in
@@ -242,16 +271,16 @@ that interaction, never a global mask. Every case that still differs must be lis
 ## 5. Replay and settle the gaps (local)
 
 ```sh
-cargo test -p t3-serve --test integration recorded_r1          # replays t3-recorded-* against t3-serve, a fresh chain per interaction (about 4 minutes)
-cargo test -p orca-serve --test integration recorded_r1     # replays orca-recorded against orca-serve (25 s)
+cargo test -p t3-serve --test integration replay_features        # replays t3-v*-recorded-* against t3-serve, a fresh chain per interaction (about 4 minutes); `replay_features::t3_core_vcs::` is one feature (CI runs each as `replay-t3-core-<feature>`)
+cargo test -p orca-serve --test integration replay_features # replays the orca sets against orca-serve (about 130 s; one feature is `replay_features::orca_map_git::`)
 ```
 
 Each test fails on a difference that `known-gaps.json` of the set does not list, and on a listed gap that no longer differs as listed. After an adapter fix,
 delete its entry; after a re-record, start from `{"schema":"mimic-known-gaps/1","gaps":[]}` in each set, run once with `WF_TEST_OUTPUT_DIR=<dir>` to get
-`<suite>/recorded-diff.json` (every differing interaction with its paths) and re-derive each set's `known-gaps.json` from it (id, row, severity, class, `path kind severity` lines).
+`<dir>/wf-mimic-t3-recorded/<set>/recorded-diff.json` for t3 (one folder per set, beside its `trace.json`; Orca's is `<suite>/recorded-diff.json`; every differing interaction with its paths) and re-derive each set's `known-gaps.json` from it (id, row, severity, class, `path kind severity` lines).
 Then refresh the evidence from a COMPLETE run: the integration binary must list only tests that use `exec_testkit::case!` or the run is never complete, so
-`WF_TEST_OUTPUT_DIR=<dir> cargo test -p orca-serve --test integration -- --skip mimic_x --skip recorded_r1`, then `-- mimic_x2 recorded_r1` into the same dir, then
-`wf parity coverage --app <t3|orca> --traces <dir>` (for t3 the plain `cargo test -p t3-serve --test integration` run is complete) and commit the tables. A row is decided `oracle: mimic`
+`WF_TEST_OUTPUT_DIR=<dir> cargo test -p orca-serve --test integration -- --skip mimic_x --skip replay_features`, then `-- mimic_x2 replay_features` into the same dir, then
+`wf mimic coverage --app <t3|orca> --traces <dir>` (for t3 the same two steps: `-- --skip replay_features`, then `-- replay_features`; the replays write their own traces and the reader merges every `trace.json` under the dir) and commit the tables. A row is decided `oracle: mimic`
 in `<app>-decisions.json` only when its replay is clean and the recorded answer was a success; remove the mark of a row the refresh leaves pending.
 
 ## 6. Record the whole crawl in short foreground calls (R2c)
@@ -269,8 +298,10 @@ nice -n 19 wf mimic record <app>-crawl --recorded-on vm --chunk 400 --resume --w
 ## 7. Replay the crawl against the adapters (R2c)
 
 ```sh
-MIMIC_ORCA_ROOT=<a checkout of references/orca at the pin> cargo test -p orca-serve --test integration the_answers_the_real    # orca-recorded and orca-crawl: about 77 s wall, 68 s CPU
-cargo test -p t3-serve --test integration the_answers_the_real                                                                      # t3-recorded-* and t3-crawl: about 12.5 min wall, 59 s CPU
+MIMIC_ORCA_ROOT=<a checkout of references/orca at the pin> cargo test -p orca-serve --test integration the_answers_the_real    # orca-v1.4.259-recorded and orca-v1.4.259-crawl: about 77 s wall, 68 s CPU
+cargo test -p t3-serve --test integration the_answers_the_real                                                                      # t3-v*-recorded-* and t3-v0.1.9-crawl: about 12.5 min wall, 59 s CPU
 ```
 
-The crawl's reads share one chain and its state-changing cases another, in cassette order (a T3 interaction replays the recorded session prelude once per chain and then runs on a socket of its own). Each test fails on a difference its set's `known-gaps.json` (`mimic-known-gaps/2`) does not list and on a listed gap that no longer differs as listed. To re-derive a crawl set's gaps after a re-record or an adapter fix: `WF_MIMIC_WRITE_GAPS=<set> cargo test ...` writes the file (grouped by identical difference, classes derived from the path and kind of the worst difference), review the diff and commit it; the hand-curated recorded slices are never overwritten. The honest diff table by severity is `docs/audits/2026-11-07-mimic-r2c-replay.md`; each interaction id in a gap group is an adapter bug or an unserved method until the adapter is fixed. The replays write `wf-mimic-orca-crawl/trace.json` (one test per interaction) into `WF_TEST_OUTPUT_DIR`; the evidence tables are refreshed from a complete run only (section 5).
+The T3 replays have no timeout of their own and wait on the wall clock, not the CPU: the crawl set takes 260 to 290 s alone and all five sets in parallel finish in about 290 s on 4 cores. A caller timeout of 300 s kills the crawl, which reads as a failure; give a call 590 s (`timeout 590`), one set per call (`cargo test -p t3-serve --test integration replay_features::t3_core_core::`), or run it in the background with its output in a file. Nx runs each set as its own task with `--test-threads=1`. To refresh the evidence rows of a set, run it with `WF_TEST_OUTPUT_DIR=<dir>`, run `cargo test -p t3-serve --test integration replay_features::every_row_of_every_replayed_set` into the same dir (it writes the `t3-serve-integration` trace, so the run is not dropped from the evidence file's `source.runs`), then `wf mimic coverage --app t3 --traces <dir> --rows <row prefixes>`.
+
+The crawl's reads share one chain and its state-changing cases another, in cassette order (a T3 interaction replays the recorded session prelude once per chain and then runs on a socket of its own). Each test fails on a difference its set's `known-gaps.json` (`mimic-known-gaps/2`) does not list and on a listed gap that no longer differs as listed. To re-derive a crawl set's gaps after a re-record or an adapter fix: `wf mimic replay <set dir> --candidate <candidate> --gaps write` (for a T3 set against a started chain: `--addr`, `--workspace`, `--mint`, as `clis/t3-serve/tests/integration/replay_features.rs` passes them) writes the file (grouped by identical difference, classes derived from the path and kind of the worst difference), review the diff and commit it; the hand-curated recorded slices are never overwritten. The honest diff table by severity is `docs/audits/2026-11-07-mimic-r2c-replay.md`; each interaction id in a gap group is an adapter bug or an unserved method until the adapter is fixed. The replays write `wf-mimic-orca-crawl/trace.json` (one test per interaction) into `WF_TEST_OUTPUT_DIR`; the evidence tables are refreshed from a complete run only (section 5).

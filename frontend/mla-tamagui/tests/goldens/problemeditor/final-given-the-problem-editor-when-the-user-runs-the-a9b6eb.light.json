@@ -23,6 +23,7 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
       "ProblemEditorActions",
@@ -36,6 +37,8 @@
       "ProblemEditorRunOutcomeStatus",
       "ProblemEditorRunOutcomeTotals",
       "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
       "ProblemEditorTestInput",
       "ProblemPlanTab",
       "ProblemPlanSteps",
@@ -44,10 +47,10 @@
       "ProblemPlanTextInput",
       "ProblemPlanAddButton"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nAccepted\n5 / 5 test cases passed"
+    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nAccepted\n5 / 5 test cases passed\nOne JSON value per line: nums, target\nRun input"
   },
   "timings": {
-    "render_ms": 252
+    "render_ms": 250
   },
   "name": "problemeditor/final-given-the-problem-editor-when-the-user-runs-the-a9b6eb.light",
   "image": {

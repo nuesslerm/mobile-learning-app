@@ -78,14 +78,14 @@ fn given_a_batch_of_readings_when_recorded_then_one_authorized_request_carries_e
     let sink = OtlpMetricsSink::new(Destination::new(format!("http://{host}"), "tok-123"), "reporting-service");
 
     // When three readings of two metrics are recorded in one call
-    let result = sink.record(&[reading("container.health", "container", "agent-shell-gh-runner", 0.0), reading("container.health", "container", "web", 1.0), reading("host.docker.list_ms", "host", "docker", 42.5)]);
+    let result = sink.record(&[reading("container.health", "container", "agent-shell-dind", 0.0), reading("container.health", "container", "web", 1.0), reading("host.docker.list_ms", "host", "docker", 42.5)]);
 
     // Then the call succeeded and exactly one request arrived, with the token, on the metrics path, carrying all three gauges
     assert_eq!(result, Ok(()));
     let seen = seen.lock().unwrap();
     assert_eq!(seen.len(), 1, "requests: {}", seen.len());
     assert_eq!((seen[0].path.as_str(), seen[0].authorization.as_str()), ("/v1/metrics", "Bearer tok-123"));
-    let expected = [("container.health", "container", "agent-shell-gh-runner", 0.0), ("container.health", "container", "web", 1.0), ("host.docker.list_ms", "host", "docker", 42.5)];
+    let expected = [("container.health", "container", "agent-shell-dind", 0.0), ("container.health", "container", "web", 1.0), ("host.docker.list_ms", "host", "docker", 42.5)];
     assert_eq!(points(&seen[0].body), expected.map(|(m, s, n, v)| (m.to_string(), s.to_string(), n.to_string(), v)).to_vec());
 }
 

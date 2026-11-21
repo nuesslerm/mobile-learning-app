@@ -17,6 +17,7 @@ use std::time::Duration;
 const EVENTS: &str = include_str!("../../../../libraries/agent-api/agent-api-agent/tests/fixtures/thread-events.jsonl");
 
 struct Rig {
+    host: Arc<Host>,
     agent: Arc<ScriptedAgent>,
     threads: Threads,
     catalog: Catalog,
@@ -37,7 +38,7 @@ impl Rig {
         catalog.has(&["claude", "codex"]).skill("workspace", ".claude/skills", "review", Some("Reviews a diff")).skill("workspace", ".codex/skills", "lint", None).skill("home", ".agents/skills", "notes", Some("Keeps notes"));
         catalog.install(&agent);
         let host = Host::new("rt".into(), vec![Box::new(AgentArea::default())], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
-        Rig { agent, threads, catalog, conn: host.connection("dev", "tok", vec![]), other: host.connection("dev2", "tok2", vec![]), n: 0 }
+        Rig { conn: host.connection("dev", "tok", vec![]), other: host.connection("dev2", "tok2", vec![]), host, agent, threads, catalog, n: 0 }
     }
 
     fn frames(&mut self, method: &str, params: Value) -> Vec<Value> {
@@ -796,10 +797,10 @@ fn given_the_rows_the_area_does_not_offer_when_called_then_each_answers_not_offe
         assert_eq!((r["error"]["code"].clone(), r["error"]["data"].clone()), (json!("not_offered"), json!({"decidedBy": d["decidedBy"]})), "{}", row.name);
         assert_eq!(r["error"]["message"], format!("{} is not offered by this host: {}", row.name, d["reason"].as_str().unwrap()), "{}", row.name);
         assert_eq!(row.reason, d["reason"].as_str().unwrap());
-        assert!(row.reason.starts_with("proposed default awaiting owner confirmation"), "{}", row.name);
+        assert!(row.reason.starts_with("owner-confirmed (decision 7)"), "{}", row.name);
     }
     // And the rows the owner decision names are all among them
-    for name in ["aiVault.listSessions", "aiVault.prepareSessionResume", "orchestration.partyLocation", "orchestration.partyOpen", "orchestration.workerAutoClose", "orchestration.workerKeepOpen", "agentSession.reveal", "agentSession.readVisual"] {
+    for name in ["orchestration.partyLocation", "orchestration.partyOpen", "orchestration.workerAutoClose", "orchestration.workerKeepOpen", "agentSession.readVisual"] {
         assert!(NOT_OFFERED.iter().any(|r| r.name == name), "{name}");
     }
 }
@@ -842,7 +843,16 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     rig.ok("preflight.detectAgents", json!({}));
     rig.ok("preflight.refreshAgents", json!({}));
     rig.ok("preflight.detectRemoteAgents", json!({"connectionId": rig.catalog.executor()}));
+    rig.catalog.has_tools(&["git", "gh"]);
+    rig.ok("preflight.check", json!({}));
+    rig.ok("clipboard.saveImageAsTempFile", json!({"contentBase64": "AAAA"}));
+    rig.catalog.says("hi");
+    rig.ok("speech.dictation.setup", json!({"enabled": true, "modelId": "rca-whisper"}));
+    rig.ok("speech.dictation.start", json!({"dictationId": "d9"}));
+    rig.ok("speech.dictation.chunk", json!({"dictationId": "d9", "audioBase64": pcm_chunk(10), "sampleRate": 16000}));
+    rig.ok("speech.dictation.finish", json!({"dictationId": "d9"}));
     rig.ok("skills.discover", json!({"worktreeId": "feat"}));
+    rig.ok("aiVault.listSessions", json!({}));
     let (mut q, ids) = queued_rig();
     let fp = body_fingerprint("claude_q", "one");
     q.ok("agentSession.queuedMessageUpdate", mutation("claude_q", "e1", json!({"messageId": ids[0], "expectedBodyFingerprint": fp, "text": "uno"})));
@@ -857,6 +867,15 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     let open = item_of(&mut rig, "claude_open", "question:rq1");
     rig.ok("agentSession.respondToApproval", mutation("claude_open", "e7", json!({"itemId": "approval:ap1", "expectedRevision": 9, "optionId": "accept"})));
     rig.ok("agentSession.respondToQuestion", mutation("claude_open", "e8", json!({"itemId": "question:rq1", "expectedRevision": open["revision"], "optionId": open["body"]["options"][0]["id"]})));
+    let (_, second) = two_turns(&mut rig);
+    let epoch = rig.ok("agentSession.history", json!({"sessionId": "claude_two", "direction": "tail"}))["page"]["epoch"].clone();
+    rig.ok("agentSession.rewind", json!({"envelope": env("claude_two", "rw9", "fp"), "itemId": second, "expectedEpoch": epoch}));
+    rig.idle("claude_cutrow");
+    rig.ok("agentSession.send", json!({"envelope": env("claude_cutrow", "s1", "f"), "body": body("go")}));
+    rig.threads.cut_by_restart("claude_cutrow");
+    rig.ok("agentSession.continueInterrupted", json!({"sessionId": "claude_cutrow", "turnItemId": "turn:u1"}));
+    let mut status = rig.host.connection("dev9", "tok9", vec!["agent-session.structured.v1".to_string()]);
+    status_frames(&mut status, "st");
     // When the methods asked of the agent API are collected
     let seen: BTreeSet<String> = rig.agent.requests().into_iter().chain(q.agent.requests()).map(|(m, _)| m).collect();
     // Then they are the list the crate declares, plus the workspace method `repo.list` the target selector reads (which the workspace crate lists)
@@ -989,6 +1008,7 @@ fn given_the_agent_clis_of_the_executor_when_detection_is_read_then_the_phone_ge
     assert_eq!((detected.clone(), by_repo), (json!(["claude", "codex"]), json!(["claude", "codex"])));
     // And the refresh answers the same agents with the path facts the host adds, and the executor was asked to look again
     assert_eq!((refreshed["agents"].clone(), refreshed["addedPathSegments"].clone()), (detected, json!([])));
+    assert_eq!((refreshed["shellHydrationOk"].clone(), refreshed["pathSource"].clone(), refreshed["pathFailureReason"].clone()), (json!(true), json!("shell_hydrate"), json!("none")));
     assert_eq!(rig.catalog.detections().iter().map(|p| p["refresh"] == true).collect::<Vec<_>>(), vec![false, false, true]);
     // And once opencode is installed a refresh lists it too
     rig.catalog.has(&["claude", "codex", "opencode"]);
@@ -1032,34 +1052,46 @@ fn given_agents_the_executor_has_or_lacks_when_create_support_is_read_then_a_cha
 }
 
 #[test]
-fn given_skills_on_the_executor_when_discovered_for_a_workspace_then_each_is_a_row_the_phone_parses_with_its_provider_source_and_files() {
-    // Given the skills of the executor: two in the workspace feat and one in its home
+fn given_skills_on_the_executor_when_discovered_then_the_roots_are_the_hosts_catalog_for_each_repo_and_the_home_and_each_skill_is_a_row_of_its_root() {
+    // Given the skills of the executor: one in .claude/skills and one in .trae/skills of each workspace, one in .codex/skills (no repo root of the host), one in the home
     let mut rig = Rig::new();
-    // When the phone discovers the skills of feat
+    rig.catalog.skill("workspace", ".trae/skills", "fmt", None);
+    // When the phone discovers the skills for the worktree feat
     let r = rig.ok("skills.discover", json!({"worktreeId": "feat"}));
-    // Then the skills are the executor's, with the provider each directory belongs to and the files named under the workspace's path
-    let by_name = |name: &str| r["skills"].as_array().unwrap().iter().find(|s| s["name"] == name).unwrap().clone();
-    let review = by_name("review");
-    assert_eq!((review["providers"].clone(), review["sourceKind"].clone(), review["description"].clone(), review["skillFilePath"].clone(), review["directoryPath"].clone(), review["rootPath"].clone()), (json!(["claude"]), json!("repo"), json!("Reviews a diff"), json!("/srv/wt/feat/.claude/skills/review/SKILL.md"), json!("/srv/wt/feat/.claude/skills/review"), json!("/srv/wt/feat/.claude/skills")));
-    assert_eq!((by_name("lint")["providers"].clone(), by_name("lint")["description"].clone()), (json!(["codex"]), Value::Null));
-    let notes = by_name("notes");
-    assert_eq!((notes["providers"].clone(), notes["sourceKind"].clone(), notes["skillFilePath"].clone()), (json!(["agent-skills"]), json!("home"), json!("~/.agents/skills/notes/SKILL.md")));
-    // And every skill's root is a source the reply lists, owned by the agent of that directory (the shared one by none), which says whether it holds skills
+    // Then a skill is a row of its root, labelled as the host labels it, with the files named under the repo's path or below ~ for the home
+    let row = |file: &str| r["skills"].as_array().unwrap().iter().find(|s| s["skillFilePath"] == file).cloned().unwrap_or_else(|| panic!("{file}: {r}"));
+    let review = row("/srv/wt/feat/.claude/skills/review/SKILL.md");
+    assert_eq!(
+        (review["providers"].clone(), review["sourceKind"].clone(), review["sourceLabel"].clone(), review["rootPath"].clone(), review["directoryPath"].clone(), review["description"].clone()),
+        (json!(["claude"]), json!("repo"), json!("Repo feat .claude"), json!("/srv/wt/feat/.claude/skills"), json!("/srv/wt/feat/.claude/skills/review"), json!("Reviews a diff"))
+    );
+    assert_eq!((row("/srv/wt/feat/.trae/skills/fmt/SKILL.md")["providers"].clone(), row("/srv/wt/feat/.trae/skills/fmt/SKILL.md")["sourceLabel"].clone()), (json!(["agent-skills"]), json!("Repo feat .trae")));
+    let notes = row("~/.agents/skills/notes/SKILL.md");
+    assert_eq!((notes["sourceKind"].clone(), notes["sourceLabel"].clone(), notes["providers"].clone()), (json!("home"), json!("Agent skills home"), json!(["agent-skills"])));
+    assert!(r["skills"].as_array().unwrap().iter().all(|s| s["name"] != "lint"), "{r}");
+    // And the sources are the host's 23 home roots and 12 roots of each repo (the asked worktree and the root workspace main), sorted by label
     let sources = r["sources"].as_array().unwrap();
-    for skill in r["skills"].as_array().unwrap() {
-        let source = sources.iter().find(|s| s["path"] == skill["rootPath"]).unwrap();
-        assert_eq!((source["exists"].clone(), source["sourceKind"].clone()), (json!(true), skill["sourceKind"].clone()));
-    }
-    let owner = |path: &str| sources.iter().find(|s| s["path"] == path).unwrap()["owner"].clone();
-    assert_eq!((owner("/srv/wt/feat/.claude/skills"), owner("~/.agents/skills"), owner("/srv/wt/feat/.codex/skills")), (json!("claude"), Value::Null, json!("codex")));
-    assert_eq!(sources.iter().find(|s| s["path"] == "/srv/wt/feat/.agents/skills").unwrap()["exists"], false);
-    assert!(r["scannedAt"].as_u64().unwrap() > 0);
-    // And a filter by source kind or name narrows the skills, a workspace named by its folder is found, and none named is refused
+    assert_eq!(sources.len(), 23 + 12 * 2);
+    let labels: Vec<String> = sources.iter().map(|s| s["label"].as_str().unwrap().to_lowercase()).collect();
+    assert!(labels.windows(2).all(|w| w[0] <= w[1]), "{labels:?}");
+    // And a root the executor saw exists, one it did not is missing, and a root holds the owner and providers of its agent
+    let by_path = |p: &str| sources.iter().find(|s| s["path"] == p).cloned().unwrap_or_else(|| panic!("{p}"));
+    assert_eq!(by_path("~/.agents/skills"), json!({"id": "home-agents", "label": "Agent skills home", "path": "~/.agents/skills", "sourceKind": "home", "providers": ["agent-skills"], "owner": null, "exists": true}));
+    assert_eq!((by_path("~/.claude/skills")["exists"].clone(), by_path("~/.claude/skills")["skippedReason"].clone()), (json!(false), json!("missing")));
+    assert_eq!((by_path("/srv/wt/feat/.trae/skills")["exists"].clone(), by_path("/srv/wt/feat/.trae/skills")["owner"].clone()), (json!(true), json!("trae")));
+    assert_eq!(by_path("~/.codex/plugins/cache")["sourceKind"], "plugin");
+    // And a filter by source kind or by name narrows the answer
     let home = rig.ok("skills.discover", json!({"worktreeId": "feat", "sourceKinds": ["home"]}));
     assert_eq!(home["skills"].as_array().unwrap().iter().map(|s| s["name"].clone()).collect::<Vec<_>>(), vec![json!("notes")]);
-    let named = rig.ok("skills.discover", json!({"cwd": "/srv/wt/feat", "names": ["lint"]}));
-    assert_eq!(named["skills"].as_array().unwrap().iter().map(|s| s["name"].clone()).collect::<Vec<_>>(), vec![json!("lint")]);
-    assert_eq!(rig.err("skills.discover", json!({})).1, "Skill discovery needs a workspace");
+    assert!(home["sources"].as_array().unwrap().iter().all(|s| s["sourceKind"] == "home"));
+    let named = rig.ok("skills.discover", json!({"cwd": "/srv/wt/feat", "names": ["FMT"]}));
+    assert!(named["skills"].as_array().unwrap().iter().all(|s| s["name"] == "fmt") && !named["skills"].as_array().unwrap().is_empty());
+    // And with no folder every workspace is a repo, a folder no workspace holds is listed unanswered, and an unknown runtime is refused
+    assert_eq!(rig.ok("skills.discover", json!({}))["sources"].as_array().unwrap().len(), 23 + 12 * 2);
+    let elsewhere = rig.ok("skills.discover", json!({"cwd": "/tmp/elsewhere"}));
+    let unanswered = elsewhere["sources"].as_array().unwrap().iter().find(|s| s["path"] == "/tmp/elsewhere/.claude/skills").unwrap().clone();
+    assert_eq!((unanswered["exists"].clone(), unanswered["skippedReason"].clone()), (json!(false), json!("unavailable")));
+    assert_eq!(rig.err("skills.discover", json!({"runtime": 7})).1, "Invalid option: expected one of \"host\"|\"wsl\"");
     assert_eq!(rig.err("skills.discover", json!({"worktreeId": "nope"})).0, "selector_not_found");
 }
 
@@ -1080,6 +1112,33 @@ fn given_the_double_of_the_catalog_when_its_answers_are_read_as_the_contract_the
 }
 
 #[test]
+fn given_cli_sessions_in_the_executors_home_when_the_vault_is_listed_then_each_is_a_scan_row_with_its_resume_line_and_a_matching_fingerprint_is_unchanged() {
+    // Given two sessions of the executor
+    let mut rig = Rig::new();
+    rig.catalog.session("claude", "s1", "/srv/wt/feat", "fix the build", 1_793_494_861_123).session("codex", "c1", "/srv/other", "add a test", 1_000);
+    // When the vault is listed, and again scoped to one worktree
+    let all = rig.ok("aiVault.listSessions", json!({}));
+    let scoped = rig.ok("aiVault.listSessions", json!({"scopePaths": ["/srv/wt/feat"], "scopeOnly": true}));
+    // Then the rows carry the host's fields, the resume line, and a path below ~
+    assert_eq!(all["issues"], json!([]));
+    let first = &all["sessions"][0];
+    assert_eq!((first["id"].clone(), first["modifiedAt"].clone(), first["resumeCommand"].clone(), first["filePath"].clone()), (json!("claude:s1"), json!("2026-11-01T01:01:01.123Z"), json!("cd '/srv/wt/feat' && claude --resume 's1'"), json!("~/.claude/sessions/s1.jsonl")));
+    assert_eq!(all["sessions"][1]["resumeCommand"], json!("cd '/srv/other' && codex resume 'c1'"));
+    assert_eq!(scoped["sessions"].as_array().unwrap().len(), 1);
+    // And a request that names the last fingerprint is answered unchanged, a forced one is not, and a bad fingerprint is refused by the schema's words
+    let fp = rig.ok("aiVault.listSessions", json!({"afterFingerprint": "0".repeat(64)}))["fingerprint"].clone();
+    let same = rig.ok("aiVault.listSessions", json!({"afterFingerprint": fp}));
+    assert_eq!((same["unchanged"].clone(), same["sessions"].clone()), (json!(true), json!([])));
+    assert!(rig.ok("aiVault.listSessions", json!({"afterFingerprint": fp, "force": true}))["sessions"].as_array().unwrap().len() == 2);
+    assert_eq!(rig.err("aiVault.listSessions", json!({"afterFingerprint": "a"})).1, "Invalid string: must match pattern /^[0-9a-f]{64}$/");
+    assert_eq!(rig.err("aiVault.listSessions", json!({"limit": 5000})).1, "Limit exceeds maximum");
+    // And a resume is prepared with nothing to copy, and a malformed one is refused
+    let args = json!({"agent": "codex", "filePath": "~/.codex/sessions/c1.jsonl", "codexHome": null});
+    assert_eq!(rig.ok("aiVault.prepareSessionResume", args), json!({"useRealCodexHome": false}));
+    assert_eq!(rig.err("aiVault.prepareSessionResume", json!(null)).1, "Invalid input");
+}
+
+#[test]
 fn an_unsubscribe_names_its_session_the_way_the_schema_and_the_host_do_and_a_chat_unsubscribe_takes_no_other_type() {
     // Given a connection with no stream, When the session id is missing, of the wrong type or not an agent session id, Then each is refused in its own words
     let mut rig = Rig::new();
@@ -1089,4 +1148,671 @@ fn an_unsubscribe_names_its_session_the_way_the_schema_and_the_host_do_and_a_cha
     // and a native chat unsubscribe with a subscription id of another type is refused, one without any is ended
     assert_eq!(rig.err("nativeChat.unsubscribe", json!({"subscriptionId": 7})).1, "Invalid input: expected string, received number");
     assert_eq!(rig.ok("nativeChat.unsubscribe", json!(null)), json!({"unsubscribed": true}));
+}
+
+#[test]
+fn given_a_send_the_phone_lost_the_reply_of_when_it_asks_whether_it_was_recorded_then_a_known_message_is_and_an_unknown_one_is_not() {
+    // Given a chat created with a first message under the operation id `op1`
+    let mut rig = Rig::new();
+    rig.ok("agentSession.create", create_params("op1", "fix the login"));
+    // When the phone asks whether that message, then another it never sent, was recorded
+    let known = rig.ok("agentSession.sendRecorded", json!({"sessionId": "claude_s1", "clientMessageId": "op1"}));
+    let unknown = rig.ok("agentSession.sendRecorded", json!({"sessionId": "claude_s1", "clientMessageId": "op-never"}));
+    // Then the first is recorded and the second is not
+    assert_eq!((known, unknown), (json!({"recorded": true}), json!({"recorded": false})));
+    // And a chat the host does not have is refused as every session method refuses it, and a malformed ask by the schema's words
+    assert_eq!(rig.err("agentSession.sendRecorded", json!({"sessionId": "claude_none", "clientMessageId": "op1"})).1, "agent_session_not_found");
+    for (params, message) in [
+        (json!({}), "Invalid input: expected string, received undefined"),
+        (json!({"sessionId": "claude_s1"}), "Invalid input: expected string, received undefined"),
+        (json!({"sessionId": "", "clientMessageId": "a"}), "Invalid session id"),
+        (json!({"sessionId": "claude_s1", "clientMessageId": ""}), "Invalid client message id"),
+        (json!({"sessionId": "claude_s1", "clientMessageId": "op1", "extra": 1}), "Unrecognized key: \"extra\""),
+    ] {
+        assert_eq!(rig.err("agentSession.sendRecorded", params.clone()).1, message, "{params}");
+    }
+}
+
+#[test]
+fn given_a_host_when_the_phone_lists_its_agents_then_each_served_driver_is_an_agent_with_the_capabilities_a_session_here_has() {
+    // Given a host serving claude, codex and opencode drivers
+    let mut rig = Rig::new();
+    // When the phone lists the agents
+    let r = rig.ok("agentSession.agents", json!({}));
+    // Then every served driver is there once, with the capabilities of this host's sessions
+    let names: Vec<&str> = r["agents"].as_array().unwrap().iter().map(|a| a["agent"].as_str().unwrap()).collect();
+    assert_eq!(names, ["claude", "codex", "opencode"]);
+    assert_eq!(r["agents"][0]["capabilities"], json!({"rewind": true, "compact": true, "threadGoal": false, "contextUsage": false, "imagePrompts": true, "steering": "queue", "approvalEnforcement": "orca"}));
+    // And a key the schema lacks is refused in its words
+    assert_eq!(rig.err("agentSession.agents", json!({"x": 1})), ("invalid_argument".to_string(), "Unrecognized key: \"x\"".to_string()));
+}
+
+#[test]
+fn given_a_native_chat_subscription_when_the_chat_grows_then_the_phone_gets_the_tail_snapshot_then_the_changed_rows_with_the_turn_state_and_an_unsubscribe_ends_it() {
+    // Given the recorded thread
+    let mut rig = Rig::new();
+    rig.recorded("claude_rec");
+    // When the phone subscribes with a window of two
+    let opened = rig.frames("nativeChat.subscribe", json!({"agent": "claude", "sessionId": "claude_rec", "limit": 2, "subscriptionId": "s1"}));
+    // Then the only frame is the snapshot: the newest two message rows of readSession, a page before them, and no error
+    assert_eq!(opened.len(), 1);
+    let snap = &opened[0]["result"];
+    let read = rig.ok("nativeChat.readSession", json!({"agent": "claude", "sessionId": "claude_rec", "limit": 2}));
+    assert_eq!((opened[0]["streaming"].clone(), snap["type"].clone(), snap["messages"].clone(), snap["hasMore"].clone(), snap["beforeOffset"].clone()), (json!(true), json!("snapshot"), read["messages"].clone(), json!(true), read["beforeOffset"].clone()));
+    assert!(snap.get("error").is_none() && snap["messages"][0].get("transcriptOrder").is_some(), "{snap}");
+    // When a turn starts and the assistant answers
+    rig.agent.request("turn.start", json!({"thread": "claude_rec", "workspace": "main", "driver": "claudeAgent", "prompt": "again"})).unwrap();
+    rig.threads.push("claude_rec", json!({"type": "message.delta", "role": "assistant", "text": "done"}));
+    std::thread::sleep(Duration::from_millis(300));
+    let frames: Vec<Value> = rig.conn.poll().iter().map(|f| serde_json::from_str(f).unwrap()).collect();
+    // Then one appended frame carries the changed rows and the chat is working
+    assert_eq!(frames.len(), 1, "{frames:?}");
+    let appended = &frames[0]["result"];
+    assert_eq!((appended["type"].clone(), appended["lifecycle"]["state"].clone()), (json!("appended"), json!("working")));
+    assert!(appended["messages"].as_array().unwrap().iter().any(|m| m["blocks"][0]["text"] == "done" || m["blocks"][0]["text"] == "again"), "{appended}");
+    // When the phone unsubscribes by its token, Then no stream remains
+    assert_eq!(rig.ok("nativeChat.unsubscribe", json!({"subscriptionId": "s1"})), json!({"unsubscribed": true}));
+    rig.conn.poll();
+    assert_eq!(rig.conn.open_streams(), 0);
+}
+
+#[test]
+fn given_a_chat_the_host_does_not_hold_when_its_transcript_is_read_then_the_answer_is_the_recorded_unavailable_result() {
+    // Given a host with no chat, When the phone reads the transcript of an agent and chat it does not hold
+    let mut rig = Rig::new();
+    let read = rig.ok("nativeChat.readSession", json!({"agent": "a", "sessionId": "a"}));
+    // Then the result is the host's own unavailable answer, not a refusal
+    assert_eq!(read, json!({"error": "Transcript unavailable"}));
+    // And a read that names no agent is refused as invalid
+    assert_eq!(rig.err("nativeChat.readSession", json!({"sessionId": "a"})).0, "invalid_argument");
+}
+
+#[test]
+fn given_an_agent_the_host_does_not_run_or_a_chat_rca_lacks_when_subscribed_then_the_first_is_the_recorded_unavailable_snapshot_and_the_second_waits_in_silence() {
+    // Given a host with no chat yet
+    let mut rig = Rig::new();
+    // When the phone subscribes with an agent the host does not run (the recorded case), and to a chat of a known agent rca has not made
+    let unknown = rig.frames("nativeChat.subscribe", json!({"agent": "a", "sessionId": "a"}));
+    let waiting = rig.frames("nativeChat.subscribe", json!({"agent": "claude", "sessionId": "claude_later"}));
+    // Then the first is the recorded snapshot and the second says nothing
+    assert_eq!((unknown.len(), unknown[0]["result"].clone()), (1, json!({"type": "snapshot", "messages": [], "hasMore": false, "error": "Transcript unavailable"})));
+    assert!(waiting.is_empty(), "{waiting:?}");
+    // When the chat appears and the stream is polled, Then its snapshot follows
+    rig.recorded("claude_later");
+    std::thread::sleep(Duration::from_millis(300));
+    let frames: Vec<Value> = rig.conn.poll().iter().map(|f| serde_json::from_str(f).unwrap()).collect();
+    assert_eq!(frames.iter().filter(|f| f["result"]["type"] == "snapshot" && f["result"]["messages"].as_array().is_some_and(|m| !m.is_empty())).count(), 1, "{frames:?}");
+}
+
+#[test]
+fn given_malformed_native_chat_subscriptions_when_made_then_each_is_refused_with_the_first_issue_of_the_schema() {
+    // Given a host
+    let mut rig = Rig::new();
+    // When the phone subscribes with missing, empty and mistyped fields
+    let cases = [
+        (json!({}), "Missing agent"),
+        (json!({"agent": 7, "sessionId": "x"}), "Missing agent"),
+        (json!({"agent": "claude"}), "Missing session id"),
+        (json!({"agent": "claude", "sessionId": ""}), "Missing session id"),
+        (json!({"agent": "claude", "sessionId": "x", "limit": 0}), "Too small: expected number to be >0"),
+        (json!({"agent": "claude", "sessionId": "x", "limit": 1.5}), "Invalid input: expected int, received number"),
+        (json!({"agent": "claude", "sessionId": "x", "limit": "3"}), "Invalid input: expected number, received string"),
+        (json!({"agent": "claude", "sessionId": "x", "subscriptionId": ""}), "Too small: expected string to have >=1 characters"),
+    ];
+    // Then each is an invalid_argument error frame with that sentence
+    for (params, message) in cases {
+        let frames = rig.frames("nativeChat.subscribe", params.clone());
+        assert_eq!(frames.len(), 1, "{params}: {frames:?}");
+        let text = frames[0]["error"]["message"].as_str().or_else(|| frames[0]["message"].as_str()).unwrap_or_default().to_string();
+        assert_eq!(text, message, "{params}: {}", frames[0]);
+    }
+}
+
+fn status_frames(conn: &mut Connection, id: &str) -> Vec<Value> {
+    conn.on_message(&json!({"id": id, "method": "agentSession.subscribeStatus", "params": {}}).to_string()).iter().map(|f| serde_json::from_str(f).unwrap()).collect()
+}
+
+#[test]
+fn given_a_client_without_the_structured_capability_when_it_subscribes_to_the_status_feed_then_it_is_refused_as_the_recorded_host_refuses_it() {
+    // Given a host and a connection that declared no capability
+    let mut rig = Rig::new();
+    rig.recorded("claude_rec");
+    // When it subscribes to the status feed
+    let frames = rig.frames("agentSession.subscribeStatus", json!({}));
+    // Then it gets the recorded refusal, no stream stays open, and rca was not asked to list threads
+    assert_eq!(frames.len(), 1, "{frames:?}");
+    assert_eq!((frames[0]["error"]["code"].clone(), frames[0]["error"]["message"].clone(), frames[0]["error"]["data"]["refusal"]["details"]["reason"].clone()), (json!("runtime_error"), json!("structured_agent_session_unsupported"), json!("clientCapabilityMissing")));
+    assert_eq!(rig.conn.open_streams(), 0);
+    assert!(rig.agent.requests().iter().all(|(m, _)| m != "thread.list"));
+}
+
+#[test]
+fn given_chats_when_a_capable_client_subscribes_to_the_status_feed_then_it_gets_the_naming_and_sessions_snapshots_then_a_status_for_each_chat_that_changes() {
+    // Given the recorded chat (it holds open prompts), a chat with no messages, a chat of a driver this host does not run, and a connection that declared the structured capability
+    let mut rig = Rig::new();
+    rig.recorded("claude_rec");
+    rig.idle("claude_new");
+    rig.agent.request("thread.create", json!({"thread": "other_x", "workspace": "main", "driver": "someOtherDriver"})).unwrap();
+    let mut conn = rig.host.connection("dev3", "tok3", vec!["agent-session.structured.v1".to_string()]);
+    // When it subscribes
+    let opened = status_frames(&mut conn, "s1");
+    // Then the first frame names both chats (null: neither has a title), the second lists them, and the foreign driver is in neither
+    assert_eq!(opened.len(), 2, "{opened:?}");
+    assert_eq!(opened[0]["result"], json!({"type": "snapshot", "sessions": [], "namingActiveSessionIds": [], "conversationNames": [{"sessionId": "claude_new", "conversationName": null}, {"sessionId": "claude_rec", "conversationName": null}]}));
+    let sessions = opened[1]["result"]["sessions"].as_array().unwrap();
+    assert_eq!(sessions.len(), 2, "{sessions:?}");
+    let by = |id: &str| sessions.iter().find(|s| s["sessionId"] == id).unwrap().clone();
+    let rec = by("claude_rec");
+    // the recorded chat has an open approval: it needs attention, and carries its last prompt and answer
+    assert_eq!((rec["workspaceId"].clone(), rec["agent"].clone(), rec["status"].clone(), rec["latestPrompt"].clone(), rec["lastAssistantMessage"].clone()), (json!("main"), json!("claude"), json!("attention"), json!("Why does the login fail?"), json!("Fixed.")));
+    assert_eq!(by("claude_new")["status"], Value::Null);
+    // When a turn starts on the empty chat
+    rig.agent.request("turn.start", json!({"thread": "claude_new", "workspace": "main", "driver": "claudeAgent", "prompt": "again"})).unwrap();
+    std::thread::sleep(Duration::from_millis(300));
+    let later: Vec<Value> = conn.poll().iter().map(|f| serde_json::from_str(f).unwrap()).collect();
+    // Then exactly one status frame follows, for that chat, now working on the prompt
+    assert_eq!(later.len(), 1, "{later:?}");
+    assert_eq!((later[0]["result"]["type"].clone(), later[0]["result"]["session"]["sessionId"].clone(), later[0]["result"]["session"]["status"].clone(), later[0]["result"]["session"]["latestPrompt"].clone()), (json!("status"), json!("claude_new"), json!("working"), json!("again")));
+    // And with nothing more changing, a later tick sends nothing
+    std::thread::sleep(Duration::from_millis(300));
+    assert!(conn.poll().is_empty());
+}
+
+#[test]
+fn given_the_host_when_status_is_read_then_it_advertises_the_status_feed_and_structured_capabilities_it_serves() {
+    // Given the agent area
+    let area = AgentArea::default();
+    // When its capabilities are read, Then it names both
+    assert_eq!(orca_core::Area::capabilities(&area), ["agent-session.structured.v1", "agent-session.status-feed.v1", "agent-session.continue-interrupted.v1", "agent-session.continue-interrupted.phone.v1"]);
+}
+
+/// A chat with two finished turns ("one" then "two"), nothing open, and the ids of the two user messages.
+fn two_turns(rig: &mut Rig) -> (String, String) {
+    rig.idle("claude_two");
+    for prompt in ["one", "two"] {
+        rig.agent.request("turn.start", json!({"thread": "claude_two", "workspace": "main", "driver": "claudeAgent", "prompt": prompt})).unwrap();
+        rig.threads.push("claude_two", json!({"type": "message.delta", "role": "assistant", "text": format!("answer {prompt}")}));
+        rig.threads.finish("claude_two", "completed");
+    }
+    let page = rig.ok("agentSession.history", json!({"sessionId": "claude_two", "direction": "tail"}))["page"].clone();
+    let users: Vec<String> = page["items"].as_array().unwrap().iter().filter(|i| i["body"]["kind"] == "message" && i["body"]["role"] == "user").map(|i| i["itemId"].as_str().unwrap().to_string()).collect();
+    (users[0].clone(), users[1].clone())
+}
+
+#[test]
+fn given_two_finished_turns_when_the_phone_rewinds_to_the_second_message_then_the_second_turn_is_rolled_back_the_journal_has_a_new_epoch_and_the_same_operation_replays() {
+    // Given a chat of two finished turns
+    let mut rig = Rig::new();
+    let (_, second) = two_turns(&mut rig);
+    let before = rig.ok("agentSession.history", json!({"sessionId": "claude_two", "direction": "tail"}))["page"].clone();
+    let epoch = before["epoch"].clone();
+    // When the phone rewinds to the second user message
+    let params = json!({"envelope": env("claude_two", "rw1", "fp"), "itemId": second, "expectedEpoch": epoch});
+    let done = rig.ok("agentSession.rewind", params.clone());
+    // Then rca rolled back to the first turn, the answer carries the item and a new epoch, and the history no longer holds the second turn's messages
+    assert_eq!(sent(&rig, "thread.rollback"), vec![json!({"thread": "claude_two", "turn": "u1", "restore_files": false})]);
+    assert_eq!((done["ok"].clone(), done["replayed"].clone(), done["value"]["itemId"].clone()), (json!(true), json!(false), json!(second)));
+    assert_ne!(done["value"]["epoch"], epoch);
+    assert_eq!(done["cursor"]["epoch"], done["value"]["epoch"]);
+    let after = rig.ok("agentSession.history", json!({"sessionId": "claude_two", "direction": "tail"}))["page"].clone();
+    let texts: Vec<String> = after["items"].as_array().unwrap().iter().filter(|i| i["body"]["kind"] == "message").map(|i| i["body"]["blocks"][0]["text"].as_str().unwrap().to_string()).collect();
+    assert_eq!(texts, ["one", "answer one"]);
+    assert_eq!(after["epoch"], done["value"]["epoch"]);
+    // When the same operation is sent again, Then the recorded answer comes back replayed and rca is asked no second time
+    let again = rig.ok("agentSession.rewind", params);
+    assert_eq!(again["replayed"], json!(true));
+    assert_eq!(sent(&rig, "thread.rollback").len(), 1);
+}
+
+#[test]
+fn given_a_chat_when_a_rewind_cannot_be_done_then_it_is_refused_with_the_hosts_reason_and_rca_is_asked_for_nothing() {
+    // Given a chat of two finished turns and the current epoch
+    let mut rig = Rig::new();
+    let (first, second) = two_turns(&mut rig);
+    let epoch = rig.ok("agentSession.history", json!({"sessionId": "claude_two", "direction": "tail"}))["page"]["epoch"].clone();
+    let reason = |r: &Value| (r["ok"].clone(), r["refusal"]["code"].clone(), r["refusal"]["message"].clone(), r["refusal"]["details"]["rewindReason"].clone());
+    // When the phone names an old epoch, the first turn's message (nothing is kept before it), an item that is no user message, and a missing item
+    let stale = rig.ok("agentSession.rewind", json!({"envelope": env("claude_two", "r1", "fp"), "itemId": second, "expectedEpoch": "rca-99"}));
+    let opening = rig.ok("agentSession.rewind", json!({"envelope": env("claude_two", "r2", "fp"), "itemId": first, "expectedEpoch": epoch}));
+    let not_user = rig.ok("agentSession.rewind", json!({"envelope": env("claude_two", "r3", "fp"), "itemId": "turn:u1", "expectedEpoch": epoch}));
+    let missing = rig.ok("agentSession.rewind", json!({"envelope": env("claude_two", "r4", "fp"), "itemId": "i999", "expectedEpoch": epoch}));
+    // Then each is a rewind refusal with its reason
+    let invalid = |why: &str| (json!(false), json!("agent_session_operation_invalid"), json!(format!("agent_session_rewind:{why}")), json!(why));
+    assert_eq!(reason(&stale), invalid("stale-epoch"));
+    assert_eq!(reason(&opening), invalid("unsupported"));
+    assert_eq!(reason(&not_user), invalid("invalid-target"));
+    assert_eq!(reason(&missing), invalid("invalid-target"));
+    // And a chat with a running turn is busy
+    rig.agent.request("turn.start", json!({"thread": "claude_two", "workspace": "main", "driver": "claudeAgent", "prompt": "three"})).unwrap();
+    let busy = rig.ok("agentSession.rewind", json!({"envelope": env("claude_two", "r5", "fp"), "itemId": second, "expectedEpoch": epoch}));
+    assert_eq!(reason(&busy), invalid("busy"));
+    assert!(sent(&rig, "thread.rollback").is_empty());
+}
+
+#[test]
+fn given_a_session_id_that_is_no_agent_session_id_when_a_row_takes_it_then_it_is_refused_as_an_invalid_agent_session_id() {
+    // Given a host
+    let mut rig = Rig::new();
+    let envelope = json!({"clientOperationId": "op", "expectedRuntimeFence": 1, "payloadFingerprint": "f", "sessionId": "a"});
+    // When the phone releases, sets an option, or asks for a model catalog under an id of no agent, or leaves the id out or sends a number
+    let release = rig.err("agentSession.release", json!({"sessionId": "a", "holderId": "h"}));
+    let release_number = rig.err("agentSession.release", json!({"sessionId": 7}));
+    let release_none = rig.err("agentSession.release", json!({}));
+    let option = rig.err("agentSession.setOption", json!({"envelope": envelope, "key": "model", "value": "m"}));
+    let catalog = rig.err("agentSession.modelCatalog", json!({"agent": "claude", "sessionId": "a"}));
+    // Then the id is the refusal, or the schema's own message when it is no string
+    let invalid = ("invalid_argument".to_string(), "Invalid agent session id".to_string());
+    assert_eq!((release, option, catalog), (invalid.clone(), invalid.clone(), invalid));
+    assert_eq!(release_number.1, "Invalid input: expected string, received number");
+    assert_eq!(release_none.1, "Invalid input: expected string, received undefined");
+    // And a session id of an agent is released
+    assert_eq!(rig.ok("agentSession.release", json!({"sessionId": "claude_a", "holderId": "h"})), json!({"released": true}));
+}
+
+#[test]
+fn given_detection_inputs_of_the_wrong_type_or_for_a_host_this_machine_is_not_when_agents_are_detected_then_each_is_refused_as_the_host_refuses_it() {
+    // Given an executor with agent CLIs
+    let mut rig = Rig::new();
+    // When the phone detects or refreshes with a number for the worktree, a flag that is no boolean, or another host's id
+    let wrong_type = rig.err("preflight.detectAgents", json!({"worktreeId": 7}));
+    let wrong_refresh = rig.err("preflight.refreshAgents", json!({"worktreeId": 7}));
+    let wrong_flag = rig.err("preflight.refreshAgents", json!({"userInitiated": "yes"}));
+    let other_host = rig.err("preflight.detectAgents", json!({"worktreeHostId": "a", "project": {"repo": "a"}}));
+    // Then the schema's own message or the host id refusal answers, and this machine's id is accepted
+    assert_eq!(wrong_type, ("invalid_argument".into(), "Invalid input: expected string, received number".into()));
+    assert_eq!(wrong_refresh, wrong_type);
+    assert_eq!(wrong_flag, ("invalid_argument".into(), "Invalid input: expected boolean, received string".into()));
+    assert_eq!(other_host, ("invalid_argument".into(), "Invalid host id".into()));
+    rig.ok("preflight.refreshAgents", json!({"worktreeHostId": "local", "userInitiated": true}));
+}
+
+#[test]
+fn given_calls_with_no_session_or_envelope_when_sent_then_each_is_refused_with_the_hosts_schema_words() {
+    // Given a host with no session
+    let mut rig = Rig::new();
+    // When the phone sends each method with no params, Then the schema's words name what is missing
+    for method in ["agentSession.history", "agentSession.item", "agentSession.hold", "agentSession.options", "agentSession.commands", "agentSession.currentRequests", "agentSession.subscribe"] {
+        assert_eq!(rig.err(method, json!({})).1, "Invalid input: expected string, received undefined", "{method}");
+    }
+    for method in ["agentSession.send", "agentSession.cancel", "agentSession.setOption", "agentSession.queuedMessageSend", "agentSession.respondToApproval"] {
+        assert_eq!(rig.err(method, json!({})).1, "Invalid input: expected object, received undefined", "{method}");
+        assert_eq!(rig.err(method, json!({"envelope": "x"})).1, "Invalid input: expected object, received string", "{method}");
+    }
+    assert_eq!(rig.err("agentSession.create", json!({})).1, "Invalid input");
+    assert_eq!(rig.err("agentSession.queuedMessageMove", json!({})).1, "Invalid input");
+    assert_eq!(rig.err("agentSession.queuedMessageEditHold", json!({})).1, "Invalid discriminator value. Expected 'acquire' | 'renew' | 'release'");
+    assert_eq!(rig.err("agent.launchReplay", json!({})).1, "Unknown TUI agent");
+    assert_eq!(rig.err("agentSession.history", json!({"sessionId": 7})).1, "Invalid input: expected string, received number");
+}
+
+fn preflight(git: bool, gh: (bool, bool), glab: (bool, bool)) -> Value {
+    let none = json!({"configured": false, "authenticated": false, "account": null, "baseUrl": null, "tokenConfigured": false});
+    json!({"git": {"installed": git}, "gh": {"installed": gh.0, "authenticated": gh.1}, "glab": {"installed": glab.0, "authenticated": glab.1},
+        "bitbucket": {"configured": false, "authenticated": false, "account": null}, "azureDevOps": none, "gitea": none})
+}
+
+#[test]
+fn given_an_executor_with_git_gh_signed_in_and_glab_signed_out_when_preflight_is_checked_then_the_phone_gets_the_hosts_status_from_one_detection_and_one_sign_in_per_cli() {
+    // Given an executor that has git, a signed-in gh and a signed-out glab
+    let mut rig = Rig::new();
+    rig.catalog.has_tools(&["git", "gh", "glab"]).signed_in(&["github"]);
+    // When the phone checks its preflight
+    let status = rig.ok("preflight.check", json!({}));
+    // Then it is the host's status: the three tools installed, gh signed in, glab not, the other providers not configured
+    assert_eq!(status, preflight(true, (true, true), (true, false)));
+    // And rca was asked one detection from its kept answer, then each installed CLI's sign-in at the root workspace's host
+    assert_eq!(rig.catalog.detections(), [json!({})]);
+    assert_eq!(rig.catalog.discovers(), [json!({"workspace": "main", "provider": "github"}), json!({"workspace": "main", "provider": "gitlab"})]);
+    // When it is forced, Then the executor is asked again
+    rig.ok("preflight.check", json!({"force": true}));
+    assert_eq!(rig.catalog.detections().last(), Some(&json!({"refresh": true})));
+}
+
+#[test]
+fn given_no_forge_cli_or_a_sign_in_that_fails_when_preflight_is_checked_then_nothing_is_signed_in_and_only_installed_clis_are_asked() {
+    // Given an executor with none of the tools
+    let mut rig = Rig::new();
+    // When the phone checks its preflight with no payload
+    let none = rig.ok("preflight.check", Value::Null);
+    // Then nothing is installed or signed in, and no sign-in was asked
+    assert_eq!((none, rig.catalog.discovers()), (preflight(false, (false, false), (false, false)), vec![]));
+    // Given gh is installed but its sign-in check fails
+    rig.catalog.has_tools(&["git", "gh"]).discover_refused();
+    // When checked, Then gh is installed and not signed in, and the answer is still the status
+    assert_eq!(rig.ok("preflight.check", json!({})), preflight(true, (true, false), (false, false)));
+}
+
+#[test]
+fn given_a_force_of_the_wrong_type_or_a_payload_that_is_no_object_when_preflight_is_checked_then_it_is_the_schemas_refusal_and_rca_is_asked_nothing() {
+    let mut rig = Rig::new();
+    for (params, message) in [
+        (json!({"force": "wrong"}), "Invalid input: expected boolean, received string"),
+        (json!({"force": null}), "Invalid input: expected boolean, received null"),
+        (json!({"force": 1}), "Invalid input: expected boolean, received number"),
+        (json!([1]), "Invalid input: expected object, received array"),
+    ] {
+        // Given a payload the pinned schema refuses, When sent, Then the refusal is its first complaint
+        assert_eq!(rig.err("preflight.check", params.clone()), ("invalid_argument".to_string(), message.to_string()), "{params}");
+    }
+    assert_eq!(rig.catalog.detections(), Vec::<Value>::new());
+}
+
+/// The bytes the root workspace's staged file holds, read back from the attachment rca kept under the id in its path.
+fn staged_bytes(rig: &Rig, path: &str) -> (Value, Vec<u8>) {
+    let id = path.split('/').nth(2).unwrap().trim_start_matches("rca-paste-");
+    let got = rig.agent.request("attachment.get", json!({"id": id})).unwrap();
+    (got["attachment"]["mime_type"].clone(), STANDARD.decode(got["data"].as_str().unwrap()).unwrap())
+}
+
+const PNG: &[u8] = &[0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13];
+
+#[test]
+fn given_a_pasted_image_when_saved_as_a_temp_file_then_it_is_kept_and_staged_in_the_root_workspace_named_by_its_time_and_kind() {
+    // Given a PNG the phone pasted
+    let mut rig = Rig::new();
+    // When it is saved as a temp file
+    let path = rig.ok("clipboard.saveImageAsTempFile", json!({"contentBase64": STANDARD.encode(PNG)}));
+    // Then the answer is its file below the root workspace's staging folder, named as the host names a paste, holding the bytes as a PNG
+    let path = path.as_str().unwrap().to_string();
+    let parts: Vec<&str> = path.split('/').collect();
+    assert_eq!((parts.len(), parts[1], parts[2].starts_with("rca-paste-")), (4, "tmp", true), "{path}");
+    assert!(parts[3].starts_with("orca-paste-") && parts[3].ends_with(".png"), "{path}");
+    assert_eq!(staged_bytes(&rig, &path), (json!("image/png"), PNG.to_vec()));
+    // And rca was asked to keep it, then to stage it in the root workspace
+    let asked: Vec<(String, Value)> = rig.agent.requests().into_iter().filter(|(m, _)| m == "attachment.stage").collect();
+    assert_eq!(asked, [("attachment.stage".to_string(), json!({"workspace": "main", "ids": [parts[2].trim_start_matches("rca-paste-")], "temp": true}))]);
+}
+
+#[test]
+fn given_an_image_uploaded_in_chunks_when_committed_then_it_keeps_the_picked_name_and_each_wrong_step_is_the_hosts_refusal() {
+    // Given an upload of a picked photo started and sent in two chunks of base64
+    let mut rig = Rig::new();
+    let data = STANDARD.encode(PNG);
+    let (first, second) = data.split_at(8);
+    let id = rig.ok("clipboard.startImageUpload", json!({"expectedBase64Length": data.len(), "fileName": "my shot$(x).png"}))["uploadId"].clone();
+    let runtime = |m: &str| ("runtime_error".to_string(), m.to_string());
+    // When a chunk comes out of order, Then it is refused and nothing is taken
+    assert_eq!(rig.err("clipboard.appendImageUploadChunk", json!({"uploadId": id, "offset": 4, "contentBase64": first})), runtime("Clipboard image chunk offset is out of order"));
+    assert_eq!(rig.ok("clipboard.appendImageUploadChunk", json!({"uploadId": id, "offset": 0, "contentBase64": first})), json!({"receivedBase64Length": 8}));
+    // And another device cannot add to it, and a commit before the last chunk is incomplete and ends the upload
+    assert_eq!(rig.other_err("clipboard.appendImageUploadChunk", json!({"uploadId": id, "offset": 8, "contentBase64": second})), runtime("Clipboard image upload was not found"));
+    assert_eq!(rig.ok("clipboard.appendImageUploadChunk", json!({"uploadId": id, "offset": 8, "contentBase64": second})), json!({"receivedBase64Length": data.len()}));
+    assert_eq!(rig.err("clipboard.appendImageUploadChunk", json!({"uploadId": id, "offset": data.len(), "contentBase64": "AAAA"})), runtime("Clipboard image upload exceeded expected size"));
+    // When it is committed
+    let path = rig.ok("clipboard.commitImageUpload", json!({"uploadId": id}));
+    // Then the file keeps the picked name with what a shell would expand made inert, and holds the bytes
+    let path = path.as_str().unwrap().to_string();
+    assert!(path.ends_with("/my shot__x_.png"), "{path}");
+    assert_eq!(staged_bytes(&rig, &path).1, PNG.to_vec());
+    // And the upload is gone once committed, an incomplete one is refused and gone, and an abort of an unknown upload says aborted
+    assert_eq!(rig.err("clipboard.commitImageUpload", json!({"uploadId": id})), runtime("Clipboard image upload was not found"));
+    let short = rig.ok("clipboard.startImageUpload", json!({"expectedBase64Length": 8}))["uploadId"].clone();
+    assert_eq!(rig.err("clipboard.commitImageUpload", json!({"uploadId": short})), runtime("Clipboard image upload is incomplete"));
+    assert_eq!(rig.err("clipboard.commitImageUpload", json!({"uploadId": short})), runtime("Clipboard image upload was not found"));
+    assert_eq!(rig.ok("clipboard.abortImageUpload", json!({"uploadId": "a"})), json!({"aborted": true}));
+    // And an upload for an SSH target is the host's refusal at commit, and a ninth upload in flight is refused
+    let remote = rig.ok("clipboard.startImageUpload", json!({"expectedBase64Length": 0, "connectionId": "ssh-1"}))["uploadId"].clone();
+    assert_eq!(rig.err("clipboard.commitImageUpload", json!({"uploadId": remote})), runtime("Remote connection dropped. Click Reconnect on the SSH target before retrying."));
+    for _ in 0..8 {
+        rig.ok("clipboard.startImageUpload", json!({"expectedBase64Length": 4}));
+    }
+    assert_eq!(rig.err("clipboard.startImageUpload", json!({"expectedBase64Length": 4})), runtime("Too many clipboard image uploads are in progress"));
+}
+
+#[test]
+fn given_clipboard_requests_that_break_the_pinned_schema_when_sent_then_each_is_its_first_complaint_and_rca_is_asked_nothing() {
+    let mut rig = Rig::new();
+    let invalid = |m: &str| ("invalid_argument".to_string(), m.to_string());
+    for (method, params, message) in [
+        ("clipboard.saveImageAsTempFile", Value::Null, "Missing image content"),
+        ("clipboard.saveImageAsTempFile", json!({"contentBase64": "a"}), "Clipboard image content must be base64"),
+        ("clipboard.saveImageAsTempFile", json!({"contentBase64": "wrong"}), "Clipboard image content must be base64"),
+        ("clipboard.saveImageAsTempFile", json!({"contentBase64": "AAAA", "connectionId": ""}), "Too small: expected string to have >=1 characters"),
+        ("clipboard.startImageUpload", Value::Null, "Invalid input: expected number, received undefined"),
+        ("clipboard.startImageUpload", json!({"expectedBase64Length": "wrong"}), "Invalid input: expected number, received string"),
+        ("clipboard.startImageUpload", json!({"expectedBase64Length": 1.5}), "Invalid input: expected int, received number"),
+        ("clipboard.startImageUpload", json!({"expectedBase64Length": -1}), "Too small: expected number to be >=0"),
+        ("clipboard.startImageUpload", json!({"expectedBase64Length": 25_165_825}), "Clipboard image is too large"),
+        ("clipboard.startImageUpload", json!({"expectedBase64Length": 0, "fileName": ""}), "Too small: expected string to have >=1 characters"),
+        ("clipboard.appendImageUploadChunk", Value::Null, "Invalid input: expected string, received undefined"),
+        ("clipboard.appendImageUploadChunk", json!({"contentBase64": "a", "offset": 0, "uploadId": 7}), "Invalid input: expected string, received number"),
+        ("clipboard.appendImageUploadChunk", json!({"contentBase64": "a", "offset": 0, "uploadId": "a"}), "Clipboard image content must be base64"),
+        ("clipboard.commitImageUpload", json!({}), "Invalid input: expected string, received undefined"),
+        ("clipboard.abortImageUpload", json!({"uploadId": 7}), "Invalid input: expected string, received number"),
+    ] {
+        // Given a request the schema refuses, When sent, Then the refusal is its first complaint
+        assert_eq!(rig.err(method, params.clone()), invalid(message), "{method} {params}");
+    }
+    // And the largest upload the host takes is started
+    assert!(rig.ok("clipboard.startImageUpload", json!({"expectedBase64Length": 25_165_824}))["uploadId"].is_string());
+    assert!(rig.agent.requests().iter().all(|(m, _)| !m.starts_with("upload.") && !m.starts_with("attachment.")));
+}
+
+fn pcm_chunk(samples: usize) -> String {
+    STANDARD.encode(vec![1u8; samples * 2])
+}
+
+#[test]
+fn given_the_dictation_settings_when_a_phone_lists_sets_up_and_dictates_then_the_chunks_are_kept_in_order_once_and_sent_as_one_wav_for_the_text() {
+    // Given a service with a speech engine that hears "open the settings", and a host whose dictation is off
+    let mut rig = Rig::new();
+    rig.catalog.says("open the settings");
+    // When the phone lists the models, and starts a dictation
+    let listed = rig.ok("speech.models.list", json!(null));
+    let off = rig.err("speech.dictation.start", json!({"dictationId": "d1"}));
+    // Then the one model is ready and the dictation is off, so the start is refused as the host refuses it
+    assert_eq!(listed["models"], json!([{"id": "rca-whisper", "label": "Whisper (rca)", "provider": "local", "sizeBytes": null, "recommended": true, "status": "ready", "progress": null}]));
+    assert_eq!((listed["enabled"].clone(), listed["selectedModelId"].clone(), listed["dictationMode"].clone(), listed["stopAfterSilenceSeconds"].clone()), (json!(false), json!(""), json!("toggle"), json!(60)));
+    assert_eq!(off.1, "voice_dictation_disabled");
+    // And when it sets the dictation up, and starts, feeds chunks 1, 0, a resend of 0 and 2, and finishes
+    let set = rig.ok("speech.dictation.setup", json!({"enabled": true, "modelId": "rca-whisper", "dictationMode": "hold"}));
+    let started = rig.ok("speech.dictation.start", json!({"dictationId": "d1"}));
+    let sent: Vec<Value> = [1u64, 0, 0, 2].iter().map(|seq| rig.ok("speech.dictation.chunk", json!({"dictationId": "d1", "audioBase64": pcm_chunk(100), "sampleRate": 16000, "seq": seq}))).collect();
+    let done = rig.ok("speech.dictation.finish", json!({"dictationId": "d1"}));
+    // Then the setup is kept and listed, the dictation says it dedupes resends, and the service heard one WAV of the three chunks once each
+    assert_eq!((set["enabled"].clone(), set["selectedModelId"].clone(), set["dictationMode"].clone(), set["dictationHoldToRecord"].clone()), (json!(true), json!("rca-whisper"), json!("hold"), json!(true)));
+    assert_eq!(started, json!({"dictationId": "d1", "modelId": "rca-whisper", "dedupesResentChunks": true}));
+    assert!(sent.iter().all(|r| r == &json!({"dictationId": "d1"})), "{sent:?}");
+    assert_eq!(done, json!({"dictationId": "d1", "text": "open the settings"}));
+    let heard = rig.catalog.heard();
+    assert_eq!(heard.len(), 1);
+    assert_eq!(heard[0].1, "wav");
+    assert_eq!(heard[0].0, STANDARD.encode(vec![0u8; 44 + 3 * 200]).len());
+    // And a finish with no dictation, a chunk of another dictation, and a cancel of a stale one are told apart
+    assert_eq!(rig.err("speech.dictation.finish", json!({"dictationId": "d1"})).1, "dictation_stream_not_started");
+    assert_eq!(rig.ok("speech.dictation.cancel", json!({"dictationId": "gone"})), json!({"dictationId": "gone"}));
+}
+
+#[test]
+fn given_two_phones_setting_up_dictation_at_once_when_both_read_the_kept_voice_settings_first_then_both_changes_are_kept() {
+    // Given two connections of one host whose reads of the kept settings overlap
+    let rig = Rig::new();
+    let agent: Arc<dyn AgentApi> = Arc::new(orca_core::testing::OverlappingReads::over(rig.agent.clone(), Duration::from_millis(300)));
+    let host = Host::new("rt".into(), vec![Box::new(AgentArea::default())], agent, Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+    // When one phone turns dictation on and the other picks hold mode at the same moment
+    let phones: Vec<_> = [json!({"enabled": true}), json!({"dictationMode": "hold"})]
+        .into_iter()
+        .map(|params| {
+            let mut conn = host.connection("dev", "tok", vec![]);
+            std::thread::spawn(move || serde_json::from_str::<Value>(&conn.on_message(&json!({"id": "r1", "method": "speech.dictation.setup", "params": params}).to_string())[0]).unwrap())
+        })
+        .collect();
+    for phone in phones {
+        assert_eq!(phone.join().unwrap()["ok"], true);
+    }
+    // Then the kept voice settings hold both
+    let kept = rig.agent.state_get("orca", "settings").unwrap().unwrap();
+    assert_eq!((kept["voice"]["enabled"].clone(), kept["voice"]["dictationMode"].clone()), (json!(true), json!("hold")));
+}
+
+#[test]
+fn given_the_one_model_when_it_is_downloaded_deleted_or_another_is_chosen_then_each_is_answered_as_the_host_answers_a_model_it_cannot_do_that_to() {
+    // Given a service with a speech engine
+    let mut rig = Rig::new();
+    rig.catalog.says("x");
+    // When the model is downloaded, another is downloaded, one is deleted, an unknown one is set up, and a dictation starts with no model chosen
+    let started = rig.ok("speech.models.download", json!({"modelId": "rca-whisper"}));
+    let other = rig.err("speech.models.download", json!({"modelId": "cloud"}));
+    let deleted = rig.err("speech.models.delete", json!({"modelId": "rca-whisper"}));
+    let unknown = rig.err("speech.dictation.setup", json!({"modelId": "nope"}));
+    rig.ok("speech.dictation.setup", json!({"enabled": true}));
+    let none = rig.err("speech.dictation.start", json!({"dictationId": "d"}));
+    // Then the download starts for the one model only, a delete and an unknown model are refused, and a start needs a model
+    assert_eq!(started, json!({"started": true}));
+    assert_eq!((other.1.as_str(), deleted.1.as_str(), unknown.1.as_str(), none.1.as_str()), ("voice_model_not_downloadable", "voice_model_delete_failed", "voice_model_unknown", "voice_model_not_selected"));
+    // And with no engine at the service no model is listed
+    let mut bare = Rig::new();
+    assert_eq!(bare.ok("speech.models.list", json!({}))["models"], json!([]));
+}
+
+#[test]
+fn given_a_saved_default_model_and_permission_when_a_chat_sends_then_the_turn_runs_on_them_unless_the_send_names_a_model() {
+    // Given the settings the phone saved: claude's default model and the accept-edits permission
+    let mut rig = Rig::new();
+    rig.agent.set_state("orca", "settings", json!({"nativeChatPermissionMode": "accept-edits", "nativeChatSessionOptions": {"claude": {"model": "sonnet", "valuesByModel": {}}}}));
+    rig.idle("claude_a");
+    let send = |op: &str, extra: Value| {
+        let mut p = json!({"envelope": env("claude_a", op, "f"), "body": body("go")});
+        p.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        p
+    };
+    // When a send names no model, and a later one names opus
+    rig.ok("agentSession.send", send("a1", json!({})));
+    rig.idle("claude_c");
+    rig.ok("agentSession.send", json!({"envelope": env("claude_c", "c1", "f"), "body": body("go"), "options": {"model": "opus"}}));
+    // Then the first ran on the saved model and both under the saved permission as rca names it
+    let turns = sent(&rig, "turn.start");
+    assert_eq!(turns.iter().map(|p| (p["model"].clone(), p["runtime_mode"].clone())).collect::<Vec<_>>(), vec![(json!("sonnet"), json!("auto-accept-edits")), (json!("opus"), json!("auto-accept-edits"))]);
+    // And a saved mode rca has no equivalent of (auto) asks for approval rather than granting more
+    rig.agent.set_state("orca", "settings", json!({"nativeChatPermissionMode": "auto"}));
+    rig.idle("claude_b");
+    rig.ok("agentSession.send", json!({"envelope": env("claude_b", "b1", "f"), "body": body("go")}));
+    assert_eq!(sent(&rig, "turn.start").last().unwrap()["runtime_mode"], json!("approval-required"));
+}
+
+#[test]
+fn given_a_chat_when_revealed_then_its_tab_is_kept_in_front_in_its_worktree_and_a_missing_chat_or_agent_is_refused_in_the_hosts_words() {
+    // Given an idle chat in the main workspace and a thread of an agent this host does not run
+    let mut rig = Rig::new();
+    rig.idle("claude_a");
+    rig.agent.request("thread.create", json!({"thread": "codex_x", "workspace": "main", "driver": "someOther"})).ok();
+    // When the chat is revealed
+    let revealed = rig.ok("agentSession.reveal", json!({"sessionId": "claude_a"}));
+    // Then the answer names the chat, its workspace id and agent, and the chat's tab is kept and in front
+    assert_eq!(revealed, json!({"ok": true, "sessionId": "claude_a", "workspaceId": "main::", "agent": "claude", "readable": true}));
+    assert_eq!(rig.agent.state_get("orca", "tabs.extra.main").unwrap().unwrap()[0], json!({"id": "claude_a", "kind": "agent-session", "sessionId": "claude_a", "agent": "claude", "title": "Chat"}));
+    assert_eq!(rig.agent.state_get("orca", "tabs.active.main").unwrap(), Some(json!("claude_a")));
+    // And a chat the host does not have, one of an agent it cannot open, and a malformed id are refused
+    assert_eq!(rig.ok("agentSession.reveal", json!({"sessionId": "claude_gone"})), json!({"ok": false, "refusal": {"code": "agent_session_not_found", "message": "This chat is no longer on this host."}}));
+    assert_eq!(rig.ok("agentSession.reveal", json!({"sessionId": "codex_x"}))["refusal"]["code"], json!("structured_agent_session_unsupported"));
+    assert_eq!(rig.err("agentSession.reveal", json!({"sessionId": "a"})), ("invalid_argument".to_string(), "Invalid agent session id".to_string()));
+}
+
+/// A chat whose first turn was running when rca restarted: `how` ends it (the restart's cut, or a user's stop).
+fn cut_chat(rig: &mut Rig, how: &str) -> String {
+    rig.idle("claude_cut");
+    rig.ok("agentSession.send", json!({"envelope": env("claude_cut", "s1", "f"), "body": body("build it")}));
+    rig.threads.push("claude_cut", json!({"type": "message.delta", "role": "assistant", "text": "working"}));
+    match how {
+        "restart" => rig.threads.cut_by_restart("claude_cut"),
+        _ => rig.threads.finish("claude_cut", "interrupted"),
+    }
+    "turn:u1".to_string()
+}
+
+fn stop_rows(page: &Value) -> Vec<Value> {
+    page["items"].as_array().unwrap().iter().filter(|i| i["body"]["presentation"] == "orca-stop").cloned().collect()
+}
+
+#[test]
+fn given_a_turn_rca_cut_short_by_a_restart_when_the_history_is_read_then_the_turn_is_interrupted_and_ends_with_the_stop_row_the_phone_offers_continue_for_and_a_user_stop_has_none() {
+    // Given a chat whose running turn the restart cut, and another whose turn the user stopped
+    let mut rig = Rig::new();
+    let turn_item = cut_chat(&mut rig, "restart");
+    rig.agent.request("thread.create", json!({"thread": "claude_stopped", "workspace": "main", "driver": "claudeAgent"})).unwrap();
+    rig.ok("agentSession.send", json!({"envelope": env("claude_stopped", "s1", "f"), "body": body("build it")}));
+    rig.threads.finish("claude_stopped", "interrupted");
+    // When the phone reads both histories
+    let cut = rig.ok("agentSession.history", json!({"sessionId": "claude_cut", "direction": "tail"}))["page"].clone();
+    let stopped = rig.ok("agentSession.history", json!({"sessionId": "claude_stopped", "direction": "tail"}))["page"].clone();
+    // Then the cut turn is interrupted and one status row in its turn names the cause the phone reads, bound to the turn's item
+    assert_eq!(cut["latestTurn"]["turn"], json!({"turnId": "u1", "state": "interrupted"}));
+    let rows = stop_rows(&cut);
+    assert_eq!(rows.len(), 1, "{cut}");
+    assert_eq!(rows[0]["body"], json!({"kind": "status", "text": "The agent stopped while this response was in progress. You can continue in this conversation.", "tone": "error", "presentation": "orca-stop", "orcaStop": {"cause": "crash"}}));
+    assert_eq!(rows[0]["turnScope"]["turnItemId"], json!(turn_item));
+    assert_eq!(cut["items"].as_array().unwrap().iter().find(|i| i["itemId"] == json!(turn_item)).unwrap()["body"]["state"], "interrupted");
+    // And the user's stop leaves the turn interrupted with no such row, so the phone offers nothing for it
+    assert_eq!(stopped["latestTurn"]["turn"]["state"], "interrupted");
+    assert!(stop_rows(&stopped).is_empty());
+}
+
+#[test]
+fn given_a_cut_turn_when_the_phone_continues_it_then_the_chat_gets_the_hosts_continue_prompt_as_a_new_turn_and_a_second_or_stale_continue_sends_nothing() {
+    // Given a chat whose turn the restart cut, and the capabilities the host advertises
+    let mut rig = Rig::new();
+    let turn_item = cut_chat(&mut rig, "restart");
+    let before = sent(&rig, "turn.start").len();
+    // When the phone continues the cut turn
+    let done = rig.ok("agentSession.continueInterrupted", json!({"sessionId": "claude_cut", "turnItemId": turn_item}));
+    // Then rca started one more turn with the host's continue wording and the answer is the accepted one
+    assert_eq!(done, json!({"sessionId": "claude_cut", "outcome": "pending"}));
+    let starts = sent(&rig, "turn.start");
+    assert_eq!(starts.len(), before + 1);
+    assert_eq!(starts.last().unwrap()["prompt"], "Orca restarted, so your previous reply was cut off partway through. Before continuing, check whether your most recent action completed — don't repeat it if it did. Then carry on.");
+    assert_eq!((starts.last().unwrap()["thread"].clone(), starts.last().unwrap()["driver"].clone()), (json!("claude_cut"), json!("claudeAgent")));
+    // And the phone's journal has the new turn running, so the cut is no longer the latest and offers nothing
+    let page = rig.ok("agentSession.history", json!({"sessionId": "claude_cut", "direction": "tail"}))["page"].clone();
+    assert_eq!((page["working"].clone(), page["latestTurn"]["turn"]["turnId"].clone()), (json!(true), json!("u2")));
+    // When the same Continue arrives again, and one that names another turn
+    let again = rig.ok("agentSession.continueInterrupted", json!({"sessionId": "claude_cut", "turnItemId": turn_item}));
+    let stale = rig.ok("agentSession.continueInterrupted", json!({"sessionId": "claude_cut", "turnItemId": "turn:nope"}));
+    // Then each is superseded and rca was asked for no further turn
+    assert_eq!((again, stale), (json!({"sessionId": "claude_cut", "outcome": "superseded"}), json!({"sessionId": "claude_cut", "outcome": "superseded"})));
+    assert_eq!(sent(&rig, "turn.start").len(), before + 1);
+}
+
+#[test]
+fn given_a_turn_nobody_cut_or_a_message_after_the_cut_when_continue_is_asked_then_it_is_superseded_and_rca_is_asked_for_nothing() {
+    // Given a chat whose turn the user stopped (no cause), and a chat whose cut turn a message already followed
+    let mut rig = Rig::new();
+    let stopped = cut_chat(&mut rig, "user");
+    rig.agent.request("thread.create", json!({"thread": "claude_followed", "workspace": "main", "driver": "claudeAgent"})).unwrap();
+    rig.ok("agentSession.send", json!({"envelope": env("claude_followed", "s1", "f"), "body": body("first")}));
+    rig.threads.cut_by_restart("claude_followed");
+    rig.ok("agentSession.send", json!({"envelope": env("claude_followed", "s2", "f"), "body": body("second")}));
+    rig.threads.finish("claude_followed", "completed");
+    let starts = sent(&rig, "turn.start").len();
+    // When Continue is asked for each
+    let user_stop = rig.ok("agentSession.continueInterrupted", json!({"sessionId": "claude_cut", "turnItemId": stopped}));
+    let followed = rig.ok("agentSession.continueInterrupted", json!({"sessionId": "claude_followed", "turnItemId": "turn:u1"}));
+    // Then both are superseded and no turn was started
+    assert_eq!((user_stop["outcome"].clone(), followed["outcome"].clone()), (json!("superseded"), json!("superseded")));
+    assert_eq!(sent(&rig, "turn.start").len(), starts);
+}
+
+#[test]
+fn given_malformed_or_unknown_continue_calls_when_made_then_each_is_refused_as_the_hosts_validation_words_it_and_nothing_reaches_rca() {
+    // Given a host with one cut chat
+    let mut rig = Rig::new();
+    let turn_item = cut_chat(&mut rig, "restart");
+    let starts = sent(&rig, "turn.start").len();
+    // When Continue is called with a missing, empty, oversized or foreign field, a bad session id, an unknown chat and an extra key
+    let cases = [
+        (json!({"turnItemId": turn_item}), "Invalid input: expected string, received undefined"),
+        (json!({"sessionId": "claude_cut"}), "Invalid input: expected string, received undefined"),
+        (json!({"sessionId": "claude_cut", "turnItemId": ""}), "Too small: expected string to have >=1 characters"),
+        (json!({"sessionId": "claude_cut", "turnItemId": "x".repeat(1025)}), "Too big: expected string to have <=1024 characters"),
+        (json!({"sessionId": "not a session", "turnItemId": turn_item}), "Invalid agent session id"),
+        (json!({"sessionId": "claude_cut", "turnItemId": turn_item, "extra": 1}), "Unrecognized key: \"extra\""),
+    ];
+    for (params, message) in cases {
+        // Then each is the host's invalid_argument with its words
+        let (code, said) = rig.err("agentSession.continueInterrupted", params.clone());
+        assert_eq!((code.as_str(), said.as_str()), ("invalid_argument", message), "{params}");
+    }
+    let (code, said) = rig.err("agentSession.continueInterrupted", json!({"sessionId": "claude_gone", "turnItemId": turn_item}));
+    assert_eq!((code.as_str(), said.as_str()), ("runtime_error", "agent_session_not_found"));
+    // And rca started no turn for any of them
+    assert_eq!(sent(&rig, "turn.start").len(), starts);
 }

@@ -14,7 +14,7 @@ import {
 } from '@app/remote-chat-agent-contracts/orchestration';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { useThreadCommands } from '../../integration/useThreadCommands';
+import { useThreadCommands } from '../../state/useThreadCommands';
 import { useComposerStore } from '../composerStore';
 import { useGatewayStore } from '../gatewayStore';
 import { FakeGateway } from './fakeGateway';

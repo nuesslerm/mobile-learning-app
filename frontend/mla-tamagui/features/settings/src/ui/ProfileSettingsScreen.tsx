@@ -11,7 +11,7 @@ import { LogOut, Pencil } from '@lib/tamagui-design-system/icons';
 import * as React from 'react';
 import { ScrollView } from 'react-native';
 
-import { backTo } from './backTo';
+import { backTo } from '@lib/tamagui-design-system/lib/backTo';
 
 export function ProfileSettingsScreen() {
   const [displayName, setDisplayName] = React.useState('Ada Lovelace');

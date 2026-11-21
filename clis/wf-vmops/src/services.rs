@@ -10,7 +10,6 @@ pub const RECOVER_APPS: &[&str] = &[
     "remote-chat-agent",
     "leetcode-auth-cookie-capture",
     "agent-shell",
-    "ci-runner",
     "vnc-auth-session",
     "reporting-service",
     "t3-serve",
@@ -29,11 +28,6 @@ pub fn app_image(app: &str) -> &str {
         "vnc-auth-session" => "vnc-auth-capture",
         _ => app,
     }
-}
-
-/// The apps that run a published image and have none of their own to build: `wf ship` only redeploys them.
-pub fn is_imageless(app: &str) -> bool {
-    app == "ci-runner"
 }
 
 /// Where an app answers `/health` on the tailnet; the apps without an HTTP health have none.

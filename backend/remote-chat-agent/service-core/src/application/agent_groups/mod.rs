@@ -8,6 +8,8 @@ mod engine_contract;
 #[cfg(test)]
 mod engine_groups;
 pub mod activity;
+pub mod notifications;
+pub mod panes;
 mod engine_lifecycle;
 pub mod engine_threads;
 pub mod attachment_staging;
@@ -16,15 +18,19 @@ pub mod service;
 
 pub use engine_threads::EngineThreads;
 
-pub use activity::{ActivityClock, ActivityGroup, SystemClock};
+pub use activity::{ActivityClock, ActivityGroup};
+pub use notifications::{Notifications, NotificationsGroup};
+pub use panes::{MemoryPanes, PaneRecord, PaneStore, Panes, PanesGroup};
 pub use attachment_staging::StagesAttachments;
 pub use rca_group_attachments::{Attachments, AttachmentsGroup, BlobStore, Clock as AttachmentClock, Ids as AttachmentIds, Put as BlobPut};
-pub use rca_group_catalog::{CatalogGroup, Catalog, Clock as CatalogClock};
+pub use rca_group_catalog::{CatalogGroup, Catalog, Clock as CatalogClock, Speech as CatalogSpeech};
 pub use rca_group_git::GitGroup;
-pub use rca_group_hosted::{ExecutorCredentials, HostCredentials, HostedAuthGroup, HostedCloneGroup, HostedPrGroup};
+pub use rca_group_hosted::{ExecutorCredentials, HostCredentials, HostedAuthGroup, HostedCloneGroup, HostedIssueGroup, HostedProjectGroup, HostedPrGroup};
+pub use rca_group_browser::BrowserGroup;
 pub use rca_group_preview::{Clock as PreviewClock, Ids as PreviewIds, PreviewGroup, PreviewSessionGroup, PreviewWatchGroup, Previews};
 pub use rca_group_schedules::{Clock as ScheduleClock, Ids as ScheduleIds, ScheduleGroup, ScheduleStore, ScheduleWatchGroup, Schedules, Stored as StoredSchedule, WebhookOutcome, WebhookRequest};
-pub use rca_group_terminal::TerminalGroup;
+pub use agent_api_terminal::{SleepingWorkspace, SleptTerminal};
+pub use rca_group_terminal::{MemorySleep, SleepStore, TerminalGroup};
 pub use schedule_trigger::ThreadsTrigger;
 pub use rca_group_workspace::{FilesEditGroup, FilesGroup, WorkspaceGroup, WorktreesGroup};
 pub use service::ServiceGroup;
@@ -41,12 +47,28 @@ mod tests {
     use rca_agent_core::{AgentApi, Build, Group, Served, Uses};
     use rca_cli_driver::testing::ScriptedSpawner;
     use rca_group_state::testing::MemoryStore;
-    use rca_exec_channel::mcp::TOOLS;
     use rca_exec_channel::remote::{ActionOutput, ExecutorChannel, RemoteError};
     use rca_exec_channel::testing::ScriptedChannel;
     use rca_exec_channel::{contract_actions, Registry};
+
+    /// The actions no method row calls: a turn's CLI runs through `run_command` and stops through `cancel` (`HostSpawner`).
+    const TOOLS: [&str; 2] = ["run_command", "cancel"];
     use serde_json::{json, Value};
     use std::sync::Arc;
+
+    struct TestClock;
+
+    impl ActivityClock for TestClock {
+        fn now_ms(&self) -> u64 {
+            1
+        }
+    }
+
+    impl rca_group_terminal::Clock for TestClock {
+        fn now_ms(&self) -> u64 {
+            1
+        }
+    }
 
     struct NoMcp;
 
@@ -57,21 +79,23 @@ mod tests {
     }
 
     fn groups(executors: &Arc<Registry>) -> Vec<Arc<dyn Group>> {
-        let runner = rca_group_agent::Runner::new(Arc::new(rca_group_agent::testing::MemoryThreads::default()), executors.clone(), ScriptedSpawner::new(), Arc::new(NoMcp), std::path::PathBuf::from("/srv/rca"));
+        let runner = rca_group_agent::Runner::new(Arc::new(rca_group_agent::testing::MemoryThreads::default()), executors.clone(), Arc::new(rca_group_agent::host::Fixed(ScriptedSpawner::new())), Arc::new(NoMcp));
         let hub = Arc::new(StateHub::new(Arc::new(MemoryStore::default())));
         let previews = Previews::new(Arc::new(rca_group_preview::testing::FakeClock::at(1)), Arc::new(rca_group_preview::testing::CountingIds::default()), 0);
         vec![
             Arc::new(ServiceGroup),
-            Arc::new(ActivityGroup::new(Arc::new(SystemClock))),
+            Arc::new(ActivityGroup::new(Arc::new(TestClock))),
             Arc::new(StateGroup::new(hub.clone())),
             Arc::new(StateWatchGroup::new(hub)),
             Arc::new(FilesGroup::new(executors.clone())),
             Arc::new(FilesEditGroup::new(executors.clone())),
             Arc::new(WorkspaceGroup::new(executors.clone())),
             Arc::new(WorktreesGroup::new(executors.clone())),
-            Arc::new(TerminalGroup::new(executors.clone(), Arc::new(SystemClock))),
+            Arc::new(TerminalGroup::new(executors.clone(), Arc::new(TestClock))),
             Arc::new(GitGroup::new(executors.clone())),
             Arc::new(HostedPrGroup::new(executors.clone())),
+            Arc::new(HostedIssueGroup::new(executors.clone())),
+        Arc::new(HostedProjectGroup::new(executors.clone())),
             Arc::new(HostedCloneGroup::new(executors.clone())),
             Arc::new(HostedAuthGroup::new(executors.clone(), Arc::new(ExecutorCredentials::new(executors.clone())))),
             Arc::new(rca_group_agent::AgentThreadsGroup::with_runner(runner.clone())),
@@ -79,10 +103,13 @@ mod tests {
             Arc::new(rca_group_agent::AgentQueueGroup::new(runner.clone())),
             Arc::new(rca_group_agent::AgentLifecycleGroup::new(runner)),
             Arc::new(AttachmentsGroup::new(Attachments::new(Arc::new(rca_group_attachments::testing::MemoryBlobs::default()), Arc::new(rca_group_attachments::testing::FixedClock(1)), Arc::new(rca_group_attachments::testing::CountingIds::default()), executors.clone()))),
-            Arc::new(CatalogGroup::new(Catalog::new(executors.clone(), Arc::new(rca_group_catalog::testing::SetClock::at(1))))),
+            Arc::new(CatalogGroup::new(Catalog::new(executors.clone(), Arc::new(rca_group_catalog::testing::SetClock::at(1)), Arc::new(rca_group_catalog::testing::ScriptedSpeech::saying("hello world"))))),
             Arc::new(PreviewGroup::new(executors.clone())),
             Arc::new(PreviewSessionGroup::new(previews.clone())),
             Arc::new(PreviewWatchGroup::new(previews)),
+            Arc::new(BrowserGroup::new(executors.clone(), false)),
+            Arc::new(NotificationsGroup::new(Notifications::new(Arc::new(TestClock), "test-epoch".into()))),
+            Arc::new(PanesGroup::new(Panes::new(Arc::new(TestClock), Arc::new(MemoryPanes::default()), Arc::new(rca_group_agent::testing::MemoryThreads::default())))),
         ]
     }
 
@@ -97,7 +124,7 @@ mod tests {
     }
 
     fn contract_methods() -> Vec<Method> {
-        [service_api::METHODS, state_api::METHODS, state_api::watch::METHODS, workspace_api::METHODS, workspace_api::edit::METHODS, workspace_api::worktrees::METHODS, agent_api_terminal::METHODS, agent_api_git::METHODS, agent_api_hosted::all_methods().as_slice(), threads_api::METHODS, threads_api::requests::METHODS, threads_api::queue::METHODS, threads_api::lifecycle::METHODS, agent_api_attachments::METHODS, agent_api_catalog::METHODS, agent_api_preview::METHODS, agent_api_preview::sessions::METHODS, agent_api_preview::watch::METHODS].concat()
+        [service_api::METHODS, state_api::METHODS, state_api::watch::METHODS, workspace_api::METHODS, workspace_api::edit::METHODS, workspace_api::worktrees::METHODS, agent_api_terminal::METHODS, agent_api_git::METHODS, agent_api_hosted::all_methods().as_slice(), threads_api::METHODS, threads_api::requests::METHODS, threads_api::queue::METHODS, threads_api::lifecycle::METHODS, agent_api_attachments::METHODS, agent_api_catalog::METHODS, agent_api_preview::METHODS, agent_api_preview::sessions::METHODS, agent_api_preview::watch::METHODS, agent_api_browser::METHODS, service_api::notifications::METHODS, service_api::panes::METHODS].concat()
     }
 
     #[tokio::test]
@@ -113,13 +140,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn given_the_twenty_two_groups_when_status_is_asked_then_it_names_the_protocol_the_build_and_the_complete_groups_in_order() {
+    async fn given_the_twenty_five_groups_when_status_is_asked_then_it_names_the_protocol_the_build_and_the_complete_groups_in_order() {
         // Given a service that registered service, service.activity, state, state.watch, files, files.edit, workspace, workspace.worktrees, terminal, git, hosted.pr, hosted.clone, hosted.auth, agent.threads and its three sub-groups, preview and its two sub-groups, workspace having methods of its owner set still to serve
         let api = registered();
         // When the status is asked
         let status = call(&api, json!({"id": 7, "method": "service.status"})).await;
         // Then the answer lists the twenty-one complete groups, in registration order, and not workspace, though workspace.list is answered
-        assert_eq!(status, json!({"id": 7, "result": {"protocol": 1, "version": "1.2.3", "commit": "abc", "groups": ["service", "service.activity", "state", "state.watch", "files", "files.edit", "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.clone", "hosted.auth", "agent.threads", "agent.requests", "agent.queue", "agent.lifecycle", "attachments", "agent.catalog", "preview", "preview.sessions", "preview.watch"]}}));
+        assert_eq!(status, json!({"id": 7, "result": {"protocol": 1, "version": "1.2.3", "commit": "abc", "groups": ["service", "service.activity", "state", "state.watch", "files", "files.edit", "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.issue", "hosted.project", "hosted.clone", "hosted.auth", "agent.threads", "agent.requests", "agent.queue", "agent.lifecycle", "attachments", "agent.catalog", "preview", "preview.sessions", "preview.watch", "browser", "service.notifications", "service.panes"]}}));
         assert_eq!(call(&api, json!({"id": 8, "method": "workspace.list"})).await, json!({"id": 8, "result": {"workspaces": []}}));
     }
 
@@ -157,11 +184,14 @@ mod tests {
         contract.iter().filter(|m| !served.iter().any(|s| s.method == **m)).map(|m| m.name()).collect()
     }
 
+    /// The executor actions only the accounts group calls: the service root registers that group, so this registry lacks its rows (`rca-group-accounts` checks that its rows name each of these).
+    const CALLED_BY_ROOT_GROUPS: [&str; 8] = ["login_start", "login_send", "login_status", "login_cancel", "logout", "cli_update", "codex_app_server_request", "claude_account_request"];
+
     /// The actions that no row of `served` calls and that no MCP tool of `tools` reaches. A tool reaches an action only for the model of a CLI
     /// turn, so the tools count while some row starts one.
     fn unused<'a>(actions: impl Iterator<Item = &'a str>, served: &[Served], tools: &[&str]) -> Vec<&'a str> {
         let a_model_calls_tools = served.iter().any(|s| s.uses == Uses::Cli);
-        actions.filter(|a| !served.iter().any(|s| s.actions.contains(a)) && !(a_model_calls_tools && tools.contains(a))).collect()
+        actions.filter(|a| !CALLED_BY_ROOT_GROUPS.contains(a) && !served.iter().any(|s| s.actions.contains(a)) && !(a_model_calls_tools && tools.contains(a))).collect()
     }
 
     /// The rows of the registered groups.
@@ -195,6 +225,7 @@ mod tests {
         // And every action a row calls, and every MCP tool, is an action of the contract
         assert!(served.iter().flat_map(|s| s.actions).all(|a| actions.contains(a)));
         assert!(TOOLS.iter().all(|t| actions.contains(t)));
+        assert!(CALLED_BY_ROOT_GROUPS.iter().all(|a| actions.contains(a)));
         // And an action added to a family crate that nothing uses is reported after them
         assert_eq!(unused(actions.iter().copied().chain(["format_disk"]), &served, &TOOLS), ["format_disk"]);
     }
@@ -215,7 +246,7 @@ mod tests {
         only_a_tool_reaches.sort_unstable();
         reported_sorted.sort_unstable();
         assert_eq!(reported_sorted, only_a_tool_reaches);
-        assert!(reported.contains(&"edit_file") && reported.contains(&"run_command") && !reported.contains(&"read_file") && !reported.contains(&"write_file"), "{reported:?}");
+        assert!(reported.contains(&"cancel") && reported.contains(&"run_command") && !reported.contains(&"read_file") && !reported.contains(&"write_file"), "{reported:?}");
     }
 
     #[test]
@@ -228,7 +259,7 @@ mod tests {
         let uses: Vec<(&str, Uses)> = declared.iter().map(|s| (s.method.name(), s.uses)).collect();
         assert_eq!(uses.iter().filter(|(_, u)| *u == Uses::Cli).map(|(m, _)| *m).collect::<Vec<_>>(), ["turn.start", "turn.interrupt"]);
         assert_eq!(uses.iter().filter(|(_, u)| *u == Uses::Service).count(), 6);
-        assert_eq!(declared.iter().filter(|s| !s.actions.is_empty()).map(|s| (s.method.name(), s.actions.to_vec())).collect::<Vec<_>>(), [("turn.start", vec![exec_git::GIT_CHECKPOINT])]);
+        assert_eq!(declared.iter().filter(|s| !s.actions.is_empty()).map(|s| (s.method.name(), s.actions.to_vec())).collect::<Vec<_>>(), [("turn.start", vec!["cli_detect", exec_git::GIT_CHECKPOINT])]);
     }
 
     #[test]

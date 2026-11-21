@@ -1,6 +1,6 @@
 # Expo HAS CHANGED
 
-Read the versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing Expo code.
+Read the versioned docs at https://docs.expo.dev/versions/v58.0.0/ before writing Expo code.
 
 This file holds only the always-on rules, each in a few lines with a pointer: the long text lives in `docs/solutions/` and is never pasted back here (the byte budget of `wf check --budget` enforces it). Area how-to is in nested `AGENTS.md` files that load under `frontend/mla-tamagui/`, `frontend/mla-tamagui/features/`, `infra/oracle-cloud/`, `.agents/`. Vocabulary: `CONCEPTS.md`. Open debt: `docs/known-gaps.md`.
 
@@ -10,7 +10,7 @@ Every URL or deep link shared with the user is a markdown link with a short labe
 
 ## Delegate mechanical work to cheap models
 
-`.claude/rules/delegation.md` has the routing table. Whole workflows go to opencode: `/cheap <task>`, `wf offload ask "<prompt>"`, `wf offload ask --batch`, `wf offload plan <slug>`, or the `delegate` MCP tool. Trivial steps (one known file, at most 10 lines, a single Read or Grep) stay direct. Never delegate through the `Agent` tool.
+`.claude/rules/delegation.md` has the routing table. Whole workflows go to opencode: `/cheap <task>`, `wf rca ask "<prompt>"`, `wf rca ask --batch`, `wf rca plan <slug>`, or the `delegate` MCP tool. Trivial steps (one known file, at most 10 lines, a single Read or Grep) stay direct. Never delegate through the `Agent` tool.
 
 ## Act, don't ask
 
@@ -18,7 +18,7 @@ Before asking the user for anything, try it yourself; ask only after a concrete 
 
 ## Code architecture
 
-Ports and adapters, one shape per package type: dependencies point inward to a pure core (`domain/` does no I/O), the core owns its ports, adapters implement them, one composition root wires them. A feature owns its slice in `frontend/mla-tamagui/features/<name>`; Rust services are `core`/`rs` crate pairs; `clis/wf` is split by concept into crates (`wf` is only the router). Shapes, the crate list and the checks (`pnpm run arch:services`, `pnpm --filter mla-tamagui run arch`): `docs/solutions/architecture/hexagonal-architecture-by-package-type.md` and `docs/solutions/architecture/code-architecture-rules.md`.
+Dependencies point inward to a pure core (`domain/` does no I/O), adapters implement its ports, one composition root wires them. A feature (`frontend/mla-tamagui/features/<name>`) is only the ring folders `domain/ data/ state/ ui/ di/ routes/ testing/`, a capability is a sub-folder inside each ring, and it imports no other feature. For feature work or a folder-moving refactor, show the user the final folder tree before any file moves. Shapes, checks, tree format: `docs/solutions/architecture/hexagonal-architecture-by-package-type.md` ("Showing a structure"), `docs/solutions/architecture/code-architecture-rules.md`.
 
 ## Comments
 
@@ -30,7 +30,7 @@ Search `wf --help` first. A wrapper script that sets up env or flags is a smell;
 
 ## CI runs on GitHub-hosted runners
 
-Pushing to `dev` runs one pipeline, the reusable `pipeline.yml`, called by `ci-hosted.yml` on GitHub-hosted runners; every test stage replays through the Nx cache. The local gate is lefthook pre-commit (`wf check --staged`): a red hook is the failure to fix, never to bypass. Production ships only by a push to `dev`: CI builds the images on its runner and the legs redeploy that tag (`wf ship --redeploy-only`); agent sessions cannot dispatch workflows and nothing else builds a production image. Every stage, the deploy flow, the hand-deployed apps and the record triggers: `docs/solutions/ci/ci-pipeline-on-the-vm.md`.
+Pushing to `dev` runs one pipeline, the reusable `pipeline.yml`, called by `ci-hosted-backend-core.yml` on GitHub-hosted runners; every test stage replays through the Nx cache. The local gate is lefthook pre-commit (`wf check --staged`): a red hook is the failure to fix, never to bypass. Production ships only by a push to `dev`: CI builds the images on its runner and the legs redeploy that tag (`wf ship --redeploy-only`); agent sessions cannot dispatch workflows and nothing else builds a production image. Every stage, the deploy flow, the hand-deployed apps and the record triggers: `docs/solutions/ci/ci-pipeline-on-the-vm.md`.
 
 ## Never wait on CI
 
@@ -40,21 +40,25 @@ A running or queued CI run is never a reason to stop or idle: take the next item
 
 Work independent issue items in parallel, one agent per git worktree that never pushes or touches the main checkout; every `cargo`, `pnpm` test and `wf check|test` command runs as `flock /tmp/cargo.lock <command>`; stop and report at under 1.2 GB free. Details: `docs/solutions/workflow/parallel-agents-in-the-sandbox.md`.
 
+## Track long work in one issue
+
+Goal, numbered decisions, `###` items (Local/CI boxes, Do, Proof, State), Blocked, Done; edit the body only, never comments: `docs/solutions/workflow/work-tracking-issue.md`.
+
 ## Land on dev
 
-Work autonomously on the `dev` trunk, never a session branch; never delete a branch. Before any work bring `dev` to parity with `main` (`docs/solutions/workflow/dev-parity-with-main.md`); land with `git fetch origin dev && git rebase origin/dev` (never over a merge of `main`), the lefthook suite, push. Deploy is automatic on push to `dev`; never call `/redeploy` by hand. When the open `dev` → `main` PR is merged or closed, open a new one titled exactly `dev → main` with the body exactly ``This is `dev` ``. The rest: `docs/solutions/workflow/land-on-dev.md`.
+Work autonomously on the `dev` trunk, never a session branch; never delete a branch. Before any work bring `dev` to parity with `main` (`docs/solutions/workflow/dev-parity-with-main.md`); land with `git fetch origin dev && git rebase origin/dev` (never over a merge of `main`), the lefthook suite, push. Deploy is automatic on push to `dev`; never call `/redeploy` by hand. When the open `dev` → `main` PR is merged or closed, open a new one titled exactly `dev → main` with the body exactly ``This is `dev` ``. More: `docs/solutions/workflow/land-on-dev.md`.
 
 ## Benchmarks: always, and as cheap as still meaningful
 
-Every new or changed skill, hook, harness lever or workflow gets a cheap benchmark before it ships (`wf offload ask --stats`, `--savings`; n=1 first, the mock opencode where the model does not matter); log the numbers and the decision in `docs/audits/2026-09-02-token-diet-decision-log.md`.
+Every new or changed skill, hook, harness lever or workflow gets a cheap benchmark before it ships (`wf rca ask --stats`, `--savings`; n=1 first, the mock opencode where the model does not matter); log the numbers and the decision in `docs/audits/2026-09-02-token-diet-decision-log.md`.
 
 ## Tests: what counts as verification
 
-Say which type ran (runbook, browser/Android e2e, deployment verification, integration, flow, unit; if only unit, say so plainly): `docs/solutions/testing/verification-ladder.md`. Every recordable test run publishes a recording, every harness run ends with a report, every CI test run publishes a run bundle (`wf test publish`); Given/When/Then in every test; test behavior, never the implementation; every `wf` verb answers an agent in one call with stable JSON. Visually verify anything visual and show it via `SendUserFile`. Mobile definition of done: an EAS Update (`wf ship eas --initial-route <route>`). All rules: `docs/solutions/testing/verification-rules.md`.
+Say which type ran (runbook, browser/Android e2e, deployment verification, integration, flow, unit; if only unit, say so plainly): `docs/solutions/testing/verification-ladder.md`. Every recordable run publishes a recording, every harness run a report, every CI run a bundle (`wf test publish`); no flaky test: root-cause a pass-after-fail, never rerun it; Given/When/Then in every test; test behavior, never the implementation; every `wf` verb answers an agent in one call with stable JSON. Visually verify anything visual and show it via `SendUserFile`. Mobile definition of done: an EAS Update (`wf ship eas --initial-route <route>`). All rules: `docs/solutions/testing/verification-rules.md`.
 
 ## The Oracle Cloud VM
 
-One Always-Free A1 VM (`main`) runs every app; deploy = a CI leg (`wf ship`, then a `vm-ops-api` redeploy); no SSH. Downtime is never a concern; recoverability without a human is (check tfstate before destroying); never destroy vault secrets or tfstate history. Recreating an Always-Free instance via Terraform is pre-authorized, and every gate before it is yours to clear (cancel runs with `wf vm ops cancel-run`, `wf vm creds sync`, `terraform init`, a vault placeholder is the sentinel `PLACEHOLDER_FILL_ME`): never hand a recreate back for a blocker you can fix. Details: `infra/oracle-cloud/AGENTS.md`.
+One Always-Free A1 VM (`main`) runs every app; deploy = a CI leg (`wf ship`, then a `vm-ops-api` redeploy); no SSH. Downtime is never a concern; recoverability without a human is (check tfstate before destroying); never destroy vault secrets or tfstate history. Recreating an Always-Free instance via Terraform is pre-authorized, and every gate before it is yours to clear (cancel runs with `wf vm ops cancel-run`, `wf vm creds sync`, `terraform init`, a vault placeholder is the sentinel `PLACEHOLDER_FILL_ME`): never hand a recreate back for a blocker you can fix. More: `infra/oracle-cloud/AGENTS.md`.
 
 ## Secrets
 

@@ -10,4 +10,9 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("cache purge", false, include_str!("help/wf__cache__purge.txt")),
     ("cache restore", false, include_str!("help/wf__cache__restore.txt")),
     ("cache save", false, include_str!("help/wf__cache__save.txt")),
+    ("bucket", true, include_str!("help/wf__bucket.txt")),
+    ("bucket serve", false, include_str!("help/wf__bucket__serve.txt")),
+    ("bucket state", true, include_str!("help/wf__bucket__state.txt")),
+    ("bucket state read", false, include_str!("help/wf__bucket__state__read.txt")),
+    ("bucket state write", false, include_str!("help/wf__bucket__state__write.txt")),
 ];

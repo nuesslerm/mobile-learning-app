@@ -1,8 +1,8 @@
 //! The programs a validated hosted request starts: for each call the exact argv of `gh` or `glab` (or the `git push` a GitLab publish ends
-//! with), the text sent on stdin and the exit codes that still carry an answer. Pure: nothing is run here. Every value reaches the CLI as the
+//! with, or the local `git remote -v`), the text sent on stdin and the exit codes that still carry an answer. Pure: nothing is run here. Every value reaches the CLI as the
 //! value of a `--flag=value` or a `-f key=value` field, or as a path, an id or a number the contract already checked, so none can be an option.
 use super::shape::Output;
-use exec_hosted::{CommentKind, HostedCall, HostedOp, MergeMethod, PrState, Provider, ReactTarget, Verdict, Visibility};
+use exec_hosted::{CommentKind, FieldValue, HostedCall, HostedOp, IssueUpdate, MergeMethod, OwnerType, PrState, Provider, ReactTarget, StateReason, Verdict, Visibility, WorkKind};
 use serde_json::{json, Value};
 use std::path::PathBuf;
 
@@ -37,6 +37,8 @@ pub struct Step {
     pub stdin: Option<String>,
     /// Exit codes whose output is an answer: a CLI that exits 8 for checks still pending.
     pub ok_exits: Vec<i32>,
+    /// A 404 answer is success: the thing this step removes is already gone.
+    pub missing_ok: bool,
     pub cwd: Cwd,
 }
 
@@ -47,19 +49,153 @@ pub struct Paths {
     pub dir: Option<PathBuf>,
 }
 
+pub const ISSUE_FIELDS: &str = "number,title,body,state,author,labels,createdAt,updatedAt,closedAt,url,assignees";
 pub const PR_FIELDS: &str = "number,title,body,state,isDraft,author,headRefName,baseRefName,headRefOid,labels,createdAt,updatedAt,mergedAt,closedAt,url,reviewDecision,mergeable,additions,deletions,changedFiles,reviewRequests,assignees";
 pub const PR_LIST_FIELDS: &str = "number,title,state,isDraft,author,headRefName,baseRefName,labels,createdAt,updatedAt,url,reviewDecision,reviewRequests";
 pub const RUN_FIELDS: &str = "databaseId,displayTitle,name,workflowName,status,conclusion,headBranch,headSha,event,createdAt,updatedAt,url";
 pub const REPO_FIELDS: &str = "name,nameWithOwner,description,url,sshUrl,isPrivate,defaultBranchRef,viewerPermission,isFork";
-pub const THREADS_QUERY: &str = "query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewThreads(first:100){nodes{id isResolved isOutdated path line comments(first:50){nodes{databaseId author{login} body createdAt url}}}}}}}";
+const COMMENT_FIELDS: &str = "id databaseId author{__typename login avatarUrl(size:48)} body createdAt url viewerDidAuthor reactionGroups{content viewerHasReacted reactors{totalCount}}";
+const QUERY_HEAD: &str = "query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){";
+const QUERY_TAIL: &str = "}}}";
+const PAGE_INFO: &str = "pageInfo{hasNextPage endCursor}";
+
+pub fn comments_query() -> String {
+    format!("{QUERY_HEAD}comments(first:100,after:$cursor){{nodes{{{COMMENT_FIELDS}}}{PAGE_INFO}}}{QUERY_TAIL}")
+}
+
+pub fn reviews_query() -> String {
+    format!("{QUERY_HEAD}reviews(first:100,after:$cursor){{nodes{{{COMMENT_FIELDS} state submittedAt}}{PAGE_INFO}}}{QUERY_TAIL}")
+}
+
+pub fn threads_query() -> String {
+    format!("{QUERY_HEAD}reviewThreads(first:100,after:$cursor){{nodes{{id isResolved isOutdated path line startLine originalLine originalStartLine diffSide rootHunk:comments(first:1){{nodes{{diffHunk}}}} comments(first:100){{nodes{{{COMMENT_FIELDS}}}{PAGE_INFO}}}}}{PAGE_INFO}}}{QUERY_TAIL}")
+}
+
+/// The comments of one thread past the first hundred the threads query returned for it.
+pub fn thread_replies_query() -> String {
+    format!("query($thread:ID!,$cursor:String){{node(id:$thread){{... on PullRequestReviewThread{{id comments(first:100,after:$cursor){{nodes{{{COMMENT_FIELDS}}}{PAGE_INFO}}}}}}}}}")
+}
 pub const REPLY_MUTATION: &str = "mutation($thread:ID!,$body:String!){addPullRequestReviewThreadReply(input:{pullRequestReviewThreadId:$thread,body:$body}){comment{id url}}}";
 pub const RESOLVE_MUTATION: &str = "mutation($thread:ID!){resolveReviewThread(input:{threadId:$thread}){thread{id isResolved}}}";
 pub const UNRESOLVE_MUTATION: &str = "mutation($thread:ID!){unresolveReviewThread(input:{threadId:$thread}){thread{id isResolved}}}";
+pub const MARK_VIEWED_MUTATION: &str = "mutation($pullRequestId:ID!,$path:String!){markFileAsViewed(input:{pullRequestId:$pullRequestId,path:$path}){pullRequest{id}}}";
+pub const UNMARK_VIEWED_MUTATION: &str = "mutation($pullRequestId:ID!,$path:String!){unmarkFileAsViewed(input:{pullRequestId:$pullRequestId,path:$path}){pullRequest{id}}}";
+const PROJECT_LIST_QUERY: &str = "query{viewer{login projectsV2(first:40){nodes{id number title url owner{__typename ... on Organization{login} ... on User{login}}}} organizations(first:20){nodes{login projectsV2(first:20){nodes{id number title url}}}}}}";
+const ISSUE_ID_QUERY: &str = "query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){issue(number:$number){id}}}";
+const ISSUE_TYPES_QUERY: &str = "query($owner:String!,$name:String!){repository(owner:$owner,name:$name){issueTypes(first:50){nodes{id name color description}}}}";
+const SET_ISSUE_TYPE_MUTATION: &str = "mutation($issueId:ID!,$issueTypeId:ID){updateIssueIssueType(input:{issueId:$issueId,issueTypeId:$issueTypeId}){issue{id}}}";
+const CLEAR_FIELD_MUTATION: &str = "mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!){clearProjectV2ItemFieldValue(input:{projectId:$projectId,itemId:$itemId,fieldId:$fieldId}){projectV2Item{id}}}";
+
+fn owner_root(owner_type: OwnerType) -> &'static str {
+    match owner_type {
+        OwnerType::Organization => "organization",
+        OwnerType::User => "user",
+    }
+}
+
+fn set_field_mutation(value: &FieldValue) -> (String, Value) {
+    let (var_type, key, v) = match value {
+        FieldValue::Text(t) => ("String!", "text", json!(t)),
+        FieldValue::Number(n) => ("Float!", "number", json!(n)),
+        FieldValue::Date(d) => ("Date!", "date", json!(d)),
+        FieldValue::SingleSelect(o) => ("String!", "singleSelectOptionId", json!(o)),
+        FieldValue::Iteration(i) => ("String!", "iterationId", json!(i)),
+    };
+    let query = format!("mutation($projectId:ID!,$itemId:ID!,$fieldId:ID!,$value:{var_type}){{updateProjectV2ItemFieldValue(input:{{projectId:$projectId,itemId:$itemId,fieldId:$fieldId,value:{{{key}:$value}}}}){{projectV2Item{{id}}}}}}");
+    (query, v)
+}
+
+/// A GraphQL request as the JSON `gh api graphql` reads on stdin, so a number stays a number and no value is ever a flag.
+fn graphql(query: &str, variables: Value) -> Step {
+    json_body(step(Program::Gh, strs(&["api", "graphql"])), &json!({"query": query, "variables": variables}))
+}
+
+fn issue_update_steps(op: &HostedOp, u: &IssueUpdate) -> Vec<Step> {
+    let repo = op.repo.clone().unwrap_or_default();
+    let base = format!("repos/{repo}/issues/{}", u.number);
+    let rest = |method: &str, path: String, body: Value| json_body(step(Program::Gh, vec!["api".into(), format!("--method={method}"), path]), &body);
+    let mut steps = Vec::new();
+    if let Some(closed) = u.closed {
+        let mut args = strs(&["issue", if closed { "close" } else { "reopen" }, &u.number.to_string(), &format!("--repo={repo}")]);
+        if closed {
+            match u.reason {
+                Some(StateReason::Completed) => args.push("--reason=completed".into()),
+                Some(StateReason::NotPlanned) => args.push("--reason=not planned".into()),
+                Some(StateReason::Duplicate) => args.push(format!("--duplicate-of={}", u.duplicate_of.unwrap_or_default())),
+                None => {}
+            }
+        }
+        steps.push(step(Program::Gh, args));
+    }
+    let mut patch = serde_json::Map::new();
+    patch.extend(u.title.iter().map(|t| ("title".to_string(), json!(t))));
+    patch.extend(u.body.iter().map(|b| ("body".to_string(), json!(b))));
+    if !patch.is_empty() {
+        steps.push(rest("PATCH", base.clone(), Value::Object(patch)));
+    }
+    if !u.add_labels.is_empty() {
+        steps.push(rest("POST", format!("{base}/labels"), json!({"labels": u.add_labels})));
+    }
+    for label in &u.remove_labels {
+        let mut s = step(Program::Gh, vec!["api".into(), "--method=DELETE".into(), format!("{base}/labels/{}", encode(label))]);
+        s.missing_ok = true;
+        steps.push(s);
+    }
+    if !u.add_assignees.is_empty() {
+        steps.push(rest("POST", format!("{base}/assignees"), json!({"assignees": u.add_assignees})));
+    }
+    if !u.remove_assignees.is_empty() {
+        steps.push(rest("DELETE", format!("{base}/assignees"), json!({"assignees": u.remove_assignees})));
+    }
+    steps
+}
+
+pub const ENABLE_AUTO_MERGE_MUTATION: &str = "mutation($pullRequestId:ID!,$mergeMethod:PullRequestMergeMethod!,$expectedHeadOid:GitObjectID){enablePullRequestAutoMerge(input:{pullRequestId:$pullRequestId,mergeMethod:$mergeMethod,expectedHeadOid:$expectedHeadOid}){pullRequest{id}}}";
 pub const EDIT_ISSUE_COMMENT_MUTATION: &str = "mutation($id:ID!,$body:String!){updateIssueComment(input:{id:$id,body:$body}){issueComment{id}}}";
 pub const EDIT_REVIEW_COMMENT_MUTATION: &str = "mutation($id:ID!,$body:String!){updatePullRequestReviewComment(input:{pullRequestReviewCommentId:$id,body:$body}){pullRequestReviewComment{id}}}";
 
+fn merge_method_enum(method: MergeMethod) -> &'static str {
+    match method {
+        MergeMethod::Merge => "MERGE",
+        MergeMethod::Squash => "SQUASH",
+        MergeMethod::Rebase => "REBASE",
+    }
+}
+
 fn step(program: Program, args: Vec<String>) -> Step {
-    Step { program, args, stdin: None, ok_exits: vec![0], cwd: Cwd::Root }
+    Step { program, args, stdin: None, ok_exits: vec![0], missing_ok: false, cwd: Cwd::Root }
+}
+
+fn repo_graphql(op: &HostedOp, number: u64, cursor: Option<&str>, query: String) -> Step {
+    let mut args = strs(&["api", "graphql"]);
+    match op.repo.as_deref().and_then(|r| r.split_once('/')) {
+        Some((owner, name)) => args.extend([format!("-f=owner={owner}"), format!("-f=name={name}")]),
+        None => args.extend(strs(&["-F=owner={owner}", "-F=name={repo}"])),
+    }
+    args.push(format!("-F=number={number}"));
+    args.extend(cursor.map(|c| format!("-f=cursor={c}")));
+    args.push(format!("-f=query={query}"));
+    step(Program::Gh, args)
+}
+
+fn thread_replies(thread: &str, cursor: &str) -> Step {
+    step(Program::Gh, vec!["api".into(), "graphql".into(), format!("-f=thread={thread}"), format!("-f=cursor={cursor}"), format!("-f=query={}", thread_replies_query())])
+}
+
+/// Whether a connection has another page and where it ends.
+fn page_of(connection: &Value) -> (bool, Option<String>) {
+    let info = &connection["pageInfo"];
+    (info["hasNextPage"].as_bool().unwrap_or(false), info["endCursor"].as_str().map(str::to_string))
+}
+
+/// The cursor of the next page of a connection read with `sent` (none for the first page), none when it was the last. A page that ends where the
+/// request began would be read forever, so it is refused.
+fn advance(connection: &Value, sent: Option<&str>, what: &str) -> Result<Option<String>, String> {
+    match page_of(connection) {
+        (false, _) => Ok(None),
+        (true, Some(end)) if Some(end.as_str()) != sent => Ok(Some(end)),
+        (true, _) => Err(format!("gh answered a page of the {what} whose cursor did not advance, so the read stops rather than answer a partial or endless conversation")),
+    }
 }
 
 fn strs(items: &[&str]) -> Vec<String> {
@@ -129,6 +265,138 @@ fn json_body(mut s: Step, body: &Value) -> Step {
     s
 }
 
+fn gitlab_project(op: &HostedOp) -> String {
+    op.repo.as_ref().map_or("projects/:fullpath".to_string(), |r| format!("projects/{}", encode(r)))
+}
+
+/// GitLab's new merge request into `target` with its reviewers' ids, its description on stdin; a draft is a title starting `Draft: `, as GitLab marks one.
+fn new_merge_request(op: &HostedOp, target: &str, reviewer_ids: &[u64]) -> Result<Step, String> {
+    let HostedCall::PrCreate { title, body, head, draft, labels, .. } = &op.call else { return Err("not a new merge request".into()) };
+    let mut fields = json!({"source_branch": head, "target_branch": target, "title": if *draft { format!("Draft: {title}") } else { title.clone() }, "description": body.clone().unwrap_or_default()});
+    if !labels.is_empty() {
+        fields["labels"] = json!(labels.join(","));
+    }
+    if !reviewer_ids.is_empty() {
+        fields["reviewer_ids"] = json!(reviewer_ids);
+    }
+    Ok(json_body(step(Program::Glab, vec!["api".into(), "--method=POST".into(), format!("{}/merge_requests", gitlab_project(op))]), &fields))
+}
+
+/// A merge request is created by one request, so a reviewer GitLab does not know fails before anything exists: the project's default branch
+/// when no base is given, then each reviewer's user id, then the POST.
+fn next_merge_request_step(op: &HostedOp, outputs: &[Output]) -> Result<Option<Step>, String> {
+    let HostedCall::PrCreate { base, reviewers, .. } = &op.call else { return Ok(None) };
+    let parse = |out: &Output| serde_json::from_str::<Value>(&out.stdout).map_err(|e| format!("glab printed no JSON ({e})"));
+    let looked_up = usize::from(base.is_none());
+    let n = outputs.len();
+    if n < looked_up {
+        return Ok(Some(step(Program::Glab, vec!["api".into(), gitlab_project(op)])));
+    }
+    if let Some(user) = reviewers.get(n - looked_up) {
+        return Ok(Some(step(Program::Glab, vec!["api".into(), format!("users?username={}", encode(user))])));
+    }
+    if n > looked_up + reviewers.len() {
+        return Ok(None);
+    }
+    let target = match base {
+        Some(b) => b.clone(),
+        None => parse(&outputs[0])?.get("default_branch").and_then(Value::as_str).map(str::to_string).ok_or("glab named no default branch to merge into")?,
+    };
+    let ids = reviewers
+        .iter()
+        .zip(&outputs[looked_up..])
+        .map(|(user, out)| {
+            let found = parse(out)?;
+            let id = found.as_array().and_then(|list| list.iter().find(|u| u["username"].as_str().is_some_and(|name| name.eq_ignore_ascii_case(user)))).and_then(|u| u["id"].as_u64());
+            id.ok_or_else(|| format!("GitLab has no user {user} to ask for a review; no merge request was created"))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    new_merge_request(op, &target, &ids).map(Some)
+}
+
+/// The words of a GitHub search for work items: the repository, what kind, its state, the account, the label and the free text.
+fn github_work_query(repo: &str, kind: WorkKind, state: PrState, author: &Option<String>, label: &Option<String>, search: &Option<String>) -> String {
+    let mut words = vec![format!("repo:{repo}")];
+    words.extend(match kind {
+        WorkKind::Issue => Some("is:issue".to_string()),
+        WorkKind::Pr => Some("is:pr".to_string()),
+        WorkKind::All => None,
+    });
+    words.extend(match state {
+        PrState::Open => Some("is:open"),
+        PrState::Closed => Some("is:closed"),
+        PrState::Merged => Some("is:merged"),
+        PrState::All => None,
+    }.map(String::from));
+    words.extend(author.iter().map(|a| format!("author:{a}")));
+    words.extend(label.iter().map(|l| format!("label:\"{}\"", l.replace('"', "\\\""))));
+    words.extend(search.iter().cloned());
+    words.join(" ")
+}
+
+/// The fields of a search or a count of work items.
+struct Work<'a> {
+    kind: WorkKind,
+    state: PrState,
+    author: &'a Option<String>,
+    label: &'a Option<String>,
+    search: &'a Option<String>,
+    /// `per_page` and `page`, `(1, 1)` for a count.
+    paging: (u64, u64),
+    count_only: bool,
+}
+
+impl Work<'_> {
+    fn of(call: &HostedCall) -> Option<Work<'_>> {
+        match call {
+            HostedCall::IssueSearch { kind, state, author, label, search, limit, page } => Some(Work { kind: *kind, state: *state, author, label, search, paging: (*limit, *page), count_only: false }),
+            HostedCall::IssueCount { kind, state, author, label, search } => Some(Work { kind: *kind, state: *state, author, label, search, paging: (1, 1), count_only: true }),
+            _ => None,
+        }
+    }
+}
+
+fn github_work_step(op: &HostedOp, w: &Work) -> Step {
+    let mut args = strs(&["api", "--method=GET", "search/issues"]);
+    match &op.repo {
+        Some(r) => args.push(format!("-f=q={}", github_work_query(r, w.kind, w.state, w.author, w.label, w.search))),
+        None => args.push(format!("-F=q={}", github_work_query("{owner}/{repo}", w.kind, w.state, w.author, w.label, w.search))),
+    }
+    args.push(format!("-f=per_page={}", w.paging.0.min(100)));
+    if w.count_only {
+        args.push("--jq=.total_count".into());
+    } else {
+        args.extend([format!("-f=page={}", w.paging.1), "-f=sort=updated".into(), "-f=order=desc".into()]);
+    }
+    step(Program::Gh, args)
+}
+
+/// The GitLab reads of a search or count: the project's issues and its merge requests, each one request, whichever the kind asks for.
+fn gitlab_work_steps(op: &HostedOp, w: &Work) -> Vec<Step> {
+    let project = gitlab_project(op);
+    let state = match w.state {
+        PrState::Open => "opened",
+        PrState::Closed => "closed",
+        PrState::Merged => "merged",
+        PrState::All => "all",
+    };
+    let mut steps = Vec::new();
+    for (resource, wanted) in [("issues", w.kind != WorkKind::Pr), ("merge_requests", w.kind != WorkKind::Issue)] {
+        if !wanted {
+            continue;
+        }
+        let mut query = vec![format!("state={state}"), format!("per_page={}", w.paging.0), format!("page={}", w.paging.1), "order_by=updated_at".into(), "sort=desc".into()];
+        for (key, value) in [("author_username", w.author), ("labels", w.label), ("search", w.search)] {
+            query.extend(value.iter().map(|v| format!("{key}={}", encode(v))));
+        }
+        let mut args = strs(&["api"]);
+        args.extend(w.count_only.then(|| "--include".to_string()));
+        args.push(format!("{project}/{resource}?{}", query.join("&")));
+        steps.push(step(Program::Glab, args));
+    }
+    steps
+}
+
 /// The step that follows the steps run so far, when what it asks depends on what they printed: the stack's own read after the list that found
 /// it, and a reaction taken back (the signed-in account, then its reaction in the list, then the delete by that reaction's id).
 pub fn follow(op: &HostedOp, outputs: &[Output]) -> Result<Option<Step>, String> {
@@ -140,6 +408,9 @@ pub fn follow(op: &HostedOp, outputs: &[Output]) -> Result<Option<Step>, String>
             let repo = op.repo.as_ref().map_or("repos/{owner}/{repo}".to_string(), |r| format!("repos/{r}"));
             Ok(Some(step(Program::Gh, vec!["api".into(), format!("{repo}/stacks/{number}")])))
         }
+        (HostedCall::PrComments { number }, Provider::Github, n) if n >= 1 => next_page(op, *number, outputs, "comments", comments_query),
+        (HostedCall::PrReviews { number }, Provider::Github, n) if n >= 1 => next_page(op, *number, outputs, "reviews", reviews_query),
+        (HostedCall::PrThreads { number }, Provider::Github, n) if n >= 1 => next_thread_step(op, *number, outputs),
         (HostedCall::PrReact { number, target, comment_id, content, undo: true }, provider, 1 | 2) => {
             let collection = reaction_collection(op, *number, *target, *comment_id)?;
             let (login_key, program) = if provider == Provider::Github { ("login", Program::Gh) } else { ("username", Program::Glab) };
@@ -158,8 +429,76 @@ pub fn follow(op: &HostedOp, outputs: &[Output]) -> Result<Option<Step>, String>
             }).and_then(|r| r["id"].as_u64());
             Ok(mine.map(|id| step(program, vec!["api".into(), "--method=DELETE".into(), format!("{collection}/{id}")])))
         }
+        (HostedCall::PrCreate { .. }, Provider::Gitlab, _) => next_merge_request_step(op, outputs),
+        (HostedCall::IssueTypeSet { issue_type, .. }, Provider::Github, 1) => {
+            let found = parse(&outputs[0])?;
+            let id = found["data"]["repository"]["issue"]["id"].as_str().ok_or("issue not found: gh named no node id for the issue")?;
+            Ok(Some(graphql(SET_ISSUE_TYPE_MUTATION, json!({"issueId": id, "issueTypeId": issue_type}))))
+        }
+        (HostedCall::PrAutoMerge { method, enabled: true, .. }, Provider::Github, 1) => {
+            let view = parse(&outputs[0])?;
+            let id = view["id"].as_str().ok_or("gh named no node id for the pull request")?;
+            let mut args = strs(&["api", "graphql"]);
+            args.extend([format!("-f=pullRequestId={id}"), format!("-f=mergeMethod={}", merge_method_enum(*method))]);
+            args.extend(view["headRefOid"].as_str().map(|oid| format!("-f=expectedHeadOid={oid}")));
+            args.push(format!("-f=query={ENABLE_AUTO_MERGE_MUTATION}"));
+            Ok(Some(step(Program::Gh, args)))
+        }
         _ => Ok(None),
     }
+}
+
+fn page_json(op: &HostedOp, out: &Output) -> Result<Value, String> {
+    serde_json::from_str::<Value>(&out.stdout).map_err(|e| format!("{} printed no JSON ({e})", op.provider.program()))
+}
+
+fn next_page(op: &HostedOp, number: u64, outputs: &[Output], key: &str, query: fn() -> String) -> Result<Option<Step>, String> {
+    let connection = |out: &Output| page_json(op, out).map(|v| v["data"]["repository"]["pullRequest"][key].clone());
+    let sent = match outputs.len() {
+        1 => None,
+        n => page_of(&connection(&outputs[n - 2])?).1,
+    };
+    let next = advance(&connection(&outputs[outputs.len() - 1])?, sent.as_deref(), key)?;
+    Ok(next.map(|c| repo_graphql(op, number, Some(&c), query())))
+}
+
+/// The threads pages first, then the comments past the first hundred of each thread that has more, one thread after the other.
+fn next_thread_step(op: &HostedOp, number: u64, outputs: &[Output]) -> Result<Option<Step>, String> {
+    let mut sent: Option<String> = None;
+    let mut pages = Vec::new();
+    let mut done = false;
+    for out in outputs {
+        let connection = page_json(op, out)?["data"]["repository"]["pullRequest"]["reviewThreads"].clone();
+        let next = advance(&connection, sent.as_deref(), "threads")?;
+        pages.push(connection);
+        match next {
+            Some(cursor) => sent = Some(cursor),
+            None => {
+                done = true;
+                break;
+            }
+        }
+    }
+    if !done {
+        return Ok(sent.map(|c| repo_graphql(op, number, Some(&c), threads_query())));
+    }
+    let mut at = pages.len();
+    for page in &pages {
+        for thread in page["nodes"].as_array().map_or(&[][..], Vec::as_slice) {
+            let (more, first) = page_of(&thread["comments"]);
+            let (Some(id), true) = (thread["id"].as_str(), more) else { continue };
+            let mut cursor = first.ok_or("gh answered a thread with more comments and no cursor")?;
+            loop {
+                let Some(out) = outputs.get(at) else { return Ok(Some(thread_replies(id, &cursor))) };
+                at += 1;
+                match advance(&page_json(op, out)?["data"]["node"]["comments"], Some(&cursor), "comments of a thread")? {
+                    Some(next) => cursor = next,
+                    None => break,
+                }
+            }
+        }
+    }
+    Ok(None)
 }
 
 /// The variables a step adds to the CLI's environment: the instance it talks to.
@@ -195,10 +534,7 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
         args
     };
     let view = |number: u64, fields: &str| gh(pr(&["view"], number, vec![format!("--json={fields}")]));
-    let owner_name = |args: &mut Vec<String>| match op.repo.as_deref().and_then(|r| r.split_once('/')) {
-        Some((owner, name)) => args.extend([format!("-f=owner={owner}"), format!("-f=name={name}")]),
-        None => args.extend(strs(&["-F=owner={owner}", "-F=name={repo}"])),
-    };
+    let graphql_read = |number: u64, query: String| repo_graphql(op, number, None, query);
     let rest_repo = || match &op.repo {
         Some(r) => format!("repos/{r}"),
         None => "repos/{owner}/{repo}".to_string(),
@@ -211,6 +547,13 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             args.push(format!("--json={REPO_FIELDS}"));
             one(gh(args))
         }
+        HostedCall::RepoRemotes => one(step(Program::Git, strs(&["remote", "-v"]))),
+        HostedCall::RepoStarred => {
+            let mut s = step(Program::Gh, vec!["api".into(), format!("user/starred/{}", op.repo.clone().unwrap_or_default())]);
+            s.missing_ok = true;
+            one(s)
+        }
+        HostedCall::RepoStar => one(step(Program::Gh, vec!["api".into(), "--method=PUT".into(), format!("user/starred/{}", op.repo.clone().unwrap_or_default())])),
         HostedCall::RepoLabels { limit } => {
             let mut args = strs(&["label", "list"]);
             repo_flag(&mut args);
@@ -244,6 +587,73 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             }
             one(gh(args))
         }
+        HostedCall::IssueList { state, author, label, search, limit } => {
+            let mut args = strs(&["issue", "list"]);
+            repo_flag(&mut args);
+            let state = match state {
+                PrState::Closed => "closed",
+                PrState::All => "all",
+                _ => "open",
+            };
+            args.extend([format!("--state={state}"), format!("--limit={limit}"), format!("--json={ISSUE_FIELDS}")]);
+            for (flag, value) in [("author", author), ("label", label), ("search", search)] {
+                args.extend(value.iter().map(|v| format!("--{flag}={v}")));
+            }
+            one(gh(args))
+        }
+        HostedCall::IssueView { number } => {
+            let mut args = strs(&["issue", "view"]);
+            args.push(number.to_string());
+            repo_flag(&mut args);
+            args.push(format!("--json={ISSUE_FIELDS}"));
+            one(gh(args))
+        }
+        HostedCall::IssueComments { number } => {
+            let mut args = strs(&["issue", "view"]);
+            args.push(number.to_string());
+            repo_flag(&mut args);
+            args.push("--json=comments".into());
+            one(gh(args))
+        }
+        HostedCall::IssueComment { number, body } => {
+            let mut args = strs(&["issue", "comment"]);
+            args.push(number.to_string());
+            repo_flag(&mut args);
+            args.push("--body-file=-".into());
+            let mut s = gh(args);
+            s.stdin = Some(body.clone());
+            one(s)
+        }
+        HostedCall::IssueEdit { number, title, body } => {
+            let mut args = strs(&["issue", "edit"]);
+            args.push(number.to_string());
+            repo_flag(&mut args);
+            args.extend(title.iter().map(|t| format!("--title={t}")));
+            let mut s = gh(args);
+            if let Some(b) = body {
+                s.args.push("--body-file=-".into());
+                s.stdin = Some(b.clone());
+            }
+            one(s)
+        }
+        HostedCall::IssueState { number, closed } => {
+            let mut args = strs(&["issue", if *closed { "close" } else { "reopen" }]);
+            args.push(number.to_string());
+            repo_flag(&mut args);
+            one(gh(args))
+        }
+        HostedCall::IssueCreate { title, body, labels } => {
+            let mut args = strs(&["issue", "create"]);
+            repo_flag(&mut args);
+            args.push(format!("--title={title}"));
+            args.extend(labels.iter().map(|l| format!("--label={l}")));
+            let mut s = gh(args);
+            s.args.push("--body-file=-".into());
+            s.stdin = Some(body.clone().unwrap_or_default());
+            one(s)
+        }
+        HostedCall::IssueSearch { .. } | HostedCall::IssueCount { .. } => one(github_work_step(op, &Work::of(&op.call).expect("a search or a count"))),
+        HostedCall::IssueTodos { limit } => one(gh(vec!["api".into(), "--method=GET".into(), "notifications".into(), format!("-f=per_page={limit}")])),
         HostedCall::PrView { number } => one(view(*number, PR_FIELDS)),
         HostedCall::PrDiff { number } => one(gh(pr(&["diff"], *number, strs(&["--color=never"])))),
         HostedCall::PrChecks { number } => {
@@ -251,15 +661,10 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             s.ok_exits = vec![0, 1, 8];
             one(s)
         }
-        HostedCall::PrComments { number } => one(view(*number, "comments")),
-        HostedCall::PrReviews { number } => one(view(*number, "reviews")),
+        HostedCall::PrComments { number } => one(graphql_read(*number, comments_query())),
+        HostedCall::PrReviews { number } => one(graphql_read(*number, reviews_query())),
         HostedCall::PrFiles { number } => one(view(*number, "files")),
-        HostedCall::PrThreads { number } => {
-            let mut args = strs(&["api", "graphql"]);
-            owner_name(&mut args);
-            args.extend([format!("-F=number={number}"), format!("-f=query={THREADS_QUERY}")]);
-            one(gh(args))
-        }
+        HostedCall::PrThreads { number } => one(graphql_read(*number, threads_query())),
         HostedCall::PrCreate { title, body, head, base, draft, labels, reviewers } => {
             let mut args = strs(&["pr", "create"]);
             repo_flag(&mut args);
@@ -292,12 +697,23 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             one(s)
         }
         HostedCall::PrReady { number, undo } => one(gh(pr(&["ready"], *number, if *undo { strs(&["--undo"]) } else { vec![] }))),
+        HostedCall::PrState { number, closed } => one(gh(pr(&[if *closed { "close" } else { "reopen" }], *number, vec![]))),
         HostedCall::PrComment { number, body } => {
             let mut s = gh(pr(&["comment"], *number, strs(&["--body-file=-"])));
             s.stdin = Some(body.clone());
             one(s)
         }
+        HostedCall::PrReply { number, comment_id: Some(id), body, .. } => one(json_body(gh(vec!["api".into(), "--method=POST".into(), format!("{}/pulls/{number}/comments/{id}/replies", rest_repo())]), &json!({"body": body}))),
+        HostedCall::PrReviewComment { number, body, commit_id, path, line, start_line, .. } => {
+            let mut v = json!({"body": body, "commit_id": commit_id, "path": path, "line": line, "side": "RIGHT"});
+            if let Some(start) = start_line {
+                v["start_line"] = json!(start);
+                v["start_side"] = json!("RIGHT");
+            }
+            one(json_body(gh(vec!["api".into(), "--method=POST".into(), format!("{}/pulls/{number}/comments", rest_repo())]), &v))
+        }
         HostedCall::PrReply { thread, body, .. } => {
+            let thread = thread.as_deref().unwrap_or_default();
             let args = vec!["api".into(), "graphql".into(), format!("-f=thread={thread}"), format!("-f=body={body}"), format!("-f=query={REPLY_MUTATION}")];
             one(gh(args))
         }
@@ -332,6 +748,10 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
         HostedCall::PrResolveThread { thread, resolved, .. } => {
             let query = if *resolved { RESOLVE_MUTATION } else { UNRESOLVE_MUTATION };
             one(gh(vec!["api".into(), "graphql".into(), format!("-f=thread={thread}"), format!("-f=query={query}")]))
+        }
+        HostedCall::PrFileViewed { pull_request, path, viewed } => {
+            let query = if *viewed { MARK_VIEWED_MUTATION } else { UNMARK_VIEWED_MUTATION };
+            one(json_body(gh(strs(&["api", "graphql"])), &json!({"query": query, "variables": {"pullRequestId": pull_request, "path": path}})))
         }
         HostedCall::PrUpdateBranch { number, rebase } => one(gh(pr(&["update-branch"], *number, if *rebase { strs(&["--rebase"]) } else { vec![] }))),
         HostedCall::PrMerge { number, method, auto, delete_branch, match_head_commit } => {
@@ -372,6 +792,62 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             args.push(format!("--json={RUN_FIELDS},jobs"));
             one(gh(args))
         }
+        HostedCall::RunRerun { run, failed_only } => {
+            let mut args = strs(&["run", "rerun", &run.to_string()]);
+            repo_flag(&mut args);
+            if *failed_only {
+                args.push("--failed".into());
+            }
+            one(gh(args))
+        }
+        HostedCall::PrCheckDetails { check, run } => {
+            let tolerated = |path: String| {
+                let mut s = gh(vec!["api".into(), path]);
+                s.ok_exits = vec![0, 1];
+                s
+            };
+            let mut steps = Vec::new();
+            if let Some(check) = check {
+                steps.push(gh(vec!["api".into(), format!("{}/check-runs/{check}", rest_repo())]));
+                steps.push(tolerated(format!("{}/check-runs/{check}/annotations?per_page=20", rest_repo())));
+            }
+            if let Some(run) = run {
+                steps.push(tolerated(format!("{}/actions/runs/{run}/jobs?per_page=100", rest_repo())));
+            }
+            Ok(steps)
+        }
+        HostedCall::PrAutoMerge { number, enabled: false, .. } => one(gh(pr(&["merge"], *number, strs(&["--disable-auto"])))),
+        HostedCall::PrAutoMerge { number, enabled: true, .. } => one(view(*number, "id,headRefOid")),
+        HostedCall::ProjectList => one(graphql(PROJECT_LIST_QUERY, json!({}))),
+        HostedCall::ProjectResolve { owner, owner_type, number: None } => {
+            let root = owner_root(*owner_type);
+            one(graphql(&format!("query($owner:String!){{{root}(login:$owner){{login}}}}"), json!({"owner": owner})))
+        }
+        HostedCall::ProjectResolve { owner, owner_type, number: Some(number) } => {
+            let root = owner_root(*owner_type);
+            one(graphql(&format!("query($owner:String!,$num:Int!){{{root}(login:$owner){{projectV2(number:$num){{id title}}}}}}"), json!({"owner": owner, "num": number})))
+        }
+        HostedCall::ProjectViews { owner, owner_type, number } => {
+            let root = owner_root(*owner_type);
+            one(graphql(&format!("query($owner:String!,$num:Int!){{{root}(login:$owner){{projectV2(number:$num){{views(first:100){{nodes{{id number name layout}}}}}}}}}}"), json!({"owner": owner, "num": number})))
+        }
+        HostedCall::ProjectFieldSet { project, item, field, value } => {
+            let (query, v) = set_field_mutation(value);
+            one(graphql(&query, json!({"projectId": project, "itemId": item, "fieldId": field, "value": v})))
+        }
+        HostedCall::ProjectFieldClear { project, item, field } => one(graphql(CLEAR_FIELD_MUTATION, json!({"projectId": project, "itemId": item, "fieldId": field}))),
+        HostedCall::CommentAdd { number, body } => one(json_body(gh(vec!["api".into(), "--method=POST".into(), format!("{}/issues/{number}/comments", rest_repo())]), &json!({"body": body}))),
+        HostedCall::CommentEdit { comment_id, body } => one(json_body(gh(vec!["api".into(), "--method=PATCH".into(), format!("{}/issues/comments/{comment_id}", rest_repo())]), &json!({"body": body}))),
+        HostedCall::CommentDelete { comment_id } => one(gh(vec!["api".into(), "--method=DELETE".into(), format!("{}/issues/comments/{comment_id}", rest_repo())])),
+        HostedCall::RepoIssueTypes => {
+            let (owner, name) = op.repo.as_deref().and_then(|r| r.split_once('/')).ok_or("`repo` is required")?;
+            one(graphql(ISSUE_TYPES_QUERY, json!({"owner": owner, "name": name})))
+        }
+        HostedCall::IssueTypeSet { number, .. } => {
+            let (owner, name) = op.repo.as_deref().and_then(|r| r.split_once('/')).ok_or("`repo` is required")?;
+            one(graphql(ISSUE_ID_QUERY, json!({"owner": owner, "name": name, "number": number})))
+        }
+        HostedCall::IssueUpdate(update) => Ok(issue_update_steps(op, update)),
         HostedCall::AuthStatus => {
             let mut s = gh(strs(&["auth", "status"]));
             s.args.extend(op.host.iter().map(|h| format!("--hostname={h}")));
@@ -383,20 +859,20 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
     }
 }
 
+/// The scopes beyond gh's defaults the web sign-in asks for: `project` reads and writes GitHub Projects, `read:org` lists the organizations' projects.
+pub const GITHUB_SIGN_IN_SCOPES: &str = "project,read:org";
+
 /// The CLI's web sign-in: `--web` shows a one-time code and an address and waits for the approval.
 pub fn login_args(op: &HostedOp) -> Vec<String> {
     let host = op.host.clone().unwrap_or_else(|| op.provider.default_host().to_string());
     match op.provider {
-        Provider::Github => vec!["auth".into(), "login".into(), "--web".into(), format!("--hostname={host}"), "--git-protocol=https".into()],
+        Provider::Github => vec!["auth".into(), "login".into(), "--web".into(), format!("--hostname={host}"), "--git-protocol=https".into(), format!("--scopes={GITHUB_SIGN_IN_SCOPES}")],
         Provider::Gitlab => vec!["auth".into(), "login".into(), "--web".into(), format!("--hostname={host}")],
     }
 }
 
 fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
-    let project = || match &op.repo {
-        Some(r) => format!("projects/{}", encode(r)),
-        None => "projects/:fullpath".to_string(),
-    };
+    let project = || gitlab_project(op);
     let api = |method: &str, path: String| {
         let mut args = strs(&["api"]);
         if method != "GET" {
@@ -429,6 +905,8 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
     let one = |s: Step| Ok(vec![s]);
     match &op.call {
         HostedCall::RepoView => one(api("GET", project())),
+        HostedCall::RepoRemotes => one(step(Program::Git, strs(&["remote", "-v"]))),
+        HostedCall::RepoStarred | HostedCall::RepoStar => Err("starring is a GitHub feature".into()),
         HostedCall::RepoLabels { limit } => one(api("GET", format!("{}/labels?per_page={limit}", project()))),
         HostedCall::RepoReviewers { limit } => one(api("GET", format!("{}/members/all?per_page={limit}", project()))),
         HostedCall::RepoClone { .. } => {
@@ -458,6 +936,41 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             }
             one(api("GET", format!("{}/merge_requests?{}", project(), query.join("&"))))
         }
+        HostedCall::IssueList { state, author, label, search, limit } => {
+            let state = match state {
+                PrState::Closed => "closed",
+                PrState::All => "all",
+                _ => "opened",
+            };
+            let mut query = vec![format!("state={state}"), format!("per_page={limit}"), "order_by=updated_at".into(), "sort=desc".into()];
+            for (key, value) in [("author_username", author), ("labels", label), ("search", search)] {
+                query.extend(value.iter().map(|v| format!("{key}={}", encode(v))));
+            }
+            one(api("GET", format!("{}/issues?{}", project(), query.join("&"))))
+        }
+        HostedCall::IssueView { number } => one(api("GET", format!("{}/issues/{number}", project()))),
+        HostedCall::IssueComments { number } => one(api("GET", format!("{}/issues/{number}/notes?per_page=100&sort=asc&order_by=created_at", project()))),
+        HostedCall::IssueComment { number, body } => one(with_json(api("POST", format!("{}/issues/{number}/notes", project())), serde_json::json!({"body": body}))),
+        HostedCall::IssueEdit { number, title, body } => {
+            let mut v = serde_json::Map::new();
+            if let Some(t) = title {
+                v.insert("title".into(), serde_json::json!(t));
+            }
+            if let Some(b) = body {
+                v.insert("description".into(), serde_json::json!(b));
+            }
+            one(with_json(api("PUT", format!("{}/issues/{number}", project())), serde_json::Value::Object(v)))
+        }
+        HostedCall::IssueState { number, closed } => one(with_json(api("PUT", format!("{}/issues/{number}", project())), serde_json::json!({"state_event": if *closed { "close" } else { "reopen" }}))),
+        HostedCall::IssueCreate { title, body, labels } => {
+            let mut v = serde_json::json!({"title": title, "description": body.clone().unwrap_or_default()});
+            if !labels.is_empty() {
+                v["labels"] = serde_json::json!(labels.join(","));
+            }
+            one(with_json(api("POST", format!("{}/issues", project())), v))
+        }
+        HostedCall::IssueSearch { .. } | HostedCall::IssueCount { .. } => Ok(gitlab_work_steps(op, &Work::of(&op.call).expect("a search or a count"))),
+        HostedCall::IssueTodos { limit } => one(api("GET", format!("todos?state=pending&per_page={limit}"))),
         HostedCall::PrView { number } => one(api("GET", mr(*number, ""))),
         HostedCall::PrDiff { number } => one(glab(mr_cmd(&["diff"], *number, strs(&["--color=never"])))),
         HostedCall::PrChecks { number } => one(api("GET", mr(*number, "/pipelines"))),
@@ -465,18 +978,7 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
         HostedCall::PrReviews { number } => one(api("GET", mr(*number, "/approvals"))),
         HostedCall::PrThreads { number } => one(api("GET", mr(*number, "/discussions?per_page=100"))),
         HostedCall::PrFiles { number } => one(api("GET", mr(*number, "/changes"))),
-        HostedCall::PrCreate { title, body, head, base, draft, labels, reviewers } => {
-            let mut args = strs(&["mr", "create"]);
-            repo_flag(&mut args);
-            args.extend([format!("--title={title}"), format!("--source-branch={head}"), format!("--description={}", body.clone().unwrap_or_default()), "--yes".into()]);
-            args.extend(base.iter().map(|b| format!("--target-branch={b}")));
-            args.extend(labels.iter().map(|l| format!("--label={l}")));
-            args.extend(reviewers.iter().map(|r| format!("--reviewer={r}")));
-            if *draft {
-                args.push("--draft".into());
-            }
-            one(glab(args))
-        }
+        HostedCall::PrCreate { .. } => Ok(next_merge_request_step(op, &[])?.into_iter().collect()),
         HostedCall::PrEdit { number, title, body, base } => {
             let mut extra: Vec<String> = Vec::new();
             extra.extend(title.iter().map(|t| format!("--title={t}")));
@@ -485,8 +987,16 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             one(glab(mr_cmd(&["update"], *number, extra)))
         }
         HostedCall::PrReady { number, undo } => one(glab(mr_cmd(&["update"], *number, strs(&[if *undo { "--draft" } else { "--ready" }])))),
-        HostedCall::PrComment { number, body } => one(glab(mr_cmd(&["note"], *number, vec![format!("--message={body}")]))),
-        HostedCall::PrReply { number, thread, body } => one(with_json(api("POST", mr(*number, &format!("/discussions/{thread}/notes"))), serde_json::json!({"body": body}))),
+        HostedCall::PrState { number, closed } => one(with_json(api("PUT", mr(*number, "")), serde_json::json!({"state_event": if *closed { "close" } else { "reopen" }}))),
+        HostedCall::PrComment { number, body } => one(with_json(api("POST", mr(*number, "/notes")), serde_json::json!({"body": body}))),
+        HostedCall::PrReply { number, thread, body, .. } => {
+            let thread = thread.as_deref().ok_or("GitLab replies in a discussion named by `thread`")?;
+            one(with_json(api("POST", mr(*number, &format!("/discussions/{thread}/notes"))), serde_json::json!({"body": body})))
+        }
+        HostedCall::PrReviewComment { number, body, commit_id, path, line, base_sha, start_sha, old_path, .. } => {
+            let position = serde_json::json!({"position_type": "text", "base_sha": base_sha, "start_sha": start_sha, "head_sha": commit_id, "old_path": old_path.as_ref().unwrap_or(path), "new_path": path, "new_line": line});
+            one(with_json(api("POST", mr(*number, "/discussions")), serde_json::json!({"body": body, "position": position})))
+        }
         HostedCall::PrReview { number, verdict, body } => match verdict {
             Verdict::Approve => {
                 let mut steps = vec![glab(mr_cmd(&["approve"], *number, vec![]))];
@@ -519,7 +1029,11 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             let path = reaction_collection(op, *number, *target, *comment_id)?;
             one(api("POST", format!("{path}?name={}", award_name(content))))
         }
-        HostedCall::PrResolveThread { number, thread, resolved } => one(api("PUT", mr(*number, &format!("/discussions/{thread}?resolved={resolved}")))),
+        HostedCall::PrResolveThread { number, thread, resolved } => {
+            let number = number.ok_or("`number` is required on GitLab: a discussion belongs to one merge request")?;
+            one(api("PUT", mr(number, &format!("/discussions/{thread}?resolved={resolved}"))))
+        }
+        HostedCall::PrFileViewed { .. } => Err("GitLab keeps whether a file was viewed in the browser; no API marks it".into()),
         HostedCall::PrUpdateBranch { number, .. } => one(api("PUT", mr(*number, "/rebase"))),
         HostedCall::PrMerge { number, method, auto, delete_branch, match_head_commit } => {
             if *method == MergeMethod::Rebase {
@@ -546,6 +1060,40 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             one(api("GET", format!("{}/pipelines?{query}", project())))
         }
         HostedCall::RunView { run } => Ok(vec![api("GET", format!("{}/pipelines/{run}", project())), api("GET", format!("{}/pipelines/{run}/jobs?per_page=100", project()))]),
+        HostedCall::RunRerun { run, .. } => one(api("POST", format!("{}/pipelines/{run}/retry", project()))),
+        HostedCall::PrCheckDetails { check, run } => {
+            let mut steps = Vec::new();
+            if let Some(check) = check {
+                steps.push(api("GET", format!("{}/jobs/{check}", project())));
+                let mut trace = api("GET", format!("{}/jobs/{check}/trace", project()));
+                trace.ok_exits = vec![0, 1];
+                steps.push(trace);
+            }
+            if let Some(run) = run {
+                let mut jobs = api("GET", format!("{}/pipelines/{run}/jobs?per_page=100", project()));
+                jobs.ok_exits = vec![0, 1];
+                steps.push(jobs);
+            }
+            Ok(steps)
+        }
+        HostedCall::PrAutoMerge { number, enabled: false, .. } => one(api("POST", mr(*number, "/cancel_merge_when_pipeline_succeeds"))),
+        HostedCall::PrAutoMerge { number, enabled: true, method } => {
+            if *method == MergeMethod::Rebase {
+                return Err("GitLab merges as the project is set to (merge or squash); a rebase merge is a project setting".into());
+            }
+            one(with_json(api("PUT", mr(*number, "/merge")), serde_json::json!({"squash": *method == MergeMethod::Squash, "merge_when_pipeline_succeeds": true})))
+        }
+        HostedCall::ProjectList
+        | HostedCall::ProjectResolve { .. }
+        | HostedCall::ProjectViews { .. }
+        | HostedCall::ProjectFieldSet { .. }
+        | HostedCall::ProjectFieldClear { .. }
+        | HostedCall::CommentAdd { .. }
+        | HostedCall::CommentEdit { .. }
+        | HostedCall::CommentDelete { .. }
+        | HostedCall::RepoIssueTypes
+        | HostedCall::IssueTypeSet { .. }
+        | HostedCall::IssueUpdate(_) => Err("this action is GitHub's".into()),
         HostedCall::AuthStatus => {
             let mut s = glab(strs(&["auth", "status"]));
             s.args.extend(op.host.iter().map(|h| format!("--hostname={h}")));
@@ -567,5 +1115,13 @@ mod tests {
         assert_eq!(encode("a&b=c d"), "a%26b%3Dc%20d");
         assert_eq!(encode("keep-_.~09azAZ"), "keep-_.~09azAZ");
         assert_eq!(encode("é"), "%C3%A9");
+    }
+
+    #[test]
+    fn given_a_github_sign_in_when_the_arguments_are_made_then_it_asks_for_the_project_and_organization_scopes_and_gitlab_asks_for_none() {
+        let op = |provider: &str| HostedOp::parse(exec_hosted::AUTH_LOGIN_START, &json!({"provider": provider})).unwrap().unwrap();
+        // Given the sign-in of each provider, When its arguments are made, Then GitHub's carry the scopes as one flag value and GitLab's carry none
+        assert!(login_args(&op("github")).contains(&"--scopes=project,read:org".to_string()));
+        assert!(login_args(&op("gitlab")).iter().all(|a| !a.contains("scopes")));
     }
 }

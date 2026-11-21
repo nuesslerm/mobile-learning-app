@@ -11,3 +11,5 @@ invalid:
   - use crate::{domain, application::log};
   - use crate::{infrastructure};
   - use super::{api as front};
+  - use crate::adapters::sigv4::sign;
+  - use super::{adapters as io};

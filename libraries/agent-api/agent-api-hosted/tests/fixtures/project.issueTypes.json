@@ -1,0 +1,51 @@
+{
+  "method": "project.issueTypes",
+  "exchanges": [
+    {
+      "name": "no workspace is named, so an executor whose gh is signed in answers",
+      "request": {
+        "id": 1,
+        "method": "project.issueTypes",
+        "params": {
+          "repo": "octo/hello"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "types": [
+            {
+              "id": "IT_1",
+              "name": "Bug",
+              "color": "RED",
+              "description": "Something is broken"
+            }
+          ]
+        }
+      },
+      "actions": [
+        "hosted_repo_issue_types"
+      ]
+    },
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 2,
+        "method": "project.issueTypes",
+        "params": {
+          "repo": "no-slash"
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`repo` must be `owner/name` of letters, digits, `_`, `-`, `.`"
+        }
+      },
+      "actions": [
+        "hosted_repo_issue_types"
+      ]
+    }
+  ]
+}

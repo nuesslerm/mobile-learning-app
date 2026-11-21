@@ -92,3 +92,55 @@ pub fn generate(gen: &Value) -> Vec<u8> {
         other => panic!("unknown file generator {other}"),
     }
 }
+
+fn hex(data: &[u8]) -> String {
+    sha(data).iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// A bundle built by hand, outside the recorded set: `index.html` with a brotli copy of three windows, `app.js` without one, and two catalogs.
+pub struct Hand {
+    pub dir: tempfile::TempDir,
+    pub build: String,
+    /// The bytes of `index.html.br`, three windows long: the host serves them as read.
+    pub brotli: Vec<u8>,
+    /// The bytes of `catalogs/en.json`.
+    pub en: Vec<u8>,
+}
+
+pub const GRID: usize = 48 * 1024;
+
+pub fn hand_bundle() -> Hand {
+    let dir = tempfile::tempdir().unwrap();
+    let put = |path: &str, bytes: &[u8]| {
+        let full = dir.path().join(path);
+        std::fs::create_dir_all(full.parent().unwrap()).unwrap();
+        std::fs::write(full, bytes).unwrap();
+    };
+    let (index, app) = (b"<html>hand</html>".to_vec(), b"console.log('hand')".to_vec());
+    let brotli: Vec<u8> = (0..GRID * 2 + 1000).map(|i| (i * 31 % 251) as u8).collect();
+    let en = br#"{"hello":"Hello","bye":"Bye"}"#.to_vec();
+    let de = br#"{"hello":"Hallo"}"#.to_vec();
+    put("index.html", &index);
+    put("index.html.br", &brotli);
+    put("app.js", &app);
+    put("catalogs/en.json", &en);
+    put("catalogs/de.json", &de);
+    let assets = [("app.js", &app, "text/javascript", None), ("index.html", &index, "text/html", Some(brotli.len()))];
+    let id_input = format!("[{}]", assets.iter().map(|(p, b, t, _)| format!(r#"{{"path":"{p}","sha256":"{}","byteLength":{},"contentType":"{t}"}}"#, hex(b), b.len())).collect::<Vec<_>>().join(","));
+    let build = hex(id_input.as_bytes());
+    let listed: Vec<Value> = assets.iter().map(|(p, b, t, br)| {
+        let mut a = json!({"path": p, "sha256": hex(b), "byteLength": b.len(), "contentType": t});
+        if let Some(n) = br {
+            a["brotliByteLength"] = json!(n);
+        }
+        a
+    }).collect();
+    let catalog = |locale: &str, path: &str, bytes: &[u8]| json!({"locale": locale, "path": path, "sha256": hex(bytes), "byteLength": bytes.len()});
+    let manifest = json!({
+        "schemaVersion": 1, "buildId": build, "desktopVersion": "1.4.259", "minCompatibleRuntimeProtocolVersion": 1, "runtimeProtocolVersion": 1,
+        "entrypoint": "index.html", "totalBytes": index.len() + app.len(), "assets": listed, "routes": [],
+        "catalogs": [catalog("de", "catalogs/de.json", &de), catalog("en", "catalogs/en.json", &en)],
+    });
+    put("manifest.json", manifest.to_string().as_bytes());
+    Hand { dir, build, brotli, en }
+}

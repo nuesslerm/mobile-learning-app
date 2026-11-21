@@ -2,6 +2,7 @@ packages:
   - backend/*
   - clis/*
   - tooling/browser-harness/*
+  - frontend/feature-kit
   - frontend/mla-tamagui
   - frontend/mla-tamagui/features/coding-agent
   - frontend/mla-tamagui/features/service-report
@@ -9,15 +10,18 @@ packages:
   - infra/oracle-cloud/watchdog
   - frontend/libraries/app-config
   - frontend/libraries/app-di
+  - frontend/libraries/code-editor-api
   - libraries/browser-client
-  - libraries/eslint-plugin-mobile-learn
+  - frontend/libraries/lint-rules
   - frontend/libraries/flow-test-harness
   - frontend/libraries/gesture-geometry
   - libraries/hook-runtime
   - frontend/libraries/logging
+  - frontend/libraries/remote-chat-agent-contracts
   - frontend/libraries/rn-agentation
   - frontend/libraries/tamagui-design-system
   - frontend/libraries/voice-edit-dsl
+  - frontend/libraries/webview-rpc
   - tooling/*
 
 catalog:
@@ -40,12 +44,11 @@ catalog:
   # resolution is a fact rather than a side effect of pnpm's hoist heuristics.
   '@babel/traverse': ^7.26.0
   vite-plugin-babel: ^1.7.3
-  '@storybook/react-native': ^10.4.4
   '@types/react': ~19.2.0
   '@types/react-dom': ~19.2.0
-  react: 19.2.3
-  react-dom: 19.2.3
-  react-native: 0.86.3
+  react: 19.3.0
+  react-dom: 19.3.0
+  react-native: 0.88.1
   react-native-css-interop: 0.2.5
   tailwindcss: ^3.4.17
   playwright: ^1.62.1
@@ -81,9 +84,25 @@ overrides:
   # Expo SDK 57's React Native renderer runs only on React 19.2.3. Packages whose react peer was auto-installed
   # (vaul, react-remove-scroll, react-native-worklets, ...) resolved 19.2.7, and the hoisted react-native then
   # flipped to that copy between installs, which broke the app typecheck. One React for the whole workspace.
-  react: 19.2.3
+  react: 19.3.0
+  # tvOS is not a target of this app: skia's install script skips a missing tvOS package (about 205 MB of prebuilt frameworks); re-check
+  # node_modules/@shopify/react-native-skia/scripts/install-libs.js on each skia bump.
+  react-native-skia-apple-tvos: '-'
+  # autoInstallPeers resolved @react-native/metro-config twice (two versions), which forked every package that peers on it (four
+  # patched copies of lucide-react-native, two react-native-svg); react-native itself is 0.88.1.
+  '@react-native/metro-config': 0.88.1
+  # @react-types 3.16/3.11/3.6/... add hard deps on @react-spectrum/* (which pull all of @adobe/react-spectrum) and a provider peer;
+  # these are type-only packages for gluestack, and the previous patch releases have neither.
+  '@react-types/button': 3.15.1
+  '@react-types/checkbox': 3.10.4
+  '@react-types/dialog': 3.5.24
+  '@react-types/menu': 3.10.7
+  '@react-types/overlays': 3.9.4
+  '@react-types/radio': 3.9.4
+  '@react-types/slider': 3.8.4
+  '@react-types/switch': 3.5.17
+
 patchedDependencies:
-  '@storybook/react-native-ui@10.4.4': patches/@storybook__react-native-ui@10.4.4.patch
   react-native-css-interop@0.2.5: patches/react-native-css-interop@0.2.5.patch
   # lucide-react-native's exports map stops at `.` and `./icons`, both of which
   # are barrels. Metro does not tree-shake them, so importing one icon pulled all
@@ -100,7 +119,7 @@ patchedDependencies:
   '@quidone/react-native-wheel-picker@1.7.1': patches/@quidone__react-native-wheel-picker@1.7.1.patch
   # react-native-svg's web shapes hand a pressable shape's responder props to a DOM element, which ignores them with a
   # warning, through a mixin react-native-web calls deprecated; on web a press is the onClick it already sets.
-  react-native-svg@15.15.4: patches/react-native-svg@15.15.4.patch
+  react-native-svg@15.16.0: patches/react-native-svg@15.16.0.patch
   '@gluestack-ui/core@5.0.15': patches/@gluestack-ui__core@5.0.15.patch
   '@gorhom/bottom-sheet@5.2.14': patches/@gorhom__bottom-sheet@5.2.14.patch
 
@@ -126,6 +145,8 @@ publicHoistPattern:
 # dependency timing run 1512
 # dependency timing rerun 1548
 
+# No Mac or iOS runner installs this tree (CI is linux only): `current` keeps a Mac or an EAS iOS builder resolving its own native
+# packages, and darwin binaries are not fetched for the linux fleet (about 350 MB).
 supportedArchitectures:
-  os: [linux, darwin]
+  os: [current, linux]
   cpu: [x64, arm64]

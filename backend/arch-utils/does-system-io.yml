@@ -1,0 +1,47 @@
+id: does-system-io
+language: rust
+# `does-io` without `axum`, for the api layer, whose job is to serve HTTP: a path or a `use` that reaches the file system, a socket, a child
+# process, the environment, a signal, an HTTP client or the OS directories: `std`/`tokio` `fs net process env signal`, and `reqwest`, `dirs`. A `use` list is checked one level in, so `use std::{fs, io}`,
+# `use tokio::{fs::File as F}` and `use reqwest::{Client}` are caught like their one-line spellings.
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: '^(std|tokio)::(fs|process|env|signal)\b'
+    - kind: scoped_identifier
+      regex: '^tokio::net\b'
+    # `std::net` as a path to a plain address type (`SocketAddr`, `IpAddr`) is data, not a socket.
+    - kind: scoped_identifier
+      regex: '^std::net\b'
+      not:
+        any:
+          - regex: '^std::net::(SocketAddr|IpAddr|Ipv4Addr|Ipv6Addr)$'
+          - inside:
+              any:
+                - kind: scoped_identifier
+                  regex: '^std::net::(SocketAddr|IpAddr|Ipv4Addr|Ipv6Addr)$'
+                - kind: scoped_use_list
+                  regex: '^std::net::\{\s*((SocketAddr|IpAddr|Ipv4Addr|Ipv6Addr)\s*,?\s*)+\}$'
+    - kind: scoped_identifier
+      regex: '^(reqwest|dirs)::'
+    - kind: scoped_use_list
+      regex: '^(reqwest|dirs)::\{'
+    - kind: identifier
+      regex: '^(reqwest|dirs)$'
+      inside:
+        any:
+          - kind: use_declaration
+          - kind: use_list
+    - kind: scoped_use_list
+      regex: '^(std|tokio)::\{'
+      has:
+        kind: use_list
+        has:
+          any:
+            - kind: identifier
+              regex: '^(fs|net|process|env|signal)$'
+            - kind: scoped_identifier
+              regex: '^(fs|net|process|env|signal)::'
+            - kind: scoped_use_list
+              regex: '^(fs|net|process|env|signal)::'
+            - kind: use_as_clause
+              regex: '^(fs|net|process|env|signal)\b'

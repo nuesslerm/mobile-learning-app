@@ -1,4 +1,5 @@
 import { Logger } from '@lib/logging';
+import { useMemo } from 'react';
 import { Button, Text } from '@lib/tamagui-design-system';
 import { Sheet, SheetHeader } from '@lib/tamagui-design-system/ui/sheet';
 import WheelPicker from '@quidone/react-native-wheel-picker';
@@ -14,12 +15,11 @@ const LANGUAGE_LABELS: Record<EditorLanguage, string> = {
   javascript: 'JavaScript',
 };
 
-const LANGUAGES: EditorLanguage[] = ['python3', 'javascript'];
+/** Every language the picker can offer; a problem offers the ones it has a starter for. */
+export const EDITOR_LANGUAGES: readonly EditorLanguage[] = ['python3', 'javascript'];
 
-const ITEMS = LANGUAGES.map((value) => ({
-  value,
-  label: LANGUAGE_LABELS[value],
-}));
+const itemsOf = (languages: readonly EditorLanguage[]) =>
+  languages.map((value) => ({ value, label: LANGUAGE_LABELS[value] }));
 
 export type LanguagePickerProps = {
   value: EditorLanguage;
@@ -57,6 +57,8 @@ export type LanguageSheetProps = {
   onOpenChange: (open: boolean) => void;
   value: EditorLanguage;
   onChange: (lang: EditorLanguage) => void;
+  /** The languages to offer: a problem with no JavaScript starter must not offer JavaScript. */
+  languages?: readonly EditorLanguage[];
   testID?: string;
 };
 
@@ -81,8 +83,10 @@ export function LanguageSheet({
   onOpenChange,
   value,
   onChange,
+  languages = EDITOR_LANGUAGES,
   testID = 'LanguagePicker',
 }: LanguageSheetProps) {
+  const items = useMemo(() => itemsOf(languages), [languages]);
   // The wheel ships no colours of its own, so its rows fall back to React
   // Native's default black text -- invisible on the dark theme, which is
   // exactly how this shipped: a sheet titled "Language" over what looked like
@@ -111,7 +115,7 @@ export function LanguageSheet({
       </SheetHeader>
       <View style={styles.wheel}>
         <WheelPicker
-          data={ITEMS}
+          data={items}
           value={value}
           width="100%"
           // Three rows, not the default five: with two languages the extra rows
@@ -132,7 +136,7 @@ export function LanguageSheet({
           renderItem={({ item, itemTextStyle }) => (
             <Text
               testID={`${testID}-${item.label}`}
-              style={[styles.item, itemTextStyle]}
+              style={[styles.item, StyleSheet.flatten(itemTextStyle)]}
             >
               {item.label}
             </Text>

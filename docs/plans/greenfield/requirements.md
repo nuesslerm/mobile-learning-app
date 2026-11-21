@@ -77,7 +77,7 @@ Common root cause: bespoke layers, each with its own failure mode, and no shared
                                                      │
                      STATE = GIT (GitHub): units.jsonl + lease refs + `Unit: <id>` commit trailers on dev
                      ┌──────────────────────────────┴─────────────────────────────┐
-           SANDBOX WORKER  `wf offload worker`                                  VM WORKER  `wf offload worker`
+           SANDBOX WORKER  `wf rca worker`                                  VM WORKER  `wf rca worker`
            x86 · 4 CPU · 15 GB · ephemeral                              arm64 · 2 OCPU · 12 GB · always on
            cheap-model implementer · lint/type/unit                     image builds · deploy · e2e/runbooks
            flow tests · web export · Playwright visual                  shared dev Metro · EAS update
@@ -107,7 +107,7 @@ Decision: **all coordination state lives in GitHub.** No new service.
   - It skips any unit whose `files[]` overlap a unit already leased. This prevents the conflict churn that parallel landing otherwise causes.
 
 ### 2.2 Workers
-- **Same code on both machines:** `wf offload worker [--max N]`.
+- **Same code on both machines:** `wf rca worker [--max N]`.
 - **AIMD per worker,** reusing the pure `observe` and `nextRunnable` from `vm-jobs.js`:
   - start at 2, floor 1;
   - ceiling: sandbox 6, VM 4;
@@ -138,7 +138,7 @@ Decision: **all coordination state lives in GitHub.** No new service.
   - It uses Claude subagents (the Agent tool) where a unit is independent or needs wide reading. Independent units run as parallel subagents.
   - For this plan, this overrides the repo rule "never delegate through the Agent tool" and `/cf-work`'s rule that Claude never implements units.
 - Tests and gates still run as specified: tiers 1–2 on the sandbox, image builds and tier 3 on the VM.
-- The cheap-model ladder below remains the runtime for `wf offload ask`, the vision and text judges, re-verify units and the knowledge-ledger migration. It is no longer the implementer for greenfield units.
+- The cheap-model ladder below remains the runtime for `wf rca ask`, the vision and text judges, re-verify units and the knowledge-ledger migration. It is no longer the implementer for greenfield units.
 
 ### 2.4b Cheap models
 - **One ladder,** ordered by okRate, then p50:
@@ -242,7 +242,7 @@ Decision: tiers 1 and 2 run **before landing**. Tier 3 runs **after deploy**.
    - Git history keeps the narrative.
    - A gap that taught nothing reusable is deleted with a one-line reason in the commit.
 4. **Retrieval** (the reason it compounds): `wf knowledge for <files…>` returns the open gaps and learnings whose `paths` globs match.
-   - `wf offload plan` prepends the top 3 matches to every unit brief.
+   - `wf rca plan` prepends the top 3 matches to every unit brief.
    - The reviewer agent gets the same list.
    - Knowledge reaches the model at the moment it is relevant, without anyone reading an index.
 5. **Freshness:**
@@ -272,9 +272,9 @@ Correction, 2026-10-21: wf is a Rust crate, not an esbuild bundle, and section 2
 
 | Command | Replaces |
 |---|---|
-| `wf offload plan <slug>` / `wf offload plan --status <slug>` | cheap-flow run-work, cheap-flow-watch, manifests |
-| `wf offload worker [--max N]` | vm-jobs launcher, session scripts, precommit handoff |
-| `wf offload ask "<prompt>"` | thin client of remote-chat-agent's one-shot run mode (§3a); opencode-harness is deleted |
+| `wf rca plan <slug>` / `wf rca plan --status <slug>` | cheap-flow run-work, cheap-flow-watch, manifests |
+| `wf rca worker [--max N]` | vm-jobs launcher, session scripts, precommit handoff |
+| `wf rca ask "<prompt>"` | thin client of remote-chat-agent's one-shot run mode (§3a); opencode-harness is deleted |
 | `wf check --deployed <sha>` | report-health tiers, runbook runner, flow-test |
 | `wf vm status\|recover\|logs <app>\|exec <file>` | vm-ops, agent-shell, infra-ops (reboot) |
 | `wf ship --status\|run <app>` | agent-shell release/build/redeploy |
@@ -283,7 +283,7 @@ Correction, 2026-10-21: wf is a Rust crate, not an esbuild bundle, and section 2
 | `wf knowledge for\|index\|stale` | known-gaps.md by hand, cf-compound lookups |
 | `wf agent-config sync` | agent-config-sync, slimmed to claude/codex/gemini/opencode mirrors |
 
-The cf-* skills stay as thin prompt files that call `wf offload plan` and `wf offload plan --status`.
+The cf-* skills stay as thin prompt files that call `wf rca plan` and `wf rca plan --status`.
 
 ## 3a. One agent runner: remote-chat-agent (user decision, 2026-10-04)
 - Today there are two runners:
@@ -309,11 +309,11 @@ The cf-* skills stay as thin prompt files that call `wf offload plan` and `wf of
 - **Two entrypoints over the same use-cases:**
   - the server (VM, today's routes plus `POST /runs`);
   - a one-shot CLI (`rca run --prompt … --cwd … --shape …`), so a sandbox worker runs units against its local worktree without a network hop.
-- `wf offload ask`, cheap-flow and caveat-guard call the rca CLI. opencode-harness is deleted, and its tests move with the code they cover.
+- `wf rca ask`, cheap-flow and caveat-guard call the rca CLI. opencode-harness is deleted, and its tests move with the code they cover.
 - **Migration (P6):** strangler.
   1. Move the ladder, cooldowns, ledger and checks into rca, with their tests.
   2. Add the CLI entrypoint.
-  3. Repoint `wf offload ask`, cheap-flow and caveat-guard.
+  3. Repoint `wf rca ask`, cheap-flow and caveat-guard.
   4. Delete opencode-harness.
 - Exit gate: the harness test scenarios pass against rca, and a cheap-flow unit lands through `rca run`.
 
@@ -329,7 +329,7 @@ Outputs: `inventory.md` and `plan-research.md`.
    - Verdict: keep, fold into `wf`, or delete.
 2. **Timings, sandbox vs VM (wall clock and peak RSS):** lint, typecheck, affected unit tests, `test:flow`, web export, one Playwright pass, one image build (VM), one e2e, nx cached vs uncached.
 3. **Model re-rank** per shape: okRate, p50, p90.
-4. **Sandbox lifetime check:** does a running `wf offload worker` keep the cloud container alive while the session is idle? This decides whether the sandbox is primary capacity or only opportunistic.
+4. **Sandbox lifetime check:** does a running `wf rca worker` keep the cloud container alive while the session is idle? This decides whether the sandbox is primary capacity or only opportunistic.
 5. **Disk per worktree:** measured with the shared pnpm store, to set the sandbox disk ceiling.
 
 ## 5. Migration phases
@@ -340,7 +340,7 @@ Every phase is its own `units.jsonl`. Units touch 1–3 files, land on dev alone
 | **P0 Measure** | §4 | user approves inventory.md |
 | **P1 Stop the bleeding.** Only code that survives the rewrite | entrypoint pidfile hygiene, compose healthchecks for all services, watchdog container, deployer stage timeouts and alerts, deployer full-recreate on compose change, spawn guard lint, `wf vm recover` | inject each §1 failure (stale pid, restart loop, hung build, fork recursion): each is auto-recovered or reported in BetterStack within 5 min |
 | **P2 Sandbox gates locally** | lefthook to ≤ 5 jobs run locally; VM pre-commit gate retired | commit-to-push p50 before vs after; VM idle during commits |
-| **P3 Git-state workers** | lease refs, `Unit:` trailers, scheduler, `wf offload worker` on both machines, AIMD per worker, shared pnpm store | 10-unit test plan runs ≥ 4 units at once across both machines; killing the sandbox mid-run leaves the VM to finish within 3 min; zero lost commits; zero overlapping-files concurrency |
+| **P3 Git-state workers** | lease refs, `Unit:` trailers, scheduler, `wf rca worker` on both machines, AIMD per worker, shared pnpm store | 10-unit test plan runs ≥ 4 units at once across both machines; killing the sandbox mid-run leaves the VM to finish within 3 min; zero lost commits; zero overlapping-files concurrency |
 | **P4 Verify pipeline** | tier 2 visual (pixel diff, two-model judge, OCI baselines), tier 3 post-deploy with EAS update, verify report, auto fix units | a seeded visual regression is caught at tier 2 and a seeded API break at tier 3 |
 | **P5 Delete** | everything §6 marks delete; instruction files collapsed; known-gaps migrated into the knowledge ledger (§2.10); nx removed if P0 agrees | §2.8 budget check green; full verify green on the dev head |
 | **P6 Fold into `clis/wf` + vm-ops-api strangler** | new `wf` commands one at a time, each with a test, old command deleted in the same unit; vm-ops-api routes move to a slim service one route per unit; server.js deleted last | all §3 commands tested; server.js gone; deploys still confirm the sha |

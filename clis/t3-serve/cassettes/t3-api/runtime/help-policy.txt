@@ -1,0 +1,17 @@
+DESCRIPTION
+  Inspect the administrator's managed policy.
+
+USAGE
+  t3 policy <subcommand> [flags]
+
+GLOBAL FLAGS
+  --help, -h                                                          Show help information
+  --version, -v                                                       Show version information
+  --wizard                                                            Start wizard mode for a command
+  --completions <bash|zsh|fish|powershell|sh|pwsh>                    Print shell completion script (choices: bash, zsh, fish, powershell, sh, pwsh)
+  --log-level <all|trace|debug|info|warn|warning|error|fatal|none>    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
+
+SUBCOMMANDS
+  show         Show the policy installed on this machine, and whether the running server loaded it.
+  check        Validate a policy file before deploying it.
+  templates    Write the Windows Group Policy template and a macOS configuration profile.

@@ -11,7 +11,8 @@ pub use guard::ensure_oci_config;
 
 use wf_kit::args::parse_spec;
 use wf_kit::proc::git_out;
-use blob_cache::adapters::OciParStore;
+use blob_cache::stores::{self, ConfigError, BUILD_CACHE};
+use blob_cache::Stores;
 use blob_cache::domain::{self, Budget, Generation, Kind, Pins, Refusal, WriteFacts};
 use blob_cache::domain::Stats;
 use blob_cache::{Cache, NxServer, SccacheServer, Writes};
@@ -21,8 +22,11 @@ use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::Instant;
 
-const READ_PAR: &str = "BUILD_CACHE_READ_PAR_URL";
-const WRITE_PAR: &str = "BUILD_CACHE_WRITE_PAR_URL";
+/// The build cache's stores from the environment, then the vault: `Ok(None)` is no store declared, a run with no shared cache.
+pub fn open_stores(write: bool) -> Result<Option<Stores>, ConfigError> {
+    let values = secrets::load_values(&stores::keys(&BUILD_CACHE, write));
+    stores::open(&BUILD_CACHE, write, &|key| values.get(key).cloned().flatten(), cli_http::Via::Environment)
+}
 
 /// What counts as a change when the guard asks whether the tree is clean.
 #[derive(Clone, Copy)]
@@ -125,7 +129,7 @@ pub(crate) fn store_events(kind: &str, stats: &Stats) {
 /// The shim of one `wf` run: a loopback server answering Nx from the bucket. It stops with the value and prints the run's stats.
 pub struct Shim {
     server: Option<NxServer>,
-    cache: Arc<Cache<OciParStore>>,
+    cache: Arc<Cache<Stores>>,
     compiles: Option<Compiles>,
     started: Instant,
 }
@@ -141,7 +145,7 @@ pub struct Layers {
 /// spend an Nx run's budget) and the port of the sccache server this run owns, which it stops to read the compiler's own counts.
 struct Compiles {
     server: SccacheServer,
-    cache: Arc<Cache<OciParStore>>,
+    cache: Arc<Cache<Stores>>,
     port: u16,
 }
 
@@ -190,18 +194,16 @@ impl Shim {
         if let (Writes::Allowed, Some(why)) = (&writes, secrets::write_urls_refused()) {
             writes = Writes::ReadOnly(why);
         }
-        let wanted: &[&str] = if matches!(writes, Writes::Allowed) { &[READ_PAR, WRITE_PAR] } else { &[READ_PAR] };
-        let links = secrets::load_values(wanted);
-        let link = |key: &str| links.get(key).cloned().flatten();
-        let Some(read) = link(READ_PAR) else { return disabled("no link") };
-        let write = match matches!(writes, Writes::Allowed).then(|| link(WRITE_PAR)) {
-            Some(None) => return disabled("no link"),
-            other => other.flatten(),
+        let stores = match open_stores(matches!(writes, Writes::Allowed)) {
+            Ok(Some(stores)) => stores,
+            Ok(None) => return disabled("no store declared"),
+            Err(ConfigError::Missing(_)) => return disabled("no link"),
+            Err(error) => return disabled(&format!("the store config is invalid: {error}")),
         };
         let compile_writes = writes.clone();
-        let cache = Arc::new(Cache::open(OciParStore::new(&read, write.as_deref()), budget.clone(), writes));
+        let cache = Arc::new(Cache::open(stores.clone(), budget.clone(), writes));
         // the compile cache shares the generation the first cache read, so a shim reads the pointer once, not once per layer
-        let compiles = if layers.sccache { compiles(&read, write.as_deref(), budget, &compile_writes, cache.generation()) } else { None };
+        let compiles = if layers.sccache { compiles(stores, budget, &compile_writes, cache.generation()) } else { None };
         if !layers.nx {
             return Some(Shim { server: None, cache, compiles, started: Instant::now() });
         }
@@ -264,12 +266,12 @@ impl Drop for Shim {
 }
 
 /// The sccache layer, when `sccache` is installed and a port is free; otherwise compiles stay uncached and one line says why.
-fn compiles(read: &str, write: Option<&str>, budget: &Budget, writes: &Writes, generation: Generation) -> Option<Compiles> {
+fn compiles(stores: Stores, budget: &Budget, writes: &Writes, generation: Generation) -> Option<Compiles> {
     if !sccache_on_path() {
         eprintln!("wf: compile cache not used, sccache is not on PATH");
         return None;
     }
-    let cache = Arc::new(Cache::with_generation(OciParStore::new(read, write), budget.for_kind_run(Kind::Sccache), writes.clone(), generation));
+    let cache = Arc::new(Cache::with_generation(stores, budget.for_kind_run(Kind::Sccache), writes.clone(), generation));
     let server = SccacheServer::start(cache.clone()).ok()?;
     let compiles = Compiles { server, cache, port: free_port()? };
     start_sccache(&compiles);

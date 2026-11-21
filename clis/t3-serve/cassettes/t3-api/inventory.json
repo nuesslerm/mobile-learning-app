@@ -2,43 +2,42 @@
   "schema": "mimic-inventory/1",
   "app": "t3",
   "pin": {
-    "version": "0.1.6",
-    "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e"
+    "version": "0.1.9",
+    "commit": "24e77473ecf41bc1f7142529c7911c1c1aae1d76"
   },
   "sources": [
     {
       "name": "schema",
       "available": true,
-      "found": 304,
-      "note": "15 schema constructors read as any"
+      "found": 331,
+      "note": "16 schema constructors read as any"
     },
     {
       "name": "cli-source",
       "available": true,
-      "found": 49
+      "found": 52
     },
     {
       "name": "mobile-calls",
       "available": true,
       "found": 4,
-      "note": "literal tags and WS_METHODS keys under apps/mobile/src, plus the reachability scan of the catalog (wf parity coverage)"
+      "note": "literal tags and WS_METHODS keys under apps/mobile/src, plus the reachability scan of the catalog (wf mimic coverage)"
     },
     {
       "name": "catalog",
       "available": true,
-      "found": 304
+      "found": 331
     },
     {
       "name": "cli-help",
-      "available": false,
-      "found": 0,
-      "note": "needs the release binary: `t3 --help` of every subcommand, captured on the VM"
+      "available": true,
+      "found": 43,
+      "note": "../../clis/t3-serve/cassettes/t3-api/runtime"
     },
     {
       "name": "runtime",
-      "available": false,
-      "found": 0,
-      "note": "needs a running server"
+      "available": true,
+      "found": 0
     }
   ],
   "endpoints": [
@@ -979,6 +978,25 @@
       }
     },
     {
+      "id": "command:thread.tag.set",
+      "kind": "command",
+      "name": "thread.tag.set",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "id": "command:thread.title.regeneration.complete",
       "kind": "command",
       "name": "thread.title.regeneration.complete",
@@ -1839,6 +1857,347 @@
       }
     },
     {
+      "id": "http:voice.cancelModelDownload",
+      "kind": "http",
+      "name": "voice.cancelModelDownload",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/voice/models/cancel",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:voice.cloudKeys",
+      "kind": "http",
+      "name": "voice.cloudKeys",
+      "transport": "http",
+      "method": "GET",
+      "path": "/api/voice/cloud/keys",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:voice.cloudModels",
+      "kind": "http",
+      "name": "voice.cloudModels",
+      "transport": "http",
+      "method": "GET",
+      "path": "/api/voice/cloud/openrouter/models",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:voice.downloadModel",
+      "kind": "http",
+      "name": "voice.downloadModel",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/voice/models/download",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:voice.linkModels",
+      "kind": "http",
+      "name": "voice.linkModels",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/voice/models/link",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:voice.models",
+      "kind": "http",
+      "name": "voice.models",
+      "transport": "http",
+      "method": "GET",
+      "path": "/api/voice/models",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:voice.postProcess",
+      "kind": "http",
+      "name": "voice.postProcess",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/voice/post-process",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:voice.prepareModel",
+      "kind": "http",
+      "name": "voice.prepareModel",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/voice/models/prepare",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:voice.removeModel",
+      "kind": "http",
+      "name": "voice.removeModel",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/voice/models/remove",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:voice.selectModel",
+      "kind": "http",
+      "name": "voice.selectModel",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/voice/models/select",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:voice.setCloudKey",
+      "kind": "http",
+      "name": "voice.setCloudKey",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/voice/cloud/:provider/key",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:voice.status",
+      "kind": "http",
+      "name": "voice.status",
+      "transport": "http",
+      "method": "GET",
+      "path": "/api/voice/status",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:voice.transcribe",
+      "kind": "http",
+      "name": "voice.transcribe",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/voice/transcribe",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:voice.transcribeCloud",
+      "kind": "http",
+      "name": "voice.transcribeCloud",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/voice/cloud/:provider/transcribe",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:voice.updateAcceleration",
+      "kind": "http",
+      "name": "voice.updateAcceleration",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/voice/acceleration",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:voice.updateModelUnloadTimeout",
+      "kind": "http",
+      "name": "voice.updateModelUnloadTimeout",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/voice/model-unload-timeout",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "id": "http:webhooks.webhookGet",
       "kind": "http",
       "name": "webhooks.webhookGet",
@@ -2614,6 +2973,25 @@
       }
     },
     {
+      "id": "rpc:orchestration.getNativeChildWork",
+      "kind": "rpc",
+      "name": "orchestration.getNativeChildWork",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "id": "rpc:orchestration.getOlderSettledThreads",
       "kind": "rpc",
       "name": "orchestration.getOlderSettledThreads",
@@ -2653,6 +3031,26 @@
       }
     },
     {
+      "id": "rpc:orchestration.getThreadLinkMetadata",
+      "kind": "rpc",
+      "name": "orchestration.getThreadLinkMetadata",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "id": "rpc:orchestration.getThreadProjection",
       "kind": "rpc",
       "name": "orchestration.getThreadProjection",
@@ -2667,6 +3065,26 @@
       ],
       "input": "schema",
       "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.getThreadTitles",
+      "kind": "rpc",
+      "name": "orchestration.getThreadTitles",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
         "invalid": 3,
         "valid": 1
       }
@@ -2852,6 +3270,25 @@
       "id": "rpc:orchestration.subscribeCommandOutput",
       "kind": "rpc",
       "name": "orchestration.subscribeCommandOutput",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.subscribePromptSuggestion",
+      "kind": "rpc",
+      "name": "orchestration.subscribePromptSuggestion",
       "transport": "stream",
       "streaming": true,
       "users": [
@@ -3471,6 +3908,25 @@
       }
     },
     {
+      "id": "rpc:provider.auth.removeMethod",
+      "kind": "rpc",
+      "name": "provider.auth.removeMethod",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "id": "rpc:provider.auth.respond",
       "kind": "rpc",
       "name": "provider.auth.respond",
@@ -3602,6 +4058,7 @@
       ],
       "input": "schema",
       "classes": {
+        "boundary": 1,
         "invalid": 2,
         "valid": 1
       }
@@ -4074,8 +4531,8 @@
       ],
       "input": "schema",
       "classes": {
-        "boundary": 2,
-        "invalid": 3,
+        "boundary": 1,
+        "invalid": 2,
         "valid": 1
       }
     },
@@ -4972,6 +5429,26 @@
       }
     },
     {
+      "id": "rpc:server.listTextGeneratorModels",
+      "kind": "rpc",
+      "name": "server.listTextGeneratorModels",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "id": "rpc:server.logoutAcpRegistry",
       "kind": "rpc",
       "name": "server.logoutAcpRegistry",
@@ -5037,6 +5514,25 @@
       "streaming": false,
       "users": [
         "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.reclaimDatabaseSpace",
+      "kind": "rpc",
+      "name": "server.reclaimDatabaseSpace",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
       ],
       "sources": [
         "schema",
@@ -5496,6 +5992,25 @@
       }
     },
     {
+      "id": "rpc:sourceControl.star",
+      "kind": "rpc",
+      "name": "sourceControl.star",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "id": "rpc:sourceControl.starred",
       "kind": "rpc",
       "name": "sourceControl.starred",
@@ -5685,6 +6200,25 @@
       "input": "schema",
       "classes": {
         "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:subscribeVcsBranch",
+      "kind": "rpc",
+      "name": "subscribeVcsBranch",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
         "valid": 1
       }
     },
@@ -5964,6 +6498,25 @@
       }
     },
     {
+      "id": "rpc:vcs.refreshBranch",
+      "kind": "rpc",
+      "name": "vcs.refreshBranch",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "id": "rpc:vcs.refreshStatus",
       "kind": "rpc",
       "name": "vcs.refreshStatus",
@@ -6165,7 +6718,37 @@
     },
     {
       "path": [
+        "install"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
         "pair"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "show"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "check"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "templates"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "policy"
       ],
       "source": "cli-source"
     },
@@ -6202,12 +6785,6 @@
     {
       "path": [
         "serve"
-      ],
-      "source": "cli-source"
-    },
-    {
-      "path": [
-        "install"
       ],
       "source": "cli-source"
     },
@@ -6268,12 +6845,6 @@
     {
       "path": [
         "clear"
-      ],
-      "source": "cli-source"
-    },
-    {
-      "path": [
-        "show"
       ],
       "source": "cli-source"
     },
@@ -6343,86 +6914,80 @@
       "class": "handlers registered without a schema",
       "missing_source": "a running t3 server (RPC introspection is not exposed)",
       "detail": "a method the server implements that no contract declares cannot be seen from the source"
-    },
-    {
-      "class": "runtime self-description",
-      "missing_source": "a running t3 server",
-      "detail": "/.well-known/t3/environment answers only on a live server: capture it on the VM with `wf mimic crawl t3 --runtime <dir>`"
     }
   ],
   "counts": {
     "app": "t3",
     "pin": {
-      "version": "0.1.6",
-      "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e"
+      "version": "0.1.9",
+      "commit": "24e77473ecf41bc1f7142529c7911c1c1aae1d76"
     },
-    "endpoints": 304,
+    "endpoints": 331,
     "by_kind": {
-      "command": 55,
-      "http": 38,
+      "command": 56,
+      "http": 54,
       "mutation": 3,
-      "rpc": 208
+      "rpc": 218
     },
     "by_user": {
       "cli": 4,
-      "internal": 99,
-      "mobile": 205
+      "internal": 109,
+      "mobile": 222
     },
     "by_source": {
-      "catalog": 304,
+      "catalog": 331,
       "cli-source": 4,
       "mobile-calls": 4,
-      "schema": 304
+      "schema": 331
     },
     "by_input": {
-      "empty": 25,
+      "empty": 32,
       "golden": 4,
-      "schema": 275
+      "schema": 295
     },
     "by_class": {
-      "boundary": 168,
-      "empty": 22,
-      "invalid": 779,
-      "valid": 279
+      "boundary": 176,
+      "empty": 27,
+      "invalid": 845,
+      "valid": 301
     },
-    "cases": 1248,
+    "cases": 1349,
     "skipped": 3,
-    "streaming": 27,
-    "cli_commands": 49,
+    "streaming": 29,
+    "cli_commands": 52,
     "sources": [
       {
         "name": "schema",
         "available": true,
-        "found": 304,
-        "note": "15 schema constructors read as any"
+        "found": 331,
+        "note": "16 schema constructors read as any"
       },
       {
         "name": "cli-source",
         "available": true,
-        "found": 49
+        "found": 52
       },
       {
         "name": "mobile-calls",
         "available": true,
         "found": 4,
-        "note": "literal tags and WS_METHODS keys under apps/mobile/src, plus the reachability scan of the catalog (wf parity coverage)"
+        "note": "literal tags and WS_METHODS keys under apps/mobile/src, plus the reachability scan of the catalog (wf mimic coverage)"
       },
       {
         "name": "catalog",
         "available": true,
-        "found": 304
+        "found": 331
       },
       {
         "name": "cli-help",
-        "available": false,
-        "found": 0,
-        "note": "needs the release binary: `t3 --help` of every subcommand, captured on the VM"
+        "available": true,
+        "found": 43,
+        "note": "../../clis/t3-serve/cassettes/t3-api/runtime"
       },
       {
         "name": "runtime",
-        "available": false,
-        "found": 0,
-        "note": "needs a running server"
+        "available": true,
+        "found": 0
       }
     ],
     "blind": [
@@ -6430,11 +6995,6 @@
         "class": "handlers registered without a schema",
         "missing_source": "a running t3 server (RPC introspection is not exposed)",
         "detail": "a method the server implements that no contract declares cannot be seen from the source"
-      },
-      {
-        "class": "runtime self-description",
-        "missing_source": "a running t3 server",
-        "detail": "/.well-known/t3/environment answers only on a live server: capture it on the VM with `wf mimic crawl t3 --runtime <dir>`"
       }
     ]
   }

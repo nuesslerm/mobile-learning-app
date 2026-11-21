@@ -14,14 +14,20 @@ pub fn action_of(tool: &str) -> &str {
     TOOL_PREFIXES.iter().find_map(|prefix| tool.strip_prefix(prefix)).unwrap_or(tool)
 }
 
-/// The kind of change a successful executor action makes to a file, if it makes one.
+/// The kind of change a successful tool makes to a file, if it makes one: an executor action's name, or the CLI's own tool (Claude Code's `Write`
+/// and `Edit`, opencode's `write` and `edit`).
 fn file_op(action: &str) -> Option<FileOp> {
     match action {
-        "write_file" => Some(FileOp::Write),
-        "edit_file" => Some(FileOp::Edit),
+        "write_file" | "Write" | "write" => Some(FileOp::Write),
+        "Edit" | "MultiEdit" | "edit" => Some(FileOp::Edit),
         "create_file" => Some(FileOp::Create),
         _ => None,
     }
+}
+
+/// The path a file tool was given, under the argument name its CLI uses.
+fn path_of(args: &Value) -> Option<&str> {
+    ["path", "file_path", "filePath"].iter().find_map(|key| args[*key].as_str())
 }
 
 /// The code an `error` event gets when the CLI reported the failure itself.
@@ -54,7 +60,7 @@ impl Calls {
                 }
                 events.push(ThreadEvent::ToolFinished { call: id, ok, result: json!({}) });
                 if let (true, Some((tool, args))) = (ok, started) {
-                    if let (Some(op), Some(path)) = (file_op(&tool), args["path"].as_str()) {
+                    if let (Some(op), Some(path)) = (file_op(&tool), path_of(&args)) {
                         events.push(ThreadEvent::FileChanged { path: path.to_string(), op });
                     }
                 }
@@ -124,7 +130,7 @@ mod tests {
             calls.events(ExecEvent::ToolStarted { id: name.into(), name: name.into(), input: json!({"path": path}) });
             calls.events(ExecEvent::ToolFinished { id: name.into(), output: String::new(), ok: true })
         };
-        assert_eq!(run("edit_file", "e.rs").last(), Some(&ThreadEvent::FileChanged { path: "e.rs".into(), op: FileOp::Edit }));
+        assert_eq!(run("Edit", "e.rs").last(), Some(&ThreadEvent::FileChanged { path: "e.rs".into(), op: FileOp::Edit }));
         assert_eq!(run("create_file", "c.rs").last(), Some(&ThreadEvent::FileChanged { path: "c.rs".into(), op: FileOp::Create }));
         assert_eq!(calls.events(ExecEvent::Error("rate limited".into())), vec![ThreadEvent::Error { code: "CLI_ERROR".into(), message: "rate limited".into() }]);
         assert!(calls.events(ExecEvent::Done).is_empty());

@@ -1,0 +1,15 @@
+DESCRIPTION
+  Manage T3's headless browser on this host.
+
+USAGE
+  t3 browser <subcommand> [flags]
+
+GLOBAL FLAGS
+  --help, -h                                                          Show help information
+  --version, -v                                                       Show version information
+  --wizard                                                            Start wizard mode for a command
+  --completions <bash|zsh|fish|powershell|sh|pwsh>                    Print shell completion script (choices: bash, zsh, fish, powershell, sh, pwsh)
+  --log-level <all|trace|debug|info|warn|warning|error|fatal|none>    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
+
+SUBCOMMANDS
+  setup    Set up this Linux host for T3's browser: allow Chrome's sandbox and install its libraries and fonts.

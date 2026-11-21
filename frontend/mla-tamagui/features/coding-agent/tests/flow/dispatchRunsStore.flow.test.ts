@@ -5,17 +5,12 @@
 // gateway, the running fixture's per-call line growth, and the failure
 // branch where a rejecting gateway leaves the previous runs in place while
 // flipping `status` to `'error'` with the thrown message attached.
-import {
-  FIXTURE_DISPATCH_RUN_IDS,
-  type DispatchRunMeta,
-} from '../../src/domain';
+import type { DispatchRunMeta } from '../../src/domain';
+import { FIXTURE_DISPATCH_RUN_IDS } from '../../src/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  createFixtureDispatchRunsGateway,
-  DispatchRunsGatewayError,
-  type DispatchRunsGateway,
-} from '../../src/data/dispatchRunsGateway';
+import { DispatchRunsGatewayError, type DispatchRunsGateway } from '../../src/domain/ports';
+import { createFixtureDispatchRunsGateway } from '../../src/testing';
 import { useDispatchRunsStore } from '../../src/state/dispatchRunsStore';
 
 describe('dispatchRunsStore', () => {

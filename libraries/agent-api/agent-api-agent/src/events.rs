@@ -37,6 +37,14 @@ pub enum FinishReason {
     Failed,
 }
 
+/// Why a turn that was interrupted ended, when the service itself cut it: `restart` is a turn the service found still running when it
+/// started again. A user's stop has no cause. A client that meets a cause it does not know ignores it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FinishCause {
+    Restart,
+}
+
 /// Tokens a turn has used so far; the counts the CLI gave, none invented.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Usage {
@@ -84,7 +92,11 @@ pub enum ThreadEvent {
     #[serde(rename = "error")]
     Error { code: String, message: String },
     #[serde(rename = "turn.finished")]
-    TurnFinished { reason: FinishReason },
+    TurnFinished {
+        reason: FinishReason,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        cause: Option<FinishCause>,
+    },
 }
 
 /// The `type` of every event, in the order the owner lists them.
@@ -168,7 +180,7 @@ mod tests {
             ThreadEvent::PlanUpdated { plan: "1. look".into() },
             ThreadEvent::Usage(Usage { input_tokens: 10, output_tokens: 4, cache_read_tokens: None }),
             ThreadEvent::Error { code: "RATE_LIMITED".into(), message: "slow down".into() },
-            ThreadEvent::TurnFinished { reason: FinishReason::Failed },
+            ThreadEvent::TurnFinished { reason: FinishReason::Failed, cause: None },
         ]
     }
 
@@ -227,6 +239,20 @@ mod tests {
         data.insert("cost_usd".into(), json!(0.01));
         let event = Event { seq: 9, thread: Some("t".into()), turn: Some("u".into()), kind: "turn.finished".into(), data };
         // When read, Then it is the finished turn
-        assert_eq!(ThreadEvent::from_event(&event), Ok(ThreadEvent::TurnFinished { reason: FinishReason::Completed }));
+        assert_eq!(ThreadEvent::from_event(&event), Ok(ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None }));
+    }
+
+    #[test]
+    fn given_a_turn_the_service_cut_when_written_and_read_back_then_the_cause_sits_beside_the_reason_and_a_user_stop_writes_none() {
+        // Given a turn finished interrupted by a restart, and one a user stopped
+        let cut = ThreadEvent::TurnFinished { reason: FinishReason::Interrupted, cause: Some(FinishCause::Restart) };
+        let stopped = ThreadEvent::TurnFinished { reason: FinishReason::Interrupted, cause: None };
+        // When written, Then the cut one names its cause and the other leaves the field out
+        assert_eq!(cut.into_event("t1", Some("u1"), 5).encode(), r#"{"event":{"seq":5,"thread":"t1","turn":"u1","type":"turn.finished","reason":"interrupted","cause":"restart"}}"#);
+        assert_eq!(stopped.into_event("t1", Some("u1"), 6).encode(), r#"{"event":{"seq":6,"thread":"t1","turn":"u1","type":"turn.finished","reason":"interrupted"}}"#);
+        // And both read back as they were written, and a frame from before the field existed reads as no cause
+        for event in [cut, stopped] {
+            assert_eq!(ThreadEvent::from_event(&event.into_event("t1", Some("u1"), 7)), Ok(event));
+        }
     }
 }

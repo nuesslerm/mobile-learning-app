@@ -46,9 +46,14 @@ struct Interaction {
     effects: Vec<Value>,
 }
 
-/// The cassette set of this crate (`tests/cassettes/exec-hosted`, a mimic set of kind `imported`: no run of `gh` or `glab` made it).
+/// The authored set of this crate (`tests/cassettes/exec-hosted`, a mimic set of kind `imported`: no run of `gh` or `glab` made it).
 pub fn cassette_dir() -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/cassettes/exec-hosted")
+}
+
+/// The `hosted_project_*` actions as a real `gh` answered them (`tests/cassettes/exec-hosted-projects`, kind `recorded`).
+pub fn recorded_dir() -> std::path::PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/cassettes/exec-hosted-projects")
 }
 
 fn exchange(i: Interaction) -> Exchange {
@@ -84,17 +89,19 @@ fn exchange(i: Interaction) -> Exchange {
     }
 }
 
-/// Every action of the cassette set, in the order of the set (the actions' name order); a line that is not an interaction stops the run naming it.
+/// Every action of both cassette sets: the exchanges of an action are the authored ones, then the recorded ones. A line that is not an interaction stops the run naming it.
 pub fn fixtures() -> Vec<Fixture> {
-    let path = cassette_dir().join("interactions.jsonl");
-    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     let mut out: Vec<Fixture> = Vec::new();
-    for line in text.lines().filter(|l| !l.trim().is_empty()) {
-        let i: Interaction = serde_json::from_str(line).unwrap_or_else(|e| panic!("{}: {line}: {e}", path.display()));
-        let (action, x) = (i.op.clone(), exchange(i));
-        match out.iter_mut().find(|f| f.action == action) {
-            Some(f) => f.exchanges.push(x),
-            None => out.push(Fixture { action, exchanges: vec![x] }),
+    for dir in [cassette_dir(), recorded_dir()] {
+        let path = dir.join("interactions.jsonl");
+        let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        for line in text.lines().filter(|l| !l.trim().is_empty()) {
+            let i: Interaction = serde_json::from_str(line).unwrap_or_else(|e| panic!("{}: {line}: {e}", path.display()));
+            let (action, x) = (i.op.clone(), exchange(i));
+            match out.iter_mut().find(|f| f.action == action) {
+                Some(f) => f.exchanges.push(x),
+                None => out.push(Fixture { action, exchanges: vec![x] }),
+            }
         }
     }
     out

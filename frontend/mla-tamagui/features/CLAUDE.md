@@ -18,8 +18,7 @@ Rings, the layer rules each form follows today, the target and the checks:
 `docs/solutions/architecture/hexagonal-architecture-by-package-type.md`.
 
 A package checks itself: its own tsconfig, lint and vitest run. Lint is oxlint over the one `frontend/.oxlintrc.json`,
-plus, in the four `@feature/*` packages, dependency-cruiser with the shared layer preset
-`frontend/feature-kit/depcruise.feature.cjs` (CI runs it; the pre-commit hook does not reach these packages yet); `vitest.feature.ts` and `vitest.setup.ts` live in `frontend/feature-kit` (an
+plus dependency-cruiser with a preset from `frontend/feature-kit/depcruise.presets.cjs` (`hexagonalFeature`, `presentationFeature`) against a `.dependency-cruiser-known-violations.json` baseline that only shrinks: each `@feature/*` package runs it in its own `lint`, the app's `lint` cruises the in-app features and the shell in place. Every feature mounts its container in a `routes/_layout.tsx` and reads its ports through `state/ports.tsx`. A feature's flow tests sit beside its code (`features/<name>/**/*.flow.test.tsx`); `vitest.feature.ts` and `vitest.setup.ts` live in `frontend/feature-kit` (an
 Nx project of its own: kept here, they would make every package depend on the app project). The app's typecheck, lint and unit tests skip the package directories
 (`packages.mjs` lists them for the app's configs; `tsconfig.json` names them). pnpm and Nx give each file to the
 innermost package or project, so an edit to a package reruns that package's tasks and its dependents', not the app's own.

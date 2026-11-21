@@ -1,0 +1,39 @@
+{
+  "method": "speech.status",
+  "exchanges": [
+    {
+      "name": "says whether the service can turn a recording into text and with which engine",
+      "request": {
+        "id": 1,
+        "method": "speech.status",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "available": true,
+          "engine": "whisper-cpp"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses a param it does not know",
+      "request": {
+        "id": 2,
+        "method": "speech.status",
+        "params": {
+          "language": "en"
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "unknown field `language`, there are no fields"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "transcript": "inside the loop, check whether target minus n is in visited",
+  "alternatives": [
+    {
+      "id": "stub-1",
+      "label": "Check the complement",
+      "summary": "Inside the loop, check whether target minus n is in visited.",
+      "confidence": 0.95,
+      "commands": [
+        {
+          "type": "insertAfterLine",
+          "line": 4,
+          "text": "            if target - n in visited:"
+        }
+      ]
+    }
+  ]
+}

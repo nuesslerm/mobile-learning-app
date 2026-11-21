@@ -290,7 +290,7 @@ Two consequences. A public cache is public: `mode=max` publishes every builder s
 `clis/secrets/src/data/registry.json` (key names, no values) of a private GitHub repository are readable (open question 9 of
 `docs/plans/vm-ops-api-rs/plan.md`, accepted there). The free private repository would hold one cache repo with a tag per image
 (`nuesslerm/buildcache:<image>`), at the price of a login on every reader and a ref that is no longer `<repo>:buildcache`; not done.
-Pull exposure (an estimate): a build fetches one manifest per base image and one for its cache, about 6 to 10 per image; `wf ship --changed` ships only the
+Pull exposure (an estimate): a build fetches one manifest per base image and one for its cache, about 6 to 10 per image; `wf ci plan legs` ships only the
 changed services, so a push stays far under 200 per 6 hours on the VM (logged in through `DOCKERHUB_TOKEN`). A sandbox build
 that does not log in shares 100 per 6 hours with whatever else leaves through the same egress address.
 

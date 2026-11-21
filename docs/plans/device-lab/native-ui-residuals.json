@@ -1,7 +1,7 @@
 {
   "_doc": "Every source file that imports react-native-gesture-handler, react-native-reanimated or @shopify/react-native-skia, with what differs between the browser render and a phone and what stays residual (device-lab spec U2-U4). A new importer fails lib/device-lab/__tests__/nativeUiResiduals.test.ts until it is listed. The worklet lint rule (mobile-learn/js-function-in-worklet) guards the part a browser cannot show.",
   "files": {
-    "frontend/mla-tamagui/components/charts-spike/ChartSpike.tsx": {
+    "frontend/mla-tamagui/app-shell/ChartSpike.tsx": {
       "libraries": [
         "skia",
         "reanimated"

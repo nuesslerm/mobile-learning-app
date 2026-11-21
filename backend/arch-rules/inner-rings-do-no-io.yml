@@ -1,0 +1,36 @@
+id: inner-rings-do-no-io
+language: rust
+severity: error
+message: The domain and application layers do no file, socket, process or environment access; an adapter in infrastructure implements the port they declare.
+files:
+  # BEGIN generated:ast-grep-files
+  - "**/clis/rca-exec/src/domain.rs"
+  - "**/clis/t3-serve/core/src/domain/**/*.rs"
+  - "**/leetcode-auth-cookie-capture/core/src/application/**/*.rs"
+  - "**/leetcode-auth-cookie-capture/core/src/domain/**/*.rs"
+  - "**/leetcode-backend/core/src/application/**/*.rs"
+  - "**/remote-chat-agent/cli-driver/src/application/**/*.rs"
+  - "**/remote-chat-agent/cli-driver/src/domain/**/*.rs"
+  - "**/remote-chat-agent/core/src/application/**/*.rs"
+  - "**/remote-chat-agent/core/src/domain/**/*.rs"
+  - "**/remote-chat-agent/service-core/src/application/**/*.rs"
+  - "**/remote-chat-agent/service-core/src/domain/**/*.rs"
+  - "**/reporting-service/core/src/application/**/*.rs"
+  - "**/reporting-service/core/src/domain/**/*.rs"
+  - "**/vm-ops-api/core/src/application/**/*.rs"
+  - "**/vm-ops-api/core/src/domain/**/*.rs"
+  - "**/watchdog/core/src/application/**/*.rs"
+  - "**/watchdog/core/src/domain/**/*.rs"
+  # END generated:ast-grep-files
+ignores:
+  # A snapshot reader of the tests; the module is only compiled for them.
+  - "**/vm-ops-api/core/src/application/scripts/golden.rs"
+rule:
+  matches: does-io
+  not:
+    inside:
+      kind: mod_item
+      stopBy: end
+      has:
+        field: name
+        regex: '^tests?$'

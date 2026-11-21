@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 /// A repository with a stub `pnpm` (repomix: the compressed run writes "skeleton", the full one the text of the `pack` file, "PACK" at
-/// first, and reports three files) and a stub `wf` whose `offload ask` answers from ANSWERS (one line per attempt) and counts its calls.
+/// first, and reports three files) and a stub `wf` whose `rca ask` answers from ANSWERS (one line per attempt) and counts its calls.
 pub struct Gem {
     pub dir: tempfile::TempDir,
     pub repo: PathBuf,

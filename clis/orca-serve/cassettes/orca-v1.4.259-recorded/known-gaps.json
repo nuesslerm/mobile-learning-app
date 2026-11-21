@@ -1,0 +1,204 @@
+{
+  "schema": "mimic-known-gaps/2",
+  "groups": [
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.error.code",
+      "severity": "drift",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.code changed drift",
+        "steps._:s2c:0.[0].payload.error.message changed drift"
+      ],
+      "ids": [
+        "orca-agentSession.threadGoal",
+        "orca-browser.dialogAccept",
+        "orca-browser.dialogDismiss",
+        "orca-browser.screencast.unsubscribe",
+        "orca-git.discoverCommitMessageModels",
+        "orca-github.markPRDraft",
+        "orca-github.markPRReadyForReview",
+        "orca-github.mergePR",
+        "orca-github.prChecks",
+        "orca-github.prComments",
+        "orca-github.prFileContents",
+        "orca-github.prForBranch",
+        "orca-github.removePRReviewers",
+        "orca-github.requestPRReviewers",
+        "orca-github.updatePR",
+        "orca-github.updatePRTitle",
+        "orca-gitlab.mergeMR",
+        "orca-gitlab.updateMR",
+        "orca-hostedReview.forBranch",
+        "orca-notifications.registerPush",
+        "orca-notifications.testPush",
+        "orca-notifications.unregisterPush",
+        "orca-plugins.panelAction",
+        "orca-repo.baseRefDefault",
+        "orca-repo.hooks",
+        "orca-repo.saveSparsePreset",
+        "orca-repo.searchRefs",
+        "orca-repo.sparsePresets",
+        "orca-repo.update",
+        "orca-worktree.create",
+        "orca-worktree.listRetiredNames",
+        "orca-worktree.prefetchCreateBase"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.result",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.ok changed drift",
+        "steps._:s2c:0.[0].payload.result missing breaking",
+        "steps._:s2c:0.[0].payload.error extra drift"
+      ],
+      "ids": [
+        "orca-github.project.viewTable",
+        "orca-linear.connect",
+        "orca-orchestration.partyLocation",
+        "orca-orchestration.partyOpen",
+        "orca-settings.getAgentLaunch",
+        "orca-terminal.getAutoRestoreFit",
+        "orca-terminal.setAutoRestoreFit"
+      ]
+    },
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.error.code",
+      "severity": "drift",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.code changed drift",
+        "steps._:s2c:0.[0].payload.error.message changed drift",
+        "steps._:s2c:0.[0].payload.error.data extra drift"
+      ],
+      "ids": [
+        "orca-agentSession.readVisual",
+        "orca-orchestration.workerAutoClose",
+        "orca-orchestration.workerKeepOpen",
+        "orca-pairing.getEndpoints",
+        "orca-pairing.provisionRelay"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.error",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error missing breaking",
+        "steps._:s2c:0.[0].payload.ok changed drift",
+        "steps._:s2c:0.[0].payload.result extra drift"
+      ],
+      "ids": [
+        "orca-agentActivity.clear",
+        "orca-agentActivity.setRead",
+        "orca-agentSession.agents",
+        "orca-agentSessionAttachment.uploadAbort",
+        "orca-runtime.clientCapabilities.update"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.error.data",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.data missing breaking",
+        "steps._:s2c:0.[0].payload.error.message changed drift"
+      ],
+      "ids": [
+        "orca-agentSessionAttachment.read",
+        "orca-agentSessionAttachment.readTextChunk",
+        "orca-agentSessionAttachment.uploadCommit"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.error.data",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.code changed drift",
+        "steps._:s2c:0.[0].payload.error.data missing breaking",
+        "steps._:s2c:0.[0].payload.error.message changed drift"
+      ],
+      "ids": [
+        "orca-agentSession.cancelUsageLimitContinue",
+        "orca-agentSession.createSupport"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.error",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error missing breaking",
+        "steps._:s2c:0.[0].payload.message missing breaking",
+        "steps._:s2c:0.[0].payload.type changed drift",
+        "steps._:s2c:0.[0].payload.sessions extra drift",
+        "steps._:s2c:0.[0].payload.namingActiveSessionIds extra drift",
+        "steps._:s2c:0.[1] extra drift"
+      ],
+      "ids": [
+        "orca-agentSession.subscribeStatus"
+      ]
+    },
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.error.code",
+      "severity": "drift",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.code changed drift",
+        "steps._:s2c:0.[0].payload.error.message changed drift",
+        "steps._:s2c:0.[0].payload.message changed drift"
+      ],
+      "ids": [
+        "orca-browser.screencast"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.error.data",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.data missing breaking"
+      ],
+      "ids": [
+        "orca-agentSession.modelCatalog"
+      ]
+    },
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.result.[*]",
+      "severity": "drift",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.[0] changed drift",
+        "steps._:s2c:0.[0].payload.result.[1] changed drift",
+        "steps._:s2c:0.[0].payload.result.[2] changed drift"
+      ],
+      "ids": [
+        "orca-preflight.detectAgents"
+      ]
+    },
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.result.agents.[*]",
+      "severity": "drift",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.agents.[0] changed drift",
+        "steps._:s2c:0.[0].payload.result.agents.[1] changed drift",
+        "steps._:s2c:0.[0].payload.result.agents.[2] changed drift"
+      ],
+      "ids": [
+        "orca-preflight.refreshAgents"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:close:s2c:_.[*].payload.code",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:close:s2c:_.[0].payload.code changed drift"
+      ],
+      "ids": [
+        "orca-transport.e2ee.handshake"
+      ]
+    },
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.result.targets",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.targets changed breaking"
+      ],
+      "ids": [
+        "orca-ssh.listTargetSummaries"
+      ]
+    }
+  ]
+}

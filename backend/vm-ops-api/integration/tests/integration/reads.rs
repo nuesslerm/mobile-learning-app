@@ -10,12 +10,11 @@ use serde_json::{json, Value};
 use std::path::Path;
 use vm_ops_api_integration::{assert_golden, auth, case, frame, now_ms, Exec, Logs, GIT_COMMIT, HOST_LABEL, IMAGE_TAG};
 
-const KNOWN_APPS: [&str; 9] = [
+const KNOWN_APPS: [&str; 8] = [
     "leetcode-backend",
     "remote-chat-agent",
     "leetcode-auth-cookie-capture",
     "agent-shell",
-    "ci-runner",
     "vnc-auth-session",
     "reporting-service",
     "t3-serve",
@@ -80,11 +79,11 @@ case!(ps_lists_the_apps_containers_by_exact_name_in_any_state, ["GET /services/:
     assert_eq!(engine_calls(&svc), ["GET /containers/json?all=true"]);
 });
 
-case!(ps_of_vm_ops_api_metro_runner_or_an_unknown_app_is_404_with_the_six_known_apps, ["GET /services/:app/ps"], {
+case!(ps_of_vm_ops_api_metro_runner_or_an_unknown_app_is_404_with_the_eight_known_apps, ["GET /services/:app/ps"], {
     // Given an Engine listing agent-shell
     let svc = with_engine(AGENT_SHELL).start();
     // When ps is read for vm-ops-api, which is no managed app, for metro-runner, which was removed, and for an unknown app
-    // Then each is 404 unknown app with the seven known apps in order, and the Engine is never asked
+    // Then each is 404 unknown app with the eight known apps in order, and the Engine is never asked
     for app in ["vm-ops-api", "metro-runner", "nope"] {
         let r = get(&svc, &format!("/services/{app}/ps"));
         expect_json(&r, 404, &json!({ "error": "unknown app", "knownApps": KNOWN_APPS }));
@@ -231,7 +230,7 @@ case!(logs_take_vm_ops_api_and_an_app_with_no_containers_is_404, ["GET /services
     // When leetcode-backend's logs are read, Then it is 404: no containers
     let r = get(&svc, "/services/leetcode-backend/logs");
     expect_json(&r, 404, &json!({ "error": "no containers found for this app (not running?)" }));
-    // When the logs of an unknown app and of the removed metro-runner are read, Then each is 404 with the seven known apps
+    // When the logs of an unknown app and of the removed metro-runner are read, Then each is 404 with the eight known apps
     // and vm-ops-api
     let mut known = KNOWN_APPS.to_vec();
     known.push("vm-ops-api");

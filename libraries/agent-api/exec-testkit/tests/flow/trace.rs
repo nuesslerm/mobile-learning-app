@@ -77,3 +77,21 @@ fn given_a_binary_that_cannot_list_its_tests_when_the_run_is_recorded_then_the_r
     assert_eq!(report["verdict"].as_str(), Some("error"));
     assert!(report["warnings"][0].as_str().unwrap().contains("cannot be told complete"), "{report}");
 }
+
+#[test]
+fn given_a_replay_that_gathered_its_own_traces_when_the_record_is_written_then_it_has_the_report_wf_test_publish_takes() {
+    // Given the tests of a replay (one clean interaction and one that differs)
+    let out = tempfile::tempdir().unwrap();
+    let dir = out.path().join("wf-mimic-kit-recorded/feature/set");
+    let tests = [json!({"test": "set::a", "verdict": "pass", "ms": 1, "calls": []}), json!({"test": "set::b", "verdict": "fail", "ms": 2, "calls": []})];
+    // When the record is written
+    exec_testkit::write_replay_record(&dir, "wf-mimic-kit-recorded", "t3", &tests, None, std::time::Instant::now()).unwrap();
+    // Then the trace is the suite's and the report is a failed integration run naming the failing test, in the same folder
+    assert_eq!(read(&dir, "trace.json")["tests"].as_array().unwrap().len(), 2);
+    let report = read(&dir, "report.json");
+    assert_eq!((report["schema"].clone(), report["platform"].as_str(), report["script"].as_str(), report["verdict"].as_str(), report["expectedCases"].clone()), (json!(1), Some("integration"), Some("wf-mimic-kit-recorded"), Some("fail"), json!(2)));
+    assert!(report["message"].as_str().unwrap().contains("set::b"), "{report}");
+    // And a replay whose tests all passed reads pass
+    exec_testkit::write_replay_record(&dir, "wf-mimic-kit-recorded", "t3", &tests[..1], None, std::time::Instant::now()).unwrap();
+    assert_eq!(read(&dir, "report.json")["verdict"].as_str(), Some("pass"));
+}

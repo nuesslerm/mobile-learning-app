@@ -66,19 +66,19 @@ function formatProps(props: Record<string, unknown> | undefined): string | null 
   if (!props || Object.keys(props).length === 0) {
     return null;
   }
-  try {
-    return JSON.stringify(props, safeReplacer, 2);
-  } catch {
-    return null;
-  }
+  return JSON.stringify(props, safeReplacer(), 2);
 }
 
-function safeReplacer(_key: string, value: unknown): unknown {
-  if (typeof value === 'function') {
-    return '[Function]';
-  }
-  if (typeof value === 'symbol') {
-    return value.toString();
-  }
-  return value;
+// Never throws: functions, symbols and bigints become strings and a repeated object (a cycle) becomes a marker.
+function safeReplacer(): (key: string, value: unknown) => unknown {
+  const seen = new WeakSet<object>();
+  return (_key, value) => {
+    if (typeof value === 'function') return '[Function]';
+    if (typeof value === 'symbol' || typeof value === 'bigint') return value.toString();
+    if (typeof value === 'object' && value !== null) {
+      if (seen.has(value)) return '[Circular]';
+      seen.add(value);
+    }
+    return value;
+  };
 }

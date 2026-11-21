@@ -1,5 +1,6 @@
 //! The ports the core owns. `AgentApi` is rca's agent API in Orca's words: each mapping crate asks only for what it maps.
 use serde_json::Value;
+use std::time::Duration;
 
 /// What `service.status` says of the service this server fronts.
 #[derive(Debug, Clone, PartialEq)]
@@ -27,6 +28,20 @@ impl std::fmt::Display for AgentError {
     }
 }
 
+/// One event of a followed stream: `seq` is its position in the stream (for a terminal, the byte offset after its bytes).
+#[derive(Debug, Clone, PartialEq)]
+pub struct StreamEvent {
+    pub seq: u64,
+    pub kind: String,
+    pub data: Value,
+}
+
+/// A stream held open on one socket: the events of one follow, once and in order, resumed after a dropped socket.
+pub trait EventStream: Send {
+    /// The next event, waiting up to `wait` for it: none when none came.
+    fn next(&mut self, wait: Duration) -> Result<Option<StreamEvent>, AgentError>;
+}
+
 pub trait AgentApi: Send + Sync {
     fn status(&self) -> Result<ServiceStatus, AgentError>;
     /// `state.get`: the value kept for the device scope and key, or none.
@@ -34,6 +49,12 @@ pub trait AgentApi: Send + Sync {
     /// Any other agent method, answered with its result. A mapping crate names the methods it uses (its `USES`), and a flow test holds the
     /// list to the methods it really sends.
     fn request(&self, method: &'static str, params: Value) -> Result<Value, AgentError>;
+    /// Opens the stream `method` starts (named `topic` as its events carry it; `params[seq_param]` is where it starts) and holds one socket
+    /// for it: the service's answer, and the events as they come.
+    fn follow(&self, method: &'static str, topic: &str, params: Value, seq_param: &'static str) -> Result<(Value, Box<dyn EventStream>), AgentError> {
+        let _ = (method, topic, params, seq_param);
+        Err(AgentError::Failed("streams are not offered".into()))
+    }
 }
 
 /// What this host says of itself: set once at the composition root.

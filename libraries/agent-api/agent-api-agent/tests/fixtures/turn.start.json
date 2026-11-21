@@ -35,7 +35,41 @@
         "/result/turn"
       ],
       "actions": [
+        "cli_detect",
         "git_checkpoint"
+      ]
+    },
+    {
+      "name": "answers CLI_NOT_INSTALLED for a driver whose CLI the workspace's executor lacks, before anything is recorded",
+      "before": [
+        {
+          "id": "setup-t-nocli",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-nocli",
+            "workspace": "w1"
+          }
+        }
+      ],
+      "request": {
+        "id": "7",
+        "method": "turn.start",
+        "params": {
+          "thread": "t-nocli",
+          "workspace": "w1",
+          "driver": "codex",
+          "prompt": "Say hi"
+        }
+      },
+      "response": {
+        "id": "7",
+        "error": {
+          "code": "CLI_NOT_INSTALLED",
+          "message": "codex is not installed on the executor of workspace w1"
+        }
+      },
+      "actions": [
+        "cli_detect"
       ]
     },
     {

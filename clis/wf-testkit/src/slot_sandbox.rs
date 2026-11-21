@@ -22,8 +22,10 @@ impl SlotSandbox {
         for dir in [&repo, &reg_dir, &bin_dir] {
             std::fs::create_dir(dir).unwrap();
         }
-        assert!(Command::new("git").args(["init", "-q", "-b", "main"]).current_dir(&repo).status().unwrap().success());
-        assert!(Command::new("git").args(["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "x"]).current_dir(&repo).status().unwrap().success());
+        // a commit hook points GIT_INDEX_FILE at the outer repo's temporary index
+        let git = |args: &[&str]| Command::new("git").args(args).current_dir(&repo).env_remove("GIT_INDEX_FILE").env_remove("GIT_DIR").env_remove("GIT_WORK_TREE").status().unwrap().success();
+        assert!(git(&["init", "-q", "-b", "main"]));
+        assert!(git(&["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "x"]));
         let sandbox = Self { _root: root, repo, reg_dir, bin_dir };
         sandbox.seed(&json!({}));
         sandbox

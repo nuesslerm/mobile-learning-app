@@ -1,0 +1,41 @@
+{
+  "method": "provider.subscribe",
+  "exchanges": [
+    {
+      "name": "opens the stream of the provider list and says where its numbering stands",
+      "request": {
+        "id": 1,
+        "method": "provider.subscribe",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "topic": "provider",
+          "seq": 0
+        }
+      },
+      "actions": [
+        "cli_detect"
+      ]
+    },
+    {
+      "name": "refuses params, it takes none",
+      "request": {
+        "id": 2,
+        "method": "provider.subscribe",
+        "params": {
+          "provider": "codex"
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "provider.subscribe takes no params"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

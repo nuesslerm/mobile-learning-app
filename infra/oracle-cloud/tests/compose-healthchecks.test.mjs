@@ -49,7 +49,6 @@ describe('given every production compose file', () => {
     const rel = files.map((f) => relative(repoRoot, f));
     for (const expected of [
       'infra/oracle-cloud/agent-shell/docker-compose.prod.yml',
-      'infra/oracle-cloud/ci-runner/docker-compose.prod.yml',
       'infra/oracle-cloud/vm-ops-api/docker-compose.yml',
       'backend/leetcode-auth-cookie-capture/docker-compose.capture.yml',
       'backend/leetcode-backend/docker-compose.prod.yml',

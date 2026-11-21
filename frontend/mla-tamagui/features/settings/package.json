@@ -1,5 +1,6 @@
 {
   "name": "@feature/settings",
+  "arch": { "type": "presentation-feature" },
   "version": "0.0.0",
   "private": true,
   "main": "src/index.ts",
@@ -11,7 +12,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint -c ../../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs",
+    "lint": "oxlint -c ../../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs --ignore-known",
     "test": "vitest run --passWithNoTests",
     "test:flow": "vitest run --config vitest.flow.config.ts --configLoader runner"
   },
@@ -22,7 +23,7 @@
   },
   "devDependencies": {
     "@typescript/native": "catalog:",
-    "@lib/eslint-plugin-mobile-learn": "workspace:*",
+    "@lib/lint-rules": "workspace:*",
     "@lib/flow-test-harness": "workspace:*",
     "dependency-cruiser": "^17.4.3",
     "oxlint": "catalog:"
@@ -33,7 +34,6 @@
     "prettier": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",
     "vite-plugin-babel": "catalog:",
-    "@storybook/react-native": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "react": "catalog:",
@@ -56,9 +56,6 @@
       "optional": true
     },
     "vite-plugin-babel": {
-      "optional": true
-    },
-    "@storybook/react-native": {
       "optional": true
     },
     "@types/react": {

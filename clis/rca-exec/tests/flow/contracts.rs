@@ -93,6 +93,9 @@ fn prepare(dir: &Path, base: &Path, (bin, home): (&Path, &Path), setup: &Setup) 
         git(base, &["init", "-q", "--bare", "-b", "main", remote.to_str().unwrap()]);
         git(dir, &["remote", "add", "origin", remote.to_str().unwrap()]);
         git(dir, &["push", "-q", "-u", "origin", "main"]);
+        if setup.remote_head {
+            git(dir, &["remote", "set-head", "origin", "main"]);
+        }
         for number in &setup.remote_pulls {
             git(dir, &["switch", "-q", "-c", &format!("pull-{number}")]);
             std::fs::write(dir.join(format!("pull-{number}.txt")), format!("pull request {number}\n")).unwrap();
@@ -136,8 +139,8 @@ fn every_action_of_the_contract_has_recorded_exchanges_and_cancel_has_none_that_
     assert_eq!(named, contract_actions().into_iter().collect::<Vec<_>>());
     for fixture in &recorded {
         // And each of its exchanges is a request for that action, with an id of its own, and the first one succeeds
-        // (an action on a pty records its refusals only: the one pty a replay opens belongs to the pty_open recording)
-        let needs_a_pty = [exec_pty::PTY_WRITE, exec_pty::PTY_RESIZE, exec_pty::PTY_ATTACH].contains(&fixture.action.as_str());
+        // (an action on a pty or on a running login records its refusals only: the one a replay opens belongs to the start's recording; the app-server and the Claude account need a scripted server, which `provider_account.rs` runs)
+        let needs_a_pty = [exec_pty::PTY_WRITE, exec_pty::PTY_RESIZE, exec_pty::PTY_ATTACH, exec_proc::LOGIN_SEND, exec_proc::LOGIN_STATUS, exec_proc::CODEX_APP_SERVER, exec_proc::CLAUDE_ACCOUNT].contains(&fixture.action.as_str());
         assert!(!fixture.exchanges.is_empty() && (needs_a_pty || fixture.exchanges[0].succeeds()), "{}", fixture.action);
         let ids: BTreeSet<&str> = fixture.exchanges.iter().map(Exchange::id).collect();
         assert_eq!(ids.len(), fixture.exchanges.len(), "{}: ids repeat", fixture.action);

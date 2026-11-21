@@ -6,10 +6,16 @@
 FROM alpine:3.20 AS aptcerts
 RUN apk add --no-cache ca-certificates
 
-FROM docker.io/library/rust:1-bookworm AS builder
+# Dependencies first: cargo-chef compiles what the manifests and the lockfile name into an image layer, which `mode=max` exports and a recreated VM
+# imports; a source change then rebuilds the workspace crates alone.
+FROM docker.io/library/rust:1-bookworm AS chef
+RUN --mount=type=cache,id=cargo-registry-t3,target=/usr/local/cargo/registry \
+    cargo install cargo-chef --locked --version 0.1.78
 WORKDIR /src
 # The shared libraries come from the mla registry (a public bucket, plain HTTPS); the lockfile pins their versions.
 COPY .cargo/config.toml /src/.cargo/config.toml
+
+FROM chef AS planner
 COPY clis/Cargo.toml clis/Cargo.lock ./clis/
 COPY clis/wf-kit ./clis/wf-kit
 COPY clis/t3-serve ./clis/t3-serve
@@ -38,13 +44,29 @@ COPY libraries/agent-api/exec-proto ./libraries/agent-api/exec-proto
 # The test kit is a dev-dependency cargo resolves but the build never compiles: its manifest and an empty library are all it needs here.
 COPY libraries/agent-api/exec-testkit/Cargo.toml ./libraries/agent-api/exec-testkit/Cargo.toml
 RUN mkdir -p libraries/agent-api/exec-testkit/src && : > libraries/agent-api/exec-testkit/src/lib.rs
-# The replay tests use mimic-core as a dev-dependency cargo resolves but the build never compiles: its manifest and an empty library are all it needs, so an edit to its sources rebuilds no image.
-COPY clis/mimic/core/Cargo.toml ./clis/mimic/core/Cargo.toml
-RUN mkdir -p clis/mimic/core/src && : > clis/mimic/core/src/lib.rs
 WORKDIR /src/clis
 RUN sed -i 's|^members = .*|members = ["wf-kit", "t3-serve", "t3-serve/contracts", "t3-serve/core", "t3-serve/store", "t3-serve/http"]|' Cargo.toml
+# --bin: the recipe keeps this binary's crates only, so a sibling's manifest does not move it.
 RUN --mount=type=cache,id=cargo-registry-t3,target=/usr/local/cargo/registry \
-    cargo build --release -p t3-serve --bin t3-serve \
+    cargo chef prepare --recipe-path /recipe.json --bin t3-serve
+# The contract crates as the dependency layer sees them: each manifest and an empty library. Cargo needs their paths to exist, but the recipe
+# does not hold them, so an edit to their sources must not reach the layer below.
+RUN set -eu; for crate in /src/libraries/agent-api/*/; do \
+      name="$(basename "$crate")"; mkdir -p "/skel/$name/src"; cp "$crate/Cargo.toml" "/skel/$name/Cargo.toml"; : > "/skel/$name/src/lib.rs"; \
+    done
+
+FROM chef AS builder
+WORKDIR /src/clis
+COPY --from=planner /recipe.json /recipe.json
+COPY --from=planner /skel /src/libraries/agent-api
+# No --locked: the recipe's lockfile is cut to this binary's packages; the build below checks the real one.
+RUN --mount=type=cache,id=cargo-registry-t3,target=/usr/local/cargo/registry \
+    cargo chef cook --release --recipe-path /recipe.json -p t3-serve
+COPY --from=planner /src /src
+# Every source must be newer than the stub the cook layer compiled, or cargo keeps the stub.
+RUN --mount=type=cache,id=cargo-registry-t3,target=/usr/local/cargo/registry \
+    find /src/clis /src/libraries -not -path '/src/clis/target*' -name '*.rs' -exec touch {} + \
+    && cargo build --release --locked -p t3-serve --bin t3-serve \
     && cp target/release/t3-serve /t3-serve
 
 FROM debian:bookworm-slim AS runtime

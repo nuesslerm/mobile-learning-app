@@ -2,6 +2,7 @@
 use crate::{text, Repo};
 use agent_api_git::{HISTORY, REFS, STATUS, UPSTREAM_STATUS};
 use orca_core::wire::{Failure, RUNTIME_ERROR};
+use orca_core::AgentError;
 use serde_json::{json, Map, Value};
 
 const HISTORY_LIMIT: u64 = 50;
@@ -149,4 +150,26 @@ pub(crate) fn history(repo: &Repo, params: &Value) -> Result<Value, Failure> {
         }
     }
     Ok(result)
+}
+
+/// The schema of `git.remoteCommitUrl` in its key order: a selector, then a full object id (anything else reads as `''` and fails the pattern).
+pub(crate) fn check_commit_url(params: &Value) -> Result<(), Failure> {
+    text(params, "worktree").ok_or_else(|| Failure::invalid("Missing worktree selector"))?;
+    match params.get("sha").and_then(Value::as_str) {
+        Some(sha) if matches!(sha.len(), 40 | 64) && sha.bytes().all(|b| b.is_ascii_hexdigit()) => Ok(()),
+        _ => Err(Failure::invalid("Expected a full git object id")),
+    }
+}
+
+/// `git.remoteCommitUrl`: the forge's page of the commit from origin's fetch URL, or null. The host reads origin alone (no stand-in remote) with
+/// `git remote get-url` and answers null for any error git gives.
+pub(crate) fn remote_commit_url(repo: &Repo, params: &Value) -> Result<Value, Failure> {
+    let remotes = match repo.try_ask(orca_map_hosted::PR_REMOTES, json!({})) {
+        Ok(v) => v["remotes"].as_array().cloned().unwrap_or_default(),
+        Err(AgentError::Refused { code, .. }) if code != "UNKNOWN_WORKSPACE" => return Ok(Value::Null),
+        Err(other) => return Err(crate::refusal(other)),
+    };
+    let sha = params["sha"].as_str().unwrap_or_default();
+    let origin = remotes.iter().find(|r| r["name"] == "origin").and_then(|r| r["url"].as_str());
+    Ok(origin.and_then(|url| orca_map_hosted::hosted_commit_url(url, sha)).map_or(Value::Null, Value::from))
 }

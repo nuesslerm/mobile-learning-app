@@ -2,6 +2,7 @@ import { expectWarning, screen } from '@lib/flow-test-harness';
 import { liveTail } from '@lib/logging/liveTail';
 import { describe, expect, it, vi } from 'vitest';
 
+import { installCrashHandler } from '../../app-shell/crashHandler';
 import { appWithRoot as app } from './appWithRoot';
 
 type GlobalHandler = (error: unknown, isFatal?: boolean) => void;
@@ -44,5 +45,28 @@ describe('given the app shell with a native-style global error handler already s
     // Then it is logged with a plain message and the earlier handler still sees it
     expect(seenByEarlier).toEqual([boom, bare]);
     expect(crashes().slice(before)[2]?.context?.message).toBe('[object Object]');
+  });
+
+  it('when the web loader imports a split route that is not loaded yet, then the earlier handler gets the miss at once and no crash is logged', async () => {
+    // Given a global handler as the web runtime leaves it, with the crash handler installed over it
+    const seenByEarlier: unknown[] = [];
+    let handler: GlobalHandler = (error) => seenByEarlier.push(error);
+    installCrashHandler({
+      ErrorUtils: {
+        getGlobalHandler: () => handler,
+        setGlobalHandler: (next: GlobalHandler) => {
+          handler = next;
+        },
+      },
+    });
+    const before = crashes().length;
+
+    // When Metro reports a module whose chunk has not arrived, as a fatal error
+    const miss = new Error('Requiring unknown module "3885".');
+    handler(miss, true);
+
+    // Then the earlier handler has it before the call returns, so the loader's catch can fetch the chunk, and nothing is logged
+    expect(seenByEarlier).toEqual([miss]);
+    expect(crashes().length).toBe(before);
   });
 });

@@ -12,7 +12,8 @@ these hold, and asks the bucket nothing until the first three do:
   the local store has content
   the lockfile's sha256 differs from the one in the sidecar, or the object is
     missing (it expired by lifecycle)
-Needs both links (BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL).
+Needs both planes of the build cache stores (BUILD_CACHE_READ_STORES and
+BUILD_CACHE_WRITE_STORES, or the legacy BUILD_CACHE_*_PAR_URL); the object goes to every store.
 
 Any problem with the bucket is a cold run: exit 0. Only a step on this machine
 that failed (pnpm missing, tar failed) exits 1.

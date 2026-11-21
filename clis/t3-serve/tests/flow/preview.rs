@@ -1,7 +1,6 @@
 //! The `preview.*` rows and `subscribePreviewEvents` through the real router over the agent double: what a phone's call becomes (the `Op::Preview`
 //! the agent API is asked: snake_case, the phone's viewport and navigation in the contract's shape), what the phone is told (the snapshot with its
-//! own names), what rca does not offer (the server runtime, refused by name, nothing sent), and the stream from the cursor. The chain
-//! (`tests/integration/preview_m12.rs`) runs the same calls through the real service.
+//! own names), what rca does not offer (the server runtime, refused by name, nothing sent), and the stream from the cursor.
 use super::support::*;
 use t3_core::ports::{AgentError, Op};
 

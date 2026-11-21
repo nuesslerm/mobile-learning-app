@@ -1,15 +1,14 @@
 //! `wf check --deployed`: the verification of a deployed commit, first as a plan printed without any network, then tier by tier against
 //! fakes (the staged gate and the budget are in `pipeline`, the scan for dead references in `wf`). Repositories are real throwaway git;
-//! `pnpm`, `node`, `oci` and `gh` are argv-recording stubs; vm-ops-api and the services' health sit behind a fake tailnet, the bucket is a
-//! local server.
-use crate::support::{create_stub, ed25519_private_key_one_line, node_script, repo_root, run_wf, MockReply, MockServer, MockTailnet, RunOpts, RunResult, Upstream};
+//! `pnpm` and `gh` are argv-recording stubs; vm-ops-api and the services' health sit behind a fake tailnet, and `origin` is a bare
+//! repository that holds the state ref.
+use crate::support::{create_stub, ed25519_private_key_one_line, repo_root, run_wf, MockReply, MockServer, MockTailnet, RunOpts, RunResult, Upstream};
 use wf_vmops::testing::answers;
 use regex::Regex;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
+use std::process::Command;
 use std::time::Duration;
 
 fn git(dir: &Path, args: &[&str]) -> String {
@@ -90,8 +89,8 @@ fn a_deployed_commit_s_verification_plan_is_printed_from_the_paths_it_changed_wi
         [
             "tier 1: skipped (no code file changed)".to_string(),
             "eas update: skipped (no frontend change or --no-publish-eas)".to_string(),
-            "read tier 2 record: OCI verify/<sha>.tier2.json".to_string(),
-            format!("oci os object put verify/{sha}.json"),
+            "read tier 2 record: refs/wf/state verify/<sha>.tier2.json".to_string(),
+            format!("write verify/{sha}.json to refs/wf/state"),
             format!("on failure: append a fix unit to docs/plans/fix-{short}/units.jsonl"),
         ]
     );
@@ -100,8 +99,8 @@ fn a_deployed_commit_s_verification_plan_is_printed_from_the_paths_it_changed_wi
     // and the EAS flags (the last of publish and no-publish wins), the report, PR and timing options and an abbreviated sha are echoed
     assert!(steps(&l.dry(&["--publish-eas", "--eas-branch", "x", "--initial-route=/y"])).contains(&"eas update via publish:eas --branch x --initial-route /y".to_string()));
     assert!(steps(&l.dry(&["--publish-eas", "--no-publish-eas", "--skip-tier1"])).contains(&"eas update: skipped (no frontend change or --no-publish-eas)".to_string()));
-    has_all(&l.dry(&["--publish", "--pr", "12"]), &[format!("PUT report HTML to verification/verify/dev/{sha}/index.html"), "rewrite PR #12 description block".into()]);
-    assert!(steps(&l.dry_at(&sha[..10], &["--skip-tier1"])).contains(&format!("oci os object put verify/{sha}.json")));
+    has_all(&l.dry(&["--publish", "--pr", "12"]), &["write the report HTML to a local file".to_string(), "rewrite PR #12 description block".into()]);
+    assert!(steps(&l.dry_at(&sha[..10], &["--skip-tier1"])).contains(&format!("write verify/{sha}.json to refs/wf/state")));
 
     // Given a backend change, Then the app is health-gated, its e2e suite listed, and tier 1 runs on the package closure in a clean worktree
     l.land(&["backend/remote-chat-agent/src/a.md", "backend/api/src/index.ts"]);
@@ -114,7 +113,7 @@ fn a_deployed_commit_s_verification_plan_is_printed_from_the_paths_it_changed_wi
             format!("tier 1: git worktree add --detach <tmpdir>/wf-verify-tier1-* {short} (removed after)"),
             "tier 1: pnpm install --prefer-offline --frozen-lockfile".to_string(),
             "tier 1: typecheck: pnpm --filter @app/api run --if-present typecheck".to_string(),
-            format!("oci os object put verify/{}.tier1.json", l.sha),
+            format!("write verify/{}.tier1.json to refs/wf/state", l.sha),
             format!("GET remote-chat-agent /health until commit == {short} (timeout 1800000 ms, every 15000 ms)"),
             "sh: REMOTE_CHAT_AGENT_BASE_URL=\"${REMOTE_CHAT_AGENT_BASE_URL:-http://remote-chat-agent-prod:8787}\" pnpm --filter @app/remote-chat-agent run test:e2e".to_string(),
         ],
@@ -144,7 +143,7 @@ fn a_deployed_commit_s_verification_plan_is_printed_from_the_paths_it_changed_wi
             "tier 1: skipped (--skip-tier1)".into(),
             "mla-tamagui: no HTTP /health, not gated".into(),
             "eas update via publish:eas --branch dev --initial-route /".into(),
-            "read tier 1 + tier 2 records: OCI verify/<sha>.tier1.json, verify/<sha>.tier2.json".into(),
+            "read tier 1 + tier 2 records: refs/wf/state verify/<sha>.tier1.json, verify/<sha>.tier2.json".into(),
         ],
     );
 
@@ -183,36 +182,14 @@ fn a_deployed_commit_s_verification_plan_is_printed_from_the_paths_it_changed_wi
     assert!(real.stdout.contains("plan (dry run, no network)"));
 }
 
-/// The bucket: PUTs under /par/ are kept and GETs read them back, so a stored pointer is also what the public read link serves.
-const PAR_BUCKET: &str = r#"
-const http = require('node:http'); const fs = require('node:fs'); const path = require('node:path');
-const dir = process.argv[1];
-const s = http.createServer((q, r) => {
-  if (q.url.startsWith('/par/')) {
-    const chunks = [];
-    q.on('data', (c) => chunks.push(c));
-    q.on('end', () => {
-      const file = path.join(dir, q.url.slice(5).split('?')[0].replace(/\//g, '__'));
-      if (q.method === 'PUT') { fs.writeFileSync(file, Buffer.concat(chunks)); r.writeHead(200).end(); }
-      else if (fs.existsSync(file)) r.writeHead(200).end(fs.readFileSync(file));
-      else r.writeHead(404).end();
-    });
-    return;
-  }
-  r.writeHead(404).end();
-});
-s.listen(0, '127.0.0.1', () => console.log(s.address().port));
-"#;
-
-/// The landed range, the stubs (`oci` keeps objects by name, `gh` keeps a PR description, `pnpm` logs), the bucket, and
+/// The landed range, the stubs (`gh` keeps a PR description, `pnpm` logs), a bare `origin` for the state ref, and
 /// vm-ops-api plus the services' health behind a fake tailnet.
 struct Deployed {
     _root: tempfile::TempDir,
     repo: PathBuf,
     stubs: PathBuf,
-    par: PathBuf,
-    server: Child,
-    port: u16,
+    origin: PathBuf,
+    runner_temp: PathBuf,
     api: MockServer,
     vm_ops: MockServer,
     tailnet: MockTailnet,
@@ -220,28 +197,19 @@ struct Deployed {
     sha: String,
 }
 
-impl Drop for Deployed {
-    fn drop(&mut self) {
-        let _ = self.server.kill();
-        let _ = self.server.wait();
-    }
-}
-
 impl Deployed {
     fn new() -> Self {
         let root = tempfile::Builder::new().prefix("wf-flow-tier3-").tempdir().unwrap();
-        let (repo, stubs, par) = (root.path().join("repo"), root.path().join("stubs"), root.path().join("par"));
-        for dir in [&repo, &stubs, &par, &stubs.join("objs"), &stubs.join("bin")] {
+        let (repo, stubs, origin, runner_temp) = (root.path().join("repo"), root.path().join("stubs"), root.path().join("origin.git"), root.path().join("runner"));
+        for dir in [&repo, &stubs, &origin, &runner_temp, &stubs.join("bin")] {
             std::fs::create_dir_all(dir).unwrap();
         }
-        let mut server = node_script(PAR_BUCKET).arg(&par).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
-        let mut first = String::new();
-        BufReader::new(server.stdout.take().unwrap()).read_line(&mut first).unwrap();
-        let port: u16 = first.trim().parse().unwrap();
+        git(&origin, &["init", "--bare", "-q"]);
         let (api, vm_ops) = (MockServer::start(None), MockServer::start(None));
-        let tailnet = MockTailnet::start(Upstream::Map(HashMap::from([("remote-chat-agent-prod:8787".to_string(), api.port), ("vm-ops-api-main:8080".to_string(), vm_ops.port), (format!("127.0.0.1:{port}"), port)])));
-        let d = Self { _root: root, repo, stubs, par, server, port, api, vm_ops, tailnet, key: ed25519_private_key_one_line(), sha: String::new() };
+        let tailnet = MockTailnet::start(Upstream::Map(HashMap::from([("remote-chat-agent-prod:8787".to_string(), api.port), ("vm-ops-api-main:8080".to_string(), vm_ops.port)])));
+        let d = Self { _root: root, repo, stubs, origin, runner_temp, api, vm_ops, tailnet, key: ed25519_private_key_one_line(), sha: String::new() };
         git(&d.repo, &["init", "-q", "-b", "main"]);
+        git(&d.repo, &["remote", "add", "origin", d.origin.to_str().unwrap()]);
         put(&d.repo, "frontend/mla-tamagui/app.config.js", "module.exports = { extra: { eas: { projectId: 'proj-1' } } };\n");
         put(&d.repo, "package.json", &json!({ "name": "root", "private": true }).to_string());
         put(&d.repo, "pnpm-workspace.yaml", "packages:\n  - 'libraries/*'\n");
@@ -249,28 +217,12 @@ impl Deployed {
         git(&d.repo, &["add", "-A"]);
         git(&d.repo, &["commit", "-q", "-m", "base"]);
         let bin = d.stubs.join("bin");
-        create_stub(
-            &bin.join("oci"),
-            &[
-                "echo \"$@\" >> \"$STUB_DIR/oci.log\"",
-                "op=\"$3\"; name=\"\"; file=\"\"",
-                "while [ $# -gt 0 ]; do case \"$1\" in --name) name=\"$2\";; --file) file=\"$2\";; esac; shift; done",
-                "key=\"$STUB_DIR/objs/$(echo \"$name\" | tr / _)\"",
-                "if [ \"$op\" = put ]; then cp \"$file\" \"$key\"; exit 0; fi",
-                "if [ \"$op\" = get ]; then",
-                "  if [ -f \"$key\" ]; then cp \"$key\" \"$file\"; exit 0; fi",
-                "  echo '{\"status\": 404, \"code\": \"ObjectNotFound\"}' >&2; exit 1",
-                "fi",
-                "exit 0",
-            ]
-            .join("\n"),
-        );
         create_stub(&bin.join("gh"), &["printf \"%s\\n\" \"$@\" >> \"$STUB_DIR/gh.log\"", "case \"$*\" in *PATCH*) exit 0;; *) printf \"Old description\";; esac"].join("\n"));
         create_stub(&bin.join("pnpm"), &["if [ \"$1\" = ls ]; then printf '[{\"name\":\"@lib/core\",\"path\":\"%s/libraries/core\"}]' \"$PWD\"; exit 0; fi", "echo \"$@\" >> \"$STUB_DIR/pnpm.log\"", "exit ${PNPM_EXIT:-0}"].join("\n"));
         d
     }
 
-    /// Lands a commit carrying a `Unit:` trailer, with tier 2's record for it already in the bucket.
+    /// Lands a commit carrying a `Unit:` trailer, with tier 2's record for it already in the state ref.
     fn land(&mut self, rels: &[&str]) {
         for rel in rels {
             put(&self.repo, rel, &format!("{rel}\n"));
@@ -278,22 +230,32 @@ impl Deployed {
         git(&self.repo, &["add", "-A"]);
         git(&self.repo, &["commit", "-q", "-m", "land\n\nUnit: greenfield/p4-07"]);
         self.sha = git(&self.repo, &["rev-parse", "HEAD"]);
-        std::fs::write(self.stubs.join("objs").join(format!("verify_{}.tier2.json", self.sha)), json!({ "tier": 2, "status": "pass", "ms": 5, "items": [] }).to_string()).unwrap();
+        self.store(&format!("verify/{}.tier2.json", self.sha), &json!({ "tier": 2, "status": "pass", "ms": 5, "items": [] }).to_string());
+    }
+
+    /// A file of the state ref, written the way CI's jobs write it.
+    fn store(&self, key: &str, body: &str) {
+        crate::support::state_put(&self.repo, key, body);
+    }
+
+    fn stored(&self, key: &str) -> Option<String> {
+        let out = Command::new("git").args(["show", &format!("refs/wf/state:{key}")]).current_dir(&self.origin).output().unwrap();
+        out.status.success().then(|| String::from_utf8_lossy(&out.stdout).into_owned())
     }
 
     fn short(&self) -> &str {
         &self.sha[..7]
     }
 
-    /// The branch's latest-update pointer as CI stores it, readable at the bucket's public base.
+    /// The branch's latest-update pointer as CI stores it, under `eas/` of the state ref.
     fn store_pointer(&self, group: &str, commit: &str) {
         let pointer = json!({ "published": true, "branch": "dev", "commit": commit, "group": group, "link": format!("https://expo.dev/accounts/nuesslerm/projects/mla-tamagui/updates/{group}") });
-        std::fs::write(self.par.join("verification__eas-updates__latest-dev.json"), pointer.to_string()).unwrap();
+        self.store("eas/latest-dev.json", &pointer.to_string());
     }
 
     /// `wf check --deployed <sha> --base <sha>~1 <args>`, the services reporting `HEALTH_COMMIT` (the sha by default).
     fn verify(&self, args: &[&str], env: &[(&str, &str)]) -> RunResult {
-        for log in ["pnpm.log", "gh.log", "oci.log"] {
+        for log in ["pnpm.log", "gh.log"] {
             let _ = std::fs::remove_file(self.stubs.join(log));
         }
         let lookup = |key: &str| env.iter().find(|(k, _)| *k == key).map(|(_, v)| v.to_string());
@@ -310,10 +272,8 @@ impl Deployed {
             ("WF_TAILNET_SOCKS", self.tailnet.address()),
             ("VM_OPS_API_AUTH_TOKEN", "tok".into()),
             ("VM_GATEWAY_REQUEST_SIGNING_PRIVATE_KEY", self.key.clone()),
-            ("GOLDEN_SCREENSHOTS_BUCKET_URL_PREFIX", "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/ns1/b/shots/o/".into()),
-            ("VERIFICATION_ARTIFACTS_PAR_URL", format!("http://127.0.0.1:{}/par/", self.port)),
+            ("RUNNER_TEMP", self.runner_temp.display().to_string()),
             ("EXPO_TOKEN", "expo-tok".into()),
-            ("VERIFICATION_ARTIFACTS_READ_URL", format!("http://127.0.0.1:{}/par", self.port)),
         ];
         let mut opts = RunOpts::default().bin_dir(&self.stubs.join("bin")).cwd(&self.repo).clean_env().timeout(Duration::from_secs(180));
         for (key, value) in &defaults {
@@ -330,12 +290,12 @@ impl Deployed {
     }
 
     fn object(&self, key: &str) -> Value {
-        serde_json::from_str(&std::fs::read_to_string(self.stubs.join("objs").join(key.replace('/', "_"))).unwrap()).unwrap()
+        serde_json::from_str(&self.stored(key).unwrap_or_else(|| panic!("{key} is not in the state ref"))).unwrap()
     }
 }
 
 #[test]
-fn a_deployed_commit_is_verified_tier_by_tier_reported_to_the_bucket_and_the_pr_and_a_failure_leaves_a_fix_unit() {
+fn a_deployed_commit_is_verified_tier_by_tier_reported_to_the_state_ref_and_the_pr_and_a_failure_leaves_a_fix_unit() {
     let mut d = Deployed::new();
 
     // Given a landed frontend and backend range that is deployed, and CI's pointer naming the latest update of dev
@@ -343,14 +303,15 @@ fn a_deployed_commit_is_verified_tier_by_tier_reported_to_the_bucket_and_the_pr_
     d.store_pointer("g-7", "0123456789abcdef");
     // When it is verified with --publish and --pr
     let r = d.verify(&["--skip-tier1", "--publish", "--pr", "7", "--gate-timeout", "30", "--poll", "1"], &[]);
-    // Then every tier reports, the report lands in the bucket with its HTML, and the PR's verify block is rewritten
+    // Then every tier reports, the report lands in the state ref with its HTML beside it in a local file, and the PR's verify block is rewritten
     assert!(!r.stderr.contains("rejected"), "{}", r.stderr);
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
     let sha = d.sha.clone();
-    for part in ["changed apps: remote-chat-agent, mla-tamagui", "tier 1: skip", "tier 2: pass", "tier 3: pass", &format!("report: oci verify/{sha}.json")] {
+    for part in ["changed apps: remote-chat-agent, mla-tamagui", "tier 1: skip", "tier 2: pass", "tier 3: pass", &format!("report: state verify/{sha}.json")] {
         assert!(r.stdout.contains(part), "{part}: {}", r.stdout);
     }
-    assert!(r.stdout.contains(&format!("report html: https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/verify/dev/{sha}/index.html")));
+    let page = d.runner_temp.join("verify").join(&sha).join("index.html");
+    assert!(r.stdout.contains(&format!("report html: {}", page.display())), "{}", r.stdout);
     let report = d.object(&format!("verify/{sha}.json"));
     assert_eq!((report["sha"].clone(), report["units"].clone()), (json!(sha), json!(["greenfield/p4-07"])));
     assert_eq!(report["tiers"].as_array().unwrap().iter().map(|t| t["status"].as_str().unwrap()).collect::<Vec<_>>(), ["skip", "pass", "pass"]);
@@ -364,15 +325,11 @@ fn a_deployed_commit_is_verified_tier_by_tier_reported_to_the_bucket_and_the_pr_
     let pnpm = d.log("pnpm");
     assert!(pnpm.contains("--filter @app/remote-chat-agent run test:e2e"), "{pnpm}");
     assert!(pnpm.contains(&format!("--filter mla-tamagui run publish:eas -- --initial-route / --branch dev --message dev@{} tier 3", &sha[..8])), "{pnpm}");
-    let pointer = "verification__eas-updates__latest-dev.json";
-    let mut put_files: Vec<String> = std::fs::read_dir(&d.par).unwrap().flatten().map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n != pointer).collect();
-    put_files.sort();
-    let mut expected = vec![format!("verification__verify__dev__{sha}__index.html"), format!("verification__verify__dev__{sha}__report.json"), "verification__verify__index.html".to_string(), "verification__verify__index.json".to_string()];
-    expected.sort();
-    assert_eq!(put_files, expected);
     // and CI's pointer to the latest update is read, never rewritten
-    assert_eq!(serde_json::from_str::<Value>(&std::fs::read_to_string(d.par.join(pointer)).unwrap()).unwrap()["group"], json!("g-7"));
-    let html = std::fs::read_to_string(d.par.join(format!("verification__verify__dev__{sha}__index.html"))).unwrap();
+    assert_eq!(d.object("eas/latest-dev.json")["group"], json!("g-7"));
+    assert_eq!(d.stored(&format!("verify/{sha}.json")).map(|t| serde_json::from_str::<Value>(&t).unwrap()["sha"].clone()), Some(json!(sha)));
+    assert_eq!(serde_json::from_str::<Value>(&std::fs::read_to_string(d.runner_temp.join("verify").join(&sha).join("report.json")).unwrap()).unwrap()["sha"], json!(sha));
+    let html = std::fs::read_to_string(&page).unwrap();
     for part in [format!("Verify dev@{}", &sha[..8]), "<a href=\"https://expo.dev/accounts/nuesslerm/projects/mla-tamagui/updates/g-7\">Open the update</a>".into(), "<code>exp://u.expo.dev/proj-1/group/g-7</code>".into(), "built from <code>01234567</code>".into()] {
         assert!(html.contains(&part), "{part}: {html}");
     }
@@ -395,15 +352,16 @@ fn a_deployed_commit_is_verified_tier_by_tier_reported_to_the_bucket_and_the_pr_
     assert!(d.vm_ops.requests().is_empty(), "{:?}", d.vm_ops.requests());
 
     // Given no pointer is stored, Then the PR block says no update is published for the commit
-    std::fs::remove_file(d.par.join(pointer)).unwrap();
+    git(&d.origin, &["update-ref", "-d", "refs/wf/state"]);
     let r = d.verify(&["--skip-tier1", "--pr", "7", "--gate-timeout", "30", "--poll", "1"], &[]);
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
     assert!(d.log("gh").contains("**Try it:** no update published for this commit"), "{}", d.log("gh"));
     assert_eq!(d.object(&format!("verify/{sha}.json"))["update"], Value::Null);
-    // and when the bucket cannot be read at all, Then it says so instead of claiming there is none
-    let r = d.verify(&["--skip-tier1", "--pr", "7", "--gate-timeout", "30", "--poll", "1"], &[("VERIFICATION_ARTIFACTS_READ_URL", "http://127.0.0.1:1/par"), ("WF_EAS_POINTER_BACKOFF_MS", "1")]);
+    // and when the pointer cannot be read, Then it says so instead of claiming there is none
+    d.store("eas/latest-dev.json", "<html>");
+    let r = d.verify(&["--skip-tier1", "--pr", "7", "--gate-timeout", "30", "--poll", "1"], &[]);
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
-    assert!(d.log("gh").contains("**Try it:** update link unavailable (cannot read http://127.0.0.1:1/par/verification/eas-updates/latest-dev.json"), "{}", d.log("gh"));
+    assert!(d.log("gh").contains("**Try it:** update link unavailable (eas/latest-dev.json is not JSON"), "{}", d.log("gh"));
 
     // Given no EXPO_TOKEN for a frontend change, Then the EAS update is skipped with a note
     d.land(&["frontend/mla-tamagui/app/settings.tsx"]);
@@ -452,7 +410,7 @@ fn a_deployed_commit_is_verified_tier_by_tier_reported_to_the_bucket_and_the_pr_
     assert!(pnpm.contains("install --prefer-offline --frozen-lockfile") && pnpm.contains("--filter @lib/core run --if-present typecheck"), "{pnpm}");
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
     assert!(r.stdout.contains("tier 1: pass"));
-    assert!(d.log("oci").contains(&format!("--name verify/{}.tier1.json", d.sha)));
+    assert_eq!(d.object(&format!("verify/{}.tier1.json", d.sha))["status"], json!("pass"));
     assert_eq!(git(&d.repo, &["worktree", "list"]).lines().count(), 1);
     // and a failing install fails tier 1 with its exit code
     let r = d.verify(&["--gate-timeout", "30", "--poll", "1"], &[("PNPM_EXIT", "3")]);

@@ -1,6 +1,6 @@
 //! The `agent.threads` group (`agent-api-agent`): the eight methods over the thread engine. `thread.*` read and write the engine's log through
 //! its port, `thread.subscribe` follows it, and `turn.start` runs an agent CLI whose file and shell tools are off and whose only tool server
-//! is the thread's workspace executor (`command_for_remote`), recording what the CLI does as the thread's events.
+//! runs at the thread's workspace host (`command_for_host`), recording what the CLI does as the thread's events.
 use crate::port::{NewThread, ThreadEngine};
 use crate::staging::AttachmentStaging;
 use crate::refusal::{respond, to_value, Answer, Refusal};
@@ -9,10 +9,9 @@ use agent_api_agent::{self as threads, message, CreateParams, GetParams, History
 use agent_api_proto::{thread_topic, GroupName, Response};
 use async_trait::async_trait;
 use rca_agent_core::{Call, Group, Served};
-use rca_cli_driver::application::ports::Spawner;
+use crate::host::CliLauncher;
 use rca_exec_channel::Executors;
 use serde_json::Value;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 pub const SERVED: [Served; 8] = [
@@ -23,7 +22,7 @@ pub const SERVED: [Served; 8] = [
     Served::service(threads::THREAD_HISTORY, &[]),
     Served::service(threads::THREAD_TRANSCRIPT, &[]),
     // Every row that starts a turn takes the checkpoint (`checkpoint::take`); the recorded exchange of this one is the contract's evidence
-    Served::cli(threads::TURN_START, &[exec_git::GIT_CHECKPOINT]),
+    Served::cli(threads::TURN_START, &[rca_exec_channel::CLI_DETECT, exec_git::GIT_CHECKPOINT]),
     Served::cli(threads::TURN_INTERRUPT, &[]),
 ];
 
@@ -36,8 +35,8 @@ pub struct AgentThreadsGroup {
 }
 
 impl AgentThreadsGroup {
-    pub fn new(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, spawner: Arc<dyn Spawner>, mcp: Arc<dyn McpEndpoint>, cli_cwd: PathBuf) -> AgentThreadsGroup {
-        AgentThreadsGroup { runner: Runner::new(engine, executors, spawner, mcp, cli_cwd), staging: None }
+    pub fn new(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, launcher: Arc<dyn CliLauncher>, mcp: Arc<dyn McpEndpoint>) -> AgentThreadsGroup {
+        AgentThreadsGroup { runner: Runner::new(engine, executors, launcher, mcp), staging: None }
     }
 
     /// The group over a runner the other groups of the thread surface share, so a turn it starts is one they can steer, stop and queue after.
@@ -118,6 +117,7 @@ impl AgentThreadsGroup {
         let thread = self.thread(&p.thread)?;
         let input = TurnInput { workspace: p.workspace.clone(), driver: p.driver.clone(), model: p.model.clone(), prompt: p.prompt.clone(), runtime_mode: p.runtime_mode.clone(), interaction_mode: p.interaction_mode.clone() };
         let mut prepared = self.runner.prepare(&p.thread, &Known::of(&thread), None, input)?;
+        prepared.require_cli().await?;
         if let Some(staging) = self.staging.as_ref().filter(|_| !ids.is_empty()) {
             prepared.note_files(&staging.stage(&p.workspace, &ids).await?);
         }
@@ -216,10 +216,23 @@ mod tests {
     }
 
     fn rig() -> Rig {
+        rig_with(&["opencode", "claude", "codex"])
+    }
+
+    /// A rig whose executor has the named CLIs and answers every other action with an empty result.
+    fn rig_with(installed: &'static [&'static str]) -> Rig {
         let (engine, spawner, executors) = (Arc::new(MemoryThreads::default()), ScriptedSpawner::new(), Arc::new(Registry::default()));
-        let channel = ScriptedChannel::new(|_, _| Ok(ActionOutput { result: json!({}), output: String::new() }));
+        let channel = ScriptedChannel::new(move |tool, args| {
+            let result = if tool == "cli_detect" {
+                let asked = args["programs"].as_array().cloned().unwrap_or_default();
+                json!({"clis": asked.iter().filter_map(|p| p.as_str()).map(|p| json!({"program": p, "installed": installed.contains(&p)})).collect::<Vec<_>>()})
+            } else {
+                json!({})
+            };
+            Ok(ActionOutput { result, output: String::new() })
+        });
         executors.open("w1", channel.clone() as Arc<dyn ExecutorChannel>).unwrap();
-        let group = AgentThreadsGroup::new(engine.clone(), executors.clone(), spawner.clone(), Arc::new(Mcp), PathBuf::from("/srv/rca"));
+        let group = AgentThreadsGroup::new(engine.clone(), executors.clone(), Arc::new(crate::host::Fixed(spawner.clone())), Arc::new(Mcp));
         Rig { api: AgentApi::new(vec![Arc::new(group)]).unwrap(), engine, spawner, executors, channel }
     }
 
@@ -323,15 +336,13 @@ mod tests {
             params.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
             params
         };
-        // When a turn names a driver nobody runs, Codex (which cannot use the executor yet), a workspace with no executor, and an attachment
+        // When a turn names a driver nobody runs, a workspace with no executor, and an attachment
         let unknown = rig.ask("turn.start", turn("nobody", "w1", json!({}))).await;
-        let codex = rig.ask("turn.start", turn("codex", "w1", json!({}))).await;
         let away = rig.ask("turn.start", turn("claudeAgent", "w9", json!({}))).await;
         let attached = rig.ask("turn.start", turn("claudeAgent", "w1", json!({"attachments": ["a1"]}))).await;
-        // Then the codes are UNKNOWN_DRIVER (twice), NO_EXECUTOR and INVALID_PARAMS, with the contract's messages where it has them
-        assert_eq!([code_of(&unknown), code_of(&codex), code_of(&away), code_of(&attached)], [json!("UNKNOWN_DRIVER"), json!("UNKNOWN_DRIVER"), json!("NO_EXECUTOR"), json!("INVALID_PARAMS")]);
+        // Then the codes are UNKNOWN_DRIVER, NO_EXECUTOR and INVALID_PARAMS, with the contract's messages where it has them
+        assert_eq!([code_of(&unknown), code_of(&away), code_of(&attached)], [json!("UNKNOWN_DRIVER"), json!("NO_EXECUTOR"), json!("INVALID_PARAMS")]);
         assert_eq!(unknown["error"]["message"], json!("no driver named nobody"));
-        assert!(codex["error"]["message"].as_str().unwrap().starts_with("no driver named codex: codex cannot use the executor channel"), "{codex}");
         assert_eq!(away["error"]["message"], json!("no executor is attached for workspace w9"));
         // And nothing ran and nothing was recorded
         assert!(rig.spawner.spawned().is_empty());
@@ -355,7 +366,7 @@ mod tests {
         let (engine, spawner, executors) = (Arc::new(MemoryThreads::default()), ScriptedSpawner::new(), Arc::new(Registry::default()));
         let channel = ScriptedChannel::new(|_, _| Ok(ActionOutput { result: json!({}), output: String::new() }));
         executors.open("w1", channel.clone() as Arc<dyn ExecutorChannel>).unwrap();
-        let group = AgentThreadsGroup::new(engine.clone(), executors.clone(), spawner.clone(), Arc::new(Mcp), PathBuf::from("/srv/rca")).with_staging(staging);
+        let group = AgentThreadsGroup::new(engine.clone(), executors.clone(), Arc::new(crate::host::Fixed(spawner.clone())), Arc::new(Mcp)).with_staging(staging);
         Rig { api: AgentApi::new(vec![Arc::new(group)]).unwrap(), engine, spawner, executors, channel }
     }
 
@@ -416,7 +427,7 @@ mod tests {
         assert_eq!(events[8].data["reason"], json!("completed"));
         // And the CLI was started in the service's directory with the thread's own tool server and the thread's default model
         let spawned = rig.spawner.spawned();
-        assert_eq!((spawned.len(), spawned[0].cwd.clone()), (1, PathBuf::from("/srv/rca")));
+        assert_eq!(spawned.len(), 1);
         let args = &spawned[0].args;
         assert!(args.iter().any(|a| a.contains("http://127.0.0.1:1/mcp/t")) && args.windows(2).any(|w| w == ["--model", "default-model"]), "{args:?}");
         // And the thread is no longer bound to the executor, so its tool server resolves to none
@@ -491,6 +502,25 @@ mod tests {
         let errors: Vec<(Value, Value)> = events.iter().filter(|e| e.kind == "error").map(|e| (e.data["code"].clone(), e.data["message"].clone())).collect();
         assert_eq!(errors, [(json!("CLI_START_FAILED"), json!("claude could not start: not found")), (json!("CLI_ERROR"), json!("exited with 1: not logged in"))]);
         assert_eq!(events.iter().filter(|e| e.kind == "turn.finished").map(|e| e.data["reason"].clone()).collect::<Vec<_>>(), [json!("failed"), json!("failed")]);
+    }
+
+    #[tokio::test]
+    async fn given_an_executor_without_claude_when_a_turn_names_claude_code_then_it_is_refused_naming_the_cli_nothing_is_recorded_and_a_present_cli_still_runs() {
+        // Given an executor that has codex but not claude
+        let rig = rig_with(&["codex"]);
+        rig.create("t").await;
+        rig.spawner.script("codex", CliScript { lines: vec![], ..CliScript::default() });
+        // When a turn names claude code
+        let refused = rig.start("t").await;
+        // Then it is refused up front naming the CLI, no CLI was spawned, the log is empty and the thread is free
+        assert_eq!(refused["error"], json!({"code": "CLI_NOT_INSTALLED", "message": "claude is not installed on the executor of workspace w1"}));
+        assert!(rig.engine.events_of("t").is_empty() && rig.spawner.kills() == 0);
+        // When a turn names the CLI it has
+        let started = rig.ask("turn.start", json!({"thread": "t", "workspace": "w1", "driver": "codex", "prompt": "p"})).await;
+        rig.wait_idle("t").await;
+        // Then it runs
+        assert!(started["result"]["turn"].is_string(), "{started}");
+        assert!(rig.kinds("t").contains(&"turn.started".to_string()));
     }
 
     #[tokio::test]

@@ -24,7 +24,7 @@ worked.
 The bundle is gone (the JS bundle and every TypeScript command were removed from `wf`; it is now the Rust
 CLI under `clis/wf/`). `/usr/local/bin/wf` is now a symlink to `/opt/clis/current/wf`
 (`infra/oracle-cloud/agent-shell/Dockerfile:174`), the VM's one build on the `clis` volume, which
-`docker-compose.prod.yml` mounts read-only. `.github/workflows/clis.yml` (the `clis` job of `deploy.yml`)
+`docker-compose.prod.yml` mounts read-only. `.github/workflows/clis.yml` (the `clis` job of `pipeline.yml`)
 writes that build through `.github/actions/install-wf` for every push to `dev` whose `plan` job succeeded
 and whose `flow-tests` and `typecheck-lint-unit-tests` jobs did not fail; a push with red tests leaves
 `/opt/clis/current` on the previous build. What remains is narrower: the global `wf` is the `dev` trunk's
@@ -49,7 +49,7 @@ wrapper that prefers the active checkout's binary when one exists. Until then ca
 
 The baked bundle is gone: `infra/oracle-cloud/agent-shell/Dockerfile:174` links `/usr/local/bin/wf` to
 `/opt/clis/current/wf`, and only the `clis` job moves `current` (`.github/workflows/clis.yml:27-29`,
-`.github/actions/install-wf/action.yml:55`, gated at `.github/workflows/deploy.yml:213`). The one check is
+`.github/actions/install-wf/action.yml:55`, gated in `.github/workflows/pipeline.yml`). The one check is
 that job's step at `clis.yml:33`, which asserts `current/wf build-sha` equals the pushed `clis/` tree; no test
 checks which build agent-shell's `wf` resolves to, and `infra/oracle-cloud/agent-shell/e2e-wf-smoke.sh:22-37`,
 run by hand, only checks `wf --help`. Still failing: the login PATH (`infra/oracle-cloud/agent-shell/entrypoint.sh:182`)
@@ -76,3 +76,5 @@ Out of date above:
 
 - `clis/wf/src/main.rs:161` (unknown command): the eprintln is now at clis/wf-kit/src/cli.rs:95.
 - The workaround should note that, since 3002218c6 (20 Oct), the owner rule forbids running `wf android lease` by hand. The vm_exec.rs:480 route is now reached only by tooling, not by an agent following the docs.
+
+Update 2026-11-13: the VM runner and its `clis-sync` container are gone and CI runs hosted, so no job writes the `clis` volume any more: `/opt/clis/current` stays on the cloud-init `bootstrap` build until another writer exists. The `clis` job still publishes the `wf-latest` release; agent-shell's global `wf` follows it only if something installs it.

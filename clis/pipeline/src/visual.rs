@@ -399,12 +399,12 @@ fn judge_prompt(screenshot: &str, acceptance: &str) -> String {
     .join("\n")
 }
 
-/// One vision judge: `wf offload ask` pinned to the seat's model on the `judge:vision` shape, read-only, in the repo.
+/// One vision judge: `wf rca ask` pinned to the seat's model on the `judge:vision` shape, read-only, in the repo.
 fn dispatch_judge(repo: &Path, screenshot: &str, acceptance: &str, seat: &Seat) -> Verdict {
     let exe = std::env::current_exe().map_or_else(|_| "wf".to_string(), |p| p.to_string_lossy().into_owned());
     // The judge runs on the rca service, which has no access to this filesystem: the screenshot goes along, staged under a name the prompt uses.
     let staged = format!("screenshots/{}", Path::new(screenshot).file_name().map_or_else(|| "screen.png".into(), |n| n.to_string_lossy().into_owned()));
-    let args: Vec<String> = ["offload", "ask", "--prompt"]
+    let args: Vec<String> = ["rca", "ask", "--prompt"]
         .iter()
         .map(|s| s.to_string())
         .chain([

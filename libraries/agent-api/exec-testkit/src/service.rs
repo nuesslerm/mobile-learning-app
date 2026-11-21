@@ -14,6 +14,7 @@ use std::time::{Duration, Instant};
 pub const ENV_BIN: &str = "RCA_SERVICE_BIN";
 
 /// How long the service may take to answer `/health` after it starts.
+const BIND_ATTEMPTS: usize = 5;
 const START_WAIT: Duration = Duration::from_secs(60);
 
 /// `<target>/<profile>/deps/<test binary>` is where a test runs from, so the target directory is three levels up.
@@ -62,10 +63,12 @@ pub struct RcaService {
     addr: SocketAddr,
     secret: String,
     home: tempfile::TempDir,
+    path: OsString,
+    env: Vec<(String, String)>,
 }
 
 /// One HTTP exchange with `Connection: close`: the status and the JSON body (null when there is none).
-fn http(addr: SocketAddr, method: &str, path: &str, headers: &[(&str, &str)], body: &str) -> std::io::Result<(u16, Value)> {
+pub(crate) fn http(addr: SocketAddr, method: &str, path: &str, headers: &[(&str, &str)], body: &str) -> std::io::Result<(u16, Value)> {
     let mut stream = TcpStream::connect_timeout(&addr, Duration::from_secs(2))?;
     stream.set_read_timeout(Some(Duration::from_secs(10)))?;
     let mut request = format!("{method} {path} HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\nContent-Length: {}\r\n", body.len());
@@ -73,11 +76,31 @@ fn http(addr: SocketAddr, method: &str, path: &str, headers: &[(&str, &str)], bo
         request.push_str(&format!("{name}: {value}\r\n"));
     }
     stream.write_all(format!("{request}\r\n{body}").as_bytes())?;
-    let mut raw = String::new();
-    stream.read_to_string(&mut raw)?;
+    let raw = read_response(&mut stream)?;
     let (head, body) = raw.split_once("\r\n\r\n").unwrap_or((&raw, ""));
     let status = head.split(' ').nth(1).and_then(|s| s.parse().ok()).unwrap_or(0);
     Ok((status, serde_json::from_str(body).unwrap_or(Value::Null)))
+}
+
+/// Reads one response: up to its `Content-Length` when it names one (a server may keep the connection open despite `Connection: close`,
+/// as opencode 1.19.0 does for its static pages), else until the server closes it.
+fn read_response(stream: &mut TcpStream) -> std::io::Result<String> {
+    let mut raw = Vec::new();
+    let mut chunk = [0u8; 8192];
+    loop {
+        if let Some(end) = raw.windows(4).position(|w| w == b"\r\n\r\n") {
+            let head = String::from_utf8_lossy(&raw[..end]).to_ascii_lowercase();
+            let length = head.lines().find_map(|l| l.strip_prefix("content-length:")).and_then(|v| v.trim().parse::<usize>().ok());
+            if length.is_some_and(|n| raw.len() >= end + 4 + n) {
+                break;
+            }
+        }
+        match stream.read(&mut chunk)? {
+            0 => break,
+            n => raw.extend_from_slice(&chunk[..n]),
+        }
+    }
+    Ok(String::from_utf8_lossy(&raw).into_owned())
 }
 
 impl RcaService {
@@ -89,35 +112,77 @@ impl RcaService {
 
     /// `start`, with the environment variables `env` set as well (such as the address of the model API the service writes commit messages with).
     pub fn start_with_env(secret: &str, path: &OsString, env: &[(&str, &str)]) -> RcaService {
+        // The port is chosen by binding port 0 and letting go of it, so another process (a test starting beside this one, a client's own
+        // ephemeral port) can take it before the service binds: that is a lost race for the port, not a failure of the service, and a new
+        // port settles it. Nothing else is tried again.
+        for _ in 0..BIND_ATTEMPTS {
+            match RcaService::try_start(secret, path, env) {
+                Ok(service) => return service,
+                Err(log) if log.contains("server.bind.failed") => continue,
+                Err(log) => panic!("{log}"),
+            }
+        }
+        panic!("rca-service could not bind a free port in {BIND_ATTEMPTS} attempts")
+    }
+
+    /// One start: the service, or what went wrong as text (the service's log when it ended before it served).
+    fn try_start(secret: &str, path: &OsString, env: &[(&str, &str)]) -> Result<RcaService, String> {
         let port = TcpListener::bind("127.0.0.1:0").and_then(|l| l.local_addr()).expect("a free port").port();
         let home = tempfile::Builder::new().prefix("rca-service-home-").tempdir().expect("a home for the service");
-        let log = std::fs::File::create(home.path().join("service.log")).expect("a log file");
-        let child = Command::new(binary())
+        let env: Vec<(String, String)> = env.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+        let child = RcaService::spawn(secret, path, &env, port, home.path(), false);
+        let addr = SocketAddr::from(([127, 0, 0, 1], port));
+        let mut service = RcaService { child, addr, secret: secret.to_string(), home, path: path.clone(), env };
+        let deadline = Instant::now() + START_WAIT;
+        loop {
+            if let Ok(Some(status)) = service.child.try_wait() {
+                return Err(format!("rca-service ended with {status} before it served /health:\n{}", service.logs()));
+            }
+            if http(addr, "GET", "/health", &[], "").is_ok_and(|(status, _)| status == 200) {
+                return Ok(service);
+            }
+            if Instant::now() >= deadline {
+                return Err(format!("rca-service did not serve /health within {START_WAIT:?}:\n{}", service.logs()));
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    }
+
+    /// One process of the service over `home` on `port`, its output appended to the home's `service.log`.
+    fn spawn(secret: &str, path: &OsString, env: &[(String, String)], port: u16, home: &Path, append: bool) -> Child {
+        let log = std::fs::OpenOptions::new().create(true).write(true).append(append).truncate(!append).open(home.join("service.log")).expect("a log file");
+        Command::new(binary())
             .env_clear()
             .env("PATH", path)
-            .env("HOME", home.path())
+            .env("HOME", home)
             // the directory a CLI of a turn starts in: the service's own, as no workspace of the service is a model's to work in
-            .env("RCA_EXEC_ROOT", home.path())
-            .env("RCA_PROVIDERS_ROOT", home.path().join("providers"))
+            .env("RCA_EXEC_ROOT", home)
+            .env("RCA_PROVIDERS_ROOT", home.join("providers"))
             .env("PORT", port.to_string())
             .env("CHAT_AGENT_API_SECRET", secret)
-            .envs(env.iter().copied())
+            .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
             .stdin(Stdio::null())
             .stdout(log.try_clone().expect("a log handle"))
             .stderr(log)
             .spawn()
-            .expect("rca-service starts");
-        let addr = SocketAddr::from(([127, 0, 0, 1], port));
-        let mut service = RcaService { child, addr, secret: secret.to_string(), home };
+            .expect("rca-service starts")
+    }
+
+    /// Ends the service as a crash does (killed, no shutdown) and starts it again over the same home on the same port, returning once `/health`
+    /// answers. What the service kept on its volume (threads, bearers) is there again; the connections to it are not.
+    pub fn restart(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+        self.child = RcaService::spawn(&self.secret, &self.path, &self.env, self.addr.port(), self.home.path(), true);
         let deadline = Instant::now() + START_WAIT;
         loop {
-            if let Ok(Some(status)) = service.child.try_wait() {
-                panic!("rca-service ended with {status} before it served /health:\n{}", service.logs());
+            if let Ok(Some(status)) = self.child.try_wait() {
+                panic!("rca-service ended with {status} before it served /health again:\n{}", self.logs());
             }
-            if http(addr, "GET", "/health", &[], "").is_ok_and(|(status, _)| status == 200) {
-                return service;
+            if http(self.addr, "GET", "/health", &[], "").is_ok_and(|(status, _)| status == 200) {
+                return;
             }
-            assert!(Instant::now() < deadline, "rca-service did not serve /health within {START_WAIT:?}:\n{}", service.logs());
+            assert!(Instant::now() < deadline, "rca-service did not serve /health again within {START_WAIT:?}:\n{}", self.logs());
             std::thread::sleep(Duration::from_millis(50));
         }
     }
@@ -173,5 +238,31 @@ mod tests {
         // And a name that is no file stops the run saying which variable
         let stopped = std::panic::catch_unwind(|| resolve(Some(dir.path().join("missing").into_os_string()), PathBuf::new)).unwrap_err();
         assert!(stopped.downcast_ref::<String>().is_some_and(|message| message.contains("RCA_SERVICE_BIN=") && message.contains("is no file")));
+    }
+}
+
+#[cfg(test)]
+mod http_tests {
+    use super::*;
+
+    #[test]
+    fn given_a_server_that_keeps_the_connection_open_after_a_content_length_response_when_probed_then_the_status_returns_at_once() {
+        // Given a stand-in that answers `GET /app` with a Content-Length and then holds the socket open, as opencode 1.19.0 does
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        let held = std::thread::spawn(move || {
+            let (mut conn, _) = listener.accept().unwrap();
+            let mut buf = [0u8; 1024];
+            let _ = conn.read(&mut buf);
+            conn.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 6\r\n\r\n<html>").unwrap();
+            std::thread::sleep(Duration::from_secs(15));
+        });
+        // When it is probed
+        let started = Instant::now();
+        let result = http(addr, "GET", "/app", &[], "");
+        // Then the status comes back without waiting for the socket to close
+        assert_eq!(result.unwrap().0, 200);
+        assert!(started.elapsed() < Duration::from_secs(5), "{:?}", started.elapsed());
+        drop(held);
     }
 }

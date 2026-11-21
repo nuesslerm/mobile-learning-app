@@ -23,11 +23,18 @@ inputs = ["../../docs/plans/rca-parity/coverage/orca-methods.json", "../../docs/
 # The integration chain (tests/integration.rs) runs the built binaries orca-serve, rca-service and rca-exec against each other, and the scripted CLI
 # that exec-testkit builds from its own workspace: a change to any of the last three reruns it, and so does a change to the methods list it
 # names its rows from and to the recorded bundle it serves. The `wf-mimic` binary replays that bundle against map-mobile's example driver
-# (tests/integration/mimic_x2.rs), whose run record carries the clean diff `wf parity coverage` counts a mimic-backed row for. The Orca oracle
+# (tests/integration/mimic_x2.rs), whose run record carries the clean diff `wf mimic coverage` counts a mimic-backed row for. The Orca oracle
 # (tests/integration/mimic_x6.rs) runs the `orca` driver of tooling/mimic-drivers under Node against orca-serve and a scripted host double, over cassettes/.
 [package.metadata.integration]
 uses = ["rca-service", "rca-exec", "exec-testkit", "wf-mimic", "mimic-core"]
 inputs = ["../../docs/plans/rca-parity/coverage/orca-methods.json", "map-mobile/fixtures/orca-mobile-bundle/**", "map-mobile/examples/**", "cassettes/**", "../../tooling/mimic-drivers/src/**", "../../tooling/orca-conformance/orca-pin.json", "../../tooling/mimic-drivers/package.json", "../../pnpm-lock.yaml"]
+# `evidence`: while the Orca table has pending rows, this chain is planned on every push, since its trace bundle is what serves them (`wf ci plan tests`).
+evidence = "orca"
+
+# The recorded sets replayed by feature (tests/integration/replay_features.rs): each mapping crate names its rows in its own
+# `[package.metadata.integration.replay]`, and `wf test plan` makes one Nx task of each, `replay-<crate>`, instead of one replay of everything.
+[package.metadata.integration.replay]
+sets = ["orca-v1.4.259-recorded", "orca-v1.4.259-crawl"]
 
 [features]
 testing = ["orca-core/testing", "orca-crypto/testing", "orca-map-mobile/testing"]
@@ -46,6 +53,7 @@ orca-map-accounts = { path = "map-accounts" }
 orca-map-state = { path = "map-state" }
 orca-map-hosted = { path = "map-hosted" }
 orca-map-schedules = { path = "map-schedules" }
+orca-map-browser = { path = "map-browser" }
 sha2 = "0.10"
 libc = "0.2"
 agent-api-client = { path = "../../libraries/agent-api/agent-api-client" }
@@ -56,11 +64,15 @@ serde_json = { version = "1", features = ["preserve_order"] }
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 
 [dev-dependencies]
+toml = { version = "0.8", default-features = false, features = ["parse"] }
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 orca-serve = { path = ".", features = ["testing"] }
 agent-api-terminal = { path = "../../libraries/agent-api/agent-api-terminal" }
 exec-testkit = { path = "../../libraries/agent-api/exec-testkit" }
-mimic-core = { path = "../mimic/core" }
+mimic-core = { version = "0.1.2", registry = "mla" }
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 tempfile = "3"
 base64 = "0.22"
+
+[package.metadata.arch]
+type = "cli-crate"

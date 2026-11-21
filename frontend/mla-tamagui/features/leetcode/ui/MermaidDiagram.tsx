@@ -94,7 +94,7 @@ export function MermaidDiagram({ code, problemId }: Props) {
       {loading ? (
         <Spinner style={StyleSheet.absoluteFill} size="small" />
       ) : null}
-      <WebView
+      <WebView<object>
         ref={webViewRef}
         source={{ html }}
         style={{ flex: 1, backgroundColor: 'transparent' }}

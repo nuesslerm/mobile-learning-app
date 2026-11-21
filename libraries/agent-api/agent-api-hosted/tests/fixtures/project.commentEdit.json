@@ -1,0 +1,48 @@
+{
+  "method": "project.commentEdit",
+  "exchanges": [
+    {
+      "name": "no workspace is named, so an executor whose gh is signed in answers",
+      "request": {
+        "id": 1,
+        "method": "project.commentEdit",
+        "params": {
+          "repo": "octo/hello",
+          "comment_id": 4711,
+          "body": "Edited"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "done": true
+        }
+      },
+      "actions": [
+        "hosted_comment_edit"
+      ]
+    },
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 2,
+        "method": "project.commentEdit",
+        "params": {
+          "repo": "octo/hello",
+          "comment_id": 0,
+          "body": "x"
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`comment_id` must be a positive integer"
+        }
+      },
+      "actions": [
+        "hosted_comment_edit"
+      ]
+    }
+  ]
+}

@@ -59,13 +59,13 @@ function rpcs(texts: string[], names: Map<string, string>): { tag: string; paylo
  * The routes of the groups that `HttpApi.make("environment")` mounts (the API the T3 server itself serves; the relay's `client` API is
  * another server's): `class G extends HttpApiGroup.make("g").add(HttpApiEndpoint.post("name", "/path", { payload }))`.
  */
-function routes(texts: string[], r: Resolver): { group: string; name: string; method: string; path: string; payload: string | null }[] {
+export function routes(texts: string[], r: Resolver): { group: string; name: string; method: string; path: string; payload: string | null }[] {
   const out: { group: string; name: string; method: string; path: string; payload: string | null }[] = []
   for (const text of texts) {
     const root = /class \w+ extends HttpApi\.make\("environment"\)([\s\S]*?)\{\}/.exec(text)
     if (!root) continue
     const mounted = new Set([...root[1]!.matchAll(/\.add\((\w+)\)/g)].map((m) => m[1]!))
-    const classes = [...text.matchAll(/^class (\w+) extends HttpApiGroup\.make\("([^"]+)"/gm)].map((m) => ({ at: m.index!, cls: m[1]!, group: m[2]! }))
+    const classes = [...text.matchAll(/^(?:export )?class (\w+) extends HttpApiGroup\.make\("([^"]+)"/gm)].map((m) => ({ at: m.index!, cls: m[1]!, group: m[2]! }))
     classes.forEach((c, i) => {
       if (!mounted.has(c.cls)) return
       const body = text.slice(c.at, classes[i + 1]?.at ?? text.length)
@@ -155,7 +155,7 @@ export function t3Crawl(options: { runtime?: string } = {}): Report {
   const notes: Report['sources'] = [
     { name: 'schema', available: true, found: wire.length, note: `${r.unknown.size} schema constructors read as any` },
     { name: 'cli-source', available: cliTexts.length > 0, found: cliCommands.length },
-    { name: 'mobile-calls', available: mobileTexts.length > 0, found: 0, note: 'literal tags and WS_METHODS keys under apps/mobile/src, plus the reachability scan of the catalog (wf parity coverage)' },
+    { name: 'mobile-calls', available: mobileTexts.length > 0, found: 0, note: 'literal tags and WS_METHODS keys under apps/mobile/src, plus the reachability scan of the catalog (wf mimic coverage)' },
     { name: 'catalog', available: catalog.size > 0, found: catalog.size }
   ]
   const blind: Report['blind'] = [
@@ -167,8 +167,9 @@ export function t3Crawl(options: { runtime?: string } = {}): Report {
     const fromHelp = files.flatMap((f) => helpCommands(readFileSync(join(options.runtime!, f), 'utf8')))
     for (const name of fromHelp) if (!cliCommands.some((c) => c.path[0] === name)) cliCommands.push({ path: [name], source: 'cli-help' })
     notes.push({ name: 'cli-help', available: files.length > 0, found: new Set(fromHelp).size, note: options.runtime })
-    notes.push({ name: 'runtime', available: existsSync(join(options.runtime, 'descriptor.json')), found: 0 })
-    blind.splice(0, blind.length, blind[0]!)
+    const described = existsSync(join(options.runtime, 'descriptor.json'))
+    notes.push({ name: 'runtime', available: described, found: 0 })
+    if (described) blind.splice(1, 1)
   } else {
     notes.push({ name: 'cli-help', available: false, found: 0, note: 'needs the release binary: `t3 --help` of every subcommand, captured on the VM' })
     notes.push({ name: 'runtime', available: false, found: 0, note: 'needs a running server' })

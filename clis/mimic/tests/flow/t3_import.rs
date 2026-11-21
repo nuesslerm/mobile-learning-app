@@ -90,6 +90,7 @@ fn given_the_t3_set_when_every_set_is_verified_live_then_the_pinned_release_is_n
     }
     std::fs::create_dir_all(tmp.path().join("tooling/t3-conformance")).unwrap();
     std::fs::copy(repo().join("tooling/t3-conformance/t3-pin.json"), tmp.path().join("tooling/t3-conformance/t3-pin.json")).unwrap();
+    std::fs::copy(repo().join("tooling/t3-conformance/t3-pin-0.1.6.json"), tmp.path().join("tooling/t3-conformance/t3-pin-0.1.6.json")).unwrap();
     // When all sets are verified with --live
     let r = mimic(&["verify", "--all", "--live", "--root", tmp.path().to_str().unwrap()], &[]);
     // Then the set is fresh and its live re-record is skipped with the reason, because downloading and running the release is for the VM

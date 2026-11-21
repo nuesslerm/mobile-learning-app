@@ -1,4 +1,4 @@
-//! The e2e tests (`e2e/*.lua`, each a scripted Lua test with a metadata header) and how a change picks them: `wf test plan` lists
+//! The e2e tests (`e2e/*.lua`, each a scripted Lua test with a metadata header) and how a change picks them: `wf ci plan tests` lists
 //! them with every other test a push needs, marking the focused ones a change reaches (or all focused ones, or named focused ones), and
 //! `wf test run --stage` runs one stage of such a plan (`test_plan.rs`).
 use wf_kit::args::Parsed;
@@ -151,10 +151,17 @@ pub(crate) fn resolve_base(raw: Option<&str>, sha: &str) -> String {
     }
 }
 
+/// The workflow file this run belongs to (the caller's, `GITHUB_WORKFLOW_REF` names it): each workflow of a push has its own last green, or a mobile run would skip the tests a
+/// mobile run left red because the backend run of the same commit passed. `ci-hosted-backend-core.yml` outside Actions.
+fn workflow_file(reference: Option<&str>) -> String {
+    reference.and_then(|r| r.split_once(".github/workflows/")).and_then(|(_, rest)| rest.split('@').next()).filter(|f| f.starts_with("ci-hosted") && f.ends_with(".yml")).map_or_else(|| "ci-hosted-backend-core.yml".to_string(), str::to_string)
+}
+
 fn last_green(sha: &str) -> Option<String> {
     let repo_name = std::env::var("GITHUB_REPOSITORY").ok()?;
+    let workflow = workflow_file(std::env::var("GITHUB_WORKFLOW_REF").ok().as_deref());
     let out = Command::new("gh")
-        .args(["run", "list", "-R", &repo_name, "--workflow", "ci-hosted.yml", "--branch", "dev", "--status", "success", "--limit", "30", "--json", "headSha", "--jq", ".[].headSha"])
+        .args(["run", "list", "-R", &repo_name, "--workflow", &workflow, "--branch", "dev", "--status", "success", "--limit", "30", "--json", "headSha", "--jq", ".[].headSha"])
         .stdin(Stdio::null())
         .stderr(Stdio::null())
         .output()
@@ -167,7 +174,7 @@ fn last_green(sha: &str) -> Option<String> {
         .map(str::to_string)
 }
 
-/// `wf test plan`: every stage's tests as JSON, or the e2e tests with the picked ones marked.
+/// `wf ci plan tests`: every stage's tests as JSON, or the e2e tests with the picked ones marked.
 pub(crate) fn plan(p: &Parsed) -> i32 {
     let sha = p.val("sha").map(str::to_string).unwrap_or_else(head_sha);
     let books = e2e_tests();
@@ -212,6 +219,13 @@ pub(crate) fn plan(p: &Parsed) -> i32 {
                 return 1;
             }
         }
+    }
+    if let Some(area) = p.val("area").filter(|a| *a != "all") {
+        if !crate::test_plan::AREAS.contains(&area) {
+            println!("{}", json!({ "error": format!("--area {area}: one of all, {}", crate::test_plan::AREAS.join(", ")) }));
+            return 2;
+        }
+        crate::test_plan::retain_area(&mut planned, area);
     }
     planned["tests"] = json!(rows);
     if p.flag("github-output") {
@@ -267,7 +281,7 @@ pub(crate) fn run_stage(args: &[String]) -> i32 {
         Some(f) => match std::fs::read_to_string(&f).ok().and_then(|t| serde_json::from_str(&t).ok()) {
             Some(v) => v,
             None => {
-                println!("{}", json!({ "error": format!("cannot read the plan {f}"), "next": "wf test plan --changed --base <ref> --json > plan.json" }));
+                println!("{}", json!({ "error": format!("cannot read the plan {f}"), "next": "wf ci plan tests --changed --base <ref> --json > plan.json" }));
                 return 1;
             }
         },
@@ -285,4 +299,19 @@ pub(crate) fn run_stage(args: &[String]) -> i32 {
         }
     };
     crate::test_plan::run_stage(&stage, &plan, &rest)
+}
+
+#[cfg(test)]
+mod workflow_file_tests {
+    use super::workflow_file;
+
+    #[test]
+    fn given_the_workflow_ref_of_a_caller_when_the_file_is_read_then_each_ci_workflow_is_its_own_and_anything_else_is_the_default() {
+        for file in ["ci-hosted-backend-core.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "ci-hosted-cli-publish.yml", "ci-hosted-backend-deploy.yml", "ci-hosted-mobile-publish.yml"] {
+            assert_eq!(workflow_file(Some(&format!("o/r/.github/workflows/{file}@refs/heads/dev"))), file);
+        }
+        assert_eq!(workflow_file(Some("o/r/.github/workflows/ci-hosted-backend-core.yml@refs/heads/dev")), "ci-hosted-backend-core.yml");
+        assert_eq!(workflow_file(Some("o/r/.github/workflows/cold-ci.yml@refs/heads/dev")), "ci-hosted-backend-core.yml");
+        assert_eq!(workflow_file(None), "ci-hosted-backend-core.yml");
+    }
 }

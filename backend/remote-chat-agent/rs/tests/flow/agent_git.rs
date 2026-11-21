@@ -62,7 +62,7 @@ fn files(status: &Value) -> Vec<(String, String, String)> {
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_repository_when_a_phone_stages_commits_and_branches_then_the_repository_holds_exactly_that() {
     // Given the repository with an edited file and a new one, and a phone on the socket
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let rig = rig(&env).await;
     rig.repo.write("README.md", "temp repo\nedited\n");
     rig.repo.write("new.txt", "new\n");
@@ -105,7 +105,7 @@ async fn given_a_repository_when_a_phone_stages_commits_and_branches_then_the_re
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_two_branches_that_change_one_line_when_merged_then_the_conflict_is_listed_resolved_by_each_means_and_continued_or_aborted() {
     // Given main and a branch that each committed their own line of one file
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let rig = rig(&env).await;
     rig.repo.write("c.txt", "base\n");
     rig.repo.commit_all("base");
@@ -147,7 +147,7 @@ async fn given_two_branches_that_change_one_line_when_merged_then_the_conflict_i
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_repository_with_a_remote_when_pushed_fetched_pulled_and_fast_forwarded_then_only_the_repositorys_own_remote_is_reached_and_option_like_values_are_refused() {
     // Given a bare remote that the repository has configured, and a second clone that pushes a commit to it
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let rig = rig(&env).await;
     let remote = tempfile::tempdir().unwrap();
     let bare = remote.path().join("origin.git");
@@ -192,7 +192,7 @@ async fn given_a_repository_with_a_remote_when_pushed_fetched_pulled_and_fast_fo
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_worktree_workspace_when_git_is_asked_then_it_answers_for_the_worktrees_branch_and_changes_not_the_repositorys() {
     // Given a worktree on its own branch with a file changed in it only
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let rig = rig(&env).await;
     let mut agent = rig.agent().await;
     ok(&mut agent, "worktree.create", json!({"workspace": "w1", "worktree": "wt", "branch": "feature/wt", "base": "HEAD"})).await;
@@ -211,7 +211,7 @@ async fn given_a_worktree_workspace_when_git_is_asked_then_it_answers_for_the_wo
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_subscription_to_the_status_when_files_change_then_each_new_status_is_an_event_numbered_from_the_callers_last_and_the_first_is_sent_at_once() {
     // Given a clean repository and a phone subscribed after event 10
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let rig = rig(&env).await;
     let mut agent = rig.agent().await;
     let opened = ok(&mut agent, "git.subscribe", w(json!({"after_seq": 10, "interval_ms": 100}))).await;
@@ -233,7 +233,7 @@ async fn given_a_subscription_to_the_status_when_files_change_then_each_new_stat
 /// README edited and a file `new.txt` that is not tracked.
 async fn replay(fixture: &agent_api_proto::testing::Fixture) {
     for exchange in &fixture.exchanges {
-        let env = Env::process(&[]);
+        let env = Env::new(&[]);
         let rig = rig(&env).await;
         rig.repo.write("README.md", "temp repo\nedited\n");
         rig.repo.write("new.txt", "new\n");

@@ -10,7 +10,7 @@
 use super::decider::Context;
 use super::ids::iso_from_ms;
 use super::projector::{NeutralThread, ReadModel};
-use super::types::*;
+use super::types::{Body, LatestTurn, Thread};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
@@ -811,6 +811,7 @@ fn merge_back(model: &ReadModel, target_id: &str, source: &str, named: Option<&s
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use crate::domain::types::Event;
     use super::*;
     use crate::domain::decider::Context;
     use crate::domain::projector::project;

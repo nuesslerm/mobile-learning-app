@@ -1,0 +1,20 @@
+{
+ "schema": "mimic-stability-allowlist/1",
+ "entries": [
+  {
+   "id": "orca-scn-worktree.listRetiredNames",
+   "cause": "key-set",
+   "reason": "the answer is keyed by the repository id the scenario's own repo.add returned (a uuid with a + prefix), which is new on every run; a mask rule matches values, not object keys"
+  },
+  {
+   "id": "orca-scn-worktree.runApprovedSetup",
+   "cause": "array-length",
+   "reason": "the case's tag list differs by one between the recordings (the nondeterministic tag itself follows the stability run), its answer is the same"
+  },
+  {
+   "id": "orca-story-state-after-repo",
+   "cause": "text-change",
+   "reason": "hostDescriptor.machineBinding is a 43-character base64url fingerprint of the orcad host that is new on every start; the stabilizer reads it as free text, and a pattern for it would also hide a real change"
+  }
+ ]
+}

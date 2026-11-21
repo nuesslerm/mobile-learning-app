@@ -89,7 +89,7 @@ fn given_a_client_events_subscription_when_opened_and_ended_then_ready_carries_t
     let subscription = ready["result"]["subscriptionId"].as_str().unwrap().to_string();
     // Then it is a streaming frame whose snapshot reads rca's state, and the id says which connection it belongs to
     assert_eq!((ready["streaming"].clone(), ready["result"]["type"].clone()), (json!(true), json!("ready")));
-    assert_eq!(ready["result"]["snapshot"], json!({"sshStates": [], "nativeChatQueueFollowUps": false}));
+    assert_eq!(ready["result"]["snapshot"], json!({"sshStates": [], "nativeChatQueueFollowUps": false, "nativeChatCiResultLines": true}));
     assert!(subscription.starts_with("runtime-client-events-"));
     assert!(h.agent.calls().contains(&"state.get".to_string()));
     // When the other phone tries to end that stream, and the owner ends it
@@ -122,11 +122,22 @@ use serde_json::Value;
 #[test]
 fn given_the_methods_a_mapper_uses_when_the_startup_groups_are_derived_then_each_group_but_the_unlisted_workspace_is_required() {
     // Given the methods the workspace and agent mappers declare
-    let wanted: Vec<&str> = orca_map_workspace::USES.iter().chain(orca_map_agent::USES).chain(orca_map_terminal::USES).chain(orca_map_git::USES).chain(orca_map_accounts::USES).chain(orca_map_state::USES).chain(orca_map_hosted::USES).chain(orca_map_schedules::USES).map(|m| m.group().as_str()).filter(|g| *g != "workspace").collect();
+    let wanted: Vec<&str> = orca_map_workspace::USES.iter().chain(orca_map_agent::USES).chain(orca_map_terminal::USES).chain(orca_map_git::USES).chain(orca_map_accounts::USES).chain(orca_map_state::USES).chain(orca_map_hosted::USES).chain(orca_map_schedules::USES).chain(orca_map_browser::USES).map(|m| m.group().as_str()).filter(|g| *g != "workspace").collect();
     // When the startup check's groups are derived
     let needed = orca_serve::adapters::rca::needed_groups();
     // Then every one of them is required, and the unlisted group is not
     assert!(wanted.iter().all(|g| needed.contains(g)), "{wanted:?} not in {needed:?}");
     assert!(wanted.contains(&"git") && wanted.contains(&"workspace.worktrees") && wanted.contains(&"agent.threads") && wanted.contains(&"agent.queue") && wanted.contains(&"agent.requests") && wanted.contains(&"attachments") && wanted.contains(&"accounts") && wanted.contains(&"git.ai") && wanted.contains(&"state"), "the mappers use git, worktree, agent and attachment methods: {wanted:?}");
     assert!(!needed.contains(&"workspace"));
+}
+
+#[test]
+fn given_a_paired_phone_when_it_asks_for_the_stats_summary_then_the_answer_is_the_pinned_hosts_before_it_has_recorded_anything() {
+    // Given a paired phone
+    let h = harness();
+    let mut phone = paired(&h);
+    // When it asks for the stats summary
+    let answer = phone.call("stats.summary", json!({}));
+    // Then the host has counted nothing: no first event, no agent time, no agents and no pull requests
+    assert_eq!(answer["result"], json!({"firstEventAt": null, "totalAgentTimeMs": 0, "totalAgentsSpawned": 0, "totalPRsCreated": 0}), "{answer}");
 }

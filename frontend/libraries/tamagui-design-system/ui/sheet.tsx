@@ -15,9 +15,11 @@ import {
   Text as RNText,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { X } from '../icons';
 import { useOpenSheetStore } from '../lib/openSheetStore';
+import { useKeyboardFrame } from '../lib/keyboard/useKeyboardFrame';
 import { useTheme } from '../primitives';
 
 import { Icon } from './icon';
@@ -190,6 +192,20 @@ export function Sheet({
   // control the sheet exists to offer.
   useDismissKeyboardWhileOpen(open);
 
+  // The sheet's bottom edge goes up to the keyboard's top (`bottomInset`). Opening a sheet puts the keyboard away, so a keyboard that
+  // rises while one is open is for a field in it. gorhom's own lift is not relied on: it only acts for its own input, and on the CI
+  // emulator it did not move the sheet at all (Expo Go, edge to edge); the keyboard source is the one the toolbar rail follows. The same
+  // code runs on web, where the browser tests and the flow tests see it.
+  //
+  // The sheet gets smaller by the keyboard's height (its percent points are of the room that is left), so a sheet with a field should
+  // be tall enough for that room: VoiceReviewSheet takes 95% in its text mode. Changing the snap points while the sheet is open is not
+  // an option: it takes the focus from the field (the keyboard goes down again).
+  const keyboard = useKeyboardFrame();
+  const insets = useSafeAreaInsets();
+  // Android's keyboard events leave out the navigation bar that the keyboard also covers (the toolbar rail adds it the same way), and
+  // the sheet's container ends at the bottom of the window
+  const keyboardLift = open && keyboard.visible ? keyboard.height + (Platform.OS === 'android' ? insets.bottom : 0) : 0;
+
   const mounted = useMountedAfterFirstFrame();
 
   if (!mounted || !open) return null;
@@ -209,6 +225,7 @@ export function Sheet({
       keyboardBehavior="interactive"
       // gorhom default is 'none', which leaves the keyboard up over the sheet.
       keyboardBlurBehavior="restore"
+      bottomInset={keyboardLift}
       android_keyboardInputMode="adjustResize"
       // color2, NOT `background`: a sheet painted in the page's own background
       // is invisible on the dark theme -- on a device the only things that read

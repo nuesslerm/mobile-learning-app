@@ -12,6 +12,8 @@ The native twin of [`device-lab-voice-edit.md`](device-lab-voice-edit.md) (turn 
 [`e2e/voice-edit.lua`](../../e2e/voice-edit.lua)). Result:
 `docs/runbooks/.results/device-lab-voice-edit-android.json` (`platform: android-redroid`).
 
+The browser run of the script is stubbed (its three backend calls are answered by network stubs, issue 86, E3); the Android run is not yet (its stub server answered all three requests, but two hosted units failed on a typed blur and a missing plan request), so it uses the live backend like this runbook.
+
 ## Rules: the human input model
 
 - Act only through input: `wf android tap-on` (ids, or `--point x,y`), `swipe`, `press-key`, `back`. `get-element`, `get-device-state`, `take-screenshot` only read. Nothing is typed into the editor or the transcript.
@@ -40,7 +42,7 @@ Persistent lab redroid on the VM (`.agents/tmp/lab-up.sh`: 720x1280, gesture nav
 ## Native differences and findings
 
 - Two app and setup bugs surfaced and are fixed: the voice upload failed on Android with "Unsupported FormDataPart implementation" (expo/fetch; now XHR), and Android in redroid could not resolve MagicDNS names (now `androidboot.redroid_net_dns1=100.100.100.100`). See the decision log, 2026-10-11.
-- On 2026-10-11 the dev Metro (retired 22 Oct) baked an empty leetcode token, so Run Local said "unauthorized". The EAS Update CI publishes bakes the token when it is published: a rotated `VM_GATEWAY_AUTH_SEED` with the app unchanged is not seen until `wf ship --changed --force` publishes again.
+- On 2026-10-11 the dev Metro (retired 22 Oct) baked an empty leetcode token, so Run Local said "unauthorized". The EAS Update CI publishes bakes the token when it is published: a rotated `VM_GATEWAY_AUTH_SEED` with the app unchanged is not seen until `wf ci plan legs --force` publishes again.
 - With 3-button navigation the review sheet's Send and Re-record sit under the system bar; the lab uses gesture navigation. Also an app finding: on a phone with 3-button navigation the sheet's actions are covered.
 - Container-with-most-water turn 1 ("write the optimal two pointer solution") applied a three-line first step rather than refusing; the runbook allows "refused or first-step only".
 - Latency (n=20 turns, one run): transcribe p50 about 15 s, plan p50 about 10 s; both on the shared VM.

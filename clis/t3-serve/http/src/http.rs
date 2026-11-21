@@ -9,14 +9,18 @@ use t3_contracts::environment::ORCHESTRATION_PROTOCOL_HEADER;
 use t3_contracts::wire;
 use t3_core::usecases::attachments::{ASSET_PREFIX, MAX_UPLOAD_BYTES, UPLOAD_PREFIX};
 use t3_core::usecases::history::EnvironmentRequest;
+use t3_core::usecases::voice::MAX_BODY_BYTES as MAX_VOICE_BYTES;
 use t3_core::{Refusal, Service};
 
 const MAX_HEAD: usize = 16 * 1024;
 const MAX_BODY: usize = 64 * 1024;
 /// The upload route takes the attachment's bytes: as much as the agent API keeps, with longer to read them in.
 const UPLOAD_TIMEOUT: Duration = Duration::from_secs(120);
+/// `/api/hooks/:a/:b`, the webhook routes: no webhook is built here, so each is a hook that does not exist.
+const HOOKS: &str = "/api/hooks/";
 /// `GET /api/orchestration/threads/:threadId/history` and `.../transcript`.
 const THREADS: &str = "/api/orchestration/threads/";
+const VOICE_TRANSCRIBE: &str = "/api/voice/transcribe";
 
 pub struct Request {
     pub method: String,
@@ -24,6 +28,8 @@ pub struct Request {
     pub query: Vec<(String, String)>,
     pub headers: Vec<(String, String)>,
     pub body: Vec<u8>,
+    /// A transcribe request longer than the route reads: its body was left unread.
+    pub oversized: bool,
 }
 
 impl Request {
@@ -77,10 +83,14 @@ fn read_request(stream: &mut TcpStream) -> Result<Request, &'static str> {
     let headers: Vec<(String, String)> = lines.filter_map(|l| l.split_once(':')).map(|(k, v)| (k.trim().to_ascii_lowercase(), v.trim().to_string())).collect();
     let length: usize = headers.iter().find(|(k, _)| k == "content-length").and_then(|(_, v)| v.parse().ok()).unwrap_or(0);
     let upload = method == "POST" && path.starts_with(&format!("{UPLOAD_PREFIX}/"));
-    if length > if upload { MAX_UPLOAD_BYTES as usize } else { MAX_BODY } {
+    let voice = method == "POST" && path == VOICE_TRANSCRIBE;
+    if length > if upload { MAX_UPLOAD_BYTES as usize } else if voice { MAX_VOICE_BYTES } else { MAX_BODY } {
+        if voice {
+            return Ok(Request { method, path: path.to_string(), query: pairs(query), headers, body: Vec::new(), oversized: true });
+        }
         return Err("request body too large");
     }
-    if upload {
+    if upload || voice {
         let _ = stream.set_read_timeout(Some(UPLOAD_TIMEOUT));
     }
     let mut body = buf[head_end + 4..].to_vec();
@@ -91,7 +101,7 @@ fn read_request(stream: &mut TcpStream) -> Result<Request, &'static str> {
         }
     }
     body.truncate(length);
-    Ok(Request { method, path: path.to_string(), query: pairs(query), headers, body })
+    Ok(Request { method, path: path.to_string(), query: pairs(query), headers, body, oversized: false })
 }
 
 const CORS_PREFLIGHT: &str = "Access-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: authorization, content-type, b3, traceparent, x-t3-orchestration-protocol\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\n";
@@ -105,6 +115,7 @@ fn reason(status: u16) -> &'static str {
         204 => "No Content",
         409 => "Conflict",
         400 => "Bad Request",
+        415 => "Unsupported Media Type",
         401 => "Unauthorized",
         403 => "Forbidden",
         404 => "Not Found",
@@ -123,6 +134,40 @@ pub fn respond(stream: &mut TcpStream, status: u16, body: &Value) {
 fn respond_text(stream: &mut TcpStream, status: u16, text: &str) {
     let head = format!("HTTP/1.1 {status} {}\r\n{COMMON}Content-Type: text/plain; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", reason(status), text.len());
     let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.write_all(text.as_bytes())).and_then(|()| stream.flush());
+}
+
+/// What the pin answers a request its schema refuses: the status and the CORS header, nothing else.
+fn respond_bare(stream: &mut TcpStream, status: u16) {
+    let head = format!("HTTP/1.1 {status} {}\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", reason(status));
+    let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.flush());
+}
+
+/// A JSON route given a body that does not say it is JSON.
+fn respond_unsupported(stream: &mut TcpStream) {
+    const TEXT: &str = "Unsupported content-type: text/plain";
+    let head = format!("HTTP/1.1 415 {}\r\n{COMMON}Content-Type: text/plain\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", reason(415), TEXT.len());
+    let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.write_all(TEXT.as_bytes())).and_then(|()| stream.flush());
+}
+
+fn is_octet_stream(request: &Request) -> bool {
+    request.header("content-type").is_some_and(|t| t.to_ascii_lowercase().contains("application/octet-stream"))
+}
+
+fn is_json(request: &Request) -> bool {
+    request.header("content-type").is_some_and(|t| t.to_ascii_lowercase().contains("json"))
+}
+
+/// The JSON object a POST route takes, or the answer already sent: 415 for a body that is not declared JSON, a bare 400 for one that is not an object.
+fn json_object(stream: &mut TcpStream, request: &Request) -> Option<Value> {
+    if !is_json(request) {
+        respond_unsupported(stream);
+        return None;
+    }
+    let body = serde_json::from_slice::<Value>(&request.body).ok().filter(Value::is_object);
+    if body.is_none() {
+        respond_bare(stream, 400);
+    }
+    body
 }
 
 fn respond_empty(stream: &mut TcpStream, status: u16) {
@@ -167,7 +212,32 @@ fn respond_with(stream: &mut TcpStream, status: u16, body: &Value, extra: &str) 
 }
 
 fn refused(stream: &mut TcpStream, r: Refusal, extra: &str) {
+    if r.body.is_null() {
+        return respond_bare(stream, r.status);
+    }
     respond_with(stream, r.status, &r.body, extra);
+}
+
+fn voice_answer(stream: &mut TcpStream, answer: Result<Value, Refusal>) {
+    match answer {
+        Ok(body) => respond(stream, 200, &body),
+        Err(r) => refused(stream, r, ""),
+    }
+}
+
+fn guest_error(stream: &mut TcpStream, r: t3_core::usecases::guest::GuestRefusal) {
+    respond_with(stream, r.status, &json!({"reason": r.reason, "message": r.message}), NO_STORE);
+}
+
+/// The value of one cookie of the request.
+fn cookie<'a>(request: &'a Request, name: &str) -> Option<&'a str> {
+    request.header("cookie")?.split(';').filter_map(|c| c.trim().split_once('=')).find(|(k, _)| *k == name).map(|(_, v)| v)
+}
+
+/// `204` with the guest's session cookie: one per share, readable by no script, sent only to the guest routes.
+fn respond_joined(stream: &mut TcpStream, share: &str, token: &str) {
+    let head = format!("HTTP/1.1 204 No Content\r\n{COMMON}{NO_STORE}Set-Cookie: t3_guest_{share}={token}; HttpOnly; Secure; SameSite=Strict; Path=/api/guest; Max-Age={}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", t3_core::usecases::guest::TTL_MS / 1000);
+    let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.flush());
 }
 
 pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
@@ -201,15 +271,39 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             }
         }
         ("POST", "/api/auth/pairing-token") => {
-            let body = if request.body.is_empty() { Ok(json!({})) } else { serde_json::from_slice::<Value>(&request.body) };
-            match body {
-                Ok(body) if body.is_object() => match svc.pairing_credential(auth, &body) {
-                    Ok(answer) => respond_with(&mut stream, 200, &answer, NO_STORE),
-                    Err(r) => refused(&mut stream, r, NO_STORE),
-                },
-                _ => respond_with(&mut stream, 400, &wire::bad_request("the body is a JSON object"), NO_STORE),
+            if !is_json(&request) {
+                return respond_unsupported(&mut stream);
+            }
+            let body = if request.body.is_empty() { Some(json!({})) } else { serde_json::from_slice::<Value>(&request.body).ok().filter(Value::is_object) };
+            let Some(body) = body else { return respond_bare(&mut stream, 400) };
+            match svc.pairing_credential(auth, &body) {
+                Ok(answer) => respond_with(&mut stream, 200, &answer, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
             }
         }
+        ("POST", path @ ("/api/auth/browser-session" | "/api/auth/clients/revoke" | "/api/auth/pairing-links/revoke")) => {
+            let Some(body) = json_object(&mut stream, &request) else { return };
+            let answer = match path {
+                "/api/auth/browser-session" => svc.browser_session(&body),
+                "/api/auth/clients/revoke" => svc.revoke_client(auth, &body),
+                _ => svc.revoke_pairing_link(auth, &body),
+            };
+            match answer {
+                Ok(body) => respond(&mut stream, 200, &body),
+                Err(r) => refused(&mut stream, r, ""),
+            }
+        }
+        ("POST", "/api/auth/clients/revoke-others") => match svc.revoke_other_clients(auth) {
+            Ok(body) => respond(&mut stream, 200, &body),
+            Err(r) => refused(&mut stream, r, ""),
+        },
+        ("GET" | "POST" | "PUT" | "PATCH", path) if path.strip_prefix(HOOKS).and_then(|rest| rest.split_once('/')).is_some_and(|(a, b)| !a.is_empty() && !b.is_empty() && !b.contains('/')) => {
+            respond_with(&mut stream, 404, &json!({"error": "hook_not_found"}), "x-t3-hook-outcome: not_found\r\n")
+        }
+        ("GET", "/api/projects") => match svc.projects_snapshot_http(auth) {
+            Ok(body) => respond(&mut stream, 200, &body),
+            Err(r) => refused(&mut stream, r, ""),
+        },
         ("GET", "/ws") => match svc.connect(&request.query) {
             Ok(connection) => socket::upgrade(stream, &request, connection, stop),
             Err(r) => refused(&mut stream, r, ""),
@@ -222,6 +316,9 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             }
         }
         ("POST", "/api/pull-requests/diff") => {
+            if !is_json(&request) {
+                return respond_unsupported(&mut stream);
+            }
             let env = EnvironmentRequest { authorization: auth, protocol: request.header(ORCHESTRATION_PROTOCOL_HEADER) };
             match svc.pull_request_diff_http(&env, &request.body) {
                 Ok(body) => respond(&mut stream, 200, &body),
@@ -240,6 +337,44 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
                 Ok(body) => respond(&mut stream, 200, &body),
                 Err(r) => refused(&mut stream, r, ""),
             }
+        }
+        ("POST", "/api/guest/redeem") => {
+            let Some(body) = json_object(&mut stream, &request) else { return };
+            match svc.guest_redeem(&body) {
+                Ok((token, share)) => respond_joined(&mut stream, &share, &token),
+                Err(r) => guest_error(&mut stream, r),
+            }
+        }
+        ("POST", "/api/guest/messages") => {
+            let Some(body) = json_object(&mut stream, &request) else { return };
+            let share = request.query.iter().find(|(k, _)| k == "share").map_or("", |(_, v)| v.as_str());
+            let session = cookie(&request, &format!("t3_guest_{share}")).unwrap_or("");
+            match svc.guest_submit(session, share, &body) {
+                Ok(()) => respond_with(&mut stream, 204, &Value::Null, NO_STORE),
+                Err(r) => guest_error(&mut stream, r),
+            }
+        }
+        ("GET", "/api/voice/status") => voice_answer(&mut stream, svc.voice_status(auth)),
+        ("GET", "/api/voice/models") => voice_answer(&mut stream, svc.voice_models(auth, &request.query)),
+        ("POST", path @ ("/api/voice/models/select" | "/api/voice/models/download" | "/api/voice/models/cancel")) => {
+            if !is_json(&request) {
+                return respond_unsupported(&mut stream);
+            }
+            let answer = match path {
+                "/api/voice/models/select" => svc.voice_select_model(auth, &request.body),
+                "/api/voice/models/download" => svc.voice_download_model(auth, &request.body),
+                _ => svc.voice_cancel_model_download(auth, &request.body),
+            };
+            voice_answer(&mut stream, answer)
+        }
+        ("POST", VOICE_TRANSCRIBE) => {
+            if !is_octet_stream(&request) {
+                return respond_unsupported(&mut stream);
+            }
+            if request.oversized {
+                return refused(&mut stream, svc.voice_body_too_large(auth), "");
+            }
+            voice_answer(&mut stream, svc.voice_transcribe(auth, &request.body))
         }
         ("POST", path) if path.starts_with(&format!("{UPLOAD_PREFIX}/")) => {
             let length = request.header("content-length").and_then(|v| v.parse::<u64>().ok());

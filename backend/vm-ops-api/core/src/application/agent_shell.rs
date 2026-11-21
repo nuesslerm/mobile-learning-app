@@ -77,7 +77,7 @@ impl AgentShell {
 
     async fn container_id(&self) -> Result<String, Failed> {
         let listed = self.containers.list_by_app(APP).await?;
-        pick_app_container(&listed).map(|container| container.id.clone()).ok_or(Failed::NotRunning)
+        pick_app_container(&listed, APP).map(|container| container.id.clone()).ok_or(Failed::NotRunning)
     }
 
     async fn run(&self, id: &str, cmd: &[String]) -> Result<crate::application::ports::ExecResult, Failed> {

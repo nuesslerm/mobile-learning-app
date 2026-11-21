@@ -228,9 +228,7 @@ fn the_two_places_are_confined_apart_so_traversal_and_symlinks_cannot_cross_betw
             ("stat", json!({"path": target})),
             ("write_file", json!({"path": target, "content": "pwned"})),
             ("create_file", json!({"path": target, "content": "pwned"})),
-            ("edit_file", json!({"path": target, "old": "secret", "new": "pwned"})),
             ("list_dir", json!({"path": target})),
-            ("search", json!({"pattern": "secret", "kind": "content", "path": target})),
         ] {
             let result = call(&r.ex, tool, args);
             assert_eq!(result.as_ref().err().map(|e| e.code), Some(Code::PathOutsideRoot), "{tool} {target}: {result:?}");

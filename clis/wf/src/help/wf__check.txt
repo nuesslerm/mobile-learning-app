@@ -50,6 +50,17 @@ Options:
                      workspace boundary; fails on one not in
                      clis/pipeline/data/workspace-crossings.json or an entry
                      that no longer crosses (the list only shrinks)
+  --ts-packages      JSON list of the TypeScript packages outside frontend/;
+                     fails on one not in clis/pipeline/data/ts-packages.json or
+                     an entry with no package.json (the list only shrinks)
+  --layout           every package's declared type (clis/pipeline/data/
+                     package-types.json), placement, dependency edges and
+                     generated-region drift, as JSON; --strict exits 1 on a
+                     finding not in layout-known.json; --write regenerates the
+                     generated regions. A pass proves shape and edges only:
+                     that each package is listed, sits the way its type says
+                     and imports only what its type allows. It says nothing
+                     about behaviour, naming inside a ring or test coverage.
   --cargo-inputs     JSON list of the packages whose test:flow or test:integration
                      only runs cargo; fails on one whose Nx inputs lack
                      { "externalDependencies": [] } (the npm layout differs by
@@ -69,4 +80,8 @@ Options:
                      Lua device:<method> or pnpm script that no longer exists
                      (goals: their verbs and methods; with --staged: as the
                      index holds it, what a commit would record)
+  --arch             fail when an architecture baseline or ast-grep ignores
+                     list grew past `git merge-base HEAD origin/dev` or names a
+                     wildcard path, or an ast-grep rule has no test with a
+                     valid and an invalid case (also run by --staged)
   -h, --help         display help for command

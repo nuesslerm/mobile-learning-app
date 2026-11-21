@@ -12,11 +12,11 @@ const STARTUP_TARGETS: &[&[&str]] = &[
     &["--version"],
     &["--help"],
     &["secret", "--help"],
-    &["offload", "ask", "--help"],
-    &["ship", "--changed", "--help"],
+    &["rca", "ask", "--help"],
+    &["ci", "plan", "--help"],
     &["check", "--help"],
 ];
-const LIVE_TARGETS: &[&[&str]] = &[&["offload", "ask", "--stats"], &["ship", "--changed"]];
+const LIVE_TARGETS: &[&[&str]] = &[&["rca", "ask", "--stats"], &["ci", "plan", "legs"]];
 
 struct Sample {
     wall_ms: f64,

@@ -27,3 +27,6 @@ agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
 # So the crate's own tests of its doubles run under the plain `cargo test --lib` of the package script
 rca-agent-core = { path = ".", features = ["testing"] }
 tokio.workspace = true
+
+[package.metadata.arch]
+type = "rust-flat-core"

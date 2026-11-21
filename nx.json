@@ -33,13 +33,31 @@
       "{workspaceRoot}/tsconfig.json",
       "{workspaceRoot}/.oxlintrc.json",
       "{workspaceRoot}/frontend/.oxlintrc.json",
-      "{workspaceRoot}/frontend/feature-kit/depcruise.feature.cjs",
       "{workspaceRoot}/mise.toml",
       "toolchain"
+    ],
+    "archRules": [
+      "{workspaceRoot}/frontend/feature-kit/**",
+      "{workspaceRoot}/.oxlintrc.arch.json",
+      "{workspaceRoot}/.ls-lint.yml",
+      "{workspaceRoot}/backend/sgconfig.yml",
+      "{workspaceRoot}/clis/sgconfig.yml",
+      "{workspaceRoot}/backend/arch-rules/**",
+      "{workspaceRoot}/backend/arch-tests/**",
+      "{workspaceRoot}/backend/arch-utils/**",
+      "{workspaceRoot}/clis/arch-rules/**",
+      "{workspaceRoot}/clis/arch-utils/**",
+      "{workspaceRoot}/clis/rule-tests/**"
     ],
     "default": [
       "{projectRoot}/**/*",
       "sharedGlobals"
+    ],
+    "withoutDeployFiles": [
+      "default",
+      "!{projectRoot}/**/Dockerfile*",
+      "!{projectRoot}/**/docker-compose*",
+      "!{projectRoot}/**/*.md"
     ],
     "production": [
       "{projectRoot}/**/*",
@@ -73,7 +91,8 @@
     "lint": {
       "cache": true,
       "inputs": [
-        "default"
+        "default",
+        "archRules"
       ]
     },
     "typecheck": {
@@ -156,7 +175,19 @@
       "cache": true,
       "inputs": [
         {
-          "fileset": "{projectRoot}/features/leetcode/code-editor/core/cm6Bundle*.ts"
+          "fileset": "{projectRoot}/features/leetcode/data/editor/cm6/**"
+        },
+        {
+          "fileset": "{projectRoot}/features/leetcode/domain/editor/**"
+        },
+        {
+          "fileset": "{workspaceRoot}/frontend/libraries/code-editor-api/src/**"
+        },
+        {
+          "fileset": "{workspaceRoot}/frontend/libraries/webview-rpc/src/**"
+        },
+        {
+          "fileset": "{workspaceRoot}/frontend/libraries/logging/src/**"
         },
         {
           "fileset": "{projectRoot}/scripts/cm6-bundle.mjs"
@@ -167,6 +198,29 @@
         {
           "externalDependencies": [
             "esbuild"
+          ]
+        }
+      ]
+    },
+    "check:pyodide": {
+      "cache": true,
+      "inputs": [
+        {
+          "fileset": "{projectRoot}/features/leetcode/data/pyodide/**"
+        },
+        {
+          "fileset": "{projectRoot}/scripts/pyodide-bundle.mjs"
+        },
+        {
+          "fileset": "{workspaceRoot}/frontend/libraries/webview-rpc/src/**"
+        },
+        {
+          "fileset": "{projectRoot}/package.json"
+        },
+        {
+          "externalDependencies": [
+            "esbuild",
+            "pyodide"
           ]
         }
       ]

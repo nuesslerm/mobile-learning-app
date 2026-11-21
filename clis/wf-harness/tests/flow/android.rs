@@ -12,10 +12,11 @@ use std::time::Duration;
 /// One `adb` for every journey: it logs its argv and answers the boot polls, the screen, the keyboard, logcat and recordings;
 /// with STUB_UI_XML_AFTER the screen is that one from the first `input swipe` on, with STUB_UI_SEQ (lines `<argv part>|<xml>`,
 /// taken in order) the screen is a line's xml from the first call naming its part on, with STUB_TYPE_LOWERS typed text lowers
-/// the keyboard, and with STUB_DEVICE_BIN the recorder's stop runs its device script with that directory's tools alone.
+/// the keyboard (and a call naming STUB_IME_LOWERS_ON does), and with STUB_DEVICE_BIN the recorder's stop runs its device script with that directory's tools alone.
 const STUB_ADB: &str = r#"echo "$*" >> "$0.log"
 case "$*" in *"input swipe"*) touch "$0.swiped";; esac
 case "$*" in *"input text"*) [ -n "${STUB_TYPE_LOWERS:-}" ] && echo false > "$0.ime";; esac
+[ -n "${STUB_IME_LOWERS_ON:-}" ] && case "$*" in *"$STUB_IME_LOWERS_ON"*) echo false > "$0.ime";; esac
 [ -n "${STUB_UI_XML_AFTER:-}" ] && [ -e "$0.swiped" ] && STUB_UI_XML="$STUB_UI_XML_AFTER"
 if [ -n "${STUB_UI_SEQ:-}" ]; then
   i=$(cat "$0.seq" 2>/dev/null || echo 1); next=$(sed -n "${i}p" "$STUB_UI_SEQ")
@@ -480,7 +481,7 @@ fn the_lab_scripts_boot_a_slim_redroid_safely_and_report_its_features() {
     assert!(screen.contains("androidboot.redroid_width=720") && screen.contains("androidboot.redroid_dpi=320"), "{screen}");
     assert_eq!(json_out(&second)["device"], json!("rdl-bench"));
     assert!(script_of(&second).contains("docker run -d --name rdl-bench --privileged --cpus 1.5 -p 5556:5555 -v rdl-bench-data:/data"), "{}", out(&second));
-    assert!(expo.contains("Expo-Go-57.0.9.apk") && expo.contains("pm install -r /data/local/tmp/expogo.apk"), "{expo}");
+    assert!(expo.contains("Expo-Go-58.0.5.apk") && expo.contains("pm install -r /data/local/tmp/expogo.apk"), "{expo}");
     assert!(expo.rfind("expogo.apk").unwrap() > expo.find("boot_fresh || exit 1").unwrap(), "Expo Go goes in after the device booted");
     // and WF_ANDROID_NAME names the container when --name does not
     assert!(script_of(&android(&s, &["start-device", "--dry-run"], &[("WF_ANDROID_NAME", "rdl-2")])).contains("docker run -d --name rdl-2 "));
@@ -768,6 +769,111 @@ fn a_traced_letter_goes_on_to_its_next_stroke_as_soon_as_that_strokes_guide_show
     assert!(gaps.iter().all(|&ms| ms < 2000), "ms from one stroke to the next: {gaps:?}");
     assert_eq!(s.calls("adb").iter().filter(|c| c.contains("input motionevent UP")).count(), 3);
     assert!(text.contains("uyirmei-k letter 1 attempt 2: drew=true, next guide: Stroke 3 of 3") && text.contains("uyirmei-k/1\t100% ON THE LINE\tok"), "{text}");
+}
+
+/// The editor-typing test case's screens for two-sum part 1, as the stub serves them in order: `editor(text)` is the editor with
+/// the helper rails, the toolbars and the field's text as the accessibility read gives it.
+fn editor_screen(text: &str) -> String {
+    let text = text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;").replace('\n', "&#10;");
+    let node = |id: &str, bounds: &str, text: &str| format!(r#"<node resource-id="{id}" text="{text}" bounds="{bounds}" />"#);
+    [
+        node("ProblemEditorRunLocalButton", "[100,640][200,700]", ""),
+        node("CodeEditorInput", "[20,190][460,480]", &text),
+        node("EditorHelperRails", "[0,490][480,610]", ""),
+        node("EditorSyntaxToolbar", "[0,500][480,548]", ""),
+        node("EditorSyntax-Equals", "[200,500][280,548]", ""),
+        node("EditorSyntax-Colon", "[300,500][380,548]", ""),
+        node("EditorActionToolbar", "[0,560][480,606]", ""),
+        node("EditorAction-Undo", "[330,570][370,600]", ""),
+        node("EditorAction-Redo", "[380,570][420,600]", ""),
+        node("EditorAction-Done", "[441,570][479,600]", ""),
+    ]
+    .join("")
+}
+
+const TWO_SUM_LINES: [&str; 4] = ["seen = {}", "for i, n in enumerate(nums):", "if target - n in seen:", "return [seen[target - n], i]"];
+
+fn typed_up_to(lines: usize, last_line: &str) -> String {
+    let indents = [8, 8, 12, 16];
+    let mut text = String::from("class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:");
+    for n in 0..lines {
+        text += &format!("\n{}{}", " ".repeat(indents[n]), if n + 1 == lines { last_line } else { TWO_SUM_LINES[n] });
+    }
+    text
+}
+
+/// Runs e2e/editor-typing.lua (two-sum part 1) on a stub device that serves `after_last_line` (screens, each taken at the call
+/// named by its part) once the last line is typed; the earlier screens give each line the indent the editor would.
+fn editor_typing(prefix: &str, after_last_line: &[(&str, String)]) -> (SlotSandbox, RunResult) {
+    let s = sandbox(prefix);
+    s.file("e2e/editor-typing.lua", std::fs::read(repo_root().join("e2e/editor-typing.lua")).unwrap());
+    s.file("ui.xml", r#"<hierarchy><node resource-id="" text="Expo Go" bounds="[0,0][480,80]" /></hierarchy>"#);
+    let route = format!("<hierarchy>{}{}</hierarchy>", r#"<node resource-id="ProblemEditorRunLocalButton" bounds="[100,640][200,700]" />"#, r#"<node resource-id="ProblemEditorResetButton" bounds="[300,640][400,700]" />"#);
+    let dialog = r#"<hierarchy><node resource-id="ResetCodeDialog-Confirm" bounds="[300,500][400,560]" /></hierarchy>"#;
+    let at = |n: usize| format!("<hierarchy>{}</hierarchy>", editor_screen(&typed_up_to(n, "")));
+    let mut seq: Vec<(&str, String)> = vec![("exp://", route.clone()), ("input tap", dialog.into()), ("input tap", route), ("input tap", at(1)), ("input tap", at(1)), ("keyevent 66", at(2)), ("input tap", at(2)), ("keyevent 66", at(3)), ("keyevent 66", at(4))];
+    seq.extend(after_last_line.iter().map(|(part, xml)| (*part, xml.clone())));
+    seq.push(("input tap 350 585", at(3)));
+    seq.push(("input tap 400 585", format!("<hierarchy>{}</hierarchy>", editor_screen(&typed_up_to(4, TWO_SUM_LINES[3])))));
+    let lines: Vec<String> = seq.iter().enumerate().map(|(n, (part, xml))| format!("{part}|{}", s.file(&format!("screen-{n}.xml"), xml.as_str()))).collect();
+    let seq_file = s.file("screens", lines.join("\n") + "\n");
+    let out_dir = s.repo.join("out").display().to_string();
+    let r = android(
+        &s,
+        &["test", "e2e/editor-typing.lua", "--no-record", "--env", "problem=two-sum", "--env", "part=1", "--env", "base=exp://u.expo.dev/p/group/g/--", "--env", &format!("out={out_dir}")],
+        &[("STUB_UI_SEQ", &seq_file), ("STUB_IME_LOWERS_ON", "input tap 460 585")],
+    );
+    (s, r)
+}
+
+#[test]
+fn typed_lines_are_read_back_after_the_accessibility_tree_catches_up() {
+    // Given a device whose editor reads back as empty for its first two reads after the last line was typed (two-sum part 1,
+    // run 44047720113, whose screenshot showed the whole text), then as the typed lines
+    let full = format!("<hierarchy>{}</hierarchy>", editor_screen(&typed_up_to(4, TWO_SUM_LINES[3])));
+    let empty = format!("<hierarchy>{}</hierarchy>", editor_screen(""));
+
+    // When the test case types the part
+    let (s, r) = editor_typing("wf-flow-android-typing-late-", &[("return", empty.clone()), ("uiautomator dump", empty), ("uiautomator dump", full)]);
+
+    // Then the lines match without a line typed twice
+    let text = out(&r);
+    assert_eq!(r.exit_code, 0, "{text}");
+    let typed: Vec<String> = s.calls("adb").into_iter().filter(|c| c.contains("input text")).collect();
+    assert_eq!(typed.iter().filter(|c| c.contains("return")).count(), 1, "{typed:?}");
+}
+
+#[test]
+fn a_last_line_cut_short_gets_only_its_missing_suffix() {
+    // Given a device whose editor stays at "return [seen[target - n]" after the last line was typed, until text is typed again
+    let cut = format!("<hierarchy>{}</hierarchy>", editor_screen(&typed_up_to(4, "return [seen[target - n]")));
+    let full = format!("<hierarchy>{}</hierarchy>", editor_screen(&typed_up_to(4, TWO_SUM_LINES[3])));
+
+    // When the test case types the part
+    let (s, r) = editor_typing("wf-flow-android-typing-suffix-", &[("return", cut), ("input text", full)]);
+
+    // Then the run passes and the second text typed is the cut-off ", i]" alone
+    let text = out(&r);
+    assert_eq!(r.exit_code, 0, "{text}");
+    let typed: Vec<String> = s.calls("adb").into_iter().filter(|c| c.contains("input text")).collect();
+    let last_two: Vec<&String> = typed.iter().rev().take(2).collect();
+    assert!(last_two[0].ends_with("',%si]'") && last_two[1].contains("return"), "{typed:?}");
+}
+
+#[test]
+fn a_field_that_reads_back_empty_for_good_fails_with_what_was_missing_and_is_never_retyped() {
+    // Given a device whose editor reads back as empty after the last line was typed, for as long as the test case looks
+    let empty = format!("<hierarchy>{}</hierarchy>", editor_screen(""));
+
+    // When the test case types the part
+    let (s, r) = editor_typing("wf-flow-android-typing-empty-", &[("return", empty)]);
+
+    // Then it fails naming the lines it could not find and that the field read empty, and typed nothing more
+    let text = out(&r);
+    assert_ne!(r.exit_code, 0, "{text}");
+    assert!(text.contains("typed code does not match: missing") && text.contains("the field read empty") && text.contains("return [seen[target - n], i]"), "{text}");
+    let typed: Vec<String> = s.calls("adb").into_iter().filter(|c| c.contains("input text")).collect();
+    assert_eq!(typed.iter().filter(|c| c.contains("return")).count(), 1, "{typed:?}");
 }
 
 /// A stand-in for the on-device UI server: answers `/ping` while the started-marker file exists (or always without one), and the

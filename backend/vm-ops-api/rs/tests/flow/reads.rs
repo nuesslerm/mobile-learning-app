@@ -32,7 +32,7 @@ fn stats(json: &str) -> DockerStats {
 }
 
 #[tokio::test]
-async fn given_an_app_with_containers_when_ps_is_read_then_each_is_a_row_and_an_unknown_app_lists_the_six_known_apps() {
+async fn given_an_app_with_containers_when_ps_is_read_then_each_is_a_row_and_an_unknown_app_lists_the_eight_known_apps() {
     // Given an Engine listing remote-chat-agent's app container and an opencode container with no status
     let mut opencode = container("r4", "remote-chat-agent-opencode", "created");
     opencode.status = None;
@@ -50,8 +50,8 @@ async fn given_an_app_with_containers_when_ps_is_read_then_each_is_a_row_and_an_
             r#"{"name":"remote-chat-agent-opencode","state":"created","image":"ns/app:sha-1"}]}"#
         )
     );
-    // And the unknown app is 404 with the ten known apps in order
-    let known = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"];
+    // And the unknown app is 404 with the eight known apps in order
+    let known = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"];
     assert_eq!((unknown.status, unknown.body), (404, json!({ "error": "unknown app", "knownApps": known }).to_string()));
     // And without auth ps is 401, as every route but the public ones
     assert_eq!(world.send("GET", "/services/remote-chat-agent/ps", &[], b"").await.body, UNAUTHORIZED);

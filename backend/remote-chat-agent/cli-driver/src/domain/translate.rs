@@ -14,16 +14,16 @@ pub enum ExecEvent {
     Session(String),
 }
 
-/// The id of the CLI's conversation a line announces: Claude Code's `system` `init` line names it. None for every other line and driver.
+/// The id of the CLI's conversation a line announces: Claude Code's `system` `init` line names it, and every line of `opencode run --format json` carries
+/// it as `sessionID`. None for every other line and for Codex, which has no conversation to go on with.
 pub fn session_of(driver: Driver, line: &str) -> Option<String> {
-    if driver != Driver::ClaudeAgent {
-        return None;
-    }
     let v: Value = serde_json::from_str(line).ok()?;
-    if v["type"] != "system" || v["subtype"] != "init" {
-        return None;
-    }
-    v["session_id"].as_str().filter(|id| !id.is_empty()).map(str::to_string)
+    let id = match driver {
+        Driver::ClaudeAgent if v["type"] == "system" && v["subtype"] == "init" => &v["session_id"],
+        Driver::Opencode => &v["sessionID"],
+        _ => return None,
+    };
+    id.as_str().filter(|id| !id.is_empty()).map(str::to_string)
 }
 
 fn s(v: &Value) -> String {
@@ -111,16 +111,18 @@ mod tests {
     }
 
     #[test]
-    fn given_the_lines_of_each_driver_when_asked_for_a_session_then_only_claude_codes_init_line_names_one() {
-        // Given Claude Code's init line, its other lines, and a line of the other drivers that carries a session_id
+    fn given_the_lines_of_each_driver_when_asked_for_a_session_then_claude_codes_init_line_and_any_opencode_line_name_one() {
+        // Given Claude Code's init line, its other lines, and an opencode line that carries its sessionID
         let init = r#"{"type":"system","subtype":"init","session_id":"s-1","cwd":"/w"}"#;
         let result = r#"{"type":"result","is_error":false,"result":"ok","session_id":"s-1"}"#;
         let empty = r#"{"type":"system","subtype":"init","session_id":""}"#;
         // When each is asked for its session
-        // Then only the init line of Claude Code names it
+        // Then only the init line of Claude Code names it, an opencode line names its own, and Codex and a line without one name none
         assert_eq!(session_of(Driver::ClaudeAgent, init), Some("s-1".to_string()));
         assert_eq!((session_of(Driver::ClaudeAgent, result), session_of(Driver::ClaudeAgent, empty), session_of(Driver::ClaudeAgent, "not json")), (None, None, None));
-        assert_eq!((session_of(Driver::Codex, init), session_of(Driver::Opencode, init)), (None, None));
+        let opencode = r#"{"type":"text","timestamp":1,"sessionID":"ses_a1","part":{"text":"hi"}}"#;
+        assert_eq!((session_of(Driver::Opencode, opencode), session_of(Driver::Opencode, init), session_of(Driver::Opencode, r#"{"sessionID":""}"#)), (Some("ses_a1".to_string()), None, None));
+        assert_eq!((session_of(Driver::Codex, init), session_of(Driver::Codex, opencode)), (None, None));
         // And translate never turns it into an event
         assert!(translate(Driver::ClaudeAgent, init).is_empty());
     }

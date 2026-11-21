@@ -17,6 +17,8 @@ pub struct ParFake {
     status: Arc<Mutex<Option<u16>>>,
     body: Arc<Mutex<Option<String>>>,
     seen: Arc<Mutex<Vec<Seen>>>,
+    /// How many of the next requests answer `.1`, before serving normally again.
+    fail_next: Arc<Mutex<(u32, u16)>>,
 }
 
 impl ParFake {
@@ -25,8 +27,8 @@ impl ParFake {
         let server = Server::http("127.0.0.1:0").unwrap();
         let prefix = format!("/p/{TOKEN}/n/ns/b/build-cache/o/");
         let url = format!("http://127.0.0.1:{}{prefix}", server.server_addr().to_ip().unwrap().port());
-        let fake = ParFake { url, status: Arc::default(), body: Arc::default(), seen: Arc::default() };
-        let (status, body_forced, seen) = (fake.status.clone(), fake.body.clone(), fake.seen.clone());
+        let fake = ParFake { url, status: Arc::default(), body: Arc::default(), seen: Arc::default(), fail_next: Arc::default() };
+        let (status, body_forced, seen, fail_next) = (fake.status.clone(), fake.body.clone(), fake.seen.clone(), fake.fail_next.clone());
         std::thread::spawn(move || {
             let mut objects: HashMap<String, Vec<u8>> = HashMap::new();
             for mut request in server.incoming_requests() {
@@ -35,7 +37,14 @@ impl ParFake {
                 seen.lock().unwrap().push(Seen { method: method.clone(), if_none_match });
                 let mut body = Vec::new();
                 let _ = request.as_reader().read_to_end(&mut body);
-                let forced = *status.lock().unwrap();
+                let mut forced = *status.lock().unwrap();
+                {
+                    let mut next = fail_next.lock().unwrap();
+                    if next.0 > 0 {
+                        next.0 -= 1;
+                        forced = Some(next.1);
+                    }
+                }
                 let forced_body = body_forced.lock().unwrap().clone();
                 let name = request.url().strip_prefix(prefix.as_str()).map(str::to_string);
                 let reply = match (forced, name) {
@@ -72,6 +81,11 @@ impl ParFake {
     pub fn answer_all_with_body(&self, code: u16, body: &str) {
         *self.body.lock().unwrap() = Some(body.to_string());
         *self.status.lock().unwrap() = Some(code);
+    }
+
+    /// Answers the next `count` requests with `code`, then serves normally again.
+    pub fn fail_next(&self, count: u32, code: u16) {
+        *self.fail_next.lock().unwrap() = (count, code);
     }
 
     pub fn seen(&self) -> Vec<Seen> {

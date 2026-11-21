@@ -5,7 +5,8 @@ const React = require('react');
 const RN = require('react-native-web');
 const Box = (props) =>
   React.createElement(RN.View, { testID: props.testID }, props.children);
-// `data-active-offset-y` mirrors the one prop the design-system Sheet sets only on web, so a flow test can assert each platform branch.
+// `data-active-offset-y` mirrors the one prop the design-system Sheet sets only on web, so a flow test can assert each platform branch;
+// `data-keyboard-lift` mirrors how far the design-system Sheet lifts its bottom edge for the keyboard (`bottomInset`), which no jsdom layout can show.
 const Sheet = (props) =>
   React.createElement(
     RN.View,
@@ -13,6 +14,7 @@ const Sheet = (props) =>
       testID: props.testID,
       dataSet: {
         sheet: 'true',
+        keyboardLift: String(props.bottomInset ?? 0),
         ...(props.activeOffsetY
           ? { activeOffsetY: JSON.stringify(props.activeOffsetY) }
           : {}),

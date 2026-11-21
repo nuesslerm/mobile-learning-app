@@ -2,7 +2,7 @@
 status: open
 area: rca-parity
 paths:
-  - "tooling/mimic-drivers/src/t3/release.ts"
+  - "clis/mimic/script/host/src/provision.rs"
   - "clis/t3-serve/cassettes/t3-v0.1.6/mimic.toml"
   - "tooling/t3-conformance/t3-pin.json"
 opened: 2026-11-04
@@ -16,7 +16,7 @@ links:
 ## What is broken
 
 The mock (`mock-server.ts`) and the Nx target `t3-conformance-live` are gone (mimic X5). `wf mimic verify t3-v0.1.6 --live` re-records the pinned
-server through the T3 driver (`tooling/mimic-drivers/src/t3`) and diffs it with the committed set, but it has only run against a stand-in server and
+server through the step interpreter (`clis/mimic/script`, `driver = "script"`; the TypeScript T3 driver was retired on 15 Nov 2026) and diffs it with the committed set, but it has only run against a stand-in server and
 faked downloads: nothing has yet replayed the real `t3@0.1.6` as a server, so a golden that no longer matches what the pinned T3 does would not show.
 
 ## Why blocked
@@ -32,4 +32,4 @@ On the VM (or any session that may start the pinned binary): `wf mimic verify t3
 
 ## Update (R1, 7 Nov 2026)
 
-The pinned server was run on the VM (linux-arm64 release, sha256 equal to the pin) and 202 of 205 phone rows were recorded from it: `clis/t3-serve/cassettes/t3-recorded-{1,2,3}`. `verify <set> --live` on the VM is the re-run. See `docs/plans/mimic/plan.md` R1 and `docs/runbooks/record-reference-servers-on-the-vm.md`.
+The pinned server was run on the VM (linux-arm64 release, sha256 equal to the pin) and 202 of 205 phone rows were recorded from it: `clis/t3-serve/cassettes/t3-v0.1.9-recorded-{1,2,3}`. `verify <set> --live` on the VM is the re-run. See `docs/plans/mimic/plan.md` R1 and `docs/runbooks/record-reference-servers-on-the-vm.md`.

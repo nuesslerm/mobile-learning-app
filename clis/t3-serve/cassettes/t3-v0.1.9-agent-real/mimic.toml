@@ -1,0 +1,51 @@
+# R11 real-agent scenarios: the rows whose agent method needs a finished or really running turn, each on an opencode thread whose turn a REAL opencode (the pinned release of tooling/mimic-drivers/provision/real-agents-pin.json, the cheap model, the prompt 'reply with OK') runs: checkpoint.rollback after a real turn, thread.fork then thread.merge_back on a thread with a finished turn, and queued-message.promote-to-steer on a really running turn. Nothing is scripted here (claude and codex stay scripted, the reference host holds no Anthropic credential). The key reaches the reference alone ([reference] env_from_vault: names only); rules.json ignores the reply text and every id, so only the method answered in the call window and the shape of the reply are compared. A recorded set's corpus is frozen with its cassette, so these are a set of their own. Inputs: `node tooling/mimic-drivers/src/cli.ts scenarios t3-real` from the committed crawl (t3-api). STAGED, not recorded: the record needs mimic-script-host 0.1.9 adopted by wf-mimic and one hosted probe (docs/runbooks/record-reference-servers-on-the-vm.md, "Real agent CLIs in a recording"); recorded by `[record t3-v0.1.9-agent-real]`. One fresh server and home per scenario.
+rules = "rules.json"
+corpus = "corpus.json"
+allowlist = "allowlist.json"
+provision_file = "//tooling/mimic-drivers/provision/t3-real.toml"
+
+[diff]
+ignore_dirs = ["c2s"]
+breaking_paths = ["steps.http:ret:_.payload.status", "steps.ws:open:s2c:_.payload.status"]
+advertised_prefixes = ["capabilities."]
+
+[diff.fold]
+channel = "ws"
+tag = "/_tag"
+chunk = "Chunk"
+values = "/values"
+once = [["/kind", "snapshot"]]
+squash = ["/exit/cause"]
+
+[reference]
+name = "t3"
+driver = "script"
+pin = "../../../../tooling/t3-conformance/t3-pin.json"
+version_pointer = "/version"
+commit_pointer = "/commit"
+timeout_ms = 900000
+live_when_named = "downloads and runs the pinned release: `wf mimic verify <set> --live`, on the VM"
+# the key the pinned opencode reads (OPENCODE_API_KEY) and the registry key that holds its value, as MIMIC_CRED_<CLI>__<VAR>: the host hands it to that CLI alone; names only, read in memory for a record
+env_from_vault = { MIMIC_CRED_OPENCODE__OPENCODE_API_KEY = "OPENCODE_GO_API_KEY" }
+
+[reference.script]
+target = "spawn"
+prelude = "../t3-prelude.json"
+
+[record]
+# a live reference moves its ids and timestamps between two records; the tagged cases are listed in stability-allowlist.json
+allow_nondeterministic = true
+
+# the chain the integration tests replay against (t3-serve over rca-service and rca-exec, the scripted CLIs), started by the replay itself from the
+# binaries the provision steps of `when = "replay"` built: `examples/chain.rs` of t3-serve prints its address, workspace and pairing and serves until stdin closes
+[candidate.t3-serve]
+driver = "script"
+
+[candidate.t3-serve.script]
+target = "chain"
+launch = ["{work}/chain-bin/chain", "--t3-serve", "{work}/chain-bin/t3-serve", "--rca-service", "{work}/chain-bin/rca-service", "--rca-exec", "{work}/chain-bin/rca-exec", "--scripted-cli", "{work}/chain-bin/scripted-cli"]
+ready_ms = 120000
+prelude = "../t3-prelude.json"
+session = true
+# a candidate that answers from memory on loopback: a frame that is coming arrives within this
+quiet_cap_ms = 120

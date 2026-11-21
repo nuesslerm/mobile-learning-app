@@ -49,13 +49,13 @@ Composition roots read `useDependencyOverrides(key)`; the overrides win over liv
 | `leetcode` | `Partial<LeetCodePorts>` | `LeetCodeLiveContainer` (audio hook still always called) | `@lib/flow-test-harness` doubles + a fake gateway in the test |
 | `coding-agent` | `{ gateway: Gateway }` | read in three places: `integration/useGateway.ts` (transport param and prop removed; default = ws gateway), `ui/ThreadListScreen.tsx:102` and `ui/DispatchRunScreen.tsx:56` | `@feature/coding-agent/testing` → `createFixtureGateway` |
 | `service-report` | `{ fetchHealthReportHistory }` | `state/useHealthReportHistory.ts` | `@feature/service-report/testing` → fixture from `ui/mockReports.ts` |
-| `dashboards` | `{ reportingGateway: ReportingGateway }` | `AgentsDashboardScreen` / `InfraDashboardScreen` effect | `createFixtureReportingGateway` from `components/dashboards/data/reportingGateway.ts` |
+| `dashboards` | `{ reportingGateway: ReportingGateway }` | `AgentsDashboardScreen` / `InfraDashboardScreen` effect | `createFixtureReportingGateway` from `features/dashboards/data/reportingGateway.ts` |
 
 settings and tamil-writing have no injected dependencies: their tests use `createFlowApp` without overrides.
 
 ## Colocated routes
 
-Route modules live with their feature, mirroring the URL below the feature's prefix: `features/coding-agent/src/routes/index.tsx`, `[threadId].tsx`, `runs/[runId].tsx`, `[threadId]/settings.tsx`, with `package.json` `exports` gaining `"./routes/*"`. Local features use `features/<f>/routes/**`; dashboards use `components/dashboards/routes/**`. Each `app/**` file of a feature becomes one line re-exporting that module (e.g. `export { default } from '@feature/coding-agent/routes/[threadId]'`), so Expo Router still resolves it while the feature owns its slice. App-shell files stay in `app/`.
+Route modules live with their feature, mirroring the URL below the feature's prefix: `features/coding-agent/src/routes/index.tsx`, `[threadId].tsx`, `runs/[runId].tsx`, `[threadId]/settings.tsx`, with `package.json` `exports` gaining `"./routes/*"`. Local features use `features/<f>/routes/**`; dashboards use `features/dashboards/routes/**`. Each `app/**` file of a feature becomes one line re-exporting that module (e.g. `export { default } from '@feature/coding-agent/routes/[threadId]'`), so Expo Router still resolves it while the feature owns its slice. App-shell files stay in `app/`.
 
 ## Prevention
 

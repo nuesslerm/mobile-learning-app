@@ -16,7 +16,7 @@ impl Environment for ProcessEnv {
     }
 
     fn home_dir(&self) -> PathBuf {
-        dirs::home_dir().filter(|home| !home.as_os_str().is_empty()).unwrap_or_else(|| PathBuf::from("/root"))
+        std::env::home_dir().filter(|home| !home.as_os_str().is_empty()).unwrap_or_else(|| PathBuf::from("/root"))
     }
 
     fn temp_dir(&self) -> PathBuf {

@@ -11,7 +11,7 @@ import { Code, Globe, Info, Zap } from '@lib/tamagui-design-system/icons';
 import * as React from 'react';
 import { Linking, ScrollView } from 'react-native';
 
-import { backTo } from './backTo';
+import { backTo } from '@lib/tamagui-design-system/lib/backTo';
 
 const REPOSITORY_URL = 'https://github.com/nuesslerm/mobile-learning-app';
 const LICENCES_URL = `${REPOSITORY_URL}/blob/main/LICENSE`;

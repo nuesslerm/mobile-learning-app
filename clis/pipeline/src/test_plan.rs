@@ -1,4 +1,4 @@
-//! `wf test plan`: every test a push needs, by CI stage, decided in one place. Package tests (flow, integration, typecheck,
+//! `wf ci plan tests`: every test a push needs, by CI stage, decided in one place. Package tests (flow, integration, typecheck,
 //! lint, unit, deployment verification) follow pnpm's dependency graph from the changed files, and the crate graph for a package whose crates are
 //! projects of their own; the `e2e/*.lua` tests are the focused ones. Each
 //! entry says why it was picked. CI writes the plan once and every stage job runs its part with `wf test run --stage
@@ -25,7 +25,7 @@ const SCRIPTS: [(&str, &str, &str); 9] = [
     // no package defines this script: the stage runs the crates' `cargo-e2e`. A package's own `test:e2e` runs against local services (a
     // backend binary, an opencode server) that this job does not have; its deployed form is `test:verify:deployed`.
     ("cli-e2e-tests", "e2e", "test:cli-e2e"),
-    // the crates' `cargo-e2e-smoke`: the same suite without the parity tests, for a crate reached only through a dependency
+    // the crates' `cargo-e2e-smoke`: the same suite without the compare tests, for a crate reached only through a dependency
     ("cli-e2e-tests", "e2e-smoke", "test:cli-e2e-smoke"),
     ("deployment-verification-tests", "deployment-verification", "test:verify:deployed"),
 ];
@@ -156,6 +156,22 @@ struct Crate {
     integration_files: Vec<String>,
     /// `[package.metadata.integration] uses`: the crates whose binaries the integration tests run, which the flow tests do not.
     integration_uses: Vec<String>,
+    /// `[package.metadata.integration] evidence`: the coverage app (`orca`, `t3`) whose evidence file the suite's method-hit traces refresh.
+    integration_evidence: Option<String>,
+    /// `[package.metadata.integration.groups]`: the parts of the integration suite that are an Nx task each (`cargo-integration-<group>`), each with its libtest filter.
+    integration_groups: Vec<(String, String)>,
+    /// `[package.metadata.integration.replay] sets`: the recorded sets a candidate crate replays by feature.
+    replay_sets: Vec<String>,
+    /// `[package.metadata.integration.replay]` of a mapping crate: `rows` (the crate is one feature) or one table of `rows` and `files` per named feature.
+    replay_features: Vec<ReplayFeature>,
+}
+
+/// The rows of a recorded set one mapping crate answers, and for a named feature of a larger crate the files that can move them (repo-relative globs;
+/// none: the feature replays on every change to the crate).
+struct ReplayFeature {
+    name: Option<String>,
+    rows: Vec<String>,
+    files: Vec<String>,
 }
 
 /// Every crate of the repo's cargo workspaces, with its path dependencies, read from the manifests: the plan job has no
@@ -200,9 +216,26 @@ fn rust_crates(root: &Path) -> Result<Vec<Crate>, String> {
             let flow_uses = list("uses").into_iter().chain(grouped.iter().filter(|e| names_crate(e)).cloned()).collect();
             let integration = m.get("package").and_then(|p| p.get("metadata")).and_then(|d| d.get("integration"));
             let integration_list = |key: &str| -> Vec<String> { integration.and_then(|f| f.get(key)).and_then(toml::Value::as_array).into_iter().flatten().filter_map(toml::Value::as_str).map(str::to_string).collect() };
-            let integration_files = integration_list("inputs").into_iter().map(|g| normalize(&dir.join(g)).to_string_lossy().to_string()).collect();
+            let groups_table = integration.and_then(|f| f.get("groups")).and_then(toml::Value::as_table);
+            let integration_groups: Vec<(String, String)> = groups_table.into_iter().flatten().map(|(g, spec)| (g.clone(), spec.get("filter").and_then(toml::Value::as_str).unwrap_or_default().to_string())).collect();
+            let grouped_files: Vec<String> = groups_table.into_iter().flat_map(|t| t.values()).filter_map(|spec| spec.get("files")).filter_map(toml::Value::as_array).flatten().filter_map(toml::Value::as_str).map(str::to_string).collect();
+            let integration_files = integration_list("inputs").into_iter().chain(grouped_files).map(|g| normalize(&dir.join(g)).to_string_lossy().to_string()).collect();
             let integration_uses = integration_list("uses");
-            out.push(Crate { name: name.to_string(), dir: normalize(&dir).to_string_lossy().to_string(), manifest: manifest.to_string(), deps, e2e_groups, flow_groups, flow_files, flow_uses, integration_files, integration_uses });
+            let integration_evidence = integration.and_then(|f| f.get("evidence")).and_then(toml::Value::as_str).map(str::to_string);
+            let replay = integration.and_then(|f| f.get("replay")).and_then(toml::Value::as_table);
+            let strings = |v: Option<&toml::Value>| -> Vec<String> { v.and_then(toml::Value::as_array).into_iter().flatten().filter_map(toml::Value::as_str).map(str::to_string).collect() };
+            let replay_sets = strings(replay.and_then(|r| r.get("sets")));
+            let mut replay_features: Vec<ReplayFeature> = Vec::new();
+            if let Some(r) = replay {
+                if r.contains_key("rows") {
+                    replay_features.push(ReplayFeature { name: None, rows: strings(r.get("rows")), files: vec![] });
+                }
+                for (feature, spec) in r.iter().filter_map(|(k, v)| v.as_table().map(|t| (k, t))) {
+                    let files = strings(spec.get("files")).into_iter().map(|g| normalize(&dir.join(g)).to_string_lossy().to_string()).collect();
+                    replay_features.push(ReplayFeature { name: Some(feature.clone()), rows: strings(spec.get("rows")), files });
+                }
+            }
+            out.push(Crate { name: name.to_string(), dir: normalize(&dir).to_string_lossy().to_string(), manifest: manifest.to_string(), deps, e2e_groups, flow_groups, flow_files, flow_uses, integration_files, integration_uses, integration_evidence, integration_groups, replay_sets, replay_features });
         }
     }
     Ok(out)
@@ -276,9 +309,9 @@ fn contract_selected(scope: &Scope, reason: &str, dir: &str) -> bool {
     }
 }
 
-/// Whether a crate's parity tests (`cargo-e2e`, live models) run: for a full plan and when a file of the crate itself changed; a crate reached
+/// Whether a crate's compare tests (`cargo-e2e`, live models) run: for a full plan and when a file of the crate itself changed; a crate reached
 /// only through a dependency or the Nx graph runs `cargo-e2e-smoke`, the rest of its e2e suite, or nothing when the suite is all live models.
-fn parity_selected(scope: &Scope, reason: &str, dir: &str) -> bool {
+fn compare_selected(scope: &Scope, reason: &str, dir: &str) -> bool {
     match scope {
         Scope::Changed(files) => reason == "changed" && files.iter().any(|f| f.starts_with(&format!("{dir}/"))),
         _ => true,
@@ -309,8 +342,86 @@ fn flow_entries(root: &Path, c: &Crate, reason: &str) -> Vec<(String, Value)> {
     c.flow_groups.iter().map(|g| ("flow-tests".to_string(), json!({ "kind": "flow", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command} {g}::"), "group": g, "target": format!("cargo-flow-{g}"), "why": [reason] }))).collect()
 }
 
-fn integration_entry(root: &Path, c: &Crate, reason: &str) -> Option<(String, Value)> {
-    root.join(&c.dir).join("tests/integration.rs").is_file().then(|| ("integration-tests".to_string(), json!({ "kind": "integration", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("cargo test --locked -p {} --test integration --manifest-path {} -- --test-threads=1", c.name, c.manifest), "why": [reason] })))
+/// The libtest module of a candidate's replay tests (`tests/integration/replay_features.rs`): one submodule per feature, each an Nx task of its own.
+const REPLAY_FILTER: &str = "replay_features::";
+
+/// The recorded sets of `candidate` that hold a row starting with one of `rows` (a row is the `"row":"..."` field of an interaction).
+fn replay_sets(root: &Path, candidate: &Crate, rows: &[String]) -> Vec<String> {
+    let mut out: Vec<String> = candidate
+        .replay_sets
+        .iter()
+        .filter(|set| {
+            let text = std::fs::read_to_string(root.join(&candidate.dir).join("cassettes").join(set).join("interactions.jsonl")).unwrap_or_default();
+            rows.iter().any(|r| text.contains(&format!("\"row\":\"{r}")))
+        })
+        .cloned()
+        .collect();
+    out.sort();
+    out
+}
+
+/// The replay entries of the mapping crates under each candidate crate, one Nx task `replay-<id>` per feature: a mapping crate's rows replay when it
+/// is reached (changed, or a crate it depends on is), and all of them when the candidate's own wiring is (its own files, its cassettes and inputs, the
+/// crates it runs). A feature of a crate that names its files replays alone for a change confined to those files and the features without files.
+fn replay_entries(root: &Path, crates: &[Crate], scope: &Scope, reached: &HashSet<String>) -> Vec<(String, Value)> {
+    let mut out = Vec::new();
+    for candidate in crates.iter().filter(|c| !c.replay_sets.is_empty()) {
+        let nested = |c: &&Crate| c.dir.starts_with(&format!("{}/", candidate.dir)) && !c.replay_features.is_empty();
+        let own_file = |f: &String| f.starts_with(&format!("{}/", candidate.dir)) && !crates.iter().any(|m| f.starts_with(&format!("{}/", m.dir)) && m.dir.len() > candidate.dir.len());
+        let wiring = match scope {
+            Scope::Changed(files) => files.iter().find(|f| own_file(f) || candidate.integration_files.iter().any(|g| glob_matches(g, f))).map(|f| format!("the candidate's wiring changed: {f}")).or_else(|| candidate.integration_uses.iter().find(|u| reached.contains(*u)).map(|u| format!("its chain runs {u}"))),
+            _ => Some("all".to_string()),
+        };
+        for m in crates.iter().filter(nested) {
+            let changed: Vec<&String> = match scope {
+                Scope::Changed(files) => files.iter().filter(|f| f.starts_with(&format!("{}/", m.dir))).collect(),
+                _ => vec![],
+            };
+            let through_dep = m.deps.iter().any(|d| reached.contains(d));
+            // a change confined to the named files of some features replays those and the features without files
+            let confined = m.replay_features.iter().any(|f| !f.files.is_empty()) && !through_dep && !changed.is_empty() && changed.iter().all(|c| m.replay_features.iter().any(|f| f.files.iter().any(|g| glob_matches(g, c))));
+            for f in &m.replay_features {
+                let mine = match scope {
+                    Scope::Changed(_) if !reached.contains(&m.name) => None,
+                    Scope::Changed(_) if confined && f.files.is_empty() => Some(format!("its crate {} changed", m.name)),
+                    Scope::Changed(_) if confined => f.files.iter().find_map(|g| changed.iter().find(|c| glob_matches(g, c))).map(|c| format!("{c} changed")),
+                    Scope::Changed(_) => Some(format!("its crate {} is reached", m.name)),
+                    _ => Some("all".to_string()),
+                };
+                let Some(reason) = mine.or_else(|| wiring.clone()) else { continue };
+                let id = match &f.name {
+                    Some(n) => format!("{}-{n}", m.name),
+                    None => m.name.clone(),
+                };
+                let sets = replay_sets(root, candidate, &f.rows);
+                let rows = f.rows.join(",");
+                let filter = format!("{REPLAY_FILTER}{}::", id.replace('-', "_"));
+                let command = format!("cargo test --locked -p {} --test integration --manifest-path {} -- --test-threads=1 {filter}", candidate.name, candidate.manifest);
+                let verbs: Vec<String> = sets.iter().map(|s| format!("wf mimic replay {}/cassettes/{s} --rows {rows} --gaps check", candidate.dir)).collect();
+                out.push(("integration-tests".to_string(), json!({ "kind": "integration", "crate": candidate.name, "dir": candidate.dir, "manifest": candidate.manifest, "command": command, "group": format!("replay-{id}"), "target": format!("replay-{id}"), "replay": { "crate": m.name, "rows": f.rows, "sets": sets, "verbs": verbs }, "why": [reason] })));
+            }
+        }
+    }
+    out
+}
+
+/// The rows of `docs/plans/rca-parity/coverage/<app>.json` no evidence serves yet (its `summary.pending`); `None` when the table is missing or unreadable.
+fn pending_rows(root: &Path, app: &str) -> Option<u64> {
+    std::fs::read_to_string(root.join(format!("docs/plans/rca-parity/coverage/{app}.json"))).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).and_then(|v| v["summary"]["pending"].as_u64())
+}
+
+/// A crate's integration entries: the suite, and for a crate with integration groups the rest of it (its filters skipped) and one entry per group,
+/// each the Nx task `cargo-integration-<group>` replayed on its own inputs.
+fn integration_entry(root: &Path, c: &Crate, reason: &str) -> Vec<(String, Value)> {
+    if !root.join(&c.dir).join("tests/integration.rs").is_file() {
+        return vec![];
+    }
+    let command = format!("cargo test --locked -p {} --test integration --manifest-path {} -- --test-threads=1", c.name, c.manifest);
+    let replays = if c.replay_sets.is_empty() { String::new() } else { format!(" --skip {REPLAY_FILTER}") };
+    let skips: String = c.integration_groups.iter().map(|(_, filter)| format!(" --skip {filter}")).collect::<String>() + &replays;
+    let rest = json!({ "kind": "integration", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command}{skips}"), "why": [reason] });
+    let groups = c.integration_groups.iter().map(|(g, filter)| json!({ "kind": "integration", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command} {filter}"), "group": g, "target": format!("cargo-integration-{g}"), "why": [reason] }));
+    std::iter::once(rest).chain(groups).map(|entry| ("integration-tests".to_string(), entry)).collect()
 }
 
 /// The deployed service asked over its real interface (`tests/deployed_verification.rs`, the deployment-verification-tests stage): a crate that
@@ -415,6 +526,18 @@ fn crate_tests(root: &Path, scope: &Scope, packages: &[Package], every: Vec<Crat
         let Some(c) = crates.iter().find(|c| c.name == name) else { continue };
         out.extend(integration_entry(root, c, &reason));
     }
+    // a chain that declares `evidence` runs whatever changed (the Nx cache replays it): the bundle it publishes refreshes the table, so a served table must not stop it
+    let planned: HashSet<String> = out.iter().filter(|(stage, _)| stage == "integration-tests").filter_map(|(_, v)| v["crate"].as_str().map(str::to_string)).collect();
+    for c in crates.iter().filter(|c| !known.contains(&c.name) && !planned.contains(&c.name)) {
+        let Some(app) = c.integration_evidence.as_deref() else { continue };
+        let reason = match pending_rows(root, app) {
+            Some(0) => format!("its trace bundle keeps the {app} coverage table's evidence current"),
+            Some(pending) => format!("{pending} pending row(s) of the {app} coverage table wait for the trace bundle of this suite"),
+            None => format!("the {app} coverage table named by `evidence` is missing or unreadable, so its rows cannot be shown served"),
+        };
+        out.extend(integration_entry(root, c, &reason));
+    }
+    out.extend(replay_entries(root, &crates, scope, &reached));
     for (name, reason) in why {
         let Some(c) = crates.iter().find(|c| c.name == name) else { continue };
         out.push(("typecheck-lint-unit-tests".to_string(), json!({ "kind": "clippy", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("cargo clippy --locked -p {} --all-targets --manifest-path {} -- -D warnings", c.name, c.manifest), "why": [reason.clone()] })));
@@ -425,11 +548,11 @@ fn crate_tests(root: &Path, scope: &Scope, packages: &[Package], every: Vec<Crat
         out.extend(integration_entry(root, c, &reason));
         out.extend(deployed_verification_entry(root, c, &reason));
         if root.join(&c.dir).join("tests/e2e.rs").is_file() {
-            // a crate whose e2e suite is the live-model parity one (`tests/e2e/parity.rs`) runs none of it for a change that only reaches it
-            let live = root.join(&c.dir).join("tests/e2e/parity.rs").is_file();
-            let selected = parity_selected(scope, &reason, &c.dir);
+            // a crate whose e2e suite is the live-model compare one (`tests/e2e/compare.rs`) runs none of it for a change that only reaches it
+            let live = root.join(&c.dir).join("tests/e2e/compare.rs").is_file();
+            let selected = compare_selected(scope, &reason, &c.dir);
             if selected || !live {
-                let (kind, filter) = if selected { ("e2e", "") } else { ("e2e-smoke", " --skip parity") };
+                let (kind, filter) = if selected { ("e2e", "") } else { ("e2e-smoke", " --skip compare") };
                 // a full-suite crate with groups is one entry per group: each is the Nx task `cargo-e2e-<group>`, replayed on its own inputs
                 let groups: Vec<Option<&String>> = if selected && !c.e2e_groups.is_empty() { c.e2e_groups.iter().map(Some).collect() } else { vec![None] };
                 for group in groups {
@@ -514,6 +637,29 @@ pub fn force(planned: &mut Value, everything: &Value, names: &[String]) {
     }
 }
 
+/// The area of the repository a test's directory belongs to, so CI can run the core tests as one workflow per area: the app and its libraries (`frontend/`, the workspace
+/// root), the command line tools (`clis/`) and everything else (the backend services and their libraries).
+pub fn area_of(dir: &str) -> &'static str {
+    if dir == "." || dir.starts_with("frontend/") {
+        "mobile"
+    } else if dir.starts_with("clis/") {
+        "cli"
+    } else {
+        "backend"
+    }
+}
+
+pub const AREAS: [&str; 3] = ["mobile", "cli", "backend"];
+
+/// Keeps the tests of `area` in every stage; a test with no directory (an e2e test) stays.
+pub fn retain_area(plan: &mut Value, area: &str) {
+    for stage in STAGES {
+        if let Some(tests) = plan["stages"][stage].as_array_mut() {
+            tests.retain(|t| t["dir"].as_str().is_none_or(|d| area_of(d) == area));
+        }
+    }
+}
+
 /// `--github-output`: the plan as one line, and each stage's test count, for the CI jobs' `if:`.
 pub fn github_output(plan: &Value) -> String {
     let mut out = format!("plan={plan}\n");
@@ -543,7 +689,14 @@ pub fn run_stage(stage: &str, plan: &Value, rest: &[String]) -> i32 {
         }
     };
     if matches!(stage, "browser-e2e-tests" | "android-e2e-tests") {
-        let names: Vec<String> = tests.iter().filter_map(|t| t["name"].as_str().map(str::to_string)).collect();
+        let mut names: Vec<String> = tests.iter().filter_map(|t| t["name"].as_str().map(str::to_string)).collect();
+        if let Some(i) = rest.iter().position(|a| a == "--shard") {
+            let Some((index, count)) = rest.get(i + 1).and_then(|v| parse_shard(v)) else {
+                println!("{}", json!({ "ok": false, "stage": stage, "error": "--shard wants <index>/<count> with 1 <= index <= count", "next": "--shard 2/3" }));
+                return 2;
+            };
+            names = shard_names(&names, index, count, &Weights::of_stage(stage));
+        }
         return run_e2e_stage(&nx, &root, stage, &names, rest);
     }
     let parallel = match rest.iter().position(|a| a == "--parallel") {
@@ -558,7 +711,7 @@ pub fn run_stage(stage: &str, plan: &Value, rest: &[String]) -> i32 {
     };
     let tests = match rest.iter().position(|a| a == "--shard") {
         Some(i) => match rest.get(i + 1).and_then(|v| parse_shard(v)) {
-            Some((index, count)) => shard_of(&tests, index, count),
+            Some((index, count)) => shard_in_plan(stage, plan, index, count),
             None => {
                 println!("{}", json!({ "ok": false, "stage": stage, "error": "--shard wants <index>/<count> with 1 <= index <= count", "next": "--shard 2/4" }));
                 return 2;
@@ -576,14 +729,222 @@ fn parse_shard(text: &str) -> Option<(usize, usize)> {
     (1 <= index && index <= count).then_some((index, count))
 }
 
-/// One shard's tests: a package (or crate) with all its kinds goes to one shard, so its tasks share the cache and the build; the packages, sorted by
-/// name, are dealt out round-robin, so every machine of a stage computes the same split from the same plan.
-pub fn shard_of(tests: &[Value], index: usize, count: usize) -> Vec<Value> {
-    let key = |t: &Value| t["package"].as_str().map(str::to_string).or_else(|| t["crate"].as_str().map(|c| format!("crate-{c}"))).unwrap_or_default();
-    let mut keys: Vec<String> = tests.iter().map(key).collect();
+/// The unit a test deals out as: a package (or crate) with all its kinds goes to one shard, so its tasks share the cache and the build, except the
+/// groups of a crate's integration or e2e suite, which are slow tasks of their own and each deal out as a unit.
+fn unit_key(t: &Value) -> String {
+    let unit = t["package"].as_str().map(str::to_string).or_else(|| t["crate"].as_str().map(|c| format!("crate-{c}"))).unwrap_or_default();
+    match (t["kind"].as_str(), t["group"].as_str()) {
+        (Some("integration" | "e2e"), Some(group)) => format!("{unit}/{group}"),
+        _ => unit,
+    }
+}
+
+/// What each unit of a stage costs on a shard, in seconds (`data/shard-weights.json`), and what one costs that is not listed.
+pub struct Weights {
+    pub units: std::collections::BTreeMap<String, u64>,
+    pub default: u64,
+}
+
+impl Weights {
+    pub fn of_stage(stage: &str) -> Weights {
+        let all: Value = serde_json::from_str(include_str!("../data/shard-weights.json")).expect("shard-weights.json parses");
+        let at = &all["stages"][stage];
+        let units = at["units"].as_object().map(|m| m.iter().filter_map(|(k, v)| Some((k.clone(), v.as_u64()?))).collect()).unwrap_or_default();
+        Weights { units, default: at["default"].as_u64().unwrap_or(1).max(1) }
+    }
+
+    pub(crate) fn cost(&self, key: &str) -> u64 {
+        self.units.get(key).copied().unwrap_or(self.default)
+    }
+}
+
+/// The shard (0-based) of each unit, in the order of `keys`: the units longest first, each onto the shard with the least so far, a tie to the lowest
+/// shard and a tie of costs to the name, so every machine of a stage computes the same split from the same plan and the same weights.
+pub fn assign(keys: &[String], count: usize, weights: &Weights) -> Vec<usize> {
+    assign_onto(keys, count, weights, &[])
+}
+
+/// `assign` onto shards that already carry `base` seconds each (a missing entry is none): the deal that fills what another stage left on the same machine.
+pub fn assign_onto(keys: &[String], count: usize, weights: &Weights, base: &[u64]) -> Vec<usize> {
+    let mut order: Vec<usize> = (0..keys.len()).collect();
+    order.sort_by(|a, b| weights.cost(&keys[*b]).cmp(&weights.cost(&keys[*a])).then_with(|| keys[*a].cmp(&keys[*b])));
+    let mut load: Vec<u64> = (0..count).map(|s| base.get(s).copied().unwrap_or(0)).collect();
+    let mut at = vec![0usize; keys.len()];
+    for i in order {
+        let shard = (0..count).min_by_key(|s| (load[*s], *s)).unwrap_or(0);
+        load[shard] += weights.cost(&keys[i]);
+        at[i] = shard;
+    }
+    at
+}
+
+fn fnv(text: &str) -> u64 {
+    let mut hash: u64 = 0xcbf29ce484222325;
+    for byte in text.bytes() {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    hash
+}
+
+/// The git object id of `path` (a directory or a file) at `sha`; empty when git does not know it.
+fn object_id(repo: &Path, sha: &str, path: &str) -> String {
+    let out = std::process::Command::new("git").args(["rev-parse", "--verify", "-q", &format!("{sha}:{path}")]).current_dir(repo).output();
+    out.ok().filter(|o| o.status.success()).map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).unwrap_or_default()
+}
+
+/// A short stable name for what a shard runs: the crates it holds (FNV-1a over its sorted unit keys) and what those crates read (the git object ids at
+/// `sha` of their directories and of the directories of the crates they depend on, and of the lock file). The same crates with the same inputs are the same
+/// key in every commit, so a workflow can queue them and the later one replays the earlier one's cached result; changed inputs are another key and run at
+/// once. An empty shard is `none`.
+pub fn shard_key_in_plan(stage: &str, plan: &Value, index: usize, count: usize, repo: &Path, sha: &str) -> String {
+    key_of(&shard_in_plan(stage, plan, index, count), repo, sha)
+}
+
+fn key_of(mine: &[Value], repo: &Path, sha: &str) -> String {
+    let mine = mine.to_vec();
+    let mut keys: Vec<String> = mine.iter().map(unit_key).collect();
     keys.sort();
     keys.dedup();
-    tests.iter().filter(|t| keys.iter().position(|k| *k == key(t)).is_some_and(|p| p % count == index - 1)).cloned().collect()
+    if keys.is_empty() {
+        return "none".to_string();
+    }
+    let crates = rust_crates(repo).unwrap_or_default();
+    let dir_of = |name: &str| crates.iter().find(|c| c.name == name).map(|c| c.dir.clone());
+    let mut inputs: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for t in &mine {
+        if let Some(dir) = t["dir"].as_str() {
+            inputs.insert(dir.to_string());
+        }
+        let mut queue: Vec<String> = t["crate"].as_str().map(str::to_string).into_iter().collect();
+        let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        while let Some(name) = queue.pop() {
+            if !seen.insert(name.clone()) {
+                continue;
+            }
+            if let Some(c) = crates.iter().find(|c| c.name == name) {
+                inputs.insert(c.dir.clone());
+                queue.extend(c.deps.iter().filter(|d| dir_of(d).is_some()).cloned());
+            }
+        }
+        if let Some(manifest) = t["manifest"].as_str() {
+            if let Some((workspace, _)) = manifest.rsplit_once('/') {
+                inputs.insert(format!("{workspace}/Cargo.lock"));
+            }
+        }
+        if t["package"].is_string() {
+            inputs.insert("pnpm-lock.yaml".to_string());
+        }
+    }
+    let lines: Vec<String> = inputs.iter().map(|p| format!("{p}={}", object_id(repo, sha, p))).collect();
+    format!("{:016x}-{:016x}", fnv(&keys.join(",")), fnv(&lines.join("\n")))
+}
+
+/// The unit keys one shard of `stage` runs, sorted: what `wf ci plan shard-keys --units` prints, so the deal can be checked against the plan's whole list.
+pub fn shard_unit_keys_in_plan(stage: &str, plan: &Value, index: usize, count: usize) -> Vec<String> {
+    let mut keys: Vec<String> = shard_in_plan(stage, plan, index, count).iter().map(unit_key).collect();
+    keys.sort();
+    keys.dedup();
+    keys
+}
+
+/// What an edit to any of these changes for every crate's tests, so a proof of a shard names them (the shard key covers only the crates and what they depend on).
+const PROOF_GLOBALS: &[&str] = &[".github", "nx.json", ".nxignore", "mise.toml", "rust-toolchain.toml", "tooling", "e2e"];
+
+/// Programs a test spawns that are not the crate's own binary or a Cargo dependency, so the key does not cover them.
+const EXTERNAL_SPAWNS: &[&str] = &["docker", "wf_binary", "WF_BIN", "Command::new(\"wf\")", "opencode", "mimic_bin", "Command::new(\"node\")", "ffmpeg", "chromium", "Command::new(java)"];
+
+fn tests_text(dir: &Path, out: &mut String) {
+    for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            tests_text(&path, out);
+        } else if path.extension().is_some_and(|e| e == "rs") {
+            out.push_str(&std::fs::read_to_string(&path).unwrap_or_default());
+        }
+    }
+}
+
+/// Why a unit reads inputs the shard key does not cover (a `package.metadata.flow` or `integration` table, or a test that spawns an outside program), if it does.
+fn external_inputs(repo: &Path, t: &Value) -> Option<&'static str> {
+    let manifest = t["manifest"].as_str().and_then(|m| std::fs::read_to_string(repo.join(m)).ok()).unwrap_or_default();
+    if manifest.contains("package.metadata.flow") {
+        return Some("declares flow inputs outside its directory");
+    }
+    if manifest.contains("package.metadata.integration") {
+        return Some("declares integration inputs outside its directory");
+    }
+    let mut text = String::new();
+    tests_text(&repo.join(t["dir"].as_str()?).join("tests"), &mut text);
+    EXTERNAL_SPAWNS.iter().any(|p| text.contains(p)).then_some("spawns a program outside its dependencies")
+}
+
+/// The fingerprint that proves a shard passed, or why it cannot be proven: the shard's key plus the git object ids of `PROOF_GLOBALS`. Only a shard of crates that
+/// read nothing outside their dependencies is provable: a package (its workspace dependencies are not in the key) and a crate with a `package.metadata.flow` table
+/// (inputs and binaries outside its dir), an `integration` table, or tests that spawn an outside program always run.
+pub fn shard_proof_in_plan(stage: &str, plan: &Value, index: usize, count: usize, repo: &Path, sha: &str) -> Result<String, String> {
+    let mine = shard_in_plan(stage, plan, index, count);
+    if mine.is_empty() {
+        return Err("the shard has no unit".to_string());
+    }
+    for t in &mine {
+        if t["crate"].as_str().is_none() {
+            return Err(format!("{} is a package, whose workspace dependencies the key does not cover", unit_key(t)));
+        }
+        if let Some(why) = external_inputs(repo, t) {
+            return Err(format!("{} {why}", unit_key(t)));
+        }
+    }
+    if let Err(e) = rust_crates(repo) {
+        return Err(format!("cannot read the crate graph: {e}"));
+    }
+    let globals: Vec<String> = PROOF_GLOBALS.iter().map(|p| format!("{p}={}", object_id(repo, sha, p))).collect();
+    Ok(format!("{}-{:016x}", key_of(&mine, repo, sha), fnv(&globals.join("\n"))))
+}
+
+/// One shard's e2e tests by name: the names dealt longest first over the stage's weights, as the package stages' units are.
+pub fn shard_names(names: &[String], index: usize, count: usize, weights: &Weights) -> Vec<String> {
+    let mut keys: Vec<String> = names.to_vec();
+    keys.sort();
+    keys.dedup();
+    let at = assign(&keys, count, weights);
+    keys.into_iter().zip(at).filter(|(_, shard)| *shard == index - 1).map(|(name, _)| name).collect()
+}
+
+/// One shard's tests of `stage`: its units by `assign` over the weights of the stage.
+pub fn shard_of(stage: &str, tests: &[Value], index: usize, count: usize) -> Vec<Value> {
+    shard_with(tests, index, count, &Weights::of_stage(stage))
+}
+
+pub fn shard_with(tests: &[Value], index: usize, count: usize, weights: &Weights) -> Vec<Value> {
+    shard_onto(tests, index, count, weights, &[])
+}
+
+/// `shard_of` for a stage of a plan. A `core-tests` machine runs flow shard i beside typecheck shard `count + 1 - i`, so the typecheck deal starts from
+/// what the flow deal put on the machine it mirrors: the machine, not the stage, is what ends the job.
+pub fn shard_in_plan(stage: &str, plan: &Value, index: usize, count: usize) -> Vec<Value> {
+    let tests = plan["stages"][stage].as_array().cloned().unwrap_or_default();
+    if stage != "typecheck-lint-unit-tests" {
+        return shard_of(stage, &tests, index, count);
+    }
+    let flow_tests = plan["stages"]["flow-tests"].as_array().cloned().unwrap_or_default();
+    let flow = Weights::of_stage("flow-tests");
+    let mut flow_keys: Vec<String> = flow_tests.iter().map(unit_key).collect();
+    flow_keys.sort();
+    flow_keys.dedup();
+    let at = assign(&flow_keys, count, &flow);
+    let mut flow_load = vec![0u64; count];
+    flow_keys.iter().zip(at).for_each(|(k, s)| flow_load[s] += flow.cost(k));
+    let base: Vec<u64> = (0..count).map(|s| flow_load[count - 1 - s]).collect();
+    shard_onto(&tests, index, count, &Weights::of_stage(stage), &base)
+}
+
+fn shard_onto(tests: &[Value], index: usize, count: usize, weights: &Weights, base: &[u64]) -> Vec<Value> {
+    let mut keys: Vec<String> = tests.iter().map(unit_key).collect();
+    keys.sort();
+    keys.dedup();
+    let at = assign_onto(&keys, count, weights, base);
+    tests.iter().filter(|t| keys.iter().position(|k| *k == unit_key(t)).is_some_and(|p| at[p] == index - 1)).cloned().collect()
 }
 
 /// `fresh` runs every task again whatever Nx has cached: the weekly audit of the cache compares it with a cached run. The deployment verification
@@ -623,6 +984,14 @@ fn run_package_stage(nx: &Path, root: &Path, stage: &str, tests: &[Value], sha: 
         // the crates' tests run beside the packages' in one call: cargo serialises builds that share a target directory,
         // and the crates' (clis/) is not the packages' (18 Oct: one after the other overran the job)
         let target = if !crates.is_empty() && matches!(*kind, "flow" | "unit" | "integration" | "e2e" | "e2e-smoke" | "contract" | "deployment-verification") {
+            // a crate whose groups are all this shard holds of its suite (the groups of an integration or e2e suite deal out one by one) runs them
+            // in a call of its own: beside the others it would also run the task for the rest of the suite, which another shard's entry runs
+            if matches!(*kind, "integration" | "e2e") {
+                let whole = |c: &String| tests.iter().any(|t| t["kind"] == *kind && t["group"].is_null() && t["crate"].as_str().is_some_and(|n| format!("crate-{n}") == *c));
+                let (kept, only_groups): (Vec<String>, Vec<String>) = crates.into_iter().partition(whole);
+                crates = kept;
+                run(kind, &groups.join(","), only_groups, 1);
+            }
             projects.extend(crates);
             let cargo = if *kind == "deployment-verification" { "cargo-verify-deployed".to_string() } else { format!("cargo-{kind}") };
             [script.to_string(), cargo].into_iter().chain(groups.iter().map(|g| g.to_string())).collect::<Vec<_>>().join(",")
@@ -715,11 +1084,76 @@ fn run_e2e_stage(nx: &Path, root: &Path, stage: &str, names: &[String], rest: &[
 
 #[cfg(test)]
 mod tests {
-    use super::{contract_selected, deployed_verification_entry, parity_selected, shapes_the_nx_graph, verified_projects, Crate, Scope};
+    fn dealt(stage: &str, names: &[&str]) -> (Vec<String>, Vec<String>) {
+        use super::{shard_names, Weights};
+        let names: Vec<String> = names.iter().map(|n| n.to_string()).collect();
+        let weights = Weights::of_stage(stage);
+        let sorted = |mut v: Vec<String>| {
+            v.sort();
+            v
+        };
+        (sorted(shard_names(&names, 1, 2, &weights)), sorted(shard_names(&names, 2, 2, &weights)))
+    }
+
+    #[test]
+    fn given_the_android_tests_when_dealt_to_two_shards_then_every_test_is_on_exactly_one_and_the_two_shards_carry_about_the_same_seconds() {
+        // Given the seven focused android tests
+        let names = ["voice-edit", "editor-typing", "stubbed-run-local", "tamil-writing", "local-run", "review-sheet-keyboard", "pyodide-spike"];
+
+        // When they are dealt over the stage's weights
+        let (one, two) = dealt("android-e2e-tests", &names);
+
+        // Then the longest test and the light ones are on shard 1 (221 s) and the next two on shard 2 (217 s): tamil-writing runs first, beside editor-typing, because after
+        // the light tests (stubbed-run-local, local-run) on one phone its first request to the stub never arrived and it failed on every hosted run of the 21 Nov re-deal
+        assert_eq!(one, ["local-run", "pyodide-spike", "review-sheet-keyboard", "stubbed-run-local", "voice-edit"]);
+        assert_eq!(two, ["editor-typing", "tamil-writing"]);
+    }
+
+    #[test]
+    fn given_the_browser_tests_when_dealt_to_two_shards_then_every_test_is_on_exactly_one_and_the_slowest_two_are_apart() {
+        // Given the focused browser tests
+        let names = ["voice-edit", "editor-typing", "tamil-writing", "app-routes", "pyodide-spike", "local-run", "review-sheet-keyboard"];
+
+        // When they are dealt over the stage's weights
+        let (one, two) = dealt("browser-e2e-tests", &names);
+
+        // Then each test is on one shard and voice-edit and editor-typing are on different shards
+        let mut all: Vec<String> = one.iter().chain(&two).cloned().collect();
+        all.sort();
+        assert_eq!(all, ["app-routes", "editor-typing", "local-run", "pyodide-spike", "review-sheet-keyboard", "tamil-writing", "voice-edit"]);
+        assert_ne!(one.contains(&"voice-edit".to_string()), one.contains(&"editor-typing".to_string()));
+        assert_eq!((one.len(), two.len()), (4, 3));
+    }
+
+    #[test]
+    fn given_a_plan_of_all_areas_when_one_area_is_kept_then_only_its_tests_stay_and_an_e2e_test_with_no_directory_stays() {
+        use super::retain_area;
+        // Given tests of the app, the root workspace, a cli crate, a backend crate and a library, and an e2e test
+        let mut plan = json!({"stages": {"flow-tests": [
+            {"package": "mla-tamagui", "dir": "frontend/mla-tamagui"}, {"package": "root", "dir": "."},
+            {"crate": "pipeline", "dir": "clis/pipeline"}, {"crate": "rca", "dir": "backend/remote-chat-agent/rs"}, {"crate": "agent-api-hosted", "dir": "libraries/agent-api/agent-api-hosted"},
+            {"name": "e2e-thing"}]}});
+
+        // When each area is kept in a copy of the plan
+        let names = |area: &str| {
+            let mut copy = plan.clone();
+            retain_area(&mut copy, area);
+            copy["stages"]["flow-tests"].as_array().unwrap().iter().map(|t| t["package"].as_str().or(t["crate"].as_str()).or(t["name"].as_str()).unwrap().to_string()).collect::<Vec<_>>()
+        };
+
+        // Then the app and the root are mobile, the clis are cli, the rest is backend, and every area keeps the test with no directory
+        assert_eq!(names("mobile"), ["mla-tamagui", "root", "e2e-thing"]);
+        assert_eq!(names("cli"), ["pipeline", "e2e-thing"]);
+        assert_eq!(names("backend"), ["rca", "agent-api-hosted", "e2e-thing"]);
+        retain_area(&mut plan, "cli");
+        assert_eq!(plan["stages"]["flow-tests"].as_array().unwrap().len(), 2);
+    }
+
+    use super::{contract_selected, deployed_verification_entry, compare_selected, shapes_the_nx_graph, verified_projects, Crate, Scope};
     use serde_json::json;
 
     fn crate_at(dir: &str) -> Crate {
-        Crate { name: "svc".into(), dir: dir.into(), manifest: format!("{dir}/Cargo.toml"), deps: vec![], e2e_groups: vec![], flow_groups: vec![], flow_files: vec![], flow_uses: vec![], integration_files: vec![], integration_uses: vec![] }
+        Crate { name: "svc".into(), dir: dir.into(), manifest: format!("{dir}/Cargo.toml"), deps: vec![], e2e_groups: vec![], flow_groups: vec![], flow_files: vec![], flow_uses: vec![], integration_files: vec![], integration_uses: vec![], integration_evidence: None, integration_groups: vec![], replay_sets: vec![], replay_features: vec![] }
     }
 
     #[test]
@@ -776,12 +1210,137 @@ mod tests {
     }
 
     #[test]
-    fn given_a_crate_changed_itself_or_a_full_plan_when_planned_then_its_parity_tests_run_and_through_a_dependency_or_the_graph_they_do_not() {
-        let own = changed(&["clis/offload/src/lib.rs"]);
-        assert!(parity_selected(&own, "changed", "clis/offload"));
-        assert!(parity_selected(&Scope::All, "all", "clis/offload"));
-        assert!(!parity_selected(&changed(&["clis/wf-vmops/src/host_summary.rs"]), "changed", "clis/offload"), "another crate's file is not the crate's own change");
-        assert!(!parity_selected(&own, "depends on wf-vmops (cargo)", "clis/offload"));
-        assert!(!parity_selected(&own, "the Nx graph or its inputs changed (the cache's contract suite)", "clis/offload"));
+    fn given_a_crate_changed_itself_or_a_full_plan_when_planned_then_its_compare_tests_run_and_through_a_dependency_or_the_graph_they_do_not() {
+        let own = changed(&["clis/rca/src/lib.rs"]);
+        assert!(compare_selected(&own, "changed", "clis/rca"));
+        assert!(compare_selected(&Scope::All, "all", "clis/rca"));
+        assert!(!compare_selected(&changed(&["clis/wf-vmops/src/host_summary.rs"]), "changed", "clis/rca"), "another crate's file is not the crate's own change");
+        assert!(!compare_selected(&own, "depends on wf-vmops (cargo)", "clis/rca"));
+        assert!(!compare_selected(&own, "the Nx graph or its inputs changed (the cache's contract suite)", "clis/rca"));
+    }
+}
+
+#[cfg(test)]
+mod shard_tests {
+    use super::*;
+
+    const INTEGRATION_UNITS: [&str; 30] = [
+        "@app/leetcode-auth-cookie-capture", "@app/leetcode-backend", "@app/remote-chat-agent", "@backend/reporting-service", "@backend/vm-ops-api", "@lib/logging",
+        "crate-agent-api-attachments", "crate-agent-api-proto", "crate-knowledge", "crate-orca-serve", "crate-orca-serve/replay-orca-core", "crate-orca-serve/replay-orca-map-accounts",
+        "crate-orca-serve/replay-orca-map-agent", "crate-orca-serve/replay-orca-map-git", "crate-orca-serve/replay-orca-map-hosted", "crate-orca-serve/replay-orca-map-mobile",
+        "crate-orca-serve/replay-orca-map-schedules", "crate-orca-serve/replay-orca-map-settings", "crate-orca-serve/replay-orca-map-state", "crate-orca-serve/replay-orca-map-terminal",
+        "crate-orca-serve/replay-orca-map-workspace", "crate-t3-serve", "crate-t3-serve/replay-t3-core-attachments", "crate-t3-serve/replay-t3-core-core",
+        "crate-t3-serve/replay-t3-core-preview", "crate-t3-serve/replay-t3-core-pull_requests", "crate-t3-serve/replay-t3-core-schedules", "crate-t3-serve/replay-t3-core-terminal",
+        "crate-t3-serve/replay-t3-core-vcs", "crate-t3-serve/replay-t3-core-workspace",
+    ];
+
+    fn keys() -> Vec<String> {
+        let mut keys: Vec<String> = INTEGRATION_UNITS.iter().map(|k| k.to_string()).collect();
+        keys.sort();
+        keys
+    }
+
+    fn loads(keys: &[String], at: &[usize], count: usize, weights: &Weights) -> Vec<u64> {
+        let mut load = vec![0u64; count];
+        keys.iter().zip(at).for_each(|(k, s)| load[*s] += weights.cost(k));
+        load
+    }
+
+    fn unit_test(c: &str) -> Value {
+        json!({"kind": "unit", "crate": c})
+    }
+
+    fn flow_test(c: &str) -> Value {
+        json!({"kind": "flow", "crate": c})
+    }
+
+    #[test]
+    fn given_a_flow_stage_that_loads_one_machine_when_typecheck_is_dealt_then_the_machines_flow_heavy_part_gets_the_lighter_typecheck_and_every_unit_runs_once() {
+        // Given a plan whose flow stage has crate-pipeline (409 s, alone on its shard) and light crates, and many typecheck units
+        let flow: Vec<Value> = ["crate-pipeline", "crate-deploy", "crate-rca"].iter().map(|c| flow_test(c.trim_start_matches("crate-"))).collect();
+        let unit: Vec<Value> = ["wf", "cdp", "harness-browser", "rca-exec", "wf-vmops", "harness-core", "orca-serve", "pipeline"].iter().map(|c| unit_test(c)).collect();
+        let plan = json!({"stages": {"flow-tests": flow, "typecheck-lint-unit-tests": unit}});
+        // When typecheck is dealt to three shards, as core-tests runs it mirrored against the flow shards
+        let parts: Vec<Vec<Value>> = (1..=3).map(|i| shard_in_plan("typecheck-lint-unit-tests", &plan, i, 3)).collect();
+        let flow_shard = |i: usize| shard_in_plan("flow-tests", &plan, i, 3);
+        // Then every typecheck unit is on exactly one shard
+        let mut all: Vec<String> = parts.iter().flatten().map(unit_key).collect();
+        all.sort();
+        let mut want: Vec<String> = plan["stages"]["typecheck-lint-unit-tests"].as_array().unwrap().iter().map(unit_key).collect();
+        want.sort();
+        assert_eq!(all, want);
+        // And the machine that runs the heaviest flow shard holds the fewest typecheck seconds
+        let heavy = (1..=3).find(|i| flow_shard(*i).iter().any(|t| unit_key(t) == "crate-pipeline")).unwrap();
+        let w = Weights::of_stage("typecheck-lint-unit-tests");
+        let seconds = |part: &Vec<Value>| part.iter().map(|t| w.cost(&unit_key(t))).sum::<u64>();
+        let mirrored = &parts[3 - heavy];
+        assert!(parts.iter().all(|p| seconds(mirrored) <= seconds(p)), "{:?}", parts.iter().map(seconds).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn given_the_cli_e2e_units_and_their_weights_when_dealt_to_three_shards_then_every_unit_is_on_one_shard_and_the_busiest_is_within_the_bound_of_the_best_possible() {
+        // Given the cli-e2e stage's committed weights and a plan of its crates
+        let w = Weights::of_stage("cli-e2e-tests");
+        let keys: Vec<String> = w.units.keys().cloned().collect();
+        assert!(keys.len() >= 3, "the cli-e2e stage has measured units");
+        // When they are dealt to three shards
+        let at = assign(&keys, 3, &w);
+        // Then the busiest shard holds no more than the heaviest unit or an even share plus one more unit's worth (LPT)
+        let load = loads(&keys, &at, 3, &w);
+        let costs: Vec<u64> = keys.iter().map(|k| w.cost(k)).collect();
+        let best = costs.iter().copied().max().unwrap().max(costs.iter().sum::<u64>().div_ceil(3));
+        assert!(*load.iter().max().unwrap() * 3 <= best * 4, "{load:?} against {best}");
+        assert_eq!(at.len(), keys.len());
+    }
+
+    #[test]
+    fn given_the_integration_units_and_their_weights_when_dealt_to_six_shards_then_the_busiest_shard_costs_far_less_than_the_name_order_deal_and_the_split_is_the_same_every_time() {
+        // Given the integration stage's units and the committed weights
+        let (keys, weights) = (keys(), Weights::of_stage("integration-tests"));
+        // When they are dealt longest first, and in the order of their names as the old deal did, to six shards
+        let weighted = assign(&keys, 6, &weights);
+        let by_name: Vec<usize> = (0..keys.len()).map(|i| i % 6).collect();
+        let (busiest, old_busiest) = (*loads(&keys, &weighted, 6, &weights).iter().max().unwrap(), *loads(&keys, &by_name, 6, &weights).iter().max().unwrap());
+        // Then the busiest shard is no worse than the name-order deal's and within 4/3 of the least any deal could do (the heaviest unit, or an even share), whatever the
+        // weights are, and a second deal is the same one
+        let costs: Vec<u64> = keys.iter().map(|k| weights.cost(k)).collect();
+        let (total, heaviest) = (costs.iter().sum::<u64>(), costs.iter().copied().max().unwrap_or(0));
+        let best_possible = heaviest.max(total.div_ceil(6));
+        assert!(busiest <= old_busiest, "{busiest} against {old_busiest}");
+        assert!(busiest * 3 <= best_possible * 4, "{busiest} against the least possible {best_possible}");
+        assert_eq!(assign(&keys, 6, &weights), weighted);
+    }
+
+    #[test]
+    fn given_units_that_cost_the_same_when_dealt_then_it_is_the_name_order_deal_and_a_unit_with_no_weight_costs_the_stage_default() {
+        // Given units with no weight of their own and a default of 10, and one that costs 25
+        let weights = Weights { units: [("b".to_string(), 25)].into(), default: 10 };
+        let keys: Vec<String> = ["a", "b", "c", "d", "e"].iter().map(|k| k.to_string()).collect();
+        // When they are dealt to two shards
+        let at = assign(&keys, 2, &weights);
+        // Then the dear one is alone on a shard with the units after it that fit, and the rest follow in name order onto the lighter shard
+        assert_eq!(at, [1, 0, 1, 1, 0], "{at:?}");
+        // And a stage with no entry has a default of 1, so every unit costs the same and the deal is the name order
+        let none = Weights::of_stage("no-such-stage");
+        assert_eq!((none.default, assign(&keys, 2, &none)), (1, vec![0, 1, 0, 1, 0]));
+    }
+
+    #[test]
+    fn given_a_plan_when_each_shard_takes_its_part_then_every_test_is_in_exactly_one_part_and_a_package_keeps_all_its_kinds_together() {
+        // Given tests of two packages (flow and lint of one) and a crate's two integration groups
+        let tests: Vec<Value> = vec![
+            json!({"kind": "flow", "package": "@a/x"}),
+            json!({"kind": "lint", "package": "@a/x"}),
+            json!({"kind": "flow", "package": "@a/y"}),
+            json!({"kind": "integration", "crate": "c", "group": "g1"}),
+            json!({"kind": "integration", "crate": "c", "group": "g2"}),
+        ];
+        // When three shards each take their part
+        let parts: Vec<Vec<Value>> = (1..=3).map(|i| shard_of("integration-tests", &tests, i, 3)).collect();
+        // Then the parts hold every test once, and the two kinds of @a/x are in one part
+        assert_eq!(parts.iter().map(Vec::len).sum::<usize>(), tests.len());
+        let x: Vec<usize> = parts.iter().enumerate().filter(|(_, p)| p.iter().any(|t| t["package"] == "@a/x")).map(|(i, _)| i).collect();
+        assert_eq!(x.len(), 1);
+        assert_eq!(parts[x[0]].iter().filter(|t| t["package"] == "@a/x").count(), 2);
     }
 }

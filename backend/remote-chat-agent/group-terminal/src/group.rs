@@ -2,6 +2,7 @@
 //! terminal is served from the tail the service keeps (`terminal.rs`). The service holds no shell and no path: a terminal's cwd is placed in
 //! its workspace and then confined by the executor.
 use crate::meta::MetaLog;
+use crate::sleep::{MemorySleep, SleepStore};
 use crate::terminal::{lock, Clock, Start, Terminal};
 use agent_api_proto::{code, GroupName, Response};
 use agent_api_terminal::{self as api, AttachParams, AttachResult, Done, ListResult, OpenParams, OpenResult, RenameParams, ResizeParams, Resized, Session, Status, SubscribeParams, SubscribeResult, WriteParams, Written};
@@ -17,7 +18,7 @@ use std::sync::{Arc, Mutex};
 
 use exec_pty::{PTY_ATTACH, PTY_CLOSE, PTY_LIST, PTY_OPEN, PTY_RESIZE, PTY_WRITE};
 
-pub const SERVED: [Served; 9] = [
+pub const SERVED: [Served; 13] = [
     Served::service(api::OPEN, &[PTY_OPEN, PTY_ATTACH, PTY_LIST]),
     Served::service(api::WRITE, &[PTY_WRITE, PTY_LIST]),
     Served::service(api::RESIZE, &[PTY_RESIZE, PTY_LIST]),
@@ -27,13 +28,17 @@ pub const SERVED: [Served; 9] = [
     Served::service(api::RENAME, &[PTY_LIST]),
     Served::service(api::ATTACH, &[PTY_ATTACH, PTY_LIST]),
     Served::service(api::SUBSCRIBE, &[PTY_LIST, PTY_ATTACH]),
+    Served::service(api::READ, &[PTY_LIST, PTY_ATTACH]),
+    Served::service(api::SLEEP, &[PTY_LIST, PTY_CLOSE]),
+    Served::service(api::WAKE, &[PTY_LIST, PTY_OPEN, PTY_ATTACH]),
+    Served::service(api::SLEEPING, &[]),
 ];
 
-struct Refusal(String, String);
+pub(crate) struct Refusal(pub(crate) String, pub(crate) String);
 
-type Answer = Result<Value, Refusal>;
+pub(crate) type Answer = Result<Value, Refusal>;
 
-fn refuse(code: &str, message: impl Into<String>) -> Refusal {
+pub(crate) fn refuse(code: &str, message: impl Into<String>) -> Refusal {
     Refusal(code.into(), message.into())
 }
 
@@ -53,12 +58,12 @@ impl From<rca_exec_channel::remote::RemoteError> for Refusal {
     }
 }
 
-fn value(result: &impl Serialize) -> Answer {
+pub(crate) fn value(result: &impl Serialize) -> Answer {
     serde_json::to_value(result).map_err(|e| refuse("INTERNAL", e.to_string()))
 }
 
 /// The pty's name at the executor: a tag of the workspace, so two workspaces of one executor may use one terminal name.
-fn pty_name(workspace: &str, terminal: &str) -> String {
+pub(crate) fn pty_name(workspace: &str, terminal: &str) -> String {
     format!("{}.{terminal}", workspace_tag(workspace))
 }
 
@@ -68,43 +73,52 @@ fn workspace_tag(workspace: &str) -> String {
 }
 
 pub struct TerminalGroup {
-    executors: Arc<dyn Executors>,
-    clock: Arc<dyn Clock>,
-    terminals: Mutex<HashMap<(String, String), Arc<Terminal>>>,
+    pub(crate) executors: Arc<dyn Executors>,
+    pub(crate) clock: Arc<dyn Clock>,
+    pub(crate) terminals: Mutex<HashMap<(String, String), Arc<Terminal>>>,
     metas: Mutex<HashMap<String, Arc<MetaLog>>>,
+    pub(crate) sleeps: Arc<dyn SleepStore>,
+    /// Held over each read-modify-write of the sleeping workspaces, never across a call to an executor.
+    pub(crate) sleep_lock: Mutex<()>,
 }
 
 impl TerminalGroup {
+    /// The sleeping workspaces are kept in memory only: `with_sleep_store` gives a store that outlives the service.
     pub fn new(executors: Arc<dyn Executors>, clock: Arc<dyn Clock>) -> TerminalGroup {
-        TerminalGroup { executors, clock, terminals: Mutex::default(), metas: Mutex::default() }
+        TerminalGroup { executors, clock, terminals: Mutex::default(), metas: Mutex::default(), sleeps: Arc::new(MemorySleep::default()), sleep_lock: Mutex::new(()) }
+    }
+
+    pub fn with_sleep_store(mut self, store: Arc<dyn SleepStore>) -> TerminalGroup {
+        self.sleeps = store;
+        self
     }
 
     fn meta(&self, workspace: &str) -> Arc<MetaLog> {
         lock(&self.metas).entry(workspace.to_string()).or_insert_with(|| Arc::new(MetaLog::new(workspace))).clone()
     }
 
-    fn known(&self, session: &Session) -> Option<Arc<Terminal>> {
+    pub(crate) fn known(&self, session: &Session) -> Option<Arc<Terminal>> {
         lock(&self.terminals).get(&(session.workspace.clone(), session.terminal.clone())).cloned()
     }
 
-    fn channel(&self, workspace: &str) -> Result<Arc<dyn ExecutorChannel>, Refusal> {
+    pub(crate) fn channel(&self, workspace: &str) -> Result<Arc<dyn ExecutorChannel>, Refusal> {
         self.executors.get(workspace).ok_or_else(|| refuse(Code::NoExecutor.as_str(), format!("no executor is attached for workspace {workspace}")))
     }
 
-    fn register(&self, term: Arc<Terminal>) -> Arc<Terminal> {
+    pub(crate) fn register(&self, term: Arc<Terminal>) -> Arc<Terminal> {
         lock(&self.terminals).insert((term.workspace.clone(), term.terminal.clone()), term.clone());
         term.spawn_pump(self.executors.clone());
         self.meta(&term.workspace).upsert(&term.info());
         term
     }
 
-    fn new_terminal(&self, session: &Session, start: Start) -> Arc<Terminal> {
+    pub(crate) fn new_terminal(&self, session: &Session, start: Start) -> Arc<Terminal> {
         Terminal::new(&session.workspace, &session.terminal, &pty_name(&session.workspace, &session.terminal), start, self.meta(&session.workspace), self.clock.clone())
     }
 
     /// The ptys of the workspace's executor that belong to the workspace and that the service does not know yet (a service that restarted
     /// while the executor kept its shells): each becomes a terminal again, its tail refilled from the executor's own.
-    async fn adopt(&self, workspace: &str) -> Result<(), Refusal> {
+    pub(crate) async fn adopt(&self, workspace: &str) -> Result<(), Refusal> {
         let listed = self.channel(workspace)?.call(PTY_LIST, json!({})).await?;
         let listed: exec_pty::PtyListed = serde_json::from_value(listed.result).map_err(|e| refuse("BAD_RESULT", format!("the executor's pty list is not the contract's: {e}")))?;
         let prefix = format!("{}.", workspace_tag(workspace));
@@ -145,20 +159,26 @@ impl TerminalGroup {
             (Some(cwd), _) => Some(place.path(cwd).map_err(invalid)?),
             (None, prefix) => prefix.clone(),
         };
-        let mut args = json!({"pty": pty_name(&p.session.workspace, &p.session.terminal)});
-        for (key, v) in [("cwd", cwd.map(Value::from)), ("cols", p.cols.map(Value::from)), ("rows", p.rows.map(Value::from))] {
+        let term = self.spawn(&p.session, cwd, p.cols, p.rows, &p.env, p.title).await?;
+        value(&OpenResult { terminal: term.info(), opened: true })
+    }
+
+    /// A pty opened at the executor for `session` and registered as its terminal; `cwd` is a path the executor is given as it is.
+    pub(crate) async fn spawn(&self, session: &Session, cwd: Option<String>, cols: Option<u16>, rows: Option<u16>, env: &serde_json::Map<String, Value>, title: Option<String>) -> Result<Arc<Terminal>, Refusal> {
+        let channel = self.channel(&session.workspace)?;
+        let mut args = json!({"pty": pty_name(&session.workspace, &session.terminal)});
+        for (key, v) in [("cwd", cwd.map(Value::from)), ("cols", cols.map(Value::from)), ("rows", rows.map(Value::from))] {
             if let Some(v) = v {
                 args[key] = v;
             }
         }
-        if !p.env.is_empty() {
-            args["env"] = Value::Object(p.env.clone());
+        if !env.is_empty() {
+            args["env"] = Value::Object(env.clone());
         }
         let opened = channel.call(PTY_OPEN, args).await?;
         let opened: exec_pty::PtyOpened = serde_json::from_value(opened.result).map_err(|e| refuse("BAD_RESULT", format!("the executor's pty is not the contract's: {e}")))?;
-        let start = Start { title: p.title.unwrap_or_else(|| p.session.terminal.clone()), cwd: opened.cwd, cols: opened.cols, rows: opened.rows, pid: Some(opened.pid), base: 0, exited: None };
-        let term = self.register(self.new_terminal(&p.session, start));
-        value(&OpenResult { terminal: term.info(), opened: true })
+        let start = Start { title: title.unwrap_or_else(|| session.terminal.clone()), cwd: opened.cwd, cols: opened.cols, rows: opened.rows, pid: Some(opened.pid), base: 0, exited: None };
+        Ok(self.register(self.new_terminal(session, start)))
     }
 
     async fn write(&self, params: &Value) -> Answer {
@@ -222,10 +242,27 @@ impl TerminalGroup {
         value(&ListResult { terminals: self.infos(&workspace), workspace })
     }
 
-    fn infos(&self, workspace: &str) -> Vec<api::TerminalInfo> {
+    pub(crate) fn infos(&self, workspace: &str) -> Vec<api::TerminalInfo> {
         let mut infos: Vec<_> = lock(&self.terminals).values().filter(|t| t.workspace == workspace).map(|t| t.info()).collect();
         infos.sort_by(|a, b| a.terminal.cmp(&b.terminal));
         infos
+    }
+
+    /// The tail the service keeps from an offset, as one answer: what `attach` replays, without the stream that follows it.
+    async fn read(&self, params: &Value) -> Answer {
+        let p = AttachParams::parse(params)?;
+        let term = self.terminal(&p.session).await?;
+        let info = term.info();
+        if p.after_offset.is_some_and(|after| after > info.offset) {
+            return Err(refuse(api::code::OFFSET_AHEAD, format!("after_offset {} is past the end of the stream, {}", p.after_offset.unwrap_or_default(), info.offset)));
+        }
+        let (start, bytes) = {
+            let s = term.state();
+            let (at, bytes) = s.tail_from(p.after_offset.unwrap_or(0), usize::MAX);
+            (at, bytes.to_vec())
+        };
+        let reset = p.after_offset.is_some_and(|after| after < info.base_offset);
+        value(&api::ReadResult { workspace: info.workspace.clone(), terminal: info.terminal.clone(), after_offset: p.after_offset, start_offset: start, offset: start + bytes.len() as u64, reset, data: api::b64::encode(&bytes), cols: info.cols, rows: info.rows, status: info.status, exit_code: info.exit_code })
     }
 
     async fn attach(&self, params: &Value, connection: &Connection) -> Answer {
@@ -332,7 +369,11 @@ impl Group for TerminalGroup {
             api::LIST => self.list(call.params).await,
             api::RENAME => self.rename(call.params).await,
             api::ATTACH => self.attach(call.params, call.connection).await,
+            api::READ => self.read(call.params).await,
             api::SUBSCRIBE => self.subscribe(call.params, call.connection).await,
+            api::SLEEP => self.sleep(call.params).await,
+            api::WAKE => self.wake(call.params).await,
+            api::SLEEPING => self.sleeping(call.params),
             other => unreachable!("{} is not a method of terminal", other.name()),
         };
         match answer {

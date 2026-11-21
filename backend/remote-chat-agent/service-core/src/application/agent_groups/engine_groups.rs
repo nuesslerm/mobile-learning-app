@@ -13,7 +13,6 @@ use remote_chat_agent_core::application::engine::Engine;
 use remote_chat_agent_core::application::store::MemoryStore;
 use remote_chat_agent_core::testing::{CountingIds, FixedClock};
 use serde_json::{json, Value};
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -47,7 +46,7 @@ fn rig() -> Rig {
         Ok(ActionOutput { result: json!({}), output: String::new() })
     });
     executors.open("w1", channel as Arc<dyn ExecutorChannel>).unwrap();
-    let runner = Runner::new(engine.clone(), executors, spawner.clone(), Arc::new(Mcp), PathBuf::from("/srv/rca"));
+    let runner = Runner::new(engine.clone(), executors, Arc::new(rca_group_agent::host::Fixed(spawner.clone())), Arc::new(Mcp));
     let groups: Vec<Arc<dyn Group>> = vec![
         Arc::new(AgentThreadsGroup::with_runner(runner.clone())),
         Arc::new(AgentRequestsGroup::new(runner.clone())),
@@ -183,7 +182,7 @@ async fn given_decisions_other_than_accept_when_a_tool_is_asked_about_then_sessi
     assert_eq!((denied["behavior"].clone(), denied.get("interrupt").cloned()), (json!("deny"), None));
     assert!(rig.engine.get("t").unwrap().unwrap().turn.is_some());
     // And a cancel is denied with the turn's end, which stops the CLI and finishes the turn as interrupted
-    let cancelled = ask("edit_file");
+    let cancelled = ask("Edit");
     let id = rig.open_request("t", "approval.requested", 3).await.data["approval"].as_str().unwrap().to_string();
     rig.ok("approval.answer", json!({"thread": "t", "approval": id, "decision": "cancel"})).await;
     assert_eq!(text_of(&cancelled.await.unwrap())["interrupt"], json!(true));
@@ -517,7 +516,7 @@ async fn given_a_thread_whose_cli_announced_a_conversation_when_the_next_turn_ru
     rig.spawner.script("claude", script(&[init("s-7"), said("hi")], false));
     rig.start("t", "first").await;
     rig.idle("t").await;
-    rig.until("the session is kept", |r| r.engine.provider_session("t").unwrap().is_some()).await;
+    rig.until("the session is kept", |r| r.engine.provider_session("t", "claudeAgent").unwrap().is_some()).await;
     // When the next turn runs
     rig.start("t", "second").await;
     rig.idle("t").await;
@@ -535,7 +534,7 @@ async fn given_a_thread_whose_cli_announced_a_conversation_when_the_next_turn_ru
     rig.start("t", "third").await;
     rig.idle("t").await;
     assert!(!rig.spawner.spawned()[2].args.contains(&"--resume".to_string()));
-    assert_eq!(rig.engine.provider_session("t").unwrap().as_deref(), Some("s-7"));
+    assert_eq!(rig.engine.provider_session("t", "claudeAgent").unwrap().as_deref(), Some("s-7"));
 }
 
 #[tokio::test]

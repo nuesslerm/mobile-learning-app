@@ -22,7 +22,7 @@ async fn wait_until(what: &str, mut done: impl FnMut() -> bool) {
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_workspace_with_an_executor_when_a_dev_server_is_started_through_the_service_then_it_runs_there_without_the_executors_secrets_and_stops_when_asked() {
     // Given the real chain, whose executor holds a token and a key, and a free port
-    let env = Env::process(&[("GH_TOKEN", "ghp_canary"), ("ANTHROPIC_API_KEY", "sk-canary")]);
+    let env = Env::new(&[("GH_TOKEN", "ghp_canary"), ("ANTHROPIC_API_KEY", "sk-canary")]);
     let chain = chain(&env).await;
     let mut agent = chain.agent().await;
     let port = free_port();
@@ -55,7 +55,7 @@ async fn given_the_server_methods_recorded_in_the_contract_when_replayed_on_the_
     for fixture in agent_api_preview::testing::fixtures().iter().filter(|f| agent_api_preview::METHODS.iter().any(|m| m.name() == f.method)) {
         for exchange in &fixture.exchanges {
             // When an exchange's request is made on a service and executor of their own
-            let env = Env::process(&[]);
+            let env = Env::new(&[]);
             let chain = chain(&env).await;
             let mut agent = chain.agent().await;
             let mut answer = agent.ask(exchange.request["method"].as_str().unwrap(), exchange.request["params"].clone()).await;
@@ -75,7 +75,7 @@ async fn expect(agent: &mut crate::mapper::Agent, kind: &str) -> Value {
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_two_mappers_when_one_changes_a_preview_tab_then_the_other_follows_each_change_in_order_and_can_resume_after_a_gap() {
     // Given the real chain and a mapper following the preview stream on a socket of its own
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     let mut watcher = chain.agent().await;
     let followed = watcher.ask("preview.subscribe", json!({})).await;
@@ -110,7 +110,7 @@ async fn given_two_mappers_when_one_changes_a_preview_tab_then_the_other_follows
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_changes_to_tabs_that_do_not_exist_or_addresses_that_are_not_pages_when_asked_then_each_is_refused_and_the_stream_is_unchanged() {
     // Given the real chain and a mapper that follows the stream
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     let mut watcher = chain.agent().await;
     watcher.ask("preview.subscribe", json!({})).await;

@@ -453,7 +453,7 @@ async fn sweep_into(world: &World, publisher: Arc<SinkPublisher>) -> Value {
     {
         let mut engine = world.engine.0.lock().unwrap();
         engine.containers = vec![
-            Container { id: "ok", names: &["/agent-shell-gh-runner"], status: "Up 3 minutes (healthy)", stats: Ok(stats(200.0, 100.0)) },
+            Container { id: "ok", names: &["/agent-shell-dind"], status: "Up 3 minutes (healthy)", stats: Ok(stats(200.0, 100.0)) },
             Container { id: "sick", names: &["/sick"], status: "Up 3 minutes (unhealthy)", stats: Ok(stats(200.0, 100.0)) },
             Container { id: "plain", names: &["/plain"], status: "Up 3 minutes", stats: Ok(stats(200.0, 100.0)) },
         ];
@@ -480,7 +480,7 @@ async fn given_a_metrics_sink_when_the_service_samples_then_the_sink_receives_wh
     // Then the sink got the health of each checked container under its alert name, the host's figures, and none for the unchecked one
     let readings: Vec<_> = sink.batches().into_iter().flatten().collect();
     let latest = |metric: &str, name: &str| readings.iter().filter(|r| r.metric == metric && r.name == name).max_by_key(|r| r.at).map(|r| (r.scope.clone(), r.value));
-    assert_eq!(latest("container.health", "agent-shell-gh-runner"), Some(("container".into(), 1.0)));
+    assert_eq!(latest("container.health", "agent-shell-dind"), Some(("container".into(), 1.0)));
     assert_eq!(latest("container.health", "sick"), Some(("container".into(), 0.0)));
     assert_eq!(latest("container.health", "plain"), None);
     assert!(latest("host.docker.list_ms", "docker").is_some_and(|(scope, _)| scope == "host"));
@@ -511,7 +511,7 @@ async fn given_a_sink_that_refuses_every_batch_when_the_service_samples_then_the
     // Then the sink was reached more than once (the requests arrived), each refusal was counted, and the store has the same readings as ever
     assert!(sink.attempts() >= 4, "attempts: {}", sink.attempts());
     assert_eq!(publisher.failures(), sink.attempts() as u64);
-    assert_eq!(by(&stored, "container", "agent-shell-gh-runner").get("health"), Some(&1.0), "{stored}");
+    assert_eq!(by(&stored, "container", "agent-shell-dind").get("health"), Some(&1.0), "{stored}");
     assert_eq!(by(&stored, "container", "sick").get("health"), Some(&0.0), "{stored}");
     assert!(by(&stored, "host", "host").contains_key("cpu"), "{stored}");
 }

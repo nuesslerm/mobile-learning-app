@@ -1,0 +1,25 @@
+{
+  "method": "mr.checkDetails",
+  "exchanges": [
+    {
+      "name": "the mr spelling reaches the same action and defaults to gitlab",
+      "request": {
+        "id": 1,
+        "method": "mr.checkDetails",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "give `check` or `run`"
+        }
+      },
+      "actions": [
+        "hosted_pr_check_details"
+      ]
+    }
+  ]
+}

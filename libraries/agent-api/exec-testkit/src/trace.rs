@@ -1,9 +1,9 @@
 //! The method-hit trace of an integration chain run, and the run record that `wf test publish` takes beside it.
 //!
-//! A mapper's chain test drives the phone's wire one call at a time. Each call is a window on the `Tap`: the agent API methods and the executor
+//! A mapper's behaviour test drives the phone's wire one call at a time. Each call is a window on the `Tap`: the agent API methods and the executor
 //! tools that went through it while the call ran, each with whether it was answered ok. A test is the calls it made and its verdict.
 //! `trace.json` (schema `method-trace/1`) is written after every test beside `report.json` (a harness run record, schema 1, platform
-//! `integration`) in `$WF_TEST_OUTPUT_DIR/<suite>/`, and `wf parity coverage --traces` reads it:
+//! `integration`) in `$WF_TEST_OUTPUT_DIR/<suite>/`, and `wf mimic coverage --traces` reads it:
 //!
 //! ```json
 //! {"schema": "method-trace/1", "app": "t3", "suite": "t3-serve-integration", "sha": "<commit>", "complete": true,
@@ -50,6 +50,25 @@ impl Case {
         }
         self.calls.push(json!({"rows": rows, "ok": ok, "agent": agent, "executor": executor}));
         result
+    }
+}
+
+/// Fills `agent` and `executor` of every call of a replay trace (`method-trace/1` as `wf mimic replay --suite` writes it) with what the tap saw
+/// while the call ran: the call's `startMs` and `endMs` are its window, ends included. A call without a window keeps its lists. A caller passes
+/// the stamps of the chain the replay ran against, so the session setup the replay does before its first window is no call's hit.
+pub fn attribute(trace: &mut Value, seen: &[(i64, Seen)]) {
+    let calls = trace["tests"].as_array_mut().into_iter().flatten().flat_map(|t| t["calls"].as_array_mut().into_iter().flatten());
+    for call in calls {
+        let (Some(start), Some(end)) = (call["startMs"].as_i64(), call["endMs"].as_i64()) else { continue };
+        let (mut agent, mut executor) = (Vec::new(), Vec::new());
+        for (_, hit_seen) in seen.iter().filter(|(at, _)| (start..=end).contains(at)) {
+            match hit_seen {
+                Seen::Agent { method, ok, code } => agent.push(hit("method", method, *ok, code.clone())),
+                Seen::Executor { tool, ok, code } => executor.push(hit("tool", tool, *ok, code.clone())),
+            }
+        }
+        call["agent"] = json!(agent);
+        call["executor"] = json!(executor);
     }
 }
 
@@ -161,6 +180,29 @@ impl Suite {
     }
 }
 
+/// The run record of a replay that gathered its tests' traces itself (`method-trace/1` tests, each with a `verdict`): `trace.json` and the
+/// `report.json` `wf test publish` takes, in `dir`. The run is `fail` when a test failed or `failure` is set, else `pass`.
+pub fn write_replay_record(dir: &Path, suite: &str, app: &str, tests: &[Value], failure: Option<&str>, started: std::time::Instant) -> std::io::Result<()> {
+    std::fs::create_dir_all(dir)?;
+    let finished = now_ms();
+    let started_ms = finished - started.elapsed().as_millis() as i64;
+    let failed = tests.iter().find(|t| t["verdict"] == "fail").map(|t| format!("{}: failed", t["test"].as_str().unwrap_or_default()));
+    let message = failure.map(String::from).or(failed);
+    let verdict = if message.is_some() { "fail" } else { "pass" };
+    let sha = git_head();
+    let cases: Vec<Value> = tests.iter().map(|t| json!({"name": t["test"], "verdict": t["verdict"], "ms": t["ms"], "message": Value::Null})).collect();
+    let report = json!({
+        "schema": 1, "verdict": verdict, "ok": verdict == "pass", "exitCode": i32::from(verdict != "pass"), "message": message,
+        "expectedCases": tests.len(), "script": suite, "platform": "integration", "sha": sha,
+        "startedMs": started_ms, "finishedMs": finished, "started": iso(started_ms), "finished": iso(finished),
+        "durationS": ((finished - started_ms).max(0) as f64 / 100.0).round() / 10.0,
+        "recordDir": dir.display().to_string(), "cases": cases, "warnings": [],
+    });
+    let trace = json!({"schema": SCHEMA, "app": app, "suite": suite, "sha": sha, "complete": true, "tests": tests});
+    write_atomically(&dir.join("trace.json"), &trace)?;
+    write_atomically(&dir.join("report.json"), &report)
+}
+
 fn write_atomically(path: &Path, value: &Value) -> std::io::Result<()> {
     let tmp = path.with_extension("json.tmp");
     std::fs::write(&tmp, serde_json::to_string_pretty(value)? + "\n")?;
@@ -229,6 +271,30 @@ fn iso(ms: i64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn given_a_replay_trace_with_windows_when_attributed_then_each_call_gets_the_hits_seen_in_its_window_and_the_session_setup_before_it_is_nobodys() {
+        // Given a hit of the session setup before the first window, one in each window, one between them, and a call with no window
+        let seen = [
+            (90, Seen::Agent { method: "thread.create".into(), ok: true, code: None }),
+            (110, Seen::Agent { method: "thread.pin".into(), ok: true, code: None }),
+            (120, Seen::Executor { tool: "write_file".into(), ok: false, code: Some("DENIED".into()) }),
+            (150, Seen::Agent { method: "turn.start".into(), ok: true, code: None }),
+            (210, Seen::Agent { method: "thread.get".into(), ok: true, code: None }),
+        ];
+        let mut trace = json!({"tests": [
+            {"calls": [{"id": "a", "startMs": 100, "endMs": 130, "agent": [], "executor": []}]},
+            {"calls": [{"id": "b", "startMs": 200, "endMs": 220, "agent": [], "executor": []}, {"id": "c", "agent": [], "executor": []}]},
+        ]});
+        // When the trace is attributed
+        attribute(&mut trace, &seen);
+        // Then a call has the hits of its window only, with the failure's code, and a call without a window has none
+        let call = |t: usize, c: usize| trace["tests"][t]["calls"][c].clone();
+        assert_eq!(call(0, 0)["agent"], json!([{"method": "thread.pin", "ok": true}]));
+        assert_eq!(call(0, 0)["executor"], json!([{"tool": "write_file", "ok": false, "code": "DENIED"}]));
+        assert_eq!(call(1, 0)["agent"], json!([{"method": "thread.get", "ok": true}]));
+        assert_eq!((call(1, 1)["agent"].clone(), call(1, 1)["executor"].clone()), (json!([]), json!([])));
+    }
 
     #[test]
     fn given_the_type_name_of_a_function_in_a_test_when_named_then_it_is_the_module_path_libtest_lists() {

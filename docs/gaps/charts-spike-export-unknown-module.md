@@ -3,7 +3,7 @@ status: open
 area: mla-tamagui
 paths:
   - "frontend/mla-tamagui/app/(app)/(content)/charts-spike.tsx"
-  - "frontend/mla-tamagui/lib/skiaWeb.ts"
+  - "frontend/libraries/tamagui-design-system/lib/skiaWeb.ts"
 opened: 2026-10-21
 last_verified: 2026-10-21
 links: []

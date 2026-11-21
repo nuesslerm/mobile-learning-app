@@ -12,7 +12,7 @@
 use super::engine::{Engine, StaleTurn};
 use super::ingestion::{Ingestions, Options, Wiring};
 use super::ports::{Backend, SendTurn};
-use crate::domain::types::*;
+use crate::domain::types::{Activity, Body, Command, Event, Receipt, Session, Thread};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{Arc, Mutex, Weak};

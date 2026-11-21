@@ -1,5 +1,5 @@
 //! `wf vm ops cancel-run`: cancels one CI run (`--run <number>`), every CI run of `dev` still waiting for a runner (`--queued`) or every one
-//! that has not finished (`--all`), of the CI workflow (`ci-hosted.yml`). The sandbox's own GitHub token
+//! that has not finished (`--all`), of the six hosted CI workflows (`ci-hosted*.yml`, one push to `dev` starts all six). The sandbox's own GitHub token
 //! cannot cancel, agent-shell holds the PAT that can: where the PAT is not in the environment the verb runs itself there, through `wf vm exec`.
 //! The PAT is used and dropped; only run numbers, ids and HTTP statuses are printed, never the token or a reply body.
 use cli_http::Request;
@@ -45,10 +45,14 @@ impl GithubRuns for GithubRest {
         let mut all = Vec::new();
         for workflow in WORKFLOWS {
             let reply = self.request(Request::get(&format!("{}{}", self.api, runs_path(workflow))), token)?;
-            if reply.status != 200 {
-                return Err(format!("GitHub refused the list of {workflow} runs with HTTP {}", reply.status));
-            }
-            let body: Value = serde_json::from_slice(&reply.body).map_err(|_| "GitHub's list of CI runs is not JSON".to_string())?;
+            // A renamed or disabled workflow must not stop the cancel of the others
+            let body: Value = match serde_json::from_slice(&reply.body) {
+                Ok(body) if reply.status == 200 => body,
+                _ => {
+                    wf_kit::wf_err!("wf: GitHub did not list the runs of {workflow} (HTTP {}), so none of it is cancelled", reply.status);
+                    continue;
+                }
+            };
             all.extend(body["workflow_runs"].as_array().map(|runs| runs.iter().filter_map(|r| Some(RunRow { id: r["id"].as_u64()?, number: r["run_number"].as_u64()?, status: r["status"].as_str()?.to_string() })).collect::<Vec<_>>()).unwrap_or_default());
         }
         Ok(all)
@@ -59,7 +63,7 @@ impl GithubRuns for GithubRest {
     }
 }
 
-const WORKFLOWS: [&str; 1] = ["ci-hosted.yml"];
+const WORKFLOWS: [&str; 6] = ["ci-hosted-backend-core.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "ci-hosted-cli-publish.yml", "ci-hosted-backend-deploy.yml", "ci-hosted-mobile-publish.yml"];
 
 fn runs_path(workflow: &str) -> String {
     format!("/repos/{REPO}/actions/workflows/{workflow}/runs?branch=dev&per_page=100")
@@ -78,17 +82,20 @@ fn row(run: &RunRow, http: u16) -> Value {
 /// Cancels what `target` names; `ok` needs every cancel accepted (202) and, for one named run, that it exists and has not finished.
 pub fn cancel(github: &dyn GithubRuns, token: &str, target: &Target) -> Result<Value, String> {
     let runs = github.runs(token)?;
-    let chosen: Vec<&RunRow> = match target {
+    let mut chosen: Vec<&RunRow> = match target {
         Target::Run(n) => runs.iter().filter(|r| r.number == *n || r.id == *n).collect(),
         Target::Queued => runs.iter().filter(|r| WAITING.contains(&r.status.as_str())).collect(),
         Target::All => runs.iter().filter(|r| r.status != "completed").collect(),
     };
     if let Target::Run(n) = target {
-        match chosen.first() {
-            None => return Ok(json!({ "ok": false, "repo": REPO, "cancelled": [], "problem": format!("no CI run {n} among the latest 100 runs of dev") })),
-            Some(run) if run.status == "completed" => return Ok(json!({ "ok": false, "repo": REPO, "cancelled": [], "problem": format!("CI run {} has already completed", run.number) })),
-            Some(_) => {}
+        // Run numbers count per workflow, so one number can name a run in several files: the finished ones are skipped, not refused
+        let live: Vec<&RunRow> = chosen.iter().copied().filter(|r| r.status != "completed").collect();
+        match (chosen.first(), live.is_empty()) {
+            (None, _) => return Ok(json!({ "ok": false, "repo": REPO, "cancelled": [], "problem": format!("no CI run {n} among the latest 100 runs of dev") })),
+            (Some(run), true) => return Ok(json!({ "ok": false, "repo": REPO, "cancelled": [], "problem": format!("CI run {} has already completed", run.number) })),
+            _ => {}
         }
+        chosen = live;
     }
     let mut cancelled = Vec::new();
     for run in chosen {

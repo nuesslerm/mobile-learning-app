@@ -21,7 +21,7 @@ Verdicts: **keep**, **fold** (into `clis/wf`), **delete**, **merge** (into a sib
 | Package | LOC | Verdict | Evidence |
 |---|---|---|---|
 | workflow-cli | 44.3k | **fold** → `clis/wf` core | the wf entrypoint; 98 commits in 90 days |
-| ~~cheap-flow~~ | 8.7k | **folded** (`wf offload plan/status/dispatch`) | deleted; units run on `wf-worker`, dispatch on rca |
+| ~~cheap-flow~~ | 8.7k | **folded** (`wf rca plan/status/dispatch`) | deleted; units run on `wf-worker`, dispatch on rca |
 | opencode-harness | 8.3k | **merge into remote-chat-agent**, then delete | 5 dependents; rca becomes the only runner, one-shot via `rca run` (requirements §3a) |
 | secrets | 5.8k | **fold** (keep core) | 12 dependents, 9 compose refs |
 | infra-ops | 8.2k | **folded** into workflow-cli `wf infra oracle` / `wf vm net` / `wf tunnel` (2026-10-04) | kept: sync-creds, oci reboot/status, tf apply/exec, agent-deps, tailscale up/devices/auth-key, tunnel up |

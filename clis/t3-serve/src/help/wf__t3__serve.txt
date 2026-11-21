@@ -60,7 +60,7 @@ default.
 
 With --rca-url (http://host:port) turns and project files go through the rca
 service's agent API (/agent/v1/socket), opened with the device bearer in
-T3_RCA_BEARER (wf offload bearers mint --label t3); the service secret is not
+T3_RCA_BEARER (wf rca bearers mint --label t3); the service secret is not
 used. A message starts a turn (thread.create, turn.start, thread.subscribe on
 agent.threads) and the thread's events become its messages, tool calls and run;
 history and transcript reads first catch the thread up from thread.history, and
@@ -90,3 +90,8 @@ Options:
   --rca-url <url>      the rca service, http://host:port (T3_RCA_URL)
   --rca-workspace <id> the rca workspace turns and files act in (T3_RCA_WORKSPACE)
   -h, --help           display help for command
+
+Environment only (no option):
+  T3_GUEST_HOST        the public address guest links point at; unset or empty,
+                       guestShare.create answers connect_unavailable, so guest
+                       links are off (they also need the guestSharingEnabled setting)

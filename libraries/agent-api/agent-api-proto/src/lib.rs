@@ -177,6 +177,14 @@ pub fn thread_topic(thread: &str) -> String {
     format!("thread/{thread}")
 }
 
+/// The topic of a terminal's attach stream, `terminal/<workspace>/<terminal>`: the stream `terminal.attach` opens and a client resumes by its last `seq`.
+pub fn terminal_topic(workspace: &str, terminal: &str) -> String {
+    format!("terminal/{workspace}/{terminal}")
+}
+
+/// The kinds `terminal.attach` pushes; `terminal.upsert` and `terminal.remove` count in another numbering and have no topic.
+const ATTACH_KINDS: [&str; 5] = ["terminal.snapshot", "terminal.output", "terminal.exited", "terminal.closed", "terminal.cleared"];
+
 /// One event of a thread, in the order of its `seq`: `{event: {seq, thread?, turn?, type, ...data}}`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Event {
@@ -188,9 +196,16 @@ pub struct Event {
 }
 
 impl Event {
-    /// The stream whose `seq` this event carries: `thread/<id>` for an event of a thread, none for an event of no stream.
+    /// The stream whose `seq` this event carries: `thread/<id>` for an event of a thread, `terminal/<workspace>/<id>` for one an attach pushes, none otherwise.
     pub fn topic(&self) -> Option<String> {
-        self.thread.as_deref().map(thread_topic)
+        if let Some(thread) = self.thread.as_deref() {
+            return Some(thread_topic(thread));
+        }
+        if !ATTACH_KINDS.contains(&self.kind.as_str()) {
+            return None;
+        }
+        let (workspace, terminal) = (self.data.get("workspace")?.as_str()?, self.data.get("terminal")?.as_str()?);
+        Some(terminal_topic(workspace, terminal))
     }
 
     pub fn to_value(&self) -> Value {
@@ -308,6 +323,14 @@ mod tests {
         // When their topics are read, Then the first is thread/t1, the stream thread.subscribe names, and the second has none
         assert_eq!((of(Some("t1")).topic(), of(None).topic()), (Some("thread/t1".to_string()), None));
         assert_eq!(thread_topic("a b"), "thread/a b");
+    }
+
+    #[test]
+    fn given_an_attach_event_and_a_metadata_event_of_a_terminal_when_their_topics_are_read_then_only_the_attach_event_has_one() {
+        // Given the output an attach pushes and an upsert of the metadata stream, both naming workspace w and terminal t
+        let of = |kind: &str| Event { seq: 1, thread: None, turn: None, kind: kind.into(), data: json!({"workspace": "w", "terminal": "t"}).as_object().unwrap().clone() };
+        // When their topics are read, Then the output counts against terminal/w/t and the upsert, in its own numbering, against none
+        assert_eq!((of("terminal.output").topic(), of("terminal.upsert").topic()), (Some("terminal/w/t".to_string()), None));
     }
 
     #[test]

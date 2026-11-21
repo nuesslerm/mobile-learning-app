@@ -23,3 +23,6 @@ watchdog-core = { path = "../core" }
 
 [dev-dependencies]
 axum.workspace = true
+
+[package.metadata.arch]
+type = "rust-rs"

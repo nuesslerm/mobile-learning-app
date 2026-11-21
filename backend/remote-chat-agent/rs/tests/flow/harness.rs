@@ -2,6 +2,7 @@
 //! ports, driven through the router: an HTTP request goes in with `oneshot`, a WebSocket over an in-memory duplex pipe that the
 //! router serves as `axum::serve` serves a socket. The environment the service reads is a map of the flow's own (`Env`).
 
+use rca_group_agent::host::{AtWorkspace, CliLauncher, Fixed};
 use super::doubles::{CommandsPort, FakeCommands, FakeOpencode, FakeOutbound, OpencodePort, OutboundPort};
 use axum::body::Body;
 use axum::extract::ConnectInfo;
@@ -18,18 +19,15 @@ use rca_ladder::store::CooldownStore;
 use remote_chat_agent_core::application::ports::Ledgers;
 use rca_group_accounts::testing::ScriptedModelApi;
 use rca_group_schedules::testing::{CountingIds, FakeClock};
-use rca_service::infrastructure::env::ProcessEnv;
 use rca_service::infrastructure::provider_dirs::ProviderFiles;
-use rca_service::infrastructure::provider_login::CliLogin;
 use rca_service::Accounts;
 use rca_service_core::application::environment::Environment;
 use rca_service_core::testing::MapEnv;
 use rca_service_core::application::ports::Ports;
-use rca_service_core::application::settings::Settings;
 use serde_json::{json, Value};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::Arc;
 use std::time::Duration;
 use tokio_tungstenite::tungstenite::Message;
 use tower::ServiceExt;
@@ -37,87 +35,48 @@ use tower::ServiceExt;
 pub const SECRET: &str = "flow-secret";
 pub const ALLOWED_ORIGIN: &str = "https://allowed.example";
 
-/// Flows over a map share it; a flow that reads the process environment holds it alone, so nothing else loads the machine under it.
-static PROCESS: RwLock<()> = RwLock::new(());
-
-enum Held {
-    Free,
-    Shared(#[allow(dead_code)] RwLockReadGuard<'static, ()>),
-    Alone(#[allow(dead_code)] RwLockWriteGuard<'static, ()>),
-}
-
-/// The environment one flow's service reads: a map of its own with a fresh home, so flows run side by side. A flow whose real children or
-/// executors read the process's own variables takes `Env::process` instead, which holds the process environment for its whole run.
+/// The environment one flow's service reads: a map of its own with a fresh home, so flows run side by side. The real children a flow
+/// starts are given `inherited()` as their environment, a value, so no flow touches the process's own variables.
 pub struct Env {
-    _held: Held,
     pub home: PathBuf,
-    map: Option<Arc<MapEnv>>,
-    /// The process's `HOME` before `Env::process` pointed it at this flow's, put back when the flow ends.
-    saved_home: Option<std::ffi::OsString>,
+    map: Arc<MapEnv>,
+    /// The `PATH` the flow's children and executors get instead of the machine's, when the flow has scripted programs to put first.
+    path: std::sync::Mutex<Option<String>>,
     _dir: tempfile::TempDir,
 }
 
 impl Env {
     pub fn new(vars: &[(&str, &str)]) -> Self {
-        Self::over_map(Held::Shared(PROCESS.read().unwrap_or_else(|e| e.into_inner())), vars)
-    }
-
-    /// A map environment that waits for no one, for a flow that only reads the tables of the groups the service registers.
-    pub fn detached() -> Self {
-        Self::over_map(Held::Free, &[])
-    }
-
-    fn over_map(held: Held, vars: &[(&str, &str)]) -> Self {
         let (home, dir) = fresh_home();
         let map = Arc::new(MapEnv::new(home.clone(), std::env::current_dir().ok(), std::env::temp_dir()));
-        let env = Self { _held: held, home, map: Some(map), saved_home: None, _dir: dir };
+        let env = Self { home, map, path: std::sync::Mutex::new(None), _dir: dir };
         for (name, value) in vars {
             env.set(name, value);
         }
         env
     }
 
-    /// The process environment, held by one flow: a fresh `HOME` and nothing else of the service's set but what the flow sets.
-    pub fn process(vars: &[(&str, &str)]) -> Self {
-        let held = PROCESS.write().unwrap_or_else(|e| e.into_inner());
-        let (home, dir) = fresh_home();
-        for name in Settings::names().iter().map(String::as_str).chain(["GH_TOKEN", "GITHUB_TOKEN"]) {
-            std::env::remove_var(name);
-        }
-        let saved_home = std::env::var_os("HOME");
-        std::env::set_var("HOME", &home);
-        let env = Self { _held: Held::Alone(held), home, map: None, saved_home, _dir: dir };
-        for (name, value) in vars {
-            env.set(name, value);
-        }
-        env
+    /// A map environment for a flow that only reads the tables of the groups the service registers.
+    pub fn detached() -> Self {
+        Self::new(&[])
     }
 
     /// What the service is given as its environment.
     pub fn source(&self) -> Arc<dyn Environment> {
-        match &self.map {
-            Some(map) => map.clone(),
-            None => Arc::new(ProcessEnv),
-        }
+        self.map.clone()
     }
 
-    /// Where the providers' directories are in this flow: below the home, as the service's `Accounts::real` is given.
-    pub fn providers_root(&self) -> PathBuf {
-        self.home.join("providers")
+    /// Puts `path` (the scripted programs first) in the `PATH` of everything this flow starts, as a value.
+    pub fn use_path(&self, path: &std::ffi::OsStr) {
+        *self.path.lock().unwrap_or_else(|e| e.into_inner()) = Some(path.to_string_lossy().into_owned());
     }
 
     pub fn set(&self, name: &str, value: &str) {
-        match &self.map {
-            Some(map) => map.set(name, value),
-            None => std::env::set_var(name, value),
-        }
+        self.map.set(name, value);
     }
 
     pub fn unset(&self, name: &str) {
-        match &self.map {
-            Some(map) => map.unset(name),
-            None => std::env::remove_var(name),
-        }
+        self.map.unset(name);
     }
 
     /// A fresh directory under this flow's home.
@@ -128,23 +87,21 @@ impl Env {
     }
 }
 
-impl Drop for Env {
-    fn drop(&mut self) {
-        if self.map.is_none() {
-            match &self.saved_home {
-                Some(home) => std::env::set_var("HOME", home),
-                None => std::env::remove_var("HOME"),
-            }
-        }
-    }
-}
-
 fn fresh_home() -> (PathBuf, tempfile::TempDir) {
     let dir = tempfile::Builder::new().prefix("rca-flow-").tempdir().expect("a temporary home");
     (std::fs::canonicalize(dir.path()).expect("the home has a real path"), dir)
 }
 
+/// What the model gateway stands on in a flow: the provider it calls is a scripted upstream (an authored double, not a recording), and the keys it holds.
+/// Without it the gateway holds no key, so no turn is routed.
+#[derive(Clone)]
+pub struct GatewayDoubles {
+    pub upstream: Arc<rca_group_gateway::testing::ScriptedUpstream>,
+    pub keys: Vec<(&'static str, &'static str)>,
+}
+
 pub struct Options {
+    pub gateway: Option<GatewayDoubles>,
     pub secret: Option<&'static str>,
     pub state_dir: Option<PathBuf>,
     pub hard_timeout_ms: u64,
@@ -153,11 +110,17 @@ pub struct Options {
     pub requests_per_minute: u32,
     /// Why the shared cooldown ledger cannot be opened, when it cannot.
     pub ledger_error: Option<&'static str>,
+    /// The workspace files the routes read; the host's own files when none.
+    pub files: Option<Arc<dyn remote_chat_agent_core::application::ports::WorkspaceFiles>>,
+    /// The CLI of a turn runs at the workspace host through the executor, as in production; otherwise the flow's spawner starts it.
+    pub at_workspace: bool,
+    /// The `browser` group answers instead of refusing.
+    pub browser: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Self { secret: Some(SECRET), state_dir: None, hard_timeout_ms: 1_500, heartbeat: Duration::from_secs(15), default_cwd: None, requests_per_minute: rca_service::api::routes::REQUESTS_PER_MINUTE, ledger_error: None }
+        Self { gateway: None, secret: Some(SECRET), state_dir: None, hard_timeout_ms: 1_500, heartbeat: Duration::from_secs(15), default_cwd: None, requests_per_minute: rca_service::api::routes::REQUESTS_PER_MINUTE, ledger_error: None, files: None, at_workspace: false, browser: false }
     }
 }
 
@@ -172,7 +135,6 @@ pub struct Service {
     pub models: Arc<ScriptedModelApi>,
     /// The time the schedules read: a Tuesday evening, still until a flow moves it.
     pub clock: Arc<FakeClock>,
-    pub default_cwd: String,
 }
 
 /// The instant the schedules' flow clock starts at (2023-11-14 22:13:20 UTC).
@@ -197,24 +159,26 @@ impl Ledgers for FileLedgers {
 /// The agent API `main` serves (`rca_service::agent_api`) for `config`, its CLIs started by `spawner`, its per-device state and its device
 /// bearers kept in the flow's home as the service keeps them.
 pub fn agent_api_for(env: &Env, config: &Config, spawner: Arc<dyn Spawner>) -> AgentApi {
-    agent_api_with(env, config, spawner, ScriptedModelApi::from_fixture(), Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS)))
+    agent_api_with(env, config, Arc::new(Fixed(spawner)), ScriptedModelApi::from_fixture(), Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS)), None)
 }
 
 /// `agent_api_for` with the model the `git.ai` group asks: the providers' directories and logins are the real adapters under the flow's home.
-pub fn agent_api_with(env: &Env, config: &Config, spawner: Arc<dyn Spawner>, models: Arc<ScriptedModelApi>, clock: Arc<FakeClock>) -> AgentApi {
+pub fn agent_api_with(env: &Env, config: &Config, launcher: Arc<dyn CliLauncher>, models: Arc<ScriptedModelApi>, clock: Arc<FakeClock>, gateway: Option<GatewayDoubles>) -> AgentApi {
     let root = env.home.join("providers").to_string_lossy().into_owned();
-    let accounts = Accounts { dirs: Arc::new(ProviderFiles::at(&root)), login: Arc::new(CliLogin::at(&root)), models };
+    let accounts = Accounts { dirs: Arc::new(ProviderFiles::at(&root)), models };
     let state = Arc::new(rca_service::infrastructure::agent_state::StateFile::at(env.home.join(".local/state/rca/agent-state.json")));
     let bearers = Arc::new(rca_service::infrastructure::device_bearers::BearerFile::at(env.home.join(".local/state/rca/device-bearers.json")));
     let schedules = rca_service::ScheduleParts { store: Arc::new(rca_service::infrastructure::schedules::ScheduleFile::at(env.home.join(".local/state/rca/schedules.json"))), clock, ids: Arc::new(CountingIds::default()) };
     let attachments = rca_service::AttachmentParts::real(env.home.join(".local/state/rca/attachments"));
-    rca_service::agent_api(config, spawner, state, bearers, accounts, schedules, attachments)
+    let doubles = gateway.unwrap_or_else(|| GatewayDoubles { upstream: rca_group_gateway::testing::ScriptedUpstream::streaming(&[]), keys: Vec::new() });
+    let gateway = rca_service::GatewayParts { store: Arc::new(rca_service::infrastructure::gateway_tokens::MemoryGrants::default()), keys: Arc::new(rca_group_gateway::testing::FixedKeys(doubles.keys)), upstream: doubles.upstream, ids: Arc::new(rca_service::infrastructure::gateway_tokens::RandomTokens), headroom: None };
+    rca_service::agent_api(config, launcher, state, bearers, accounts, schedules, attachments, Arc::new(rca_group_catalog::testing::ScriptedSpeech::saying("hello world")), gateway)
 }
 
 /// The groups the service registers, for the flows that read the table and answer nothing.
 pub fn agent_api(env: &Env) -> AgentApi {
     let home = env.home.to_string_lossy().into_owned();
-    let config = Config { port: 0, allowed_origins: Vec::new(), api_secret: Some(SECRET.into()), commit: "flow-sha".into(), default_cwd: home.clone(), hard_timeout_ms: 1_500, state_dir: None, exec_root: home, heartbeat: Duration::from_secs(15), requests_per_minute: 120, edit_stats_flush: Duration::from_millis(50), state_seq_base: 0 };
+    let config = Config { port: 0, allowed_origins: Vec::new(), api_secret: Some(SECRET.into()), commit: "flow-sha".into(), default_cwd: home.clone(), hard_timeout_ms: 1_500, state_dir: None, exec_root: home, heartbeat: Duration::from_secs(15), requests_per_minute: 120, edit_stats_flush: Duration::from_millis(50), state_seq_base: 0, agent_public_url: None, browser: false };
     agent_api_for(env, &config, ScriptedSpawner::new())
 }
 
@@ -226,15 +190,26 @@ pub fn service(env: &Env, options: Options) -> Service {
 /// The service over the given doubles, as a restart of one would find them.
 pub fn service_over(env: &Env, options: Options, opencode: Arc<FakeOpencode>, commands: Arc<FakeCommands>, outbound: Arc<FakeOutbound>) -> Service {
     let spawner = ScriptedSpawner::new();
-    build(env, options, opencode, commands, outbound, spawner.clone(), spawner)
+    let transport = Arc::new(OpencodePort(Arc::clone(&opencode)));
+    build(env, options, opencode, transport, commands, outbound, spawner.clone(), spawner)
+}
+
+/// The service whose opencode is a real HTTP server on a loopback port (`Loopback`), reached through the production transport.
+pub fn service_over_loopback(env: &Env, options: Options, url: &str) -> Service {
+    let spawner = ScriptedSpawner::new();
+    let transport = Arc::new(remote_chat_agent_opencode::Http::new(url, None));
+    build(env, options, FakeOpencode::new(), transport, FakeCommands::new(), FakeOutbound::new(), spawner.clone(), spawner)
 }
 
 /// The service whose provider CLIs are started by `spawner` (a scripted program of the flow's own), the other ports doubled.
 pub fn service_spawning(env: &Env, options: Options, spawner: Arc<dyn Spawner>) -> Service {
-    build(env, options, FakeOpencode::new(), FakeCommands::new(), FakeOutbound::new(), spawner, ScriptedSpawner::new())
+    let opencode = FakeOpencode::new();
+    let transport = Arc::new(OpencodePort(Arc::clone(&opencode)));
+    build(env, options, opencode, transport, FakeCommands::new(), FakeOutbound::new(), spawner, ScriptedSpawner::new())
 }
 
-fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, commands: Arc<FakeCommands>, outbound: Arc<FakeOutbound>, spawn: Arc<dyn Spawner>, spawner: Arc<ScriptedSpawner>) -> Service {
+#[allow(clippy::too_many_arguments)]
+fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, transport: Arc<dyn remote_chat_agent_core::application::ports::Opencode>, commands: Arc<FakeCommands>, outbound: Arc<FakeOutbound>, spawn: Arc<dyn Spawner>, spawner: Arc<ScriptedSpawner>) -> Service {
     let default_cwd = options.default_cwd.unwrap_or_else(|| env.home.to_string_lossy().into_owned());
     let config = Config {
         port: 0,
@@ -249,19 +224,22 @@ fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, commands: Arc
         requests_per_minute: options.requests_per_minute,
         edit_stats_flush: Duration::from_millis(50),
         state_seq_base: 0,
+        agent_public_url: None,
+        browser: options.browser,
     };
     let models = ScriptedModelApi::from_fixture();
     let clock = Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS));
-    let agent_api = agent_api_with(env, &config, spawn.clone(), models.clone(), clock.clone());
+    let launcher: Arc<dyn CliLauncher> = if options.at_workspace { Arc::new(AtWorkspace) } else { Arc::new(Fixed(spawn.clone())) };
+    let agent_api = agent_api_with(env, &config, launcher, models.clone(), clock.clone(), options.gateway);
     let commands_port = Arc::new(CommandsPort(Arc::clone(&commands)));
     let outbound_port = Arc::new(OutboundPort(Arc::clone(&outbound)));
     let settings = env.source().settings();
-    let client = rca_service::compose::opencode_client(Arc::new(OpencodePort(Arc::clone(&opencode))), env.source());
+    let client = rca_service::compose::opencode_client(transport, env.source());
     let (orch, gateway) = rca_service::compose::orchestration(&config, &client, env.source().as_ref());
-    let ports = Ports { documents: Arc::new(remote_chat_agent_host::Documents::new(commands_port.clone(), &settings)), speech: Arc::new(remote_chat_agent_speech::Speech::new(outbound_port.clone(), commands_port.clone(), env.source())), spawner: spawn, client, orch, gateway, commands: commands_port, outbound: outbound_port, ledgers: Arc::new(FileLedgers { error: options.ledger_error, env: env.source() }), files: Arc::new(remote_chat_agent_host::HostFiles), hosts: Arc::new(remote_chat_agent_host::Hosts), env: env.source() };
+    let ports = Ports { documents: Arc::new(remote_chat_agent_host::Documents::new(commands_port.clone(), &settings)), speech: Arc::new(remote_chat_agent_speech::Speech::new(outbound_port.clone(), commands_port.clone(), env.source())), spawner: spawn, client, orch, gateway, commands: commands_port, outbound: outbound_port, ledgers: Arc::new(FileLedgers { error: options.ledger_error, env: env.source() }), files: options.files.unwrap_or_else(|| Arc::new(remote_chat_agent_host::HostFiles)), hosts: Arc::new(remote_chat_agent_host::Hosts), env: env.source() };
     let app = Arc::new(App::new(config, ports, agent_api));
     app.start();
-    Service { router: router(Arc::clone(&app)), app, opencode, commands, outbound, spawner, models, clock, default_cwd }
+    Service { router: router(Arc::clone(&app)), app, opencode, commands, outbound, spawner, models, clock }
 }
 
 pub struct Answer {
@@ -347,6 +325,27 @@ impl Call {
 pub struct Sent((Request<Body>, SocketAddr));
 
 impl Service {
+    /// The model gateway `/gateway` answers for.
+    pub fn gateway(&self) -> Arc<rca_group_gateway::Gateway> {
+        Arc::clone(&self.app.model_gateway)
+    }
+
+    /// Like `send`, but the body's failure is the answer: a response whose body breaks part way is the chunks that came and why it ended.
+    pub async fn send_streamed(&self, sent: impl Into<Sent>) -> (StatusCode, Vec<u8>, Option<String>) {
+        let Sent((mut request, peer)) = sent.into();
+        request.extensions_mut().insert(ConnectInfo(peer));
+        let response = self.router.clone().oneshot(request).await.expect("the router answers");
+        let (parts, mut body) = response.into_parts();
+        let mut got = Vec::new();
+        while let Some(frame) = body.frame().await {
+            match frame {
+                Ok(frame) => got.extend(frame.into_data().map(|d| d.to_vec()).unwrap_or_default()),
+                Err(why) => return (parts.status, got, Some(why.to_string())),
+            }
+        }
+        (parts.status, got, None)
+    }
+
     /// A device bearer minted as an operator mints one, with the service secret: its token.
     pub async fn mint(&self, label: &str) -> String {
         let answer = self.send(post("/agent/v1/bearers").secret().json(json!({"label": label}))).await;

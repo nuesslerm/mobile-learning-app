@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 use std::io::Read;
 use std::path::Path;
 
-use orca_map_mobile::testing::Recorded;
+use orca_map_mobile::testing::{hand_bundle, Recorded, GRID};
 
 fn goldens() -> Value {
     Recorded::load().goldens()
@@ -228,4 +228,127 @@ fn given_a_manifest_that_breaks_one_pinned_rule_when_the_host_loads_it_then_no_b
         // Then the host holds no bundle
         assert_eq!(error_message(&reply), "mobile_web_bundle_unavailable", "{what}");
     }
+}
+
+#[test]
+fn given_an_asset_with_a_brotli_copy_when_its_windows_are_read_then_they_are_the_copys_bytes_under_the_raw_assets_hash() {
+    // Given a bundle whose index.html has a brotli copy of three windows, and a paired phone
+    let b = hand_bundle();
+    let h = serving(b.dir.path());
+    let mut phone = paired(&h);
+    let raw = std::fs::read(b.dir.path().join("index.html")).unwrap();
+    let mut got = Vec::new();
+    for (n, offset) in [0, GRID, GRID * 2].into_iter().enumerate() {
+        // When it asks for each window of the copy
+        let reply = phone.call("mobileWeb.bundle.brotliRange", json!({"buildId": b.build, "path": "index.html", "offset": offset}))["result"].clone();
+        // Then the window restates the raw asset (its size and hash), carries the copy's bytes as read, and only the last one ends the file
+        assert_eq!((reply["path"].as_str(), reply["offset"].as_u64(), reply["assetByteLength"].as_u64(), reply["sha256"].as_str()), (Some("index.html"), Some(offset as u64), Some(raw.len() as u64), Some(hex(&raw).as_str())), "{reply}");
+        assert_eq!((reply["eof"].as_bool(), reply.get("encoding")), (Some(n == 2), None), "{reply}");
+        got.extend(base64_decode(reply["dataBase64"].as_str().unwrap()));
+    }
+    assert_eq!(got, b.brotli);
+}
+
+#[test]
+fn given_a_brotli_request_the_copy_cannot_answer_when_made_then_each_gets_the_pinned_code() {
+    // Given the same bundle
+    let b = hand_bundle();
+    let h = serving(b.dir.path());
+    let mut phone = paired(&h);
+    // When the phone asks for an asset with no copy, or a window past the end of the copy, or one that is not on the grid
+    let cases = [
+        (json!({"buildId": b.build, "path": "app.js", "offset": 0}), "mobile_web_bundle_asset_unknown"),
+        (json!({"buildId": b.build, "path": "index.html", "offset": GRID * 3}), "mobile_web_bundle_offset_invalid"),
+        (json!({"buildId": b.build, "path": "index.html", "offset": 5}), "mobile_web_bundle_offset_invalid"),
+        (json!({"buildId": "0".repeat(64), "path": "index.html", "offset": 0}), "mobile_web_bundle_build_changed"),
+    ];
+    // Then each is refused with its own code
+    for (params, code) in cases {
+        assert_eq!(error_message(&phone.call("mobileWeb.bundle.brotliRange", params.clone())), code, "{params}");
+    }
+}
+
+#[test]
+fn given_a_raw_asset_changed_on_disk_when_its_brotli_copy_is_read_then_the_asset_changed_code_answers() {
+    // Given a bundle whose raw index.html no longer has the manifest's hash
+    let b = hand_bundle();
+    std::fs::write(b.dir.path().join("index.html"), b"<html>edited!</html>").unwrap();
+    let h = serving(b.dir.path());
+    let mut phone = paired(&h);
+    // When its copy is read, Then the raw asset's hash still gates it
+    let reply = phone.call("mobileWeb.bundle.brotliRange", json!({"buildId": b.build, "path": "index.html", "offset": 0}));
+    assert_eq!(error_message(&reply), "mobile_web_bundle_asset_changed");
+}
+
+#[test]
+fn given_catalogs_in_the_manifest_when_a_locale_is_asked_for_then_the_catalog_comes_once_and_a_known_copy_gets_none() {
+    // Given a bundle with an en and a de catalog
+    let b = hand_bundle();
+    let h = serving(b.dir.path());
+    let mut phone = paired(&h);
+    let sha = hex(&b.en);
+    // When the phone asks for en, then again holding that copy, then holding another
+    let first = phone.call("mobileWeb.bundle.localeCatalog", json!({"locale": "en"}))["result"].clone();
+    let known = phone.call("mobileWeb.bundle.localeCatalog", json!({"locale": "en", "knownSha256": sha}))["result"].clone();
+    let stale = phone.call("mobileWeb.bundle.localeCatalog", json!({"locale": "en", "knownSha256": "0".repeat(64)}))["result"].clone();
+    // Then the catalog is the file's object, a held copy gets none, and a stale one gets it whole
+    assert_eq!(first, json!({"locale": "en", "sha256": sha, "catalog": {"hello": "Hello", "bye": "Bye"}}));
+    assert_eq!(known, json!({"locale": "en", "sha256": sha, "catalog": null}));
+    assert_eq!(stale, first);
+}
+
+#[test]
+fn given_a_locale_request_the_bundle_cannot_answer_when_made_then_each_gets_its_code() {
+    // Given a bundle whose de catalog was edited on disk after the manifest was written
+    let b = hand_bundle();
+    std::fs::write(b.dir.path().join("catalogs/de.json"), br#"{"hello":"Servus"}"#).unwrap();
+    let h = serving(b.dir.path());
+    let mut phone = paired(&h);
+    // When the phone asks for a locale the build lacks, the edited one, and with malformed params
+    let cases = [
+        (json!({"locale": "fr"}), "mobile_web_bundle_asset_unknown"),
+        (json!({"locale": "de"}), "mobile_web_bundle_asset_changed"),
+        (json!({"locale": "x"}), "Invalid locale"),
+        (json!({"locale": "en", "knownSha256": "abc"}), "Invalid knownSha256"),
+        (json!({"locale": "en", "other": 1}), "Unrecognized key"),
+    ];
+    // Then each is refused as the pinned host refuses it
+    for (params, expect) in cases {
+        let message = error_message(&phone.call("mobileWeb.bundle.localeCatalog", params.clone()));
+        assert!(message.starts_with(expect), "{params}: {message}");
+    }
+}
+
+#[test]
+fn given_a_host_with_no_bundle_when_the_new_bundle_methods_are_called_then_the_bundle_is_unavailable() {
+    // Given a host that holds no bundle
+    let h = Harness::start(recorded_status());
+    let mut phone = paired(&h);
+    // When the phone asks for a brotli window and a catalog
+    let brotli = phone.call("mobileWeb.bundle.brotliRange", json!({"buildId": "0".repeat(64), "path": "index.html", "offset": 0}));
+    let catalog = phone.call("mobileWeb.bundle.localeCatalog", json!({"locale": "en"}));
+    // Then both say so
+    assert_eq!((error_message(&brotli), error_message(&catalog)), ("mobile_web_bundle_unavailable".to_string(), "mobile_web_bundle_unavailable".to_string()));
+}
+
+#[test]
+fn given_a_paired_phone_when_it_proposes_a_replacement_token_then_the_host_says_its_device_is_no_ticket_and_does_not_advertise_the_exchange() {
+    // Given a paired phone, and the status the host advertises
+    let h = Harness::start(recorded_status());
+    let mut phone = paired(&h);
+    let status = phone.call("status.get", json!({}));
+    // When it proposes well-formed tokens, and then malformed ones
+    let proposal = phone.call("pairing.exchangeTicket", json!({"deviceToken": "ab".repeat(24)}));
+    let problems = [
+        (json!({}), "Invalid input: expected string, received undefined"),
+        (json!({"deviceToken": 5}), "Invalid input: expected string, received number"),
+        (json!({"deviceToken": "AB".repeat(24)}), "expected 48-128 lowercase hex characters"),
+        (json!({"deviceToken": "ab".repeat(24), "extra": true}), "Unrecognized key: \"extra\""),
+    ];
+    // Then the well-formed one is answered as the pinned host answers a device that is no single-use ticket, the others by the schema, and the capability stays unadvertised
+    assert_eq!((proposal["ok"].clone(), proposal["error"]["code"].clone(), proposal["error"]["message"].clone()), (json!(false), json!("runtime_error"), json!("not_a_ticket")), "{proposal}");
+    for (params, expect) in problems {
+        assert_eq!(error_message(&phone.call("pairing.exchangeTicket", params.clone())), expect, "{params}");
+    }
+    assert!(!status["result"]["capabilities"].as_array().unwrap().contains(&json!("pairing.ticket-exchange.v1")), "{status}");
 }

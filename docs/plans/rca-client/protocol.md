@@ -13,9 +13,7 @@ Every action is `{id, tool, args}` and is answered by `{id, ok, result}` or `{id
 | `run_command` | `command` (shell string), `cwd?` (relative), `timeout_ms?` (default 120000), `env?` (extra vars) | `{exit_code, timed_out, truncated}`; output arrives as stream frames |
 | `read_file` | `path`, `offset?`, `limit?` (lines) | `{content, total_lines}` |
 | `write_file` | `path`, `content`, `create_dirs?` | `{bytes}` |
-| `edit_file` | `path`, `old`, `new`, `replace_all?` | `{replacements}`; `EDIT_NOT_FOUND` when `old` is absent, `EDIT_AMBIGUOUS` when it occurs more than once and `replace_all` is not set |
 | `list_dir` | `path`, `depth?` (default 1) | `{entries:[{name, kind:"file"|"dir", size}]}` |
-| `search` | `pattern`, `path?`, `glob?`, `kind:"content"|"files"` | `{matches:[{path, line?, text?}], truncated}` |
 | `cancel` | `id` of a running action | `{cancelled}`; kills the process group of a `run_command` or stops a `worktree_setup` |
 | `stat` | `path` | `{kind:"file"|"dir", size, modified_ms}` |
 | `read_chunk` | `path`, `offset?` (bytes), `length?` (at most 1 MiB, the default) | `{data (base64), offset, bytes, total_bytes, eof}` |
@@ -43,13 +41,13 @@ The set is the working set of the first adapter; further tools (for example per-
 
 ## Functional tests (no contract-only tests)
 
-- Executor (host side, real temp directory): each tool does the thing; confinement refuses `..` and a symlink out; `run_command` streams, times out and cancels; `edit_file` ambiguity.
+- Executor (host side, real temp directory): each tool does the thing; confinement refuses `..` and a symlink out; `run_command` streams, times out and cancels.
 - Bridge (rca side, real service process): a scripted MCP client calls `tools/call` and the effect lands on the **executor's** directory and not rca's; no channel gives `NO_EXECUTOR`; closing the channel mid-command gives `EXECUTOR_GONE`. The turns of these flows start with `turn.start` on the agent socket (`backend/remote-chat-agent/rs/tests/flow/exec_remote.rs`, and `agent_threads.rs` with the real `rca-exec`).
 - End to end: a real `claude` or `opencode` with a live model, in the CI cli-e2e tier, asked to create a file and run a command, ends with the file in the `t3 serve` directory and T3 events for each step. A flow-tier stand-in uses a scripted CLI that speaks MCP.
 
 ## Nx seeding: the VM replays, the gate runs (owner: the VM must run barely anything)
 
 - Every new crate gets its own Nx tasks automatically through `tooling/nx/cargo-crates.js`: `cargo-unit` (inline tests), `cargo-flow` (`tests/flow.rs`), `cargo-contract`, and for live tests `cargo-e2e`. The pre-push gate (`wf check --pushed`, all stages, `cli-e2e-tests` included) runs every one of them in the sandbox with the shared cache writable, so the VM replays the passes.
-- The functional live-CLI tests live in a crate with `tests/e2e.rs` and `[package.metadata.e2e] groups = ["claude", "opencode", "codex", ...]` (the shape `clis/offload/Cargo.toml` uses): one `cargo-e2e-<group>` task per provider, keyed by its own test file, the shared support files and the adapter sources it exercises, so a change to one adapter reruns only that provider's tests. Each test retries up to three times like `clis/offload/tests/e2e/parity.rs` (`retrying`).
+- The functional live-CLI tests live in a crate with `tests/e2e.rs` and `[package.metadata.e2e] groups = ["claude", "opencode", "codex", ...]` (the shape `clis/rca/Cargo.toml` uses): one `cargo-e2e-<group>` task per provider, keyed by its own test file, the shared support files and the adapter sources it exercises, so a change to one adapter reruns only that provider's tests. Each test retries up to three times like `clis/rca/tests/e2e/compare.rs` (`retrying`).
 - Keep the crates small and layered (executor core, local adapter, channel client, T3 translation) so a change reruns only the crates above it; a feature must not live inside one big crate whose every edit invalidates every task.
 - Done means: `wf test drift` shows the same task keys sandbox and runner, the gate's output says the stage was seeded, and the CI run of the push replays the new tasks (`wf: nx ledger` shows hits, not runs).

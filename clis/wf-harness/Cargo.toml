@@ -43,3 +43,6 @@ png = { version = "0.17", default-features = false }
 tiny_http = "0.12"
 base64 = "0.22"
 ureq = { version = "3", default-features = false }
+
+[package.metadata.arch]
+type = "cli-crate"

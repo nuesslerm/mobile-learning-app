@@ -8,7 +8,7 @@ use agent_api_workspace::FILE_LIST;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use orca_core::wire::{Failure, RUNTIME_ERROR};
-use orca_core::AgentApi;
+use orca_core::{AgentApi, AgentError};
 use serde_json::{json, Value};
 
 const READ_MAX: usize = 512 * 1024;
@@ -39,11 +39,11 @@ pub fn image_mime(name: &str) -> Option<&'static str> {
     PREVIEW_MIME.iter().find(|(e, m)| *e == ext && m.starts_with("image/")).map(|(_, m)| *m)
 }
 
-fn plain(message: &str) -> Failure {
+pub(crate) fn plain(message: &str) -> Failure {
     Failure::new(RUNTIME_ERROR, message)
 }
 
-fn extension(path: &str) -> String {
+pub(crate) fn extension(path: &str) -> String {
     let name = path.rsplit(['/', '\\']).next().unwrap_or(path);
     match name.rfind('.') {
         Some(i) if i > 0 => name[i..].to_lowercase(),
@@ -51,7 +51,7 @@ fn extension(path: &str) -> String {
     }
 }
 
-fn is_binary_path(path: &str) -> bool {
+pub(crate) fn is_binary_path(path: &str) -> bool {
     BINARY.contains(&extension(path).as_str())
 }
 
@@ -77,7 +77,7 @@ fn clean(path: &str, root_ok: bool) -> Result<&str, Failure> {
     }
 }
 
-fn basename(path: &str) -> &str {
+pub(crate) fn basename(path: &str) -> &str {
     path.rsplit(['/', '\\']).next().unwrap_or(path)
 }
 
@@ -87,6 +87,10 @@ fn has_nul_in_probe(bytes: &[u8]) -> bool {
 
 fn path_param<'a>(params: &'a Value, key: &str) -> Result<&'a str, Failure> {
     text(params, key).ok_or_else(|| Failure::invalid(format!("Invalid input: {key} must be a string")))
+}
+
+pub(crate) fn path_param_of<'a>(params: &'a Value, key: &str, missing: &str) -> Result<&'a str, Failure> {
+    text(params, key).filter(|p| !p.is_empty()).ok_or_else(|| Failure::invalid(missing))
 }
 
 fn uint(params: &Value, key: &str) -> Result<Option<u64>, Failure> {
@@ -118,19 +122,25 @@ pub(crate) fn read_prefix(agent: &dyn AgentApi, t: &Target, path: &str, max: usi
     }
 }
 
-pub(crate) fn read(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
-    let t = resolve(agent, selector(params)?)?;
-    let path = clean(path_param(params, "relativePath")?, false)?;
+/// A text file's content as `files.read` answers it, from `read(limit)`: at most `limit + 1` bytes of the file from its start.
+pub(crate) fn text_by(path: &str, read: &dyn Fn(usize) -> Result<Vec<u8>, Failure>) -> Result<(String, bool, usize), Failure> {
     if is_binary_path(path) {
         return Err(plain("binary_file"));
     }
-    let (bytes, _) = read_prefix(agent, &t, path, READ_MAX)?;
+    let bytes = read(READ_MAX)?;
     if has_nul_in_probe(&bytes) {
         return Err(plain("binary_file"));
     }
     let truncated = bytes.len() > READ_MAX;
     let kept = if truncated { &bytes[..READ_MAX] } else { &bytes[..] };
-    Ok(json!({"worktree": t.id, "relativePath": path, "content": String::from_utf8_lossy(kept), "truncated": truncated, "byteLength": bytes.len()}))
+    Ok((String::from_utf8_lossy(kept).into_owned(), truncated, bytes.len()))
+}
+
+pub(crate) fn read(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    let t = resolve(agent, selector(params)?)?;
+    let path = clean(path_param(params, "relativePath")?, false)?;
+    let (content, truncated, byte_length) = text_by(path, &|max| read_prefix(agent, &t, path, max).map(|(bytes, _)| bytes))?;
+    Ok(json!({"worktree": t.id, "relativePath": path, "content": content, "truncated": truncated, "byteLength": byte_length}))
 }
 
 /// The most raw bytes whose base64 fits one reply beside the rest of a preview result (`previewableBinaryByteLimit`).
@@ -139,13 +149,12 @@ pub fn previewable_limit() -> usize {
     (REPLY_BUDGET.saturating_sub(empty) / 4) * 3
 }
 
-pub(crate) fn read_preview(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
-    let t = resolve(agent, selector(params)?)?;
-    let path = clean(path_param(params, "relativePath")?, false)?;
+/// A preview as `files.readPreview` answers it, from `read(limit)`: at most `limit + 1` bytes of the file from its start.
+pub(crate) fn preview_by(path: &str, read: &dyn Fn(usize) -> Result<Vec<u8>, Failure>) -> Result<Value, Failure> {
     let ext = extension(path);
     let mime = PREVIEW_MIME.iter().find(|(e, _)| *e == ext).map(|(_, m)| *m);
     let limit = if mime.is_some() { previewable_limit() } else { READ_MAX };
-    let (bytes, _) = read_prefix(agent, &t, path, limit)?;
+    let bytes = read(limit)?;
     if bytes.len() > limit {
         return Err(plain("file_too_large"));
     }
@@ -154,6 +163,12 @@ pub(crate) fn read_preview(agent: &dyn AgentApi, params: &Value) -> Result<Value
         None if has_nul_in_probe(&bytes) => json!({"content": "", "isBinary": true}),
         None => json!({"content": String::from_utf8_lossy(&bytes), "isBinary": false}),
     })
+}
+
+pub(crate) fn read_preview(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    let t = resolve(agent, selector(params)?)?;
+    let path = clean(path_param(params, "relativePath")?, false)?;
+    preview_by(path, &|limit| read_prefix(agent, &t, path, limit).map(|(bytes, _)| bytes))
 }
 
 pub(crate) fn read_chunk(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
@@ -208,6 +223,20 @@ pub(crate) fn stat(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failur
     let path = clean(text(params, "relativePath").filter(|p| !p.is_empty()).unwrap_or("."), true)?;
     let r = ask(agent, FILE_STAT.name(), args(&t, path))?;
     Ok(json!({"size": r["size"], "isDirectory": r["kind"] == "dir", "mtime": r["modified_ms"]}))
+}
+
+/// `files.pathsExist`: one answer per path, in order: whether it is there, or the sentence of a refusal that is not "absent". A batch the host
+/// would refuse whole (more than 128 paths, a path that is not a string, one outside the worktree) is refused whole.
+pub(crate) fn paths_exist(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    let t = resolve(agent, selector(params)?)?;
+    let paths = params["relativePaths"].as_array().filter(|p| p.len() <= 128 && p.iter().all(Value::is_string)).ok_or_else(|| plain("Invalid path existence batch"))?;
+    let cleaned = paths.iter().filter_map(Value::as_str).map(|p| clean(p, false)).collect::<Result<Vec<_>, _>>()?;
+    let answers = cleaned.into_iter().map(|path| match agent.request(FILE_STAT.name(), args(&t, path)) {
+        Ok(_) => json!({"exists": true}),
+        Err(AgentError::Refused { code, .. }) if code == "NOT_FOUND" => json!({"exists": false}),
+        Err(e) => json!({"error": crate::agent::refusal(e).message}),
+    });
+    Ok(Value::Array(answers.collect()))
 }
 
 pub(crate) fn create_file(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {

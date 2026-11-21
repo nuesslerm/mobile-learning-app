@@ -1,3 +1,3 @@
-const { PRESENTATION_LAYERS, featureDepcruiseConfig, withDomainDirs } = require('../../../feature-kit/depcruise.feature.cjs');
+const { hexagonalFeature } = require('../../../feature-kit/depcruise.presets.cjs');
 
-module.exports = featureDepcruiseConfig(withDomainDirs(PRESENTATION_LAYERS, ['domain', 'contracts']));
+module.exports = hexagonalFeature({ root: 'src', appPrefix: '../../' });

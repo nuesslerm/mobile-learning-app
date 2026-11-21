@@ -1,0 +1,48 @@
+{
+  "method": "browser.open",
+  "exchanges": [
+    {
+      "name": "refuses an address that is not a web page without opening a browser",
+      "request": {
+        "id": 1,
+        "method": "browser.open",
+        "params": {
+          "workspace": "w1",
+          "thread": "t1",
+          "url": "file:///etc/passwd"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`url` must be an http or https address of at most 2048 bytes: the scheme is not http or https"
+        }
+      },
+      "actions": [
+        "browser_open"
+      ]
+    },
+    {
+      "name": "refuses the cloud metadata address",
+      "request": {
+        "id": 1,
+        "method": "browser.open",
+        "params": {
+          "workspace": "w1",
+          "url": "http://169.254.169.254/latest/meta-data/"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`url` points at 169.254.169.254:80, an address the executor does not let a page reach"
+        }
+      },
+      "actions": [
+        "browser_open"
+      ]
+    }
+  ]
+}

@@ -3,10 +3,13 @@
 //! running is followed to its end. An agent event is folded once: its receipt in the event store says so, so a replay writes nothing twice.
 use super::engine::Engine;
 use crate::domain::decider::{Launch, Outcome, RunStep};
-use crate::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, Follow, Log, MetaStore};
-use std::collections::HashMap;
+use crate::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, Follow, Log, MetaStore, Op};
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+
+/// How long a dispatch waits for the provider to open before it answers anyway.
+const START_WAIT: std::time::Duration = std::time::Duration::from_secs(5);
 
 /// Events a catch-up asks for at a time.
 const PAGE: u32 = 200;
@@ -17,6 +20,10 @@ pub struct Runner {
     meta: Arc<dyn MetaStore>,
     log: Arc<dyn Log>,
     stops: Mutex<HashMap<String, Arc<AtomicBool>>>,
+    /// Threads whose queue a forced stop holds: nothing queued is followed until the phone starts one or resumes the queue.
+    held: Mutex<HashSet<String>>,
+    /// Threads whose queued turns one task is following, so two never follow the same one.
+    draining: Mutex<HashSet<String>>,
 }
 
 fn turn_key(thread: &str, turn: &str) -> String {
@@ -33,7 +40,7 @@ fn cursor_key(thread: &str) -> String {
 
 impl Runner {
     pub fn new(agent: Arc<dyn AgentApi>, engine: Arc<Engine>, meta: Arc<dyn MetaStore>, log: Arc<dyn Log>) -> Runner {
-        Runner { agent, engine, meta, log, stops: Mutex::new(HashMap::new()) }
+        Runner { agent, engine, meta, log, stops: Mutex::new(HashMap::new()), held: Mutex::new(HashSet::new()), draining: Mutex::new(HashSet::new()) }
     }
 
     pub fn agent(&self) -> &dyn AgentApi {
@@ -59,9 +66,102 @@ impl Runner {
         self.recall(&run_key(run))
     }
 
+    /// The turn of a run the phone names after it started, which can be a moment before the link is written: waits for the link, and gives
+    /// up after half a second, when the name is not a run of ours at all.
+    pub fn turn_of_started_run(&self, run: &str) -> Option<String> {
+        for _ in 0..50 {
+            if let Some(turn) = self.turn_of_run(run) {
+                return Some(turn);
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        None
+    }
+
+    fn set<'a>(&self, which: &'a Mutex<HashSet<String>>) -> std::sync::MutexGuard<'a, HashSet<String>> {
+        which.lock().unwrap_or_else(|p| p.into_inner())
+    }
+
+    /// Starts the run's turn and answers once the provider has accepted it or failed to open, as T3 does: a read right after the dispatch sees which.
     pub fn launch(self: &Arc<Self>, launch: Launch) {
         let (me, thread) = (self.clone(), launch.thread_id.clone());
-        self.spawn(&thread, move |stop| me.run(launch, stop));
+        let key = thread.clone();
+        let (began, wait) = std::sync::mpsc::channel();
+        self.spawn(&key, move |stop| {
+            me.run(launch, stop, began);
+            me.drain(&thread);
+        });
+        let _ = wait.recv_timeout(START_WAIT);
+    }
+
+    /// Puts a message behind the running turn in the agent API's queue; the agent API starts it by itself when the turns before it end.
+    pub fn queue(self: &Arc<Self>, launch: Launch) {
+        let me = self.clone();
+        std::thread::spawn(move || {
+            let thread = AgentThread { thread_id: launch.thread_id.clone(), instance_id: launch.instance_id.clone(), model: launch.model.clone(), worktree: launch.worktree.clone() };
+            let added = me.agent.ensure_thread(&thread).and_then(|_| me.agent.run(&Op::QueueAdd { thread: launch.thread_id.clone(), item: launch.run_id.clone(), prompt: launch.prompt.clone() }));
+            if let Err(e) = added {
+                me.log.event("run.queue.failed", &[("run", launch.run_id.clone()), ("error", e.message())]);
+                if let Err(e) = me.engine.cancel_queued(&launch.thread_id, &launch.run_id) {
+                    me.log.event("run.record.failed", &[("run", launch.run_id.clone()), ("error", e.0)]);
+                }
+                return;
+            }
+            me.remember(&turn_key(&launch.thread_id, &launch.run_id), &launch.run_id);
+            me.remember(&run_key(&launch.run_id), &launch.run_id);
+            if me.engine.active_run(&launch.thread_id).is_none() {
+                me.drain(&launch.thread_id);
+            }
+        });
+    }
+
+    /// The phone started a queued run, or resumed the queue: the hold is over and the turns the agent API starts are followed.
+    pub fn resume_queue(self: &Arc<Self>, thread: &str, started: Option<String>) {
+        self.set(&self.held).remove(thread);
+        let (me, key) = (self.clone(), thread.to_string());
+        let name = key.clone();
+        self.spawn(&name, move |stop| {
+            if let Some(run) = started {
+                if me.claim(&key) {
+                    me.remember(&turn_key(&key, &run), &run);
+                    me.remember(&run_key(&run), &run);
+                    me.follow_to_end(&key, &run, &stop);
+                    me.set(&me.draining).remove(&key);
+                }
+            }
+            me.drain(&key);
+        });
+    }
+
+    fn claim(&self, thread: &str) -> bool {
+        self.set(&self.draining).insert(thread.to_string())
+    }
+
+    /// Follows the turn of a queued run from the log's cursor to its end and records how it ended.
+    fn follow_to_end(&self, thread: &str, run: &str, stop: &AtomicBool) {
+        let result = self.follow(thread, run, run, self.cursor(thread));
+        let outcome = match result {
+            _ if stop.load(Ordering::SeqCst) => Outcome::Interrupted,
+            Ok(()) => Outcome::Completed,
+            Err(e) => Outcome::Failed(e.message()),
+        };
+        self.finish(thread, run, outcome.clone());
+        self.log.event("run.ended", &[("run", run.to_string()), ("outcome", format!("{outcome:?}"))]);
+    }
+
+    /// Follows the queued runs one after the other, as the agent API starts them, until the queue is empty or a forced stop holds it.
+    pub fn drain(&self, thread: &str) {
+        if !self.claim(thread) {
+            return;
+        }
+        let stop = self.stops().get(thread).cloned().unwrap_or_default();
+        while !self.set(&self.held).contains(thread) {
+            let Some(run) = self.engine.next_queued(thread) else { break };
+            self.remember(&turn_key(thread, &run), &run);
+            self.remember(&run_key(&run), &run);
+            self.follow_to_end(thread, &run, &stop);
+        }
+        self.set(&self.draining).remove(thread);
     }
 
     fn spawn(&self, thread: &str, body: impl FnOnce(Arc<AtomicBool>) + Send + 'static) {
@@ -70,11 +170,18 @@ impl Runner {
         std::thread::spawn(move || body(stop));
     }
 
-    pub fn interrupt(&self, thread_id: &str) {
+    /// Stops the thread's turn; with `hold` through the agent API's forced stop, which also keeps its queue from starting.
+    pub fn interrupt(&self, thread_id: &str, hold: bool) {
         if let Some(stop) = self.stops().get(thread_id) {
             stop.store(true, Ordering::SeqCst);
         }
-        if let Err(e) = self.agent.interrupt(thread_id) {
+        let stopped = if hold {
+            self.set(&self.held).insert(thread_id.to_string());
+            self.agent.run(&Op::ThreadForceStop { thread: thread_id.to_string(), turn: None }).map(drop)
+        } else {
+            self.agent.interrupt(thread_id)
+        };
+        if let Err(e) = stopped {
             self.log.event("run.interrupt.failed", &[("thread", thread_id.to_string()), ("error", e.message())]);
         }
     }
@@ -121,14 +228,23 @@ impl Runner {
         Ok(())
     }
 
-    fn run(&self, launch: Launch, stop: Arc<AtomicBool>) {
+    fn run(&self, launch: Launch, stop: Arc<AtomicBool>, began: std::sync::mpsc::Sender<()>) {
         let (thread, run) = (launch.thread_id.as_str(), launch.run_id.as_str());
         self.log.event("run.started", &[("thread", thread.to_string()), ("run", run.to_string()), ("instance", launch.instance_id.clone())]);
-        let result = self.start(&launch, &stop).and_then(|(turn, after)| self.follow(thread, run, &turn, after));
-        let outcome = match result {
-            _ if stop.load(Ordering::SeqCst) => Outcome::Interrupted,
-            Ok(()) => Outcome::Completed,
-            Err(e) => Outcome::Failed(e.message()),
+        let outcome = match self.start(&launch, &stop) {
+            Err(e) => {
+                self.finish(thread, run, Outcome::OpenFailed(e.message()));
+                let _ = began.send(());
+                Outcome::OpenFailed(e.message())
+            }
+            Ok((turn, after)) => {
+                let _ = began.send(());
+                match self.follow(thread, run, &turn, after) {
+                    _ if stop.load(Ordering::SeqCst) => Outcome::Interrupted,
+                    Ok(()) => Outcome::Completed,
+                    Err(e) => Outcome::Failed(e.message()),
+                }
+            }
         };
         // A turn that finished has ended its run already, so this records nothing for it
         self.finish(thread, run, outcome.clone());
@@ -138,7 +254,7 @@ impl Runner {
 
     /// Makes the thread, starts the turn and remembers which run it is: the turn and the number to follow it from.
     fn start(&self, launch: &Launch, stop: &AtomicBool) -> Result<(String, u64), AgentError> {
-        let thread = AgentThread { thread_id: launch.thread_id.clone(), instance_id: launch.instance_id.clone(), model: launch.model.clone() };
+        let thread = AgentThread { thread_id: launch.thread_id.clone(), instance_id: launch.instance_id.clone(), model: launch.model.clone(), worktree: launch.worktree.clone() };
         let after = self.agent.ensure_thread(&thread)?;
         let turn = self.agent.start_turn(&AgentTurn {
             thread_id: launch.thread_id.clone(),
@@ -148,6 +264,7 @@ impl Runner {
             runtime_mode: launch.runtime_mode.clone(),
             interaction_mode: launch.interaction_mode.clone(),
             attachments: launch.attachments.clone(),
+            worktree: launch.worktree.clone(),
         })?;
         self.remember(&turn_key(&launch.thread_id, &turn), &launch.run_id);
         self.remember(&run_key(&launch.run_id), &turn);
@@ -163,6 +280,10 @@ impl Runner {
     fn run_of(&self, thread: &str, turn: &str) -> Option<String> {
         if let Some(run) = self.recall(&turn_key(thread, turn)) {
             return Some(run);
+        }
+        // A queued run's turn has its id
+        if self.engine.knows_run(thread, turn) {
+            return Some(turn.to_string());
         }
         let run = self.engine.active_run(thread).filter(|run| self.recall(&run_key(run)).is_none())?;
         self.remember(&turn_key(thread, turn), &run);

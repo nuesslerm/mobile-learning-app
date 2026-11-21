@@ -1,0 +1,27 @@
+{
+  "method": "sourceControl.starred",
+  "exchanges": [
+    {
+      "name": "starring is GitHub's, so a gitlab repository is refused before a program starts",
+      "request": {
+        "id": 1,
+        "method": "sourceControl.starred",
+        "params": {
+          "provider": "gitlab",
+          "repo": "grp/proj",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "hosted_repo_starred is GitHub's: `provider` must be `github`"
+        }
+      },
+      "actions": [
+        "hosted_repo_starred"
+      ]
+    }
+  ]
+}

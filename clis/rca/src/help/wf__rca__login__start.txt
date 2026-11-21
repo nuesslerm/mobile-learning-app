@@ -1,0 +1,12 @@
+Usage: wf rca login start [--method <name>] <provider>
+
+Starts the provider's own login (claude, codex or opencode: claudeAgent, codex, opencode)
+at the workspace host and prints {ok, result: {auth, status, url, code}} once its prompt
+is printed. Open the url, enter the code (or `respond` with the pasted code), then
+`complete <auth>`. The service secret (CHAT_AGENT_API_SECRET) mints a bearer for the call
+and revokes it after; RCA_AGENT_BEARER reuses one. Exit 0, 1 on a refusal ({ok: false,
+error, code, next}), 2 on a malformed line.
+
+Options:
+  --method <name>  device_code or paste, when the CLI offers both
+  -h, --help       display help for command

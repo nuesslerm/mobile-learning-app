@@ -26,6 +26,7 @@ fn recorded(agent: &dyn AgentApi, op: &str, fp: Option<&str>) -> Result<Option<V
 }
 
 pub(crate) fn replay(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    text(params, "agent").ok_or_else(|| Failure::invalid("Unknown TUI agent"))?;
     let op = text(params, "operationId").ok_or_else(|| Failure::invalid("Malformed launch operation id"))?;
     recorded(agent, op, Some(&fingerprint(params)))?.ok_or_else(|| Failure::new(RUNTIME_ERROR, "agent_session_operation_unknown"))
 }

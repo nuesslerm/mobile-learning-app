@@ -49,9 +49,7 @@ fn main() {
         std::thread::sleep(Duration::from_millis(rule.sleep_ms));
     }
     if rule.hang {
-        loop {
-            std::thread::sleep(Duration::from_secs(3600));
-        }
+        exec_testkit::hang_until_orphaned();
     }
     std::process::exit(rule.exit_code);
 }

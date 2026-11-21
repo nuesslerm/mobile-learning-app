@@ -23,6 +23,7 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
       "ProblemEditorDiffToggle",
@@ -36,6 +37,8 @@
       "ProblemEditorTextEditStartButton",
       "ProblemEditorVoiceStartButton",
       "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
       "ProblemEditorTestInput",
       "ProblemPlanTab",
       "ProblemPlanSteps",
@@ -66,13 +69,12 @@
       "EditorAction-Redo",
       "EditorAction-Copy",
       "EditorAction-Paste",
-      "EditorAction-Rename",
       "EditorAction-Done"
     ],
-    "text": "Plan\nCode\nPython\nDiff\nFormat\nRun Local\nRun\nReset\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nRename\nDone"
+    "text": "Plan\nCode\nPython\nDiff\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nDone"
   },
   "timings": {
-    "render_ms": 249
+    "render_ms": 259
   },
   "name": "voiceeditflow/final-given-the-problem-editor-with-an-injected-voice-dea925.light",
   "image": {

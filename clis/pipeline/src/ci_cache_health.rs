@@ -26,6 +26,8 @@ pub(crate) struct Finding {
 pub(crate) struct Health {
     pub findings: Vec<Finding>,
     pub notes: Vec<String>,
+    /// Why the shared build cache was off, with the jobs it was off in.
+    pub shim: BTreeMap<String, BTreeSet<String>>,
     pub stages: Vec<(String, String, u64, u64)>,
     pub events: usize,
     pub unreadable: usize,
@@ -80,7 +82,7 @@ pub(crate) fn assess(logs: &[(String, String)], gate: bool) -> Health {
     let mut flag = |kind: &'static str, job: &str, detail: String| {
         found.entry((kind, job.to_string())).or_insert(detail);
     };
-    let mut notes = BTreeSet::new();
+    let mut shim: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     let mut stages: BTreeMap<(String, String), (u64, u64)> = BTreeMap::new();
     // The workspace root's tasks hash every npm package under the name the runner's node_modules hoists it by, so a gate on another install
     // never seeds the hash CI computes; they are no evidence that the gate's seeding failed.
@@ -147,7 +149,7 @@ pub(crate) fn assess(logs: &[(String, String)], gate: bool) -> Health {
                     flag("drift", job, format!("{} of {} task(s) hashed differently ({})", get(&f, "drifted"), get(&f, "compared"), get(&f, "causes")));
                 }
                 "cache.shim.disabled" => {
-                    notes.insert(format!("The shared build cache was disabled in {job}: {}; every layer ran cold.", get(&f, "reason")));
+                    shim.entry(get(&f, "reason").to_string()).or_default().insert(job.clone());
                 }
                 _ => {}
             }
@@ -160,13 +162,55 @@ pub(crate) fn assess(logs: &[(String, String)], gate: bool) -> Health {
         }
     }
     health.findings = found.into_iter().map(|((kind, job), detail)| Finding { kind, job, detail }).collect();
-    health.notes = notes.into_iter().collect();
+    health.shim = shim;
     health
+}
+
+/// A detail with its numbers masked, so findings that differ only in a count are one kind of problem.
+fn masked(detail: &str) -> String {
+    let mut out = String::new();
+    let mut digits = false;
+    for c in detail.chars() {
+        if c.is_ascii_digit() {
+            if !digits {
+                out.push('#');
+            }
+            digits = true;
+        } else {
+            digits = false;
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// One row per kind with the number of jobs it hit; a job whose detail differs from the others' is the exception and keeps its own row.
+fn problem_rows(findings: &[Finding]) -> (usize, String) {
+    let mut kinds: BTreeMap<&str, Vec<&Finding>> = BTreeMap::new();
+    for f in findings {
+        kinds.entry(f.kind).or_default().push(f);
+    }
+    let (mut rows, mut out) = (0, String::new());
+    for (kind, group) in kinds {
+        let mut by_detail: BTreeMap<String, Vec<&Finding>> = BTreeMap::new();
+        for f in &group {
+            by_detail.entry(masked(&f.detail)).or_default().push(f);
+        }
+        let modal = by_detail.iter().max_by_key(|(_, v)| v.len()).map(|(k, _)| k.clone()).unwrap_or_default();
+        for (key, items) in &by_detail {
+            let (first, n) = (items[0], items.len());
+            let who = if n == 1 { cell(&first.job) } else { format!("{n} jobs") };
+            let who = if *key != modal && group.len() > n { format!("{} (the exception)", cell(&first.job)) } else { who };
+            out.push_str(&format!("| {kind} | {who} | {} |\n", cell(&first.detail)));
+            rows += 1;
+        }
+    }
+    (rows, out)
 }
 
 /// The comment's section; nothing when the logs held no cache event and nothing is wrong.
 pub(crate) fn section(health: &Health) -> String {
-    if health.events == 0 && health.findings.is_empty() && health.notes.is_empty() {
+    if health.events == 0 && health.findings.is_empty() && health.notes.is_empty() && health.shim.is_empty() {
         return String::new();
     }
     let mut out = String::from("\n### 🗄️ Cache health\n\n");
@@ -175,15 +219,22 @@ pub(crate) fn section(health: &Health) -> String {
         let total: u64 = health.stages.iter().map(|s| s.3).sum();
         out.push_str(&format!("🟢 Healthy: no degraded layer, no refused write, no lost entry{}.\n", if total > 0 { format!("; Nx replayed {replayed} of {total} task(s)") } else { String::new() }));
     } else {
-        out.push_str(&format!("🔴 **{} problem(s)**, the report job turns red\n\n| Problem | Job | Detail |\n|---|---|---|\n", health.findings.len()));
-        for f in &health.findings {
-            out.push_str(&format!("| {} | {} | {} |\n", f.kind, cell(&f.job), cell(&f.detail)));
-        }
+        let (rows, table) = problem_rows(&health.findings);
+        out.push_str(&format!("🔴 **{rows} problem(s)**, the report job turns red\n\n| Problem | Job | Detail |\n|---|---|---|\n{table}"));
+    }
+    for (reason, jobs) in &health.shim {
+        let n = jobs.len();
+        out.push_str(&format!("\n*The shared build cache is off (WF_BLOB_CACHE=off) in {n} job{}: {}; its layers ran cold.*\n", if n == 1 { "" } else { "s" }, cell(reason)));
     }
     for note in &health.notes {
         out.push_str(&format!("\n⚠️ {}\n", cell(note)));
     }
     out
+}
+
+/// Whether the stages of this run were seeded by the push gate, so CI should replay them: a push to dev, unless `WF_CI_PUSH_GATE=off` (the pre-push hook runs no stage).
+pub(crate) fn seeded(env: &Env) -> bool {
+    is_push_to_dev(env) && var("WF_CI_PUSH_GATE").is_none_or(|v| v != "off")
 }
 
 pub(crate) fn is_push_to_dev(env: &Env) -> bool {
@@ -198,10 +249,11 @@ pub fn run(args: &[String]) -> Option<i32> {
         let judged: Vec<&Value> = jobs.iter().filter(|j| matches!(j["conclusion"].as_str(), Some("success" | "failure" | "timed_out")) && !is_meta(j)).collect();
         let logs: Vec<(String, String)> = judged.iter().filter_map(|j| Some((text(j, "name"), cached_log(&env, j).ok()?))).collect();
         let gate = is_push_to_dev(&env);
-        // `WF_CI_PUSH_GATE=off`: the repo's pre-push hook runs no stage (lefthook.yml), so nothing was seeded for CI to replay
-        let seeded = gate && var("WF_CI_PUSH_GATE").is_none_or(|v| v != "off");
-        let mut health = assess(&logs, seeded);
+        let mut health = assess(&logs, seeded(&env));
         health.unreadable = judged.len() - logs.len();
+        for (reason, jobs) in std::mem::take(&mut health.shim) {
+            health.notes.push(format!("The shared build cache was disabled in {} job(s): {reason}; every layer ran cold.", jobs.len()));
+        }
         if health.unreadable > 0 {
             health.notes.push(format!("{} of {} job log(s) could not be read; their cache events are not judged.", health.unreadable, judged.len()));
         }

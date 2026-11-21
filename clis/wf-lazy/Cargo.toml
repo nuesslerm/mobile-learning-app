@@ -1,0 +1,16 @@
+[package]
+name = "wf-lazy"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "A launcher that builds the thin binary of a `wf` verb on first use instead of the whole router (docs/plans/wf-lazy-build/plan.md)"
+
+[[bin]]
+name = "wf-lazy"
+path = "src/main.rs"
+
+[dev-dependencies]
+tempfile = "3"
+
+[package.metadata.arch]
+type = "cli-crate"

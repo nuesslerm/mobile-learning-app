@@ -2,7 +2,7 @@
 //! assistant text, reasoning, tool and approval activities, plans. State lives on the thread snapshot handed in;
 //! nothing here does IO.
 
-use super::types::*;
+use super::types::{Activity, Body, Command, ProposedPlan, Session, Thread};
 use serde_json::{json, Map, Value};
 
 #[derive(Debug, Clone)]

@@ -1,10 +1,14 @@
 //! Orca's workspace and file rows over rca: `files.*` (list, search, read, preview, chunk, directory, stat, create), `folderWorkspace.list` and
 //! `mobileRelay.projectSections`. An Orca repo or worktree is an rca workspace (`repo.list`), a file is read through the executor of that
-//! workspace (`file.*`), and nothing here touches a disk. The rows that name a desktop editor tab are not offered.
+//! workspace (`file.*`), and nothing here touches a disk. The rows that open an editor, diff or markdown tab write the server-kept layout (`layout`).
+mod activity;
 mod agent;
+mod artifacts;
 mod catalog;
 mod files;
+pub mod layout;
 mod repos;
+mod ssh;
 mod worktrees;
 pub mod natural;
 mod target;
@@ -12,10 +16,16 @@ mod target;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 
+pub use artifacts::{Grants, GRANT_TTL};
 pub use files::{image_mime, previewable_limit};
 pub use target::{resolve, targets, Target};
+pub use worktrees::checkout_of;
+/// `file.read` of the agent API, for a mapping crate that reads a whole small file of a workspace.
+pub use agent_api_workspace::FILE_READ;
+/// `file.stat` and `file.readChunk` of the agent API, for a mapping crate that reads a working file of any size in pieces.
+pub use agent_api_workspace::edit::{FILE_READ_CHUNK, FILE_STAT};
 
-use agent_api_workspace::edit::{FILE_CREATE, FILE_READ_CHUNK, FILE_SEARCH, FILE_STAT};
+use agent_api_workspace::edit::{ARTIFACT_READ, ARTIFACT_STAT, ARTIFACT_WRITE, FILE_CREATE, FILE_SEARCH, FILE_WRITE};
 use agent_api_proto::Method as AgentMethod;
 use agent_api_git::{FETCH, REFS};
 use agent_api_state::SET;
@@ -32,11 +42,19 @@ pub const FILES_READ_PREVIEW: &str = "files.readPreview";
 pub const FILES_READ_CHUNK: &str = "files.readChunk";
 pub const FILES_READ_DIR: &str = "files.readDir";
 pub const FILES_STAT: &str = "files.stat";
+pub const FILES_PATHS_EXIST: &str = "files.pathsExist";
 pub const FILES_CREATE_FILE: &str = "files.createFile";
+pub const FILES_RESOLVE_TERMINAL_PATH: &str = "files.resolveTerminalPath";
+pub const FILES_READ_TERMINAL_ARTIFACT: &str = "files.readTerminalArtifact";
+pub const FILES_READ_TERMINAL_ARTIFACT_PREVIEW: &str = "files.readTerminalArtifactPreview";
+pub const FILES_WRITE_TERMINAL_ARTIFACT: &str = "files.writeTerminalArtifact";
 pub const FILES_OPEN: &str = "files.open";
 pub const FILES_OPEN_DIFF: &str = "files.openDiff";
 pub const MARKDOWN_READ_TAB: &str = "markdown.readTab";
 pub const MARKDOWN_SAVE_TAB: &str = "markdown.saveTab";
+pub const SSH_CONNECT: &str = "ssh.connect";
+pub const SSH_GET_STATE: &str = "ssh.getState";
+pub const SSH_LIST_TARGET_SUMMARIES: &str = "ssh.listTargetSummaries";
 pub const FOLDER_WORKSPACE_LIST: &str = "folderWorkspace.list";
 pub const PROJECT_SECTIONS: &str = "mobileRelay.projectSections";
 pub const REPO_LIST_ROW: &str = "repo.list";
@@ -56,9 +74,17 @@ pub const WORKTREE_RM: &str = "worktree.rm";
 pub const WORKTREE_SET: &str = "worktree.set";
 pub const WORKTREE_LIST_RETIRED_NAMES: &str = "worktree.listRetiredNames";
 pub const WORKTREE_PREFETCH_CREATE_BASE: &str = "worktree.prefetchCreateBase";
+pub const WORKTREE_PS: &str = "worktree.ps";
+pub const WORKTREE_SLEEP: &str = "worktree.sleep";
+pub const WORKTREE_ACTIVATE: &str = "worktree.activate";
+pub const AGENT_ACTIVITY_SET_READ: &str = "agentActivity.setRead";
+pub const AGENT_ACTIVITY_CLEAR: &str = "agentActivity.clear";
+pub const NOTIFICATIONS_GET_MISSED_SINCE: &str = "notifications.getMissedSince";
+pub const NOTIFICATIONS_SUBSCRIBE: &str = "notifications.subscribe";
+pub const NOTIFICATIONS_UNSUBSCRIBE: &str = "notifications.unsubscribe";
 
 /// The agent methods this crate sends: its calls read this list, and a flow test holds it to the methods really sent.
-pub const USES: &[AgentMethod] = &[REPO_LIST, FILE_LIST, FILE_READ_CHUNK, FILE_STAT, FILE_CREATE, FILE_SEARCH, SET, REFS, FETCH, WORKTREE_CREATE, WORKTREE_LIST, WORKTREE_REMOVE];
+pub const USES: &[AgentMethod] = &[REPO_LIST, FILE_LIST, FILE_READ_CHUNK, FILE_STAT, ARTIFACT_STAT, ARTIFACT_READ, ARTIFACT_WRITE, FILE_CREATE, FILE_SEARCH, FILE_WRITE, SET, REFS, FETCH, WORKTREE_CREATE, WORKTREE_LIST, WORKTREE_REMOVE, agent_api_service::notifications::SINCE, agent_api_service::panes::LIST, agent_api_service::panes::MARK, agent_api_terminal::LIST, agent_api_terminal::SLEEP, agent_api_terminal::WAKE, agent_api_terminal::SLEEPING, agent_api_agent::THREAD_LIST, agent_api_agent::lifecycle::THREAD_FORCE_STOP];
 
 const METHODS: &[Method] = &[
     Method { name: FILES_LIST, kind: Kind::Unary },
@@ -68,7 +94,19 @@ const METHODS: &[Method] = &[
     Method { name: FILES_READ_CHUNK, kind: Kind::Unary },
     Method { name: FILES_READ_DIR, kind: Kind::Unary },
     Method { name: FILES_STAT, kind: Kind::Unary },
+    Method { name: FILES_PATHS_EXIST, kind: Kind::Unary },
     Method { name: FILES_CREATE_FILE, kind: Kind::Unary },
+    Method { name: FILES_RESOLVE_TERMINAL_PATH, kind: Kind::Unary },
+    Method { name: FILES_READ_TERMINAL_ARTIFACT, kind: Kind::Unary },
+    Method { name: FILES_READ_TERMINAL_ARTIFACT_PREVIEW, kind: Kind::Unary },
+    Method { name: FILES_WRITE_TERMINAL_ARTIFACT, kind: Kind::Unary },
+    Method { name: FILES_OPEN, kind: Kind::Unary },
+    Method { name: FILES_OPEN_DIFF, kind: Kind::Unary },
+    Method { name: MARKDOWN_READ_TAB, kind: Kind::Unary },
+    Method { name: MARKDOWN_SAVE_TAB, kind: Kind::Unary },
+    Method { name: SSH_CONNECT, kind: Kind::Unary },
+    Method { name: SSH_GET_STATE, kind: Kind::Unary },
+    Method { name: SSH_LIST_TARGET_SUMMARIES, kind: Kind::Unary },
     Method { name: FOLDER_WORKSPACE_LIST, kind: Kind::Unary },
     Method { name: PROJECT_SECTIONS, kind: Kind::Unary },
     Method { name: REPO_LIST_ROW, kind: Kind::Unary },
@@ -88,17 +126,30 @@ const METHODS: &[Method] = &[
     Method { name: WORKTREE_SET, kind: Kind::Unary },
     Method { name: WORKTREE_LIST_RETIRED_NAMES, kind: Kind::Unary },
     Method { name: WORKTREE_PREFETCH_CREATE_BASE, kind: Kind::Unary },
+    Method { name: WORKTREE_PS, kind: Kind::Unary },
+    Method { name: WORKTREE_SLEEP, kind: Kind::Unary },
+    Method { name: WORKTREE_ACTIVATE, kind: Kind::Unary },
+    Method { name: AGENT_ACTIVITY_SET_READ, kind: Kind::Unary },
+    Method { name: AGENT_ACTIVITY_CLEAR, kind: Kind::Unary },
+    Method { name: NOTIFICATIONS_GET_MISSED_SINCE, kind: Kind::Unary },
+    Method { name: NOTIFICATIONS_SUBSCRIBE, kind: Kind::Streaming },
+    Method { name: NOTIFICATIONS_UNSUBSCRIBE, kind: Kind::Unary },
 ];
 
 /// Each reason equals the one in `docs/plans/rca-parity/coverage/orca-decisions.json`; a flow test compares them.
-pub const NOT_OFFERED: &[NotOffered] = &[
-    NotOffered { name: FILES_OPEN, reason: "proposed default awaiting owner confirmation: it opens an editor tab in the desktop's own window and this host has no desktop; the phone reads a file with files.read and files.readPreview", decided_by: "M6" },
-    NotOffered { name: FILES_OPEN_DIFF, reason: "proposed default awaiting owner confirmation: it opens a diff tab in the desktop's own window and this host has no desktop", decided_by: "M6" },
-    NotOffered { name: MARKDOWN_READ_TAB, reason: "proposed default awaiting owner confirmation: it reads a markdown editor tab of the desktop by its tab id and this host has no tab; the phone's own fallback reads the file with files.read", decided_by: "M6" },
-    NotOffered { name: MARKDOWN_SAVE_TAB, reason: "proposed default awaiting owner confirmation: it saves a markdown editor tab of the desktop by its tab id and this host has no tab to save", decided_by: "M6" },
-];
+pub const NOT_OFFERED: &[NotOffered] = &[];
 
-pub struct WorkspaceArea;
+/// The grants of the terminal artifacts this host made for its phones.
+#[derive(Default)]
+pub struct WorkspaceArea {
+    grants: Grants,
+}
+
+impl WorkspaceArea {
+    pub fn with_grants(grants: Grants) -> WorkspaceArea {
+        WorkspaceArea { grants }
+    }
+}
 
 impl Area for WorkspaceArea {
     fn name(&self) -> &'static str {
@@ -123,10 +174,22 @@ impl Area for WorkspaceArea {
             FILES_READ_CHUNK => files::read_chunk(agent, params),
             FILES_READ_DIR => files::read_dir(agent, params),
             FILES_STAT => files::stat(agent, params),
+            FILES_PATHS_EXIST => files::paths_exist(agent, params),
             FILES_CREATE_FILE => files::create_file(agent, params),
+            FILES_RESOLVE_TERMINAL_PATH => artifacts::resolve_path(&self.grants, agent, ctx.device_id, params),
+            FILES_READ_TERMINAL_ARTIFACT => artifacts::read(&self.grants, agent, ctx.device_id, params),
+            FILES_READ_TERMINAL_ARTIFACT_PREVIEW => artifacts::read_preview(&self.grants, agent, ctx.device_id, params),
+            FILES_WRITE_TERMINAL_ARTIFACT => artifacts::write(&self.grants, agent, ctx.device_id, params),
+            FILES_OPEN => layout::open_file(agent, params),
+            FILES_OPEN_DIFF => layout::open_diff(agent, params),
+            MARKDOWN_READ_TAB => layout::read_tab(agent, params),
+            MARKDOWN_SAVE_TAB => layout::save_tab(agent, params),
+            SSH_CONNECT => ssh::connect(agent, params),
+            SSH_GET_STATE => ssh::get_state(agent, params),
+            SSH_LIST_TARGET_SUMMARIES => ssh::list_summaries(agent),
             FOLDER_WORKSPACE_LIST => catalog::folder_workspaces(agent),
-            PROJECT_SECTIONS => catalog::project_sections(agent),
-            REPO_LIST_ROW => repos::list(agent),
+            PROJECT_SECTIONS => Ok(catalog::project_sections()),
+            REPO_LIST_ROW => repos::list(agent, params),
             REPO_UPDATE => repos::update(agent, params),
             REPO_HOOKS => repos::hooks(agent, params),
             REPO_SPARSE_PRESETS => repos::sparse_presets(agent, params),
@@ -143,6 +206,20 @@ impl Area for WorkspaceArea {
             WORKTREE_SET => worktrees::set(agent, params),
             WORKTREE_LIST_RETIRED_NAMES => worktrees::retired_names(agent, params),
             WORKTREE_PREFETCH_CREATE_BASE => worktrees::prefetch_create_base(agent, params),
+            WORKTREE_PS => activity::ps(agent, &ctx.host.platform, params),
+            WORKTREE_SLEEP => activity::sleep(agent, params),
+            WORKTREE_ACTIVATE => activity::activate(agent, params),
+            AGENT_ACTIVITY_SET_READ => activity::set_read(agent, params),
+            AGENT_ACTIVITY_CLEAR => activity::clear(agent, params),
+            NOTIFICATIONS_GET_MISSED_SINCE => activity::missed_since(agent, params),
+            NOTIFICATIONS_UNSUBSCRIBE => activity::unsubscribe(ctx, params),
+            other => Err(Failure::new(wire::METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
+        }
+    }
+
+    fn open(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Box<dyn orca_core::Subscription>, Failure> {
+        match method {
+            NOTIFICATIONS_SUBSCRIBE => activity::open_feed(ctx, params),
             other => Err(Failure::new(wire::METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
         }
     }

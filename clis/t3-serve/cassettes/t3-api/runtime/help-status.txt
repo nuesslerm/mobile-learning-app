@@ -1,0 +1,23 @@
+DESCRIPTION
+  Show service setup and remote access settings.
+
+USAGE
+  t3 status [flags]
+
+FLAGS
+  --base-dir string    Explicit T3 Code data directory; runtime state is stored under userdata (equivalent to T3CODE_HOME).
+  --json               Print the settings as JSON. Does not test connections.
+
+GLOBAL FLAGS
+  --help, -h                                                          Show help information
+  --version, -v                                                       Show version information
+  --wizard                                                            Start wizard mode for a command
+  --completions <bash|zsh|fish|powershell|sh|pwsh>                    Print shell completion script (choices: bash, zsh, fish, powershell, sh, pwsh)
+  --log-level <all|trace|debug|info|warn|warning|error|fatal|none>    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
+
+EXAMPLES
+  # Show the settings.
+  t3 status
+
+  # Print them for scripts and agents.
+  t3 status --json
