@@ -1,4 +1,4 @@
-import { createEditorClient, toRemoteEngine } from '@lib/code-editor-api';
+import { createEditorClient, toRemoteEngine, type Language } from '@lib/code-editor-api';
 import { Logger } from '@lib/logging';
 import { View } from '@lib/tamagui-design-system';
 import {
@@ -66,6 +66,8 @@ type Props = {
   onHydratedChange?: (hydrated: boolean) => void;
   onFocusChange?: (focused: boolean) => void;
   tabSize?: number;
+  /** The language the editor highlights and indents in; changing it switches the live editor. */
+  language?: Language;
   testID?: string;
 };
 
@@ -86,6 +88,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       onHydratedChange,
       onFocusChange,
       tabSize = 4,
+      language = 'python',
       testID,
     },
     ref
@@ -115,6 +118,11 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     const lastWebViewTextRef = useRef(value);
     // Tracks whether we've sent the 'init' message to the editor.
     const isInitializedRef = useRef(false);
+    // the language the page was last told: `init` carries it, a later change is posted as an update
+    const languageRef = useRef(language);
+    languageRef.current = language;
+    const appliedLanguageRef = useRef(language);
+    const initLanguageRef = useRef(language);
 
     const paletteId = useCodeEditorSettingsStore((s) => s.paletteId);
     const fontSize = useCodeEditorSettingsStore((s) => s.fontSize);
@@ -338,7 +346,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         fontSize,
         lineHeight,
         wordWrap,
-        language: 'python',
+        language,
         cursorColor: palette.cursor,
         selectionColor: palette.selection,
         backgroundColor: palette.background,
@@ -357,6 +365,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         tabSize,
         value,
         wordWrap,
+        language,
       ]
     );
 
@@ -373,6 +382,8 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       }
 
       isInitializedRef.current = true;
+      appliedLanguageRef.current = editorConfig.language as Language;
+      initLanguageRef.current = editorConfig.language as Language;
       updateHydrated(false);
       sendMessage({ type: 'init', config: editorConfig });
       if (!editorConfig.noAutoFocus) {
@@ -415,6 +426,14 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       gutterColor,
       borderColor,
     ]);
+
+    // A language switch goes on the wire before the text write the screen makes for it: requests are answered in order, so the
+    // page changes grammar first and the new starter lands under it.
+    useEffect(() => {
+      if (!isInitializedRef.current || appliedLanguageRef.current === language) return;
+      appliedLanguageRef.current = language;
+      sendMessage({ type: 'updateConfig', config: { language } });
+    }, [language, sendMessage]);
 
     // When the store changes `value` from outside (e.g. replaceAll), push the
     // new text to CM6. Skip if CM6 was the source of the change to avoid loops.
@@ -480,6 +499,11 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
                 valueLength: valueRef.current.length,
               });
               void writeDocument({ next: () => ({ text: valueRef.current }), label: 'react.reconcile' });
+            }
+            // a switch made between init and hydration was dropped: the page was not ready for it
+            if (languageRef.current !== initLanguageRef.current) {
+              initLanguageRef.current = languageRef.current;
+              sendMessage({ type: 'updateConfig', config: { language: languageRef.current } });
             }
             if (queuedSelectionRef.current != null) {
               const selection = queuedSelectionRef.current;

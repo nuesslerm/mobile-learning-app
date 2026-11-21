@@ -213,6 +213,70 @@ describe('ProblemEditorScreen flow (language toggle)', () => {
     await waitFor(() => {
       expect(editor.text()).toContain('twoSum(nums, target)');
     });
+    await waitFor(async () => {
+      expect((await editor.config()).language).toBe('javascript');
+    });
+  });
+
+  async function switchTo(label: 'JavaScript' | 'Python') {
+    await userEvent.click(screen.getByTestId('ProblemEditorLanguagePicker-Trigger'));
+    await waitFor(() => {
+      expect(screen.getByTestId(`ProblemEditorLanguagePicker-${label}`)).toBeTruthy();
+    });
+    await userEvent.click(screen.getByTestId(`ProblemEditorLanguagePicker-${label}`));
+    await waitFor(() => {
+      expect(screen.getByTestId('ProblemEditorLanguagePicker-Trigger').textContent).toBe(label);
+    });
+  }
+
+  it('given JavaScript on screen, when the user switches back to Python, then the editor is on python with the Python starter', async () => {
+    const { gateway } = fakeGateway();
+    const session = await renderEditor(gateway);
+    const editor = await session.editor();
+    await switchTo('JavaScript');
+    await waitFor(async () => {
+      expect((await editor.config()).language).toBe('javascript');
+    });
+
+    await switchTo('Python');
+
+    await waitFor(() => {
+      expect(editor.text()).toContain('def twoSum');
+    });
+    expect((await editor.config()).language).toBe('python');
+  });
+
+  it('given JavaScript on screen and the caret after an opening brace, when Enter is pressed, then the next line is indented (the page is on the JavaScript grammar)', async () => {
+    const { gateway } = fakeGateway();
+    const session = await renderEditor(gateway);
+    const editor = await session.editor();
+    await switchTo('JavaScript');
+    await waitFor(async () => {
+      expect((await editor.config()).language).toBe('javascript');
+    });
+    await editor.setText('function f() {');
+    await editor.select(14);
+
+    await editor.press('Enter');
+
+    await waitFor(() => {
+      expect(editor.text()).toBe('function f() {\n    ');
+    });
+  });
+
+  it('given the language switched as soon as the screen renders, whenever the editor hydrates, then the editor ends on the new language', async () => {
+    const { gateway } = fakeGateway();
+    const session = await renderEditor(gateway);
+    await switchTo('JavaScript');
+
+    const editor = await session.editor();
+
+    await waitFor(async () => {
+      expect((await editor.config()).language).toBe('javascript');
+    });
+    await waitFor(() => {
+      expect(editor.text()).toContain('twoSum(nums, target)');
+    });
   });
 });
 

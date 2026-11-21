@@ -53,6 +53,7 @@ import {
   type EditorInputHandle,
 } from '../code-editor/core/EditorInput';
 import { applyVoiceEdit } from '../code-editor/core/applyVoiceEdit';
+import { toEditorLanguage } from '../code-editor/core/languageProfile';
 import { type Selection } from '../code-editor/core/types';
 import { EditorHelperRails } from '../code-editor/helperbars/EditorHelperRails';
 import { ProblemCatalog } from '../domain/problemCatalog';
@@ -742,6 +743,7 @@ export function ProblemEditorScreen({
               <EditorInput
                 ref={editorRef}
                 testID="ProblemEditorInput"
+                language={toEditorLanguage(lang) ?? 'python'}
                 value={editorText}
                 onChangeText={handleEditorChange}
                 onSelectionChange={setEditorSelection}
