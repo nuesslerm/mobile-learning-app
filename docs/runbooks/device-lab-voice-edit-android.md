@@ -12,7 +12,7 @@ The native twin of [`device-lab-voice-edit.md`](device-lab-voice-edit.md) (turn 
 [`e2e/voice-edit.lua`](../../e2e/voice-edit.lua)). Result:
 `docs/runbooks/.results/device-lab-voice-edit-android.json` (`platform: android-redroid`).
 
-The CI run of the script is stubbed (its three backend calls are answered by network stubs, issue 86, E3); this runbook is the live check, with `--env live=1`.
+The browser run of the script is stubbed (its three backend calls are answered by network stubs, issue 86, E3); the Android run is not yet (its stub server answered all three requests, but two hosted units failed on a typed blur and a missing plan request), so it uses the live backend like this runbook.
 
 ## Rules: the human input model
 

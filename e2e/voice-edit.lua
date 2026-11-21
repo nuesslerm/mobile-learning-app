@@ -52,8 +52,9 @@ local function base64url(s)
   return table.concat(out)
 end
 local use_agent = env.agent == "1"
-local stubbed = env.live ~= "1"
-assert_true(not (use_agent and stubbed), "agent=1 needs live=1: a canned plan cannot answer a free-form edit")
+-- Android keeps the live backend: its stub server answered all three requests but two hosted units failed (a typed blur over the bridge, a plan that never arrived), see issue 86 E3
+local stubbed = env.live ~= "1" and not android
+assert_true(not (use_agent and env.live ~= "1"), "agent=1 needs live=1: a canned plan cannot answer a free-form edit")
 local function exists(path) local f = io.open(path, "rb"); if f then f:close() end return f ~= nil end
 -- the sandbox keeps the speech tool in its scratch folder, the VM worker on the shared workspace volume
 local piper = env.piper or (exists(".agents/tmp/voice/tts-venv/bin/piper") and ".agents/tmp/voice/tts-venv/bin/piper" or "/workspace/home/voice/piper")
