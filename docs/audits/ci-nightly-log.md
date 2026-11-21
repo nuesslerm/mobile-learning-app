@@ -63,3 +63,11 @@ One entry per night, appended by the nightly audit session (the "Nightly audit c
 - Earlier fixes checked: none listed in the last 7 days.
 - Tracker: t3 still behind: pinned 0.1.9, latest 0.1.10. Run 44505935412 (2026-11-19 10:28 UTC) failed in "Check the pins" again with `no matching package named rca-core found`: the runner of `track-contracts.yml` cannot resolve the `mla` registry (owner item, see 2026-11-19). Fifth failing run in a row. Nothing landed.
 - Not recorded in inbox issue `#79` (`gh issue` is blocked in this session).
+
+## 2026-11-21
+
+- Verdict: run 44717396742 (scheduled 2026-11-20 10:13 UTC, about 18 h old), `ok: false`, 392 findings, 76 hard (all `should-have-hit`), 316 `replayed-nothing`. The 0 hard findings of 2026-11-20 did not hold: the cache misses are back at the 62 to 76 level. Largest waste: `crate-deploy:cargo-flow` (358 s, 301 s), `@app/remote-chat-agent:test:flow` (198 s). The one clean night is a data point for the cause (a change or a cache generation that night), not traced.
+- Fixes landed: none. `wf ci audit` cannot run here (no `bws`, no ledger credentials).
+- Earlier fixes checked: none listed in the last 7 days.
+- Tracker: t3 pinned 0.1.9, latest 0.1.11 (two releases behind now). Run 44716575119 (2026-11-20 10:07 UTC) failed in "Check the pins" with `no matching package named rca-core found` again: sixth failing run in a row, the `mla` registry is unreachable from the runner (owner item, see 2026-11-19). Nothing landed.
+- Not recorded in inbox issue `#79` (`gh issue` is blocked in this session).
