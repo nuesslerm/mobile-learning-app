@@ -1,6 +1,6 @@
 import { acceptCompletion } from '@codemirror/autocomplete';
 import { isolateHistory, redo, undo } from '@codemirror/commands';
-import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
+import { ensureSyntaxTree, indentUnit, syntaxTree } from '@codemirror/language';
 import { Annotation, EditorSelection, EditorState, StateField, Transaction } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import type { Change, ConfigPatch, DocumentHost, EditorConfig, EditorError, EngineCore, Language, Origin, SelRange, Selection, TreeSnapshot } from '@lib/code-editor-api';
@@ -92,6 +92,22 @@ function blurEditor(editor: EditorView): void {
   (doc.defaultView ?? window).requestAnimationFrame(() => target.blur());
 }
 
+/** The syntax tree of `state` as a snapshot: `ensureSyntaxTree` returns the tree it built, which `syntaxTree` of the same state does not show. */
+function snapshotOfState(state: EditorState, language: Language): TreeSnapshot {
+  let best = syntaxTree(state);
+  return {
+    language,
+    length: state.doc.length,
+    work(upto, ms) {
+      const done = ensureSyntaxTree(state, upto, ms);
+      if (done) best = done;
+      return done !== null;
+    },
+    parsedTo: () => best.length,
+    read: (range, detail) => readSyntaxNode(best, language, range, detail),
+  };
+}
+
 /** The live CodeMirror view as the typed API's document host. */
 export function createCm6Host(deps: Cm6HostDeps): DocumentHost {
   const { view } = deps;
@@ -131,24 +147,10 @@ export function createCm6Host(deps: Cm6HostDeps): DocumentHost {
       host.sync();
       deps.core()?.ingestSelection(selectionOf(editor.state));
     },
-    tree() {
-      // the snapshot is of the state as it is now; `ensureSyntaxTree` returns the tree it built, which `syntaxTree` of the same state does not show
-      const state = view().state;
-      let best = syntaxTree(state);
-      const language = deps.language();
-      const snapshot: TreeSnapshot = {
-        language,
-        length: state.doc.length,
-        work(upto, ms) {
-          const done = ensureSyntaxTree(state, upto, ms);
-          if (done) best = done;
-          return done !== null;
-        },
-        parsedTo: () => best.length,
-        read: (range, detail) => readSyntaxNode(best, language, range, detail),
-      };
-      return snapshot;
-    },
+    tree: () => snapshotOfState(view().state, deps.language()),
+    // a scratch state built the way the page builds its own, so the grammar and its nested config are the live editor's; it is never attached to the view or the revision base
+    treeOf: (text) => snapshotOfState(deps.buildState(text), deps.language()),
+    indentUnit: () => view().state.facet(indentUnit),
     marks(list) {
       view().dispatch({ effects: setMarksEffect.of(list) });
     },

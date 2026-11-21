@@ -1,7 +1,8 @@
 import { closeBrackets } from '@codemirror/autocomplete';
-import { defaultKeymap, history, indentWithTab, undo } from '@codemirror/commands';
+import { defaultKeymap, history, indentWithTab, undo, undoDepth } from '@codemirror/commands';
 import { cpp } from '@codemirror/lang-cpp';
 import { python } from '@codemirror/lang-python';
+import { indentUnit } from '@codemirror/language';
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { classify, createDocumentMirror, createEditorEngine, enclosingBlock, unwrap, type ApplyParams, type CompletionEntry, type EditorEvent, type EngineCore, type EngineOptions, type Language } from '@lib/code-editor-api';
@@ -17,12 +18,12 @@ afterEach(() => {
   for (const view of views.splice(0)) view.destroy();
 });
 
-function mount(doc: string, options: { language?: Language; engine?: Pick<EngineOptions, 'now' | 'yieldToEvents' | 'treeSliceMs'>; completion?: { enabled: boolean; entries: readonly CompletionEntry[] }; brokenListener?: boolean } = {}) {
+function mount(doc: string, options: { language?: Language; engine?: Pick<EngineOptions, 'now' | 'yieldToEvents' | 'treeSliceMs'>; completion?: { enabled: boolean; entries: readonly CompletionEntry[] }; brokenListener?: boolean; indent?: string } = {}) {
   const language = options.language ?? 'python';
   setRevisionBase(0);
   const swallowed: unknown[] = [];
   const completion = options.completion ? completionExtensions({ language, enabled: options.completion.enabled, entries: options.completion.entries, onOpenChange: (open) => core?.ingestCompletion(open) }) : [];
-  const extensions = [language === 'cpp' ? cpp() : python(), history(), closeBrackets(), marksField, revisionField, typingCalls, EditorView.exceptionSink.of((error) => swallowed.push(error)), ...(options.brokenListener === false ? [] : [EditorView.updateListener.of(() => { throw new Error('the listener broke'); })]), completion, keymap.of([...defaultKeymap, indentWithTab])];
+  const extensions = [language === 'cpp' ? cpp() : python(), history(), closeBrackets(), ...(options.indent === undefined ? [] : [indentUnit.of(options.indent)]), marksField, revisionField, typingCalls, EditorView.exceptionSink.of((error) => swallowed.push(error)), ...(options.brokenListener === false ? [] : [EditorView.updateListener.of(() => { throw new Error('the listener broke'); })]), completion, keymap.of([...defaultKeymap, indentWithTab])];
   const view = new EditorView({ state: EditorState.create({ doc, extensions }), parent: document.body.appendChild(document.createElement('div')) });
   views.push(view);
   let core: EngineCore | null = null;
@@ -38,7 +39,7 @@ function mount(doc: string, options: { language?: Language; engine?: Pick<Engine
   core = createEditorEngine(host, { ...options.engine, instance: 'host-test', logError: (error) => errors.push(error) });
   const events: EditorEvent[] = [];
   core.listen(['changed'], (event) => events.push(event));
-  return { view, core, events, swallowed, errors };
+  return { view, core, host, events, swallowed, errors };
 }
 
 describe('the CodeMirror host', () => {
@@ -287,6 +288,48 @@ describe('the CodeMirror host answering tree', () => {
 
     expect(JSON.stringify(value.root)).toContain('"error":true');
     expect(enclosingBlock(value, broken, broken.indexOf('return') + 3)?.owner?.type).toBe('FunctionDefinition');
+  });
+});
+
+describe('the CodeMirror host parsing another text', () => {
+  const source = 'def f(xs):\n    for x in xs:\n        print(x)\n    return 1\n';
+  const other = 'class A:\n    def g(self):\n        return 2\n';
+
+  it('given the real host, when treeOf is asked for another text, then the snapshot covers that text and the document, the revision and the undo stack are unchanged', () => {
+    // Given a view with an edit of its own in the undo stack
+    const { view, core, host } = mount(source, { brokenListener: false });
+    view.dispatch({ changes: { from: 0, insert: '# a\n' }, userEvent: 'input.type' });
+    setRevisionBase(7);
+    const before = { text: view.state.doc.toString(), depth: undoDepth(view.state), revision: core.revision() };
+
+    // When another text is parsed through the host
+    const snapshot = host.treeOf?.(other) as NonNullable<ReturnType<NonNullable<typeof host.treeOf>>>;
+    const done = snapshot.work(other.length, 1000);
+    const root = snapshot.read({ from: 0, to: other.length }, 'full');
+
+    // Then the tree is the other text's, and nothing of the view moved
+    expect(done).toBe(true);
+    expect(snapshot).toMatchObject({ language: 'python', length: other.length });
+    expect(root).toMatchObject({ type: 'Script', from: 0, to: other.length });
+    expect(JSON.stringify(root)).toContain('ClassDefinition');
+    expect({ text: view.state.doc.toString(), depth: undoDepth(view.state), revision: core.revision() }).toEqual(before);
+    expect(EditorState.create({ extensions: [revisionField] }).field(revisionField).revision).toBe(7);
+  });
+
+  it('given a view with a two-space indent unit and one without, when the host is asked for it, then it says each', () => {
+    expect(mount(source, { indent: '  ' }).host.indentUnit?.()).toBe('  ');
+    expect(mount(source, { indent: '    ' }).host.indentUnit?.()).toBe('    ');
+  });
+
+  it('given a document with a triple-quoted string, when the statement after it is deleted through the engine, then the string\'s lines are untouched', async () => {
+    const text = 'def f():\n    s = """\n    # inside"""\n    return s\n';
+    const { core, view } = mount(text, { brokenListener: false });
+    const from = text.indexOf('return s');
+
+    const reply = await core.request('apply', { steps: [{ op: 'deleteNode', node: { from, to: from + 8 } }] });
+
+    expect(reply).toMatchObject({ ok: true, revision: 1 });
+    expect(view.state.doc.toString()).toBe('def f():\n    s = """\n    # inside"""\n');
   });
 });
 

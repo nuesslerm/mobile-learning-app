@@ -1,5 +1,5 @@
 import { LANGUAGE_NAMES } from '@lib/code-editor-api';
-import { editorContract, syntaxTreeContract, type MakeSubject } from '@lib/code-editor-api/testing';
+import { editorContract, semanticContract, syntaxTreeContract, type MakeSubject } from '@lib/code-editor-api/testing';
 import { waitFor } from '@lib/flow-test-harness';
 import { vi } from 'vitest';
 
@@ -48,3 +48,4 @@ editorContract('the real CodeMirror bundle in the WebView twin', makeSubject, { 
 
 // one page serves every language: the suite switches it with `configure({language})`, as the screen does
 for (const language of LANGUAGE_NAMES) syntaxTreeContract('the real CodeMirror bundle in the WebView twin', makeSubject, language);
+for (const language of LANGUAGE_NAMES) semanticContract('the real CodeMirror bundle in the WebView twin', makeSubject, language);
