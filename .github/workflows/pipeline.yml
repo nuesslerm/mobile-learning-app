@@ -429,16 +429,16 @@ jobs:
           done
           # a process a test left behind can hold this step's output pipe open, and the runner then waits for it past every timeout with no log: kill the processes whose
           # stdout or stderr is this step's own pipe (never the runner's, which holds the other end) and name them
-          me_out=$(readlink /proc/$$/fd/1 2>/dev/null); me_err=$(readlink /proc/$$/fd/2 2>/dev/null)
+          me_out=$(readlink /proc/$$/fd/1 2>/dev/null || true); me_err=$(readlink /proc/$$/fd/2 2>/dev/null || true)
           holders=()
           for p in /proc/[0-9]*; do
             pid=${p#/proc/}
             [ "$pid" = "$$" ] && continue
             read -r _ _ _ ppid _ < "$p/stat" 2>/dev/null || continue
             [ "$ppid" = "$$" ] && continue
-            o=$(readlink "$p/fd/1" 2>/dev/null); e=$(readlink "$p/fd/2" 2>/dev/null)
+            o=$(readlink "$p/fd/1" 2>/dev/null || true); e=$(readlink "$p/fd/2" 2>/dev/null || true)
             if { [ -n "$me_out" ] && { [ "$o" = "$me_out" ] || [ "$e" = "$me_out" ]; }; } || { [ -n "$me_err" ] && { [ "$o" = "$me_err" ] || [ "$e" = "$me_err" ]; }; }; then
-              cmd=$(tr '\0' ' ' < "$p/cmdline" 2>/dev/null)
+              cmd=$(tr '\0' ' ' < "$p/cmdline" 2>/dev/null || true)
               case "$cmd" in *Runner*|*runsvc*|*provjobd*|*actions-runner*) continue;; esac
               holders+=("$pid")
               echo "::warning title=left behind::pid $pid held this step's output open: $cmd"
