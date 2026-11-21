@@ -100,4 +100,53 @@ describe('the deliberate differences from the backend', () => {
     expect(row?.error).toBe('ZeroDivisionError: division by zero');
     expect(row?.error_at?.line).toBe(3);
   });
+
+  describe('the approx compare mode, which the backend does not have', () => {
+    const answer = (body: string, cases: { x: unknown; expected: unknown; compareMode?: 'exact' | 'approx' }[]): JudgePayload => ({
+      code: `class Solution:\n    def answer(self, x):\n        ${body}\n`,
+      methodName: 'answer',
+      testCases: cases.map(({ x, expected, compareMode }) => ({ inputs: { x }, expected, compareMode })),
+    });
+    const passes = (payload: JudgePayload) => judge.run(payload).results?.map((r) => r.pass);
+
+    it('given a median that returns 2.0 where the case expects 2, when it runs in approx mode, then the row passes', () => {
+      expect(passes(answer('return float(x)', [{ x: 2, expected: 2, compareMode: 'approx' }]))).toEqual([true]);
+    });
+
+    it('given 1.5000001 against 1.5 in approx mode, when it runs, then it passes, and given 1.5001 then it fails', () => {
+      const cases = [{ x: 1.5000001, expected: 1.5, compareMode: 'approx' as const }, { x: 1.5001, expected: 1.5, compareMode: 'approx' as const }];
+      expect(passes(answer('return x', cases))).toEqual([true, false]);
+    });
+
+    it('given lists of floats in approx mode, when they run, then each element is compared within the tolerance and a different length fails', () => {
+      const cases = [
+        { x: [1.0000001, 2.5], expected: [1, 2.5], compareMode: 'approx' as const },
+        { x: [1, 2.5, 3], expected: [1, 2.5], compareMode: 'approx' as const },
+        { x: [1, 2.6], expected: [1, 2.5], compareMode: 'approx' as const },
+      ];
+      expect(passes(answer('return x', cases))).toEqual([true, false, false]);
+    });
+
+    it('given True against 1 in approx mode, when it runs, then it fails because a bool is not a number, and the same for 1 against True', () => {
+      expect(passes(answer('return True', [{ x: 0, expected: 1, compareMode: 'approx' }]))).toEqual([false]);
+      expect(passes(answer('return 1', [{ x: 0, expected: true, compareMode: 'approx' }]))).toEqual([false]);
+      expect(passes(answer('return True', [{ x: 0, expected: true, compareMode: 'approx' }]))).toEqual([true]);
+    });
+
+    it('given None or NaN against a number in approx mode, when it runs, then it fails', () => {
+      expect(passes(answer('return None', [{ x: 0, expected: 1, compareMode: 'approx' }]))).toEqual([false]);
+      expect(passes(answer("return float('nan')", [{ x: 0, expected: 1, compareMode: 'approx' }]))).toEqual([false]);
+      expect(passes(answer('return None', [{ x: 0, expected: null, compareMode: 'approx' }]))).toEqual([true]);
+    });
+
+    it('given 2.0 against 2 in exact mode, when it runs, then it still fails because the backend-parity semantics are unchanged', () => {
+      expect(passes(answer('return float(x)', [{ x: 2, expected: 2 }, { x: 2, expected: 2, compareMode: 'exact' }]))).toEqual([false, false]);
+    });
+
+    it('given an approx case, when the backend’s own script runs it, then it compares exactly and fails where the judge passes', () => {
+      const payload = answer('return float(x)', [{ x: 2, expected: 2, compareMode: 'approx' }]);
+      expect(judge.run(payload).results?.[0]?.pass).toBe(true);
+      expect(judge.runBackend(payload).results?.[0]?.pass).toBe(false);
+    });
+  });
 });

@@ -37,7 +37,7 @@ describe('the catalog the harness runs', () => {
     expect(problems.filter((p) => p.inPlaceParam !== undefined).map((p) => p.id).sort()).toEqual(['reorder-list', 'rotate-image', 'set-matrix-zeroes']);
   });
 
-  it('given the bundled cases, when their compare modes and values are read, then modes are known and no value is a float', () => {
+  it('given the bundled cases, when their compare modes and numbers are read, then every mode is known and a non-integer appears only under approx', () => {
     const floats: string[] = [];
     const walk = (value: unknown, id: string) => {
       if (typeof value === 'number' && !Number.isInteger(value)) floats.push(id);
@@ -46,7 +46,8 @@ describe('the catalog the harness runs', () => {
     };
     for (const problem of withCases) {
       for (const testCase of problem.testCases ?? []) {
-        expect(['exact', 'sorted', 'setOfSorted', undefined]).toContain(testCase.compareMode);
+        expect(['exact', 'sorted', 'setOfSorted', 'approx', undefined]).toContain(testCase.compareMode);
+        if (testCase.compareMode === 'approx') continue;
         walk(testCase.inputs, problem.id);
         walk(testCase.expected, problem.id);
       }

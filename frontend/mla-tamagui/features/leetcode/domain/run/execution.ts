@@ -15,7 +15,7 @@ import { z } from 'zod';
 export const testCaseSchema = z.object({
   inputs: z.record(z.string(), z.unknown()),
   expected: z.unknown(),
-  compareMode: z.enum(['exact', 'sorted', 'setOfSorted']).optional(),
+  compareMode: z.enum(['exact', 'sorted', 'setOfSorted', 'approx']).optional(),
 });
 
 export type TestCase = z.infer<typeof testCaseSchema>;

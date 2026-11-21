@@ -15,6 +15,7 @@ OUTPUT_CAP = 256 * 1024
 MAX_NODES = 1_000_000
 OUTPUT_LIMIT = 4 * 1024 * 1024
 MAX_RECURSION = 4000
+APPROX_TOLERANCE = 1e-5
 
 
 class ListNode:
@@ -132,8 +133,21 @@ def _norm(x):
     return json.dumps(x, sort_keys=True, default=str)
 
 
+def _approx(actual, expected):
+    # bool is an int subclass, so it is told apart first: a bool equals only a bool, and NaN never passes
+    if isinstance(actual, bool) or isinstance(expected, bool):
+        return type(actual) is type(expected) and actual == expected
+    if isinstance(actual, (int, float)) and isinstance(expected, (int, float)):
+        return abs(actual - expected) <= APPROX_TOLERANCE
+    if isinstance(actual, (list, tuple)) and isinstance(expected, (list, tuple)):
+        return len(actual) == len(expected) and all(_approx(a, e) for a, e in zip(actual, expected))
+    return actual == expected
+
+
 def _compare(actual, expected, mode):
     try:
+        if mode == 'approx':
+            return _approx(actual, expected)
         if mode == 'sorted':
             return sorted(actual) == sorted(expected)
         if mode == 'setOfSorted':

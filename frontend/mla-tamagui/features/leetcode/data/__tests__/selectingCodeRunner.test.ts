@@ -40,6 +40,13 @@ describe('createSelectingCodeRunner', () => {
     expect(log).toEqual(['backend']);
   });
 
+  it('Given the backend setting, When a Python run with an approx case is made, Then the device runner answers and the backend is not called', async () => {
+    const { log, selecting } = setup('backend');
+    await selecting.run({ ...params('python3'), testCases: [{ inputs: { x: 1 }, expected: 1.5, compareMode: 'approx' }] });
+    await selecting.run({ ...params('python3'), testCases: [{ inputs: { x: 1 }, expected: 1, compareMode: 'exact' }] });
+    expect(log).toEqual(['device', 'backend']);
+  });
+
   it('Given each setting, When warmUp is called, Then only the device setting warms the device runner', () => {
     const device = setup('device');
     device.selecting.warmUp?.();
