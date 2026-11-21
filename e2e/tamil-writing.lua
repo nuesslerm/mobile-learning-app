@@ -54,6 +54,9 @@ local function warnings_gate(name)
 end
 -- the screen opens by deep link on every platform (owner, 16 Oct); the app may be the one already running
 local function open_route(path, wait_for, timeout) run_flow("open route", function()
+  -- a unit that ended on Enter or Ctrl+End left the display out of touch mode, and a screen that mounts before the next touch takes focus on a control
+  -- lower down and scrolls to it (CI run 44932009867: three lessons opened scrolled): the first act on a phone is a touch, here on the header's empty top edge
+  if android then device:tap_on({point='50%,4.5%'}) end
   -- a reused app may still show this kind of screen from the last unit, and a link to it remounts it a moment later: the
   -- trace then follows the old template (18 Oct: word-uyir-aa drew அம்மா). The app leaves for Settings first.
   if android and device:get_element(wait_for) then
@@ -76,6 +79,8 @@ end) end
 local function lesson(route, first, last)
   device:clear_logs()
   open_route("/tamil/" .. route, {id='TamilPracticeCanvasSurface'}, 240)
+  -- a lesson opens at its top; one that opened scrolled fails here by name, not at the first Next or golden
+  if android then device:assert_visible({id='TamilPracticePosition'}, {timeout=5000}) end
   -- a swipe flings to a different offset each run, so the golden is taken before it
   if android and first == 1 then device:assert_screenshot("tamil-" .. route .. "-open", { ignore = { { 0, 0, SW, math.floor(40 * SW / 540) } } }) end
   -- a later unit starts where a person would after the earlier letters: Next until its first letter is up
