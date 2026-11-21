@@ -5,7 +5,7 @@ paths:
   - "libraries/agent-api/exec-hosted/tests/cassettes/exec-hosted/**"
   - "clis/rca-exec/src/hosted/**"
 opened: 2026-11-04
-last_verified: 2026-11-04
+last_verified: 2026-11-21
 links:
   - "docs/plans/rca-parity/plan.md"
 ---
@@ -19,6 +19,8 @@ output of a run of the real CLI at a pinned version. Three things in particular 
 executor passes (`mr update --reviewer=+a,-b`, `mr create --yes`, `repo create <group>/<name>`, `auth login --web`, `api --input=-`), the text
 `gh auth status` and `glab auth status` print (read by `parse_auth_status`), and the web sign-in prompt (`parse_login_prompt`; GitLab's
 sign-in shows an address and no one-time code).
+
+One slice is recorded since 21 Nov: the user-owned `hosted_project_*` actions (8 interactions of `gh` 2.104.0) are the set `exec-hosted-projects` (`provenance.kind: recorded`), replayed with this set by `exec_hosted::testing::fixtures()`; the 206 interactions here remain authored or imported (docs/gaps/orca-github-project-rows.md).
 
 ## Why blocked
 

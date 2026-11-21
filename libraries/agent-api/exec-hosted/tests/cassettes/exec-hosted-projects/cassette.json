@@ -1,0 +1,32 @@
+{
+  "content_hash": "sha256:dc19f26245f5cafe1fd7267e11d15c7d83477be2ecff36171b40a19186d3232f",
+  "interactions": 8,
+  "provenance": {
+    "driver": {
+      "name": "record-projects",
+      "protocol": "mimic-driver/1",
+      "version": "0.1.0"
+    },
+    "kind": "recorded",
+    "note": "recorded live on 2026-11-21 by wf mimic record-projects (run 44879766250), with these fields redacted: in hosted_project_list/00 (the stdout of gh and the reply) the title (other test board), number (90001), url (users/nuesslerm/projects/90001) and node id (PVT_kwDOFAKEother001) of the account's other board, and in the stdout of gh the login of the organization the account belongs to (example-org); the replay shape is unchanged. The board mla-recording-test-44879766250 is kept as recorded and was deleted afterwards, so its node ids name nothing that still exists. Only the project actions are recorded; the repository-bound actions (comments, issue update and types, pull request and issue reads) need a repository the token may write and stay authored doubles (docs/gaps/orca-github-project-rows.md)",
+    "recorded_at": "2026-11-21T07:23:00.908Z",
+    "recorded_on": "GitHub Actions run 44879766250",
+    "rules_hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
+    "source": "the hosted_project_* actions of rca-exec run against a throwaway Projects v2 board of a real GitHub account by wf mimic record-projects: every gh call's argv, stdin, stdout and exit code is what the real gh did",
+    "target": {
+      "name": "gh",
+      "pin_file": "pin.json",
+      "pin_hash": "sha256:cb160de38aa09d0aa12a0b3c3b0d714fcd018ea40b5c3ac58aa2ce3e854ed764",
+      "version": "2.104.0"
+    },
+    "tool": {
+      "git": "d32b8f5cb13309832fc689761a14b50d4efc2442",
+      "mimic": "0.1.0"
+    }
+  },
+  "rules": {
+    "hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
+    "path": "rules.json"
+  },
+  "schema": "mimic-cassette/1"
+}

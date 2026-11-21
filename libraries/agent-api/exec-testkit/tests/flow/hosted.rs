@@ -59,19 +59,21 @@ fn given_a_rule_that_floods_or_hangs_when_started_then_it_prints_what_it_was_tol
 }
 
 #[test]
-fn given_every_interaction_of_the_hosted_cassette_when_played_then_each_call_prints_what_its_steps_hold_and_exits_with_its_code() {
-    // Given the interactions of the exec-hosted cassette set, each with the calls of one executor request
-    let set = exec_testkit::Cassette::open(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../exec-hosted/tests/cassettes/exec-hosted"));
-    assert!(!set.interactions.is_empty() && set.provenance.kind != "recorded", "{}", set.provenance.kind);
-    for interaction in &set.interactions {
-        let clis = HostedClis::install();
-        // When the double plays it and each call is started with the argv and stdin its steps hold
-        clis.play(interaction, &[]);
-        for rule in interaction.rules() {
-            let args: Vec<&str> = rule.args.iter().map(String::as_str).collect();
-            let (code, stdout, stderr) = run(&clis, &rule.program, &args, rule.stdin.as_deref().unwrap_or(""));
-            // Then it prints the recorded stdout and stderr and exits with the recorded code
-            assert_eq!((code, stdout, stderr), (rule.exit_code, rule.stdout.clone(), rule.stderr.clone()), "{}: {} {:?}", interaction.id, rule.program, rule.args);
+fn given_every_interaction_of_the_hosted_cassettes_when_played_then_each_call_prints_what_its_steps_hold_and_exits_with_its_code() {
+    // Given the interactions of the exec-hosted cassette sets (authored, and the recorded project actions), each with the calls of one executor request
+    for (name, kind) in [("exec-hosted", "imported"), ("exec-hosted-projects", "recorded")] {
+        let set = exec_testkit::Cassette::open(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../exec-hosted/tests/cassettes").join(name));
+        assert!(!set.interactions.is_empty() && set.provenance.kind == kind, "{name}: {}", set.provenance.kind);
+        for interaction in &set.interactions {
+            let clis = HostedClis::install();
+            // When the double plays it and each call is started with the argv and stdin its steps hold
+            clis.play(interaction, &[]);
+            for rule in interaction.rules() {
+                let args: Vec<&str> = rule.args.iter().map(String::as_str).collect();
+                let (code, stdout, stderr) = run(&clis, &rule.program, &args, rule.stdin.as_deref().unwrap_or(""));
+                // Then it prints the recorded stdout and stderr and exits with the recorded code
+                assert_eq!((code, stdout, stderr), (rule.exit_code, rule.stdout.clone(), rule.stderr.clone()), "{}: {} {:?}", interaction.id, rule.program, rule.args);
+            }
         }
     }
 }

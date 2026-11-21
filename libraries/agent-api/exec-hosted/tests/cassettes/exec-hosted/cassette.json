@@ -1,6 +1,6 @@
 {
-  "content_hash": "sha256:b7c621f7279f5833c1fe26a3418ebe32e1a957d5354047019926b1965e03c31f",
-  "interactions": 209,
+  "content_hash": "sha256:d57eac9f0b9dd3053bf692d2404df8385ff9c3c74a6cdb4f91c6fd22a832c88d",
+  "interactions": 206,
   "provenance": {
     "imported_from": [
       {
@@ -176,19 +176,15 @@
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_view.json"
       },
       {
-        "hash": "sha256:8d782a6869eb81298f32539a67f7e8e7e4d7893802620be7a4b489c38b787ffc",
-        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_project_field_clear.json"
-      },
-      {
         "hash": "sha256:69abd9e9944cef32f634c2988194dd8bbfb84a9c2c6931dd8102d6ab6a3a133e",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_project_field_set.json"
       },
       {
-        "hash": "sha256:795a476161e50d0e524c1fa40ec8b7c4c52bf3f7061e66ce5446f3c3826fb203",
+        "hash": "sha256:03c8546680f6fda00f90910b981213e159700dfe5995ba30bb83cbb56366351d",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_project_list.json"
       },
       {
-        "hash": "sha256:04970433ac892168417225fb62c5fa459c48e4a4714db847ca8d4b8ec6af9b99",
+        "hash": "sha256:7bd4c7db857fb01ce60273e5f164d1929c726a34a8a8c6ce4e2ac088d0bab357",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_project_resolve.json"
       },
       {
@@ -245,7 +241,7 @@
       }
     ],
     "kind": "imported",
-    "note": "imported without a run of gh or glab; the owner-gated real recording against a pinned CLI version is the open next step; the interactions of hosted_repo_star and hosted_repo_starred (204 for a starred repository, 404 for one that is not), hosted_project_*, hosted_comment_*, hosted_repo_issue_types, hosted_issue_type_set and hosted_issue_update are authored doubles written from GitHub documentation and Orca source, not recordings (docs/gaps/orca-github-project-rows.md)",
+    "note": "imported without a run of gh or glab; the owner-gated real recording against a pinned CLI version is the open next step; the interactions of hosted_repo_star and hosted_repo_starred (204 for a starred repository, 404 for one that is not), hosted_project_* for the cases the recording did not cover (an organization-owned project, a date and a single-select field, an enterprise host, the read:project refusal and the refusals made before gh starts), hosted_comment_*, hosted_repo_issue_types, hosted_issue_type_set and hosted_issue_update are authored doubles written from GitHub documentation and Orca source, not recordings (docs/gaps/orca-github-project-rows.md); the recorded hosted_project_* interactions (a viewer's projects, a user project resolved and missing, its views, a text and a number field set, a field cleared) live in the set exec-hosted-projects",
     "rules_hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
     "source": "the hosted_*.json fixtures of exec-hosted: what gh and glab print for an argv, written by RECORD_HOSTED_FIXTURES from what the executor did against a scripted fake, not recorded from a run of gh or glab (docs/gaps/exec-hosted-fixtures-not-from-real-clis.md)",
     "tool": {

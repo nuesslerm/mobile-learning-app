@@ -789,7 +789,7 @@ impl Hosting {
                 (None, _) => Ok(json!({"owner": owner, "owner_type": kind, "number": null, "id": null, "title": null})),
                 (Some(4), "acme") => Ok(json!({"owner": owner, "owner_type": kind, "number": 4, "id": "PVT_o1", "title": "Platform"})),
                 (Some(1), "octocat") => Ok(json!({"owner": owner, "owner_type": kind, "number": 1, "id": "PVT_u1", "title": "Roadmap"})),
-                (Some(n), _) => Err(refused("NOT_FOUND", format!("project not found: {owner}/{n}"))),
+                (Some(n), _) => Err(refused("NOT_FOUND", format!("gh: gh: Could not resolve to a ProjectV2 with the number {n}."))),
             }
         });
         let me = self.clone();
@@ -797,7 +797,7 @@ impl Hosting {
             account(&me, p)?;
             match (p["owner"].as_str(), p["project_number"].as_u64()) {
                 (Some("acme"), Some(4)) => Ok(json!({"views": [{"id": "PVTV_1", "number": 1, "name": "Backlog", "layout": "TABLE_LAYOUT"}, {"id": "PVTV_2", "number": 2, "name": "Board", "layout": "BOARD_LAYOUT"}]})),
-                _ => Err(refused("NOT_FOUND", "project not found")),
+                _ => Err(refused("NOT_FOUND", format!("gh: gh: Could not resolve to a ProjectV2 with the number {}.", p["project_number"]))),
             }
         });
         for method in ["project.setField", "project.clearField"] {

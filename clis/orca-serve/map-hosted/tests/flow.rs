@@ -1717,6 +1717,39 @@ fn given_a_signed_in_account_when_the_projects_are_listed_and_a_reference_is_res
     assert!(!project_requests(&rig).is_empty() && project_requests(&rig).iter().all(|(_, p)| p.get("workspace").is_none()));
 }
 
+/// The answer of the executor to `id` as a real gh produced it (the recorded set of exec-hosted, which holds no personal data).
+fn recorded_result(id: &str) -> Result<Value, orca_core::AgentError> {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../libraries/agent-api/exec-hosted/tests/cassettes/exec-hosted-projects/interactions.jsonl");
+    let text = std::fs::read_to_string(path).unwrap();
+    let line = text.lines().map(|l| serde_json::from_str::<Value>(l).unwrap()).find(|i| i["id"] == id).unwrap_or_else(|| panic!("no recorded interaction {id}"));
+    let answer = line["steps"].as_array().unwrap().iter().find(|s| s["dir"] == "s2c").unwrap()["payload"].clone();
+    match answer["ok"].as_bool() {
+        Some(true) => Ok(answer["result"].clone()),
+        _ => Err(orca_core::AgentError::Refused { code: answer["error"]["code"].as_str().unwrap().into(), message: answer["error"]["message"].as_str().unwrap().into() }),
+    }
+}
+
+#[test]
+fn given_the_replies_a_real_gh_gave_when_the_projects_are_listed_resolved_and_viewed_then_the_rows_are_the_hosts_and_a_missing_project_is_not_found() {
+    // Given an account whose executor answers with the recorded replies: two user projects, a project resolved by number, its views, and one that is not there
+    let mut rig = account_rig();
+    let (list, resolved, missing, views) = (recorded_result("hosted_project_list/00"), recorded_result("hosted_project_resolve/01"), recorded_result("hosted_project_resolve/02"), recorded_result("hosted_project_views/00"));
+    rig.agent.reply("project.list", move |_| list.clone());
+    rig.agent.reply("project.resolve", move |p| if p["project_number"] == 999999 { missing.clone() } else { resolved.clone() });
+    rig.agent.reply("project.views", move |_| views.clone());
+    // When the phone lists the accessible projects
+    let listed = rig.ok("github.project.listAccessible", json!({}));
+    // Then each is a row of a user project of the account, with the host
+    let rows = listed["projects"].as_array().unwrap();
+    assert_eq!(rows.iter().map(|r| (r["ownerType"].clone(), r["source"].clone(), r["host"].clone())).collect::<Vec<_>>(), vec![(json!("user"), json!("viewer"), json!("github.com")); 2]);
+    assert_eq!(rows[0]["title"], "mla-recording-test-44879766250");
+    // And a project resolved by its number answers with the recorded title, one that is not there is the host's not-found, and the views are the recorded one
+    let ok = rig.ok("github.project.resolveRef", json!({"input": "https://github.com/users/nuesslerm/projects/2"}));
+    assert_eq!((ok["ok"].clone(), ok["title"].clone(), ok["ownerType"].clone()), (json!(true), json!("mla-recording-test-44879766250"), json!("user")));
+    assert_eq!(rig.ok("github.project.resolveRef", json!({"input": "https://github.com/users/nuesslerm/projects/999999"}))["error"]["reason"], "project_not_found");
+    assert_eq!(rig.ok("github.project.listViews", json!({"owner": "nuesslerm", "ownerType": "user", "projectNumber": 2})), json!({"ok": true, "views": [{"id": "PVTV_lAHOAlm7e84BslVgzgMqfLA", "number": 1, "name": "View 1", "layout": "TABLE_LAYOUT"}]}));
+}
+
 #[test]
 fn given_an_enterprise_host_when_a_reference_is_resolved_then_the_host_is_forwarded_and_a_url_of_another_host_is_refused() {
     let mut rig = account_rig();
