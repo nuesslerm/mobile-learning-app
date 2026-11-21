@@ -5,10 +5,11 @@ import { app } from '../../../../tests/flow/app';
 import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLines';
 import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../..';
 import { createPyodideRunner, type PyodideRunner, type RunnerLimits } from '../../data/pyodide/pyodideRunner';
+import type { RunCodeParams } from '../../domain/ports';
 import { ProblemCatalog } from '../../domain/problemCatalog';
 import type { JudgeParams } from '../../data/pyodide/judgeProtocol';
 import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSettingStore';
-import { answers, createFakePageHost, HANG, type FakePageHost, type FakePageScript } from '../../testing';
+import { answers, createFakePageHost, customRun, HANG, type FakePageHost, type FakePageScript } from '../../testing';
 
 const BACKEND_RUN: RunResponse = { source: 'backend-run', kind: 'test', state: 'SUCCESS', requestId: 'backend', run_success: true, status_msg: 'Accepted', total_correct: 5, total_testcases: 5 };
 const LIMITS: Partial<RunnerLimits> = { readyMs: 2000, pullMs: 2000, bootMs: 2000, waitMs: 2000, runMs: 250, rpcSlackMs: 100 };
@@ -148,5 +149,86 @@ describe('Run Local on the device', () => {
     expect(status()).toBe('Error');
     await waitFor(async () => expect((await loggedLines('pyodide_runner.load_failed')).length).toBeGreaterThan(0));
     expect(JSON.stringify(await loggedLines('pyodide_runner'))).not.toContain('def twoSum');
+  });
+});
+
+const pressInput = () => userEvent.click(screen.getByTestId('ProblemEditorRunInputButton'));
+const customError = () => screen.getByTestId('ProblemEditorCustomCase-Error').textContent;
+
+describe('Run input on the device', () => {
+  it('given the device is chosen, when the learner presses Run input on the default input, then the page is asked for exactly that one case with no expected value, the backend is not asked and the card shows the page\'s result', async () => {
+    // Given the device chosen and a page that answers a typed case as the real judge does (pass false, expected null)
+    useRunnerSettingStore.setState({ runner: 'device' });
+    const { gateway, host, runner } = setup({ judge: (call) => answers.custom(call, [0, 1]) });
+    await renderEditor(gateway, runner);
+
+    // When the learner presses Run input
+    await pressInput();
+
+    // Then the page's judge call carried the one case, with the run's limits, and the card shows its result with no verdict
+    await waitFor(() => expect(status()).toBe('Custom case'));
+    const judged = host.calls.filter((call) => call.method === 'judge').map((call) => call.params as JudgeParams);
+    expect(judged).toHaveLength(1);
+    expect(judged[0]?.payload).toMatchObject({
+      testCases: [{ inputs: { nums: [2, 7, 11, 15], target: 9 }, expected: null }],
+      timeoutMs: expect.any(Number),
+      processLimitMs: LIMITS.runMs,
+    });
+    expect(screen.getByTestId('ProblemEditorCustomCase-Result').textContent).toBe('[0,1]');
+    expect(screen.queryByTestId('ProblemEditorRunOutcomeTotals')).toBeNull();
+    expect(gateway.runLocal).not.toHaveBeenCalled();
+  });
+
+  it('given the device is chosen and the page answers a raising case, when Run input is pressed, then the card shows the Error row with that message', async () => {
+    useRunnerSettingStore.setState({ runner: 'device' });
+    const { gateway, runner } = setup({ judge: (call) => answers.caseError(call, 'IndexError: list index out of range', { line: 4 }) });
+    await renderEditor(gateway, runner);
+
+    await pressInput();
+
+    await waitFor(() => expect(status()).toBe('Error'));
+    expect(customError()).toBe('IndexError: list index out of range');
+    expect(screen.getByTestId('ProblemEditorCustomCase-Result').textContent).toBe('—');
+  });
+
+  it('given the page never answers, when the limit passes, then the custom card says Timeout, a fresh page is loaded, and the next Run input answers', async () => {
+    expectWarning(/pyodide_runner\.(timeout|page_lost)/);
+    useRunnerSettingStore.setState({ runner: 'device' });
+    const { gateway, host, runner } = setup({ judge: (call, load) => (load === 1 ? HANG : answers.custom(call, [0, 1])) });
+    await renderEditor(gateway, runner);
+
+    await pressInput();
+    await waitFor(() => expect(customError()).toContain('Timeout'), { timeout: 4000 });
+    await waitFor(() => expect(host.loads).toBe(2));
+    await pressInput();
+
+    await waitFor(() => expect(status()).toBe('Custom case'), { timeout: 4000 });
+  });
+
+  it('given the backend is chosen, when Run input is pressed, then the gateway receives the one case with no expected value, no page is loaded and the card shows the backend\'s row without a verdict', async () => {
+    useRunnerSettingStore.setState({ runner: 'backend' });
+    const { gateway, host, runner } = setup();
+    gateway.runLocal = vi.fn(async (params: RunCodeParams) => customRun(params));
+    await renderEditor(gateway, runner);
+
+    await pressInput();
+
+    await waitFor(() => expect(status()).toBe('Custom case'));
+    expect(gateway.runLocal).toHaveBeenCalledWith(expect.objectContaining({ testCases: [{ inputs: { nums: [2, 7, 11, 15], target: 9 }, expected: null }] }));
+    expect(host.loads).toBe(0);
+    expect(screen.getByTestId('ProblemEditorCustomCase-Result').textContent).toBe('[0,1]');
+    expect(screen.queryByText('Expected')).toBeNull();
+  });
+
+  it('given the device is chosen and the code does not compile, when Run input is pressed, then the card shows the compile error and still echoes the typed input', async () => {
+    useRunnerSettingStore.setState({ runner: 'device' });
+    const { gateway, runner } = setup({ judge: () => answers.compileError("CompileError: expected ':'", { line: 2, column: 5 }) });
+    await renderEditor(gateway, runner);
+
+    await pressInput();
+
+    await waitFor(() => expect(status()).toBe('Error'));
+    expect(customError()).toContain("expected ':'");
+    expect(screen.getByTestId('ProblemEditorCustomCase-Input').textContent).toBe('nums = [2,7,11,15], target = 9');
   });
 });

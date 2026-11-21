@@ -50,6 +50,8 @@ const row = (pass: boolean, call: JudgeParams, index: number, over: Partial<Test
 export const answers = {
   allPass: (call: JudgeParams): RawRun => ({ ok: true, results: call.payload.testCases.map((_, i) => row(true, call, i)) }),
   wrongAnswer: (call: JudgeParams, failing = 0): RawRun => ({ ok: true, results: call.payload.testCases.map((_, i) => row(i !== failing, call, i)) }),
+  /** what the judge answers for a typed case: its value, with `pass` false because there was nothing to compare (expected is null) */
+  custom: (call: JudgeParams, actual: unknown): RawRun => ({ ok: true, results: call.payload.testCases.map((_, i) => row(false, call, i, { actual })) }),
   caseError: (call: JudgeParams, error: string, at: { line: number; column?: number }, failing = 0): RawRun => ({
     ok: true,
     results: call.payload.testCases.map((_, i) => (i === failing ? row(false, call, i, { error, error_at: at, actual: null }) : row(true, call, i))),
