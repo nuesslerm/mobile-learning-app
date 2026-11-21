@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createDeferredEngine, createDocumentMirror, createEditorClient, unwrap } from '../../src';
+import { createDeferredEngine, createDocumentMirror, createEditorClient, unwrap, type EditorEngine } from '../../src';
 import { createFakeEditor } from '../../src/testing';
 
 const setup = async (text = '0123456789') => {
@@ -28,21 +28,26 @@ describe('the document mirror', () => {
     expect(held.deleted()).toBe(false);
   });
 
-  it('given a held range, when an edit lands strictly inside it or overlaps one side, then it is touched but not deleted', async () => {
-    // Given two ranges over "345"
+  it('given a held range, when an edit lands strictly inside it, then it is touched and not deleted', async () => {
     const { client, mirror } = await setup();
-    const inside = mirror.track({ from: 3, to: 6 });
-    const overlapped = mirror.track({ from: 3, to: 6 });
+    const held = mirror.track({ from: 3, to: 6 });
 
-    // When one edit lands inside the first and a replace overlaps the second's end
     unwrap(await client.insertAt(4, 'x'));
-    expect(inside.touched()).toBe(true);
-    unwrap(await client.replaceRange({ from: 6, to: 8 }, 'yy'));
 
-    // Then both are touched and neither is deleted
-    expect(overlapped.touched()).toBe(true);
-    expect(inside.deleted()).toBe(false);
-    expect(overlapped.deleted()).toBe(false);
+    expect(held.touched()).toBe(true);
+    expect(held.deleted()).toBe(false);
+    expect(held.get()).toEqual({ from: 3, to: 7 });
+  });
+
+  it('given a held range, when a replace overlaps only its end, then it is touched, not deleted, and keeps what is left of it', async () => {
+    const { client, mirror } = await setup();
+    const held = mirror.track({ from: 3, to: 6 });
+
+    unwrap(await client.replaceRange({ from: 5, to: 8 }, 'yy'));
+
+    expect(held.touched()).toBe(true);
+    expect(held.deleted()).toBe(false);
+    expect(mirror.text().slice(held.get()?.from, held.get()?.to)).toBe('34');
   });
 
   it('given a held range, when a replace covers it, then it is deleted and collapses to a caret after the replacement', async () => {
@@ -53,32 +58,35 @@ describe('the document mirror', () => {
     // When a replace covers it
     unwrap(await client.replaceRange({ from: 3, to: 7 }, 'Z'));
 
-    // Then it is flagged and no longer spans characters
+    // Then it is flagged and is a caret right after the replacement
     expect(held.deleted()).toBe(true);
-    const range = held.get();
-    expect(range?.from).toBe(range?.to);
+    expect(held.get()).toEqual({ from: 4, to: 4 });
   });
 
   it('given a lost event, when the next one arrives, then the mirror resyncs through one diff and held ranges follow it', async () => {
-    // Given a mirror with a held range and an edit whose event was lost
-    const { fake, client, mirror } = await setup();
+    // Given a mirror whose engine loses the first changed event, and a range held over "56"
+    const fake = createFakeEditor({ text: '0123456789' });
+    let drop = false;
+    const lossy: EditorEngine = {
+      request: fake.engine.request,
+      listen: (types, listener) => fake.engine.listen(types, (event) => (drop && event.type === 'changed' ? undefined : listener(event))),
+    };
+    const client = createEditorClient(fake.engine);
+    const mirror = await createDocumentMirror(lossy);
     const held = mirror.track({ from: 5, to: 7 });
-    const mirrorEvents: unknown[] = [];
-    const stop = mirror.onChange(() => mirrorEvents.push(mirror.revision()));
-    const before = mirror.revision();
-    fake.userTypes('ab');
-    unwrap(await client.insertAt(0, 'Q'));
 
-    // When the gap is noticed and resynced
+    // When an insert before it is lost, and a second one arrives
+    drop = true;
+    unwrap(await client.insertAt(0, 'Q'));
+    drop = false;
+    unwrap(await client.insertAt(0, 'RR'));
     await mirror.resync();
 
-    // Then the text and revision equal a fresh read and the range moved with the single hunk
-    const read = await client.getText();
-    expect(mirror.text()).toBe(unwrap(read).text);
-    expect(mirror.revision()).toBe(read.revision);
-    expect(mirror.revision()).toBeGreaterThan(before);
+    // Then the mirror caught up by reading, and the held range moved by what both inserts added in front of it
+    const read = unwrap(await client.getText());
+    expect(mirror.text()).toBe(read.text);
+    expect(mirror.text()).toBe('RRQ0123456789');
     expect(mirror.text().slice(held.get()?.from, held.get()?.to)).toBe('56');
-    stop();
   });
 
   it('given a held range and a new editor instance, when the mirror syncs, then the range reads null', async () => {

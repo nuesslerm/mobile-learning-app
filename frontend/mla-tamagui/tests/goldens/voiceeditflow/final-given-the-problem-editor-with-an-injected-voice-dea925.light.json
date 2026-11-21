@@ -43,12 +43,36 @@
       "ProblemPlanComposer",
       "ProblemPlanMicButton",
       "ProblemPlanTextInput",
-      "ProblemPlanAddButton"
+      "ProblemPlanAddButton",
+      "EditorHelperRails",
+      "EditorSyntaxToolbar",
+      "EditorSyntax-Tab",
+      "EditorSyntax-Dedent",
+      "EditorSyntax-Paren",
+      "EditorSyntax-Bracket",
+      "EditorSyntax-Brace",
+      "EditorSyntax-Quote",
+      "EditorSyntax-Apostrophe",
+      "EditorSyntax-Colon",
+      "EditorSyntax-Equals",
+      "EditorSyntax-Underscore",
+      "EditorSyntax-Dot",
+      "EditorSyntax-Comment",
+      "EditorSyntax-Newline",
+      "EditorSyntax-Left",
+      "EditorSyntax-Right",
+      "EditorSyntax-Configure",
+      "EditorActionToolbar",
+      "EditorAction-Undo",
+      "EditorAction-Redo",
+      "EditorAction-Copy",
+      "EditorAction-Paste",
+      "EditorAction-Done"
     ],
-    "text": "Plan\nCode\nPython\nDiff\nFormat\nRun Local\nRun\nReset"
+    "text": "Plan\nCode\nPython\nDiff\nFormat\nRun Local\nRun\nReset\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nDone"
   },
   "timings": {
-    "render_ms": 243
+    "render_ms": 244
   },
   "name": "voiceeditflow/final-given-the-problem-editor-with-an-injected-voice-dea925.light",
   "image": {

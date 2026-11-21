@@ -108,10 +108,13 @@ await session.drag('slider-thumb', { x: 0, y: 0.5 }, { x: 1, y: 0.5 });
 The editor is the real one. On web the app renders CodeMirror in an iframe
 (`lib/webview/ReactNativeWebView.web.tsx`, the page from `editorHtml.ts` with the
 real CM6 bundle), and flow tests run exactly that page inside jsdom.
-`session.editor()` waits until it has hydrated, then drives it through the
-bundle's own web test driver `window.__editor__`, the API the Playwright e2e
-tier uses. Every change goes through CodeMirror, so the app receives the same
-bridge messages a user's typing produces. No test sends a bridge message.
+`session.editor()` waits until the page's typed editor API is ready, then drives
+the editor through it (`window.__editorEngine__`, the API the app's own toolbar,
+runner and voice edit use): a client makes the calls and a document mirror gives
+synchronous reads of the text and the selection. Every change goes through
+CodeMirror, so the app receives the same bridge messages a user's typing
+produces. Focus and the diff decorations are not in the API and are read from the
+iframe's DOM. No test sends a bridge message.
 
 ```ts
 const editor = await session.editor();
