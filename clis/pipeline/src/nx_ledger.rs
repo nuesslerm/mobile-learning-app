@@ -74,6 +74,11 @@ fn newest(home: &Path, since: SystemTime) -> Option<(SystemTime, std::path::Path
         .max_by_key(|(at, _)| *at)
 }
 
+/// The target of an Nx task id `<project>:<target>`: the project has no colon, the target may (`mla-tamagui:test:flow` runs `test:flow`).
+pub(crate) fn target_of(task: &str) -> &str {
+    task.split_once(':').map_or("", |(_, target)| target)
+}
+
 /// The tasks of the newest `run.json` under `home` written at or after `since`.
 #[cfg(test)]
 fn read(home: &Path, since: SystemTime) -> Vec<TaskRun> {
@@ -144,7 +149,7 @@ pub(crate) fn emit(since: SystemTime, stage: &str, target: &str, cpu_seconds: f6
     // the two stages of a core-tests job share one run.json: keep this run's own targets
     if std::env::var("GITHUB_JOB").is_ok_and(|j| j == "core-tests") {
         let own: Vec<&str> = target.split(',').collect();
-        tasks.retain(|t| t.task.split(':').nth(1).is_some_and(|n| own.contains(&n)));
+        tasks.retain(|t| own.contains(&target_of(&t.task)));
     }
     let replayed: Vec<&str> = tasks.iter().filter(|t| t.outcome == "hit").map(|t| t.task.as_str()).collect();
     let tests = crate::ci_tests::persist(stage, target, seen, &replayed);
@@ -287,5 +292,13 @@ mod tests {
         std::fs::write(dir.join("run.json"), RUN).unwrap();
         assert_eq!(read_unreported(home.path(), SystemTime::UNIX_EPOCH).len(), 2);
         assert!(read_unreported(home.path(), SystemTime::now()).is_empty());
+    }
+
+    #[test]
+    fn given_an_nx_task_id_when_its_target_is_read_then_a_target_with_a_colon_is_whole() {
+        assert_eq!(target_of("mla-tamagui:test:flow"), "test:flow");
+        assert_eq!(target_of("@feature/settings:test:unit"), "test:unit");
+        assert_eq!(target_of("crate-wf:cargo-flow"), "cargo-flow");
+        assert_eq!(target_of("noproject"), "");
     }
 }

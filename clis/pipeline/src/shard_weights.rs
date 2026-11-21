@@ -19,7 +19,7 @@ pub(crate) fn weighted(stage: &str) -> bool {
 fn stage_of(job: &str, task: &str) -> Option<&'static str> {
     let base = job.split(" (").next().unwrap_or(job);
     if base == "core-tests" {
-        let target = task.split(':').nth(1).unwrap_or_default();
+        let target = crate::nx_ledger::target_of(task);
         return ["test:flow", "test:contract", "cargo-flow", "cargo-contract"].contains(&target).then_some("flow-tests");
     }
     STAGES.into_iter().find(|s| *s == base)
@@ -270,6 +270,17 @@ mod tests {
 
     fn row(run: &str, job: &str, task: &str, ms: u64) -> Value {
         json!({"RUN_ID": run, "JOB": job, "TASK": task, "MS": ms})
+    }
+
+    #[test]
+    fn given_a_core_tests_job_when_a_package_flow_task_is_read_then_it_counts_for_flow_tests_whatever_the_colons_in_its_target() {
+        // Given the flow targets of a package (`test:flow`) and a crate (`cargo-flow`), and a unit target of a package
+        // When the stage of each task of a core-tests job is read
+        // Then both flow targets are flow-tests and the unit target is not
+        assert_eq!(stage_of("core-tests (2/3)", "mla-tamagui:test:flow"), Some("flow-tests"));
+        assert_eq!(stage_of("core-tests (2/3)", "@feature/settings:test:flow"), Some("flow-tests"));
+        assert_eq!(stage_of("core-tests (2/3)", "crate-wf:cargo-flow"), Some("flow-tests"));
+        assert_eq!(stage_of("core-tests (2/3)", "@feature/settings:test:unit"), None);
     }
 
     #[test]

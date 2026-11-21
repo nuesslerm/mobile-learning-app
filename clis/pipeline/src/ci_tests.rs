@@ -185,7 +185,7 @@ pub(crate) fn tee<R: Read, W: Write>(mut out: R, mut sink: W, capture: &Mutex<Ca
 
 /// A test runs alone when its target is one of the `--test-threads=1` suites (`tooling/nx/cargo-crates.js`): then the time since the previous result is its own.
 fn serial(task: &str) -> bool {
-    let target = task.split(':').nth(1).unwrap_or_default();
+    let target = crate::nx_ledger::target_of(task);
     ["integration", "e2e", "verify", "replay-"].iter().any(|k| target.contains(k))
 }
 
