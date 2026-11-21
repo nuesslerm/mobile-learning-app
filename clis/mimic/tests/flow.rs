@@ -31,6 +31,8 @@ mod import;
 mod real_clis;
 #[path = "flow/record.rs"]
 mod record;
+#[path = "flow/record_projects.rs"]
+mod record_projects;
 #[path = "flow/record_references.rs"]
 mod record_references;
 #[path = "flow/replay.rs"]

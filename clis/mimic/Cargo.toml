@@ -41,6 +41,7 @@ wf-kit = { path = "../wf-kit" }
 wf-bucket = { path = "../wf-bucket" }
 secrets = { path = "../secrets" }
 cli-http = { path = "../http" }
+rca-exec = { path = "../rca-exec" }
 mimic-coverage-core = { path = "coverage" }
 mimic-plan-core = { path = "plan" }
 mimic-core = { version = "0.1.2", registry = "mla" }

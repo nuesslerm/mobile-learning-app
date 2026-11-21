@@ -1,0 +1,97 @@
+name: GitHub projects record
+
+# O4 of #83: the live recording of the hosted_project_* actions of rca-exec (the 16 github.project.* rows of Orca) against a throwaway Projects v2 board.
+# `wf mimic record-projects` creates the board, runs the real executor's actions with a recording gh, and deletes the board; the second step tears down again
+# whatever the first did (`if: always()`, from the state file), and the first also deletes any mla-recording-test-* board older than an hour. The recorded set reaches dev
+# as the artifact mimic-set-exec-hosted-projects (the hosted publish to dev was refused on 18 Nov: nothing here pushes). The one credential, GH_PROJECTS_RECORD_TOKEN,
+# is read from the vault in memory by the verb; the vault token is in these two steps only.
+on:
+  push:
+    branches: [dev]
+    paths:
+      - .github/workflows/github-projects-record.yml
+      - clis/mimic/src/projects_verb.rs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wf:
+    name: Build wf
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+      - uses: ./.github/actions/build-wf
+        with:
+          upload: "true"
+  record:
+    name: record
+    needs: wf
+    if: ${{ github.event_name == 'push' || github.actor == github.repository_owner }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    concurrency:
+      group: github-projects-record
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: clis
+          path: ${{ runner.temp }}/wf-bin
+      - name: Paths
+        run: |
+          echo "SET_DIR=$RUNNER_TEMP/mimic-sets/exec-hosted-projects" >> "$GITHUB_ENV"
+          echo "STATE_FILE=$RUNNER_TEMP/record-projects.state.json" >> "$GITHUB_ENV"
+      - name: wf on PATH
+        run: |
+          chmod 755 "$RUNNER_TEMP"/wf-bin/*
+          echo "$RUNNER_TEMP/wf-bin" >> "$GITHUB_PATH"
+      - uses: ./.github/actions/install-bws
+      - name: Record
+        env:
+          SECRETS_BACKEND: bitwarden
+          BWS_SERVER_URL: https://vault.bitwarden.eu
+          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+        run: |
+          set +e
+          wf mimic record-projects "$SET_DIR" --state "$STATE_FILE" > "$RUNNER_TEMP/record.json" 2> "$RUNNER_TEMP/record.err"
+          code=$?
+          set -e
+          {
+            echo "### GitHub projects record"
+            echo
+            echo '```json'
+            tail -c 6000 "$RUNNER_TEMP/record.json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          tail -c 3000 "$RUNNER_TEMP/record.err" || true
+          exit "$code"
+      - name: Teardown
+        # a killed or failed Record step leaves its board in the state file; this deletes it, and the guard of the verb deletes any older leftover
+        if: ${{ always() }}
+        env:
+          SECRETS_BACKEND: bitwarden
+          BWS_SERVER_URL: https://vault.bitwarden.eu
+          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+        run: wf mimic record-projects "$SET_DIR" --state "$STATE_FILE" --teardown
+      - name: Set written
+        id: written
+        if: ${{ always() }}
+        run: |
+          if [ -f "$SET_DIR/cassette.json" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        # a written set is uploaded even when the guard or the teardown reported a problem: the verb writes it only for a valid run
+        if: ${{ always() && steps.written.outputs.present == 'true' }}
+        with:
+          name: mimic-set-exec-hosted-projects
+          path: ${{ env.SET_DIR }}
+          if-no-files-found: error
+          retention-days: 14

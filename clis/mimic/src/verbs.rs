@@ -18,6 +18,8 @@ mod provision_phase;
 mod scan_verb;
 #[path = "exec_verb.rs"]
 mod exec_verb;
+#[path = "projects_verb.rs"]
+mod projects_verb;
 
 use crate::adapters::{open_driver, FsCheckpoint, FsStore};
 use crate::config::{relative, Config, Target};
@@ -48,6 +50,7 @@ const STABILIZE: Spec = Spec { values: &["allowlist", "min-pct", "report"], flag
 const REMASK: Spec = Spec { positional: Positional::Exactly(1), ..Spec::NONE };
 const CAPTURE: Spec = Spec { values: &["provision", "chunk", "budget", "out", "summary", "run", "candidate", "rows", "work-root", "root", "agents-cache"], flags: &["fresh", "check", "force", "publish"], positional: Positional::Exactly(2), ..Spec::NONE };
 const EXEC: Spec = Spec { values: &["clis", "cli-dir", "scan"], positional: Positional::Any, ..Spec::NONE };
+const RECORD_PROJECTS: Spec = Spec { values: &["run-id", "stale-minutes", "state", "gh"], flags: &["teardown"], positional: Positional::Exactly(1), ..Spec::NONE };
 const SCAN: Spec = Spec { values: &["clis"], positional: Positional::Any, ..Spec::NONE };
 const FETCH: Spec = Spec { values: &["set", "root"], positional: Positional::Exactly(1), ..Spec::NONE };
 const VERIFY: Spec = Spec { values: &["root", "fixtures", "rules"], flags: &["all", "live", "files"], positional: Positional::Any, ..Spec::NONE };
@@ -94,6 +97,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         "stabilize" => finish("mimic-stability/1", stabilize_verb::stabilize_verb(&parse_spec(rest, &STABILIZE)?)),
         "remask" => finish("mimic-remask/1", stabilize_verb::remask_verb(&parse_spec(rest, &REMASK)?)),
         "capture" => finish("mimic-capture/1", capture_verb::capture_verb(&parse_spec(rest, &CAPTURE)?)),
+        "record-projects" => finish("mimic-record-projects/1", projects_verb::record_projects(&parse_spec(rest, &RECORD_PROJECTS)?)),
         "scan" => finish("mimic-scan/1", scan_verb::scan_verb(&parse_spec(rest, &SCAN)?)),
         "exec" => finish("mimic-exec/1", exec_verb::exec_verb(&parse_spec(rest, &EXEC)?)),
         "fetch" => finish("mimic-fetch/1", bundle_verb::fetch_verb(&parse_spec(rest, &FETCH)?)),

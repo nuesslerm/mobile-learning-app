@@ -10,6 +10,7 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("mimic remask", false, include_str!("help/wf__mimic__remask.txt")),
     ("mimic verify", false, include_str!("help/wf__mimic__verify.txt")),
     ("mimic capture", false, include_str!("help/wf__mimic__capture.txt")),
+    ("mimic record-projects", false, include_str!("help/wf__mimic__record-projects.txt")),
     ("mimic scan", false, include_str!("help/wf__mimic__scan.txt")),
     ("mimic exec", false, include_str!("help/wf__mimic__exec.txt")),
     ("mimic fetch", false, include_str!("help/wf__mimic__fetch.txt")),

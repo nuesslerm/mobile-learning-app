@@ -1,0 +1,27 @@
+Usage: wf mimic record-projects [options] <set-dir>
+
+Record the hosted_project_* actions of rca-exec (project list, resolve, views, field set and
+clear) against a throwaway GitHub Projects v2 board, into the recorded set <set-dir>
+(provenance.kind recorded; every gh call's argv, stdin, stdout and exit code is what the
+real gh did). Setup creates a board named mla-recording-test-<run id> on the token's user
+account (with a text field, a number field and a draft item); the run asks the real
+executor for each action with a recording gh on its PATH; teardown deletes the board
+whatever the run did; a guard first deletes any mla-recording-test-* board older than
+--stale-minutes and no other. The token is GH_PROJECTS_RECORD_TOKEN (the environment, else
+the vault), read in memory and given to gh only as GH_TOKEN; a recorded value that holds it
+stops the write. A token without the scope project or read:org fails naming the scope
+(X-OAuth-Scopes of `gh api -i user`; a fine-grained token sends none). The set is written
+only when every action answered as expected.
+
+Options:
+  --teardown           only the guard and the deletion of the board the state file names (for an `if: always()` step)
+  --stale-minutes <n>  age after which an mla-recording-test-* board is deleted (default 60)
+  --run-id <id>        names the board (default $GITHUB_RUN_ID, else the pid)
+  --state <file>       where the board of the run is noted for --teardown (default $TMPDIR/mimic-record-projects.state.json)
+  --gh <path>          the gh to run (default the first on PATH)
+  -h, --help           display help for command
+
+Output (schema mimic-record-projects/1):
+  {schema, ok, set, dir, mode, scopes, board: {title, number, deleted}?, stale: {deleted, kept, error?},
+   actions: [{id, tool, name, ok, expected_ok, code}], recorded, files, error, problems, warnings, next}
+Exit 0 recorded (or torn down), 1 an action, the teardown or the guard failed, 2 no token, a missing scope or no gh.
