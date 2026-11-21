@@ -1,4 +1,4 @@
-import type { Change, ConfigPatch, EditorConfig, EditorError, Language, Range, Revision, SelRange, Selection, SyntaxNode, TreeDetail } from './protocol';
+import type { Change, ConfigPatch, EditorConfig, EditorError, Language, Mark, Range, Revision, SelRange, Selection, SyntaxNode, TreeDetail } from './protocol';
 
 export interface DocView { readonly length: number; slice(from: number, to: number): string }
 export type Commit = { readonly changes: readonly Change[]; readonly selection?: SelRange; readonly label?: string }; // [] = selection-only; selection is in result coordinates
@@ -26,6 +26,8 @@ export interface DocumentHost { // the driven port: what the engine core needs f
   tree?(): TreeSnapshot; // a snapshot of the document's syntax tree; announced as the `tree` request only when present
   treeOf?(text: string): TreeSnapshot; // the snapshot of another text as the editor's current language would parse it, so an edit is checked before it applies; the document does not change. A semantic step is announced only when `tree` and `treeOf` are both present
   indentUnit?(): string; // what one level of indentation is (four spaces when absent)
+  marks?(list: readonly Mark[]): void; // draw exactly these marks (hidden ones are listed, not drawn); the host maps its own copy through every later transaction with `mapMarks`, and the engine calls this from a request handler only. Announced as `view.marks` only when present
+  reveal?(range: Range): void; // scroll the range into view without a change to the text, the selection or the focus. Announced as `view.reveal` only when present
   commit(edit: Commit): void; // one transaction = one undo step; core.ingest must have run for it before this returns
   history(direction: 'undo' | 'redo'): boolean; // true when something was applied; core.ingest has run
   load(text: string, selection?: SelRange): HostLoad; // replace the document, reset history, next revision = previous head + 1

@@ -4,7 +4,7 @@ import { createEditorClient, unwrap, type EditorClient } from '../core/client';
 import { createDocumentMirror } from '../core/mirror';
 import { isSemanticOp } from '../core/validate';
 import type { EditorEngine } from '../ports/engine';
-import { CORE_REQUEST_NAMES, type EditorError, type EditorEvent, type EventType, type Language, type Range, type Reply, type RequestName, type SelRange, type Step } from '../ports/protocol';
+import { CORE_REQUEST_NAMES, type EditorError, type EditorEvent, type EventType, type Language, type MarkKind, type MarkSpec, type Range, type Reply, type RequestName, type SelRange, type Step } from '../ports/protocol';
 
 export type SubjectHooks = {
   userTypes?(text: string): Promise<void> | void;
@@ -79,6 +79,7 @@ export function editorContract(name: string, make: MakeSubject, options: Contrac
       const reply = await client.getText();
       return { ...unwrap(reply), revision: reply.revision as number };
     };
+    const viewOf = async () => unwrap(await client.hello()).capabilities.view;
     const mirrorOf = async () => {
       const mirror = await createDocumentMirror(subject.engine);
       cleanups.push(mirror.stop);
@@ -104,6 +105,7 @@ export function editorContract(name: string, make: MakeSubject, options: Contrac
         if (options.languages) expect(hello.capabilities.languages).toEqual(options.languages);
         expect(hello.capabilities.maxSelections).toBeGreaterThanOrEqual(1);
         expect(hello.capabilities.logDepth).toBeGreaterThan(0);
+        expect(hello.capabilities.view.every((name) => name === 'marks' || name === 'reveal')).toBe(true);
       });
 
       it('given an engine that does not announce tree, when tree is called, then it is unsupported naming the request', async (ctx) => {
@@ -1054,6 +1056,215 @@ export function editorContract(name: string, make: MakeSubject, options: Contrac
       });
     });
 
+    describe('marks and reveal', () => {
+      const mark = (id: string, from: number, to: number, kind: MarkKind = 'error', hidden?: true): MarkSpec => ({ id, kind, range: { from, to }, ...(hidden ? { hidden } : {}) });
+      const textOf = async (range: Range) => (await snapshot()).text.slice(range.from, range.to);
+      const markRanges = async () => unwrap(await client.marks()).marks.map(({ id, range }) => [id, range.from, range.to]);
+      const nothingDrawn = async () => expect(unwrap(await client.marks())).toMatchObject({ marks: [], revealed: null });
+
+      it('given an engine that does not announce marks or reveal, when a view call carries them, then it is unsupported naming view:marks or view:reveal and nothing changes', async (ctx) => {
+        const announced = await viewOf();
+        if (announced.includes('marks') && announced.includes('reveal')) return ctx.skip();
+        const base = await start();
+
+        if (!announced.includes('marks')) expect(failed(await client.setMarks([mark('a', 1, 3)]))).toMatchObject({ code: 'unsupported', what: 'view:marks' });
+        if (!announced.includes('reveal')) expect(failed(await client.reveal({ from: 1, to: 3 }))).toMatchObject({ code: 'unsupported', what: 'view:reveal' });
+
+        expect(await snapshot()).toMatchObject({ text: TEN, revision: base });
+        await nothingDrawn();
+      });
+
+      it('given a document, when a mark is set at the head, then view returns it with its id, kind and range, and the revision, text and selection did not move and no event was emitted', async (ctx) => {
+        if (!(await viewOf()).includes('marks')) return ctx.skip();
+        const base = await start(TEN, { anchor: 4, head: 4 });
+        const before = await snapshot();
+        const seen = record('changed', 'selection', 'focus');
+
+        const reply = await client.setMarks([mark('run-error', 2, 5)], { at: base });
+
+        expect(unwrap(reply).marks).toEqual([{ id: 'run-error', kind: 'error', range: { from: 2, to: 5 } }]);
+        expect(reply).toMatchObject({ revision: base, base });
+        expect(unwrap(await client.marks()).marks).toEqual(unwrap(reply).marks);
+        expect(await snapshot()).toEqual(before);
+        expect(seen).toEqual([]);
+      });
+
+      it('given a mark and the person typed before it, when view is queried, then the mark followed the characters, and text typed at its start or its end stays outside it', async (ctx) => {
+        if (!(await viewOf()).includes('marks')) return ctx.skip();
+        needs(ctx, 'userTypes', 'userSelects');
+        await start();
+        unwrap(await client.setMarks([mark('m', 4, 6)]));
+
+        const marked = async () => {
+          const range = unwrap(await client.marks()).marks[0]?.range as Range;
+          return { range, text: await textOf(range) };
+        };
+
+        await hooks().userSelects?.(0);
+        await hooks().userTypes?.('ab');
+        const moved = await marked();
+        await hooks().userSelects?.(moved.range.from);
+        await hooks().userTypes?.('X');
+        const afterStart = await marked();
+        await hooks().userSelects?.(afterStart.range.to);
+        await hooks().userTypes?.('Y');
+        const afterEnd = await marked();
+
+        expect([moved.text, afterStart.text, afterEnd.text]).toEqual(['45', '45', '45']);
+        expect(moved.range).toEqual({ from: 6, to: 8 });
+      });
+
+      it('given a keystroke after revision R, when a mark is set at R, then it lands on the same text', async (ctx) => {
+        if (!(await viewOf()).includes('marks')) return ctx.skip();
+        needs(ctx, 'userTypes', 'userSelects');
+        const base = await start();
+        await hooks().userSelects?.(0);
+        await hooks().userTypes?.('ab');
+        await snapshot();
+
+        const reply = await client.setMarks([mark('m', 3, 5)], { at: base });
+
+        expect(await textOf(unwrap(reply).marks[0]?.range as Range)).toBe('34');
+      });
+
+      it('given the marked text was deleted after R, when marks and a reveal are set at R, then it is range-lost with the index of the mark, and no mark or reveal was applied', async (ctx) => {
+        if (!(await viewOf()).includes('marks')) return ctx.skip();
+        const base = await start();
+        unwrap(await client.replaceRange({ from: 3, to: 6 }, ''));
+
+        const reply = await client.setMarks([mark('kept', 0, 2), mark('gone', 3, 6)], { at: base, reveal: { from: 0, to: 1 } });
+
+        expect(failed(reply)).toMatchObject({ code: 'range-lost', step: 1 });
+        await nothingDrawn();
+      });
+
+      it('given an at ahead of the head, an at below the floor, a range past the document at that revision and another instance, when marks are set, then the replies are invalid, stale, out-of-range naming the mark, and instance-mismatch', async (ctx) => {
+        if (!(await viewOf()).includes('marks')) return ctx.skip();
+        const base = await start();
+
+        expect(failed(await client.setMarks([mark('m', 1, 2)], { at: base + 1 }))).toMatchObject({ code: 'invalid', path: 'at' });
+        expect(failed(await client.setMarks([mark('a', 0, 1), mark('b', 8, 11)]))).toMatchObject({ code: 'out-of-range', step: 1, length: 10 });
+        expect(failed(await client.setMarks([mark('m', 1, 2)], { instance: 'someone-else' })).code).toBe('instance-mismatch');
+        unwrap(await client.insertAt(0, 'XXXXXXXX'));
+        expect(failed(await client.setMarks([mark('m', 12, 14)], { at: base }))).toMatchObject({ code: 'out-of-range', step: 0, length: 10 });
+        const depth = unwrap(await client.hello()).capabilities.logDepth;
+        for (let i = 0; i <= depth; i += 1) unwrap(await client.insertAt(0, 'x'));
+        expect(failed(await client.setMarks([mark('m', 1, 2)], { at: base })).code).toBe('stale');
+        await nothingDrawn();
+      });
+
+      it('given a mark whose text was wholly replaced, when view is queried, then it is gone, and given a set with an existing id, then it replaces that mark', async (ctx) => {
+        if (!(await viewOf()).includes('marks')) return ctx.skip();
+        await start();
+        unwrap(await client.setMarks([mark('a', 1, 3), mark('b', 5, 7, 'edit')]));
+
+        unwrap(await client.replaceRange({ from: 4, to: 8 }, 'Q'));
+        expect(await markRanges()).toEqual([['a', 1, 3]]);
+        unwrap(await client.setMarks([mark('a', 0, 1, 'edit')]));
+
+        expect(unwrap(await client.marks()).marks).toEqual([{ id: 'a', kind: 'edit', range: { from: 0, to: 1 } }]);
+      });
+
+      it('given marks, when some ids are cleared, then the others stay, and a call that clears and sets runs the clear first', async (ctx) => {
+        if (!(await viewOf()).includes('marks')) return ctx.skip();
+        await start();
+        unwrap(await client.setMarks([mark('a', 1, 2), mark('b', 3, 4), mark('c', 5, 6)]));
+
+        unwrap(await client.clearMarks(['b']));
+        expect(await markRanges()).toEqual([['a', 1, 2], ['c', 5, 6]]);
+        unwrap(await client.setMarks([mark('c', 7, 8)], { clear: ['a', 'c'] }));
+        expect(await markRanges()).toEqual([['c', 7, 8]]);
+        unwrap(await client.setMarks([mark('d', 1, 2)], { clear: 'all' }));
+        expect(await markRanges()).toEqual([['d', 1, 2]]);
+        unwrap(await client.clearMarks('all'));
+
+        await nothingDrawn();
+      });
+
+      it('given nine marks, when they are set one by one, then the ninth is invalid and the eight stay', async (ctx) => {
+        if (!(await viewOf()).includes('marks')) return ctx.skip();
+        await start();
+        for (let i = 0; i < 8; i += 1) unwrap(await client.setMarks([mark(`m${i}`, i, i + 1)]));
+
+        const reply = await client.setMarks([mark('m8', 8, 9)]);
+
+        expect(failed(reply)).toMatchObject({ code: 'invalid', path: 'marks.set' });
+        expect(unwrap(await client.marks()).marks).toHaveLength(8);
+      });
+
+      it('given a hidden mark, when view is queried, then it is listed with hidden true', async (ctx) => {
+        if (!(await viewOf()).includes('marks')) return ctx.skip();
+        await start();
+
+        unwrap(await client.setMarks([mark('h', 2, 4, 'edit', true), mark('s', 6, 7)]));
+
+        expect(unwrap(await client.marks()).marks).toEqual([
+          { id: 'h', kind: 'edit', range: { from: 2, to: 4 }, hidden: true },
+          { id: 's', kind: 'error', range: { from: 6, to: 7 } },
+        ]);
+      });
+
+      it('given a loaded new document, when view is queried, then no marks remain', async (ctx) => {
+        if (!(await viewOf()).includes('marks')) return ctx.skip();
+        await start();
+        unwrap(await client.setMarks([mark('a', 1, 3), mark('blank', 5, 5)]));
+
+        await start('fresh');
+
+        await nothingDrawn();
+      });
+
+      it('given a reveal of a range, when view runs, then revealed is that range with the text, selection, focus and revision unchanged, and the next edit or a load clears it', async (ctx) => {
+        if (!(await viewOf()).includes('reveal')) return ctx.skip();
+        await start(TEN, { anchor: 1, head: 1 });
+        const before = await snapshot();
+        const seen = record('changed', 'selection', 'focus');
+
+        const reply = await client.reveal({ from: 3, to: 5 });
+
+        expect(unwrap(reply)).toMatchObject({ focused: false, revealed: { from: 3, to: 5 } });
+        expect(await snapshot()).toEqual(before);
+        expect(seen).toEqual([]);
+        unwrap(await client.insertAt(0, 'x'));
+        expect(unwrap(await client.marks()).revealed).toBeNull();
+        unwrap(await client.reveal({ from: 0, to: 1 }));
+        await start('fresh');
+        expect(unwrap(await client.marks()).revealed).toBeNull();
+      });
+
+      it('given a reveal at an older revision after the person typed before it, when view runs, then revealed is the range rebased onto the same text', async (ctx) => {
+        if (!(await viewOf()).includes('reveal')) return ctx.skip();
+        needs(ctx, 'userTypes', 'userSelects');
+        const base = await start();
+        await hooks().userSelects?.(0);
+        await hooks().userTypes?.('ab');
+        await snapshot();
+
+        const reply = await client.reveal({ from: 3, to: 5 }, { at: base });
+
+        expect(await textOf(unwrap(reply).revealed as Range)).toBe('34');
+      });
+
+      it('given a reveal and a set where the set fails, when the call runs, then neither applies', async (ctx) => {
+        const announced = await viewOf();
+        if (!announced.includes('marks') || !announced.includes('reveal')) return ctx.skip();
+        await start();
+
+        const reply = await client.setMarks([mark('a', 1, 2), mark('z', 20, 30)], { reveal: { from: 0, to: 1 } });
+
+        expect(failed(reply)).toMatchObject({ code: 'out-of-range', step: 1 });
+        await nothingDrawn();
+      });
+
+      it('given a reveal that is past the document, when it runs, then it is out-of-range and nothing is revealed', async (ctx) => {
+        if (!(await viewOf()).includes('reveal')) return ctx.skip();
+        await start();
+
+        expect(failed(await client.reveal({ from: 4, to: 40 }))).toMatchObject({ code: 'out-of-range', length: 10 });
+        await nothingDrawn();
+      });
+    });
+
     describe('ordering', () => {
       it('given 50 pipelined applies each at the revision the last would produce, when they run, then they apply in send order', async () => {
         const base = await start();
@@ -1105,7 +1316,8 @@ export function editorContract(name: string, make: MakeSubject, options: Contrac
         needs(ctx, 'transportEvents');
         await start();
         const seen = record('changed', 'selection', 'focus');
-        const replies = [await client.hello(), await client.getText(), await client.insertAt(0, 'a'), await client.select(1), await client.undo(), await client.setConfig({ wrap: false }), await client.focus()];
+        const replies: Reply<unknown>[] = [await client.hello(), await client.getText(), await client.insertAt(0, 'a'), await client.select(1), await client.undo(), await client.setConfig({ wrap: false }), await client.focus(), await client.marks()];
+        if ((await viewOf()).includes('marks')) replies.push(await client.setMarks([{ id: 'm', kind: 'error', range: { from: 0, to: 1 }, hidden: true }]));
         for (const value of [...replies, ...seen]) expect(JSON.parse(JSON.stringify(value))).toEqual(value);
       });
 

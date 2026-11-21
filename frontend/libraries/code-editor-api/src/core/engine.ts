@@ -2,10 +2,11 @@ import type { EditorEngine } from '../ports/engine';
 import type { DocumentHost } from '../ports/host';
 import {
   API_VERSION, CORE_REQUEST_NAMES,
-  type ApplyValue, type Change, type EditorError, type EditorEvent, type EventType, type Hello, type HistoryValue, type LoadValue, type Origin, type Range,
+  type ApplyValue, type Change, type EditorError, type EditorEvent, type EventType, type Hello, type HistoryValue, type LoadValue, type Mark, type MarkSpec, type Origin, type Range,
   type ReadValue, type Reply, type Requests, type RequestName, type Revision, type Selection, type SelRange, type TreeValue, type ViewValue,
 } from '../ports/protocol';
 import { lengthDelta, mapSelRange, normalizeText } from './changes';
+import { clearMarks, mapMarks, MAX_MARKS, setMarks } from './marks';
 import { planBatch, type ResolvedStep } from './plan';
 import { createRevisionLog } from './revisionLog';
 import { runTreeJob } from './treeJob';
@@ -56,6 +57,8 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
   let lastFocus = host.hasFocus();
   let lastCompletion = false;
   let delivered: HostUpdate | null = null;
+  let marks: readonly Mark[] = [];
+  let revealed: Range | null = null;
   let queue: Promise<unknown> = Promise.resolve();
 
   const emit = (event: EditorEvent) => {
@@ -71,6 +74,7 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
   const failure = (error: EditorError): Reply<never> => ({ ok: false, revision: log.head(), error });
   const success = <V>(value: V, base: Revision = log.head()): Reply<V> => ({ ok: true, revision: log.head(), base, value });
   const invalid = (path: string, message: string) => failure({ code: 'invalid', message, path });
+  const unsupportedView = (what: 'marks' | 'reveal') => failure({ code: 'unsupported', message: `this editor cannot draw ${what}`, what: `view:${what}` });
   const unsupportedStep = (op: string) => failure({ code: 'unsupported', message: `this editor has no step ${op}`, what: `step:${op}` });
   const mainRange = (selection: Selection): Range => {
     const range = selection.ranges[selection.main] ?? { anchor: 0, head: 0 };
@@ -91,6 +95,7 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
         languages: host.languages(),
         maxSelections: host.maxSelections,
         logDepth: depth,
+        view: [...(host.marks ? (['marks'] as const) : []), ...(host.reveal ? (['reveal'] as const) : [])],
       },
     });
 
@@ -215,6 +220,11 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     const loaded = host.load(text, selection);
     log.reset(loaded.revision, loaded.text.length);
     lastSelection = loaded.selection;
+    revealed = null;
+    if (marks.length > 0) {
+      marks = [];
+      host.marks?.(marks);
+    }
     emit({
       type: 'changed',
       from: loaded.revision - 1,
@@ -239,11 +249,47 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     return result.ok ? success(result.config) : failure(result.error);
   };
 
+  // Everything is checked before anything is applied: a call that fails leaves no mark, no reveal and no focus change behind.
   const view = (params: unknown): Reply<ViewValue> => {
     const parsed = parseView(params);
     if (!parsed.ok) return failure(parsed.error);
-    if (parsed.value.focus !== undefined) host.setFocus(parsed.value.focus);
-    return success({ focused: host.hasFocus() });
+    const { focus, at, instance, marks: change, reveal } = parsed.value;
+    if (change && !host.marks) return unsupportedView('marks');
+    if (reveal && !host.reveal) return unsupportedView('reveal');
+    if (instance !== undefined && instance !== options.instance) {
+      return failure({ code: 'instance-mismatch', message: 'these revisions belong to another editor instance', expected: options.instance, actual: instance });
+    }
+    const head = log.head();
+    const from = at ?? head;
+    if (from > head) return invalid('at', `at ${from} is ahead of the head ${head}`);
+    if (from < log.floor()) return failure({ code: 'stale', message: `the call was made at revision ${from}, the head is ${head}`, head, floor: log.floor() });
+    const lengthThen = from < head ? (log.lengthAt(from) ?? 0) : host.doc.length;
+    const rebase = (range: Range, step: number): Range | EditorError => {
+      if (range.to > lengthThen) return { code: 'out-of-range', message: `the range ends past the document at revision ${from} (length ${lengthThen})`, length: lengthThen, step };
+      const mapped = from < head ? log.mapRange(range, from) : range;
+      return range.from < range.to && mapped.from === mapped.to ? { code: 'range-lost', message: 'the text the range named is gone from the head', step } : mapped;
+    };
+    const specs: MarkSpec[] = [];
+    for (const [index, spec] of (change?.set ?? []).entries()) {
+      const range = rebase(spec.range, index);
+      if ('code' in range) return failure(range);
+      specs.push({ ...spec, range });
+    }
+    const target = reveal ? rebase(reveal, -1) : null;
+    if (target && 'code' in target) return failure(target);
+    const next = change ? setMarks(change.clear === undefined ? marks : clearMarks(marks, change.clear), specs) : marks;
+    if (next.length > MAX_MARKS) return invalid('marks.set', `a document holds at most ${MAX_MARKS} marks`);
+
+    if (focus !== undefined) host.setFocus(focus);
+    if (change) {
+      marks = next;
+      host.marks?.(marks);
+    }
+    if (target) {
+      revealed = target;
+      host.reveal?.(target);
+    }
+    return success({ focused: host.hasFocus(), marks, revealed });
   };
 
   // The parse is paced in slices with the page's events given a turn between them, so the call that asked for it is answered
@@ -311,6 +357,8 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
       if (update.revision <= log.head()) return;
       if (update.revision > log.head() + 1) log.reset(update.revision - 1, update.length - lengthDelta(update.changes));
       log.push(update.changes);
+      marks = mapMarks(marks, update.changes);
+      revealed = null;
       lastSelection = update.selection;
       delivered = update;
       emit({
@@ -352,7 +400,7 @@ export function createDeferredEngine(logError: (error: unknown) => void): Editor
         ok: true,
         revision: 0,
         base: 0,
-        value: { api: API_VERSION, instance: '', ready: false, capabilities: { requests: CORE_REQUEST_NAMES, steps: [], events: [], languages: [], maxSelections: 0, logDepth: 0 } },
+        value: { api: API_VERSION, instance: '', ready: false, capabilities: { requests: CORE_REQUEST_NAMES, steps: [], events: [], languages: [], maxSelections: 0, logDepth: 0, view: [] } },
       });
     }
     return Promise.resolve({ ok: false, revision: null, error: { code: 'not-ready', message: 'the editor has not been created yet' } });

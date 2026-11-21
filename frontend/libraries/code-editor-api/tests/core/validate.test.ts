@@ -180,3 +180,55 @@ describe('the tree params', () => {
     expect(code(parseTree(params))).toBe(expected);
   });
 });
+
+describe('the view params', () => {
+  const spec = (id: string, extra: object = {}) => ({ id, kind: 'error', range: { from: 1, to: 3 }, ...extra });
+  const nine = Array.from({ length: 9 }, (_, i) => spec(`m${i}`));
+
+  it.each([
+    ['no params', undefined, 'ok'],
+    ['an empty object', {}, 'ok'],
+    ['focus alone', { focus: true }, 'ok'],
+    ['every field', { focus: false, at: 4, instance: 'i', marks: { set: [spec('run-error', { hidden: true })], clear: ['old'] }, reveal: { from: 0, to: 2 } }, 'ok'],
+    ['clear all', { marks: { clear: 'all' } }, 'ok'],
+    ['eight marks', { marks: { set: nine.slice(0, 8) } }, 'ok'],
+    ['nine marks', { marks: { set: nine } }, 'invalid'],
+    ['nine ids to clear', { marks: { clear: nine.map(({ id }) => id) } }, 'invalid'],
+    ['a clear that is neither all nor ids', { marks: { clear: 'some' } }, 'invalid'],
+    ['an id that is not a label', { marks: { set: [spec('Bad Id')] } }, 'invalid'],
+    ['an empty id', { marks: { set: [spec('')] } }, 'invalid'],
+    ['an unknown kind', { marks: { set: [{ ...spec('a'), kind: 'warning' }] } }, 'invalid'],
+    ['the same id twice in one set', { marks: { set: [spec('a'), spec('a')] } }, 'invalid'],
+    ['a reversed range', { marks: { set: [{ ...spec('a'), range: { from: 3, to: 1 } }] } }, 'invalid'],
+    ['a hidden that is not a boolean', { marks: { set: [spec('a', { hidden: 'yes' })] } }, 'invalid'],
+    ['marks that are not an object', { marks: [] }, 'invalid'],
+    ['a reveal that is a number', { reveal: 5 }, 'invalid'],
+    ['a reveal with a fractional end', { reveal: { from: 0, to: 1.5 } }, 'invalid'],
+    ['an at that is negative', { at: -1 }, 'invalid'],
+    ['an instance that is a number', { instance: 5 }, 'invalid'],
+    ['params that are not an object', 'focus', 'invalid'],
+  ])('given %s, when view params are parsed, then they are %s', (_name, params, expected) => {
+    expect(code(parseView(params))).toBe(expected);
+  });
+
+  it.each([
+    ['nine marks', { marks: { set: nine } }, 'marks.set'],
+    ['a bad id', { marks: { set: [spec('a'), spec('B')] } }, 'marks.set[1].id'],
+    ['a duplicate id', { marks: { set: [spec('a'), spec('a')] } }, 'marks.set[1].id'],
+    ['an unknown kind', { marks: { set: [{ ...spec('a'), kind: 'x' }] } }, 'marks.set[0].kind'],
+    ['a reversed range', { marks: { set: [{ ...spec('a'), range: { from: 3, to: 1 } }] } }, 'marks.set[0].range'],
+    ['a bad hidden', { marks: { set: [spec('a', { hidden: 1 })] } }, 'marks.set[0].hidden'],
+    ['a bad clear id', { marks: { clear: ['a', 'B'] } }, 'marks.clear[1]'],
+    ['a bad reveal', { reveal: { from: 'a', to: 1 } }, 'reveal'],
+  ])('given %s, when view params are parsed, then the error names %s', (_name, params, path) => {
+    expect(parseView(params)).toMatchObject({ ok: false, error: { code: 'invalid', path } });
+  });
+
+  it('given a valid call with every field, when parsed, then nothing is dropped and no undefined field appears', () => {
+    const params = { focus: true, at: 2, instance: 'i', marks: { set: [spec('a'), spec('b', { hidden: false })], clear: ['c'] }, reveal: { from: 0, to: 4 } };
+
+    const parsed = parseView(params);
+
+    expect(parsed.ok && JSON.parse(JSON.stringify(parsed.value))).toEqual(params);
+  });
+});

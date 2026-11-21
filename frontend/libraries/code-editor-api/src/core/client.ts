@@ -1,7 +1,7 @@
 import type { EditorEngine } from '../ports/engine';
 import type {
   ApplyParams, ApplyValue, ConfigPatch, EditorConfig, EditorError, EditorErrorCode, EditorEvent, EventOf, EventType, Hello, HistoryValue, LoadValue, Point, Pos,
-  Range, ReadValue, Reply, RequestName, Requests, Revision, SelRange, Step, SyntaxNode, TreeParams, TreeValue, ViewValue,
+  MarkSpec, Range, ReadValue, Reply, RequestName, Requests, Revision, SelRange, Step, SyntaxNode, TreeParams, TreeValue, ViewParams, ViewValue,
 } from '../ports/protocol';
 import { enclosingBlock, isUnread, nodeAt, nodesInRange, statementAt, type EnclosingBlock, type Side } from './syntax';
 
@@ -15,6 +15,7 @@ export type CallTrace = {
 };
 export type ClientOptions = { readonly trace?: (call: CallTrace) => void; readonly now?: () => number };
 type Options = Pick<ApplyParams, 'at' | 'stale' | 'instance' | 'label'>;
+type ViewOptions = Pick<ViewParams, 'at' | 'instance'>;
 
 export type EditorClient = {
   readonly engine: EditorEngine;
@@ -31,6 +32,12 @@ export type EditorClient = {
   setConfig(patch: ConfigPatch): Promise<Reply<EditorConfig>>;
   focus(): Promise<Reply<ViewValue>>;
   blur(): Promise<Reply<ViewValue>>;
+  /** the marks the engine holds and the last range it revealed, only when the engine announces `view.marks` (setting one is `unsupported` otherwise) */
+  marks(): Promise<Reply<ViewValue>>;
+  /** one atomic call: `clear` runs first, then the specs are set (a spec with the id of a mark replaces it) and `reveal` scrolls to a range; `at` names the revision the ranges are in */
+  setMarks(specs: readonly MarkSpec[], options?: ViewOptions & { readonly reveal?: Range; readonly clear?: readonly string[] | 'all' }): Promise<Reply<ViewValue>>;
+  clearMarks(ids: readonly string[] | 'all', options?: ViewOptions): Promise<Reply<ViewValue>>;
+  reveal(range: Range, options?: ViewOptions): Promise<Reply<ViewValue>>;
   /** the syntax tree, only when the engine announces `tree` (else `unsupported`); `complete: false` says the parse stopped at its budget */
   tree(params?: TreeParams): Promise<Reply<TreeValue>>;
   /** the node at `pos` (full detail); null where the tree is not read. The reply's `base` is the revision the tree describes. */
@@ -127,6 +134,10 @@ export function createEditorClient(engine: EditorEngine, options: ClientOptions 
     setConfig: (patch) => call('configure', patch),
     focus: () => call('view', { focus: true }),
     blur: () => call('view', { focus: false }),
+    marks: () => call('view', {}),
+    setMarks: (specs, { reveal, clear, ...rest } = {}) => call('view', { ...rest, marks: { set: specs, ...(clear === undefined ? {} : { clear }) }, ...(reveal ? { reveal } : {}) }),
+    clearMarks: (ids, options = {}) => call('view', { ...options, marks: { clear: ids } }),
+    reveal: (range, options = {}) => call('view', { ...options, reveal: range }),
     tree: (params = {}) => call('tree', params),
     nodeAt: async (pos, options = {}) => through(await call('tree', { range: pointAt(pos), detail: 'full' }), (value) => (isUnread(value, pos) ? null : nodeAt(value.root, pos, options.side))),
     nodesInRange: async (range, options = {}) => through(await call('tree', { range, detail: 'full' }), (value) => nodesInRange(value.root, range, options)),

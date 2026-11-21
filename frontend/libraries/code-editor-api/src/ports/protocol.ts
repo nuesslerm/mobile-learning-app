@@ -67,8 +67,18 @@ export type HistoryParams = { readonly direction: 'undo' | 'redo' };
 export type HistoryValue = { readonly applied: boolean; readonly changes: readonly Change[]; readonly selection: Selection };
 export type LoadParams = { readonly text: string; readonly selection?: SelRange }; // new
 export type LoadValue = { readonly length: number; readonly selection: Selection };
-export type ViewParams = { readonly focus?: boolean }; // omitted = query
-export type ViewValue = { readonly focused: boolean };
+export const MARK_KINDS = ['edit', 'error'] as const;
+export type MarkKind = (typeof MARK_KINDS)[number];
+export type Mark = { readonly id: string; readonly kind: MarkKind; readonly range: Range; readonly hidden?: true }; // a range the editor draws, listed in head coordinates; hidden: listed and kept, not drawn
+export type MarkSpec = { readonly id: string; readonly kind: MarkKind; readonly range: Range; readonly hidden?: boolean };
+export type ViewParams = {
+  readonly focus?: boolean; // all omitted = query
+  readonly at?: Revision; // the revision the marks' and the reveal's ranges are in; omitted = the head
+  readonly instance?: string; // the Hello.instance those revisions belong to
+  readonly marks?: { readonly set?: readonly MarkSpec[]; readonly clear?: readonly string[] | 'all' }; // clear runs before set; at most 8 marks stay, one per id
+  readonly reveal?: Range; // scroll the range into view: no focus, no selection, no change to the text
+};
+export type ViewValue = { readonly focused: boolean; readonly marks: readonly Mark[]; readonly revealed: Range | null }; // revealed: the last reveal, until the text changes
 
 export type TreeDetail = 'outline' | 'full'; // outline: the statements and blocks; full: every named node
 export type SyntaxNode = { readonly type: string; readonly from: Pos; readonly to: Pos; readonly error?: true; readonly children?: readonly SyntaxNode[] }; // a Lezer node name and its extent, JSON-safe
@@ -91,6 +101,7 @@ export type Capabilities = {
   readonly languages: readonly Language[]; // what configure({language}) accepts now
   readonly maxSelections: number;
   readonly logDepth: number; // how many revisions back `at` still maps to the present
+  readonly view: readonly ('marks' | 'reveal')[]; // what `view` can do besides focus
 };
 export type Hello = { readonly api: typeof API_VERSION; readonly instance: string; readonly ready: boolean; readonly capabilities: Capabilities };
 

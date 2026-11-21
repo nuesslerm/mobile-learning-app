@@ -87,6 +87,6 @@ export function createHeadlessCm(options: { text?: string; instance?: string; lo
     },
     rawState: () => state,
     internalErrors: () => errors,
-    peek: () => ({ text: state.doc.toString(), selection: selectionOf(state), revision: engine.revision(), undoDepth: undoDepth(state), redoDepth: redoDepth(state), focused }),
+    peek: () => ({ text: state.doc.toString(), selection: selectionOf(state), revision: engine.revision(), undoDepth: undoDepth(state), redoDepth: redoDepth(state), focused, marks: [], revealed: null }),
   };
 }

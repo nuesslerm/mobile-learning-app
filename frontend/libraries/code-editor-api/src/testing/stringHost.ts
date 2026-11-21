@@ -1,8 +1,9 @@
 import { applyChanges, mapSelRange, normalizeText } from '../core/changes';
+import { mapMarks } from '../core/marks';
 import { createEditorEngine, type EngineCore, type EngineOptions } from '../core/engine';
 import type { DocumentHost, TreeSnapshot } from '../ports/host';
 import { snapshotOf, type TreeParse } from './treeParsers';
-import { LANGUAGE_NAMES, type Change, type ConfigPatch, type EditorConfig, type Language, type Origin, type Revision, type SelRange, type Selection } from '../ports/protocol';
+import { LANGUAGE_NAMES, type Change, type ConfigPatch, type EditorConfig, type Language, type Mark, type Origin, type Range, type Revision, type SelRange, type Selection } from '../ports/protocol';
 import { emptyHistory, pop, recordChange, recordSelection, type HistoryState } from './history';
 
 export type FakeEditorOptions = {
@@ -14,6 +15,8 @@ export type FakeEditorOptions = {
   readonly typing?: boolean;
   /** false: a host without the optional `complete` method, which then announces neither the step, the event nor the config */
   readonly completion?: boolean;
+  /** false: a host without the optional `marks` and `reveal` methods, which then announces neither */
+  readonly marks?: boolean;
   /** gives the host an optional `tree()`, which makes the engine announce the request: `true` for the fake's own tiny parsers, `parse` to replace them, or a function that makes the snapshot */
   readonly tree?: true | { readonly parse?: TreeParse } | ((text: string, language: Language) => TreeSnapshot);
   /** the engine's clock, parse turn and slice length, so a test can pace a parse */
@@ -34,7 +37,8 @@ export type FakeEditor = {
   /** the next trees need this many calls to `work` before they cover the text (1: at once) */
   slowParse?(calls: number): void;
   internalErrors(): readonly unknown[];
-  peek(): { text: string; selection: Selection; revision: Revision; undoDepth: number; redoDepth: number; focused: boolean };
+  /** `marks` is what the host was last told to draw, kept in step with the text as the real one is; `revealed` the last range it was told to scroll to */
+  peek(): { text: string; selection: Selection; revision: Revision; undoDepth: number; redoDepth: number; focused: boolean; marks: readonly Mark[]; revealed: Range | null };
 };
 
 const DEFAULT_CONFIG: EditorConfig = {
@@ -58,6 +62,8 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
   let past: HistoryState = emptyHistory;
   let slowBy = 1;
   let completionOpen = false;
+  let drawn: readonly Mark[] = [];
+  let revealed: Range | null = null;
   const errors: unknown[] = [];
   const sink: { core: EngineCore | null } = { core: null };
   const core = (): EngineCore => {
@@ -65,8 +71,10 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
     return sink.core;
   };
 
-  const report = (changes: readonly Change[], origin: Origin, label?: string) =>
+  const report = (changes: readonly Change[], origin: Origin, label?: string) => {
+    drawn = mapMarks(drawn, changes);
     core().ingest({ revision: core().revision() + 1, changes, selection: selectionOf(selection), origin, length: text.length, ...(label ? { label } : {}) });
+  };
 
   // The model is trivial on purpose: the word before the caret, two characters at least, is a strict prefix of an entry. The real editor opens its list later and ranks more.
   const wordBeforeCaret = (): string => (selection.anchor === selection.head ? (/[A-Za-z_]\w*$/.exec(text.slice(0, selection.head))?.[0] ?? '') : '');
@@ -153,6 +161,7 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
       return true;
     },
     load(next, range) {
+      drawn = mapMarks(drawn, [{ from: 0, to: text.length, insert: normalizeText(next) }]);
       text = normalizeText(next);
       selection = range ?? { anchor: 0, head: 0 };
       past = emptyHistory;
@@ -168,6 +177,16 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
       focused = next;
       core().ingestFocus(next);
     },
+    ...(options.marks === false
+      ? {}
+      : {
+          marks(list: readonly Mark[]) {
+            drawn = list;
+          },
+          reveal(range: Range) {
+            revealed = range;
+          },
+        }),
     languages: () => options.languages ?? LANGUAGE_NAMES,
     maxSelections: 1,
   };
@@ -196,6 +215,6 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
     slowParse(calls) {
       slowBy = calls;
     },
-    peek: () => ({ text, selection: selectionOf(selection), revision: core().revision(), undoDepth: past.done.length, redoDepth: past.undone.length, focused }),
+    peek: () => ({ text, selection: selectionOf(selection), revision: core().revision(), undoDepth: past.done.length, redoDepth: past.undone.length, focused, marks: drawn, revealed }),
   };
 }

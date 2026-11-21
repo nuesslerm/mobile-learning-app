@@ -4,6 +4,7 @@ export * from './ports/host';
 export * from './core/changes';
 export * from './core/revisionLog';
 export * from './core/plan';
+export * from './core/marks';
 export * from './core/validate';
 export * from './core/engine';
 export * from './core/treeJob';

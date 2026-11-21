@@ -1,9 +1,10 @@
 import {
-  LANGUAGE_NAMES, SEMANTIC_STEP_OPS,
+  LANGUAGE_NAMES, MARK_KINDS, SEMANTIC_STEP_OPS,
   type CompletionConfig, type CompletionEntry, type TreeParams,
-  type ApplyParams, type ConfigPatch, type Destination, type EditorError, type HistoryParams, type Language, type LoadParams, type Palette, type Point, type Range, type ReadParams, type SelRange, type SemanticStep, type SemanticStepOp, type Step, type ViewParams,
+  type ApplyParams, type ConfigPatch, type Destination, type EditorError, type HistoryParams, type Language, type LoadParams, type MarkKind, type MarkSpec, type Palette, type Point, type Range, type ReadParams, type SelRange, type SemanticStep, type SemanticStepOp, type Step, type ViewParams,
 } from '../ports/protocol';
 import { normalizeText } from './changes';
+import { MAX_MARKS } from './marks';
 
 export type Parsed<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: EditorError };
 
@@ -182,10 +183,61 @@ export function parseLoad(params: unknown): Parsed<LoadParams> {
   return selection.ok ? { ok: true, value: { text: params.text, selection: selection.value } } : selection;
 }
 
+function parseMarks(value: unknown): Parsed<NonNullable<ViewParams['marks']>> {
+  if (!isObject(value)) return bad('marks', 'marks is {set?, clear?}');
+  const parsed: { set?: MarkSpec[]; clear?: readonly string[] | 'all' } = {};
+  if (value.set !== undefined) {
+    if (!Array.isArray(value.set) || value.set.length > MAX_MARKS) return bad('marks.set', `set is an array of at most ${MAX_MARKS} marks`);
+    const specs: MarkSpec[] = [];
+    for (const [index, raw] of value.set.entries()) {
+      const path = `marks.set[${index}]`;
+      if (!isObject(raw)) return bad(path, 'a mark is {id, kind, range}');
+      if (typeof raw.id !== 'string' || !LABEL.test(raw.id)) return bad(`${path}.id`, 'an id matches /^[a-z0-9][a-z0-9.-]{0,31}$/');
+      if (specs.some((spec) => spec.id === raw.id)) return bad(`${path}.id`, 'an id appears once in a set');
+      if (typeof raw.kind !== 'string' || !(MARK_KINDS as readonly string[]).includes(raw.kind)) return bad(`${path}.kind`, `kind is ${MARK_KINDS.join(' or ')}`);
+      const range = parseRange(raw.range, `${path}.range`);
+      if (!range.ok) return range;
+      if (raw.hidden !== undefined && typeof raw.hidden !== 'boolean') return bad(`${path}.hidden`, 'hidden is a boolean');
+      specs.push({ id: raw.id, kind: raw.kind as MarkKind, range: range.value, ...(raw.hidden === undefined ? {} : { hidden: raw.hidden }) });
+    }
+    parsed.set = specs;
+  }
+  if (value.clear !== undefined) {
+    if (value.clear === 'all') parsed.clear = 'all';
+    else {
+      if (!Array.isArray(value.clear) || value.clear.length > MAX_MARKS) return bad('marks.clear', `clear is all or an array of at most ${MAX_MARKS} ids`);
+      const ids: string[] = [];
+      for (const [index, id] of value.clear.entries()) {
+        if (typeof id !== 'string' || !LABEL.test(id)) return bad(`marks.clear[${index}]`, 'an id matches /^[a-z0-9][a-z0-9.-]{0,31}$/');
+        ids.push(id);
+      }
+      parsed.clear = ids;
+    }
+  }
+  return { ok: true, value: parsed };
+}
+
 export function parseView(params: unknown): Parsed<ViewParams> {
   if (params === undefined || params === null) return { ok: true, value: {} };
-  if (!isObject(params) || (params.focus !== undefined && typeof params.focus !== 'boolean')) return bad('focus', 'focus is a boolean');
-  return { ok: true, value: params.focus === undefined ? {} : { focus: params.focus } };
+  if (!isObject(params)) return bad('', 'view takes {focus?, at?, instance?, marks?, reveal?}');
+  if (params.focus !== undefined && typeof params.focus !== 'boolean') return bad('focus', 'focus is a boolean');
+  if (params.at !== undefined && !isInt(params.at)) return bad('at', 'at is a revision: a non-negative integer');
+  if (params.instance !== undefined && typeof params.instance !== 'string') return bad('instance', 'instance is a string');
+  const value: { -readonly [K in keyof ViewParams]?: ViewParams[K] } = {};
+  if (params.focus !== undefined) value.focus = params.focus;
+  if (params.at !== undefined) value.at = params.at;
+  if (params.instance !== undefined) value.instance = params.instance;
+  if (params.marks !== undefined) {
+    const marks = parseMarks(params.marks);
+    if (!marks.ok) return marks;
+    value.marks = marks.value;
+  }
+  if (params.reveal !== undefined) {
+    const reveal = parseRange(params.reveal, 'reveal');
+    if (!reveal.ok) return reveal;
+    value.reveal = reveal.value;
+  }
+  return { ok: true, value };
 }
 
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
