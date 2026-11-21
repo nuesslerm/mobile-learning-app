@@ -4,10 +4,9 @@ use crate::support::{last_json, run_wf, MockReply, MockRequest, MockServer, RunO
 use serde_json::{json, Value};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-/// A log cache directory of its own for each wf run, so a test never reads the log another test cached under the same run and job ids.
+/// A fresh, empty log cache directory for each wf run. A name made from the process id is reused by a later test process, which then reads the log an earlier run cached under the same run and job ids.
 fn log_cache() -> String {
-    static N: AtomicU64 = AtomicU64::new(0);
-    std::env::temp_dir().join(format!("ci-log-cache-{}-{}", std::process::id(), N.fetch_add(1, Ordering::Relaxed))).display().to_string()
+    tempfile::Builder::new().prefix("ci-log-cache-").tempdir().unwrap().keep().display().to_string()
 }
 
 /// The options of a run with the labelling variables of the machine the tests run on (a hosted pipeline sets `WF_CI_LABEL`) cleared: a test that wants one sets it.
