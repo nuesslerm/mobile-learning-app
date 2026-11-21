@@ -100,3 +100,54 @@ fn given_a_path_that_climbs_out_when_it_is_written_then_it_is_refused_and_nothin
     assert_eq!((code, out["ok"].as_bool()), (1, Some(false)));
     assert_eq!(git(&remote.bare(), &["for-each-ref"]), "");
 }
+
+#[test]
+fn given_a_long_history_when_a_job_reads_the_pointer_then_it_gets_the_newest_body_and_its_checkout_is_left_alone() {
+    let remote = Remote::new();
+    let (writer, reader) = (remote.job("writer"), remote.job("reader"));
+    for n in 1..=4 {
+        let (code, out) = state(&writer, &["write", "eas/latest-dev.json", "--message", &format!("pointer {n}")], Some(&format!("{{\"group\":\"g{n}\"}}")));
+        assert_eq!(code, 0, "{out}");
+    }
+    let (code, big) = state(&writer, &["write", "ci/ci.sqlite.sealed", "--message", "sealed"], Some(&"x".repeat(200_000)));
+    assert_eq!(code, 0, "{big}");
+
+    let (code, found) = state(&reader, &["read", "eas/latest-dev.json"], None);
+
+    assert_eq!((code, found["content"].as_str()), (0, Some("{\"group\":\"g4\"}")));
+    assert_eq!(git(&reader, &["for-each-ref"]), "", "the read must not write refs into the checkout");
+    assert!(!reader.join(".git/shallow").exists(), "the read must not make the checkout shallow");
+}
+
+#[test]
+fn given_a_state_ref_without_the_pointer_when_it_is_read_then_it_is_not_found() {
+    let remote = Remote::new();
+    let (writer, reader) = (remote.job("writer"), remote.job("reader"));
+    let (code, out) = state(&writer, &["write", "ci/other.json"], Some("{}"));
+    assert_eq!(code, 0, "{out}");
+
+    let (code, out) = state(&reader, &["read", "eas/latest-dev.json"], None);
+
+    assert_eq!((code, out["ok"].as_bool(), out["found"].as_bool()), (0, Some(true), Some(false)));
+}
+
+#[test]
+fn given_a_remote_that_never_answers_when_a_file_is_read_then_the_read_fails_within_its_timeout_and_says_so() {
+    let silent = std::net::TcpListener::bind("127.0.0.1:0").expect("a listener");
+    let port = silent.local_addr().expect("an address").port();
+    let held = std::thread::spawn(move || silent.incoming().take(8).filter_map(Result::ok).collect::<Vec<_>>());
+    let dir = tempfile::tempdir().expect("a temp dir");
+    git(dir.path(), &["init", "--quiet"]);
+    git(dir.path(), &["remote", "add", "origin", &format!("http://127.0.0.1:{port}/repo.git")]);
+    let mut opts = RunOpts { cwd: Some(dir.path().to_path_buf()), timeout: Some(std::time::Duration::from_secs(40)), ..RunOpts::default() };
+    opts.env.insert("WF_STATE_READ_TIMEOUT_S".into(), "2".into());
+    let started = std::time::Instant::now();
+
+    let r = run_wf(&["bucket", "state", "read", "eas/latest-dev.json"], &opts);
+
+    let out = last_json(&r);
+    assert_eq!((r.exit_code, out["ok"].as_bool()), (1, Some(false)));
+    assert!(out["error"].as_str().unwrap_or("").contains("did not finish within 2 s"), "{out}");
+    assert!(started.elapsed() < std::time::Duration::from_secs(30), "took {:?}", started.elapsed());
+    drop(held);
+}

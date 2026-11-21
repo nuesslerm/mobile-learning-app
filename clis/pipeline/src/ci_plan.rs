@@ -150,7 +150,11 @@ fn tags(args: &[String]) -> Option<i32> {
 
 /// The commit the latest EAS Update was published from, and the backend hosts it dials that have moved.
 fn latest_update() -> Result<(String, Vec<String>), String> {
-    let pointer = crate::eas::latest_pointer("dev")?;
+    wf_kit::wf_err!("wf: reading the latest EAS Update pointer from refs/wf/state");
+    let started = std::time::Instant::now();
+    let read = crate::eas::latest_pointer("dev");
+    wf_kit::wf_err!("wf: read the latest EAS Update pointer in {} s ({})", crate::eas::seconds(started.elapsed()), match &read { Ok(_) => "found".to_string(), Err(e) if e.contains(crate::eas::NO_POINTER) => "not found".to_string(), Err(e) => format!("failed: {e}") });
+    let pointer = read?;
     let commit = pointer["commit"].as_str().ok_or_else(|| "it names no commit".to_string())?;
     Ok((commit.to_string(), crate::eas::moved_hosts(&pointer)))
 }

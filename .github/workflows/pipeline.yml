@@ -302,7 +302,8 @@ jobs:
       - name: Which services changed since the commit they run?
         id: legs
         if: ${{ inputs.stages != 'core' && inputs.stages != 'cli' }}
-        timeout-minutes: 3
+        # Safety net only: the pointer read is seconds now (the step prints its own duration); it was 99-158 s and once over 3 minutes.
+        timeout-minutes: 8
         env:
           FORCE_SHIP: ${{ steps.tags.outputs.force_ship }}
         run: |

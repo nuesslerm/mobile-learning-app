@@ -1145,7 +1145,11 @@ Usage: `wf bucket state read [options] <path>`
 ```text
 Usage: wf bucket state read [options] <path>
 
-Fetch refs/wf/state from origin and print the file at <path>.
+Print the file at <path> of the tip of refs/wf/state on origin. Only the tip
+commit and its trees are fetched, into a scratch repository (no history, no
+other file, nothing written to the checkout); git then pulls just this one
+file. The ref keeps a sealed database per commit, so a plain fetch of it costs
+minutes. Each git call is bounded by WF_STATE_READ_TIMEOUT_S (default 90).
 
 Output: one JSON line, {ok, found, path, content}. A ref that does not exist
 yet, or a path that is not in it, is {ok: true, found: false}: nothing was
