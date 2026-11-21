@@ -68,10 +68,10 @@ New feature work and refactor work that adds, moves or renames folders is shown 
 - Where a choice is open (a folder inside a feature or a library), show the recommended tree and say in one line what the other choice would change.
 - Show the tree before building, not after. Once the user has agreed to a placement, put a `Decision` in the issue so it is not asked again.
 
-Example (issue 86, section D close-out; the editor folded into the leetcode feature):
+Example (issue 86, section D close-out; the editor folded into the leetcode feature, as landed):
 
 ```
-frontend/                                              (proposed; one slice after D)
+frontend/                                              (landed 21 Nov; was proposed one slice after D)
 ├─ libraries/
 │  ├─ webview-rpc/            the bridge (unchanged)
 │  │  └─ src/ ports/transport · core/{client,server,protocol} · adapters/{webviewHost,webviewPage} · testing/{loopback,emulatedWebView}
@@ -83,14 +83,14 @@ frontend/                                              (proposed; one slice afte
 └─ mla-tamagui/features/leetcode/     ONE feature, hexagonal rings; code-editor/ is folded in
    ├─ domain/                 pure, imports no I/O
    │  ├─ ports.ts · models · judge · caseDisplay · toolbar · completionEntries
-   │  └─ editor/              editing (transforms) · languageProfile · applyVoiceEdit · toolbarKeys (if it imports only domain)
+   │  └─ editor/              editing · languageProfile · applyVoiceEdit · configPatch · documentWrite (planWrite/writeThrough) · editorForwarding (messages → API) · types
    ├─ data/                   adapters
-   │  ├─ editor/cm6/          cm6Host · configPatch · languageExtensions · completionSources · page source → bundle (generated) · editorHtml · palettes
-   │  ├─ editor/api/          editorForwarding (messages → API) · documentWrite (planWrite/writeThrough)
+   │  ├─ editor/cm6/          cm6Host · completion* · languageExtensions · syntaxTreeRead · page source → bundle (generated) · editorHtml · webViewEditorBridge
    │  └─ pyodide/             on-device runner (unchanged)
-   ├─ state/                  stores · ports.tsx · editorSettings (+ completion setting)
+   ├─ state/                  stores · ports.tsx · autocompleteSettingStore
+   │  └─ editor/              editorSettings · palettes
    ├─ ui/
-   │  ├─ editor/              EditorInput (React) · helperbars/{Syntax,Action}Toolbar · EditorHelperRails
+   │  ├─ editor/              EditorInput (React) · toolbarKeys · helperbars/{Syntax,Action}Toolbar · EditorHelperRails
    │  └─ …                    screens, unchanged
    ├─ di/                     LeetCodeContainer, the one composition root
    ├─ routes/ · plan/         unchanged
