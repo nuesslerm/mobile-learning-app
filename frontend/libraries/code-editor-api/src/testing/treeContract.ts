@@ -118,6 +118,19 @@ export function syntaxTreeContract(name: string, make: MakeSubject, language: La
       expect(startsWith(snippet.text, outer?.owner?.from ?? -1, snippet.functionStarts)).toBe(true);
     });
 
+    it('given the caret in the loop body, when the client sugar is used, then the block, the statement and the node agree with the tree', async () => {
+      await start(snippet.text);
+      const pos = snippet.text.indexOf(snippet.inLoop) + 2;
+
+      const block = unwrap(await client.enclosingBlock(pos));
+      const statement = unwrap(await client.statementAt(pos));
+      const found = unwrap(await client.nodeAt(pos));
+
+      expect(startsWith(snippet.text, block?.owner?.from ?? -1, snippet.loopStarts)).toBe(true);
+      expect(statement && classify(language, statement)).toBe('simple');
+      expect(found && found.from <= pos && pos <= found.to).toBe(true);
+    });
+
     it('given broken text, then the tree carries an error where it breaks and the block around the break is found', async () => {
       await start(snippet.broken.text);
       const value = await read();

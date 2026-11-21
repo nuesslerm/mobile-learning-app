@@ -111,3 +111,121 @@ describe('the completion event', () => {
     ]);
   });
 });
+
+describe('the editor client over the tree request', () => {
+  const source = 'def f(xs):\n    for x in xs:\n        print(x)\n    return 1\n';
+  const spyOn = (engine: EditorEngine, after?: (name: string, reads: number) => void) => {
+    const calls: { name: string; params: unknown }[] = [];
+    let reads = 0;
+    const spy: EditorEngine = {
+      listen: (types, onEvent) => engine.listen(types, onEvent),
+      request: async (name, params) => {
+        calls.push({ name, params });
+        const reply = await engine.request(name, params);
+        if (name === 'read') reads += 1;
+        after?.(name, reads);
+        return reply;
+      },
+    };
+    return { spy, calls };
+  };
+
+  it('given an engine whose transport rejects, when tree runs, then it resolves a transport reply and does not reject', async () => {
+    const failing: EditorEngine = { request: () => Promise.reject(Object.assign(new Error('gone'), { code: 'closed' })), listen: () => () => undefined };
+
+    expect(await createEditorClient(failing).tree()).toMatchObject({ ok: false, error: { code: 'transport', cause: 'closed' } });
+  });
+
+  it('given a spy engine, when nodeAt runs, then exactly one tree request goes out with a point range and full detail', async () => {
+    const { spy, calls } = spyOn(createFakeEditor({ text: source, tree: true }).engine);
+
+    const reply = await createEditorClient(spy).nodeAt(source.indexOf('print') + 1);
+
+    expect(calls).toEqual([{ name: 'tree', params: { range: { from: source.indexOf('print') + 1, to: source.indexOf('print') + 1 }, detail: 'full' } }]);
+    expect(unwrap(reply)).toMatchObject({ type: expect.any(String) });
+    expect(reply).toMatchObject({ ok: true, revision: 0, base: 0 });
+  });
+
+  it('given a caret in a loop body, when statementAt and enclosingBlock run, then the statement is the call and the block is owned by the loop', async () => {
+    const client = createEditorClient(createFakeEditor({ text: source, tree: true }).engine);
+    const caret = source.indexOf('print') + 2;
+
+    const statement = unwrap(await client.statementAt(caret));
+    const block = unwrap(await client.enclosingBlock(caret));
+
+    expect(source.slice(statement?.from, statement?.to)).toBe('print(x)');
+    expect(source.startsWith('for', block?.owner?.from)).toBe(true);
+  });
+
+  it('given a range, when nodesInRange runs, then the nodes inside it come back with within', async () => {
+    const client = createEditorClient(createFakeEditor({ text: source, tree: true }).engine);
+    const from = source.indexOf('return');
+
+    const found = unwrap(await client.nodesInRange({ from, to: from + 8 }, { within: true }));
+
+    expect(found.map((node) => node.type)).toEqual(['ReturnStatement']);
+  });
+
+  it('given a keystroke between the text read and the tree, when enclosingBlock runs, then it reads again once and answers for the newer revision', async () => {
+    const fake = createFakeEditor({ text: source, tree: true });
+    let typed = false;
+    const { spy, calls } = spyOn(fake.engine, (name) => {
+      if (name === 'read' && !typed) {
+        typed = true;
+        fake.userTypes('\n');
+      }
+    });
+
+    const reply = await createEditorClient(spy).enclosingBlock(source.indexOf('print') + 3);
+
+    expect(calls.map((call) => call.name)).toEqual(['read', 'tree', 'read', 'tree']);
+    expect(reply).toMatchObject({ ok: true, base: 1, revision: 1 });
+  });
+
+  it('given a keystroke after every read, when enclosingBlock runs, then it gives up after one retry with stale', async () => {
+    const fake = createFakeEditor({ text: source, tree: true });
+    const { spy, calls } = spyOn(fake.engine, (name) => {
+      if (name === 'read') fake.userTypes('\n');
+    });
+
+    const reply = await createEditorClient(spy).enclosingBlock(source.indexOf('print') + 3);
+
+    expect(reply).toMatchObject({ ok: false, error: { code: 'stale' } });
+    expect(calls.filter((call) => call.name === 'read')).toHaveLength(2);
+  });
+
+  it('given a mirror text, when enclosingBlock runs, then the text is not read again', async () => {
+    const { spy, calls } = spyOn(createFakeEditor({ text: source, tree: true }).engine);
+
+    const reply = await createEditorClient(spy).enclosingBlock(source.indexOf('print') + 3, { text: source });
+
+    expect(calls.map((call) => call.name)).toEqual(['tree']);
+    expect(unwrap(reply)?.owner).not.toBeNull();
+  });
+
+  it('given a blank indented line below a body, when enclosingBlock runs, then the tree asked for starts at the line above so the body is found', async () => {
+    const text = 'def f(xs):\n    return 1\n    ';
+    const client = createEditorClient(createFakeEditor({ text, tree: true }).engine);
+
+    const block = unwrap(await client.enclosingBlock(text.length));
+
+    expect(block?.block.type).toBe('Body');
+    expect(block?.owner?.type).toBe('FunctionDefinition');
+  });
+
+  it('given an engine without tree, when enclosingBlock runs, then the reply is unsupported', async () => {
+    const client = createEditorClient(createFakeEditor({ text: source }).engine);
+
+    expect(await client.enclosingBlock(3)).toMatchObject({ ok: false, error: { code: 'unsupported', what: 'request:tree' } });
+  });
+
+  it('given a tree read only part way, when nodeAt asks past what was parsed, then the answer is null', async () => {
+    let time = 0;
+    const fake = createFakeEditor({ text: source, tree: true, engine: { now: () => (time += 30) } });
+    fake.slowParse?.(100_000);
+    const client = createEditorClient(fake.engine);
+
+    expect(unwrap(await client.nodeAt(source.length - 2))).toBeNull();
+    expect(unwrap(await client.tree()).complete).toBe(false);
+  });
+});
