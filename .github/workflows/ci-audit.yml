@@ -105,6 +105,8 @@ jobs:
           jq -c '{ok, runs: (.runs | length), findings: (.findings | length)}' "$RUNNER_TEMP/ci-audit/ci-audit.json"
       # The Nx cache replay check: what the toolchain below needs is what the package tests need.
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.5
         if: ${{ steps.mode.outputs.replay == 'true' }}
       - run: pnpm --filter @lib/browser-client exec playwright install --with-deps chromium
         if: ${{ steps.mode.outputs.replay == 'true' }}

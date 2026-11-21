@@ -222,7 +222,7 @@ impl Install {
             std::fs::write(home.join(".cache/ms-playwright/.installed-_ersion_1.2.3"), "").unwrap();
         }
         // authored doubles of the tools the script calls: each logs its call, and pnpm/dpkg fail on request; none touches the machine's apt or sources
-        let log = format!("echo \"$(basename \"$0\") $*\" >> \"$HOME/calls\"\n");
+        let log = "echo \"$(basename \"$0\") $*\" >> \"$HOME/calls\"\n".to_string();
         let stubs_text = [
             ("pnpm", format!("{log}case \"$*\" in *--version*) echo 'Version 1.2.3';; *--with-deps*) n=$(cat \"$HOME/n\" 2>/dev/null || echo 0); echo $((n+1)) > \"$HOME/n\"; [ \"$n\" -ge \"${{FAIL_WITH_DEPS:-0}}\" ];; esac\n")),
             ("dpkg", format!("{log}[ \"${{DPKG_FAILS:-0}}\" != 1 ] || [ \"$1\" != -i ]\n")),
@@ -303,4 +303,39 @@ fn a_cached_install_that_fails_falls_back_to_the_mirror_and_a_stalled_mirror_is_
     assert!(!ok && !marker, "{calls:?}");
     assert_eq!(count(&calls, "--with-deps"), 3);
     assert_eq!(count(&calls, "pkill"), 6);
+}
+
+#[test]
+fn every_bun_install_names_an_exact_version_so_no_run_lists_tags_through_the_github_api() {
+    // Given every workflow and composite action in the repository
+    let root = repo_root().join(".github");
+    let mut files = vec![];
+    let mut dirs = vec![root];
+    while let Some(dir) = dirs.pop() {
+        for entry in std::fs::read_dir(&dir).expect("a readable directory").flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                dirs.push(path);
+            } else if path.extension().is_some_and(|e| e == "yml") {
+                files.push(path);
+            }
+        }
+    }
+
+    // When each setup-bun step is read with the lines that follow it
+    let mut steps = 0;
+    for file in files {
+        let text = std::fs::read_to_string(&file).expect("a readable file");
+        let lines: Vec<&str> = text.lines().collect();
+        for (at, _) in lines.iter().enumerate().filter(|(_, l)| l.contains("uses: oven-sh/setup-bun@")) {
+            steps += 1;
+            let step = lines[at + 1..].iter().take_while(|l| !l.trim_start().starts_with("- ")).copied().collect::<Vec<_>>().join("\n");
+
+            // Then it pins an exact x.y.z version (a range or latest resolves through the tag listing)
+            let version = step.lines().find_map(|l| l.trim().strip_prefix("bun-version:")).map(str::trim).unwrap_or("");
+            let exact = version.split('.').count() == 3 && version.split('.').all(|p| !p.is_empty() && p.chars().all(|c| c.is_ascii_digit()));
+            assert!(exact, "{} line {} pins bun-version {version:?}", file.display(), at + 1);
+        }
+    }
+    assert!(steps >= 9, "the setup-bun steps were found: {steps}");
 }

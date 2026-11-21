@@ -34,16 +34,22 @@ inputs:
 runs:
   using: composite
   steps:
-    # bun is a GitHub release download that answered 504 in bursts: two more tries after a failed one
+    # bun is a GitHub release download that answered 504 in bursts: two more tries after a failed one; an exact bun-version skips the tag listing of api.github.com, which a rate limit answered 403
     - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      with:
+        bun-version: 1.4.5
       if: ${{ inputs.bun == 'true' }}
       id: bun
       continue-on-error: true
     - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      with:
+        bun-version: 1.4.5
       if: ${{ inputs.bun == 'true' && steps.bun.outcome == 'failure' }}
       id: bun-retry
       continue-on-error: true
     - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      with:
+        bun-version: 1.4.5
       if: ${{ inputs.bun == 'true' && steps.bun.outcome == 'failure' && steps.bun-retry.outcome == 'failure' }}
     # a hosted runner's apt mirror stalled one shard for 17 minutes (run 42737343615): a stalled connection retries instead of waiting
     - name: apt retries and timeouts
