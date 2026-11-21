@@ -56,13 +56,13 @@ All timestamps are epoch seconds unless the column says `_MS`. The keys make a r
 
 ## In the PR comment
 
-Each of the six hosted workflows keeps one comment on the pull request (`CI (<label>)`), edited in place by `wf ci live` and finished by `wf ci comment`. The comment is built in the report job **before** `wf ci db merge`, so it does not query the sealed database: it recomputes the same numbers in process (`clis/pipeline/src/ci_telemetry.rs`) from the raw inputs the `wf ci timings|resources|concurrency` verbs read. The report job therefore downloads `ci-db-*` first and gives "Report the run" `WF_CI_LEDGERS`, `WF_CI_CORE_SHARD_KEYS` and `WF_CI_SHARD_KEYS`.
+Each of the six hosted workflows keeps one comment on the pull request (`CI (<label>)`), edited in place by `wf ci live` and finished by `wf ci comment`. The comment is built in the report job **before** `wf ci db merge`, so it does not query the sealed database: it recomputes the same numbers in process (`clis/pipeline/src/ci_telemetry.rs`) from the raw inputs the `wf ci timings|resources|concurrency` verbs read. The report job therefore downloads `ci-db-*` first and gives "Report the run" `WF_CI_LEDGERS`, `WF_CI_CORE_SHARD_KEYS`, `WF_CI_SHARD_KEYS` and `WF_CI_CLI_E2E_SHARD_KEYS`.
 
 | Line in the comment | Source |
 |---|---|
 | Headline: wall, runner time, peak and average jobs at once, parallel efficiency, jobs that ran; critical path in the verdict | `ci_timings::profile` over the jobs that ran (the `CI_RUN_PROFILE` numbers) |
 | Fixed cost table: `setup-job`, `install-test-deps` steps, the `wf-build` and `plan` jobs | `ci_timings::step_rows` (`CI_STEPS`) |
-| Queue wait, and a long wait with its concurrency group key (`WF_CI_CORE_SHARD_KEYS`, `WF_CI_SHARD_KEYS`) | job `created_at` to `started_at` (`CI_JOBS.QUEUED_S`) |
+| Queue wait, and a long wait with its concurrency group key (`WF_CI_CORE_SHARD_KEYS`, `WF_CI_SHARD_KEYS`, `WF_CI_CLI_E2E_SHARD_KEYS`) | job `created_at` to `started_at` (`CI_JOBS.QUEUED_S`) |
 | Runner pool: repo busy / queued / headroom at plan and at report | the plan job's `CI_CONCURRENCY` start row; the end reading is taken in process |
 | Runner table: vCPU and memory as sampled, CPU avg/p95/peak, iowait, memory, swap, pressure, seconds idle and saturated | the sampler's `stats-<job>.jsonl` (`CI_JOB_RESOURCES`); cores come from the sampler, never a constant |
 | In-runner parallelism: tasks at once per job and the cores they used | `ci-db-<job>/rows.sqlite` `NX_TASKS` with the samples (`CI_TASK_RESOURCES`) |

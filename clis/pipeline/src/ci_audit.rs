@@ -295,29 +295,48 @@ fn next_step(kind: &str) -> &'static str {
         "drift" => "Read the drift report of the job (which task hashed differently and the cause it names) and make that input stable.",
         "group-overlap" => "Two jobs of one concurrency group ran at once: read the `concurrency` block of the job in the caller (the group must be the same string in both runs and `cancel-in-progress` must not release it) and `wf ci plan shard-keys` for the key.",
         "cancelled-while-running" => "A job was cancelled after it had started and the rest of its run was not: a manual cancel of that one job or a group with `cancel-in-progress: true` did it (`wf vm ops cancel-run --all` and a cancel of the whole run end several jobs and are not reported); check the run's cancel event, and fix the group if it was not a person.",
+        "replaced-while-pending" => "A pending shard was replaced by a newer job of its group and its run ended cancelled: the group must hold the run id (`github.run_id` last, see `concurrency:` of the sharded jobs in pipeline.yml) so no two runs share one.",
+        "twin-overlap" => "Two runs ran the same shard inputs at once, so one did work the other proved or was proving: read the shard's `proven` skip in the plan job (`wf ci proven`), and weigh the waste against what queueing the second run behind the first would cost (docs/solutions/ci/shard-weights-and-overlapping-runs.md).",
         "replayed-nothing" => "The push gate seeded the stage and CI replayed none of it: compare the gate's hashes with CI's (`wf test drift`) and fix the one that differs.",
         _ => "Read the finding's message and the run's job log, fix the cause through the normal gate, or record it in the findings inbox issue.",
     }
 }
 
+/// A job GitHub ends within this many seconds of its recorded start was replaced while pending (it records a start at the moment of the replacement), not killed.
+const REPLACED_SECS: i64 = 2;
+
 /// The concurrency-group decisions over the jobs of the window: pure. Two jobs of one group that ran at the same time mean the group did not
-/// serialise them; a job cancelled after it started means a running job was killed, not a waiting one replaced (a run with several such jobs was cancelled by hand and is left out).
+/// serialise them (hard); a job cancelled after it really ran means a running job was killed (a run with several such jobs was cancelled by hand and is left out);
+/// a job cancelled within `REPLACED_SECS` of its start is a pending one a newer job replaced, which the per-run groups of `pipeline.yml` rule out (soft: old rows in the
+/// window still carry it). Two jobs of different runs that ran the same shard inputs at once (the groups differ only by the run id) are duplicated work, a soft finding
+/// whose waste is the overlap: the price of never queueing one run behind another.
 pub fn judge_groups(jobs: &[GroupJob]) -> Vec<Finding> {
     let mut out = Vec::new();
-    let finding = |kind: &str, run: &str, subject: &str, message: String| Finding { kind: kind.to_string(), run: Some(run.to_string()), subject: subject.to_string(), hard: kind == "group-overlap", waste_secs: 0, message };
+    let finding = |kind: &str, run: &str, subject: &str, waste: i64, message: String| Finding { kind: kind.to_string(), run: Some(run.to_string()), subject: subject.to_string(), hard: kind == "group-overlap", waste_secs: waste, message };
     let ran: Vec<&GroupJob> = jobs.iter().filter(|j| j.started > 0 && j.secs > 0).collect();
+    let twin = |j: &GroupJob| j.group_key.strip_suffix(&format!("-{}", j.run)).map(str::to_string);
     for (i, a) in ran.iter().enumerate() {
-        for b in ran.iter().skip(i + 1).filter(|b| b.group_key == a.group_key && (b.run != a.run || b.job != a.job)) {
-            if a.started < b.started + b.secs && b.started < a.started + a.secs {
-                let (first, second) = if a.started <= b.started { (a, b) } else { (b, a) };
-                out.push(finding("group-overlap", &second.run, &second.job, format!("{} of run {} started at {} while {} of run {} (started {}, {}) still held the concurrency group `{}`", second.job, second.run, second.started, first.job, first.run, first.started, span(first.secs), first.group_key)));
+        for b in ran.iter().skip(i + 1).filter(|b| b.run != a.run || b.job != a.job) {
+            if !(a.started < b.started + b.secs && b.started < a.started + a.secs) {
+                continue;
+            }
+            let (first, second) = if a.started <= b.started { (a, b) } else { (b, a) };
+            if b.group_key == a.group_key {
+                out.push(finding("group-overlap", &second.run, &second.job, 0, format!("{} of run {} started at {} while {} of run {} (started {}, {}) still held the concurrency group `{}`", second.job, second.run, second.started, first.job, first.run, first.started, span(first.secs), first.group_key)));
+            } else if b.run != a.run && b.job == a.job && twin(a).is_some() && twin(a) == twin(b) {
+                let both = (first.started + first.secs).min(second.started + second.secs) - second.started;
+                out.push(finding("twin-overlap", &second.run, &second.job, both, format!("{} of run {} started at {} while run {} was still running the same shard inputs (`{}`, started {}, {}): {} ran twice side by side", second.job, second.run, second.started, first.run, twin(a).unwrap_or_default(), first.started, span(first.secs), span(both))));
             }
         }
     }
-    let killed = |j: &&GroupJob| j.started > 0 && j.conclusion == "cancelled";
+    let ended = |j: &&GroupJob| j.started > 0 && j.conclusion == "cancelled";
+    for j in jobs.iter().filter(ended).filter(|j| j.secs <= REPLACED_SECS) {
+        out.push(finding("replaced-while-pending", &j.run, &j.job, 0, format!("{} of run {} was cancelled {} after its recorded start (group `{}`): a pending job a newer job replaced, and its run ends cancelled with no verdict", j.job, j.run, span(j.secs), j.group_key)));
+    }
+    let killed = |j: &&GroupJob| j.started > 0 && j.conclusion == "cancelled" && j.secs > REPLACED_SECS;
     // Cancelling a run by hand ends all its running jobs at once; a broken group kills one job
     for j in jobs.iter().filter(killed).filter(|j| jobs.iter().filter(killed).filter(|o| o.run == j.run).count() == 1) {
-        out.push(finding("cancelled-while-running", &j.run, &j.job, format!("{} of run {} was cancelled {} after it started (group `{}`): a running job was killed", j.job, j.run, span(j.secs), j.group_key)));
+        out.push(finding("cancelled-while-running", &j.run, &j.job, 0, format!("{} of run {} was cancelled {} after it started (group `{}`): a running job was killed", j.job, j.run, span(j.secs), j.group_key)));
     }
     out
 }

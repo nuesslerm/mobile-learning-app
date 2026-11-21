@@ -785,15 +785,29 @@ fn a_probe_says_why_each_test_it_would_run_misses_against_the_earlier_runs_of_th
 }
 
 #[test]
-fn given_the_pipeline_when_the_sharded_test_jobs_are_read_then_their_concurrency_groups_name_their_inputs_not_the_run() {
+fn given_the_pipeline_when_the_sharded_test_jobs_are_read_then_every_run_has_concurrency_groups_of_its_own_and_nothing_is_cancelled_in_progress() {
     // Given the pipeline workflow
     let text = std::fs::read_to_string(crate::support::repo_root().join(".github/workflows/pipeline.yml")).unwrap();
     // When the concurrency groups of the sharded test jobs are read
     for (job, keys) in [("core-tests", "core_shard_keys"), ("integration-tests", "integration_shard_keys"), ("cli-e2e-tests", "cli_e2e_shard_keys")] {
         let block = pipeline_job(&text, job);
         let group = block.lines().find(|l| l.trim_start().starts_with("group:")).unwrap_or_else(|| panic!("no group in {job}"));
-        // Then the group holds the caller workflow and the shard's input key, so identical work of one workflow waits (and two workflows of one commit never cancel each other) as a pending job and a fix with other inputs starts at once
-        assert!(group.contains(keys) && group.contains("github.workflow") && !group.contains("run_id"), "{job}: {group}");
+        // Then the group holds the caller workflow, the shard's input key and, last, the run id: two runs never share a group, so GitHub has no pending job to replace
+        // (a replaced job ended its run cancelled with no verdict) and a fix with other inputs still starts at once
+        assert!(group.contains(keys) && group.contains("github.workflow") && group.trim_end().ends_with("github.run_id) }}"), "{job}: {group}");
+        assert!(block.contains("cancel-in-progress: false") && !block.contains("cancel-in-progress: true"), "{job}: an older run is never cancelled");
+    }
+}
+
+#[test]
+fn given_the_pipeline_when_the_report_job_reads_the_plan_then_the_shard_keys_of_every_keyed_stage_reach_the_steps_that_record_the_groups() {
+    // Given the pipeline workflow
+    let text = std::fs::read_to_string(crate::support::repo_root().join(".github/workflows/pipeline.yml")).unwrap();
+    let report = pipeline_job(&text, "report");
+    // When the two steps that write CI_JOBS rows and the comment are read
+    // Then each is given the keys of the integration, core and cli e2e shards, which the recorded group strings are built from
+    for var in ["WF_CI_SHARD_KEYS: ${{ needs.plan.outputs.integration_shard_keys }}", "WF_CI_CORE_SHARD_KEYS: ${{ needs.plan.outputs.core_shard_keys }}", "WF_CI_CLI_E2E_SHARD_KEYS: ${{ needs.plan.outputs.cli_e2e_shard_keys }}"] {
+        assert_eq!(report.matches(var).count(), 2, "{var}");
     }
 }
 

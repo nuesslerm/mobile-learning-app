@@ -948,6 +948,52 @@ fn a_job_cancelled_after_it_started_is_named_and_one_replaced_while_waiting_is_n
 }
 
 #[test]
+fn a_pending_job_a_newer_one_replaced_is_named_apart_from_a_job_killed_while_running() {
+    // Given a shard of run 70 that GitHub cancelled one second after its recorded start (a replaced pending job) and a shard of run 71 cancelled after 90 s of running
+    let rows = [group_job("70", "core-tests (1/3)", "hosted-core-tests-CI core mobile-k1", 100, 1, "cancelled"), group_job("71", "integration-tests (1/4)", "hosted-integration-CI core-k2-71", 100, 90, "cancelled")];
+
+    // When the audit runs
+    let out = audit_groups("replaced", &rows);
+
+    // Then the replaced one is its own finding on run 70 (not a kill), naming the group, and the killed one stays a kill on run 71
+    let found: Vec<(String, String)> = out["findings"].as_array().unwrap().iter().map(|f| (f["kind"].as_str().unwrap().to_string(), f["run"].as_str().unwrap().to_string())).collect();
+    assert_eq!(found, [("replaced-while-pending".to_string(), "70".to_string()), ("cancelled-while-running".to_string(), "71".to_string())], "{out}");
+    assert!(out["findings"][0]["message"].as_str().unwrap().contains("hosted-core-tests-CI core mobile-k1") && !out["findings"][0]["hard"].as_bool().unwrap(), "{out}");
+}
+
+#[test]
+fn a_job_cancelled_two_seconds_after_its_start_is_replaced_and_one_cancelled_three_seconds_after_is_a_kill() {
+    // Given a job of run 70 cancelled 2 s after its recorded start and one of run 71 cancelled 3 s after
+    let rows = [group_job("70", "core-tests (1/3)", "k1", 100, 2, "cancelled"), group_job("71", "core-tests (2/3)", "k2", 100, 3, "cancelled")];
+
+    // When the audit runs
+    let out = audit_groups("boundary", &rows);
+
+    // Then the 2 s one is the soft replaced finding and the 3 s one is a running job killed
+    assert_eq!(kinds(&out), ["replaced-while-pending", "cancelled-while-running"], "{out}");
+}
+
+#[test]
+fn two_runs_that_ran_the_same_shard_inputs_in_groups_of_their_own_at_once_are_one_twin_overlap_with_its_waste_and_no_hard_finding() {
+    // Given core-tests (1/2) of runs 70 and 71 with the same shard key k1 in per-run groups, overlapping for 150 s, and run 72's shard with another key at the same time
+    let rows = [
+        group_job("70", "core-tests (1/2)", "hosted-core-tests-CI core mobile-k1-70", 100, 300, "success"),
+        group_job("71", "core-tests (1/2)", "hosted-core-tests-CI core mobile-k1-71", 250, 300, "success"),
+        group_job("72", "core-tests (1/2)", "hosted-core-tests-CI core mobile-k9-72", 260, 300, "success"),
+    ];
+
+    // When the audit runs
+    let out = audit_groups("twins", &rows);
+
+    // Then one soft twin-overlap names the later run, the earlier one, the shared key and 150 s of waste; the group check finds nothing because no group is shared
+    assert_eq!(kinds(&out), ["twin-overlap"], "{out}");
+    let f = &out["findings"][0];
+    let message = f["message"].as_str().unwrap();
+    assert_eq!((f["run"].clone(), f["hard"].clone(), f["wasteSeconds"].clone()), (json!("71"), json!(false), json!(150)), "{out}");
+    assert!(message.contains("run 70") && message.contains("hosted-core-tests-CI core mobile-k1"), "{message}");
+}
+
+#[test]
 fn a_run_cancelled_by_hand_ends_several_started_jobs_at_once_and_is_not_a_finding() {
     // Given run 70 whose three running jobs were all cancelled together, and run 71 with one running job cancelled alone
     let rows = [
@@ -2023,7 +2069,7 @@ fn the_report_has_a_headline_with_wall_runner_seconds_peak_jobs_efficiency_the_c
     ]);
 
     // When the report is built
-    let body = dry_body(&github, &[("WF_CI_CORE_SHARD_KEYS", "[\"k1\",\"k2\"]"), ("GITHUB_WORKFLOW", "CI core")]);
+    let body = dry_body(&github, &[("WF_CI_CORE_SHARD_KEYS", "[\"\",\"k1\",\"k2\"]"), ("GITHUB_WORKFLOW", "CI core")]);
 
     // Then the headline carries the profile's numbers, and the verdict names the critical path, the wait and the fixed cost
     assert!(body.contains("wall 10m 00s · runner time 23m 20s"), "{body}");
@@ -2031,7 +2077,7 @@ fn the_report_has_a_headline_with_wall_runner_seconds_peak_jobs_efficiency_the_c
     assert!(body.contains("The critical path is plan &gt; core-tests (1/2) (10m 00s, 100% of the wall time)"), "{body}");
     assert!(body.contains("Jobs waited 3m 00s for a runner in total, 45s at worst"), "{body}");
     assert!(body.contains("| setup-job | 2m 40s | 4 | 40s |"), "{body}");
-    assert!(body.contains("core-tests (1/2) queued 45s; its concurrency group is `hosted-core-tests-CI core-k1`") && body.contains("plan waited 45s for a runner"), "{body}");
+    assert!(body.contains("core-tests (1/2) queued 45s; its concurrency group is `hosted-core-tests-CI core-k1-77`") && body.contains("plan waited 45s for a runner"), "{body}");
 }
 
 #[test]

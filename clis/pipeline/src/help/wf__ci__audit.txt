@@ -50,9 +50,19 @@ Findings (kind: what it means):
                     percent (from reporting-service; skipped when unreachable)
   group-overlap     two jobs of one concurrency group (CI_JOBS.GROUP_KEY) ran at
                     the same time, so the group did not serialise them. Hard.
+                    The sharded test jobs' groups end with the run id, so only
+                    a re-run attempt can share one.
   cancelled-while-running
-                    a job (CI_JOBS.STARTED > 0) was cancelled after it started:
-                    a running job was killed, not a waiting one replaced
+                    a job (CI_JOBS.STARTED > 0) ran more than 2 s and was then
+                    cancelled alone: a running job was killed
+  replaced-while-pending
+                    a job GitHub ended within 2 s of its recorded start: a
+                    pending job a newer one replaced, and its run ends
+                    cancelled with no verdict. Soft; none should appear in
+                    runs of the per-run groups.
+  twin-overlap      two runs ran the same shard inputs (groups equal but for
+                    the run id) at the same time. Soft; the waste is the
+                    overlap, the price of not queueing one run behind another.
   cold-slower       on a forced cold run, a job over the median of the last four
                     cold runs plus slackPercent and slackSeconds
 

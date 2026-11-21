@@ -169,7 +169,7 @@ fn given_a_shard_replaced_while_pending_when_the_timings_are_kept_then_it_is_a_c
     let key = "0707070707070707070707070707070707070707070707070707070707070707";
 
     // When the report job keeps the timings with the plan's shard keys and merges
-    let r = wf(&server, &["timings", "--run", "80"], &[("WF_CI_DB", &local.display().to_string()), ("WF_CI_SHARD_KEYS", r#"["k-one","k-two"]"#), ("GITHUB_WORKFLOW", "CI core")]);
+    let r = wf(&server, &["timings", "--run", "80"], &[("WF_CI_DB", &local.display().to_string()), ("WF_CI_SHARD_KEYS", r#"["","k-one","k-two"]"#), ("GITHUB_WORKFLOW", "CI core")]);
     let merged = wf(&server, &["db", "merge", "--sealed-file", &sealed.display().to_string(), &local.display().to_string()], &[("CI_DB_KEY", key)]);
 
     // Then the replaced shard is a cancelled row with no start, the 240 s it waited and its group, and the shard that ran has its own group
@@ -177,7 +177,50 @@ fn given_a_shard_replaced_while_pending_when_the_timings_are_kept_then_it_is_a_c
     let q = wf(&server, &["db", "query", "--sealed-file", &sealed.display().to_string(), "SELECT JOB, CONCLUSION, STARTED > 0 AS started, SECS, QUEUED, GROUP_KEY FROM CI_JOBS ORDER BY JOB"], &[("CI_DB_KEY", key)]);
     assert_eq!(
         line(&q)["rows"],
-        json!([{"JOB": "integration-tests (1/2)", "CONCLUSION": "success", "started": 1, "SECS": 540, "QUEUED": 5, "GROUP_KEY": "hosted-integration-CI core-k-one"}, {"JOB": "integration-tests (2/2)", "CONCLUSION": "cancelled", "started": 0, "SECS": 0, "QUEUED": 240, "GROUP_KEY": "hosted-integration-CI core-k-two"}]),
+        json!([{"JOB": "integration-tests (1/2)", "CONCLUSION": "success", "started": 1, "SECS": 540, "QUEUED": 5, "GROUP_KEY": "hosted-integration-CI core-k-one-80"}, {"JOB": "integration-tests (2/2)", "CONCLUSION": "cancelled", "started": 0, "SECS": 0, "QUEUED": 240, "GROUP_KEY": "hosted-integration-CI core-k-two-80"}]),
+        "{}{}",
+        q.stdout,
+        q.stderr
+    );
+}
+
+#[test]
+fn given_a_fresh_run_with_three_keyed_stages_when_the_timings_are_kept_then_each_job_has_the_group_the_workflow_spells_with_the_run_id_last() {
+    // Given a fresh run (caches off) of core-tests, cli-e2e-tests and integration-tests, each shard finished
+    let run = json!({"id": 82, "status": "completed", "created_at": "2026-11-19T10:00:00Z", "run_started_at": "2026-11-19T10:00:00Z", "head_sha": "beef"});
+    let jobs = json!({"total_count": 3, "jobs": [
+        job("run / core-tests (2/2)", "10:00:00", "10:00:05", "10:09:05", vec![]),
+        job("run / cli-e2e-tests (1/2)", "10:00:00", "10:00:05", "10:05:05", vec![]),
+        job("run / integration-tests (2/2)", "10:00:00", "10:00:05", "10:06:05", vec![]),
+    ]});
+    let server = served(&[("/repos/o/r/actions/runs/82", run), ("/repos/o/r/actions/runs/82/jobs?per_page=100&page=1", jobs)]);
+    let dir = tempfile::tempdir().unwrap();
+    let (local, sealed) = (dir.path().join("rows.sqlite"), dir.path().join("ci.sealed"));
+    let key = "0707070707070707070707070707070707070707070707070707070707070707";
+
+    // When the report job keeps the timings with the plan's keys (a leading empty key each: the shard number indexes them)
+    let envs = [
+        ("WF_CI_DB", local.display().to_string()),
+        ("WF_CI_CORE_SHARD_KEYS", r#"["","c1","c2"]"#.to_string()),
+        ("WF_CI_CLI_E2E_SHARD_KEYS", r#"["","e1","e2"]"#.to_string()),
+        ("WF_CI_SHARD_KEYS", r#"["","i1","i2"]"#.to_string()),
+        ("WF_CI_FRESH", "true".to_string()),
+        ("GITHUB_WORKFLOW", "CI core".to_string()),
+    ];
+    let envs: Vec<(&str, &str)> = envs.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    let r = wf(&server, &["timings", "--run", "82"], &envs);
+    let merged = wf(&server, &["db", "merge", "--sealed-file", &sealed.display().to_string(), &local.display().to_string()], &[("CI_DB_KEY", key)]);
+
+    // Then core and cli e2e carry -fresh, integration does not (its group never did), and every group ends with the run id
+    assert_eq!((r.exit_code, merged.exit_code), (0, 0), "{}{}{}{}", r.stdout, r.stderr, merged.stdout, merged.stderr);
+    let q = wf(&server, &["db", "query", "--sealed-file", &sealed.display().to_string(), "SELECT JOB, GROUP_KEY FROM CI_JOBS ORDER BY JOB"], &[("CI_DB_KEY", key)]);
+    assert_eq!(
+        line(&q)["rows"],
+        json!([
+            {"JOB": "cli-e2e-tests (1/2)", "GROUP_KEY": "hosted-cli-e2e-tests-CI core-e1-fresh-82"},
+            {"JOB": "core-tests (2/2)", "GROUP_KEY": "hosted-core-tests-CI core-c2-fresh-82"},
+            {"JOB": "integration-tests (2/2)", "GROUP_KEY": "hosted-integration-CI core-i2-82"}
+        ]),
         "{}{}",
         q.stdout,
         q.stderr

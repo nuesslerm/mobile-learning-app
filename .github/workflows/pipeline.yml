@@ -263,15 +263,15 @@ jobs:
           echo "count=$n" >> "$GITHUB_OUTPUT"
           echo "list=$(jq -cn --argjson n "$n" '[range(1; $n + 1)]')" >> "$GITHUB_OUTPUT"
           echo "$n machine(s) per test stage"
-      # The crates each integration shard runs, as a key: the shard's concurrency group, so a later commit's shard of the same crates queues behind
-      # the earlier one (a newer pending job replaces an older pending one) while other crates start at once
+      # The crates each integration shard runs, as a key: it names the shard's concurrency group beside the run id, so every run has groups of its own (GitHub replaces
+      # the one pending job of a shared group, which left an older head cancelled with no verdict) and the audit can tell two runs of the same inputs apart
       - name: Which crates each integration shard runs
         id: shardkeys
         run: |
           # a leading empty key: an expression has no arithmetic, so the 1-based matrix.shard indexes the array directly
           echo "integration=$(wf ci plan shard-keys --stage integration-tests --count "${{ steps.shards.outputs.count }}" --plan "$RUNNER_TEMP/plan.json" | jq -c '[""] + .')" >> "$GITHUB_OUTPUT"
-          # core-tests shard i runs flow shard i and typecheck shard N+1-i; cli-e2e keys are the stage's own. Same inputs, same group: the push that follows waits as a pending job
-          # and replays; a fix changes the inputs, so it starts at once. A fresh run (cache off) is a group of its own.
+          # core-tests shard i runs flow shard i and typecheck shard N+1-i; cli-e2e keys are the stage's own. Same inputs, same key; the group adds the run id, so the push that
+          # follows runs beside the earlier one and replays from the cache, and nothing is ever replaced. A fresh run (cache off) has a key of its own.
           n="${{ steps.shards.outputs.count }}"
           flow=$(wf ci plan shard-keys --stage flow-tests --count "$n" --plan "$RUNNER_TEMP/plan.json")
           unit=$(wf ci plan shard-keys --stage typecheck-lint-unit-tests --count "$n" --plan "$RUNNER_TEMP/plan.json")
@@ -354,7 +354,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 40
     concurrency:
-      group: ${{ format('hosted-core-tests-{0}-{1}{2}', github.workflow, fromJSON(needs.plan.outputs.core_shard_keys)[matrix.shard], needs.plan.outputs.fresh == 'true' && '-fresh' || '') }}
+      group: ${{ format('hosted-core-tests-{0}-{1}{2}-{3}', github.workflow, fromJSON(needs.plan.outputs.core_shard_keys)[matrix.shard], needs.plan.outputs.fresh == 'true' && '-fresh' || '', github.run_id) }}
       cancel-in-progress: false
     strategy:
       fail-fast: false
@@ -712,7 +712,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 40
     concurrency:
-      group: ${{ format('hosted-integration-{0}-{1}', github.workflow, fromJSON(needs.plan.outputs.integration_shard_keys)[matrix.shard]) }}
+      group: ${{ format('hosted-integration-{0}-{1}-{2}', github.workflow, fromJSON(needs.plan.outputs.integration_shard_keys)[matrix.shard], github.run_id) }}
       cancel-in-progress: false
     strategy:
       fail-fast: false
@@ -823,7 +823,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 65
     concurrency:
-      group: ${{ format('hosted-cli-e2e-tests-{0}-{1}{2}', github.workflow, fromJSON(needs.plan.outputs.cli_e2e_shard_keys)[matrix.shard], needs.plan.outputs.fresh == 'true' && '-fresh' || '') }}
+      group: ${{ format('hosted-cli-e2e-tests-{0}-{1}{2}-{3}', github.workflow, fromJSON(needs.plan.outputs.cli_e2e_shard_keys)[matrix.shard], needs.plan.outputs.fresh == 'true' && '-fresh' || '', github.run_id) }}
       cancel-in-progress: false
     strategy:
       fail-fast: false
@@ -1269,6 +1269,7 @@ jobs:
           WF_CI_LEDGERS: ${{ runner.temp }}/ci-db
           WF_CI_CORE_SHARD_KEYS: ${{ needs.plan.outputs.core_shard_keys }}
           WF_CI_SHARD_KEYS: ${{ needs.plan.outputs.integration_shard_keys }}
+          WF_CI_CLI_E2E_SHARD_KEYS: ${{ needs.plan.outputs.cli_e2e_shard_keys }}
           WF_CI_FRESH: ${{ needs.plan.outputs.fresh }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
@@ -1281,6 +1282,7 @@ jobs:
         timeout-minutes: 3
         env:
           WF_CI_SHARD_KEYS: ${{ needs.plan.outputs.integration_shard_keys }}
+          WF_CI_CLI_E2E_SHARD_KEYS: ${{ needs.plan.outputs.cli_e2e_shard_keys }}
           WF_CI_CORE_SHARD_KEYS: ${{ needs.plan.outputs.core_shard_keys }}
           WF_CI_FRESH: ${{ needs.plan.outputs.fresh }}
           GITHUB_TOKEN: ${{ github.token }}
