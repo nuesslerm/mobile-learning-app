@@ -25,7 +25,7 @@ import type {
   FromEditorMessage,
   ToEditorMessage,
 } from '../../domain/ports';
-import { planWrite } from './documentWrite';
+import { writeThrough, type WriteRequest } from './documentWrite';
 import { createForwardingPost } from './editorForwarding';
 import { buildEditorHtml } from './editorHtml';
 import {
@@ -190,47 +190,32 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       [editorPort]
     );
 
-    // The one writer of the document from outside the editor (the value sync, the reconcile at hydration, the whole-document keys of
-    // the toolbar): the hunk that differs, applied at the revision it was planned against, so it is one undo step and a keystroke
-    // that landed meanwhile makes the call stale (it is planned again) instead of being overwritten. `next` is given the editor's
-    // own text and selection when the write runs, so a queued write uses the latest value and a key works on what is really there.
+    // The one writer of the document from outside the editor (the value sync, the reconcile at hydration, voice and plan edits, the
+    // whole-document keys of the toolbar): the hunk that differs, applied at the revision it was planned against, so it is one undo
+    // step and a keystroke that landed meanwhile makes the call stale (it is planned again) instead of being overwritten. `next` is
+    // given the editor's own text and selection when the write runs, so a queued write uses the latest value and a key works on
+    // what is really there. The mirror (`lastWebViewTextRef`) moves only when the write has landed or needed nothing, or when the
+    // editor says what it holds: a mirror set ahead of the editor once ran code the editor never showed.
     const writeChainRef = useRef<Promise<void>>(Promise.resolve());
     const writeDocument = useCallback(
-      (request: {
-        next: (current: { text: string; selection: Selection }) => { text: string; selection?: Selection };
-        label: string;
+      (request: WriteRequest & {
+        /** the old script focused the editor with the selection that came with a text: voice and plan edits keep that */
+        focus?: boolean;
       }): Promise<void> => {
         const run = async () => {
-          const { client } = apiBridge;
-          let lastCode = 'none';
-          let lastRead: string | null = null;
-          for (let attempt = 0; attempt < 3; attempt += 1) {
-            if (!isReadyRef.current) return;
-            const read = await client.getText();
-            if (!read.ok) {
-              lastCode = read.error.code;
-              break;
-            }
-            lastRead = read.value.text;
-            const range = read.value.selection.ranges[read.value.selection.main] ?? { anchor: 0, head: 0 };
-            const next = request.next({
-              text: read.value.text,
-              selection: { start: Math.min(range.anchor, range.head), end: Math.max(range.anchor, range.head) },
-            });
-            const steps = planWrite(read.value.text, next.text, next.selection);
-            if (steps.length === 0) return;
-            const reply = await client.transact(steps, { at: read.revision, label: request.label });
-            if (reply.ok) return;
-            lastCode = reply.error.code;
-            if (reply.error.code !== 'stale') break;
+          const outcome = await writeThrough(apiBridge.client, request, () => isReadyRef.current);
+          if (!outcome) return;
+          if (outcome.landed) {
+            lastWebViewTextRef.current = outcome.text;
+            if (request.focus) void apiBridge.client.focus();
+            return;
           }
-          if (!isReadyRef.current) return;
-          // The write did not land. The editor is the truth about what is on screen, so React is brought back to it (a divergence here
-          // once ran code the editor never showed) and the failure is logged.
-          Logger.warn('editor.write.failed', { label: request.label, code: lastCode, healed: lastRead !== null });
-          if (lastRead !== null) {
-            lastWebViewTextRef.current = lastRead;
-            onChangeText(lastRead);
+          // The write did not land: React is brought back to what the editor holds now, and if the editor cannot be read the mirror
+          // keeps what the editor last reported, so the value sync tries again the next time it runs.
+          Logger.warn('editor.write.failed', { label: request.label, code: outcome.code, healed: outcome.editorText !== null });
+          if (outcome.editorText !== null) {
+            lastWebViewTextRef.current = outcome.editorText;
+            onChangeText(outcome.editorText);
           }
         };
         writeChainRef.current = writeChainRef.current.then(run, run);
@@ -304,21 +289,14 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             queuedTextRef.current = { text, sel };
             return;
           }
-          // Keep our mirror in sync so the value-sync effect doesn't echo the
-          // change back as a redundant setText once React state catches up.
-          lastWebViewTextRef.current = text;
-          void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.text' });
+          void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.text', focus: true });
         },
         transformDocument(transform: (text: string, sel: Selection) => EditResult) {
           Logger.info('editor.transform_document', { effect: 'transformDocument' });
           if (!isReadyRef.current || !isInitializedRef.current) return;
           // the editor's own text and caret, not React's, which can be a keystroke behind
           void writeDocument({
-            next: (current) => {
-              const result = transform(current.text, current.selection);
-              lastWebViewTextRef.current = result.text;
-              return result;
-            },
+            next: (current) => transform(current.text, current.selection),
             label: 'toolbar.transform',
           });
         },
@@ -331,18 +309,19 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           sendMessage({ type: 'redo' });
         },
         showDiff(start: number, end: number) {
-          // Clamp to the text the view has, not React's: a range past the view's end once left a
-          // decoration it could not map, and React still holds the old text right after setTextAndSelection.
-          const max = lastWebViewTextRef.current.length;
-          const from = Math.max(0, Math.min(start, end, max));
-          const to = Math.min(Math.max(start, end), max);
-          Logger.info('editor.show_diff', {
-            effect: 'showDiff',
-            start: from,
-            end: to,
+          // After the write that put the changed text there, which lands a few round trips after the call, and clamped to the text
+          // the view then has, not React's: a range past the view's end once left a decoration it could not map.
+          void writeChainRef.current.then(() => {
+            const max = lastWebViewTextRef.current.length;
+            const from = Math.max(0, Math.min(start, end, max));
+            const to = Math.min(Math.max(start, end), max);
+            Logger.info('editor.show_diff', {
+              effect: 'showDiff',
+              start: from,
+              end: to,
+            });
+            sendMessage({ type: 'showDiff', start: from, end: to });
           });
-          // after the write that put the changed text there, which now lands a few round trips after the call
-          void writeChainRef.current.then(() => sendMessage({ type: 'showDiff', start: from, end: to }));
         },
         hideDiff() {
           Logger.info('editor.hide_diff', { effect: 'hideDiff' });
@@ -444,7 +423,6 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       Logger.debug('editor.value_sync', { effect: 'valueSync' });
       if (!isInitializedRef.current) return;
       if (value !== lastWebViewTextRef.current) {
-        lastWebViewTextRef.current = value;
         void writeDocument({ next: () => ({ text: valueRef.current }), label: 'react.value' });
       }
     }, [value, writeDocument]);
@@ -495,14 +473,12 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             if (queuedTextRef.current != null) {
               const { text, sel } = queuedTextRef.current;
               queuedTextRef.current = null;
-              lastWebViewTextRef.current = text;
-              void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.queued' });
+              void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.queued', focus: true });
             } else if (m.text !== valueRef.current) {
               Logger.info('editor.hydrated.reconciled', {
                 viewLength: m.text.length,
                 valueLength: valueRef.current.length,
               });
-              lastWebViewTextRef.current = valueRef.current;
               void writeDocument({ next: () => ({ text: valueRef.current }), label: 'react.reconcile' });
             }
             if (queuedSelectionRef.current != null) {

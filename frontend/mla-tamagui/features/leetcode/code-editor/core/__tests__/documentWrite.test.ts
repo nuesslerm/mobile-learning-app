@@ -2,7 +2,9 @@ import { createEditorClient, unwrap } from '@lib/code-editor-api';
 import { createFakeEditor } from '@lib/code-editor-api/testing';
 import { describe, expect, it } from 'vitest';
 
-import { planWrite } from '../documentWrite';
+import { createDeferredEngine, type EditorClient } from '@lib/code-editor-api';
+
+import { planWrite, writeThrough } from '../documentWrite';
 
 async function write(current: string, next: string, selection?: { start: number; end: number }) {
   const fake = createFakeEditor({ text: current });
@@ -61,5 +63,86 @@ describe('planWrite', () => {
     expect(fake.peek().revision).toBe(1);
     unwrap(await client.undo());
     expect(fake.text()).toBe('abcdef');
+  });
+});
+
+describe('writeThrough', () => {
+  // a client whose getText hands back what the editor held and then lets the person type, so the call made at that revision is stale
+  const typingAfterRead = (fake: ReturnType<typeof createFakeEditor>, windows: number): EditorClient => {
+    const client = createEditorClient(fake.engine);
+    let left = windows;
+    return {
+      ...client,
+      getText: async (range) => {
+        const reply = await client.getText(range);
+        if (left > 0) {
+          left -= 1;
+          fake.userTypes('k');
+        }
+        return reply;
+      },
+    };
+  };
+  const toUpper = { label: 'test', next: (current: { text: string }) => ({ text: current.text.toUpperCase() }) };
+
+  it('given an editor nobody types into, when a text is written, then it lands in one attempt as one undo step', async () => {
+    const fake = createFakeEditor({ text: 'abc' });
+    const client = createEditorClient(fake.engine);
+
+    const outcome = await writeThrough(client, toUpper);
+
+    expect(outcome).toEqual({ landed: true, text: 'ABC' });
+    expect(fake.text()).toBe('ABC');
+    unwrap(await client.undo());
+    expect(fake.text()).toBe('abc');
+  });
+
+  it('given a keystroke after the read, when a text is written, then the call is stale, the write is planned again on the new text and lands', async () => {
+    const fake = createFakeEditor({ text: 'abc' });
+
+    const outcome = await writeThrough(typingAfterRead(fake, 1), toUpper);
+
+    // the keystroke is kept and the write was planned against it
+    expect(fake.text()).toBe('KABC');
+    expect(outcome).toEqual({ landed: true, text: 'KABC' });
+  });
+
+  it('given a keystroke after every read, when a text is written, then it gives up after three tries and reports the text the editor holds now, not the text of the last read', async () => {
+    const fake = createFakeEditor({ text: 'abc' });
+
+    const outcome = await writeThrough(typingAfterRead(fake, 3), toUpper);
+
+    expect(outcome).toEqual({ landed: false, code: 'stale', editorText: 'kkkabc' });
+    expect(fake.text()).toBe('kkkabc');
+  });
+
+  it('given an editor that cannot be read, when a text is written, then nothing is written and there is no editor text to report', async () => {
+    const client = createEditorClient(createDeferredEngine(() => undefined));
+
+    const outcome = await writeThrough(client, toUpper);
+
+    expect(outcome).toEqual({ landed: false, code: 'not-ready', editorText: null });
+  });
+
+  it('given the text the editor already holds, when it is written, then nothing is applied and the write counts as landed', async () => {
+    const fake = createFakeEditor({ text: 'ABC' });
+
+    const outcome = await writeThrough(createEditorClient(fake.engine), toUpper);
+
+    expect(outcome).toEqual({ landed: true, text: 'ABC' });
+    expect(fake.peek().revision).toBe(0);
+  });
+
+  it('given the editor goes away between attempts, when a text is written, then the write stops without a verdict', async () => {
+    const fake = createFakeEditor({ text: 'abc' });
+    let live = true;
+
+    const outcome = await writeThrough(typingAfterRead(fake, 9), toUpper, () => {
+      const answer = live;
+      live = false;
+      return answer;
+    });
+
+    expect(outcome).toBeNull();
   });
 });

@@ -118,6 +118,8 @@ describe('ProblemEditorScreen flow (voice edit)', () => {
     expect(editor.text()).not.toContain('return [0, 1]');
     await waitFor(() => expect(editor.diffRanges()).toEqual(['return [1, 2]']));
     expect(screen.getByTestId('ProblemEditorDiffToggle')).toBeTruthy();
+    // the edit comes with a selection, and the editor takes focus with it (the keyboard and toolbar are back for the next edit)
+    await waitFor(() => expect(editor.focused()).toBe(true));
   }, 60_000); // Full record→review→pick flow on the real screen: ~6 s alone, over 20 s under the parallel pre-commit run.
 
   it('given the starter with its indented empty body, when the planner inserts an already indented block after that line, then the block sits one level into the method and nothing doubles its indentation', async () => {
