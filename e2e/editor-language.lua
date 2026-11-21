@@ -20,6 +20,15 @@ run_flow("open the editor", function()
   device:extended_wait_until{condition=function() return buffer():find("def twoSum", 1, true) ~= nil end, timeout=30000, label='the Python starter'}
 end)
 
+-- the web editor autofocuses and its keyboard rises over the language row, which sits just above the rail: a person lowers it with Done first
+run_flow("lower the keyboard the editor opened with", function()
+  if device:extended_wait_until{condition=function() return device:get_device_state('keyboard').visible end, timeout=8000, optional=true} then
+    device:scroll_until_visible{element={id='EditorAction-Done'}, direction='RIGHT', from={id='EditorActionToolbar'}}
+    device:tap_on({id='EditorAction-Done'})
+    device:extended_wait_until{condition=function() return not device:get_device_state('keyboard').visible end, timeout=10000, label='the keyboard is down'}
+  end
+end)
+
 run_flow("switch to JavaScript", function()
   device:tap_on({id='ProblemEditorLanguagePicker-Trigger'})
   device:assert_visible({id='ProblemEditorLanguagePicker-JavaScript'}, {timeout=10000})
