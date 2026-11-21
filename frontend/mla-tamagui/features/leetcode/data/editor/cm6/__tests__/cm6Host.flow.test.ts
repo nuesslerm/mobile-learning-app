@@ -275,11 +275,13 @@ describe('the CodeMirror host answering tree', () => {
     const { core } = mount(doc, { engine: clock.engine });
 
     const first = await withParserOutOfTime(async () => unwrap(await core.request('tree', { budgetMs: 15 })));
+    // the turns the small budget gave: counted before the later request, which yields as many times as the machine's speed needs
+    const turns = clock.yields();
     const second = await untilComplete(core);
 
     expect(doc.length).toBeGreaterThan(100_000);
     expect(first.complete).toBe(false);
-    expect(clock.yields()).toBe(15);
+    expect(turns).toBe(15);
     expect(second.complete).toBe(true);
   });
 
