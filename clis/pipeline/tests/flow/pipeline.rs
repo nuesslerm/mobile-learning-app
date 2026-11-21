@@ -890,3 +890,22 @@ fn a_chain_a_change_reaches_is_planned_once_when_its_table_has_pending_rows() {
     let (v, _) = w.plan("HEAD~1");
     assert_eq!(integration_crates(&v), [("chain".to_string(), "changed".to_string())], "{v}");
 }
+
+#[test]
+fn given_the_nx_cache_action_when_its_keys_are_read_then_a_lineage_is_one_workflows_and_a_cold_workflow_falls_back_to_any_entry_of_the_shard() {
+    // Given the nx-cache action, which three callers workflows share through pipeline.yml with the same stage and shard count
+    let text = std::fs::read_to_string(crate::support::repo_root().join(".github/actions/nx-cache/action.yml")).unwrap();
+    let keys: Vec<&str> = text.lines().map(str::trim).filter(|l| l.starts_with("key: nx-")).collect();
+    let stage = "nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-";
+    let own = "${{ steps.lineage.outputs.workflow }}-";
+    // When the restore and save keys are read
+    // Then both name the workflow, so a sibling workflow's save does not become this one's newest entry
+    assert_eq!(keys.len(), 2, "{keys:?}");
+    assert!(keys.iter().all(|k| k.contains(&format!("{stage}{own}${{{{ github.run_id }}}}"))), "{keys:?}");
+    // And the restore tries the workflow's own entries first, then any workflow's, so the first run of a workflow still starts warm
+    let own_at = text.find(&format!("          {stage}{own}\n")).expect("own restore key");
+    let any_at = text.find(&format!("          {stage}\n")).expect("any restore key");
+    assert!(own_at < any_at);
+    // And the workflow name is reduced to key-safe characters, since a caller's name holds characters such as `+`
+    assert!(text.contains("tr -c 'A-Za-z0-9_-' '-'"));
+}

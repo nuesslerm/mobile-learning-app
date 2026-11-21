@@ -1,7 +1,7 @@
 name: Nx local cache
 description: >-
   Restores or saves the Nx local cache of one test stage shard with actions/cache. It only moves the directories Nx keeps and sets no Nx
-  environment (the test runner provides it). Restore runs before the test stage, save after it. The saved key is unique per run so a later run restores the newest.
+  environment (the test runner provides it). Restore runs before the test stage, save after it. The saved key is unique per run and names the calling workflow, so a later run of the same workflow restores its own newest entry and a sibling workflow's entries (same stage and shard count) no longer shadow it.
 inputs:
   mode:
     description: restore or save
@@ -15,6 +15,13 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Name the lineage
+      id: lineage
+      if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') }}
+      shell: bash
+      env:
+        WORKFLOW: ${{ github.workflow }}
+      run: echo "workflow=$(printf '%s' "$WORKFLOW" | tr -c 'A-Za-z0-9_-' '-' | cut -c1-48)" >> "$GITHUB_OUTPUT"
     - name: Restore the Nx cache
       id: restore
       if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') && (inputs.mode == 'restore') }}
@@ -24,8 +31,10 @@ runs:
           ~/.nx/*/cache
           ~/.nx/*/databases
           ~/.cache/wf-nx-why
-        key: nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+        key: nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.lineage.outputs.workflow }}-${{ github.run_id }}-${{ github.run_attempt }}
+        # own workflow's newest first; any workflow's newest only when this workflow has none yet, so a first run is warm
         restore-keys: |
+          nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.lineage.outputs.workflow }}-
           nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-
     - name: Note what was restored
       if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') && (inputs.mode == 'restore') }}
@@ -63,4 +72,4 @@ runs:
           ~/.nx/*/cache
           ~/.nx/*/databases
           ~/.cache/wf-nx-why
-        key: nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+        key: nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.lineage.outputs.workflow }}-${{ github.run_id }}-${{ github.run_attempt }}
