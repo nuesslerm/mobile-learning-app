@@ -20,8 +20,10 @@ fn a_stage_run_in_a_job_leaves_one_span_per_unit_the_merge_carries_into_the_seal
     let dir = tempfile::tempdir().unwrap();
     let (local, sealed) = (dir.path().join("rows.sqlite"), dir.path().join("ci.sealed"));
     let source = MockServer::start(None);
+    // its own HOME: the flow binary's shared one holds the run.json other tests' stubs write, which a parallel stage would count again
+    let home = dir.path().join("home").display().to_string();
     let env = |extra: &[(&'static str, String)]| {
-        let mut all = vec![("WF_CI_DB", local.display().to_string()), ("CI_DB_KEY", KEY.to_string()), ("GITHUB_RUN_ID", "777".to_string()), ("GITHUB_SHA", "abc1234".to_string()), ("GITHUB_JOB", "typecheck-lint-unit-tests".to_string()), ("WF_CI_METRICS_BASE", format!("http://127.0.0.1:{}", source.port))];
+        let mut all = vec![("HOME", home.clone()), ("WF_CI_DB", local.display().to_string()), ("CI_DB_KEY", KEY.to_string()), ("GITHUB_RUN_ID", "777".to_string()), ("GITHUB_SHA", "abc1234".to_string()), ("GITHUB_JOB", "typecheck-lint-unit-tests".to_string()), ("WF_CI_METRICS_BASE", format!("http://127.0.0.1:{}", source.port))];
         all.extend(extra.iter().cloned());
         all
     };
