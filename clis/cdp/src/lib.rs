@@ -63,6 +63,44 @@ impl Write for Wire {
 
 type Writer = Arc<Mutex<WebSocket<Wire>>>;
 
+/// One message of the browser as JSON. A paused upload of binary data carries its body in `postData` with each stray surrogate as
+/// a `\udXXX` escape, which serde_json refuses; the message is then read with each replaced by U+FFFD, because a dropped
+/// `Fetch.requestPaused` leaves its request paused for good.
+fn parse_message(text: &str) -> Option<Value> {
+    serde_json::from_str(text).ok().or_else(|| serde_json::from_str(&replace_lone_surrogates(text)).ok())
+}
+
+fn replace_lone_surrogates(text: &str) -> String {
+    let bytes = text.as_bytes();
+    let hex4 = |at: usize| bytes.get(at..at + 4).and_then(|h| std::str::from_utf8(h).ok()).and_then(|h| u32::from_str_radix(h, 16).ok());
+    let (mut out, mut copied, mut at) = (String::with_capacity(text.len()), 0, 0);
+    while at < bytes.len() {
+        if bytes[at] != b'\\' {
+            at += 1;
+            continue;
+        }
+        if bytes.get(at + 1) == Some(&b'u') {
+            match hex4(at + 2) {
+                Some(0xD800..=0xDBFF) if bytes.get(at + 6..at + 8) == Some(b"\\u".as_slice()) && matches!(hex4(at + 8), Some(0xDC00..=0xDFFF)) => {
+                    at += 12;
+                    continue;
+                }
+                Some(0xD800..=0xDFFF) => {
+                    out.push_str(&text[copied..at]);
+                    out.push_str("\\ufffd");
+                    at += 6;
+                    copied = at;
+                    continue;
+                }
+                _ => {}
+            }
+        }
+        at += 2;
+    }
+    out.push_str(&text[copied..]);
+    out
+}
+
 /// Sends commands without waiting for the reply, from any thread (the answer to a paused request).
 #[derive(Clone)]
 pub struct Fire {
@@ -135,7 +173,7 @@ impl Cdp {
         let fire = Fire { writer: Arc::clone(&writer), next_id: Arc::clone(&next_id) };
         std::thread::spawn(move || {
             while let Ok(message) = Cdp::read_message(&mut reader) {
-                let Ok(value) = serde_json::from_str::<Value>(&message) else { continue };
+                let Some(value) = parse_message(&message) else { continue };
                 match value["id"].as_u64() {
                     Some(id) => {
                         let sender = reader_shared.pending.lock().ok().and_then(|mut p| p.remove(&id));
@@ -254,5 +292,22 @@ impl Cdp {
             Some(e) => Err(format!("{method} failed: {}", e["message"].as_str().unwrap_or("unknown error"))),
             None => Ok(reply["result"].clone()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_message;
+
+    #[test]
+    fn given_messages_with_surrogate_escapes_when_parsed_then_stray_ones_become_replacement_characters_and_the_rest_is_kept() {
+        let value = parse_message(r#"{"a":"x\ud83dy\udc00z \ud83d\ude00 \\ud800 \u00e9"}"#).unwrap();
+
+        assert_eq!(value["a"], "x\u{fffd}y\u{fffd}z \u{1f600} \\ud800 \u{e9}");
+    }
+
+    #[test]
+    fn given_text_that_is_not_json_when_parsed_then_it_is_dropped() {
+        assert!(parse_message(r#"{"a":"#).is_none());
     }
 }
