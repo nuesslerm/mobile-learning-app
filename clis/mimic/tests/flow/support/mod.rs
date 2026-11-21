@@ -36,8 +36,9 @@ pub fn mimic_in(cwd: Option<&Path>, args: &[&str], env: &[(&str, &Path)]) -> Run
     for (k, _) in std::env::vars_os().filter(|(k, _)| k.to_str().is_some_and(|k| k.starts_with("BWS_") || k.starts_with("VERIFICATION_ARTIFACTS_") || k == "SECRETS_BACKEND")) {
         command.env_remove(k);
     }
-    // and not a runner: under GitHub Actions a fetched value is announced as `::add-mask::<value>` on stderr, which the tests' "no value in what was printed" would read as a leak
-    command.env_remove("GITHUB_ACTIONS");
+    // and not a runner: under GitHub Actions a fetched value is announced as `::add-mask::<value>` on stderr, which the tests' "no value in what was printed" would read as a leak;
+    // with CI=true and a vault token in the environment a read goes to the vault alone and ignores an injected variable
+    command.env_remove("GITHUB_ACTIONS").env_remove("CI");
     for (k, v) in env {
         command.env(k, v);
     }
