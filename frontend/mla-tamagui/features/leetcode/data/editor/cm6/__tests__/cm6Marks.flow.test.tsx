@@ -41,7 +41,11 @@ const contentOf = (n: number): Range => {
   return { from: from + (line.length - line.trimStart().length), to: from + line.length };
 };
 const mark = (id: string, range: Range, kind: MarkKind = 'error', hidden?: true): MarkSpec => ({ id, kind, range, ...(hidden ? { hidden } : {}) });
-const rows = () => Array.from((page.frame()?.document as Document).querySelectorAll('.cm-line.cm-run-error-line'), (row) => row.textContent ?? '');
+const rows = () => {
+  const doc = page.frame()?.document;
+  if (!doc) throw new Error('the page has no frame');
+  return Array.from(doc.querySelectorAll('.cm-line.cm-run-error-line'), (row) => row.textContent ?? '');
+};
 
 describe('the real CodeMirror bundle drawing marks', () => {
   it('given the bundle, when the page says hello, then it announces marks and reveal', async () => {
