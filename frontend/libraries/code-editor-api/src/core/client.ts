@@ -29,6 +29,10 @@ export type EditorClient = {
   moveNode(node: Range | 'selection', to: Destination, options?: Options & { readonly expect?: string }): Promise<Reply<ApplyValue>>;
   /** copies the whole lines of the statement or run of statements `node` names right after it; `landed` names the copy */
   duplicateNode(node: Range | 'selection', options?: Options & { readonly expect?: string }): Promise<Reply<ApplyValue>>;
+  /** puts the whole lines of the run under a new compound statement, one indent unit deeper; `header` is its line without the colon or brace (`for i in range(n)`, `for (const x of xs)`), and it must make a block that holds exactly the run */
+  wrapNode(node: Range | 'selection', header: string, options?: Options & { readonly expect?: string }): Promise<Reply<ApplyValue>>;
+  /** replaces a compound statement that has one block with the whole lines of that block, one indent unit shallower; refused as `not-a-node` (`not-unwrappable`) for an `if` with an `else`, a `try` or a decorated function */
+  unwrapNode(node: Range | 'selection', options?: Options & { readonly expect?: string }): Promise<Reply<ApplyValue>>;
   /** removes the whole lines of the statement or run of statements `node` names (an empty 'selection' is the statement at the caret), with the comment lines above it; refused as `would-not-parse` when the code would break */
   deleteNode(node: Range | 'selection', options?: Options & { readonly expect?: string }): Promise<Reply<ApplyValue>>;
   select(anchor: Point, head?: Point, options?: Options): Promise<Reply<ApplyValue>>;
@@ -135,6 +139,8 @@ export function createEditorClient(engine: EditorEngine, options: ClientOptions 
     moveRange: (range, to, extra) => transact([{ op: 'move', range, to }], extra),
     moveNode: (node, to, { expect, ...extra } = {}) => transact([{ op: 'moveNode', node, to, ...(expect === undefined ? {} : { expect }) }], extra),
     duplicateNode: (node, { expect, ...extra } = {}) => transact([{ op: 'duplicateNode', node, ...(expect === undefined ? {} : { expect }) }], extra),
+    wrapNode: (node, header, { expect, ...extra } = {}) => transact([{ op: 'wrapNode', node, header, ...(expect === undefined ? {} : { expect }) }], extra),
+    unwrapNode: (node, { expect, ...extra } = {}) => transact([{ op: 'unwrapNode', node, ...(expect === undefined ? {} : { expect }) }], extra),
     deleteNode: (node, { expect, ...extra } = {}) => transact([{ op: 'deleteNode', node, ...(expect === undefined ? {} : { expect }) }], extra),
     select: (anchor, head, extra) => transact([head === undefined ? { op: 'select', anchor } : { op: 'select', anchor, head }], extra),
     undo: () => call('history', { direction: 'undo' }),

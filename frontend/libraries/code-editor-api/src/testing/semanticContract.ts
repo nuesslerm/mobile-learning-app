@@ -111,6 +111,80 @@ const SNIPPETS: Readonly<Record<Language, Snippet>> = {
   },
 };
 
+type WrapSnippet = {
+  /** a header that makes a loop, one that does not parse, and one whose lines the grammar puts in a bare block (or, in Python, that does not parse either) */
+  readonly header: string;
+  readonly broken: string;
+  readonly trap: string;
+  /** the branch with its two statements under the loop header */
+  readonly wrapped: string;
+  /** a function with a statement over two lines, then a statement; the two-line statement; the function with it under the loop header */
+  readonly hang: string;
+  readonly hangNode: string;
+  readonly hangWrapped: string;
+  /** the loop statement of `loop`, and `loop` with it unwrapped */
+  readonly loopNode: string;
+  readonly unwrapped: string;
+  /** an if with an else, then a statement; the if */
+  readonly ifElse: string;
+  readonly ifElseNode: string;
+  /** a document of two statements with no final newline, the last one, and the document with the last one under the loop header */
+  readonly tail: string;
+  readonly tailNode: string;
+  readonly tailWrapped: string;
+};
+
+const WRAPS: Readonly<Record<Language, WrapSnippet>> = {
+  python: {
+    header: 'for i in range(2)',
+    broken: 'for i in',
+    trap: 'if x: foo()',
+    wrapped: 'def f(x):\n    if x:\n        for i in range(2):\n            a = 1\n            b = 2\n    return b\n',
+    hang: 'def f(x):\n    total = g(1,\n            2)\n    return total\n',
+    hangNode: 'total = g(1,\n            2)',
+    hangWrapped: 'def f(x):\n    for i in range(2):\n        total = g(1,\n                2)\n    return total\n',
+    loopNode: 'for x in xs:\n        print(x)',
+    unwrapped: 'def f(xs):\n    print(x)\n    return 1\n',
+    ifElse: 'def f(x):\n    if x:\n        a = 1\n    else:\n        b = 2\n    return 1\n',
+    ifElseNode: 'if x:\n        a = 1\n    else:\n        b = 2',
+    tail: 'a = 1\nb = 2',
+    tailNode: 'b = 2',
+    tailWrapped: 'a = 1\nfor i in range(2):\n    b = 2',
+  },
+  javascript: {
+    header: 'for (let i = 0; i < 2; i++)',
+    broken: 'for (',
+    trap: 'if (x) foo();',
+    wrapped: 'function f(x) {\n  if (x) {\n    for (let i = 0; i < 2; i++) {\n        a = 1;\n        b = 2;\n    }\n  }\n  return b;\n}\n',
+    hang: 'function f(x) {\n  total = g(1,\n          2);\n  return total;\n}\n',
+    hangNode: 'total = g(1,\n          2);',
+    hangWrapped: 'function f(x) {\n  for (let i = 0; i < 2; i++) {\n      total = g(1,\n              2);\n  }\n  return total;\n}\n',
+    loopNode: 'for (const x of xs) {\n    g(x);\n  }',
+    unwrapped: 'function f(xs) {\n  g(x);\n  return 1;\n}\n',
+    ifElse: 'function f(x) {\n  if (x) {\n    a = 1;\n  } else {\n    b = 2;\n  }\n  return 1;\n}\n',
+    ifElseNode: 'if (x) {\n    a = 1;\n  } else {\n    b = 2;\n  }',
+    tail: 'let a = 1;\nlet b = 2;',
+    tailNode: 'let b = 2;',
+    tailWrapped: 'let a = 1;\nfor (let i = 0; i < 2; i++) {\n    let b = 2;\n}',
+  },
+  cpp: {
+    header: 'for (int i = 0; i < 2; i++)',
+    broken: 'for (',
+    trap: 'if (x) foo();',
+    wrapped: 'int f(int x) {\n  if (x) {\n    for (int i = 0; i < 2; i++) {\n        a = 1;\n        b = 2;\n    }\n  }\n  return b;\n}\n',
+    hang: 'int f(int x) {\n  total = g(1,\n          2);\n  return total;\n}\n',
+    hangNode: 'total = g(1,\n          2);',
+    hangWrapped: 'int f(int x) {\n  for (int i = 0; i < 2; i++) {\n      total = g(1,\n              2);\n  }\n  return total;\n}\n',
+    loopNode: 'for (int i = 0; i < 3; i++) {\n    g(i);\n  }',
+    unwrapped: 'int f() {\n  g(i);\n  return 1;\n}\n',
+    ifElse: 'int f(int x) {\n  if (x) {\n    a = 1;\n  } else {\n    b = 2;\n  }\n  return 1;\n}\n',
+    ifElseNode: 'if (x) {\n    a = 1;\n  } else {\n    b = 2;\n  }',
+    tail: 'int a = 1;\nint b = 2;',
+    tailNode: 'int b = 2;',
+    tailWrapped: 'int a = 1;\nfor (int i = 0; i < 2; i++) {\n    int b = 2;\n}',
+  },
+};
+
 const failed = (reply: Reply<unknown>): EditorError => {
   if (reply.ok) throw new Error('the call was expected to fail');
   return reply.error;
@@ -172,7 +246,7 @@ export function semanticContract(name: string, make: MakeSubject, language: Lang
     });
     beforeEach(async (ctx) => {
       if (!unwrap(await client.hello()).capabilities.languages.includes(language)) return ctx.skip();
-      unwrap(await client.setConfig({ language }));
+      unwrap(await client.setConfig({ language, tabSize: 4 }));
     });
     afterEach(() => {
       for (const cleanup of cleanups.splice(0)) cleanup();
@@ -499,6 +573,136 @@ export function semanticContract(name: string, make: MakeSubject, language: Lang
 
         expect(await snapshot()).toMatchObject({ text: `${snippet.flat}\n${snippet.flatLast}` });
         expect(unwrap(reply).landed).toEqual([{ from: snippet.flat.length + 1, to: snippet.flat.length + 1 + snippet.flatLast.length }]);
+      });
+    });
+    describe('wrapNode and unwrapNode', () => {
+      const wrap = WRAPS[language];
+      const pair = (): Range => ({ from: snippet.branch.indexOf(snippet.first), to: snippet.branch.indexOf(snippet.second) + snippet.second.length });
+      // the new loop's own lines in the wrapped branch: its header line to its last line (the closing brace in braces)
+      const loopLines = (): Range => {
+        const last = wholeLines(wrap.wrapped, snippet.second);
+        return { from: wholeLines(wrap.wrapped, wrap.header.slice(0, 5)).from, to: language === 'python' ? last.to : wrap.wrapped.indexOf('\n', last.to) + 1 };
+      };
+
+      it('given two statements of an if, when they are wrapped in a loop, then they sit one unit deeper under the header in one revision with one api change, landed names the loop, and one undo restores the text', async (ctx) => {
+        if (!(await announces('wrapNode'))) return ctx.skip();
+        const base = await start(snippet.branch);
+        const seen = changes();
+
+        const reply = await client.wrapNode(pair(), wrap.header);
+
+        const value = unwrap(reply);
+        expect(reply).toMatchObject({ revision: base + 1, base });
+        expect(await snapshot()).toMatchObject({ text: wrap.wrapped, revision: base + 1 });
+        expect(value.landed).toEqual([loopLines()]);
+        expect(seen).toMatchObject([{ type: 'changed', from: base, to: base + 1, origin: 'api' }]);
+        unwrap(await client.undo());
+        expect(await snapshot()).toMatchObject({ text: snippet.branch });
+      });
+
+      // the fake editor's own Python parser reads no header: for Python these two are proved on the installed grammar (ops.wrap.test.ts)
+      it('given a header that does not parse, when a statement is wrapped, then it is would-not-parse syntax with the error in the would-be text and nothing changes', async (ctx) => {
+        if (!(await announces('wrapNode')) || language === 'python') return ctx.skip();
+        const base = await start(snippet.branch);
+
+        const error = failed(await client.wrapNode(pair(), wrap.broken));
+
+        expect(error).toMatchObject({ code: 'would-not-parse', reason: 'syntax' });
+        if (error.code === 'would-not-parse') expect(error.errors.length).toBeGreaterThan(0);
+        expect(await snapshot()).toMatchObject({ text: snippet.branch, revision: base });
+      });
+
+      it('given a header that carries its own statement, when a statement is wrapped, then it is would-not-parse structure because the lines landed in a bare block, and nothing changes', async (ctx) => {
+        if (!(await announces('wrapNode')) || language === 'python') return ctx.skip();
+        const base = await start(snippet.branch);
+
+        const error = failed(await client.wrapNode(pair(), wrap.trap));
+
+        expect(error).toMatchObject({ code: 'would-not-parse', reason: 'structure' });
+        expect(await snapshot()).toMatchObject({ text: snippet.branch, revision: base });
+      });
+
+      it('given a statement over two lines, when it is wrapped, then the second line keeps its offset to the first', async (ctx) => {
+        if (!(await announces('wrapNode'))) return ctx.skip();
+        await start(wrap.hang);
+
+        unwrap(await client.wrapNode(rangeOf(wrap.hang, wrap.hangNode), wrap.header));
+
+        expect(await snapshot()).toMatchObject({ text: wrap.hangWrapped });
+      });
+
+      it('given the caret inside a wrapped statement, when it is wrapped, then the caret is on the same character in the new place', async (ctx) => {
+        if (!(await announces('wrapNode'))) return ctx.skip();
+        await start(snippet.branch);
+        unwrap(await client.select(snippet.branch.indexOf(snippet.second) + 2));
+
+        unwrap(await client.wrapNode(pair(), wrap.header));
+
+        const caret = wrap.wrapped.indexOf(snippet.second) + 2;
+        expect((await snapshot()).selection.ranges[0]).toEqual({ anchor: caret, head: caret });
+      });
+
+      it('given the last statement of a document with no final newline, when it is wrapped, then the closing line ends the document and there is still no final newline', async (ctx) => {
+        if (!(await announces('wrapNode'))) return ctx.skip();
+        await start(wrap.tail);
+
+        unwrap(await client.wrapNode(rangeOf(wrap.tail, wrap.tailNode), wrap.header));
+
+        expect(await snapshot()).toMatchObject({ text: wrap.tailWrapped });
+      });
+
+      it('given a loop, when it is unwrapped, then its body replaces it one unit shallower, the header and the closing brace are gone, and one undo restores the text', async (ctx) => {
+        if (!(await announces('unwrapNode'))) return ctx.skip();
+        const base = await start(snippet.loop);
+        const seen = changes();
+
+        const reply = await client.unwrapNode(rangeOf(snippet.loop, wrap.loopNode));
+
+        const value = unwrap(reply);
+        expect(reply).toMatchObject({ revision: base + 1, base });
+        expect(await snapshot()).toMatchObject({ text: wrap.unwrapped, revision: base + 1 });
+        expect(value.landed).toEqual([wholeLines(wrap.unwrapped, snippet.inner)]);
+        expect(seen).toMatchObject([{ type: 'changed', origin: 'api' }]);
+        unwrap(await client.undo());
+        expect(await snapshot()).toMatchObject({ text: snippet.loop });
+      });
+
+      it('given an if with an else, when it is unwrapped, then it is not-a-node not-unwrappable naming the if and nothing changes', async (ctx) => {
+        if (!(await announces('unwrapNode'))) return ctx.skip();
+        const base = await start(wrap.ifElse);
+
+        const error = failed(await client.unwrapNode(rangeOf(wrap.ifElse, wrap.ifElseNode)));
+
+        expect(error).toMatchObject({ code: 'not-a-node', reason: 'not-unwrappable', range: rangeOf(wrap.ifElse, wrap.ifElseNode), step: 0 });
+        expect(await snapshot()).toMatchObject({ text: wrap.ifElse, revision: base });
+      });
+
+      it('given a plain statement, when it is unwrapped, then it is not-a-node not-unwrappable', async (ctx) => {
+        if (!(await announces('unwrapNode'))) return ctx.skip();
+        await start(snippet.branch);
+
+        expect(failed(await client.unwrapNode(rangeOf(snippet.branch, snippet.second)))).toMatchObject({ code: 'not-a-node', reason: 'not-unwrappable' });
+      });
+
+      it('given a statement, when it is wrapped and then the new loop is unwrapped, then the text is the original exactly, for a block, a compound, a loop body, a commented statement and a last line with no newline', async (ctx) => {
+        if (!(await announces('wrapNode')) || !(await announces('unwrapNode'))) return ctx.skip();
+        const corpus: readonly (readonly [string, Range])[] = [
+          [snippet.branch, pair()],
+          [snippet.branch, rangeOf(snippet.branch, snippet.ifNode)],
+          [snippet.loop, rangeOf(snippet.loop, snippet.inner)],
+          [snippet.noted, rangeOf(snippet.noted, snippet.notedStatement)],
+          [wrap.tail, rangeOf(wrap.tail, wrap.tailNode)],
+        ];
+
+        for (const [text, node] of corpus) {
+          await start(text);
+          const wrapped = unwrap(await client.wrapNode(node, wrap.header));
+          const loop = wrapped.landed[0] as Range;
+
+          unwrap(await client.unwrapNode(loop));
+
+          expect((await snapshot()).text).toBe(text);
+        }
       });
     });
   });

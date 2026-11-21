@@ -378,6 +378,18 @@ describe('the CodeMirror host parsing another text', () => {
     expect(view.state.doc.toString()).toBe(moved);
     expect(view.state.selection.main.head).toBe(moved.indexOf('s = """') + 2);
   });
+
+  it('given a triple-quoted string in a python block, when the block is wrapped and then unwrapped through the engine, then the string keeps its inner lines and the text is the original', async () => {
+    const text = 'def f(x):\n    s = """\n  inner\n    low"""\n    return s\n';
+    const { core, view } = mount(text, { brokenListener: false, indent: '    ' });
+    const node = { from: text.indexOf('s = """'), to: text.indexOf('low"""') + 6 };
+
+    const wrapped = unwrap(await core.request('apply', { steps: [{ op: 'wrapNode', node, header: 'if x' }] }));
+
+    expect(view.state.doc.toString()).toBe('def f(x):\n    if x:\n        s = """\n  inner\n    low"""\n    return s\n');
+    unwrap(await core.request('apply', { steps: [{ op: 'unwrapNode', node: wrapped.landed[0] as { from: number; to: number } }] }));
+    expect(view.state.doc.toString()).toBe(text);
+  });
 });
 
 describe('the CodeMirror host holding marks', () => {

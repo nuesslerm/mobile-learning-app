@@ -76,12 +76,13 @@ const ROOMS = {
 const THIRD = { python: 'c = 3', javascript: 'c = 3;', cpp: 'c = 3;' } as const;
 const RETURN = { python: 'return b', javascript: 'return b;', cpp: 'return b;' } as const;
 const IF_END = { python: 'c = 3', javascript: '  }', cpp: '  }' } as const;
+const WHILE = { python: 'while x', javascript: 'while (x)', cpp: 'while (x)' } as const;
 const EMPTY = {
   javascript: 'function f(x) {\n    if (x) {}\n    g();\n}\n',
   cpp: 'int f(int x) {\n    if (x) {}\n    g();\n}\n',
 } as const;
 
-describe('moveNode and duplicateNode planned over the fake parsers and over the installed grammars', () => {
+describe('moveNode, duplicateNode, wrapNode and unwrapNode planned over the fake parsers and over the installed grammars', () => {
   const steps = (language: Language, text: string): { readonly name: string; readonly steps: Step[] }[] => {
     const ifNode = between(text, IF[language][0], IF_END[language]);
     return [
@@ -93,6 +94,12 @@ describe('moveNode and duplicateNode planned over the fake parsers and over the 
       { name: 'the if moved into itself', steps: [{ op: 'moveNode', node: ifNode, to: { into: ifNode, at: 'end' } }] },
       { name: 'the second statement duplicated', steps: [{ op: 'duplicateNode', node: lineOf(text, SECOND[language]) }] },
       { name: 'the whole if duplicated', steps: [{ op: 'duplicateNode', node: ifNode }] },
+      { name: 'the last statement wrapped in a loop', steps: [{ op: 'wrapNode', node: lineOf(text, THIRD[language]), header: WHILE[language] }] },
+      { name: 'a run of two statements wrapped in a loop', steps: [{ op: 'wrapNode', node: between(text, SECOND[language], THIRD[language]), header: WHILE[language] }] },
+      { name: 'the whole if wrapped in a loop', steps: [{ op: 'wrapNode', node: ifNode, header: WHILE[language] }] },
+      { name: 'the if unwrapped', steps: [{ op: 'unwrapNode', node: ifNode }] },
+      { name: 'a statement unwrapped', steps: [{ op: 'unwrapNode', node: lineOf(text, SECOND[language]) }] },
+      ...(language === 'python' ? [] : [{ name: 'a statement wrapped under a header that carries a statement', steps: [{ op: 'wrapNode', node: lineOf(text, SECOND[language]), header: 'if (x) foo();' } as const] }]),
     ];
   };
   const CASES = LANGUAGES.flatMap((language) => steps(language, ROOMS[language]).map((one) => ({ ...one, language, text: ROOMS[language] })));

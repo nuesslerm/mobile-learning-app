@@ -49,7 +49,7 @@ function hitAt(language: Language, root: SyntaxNode, pos: Pos): Hit | null {
 }
 
 // what may follow the last statement of a run on its line: nothing, or comments
-function endsLine(rest: string, language: Language): boolean {
+export function endsLine(rest: string, language: Language): boolean {
   let tail = rest.trim();
   if (language === 'python') return tail === '' || tail.startsWith('#');
   while (tail.startsWith('/*')) {
