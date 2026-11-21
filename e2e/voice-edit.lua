@@ -4,7 +4,7 @@ against: android=update, browser=export
 timeout: 180
 units: chunk=1; chunk=2; chunk=3; chunk=4; chunk=5; chunk=6; chunk=7; chunk=8
 focus: true
-features: leetcode
+features: leetcode, coding-agent
 ---]]
 -- device-lab voice edit: a problem solved by short spoken edits, one small change per turn. A prepared speech clip is the
 -- microphone; the app's three backend calls (transcribe, plan, edit stats) are answered by network stubs, so the test needs no
