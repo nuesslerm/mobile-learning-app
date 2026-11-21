@@ -3,14 +3,23 @@ import type { DocumentHost } from '../ports/host';
 import {
   API_VERSION, CORE_REQUEST_NAMES,
   type ApplyValue, type Change, type EditorError, type EditorEvent, type EventType, type Hello, type HistoryValue, type LoadValue, type Origin, type Range,
-  type ReadValue, type Reply, type Requests, type RequestName, type Revision, type Selection, type SelRange, type ViewValue,
+  type ReadValue, type Reply, type Requests, type RequestName, type Revision, type Selection, type SelRange, type TreeValue, type ViewValue,
 } from '../ports/protocol';
 import { lengthDelta, mapSelRange, normalizeText } from './changes';
 import { planBatch, type ResolvedStep } from './plan';
 import { createRevisionLog } from './revisionLog';
-import { parseApply, parseConfigPatch, parseHistory, parseLoad, parseRead, parseView } from './validate';
+import { runTreeJob } from './treeJob';
+import { parseApply, parseConfigPatch, parseHistory, parseLoad, parseRead, parseTree, parseView } from './validate';
 
-export type EngineOptions = { readonly instance: string; readonly logDepth?: number; readonly logError: (error: unknown) => void };
+export type EngineOptions = {
+  readonly instance: string;
+  readonly logDepth?: number;
+  readonly logError: (error: unknown) => void;
+  /** the clock, the turn given to the page's events between parse slices, and a slice's length: injected so a test can pace a parse */
+  readonly now?: () => number;
+  readonly yieldToEvents?: () => Promise<void>;
+  readonly treeSliceMs?: number;
+};
 export type HostUpdate = {
   readonly revision: Revision;
   readonly changes: readonly Change[];
@@ -19,6 +28,8 @@ export type HostUpdate = {
   readonly label?: string;
   readonly length: number; // the document length after the transaction: how the log restarts after a gap
 };
+type Deferred = { readonly deferred: Promise<Reply<unknown>> };
+
 export type EngineCore = EditorEngine & {
   readonly instance: string;
   revision(): Revision;
@@ -29,6 +40,8 @@ export type EngineCore = EditorEngine & {
 };
 
 const DEFAULT_LOG_DEPTH = 256;
+const DEFAULT_TREE_BUDGET_MS = 50;
+const DEFAULT_TREE_SLICE_MS = 8;
 const EXCERPT = 200;
 
 const sameSelection = (a: Selection, b: Selection) =>
@@ -228,16 +241,46 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     return success({ focused: host.hasFocus() });
   };
 
-  // answered by the unsupported path until a host can parse (the slices that follow add the budgeted answer)
-  const tree = (): Reply<never> => failure({ code: 'unsupported', message: 'this editor has no request tree', what: 'request:tree' });
+  // The parse is paced in slices with the page's events given a turn between them, so the call that asked for it is answered
+  // later: its stage hands the queue back at once (an apply asked after it is not held behind a parse) and its reply, built after
+  // the parse, says which revision the tree describes (`base`) and which the editor had by then (`revision`).
+  const now = options.now ?? (() => Date.now());
+  const yieldToEvents = options.yieldToEvents ?? (() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+  const sliceMs = options.treeSliceMs ?? DEFAULT_TREE_SLICE_MS;
 
-  const handlers: Record<RequestName, (params: unknown) => Reply<unknown>> = { hello, read, apply, history, load, configure, view, tree };
+  const tree = (params: unknown): Reply<TreeValue> | Deferred => {
+    const source = host.tree?.();
+    if (!source) return failure({ code: 'unsupported', message: 'this editor has no request tree', what: 'request:tree' });
+    const parsed = parseTree(params);
+    if (!parsed.ok) return failure(parsed.error);
+    const length = host.doc.length;
+    const range = parsed.value.range ?? { from: 0, to: length };
+    if (range.to > length) return failure({ code: 'out-of-range', message: `the range ends past the document (length ${length})`, length });
+    const base = log.head();
+    const detail = parsed.value.detail ?? 'outline';
+    const budgetMs = parsed.value.budgetMs ?? DEFAULT_TREE_BUDGET_MS;
+    const deferred = runTreeJob(source, range.to, budgetMs, { now, yieldToEvents, head: () => log.head(), sliceMs })
+      .then(
+        (result): Reply<unknown> =>
+          success(
+            { instance: options.instance, revision: base, language: source.language, length: source.length, parsedTo: result.parsedTo, complete: result.complete, detail, root: source.read(range, detail) } satisfies TreeValue,
+            base,
+          ),
+      )
+      .catch((error: unknown): Reply<unknown> => {
+        logError(error);
+        return failure({ code: 'internal', message: error instanceof Error ? error.message : String(error) });
+      });
+    return { deferred };
+  };
+
+  const handlers: Record<RequestName, (params: unknown) => Reply<unknown> | Deferred> = { hello, read, apply, history, load, configure, view, tree };
 
   const request = (name: string, params: unknown): Promise<Reply<unknown>> => {
     if (name === 'hello') return Promise.resolve(hello());
-    const handler = (handlers as Record<string, ((params: unknown) => Reply<unknown>) | undefined>)[name];
+    const handler = (handlers as Record<string, ((params: unknown) => Reply<unknown> | Deferred) | undefined>)[name];
     if (!handler) return Promise.resolve(failure({ code: 'unsupported', message: `this editor has no request ${name}`, what: `request:${name}` }));
-    const run = queue.then((): Reply<unknown> => {
+    const stage = queue.then((): Reply<unknown> | Deferred => {
       try {
         host.sync();
         return handler(params);
@@ -246,8 +289,8 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
         return failure({ code: 'internal', message: error instanceof Error ? error.message : String(error) });
       }
     });
-    queue = run;
-    return run;
+    queue = stage.then(() => undefined);
+    return stage.then((result) => ('deferred' in result ? result.deferred : result));
   };
 
   return {

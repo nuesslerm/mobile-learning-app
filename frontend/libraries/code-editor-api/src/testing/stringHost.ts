@@ -1,6 +1,6 @@
 import { applyChanges, mapSelRange, normalizeText } from '../core/changes';
-import { createEditorEngine, type EngineCore } from '../core/engine';
-import type { DocumentHost } from '../ports/host';
+import { createEditorEngine, type EngineCore, type EngineOptions } from '../core/engine';
+import type { DocumentHost, TreeSnapshot } from '../ports/host';
 import { LANGUAGE_NAMES, type Change, type ConfigPatch, type EditorConfig, type Language, type Origin, type Revision, type SelRange, type Selection } from '../ports/protocol';
 import { emptyHistory, pop, recordChange, recordSelection, type HistoryState } from './history';
 
@@ -11,6 +11,10 @@ export type FakeEditorOptions = {
   readonly languages?: readonly Language[];
   /** false: a host without the optional `type` method, which then does not announce the step */
   readonly typing?: boolean;
+  /** gives the host an optional `tree()`: a snapshot of the document's syntax tree for the text it holds now (the request is announced only then) */
+  readonly tree?: (text: string) => TreeSnapshot;
+  /** the engine's clock, parse turn and slice length, so a test can pace a parse */
+  readonly engine?: Pick<EngineOptions, 'now' | 'yieldToEvents' | 'treeSliceMs'>;
   /** where errors thrown by event listeners and the host go; a test reads them back through `internalErrors` */
   readonly logError?: (error: unknown) => void;
 };
@@ -85,6 +89,7 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
             edit([{ from, to, insert }], { anchor: from + insert.length, head: from + insert.length }, `api.${label ?? 'type'}`, true, 'api', label);
           },
         }),
+    ...(options.tree ? { tree: () => (options.tree as (text: string) => TreeSnapshot)(text) } : {}),
     commit({ changes, selection: next, label }) {
       if (changes.length === 0) {
         if (next) reselect(next, 'select.api');
@@ -119,7 +124,7 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
     maxSelections: 1,
   };
 
-  const engine = createEditorEngine(host, { instance: options.instance ?? 'fake-0', logError: options.logError ?? ((error) => errors.push(error)), ...(options.logDepth === undefined ? {} : { logDepth: options.logDepth }) });
+  const engine = createEditorEngine(host, { ...options.engine, instance: options.instance ?? 'fake-0', logError: options.logError ?? ((error) => errors.push(error)), ...(options.logDepth === undefined ? {} : { logDepth: options.logDepth }) });
   sink.core = engine;
 
   return {
