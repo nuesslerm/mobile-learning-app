@@ -5,13 +5,17 @@ import { mapPos, mapRange } from './changes';
 export type ResolvedStep =
   | { readonly op: 'replace'; readonly range: Range; readonly text: string }
   | { readonly op: 'move'; readonly range: Range; readonly to: Pos }
-  | { readonly op: 'select'; readonly anchor: Point; readonly head?: Point };
+  | { readonly op: 'select'; readonly anchor: Point; readonly head?: Point }
+  // edits are in the planned document and may sit anywhere; `landed` names one edit and the part of its insert that is the step's own text (null: where the text it deleted was, as a caret)
+  | { readonly op: 'splice'; readonly edits: readonly Change[]; readonly landed: { readonly edit: number; readonly from: number; readonly to: number } | null };
 
 export type Plan = {
   /** individual, sorted, simultaneous, in the coordinates of the document the plan was made against */
   readonly changes: readonly Change[];
   /** per step, where its inserted text sits in the result; null for a select step */
   readonly landed: readonly (Range | null)[];
+  /** per step, all it inserts as one range of the result (the hull of its inserts); null when it inserts nothing */
+  readonly written: readonly (Range | null)[];
   /** the explicit selection in result coordinates, null when the host's default mapping applies */
   readonly select: SelRange | null;
 };
@@ -27,13 +31,35 @@ export function planBatch(doc: DocView, steps: readonly ResolvedStep[]): Planned
   const { length } = doc;
   const entries: Entry[] = [];
   const idle: { step: number; range: Range }[] = [];
-  const producer = new Map<number, Entry>();
+  const producer = new Map<number, { entry: Entry; from: number; to: number }>(); // the entry whose insert holds a step's text, and where in it
   let selectAt = -1;
   let seq = 0;
   for (const [step, resolved] of steps.entries()) {
     if (resolved.op === 'select') {
       if (selectAt >= 0) return fail({ code: 'invalid', message: 'a batch holds at most one select step', path: `steps[${step}]` });
       selectAt = step;
+      continue;
+    }
+    if (resolved.op === 'splice') {
+      const own: (Entry | null)[] = [];
+      for (const edit of resolved.edits) {
+        if (!isPos(edit.from, length) || !isPos(edit.to, length) || edit.from > edit.to) {
+          return fail({ code: 'out-of-range', message: `step ${step} names a range outside the document (length ${length})`, length, step });
+        }
+        const added: Entry | null = edit.from === edit.to && edit.insert === '' ? null : { from: edit.from, to: edit.to, insert: edit.insert, step, seq: (seq += 1) };
+        if (added) entries.push(added);
+        own.push(added);
+      }
+      const { landed } = resolved;
+      const chosen = landed ? own[landed.edit] : null;
+      if (landed && (!chosen || landed.from < 0 || landed.from > landed.to || landed.to > chosen.insert.length)) {
+        return fail({ code: 'internal', message: `step ${step} names text that its edits do not insert` });
+      }
+      if (landed && chosen) producer.set(step, { entry: chosen, from: landed.from, to: landed.to });
+      else if (resolved.edits.length > 0) {
+        const first = Math.min(...resolved.edits.map((edit) => edit.from));
+        idle.push({ step, range: { from: first, to: first } });
+      }
       continue;
     }
     const range = resolved.range;
@@ -45,7 +71,7 @@ export function planBatch(doc: DocView, steps: readonly ResolvedStep[]): Planned
       else {
         const added: Entry = { from: range.from, to: range.to, insert: resolved.text, step, seq: (seq += 1) };
         entries.push(added);
-        producer.set(step, added);
+        producer.set(step, { entry: added, from: 0, to: added.insert.length });
       }
       continue;
     }
@@ -58,7 +84,7 @@ export function planBatch(doc: DocView, steps: readonly ResolvedStep[]): Planned
     entries.push({ from: range.from, to: range.to, insert: '', step, seq: (seq += 1) });
     const added: Entry = { from: resolved.to, to: resolved.to, insert: doc.slice(range.from, range.to), step, seq: (seq += 1) };
     entries.push(added);
-    producer.set(step, added);
+    producer.set(step, { entry: added, from: 0, to: added.insert.length });
   }
   entries.sort((a, b) => a.from - b.from || rank(a) - rank(b) || a.step - b.step || a.seq - b.seq);
   for (let i = 1; i < entries.length; i += 1) {
@@ -77,14 +103,21 @@ export function planBatch(doc: DocView, steps: readonly ResolvedStep[]): Planned
     delta += entry.insert.length - (entry.to - entry.from);
   }
   const landed: (Range | null)[] = steps.map(() => null);
-  for (const [step, entry] of producer) {
+  for (const [step, { entry, from, to }] of producer) {
     const start = startOf.get(entry) as number;
-    landed[step] = { from: start, to: start + entry.insert.length };
+    landed[step] = { from: start + from, to: start + to };
   }
   for (const { step, range } of idle) landed[step] = mapRange(range, changes);
+  const written: (Range | null)[] = steps.map(() => null);
+  for (const entry of entries) {
+    if (entry.insert === '') continue;
+    const start = startOf.get(entry) as number;
+    const soFar = written[entry.step];
+    written[entry.step] = { from: Math.min(soFar?.from ?? start, start), to: Math.max(soFar?.to ?? 0, start + entry.insert.length) };
+  }
   const select = selectAt < 0 ? null : resolveSelect(steps[selectAt] as Extract<ResolvedStep, { op: 'select' }>, selectAt, changes, landed, length);
   if (select !== null && 'code' in select) return fail(select);
-  return { ok: true, plan: { changes, landed, select } };
+  return { ok: true, plan: { changes, landed, written, select } };
 }
 
 function resolveSelect(step: Extract<ResolvedStep, { op: 'select' }>, index: number, changes: readonly Change[], landed: readonly (Range | null)[], length: number): SelRange | EditorError {
