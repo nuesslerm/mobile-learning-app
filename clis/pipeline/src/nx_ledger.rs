@@ -61,18 +61,35 @@ pub fn from_log(log: &str) -> Vec<TaskRun> {
         .collect()
 }
 
-/// The tasks of the newest `run.json` under `home` written at or after `since`.
-pub fn read(home: &Path, since: SystemTime) -> Vec<TaskRun> {
-    let Ok(workspaces) = std::fs::read_dir(home.join(".nx")) else { return Vec::new() };
+/// The newest `run.json` under `home` written at or after `since`, with its time.
+fn newest(home: &Path, since: SystemTime) -> Option<(SystemTime, std::path::PathBuf)> {
+    let workspaces = std::fs::read_dir(home.join(".nx")).ok()?;
     // File times come from a coarser kernel clock than the `since` the caller read, so a run.json written right after `since` can carry an earlier time.
     let since = since.checked_sub(std::time::Duration::from_millis(100)).unwrap_or(since);
-    let newest = workspaces
+    workspaces
         .filter_map(Result::ok)
         .map(|w| w.path().join("cache/run.json"))
         .filter_map(|p| Some((std::fs::metadata(&p).ok()?.modified().ok()?, p)))
         .filter(|(at, _)| *at >= since)
-        .max_by_key(|(at, _)| *at);
-    newest.and_then(|(_, path)| std::fs::read_to_string(path).ok()).map(|raw| parse(&raw)).unwrap_or_default()
+        .max_by_key(|(at, _)| *at)
+}
+
+/// The tasks of the newest `run.json` under `home` written at or after `since`.
+pub fn read(home: &Path, since: SystemTime) -> Vec<TaskRun> {
+    newest(home, since).and_then(|(_, path)| std::fs::read_to_string(path).ok()).map(|raw| parse(&raw)).unwrap_or_default()
+}
+
+/// The `run.json` (path and time) this process already reported: a later target that leaves none within the clock slack must not report it again.
+static REPORTED: std::sync::Mutex<Option<(std::path::PathBuf, SystemTime)>> = std::sync::Mutex::new(None);
+
+fn read_unreported(home: &Path, since: SystemTime) -> Vec<TaskRun> {
+    let Some((at, path)) = newest(home, since) else { return Vec::new() };
+    let mut reported = REPORTED.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    if reported.as_ref().is_some_and(|(p, t)| *p == path && *t == at) {
+        return Vec::new();
+    }
+    *reported = Some((path.clone(), at));
+    std::fs::read_to_string(path).ok().map(|raw| parse(&raw)).unwrap_or_default()
 }
 
 /// How many of the tasks ran and how many a cache replayed, and the share replayed (a run of no tasks replayed all it had).
@@ -118,7 +135,7 @@ fn report(stage: &str, target: &str, tasks: &[TaskRun], units: &[wf_bucket::ci_d
 /// Prints the ledger line of the Nx run that started at `since` (nothing when it left no `run.json`).
 pub fn emit(since: SystemTime, stage: &str, target: &str, cpu_seconds: f64) {
     let Some(home) = std::env::var_os("HOME") else { return };
-    let mut tasks = read(Path::new(&home), since);
+    let mut tasks = read_unreported(Path::new(&home), since);
     // the two stages of a core-tests job share one run.json: keep this run's own targets
     if std::env::var("GITHUB_JOB").is_ok_and(|j| j == "core-tests") {
         let own: Vec<&str> = target.split(',').collect();
@@ -253,5 +270,15 @@ mod tests {
         std::fs::write(dir.join("run.json"), RUN).unwrap();
         assert_eq!(read(home.path(), SystemTime::UNIX_EPOCH).len(), 2);
         assert!(read(home.path(), SystemTime::now() + std::time::Duration::from_secs(60)).is_empty());
+    }
+
+    #[test]
+    fn given_a_run_json_already_reported_when_a_later_target_starts_within_the_clock_slack_and_writes_none_then_its_tasks_are_not_reported_again() {
+        let home = tempfile::tempdir().unwrap();
+        let dir = home.path().join(".nx/abc/cache");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("run.json"), RUN).unwrap();
+        assert_eq!(read_unreported(home.path(), SystemTime::UNIX_EPOCH).len(), 2);
+        assert!(read_unreported(home.path(), SystemTime::now()).is_empty());
     }
 }
