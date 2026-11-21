@@ -21,11 +21,20 @@ describe('the config patch mapping', () => {
     expect(toLegacyPatch({ palette: { gutter: '#1' } })).toEqual({ gutterColor: '#1' });
   });
 
-  it.each([['initialText', { initialText: 'x' }], ['language', { language: 'cpp' }], ['an unknown key', { noAutoFocus: true } as never]])('given a patch holding %s, when mapped, then it stays on the old path', (_name, patch) => {
+  it.each([['initialText', { initialText: 'x' }], ['a language the API does not name', { language: 'rust' }], ['an unknown key', { noAutoFocus: true } as never]])('given a patch holding %s, when mapped, then it stays on the old path', (_name, patch) => {
     expect(toConfigPatch(patch)).toBeNull();
   });
 
-  it('given the page config, when shown to the typed API, then the language is python or cpp and the palette is nested', () => {
+  it('given a patch holding a valid language, when mapped to the typed API and back, then the language survives both ways', () => {
+    expect(toConfigPatch({ language: 'javascript', fontSize: 12 })).toEqual({ language: 'javascript', fontSize: 12 });
+    expect(toLegacyPatch({ language: 'cpp', wrap: false })).toEqual({ language: 'cpp', wordWrap: false });
+  });
+
+  it.each(['python', 'javascript', 'cpp'] as const)('given the page on %s, when its config is shown to the typed API, then it reports that language', (language) => {
+    expect(toEditorConfig({ initialText: '', language, ...ALL }).language).toBe(language);
+  });
+
+  it('given the page config, when shown to the typed API, then the palette is nested', () => {
     const legacy: LegacyEditorConfig = { initialText: '', language: 'cpp', ...ALL };
     expect(toEditorConfig(legacy)).toEqual({ language: 'cpp', wrap: true, tabSize: 2, fontSize: 15, lineHeight: 22, palette: { dark: true, cursor: '#a', selection: '#b', background: '#c', gutter: '#d', border: '#e' } });
   });

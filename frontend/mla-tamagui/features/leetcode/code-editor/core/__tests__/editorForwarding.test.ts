@@ -251,6 +251,14 @@ describe('the editor port forwarding', () => {
     expect(legacy).toEqual([]);
   });
 
+  it('given an updateConfig with a language, when it is posted, then it is applied through the typed API as configure({language}) and nothing goes to the old script', async () => {
+    const { client, legacy, post } = setup();
+    post({ type: 'updateConfig', config: { language: 'javascript' } });
+    await settled();
+    expect(await client.setConfig({})).toMatchObject({ ok: true, value: { language: 'javascript' } });
+    expect(legacy).toEqual([]);
+  });
+
   it('given an updateConfig with a key the typed API does not carry, when it is posted, then it stays on the old path', async () => {
     const { legacy, post } = setup();
     const message: ToEditorMessage = { type: 'updateConfig', config: { initialText: 'x', wordWrap: true } };

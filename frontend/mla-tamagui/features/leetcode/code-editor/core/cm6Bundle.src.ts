@@ -15,8 +15,6 @@ import {
   historyKeymap,
   indentWithTab,
 } from '@codemirror/commands';
-import { cpp } from '@codemirror/lang-cpp';
-import { python } from '@codemirror/lang-python';
 import {
   indentOnInput,
   indentUnit,
@@ -44,10 +42,13 @@ import {
 import {
   createDeferredEngine,
   createEditorEngine,
+  isLanguage,
+  LANGUAGE_NAMES,
   serveEditor,
   type ConfigPatch,
   type EditorEngine,
   type EngineCore,
+  type Language,
   type SelRange,
 } from '@lib/code-editor-api';
 import { Logger } from '@lib/logging';
@@ -58,6 +59,7 @@ import {
   toLegacyPatch,
   type LegacyEditorConfig,
 } from '../engine/configPatch';
+import { languageCompartment, languageExtension } from '../engine/languageExtensions';
 declare global {
   type ReactNativeWebViewBridge = {
     postMessage: (msg: string) => void;
@@ -413,10 +415,15 @@ let view: EditorView | null = null;
 let currentConfig: EditorConfig | null = null;
 let core: EngineCore | null = null;
 let host: ReturnType<typeof createCm6Host> | null = null;
+/** The editor language the page was told, or python for one it does not know (and says so once). */
+function languageOf(id: string): Language {
+  if (isLanguage(id)) return id;
+  Logger.warn('editor.init.unknown_language', { language: id });
+  return 'python';
+}
 const randomId = () =>
   Date.now().toString(36) + Math.random().toString(36).slice(2);
 function buildState(cfg: EditorConfig, doc: string, selection?: SelRange) {
-  const lang = cfg.language === 'python' ? python() : cpp();
   const updateListener = EditorView.updateListener.of((update) => {
     if (update.docChanged) {
       postToRN({
@@ -489,7 +496,7 @@ function buildState(cfg: EditorConfig, doc: string, selection?: SelRange) {
       syntaxHighlighting(defaultHighlightStyle, {
         fallback: true,
       }),
-      lang,
+      languageCompartment.of(languageExtension(languageOf(cfg.language))),
       fieldMarkerPlugin,
       highlightPlugin,
       diffPlugin,
@@ -508,6 +515,20 @@ function buildState(cfg: EditorConfig, doc: string, selection?: SelRange) {
     ],
   });
 }
+/** The one way a config patch lands, for the typed API and the old `updateConfig` message: the language moves in its own compartment, in the same dispatch as the rest. */
+function applyConfigPatch(patch: Partial<EditorConfig>) {
+  if (!view || !currentConfig) return;
+  const before = currentConfig.language;
+  const { language, ...rest } = patch;
+  const next = language !== undefined && isLanguage(language) ? language : before;
+  currentConfig = { ...currentConfig, ...rest, language: next };
+  const effects = [configCompartment.reconfigure(buildConfigExtensions(currentConfig))];
+  if (next !== before) {
+    effects.push(languageCompartment.reconfigure(languageExtension(languageOf(next))));
+    Logger.info('editor.language.set', { from: before, to: next });
+  }
+  view.dispatch({ effects });
+}
 /** Applies a typed-API config patch through the same module state the old `updateConfig` message uses. */
 function applyApiConfig(patch: ConfigPatch) {
   if (!view || !currentConfig) {
@@ -516,10 +537,7 @@ function applyApiConfig(patch: ConfigPatch) {
       error: { code: 'not-ready' as const, message: 'the editor has not been created yet' },
     };
   }
-  currentConfig = { ...currentConfig, ...toLegacyPatch(patch) };
-  view.dispatch({
-    effects: configCompartment.reconfigure(buildConfigExtensions(currentConfig)),
-  });
+  applyConfigPatch(toLegacyPatch(patch));
   return { ok: true as const, config: toEditorConfig(currentConfig) };
 }
 function createEditor(cfg: EditorConfig) {
@@ -539,7 +557,7 @@ function createEditor(cfg: EditorConfig) {
   host = createCm6Host({
     view: () => view as EditorView,
     core: () => core,
-    languages: () => [currentConfig?.language === 'python' ? 'python' : 'cpp'],
+    languages: () => LANGUAGE_NAMES,
     configure: applyApiConfig,
     buildState: (text, selection) =>
       buildState(currentConfig as EditorConfig, text, selection),
@@ -592,15 +610,7 @@ window.addEventListener('message', (event) => {
         if (!configPatch) {
           return;
         }
-        currentConfig = {
-          ...currentConfig,
-          ...configPatch,
-        };
-        view.dispatch({
-          effects: configCompartment.reconfigure(
-            buildConfigExtensions(currentConfig)
-          ),
-        });
+        applyConfigPatch(configPatch);
       }
       break;
     case 'blur':
