@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Blind75Problem } from '../models';
+import raw from '../blind75.json';
+import { problemSchema, type Blind75Problem } from '../models';
 import { ProblemCatalog } from '../problemCatalog';
 
 const problems = ProblemCatalog.getAll();
@@ -169,6 +170,13 @@ describe('the catalog is complete enough to run', () => {
       const answer = testCase.expected as string;
       expect(testCase.inputs.s as string, `#${index}`).toContain(answer);
       expect([...answer].reverse().join(''), `#${index}`).toBe(answer);
+    }
+  });
+
+  it('given the catalog data, when the keys of each problem are read, then none is a key the schema strips', () => {
+    const known = Object.keys(problemSchema.shape);
+    for (const category of raw.categories) {
+      for (const problem of category.problems) expect(Object.keys(problem).filter((key) => !known.includes(key)), problem.id).toEqual([]);
     }
   });
 });

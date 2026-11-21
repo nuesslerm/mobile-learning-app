@@ -929,8 +929,7 @@
           ],
           "hints": [],
           "topics": ["Array", "Hash Table", "Union Find"],
-          "diagram": "flowchart TD\n    A[Input array nums] --> B[Convert array to set]\n    B --> C{For each num in set}\n    C --> D{Is num at start of sequence?}\n    D -- No --> C\n    D -- Yes --> E[Count consecutive numbers]\n    E --> F[Track max length]\n    F --> C\n    C --> G[Return max length]",
-          "referenceSolution": "class Solution:\n    def longestConsecutive(self, nums: List[int]) -> int:\n        if not nums:\n            return 0\n\n        num_set = set(nums)\n        max_length = 0\n\n        for num in num_set:\n            # Only start counting if this is the beginning of a sequence\n            if num - 1 not in num_set:\n                current_num = num\n                current_length = 1\n\n                while current_num + 1 in num_set:\n                    current_num += 1\n                    current_length += 1\n\n                max_length = max(max_length, current_length)\n\n        return max_length"
+          "diagram": "flowchart TD\n    A[Input array nums] --> B[Convert array to set]\n    B --> C{For each num in set}\n    C --> D{Is num at start of sequence?}\n    D -- No --> C\n    D -- Yes --> E[Count consecutive numbers]\n    E --> F[Track max length]\n    F --> C\n    C --> G[Return max length]"
         }
       ]
     },
@@ -6545,8 +6544,7 @@
           ],
           "hints": [],
           "topics": ["Array", "Dynamic Programming"],
-          "diagram": "flowchart TD\n    A[Initialize prev2 equals 0 and prev1 equals 0] --> B{For each house value}\n    B --> C[Current equals max of prev1 and prev2 plus house value]\n    C --> D[Shift prev2 equals prev1 and prev1 equals current]\n    D --> B\n    B --> E[Return prev1]",
-          "referenceSolution": "class Solution:\n    def rob(self, nums: List[int]) -> int:\n        if not nums:\n            return 0\n        if len(nums) == 1:\n            return nums[0]\n        \n        prev1 = 0\n        prev2 = 0\n        \n        for num in nums:\n            current = max(num + prev2, prev1)\n            prev2 = prev1\n            prev1 = current\n        \n        return prev1"
+          "diagram": "flowchart TD\n    A[Initialize prev2 equals 0 and prev1 equals 0] --> B{For each house value}\n    B --> C[Current equals max of prev1 and prev2 plus house value]\n    C --> D[Shift prev2 equals prev1 and prev1 equals current]\n    D --> B\n    B --> E[Return prev1]"
         },
         {
           "id": "house-robber-ii",

@@ -22,6 +22,8 @@ const COMPUTED_PROBLEMS = [
   'palindromic-substrings',
   'reorder-list',
 ];
+/** group-anagrams: the standard solution fails one case whose outer order the catalog fixed, and the backend scores it the same, so the named test below pins it instead of a reference. */
+const NO_REFERENCE = ['group-anagrams'];
 const ADDED_BY_DATA_SLICES = [...COMPUTED_PROBLEMS, 'encode-and-decode-strings', 'serialize-and-deserialize-binary-tree', 'clone-graph'];
 
 const goldens = loadReferenceCorpus();
@@ -40,9 +42,14 @@ describe('the on-device judge on known-good solutions', () => {
     judge = await bootNodeJudge();
   });
 
-  it('given the reference corpus of at least the 29 problems across the patterns, when it runs with the catalog paramTypes, returnType and inPlaceParam, then every case passes', () => {
-    // Given the 29 problems the corpus began with: arrays, two pointers, stack, binary search, DP, intervals, graphs, linked lists, trees, in-place matrices
-    expect(goldens.length).toBeGreaterThanOrEqual(29);
+  it('given every problem in the catalog, when the corpus is listed, then each has a reference file and the only exception is the problem whose standard solution fails a pinned case', () => {
+    const covered = new Set(goldens.map(({ problem }) => problem));
+
+    // The failure lists every catalog problem that has no known-good solution yet
+    expect(ProblemCatalog.getAll().map((problem) => problem.id).filter((id) => !covered.has(id))).toEqual(NO_REFERENCE);
+  });
+
+  it('given the reference solution of every catalog problem, when it runs with the catalog paramTypes, returnType, inPlaceParam and harness, then every bundled case passes', () => {
     const failures: string[] = [];
     let cases = 0;
     for (const { problem, code } of goldens) {
@@ -55,7 +62,7 @@ describe('the on-device judge on known-good solutions', () => {
       if (response.status_msg !== 'Accepted' || response.total_testcases === 0) failures.push(`${problem}: ${response.status_msg} ${response.total_correct}/${response.total_testcases} ${response.compile_error ?? response.runtime_error ?? ''}`);
     }
     expect(failures).toEqual([]);
-    expect(cases).toBeGreaterThan(300);
+    expect(cases).toBe(ProblemCatalog.getAll().filter((problem) => !NO_REFERENCE.includes(problem.id)).reduce((sum, problem) => sum + (problem.testCases?.length ?? 0), 0));
   });
 
   it('given the brute-force oracle of each problem whose expected values were computed, when it runs with the catalog harness, then every case passes', () => {
