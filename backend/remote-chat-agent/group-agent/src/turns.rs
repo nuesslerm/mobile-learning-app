@@ -216,7 +216,7 @@ impl TurnTask {
         let reason = if end.interrupted { FinishReason::Interrupted } else if failed { FinishReason::Failed } else { FinishReason::Completed };
         // The executor is let go before the finish is recorded: whoever sees the thread idle may start a turn that binds it again
         self.runner.executors().unbind(&self.thread);
-        self.record([ThreadEvent::TurnFinished { reason }]);
+        self.record([ThreadEvent::TurnFinished { reason, cause: None }]);
         self.runner.release_requests(&self.thread);
         self.runner.start_next_later(&self.thread);
     }

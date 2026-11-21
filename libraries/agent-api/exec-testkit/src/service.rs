@@ -63,6 +63,8 @@ pub struct RcaService {
     addr: SocketAddr,
     secret: String,
     home: tempfile::TempDir,
+    path: OsString,
+    env: Vec<(String, String)>,
 }
 
 /// One HTTP exchange with `Connection: close`: the status and the JSON body (null when there is none).
@@ -127,24 +129,10 @@ impl RcaService {
     fn try_start(secret: &str, path: &OsString, env: &[(&str, &str)]) -> Result<RcaService, String> {
         let port = TcpListener::bind("127.0.0.1:0").and_then(|l| l.local_addr()).expect("a free port").port();
         let home = tempfile::Builder::new().prefix("rca-service-home-").tempdir().expect("a home for the service");
-        let log = std::fs::File::create(home.path().join("service.log")).expect("a log file");
-        let child = Command::new(binary())
-            .env_clear()
-            .env("PATH", path)
-            .env("HOME", home.path())
-            // the directory a CLI of a turn starts in: the service's own, as no workspace of the service is a model's to work in
-            .env("RCA_EXEC_ROOT", home.path())
-            .env("RCA_PROVIDERS_ROOT", home.path().join("providers"))
-            .env("PORT", port.to_string())
-            .env("CHAT_AGENT_API_SECRET", secret)
-            .envs(env.iter().copied())
-            .stdin(Stdio::null())
-            .stdout(log.try_clone().expect("a log handle"))
-            .stderr(log)
-            .spawn()
-            .expect("rca-service starts");
+        let env: Vec<(String, String)> = env.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+        let child = RcaService::spawn(secret, path, &env, port, home.path(), false);
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
-        let mut service = RcaService { child, addr, secret: secret.to_string(), home };
+        let mut service = RcaService { child, addr, secret: secret.to_string(), home, path: path.clone(), env };
         let deadline = Instant::now() + START_WAIT;
         loop {
             if let Ok(Some(status)) = service.child.try_wait() {
@@ -156,6 +144,45 @@ impl RcaService {
             if Instant::now() >= deadline {
                 return Err(format!("rca-service did not serve /health within {START_WAIT:?}:\n{}", service.logs()));
             }
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    }
+
+    /// One process of the service over `home` on `port`, its output appended to the home's `service.log`.
+    fn spawn(secret: &str, path: &OsString, env: &[(String, String)], port: u16, home: &Path, append: bool) -> Child {
+        let log = std::fs::OpenOptions::new().create(true).write(true).append(append).truncate(!append).open(home.join("service.log")).expect("a log file");
+        Command::new(binary())
+            .env_clear()
+            .env("PATH", path)
+            .env("HOME", home)
+            // the directory a CLI of a turn starts in: the service's own, as no workspace of the service is a model's to work in
+            .env("RCA_EXEC_ROOT", home)
+            .env("RCA_PROVIDERS_ROOT", home.join("providers"))
+            .env("PORT", port.to_string())
+            .env("CHAT_AGENT_API_SECRET", secret)
+            .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
+            .stdin(Stdio::null())
+            .stdout(log.try_clone().expect("a log handle"))
+            .stderr(log)
+            .spawn()
+            .expect("rca-service starts")
+    }
+
+    /// Ends the service as a crash does (killed, no shutdown) and starts it again over the same home on the same port, returning once `/health`
+    /// answers. What the service kept on its volume (threads, bearers) is there again; the connections to it are not.
+    pub fn restart(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+        self.child = RcaService::spawn(&self.secret, &self.path, &self.env, self.addr.port(), self.home.path(), true);
+        let deadline = Instant::now() + START_WAIT;
+        loop {
+            if let Ok(Some(status)) = self.child.try_wait() {
+                panic!("rca-service ended with {status} before it served /health again:\n{}", self.logs());
+            }
+            if http(self.addr, "GET", "/health", &[], "").is_ok_and(|(status, _)| status == 200) {
+                return;
+            }
+            assert!(Instant::now() < deadline, "rca-service did not serve /health again within {START_WAIT:?}:\n{}", self.logs());
             std::thread::sleep(Duration::from_millis(50));
         }
     }

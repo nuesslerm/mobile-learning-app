@@ -45,7 +45,7 @@ impl EngineThreads {
         };
         for stale in self.engine.start()? {
             let Some(latest) = self.engine.neutral_thread(&stale.thread_id)?.and_then(|view| view.thread.latest_turn) else { continue };
-            self.record(&stale.thread_id, Some(&latest.turn_id), ThreadEvent::TurnFinished { reason: agent_api_agent::FinishReason::Interrupted }).map_err(|e| e.0)?;
+            self.record(&stale.thread_id, Some(&latest.turn_id), ThreadEvent::TurnFinished { reason: agent_api_agent::FinishReason::Interrupted, cause: Some(agent_api_agent::FinishCause::Restart) }).map_err(|e| e.0)?;
             settled += 1;
             if let Some(hook) = &hook {
                 hook(&stale.thread_id);
@@ -265,7 +265,7 @@ mod tests {
         let mut subscription = threads.follow("a", 0).unwrap().expect("a is a thread");
         let second = say(&threads, "a", "u1", "two");
         say(&threads, "b", "u2", "more of the other");
-        let third = threads.record("a", Some("u1"), ThreadEvent::TurnFinished { reason: FinishReason::Completed }).unwrap();
+        let third = threads.record("a", Some("u1"), ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None }).unwrap();
         // Then the replay is a's two events and the live ones are a's later two, all with the numbers the engine gave them and none of b's
         assert_eq!(subscription.replay.iter().map(|e| e.seq).collect::<Vec<_>>(), [started, first]);
         assert_eq!(subscription.last_seq, first);
@@ -308,7 +308,7 @@ mod tests {
         // When a turn starts and then ends
         let started = threads.record("a", Some("u1"), ThreadEvent::TurnStarted {}).unwrap();
         let running = threads.get("a").unwrap().unwrap();
-        let finished = threads.record("a", Some("u1"), ThreadEvent::TurnFinished { reason: FinishReason::Failed }).unwrap();
+        let finished = threads.record("a", Some("u1"), ThreadEvent::TurnFinished { reason: FinishReason::Failed, cause: None }).unwrap();
         let idle = threads.get("a").unwrap().unwrap();
         // Then the view runs it with the start's seq as newest, and is idle again with the finish's
         assert_eq!((running.status, running.turn.as_deref(), running.last_seq), (Status::Running, Some("u1"), started));
@@ -334,6 +334,8 @@ mod tests {
         let events = after.history("a", 0, 10).unwrap().unwrap().events;
         let last = events.last().unwrap();
         assert_eq!((last.kind.as_str(), last.data["reason"].clone(), last.turn.as_deref()), ("turn.finished", serde_json::json!("interrupted"), Some("u1")));
+        // And the finish names the restart as its cause, which a user's stop never does
+        assert_eq!(last.data["cause"], serde_json::json!("restart"));
         assert!(last.seq > said);
         let view = after.get("a").unwrap().unwrap();
         assert_eq!((view.status, view.turn, view.last_seq), (Status::Idle, None, last.seq));

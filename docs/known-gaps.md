@@ -48,7 +48,7 @@ Pre-2026-10 history: [archive](archive/README.md).
 - rca-parity · opencode's login is driven as typed lines; the flow test uses a scripted double, not the real picker · 0d · [opencode-login-is-a-scripted-double](gaps/opencode-login-is-a-scripted-double.md)
 - rca-parity · Orca `aiVault.listSessions` fields the scan cannot fill · 0d · [orca-ai-vault-session-fields](gaps/orca-ai-vault-session-fields.md)
 - rca-parity · The GitHub project rows rest on authored doubles, answer fifteen of sixteen rows, and are narrower than the host in a few places · 0d · [orca-github-project-rows](gaps/orca-github-project-rows.md)
-- rca-parity · Orca `agentSession.continueInterrupted` and `agentSession.cancelUsageLimitContinue` stay not offered · 0d · [orca-interruption-causes-and-usage-limit-continue](gaps/orca-interruption-causes-and-usage-limit-continue.md)
+- rca-parity · Orca `agentSession.cancelUsageLimitContinue` stays not offered, and Continue after a restart names one cause · 0d · [orca-interruption-causes-and-usage-limit-continue](gaps/orca-interruption-causes-and-usage-limit-continue.md)
 - rca-parity · `settings.getAgentLaunch` stays not offered: its answer is the launch of 35 terminal agents, which rca does not run · 0d · [orca-launch-settings-projection](gaps/orca-launch-settings-projection.md)
 - rca-parity · The provider-account rows and the T3 worktree launch rest on authored doubles and name what they do not do · 0d · [rca-provider-account-rows](gaps/rca-provider-account-rows.md)
 - rca-parity · T3 mcp-misc rows (O3) stay not offered: the recordings hold only the failure shape · 0d · [t3-mcp-secret-guest-telemetry-no-success-shape](gaps/t3-mcp-secret-guest-telemetry-no-success-shape.md)

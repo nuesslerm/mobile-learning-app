@@ -9,7 +9,6 @@
         "steps._:s2c:0.[0].payload.error.message changed drift"
       ],
       "ids": [
-        "orca-agentSession.continueInterrupted",
         "orca-agentSession.threadGoal",
         "orca-browser.dialogAccept",
         "orca-browser.dialogDismiss",

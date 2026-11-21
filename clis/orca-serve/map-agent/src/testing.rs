@@ -72,6 +72,12 @@ impl Threads {
         self.0.lock().unwrap().get_mut(thread).unwrap().running = None;
     }
 
+    /// Ends the running turn as the service's restart does for a turn it found running: interrupted, with the restart as the cause.
+    pub fn cut_by_restart(&self, thread: &str) {
+        self.push(thread, json!({"type": "turn.finished", "reason": "interrupted", "cause": "restart"}));
+        self.0.lock().unwrap().get_mut(thread).unwrap().running = None;
+    }
+
     /// The prompts of the queue, in the order they start.
     pub fn queued(&self, thread: &str) -> Vec<String> {
         self.0.lock().unwrap().get(thread).map(|t| t.queue.iter().map(|(_, p)| p.clone()).collect()).unwrap_or_default()

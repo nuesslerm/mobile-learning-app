@@ -20,7 +20,7 @@ impl Item {
     pub fn render(&self) -> Value {
         let mut v = json!({"itemId": self.id, "revision": self.revision, "body": self.body, "sequence": self.sequence, "observedAt": 0, "turnScope": {"kind": "thread"}});
         if let Some(turn) = &self.turn {
-            v["turnScope"] = json!({"kind": "turn", "turnId": turn});
+            v["turnScope"] = json!({"kind": "turn", "turnItemId": format!("turn:{turn}"), "turnId": turn});
         }
         v
     }
@@ -44,6 +44,14 @@ impl Folded {
         self.items.iter().filter(|i| i.is_pending_prompt()).map(|i| i.id.clone()).collect()
     }
 
+    /// The item id of the newest turn when rca's restart cut it short: the turn is interrupted, and its events end with the stop row that names the
+    /// cause. A turn another turn followed, or one a user stopped, is no cut.
+    pub fn restart_cut(&self) -> Option<&str> {
+        let turn = self.items.iter().rev().find(|i| i.body["kind"] == "turn")?;
+        let stopped = self.items.iter().any(|i| i.turn == turn.turn && i.body.get("orcaStop").is_some());
+        (turn.body["state"] == "interrupted" && stopped).then_some(turn.id.as_str())
+    }
+
     /// The newest turn record, as `AgentSessionLatestTurn`.
     pub fn latest_turn(&self) -> Value {
         match self.items.iter().rev().find(|i| i.body["kind"] == "turn") {
@@ -51,6 +59,12 @@ impl Folded {
             None => Value::Null,
         }
     }
+}
+
+/// The row the pinned host writes on a turn its own stop cut. rca cannot tell an update from a crash (a turn found running at start died with
+/// its process either way), so the cause is the one that names a stop nobody asked for.
+fn orca_stop_row() -> Value {
+    json!({"kind": "status", "text": "The agent stopped while this response was in progress. You can continue in this conversation.", "tone": "error", "presentation": "orca-stop", "orcaStop": {"cause": "crash"}})
 }
 
 pub fn bounded(text: &str) -> Value {
@@ -101,6 +115,9 @@ pub fn fold(events: &[Value]) -> Folded {
                 if let Some(i) = out.items.iter_mut().find(|i| i.id == id) {
                     i.body["state"] = state.into();
                     i.revision = seq;
+                }
+                if state == "interrupted" && e["cause"] == "restart" {
+                    out.items.push(Item { id: format!("orca-stop:{}", turn.clone().unwrap_or_default()), turn, sequence: seq, revision: seq, body: orca_stop_row() });
                 }
             }
             kind @ ("message.delta" | "reasoning.delta") => {
@@ -271,5 +288,27 @@ mod tests {
         assert!(after.items.iter().all(|i| i.turn.as_deref() != Some("u2")));
         assert!(after.items.iter().any(|i| i.id == "i2"));
         assert_eq!((after.epoch_seq, after.last_seq), (9, 9));
+    }
+
+    #[test]
+    fn given_a_turn_the_service_cut_by_a_restart_when_folded_then_the_stop_row_binds_to_the_turn_and_only_the_newest_cut_without_a_later_turn_is_a_restart_cut() {
+        // Given a turn the restart cut, in the shape the contract writes (reason interrupted, cause restart)
+        let cut = vec![
+            json!({"seq": 1, "turn": "u1", "type": "turn.started"}),
+            json!({"seq": 2, "turn": "u1", "type": "message.delta", "role": "user", "text": "build"}),
+            json!({"seq": 3, "turn": "u1", "type": "turn.finished", "reason": "interrupted", "cause": "restart"}),
+        ];
+        // When folded, Then the turn is interrupted, one stop row of its own names the cause, and the turn is the restart cut
+        let folded = fold(&cut);
+        assert_eq!(folded.restart_cut(), Some("turn:u1"));
+        let rows: Vec<&Item> = folded.items.iter().filter(|i| i.body.get("orcaStop").is_some()).collect();
+        assert_eq!((rows.len(), rows[0].turn.as_deref(), rows[0].body["orcaStop"].clone(), rows[0].render()["turnScope"]["turnItemId"].clone()), (1, Some("u1"), json!({"cause": "crash"}), json!("turn:u1")));
+        // And a user's stop (no cause) is no cut, and a later turn takes the cut away
+        let mut stopped = cut.clone();
+        stopped[2] = json!({"seq": 3, "turn": "u1", "type": "turn.finished", "reason": "interrupted"});
+        assert_eq!(fold(&stopped).restart_cut(), None);
+        let mut followed = cut;
+        followed.push(json!({"seq": 4, "turn": "u2", "type": "turn.started"}));
+        assert_eq!(fold(&followed).restart_cut(), None);
     }
 }

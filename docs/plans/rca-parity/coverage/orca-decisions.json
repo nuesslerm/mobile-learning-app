@@ -304,17 +304,12 @@
     },
     "rpc:agentSession.cancelUsageLimitContinue": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it cancels the host's scheduled continue after a provider usage limit; rca keeps no scheduled continue of a turn, so there is nothing to cancel.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it cancels the host's scheduled continue after a provider usage limit; rca keeps no scheduled continue of a turn, so there is nothing to cancel. Building one needs a recording of a turn stopped by a usage limit, from a limited login only the owner holds (docs/gaps/orca-interruption-causes-and-usage-limit-continue.md).",
       "decidedBy": "M12"
     },
     "rpc:agentSession.threadGoal": {
       "state": "not-offered",
       "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it sets or clears a thread goal in the host's structured-session store, and rca's thread has no goal.",
-      "decidedBy": "M12"
-    },
-    "rpc:agentSession.continueInterrupted": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it continues the turn the host itself cut short (an update, a quit or a crash writes a stop cut the phone then offers Continue for), and rca writes no such marker: a cancel is a user stop (turn.finished interrupted, no cause), turn.retry only retries a failed newest turn, and this host's journal is folded from rca's events, so it cannot hold the attributed notes the host rechecks before continuing.",
       "decidedBy": "M12"
     },
     "rpc:git.diff": {
@@ -1135,6 +1130,9 @@
     },
     "rpc:runtime.clientCapabilities.update": {
       "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner (only the 18 Nov structured-session decision is the owner's); it takes the row out of oracle comparison. decided 18 Nov: orca-serve accepts agent-session.structured.v1, which the phone declares through this call. The recorded orcad refuses a valid declaration (client_capabilities_update_unsupported) where this server echoes it, and answers a malformed one with invalid_argument as this server does (the recorded crawl and the flow test in tests/flow/status.rs agree on those): the valid-declaration difference is a known gap, and the chain test (tests/integration/agent_sessions.rs) keeps the behaviour. Reversible by refusing the declaration in map-settings"
+    },
+    "rpc:agentSession.continueInterrupted": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recorded crawl holds only the five validation shapes of this call (clean replays that run no turn); no recording shows a valid call over a turn the host really cut short, which needs the host restarted mid-turn. The chain test (tests/integration/interrupted.rs) keeps the behaviour against this server's own restart; that it matches the host is unrecorded (docs/gaps/orca-interruption-causes-and-usage-limit-continue.md)"
     }
   },
   "reverify": {

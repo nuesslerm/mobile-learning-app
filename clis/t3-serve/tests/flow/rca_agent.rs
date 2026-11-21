@@ -152,7 +152,7 @@ fn a_turn_is_created_started_and_followed_in_the_contracts_words_and_every_event
         ThreadEvent::FileChanged { path: "a.txt".into(), op: agent_api_agent::FileOp::Edit },
         ThreadEvent::Usage(Default::default()),
         ThreadEvent::MessageDelta { role: Role::Assistant, text: "Done: a.txt".into() },
-        ThreadEvent::TurnFinished { reason: FinishReason::Completed },
+        ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None },
     ];
     let count = events.len() + 1;
     let rca = turning(events);
@@ -274,8 +274,8 @@ fn the_groups_a_mapper_needs_are_those_of_the_methods_it_really_sends() {
     let rca = rca(Box::new(move |request| match request["method"].as_str().unwrap() {
         "service.status" => vec![answer(request, status.clone())],
         "thread.create" => vec![answer(request, view(BEFORE).to_result())],
-        "turn.start" => vec![answer(request, json!({"thread": "t1", "turn": TURN})), event(TURN, BEFORE + 1, ThreadEvent::TurnFinished { reason: FinishReason::Completed })],
-        "thread.subscribe" => vec![answer(request, json!({"topic": "thread/t1", "after_seq": BEFORE, "last_seq": BEFORE})), event(TURN, BEFORE + 1, ThreadEvent::TurnFinished { reason: FinishReason::Completed })],
+        "turn.start" => vec![answer(request, json!({"thread": "t1", "turn": TURN})), event(TURN, BEFORE + 1, ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None })],
+        "thread.subscribe" => vec![answer(request, json!({"topic": "thread/t1", "after_seq": BEFORE, "last_seq": BEFORE})), event(TURN, BEFORE + 1, ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None })],
         "thread.history" => vec![answer(request, json!({"events": [], "last_seq": BEFORE, "more": false}))],
         "turn.interrupt" => vec![answer(request, json!({"thread": "t1", "turn": TURN}))],
         "file.list" => vec![answer(request, entries.clone())],

@@ -84,7 +84,7 @@ pub(crate) fn finish(agent: &dyn AgentApi, env: &Envelope, answer: Value) -> Res
 }
 
 /// What a start or steer of a turn answers: the turn, or the refusal the phone shows.
-enum Started {
+pub(crate) enum Started {
     Turn,
     Refused(Value),
 }
@@ -98,7 +98,7 @@ fn runtime_mode(saved: &str) -> &'static str {
     }
 }
 
-fn start_turn(agent: &dyn AgentApi, thread: &str, prompt: &str, attachments: &[String], model: Option<&str>, view: &Value) -> Result<Started, Failure> {
+pub(crate) fn start_turn(agent: &dyn AgentApi, thread: &str, prompt: &str, attachments: &[String], model: Option<&str>, view: &Value) -> Result<Started, Failure> {
     let (Some(workspace), Some(driver)) = (view["workspace"].as_str(), view["driver"].as_str()) else {
         return Ok(Started::Refused(refused("agent_session_identity_required", "the session has no workspace or agent to run in")));
     };

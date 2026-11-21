@@ -7,6 +7,7 @@ mod attach;
 mod catalog;
 mod fold;
 mod ids;
+mod interrupted;
 mod journal;
 mod launch;
 mod native_stream;
@@ -49,6 +50,7 @@ pub const AGENT_SESSION_RELEASE: &str = "agentSession.release";
 pub const AGENT_SESSION_CURRENT_REQUESTS: &str = "agentSession.currentRequests";
 pub const AGENT_SESSION_SEND_RECORDED: &str = "agentSession.sendRecorded";
 pub const AGENT_SESSION_REWIND: &str = "agentSession.rewind";
+pub const AGENT_SESSION_CONTINUE_INTERRUPTED: &str = "agentSession.continueInterrupted";
 pub const AGENT_SESSION_SUBSCRIBE_STATUS: &str = "agentSession.subscribeStatus";
 pub const AGENT_SESSION_CONVERSATION_COMMAND: &str = "agentSession.conversationCommand";
 pub const AGENT_SESSION_QUEUED_MESSAGE_DELETE: &str = "agentSession.queuedMessageDelete";
@@ -117,6 +119,7 @@ const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_CURRENT_REQUESTS, kind: Kind::Unary },
     Method { name: AGENT_SESSION_SEND_RECORDED, kind: Kind::Unary },
     Method { name: AGENT_SESSION_REWIND, kind: Kind::Unary },
+    Method { name: AGENT_SESSION_CONTINUE_INTERRUPTED, kind: Kind::Unary },
     Method { name: AGENT_SESSION_CONVERSATION_COMMAND, kind: Kind::Unary },
     Method { name: AGENT_SESSION_QUEUED_MESSAGE_DELETE, kind: Kind::Unary },
     Method { name: AGENT_SESSION_QUEUED_MESSAGE_EDIT_HOLD, kind: Kind::Unary },
@@ -201,7 +204,7 @@ impl Area for AgentArea {
     }
 
     fn capabilities(&self) -> &'static [&'static str] {
-        &[status_stream::STRUCTURED, status_stream::STATUS_FEED]
+        &[status_stream::STRUCTURED, status_stream::STATUS_FEED, interrupted::CONTINUE, interrupted::CONTINUE_PHONE]
     }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
@@ -219,6 +222,7 @@ impl Area for AgentArea {
             AGENT_SESSION_CURRENT_REQUESTS => session::current_requests(agent, params),
             AGENT_SESSION_SEND_RECORDED => session::send_recorded(agent, params),
             AGENT_SESSION_REWIND => rewind::rewind(agent, params),
+            AGENT_SESSION_CONTINUE_INTERRUPTED => interrupted::continue_interrupted(agent, params),
             AGENT_SESSION_CONVERSATION_COMMAND => session::conversation_command(agent, params),
             AGENT_SESSION_QUEUED_MESSAGE_DELETE => queued::delete(agent, params),
             AGENT_SESSION_QUEUED_MESSAGE_EDIT_HOLD => queued::edit_hold(agent, params),

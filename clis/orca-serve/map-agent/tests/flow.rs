@@ -870,6 +870,10 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     let (_, second) = two_turns(&mut rig);
     let epoch = rig.ok("agentSession.history", json!({"sessionId": "claude_two", "direction": "tail"}))["page"]["epoch"].clone();
     rig.ok("agentSession.rewind", json!({"envelope": env("claude_two", "rw9", "fp"), "itemId": second, "expectedEpoch": epoch}));
+    rig.idle("claude_cutrow");
+    rig.ok("agentSession.send", json!({"envelope": env("claude_cutrow", "s1", "f"), "body": body("go")}));
+    rig.threads.cut_by_restart("claude_cutrow");
+    rig.ok("agentSession.continueInterrupted", json!({"sessionId": "claude_cutrow", "turnItemId": "turn:u1"}));
     let mut status = rig.host.connection("dev9", "tok9", vec!["agent-session.structured.v1".to_string()]);
     status_frames(&mut status, "st");
     // When the methods asked of the agent API are collected
@@ -1319,7 +1323,7 @@ fn given_the_host_when_status_is_read_then_it_advertises_the_status_feed_and_str
     // Given the agent area
     let area = AgentArea::default();
     // When its capabilities are read, Then it names both
-    assert_eq!(orca_core::Area::capabilities(&area), ["agent-session.structured.v1", "agent-session.status-feed.v1"]);
+    assert_eq!(orca_core::Area::capabilities(&area), ["agent-session.structured.v1", "agent-session.status-feed.v1", "agent-session.continue-interrupted.v1", "agent-session.continue-interrupted.phone.v1"]);
 }
 
 /// A chat with two finished turns ("one" then "two"), nothing open, and the ids of the two user messages.
@@ -1702,4 +1706,113 @@ fn given_a_chat_when_revealed_then_its_tab_is_kept_in_front_in_its_worktree_and_
     assert_eq!(rig.ok("agentSession.reveal", json!({"sessionId": "claude_gone"})), json!({"ok": false, "refusal": {"code": "agent_session_not_found", "message": "This chat is no longer on this host."}}));
     assert_eq!(rig.ok("agentSession.reveal", json!({"sessionId": "codex_x"}))["refusal"]["code"], json!("structured_agent_session_unsupported"));
     assert_eq!(rig.err("agentSession.reveal", json!({"sessionId": "a"})), ("invalid_argument".to_string(), "Invalid agent session id".to_string()));
+}
+
+/// A chat whose first turn was running when rca restarted: `how` ends it (the restart's cut, or a user's stop).
+fn cut_chat(rig: &mut Rig, how: &str) -> String {
+    rig.idle("claude_cut");
+    rig.ok("agentSession.send", json!({"envelope": env("claude_cut", "s1", "f"), "body": body("build it")}));
+    rig.threads.push("claude_cut", json!({"type": "message.delta", "role": "assistant", "text": "working"}));
+    match how {
+        "restart" => rig.threads.cut_by_restart("claude_cut"),
+        _ => rig.threads.finish("claude_cut", "interrupted"),
+    }
+    "turn:u1".to_string()
+}
+
+fn stop_rows(page: &Value) -> Vec<Value> {
+    page["items"].as_array().unwrap().iter().filter(|i| i["body"]["presentation"] == "orca-stop").cloned().collect()
+}
+
+#[test]
+fn given_a_turn_rca_cut_short_by_a_restart_when_the_history_is_read_then_the_turn_is_interrupted_and_ends_with_the_stop_row_the_phone_offers_continue_for_and_a_user_stop_has_none() {
+    // Given a chat whose running turn the restart cut, and another whose turn the user stopped
+    let mut rig = Rig::new();
+    let turn_item = cut_chat(&mut rig, "restart");
+    rig.agent.request("thread.create", json!({"thread": "claude_stopped", "workspace": "main", "driver": "claudeAgent"})).unwrap();
+    rig.ok("agentSession.send", json!({"envelope": env("claude_stopped", "s1", "f"), "body": body("build it")}));
+    rig.threads.finish("claude_stopped", "interrupted");
+    // When the phone reads both histories
+    let cut = rig.ok("agentSession.history", json!({"sessionId": "claude_cut", "direction": "tail"}))["page"].clone();
+    let stopped = rig.ok("agentSession.history", json!({"sessionId": "claude_stopped", "direction": "tail"}))["page"].clone();
+    // Then the cut turn is interrupted and one status row in its turn names the cause the phone reads, bound to the turn's item
+    assert_eq!(cut["latestTurn"]["turn"], json!({"turnId": "u1", "state": "interrupted"}));
+    let rows = stop_rows(&cut);
+    assert_eq!(rows.len(), 1, "{cut}");
+    assert_eq!(rows[0]["body"], json!({"kind": "status", "text": "The agent stopped while this response was in progress. You can continue in this conversation.", "tone": "error", "presentation": "orca-stop", "orcaStop": {"cause": "crash"}}));
+    assert_eq!(rows[0]["turnScope"]["turnItemId"], json!(turn_item));
+    assert_eq!(cut["items"].as_array().unwrap().iter().find(|i| i["itemId"] == json!(turn_item)).unwrap()["body"]["state"], "interrupted");
+    // And the user's stop leaves the turn interrupted with no such row, so the phone offers nothing for it
+    assert_eq!(stopped["latestTurn"]["turn"]["state"], "interrupted");
+    assert!(stop_rows(&stopped).is_empty());
+}
+
+#[test]
+fn given_a_cut_turn_when_the_phone_continues_it_then_the_chat_gets_the_hosts_continue_prompt_as_a_new_turn_and_a_second_or_stale_continue_sends_nothing() {
+    // Given a chat whose turn the restart cut, and the capabilities the host advertises
+    let mut rig = Rig::new();
+    let turn_item = cut_chat(&mut rig, "restart");
+    let before = sent(&rig, "turn.start").len();
+    // When the phone continues the cut turn
+    let done = rig.ok("agentSession.continueInterrupted", json!({"sessionId": "claude_cut", "turnItemId": turn_item}));
+    // Then rca started one more turn with the host's continue wording and the answer is the accepted one
+    assert_eq!(done, json!({"sessionId": "claude_cut", "outcome": "pending"}));
+    let starts = sent(&rig, "turn.start");
+    assert_eq!(starts.len(), before + 1);
+    assert_eq!(starts.last().unwrap()["prompt"], "Orca restarted, so your previous reply was cut off partway through. Before continuing, check whether your most recent action completed — don't repeat it if it did. Then carry on.");
+    assert_eq!((starts.last().unwrap()["thread"].clone(), starts.last().unwrap()["driver"].clone()), (json!("claude_cut"), json!("claudeAgent")));
+    // And the phone's journal has the new turn running, so the cut is no longer the latest and offers nothing
+    let page = rig.ok("agentSession.history", json!({"sessionId": "claude_cut", "direction": "tail"}))["page"].clone();
+    assert_eq!((page["working"].clone(), page["latestTurn"]["turn"]["turnId"].clone()), (json!(true), json!("u2")));
+    // When the same Continue arrives again, and one that names another turn
+    let again = rig.ok("agentSession.continueInterrupted", json!({"sessionId": "claude_cut", "turnItemId": turn_item}));
+    let stale = rig.ok("agentSession.continueInterrupted", json!({"sessionId": "claude_cut", "turnItemId": "turn:nope"}));
+    // Then each is superseded and rca was asked for no further turn
+    assert_eq!((again, stale), (json!({"sessionId": "claude_cut", "outcome": "superseded"}), json!({"sessionId": "claude_cut", "outcome": "superseded"})));
+    assert_eq!(sent(&rig, "turn.start").len(), before + 1);
+}
+
+#[test]
+fn given_a_turn_nobody_cut_or_a_message_after_the_cut_when_continue_is_asked_then_it_is_superseded_and_rca_is_asked_for_nothing() {
+    // Given a chat whose turn the user stopped (no cause), and a chat whose cut turn a message already followed
+    let mut rig = Rig::new();
+    let stopped = cut_chat(&mut rig, "user");
+    rig.agent.request("thread.create", json!({"thread": "claude_followed", "workspace": "main", "driver": "claudeAgent"})).unwrap();
+    rig.ok("agentSession.send", json!({"envelope": env("claude_followed", "s1", "f"), "body": body("first")}));
+    rig.threads.cut_by_restart("claude_followed");
+    rig.ok("agentSession.send", json!({"envelope": env("claude_followed", "s2", "f"), "body": body("second")}));
+    rig.threads.finish("claude_followed", "completed");
+    let starts = sent(&rig, "turn.start").len();
+    // When Continue is asked for each
+    let user_stop = rig.ok("agentSession.continueInterrupted", json!({"sessionId": "claude_cut", "turnItemId": stopped}));
+    let followed = rig.ok("agentSession.continueInterrupted", json!({"sessionId": "claude_followed", "turnItemId": "turn:u1"}));
+    // Then both are superseded and no turn was started
+    assert_eq!((user_stop["outcome"].clone(), followed["outcome"].clone()), (json!("superseded"), json!("superseded")));
+    assert_eq!(sent(&rig, "turn.start").len(), starts);
+}
+
+#[test]
+fn given_malformed_or_unknown_continue_calls_when_made_then_each_is_refused_as_the_hosts_validation_words_it_and_nothing_reaches_rca() {
+    // Given a host with one cut chat
+    let mut rig = Rig::new();
+    let turn_item = cut_chat(&mut rig, "restart");
+    let starts = sent(&rig, "turn.start").len();
+    // When Continue is called with a missing, empty, oversized or foreign field, a bad session id, an unknown chat and an extra key
+    let cases = [
+        (json!({"turnItemId": turn_item}), "Invalid input: expected string, received undefined"),
+        (json!({"sessionId": "claude_cut"}), "Invalid input: expected string, received undefined"),
+        (json!({"sessionId": "claude_cut", "turnItemId": ""}), "Too small: expected string to have >=1 characters"),
+        (json!({"sessionId": "claude_cut", "turnItemId": "x".repeat(1025)}), "Too big: expected string to have <=1024 characters"),
+        (json!({"sessionId": "not a session", "turnItemId": turn_item}), "Invalid agent session id"),
+        (json!({"sessionId": "claude_cut", "turnItemId": turn_item, "extra": 1}), "Unrecognized key: \"extra\""),
+    ];
+    for (params, message) in cases {
+        // Then each is the host's invalid_argument with its words
+        let (code, said) = rig.err("agentSession.continueInterrupted", params.clone());
+        assert_eq!((code.as_str(), said.as_str()), ("invalid_argument", message), "{params}");
+    }
+    let (code, said) = rig.err("agentSession.continueInterrupted", json!({"sessionId": "claude_gone", "turnItemId": turn_item}));
+    assert_eq!((code.as_str(), said.as_str()), ("runtime_error", "agent_session_not_found"));
+    // And rca started no turn for any of them
+    assert_eq!(sent(&rig, "turn.start").len(), starts);
 }

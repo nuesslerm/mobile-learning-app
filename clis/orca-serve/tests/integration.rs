@@ -10,6 +10,8 @@ mod agent_sessions;
 mod agent_catalog;
 #[path = "integration/browser.rs"]
 mod browser;
+#[path = "integration/interrupted.rs"]
+mod interrupted;
 #[path = "integration/layout_vault.rs"]
 mod layout_vault;
 #[path = "integration/mimic_x2.rs"]

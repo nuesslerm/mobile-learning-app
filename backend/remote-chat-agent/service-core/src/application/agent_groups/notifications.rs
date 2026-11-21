@@ -97,8 +97,8 @@ impl Notifications {
     /// Makes the entry an event of a thread is news for, if it is: a turn that completed or failed, or one that waits for an answer.
     pub fn hear(&self, engine: &dyn ThreadEngine, thread: &str, event: &ThreadEvent) {
         let (what, body) = match event {
-            ThreadEvent::TurnFinished { reason: FinishReason::Completed } => (cause::TURN_COMPLETED, "Finished".to_string()),
-            ThreadEvent::TurnFinished { reason: FinishReason::Failed } => (cause::TURN_FAILED, "The turn failed".to_string()),
+            ThreadEvent::TurnFinished { reason: FinishReason::Completed, .. } => (cause::TURN_COMPLETED, "Finished".to_string()),
+            ThreadEvent::TurnFinished { reason: FinishReason::Failed, .. } => (cause::TURN_FAILED, "The turn failed".to_string()),
             ThreadEvent::ApprovalRequested { tool, .. } => (cause::APPROVAL_REQUESTED, format!("Waiting for approval to run {tool}")),
             ThreadEvent::InputRequested { prompt, .. } => (cause::INPUT_REQUESTED, prompt.clone()),
             _ => return,
@@ -237,9 +237,9 @@ mod tests {
         for event in [
             ThreadEvent::TurnStarted {},
             ThreadEvent::MessageDelta { role: agent_api_agent::Role::Assistant, text: "hi".into() },
-            ThreadEvent::TurnFinished { reason: FinishReason::Completed },
-            ThreadEvent::TurnFinished { reason: FinishReason::Failed },
-            ThreadEvent::TurnFinished { reason: FinishReason::Interrupted },
+            ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None },
+            ThreadEvent::TurnFinished { reason: FinishReason::Failed, cause: None },
+            ThreadEvent::TurnFinished { reason: FinishReason::Interrupted, cause: None },
             ThreadEvent::InputRequested { request: "r".into(), prompt: "x".repeat(300), options: vec![] },
             ThreadEvent::ApprovalRequested { approval: "p".into(), tool: "bash".into(), args: serde_json::json!({}) },
         ] {
@@ -251,7 +251,7 @@ mod tests {
         assert!(kept.iter().all(|n| n.title == "Fix the build" && n.thread_id.as_deref() == Some("t1") && n.workspace.as_deref() == Some("w1")));
         assert_eq!((kept[2].body.chars().count(), kept[3].body.as_str()), (BODY_MAX, "Waiting for approval to run bash"));
         // And a thread the engine does not have is still news, with a title of the journal's own
-        j.hear(&engine, "ghost", &ThreadEvent::TurnFinished { reason: FinishReason::Completed });
+        j.hear(&engine, "ghost", &ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None });
         assert_eq!(j.since(4, None).entries[0].title, "Agent");
     }
 }

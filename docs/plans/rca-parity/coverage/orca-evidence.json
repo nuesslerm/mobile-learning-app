@@ -20,10 +20,10 @@
       },
       {
         "suite": "orca-serve-integration",
-        "sha": null,
-        "complete": false,
-        "tests": 8,
-        "passed": 8
+        "sha": "5a4f107a4d8d4c5615857161a9805dcb6749d9d3",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
       }
     ]
   },
@@ -150,6 +150,20 @@
       "oracle": "mimic",
       "diff": "clean",
       "cassette": "recorded"
+    },
+    "rpc:agentSession.continueInterrupted": {
+      "suite": "orca-serve-integration",
+      "test": "interrupted::a_turn_cut_by_a_service_restart_shows_the_stop_row_and_continue_starts_one_more_turn_once",
+      "agent": [
+        "state.get",
+        "thread.get",
+        "thread.history",
+        "turn.start"
+      ],
+      "executor": [
+        "cli_detect",
+        "git_checkpoint"
+      ]
     },
     "rpc:agentSession.conversationCommand": {
       "suite": "wf-mimic-orca-crawl",

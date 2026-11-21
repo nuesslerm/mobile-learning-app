@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 259,
+    "served": 260,
     "pending": 0,
-    "notOffered": 48,
+    "notOffered": 47,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -301,7 +301,7 @@
       "desktop": true,
       "state": "not-offered",
       "milestone": "M7",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it cancels the host's scheduled continue after a provider usage limit; rca keeps no scheduled continue of a turn, so there is nothing to cancel.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it cancels the host's scheduled continue after a provider usage limit; rca keeps no scheduled continue of a turn, so there is nothing to cancel. Building one needs a recording of a turn stopped by a usage limit, from a limited login only the owner holds (docs/gaps/orca-interruption-causes-and-usage-limit-continue.md).",
       "decidedBy": "M12"
     },
     {
@@ -326,10 +326,22 @@
       "kind": "rpc",
       "name": "agentSession.continueInterrupted",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M7",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it continues the turn the host itself cut short (an update, a quit or a crash writes a stop cut the phone then offers Continue for), and rca writes no such marker: a cancel is a user stop (turn.finished interrupted, no cause), turn.retry only retries a failed newest turn, and this host's journal is folded from rca's events, so it cannot hold the attributed notes the host rechecks before continuing.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "orca-serve-integration",
+        "test": "interrupted::a_turn_cut_by_a_service_restart_shows_the_stop_row_and_continue_starts_one_more_turn_once",
+        "agent": [
+          "state.get",
+          "thread.get",
+          "thread.history",
+          "turn.start"
+        ],
+        "executor": [
+          "cli_detect",
+          "git_checkpoint"
+        ]
+      }
     },
     {
       "id": "rpc:agentSession.conversationCommand",

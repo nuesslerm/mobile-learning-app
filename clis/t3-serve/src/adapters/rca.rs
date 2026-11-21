@@ -237,7 +237,7 @@ pub fn agent_event(event: &Event) -> Result<AgentEvent, AgentError> {
         ThreadEvent::ToolOutput { call, data, .. } => AgentEventKind::ToolOutput { id: call, data },
         ThreadEvent::ToolFinished { call, ok, .. } => AgentEventKind::ToolFinished { id: call, ok },
         ThreadEvent::Error { message, .. } => AgentEventKind::Failure(message),
-        ThreadEvent::TurnFinished { reason } => AgentEventKind::TurnFinished(match reason {
+        ThreadEvent::TurnFinished { reason, .. } => AgentEventKind::TurnFinished(match reason {
             FinishReason::Completed => Finish::Completed,
             FinishReason::Interrupted => Finish::Interrupted,
             FinishReason::Failed => Finish::Failed,

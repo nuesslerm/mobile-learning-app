@@ -88,9 +88,9 @@ impl Panes {
             ThreadEvent::TurnStarted {} => Some(PaneState::Working),
             ThreadEvent::ApprovalRequested { .. } => Some(PaneState::Blocked),
             ThreadEvent::InputRequested { .. } => Some(PaneState::Waiting),
-            ThreadEvent::TurnFinished { reason: FinishReason::Completed } => Some(PaneState::Done),
-            ThreadEvent::TurnFinished { reason: FinishReason::Failed } => Some(PaneState::Failed),
-            ThreadEvent::TurnFinished { reason: FinishReason::Interrupted } => Some(PaneState::Interrupted),
+            ThreadEvent::TurnFinished { reason: FinishReason::Completed, .. } => Some(PaneState::Done),
+            ThreadEvent::TurnFinished { reason: FinishReason::Failed, .. } => Some(PaneState::Failed),
+            ThreadEvent::TurnFinished { reason: FinishReason::Interrupted, .. } => Some(PaneState::Interrupted),
             _ => None,
         }
     }
@@ -252,7 +252,7 @@ mod tests {
     }
 
     fn finish(reason: FinishReason) -> ThreadEvent {
-        ThreadEvent::TurnFinished { reason }
+        ThreadEvent::TurnFinished { reason, cause: None }
     }
 
     fn only(panes: &Panes, workspace: &str) -> PaneView {

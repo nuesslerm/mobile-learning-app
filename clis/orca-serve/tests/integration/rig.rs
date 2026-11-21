@@ -84,10 +84,20 @@ impl Chain {
 
     /// `start`, with `env` also in the service's environment.
     pub fn start_with_env(web: Option<&Path>, env: &[(&str, &str)]) -> Chain {
-        Chain::start_full(web, env)
+        Chain::start_full(web, env, false)
     }
 
-    fn start_full(web: Option<&Path>, env: &[(&str, &str)]) -> Chain {
+    /// `start` for a test that crashes the service: the service keeps its threads under `state` and the executor reconnects when the service is back.
+    pub fn start_restartable(state: &Path) -> Chain {
+        Chain::start_full(None, &[("RCA_STATE_DIR", state.to_str().expect("a utf-8 state path"))], true)
+    }
+
+    /// Kills the service and starts it again over its own home and port, as a crash and a restart do; the turn it was running is gone with it.
+    pub fn restart_service(&mut self) {
+        self.service.restart();
+    }
+
+    fn start_full(web: Option<&Path>, env: &[(&str, &str)], reconnect: bool) -> Chain {
         let cli = ScriptedCli::install();
         let repo = TempRepo::new();
         let service = RcaService::start_with_env(SECRET, &cli.path(), env);
@@ -97,7 +107,8 @@ impl Chain {
         let home = tempfile::Builder::new().prefix("orca-chain-home-").tempdir().unwrap();
         // What names `RCA_EXEC_` in `env` is the executor's own (the hosts its browser may reach), and where it finds Chromium; the rest the service's.
         let exec_env: Vec<(String, String)> = env.iter().filter(|(k, _)| k.starts_with("RCA_EXEC_") || *k == "PLAYWRIGHT_BROWSERS_PATH").map(|(k, v)| (k.to_string(), v.to_string())).collect();
-        let exec = RcaExec::serve_with_env(&tap.url(), "w1", &repo, SECRET, &["--worktree-base", base.to_str().unwrap()], &hermetic_path(&cli), Some(home.path()), &exec_env);
+        let flags: Vec<&str> = ["--worktree-base", base.to_str().unwrap()].into_iter().chain(reconnect.then_some("--reconnect")).collect();
+        let exec = RcaExec::serve_with_env(&tap.url(), "w1", &repo, SECRET, &flags, &hermetic_path(&cli), Some(home.path()), &exec_env);
         let bearer = service.mint("orca chain");
         let state = tempfile::Builder::new().prefix("orca-chain-").tempdir().unwrap();
         let errlog = state.path().join("serve.err");

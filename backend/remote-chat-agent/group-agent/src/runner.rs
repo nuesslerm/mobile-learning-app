@@ -121,7 +121,7 @@ impl Prepared {
             Err(why) => {
                 // Started and ended: whoever follows the thread hears why, as for a turn whose CLI fails after it began
                 let mut task = task;
-                task.record([ThreadEvent::Error { code: CLI_START_FAILED.into(), message: why }, ThreadEvent::TurnFinished { reason: FinishReason::Failed }]);
+                task.record([ThreadEvent::Error { code: CLI_START_FAILED.into(), message: why }, ThreadEvent::TurnFinished { reason: FinishReason::Failed, cause: None }]);
                 task.claim.finish();
                 runner.release_route(&thread);
                 runner.executors.unbind(&thread);
@@ -296,7 +296,7 @@ impl Runner {
         let stopped = events.first().and_then(|e| e.turn.clone());
         if self.interrupt(thread, stopped.as_deref()).is_none() {
             self.executors.unbind(thread);
-            self.engine.record(thread, stopped.as_deref(), ThreadEvent::TurnFinished { reason: FinishReason::Interrupted })?;
+            self.engine.record(thread, stopped.as_deref(), ThreadEvent::TurnFinished { reason: FinishReason::Interrupted, cause: None })?;
             self.release_requests(thread);
         }
         Ok(events)
@@ -418,7 +418,7 @@ impl Runner {
             ThreadEvent::TurnStarted {},
             ThreadEvent::MessageDelta { role: Role::User, text: item.prompt.clone() },
             ThreadEvent::Error { code: why.code.clone(), message: why.message.clone() },
-            ThreadEvent::TurnFinished { reason: FinishReason::Failed },
+            ThreadEvent::TurnFinished { reason: FinishReason::Failed, cause: None },
         ] {
             self.engine.record(thread, turn, event)?;
         }

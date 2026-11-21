@@ -242,6 +242,8 @@ async fn given_a_running_turn_when_a_second_starts_and_the_first_is_interrupted_
     // Then the answer names it and the events end with its finish as interrupted, and the thread is idle and takes a new turn
     assert_eq!(stopped["result"], json!({"thread": "t1", "turn": turn}));
     assert_eq!(end.last().unwrap().data["reason"], json!("interrupted"));
+    // And a user's stop names no cause
+    assert!(end.last().unwrap().data.get("cause").is_none(), "{:?}", end.last());
     assert!(end.iter().all(|e| e.turn.as_deref() == Some(turn.as_str())));
     assert_eq!(agent.ask("thread.get", json!({"thread": "t1"})).await["result"]["thread"]["status"], json!("idle"));
     assert_eq!(agent.ask("turn.interrupt", json!({"thread": "t1"})).await["error"]["code"], json!("NO_TURN"));
@@ -520,6 +522,60 @@ async fn given_an_opencode_turn_interrupted_by_a_restart_with_a_prompt_queued_be
     let starts = chain.cli.invocations("opencode");
     assert_eq!(starts.len(), 3, "{starts:?}");
     assert_eq!(session_of(&starts[2].argv), Some("ses_queue_1".to_string()), "{:?}", starts[2].argv);
+}
+
+/// A chain whose first service (on a runtime of its own, shut down by the caller to crash it) holds a running opencode turn that has said something and
+/// nothing queued behind it; the runtime comes back with the chain.
+async fn crashed_mid_turn(env: &Env, options: &(dyn Fn() -> Options + Sync)) -> Chain {
+    let first_run = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().unwrap();
+    let chain = std::thread::scope(|scope| {
+        scope.spawn(|| first_run.block_on(async {
+            let chain = chain_with(env, options()).await;
+            chain.cli.script("opencode", &Script::of(vec![Turn::replaying(&[opencode_said("ses_cut_1", "working")]).then_sleeping(60_000)]).printing_version("0.0.0-flow"));
+            let mut agent = chain.agent().await;
+            let made = agent.ask("thread.create", json!({"thread": "t1", "title": "Notes", "workspace": "w1", "driver": "opencode"})).await;
+            assert!(made.get("result").is_some(), "{made}");
+            agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
+            let first = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "opencode", "prompt": "one"})).await;
+            assert!(first.get("result").is_some(), "{first}");
+            agent.events_through("message.delta").await;
+            agent.events_through("message.delta").await;
+            drop(agent);
+            chain
+        })).join().unwrap()
+    });
+    first_run.shutdown_background();
+    chain
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_a_turn_running_when_the_service_crashes_and_starts_again_then_the_turn_ends_interrupted_with_the_restart_as_its_cause_on_the_wire_and_the_next_turn_has_none() {
+    // Given a thread whose first turn said something and was still running when the service crashed
+    let env = Env::new(&[]);
+    let state = env.home.join("rca-state");
+    std::fs::create_dir_all(&state).unwrap();
+    let options = || Options { state_dir: Some(state.clone()), ..Options::default() };
+    let chain = crashed_mid_turn(&env, &options).await;
+    // When the service and the executor start again over the same state dir and a client reads the thread
+    let chain = restarted(chain, &env, options()).await;
+    let mut agent = chain.agent().await;
+    let history = agent.ask("thread.history", json!({"thread": "t1"})).await;
+    let finishes: Vec<Value> = history["result"]["events"].as_array().unwrap().iter().filter(|e| e["type"] == "turn.finished").cloned().collect();
+    // Then the turn finished interrupted, and the finish carries the restart as its cause beside the reason
+    assert_eq!(finishes.len(), 1, "{history}");
+    assert_eq!((finishes[0]["reason"].clone(), finishes[0]["cause"].clone()), (json!("interrupted"), json!("restart")));
+    assert_eq!(agent.ask("thread.get", json!({"thread": "t1"})).await["result"]["thread"]["status"], json!("idle"));
+    // And a turn the client starts after the restart and then stops carries no cause
+    chain.cli.script("opencode", &Script::of(vec![Turn::replaying(&[opencode_said("ses_cut_1", "again")]).then_sleeping(60_000)]).printing_version("0.0.0-flow"));
+    agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
+    let second = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "opencode", "prompt": "two"})).await;
+    assert!(second.get("result").is_some(), "{second}");
+    agent.events_through("message.delta").await;
+    agent.ask("turn.interrupt", json!({"thread": "t1"})).await;
+    history_with_finishes(&mut agent, "t1", 2).await;
+    let after = agent.ask("thread.history", json!({"thread": "t1"})).await;
+    let ends: Vec<(Value, Value)> = after["result"]["events"].as_array().unwrap().iter().filter(|e| e["type"] == "turn.finished").map(|e| (e["reason"].clone(), e["cause"].clone())).collect();
+    assert_eq!(ends, [(json!("interrupted"), json!("restart")), (json!("interrupted"), Value::Null)]);
 }
 
 /// The chain after its service and executor were stopped: the service starts at once and the executor only after `delay`.
