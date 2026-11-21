@@ -34,6 +34,13 @@ export const SYNTAX_TABLES: Readonly<Record<Language, Readonly<Record<Named, rea
   },
 };
 
+/** The nodes whose text can run over several lines: a line that begins inside one is not code and keeps its columns. Apart from `SYNTAX_TABLES`, so `classify` and `outline` do not change: only the full tree holds them. */
+export const MULTILINE_LITERALS: Readonly<Record<Language, readonly string[]>> = {
+  python: ['String', 'FormatString'],
+  javascript: ['TemplateString', 'String'],
+  cpp: ['RawString', 'String'],
+};
+
 const ERROR_TYPE = '⚠';
 
 const INDEX: Readonly<Record<Language, ReadonlyMap<string, Named>>> = {

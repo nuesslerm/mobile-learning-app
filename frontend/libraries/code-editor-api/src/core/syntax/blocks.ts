@@ -22,8 +22,8 @@ export type EnclosingBlock = {
 
 type Located = { readonly block: SyntaxNode; readonly parent: SyntaxNode | null };
 
-const lineStartOf = (text: string, pos: Pos): Pos => (pos === 0 ? 0 : text.lastIndexOf('\n', pos - 1) + 1);
-const lineEndOf = (text: string, pos: Pos): Pos => {
+export const lineStartOf = (text: string, pos: Pos): Pos => (pos === 0 ? 0 : text.lastIndexOf('\n', pos - 1) + 1);
+export const lineEndOf = (text: string, pos: Pos): Pos => {
   const end = text.indexOf('\n', pos);
   return end < 0 ? text.length : end;
 };

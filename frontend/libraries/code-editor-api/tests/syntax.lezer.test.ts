@@ -1,27 +1,9 @@
-import { cppLanguage } from '@codemirror/lang-cpp';
-import { javascriptLanguage } from '@codemirror/lang-javascript';
-import { pythonLanguage } from '@codemirror/lang-python';
-import { ensureSyntaxTree, syntaxTree, type LRLanguage } from '@codemirror/language';
-import { EditorState } from '@codemirror/state';
+import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import { describe, expect, it } from 'vitest';
 
-import { LANGUAGE_NAMES, SYNTAX_TABLES, classify, enclosingBlock, outline, statementAt, type Language, type SyntaxNode, type TreeValue } from '../src';
+import { LANGUAGE_NAMES, MULTILINE_LITERALS, SYNTAX_TABLES, classify, enclosingBlock, outline, statementAt, type Language, type SyntaxNode, type TreeValue } from '../src';
 import { parseFor } from '../src/testing';
-import { toSyntaxNode } from './support/lezerPlain';
-
-const GRAMMARS: Record<Language, LRLanguage> = { python: pythonLanguage, javascript: javascriptLanguage, cpp: cppLanguage };
-
-function stateOf(language: Language, doc: string) {
-  return EditorState.create({ doc, extensions: [GRAMMARS[language]] });
-}
-
-/** The tree a page would answer with once the parse is complete. */
-function realTree(language: Language, doc: string): SyntaxNode {
-  const state = stateOf(language, doc);
-  const tree = ensureSyntaxTree(state, doc.length, 10_000);
-  if (!tree) throw new Error('the parse did not finish');
-  return toSyntaxNode(tree);
-}
+import { GRAMMARS, realTree, stateOf } from './support/lezerPlain';
 
 const asValue = (language: Language, doc: string, root: SyntaxNode): TreeValue => ({ instance: 'lezer', revision: 0, language, length: doc.length, parsedTo: doc.length, complete: true, detail: 'outline', root: outline(language, root) });
 
@@ -37,6 +19,17 @@ describe('the classification tables against the installed grammars', () => {
 
     for (const [kind, names] of Object.entries(SYNTAX_TABLES[language])) {
       for (const name of names) expect(real.has(name), `${language} ${kind}: ${name}`).toBe(true);
+    }
+  });
+});
+
+describe('the multi-line literal table against the installed grammars', () => {
+  it.each(LANGUAGE_NAMES)('given the %s literal names, when checked against the grammar, then every one is a real node type that the outline leaves out', (language) => {
+    const real = new Set(GRAMMARS[language].parser.nodeSet.types.map((type) => type.name));
+
+    for (const name of MULTILINE_LITERALS[language]) {
+      expect(real.has(name), `${language}: ${name}`).toBe(true);
+      expect(classify(language, { type: name })).toBe('other');
     }
   });
 });
