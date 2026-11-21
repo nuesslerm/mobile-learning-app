@@ -4,7 +4,7 @@ import { pythonLanguage } from '@codemirror/lang-python';
 import { ensureSyntaxTree, syntaxTree, type LRLanguage } from '@codemirror/language';
 import { EditorState } from '@codemirror/state';
 
-import type { Language, SyntaxNode } from '../../src';
+import { cutToRange, outline, type Language, type SyntaxNode, type TreeSnapshot } from '../../src';
 
 export const GRAMMARS: Record<Language, LRLanguage> = { python: pythonLanguage, javascript: javascriptLanguage, cpp: cppLanguage };
 
@@ -52,4 +52,24 @@ export function realTree(language: Language, doc: string): SyntaxNode {
   const tree = ensureSyntaxTree(stateOf(language, doc), doc.length, 10_000);
   if (!tree) throw new Error('the parse did not finish');
   return toSyntaxNode(tree);
+}
+
+/** A snapshot over a real Lezer parse, for a fake editor's `tree` option: its trees are the ones the page answers with. */
+export function lezerSnapshot(text: string, language: Language): TreeSnapshot {
+  const state = stateOf(language, text);
+  let best = syntaxTree(state);
+  return {
+    language,
+    length: text.length,
+    work(upto, ms) {
+      const done = ensureSyntaxTree(state, upto, ms);
+      if (done) best = done;
+      return done !== null;
+    },
+    parsedTo: () => best.length,
+    read(range, detail) {
+      const full = toSyntaxNode(best);
+      return cutToRange(detail === 'outline' ? outline(language, full) : full, range);
+    },
+  };
 }

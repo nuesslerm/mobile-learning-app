@@ -2,7 +2,8 @@ import { createRpcClient } from '@lib/webview-rpc';
 import { createEmulatedWebView, createLoopbackPair } from '@lib/webview-rpc/testing';
 
 import { createDeferredEngine, LANGUAGE_NAMES, serveEditor, toRemoteEngine } from '../src';
-import { createFakeEditor, editorContract, syntaxTreeContract, withFaults, type FakeEditor } from '../src/testing';
+import { createFakeEditor, editorContract, semanticContract, syntaxTreeContract, withFaults, type FakeEditor } from '../src/testing';
+import { lezerSnapshot } from './support/lezerPlain';
 
 function overRpc(name: string, makePair: typeof createLoopbackPair) {
   const errors: unknown[] = [];
@@ -54,6 +55,25 @@ function overRpc(name: string, makePair: typeof createLoopbackPair) {
       hooks: { restart: bind, slowParse: (calls) => current?.slowParse?.(calls) },
     };
   }, 'python');
+
+  // a node step is a deferred reply: it crosses the channel like a tree's, over the grammars' own trees
+  for (const language of ['python', 'javascript'] as const) {
+    semanticContract(name, async ({ bound }) => {
+      const faulty = withFaults(makePair());
+      const deferred = createDeferredEngine((error) => errors.push(error));
+      if (bound) deferred.bind(createFakeEditor({ instance: 'fake-semantic', text: '', tree: lezerSnapshot }).engine);
+      const server = serveEditor(deferred, faulty.page, (error) => errors.push(error));
+      const rpc = createRpcClient(faulty.host, { timeoutMs: 2000 });
+      return {
+        engine: toRemoteEngine(rpc, (error) => errors.push(error)),
+        dispose: () => {
+          rpc.close();
+          server.close();
+        },
+        hooks: {},
+      };
+    }, language);
+  }
 }
 
 overRpc('the fake editor over a loopback channel', createLoopbackPair);

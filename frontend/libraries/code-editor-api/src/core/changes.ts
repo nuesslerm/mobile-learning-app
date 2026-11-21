@@ -81,3 +81,7 @@ export function diffChange(before: string, after: string): Change | null {
 export function normalizeText(text: string): string {
   return text.replace(/\r\n?/g, '\n');
 }
+
+const EXCERPT = 200;
+/** The text as an error quotes it: cut at 200 characters. */
+export const excerpt = (text: string): string => (text.length > EXCERPT ? `${text.slice(0, EXCERPT)}…` : text);

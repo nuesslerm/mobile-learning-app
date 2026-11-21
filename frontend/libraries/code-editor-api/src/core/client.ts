@@ -14,7 +14,7 @@ export type CallTrace = {
   readonly ms?: number;
 };
 export type ClientOptions = { readonly trace?: (call: CallTrace) => void; readonly now?: () => number };
-type Options = Pick<ApplyParams, 'at' | 'stale' | 'instance' | 'label'>;
+type Options = Pick<ApplyParams, 'at' | 'stale' | 'instance' | 'label' | 'preview' | 'budgetMs'>;
 type ViewOptions = Pick<ViewParams, 'at' | 'instance'>;
 
 export type EditorClient = {
@@ -25,6 +25,8 @@ export type EditorClient = {
   replaceRange(range: Range | 'selection', text: string, options?: Options): Promise<Reply<ApplyValue>>;
   insertAt(pos: Pos | 'selection', text: string, options?: Options): Promise<Reply<ApplyValue>>;
   moveRange(range: Range | 'selection', to: Pos, options?: Options): Promise<Reply<ApplyValue>>;
+  /** removes the whole lines of the statement or run of statements `node` names (an empty 'selection' is the statement at the caret), with the comment lines above it; refused as `would-not-parse` when the code would break */
+  deleteNode(node: Range | 'selection', options?: Options & { readonly expect?: string }): Promise<Reply<ApplyValue>>;
   select(anchor: Point, head?: Point, options?: Options): Promise<Reply<ApplyValue>>;
   undo(): Promise<Reply<HistoryValue>>;
   redo(): Promise<Reply<HistoryValue>>;
@@ -127,6 +129,7 @@ export function createEditorClient(engine: EditorEngine, options: ClientOptions 
     replaceRange: (range, text, extra) => transact([{ op: 'replace', range, text }], extra),
     insertAt: (pos, text, extra) => transact([{ op: 'replace', range: pos === 'selection' ? 'selection' : { from: pos, to: pos }, text }], extra),
     moveRange: (range, to, extra) => transact([{ op: 'move', range, to }], extra),
+    deleteNode: (node, { expect, ...extra } = {}) => transact([{ op: 'deleteNode', node, ...(expect === undefined ? {} : { expect }) }], extra),
     select: (anchor, head, extra) => transact([head === undefined ? { op: 'select', anchor } : { op: 'select', anchor, head }], extra),
     undo: () => call('history', { direction: 'undo' }),
     redo: () => call('history', { direction: 'redo' }),

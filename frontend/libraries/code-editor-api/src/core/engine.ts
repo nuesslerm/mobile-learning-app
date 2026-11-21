@@ -3,12 +3,14 @@ import type { DocumentHost } from '../ports/host';
 import {
   API_VERSION, CORE_REQUEST_NAMES,
   type ApplyValue, type Change, type EditorError, type EditorEvent, type EventType, type Hello, type HistoryValue, type LoadValue, type Mark, type MarkSpec, type Origin, type Range,
-  type ReadValue, type Reply, type Requests, type RequestName, type Revision, type Selection, type SelRange, type TreeValue, type ViewValue,
+  type ReadValue, type Reply, type Requests, type RequestName, type Revision, type Selection, type SelRange, type Step, type TreeValue, type ViewValue,
 } from '../ports/protocol';
-import { lengthDelta, mapSelRange, normalizeText } from './changes';
+import { applyChanges, excerpt, lengthDelta, mapSelRange, normalizeText } from './changes';
 import { clearMarks, mapMarks, MAX_MARKS, setMarks } from './marks';
-import { planBatch, type ResolvedStep } from './plan';
+import { planBatch, rebaseSelect, type Plan, type ResolvedStep } from './plan';
 import { createRevisionLog } from './revisionLog';
+import { plannedOps, plannerFor } from './semantic/ops';
+import { canParse, runSemanticApply, type ParsingHost } from './semantic/run';
 import { runTreeJob } from './treeJob';
 import { isSemanticStep, parseApply, parseConfigPatch, parseHistory, parseLoad, parseRead, parseTree, parseView } from './validate';
 
@@ -43,7 +45,7 @@ export type EngineCore = EditorEngine & {
 const DEFAULT_LOG_DEPTH = 256;
 const DEFAULT_TREE_BUDGET_MS = 50;
 const DEFAULT_TREE_SLICE_MS = 8;
-const EXCERPT = 200;
+const DEFAULT_SEMANTIC_BUDGET_MS = 250;
 
 const sameSelection = (a: Selection, b: Selection) =>
   a.main === b.main && a.ranges.length === b.ranges.length && a.ranges.every((range, i) => range.anchor === b.ranges[i]?.anchor && range.head === b.ranges[i]?.head);
@@ -80,7 +82,6 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     const range = selection.ranges[selection.main] ?? { anchor: 0, head: 0 };
     return { from: Math.min(range.anchor, range.head), to: Math.max(range.anchor, range.head) };
   };
-  const excerpt = (text: string) => (text.length > EXCERPT ? `${text.slice(0, EXCERPT)}…` : text);
 
   const hello = (): Reply<Hello> =>
     success({
@@ -90,7 +91,7 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
       capabilities: {
         // what the host can do is what the engine announces: an optional request, step or event exists only when its method does
         requests: host.tree ? [...CORE_REQUEST_NAMES, 'tree'] : CORE_REQUEST_NAMES,
-        steps: ['replace', 'move', 'select', ...(host.type ? (['type'] as const) : []), ...(host.complete ? (['complete'] as const) : [])],
+        steps: ['replace', 'move', 'select', ...(host.type ? (['type'] as const) : []), ...(host.complete ? (['complete'] as const) : []), ...(canParse(host) ? plannedOps : [])],
         events: ['ready', 'changed', 'selection', 'focus', ...(host.complete ? (['completion'] as const) : [])],
         languages: host.languages(),
         maxSelections: host.maxSelections,
@@ -108,25 +109,70 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     return success({ text: host.doc.slice(range.from, range.to), range, length, selection: host.selection() });
   };
 
-  const apply = (params: unknown): Reply<ApplyValue> => {
+  // Lands a planned batch: a preview only says what it would do; anything else is one commit, and the reply is for the revision it made.
+  const land = (plan: Plan, head: Revision, label: string | undefined, preview: boolean | undefined): Reply<ApplyValue> => {
+    if (preview) {
+      const text = applyChanges(host.doc.slice(0, host.doc.length), plan.changes);
+      return success({ changes: [], selection: host.selection(), landed: plan.landed, preview: { text, diff: plan.changes, landed: plan.landed } }, head);
+    }
+    if (plan.changes.length === 0 && plan.select === null) {
+      return success({ changes: [], selection: host.selection(), landed: plan.landed }, head);
+    }
+    const main = host.selection().ranges[host.selection().main] ?? { anchor: 0, head: 0 };
+    const selection = plan.select ?? (plan.changes.length > 0 ? mapSelRange(main, plan.changes) : null);
+    host.commit({ changes: plan.changes, ...(selection ? { selection } : {}), ...(label ? { label } : {}) });
+    host.sync();
+    if (plan.changes.length > 0 && log.head() === head) {
+      return failure({ code: 'internal', message: 'the editor applied the edit and did not report it' });
+    }
+    return success({ changes: plan.changes, selection: host.selection(), landed: plan.landed }, head);
+  };
+
+  // A node step parses the document before it plans and the result before it commits, so its reply comes later, as a tree's does (the queue is released at once: an apply asked
+  // meanwhile is answered first, and this call then finds the head moved). From the last parse to the commit nothing waits: a keystroke the host has not delivered yet is delivered by
+  // the sync, and a head that moved ends the call as `structure-changed` with nothing applied.
+  const semanticApply = (parsing: ParsingHost, steps: readonly Step[], head: Revision, call: { readonly label?: string; readonly preview?: boolean; readonly budgetMs?: number }): Deferred => {
+    const clock = { now, yieldToEvents, head: () => log.head(), sliceMs };
+    const deferred = runSemanticApply(parsing, steps, { clock, budgetMs: call.budgetMs ?? DEFAULT_SEMANTIC_BUDGET_MS })
+      .then((outcome): Reply<unknown> => {
+        if (!outcome.ok) return failure(outcome.error);
+        host.sync();
+        if (log.head() !== head) return failure({ code: 'structure-changed', message: 'the code changed while the step was being planned', head: log.head() });
+        return land(outcome.plan, head, call.label, call.preview);
+      })
+      .catch((error: unknown): Reply<unknown> => {
+        logError(error);
+        return failure({ code: 'internal', message: error instanceof Error ? error.message : String(error) });
+      });
+    return { deferred };
+  };
+
+  const apply = (params: unknown): Reply<ApplyValue> | Deferred => {
     const parsed = parseApply(params);
     if (!parsed.ok) return failure(parsed.error);
-    const { steps, at, stale = 'reject', instance, label, preview } = parsed.value;
+    const { steps, at, stale = 'reject', instance, label, preview, budgetMs } = parsed.value;
     if (instance !== undefined && instance !== options.instance) {
       return failure({ code: 'instance-mismatch', message: 'these revisions belong to another editor instance', expected: options.instance, actual: instance });
     }
     const head = log.head();
     if (at !== undefined && at > head) return invalid('at', `at ${at} is ahead of the head ${head}`);
     const behind = at !== undefined && at < head;
-    if (behind && (stale === 'reject' || at < log.floor())) {
-      return failure({ code: 'stale', message: `the call was made at revision ${at}, the head is ${head}`, head, floor: log.floor() });
+    const staleFailure = () => failure({ code: 'stale', message: `the call was made at revision ${at}, the head is ${head}`, head, floor: log.floor() });
+    const semantic = steps.find(isSemanticStep);
+    if (semantic) {
+      // node boundaries depend on the exact text: a call is planned against the head or it is stale, whatever `stale` says
+      if (!canParse(host)) return unsupportedStep(semantic.op);
+      const unplanned = steps.find((step) => isSemanticStep(step) && !plannerFor(step));
+      if (unplanned) return unsupportedStep(unplanned.op);
+      if (behind) return staleFailure();
+      return semanticApply(host, steps, head, { ...(label ? { label } : {}), ...(preview === undefined ? {} : { preview }), ...(budgetMs === undefined ? {} : { budgetMs }) });
     }
-    if (preview) return failure({ code: 'unsupported', message: 'this editor cannot preview a call', what: 'apply:preview' }); // applying it instead would do the opposite of what was asked
+    if (behind && (stale === 'reject' || at < log.floor())) return staleFailure();
     const sole = steps[0];
     if (sole?.op === 'type' || sole?.op === 'complete') {
       // a keystroke, or the acceptance of a completion, acts on what is selected now, so there is nothing to map: a call made at another revision is stale
       if (sole.op === 'type' ? !host.type : !host.complete) return failure({ code: 'unsupported', message: `this editor has no ${sole.op} step`, what: `step:${sole.op}` });
-      if (behind) return failure({ code: 'stale', message: `the call was made at revision ${at}, the head is ${head}`, head, floor: log.floor() });
+      if (behind) return staleFailure();
       delivered = null;
       if (sole.op === 'type') host.type?.(sole.text, label);
       else host.complete?.(label);
@@ -134,8 +180,6 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
       const update = delivered as HostUpdate | null;
       return success({ changes: update?.changes ?? [], selection: host.selection(), landed: [null] }, head);
     }
-    const semantic = steps.find(isSemanticStep);
-    if (semantic) return unsupportedStep(semantic.op); // until a planner is registered
     const from = at ?? head;
     const lengthThen = behind ? (log.lengthAt(from) ?? 0) : host.doc.length;
     const live = mainRange(host.selection());
@@ -146,16 +190,9 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
       if (step.op === 'type' || step.op === 'complete') return invalid(`steps[${index}]`, `a ${step.op} step is the only step of its call`);
       if (isSemanticStep(step)) return unsupportedStep(step.op);
       if (step.op === 'select') {
-        const point = (value: typeof step.anchor): typeof step.anchor | EditorError => {
-          if (typeof value === 'number') return value > lengthThen ? outOf(index) : rebasePos(value, 1);
-          if ('at' in value) return value.at > lengthThen ? outOf(index) : { at: rebasePos(value.at, value.assoc), assoc: value.assoc };
-          return value;
-        };
-        const anchor = point(step.anchor);
-        if (typeof anchor === 'object' && 'code' in anchor) return failure(anchor);
-        const head = step.head === undefined ? undefined : point(step.head);
-        if (typeof head === 'object' && 'code' in head) return failure(head);
-        resolved.push(head === undefined ? { op: 'select', anchor } : { op: 'select', anchor, head });
+        const select = rebaseSelect(step, lengthThen, rebasePos, () => outOf(index));
+        if ('code' in select) return failure(select);
+        resolved.push(select);
         continue;
       }
       let range: Range;
@@ -182,18 +219,7 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     }
     const planned = planBatch(host.doc, resolved);
     if (!planned.ok) return failure(planned.error);
-    const { plan } = planned;
-    if (plan.changes.length === 0 && plan.select === null) {
-      return success({ changes: [], selection: host.selection(), landed: plan.landed });
-    }
-    const main = host.selection().ranges[host.selection().main] ?? { anchor: 0, head: 0 };
-    const selection = plan.select ?? (plan.changes.length > 0 ? mapSelRange(main, plan.changes) : null);
-    host.commit({ changes: plan.changes, ...(selection ? { selection } : {}), ...(label ? { label } : {}) });
-    host.sync();
-    if (plan.changes.length > 0 && log.head() === head) {
-      return failure({ code: 'internal', message: 'the editor applied the edit and did not report it' });
-    }
-    return success({ changes: plan.changes, selection: host.selection(), landed: plan.landed }, head);
+    return land(planned.plan, head, label, preview);
   };
 
   const history = (params: unknown): Reply<HistoryValue> => {

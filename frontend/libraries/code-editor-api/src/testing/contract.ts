@@ -350,6 +350,21 @@ export function editorContract(name: string, make: MakeSubject, options: Contrac
         expect(reply).toMatchObject({ changes: [{ insert: 'a\nb' }], landed: [{ from: 0, to: 3 }] });
         expect((await snapshot()).text).toBe(`a\nb${TEN}`);
       });
+
+      it('given a preview, when a replace is applied, then the would-be text and its diff come back, changes is empty, and no revision, event or undo step is made', async () => {
+        const base = await start();
+        const seen = record('changed');
+
+        const reply = await client.replaceRange({ from: 0, to: 2 }, 'X', { preview: true });
+
+        const value = unwrap(reply);
+        expect(value.changes).toEqual([]);
+        expect(value.preview).toEqual({ text: `X${TEN.slice(2)}`, diff: [{ from: 0, to: 2, insert: 'X' }], landed: [{ from: 0, to: 1 }] });
+        expect(reply).toMatchObject({ revision: base, base });
+        expect(await snapshot()).toMatchObject({ text: TEN, revision: base });
+        expect(seen).toEqual([]);
+        expect(unwrap(await client.undo()).applied).toBe(false);
+      });
     });
 
     describe('complete', () => {

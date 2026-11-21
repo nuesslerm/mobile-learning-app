@@ -109,18 +109,17 @@ describe('an editor whose host cannot complete', () => {
   });
 });
 
-describe('an engine with no planner for a node step', () => {
-  const NODE_STEPS = [
+describe('an engine with planners for some node steps', () => {
+  const UNPLANNED = [
     { op: 'moveNode', node: { from: 0, to: 3 }, to: { after: { from: 4, to: 7 } } },
     { op: 'wrapNode', node: { from: 0, to: 3 }, header: 'for i in range(2)' },
     { op: 'unwrapNode', node: { from: 0, to: 3 } },
-    { op: 'deleteNode', node: 'selection' },
     { op: 'duplicateNode', node: { from: 0, to: 3 } },
     { op: 'insertSnippet', at: { before: { from: 0, to: 0 } }, text: 'x = 1' },
     { op: 'reindentBlock', node: { from: 0, to: 3 }, by: 1 },
   ] as const;
 
-  it.each(NODE_STEPS)('given a host with a tree, when $op is sent, then it is unsupported naming the step, nothing changes and hello announces no node step', async (step) => {
+  it.each(UNPLANNED)('given a host with a tree, when $op is sent, then it is unsupported naming the step, nothing changes and hello announces only the steps it can plan', async (step) => {
     const fake = createFakeEditor({ text: 'abc\ndef\n', tree: true });
     const client = createEditorClient(fake.engine);
 
@@ -128,6 +127,18 @@ describe('an engine with no planner for a node step', () => {
     const hello = unwrap(await client.hello());
 
     expect(reply).toMatchObject({ ok: false, error: { code: 'unsupported', what: `step:${step.op}` } });
+    expect(fake.peek()).toMatchObject({ text: 'abc\ndef\n', revision: 0, undoDepth: 0 });
+    expect(hello.capabilities.steps).toEqual(['replace', 'move', 'select', 'type', 'complete', 'deleteNode']);
+  });
+
+  it('given a host with no tree, when deleteNode is sent, then it is unsupported naming the step, nothing changes and hello announces no node step', async () => {
+    const fake = createFakeEditor({ text: 'abc\ndef\n' });
+    const client = createEditorClient(fake.engine);
+
+    const reply = await client.transact([{ op: 'deleteNode', node: { from: 0, to: 3 } }]);
+    const hello = unwrap(await client.hello());
+
+    expect(reply).toMatchObject({ ok: false, error: { code: 'unsupported', what: 'step:deleteNode' } });
     expect(fake.peek()).toMatchObject({ text: 'abc\ndef\n', revision: 0, undoDepth: 0 });
     expect(hello.capabilities.steps).toEqual(['replace', 'move', 'select', 'type', 'complete']);
   });
@@ -138,15 +149,6 @@ describe('an engine with no planner for a node step', () => {
     const reply = await client.transact([{ op: 'select', anchor: 99 }, { op: 'deleteNode', node: 'selection' }]);
 
     expect(reply).toMatchObject({ ok: false, error: { code: 'unsupported', what: 'step:deleteNode' } });
-  });
-
-  it('given a preview of a raw replace, when it is sent, then it is unsupported and the text is not edited', async () => {
-    const fake = createFakeEditor({ text: 'abc' });
-
-    const reply = await fake.engine.request('apply', { steps: [{ op: 'replace', range: { from: 0, to: 1 }, text: 'X' }], preview: true });
-
-    expect(reply).toMatchObject({ ok: false, error: { code: 'unsupported', what: 'apply:preview' } });
-    expect(fake.text()).toBe('abc');
   });
 });
 

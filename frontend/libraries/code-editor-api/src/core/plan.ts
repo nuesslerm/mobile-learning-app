@@ -1,5 +1,5 @@
 import type { DocView } from '../ports/host';
-import type { Assoc, Change, EditorError, Point, Pos, Range, SelRange } from '../ports/protocol';
+import type { Assoc, Change, EditorError, Point, Pos, Range, SelRange, Step } from '../ports/protocol';
 import { mapPos, mapRange } from './changes';
 
 export type ResolvedStep =
@@ -22,6 +22,22 @@ export type Plan = {
 
 type Entry = { readonly from: number; readonly to: number; readonly insert: string; readonly step: number; readonly seq: number };
 type Planned = { ok: true; plan: Plan } | { ok: false; error: EditorError };
+
+type SelectStep = Extract<Step, { readonly op: 'select' }>;
+
+/** A select step with its bare and `at` points moved from the revision the call names to the head; a point past that document is `outOf`. `{step}` points are left for planBatch. */
+export function rebaseSelect(step: SelectStep, length: number, rebase: (pos: Pos, assoc: Assoc) => Pos, outOf: () => EditorError): Extract<ResolvedStep, { readonly op: 'select' }> | EditorError {
+  const point = (value: Point): Point | EditorError => {
+    if (typeof value === 'number') return value > length ? outOf() : rebase(value, 1);
+    if ('at' in value) return value.at > length ? outOf() : { at: rebase(value.at, value.assoc), assoc: value.assoc };
+    return value;
+  };
+  const anchor = point(step.anchor);
+  if (typeof anchor === 'object' && 'code' in anchor) return anchor;
+  const head = step.head === undefined ? undefined : point(step.head);
+  if (typeof head === 'object' && 'code' in head) return head;
+  return head === undefined ? { op: 'select', anchor } : { op: 'select', anchor, head };
+}
 
 const isPos = (value: number, length: number) => Number.isInteger(value) && value >= 0 && value <= length;
 const fail = (error: EditorError): Planned => ({ ok: false, error });
