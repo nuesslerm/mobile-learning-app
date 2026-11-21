@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { completionEntriesFor } from '../completionEntries';
+import { isHarnessOnly } from '../models';
 import { ProblemCatalog } from '../problemCatalog';
 
 const problems = ProblemCatalog.getAll();
@@ -17,7 +18,7 @@ describe('completionEntriesFor', () => {
       const first = candidate.testCases?.[0];
       if (first && !candidate.harness) {
         const parameters = entries.filter((entry) => entry.type === 'variable').map((entry) => entry.label).filter((label) => label !== 'self');
-        expect(parameters, candidate.id).toEqual(Object.keys(first.inputs));
+        expect(parameters, candidate.id).toEqual(Object.keys(first.inputs).filter((key) => !isHarnessOnly(candidate.paramTypes[key])));
       }
     }
     expect(withMethod.length).toBeGreaterThan(60);

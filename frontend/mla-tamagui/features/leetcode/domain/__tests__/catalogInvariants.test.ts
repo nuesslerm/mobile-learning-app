@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { isHarnessOnly } from '../models';
 import { ProblemCatalog } from '../problemCatalog';
 import { runParamsFor } from '../run/runParams';
 
@@ -11,19 +12,28 @@ const paramsOf = (starter: string, method: string): string[] => {
 };
 
 describe('the catalog the harness runs', () => {
-  it('given every problem with cases, when its inputs are read, then their keys are the starter method parameters in order', () => {
+  it('given every problem with cases, when its inputs are read, then their keys, bar the harness-only ones, are the starter method parameters in order', () => {
     // Given the problems with bundled cases, When each case's input keys are compared with the starter's parameters
     for (const problem of withCases.filter((p) => !p.harness)) {
       const starter = problem.starterCode.python3 ?? '';
       const expected = paramsOf(starter, problem.methodName ?? '');
-      for (const testCase of problem.testCases ?? []) expect(Object.keys(testCase.inputs), problem.id).toEqual(expected);
+      for (const testCase of problem.testCases ?? []) {
+        const keys = Object.keys(testCase.inputs).filter((key) => !isHarnessOnly(problem.paramTypes[key]));
+        expect(keys, problem.id).toEqual(expected);
+      }
     }
   });
 
-  it('given a problem with paramTypes, when its keys are read, then each is a parameter and a tree-by-value follows a tree', () => {
+  it('given a problem with paramTypes, when its keys are read, then each is a parameter, a tree-by-value follows a tree and a harness-only key follows a list', () => {
     for (const problem of problems.filter((p) => Object.keys(p.paramTypes).length > 0)) {
       const names = paramsOf(problem.starterCode.python3 ?? '', problem.methodName ?? '');
+      const keys = Object.keys(problem.testCases?.[0]?.inputs ?? {});
       for (const [name, type] of Object.entries(problem.paramTypes)) {
+        if (isHarnessOnly(type)) {
+          expect(problem.paramTypes[keys[keys.indexOf(name) - 1] ?? ''], `${problem.id}.${name}`).toBe('ListNode');
+          expect(names, `${problem.id}.${name} is not a parameter`).not.toContain(name);
+          continue;
+        }
         expect(names, `${problem.id}.${name}`).toContain(name);
         if (type === 'TreeNode_by_val') expect(Object.values(problem.paramTypes)).toContain('TreeNode');
       }

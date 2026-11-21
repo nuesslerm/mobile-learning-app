@@ -39,6 +39,12 @@ class TreeNode:
         self.val = val; self.left = left; self.right = right
 
 
+class Node:
+    def __init__(self, val=0, neighbors=None):
+        self.val = val
+        self.neighbors = neighbors if neighbors is not None else []
+
+
 # BaseException so a solution's own `except Exception` cannot swallow the deadline
 class TimeoutError(BaseException):
     pass
@@ -106,7 +112,7 @@ _guard = None
 
 def _typing_namespace():
     return {
-        'ListNode': ListNode, 'TreeNode': TreeNode,
+        'ListNode': ListNode, 'TreeNode': TreeNode, 'Node': Node,
         'List': List, 'Optional': Optional, 'Dict': Dict, 'Set': Set,
         'Tuple': Tuple, 'Deque': Deque, 'Any': Any,
     }
@@ -188,6 +194,28 @@ def _build_tree(cls, values):
     return root
 
 
+def _build_graph(cls, adjacency):
+    # node i has val i + 1 and its neighbours are listed by val (LeetCode's own input form); [] is no node at all
+    nodes = [cls(i + 1) for i in range(len(adjacency))]
+    for node, neighbours in zip(nodes, adjacency):
+        for val in neighbours:
+            if isinstance(val, bool) or not isinstance(val, int) or not 1 <= val <= len(nodes):
+                raise ValueError('neighbour %r is not a node of the graph (1 to %d)' % (val, len(nodes)))
+        node.neighbors = [nodes[val - 1] for val in neighbours]
+    return nodes[0] if nodes else None
+
+
+def _link_cycle(head, pos):
+    nodes = []
+    while head is not None:
+        nodes.append(head)
+        head = head.next
+    if isinstance(pos, bool) or not isinstance(pos, int) or not -1 <= pos < len(nodes):
+        raise ValueError('pos %r is not -1 or an index of the list (%d nodes)' % (pos, len(nodes)))
+    if pos >= 0:
+        nodes[-1].next = nodes[pos]
+
+
 def _find(root, val):
     queue = deque([root])
     while queue:
@@ -231,11 +259,18 @@ def _tree_values(root):
 
 
 def _to_args(inputs, param_types, ns):
-    args, root = [], None
+    # the arguments in order and by name: a harness-only key (ListNode_cycle_pos) is no argument, so a name is not a position
+    args, named, root, listed, last_list = [], {}, None, False, None
     for name, value in inputs.items():
         kind = param_types.get(name)
+        if kind == 'ListNode_cycle_pos':
+            if not listed:
+                raise ValueError("'%s' links the list before it, and no ListNode parameter comes before it" % name)
+            _link_cycle(last_list, value)
+            continue
         if kind == 'ListNode':
             value = _build_list(ns['ListNode'], value)
+            listed, last_list = True, value
         elif kind == 'ListNode[]':
             value = [_build_list(ns['ListNode'], v) for v in value]
         elif kind == 'TreeNode':
@@ -243,13 +278,36 @@ def _to_args(inputs, param_types, ns):
             root = value if root is None else root
         elif kind == 'TreeNode_by_val':
             value = _find(root, value)
+        elif kind == 'GraphNode':
+            value = _build_graph(ns['Node'], value)
         args.append(value)
-    return args
+        named[name] = value
+    return args, named
+
+
+def _graph_values(start):
+    nodes, seen, queue = [], set(), deque([start])
+    while queue:
+        node = queue.popleft()
+        if id(node) in seen:
+            continue
+        if len(nodes) >= MAX_NODES:
+            raise ValueError('the returned graph is too large')
+        seen.add(id(node))
+        nodes.append(node)
+        queue.extend(node.neighbors)
+    vals = [node.val for node in nodes]
+    if any(isinstance(v, bool) or not isinstance(v, int) for v in vals) or sorted(vals) != list(range(1, len(vals) + 1)):
+        raise ValueError('the returned graph must have the vals 1 to %d, each on one node (it has %r)' % (len(vals), vals))
+    by_val = {node.val: node for node in nodes}
+    return [[nb.val for nb in by_val[val].neighbors] for val in range(1, len(nodes) + 1)]
 
 
 def _to_value(kind, value):
     if kind == 'ListNode' and (value is None or hasattr(value, 'next')):
         return _list_values(value)
+    if kind == 'GraphNode' and (value is None or hasattr(value, 'neighbors')):
+        return [] if value is None else _graph_values(value)
     if kind == 'TreeNode' and (value is None or hasattr(value, 'left')):
         return _tree_values(value)
     if kind == 'TreeNode_val' and value is not None and hasattr(value, 'val'):
@@ -349,7 +407,18 @@ def _reachable_ids(root):
             continue
         seen.add(id(node))
         stack.extend((getattr(node, 'left', None), getattr(node, 'right', None)))
+        neighbours = getattr(node, 'neighbors', None)
+        if isinstance(neighbours, (list, tuple)):
+            stack.extend(neighbours)
     return seen
+
+
+def _graph_ids(named, param_types):
+    ids = set()
+    for name, kind in param_types.items():
+        if kind == 'GraphNode':
+            ids |= _reachable_ids(named.get(name))
+    return ids
 
 
 def _round_trip(cls, harness, args):
@@ -380,7 +449,7 @@ def _case(cls, method, case, cfg, ns, lines):
             _guard.disarm()
         elif kind == 'roundTrip':
             param_kind = next(iter(cfg['paramTypes'].values()), None)
-            args = _to_args(copy.deepcopy(inputs), cfg['paramTypes'], ns)
+            args, _ = _to_args(copy.deepcopy(inputs), cfg['paramTypes'], ns)
             built = _reachable_ids(args[0]) if param_kind == 'TreeNode' else set()
             _guard.arm(cfg['timeout_s'], 'Code execution timed out (' + str(cfg['timeout_s']) + 's limit)')
             with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
@@ -390,16 +459,19 @@ def _case(cls, method, case, cfg, ns, lines):
                 raise ValueError('the returned tree is the input tree, not a decoded copy')
             actual = _to_value(param_kind, decoded)
         else:
-            args = _to_args(copy.deepcopy(inputs), cfg['paramTypes'], ns)
+            args, named = _to_args(copy.deepcopy(inputs), cfg['paramTypes'], ns)
+            given = _graph_ids(named, cfg['paramTypes']) if cfg['returnType'] == 'GraphNode' else set()
             _guard.arm(cfg['timeout_s'], 'Code execution timed out (' + str(cfg['timeout_s']) + 's limit)')
             with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
                 returned = getattr(cls(), method)(*args)
             _guard.disarm()
             place = cfg['inPlace']
             if place is None:
+                if given and given & _reachable_ids(returned):
+                    raise ValueError('the returned graph shares a node with the input: build copies')
                 actual = _to_value(cfg['returnType'], returned)
             else:
-                actual = _to_value(cfg['paramTypes'].get(place), args[list(inputs).index(place)])
+                actual = _to_value(cfg['paramTypes'].get(place), named[place])
         passed = _compare(actual, expected, mode)
     except BaseException as exc:
         _guard.disarm()

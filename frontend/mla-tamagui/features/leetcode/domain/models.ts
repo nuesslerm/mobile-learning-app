@@ -22,8 +22,13 @@ export const nodeTypeSchema = z.enum([
   'TreeNode',
   'TreeNode_by_val',
   'TreeNode_val',
+  'GraphNode',
+  'ListNode_cycle_pos',
 ]);
 export type NodeType = z.infer<typeof nodeTypeSchema>;
+
+/** A key of a case that is not an argument of the method: it tells the harness how to build the argument before it (`pos` links a list's tail back to a node). */
+export const isHarnessOnly = (type: NodeType | undefined): boolean => type === 'ListNode_cycle_pos';
 
 /** How a problem that is not one `Solution` method is run: `design` is a list of operations on one fresh instance of `className`, `roundTrip` is the input through `encode` and then, on a new instance, `decode`. */
 export const harnessSchema = z.discriminatedUnion('kind', [
