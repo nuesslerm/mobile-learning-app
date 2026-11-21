@@ -114,6 +114,9 @@ When a row moves to served, its decision entry is removed in the same commit.
 - **Progress (21 Nov, O3b: exec-mcp, secret file, process sampling)**:
   - Executor: `mcp_request` (starts a stdio server named in the workspace's `.mcp.json` with only its declared environment, sends `tools/list`, `tools/call` or `resources/read`, stops it), `proc_sample` (the executor's own process and everything below it, from `/proc`, at most 512) and `secret_file_put` (a new file, mode 0600, never replacing, the value in no result or error). Agent API: `mcp.request`, `process.sample` and `file.putSecret` in `files.edit`.
   - Not built: the tool server's `request_secret`, and the T3 rows over these (`mcpApps.*`, `secrets.answerRequest`, `subscribeResourceTelemetry`), which stay not-offered; reasons in docs/gaps/t3-mcp-secret-guest-telemetry-no-success-shape.md.
+- **Progress (21 Nov, O3c: T3 guest share and the Orca terminal-artifact rows)**:
+  - T3: `guestShare.create`, the guest's `redeem` and `messages` routes, and the commands `thread.guest-share.close` and `thread.guest-message.dismiss`, served and off by default (`guestSharingEnabled` off, `T3_GUEST_HOST` unset); chain test `tests/integration/guest_share.rs`.
+  - Orca: `files.resolveTerminalPath`, `readTerminalArtifact`, `readTerminalArtifactPreview` and `writeTerminalArtifact` over the executor actions `artifact_stat`, `artifact_read` and `artifact_write`; nothing outside the root is served unless `RCA_EXEC_ARTIFACT_ALLOW` names a directory (agent decision under the safer-option rule, awaiting the owner); reasons and limits in docs/gaps/orca-terminal-artifact-grants-authored-shapes.md.
 - **Proof**: a real headless-Chromium chain test against fake-devserver in CI; browser cassettes from the orcad oracle (it drives Chromium over CDP itself); the scripted CLI implements `update` and the app-server requests.
 
 ### Phase 3: session depth and the hosted tail (M each)

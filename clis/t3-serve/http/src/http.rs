@@ -225,6 +225,21 @@ fn voice_answer(stream: &mut TcpStream, answer: Result<Value, Refusal>) {
     }
 }
 
+fn guest_error(stream: &mut TcpStream, r: t3_core::usecases::guest::GuestRefusal) {
+    respond_with(stream, r.status, &json!({"reason": r.reason, "message": r.message}), NO_STORE);
+}
+
+/// The value of one cookie of the request.
+fn cookie<'a>(request: &'a Request, name: &str) -> Option<&'a str> {
+    request.header("cookie")?.split(';').filter_map(|c| c.trim().split_once('=')).find(|(k, _)| *k == name).map(|(_, v)| v)
+}
+
+/// `204` with the guest's session cookie: one per share, readable by no script, sent only to the guest routes.
+fn respond_joined(stream: &mut TcpStream, share: &str, token: &str) {
+    let head = format!("HTTP/1.1 204 No Content\r\n{COMMON}{NO_STORE}Set-Cookie: t3_guest_{share}={token}; HttpOnly; Secure; SameSite=Strict; Path=/api/guest; Max-Age={}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", t3_core::usecases::guest::TTL_MS / 1000);
+    let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.flush());
+}
+
 pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
     let _ = stream.set_read_timeout(Some(Duration::from_secs(10)));
     let request = match read_request(&mut stream) {
@@ -321,6 +336,22 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             match answer {
                 Ok(body) => respond(&mut stream, 200, &body),
                 Err(r) => refused(&mut stream, r, ""),
+            }
+        }
+        ("POST", "/api/guest/redeem") => {
+            let Some(body) = json_object(&mut stream, &request) else { return };
+            match svc.guest_redeem(&body) {
+                Ok((token, share)) => respond_joined(&mut stream, &share, &token),
+                Err(r) => guest_error(&mut stream, r),
+            }
+        }
+        ("POST", "/api/guest/messages") => {
+            let Some(body) = json_object(&mut stream, &request) else { return };
+            let share = request.query.iter().find(|(k, _)| k == "share").map_or("", |(_, v)| v.as_str());
+            let session = cookie(&request, &format!("t3_guest_{share}")).unwrap_or("");
+            match svc.guest_submit(session, share, &body) {
+                Ok(()) => respond_with(&mut stream, 204, &Value::Null, NO_STORE),
+                Err(r) => guest_error(&mut stream, r),
             }
         }
         ("GET", "/api/voice/status") => voice_answer(&mut stream, svc.voice_status(auth)),

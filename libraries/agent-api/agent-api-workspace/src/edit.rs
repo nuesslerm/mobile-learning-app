@@ -18,9 +18,15 @@ pub const FILE_PUT_SECRET: Method = Method::new(GROUP, "file.putSecret");
 pub const PROCESS_SAMPLE: Method = Method::new(GROUP, "process.sample");
 /// One request (`tools/list`, `tools/call` or `resources/read`) to a stdio MCP server the workspace's `.mcp.json` declares, started for it and stopped after.
 pub const MCP_REQUEST: Method = Method::new(GROUP, "mcp.request");
+/// A file a terminal printed, which may lie outside the workspace: described by its canonical path, identity and fingerprint. Served only inside the places the workspace's executor was told to allow for artifacts (none by default), else refused as outside the root.
+pub const ARTIFACT_STAT: Method = Method::new(GROUP, "artifact.stat");
+/// A byte range of such a file; refused with `CHANGED` when the identity or fingerprint given are no longer the file's.
+pub const ARTIFACT_READ: Method = Method::new(GROUP, "artifact.read");
+/// The content of such a file replaced atomically under the same check; it never creates a file.
+pub const ARTIFACT_WRITE: Method = Method::new(GROUP, "artifact.write");
 /// The changes of the workspace since `base`, the revision a turn started from (the caller records it).
 pub const TURN_DIFF: Method = Method::new(GROUP, "turn.diff");
 /// The changes of the workspace since `base`, the revision its thread's work started from (the index when absent).
 pub const THREAD_DIFF: Method = Method::new(GROUP, "thread.diff");
 
-pub const METHODS: &[Method] = &[FILE_READ_CHUNK, FILE_WRITE, FILE_CREATE, FILE_STAT, FILE_SEARCH, FILE_BROWSE, FILE_MKDIR, FILE_PUT_SECRET, PROCESS_SAMPLE, MCP_REQUEST, TURN_DIFF, THREAD_DIFF];
+pub const METHODS: &[Method] = &[FILE_READ_CHUNK, FILE_WRITE, FILE_CREATE, FILE_STAT, FILE_SEARCH, FILE_BROWSE, FILE_MKDIR, FILE_PUT_SECRET, PROCESS_SAMPLE, MCP_REQUEST, ARTIFACT_STAT, ARTIFACT_READ, ARTIFACT_WRITE, TURN_DIFF, THREAD_DIFF];

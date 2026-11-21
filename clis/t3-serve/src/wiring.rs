@@ -21,6 +21,8 @@ pub struct Settings {
     pub rca_bearer: Option<String>,
     /// `--rca-workspace`: the rca workspace whose executor works where the projects' files are.
     pub rca_workspace: Option<String>,
+    /// `T3_GUEST_HOST`: the public address guest links point at; unset, `guestShare.create` answers `connect_unavailable`.
+    pub guest_host: Option<String>,
 }
 
 pub fn open_store(state_dir: &Path) -> Result<Arc<SqliteStore>, String> {
@@ -77,7 +79,7 @@ pub fn service(settings: &Settings, store: Arc<SqliteStore>) -> Result<Wired, St
         (Some(_), Some(_), None) => return Err("--rca-url needs --rca-workspace (T3_RCA_WORKSPACE): the rca workspace whose executor works where the projects' files are".into()),
         _ => Arc::new(NoAgent),
     };
-    let service = Service::new(Parts { env, auth: store.clone() as Arc<dyn AuthStore>, clock, ids, log, catalog, engine, agent, meta: store.clone() as Arc<dyn MetaStore>, storage: store as Arc<dyn StorageProbe>, host: Arc::new(ProcHost::default()) });
+    let service = Service::new(Parts { env, auth: store.clone() as Arc<dyn AuthStore>, clock, ids, log, catalog, engine, agent, meta: store.clone() as Arc<dyn MetaStore>, storage: store as Arc<dyn StorageProbe>, host: Arc::new(ProcHost::default()), guest_host: settings.guest_host.clone() });
     service.resume_runs();
     Ok(Wired { service, environment_id: id })
 }

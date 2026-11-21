@@ -35,7 +35,7 @@ pub struct Settings {
 
 /// Every area of the server. A mapping crate is added here and nowhere else.
 pub fn areas(web: MobileWebArea) -> Vec<Box<dyn Area>> {
-    vec![Box::new(SettingsArea), Box::new(PairingArea), Box::new(web), Box::new(RelayArea), Box::new(WorkspaceArea), Box::new(AgentArea::default()), Box::new(TerminalArea), Box::new(GitArea), Box::new(AccountsArea::default()), Box::new(StateArea), Box::new(HostedArea), Box::new(SchedulesArea), Box::new(BrowserArea)]
+    vec![Box::new(SettingsArea), Box::new(PairingArea), Box::new(web), Box::new(RelayArea), Box::new(WorkspaceArea::default()), Box::new(AgentArea::default()), Box::new(TerminalArea), Box::new(GitArea), Box::new(AccountsArea::default()), Box::new(StateArea), Box::new(HostedArea), Box::new(SchedulesArea), Box::new(BrowserArea)]
 }
 
 /// The bundle source of a settings value: the directory, or none.

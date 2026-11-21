@@ -257,13 +257,6 @@
         "passed": 2
       },
       {
-        "suite": "t3-serve-integration",
-        "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
-        "complete": true,
-        "tests": 29,
-        "passed": 29
-      },
-      {
         "suite": "wf-mimic-t3-recorded",
         "sha": "e03812f884035b4a71643a6a1d6b0911e649e0ff",
         "complete": true,
@@ -339,6 +332,13 @@
         "complete": true,
         "tests": 1,
         "passed": 0
+      },
+      {
+        "suite": "t3-serve-integration",
+        "sha": "fffcca0e80d0367494a46c60ea44c21c5f642ceb",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
       }
     ]
   },
@@ -569,6 +569,18 @@
         "thread.create",
         "thread.fork"
       ],
+      "executor": []
+    },
+    "command:thread.guest-message.dismiss": {
+      "suite": "t3-serve-integration",
+      "test": "guest_share::the_owner_turns_sharing_on_makes_a_link_a_guest_writes_through_it_and_the_owner_dismisses_the_message_and_closes_the_link",
+      "agent": [],
+      "executor": []
+    },
+    "command:thread.guest-share.close": {
+      "suite": "t3-serve-integration",
+      "test": "guest_share::the_owner_turns_sharing_on_makes_a_link_a_guest_writes_through_it_and_the_owner_dismisses_the_message_and_closes_the_link",
+      "agent": [],
       "executor": []
     },
     "command:thread.interaction-mode.set": {

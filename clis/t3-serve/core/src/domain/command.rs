@@ -35,6 +35,9 @@ pub const ACCEPTED_ONLY: [&str; 16] = [
     "thread.tag.set",
 ];
 
+/// The commands only the server issues, for a guest's link, join and message: no client's union holds them, so a client cannot send one.
+pub const SERVER_ONLY: [&str; 3] = ["thread.guest-share.open", "thread.guest-share.redeem", "thread.guest-message.submit"];
+
 const PROJECT_TYPES: [&str; 4] = ["project.create", "project.update", "project.archive", "project.delete"];
 
 /// The keys a type needs before it is decodable, in the order the decoder reports them.
@@ -73,6 +76,16 @@ impl Command {
         }
         let command_id = body.get("commandId").and_then(Value::as_str).unwrap_or("").to_string();
         Ok(Command { kind: kind.to_string(), command_id, body })
+    }
+
+    /// A command the server issues itself; `Err` names a type that is not one.
+    pub fn server(body: Map<String, Value>) -> Result<Command, String> {
+        let kind = body.get("type").and_then(Value::as_str).unwrap_or("").to_string();
+        if !SERVER_ONLY.contains(&kind.as_str()) {
+            return Err(format!("{kind} is not a server command"));
+        }
+        let command_id = body.get("commandId").and_then(Value::as_str).unwrap_or("").to_string();
+        Ok(Command { kind, command_id, body })
     }
 
     pub fn str(&self, key: &str) -> Option<&str> {

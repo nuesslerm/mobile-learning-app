@@ -1,7 +1,7 @@
 //! The pure core of `rca-exec`: the executor port with the actions every model uses (`docs/plans/rca-client/protocol.md`), and the one function
 //! that maps a wire request `{tool, args}` onto it. The arguments and results are the contract crates' (`libraries/agent-api`). No I/O;
 //! paths are relative to the executor's root.
-use exec_fs::{Browse, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, ListDir, ListResult, MakeDir, MakeDirResult, PutBlob, PutBlobResult, PutTemp, PutTempResult, ReadChunk, ReadFile, ReadResult, SearchEntries, SecretFilePut, SecretFilePutResult, SessionScan, SessionsFound, SkillScan, SkillsFound, Stat, StatResult, WriteFile, WriteResult};
+use exec_fs::{Browse, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, ListDir, ListResult, MakeDir, MakeDirResult, PutBlob, PutBlobResult, PutTemp, PutTempResult, ReadChunk, ReadFile, ReadResult, SearchEntries, SecretFilePut, SecretFilePutResult, ArtifactRead, ArtifactStat, ArtifactStatResult, ArtifactWrite, ArtifactWriteResult, SessionScan, SessionsFound, SkillScan, SkillsFound, Stat, StatResult, WriteFile, WriteResult};
 use exec_hosted::HostedOp;
 use exec_browser::BrowserOp;
 use exec_preview::PreviewOp;
@@ -36,6 +36,12 @@ pub trait ToolExecutor: Send + Sync {
     fn make_dir(&self, args: &MakeDir) -> ExecResult<bool>;
     /// Writes the secret to a new file of mode 0600; returns the bytes written. The value is in no result and no error.
     fn secret_file_put(&self, args: &SecretFilePut) -> ExecResult<u64>;
+    /// A file a terminal printed, below the root, the worktree base or a directory allowed for artifacts: its canonical path, identity and fingerprint.
+    fn artifact_stat(&self, args: &ArtifactStat) -> ExecResult<ArtifactStatResult>;
+    /// A byte range of such a file; refused with CHANGED when the identity or fingerprint given no longer match.
+    fn artifact_read(&self, args: &ArtifactRead) -> ExecResult<ChunkResult>;
+    /// Replaces the content of such a file under the same check, atomically.
+    fn artifact_write(&self, args: &ArtifactWrite) -> ExecResult<ArtifactWriteResult>;
     fn browse(&self, args: &Browse) -> ExecResult<BrowseResult>;
     /// The agent CLIs named, in order, with where each lies on the executor's path and what its `--version` prints.
     fn cli_detect(&self, args: &CliDetect) -> ExecResult<Vec<CliFound>>;
@@ -127,6 +133,9 @@ pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value,
         }
         exec_proc::PROC_SAMPLE => Ok(to_value(&ex.proc_sample()?)),
         exec_proc::MCP_REQUEST => Ok(to_value(&ex.mcp_request(&McpRequest::parse(args)?)?)),
+        exec_fs::ARTIFACT_STAT => Ok(to_value(&ex.artifact_stat(&ArtifactStat::parse(args)?)?)),
+        exec_fs::ARTIFACT_READ => Ok(to_value(&ex.artifact_read(&ArtifactRead::parse(args)?)?)),
+        exec_fs::ARTIFACT_WRITE => Ok(to_value(&ex.artifact_write(&ArtifactWrite::parse(args)?)?)),
         exec_fs::BROWSE => Ok(to_value(&ex.browse(&Browse::parse(args)?)?)),
         exec_proc::CLI_DETECT => Ok(to_value(&CliDetectResult { clis: ex.cli_detect(&CliDetect::parse(args)?)? })),
         exec_proc::LOGIN_START => Ok(to_value(&LoginStarted { flow: ex.login_start(&LoginProgram::parse(args)?)? })),
@@ -292,6 +301,18 @@ mod tests {
         fn mcp_request(&self, _: &McpRequest) -> ExecResult<McpAnswer> {
             self.note(exec_proc::MCP_REQUEST);
             Ok(McpAnswer { result: json!({}) })
+        }
+        fn artifact_stat(&self, args: &ArtifactStat) -> ExecResult<ArtifactStatResult> {
+            self.note(exec_fs::ARTIFACT_STAT);
+            Ok(ArtifactStatResult { path: args.path.clone(), kind: exec_fs::EntryKind::File, size: 0, modified_ms: 0, changed_ms: 0, identity: String::new(), fingerprint: None, binary: false })
+        }
+        fn artifact_read(&self, _: &ArtifactRead) -> ExecResult<ChunkResult> {
+            self.note(exec_fs::ARTIFACT_READ);
+            Ok(ChunkResult { data: String::new(), offset: 0, bytes: 0, total_bytes: 0, eof: true })
+        }
+        fn artifact_write(&self, args: &ArtifactWrite) -> ExecResult<ArtifactWriteResult> {
+            self.note(exec_fs::ARTIFACT_WRITE);
+            Ok(ArtifactWriteResult { path: args.path.clone(), bytes: 0, identity: String::new(), fingerprint: None })
         }
         fn browse(&self, _: &Browse) -> ExecResult<BrowseResult> {
             self.note(exec_fs::BROWSE);

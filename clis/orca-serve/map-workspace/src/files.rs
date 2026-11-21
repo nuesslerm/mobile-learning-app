@@ -89,6 +89,10 @@ fn path_param<'a>(params: &'a Value, key: &str) -> Result<&'a str, Failure> {
     text(params, key).ok_or_else(|| Failure::invalid(format!("Invalid input: {key} must be a string")))
 }
 
+pub(crate) fn path_param_of<'a>(params: &'a Value, key: &str, missing: &str) -> Result<&'a str, Failure> {
+    text(params, key).filter(|p| !p.is_empty()).ok_or_else(|| Failure::invalid(missing))
+}
+
 fn uint(params: &Value, key: &str) -> Result<Option<u64>, Failure> {
     match params.get(key) {
         None | Some(Value::Null) => Ok(None),
@@ -118,19 +122,25 @@ pub(crate) fn read_prefix(agent: &dyn AgentApi, t: &Target, path: &str, max: usi
     }
 }
 
-pub(crate) fn read(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
-    let t = resolve(agent, selector(params)?)?;
-    let path = clean(path_param(params, "relativePath")?, false)?;
+/// A text file's content as `files.read` answers it, from `read(limit)`: at most `limit + 1` bytes of the file from its start.
+pub(crate) fn text_by(path: &str, read: &dyn Fn(usize) -> Result<Vec<u8>, Failure>) -> Result<(String, bool, usize), Failure> {
     if is_binary_path(path) {
         return Err(plain("binary_file"));
     }
-    let (bytes, _) = read_prefix(agent, &t, path, READ_MAX)?;
+    let bytes = read(READ_MAX)?;
     if has_nul_in_probe(&bytes) {
         return Err(plain("binary_file"));
     }
     let truncated = bytes.len() > READ_MAX;
     let kept = if truncated { &bytes[..READ_MAX] } else { &bytes[..] };
-    Ok(json!({"worktree": t.id, "relativePath": path, "content": String::from_utf8_lossy(kept), "truncated": truncated, "byteLength": bytes.len()}))
+    Ok((String::from_utf8_lossy(kept).into_owned(), truncated, bytes.len()))
+}
+
+pub(crate) fn read(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    let t = resolve(agent, selector(params)?)?;
+    let path = clean(path_param(params, "relativePath")?, false)?;
+    let (content, truncated, byte_length) = text_by(path, &|max| read_prefix(agent, &t, path, max).map(|(bytes, _)| bytes))?;
+    Ok(json!({"worktree": t.id, "relativePath": path, "content": content, "truncated": truncated, "byteLength": byte_length}))
 }
 
 /// The most raw bytes whose base64 fits one reply beside the rest of a preview result (`previewableBinaryByteLimit`).
@@ -139,13 +149,12 @@ pub fn previewable_limit() -> usize {
     (REPLY_BUDGET.saturating_sub(empty) / 4) * 3
 }
 
-pub(crate) fn read_preview(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
-    let t = resolve(agent, selector(params)?)?;
-    let path = clean(path_param(params, "relativePath")?, false)?;
+/// A preview as `files.readPreview` answers it, from `read(limit)`: at most `limit + 1` bytes of the file from its start.
+pub(crate) fn preview_by(path: &str, read: &dyn Fn(usize) -> Result<Vec<u8>, Failure>) -> Result<Value, Failure> {
     let ext = extension(path);
     let mime = PREVIEW_MIME.iter().find(|(e, _)| *e == ext).map(|(_, m)| *m);
     let limit = if mime.is_some() { previewable_limit() } else { READ_MAX };
-    let (bytes, _) = read_prefix(agent, &t, path, limit)?;
+    let bytes = read(limit)?;
     if bytes.len() > limit {
         return Err(plain("file_too_large"));
     }
@@ -154,6 +163,12 @@ pub(crate) fn read_preview(agent: &dyn AgentApi, params: &Value) -> Result<Value
         None if has_nul_in_probe(&bytes) => json!({"content": "", "isBinary": true}),
         None => json!({"content": String::from_utf8_lossy(&bytes), "isBinary": false}),
     })
+}
+
+pub(crate) fn read_preview(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    let t = resolve(agent, selector(params)?)?;
+    let path = clean(path_param(params, "relativePath")?, false)?;
+    preview_by(path, &|limit| read_prefix(agent, &t, path, limit).map(|(bytes, _)| bytes))
 }
 
 pub(crate) fn read_chunk(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {

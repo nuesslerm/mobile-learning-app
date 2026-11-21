@@ -306,9 +306,7 @@
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
       ],
-      "ids": [
-        "t3-scn-rpc-guestShare.create"
-      ]
+      "ids": []
     },
     {
       "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",

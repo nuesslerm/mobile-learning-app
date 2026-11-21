@@ -60,6 +60,7 @@ fn serve_verb(p: &Parsed) -> Option<i32> {
         rca_url: setting(p, "rca-url", "T3_RCA_URL"),
         rca_bearer: std::env::var("T3_RCA_BEARER").ok().filter(|v| !v.is_empty()),
         rca_workspace: setting(p, "rca-workspace", "T3_RCA_WORKSPACE"),
+        guest_host: std::env::var("T3_GUEST_HOST").ok().map(|h| h.trim().to_string()).filter(|h| !h.is_empty()),
     };
     let started = wiring::open_store(&settings.state_dir).and_then(|store| wiring::service(&settings, store)).and_then(|wired| {
         let running = t3_http::serve((bind.as_str(), port), wired.service).map_err(|e| format!("cannot listen on {bind}:{port}: {e}"))?;

@@ -57,6 +57,8 @@ pub struct Parts {
     pub host: Arc<dyn HostProbe>,
     /// The database `server.getDatabaseStorage` measures.
     pub storage: Arc<dyn StorageProbe>,
+    /// `T3_GUEST_HOST`: the address a guest reaches a link at; none, and no link can be made.
+    pub guest_host: Option<String>,
 }
 
 #[derive(Clone)]

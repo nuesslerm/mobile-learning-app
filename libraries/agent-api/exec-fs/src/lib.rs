@@ -20,6 +20,9 @@ pub const PUT_BLOB: &str = "put_blob";
 pub const PUT_TEMP: &str = "put_temp";
 pub const MAKE_DIR: &str = "make_dir";
 pub const SECRET_FILE_PUT: &str = "secret_file_put";
+pub const ARTIFACT_STAT: &str = "artifact_stat";
+pub const ARTIFACT_READ: &str = "artifact_read";
+pub const ARTIFACT_WRITE: &str = "artifact_write";
 pub const SKILL_SCAN: &str = "skill_scan";
 pub const SESSION_SCAN: &str = "session_scan";
 
@@ -55,6 +58,11 @@ const ENTRIES_DEFAULT: usize = 100;
 pub const BLOB_MAX: u64 = 10 << 20;
 /// The most bytes one `secret_file_put` writes: a key, a token or a certificate, never a blob.
 pub const SECRET_MAX: usize = 16 << 10;
+
+/// The most bytes of a file an artifact fingerprint covers; a longer file is pinned by its identity alone and is refused by `artifact_write`.
+pub const ARTIFACT_HASH_MAX: u64 = 16 << 20;
+/// The most bytes one `artifact_write` writes.
+pub const ARTIFACT_WRITE_MAX: usize = 4 << 20;
 
 const PATH: Property = Property { name: "path", kind: "string", about: "Path relative to the workspace root" };
 
@@ -125,6 +133,37 @@ pub const ACTIONS: &[Action] = &[
         about: "Write a secret a person typed into a new file of the workspace, mode 0600, never replacing a path and never echoing the value (not in the result, not in an error); at most 16 KiB. The model learns the path, not the value.",
         properties: &[PATH, Property { name: "value", kind: "string", about: "The secret, as typed" }],
         required: &["path", "value"],
+    },
+    Action {
+        name: ARTIFACT_STAT,
+        about: "Kind, size, times, identity and content fingerprint of a file a terminal printed, which may lie outside the workspace root: only inside the root, the worktree base and the directories the executor was told to allow for artifacts (none by default). The canonical path (links resolved) is answered.",
+        properties: &[Property { name: "path", kind: "string", about: "Absolute path, or relative to the workspace root" }, Property { name: "within", kind: "string", about: "The workspace directory the root and the worktree base are narrowed to (absent: the whole root and worktree base); the allowed artifact directories stay open" }],
+        required: &["path"],
+    },
+    Action {
+        name: ARTIFACT_READ,
+        about: "Read a byte range of a file `artifact_stat` described, base64 encoded; with the identity or fingerprint it answered, refused with CHANGED when the file is no longer the one they name.",
+        properties: &[
+            Property { name: "path", kind: "string", about: "The canonical path `artifact_stat` answered" },
+            Property { name: "within", kind: "string", about: "The workspace directory the root and the worktree base are narrowed to (absent: the whole root and worktree base); the allowed artifact directories stay open" },
+            Property { name: "offset", kind: "integer", about: "First byte to return (default 0)" },
+            Property { name: "length", kind: "integer", about: "Number of bytes to return (at most 1 MiB, the default)" },
+            Property { name: "identity", kind: "string", about: "The identity `artifact_stat` answered; the read is refused when it no longer matches" },
+            Property { name: "fingerprint", kind: "string", about: "The fingerprint `artifact_stat` answered (absent for a file longer than 16 MiB); the read is refused when it no longer matches" },
+        ],
+        required: &["path"],
+    },
+    Action {
+        name: ARTIFACT_WRITE,
+        about: "Replace the content of an existing file, atomically and keeping its mode; with the identity or fingerprint `artifact_stat` answered, refused with CHANGED when the file is no longer the one they name. Never creates a file; at most 4 MiB.",
+        properties: &[
+            Property { name: "path", kind: "string", about: "The canonical path `artifact_stat` answered" },
+            Property { name: "within", kind: "string", about: "The workspace directory the root and the worktree base are narrowed to (absent: the whole root and worktree base); the allowed artifact directories stay open" },
+            Property { name: "content", kind: "string", about: "The new content" },
+            Property { name: "identity", kind: "string", about: "The identity `artifact_stat` answered; the write is refused when it no longer matches" },
+            Property { name: "fingerprint", kind: "string", about: "The fingerprint `artifact_stat` answered; the write is refused when it no longer matches" },
+        ],
+        required: &["path", "content"],
     },
     Action {
         name: SKILL_SCAN,
@@ -331,6 +370,94 @@ impl SecretFilePut {
 pub struct SecretFilePutResult {
     pub path: String,
     pub bytes: u64,
+}
+
+/// `artifact_stat`: one path a terminal printed.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArtifactStat {
+    pub path: String,
+    pub within: Option<String>,
+}
+
+impl ArtifactStat {
+    pub fn parse(args: &Value) -> ExecResult<ArtifactStat> {
+        Ok(ArtifactStat { path: string(args, "path")?, within: opt_string(args, "within")? })
+    }
+}
+
+/// `identity` names the file (device, inode, size and both times); `fingerprint` is a hash of its first 16 MiB, absent for a directory and a longer
+/// file. A grant holds both, and a read or write is refused with `CHANGED` when either no longer matches.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ArtifactStatResult {
+    pub path: String,
+    pub kind: EntryKind,
+    pub size: u64,
+    pub modified_ms: u64,
+    pub changed_ms: u64,
+    pub identity: String,
+    pub fingerprint: Option<String>,
+    pub binary: bool,
+}
+
+/// What a read or write names of the file it was granted for: each part given is checked, and a part left out is not.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Granted {
+    pub identity: Option<String>,
+    pub fingerprint: Option<String>,
+}
+
+impl Granted {
+    fn parse(args: &Value) -> ExecResult<Granted> {
+        Ok(Granted { identity: opt_string(args, "identity")?, fingerprint: opt_string(args, "fingerprint")? })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArtifactRead {
+    pub path: String,
+    pub within: Option<String>,
+    pub offset: u64,
+    pub length: u64,
+    pub granted: Granted,
+}
+
+impl ArtifactRead {
+    pub fn parse(args: &Value) -> ExecResult<ArtifactRead> {
+        Ok(ArtifactRead { path: string(args, "path")?, within: opt_string(args, "within")?, offset: opt_uint(args, "offset")?.unwrap_or(0), length: opt_uint(args, "length")?.unwrap_or(CHUNK_MAX).min(CHUNK_MAX), granted: Granted::parse(args)? })
+    }
+}
+
+#[derive(Clone, PartialEq)]
+pub struct ArtifactWrite {
+    pub path: String,
+    pub within: Option<String>,
+    pub content: String,
+    pub granted: Granted,
+}
+
+/// The content is the person's text: no log line or panic message carries it.
+impl std::fmt::Debug for ArtifactWrite {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ArtifactWrite").field("path", &self.path).field("content", &format_args!("<{} bytes>", self.content.len())).field("granted", &self.granted).finish()
+    }
+}
+
+impl ArtifactWrite {
+    pub fn parse(args: &Value) -> ExecResult<ArtifactWrite> {
+        let content = args.get("content").and_then(Value::as_str).ok_or_else(|| ExecError::invalid_args("`content` must be a string"))?.to_string();
+        if content.len() > ARTIFACT_WRITE_MAX {
+            return Err(ExecError::invalid_args(format!("`content` must hold at most {ARTIFACT_WRITE_MAX} bytes")));
+        }
+        Ok(ArtifactWrite { path: string(args, "path")?, within: opt_string(args, "within")?, content, granted: Granted::parse(args)? })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ArtifactWriteResult {
+    pub path: String,
+    pub bytes: u64,
+    pub identity: String,
+    pub fingerprint: Option<String>,
 }
 
 /// `put_temp`: a file of its own in the executor's temporary directory.
@@ -765,6 +892,9 @@ mod tests {
                 PUT_TEMP => PutTemp::parse(args).map(drop),
                 MAKE_DIR => MakeDir::parse(args).map(drop),
                 SECRET_FILE_PUT => SecretFilePut::parse(args).map(drop),
+                ARTIFACT_STAT => ArtifactStat::parse(args).map(drop),
+                ARTIFACT_READ => ArtifactRead::parse(args).map(drop),
+                ARTIFACT_WRITE => ArtifactWrite::parse(args).map(drop),
                 SKILL_SCAN => SkillScan::parse(args).map(drop),
                 SESSION_SCAN => SessionScan::parse(args).map(drop),
                 other => panic!("{other} is not parsed here"),

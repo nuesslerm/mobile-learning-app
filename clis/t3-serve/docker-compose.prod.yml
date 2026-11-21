@@ -46,6 +46,8 @@ services:
       T3_LABEL: ${T3_LABEL:-rca}
       T3_RCA_URL: ${T3_RCA_URL:-}
       T3_RCA_WORKSPACE: ${T3_RCA_WORKSPACE:-}
+      # Guest links: the public address they point at; empty keeps them off
+      T3_GUEST_HOST: ${T3_GUEST_HOST:-}
       # The one credential t3 holds for rca: a device bearer (sync-env --for t3-serve), never the service secret.
       T3_RCA_BEARER: ${T3_RCA_BEARER:-}
     healthcheck:

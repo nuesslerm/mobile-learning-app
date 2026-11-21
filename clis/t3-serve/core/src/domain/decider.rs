@@ -84,7 +84,10 @@ fn one(d: EventDraft) -> Result<Decision, String> {
 }
 
 /// The commands the thread decider builds; the rest of the decoder's union is refused with a typed error.
-pub const SUPPORTED: [&str; 30] = [
+pub const SUPPORTED: [&str; 33] = [
+    "thread.guest-share.open",
+    "thread.guest-share.redeem",
+    "thread.guest-message.submit",
     "thread.settle",
     "thread.unsettle",
     "thread.snooze",
@@ -176,6 +179,22 @@ fn touched(shell: &mut Map<String, Value>, at: &str, changes: Vec<(&str, Value)>
         shell.insert(k.into(), v);
     }
     shell.insert("updatedAt".into(), at.into());
+}
+
+/// What a guest is told (`GUEST_FAILURE` of the reference) and the most messages waiting at once.
+pub const GUEST_INACTIVE: &str = "This guest link is no longer active.";
+pub const GUEST_USED: &str = "This guest link was already used.";
+pub const GUEST_BUSY: &str = "Wait for the owner to answer your earlier messages.";
+pub const GUEST_PENDING_LIMIT: usize = 3;
+
+/// The thread's share when it is the one the command names and has not expired.
+fn live_share(shell: &Map<String, Value>, cmd: &Command, now: Millis) -> Result<Value, String> {
+    let share = shell.get("guestShare").filter(|s| s.is_object()).ok_or(GUEST_INACTIVE)?;
+    let expired = share["expiresAt"].as_str().and_then(t3_contracts::time::parse_iso).is_none_or(|at| now >= at);
+    if share["id"] != cmd.require("shareId")? || expired {
+        return Err(GUEST_INACTIVE.into());
+    }
+    Ok(share.clone())
 }
 
 pub fn decide_thread(state: &State, cmd: &Command, ctx: &Ctx) -> Result<Decision, String> {
@@ -322,6 +341,34 @@ pub fn decide_thread(state: &State, cmd: &Command, ctx: &Ctx) -> Result<Decision
             };
             touched(&mut shell, &at, vec![("lastVisitedAt", visited.into())]);
             event("thread.visited", &shell)
+        }
+        "thread.guest-share.open" if archived => Err("Archived threads cannot be shared.".into()),
+        "thread.guest-share.open" => {
+            let share = json!({"id": cmd.require("shareId")?, "host": cmd.require("host")?, "createdAt": at, "expiresAt": cmd.require("expiresAt")?, "guestName": null, "messages": []});
+            touched(&mut shell, &at, vec![("guestShare", share)]);
+            event("thread.guest-share-opened", &shell)
+        }
+        "thread.guest-share.redeem" => {
+            let mut share = live_share(&shell, cmd, now)?;
+            if !share["guestName"].is_null() {
+                return Err(GUEST_USED.into());
+            }
+            share["guestName"] = cmd.require("guestName")?.into();
+            touched(&mut shell, &at, vec![("guestShare", share)]);
+            event("thread.guest-share-redeemed", &shell)
+        }
+        "thread.guest-message.submit" => {
+            let mut share = live_share(&shell, cmd, now)?;
+            if share["guestName"].is_null() {
+                return Err(GUEST_INACTIVE.into());
+            }
+            let messages = share["messages"].as_array_mut().ok_or(GUEST_INACTIVE)?;
+            if messages.iter().filter(|m| m["status"] == "pending").count() >= GUEST_PENDING_LIMIT {
+                return Err(GUEST_BUSY.into());
+            }
+            messages.push(json!({"id": cmd.require("guestMessageId")?, "text": cmd.str("text").unwrap_or_default(), "status": "pending", "submittedAt": at}));
+            touched(&mut shell, &at, vec![("guestShare", share)]);
+            event("thread.guest-message-submitted", &shell)
         }
         "thread.guest-share.close" if shell.get("guestShare").is_none_or(Value::is_null) => one(draft("thread.command-accepted", Some(id), shell["projectId"].as_str(), now, json!({"commandType": cmd.kind}))),
         "thread.guest-share.close" => {

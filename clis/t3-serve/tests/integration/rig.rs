@@ -219,6 +219,9 @@ fn without_credentials(command: &mut Command) -> &mut Command {
     command
 }
 
+/// The address guest links point at; sharing itself stays off until the owner turns the setting on.
+pub const GUEST_HOST: &str = "guests.example";
+
 /// `t3-serve serve` on `state` pointed at the service through the tap, listening once it says so.
 fn spawn_serve(state: &std::path::Path, errlog: &std::path::Path, tap_url: &str, bearer: &str) -> (Child, SocketAddr) {
     let mut command = Command::new(bin());
@@ -227,6 +230,7 @@ fn spawn_serve(state: &std::path::Path, errlog: &std::path::Path, tap_url: &str,
         .arg(state)
         .args(["--rca-url", tap_url, "--rca-workspace", "w1"])
         .env("T3_RCA_BEARER", bearer)
+        .env("T3_GUEST_HOST", GUEST_HOST)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(std::fs::OpenOptions::new().create(true).append(true).open(errlog).unwrap())

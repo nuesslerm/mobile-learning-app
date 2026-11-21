@@ -40,6 +40,7 @@ pub struct LocalExecutor {
     root: PathBuf,
     worktree_base: Option<PathBuf>,
     browse_allow: Vec<PathBuf>,
+    artifact_allow: Vec<PathBuf>,
     running: Mutex<HashMap<String, Arc<AtomicBool>>>,
     setups: Mutex<HashMap<String, Arc<AtomicBool>>>,
     ptys: PtyTable,
@@ -74,7 +75,7 @@ fn outside(path: &str) -> ExecError {
 impl LocalExecutor {
     pub fn new(root: &Path) -> Result<LocalExecutor, String> {
         let root = fs::canonicalize(root).map_err(|e| format!("executor root {}: {e}", root.display()))?;
-        Ok(LocalExecutor { root, worktree_base: None, browse_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), browser: BrowserTable::default(), cli_path: None, logins: Default::default(), claude_usage_url: exec_proc::CLAUDE_USAGE_URL.to_string(), version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
+        Ok(LocalExecutor { root, worktree_base: None, browse_allow: Vec::new(), artifact_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), browser: BrowserTable::default(), cli_path: None, logins: Default::default(), claude_usage_url: exec_proc::CLAUDE_USAGE_URL.to_string(), version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
     }
 
     /// Widens confinement to the directory worktrees are made in (created when missing).
@@ -98,6 +99,26 @@ impl LocalExecutor {
             self.browse_allow.push(fs::canonicalize(dir).map_err(|e| format!("browse allowlist {}: {e}", dir.display()))?);
         }
         Ok(self)
+    }
+
+    /// Directories whose files the artifact actions serve besides the root and the worktree base. None by default: with none, a file outside the root
+    /// is refused as outside it, so the terminal-artifact grant is off until the host's owner names where it reaches.
+    pub fn with_artifact_allow(mut self, dirs: &[PathBuf]) -> Result<LocalExecutor, String> {
+        for dir in dirs {
+            self.artifact_allow.push(fs::canonicalize(dir).map_err(|e| format!("artifact allowlist {}: {e}", dir.display()))?);
+        }
+        Ok(self)
+    }
+
+    /// The canonical path of an artifact, or why it is not served.
+    fn artifact_path(&self, path: &str, within: Option<&str>) -> ExecResult<PathBuf> {
+        let narrowed = within.map(|w| self.resolve(w)).transpose()?;
+        let bounds: Vec<&Path> = match &narrowed {
+            Some(dir) => vec![dir.as_path()],
+            None => std::iter::once(&self.root).chain(&self.worktree_base).map(PathBuf::as_path).collect(),
+        };
+        let places: Vec<&Path> = bounds.into_iter().chain(self.artifact_allow.iter().map(PathBuf::as_path)).collect();
+        crate::adapters::artifacts::locate(path, || self.resolve(path), &places)
     }
 
     /// The shell a pty starts (default: the executor's `$SHELL` when absolute, else `/bin/sh`).
@@ -602,6 +623,18 @@ impl ToolExecutor for LocalExecutor {
             return Err(io_at(&args.path, e));
         }
         Ok(args.value.len() as u64)
+    }
+
+    fn artifact_stat(&self, args: &exec_fs::ArtifactStat) -> ExecResult<exec_fs::ArtifactStatResult> {
+        crate::adapters::artifacts::stat(args, &self.artifact_path(&args.path, args.within.as_deref())?)
+    }
+
+    fn artifact_read(&self, args: &exec_fs::ArtifactRead) -> ExecResult<ChunkResult> {
+        crate::adapters::artifacts::read(args, &self.artifact_path(&args.path, args.within.as_deref())?)
+    }
+
+    fn artifact_write(&self, args: &exec_fs::ArtifactWrite) -> ExecResult<exec_fs::ArtifactWriteResult> {
+        crate::adapters::artifacts::write(args, &self.artifact_path(&args.path, args.within.as_deref())?)
     }
 
     fn browse(&self, args: &Browse) -> ExecResult<BrowseResult> {

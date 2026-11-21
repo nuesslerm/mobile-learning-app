@@ -22,7 +22,7 @@ impl Rig {
         let files = Workspaces::default();
         files.workspace("main", "root", None).workspace("docs", "directory", Some("/srv/docs")).workspace("feat", "worktree", Some("/srv/wt/feat"));
         files.install(&agent);
-        let host = Host::new("rt".into(), vec![Box::new(WorkspaceArea)], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+        let host = Host::new("rt".into(), vec![Box::new(WorkspaceArea::default())], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
         Rig { agent, files, conn: host.connection("dev", "tok", vec![]), n: 0 }
     }
 
@@ -281,7 +281,7 @@ fn given_projects_when_the_catalog_and_folder_workspaces_are_read_then_the_catal
 fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exactly_the_ones_listed() {
     // Given each served files row called once, so that every code path sends what it sends
     let mut rig = Rig::new();
-    rig.files.put("main", "a.txt", b"x").put("main", "i.png", &[1]);
+    rig.files.put("main", "a.txt", b"x").put("main", "i.png", &[1]).artifact("/var/log/b.txt", b"log");
     let sel = json!({"worktree": "main"});
     let with = |extra: Value| {
         let mut p = sel.clone();
@@ -296,6 +296,13 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     rig.ok("files.readDir", with(json!({"relativePath": ""})));
     rig.ok("files.stat", with(json!({"relativePath": "a.txt"})));
     rig.ok("files.createFile", with(json!({"relativePath": "n.txt"})));
+    let tap = rig.ok("files.resolveTerminalPath", with(json!({"pathText": "/var/log/b.txt"})));
+    let granted = with(json!({"grantId": tap["openTarget"]["grantId"], "absolutePath": "/var/log/b.txt"}));
+    rig.ok("files.readTerminalArtifact", granted.clone());
+    rig.ok("files.readTerminalArtifactPreview", granted.clone());
+    let mut save = granted.clone();
+    save["content"] = json!("logged");
+    rig.ok("files.writeTerminalArtifact", save);
     rig.files.put("main", "n.md", b"# n");
     rig.ok("files.open", with(json!({"relativePath": "n.md"})));
     rig.ok("files.openDiff", with(json!({"relativePath": "n.md"})));
@@ -688,7 +695,7 @@ fn given_the_methods_of_the_activity_rows_when_the_area_is_read_then_each_is_ser
     let rig = Rig::new();
     let methods: BTreeSet<&str> = ["worktree.ps", "worktree.sleep", "worktree.activate", "agentActivity.setRead", "agentActivity.clear", "notifications.getMissedSince", "notifications.subscribe", "notifications.unsubscribe"].into_iter().collect();
     // Then each is in the area's method list and none is declared not offered
-    let area = <WorkspaceArea as orca_core::Area>::methods(&WorkspaceArea);
+    let area = <WorkspaceArea as orca_core::Area>::methods(&WorkspaceArea::default());
     assert!(methods.iter().all(|m| area.iter().any(|a| a.name == *m)));
     assert!(NOT_OFFERED.iter().all(|n| !methods.contains(n.name)));
     // And the agent methods it sends are listed in USES
@@ -796,7 +803,7 @@ fn given_two_phones_opening_files_of_one_worktree_at_once_when_both_read_the_kep
     files.workspace("feat", "worktree", Some("/srv/wt/feat")).put("feat", "a.ts", b"a").put("feat", "b.ts", b"b");
     files.install(&scripted);
     let agent: Arc<dyn AgentApi> = Arc::new(orca_core::testing::OverlappingReads::over(scripted.clone(), std::time::Duration::from_millis(300)));
-    let host = Host::new("rt".into(), vec![Box::new(WorkspaceArea)], agent, Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+    let host = Host::new("rt".into(), vec![Box::new(WorkspaceArea::default())], agent, Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
     // When each phone opens a different file at the same moment
     let phones: Vec<_> = ["a.ts", "b.ts"]
         .into_iter()
@@ -815,4 +822,169 @@ fn given_two_phones_opening_files_of_one_worktree_at_once_when_both_read_the_kep
     let mut ids: Vec<String> = scripted.state_get("orca", "tabs.extra.feat").unwrap().unwrap().as_array().unwrap().iter().map(|t| t["id"].as_str().unwrap().to_string()).collect();
     ids.sort();
     assert_eq!(ids, ["file:a.ts", "file:b.ts"]);
+}
+
+fn tap(rig: &mut Rig, path: &str) -> Value {
+    rig.ok("files.resolveTerminalPath", json!({"worktree": "main", "pathText": path}))
+}
+
+fn grant(resolved: &Value) -> Value {
+    json!({"worktree": "main", "grantId": resolved["openTarget"]["grantId"], "absolutePath": resolved["absolutePath"]})
+}
+
+#[test]
+fn given_a_path_below_a_workspace_with_a_known_root_when_tapped_then_it_opens_as_that_workspaces_file_and_no_grant_is_made() {
+    // Given a docs workspace rooted at /srv/docs holding a.txt
+    let mut rig = Rig::new();
+    rig.files.put("docs", "a.txt", b"x").put("docs", "sub/b.txt", b"y");
+    // When an absolute path, a relative path against a terminal cwd, a directory and a missing file are tapped
+    let abs = rig.ok("files.resolveTerminalPath", json!({"worktree": "docs", "pathText": "/srv/docs/a.txt"}));
+    let rel = rig.ok("files.resolveTerminalPath", json!({"worktree": "docs", "pathText": "b.txt", "cwd": "/srv/docs/sub"}));
+    let dir = rig.ok("files.resolveTerminalPath", json!({"worktree": "docs", "pathText": "sub"}));
+    let gone = rig.ok("files.resolveTerminalPath", json!({"worktree": "docs", "pathText": "nope.txt"}));
+    // Then the first two open as worktree files, the directory is one, the missing file is absent, and rca was asked for no artifact
+    let open = |rel: &str, abs: &str| json!({"worktree": "docs::/srv/docs", "relativePath": rel, "absolutePath": abs, "exists": true, "isDirectory": false, "openTarget": {"kind": "worktree-file", "provider": "local", "relativePath": rel, "absolutePath": abs}});
+    assert_eq!(abs, open("a.txt", "/srv/docs/a.txt"));
+    assert_eq!(rel, open("sub/b.txt", "/srv/docs/sub/b.txt"));
+    assert_eq!(dir, json!({"worktree": "docs::/srv/docs", "relativePath": "sub", "absolutePath": "/srv/docs/sub", "exists": true, "isDirectory": true}));
+    assert_eq!(gone, json!({"worktree": "docs::/srv/docs", "relativePath": "nope.txt", "absolutePath": "/srv/docs/nope.txt", "exists": false, "isDirectory": false}));
+    assert!(rig.agent.requests().iter().all(|(m, _)| m != "artifact.stat"));
+}
+
+#[test]
+fn given_a_file_outside_the_workspace_when_tapped_then_it_is_granted_and_read_previewed_and_saved_under_the_grant() {
+    // Given a log the executor serves beyond its root
+    let mut rig = Rig::new();
+    rig.files.artifact("/var/log/build.log", b"first line\n");
+    // When it is tapped
+    let resolved = tap(&mut rig, "/var/log/build.log");
+    // Then the answer is an absolute-file grant with the file's size
+    let id = resolved["openTarget"]["grantId"].as_str().unwrap().to_string();
+    assert_eq!(resolved, json!({"worktree": "main::", "relativePath": null, "absolutePath": "/var/log/build.log", "exists": true, "isDirectory": false, "openTarget": {"kind": "absolute-file", "provider": "local", "absolutePath": "/var/log/build.log", "grantId": id, "byteLength": 11}}));
+    // When it is read, previewed and saved, and read again
+    let read = rig.ok("files.readTerminalArtifact", grant(&resolved));
+    let preview = rig.ok("files.readTerminalArtifactPreview", grant(&resolved));
+    let mut save = grant(&resolved);
+    save["content"] = json!("second\n");
+    let saved = rig.ok("files.writeTerminalArtifact", save);
+    let again = rig.ok("files.readTerminalArtifact", grant(&resolved));
+    // Then each answers as the host's rows do, and the file on the executor holds the saved text
+    assert_eq!(read, json!({"worktree": "main::", "relativePath": "/var/log/build.log", "content": "first line\n", "truncated": false, "byteLength": 11}));
+    assert_eq!(preview, json!({"content": "first line\n", "isBinary": false}));
+    assert_eq!(saved, json!({"ok": true}));
+    assert_eq!(again["content"], "second\n");
+    assert_eq!(rig.files.artifact_bytes("/var/log/build.log").unwrap(), b"second\n");
+}
+
+#[test]
+fn given_a_granted_file_when_someone_else_rewrites_it_then_read_and_save_are_refused_as_stale_and_the_rewrite_survives() {
+    // Given a grant for a file
+    let mut rig = Rig::new();
+    rig.files.artifact("/tmp/x.txt", b"mine");
+    let resolved = tap(&mut rig, "/tmp/x.txt");
+    // When another writer replaces the file and the phone reads and then saves
+    rig.files.rewrite_artifact("/tmp/x.txt", b"theirs");
+    let read = rig.err("files.readTerminalArtifact", grant(&resolved));
+    let mut save = grant(&resolved);
+    save["content"] = json!("overwrite");
+    let write = rig.err("files.writeTerminalArtifact", save);
+    // Then both are refused as stale and the other writer's text stands
+    assert_eq!(read.1, "terminal_file_grant_stale");
+    assert_eq!(write.1, "terminal_file_grant_stale");
+    assert_eq!(rig.files.artifact_bytes("/tmp/x.txt").unwrap(), b"theirs");
+}
+
+#[test]
+fn given_a_grant_when_used_for_another_path_or_unknown_or_expired_then_it_is_refused_with_the_hosts_codes() {
+    // Given a grant for one file
+    let mut rig = Rig::new();
+    rig.files.artifact("/tmp/a.txt", b"a").artifact("/tmp/b.txt", b"b");
+    let resolved = tap(&mut rig, "/tmp/a.txt");
+    // When it is used for the other file, an unknown id is used, and a missing grant id is sent
+    let mut other = grant(&resolved);
+    other["absolutePath"] = json!("/tmp/b.txt");
+    let mismatch = rig.err("files.readTerminalArtifact", other);
+    let mut unknown = grant(&resolved);
+    unknown["grantId"] = json!("00000000-0000-4000-8000-000000000000");
+    let expired = rig.err("files.readTerminalArtifact", unknown);
+    let missing = rig.call("files.readTerminalArtifact", json!({"worktree": "main", "absolutePath": "/tmp/a.txt"}));
+    // Then the host's messages answer, and the grant itself still reads
+    assert_eq!(mismatch.1, "terminal_file_grant_mismatch");
+    assert_eq!(expired.1, "terminal_file_grant_expired");
+    assert_eq!(missing["error"]["message"], "Missing terminal artifact grant");
+    assert_eq!(rig.ok("files.readTerminalArtifact", grant(&resolved))["content"], "a");
+}
+
+#[test]
+fn given_a_grant_minted_for_one_device_when_another_device_uses_it_then_it_is_refused_and_the_owner_still_reads() {
+    // Given a host with a file and two paired devices on it
+    let agent = Arc::new(ScriptedAgent::serving(ServiceStatus { protocol: 1, version: "v".into(), commit: "c".into(), groups: vec![] }));
+    let files = Workspaces::default();
+    files.workspace("main", "root", None).artifact("/tmp/a.txt", b"a");
+    files.install(&agent);
+    let host = Host::new("rt".into(), vec![Box::new(WorkspaceArea::default())], agent, Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+    let (mut first, mut second) = (host.connection("phone-a", "tok", vec![]), host.connection("phone-b", "tok", vec![]));
+    let mut ask = |conn: &mut orca_core::connection::Connection, method: &str, params: Value| -> Value { serde_json::from_str(&conn.on_message(&json!({"id": "1", "method": method, "params": params}).to_string())[0]).unwrap() };
+    // When device A taps the path and device B presents A's grant for the same worktree and path
+    let resolved = ask(&mut first, "files.resolveTerminalPath", json!({"worktree": "main", "pathText": "/tmp/a.txt"}))["result"].clone();
+    let stolen = ask(&mut second, "files.readTerminalArtifact", grant(&resolved));
+    let stolen_write = ask(&mut second, "files.writeTerminalArtifact", json!({"worktree": "main", "grantId": resolved["openTarget"]["grantId"], "absolutePath": "/tmp/a.txt", "content": "x"}));
+    // Then B is refused as a mismatch for the read and the write, and A's grant still reads
+    assert_eq!((stolen["ok"].clone(), stolen["error"]["message"].clone()), (json!(false), json!("terminal_file_grant_mismatch")));
+    assert_eq!((stolen_write["ok"].clone(), stolen_write["error"]["message"].clone()), (json!(false), json!("terminal_file_grant_mismatch")));
+    assert_eq!(ask(&mut first, "files.readTerminalArtifact", grant(&resolved))["result"]["content"], "a");
+}
+
+#[test]
+fn given_grants_that_live_no_time_when_the_phone_uses_one_then_it_has_expired() {
+    // Given a host whose grants expire at once
+    let agent = Arc::new(ScriptedAgent::serving(ServiceStatus { protocol: 1, version: "v".into(), commit: "c".into(), groups: vec![] }));
+    let files = Workspaces::default();
+    files.workspace("main", "root", None).artifact("/tmp/a.txt", b"a");
+    files.install(&agent);
+    let area = WorkspaceArea::with_grants(orca_map_workspace::Grants::with_ttl(std::time::Duration::ZERO));
+    let host = Host::new("rt".into(), vec![Box::new(area)], agent, Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+    let mut rig_conn = host.connection("dev", "tok", vec![]);
+    let mut call = |id: &str, method: &str, params: Value| -> Value { serde_json::from_str(&rig_conn.on_message(&json!({"id": id, "method": method, "params": params}).to_string())[0]).unwrap() };
+    // When a path is tapped and its grant used
+    let resolved = call("1", "files.resolveTerminalPath", json!({"worktree": "main", "pathText": "/tmp/a.txt"}));
+    let read = call("2", "files.readTerminalArtifact", json!({"worktree": "main", "grantId": resolved["result"]["openTarget"]["grantId"], "absolutePath": "/tmp/a.txt"}));
+    // Then the grant is gone
+    assert_eq!(read["error"]["message"], "terminal_file_grant_expired");
+}
+
+#[test]
+fn given_the_executor_serves_nothing_outside_its_root_when_a_path_there_is_tapped_then_it_is_refused_and_no_grant_exists() {
+    // Given an executor that refuses everything under /etc as outside
+    let mut rig = Rig::new();
+    rig.files.refuse_outside("/etc");
+    // When /etc/hostname is tapped
+    let refused = rig.err("files.resolveTerminalPath", json!({"worktree": "main", "pathText": "/etc/hostname"}));
+    // Then the phone is told why, and a path the executor does not have is absent
+    assert_eq!(refused.1, "Files outside this workspace are not granted on this host.");
+    let absent = tap(&mut rig, "/srv/none.txt");
+    assert_eq!((absent["exists"].clone(), absent["openTarget"].clone()), (json!(false), Value::Null));
+}
+
+#[test]
+fn given_a_directory_a_binary_file_a_home_path_and_oversized_text_when_tapped_or_saved_then_each_is_told_apart() {
+    // Given a directory with a file, a binary file and a text file
+    let mut rig = Rig::new();
+    rig.files.artifact("/data/d/f.txt", b"f").artifact("/data/p.bin", &[0, 1, 2]).artifact("/data/t.txt", b"t");
+    // When each is tapped, with a home path too
+    let dir = tap(&mut rig, "/data/d");
+    let bin = tap(&mut rig, "/data/p.bin");
+    let home = tap(&mut rig, "~/notes.txt");
+    let text = tap(&mut rig, "/data/t.txt");
+    // Then the directory carries no grant, the binary one is marked and not read as text, and the home path is absent
+    assert_eq!(dir, json!({"worktree": "main::", "relativePath": null, "absolutePath": "/data/d", "exists": true, "isDirectory": true}));
+    assert_eq!(bin["openTarget"]["binary"], true);
+    assert_eq!(home, json!({"worktree": "main::", "relativePath": null, "absolutePath": null, "exists": false, "isDirectory": false}));
+    assert_eq!(rig.err("files.readTerminalArtifact", grant(&bin)).1, "binary_file");
+    // And a save over the 512 KiB the host allows is refused unwritten, a save with no content is invalid
+    let mut big = grant(&text);
+    big["content"] = json!("x".repeat(512 * 1024 + 1));
+    assert_eq!(rig.err("files.writeTerminalArtifact", big).1, "file_too_large");
+    assert_eq!(rig.call("files.writeTerminalArtifact", grant(&text))["error"]["message"], "Missing file content");
+    assert_eq!(rig.files.artifact_bytes("/data/t.txt").unwrap(), b"t");
 }

@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 260,
+    "served": 264,
     "pending": 0,
-    "notOffered": 47,
+    "notOffered": 43,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -1568,30 +1568,57 @@
       "kind": "rpc",
       "name": "files.readTerminalArtifact",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M8",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it reads an absolute file outside the workspace root under a grant the host mints for the phone's terminal tap, and rca's file.* actions are confined to the workspace root and rca has no grant concept, so there is no file the phone could be granted; files.read serves every file inside the workspace",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "orca-serve-integration",
+        "test": "terminal_artifacts::a_tapped_file_outside_the_repository_is_granted_read_previewed_and_saved_only_where_the_owner_allowed_and_a_rewrite_makes_it_stale",
+        "agent": [
+          "artifact.read",
+          "repo.list"
+        ],
+        "executor": [
+          "artifact_read"
+        ]
+      }
     },
     {
       "id": "rpc:files.readTerminalArtifactPreview",
       "kind": "rpc",
       "name": "files.readTerminalArtifactPreview",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M8",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it previews an absolute file outside the workspace root under a host-minted grant; rca's file actions are confined to the workspace root and have no grant concept, so nothing can be granted; files.readPreview serves every file inside the workspace",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "orca-serve-integration",
+        "test": "terminal_artifacts::a_tapped_file_outside_the_repository_is_granted_read_previewed_and_saved_only_where_the_owner_allowed_and_a_rewrite_makes_it_stale",
+        "agent": [
+          "artifact.read",
+          "repo.list"
+        ],
+        "executor": [
+          "artifact_read"
+        ]
+      }
     },
     {
       "id": "rpc:files.resolveTerminalPath",
       "kind": "rpc",
       "name": "files.resolveTerminalPath",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M8",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it classifies a path printed in a terminal as a file inside or outside the worktree and mints the grant that files.readTerminalArtifact reads under; rca has no grant concept and its file actions are confined to the workspace root, so only the in-root half could be answered and the phone's terminal link would break for every path outside it.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "orca-serve-integration",
+        "test": "terminal_artifacts::a_tapped_file_outside_the_repository_is_granted_read_previewed_and_saved_only_where_the_owner_allowed_and_a_rewrite_makes_it_stale",
+        "agent": [
+          "artifact.stat",
+          "repo.list"
+        ],
+        "executor": [
+          "artifact_stat"
+        ]
+      }
     },
     {
       "id": "rpc:files.searchPaths",
@@ -1632,10 +1659,19 @@
       "kind": "rpc",
       "name": "files.writeTerminalArtifact",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M8",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it writes an absolute file outside the workspace root under a host-minted grant guarded by an identity and digest check; rca's file.write is confined to the workspace root and rca has no grant or swap detection, and a write that skipped the guard would be unsafe; the phone edits files inside the workspace with the served file rows",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "orca-serve-integration",
+        "test": "terminal_artifacts::a_tapped_file_outside_the_repository_is_granted_read_previewed_and_saved_only_where_the_owner_allowed_and_a_rewrite_makes_it_stale",
+        "agent": [
+          "artifact.write",
+          "repo.list"
+        ],
+        "executor": [
+          "artifact_write"
+        ]
+      }
     },
     {
       "id": "rpc:folderWorkspace.list",

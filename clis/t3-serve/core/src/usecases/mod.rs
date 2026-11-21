@@ -5,6 +5,7 @@ pub mod desk_threads;
 pub mod desk_vcs;
 pub mod engine;
 pub mod forward;
+pub mod guest;
 pub mod history;
 pub mod launch;
 pub mod pairing;

@@ -12,6 +12,8 @@ mod support;
 mod attachments;
 #[path = "integration/chain.rs"]
 mod chain;
+#[path = "integration/guest_share.rs"]
+mod guest_share;
 #[path = "integration/real_agent_turn.rs"]
 mod real_agent_turn;
 #[path = "integration/replay_features.rs"]

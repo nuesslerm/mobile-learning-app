@@ -34,6 +34,12 @@ Options:
                               CHAT_AGENT_API_SECRET); the value is never printed
   -h, --help                  display help for command
 
+Environment only (no option):
+  RCA_EXEC_ARTIFACT_ALLOW     Colon-separated directories whose files the artifact
+                              actions (terminal-printed files) serve besides what
+                              lies below the workspace; unset or empty, they serve
+                              the workspace only. Each must exist.
+
 Output, one JSON object per line: {ok: true, event: "attached", workspace,
 executor, root, worktreeBase, rcaUrl} once the channel is open, then on a clean
 close {ok: true, event: "closed", closeCode} and exit 0. A refused connection, an

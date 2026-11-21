@@ -2791,6 +2791,12 @@ Options:
                               CHAT_AGENT_API_SECRET); the value is never printed
   -h, --help                  display help for command
 
+Environment only (no option):
+  RCA_EXEC_ARTIFACT_ALLOW     Colon-separated directories whose files the artifact
+                              actions (terminal-printed files) serve besides what
+                              lies below the workspace; unset or empty, they serve
+                              the workspace only. Each must exist.
+
 Output, one JSON object per line: {ok: true, event: "attached", workspace,
 executor, root, worktreeBase, rcaUrl} once the channel is open, then on a clean
 close {ok: true, event: "closed", closeCode} and exit 0. A refused connection, an
@@ -6424,6 +6430,11 @@ Options:
   --rca-url <url>      the rca service, http://host:port (T3_RCA_URL)
   --rca-workspace <id> the rca workspace turns and files act in (T3_RCA_WORKSPACE)
   -h, --help           display help for command
+
+Environment only (no option):
+  T3_GUEST_HOST        the public address guest links point at; unset or empty,
+                       guestShare.create answers connect_unavailable, so guest
+                       links are off (they also need the guestSharingEnabled setting)
 ```
 
 </details>

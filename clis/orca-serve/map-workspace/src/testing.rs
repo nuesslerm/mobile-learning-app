@@ -17,6 +17,10 @@ struct State {
     refs: BTreeMap<String, Vec<(String, String)>>,
     remotes: BTreeSet<String>,
     fetched: Vec<String>,
+    /// absolute path -> (bytes, version) of the files the executor serves beyond its root; a version bump is a rewrite.
+    artifacts: BTreeMap<String, (Vec<u8>, u64)>,
+    /// the paths under these prefixes are refused as outside what the executor was told to allow.
+    refused_outside: Vec<String>,
 }
 
 #[derive(Clone, Default)]
@@ -62,6 +66,29 @@ impl Workspaces {
         self
     }
 
+    /// A file beyond the executor's root that its artifact actions serve.
+    pub fn artifact(&self, path: &str, bytes: &[u8]) -> &Self {
+        self.0.lock().unwrap().artifacts.insert(path.into(), (bytes.to_vec(), 1));
+        self
+    }
+
+    /// Someone else rewrites the file: its identity changes.
+    pub fn rewrite_artifact(&self, path: &str, bytes: &[u8]) {
+        let mut s = self.0.lock().unwrap();
+        let version = s.artifacts.get(path).map_or(1, |(_, v)| v + 1);
+        s.artifacts.insert(path.into(), (bytes.to_vec(), version));
+    }
+
+    /// Paths under `prefix` are refused as outside the allowed places.
+    pub fn refuse_outside(&self, prefix: &str) -> &Self {
+        self.0.lock().unwrap().refused_outside.push(prefix.into());
+        self
+    }
+
+    pub fn artifact_bytes(&self, path: &str) -> Option<Vec<u8>> {
+        self.0.lock().unwrap().artifacts.get(path).map(|(b, _)| b.clone())
+    }
+
     /// The workspaces `git.fetch` was answered for.
     pub fn fetched(&self) -> Vec<String> {
         self.0.lock().unwrap().fetched.clone()
@@ -81,6 +108,12 @@ impl Workspaces {
         agent.reply("file.readChunk", move |p| me.chunk(p));
         let me = self.clone();
         agent.reply("file.stat", move |p| me.stat(p));
+        let me = self.clone();
+        agent.reply("artifact.stat", move |p| me.artifact_stat(p));
+        let me = self.clone();
+        agent.reply("artifact.read", move |p| me.artifact_read(p));
+        let me = self.clone();
+        agent.reply("artifact.write", move |p| me.artifact_write(p));
         let me = self.clone();
         agent.reply("file.create", move |p| me.create(p));
         let me = self.clone();
@@ -154,6 +187,63 @@ impl Workspaces {
             None if path == "." || s.files.keys().any(|(fw, f)| fw == &w && f.starts_with(&format!("{path}/"))) => Ok(json!({"kind": "dir", "size": 0, "modified_ms": 1_700_000_000_000u64})),
             None => Err(refused("NOT_FOUND", format!("{path}: not found"))),
         }
+    }
+
+    fn artifact_of(&self, p: &Value) -> Result<(String, Vec<u8>, u64), AgentError> {
+        self.ws(p)?;
+        let path = p["path"].as_str().unwrap_or_default().to_string();
+        let s = self.0.lock().unwrap();
+        if s.refused_outside.iter().any(|x| path.starts_with(x.as_str())) {
+            return Err(refused("PATH_OUTSIDE_ROOT", format!("{path} is outside the root")));
+        }
+        let (bytes, version) = s.artifacts.get(&path).cloned().ok_or_else(|| refused("NOT_FOUND", format!("{path} does not exist")))?;
+        Ok((path, bytes, version))
+    }
+
+    fn identity(path: &str, bytes: &[u8], version: u64) -> (String, String) {
+        (format!("{path}:{}:{version}", bytes.len()), format!("{:016x}", bytes.iter().fold(version, |h, b| h.wrapping_mul(31).wrapping_add(u64::from(*b)))))
+    }
+
+    fn artifact_stat(&self, p: &Value) -> Result<Value, AgentError> {
+        let dir = {
+            let path = p["path"].as_str().unwrap_or_default();
+            let s = self.0.lock().unwrap();
+            !s.artifacts.contains_key(path) && s.artifacts.keys().any(|k| k.starts_with(&format!("{}/", path.trim_end_matches('/'))))
+        };
+        if dir {
+            return Ok(json!({"path": p["path"], "kind": "dir", "size": 0, "modified_ms": 1, "changed_ms": 1, "identity": "dir", "fingerprint": null, "binary": false}));
+        }
+        let (path, bytes, version) = self.artifact_of(p)?;
+        let (identity, fingerprint) = Self::identity(&path, &bytes, version);
+        Ok(json!({"path": path, "kind": "file", "size": bytes.len(), "modified_ms": 1, "changed_ms": 1, "identity": identity, "fingerprint": fingerprint, "binary": bytes.contains(&0)}))
+    }
+
+    fn check(p: &Value, path: &str, bytes: &[u8], version: u64) -> Result<(), AgentError> {
+        let (identity, fingerprint) = Self::identity(path, bytes, version);
+        if p["identity"].as_str().is_some_and(|i| i != identity) || p["fingerprint"].as_str().is_some_and(|f| f != fingerprint) {
+            return Err(refused("CHANGED", format!("{path} changed since it was granted")));
+        }
+        Ok(())
+    }
+
+    fn artifact_read(&self, p: &Value) -> Result<Value, AgentError> {
+        let (path, bytes, version) = self.artifact_of(p)?;
+        Self::check(p, &path, &bytes, version)?;
+        let offset = (p["offset"].as_u64().unwrap_or(0) as usize).min(bytes.len());
+        let length = (p["length"].as_u64().unwrap_or(1 << 20) as usize).min(1 << 20);
+        let piece = &bytes[offset..(offset + length).min(bytes.len())];
+        use base64::Engine;
+        Ok(json!({"data": base64::engine::general_purpose::STANDARD.encode(piece), "offset": offset, "bytes": piece.len(), "total_bytes": bytes.len(), "eof": offset + piece.len() >= bytes.len()}))
+    }
+
+    fn artifact_write(&self, p: &Value) -> Result<Value, AgentError> {
+        let (path, bytes, version) = self.artifact_of(p)?;
+        Self::check(p, &path, &bytes, version)?;
+        let content = p["content"].as_str().unwrap_or("").as_bytes().to_vec();
+        let (identity, fingerprint) = Self::identity(&path, &content, version + 1);
+        let n = content.len();
+        self.0.lock().unwrap().artifacts.insert(path.clone(), (content, version + 1));
+        Ok(json!({"path": path, "bytes": n, "identity": identity, "fingerprint": fingerprint}))
     }
 
     fn create(&self, p: &Value) -> Result<Value, AgentError> {

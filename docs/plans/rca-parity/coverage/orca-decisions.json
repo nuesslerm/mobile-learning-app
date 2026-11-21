@@ -324,21 +324,6 @@
     "rpc:git.remoteCommitUrl": {
       "oracle": "mimic"
     },
-    "rpc:files.readTerminalArtifact": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it reads an absolute file outside the workspace root under a grant the host mints for the phone's terminal tap, and rca's file.* actions are confined to the workspace root and rca has no grant concept, so there is no file the phone could be granted; files.read serves every file inside the workspace",
-      "decidedBy": "M12"
-    },
-    "rpc:files.readTerminalArtifactPreview": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it previews an absolute file outside the workspace root under a host-minted grant; rca's file actions are confined to the workspace root and have no grant concept, so nothing can be granted; files.readPreview serves every file inside the workspace",
-      "decidedBy": "M12"
-    },
-    "rpc:files.writeTerminalArtifact": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it writes an absolute file outside the workspace root under a host-minted grant guarded by an identity and digest check; rca's file.write is confined to the workspace root and rca has no grant or swap detection, and a write that skipped the guard would be unsafe; the phone edits files inside the workspace with the served file rows",
-      "decidedBy": "M12"
-    },
     "rpc:accounts.consumeCodexResetCredit": {
       "oracle": "mimic"
     },
@@ -582,11 +567,6 @@
     },
     "rpc:worktree.sleep": {
       "oracle": "mimic"
-    },
-    "rpc:files.resolveTerminalPath": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it classifies a path printed in a terminal as a file inside or outside the worktree and mints the grant that files.readTerminalArtifact reads under; rca has no grant concept and its file actions are confined to the workspace root, so only the in-root half could be answered and the phone's terminal link would break for every path outside it.",
-      "decidedBy": "M12"
     },
     "rpc:github.setPRAutoMerge": {
       "state": "not-offered",
@@ -1133,6 +1113,18 @@
     },
     "rpc:agentSession.continueInterrupted": {
       "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recorded crawl holds only the five validation shapes of this call (clean replays that run no turn); no recording shows a valid call over a turn the host really cut short, which needs the host restarted mid-turn. The chain test (tests/integration/interrupted.rs) keeps the behaviour against this server's own restart; that it matches the host is unrecorded (docs/gaps/orca-interruption-causes-and-usage-limit-continue.md)"
+    },
+    "rpc:files.readTerminalArtifact": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recorded crawl and scenarios hold only schema-derived calls with a made-up grant id, which the host refuses; no recording shows a granted file, so the success shapes are authored from the pinned source (references/orca/src/main/runtime/terminal/artifacts). Agent decision under the safer-option rule, awaiting the owner's terminal-artifact sign-off: the row is served, and a file outside the executor's root is granted only where the executor's owner named a directory (RCA_EXEC_ARTIFACT_ALLOW, empty by default, so nothing outside the root is served); reversible by emptying that one setting. The chain test (tests/integration/terminal_artifacts.rs) keeps the behaviour against the real executor (docs/gaps/orca-terminal-artifact-grants-authored-shapes.md)"
+    },
+    "rpc:files.readTerminalArtifactPreview": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recorded crawl and scenarios hold only schema-derived calls with a made-up grant id, which the host refuses; no recording shows a granted file, so the success shapes are authored from the pinned source (references/orca/src/main/runtime/terminal/artifacts). Agent decision under the safer-option rule, awaiting the owner's terminal-artifact sign-off: the row is served, and a file outside the executor's root is granted only where the executor's owner named a directory (RCA_EXEC_ARTIFACT_ALLOW, empty by default, so nothing outside the root is served); reversible by emptying that one setting. The chain test (tests/integration/terminal_artifacts.rs) keeps the behaviour against the real executor (docs/gaps/orca-terminal-artifact-grants-authored-shapes.md)"
+    },
+    "rpc:files.writeTerminalArtifact": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recorded crawl and scenarios hold only schema-derived calls with a made-up grant id, which the host refuses; no recording shows a granted file, so the success shapes are authored from the pinned source (references/orca/src/main/runtime/terminal/artifacts). Agent decision under the safer-option rule, awaiting the owner's terminal-artifact sign-off: the row is served, and a file outside the executor's root is granted only where the executor's owner named a directory (RCA_EXEC_ARTIFACT_ALLOW, empty by default, so nothing outside the root is served); reversible by emptying that one setting. The chain test (tests/integration/terminal_artifacts.rs) keeps the behaviour against the real executor (docs/gaps/orca-terminal-artifact-grants-authored-shapes.md)"
+    },
+    "rpc:files.resolveTerminalPath": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recorded crawl and scenarios hold only schema-derived calls with a made-up grant id, which the host refuses; no recording shows a granted file, so the success shapes are authored from the pinned source (references/orca/src/main/runtime/terminal/artifacts). Agent decision under the safer-option rule, awaiting the owner's terminal-artifact sign-off: the row is served, and a file outside the executor's root is granted only where the executor's owner named a directory (RCA_EXEC_ARTIFACT_ALLOW, empty by default, so nothing outside the root is served); reversible by emptying that one setting. The chain test (tests/integration/terminal_artifacts.rs) keeps the behaviour against the real executor (docs/gaps/orca-terminal-artifact-grants-authored-shapes.md)"
     }
   },
   "reverify": {

@@ -1,0 +1,74 @@
+{
+  "method": "artifact.read",
+  "exchanges": [
+    {
+      "name": "reads a byte range of a file, base64 encoded",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "notes.txt",
+          "offset": 1,
+          "length": 3
+        },
+        "id": 1,
+        "method": "artifact.read"
+      },
+      "response": {
+        "result": {
+          "data": "YmNk",
+          "offset": 1,
+          "bytes": 3,
+          "total_bytes": 6,
+          "eof": false
+        },
+        "id": 1
+      },
+      "actions": [
+        "artifact_read"
+      ]
+    },
+    {
+      "name": "relays the executor's CHANGED when the fingerprint is no longer the file's",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "notes.txt",
+          "fingerprint": "0000000000000001"
+        },
+        "id": 2,
+        "method": "artifact.read"
+      },
+      "response": {
+        "error": {
+          "code": "CHANGED",
+          "message": "notes.txt changed since it was granted"
+        },
+        "id": 2
+      },
+      "actions": [
+        "artifact_read"
+      ]
+    },
+    {
+      "name": "relays the executor's refusal of a path outside the places it was allowed",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "/etc/hostname"
+        },
+        "id": 3,
+        "method": "artifact.read"
+      },
+      "response": {
+        "error": {
+          "code": "PATH_OUTSIDE_ROOT",
+          "message": "/etc/hostname is outside the root"
+        },
+        "id": 3
+      },
+      "actions": [
+        "artifact_read"
+      ]
+    }
+  ]
+}

@@ -24,7 +24,7 @@ impl Rig {
         let terminals = Terminals::default();
         terminals.terminal("main", "t1", true).terminal("feat", "t2", true).terminal("feat", "gone", false);
         terminals.install(&agent);
-        let host = Host::new("rt".into(), vec![Box::new(TerminalArea), Box::new(orca_map_workspace::WorkspaceArea)], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+        let host = Host::new("rt".into(), vec![Box::new(TerminalArea), Box::new(orca_map_workspace::WorkspaceArea::default())], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
         Rig { files, terminals, conn: host.connection("dev", "tok", vec![]), n: 0 }
     }
 

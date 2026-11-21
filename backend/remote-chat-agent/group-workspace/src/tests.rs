@@ -144,6 +144,28 @@ async fn given_a_workspace_that_is_a_directory_when_its_files_are_asked_for_then
 }
 
 #[tokio::test]
+async fn given_a_directory_workspace_when_an_artifact_is_asked_for_then_the_executor_is_told_to_serve_only_that_directory_and_the_root_workspace_is_not_narrowed() {
+    use agent_api_workspace::edit;
+    // Given an executor, a workspace "proj" that is its directory apps/web, and its root workspace
+    let channel = executor();
+    let rig = rig(channel.clone());
+    rig.ask(agent_api_workspace::WORKSPACE_CREATE, json!({"workspace": "proj", "path": "apps/web"})).await;
+    // When an artifact is stat, read and written in each, by an absolute path and by a relative one
+    for (workspace, path) in [("proj", "/srv/other/b.txt"), ("proj", "a.txt"), ("root", "/srv/other/b.txt")] {
+        rig.ask(edit::ARTIFACT_STAT, json!({"workspace": workspace, "path": path})).await;
+        rig.ask(edit::ARTIFACT_READ, json!({"workspace": workspace, "path": path})).await;
+        rig.ask(edit::ARTIFACT_WRITE, json!({"workspace": workspace, "path": path, "content": "x"})).await;
+    }
+    // Then every call below the directory carries it as the bound, the relative path is placed under it, and the root workspace's calls carry no bound
+    let calls = channel.calls();
+    let seen: Vec<(Value, Value)> = calls.iter().map(|(_, args)| (args["path"].clone(), args["within"].clone())).collect();
+    let (proj_abs, proj_rel, root_abs) = (&seen[0..3], &seen[3..6], &seen[6..9]);
+    assert!(proj_abs.iter().all(|s| *s == (json!("/srv/other/b.txt"), json!("apps/web"))));
+    assert!(proj_rel.iter().all(|s| *s == (json!("apps/web/a.txt"), json!("apps/web"))));
+    assert!(root_abs.iter().all(|s| *s == (json!("/srv/other/b.txt"), Value::Null)));
+}
+
+#[tokio::test]
 async fn given_the_root_workspace_when_a_path_is_named_then_it_goes_to_the_executor_as_it_came_and_its_refusals_keep_their_code() {
     // Given an executor that refuses a path outside its root, and its root workspace
     let channel = ScriptedChannel::new(|_, args| match args["path"].as_str() {

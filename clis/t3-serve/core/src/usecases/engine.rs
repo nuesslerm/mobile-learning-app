@@ -5,7 +5,7 @@ use crate::domain::command::{Command, Family};
 use crate::domain::decider::{decide, decide_adopt, decide_run_step, Ctx, Effect, Rejection, RunStep};
 use crate::domain::state::{event_json, State};
 use crate::ports::{Clock, EventDraft, EventStore, Ids, StoreError, StoredEvent};
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
@@ -98,6 +98,16 @@ impl Engine {
 
     pub fn dispatch(&self, family: Family, raw: &Value) -> Result<Dispatched, Failure> {
         let cmd = Command::parse(raw, family).map_err(Failure::Defect)?;
+        self.run(family, cmd)
+    }
+
+    /// A command the server issues itself (`SERVER_ONLY`), which no client can dispatch.
+    pub fn dispatch_server(&self, body: Map<String, Value>) -> Result<Dispatched, Failure> {
+        let cmd = Command::server(body).map_err(Failure::Defect)?;
+        self.run(Family::Thread, cmd)
+    }
+
+    fn run(&self, family: Family, cmd: Command) -> Result<Dispatched, Failure> {
         let mut inner = self.lock();
         let refuse = |m: String| Failure::Refused { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), message: m };
         let project_row = |inner: &Inner| (family == Family::Project).then(|| cmd.str("projectId").and_then(|id| inner.state.project_row(id))).flatten();

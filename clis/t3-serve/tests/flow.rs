@@ -21,6 +21,8 @@ mod desktop_vcs;
 mod crawl_decode;
 #[path = "flow/client_activity.rs"]
 mod client_activity;
+#[path = "flow/guest.rs"]
+mod guest;
 #[path = "flow/history.rs"]
 mod history;
 #[path = "flow/attachments.rs"]

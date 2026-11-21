@@ -288,6 +288,7 @@ impl Connection {
             "peerLinks.unlink" => vec![self.answered(&id, tag, self.svc.peer_links_unlink(payload).map(Some))],
             "peerLinks.link" => vec![self.answered(&id, tag, Err(self.svc.peer_links_link(payload)))],
             "peerLinks.answerRequest" => vec![self.answered(&id, tag, Err(self.svc.peer_links_answer(payload)))],
+            "guestShare.create" => vec![self.answered(&id, tag, self.svc.guest_share_create(payload).map(Some))],
             "secrets.answerRequest" => vec![self.answered(&id, tag, self.svc.answer_secret(payload).map(|()| None))],
             "orchestration.subscribePromptSuggestion" => match self.svc.prompt_suggestion(payload) {
                 Ok(frames) => {

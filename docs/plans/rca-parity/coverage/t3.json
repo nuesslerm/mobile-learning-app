@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 250,
-    "served": 214,
+    "served": 216,
     "pending": 0,
-    "notOffered": 36,
+    "notOffered": 34,
     "excluded": 0,
     "flagged": 0,
     "answeredByMapper": 0,
@@ -426,22 +426,30 @@
       "kind": "command",
       "name": "thread.guest-message.dismiss",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M5",
       "target": "t3-local",
-      "reason": "guest sharing needs a public guest endpoint and a guest identity on the service; rca has no guest concept and no share can exist through the chain, so the dismiss and close commands could only pass on an empty set. Owner-confirmed (decision 7).",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "guest_share::the_owner_turns_sharing_on_makes_a_link_a_guest_writes_through_it_and_the_owner_dismisses_the_message_and_closes_the_link",
+        "agent": [],
+        "executor": []
+      }
     },
     {
       "id": "command:thread.guest-share.close",
       "kind": "command",
       "name": "thread.guest-share.close",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M5",
       "target": "t3-local",
-      "reason": "guest sharing needs a public guest endpoint and a guest identity on the service; rca has no guest concept and no share can exist through the chain, so the dismiss and close commands could only pass on an empty set. Owner-confirmed (decision 7).",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "guest_share::the_owner_turns_sharing_on_makes_a_link_a_guest_writes_through_it_and_the_owner_dismisses_the_message_and_closes_the_link",
+        "agent": [],
+        "executor": []
+      }
     },
     {
       "id": "command:thread.interaction-mode.set",

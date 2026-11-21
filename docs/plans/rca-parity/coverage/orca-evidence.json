@@ -20,10 +20,10 @@
       },
       {
         "suite": "orca-serve-integration",
-        "sha": "5a4f107a4d8d4c5615857161a9805dcb6749d9d3",
+        "sha": "fffcca0e80d0367494a46c60ea44c21c5f642ceb",
         "complete": true,
-        "tests": 1,
-        "passed": 1
+        "tests": 2,
+        "passed": 2
       }
     ]
   },
@@ -779,6 +779,39 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:files.readTerminalArtifact": {
+      "suite": "orca-serve-integration",
+      "test": "terminal_artifacts::a_tapped_file_outside_the_repository_is_granted_read_previewed_and_saved_only_where_the_owner_allowed_and_a_rewrite_makes_it_stale",
+      "agent": [
+        "artifact.read",
+        "repo.list"
+      ],
+      "executor": [
+        "artifact_read"
+      ]
+    },
+    "rpc:files.readTerminalArtifactPreview": {
+      "suite": "orca-serve-integration",
+      "test": "terminal_artifacts::a_tapped_file_outside_the_repository_is_granted_read_previewed_and_saved_only_where_the_owner_allowed_and_a_rewrite_makes_it_stale",
+      "agent": [
+        "artifact.read",
+        "repo.list"
+      ],
+      "executor": [
+        "artifact_read"
+      ]
+    },
+    "rpc:files.resolveTerminalPath": {
+      "suite": "orca-serve-integration",
+      "test": "terminal_artifacts::a_tapped_file_outside_the_repository_is_granted_read_previewed_and_saved_only_where_the_owner_allowed_and_a_rewrite_makes_it_stale",
+      "agent": [
+        "artifact.stat",
+        "repo.list"
+      ],
+      "executor": [
+        "artifact_stat"
+      ]
+    },
     "rpc:files.searchPaths": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-files.searchPaths-boundary-full",
@@ -796,6 +829,17 @@
       "oracle": "mimic",
       "diff": "clean",
       "cassette": "recorded"
+    },
+    "rpc:files.writeTerminalArtifact": {
+      "suite": "orca-serve-integration",
+      "test": "terminal_artifacts::a_tapped_file_outside_the_repository_is_granted_read_previewed_and_saved_only_where_the_owner_allowed_and_a_rewrite_makes_it_stale",
+      "agent": [
+        "artifact.write",
+        "repo.list"
+      ],
+      "executor": [
+        "artifact_write"
+      ]
     },
     "rpc:folderWorkspace.list": {
       "suite": "wf-mimic-orca-crawl",
@@ -2359,5 +2403,19 @@
       "diff": "clean",
       "cassette": "recorded"
     }
-  }
+  },
+  "carried": [
+    "rpc:files.createFile",
+    "rpc:files.list",
+    "rpc:files.open",
+    "rpc:files.openDiff",
+    "rpc:files.pathsExist",
+    "rpc:files.read",
+    "rpc:files.readChatImage",
+    "rpc:files.readChunk",
+    "rpc:files.readDir",
+    "rpc:files.readPreview",
+    "rpc:files.searchPaths",
+    "rpc:files.stat"
+  ]
 }

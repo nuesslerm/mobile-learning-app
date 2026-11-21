@@ -3,6 +3,7 @@
 //! workspace (`file.*`), and nothing here touches a disk. The rows that open an editor, diff or markdown tab write the server-kept layout (`layout`).
 mod activity;
 mod agent;
+mod artifacts;
 mod catalog;
 mod files;
 pub mod layout;
@@ -15,6 +16,7 @@ mod target;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 
+pub use artifacts::{Grants, GRANT_TTL};
 pub use files::{image_mime, previewable_limit};
 pub use target::{resolve, targets, Target};
 pub use worktrees::checkout_of;
@@ -23,7 +25,7 @@ pub use agent_api_workspace::FILE_READ;
 /// `file.stat` and `file.readChunk` of the agent API, for a mapping crate that reads a working file of any size in pieces.
 pub use agent_api_workspace::edit::{FILE_READ_CHUNK, FILE_STAT};
 
-use agent_api_workspace::edit::{FILE_CREATE, FILE_SEARCH, FILE_WRITE};
+use agent_api_workspace::edit::{ARTIFACT_READ, ARTIFACT_STAT, ARTIFACT_WRITE, FILE_CREATE, FILE_SEARCH, FILE_WRITE};
 use agent_api_proto::Method as AgentMethod;
 use agent_api_git::{FETCH, REFS};
 use agent_api_state::SET;
@@ -42,6 +44,10 @@ pub const FILES_READ_DIR: &str = "files.readDir";
 pub const FILES_STAT: &str = "files.stat";
 pub const FILES_PATHS_EXIST: &str = "files.pathsExist";
 pub const FILES_CREATE_FILE: &str = "files.createFile";
+pub const FILES_RESOLVE_TERMINAL_PATH: &str = "files.resolveTerminalPath";
+pub const FILES_READ_TERMINAL_ARTIFACT: &str = "files.readTerminalArtifact";
+pub const FILES_READ_TERMINAL_ARTIFACT_PREVIEW: &str = "files.readTerminalArtifactPreview";
+pub const FILES_WRITE_TERMINAL_ARTIFACT: &str = "files.writeTerminalArtifact";
 pub const FILES_OPEN: &str = "files.open";
 pub const FILES_OPEN_DIFF: &str = "files.openDiff";
 pub const MARKDOWN_READ_TAB: &str = "markdown.readTab";
@@ -78,7 +84,7 @@ pub const NOTIFICATIONS_SUBSCRIBE: &str = "notifications.subscribe";
 pub const NOTIFICATIONS_UNSUBSCRIBE: &str = "notifications.unsubscribe";
 
 /// The agent methods this crate sends: its calls read this list, and a flow test holds it to the methods really sent.
-pub const USES: &[AgentMethod] = &[REPO_LIST, FILE_LIST, FILE_READ_CHUNK, FILE_STAT, FILE_CREATE, FILE_SEARCH, FILE_WRITE, SET, REFS, FETCH, WORKTREE_CREATE, WORKTREE_LIST, WORKTREE_REMOVE, agent_api_service::notifications::SINCE, agent_api_service::panes::LIST, agent_api_service::panes::MARK, agent_api_terminal::LIST, agent_api_terminal::SLEEP, agent_api_terminal::WAKE, agent_api_terminal::SLEEPING, agent_api_agent::THREAD_LIST, agent_api_agent::lifecycle::THREAD_FORCE_STOP];
+pub const USES: &[AgentMethod] = &[REPO_LIST, FILE_LIST, FILE_READ_CHUNK, FILE_STAT, ARTIFACT_STAT, ARTIFACT_READ, ARTIFACT_WRITE, FILE_CREATE, FILE_SEARCH, FILE_WRITE, SET, REFS, FETCH, WORKTREE_CREATE, WORKTREE_LIST, WORKTREE_REMOVE, agent_api_service::notifications::SINCE, agent_api_service::panes::LIST, agent_api_service::panes::MARK, agent_api_terminal::LIST, agent_api_terminal::SLEEP, agent_api_terminal::WAKE, agent_api_terminal::SLEEPING, agent_api_agent::THREAD_LIST, agent_api_agent::lifecycle::THREAD_FORCE_STOP];
 
 const METHODS: &[Method] = &[
     Method { name: FILES_LIST, kind: Kind::Unary },
@@ -90,6 +96,10 @@ const METHODS: &[Method] = &[
     Method { name: FILES_STAT, kind: Kind::Unary },
     Method { name: FILES_PATHS_EXIST, kind: Kind::Unary },
     Method { name: FILES_CREATE_FILE, kind: Kind::Unary },
+    Method { name: FILES_RESOLVE_TERMINAL_PATH, kind: Kind::Unary },
+    Method { name: FILES_READ_TERMINAL_ARTIFACT, kind: Kind::Unary },
+    Method { name: FILES_READ_TERMINAL_ARTIFACT_PREVIEW, kind: Kind::Unary },
+    Method { name: FILES_WRITE_TERMINAL_ARTIFACT, kind: Kind::Unary },
     Method { name: FILES_OPEN, kind: Kind::Unary },
     Method { name: FILES_OPEN_DIFF, kind: Kind::Unary },
     Method { name: MARKDOWN_READ_TAB, kind: Kind::Unary },
@@ -129,7 +139,17 @@ const METHODS: &[Method] = &[
 /// Each reason equals the one in `docs/plans/rca-parity/coverage/orca-decisions.json`; a flow test compares them.
 pub const NOT_OFFERED: &[NotOffered] = &[];
 
-pub struct WorkspaceArea;
+/// The grants of the terminal artifacts this host made for its phones.
+#[derive(Default)]
+pub struct WorkspaceArea {
+    grants: Grants,
+}
+
+impl WorkspaceArea {
+    pub fn with_grants(grants: Grants) -> WorkspaceArea {
+        WorkspaceArea { grants }
+    }
+}
 
 impl Area for WorkspaceArea {
     fn name(&self) -> &'static str {
@@ -156,6 +176,10 @@ impl Area for WorkspaceArea {
             FILES_STAT => files::stat(agent, params),
             FILES_PATHS_EXIST => files::paths_exist(agent, params),
             FILES_CREATE_FILE => files::create_file(agent, params),
+            FILES_RESOLVE_TERMINAL_PATH => artifacts::resolve_path(&self.grants, agent, ctx.device_id, params),
+            FILES_READ_TERMINAL_ARTIFACT => artifacts::read(&self.grants, agent, ctx.device_id, params),
+            FILES_READ_TERMINAL_ARTIFACT_PREVIEW => artifacts::read_preview(&self.grants, agent, ctx.device_id, params),
+            FILES_WRITE_TERMINAL_ARTIFACT => artifacts::write(&self.grants, agent, ctx.device_id, params),
             FILES_OPEN => layout::open_file(agent, params),
             FILES_OPEN_DIFF => layout::open_diff(agent, params),
             MARKDOWN_READ_TAB => layout::read_tab(agent, params),

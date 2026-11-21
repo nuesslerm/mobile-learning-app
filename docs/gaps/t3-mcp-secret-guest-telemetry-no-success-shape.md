@@ -19,7 +19,7 @@ Nothing is broken; these rows were asked for in #83 O3 and stay `not-offered`:
 
 - `mcpApps.callTool`, `readResource`, `toolInfo`, `updateModelContext`
 - `secrets.answerRequest`
-- `guestShare.create`, `thread.guest-share.close`, `thread.guest-message.dismiss`
+- `guestShare.create`, `thread.guest-share.close`, `thread.guest-message.dismiss` (served since 21 Nov, O3c: see the end of this file)
 - `subscribeResourceTelemetry`
 
 ## What the recordings hold
@@ -61,3 +61,14 @@ The three executor-side halves are built and tested; the T3 rows above stay `not
   T3 turn item to map to (see "Why each one waits").
 - Not built: MCP app items. `mcpApps.*` are keyed by `(threadId, itemId)` and restricted to the server of the producing tool call; rca's agent
   events carry no MCP server name for a tool call, and an app resource (`_meta.ui`) has never been produced by a real server through rca.
+
+## Guest share (21 Nov, O3c)
+
+Served, off by default. `guestShare.create` makes a link only when the owner's `guestSharingEnabled` setting is on (default off, which answers the
+recorded `disabled`) and the host names its address in `T3_GUEST_HOST` (else `connect_unavailable`). A guest redeems the invite once for a name
+(`POST /api/guest/redeem`, a session cookie that scripts cannot read) and writes text messages (`POST /api/guest/messages`, three waiting at most);
+the owner dismisses a message and closes the link with the two commands `thread.guest-message.dismiss` and `thread.guest-share.close`. Credentials
+are claims signed under the store's key and kept nowhere. Decision by the agent under the safer-option rule, reversible by turning the setting off.
+Flow tests: `clis/t3-serve/tests/flow/guest.rs`; chain test: `clis/t3-serve/tests/integration/guest_share.rs`.
+Not proven: the success shapes are authored from the pinned source (no recording shows an enabled share); not built: the guest's live stream, its
+page and file uploads, and a public route for the guest page (the host must serve `https://<T3_GUEST_HOST>/guest`).

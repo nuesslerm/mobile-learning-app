@@ -211,9 +211,7 @@
         "t3-rpc-device.easAccount-valid-min",
         "t3-rpc-device.simlockIdentity-boundary-full",
         "t3-rpc-device.simlockIdentity-invalid-no-payload",
-        "t3-rpc-device.simlockIdentity-valid-min",
-        "t3-rpc-guestShare.create-invalid-wrong-type-threadId",
-        "t3-rpc-guestShare.create-valid-min"
+        "t3-rpc-device.simlockIdentity-valid-min"
       ]
     },
     {

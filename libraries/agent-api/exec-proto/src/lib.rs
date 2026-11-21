@@ -30,10 +30,12 @@ pub enum Code {
     ExecutorGone,
     /// The MCP bridge refused a `tools/call` (unknown tool, a required argument missing) before any executor was asked.
     InvalidArguments,
+    /// A file changed since the grant a read or write was made under was taken.
+    Changed,
 }
 
 impl Code {
-    pub const ALL: [Code; 12] = [Code::PathOutsideRoot, Code::NotFound, Code::NotAFile, Code::AlreadyExists, Code::EditNotFound, Code::EditAmbiguous, Code::InvalidArgs, Code::UnknownTool, Code::Io, Code::NoExecutor, Code::ExecutorGone, Code::InvalidArguments];
+    pub const ALL: [Code; 13] = [Code::PathOutsideRoot, Code::NotFound, Code::NotAFile, Code::AlreadyExists, Code::EditNotFound, Code::EditAmbiguous, Code::InvalidArgs, Code::UnknownTool, Code::Io, Code::NoExecutor, Code::ExecutorGone, Code::InvalidArguments, Code::Changed];
 
     pub fn as_str(self) -> &'static str {
         match self {
@@ -49,6 +51,7 @@ impl Code {
             Code::NoExecutor => "NO_EXECUTOR",
             Code::ExecutorGone => "EXECUTOR_GONE",
             Code::InvalidArguments => "INVALID_ARGUMENTS",
+            Code::Changed => "CHANGED",
         }
     }
 

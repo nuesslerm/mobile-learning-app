@@ -24,5 +24,7 @@ mod replay_features;
 mod rig;
 #[path = "integration/speech.rs"]
 mod speech;
+#[path = "integration/terminal_artifacts.rs"]
+mod terminal_artifacts;
 #[path = "integration/terminal_pty.rs"]
 mod terminal_pty;

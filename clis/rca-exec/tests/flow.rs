@@ -1,5 +1,7 @@
 //! The flow tests of `rca-exec` (`docs/plans/rca-client/protocol.md`): the local adapter on a real temp directory with real processes, and
 //! the channel client against an in-test WebSocket server that plays rca. Nothing here doubles the executor.
+#[path = "flow/artifacts.rs"]
+mod artifacts;
 #[path = "flow/browser.rs"]
 mod browser;
 #[path = "flow/catalog.rs"]

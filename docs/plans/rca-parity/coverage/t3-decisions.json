@@ -180,16 +180,6 @@
       "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
       "decidedBy": "M12"
     },
-    "command:thread.guest-message.dismiss": {
-      "state": "not-offered",
-      "reason": "guest sharing needs a public guest endpoint and a guest identity on the service; rca has no guest concept and no share can exist through the chain, so the dismiss and close commands could only pass on an empty set. Owner-confirmed (decision 7).",
-      "decidedBy": "M12"
-    },
-    "command:thread.guest-share.close": {
-      "state": "not-offered",
-      "reason": "guest sharing needs a public guest endpoint and a guest identity on the service; rca has no guest concept and no share can exist through the chain, so the dismiss and close commands could only pass on an empty set. Owner-confirmed (decision 7).",
-      "decidedBy": "M12"
-    },
     "http:connect.linkProof": {
       "state": "not-offered",
       "reason": "T3 Connect and relay need an environment signing key and a hosted relay account (a person's credential); the service holds none and the mapper never mints one. Owner-confirmed (decision 7).",
@@ -961,6 +951,12 @@
     },
     "rpc:server.prepareTriage": {
       "unrecordable": "the recorded host answers with the paths of its own triage folder and writes its own logs, config and T3 source; this server writes the rca service's log (service.logs) and a playbook at the executor, so no replay of it is clean. The behaviour test is tests/flow/settings.rs; no third-party source is fetched (owner decision 7)"
+    },
+    "command:thread.guest-message.dismiss": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recordings hold only the failure shape of the share (GuestShareCreateError disabled); no recording shows an enabled share, a guest or a guest message, so the row's success shape is authored from the pinned source. Agent decision under the safer-option rule: guest sharing is served but off, since the owner's setting guestSharingEnabled is off by default and a link also needs the host's address (T3_GUEST_HOST); reversible by turning that one setting off. The chain test (tests/integration/guest_share.rs) keeps the behaviour (docs/gaps/t3-mcp-secret-guest-telemetry-no-success-shape.md)"
+    },
+    "command:thread.guest-share.close": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recordings hold only the failure shape of the share (GuestShareCreateError disabled); no recording shows an enabled share, a guest or a guest message, so the row's success shape is authored from the pinned source. Agent decision under the safer-option rule: guest sharing is served but off, since the owner's setting guestSharingEnabled is off by default and a link also needs the host's address (T3_GUEST_HOST); reversible by turning that one setting off. The chain test (tests/integration/guest_share.rs) keeps the behaviour (docs/gaps/t3-mcp-secret-guest-telemetry-no-success-shape.md)"
     }
   },
   "reverify": {},

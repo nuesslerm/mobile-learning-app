@@ -1,4 +1,5 @@
 //! System implementations of the core's executor port and the channel client that serves it.
+pub mod artifacts;
 pub mod browser;
 pub mod browser_proxy;
 pub mod exec_channel;

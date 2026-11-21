@@ -52,6 +52,7 @@ Pre-2026-10 history: [archive](archive/README.md).
 - rca-parity · `settings.getAgentLaunch` stays not offered: its answer is the launch of 35 terminal agents, which rca does not run · 0d · [orca-launch-settings-projection](gaps/orca-launch-settings-projection.md)
 - rca-parity · The provider-account rows and the T3 worktree launch rest on authored doubles and name what they do not do · 0d · [rca-provider-account-rows](gaps/rca-provider-account-rows.md)
 - rca-parity · T3 mcp-misc rows (O3) stay not offered: the recordings hold only the failure shape · 0d · [t3-mcp-secret-guest-telemetry-no-success-shape](gaps/t3-mcp-secret-guest-telemetry-no-success-shape.md)
+- rca-parity · Orca terminal-artifact rows are served from authored shapes, behind a grant that is off by default · 0d · [orca-terminal-artifact-grants-authored-shapes](gaps/orca-terminal-artifact-grants-authored-shapes.md)
 - rca-parity · The in-thread find counts raw text, and only its empty answer was recorded · 0d · [t3-thread-find-segments](gaps/t3-thread-find-segments.md)
 - rca-parity · A tag set on a thread is kept but not shown in the thread projection · 0d · [t3-thread-tags-projection](gaps/t3-thread-tags-projection.md)
 - remote-chat-agent · Claude and Codex backends of remote-chat-agent were removed unproven; the credential relay awaits a human sign-in (blocked) · 92d · [agent-backends-await-human-login](gaps/agent-backends-await-human-login.md)
