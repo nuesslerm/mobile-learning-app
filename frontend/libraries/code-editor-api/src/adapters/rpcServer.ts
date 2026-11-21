@@ -3,7 +3,7 @@ import { createRpcServer, type RpcHandlers, type RpcServer, type RpcTransport } 
 import type { EditorEngine } from '../ports/engine';
 import { REQUEST_NAMES, type EventType } from '../ports/protocol';
 
-const EVENT_TYPES: readonly EventType[] = ['ready', 'changed', 'selection', 'focus', 'tree'];
+const EVENT_TYPES: readonly EventType[] = ['ready', 'changed', 'selection', 'focus', 'completion', 'tree'];
 
 /** Serves an engine over a page transport: one rpc method per request, whose result is the whole reply, and the events the host subscribed to. */
 export function serveEditor(engine: EditorEngine, transport: RpcTransport, logError: (error: unknown) => void): RpcServer {

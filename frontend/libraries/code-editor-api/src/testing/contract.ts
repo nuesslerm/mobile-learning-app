@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, type TestContext 
 import { createEditorClient, unwrap, type EditorClient } from '../core/client';
 import { createDocumentMirror } from '../core/mirror';
 import type { EditorEngine } from '../ports/engine';
-import { REQUEST_NAMES, type EditorError, type EditorEvent, type EventType, type Language, type Range, type Reply, type RequestName, type SelRange, type Step } from '../ports/protocol';
+import { CORE_REQUEST_NAMES, type EditorError, type EditorEvent, type EventType, type Language, type Range, type Reply, type RequestName, type SelRange, type Step } from '../ports/protocol';
 
 export type SubjectHooks = {
   userTypes?(text: string): Promise<void> | void;
@@ -86,13 +86,28 @@ export function editorContract(name: string, make: MakeSubject, options: Contrac
         // Then the capabilities are complete
         expect(hello).toMatchObject({ api: 1, ready: true });
         expect(hello.instance.length).toBeGreaterThan(0);
-        for (const request of REQUEST_NAMES) expect(hello.capabilities.requests).toContain(request);
+        for (const request of CORE_REQUEST_NAMES) expect(hello.capabilities.requests).toContain(request);
         expect(hello.capabilities.steps).toEqual(expect.arrayContaining(['replace', 'move', 'select']));
         expect(hello.capabilities.events).toEqual(expect.arrayContaining(['ready', 'changed', 'selection', 'focus']));
         expect(hello.capabilities.languages.length).toBeGreaterThan(0);
         if (options.languages) expect(hello.capabilities.languages).toEqual(options.languages);
         expect(hello.capabilities.maxSelections).toBeGreaterThanOrEqual(1);
         expect(hello.capabilities.logDepth).toBeGreaterThan(0);
+      });
+
+      it('given an engine that does not announce tree, when tree is called, then it is unsupported naming the request', async (ctx) => {
+        const hello = unwrap(await client.hello());
+        if (hello.capabilities.requests.includes('tree')) return ctx.skip();
+        expect(failed(await client.engine.request('tree', {}))).toMatchObject({ code: 'unsupported', what: 'request:tree' });
+      });
+
+      it('given an engine that does not announce complete, when a complete step is applied, then it is unsupported, and hello announces neither the step nor the completion event', async (ctx) => {
+        const base = await start();
+        const hello = unwrap(await client.hello());
+        if (hello.capabilities.steps.includes('complete')) return ctx.skip();
+        expect(hello.capabilities.events).not.toContain('completion');
+        expect(failed(await client.transact([{ op: 'complete' }]))).toMatchObject({ code: 'unsupported', what: 'step:complete' });
+        expect(await snapshot()).toMatchObject({ text: TEN, revision: base });
       });
 
       it('given a page with no editor yet, when hello and read are called, then it is not ready and read says not-ready', async () => {

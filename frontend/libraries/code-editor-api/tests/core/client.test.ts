@@ -91,3 +91,23 @@ describe('an editor whose host cannot type', () => {
     expect(fake.text()).toBe('abc');
   });
 });
+
+describe('the completion event', () => {
+  it('given the engine told twice that a list is open and then closed, when a listener hears completion, then it hears each change once', () => {
+    // Given a listener on completion
+    const fake = createFakeEditor({ text: 'abc' });
+    const heard: unknown[] = [];
+    fake.engine.listen(['completion'], (event) => heard.push(event));
+
+    // When the host reports open, open again, then closed
+    fake.engine.ingestCompletion(true);
+    fake.engine.ingestCompletion(true);
+    fake.engine.ingestCompletion(false);
+
+    // Then one event per change, in order, at the head
+    expect(heard).toEqual([
+      { type: 'completion', open: true, revision: 0 },
+      { type: 'completion', open: false, revision: 0 },
+    ]);
+  });
+});

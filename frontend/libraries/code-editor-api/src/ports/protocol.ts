@@ -11,7 +11,9 @@ export type Selection = { readonly ranges: readonly SelRange[]; readonly main: n
 export const LANGUAGE_NAMES = ['python', 'javascript', 'cpp'] as const; // the languages the API can name: an engine offers some of them
 export type Language = (typeof LANGUAGE_NAMES)[number];
 export type Palette = { readonly dark: boolean; readonly cursor: string; readonly selection: string; readonly background: string; readonly gutter: string; readonly border: string };
-export type EditorConfig = { readonly language: Language; readonly wrap: boolean; readonly tabSize: number; readonly fontSize: number; readonly lineHeight: number; readonly palette: Palette };
+export type CompletionEntry = { readonly label: string; readonly type?: string; readonly detail?: string; readonly boost?: number }; // a name the editor may offer: a word of a problem's signature
+export type CompletionConfig = { readonly enabled: boolean; readonly entries: readonly CompletionEntry[] };
+export type EditorConfig = { readonly language: Language; readonly wrap: boolean; readonly tabSize: number; readonly fontSize: number; readonly lineHeight: number; readonly palette: Palette; readonly completion?: CompletionConfig };
 export type ConfigPatch = Partial<Omit<EditorConfig, 'palette'>> & { readonly palette?: Partial<Palette> };
 
 export type Target = Range | 'selection'; // an explicit range, or what the engine has selected when the batch runs
@@ -25,7 +27,8 @@ export type Step =
   | { readonly op: 'replace'; readonly range: Target; readonly text: string; readonly expect?: string } // insertAt = empty range, delete = text ''
   | { readonly op: 'move'; readonly range: Target; readonly to: Pos; readonly expect?: string }
   | { readonly op: 'select'; readonly anchor: Point; readonly head?: Point }
-  | { readonly op: 'type'; readonly text: string }; // one keystroke at the live selection, through the editor's input handlers; the only step of its call
+  | { readonly op: 'type'; readonly text: string } // one keystroke at the live selection, through the editor's input handlers; the only step of its call
+  | { readonly op: 'complete' }; // accepts the completion the editor has open, at the live selection; the only step of its call, nothing when none is open
 export type StepOp = Step['op'];
 
 export type Stale = 'reject' | 'map';
@@ -50,6 +53,20 @@ export type LoadValue = { readonly length: number; readonly selection: Selection
 export type ViewParams = { readonly focus?: boolean }; // omitted = query
 export type ViewValue = { readonly focused: boolean };
 
+export type TreeDetail = 'outline' | 'full'; // outline: the statements and blocks; full: every named node
+export type SyntaxNode = { readonly type: string; readonly from: Pos; readonly to: Pos; readonly error?: true; readonly children?: readonly SyntaxNode[] }; // a Lezer node name and its extent, JSON-safe
+export type TreeParams = { readonly range?: Range; readonly detail?: TreeDetail; readonly budgetMs?: number };
+export type TreeValue = {
+  readonly instance: string; // the tree belongs to (instance, revision): a cached one is keyed by both
+  readonly revision: Revision;
+  readonly language: Language;
+  readonly length: number;
+  readonly parsedTo: Pos; // how far the parser got within the budget
+  readonly complete: boolean; // parsedTo covers the document (or the asked range)
+  readonly detail: TreeDetail;
+  readonly root: SyntaxNode | null; // null when nothing of the asked range is parsed yet
+};
+
 export type Capabilities = {
   readonly requests: readonly RequestName[];
   readonly steps: readonly StepOp[];
@@ -68,9 +85,12 @@ export type Requests = {
   load: { params: LoadParams; value: LoadValue };
   configure: { params: ConfigPatch; value: EditorConfig };
   view: { params: ViewParams; value: ViewValue };
+  tree: { params: TreeParams; value: TreeValue };
 };
 export type RequestName = keyof Requests;
-export const REQUEST_NAMES = ['hello', 'read', 'apply', 'history', 'load', 'configure', 'view'] as const satisfies readonly RequestName[];
+export const CORE_REQUEST_NAMES = ['hello', 'read', 'apply', 'history', 'load', 'configure', 'view'] as const satisfies readonly RequestName[]; // every engine answers these
+export const OPTIONAL_REQUEST_NAMES = ['tree'] as const satisfies readonly RequestName[]; // announced in hello only by an engine whose host can answer them
+export const REQUEST_NAMES = [...CORE_REQUEST_NAMES, ...OPTIONAL_REQUEST_NAMES] as const satisfies readonly RequestName[]; // every name a page serves
 
 export type EditorError =
   | { readonly code: 'not-ready'; readonly message: string }
@@ -102,6 +122,7 @@ export type EditorEvent =
   | { readonly type: 'changed'; readonly from: Revision; readonly to: Revision; readonly changes: readonly Change[]; readonly selection: Selection; readonly origin: Origin; readonly label?: string }
   | { readonly type: 'selection'; readonly revision: Revision; readonly selection: Selection }
   | { readonly type: 'focus'; readonly focused: boolean }
+  | { readonly type: 'completion'; readonly open: boolean; readonly revision: Revision } // the editor opened or closed a completion list; once per change
   | { readonly type: 'tree'; readonly revision: Revision; readonly complete: boolean }; // declared now, emitted from D2
 export type EventType = EditorEvent['type'];
 export type EventOf<T extends EventType> = Extract<EditorEvent, { type: T }>;

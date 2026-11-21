@@ -1,7 +1,7 @@
 import type { EditorEngine } from '../ports/engine';
 import type { DocumentHost } from '../ports/host';
 import {
-  API_VERSION, REQUEST_NAMES,
+  API_VERSION, CORE_REQUEST_NAMES,
   type ApplyValue, type Change, type EditorError, type EditorEvent, type EventType, type Hello, type HistoryValue, type LoadValue, type Origin, type Range,
   type ReadValue, type Reply, type Requests, type RequestName, type Revision, type Selection, type SelRange, type ViewValue,
 } from '../ports/protocol';
@@ -25,6 +25,7 @@ export type EngineCore = EditorEngine & {
   ingest(update: HostUpdate): void;
   ingestSelection(selection: Selection): void;
   ingestFocus(focused: boolean): void;
+  ingestCompletion(open: boolean): void;
 };
 
 const DEFAULT_LOG_DEPTH = 256;
@@ -40,6 +41,7 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
   const listeners = new Set<{ readonly types: ReadonlySet<EventType>; readonly fn: (event: EditorEvent) => void }>();
   let lastSelection = host.selection();
   let lastFocus = host.hasFocus();
+  let lastCompletion = false;
   let delivered: HostUpdate | null = null;
   let queue: Promise<unknown> = Promise.resolve();
 
@@ -68,9 +70,10 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
       instance: options.instance,
       ready: true,
       capabilities: {
-        requests: REQUEST_NAMES,
-        steps: host.type ? ['replace', 'move', 'select', 'type'] : ['replace', 'move', 'select'],
-        events: ['ready', 'changed', 'selection', 'focus'],
+        // what the host can do is what the engine announces: an optional request, step or event exists only when its method does
+        requests: host.tree ? [...CORE_REQUEST_NAMES, 'tree'] : CORE_REQUEST_NAMES,
+        steps: ['replace', 'move', 'select', ...(host.type ? (['type'] as const) : []), ...(host.complete ? (['complete'] as const) : [])],
+        events: ['ready', 'changed', 'selection', 'focus', ...(host.complete ? (['completion'] as const) : [])],
         languages: host.languages(),
         maxSelections: host.maxSelections,
         logDepth: depth,
@@ -99,13 +102,14 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     if (behind && (stale === 'reject' || at < log.floor())) {
       return failure({ code: 'stale', message: `the call was made at revision ${at}, the head is ${head}`, head, floor: log.floor() });
     }
-    const typed = steps[0];
-    if (typed?.op === 'type') {
-      // a keystroke acts on what is selected now, so there is nothing to map: a call made at another revision is stale
-      if (!host.type) return failure({ code: 'unsupported', message: 'this editor has no type step', what: 'step:type' });
+    const sole = steps[0];
+    if (sole?.op === 'type' || sole?.op === 'complete') {
+      // a keystroke, or the acceptance of a completion, acts on what is selected now, so there is nothing to map: a call made at another revision is stale
+      if (sole.op === 'type' ? !host.type : !host.complete) return failure({ code: 'unsupported', message: `this editor has no ${sole.op} step`, what: `step:${sole.op}` });
       if (behind) return failure({ code: 'stale', message: `the call was made at revision ${at}, the head is ${head}`, head, floor: log.floor() });
       delivered = null;
-      host.type(typed.text, label);
+      if (sole.op === 'type') host.type?.(sole.text, label);
+      else host.complete?.(label);
       host.sync();
       const update = delivered as HostUpdate | null;
       return success({ changes: update?.changes ?? [], selection: host.selection(), landed: [null] }, head);
@@ -117,7 +121,7 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     const rebasePos = (pos: number, assoc: 1 | -1) => (behind ? log.mapPos(pos, from, assoc) : pos);
     const resolved: ResolvedStep[] = [];
     for (const [index, step] of steps.entries()) {
-      if (step.op === 'type') return invalid(`steps[${index}]`, 'a type step is the only step of its call');
+      if (step.op === 'type' || step.op === 'complete') return invalid(`steps[${index}]`, `a ${step.op} step is the only step of its call`);
       if (step.op === 'select') {
         const point = (value: typeof step.anchor): typeof step.anchor | EditorError => {
           if (typeof value === 'number') return value > lengthThen ? outOf(index) : rebasePos(value, 1);
@@ -210,6 +214,9 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     if (parsed.value.language !== undefined && !host.languages().includes(parsed.value.language)) {
       return failure({ code: 'unsupported', message: `this editor cannot switch to ${parsed.value.language}`, what: 'language' });
     }
+    if (parsed.value.completion !== undefined && !host.complete) {
+      return failure({ code: 'unsupported', message: 'this editor has no completion', what: 'config:completion' });
+    }
     const result = host.configure(parsed.value);
     return result.ok ? success(result.config) : failure(result.error);
   };
@@ -221,7 +228,10 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     return success({ focused: host.hasFocus() });
   };
 
-  const handlers: Record<RequestName, (params: unknown) => Reply<unknown>> = { hello, read, apply, history, load, configure, view };
+  // answered by the unsupported path until a host can parse (the slices that follow add the budgeted answer)
+  const tree = (): Reply<never> => failure({ code: 'unsupported', message: 'this editor has no request tree', what: 'request:tree' });
+
+  const handlers: Record<RequestName, (params: unknown) => Reply<unknown>> = { hello, read, apply, history, load, configure, view, tree };
 
   const request = (name: string, params: unknown): Promise<Reply<unknown>> => {
     if (name === 'hello') return Promise.resolve(hello());
@@ -275,6 +285,11 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
       lastFocus = focused;
       emit({ type: 'focus', focused });
     },
+    ingestCompletion(open) {
+      if (open === lastCompletion) return;
+      lastCompletion = open;
+      emit({ type: 'completion', open, revision: log.head() });
+    },
   };
 }
 
@@ -289,7 +304,7 @@ export function createDeferredEngine(logError: (error: unknown) => void): Editor
         ok: true,
         revision: 0,
         base: 0,
-        value: { api: API_VERSION, instance: '', ready: false, capabilities: { requests: REQUEST_NAMES, steps: [], events: [], languages: [], maxSelections: 0, logDepth: 0 } },
+        value: { api: API_VERSION, instance: '', ready: false, capabilities: { requests: CORE_REQUEST_NAMES, steps: [], events: [], languages: [], maxSelections: 0, logDepth: 0 } },
       });
     }
     return Promise.resolve({ ok: false, revision: null, error: { code: 'not-ready', message: 'the editor has not been created yet' } });

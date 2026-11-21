@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isLanguage, LANGUAGE_NAMES, parseApply, parseConfigPatch, parseHistory, parseLoad, parseRead, parseView } from '../../src';
+import { isLanguage, LANGUAGE_NAMES, parseApply, parseConfigPatch, parseHistory, parseLoad, parseRead, parseTree, parseView } from '../../src';
 
 const code = (parsed: { ok: boolean; error?: { code: string } }) => (parsed.ok ? 'ok' : parsed.error?.code);
 
@@ -23,6 +23,9 @@ describe('the wire validators', () => {
     ['a type step with empty text', { steps: [{ op: 'type', text: '' }] }, 'invalid'],
     ['a type step with a paste', { steps: [{ op: 'type', text: 'x'.repeat(65) }] }, 'invalid'],
     ['a type step beside another step', { steps: [{ op: 'type', text: 'x' }, { op: 'select', anchor: 0 }] }, 'invalid'],
+    ['a complete step', { steps: [{ op: 'complete' }] }, 'ok'],
+    ['a complete step beside another step', { steps: [{ op: 'complete' }, { op: 'select', anchor: 0 }] }, 'invalid'],
+    ['a complete step beside a type step', { steps: [{ op: 'type', text: 'x' }, { op: 'complete' }] }, 'invalid'],
     ['a type step of one keystroke', { steps: [{ op: 'type', text: '(' }] }, 'ok'],
     ['a type step of the longest keystroke', { steps: [{ op: 'type', text: 'x'.repeat(64) }] }, 'ok'],
   ])('given %s, when apply params are parsed, then they are %s', (_name, params, expected) => {
@@ -76,5 +79,48 @@ describe('the language vocabulary', () => {
 
   it('given a language that is not a string, when a config patch is parsed, then it is invalid and names the path', () => {
     expect(parseConfigPatch({ language: 5 })).toMatchObject({ ok: false, error: { code: 'invalid', path: 'language' } });
+  });
+});
+
+describe('the completion config', () => {
+  const entries = (count: number) => Array.from({ length: count }, (_, i) => ({ label: `name${i}` }));
+
+  it.each([
+    ['an enabled flag and no entries', { completion: { enabled: true } }, 'ok'],
+    ['entries with every field', { completion: { enabled: true, entries: [{ label: 'nums', type: 'variable', detail: 'list', boost: 9 }] } }, 'ok'],
+    ['200 entries', { completion: { enabled: false, entries: entries(200) } }, 'ok'],
+    ['201 entries', { completion: { enabled: false, entries: entries(201) } }, 'invalid'],
+    ['a label with a space', { completion: { enabled: true, entries: [{ label: 'a b' }] } }, 'invalid'],
+    ['an empty label', { completion: { enabled: true, entries: [{ label: '' }] } }, 'invalid'],
+    ['a label of 65 characters', { completion: { enabled: true, entries: [{ label: 'a'.repeat(65) }] } }, 'invalid'],
+    ['a boost of 100', { completion: { enabled: true, entries: [{ label: 'a', boost: 100 }] } }, 'invalid'],
+    ['a detail of 65 characters', { completion: { enabled: true, entries: [{ label: 'a', detail: 'd'.repeat(65) }] } }, 'invalid'],
+    ['no enabled flag', { completion: { entries: [] } }, 'invalid'],
+    ['entries that are not an array', { completion: { enabled: true, entries: 'x' } }, 'invalid'],
+  ])('given %s, when a config patch is parsed, then it is %s', (_name, params, expected) => {
+    expect(code(parseConfigPatch(params))).toBe(expected);
+  });
+
+  it('given a label that is too long, when the patch is parsed, then the error names the entry', () => {
+    expect(parseConfigPatch({ completion: { enabled: true, entries: [{ label: 'ok' }, { label: 'not ok' }] } })).toMatchObject({ ok: false, error: { path: 'completion.entries[1].label' } });
+  });
+});
+
+describe('the tree params', () => {
+  it.each([
+    ['no params', undefined, 'ok'],
+    ['null', null, 'ok'],
+    ['an empty object', {}, 'ok'],
+    ['every field', { range: { from: 0, to: 9 }, detail: 'full', budgetMs: 50 }, 'ok'],
+    ['a budget of zero and of 1000', { budgetMs: 0 }, 'ok'],
+    ['a budget of 1001', { budgetMs: 1001 }, 'invalid'],
+    ['a negative budget', { budgetMs: -1 }, 'invalid'],
+    ['a fractional budget', { budgetMs: 1.5 }, 'invalid'],
+    ['a budget that is a string', { budgetMs: '5' }, 'invalid'],
+    ['an inverted range', { range: { from: 5, to: 2 } }, 'invalid'],
+    ['a detail of deep', { detail: 'deep' }, 'invalid'],
+    ['params that are not an object', 5, 'invalid'],
+  ])('given %s, when tree params are parsed, then they are %s', (_name, params, expected) => {
+    expect(code(parseTree(params))).toBe(expected);
   });
 });
