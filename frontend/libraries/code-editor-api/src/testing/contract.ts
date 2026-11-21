@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, type TestContext 
 
 import { createEditorClient, unwrap, type EditorClient } from '../core/client';
 import { createDocumentMirror } from '../core/mirror';
+import { isSemanticOp } from '../core/validate';
 import type { EditorEngine } from '../ports/engine';
 import { CORE_REQUEST_NAMES, type EditorError, type EditorEvent, type EventType, type Language, type Range, type Reply, type RequestName, type SelRange, type Step } from '../ports/protocol';
 
@@ -152,7 +153,7 @@ export function editorContract(name: string, make: MakeSubject, options: Contrac
 
         // When each op is sent
         for (const op of advertised) {
-          if (op === 'type' || op === 'complete') continue; // they edit the text and have their own cases in the type and complete groups
+          if (op === 'type' || op === 'complete' || isSemanticOp(op)) continue; // they edit the text and have their own cases: the type and complete groups, and semanticContract
           expect(samples[op], `an advertised step op has no contract case: ${op}`).toBeDefined();
           expect((await client.transact([samples[op] as Step])).ok).toBe(true);
         }

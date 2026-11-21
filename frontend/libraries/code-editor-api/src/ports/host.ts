@@ -24,6 +24,8 @@ export interface DocumentHost { // the driven port: what the engine core needs f
   type?(text: string, label?: string): void; // one keystroke at the live selection: input handlers (auto-closed brackets) first, else a replace of the selection; at most one transaction, one undo step; core.ingest has run for it before this returns. Announced as the `type` step only when present
   complete?(label?: string): boolean; // accept the open completion at the live selection: true when one was open; at most one transaction, one undo step; core.ingest has run for it before this returns. Announced as the `complete` step and the `completion` event only when present
   tree?(): TreeSnapshot; // a snapshot of the document's syntax tree; announced as the `tree` request only when present
+  treeOf?(text: string): TreeSnapshot; // the snapshot of another text as the editor's current language would parse it, so an edit is checked before it applies; the document does not change. A semantic step is announced only when `tree` and `treeOf` are both present
+  indentUnit?(): string; // what one level of indentation is (four spaces when absent)
   commit(edit: Commit): void; // one transaction = one undo step; core.ingest must have run for it before this returns
   history(direction: 'undo' | 'redo'): boolean; // true when something was applied; core.ingest has run
   load(text: string, selection?: SelRange): HostLoad; // replace the document, reset history, next revision = previous head + 1

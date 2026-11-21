@@ -78,6 +78,7 @@ export function createHeadlessCm(options: { text?: string; instance?: string; lo
   sink.core = engine;
   return {
     engine,
+    host,
     text: () => state.doc.toString(),
     userTypes: (text) => dispatch(state.update(state.replaceSelection(text), { userEvent: 'input.type', annotations: Transaction.time.of(clock) })),
     userSelects: (anchor, head = anchor) => dispatch(state.update({ selection: EditorSelection.single(anchor, head), userEvent: 'select.pointer', annotations: Transaction.time.of(clock) })),

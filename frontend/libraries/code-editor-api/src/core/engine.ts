@@ -9,7 +9,7 @@ import { lengthDelta, mapSelRange, normalizeText } from './changes';
 import { planBatch, type ResolvedStep } from './plan';
 import { createRevisionLog } from './revisionLog';
 import { runTreeJob } from './treeJob';
-import { parseApply, parseConfigPatch, parseHistory, parseLoad, parseRead, parseTree, parseView } from './validate';
+import { isSemanticStep, parseApply, parseConfigPatch, parseHistory, parseLoad, parseRead, parseTree, parseView } from './validate';
 
 export type EngineOptions = {
   readonly instance: string;
@@ -71,6 +71,7 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
   const failure = (error: EditorError): Reply<never> => ({ ok: false, revision: log.head(), error });
   const success = <V>(value: V, base: Revision = log.head()): Reply<V> => ({ ok: true, revision: log.head(), base, value });
   const invalid = (path: string, message: string) => failure({ code: 'invalid', message, path });
+  const unsupportedStep = (op: string) => failure({ code: 'unsupported', message: `this editor has no step ${op}`, what: `step:${op}` });
   const mainRange = (selection: Selection): Range => {
     const range = selection.ranges[selection.main] ?? { anchor: 0, head: 0 };
     return { from: Math.min(range.anchor, range.head), to: Math.max(range.anchor, range.head) };
@@ -105,7 +106,7 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
   const apply = (params: unknown): Reply<ApplyValue> => {
     const parsed = parseApply(params);
     if (!parsed.ok) return failure(parsed.error);
-    const { steps, at, stale = 'reject', instance, label } = parsed.value;
+    const { steps, at, stale = 'reject', instance, label, preview } = parsed.value;
     if (instance !== undefined && instance !== options.instance) {
       return failure({ code: 'instance-mismatch', message: 'these revisions belong to another editor instance', expected: options.instance, actual: instance });
     }
@@ -115,6 +116,7 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     if (behind && (stale === 'reject' || at < log.floor())) {
       return failure({ code: 'stale', message: `the call was made at revision ${at}, the head is ${head}`, head, floor: log.floor() });
     }
+    if (preview) return failure({ code: 'unsupported', message: 'this editor cannot preview a call', what: 'apply:preview' }); // applying it instead would do the opposite of what was asked
     const sole = steps[0];
     if (sole?.op === 'type' || sole?.op === 'complete') {
       // a keystroke, or the acceptance of a completion, acts on what is selected now, so there is nothing to map: a call made at another revision is stale
@@ -127,6 +129,8 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
       const update = delivered as HostUpdate | null;
       return success({ changes: update?.changes ?? [], selection: host.selection(), landed: [null] }, head);
     }
+    const semantic = steps.find(isSemanticStep);
+    if (semantic) return unsupportedStep(semantic.op); // until a planner is registered
     const from = at ?? head;
     const lengthThen = behind ? (log.lengthAt(from) ?? 0) : host.doc.length;
     const live = mainRange(host.selection());
@@ -135,6 +139,7 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     const resolved: ResolvedStep[] = [];
     for (const [index, step] of steps.entries()) {
       if (step.op === 'type' || step.op === 'complete') return invalid(`steps[${index}]`, `a ${step.op} step is the only step of its call`);
+      if (isSemanticStep(step)) return unsupportedStep(step.op);
       if (step.op === 'select') {
         const point = (value: typeof step.anchor): typeof step.anchor | EditorError => {
           if (typeof value === 'number') return value > lengthThen ? outOf(index) : rebasePos(value, 1);

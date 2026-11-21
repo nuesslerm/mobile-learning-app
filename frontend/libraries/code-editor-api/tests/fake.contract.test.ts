@@ -1,9 +1,9 @@
 import { createDeferredEngine, LANGUAGE_NAMES } from '../src';
-import { createFakeEditor, editorContract, syntaxTreeContract, type FakeEditor, type MakeSubject } from '../src/testing';
+import { createFakeEditor, editorContract, semanticContract, syntaxTreeContract, type FakeEditor, type MakeSubject } from '../src/testing';
 
 const errors: unknown[] = [];
 
-editorContract('the fake editor, directly', async ({ bound }) => {
+const plain: MakeSubject = async ({ bound }) => {
   const deferred = createDeferredEngine((error) => errors.push(error));
   let generation = 0;
   let current: FakeEditor | null = null;
@@ -22,7 +22,9 @@ editorContract('the fake editor, directly', async ({ bound }) => {
       restart: bind,
     },
   };
-}, { languages: LANGUAGE_NAMES });
+};
+
+editorContract('the fake editor, directly', plain, { languages: LANGUAGE_NAMES });
 
 const withTree: MakeSubject = async ({ bound }) => {
   const deferred = createDeferredEngine((error) => errors.push(error));
@@ -38,3 +40,5 @@ const withTree: MakeSubject = async ({ bound }) => {
 };
 
 for (const language of LANGUAGE_NAMES) syntaxTreeContract('the fake editor, directly', withTree, language);
+for (const language of LANGUAGE_NAMES) semanticContract('the fake editor, directly', plain, language);
+for (const language of LANGUAGE_NAMES) semanticContract('the fake editor with a tree, directly', withTree, language);

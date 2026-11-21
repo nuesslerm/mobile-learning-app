@@ -28,6 +28,31 @@ describe('the wire validators', () => {
     ['a complete step beside a type step', { steps: [{ op: 'type', text: 'x' }, { op: 'complete' }] }, 'invalid'],
     ['a type step of one keystroke', { steps: [{ op: 'type', text: '(' }] }, 'ok'],
     ['a type step of the longest keystroke', { steps: [{ op: 'type', text: 'x'.repeat(64) }] }, 'ok'],
+    ['a moveNode with a before destination', { steps: [{ op: 'moveNode', node: { from: 0, to: 5 }, to: { before: { from: 9, to: 12 } } }] }, 'ok'],
+    ['a moveNode with no to', { steps: [{ op: 'moveNode', node: { from: 0, to: 5 } }] }, 'invalid'],
+    ['a destination with two keys', { steps: [{ op: 'moveNode', node: { from: 0, to: 5 }, to: { before: { from: 9, to: 12 }, after: { from: 9, to: 12 } } }] }, 'invalid'],
+    ['an into destination with an at of middle', { steps: [{ op: 'moveNode', node: { from: 0, to: 5 }, to: { into: { from: 9, to: 12 }, at: 'middle' } }] }, 'invalid'],
+    ['an into destination with a fractional block', { steps: [{ op: 'insertSnippet', at: { into: { from: 9, to: 12 }, at: 'end', block: 1.5 }, text: 'x' }] }, 'invalid'],
+    ['a wrapNode with a header holding a newline', { steps: [{ op: 'wrapNode', node: { from: 0, to: 5 }, header: 'for i in a\nfor j in b' }] }, 'invalid'],
+    ['a wrapNode with an empty header', { steps: [{ op: 'wrapNode', node: { from: 0, to: 5 }, header: '' }] }, 'invalid'],
+    ['a wrapNode with a header of 201 characters', { steps: [{ op: 'wrapNode', node: { from: 0, to: 5 }, header: 'x'.repeat(201) }] }, 'invalid'],
+    ['an insertSnippet with blank text', { steps: [{ op: 'insertSnippet', at: { after: { from: 0, to: 5 } }, text: ' \n ' }] }, 'invalid'],
+    ['an insertSnippet of 4001 characters', { steps: [{ op: 'insertSnippet', at: { after: { from: 0, to: 5 } }, text: 'x'.repeat(4001) }] }, 'invalid'],
+    ['a reindentBlock by 9', { steps: [{ op: 'reindentBlock', node: { from: 0, to: 5 }, by: 9 }] }, 'invalid'],
+    ['a reindentBlock by 1.5', { steps: [{ op: 'reindentBlock', node: { from: 0, to: 5 }, by: 1.5 }] }, 'invalid'],
+    ['a reindentBlock by -8', { steps: [{ op: 'reindentBlock', node: { from: 0, to: 5 }, by: -8 }] }, 'ok'],
+    ['a deleteNode with node selection', { steps: [{ op: 'deleteNode', node: 'selection' }] }, 'ok'],
+    ['a deleteNode with no node', { steps: [{ op: 'deleteNode' }] }, 'invalid'],
+    ['a node step beside a replace step', { steps: [{ op: 'deleteNode', node: 'selection' }, { op: 'replace', range: { from: 0, to: 0 }, text: 'x' }] }, 'invalid'],
+    ['a node step beside a move step', { steps: [{ op: 'duplicateNode', node: 'selection' }, { op: 'move', range: { from: 0, to: 1 }, to: 3 }] }, 'invalid'],
+    ['a node step beside one select step', { steps: [{ op: 'deleteNode', node: 'selection' }, { op: 'select', anchor: { step: 0 } }] }, 'ok'],
+    ['a preview that is not a boolean', { steps: [], preview: 'yes' }, 'invalid'],
+    ['a preview of a replace step', { steps: [{ op: 'replace', range: { from: 0, to: 0 }, text: 'x' }], preview: true }, 'ok'],
+    ['a type step with a preview', { steps: [{ op: 'type', text: 'x' }], preview: true }, 'invalid'],
+    ['a complete step with a preview', { steps: [{ op: 'complete' }], preview: true }, 'invalid'],
+    ['a budget of 1001', { steps: [], budgetMs: 1001 }, 'invalid'],
+    ['a budget of -1', { steps: [], budgetMs: -1 }, 'invalid'],
+    ['a budget of 0 and of 1000', { steps: [], budgetMs: 0 }, 'ok'],
   ])('given %s, when apply params are parsed, then they are %s', (_name, params, expected) => {
     expect(code(parseApply(params))).toBe(expected);
   });
@@ -40,6 +65,37 @@ describe('the wire validators', () => {
   it('given step text with CRLF, when parsed, then text and expect are normalised', () => {
     const parsed = parseApply({ steps: [{ op: 'replace', range: { from: 0, to: 0 }, text: 'a\r\nb\rc', expect: 'x\r\ny' }] });
     expect(parsed.ok && parsed.value.steps[0]).toEqual({ op: 'replace', range: { from: 0, to: 0 }, text: 'a\nb\nc', expect: 'x\ny' });
+  });
+
+  it('given every node step with every field, when parsed, then nothing is dropped and no undefined field appears', () => {
+    const node = { from: 2, to: 9 };
+    const params = {
+      steps: [
+        { op: 'moveNode', node, to: { into: { from: 12, to: 20 }, at: 'end', block: 1 }, expect: 'x' },
+        { op: 'wrapNode', node, header: 'for i in range(n)', expect: 'x' },
+        { op: 'unwrapNode', node: 'selection' },
+        { op: 'deleteNode', node },
+        { op: 'duplicateNode', node, expect: 'x' },
+        { op: 'insertSnippet', at: { after: node }, text: 'a = 1\nb = 2' },
+        { op: 'reindentBlock', node, by: -1 },
+        { op: 'reindentBlock', node },
+      ],
+      at: 3,
+      preview: true,
+      budgetMs: 250,
+    };
+    const parsed = parseApply(params);
+    expect(parsed.ok && JSON.parse(JSON.stringify(parsed.value))).toEqual(params);
+  });
+
+  it('given a snippet with CRLF, when parsed, then it is LF', () => {
+    const parsed = parseApply({ steps: [{ op: 'insertSnippet', at: { before: { from: 0, to: 0 } }, text: 'a\r\nb' }] });
+    expect(parsed.ok && parsed.value.steps[0]).toMatchObject({ text: 'a\nb' });
+  });
+
+  it('given a node step that fails, when parsed, then the error names its path', () => {
+    expect(parseApply({ steps: [{ op: 'deleteNode', node: 'selection' }, { op: 'moveNode', node: 'selection', to: { into: { from: 0, to: 0 }, at: 'middle' } }] })).toMatchObject({ ok: false, error: { path: 'steps[1].to.at' } });
+    expect(parseApply({ steps: [{ op: 'reindentBlock', node: 'selection', by: 9 }] })).toMatchObject({ ok: false, error: { path: 'steps[0].by' } });
   });
 
   it('given a valid batch with options, when parsed, then nothing is dropped and no undefined field appears', () => {

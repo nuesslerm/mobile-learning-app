@@ -1,7 +1,7 @@
 import {
-  LANGUAGE_NAMES,
+  LANGUAGE_NAMES, SEMANTIC_STEP_OPS,
   type CompletionConfig, type CompletionEntry, type TreeParams,
-  type ApplyParams, type ConfigPatch, type EditorError, type HistoryParams, type Language, type LoadParams, type Palette, type Point, type Range, type ReadParams, type SelRange, type Step, type ViewParams,
+  type ApplyParams, type ConfigPatch, type Destination, type EditorError, type HistoryParams, type Language, type LoadParams, type Palette, type Point, type Range, type ReadParams, type SelRange, type SemanticStep, type SemanticStepOp, type Step, type ViewParams,
 } from '../ports/protocol';
 import { normalizeText } from './changes';
 
@@ -12,6 +12,9 @@ const MAX_TYPED = 64; // a keystroke, not a paste
 const MAX_COMPLETIONS = 200;
 const COMPLETION_LABEL = /^[\w$]{1,64}$/;
 const MAX_TREE_BUDGET_MS = 1000;
+const MAX_HEADER = 200;
+const MAX_SNIPPET = 4000;
+const MAX_REINDENT = 8;
 const LABEL = /^[a-z0-9][a-z0-9.-]{0,31}$/;
 const PALETTE_KEYS = ['cursor', 'selection', 'background', 'gutter', 'border'] as const;
 
@@ -42,6 +45,48 @@ function parsePoint(value: unknown, path: string, steps: readonly unknown[]): Pa
 
 function parseTarget(value: unknown, path: string): Parsed<Range | 'selection'> {
   return value === 'selection' ? { ok: true, value } : parseRange(value, path);
+}
+
+function parseDestination(value: unknown, path: string): Parsed<Destination> {
+  if (!isObject(value)) return bad(path, 'a destination is {before}, {after} or {into, at}');
+  const named = (['before', 'after', 'into'] as const).filter((key) => value[key] !== undefined);
+  if (named.length !== 1) return bad(path, 'a destination names exactly one of before, after or into');
+  const key = named[0] as 'before' | 'after' | 'into';
+  const range = parseRange(value[key], `${path}.${key}`);
+  if (!range.ok) return range;
+  if (key === 'before') return { ok: true, value: { before: range.value } };
+  if (key === 'after') return { ok: true, value: { after: range.value } };
+  if (value.at !== 'start' && value.at !== 'end') return bad(`${path}.at`, 'an into destination needs at: start or end');
+  if (value.block !== undefined && !isInt(value.block)) return bad(`${path}.block`, 'block is a non-negative integer');
+  return { ok: true, value: { into: range.value, at: value.at, ...(value.block === undefined ? {} : { block: value.block }) } };
+}
+
+function parseSemanticStep(value: Record<string, unknown>, op: SemanticStepOp, path: string, guard: { expect?: string }): Parsed<SemanticStep> {
+  if (op === 'insertSnippet') {
+    const at = parseDestination(value.at, `${path}.at`);
+    if (!at.ok) return at;
+    if (typeof value.text !== 'string') return bad(`${path}.text`, 'text is a string');
+    const text = normalizeText(value.text);
+    if (text.trim() === '' || text.length > MAX_SNIPPET) return bad(`${path}.text`, `a snippet is 1 to ${MAX_SNIPPET} characters and not blank`);
+    return { ok: true, value: { op, at: at.value, text } };
+  }
+  const node = parseTarget(value.node, `${path}.node`);
+  if (!node.ok) return node;
+  if (op === 'reindentBlock') {
+    const by = value.by;
+    if (by !== undefined && !(typeof by === 'number' && Number.isInteger(by) && Math.abs(by) <= MAX_REINDENT)) return bad(`${path}.by`, `by is an integer from -${MAX_REINDENT} to ${MAX_REINDENT}`);
+    return { ok: true, value: { op, node: node.value, ...(by === undefined ? {} : { by: by as number }) } };
+  }
+  if (op === 'moveNode') {
+    const to = parseDestination(value.to, `${path}.to`);
+    return to.ok ? { ok: true, value: { op, node: node.value, to: to.value, ...guard } } : to;
+  }
+  if (op === 'wrapNode') {
+    const header = value.header;
+    if (typeof header !== 'string' || header.trim() === '' || header.length > MAX_HEADER || /[\r\n]/.test(header)) return bad(`${path}.header`, `a header is one non-empty line of at most ${MAX_HEADER} characters`);
+    return { ok: true, value: { op, node: node.value, header, ...guard } };
+  }
+  return { ok: true, value: { op, node: node.value, ...guard } };
 }
 
 function parseStep(value: unknown, index: number, steps: readonly unknown[]): Parsed<Step> {
@@ -76,6 +121,7 @@ function parseStep(value: unknown, index: number, steps: readonly unknown[]): Pa
     return { ok: true, value: { op: 'type', text } };
   }
   if (value.op === 'complete') return { ok: true, value: { op: 'complete' } };
+  if (isSemanticOp(value.op)) return parseSemanticStep(value, value.op, path, guard);
   return { ok: false, error: { code: 'unsupported', message: `this editor has no step ${value.op}`, what: `step:${value.op}` } };
 }
 
@@ -89,6 +135,10 @@ export function parseApply(params: unknown): Parsed<ApplyParams> {
     steps.push(step.value);
   }
   if (steps.length > 1 && steps.some((step) => step.op === 'type' || step.op === 'complete')) return bad('steps', 'a type or complete step is the only step of its call');
+  if (steps.some(isSemanticStep) && steps.some((step) => step.op === 'replace' || step.op === 'move')) return bad('steps', 'a node step cannot share a call with a replace or move step');
+  if (params.preview !== undefined && typeof params.preview !== 'boolean') return bad('preview', 'preview is a boolean');
+  if (params.preview === true && steps.some((step) => step.op === 'type' || step.op === 'complete')) return bad('preview', 'a type or complete step cannot be previewed');
+  if (params.budgetMs !== undefined && !(isInt(params.budgetMs) && params.budgetMs <= MAX_TREE_BUDGET_MS)) return bad('budgetMs', `budgetMs is an integer from 0 to ${MAX_TREE_BUDGET_MS}`);
   if (params.at !== undefined && !isInt(params.at)) return bad('at', 'at is a revision: a non-negative integer');
   if (params.stale !== undefined && params.stale !== 'reject' && params.stale !== 'map') return bad('stale', 'stale is reject or map');
   if (params.instance !== undefined && typeof params.instance !== 'string') return bad('instance', 'instance is a string');
@@ -101,6 +151,8 @@ export function parseApply(params: unknown): Parsed<ApplyParams> {
       ...(params.stale === undefined ? {} : { stale: params.stale as 'reject' | 'map' }),
       ...(params.instance === undefined ? {} : { instance: params.instance as string }),
       ...(params.label === undefined ? {} : { label: params.label as string }),
+      ...(params.preview === undefined ? {} : { preview: params.preview as boolean }),
+      ...(params.budgetMs === undefined ? {} : { budgetMs: params.budgetMs as number }),
     },
   };
 }
@@ -226,3 +278,5 @@ export function parseConfigPatch(params: unknown): Parsed<ConfigPatch> {
 }
 
 export const isLanguage = (value: string): value is Language => (LANGUAGE_NAMES as readonly string[]).includes(value);
+export const isSemanticOp = (op: string): op is SemanticStepOp => (SEMANTIC_STEP_OPS as readonly string[]).includes(op);
+export const isSemanticStep = (step: Step): step is SemanticStep => isSemanticOp(step.op);

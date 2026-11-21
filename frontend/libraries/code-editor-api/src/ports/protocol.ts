@@ -23,13 +23,27 @@ export type Point =
   | { readonly at: Pos; readonly assoc: Assoc }
   | { readonly step: number; readonly edge?: 'start' | 'end'; readonly offset?: number }; // new: edge defaults to 'start'
 
+export const SEMANTIC_STEP_OPS = ['moveNode', 'wrapNode', 'unwrapNode', 'deleteNode', 'duplicateNode', 'insertSnippet', 'reindentBlock'] as const; // whole-line edits of syntax nodes: an engine announces one only when its host can parse another text
+export type SemanticStepOp = (typeof SEMANTIC_STEP_OPS)[number];
+// where a node or a snippet goes: beside a reference run of statements, or inside the owner of a block (`block` picks among the blocks of a compound, through its clauses)
+export type Destination =
+  | { readonly before: Range }
+  | { readonly after: Range }
+  | { readonly into: Range; readonly at: 'start' | 'end'; readonly block?: number };
+
 export type Step =
   | { readonly op: 'replace'; readonly range: Target; readonly text: string; readonly expect?: string } // insertAt = empty range, delete = text ''
   | { readonly op: 'move'; readonly range: Target; readonly to: Pos; readonly expect?: string }
   | { readonly op: 'select'; readonly anchor: Point; readonly head?: Point }
   | { readonly op: 'type'; readonly text: string } // one keystroke at the live selection, through the editor's input handlers; the only step of its call
-  | { readonly op: 'complete' }; // accepts the completion the editor has open, at the live selection; the only step of its call, nothing when none is open
+  | { readonly op: 'complete' } // accepts the completion the editor has open, at the live selection; the only step of its call, nothing when none is open
+  | { readonly op: 'moveNode'; readonly node: Target; readonly to: Destination; readonly expect?: string }
+  | { readonly op: 'wrapNode'; readonly node: Target; readonly header: string; readonly expect?: string } // header: the line without its colon or brace, `for i in range(n)`
+  | { readonly op: 'unwrapNode' | 'deleteNode' | 'duplicateNode'; readonly node: Target; readonly expect?: string }
+  | { readonly op: 'insertSnippet'; readonly at: Destination; readonly text: string }
+  | { readonly op: 'reindentBlock'; readonly node: Target; readonly by?: number }; // by in indent units; omitted = normalise
 export type StepOp = Step['op'];
+export type SemanticStep = Extract<Step, { readonly op: SemanticStepOp }>;
 
 export type Stale = 'reject' | 'map';
 export type ApplyParams = {
@@ -38,11 +52,14 @@ export type ApplyParams = {
   readonly stale?: Stale; // default 'reject'
   readonly instance?: string; // new: the Hello.instance the caller's revisions belong to
   readonly label?: string; // new: /^[a-z0-9][a-z0-9.-]{0,31}$/; becomes userEvent api.<label> and is echoed on the changed event
+  readonly preview?: boolean; // plan and check the batch, apply nothing: the reply carries the would-be text
+  readonly budgetMs?: number; // 0 to 1000: how long each parse of a semantic step may take (default 250)
 };
 export type ApplyValue = {
-  readonly changes: readonly Change[]; // individual changes in Reply.base coordinates; empty when the text did not change
+  readonly changes: readonly Change[]; // individual changes in Reply.base coordinates; empty when the text did not change, and on a preview
   readonly selection: Selection;
   readonly landed: readonly (Range | null)[]; // per step, where its inserted text sits in the result; null for select
+  readonly preview?: { readonly text: string; readonly diff: readonly Change[]; readonly landed: readonly (Range | null)[] }; // only on a preview: the would-be text, its changes and where each step's text would sit
 };
 export type ReadParams = { readonly range?: Range };
 export type ReadValue = { readonly text: string; readonly range: Range; readonly length: number; readonly selection: Selection };
@@ -92,6 +109,8 @@ export const CORE_REQUEST_NAMES = ['hello', 'read', 'apply', 'history', 'load', 
 export const OPTIONAL_REQUEST_NAMES = ['tree'] as const satisfies readonly RequestName[]; // announced in hello only by an engine whose host can answer them
 export const REQUEST_NAMES = [...CORE_REQUEST_NAMES, ...OPTIONAL_REQUEST_NAMES] as const satisfies readonly RequestName[]; // every name a page serves
 
+export type NotANodeReason = 'no-statement' | 'shares-line' | 'not-in-block' | 'damaged' | 'not-unwrappable';
+export type WouldNotParseReason = 'syntax' | 'structure';
 export type EditorError =
   | { readonly code: 'not-ready'; readonly message: string }
   | { readonly code: 'invalid'; readonly message: string; readonly path?: string }
@@ -105,8 +124,8 @@ export type EditorError =
   | { readonly code: 'transport'; readonly message: string; readonly cause: 'timeout' | 'closed' | 'protocol' | 'restarted' } // made by the client layer only
   | { readonly code: 'internal'; readonly message: string }
   // reserved for D2/E1/F3: declared now so the union never widens under an exhaustive switch; B1 engines never produce them
-  | { readonly code: 'not-a-node'; readonly message: string; readonly range: Range }
-  | { readonly code: 'would-not-parse'; readonly message: string; readonly errors: readonly Range[] }
+  | { readonly code: 'not-a-node'; readonly message: string; readonly range: Range; readonly reason?: NotANodeReason; readonly step?: number }
+  | { readonly code: 'would-not-parse'; readonly message: string; readonly errors: readonly Range[]; readonly reason?: WouldNotParseReason } // errors are ranges in the would-be text: nothing applied
   | { readonly code: 'parse-timeout'; readonly message: string; readonly budgetMs: number }
   | { readonly code: 'structure-changed'; readonly message: string; readonly head: Revision }
   | { readonly code: 'conflict'; readonly message: string; readonly step: number; readonly byRevision: Revision };

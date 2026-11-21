@@ -109,6 +109,47 @@ describe('an editor whose host cannot complete', () => {
   });
 });
 
+describe('an engine with no planner for a node step', () => {
+  const NODE_STEPS = [
+    { op: 'moveNode', node: { from: 0, to: 3 }, to: { after: { from: 4, to: 7 } } },
+    { op: 'wrapNode', node: { from: 0, to: 3 }, header: 'for i in range(2)' },
+    { op: 'unwrapNode', node: { from: 0, to: 3 } },
+    { op: 'deleteNode', node: 'selection' },
+    { op: 'duplicateNode', node: { from: 0, to: 3 } },
+    { op: 'insertSnippet', at: { before: { from: 0, to: 0 } }, text: 'x = 1' },
+    { op: 'reindentBlock', node: { from: 0, to: 3 }, by: 1 },
+  ] as const;
+
+  it.each(NODE_STEPS)('given a host with a tree, when $op is sent, then it is unsupported naming the step, nothing changes and hello announces no node step', async (step) => {
+    const fake = createFakeEditor({ text: 'abc\ndef\n', tree: true });
+    const client = createEditorClient(fake.engine);
+
+    const reply = await client.transact([step]);
+    const hello = unwrap(await client.hello());
+
+    expect(reply).toMatchObject({ ok: false, error: { code: 'unsupported', what: `step:${step.op}` } });
+    expect(fake.peek()).toMatchObject({ text: 'abc\ndef\n', revision: 0, undoDepth: 0 });
+    expect(hello.capabilities.steps).toEqual(['replace', 'move', 'select', 'type', 'complete']);
+  });
+
+  it('given a node step after a select step that names text past the end, when it is sent, then the answer is still unsupported', async () => {
+    const client = createEditorClient(createFakeEditor({ text: 'abc' }).engine);
+
+    const reply = await client.transact([{ op: 'select', anchor: 99 }, { op: 'deleteNode', node: 'selection' }]);
+
+    expect(reply).toMatchObject({ ok: false, error: { code: 'unsupported', what: 'step:deleteNode' } });
+  });
+
+  it('given a preview of a raw replace, when it is sent, then it is unsupported and the text is not edited', async () => {
+    const fake = createFakeEditor({ text: 'abc' });
+
+    const reply = await fake.engine.request('apply', { steps: [{ op: 'replace', range: { from: 0, to: 1 }, text: 'X' }], preview: true });
+
+    expect(reply).toMatchObject({ ok: false, error: { code: 'unsupported', what: 'apply:preview' } });
+    expect(fake.text()).toBe('abc');
+  });
+});
+
 describe('the completion event', () => {
   it('given the engine told twice that a list is open and then closed, when a listener hears completion, then it hears each change once', () => {
     // Given a listener on completion

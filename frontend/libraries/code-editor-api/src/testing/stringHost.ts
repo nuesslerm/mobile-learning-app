@@ -23,6 +23,8 @@ export type FakeEditorOptions = {
 };
 export type FakeEditor = {
   readonly engine: EngineCore;
+  /** the host the engine runs on, for a test of the host itself */
+  readonly host: DocumentHost;
   text(): string;
   /** the person typing: replaces the selection */
   userTypes(text: string): void;
@@ -130,7 +132,8 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
             return true;
           },
         }),
-    ...(options.tree ? { tree: (): TreeSnapshot => snapshotFor(text, config.language) } : {}),
+    ...(options.tree ? { tree: (): TreeSnapshot => snapshotFor(text, config.language), treeOf: (other: string): TreeSnapshot => snapshotFor(other, config.language) } : {}),
+    indentUnit: () => ' '.repeat(config.tabSize),
     commit({ changes, selection: next, label }) {
       if (changes.length === 0) {
         if (next) reselect(next, 'select.api');
@@ -174,6 +177,7 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
 
   return {
     engine,
+    host,
     text: () => text,
     internalErrors: () => errors,
     userTypes(typed) {
