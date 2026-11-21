@@ -7,10 +7,11 @@ import { runParamsFor } from '../../../domain/run/runParams';
 import { runResponseOf } from '../../../domain/run/verdict';
 import type { JudgePayload } from '../judgeProtocol';
 import { bootNodeJudge, type NodeJudge } from './support/nodePyodide';
+import { loadReferenceCorpus, referenceFor } from './support/referenceCorpus';
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
 
-const goldens = JSON.parse(readFileSync(join(__dirname, 'fixtures/referenceSolutions.json'), 'utf8')) as { problem: string; code: string }[];
+const goldens = loadReferenceCorpus();
 const named = JSON.parse(readFileSync(join(__dirname, 'fixtures/named.json'), 'utf8')) as Record<string, string>;
 
 function payloadFor(problemId: string, code: string): JudgePayload {
@@ -26,9 +27,9 @@ describe('the on-device judge on known-good solutions', () => {
     judge = await bootNodeJudge();
   });
 
-  it('given a reference solution for each of 29 problems across the patterns, when it runs with the catalog paramTypes, returnType and inPlaceParam, then every case passes', () => {
-    // Given 29 problems: arrays, two pointers, stack, binary search, DP, intervals, graphs, linked lists, trees, in-place matrices
-    expect(goldens).toHaveLength(29);
+  it('given the reference corpus of at least the 29 problems across the patterns, when it runs with the catalog paramTypes, returnType and inPlaceParam, then every case passes', () => {
+    // Given the 29 problems the corpus began with: arrays, two pointers, stack, binary search, DP, intervals, graphs, linked lists, trees, in-place matrices
+    expect(goldens.length).toBeGreaterThanOrEqual(29);
     const failures: string[] = [];
     let cases = 0;
     for (const { problem, code } of goldens) {
@@ -46,7 +47,7 @@ describe('the on-device judge on known-good solutions', () => {
 
   it('given the in-place problems, when their reference solutions run, then the mutated argument is what is compared and they pass where the backend cannot', () => {
     for (const id of ['rotate-image', 'set-matrix-zeroes']) {
-      const code = goldens.find((g) => g.problem === id)?.code ?? '';
+      const code = referenceFor(id, goldens);
       const local = runResponseOf(judge.run(payloadFor(id, code)), 'offline');
       const remote = runResponseOf(judge.runBackend({ ...payloadFor(id, code), paramTypes: undefined, returnType: undefined, inPlace: undefined }), 'backend-run');
       expect(local.status_msg, id).toBe('Accepted');
@@ -55,7 +56,7 @@ describe('the on-device judge on known-good solutions', () => {
   });
 
   it('given a linked-list problem, when the backend runs the same correct solution, then it scores zero because it hands the user raw lists', () => {
-    const code = goldens.find((g) => g.problem === 'reverse-linked-list')?.code ?? '';
+    const code = referenceFor('reverse-linked-list', goldens);
     const remote = runResponseOf(judge.runBackend({ ...payloadFor('reverse-linked-list', code), paramTypes: undefined, returnType: undefined }), 'backend-run');
     expect(remote.total_correct).toBe(0);
     expect(runResponseOf(judge.run(payloadFor('reverse-linked-list', code)), 'offline').status_msg).toBe('Accepted');

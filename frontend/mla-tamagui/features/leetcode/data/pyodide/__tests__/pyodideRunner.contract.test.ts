@@ -6,10 +6,11 @@ import { ProblemCatalog } from '../../../domain/problemCatalog';
 import { runParamsFor } from '../../../domain/run/runParams';
 import { createPyodideRunner } from '../pyodideRunner';
 import { createNodePageHost } from './support/nodePageHost';
+import { loadReferenceCorpus, referenceFor } from './support/referenceCorpus';
 
 vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });
 
-const goldens = JSON.parse(readFileSync(join(__dirname, 'fixtures/referenceSolutions.json'), 'utf8')) as { problem: string; code: string }[];
+const corpus = loadReferenceCorpus();
 const named = JSON.parse(readFileSync(join(__dirname, 'fixtures/named.json'), 'utf8')) as Record<string, string>;
 const twoSum = ProblemCatalog.getById('two-sum');
 if (!twoSum) throw new Error('no two-sum');
@@ -21,7 +22,7 @@ describe('the Pyodide runner on a real interpreter', () => {
   it('Given reference solutions across linked lists, trees, in-place matrices and plain arrays, When each runs through the runner, Then every one is Accepted over its bundled cases', async () => {
     for (const id of ['reverse-linked-list', 'invert-binary-tree', 'rotate-image', 'set-matrix-zeroes', 'valid-parentheses', 'merge-intervals', 'course-schedule']) {
       const problem = ProblemCatalog.getById(id);
-      const code = goldens.find((g) => g.problem === id)?.code ?? '';
+      const code = referenceFor(id, corpus);
       const response = await runner.run(runParamsFor(problem ?? twoSum, 'python3', code));
       expect(response, id).toMatchObject({ source: 'offline', status_msg: 'Accepted', run_success: true });
       expect(response.total_testcases, id).toBeGreaterThan(0);

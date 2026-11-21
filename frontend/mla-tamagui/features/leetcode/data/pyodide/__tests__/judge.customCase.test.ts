@@ -6,10 +6,11 @@ import { ProblemCatalog } from '../../../domain/problemCatalog';
 import { runParamsFor } from '../../../domain/run/runParams';
 import type { JudgePayload } from '../judgeProtocol';
 import { bootNodeJudge, type NodeJudge } from './support/nodePyodide';
+import { loadReferenceCorpus } from './support/referenceCorpus';
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
 
-const goldens = JSON.parse(readFileSync(join(__dirname, 'fixtures/referenceSolutions.json'), 'utf8')) as { problem: string; code: string }[];
+const goldens = loadReferenceCorpus();
 const named = JSON.parse(readFileSync(join(__dirname, 'fixtures/named.json'), 'utf8')) as Record<string, string>;
 const solutionFor = (problemId: string) => goldens.find((g) => g.problem === problemId)?.code ?? '';
 
