@@ -156,7 +156,7 @@ impl DetectParams {
 }
 
 /// What the executor found for one driver's CLI (`program`). `version` and `path` are the executor's (`cli_detect`); a CLI that is there but
-/// did not answer has `error` and no version; one that is not there has only `installed: false`.
+/// did not answer has `error` and no version. A driver whose CLI is not there is not listed; `installed` is always true in an answer.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DetectedAgent {
     pub driver: String,
@@ -190,7 +190,7 @@ pub struct DetectedTool {
 pub struct DetectResult {
     /// The executor that was asked, by the name it attached under.
     pub executor: String,
-    /// One entry per driver, in the order of `DRIVERS`.
+    /// One entry per driver whose CLI the executor has, in the order of `DRIVERS`.
     pub agents: Vec<DetectedAgent>,
     /// One entry per program of `TOOLS`, in that order.
     #[serde(default)]
@@ -555,11 +555,12 @@ mod tests {
         let fixture = recorded.iter().find(|f| f.method == "agents.detect").unwrap();
         for exchange in fixture.exchanges.iter().filter(|e| e.succeeds() && e.request["params"].get("executor").is_none()) {
             let result: DetectResult = serde_json::from_value(exchange.response["result"].clone()).unwrap();
-            // Then the drivers come in the table's order, and a driver is installed exactly when its program is one the executor was set up with, with that version
-            assert_eq!(result.agents.iter().map(|a| a.driver.as_str()).collect::<Vec<_>>(), DRIVERS);
+            // Then the listed drivers are in the table's order, and they are exactly the ones whose program the executor was set up with, with that version
+            let expected: Vec<&str> = DRIVERS.iter().copied().filter(|d| FIXTURE_CLIS.iter().any(|(program, _)| *program == if *d == "claudeAgent" { "claude" } else { d })).collect();
+            assert_eq!(result.agents.iter().map(|a| a.driver.as_str()).collect::<Vec<_>>(), expected);
             for agent in &result.agents {
                 let set_up = FIXTURE_CLIS.iter().find(|(program, _)| *program == agent.program);
-                assert_eq!((agent.installed, agent.version.as_deref()), (set_up.is_some(), set_up.map(|(_, v)| *v)), "{}", agent.program);
+                assert_eq!((agent.installed, agent.version.as_deref()), (true, set_up.map(|(_, v)| *v)), "{}", agent.program);
             }
         }
     }

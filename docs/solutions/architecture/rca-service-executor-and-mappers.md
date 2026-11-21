@@ -44,7 +44,7 @@ Why the CLI runs at the host (owner decision, 18 Nov; `docs/plans/rca-client/arc
 ## Words
 
 - **Workspace**: a name for one project root, not a machine. One `rca-exec serve --workspace <id> --root <dir>` process serves one workspace; one machine can run several, and several machines can attach to one service. The executor id defaults to the workspace id (`--executor` sets another).
-- **Driver**: `claudeAgent`, `codex` or `opencode`; `thread.create` and `turn.start` name it, with an optional `model`. `agents.detect` lists a driver's CLI only as the executor's `cli_detect` reports it.
+- **Driver**: `claudeAgent`, `codex` or `opencode`; `thread.create` and `turn.start` name it, with an optional `model`. `agents.detect` lists a driver's CLI only as the executor's `cli_detect` reports it, and omits a driver whose CLI is absent.
 - **Mapper**: a phone-protocol server over the agent API. A new phone app is a new mapper; nothing in `/agent/v1` is shaped to one app.
 
 ## Running it

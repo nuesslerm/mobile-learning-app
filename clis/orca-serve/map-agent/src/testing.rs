@@ -426,14 +426,8 @@ impl Catalog {
                 state.detections.push(p.clone());
                 let agents: Vec<Value> = [("opencode", "opencode"), ("claudeAgent", "claude"), ("codex", "codex")]
                     .iter()
-                    .map(|(driver, program)| {
-                        let there = state.programs.iter().any(|x| x == program);
-                        if there {
-                            json!({"driver": driver, "program": program, "installed": true, "path": format!("/usr/bin/{program}"), "version": "1.0.0"})
-                        } else {
-                            json!({"driver": driver, "program": program, "installed": false})
-                        }
-                    })
+                    .filter(|(_, program)| state.programs.iter().any(|x| x == program))
+                    .map(|(driver, program)| json!({"driver": driver, "program": program, "installed": true, "path": format!("/usr/bin/{program}"), "version": "1.0.0"}))
                     .collect();
                 let tools: Vec<Value> = ["git", "gh", "glab"]
                     .iter()

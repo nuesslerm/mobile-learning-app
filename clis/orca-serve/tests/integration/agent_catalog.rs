@@ -123,12 +123,12 @@ fn the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_
         // When opencode is gone from the executor's PATH and the phone refreshes
         std::fs::remove_file(chain.cli.dir().join("opencode")).unwrap();
         let refreshed = phone.call(case, &chain, &["rpc:preflight.refreshAgents"], "preflight.refreshAgents", json!({}));
-        // Then the executor looked again and reports opencode missing, the others still there
+        // Then the executor looked again and leaves opencode out of the list, the others still there
         answered(case, "agents.detect");
         assert!(executor_ran(case, "cli_detect"), "{:?}", case.calls().last());
         assert_eq!(sorted(&refreshed["result"]["agents"]), ["claude", "codex"], "{refreshed}");
         let after = reported(&mut rca);
-        assert!(after.iter().any(|(driver, installed, _)| driver.to_lowercase().contains("open") && !installed), "{after:?}");
+        assert!(after.iter().all(|(driver, installed, _)| *installed && !driver.to_lowercase().contains("open")), "{after:?}");
         // And a chat for the missing agent is not supported while one for claude is
         let missing = phone.call(case, &chain, &["rpc:agentSession.createSupport"], "agentSession.createSupport", json!({"worktree": WS_SELECTOR, "agent": "opencode"}));
         assert_eq!(missing["result"], json!({"supported": false, "reason": "agent"}), "{missing}");

@@ -318,7 +318,7 @@ async fn given_clis_that_fail_when_turns_run_then_each_thread_logs_an_error_with
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn given_an_executor_without_claude_when_a_turn_names_claude_code_then_it_is_refused_naming_the_cli_and_the_cli_it_has_still_runs() {
+async fn given_an_executor_without_claude_when_a_turn_names_claude_code_then_it_is_not_listed_it_is_refused_naming_the_cli_and_the_cli_it_has_still_runs() {
     // Given an executor for the workspace that reports codex installed and claude missing
     let env = Env::new(&[]);
     let svc = service(&env, Options::default());
@@ -328,6 +328,11 @@ async fn given_an_executor_without_claude_when_a_turn_names_claude_code_then_it_
     let mut agent = mapper(&svc, port).await;
     followed(&mut agent, "t1", "w1", "claudeAgent").await;
     followed(&mut agent, "t2", "w1", "codex").await;
+    // When the executor's agents are listed
+    let listed = agent.ask("agents.detect", json!({})).await;
+    // Then only codex is listed, the drivers whose CLI the executor lacks are left out
+    let drivers: Vec<&str> = listed["result"]["agents"].as_array().unwrap_or_else(|| panic!("{listed}")).iter().filter_map(|a| a["driver"].as_str()).collect();
+    assert_eq!(drivers, ["codex"], "{listed}");
     // When a turn names claude code, and another names codex
     let refused = agent.ask("turn.start", turn("t1", "w1", "claudeAgent")).await;
     let started = agent.ask("turn.start", turn("t2", "w1", "codex")).await;

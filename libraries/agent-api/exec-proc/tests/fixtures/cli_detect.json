@@ -123,6 +123,35 @@
       ]
     },
     {
+      "name": "answers agent CLIs before a turn starts, and neither is installed",
+      "request": {
+        "id": "d7",
+        "tool": "cli_detect",
+        "args": {
+          "programs": [
+            "codex",
+            "opencode"
+          ]
+        }
+      },
+      "response": {
+        "id": "d7",
+        "ok": true,
+        "result": {
+          "clis": [
+            {
+              "program": "codex",
+              "installed": false
+            },
+            {
+              "program": "opencode",
+              "installed": false
+            }
+          ]
+        }
+      }
+    },
+    {
       "name": "finds a program that prints no version and gives it none",
       "setup": {
         "clis": {

@@ -83,8 +83,8 @@ async fn given_an_executor_with_two_of_the_clis_when_agents_are_detected_then_ea
     let second = rig.ask(api::AGENTS_DETECT, json!({})).await;
     // Then the drivers come in table order with their versions, the second answer is the first (the executor was asked once), and it says when it was got
     let agents = first["result"]["agents"].as_array().unwrap();
-    assert_eq!(agents.iter().map(|a| a["driver"].as_str().unwrap()).collect::<Vec<_>>(), api::DRIVERS);
-    assert_eq!((agents[0]["installed"].clone(), agents[1]["version"].clone()), (json!(false), json!("2.1.7 (Claude Code)")));
+    assert_eq!(agents.iter().map(|a| a["driver"].as_str().unwrap()).collect::<Vec<_>>(), ["claudeAgent", "codex"]);
+    assert_eq!((agents[0]["installed"].clone(), agents[0]["version"].clone()), (json!(true), json!("2.1.7 (Claude Code)")));
     assert_eq!((second.clone(), rig.channel.calls().len()), (first.clone(), 1));
     assert_eq!(first["result"]["checked_at_ms"], json!(1_000));
     // And the programs asked are the table's, in the table's order, then the tools
@@ -101,6 +101,23 @@ async fn given_an_executor_with_two_of_the_clis_when_agents_are_detected_then_ea
     rig.ask(api::AGENTS_DETECT, json!({"executor": "e1"})).await;
     // Then the executor was asked each time
     assert_eq!(rig.channel.calls().len(), 3);
+}
+
+#[tokio::test]
+async fn given_an_executor_with_no_agent_cli_when_agents_are_detected_then_no_driver_is_listed_and_the_tools_still_are_and_a_cli_that_did_not_answer_stays_listed() {
+    // Given an executor that has only git
+    let bare = rig(|_, _| ok(clis(&[("git", Some("git version 2.43.0"))])));
+    // When agents are detected
+    let none = bare.ask(api::AGENTS_DETECT, json!({})).await;
+    // Then no driver is listed and git is reported
+    assert_eq!(none["result"]["agents"], json!([]));
+    assert_eq!(none["result"]["tools"][0], json!({"program": "git", "installed": true, "path": "/bin/git", "version": "git version 2.43.0"}));
+    // Given an executor whose codex is there but did not answer its version probe
+    let silent = rig(|_, _| ok(json!({"clis": [{"program": "codex", "installed": true, "path": "/bin/codex", "error": "timed out"}]})));
+    // When agents are detected
+    let hung = silent.ask(api::AGENTS_DETECT, json!({})).await;
+    // Then codex is listed with the error and no version
+    assert_eq!(hung["result"]["agents"], json!([{"driver": "codex", "program": "codex", "installed": true, "path": "/bin/codex", "error": "timed out"}]));
 }
 
 #[tokio::test]

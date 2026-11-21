@@ -2,7 +2,7 @@
   "method": "agents.detect",
   "exchanges": [
     {
-      "name": "asks the only executor which agent CLIs it has and what version each is, a driver whose CLI is missing not installed",
+      "name": "asks the only executor which agent CLIs it has and what version each is, and leaves out a driver whose CLI is missing",
       "request": {
         "id": 1,
         "method": "agents.detect",
@@ -13,11 +13,6 @@
         "result": {
           "executor": "w1",
           "agents": [
-            {
-              "driver": "opencode",
-              "program": "opencode",
-              "installed": false
-            },
             {
               "driver": "claudeAgent",
               "program": "claude",
@@ -59,8 +54,8 @@
       ],
       "volatile": [
         "/result/checked_at_ms",
+        "/result/agents/0/path",
         "/result/agents/1/path",
-        "/result/agents/2/path",
         "/result/tools/0/path",
         "/result/tools/0/version",
         "/result/tools/1",
@@ -83,11 +78,6 @@
           "executor": "w1",
           "agents": [
             {
-              "driver": "opencode",
-              "program": "opencode",
-              "installed": false
-            },
-            {
               "driver": "claudeAgent",
               "program": "claude",
               "installed": true,
@@ -128,8 +118,8 @@
       ],
       "volatile": [
         "/result/checked_at_ms",
+        "/result/agents/0/path",
         "/result/agents/1/path",
-        "/result/agents/2/path",
         "/result/tools/0/path",
         "/result/tools/0/version",
         "/result/tools/1",

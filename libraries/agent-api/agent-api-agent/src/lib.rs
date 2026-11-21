@@ -146,7 +146,9 @@ mod tests {
                     assert!(METHODS.iter().any(|m| m.name() == parsed.method), "{what}: {}", parsed.method);
                 }
                 // (a turn that starts is the exception: the executor records the files first, with `git_checkpoint`, after detecting the CLI)
-                let expected: &[&str] = if method == "turn.start" && exchange.succeeds() { &["cli_detect", "git_checkpoint"] } else { &[] };
+                // (and one refused for a missing CLI asks only the detection: nothing is recorded, no checkpoint taken)
+                let cli_missing = exchange.response["error"]["code"] == "CLI_NOT_INSTALLED";
+                let expected: &[&str] = if method == "turn.start" && exchange.succeeds() { &["cli_detect", "git_checkpoint"] } else if cli_missing { &["cli_detect"] } else { &[] };
                 assert_eq!((exchange.request["method"].as_str(), exchange.actions.iter().map(String::as_str).collect::<Vec<_>>()), (Some(method), expected.to_vec()), "{what}");
                 if exchange.succeeds() {
                     // And a success is a request the params accept and a result the type reads
@@ -164,7 +166,13 @@ mod tests {
                         "TURN_RUNNING" => assert_eq!(text, message::turn_running(thread), "{what}"),
                         "NO_TURN" => assert_eq!(text, message::no_turn(thread, params["turn"].as_str()), "{what}"),
                         "UNKNOWN_DRIVER" => assert_eq!(text, message::unknown_driver(params["driver"].as_str().unwrap()), "{what}"),
-                        "CLI_NOT_INSTALLED" => assert!(text.contains(" is not installed on the executor of workspace "), "{what}"),
+                        "CLI_NOT_INSTALLED" => {
+                            let program = match params["driver"].as_str().unwrap_or_default() {
+                                "claudeAgent" => "claude",
+                                other => other,
+                            };
+                            assert_eq!(text, message::cli_not_installed(program, params["workspace"].as_str().unwrap()), "{what}");
+                        }
                         _ => assert_eq!(text, format!("no executor is attached for workspace {}", params["workspace"].as_str().unwrap()), "{what}"),
                     }
                 }
