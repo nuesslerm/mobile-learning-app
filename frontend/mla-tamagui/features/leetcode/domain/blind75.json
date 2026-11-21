@@ -605,7 +605,12 @@
           "examples": "**Example 1:**\n\n```\nInput: strs = [\"neet\",\"code\",\"love\",\"you\"]\nOutput: [\"neet\",\"code\",\"love\",\"you\"]\nExplanation: Encode combines all strings with length prefix then decode reads each length and extracts the string.\n```\n\n**Example 2:**\n\n```\nInput: strs = [\"we\",\"say\",\":\",\"hello\",\"world\"]\nOutput: [\"we\",\"say\",\":\",\"hello\",\"world\"]\nExplanation: The encoding scheme handles special characters by using a length prefix.\n```\n\n**Example 3:**\n\n```\nInput: strs = [\"\"]\nOutput: [\"\"]\nExplanation: Empty strings are encoded as 0# and decoded as empty string.\n```",
           "constraints": "- 0 <= strs.length < 100\n- 0 <= strs[i].length < 200\n- strs[i] contains any possible characters out of 256 valid ASCII characters",
           "starterCode": {
-            "python3": "class Solution:\n    def encode(self, strs: List[str]) -> str:\n        pass\n\n    def decode(self, s: str) -> List[str]:\n        pass\n"
+            "python3": "class Solution:\n    def encode(self, strs: List[str]) -> str:\n        pass\n\n    def decode(self, s: str) -> List[str]:\n        pass\n",
+            "javascript": "/**\n * Encodes a list of strings to a single string.\n *\n * @param {string[]} strs\n * @return {string}\n */\nvar encode = function(strs) {\n    \n};\n\n/**\n * Decodes a single string to a list of strings.\n *\n * @param {string} s\n * @return {string[]}\n */\nvar decode = function(s) {\n    \n};\n\n/**\n * Your functions will be called as such:\n * decode(encode(strs));\n */",
+            "typescript": "/*\n * Encodes a list of strings to a single string.\n */\nfunction encode(strs: string[]): string {\n    \n};\n\n/*\n * Decodes a single string to a list of strings.\n */\nfunction decode(s: string): string[] {\n    \n};\n\n/**\n * Your functions will be called as such:\n * decode(encode(strs));\n */",
+            "java": "class Solution {\n\n    // Encodes a list of strings to a single string.\n    public String encode(List<String> strs) {\n        \n    }\n\n    // Decodes a single string to a list of strings.\n    public List<String> decode(String s) {\n        \n    }\n}",
+            "cpp": "class Solution {\npublic:\n\n    // Encodes a list of strings to a single string.\n    string encode(vector<string>& strs) {\n        \n    }\n\n    // Decodes a single string to a list of strings.\n    vector<string> decode(string s) {\n        \n    }\n};",
+            "golang": "// Encodes a list of strings to a single string.\nfunc encode(strs []string) string {\n    \n}\n\n// Decodes a single string to a list of strings.\nfunc decode(s string) []string {\n    \n}"
           },
           "methodName": "encode",
           "harness": {
@@ -5452,7 +5457,12 @@
           "examples": "**Example 1:**\n\n```\nInput: n = 5, edges = [[0,1],[1,2],[3,4]]\nOutput: 2\nExplanation: Nodes 0-1-2 form one component and nodes 3-4 form another.\n```\n\n**Example 2:**\n\n```\nInput: n = 5, edges = [[0,1],[1,2],[2,3],[3,4]]\nOutput: 1\nExplanation: All 5 nodes are connected in a single chain.\n```\n\n**Example 3:**\n\n```\nInput: n = 4, edges = []\nOutput: 4\nExplanation: No edges means each of the 4 nodes is its own isolated component.\n```",
           "constraints": "- `1 <= n <= 2000`\n- `1 <= edges.length <= 5000`\n- `edges[i].length == 2`\n- `0 <= ai <= bi < n`\n- `ai != bi`",
           "starterCode": {
-            "python3": "class Solution:\n    def countComponents(self, n: int, edges: List[List[int]]) -> int:\n        pass\n"
+            "python3": "class Solution:\n    def countComponents(self, n: int, edges: List[List[int]]) -> int:\n        pass\n",
+            "javascript": "/**\n * @param {number} n\n * @param {number[][]} edges\n * @return {number}\n */\nvar countComponents = function(n, edges) {\n    \n};",
+            "typescript": "function countComponents(n: number, edges: number[][]): number {\n    \n};",
+            "java": "class Solution {\n    public int countComponents(int n, int[][] edges) {\n        \n    }\n}",
+            "cpp": "class Solution {\npublic:\n    int countComponents(int n, vector<vector<int>>& edges) {\n        \n    }\n};",
+            "golang": "func countComponents(n int, edges [][]int) int {\n    \n}"
           },
           "methodName": "countComponents",
           "paramTypes": {},
@@ -5586,7 +5596,12 @@
           "examples": "**Example 1:**\n\n```\nInput: n = 5, edges = [[0,1],[0,2],[0,3],[1,4]]\nOutput: true\nExplanation: Node 0 connects to 1, 2, 3 and node 1 connects to 4 — connected acyclic tree with 4 edges.\n```\n\n**Example 2:**\n\n```\nInput: n = 5, edges = [[0,1],[1,2],[2,3],[1,3],[1,4]]\nOutput: false\nExplanation: Nodes 1-2-3 form a cycle, so this is not a valid tree.\n```\n\n**Example 3:**\n\n```\nInput: n = 4, edges = [[0,1],[2,3]]\nOutput: false\nExplanation: Two disconnected components — not all nodes are reachable from one root.\n```",
           "constraints": "- `1 <= n <= 2000`\n- `0 <= edges.length <= 5000`\n- `edges[i].length == 2`\n- `0 <= ai, bi < n`\n- `ai != bi`",
           "starterCode": {
-            "python3": "class Solution:\n    def validTree(self, n: int, edges: List[List[int]]) -> bool:\n        pass\n"
+            "python3": "class Solution:\n    def validTree(self, n: int, edges: List[List[int]]) -> bool:\n        pass\n",
+            "javascript": "/**\n * @param {number} n\n * @param {number[][]} edges\n * @return {boolean}\n */\nvar validTree = function(n, edges) {\n    \n};",
+            "typescript": "function validTree(n: number, edges: number[][]): boolean {\n    \n};",
+            "java": "class Solution {\n    public boolean validTree(int n, int[][] edges) {\n        \n    }\n}",
+            "cpp": "class Solution {\npublic:\n    bool validTree(int n, vector<vector<int>>& edges) {\n        \n    }\n};",
+            "golang": "func validTree(n int, edges [][]int) bool {\n    \n}"
           },
           "methodName": "validTree",
           "paramTypes": {},
@@ -5723,6 +5738,115 @@
             "Graph"
           ],
           "diagram": "flowchart TD\n  A[Check edges length equals n minus 1] -->|No| B[Return false]\n  A -->|Yes| C[Build adjacency list]\n  C --> D[DFS from node 0]\n  D --> E{Neighbor already visited}\n  E -->|Yes| F[Cycle detected return false]\n  E -->|No| G[Mark visited and continue]\n  G --> D\n  D --> H[DFS complete]\n  H --> I{All n nodes visited}\n  I -->|No| J[Graph disconnected return false]\n  I -->|Yes| K[Return true]"
+        },
+        {
+          "id": "alien-dictionary",
+          "leetcodeId": 269,
+          "title": "Alien Dictionary",
+          "difficulty": "hard",
+          "category": "Graphs",
+          "categoryId": "graphs",
+          "description": "A new language uses the lowercase English letters in an order nobody knows. You get a list of words from its dictionary, sorted lexicographically by that language's own alphabet. Return a string that lists every distinct letter that appears, from the smallest to the largest in the alien order. Return an empty string when no alphabet can sort the words: a longer word placed before its own prefix, or letters whose order contradicts itself. When more than one alphabet fits, LeetCode accepts any of them; the bundled test cases only use word lists that allow exactly one.",
+          "examples": "**Example 1:**\n\n```\nInput: words = [\"wrt\",\"wrf\",\"er\",\"ett\",\"rftt\"]\nOutput: \"wertf\"\nExplanation: wrt before wrf gives t < f, wrf before er gives w < e, er before ett gives r < t and ett before rftt gives e < r. Together: w < e < r < t < f.\n```\n\n**Example 2:**\n\n```\nInput: words = [\"z\",\"x\"]\nOutput: \"zx\"\nExplanation: z comes before x.\n```\n\n**Example 3:**\n\n```\nInput: words = [\"z\",\"x\",\"z\"]\nOutput: \"\"\nExplanation: z < x and x < z cannot both hold, so no order exists.\n```",
+          "constraints": "- `1 <= words.length <= 100`\n- `1 <= words[i].length <= 100`\n- `words[i]` consists of lowercase English letters only",
+          "starterCode": {
+            "python3": "class Solution:\n    def alienOrder(self, words: List[str]) -> str:\n        ",
+            "javascript": "/**\n * @param {string[]} words\n * @return {string}\n */\nvar alienOrder = function(words) {\n    \n};",
+            "typescript": "function alienOrder(words: string[]): string {\n    \n};",
+            "java": "class Solution {\n    public String alienOrder(String[] words) {\n        \n    }\n}",
+            "cpp": "class Solution {\npublic:\n    string alienOrder(vector<string>& words) {\n        \n    }\n};",
+            "golang": "func alienOrder(words []string) string {\n    \n}"
+          },
+          "methodName": "alienOrder",
+          "paramTypes": {},
+          "returnType": null,
+          "testCases": [
+            {
+              "inputs": {
+                "words": ["wrt", "wrf", "er", "ett", "rftt"]
+              },
+              "expected": "wertf"
+            },
+            {
+              "inputs": {
+                "words": ["z", "x"]
+              },
+              "expected": "zx"
+            },
+            {
+              "inputs": {
+                "words": ["z", "x", "z"]
+              },
+              "expected": ""
+            },
+            {
+              "inputs": {
+                "words": ["abc", "ab"]
+              },
+              "expected": ""
+            },
+            {
+              "inputs": {
+                "words": ["a"]
+              },
+              "expected": "a"
+            },
+            {
+              "inputs": {
+                "words": ["ba", "bc", "ac", "cab"]
+              },
+              "expected": "bac"
+            },
+            {
+              "inputs": {
+                "words": ["x", "y", "z", "w"]
+              },
+              "expected": "xyzw"
+            },
+            {
+              "inputs": {
+                "words": ["a", "b", "c", "a"]
+              },
+              "expected": ""
+            },
+            {
+              "inputs": {
+                "words": ["a", "b", "b", "c"]
+              },
+              "expected": "abc"
+            },
+            {
+              "inputs": {
+                "words": ["fa", "ea", "da", "ca", "ba", "aa"]
+              },
+              "expected": "fedcba"
+            },
+            {
+              "inputs": {
+                "words": ["a", "ab", "abc", "ab"]
+              },
+              "expected": ""
+            },
+            {
+              "inputs": {
+                "words": ["ac", "ab", "zc", "zb", "bb", "bc"]
+              },
+              "expected": ""
+            }
+          ],
+          "hints": [
+            "Only the first position where two neighbouring words differ says anything about the letter order.",
+            "Treat letters as graph nodes and each such pair as an edge, then sort topologically. A cycle, or a word placed after a longer word that starts with it, means no valid order."
+          ],
+          "topics": [
+            "Array",
+            "String",
+            "Graph",
+            "Topological Sort",
+            "Depth-First Search",
+            "Breadth-First Search"
+          ],
+          "diagram": "flowchart TD\n  A[Collect every letter as a node] --> B[Compare each neighbouring pair of words]\n  B --> C{Longer word before its own prefix}\n  C -->|Yes| D[Return an empty string]\n  C -->|No| E[The first differing letters give an edge from earlier to later]\n  E --> F[Count the incoming edges of each letter]\n  F --> G[Queue the letters with no incoming edge]\n  G --> H[Pop a letter and append it to the order]\n  H --> I[Lower the count of its followers and queue those at zero]\n  I --> J{Queue empty}\n  J -->|No| H\n  J -->|Yes| K{Order holds every letter}\n  K -->|Yes| L[Return the order]\n  K -->|No| D"
         }
       ]
     },
@@ -6815,6 +6939,294 @@
           "hints": [],
           "topics": ["Array", "Dynamic Programming", "Greedy"],
           "diagram": "flowchart TD\n    A[Initialize max reachable equals 0] --> B{For each index i}\n    B --> C{i exceeds max reachable}\n    C -->|Yes| D[Return false cannot reach]\n    C -->|No| E[Update max reachable]\n    E --> F{Max reachable reaches last index}\n    F -->|Yes| G[Return true]\n    F -->|No| B\n    B --> H[Return true if loop completes]"
+        },
+        {
+          "id": "longest-palindromic-substring",
+          "leetcodeId": 5,
+          "title": "Longest Palindromic Substring",
+          "difficulty": "medium",
+          "category": "Dynamic Programming",
+          "categoryId": "dynamic-programming",
+          "description": "Given a string s, return its longest substring that is a palindrome, meaning it reads the same from left to right and from right to left. When several substrings tie for the longest, any one of them is a correct answer on LeetCode; the bundled test cases only use strings with a single longest palindrome, so a solution passes here whichever one it prefers.",
+          "examples": "**Example 1:**\n\n```\nInput: s = \"babad\"\nOutput: \"bab\"\nExplanation: \"aba\" is just as long and would also be accepted.\n```\n\n**Example 2:**\n\n```\nInput: s = \"cbbd\"\nOutput: \"bb\"\nExplanation: No palindrome of length 3 exists, and \"bb\" is the only one of length 2.\n```",
+          "constraints": "- `1 <= s.length <= 1000`\n- `s` consists of only digits and English letters",
+          "starterCode": {
+            "python3": "class Solution:\n    def longestPalindrome(self, s: str) -> str:\n        ",
+            "javascript": "/**\n * @param {string} s\n * @return {string}\n */\nvar longestPalindrome = function(s) {\n    \n};",
+            "typescript": "function longestPalindrome(s: string): string {\n    \n};",
+            "java": "class Solution {\n    public String longestPalindrome(String s) {\n        \n    }\n}",
+            "cpp": "class Solution {\npublic:\n    string longestPalindrome(string s) {\n        \n    }\n};",
+            "golang": "func longestPalindrome(s string) string {\n    \n}"
+          },
+          "methodName": "longestPalindrome",
+          "paramTypes": {},
+          "returnType": null,
+          "testCases": [
+            {
+              "inputs": {
+                "s": "cbbd"
+              },
+              "expected": "bb"
+            },
+            {
+              "inputs": {
+                "s": "a"
+              },
+              "expected": "a"
+            },
+            {
+              "inputs": {
+                "s": "racecar"
+              },
+              "expected": "racecar"
+            },
+            {
+              "inputs": {
+                "s": "abba"
+              },
+              "expected": "abba"
+            },
+            {
+              "inputs": {
+                "s": "forgeeksskeegfor"
+              },
+              "expected": "geeksskeeg"
+            },
+            {
+              "inputs": {
+                "s": "bananas"
+              },
+              "expected": "anana"
+            },
+            {
+              "inputs": {
+                "s": "12321"
+              },
+              "expected": "12321"
+            },
+            {
+              "inputs": {
+                "s": "Abba"
+              },
+              "expected": "bb"
+            },
+            {
+              "inputs": {
+                "s": "xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaay"
+              },
+              "expected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "inputs": {
+                "s": "abacdfgdcaba"
+              },
+              "expected": "aba"
+            },
+            {
+              "inputs": {
+                "s": "abcdcbaefg"
+              },
+              "expected": "abcdcba"
+            }
+          ],
+          "hints": [
+            "Every palindrome mirrors around its center, and the center is either one character or the gap between two characters.",
+            "Expand outward from each of the 2n - 1 centers while the two ends match, and remember the widest result."
+          ],
+          "topics": ["Two Pointers", "String", "Dynamic Programming"],
+          "diagram": "flowchart TD\n  A[Start with best as an empty string] --> B[Pick the next centre i]\n  B --> C[Expand from i and i for an odd length]\n  B --> D[Expand from i and i plus 1 for an even length]\n  C --> E{Both ends in range and equal}\n  D --> E\n  E -->|Yes| F[Widen by one on each side]\n  F --> E\n  E -->|No| G{Wider than best}\n  G -->|Yes| H[Keep this slice as best]\n  G -->|No| I{More centres}\n  H --> I\n  I -->|Yes| B\n  I -->|No| J[Return best]"
+        },
+        {
+          "id": "maximum-product-subarray",
+          "leetcodeId": 152,
+          "title": "Maximum Product Subarray",
+          "difficulty": "medium",
+          "category": "Dynamic Programming",
+          "categoryId": "dynamic-programming",
+          "description": "Given an integer array nums, find the non-empty contiguous subarray whose elements multiply to the largest product, and return that product. The result always fits in a 32-bit integer.",
+          "examples": "**Example 1:**\n\n```\nInput: nums = [2,3,-2,4]\nOutput: 6\nExplanation: [2,3] has product 6; taking the -2 as well would make the product negative.\n```\n\n**Example 2:**\n\n```\nInput: nums = [-2,0,-1]\nOutput: 0\nExplanation: The answer cannot be 2 because [-2,-1] is not contiguous: the zero sits between them. [0] is the best subarray.\n```",
+          "constraints": "- `1 <= nums.length <= 2 * 10^4`\n- `-10 <= nums[i] <= 10`\n- The product of any prefix or suffix of nums fits in a 32-bit integer",
+          "starterCode": {
+            "python3": "class Solution:\n    def maxProduct(self, nums: List[int]) -> int:\n        ",
+            "javascript": "/**\n * @param {number[]} nums\n * @return {number}\n */\nvar maxProduct = function(nums) {\n    \n};",
+            "typescript": "function maxProduct(nums: number[]): number {\n    \n};",
+            "java": "class Solution {\n    public int maxProduct(int[] nums) {\n        \n    }\n}",
+            "cpp": "class Solution {\npublic:\n    int maxProduct(vector<int>& nums) {\n        \n    }\n};",
+            "golang": "func maxProduct(nums []int) int {\n    \n}"
+          },
+          "methodName": "maxProduct",
+          "paramTypes": {},
+          "returnType": null,
+          "testCases": [
+            {
+              "inputs": {
+                "nums": [2, 3, -2, 4]
+              },
+              "expected": 6
+            },
+            {
+              "inputs": {
+                "nums": [-2, 0, -1]
+              },
+              "expected": 0
+            },
+            {
+              "inputs": {
+                "nums": [-2]
+              },
+              "expected": -2
+            },
+            {
+              "inputs": {
+                "nums": [0]
+              },
+              "expected": 0
+            },
+            {
+              "inputs": {
+                "nums": [-2, 3, -4]
+              },
+              "expected": 24
+            },
+            {
+              "inputs": {
+                "nums": [2, -5, -2, -4, 3]
+              },
+              "expected": 24
+            },
+            {
+              "inputs": {
+                "nums": [-1, -1, -1]
+              },
+              "expected": 1
+            },
+            {
+              "inputs": {
+                "nums": [-2, -3, -4]
+              },
+              "expected": 12
+            },
+            {
+              "inputs": {
+                "nums": [1, 0, -1, 2, 3, -5, -2]
+              },
+              "expected": 60
+            },
+            {
+              "inputs": {
+                "nums": [10, 10, 10, 10, 10, 10, 10, 10, 10]
+              },
+              "expected": 1000000000
+            },
+            {
+              "inputs": {
+                "nums": [-10, 10, -10, 10, -10, 10, -10, 10]
+              },
+              "expected": 100000000
+            },
+            {
+              "inputs": {
+                "nums": [-3, 0, 5, -2, -2]
+              },
+              "expected": 20
+            }
+          ],
+          "hints": [
+            "A running maximum on its own is not enough: a very negative product becomes the largest one once another negative number multiplies it.",
+            "Keep both the largest and the smallest product of a subarray that ends at the current index. A zero resets both."
+          ],
+          "topics": ["Array", "Dynamic Programming"],
+          "diagram": "flowchart TD\n  A[Set best high and low to the first number] --> B[Take the next number x]\n  B --> C[Candidates are x and high times x and low times x]\n  C --> D[New high is the largest candidate]\n  C --> E[New low is the smallest candidate]\n  D --> F[Update the answer with the new high]\n  E --> F\n  F --> G{More numbers}\n  G -->|Yes| B\n  G -->|No| H[Return the answer]"
+        },
+        {
+          "id": "palindromic-substrings",
+          "leetcodeId": 647,
+          "title": "Palindromic Substrings",
+          "difficulty": "medium",
+          "category": "Dynamic Programming",
+          "categoryId": "dynamic-programming",
+          "description": "Given a string s, return the number of its palindromic substrings. A substring is a contiguous run of characters, and two substrings at different positions count separately even when their text is equal.",
+          "examples": "**Example 1:**\n\n```\nInput: s = \"abc\"\nOutput: 3\nExplanation: Only the single letters a, b and c are palindromes.\n```\n\n**Example 2:**\n\n```\nInput: s = \"aaa\"\nOutput: 6\nExplanation: Three single letters a, two copies of aa and one aaa make six, counted by position.\n```",
+          "constraints": "- `1 <= s.length <= 1000`\n- `s` consists of lowercase English letters",
+          "starterCode": {
+            "python3": "class Solution:\n    def countSubstrings(self, s: str) -> int:\n        ",
+            "javascript": "/**\n * @param {string} s\n * @return {number}\n */\nvar countSubstrings = function(s) {\n    \n};",
+            "typescript": "function countSubstrings(s: string): number {\n    \n};",
+            "java": "class Solution {\n    public int countSubstrings(String s) {\n        \n    }\n}",
+            "cpp": "class Solution {\npublic:\n    int countSubstrings(string s) {\n        \n    }\n};",
+            "golang": "func countSubstrings(s string) int {\n    \n}"
+          },
+          "methodName": "countSubstrings",
+          "paramTypes": {},
+          "returnType": null,
+          "testCases": [
+            {
+              "inputs": {
+                "s": "abc"
+              },
+              "expected": 3
+            },
+            {
+              "inputs": {
+                "s": "aaa"
+              },
+              "expected": 6
+            },
+            {
+              "inputs": {
+                "s": "a"
+              },
+              "expected": 1
+            },
+            {
+              "inputs": {
+                "s": "abba"
+              },
+              "expected": 6
+            },
+            {
+              "inputs": {
+                "s": "aaaa"
+              },
+              "expected": 10
+            },
+            {
+              "inputs": {
+                "s": "abcba"
+              },
+              "expected": 7
+            },
+            {
+              "inputs": {
+                "s": "aabaa"
+              },
+              "expected": 9
+            },
+            {
+              "inputs": {
+                "s": "abcdefghijklmnopqrstuvwxyz"
+              },
+              "expected": 26
+            },
+            {
+              "inputs": {
+                "s": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              },
+              "expected": 1275
+            },
+            {
+              "inputs": {
+                "s": "abababababababababababab"
+              },
+              "expected": 156
+            }
+          ],
+          "hints": [
+            "Each palindrome has a center, so count the palindromes grown from every center instead of testing every substring.",
+            "There are 2n - 1 centers: n characters and n - 1 gaps between neighbours. Each successful widening is one more palindrome."
+          ],
+          "topics": ["Two Pointers", "String", "Dynamic Programming"],
+          "diagram": "flowchart TD\n  A[Set count to 0] --> B[Pick the next centre i]\n  B --> C[Expand from i and i then from i and i plus 1]\n  C --> D{Both ends in range and equal}\n  D -->|Yes| E[Count one more palindrome and widen]\n  E --> D\n  D -->|No| F{More centres}\n  F -->|Yes| B\n  F -->|No| G[Return count]"
         }
       ]
     },
@@ -7355,7 +7767,12 @@
           "examples": "**Example 1:**\n\n```\nInput: intervals = [[0,30],[5,10],[15,20]]\nOutput: false\nExplanation: Meetings [0,30] and [5,10] overlap because 5 < 30.\n```\n\n**Example 2:**\n\n```\nInput: intervals = [[7,10],[2,4]]\nOutput: true\nExplanation: No meetings overlap. Attend [2,4] then [7,10].\n```\n\n**Example 3:**\n\n```\nInput: intervals = []\nOutput: true\nExplanation: No meetings, so all can be attended.\n```",
           "constraints": "- `0 <= intervals.length <= 10^4`\n- `0 <= starti < endi <= 10^6`",
           "starterCode": {
-            "python3": "class Solution:\n    def canAttendMeetings(self, intervals: List[List[int]]) -> bool:\n        pass\n"
+            "python3": "class Solution:\n    def canAttendMeetings(self, intervals: List[List[int]]) -> bool:\n        pass\n",
+            "javascript": "/**\n * @param {number[][]} intervals\n * @return {boolean}\n */\nvar canAttendMeetings = function(intervals) {\n    \n};",
+            "typescript": "function canAttendMeetings(intervals: number[][]): boolean {\n    \n};",
+            "java": "class Solution {\n    public boolean canAttendMeetings(int[][] intervals) {\n        \n    }\n}",
+            "cpp": "class Solution {\npublic:\n    bool canAttendMeetings(vector<vector<int>>& intervals) {\n        \n    }\n};",
+            "golang": "func canAttendMeetings(intervals [][]int) bool {\n    \n}"
           },
           "methodName": "canAttendMeetings",
           "paramTypes": {},
@@ -7476,7 +7893,12 @@
           "examples": "**Example 1:**\n\n```\nInput: intervals = [[0,30],[5,10],[15,20]]\nOutput: 2\nExplanation: At time 5 a second meeting starts before the first ends, needing 2 rooms simultaneously.\n```\n\n**Example 2:**\n\n```\nInput: intervals = [[7,10],[2,4]]\nOutput: 1\nExplanation: Meetings don't overlap — [2,4] ends before [7,10] starts.\n```\n\n**Example 3:**\n\n```\nInput: intervals = [[0,10],[1,9],[2,8]]\nOutput: 3\nExplanation: All three meetings overlap, requiring 3 rooms at once.\n```",
           "constraints": "- `1 <= intervals.length <= 10^4`\n- `0 <= starti < endi <= 10^6`",
           "starterCode": {
-            "python3": "class Solution:\n    def minMeetingRooms(self, intervals: List[List[int]]) -> int:\n        pass\n"
+            "python3": "class Solution:\n    def minMeetingRooms(self, intervals: List[List[int]]) -> int:\n        pass\n",
+            "javascript": "/**\n * @param {number[][]} intervals\n * @return {number}\n */\nvar minMeetingRooms = function(intervals) {\n    \n};",
+            "typescript": "function minMeetingRooms(intervals: number[][]): number {\n    \n};",
+            "java": "class Solution {\n    public int minMeetingRooms(int[][] intervals) {\n        \n    }\n}",
+            "cpp": "class Solution {\npublic:\n    int minMeetingRooms(vector<vector<int>>& intervals) {\n        \n    }\n};",
+            "golang": "func minMeetingRooms(intervals [][]int) int {\n    \n}"
           },
           "methodName": "minMeetingRooms",
           "paramTypes": {},

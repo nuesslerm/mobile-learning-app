@@ -19,6 +19,7 @@ import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLin
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createLiveLeetCodeGateway } from '../../data/webBridgeClient';
+import { ProblemCatalog } from '../../domain/problemCatalog';
 import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSettingStore';
 import { createFakeCodeRunner, failingRun, passingRun } from '../../testing';
 
@@ -319,7 +320,7 @@ describe('ProblemEditorScreen flow (the editor language and its own keys)', () =
 });
 
 describe('ProblemEditorScreen flow (languages a problem offers)', () => {
-  // the route's problem comes from the real catalog: meeting-rooms has a Python starter and no other
+  // the route's problem comes from the real catalog, and every catalog problem has all six languages, so one is cut down to its Python starter for the test
   async function renderMeetingRooms(): Promise<FlowSession> {
     useRunnerSettingStore.setState({ runner: 'backend' });
     const ports: LeetCodePortOverrides = {
@@ -332,14 +333,21 @@ describe('ProblemEditorScreen flow (languages a problem offers)', () => {
 
   it('given a problem with only a Python starter, when the editor opens, then the language trigger is disabled and says Python', async () => {
     // Given the editor of a problem that has only a Python starter
-    const session = await renderMeetingRooms();
-    const editor = await session.editor();
+    const problem = ProblemCatalog.getByIdOrThrow('meeting-rooms');
+    const allStarters = problem.starterCode;
+    problem.starterCode = { python3: allStarters.python3 ?? '' };
+    try {
+      const session = await renderMeetingRooms();
+      const editor = await session.editor();
 
-    // Then the starter is Python and there is no other language to switch to
-    expect(editor.text()).toContain('def ');
-    const trigger = screen.getByTestId('ProblemEditorLanguagePicker-Trigger');
-    expect(trigger.textContent).toBe('Python');
-    expect((trigger as HTMLButtonElement).disabled || trigger.getAttribute('aria-disabled') === 'true').toBe(true);
+      // Then the starter is Python and there is no other language to switch to
+      expect(editor.text()).toContain('def ');
+      const trigger = screen.getByTestId('ProblemEditorLanguagePicker-Trigger');
+      expect(trigger.textContent).toBe('Python');
+      expect((trigger as HTMLButtonElement).disabled || trigger.getAttribute('aria-disabled') === 'true').toBe(true);
+    } finally {
+      problem.starterCode = allStarters;
+    }
   });
 
   it('given a problem with starters in two languages, when the language sheet opens, then both are offered', async () => {

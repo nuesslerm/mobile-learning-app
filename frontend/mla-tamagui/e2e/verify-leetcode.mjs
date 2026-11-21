@@ -38,7 +38,7 @@ await withServedApp(
       fail(`the problem list did not render its hero: ${JSON.stringify(list)}`);
       return;
     }
-    // 72 problems across 11 categories. A row count of 0 under a rendered hero
+    // 76 problems across 16 categories. A row count of 0 under a rendered hero
     // is the shape a broken catalog import takes, and it reads as a styling bug.
     if (!list.rowCount || !list.sectionCount) {
       fail(`hero rendered but the catalog produced no rows: ${JSON.stringify(list)}`);

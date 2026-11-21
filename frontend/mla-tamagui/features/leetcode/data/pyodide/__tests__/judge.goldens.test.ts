@@ -11,8 +11,18 @@ import { BRUTE_DIR, loadReferenceCorpus, referenceFor } from './support/referenc
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
 
-const COMPUTED_PROBLEMS = ['design-add-and-search-words-data-structure', 'find-median-from-data-stream', 'implement-trie-prefix-tree', 'linked-list-cycle', 'reorder-list'];
-const FORMERLY_CASELESS = [...COMPUTED_PROBLEMS, 'encode-and-decode-strings', 'serialize-and-deserialize-binary-tree', 'clone-graph'];
+const COMPUTED_PROBLEMS = [
+  'alien-dictionary',
+  'design-add-and-search-words-data-structure',
+  'find-median-from-data-stream',
+  'implement-trie-prefix-tree',
+  'linked-list-cycle',
+  'longest-palindromic-substring',
+  'maximum-product-subarray',
+  'palindromic-substrings',
+  'reorder-list',
+];
+const ADDED_BY_DATA_SLICES = [...COMPUTED_PROBLEMS, 'encode-and-decode-strings', 'serialize-and-deserialize-binary-tree', 'clone-graph'];
 
 const goldens = loadReferenceCorpus();
 const named = JSON.parse(readFileSync(join(__dirname, 'fixtures/named.json'), 'utf8')) as Record<string, string>;
@@ -49,9 +59,9 @@ describe('the on-device judge on known-good solutions', () => {
   });
 
   it('given the brute-force oracle of each problem whose expected values were computed, when it runs with the catalog harness, then every case passes', () => {
-    // Given the independent second opinions: a set of words, a regex over a list, a sort, a visited set, a pointer array
+    // Given the independent second opinions: a set of words, a regex over a list, a sort, a visited set, a pointer array, every substring, every letter order
     const oracles = loadReferenceCorpus(BRUTE_DIR);
-    expect(oracles.map((oracle) => oracle.problem)).toEqual(COMPUTED_PROBLEMS);
+    expect(oracles.map((oracle) => oracle.problem).sort()).toEqual([...COMPUTED_PROBLEMS].sort());
     for (const { problem, code } of oracles) {
       // When each runs through the judge
       const response = runResponseOf(judge.run(payloadFor(problem, code)), 'offline');
@@ -61,8 +71,16 @@ describe('the on-device judge on known-good solutions', () => {
     }
   });
 
-  it('given the starter of each problem that began with no cases, when it runs as given, then it is never Accepted and never a runner crash', () => {
-    for (const id of FORMERLY_CASELESS) {
+  it('given the oracle of a problem with several acceptable answers and an input that has two, when it runs, then the row is an error that says so, so no such input can be a bundled case', () => {
+    const longest = runResponseOf(judge.run({ ...payloadFor('longest-palindromic-substring', loadReferenceCorpus(BRUTE_DIR).find((o) => o.problem === 'longest-palindromic-substring')?.code ?? ''), testCases: [{ inputs: { s: 'babad' }, expected: 'bab' }] }), 'offline');
+    const alien = runResponseOf(judge.run({ ...payloadFor('alien-dictionary', loadReferenceCorpus(BRUTE_DIR).find((o) => o.problem === 'alien-dictionary')?.code ?? ''), testCases: [{ inputs: { words: ['ab', 'adc'] }, expected: 'abcd' }] }), 'offline');
+
+    expect(longest.results?.[0]?.error).toMatch(/longest palindrome is not unique/);
+    expect(alien.results?.[0]?.error).toMatch(/more than one order fits/);
+  });
+
+  it('given the starter of each problem the data slices added cases to, when it runs as given, then it is never Accepted and never a runner crash', () => {
+    for (const id of ADDED_BY_DATA_SLICES) {
       // Given the starter exactly as the editor first shows it
       const starter = ProblemCatalog.getByIdOrThrow(id).starterCode.python3 ?? '';
 

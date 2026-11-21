@@ -65,7 +65,7 @@ async function walk(ctx, device, scheme) {
 
   await settle(1200);
   await capture(ctx, device, scheme, 'Problem list — cold start',
-    'The Blind 75 hero over the grouped inset list. 72 problems in 11 categories, straight from the catalog.');
+    'The Blind 75 hero over the grouped inset list. 76 problems in 16 categories, straight from the catalog.');
 
   await ctx.evalInApp(`(() => {
     const sv = appDoc.querySelector('[data-testid="LeetcodeListScroll"]');

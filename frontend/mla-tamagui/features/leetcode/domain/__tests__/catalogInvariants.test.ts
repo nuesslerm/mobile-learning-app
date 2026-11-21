@@ -65,9 +65,9 @@ describe('the catalog the harness runs', () => {
     expect(floats).toEqual([]);
   });
 
-  it('given the catalog, when counted, then there are 72 problems, every one with cases, and none with null cases', () => {
-    expect(problems).toHaveLength(72);
-    expect(withCases).toHaveLength(72);
+  it('given the catalog, when counted, then there are 76 problems (the Blind 75 and one labelled extra), every one with cases, and none with null cases', () => {
+    expect(problems).toHaveLength(76);
+    expect(withCases).toHaveLength(76);
     expect(problems.filter((p) => p.testCases === null).map((p) => p.id)).toEqual([]);
   });
 
