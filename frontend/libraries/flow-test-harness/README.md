@@ -124,7 +124,7 @@ expect(editor.text()).toContain('return []');
 expect(editor.diffRanges()).toEqual(['return [1, 2]']); // CodeMirror's .cm-diff-change marks
 ```
 
-`editor.tree()`, `editor.statementAt(pos)` and `editor.enclosingBlock(pos)` read the syntax tree the editor holds, through the same typed API. `editor.config()` reads the config the editor has now (language, tab size, palette) and `editor.press('Enter')` presses a key on CodeMirror's content element, so its own keymap and the language's grammar act on it.
+`editor.keys(text)` types keystrokes through the editor's input handlers, and `editor.completions()`, `editor.completionOpen()` and `editor.pickCompletion(label)` read and press the suggestion list. `editor.tree()`, `editor.statementAt(pos)` and `editor.enclosingBlock(pos)` read the syntax tree the editor holds, through the same typed API. `editor.config()` reads the config the editor has now (language, tab size, palette) and `editor.press('Enter')` presses a key on CodeMirror's content element, so its own keymap and the language's grammar act on it.
 
 ### Rendering like the web export
 

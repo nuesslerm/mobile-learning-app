@@ -36,6 +36,13 @@ export type FlowCodeEditor = {
   statementAt(pos: number): Promise<SyntaxNode | null>;
   /** The block a caret at `pos` types into, from the tree and the mirror's text. */
   enclosingBlock(pos: number): Promise<EnclosingBlock | null>;
+  /** Types each character as a keystroke, through the editor's input handlers (an auto-closed bracket, a completion list opening). */
+  keys(text: string): Promise<void>;
+  /** Labels of the completion list the editor shows, first row first; empty when none is open. */
+  completions(): string[];
+  completionOpen(): boolean;
+  /** Presses the row with this label, as a finger does, and waits for the list to go. */
+  pickCompletion(label: string): Promise<void>;
   /** A key CodeMirror's own keymap handles, pressed on its content element (not a toolbar key): the caller waits for the text to change. */
   press(key: 'Enter' | 'Tab' | 'Backspace'): Promise<void>;
 };
@@ -84,6 +91,7 @@ export async function mountedCodeEditor(container: HTMLElement): Promise<FlowCod
     return range ? { start: Math.min(range.anchor, range.head), end: Math.max(range.anchor, range.head) } : null;
   };
   const contentFocused = () => doc.activeElement?.classList.contains('cm-content') === true;
+  const completions = () => Array.from(doc.querySelectorAll('.cm-tooltip-autocomplete li[role=option]'), (li) => li.textContent ?? '');
 
   return {
     text: () => mirror.text(),
@@ -129,6 +137,34 @@ export async function mountedCodeEditor(container: HTMLElement): Promise<FlowCod
     diffRanges: () =>
       Array.from(doc.querySelectorAll('.cm-diff-change'), (el) => el.textContent ?? ''),
     config: async () => unwrap(await client.setConfig({})),
+    keys: async (text) => {
+      for (const char of normalizeText(text)) {
+        let revision = 0;
+        await act(async () => {
+          const reply = await client.transact([{ op: 'type', text: char }]);
+          unwrap(reply);
+          revision = reply.revision as number;
+        });
+        await waitFor(() => {
+          if (mirror.revision() < revision) throw new Error('the keystroke has not reached the mirror yet');
+        });
+      }
+    },
+    completions,
+    completionOpen: () => completions().length > 0,
+    pickCompletion: async (label) => {
+      const row = Array.from(doc.querySelectorAll('.cm-tooltip-autocomplete li[role=option]')).find((li) => (li.textContent ?? '').startsWith(label)) as HTMLElement | undefined;
+      if (!row) throw new Error(`the completion list has no row ${label}`);
+      const win = doc.defaultView as (Window & typeof globalThis) | null;
+      if (!win) throw new Error('no CodeMirror window to press a row in');
+      // CodeMirror applies a completion on the row's mousedown, which is where a finger's tap lands first
+      await act(async () => {
+        row.dispatchEvent(new win.MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0 }));
+      });
+      await waitFor(() => {
+        if (completions().length > 0) throw new Error('the completion list is still open');
+      });
+    },
     tree: async (params) => unwrap(await client.tree(params)),
     statementAt: async (pos) => unwrap(await client.statementAt(pos)),
     enclosingBlock: async (pos) => unwrap(await client.enclosingBlock(pos, { text: mirror.text() })),
