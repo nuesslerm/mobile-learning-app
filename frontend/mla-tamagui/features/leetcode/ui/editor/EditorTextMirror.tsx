@@ -28,8 +28,10 @@ export function createEditorTextSource(initial: string): EditorTextSource {
 }
 
 /**
- * The document as the page last reported it, on a native node a device test reads at once: the web view's own accessibility
- * text lagged, went stale, and in three hosted runs never appeared. Hidden from screen readers, which read the page.
+ * The document as the page last reported it, on a native node a device test reads: the web view's own accessibility text lagged,
+ * went stale, and in three hosted runs never appeared. The node must stay important to accessibility: Android sends no
+ * accessibility event for a change of a view marked not important, so a reader's snapshot of it stays stale (8.4 s behind the
+ * editor in three hosted units, while the recording showed the editor itself current). It is not focusable and 1 px large.
  */
 export function EditorTextMirror({ source }: { source: EditorTextSource }) {
   const text = useSyncExternalStore(source.subscribe, source.get, source.get);
@@ -37,7 +39,7 @@ export function EditorTextMirror({ source }: { source: EditorTextSource }) {
     <Text
       testID="CodeEditorText"
       accessible={false}
-      importantForAccessibility="no"
+      importantForAccessibility="yes"
       pointerEvents="none"
       style={{ position: 'absolute', top: 0, left: 0, width: 1, height: 1, overflow: 'hidden', fontSize: 1, color: 'transparent' }}
     >
