@@ -157,3 +157,25 @@ fn the_pipeline_group_scheme_shares_shard_groups_per_workflow_and_deploy_groups_
     assert_eq!(cancels.len(), groups.len(), "every group states cancel-in-progress");
     assert!(cancels.iter().all(|c| c.trim() == "cancel-in-progress: false"), "no group cancels a running job: {cancels:?}");
 }
+
+#[test]
+fn every_sharded_test_job_of_the_pipeline_puts_its_shard_index_before_its_shard_key_in_its_concurrency_group_and_the_deploy_groups_have_none() {
+    // Given the pipeline's jobs
+    let text = workflow("pipeline.yml");
+
+    for (job, group, keys) in [
+        ("core-tests", "hosted-core-tests-{0}-{1}-{2}{3}", "core_shard_keys"),
+        ("integration-tests", "hosted-integration-{0}-{1}-{2}", "integration_shard_keys"),
+        ("cli-e2e-tests", "hosted-cli-e2e-tests-{0}-{1}-{2}{3}", "cli_e2e_shard_keys"),
+    ] {
+        // When the group of a sharded job is read
+        let block = job_block(&text, job);
+        let spelled = block.lines().find(|l| l.trim_start().starts_with("group: ")).unwrap_or_else(|| panic!("{job} has a concurrency group"));
+
+        // Then the workflow, the matrix shard and only then the shard's key make the name, so two shards of one run never share a group, and nothing is cancelled for a newer one
+        assert!(spelled.contains(&format!("format('{group}', github.workflow, matrix.shard, fromJSON(needs.plan.outputs.{keys})[matrix.shard]")), "{job}: {spelled}");
+        assert!(block.contains("      cancel-in-progress: false\n"), "{job} never cancels a running job");
+    }
+    // And the deploy groups stay per app
+    assert!(text.contains("group: ${{ format('hosted-deploy-build-{0}', matrix.app) }}") && text.contains("group: ${{ format('hosted-deploy-{0}', matrix.app) }}"));
+}

@@ -177,7 +177,7 @@ fn given_a_shard_replaced_while_pending_when_the_timings_are_kept_then_it_is_a_c
     let q = wf(&server, &["db", "query", "--sealed-file", &sealed.display().to_string(), "SELECT JOB, CONCLUSION, STARTED > 0 AS started, SECS, QUEUED, GROUP_KEY FROM CI_JOBS ORDER BY JOB"], &[("CI_DB_KEY", key)]);
     assert_eq!(
         line(&q)["rows"],
-        json!([{"JOB": "integration-tests (1/2)", "CONCLUSION": "success", "started": 1, "SECS": 540, "QUEUED": 5, "GROUP_KEY": "hosted-integration-CI core-k-one"}, {"JOB": "integration-tests (2/2)", "CONCLUSION": "cancelled", "started": 0, "SECS": 0, "QUEUED": 240, "GROUP_KEY": "hosted-integration-CI core-k-two"}]),
+        json!([{"JOB": "integration-tests (1/2)", "CONCLUSION": "success", "started": 1, "SECS": 540, "QUEUED": 5, "GROUP_KEY": "hosted-integration-CI core-1-k-one"}, {"JOB": "integration-tests (2/2)", "CONCLUSION": "cancelled", "started": 0, "SECS": 0, "QUEUED": 240, "GROUP_KEY": "hosted-integration-CI core-2-k-two"}]),
         "{}{}",
         q.stdout,
         q.stderr
@@ -217,9 +217,9 @@ fn given_a_fresh_run_with_three_keyed_stages_when_the_timings_are_kept_then_each
     assert_eq!(
         line(&q)["rows"],
         json!([
-            {"JOB": "cli-e2e-tests (1/2)", "GROUP_KEY": "hosted-cli-e2e-tests-CI core-e1-fresh"},
-            {"JOB": "core-tests (2/2)", "GROUP_KEY": "hosted-core-tests-CI core-c2-fresh"},
-            {"JOB": "integration-tests (2/2)", "GROUP_KEY": "hosted-integration-CI core-i2"}
+            {"JOB": "cli-e2e-tests (1/2)", "GROUP_KEY": "hosted-cli-e2e-tests-CI core-1-e1-fresh"},
+            {"JOB": "core-tests (2/2)", "GROUP_KEY": "hosted-core-tests-CI core-2-c2-fresh"},
+            {"JOB": "integration-tests (2/2)", "GROUP_KEY": "hosted-integration-CI core-2-i2"}
         ]),
         "{}{}",
         q.stdout,
@@ -385,4 +385,47 @@ fn given_a_finished_run_when_timings_are_sent_then_a_stand_in_source_receives_ev
     assert_eq!(value("ci.step.duration_s", "flow-tests", "Flow tests"), Some(419.0));
     assert_eq!(value("ci.stage.spread_s", "flow-tests", "all"), Some(300.0));
     assert_eq!(value("ci.run.wall_s", "77", "all"), Some(930.0));
+}
+
+#[test]
+fn given_a_plan_with_several_empty_shards_when_the_timings_of_two_runs_are_kept_then_the_groups_of_one_run_are_all_distinct_and_the_same_shard_and_key_in_the_other_run_has_the_same_group() {
+    // Given an integration plan of two crates over six shards, whose shard keys hold several `none` (from `wf ci plan shard-keys`, with the leading empty key the workflow adds)
+    let unit = |c: &str| json!({"kind": "integration", "crate": c, "group": "svc"});
+    let dir = tempfile::tempdir().unwrap();
+    let plan = dir.path().join("plan.json");
+    std::fs::write(&plan, json!({"sha": "aaa", "stages": {"integration-tests": [unit("alpha"), unit("beta")]}}).to_string()).unwrap();
+    let asked = run_wf(&["ci", "plan", "shard-keys", "--stage", "integration-tests", "--count", "6", "--plan", &plan.display().to_string()], &RunOpts::default());
+    assert_eq!(asked.exit_code, 0, "{}{}", asked.stdout, asked.stderr);
+    let mut keys: Vec<String> = serde_json::from_str(asked.stdout.trim()).unwrap();
+    assert!(keys.iter().filter(|k| *k == "none").count() >= 2, "{keys:?}");
+    keys.insert(0, String::new());
+    let keys = json!(keys).to_string();
+    let jobs: Vec<Value> = (1..=6).map(|i| job(&format!("run / integration-tests ({i}/6)"), "10:00:00", "10:00:05", "10:05:05", vec![])).collect();
+    let jobs = json!({"total_count": 6, "jobs": jobs});
+    let runs = |id: u32| json!({"id": id, "status": "completed", "created_at": "2026-11-19T10:00:00Z", "run_started_at": "2026-11-19T10:00:00Z", "head_sha": "cafe"});
+    let server = served(&[
+        ("/repos/o/r/actions/runs/90", runs(90)),
+        ("/repos/o/r/actions/runs/90/jobs?per_page=100&page=1", jobs.clone()),
+        ("/repos/o/r/actions/runs/91", runs(91)),
+        ("/repos/o/r/actions/runs/91/jobs?per_page=100&page=1", jobs),
+    ]);
+    let key = "0707070707070707070707070707070707070707070707070707070707070707";
+
+    // When the report job of each run keeps the timings with those keys
+    let groups_of = |id: &str| -> Vec<String> {
+        let (local, sealed) = (dir.path().join(format!("rows{id}.sqlite")), dir.path().join(format!("ci{id}.sealed")));
+        let r = wf(&server, &["timings", "--run", id], &[("WF_CI_DB", &local.display().to_string()), ("WF_CI_SHARD_KEYS", &keys), ("GITHUB_WORKFLOW", "CI core")]);
+        let merged = wf(&server, &["db", "merge", "--sealed-file", &sealed.display().to_string(), &local.display().to_string()], &[("CI_DB_KEY", key)]);
+        assert_eq!((r.exit_code, merged.exit_code), (0, 0), "{}{}{}{}", r.stdout, r.stderr, merged.stdout, merged.stderr);
+        let q = wf(&server, &["db", "query", "--sealed-file", &sealed.display().to_string(), "SELECT GROUP_KEY FROM CI_JOBS ORDER BY JOB"], &[("CI_DB_KEY", key)]);
+        line(&q)["rows"].as_array().unwrap().iter().map(|r| r["GROUP_KEY"].as_str().unwrap().to_string()).collect()
+    };
+    let (first, second) = (groups_of("90"), groups_of("91"));
+
+    // Then no two shards of one run share a group, even those whose key is `none`
+    let distinct: std::collections::BTreeSet<&String> = first.iter().collect();
+    assert_eq!((first.len(), distinct.len()), (6, 6), "{first:?}");
+    assert!(first.iter().any(|g| g.ends_with("-none")), "{first:?}");
+    // And the same shard index with the same key in the later run has the same group, so it queues behind the earlier one
+    assert_eq!(first, second);
 }

@@ -950,7 +950,7 @@ fn a_job_cancelled_after_it_started_is_named_and_one_replaced_while_waiting_is_n
 #[test]
 fn a_pending_job_a_newer_one_replaced_is_expected_and_a_job_killed_while_running_is_still_a_finding() {
     // Given a shard of run 70 that GitHub cancelled one second after its recorded start (a replaced pending job) and a shard of run 71 cancelled after 90 s of running
-    let rows = [group_job("70", "core-tests (1/3)", "hosted-core-tests-CI core mobile-k1", 100, 1, "cancelled"), group_job("71", "integration-tests (1/4)", "hosted-integration-CI core-k2", 100, 90, "cancelled")];
+    let rows = [group_job("70", "core-tests (1/3)", "hosted-core-tests-CI core-1-k1", 100, 1, "cancelled"), group_job("71", "integration-tests (1/4)", "hosted-integration-CI core-1-k2", 100, 90, "cancelled")];
 
     // When the audit runs
     let out = audit_groups("replaced", &rows);
@@ -977,9 +977,9 @@ fn a_job_cancelled_two_seconds_after_its_start_is_replaced_and_one_cancelled_thr
 fn two_runs_of_the_same_shard_inputs_in_one_group_that_never_overlap_and_a_replaced_pending_job_are_no_finding() {
     // Given core-tests (1/2) of run 70 running 100 s in group k1, run 71's pending job of k1 replaced 1 s after its recorded start, and run 72's job of k1 starting after run 70 ended
     let rows = [
-        group_job("70", "core-tests (1/2)", "hosted-core-tests-CI core mobile-k1", 100, 100, "success"),
-        group_job("71", "core-tests (1/2)", "hosted-core-tests-CI core mobile-k1", 200, 1, "cancelled"),
-        group_job("72", "core-tests (1/2)", "hosted-core-tests-CI core mobile-k1", 201, 100, "success"),
+        group_job("70", "core-tests (1/2)", "hosted-core-tests-CI core-1-k1", 100, 100, "success"),
+        group_job("71", "core-tests (1/2)", "hosted-core-tests-CI core-1-k1", 200, 1, "cancelled"),
+        group_job("72", "core-tests (1/2)", "hosted-core-tests-CI core-1-k1", 201, 100, "success"),
     ];
 
     // When the audit runs
@@ -1011,8 +1011,8 @@ fn a_run_cancelled_by_hand_ends_several_started_jobs_at_once_and_is_not_a_findin
 fn two_workflows_that_plan_the_same_shard_key_run_side_by_side_and_are_not_one_group() {
     // Given core-tests (1/2) of two workflows recorded under their own full group strings (the same shard key `none`), running at the same time
     let rows = [
-        group_job("70", "core-tests (1/2)", "hosted-core-tests-CI core cli-none", 100, 300, "success"),
-        group_job("71", "core-tests (1/2)", "hosted-core-tests-CI core mobile-none", 120, 300, "success"),
+        group_job("70", "core-tests (1/2)", "hosted-core-tests-CI core-1-none", 100, 300, "success"),
+        group_job("71", "core-tests (1/2)", "hosted-core-tests-CI mobile-1-none", 120, 300, "success"),
     ];
 
     // When the audit runs
@@ -2141,7 +2141,7 @@ fn the_report_has_a_headline_with_wall_runner_seconds_peak_jobs_efficiency_the_c
     assert!(body.contains("The critical path is plan &gt; core-tests (1/2) (10m 00s, 100% of the wall time)"), "{body}");
     assert!(body.contains("Jobs waited 3m 00s for a runner in total, 45s at worst"), "{body}");
     assert!(body.contains("| setup-job | 2m 40s | 4 | 40s |"), "{body}");
-    assert!(body.contains("core-tests (1/2) queued 45s; its concurrency group is `hosted-core-tests-CI core-k1`") && body.contains("plan waited 45s for a runner"), "{body}");
+    assert!(body.contains("core-tests (1/2) queued 45s; its concurrency group is `hosted-core-tests-CI core-1-k1`") && body.contains("plan waited 45s for a runner"), "{body}");
 }
 
 #[test]

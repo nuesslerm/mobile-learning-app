@@ -142,8 +142,8 @@ fn fail(message: &str, next: &str) -> i32 {
     1
 }
 
-/// The concurrency group of a job when it is a shard with a key, as `pipeline.yml` spells it: caller workflow, the shard's input key and `-fresh` for a run with the
-/// caches off, so runs of the same inputs share a group. Each `WF_CI_*_SHARD_KEYS` is the plan's JSON array with a leading empty key, which makes the 1-based shard
+/// The concurrency group of a job when it is a shard with a key, as `pipeline.yml` spells it: caller workflow, the shard's own number (so shards of one run never share a group, whatever their keys), the shard's input key and `-fresh` for a run with the
+/// caches off, so the same shard of runs with the same inputs shares a group. Each `WF_CI_*_SHARD_KEYS` is the plan's JSON array with a leading empty key, which makes the 1-based shard
 /// number its index.
 pub(crate) fn group_of(stage: &str, shard: &str) -> Option<String> {
     let (var_name, prefix) = match stage {
@@ -155,7 +155,7 @@ pub(crate) fn group_of(stage: &str, shard: &str) -> Option<String> {
     let keys: Vec<String> = serde_json::from_str(&var(var_name)?).ok()?;
     let index = shard.split('/').next()?.parse::<usize>().ok().filter(|n| *n >= 1)?;
     let fresh = if stage != "integration-tests" && var("WF_CI_FRESH").as_deref() == Some("true") { "-fresh" } else { "" };
-    Some(format!("{prefix}-{}-{}{fresh}", var("GITHUB_WORKFLOW").unwrap_or_default(), keys.get(index)?))
+    Some(format!("{prefix}-{}-{index}-{}{fresh}", var("GITHUB_WORKFLOW").unwrap_or_default(), keys.get(index)?))
 }
 
 /// Each finished job into the CI database's `CI_JOBS` (the job-local file the report job merges): how it ended, how long it ran, how long it waited

@@ -794,7 +794,7 @@ fn given_the_pipeline_when_the_sharded_test_jobs_are_read_then_runs_of_the_same_
         let group = block.lines().find(|l| l.trim_start().starts_with("group:")).unwrap_or_else(|| panic!("no group in {job}"));
         // Then the group holds the caller workflow and the shard's input key, not the run id: identical work of one workflow waits as a pending job that a newer run may replace (the owner accepts it),
         // a fix with other inputs starts at once, and a job that already runs is never cancelled
-        assert!(group.contains(keys) && group.contains("github.workflow") && !group.contains("run_id"), "{job}: {group}");
+        assert!(group.contains(keys) && group.contains("github.workflow") && group.contains("matrix.shard, fromJSON") && !group.contains("run_id"), "{job}: {group}");
         assert!(block.contains("cancel-in-progress: false") && !block.contains("cancel-in-progress: true"), "{job}: a running job is never cancelled");
     }
 }
