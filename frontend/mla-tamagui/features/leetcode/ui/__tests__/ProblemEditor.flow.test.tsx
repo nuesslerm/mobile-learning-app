@@ -610,11 +610,12 @@ describe('ProblemEditorScreen flow (code runner port)', () => {
 
     // When the person goes on typing and the run then finishes
     const edited = `${editor.text()}\n        return [0, 1]`;
+    await forgetLoggedLines();
     await editor.select(0, editor.text().length);
     await editor.type(edited);
     await waitFor(() => expect(editor.text()).toBe(edited));
-    // the page's change reaches the screen's state a moment after the page shows it: let it land before the answer does
-    await act(async () => new Promise((resolve) => setTimeout(resolve, 200)));
+    // the page's change reaches the screen's state after the page shows it: the editor's value sync is what says it has landed there
+    await waitFor(async () => expect(await loggedLines('editor.value_sync')).not.toHaveLength(0));
     await act(async () => finish(passingRun(3)));
 
     // Then no card appears for code that is no longer there, and the screen logs why it dropped the answer (and tells the person)

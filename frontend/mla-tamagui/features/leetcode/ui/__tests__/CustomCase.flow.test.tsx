@@ -1,4 +1,4 @@
-import { createFakeAudioRecorder, createFakeVoiceEditTransport, expectWarning, fireEvent, screen, userEvent, waitFor, type FlowSession } from '@lib/flow-test-harness';
+import { act, createFakeAudioRecorder, createFakeVoiceEditTransport, expectWarning, fireEvent, screen, userEvent, waitFor, type FlowSession } from '@lib/flow-test-harness';
 import { describe, expect, it, vi } from 'vitest';
 
 import { app } from '../../../../tests/flow/app';
@@ -259,12 +259,13 @@ describe('Run input beside Run Local', () => {
     await waitFor(() => expect(runner.calls).toHaveLength(1));
 
     const edited = `${editor.text()}\n        return [0, 1]`;
+    await forgetLoggedLines();
     await editor.select(0, editor.text().length);
     await editor.type(edited);
     await waitFor(() => expect(editor.text()).toBe(edited));
-    // the page's change reaches the screen's state a moment after the page shows it: let it land before the answer does
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    finish();
+    // the page's change reaches the screen's state after the page shows it: the editor's value sync is what says it has landed there
+    await waitFor(async () => expect(await loggedLines('editor.value_sync')).not.toHaveLength(0));
+    await act(async () => finish());
 
     await waitFor(async () => expect(await loggedLines('editor_v2.run_local.discarded')).not.toHaveLength(0), { timeout: 10_000 });
     expect(screen.queryByTestId('ProblemEditorRunOutcome')).toBeNull();
