@@ -68,6 +68,7 @@ import { AlternativePicker } from './AlternativePicker';
 import { RunCaseList } from './RunCaseList';
 import { DiffToggle } from './DiffToggle';
 import {
+  EDITOR_LANGUAGES,
   LanguagePicker,
   LanguageSheet,
   type EditorLanguage,
@@ -230,8 +231,18 @@ export function ProblemEditorScreen({
   const requestUnsavedChanges = useUnsavedChangesRequestStore((s) => s.request);
   const [languageSheetOpen, setLanguageSheetOpen] = React.useState(false);
 
+  // Only a language the problem has a starter for: without one the buffer would be another language's code under this one's name
+  const availableLanguages = React.useMemo(
+    () => EDITOR_LANGUAGES.filter((candidate) => problem?.starterCode?.[candidate] !== undefined),
+    [problem?.starterCode]
+  );
+
   const handleLanguageChange = React.useCallback(
     (nextLang: EditorLanguage) => {
+      if (!availableLanguages.includes(nextLang)) {
+        Logger.warn('editor_v2.language_change.refused', { to: nextLang, problemId: problem?.id });
+        return;
+      }
       Logger.info('editor_v2.language_change', {
         from: lang,
         to: nextLang,
@@ -244,7 +255,7 @@ export function ProblemEditorScreen({
       setEditorText(pickStarterCode(problem?.starterCode, nextLang));
       setRunOutcome(null);
     },
-    [lang, problem?.id, problem?.starterCode, snapshot]
+    [availableLanguages, lang, problem?.id, problem?.starterCode, snapshot]
   );
 
   const handleFormat = React.useCallback(async () => {
@@ -756,6 +767,9 @@ export function ProblemEditorScreen({
               <LanguagePicker
                 value={lang}
                 onOpen={() => setLanguageSheetOpen(true)}
+                // exactly one: the page the web export prerenders has no problem yet (no languages), and a trigger disabled there
+                // would not match the enabled one a problem with two languages hydrates into
+                disabled={availableLanguages.length === 1}
                 testID="ProblemEditorLanguagePicker"
               />
               {diffRange ? (
@@ -948,6 +962,7 @@ export function ProblemEditorScreen({
         onOpenChange={setLanguageSheetOpen}
         value={lang}
         onChange={handleLanguageChange}
+        languages={availableLanguages}
         testID="ProblemEditorLanguagePicker"
       />
       {voiceEdit.state.phase === 'planning' ? (

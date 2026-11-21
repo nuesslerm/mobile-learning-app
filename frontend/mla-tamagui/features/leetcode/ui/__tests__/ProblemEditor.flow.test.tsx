@@ -216,6 +216,42 @@ describe('ProblemEditorScreen flow (language toggle)', () => {
   });
 });
 
+describe('ProblemEditorScreen flow (languages a problem offers)', () => {
+  // the route's problem comes from the real catalog: meeting-rooms has a Python starter and no other
+  async function renderMeetingRooms(): Promise<FlowSession> {
+    useRunnerSettingStore.setState({ runner: 'backend' });
+    const ports: LeetCodePortOverrides = {
+      gateway: fakeGateway().gateway,
+      voice: createFakeVoiceEditTransport() as unknown as VoiceEditTransportPort,
+      audio: createFakeAudioRecorder(),
+    };
+    return app.render('/leetcode/meeting-rooms', { overrides: { leetcode: ports } });
+  }
+
+  it('given a problem with only a Python starter, when the editor opens, then the language trigger is disabled and says Python', async () => {
+    // Given the editor of a problem that has only a Python starter
+    const session = await renderMeetingRooms();
+    const editor = await session.editor();
+
+    // Then the starter is Python and there is no other language to switch to
+    expect(editor.text()).toContain('def ');
+    const trigger = screen.getByTestId('ProblemEditorLanguagePicker-Trigger');
+    expect(trigger.textContent).toBe('Python');
+    expect((trigger as HTMLButtonElement).disabled || trigger.getAttribute('aria-disabled') === 'true').toBe(true);
+  });
+
+  it('given a problem with starters in two languages, when the language sheet opens, then both are offered', async () => {
+    const { gateway } = fakeGateway();
+    const session = await renderEditor(gateway);
+    await session.editor();
+
+    await userEvent.click(screen.getByTestId('ProblemEditorLanguagePicker-Trigger'));
+
+    await waitFor(() => expect(screen.getByTestId('ProblemEditorLanguagePicker-Python')).toBeTruthy());
+    expect(screen.getByTestId('ProblemEditorLanguagePicker-JavaScript')).toBeTruthy();
+  });
+});
+
 describe('ProblemEditorScreen flow (action buttons)', () => {
   it('given a signed-in problem editor, when the user taps run, then the gateway is asked to test and poll the submission', async () => {
     useLeetCodeAuthStore.setState({ isLoggedIn: true, username: 'flow-user' });
