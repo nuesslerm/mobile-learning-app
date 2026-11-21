@@ -37,6 +37,9 @@ runs:
           # shellcheck disable=SC2086
           if sudo timeout 150 apt-get update -qq "${opts[@]}" && sudo timeout 240 apt-get install -y -qq "${opts[@]}" $missing; then ok=true; break; fi
           echo "apt: attempt $attempt failed"
+          # what a run with no installation candidate (every mirror, run 44961066640) was missing: the sources apt read and how many lists it fetched
+          grep -rhE '^(URIs|deb) ' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null | sort -u | head -8 | sed 's/^/apt: source: /' || true
+          echo "apt: lists fetched: $(find /var/lib/apt/lists -maxdepth 1 -name '*_Packages*' 2>/dev/null | wc -l)"
           next="${mirrors[$((attempt - 1))]:-}"
           if [ -n "$next" ]; then
             echo "apt: switching the sources to $next"
