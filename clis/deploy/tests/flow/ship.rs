@@ -139,6 +139,20 @@ fn running(vm_ops_commit: &str) -> Vec<String> {
     replies
 }
 
+/// The calls `running` answers, in its order: the plan asks every service at once, so an answer belongs to its path, never to its place in the arrival order.
+fn running_paths() -> Vec<String> {
+    let mut paths: Vec<String> = PLANNED.iter().map(|(app, _)| format!("GET /services/{app}/ps")).collect();
+    paths.push("GET /health".to_string());
+    paths.push("GET /services/agent-shell/ps".to_string());
+    paths
+}
+
+/// Makes the fake answer `replies` (laid out as `running` lays them out) by path.
+fn answer(s: &Ship, replies: &[String]) {
+    let table: Vec<(String, String)> = running_paths().into_iter().zip(replies.iter().cloned()).collect();
+    s.vm.replies_by_path(&table);
+}
+
 /// The planned legs: each app with why it ships.
 fn legs(stdout: &str) -> Vec<(String, Vec<String>)> {
     let plan: Value = serde_json::from_str(stdout).unwrap_or_else(|e| panic!("{e}: {stdout}"));
@@ -173,13 +187,17 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
     let mut replies: Vec<String> = PLANNED.iter().zip(["abc123", "abc123", "def456", "abc123", "abc123", "abc123", "abc123", "fed789"]).map(|((app, image), sha)| ps(app, &format!("reg/{image}:sha-{sha}"))).collect();
     replies.push(health("aaaaaaa"));
     replies.push(ps("agent-shell", "reg/agent-shell:sha-abc123"));
-    s.vm.replies(&replies);
+    answer(&s, &replies);
     s.latest_update("abc123");
     let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[{\"name\":\"@app/unrelated\"}]")]);
     // Then nothing is scheduled and no update is published, only the latest update's commit is asked of pnpm, and the dev Metro's bridge is not asked
     assert_eq!((r.exit_code, r.stdout.as_str()), (0, "{\"legs\":[],\"easUpdate\":{\"publish\":false,\"why\":[]}}\n"));
     assert_eq!(s.log("pnpm.log"), ["--filter ...[abc123] --changed-files-ignore-pattern=**/__tests__/** --changed-files-ignore-pattern=**/*.test.* --changed-files-ignore-pattern=**/*.md list --depth -1 --json"]);
-    assert_eq!(s.url(PLANNED.len() + 1), format!("{BASE}/health"), "the double answers what the plan asks");
+    let mut asked: Vec<String> = s.vm.requests().iter().map(|q| q.url.clone()).collect();
+    asked.sort();
+    let mut wanted: Vec<String> = running_paths().iter().map(|key| key.trim_start_matches("GET ").to_string()).collect();
+    wanted.sort();
+    assert_eq!(asked, wanted, "the plan asks every service once and vm-ops-api's health");
     assert!(s.vm.requests().iter().all(|q| !q.url.contains("dev-bridge") && !q.url.contains("metro-runner")), "{:?}", s.vm.requests().iter().map(|q| q.url.clone()).collect::<Vec<_>>());
     let signed = &s.vm.requests()[0];
     s.vm.assert_signed(signed, "GET", &signed.url, "");
@@ -187,7 +205,7 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
     // Given an unreachable service and a running commit the checkout cannot hash (the empty tree has no Dockerfile)
     let mut replies = running("abc123");
     replies[2] = answers::reply(502, &answers::engine_down());
-    s.vm.replies(&replies);
+    answer(&s, &replies);
     let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]"), ("GIT_AS", "4b825dc642cb6eb9a060e54bf8d69288fbee4904")]);
     // Then each is planned with why, the unreachable one with a warning
     assert_eq!(apps(&r.stdout), ALL_APPS.map(String::from).to_vec());
@@ -199,7 +217,7 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
     assert_eq!(copy_problems(&root, "clis/vnc-auth-capture/Dockerfile", &["clis/vnc-auth-capture/listener"], &["clis/secrets/src/data/registry.json"]).unwrap(), Vec::<String>::new());
 
     // Given running commits the checkout does not know, Then every service is planned as changed without hashing or asking pnpm
-    s.vm.replies(&running("abc123"));
+    answer(&s, &running("abc123"));
     let r = s.wf(&["ci", "plan", "legs"], &[("GIT_KNOWN", "1"), ("PNPM_OUT", "[]")]);
     assert_eq!(apps(&r.stdout), ALL_APPS.map(String::from).to_vec());
     assert_eq!(why(&r.stdout, "leetcode-backend"), ["its running commit abc123 is not in this checkout"]);
@@ -219,14 +237,14 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
     show("HEAD", "pnpm-lock.yaml", &pnpm_lock("aaa", "3.1.0"));
     show("aaaaaaa", "pnpm-lock.yaml", &pnpm_lock("aaa", "3.0.0"));
     s.latest_update("aaaaaaa");
-    s.vm.replies(&running("aaaaaaa"));
+    answer(&s, &running("aaaaaaa"));
     let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]"), ("GIT_CHANGED", "pnpm-lock.yaml")]);
     let plan: Value = serde_json::from_str(&r.stdout).unwrap();
     assert_eq!((r.exit_code, plan["legs"].clone(), plan["easUpdate"].clone()), (0, json!([]), json!({ "publish": false, "why": [] })), "{}{}", r.stdout, r.stderr);
 
     // Given it re-patched a package the app bundles, Then the update is published with the dependency that moved
     show("aaaaaaa", "pnpm-lock.yaml", &pnpm_lock("bbb", "3.1.0"));
-    s.vm.replies(&running("aaaaaaa"));
+    answer(&s, &running("aaaaaaa"));
     let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]"), ("GIT_CHANGED", "pnpm-lock.yaml")]);
     let plan: Value = serde_json::from_str(&r.stdout).unwrap();
     assert_eq!(plan["easUpdate"], json!({ "publish": true, "why": ["1 of its locked dependencies moved: sonner-native"] }), "{plan}");
@@ -248,7 +266,7 @@ fn a_service_with_no_running_container_is_planned_whatever_changed() {
     let created = [("remote-chat-agent", "created", "Created", "reg/remote-chat-agent:sha-abc123"), ("remote-chat-agent-tailscale", "created", "Created", "tailscale/tailscale:v1.102.2")];
     let mut replies = running("abc123");
     replies[0] = answers::reply(200, &answers::ps("remote-chat-agent", &created));
-    s.vm.replies(&replies);
+    answer(&s, &replies);
     // When the plan is made with nothing changed
     let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]")]);
     // Then only that service ships, because its tag names an image nothing runs
@@ -258,7 +276,7 @@ fn a_service_with_no_running_container_is_planned_whatever_changed() {
 
     // and once its own container runs again at that commit, nothing ships
     replies[0] = ps("remote-chat-agent", "reg/remote-chat-agent:sha-abc123");
-    s.vm.replies(&replies);
+    answer(&s, &replies);
     let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]")]);
     assert_eq!((r.exit_code, apps(&r.stdout)), (0, Vec::<String>::new()), "{}{}", r.stdout, r.stderr);
 }
@@ -267,7 +285,7 @@ fn a_service_with_no_running_container_is_planned_whatever_changed() {
 fn the_update_is_published_whenever_the_app_moved_since_the_pointer_whatever_the_services_run() {
     let s = Ship::new();
     let plan = |s: &Ship, env: &[(&str, &str)]| -> (RunResult, Value) {
-        s.vm.replies(&running("aaaaaaa"));
+        answer(s, &running("aaaaaaa"));
         let r = s.wf(&["ci", "plan", "legs"], env);
         let v = serde_json::from_str(r.stdout.trim()).unwrap_or(Value::Null);
         (r, v)
