@@ -65,7 +65,14 @@ impl SlotSandbox {
 
     /// Runs `wf <args>` in the repo with the stubs first on PATH; `ts=<seconds>` at the start of a log line reads `ts=T`.
     pub fn run(&self, args: &[&str], env: &[(&str, &str)]) -> RunResult {
+        self.run_within(args, env, None)
+    }
+
+    /// `run` with the child killed after `limit` (the runner's default is 15 s), for a run that waits on a condition a loaded
+    /// machine could stretch past it.
+    pub fn run_within(&self, args: &[&str], env: &[(&str, &str)], limit: Option<std::time::Duration>) -> RunResult {
         let mut opts = RunOpts::default().bin_dir(&self.bin_dir).cwd(&self.repo).env("WF_REGISTRY_DIR", &self.reg_dir.display().to_string()).env("ANDROID_SERIAL", "emulator-5554");
+        opts.timeout = limit;
         for (key, value) in env {
             opts = opts.env(key, value);
         }

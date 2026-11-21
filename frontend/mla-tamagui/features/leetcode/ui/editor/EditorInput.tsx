@@ -31,6 +31,7 @@ import {
 } from '../../state/editor/editorSettings';
 import type { EditResult } from '../../domain/editor/editing';
 import type { Selection } from '../../domain/editor/types';
+import { createEditorTextSource, EditorTextMirror } from './EditorTextMirror';
 
 // App default 400ms flush — same cadence as every other Logger.
 
@@ -119,6 +120,14 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     // Tracks the last text CM6 reported via contentChanged, so we can detect
     // external store changes (e.g. replaceAll) and push them back to CM6.
     const lastWebViewTextRef = useRef(value);
+    const [textMirror] = useState(() => createEditorTextSource(value));
+    const holdText = useCallback(
+      (text: string) => {
+        lastWebViewTextRef.current = text;
+        textMirror.set(text);
+      },
+      [textMirror]
+    );
     // Tracks whether we've sent the 'init' message to the editor.
     const isInitializedRef = useRef(false);
     // the language the page was last told: `init` carries it, a later change is posted as an update
@@ -213,7 +222,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           const outcome = await writeThrough(apiBridge.client, request, () => isReadyRef.current);
           if (!outcome) return;
           if (outcome.landed) {
-            lastWebViewTextRef.current = outcome.text;
+            holdText(outcome.text);
             if (request.focus) void apiBridge.client.focus();
             return;
           }
@@ -221,14 +230,14 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           // keeps what the editor last reported, so the value sync tries again the next time it runs.
           Logger.warn('editor.write.failed', { label: request.label, code: outcome.code, healed: outcome.editorText !== null });
           if (outcome.editorText !== null) {
-            lastWebViewTextRef.current = outcome.editorText;
+            holdText(outcome.editorText);
             onChangeText(outcome.editorText);
           }
         };
         writeChainRef.current = writeChainRef.current.then(run, run);
         return writeChainRef.current;
       },
-      [apiBridge, onChangeText]
+      [apiBridge, onChangeText, holdText]
     );
 
     const updateHydrated = useCallback(
@@ -379,6 +388,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     if (!isInitializedRef.current) {
       initialValueRef.current = value;
       lastWebViewTextRef.current = value;
+      textMirror.set(value, false);
     }
 
     const initializeEditor = useCallback(() => {
@@ -514,7 +524,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             initializeEditor();
             break;
           case 'hydrated':
-            lastWebViewTextRef.current = m.text;
+            holdText(m.text);
             updateHydrated(true);
             // The view hydrated from whatever `initialText` was when it
             // mounted; React state may have moved since. Reconcile to state
@@ -574,7 +584,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             });
             break;
           case 'contentChanged':
-            lastWebViewTextRef.current = m.text;
+            holdText(m.text);
             onChangeText(m.text);
             onSelectionChange(m.selection);
             break;
@@ -593,6 +603,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         sendMessage,
         updateHydrated,
         writeDocument,
+        holdText,
       ]
     );
 
@@ -668,6 +679,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           allowsInlineMediaPlayback
           style={{ flex: 1, backgroundColor: palette.background }}
         />
+        {Platform.OS === 'android' ? <EditorTextMirror source={textMirror} /> : null}
       </View>
     );
   }

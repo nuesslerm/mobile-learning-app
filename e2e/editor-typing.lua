@@ -73,11 +73,13 @@ local SYM = { [":"] = "EditorSyntax-Colon", ["("] = "EditorSyntax-Paren", ["["] 
 -- the bracket keys insert a pair, and Android's keyboard does not type over the closing one: brackets go on the keyboard there
 if android then SYM["("], SYM["["] = nil, nil end
 
-local function buffer() local e = device:get_element({id='CodeEditorInput'}) return e and e.text end
+-- Android reads the app's own copy of the document (CodeEditorText). The web view's accessibility text lagged, stayed stale and was
+-- absent for whole units (runs 44047720113, 44618453035, 44907690601), which skipped an Enter and pressed others three times.
+local function buffer() local e = device:get_element({id = android and 'CodeEditorText' or 'CodeEditorInput'}) return e and e.text end
 local function text_of(id) local e = device:get_element({id=id}) return e and e.text end
 local function indent_now()
   local b = buffer()
-  if not b then return nil end
+  assert_true(b, "the editor's text is not readable")
   local last = b:match("([^\n]*)$") or ""
   return #last - #(last:gsub("%s+$", "")) -- trailing spaces on the current last line
 end
@@ -103,12 +105,7 @@ local function sym(c)
   -- the editor applies a toolbar key asynchronously, over the WebView bridge: a person waits to see it before typing on
   -- (job 1a13959cdf8-6c840 typed past a late "=" and ":" after a fixed one-second pause)
   if ok then
-    if android then
-      -- Android's a11y read of the buffer misses some toolbar keys for good; a person types on after a moment, and so does this
-      device:extended_wait_until{condition=function() return #(buffer() or '') > before end, timeout=2000, optional=true, label='toolbar key landed'}
-    else
-      device:extended_wait_until{condition=function() return #(buffer() or '') > before end, label='toolbar key landed'}
-    end
+    device:extended_wait_until{condition=function() return #(buffer() or '') > before end, timeout=8000, label='toolbar key landed'}
   end
   if ok then toolbar.taps = toolbar.taps + 1 else toolbar.typed = toolbar.typed + 1 end
   return ok
@@ -132,16 +129,12 @@ local function done() -- the only way a user dismisses the keyboard: Done at the
     device:assert_not_visible({id='EditorHelperRails'})
   end
 end
--- Android sometimes loses an Enter key between two typed lines (docs/gaps/android-editor-typing-drops-a-newline.md: `return False` and
--- `else:` read back as one line): a person sees the line did not break and presses it again. The buffer must grow by the newline; the read
--- lags the editor by up to a second or so, so the second press waits for that much.
+-- One press, then the wait for the document to gain its line: a key the editor lost fails here, named, and is never pressed again
+local function newlines(text) return select(2, text:gsub("\n", "")) end
 local function enter()
-  if not android then device:press_key('Enter') return end
-  local before = #(buffer() or "")
-  for _ = 1, 3 do
-    device:press_key('Enter')
-    if device:extended_wait_until{condition=function() return #(buffer() or "") > before end, timeout=2500, optional=true} then return end
-  end
+  local before = newlines(assert(buffer(), "the editor's text is not readable"))
+  device:press_key('Enter')
+  device:extended_wait_until{condition=function() return newlines(buffer() or "") > before end, timeout=8000, label='the Enter reached the editor'}
 end
 local keys = 0
 local used_keys = {}
@@ -151,7 +144,7 @@ local warned = false
 local function line(problem, i, indent, content, mistake)
   for _ = 1, 40 do
     local c = indent_now()
-    if c == nil or c == indent then break end
+    if c == indent then break end
     if c > indent then device:press_key('Backspace') else typ(string.rep(" ", indent - c)) end
     -- keys that do not reach the end of the buffer would be retyped 40 times: stop at once instead
     device:extended_wait_until{condition=function() return indent_now() ~= c end, timeout=2000,
@@ -182,9 +175,7 @@ local function line(problem, i, indent, content, mistake)
   end
 end
 
--- The a11y read of the web view's text lags what is typed (two-sum part 1, run 44047720113: an empty read of a field the
--- screenshot shows complete), so a missing line is waited for first; only a stable read that ends in a prefix of the last
--- line gets that line's missing suffix typed, and an empty read is never retyped over text that may be there.
+-- The lines the document does not hold yet (each trimmed: the indent is checked as it is typed). Nothing is typed again for a missing one.
 local function missing_lines(p, last, b)
   local got = {}
   for l in (b .. "\n"):gmatch("([^\n]*)\n") do got[#got + 1] = l:match("^%s*(.-)%s*$") end
@@ -200,17 +191,6 @@ local function read_back(p, last)
   local b, missing = "", {}
   local function read() b = buffer() or ""; missing = missing_lines(p, last, b); return #missing == 0 end
   device:extended_wait_until{condition=read, timeout=5000, optional=true, label=p.id .. ': typed lines read back'}
-  for _ = 1, 2 do
-    if read() or b == "" then break end
-    local seen = b
-    device:extended_wait_until{condition=function() return (buffer() or "") ~= seen end, timeout=1500, optional=true, label='read still changing'}
-    if (buffer() or "") ~= seen then break end
-    local tail = p.lines[last][2]
-    local have = seen:match("([^\n]*)$"):match("^%s*(.-)%s*$")
-    if #missing ~= 1 or missing[1] ~= tail or tail:sub(1, #have) ~= have then break end
-    typ(tail:sub(#have + 1))
-    device:extended_wait_until{condition=read, timeout=3000, optional=true, label=p.id .. ': suffix read back'}
-  end
   read()
   return b, missing
 end
@@ -302,7 +282,7 @@ for _, p in ipairs(SOL) do
     end
     device:press_key('Ctrl+End') -- typing goes on at the end of the buffer
   end
-  local b0 = buffer() or ""
+  local b0 = assert(buffer(), p.id .. ": the editor's text is not readable")
   if (b0:match("([^\n]*)$") or ""):match("%S") then enter() end
 
   device:take_screenshot(("%s/%s-start.png"):format(out, p.id))
