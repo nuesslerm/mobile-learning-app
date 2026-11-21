@@ -13,7 +13,7 @@ export const rawRunSchema = z.object({
 });
 export type RawRun = z.infer<typeof rawRunSchema>;
 
-const LOCATION_SUFFIX = / \(<string>, line \d+\)$/;
+const LOCATION_SUFFIX = / \(<string>, line (\d+)\)$/;
 
 /**
  * The one place a run's raw report becomes the verdict the screen reads, so a local run and a remote one cannot disagree about
@@ -28,14 +28,17 @@ export function runResponseOf(raw: RawRun, source: RunResponse['source'], option
   if (!raw.ok || raw.error) {
     const message = raw.error ?? 'Unknown error';
     const kind = raw.error_kind ?? (message.includes('Timeout') ? 'timeout' : 'compile');
-    const text = kind === 'compile' && raw.error_at ? message.replace(LOCATION_SUFFIX, '') : message;
+    // the backend gives no location, but str(SyntaxError) in its Python harness ends with one
+    const printed = kind === 'compile' && !raw.error_at ? LOCATION_SUFFIX.exec(message) : null;
+    const errorAt = raw.error_at ?? (printed ? { line: Number(printed[1]) } : undefined);
+    const text = kind === 'compile' && errorAt ? message.replace(LOCATION_SUFFIX, '') : message;
     return {
       ...base,
       state: 'FAILURE',
       run_success: false,
       status_msg: 'Error',
       ...(kind === 'compile' ? { compile_error: text } : { runtime_error: text }),
-      ...(raw.error_at ? { error_at: raw.error_at } : {}),
+      ...(errorAt ? { error_at: errorAt } : {}),
     };
   }
   const accepted = totalCorrect === totalTestcases;
