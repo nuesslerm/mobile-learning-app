@@ -31,6 +31,7 @@ import {
   useCodeEditorSettingsStore,
 } from '../../state/editor/editorSettings';
 import type { EditResult } from '../../domain/editor/editing';
+import { checkpointWithin, clearErrorLine, showErrorLine, type ErrorCheckpoint, type ErrorJump, type ErrorPlace } from '../../domain/editor/errorJump';
 import type { Selection } from '../../domain/editor/types';
 import { createEditorTextSource, EditorTextMirror } from './EditorTextMirror';
 
@@ -39,6 +40,9 @@ import { createEditorTextSource, EditorTextMirror } from './EditorTextMirror';
 // A cold phone WebView takes seconds to evaluate the CodeMirror bundle; past
 // this without 'hydrated' the editor is dead or blank.
 const HYDRATE_TIMEOUT_MS = 15_000;
+
+// A run waits this long for the editor's text; a page that is slower than this runs on the screen's text, with no error line.
+const CHECKPOINT_DEADLINE_MS = 500;
 
 export type EditorInputHandle = EditTarget & {
   focus: () => void;
@@ -55,6 +59,11 @@ export type EditorInputHandle = EditTarget & {
   isCompletionOpen: () => boolean;
   /** Takes the suggestion the list has selected; false when nothing was open or taken. */
   acceptCompletion: () => Promise<boolean>;
+  /** The editor's text, revision and instance in one read, after the writes still queued; null when the editor is not ready or does not answer in time. */
+  checkpoint: () => Promise<ErrorCheckpoint | null>;
+  /** Marks the reported line of the checkpoint's text and scrolls it into view, with no selection or focus change; never throws. */
+  showErrorLine: (checkpoint: ErrorCheckpoint, place: ErrorPlace | undefined) => Promise<ErrorJump>;
+  clearErrorLine: () => Promise<void>;
   undo: () => void;
   redo: () => void;
   showDiff: (start: number, end: number) => void;
@@ -323,6 +332,42 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         async acceptCompletion() {
           const reply = await apiBridge.client.transact([{ op: 'complete' }]);
           return reply.ok && reply.value.changes.length > 0;
+        },
+        async checkpoint() {
+          if (!isReadyRef.current || !isInitializedRef.current) {
+            Logger.info('editor_v2.run_error.skipped', { reason: 'not-ready' });
+            return null;
+          }
+          const taken = await checkpointWithin(apiBridge.client, CHECKPOINT_DEADLINE_MS, writeChainRef.current.catch(() => undefined));
+          if (!taken) Logger.info('editor_v2.run_error.skipped', { reason: 'no-checkpoint' });
+          return taken;
+        },
+        async showErrorLine(checkpoint: ErrorCheckpoint, place: ErrorPlace | undefined): Promise<ErrorJump> {
+          if (!isReadyRef.current || !isInitializedRef.current) return { kind: 'refused', code: 'not-ready' };
+          const jump = await showErrorLine(apiBridge.client, checkpoint, place);
+          switch (jump.kind) {
+            case 'shown':
+              Logger.info('editor_v2.run_error.shown', { line: jump.line, from: jump.range.from, to: jump.range.to, column: place?.column });
+              break;
+            case 'gone':
+              Logger.info('editor_v2.run_error.gone', { line: jump.line });
+              break;
+            case 'refused':
+              Logger.info('editor_v2.run_error.refused', { code: jump.code });
+              break;
+            case 'outside':
+              Logger.info('editor_v2.run_error.skipped', { reason: 'outside', line: jump.line });
+              break;
+            case 'no-location':
+              Logger.info('editor_v2.run_error.skipped', { reason: 'no-location' });
+              break;
+          }
+          return jump;
+        },
+        async clearErrorLine() {
+          if (!isReadyRef.current || !isInitializedRef.current) return;
+          const refused = await clearErrorLine(apiBridge.client);
+          if (refused) Logger.info('editor_v2.run_error.refused', { code: refused, call: 'clear' });
         },
         undo() {
           Logger.info('editor.undo', { effect: 'undo' });
