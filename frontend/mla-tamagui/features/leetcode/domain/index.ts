@@ -7,3 +7,4 @@ export * from './toolbar';
 export * from './ports';
 export * from './verdict';
 export * from './runParams';
+export * from './completionEntries';
