@@ -6,16 +6,21 @@ import {
   createEditorClient,
   normalizeText,
   unwrap,
+  type ApplyValue,
   type EditorClient,
   type EditorConfig,
   type EditorEngine,
   type EnclosingBlock,
   type Mark,
+  type Reply,
+  type Step,
   type SyntaxNode,
   type TreeParams,
   type TreeValue,
 } from '@lib/code-editor-api';
 import { act, waitFor } from '@testing-library/react';
+
+type ApplyOptions = NonNullable<Parameters<EditorClient['transact']>[1]>;
 
 export type FlowCodeEditor = {
   text(): string;
@@ -50,6 +55,10 @@ export type FlowCodeEditor = {
   completionOpen(): boolean;
   /** Presses the row with this label, as a finger does, and waits for the list to go. */
   pickCompletion(label: string): Promise<void>;
+  /** One call of steps through the typed API (a node step among them), answered as it is: a refusal is a reply to assert on, not a throw. A call that changed the text returns once the mirror has it; a preview or a refusal changes nothing, so it does not wait. */
+  apply(steps: readonly Step[], options?: ApplyOptions): Promise<Reply<ApplyValue>>;
+  /** Undoes the last change as the undo key does and waits for the mirror to have it; false when there was nothing to undo. */
+  undo(): Promise<boolean>;
   /** A key CodeMirror's own keymap handles, pressed on its content element (not a toolbar key): the caller waits for the text to change. */
   press(key: 'Enter' | 'Tab' | 'Backspace'): Promise<void>;
 };
@@ -175,6 +184,34 @@ export async function mountedCodeEditor(container: HTMLElement): Promise<FlowCod
           if (mirror.revision() < revision) throw new Error('the keystroke has not reached the mirror yet');
         });
       }
+    },
+    apply: async (steps, options) => {
+      const held: { reply?: Reply<ApplyValue> } = {};
+      await act(async () => {
+        held.reply = await client.transact(steps, options);
+      });
+      const reply = held.reply as Reply<ApplyValue>;
+      const revision = reply.revision;
+      if (reply.ok && options?.preview !== true && revision !== null) {
+        await waitFor(() => {
+          if (mirror.revision() < revision) throw new Error('the change has not reached the mirror yet');
+        });
+      }
+      return reply;
+    },
+    undo: async () => {
+      const done = { applied: false, revision: 0 };
+      await act(async () => {
+        const reply = await client.undo();
+        done.applied = unwrap(reply).applied;
+        done.revision = reply.revision as number;
+      });
+      if (done.applied) {
+        await waitFor(() => {
+          if (mirror.revision() < done.revision) throw new Error('the undo has not reached the mirror yet');
+        });
+      }
+      return done.applied;
     },
     completions,
     completionOpen: () => completions().length > 0,
