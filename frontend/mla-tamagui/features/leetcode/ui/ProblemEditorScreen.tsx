@@ -62,7 +62,6 @@ import { type Selection } from '../domain/editor/types';
 import { EditorHelperRails } from './editor/helperbars/EditorHelperRails';
 import { ProblemCatalog } from '../domain/problemCatalog';
 import { customInputMessage, parameterNames, parseCustomInput, writeCustomInput } from '../domain/run/customCase';
-import { customOutcomeOf } from '../domain/run/customOutcome';
 import { runParamsFor } from '../domain/run/runParams';
 import { compactVoiceError } from '../domain/voiceEditIdentity';
 import { useVoiceApply } from '../state/useVoiceApply';
@@ -73,7 +72,7 @@ import { useCodeHistoryStore } from '../state/codeHistoryStore';
 import { useResetCodeRequestStore } from '../state/resetCodeRequestStore';
 
 import { AlternativePicker } from './AlternativePicker';
-import { RunOutcomeCard, type RunCard } from './run/RunOutcomeCard';
+import { errorLocationOf, RunOutcomeCard, type RunCard } from './run/RunOutcomeCard';
 import { DiffToggle } from './DiffToggle';
 import {
   EDITOR_LANGUAGES,
@@ -168,23 +167,6 @@ export function ProblemEditorScreen({
   // (format, language switch, voice apply) back through onChangeText, and an
   // echo carries identical text.
   const outcomeSourceRef = React.useRef<string | null>(null);
-  // The error mark of the card on screen. `live` once one was asked for; `token` moves whenever the card goes, so a mark that lands after that is taken away.
-  const jumpRef = React.useRef({ token: 0, live: false });
-  const clearCard = React.useCallback(() => {
-    setCard(null);
-    const jump = jumpRef.current;
-    jump.token += 1;
-    if (!jump.live) return;
-    jump.live = false;
-    void editorRef.current?.clearErrorLine();
-  }, []);
-  const jumpToError = React.useCallback(async (checkpoint: ErrorCheckpoint, place: ErrorPlace | undefined) => {
-    const jump = jumpRef.current;
-    const { token } = jump;
-    if (place) jump.live = true;
-    await editorRef.current?.showErrorLine(checkpoint, place);
-    if (place && jump.token !== token) void editorRef.current?.clearErrorLine();
-  }, []);
   // the buffer and the language as they are now, for a run that finishes after the person has gone on typing
   const latestBufferRef = React.useRef({ text: editorText, lang });
   React.useEffect(() => {
@@ -198,19 +180,92 @@ export function ProblemEditorScreen({
   // Which outcome has already been scrolled to, so a re-layout (keyboard
   // raise, rotation) does not yank the page back.
   const revealedOutcomeRef = React.useRef<unknown>(null);
+  // The card whose error line is marked in the editor: only then does the card offer "Line N".
+  const [jumpedCard, setJumpedCard] = React.useState<RunCard | null>(null);
+  // `live`: a mark was asked for. `token` moves whenever the card goes, so a mark that lands later is taken away. `held`: a located jump is
+  // on its way and the card's own scroll waits for it (y: where the card laid out). `last`: what "Line N" repeats.
+  const jumpRef = React.useRef<{
+    token: number;
+    live: boolean;
+    held: { y: number | null } | null;
+    last: { checkpoint: ErrorCheckpoint; place: ErrorPlace } | null;
+  }>({ token: 0, live: false, held: null, last: null });
+  const clearCard = React.useCallback(() => {
+    setCard(null);
+    setJumpedCard(null);
+    const jump = jumpRef.current;
+    jump.token += 1;
+    jump.held = null;
+    jump.last = null;
+    if (!jump.live) return;
+    jump.live = false;
+    void editorRef.current?.clearErrorLine();
+  }, []);
 
   // The result lands BELOW the fold, under the keyboard rails -- measured at
   // y438-501 against rails occupying y480-582, which slices off the line
   // carrying the failure reason. The scroll view already reserves room for the
   // rails, so the content is reachable; nothing was bringing it into view at
   // the one moment the user is waiting for it.
-  const revealRunOutcome = (event: LayoutChangeEvent) => {
-    if (revealedOutcomeRef.current === card) return;
-    revealedOutcomeRef.current = card;
-    const { y } = event.nativeEvent.layout;
+  const scrollToCard = React.useCallback((shown: RunCard, y: number) => {
+    revealedOutcomeRef.current = shown;
     Logger.info('editor_v2.run_outcome.reveal', { y });
     scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
+  }, []);
+  const revealRunOutcome = (event: LayoutChangeEvent) => {
+    if (!card || revealedOutcomeRef.current === card) return;
+    const { y } = event.nativeEvent.layout;
+    // a located jump is on its way: its answer decides whether the page goes to the editor or down to the card
+    const held = jumpRef.current.held;
+    if (held) {
+      held.y = y;
+      return;
+    }
+    scrollToCard(card, y);
   };
+  const scrollToEditor = React.useCallback((line: number) => {
+    Logger.info('editor_v2.run_error.scroll_to_editor', { line });
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  }, []);
+  // Marks the reported line; once it is shown the page goes up to the editor instead of down to the card, and when it is not (or there is no
+  // line) the card is revealed as it always was.
+  const jumpToError = React.useCallback(
+    async (checkpoint: ErrorCheckpoint, place: ErrorPlace | undefined, shown: RunCard) => {
+      const jump = jumpRef.current;
+      const { token } = jump;
+      if (place) {
+        jump.live = true;
+        jump.held = { y: null };
+        jump.last = { checkpoint, place };
+      }
+      const outcome = await editorRef.current?.showErrorLine(checkpoint, place);
+      if (!place) return;
+      if (jump.token !== token) {
+        void editorRef.current?.clearErrorLine();
+        return;
+      }
+      const { held } = jump;
+      jump.held = null;
+      if (outcome?.kind === 'shown') {
+        revealedOutcomeRef.current = shown;
+        setJumpedCard(shown);
+        scrollToEditor(outcome.line);
+      } else if (held && held.y !== null) {
+        scrollToCard(shown, held.y);
+      }
+    },
+    [scrollToCard, scrollToEditor]
+  );
+  const handleShowLine = React.useCallback(async () => {
+    const jump = jumpRef.current;
+    const { token, last } = jump;
+    if (!last) return;
+    Logger.info('editor_v2.run_error.line_tap', { line: last.place.line });
+    const outcome = await editorRef.current?.showErrorLine(last.checkpoint, last.place);
+    if (jump.token !== token) return;
+    if (outcome?.kind === 'shown') scrollToEditor(outcome.line);
+    else setJumpedCard(null);
+  }, [scrollToEditor]);
   const [runState, setRunState] = React.useState<
     'idle' | 'testing' | 'submitting'
   >('idle');
@@ -348,9 +403,10 @@ export function ProblemEditorScreen({
           toast('Code changed while it ran', { description: 'Run it again to see its result.' });
           return;
         }
-        setCard(cardOf(result));
+        const shown = cardOf(result);
+        setCard(shown);
         outcomeSourceRef.current = params.code;
-        if (checkpoint) void jumpToError(checkpoint, mode === 'custom' ? customOutcomeOf(result, inputs ?? {}).errorAt : result.error_at);
+        if (checkpoint) void jumpToError(checkpoint, errorLocationOf(shown), shown);
         // a typed case has no verdict: the response's tally and status describe a comparison that did not happen
         Logger.info('editor_v2.run_local.result', {
           mode,
@@ -897,7 +953,7 @@ export function ProblemEditorScreen({
             </XStack>
 
             {/* Run Local result — server-executed pass/fail summary. */}
-            {card ? <RunOutcomeCard card={card} onLayout={revealRunOutcome} /> : null}
+            {card ? <RunOutcomeCard card={card} onLayout={revealRunOutcome} onShowLine={jumpedCard === card ? () => void handleShowLine() : undefined} /> : null}
 
             {/* TestInput — fixed min-h, also scrollable. */}
             <YStack

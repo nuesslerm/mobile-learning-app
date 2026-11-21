@@ -35,6 +35,7 @@
       "ProblemEditorVoiceStartButton",
       "ProblemEditorRunOutcome",
       "ProblemEditorRunOutcomeStatus",
+      "ProblemEditorRunOutcomeLine",
       "ProblemEditorRunOutcomeTotals",
       "ProblemEditorRunOutcomeCompileError",
       "ProblemEditorTestInputZone",
@@ -48,10 +49,10 @@
       "ProblemPlanTextInput",
       "ProblemPlanAddButton"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nError\n0 / 12 test cases passed\nCompileError: expected ':'\nOne JSON value per line: nums, target\nRun input"
+    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nError\nLine 2\n0 / 12 test cases passed\nCompileError: expected ':'\nOne JSON value per line: nums, target\nRun input"
   },
   "timings": {
-    "render_ms": 255
+    "render_ms": 258
   },
   "name": "runerrorline/final-given-the-device-runner-answers-a-compile-error-02a0c0.light",
   "image": {

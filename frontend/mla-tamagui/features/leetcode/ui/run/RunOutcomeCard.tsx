@@ -1,17 +1,23 @@
-import { Text } from '@lib/tamagui-design-system';
-import { YStack } from '@lib/tamagui-design-system/primitives';
+import { Button, Text } from '@lib/tamagui-design-system';
+import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 import type { ReactNode } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 
 import { customOutcomeOf } from '../../domain/run/customOutcome';
-import type { RunResponse } from '../../domain/run/execution';
+import type { ErrorLocation, RunResponse } from '../../domain/run/execution';
 import { CustomCaseResult } from './CustomCaseResult';
 import { RunCaseList } from './RunCaseList';
 
 /** What the card on screen shows: a run of the bundled cases, or of one case the learner typed (with the inputs it ran on). */
 export type RunCard = { mode: 'tests'; response: RunResponse } | { mode: 'custom'; response: RunResponse; inputs: Record<string, unknown> };
 
+/** The line the run reported, when it did: the response's for the bundled cases, the typed case's own row for a custom card. */
+export function errorLocationOf(card: RunCard): ErrorLocation | undefined {
+  return card.mode === 'custom' ? customOutcomeOf(card.response, card.inputs).errorAt : card.response.error_at;
+}
+
 type OnLayout = (event: LayoutChangeEvent) => void;
+type ShowLine = { line: number; onPress: () => void };
 
 function Frame({ borderColor, onLayout, children }: { borderColor: '$green9' | '$red9' | '$borderColor'; onLayout?: OnLayout; children: ReactNode }) {
   return (
@@ -21,29 +27,55 @@ function Frame({ borderColor, onLayout, children }: { borderColor: '$green9' | '
   );
 }
 
-function CustomCard({ response, inputs, onLayout }: { response: RunResponse; inputs: Record<string, unknown>; onLayout?: OnLayout }) {
+/** The card's headline; with a marked error line it has a press target beside it that takes the learner back to that line. */
+function Status({ text, color, showLine }: { text: string; color?: '$green10' | '$red10'; showLine?: ShowLine }) {
+  const status = (
+    <Text variant="strong" color={color} testID="ProblemEditorRunOutcomeStatus">
+      {text}
+    </Text>
+  );
+  if (!showLine) return status;
+  return (
+    <XStack items="center" justify="space-between" gap="$2">
+      {status}
+      <Button
+        testID="ProblemEditorRunOutcomeLine"
+        variant="link"
+        size="$2"
+        pressLog="off"
+        accessibilityLabel={`Show line ${showLine.line} in the editor`}
+        onPress={showLine.onPress}
+      >
+        {`Line ${showLine.line}`}
+      </Button>
+    </XStack>
+  );
+}
+
+function CustomCard({ response, inputs, onLayout, showLine }: { response: RunResponse; inputs: Record<string, unknown>; onLayout?: OnLayout; showLine?: ShowLine }) {
   const outcome = customOutcomeOf(response, inputs);
   const failed = outcome.status === 'Error';
   return (
     <Frame borderColor={failed ? '$red9' : '$borderColor'} onLayout={onLayout}>
-      <Text variant="strong" color={failed ? '$red10' : undefined} testID="ProblemEditorRunOutcomeStatus">
-        {outcome.status}
-      </Text>
+      <Status text={outcome.status} color={failed ? '$red10' : undefined} showLine={showLine} />
       <CustomCaseResult outcome={outcome} />
     </Frame>
   );
 }
 
-/** The result of a run: for the bundled cases the status, totals, the failure text and every case; for a typed case what it returned. */
-export function RunOutcomeCard({ card, onLayout }: { card: RunCard; onLayout?: OnLayout }) {
-  if (card.mode === 'custom') return <CustomCard response={card.response} inputs={card.inputs} onLayout={onLayout} />;
+/**
+ * The result of a run: for the bundled cases the status, totals, the failure text and every case; for a typed case what it returned.
+ * `onShowLine` is given while the error line is marked in the editor; the card then offers "Line N" to go back to it.
+ */
+export function RunOutcomeCard({ card, onLayout, onShowLine }: { card: RunCard; onLayout?: OnLayout; onShowLine?: () => void }) {
+  const line = onShowLine ? errorLocationOf(card)?.line : undefined;
+  const showLine = onShowLine && line !== undefined ? { line, onPress: onShowLine } : undefined;
+  if (card.mode === 'custom') return <CustomCard response={card.response} inputs={card.inputs} onLayout={onLayout} showLine={showLine} />;
   const outcome = card.response;
   const accepted = outcome.status_msg === 'Accepted';
   return (
     <Frame borderColor={accepted ? '$green9' : '$red9'} onLayout={onLayout}>
-      <Text variant="strong" color={accepted ? '$green10' : '$red10'} testID="ProblemEditorRunOutcomeStatus">
-        {outcome.status_msg}
-      </Text>
+      <Status text={outcome.status_msg} color={accepted ? '$green10' : '$red10'} showLine={showLine} />
       {outcome.total_testcases > 0 ? (
         <Text variant="muted" testID="ProblemEditorRunOutcomeTotals">
           {`${outcome.total_correct} / ${outcome.total_testcases} test cases passed`}

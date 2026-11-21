@@ -1,0 +1,93 @@
+{
+  "suite": "runerrorline",
+  "step": "final-given-a-run-without-a-line-when-the-card-lays-o-b4c14f",
+  "scheme": "dark",
+  "snapshot": "runerrorline/final-given-a-run-without-a-line-when-the-card-lays-o-b4c14f.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 1704,
+    "page_height": 2170
+  },
+  "summary": {
+    "testids": [
+      "ProblemWorkspaceTabs",
+      "ProblemWorkspaceTab-plan",
+      "ProblemWorkspaceTab-code",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorActions",
+      "ProblemEditorFormatButton",
+      "ProblemEditorRunLocalButton",
+      "ProblemEditorRunButton",
+      "ProblemEditorResetButton",
+      "ProblemEditorTextEditStartButton",
+      "ProblemEditorVoiceStartButton",
+      "ProblemEditorRunOutcome",
+      "ProblemEditorRunOutcomeStatus",
+      "ProblemEditorRunOutcomeTotals",
+      "ProblemEditorRunCases",
+      "ProblemEditorRunCase-3",
+      "ProblemEditorRunCase-3-Verdict",
+      "ProblemEditorRunCase-3-Time",
+      "ProblemEditorRunCase-3-Input-Toggle",
+      "ProblemEditorRunCase-3-Input",
+      "ProblemEditorRunCase-3-Expected-Toggle",
+      "ProblemEditorRunCase-3-Expected",
+      "ProblemEditorRunCase-3-Actual-Toggle",
+      "ProblemEditorRunCase-3-Actual",
+      "ProblemEditorRunCase-0",
+      "ProblemEditorRunCase-0-Verdict",
+      "ProblemEditorRunCase-0-Time",
+      "ProblemEditorRunCase-0-Input-Toggle",
+      "ProblemEditorRunCase-0-Input",
+      "ProblemEditorRunCase-0-Expected-Toggle",
+      "ProblemEditorRunCase-0-Expected",
+      "ProblemEditorRunCase-0-Actual-Toggle",
+      "ProblemEditorRunCase-0-Actual",
+      "ProblemEditorRunCase-1",
+      "ProblemEditorRunCase-1-Verdict",
+      "ProblemEditorRunCase-1-Time",
+      "ProblemEditorRunCase-1-Input-Toggle",
+      "ProblemEditorRunCase-1-Input",
+      "ProblemEditorRunCase-1-Expected-Toggle",
+      "ProblemEditorRunCase-1-Expected",
+      "ProblemEditorRunCase-1-Actual-Toggle",
+      "ProblemEditorRunCase-1-Actual",
+      "ProblemEditorRunCase-2",
+      "ProblemEditorRunCase-2-Verdict",
+      "ProblemEditorRunCase-2-Time",
+      "ProblemEditorRunCase-2-Input-Toggle",
+      "ProblemEditorRunCase-2-Input",
+      "ProblemEditorRunCase-2-Expected-Toggle",
+      "ProblemEditorRunCase-2-Expected",
+      "ProblemEditorRunCase-2-Actual-Toggle",
+      "ProblemEditorRunCase-2-Actual",
+      "ProblemEditorRunCase-4"
+    ],
+    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nWrong Answer\n11 / 12 test cases passed\nCase 4 · failed\n1 ms\nInput\nnums = [-1,-2,-3,-4,-5], target = -8\nExpected\n[2,4]\nActual\nnull\nCase 1 · passed\n1 ms\nInput\nnums = [2,7,11,15], target = 9\nExpected\n[0,1]\nActual\n[0,1]\nCase 2 · passed\n1 ms\nInput\nnums = [3,2,4], target = 6\nExpected\n[1,2]\nActual\n[1,2]\nCase 3 · passed\n1 ms\nInput\nnums = [3,3], target = 6\nExpect"
+  },
+  "timings": {
+    "render_ms": 416
+  },
+  "name": "runerrorline/final-given-a-run-without-a-line-when-the-card-lays-o-b4c14f.dark",
+  "image": {
+    "width": 360,
+    "height": 1623
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

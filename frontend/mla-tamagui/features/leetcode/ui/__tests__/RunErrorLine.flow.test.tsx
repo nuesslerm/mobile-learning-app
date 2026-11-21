@@ -255,6 +255,107 @@ describe('the mark lives as long as the card', () => {
   });
 });
 
+describe('the page goes where the line is', () => {
+  const lineButton = () => screen.queryByTestId('ProblemEditorRunOutcomeLine');
+
+  async function runWith(judge: FakePageScript['judge'], options: { editorBridge?: EditorBridgePort } = {}) {
+    useRunnerSettingStore.setState({ runner: 'device' });
+    const { runner } = deviceRunner({ judge });
+    const session = await renderEditor({ deviceRunner: runner, ...options });
+    const editor = await session.editor();
+    await forgetLoggedLines();
+    return { editor };
+  }
+
+  it('given a located error was shown, when the card lays out, then the page goes to the editor and the card is not scrolled to', async () => {
+    const { editor } = await runWith((call) => answers.caseError(call, 'KeyError: 9', { line: 4 }, 1));
+
+    await pressRun();
+
+    await waitFor(async () => expect(await loggedText('editor_v2.run_error.scroll_to_editor')).toContain('"line":4'));
+    expect(await loggedLines('editor_v2.run_outcome.reveal')).toEqual([]);
+    expect(await markedTexts(editor)).toEqual([LINE_4]);
+  });
+
+  it('given a run without a line, when the card lays out, then the card is revealed as it always was and the page does not go to the editor', async () => {
+    await runWith((call) => answers.wrongAnswer(call, 3));
+
+    await pressRun();
+
+    await waitFor(async () => expect((await loggedLines('editor_v2.run_outcome.reveal')).length).toBeGreaterThan(0));
+    await waitFor(async () => expect(await loggedText('editor_v2.run_error.skipped')).toContain('no-location'));
+    expect(await loggedLines('editor_v2.run_error.scroll_to_editor')).toEqual([]);
+  });
+
+  it('given the editor refused the mark, when the card lays out, then the card is revealed as the fallback and nothing is offered as Line N', async () => {
+    const reportsAnotherPage = bridgeWith((real) => ({
+      hello: async () => {
+        const reply = await real.hello();
+        return reply.ok ? { ...reply, value: { ...reply.value, instance: 'page-before-the-restart' } } : reply;
+      },
+    }));
+    await runWith((call) => answers.caseError(call, 'KeyError: 9', { line: 4 }, 1), { editorBridge: reportsAnotherPage });
+
+    await pressRun();
+
+    await waitFor(async () => expect(await loggedText('editor_v2.run_error.refused')).toContain('instance-mismatch'));
+    await waitFor(async () => expect((await loggedLines('editor_v2.run_outcome.reveal')).length).toBeGreaterThan(0));
+    expect(await loggedLines('editor_v2.run_error.scroll_to_editor')).toEqual([]);
+    expect(lineButton()).toBeNull();
+  });
+
+  it('given a located error and the card showing Line 4, when the user taps it, then the editor reveals line 4 again and the page goes to the editor', async () => {
+    // Given the card of a run that raised at line 4, with the page scrolled down to the rest of the screen
+    const { editor } = await runWith((call) => answers.caseError(call, 'KeyError: 9', { line: 4 }, 1));
+    await pressRun();
+    const button = await screen.findByTestId('ProblemEditorRunOutcomeLine');
+    expect(button.textContent).toBe('Line 4');
+    const page = screen.getByTestId('ProblemEditorScroll');
+    page.scrollTop = 500;
+    await forgetLoggedLines();
+
+    // When the user taps Line 4
+    await userEvent.click(button);
+
+    // Then the editor was asked for the line again, it is revealed, and the page is back at the editor
+    await waitFor(async () => expect(await loggedText('editor_v2.run_error.shown')).toContain('"line":4'));
+    await waitFor(async () => expect(await loggedText('editor_v2.run_error.scroll_to_editor')).toContain('"line":4'));
+    expect(await editor.revealedLine()).toBe(4);
+    expect(page.scrollTop).toBe(0);
+    expect(await markedTexts(editor)).toEqual([LINE_4]);
+  });
+
+  it('given a typed case that raised at line 4, when the learner presses Run input, then the custom card offers Line 4 too', async () => {
+    await runWith((call) => answers.caseError(call, 'KeyError: 9', { line: 4 }));
+
+    await pressRunInput();
+
+    expect((await screen.findByTestId('ProblemEditorRunOutcomeLine')).textContent).toBe('Line 4');
+    expect(status()).toBe('Error');
+  });
+
+  it('given a located error was shown, when the user types so the card goes, then no Line N is offered', async () => {
+    const { editor } = await runWith((call) => answers.caseError(call, 'KeyError: 9', { line: 4 }, 1));
+    await pressRun();
+    await screen.findByTestId('ProblemEditorRunOutcomeLine');
+
+    await editor.type('x');
+
+    await waitFor(cardIsGone);
+    expect(lineButton()).toBeNull();
+  });
+
+  it('given a run without a line, when the card is shown, then no Line N is offered', async () => {
+    await runWith((call) => answers.wrongAnswer(call, 3));
+
+    await pressRun();
+
+    await waitFor(() => expect(status()).toBe('Wrong Answer'));
+    await waitFor(async () => expect(await loggedText('editor_v2.run_error.skipped')).toContain('no-location'));
+    expect(lineButton()).toBeNull();
+  });
+});
+
 describe('a run that goes on while the person types', () => {
   // The held runner answers when the test says so. The text of the editor and of the screen are the same again once value syncs have run for each change.
   function heldRun() {

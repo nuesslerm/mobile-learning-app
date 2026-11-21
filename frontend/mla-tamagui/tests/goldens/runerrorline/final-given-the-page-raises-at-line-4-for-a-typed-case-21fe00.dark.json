@@ -35,6 +35,7 @@
       "ProblemEditorVoiceStartButton",
       "ProblemEditorRunOutcome",
       "ProblemEditorRunOutcomeStatus",
+      "ProblemEditorRunOutcomeLine",
       "ProblemEditorCustomCase",
       "ProblemEditorCustomCase-Input-Toggle",
       "ProblemEditorCustomCase-Input",
@@ -55,10 +56,10 @@
       "ProblemPlanTextInput",
       "ProblemPlanAddButton"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nError\nInput\nnums = [2,7,11,15], target = 9\nResult\n—\nError\nKeyError: 9\nTime\n1 ms\nOne JSON value per line: nums, target\nRun input"
+    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nError\nLine 4\nInput\nnums = [2,7,11,15], target = 9\nResult\n—\nError\nKeyError: 9\nTime\n1 ms\nOne JSON value per line: nums, target\nRun input"
   },
   "timings": {
-    "render_ms": 270
+    "render_ms": 238
   },
   "name": "runerrorline/final-given-the-page-raises-at-line-4-for-a-typed-case-21fe00.dark",
   "image": {
