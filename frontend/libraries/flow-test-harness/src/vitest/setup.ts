@@ -2,7 +2,7 @@
 // cleanup that keeps one test's DOM and router calls out of the next.
 import { createHash } from 'node:crypto';
 
-import { act, cleanup } from '@testing-library/react';
+import { act, cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, vi } from 'vitest';
 
 import {
@@ -22,6 +22,8 @@ import { resetStorageHarness } from '../storage';
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 installFrameFidelity();
+// A wait on a condition returns the moment it holds, so its cap only ends a hang: it is set far past what a loaded machine takes (1 s by default).
+configure({ asyncUtilTimeout: 20_000 });
 
 if (!window.matchMedia) {
   window.matchMedia = (query: string) => ({

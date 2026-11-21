@@ -1,6 +1,6 @@
-import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
+import { CompletionContext, type Completion, type CompletionResult, type CompletionSource } from '@codemirror/autocomplete';
 import { globalCompletion, localCompletionSource } from '@codemirror/lang-python';
-import { syntaxTree } from '@codemirror/language';
+import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import type { CompletionEntry, Language } from '@lib/code-editor-api';
 
 export type CompletionSourceOptions = { readonly language: Language; readonly entries: readonly CompletionEntry[] };
@@ -24,6 +24,17 @@ const HIDDEN_BUILTINS = new Set(['exit', 'quit', 'license', 'help', 'copyright',
 
 const BOOST = { entry: 40, local: 20, curated: 10, plain: 0 } as const;
 const clamp = (boost: number): number => Math.max(-99, Math.min(99, boost));
+
+// past this the grammar has not reached the caret: nothing is offered, and the next key asks again on the parse this one left
+const PARSE_BUDGET_MS = 50;
+
+// the state's own tree is what its last transaction parsed in 20 ms and can stop short of the caret: the context returned reads one parsed up to it
+function parsedTo(context: CompletionContext): { context: CompletionContext; tree: ReturnType<typeof syntaxTree> } | null {
+  const tree = ensureSyntaxTree(context.state, context.pos, PARSE_BUDGET_MS);
+  if (!tree) return null;
+  if (tree === syntaxTree(context.state)) return { context, tree };
+  return { context: new CompletionContext(context.state.update({}).state, context.pos, context.explicit, context.view), tree };
+}
 
 function builtinsOf(context: CompletionContext, prefix: string): Completion[] {
   const all = (globalCompletion(context) as CompletionResult | null)?.options ?? [];
@@ -52,13 +63,15 @@ export function createCompletionSource({ language, entries }: CompletionSourceOp
   }));
   const keywords: Completion[] = KEYWORDS[language].map((label) => ({ label, type: 'keyword', boost: BOOSTED.has(label) ? BOOST.curated : BOOST.plain }));
 
-  return (context) => {
-    const word = context.matchBefore(/[A-Za-z_]\w*/);
-    if (!word && !context.explicit) return null;
+  return (asked) => {
+    const word = asked.matchBefore(/[A-Za-z_]\w*/);
+    if (!word && !asked.explicit) return null;
     const typing = word?.text ?? '';
-    if (typing.length < 2 && !context.explicit) return null;
-    const inside = syntaxTree(context.state).resolveInner(context.pos, -1).name;
-    if (NOT_CODE[language].has(inside)) return null;
+    if (typing.length < 2 && !asked.explicit) return null;
+    const parsed = parsedTo(asked);
+    if (!parsed) return null;
+    const { context, tree } = parsed;
+    if (NOT_CODE[language].has(tree.resolveInner(context.pos, -1).name)) return null;
     const from = word?.from ?? context.pos;
 
     const afterDot = from > 0 && context.state.sliceDoc(from - 1, from) === '.';

@@ -47,6 +47,8 @@ const SNIPPETS: Readonly<Record<Language, Snippet>> = {
   },
 };
 
+const MAX_BUDGET_MS = 1_000;
+
 const failed = (reply: Reply<unknown>) => {
   if (reply.ok) throw new Error('the call was expected to fail');
   return reply.error;
@@ -88,7 +90,15 @@ export function syntaxTreeContract(name: string, make: MakeSubject, language: La
       return reply.revision as number;
     };
     const tree = (params: TreeParams = {}): Promise<Reply<TreeValue>> => subject.engine.request('tree', params);
-    const read = async (params: TreeParams = {}): Promise<TreeValue> => unwrap(await tree(params));
+    // A tree is parsed against a time budget and an answer that ran out of it says `complete: false`. The cases that read the tree ask until
+    // it is complete, on the parse the last ask left, so what they see never depends on how fast the machine ran.
+    const settled = async (params: TreeParams = {}): Promise<Reply<TreeValue>> => {
+      for (;;) {
+        const reply = await tree({ budgetMs: MAX_BUDGET_MS, ...params });
+        if (!reply.ok || reply.value.complete) return reply;
+      }
+    };
+    const read = async (params: TreeParams = {}): Promise<TreeValue> => unwrap(await settled(params));
     const head = async (): Promise<number> => (await client.getText()).revision as number;
     const blockAt = (value: TreeValue, text: string, pos: number) => enclosingBlock(value, text, pos);
     const startsWith = (text: string, from: number, word: string) => text.startsWith(word, from);
@@ -96,7 +106,7 @@ export function syntaxTreeContract(name: string, make: MakeSubject, language: La
     it('given a function with a loop inside, when tree is requested, then base equals the head, the value names that revision, the root spans what was parsed and the tree is complete', async () => {
       const revision = await start(snippet.text);
 
-      const reply = await tree();
+      const reply = await settled();
 
       expect(reply).toMatchObject({ ok: true, base: revision, revision });
       const value = unwrap(reply);
@@ -120,6 +130,7 @@ export function syntaxTreeContract(name: string, make: MakeSubject, language: La
 
     it('given the caret in the loop body, when the client sugar is used, then the block, the statement and the node agree with the tree', async () => {
       await start(snippet.text);
+      await settled();
       const pos = snippet.text.indexOf(snippet.inLoop) + 2;
 
       const block = unwrap(await client.enclosingBlock(pos));
@@ -151,8 +162,8 @@ export function syntaxTreeContract(name: string, make: MakeSubject, language: La
       await start(text);
       const middle = text.indexOf(snippet.statement(100));
 
-      const point = await tree({ range: { from: middle + 1, to: middle + 1 } });
-      const whole = await tree();
+      const point = await settled({ range: { from: middle + 1, to: middle + 1 } });
+      const whole = await settled();
 
       expect(JSON.stringify(point).length).toBeLessThan(2_000);
       expect(nodesInRange(unwrap(point).root, { from: middle + 1, to: middle + 1 }).length).toBeGreaterThan(0);

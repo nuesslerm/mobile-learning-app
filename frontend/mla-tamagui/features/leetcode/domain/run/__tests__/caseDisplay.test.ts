@@ -54,9 +54,11 @@ describe('clip', () => {
   });
 
   it('Given a very long run of whitespace before text, When clipped, Then it is quick (a backtracking trim was quadratic)', () => {
-    const started = Date.now();
+    // the process's own CPU time: a loaded machine stretches a wall clock, not the work done
+    const before = process.cpuUsage();
     clip(`${' '.repeat(200_000)}x`);
-    expect(Date.now() - started).toBeLessThan(500);
+    const used = process.cpuUsage(before);
+    expect((used.user + used.system) / 1000).toBeLessThan(500);
   });
 
   it('Given an emoji that straddles the limit, When clipped, Then it is kept whole or left out, never cut in half', () => {

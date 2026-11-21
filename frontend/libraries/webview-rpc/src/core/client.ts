@@ -6,6 +6,8 @@ export type RpcClientOptions = {
   /** How long a call waits for its answer before it fails with a `timeout` error. */
   timeoutMs?: number;
   timers?: Timers;
+  /** The clock that tells a timer that fired late (the thread was away) from one that fired on time; the wall clock by default. */
+  now?: () => number;
   /** A message in a protocol version this side does not speak. */
   onProtocolError?: (error: RpcError) => void;
 };
@@ -21,11 +23,14 @@ export type RpcClient = {
 };
 
 const DEFAULT_TIMEOUT_MS = 10_000;
+// a timer that fires this long after its time says the thread was away, not that the page did not answer
+const STALL_MS = 500;
 
-type Pending = { resolve: (value: unknown) => void; reject: (error: RpcError) => void; timer: unknown };
+type Pending = { resolve: (value: unknown) => void; reject: (error: RpcError) => void; timer: unknown; stalled: boolean };
 
 export function createRpcClient(transport: RpcTransport, options: RpcClientOptions = {}): RpcClient {
   const timers = options.timers ?? realTimers;
+  const now = options.now ?? (() => Date.now());
   const pending = new Map<number, Pending>();
   const topics = new Map<string, Set<(data: unknown) => void>>();
   let nextId = 1;
@@ -58,11 +63,21 @@ export function createRpcClient(transport: RpcTransport, options: RpcClientOptio
       const id = nextId++;
       const timeoutMs = callOptions.timeoutMs ?? options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
       return new Promise<T>((resolve, reject) => {
-        const timer = timers.set(() => {
+        const sentAt = now();
+        const expire = () => {
+          const entry = pending.get(id);
+          if (!entry) return;
+          // the answer may be queued right behind a timer the thread was too busy to run on time: the call then waits its whole time once more
+          if (!entry.stalled && now() - sentAt - timeoutMs > STALL_MS) {
+            entry.stalled = true;
+            entry.timer = timers.set(expire, timeoutMs);
+            return;
+          }
           pending.delete(id);
           reject(new RpcError('timeout', `${method} got no answer in ${timeoutMs} ms`));
-        }, timeoutMs);
-        pending.set(id, { resolve: resolve as (value: unknown) => void, reject, timer });
+        };
+        const timer = timers.set(expire, timeoutMs);
+        pending.set(id, { resolve: resolve as (value: unknown) => void, reject, timer, stalled: false });
         try {
           transport.send(encode({ v: PROTOCOL_VERSION, kind: 'req', id, method, params }));
         } catch (error) {

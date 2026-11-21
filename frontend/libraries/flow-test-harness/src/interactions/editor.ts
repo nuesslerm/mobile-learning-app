@@ -55,6 +55,7 @@ export type FlowCodeEditor = {
 };
 
 const KEY_CODES = { Enter: 13, Tab: 9, Backspace: 8 } as const;
+const MAX_TREE_BUDGET_MS = 1_000;
 
 function frameEngine(container: HTMLElement): { engine: EditorEngine; doc: Document } | null {
   for (const frame of Array.from(container.ownerDocument.querySelectorAll('iframe'))) {
@@ -92,6 +93,13 @@ export async function mountedCodeEditor(container: HTMLElement): Promise<FlowCod
     });
   };
 
+  // The tree is parsed against a time budget (50 ms unless a call says otherwise) and an answer that ran out of it says `complete: false`.
+  // A read, and a write of the document, ask until the whole document is parsed, on the parse the last ask left, so what the editor does
+  // next with its grammar (indent, a tree read) never depends on the machine's speed.
+  const settled = async () => {
+    for (;;) if (unwrap(await client.tree({ budgetMs: MAX_TREE_BUDGET_MS })).complete) return;
+  };
+
   const selection = () => {
     const state = mirror.selection();
     const range = state.ranges[state.main];
@@ -118,6 +126,7 @@ export async function mountedCodeEditor(container: HTMLElement): Promise<FlowCod
           ),
         () => mirror.text().length === expected
       );
+      await settled();
     },
     select: (start, end = start) =>
       change(
@@ -130,11 +139,13 @@ export async function mountedCodeEditor(container: HTMLElement): Promise<FlowCod
           return sel?.start === start && sel.end === end;
         }
       ),
-    setText: (text) =>
-      change(
+    setText: async (text) => {
+      await change(
         async () => unwrap(await client.replaceRange({ from: 0, to: mirror.text().length }, text)),
         () => mirror.text() === normalizeText(text)
-      ),
+      );
+      await settled();
+    },
     focus: () =>
       change(
         async () => (doc.querySelector('.cm-content') as HTMLElement | null)?.focus(),
@@ -180,9 +191,18 @@ export async function mountedCodeEditor(container: HTMLElement): Promise<FlowCod
         if (completions().length > 0) throw new Error('the completion list is still open');
       });
     },
-    tree: async (params) => unwrap(await client.tree(params)),
-    statementAt: async (pos) => unwrap(await client.statementAt(pos)),
-    enclosingBlock: async (pos) => unwrap(await client.enclosingBlock(pos, { text: mirror.text() })),
+    tree: async (params) => {
+      if (params?.budgetMs === undefined) await settled();
+      return unwrap(await client.tree(params));
+    },
+    statementAt: async (pos) => {
+      await settled();
+      return unwrap(await client.statementAt(pos));
+    },
+    enclosingBlock: async (pos) => {
+      await settled();
+      return unwrap(await client.enclosingBlock(pos, { text: mirror.text() }));
+    },
     press: async (key) => {
       const content = doc.querySelector('.cm-content');
       const win = doc.defaultView as (Window & typeof globalThis) | null;

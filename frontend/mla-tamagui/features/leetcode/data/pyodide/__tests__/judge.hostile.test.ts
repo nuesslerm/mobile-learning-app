@@ -35,10 +35,12 @@ describe('the on-device judge under hostile code', () => {
 
   it('given a solution that raises the recursion limit and recurses forever, when it runs, then it is a RecursionError row, fast, and the limit is back', () => {
     const code = 'import sys\nclass Solution:\n    def twoSum(self, nums, target):\n        sys.setrecursionlimit(10**6)\n        def f(n):\n            return f(n + 1)\n        return f(0)\n';
-    const started = Date.now();
+    // the process's own CPU time: a loaded machine stretches a wall clock, not the work done
+    const before = process.cpuUsage();
     const rows = judge.run(payload(code, { testCases: cases(2) })).results ?? [];
+    const used = process.cpuUsage(before);
     expect(rows.map((r) => r.error?.split(':')[0])).toEqual(['RecursionError', 'RecursionError']);
-    expect(Date.now() - started).toBeLessThan(8000);
+    expect((used.user + used.system) / 1000).toBeLessThan(8000);
     expect(judge.py.runPython('import sys; sys.getrecursionlimit()')).toBe(1000);
   });
 

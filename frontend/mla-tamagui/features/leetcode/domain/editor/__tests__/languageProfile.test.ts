@@ -2,7 +2,7 @@ import { insertNewlineAndIndent } from '@codemirror/commands';
 import { cpp } from '@codemirror/lang-cpp';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
-import { indentUnit, type LanguageSupport } from '@codemirror/language';
+import { ensureSyntaxTree, indentUnit, type LanguageSupport } from '@codemirror/language';
 import { EditorState } from '@codemirror/state';
 import type { Language } from '@lib/code-editor-api';
 import { describe, expect, it } from 'vitest';
@@ -103,9 +103,16 @@ describe('smartNewline under each language', () => {
 describe('smartNewline against CodeMirror\'s own Enter', () => {
   const grammars: Record<Language, () => LanguageSupport> = { python, javascript, cpp };
 
+  // A state parses for 20 ms when it is made and keeps whatever tree that gave: a loaded machine leaves it half built, and the grammar's
+  // Enter then indents from a partial tree. The parse is run to its end (no clock) and the state moved on to the tree it built.
+  function fullyParsed(state: EditorState): EditorState {
+    ensureSyntaxTree(state, state.doc.length, Number.POSITIVE_INFINITY);
+    return state.update({}).state;
+  }
+
   function codeMirrorEnter(language: Language, marked: string) {
     const { doc, at } = caretOf(marked);
-    let state = EditorState.create({ doc, selection: { anchor: at }, extensions: [grammars[language](), indentUnit.of('    ')] });
+    let state = fullyParsed(EditorState.create({ doc, selection: { anchor: at }, extensions: [grammars[language](), indentUnit.of('    ')] }));
     insertNewlineAndIndent({ state, dispatch: (tr) => (state = tr.state) });
     return { text: state.doc.toString(), caret: state.selection.main.head };
   }

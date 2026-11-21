@@ -1,18 +1,35 @@
 import { CompletionContext, type Completion, type CompletionSource } from '@codemirror/autocomplete';
 import { cpp } from '@codemirror/lang-cpp';
 import { python } from '@codemirror/lang-python';
-import { ensureSyntaxTree } from '@codemirror/language';
+import { ensureSyntaxTree, syntaxTreeAvailable } from '@codemirror/language';
 import { EditorState } from '@codemirror/state';
 import type { CompletionEntry, Language } from '@lib/code-editor-api';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createCompletionSource } from '../completionSources';
 
+type Result = { from: number; options: Completion[] } | null;
+const NO_LIMIT = Number.POSITIVE_INFINITY;
+const stateOf = (doc: string, language?: Language) => EditorState.create({ doc, extensions: [language === 'cpp' ? cpp() : python()] });
+const ask = (source: CompletionSource, state: EditorState, explicit = false) => source(new CompletionContext(state, state.doc.length, explicit)) as Result;
+
+// the parse runs to its end with no clock, so the state is as a machine with all the time in the world leaves it
 const run = (source: CompletionSource, doc: string, options: { explicit?: boolean; language?: Language } = {}) => {
-  const state = EditorState.create({ doc, extensions: [options.language === 'cpp' ? cpp() : python()] });
-  ensureSyntaxTree(state, state.doc.length, 5_000);
-  return source(new CompletionContext(state, doc.length, options.explicit ?? false)) as { from: number; options: Completion[] } | null;
+  const state = stateOf(doc, options.language);
+  ensureSyntaxTree(state, state.doc.length, NO_LIMIT);
+  return ask(source, state, options.explicit);
 };
+
+// every reading of the clock is a second later than the last, so any parse with a time limit stops after its first step
+function withClockPastEveryDeadline<T>(body: () => T): T {
+  let now = Date.now();
+  const spy = vi.spyOn(Date, 'now').mockImplementation(() => (now += 1_000));
+  try {
+    return body();
+  } finally {
+    spy.mockRestore();
+  }
+}
 const labels = (result: { options: Completion[] } | null, prefix = ''): string[] => (result?.options ?? []).filter((option) => option.label.startsWith(prefix)).map((option) => option.label);
 const boostOf = (result: { options: Completion[] } | null, label: string): number => result?.options.find((option) => option.label === label)?.boost ?? 0;
 
@@ -38,6 +55,28 @@ describe('createCompletionSource', () => {
   it('given a prefix inside a string or a comment, when the source runs, then there is nothing to offer', () => {
     expect(run(source, `${starter}x = "ret`)).toBeNull();
     expect(run(source, `${starter}# ret`)).toBeNull();
+  });
+
+  it('given a grammar that has not reached the caret when its time is up, when the source runs, then nothing is offered, and once the parse is done the same state gets its list', () => {
+    const doc = `${starter}ret`;
+    const state = withClockPastEveryDeadline(() => stateOf(doc));
+    expect(syntaxTreeAvailable(state)).toBe(false);
+
+    const unparsed = withClockPastEveryDeadline(() => ask(source, state));
+    ensureSyntaxTree(state, state.doc.length, NO_LIMIT);
+    const parsed = ask(source, state);
+
+    expect(unparsed).toBeNull();
+    expect(labels(parsed, 'ret')).toEqual(['return']);
+  });
+
+  it('given a state whose own tree stopped short of a string, when the parse is done and the source runs, then nothing is offered inside the string', () => {
+    const doc = `${starter}x = "ret`;
+    const state = withClockPastEveryDeadline(() => stateOf(doc));
+    expect(syntaxTreeAvailable(state)).toBe(false);
+    ensureSyntaxTree(state, state.doc.length, NO_LIMIT);
+
+    expect(ask(source, state)).toBeNull();
   });
 
   it('given self.ca and a buffer with self.cache, when the source runs, then cache is offered and ca is not', () => {

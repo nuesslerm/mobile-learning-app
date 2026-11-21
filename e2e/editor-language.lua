@@ -18,6 +18,12 @@ run_flow("open the editor", function()
   device:open_link(base .. "/leetcode/two-sum")
   device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=60000})
   device:extended_wait_until{condition=function() return buffer():find("def twoSum", 1, true) ~= nil end, timeout=30000, label='the Python starter'}
+  -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: wait for the first route.change
+  device:extended_wait_until{condition=function()
+    for _, l in ipairs(device:get_logs{level='info'}) do
+      if l:find('route.change', 1, true) then return true end
+    end
+  end, timeout=60000, interval=250, label='the page hydrated'}
 end)
 
 -- the web editor autofocuses and its keyboard rises over the language row, which sits just above the rail: a person lowers it with Done first

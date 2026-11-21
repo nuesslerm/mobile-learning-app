@@ -16,14 +16,21 @@ os.execute("mkdir -p " .. out)
 local function buffer() return (device:get_element({id='CodeEditorInput'}) or {}).text or "" end
 local function bounds(sel) local el = device:get_element(sel); return el and el.bounds or nil end
 
+local function logged(level, needle)
+  for _, l in ipairs(device:get_logs{level=level}) do
+    if l:find(needle, 1, true) then return true end
+  end
+  return false
+end
+
 run_flow("turn suggestions on from the list", function()
   device:open_link(base .. "/")
   device:assert_visible({id='LeetcodeListAutocompleteOn'}, {timeout=60000})
+  -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: wait for the first route.change
+  device:extended_wait_until{condition=function() return logged('info', 'route.change') end, timeout=60000, interval=250, label='the page hydrated'}
   device:tap_on({id='LeetcodeListAutocompleteOn'})
-  device:extended_wait_until{condition=function()
-    local el = device:get_element({id='LeetcodeListAutocompleteOn'})
-    return el ~= nil
-  end, timeout=5000, label='the On button'}
+  -- the screen's own record that the press reached it: the button is there before and after the tap, so seeing it says nothing
+  device:extended_wait_until{condition=function() return logged('info', 'leetcode.list.autocomplete_tap') end, timeout=15000, interval=250, label='the tap reached the screen'}
 end)
 
 run_flow("open the editor and place the caret in the method body", function()
@@ -32,6 +39,8 @@ run_flow("open the editor and place the caret in the method body", function()
   device:extended_wait_until{condition=function() return buffer():find("def twoSum", 1, true) ~= nil end, timeout=30000, label='the starter'}
   device:tap_on({css='.cm-line:last-child'})
   device:extended_wait_until{condition=function() return device:get_device_state('keyboard').visible end, timeout=15000, label='the keyboard is up'}
+  -- the page is told the setting after it has hydrated, and the list only opens for a key typed once it knows: its own mark that it does
+  device:extended_wait_until{condition=function() return device:get_element({css='.cm-content[aria-autocomplete]'}) ~= nil end, timeout=15000, interval=250, label='the editor has suggestions on'}
 end)
 
 local function type_prefix()

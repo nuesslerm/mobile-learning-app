@@ -6,11 +6,14 @@ import { indentUnit } from '@codemirror/language';
 import { EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import { classify, createDocumentMirror, createEditorEngine, enclosingBlock, unwrap, type ApplyParams, type CompletionEntry, type EditorEvent, type EngineCore, type EngineOptions, type Language } from '@lib/code-editor-api';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { createCm6Host, revisionField, setRevisionBase, typingCalls } from '../cm6Host';
 import { marksField } from '../cm6Marks';
 import { completionExtensions } from '../completionExtension';
+
+// A wait on a condition returns the moment it holds: this only ends a hang, so it is far past anything a loaded machine takes.
+const HANG_MS = 30_000;
 
 // A real EditorView in jsdom whose own update listener is broken: the host's pump must not depend on it.
 const views: EditorView[] = [];
@@ -84,7 +87,7 @@ describe('the CodeMirror host', () => {
     // Then the first delivered event does not follow the mirror's revision, and the mirror catches up by reading
     expect(events[0]).toMatchObject({ from: 6, to: 7 });
     await new Promise<void>((resolve, reject) => {
-      const deadline = Date.now() + 2000;
+      const deadline = Date.now() + HANG_MS;
       const check = () => (mirror.text() === view.state.doc.toString() ? resolve() : Date.now() > deadline ? reject(new Error('the mirror did not resync')) : setTimeout(check, 10));
       check();
     });
@@ -227,12 +230,38 @@ describe('the CodeMirror host answering tree', () => {
     expect(definition?.children?.[0]?.type).toBe('CompoundStatement');
   });
 
+  // The tree budget is read off two clocks, the engine's and the parser's. Here the engine's moves a millisecond each time it gives the page a
+  // turn and the parser always finds its deadline passed after one step, so how far a parse gets is a count of slices, never the machine's speed.
+  function slicedClock() {
+    let now = 0;
+    let yields = 0;
+    const engine = { now: () => now, treeSliceMs: 1, yieldToEvents: async () => { yields += 1; now += 1; } };
+    return { engine, yields: () => yields };
+  }
+  async function withParserOutOfTime<T>(body: () => Promise<T>): Promise<T> {
+    let clock = Date.now();
+    // oxlint-disable-next-line no-restricted-properties -- spy on the global clock the parser reads, not a project module
+    const spy = vi.spyOn(Date, 'now').mockImplementation(() => (clock += 1_000));
+    try {
+      return await body();
+    } finally {
+      spy.mockRestore();
+    }
+  }
+  // each answer that ran out of budget is followed by another on the parse it left, until the tree is complete
+  async function untilComplete(core: EngineCore) {
+    for (;;) {
+      const value = unwrap(await core.request('tree', { budgetMs: 1_000 }));
+      if (value.complete) return value;
+    }
+  }
+
   it('given a long document and no budget, when the tree is requested, then it says how far the parse got and that it is not complete; given time, it completes', async () => {
     const doc = manyLines(700);
     const { core } = mount(doc);
 
-    const first = unwrap(await core.request('tree', { budgetMs: 0 }));
-    const second = unwrap(await core.request('tree', { budgetMs: 1_000 }));
+    const first = await withParserOutOfTime(async () => unwrap(await core.request('tree', { budgetMs: 0 })));
+    const second = await untilComplete(core);
 
     expect(doc.length).toBeGreaterThan(6_000);
     expect(first.complete).toBe(false);
@@ -242,15 +271,15 @@ describe('the CodeMirror host answering tree', () => {
 
   it('given a very long document and a small budget, when the tree is requested, then the engine gave the page turns between slices and a later request with more budget completes', async () => {
     const doc = manyLines(7_000);
-    let yields = 0;
-    const { core } = mount(doc, { engine: { treeSliceMs: 1, yieldToEvents: async () => { yields += 1; } } });
+    const clock = slicedClock();
+    const { core } = mount(doc, { engine: clock.engine });
 
-    const first = unwrap(await core.request('tree', { budgetMs: 15 }));
-    const second = unwrap(await core.request('tree', { budgetMs: 1_000 }));
+    const first = await withParserOutOfTime(async () => unwrap(await core.request('tree', { budgetMs: 15 })));
+    const second = await untilComplete(core);
 
     expect(doc.length).toBeGreaterThan(100_000);
     expect(first.complete).toBe(false);
-    expect(yields).toBeGreaterThan(1);
+    expect(clock.yields()).toBe(15);
     expect(second.complete).toBe(true);
   });
 
@@ -402,7 +431,7 @@ describe('the CodeMirror host with completion', () => {
   const entries: CompletionEntry[] = [{ label: 'nums', type: 'variable', detail: 'List[int]' }];
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
   const eventually = async (check: () => boolean, message: string) => {
-    const deadline = Date.now() + 3_000;
+    const deadline = Date.now() + HANG_MS;
     while (!check()) {
       if (Date.now() > deadline) throw new Error(message);
       await wait(20);
@@ -476,17 +505,29 @@ describe('the CodeMirror host with completion', () => {
   });
 
   it('given the list open, when focus leaves for 300 ms, then it closes; given focus back within 50 ms, it stays', async () => {
+    // the grace is the page's own timer: it runs on a clock the test moves, so how long the focus was away is what the test says and not what
+    // a loaded machine made of a 50 ms wait
     const away = await opened();
-    away.view.contentDOM.blur();
-    await wait(300);
-    expect(labelsOf()).toEqual([]);
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      away.view.contentDOM.blur();
+      vi.advanceTimersByTime(300);
+    } finally {
+      vi.useRealTimers();
+    }
+    await eventually(() => labelsOf().length === 0, 'the list stayed open after the focus left');
     away.view.destroy();
 
     const back = await opened();
-    back.view.contentDOM.blur();
-    await wait(50);
-    back.view.focus();
-    await wait(300);
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      back.view.contentDOM.blur();
+      vi.advanceTimersByTime(50);
+      back.view.focus();
+      vi.advanceTimersByTime(300);
+    } finally {
+      vi.useRealTimers();
+    }
     expect(labelsOf().length).toBeGreaterThan(0);
   });
 

@@ -160,6 +160,14 @@ run_flow("open route", function()
   end
   device:open_link(link)
   wait_route({id='ProblemEditorRunLocalButton'}, 240)
+  -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: wait for the first route.change
+  if not android then
+    device:extended_wait_until{condition=function()
+      for _, l in ipairs(device:get_logs{level='info'}) do
+        if l:find('route.change', 1, true) then return true end
+      end
+    end, timeout=60000, interval=250, label='the page hydrated'}
+  end
 end)
 local autofocused = not android and device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true} -- the web editor autofocuses on open and its keyboard covers Reset
 -- The toolbar is wider than the screen: a user swipes it until the key is on screen, then taps it.

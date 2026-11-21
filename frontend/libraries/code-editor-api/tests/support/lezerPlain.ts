@@ -47,9 +47,9 @@ export function toSyntaxNode(tree: Tree): SyntaxNode {
   return plain(top);
 }
 
-/** The tree a page would answer with once the parse is complete. */
+/** The tree a page would answer with once the parse is complete (run with no time limit: the parse of a finite text ends). */
 export function realTree(language: Language, doc: string): SyntaxNode {
-  const tree = ensureSyntaxTree(stateOf(language, doc), doc.length, 10_000);
+  const tree = ensureSyntaxTree(stateOf(language, doc), doc.length, Number.POSITIVE_INFINITY);
   if (!tree) throw new Error('the parse did not finish');
   return toSyntaxNode(tree);
 }

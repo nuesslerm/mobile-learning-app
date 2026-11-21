@@ -1,7 +1,7 @@
 import { closeBrackets } from '@codemirror/autocomplete';
 import { history, insertNewlineAndIndent, undo } from '@codemirror/commands';
 import { EditorState, type Extension } from '@codemirror/state';
-import { indentUnit } from '@codemirror/language';
+import { forceParsing, indentUnit } from '@codemirror/language';
 import { EditorView } from '@codemirror/view';
 import { LANGUAGE_NAMES, type Language } from '@lib/code-editor-api';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -18,6 +18,8 @@ function mount(language: Language, doc: string, selection?: { anchor: number; he
   const extensions: Extension[] = [history(), closeBrackets(), indentUnit.of('    '), EditorState.tabSize.of(4), languageCompartment.of(languageExtension(language))];
   const view = new EditorView({ state: EditorState.create({ doc, selection, extensions }), parent: document.body.appendChild(document.createElement('div')) });
   views.push(view);
+  // a state parses for 20 ms when it is made and keeps what that gave: on a loaded machine the grammar's Enter would indent from half a tree
+  forceParsing(view, view.state.doc.length, Number.POSITIVE_INFINITY);
   return view;
 }
 

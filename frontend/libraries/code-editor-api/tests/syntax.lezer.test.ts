@@ -156,7 +156,7 @@ describe('the parse budget', () => {
     const state = stateOf('python', doc);
 
     const initial = syntaxTree(state).length;
-    const done = ensureSyntaxTree(state, doc.length, 10_000);
+    const done = ensureSyntaxTree(state, doc.length, Number.POSITIVE_INFINITY);
 
     expect(doc.length).toBeGreaterThan(3_001);
     expect(initial).toBeLessThan(doc.length);
