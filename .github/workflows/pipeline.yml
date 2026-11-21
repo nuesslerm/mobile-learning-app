@@ -107,6 +107,8 @@ jobs:
           ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
           ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
       - uses: ./.github/actions/sccache-cache
+        timeout-minutes: 5
+        continue-on-error: true
         with:
           mode: restore
           stage: wf-build
@@ -117,6 +119,8 @@ jobs:
           name: ${{ matrix.arch == 'arm64' && 'clis-arm' || 'clis' }}
           upload: true
       - uses: ./.github/actions/sccache-cache
+        timeout-minutes: 5
+        continue-on-error: true
         if: ${{ !cancelled() }}
         with:
           mode: save
@@ -385,11 +389,15 @@ jobs:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
       - uses: ./.github/actions/sccache-cache
+        timeout-minutes: 5
+        continue-on-error: true
         with:
           mode: restore
           stage: flow-tests
           shard: ${{ matrix.shard }}
       - uses: ./.github/actions/nx-cache
+        timeout-minutes: 5
+        continue-on-error: true
         with:
           mode: restore
           stage: core-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
@@ -431,11 +439,15 @@ jobs:
           sleep 1
           exit $rc
       - uses: ./.github/actions/nx-cache
+        timeout-minutes: 5
+        continue-on-error: true
         if: ${{ !cancelled() }}
         with:
           mode: save
           stage: core-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       - uses: ./.github/actions/sccache-cache
+        timeout-minutes: 5
+        continue-on-error: true
         if: ${{ !cancelled() }}
         with:
           mode: save
@@ -747,11 +759,15 @@ jobs:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
       - uses: ./.github/actions/sccache-cache
+        timeout-minutes: 5
+        continue-on-error: true
         with:
           mode: restore
           stage: integration-tests
           shard: ${{ matrix.shard }}
       - uses: ./.github/actions/nx-cache
+        timeout-minutes: 5
+        continue-on-error: true
         with:
           mode: restore
           stage: integration-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
@@ -763,11 +779,15 @@ jobs:
           WF_TEST_OUTPUT_DIR: ${{ runner.temp }}/test-output
         run: wf test run --stage integration-tests --plan "$RUNNER_TEMP/plan.json" --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}" ${{ needs.plan.outputs.fresh == 'true' && '--fresh' || '' }}
       - uses: ./.github/actions/nx-cache
+        timeout-minutes: 5
+        continue-on-error: true
         if: ${{ !cancelled() }}
         with:
           mode: save
           stage: integration-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       - uses: ./.github/actions/sccache-cache
+        timeout-minutes: 5
+        continue-on-error: true
         if: ${{ !cancelled() }}
         with:
           mode: save
@@ -860,11 +880,15 @@ jobs:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
       - uses: ./.github/actions/sccache-cache
+        timeout-minutes: 5
+        continue-on-error: true
         with:
           mode: restore
           stage: cli-e2e-tests
           shard: ${{ matrix.shard }}
       - uses: ./.github/actions/nx-cache
+        timeout-minutes: 5
+        continue-on-error: true
         with:
           mode: restore
           stage: cli-e2e-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
@@ -875,11 +899,15 @@ jobs:
           WF_TEST_OUTPUT_DIR: ${{ runner.temp }}/test-output
         run: wf test run --stage cli-e2e-tests --plan "$RUNNER_TEMP/plan.json" --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}"
       - uses: ./.github/actions/nx-cache
+        timeout-minutes: 5
+        continue-on-error: true
         if: ${{ !cancelled() }}
         with:
           mode: save
           stage: cli-e2e-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       - uses: ./.github/actions/sccache-cache
+        timeout-minutes: 5
+        continue-on-error: true
         if: ${{ !cancelled() }}
         with:
           mode: save

@@ -396,3 +396,21 @@ fn the_core_tests_step_names_and_kills_what_outlives_its_stages_so_a_left_behind
     assert!(after.contains("xargs -r kill -KILL"), "{after}");
     assert!(after.find("kill -KILL").unwrap() < after.find("exit $rc").unwrap(), "{after}");
 }
+
+#[test]
+fn every_cache_step_of_the_pipeline_is_bounded_and_cannot_fail_the_job() {
+    // Given the pipeline
+    let text = read(".github/workflows/pipeline.yml");
+    let lines: Vec<&str> = text.lines().collect();
+
+    // When each step that restores or saves the Nx or sccache cache is read
+    let steps: Vec<usize> = (0..lines.len()).filter(|i| lines[*i].trim_start().starts_with("- uses: ./.github/actions/nx-cache") || lines[*i].trim_start().starts_with("- uses: ./.github/actions/sccache-cache")).collect();
+    assert!(steps.len() >= 8, "the pipeline restores and saves both caches: {}", steps.len());
+
+    // Then it has its own timeout and continues on error: a cache is an optimisation, and a stalled upload must not hold a job until the job timeout
+    for i in steps {
+        let head: String = lines[i..(i + 6).min(lines.len())].iter().take_while(|l| !l.trim_start().starts_with("with:")).map(|l| format!("{l}\n")).collect();
+        assert!(head.contains("timeout-minutes: 5"), "line {}: {head}", i + 1);
+        assert!(head.contains("continue-on-error: true"), "line {}: {head}", i + 1);
+    }
+}
