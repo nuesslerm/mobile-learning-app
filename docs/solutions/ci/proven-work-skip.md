@@ -31,7 +31,8 @@ Written before the code (issue #83, Q4 (4)); the verbs and the workflow edits fo
 | key | restored by | saved by |
 | --- | --- | --- |
 | `nx-<stage>-<shard>of<n>-...-<run>-<attempt>` | its shard | its shard (the run and attempt make it unique) |
-| `sccache-<stage>-...-<week>-<locks>` | every shard of the stage | shard 1 of the stage (`save: matrix.shard == 1`); the browser and Android e2e stages now do the same (both shards used to save) |
+| `sccache-<stage>-s<shard>-...-<week>-<locks>` | its shard (the stage's own entry when the stage is not sharded) | its shard: the weighted split deals the same crates to the same shard every run, so each shard keeps the compiles of its own crates and no key has two writers (`shard:` input of `sccache-cache`; it was shard 1 alone, and the other shards missed the compiles of the crates only they build) |
+| `playwright-<version>-<image>-<arch>` | every job that installs Chromium | the first job that missed it; the browser e2e job saves from shard 1 only (`playwright-cache`: Chromium and the .deb files of its system packages, installed with dpkg from disk) |
 | `metro-export-all-...` | `eas-update`, `eas-update-e2e` | `eas-update` on a green publish |
 | `metro-export-web-...` | the browser e2e shards | browser shard 1 (it used to share the key of `eas-update`, so two writers raced for it and the web and native transform caches overwrote each other's slot) |
 | `proven-<stage>-<fingerprint>` | `wf ci proven` (a listing, not a restore) | the shard that passed |

@@ -387,6 +387,7 @@ jobs:
         with:
           mode: restore
           stage: flow-tests
+          shard: ${{ matrix.shard }}
       - uses: ./.github/actions/nx-cache
         with:
           mode: restore
@@ -429,7 +430,7 @@ jobs:
         with:
           mode: save
           stage: flow-tests
-          save: ${{ matrix.shard == 1 }}
+          shard: ${{ matrix.shard }}
       - name: Publish the flow run bundle
         if: always()
         timeout-minutes: 5
@@ -739,6 +740,7 @@ jobs:
         with:
           mode: restore
           stage: integration-tests
+          shard: ${{ matrix.shard }}
       - uses: ./.github/actions/nx-cache
         with:
           mode: restore
@@ -760,7 +762,7 @@ jobs:
         with:
           mode: save
           stage: integration-tests
-          save: ${{ matrix.shard == 1 }}
+          shard: ${{ matrix.shard }}
       - name: Publish the integration run bundles
         if: always()
         timeout-minutes: 5
@@ -851,6 +853,7 @@ jobs:
         with:
           mode: restore
           stage: cli-e2e-tests
+          shard: ${{ matrix.shard }}
       - uses: ./.github/actions/nx-cache
         with:
           mode: restore
@@ -871,7 +874,7 @@ jobs:
         with:
           mode: save
           stage: cli-e2e-tests
-          save: ${{ matrix.shard == 1 }}
+          shard: ${{ matrix.shard }}
       # the shard passed: its fingerprint is marked for the plan of a later run (a cache entry, one writer per key; none on a fresh run)
       - name: Mark this shard as proven
         if: ${{ success() && needs.plan.outputs.fresh != 'true' && fromJSON(needs.plan.outputs.cli_e2e_proof_keys)[matrix.shard] != '' }}

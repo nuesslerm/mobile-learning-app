@@ -46,7 +46,7 @@ Goal, numbered decisions, `###` items (Local/CI boxes, Do, Proof, State), Blocke
 
 ## Land on dev
 
-Work autonomously on the `dev` trunk, never a session branch; never delete a branch. Before any work bring `dev` to parity with `main` (`docs/solutions/workflow/dev-parity-with-main.md`); land with `git fetch origin dev && git rebase origin/dev` (never over a merge of `main`), the lefthook suite, push. Deploy is automatic on push to `dev`; never call `/redeploy` by hand. When the open `dev` → `main` PR is merged or closed, open a new one titled exactly `dev → main` with the body exactly ``This is `dev` ``. The rest: `docs/solutions/workflow/land-on-dev.md`.
+Work autonomously on the `dev` trunk, never a session branch; never delete a branch. Before any work bring `dev` to parity with `main` (`docs/solutions/workflow/dev-parity-with-main.md`); land with `git fetch origin dev && git rebase origin/dev` (never over a merge of `main`), the lefthook suite, push. Deploy is automatic on push to `dev`; never call `/redeploy` by hand. When the open `dev` → `main` PR is merged or closed, open a new one titled exactly `dev → main` with the body exactly ``This is `dev` ``. More: `docs/solutions/workflow/land-on-dev.md`.
 
 ## Benchmarks: always, and as cheap as still meaningful
 
@@ -58,7 +58,7 @@ Say which type ran (runbook, browser/Android e2e, deployment verification, integ
 
 ## The Oracle Cloud VM
 
-One Always-Free A1 VM (`main`) runs every app; deploy = a CI leg (`wf ship`, then a `vm-ops-api` redeploy); no SSH. Downtime is never a concern; recoverability without a human is (check tfstate before destroying); never destroy vault secrets or tfstate history. Recreating an Always-Free instance via Terraform is pre-authorized, and every gate before it is yours to clear (cancel runs with `wf vm ops cancel-run`, `wf vm creds sync`, `terraform init`, a vault placeholder is the sentinel `PLACEHOLDER_FILL_ME`): never hand a recreate back for a blocker you can fix. Details: `infra/oracle-cloud/AGENTS.md`.
+One Always-Free A1 VM (`main`) runs every app; deploy = a CI leg (`wf ship`, then a `vm-ops-api` redeploy); no SSH. Downtime is never a concern; recoverability without a human is (check tfstate before destroying); never destroy vault secrets or tfstate history. Recreating an Always-Free instance via Terraform is pre-authorized, and every gate before it is yours to clear (cancel runs with `wf vm ops cancel-run`, `wf vm creds sync`, `terraform init`, a vault placeholder is the sentinel `PLACEHOLDER_FILL_ME`): never hand a recreate back for a blocker you can fix. More: `infra/oracle-cloud/AGENTS.md`.
 
 ## Secrets
 

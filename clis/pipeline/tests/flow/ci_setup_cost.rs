@@ -26,31 +26,40 @@ fn a_core_or_cli_run_plans_no_legs_in_a_trivial_step_and_the_other_stages_still_
 
 #[test]
 fn chromium_and_its_system_packages_come_from_a_cache_keyed_by_version_and_image_with_the_mirror_as_the_fallback() {
-    // Given the install-test-deps action
-    let text = read(".github/actions/install-test-deps/action.yml");
+    // Given the Playwright cache action, its install script, and the two places that install Chromium
+    let action = read(".github/actions/playwright-cache/action.yml");
+    let script = read(".github/actions/playwright-cache/install.sh");
+    let deps = read(".github/actions/install-test-deps/action.yml");
 
-    // When its Playwright steps are read
-    let key = text.find("id: pw-key").expect("a step keys the cache");
-    let install = text.find("name: Chromium for Playwright").expect("the install step");
-    let save = text.find("name: Save the Playwright cache").expect("the save step");
+    // When the action's key, restore and save and the script's two paths are read
+    let key = action.find("id: key").expect("a step keys the cache");
+    let restore = action.find("name: Restore Chromium and the system packages").expect("the restore step");
+    let save = action.find("name: Save the Playwright cache").expect("the save step");
 
-    // Then the key names the Playwright version and the runner image, the restore comes before the install, the .deb files install with dpkg before any apt
-    // call, the mirror path stays behind them, and the saved tree carries no marker
-    assert!(key < install && install < save);
-    assert!(text.contains("playwright-$version-$ImageVersion-"));
-    assert!(text.contains("[ -n \"${ImageVersion:-}\" ] || exit 0"));
-    assert!(text.contains("dpkg -i \"$debs\"/*.deb"));
-    assert!(text.find("dpkg -i \"$debs\"").unwrap() < text.find("install --with-deps chromium").unwrap());
-    assert!(text.contains("rm -f \"$HOME\"/.cache/ms-playwright/.installed-*"));
-    assert!(text.contains("steps.playwright.outcome == 'success'"));
-    assert!(text.contains("steps.pw-prep.outputs.save == 'true'"));
+    // Then the key names the Playwright version and the runner image, and a runner with no image version gets no key
+    assert!(key < restore && restore < save);
+    assert!(action.contains("playwright-$version-$ImageVersion-"));
+    assert!(action.contains("[ -n \"${ImageVersion:-}\" ] || exit 0"));
+    // And the script installs the .deb files with dpkg before any apt call, with the bounded mirror path behind them
+    assert!(script.contains("dpkg -i \"$debs\"/*.deb"));
+    assert!(script.find("dpkg -i \"$debs\"").unwrap() < script.find("install --with-deps chromium").unwrap());
+    assert!(script.contains("timeout -k 10 150") && script.contains("Keep-Downloaded-Packages"));
+    // And a save happens only after a miss that left the packages and the browser, and the saved tree carries no marker
+    assert!(action.contains("[ \"$HIT\" != true ] || exit 0"));
+    assert!(action.contains("rm -f \"$HOME\"/.cache/ms-playwright/.installed-*"));
+    assert!(action.contains("steps.prep.outputs.save == 'true'"));
+    // And install-test-deps restores, installs through the script and saves, with no copy of the install of its own
+    let (r, i, s) = (deps.find("mode: restore").expect("restore"), deps.find("playwright-cache/install.sh").expect("install"), deps.find("mode: save").expect("save"));
+    assert!(r < i && i < s);
+    assert!(!deps.contains("install --with-deps"));
 }
 
 fn job_block(text: &str, job: &str) -> String {
     let head = format!("\n  {job}:\n");
     let start = text.find(&head).unwrap_or_else(|| panic!("no job {job}")) + 1;
     let rest = &text[start + head.len() - 1..];
-    let end = rest.lines().skip(1).scan(0usize, |at, l| { *at += l.len() + 1; Some((*at, l)) }).find(|(_, l)| l.starts_with("  ") && !l.starts_with("   ") && l.trim_end().ends_with(':') && !l.trim_start().starts_with('#')).map(|(at, l)| at - l.len() - 1);
+    // each line's start offset, counted from the first line: skipping the first line must not drop its length from the offsets
+    let end = rest.split_inclusive('\n').scan(0usize, |at, l| { let start = *at; *at += l.len(); Some((start, l.trim_end_matches('\n'))) }).skip(1).find(|(_, l)| l.starts_with("  ") && !l.starts_with("   ") && l.trim_end().ends_with(':') && !l.trim_start().starts_with('#')).map(|(start, _)| start);
     rest[..end.unwrap_or(rest.len())].to_string()
 }
 
@@ -73,8 +82,12 @@ fn the_browser_job_installs_chromium_beside_the_web_export_and_joins_it_before_i
     let join_block = &text[join..run];
     assert!(join_block.contains("until [ -f \"$RUNNER_TEMP/chromium.rc\" ]") && !join_block.contains("pnpm --filter @lib/browser-client exec playwright install"));
     assert!(join_block.contains("@tooling/browser-harness run build") && join_block.contains("wf browser stop"));
-    // And the old step that ran the install before the export, ahead of every other step, is gone
-    assert_eq!(text.matches("playwright install --with-deps chromium").count(), 1);
+    // And the install is the cached one: the cache restores before the detached start, the browser harness job saves after the join (shard 1 only), and no copy of the install is left
+    let restore = text.find("name: Start the Chromium install").and_then(|at| text[..at].rfind("playwright-cache")).expect("a restore before the start");
+    assert!(restore < start && start_block.contains("playwright-cache/install.sh"));
+    let saved = &text[join..run];
+    assert!(saved.contains("mode: save\n          save: ${{ inputs.shard == 1 }}"), "{saved}");
+    assert_eq!(text.matches("playwright install --with-deps chromium").count(), 0);
 }
 
 #[test]
@@ -88,10 +101,12 @@ fn every_cache_key_has_one_writer_among_the_shards_that_restore_it() {
     for job in ["core-tests", "integration-tests", "cli-e2e-tests"] {
         let block = job_block(&pipeline, job);
         let save = block.find("mode: save\n          stage: ").and_then(|_| block.rfind("sccache-cache")).map(|at| &block[at..]).unwrap_or_else(|| panic!("{job} saves sccache"));
-        // Then only shard 1 of a stage saves its sccache directory
-        assert!(save.contains("save: ${{ matrix.shard == 1 }}"), "{job}: {save}");
+        // Then each shard saves the entry of its own shard (its key names the shard, so the writer of a key is one job)
+        assert!(save.contains("shard: ${{ matrix.shard }}") && !save.contains("save: false"), "{job}: {save}");
     }
-    assert!(e2e.contains("stage: ${{ inputs.platform }}-e2e-tests\n          save: ${{ inputs.shard == 1 }}"));
+    assert!(e2e.contains("stage: ${{ inputs.platform }}-e2e-tests\n          shard: ${{ inputs.shard }}"));
+    let sccache = read(".github/actions/sccache-cache/action.yml");
+    assert!(sccache.matches("inputs.shard && format('-s{0}', inputs.shard)").count() >= 3, "restore key, restore-keys and the remembered key all name the shard");
     // And the browser export keeps its own metro key (the web transforms), saved by shard 1, apart from the one eas-update saves
     assert!(e2e.contains("scope: export\n          suffix: web\n          save: ${{ inputs.shard == 1 }}"));
     assert!(metro.contains("inputs.save == 'true'"));
@@ -163,4 +178,129 @@ fn an_integration_or_cli_e2e_shard_a_job_already_proved_is_left_out_of_the_matri
     }
     // And core-tests keeps every shard: its shards run packages, which a fingerprint cannot prove
     assert!(job_block(&text, "core-tests").contains("shard: ${{ fromJSON(needs.plan.outputs.shards) }}"));
+}
+
+#[test]
+fn every_job_that_runs_a_weighted_stage_hands_its_database_rows_to_the_report_job() {
+    // Given the pipeline and the e2e workflow, whose jobs run the weighted stages
+    let pipeline = read(".github/workflows/pipeline.yml");
+    let e2e = read(".github/workflows/e2e-tests.yml");
+
+    // When the last steps of each stage's job are read
+    for job in ["core-tests", "integration-tests", "cli-e2e-tests"] {
+        let block = job_block(&pipeline, job);
+        // Then each uploads the rows (the Nx tasks and unit spans its wf commands kept) under its own name
+        assert!(block.contains("./.github/actions/hosted-stats\n        if: ${{ always() }}\n        with:\n          mode: upload"), "{job}");
+    }
+    // And so does the e2e workflow, once per platform and shard: its tests never reached CI_UNITS or NX_TASKS before this step existed
+    assert!(e2e.contains("./.github/actions/hosted-stats\n        if: ${{ always() }}\n        with:\n          mode: upload\n          job: ${{ inputs.platform }}-e2e-tests-${{ inputs.shard }}"));
+    // And the name matches the one the job's sampler started under (setup-job), so the samples and the rows pair up
+    let name = "job: ${{ inputs.platform }}-e2e-tests-${{ inputs.shard }}";
+    let setup = e2e.find("./.github/actions/setup-job").expect("the job's setup step");
+    let setup_step = e2e[setup..].split("\n      - ").next().unwrap();
+    assert!(setup_step.contains(name), "{setup_step}");
+    // And the report job downloads every ci-db artifact by pattern
+    assert!(pipeline.contains("pattern: ci-db-*"));
+}
+
+struct Install {
+    home: std::path::PathBuf,
+    stubs: std::path::PathBuf,
+}
+
+impl Install {
+    fn new(with_deb: bool, with_marker: bool) -> Self {
+        let root = tempfile::tempdir().expect("a scratch dir").keep();
+        let (home, stubs) = (root.join("home"), root.join("stubs"));
+        std::fs::create_dir_all(&stubs).unwrap();
+        std::fs::create_dir_all(home.join("playwright-debs")).unwrap();
+        std::fs::create_dir_all(home.join(".cache/ms-playwright")).unwrap();
+        if with_deb {
+            std::fs::write(home.join("playwright-debs/libx.deb"), "").unwrap();
+        }
+        if with_marker {
+            std::fs::write(home.join(".cache/ms-playwright/.installed-_ersion_1.2.3"), "").unwrap();
+        }
+        // authored doubles of the tools the script calls: each logs its call, and pnpm/dpkg fail on request; none touches the machine's apt or sources
+        let log = format!("echo \"$(basename \"$0\") $*\" >> \"$HOME/calls\"\n");
+        let stubs_text = [
+            ("pnpm", format!("{log}case \"$*\" in *--version*) echo 'Version 1.2.3';; *--with-deps*) n=$(cat \"$HOME/n\" 2>/dev/null || echo 0); echo $((n+1)) > \"$HOME/n\"; [ \"$n\" -ge \"${{FAIL_WITH_DEPS:-0}}\" ];; esac\n")),
+            ("dpkg", format!("{log}[ \"${{DPKG_FAILS:-0}}\" != 1 ] || [ \"$1\" != -i ]\n")),
+            ("timeout", "shift 3; exec \"$@\"\n".to_string()),
+            ("sudo", "exec \"$@\"\n".to_string()),
+            ("tee", format!("{log}cat > /dev/null\n")),
+            ("sed", log.clone()),
+            ("pkill", log),
+        ];
+        for (name, body) in stubs_text {
+            let path = stubs.join(name);
+            std::fs::write(&path, format!("#!/bin/bash\n{body}")).unwrap();
+            std::fs::set_permissions(&path, std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
+        }
+        Self { home, stubs }
+    }
+
+    fn run(&self, env: &[(&str, &str)]) -> (bool, Vec<String>, bool) {
+        let script = repo_root().join(".github/actions/playwright-cache/install.sh");
+        let path = format!("{}:/usr/bin:/bin", self.stubs.display());
+        let ok = std::process::Command::new("/bin/bash").arg(script).env_clear().env("PATH", path).env("HOME", &self.home).envs(env.iter().copied())
+            .stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).status().expect("bash runs").success();
+        let calls = std::fs::read_to_string(self.home.join("calls")).unwrap_or_default().lines().map(str::to_string).collect();
+        (ok, calls, self.home.join(".cache/ms-playwright/.installed-_ersion_1.2.3").exists())
+    }
+}
+
+fn count(calls: &[String], needle: &str) -> usize {
+    calls.iter().filter(|c| c.contains(needle)).count()
+}
+
+#[test]
+fn an_installed_chromium_is_left_alone_and_a_restored_cache_installs_by_dpkg_without_the_mirror() {
+    // Given a machine whose marker says the install is done
+    let done = Install::new(true, true);
+    // When the script runs
+    let (ok, calls, _) = done.run(&[]);
+    // Then it does nothing but ask the Playwright version
+    assert!(ok && count(&calls, "dpkg") == 0 && count(&calls, "--with-deps") == 0, "{calls:?}");
+
+    // Given a restored cache with .deb files and no marker
+    let hit = Install::new(true, false);
+    // When the script runs
+    let (ok, calls, marker) = hit.run(&[]);
+    // Then dpkg installs the files, only the browser is fetched (no --with-deps, no apt configuration), and the marker is written
+    assert!(ok && marker, "{calls:?}");
+    assert_eq!(count(&calls, "dpkg -i"), 1);
+    assert_eq!(count(&calls, "--with-deps"), 0);
+    assert_eq!(count(&calls, "tee"), 0);
+}
+
+#[test]
+fn a_cached_install_that_fails_falls_back_to_the_mirror_and_a_stalled_mirror_is_retried_on_another_one_up_to_three_times() {
+    // Given cached .deb files that dpkg refuses
+    let broken = Install::new(true, false);
+    // When the script runs
+    let (ok, calls, marker) = broken.run(&[("DPKG_FAILS", "1")]);
+    // Then the mirror path installs once, keeps the downloads (the apt configuration is written) and writes the marker
+    assert!(ok && marker, "{calls:?}");
+    assert_eq!(count(&calls, "--with-deps"), 1);
+    assert_eq!(count(&calls, "tee"), 1);
+
+    // Given a cold machine whose first two mirror tries fail
+    let cold = Install::new(false, false);
+    // When the script runs
+    let (ok, calls, marker) = cold.run(&[("FAIL_WITH_DEPS", "2")]);
+    // Then the third try installs, and the sources moved to a new mirror after each failure
+    assert!(ok && marker, "{calls:?}");
+    assert_eq!(count(&calls, "--with-deps"), 3);
+    assert_eq!(count(&calls, "pkill"), 4, "each failure kills the stuck apt and dpkg");
+    assert!(count(&calls, "sed") > 0, "the sources were switched to another mirror");
+
+    // Given a cold machine whose mirror never answers
+    let dead = Install::new(false, false);
+    // When the script runs
+    let (ok, calls, marker) = dead.run(&[("FAIL_WITH_DEPS", "9")]);
+    // Then it gives up after three tries and leaves no marker
+    assert!(!ok && !marker, "{calls:?}");
+    assert_eq!(count(&calls, "--with-deps"), 3);
+    assert_eq!(count(&calls, "pkill"), 6);
 }

@@ -1103,9 +1103,10 @@ mod tests {
         // When they are dealt over the stage's weights
         let (one, two) = dealt("android-e2e-tests", &names);
 
-        // Then the longest test and the light ones are on shard 1 (221 s) and the next two on shard 2 (217 s)
-        assert_eq!(one, ["local-run", "pyodide-spike", "review-sheet-keyboard", "stubbed-run-local", "voice-edit"]);
-        assert_eq!(two, ["editor-typing", "tamil-writing"]);
+        // Then the two tests the hosted runs measured slowest in a job (tamil-writing, voice-edit) are on different shards: editor-typing joins voice-edit (297 s) and
+        // tamil-writing the four light ones (266 s), where the earlier deal put tamil-writing and editor-typing together and that shard ran a median 75 s longer
+        assert_eq!(one, ["local-run", "pyodide-spike", "review-sheet-keyboard", "stubbed-run-local", "tamil-writing"]);
+        assert_eq!(two, ["editor-typing", "voice-edit"]);
     }
 
     #[test]
