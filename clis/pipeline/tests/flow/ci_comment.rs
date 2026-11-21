@@ -948,17 +948,16 @@ fn a_job_cancelled_after_it_started_is_named_and_one_replaced_while_waiting_is_n
 }
 
 #[test]
-fn a_pending_job_a_newer_one_replaced_is_named_apart_from_a_job_killed_while_running() {
+fn a_pending_job_a_newer_one_replaced_is_expected_and_a_job_killed_while_running_is_still_a_finding() {
     // Given a shard of run 70 that GitHub cancelled one second after its recorded start (a replaced pending job) and a shard of run 71 cancelled after 90 s of running
-    let rows = [group_job("70", "core-tests (1/3)", "hosted-core-tests-CI core mobile-k1", 100, 1, "cancelled"), group_job("71", "integration-tests (1/4)", "hosted-integration-CI core-k2-71", 100, 90, "cancelled")];
+    let rows = [group_job("70", "core-tests (1/3)", "hosted-core-tests-CI core mobile-k1", 100, 1, "cancelled"), group_job("71", "integration-tests (1/4)", "hosted-integration-CI core-k2", 100, 90, "cancelled")];
 
     // When the audit runs
     let out = audit_groups("replaced", &rows);
 
-    // Then the replaced one is its own finding on run 70 (not a kill), naming the group, and the killed one stays a kill on run 71
+    // Then only the killed one is a finding, on run 71; the replaced one is expected
     let found: Vec<(String, String)> = out["findings"].as_array().unwrap().iter().map(|f| (f["kind"].as_str().unwrap().to_string(), f["run"].as_str().unwrap().to_string())).collect();
-    assert_eq!(found, [("replaced-while-pending".to_string(), "70".to_string()), ("cancelled-while-running".to_string(), "71".to_string())], "{out}");
-    assert!(out["findings"][0]["message"].as_str().unwrap().contains("hosted-core-tests-CI core mobile-k1") && !out["findings"][0]["hard"].as_bool().unwrap(), "{out}");
+    assert_eq!(found, [("cancelled-while-running".to_string(), "71".to_string())], "{out}");
 }
 
 #[test]
@@ -969,28 +968,25 @@ fn a_job_cancelled_two_seconds_after_its_start_is_replaced_and_one_cancelled_thr
     // When the audit runs
     let out = audit_groups("boundary", &rows);
 
-    // Then the 2 s one is the soft replaced finding and the 3 s one is a running job killed
-    assert_eq!(kinds(&out), ["replaced-while-pending", "cancelled-while-running"], "{out}");
+    // Then the 2 s one is expected and only the 3 s one is a running job killed
+    assert_eq!(kinds(&out), ["cancelled-while-running"], "{out}");
+    assert!(out["findings"][0]["message"].as_str().unwrap().contains("run 71"), "{out}");
 }
 
 #[test]
-fn two_runs_that_ran_the_same_shard_inputs_in_groups_of_their_own_at_once_are_one_twin_overlap_with_its_waste_and_no_hard_finding() {
-    // Given core-tests (1/2) of runs 70 and 71 with the same shard key k1 in per-run groups, overlapping for 150 s, and run 72's shard with another key at the same time
+fn two_runs_of_the_same_shard_inputs_in_one_group_that_never_overlap_and_a_replaced_pending_job_are_no_finding() {
+    // Given core-tests (1/2) of run 70 running 100 s in group k1, run 71's pending job of k1 replaced 1 s after its recorded start, and run 72's job of k1 starting after run 70 ended
     let rows = [
-        group_job("70", "core-tests (1/2)", "hosted-core-tests-CI core mobile-k1-70", 100, 300, "success"),
-        group_job("71", "core-tests (1/2)", "hosted-core-tests-CI core mobile-k1-71", 250, 300, "success"),
-        group_job("72", "core-tests (1/2)", "hosted-core-tests-CI core mobile-k9-72", 260, 300, "success"),
+        group_job("70", "core-tests (1/2)", "hosted-core-tests-CI core mobile-k1", 100, 100, "success"),
+        group_job("71", "core-tests (1/2)", "hosted-core-tests-CI core mobile-k1", 200, 1, "cancelled"),
+        group_job("72", "core-tests (1/2)", "hosted-core-tests-CI core mobile-k1", 201, 100, "success"),
     ];
 
     // When the audit runs
-    let out = audit_groups("twins", &rows);
+    let out = audit_groups("serialised", &rows);
 
-    // Then one soft twin-overlap names the later run, the earlier one, the shared key and 150 s of waste; the group check finds nothing because no group is shared
-    assert_eq!(kinds(&out), ["twin-overlap"], "{out}");
-    let f = &out["findings"][0];
-    let message = f["message"].as_str().unwrap();
-    assert_eq!((f["run"].clone(), f["hard"].clone(), f["wasteSeconds"].clone()), (json!("71"), json!(false), json!(150)), "{out}");
-    assert!(message.contains("run 70") && message.contains("hosted-core-tests-CI core mobile-k1"), "{message}");
+    // Then nothing is found: the group serialised the runs and the replacement is expected
+    assert!(kinds(&out).is_empty(), "{out}");
 }
 
 #[test]
@@ -1915,6 +1911,74 @@ fn dry_body(github: &Github, extra: &[(&str, &str)]) -> String {
 }
 
 #[test]
+fn a_run_whose_only_unpassed_job_was_replaced_while_pending_reads_as_superseded_not_failed() {
+    // Given a finished run of which core-tests (2/3) was cancelled one second after its recorded start, a pending job a newer run of the same inputs replaced
+    let github = Github::start();
+    let jobs = json!([job(500, "plan", "success", "2026-10-23T10:00:20Z", json!([])), job(501, "core-tests (2/3)", "cancelled", "2026-10-23T10:00:01Z", json!([]))]);
+    github.serve(&jobs, json!([]), created(), updated());
+
+    // When the report is built
+    let body = dry_body(&github, &[]);
+
+    // Then the title says it was superseded by a newer run of the same inputs, neither failed nor passed, and the job keeps its cancelled mark
+    let title = body.lines().nth(1).unwrap_or_default();
+    assert!(title.contains("superseded by a newer run of the same inputs") && !title.contains("failed") && !title.contains("passed"), "{body}");
+    assert!(body.contains("🚫 1 replaced while pending by a newer run") && body.contains("🚫"), "{body}");
+}
+
+#[test]
+fn a_cancelled_job_that_never_started_is_a_cancelled_run_not_a_superseded_one() {
+    // Given a run a person cancelled whole, so its queued job ended cancelled with no start or end time
+    let github = Github::start();
+    let mut queued = job(501, "core-tests (2/3)", "cancelled", "2026-10-23T10:00:01Z", json!([]));
+    queued["started_at"] = Value::Null;
+    queued["completed_at"] = Value::Null;
+    let jobs = json!([job(500, "plan", "success", "2026-10-23T10:00:20Z", json!([])), queued]);
+    github.serve(&jobs, json!([]), created(), updated());
+
+    // When the report is built
+    let body = dry_body(&github, &[]);
+
+    // Then no newer run is blamed and the title says cancelled
+    let title = body.lines().nth(1).unwrap_or_default();
+    assert!(title.contains("cancelled") && !title.contains("superseded") && !title.contains("passed"), "{body}");
+}
+
+#[test]
+fn a_job_killed_while_running_beside_a_replaced_one_is_not_a_passed_run() {
+    // Given a finished run with one job replaced while pending and one cancelled after 90 s of running
+    let github = Github::start();
+    let jobs = json!([
+        job(500, "plan", "success", "2026-10-23T10:00:20Z", json!([])),
+        job(501, "core-tests (2/3)", "cancelled", "2026-10-23T10:00:01Z", json!([])),
+        job(502, "core-tests (1/3)", "cancelled", "2026-10-23T10:01:30Z", json!([]))
+    ]);
+    github.serve(&jobs, json!([]), created(), updated());
+
+    // When the report is built
+    let body = dry_body(&github, &[]);
+
+    // Then the title is neither passed nor superseded
+    let title = body.lines().nth(1).unwrap_or_default();
+    assert!(title.contains("cancelled") && !title.contains("superseded") && !title.contains("passed") && !title.contains("✅"), "{body}");
+}
+
+#[test]
+fn a_replaced_pending_job_beside_a_red_job_is_still_a_failed_run() {
+    // Given a finished run with one replaced pending job and one job that failed
+    let github = Github::start();
+    let jobs = json!([job(500, "plan", "success", "2026-10-23T10:00:20Z", json!([])), job(501, "core-tests (2/3)", "cancelled", "2026-10-23T10:00:01Z", json!([])), job(502, "core-tests (1/3)", "failure", "2026-10-23T10:03:00Z", json!([]))]);
+    github.serve(&jobs, json!([]), created(), updated());
+
+    // When the report is built
+    let body = dry_body(&github, &[]);
+
+    // Then the run is failed
+    let title = body.lines().nth(1).unwrap_or_default();
+    assert!(title.contains("failed") && !title.contains("superseded"), "{body}");
+}
+
+#[test]
 fn the_job_table_lists_only_jobs_that_ran_and_names_shards_as_2_of_4() {
     // Given a run whose shared graph has three skipped jobs, one with a raw template name, and a shard that ran
     let template = "integration-tests${{ (needs.plan.outputs.shard_count > 1 && format(' ({0}/{1})', matrix.shard, 4)) || '' }}";
@@ -2077,7 +2141,7 @@ fn the_report_has_a_headline_with_wall_runner_seconds_peak_jobs_efficiency_the_c
     assert!(body.contains("The critical path is plan &gt; core-tests (1/2) (10m 00s, 100% of the wall time)"), "{body}");
     assert!(body.contains("Jobs waited 3m 00s for a runner in total, 45s at worst"), "{body}");
     assert!(body.contains("| setup-job | 2m 40s | 4 | 40s |"), "{body}");
-    assert!(body.contains("core-tests (1/2) queued 45s; its concurrency group is `hosted-core-tests-CI core-k1-77`") && body.contains("plan waited 45s for a runner"), "{body}");
+    assert!(body.contains("core-tests (1/2) queued 45s; its concurrency group is `hosted-core-tests-CI core-k1`") && body.contains("plan waited 45s for a runner"), "{body}");
 }
 
 #[test]

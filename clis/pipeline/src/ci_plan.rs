@@ -53,7 +53,7 @@ pub fn run(rest: &[String]) -> Option<i32> {
 }
 
 /// `wf ci plan shard-keys --stage <stage> --count <n> --plan <file>`: one key per shard, a JSON array, from the crates each shard runs. A workflow
-/// names its per-run concurrency group from it beside the run id, so two runs of the same shard inputs never queue behind each other.
+/// makes it the concurrency group, so a later commit's shard of the same crates queues behind the earlier one (a newer pending job replaces an older pending one).
 fn shard_keys(args: &[String]) -> Option<i32> {
     let spec = Spec { values: &["stage", "count", "plan", "repo"], flags: &["units"], positional: Positional::None, ..Spec::NONE };
     let p = parse_spec(args, &spec)?;

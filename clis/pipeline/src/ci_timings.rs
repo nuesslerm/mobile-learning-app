@@ -142,10 +142,10 @@ fn fail(message: &str, next: &str) -> i32 {
     1
 }
 
-/// The concurrency group of a job when it is a shard with a key, as `pipeline.yml` spells it: caller workflow, the shard's input key, `-fresh` for a run with the
-/// caches off and the run id last, so no two runs share a group and no job is ever replaced while pending. Each `WF_CI_*_SHARD_KEYS` is the plan's JSON array with
-/// a leading empty key, which makes the 1-based shard number its index.
-pub(crate) fn group_of(stage: &str, shard: &str, run: &str) -> Option<String> {
+/// The concurrency group of a job when it is a shard with a key, as `pipeline.yml` spells it: caller workflow, the shard's input key and `-fresh` for a run with the
+/// caches off, so runs of the same inputs share a group. Each `WF_CI_*_SHARD_KEYS` is the plan's JSON array with a leading empty key, which makes the 1-based shard
+/// number its index.
+pub(crate) fn group_of(stage: &str, shard: &str) -> Option<String> {
     let (var_name, prefix) = match stage {
         "integration-tests" => ("WF_CI_SHARD_KEYS", "hosted-integration"),
         "core-tests" => ("WF_CI_CORE_SHARD_KEYS", "hosted-core-tests"),
@@ -155,7 +155,7 @@ pub(crate) fn group_of(stage: &str, shard: &str, run: &str) -> Option<String> {
     let keys: Vec<String> = serde_json::from_str(&var(var_name)?).ok()?;
     let index = shard.split('/').next()?.parse::<usize>().ok().filter(|n| *n >= 1)?;
     let fresh = if stage != "integration-tests" && var("WF_CI_FRESH").as_deref() == Some("true") { "-fresh" } else { "" };
-    Some(format!("{prefix}-{}-{}{fresh}-{run}", var("GITHUB_WORKFLOW").unwrap_or_default(), keys.get(index)?))
+    Some(format!("{prefix}-{}-{}{fresh}", var("GITHUB_WORKFLOW").unwrap_or_default(), keys.get(index)?))
 }
 
 /// Each finished job into the CI database's `CI_JOBS` (the job-local file the report job merges): how it ended, how long it ran, how long it waited
@@ -182,7 +182,7 @@ fn keep_jobs(env: &Env, run: &Value, run_id: &str, jobs: &[Value]) {
                 run: run_id.to_string(),
                 sha: sha.clone(),
                 ts,
-                group_key: group_of(&stage, &shard, run_id),
+                group_key: group_of(&stage, &shard),
                 kind: stage,
                 job: name.to_string(),
                 secs,

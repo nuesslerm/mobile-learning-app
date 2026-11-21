@@ -785,17 +785,17 @@ fn a_probe_says_why_each_test_it_would_run_misses_against_the_earlier_runs_of_th
 }
 
 #[test]
-fn given_the_pipeline_when_the_sharded_test_jobs_are_read_then_every_run_has_concurrency_groups_of_its_own_and_nothing_is_cancelled_in_progress() {
+fn given_the_pipeline_when_the_sharded_test_jobs_are_read_then_runs_of_the_same_inputs_share_one_group_whose_pending_job_may_be_replaced_but_no_running_job_is_cancelled() {
     // Given the pipeline workflow
     let text = std::fs::read_to_string(crate::support::repo_root().join(".github/workflows/pipeline.yml")).unwrap();
     // When the concurrency groups of the sharded test jobs are read
     for (job, keys) in [("core-tests", "core_shard_keys"), ("integration-tests", "integration_shard_keys"), ("cli-e2e-tests", "cli_e2e_shard_keys")] {
         let block = pipeline_job(&text, job);
         let group = block.lines().find(|l| l.trim_start().starts_with("group:")).unwrap_or_else(|| panic!("no group in {job}"));
-        // Then the group holds the caller workflow, the shard's input key and, last, the run id: two runs never share a group, so GitHub has no pending job to replace
-        // (a replaced job ended its run cancelled with no verdict) and a fix with other inputs still starts at once
-        assert!(group.contains(keys) && group.contains("github.workflow") && group.trim_end().ends_with("github.run_id) }}"), "{job}: {group}");
-        assert!(block.contains("cancel-in-progress: false") && !block.contains("cancel-in-progress: true"), "{job}: an older run is never cancelled");
+        // Then the group holds the caller workflow and the shard's input key, not the run id: identical work of one workflow waits as a pending job that a newer run may replace (the owner accepts it),
+        // a fix with other inputs starts at once, and a job that already runs is never cancelled
+        assert!(group.contains(keys) && group.contains("github.workflow") && !group.contains("run_id"), "{job}: {group}");
+        assert!(block.contains("cancel-in-progress: false") && !block.contains("cancel-in-progress: true"), "{job}: a running job is never cancelled");
     }
 }
 

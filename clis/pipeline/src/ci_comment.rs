@@ -163,6 +163,17 @@ fn is_failed(job: &Value) -> bool {
     matches!(job["conclusion"].as_str(), Some("failure" | "timed_out"))
 }
 
+/// A job GitHub ended within this many seconds of its recorded start was replaced while pending by a newer job of its concurrency group (it records its start at the
+/// moment of the replacement); the owner accepts that, a job cancelled after running longer was killed.
+pub(crate) const REPLACED_SECS: i64 = 2;
+
+pub(crate) fn is_replaced_while_pending(job: &Value) -> bool {
+    job["conclusion"] == "cancelled" && match (epoch(&job["started_at"]), epoch(&job["completed_at"])) {
+        (Some(from), Some(to)) => to - from <= REPLACED_SECS,
+        _ => false,
+    }
+}
+
 pub(crate) fn failed_step(job: &Value) -> String {
     let steps = job["steps"].as_array().map(Vec::as_slice).unwrap_or_default();
     let with = |conclusions: &[&str]| steps.iter().find(|s| s["conclusion"].as_str().is_some_and(|c| conclusions.contains(&c)));
@@ -908,9 +919,13 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
     let running = shown.iter().any(|(j, _)| j["status"] != "completed");
     let wall = started.zip(if running { Some(now) } else { ended }).filter(|(f, t)| t >= f).map(|(f, t)| seconds(t - f));
     let failing = failing_now(&shown, now);
+    let replaced = shown.iter().filter(|(j, _)| is_replaced_while_pending(j)).count();
+    let cancelled = shown.iter().filter(|(j, _)| j["conclusion"] == "cancelled").count();
     let (verdict, mark) = match (running, failures.is_empty() && failing.is_empty()) {
         (true, true) => ("running", "🟡"),
         (true, false) => ("running, a job failed", "🟠"),
+        (false, true) if replaced > 0 && replaced == cancelled => ("superseded by a newer run of the same inputs", "⏭️"),
+        (false, true) if cancelled > 0 => ("cancelled", "🚫"),
         (false, true) => ("passed", "✅"),
         (false, false) => ("failed", "❌"),
     };
@@ -928,6 +943,7 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
     let facts: Vec<(String, crate::ci_insights::LogFacts)> = jobs.iter().zip(logs).filter(|(j, _)| !is_meta(j) && applies(j)).filter_map(|(j, l)| Some((text(j, "name"), crate::ci_insights::facts(l.as_ref().ok()?)))).collect();
     let mut glance = vec![format!("**✅ {passed} passed**")];
     glance.extend((failed > 0).then(|| format!("**❌ {failed} failed**")));
+    glance.extend((replaced > 0).then(|| format!("**🚫 {replaced} replaced while pending by a newer run**")));
     let live_jobs = count(&|j| j["status"] == "in_progress");
     glance.extend((live_jobs > 0).then(|| format!("**🔄 {live_jobs} running**")));
     let waiting = count(&|j| !matches!(j["status"].as_str(), Some("completed" | "in_progress")));
