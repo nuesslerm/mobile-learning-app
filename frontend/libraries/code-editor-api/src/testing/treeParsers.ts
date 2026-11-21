@@ -4,7 +4,7 @@ import type { Language, Pos, SyntaxNode } from '../ports/protocol';
 
 /**
  * The two tiny parsers behind the fake editor's `tree`: they use Lezer's names for the structural nodes, so `classify` reads their trees.
- * Out of scope on purpose: decorators, match, lambdas, multi-line headers, one-line `if x: y` bodies; the rest is a simple statement.
+ * As the real grammar has it, a compound statement ends where its last body ends, newline included. Out of scope on purpose: decorators, match, lambdas, multi-line headers, one-line `if x: y` bodies; the rest is a simple statement.
  */
 
 const node = (type: string, from: Pos, to: Pos, children: readonly SyntaxNode[] = []): SyntaxNode => ({ type, from, to, ...(children.length > 0 ? { children } : {}) });
@@ -77,9 +77,9 @@ export function parseIndented(text: string): SyntaxNode {
       const body = node('Body', colon, afterLine(last), inner.nodes.length > 0 ? inner.nodes : [damage(afterLine(last))]);
       const previous = nodes.at(-1);
       if (continues && previous && previous.type !== 'Comment') {
-        nodes[nodes.length - 1] = node(previous.type, previous.from, last.textEnd, [...(previous.children ?? []), body]);
+        nodes[nodes.length - 1] = node(previous.type, previous.from, body.to, [...(previous.children ?? []), body]);
       } else {
-        nodes.push(node(type ?? 'IfStatement', line.textStart, last.textEnd, [body]));
+        nodes.push(node(type ?? 'IfStatement', line.textStart, body.to, [body]));
       }
       lastLine = last;
       i = inner.next;

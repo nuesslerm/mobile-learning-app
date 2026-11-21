@@ -17,7 +17,7 @@ describe('parseIndented', () => {
     const body = tree.children?.[0]?.children?.[0] as SyntaxNode;
     expect(text(source, body)).toBe(':\n    for x in xs:\n        print(x)\n    return 1\n');
     const loop = body.children?.[0] as SyntaxNode;
-    expect(text(source, loop)).toBe('for x in xs:\n        print(x)');
+    expect(text(source, loop)).toBe('for x in xs:\n        print(x)\n');
     expect(text(source, loop.children?.[0] as SyntaxNode)).toBe(':\n        print(x)\n');
   });
 
@@ -26,7 +26,7 @@ describe('parseIndented', () => {
     const tree = parseIndented(chain);
 
     expect(shape(tree)).toBe('Script[IfStatement[Body[ExpressionStatement],Body[ExpressionStatement],Body[ExpressionStatement]]]');
-    expect(text(chain, tree.children?.[0] as SyntaxNode)).toBe('if a:\n    b\nelif c:\n    d\nelse:\n    e');
+    expect(text(chain, tree.children?.[0] as SyntaxNode)).toBe('if a:\n    b\nelif c:\n    d\nelse:\n    e\n');
   });
 
   it('given try, except and finally, then they are one try statement', () => {

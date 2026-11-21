@@ -58,11 +58,20 @@ export const familyOf = (language: Language): SyntaxFamily => (language === 'pyt
 /** The outline keeps the nodes that mean something to editing; an expression or a list is not one. */
 export const isOutline = (language: Language, node: Pick<SyntaxNode, 'type' | 'error'>): boolean => classify(language, node) !== 'other';
 
+// A `for` header holds its own declaration (`let i = 0`, `int i = 0`), which is no statement of the block around the loop: only the last
+// child of such a loop can be a statement, the braceless body.
+const LOOPS_WITH_HEADERS: Readonly<Record<Language, ReadonlySet<string>>> = {
+  python: new Set(),
+  javascript: new Set(['ForStatement']),
+  cpp: new Set(['ForStatement', 'ForRangeLoop']),
+};
+
 /** The tree with every node `isOutline` rejects removed: its children attach to the nearest node that is kept. */
 export function outline(language: Language, root: SyntaxNode): SyntaxNode {
   const below = (node: SyntaxNode): SyntaxNode[] => (node.children ?? []).flatMap((child) => (isOutline(language, child) ? [keep(child)] : below(child)));
   const keep = (node: SyntaxNode): SyntaxNode => {
-    const children = below(node);
+    const all = below(node);
+    const children = LOOPS_WITH_HEADERS[language].has(node.type) ? all.filter((child, index) => index === all.length - 1 || classify(language, child) !== 'simple') : all;
     return { type: node.type, from: node.from, to: node.to, ...(node.error ? { error: true as const } : {}), ...(children.length > 0 ? { children } : {}) };
   };
   return keep(root);

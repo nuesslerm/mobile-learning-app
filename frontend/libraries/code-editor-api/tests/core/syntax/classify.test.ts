@@ -46,6 +46,16 @@ describe('outline', () => {
     expect(outline('javascript', tree).children?.[0]?.children?.map((n) => n.type)).toEqual(['ArrowFunction']);
   });
 
+  it('given a for loop with a declaration in its header, then the declaration is not a statement of the outline; a braceless body is', () => {
+    const braced = node('Script', 0, 40, [node('ForStatement', 0, 40, [node('VariableDeclaration', 5, 14), node('Block', 20, 40, [node('ExpressionStatement', 22, 26)])])]);
+    const braceless = node('Script', 0, 30, [node('ForStatement', 0, 30, [node('VariableDeclaration', 5, 14), node('ExpressionStatement', 20, 30)])]);
+    const bare = node('Script', 0, 20, [node('ForStatement', 0, 20, [node('ExpressionStatement', 10, 20)])]);
+
+    expect(outline('javascript', braced).children?.[0]?.children?.map((n) => n.type)).toEqual(['Block']);
+    expect(outline('javascript', braceless).children?.[0]?.children?.map((n) => n.type)).toEqual(['ExpressionStatement']);
+    expect(outline('javascript', bare).children?.[0]?.children?.map((n) => n.type)).toEqual(['ExpressionStatement']);
+  });
+
   it('given a type, then isOutline says whether the outline keeps it', () => {
     expect(isOutline('python', { type: 'Body' })).toBe(true);
     expect(isOutline('python', { type: 'ParamList' })).toBe(false);
