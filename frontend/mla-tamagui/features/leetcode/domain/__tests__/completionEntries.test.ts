@@ -24,6 +24,15 @@ describe('completionEntriesFor', () => {
     expect(withMethod.length).toBeGreaterThan(60);
   });
 
+  it('given a design problem, when entries are built, then the starter method is offered with its own parameter and the case keys are not', () => {
+    const entries = completionEntriesFor(problem('implement-trie-prefix-tree'), 'python');
+
+    expect(entries.find((entry) => entry.label === 'insert')).toEqual({ label: 'insert', type: 'function', detail: '(word)' });
+    expect(labelsOf(entries)).toEqual(expect.arrayContaining(['word']));
+    expect(labelsOf(entries)).not.toEqual(expect.arrayContaining(['operations']));
+    expect(labelsOf(entries)).not.toEqual(expect.arrayContaining(['arguments']));
+  });
+
   it('given reverse-linked-list, when entries are built, then the commented __init__ is not taken and ListNode is offered', () => {
     const entries = completionEntriesFor(problem('reverse-linked-list'), 'python');
 

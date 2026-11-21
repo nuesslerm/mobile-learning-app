@@ -608,9 +608,76 @@
             "python3": "class Solution:\n    def encode(self, strs: List[str]) -> str:\n        pass\n\n    def decode(self, s: str) -> List[str]:\n        pass\n"
           },
           "methodName": "encode",
+          "harness": {
+            "kind": "roundTrip",
+            "className": "Solution",
+            "encode": "encode",
+            "decode": "decode"
+          },
           "paramTypes": {},
           "returnType": null,
-          "testCases": null,
+          "testCases": [
+            {
+              "inputs": {
+                "strs": ["Hello", "World"]
+              },
+              "expected": ["Hello", "World"]
+            },
+            {
+              "inputs": {
+                "strs": []
+              },
+              "expected": []
+            },
+            {
+              "inputs": {
+                "strs": [""]
+              },
+              "expected": [""]
+            },
+            {
+              "inputs": {
+                "strs": ["", ""]
+              },
+              "expected": ["", ""]
+            },
+            {
+              "inputs": {
+                "strs": ["#", "3#abc", "##"]
+              },
+              "expected": ["#", "3#abc", "##"]
+            },
+            {
+              "inputs": {
+                "strs": ["12", "3", "456", "0#"]
+              },
+              "expected": ["12", "3", "456", "0#"]
+            },
+            {
+              "inputs": {
+                "strs": [":", ",", "a:b,c", ";;"]
+              },
+              "expected": [":", ",", "a:b,c", ";;"]
+            },
+            {
+              "inputs": {
+                "strs": [
+                  "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                  "y"
+                ]
+              },
+              "expected": [
+                "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                "y"
+              ]
+            },
+            {
+              "inputs": {
+                "strs": ["héllo", "日本語", "a b"]
+              },
+              "expected": ["héllo", "日本語", "a b"]
+            }
+          ],
           "hints": [],
           "topics": ["Array", "String", "Design"],
           "diagram": "flowchart TD\n  A[Input List of Strings] --> B{Encode or Decode?}\n  B -- Encode --> C[For each string]\n  C --> D[Prepend length prefix]\n  D --> E[Concatenate to result]\n  E --> F[Return encoded string]\n  B -- Decode --> G[Parse encoded string]\n  G --> H[Read length number]\n  H --> I[Extract exact characters]\n  I --> J[Add to result list]\n  J --> K[Return decoded list]"
@@ -2264,7 +2331,56 @@
             "head": "ListNode"
           },
           "returnType": null,
-          "testCases": null,
+          "testCases": [
+            {
+              "inputs": {
+                "head": [1, 2, 3, 4]
+              },
+              "expected": [1, 4, 2, 3]
+            },
+            {
+              "inputs": {
+                "head": [1, 2, 3, 4, 5]
+              },
+              "expected": [1, 5, 2, 4, 3]
+            },
+            {
+              "inputs": {
+                "head": [1]
+              },
+              "expected": [1]
+            },
+            {
+              "inputs": {
+                "head": [1, 2]
+              },
+              "expected": [1, 2]
+            },
+            {
+              "inputs": {
+                "head": [1, 2, 3]
+              },
+              "expected": [1, 3, 2]
+            },
+            {
+              "inputs": {
+                "head": [7, 7, 8, 8, 7, 7]
+              },
+              "expected": [7, 7, 7, 7, 8, 8]
+            },
+            {
+              "inputs": {
+                "head": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+              },
+              "expected": [1, 10, 2, 9, 3, 8, 4, 7, 5, 6]
+            },
+            {
+              "inputs": {
+                "head": [1000, 1, 1000, 1, 1000]
+              },
+              "expected": [1000, 1000, 1, 1, 1000]
+            }
+          ],
           "hints": [],
           "topics": ["Linked List", "Two Pointers", "Stack", "Recursion"],
           "diagram": "flowchart TD\n    A[Find middle with slow and fast pointers] --> B[Reverse second half]\n    B --> C[Merge first and reversed second halves]\n    C --> D[Return reordered list]"
@@ -2411,10 +2527,75 @@
           },
           "methodName": "hasCycle",
           "paramTypes": {
-            "head": "ListNode"
+            "head": "ListNode",
+            "pos": "ListNode_cycle_pos"
           },
           "returnType": null,
-          "testCases": null,
+          "testCases": [
+            {
+              "inputs": {
+                "head": [3, 2, 0, -4],
+                "pos": 1
+              },
+              "expected": true
+            },
+            {
+              "inputs": {
+                "head": [1, 2],
+                "pos": 0
+              },
+              "expected": true
+            },
+            {
+              "inputs": {
+                "head": [1, 2, 3, 4, 5],
+                "pos": 4
+              },
+              "expected": true
+            },
+            {
+              "inputs": {
+                "head": [1],
+                "pos": 0
+              },
+              "expected": true
+            },
+            {
+              "inputs": {
+                "head": [1, 2],
+                "pos": 1
+              },
+              "expected": true
+            },
+            {
+              "inputs": {
+                "head": [1, 2, 3, 4],
+                "pos": -1
+              },
+              "expected": false
+            },
+            {
+              "inputs": {
+                "head": [1],
+                "pos": -1
+              },
+              "expected": false
+            },
+            {
+              "inputs": {
+                "head": [],
+                "pos": -1
+              },
+              "expected": false
+            },
+            {
+              "inputs": {
+                "head": [7, 8, 9, 10, 11, 12],
+                "pos": 2
+              },
+              "expected": true
+            }
+          ],
           "hints": [],
           "topics": ["Hash Table", "Linked List", "Two Pointers"],
           "diagram": "flowchart TD\n    A[Initialize slow and fast pointers at head] --> B{fast and fast.next not null}\n    B -- No --> C[Return false no cycle]\n    B -- Yes --> D[Move slow 1 step and fast 2 steps]\n    D --> E{slow equals fast}\n    E -- Yes --> F[Return true cycle found]\n    E -- No --> B"
@@ -3600,9 +3781,66 @@
             "golang": "/**\n * Definition for a binary tree node.\n * type TreeNode struct {\n *     Val int\n *     Left *TreeNode\n *     Right *TreeNode\n * }\n */\n\ntype Codec struct {\n    \n}\n\nfunc Constructor() Codec {\n    \n}\n\n// Serializes a tree to a single string.\nfunc (this *Codec) serialize(root *TreeNode) string {\n    \n}\n\n// Deserializes your encoded data to tree.\nfunc (this *Codec) deserialize(data string) *TreeNode {    \n    \n}\n\n\n/**\n * Your Codec object will be instantiated and called as such:\n * ser := Constructor();\n * deser := Constructor();\n * data := ser.serialize(root);\n * ans := deser.deserialize(data);\n */"
           },
           "methodName": "serialize",
-          "paramTypes": {},
+          "harness": {
+            "kind": "roundTrip",
+            "className": "Codec",
+            "encode": "serialize",
+            "decode": "deserialize"
+          },
+          "paramTypes": {
+            "root": "TreeNode"
+          },
           "returnType": null,
-          "testCases": null,
+          "testCases": [
+            {
+              "inputs": {
+                "root": [1, 2, 3, null, null, 4, 5]
+              },
+              "expected": [1, 2, 3, null, null, 4, 5]
+            },
+            {
+              "inputs": {
+                "root": []
+              },
+              "expected": []
+            },
+            {
+              "inputs": {
+                "root": [1]
+              },
+              "expected": [1]
+            },
+            {
+              "inputs": {
+                "root": [1, 2, null, 3, null, 4]
+              },
+              "expected": [1, 2, null, 3, null, 4]
+            },
+            {
+              "inputs": {
+                "root": [1, null, 2, null, 3, null, 4]
+              },
+              "expected": [1, null, 2, null, 3, null, 4]
+            },
+            {
+              "inputs": {
+                "root": [-1, -2, -3, null, -4, -5, -6]
+              },
+              "expected": [-1, -2, -3, null, -4, -5, -6]
+            },
+            {
+              "inputs": {
+                "root": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+              },
+              "expected": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+            },
+            {
+              "inputs": {
+                "root": [1000, -1000, 0]
+              },
+              "expected": [1000, -1000, 0]
+            }
+          ],
           "hints": [],
           "topics": [
             "String",
@@ -3639,9 +3877,180 @@
             "golang": "type Trie struct {\n    \n}\n\n\nfunc Constructor() Trie {\n    \n}\n\n\nfunc (this *Trie) Insert(word string)  {\n    \n}\n\n\nfunc (this *Trie) Search(word string) bool {\n    \n}\n\n\nfunc (this *Trie) StartsWith(prefix string) bool {\n    \n}\n\n\n/**\n * Your Trie object will be instantiated and called as such:\n * obj := Constructor();\n * obj.Insert(word);\n * param_2 := obj.Search(word);\n * param_3 := obj.StartsWith(prefix);\n */"
           },
           "methodName": "insert",
+          "harness": {
+            "kind": "design",
+            "className": "Trie"
+          },
           "paramTypes": {},
           "returnType": null,
-          "testCases": null,
+          "testCases": [
+            {
+              "inputs": {
+                "operations": [
+                  "Trie",
+                  "insert",
+                  "search",
+                  "search",
+                  "startsWith",
+                  "insert",
+                  "search"
+                ],
+                "arguments": [
+                  [],
+                  ["apple"],
+                  ["apple"],
+                  ["app"],
+                  ["app"],
+                  ["app"],
+                  ["app"]
+                ]
+              },
+              "expected": [null, null, true, false, true, null, true]
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "Trie",
+                  "insert",
+                  "startsWith",
+                  "search",
+                  "search",
+                  "startsWith"
+                ],
+                "arguments": [[], ["dog"], ["dog"], ["dog"], ["do"], ["do"]]
+              },
+              "expected": [null, null, true, true, false, true]
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "Trie",
+                  "insert",
+                  "startsWith",
+                  "search",
+                  "startsWith",
+                  "search",
+                  "startsWith"
+                ],
+                "arguments": [
+                  [],
+                  ["cat"],
+                  ["ca"],
+                  ["cat"],
+                  ["dog"],
+                  ["car"],
+                  ["cats"]
+                ]
+              },
+              "expected": [null, null, true, true, false, false, false]
+            },
+            {
+              "inputs": {
+                "operations": ["Trie", "search", "startsWith", "search"],
+                "arguments": [[], ["a"], ["a"], ["ab"]]
+              },
+              "expected": [null, false, false, false]
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "Trie",
+                  "insert",
+                  "insert",
+                  "search",
+                  "search",
+                  "search",
+                  "startsWith",
+                  "startsWith"
+                ],
+                "arguments": [
+                  [],
+                  ["app"],
+                  ["apple"],
+                  ["app"],
+                  ["apple"],
+                  ["appl"],
+                  ["appl"],
+                  ["apples"]
+                ]
+              },
+              "expected": [null, null, null, true, true, false, true, false]
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "Trie",
+                  "insert",
+                  "insert",
+                  "insert",
+                  "search",
+                  "startsWith",
+                  "search",
+                  "startsWith"
+                ],
+                "arguments": [
+                  [],
+                  ["a"],
+                  ["a"],
+                  ["a"],
+                  ["a"],
+                  ["a"],
+                  ["aa"],
+                  ["aa"]
+                ]
+              },
+              "expected": [null, null, null, null, true, true, false, false]
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "Trie",
+                  "insert",
+                  "insert",
+                  "insert",
+                  "insert",
+                  "startsWith",
+                  "startsWith",
+                  "search",
+                  "search",
+                  "startsWith",
+                  "search",
+                  "startsWith",
+                  "search"
+                ],
+                "arguments": [
+                  [],
+                  ["hello"],
+                  ["help"],
+                  ["helium"],
+                  ["world"],
+                  ["hel"],
+                  ["help"],
+                  ["hel"],
+                  ["helium"],
+                  ["wor"],
+                  ["word"],
+                  ["heli"],
+                  ["worlds"]
+                ]
+              },
+              "expected": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                true,
+                true,
+                false,
+                true,
+                true,
+                false,
+                true,
+                false
+              ]
+            }
+          ],
           "hints": [],
           "topics": ["Hash Table", "String", "Design", "Trie"],
           "diagram": "flowchart TD\n  A[Start with root node] --> B{Insert word}\n  B --> C[Create child nodes for each character]\n  C --> D[Mark final node as word end]\n  D --> E{Search word}\n  E --> F[Traverse following characters]\n  F --> G{Reached end and marked}\n  G -->|Yes| H[Return true]\n  G -->|No| I[Return false]\n  E --> J{Search prefix}\n  J --> K[Traverse following characters]\n  K --> L{Path exists}\n  L -->|Yes| M[Return true]\n  L -->|No| N[Return false]"
@@ -3665,9 +4074,252 @@
             "golang": "type WordDictionary struct {\n    \n}\n\n\nfunc Constructor() WordDictionary {\n    \n}\n\n\nfunc (this *WordDictionary) AddWord(word string)  {\n    \n}\n\n\nfunc (this *WordDictionary) Search(word string) bool {\n    \n}\n\n\n/**\n * Your WordDictionary object will be instantiated and called as such:\n * obj := Constructor();\n * obj.AddWord(word);\n * param_2 := obj.Search(word);\n */"
           },
           "methodName": "addWord",
+          "harness": {
+            "kind": "design",
+            "className": "WordDictionary"
+          },
           "paramTypes": {},
           "returnType": null,
-          "testCases": null,
+          "testCases": [
+            {
+              "inputs": {
+                "operations": [
+                  "WordDictionary",
+                  "addWord",
+                  "addWord",
+                  "addWord",
+                  "search",
+                  "search",
+                  "search",
+                  "search"
+                ],
+                "arguments": [
+                  [],
+                  ["bad"],
+                  ["dad"],
+                  ["mad"],
+                  ["pad"],
+                  ["bad"],
+                  [".ad"],
+                  ["b.."]
+                ]
+              },
+              "expected": [null, null, null, null, false, true, true, true]
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "WordDictionary",
+                  "addWord",
+                  "search",
+                  "search",
+                  "search",
+                  "search",
+                  "search"
+                ],
+                "arguments": [
+                  [],
+                  ["hello"],
+                  [".ello"],
+                  ["hello"],
+                  [".hello"],
+                  ["hell."],
+                  [".ell"]
+                ]
+              },
+              "expected": [null, null, true, true, false, true, false]
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "WordDictionary",
+                  "addWord",
+                  "search",
+                  "search",
+                  "search",
+                  "search",
+                  "search"
+                ],
+                "arguments": [
+                  [],
+                  ["world"],
+                  ["w.rld"],
+                  ["wo.ld"],
+                  ["wor.d"],
+                  ["w.r.d"],
+                  ["w.ld"]
+                ]
+              },
+              "expected": [null, null, true, true, true, true, false]
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "WordDictionary",
+                  "addWord",
+                  "addWord",
+                  "addWord",
+                  "search",
+                  "search",
+                  "search",
+                  "search",
+                  "search",
+                  "search"
+                ],
+                "arguments": [
+                  [],
+                  ["cat"],
+                  ["car"],
+                  ["cap"],
+                  ["ca."],
+                  ["ca"],
+                  ["cat."],
+                  ["c.p"],
+                  [".a."],
+                  ["cot"]
+                ]
+              },
+              "expected": [
+                null,
+                null,
+                null,
+                null,
+                true,
+                false,
+                false,
+                true,
+                true,
+                false
+              ]
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "WordDictionary",
+                  "addWord",
+                  "addWord",
+                  "search",
+                  "search",
+                  "search",
+                  "search",
+                  "search",
+                  "search"
+                ],
+                "arguments": [
+                  [],
+                  ["at"],
+                  ["it"],
+                  [".."],
+                  ["."],
+                  ["..t"],
+                  [".t"],
+                  ["a."],
+                  ["i."]
+                ]
+              },
+              "expected": [
+                null,
+                null,
+                null,
+                true,
+                false,
+                false,
+                true,
+                true,
+                true
+              ]
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "WordDictionary",
+                  "addWord",
+                  "addWord",
+                  "search",
+                  "search",
+                  "search",
+                  "search",
+                  "search"
+                ],
+                "arguments": [
+                  [],
+                  ["a"],
+                  ["ab"],
+                  ["abc"],
+                  ["a.c"],
+                  [".b"],
+                  ["b."],
+                  ["."]
+                ]
+              },
+              "expected": [null, null, null, false, false, true, false, true]
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "WordDictionary",
+                  "search",
+                  "search",
+                  "search",
+                  "addWord",
+                  "search",
+                  "search",
+                  "search"
+                ],
+                "arguments": [
+                  [],
+                  ["a"],
+                  ["."],
+                  [".."],
+                  ["a"],
+                  ["a"],
+                  ["."],
+                  [".."]
+                ]
+              },
+              "expected": [null, false, false, false, null, true, true, false]
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "WordDictionary",
+                  "addWord",
+                  "addWord",
+                  "addWord",
+                  "search",
+                  "search",
+                  "search",
+                  "search",
+                  "search",
+                  "search"
+                ],
+                "arguments": [
+                  [],
+                  ["app"],
+                  ["apple"],
+                  ["apply"],
+                  ["app"],
+                  ["appl"],
+                  ["appl."],
+                  ["a..le"],
+                  ["app.."],
+                  ["a.p"]
+                ]
+              },
+              "expected": [
+                null,
+                null,
+                null,
+                null,
+                true,
+                false,
+                true,
+                true,
+                true,
+                true
+              ]
+            }
+          ],
           "hints": [
             "You should be familiar with how a Trie works. If not, please work on this problem: <a href=\"https://leetcode.com/problems/implement-trie-prefix-tree/\">Implement Trie (Prefix Tree)</a> first."
           ],
@@ -3772,9 +4424,210 @@
             "golang": "type MedianFinder struct {\n    \n}\n\n\nfunc Constructor() MedianFinder {\n    \n}\n\n\nfunc (this *MedianFinder) AddNum(num int)  {\n    \n}\n\n\nfunc (this *MedianFinder) FindMedian() float64 {\n    \n}\n\n\n/**\n * Your MedianFinder object will be instantiated and called as such:\n * obj := Constructor();\n * obj.AddNum(num);\n * param_2 := obj.FindMedian();\n */"
           },
           "methodName": "addNum",
+          "harness": {
+            "kind": "design",
+            "className": "MedianFinder"
+          },
           "paramTypes": {},
           "returnType": null,
-          "testCases": null,
+          "testCases": [
+            {
+              "inputs": {
+                "operations": [
+                  "MedianFinder",
+                  "addNum",
+                  "addNum",
+                  "findMedian",
+                  "addNum",
+                  "findMedian"
+                ],
+                "arguments": [[], [1], [2], [], [3], []]
+              },
+              "expected": [null, null, null, 1.5, null, 2],
+              "compareMode": "approx"
+            },
+            {
+              "inputs": {
+                "operations": ["MedianFinder", "addNum", "findMedian"],
+                "arguments": [[], [5], []]
+              },
+              "expected": [null, null, 5],
+              "compareMode": "approx"
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "MedianFinder",
+                  "addNum",
+                  "addNum",
+                  "addNum",
+                  "addNum",
+                  "findMedian"
+                ],
+                "arguments": [[], [1], [2], [3], [4], []]
+              },
+              "expected": [null, null, null, null, null, 2.5],
+              "compareMode": "approx"
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "MedianFinder",
+                  "addNum",
+                  "findMedian",
+                  "addNum",
+                  "findMedian",
+                  "addNum",
+                  "findMedian",
+                  "addNum",
+                  "findMedian"
+                ],
+                "arguments": [[], [-1], [], [-2], [], [-3], [], [-4], []]
+              },
+              "expected": [null, null, -1, null, -1.5, null, -2, null, -2.5],
+              "compareMode": "approx"
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "MedianFinder",
+                  "addNum",
+                  "addNum",
+                  "addNum",
+                  "addNum",
+                  "findMedian",
+                  "addNum",
+                  "findMedian"
+                ],
+                "arguments": [[], [2], [2], [2], [2], [], [2], []]
+              },
+              "expected": [null, null, null, null, null, 2, null, 2],
+              "compareMode": "approx"
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "MedianFinder",
+                  "addNum",
+                  "addNum",
+                  "findMedian",
+                  "addNum",
+                  "findMedian",
+                  "addNum",
+                  "findMedian",
+                  "addNum",
+                  "findMedian"
+                ],
+                "arguments": [[], [5], [15], [], [1], [], [3], [], [8], []]
+              },
+              "expected": [null, null, null, 10, null, 5, null, 4, null, 5],
+              "compareMode": "approx"
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "MedianFinder",
+                  "addNum",
+                  "addNum",
+                  "findMedian",
+                  "addNum",
+                  "findMedian"
+                ],
+                "arguments": [[], [100000], [-100000], [], [99999], []]
+              },
+              "expected": [null, null, null, 0, null, 99999],
+              "compareMode": "approx"
+            },
+            {
+              "inputs": {
+                "operations": [
+                  "MedianFinder",
+                  "addNum",
+                  "addNum",
+                  "addNum",
+                  "addNum",
+                  "findMedian",
+                  "addNum",
+                  "addNum",
+                  "addNum",
+                  "addNum",
+                  "findMedian",
+                  "addNum",
+                  "addNum",
+                  "addNum",
+                  "addNum",
+                  "findMedian",
+                  "addNum",
+                  "addNum",
+                  "addNum",
+                  "addNum",
+                  "findMedian",
+                  "addNum",
+                  "addNum",
+                  "addNum",
+                  "addNum",
+                  "findMedian"
+                ],
+                "arguments": [
+                  [],
+                  [41],
+                  [-7],
+                  [93],
+                  [0],
+                  [],
+                  [12],
+                  [-55],
+                  [8],
+                  [8],
+                  [],
+                  [27],
+                  [100],
+                  [-3],
+                  [64],
+                  [],
+                  [5],
+                  [-90],
+                  [33],
+                  [17],
+                  [],
+                  [2],
+                  [71],
+                  [-18],
+                  [46],
+                  []
+                ]
+              },
+              "expected": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                20.5,
+                null,
+                null,
+                null,
+                null,
+                8,
+                null,
+                null,
+                null,
+                null,
+                10,
+                null,
+                null,
+                null,
+                null,
+                10,
+                null,
+                null,
+                null,
+                null,
+                10
+              ],
+              "compareMode": "approx"
+            }
+          ],
           "hints": [],
           "topics": [
             "Two Pointers",
@@ -4200,9 +5053,100 @@
             "golang": "/**\n * Definition for a Node.\n * type Node struct {\n *     Val int\n *     Neighbors []*Node\n * }\n */\n\nfunc cloneGraph(node *Node) *Node {\n    \n}"
           },
           "methodName": "cloneGraph",
-          "paramTypes": {},
-          "returnType": null,
-          "testCases": null,
+          "paramTypes": {
+            "node": "GraphNode"
+          },
+          "returnType": "GraphNode",
+          "testCases": [
+            {
+              "inputs": {
+                "node": [
+                  [2, 4],
+                  [1, 3],
+                  [2, 4],
+                  [1, 3]
+                ]
+              },
+              "expected": [
+                [2, 4],
+                [1, 3],
+                [2, 4],
+                [1, 3]
+              ]
+            },
+            {
+              "inputs": {
+                "node": [[]]
+              },
+              "expected": [[]]
+            },
+            {
+              "inputs": {
+                "node": []
+              },
+              "expected": []
+            },
+            {
+              "inputs": {
+                "node": [[2], [1]]
+              },
+              "expected": [[2], [1]]
+            },
+            {
+              "inputs": {
+                "node": [
+                  [2, 3],
+                  [1, 3],
+                  [1, 2]
+                ]
+              },
+              "expected": [
+                [2, 3],
+                [1, 3],
+                [1, 2]
+              ]
+            },
+            {
+              "inputs": {
+                "node": [[2, 3, 4, 5], [1], [1], [1], [1]]
+              },
+              "expected": [[2, 3, 4, 5], [1], [1], [1], [1]]
+            },
+            {
+              "inputs": {
+                "node": [[2], [1, 3], [2, 4], [3, 5], [4]]
+              },
+              "expected": [[2], [1, 3], [2, 4], [3, 5], [4]]
+            },
+            {
+              "inputs": {
+                "node": [
+                  [2, 10],
+                  [1, 3],
+                  [2, 4],
+                  [3, 5],
+                  [4, 6],
+                  [5, 7],
+                  [6, 8],
+                  [7, 9],
+                  [8, 10],
+                  [1, 9]
+                ]
+              },
+              "expected": [
+                [2, 10],
+                [1, 3],
+                [2, 4],
+                [3, 5],
+                [4, 6],
+                [5, 7],
+                [6, 8],
+                [7, 9],
+                [8, 10],
+                [1, 9]
+              ]
+            }
+          ],
           "hints": [],
           "topics": [
             "Hash Table",

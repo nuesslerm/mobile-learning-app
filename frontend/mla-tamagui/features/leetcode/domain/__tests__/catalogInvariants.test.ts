@@ -65,22 +65,10 @@ describe('the catalog the harness runs', () => {
     expect(floats).toEqual([]);
   });
 
-  it('given the catalog, when counted, then 72 problems, 64 with cases and 721 cases, and the eight without are the known list', () => {
+  it('given the catalog, when counted, then there are 72 problems, every one with cases, and none with null cases', () => {
     expect(problems).toHaveLength(72);
-    expect(withCases).toHaveLength(64);
-    expect(withCases.reduce((n, p) => n + (p.testCases?.length ?? 0), 0)).toBe(721);
-    expect(problems.filter((p) => p.testCases === null).map((p) => p.id).sort()).toMatchInlineSnapshot(`
-      [
-        "clone-graph",
-        "design-add-and-search-words-data-structure",
-        "encode-and-decode-strings",
-        "find-median-from-data-stream",
-        "implement-trie-prefix-tree",
-        "linked-list-cycle",
-        "reorder-list",
-        "serialize-and-deserialize-binary-tree",
-      ]
-    `);
+    expect(withCases).toHaveLength(72);
+    expect(problems.filter((p) => p.testCases === null).map((p) => p.id)).toEqual([]);
   });
 
   it('given a problem, when its run params are built, then they carry the cases and what the harness needs to build values', () => {

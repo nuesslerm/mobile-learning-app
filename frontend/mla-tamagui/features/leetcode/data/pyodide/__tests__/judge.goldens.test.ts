@@ -7,9 +7,12 @@ import { runParamsFor } from '../../../domain/run/runParams';
 import { runResponseOf } from '../../../domain/run/verdict';
 import type { JudgePayload } from '../judgeProtocol';
 import { bootNodeJudge, type NodeJudge } from './support/nodePyodide';
-import { loadReferenceCorpus, referenceFor } from './support/referenceCorpus';
+import { BRUTE_DIR, loadReferenceCorpus, referenceFor } from './support/referenceCorpus';
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
+
+const COMPUTED_PROBLEMS = ['design-add-and-search-words-data-structure', 'find-median-from-data-stream', 'implement-trie-prefix-tree', 'linked-list-cycle', 'reorder-list'];
+const FORMERLY_CASELESS = [...COMPUTED_PROBLEMS, 'encode-and-decode-strings', 'serialize-and-deserialize-binary-tree', 'clone-graph'];
 
 const goldens = loadReferenceCorpus();
 const named = JSON.parse(readFileSync(join(__dirname, 'fixtures/named.json'), 'utf8')) as Record<string, string>;
@@ -43,6 +46,33 @@ describe('the on-device judge on known-good solutions', () => {
     }
     expect(failures).toEqual([]);
     expect(cases).toBeGreaterThan(300);
+  });
+
+  it('given the brute-force oracle of each problem whose expected values were computed, when it runs with the catalog harness, then every case passes', () => {
+    // Given the independent second opinions: a set of words, a regex over a list, a sort, a visited set, a pointer array
+    const oracles = loadReferenceCorpus(BRUTE_DIR);
+    expect(oracles.map((oracle) => oracle.problem)).toEqual(COMPUTED_PROBLEMS);
+    for (const { problem, code } of oracles) {
+      // When each runs through the judge
+      const response = runResponseOf(judge.run(payloadFor(problem, code)), 'offline');
+
+      // Then every bundled case passes, so no expected value rests on the reference alone
+      expect(response, problem).toMatchObject({ status_msg: 'Accepted', total_correct: ProblemCatalog.getByIdOrThrow(problem).testCases?.length });
+    }
+  });
+
+  it('given the starter of each problem that began with no cases, when it runs as given, then it is never Accepted and never a runner crash', () => {
+    for (const id of FORMERLY_CASELESS) {
+      // Given the starter exactly as the editor first shows it
+      const starter = ProblemCatalog.getByIdOrThrow(id).starterCode.python3 ?? '';
+
+      // When it runs
+      const response = runResponseOf(judge.run(payloadFor(id, starter)), 'offline');
+
+      // Then the learner sees a wrong answer or an error that names the starter's own line
+      expect(response.status_msg, id).not.toBe('Accepted');
+      expect(`${response.compile_error ?? ''}${response.runtime_error ?? ''}`, id).not.toMatch(/Runner error|No \w+ class defined/);
+    }
   });
 
   it('given the in-place problems, when their reference solutions run, then the mutated argument is what is compared and they pass where the backend cannot', () => {

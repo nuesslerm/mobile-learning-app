@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { ProblemCatalog } from '../../../domain/problemCatalog';
-import { classNameOf, loadReferenceCorpus, REFERENCE_DIR } from './support/referenceCorpus';
+import { BRUTE_DIR, classNameOf, loadReferenceCorpus, REFERENCE_DIR } from './support/referenceCorpus';
 
 const dirs: string[] = [];
 function corpusDirWith(files: Record<string, string>): string {
@@ -37,6 +37,19 @@ describe('the reference corpus', () => {
     writeFileSync(join(dir, 'brute', 'no-problem.py'), 'not python at all');
 
     expect(loadReferenceCorpus(dir).map((entry) => entry.problem)).toEqual(['two-sum']);
+  });
+
+  it('given the oracle directory, when it loads, then every oracle is named for a catalog problem and defines the class its problem needs', () => {
+    const oracles = loadReferenceCorpus(BRUTE_DIR);
+
+    expect(oracles.length).toBeGreaterThan(0);
+    for (const { problem, code } of oracles) expect(code, problem).toMatch(new RegExp(`^class ${classNameOf(problem)}\\b`, 'm'));
+  });
+
+  it('given a design problem and a problem with a Solution class, when the class a reference must define is asked, then it is the harness class or Solution', () => {
+    expect(classNameOf('implement-trie-prefix-tree')).toBe('Trie');
+    expect(classNameOf('serialize-and-deserialize-binary-tree')).toBe('Codec');
+    expect(classNameOf('clone-graph')).toBe('Solution');
   });
 
   it('given every reference file, when its source is read, then it defines the class the catalog starter defines', () => {

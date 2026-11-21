@@ -7,12 +7,14 @@ export type Reference = { problem: string; code: string };
 
 const HERE = dirname(new URL(import.meta.url).pathname);
 export const REFERENCE_DIR = join(HERE, '../fixtures/references/python3');
+/** Second opinions for the problems whose expected values are computed: a naive solution of its own, so a wrong expected value cannot hide behind a bug the reference shares. */
+export const BRUTE_DIR = join(REFERENCE_DIR, 'brute');
 
-/** The class a reference must define: the one the catalog's python3 starter defines. */
+/** The class a reference must define: the harness's class for a design or round-trip problem, `Solution` otherwise, and the python3 starter must define it too (the first `class` in a starter can sit inside a comment). */
 export function classNameOf(problemId: string): string {
-  const starter = ProblemCatalog.getByIdOrThrow(problemId).starterCode.python3 ?? '';
-  const name = /^class (\w+)/m.exec(starter)?.[1];
-  if (!name) throw new Error(`the python3 starter of ${problemId} defines no class`);
+  const problem = ProblemCatalog.getByIdOrThrow(problemId);
+  const name = problem.harness?.className ?? 'Solution';
+  if (!new RegExp(`^class ${name}\\b`, 'm').test(problem.starterCode.python3 ?? '')) throw new Error(`the python3 starter of ${problemId} does not define class ${name}`);
   return name;
 }
 
