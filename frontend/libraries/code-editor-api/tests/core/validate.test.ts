@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseApply, parseConfigPatch, parseHistory, parseLoad, parseRead, parseView } from '../../src';
+import { isLanguage, LANGUAGE_NAMES, parseApply, parseConfigPatch, parseHistory, parseLoad, parseRead, parseView } from '../../src';
 
 const code = (parsed: { ok: boolean; error?: { code: string } }) => (parsed.ok ? 'ok' : parsed.error?.code);
 
@@ -55,5 +55,26 @@ describe('the wire validators', () => {
     ['configure with a long colour', () => parseConfigPatch({ palette: { cursor: 'x'.repeat(200) } })],
   ])('given %s, when parsed, then it is invalid', (_name, parse) => {
     expect(code(parse())).toBe('invalid');
+  });
+});
+
+describe('the language vocabulary', () => {
+  it.each([
+    ['python', true],
+    ['javascript', true],
+    ['cpp', true],
+    ['java', false],
+    ['Python', false],
+    ['', false],
+  ])('given %j, when it is checked, then isLanguage says %s', (name, expected) => {
+    expect(isLanguage(name)).toBe(expected);
+  });
+
+  it('given the names the API lists, when each is checked, then every one is a language', () => {
+    expect(LANGUAGE_NAMES.every((name) => isLanguage(name))).toBe(true);
+  });
+
+  it('given a language that is not a string, when a config patch is parsed, then it is invalid and names the path', () => {
+    expect(parseConfigPatch({ language: 5 })).toMatchObject({ ok: false, error: { code: 'invalid', path: 'language' } });
   });
 });

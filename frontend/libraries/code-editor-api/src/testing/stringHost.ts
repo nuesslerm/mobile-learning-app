@@ -1,7 +1,7 @@
 import { applyChanges, mapSelRange, normalizeText } from '../core/changes';
 import { createEditorEngine, type EngineCore } from '../core/engine';
 import type { DocumentHost } from '../ports/host';
-import type { Change, ConfigPatch, EditorConfig, Language, Origin, Revision, SelRange, Selection } from '../ports/protocol';
+import { LANGUAGE_NAMES, type Change, type ConfigPatch, type EditorConfig, type Language, type Origin, type Revision, type SelRange, type Selection } from '../ports/protocol';
 import { emptyHistory, pop, recordChange, recordSelection, type HistoryState } from './history';
 
 export type FakeEditorOptions = {
@@ -115,7 +115,7 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
       focused = next;
       core().ingestFocus(next);
     },
-    languages: () => options.languages ?? ['python'],
+    languages: () => options.languages ?? LANGUAGE_NAMES,
     maxSelections: 1,
   };
 

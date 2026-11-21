@@ -1,5 +1,6 @@
-import type {
-  ApplyParams, ConfigPatch, EditorError, HistoryParams, Language, LoadParams, Palette, Point, Range, ReadParams, SelRange, Step, ViewParams,
+import {
+  LANGUAGE_NAMES,
+  type ApplyParams, type ConfigPatch, type EditorError, type HistoryParams, type Language, type LoadParams, type Palette, type Point, type Range, type ReadParams, type SelRange, type Step, type ViewParams,
 } from '../ports/protocol';
 import { normalizeText } from './changes';
 
@@ -8,7 +9,6 @@ export type Parsed<T> = { readonly ok: true; readonly value: T } | { readonly ok
 const MAX_STEPS = 10_000;
 const MAX_TYPED = 64; // a keystroke, not a paste
 const LABEL = /^[a-z0-9][a-z0-9.-]{0,31}$/;
-const LANGUAGES: readonly string[] = ['python', 'javascript', 'cpp'];
 const PALETTE_KEYS = ['cursor', 'selection', 'background', 'gutter', 'border'] as const;
 
 const bad = (path: string, message: string): Parsed<never> => ({ ok: false, error: { code: 'invalid', message, path } });
@@ -172,4 +172,4 @@ export function parseConfigPatch(params: unknown): Parsed<ConfigPatch> {
   return { ok: true, value: patch };
 }
 
-export const isLanguage = (value: string): value is Language => LANGUAGES.includes(value);
+export const isLanguage = (value: string): value is Language => (LANGUAGE_NAMES as readonly string[]).includes(value);

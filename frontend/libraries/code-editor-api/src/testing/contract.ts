@@ -3,7 +3,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, type TestContext 
 import { createEditorClient, unwrap, type EditorClient } from '../core/client';
 import { createDocumentMirror } from '../core/mirror';
 import type { EditorEngine } from '../ports/engine';
-import { REQUEST_NAMES, type EditorError, type EditorEvent, type EventType, type Range, type Reply, type RequestName, type SelRange, type Step } from '../ports/protocol';
+import { REQUEST_NAMES, type EditorError, type EditorEvent, type EventType, type Language, type Range, type Reply, type RequestName, type SelRange, type Step } from '../ports/protocol';
 
 export type SubjectHooks = {
   userTypes?(text: string): Promise<void> | void;
@@ -29,7 +29,12 @@ const failed = (reply: Reply<unknown>): EditorError => {
 };
 
 /** The behaviour every editor behind the typed API must show, whichever engine and transport carry it. */
-export function editorContract(name: string, make: MakeSubject): void {
+export type ContractOptions = {
+  /** the languages the engine must offer, exactly: an engine that offers a different set fails the lifecycle case */
+  readonly languages?: readonly Language[];
+};
+
+export function editorContract(name: string, make: MakeSubject, options: ContractOptions = {}): void {
   describe(`the editor contract over ${name}`, () => {
     let subject: Subject;
     let client: EditorClient;
@@ -85,6 +90,7 @@ export function editorContract(name: string, make: MakeSubject): void {
         expect(hello.capabilities.steps).toEqual(expect.arrayContaining(['replace', 'move', 'select']));
         expect(hello.capabilities.events).toEqual(expect.arrayContaining(['ready', 'changed', 'selection', 'focus']));
         expect(hello.capabilities.languages.length).toBeGreaterThan(0);
+        if (options.languages) expect(hello.capabilities.languages).toEqual(options.languages);
         expect(hello.capabilities.maxSelections).toBeGreaterThanOrEqual(1);
         expect(hello.capabilities.logDepth).toBeGreaterThan(0);
       });
@@ -861,11 +867,62 @@ export function editorContract(name: string, make: MakeSubject): void {
         expect(failed(await client.setConfig({ palette: { cursor: 5 as unknown as string } })).code).toBe('invalid');
       });
 
-      it('given a language the engine does not offer, when configure runs, then it is unsupported', async (ctx) => {
-        const offered = unwrap(await client.hello()).capabilities.languages;
-        const missing = (['python', 'javascript', 'cpp'] as const).find((language) => !offered.includes(language));
-        if (!missing) return ctx.skip();
-        expect(failed(await client.setConfig({ language: missing })).code).toBe('unsupported');
+      it('given a language outside the API\'s vocabulary, when configure runs, then it is unsupported, names the language and changes nothing', async () => {
+        const base = await start();
+        const reply = await client.setConfig({ language: 'cobol' as unknown as Language });
+        expect(failed(reply)).toMatchObject({ code: 'unsupported', what: 'language' });
+        expect(await snapshot()).toMatchObject({ text: TEN, revision: base });
+      });
+
+      it('given every language the engine offers, when configure({language}) is sent for each, then the config names it and the text, revision, selection and undo stack do not move and nothing is emitted', async () => {
+        // Given a document, a selection and the language the page is in now (restored at the end: a page may be shared by the cases)
+        const base = await start(TEN, { anchor: 2, head: 5 });
+        const original = unwrap(await client.setConfig({})).language;
+        const before = await snapshot();
+        const seen = record('changed', 'selection');
+        try {
+          for (const language of unwrap(await client.hello()).capabilities.languages) {
+            // When the language is configured
+            const config = unwrap(await client.setConfig({ language }));
+
+            // Then the effective config names it and the document is as it was
+            expect(config.language).toBe(language);
+            expect(await snapshot()).toEqual(before);
+          }
+          expect(unwrap(await client.undo()).applied).toBe(false);
+          expect(seen).toEqual([]);
+          expect((await snapshot()).revision).toBe(base);
+        } finally {
+          unwrap(await client.setConfig({ language: original }));
+        }
+      });
+
+      it('given the same language configured twice, when each reply is read, then both are ok and identical', async () => {
+        await start();
+        const original = unwrap(await client.setConfig({})).language;
+        try {
+          const language = unwrap(await client.hello()).capabilities.languages[0] as Language;
+          const first = await client.setConfig({ language });
+          const second = await client.setConfig({ language });
+          expect(first.ok && second.ok).toBe(true);
+          expect(second).toEqual(first);
+        } finally {
+          unwrap(await client.setConfig({ language: original }));
+        }
+      });
+
+      it('given a language configured and then a document loaded, when configure({}) is read, then the language is still the configured one', async () => {
+        await start();
+        const original = unwrap(await client.setConfig({})).language;
+        try {
+          const offered = unwrap(await client.hello()).capabilities.languages;
+          const language = (offered.find((candidate) => candidate !== original) ?? original) as Language;
+          unwrap(await client.setConfig({ language }));
+          await start('abc');
+          expect(unwrap(await client.setConfig({})).language).toBe(language);
+        } finally {
+          unwrap(await client.setConfig({ language: original }));
+        }
       });
 
       it('given focus and blur, when they run, then focused flips and each change emits one focus event', async () => {

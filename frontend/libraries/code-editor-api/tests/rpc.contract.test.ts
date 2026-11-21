@@ -1,7 +1,7 @@
 import { createRpcClient } from '@lib/webview-rpc';
 import { createEmulatedWebView, createLoopbackPair } from '@lib/webview-rpc/testing';
 
-import { createDeferredEngine, serveEditor, toRemoteEngine } from '../src';
+import { createDeferredEngine, LANGUAGE_NAMES, serveEditor, toRemoteEngine } from '../src';
 import { createFakeEditor, editorContract, withFaults, type FakeEditor } from '../src/testing';
 
 function overRpc(name: string, makePair: typeof createLoopbackPair) {
@@ -32,7 +32,7 @@ function overRpc(name: string, makePair: typeof createLoopbackPair) {
         ...faulty.controls,
       },
     };
-  });
+  }, { languages: LANGUAGE_NAMES });
 }
 
 overRpc('the fake editor over a loopback channel', createLoopbackPair);

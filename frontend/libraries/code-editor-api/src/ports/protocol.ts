@@ -8,7 +8,8 @@ export type Change = { readonly from: Pos; readonly to: Pos; readonly insert: st
 export type SelRange = { readonly anchor: Pos; readonly head: Pos };
 export type Selection = { readonly ranges: readonly SelRange[]; readonly main: number };
 
-export type Language = 'python' | 'javascript' | 'cpp';
+export const LANGUAGE_NAMES = ['python', 'javascript', 'cpp'] as const; // the languages the API can name: an engine offers some of them
+export type Language = (typeof LANGUAGE_NAMES)[number];
 export type Palette = { readonly dark: boolean; readonly cursor: string; readonly selection: string; readonly background: string; readonly gutter: string; readonly border: string };
 export type EditorConfig = { readonly language: Language; readonly wrap: boolean; readonly tabSize: number; readonly fontSize: number; readonly lineHeight: number; readonly palette: Palette };
 export type ConfigPatch = Partial<Omit<EditorConfig, 'palette'>> & { readonly palette?: Partial<Palette> };

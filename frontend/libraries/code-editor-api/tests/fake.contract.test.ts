@@ -1,4 +1,4 @@
-import { createDeferredEngine } from '../src';
+import { createDeferredEngine, LANGUAGE_NAMES } from '../src';
 import { createFakeEditor, editorContract, type FakeEditor } from '../src/testing';
 
 const errors: unknown[] = [];
@@ -22,4 +22,4 @@ editorContract('the fake editor, directly', async ({ bound }) => {
       restart: bind,
     },
   };
-});
+}, { languages: LANGUAGE_NAMES });
