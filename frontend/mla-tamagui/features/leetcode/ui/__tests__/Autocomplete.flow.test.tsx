@@ -35,7 +35,7 @@ beforeEach(() => {
   useAutocompleteSettingStore.setState({ autocomplete: DEFAULT_AUTOCOMPLETE });
 });
 
-const eventually = (check: () => void, timeout = 8_000) => waitFor(check, { timeout });
+const eventually = (check: () => void | Promise<void>, timeout = 8_000) => waitFor(check, { timeout });
 
 async function openEditor(autocomplete: boolean): Promise<{ session: FlowSession; editor: FlowCodeEditor }> {
   useRunnerSettingStore.setState({ runner: 'backend' });

@@ -50,7 +50,7 @@ beforeEach(() => {
 afterEach(() => useRunnerSettingStore.setState({ runner: DEFAULT_RUNNER }));
 
 // each key crosses the WebView twin as one or two messages, about a second on a loaded machine
-const eventually = (check: () => void, timeout = 8_000) => waitFor(check, { timeout });
+const eventually = (check: () => void | Promise<void>, timeout = 8_000) => waitFor(check, { timeout });
 
 async function openEditor(): Promise<{ session: FlowSession; editor: FlowCodeEditor }> {
   const ports: LeetCodePortOverrides = {
