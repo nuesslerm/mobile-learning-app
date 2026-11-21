@@ -113,8 +113,8 @@ the editor through it (`window.__editorEngine__`, the API the app's own toolbar,
 runner and voice edit use): a client makes the calls and a document mirror gives
 synchronous reads of the text and the selection. Every change goes through
 CodeMirror, so the app receives the same bridge messages a user's typing
-produces. Focus and the diff decorations are not in the API and are read from the
-iframe's DOM. No test sends a bridge message.
+produces. Focus and what the editor draws (the diff and error marks) are read from
+the iframe's DOM. No test sends a bridge message.
 
 ```ts
 const editor = await session.editor();
@@ -124,7 +124,7 @@ expect(editor.text()).toContain('return []');
 expect(editor.diffRanges()).toEqual(['return [1, 2]']); // CodeMirror's .cm-diff-change marks
 ```
 
-`editor.keys(text)` types keystrokes through the editor's input handlers, and `editor.completions()`, `editor.completionOpen()` and `editor.pickCompletion(label)` read and press the suggestion list. `editor.tree()`, `editor.statementAt(pos)` and `editor.enclosingBlock(pos)` read the syntax tree the editor holds, through the same typed API. `editor.config()` reads the config the editor has now (language, tab size, palette) and `editor.press('Enter')` presses a key on CodeMirror's content element, so its own keymap and the language's grammar act on it.
+`editor.keys(text)` types keystrokes through the editor's input handlers, and `editor.completions()`, `editor.completionOpen()` and `editor.pickCompletion(label)` read and press the suggestion list. `editor.tree()`, `editor.statementAt(pos)` and `editor.enclosingBlock(pos)` read the syntax tree the editor holds, through the same typed API. `editor.marks()` lists the marks the typed API holds (hidden ones too), `editor.errorLines()` is the text CodeMirror draws under `.cm-run-error` and `editor.revealedLine()` is the 1-based line of the last range the API revealed (the engine's record of it, since jsdom has no layout to scroll). `editor.config()` reads the config the editor has now (language, tab size, palette) and `editor.press('Enter')` presses a key on CodeMirror's content element, so its own keymap and the language's grammar act on it.
 
 ### Rendering like the web export
 

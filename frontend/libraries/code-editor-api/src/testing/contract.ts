@@ -1218,11 +1218,12 @@ export function editorContract(name: string, make: MakeSubject, options: Contrac
         if (!(await viewOf()).includes('reveal')) return ctx.skip();
         await start(TEN, { anchor: 1, head: 1 });
         const before = await snapshot();
+        const { focused } = unwrap(await client.marks());
         const seen = record('changed', 'selection', 'focus');
 
         const reply = await client.reveal({ from: 3, to: 5 });
 
-        expect(unwrap(reply)).toMatchObject({ focused: false, revealed: { from: 3, to: 5 } });
+        expect(unwrap(reply)).toMatchObject({ focused, revealed: { from: 3, to: 5 } });
         expect(await snapshot()).toEqual(before);
         expect(seen).toEqual([]);
         unwrap(await client.insertAt(0, 'x'));

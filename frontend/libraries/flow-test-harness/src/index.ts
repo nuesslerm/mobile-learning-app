@@ -22,6 +22,6 @@ export {
 } from './doubles/fakeVoiceEditTransport';
 export { screen, within, waitFor, act, fireEvent, renderHook } from '@testing-library/react';
 export { default as userEvent } from '@testing-library/user-event';
-export { type FlowCodeEditor } from './interactions/editor';
+export { mountedCodeEditor, type FlowCodeEditor } from './interactions/editor';
 export { breakAt, logAt, type DebugOptions, type DebugProbe, type Frame, type Stop } from './debugger';
 export { expectWarning } from './vitest/warningGate';

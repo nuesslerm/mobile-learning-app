@@ -1,6 +1,6 @@
 // The real CodeMirror editor, reached through the typed editor API the page serves (`window.__editorEngine__`), the same surface the
 // app's own toolbar, runner and voice edit use. A client makes the calls and a document mirror gives synchronous reads of the
-// text and the selection. Focus and the diff decorations are not in the API, so those two read the iframe's DOM.
+// text and the selection. Focus and what the editor draws (diff and error marks) are read from the iframe's DOM.
 import {
   createDocumentMirror,
   createEditorClient,
@@ -10,6 +10,7 @@ import {
   type EditorConfig,
   type EditorEngine,
   type EnclosingBlock,
+  type Mark,
   type SyntaxNode,
   type TreeParams,
   type TreeValue,
@@ -28,6 +29,12 @@ export type FlowCodeEditor = {
   focused(): boolean;
   /** Text of each diff decoration CodeMirror is currently drawing. */
   diffRanges(): string[];
+  /** The marks the typed API holds (head coordinates), hidden ones included. */
+  marks(): Promise<readonly Mark[]>;
+  /** Text of each error mark CodeMirror is currently drawing: what is underlined, not the whole row. */
+  errorLines(): string[];
+  /** The 1-based line of the last range the API was asked to reveal, null when none (an edit or a load clears it). Intent, not pixels: jsdom has no layout. */
+  revealedLine(): Promise<number | null>;
   /** The config the editor has now: the language it highlights and indents in, the tab size, the palette. */
   config(): Promise<EditorConfig>;
   /** The syntax tree the editor holds, as the typed API answers it. */
@@ -136,6 +143,14 @@ export async function mountedCodeEditor(container: HTMLElement): Promise<FlowCod
     focused: contentFocused,
     diffRanges: () =>
       Array.from(doc.querySelectorAll('.cm-diff-change'), (el) => el.textContent ?? ''),
+    marks: async () => unwrap(await client.marks()).marks,
+    errorLines: () => Array.from(doc.querySelectorAll('.cm-run-error'), (el) => el.textContent ?? ''),
+    revealedLine: async () => {
+      const { revealed } = unwrap(await client.marks());
+      if (!revealed) return null;
+      const { text } = unwrap(await client.getText());
+      return text.slice(0, revealed.from).split('\n').length;
+    },
     config: async () => unwrap(await client.setConfig({})),
     keys: async (text) => {
       for (const char of normalizeText(text)) {

@@ -5,6 +5,7 @@ import { Annotation, EditorSelection, EditorState, StateField, Transaction } fro
 import { EditorView } from '@codemirror/view';
 import type { Change, ConfigPatch, DocumentHost, EditorConfig, EditorError, EngineCore, Language, Origin, SelRange, Selection, TreeSnapshot } from '@lib/code-editor-api';
 
+import { setMarksEffect } from './cm6Marks';
 import { readSyntaxNode } from './syntaxTreeRead';
 
 type Entry = { revision: number; changes: Change[]; selection: SelRange; origin: Origin; label?: string; length: number };
@@ -147,6 +148,14 @@ export function createCm6Host(deps: Cm6HostDeps): DocumentHost {
         read: (range, detail) => readSyntaxNode(best, language, range, detail),
       };
       return snapshot;
+    },
+    marks(list) {
+      view().dispatch({ effects: setMarksEffect.of(list) });
+    },
+    reveal({ from, to }) {
+      const editor = view();
+      const end = editor.state.doc.length;
+      editor.dispatch({ effects: EditorView.scrollIntoView(EditorSelection.range(Math.min(from, end), Math.min(to, end)), { y: 'center' }) });
     },
     complete(label) {
       const editor = view();

@@ -60,6 +60,7 @@ import {
   toLegacyPatch,
   type LegacyEditorConfig,
 } from '../../../domain/editor/configPatch';
+import { marksField } from './cm6Marks';
 import { completionExtensions } from './completionExtension';
 import { languageCompartment, languageExtension } from './languageExtensions';
 declare global {
@@ -407,6 +408,13 @@ function buildConfigExtensions(cfg: EditorConfig) {
         background: cfg.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
         borderBottom: `1px solid ${cfg.cursorColor}`,
       },
+      '.cm-run-error-line': {
+        background: cfg.isDark ? 'rgba(248,113,113,0.2)' : 'rgba(220,38,38,0.12)',
+      },
+      '.cm-run-error': {
+        textDecoration: `underline wavy ${cfg.isDark ? '#f87171' : '#dc2626'}`,
+        textUnderlineOffset: '3px',
+      },
     },
     {
       dark: cfg.isDark,
@@ -513,6 +521,7 @@ function buildState(cfg: EditorConfig, doc: string, selection?: SelRange) {
       fieldMarkerPlugin,
       highlightPlugin,
       diffPlugin,
+      marksField,
       revisionField,
       typingCalls,
       configCompartment.of(buildConfigExtensions(cfg)),

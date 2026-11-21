@@ -8,6 +8,7 @@ import { classify, createDocumentMirror, createEditorEngine, enclosingBlock, unw
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { createCm6Host, revisionField, setRevisionBase, typingCalls } from '../cm6Host';
+import { marksField } from '../cm6Marks';
 import { completionExtensions } from '../completionExtension';
 
 // A real EditorView in jsdom whose own update listener is broken: the host's pump must not depend on it.
@@ -21,7 +22,7 @@ function mount(doc: string, options: { language?: Language; engine?: Pick<Engine
   setRevisionBase(0);
   const swallowed: unknown[] = [];
   const completion = options.completion ? completionExtensions({ language, enabled: options.completion.enabled, entries: options.completion.entries, onOpenChange: (open) => core?.ingestCompletion(open) }) : [];
-  const extensions = [language === 'cpp' ? cpp() : python(), history(), closeBrackets(), revisionField, typingCalls, EditorView.exceptionSink.of((error) => swallowed.push(error)), ...(options.brokenListener === false ? [] : [EditorView.updateListener.of(() => { throw new Error('the listener broke'); })]), completion, keymap.of([...defaultKeymap, indentWithTab])];
+  const extensions = [language === 'cpp' ? cpp() : python(), history(), closeBrackets(), marksField, revisionField, typingCalls, EditorView.exceptionSink.of((error) => swallowed.push(error)), ...(options.brokenListener === false ? [] : [EditorView.updateListener.of(() => { throw new Error('the listener broke'); })]), completion, keymap.of([...defaultKeymap, indentWithTab])];
   const view = new EditorView({ state: EditorState.create({ doc, extensions }), parent: document.body.appendChild(document.createElement('div')) });
   views.push(view);
   let core: EngineCore | null = null;
@@ -286,6 +287,65 @@ describe('the CodeMirror host answering tree', () => {
 
     expect(JSON.stringify(value.root)).toContain('"error":true');
     expect(enclosingBlock(value, broken, broken.indexOf('return') + 3)?.owner?.type).toBe('FunctionDefinition');
+  });
+});
+
+describe('the CodeMirror host holding marks', () => {
+  const TEN = '0123456789';
+  const held = (view: EditorView) => view.state.field(marksField).marks.map(({ id, range }) => [id, range.from, range.to]);
+  const drawn = (view: EditorView) => view.state.field(marksField).decorations.size;
+
+  it('given marks set through the api, when the person types before them in one transaction with two changes, then the host and the engine hold the same ranges', async () => {
+    // Given two marks and a view whose own update listener is broken (the host must not depend on it)
+    const { view, core } = mount(TEN);
+    unwrap(await core.request('view', { marks: { set: [{ id: 'a', kind: 'error', range: { from: 4, to: 6 } }, { id: 'b', kind: 'edit', range: { from: 8, to: 9 } }] } }));
+
+    // When one transaction inserts before them and at the first one's start edge
+    view.dispatch({ changes: [{ from: 0, insert: 'ab' }, { from: 4, insert: 'X' }] });
+    const engine = unwrap(await core.request('view', {})).marks.map(({ id, range }) => [id, range.from, range.to]);
+
+    // Then the inserted text stays outside, and the host's copy is the engine's
+    expect(view.state.doc.toString()).toBe('ab0123X456789');
+    expect(held(view)).toEqual([['a', 7, 9], ['b', 11, 12]]);
+    expect(engine).toEqual(held(view));
+  });
+
+  it('given a mark and one transaction that deletes its text and inserts at its end, when it lands, then the mark is gone on both sides and does not take the inserted text', async () => {
+    // Given a mark over "23"
+    const { view, core } = mount(TEN);
+    unwrap(await core.request('view', { marks: { set: [{ id: 'a', kind: 'error', range: { from: 2, to: 4 } }] } }));
+
+    // When two adjacent changes delete it and insert right after it (a merged change list would keep the insert inside the mark)
+    view.dispatch({ changes: [{ from: 2, to: 4 }, { from: 4, insert: 'X' }] });
+    const engine = unwrap(await core.request('view', {})).marks;
+
+    // Then neither the host nor the engine holds it, and nothing of it is drawn
+    expect(held(view)).toEqual([]);
+    expect(engine).toEqual([]);
+    expect(drawn(view)).toBe(0);
+  });
+
+  it('given a hidden mark and an edit mark, when they are set, then only the edit mark is drawn', async () => {
+    const { view, core } = mount(TEN);
+
+    unwrap(await core.request('view', { marks: { set: [{ id: 'h', kind: 'error', range: { from: 1, to: 3 }, hidden: true }, { id: 'e', kind: 'edit', range: { from: 5, to: 7 } }] } }));
+
+    expect(held(view)).toEqual([['h', 1, 3], ['e', 5, 7]]);
+    expect(drawn(view)).toBe(1);
+  });
+
+  it('given a reveal, when view runs, then the text, the selection, the focus and the revision are unchanged and no event fires', async () => {
+    const { view, core, events } = mount(TEN);
+    view.dispatch({ selection: { anchor: 2 } });
+    await core.request('read', {});
+
+    const reply = unwrap(await core.request('view', { reveal: { from: 6, to: 9 } }));
+
+    expect(reply).toMatchObject({ focused: false, revealed: { from: 6, to: 9 } });
+    expect(view.state.doc.toString()).toBe(TEN);
+    expect(view.state.selection.main.head).toBe(2);
+    expect(core.revision()).toBe(0);
+    expect(events).toEqual([]);
   });
 });
 
