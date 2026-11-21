@@ -924,7 +924,7 @@ fn given_a_grant_minted_for_one_device_when_another_device_uses_it_then_it_is_re
     files.install(&agent);
     let host = Host::new("rt".into(), vec![Box::new(WorkspaceArea::default())], agent, Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
     let (mut first, mut second) = (host.connection("phone-a", "tok", vec![]), host.connection("phone-b", "tok", vec![]));
-    let mut ask = |conn: &mut orca_core::connection::Connection, method: &str, params: Value| -> Value { serde_json::from_str(&conn.on_message(&json!({"id": "1", "method": method, "params": params}).to_string())[0]).unwrap() };
+    let ask = |conn: &mut orca_core::connection::Connection, method: &str, params: Value| -> Value { serde_json::from_str(&conn.on_message(&json!({"id": "1", "method": method, "params": params}).to_string())[0]).unwrap() };
     // When device A taps the path and device B presents A's grant for the same worktree and path
     let resolved = ask(&mut first, "files.resolveTerminalPath", json!({"worktree": "main", "pathText": "/tmp/a.txt"}))["result"].clone();
     let stolen = ask(&mut second, "files.readTerminalArtifact", grant(&resolved));

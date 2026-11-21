@@ -64,7 +64,8 @@
         "tool": "cli_detect",
         "args": {
           "programs": [
-            "codex"
+            "codex",
+            "claude"
           ]
         }
       },
@@ -79,12 +80,20 @@
               "path": "/executor/bin/codex",
               "version": "codex-cli 0.9.1",
               "signed_in": false
+            },
+            {
+              "program": "claude",
+              "installed": true,
+              "path": "/executor/bin/claude",
+              "version": "2.1.7 (Claude Code)",
+              "signed_in": false
             }
           ]
         }
       },
       "volatile": [
-        "/result/clis/0/path"
+        "/result/clis/0/path",
+        "/result/clis/1/path"
       ]
     },
     {
@@ -123,14 +132,13 @@
       ]
     },
     {
-      "name": "answers agent CLIs before a turn starts, and neither is installed",
+      "name": "answers one agent CLI before a turn starts, and it is not installed",
       "request": {
         "id": "d7",
         "tool": "cli_detect",
         "args": {
           "programs": [
-            "codex",
-            "opencode"
+            "codex"
           ]
         }
       },
@@ -141,10 +149,6 @@
           "clis": [
             {
               "program": "codex",
-              "installed": false
-            },
-            {
-              "program": "opencode",
               "installed": false
             }
           ]
