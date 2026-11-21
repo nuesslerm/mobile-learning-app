@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createDeferredEngine, createEditorClient, createEditorEngine, unwrap, EditorCallError, type CallTrace, type EditorEngine } from '../../src';
+import { plannedOps } from '../../src/core/semantic/ops';
 import { createFakeEditor } from '../../src/testing';
 
 describe('the editor client', () => {
@@ -118,8 +119,9 @@ describe('an engine with planners for some node steps', () => {
     { op: 'insertSnippet', at: { before: { from: 0, to: 0 } }, text: 'x = 1' },
     { op: 'reindentBlock', node: { from: 0, to: 3 }, by: 1 },
   ] as const;
+  const withoutPlanner = UNPLANNED.filter((step) => !plannedOps.includes(step.op));
 
-  it.each(UNPLANNED)('given a host with a tree, when $op is sent, then it is unsupported naming the step, nothing changes and hello announces only the steps it can plan', async (step) => {
+  it.each(withoutPlanner)('given a host with a tree, when $op is sent, then it is unsupported naming the step, nothing changes and hello announces only the steps it can plan', async (step) => {
     const fake = createFakeEditor({ text: 'abc\ndef\n', tree: true });
     const client = createEditorClient(fake.engine);
 
@@ -128,7 +130,7 @@ describe('an engine with planners for some node steps', () => {
 
     expect(reply).toMatchObject({ ok: false, error: { code: 'unsupported', what: `step:${step.op}` } });
     expect(fake.peek()).toMatchObject({ text: 'abc\ndef\n', revision: 0, undoDepth: 0 });
-    expect(hello.capabilities.steps).toEqual(['replace', 'move', 'select', 'type', 'complete', 'deleteNode']);
+    expect(hello.capabilities.steps).toEqual(['replace', 'move', 'select', 'type', 'complete', ...plannedOps]);
   });
 
   it('given a host with no tree, when deleteNode is sent, then it is unsupported naming the step, nothing changes and hello announces no node step', async () => {

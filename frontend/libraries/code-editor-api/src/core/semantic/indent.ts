@@ -42,6 +42,22 @@ export function shiftPrefix(lines: readonly Line[], fromPrefix: string, toPrefix
   return lines.map(({ from, text }) => (frozen.has(from) || text.trim() === '' || !text.startsWith(fromPrefix) ? text : toPrefix + text.slice(fromPrefix.length)));
 }
 
+/** Where a position of `lines` stands in `shifted.join('\n')`, the same lines after `shiftPrefix` swapped `fromPrefix` for `toPrefix` in those that changed. */
+export function carryPos(lines: readonly Line[], shifted: readonly string[], fromPrefix: string, toPrefix: string): (pos: Pos) => number {
+  return (pos) => {
+    let before = 0;
+    for (const [index, line] of lines.entries()) {
+      const now = shifted[index] as string;
+      if (pos <= line.from + line.text.length) {
+        const col = pos - line.from;
+        return before + (now === line.text ? col : col >= fromPrefix.length ? col - fromPrefix.length + toPrefix.length : Math.min(col, toPrefix.length));
+      }
+      before += now.length + 1;
+    }
+    return Math.max(0, before - 1);
+  };
+}
+
 /**
  * How many of `blocks` surround each non-blank line of `extent`, counted at the line's first character (the key is the line's start). A line that opens or closes a braced block,
  * and a python `else` or `elif` line between two bodies, is not inside the block and has its owner's depth.

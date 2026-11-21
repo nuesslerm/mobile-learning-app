@@ -36,6 +36,11 @@ export function shapeOf(language: Language, tree: SyntaxNode): Shape {
   return { is: tree.type, children: shapeChildren(language, tree).map((child) => shapeOf(language, child)) };
 }
 
+/** The shapes of the statements among `nodes`: a comment is not part of one. */
+export function statementShapes(language: Language, nodes: readonly SyntaxNode[]): Shape[] {
+  return nodes.filter((node) => classify(language, node) !== 'comment').map((node) => shapeOf(language, node));
+}
+
 const inside = (node: SyntaxNode, range: Range) => node.from >= range.from && node.to <= range.to;
 
 /** The outline without the nodes that lie wholly inside one of `ranges`; the root stays. */

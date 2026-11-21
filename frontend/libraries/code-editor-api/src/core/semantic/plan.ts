@@ -1,4 +1,4 @@
-import type { Change, EditorError, SemanticStep, SemanticStepOp, Target } from '../../ports/protocol';
+import type { Change, EditorError, Pos, Range, SemanticStep, SemanticStepOp, Target } from '../../ports/protocol';
 import type { RunInput, Run } from './model';
 import type { Expectation } from './verify';
 
@@ -9,9 +9,13 @@ export type StepPlan = {
   readonly edits: readonly Change[];
   readonly landed: { readonly edit: number; readonly from: number; readonly to: number } | null;
   readonly expectation: Expectation;
+  /** A caret or selection inside `range` (in the planned document, both ends included) goes with the text to `landed.from + offset(pos)`, unless the call says where the selection ends up. */
+  readonly follow?: { readonly range: Range; readonly offset: (pos: Pos) => number };
 };
 
 export type PlanContext = {
+  /** the index of the step in its call, for the errors that name one */
+  readonly step: number;
   /** the document's text and full tree, as they are at the revision the call was made against */
   readonly input: RunInput;
   readonly indentUnit: string;

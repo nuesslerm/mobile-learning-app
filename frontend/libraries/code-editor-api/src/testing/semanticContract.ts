@@ -18,6 +18,25 @@ type Snippet = {
   readonly shared: string;
   /** a function with a syntax error in it, then the branch function */
   readonly broken: string;
+  /** the if statement of the branch, from its keyword to its last line, and the statement that opens its block */
+  readonly ifNode: string;
+  readonly first: string;
+  /** the statement after the if, and the branch with the second statement moved after the if, and with the statement after the if moved to the end of its block */
+  readonly last: string;
+  readonly secondAfterIf: string;
+  readonly lastIntoIf: string;
+  /** an if holding one statement, a comment line and a statement after it at the if's indent, a statement after that; the if; the same with the commented statement at the start of the if */
+  readonly noted: string;
+  readonly notedIf: string;
+  readonly notedStatement: string;
+  readonly notedMoved: string;
+  /** the loop's return statement, and the loop with its call moved after it */
+  readonly ret: string;
+  readonly loopEmptied: string;
+  /** two statements at the top of the document, the last without a newline */
+  readonly flat: string;
+  readonly flatFirst: string;
+  readonly flatLast: string;
 };
 
 const SNIPPETS: Readonly<Record<Language, Snippet>> = {
@@ -29,6 +48,20 @@ const SNIPPETS: Readonly<Record<Language, Snippet>> = {
     bare: 'def f(x):\n    return x',
     shared: 'def f(x):\n    a = 1; b = 2\n    return b\n',
     broken: 'def g(x):\n    for i in\n    return x\n\ndef f(x):\n    if x:\n        a = 1\n        b = 2\n    return b\n',
+    ifNode: 'if x:\n        a = 1\n        b = 2',
+    first: 'a = 1',
+    last: 'return b',
+    secondAfterIf: 'def f(x):\n    if x:\n        a = 1\n    b = 2\n    return b\n',
+    lastIntoIf: 'def f(x):\n    if x:\n        a = 1\n        b = 2\n        return b\n',
+    noted: 'def f(x):\n    if x:\n        a = 1\n    # note\n    b = 2\n    return b\n',
+    notedIf: 'if x:\n        a = 1',
+    notedStatement: 'b = 2',
+    notedMoved: 'def f(x):\n    if x:\n        # note\n        b = 2\n        a = 1\n    return b\n',
+    ret: 'return 1',
+    loopEmptied: 'def f(xs):\n    for x in xs:\n    return 1\n    print(x)\n',
+    flat: 'a = 1\nb = 2',
+    flatFirst: 'a = 1',
+    flatLast: 'b = 2',
   },
   javascript: {
     branch: 'function f(x) {\n  if (x) {\n    a = 1;\n    b = 2;\n  }\n  return b;\n}\n',
@@ -38,6 +71,20 @@ const SNIPPETS: Readonly<Record<Language, Snippet>> = {
     bare: 'function f(x) {\n  return x;\n}',
     shared: 'function f(x) {\n  a = 1; b = 2;\n  return b;\n}\n',
     broken: 'function g() {\n  let a = ;\n}\n\nfunction f(x) {\n  if (x) {\n    a = 1;\n    b = 2;\n  }\n  return b;\n}\n',
+    ifNode: 'if (x) {\n    a = 1;\n    b = 2;\n  }',
+    first: 'a = 1;',
+    last: 'return b;',
+    secondAfterIf: 'function f(x) {\n  if (x) {\n    a = 1;\n  }\n  b = 2;\n  return b;\n}\n',
+    lastIntoIf: 'function f(x) {\n  if (x) {\n    a = 1;\n    b = 2;\n    return b;\n  }\n}\n',
+    noted: 'function f(x) {\n  if (x) {\n    a = 1;\n  }\n  // note\n  b = 2;\n  return b;\n}\n',
+    notedIf: 'if (x) {\n    a = 1;\n  }',
+    notedStatement: 'b = 2;',
+    notedMoved: 'function f(x) {\n  if (x) {\n    // note\n    b = 2;\n    a = 1;\n  }\n  return b;\n}\n',
+    ret: 'return 1;',
+    loopEmptied: 'function f(xs) {\n  for (const x of xs) {\n  }\n  return 1;\n  g(x);\n}\n',
+    flat: 'let a = 1;\nlet b = 2;',
+    flatFirst: 'let a = 1;',
+    flatLast: 'let b = 2;',
   },
   cpp: {
     branch: 'int f(int x) {\n  if (x) {\n    a = 1;\n    b = 2;\n  }\n  return b;\n}\n',
@@ -47,6 +94,20 @@ const SNIPPETS: Readonly<Record<Language, Snippet>> = {
     bare: 'int f() {\n  return 1;\n}',
     shared: 'int f(int x) {\n  a = 1; b = 2;\n  return b;\n}\n',
     broken: 'int g() {\n  int a = ;\n}\n\nint f(int x) {\n  if (x) {\n    a = 1;\n    b = 2;\n  }\n  return b;\n}\n',
+    ifNode: 'if (x) {\n    a = 1;\n    b = 2;\n  }',
+    first: 'a = 1;',
+    last: 'return b;',
+    secondAfterIf: 'int f(int x) {\n  if (x) {\n    a = 1;\n  }\n  b = 2;\n  return b;\n}\n',
+    lastIntoIf: 'int f(int x) {\n  if (x) {\n    a = 1;\n    b = 2;\n    return b;\n  }\n}\n',
+    noted: 'int f(int x) {\n  if (x) {\n    a = 1;\n  }\n  // note\n  b = 2;\n  return b;\n}\n',
+    notedIf: 'if (x) {\n    a = 1;\n  }',
+    notedStatement: 'b = 2;',
+    notedMoved: 'int f(int x) {\n  if (x) {\n    // note\n    b = 2;\n    a = 1;\n  }\n  return b;\n}\n',
+    ret: 'return 1;',
+    loopEmptied: 'int f() {\n  for (int i = 0; i < 3; i++) {\n  }\n  return 1;\n  g(i);\n}\n',
+    flat: 'int a = 1;\nint b = 2;',
+    flatFirst: 'int a = 1;',
+    flatLast: 'int b = 2;',
   },
 };
 
@@ -66,6 +127,13 @@ const withoutLine = (text: string, needle: string): { readonly text: string; rea
   const found = text.indexOf(needle);
   const from = text.lastIndexOf('\n', found) + 1;
   return { text: text.slice(0, from) + text.slice(text.indexOf('\n', found) + 1), at: from };
+};
+
+/** The whole lines that hold `needle`, newline included. */
+const wholeLines = (text: string, needle: string): Range => {
+  const found = text.indexOf(needle);
+  const end = text.indexOf('\n', found + needle.length);
+  return { from: text.lastIndexOf('\n', found) + 1, to: end < 0 ? text.length : end + 1 };
 };
 
 const sampleOf = (op: SemanticStepOp, node: Range): Step => {
@@ -266,6 +334,171 @@ export function semanticContract(name: string, make: MakeSubject, language: Lang
 
         unwrap(reply);
         expect((await snapshot()).selection.ranges[0]).toEqual({ anchor: gone().at, head: gone().at });
+      });
+    });
+
+    describe('moveNode', () => {
+      const second = () => rangeOf(snippet.branch, snippet.second);
+      const ifNode = () => rangeOf(snippet.branch, snippet.ifNode);
+
+      it('given a statement inside an if, when it moves after the if, then it is a sibling after the if at the if indent in one revision with one api change, landed names its lines, and one undo restores the text', async (ctx) => {
+        if (!(await announces('moveNode'))) return ctx.skip();
+        const base = await start(snippet.branch);
+        const seen = changes();
+
+        const reply = await client.moveNode(second(), { after: ifNode() });
+
+        const value = unwrap(reply);
+        expect(reply).toMatchObject({ revision: base + 1, base });
+        expect(value.landed).toEqual([wholeLines(snippet.secondAfterIf, snippet.second)]);
+        expect(await snapshot()).toMatchObject({ text: snippet.secondAfterIf, revision: base + 1 });
+        expect(seen).toMatchObject([{ type: 'changed', from: base, to: base + 1, origin: 'api' }]);
+        unwrap(await client.undo());
+        expect(await snapshot()).toMatchObject({ text: snippet.branch });
+      });
+
+      it('given the statement after an if, when it moves to the end of the if block, then it takes the block indent', async (ctx) => {
+        if (!(await announces('moveNode'))) return ctx.skip();
+        await start(snippet.branch);
+
+        unwrap(await client.moveNode(rangeOf(snippet.branch, snippet.last), { into: ifNode(), at: 'end' }));
+
+        expect(await snapshot()).toMatchObject({ text: snippet.lastIntoIf });
+        unwrap(await client.undo());
+        expect(await snapshot()).toMatchObject({ text: snippet.branch });
+      });
+
+      it('given a statement with a comment line above it, when it moves to the start of a block, then the comment goes with it', async (ctx) => {
+        if (!(await announces('moveNode'))) return ctx.skip();
+        await start(snippet.noted);
+
+        unwrap(await client.moveNode(rangeOf(snippet.noted, snippet.notedStatement), { into: rangeOf(snippet.noted, snippet.notedIf), at: 'start' }));
+
+        expect(await snapshot()).toMatchObject({ text: snippet.notedMoved });
+      });
+
+      it('given a statement moved before its own next sibling, when it is applied, then it is ok with no change, no revision and no event', async (ctx) => {
+        if (!(await announces('moveNode'))) return ctx.skip();
+        const base = await start(snippet.branch);
+        const seen = changes();
+
+        const reply = await client.moveNode(rangeOf(snippet.branch, snippet.first), { before: second() });
+
+        expect(unwrap(reply).changes).toEqual([]);
+        expect(reply).toMatchObject({ revision: base, base });
+        expect(await snapshot()).toMatchObject({ text: snippet.branch, revision: base });
+        expect(seen).toEqual([]);
+      });
+
+      it('given a destination inside the moved node, when it is applied, then it is invalid naming steps[0].to and nothing changes', async (ctx) => {
+        if (!(await announces('moveNode'))) return ctx.skip();
+        const base = await start(snippet.branch);
+
+        expect(failed(await client.moveNode(ifNode(), { into: ifNode(), at: 'start' }))).toMatchObject({ code: 'invalid', path: 'steps[0].to' });
+        expect(failed(await client.moveNode(ifNode(), { before: rangeOf(snippet.branch, snippet.first) }))).toMatchObject({ code: 'invalid', path: 'steps[0].to' });
+
+        expect(await snapshot()).toMatchObject({ text: snippet.branch, revision: base });
+      });
+
+      it('given the only statement of a loop, when it moves out, then Python refuses the emptied block as would-not-parse and braces leave an empty block', async (ctx) => {
+        if (!(await announces('moveNode'))) return ctx.skip();
+        const base = await start(snippet.loop);
+
+        const reply = await client.moveNode(rangeOf(snippet.loop, snippet.inner), { after: rangeOf(snippet.loop, snippet.ret) });
+
+        if (language === 'python') {
+          expect(failed(reply)).toMatchObject({ code: 'would-not-parse', reason: 'syntax' });
+          expect(await snapshot()).toMatchObject({ text: snippet.loop, revision: base });
+          return;
+        }
+        unwrap(reply);
+        expect(await snapshot()).toMatchObject({ text: snippet.loopEmptied, revision: base + 1 });
+      });
+
+      it('given a destination whose reference shares its line with another statement, when the node moves, then it is not-a-node naming the destination and nothing changes', async (ctx) => {
+        if (!(await announces('moveNode'))) return ctx.skip();
+        const base = await start(snippet.shared);
+        const reference = rangeOf(snippet.shared, snippet.second);
+
+        const reply = await client.moveNode(rangeOf(snippet.shared, snippet.last), { before: reference });
+
+        expect(failed(reply)).toMatchObject({ code: 'not-a-node', range: reference, step: 0 });
+        expect(await snapshot()).toMatchObject({ text: snippet.shared, revision: base });
+      });
+
+      it('given an expect that does not match and a call at an older revision, when the node moves, then they are text-mismatch and stale, and nothing changes', async (ctx) => {
+        if (!(await announces('moveNode'))) return ctx.skip();
+        const base = await start(snippet.branch);
+
+        expect(failed(await client.moveNode(second(), { after: ifNode() }, { expect: 'something else' }))).toMatchObject({ code: 'text-mismatch', step: 0, expected: 'something else', actual: snippet.second });
+        unwrap(await client.insertAt(0, '\n'));
+        expect(failed(await client.moveNode(second(), { after: ifNode() }, { at: base, stale: 'map' }))).toMatchObject({ code: 'stale', head: base + 1 });
+
+        expect(await snapshot()).toMatchObject({ text: `\n${snippet.branch}`, revision: base + 1 });
+      });
+
+      it('given the caret inside the moved statement, when it moves, then the caret is on the same character in the new place', async (ctx) => {
+        if (!(await announces('moveNode'))) return ctx.skip();
+        await start(snippet.branch);
+        unwrap(await client.select(second().from + 2));
+
+        unwrap(await client.moveNode(second(), { after: ifNode() }));
+
+        const caret = snippet.secondAfterIf.indexOf(snippet.second) + 2;
+        expect((await snapshot()).selection.ranges[0]).toEqual({ anchor: caret, head: caret });
+      });
+
+      it('given a document with no final newline, when its last statement moves up and when the first moves to the end, then the final newline is where the lines put it', async (ctx) => {
+        if (!(await announces('moveNode'))) return ctx.skip();
+        await start(snippet.flat);
+
+        unwrap(await client.moveNode(rangeOf(snippet.flat, snippet.flatLast), { before: rangeOf(snippet.flat, snippet.flatFirst) }));
+        expect(await snapshot()).toMatchObject({ text: `${snippet.flatLast}\n${snippet.flatFirst}\n` });
+        await start(snippet.flat);
+        unwrap(await client.moveNode(rangeOf(snippet.flat, snippet.flatFirst), { after: rangeOf(snippet.flat, snippet.flatLast) }));
+
+        expect(await snapshot()).toMatchObject({ text: `${snippet.flatLast}\n${snippet.flatFirst}` });
+      });
+    });
+
+    describe('duplicateNode', () => {
+      it('given a compound statement, when it is duplicated, then the whole block is copied after it and landed names the copy, and one undo removes it', async (ctx) => {
+        if (!(await announces('duplicateNode'))) return ctx.skip();
+        const base = await start(snippet.branch);
+        const seen = changes();
+        const lines = wholeLines(snippet.branch, snippet.ifNode);
+        const copy = snippet.branch.slice(lines.from, lines.to);
+
+        const reply = await client.duplicateNode(rangeOf(snippet.branch, snippet.ifNode));
+
+        expect(unwrap(reply).landed).toEqual([{ from: lines.to, to: lines.to + copy.length }]);
+        expect(await snapshot()).toMatchObject({ text: snippet.branch.slice(0, lines.to) + copy + snippet.branch.slice(lines.to), revision: base + 1 });
+        expect(seen).toMatchObject([{ type: 'changed', origin: 'api' }]);
+        unwrap(await client.undo());
+        expect(await snapshot()).toMatchObject({ text: snippet.branch });
+      });
+
+      it('given a one-line statement, when it is duplicated, then the copy follows with the same indent and the caret stays', async (ctx) => {
+        if (!(await announces('duplicateNode'))) return ctx.skip();
+        await start(snippet.branch);
+        const lines = wholeLines(snippet.branch, snippet.second);
+        unwrap(await client.select(lines.from + 3));
+
+        unwrap(await client.duplicateNode(rangeOf(snippet.branch, snippet.second)));
+
+        const after = await snapshot();
+        expect(after.text).toBe(snippet.branch.slice(0, lines.to) + snippet.branch.slice(lines.from, lines.to) + snippet.branch.slice(lines.to));
+        expect(after.selection.ranges[0]).toEqual({ anchor: lines.from + 3, head: lines.from + 3 });
+      });
+
+      it('given a document with no final newline, when its last statement is duplicated, then the copy comes after a newline and the text still has no final newline', async (ctx) => {
+        if (!(await announces('duplicateNode'))) return ctx.skip();
+        await start(snippet.flat);
+
+        const reply = await client.duplicateNode(rangeOf(snippet.flat, snippet.flatLast));
+
+        expect(await snapshot()).toMatchObject({ text: `${snippet.flat}\n${snippet.flatLast}` });
+        expect(unwrap(reply).landed).toEqual([{ from: snippet.flat.length + 1, to: snippet.flat.length + 1 + snippet.flatLast.length }]);
       });
     });
   });

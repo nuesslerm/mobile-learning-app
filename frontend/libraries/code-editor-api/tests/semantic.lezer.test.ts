@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createEditorClient, type ApplyValue, type Language, type Range, type Reply } from '../src';
+import { createEditorClient, type ApplyValue, type Language, type Range, type Reply, type Step } from '../src';
 import { createFakeEditor } from '../src/testing';
 import { lezerSnapshot } from './support/lezerPlain';
 
@@ -9,6 +9,12 @@ async function planned(language: Language, text: string, range: Range, parser: '
   const client = createEditorClient(createFakeEditor({ text, tree: parser === 'lezer' ? lezerSnapshot : true }).engine);
   await client.setConfig({ language });
   return client.deleteNode(range, { preview: true });
+}
+
+async function plannedSteps(language: Language, text: string, steps: readonly Step[], parser: 'fake' | 'lezer'): Promise<Reply<ApplyValue>> {
+  const client = createEditorClient(createFakeEditor({ text, tree: parser === 'lezer' ? lezerSnapshot : true }).engine);
+  await client.setConfig({ language });
+  return client.transact(steps, { preview: true });
 }
 
 const between = (text: string, first: string, last: string): Range => ({ from: text.indexOf(first), to: text.indexOf(last) + last.length });
@@ -59,6 +65,53 @@ describe('deleteNode planned over the fake parsers and over the installed gramma
     const reply = await planned(language, text, lineOf(text, FIRST[language]), 'lezer');
 
     expect(reply).toMatchObject({ ok: true, value: { preview: { text: text.replace(/ *(#|\/\/) the first\n *a = 1;?\n/, '') } } });
+  });
+});
+
+const ROOMS = {
+  python: 'def f(x):\n    if x:\n        a = 1\n        b = 2\n        c = 3\n    return b\n',
+  javascript: 'function f(x) {\n  if (x) {\n    a = 1;\n    b = 2;\n    c = 3;\n  }\n  return b;\n}\n',
+  cpp: 'int f(int x) {\n  if (x) {\n    a = 1;\n    b = 2;\n    c = 3;\n  }\n  return b;\n}\n',
+} as const;
+const THIRD = { python: 'c = 3', javascript: 'c = 3;', cpp: 'c = 3;' } as const;
+const RETURN = { python: 'return b', javascript: 'return b;', cpp: 'return b;' } as const;
+const IF_END = { python: 'c = 3', javascript: '  }', cpp: '  }' } as const;
+const EMPTY = {
+  javascript: 'function f(x) {\n    if (x) {}\n    g();\n}\n',
+  cpp: 'int f(int x) {\n    if (x) {}\n    g();\n}\n',
+} as const;
+
+describe('moveNode and duplicateNode planned over the fake parsers and over the installed grammars', () => {
+  const steps = (language: Language, text: string): { readonly name: string; readonly steps: Step[] }[] => {
+    const ifNode = between(text, IF[language][0], IF_END[language]);
+    return [
+      { name: 'the last statement of the if moved after the if', steps: [{ op: 'moveNode', node: lineOf(text, THIRD[language]), to: { after: ifNode } }] },
+      { name: 'a run of two statements moved after the if', steps: [{ op: 'moveNode', node: between(text, SECOND[language], THIRD[language]), to: { after: ifNode } }] },
+      { name: 'the statement after the if moved to the start of its block', steps: [{ op: 'moveNode', node: lineOf(text, RETURN[language]), to: { into: ifNode, at: 'start' } }] },
+      { name: 'the first statement moved before its next sibling', steps: [{ op: 'moveNode', node: lineOf(text, FIRST[language]), to: { before: lineOf(text, SECOND[language]) } }] },
+      { name: 'the whole if moved after the statement below it', steps: [{ op: 'moveNode', node: ifNode, to: { after: lineOf(text, RETURN[language]) } }] },
+      { name: 'the if moved into itself', steps: [{ op: 'moveNode', node: ifNode, to: { into: ifNode, at: 'end' } }] },
+      { name: 'the second statement duplicated', steps: [{ op: 'duplicateNode', node: lineOf(text, SECOND[language]) }] },
+      { name: 'the whole if duplicated', steps: [{ op: 'duplicateNode', node: ifNode }] },
+    ];
+  };
+  const CASES = LANGUAGES.flatMap((language) => steps(language, ROOMS[language]).map((one) => ({ ...one, language, text: ROOMS[language] })));
+
+  it.each(CASES)('given $name in $language, when it is previewed, then both parsers plan the same edit or the same refusal', async ({ language, text, steps: asked }) => {
+    const fake = outcome(await plannedSteps(language, text, asked, 'fake'));
+    const lezer = outcome(await plannedSteps(language, text, asked, 'lezer'));
+
+    expect(lezer).toEqual(fake);
+  });
+
+  it.each(['javascript', 'cpp'] as const)('given an empty block in %s, when a statement moves into it, then both parsers open the braces the same way', async (language) => {
+    const text = EMPTY[language];
+    const asked: Step[] = [{ op: 'moveNode', node: lineOf(text, 'g();'), to: { into: lineOf(text, 'if (x) {}'), at: 'end' } }];
+
+    const lezer = outcome(await plannedSteps(language, text, asked, 'lezer'));
+
+    expect(lezer).toEqual(outcome(await plannedSteps(language, text, asked, 'fake')));
+    expect(lezer).toMatchObject({ text: text.includes('int') ? 'int f(int x) {\n    if (x) {\n        g();\n    }\n}\n' : 'function f(x) {\n    if (x) {\n        g();\n    }\n}\n' });
   });
 });
 

@@ -41,6 +41,9 @@ export const MULTILINE_LITERALS: Readonly<Record<Language, readonly string[]>> =
   cpp: ['RawString', 'String'],
 };
 
+/** The block that holds a list of statements: the blocks of a class, a switch or a match hold other things. */
+export const STATEMENT_BLOCK: Readonly<Record<Language, string>> = { python: 'Body', javascript: 'Block', cpp: 'CompoundStatement' };
+
 const ERROR_TYPE = '⚠';
 
 const INDEX: Readonly<Record<Language, ReadonlyMap<string, Named>>> = {

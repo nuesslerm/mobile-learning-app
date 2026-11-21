@@ -362,6 +362,22 @@ describe('the CodeMirror host parsing another text', () => {
     expect(reply).toMatchObject({ ok: true, revision: 1 });
     expect(view.state.doc.toString()).toBe('def f():\n    s = """\n    # inside"""\n');
   });
+
+  it('given a triple-quoted string in a python block, when the block moves one level deeper through the engine, then the inner lines of the string keep their text and the caret goes with its line', async () => {
+    const text = 'def f(x):\n    if x:\n        a = 1\n    s = """\n    inner\n  low"""\n    return s\n';
+    const { core, view } = mount(text, { brokenListener: false });
+    const from = text.indexOf('s = """');
+    const to = text.indexOf('low"""') + 6;
+    view.dispatch({ selection: { anchor: from + 2 } });
+    const ifNode = { from: text.indexOf('if x:'), to: text.indexOf('a = 1') + 5 };
+
+    const reply = await core.request('apply', { steps: [{ op: 'moveNode', node: { from, to }, to: { into: ifNode, at: 'end' } }] });
+
+    expect(reply).toMatchObject({ ok: true, revision: 1 });
+    const moved = 'def f(x):\n    if x:\n        a = 1\n        s = """\n    inner\n  low"""\n    return s\n';
+    expect(view.state.doc.toString()).toBe(moved);
+    expect(view.state.selection.main.head).toBe(moved.indexOf('s = """') + 2);
+  });
 });
 
 describe('the CodeMirror host holding marks', () => {

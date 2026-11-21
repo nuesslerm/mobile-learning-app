@@ -1,5 +1,5 @@
 import type { EditorError, Language, NotANodeReason, Pos, Range, SyntaxNode } from '../../ports/protocol';
-import { classify, errorRanges, familyOf, isDamaged, outline, statementAt } from '../syntax';
+import { classify, errorRanges, familyOf, isDamaged, outline, statementAt, STATEMENT_BLOCK } from '../syntax';
 import { lineEndOf, lineStartOf } from '../syntax/blocks';
 import { frozenLines } from './indent';
 
@@ -29,7 +29,7 @@ type Hit = { readonly node: SyntaxNode; readonly parent: SyntaxNode; readonly gr
 const isSpace = (char: string | undefined) => char !== undefined && /\s/.test(char);
 
 // a compound's extent runs on to its trailing newline and a simple statement's does not, so a node ends where its text does
-function contentEnd(text: string, node: SyntaxNode): Pos {
+export function contentEnd(text: string, node: SyntaxNode): Pos {
   let end = node.to;
   while (end > node.from && isSpace(text[end - 1])) end -= 1;
   return end;
@@ -120,4 +120,28 @@ export function locateRun(input: RunInput, range: Range, options: { readonly car
   }
   const end = lineEndOf(text, to);
   return { ok: true, value: { run, parent: hit.parent, owner: above, index, extent: { from: start, to: end < text.length ? end + 1 : end }, indentPrefix, unterminated: end >= text.length } };
+}
+
+/** The blocks of a compound statement that hold statements, in order, those of its clauses (`catch`, `finally`) included. A block that holds clauses (a C++ switch body) is not one. */
+export function blocksOf(language: Language, compound: SyntaxNode): SyntaxNode[] {
+  const holdsStatements = (node: SyntaxNode) => node.type === STATEMENT_BLOCK[language] && !(node.children ?? []).some((child) => classify(language, child) === 'clause');
+  return (compound.children ?? []).flatMap((child) => (holdsStatements(child) ? [child] : classify(language, child) === 'clause' ? (child.children ?? []).filter(holdsStatements) : []));
+}
+
+export type CompoundHit = { readonly node: SyntaxNode; readonly blocks: readonly SyntaxNode[]; readonly parent: SyntaxNode };
+export type LocatedCompound = { readonly ok: true; readonly value: CompoundHit } | { readonly ok: false; readonly error: NotANode };
+
+/** The compound statement `range` names, wherever it stands (an else-if is one), with the blocks it owns. */
+export function locateCompound(input: RunInput, range: Range): LocatedCompound {
+  const { text, language } = input;
+  const refuse = (reason: NotANodeReason, message: string): LocatedCompound => ({ ok: false, error: { code: 'not-a-node', message, range, reason } });
+  let { from, to } = range;
+  while (from < to && isSpace(text[from])) from += 1;
+  while (to > from && isSpace(text[to - 1])) to -= 1;
+  const hit = from === to ? null : hitAt(language, outline(language, input.root), from);
+  if (!hit || classify(language, hit.node) !== 'compound' || contentEnd(text, hit.node) !== to) return refuse('no-statement', 'the range does not name a whole compound statement');
+  const blocks = blocksOf(language, hit.node);
+  const unclosed = (block: SyntaxNode) => familyOf(language) === 'braces' && text[block.to - 1] !== '}';
+  if (isDamaged(hit.node) || blocks.some((block) => isDamaged(block) || unclosed(block))) return refuse('damaged', 'the statement or its block has a syntax error');
+  return { ok: true, value: { node: hit.node, blocks, parent: hit.parent } };
 }

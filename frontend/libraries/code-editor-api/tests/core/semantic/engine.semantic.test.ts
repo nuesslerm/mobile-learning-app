@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { applyChanges, createEditorClient, createEditorEngine, mapSelRange, unwrap, type EngineCore, type EditorEvent, type HostUpdate } from '../../../src';
 import type { DocumentHost } from '../../../src/ports/host';
+import { plannedOps } from '../../../src/core/semantic/ops';
 import { createFakeEditor, snapshotOf } from '../../../src/testing';
 
 const BRANCH = 'def f(x):\n    if x:\n        a = 1\n        b = 2\n    return b\n';
@@ -21,14 +22,14 @@ function paced() {
 }
 
 describe('a node step on the engine', () => {
-  it('given a host with a tree and treeOf, when hello is read, then deleteNode is announced and no step the engine cannot plan; given a host without treeOf or without a tree, then none is', async () => {
+  it('given a host with a tree and treeOf, when hello is read, then the steps the engine can plan are announced and no other; given a host without treeOf or without a tree, then none is', async () => {
     const withBoth = createFakeEditor({ text: BRANCH, tree: true });
     const noTreeOf = createEditorEngine(Object.assign({}, withBoth.host, { treeOf: undefined }) as DocumentHost, { instance: 'no-tree-of', logError: () => undefined });
     const noTree = createFakeEditor({ text: BRANCH });
 
     const steps = async (engine: EngineCore) => unwrap(await createEditorClient(engine).hello()).capabilities.steps;
 
-    expect(await steps(withBoth.engine)).toEqual(['replace', 'move', 'select', 'type', 'complete', 'deleteNode']);
+    expect(await steps(withBoth.engine)).toEqual(['replace', 'move', 'select', 'type', 'complete', ...plannedOps]);
     expect(await steps(noTreeOf)).toEqual(['replace', 'move', 'select', 'type', 'complete']);
     expect(await steps(noTree.engine)).toEqual(['replace', 'move', 'select', 'type', 'complete']);
   });
@@ -43,13 +44,21 @@ describe('a node step on the engine', () => {
     expect(withBoth.text()).toBe(BRANCH);
   });
 
-  it('given a step with no planner, when it is sent beside a deleteNode, then the whole call is unsupported naming that step and nothing changes', async () => {
+  const NODE_STEPS = [
+    { op: 'moveNode', node: SECOND, to: { after: SECOND } },
+    { op: 'wrapNode', node: SECOND, header: 'for i in range(2)' },
+    { op: 'unwrapNode', node: SECOND },
+    { op: 'duplicateNode', node: SECOND },
+    { op: 'insertSnippet', at: { before: SECOND }, text: 'x = 1' },
+    { op: 'reindentBlock', node: SECOND },
+  ] as const;
+  it.each(NODE_STEPS.filter((step) => !plannedOps.includes(step.op)))('given $op, which the engine has no planner for, when it is sent beside a deleteNode, then the whole call is unsupported naming that step and nothing changes', async (step) => {
     const fake = createFakeEditor({ text: BRANCH, tree: true });
     const client = createEditorClient(fake.engine);
 
-    const reply = await client.transact([{ op: 'deleteNode', node: SECOND }, { op: 'moveNode', node: SECOND, to: { after: SECOND } }]);
+    const reply = await client.transact([{ op: 'deleteNode', node: SECOND }, step]);
 
-    expect(reply).toMatchObject({ ok: false, error: { code: 'unsupported', what: 'step:moveNode' } });
+    expect(reply).toMatchObject({ ok: false, error: { code: 'unsupported', what: `step:${step.op}` } });
     expect(fake.peek()).toMatchObject({ text: BRANCH, revision: 0, undoDepth: 0 });
   });
 

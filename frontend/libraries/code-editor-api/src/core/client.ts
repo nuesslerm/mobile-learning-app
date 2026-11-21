@@ -1,6 +1,6 @@
 import type { EditorEngine } from '../ports/engine';
 import type {
-  ApplyParams, ApplyValue, ConfigPatch, EditorConfig, EditorError, EditorErrorCode, EditorEvent, EventOf, EventType, Hello, HistoryValue, LoadValue, Point, Pos,
+  ApplyParams, ApplyValue, ConfigPatch, Destination, EditorConfig, EditorError, EditorErrorCode, EditorEvent, EventOf, EventType, Hello, HistoryValue, LoadValue, Point, Pos,
   MarkSpec, Range, ReadValue, Reply, RequestName, Requests, Revision, SelRange, Step, SyntaxNode, TreeParams, TreeValue, ViewParams, ViewValue,
 } from '../ports/protocol';
 import { enclosingBlock, isUnread, nodeAt, nodesInRange, statementAt, type EnclosingBlock, type Side } from './syntax';
@@ -25,6 +25,10 @@ export type EditorClient = {
   replaceRange(range: Range | 'selection', text: string, options?: Options): Promise<Reply<ApplyValue>>;
   insertAt(pos: Pos | 'selection', text: string, options?: Options): Promise<Reply<ApplyValue>>;
   moveRange(range: Range | 'selection', to: Pos, options?: Options): Promise<Reply<ApplyValue>>;
+  /** moves the whole lines of the statement or run of statements `node` names, the comment lines above it with them, to a destination, at the indent the destination's block has; refused as `invalid` when the destination is inside the node */
+  moveNode(node: Range | 'selection', to: Destination, options?: Options & { readonly expect?: string }): Promise<Reply<ApplyValue>>;
+  /** copies the whole lines of the statement or run of statements `node` names right after it; `landed` names the copy */
+  duplicateNode(node: Range | 'selection', options?: Options & { readonly expect?: string }): Promise<Reply<ApplyValue>>;
   /** removes the whole lines of the statement or run of statements `node` names (an empty 'selection' is the statement at the caret), with the comment lines above it; refused as `would-not-parse` when the code would break */
   deleteNode(node: Range | 'selection', options?: Options & { readonly expect?: string }): Promise<Reply<ApplyValue>>;
   select(anchor: Point, head?: Point, options?: Options): Promise<Reply<ApplyValue>>;
@@ -129,6 +133,8 @@ export function createEditorClient(engine: EditorEngine, options: ClientOptions 
     replaceRange: (range, text, extra) => transact([{ op: 'replace', range, text }], extra),
     insertAt: (pos, text, extra) => transact([{ op: 'replace', range: pos === 'selection' ? 'selection' : { from: pos, to: pos }, text }], extra),
     moveRange: (range, to, extra) => transact([{ op: 'move', range, to }], extra),
+    moveNode: (node, to, { expect, ...extra } = {}) => transact([{ op: 'moveNode', node, to, ...(expect === undefined ? {} : { expect }) }], extra),
+    duplicateNode: (node, { expect, ...extra } = {}) => transact([{ op: 'duplicateNode', node, ...(expect === undefined ? {} : { expect }) }], extra),
     deleteNode: (node, { expect, ...extra } = {}) => transact([{ op: 'deleteNode', node, ...(expect === undefined ? {} : { expect }) }], extra),
     select: (anchor, head, extra) => transact([head === undefined ? { op: 'select', anchor } : { op: 'select', anchor, head }], extra),
     undo: () => call('history', { direction: 'undo' }),
