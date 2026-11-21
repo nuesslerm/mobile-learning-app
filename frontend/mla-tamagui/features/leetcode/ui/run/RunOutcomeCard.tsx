@@ -5,8 +5,12 @@ import type { LayoutChangeEvent } from 'react-native';
 import type { RunResponse } from '../../domain/run/execution';
 import { RunCaseList } from './RunCaseList';
 
+/** What the card on screen shows: a run of the bundled cases, or of one case the learner typed (with the inputs it ran on). */
+export type RunCard = { mode: 'tests'; response: RunResponse } | { mode: 'custom'; response: RunResponse; inputs: Record<string, unknown> };
+
 /** The result of Run Local: status, totals, the failure text and every case. */
-export function RunOutcomeCard({ outcome, onLayout }: { outcome: RunResponse; onLayout?: (event: LayoutChangeEvent) => void }) {
+export function RunOutcomeCard({ card, onLayout }: { card: RunCard; onLayout?: (event: LayoutChangeEvent) => void }) {
+  const outcome = card.response;
   const accepted = outcome.status_msg === 'Accepted';
   return (
     <YStack mx="$3" mb="$1" px="$3" py="$2" rounded="$3" borderWidth={1} borderColor={accepted ? '$green9' : '$red9'} onLayout={onLayout} testID="ProblemEditorRunOutcome">

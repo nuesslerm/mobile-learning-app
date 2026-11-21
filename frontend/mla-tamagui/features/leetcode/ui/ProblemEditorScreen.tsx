@@ -16,7 +16,7 @@
 // keyboard toolbar is the V1-style `EditorHelperRails` (toolbar keys +
 // VoiceCommandButton) hosted by `KeyboardToolbarTarget`. Results panel
 // and rename dialog are intentionally omitted (deferred to V1).
-import type { RunResponse } from '../domain';
+import type { RunCodeParams, RunResponse } from '../domain';
 import { Logger } from '@lib/logging';
 import { toast } from 'sonner-native';
 
@@ -68,7 +68,7 @@ import { useCodeHistoryStore } from '../state/codeHistoryStore';
 import { useResetCodeRequestStore } from '../state/resetCodeRequestStore';
 
 import { AlternativePicker } from './AlternativePicker';
-import { RunOutcomeCard } from './run/RunOutcomeCard';
+import { RunOutcomeCard, type RunCard } from './run/RunOutcomeCard';
 import { DiffToggle } from './DiffToggle';
 import {
   EDITOR_LANGUAGES,
@@ -157,8 +157,8 @@ export function ProblemEditorScreen({
     editorRef.current?.blur();
     inputRef.current?.blur();
   }, [problem?.id]);
-  const [localRunning, setLocalRunning] = React.useState(false);
-  const [runOutcome, setRunOutcome] = React.useState<RunResponse | null>(null);
+  const [running, setRunning] = React.useState<RunCard['mode'] | null>(null);
+  const [card, setCard] = React.useState<RunCard | null>(null);
   // The buffer the current outcome describes. A result is a claim about the
   // code that produced it, so once the code moves the card is describing
   // something that no longer exists -- run to Accepted, edit the solution into
@@ -187,8 +187,8 @@ export function ProblemEditorScreen({
   // rails, so the content is reachable; nothing was bringing it into view at
   // the one moment the user is waiting for it.
   const revealRunOutcome = (event: LayoutChangeEvent) => {
-    if (revealedOutcomeRef.current === runOutcome) return;
-    revealedOutcomeRef.current = runOutcome;
+    if (revealedOutcomeRef.current === card) return;
+    revealedOutcomeRef.current = card;
     const { y } = event.nativeEvent.layout;
     Logger.info('editor_v2.run_outcome.reveal', { y });
     scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
@@ -263,7 +263,7 @@ export function ProblemEditorScreen({
       snapshot('language-switch');
       setLang(nextLang);
       setEditorText(pickStarterCode(problem?.starterCode, nextLang));
-      setRunOutcome(null);
+      setCard(null);
     },
     [availableLanguages, lang, problem?.id, problem?.starterCode, snapshot]
   );
@@ -299,77 +299,74 @@ export function ProblemEditorScreen({
     const source = outcomeSourceRef.current;
     if (source !== null && next !== source) {
       outcomeSourceRef.current = null;
-      setRunOutcome(null);
+      setCard(null);
     }
   }, []);
 
-  const handleRunLocally = React.useCallback(async () => {
-    setLocalRunning(true);
-    setRunOutcome(null);
-    const startedAt = Date.now();
-    try {
-      const result = await runner.run(
-        problem
-          ? runParamsFor(problem, lang, editorText)
-          : { lang, code: editorText, methodName: '', testCases: [] }
-      );
-      const latest = latestBufferRef.current;
-      if (latest.text !== editorText || latest.lang !== lang) {
-        // the code that ran is no longer in the editor: its verdict would sit over code it never judged
-        Logger.info('editor_v2.run_local.discarded', { problemId: problem?.id, lang, ms: Date.now() - startedAt });
-        toast('Code changed while it ran', { description: 'Run it again to see its result.' });
-        return;
-      }
-      setRunOutcome(result);
-      outcomeSourceRef.current = editorText;
-      Logger.info('editor_v2.run_local.result', {
-        state: result.state,
-        totalCorrect: result.total_correct,
-        totalTestcases: result.total_testcases,
-        problemId: problem?.id,
-        lang,
-        statusMsg: result.status_msg,
-        errorKind: runErrorKind(result),
-        ms: Date.now() - startedAt,
-      });
-      // A run that reaches the backend and fails its tests is not an error --
-      // it is the normal case while solving. Only the transport failing is.
-      const passed =
-        result.state === 'SUCCESS' &&
-        result.total_correct === result.total_testcases;
-      const tally = `${result.total_correct}/${result.total_testcases} tests`;
-      if (passed) toast.success('All tests passed', { description: tally });
-      else
-        toast.error('Tests failed', {
-          description: `${tally} · ${result.status_msg}`,
-        });
-    } catch (err) {
-      setRunOutcome({
-        source: 'backend-run',
-        kind: 'test',
-        state: 'FAILURE',
-        requestId: '',
-        run_success: false,
-        status_msg: 'Error',
-        total_correct: 0,
-        total_testcases: 0,
-        runtime_error: err instanceof Error ? err.message : String(err),
-      });
-      Logger.withError(err)
-        .withMetadata({
+  const runLocal = React.useCallback(
+    async (mode: RunCard['mode'], params: RunCodeParams, inputs?: Record<string, unknown>) => {
+      setRunning(mode);
+      setCard(null);
+      const startedAt = Date.now();
+      const cardOf = (response: RunResponse): RunCard => (mode === 'custom' ? { mode, response, inputs: inputs ?? {} } : { mode, response });
+      try {
+        const result = await runner.run(params);
+        const latest = latestBufferRef.current;
+        if (latest.text !== params.code || latest.lang !== params.lang) {
+          // the code that ran is no longer in the editor: its verdict would sit over code it never judged
+          Logger.info('editor_v2.run_local.discarded', { problemId: problem?.id, mode, lang: params.lang, ms: Date.now() - startedAt });
+          toast('Code changed while it ran', { description: 'Run it again to see its result.' });
+          return;
+        }
+        setCard(cardOf(result));
+        outcomeSourceRef.current = params.code;
+        Logger.info('editor_v2.run_local.result', {
+          mode,
+          state: result.state,
+          totalCorrect: result.total_correct,
+          totalTestcases: result.total_testcases,
           problemId: problem?.id,
-          lang,
+          lang: params.lang,
+          statusMsg: result.status_msg,
+          errorKind: runErrorKind(result),
           ms: Date.now() - startedAt,
-        })
-        .error('editor_v2.run_local.error');
-      toast.error('Run failed', {
-        description:
-          err instanceof Error ? err.message : 'The backend did not respond.',
-      });
-    } finally {
-      setLocalRunning(false);
-    }
-  }, [editorText, runner, problem, lang]);
+        });
+        // A run that reaches the backend and fails its tests is not an error --
+        // it is the normal case while solving. Only the transport failing is.
+        const passed = result.state === 'SUCCESS' && result.total_correct === result.total_testcases;
+        const tally = `${result.total_correct}/${result.total_testcases} tests`;
+        if (passed) toast.success('All tests passed', { description: tally });
+        else toast.error('Tests failed', { description: `${tally} · ${result.status_msg}` });
+      } catch (err) {
+        setCard(
+          cardOf({
+            source: 'backend-run',
+            kind: 'test',
+            state: 'FAILURE',
+            requestId: '',
+            run_success: false,
+            status_msg: 'Error',
+            total_correct: 0,
+            total_testcases: 0,
+            runtime_error: err instanceof Error ? err.message : String(err),
+          })
+        );
+        Logger.withError(err)
+          .withMetadata({ problemId: problem?.id, mode, lang: params.lang, ms: Date.now() - startedAt })
+          .error('editor_v2.run_local.error');
+        toast.error('Run failed', { description: err instanceof Error ? err.message : 'The backend did not respond.' });
+      } finally {
+        setRunning(null);
+      }
+    },
+    [runner, problem?.id]
+  );
+
+  const handleRunLocally = React.useCallback(
+    () =>
+      runLocal('tests', problem ? runParamsFor(problem, lang, editorText) : { lang, code: editorText, methodName: '', testCases: [] }),
+    [runLocal, problem, lang, editorText]
+  );
 
   // Run: submit the current code + the custom testInput to the auth'd
   // LeetCode bridge and await the judge result. Mirrors V1's `runTest`
@@ -570,7 +567,7 @@ export function ProblemEditorScreen({
         // genuinely irreversible -- the dialog said so. Snapshot first.
         snapshot('reset');
         setEditorText(pickStarterCode(problem.starterCode, lang));
-        setRunOutcome(null);
+        setCard(null);
         // The diff range belongs to the code that was just discarded.
         setDiffRange(null);
         setDiffMode(false);
@@ -818,17 +815,18 @@ export function ProblemEditorScreen({
                 testID="ProblemEditorRunLocalButton"
                 variant="outline"
                 size="$2"
-                disabled={localRunning}
+                disabled={running !== null}
                 pressLog="off"
                 onPress={() => {
                   Logger.info('editor_v2.run_local.tap', {
+                    mode: 'tests',
                     problemId: problem?.id,
                   });
                   dismissEditorKeyboard();
                   void handleRunLocally();
                 }}
               >
-                {localRunning ? 'Running…' : 'Run Local'}
+                {running === 'tests' ? 'Running…' : 'Run Local'}
               </Button>
               <Button
                 testID="ProblemEditorRunButton"
@@ -888,7 +886,7 @@ export function ProblemEditorScreen({
             </XStack>
 
             {/* Run Local result — server-executed pass/fail summary. */}
-            {runOutcome ? <RunOutcomeCard outcome={runOutcome} onLayout={revealRunOutcome} /> : null}
+            {card ? <RunOutcomeCard card={card} onLayout={revealRunOutcome} /> : null}
 
             {/* TestInput — fixed min-h, also scrollable. */}
             <YStack
