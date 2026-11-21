@@ -94,7 +94,13 @@ pub fn ps(app: &str) -> Result<Vec<Value>, String> {
 /// running image. A container that was created or stopped runs nothing: a redeploy that died half-way leaves the tag on containers that never started.
 pub fn running_commit(app: &str) -> Option<String> {
     if app == VM_OPS_API {
-        return request_json("/health", &Opts::get()).ok()?["commit"].as_str().filter(|c| !c.is_empty()).map(str::to_string);
+        return match request_json("/health", &Opts::get()) {
+            Ok(health) => health["commit"].as_str().filter(|c| !c.is_empty()).map(str::to_string),
+            Err(e) => {
+                wf_kit::wf_err!("wf: {VM_OPS_API} did not answer /health, planning it as changed: {e}");
+                None
+            }
+        };
     }
     let tag = format!("/{}:sha-", app_image(app));
     match ps(app) {

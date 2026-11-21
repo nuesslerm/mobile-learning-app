@@ -3,6 +3,7 @@
 //! built from (`image_hash`) differs between the commit it runs and HEAD; the app's update when its package graph moved.
 use wf_vmops::services::{running_commit, VM_OPS_API};
 use serde_json::{json, Value};
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -204,15 +205,26 @@ fn expected_commit(dir: &Path, app: &str, running: Option<String>, sha: &str) ->
     }
 }
 
+/// What each of `apps` runs, asked all at once: a service that answers slowly or not at all costs one request's own deadline (`running_commit` names it on
+/// stderr), not the sum of nine, so the planning step stays far under the step bound however many services are silent.
+fn running_commits(apps: &[&str], ask: &(dyn Fn(&str) -> Option<String> + Sync)) -> BTreeMap<String, Option<String>> {
+    std::thread::scope(|scope| {
+        let asked: Vec<_> = apps.iter().map(|app| (*app, scope.spawn(move || ask(app)))).collect();
+        asked.into_iter().map(|(app, answer)| (app.to_string(), answer.join().ok().flatten())).collect()
+    })
+}
+
 /// `{app, commit, why}` for each deploy leg among the packages: what `wf test run --stage deployment-verification-tests` hands the tests as
 /// `WF_EXPECTED_REVISIONS`, since a push that leaves a service's image inputs alone ships no leg and the service keeps the commit it was built from.
 pub(crate) fn expected_revisions(packages: &[&str], sha: &str, dir: &Path) -> Vec<Value> {
-    let legs = packages.iter().filter_map(|p| DEPLOY_LEGS.iter().find(|l| l.package == *p));
-    legs.map(|leg| {
-        let (commit, why) = expected_commit(dir, leg.app, running_commit(leg.app), sha);
-        json!({ "app": leg.app, "commit": commit, "why": why })
-    })
-    .collect()
+    let legs: Vec<&Leg> = packages.iter().filter_map(|p| DEPLOY_LEGS.iter().find(|l| l.package == *p)).collect();
+    let running = running_commits(&legs.iter().map(|l| l.app).collect::<Vec<_>>(), &running_commit);
+    legs.iter()
+        .map(|leg| {
+            let (commit, why) = expected_commit(dir, leg.app, running[leg.app].clone(), sha);
+            json!({ "app": leg.app, "commit": commit, "why": why })
+        })
+        .collect()
 }
 
 /// The legs a push deploys, each with why (`also` names services that deploy whatever changed), and whether it publishes an EAS Update; `since` stands in for every leg's running
@@ -223,7 +235,13 @@ pub fn plan(force: bool, also: &[String], since: Option<&str>, no_lookup: bool, 
         (std::iter::once(VM_OPS_API).chain(DEPLOY_LEGS.iter().map(|l| l.app)).chain(std::iter::once(AGENT_SHELL)).map(|a| (a, vec!["--force".to_string()])).collect(), vec!["--force".to_string()])
     } else {
         let mut reasons = Reasons { affected: Vec::new(), dir: None };
-        let running = |app: &str| since.map(str::to_string).or_else(|| if no_lookup { None } else { running_commit(app) });
+        let asked = if since.is_some() || no_lookup {
+            BTreeMap::new()
+        } else {
+            let apps: Vec<&str> = DEPLOY_LEGS.iter().map(|l| l.app).chain([VM_OPS_API, AGENT_SHELL]).collect();
+            running_commits(&apps, &running_commit)
+        };
+        let running = |app: &str| since.map(str::to_string).or_else(|| asked.get(app).cloned().flatten());
         let mut legs = Vec::new();
         for leg in DEPLOY_LEGS {
             let why = image_changes(None, running(leg.app), leg.app)?;
@@ -301,5 +319,55 @@ mod changed_images_tests {
 
         // Then the moved one and the one that cannot be shown unchanged are named, in order
         assert_eq!(moved, ["opencode-server", "stt"]);
+    }
+}
+
+#[cfg(test)]
+mod running_commits_tests {
+    use super::running_commits;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn given_services_that_answer_only_once_every_one_has_been_asked_when_their_commits_are_read_then_all_are_asked_at_once_and_a_silent_one_reads_unknown() {
+        // Given a probe that answers only after all three services have been asked, and one service that never answers
+        let asked = AtomicUsize::new(0);
+        let ask = |app: &str| {
+            asked.fetch_add(1, Ordering::SeqCst);
+            // an asker that went one by one would wait here for services it has not asked yet: the guard makes that a failing answer, never a hang
+            let waiting = Instant::now();
+            while asked.load(Ordering::SeqCst) < 3 {
+                if waiting.elapsed() > Duration::from_secs(30) {
+                    return None;
+                }
+                std::thread::sleep(Duration::from_millis(1));
+            }
+            (app != "silent").then(|| format!("{app}-sha"))
+        };
+
+        // When their commits are read
+        let known = running_commits(&["alpha", "beta", "silent"], &ask);
+
+        // Then the two that answer have their commits and the silent one reads as unknown
+        assert_eq!(known["alpha"].as_deref(), Some("alpha-sha"));
+        assert_eq!(known["beta"].as_deref(), Some("beta-sha"));
+        assert_eq!(known["silent"], None);
+    }
+
+    #[test]
+    fn given_a_probe_that_panics_when_commits_are_read_then_that_service_reads_unknown_and_the_others_keep_their_answers() {
+        // Given a probe that panics for one service
+        let ask = |app: &str| {
+            if app == "boom" {
+                panic!("the probe broke");
+            }
+            Some(format!("{app}-sha"))
+        };
+
+        // When their commits are read
+        let known = running_commits(&["alpha", "boom"], &ask);
+
+        // Then the broken one reads as unknown and the other is unaffected
+        assert_eq!((known["alpha"].as_deref(), known["boom"].clone()), (Some("alpha-sha"), None));
     }
 }

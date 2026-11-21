@@ -2,7 +2,7 @@
 //! leaves a service's image inputs alone ships no leg, so the service keeps the commit it was built from and the test must
 //! expect that one; a service whose image inputs moved since, or that cannot be asked, is held to the pushed commit. vm-ops-api is a
 //! fake behind a fake tailnet; `git`, `pnpm` and `nx` are stubs, and nx writes the `WF_EXPECTED_REVISIONS` its tasks would see.
-use crate::support::{create_stub, run_wf, RunResult};
+use crate::support::{create_stub, run_wf, MockReply, RunResult};
 use wf_vmops::testing::{answers, FakeVm};
 use serde_json::{json, Value};
 use std::time::Duration;
@@ -39,11 +39,12 @@ impl Stage {
     /// Runs the stage once vm-ops-api has told each service's running image (none: it cannot be asked) and pnpm says which packages
     /// changed since; returns the stage's result, its summary line, and the expectations nx's tasks saw.
     fn run(&self, running: [Option<String>; 4], changed_packages: &str) -> (RunResult, Value, Value) {
-        let replies: Vec<String> = SERVICES.iter().zip(running).map(|((app, _), image)| match image {
-            Some(image) => answers::reply(200, &answers::running(app, &image)),
-            None => answers::reply(502, &answers::engine_down()),
-        }).collect();
-        self.vm.replies(&replies);
+        // each service is asked for its own containers, all at once: an answer belongs to its path, never to its place in the arrival order
+        let routes: Vec<(String, MockReply)> = SERVICES.iter().zip(running).map(|((app, _), image)| (format!("GET /services/{app}/ps"), match image {
+            Some(image) => MockReply::text(200, &answers::running(app, &image).to_string()),
+            None => MockReply::text(502, &answers::engine_down().to_string()),
+        })).collect();
+        self.vm.server.routes(&routes.iter().map(|(key, reply)| (key.as_str(), reply.clone())).collect::<Vec<_>>());
         let dir = self.dir.path().display().to_string();
         let opts = self.vm.opts().bin_dir(&self.dir.path().join("bin")).cwd(self.dir.path()).env("STUB_DIR", &dir).env("REAL_REPO", &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").display().to_string()).env("WF_TEST_REPO", &dir).env("WF_NX_BIN", &format!("{dir}/bin/nx")).env("WF_BLOB_CACHE", "off").env("PNPM_OUT", changed_packages).env("WF_DEPLOY_RETRY_MS", "10").timeout(Duration::from_secs(120));
         let r = run_wf(&["test", "run", "--stage", "deployment-verification-tests", "--plan", &format!("{dir}/plan.json")], &opts);
