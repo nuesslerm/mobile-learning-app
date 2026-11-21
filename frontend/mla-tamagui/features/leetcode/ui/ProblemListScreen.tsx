@@ -10,6 +10,7 @@ import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
 import { ProblemCatalog } from '../domain/problemCatalog';
 import { useLeetCodeAuthStore } from '../state/authStore';
+import { AutocompleteSettingRow } from './AutocompleteSettingRow';
 import { RunnerSettingRow } from './RunnerSettingRow';
 
 const CONTENT_STYLE = { paddingBottom: 24 } as const;
@@ -226,6 +227,7 @@ export function ProblemListScreen(): React.ReactElement {
       >
         <AuthRow />
         <RunnerSettingRow />
+        <AutocompleteSettingRow />
         {categories.map((category) => (
           <Fragment key={category.id}>
             <Text
