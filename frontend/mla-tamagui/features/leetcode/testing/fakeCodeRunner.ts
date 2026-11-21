@@ -1,4 +1,4 @@
-import type { RunResponse, TestResult } from '../domain/execution';
+import type { RunResponse, TestResult } from '../domain/run/execution';
 import type { CodeRunnerPort, RunCodeParams } from '../domain/ports';
 
 export type FakeCodeRunner = CodeRunnerPort & { readonly calls: RunCodeParams[] };

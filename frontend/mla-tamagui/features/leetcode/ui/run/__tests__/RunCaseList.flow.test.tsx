@@ -1,10 +1,10 @@
 import { createFakeAudioRecorder, createFakeVoiceEditTransport, screen, userEvent, waitFor } from '@lib/flow-test-harness';
 import { describe, expect, it, vi } from 'vitest';
 
-import { app } from '../../../../tests/flow/app';
-import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../..';
-import type { TestResult } from '../../domain/execution';
-import { createFakeCodeRunner } from '../../testing';
+import { app } from '../../../../../tests/flow/app';
+import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../../../index';
+import type { TestResult } from '../../../domain/run/execution';
+import { createFakeCodeRunner } from '../../../testing/index';
 
 const LONG = Array.from({ length: 40 }, (_, i) => i * 1000);
 const result = (pass: boolean, over: Partial<TestResult> = {}): TestResult => ({

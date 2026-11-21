@@ -59,7 +59,7 @@ import { useAutocompleteSettingStore } from '../state/autocompleteSettingStore';
 import { type Selection } from '../domain/editor/types';
 import { EditorHelperRails } from './editor/helperbars/EditorHelperRails';
 import { ProblemCatalog } from '../domain/problemCatalog';
-import { runParamsFor } from '../domain/runParams';
+import { runParamsFor } from '../domain/run/runParams';
 import { compactVoiceError } from '../domain/voiceEditIdentity';
 import { useVoiceEdit } from '../state/useVoiceEdit';
 import { useLeetCodeAuthStore } from '../state/authStore';
@@ -68,7 +68,7 @@ import { useCodeHistoryStore } from '../state/codeHistoryStore';
 import { useResetCodeRequestStore } from '../state/resetCodeRequestStore';
 
 import { AlternativePicker } from './AlternativePicker';
-import { RunCaseList } from './RunCaseList';
+import { RunCaseList } from './run/RunCaseList';
 import { DiffToggle } from './DiffToggle';
 import {
   EDITOR_LANGUAGES,

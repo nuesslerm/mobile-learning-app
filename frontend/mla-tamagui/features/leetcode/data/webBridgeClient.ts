@@ -7,7 +7,7 @@ import type {
   TestCase,
   TestResult,
 } from '../domain';
-import { runResponseOf } from '../domain/verdict';
+import { runResponseOf } from '../domain/run/verdict';
 import { Logger } from '@lib/logging';
 import {
   allowedTraceparentOrigins,

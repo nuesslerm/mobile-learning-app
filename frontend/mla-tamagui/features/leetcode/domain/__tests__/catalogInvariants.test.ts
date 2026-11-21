@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ProblemCatalog } from '../problemCatalog';
-import { runParamsFor } from '../runParams';
+import { runParamsFor } from '../run/runParams';
 
 const problems = ProblemCatalog.getAll();
 const withCases = problems.filter((p) => p.testCases !== null);

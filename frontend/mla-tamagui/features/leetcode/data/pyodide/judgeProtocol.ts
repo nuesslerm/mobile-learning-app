@@ -1,4 +1,4 @@
-import type { TestCase } from '../../domain/execution';
+import type { TestCase } from '../../domain/run/execution';
 import type { NodeType } from '../../domain/models';
 
 /** What the page's `judge` call takes: the learner's code, the cases, and what the harness needs to build and compare values. */

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ProblemCatalog } from '../../../domain/problemCatalog';
-import { runParamsFor } from '../../../domain/runParams';
+import { runParamsFor } from '../../../domain/run/runParams';
 import { createPyodideRunner } from '../pyodideRunner';
 import { createNodePageHost } from './support/nodePageHost';
 

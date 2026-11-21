@@ -1,5 +1,5 @@
-import type { RunCodeParams } from './ports';
-import type { Blind75Problem } from './models';
+import type { RunCodeParams } from '../ports';
+import type { Blind75Problem } from '../models';
 
 /** What a run of `code` against a catalog problem needs: its cases, and what the harness must know to build and compare their values. */
 export function runParamsFor(problem: Blind75Problem, lang: string, code: string): RunCodeParams {

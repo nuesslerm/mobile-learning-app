@@ -11,7 +11,7 @@
 
 import { z } from 'zod';
 
-import { testCaseSchema } from './execution';
+import { testCaseSchema } from './run/execution';
 
 export const difficultySchema = z.enum(['easy', 'medium', 'hard']);
 export type Difficulty = z.infer<typeof difficultySchema>;

@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
-import type { TestCase, TestResult } from '../../../domain/execution';
+import type { TestCase, TestResult } from '../../../domain/run/execution';
 import { ProblemCatalog } from '../../../domain/problemCatalog';
-import { runResponseOf, type RawRun } from '../../../domain/verdict';
+import { runResponseOf, type RawRun } from '../../../domain/run/verdict';
 import type { JudgePayload } from '../judgeProtocol';
 import { bootNodeJudge, type NodeJudge } from './support/nodePyodide';
 

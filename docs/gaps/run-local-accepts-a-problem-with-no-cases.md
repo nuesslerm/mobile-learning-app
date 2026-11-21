@@ -2,8 +2,8 @@
 status: open
 area: leetcode
 paths:
-  - "frontend/mla-tamagui/features/leetcode/domain/verdict.ts"
-  - "frontend/mla-tamagui/features/leetcode/domain/runParams.ts"
+  - "frontend/mla-tamagui/features/leetcode/domain/run/verdict.ts"
+  - "frontend/mla-tamagui/features/leetcode/domain/run/runParams.ts"
 opened: 2026-11-20
 last_verified: 2026-11-20
 links: []

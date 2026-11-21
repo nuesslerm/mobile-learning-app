@@ -7,7 +7,7 @@ import { loadPyodide, type PyodideInterface } from 'pyodide';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ProblemCatalog } from '../../../domain/problemCatalog';
-import { rawRunSchema } from '../../../domain/verdict';
+import { rawRunSchema } from '../../../domain/run/verdict';
 import type { JudgeParams } from '../judgeProtocol';
 import { createPageHandlers, type PageDeps } from '../pageHandlers';
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ProblemCatalog } from '../../../domain/problemCatalog';
-import { runParamsFor } from '../../../domain/runParams';
+import { runParamsFor } from '../../../domain/run/runParams';
 import { answers, createFakePageHost, HANG, type FakePageHost, type FakePageScript } from '../../../testing/fakePageHost';
 import { createPyodideRunner, type RunnerLimits, type RunnerState } from '../pyodideRunner';
 

@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { loadPyodide, type PyodideInterface } from 'pyodide';
 
-import { rawRunSchema, type RawRun } from '../../../../domain/verdict';
+import { rawRunSchema, type RawRun } from '../../../../domain/run/verdict';
 import type { JudgePayload } from '../../judgeProtocol';
 
 const HERE = dirname(new URL(import.meta.url).pathname);

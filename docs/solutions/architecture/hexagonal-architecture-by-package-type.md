@@ -82,7 +82,8 @@ frontend/                                              (landed 21 Nov; was propo
 │  └─ flow-test-harness/      session.editor(): API calls + mirror, now config() and press()
 └─ mla-tamagui/features/leetcode/     ONE feature, hexagonal rings; code-editor/ is folded in
    ├─ domain/                 pure, imports no I/O
-   │  ├─ ports.ts · models · judge · caseDisplay · toolbar · completionEntries
+   │  ├─ ports.ts · models · judge · toolbar · completionEntries
+   │  ├─ run/                 the runner capability: execution · verdict · runParams · caseDisplay
    │  └─ editor/              editing · languageProfile · applyVoiceEdit · configPatch · documentWrite (planWrite/writeThrough) · editorForwarding (messages → API) · types
    ├─ data/                   adapters
    │  ├─ editor/cm6/          cm6Host · completion* · languageExtensions · syntaxTreeRead · page source → bundle (generated) · editorHtml · webViewEditorBridge
@@ -91,6 +92,7 @@ frontend/                                              (landed 21 Nov; was propo
    │  └─ editor/              editorSettings · palettes
    ├─ ui/
    │  ├─ editor/              EditorInput (React) · toolbarKeys · helperbars/{Syntax,Action}Toolbar · EditorHelperRails
+   │  ├─ run/                 RunCaseList (the runner's view)
    │  └─ …                    screens, unchanged
    ├─ di/                     LeetCodeContainer, the one composition root
    ├─ routes/ · plan/         unchanged

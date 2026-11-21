@@ -1,9 +1,9 @@
 import { createRpcClient, RpcError, type RpcClient, type Timers } from '@lib/webview-rpc';
 import { Logger } from '@lib/logging';
 
-import type { RunResponse, TestResult } from '../../domain/execution';
+import type { RunResponse, TestResult } from '../../domain/run/execution';
 import { CodeRunnerError, type CodeRunnerPort, type CodeRunnerStage, type RunCodeParams } from '../../domain/ports';
-import { rawRunSchema, runResponseOf, type RawRun } from '../../domain/verdict';
+import { rawRunSchema, runResponseOf, type RawRun } from '../../domain/run/verdict';
 import { JUDGE_DEFAULTS, type JudgeParams } from './judgeProtocol';
 import type { PageHost, PageSession } from './pageHost';
 

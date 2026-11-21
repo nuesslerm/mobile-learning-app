@@ -4,7 +4,7 @@
 // dependency-free.
 
 import type { EditorClient } from '@lib/code-editor-api';
-import type { RunResponse, TestCase } from './execution';
+import type { RunResponse, TestCase } from './run/execution';
 import type { NodeType } from './models';
 import type {
   ClientEditStat,

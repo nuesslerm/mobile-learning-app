@@ -1,9 +1,9 @@
 import { createRpcServer, type RpcServer } from '@lib/webview-rpc';
 import { createLoopbackPair } from '@lib/webview-rpc/testing';
 
-import type { TestResult } from '../domain/execution';
+import type { TestResult } from '../domain/run/execution';
 import { CodeRunnerError } from '../domain/ports';
-import type { RawRun } from '../domain/verdict';
+import type { RawRun } from '../domain/run/verdict';
 import type { JudgeParams } from '../data/pyodide/judgeProtocol';
 import type { PyodideFileName } from '../data/pyodide/pageHandlers';
 import type { PageHost, PageSession } from '../data/pyodide/pageHost';

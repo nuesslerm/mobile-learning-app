@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { CodeRunnerPort } from '../../../domain/ports';
 import { ProblemCatalog } from '../../../domain/problemCatalog';
-import { runParamsFor } from '../../../domain/runParams';
+import { runParamsFor } from '../../../domain/run/runParams';
 import { PyodideRunnerProvider, useOptionalPyodideCodeRunner } from '../PyodideRunnerProvider';
 import type { AssetIo } from '../pyodideAssets';
 

@@ -3,8 +3,8 @@ import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 import { useState } from 'react';
 import { Pressable } from 'react-native';
 
-import { clip, orderCases, showInput, showValue } from '../domain/caseDisplay';
-import type { TestResult } from '../domain/execution';
+import { clip, orderCases, showInput, showValue } from '../../domain/run/caseDisplay';
+import type { TestResult } from '../../domain/run/execution';
 
 function Field({ id, label, value, tone }: { id: string; label: string; value: string; tone?: '$red10' }) {
   const [open, setOpen] = useState(false);

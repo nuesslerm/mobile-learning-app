@@ -3,8 +3,8 @@ import { join } from 'node:path';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { ProblemCatalog } from '../../../domain/problemCatalog';
-import { runParamsFor } from '../../../domain/runParams';
-import { runResponseOf } from '../../../domain/verdict';
+import { runParamsFor } from '../../../domain/run/runParams';
+import { runResponseOf } from '../../../domain/run/verdict';
 import type { JudgePayload } from '../judgeProtocol';
 import { bootNodeJudge, type NodeJudge } from './support/nodePyodide';
 
