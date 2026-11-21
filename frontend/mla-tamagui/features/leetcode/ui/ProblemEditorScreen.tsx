@@ -53,6 +53,7 @@ import {
   type EditorInputHandle,
 } from './editor/EditorInput';
 import { applyVoiceEdit } from '../domain/editor/applyVoiceEdit';
+import type { EditOutcome, EditTarget } from '../domain/editor/voiceEditPlan';
 import { toEditorLanguage } from '../domain/editor/languageProfile';
 import { completionEntriesFor } from '../domain/completionEntries';
 import { useAutocompleteSettingStore } from '../state/autocompleteSettingStore';
@@ -62,6 +63,7 @@ import { ProblemCatalog } from '../domain/problemCatalog';
 import { customInputMessage, parameterNames, parseCustomInput, writeCustomInput } from '../domain/run/customCase';
 import { runParamsFor } from '../domain/run/runParams';
 import { compactVoiceError } from '../domain/voiceEditIdentity';
+import { useVoiceApply } from '../state/useVoiceApply';
 import { useVoiceEdit } from '../state/useVoiceEdit';
 import { useLeetCodeAuthStore } from '../state/authStore';
 import { useCodeHistoryRequestStore } from '../state/codeHistoryRequestStore';
@@ -214,12 +216,12 @@ export function ProblemEditorScreen({
   // Snapshot the buffer that is ABOUT to be replaced, not the replacement --
   // history is only worth anything if it holds what you are losing.
   const snapshot = React.useCallback(
-    (reason: Parameters<typeof recordSnapshot>[0]['reason']) => {
+    (reason: Parameters<typeof recordSnapshot>[0]['reason'], code: string = editorText) => {
       if (!problem) return;
       recordSnapshot({
         problemId: problem.id,
         language: lang,
-        code: editorText,
+        code,
         reason,
       });
     },
@@ -228,8 +230,17 @@ export function ProblemEditorScreen({
 
   const busy = runState !== 'idle';
   const canRun = isLoggedIn && !busy;
+  // The editor as a voice edit sees it: read for the plan and applied at the revision the plan was made for.
+  const editorTarget = React.useMemo<EditTarget>(
+    () => ({
+      basis: () => editorRef.current?.basis() ?? Promise.resolve(null),
+      applyEdit: (edit) => editorRef.current?.applyEdit(edit) ?? Promise.resolve({ ok: false, reason: 'not-ready', code: 'not-ready' }),
+    }),
+    []
+  );
   const voiceEdit = useVoiceEdit(editorText, lang, `${id ?? 'problem'}.m4a`, {
     problemId: problem?.id ?? null,
+    readBasis: editorTarget.basis,
   });
 
   // "Dirty" is measured against the starter code for the CURRENT language, not
@@ -429,52 +440,25 @@ export function ProblemEditorScreen({
     }
   }, [canRun, gateway, problem, editorText, testInput, lang]);
 
+  // React follows the page's contentChanged for the text; only the mark of what the edit changed is set here.
+  const showEdit = React.useCallback((outcome: EditOutcome) => {
+    if (!outcome.ok || !outcome.landed) return;
+    setDiffRange({ start: outcome.landed.from, end: outcome.landed.to });
+    setDiffMode(true);
+    editorRef.current?.showDiff(outcome.landed.from, outcome.landed.to);
+  }, []);
+  const { apply: applyVoice } = useVoiceApply({ target: editorTarget, voiceEdit, snapshot, problemId: problem?.id });
   const handleVoiceApply = React.useCallback(
     (alt: EditAlternative) => {
-      // The commands themselves, because "the edit came out wrong" has been
-      // undiagnosable from this log more than once: the planner is
-      // nondeterministic, so the offending command cannot be reproduced after
-      // the fact by asking it again. Offsets are the part that matters; text
-      // is the user's code, so it is logged as a length.
-      Logger.info('editor_v2.voice_apply', {
-        alternativeId: alt.id,
-        confidence: alt.confidence,
-        problemId: problem?.id,
-        codeLength: editorText.length,
-        commands: alt.commands.map((c) =>
-          Object.fromEntries(
-            Object.entries(c).map(([k, v]) =>
-              typeof v === 'string' && k !== 'type'
-                ? [`${k}Length`, v.length]
-                : [k, v]
-            )
-          )
-        ),
-      });
-      const result = applyVoiceEdit(editorText, alt);
-      snapshot('voice-edit');
-      setDiffRange(result.diffRange);
-      setDiffMode(true);
-      setEditorText(result.modifiedText);
-      editorRef.current?.setTextAndSelection(
-        result.modifiedText,
-        result.selection
-      );
-      editorRef.current?.showDiff(result.diffRange.start, result.diffRange.end);
-      const pickedIndex =
-        voiceEdit.state.phase === 'choosing'
-          ? voiceEdit.state.alternatives.findIndex((a) => a.id === alt.id)
-          : -1;
-      voiceEdit.markApplied({
-        ...(pickedIndex >= 0 ? { pickedIndex } : {}),
-        codeAfter: result.modifiedText,
-      });
-      voiceEdit.dismiss();
+      void applyVoice(alt).then(showEdit);
     },
-    [editorText, voiceEdit, problem?.id, snapshot]
+    [applyVoice, showEdit]
   );
 
+  // Only once the state that carries the plan's basis is on screen: a render between the plan returning and that state landing
+  // (a keystroke's echo, say) would otherwise apply it with no basis.
   React.useEffect(() => {
+    if (voiceEdit.state.phase !== 'applied') return;
     const alt = voiceEdit.consumeAutoApply();
     if (alt) {
       handleVoiceApply(alt);

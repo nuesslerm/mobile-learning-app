@@ -8,8 +8,9 @@ import {
 } from '@lib/flow-test-harness';
 
 import { app } from '../../../../tests/flow/app';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { useCodeHistoryStore } from '../../state/codeHistoryStore';
 import {
   type LeetCodeGatewayPort,
   type LeetCodePortOverrides,
@@ -49,7 +50,48 @@ async function renderVoiceEditor(ports: LeetCodePortOverrides) {
   return app.render('/leetcode/two-sum', { overrides: { leetcode: ports } });
 }
 
+const STALE_BANNER = 'The code changed while the edit was being planned. Say it again.';
+
+const SEEN_EDIT = {
+  id: 'alt-1',
+  label: 'Declare seen',
+  summary: 'Inserts seen after the signature.',
+  confidence: 1,
+  commands: [{ type: 'insertAfterLine', line: 3, text: '        seen = {}' }],
+};
+
+// A plan that is in flight while the person goes on typing: the planner's answer waits until the test lets it go, and every request it
+// was asked is kept.
+function heldPlan(alternatives: (typeof SEEN_EDIT)[]) {
+  const base = createFakeVoiceEditTransport({ transcript: 'declare an empty dictionary called seen', alternatives });
+  const asked: string[] = [];
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const voice = {
+    ...base,
+    plan: async (request: { currentCode: string; transcript: string; language: string }) => {
+      asked.push(request.currentCode);
+      await gate;
+      return base.plan(request);
+    },
+  } as unknown as VoiceEditTransportPort;
+  return { voice, asked, release };
+}
+
+// A typed instruction, through the review sheet, as far as Send.
+async function sendTypedInstruction(text: string) {
+  await userEvent.click(screen.getByTestId('ProblemEditorTextEditStartButton'));
+  await userEvent.type(await screen.findByTestId('ProblemEditorVoiceReviewSheet-TranscriptInput'), text);
+  await userEvent.click(screen.getByTestId('ProblemEditorVoiceReviewSheet-Send'));
+}
+
+const voiceEditSnapshots = () => useCodeHistoryStore.getState().snapshots.filter((snap) => snap.reason === 'voice-edit');
+
 describe('ProblemEditorScreen flow (voice edit)', () => {
+  beforeEach(() => useCodeHistoryStore.setState({ snapshots: [] }));
+
   it('given the problem editor with an injected voice pipeline, when the user records, stops and picks the second alternative, then the edit is applied and the diff range is set', async () => {
     const audio = createFakeAudioRecorder();
     const voice = createFakeVoiceEditTransport({
@@ -94,7 +136,8 @@ describe('ProblemEditorScreen flow (voice edit)', () => {
     await waitFor(() =>
       expect(screen.getByTestId('ProblemEditorVoiceReviewSheet')).toBeTruthy()
     );
-    const transcriptInput = screen.getByTestId('ProblemEditorVoiceReviewSheet-TranscriptInput');
+    // the field shows once the editor has been read for the plan and the sheet is reviewing, not while it still transcribes
+    const transcriptInput = await screen.findByTestId('ProblemEditorVoiceReviewSheet-TranscriptInput');
     await waitFor(() => {
       expect((transcriptInput as HTMLTextAreaElement).value).toBe(
         'return the two indices that add up to the target'
@@ -145,7 +188,7 @@ describe('ProblemEditorScreen flow (voice edit)', () => {
     await waitFor(() => expect(screen.getByTestId('ProblemEditorVoiceToolbar-Send')).toBeTruthy());
     await userEvent.click(screen.getByTestId('ProblemEditorVoiceToolbar-Send'));
     await waitFor(() =>
-      expect(screen.getByTestId('ProblemEditorVoiceReviewSheet-Send')).toBeTruthy()
+      expect(screen.getByTestId('ProblemEditorVoiceReviewSheet-TranscriptInput')).toBeTruthy()
     );
     await userEvent.click(screen.getByTestId('ProblemEditorVoiceReviewSheet-Send'));
 
@@ -178,4 +221,82 @@ describe('ProblemEditorScreen flow (voice edit)', () => {
       'planner exploded while planning'
     );
   });
+
+  it("given a keystroke typed in the editor, when Send is pressed, then the planner is asked with the editor's text including it", async () => {
+    // Given a keystroke in the editor and a plan that is held once asked
+    const held = heldPlan([SEEN_EDIT]);
+    const session = await renderVoiceEditor({ gateway: fakeGateway(), voice: held.voice, audio: createFakeAudioRecorder() });
+    const editor = await session.editor();
+    await editor.type('# ');
+    const typed = editor.text();
+
+    // When the instruction is sent
+    await sendTypedInstruction('declare an empty dictionary called seen');
+
+    // Then the planner saw the editor's own text
+    await waitFor(() => expect(held.asked).toEqual([typed]));
+  }, 60_000);
+
+  it('given a plan held in flight, when the person types in the editor and the plan then returns, then the edit is refused with the banner text, the typed text is in the buffer, the plan text is not, and history has no voice-edit snapshot', async () => {
+    // Given an instruction sent and its plan not yet returned
+    const held = heldPlan([SEEN_EDIT]);
+    const session = await renderVoiceEditor({ gateway: fakeGateway(), voice: held.voice, audio: createFakeAudioRecorder() });
+    const editor = await session.editor();
+    await sendTypedInstruction('declare an empty dictionary called seen');
+    await waitFor(() => expect(held.asked).toHaveLength(1));
+
+    // When the person types before the plan returns
+    await editor.type('# ');
+    const typed = editor.text();
+    held.release();
+
+    // Then the edit is refused with the banner text and the buffer is what the person typed
+    await waitFor(() => expect(screen.getByTestId('ProblemEditorVoiceErrorText').textContent).toBe(STALE_BANNER));
+    expect(editor.text()).toBe(typed);
+    expect(editor.text()).not.toContain('seen = {}');
+    expect(editor.diffRanges()).toEqual([]);
+    expect(voiceEditSnapshots()).toEqual([]);
+  }, 60_000);
+
+  it('given an applied voice edit, when Undo is pressed once, then the text is exactly the text before the edit', async () => {
+    // Given a voice edit that landed
+    const voice = createFakeVoiceEditTransport({ transcript: 'declare seen', alternatives: [SEEN_EDIT] }) as unknown as VoiceEditTransportPort;
+    const session = await renderVoiceEditor({ gateway: fakeGateway(), voice, audio: createFakeAudioRecorder() });
+    const editor = await session.editor();
+    const starter = editor.text();
+    await sendTypedInstruction('declare seen');
+    await waitFor(() => expect(editor.text()).toBe(`${starter}seen = {}`));
+    Object.assign(window, { __MCP_KEYBOARD_VISIBLE__: true });
+    window.dispatchEvent(new Event('mcp:keyboardframe'));
+    await waitFor(() => expect(screen.queryByTestId('EditorAction-Undo')).not.toBeNull());
+
+    // When Undo is pressed once
+    await session.tap('EditorAction-Undo');
+
+    // Then the whole edit is gone in that one step
+    await waitFor(() => expect(editor.text()).toBe(starter));
+  }, 60_000);
+
+  it('given the picker open and the editor changed meanwhile, when a row is picked, then the pick is refused and the buffer is untouched', async () => {
+    // Given two alternatives to choose from
+    const alternatives = [
+      { ...SEEN_EDIT, id: 'alt-1', confidence: 0.6, commands: [{ type: 'insertAfterLine', line: 3, text: '        return [0, 1]' }] },
+      { ...SEEN_EDIT, id: 'alt-2', confidence: 0.5, commands: [{ type: 'insertAfterLine', line: 3, text: '        return [1, 2]' }] },
+    ];
+    const voice = createFakeVoiceEditTransport({ transcript: 'return the pair', alternatives }) as unknown as VoiceEditTransportPort;
+    const session = await renderVoiceEditor({ gateway: fakeGateway(), voice, audio: createFakeAudioRecorder() });
+    const editor = await session.editor();
+    await sendTypedInstruction('return the pair');
+    await screen.findByTestId('ProblemEditorAlternativePicker');
+
+    // When the editor changes while the picker is open and a row is picked
+    await editor.type('# ');
+    const typed = editor.text();
+    await userEvent.click(screen.getByTestId('ProblemEditorAlternativePicker-Row-1'));
+
+    // Then the pick is refused, nothing of it is in the buffer and nothing was recorded
+    await waitFor(() => expect(screen.getByTestId('ProblemEditorVoiceErrorText').textContent).toBe(STALE_BANNER));
+    expect(editor.text()).toBe(typed);
+    expect(voiceEditSnapshots()).toEqual([]);
+  }, 60_000);
 });

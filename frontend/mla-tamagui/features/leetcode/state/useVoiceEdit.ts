@@ -112,7 +112,7 @@ const EMPTY_STATE: VoiceEditState = {
   basis: null,
 };
 
-const EDITOR_NOT_READY = 'The editor is not ready. Try again.';
+export const EDITOR_NOT_READY = 'The editor is not ready. Try again.';
 
 /**
  * The transport adapter normalizes network failures into a

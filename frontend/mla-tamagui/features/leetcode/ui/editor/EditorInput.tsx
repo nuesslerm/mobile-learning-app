@@ -23,6 +23,7 @@ import type {
 } from '../../domain/ports';
 import { writeThrough, type WriteRequest } from '../../domain/editor/documentWrite';
 import { createForwardingPost } from '../../domain/editor/editorForwarding';
+import { applyPlannedEdit, readBasis, type EditBasis, type EditOutcome, type EditTarget, type PlannedEdit } from '../../domain/editor/voiceEditPlan';
 import { useLeetCodePorts } from '../../state/ports';
 import {
   getCodeFont,
@@ -39,7 +40,7 @@ import { createEditorTextSource, EditorTextMirror } from './EditorTextMirror';
 // this without 'hydrated' the editor is dead or blank.
 const HYDRATE_TIMEOUT_MS = 15_000;
 
-export type EditorInputHandle = {
+export type EditorInputHandle = EditTarget & {
   focus: () => void;
   blur: () => void;
   applySelection: (sel: Selection) => void;
@@ -330,6 +331,27 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         redo() {
           Logger.info('editor.redo', { effect: 'redo' });
           sendMessage({ type: 'redo' });
+        },
+        async basis(): Promise<EditBasis | null> {
+          if (!isReadyRef.current || !isInitializedRef.current) return null;
+          // read after a write that is still queued, so the basis the plan is made for already holds it
+          await writeChainRef.current.catch(() => undefined);
+          return readBasis(apiBridge.client);
+        },
+        applyEdit(edit: PlannedEdit): Promise<EditOutcome> {
+          const run = async (): Promise<EditOutcome> => {
+            if (!isReadyRef.current || !isInitializedRef.current) return { ok: false, reason: 'not-ready', code: 'not-ready' };
+            const outcome = await applyPlannedEdit(apiBridge.client, edit);
+            // a refused edit leaves the editor and the mirror as they were: a keystroke that made it stale reaches React as any keystroke does
+            if (outcome.ok) {
+              lastWebViewTextRef.current = outcome.modifiedText;
+              void apiBridge.client.focus();
+            }
+            return outcome;
+          };
+          const outcome = writeChainRef.current.then(run, run);
+          writeChainRef.current = outcome.then(() => undefined, () => undefined);
+          return outcome;
         },
         showDiff(start: number, end: number) {
           // After the write that put the changed text there, which lands a few round trips after the call, and clamped to the text
