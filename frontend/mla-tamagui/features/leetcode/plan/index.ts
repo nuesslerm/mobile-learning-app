@@ -4,4 +4,5 @@
  * folder imports it through here.
  */
 export { PlanTab } from './ui/PlanTab';
+export type { PlanEditor } from './state/usePlanRealize';
 export { usePlanStore } from './state/planStore';

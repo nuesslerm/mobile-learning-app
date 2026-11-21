@@ -5,27 +5,27 @@ import {
   TabsTrigger,
   View,
 } from '@lib/tamagui-design-system';
-import type { EditAlternative } from '@lib/voice-edit-dsl';
 import React from 'react';
 import { PanResponder } from 'react-native';
 
-import { PlanTab } from '../plan';
+import { PlanTab, type PlanEditor } from '../plan';
 import { ProblemEditorScreen } from './ProblemEditorScreen';
 
 const SWIPE_ACTIVATE_DX = 20;
 const SWIPE_THRESHOLD_PX = 60;
 
-type WorkspaceApi = {
-  getCode(): string;
-  applyEdit(alt: EditAlternative): { modifiedText: string };
-  language: string;
+// What the plan tab holds until the editor beside it has handed over its own: realising is held back, so these are never called.
+const NO_EDITOR: PlanEditor = {
+  language: 'python',
+  basis: async () => null,
+  applyEdit: async () => ({ ok: false, reason: 'not-ready', code: 'not-ready' }),
 };
 
 type WorkspaceTab = 'plan' | 'code';
 
 export function ProblemWorkspace({ id, seed }: { id?: string; seed?: string }) {
   const [tab, setTab] = React.useState<WorkspaceTab>('code');
-  const [api, setApi] = React.useState<WorkspaceApi | null>(null);
+  const [api, setApi] = React.useState<PlanEditor | null>(null);
 
   const panResponder = React.useMemo(
     () =>
@@ -80,13 +80,7 @@ export function ProblemWorkspace({ id, seed }: { id?: string; seed?: string }) {
           {/* The editor is force-mounted beside this tab, so its API arrives
               on the first frame or two. Until then the plan is fully usable
               and only realising is held back -- never a dead screen. */}
-          <PlanTab
-            problemId={id ?? ''}
-            language={api?.language ?? 'python'}
-            getCode={api?.getCode ?? (() => '')}
-            applyEdit={api?.applyEdit ?? (() => ({ modifiedText: '' }))}
-            canRealize={api !== null}
-          />
+          <PlanTab problemId={id ?? ''} {...(api ?? NO_EDITOR)} canRealize={api !== null} />
         </TabsContent>
       </Tabs>
     </View>

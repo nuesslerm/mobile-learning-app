@@ -52,8 +52,8 @@ import {
   EditorInput,
   type EditorInputHandle,
 } from './editor/EditorInput';
-import { applyVoiceEdit } from '../domain/editor/applyVoiceEdit';
 import type { EditOutcome, EditTarget } from '../domain/editor/voiceEditPlan';
+import type { PlanEditor } from '../plan';
 import { toEditorLanguage } from '../domain/editor/languageProfile';
 import { completionEntriesFor } from '../domain/completionEntries';
 import { useAutocompleteSettingStore } from '../state/autocompleteSettingStore';
@@ -117,11 +117,7 @@ export function ProblemEditorScreen({
   id?: string;
   /** Dev bundles only: the code the editor opens on, so a device-lab job can start mid-problem. */
   seed?: string;
-  onWorkspaceApi?: (api: {
-    getCode(): string;
-    applyEdit(alt: EditAlternative): { modifiedText: string };
-    language: string;
-  }) => void;
+  onWorkspaceApi?: (api: PlanEditor) => void;
 }) {
   const problem = React.useMemo(
     () => (id ? ProblemCatalog.getById(id) : undefined),
@@ -447,7 +443,7 @@ export function ProblemEditorScreen({
     setDiffMode(true);
     editorRef.current?.showDiff(outcome.landed.from, outcome.landed.to);
   }, []);
-  const { apply: applyVoice } = useVoiceApply({ target: editorTarget, voiceEdit, snapshot, problemId: problem?.id });
+  const { apply: applyVoice, applyAt } = useVoiceApply({ target: editorTarget, voiceEdit, snapshot, problemId: problem?.id });
   const handleVoiceApply = React.useCallback(
     (alt: EditAlternative) => {
       void applyVoice(alt).then(showEdit);
@@ -465,31 +461,20 @@ export function ProblemEditorScreen({
     }
   }, [voiceEdit, handleVoiceApply]);
 
-  // The plan tab reads the buffer and applies edits through the same path as
-  // a voice apply (minus the voice bookkeeping); re-register when they move.
+  // The plan tab reads the editor and applies at the revision it read, through the same call as a voice apply (minus the voice
+  // bookkeeping); re-register when they move.
   React.useEffect(() => {
     if (!onWorkspaceApi) return;
     onWorkspaceApi({
-      getCode: () => editorText,
-      applyEdit: (alt: EditAlternative) => {
-        const result = applyVoiceEdit(editorText, alt);
-        snapshot('voice-edit');
-        setDiffRange(result.diffRange);
-        setDiffMode(true);
-        setEditorText(result.modifiedText);
-        editorRef.current?.setTextAndSelection(
-          result.modifiedText,
-          result.selection
-        );
-        editorRef.current?.showDiff(
-          result.diffRange.start,
-          result.diffRange.end
-        );
-        return { modifiedText: result.modifiedText };
-      },
       language: lang,
+      basis: editorTarget.basis,
+      applyEdit: async (alt, basis) => {
+        const outcome = await applyAt(alt, basis, 'plan-edit');
+        showEdit(outcome);
+        return outcome;
+      },
     });
-  }, [editorText, lang, onWorkspaceApi, snapshot]);
+  }, [lang, onWorkspaceApi, editorTarget, applyAt, showEdit]);
 
   const handleDiffToggle = React.useCallback(
     (enabled: boolean) => {

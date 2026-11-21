@@ -12,6 +12,7 @@ import { Platform } from 'react-native';
 
 import { VoiceEditTransportError } from '../../domain/ports';
 import type { ClientEditStat } from '@lib/voice-edit-dsl';
+import type { EditBasis, EditOutcome } from '../../domain/editor/voiceEditPlan';
 import { useLeetCodePorts } from '../../state/ports';
 import { usePlanStore } from '../state/planStore';
 
@@ -23,11 +24,24 @@ import {
 
 export type PlanRealizeOutcome = 'applied' | 'invalid' | 'error';
 
-export interface PlanRealizeArgs {
-  problemId: string;
+/** The editor beside the plan tab: read for the plan, and applied to at the revision that read made. */
+export interface PlanEditor {
   language: string;
-  getCode: () => string;
-  applyEdit: (alt: EditAlternative) => { modifiedText: string };
+  basis: () => Promise<EditBasis | null>;
+  applyEdit: (alt: EditAlternative, basis: EditBasis) => Promise<EditOutcome>;
+}
+
+export interface PlanRealizeArgs extends PlanEditor {
+  problemId: string;
+}
+
+const EDITOR_NOT_READY = 'The editor is not ready. Try again.';
+const STEP_STALE = 'The code changed while the step was being planned. Realize it again.';
+const STEP_NOT_APPLIED = 'The editor could not apply the step.';
+
+function refusalCopy(outcome: Extract<EditOutcome, { ok: false }>): string {
+  if (outcome.reason === 'stale') return STEP_STALE;
+  return outcome.reason === 'not-ready' ? EDITOR_NOT_READY : STEP_NOT_APPLIED;
 }
 
 export interface PlanRealizeResult {
@@ -44,7 +58,7 @@ export interface PlanRealizeResult {
 export function usePlanRealize({
   problemId,
   language,
-  getCode,
+  basis: readBasis,
   applyEdit,
 }: PlanRealizeArgs): PlanRealizeResult {
   const { voice } = useLeetCodePorts();
@@ -53,7 +67,14 @@ export function usePlanRealize({
 
   const realize = useCallback(
     async (stepId: string): Promise<PlanRealizeOutcome> => {
-      const code = getCode();
+      // read per step: two steps realised in a row each plan against the editor's text, not a copy that lags
+      const basis = await readBasis();
+      if (!basis) {
+        Logger.info('leetcode.plan.realize.editor_unavailable', { problemId, stepId });
+        setError(EDITOR_NOT_READY);
+        return 'error';
+      }
+      const code = basis.text;
       const steps = usePlanStore.getState().stepsFor(problemId);
       const index = steps.findIndex((step) => step.id === stepId);
       const step = steps[index];
@@ -149,7 +170,22 @@ export function usePlanRealize({
           return 'invalid';
         }
 
-        const { modifiedText } = applyEdit(applicable);
+        const outcome = await applyEdit(applicable, basis);
+        if (!outcome.ok) {
+          const reason = refusalCopy(outcome);
+          stats.error = reason;
+          void voice.sendEditStats(stats);
+          Logger.info('leetcode.plan.realize.refused', {
+            problemId,
+            stepId,
+            reason: outcome.reason,
+            code: outcome.code,
+            editId,
+          });
+          setError(reason);
+          return 'error';
+        }
+        const { modifiedText } = outcome;
         const lines = linesProduced(code, modifiedText, anchor);
         if (!lines) {
           const reason = 'The applied edit produced no new lines.';
@@ -201,7 +237,7 @@ export function usePlanRealize({
         setBusyStepId(null);
       }
     },
-    [applyEdit, getCode, language, problemId, voice]
+    [applyEdit, readBasis, language, problemId, voice]
   );
 
   return { realize, busyStepId, error };

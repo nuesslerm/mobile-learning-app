@@ -84,7 +84,7 @@ frontend/                                              (landed 21 Nov; was propo
    ├─ domain/                 pure, imports no I/O
    │  ├─ ports.ts · models · judge · toolbar · completionEntries
    │  ├─ run/                 the runner capability: execution · verdict · runParams · caseDisplay
-   │  └─ editor/              editing · languageProfile · applyVoiceEdit · configPatch · documentWrite (planWrite/writeThrough) · editorForwarding (messages → API) · types
+   │  └─ editor/              editing · languageProfile · voiceEditPlan · configPatch · documentWrite (planWrite/writeThrough) · editorForwarding (messages → API) · types
    ├─ data/                   adapters
    │  ├─ editor/cm6/          cm6Host · completion* · languageExtensions · syntaxTreeRead · page source → bundle (generated) · editorHtml · webViewEditorBridge
    │  └─ pyodide/             on-device runner (unchanged)

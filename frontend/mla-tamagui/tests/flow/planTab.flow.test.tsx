@@ -23,7 +23,7 @@ import { app } from './app';
 
 
 
-const sendVoicePlan = vi.fn(async (_body: unknown) => ({
+const PLAN_ANSWER = {
   transcript: 'plan',
   wallMs: 21,
   alternatives: [
@@ -42,7 +42,8 @@ const sendVoicePlan = vi.fn(async (_body: unknown) => ({
       ],
     },
   ],
-}));
+};
+const sendVoicePlan = vi.fn(async (_body: unknown) => PLAN_ANSWER);
 const sendEditStats = vi.fn(async (_row: unknown) => undefined);
 const sendVoiceTranscribe = vi.fn(async () => ({ transcript: '', wallMs: 1 }));
 
@@ -82,8 +83,9 @@ async function renderPlan() {
     } as unknown as VoiceEditTransportPort,
     audio: createFakeAudioRecorder(),
   };
-  await app.render(`/leetcode/${PROBLEM}`, { overrides: { leetcode: ports } });
+  const session = await app.render(`/leetcode/${PROBLEM}`, { overrides: { leetcode: ports } });
   await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-plan'));
+  return session;
 }
 
 async function addBlock(text: string) {
@@ -155,4 +157,38 @@ describe('PlanTab flow', () => {
       ).toMatch(/lines \d+\u2013\d+/);
     });
   });
+
+  it('given the editor changed while a step was being planned, when the answer returns, then the buffer holds the typed text, the step is not realized and the person is told', async () => {
+    // Given a step whose plan is held in flight
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    sendVoicePlan.mockImplementationOnce(async () => {
+      await gate;
+      return PLAN_ANSWER;
+    });
+    const session = await renderPlan();
+    const editor = await session.editor();
+    await addBlock('Return whether the cleaned string is a palindrome.');
+    await waitFor(() => {
+      expect(screen.getAllByTestId(/^ProblemPlanStep-\d+$/)).toHaveLength(1);
+    });
+    await userEvent.click(screen.getByTestId('ProblemPlanStep-0-Realize'));
+    await waitFor(() => expect(sendVoicePlan).toHaveBeenCalledTimes(1));
+
+    // When the person types in the editor and the answer then returns
+    await editor.type('# ');
+    const typed = editor.text();
+    release();
+
+    // Then the edit is refused: the typed text is all the editor holds, the row is still pending and the error shows
+    await waitFor(() => {
+      expect(screen.getByTestId('ProblemPlanError').textContent).toBe(
+        'The code changed while the step was being planned. Realize it again.'
+      );
+    });
+    expect(editor.text()).toBe(typed);
+    expect(screen.getByTestId('ProblemPlanStep-0-Status').textContent).toBe('pending');
+  }, 60_000);
 });

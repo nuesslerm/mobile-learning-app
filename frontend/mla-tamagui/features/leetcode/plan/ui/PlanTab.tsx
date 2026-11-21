@@ -17,20 +17,17 @@ import {
   Square,
   Trash2,
 } from '@lib/tamagui-design-system/icons';
-import type { EditAlternative, PlanStep } from '@lib/voice-edit-dsl';
+import type { PlanStep } from '@lib/voice-edit-dsl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, TextInput } from 'react-native';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
 import { useLiveTranscript } from '../state/useLiveTranscript';
-import { usePlanRealize } from '../state/usePlanRealize';
+import { usePlanRealize, type PlanEditor } from '../state/usePlanRealize';
 import { usePlanStore } from '../state/planStore';
 
-export type PlanTabProps = {
+export type PlanTabProps = PlanEditor & {
   problemId: string;
-  language: string;
-  getCode: () => string;
-  applyEdit: (alt: EditAlternative) => { modifiedText: string };
   /** False while the editor beside this tab has not handed over its API yet. */
   canRealize?: boolean;
 };
@@ -66,7 +63,7 @@ const INPUT_STYLE = {
 export function PlanTab({
   problemId,
   language,
-  getCode,
+  basis,
   applyEdit,
   canRealize = true,
 }: PlanTabProps) {
@@ -92,7 +89,7 @@ export function PlanTab({
   const { realize, busyStepId, error } = usePlanRealize({
     problemId,
     language,
-    getCode,
+    basis,
     applyEdit,
   });
 
