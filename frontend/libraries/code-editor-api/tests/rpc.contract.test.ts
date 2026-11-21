@@ -2,7 +2,7 @@ import { createRpcClient } from '@lib/webview-rpc';
 import { createEmulatedWebView, createLoopbackPair } from '@lib/webview-rpc/testing';
 
 import { createDeferredEngine, LANGUAGE_NAMES, serveEditor, toRemoteEngine } from '../src';
-import { createFakeEditor, editorContract, withFaults, type FakeEditor } from '../src/testing';
+import { createFakeEditor, editorContract, syntaxTreeContract, withFaults, type FakeEditor } from '../src/testing';
 
 function overRpc(name: string, makePair: typeof createLoopbackPair) {
   const errors: unknown[] = [];
@@ -33,6 +33,27 @@ function overRpc(name: string, makePair: typeof createLoopbackPair) {
       },
     };
   }, { languages: LANGUAGE_NAMES });
+
+  syntaxTreeContract(name, async ({ bound }) => {
+    const faulty = withFaults(makePair());
+    const deferred = createDeferredEngine((error) => errors.push(error));
+    let current: FakeEditor | null = null;
+    const bind = () => {
+      current = createFakeEditor({ instance: 'fake-tree', text: '', tree: true });
+      deferred.bind(current.engine);
+    };
+    if (bound) bind();
+    const server = serveEditor(deferred, faulty.page, (error) => errors.push(error));
+    const rpc = createRpcClient(faulty.host, { timeoutMs: 300 });
+    return {
+      engine: toRemoteEngine(rpc, (error) => errors.push(error)),
+      dispose: () => {
+        rpc.close();
+        server.close();
+      },
+      hooks: { restart: bind, slowParse: (calls) => current?.slowParse?.(calls) },
+    };
+  }, 'python');
 }
 
 overRpc('the fake editor over a loopback channel', createLoopbackPair);

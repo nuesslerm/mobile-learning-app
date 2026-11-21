@@ -5,7 +5,10 @@ export type Side = -1 | 1;
 
 const holds = (node: SyntaxNode, pos: Pos, side: Side): boolean => (side === 1 ? node.from <= pos && pos < node.to : node.from < pos && pos <= node.to);
 
-const overlaps = (node: SyntaxNode, range: Range): boolean => (range.from === range.to ? node.from <= range.from && range.from <= node.to : node.from < range.to && node.to > range.from);
+const overlaps = (node: SyntaxNode, range: Range): boolean => {
+  if (range.from === range.to) return node.from <= range.from && range.from <= node.to;
+  return node.from === node.to ? range.from <= node.from && node.from <= range.to : node.from < range.to && node.to > range.from;
+};
 
 /** The nodes from the root down to the innermost one at `pos`; a node that only touches the position counts, `side` picks between the two that do. */
 export function pathAt(root: SyntaxNode | null, pos: Pos, side: Side = 1): readonly SyntaxNode[] {
@@ -53,3 +56,21 @@ export const isDamaged = (node: SyntaxNode): boolean => node.children?.some((chi
 
 /** Past what the parser reached, the tree says nothing: callers treat the text there as plain text. */
 export const isUnread = (value: Pick<TreeValue, 'parsedTo'>, pos: Pos): boolean => pos > value.parsedTo;
+
+/** The tree cut to what touches `range`: the root always stays, a child stays when it overlaps the range. */
+export function cutToRange(root: SyntaxNode, range: Range): SyntaxNode {
+  const cut = (node: SyntaxNode): SyntaxNode => {
+    const kept = node.children?.filter((child) => overlaps(child, range)).map(cut) ?? [];
+    return { type: node.type, from: node.from, to: node.to, ...(node.error ? { error: true as const } : {}), ...(kept.length > 0 ? { children: kept } : {}) };
+  };
+  return cut(root);
+}
+
+/** The tree as a parse that reached only `limit` would have it: nothing starts at or after the limit, nothing ends past it. */
+export function clipTo(root: SyntaxNode, limit: Pos): SyntaxNode {
+  const clip = (node: SyntaxNode): SyntaxNode => {
+    const kept = node.children?.filter((child) => child.from < limit).map(clip) ?? [];
+    return { type: node.type, from: node.from, to: Math.min(node.to, limit), ...(node.error ? { error: true as const } : {}), ...(kept.length > 0 ? { children: kept } : {}) };
+  };
+  return clip(root);
+}

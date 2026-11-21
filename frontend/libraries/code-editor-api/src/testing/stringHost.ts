@@ -1,6 +1,7 @@
 import { applyChanges, mapSelRange, normalizeText } from '../core/changes';
 import { createEditorEngine, type EngineCore, type EngineOptions } from '../core/engine';
 import type { DocumentHost, TreeSnapshot } from '../ports/host';
+import { snapshotOf, type TreeParse } from './treeParsers';
 import { LANGUAGE_NAMES, type Change, type ConfigPatch, type EditorConfig, type Language, type Origin, type Revision, type SelRange, type Selection } from '../ports/protocol';
 import { emptyHistory, pop, recordChange, recordSelection, type HistoryState } from './history';
 
@@ -11,8 +12,8 @@ export type FakeEditorOptions = {
   readonly languages?: readonly Language[];
   /** false: a host without the optional `type` method, which then does not announce the step */
   readonly typing?: boolean;
-  /** gives the host an optional `tree()`: a snapshot of the document's syntax tree for the text it holds now (the request is announced only then) */
-  readonly tree?: (text: string) => TreeSnapshot;
+  /** gives the host an optional `tree()`, which makes the engine announce the request: `true` for the fake's own tiny parsers, `parse` to replace them, or a function that makes the snapshot */
+  readonly tree?: true | { readonly parse?: TreeParse } | ((text: string, language: Language) => TreeSnapshot);
   /** the engine's clock, parse turn and slice length, so a test can pace a parse */
   readonly engine?: Pick<EngineOptions, 'now' | 'yieldToEvents' | 'treeSliceMs'>;
   /** where errors thrown by event listeners and the host go; a test reads them back through `internalErrors` */
@@ -26,6 +27,8 @@ export type FakeEditor = {
   userSelects(anchor: number, head?: number): void;
   /** moves the injectable clock the undo history groups typing by */
   advance(ms: number): void;
+  /** the next trees need this many calls to `work` before they cover the text (1: at once) */
+  slowParse?(calls: number): void;
   internalErrors(): readonly unknown[];
   peek(): { text: string; selection: Selection; revision: Revision; undoDepth: number; redoDepth: number; focused: boolean };
 };
@@ -49,6 +52,7 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
   let focused = false;
   let clock = 1_000_000;
   let past: HistoryState = emptyHistory;
+  let slowBy = 1;
   const errors: unknown[] = [];
   const sink: { core: EngineCore | null } = { core: null };
   const core = (): EngineCore => {
@@ -74,6 +78,12 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
     core().ingestSelection(selectionOf(selection));
   };
 
+  const snapshotFor = (source: string, language: Language): TreeSnapshot => {
+    const tree = options.tree;
+    if (typeof tree === 'function') return tree(source, language);
+    return snapshotOf(source, language, typeof tree === 'object' ? tree.parse : undefined, slowBy);
+  };
+
   const host: DocumentHost = {
     doc: { get length() { return text.length; }, slice: (from, to) => text.slice(from, to) },
     selection: () => selectionOf(selection),
@@ -89,7 +99,7 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
             edit([{ from, to, insert }], { anchor: from + insert.length, head: from + insert.length }, `api.${label ?? 'type'}`, true, 'api', label);
           },
         }),
-    ...(options.tree ? { tree: () => (options.tree as (text: string) => TreeSnapshot)(text) } : {}),
+    ...(options.tree ? { tree: (): TreeSnapshot => snapshotFor(text, config.language) } : {}),
     commit({ changes, selection: next, label }) {
       if (changes.length === 0) {
         if (next) reselect(next, 'select.api');
@@ -142,6 +152,9 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
     },
     advance(ms) {
       clock += ms;
+    },
+    slowParse(calls) {
+      slowBy = calls;
     },
     peek: () => ({ text, selection: selectionOf(selection), revision: core().revision(), undoDepth: past.done.length, redoDepth: past.undone.length, focused }),
   };

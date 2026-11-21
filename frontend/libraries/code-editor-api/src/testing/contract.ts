@@ -10,6 +10,8 @@ export type SubjectHooks = {
   userSelects?(anchor: number, head?: number): Promise<void> | void;
   /** a new editor instance behind the same engine: the page was created again */
   restart?(): Promise<void> | void;
+  /** the next trees need this many calls to `work` before they cover the text, so a test can see a parse that waits (1: at once) */
+  slowParse?(calls: number): void;
   /** rpc runners only: the next reply the page sends is lost / the next event it emits is lost / it stops answering until the returned function runs / the channel closes */
   dropNextReply?(): void;
   swallowNextEvent?(): void;

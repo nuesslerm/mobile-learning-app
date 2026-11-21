@@ -36,6 +36,12 @@ describe('nodesInRange', () => {
     expect(nodesInRange(root, { from: 5, to: 9 }).map((n) => n.type)).toEqual(['Script', 'B', 'C', 'D']);
   });
 
+  it('given an empty node at the end of the range, then it counts: an error there must not be cut away', () => {
+    const open = node('Script', 0, 12, [node('Block', 0, 12, [error(12)])]);
+
+    expect(nodesInRange(open, { from: 0, to: 12 }).map((n) => n.type)).toEqual(['Script', 'Block', '⚠']);
+  });
+
   it('given within, then only the nodes inside the range come back', () => {
     expect(nodesInRange(root, { from: 5, to: 12 }, { within: true }).map((n) => n.type)).toEqual(['B', 'C', 'D']);
   });
