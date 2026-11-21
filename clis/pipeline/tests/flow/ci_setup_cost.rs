@@ -414,3 +414,16 @@ fn every_cache_step_of_the_pipeline_is_bounded_and_cannot_fail_the_job() {
         assert!(head.contains("continue-on-error: true"), "line {}: {head}", i + 1);
     }
 }
+
+#[test]
+fn the_core_tests_job_does_not_join_the_tailnet_because_its_tests_reach_nothing_deployed() {
+    // Given the core-tests job of the pipeline
+    let job = job_block(&read(".github/workflows/pipeline.yml"), "core-tests");
+
+    // When its setup-job call is read
+    let setup = job.split("./.github/actions/setup-job").nth(1).expect("it sets the job up");
+    let setup = setup.split("- uses:").next().unwrap();
+
+    // Then it turns the tailnet join off
+    assert!(setup.contains("tailnet: 'false'"), "{setup}");
+}

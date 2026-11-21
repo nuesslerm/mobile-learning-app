@@ -372,8 +372,8 @@ jobs:
           wf-source: artifact
           job: core-tests-${{ matrix.shard }}
           save-pnpm: ${{ matrix.shard == 1 }}
-          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
-          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+          # flow, typecheck, lint and unit tests reach nothing deployed; a kernel-mode tailnet join can cut a hosted runner off from GitHub (no log, no timeout)
+          tailnet: 'false'
       - uses: ./.github/actions/install-test-deps
         with:
           playwright: "true"
