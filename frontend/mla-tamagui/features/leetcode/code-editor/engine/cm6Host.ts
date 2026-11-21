@@ -1,7 +1,10 @@
 import { isolateHistory, redo, undo } from '@codemirror/commands';
+import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import { Annotation, EditorSelection, EditorState, StateField, Transaction } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import type { Change, ConfigPatch, DocumentHost, EditorConfig, EditorError, EngineCore, Language, Origin, SelRange, Selection } from '@lib/code-editor-api';
+import type { Change, ConfigPatch, DocumentHost, EditorConfig, EditorError, EngineCore, Language, Origin, SelRange, Selection, TreeSnapshot } from '@lib/code-editor-api';
+
+import { readSyntaxNode } from './syntaxTreeRead';
 
 type Entry = { revision: number; changes: Change[]; selection: SelRange; origin: Origin; label?: string; length: number };
 type RevisionState = { revision: number; tail: readonly Entry[] };
@@ -64,6 +67,8 @@ export type Cm6HostDeps = {
   /** the engine core the host reports to: set once the engine exists */
   core: () => EngineCore | null;
   languages: () => readonly Language[];
+  /** the language the page holds now, which names the grammar's nodes */
+  language: () => Language;
   configure: (patch: ConfigPatch) => { ok: true; config: EditorConfig } | { ok: false; error: EditorError };
   /** a fresh state holding `text` with the page's extensions and the revision field */
   buildState: (text: string, selection?: SelRange) => EditorState;
@@ -123,6 +128,24 @@ export function createCm6Host(deps: Cm6HostDeps): DocumentHost {
       }
       host.sync();
       deps.core()?.ingestSelection(selectionOf(editor.state));
+    },
+    tree() {
+      // the snapshot is of the state as it is now; `ensureSyntaxTree` returns the tree it built, which `syntaxTree` of the same state does not show
+      const state = view().state;
+      let best = syntaxTree(state);
+      const language = deps.language();
+      const snapshot: TreeSnapshot = {
+        language,
+        length: state.doc.length,
+        work(upto, ms) {
+          const done = ensureSyntaxTree(state, upto, ms);
+          if (done) best = done;
+          return done !== null;
+        },
+        parsedTo: () => best.length,
+        read: (range, detail) => readSyntaxNode(best, language, range, detail),
+      };
+      return snapshot;
     },
     commit({ changes, selection, label }) {
       const editor = view();

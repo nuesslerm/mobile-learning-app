@@ -1,5 +1,5 @@
 import { LANGUAGE_NAMES } from '@lib/code-editor-api';
-import { editorContract } from '@lib/code-editor-api/testing';
+import { editorContract, syntaxTreeContract, type MakeSubject } from '@lib/code-editor-api/testing';
 import { waitFor } from '@lib/flow-test-harness';
 import { vi } from 'vitest';
 
@@ -11,7 +11,7 @@ import { mountPage } from './support/mountEditorPage';
  */
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
-editorContract('the real CodeMirror bundle in the WebView twin', async ({ bound }) => {
+const makeSubject: MakeSubject = async ({ bound }) => {
   const page = await mountPage({ init: bound });
   if (bound) {
     await waitFor(async () => {
@@ -42,4 +42,9 @@ editorContract('the real CodeMirror bundle in the WebView twin', async ({ bound 
       transportEvents: () => page.crossed,
     },
   };
-}, { languages: LANGUAGE_NAMES });
+};
+
+editorContract('the real CodeMirror bundle in the WebView twin', makeSubject, { languages: LANGUAGE_NAMES });
+
+// one page serves every language: the suite switches it with `configure({language})`, as the screen does
+for (const language of LANGUAGE_NAMES) syntaxTreeContract('the real CodeMirror bundle in the WebView twin', makeSubject, language);

@@ -558,6 +558,7 @@ function createEditor(cfg: EditorConfig) {
     view: () => view as EditorView,
     core: () => core,
     languages: () => LANGUAGE_NAMES,
+    language: () => (currentConfig && isLanguage(currentConfig.language) ? currentConfig.language : 'python'),
     configure: applyApiConfig,
     buildState: (text, selection) =>
       buildState(currentConfig as EditorConfig, text, selection),

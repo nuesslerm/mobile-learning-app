@@ -1,8 +1,10 @@
 import { closeBrackets } from '@codemirror/autocomplete';
 import { history, undo } from '@codemirror/commands';
+import { cpp } from '@codemirror/lang-cpp';
+import { python } from '@codemirror/lang-python';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import { createDocumentMirror, createEditorEngine, type ApplyParams, type EditorEvent, type EngineCore } from '@lib/code-editor-api';
+import { classify, createDocumentMirror, createEditorEngine, enclosingBlock, unwrap, type ApplyParams, type EditorEvent, type EngineCore, type EngineOptions, type Language } from '@lib/code-editor-api';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { createCm6Host, revisionField, setRevisionBase, typingCalls } from '../cm6Host';
@@ -13,10 +15,11 @@ afterEach(() => {
   for (const view of views.splice(0)) view.destroy();
 });
 
-function mount(doc: string) {
+function mount(doc: string, options: { language?: Language; engine?: Pick<EngineOptions, 'now' | 'yieldToEvents' | 'treeSliceMs'> } = {}) {
+  const language = options.language ?? 'python';
   setRevisionBase(0);
   const swallowed: unknown[] = [];
-  const extensions = [history(), closeBrackets(), revisionField, typingCalls, EditorView.exceptionSink.of((error) => swallowed.push(error)), EditorView.updateListener.of(() => { throw new Error('the listener broke'); })];
+  const extensions = [language === 'cpp' ? cpp() : python(), history(), closeBrackets(), revisionField, typingCalls, EditorView.exceptionSink.of((error) => swallowed.push(error)), EditorView.updateListener.of(() => { throw new Error('the listener broke'); })];
   const view = new EditorView({ state: EditorState.create({ doc, extensions }), parent: document.body.appendChild(document.createElement('div')) });
   views.push(view);
   let core: EngineCore | null = null;
@@ -25,10 +28,11 @@ function mount(doc: string) {
     view: () => view,
     core: () => core,
     languages: () => ['python'],
+    language: () => language,
     configure: () => ({ ok: false, error: { code: 'internal', message: 'not under test' } }),
     buildState: (text) => EditorState.create({ doc: text, extensions }),
   });
-  core = createEditorEngine(host, { instance: 'host-test', logError: (error) => errors.push(error) });
+  core = createEditorEngine(host, { ...options.engine, instance: 'host-test', logError: (error) => errors.push(error) });
   const events: EditorEvent[] = [];
   core.listen(['changed'], (event) => events.push(event));
   return { view, core, events, swallowed, errors };
@@ -189,3 +193,97 @@ describe('the CodeMirror host', () => {
     expect(view.hasFocus).toBe(false);
   });
 });
+
+describe('the CodeMirror host answering tree', () => {
+  const python3 = 'def f(xs):\n    for x in xs:\n        print(x)\n    return 1\n';
+  const manyLines = (count: number) => Array.from({ length: count }, (_, index) => `x${index} = ${index} + 1`).join('\n');
+
+  it('given a real EditorView with python(), when the def and for snippet is requested, then the outline has the for inside the def inside the script, with CodeMirror\'s own offsets', async () => {
+    const { core } = mount(python3);
+
+    const value = unwrap(await core.request('tree', {}));
+
+    expect(value).toMatchObject({ language: 'python', complete: true, parsedTo: python3.length, root: { type: 'Script', from: 0, to: python3.length } });
+    const body = value.root?.children?.[0]?.children?.[0];
+    const loop = body?.children?.[0];
+    expect(value.root?.children?.[0]?.type).toBe('FunctionDefinition');
+    expect(python3.startsWith('for x in xs:', loop?.from)).toBe(true);
+    expect(python3.slice(0, loop?.from)).toBe('def f(xs):\n    ');
+    expect(enclosingBlock(value, python3, python3.indexOf('print') + 2)?.owner?.type).toBe('ForStatement');
+  });
+
+  it('given a c++ view, when a function is requested, then the compound statement is the function body', async () => {
+    const source = 'int main() {\n  return 0;\n}\n';
+    const { core } = mount(source, { language: 'cpp' });
+
+    const value = unwrap(await core.request('tree', {}));
+
+    const definition = value.root?.children?.[0];
+    expect(classify('cpp', definition as never)).toBe('compound');
+    expect(definition?.children?.[0]?.type).toBe('CompoundStatement');
+  });
+
+  it('given a long document and no budget, when the tree is requested, then it says how far the parse got and that it is not complete; given time, it completes', async () => {
+    const doc = manyLines(700);
+    const { core } = mount(doc);
+
+    const first = unwrap(await core.request('tree', { budgetMs: 0 }));
+    const second = unwrap(await core.request('tree', { budgetMs: 1_000 }));
+
+    expect(doc.length).toBeGreaterThan(6_000);
+    expect(first.complete).toBe(false);
+    expect(first.parsedTo).toBeLessThan(doc.length);
+    expect(second).toMatchObject({ complete: true, parsedTo: doc.length });
+  });
+
+  it('given a very long document and a small budget, when the tree is requested, then the engine gave the page turns between slices and a later request with more budget completes', async () => {
+    const doc = manyLines(7_000);
+    let yields = 0;
+    const { core } = mount(doc, { engine: { treeSliceMs: 1, yieldToEvents: async () => { yields += 1; } } });
+
+    const first = unwrap(await core.request('tree', { budgetMs: 15 }));
+    const second = unwrap(await core.request('tree', { budgetMs: 1_000 }));
+
+    expect(doc.length).toBeGreaterThan(100_000);
+    expect(first.complete).toBe(false);
+    expect(yields).toBeGreaterThan(1);
+    expect(second.complete).toBe(true);
+  });
+
+  it('given an edit while the parse waits for a turn, when the parse resumes, then the reply is incomplete and names the revision before the edit', async () => {
+    const doc = manyLines(6_000);
+    const release: (() => void)[] = [];
+    const { core, view } = mount(doc, { engine: { treeSliceMs: 1, yieldToEvents: () => new Promise<void>((resolve) => release.push(resolve)) } });
+
+    const pending = core.request('tree', { budgetMs: 1_000 });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    view.dispatch({ changes: { from: 0, insert: 'y = 0\n' } });
+    // a request made while the tree waits delivers the edit to the engine: the queue is not held behind the parse
+    await core.request('read', {});
+    release.splice(0).forEach((resolve) => resolve());
+    const reply = await pending;
+
+    expect(reply).toMatchObject({ ok: true, base: 0, revision: 1, value: { complete: false, revision: 0 } });
+  });
+
+  it('given a tree call, then no changed event fires and the revision is unchanged', async () => {
+    const { core, events } = mount(python3);
+
+    await core.request('tree', {});
+    await core.request('tree', { detail: 'full' });
+
+    expect(events).toEqual([]);
+    expect(core.revision()).toBe(0);
+  });
+
+  it('given a half-typed for header, when the tree is requested, then it has an error node and the def around it is still found', async () => {
+    const broken = 'def f(xs):\n    for x in\n    return 1\n';
+    const { core } = mount(broken);
+
+    const value = unwrap(await core.request('tree', {}));
+
+    expect(JSON.stringify(value.root)).toContain('"error":true');
+    expect(enclosingBlock(value, broken, broken.indexOf('return') + 3)?.owner?.type).toBe('FunctionDefinition');
+  });
+});
+
