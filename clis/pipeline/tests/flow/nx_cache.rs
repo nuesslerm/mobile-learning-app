@@ -606,7 +606,8 @@ fn a_change_in_a_wf_crate_plans_the_flow_tests_of_exactly_the_crates_that_build_
     assert_eq!(planned("clis/wf/src/main.rs"), set(&["wf changed"]));
     // When a file of a crate wf runs as a separate binary changes, Then only that crate's tests are planned: wf does not build it
     assert_eq!(planned("clis/t3-serve/src/verbs.rs"), set(&["t3-serve changed"]));
-    assert_eq!(planned("clis/rca-exec/src/verbs.rs"), set(&["rca-exec changed"]));
+    // wf-mimic builds rca-exec (its GitHub Projects recording verb runs the hosted project actions), so a change there plans wf-mimic and the crates whose flow tests run it
+    assert_eq!(planned("clis/rca-exec/src/verbs.rs"), set(&["rca-exec changed", "wf-mimic depends on rca-exec (cargo)", "orca-map-mobile its flow tests run wf-mimic"]));
     // When a file that shapes the Nx graph changes, Then the planner's tests, which hold the cache's contract, are planned, and the ship
     // crate's and wf's through their dependency: the Nx cache replays them, as the contract inputs are the planner's own
     assert_eq!(planned("tooling/nx/e2e-tests.js"), set(&["pipeline the Nx graph or its inputs changed (the cache's contract suite)", "deploy depends on pipeline (cargo)", "wf depends on pipeline (cargo)"]));
