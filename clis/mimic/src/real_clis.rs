@@ -85,8 +85,13 @@ impl Resolved {
                 leaves(&json, false, &mut found);
                 resolved.secrets.extend(found.into_iter().map(|v| (cli.key.to_string(), v)));
                 let dir = home.join(".codex");
-                std::fs::create_dir_all(&dir).map_err(|e| format!("the Codex home {}: {}", dir.display(), e.kind()))?;
-                std::fs::write(dir.join("auth.json"), &bytes).map_err(|e| format!("the Codex login file: {}", e.kind()))?;
+                {
+                    use std::io::Write;
+                    use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
+                    std::fs::DirBuilder::new().recursive(true).mode(0o700).create(&dir).map_err(|e| format!("the Codex home {}: {}", dir.display(), e.kind()))?;
+                    let mut file = std::fs::OpenOptions::new().write(true).create(true).truncate(true).mode(0o600).open(dir.join("auth.json")).map_err(|e| format!("the Codex login file: {}", e.kind()))?;
+                    file.write_all(&bytes).map_err(|e| format!("the Codex login file: {}", e.kind()))?;
+                }
             }
             resolved.creds.push((cli, value));
         }

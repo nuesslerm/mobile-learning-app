@@ -78,6 +78,31 @@ impl Direct {
     }
 }
 
+/// The real agent CLIs of a chain, read from the environment `wf mimic exec` built: the names, the directory of the pinned binaries, the home the
+/// executor runs in and the variables (credentials, or `CODEX_HOME`) it hands the executor. This crate never resolves a credential itself.
+pub struct Real {
+    pub names: Vec<String>,
+    pub bin: PathBuf,
+    pub home: PathBuf,
+    pub env: Vec<(String, String)>,
+}
+
+/// The mode of this run from `get` (the environment): `Ok(None)` for scripted, the real CLIs otherwise, or the name of the variable that is missing.
+pub fn real_from(get: &dyn Fn(&str) -> Option<String>) -> Result<Option<Real>, String> {
+    let list = |name: &str| get(name).map(|v| v.split(',').map(str::trim).filter(|s| !s.is_empty()).map(String::from).collect::<Vec<_>>()).unwrap_or_default();
+    let names = list("T3_CHAIN_REAL_CLIS");
+    if names.is_empty() {
+        return Ok(None);
+    }
+    let need = |name: &str| get(name).filter(|v| !v.is_empty()).ok_or_else(|| format!("{name} is not set: start the chain through `wf mimic exec`"));
+    let env = list("T3_CHAIN_EXECUTOR_ENV").into_iter().map(|k| need(&k).map(|v| (k, v))).collect::<Result<Vec<_>, _>>()?;
+    Ok(Some(Real { names, bin: PathBuf::from(need("MIMIC_REAL_CLI_DIR")?), home: PathBuf::from(need("T3_CHAIN_CLI_HOME")?), env }))
+}
+
+pub fn real_from_env() -> Result<Option<Real>, String> {
+    real_from(&|k| std::env::var(k).ok())
+}
+
 pub struct Chain {
     pub tap: Tap,
     pub cli: ScriptedCli,
@@ -86,6 +111,8 @@ pub struct Chain {
     pub addr: SocketAddr,
     pub state: tempfile::TempDir,
     _dirs: tempfile::TempDir,
+    /// The real CLIs of this chain, when the launcher asked for them.
+    pub real: Option<Real>,
     server: Child,
     errlog: PathBuf,
     _exec: RcaExec,
@@ -108,6 +135,7 @@ impl Chain {
 
     /// `start`, with `env` also in the service's environment (the address of its speech sidecar).
     pub fn start_with_env(env: &[(&str, &str)]) -> Chain {
+        let real = real_from_env().unwrap_or_else(|e| panic!("the real CLIs of this chain: {e}"));
         let cli = ScriptedCli::install();
         let repo = TempRepo::new();
         let service = RcaService::start_with_env(SECRET, &cli.path(), env);
@@ -120,12 +148,24 @@ impl Chain {
         }
         std::fs::write(shared.join("notes.txt"), "not a directory").unwrap();
         let flags = ["--worktree-base", base.to_str().unwrap(), "--browse-allow", shared.to_str().unwrap()];
-        let exec = RcaExec::serve_on(&tap.url(), "w1", &repo, SECRET, &flags, &cli.path());
+        let exec = match &real {
+            None => RcaExec::serve_on(&tap.url(), "w1", &repo, SECRET, &flags, &cli.path()),
+            Some(real) => {
+                // the real binaries come first on the executor's PATH and the scripted ones stay behind them for the names not run for real
+                let path = std::env::join_paths(std::iter::once(real.bin.clone()).chain(std::env::split_paths(&cli.path()))).expect("a PATH of two directories");
+                let mut env = real.env.clone();
+                // Claude Code refuses its skip-permissions flag as root unless it is told it runs in a sandbox
+                if std::process::Command::new("id").arg("-u").output().is_ok_and(|o| o.stdout.starts_with(b"0\n")) {
+                    env.push(("IS_SANDBOX".into(), "1".into()));
+                }
+                RcaExec::serve_with_env(&tap.url(), "w1", &repo, SECRET, &flags, &path, Some(&real.home), &env)
+            }
+        };
         let bearer = service.mint("t3 chain");
         let state = tempfile::Builder::new().prefix("t3-serve-chain-").tempdir().unwrap();
         let errlog = state.path().join("serve.err");
         let (server, addr) = spawn_serve(state.path(), &errlog, &tap.url(), &bearer);
-        Chain { tap, cli, repo, service, addr, state, _dirs: dirs, server, errlog, _exec: exec }
+        Chain { tap, cli, repo, service, addr, state, _dirs: dirs, real, server, errlog, _exec: exec }
     }
 
     /// A pairing code minted by a separate `t3-serve pair` on the server's state directory, as an operator hands one to a phone, with the scopes the
@@ -136,7 +176,7 @@ impl Chain {
         if !scopes.is_empty() {
             command.args(["--scope", &scopes.join(",")]);
         }
-        let out = command.stdin(Stdio::null()).output().unwrap();
+        let out = without_credentials(&mut command).stdin(Stdio::null()).output().unwrap();
         assert!(out.status.success(), "{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
         serde_json::from_slice::<Value>(&out.stdout).unwrap()["code"].as_str().unwrap().to_string()
     }
@@ -168,9 +208,21 @@ impl Drop for Chain {
     }
 }
 
+/// The variables `wf mimic exec` hands the executor only: the mapper and its pairing command never need an agent CLI's credential.
+const CREDENTIAL_VARS: [&str; 6] = ["CLAUDE_CODE_OAUTH_TOKEN", "CODEX_OAUTH_JSON_B64", "CODEX_HOME", "OPENCODE_API_KEY", "OPENCODE_GO_API_KEY", "T3_CHAIN_EXECUTOR_ENV"];
+
+fn without_credentials(command: &mut Command) -> &mut Command {
+    let named = std::env::var("T3_CHAIN_EXECUTOR_ENV").unwrap_or_default();
+    for name in CREDENTIAL_VARS.into_iter().chain(named.split(',').filter(|n| !n.trim().is_empty())) {
+        command.env_remove(name.trim());
+    }
+    command
+}
+
 /// `t3-serve serve` on `state` pointed at the service through the tap, listening once it says so.
 fn spawn_serve(state: &std::path::Path, errlog: &std::path::Path, tap_url: &str, bearer: &str) -> (Child, SocketAddr) {
-    let mut server = Command::new(bin())
+    let mut command = Command::new(bin());
+    let mut server = without_credentials(&mut command)
         .args(["t3", "serve", "--port", "0", "--state-dir"])
         .arg(state)
         .args(["--rca-url", tap_url, "--rca-workspace", "w1"])
@@ -367,3 +419,34 @@ pub fn chain_driver(chain: &std::rc::Rc<Chain>, scopes: Vec<String>, prelude: Ve
 }
 
 // R15 cache probe: A
+
+#[test]
+fn given_credentials_in_the_environment_when_the_mapper_commands_are_built_then_none_reaches_them() {
+    // Given a command and the variables the launcher hands the executor
+    let mut command = Command::new("true");
+    command.env("CLAUDE_CODE_OAUTH_TOKEN", "v").env("CODEX_HOME", "/h").env("T3_CHAIN_EXECUTOR_ENV", "CLAUDE_CODE_OAUTH_TOKEN,CODEX_HOME").env("T3_RCA_BEARER", "b");
+    // When the credentials are removed
+    without_credentials(&mut command);
+    // Then each is unset for the child and the bearer the mapper needs is kept
+    let set: std::collections::HashMap<_, _> = command.get_envs().map(|(k, v)| (k.to_string_lossy().into_owned(), v.is_some())).collect();
+    assert_eq!((set["CLAUDE_CODE_OAUTH_TOKEN"], set["CODEX_HOME"], set["T3_CHAIN_EXECUTOR_ENV"], set["T3_RCA_BEARER"]), (false, false, false, true));
+}
+
+#[test]
+fn given_the_environment_of_the_launcher_when_it_is_read_then_scripted_by_default_and_a_missing_variable_is_named() {
+    // Given an environment as a map, When the rig reads it
+    let read = |vars: &[(&str, &str)]| {
+        let map: std::collections::HashMap<String, String> = vars.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+        real_from(&move |k| map.get(k).cloned())
+    };
+    // Then no names means scripted, and the names with their directory, home and variables mean real
+    assert!(read(&[]).unwrap().is_none() && read(&[("T3_CHAIN_REAL_CLIS", "")]).unwrap().is_none());
+    let all = [("T3_CHAIN_REAL_CLIS", "claude,codex"), ("MIMIC_REAL_CLI_DIR", "/bin"), ("T3_CHAIN_CLI_HOME", "/home"), ("T3_CHAIN_EXECUTOR_ENV", "CLAUDE_CODE_OAUTH_TOKEN,CODEX_HOME"), ("CLAUDE_CODE_OAUTH_TOKEN", "v1"), ("CODEX_HOME", "/home/.codex")];
+    let real = read(&all).unwrap().unwrap();
+    assert_eq!((real.names, real.env.len(), real.bin, real.home), (vec!["claude".into(), "codex".into()], 2, PathBuf::from("/bin"), PathBuf::from("/home")));
+    // And each missing variable is named, never a value
+    for gone in ["MIMIC_REAL_CLI_DIR", "T3_CHAIN_CLI_HOME", "CODEX_HOME"] {
+        let rest: Vec<_> = all.iter().filter(|(k, _)| *k != gone).copied().collect();
+        assert!(read(&rest).err().unwrap().contains(gone), "{gone}");
+    }
+}

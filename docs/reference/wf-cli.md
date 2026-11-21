@@ -4170,6 +4170,7 @@ Commands:
   track <verb> [options]      Is the pinned reference the newest release of the real server: check, bump, plan, report
   capture [options] <record|replay> <set>  Provision a set's reference, then run its chunked record or replay and diff table
   scan [options] <dir...>     Scan a real-agent run's output for the exact values of its credentials
+  exec [options] -- <command...>  Run a command with the real agent CLIs' credentials, then scan its output
   fetch [options] <run-id|latest>  Download a published run into this checkout
   import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set
   export [options] <format> <set>  Rebuild the legacy files of an imported set and check their hashes
@@ -4752,6 +4753,45 @@ Options:
 Output (schema mimic-scan/1):
   {schema, ok, real_clis, scanned, findings: ["<file> holds the value of <KEY>"], warnings, next}
 Exit 0 clean or skipped, 1 findings (hold the output back), 2 no mode, a missing key or a bad directory.
+```
+
+</details>
+
+### `wf mimic exec`
+
+Run a command (a test that drives real agent CLIs, such as the T3 chain's integration
+
+Usage: `wf mimic exec [options] -- <command...>`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf mimic exec [options] -- <command...>
+
+Run a command (a test that drives real agent CLIs, such as the T3 chain's integration
+tests) with the credentials of the CLIs it is to run for real, then scan what the run
+wrote. The credentials are read in memory (the vault, or the caller's environment
+without one) and reach only the command: each CLI's own variable, and for Codex a
+CODEX_HOME holding its decoded login, in a directory removed afterwards. The command
+gets the default-deny child environment plus T3_CHAIN_REAL_CLIS (names),
+T3_CHAIN_EXECUTOR_ENV (the variables to hand its executor), T3_CHAIN_CLI_HOME and
+MIMIC_REAL_CLI_DIR; the test crate reads those and never resolves a credential. The
+command's stdout goes to this verb's stderr, so stdout is one JSON object.
+The modes are --clis or T3_CHAIN_CLIS: scripted (nothing resolved, nothing scanned), real,
+or real:claude,codex,opencode. With neither the verb fails (exit 2) instead of guessing.
+One executor process runs every real CLI, so each can read the others' environment
+variables there (a known gap, docs/gaps/t3-chain-real-clis.md).
+
+Options:
+  --clis <mode>        scripted | real | real:<names> (required unless $T3_CHAIN_CLIS is set)
+  --cli-dir <dir>      the directory of the pinned CLI binaries (default $MIMIC_REAL_CLI_DIR)
+  --scan <dirs>        comma-separated directories to scan after the run, besides $WF_TEST_OUTPUT_DIR
+  -h, --help           display help for command
+
+Output (schema mimic-exec/1):
+  {schema, ok, real_clis, command, exit, scanned, findings: ["<file> holds the value of <KEY>"], codex_login_rotated, warnings, next}
+Exit 0 the command passed and the output is clean, 1 the command failed or a finding (hold the output back),
+2 no mode or command, a missing key or CLI directory. A rotated Codex login is a warning, never printed.
 ```
 
 </details>

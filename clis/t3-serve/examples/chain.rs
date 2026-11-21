@@ -1,5 +1,6 @@
 //! The chain the integration tests replay against (`t3-serve serve` over the real rca-service and rca-exec, a scripted model CLI), as one program for
 //! `target = "chain"` of a mimic candidate: it prints one JSON line when the chain listens and serves until its stdin closes.
+//! `T3_CHAIN_REAL_CLIS` (set by `wf mimic exec`, default none) runs those agent CLIs for real; this program reads only the environment.
 //! Flags name the binaries a runner built (`--t3-serve`, `--rca-service`, `--rca-exec`, `--scripted-cli`); without them the test kit builds what it needs.
 #[allow(dead_code, unused_imports)]
 #[path = "../tests/flow/support/mod.rs"]
@@ -25,7 +26,7 @@ fn main() {
     }
     let chain = rig::Chain::start();
     let workspace = std::fs::canonicalize(chain.repo.path()).expect("the repository has a path");
-    let said = serde_json::json!({"ok": true, "event": "listening", "addr": chain.addr.to_string(), "workspace": workspace.display().to_string(), "mint": chain.pair_command(&[]), "cli_dir": chain.cli.dir().display().to_string()});
+    let said = serde_json::json!({"ok": true, "event": "listening", "addr": chain.addr.to_string(), "workspace": workspace.display().to_string(), "mint": chain.pair_command(&[]), "cli_dir": chain.cli.dir().display().to_string(), "real_clis": chain.real.as_ref().map_or_else(Vec::new, |r| r.names.clone())});
     println!("{said}");
     let _ = std::io::stdin().read_to_end(&mut Vec::new());
 }

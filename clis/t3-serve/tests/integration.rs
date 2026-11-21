@@ -12,6 +12,8 @@ mod support;
 mod attachments;
 #[path = "integration/chain.rs"]
 mod chain;
+#[path = "integration/real_agent_turn.rs"]
+mod real_agent_turn;
 #[path = "integration/replay_features.rs"]
 mod replay_features;
 #[path = "integration/checkpoint_rollback.rs"]

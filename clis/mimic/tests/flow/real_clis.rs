@@ -176,3 +176,131 @@ fn given_the_scan_verb_when_real_clis_ran_then_a_leak_holds_the_output_back_with
     assert_eq!(unsaid.code, 2, "{}", unsaid.json);
     assert!(unsaid.json["error"].as_str().unwrap().contains("no mode"), "{}", unsaid.json);
 }
+
+#[test]
+fn given_real_clis_when_a_command_is_launched_then_it_gets_the_resolved_environment_only_and_stdout_stays_one_json_object() {
+    // Given a fake vault (the caller's environment) holding the Claude token and the Codex login, a stray credential no CLI was asked for, and a directory of CLIs
+    let work = tempfile::tempdir().unwrap();
+    let (out, bins, dump) = (work.path().join("out"), work.path().join("bins"), work.path().join("dump"));
+    std::fs::create_dir_all(&out).unwrap();
+    std::fs::create_dir_all(&bins).unwrap();
+    let login_b64 = login(REFRESH);
+    let env = [("CLAUDE_CODE_OAUTH_TOKEN", Path::new(CLAUDE)), ("CODEX_OAUTH_JSON_B64", Path::new(&login_b64)), ("OPENCODE_API_KEY", Path::new("stray-key-value-0009"))];
+    let script = format!("echo noise; env > {d}; cat \"$CODEX_HOME/auth.json\" > {d}.login; ls \"$CODEX_HOME\" > {d}.home; echo \"$CODEX_HOME\" > {d}.path", d = dump.display());
+    let (out_s, bins_s, dump_s) = (out.display().to_string(), bins.display().to_string(), dump.display().to_string());
+    // When it is launched for the real claude and codex through the verb
+    let run = mimic(&["exec", "--clis", "real:claude,codex", "--cli-dir", &bins_s, "--scan", &out_s, "--", "sh", "-c", &script], &env);
+    // Then it passed, clean, naming the CLIs and no value
+    assert_eq!(run.code, 0, "{}\n{}", run.json, run.stderr);
+    assert_eq!((run.json["schema"].clone(), run.json["ok"].clone(), run.json["exit"].clone()), (json!("mimic-exec/1"), json!(true), json!(0)), "{}", run.json);
+    assert_eq!(run.json["real_clis"], json!(["claude", "codex"]));
+    assert!(!run.json.to_string().contains(CLAUDE) && !run.json.to_string().contains(REFRESH) && !run.stderr.contains(CLAUDE) && !run.stderr.contains(REFRESH));
+    // And the command's own stdout went to the verb's stderr
+    assert!(run.stderr.contains("noise"), "{}", run.stderr);
+    // And the command held the Claude token, the names the rig reads, the CLI directory and a Codex home with the login, and neither the stray key nor the login's value as a variable
+    let held = std::fs::read_to_string(&dump).unwrap();
+    assert!(held.contains(&format!("CLAUDE_CODE_OAUTH_TOKEN={CLAUDE}")) && held.contains("T3_CHAIN_REAL_CLIS=claude,codex"), "{held}");
+    assert!(held.contains("T3_CHAIN_EXECUTOR_ENV=CLAUDE_CODE_OAUTH_TOKEN,CODEX_HOME") && held.contains(&format!("MIMIC_REAL_CLI_DIR={bins_s}")), "{held}");
+    assert!(!held.contains("stray-key-value-0009") && !held.contains("CODEX_OAUTH_JSON_B64") && !held.contains(REFRESH), "{held}");
+    assert!(std::fs::read_to_string(format!("{dump_s}.login")).unwrap().contains(REFRESH));
+    // And the home it was given is gone once the run ended
+    let home = std::fs::read_to_string(format!("{dump_s}.path")).unwrap();
+    assert!(!Path::new(home.trim()).exists(), "{home}");
+}
+
+#[test]
+fn given_a_launched_run_when_it_leaks_or_fails_then_the_output_is_held_back_and_the_exit_is_reported() {
+    // Given the Claude token in the environment and a command that writes it into the output directory
+    let work = tempfile::tempdir().unwrap();
+    let (out, bins) = (work.path().join("out"), work.path().join("bins"));
+    std::fs::create_dir_all(&out).unwrap();
+    std::fs::create_dir_all(&bins).unwrap();
+    let (out_s, bins_s) = (out.display().to_string(), bins.display().to_string());
+    let env = [("CLAUDE_CODE_OAUTH_TOKEN", Path::new(CLAUDE))];
+    let leak = mimic(&["exec", "--clis", "real:claude", "--cli-dir", &bins_s, "--scan", &out_s, "--", "sh", "-c", "echo \"$CLAUDE_CODE_OAUTH_TOKEN\" > \"$0/trace.json\"", &out_s], &env);
+    // Then it is held back naming the file and key, exit 1, no value printed
+    assert_eq!((leak.code, leak.json["ok"].clone()), (1, json!(false)), "{}", leak.json);
+    assert!(leak.json["findings"][0].as_str().unwrap().contains("trace.json holds the value of CLAUDE_CODE_OAUTH_TOKEN"), "{}", leak.json);
+    assert!(!leak.json.to_string().contains(CLAUDE) && !leak.stderr.contains(CLAUDE));
+    // And a failing command is exit 1 with its own exit code reported and a clean scan
+    std::fs::remove_file(out.join("trace.json")).unwrap();
+    let failed = mimic(&["exec", "--clis", "real:claude", "--cli-dir", &bins_s, "--scan", &out_s, "--", "sh", "-c", "exit 7"], &env);
+    assert_eq!((failed.code, failed.json["exit"].clone(), failed.json["findings"].clone()), (1, json!(7), json!([])), "{}", failed.json);
+}
+
+#[test]
+fn given_a_launcher_that_cannot_start_when_the_key_mode_command_or_directory_is_missing_then_it_fails_with_exit_2_before_running_anything() {
+    // Given a marker the command would leave if it ran
+    let work = tempfile::tempdir().unwrap();
+    let marker = work.path().join("ran");
+    let touch = format!("touch {}", marker.display());
+    let bins = work.path().display().to_string();
+    // When the vault lacks the key, then the error names it and the command never ran
+    let no_key = mimic(&["exec", "--clis", "real:opencode", "--cli-dir", &bins, "--", "sh", "-c", &touch], &[]);
+    assert_eq!(no_key.code, 2);
+    assert!(no_key.json["error"].as_str().unwrap().contains("OPENCODE_GO_API_KEY"), "{}", no_key.json);
+    // And no mode, no command and no directory of binaries are each refused
+    let no_mode = mimic(&["exec", "--", "sh", "-c", &touch], &[]);
+    assert!(no_mode.code == 2 && no_mode.json["error"].as_str().unwrap().contains("no mode"), "{}", no_mode.json);
+    let no_command = mimic(&["exec", "--clis", "scripted"], &[]);
+    assert_eq!(no_command.code, 2, "{}", no_command.json);
+    let no_dir = mimic(&["exec", "--clis", "real:claude", "--", "sh", "-c", &touch], &[("CLAUDE_CODE_OAUTH_TOKEN", Path::new(CLAUDE))]);
+    assert!(no_dir.code == 2 && no_dir.json["error"].as_str().unwrap().contains("directory"), "{}", no_dir.json);
+    assert!(!marker.exists());
+}
+
+#[test]
+fn given_the_scripted_mode_when_a_command_is_launched_then_nothing_is_resolved_and_the_rig_is_told_no_real_cli() {
+    // Given a stale real-CLI list in the caller's environment and no credentials anywhere
+    let work = tempfile::tempdir().unwrap();
+    let dump = work.path().join("dump");
+    let out = work.path().display().to_string();
+    // When the command is launched as scripted
+    let run = mimic(&["exec", "--clis", "scripted", "--scan", &out, "--", "sh", "-c", &format!("echo \"[$T3_CHAIN_REAL_CLIS][$T3_CHAIN_EXECUTOR_ENV]\" > {}", dump.display())], &[("T3_CHAIN_REAL_CLIS", Path::new("claude"))]);
+    // Then it passes without a key, the rig sees an empty list, and nothing was scanned for
+    assert_eq!((run.code, run.json["real_clis"].clone(), run.json["findings"].clone()), (0, json!([]), json!([])), "{}", run.json);
+    assert_eq!(std::fs::read_to_string(&dump).unwrap().trim(), "[][]");
+}
+
+#[test]
+fn given_a_run_that_rotates_the_codex_login_when_it_ends_then_the_rotation_is_reported_without_a_value() {
+    // Given the Codex login in the environment and a command that rewrites it as Codex does on a refresh
+    let work = tempfile::tempdir().unwrap();
+    let bins = work.path().display().to_string();
+    let login_b64 = login(REFRESH);
+    let env = [("CODEX_OAUTH_JSON_B64", Path::new(&login_b64))];
+    // When it runs
+    let run = mimic(&["exec", "--clis", "real:codex", "--cli-dir", &bins, "--", "sh", "-c", "echo '{\"tokens\":{}}' > \"$CODEX_HOME/auth.json\""], &env);
+    // Then the rotation is flagged with the step to write it back, and no value is printed
+    assert_eq!((run.code, run.json["codex_login_rotated"].clone()), (0, json!(true)), "{}", run.json);
+    assert!(run.json["warnings"][0].as_str().unwrap().contains("rotate-login codex"), "{}", run.json);
+    assert!(!run.json.to_string().contains(REFRESH) && !run.stderr.contains(REFRESH));
+}
+
+#[test]
+fn given_a_command_that_prints_a_credential_when_it_is_launched_then_the_output_is_withheld_and_the_run_held_back() {
+    // Given the Claude token and a command that echoes it to stdout and stderr
+    let work = tempfile::tempdir().unwrap();
+    let bins = work.path().join("bins");
+    std::fs::create_dir_all(&bins).unwrap();
+    let bins_s = bins.display().to_string();
+    let env = [("CLAUDE_CODE_OAUTH_TOKEN", Path::new(CLAUDE))];
+    // When it is launched for the real claude
+    let run = mimic(&["exec", "--clis", "real:claude", "--cli-dir", &bins_s, "--", "sh", "-c", "echo \"out $CLAUDE_CODE_OAUTH_TOKEN\"; echo \"err $CLAUDE_CODE_OAUTH_TOKEN\" >&2"], &env);
+    // Then it is held back naming the key, and neither the verb's stdout nor its stderr carries the value
+    assert_eq!((run.code, run.json["ok"].clone()), (1, json!(false)), "{}", run.json);
+    assert!(run.json["findings"][0].as_str().unwrap().contains("CLAUDE_CODE_OAUTH_TOKEN"), "{}", run.json);
+    assert!(!run.json.to_string().contains(CLAUDE) && !run.stderr.contains(CLAUDE) && run.stderr.contains("[withheld: CLAUDE_CODE_OAUTH_TOKEN]"), "{}", run.stderr);
+}
+
+#[test]
+fn given_a_codex_login_when_it_is_resolved_then_its_directory_and_file_are_owner_only() {
+    // Given a vault holding a login
+    use std::os::unix::fs::PermissionsExt;
+    let work = tempfile::tempdir().unwrap();
+    // When it is resolved
+    let _held = Resolved::resolve(&[&CLIS[1]], &work.path().join("home"), &vault(&login(REFRESH))).unwrap();
+    // Then the directory is 0700 and the login 0600
+    let mode = |p: &str| std::fs::metadata(work.path().join(p)).unwrap().permissions().mode() & 0o777;
+    assert_eq!((mode("home/.codex"), mode("home/.codex/auth.json")), (0o700, 0o600));
+}

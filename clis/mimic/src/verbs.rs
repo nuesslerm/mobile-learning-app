@@ -16,6 +16,8 @@ mod capture_verb;
 mod provision_phase;
 #[path = "scan_verb.rs"]
 mod scan_verb;
+#[path = "exec_verb.rs"]
+mod exec_verb;
 
 use crate::adapters::{open_driver, FsCheckpoint, FsStore};
 use crate::config::{relative, Config, Target};
@@ -45,6 +47,7 @@ const CRAWL: Spec = Spec { values: &["root"], flags: &["all", "check", "fresh"],
 const STABILIZE: Spec = Spec { values: &["allowlist", "min-pct", "report"], flags: &["write"], positional: Positional::Any, ..Spec::NONE };
 const REMASK: Spec = Spec { positional: Positional::Exactly(1), ..Spec::NONE };
 const CAPTURE: Spec = Spec { values: &["provision", "chunk", "budget", "out", "summary", "run", "candidate", "rows", "work-root", "root", "agents-cache"], flags: &["fresh", "check", "force", "publish"], positional: Positional::Exactly(2), ..Spec::NONE };
+const EXEC: Spec = Spec { values: &["clis", "cli-dir", "scan"], positional: Positional::Any, ..Spec::NONE };
 const SCAN: Spec = Spec { values: &["clis"], positional: Positional::Any, ..Spec::NONE };
 const FETCH: Spec = Spec { values: &["set", "root"], positional: Positional::Exactly(1), ..Spec::NONE };
 const VERIFY: Spec = Spec { values: &["root", "fixtures", "rules"], flags: &["all", "live", "files"], positional: Positional::Any, ..Spec::NONE };
@@ -92,6 +95,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         "remask" => finish("mimic-remask/1", stabilize_verb::remask_verb(&parse_spec(rest, &REMASK)?)),
         "capture" => finish("mimic-capture/1", capture_verb::capture_verb(&parse_spec(rest, &CAPTURE)?)),
         "scan" => finish("mimic-scan/1", scan_verb::scan_verb(&parse_spec(rest, &SCAN)?)),
+        "exec" => finish("mimic-exec/1", exec_verb::exec_verb(&parse_spec(rest, &EXEC)?)),
         "fetch" => finish("mimic-fetch/1", bundle_verb::fetch_verb(&parse_spec(rest, &FETCH)?)),
         "import" => finish("mimic-import/1", import(&parse_spec(rest, &IMPORT)?)),
         "export" => finish("mimic-export/1", export(&parse_spec(rest, &EXPORT)?)),

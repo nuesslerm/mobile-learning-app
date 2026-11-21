@@ -69,6 +69,7 @@ Commands:
   track <verb> [options]      Is the pinned reference the newest release of the real server: check, bump, plan, report
   capture [options] <record|replay> <set>  Provision a set's reference, then run its chunked record or replay and diff table
   scan [options] <dir...>     Scan a real-agent run's output for the exact values of its credentials
+  exec [options] -- <command...>  Run a command with the real agent CLIs' credentials, then scan its output
   fetch [options] <run-id|latest>  Download a published run into this checkout
   import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set
   export [options] <format> <set>  Rebuild the legacy files of an imported set and check their hashes
