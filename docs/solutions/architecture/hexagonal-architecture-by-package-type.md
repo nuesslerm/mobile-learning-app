@@ -58,6 +58,45 @@ Where the rings live in the full-hexagon types and in type 4:
 
 Ports sit in `application/` where an adapter may import the application ring (Rust services). In a feature, `state/` holds React hooks and stores that an adapter must not import, so ports sit in `domain/ports.ts`. Same sentence either way: the core declares the port in the innermost ring the adapters may import.
 
+## Showing a structure before you build or move
+
+New feature work and refactor work that adds, moves or renames folders is shown to the user as the final folder structure before the first file moves, in the plan, the issue or the PR description, and again whenever the plan changes. Moving files first and explaining after costs a back and forth; the sample is what the user reviews. A single file or a folder inside an existing ring needs one line naming the folder, not a tree.
+
+- One tree from `frontend/` (or the repo root for another package type), the final state and not a diff. The header line says what it is: `(proposed; one slice after D)`.
+- Mark each folder `(unchanged)`, `(new)` or `(moved from <old path>)`, and give it one annotation: what it holds, or what its ring is. Files go on the same line separated by `·`, groups as `{a,b}`.
+- Every package the work touches is in the tree, libraries included, each with its own shape; a feature shows its rings (`domain/ data/ state/ ui/ di/ routes/ testing/`).
+- Where a choice is open (a folder inside a feature or a library), show the recommended tree and say in one line what the other choice would change.
+- Show the tree before building, not after. Once the user has agreed to a placement, put a `Decision` in the issue so it is not asked again.
+
+Example (issue 86, section D close-out; the editor folded into the leetcode feature):
+
+```
+frontend/                                              (proposed; one slice after D)
+├─ libraries/
+│  ├─ webview-rpc/            the bridge (unchanged)
+│  │  └─ src/ ports/transport · core/{client,server,protocol} · adapters/{webviewHost,webviewPage} · testing/{loopback,emulatedWebView}
+│  ├─ code-editor-api/        the typed editor API (D adds tree, syntax, complete)
+│  │  └─ src/ ports/{protocol,host,engine} · core/{engine,treeJob,validate,plan,client,mirror,changes,revisionLog}
+│  │          core/syntax/{tree,classify,blocks}  pure questions over a tree reply
+│  │          adapters/{rpcEngine,rpcServer} · testing/{contract,treeContract,stringHost = fake editor,treeParsers,faults}
+│  └─ flow-test-harness/      session.editor(): API calls + mirror, now config() and press()
+└─ mla-tamagui/features/leetcode/     ONE feature, hexagonal rings; code-editor/ is folded in
+   ├─ domain/                 pure, imports no I/O
+   │  ├─ ports.ts · models · judge · caseDisplay · toolbar · completionEntries
+   │  └─ editor/              editing (transforms) · languageProfile · applyVoiceEdit · toolbarKeys (if it imports only domain)
+   ├─ data/                   adapters
+   │  ├─ editor/cm6/          cm6Host · configPatch · languageExtensions · completionSources · page source → bundle (generated) · editorHtml · palettes
+   │  ├─ editor/api/          editorForwarding (messages → API) · documentWrite (planWrite/writeThrough)
+   │  └─ pyodide/             on-device runner (unchanged)
+   ├─ state/                  stores · ports.tsx · editorSettings (+ completion setting)
+   ├─ ui/
+   │  ├─ editor/              EditorInput (React) · helperbars/{Syntax,Action}Toolbar · EditorHelperRails
+   │  └─ …                    screens, unchanged
+   ├─ di/                     LeetCodeContainer, the one composition root
+   ├─ routes/ · plan/         unchanged
+   └─ testing/                fakePageHost · fake CodeRunner
+```
+
 ## Package types
 
 Ask in order; the first yes decides. A declarative file a tool reads → 16. Only sequences other programs → 15. Deployed and runs on its own → 1. A CLI with rules and several outside systems → 3. A tool whose rules meet one or two outside things → 4. A Rust library of rules shared by several consumers → 5. All I/O against one outside system → 6. `frontend/mla-tamagui` outside `features/` → 7. A feature a user reaches: calls a backend or persists data → 8, otherwise 9. Only schemas and types that two or more packages consume → 10. A frontend or JS library: no I/O → 11, rules that wrap I/O → 12, rendering components → 13. Drives other packages' code under test → 14.
@@ -139,11 +178,18 @@ Target rings:
 - `routes/`: the modules `app/` re-exports; `routes/_layout.tsx` mounts `di/` once. Imports `di/` and `ui/` only. A route whose screen reads `use<Feature>Ports()` sits under the one `app/` subtree whose `_layout.tsx` re-exports that layout; a shell flow test renders every feature route and fails on a missing provider.
 - `testing/`: doubles and e2e fake servers; no production ring imports it. A fixture mode that ships in the product (leetcode's `EXPO_PUBLIC_LEETCODE_FIXTURES`, `di/fixtureOverrides.tsx:4-8`) stays in `data/`, and `testing/` re-exports it. `index.ts`: the barrel.
 - Rule: routes → di → data → domain; routes → ui → state → domain; di → state. The public surface is the barrel, `routes/*` and `testing`. A feature imports no other feature and nothing from the shell. Old names map to rings: `contracts/`, `use-cases/`, `lib/` → `domain/`; `hooks/`, `integration/` → `state/`; `fixtures/` → `testing/`.
+Where a new thing goes (an editor, a runner, a recorder):
+- A feature's top level holds the ring folders (`domain/ data/ state/ ui/ di/ routes/ testing/`), the barrel and nothing else. No `core/`, `engine/`, `adapters/`, `helpers/` or `<capability>/` folder holds rings of its own: a folder named for a capability inside a feature is the mistake that `leetcode/code-editor/{core,engine,helperbars}` made.
+- A capability is grouped inside each ring it touches, the capability as the sub-folder and the ring as the parent: `domain/editor/`, `data/editor/cm6/`, `ui/editor/`.
+- Place a file by what it does, asking in this order: it touches I/O, a library or a native API → `data/`; a React hook or store → `state/`; a React view → `ui/`; wiring → `di/`; anything else, which is pure → `domain/`.
+- A capability stays inside the feature that uses it. It becomes a `frontend/libraries/<name>` package only when a second feature needs it, or when it is a pure engine behind a port that needs no app code (`@lib/code-editor-api`). A library is built to its own package type (5, 6, 12), and features never import each other, so a separate "editor feature" that the leetcode feature imports is not an option.
+- An adapter over the library's own wire (the rpc adapters of `@lib/code-editor-api`) lives in the library; an adapter over a technology the app chose (CodeMirror behind `DocumentHost`) lives in the `data/` of the feature that composes it.
 
 Today:
 - Every feature but dashboards sits in `frontend/mla-tamagui/features/<name>`: in-app Nx projects (leetcode, tamil-writing) or workspace packages.
 - The four package features check layers with the shared preset that the removed `PRESENTATION_LAYERS` table held (since replaced by `frontend/feature-kit/depcruise.presets.cjs`, whose ring names come from `package-types.json`): `domain` imports no layer; `data` imports `domain`; `state` imports `domain`, `data`; `ui` imports `domain`, `data`, `state`; files outside a layer are free. All four pass (21 Oct). coding-agent adds `integration` and counts `contracts/` and `fixtures/` as domain; service-report counts `contracts/` as domain. That chain puts the adapters (`data/`) under the application (`state/`, `integration/`); the target replaces it.
 - The app's `lint` cruises leetcode, tamil-writing and dashboards in place with the `hexagonalFeature` preset (`frontend/mla-tamagui/.dependency-cruiser.cjs`) against a known-violations baseline that only shrinks; the old `arch` script is gone.
+- `features/leetcode/code-editor/{core,engine,helperbars,highlighting}` predates the rules above and is being folded into leetcode's rings (issue 86, section D close-out); it is not a precedent.
 - leetcode is the composition reference: `LeetCodePorts` (`features/leetcode/domain/ports.ts:143`) is built once in `frontend/mla-tamagui/features/leetcode/di/LeetCodeContainer.tsx` (:12, :51-59), mounted once in `routes/_layout.tsx`, read with `useLeetCodePorts()`, which throws outside the provider (:42-48). It has no `domain/` yet.
 - The test seam is `useDependencyOverrides(key)` (`frontend/libraries/app-di/src/index.tsx:31-36`); keys and shapes are in `docs/solutions/testing/flow-tests-mount-whole-routes.md`. Outside leetcode it is read in ui, state and integration files (coding-agent `ui/ThreadListScreen.tsx:102`, `ui/DispatchRunScreen.tsx:56`, `integration/useGateway.ts:25`; service-report `state/useHealthReportHistory.ts:33`; dashboards `AgentsDashboardScreen.tsx:226`, `InfraDashboardScreen.tsx:229`) and in dev-tools' dead `di/useDevToolsRuntime.ts:7`, never in a live composition root.
 - `ui` imports `data/` in coding-agent (4 files), tamil-writing (4) and leetcode (2, exempt).

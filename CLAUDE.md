@@ -20,7 +20,7 @@ Before asking the user for anything, try it yourself; ask only after a concrete 
 
 ## Code architecture
 
-Ports and adapters, one shape per package type: dependencies point inward to a pure core (`domain/` does no I/O), the core owns its ports, adapters implement them, one composition root wires them. A feature owns its slice in `frontend/mla-tamagui/features/<name>`; Rust services are `core`/`rs` crate pairs; `clis/wf` is split by concept into crates (`wf` is only the router). Shapes, the crate list and the checks (`pnpm run arch:services`; the app's `lint` runs dependency-cruiser): `docs/solutions/architecture/hexagonal-architecture-by-package-type.md` and `docs/solutions/architecture/code-architecture-rules.md`.
+Ports and adapters: dependencies point inward to a pure core (`domain/` does no I/O), adapters implement the core's ports, one composition root wires them. A feature (`frontend/mla-tamagui/features/<name>`) is only the ring folders `domain/ data/ state/ ui/ di/ routes/ testing/`, a capability is a sub-folder inside each ring, and it imports no other feature. For feature work or a folder-moving refactor, show the user the final folder tree before any file moves. Shapes, checks, tree format: `docs/solutions/architecture/hexagonal-architecture-by-package-type.md` ("Showing a structure"), `docs/solutions/architecture/code-architecture-rules.md`.
 
 ## Comments
 
