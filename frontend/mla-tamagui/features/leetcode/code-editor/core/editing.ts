@@ -10,6 +10,7 @@
  * CodeMirror selection model used across the bridge (see ./types `Selection`).
  */
 
+import { PYTHON_PROFILE, type LanguageProfile } from './languageProfile';
 import type { Selection } from './types';
 
 /** One indentation level. Matches the editor's default tabSize (4). */
@@ -102,31 +103,58 @@ export function dedent(text: string, sel: Selection): EditResult {
   });
 }
 
-/** Toggle `# ` line comments across the selected lines. */
-export function toggleComment(text: string, sel: Selection): EditResult {
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Toggle line comments (the language's marker and a space) across the selected lines. */
+export function toggleComment(
+  text: string,
+  sel: Selection,
+  profile: LanguageProfile = PYTHON_PROFILE
+): EditResult {
+  const marker = escapeRegExp(profile.lineComment);
+  const commented = new RegExp(`^\\s*${marker}`);
+  const removal = new RegExp(`^(\\s*)${marker}\\s?`);
   const blockStart = lineStartIndex(text, Math.min(sel.start, sel.end));
   const blockEnd = lineEndIndex(text, Math.max(sel.start, sel.end));
   const lines = text.slice(blockStart, blockEnd).split('\n');
   const allCommented = lines.every(
-    (line) => line.trim() === '' || /^\s*#/.test(line)
+    (line) => line.trim() === '' || commented.test(line)
   );
   const map: LineMapper = allCommented
-    ? (line) => line.replace(/^(\s*)#\s?/, '$1')
-    : (line) => (line.trim() === '' ? line : line.replace(/^(\s*)/, '$1# '));
+    ? (line) => line.replace(removal, '$1')
+    : (line) =>
+        line.trim() === ''
+          ? line
+          : line.replace(/^(\s*)/, `$1${profile.lineComment} `);
   return mapSelectedLines(text, sel, map);
 }
 
 /**
  * Newline that keeps the current line's indentation, adding one extra level
- * after a line that ends in `:` (Python block opener).
+ * after a line the language opens a block with (`:` for Python, `{` for the brace languages),
+ * and, with the caret between a bracket and its closer, putting the closer on its own line.
  */
-export function smartNewline(text: string, sel: Selection): EditResult {
+export function smartNewline(
+  text: string,
+  sel: Selection,
+  profile: LanguageProfile = PYTHON_PROFILE
+): EditResult {
   const start = Math.min(sel.start, sel.end);
   const ls = lineStartIndex(text, start);
   const lineSoFar = text.slice(ls, start);
   const leading = /^[ \t]*/.exec(lineSoFar)?.[0] ?? '';
   const fullLine = text.slice(ls, lineEndIndex(text, start)).trimEnd();
-  const nextIndent = fullLine.endsWith(':') ? leading + INDENT_UNIT : leading;
+  const opensBlock =
+    profile.openers.some((opener) => fullLine.endsWith(opener)) ||
+    (profile.statementOpener?.test(fullLine) ?? false);
+  const nextIndent = opensBlock ? leading + INDENT_UNIT : leading;
+  const between = text.slice(start - 1, start + 1);
+  if (sel.start === sel.end && start > 0 && profile.pairs.includes(between)) {
+    const inner = `\n${leading + INDENT_UNIT}`;
+    const result = insertText(text, sel, `${inner}\n${leading}`);
+    const caret = start + inner.length;
+    return { text: result.text, selection: { start: caret, end: caret } };
+  }
   return insertText(text, sel, `\n${nextIndent}`);
 }
 
