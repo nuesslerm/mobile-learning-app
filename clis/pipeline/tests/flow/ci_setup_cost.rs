@@ -380,7 +380,7 @@ fn both_eas_jobs_that_push_a_pointer_write_the_phases_of_the_push_into_the_job_s
 }
 
 #[test]
-fn the_core_tests_step_names_and_kills_what_outlives_its_stages_so_a_left_behind_daemon_cannot_hold_the_step_open() {
+fn the_core_tests_step_names_what_outlives_its_stages_and_never_kills_it_because_the_runners_own_processes_share_its_session() {
     // Given the core-tests job
     let job = job_block(&read(".github/workflows/pipeline.yml"), "core-tests");
 
@@ -388,13 +388,13 @@ fn the_core_tests_step_names_and_kills_what_outlives_its_stages_so_a_left_behind
     let step = job.split("- name: Flow, typecheck, lint and unit tests").nth(1).expect("the test step is there");
     let step = step.split("- uses: ./.github/actions/nx-cache").next().unwrap();
 
-    // Then after the stages are waited for, the processes of the step's session that are not its own descendants and are still alive are named in a warning and killed before the step exits
+    // Then after the stages are waited for, the processes of the step's session that are not its own descendants and are not the runner's are named in a warning, and nothing is killed
     let waited = step.find("wait \"${pids[$i]}\"").expect("it waits for the stages");
     let after = &step[waited..];
     assert!(after.contains("ss[$1]=$3"), "{after}");
     assert!(after.contains("title=left behind"), "{after}");
-    assert!(after.contains("xargs -r kill -KILL"), "{after}");
-    assert!(after.find("kill -KILL").unwrap() < after.find("exit $rc").unwrap(), "{after}");
+    assert!(after.contains("Runner|runsvc|provjobd|actions-runner"), "{after}");
+    assert!(!after.contains("kill -KILL") && !after.contains("xargs"), "{after}");
 }
 
 #[test]
