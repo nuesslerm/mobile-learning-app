@@ -1,10 +1,11 @@
 //! `wf ci resources`: what each job's runner did while it ran, from the sampler's `stats-<job>.jsonl` files, as rows of `CI_JOB_RESOURCES`; and, joined with
 //! the Nx task intervals each job kept in its own database (`ci-db-<job>/rows.sqlite`), what each task that ran saw of the machine, as `CI_TASK_RESOURCES`.
+//! Laid over the steps the job kept in `CI_STEPS`, the same samples give `CI_STEP_RESOURCES`: what the machine did during each step.
 //! The job is the artifact's name, taken from the data. Rows go to the report job's local database (`wf ci db merge` carries them on); `--send` makes them gauges.
 use crate::ci_comment::var;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
-use wf_bucket::ci_db::{JobResources, LedgerTask, TaskResources};
+use wf_bucket::ci_db::{JobResources, LedgerTask, StepResources, StepRow, TaskResources};
 use wf_bucket::ci_metrics::Gauges;
 use wf_kit::args::{parse_spec, Positional, Spec};
 
@@ -107,6 +108,48 @@ pub(crate) fn task_resources(run: &str, job: &str, tasks: &[LedgerTask], samples
         .collect()
 }
 
+/// The sampler file's job name for a job as the API names it: `core-tests (1/3)` is `core-tests-1`, `build (app)` is `build-app`, the arm `wf-build` is `clis-arm`.
+pub(crate) fn stats_key(job: &str) -> String {
+    let name = wf_bucket::job_name::job_name(job);
+    let Some((stage, param)) = name.strip_suffix(')').and_then(|n| n.rsplit_once(" (")) else { return name.to_string() };
+    match (stage, param) {
+        ("wf-build", "arm64") => "clis-arm".to_string(),
+        (_, p) => format!("{stage}-{}", p.split('/').next().unwrap_or(p)),
+    }
+}
+
+/// What each step saw of the machine: the job's samples (a sample at `t` covers the seconds since the sample before it, the first the median gap) laid over the step's interval. A step with no sample
+/// over it has no row. The job's samples are the file `stats_key` names.
+pub(crate) fn step_resources(steps: &[StepRow], samples: &[(String, Vec<Value>)]) -> Vec<StepResources> {
+    let mut out = Vec::new();
+    for step in steps {
+        let (Some(from), Some(to)) = (step.started, step.completed) else { continue };
+        let Some((_, job_samples)) = samples.iter().find(|(name, _)| *name == stats_key(&step.job)) else { continue };
+        let dt = interval(job_samples);
+        let (mut covered, mut idle, mut saturated, mut wait) = (0.0, 0.0, 0.0, 0.0);
+        let mut previous: Option<i64> = None;
+        for s in job_samples {
+            let Some(t) = s["t"].as_i64() else { continue };
+            let start = previous.map_or(t - dt, |p| p.min(t));
+            previous = Some(t);
+            let overlap = (t.min(to) - start.max(from)).max(0) as f64;
+            if overlap == 0.0 {
+                continue;
+            }
+            covered += overlap;
+            idle += overlap * f64::from(u8::from(num(s, "cpu").is_some_and(|c| c < IDLE_CPU)));
+            saturated += overlap * f64::from(u8::from(num(s, "cpu").is_some_and(|c| c > SATURATED_CPU) || num(s, "psiCpu").is_some_and(|p| p > SATURATED_PSI)));
+            wait += overlap * num(s, "iowaitPct").unwrap_or(0.0);
+        }
+        if covered == 0.0 {
+            continue;
+        }
+        let duration = step.duration_s.unwrap_or(to - from) as f64;
+        out.push(StepResources { run: step.run.clone(), job: step.job.clone(), step_no: step.step_no, step: step.step.clone(), duration_s: duration, idle_s: idle.min(duration), saturated_s: saturated.min(duration), iowait_avg: wait / covered });
+    }
+    out
+}
+
 pub(crate) fn samples_of(path: &Path) -> Vec<Value> {
     std::fs::read_to_string(path).unwrap_or_default().lines().filter_map(|l| serde_json::from_str(l).ok()).collect()
 }
@@ -120,9 +163,19 @@ fn job_json(r: &JobResources) -> Value {
     })
 }
 
-/// `ci.job.*{job, workflow}`: the job's machine as gauges.
-fn gauges(rows: &[JobResources]) -> Gauges {
+/// Only a step this long is a series of its own.
+const STEP_GAUGE_MIN_S: f64 = 30.0;
+
+/// `ci.job.*{job, workflow}`: the job's machine as gauges, and `ci.step.idle_s{job, step}` for the steps over `STEP_GAUGE_MIN_S` (steps of one name in a job add up).
+fn gauges(rows: &[JobResources], steps: &[StepResources]) -> Gauges {
     let mut g = Gauges::new();
+    let mut idle: std::collections::BTreeMap<(&str, &str), f64> = std::collections::BTreeMap::new();
+    for r in steps.iter().filter(|r| r.duration_s > STEP_GAUGE_MIN_S) {
+        *idle.entry((&r.job, &r.step)).or_default() += r.idle_s;
+    }
+    for ((job, step), value) in idle {
+        g.set("ci.step.idle_s", job, step, value);
+    }
     for r in rows {
         for (metric, value) in [
             ("ci.job.cpu_avg", r.cpu_avg),
@@ -157,7 +210,7 @@ fn resources(rest: &[String]) -> Option<i32> {
     let workflow = var("GITHUB_WORKFLOW").unwrap_or_default();
     let mut files: Vec<PathBuf> = std::fs::read_dir(&stats).map(|d| d.filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().is_some_and(|x| x == "jsonl")).collect()).unwrap_or_default();
     files.sort();
-    let (mut jobs, mut tasks) = (Vec::new(), Vec::new());
+    let (mut jobs, mut tasks, mut sampled) = (Vec::new(), Vec::new(), Vec::new());
     for path in files {
         let job = path.file_stem().and_then(|n| n.to_str()).unwrap_or("job").trim_start_matches("stats-").to_string();
         let samples = samples_of(&path);
@@ -169,6 +222,17 @@ fn resources(rest: &[String]) -> Option<i32> {
             None => {}
         }
         jobs.push(row);
+        sampled.push((job, samples));
+    }
+    let steps = match wf_bucket::ci_db::steps_local(&run) {
+        Ok(rows) => step_resources(&rows, &sampled),
+        Err(why) => {
+            wf_kit::wf_err!("wf: ci steps not read: {why}");
+            Vec::new()
+        }
+    };
+    if let Err(why) = wf_bucket::ci_db::record_step_resources_local(&steps) {
+        wf_kit::wf_err!("wf: ci step resources not recorded: {why}");
     }
     if let Err(why) = wf_bucket::ci_db::record_job_resources_local(&jobs) {
         wf_kit::wf_err!("wf: ci job resources not recorded: {why}");
@@ -178,13 +242,34 @@ fn resources(rest: &[String]) -> Option<i32> {
     }
     let sent = parsed.flag("send") && !jobs.is_empty();
     if sent {
-        gauges(&jobs).send();
+        gauges(&jobs, &steps).send();
     }
-    println!("{}", json!({"ok": true, "run": run, "sent": sent, "jobs": jobs.iter().map(job_json).collect::<Vec<_>>(), "tasks": tasks.len()}));
+    println!("{}", json!({"ok": true, "run": run, "sent": sent, "jobs": jobs.iter().map(job_json).collect::<Vec<_>>(), "tasks": tasks.len(), "steps": steps.len()}));
     Some(0)
 }
 
 /// `wf ci resources [--stats <dir>] [--ledgers <dir>] [--run <id>] [--send]`.
 pub fn run(verb: &str, rest: &[String]) -> Option<i32> {
     (verb == "resources").then(|| resources(rest)).flatten()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample(t: i64, cpu: f64) -> Value {
+        json!({"t": t, "cpu": cpu})
+    }
+
+    #[test]
+    fn given_irregular_sample_gaps_when_a_step_is_laid_over_them_then_each_sample_covers_the_time_since_the_one_before() {
+        // Given samples 5 s apart but for a 20 s stall, the first two busy and the sample after the stall idle
+        let samples = vec![("core-tests-1".to_string(), vec![sample(105, 90.0), sample(110, 90.0), sample(130, 5.0), sample(135, 5.0)])];
+        let step = StepRow { run: "1".into(), job: "core-tests (1/3)".into(), step_no: 1, step: "Flow tests".into(), started: Some(100), completed: Some(135), duration_s: Some(35), conclusion: None };
+        // When the step is laid over them
+        let rows = step_resources(&[step], &samples);
+        // Then the idle seconds are the 20 s stall plus 5 s, with no window overlapping another
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].idle_s, 25.0);
+    }
 }

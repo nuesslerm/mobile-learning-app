@@ -971,7 +971,9 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
     out.push_str(&format!("{}\n\n", glance.join(" · ")));
     let finished_jobs: Vec<&Value> = shown.iter().map(|(j, _)| *j).collect();
     let gathered = crate::ci_telemetry::gather(env, &finished_jobs, !running && !shown.is_empty());
-    let trend = crate::ci_trend::section(env, gathered.profile.as_ref(), &finished_jobs);
+    let sealed = gathered.profile.as_ref().filter(|p| p.workflow.contains('+')).and_then(|_| crate::ci_trend::Sealed::open(&env.run).ok());
+    let trend = crate::ci_trend::section(sealed.as_ref(), gathered.profile.as_ref(), &finished_jobs);
+    let actions = crate::ci_actions::section(sealed.as_ref(), &gathered);
     let telemetry = crate::ci_telemetry::section(&gathered, &failed_names(failures));
     if !telemetry.headline.is_empty() {
         out.push_str(&format!("{}\n\n", telemetry.headline));
@@ -1003,6 +1005,7 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
     out.push_str(&telemetry.tables);
     out.push_str(&job_chart(&shown));
     out.push_str(&trend);
+    out.push_str(&actions);
     if env.label.is_some() {
         out.push_str(&runner_section(env));
     } else if let (Some(from), Some(to)) = (started, ended.or(started)) {

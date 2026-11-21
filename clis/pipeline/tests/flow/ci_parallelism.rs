@@ -209,3 +209,72 @@ fn given_an_unreadable_actions_api_when_concurrency_is_read_then_it_says_why_and
     assert_eq!((r.exit_code, line(&r)["ok"].clone()), (0, json!(false)), "{}{}", r.stdout, r.stderr);
     assert!(line(&r)["next"].as_str().is_some_and(|n| n.contains("actions:read")), "{}", r.stdout);
 }
+
+fn plain_sample(t: i64, cpu: u32, iowait: u32) -> String {
+    format!(r#"{{"t":{t},"cpu":{cpu},"iowaitPct":{iowait}}}"#)
+}
+
+/// The steps of run 92 as `wf ci timings` keeps them in a job-local database: a 10 s setup, a 40 s install and a 30 s test step of core-tests shard 1.
+fn kept_steps(dir: &Path) -> std::path::PathBuf {
+    let run = json!({"id": 92, "name": "CI core", "status": "completed", "created_at": "2026-11-19T10:00:00Z", "run_started_at": "2026-11-19T10:00:00Z", "head_sha": "abc"});
+    let steps = vec![step("Set up job", "10:00:00", "10:00:10"), step("Run ./.github/actions/install-test-deps", "10:00:10", "10:00:50"), step("Flow tests", "10:00:50", "10:01:20")];
+    let jobs = json!({"total_count": 1, "jobs": [job("run / core-tests (1/3)", "10:00:00", "10:00:00", "10:01:20", steps)]});
+    let server = served(&[("/repos/o/r/actions/runs/92", run), ("/repos/o/r/actions/runs/92/jobs?per_page=100&page=1", jobs)]);
+    let local = dir.join("rows.sqlite");
+    let r = wf(&server, &["timings", "--run", "92"], &[("WF_CI_DB", &local.display().to_string())]);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    local
+}
+
+#[test]
+fn given_a_jobs_samples_and_its_kept_steps_when_the_resources_are_read_then_each_step_has_its_idle_and_saturated_seconds_and_the_merge_keeps_each_row_once() {
+    // Given the steps of a job kept in its database and its samples every 5 s: idle through setup and install (I/O wait 10% during the install), busy through the test step
+    let dir = tempfile::tempdir().unwrap();
+    let stats = dir.path().join("runner-stats");
+    let t0 = 1_795_082_400;
+    let rows: Vec<String> = (1..=16).map(|i| plain_sample(t0 + i * 5, if i <= 10 { 5 } else { 95 }, if (3..=10).contains(&i) { 10 } else { 0 })).collect();
+    write_stats(&stats, "core-tests-1", &rows);
+    let local = kept_steps(dir.path());
+    let stats_arg = stats.display().to_string();
+    let source = MockServer::start(None);
+    let read = || {
+        run_wf(
+            &["ci", "resources", "--stats", &stats_arg, "--run", "92", "--send"],
+            &RunOpts::default().env("WF_CI_DB", &local.display().to_string()).env("WF_CI_METRICS", "on").env("WF_CI_METRICS_BASE", &format!("http://127.0.0.1:{}", source.port)),
+        )
+    };
+
+    // When the resources are read, twice (a retried report job), and the database is merged
+    let (first, second) = (read(), read());
+
+    // Then CI_STEP_RESOURCES has one row per step with its duration, the idle and saturated seconds of the samples over it and their I/O wait average, each once
+    assert_eq!((first.exit_code, line(&first)["steps"].clone(), second.exit_code), (0, json!(3), 0), "{}{}", first.stdout, first.stderr);
+    assert_eq!(
+        query(&local, "SELECT RUN_ID, JOB, STEP_NO, STEP, DURATION_S, IDLE_S, SATURATED_S, IOWAIT_AVG FROM CI_STEP_RESOURCES ORDER BY STEP_NO"),
+        json!([
+            {"RUN_ID": "92", "JOB": "core-tests (1/3)", "STEP_NO": 1, "STEP": "Set up job", "DURATION_S": 10.0, "IDLE_S": 10.0, "SATURATED_S": 0.0, "IOWAIT_AVG": 0.0},
+            {"RUN_ID": "92", "JOB": "core-tests (1/3)", "STEP_NO": 2, "STEP": "Run ./.github/actions/install-test-deps", "DURATION_S": 40.0, "IDLE_S": 40.0, "SATURATED_S": 0.0, "IOWAIT_AVG": 10.0},
+            {"RUN_ID": "92", "JOB": "core-tests (1/3)", "STEP_NO": 3, "STEP": "Flow tests", "DURATION_S": 30.0, "IDLE_S": 0.0, "SATURATED_S": 30.0, "IOWAIT_AVG": 0.0}
+        ])
+    );
+    // And only the step over 30 s is a gauge of idle seconds, named by its job and step
+    let seen = gauges(&source.requests());
+    let idle: Vec<(String, String, f64)> = seen.iter().filter(|g| g.metric == "ci.step.idle_s").map(|g| (g.scope.clone(), g.name.clone(), g.value)).collect();
+    assert!(!idle.is_empty() && idle.iter().all(|g| *g == ("core-tests (1/3)".to_string(), "Run ./.github/actions/install-test-deps".to_string(), 40.0)), "{idle:?}");
+}
+
+#[test]
+fn given_a_job_with_no_kept_steps_or_no_samples_when_the_resources_are_read_then_no_step_row_is_made_and_the_job_row_still_is() {
+    // Given samples of a job whose database has no CI_STEPS (the first run after the table existed)
+    let dir = tempfile::tempdir().unwrap();
+    let stats = dir.path().join("runner-stats");
+    write_stats(&stats, "core-tests-1", &[plain_sample(1_795_082_405, 5, 0), plain_sample(1_795_082_410, 5, 0)]);
+    let local = dir.path().join("rows.sqlite");
+
+    // When the resources are read
+    let r = run_wf(&["ci", "resources", "--stats", &stats.display().to_string(), "--run", "93"], &RunOpts::default().env("WF_CI_DB", &local.display().to_string()));
+
+    // Then the job has its row and no step row exists
+    assert_eq!((r.exit_code, line(&r)["steps"].clone(), line(&r)["jobs"][0]["job"].clone()), (0, json!(0), json!("core-tests-1")), "{}{}", r.stdout, r.stderr);
+    assert_eq!(query(&local, "SELECT COUNT(*) AS n FROM CI_STEP_RESOURCES"), json!([{"n": 0}]));
+}

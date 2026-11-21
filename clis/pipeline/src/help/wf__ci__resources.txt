@@ -7,10 +7,14 @@ the CPU over 90% or CPU pressure over 20). The tasks Nx ran in a job (the NX_TAS
 <--ledgers>/ci-db-<job>/rows.sqlite, default $RUNNER_TEMP/ci-db) are joined with the samples over their interval:
 CI_TASK_RESOURCES holds, per task, seconds, its share of the stage's CPU seconds (Nx reports CPU per run, so it is split by
 milliseconds), cores_used, how many tasks ran at once, and the CPU average and memory peak the job showed meanwhile. The
-job is the artifact's name, taken from the data. The rows go to the job-local database (`wf ci db merge` carries them on).
-Prints one JSON line {ok, run, sent, jobs, tasks}. With --send the same numbers go as gauges (ci.job.cpu_avg, cpu_p95,
+steps `wf ci timings` kept in the job-local database (CI_STEPS of the run) are laid over the same samples (a sample covers
+the seconds before its timestamp): CI_STEP_RESOURCES holds, per step, duration_s, idle_s (CPU under 25%), saturated_s and
+iowait_avg; a step no sample covers has no row, and a database with no CI_STEPS yet gives none. The job's samples are the
+file named after the job (`core-tests (1/3)` is stats-core-tests-1.jsonl). The job is the artifact's name, taken from the
+data. The rows go to the job-local database (`wf ci db merge` carries them on, each once).
+Prints one JSON line {ok, run, sent, jobs, tasks, steps}. With --send the same numbers go as gauges (ci.job.cpu_avg, cpu_p95,
 cpu_max, iowait_avg, mem_peak_mb, swap_peak_mb, psi_cpu_max, psi_mem_max, psi_io_max, idle_s, saturated_s; scope = job,
-name = workflow), best effort.
+name = workflow; and ci.step.idle_s for each step over 30 s; scope = job, name = step), best effort.
 
 Options:
   --stats <dir>    the directory of stats-<job>.jsonl files (default WF_CI_RUNNER_STATS_DIR)

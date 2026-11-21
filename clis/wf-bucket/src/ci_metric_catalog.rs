@@ -34,6 +34,7 @@ pub const CATALOG: &[Metric] = &[
     m("ci.job.duration_s", "s", "stage", "shard", "wf ci timings"),
     m("ci.job.queue_s", "s", "stage", "shard", "wf ci timings"),
     m("ci.step.duration_s", "s", "stage", "step", "wf ci timings"),
+    m("ci.step.idle_s", "s", "job", "step", "wf ci resources"),
     m("ci.stage.spread_s", "s", "stage", "all", "wf ci timings"),
     m("ci.run.wall_s", "s", "run", "all", "wf ci timings"),
     m("ci.run.runner_s", "s", "run", "workflow", "wf ci timings"),

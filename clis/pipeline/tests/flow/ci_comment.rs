@@ -2280,3 +2280,167 @@ fn a_database_that_does_not_open_leaves_the_trend_out_and_the_rest_of_the_commen
     assert!(!unreadable.contains("Trend") && unreadable.contains("### Jobs"), "{unreadable}");
     assert_eq!(unreadable, not_hosted);
 }
+
+/// A sealed database of five successful earlier runs of backend_core (wall 400 s, no wait; setup 10 s, install 10 s and tests 80 s per job, so 20% overhead; shard
+/// core-tests-1 replayed 2 of 4 tasks, and 4 of 4 in the first three, so the median is the whole job), made the way the report job makes it.
+fn sealed_actions(dir: &std::path::Path) -> String {
+    let local = dir.join("actions-rows.sqlite");
+    let conn = rusqlite::Connection::open(&local).unwrap();
+    conn.execute_batch(
+        "CREATE TABLE CI_RUN_PROFILE (RUN_ID TEXT NOT NULL PRIMARY KEY, WORKFLOW TEXT, WALL_S REAL, RUNNER_S REAL, PEAK_JOBS INTEGER, AVG_JOBS REAL, QUEUE_S_TOTAL REAL,
+           QUEUE_S_MAX REAL, JOBS INTEGER, CRITICAL_PATH_JOB TEXT, CRITICAL_PATH_S REAL, PARALLEL_EFFICIENCY REAL);
+         CREATE TABLE CI_JOBS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, KIND TEXT NOT NULL, JOB TEXT NOT NULL, SECS INTEGER NOT NULL, QUEUED INTEGER NOT NULL,
+           CONCLUSION TEXT, PRIMARY KEY (RUN_ID, JOB));
+         CREATE TABLE CI_STEPS (RUN_ID TEXT NOT NULL, JOB TEXT NOT NULL, STEP_NO INTEGER NOT NULL, STEP TEXT, STARTED INTEGER, COMPLETED INTEGER, DURATION_S INTEGER, CONCLUSION TEXT,
+           PRIMARY KEY (RUN_ID, JOB, STEP_NO));
+         CREATE TABLE NX_TASKS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, JOB TEXT NOT NULL, TASK TEXT NOT NULL, HASH TEXT NOT NULL, OUTCOME TEXT NOT NULL, MS INTEGER NOT NULL,
+           PASSED INTEGER NOT NULL, STARTED_MS INTEGER, ENDED_MS INTEGER, CPU_S REAL, PRIMARY KEY (RUN_ID, TASK, HASH));",
+    )
+    .unwrap();
+    for i in 0..5 {
+        let run = format!("{}", 1000 + i);
+        conn.execute("INSERT INTO CI_RUN_PROFILE VALUES (?1, 'backend_core+publish', 400.0, 400.0, 1, 1.0, 0.0, 0.0, 1, 'core-tests', 400.0, 1.0)", [&run]).unwrap();
+        conn.execute("INSERT INTO CI_JOBS VALUES (?1, 'abc', ?2, 'push', 'plan', 5, 0, 'success')", rusqlite::params![run, 100 + i]).unwrap();
+        for (no, step, secs) in [(1, "Set up job", 10), (2, "Run ./.github/actions/install-test-deps", 10), (3, "Flow tests", 80)] {
+            conn.execute("INSERT INTO CI_STEPS VALUES (?1, 'core-tests (1/3)', ?2, ?3, 0, 0, ?4, 'success')", rusqlite::params![run, no, step, secs]).unwrap();
+        }
+        for task in 0..4 {
+            let outcome = if i < 3 || task < 2 { "hit" } else { "ran" };
+            conn.execute("INSERT INTO NX_TASKS VALUES (?1, 'abc', 1, 'core-tests-1', ?2, ?2, ?3, 10, 1, 0, 0, 0.0)", rusqlite::params![run, format!("t{task}"), outcome]).unwrap();
+        }
+    }
+    drop(conn);
+    let sealed = dir.join("actions.sealed").display().to_string();
+    let merged = run_wf(&["ci", "db", "merge", "--sealed-file", &sealed, &local.display().to_string()], &RunOpts::default().env("CI_DB_KEY", DB_KEY));
+    assert_eq!(merged.exit_code, 0, "{}{}", merged.stdout, merged.stderr);
+    sealed
+}
+
+/// Run 77 of backend_core+publish: plan for 100 s, then core-tests (1/3) from 100 s to 520 s with six steps (30 s setup, 100 s install, 60 s nx-cache, 200 s tests, 10 s and 20 s
+/// of teardown), the sampler's file for it (CPU idle but for the first 110 s of the tests and the last 90 s of them idle again; 12% I/O wait; a 45% I/O pressure peak) and
+/// its Nx ledger (four tasks: three replayed, one ran). Returns the directory holding both.
+fn actions_run(github: &Github, with_steps: bool) -> std::path::PathBuf {
+    let at = |s: i64| iso(BASE + s);
+    let mut plan = job(500, "plan", "success", &at(100), json!([]));
+    (plan["created_at"], plan["started_at"]) = (json!(at(0)), json!(at(0)));
+    let timeline = [("Set up job", 100, 130), ("Run ./.github/actions/install-test-deps", 130, 230), ("Run ./.github/actions/nx-cache", 230, 290), ("Flow tests", 290, 490), ("Post Run ./.github/actions/nx-cache", 490, 500), ("Complete job", 500, 520)];
+    let steps: Vec<Value> = if with_steps { timeline.iter().map(|(n, a, b)| json!({ "name": n, "conclusion": "success", "started_at": at(*a), "completed_at": at(*b) })).collect() } else { Vec::new() };
+    let mut tests = job(501, "core-tests (1/3)", "success", &at(520), json!(steps));
+    (tests["created_at"], tests["started_at"]) = (json!(at(100)), json!(at(100)));
+    github.extra.borrow_mut().push(("GET /repos/o/r/actions/runs/77".to_string(), MockReply::json(200, json!({ "id": 77, "name": "backend_core+publish", "run_started_at": at(0), "created_at": at(0) }))));
+    github.serve(&json!([plan, tests]), json!([]), created(), updated());
+
+    static N: AtomicU64 = AtomicU64::new(0);
+    let dir = std::env::temp_dir().join(format!("wf-actions-{}-{}", std::process::id(), N.fetch_add(1, Ordering::Relaxed)));
+    std::fs::remove_dir_all(&dir).ok();
+    let (stats, ledgers) = (dir.join("runner-stats"), dir.join("ci-db/ci-db-core-tests-1"));
+    std::fs::create_dir_all(&stats).unwrap();
+    std::fs::create_dir_all(&ledgers).unwrap();
+    let samples: Vec<String> = (1..=84)
+        .map(|i| {
+            let t = 100 + i * 5;
+            let cpu = if (291..=400).contains(&t) { 95 } else if (401..=490).contains(&t) { 10 } else { 5 };
+            let once = if i == 1 { r#","cores":4,"runner":"GitHub Actions 7""# } else { "" };
+            format!(r#"{{"t":{},"cpu":{cpu},"memUsedMb":1000,"memTotalMb":16000,"load1":1.0,"iowaitPct":12,"psiCpu":0,"psiMem":0,"psiIo":{}{once}}}"#, BASE + t, if t == 300 { 45 } else { 0 })
+        })
+        .collect();
+    std::fs::write(stats.join("stats-core-tests-1.jsonl"), samples.join("\n")).unwrap();
+    let conn = rusqlite::Connection::open(ledgers.join("rows.sqlite")).unwrap();
+    conn.execute_batch(
+        "CREATE TABLE NX_TASKS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, JOB TEXT NOT NULL, TASK TEXT NOT NULL, HASH TEXT NOT NULL, OUTCOME TEXT NOT NULL, MS INTEGER NOT NULL,
+           PASSED INTEGER NOT NULL, STARTED_MS INTEGER, ENDED_MS INTEGER, CPU_S REAL, PRIMARY KEY (RUN_ID, TASK, HASH));",
+    )
+    .unwrap();
+    for (task, outcome) in [("t0", "hit"), ("t1", "hit"), ("t2", "hit"), ("t3", "ran")] {
+        conn.execute("INSERT INTO NX_TASKS VALUES ('77', 'abc', 1, 'core-tests-1', ?1, ?1, ?2, 10, 1, 0, 0, 0.0)", rusqlite::params![task, outcome]).unwrap();
+    }
+    dir
+}
+
+fn actions_body(github: &Github, dir: &std::path::Path, sealed: &str, key: &str) -> String {
+    let (stats, ledgers) = (dir.join("runner-stats").display().to_string(), dir.join("ci-db").display().to_string());
+    let r = github.comment_wf_with(
+        &["--dry-run"],
+        &[("WF_CI_SEALED_FILE", sealed), ("CI_DB_KEY", key), ("WF_VM_STATS_URL", "http://127.0.0.1:9"), ("WF_TAILNET_SOCKS", ""), ("WF_CI_RUNNER_STATS_DIR", &stats), ("WF_CI_LEDGERS", &ledgers)],
+    );
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    last_json(&r)["body"].as_str().unwrap_or_default().to_string()
+}
+
+#[test]
+fn the_comment_names_the_five_steps_with_the_most_idle_seconds_in_a_category_with_their_share_and_the_overhead_against_the_median() {
+    // Given a finished run whose steps the sampler's file covers, and a sealed database of five earlier runs at 20% overhead
+    let (db, github) = (tempfile::tempdir().unwrap(), Github::start());
+    let sealed = sealed_actions(db.path());
+    let dir = actions_run(&github, true);
+
+    // When the comment is previewed
+    let body = actions_body(&github, &dir, &sealed, DB_KEY);
+
+    // Then the block lists the five steps with the most idle seconds, each with its job, idle time, share of the run's 310 idle seconds and category; ties keep step order
+    let block = body.split("### Where the idle time is").nth(1).unwrap_or_default().split("\n### ").next().unwrap_or_default().to_string();
+    let rows: Vec<&str> = block.lines().filter(|l| l.starts_with("| ") && !l.starts_with("| Step") && !l.starts_with("|---")).collect();
+    assert_eq!(
+        rows,
+        [
+            "| Run ./.github/actions/install-test-deps | core-tests (1/3) | 1m 40s | 32% | install |",
+            "| Flow tests | core-tests (1/3) | 1m 30s | 29% | test wait |",
+            "| Run ./.github/actions/nx-cache | core-tests (1/3) | 1m 00s | 19% | cache |",
+            "| Set up job | core-tests (1/3) | 30s | 10% | setup |",
+            "| Complete job | core-tests (1/3) | 20s | 6% | teardown |",
+        ],
+        "{body}"
+    );
+    // And the overhead is 160 of 420 step seconds against the 20% median of the five earlier runs, with the arrow
+    assert!(block.contains("**Overhead** (setup, install, runner start and stop, teardown): 38% of all step seconds ↑ (median 20% of the last 5 successful runs)."), "{block}");
+}
+
+#[test]
+fn every_amber_or_red_signal_has_one_action_line_from_the_fixed_table_and_a_green_one_has_none() {
+    // Given the same run: wall 30% over the median (red), overhead 38% (amber), idle 74% (red), I/O wait 12% (amber), pressure 45% (amber), replay 25 points under the median (amber),
+    // while the parallel efficiency is 1.00 and the queue wait 0 s (both green)
+    let (db, github) = (tempfile::tempdir().unwrap(), Github::start());
+    let sealed = sealed_actions(db.path());
+    let dir = actions_run(&github, true);
+
+    // When the comment is previewed
+    let body = actions_body(&github, &dir, &sealed, DB_KEY);
+
+    // Then "What to do" has exactly six lines, one per signal that is not green, each with its colour, value, thresholds and the action of the table
+    let lines: Vec<&str> = body.split("### What to do").nth(1).unwrap_or_default().lines().filter(|l| l.starts_with("- ")).collect();
+    assert_eq!(lines.len(), 6, "{body}");
+    let line = |label: &str| lines.iter().find(|l| l.contains(label)).copied().unwrap_or_else(|| panic!("no line for {label}: {body}"));
+    assert!(line("Wall time").starts_with("- 🔴 **Wall time +30%** (red; amber over 10, red over 25 (% slower than the median)): Start with the longest job of the critical path"), "{lines:?}");
+    assert!(line("Overhead share").starts_with("- 🟠 **Overhead share 38%** (amber; amber over 30, red over 45"), "{lines:?}");
+    assert!(line("Overhead share").contains("Biggest part is install: cache the dependency install or merge shards that each install it."), "{lines:?}");
+    assert!(line("Idle share").starts_with("- 🔴 **Idle share 74%** (red; amber over 35, red over 55"), "{lines:?}");
+    assert!(line("Idle share").contains("Most idle is in install steps: cache the dependency install or merge shards that each install it."), "{lines:?}");
+    assert!(line("I/O wait average").starts_with("- 🟠 **I/O wait average 12%**") && line("I/O wait average").contains("Worst: core-tests-1."), "{lines:?}");
+    assert!(line("Pressure peak").starts_with("- 🟠 **Pressure peak 45%**"), "{lines:?}");
+    assert!(line("Nx replay").starts_with("- 🟠 **Nx replay 25 points under**") && line("Nx replay").contains("skip the runner"), "{lines:?}");
+    // And the two green signals say nothing
+    assert!(!body.contains("Parallel efficiency") && !body.contains("Queue wait in total"), "{body}");
+}
+
+#[test]
+fn a_run_with_no_step_rows_and_no_samples_has_no_idle_block_and_no_overhead_and_an_unreadable_database_drops_only_what_it_held() {
+    // Given the finished run with no steps and no sampler file (the first run after the table existed), and the run with steps and samples
+    let db = tempfile::tempdir().unwrap();
+    let sealed = sealed_actions(db.path());
+    let (bare, full) = (Github::start(), Github::start());
+    let bare_dir = actions_run(&bare, false);
+    std::fs::remove_dir_all(bare_dir.join("runner-stats")).unwrap();
+    std::fs::create_dir_all(bare_dir.join("runner-stats")).unwrap();
+    let full_dir = actions_run(&full, true);
+
+    // When both comments are previewed, and the second again with a key that does not open the database
+    let without = actions_body(&bare, &bare_dir, &sealed, DB_KEY);
+    let unreadable = actions_body(&full, &full_dir, &sealed, &"08".repeat(32));
+
+    // Then the first has no idle block and no overhead line, and says nothing about them
+    assert!(!without.contains("Where the idle time is") && !without.contains("Overhead"), "{without}");
+    // And with the database unreadable the idle block stays without its median, and the lines that need history (wall, replay) are left out while the idle one remains
+    assert!(unreadable.contains("### Where the idle time is") && unreadable.contains("**Overhead** (setup, install, runner start and stop, teardown): 38% of all step seconds."), "{unreadable}");
+    assert!(!unreadable.contains("(median") && !unreadable.contains("**Wall time") && !unreadable.contains("**Nx replay"), "{unreadable}");
+    assert!(unreadable.contains("**Idle share 74%**"), "{unreadable}");
+}

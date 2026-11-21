@@ -3,6 +3,7 @@
 //! and what a run leaves for people to read (`wf ci comment` on the pushed commit, the run bundles `wf test publish` uploads with the
 //! metrics row it posts, which `wf test results` reads back).
 //! A change here reruns the crates that plan or ship from it.
+mod ci_actions;
 mod ci_audit;
 mod ci_cache_health;
 mod ci_comment;

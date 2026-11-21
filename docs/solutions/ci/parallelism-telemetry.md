@@ -27,7 +27,7 @@ Both are answered from the sealed CI database (`wf ci db query "<sql>"`, SQLite)
 | Source | Writes | Where it runs |
 |---|---|---|
 | `.github/actions/hosted-setup/sampler.sh` | `stats-<job>.jsonl` every 5 s | beside every hosted job (artifact `stats-<job>`) |
-| `wf ci resources [--send]` | `CI_JOB_RESOURCES`, `CI_TASK_RESOURCES` | report job, after the `stats-*` and `ci-db-*` artifacts are downloaded and before `wf ci db merge` |
+| `wf ci resources [--send]` | `CI_JOB_RESOURCES`, `CI_TASK_RESOURCES`, `CI_STEP_RESOURCES` | report job, after the `stats-*` and `ci-db-*` artifacts are downloaded and before `wf ci db merge` |
 | `wf ci timings [--send]` | `CI_JOBS` (+ `QUEUED_S`, `RUNNER`), `CI_STEPS`, `CI_RUN_PROFILE` | report job (already runs) |
 | `wf ci concurrency [--phase start\|end]` | `CI_CONCURRENCY` | any job; the first job and the report job of each workflow give a start and an end reading |
 | `wf test run --stage` (Nx ledger) | `NX_TASKS` with `STARTED_MS`, `ENDED_MS`, `CPU_S` | each test job's own database |
@@ -46,6 +46,8 @@ All timestamps are epoch seconds unless the column says `_MS`. The keys make a r
 **`CI_JOB_RESOURCES`**, one row per job (`RUN_ID, JOB`): `WORKFLOW, RUNNER, CORES, SAMPLES, CPU_AVG, CPU_P95` (nearest rank), `CPU_MAX, IOWAIT_AVG, MEM_AVG_MB, MEM_PEAK_MB, MEM_TOTAL_MB, SWAP_PEAK_MB, LOAD1_MAX, PSI_CPU_MAX, PSI_MEM_MAX, PSI_IO_MAX, READ_MB, WRITE_MB, DURATION_S` (first to last sample plus one interval), `IDLE_S` (seconds with CPU under 25%), `SATURATED_S` (seconds with CPU over 90% or CPU pressure over 20). `JOB` is the artifact name (`core-tests`, `flow-tests-3`); join to `CI_JOBS` on `RUN_ID` and `RUNNER`, not on the job name.
 
 **`CI_TASK_RESOURCES`**, one row per Nx task that ran (`RUN_ID, JOB, TASK, STARTED`): `ENDED, SECONDS, CPU_S, CORES_USED` (`CPU_S / SECONDS`), `CONCURRENT` (tasks of the job overlapping it, itself included), `CPU_AVG` and `MEM_PEAK_MB` (the job's samples over the task's interval; null when none overlaps). Nx reports CPU per `run-many`, never per task, so `CPU_S` is the stage's `wf: nx cost` `cpuSeconds` split by each ran task's milliseconds; read `CPU_AVG` and `CONCURRENT` beside it. Replayed tasks have no row.
+
+**`CI_STEP_RESOURCES`**, one row per step of a job that a sample covers (`RUN_ID, JOB, STEP_NO`): `STEP`, `DURATION_S`, `IDLE_S` (seconds of the step over which the CPU was under 25%), `SATURATED_S` (CPU over 90% or CPU pressure over 20), `IOWAIT_AVG` (the samples' I/O wait, weighted by the seconds each covers of the step). `JOB` is the name `CI_STEPS` has. A sample at `t` covers the `dt` seconds before it (`dt` the median gap), and its overlap with the step's interval is what counts, so a step shorter than 5 s gets a fraction of a sample. `wf ci resources` joins the steps `wf ci timings` kept in the job-local database (`CI_STEPS`, so timings runs first in the report job) with the samples of the file `stats_key(job)` names (`core-tests (1/3)` is `core-tests-1`, `build (app)` is `build-app`, the arm `wf-build` is `clis-arm`). The samples were already timestamped and reach the report job as the `stats-<job>` artifact, so the sampler is unchanged. Gauge `ci.step.idle_s{job, step}` is sent for steps over 30 s.
 
 **`CI_TESTS`**, one row per slow or failed test of a weighted stage (`RUN_ID, JOB, STAGE, UNIT, SUITE, TEST`): `MS, OUTCOME` (`ok` or `failed`), `BASIS`. `UNIT` is the same unit as in `CI_UNITS` (`crate-wf`, `crate-t3-serve/replay-...`), `SUITE` the libtest binary (`flow`, `lib`, `integration`) or the vitest file, `TEST` the libtest path or the vitest `suite > test`. Stable libtest prints no test time, so nothing runs twice and no flag changes (a changed command would move the task hash): `wf test run --stage` reads the Nx output it already forwards to stderr and stamps each result line as it arrives. `BASIS` says how far to trust `MS`:
 
@@ -83,6 +85,8 @@ Each of the six hosted workflows keeps one comment on the pull request (`CI (<la
 | Runner pool: repo busy / queued / headroom at plan and at report | the plan job's `CI_CONCURRENCY` start row; the end reading is taken in process |
 | Runner table: vCPU and memory as sampled, CPU avg/p95/peak, iowait, memory, swap, pressure, seconds idle and saturated | the sampler's `stats-<job>.jsonl` (`CI_JOB_RESOURCES`); cores come from the sampler, never a constant |
 | In-runner parallelism: tasks at once per job and the cores they used | `ci-db-<job>/rows.sqlite` `NX_TASKS` with the samples (`CI_TASK_RESOURCES`) |
+| Where the idle time is: the five steps with most idle seconds, their share and category; the overhead share against the median | this run's steps and the samples, recomputed as `CI_STEP_RESOURCES` is; the median from `CI_STEPS` of the last 20 successful runs |
+| What to do: one line per amber or red signal | `clis/pipeline/src/ci_actions.rs` (`RULES`) |
 
 **Trend** (`clis/pipeline/src/ci_trend.rs`) is the one section that does read the sealed database, and the history it reads does not hold this run (the merge comes after the comment). For a hosted run (`CI_RUN_PROFILE.WORKFLOW` contains `+`) it shows:
 
@@ -96,6 +100,21 @@ A successful run is one with no job whose `CONCLUSION` is `failure`, `cancelled`
 
 Only jobs that ran are rows; the jobs of the shared `pipeline.yml` that the caller's `stages`/`area` left out are one count under the table. The e2e units are one collapsed block with the pass and fail counts in its summary (open only when a unit failed, failing rows first). Cache health is one row per kind with the job count; `WF_CI_PUSH_GATE=off` (set for the whole pipeline) means a hosted push seeds nothing, so no `replayed-nothing` problem is raised. Stale comments of older heads and of retired labels are removed by `wf ci prune` (run after every live write); see `docs/reference/wf-cli.md`.
 
+**Where the idle time is and What to do** (`clis/pipeline/src/ci_actions.rs`). The comment is built before the merge, so like the telemetry it recomputes this run's step rows (from the jobs' steps) and `CI_STEP_RESOURCES` (from the sampler's files); only the history comes from the sealed database. `RULES` is the one table of signal, thresholds and action, so a test reads what the comment is built from.
+
+| Signal | Measured as | Amber / red | Lever (action) |
+|---|---|---|---|
+| Wall time | this run's wall against the median of the last 20 successful runs of the workflow | over 10% / 25% slower | the longest critical-path job and its slowest step; re-measure shard weights |
+| Overhead share | setup + install + teardown step seconds over all step seconds of the run | over 30% / 45% | merge jobs that each pay setup and install; names the biggest category |
+| Idle share | idle seconds over sampled seconds of all jobs | over 35% / 55% | overlap the steps that idle; names the category with most idle seconds |
+| Parallel efficiency | `CI_RUN_PROFILE` | under 0.75 / 0.6 | start independent jobs together, rebalance shards |
+| Queue wait in total | `CI_RUN_PROFILE.QUEUE_S_TOTAL` | over 20 s / 60 s | fewer, longer jobs |
+| Nx replay | the worst job's points under the median replay share that job reached in those runs (`NX_TASKS`; runs with under 3 tasks of the job are left out) | over 10 / 30 points | find the changed input hash; skip the runner of a shard with nothing to run |
+| I/O wait average | the worst job's `IOWAIT_AVG` | over 10% / 20% | cut what the step writes |
+| Pressure peak | the worst job's highest of the three PSI peaks | over 40% / 60% | fewer Nx tasks at once, or a bigger runner |
+
+A value exactly on a threshold is the better level. The categories come from the step name (first match wins): teardown (`Post ...`, `Complete job`), setup (`Set up job`, `setup-job`), cache (`nx-cache`, `sccache-cache`, cache restore or save), install (`install-test-deps`, `install-wf`, pnpm, bun, apt, playwright), e2e boot (an android, emulator, device or browser step that starts, boots or waits), test wait (a test, build, flow, e2e, integration, lint or typecheck step), other. The block needs this run's step rows with samples over them; the overhead median and the replay ceilings need a readable database with earlier runs, the wall line needs the median. Whatever is missing is left out without a word, and the first run after the table existed has no `CI_STEP_RESOURCES` history (the median is `CI_STEPS`, which older runs have).
+
 ## Better Stack gauges
 
 Same record as `CI_METRICS`; labels are `scope` and `name` (see [betterstack-query-recipes](../workflow/betterstack-query-recipes.md)).
@@ -104,6 +123,7 @@ Same record as `CI_METRICS`; labels are `scope` and `name` (see [betterstack-que
 |---|---|---|---|
 | `ci.runners.busy`, `ci.runners.queued`, `ci.runners.headroom` | workflow (`all` for the account) | phase (`start`, `end`) | `wf ci concurrency` |
 | `ci.job.cpu_avg`, `cpu_p95`, `cpu_max`, `iowait_avg`, `mem_peak_mb`, `swap_peak_mb`, `psi_cpu_max`, `psi_mem_max`, `psi_io_max`, `idle_s`, `saturated_s` | job | workflow | `wf ci resources --send` |
+| `ci.step.idle_s` (steps over 30 s) | job | step | `wf ci resources --send` |
 | `ci.run.runner_s`, `peak_jobs`, `avg_jobs`, `queue_s_total`, `queue_s_max`, `critical_path_s`, `parallel_efficiency` | run id | workflow | `wf ci timings --send` |
 
 ## Recipes (`wf ci db query "<sql>"`)
@@ -230,10 +250,17 @@ SELECT RUN_ID, WORKFLOW, WALL_S, RUNNER_S, PEAK_JOBS, ROUND(PARALLEL_EFFICIENCY,
 
 Low efficiency with a `CRITICAL_PATH_S` close to `WALL_S` is a serial chain (shorten or split its slowest link); low efficiency with a long chain of short jobs is fixed overhead (fold them).
 
+Which steps leave the CPU idle, and in which runs (the cheapest recoverable seconds):
+
+```sql
+SELECT STEP, COUNT(*) AS runs, ROUND(AVG(IDLE_S)) AS idle_s, ROUND(AVG(DURATION_S)) AS duration_s FROM CI_STEP_RESOURCES GROUP BY STEP ORDER BY SUM(IDLE_S) DESC LIMIT 20;
+```
+
 ## Limits worth knowing
 
 - Samples are 5 s apart: a task shorter than that sees one sample, so `CPU_AVG` is a coarse number for it.
 - `CI_TASK_RESOURCES` exists for jobs whose database reached the report job (`ci-db-<job>` artifact) and whose Nx ledger recorded intervals; a job that ran before the intervals existed has `STARTED_MS` 0 and no row.
 - `CI_TESTS` is written when the stage's Nx run ends, so a shard cancelled while hung leaves no test rows; the run's last printed `test ... ok` line in the job log is then the nearest evidence of which test it was in. A process a test leaves running can hold Nx's output open: the capture stops waiting 2 s after Nx exits.
+- `CI_STEP_RESOURCES` has no row for a step the sampler's file does not cover (a job with no `stats-<job>` artifact, or a step that ended before its first sample) and none at all before the report job that carries it ran; a step's seconds are whole (the API's timestamps), the samples' coverage is not.
 - The 20-job cap is an account limit; `CI_CONCURRENCY` and the interval timeline see this repository only.
 - A job cancelled while pending ran 0 s: it is in `CI_JOBS` with `STARTED` 0, and in no timeline.

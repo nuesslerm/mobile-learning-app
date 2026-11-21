@@ -21,7 +21,7 @@ WF_USAGE (one per wf command: command, exit_code, duration_ms, error), NX_TASKS
 (one per Nx task of a run: task, hash, outcome ran or hit, ms, passed) and
 CI_JOBS (one per job: secs, queued, queued_s, runner), CI_METRICS (every gauge reading both transports received) and CI_UNITS (one per test unit of a
 weighted stage: stage, unit, started_ms, ended_ms, ms, outcome running|ran|hit|failed; job-local, folded in by the merge), CI_TESTS (one per slow or failed test: stage, unit, suite, test, ms, outcome ok|failed, basis serial|gap|reported). The parallelism telemetry (docs/solutions/ci/parallelism-telemetry.md):
-CI_JOB_RESOURCES, CI_TASK_RESOURCES, CI_STEPS, CI_RUN_PROFILE and CI_CONCURRENCY. A JSON key with no column is kept in EXTRA.
+CI_JOB_RESOURCES, CI_TASK_RESOURCES, CI_STEPS, CI_STEP_RESOURCES (per step: duration_s, idle_s, saturated_s, iowait_avg), CI_RUN_PROFILE and CI_CONCURRENCY. A JSON key with no column is kept in EXTRA.
 
 Options:
   --sealed-file <path>     read and write a sealed file instead of the state ref

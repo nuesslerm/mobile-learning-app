@@ -144,6 +144,8 @@ pub fn ensure_ledger(conn: &Connection) -> Result<(), String> {
            CORES_USED REAL, CONCURRENT INTEGER, CPU_AVG REAL, MEM_PEAK_MB REAL, PRIMARY KEY (RUN_ID, JOB, TASK, STARTED));
          CREATE TABLE IF NOT EXISTS CI_STEPS (RUN_ID TEXT NOT NULL, JOB TEXT NOT NULL, STEP_NO INTEGER NOT NULL, STEP TEXT, STARTED INTEGER, COMPLETED INTEGER, DURATION_S INTEGER,
            CONCLUSION TEXT, PRIMARY KEY (RUN_ID, JOB, STEP_NO));
+         CREATE TABLE IF NOT EXISTS CI_STEP_RESOURCES (RUN_ID TEXT NOT NULL, JOB TEXT NOT NULL, STEP_NO INTEGER NOT NULL, STEP TEXT, DURATION_S REAL, IDLE_S REAL, SATURATED_S REAL,
+           IOWAIT_AVG REAL, PRIMARY KEY (RUN_ID, JOB, STEP_NO));
          CREATE TABLE IF NOT EXISTS CI_RUN_PROFILE (RUN_ID TEXT NOT NULL PRIMARY KEY, WORKFLOW TEXT, WALL_S REAL, RUNNER_S REAL, PEAK_JOBS INTEGER, AVG_JOBS REAL, QUEUE_S_TOTAL REAL,
            QUEUE_S_MAX REAL, JOBS INTEGER, CRITICAL_PATH_JOB TEXT, CRITICAL_PATH_S REAL, PARALLEL_EFFICIENCY REAL);
          CREATE TABLE IF NOT EXISTS CI_UNITS (RUN_ID TEXT NOT NULL, JOB TEXT NOT NULL, STAGE TEXT NOT NULL, UNIT TEXT NOT NULL, STARTED_MS INTEGER NOT NULL, ENDED_MS INTEGER,
@@ -572,6 +574,37 @@ pub fn record_steps_local(rows: &[StepRow]) -> Result<bool, String> {
     insert_local("INSERT OR IGNORE INTO CI_STEPS (RUN_ID, JOB, STEP_NO, STEP, STARTED, COMPLETED, DURATION_S, CONCLUSION) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)", cells)
 }
 
+/// What the machine did during one step of one job (`CI_STEP_RESOURCES`): the job's samples laid over the step's interval. `job` is the job's name as `CI_STEPS` has it.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct StepResources {
+    pub run: String,
+    pub job: String,
+    pub step_no: i64,
+    pub step: String,
+    pub duration_s: f64,
+    pub idle_s: f64,
+    pub saturated_s: f64,
+    pub iowait_avg: f64,
+}
+
+pub fn record_step_resources_local(rows: &[StepResources]) -> Result<bool, String> {
+    let f = |v: f64| real(Some(v));
+    let cells = rows.iter().map(|r| vec![text(&r.run), text(&r.job), int(r.step_no), text(&r.step), f(r.duration_s), f(r.idle_s), f(r.saturated_s), f(r.iowait_avg)]).collect();
+    insert_local("INSERT OR IGNORE INTO CI_STEP_RESOURCES (RUN_ID, JOB, STEP_NO, STEP, DURATION_S, IDLE_S, SATURATED_S, IOWAIT_AVG) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)", cells)
+}
+
+/// The steps of `run` the job-local database holds (`CI_STEPS`, kept by `wf ci timings`); empty outside a job with one.
+pub fn steps_local(run: &str) -> Result<Vec<StepRow>, String> {
+    let Some(path) = local_path().filter(|p| p.is_file()) else { return Ok(Vec::new()) };
+    let conn = open_at(&path)?;
+    ensure_ledger(&conn)?;
+    let mut stmt = conn.prepare("SELECT JOB, STEP_NO, STEP, STARTED, COMPLETED, DURATION_S, CONCLUSION FROM CI_STEPS WHERE RUN_ID = ?1 ORDER BY JOB, STEP_NO").map_err(sql)?;
+    let rows = stmt
+        .query_map([run], |r| Ok(StepRow { run: run.to_string(), job: r.get(0)?, step_no: r.get(1)?, step: r.get::<_, Option<String>>(2)?.unwrap_or_default(), started: r.get(3)?, completed: r.get(4)?, duration_s: r.get(5)?, conclusion: r.get(6)? }))
+        .map_err(sql)?;
+    rows.collect::<Result<_, _>>().map_err(sql)
+}
+
 /// One run's parallelism (`CI_RUN_PROFILE`).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct RunProfile {
@@ -880,8 +913,12 @@ mod tests {
             record_run_profile_local(&profile),
             record_concurrency_local(std::slice::from_ref(&busy)),
         );
+        let step_resources = StepResources { run: "9".into(), job: "core-tests".into(), step_no: 3, step: "Set up job".into(), duration_s: 4.0, idle_s: 3.5, saturated_s: 0.0, iowait_avg: 1.0 };
+        record_step_resources_local(std::slice::from_ref(&step_resources)).unwrap();
         record_job_resources_local(&[job]).unwrap();
         record_steps_local(&[step]).unwrap();
+        record_step_resources_local(&[step_resources]).unwrap();
+        assert_eq!(steps_local("9").unwrap().iter().map(|s| (s.job.as_str(), s.step_no, s.duration_s)).collect::<Vec<_>>(), [("core-tests", 3, Some(4))]);
 
         std::env::remove_var("WF_CI_DB");
         let into = open_at(&sealed).unwrap();
@@ -891,7 +928,7 @@ mod tests {
         let (cores, mem): (f64, Option<f64>) = into.query_row("SELECT CORES_USED, MEM_PEAK_MB FROM CI_TASK_RESOURCES", [], |r| Ok((r.get(0)?, r.get(1)?))).unwrap();
         let headroom: i64 = into.query_row("SELECT HEADROOM FROM CI_CONCURRENCY", [], |r| r.get(0)).unwrap();
         assert!(matches!(first, (Ok(true), Ok(true), Ok(true), Ok(true), Ok(true))));
-        assert_eq!(["CI_JOB_RESOURCES", "CI_TASK_RESOURCES", "CI_STEPS", "CI_RUN_PROFILE", "CI_CONCURRENCY"].map(count), [1, 1, 1, 1, 1]);
+        assert_eq!(["CI_JOB_RESOURCES", "CI_TASK_RESOURCES", "CI_STEPS", "CI_STEP_RESOURCES", "CI_RUN_PROFILE", "CI_CONCURRENCY"].map(count), [1, 1, 1, 1, 1, 1]);
         assert_eq!((p95, saturated, runner.as_str(), cores, mem, headroom), (97.0, 35.0, "GitHub Actions 7", 2.0, None, 3));
     }
 

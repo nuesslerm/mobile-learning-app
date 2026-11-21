@@ -5,7 +5,7 @@ use crate::ci_comment::{cell, json_of, send, text, var, Env};
 use crate::ci_insights::span;
 use serde_json::Value;
 use std::path::PathBuf;
-use wf_bucket::ci_db::{JobResources, RunProfile, TaskResources};
+use wf_bucket::ci_db::{JobResources, RunProfile, StepResources, StepRow, TaskResources};
 
 /// The composite steps every job spends before its own work.
 const FIXED_STEPS: [&str; 2] = ["Run ./.github/actions/setup-job", "Run ./.github/actions/install-test-deps"];
@@ -26,6 +26,11 @@ pub(crate) struct Telemetry {
     pub concurrency: Option<String>,
     /// The run's shard split against what the shards measured (`shard-weights --report`), from the jobs' unit spans.
     pub shards: Vec<crate::shard_weights::StageReport>,
+    /// Every finished step of the run, and what the job's samples saw during each (`CI_STEP_RESOURCES`, recomputed here like the rows `wf ci resources` keeps).
+    pub step_rows: Vec<StepRow>,
+    pub steps: Vec<StepResources>,
+    /// (job, tasks that ran, tasks a cache replayed) from the jobs' Nx ledgers.
+    pub replay: Vec<(String, usize, usize)>,
 }
 
 pub(crate) struct Parts {
@@ -120,6 +125,16 @@ pub(crate) fn gather(env: &Env, jobs: &[&Value], finished: bool) -> Telemetry {
         spans.extend(wf_bucket::ci_db::units_of(&file, Some(&env.run)).unwrap_or_default().into_iter().filter(|u| u.outcome != "running"));
         if let Ok(tasks) = wf_bucket::ci_db::tasks_of(&file) {
             let (mine, other): (Vec<_>, Vec<_>) = tasks.into_iter().partition(|x| x.run == env.run);
+            for x in &mine {
+                let at = match t.replay.iter().position(|r| r.0 == x.job) {
+                    Some(at) => at,
+                    None => {
+                        t.replay.push((x.job.clone(), 0, 0));
+                        t.replay.len() - 1
+                    }
+                };
+                if x.outcome == "hit" { t.replay[at].2 += 1 } else { t.replay[at].1 += 1 }
+            }
             let used = if mine.is_empty() { other } else { mine };
             let sampled = samples.iter().find(|(n, _)| *n == job).map(|(_, s)| s.as_slice()).unwrap_or_default();
             let rows = crate::ci_resources::task_resources(&env.run, &job, &used, sampled);
@@ -131,6 +146,8 @@ pub(crate) fn gather(env: &Env, jobs: &[&Value], finished: bool) -> Telemetry {
             start = start.or_else(|| rows.into_iter().find(|r| r.run == env.run && r.phase == "start" && r.workflow == crate::ci_concurrency::TOTAL));
         }
     }
+    t.steps = crate::ci_resources::step_resources(&steps, &samples);
+    t.step_rows = steps;
     let names: Vec<String> = jobs.iter().map(|j| text(j, "name")).collect();
     t.shards = crate::shard_weights::report(&spans, &crate::shard_weights::shard_counts(names.iter().map(String::as_str)));
     let end = finished.then(|| crate::ci_concurrency::read(env).ok()).flatten().map(|runs| crate::ci_concurrency::count(&runs));

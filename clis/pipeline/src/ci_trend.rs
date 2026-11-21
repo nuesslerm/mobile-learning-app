@@ -1,6 +1,6 @@
 //! The "Trend" section of the CI comment: the last successful runs of each hosted workflow from the sealed CI database, this run against their median,
 //! and the job and step that made this run long. The section is left out whenever the database cannot be read.
-use crate::ci_comment::{cell, line_chart, slowest_of, span_secs, text, var, Env};
+use crate::ci_comment::{cell, line_chart, slowest_of, span_secs, text, var};
 use crate::ci_insights::span;
 use serde_json::Value;
 use wf_bucket::ci_db::{self, RunProfile, Working};
@@ -19,45 +19,63 @@ const SQL: &str = "SELECT p.RUN_ID AS run, p.WORKFLOW AS workflow, p.WALL_S AS w
     FROM CI_RUN_PROFILE p JOIN CI_JOBS j ON j.RUN_ID = p.RUN_ID WHERE p.WORKFLOW LIKE '%+%' GROUP BY p.RUN_ID \
     HAVING SUM(CASE WHEN j.CONCLUSION IS NULL OR j.CONCLUSION IN ('failure', 'cancelled') THEN 1 ELSE 0 END) = 0 ORDER BY ts DESC, p.RUN_ID DESC LIMIT 2000";
 
-struct Past {
-    key: &'static str,
-    wall: f64,
+pub(crate) struct Past {
+    pub run: String,
+    pub key: &'static str,
+    pub wall: f64,
     critical: f64,
     queue: f64,
 }
 
-/// `WF_CI_SEALED_FILE` names a sealed file to read instead of the state ref (tests, offline replay).
-fn history(run: &str) -> Result<Vec<Past>, String> {
-    let work = match var("WF_CI_SEALED_FILE") {
-        Some(path) => Working::from_sealed(ci_db::key()?, std::fs::read(path).ok())?,
-        None => Working::fetch()?,
-    };
-    let conn = work.connect()?;
-    ci_db::ensure_ledger(&conn)?;
-    let rows = ci_db::query(&conn, SQL)?;
+/// The sealed CI database, read once for a comment: the successful runs before this one, newest first, and queries for what the other blocks need of them.
+pub(crate) struct Sealed {
+    work: Working,
+    pub past: Vec<Past>,
+}
+
+impl Sealed {
+    /// `WF_CI_SEALED_FILE` names a sealed file to read instead of the state ref (tests, offline replay).
+    pub(crate) fn open(run: &str) -> Result<Sealed, String> {
+        let work = match var("WF_CI_SEALED_FILE") {
+            Some(path) => Working::from_sealed(ci_db::key()?, std::fs::read(path).ok())?,
+            None => Working::fetch()?,
+        };
+        ci_db::ensure_ledger(&work.connect()?)?;
+        let past = history(&work, run)?;
+        Ok(Sealed { work, past })
+    }
+
+    /// The rows of a query, none when it fails.
+    pub(crate) fn rows(&self, statement: &str) -> Vec<Value> {
+        self.work.connect().and_then(|conn| ci_db::query(&conn, statement)).unwrap_or_default()
+    }
+}
+
+fn history(work: &Working, run: &str) -> Result<Vec<Past>, String> {
+    let rows = ci_db::query(&work.connect()?, SQL)?;
     Ok(rows
         .iter()
         .filter(|r| text(r, "run") != run)
         .filter_map(|r| {
             let key = key_of(&text(r, "workflow"))?;
-            Some(Past { key, wall: r["wall"].as_f64()?, critical: r["critical"].as_f64().unwrap_or(0.0), queue: r["queue"].as_f64().unwrap_or(0.0) })
+            Some(Past { run: text(r, "run"), key, wall: r["wall"].as_f64()?, critical: r["critical"].as_f64().unwrap_or(0.0), queue: r["queue"].as_f64().unwrap_or(0.0) })
         })
         .collect())
 }
 
-fn key_of(workflow: &str) -> Option<&'static str> {
+pub(crate) fn key_of(workflow: &str) -> Option<&'static str> {
     let head = workflow.split('+').next()?;
     WORKFLOWS.iter().copied().find(|w| *w == head)
 }
 
 /// The newest `RUNS` of a workflow, oldest first (the query lists the newest first).
-fn last_of<'a>(all: &'a [Past], key: &str) -> Vec<&'a Past> {
+pub(crate) fn last_of<'a>(all: &'a [Past], key: &str) -> Vec<&'a Past> {
     let mut runs: Vec<&Past> = all.iter().filter(|p| p.key == key).take(RUNS).collect();
     runs.reverse();
     runs
 }
 
-fn median(mut values: Vec<f64>) -> Option<f64> {
+pub(crate) fn median(mut values: Vec<f64>) -> Option<f64> {
     values.sort_by(f64::total_cmp);
     let n = values.len();
     match n {
@@ -67,7 +85,7 @@ fn median(mut values: Vec<f64>) -> Option<f64> {
     }
 }
 
-fn arrow(now: f64, typical: f64) -> &'static str {
+pub(crate) fn arrow(now: f64, typical: f64) -> &'static str {
     match now / typical.max(f64::MIN_POSITIVE) {
         r if typical <= 0.0 || (1.0 - BAND..=1.0 + BAND).contains(&r) => "→",
         r if r > 1.0 => "↑",
@@ -103,12 +121,12 @@ fn charts(all: &[Past], first: Option<&str>) -> String {
 }
 
 /// Empty for a run whose profile is not known yet, a workflow that is not a hosted one, an unreadable database and a database with no history.
-pub(crate) fn section(env: &Env, profile: Option<&RunProfile>, jobs: &[&Value]) -> String {
+pub(crate) fn section(sealed: Option<&Sealed>, profile: Option<&RunProfile>, jobs: &[&Value]) -> String {
     let Some(profile) = profile.filter(|p| p.workflow.contains('+')) else { return String::new() };
-    let Ok(all) = history(&env.run) else { return String::new() };
+    let Some(all) = sealed.map(|s| &s.past) else { return String::new() };
     let key = key_of(&profile.workflow);
-    let past = key.map(|k| last_of(&all, k)).unwrap_or_default();
-    let chart = charts(&all, key);
+    let past = key.map(|k| last_of(all, k)).unwrap_or_default();
+    let chart = charts(all, key);
     if chart.is_empty() && past.is_empty() {
         return String::new();
     }
