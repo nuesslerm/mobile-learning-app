@@ -19,6 +19,7 @@ pub const SEARCH_ENTRIES: &str = "search_entries";
 pub const PUT_BLOB: &str = "put_blob";
 pub const PUT_TEMP: &str = "put_temp";
 pub const MAKE_DIR: &str = "make_dir";
+pub const SECRET_FILE_PUT: &str = "secret_file_put";
 pub const SKILL_SCAN: &str = "skill_scan";
 pub const SESSION_SCAN: &str = "session_scan";
 
@@ -52,6 +53,8 @@ pub const ENTRIES_MAX: usize = 500;
 const ENTRIES_DEFAULT: usize = 100;
 /// The most bytes one `put_blob` writes (decoded); a longer `data` is refused.
 pub const BLOB_MAX: u64 = 10 << 20;
+/// The most bytes one `secret_file_put` writes: a key, a token or a certificate, never a blob.
+pub const SECRET_MAX: usize = 16 << 10;
 
 const PATH: Property = Property { name: "path", kind: "string", about: "Path relative to the workspace root" };
 
@@ -116,6 +119,12 @@ pub const ACTIONS: &[Action] = &[
         about: "Make a directory in the workspace, held to the root like every path. Without `parents` the parent must exist and a path that exists is refused (a claim of the name); with it missing parents are made and a directory that exists is accepted.",
         properties: &[PATH, Property { name: "parents", kind: "boolean", about: "Make missing parent directories and accept a directory that exists" }],
         required: &["path"],
+    },
+    Action {
+        name: SECRET_FILE_PUT,
+        about: "Write a secret a person typed into a new file of the workspace, mode 0600, never replacing a path and never echoing the value (not in the result, not in an error); at most 16 KiB. The model learns the path, not the value.",
+        properties: &[PATH, Property { name: "value", kind: "string", about: "The secret, as typed" }],
+        required: &["path", "value"],
     },
     Action {
         name: SKILL_SCAN,
@@ -291,6 +300,35 @@ impl PutBlob {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PutBlobResult {
+    pub path: String,
+    pub bytes: u64,
+}
+
+/// `secret_file_put`: one secret into one new file. Its `Debug` hides the value, so no log line or panic message can carry it.
+#[derive(Clone, PartialEq)]
+pub struct SecretFilePut {
+    pub path: String,
+    pub value: String,
+}
+
+impl std::fmt::Debug for SecretFilePut {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SecretFilePut").field("path", &self.path).field("value", &"<hidden>").finish()
+    }
+}
+
+impl SecretFilePut {
+    pub fn parse(args: &Value) -> ExecResult<SecretFilePut> {
+        let value = string(args, "value")?;
+        if value.is_empty() || value.len() > SECRET_MAX {
+            return Err(ExecError::invalid_args(format!("`value` must hold 1 to {SECRET_MAX} bytes")));
+        }
+        Ok(SecretFilePut { path: string(args, "path")?, value })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SecretFilePutResult {
     pub path: String,
     pub bytes: u64,
 }
@@ -726,6 +764,7 @@ mod tests {
                 PUT_BLOB => PutBlob::parse(args).map(drop),
                 PUT_TEMP => PutTemp::parse(args).map(drop),
                 MAKE_DIR => MakeDir::parse(args).map(drop),
+                SECRET_FILE_PUT => SecretFilePut::parse(args).map(drop),
                 SKILL_SCAN => SkillScan::parse(args).map(drop),
                 SESSION_SCAN => SessionScan::parse(args).map(drop),
                 other => panic!("{other} is not parsed here"),
@@ -739,6 +778,18 @@ mod tests {
                 assert_eq!(parse(&Value::Object(args)).unwrap_err().code, Code::InvalidArgs, "{} without {missing}", action.name);
             }
         }
+    }
+
+    #[test]
+    fn given_a_secret_when_its_arguments_are_read_then_an_empty_or_oversized_value_is_refused_and_no_debug_text_shows_it() {
+        // Given a valid secret, an empty one and one over the cap
+        let valid = SecretFilePut::parse(&json!({"path": "k", "value": "s3cr3t"})).unwrap();
+        let empty = SecretFilePut::parse(&json!({"path": "k", "value": ""}));
+        let long = SecretFilePut::parse(&json!({"path": "k", "value": "x".repeat(SECRET_MAX + 1)}));
+        // Then the valid one reads back, the others are INVALID_ARGS, and the Debug text of the valid one hides the value
+        assert_eq!((valid.path.as_str(), valid.value.as_str()), ("k", "s3cr3t"));
+        assert_eq!((empty.unwrap_err().code, long.unwrap_err().code), (Code::InvalidArgs, Code::InvalidArgs));
+        assert!(!format!("{valid:?}").contains("s3cr3t") && format!("{valid:?}").contains("<hidden>"));
     }
 
     #[test]

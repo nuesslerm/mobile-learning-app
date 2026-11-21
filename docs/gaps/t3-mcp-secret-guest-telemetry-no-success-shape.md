@@ -4,8 +4,10 @@ area: rca-parity
 paths:
   - "clis/t3-serve/core/src/usecases/queries.rs"
   - "docs/plans/rca-parity/coverage/t3-decisions.json"
+  - "clis/rca-exec/src/adapters/mcp.rs"
+  - "clis/rca-exec/src/adapters/sampling.rs"
 opened: 2026-11-20
-last_verified: 2026-11-20
+last_verified: 2026-11-21
 links:
   - "docs/plans/rca-parity/plan.md"
 ---
@@ -44,3 +46,18 @@ a share link or a guest message. A success answer would be invented, which the p
 Record each success path against the pinned T3 (an MCP app with a UI resource, a thread with a secret-asking provider, a guest share enabled
 by a setting, a resource monitor with a live process tree), then add the executor action and mapper row in the order action, contract
 method, service group, mapper row.
+
+## What exists below the mapper (21 Nov, O3b)
+
+The three executor-side halves are built and tested; the T3 rows above stay `not-offered` because the wire shapes still have no recording.
+
+- `secret_file_put` (exec-fs), `proc_sample` and `mcp_request` (exec-proc) in rca-exec, with fixtures and flow tests on real files and processes
+  (`clis/rca-exec/tests/flow/mcp_secret_sampling.rs`). The scripted `sh` MCP servers are authored doubles, not recordings of a real MCP server.
+- Agent API methods `file.putSecret`, `process.sample` and `mcp.request` in `files.edit`, relayed to the workspace's executor, with replayed fixtures.
+  `mcp.request` is held to an executor's root workspace (the executor reads `.mcp.json` at its root). The secret's value is in no result, no
+  error and no `Debug` text.
+- Not built: the tool server's `request_secret` tool. It needs a thread event for a request whose answer carries no value, a lifecycle command
+  that closes it, and the mapper's turn item; the value must not enter the event log, so it cannot reuse `input.answer`. It also has no recorded
+  T3 turn item to map to (see "Why each one waits").
+- Not built: MCP app items. `mcpApps.*` are keyed by `(threadId, itemId)` and restricted to the server of the producing tool call; rca's agent
+  events carry no MCP server name for a tool call, and an app resource (`_meta.ui`) has never been produced by a real server through rca.

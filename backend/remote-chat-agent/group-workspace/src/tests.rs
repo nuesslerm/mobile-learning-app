@@ -450,3 +450,26 @@ async fn given_an_executor_that_cannot_start_the_setup_when_the_worktree_is_crea
     eventually("the finished event", || pushed.kinds().len() == 1).await;
     assert_eq!(pushed.kinds(), [(1, "setup.finished".to_string())]);
 }
+
+#[tokio::test]
+async fn given_a_secret_a_sample_and_an_mcp_request_when_asked_in_the_root_and_in_a_directory_then_the_executor_gets_their_args_and_only_the_request_is_held_to_the_root() {
+    // Given an executor with its root workspace and a workspace "proj" that is its directory apps/web
+    let channel = executor();
+    let rig = rig(channel.clone());
+    rig.ask(agent_api_workspace::WORKSPACE_CREATE, json!({"workspace": "proj", "path": "apps/web"})).await;
+    use agent_api_workspace::edit;
+    // When a secret is put in the directory, the executor is sampled from it, and a server is asked in the root
+    let put = rig.ask(edit::FILE_PUT_SECRET, json!({"workspace": "proj", "path": ".rca/key", "value": "s3cr3t"})).await;
+    let sample = rig.ask(edit::PROCESS_SAMPLE, json!({"workspace": "proj"})).await;
+    let asked = rig.ask(edit::MCP_REQUEST, json!({"workspace": "root", "server": "app", "method": "tools/call", "params": {"name": "x"}, "timeout_ms": 500})).await;
+    // And a server is asked in the directory
+    let refused = rig.ask(edit::MCP_REQUEST, json!({"workspace": "proj", "server": "app", "method": "tools/list"})).await;
+    // Then the secret's path is under the directory, the sample carries no args, the request carries its four, and the directory's request is refused unasked
+    let calls = channel.calls();
+    assert!([&put, &sample, &asked].iter().all(|a| a.get("result").is_some()));
+    assert_eq!(calls[0], ("secret_file_put".to_string(), json!({"path": "apps/web/.rca/key", "value": "s3cr3t"})));
+    assert_eq!(calls[1], ("proc_sample".to_string(), json!({})));
+    assert_eq!(calls[2], ("mcp_request".to_string(), json!({"server": "app", "method": "tools/call", "params": {"name": "x"}, "timeout_ms": 500})));
+    assert_eq!((code(&refused), calls.len()), (json!("INVALID_PARAMS"), 3));
+    assert_eq!(refused["error"]["message"], json!("mcp.request runs in an executor's root workspace only"));
+}

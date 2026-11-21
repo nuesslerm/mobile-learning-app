@@ -10,6 +10,8 @@ mod contracts;
 mod git;
 #[path = "flow/hosted.rs"]
 mod hosted;
+#[path = "flow/mcp_secret_sampling.rs"]
+mod mcp_secret_sampling;
 #[path = "flow/preview.rs"]
 mod preview;
 #[path = "flow/provider_account.rs"]

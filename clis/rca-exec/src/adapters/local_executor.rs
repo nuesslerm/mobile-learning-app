@@ -13,9 +13,9 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use crate::domain::ToolExecutor;
 use base64::Engine;
-use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, EntryKind, FoundEntry, ListDir, MakeDir, PutBlob, PutTemp, ReadChunk, ReadFile, ReadResult, SearchEntries, SessionScan, SessionsFound, Skill, SkillDir, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
+use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, EntryKind, FoundEntry, ListDir, MakeDir, PutBlob, PutTemp, ReadChunk, ReadFile, ReadResult, SearchEntries, SecretFilePut, SessionScan, SessionsFound, Skill, SkillDir, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
 use exec_git::{GitCall, GitDiff, GitOp, Resolution, SetupEvent, SetupResult, SetupStep, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeRemove, WorktreeSetup};
-use exec_proc::{ClaudeAnswer, ClaudeRequest, CliDetect, CliFound, CliUpdated, CodexAnswer, CodexRequest, UpdateProgram, LoginCancel, LoginProgram, LoginSend, LoginState, LoginStatus, RunCommand, RunResult};
+use exec_proc::{ClaudeAnswer, ClaudeRequest, CliDetect, CliFound, CliUpdated, CodexAnswer, CodexRequest, UpdateProgram, LoginCancel, LoginProgram, LoginSend, LoginState, LoginStatus, McpAnswer, McpRequest, ProcSample, RunCommand, RunResult};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyOpen, PtyOpened, PtyResize, PtyWrite};
 use crate::adapters::git::{Repo, Watches};
 use crate::adapters::hosted::Hosted;
@@ -575,6 +575,35 @@ impl ToolExecutor for LocalExecutor {
         Ok(true)
     }
 
+    fn secret_file_put(&self, args: &SecretFilePut) -> ExecResult<u64> {
+        use std::os::unix::fs::OpenOptionsExt;
+        let path = self.resolve(&args.path)?;
+        let made = path.parent().filter(|p| !p.exists());
+        if let Some(parent) = made {
+            fs::create_dir_all(parent).map_err(|e| io_at(&args.path, e))?;
+        }
+        // create_new is O_EXCL: a path that exists, a link included, is refused and never followed; the mode is set at creation, so no moment is wider
+        let file = fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&path).map_err(|e| match e.kind() {
+            std::io::ErrorKind::AlreadyExists => ExecError::new(Code::AlreadyExists, format!("{} already exists", args.path)),
+            _ => io_at(&args.path, e),
+        });
+        let mut file = match file {
+            Ok(file) => file,
+            Err(e) => {
+                if let Some(parent) = made {
+                    let _ = fs::remove_dir(parent);
+                }
+                return Err(e);
+            }
+        };
+        if let Err(e) = std::io::Write::write_all(&mut file, args.value.as_bytes()) {
+            drop(file);
+            let _ = fs::remove_file(&path);
+            return Err(io_at(&args.path, e));
+        }
+        Ok(args.value.len() as u64)
+    }
+
     fn browse(&self, args: &Browse) -> ExecResult<BrowseResult> {
         let given = Path::new(&args.path);
         let dir = if given.is_absolute() { fs::canonicalize(given).map_err(|e| io_at(&args.path, e))? } else { self.resolve(&args.path)? };
@@ -658,6 +687,18 @@ impl ToolExecutor for LocalExecutor {
     fn claude_account_request(&self, _: &ClaudeRequest) -> ExecResult<ClaudeAnswer> {
         let (_, search, home) = self.tools_target()?;
         crate::adapters::provider_account::claude_usage(&self.claude_usage_url, &search, &home)
+    }
+
+    fn proc_sample(&self) -> ExecResult<ProcSample> {
+        crate::adapters::sampling::sample(Path::new("/proc"), std::process::id())
+    }
+
+    fn mcp_request(&self, args: &McpRequest) -> ExecResult<McpAnswer> {
+        let config = self.resolve(exec_proc::MCP_CONFIG).map_err(|_| ExecError::new(Code::NotFound, format!("the workspace has no {}", exec_proc::MCP_CONFIG)))?;
+        let text = fs::read_to_string(&config).map_err(|_| ExecError::new(Code::NotFound, format!("the workspace has no {}", exec_proc::MCP_CONFIG)))?;
+        let server = crate::adapters::mcp::server_of(&text, &args.server)?;
+        let ((), search, home) = self.tools_target()?;
+        crate::adapters::mcp::request(args, &server, &self.root, &search, &home)
     }
 
     fn skill_scan(&self, args: &SkillScan) -> ExecResult<SkillsFound> {

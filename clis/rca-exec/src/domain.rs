@@ -1,12 +1,12 @@
 //! The pure core of `rca-exec`: the executor port with the actions every model uses (`docs/plans/rca-client/protocol.md`), and the one function
 //! that maps a wire request `{tool, args}` onto it. The arguments and results are the contract crates' (`libraries/agent-api`). No I/O;
 //! paths are relative to the executor's root.
-use exec_fs::{Browse, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, ListDir, ListResult, MakeDir, MakeDirResult, PutBlob, PutBlobResult, PutTemp, PutTempResult, ReadChunk, ReadFile, ReadResult, SearchEntries, SessionScan, SessionsFound, SkillScan, SkillsFound, Stat, StatResult, WriteFile, WriteResult};
+use exec_fs::{Browse, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, ListDir, ListResult, MakeDir, MakeDirResult, PutBlob, PutBlobResult, PutTemp, PutTempResult, ReadChunk, ReadFile, ReadResult, SearchEntries, SecretFilePut, SecretFilePutResult, SessionScan, SessionsFound, SkillScan, SkillsFound, Stat, StatResult, WriteFile, WriteResult};
 use exec_hosted::HostedOp;
 use exec_browser::BrowserOp;
 use exec_preview::PreviewOp;
 use exec_git::{DiffResult, GitDiff, GitOp, SetupEvent, SetupResult, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeListed, WorktreeRemove, WorktreeRemoved, WorktreeSetup};
-use exec_proc::{Cancel, CancelResult, ClaudeAnswer, ClaudeRequest, CliDetect, CliDetectResult, CliFound, CliUpdated, CodexAnswer, CodexRequest, LoggedOut, UpdateProgram, LoginCancel, LoginCancelled, LoginProgram, LoginSend, LoginStarted, LoginState, LoginStatus, RunCommand, RunResult};
+use exec_proc::{Cancel, CancelResult, ClaudeAnswer, ClaudeRequest, CliDetect, CliDetectResult, CliFound, CliUpdated, CodexAnswer, CodexRequest, LoggedOut, UpdateProgram, LoginCancel, LoginCancelled, LoginProgram, LoginSend, LoginStarted, LoginState, LoginStatus, McpAnswer, McpRequest, ProcSample, RunCommand, RunResult};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyListed, PtyOpen, PtyOpened, PtyResize, PtyResized, PtyWrite, PtyWritten};
 use exec_proto::{to_value, Code, ExecError, ExecResult, Stream};
 use serde_json::Value;
@@ -34,6 +34,8 @@ pub trait ToolExecutor: Send + Sync {
     fn put_temp(&self, args: &PutTemp) -> ExecResult<(String, u64)>;
     /// Makes the directory, and its parents when asked; false when it was there already (only `parents` accepts that).
     fn make_dir(&self, args: &MakeDir) -> ExecResult<bool>;
+    /// Writes the secret to a new file of mode 0600; returns the bytes written. The value is in no result and no error.
+    fn secret_file_put(&self, args: &SecretFilePut) -> ExecResult<u64>;
     fn browse(&self, args: &Browse) -> ExecResult<BrowseResult>;
     /// The agent CLIs named, in order, with where each lies on the executor's path and what its `--version` prints.
     fn cli_detect(&self, args: &CliDetect) -> ExecResult<Vec<CliFound>>;
@@ -53,6 +55,10 @@ pub trait ToolExecutor: Send + Sync {
     fn codex_app_server_request(&self, args: &CodexRequest) -> ExecResult<CodexAnswer>;
     /// Reads the Claude account's usage under the login in the executor's home.
     fn claude_account_request(&self, args: &ClaudeRequest) -> ExecResult<ClaudeAnswer>;
+    /// The executor's own process and everything below it, once.
+    fn proc_sample(&self) -> ExecResult<ProcSample>;
+    /// Starts the stdio MCP server the workspace's `.mcp.json` names, sends it one request and stops it.
+    fn mcp_request(&self, args: &McpRequest) -> ExecResult<McpAnswer>;
     /// The skills of a directory of the workspace and, when asked, of the executor's own home.
     fn skill_scan(&self, args: &SkillScan) -> ExecResult<SkillsFound>;
     /// The sessions the agent CLIs keep in the executor's own home.
@@ -115,6 +121,12 @@ pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value,
             let dir = MakeDir::parse(args)?;
             Ok(to_value(&MakeDirResult { created: ex.make_dir(&dir)?, path: dir.path }))
         }
+        exec_fs::SECRET_FILE_PUT => {
+            let secret = SecretFilePut::parse(args)?;
+            Ok(to_value(&SecretFilePutResult { bytes: ex.secret_file_put(&secret)?, path: secret.path }))
+        }
+        exec_proc::PROC_SAMPLE => Ok(to_value(&ex.proc_sample()?)),
+        exec_proc::MCP_REQUEST => Ok(to_value(&ex.mcp_request(&McpRequest::parse(args)?)?)),
         exec_fs::BROWSE => Ok(to_value(&ex.browse(&Browse::parse(args)?)?)),
         exec_proc::CLI_DETECT => Ok(to_value(&CliDetectResult { clis: ex.cli_detect(&CliDetect::parse(args)?)? })),
         exec_proc::LOGIN_START => Ok(to_value(&LoginStarted { flow: ex.login_start(&LoginProgram::parse(args)?)? })),
@@ -269,6 +281,18 @@ mod tests {
             self.note(exec_fs::SESSION_SCAN);
             Ok(SessionsFound { sessions: Vec::new(), truncated: false })
         }
+        fn secret_file_put(&self, _: &SecretFilePut) -> ExecResult<u64> {
+            self.note(exec_fs::SECRET_FILE_PUT);
+            Ok(0)
+        }
+        fn proc_sample(&self) -> ExecResult<ProcSample> {
+            self.note(exec_proc::PROC_SAMPLE);
+            Ok(ProcSample { sampled_at_ms: 0, ticks_per_second: 100, processes: Vec::new(), count: 0, total_rss_kib: 0, total_cpu_ticks: 0, truncated: false })
+        }
+        fn mcp_request(&self, _: &McpRequest) -> ExecResult<McpAnswer> {
+            self.note(exec_proc::MCP_REQUEST);
+            Ok(McpAnswer { result: json!({}) })
+        }
         fn browse(&self, _: &Browse) -> ExecResult<BrowseResult> {
             self.note(exec_fs::BROWSE);
             Ok(BrowseResult { path: "/".into(), parent: None, entries: Vec::new() })
@@ -358,6 +382,7 @@ mod tests {
             ("provider", _) => json!("github"),
             ("program", _) => json!("claude"),
             ("method", _) if action.name == exec_proc::CODEX_APP_SERVER => json!("account/read"),
+            ("method", _) if action.name == exec_proc::MCP_REQUEST => json!("tools/list"),
             ("request", _) if action.name == exec_proc::CLAUDE_ACCOUNT => json!("usage"),
             ("repo", _) => json!("o/r"),
             ("port", _) => json!(4000),

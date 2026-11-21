@@ -24,6 +24,26 @@ pub const CLI_UPDATE: &str = "cli_update";
 pub const CODEX_APP_SERVER: &str = "codex_app_server_request";
 /// One read of the executor's own Claude account (its usage), under the login the CLI keeps in the executor's home.
 pub const CLAUDE_ACCOUNT: &str = "claude_account_request";
+/// One sample of the processes below the executor: what the phone's resource view shows of the workspace host.
+pub const PROC_SAMPLE: &str = "proc_sample";
+/// One request to a stdio MCP server the workspace declares in its `.mcp.json`, started for it and stopped after the answer.
+pub const MCP_REQUEST: &str = "mcp_request";
+
+/// The most processes one `proc_sample` lists; the rest is counted in `truncated`.
+pub const SAMPLE_MAX: usize = 512;
+/// The workspace file that declares MCP servers, in the shape Claude Code reads (`{"mcpServers": {name: {command, args, env}}}`).
+pub const MCP_CONFIG: &str = ".mcp.json";
+/// The requests `mcp_request` sends; the MCP methods an app needs to list tools, call one and read a `ui://` resource.
+pub const MCP_METHODS: [&str; 3] = ["tools/list", "tools/call", "resources/read"];
+/// How long a server may take to start and answer, by default and at most.
+pub const MCP_TIMEOUT_MS: u64 = 20_000;
+pub const MCP_TIMEOUT_MAX_MS: u64 = 60_000;
+/// The largest answer kept, in bytes of JSON.
+pub const MCP_ANSWER_MAX: usize = 1 << 20;
+/// The largest `params` sent, in bytes of JSON: it stays under a pipe buffer, so the write to a server that reads nothing cannot block past the deadline.
+pub const MCP_PARAMS_MAX: usize = 32 * 1024;
+/// The protocol version the executor says it speaks when it initializes a server.
+pub const MCP_PROTOCOL: &str = "2025-06-18";
 
 /// The arguments of each agent CLI's self-update. Codex has none of its own (it is updated by the package manager that installed it), so
 /// `cli_update` refuses it. Written from the CLIs' documentation, not run against them here.
@@ -72,6 +92,23 @@ pub const DEFAULT_TIMEOUT_MS: u64 = 120_000;
 
 /// The family's actions, in the contract's order.
 pub const ACTIONS: &[Action] = &[
+    Action {
+        name: PROC_SAMPLE,
+        about: "Sample the executor's own process and every process below it (never any other): pid, parent, name, state, threads, resident memory and CPU time of each, at most 512, and their totals.",
+        properties: &[],
+        required: &[],
+    },
+    Action {
+        name: MCP_REQUEST,
+        about: "Start a stdio MCP server named in the workspace's .mcp.json, send it one request (tools/list, tools/call or resources/read) and return its result; the server is stopped after it. A server with a url is refused.",
+        properties: &[
+            Property { name: "server", kind: "string", about: "A key of `mcpServers` in .mcp.json" },
+            Property { name: "method", kind: "string", about: "One of tools/list, tools/call, resources/read" },
+            Property { name: "params", kind: "object", about: "The request's params (an object, default empty)" },
+            Property { name: "timeout_ms", kind: "integer", about: "Give up after this many milliseconds (default 20000, at most 60000)" },
+        ],
+        required: &["server", "method"],
+    },
     Action {
         name: RUN_COMMAND,
         about: "Run a shell command in the workspace and return its output; a non-zero exit code is an error.",
@@ -423,6 +460,68 @@ pub struct ClaudeAnswer {
     pub body: Value,
 }
 
+/// One process of a `proc_sample`. `cpu_ticks` is user plus system time in clock ticks (`ticks_per_second` of the sample).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProcInfo {
+    pub pid: u32,
+    pub ppid: u32,
+    pub name: String,
+    pub state: String,
+    pub threads: u32,
+    pub rss_kib: u64,
+    pub cpu_ticks: u64,
+}
+
+/// `proc_sample`'s answer: the processes by pid, the sums over all of them (also over the ones cut), and the clock the ticks count in.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProcSample {
+    pub sampled_at_ms: u64,
+    pub ticks_per_second: u64,
+    pub processes: Vec<ProcInfo>,
+    pub count: u64,
+    pub total_rss_kib: u64,
+    pub total_cpu_ticks: u64,
+    pub truncated: bool,
+}
+
+/// `mcp_request`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct McpRequest {
+    pub server: String,
+    pub method: String,
+    pub params: Value,
+    pub timeout_ms: u64,
+}
+
+impl McpRequest {
+    pub fn parse(args: &Value) -> ExecResult<McpRequest> {
+        let server = string(args, "server")?;
+        if server.is_empty() || server.len() > 128 {
+            return Err(ExecError::invalid_args("`server` must hold 1 to 128 characters"));
+        }
+        let method = string(args, "method")?;
+        if !MCP_METHODS.contains(&method.as_str()) {
+            return Err(ExecError::invalid_args(format!("`method` is one of {}, not {method:?}", MCP_METHODS.join(", "))));
+        }
+        let params = match &args["params"] {
+            Value::Null => Value::Object(Default::default()),
+            p @ Value::Object(_) => p.clone(),
+            _ => return Err(ExecError::invalid_args("`params` must be an object")),
+        };
+        if params.to_string().len() > MCP_PARAMS_MAX {
+            return Err(ExecError::invalid_args(format!("`params` is longer than {MCP_PARAMS_MAX} bytes")));
+        }
+        let timeout_ms = opt_uint(args, "timeout_ms")?.unwrap_or(MCP_TIMEOUT_MS).clamp(1, MCP_TIMEOUT_MAX_MS);
+        Ok(McpRequest { server, method, params, timeout_ms })
+    }
+}
+
+/// The server's answer to the request: its `result` as it sent it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct McpAnswer {
+    pub result: Value,
+}
+
 /// The first non-empty line of a program's `--version` output, cut to `VERSION_MAX` bytes at a character boundary; none when there is none.
 pub fn version_line(output: &str) -> Option<String> {
     let line = output.lines().map(str::trim).find(|l| !l.is_empty())?;
@@ -438,6 +537,21 @@ mod tests {
     use super::*;
     use exec_proto::{to_value, Code};
     use serde_json::json;
+
+    #[test]
+    fn given_the_arguments_of_an_mcp_request_when_read_then_a_known_method_and_a_server_are_required_and_the_timeout_is_clamped() {
+        // Given a minimal request, one with a method the executor does not send, one without a server, one with params that are no object and one with a long timeout
+        let minimal = McpRequest::parse(&json!({"server": "app", "method": "tools/list"})).unwrap();
+        let unknown = McpRequest::parse(&json!({"server": "app", "method": "prompts/list"}));
+        let no_server = McpRequest::parse(&json!({"method": "tools/list"}));
+        let bad_params = McpRequest::parse(&json!({"server": "app", "method": "tools/call", "params": [1]}));
+        let long = McpRequest::parse(&json!({"server": "app", "method": "tools/call", "timeout_ms": 10_000_000})).unwrap();
+        let huge = McpRequest::parse(&json!({"server": "app", "method": "tools/call", "params": {"x": "a".repeat(MCP_PARAMS_MAX)}}));
+        // Then the minimal one has empty params and the default timeout, the others are INVALID_ARGS, and the timeout is cut to the maximum
+        assert_eq!((minimal.params, minimal.timeout_ms), (json!({}), MCP_TIMEOUT_MS));
+        assert!([unknown, no_server, bad_params, huge].into_iter().all(|r| r.unwrap_err().code == exec_proto::Code::InvalidArgs));
+        assert_eq!(long.timeout_ms, MCP_TIMEOUT_MAX_MS);
+    }
 
     #[test]
     fn given_a_run_command_request_when_parsed_then_the_timeout_defaults_and_the_environment_keeps_its_order() {

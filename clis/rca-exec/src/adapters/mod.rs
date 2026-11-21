@@ -6,6 +6,8 @@ pub mod git;
 pub mod hosted;
 pub mod local_executor;
 pub mod logins;
+pub mod mcp;
 pub mod preview;
 pub mod provider_account;
 pub mod pty;
+pub mod sampling;

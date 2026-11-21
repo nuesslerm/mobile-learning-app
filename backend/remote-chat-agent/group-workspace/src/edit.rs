@@ -1,5 +1,5 @@
-//! The `files.edit` group: reading bytes, writing, creating, stat, entry search and browse of a workspace's files, making a directory, and the two diffs against a
-//! base revision, each one executor action of the workspace's executor.
+//! The `files.edit` group: reading bytes, writing, creating, stat, entry search and browse of a workspace's files, making a directory, a secret into a new file, a process sample, one request to a stdio MCP server, and the two
+//! diffs against a base revision, each one executor action of the workspace's executor.
 use crate::files::relay;
 use crate::relay::respond;
 use agent_api_proto::{GroupName, Response};
@@ -9,7 +9,7 @@ use rca_agent_core::{Call, Group, Served};
 use rca_exec_channel::Executors;
 use std::sync::Arc;
 
-pub const EDIT_SERVED: [Served; 9] = [
+pub const EDIT_SERVED: [Served; 12] = [
     Served::service(edit::FILE_READ_CHUNK, &[exec_fs::READ_CHUNK]),
     Served::service(edit::FILE_WRITE, &[exec_fs::WRITE_FILE]),
     Served::service(edit::FILE_CREATE, &[exec_fs::CREATE_FILE]),
@@ -17,6 +17,9 @@ pub const EDIT_SERVED: [Served; 9] = [
     Served::service(edit::FILE_SEARCH, &[exec_fs::SEARCH_ENTRIES]),
     Served::service(edit::FILE_BROWSE, &[exec_fs::BROWSE]),
     Served::service(edit::FILE_MKDIR, &[exec_fs::MAKE_DIR]),
+    Served::service(edit::FILE_PUT_SECRET, &[exec_fs::SECRET_FILE_PUT]),
+    Served::service(edit::PROCESS_SAMPLE, &[rca_exec_channel::PROC_SAMPLE]),
+    Served::service(edit::MCP_REQUEST, &[rca_exec_channel::MCP_REQUEST]),
     Served::service(edit::TURN_DIFF, &[exec_git::GIT_DIFF]),
     Served::service(edit::THREAD_DIFF, &[exec_git::GIT_DIFF]),
 ];

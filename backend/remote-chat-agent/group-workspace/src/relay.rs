@@ -104,8 +104,16 @@ pub(crate) fn executor_args(method: agent_api_proto::Method, mut params: FilePar
             }
             Ok(params.executor_args())
         }
-        FILE_READ | FILE_LIST | edit::FILE_READ_CHUNK | edit::FILE_WRITE | edit::FILE_CREATE | edit::FILE_STAT | edit::FILE_MKDIR => {
+        FILE_READ | FILE_LIST | edit::FILE_READ_CHUNK | edit::FILE_WRITE | edit::FILE_CREATE | edit::FILE_STAT | edit::FILE_MKDIR | edit::FILE_PUT_SECRET => {
             params.path = params.path.take().map(|p| place_path(&p)).transpose()?;
+            Ok(params.executor_args())
+        }
+        edit::PROCESS_SAMPLE => Ok(params.executor_args()),
+        edit::MCP_REQUEST => {
+            // The executor reads `.mcp.json` at its own root, so a workspace below it or a worktree would be answered with the wrong servers
+            if place.prefix.is_some() || place.worktree.is_some() {
+                return Err(Refusal::invalid("mcp.request runs in an executor's root workspace only"));
+            }
             Ok(params.executor_args())
         }
         other => unreachable!("{} is no file method", other.name()),

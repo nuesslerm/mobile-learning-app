@@ -1,0 +1,154 @@
+{
+  "method": "mcp.request",
+  "exchanges": [
+    {
+      "name": "lists the tools of a stdio server the workspace declares",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "server": "app",
+          "method": "tools/list"
+        },
+        "id": 1,
+        "method": "mcp.request"
+      },
+      "response": {
+        "result": {
+          "result": {
+            "tools": [
+              {
+                "name": "echo",
+                "description": "Echoes its text",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "_meta": {
+                  "ui": {
+                    "resourceUri": "ui://app/echo"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "id": 1
+      },
+      "actions": [
+        "mcp_request"
+      ]
+    },
+    {
+      "name": "calls a tool",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "server": "app",
+          "method": "tools/call",
+          "params": {
+            "name": "echo",
+            "arguments": {
+              "text": "hi"
+            }
+          }
+        },
+        "id": 2,
+        "method": "mcp.request"
+      },
+      "response": {
+        "result": {
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "hi"
+              }
+            ],
+            "isError": false
+          }
+        },
+        "id": 2
+      },
+      "actions": [
+        "mcp_request"
+      ]
+    },
+    {
+      "name": "reads a ui resource",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "server": "app",
+          "method": "resources/read",
+          "params": {
+            "uri": "ui://app/echo"
+          }
+        },
+        "id": 3,
+        "method": "mcp.request"
+      },
+      "response": {
+        "result": {
+          "result": {
+            "contents": [
+              {
+                "uri": "ui://app/echo",
+                "mimeType": "text/html",
+                "text": "<p>echo</p>"
+              }
+            ]
+          }
+        },
+        "id": 3
+      },
+      "actions": [
+        "mcp_request"
+      ]
+    },
+    {
+      "name": "refuses a server the workspace does not declare, with the executor's own code",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "server": "gone",
+          "method": "tools/list"
+        },
+        "id": 4,
+        "method": "mcp.request"
+      },
+      "response": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": ".mcp.json declares no server \"gone\""
+        },
+        "id": 4
+      },
+      "actions": [
+        "mcp_request"
+      ]
+    },
+    {
+      "name": "refuses a request that names no server, before the executor is asked",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "method": "tools/list"
+        },
+        "id": 5,
+        "method": "mcp.request"
+      },
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "server is required"
+        },
+        "id": 5
+      },
+      "actions": []
+    }
+  ]
+}

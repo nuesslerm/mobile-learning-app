@@ -14,7 +14,7 @@ fn io(e: std::io::Error) -> ExecError {
     ExecError::new(Code::Io, e.to_string())
 }
 
-fn kill_group(child: &mut Child) {
+pub(crate) fn kill_group(child: &mut Child) {
     // SAFETY: killing the process group `process_group(0)` made at the child's start.
     unsafe { libc::kill(-(child.id() as i32), libc::SIGKILL) };
     let _ = child.wait();
@@ -73,7 +73,7 @@ pub fn update(args: &UpdateProgram, path: &Path, search: &str, home: &Path, limi
 }
 
 /// What the app-server printed, a line at a time, until it closes its output.
-fn lines(child: &mut Child) -> mpsc::Receiver<String> {
+pub(crate) fn lines(child: &mut Child) -> mpsc::Receiver<String> {
     let (tx, rx) = mpsc::channel();
     if let Some(out) = child.stdout.take() {
         std::thread::spawn(move || {
@@ -88,13 +88,18 @@ fn lines(child: &mut Child) -> mpsc::Receiver<String> {
 }
 
 /// The answer to request `id`: its `result`, or the app-server's own `error` message as an `IO_ERROR`.
-fn answer(rx: &mpsc::Receiver<String>, id: u64, deadline: Instant) -> ExecResult<Value> {
+pub(crate) fn answer(rx: &mpsc::Receiver<String>, id: u64, deadline: Instant, who: &str) -> ExecResult<Value> {
+    answer_with(rx, id, deadline, who, true)
+}
+
+/// `echo_error` false replaces the server's own error text (which may quote what it was given) with a fixed one.
+pub(crate) fn answer_with(rx: &mpsc::Receiver<String>, id: u64, deadline: Instant, who: &str, echo_error: bool) -> ExecResult<Value> {
     loop {
         let left = deadline.saturating_duration_since(Instant::now());
         let line = match rx.recv_timeout(left) {
             Ok(line) => line,
-            Err(RecvTimeoutError::Timeout) => return Err(ExecError::new(Code::Io, "the Codex app-server did not answer in time")),
-            Err(RecvTimeoutError::Disconnected) => return Err(ExecError::new(Code::Io, "the Codex app-server ended before it answered")),
+            Err(RecvTimeoutError::Timeout) => return Err(ExecError::new(Code::Io, format!("{who} did not answer in time"))),
+            Err(RecvTimeoutError::Disconnected) => return Err(ExecError::new(Code::Io, format!("{who} ended before it answered"))),
         };
         // Output that is not a JSON-RPC line is not part of the protocol stream
         let Ok(message) = serde_json::from_str::<Value>(&line) else { continue };
@@ -102,7 +107,7 @@ fn answer(rx: &mpsc::Receiver<String>, id: u64, deadline: Instant) -> ExecResult
             continue;
         }
         if let Some(error) = message.get("error").filter(|e| !e.is_null()) {
-            let text = error["message"].as_str().unwrap_or("the app-server refused the request");
+            let text = error["message"].as_str().filter(|_| echo_error).unwrap_or("the server refused the request");
             return Err(ExecError::new(Code::Io, text.to_string()));
         }
         return Ok(message["result"].clone());
@@ -118,10 +123,10 @@ pub fn codex(args: &CodexRequest, path: &Path, search: &str, home: &Path) -> Exe
         let deadline = Instant::now() + Duration::from_millis(args.timeout_ms);
         let mut send = |value: Value| writeln!(input, "{value}").and_then(|()| input.flush()).map_err(io);
         send(json!({"id": 1, "method": "initialize", "params": {"clientInfo": {"name": "rca-exec", "version": "1.0.0"}}}))?;
-        answer(&rx, 1, deadline)?;
+        answer(&rx, 1, deadline, "the Codex app-server")?;
         send(json!({"method": "initialized", "params": {}}))?;
         send(json!({"id": 2, "method": args.method, "params": args.params}))?;
-        answer(&rx, 2, deadline).map(|result| CodexAnswer { result })
+        answer(&rx, 2, deadline, "the Codex app-server").map(|result| CodexAnswer { result })
     })();
     kill_group(&mut child);
     outcome

@@ -1,0 +1,46 @@
+{
+  "method": "process.sample",
+  "exchanges": [
+    {
+      "name": "samples the processes below the executor of the workspace",
+      "request": {
+        "params": {
+          "workspace": "w1"
+        },
+        "id": 1,
+        "method": "process.sample"
+      },
+      "response": {
+        "result": {
+          "sampled_at_ms": 1,
+          "ticks_per_second": 100,
+          "processes": [],
+          "count": 1,
+          "total_rss_kib": 1,
+          "total_cpu_ticks": 1,
+          "truncated": false
+        },
+        "id": 1
+      },
+      "actions": [
+        "proc_sample"
+      ]
+    },
+    {
+      "name": "refuses a request that names no workspace, before the executor is asked",
+      "request": {
+        "params": {},
+        "id": 2,
+        "method": "process.sample"
+      },
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "workspace is required"
+        },
+        "id": 2
+      },
+      "actions": []
+    }
+  ]
+}
