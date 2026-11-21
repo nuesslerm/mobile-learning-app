@@ -216,6 +216,44 @@ describe('ProblemEditorScreen flow (language toggle)', () => {
   });
 });
 
+describe('ProblemEditorScreen flow (the editor language and its own keys)', () => {
+  it('given the real editor on two-sum, when its config is read, then the language is python', async () => {
+    const { gateway } = fakeGateway();
+    const session = await renderEditor(gateway);
+    const editor = await session.editor();
+
+    expect((await editor.config()).language).toBe('python');
+  });
+
+  it('given Python text ending in a colon with the caret at its end, when Enter is pressed, then the next line is indented one level', async () => {
+    const { gateway } = fakeGateway();
+    const session = await renderEditor(gateway);
+    const editor = await session.editor();
+    await editor.setText('if x:');
+    await editor.select(5);
+
+    await editor.press('Enter');
+
+    await waitFor(() => {
+      expect(editor.text()).toBe('if x:\n    ');
+    });
+  });
+
+  it('given Python text ending in an opening brace, when Enter is pressed, then the next line is not indented', async () => {
+    const { gateway } = fakeGateway();
+    const session = await renderEditor(gateway);
+    const editor = await session.editor();
+    await editor.setText('x = 1 {');
+    await editor.select(7);
+
+    await editor.press('Enter');
+
+    await waitFor(() => {
+      expect(editor.text()).toBe('x = 1 {\n');
+    });
+  });
+});
+
 describe('ProblemEditorScreen flow (languages a problem offers)', () => {
   // the route's problem comes from the real catalog: meeting-rooms has a Python starter and no other
   async function renderMeetingRooms(): Promise<FlowSession> {

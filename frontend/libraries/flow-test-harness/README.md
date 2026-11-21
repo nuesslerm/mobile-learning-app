@@ -124,6 +124,8 @@ expect(editor.text()).toContain('return []');
 expect(editor.diffRanges()).toEqual(['return [1, 2]']); // CodeMirror's .cm-diff-change marks
 ```
 
+`editor.config()` reads the config the editor has now (language, tab size, palette) and `editor.press('Enter')` presses a key on CodeMirror's content element, so its own keymap and the language's grammar act on it.
+
 ### Rendering like the web export
 
 `app.render` server-renders the route first, lets prerendered iframes finish

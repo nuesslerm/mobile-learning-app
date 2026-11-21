@@ -7,6 +7,7 @@ import {
   normalizeText,
   unwrap,
   type EditorClient,
+  type EditorConfig,
   type EditorEngine,
 } from '@lib/code-editor-api';
 import { act, waitFor } from '@testing-library/react';
@@ -23,7 +24,13 @@ export type FlowCodeEditor = {
   focused(): boolean;
   /** Text of each diff decoration CodeMirror is currently drawing. */
   diffRanges(): string[];
+  /** The config the editor has now: the language it highlights and indents in, the tab size, the palette. */
+  config(): Promise<EditorConfig>;
+  /** A key CodeMirror's own keymap handles, pressed on its content element (not a toolbar key): the caller waits for the text to change. */
+  press(key: 'Enter' | 'Tab' | 'Backspace'): Promise<void>;
 };
+
+const KEY_CODES = { Enter: 13, Tab: 9, Backspace: 8 } as const;
 
 function frameEngine(container: HTMLElement): { engine: EditorEngine; doc: Document } | null {
   for (const frame of Array.from(container.ownerDocument.querySelectorAll('iframe'))) {
@@ -111,5 +118,16 @@ export async function mountedCodeEditor(container: HTMLElement): Promise<FlowCod
     focused: contentFocused,
     diffRanges: () =>
       Array.from(doc.querySelectorAll('.cm-diff-change'), (el) => el.textContent ?? ''),
+    config: async () => unwrap(await client.setConfig({})),
+    press: async (key) => {
+      const content = doc.querySelector('.cm-content');
+      const win = doc.defaultView as (Window & typeof globalThis) | null;
+      if (!content || !win) throw new Error('no CodeMirror content to press a key on');
+      // built from the iframe's own constructor: CodeMirror ignores an event of the wrong window
+      const event = new win.KeyboardEvent('keydown', { key, code: key, keyCode: KEY_CODES[key], bubbles: true, cancelable: true });
+      await act(async () => {
+        content.dispatchEvent(event);
+      });
+    },
   };
 }
