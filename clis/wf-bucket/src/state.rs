@@ -229,18 +229,40 @@ pub fn write(files: &[(&str, &[u8])], message: &str) -> Result<String, String> {
     write_in(None, files, message)
 }
 
+/// Seconds each phase of a `write` took, summed over its attempts, so a slow push names the phase that was slow.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Timing {
+    pub attempts: u32,
+    pub fetch_s: f64,
+    pub commit_s: f64,
+    pub push_s: f64,
+}
+
 /// `write` with git running in exactly `base` as its environment (nothing of the caller's reaches it), for a verb that keeps its own variables out of every child.
 pub fn write_in(base: Base, files: &[(&str, &[u8])], message: &str) -> Result<String, String> {
+    write_timed(base, files, message).map(|(commit, _)| commit)
+}
+
+/// `write_in` that also returns how long its fetch, commit and push took.
+pub fn write_timed(base: Base, files: &[(&str, &[u8])], message: &str) -> Result<(String, Timing), String> {
     for (path, _) in files {
         checked(path)?;
     }
     let mut last = String::new();
+    let mut timing = Timing::default();
     for attempt in 0..ATTEMPTS {
+        timing.attempts = attempt + 1;
+        let started = Instant::now();
         let parent = fetch(base)?;
+        timing.fetch_s += started.elapsed().as_secs_f64();
+        let started = Instant::now();
         let commit = commit_files(base, parent.as_deref(), files, message)?;
+        timing.commit_s += started.elapsed().as_secs_f64();
+        let started = Instant::now();
         let out = git(base, &["push", "--quiet", "origin", &format!("{commit}:{REF}")], &[], None)?;
+        timing.push_s += started.elapsed().as_secs_f64();
         if out.ok {
-            return Ok(commit);
+            return Ok((commit, timing));
         }
         last = out.stderr;
         std::thread::sleep(std::time::Duration::from_millis(150 * u64::from(attempt + 1) + u64::from(std::process::id() % 100)));

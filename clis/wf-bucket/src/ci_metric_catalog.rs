@@ -50,6 +50,7 @@ pub const CATALOG: &[Metric] = &[
     m("ci.nx.replay_ratio", "ratio", "stage", "all", "wf test run"),
     m("ci.nx.task_s", "s", "stage", "task", "wf test run"),
     m("ci.unit.duration_s", "s", "stage", "unit", "wf test run"),
+    m("ci.test.duration_s", "s", "stage", "unit::test", "wf test run"),
     m("ci.shard.predicted_s", "s", "stage", "shard", "wf ci plan shard-weights --report"),
     m("ci.shard.actual_s", "s", "stage", "shard", "wf ci plan shard-weights --report"),
     m("ci.vmstate.ok", "flag", "app", "verb", "wf vm state"),

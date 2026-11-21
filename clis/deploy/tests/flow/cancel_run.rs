@@ -4,7 +4,7 @@ use crate::support::{run_wf, MockReply, MockServer, RunOpts};
 use serde_json::{json, Value};
 
 const PAT: &str = "github_pat_11AAAAAAA0zzzzzzzzzzzz_secretsecretsecret";
-const WORKFLOWS: [&str; 6] = ["ci-hosted-backend-core.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "ci-hosted-cli-publish.yml", "ci-hosted-backend-deploy.yml", "ci-hosted-mobile-publish.yml"];
+const WORKFLOWS: [&str; 6] = ["ci-hosted-backend-core.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "ci-hosted-cli-build.yml", "ci-hosted-backend-build.yml", "ci-hosted-mobile-build.yml"];
 
 fn list(workflow: &str) -> String {
     format!("GET /repos/nuesslerm/mobile-learning-app/actions/workflows/{workflow}/runs?branch=dev&per_page=100")
@@ -145,7 +145,7 @@ fn all_cancels_every_unfinished_run() {
 
 #[test]
 fn runs_queued_in_two_workflows_are_both_cancelled_and_the_running_ones_of_either_are_left_alone() {
-    // Given a queued run in ci-hosted-mobile-core.yml and one in ci-hosted-mobile-publish.yml, and a running run in ci-hosted-backend-deploy.yml
+    // Given a queued run in ci-hosted-mobile-core.yml and one in ci-hosted-mobile-build.yml, and a running run in ci-hosted-backend-build.yml
     let server = MockServer::start(None);
     let mut table: Vec<(String, MockReply)> = WORKFLOWS.iter().map(|w| (list(w), MockReply::json(200, json!({ "workflow_runs": [] })))).collect();
     let set = |table: &mut Vec<(String, MockReply)>, workflow: &str, runs: Value| {
@@ -153,8 +153,8 @@ fn runs_queued_in_two_workflows_are_both_cancelled_and_the_running_ones_of_eithe
         table.push((list(workflow), MockReply::json(200, json!({ "workflow_runs": runs }))));
     };
     set(&mut table, "ci-hosted-mobile-core.yml", json!([{ "id": 7001, "run_number": 11, "status": "queued" }]));
-    set(&mut table, "ci-hosted-mobile-publish.yml", json!([{ "id": 7002, "run_number": 5, "status": "waiting" }]));
-    set(&mut table, "ci-hosted-backend-deploy.yml", json!([{ "id": 7003, "run_number": 9, "status": "in_progress" }]));
+    set(&mut table, "ci-hosted-mobile-build.yml", json!([{ "id": 7002, "run_number": 5, "status": "waiting" }]));
+    set(&mut table, "ci-hosted-backend-build.yml", json!([{ "id": 7003, "run_number": 9, "status": "in_progress" }]));
     for id in [7001, 7002, 7003] {
         table.push((cancel_route(id), MockReply::json(202, json!({}))));
     }

@@ -112,7 +112,7 @@ pub fn slow_tasks(tasks: &[TaskRun]) -> Vec<(&str, f64)> {
 }
 
 /// The stage's event and gauges: `ci.nx.tasks{stage,outcome}`, `ci.nx.replay_ratio{stage}` and `ci.nx.task_s{stage,task}` for each task that ran for 2 s or more.
-fn report(stage: &str, target: &str, tasks: &[TaskRun], units: &[wf_bucket::ci_db::UnitSpan]) {
+fn report(stage: &str, target: &str, tasks: &[TaskRun], units: &[wf_bucket::ci_db::UnitSpan], tests: &[wf_bucket::ci_db::TestRow]) {
     use wf_bucket::ci_metrics::{event, Gauges, ALL};
     let (ran, hit, _) = replay_ratio(tasks);
     let (stage_ran, stage_hit) = {
@@ -130,18 +130,24 @@ fn report(stage: &str, target: &str, tasks: &[TaskRun], units: &[wf_bucket::ci_d
         gauges.set("ci.nx.task_s", stage, task, seconds);
     }
     crate::ci_units::gauges(&mut gauges, units);
+    crate::ci_tests::gauges(&mut gauges, tests);
     gauges.send();
 }
 
 /// Prints the ledger line of the Nx run that started at `since` (nothing when it left no `run.json`).
-pub fn emit(since: SystemTime, stage: &str, target: &str, cpu_seconds: f64) {
-    let Some(home) = std::env::var_os("HOME") else { return };
+pub(crate) fn emit(since: SystemTime, stage: &str, target: &str, cpu_seconds: f64, seen: &[crate::ci_tests::Seen]) {
+    let Some(home) = std::env::var_os("HOME") else {
+        crate::ci_tests::persist(stage, target, seen, &[]);
+        return;
+    };
     let mut tasks = read_unreported(Path::new(&home), since);
     // the two stages of a core-tests job share one run.json: keep this run's own targets
     if std::env::var("GITHUB_JOB").is_ok_and(|j| j == "core-tests") {
         let own: Vec<&str> = target.split(',').collect();
         tasks.retain(|t| t.task.split(':').nth(1).is_some_and(|n| own.contains(&n)));
     }
+    let replayed: Vec<&str> = tasks.iter().filter(|t| t.outcome == "hit").map(|t| t.task.as_str()).collect();
+    let tests = crate::ci_tests::persist(stage, target, seen, &replayed);
     if tasks.is_empty() {
         return;
     }
@@ -150,7 +156,7 @@ pub fn emit(since: SystemTime, stage: &str, target: &str, cpu_seconds: f64) {
     record(stage, &tasks, cpu_seconds);
     let units = crate::ci_units::spans(&std::env::var("GITHUB_RUN_ID").unwrap_or_default(), stage, &tasks);
     crate::ci_units::record(&units);
-    report(stage, target, &tasks, &units);
+    report(stage, target, &tasks, &units, &tests);
     why(since, "stage");
 }
 

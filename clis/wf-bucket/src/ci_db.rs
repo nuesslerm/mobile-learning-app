@@ -148,6 +148,8 @@ pub fn ensure_ledger(conn: &Connection) -> Result<(), String> {
            QUEUE_S_MAX REAL, JOBS INTEGER, CRITICAL_PATH_JOB TEXT, CRITICAL_PATH_S REAL, PARALLEL_EFFICIENCY REAL);
          CREATE TABLE IF NOT EXISTS CI_UNITS (RUN_ID TEXT NOT NULL, JOB TEXT NOT NULL, STAGE TEXT NOT NULL, UNIT TEXT NOT NULL, STARTED_MS INTEGER NOT NULL, ENDED_MS INTEGER,
            MS INTEGER, OUTCOME TEXT NOT NULL, PRIMARY KEY (RUN_ID, JOB, STAGE, UNIT));
+         CREATE TABLE IF NOT EXISTS CI_TESTS (RUN_ID TEXT NOT NULL, JOB TEXT NOT NULL, STAGE TEXT NOT NULL, UNIT TEXT NOT NULL, SUITE TEXT NOT NULL, TEST TEXT NOT NULL,
+           MS INTEGER NOT NULL, OUTCOME TEXT NOT NULL, BASIS TEXT NOT NULL, PRIMARY KEY (RUN_ID, JOB, STAGE, UNIT, SUITE, TEST));
          CREATE TABLE IF NOT EXISTS CI_CONCURRENCY (TS INTEGER NOT NULL, RUN_ID TEXT NOT NULL, PHASE TEXT NOT NULL, WORKFLOW TEXT NOT NULL, BUSY INTEGER NOT NULL, QUEUED INTEGER NOT NULL,
            RUNS_ACTIVE INTEGER NOT NULL, CAP INTEGER NOT NULL, HEADROOM INTEGER NOT NULL, PRIMARY KEY (RUN_ID, PHASE, TS, WORKFLOW));",
     )
@@ -356,6 +358,40 @@ pub fn record_units_local(spans: &[UnitSpan]) -> Result<bool, String> {
     }
     tx.commit().map_err(sql)?;
     Ok(true)
+}
+
+/// One test of a test binary (`CI_TESTS`): `suite` is the binary (`flow`, `lib`) or the vitest file, `basis` how `ms` was got (`serial`: one test at a time, so the time
+/// since the previous result is the test's own; `gap`: parallel tests, so it is the time since the previous result and a lower bound for a test that started earlier;
+/// `reported`: the runner printed it).
+#[derive(Debug, Clone, PartialEq)]
+pub struct TestRow {
+    pub run: String,
+    pub job: String,
+    pub stage: String,
+    pub unit: String,
+    pub suite: String,
+    pub test: String,
+    pub ms: i64,
+    pub outcome: String,
+    pub basis: String,
+}
+
+/// Writes test rows to `CI_TESTS` of the job's local database; a test a stage's second Nx call runs again replaces its row. `false`, and nothing written, without one.
+pub fn record_tests_local(rows: &[TestRow]) -> Result<bool, String> {
+    let cells = rows.iter().map(|t| vec![text(&t.run), text(&t.job), text(&t.stage), text(&t.unit), text(&t.suite), text(&t.test), int(t.ms), text(&t.outcome), text(&t.basis)]).collect();
+    insert_local("INSERT OR REPLACE INTO CI_TESTS (RUN_ID, JOB, STAGE, UNIT, SUITE, TEST, MS, OUTCOME, BASIS) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)", cells)
+}
+
+/// The `(unit, suite, test)` of each failed test row the job-local database holds for a stage: a retry that passes in under the row threshold replaces it.
+pub fn failed_tests_local(run: &str, job: &str, stage: &str) -> Vec<(String, String, String)> {
+    let Some(path) = local_path().filter(|p| p.exists()) else { return Vec::new() };
+    let Ok(conn) = open_at(&path) else { return Vec::new() };
+    if ensure_ledger(&conn).is_err() {
+        return Vec::new();
+    }
+    let Ok(mut stmt) = conn.prepare("SELECT UNIT, SUITE, TEST FROM CI_TESTS WHERE RUN_ID = ?1 AND JOB = ?2 AND STAGE = ?3 AND OUTCOME = 'failed'") else { return Vec::new() };
+    let Ok(rows) = stmt.query_map([run, job, stage], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))) else { return Vec::new() };
+    rows.filter_map(Result::ok).collect()
 }
 
 /// Drops the `running` rows of a stage of a job: the run ended and left no task to replace them.

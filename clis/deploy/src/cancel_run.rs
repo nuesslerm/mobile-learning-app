@@ -63,7 +63,7 @@ impl GithubRuns for GithubRest {
     }
 }
 
-const WORKFLOWS: [&str; 6] = ["ci-hosted-backend-core.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "ci-hosted-cli-publish.yml", "ci-hosted-backend-deploy.yml", "ci-hosted-mobile-publish.yml"];
+const WORKFLOWS: [&str; 6] = ["ci-hosted-backend-core.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "ci-hosted-cli-build.yml", "ci-hosted-backend-build.yml", "ci-hosted-mobile-build.yml"];
 
 fn runs_path(workflow: &str) -> String {
     format!("/repos/{REPO}/actions/workflows/{workflow}/runs?branch=dev&per_page=100")

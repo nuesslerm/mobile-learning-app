@@ -9,7 +9,7 @@ on:
 # One run per commit: a push never waits for an older run (a red shard of the older one is fixed and re-run at once), and a still-pending shard may be replaced by a newer run of
 # the same inputs (that run then ends cancelled or superseded); every other run is measured to its end. What must not overlap is serialised per job (deploy per app) and what ships first checks that its commit is still the head of dev.
 concurrency:
-  group: ci-hosted-mobile-publish-${{ github.sha }}
+  group: ci-hosted-mobile-build-${{ github.sha }}
   cancel-in-progress: false
 
 permissions:

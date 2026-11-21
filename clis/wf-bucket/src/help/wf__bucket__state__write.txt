@@ -5,7 +5,8 @@ history) the first time. The body is read from --file, else stdin. The push is
 fast-forward only: when another job moved the ref first, the tip is fetched and
 the commit redone on it, up to 5 times, so no writer's files are lost.
 
-Output: one JSON line, {ok, path, commit, ref}. A failure prints {ok: false,
+Output: one JSON line, {ok, path, commit, ref, timing: {attempts, fetchS, commitS, pushS}}
+(seconds spent in each phase, summed over the attempts). A failure prints {ok: false,
 error} and exits 1.
 
 Options:

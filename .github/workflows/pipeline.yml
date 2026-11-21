@@ -4,8 +4,8 @@ name: Pipeline
 # the head-of-dev check), core-tests (the flow stage and the typecheck, lint and unit stage side by side on one machine), clis, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, eas-update-e2e, the e2e suites, report.
 # `ship` publishes (latest images, the EAS Update), `deploy` runs the deploy legs, `e2e` runs the device suites, `stages` picks one stage of them and `area` one area of the core
 # stage, so a push is six runs of one graph that do not wait for each other: ci-hosted-mobile-core.yml, ci-hosted-cli-core.yml and ci-hosted-backend-core.yml (backend services) run `core`
-# (flow, lint, typecheck and unit tests) for their area, ci-hosted-cli-publish.yml `cli` (the wf build and release, and the cli e2e tests), ci-hosted-backend-deploy.yml `deploy`
-# (the image builds, the integration tests, the deploy and its verification) and ci-hosted-mobile-publish.yml `e2e` (the EAS Updates and the browser and Android suites).
+# (flow, lint, typecheck and unit tests) for their area, ci-hosted-cli-build.yml `cli` (the wf build and release, and the cli e2e tests), ci-hosted-backend-build.yml `deploy`
+# (the image builds, the integration tests, the deploy and its verification) and ci-hosted-mobile-build.yml `e2e` (the EAS Updates and the browser and Android suites).
 # Rules: docs/solutions/ci/ci-pipeline-on-the-vm.md
 on:
   workflow_call:
@@ -350,7 +350,7 @@ jobs:
     needs: plan
     if: ${{ ((needs.plan.outputs.flow_tests != '0' && needs.plan.outputs.run_flow == 'true') || (needs.plan.outputs.typecheck_lint_unit_tests != '0' && needs.plan.outputs.run_unit == 'true')) && (inputs.stages == 'all' || inputs.stages == 'core') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
-    timeout-minutes: 40
+    timeout-minutes: 30
     concurrency:
       group: ${{ format('hosted-core-tests-{0}-{1}-{2}{3}', github.workflow, matrix.shard, fromJSON(needs.plan.outputs.core_shard_keys)[matrix.shard], needs.plan.outputs.fresh == 'true' && '-fresh' || '') }}
       cancel-in-progress: false
@@ -393,9 +393,9 @@ jobs:
         with:
           mode: restore
           stage: core-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
-      # A push that changes a crate every service builds runs everything cold (10 to 24 minutes); a pass is cached, so the next push replays it
+      # A push that changes a crate every service builds runs everything cold (10 to 15 minutes, the slowest seen 14.8); a pass is cached, so the next push replays it. A cold run past the 20 minute step limit now fails
       - name: Flow, typecheck, lint and unit tests
-        timeout-minutes: 30
+        timeout-minutes: 20
         env:
           RUN_FLOW: ${{ (needs.plan.outputs.flow_tests != '0' && needs.plan.outputs.run_flow == 'true') && 'true' || 'false' }}
           RUN_UNIT: ${{ (needs.plan.outputs.typecheck_lint_unit_tests != '0' && needs.plan.outputs.run_unit == 'true') && 'true' || 'false' }}
@@ -1079,7 +1079,10 @@ jobs:
       - name: Push the EAS pointers to the state ref
         run: |
           for pointer in "$RUNNER_TEMP"/eas-pointer/latest-*.json; do
-            wf bucket state write "eas/$(basename "$pointer")" --file "$pointer" --message "eas: $(basename "$pointer") at $GITHUB_SHA"
+            out=$(wf bucket state write "eas/$(basename "$pointer")" --file "$pointer" --message "eas: $(basename "$pointer") at $GITHUB_SHA") || { printf '%s\n' "$out"; exit 1; }
+            printf '%s\n' "$out"
+            # which phase of the push is slow (the step took 74 to 97 s on average): the job summary names it
+            jq -r '"State ref push \(.path): \(.timing.attempts // "-") attempt(s), fetch \(.timing.fetchS // "-") s, commit \(.timing.commitS // "-") s, push \(.timing.pushS // "-") s"' <<<"$out" >> "$GITHUB_STEP_SUMMARY" || true
           done
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
@@ -1149,7 +1152,10 @@ jobs:
         if: ${{ inputs.ship && success() }}
         run: |
           for pointer in "$RUNNER_TEMP"/eas-pointer/latest-*.json; do
-            wf bucket state write "eas/$(basename "$pointer")" --file "$pointer" --message "eas: $(basename "$pointer") at $GITHUB_SHA"
+            out=$(wf bucket state write "eas/$(basename "$pointer")" --file "$pointer" --message "eas: $(basename "$pointer") at $GITHUB_SHA") || { printf '%s\n' "$out"; exit 1; }
+            printf '%s\n' "$out"
+            # which phase of the push is slow (the step took 74 to 97 s on average): the job summary names it
+            jq -r '"State ref push \(.path): \(.timing.attempts // "-") attempt(s), fetch \(.timing.fetchS // "-") s, commit \(.timing.commitS // "-") s, push \(.timing.pushS // "-") s"' <<<"$out" >> "$GITHUB_STEP_SUMMARY" || true
           done
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}

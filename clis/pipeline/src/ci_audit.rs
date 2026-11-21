@@ -472,9 +472,9 @@ const WORKFLOWS: [(&str, bool); 6] = [
     ("ci-hosted-backend-core.yml", true),
     ("ci-hosted-mobile-core.yml", true),
     ("ci-hosted-cli-core.yml", true),
-    ("ci-hosted-cli-publish.yml", true),
-    ("ci-hosted-backend-deploy.yml", true),
-    ("ci-hosted-mobile-publish.yml", true),
+    ("ci-hosted-cli-build.yml", true),
+    ("ci-hosted-backend-build.yml", true),
+    ("ci-hosted-mobile-build.yml", true),
 ];
 
 /// A completed run to judge: its id, head sha, whether it is cold, and whether it ran on GitHub-hosted machines.

@@ -60,9 +60,9 @@ fn the_hosted_caller_adds_only_a_trigger_gate_and_calls_the_same_pipeline() {
 #[test]
 fn the_cli_deploy_and_e2e_callers_are_runs_of_their_own_of_the_same_pipeline_each_for_one_stage_with_a_label_and_a_group_of_its_own() {
     for (caller, stage, group) in [
-        ("ci-hosted-cli-publish.yml", "cli", "ci-hosted-cli-publish-"),
-        ("ci-hosted-backend-deploy.yml", "deploy", "ci-hosted-backend-deploy-"),
-        ("ci-hosted-mobile-publish.yml", "e2e", "ci-hosted-mobile-publish-"),
+        ("ci-hosted-cli-build.yml", "cli", "ci-hosted-cli-build-"),
+        ("ci-hosted-backend-build.yml", "deploy", "ci-hosted-backend-build-"),
+        ("ci-hosted-mobile-build.yml", "e2e", "ci-hosted-mobile-build-"),
         ("ci-hosted-mobile-core.yml", "core", "ci-hosted-mobile-core-"),
         ("ci-hosted-cli-core.yml", "core", "ci-hosted-cli-core-"),
     ] {
@@ -90,7 +90,7 @@ fn every_input_and_secret_a_caller_passes_is_declared_by_the_pipeline() {
     let declared_inputs = keys_under(&workflow("pipeline.yml"), "    inputs:");
     let declared_secrets = keys_under(&workflow("pipeline.yml"), "    secrets:");
 
-    for caller in ["ci-hosted-backend-core.yml", "ci-hosted-cli-publish.yml", "ci-hosted-backend-deploy.yml", "ci-hosted-mobile-publish.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "cold-ci.yml"] {
+    for caller in ["ci-hosted-backend-core.yml", "ci-hosted-cli-build.yml", "ci-hosted-backend-build.yml", "ci-hosted-mobile-build.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "cold-ci.yml"] {
         // When what each passes is compared with what the pipeline declares
         let run = job_block(&workflow(caller), "run").to_string();
         let inputs = keys_under(&run, "    with:");
@@ -110,9 +110,9 @@ fn the_six_callers_pin_their_file_name_workflow_name_label_and_group_together() 
         ("ci-hosted-backend-core.yml", "backend_core+lint+pre-release-testing", "core"),
         ("ci-hosted-mobile-core.yml", "mobile_core+lint+pre-release-testing", "core"),
         ("ci-hosted-cli-core.yml", "cli_core+lint+pre-release-testing", "core"),
-        ("ci-hosted-backend-deploy.yml", "backend_build+deploy+release-testing", "deploy"),
-        ("ci-hosted-mobile-publish.yml", "mobile_build+publish+release-testing", "e2e"),
-        ("ci-hosted-cli-publish.yml", "cli_build+publish+release-testing", "cli"),
+        ("ci-hosted-backend-build.yml", "backend_build+deploy+release-testing", "deploy"),
+        ("ci-hosted-mobile-build.yml", "mobile_build+publish+release-testing", "e2e"),
+        ("ci-hosted-cli-build.yml", "cli_build+publish+release-testing", "cli"),
     ] {
         // Given a caller file
         let text = workflow(file);
@@ -120,15 +120,17 @@ fn the_six_callers_pin_their_file_name_workflow_name_label_and_group_together() 
 
         // When its workflow name, label, stage and concurrency group are read
         let stem = file.strip_suffix(".yml").unwrap_or(file);
+        let area_kind = name.split('+').next().unwrap_or(name).replace('_', "-");
 
-        // Then the name and the label are the agreed name, and the group is its file stem plus the commit
+        // Then the file stem is the prefix of the name, the name and the label are the agreed name, and the group is its file stem plus the commit
+        assert_eq!(stem, format!("ci-hosted-{area_kind}"), "{file} stem matches the prefix of name {name}");
         assert!(text.starts_with(&format!("name: {name}\n")), "{file} is named {name}");
         assert!(run.contains(&format!("      label: {name}\n")), "{file} is labelled {name}");
         assert!(run.contains(&format!("      stages: {stage}\n")), "{file} runs the {stage} stage");
         assert!(text.contains(&format!("  group: {stem}-${{{{ github.sha }}}}\n")), "{file} has the group {stem}-<sha>");
         assert!(text.contains("  cancel-in-progress: false\n"), "{file} never cancels a running run");
     }
-    for old in ["ci-hosted.yml", "ci-hosted-core-mobile.yml", "ci-hosted-core-cli.yml", "ci-hosted-service-deploy.yml", "ci-hosted-mobile-e2e.yml"] {
+    for old in ["ci-hosted.yml", "ci-hosted-core-mobile.yml", "ci-hosted-core-cli.yml", "ci-hosted-service-deploy.yml", "ci-hosted-mobile-e2e.yml", "ci-hosted-backend-deploy.yml", "ci-hosted-cli-publish.yml", "ci-hosted-mobile-publish.yml"] {
         assert!(!repo_root().join(".github/workflows").join(old).exists(), "{old} is renamed");
     }
 }

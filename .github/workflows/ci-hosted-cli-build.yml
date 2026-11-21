@@ -1,7 +1,7 @@
-name: backend_build+deploy+release-testing
+name: cli_build+publish+release-testing
 
-# backend_build+deploy+release-testing: pipeline.yml with `stages: deploy`, a run of its own on every push: the image builds, the integration tests (which run what the images hold) and the deploy legs
-# and their verification. Integration shards queue per crate set and input fingerprint (docs/solutions/ci/shard-weights-and-overlapping-runs.md). Its pull request comment is its own.
+# cli_build+publish+release-testing: pipeline.yml with `stages: cli`, a run of its own on every push: the cli e2e tests and, once they pass, the wf build released as `wf-latest` and installed through
+# vm-ops-api. Its pull request comment is its own.
 on:
   push:
     branches: [dev]
@@ -9,7 +9,7 @@ on:
 # One run per commit: a push never waits for an older run (a red shard of the older one is fixed and re-run at once), and a still-pending shard may be replaced by a newer run of
 # the same inputs (that run then ends cancelled or superseded); every other run is measured to its end. What must not overlap is serialised per job (deploy per app) and what ships first checks that its commit is still the head of dev.
 concurrency:
-  group: ci-hosted-backend-deploy-${{ github.sha }}
+  group: ci-hosted-cli-build-${{ github.sha }}
   cancel-in-progress: false
 
 permissions:
@@ -48,13 +48,13 @@ jobs:
     with:
       runner: '"ubuntu-24.04"'
       deploy_runner: '"ubuntu-24.04-arm"'
-      shards: 4
+      shards: 3
       ship: true
       # no VM since 13 Nov (the Oracle account was terminated): the deploy legs need it, so they run only when the repository variable says on; the e2e suites need nothing deployed
       deploy: ${{ vars.HOSTED_DEPLOY == 'on' }}
       e2e: false
-      stages: deploy
-      label: backend_build+deploy+release-testing
+      stages: cli
+      label: cli_build+publish+release-testing
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
       TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}

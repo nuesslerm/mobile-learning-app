@@ -1,6 +1,6 @@
 //! `wf ci proven --stage <s> --count <n> --plan <file>`: which shards of a stage already passed on the same inputs. A passing shard's job saves a GitHub Actions
 //! cache entry `proven-<stage>-<fingerprint>` (a job cannot push the state ref); the plan job asks the cache API for each shard's entry on the run's own ref and the
-//! workflow's matrix keeps only the shards without one. Anything unprovable or unreadable runs.
+//! workflow's matrix keeps only the shards without one. Anything unprovable or unreadable runs; a shard with no unit at all (its key is `none`) never gets a runner.
 use crate::ci_comment::{json_of, send, var};
 use crate::ci_timings::api_env;
 use serde_json::{json, Value};
@@ -43,6 +43,12 @@ fn proven(args: &[String]) -> Option<i32> {
     let mut rows: Vec<Value> = Vec::new();
     let (mut run, mut skip, mut keys) = (Vec::new(), Vec::new(), vec![String::new()]);
     for shard in 1..=count {
+        if plan["stages"][stage].as_array().is_some() && crate::test_plan::shard_in_plan(stage, &plan, shard, count).is_empty() {
+            keys.push(String::new());
+            skip.push(shard);
+            rows.push(json!({ "shard": shard, "key": null, "proven": true, "why": "the shard has no unit, so it needs no runner" }));
+            continue;
+        }
         let (key, why, is_proven) = match crate::test_plan::shard_proof_in_plan(stage, &plan, shard, count, &repo, &sha) {
             Err(why) => (None, why, false),
             Ok(fingerprint) => {

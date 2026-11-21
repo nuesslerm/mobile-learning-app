@@ -250,3 +250,57 @@ fn given_a_workspace_with_an_unreadable_path_dependency_when_the_plan_asks_then_
     assert!(out["shards"][0]["key"].is_null(), "{out}");
     assert_eq!(out["run"], json!([1]), "{out}");
 }
+
+#[test]
+fn given_a_shard_with_no_unit_when_the_plan_asks_then_it_gets_no_runner_even_on_a_fresh_run() {
+    // Given one crate dealt over two shards, so one shard holds nothing
+    let repo = Repo::new();
+    let sha = repo.commit();
+    let plan = plan_file(repo.dir.path(), &sha, vec![crate_unit("alpha")]);
+    let server = served(&[]);
+    let output = repo.dir.path().join("github-output");
+
+    // When the plan asks with --fresh
+    let out = ask(&server, &repo, &plan, "2", &["--fresh", "--github-output"], &[("GITHUB_OUTPUT", &output.display().to_string())]);
+
+    // Then only the shard with the crate runs, the empty one is skipped and says why, and it has no marker key
+    let run = out["run"].as_array().unwrap().clone();
+    let skipped = out["proven"].as_array().unwrap().clone();
+    assert_eq!((run.len(), skipped.len()), (1, 1), "{out}");
+    let empty = skipped[0].as_u64().unwrap() as usize - 1;
+    assert!(out["shards"][empty]["why"].as_str().unwrap().contains("no unit"), "{out}");
+    let written = std::fs::read_to_string(output).unwrap();
+    assert!(written.contains(&format!("integration_tests_run_shards={}\n", json!(run))), "{written}");
+    assert!(server.requests().is_empty(), "{:?}", server.requests());
+}
+
+#[test]
+fn given_every_shard_empty_when_the_plan_asks_then_no_shard_runs() {
+    // Given a stage with no unit over two shards
+    let repo = Repo::new();
+    let sha = repo.commit();
+    let plan = plan_file(repo.dir.path(), &sha, vec![]);
+    let server = served(&[]);
+
+    // When the plan asks
+    let out = ask(&server, &repo, &plan, "2", &[], &[]);
+
+    // Then the run list is empty
+    assert_eq!((out["proven"].clone(), out["run"].clone()), (json!([1, 2]), json!([])), "{out}");
+}
+
+#[test]
+fn given_a_plan_without_the_stage_when_the_plan_asks_then_no_shard_is_skipped_as_empty() {
+    // Given a valid plan that lacks the stage key
+    let repo = Repo::new();
+    let sha = repo.commit();
+    let path = repo.dir.path().join(format!("plan-{sha}.json"));
+    std::fs::write(&path, json!({"sha": sha, "stages": {}}).to_string()).unwrap();
+    let server = served(&[]);
+
+    // When the plan asks
+    let out = ask(&server, &repo, &path.display().to_string(), "2", &["--no-lookup"], &[]);
+
+    // Then no shard is reported proven as empty
+    assert_eq!(out["proven"].clone(), json!([]), "{out}");
+}

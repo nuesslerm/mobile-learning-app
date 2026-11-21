@@ -47,8 +47,12 @@ fn write(args: &[String]) -> Option<i32> {
         Err(error) => return fail("write", &error),
     };
     let message = parsed.val("message").map(str::to_string).unwrap_or_else(|| format!("state: {path}"));
-    match state::write(&[(path.as_str(), body.as_slice())], &message) {
-        Ok(commit) => println!("{}", json!({ "ok": true, "path": path, "commit": commit, "ref": state::REF })),
+    match state::write_timed(None, &[(path.as_str(), body.as_slice())], &message) {
+        Ok((commit, t)) => {
+            let round = |s: f64| (s * 10.0).round() / 10.0;
+            let timing = json!({ "attempts": t.attempts, "fetchS": round(t.fetch_s), "commitS": round(t.commit_s), "pushS": round(t.push_s) });
+            println!("{}", json!({ "ok": true, "path": path, "commit": commit, "ref": state::REF, "timing": timing }));
+        }
         Err(error) => return fail("write", &error),
     }
     Some(0)

@@ -870,7 +870,7 @@ fn the_audit_judges_the_hosted_workflow_too_and_calls_a_scheduled_or_dispatched_
     assert!(out["notes"].to_string().contains("GitHub-hosted"), "{out}");
 }
 
-const HOSTED_FILES: [&str; 6] = ["ci-hosted-backend-core.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "ci-hosted-cli-publish.yml", "ci-hosted-backend-deploy.yml", "ci-hosted-mobile-publish.yml"];
+const HOSTED_FILES: [&str; 6] = ["ci-hosted-backend-core.yml", "ci-hosted-mobile-core.yml", "ci-hosted-cli-core.yml", "ci-hosted-cli-build.yml", "ci-hosted-backend-build.yml", "ci-hosted-mobile-build.yml"];
 
 #[test]
 fn the_audit_judges_the_runs_of_all_six_hosted_workflows_and_a_missing_one_is_a_note_not_a_failure() {
@@ -885,7 +885,7 @@ fn the_audit_judges_the_runs_of_all_six_hosted_workflows_and_a_missing_one_is_a_
         table.push((format!("GET /repos/o/r/actions/runs/{id}/jobs?per_page=100&page=1"), MockReply::json(200, json!({ "total_count": 1, "jobs": [timed_job(600 + id, "flow-tests", "success", 600)] }))));
         table.push((format!("GET /repos/o/r/actions/jobs/{}/logs", 600 + id), MockReply::text(200, "ok\n")));
     }
-    table.push(("GET /repos/o/r/actions/workflows/ci-hosted-mobile-publish.yml/runs?branch=dev&status=completed&per_page=50".into(), MockReply::json(404, json!({ "message": "Not Found" }))));
+    table.push(("GET /repos/o/r/actions/workflows/ci-hosted-mobile-build.yml/runs?branch=dev&status=completed&per_page=50".into(), MockReply::json(404, json!({ "message": "Not Found" }))));
     github.server.routes(&table.iter().map(|(k, v)| (k.as_str(), v.clone())).collect::<Vec<_>>());
 
     // When the audit lists the window
@@ -896,7 +896,7 @@ fn the_audit_judges_the_runs_of_all_six_hosted_workflows_and_a_missing_one_is_a_
     let runs: Vec<&str> = out["runs"].as_array().unwrap().iter().map(|r| r["run"].as_str().unwrap()).collect();
     assert_eq!((r.exit_code, runs), (0, vec!["100", "101", "102", "103", "104"]), "{}{}", r.stdout, r.stderr);
     let notes = out["notes"].to_string();
-    assert!(notes.contains("ci-hosted-mobile-publish.yml") && !notes.contains("ci-hosted-cli-core.yml could not"), "{notes}");
+    assert!(notes.contains("ci-hosted-mobile-build.yml") && !notes.contains("ci-hosted-cli-core.yml could not"), "{notes}");
 }
 
 fn group_job(run: &str, job: &str, key: &str, started: i64, secs: i64, conclusion: &str) -> Value {
@@ -1645,9 +1645,9 @@ const WORKFLOW_LABELS: [(&str, &str); 6] = [
     ("ci-hosted-backend-core.yml", "backend_core+lint+pre-release-testing"),
     ("ci-hosted-mobile-core.yml", "mobile_core+lint+pre-release-testing"),
     ("ci-hosted-cli-core.yml", "cli_core+lint+pre-release-testing"),
-    ("ci-hosted-cli-publish.yml", "cli_build+publish+release-testing"),
-    ("ci-hosted-backend-deploy.yml", "backend_build+deploy+release-testing"),
-    ("ci-hosted-mobile-publish.yml", "mobile_build+publish+release-testing"),
+    ("ci-hosted-cli-build.yml", "cli_build+publish+release-testing"),
+    ("ci-hosted-backend-build.yml", "backend_build+deploy+release-testing"),
+    ("ci-hosted-mobile-build.yml", "mobile_build+publish+release-testing"),
 ];
 
 /// A workspace whose `.github/workflows` hold the labels of the current workflows.
@@ -2178,4 +2178,106 @@ fn a_job_that_still_runs_with_a_red_step_is_a_failing_now_row_at_the_top_of_the_
     assert!(body.contains("### 🟠 flow-tests (2/6) failing now") && body.contains("step **Flow tests** is red, the job still runs"), "{body}");
     assert!(!body.contains("integration-tests (1/4) failing now"), "{body}");
     assert!(body.find("failing now") < body.find("### Jobs"), "{body}");
+}
+
+const DB_KEY: &str = "0707070707070707070707070707070707070707070707070707070707070707";
+
+/// A sealed CI database holding the profile and one job of each run `(run, workflow, wall, queue, ts, conclusion)`, made the way the report job makes it: a job-local file merged in.
+fn sealed_history(dir: &std::path::Path, runs: &[(String, &str, f64, f64, i64, &str)]) -> String {
+    let local = dir.join("rows.sqlite");
+    let conn = rusqlite::Connection::open(&local).unwrap();
+    conn.execute_batch(
+        "CREATE TABLE CI_RUN_PROFILE (RUN_ID TEXT NOT NULL PRIMARY KEY, WORKFLOW TEXT, WALL_S REAL, RUNNER_S REAL, PEAK_JOBS INTEGER, AVG_JOBS REAL, QUEUE_S_TOTAL REAL,
+           QUEUE_S_MAX REAL, JOBS INTEGER, CRITICAL_PATH_JOB TEXT, CRITICAL_PATH_S REAL, PARALLEL_EFFICIENCY REAL);
+         CREATE TABLE CI_JOBS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, KIND TEXT NOT NULL, JOB TEXT NOT NULL, SECS INTEGER NOT NULL, QUEUED INTEGER NOT NULL,
+           CONCLUSION TEXT, PRIMARY KEY (RUN_ID, JOB));",
+    )
+    .unwrap();
+    for (run, workflow, wall, queue, ts, conclusion) in runs {
+        conn.execute("INSERT INTO CI_RUN_PROFILE VALUES (?1, ?2, ?3, ?3, 2, 1.0, ?4, ?4, 2, 'plan', ?3, 0.5)", rusqlite::params![run, workflow, wall, queue]).unwrap();
+        conn.execute("INSERT INTO CI_JOBS VALUES (?1, 'abc', ?2, 'push', 'plan', 5, 0, ?3)", rusqlite::params![run, ts, conclusion]).unwrap();
+    }
+    drop(conn);
+    let sealed = dir.join("ci.sealed").display().to_string();
+    let merged = run_wf(&["ci", "db", "merge", "--sealed-file", &sealed, &local.display().to_string()], &RunOpts::default().env("CI_DB_KEY", DB_KEY));
+    assert_eq!(merged.exit_code, 0, "{}{}", merged.stdout, merged.stderr);
+    sealed
+}
+
+/// Run 77 of `workflow`: a plan job of 100 s, then core-tests of 600 s whose longest step is 550 s, and no wait for a runner.
+fn trend_run(github: &Github, workflow: &str) {
+    let at = |s: i64| iso(BASE + s);
+    let mut plan = job(500, "plan", "success", &at(100), json!([]));
+    (plan["created_at"], plan["started_at"]) = (json!(at(0)), json!(at(0)));
+    let steps = json!([
+        { "name": "Set up job", "conclusion": "success", "started_at": at(100), "completed_at": at(140) },
+        { "name": "Flow, typecheck, lint and unit tests", "conclusion": "success", "started_at": at(100), "completed_at": at(650) },
+    ]);
+    let mut tests = job(501, "core-tests (1/3)", "success", &at(700), steps);
+    (tests["created_at"], tests["started_at"]) = (json!(at(100)), json!(at(100)));
+    github.extra.borrow_mut().push(("GET /repos/o/r/actions/runs/77".to_string(), MockReply::json(200, json!({ "id": 77, "name": workflow, "run_started_at": at(0), "created_at": at(0) }))));
+    github.serve(&json!([plan, tests]), json!([]), created(), updated());
+}
+
+fn trend_body(github: &Github, sealed: &str, key: &str) -> String {
+    let r = github.comment_wf_with(&["--dry-run"], &[("WF_CI_SEALED_FILE", sealed), ("CI_DB_KEY", key), ("WF_VM_STATS_URL", "http://127.0.0.1:9"), ("WF_TAILNET_SOCKS", "")]);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    last_json(&r)["body"].as_str().unwrap_or_default().to_string()
+}
+
+#[test]
+fn the_comment_charts_the_last_twenty_successful_runs_of_a_workflow_and_sets_this_run_against_their_median() {
+    // Given a sealed database with 22 successful backend_core runs (the two oldest very slow), a failed and a cancelled one, and a few of mobile_core and cli_core
+    let dir = tempfile::tempdir().unwrap();
+    let walls: Vec<f64> = (1..=22).map(|i| if i <= 2 { 3000.0 } else { 300.0 + 10.0 * (i - 2) as f64 }).collect();
+    let mut runs: Vec<(String, &str, f64, f64, i64, &str)> = walls.iter().enumerate().map(|(i, w)| (format!("{}", 1000 + i), "backend_core+publish", *w, 10.0, 100 + i as i64, "success")).collect();
+    runs.push(("2000".into(), "backend_core+publish", 9999.0, 10.0, 200, "failure"));
+    runs.push(("2001".into(), "backend_core+publish", 8888.0, 10.0, 201, "cancelled"));
+    runs.extend((0..3).map(|i| (format!("{}", 3000 + i), "mobile_core+publish", 600.0, 10.0, 300 + i, "success")));
+    runs.push(("4000".into(), "cli_core+publish", 700.0, 10.0, 400, "success"));
+    runs.extend((0..2).map(|i| (format!("{}", 5000 + i), "cli_build+publish", 500.0, 10.0, 500 + i, "success")));
+    let sealed = sealed_history(dir.path(), &runs);
+    let github = Github::start();
+    trend_run(&github, "backend_core+publish");
+
+    // When the comment is previewed
+    let body = trend_body(&github, &sealed, DB_KEY);
+
+    // Then the section has a line chart of the newest twenty walls in minutes, without the failed, the cancelled and the two oldest runs
+    let expected: Vec<String> = walls[2..].iter().map(|w| format!("{:.1}", w / 60.0)).collect();
+    assert!(body.contains("### Trend") && body.contains("```mermaid\nxychart-beta"), "{body}");
+    assert!(body.contains(&format!("line [{}]", expected.join(", "))), "{body}");
+    assert!(!body.contains("166.") && !body.contains("148.") && !body.contains("50.0"), "{body}");
+    // And a workflow with one or two runs has no chart, one with three has, and there are fewer than six charts
+    assert_eq!(body.matches("xychart-beta\n    title \"backend_core wall time\"").count(), 1, "{body}");
+    assert_eq!(body.matches("title \"mobile_core wall time\"").count(), 1, "{body}");
+    assert_eq!(body.matches("title \"cli_core wall time\"").count(), 0, "{body}");
+    assert_eq!(body.matches("title \"cli_build wall time\"").count(), 0, "{body}");
+    assert!(body.matches("xychart-beta").count() < 6 && body.len() < 60_000);
+    // And this run (11m 40s wall and critical path, no wait) stands against the median of those twenty (6m 45s wall, 10 s wait) with arrows
+    assert!(body.contains("| backend_core | 11m 40s ↑ (median 6m 45s) | 11m 40s ↑ (median 6m 45s) | 0s ↓ (median 10s) |"), "{body}");
+    // And the longest line names the critical-path job and its slowest step
+    assert!(body.contains("**Longest:** critical path job `core-tests (1/3)` 10m 00s, its slowest step `Flow, typecheck, lint and unit tests` 9m 10s."), "{body}");
+}
+
+#[test]
+fn a_database_that_does_not_open_leaves_the_trend_out_and_the_rest_of_the_comment_as_it_was() {
+    // Given a sealed database with history, and a key that does not open it
+    let dir = tempfile::tempdir().unwrap();
+    let runs: Vec<(String, &str, f64, f64, i64, &str)> = (0..5).map(|i| (format!("{}", 1000 + i), "backend_core+publish", 400.0, 10.0, 100 + i, "success")).collect();
+    let sealed = sealed_history(dir.path(), &runs);
+    let github = Github::start();
+    trend_run(&github, "backend_core+publish");
+
+    // When the comment is previewed with the wrong key, and then for a run of a workflow that is not a hosted one
+    let unreadable = trend_body(&github, &sealed, &"08".repeat(32));
+    let not_hosted = {
+        let other = Github::start();
+        trend_run(&other, "CI core");
+        trend_body(&other, &sealed, DB_KEY)
+    };
+
+    // Then the section is missing, nothing else says why, and the body is the one a run outside the hosted workflows gets
+    assert!(!unreadable.contains("Trend") && unreadable.contains("### Jobs"), "{unreadable}");
+    assert_eq!(unreadable, not_hosted);
 }

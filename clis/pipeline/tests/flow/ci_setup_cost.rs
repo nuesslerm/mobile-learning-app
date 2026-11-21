@@ -339,3 +339,42 @@ fn every_bun_install_names_an_exact_version_so_no_run_lists_tags_through_the_git
     }
     assert!(steps >= 9, "the setup-bun steps were found: {steps}");
 }
+
+#[test]
+fn a_hung_core_tests_shard_is_ended_within_the_longest_honest_run_with_headroom() {
+    // Given the core-tests job, whose hung shards ran to 2700 s while an honest shard's test step took at most 707 s
+    let text = read(".github/workflows/pipeline.yml");
+    let start = text.find("\n  core-tests:\n").expect("the core-tests job");
+    let end = start + text[start..].find("\n  clis:\n").expect("the job after it");
+    let job = &text[start..end];
+
+    // When the job's and the test step's limits are read
+    let minutes = |from: usize| -> u32 {
+        let rest = &job[from..];
+        let at = rest.find("timeout-minutes: ").expect("a limit") + "timeout-minutes: ".len();
+        rest[at..].split_whitespace().next().unwrap().parse().unwrap()
+    };
+    let job_limit = minutes(0);
+    let step_limit = minutes(job.find("name: Flow, typecheck, lint and unit tests").expect("the test step"));
+
+    // Then the step may run twice the longest honest step (707 s is 12 min) and the job ends well under the 40 minutes the hangs took
+    assert!((15..=20).contains(&step_limit), "step limit {step_limit} min");
+    assert!(step_limit < job_limit && job_limit <= 30, "job limit {job_limit} min");
+}
+
+#[test]
+fn both_eas_jobs_that_push_a_pointer_write_the_phases_of_the_push_into_the_job_summary() {
+    // Given the two jobs that push the EAS pointers to the state ref
+    let text = read(".github/workflows/pipeline.yml");
+
+    // When each push step is read
+    let steps: Vec<&str> = text.match_indices("name: Push the EAS pointer").map(|(at, _)| &text[at..at + 1100]).collect();
+
+    // Then each keeps the verb's output in the log, fails on a failed push, and appends its attempts, fetch, commit and push seconds to the summary
+    assert_eq!(steps.len(), 2);
+    for step in steps {
+        assert!(step.contains("wf bucket state write") && step.contains("|| { printf '%s\\n' \"$out\"; exit 1; }"), "{step}");
+        assert!(step.contains(".timing.fetchS") && step.contains(".timing.pushS") && step.contains(".timing.attempts"), "{step}");
+        assert!(step.contains(">> \"$GITHUB_STEP_SUMMARY\""), "{step}");
+    }
+}

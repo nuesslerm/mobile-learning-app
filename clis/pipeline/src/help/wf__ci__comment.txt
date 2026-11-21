@@ -25,6 +25,10 @@ steps per job, slowest tests, test suites, Nx runs (critical path, recoverable
 time), deploy phases, the cache hits, misses, puts and latencies per job and the
 flow tests' crates (replayed or ran).
 
+For a hosted workflow a Trend section follows the job chart: this run's wall, critical path and queue against the median of the last 20 successful runs of the
+same workflow in the sealed CI database (CI_DB_KEY; WF_CI_SEALED_FILE names a sealed file instead), the longest job of the critical path with its slowest step,
+and line charts of the wall time of those runs. It is left out when the database cannot be read.
+
 The report goes in the job summary ($GITHUB_STEP_SUMMARY) and as THE CI comment
 of the pull request of the branch: the only one, last on the page, which is this
 run's own (`wf ci live` keeps it up to date while the run executes, with the

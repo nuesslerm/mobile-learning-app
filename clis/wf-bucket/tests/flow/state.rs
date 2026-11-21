@@ -151,3 +151,20 @@ fn given_a_remote_that_never_answers_when_a_file_is_read_then_the_read_fails_wit
     assert!(started.elapsed() < std::time::Duration::from_secs(30), "took {:?}", started.elapsed());
     drop(held);
 }
+
+#[test]
+fn given_a_write_when_it_lands_then_the_output_times_each_phase_so_a_slow_push_names_its_cause() {
+    // Given an empty remote and a job with a pointer to write
+    let remote = Remote::new();
+    let job = remote.job("writer");
+
+    // When the pointer is written
+    let (code, out) = state(&job, &["write", "eas/latest-dev.json", "--message", "pointer"], Some("{\"group\":\"g1\"}"));
+
+    // Then the line carries the attempts and a non-negative second count for the fetch, the commit and the push
+    assert_eq!(code, 0, "{out}");
+    assert_eq!(out["timing"]["attempts"], 1, "{out}");
+    for phase in ["fetchS", "commitS", "pushS"] {
+        assert!(out["timing"][phase].as_f64().is_some_and(|s| s >= 0.0), "{phase}: {out}");
+    }
+}

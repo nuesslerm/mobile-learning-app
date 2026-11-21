@@ -495,14 +495,19 @@ fn seconds(span: i64) -> String {
     }
 }
 
-fn slowest_step(job: &Value) -> Option<String> {
+/// The longest step of a job that is the job's own work (not its setup or post steps) and its seconds.
+pub(crate) fn slowest_of(job: &Value) -> Option<(String, i64)> {
     let steps = job["steps"].as_array()?;
     let span = |s: &Value| Some(epoch(&s["completed_at"])? - epoch(&s["started_at"])?);
     let (step, span) = steps.iter().filter(|s| !text(s, "name").starts_with("Post ") && !text(s, "name").starts_with("Set up")).filter_map(|s| Some((s, span(s)?))).max_by_key(|(_, span)| *span)?;
-    (span >= 30).then(|| format!("slowest step: {} {}", text(step, "name"), seconds(span)))
+    Some((text(step, "name"), span))
 }
 
-fn span_secs(job: &Value) -> Option<i64> {
+fn slowest_step(job: &Value) -> Option<String> {
+    slowest_of(job).filter(|(_, span)| *span >= 30).map(|(name, span)| format!("slowest step: {name} {}", seconds(span)))
+}
+
+pub(crate) fn span_secs(job: &Value) -> Option<i64> {
     match (epoch(&job["started_at"]), epoch(&job["completed_at"])) {
         (Some(from), Some(to)) if to >= from => Some(to - from),
         _ => None,
@@ -831,13 +836,22 @@ fn job_chart(shown: &[(&Value, Stats)]) -> String {
 /// about six labels are printed (every one on a phone overlaps its neighbours) and the others get an invisible, distinct name (equal names
 /// would be one category).
 fn bar_chart(title: &str, unit: &str, labels: &[String], values: &[f64], floor_max: f64, thin: bool) -> String {
+    xy_chart("bar", title, unit, labels, values, floor_max, thin)
+}
+
+/// The same axes drawn as a line, for a series in time order.
+pub(crate) fn line_chart(title: &str, unit: &str, labels: &[String], values: &[f64]) -> String {
+    xy_chart("line", title, unit, labels, values, 1.0, true)
+}
+
+fn xy_chart(kind: &str, title: &str, unit: &str, labels: &[String], values: &[f64], floor_max: f64, thin: bool) -> String {
     let peak = values.iter().copied().fold(0.0_f64, f64::max);
     let step = if peak > 100.0 { 50.0 } else if peak > 20.0 { 10.0 } else { 5.0 };
     let top = ((peak / step).ceil() * step).max(floor_max);
     let every = if thin { labels.len().div_ceil(6).max(1) } else { 1 };
     let names = labels.iter().enumerate().map(|(i, l)| if i % every == 0 { format!("\"{l}\"") } else { format!("\"{}\"", "\u{200b}".repeat(i + 1)) }).collect::<Vec<_>>().join(", ");
     let points = values.iter().map(|v| format!("{v:.1}")).collect::<Vec<_>>().join(", ");
-    mermaid(&format!("xychart-beta\n    title \"{title}\"\n    x-axis [{names}]\n    y-axis \"{unit}\" 0 --> {top:.0}\n    bar [{points}]\n"))
+    mermaid(&format!("xychart-beta\n    title \"{title}\"\n    x-axis [{names}]\n    y-axis \"{unit}\" 0 --> {top:.0}\n    {kind} [{points}]\n"))
 }
 
 /// The VM's history as charts: I/O wait during the run and over the last day (the signal that says a stall is coming), with CPU and
@@ -956,7 +970,9 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
     glance.extend((layers.1 > 0).then(|| format!("🐳 docker layers {} of {} cached", layers.0, layers.1)));
     out.push_str(&format!("{}\n\n", glance.join(" · ")));
     let finished_jobs: Vec<&Value> = shown.iter().map(|(j, _)| *j).collect();
-    let telemetry = crate::ci_telemetry::section(&crate::ci_telemetry::gather(env, &finished_jobs, !running && !shown.is_empty()), &failed_names(failures));
+    let gathered = crate::ci_telemetry::gather(env, &finished_jobs, !running && !shown.is_empty());
+    let trend = crate::ci_trend::section(env, gathered.profile.as_ref(), &finished_jobs);
+    let telemetry = crate::ci_telemetry::section(&gathered, &failed_names(failures));
     if !telemetry.headline.is_empty() {
         out.push_str(&format!("{}\n\n", telemetry.headline));
     }
@@ -986,6 +1002,7 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
     }
     out.push_str(&telemetry.tables);
     out.push_str(&job_chart(&shown));
+    out.push_str(&trend);
     if env.label.is_some() {
         out.push_str(&runner_section(env));
     } else if let (Some(from), Some(to)) = (started, ended.or(started)) {
