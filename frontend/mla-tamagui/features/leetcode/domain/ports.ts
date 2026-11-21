@@ -1,6 +1,6 @@
 // Pure ports + the moved type definitions they reference. No imports outside
 // `contracts/` and `@lib/*-contracts`; type definitions were moved here from
-// their runtime modules (data/, hooks/, code-editor/) so this layer stays
+// their runtime modules (data/, state/, ui/) so this layer stays
 // dependency-free.
 
 import type { EditorClient } from '@lib/code-editor-api';

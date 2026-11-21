@@ -1,8 +1,8 @@
 import type { Language } from '@lib/code-editor-api';
 import React from 'react';
 
-import type { EditorInputHandle } from '../core/EditorInput';
-import type { Selection } from '../../domain/editor/types';
+import type { EditorInputHandle } from '../EditorInput';
+import type { Selection } from '../../../domain/editor/types';
 
 import { ActionToolbar } from './ActionToolbar';
 import { SyntaxToolbar } from './SyntaxToolbar';

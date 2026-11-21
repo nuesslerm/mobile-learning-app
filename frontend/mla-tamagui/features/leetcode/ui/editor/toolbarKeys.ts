@@ -10,7 +10,7 @@
  * WebView bundle.
  */
 
-import type { BuiltinKeyId } from '../../domain';
+import type { BuiltinKeyId } from '../../domain/index';
 import { Logger } from '@lib/logging';
 import type { LucideIcon } from 'lucide-react-native';
 import {

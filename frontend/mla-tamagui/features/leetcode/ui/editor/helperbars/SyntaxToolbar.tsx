@@ -1,4 +1,4 @@
-import { toolbarItemKey } from '../../domain';
+import { toolbarItemKey } from '../../../domain/index';
 import type { Language } from '@lib/code-editor-api';
 import { Logger } from '@lib/logging';
 import {
@@ -8,10 +8,10 @@ import {
 import { Settings2 } from '@lib/tamagui-design-system/icons';
 import React, { useMemo } from 'react';
 
-import { useToolbarConfigStore } from '../../state/toolbarConfigStore';
-import type { EditorInputHandle } from '../core/EditorInput';
-import { BUILTIN_KEYS, type KeyActionContext } from '../core/toolbarKeys';
-import type { Selection } from '../../domain/editor/types';
+import { useToolbarConfigStore } from '../../../state/toolbarConfigStore';
+import type { EditorInputHandle } from '../EditorInput';
+import { BUILTIN_KEYS, type KeyActionContext } from '../toolbarKeys';
+import type { Selection } from '../../../domain/editor/types';
 
 const ACTION_KEY_IDS = new Set(['Undo', 'Redo']);
 

@@ -27,7 +27,7 @@ import {
 import { useSharedValue } from 'react-native-reanimated';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
-import { BUILTIN_KEYS } from '../code-editor/core/toolbarKeys';
+import { BUILTIN_KEYS } from './editor/toolbarKeys';
 import { useToolbarConfigStore } from '../state/toolbarConfigStore';
 
 import { ReorderableList } from './ReorderableList';

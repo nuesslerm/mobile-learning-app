@@ -51,13 +51,13 @@ import { useLeetCodePorts } from '../state/ports';
 import {
   EditorInput,
   type EditorInputHandle,
-} from '../code-editor/core/EditorInput';
+} from './editor/EditorInput';
 import { applyVoiceEdit } from '../domain/editor/applyVoiceEdit';
 import { toEditorLanguage } from '../domain/editor/languageProfile';
 import { completionEntriesFor } from '../domain/completionEntries';
 import { useAutocompleteSettingStore } from '../state/autocompleteSettingStore';
 import { type Selection } from '../domain/editor/types';
-import { EditorHelperRails } from '../code-editor/helperbars/EditorHelperRails';
+import { EditorHelperRails } from './editor/helperbars/EditorHelperRails';
 import { ProblemCatalog } from '../domain/problemCatalog';
 import { runParamsFor } from '../domain/runParams';
 import { compactVoiceError } from '../domain/voiceEditIdentity';

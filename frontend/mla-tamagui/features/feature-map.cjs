@@ -3,7 +3,7 @@
 // BEGIN generated:feature-map
 const FEATURES = {
   dashboards: { type: 'hexagonal-feature' },
-  leetcode: { type: 'hexagonal-feature', widgets: ['code-editor'], subFeatures: ['plan'] },
+  leetcode: { type: 'hexagonal-feature', subFeatures: ['plan'] },
   'tamil-writing': { type: 'hexagonal-feature' },
 };
 const PACKAGES = ['coding-agent', 'service-report', 'settings'];
