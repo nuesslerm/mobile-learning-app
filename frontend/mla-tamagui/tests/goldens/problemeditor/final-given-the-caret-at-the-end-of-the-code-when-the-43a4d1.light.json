@@ -34,6 +34,8 @@
       "ProblemEditorTextEditStartButton",
       "ProblemEditorVoiceStartButton",
       "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
       "ProblemEditorTestInput",
       "ProblemPlanTab",
       "ProblemPlanSteps",
@@ -66,10 +68,10 @@
       "EditorAction-Paste",
       "EditorAction-Done"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nDone"
+    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nDone"
   },
   "timings": {
-    "render_ms": 326
+    "render_ms": 421
   },
   "name": "problemeditor/final-given-the-caret-at-the-end-of-the-code-when-the-43a4d1.light",
   "image": {

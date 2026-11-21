@@ -23,6 +23,7 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
       "ProblemEditorActions",
@@ -33,6 +34,8 @@
       "ProblemEditorTextEditStartButton",
       "ProblemEditorVoiceStartButton",
       "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
       "ProblemEditorTestInput",
       "ProblemPlanTab",
       "ProblemPlanSteps",
@@ -41,10 +44,10 @@
       "ProblemPlanTextInput",
       "ProblemPlanAddButton"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset"
+    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
   },
   "timings": {
-    "render_ms": 249
+    "render_ms": 389
   },
   "name": "problemeditor/final-given-the-problem-editor-with-code-on-screen-wh-b99bd1.light",
   "image": {

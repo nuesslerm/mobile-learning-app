@@ -23,6 +23,7 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
       "ProblemEditorActions",
@@ -36,6 +37,8 @@
       "ProblemEditorRunOutcomeStatus",
       "ProblemEditorRunOutcomeTotals",
       "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
       "ProblemEditorTestInput",
       "ProblemPlanTab",
       "ProblemPlanSteps",
@@ -44,10 +47,10 @@
       "ProblemPlanTextInput",
       "ProblemPlanAddButton"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nAccepted\n5 / 5 test cases passed"
+    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nAccepted\n5 / 5 test cases passed\nOne JSON value per line: nums, target\nRun input"
   },
   "timings": {
-    "render_ms": 240
+    "render_ms": 264
   },
   "name": "problemeditor/run-accepted.dark",
   "image": {

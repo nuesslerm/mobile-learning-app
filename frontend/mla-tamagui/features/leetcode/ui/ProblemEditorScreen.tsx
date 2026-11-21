@@ -59,6 +59,7 @@ import { useAutocompleteSettingStore } from '../state/autocompleteSettingStore';
 import { type Selection } from '../domain/editor/types';
 import { EditorHelperRails } from './editor/helperbars/EditorHelperRails';
 import { ProblemCatalog } from '../domain/problemCatalog';
+import { customInputMessage, parameterNames, parseCustomInput, writeCustomInput } from '../domain/run/customCase';
 import { runParamsFor } from '../domain/run/runParams';
 import { compactVoiceError } from '../domain/voiceEditIdentity';
 import { useVoiceEdit } from '../state/useVoiceEdit';
@@ -86,14 +87,6 @@ import { VoiceReviewSheet } from './VoiceReviewSheet';
 const EDITOR_MIN_HEIGHT = 280;
 const TEST_INPUT_MIN_HEIGHT = 200;
 
-function defaultTestInput(problem: ReturnType<typeof ProblemCatalog.getById>) {
-  const testCase = problem?.testCases?.[0];
-  if (!testCase) return '';
-  return Object.values(testCase.inputs)
-    .map((v) => JSON.stringify(v))
-    .join('\n');
-}
-
 function pickStarterCode(
   starterCode: Record<string, string> | undefined,
   lang: EditorLanguage
@@ -109,6 +102,10 @@ function runErrorKind(result: RunResponse): 'compile' | 'runtime' | 'none' {
   if (result.compile_error) return 'compile';
   return result.runtime_error ? 'runtime' : 'none';
 }
+
+const subscribeNever = () => () => undefined;
+// False while the web export's prerendered page hydrates (it has no problem yet), true from the next render on and always on a phone.
+const useHydrated = () => React.useSyncExternalStore(subscribeNever, () => true, () => false);
 
 export function ProblemEditorScreen({
   id,
@@ -145,9 +142,13 @@ export function ProblemEditorScreen({
     end: 0,
   });
 
-  const [testInput, setTestInput] = React.useState(() =>
-    problem ? defaultTestInput(problem) : ''
-  );
+  const [testInput, setTestInput] = React.useState(() => {
+    const first = problem?.testCases?.[0];
+    return first ? writeCustomInput(first) : '';
+  });
+  const [inputError, setInputError] = React.useState<string | null>(null);
+  const hydrated = useHydrated();
+  const argumentNames = React.useMemo(() => (problem && hydrated ? parameterNames(problem) : []), [problem, hydrated]);
   const inputRef = React.useRef<React.ElementRef<typeof TextInput>>(null);
   const editorRef = React.useRef<EditorInputHandle>(null);
   // The editor's focus lives in a WebView that React Native does not track, so Keyboard.dismiss() and the scroll view's
@@ -320,17 +321,18 @@ export function ProblemEditorScreen({
         }
         setCard(cardOf(result));
         outcomeSourceRef.current = params.code;
+        // a typed case has no verdict: the response's tally and status describe a comparison that did not happen
         Logger.info('editor_v2.run_local.result', {
           mode,
-          state: result.state,
-          totalCorrect: result.total_correct,
-          totalTestcases: result.total_testcases,
           problemId: problem?.id,
           lang: params.lang,
-          statusMsg: result.status_msg,
           errorKind: runErrorKind(result),
           ms: Date.now() - startedAt,
+          ...(mode === 'tests'
+            ? { state: result.state, totalCorrect: result.total_correct, totalTestcases: result.total_testcases, statusMsg: result.status_msg }
+            : {}),
         });
+        if (mode === 'custom') return;
         // A run that reaches the backend and fails its tests is not an error --
         // it is the normal case while solving. Only the transport failing is.
         const passed = result.state === 'SUCCESS' && result.total_correct === result.total_testcases;
@@ -359,7 +361,7 @@ export function ProblemEditorScreen({
         setRunning(null);
       }
     },
-    [runner, problem?.id]
+    [runner, problem]
   );
 
   const handleRunLocally = React.useCallback(
@@ -367,6 +369,19 @@ export function ProblemEditorScreen({
       runLocal('tests', problem ? runParamsFor(problem, lang, editorText) : { lang, code: editorText, methodName: '', testCases: [] }),
     [runLocal, problem, lang, editorText]
   );
+
+  // Run input: the typed arguments as one case with no expected value, so the card shows what the code returned and no verdict.
+  const handleRunInput = React.useCallback(() => {
+    if (!problem) return;
+    const parsed = parseCustomInput(testInput, argumentNames);
+    if (!parsed.ok) {
+      Logger.info('editor_v2.run_local.invalid_input', { problemId: problem.id, kind: parsed.problem.kind });
+      setInputError(customInputMessage(parsed.problem));
+      return;
+    }
+    setInputError(null);
+    void runLocal('custom', runParamsFor(problem, lang, editorText, [parsed.testCase]), parsed.testCase.inputs);
+  }, [problem, testInput, argumentNames, runLocal, lang, editorText]);
 
   // Run: submit the current code + the custom testInput to the auth'd
   // LeetCode bridge and await the judge result. Mirrors V1's `runTest`
@@ -893,14 +908,43 @@ export function ProblemEditorScreen({
               minH={TEST_INPUT_MIN_HEIGHT}
               px="$3"
               py="$2"
+              gap="$2"
               testID="ProblemEditorTestInputZone"
             >
+              <XStack items="center" gap="$2.5">
+                <Text variant="muted" flex={1} testID="ProblemEditorTestInputHint">
+                  {!problem || !hydrated ? '' : argumentNames.length > 0 ? `One JSON value per line: ${argumentNames.join(', ')}` : 'No bundled cases for this problem'}
+                </Text>
+                <Button
+                  testID="ProblemEditorRunInputButton"
+                  variant="outline"
+                  size="$2"
+                  disabled={running !== null || argumentNames.length === 0}
+                  pressLog="off"
+                  onPress={() => {
+                    Logger.info('editor_v2.run_local.tap', {
+                      mode: 'custom',
+                      problemId: problem?.id,
+                    });
+                    dismissEditorKeyboard();
+                    handleRunInput();
+                  }}
+                >
+                  {running === 'custom' ? 'Running…' : 'Run input'}
+                </Button>
+              </XStack>
               <TextInput
                 ref={inputRef}
                 testID="ProblemEditorTestInput"
                 value={testInput}
-                onChangeText={setTestInput}
+                onChangeText={(text) => {
+                  setTestInput(text);
+                  setInputError(null);
+                }}
                 multiline
+                autoCorrect={false}
+                autoCapitalize="none"
+                spellCheck={false}
                 placeholder="Custom test input"
                 // A bare RN TextInput defaults to black text, which vanished on the dark theme.
                 placeholderTextColor={theme.color10?.val}
@@ -915,6 +959,11 @@ export function ProblemEditorScreen({
                   textAlignVertical: 'top',
                 }}
               />
+              {inputError ? (
+                <Text variant="small" color="$red10" role="alert" testID="ProblemEditorTestInputError">
+                  {inputError}
+                </Text>
+              ) : null}
             </YStack>
             </Pressable>
           </YStack>

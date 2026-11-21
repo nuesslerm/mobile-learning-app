@@ -23,6 +23,7 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
       "ProblemEditorDiffToggle",
@@ -36,6 +37,8 @@
       "ProblemEditorTextEditStartButton",
       "ProblemEditorVoiceStartButton",
       "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
       "ProblemEditorTestInput",
       "ProblemPlanTab",
       "ProblemPlanSteps",
@@ -44,10 +47,10 @@
       "ProblemPlanTextInput",
       "ProblemPlanAddButton"
     ],
-    "text": "Plan\nCode\nPython\nDiff\nFormat\nRun Local\nRun\nReset"
+    "text": "Plan\nCode\nPython\nDiff\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
   },
   "timings": {
-    "render_ms": 241
+    "render_ms": 265
   },
   "name": "voiceeditflow/final-given-the-starter-with-its-indented-empty-body-7688fd.light",
   "image": {
