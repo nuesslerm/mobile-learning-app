@@ -76,13 +76,14 @@ const ROOMS = {
 const THIRD = { python: 'c = 3', javascript: 'c = 3;', cpp: 'c = 3;' } as const;
 const RETURN = { python: 'return b', javascript: 'return b;', cpp: 'return b;' } as const;
 const IF_END = { python: 'c = 3', javascript: '  }', cpp: '  }' } as const;
+const SNIPPET = { python: 'if y:\n    z = 1', javascript: 'if (y) {\n  z = 1;\n}', cpp: 'if (y) {\n  z = 1;\n}' } as const;
 const WHILE = { python: 'while x', javascript: 'while (x)', cpp: 'while (x)' } as const;
 const EMPTY = {
   javascript: 'function f(x) {\n    if (x) {}\n    g();\n}\n',
   cpp: 'int f(int x) {\n    if (x) {}\n    g();\n}\n',
 } as const;
 
-describe('moveNode, duplicateNode, wrapNode and unwrapNode planned over the fake parsers and over the installed grammars', () => {
+describe('every node step planned over the fake parsers and over the installed grammars', () => {
   const steps = (language: Language, text: string): { readonly name: string; readonly steps: Step[] }[] => {
     const ifNode = between(text, IF[language][0], IF_END[language]);
     return [
@@ -99,6 +100,12 @@ describe('moveNode, duplicateNode, wrapNode and unwrapNode planned over the fake
       { name: 'the whole if wrapped in a loop', steps: [{ op: 'wrapNode', node: ifNode, header: WHILE[language] }] },
       { name: 'the if unwrapped', steps: [{ op: 'unwrapNode', node: ifNode }] },
       { name: 'a statement unwrapped', steps: [{ op: 'unwrapNode', node: lineOf(text, SECOND[language]) }] },
+      { name: 'a snippet inserted after the second statement', steps: [{ op: 'insertSnippet', at: { after: lineOf(text, SECOND[language]) }, text: SNIPPET[language] }] },
+      { name: 'a snippet inserted at the end of the if block', steps: [{ op: 'insertSnippet', at: { into: ifNode, at: 'end' }, text: SNIPPET[language] }] },
+      { name: 'the if re-indented where it already is', steps: [{ op: 'reindentBlock', node: ifNode }] },
+      { name: 'the last statement of the if outdented', steps: [{ op: 'reindentBlock', node: lineOf(text, THIRD[language]), by: -1 }] },
+      // the fake's Python parser sees no unexpected indent, so a Python statement indented past its block is only proved on the installed grammar (ops.reindent.test.ts)
+      ...(language === 'python' ? [] : [{ name: 'the first statement of the if indented', steps: [{ op: 'reindentBlock', node: lineOf(text, FIRST[language]), by: 1 } as const] }]),
       ...(language === 'python' ? [] : [{ name: 'a statement wrapped under a header that carries a statement', steps: [{ op: 'wrapNode', node: lineOf(text, SECOND[language]), header: 'if (x) foo();' } as const] }]),
     ];
   };

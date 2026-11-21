@@ -37,7 +37,7 @@ export const planMove: Planner<StepOf<'moveNode'>> = (step, context) => {
       ],
       landed: { edit: 1, from: composed.lines.from, to: composed.lines.to },
       expectation: { removed: [extent], writes: { parent: place.parent, shapes: statementShapes(language, run) } },
-      follow: { range: { from: extent.from, to: unterminated ? extent.to : extent.to - 1 }, offset: carryPos(lines, shifted, indentPrefix, place.prefix) },
+      follow: { range: { from: extent.from, to: unterminated ? extent.to : extent.to - 1 }, offset: carryPos(lines, shifted) },
     },
   };
 };

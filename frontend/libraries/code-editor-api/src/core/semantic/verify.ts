@@ -8,8 +8,8 @@ export type Shape = { readonly is: string; readonly children?: readonly Shape[] 
 export type Expectation = {
   /** ranges of the base document the step removes: the nodes wholly inside them are left out of the comparison */
   readonly removed?: readonly Range[];
-  /** where the nodes the step writes must sit: the root, or the block that starts at this position of the base document; and what they must look like, comments apart */
-  readonly writes?: { readonly parent: 'root' | Pos; readonly shapes?: readonly Shape[] };
+  /** where the nodes the step writes must sit: the root, the block that starts at this position of the base document, or anywhere ('any': a re-indent that may leave its block); and what they must look like, comments apart */
+  readonly writes?: { readonly parent: 'root' | 'any' | Pos; readonly shapes?: readonly Shape[] };
 };
 
 export type VerifyInput = {
@@ -100,12 +100,12 @@ export function verifyStructure({ language, base, result, changes, written, expe
     if (!range) continue;
     const writes = expectations[step]?.writes;
     if (!writes) return refuse(range, 'the edit writes text that no step vouched for');
-    const parentFrom = writes.parent === 'root' ? null : mapPos(writes.parent, changes, 1);
+    const parentFrom = writes.parent === 'root' || writes.parent === 'any' ? null : mapPos(writes.parent, changes, 1);
     const nodes = outermostIn(after, range);
     for (const { node, parent } of nodes) {
       const kind = classify(language, node);
       if (kind !== 'simple' && kind !== 'compound' && kind !== 'comment') return refuse(node, 'the written text is not made of statements: it joins a clause or a block of the code around it');
-      const home = parentFrom === null ? classify(language, parent) === 'root' : classify(language, parent) === 'block' && parent.from === parentFrom;
+      const home = writes.parent === 'any' || (parentFrom === null ? classify(language, parent) === 'root' : classify(language, parent) === 'block' && parent.from === parentFrom);
       if (!home) return refuse(node, 'the written text landed in another block than the one it was meant for');
     }
     const statements = nodes.filter(({ node }) => classify(language, node) !== 'comment');

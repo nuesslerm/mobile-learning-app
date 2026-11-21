@@ -390,6 +390,18 @@ describe('the CodeMirror host parsing another text', () => {
     unwrap(await core.request('apply', { steps: [{ op: 'unwrapNode', node: wrapped.landed[0] as { from: number; to: number } }] }));
     expect(view.state.doc.toString()).toBe(text);
   });
+
+  it('given a python block with a triple-quoted string pasted at a shallow indent, when it is re-indented and a snippet is inserted through the engine, then the string keeps its inner lines and the snippet takes the block indent', async () => {
+    const text = 'def f(x):\n  s = """\n inner\n      low"""\n  return s\n';
+    const { core, view } = mount(text, { brokenListener: false, indent: '    ' });
+
+    unwrap(await core.request('apply', { steps: [{ op: 'reindentBlock', node: { from: text.indexOf('s = """'), to: text.indexOf('return s') + 8 } }] }));
+    const fixed = 'def f(x):\n    s = """\n inner\n      low"""\n    return s\n';
+    expect(view.state.doc.toString()).toBe(fixed);
+    unwrap(await core.request('apply', { steps: [{ op: 'insertSnippet', at: { before: { from: fixed.indexOf('return s'), to: fixed.indexOf('return s') + 8 } }, text: 'if s:\n    s = ""' }] }));
+
+    expect(view.state.doc.toString()).toBe('def f(x):\n    s = """\n inner\n      low"""\n    if s:\n        s = ""\n    return s\n');
+  });
 });
 
 describe('the CodeMirror host holding marks', () => {

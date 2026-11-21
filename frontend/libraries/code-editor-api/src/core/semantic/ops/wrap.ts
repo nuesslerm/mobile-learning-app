@@ -23,7 +23,7 @@ export const planWrap: Planner<StepOf<'wrapNode'>> = (step, context) => {
   const braces = familyOf(language) === 'braces';
   const opener = `${indentPrefix}${header}${braces ? ' {' : ':'}`;
   const insert = [opener, ...shifted, ...(braces ? [`${indentPrefix}}`] : [])].join('\n') + (unterminated ? '' : '\n');
-  const carry = carryPos(lines, shifted, indentPrefix, inner);
+  const carry = carryPos(lines, shifted);
   return {
     ok: true,
     value: {

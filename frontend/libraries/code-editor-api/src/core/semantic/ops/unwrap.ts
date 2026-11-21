@@ -51,7 +51,7 @@ export const planUnwrap: Planner<StepOf<'unwrapNode'>> = (step, context) => {
       edits: [{ from: extent.from, to: extent.to, insert }],
       landed: { edit: 0, from: 0, to: insert.length },
       expectation: { removed: [extent], writes: { parent: parentKey(language, parent), shapes: statementShapes(language, block.children ?? []) } },
-      follow: { range: { from: body.from, to: unterminated && !braces ? body.to : body.to - 1 }, offset: carryPos(lines, shifted, blockPrefix, indentPrefix) },
+      follow: { range: { from: body.from, to: unterminated && !braces ? body.to : body.to - 1 }, offset: carryPos(lines, shifted) },
     },
   };
 };

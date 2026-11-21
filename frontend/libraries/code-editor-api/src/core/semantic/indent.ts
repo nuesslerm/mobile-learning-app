@@ -42,15 +42,19 @@ export function shiftPrefix(lines: readonly Line[], fromPrefix: string, toPrefix
   return lines.map(({ from, text }) => (frozen.has(from) || text.trim() === '' || !text.startsWith(fromPrefix) ? text : toPrefix + text.slice(fromPrefix.length)));
 }
 
-/** Where a position of `lines` stands in `shifted.join('\n')`, the same lines after `shiftPrefix` swapped `fromPrefix` for `toPrefix` in those that changed. */
-export function carryPos(lines: readonly Line[], shifted: readonly string[], fromPrefix: string, toPrefix: string): (pos: Pos) => number {
+const indentLength = (line: string): number => line.length - line.trimStart().length;
+
+/** Where a position of `lines` stands in `shifted.join('\n')`, the same lines with only their indentation changed: a position keeps its column from the first non-blank character on. */
+export function carryPos(lines: readonly Line[], shifted: readonly string[]): (pos: Pos) => number {
   return (pos) => {
     let before = 0;
     for (const [index, line] of lines.entries()) {
       const now = shifted[index] as string;
       if (pos <= line.from + line.text.length) {
         const col = pos - line.from;
-        return before + (now === line.text ? col : col >= fromPrefix.length ? col - fromPrefix.length + toPrefix.length : Math.min(col, toPrefix.length));
+        const was = indentLength(line.text);
+        const is = indentLength(now);
+        return before + (now === line.text ? col : col >= was ? col - was + is : Math.min(col, is));
       }
       before += now.length + 1;
     }

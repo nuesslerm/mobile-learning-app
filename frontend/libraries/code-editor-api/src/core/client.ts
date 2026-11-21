@@ -33,6 +33,10 @@ export type EditorClient = {
   wrapNode(node: Range | 'selection', header: string, options?: Options & { readonly expect?: string }): Promise<Reply<ApplyValue>>;
   /** replaces a compound statement that has one block with the whole lines of that block, one indent unit shallower; refused as `not-a-node` (`not-unwrappable`) for an `if` with an `else`, a `try` or a decorated function */
   unwrapNode(node: Range | 'selection', options?: Options & { readonly expect?: string }): Promise<Reply<ApplyValue>>;
+  /** inserts `text` as whole lines at a destination, dedented by its first line and then at the indent the destination's block has; the snippet is not parsed on its own, so one that would extend the statement before it (`else:`) is refused as `would-not-parse` */
+  insertSnippet(at: Destination, text: string, options?: Options): Promise<Reply<ApplyValue>>;
+  /** re-indents the whole lines of the run `node` names: by `by` indent units (negative: shallower), or with no count to the depth each line asks for, a block already at its depth being no change */
+  reindentBlock(node: Range | 'selection', by?: number, options?: Options): Promise<Reply<ApplyValue>>;
   /** removes the whole lines of the statement or run of statements `node` names (an empty 'selection' is the statement at the caret), with the comment lines above it; refused as `would-not-parse` when the code would break */
   deleteNode(node: Range | 'selection', options?: Options & { readonly expect?: string }): Promise<Reply<ApplyValue>>;
   select(anchor: Point, head?: Point, options?: Options): Promise<Reply<ApplyValue>>;
@@ -141,6 +145,8 @@ export function createEditorClient(engine: EditorEngine, options: ClientOptions 
     duplicateNode: (node, { expect, ...extra } = {}) => transact([{ op: 'duplicateNode', node, ...(expect === undefined ? {} : { expect }) }], extra),
     wrapNode: (node, header, { expect, ...extra } = {}) => transact([{ op: 'wrapNode', node, header, ...(expect === undefined ? {} : { expect }) }], extra),
     unwrapNode: (node, { expect, ...extra } = {}) => transact([{ op: 'unwrapNode', node, ...(expect === undefined ? {} : { expect }) }], extra),
+    insertSnippet: (at, text, extra) => transact([{ op: 'insertSnippet', at, text }], extra),
+    reindentBlock: (node, by, extra) => transact([{ op: 'reindentBlock', node, ...(by === undefined ? {} : { by }) }], extra),
     deleteNode: (node, { expect, ...extra } = {}) => transact([{ op: 'deleteNode', node, ...(expect === undefined ? {} : { expect }) }], extra),
     select: (anchor, head, extra) => transact([head === undefined ? { op: 'select', anchor } : { op: 'select', anchor, head }], extra),
     undo: () => call('history', { direction: 'undo' }),

@@ -185,6 +185,64 @@ const WRAPS: Readonly<Record<Language, WrapSnippet>> = {
   },
 };
 
+type EditSnippet = {
+  /** the branch in four-space indentation: the base of the cases below */
+  readonly even: string;
+  /** a snippet with a relative indent, and `even` with it after the second statement */
+  readonly snippet: string;
+  readonly snippetFirst: string;
+  readonly inserted: string;
+  /** a snippet that is a clause of the if before it */
+  readonly clause: string;
+  /** `even` with the if pasted with a two-space body (and, in braces, a closing brace at the wrong depth), and that if */
+  readonly pasted: string;
+  readonly pastedIf: string;
+  /** `even` with the second statement outdented one unit */
+  readonly outdented: string;
+  /** a function whose body of two statements is indented by two and has a statement over two lines, and the same at four */
+  readonly hang: string;
+  readonly hangFixed: string;
+};
+
+const EDITS: Readonly<Record<Language, EditSnippet>> = {
+  python: {
+    even: 'def f(x):\n    if x:\n        a = 1\n        b = 2\n    return b\n',
+    snippet: 'if y:\n    c = 3',
+    snippetFirst: 'if y:',
+    inserted: 'def f(x):\n    if x:\n        a = 1\n        b = 2\n        if y:\n            c = 3\n    return b\n',
+    clause: 'else:\n    c = 3',
+    pasted: 'def f(x):\n    if x:\n      a = 1\n      b = 2\n    return b\n',
+    pastedIf: 'if x:\n      a = 1\n      b = 2',
+    outdented: 'def f(x):\n    if x:\n        a = 1\n    b = 2\n    return b\n',
+    hang: 'def f(x):\n  total = g(1,\n          2)\n  return total\n',
+    hangFixed: 'def f(x):\n    total = g(1,\n            2)\n    return total\n',
+  },
+  javascript: {
+    even: 'function f(x) {\n    if (x) {\n        a = 1;\n        b = 2;\n    }\n    return b;\n}\n',
+    snippet: 'if (y) {\n  c = 3;\n}',
+    snippetFirst: 'if (y) {',
+    inserted: 'function f(x) {\n    if (x) {\n        a = 1;\n        b = 2;\n        if (y) {\n          c = 3;\n        }\n    }\n    return b;\n}\n',
+    clause: 'else {\n  c = 3;\n}',
+    pasted: 'function f(x) {\n    if (x) {\n      a = 1;\n      b = 2;\n  }\n    return b;\n}\n',
+    pastedIf: 'if (x) {\n      a = 1;\n      b = 2;\n  }',
+    outdented: 'function f(x) {\n    if (x) {\n        a = 1;\n    b = 2;\n    }\n    return b;\n}\n',
+    hang: 'function f(x) {\n  total = g(1,\n          2);\n  return total;\n}\n',
+    hangFixed: 'function f(x) {\n    total = g(1,\n            2);\n    return total;\n}\n',
+  },
+  cpp: {
+    even: 'int f(int x) {\n    if (x) {\n        a = 1;\n        b = 2;\n    }\n    return b;\n}\n',
+    snippet: 'if (y) {\n  c = 3;\n}',
+    snippetFirst: 'if (y) {',
+    inserted: 'int f(int x) {\n    if (x) {\n        a = 1;\n        b = 2;\n        if (y) {\n          c = 3;\n        }\n    }\n    return b;\n}\n',
+    clause: 'else {\n  c = 3;\n}',
+    pasted: 'int f(int x) {\n    if (x) {\n      a = 1;\n      b = 2;\n  }\n    return b;\n}\n',
+    pastedIf: 'if (x) {\n      a = 1;\n      b = 2;\n  }',
+    outdented: 'int f(int x) {\n    if (x) {\n        a = 1;\n    b = 2;\n    }\n    return b;\n}\n',
+    hang: 'int f(int x) {\n  total = g(1,\n          2);\n  return total;\n}\n',
+    hangFixed: 'int f(int x) {\n    total = g(1,\n            2);\n    return total;\n}\n',
+  },
+};
+
 const failed = (reply: Reply<unknown>): EditorError => {
   if (reply.ok) throw new Error('the call was expected to fail');
   return reply.error;
@@ -703,6 +761,129 @@ export function semanticContract(name: string, make: MakeSubject, language: Lang
 
           expect((await snapshot()).text).toBe(text);
         }
+      });
+    });
+    describe('insertSnippet', () => {
+      const edit = EDITS[language];
+      const after = (): Range => rangeOf(edit.even, snippet.second);
+
+      it('given a snippet with a relative indent, when it is inserted after a statement of a nested block, then every line takes the destination indent on top of its own, landed names the snippet lines, and one undo restores the text', async (ctx) => {
+        if (!(await announces('insertSnippet'))) return ctx.skip();
+        const base = await start(edit.even);
+        const seen = changes();
+
+        const reply = await client.insertSnippet({ after: after() }, edit.snippet);
+
+        const value = unwrap(reply);
+        const lines = wholeLines(edit.inserted, edit.snippetFirst);
+        expect(reply).toMatchObject({ revision: base + 1, base });
+        expect(await snapshot()).toMatchObject({ text: edit.inserted, revision: base + 1 });
+        expect(value.landed).toEqual([{ from: lines.from, to: lines.from + (edit.inserted.length - edit.even.length) }]);
+        expect(seen).toMatchObject([{ type: 'changed', from: base, to: base + 1, origin: 'api' }]);
+        unwrap(await client.undo());
+        expect(await snapshot()).toMatchObject({ text: edit.even });
+      });
+
+      it('given a clause as the snippet, when it is inserted after the if it would extend, then it is would-not-parse structure and nothing changes', async (ctx) => {
+        if (!(await announces('insertSnippet'))) return ctx.skip();
+        const base = await start(edit.even);
+
+        const error = failed(await client.insertSnippet({ after: rangeOf(edit.even, language === 'python' ? 'if x:\n        a = 1\n        b = 2' : 'if (x) {\n        a = 1;\n        b = 2;\n    }') }, edit.clause));
+
+        expect(error).toMatchObject({ code: 'would-not-parse', reason: 'structure' });
+        expect(await snapshot()).toMatchObject({ text: edit.even, revision: base });
+      });
+
+      it('given blank text, when it is inserted, then it is invalid and nothing changes', async (ctx) => {
+        if (!(await announces('insertSnippet'))) return ctx.skip();
+        const base = await start(edit.even);
+
+        expect(failed(await client.insertSnippet({ after: after() }, '  \n '))).toMatchObject({ code: 'invalid' });
+
+        expect(await snapshot()).toMatchObject({ text: edit.even, revision: base });
+      });
+
+      it('given a select step on the end edge of a snippet, when they are sent together, then the caret is at the end of the snippet', async (ctx) => {
+        if (!(await announces('insertSnippet'))) return ctx.skip();
+        await start(edit.even);
+
+        const reply = await client.transact([{ op: 'insertSnippet', at: { after: after() }, text: edit.snippet }, { op: 'select', anchor: { step: 0, edge: 'end' } }]);
+
+        const landed = unwrap(reply).landed[0] as Range;
+        expect(landed.to - landed.from).toBe(edit.inserted.length - edit.even.length);
+        expect((await snapshot()).selection.ranges[0]).toEqual({ anchor: landed.to, head: landed.to });
+      });
+
+      it('given a preview, when a snippet is inserted, then the would-be text comes back and nothing is applied', async (ctx) => {
+        if (!(await announces('insertSnippet'))) return ctx.skip();
+        const base = await start(edit.even);
+
+        const reply = await client.insertSnippet({ after: after() }, edit.snippet, { preview: true });
+
+        expect(unwrap(reply).preview).toMatchObject({ text: edit.inserted });
+        expect(await snapshot()).toMatchObject({ text: edit.even, revision: base });
+      });
+    });
+
+    describe('reindentBlock', () => {
+      const edit = EDITS[language];
+
+      it('given an if pasted with a shallower body, when it is re-indented with no count, then every line is at the depth it asks for, the brace takes the depth of its owner, the shape holds, and one undo restores the text', async (ctx) => {
+        if (!(await announces('reindentBlock'))) return ctx.skip();
+        const base = await start(edit.pasted);
+        const seen = changes();
+
+        const reply = await client.reindentBlock(rangeOf(edit.pasted, edit.pastedIf));
+
+        const value = unwrap(reply);
+        expect(reply).toMatchObject({ revision: base + 1, base });
+        expect(await snapshot()).toMatchObject({ text: edit.even, revision: base + 1 });
+        expect(value.landed).toEqual([{ from: edit.even.indexOf('    if'), to: edit.even.indexOf('    return') }]);
+        expect(seen).toMatchObject([{ type: 'changed', origin: 'api' }]);
+        unwrap(await client.undo());
+        expect(await snapshot()).toMatchObject({ text: edit.pasted });
+      });
+
+      it('given a block that is already at its depth, when it is re-indented with no count, then it is ok with no change, no revision and no event', async (ctx) => {
+        if (!(await announces('reindentBlock'))) return ctx.skip();
+        const base = await start(edit.even);
+        const seen = changes();
+
+        const reply = await client.reindentBlock(rangeOf(edit.even, snippet.second));
+
+        expect(unwrap(reply).changes).toEqual([]);
+        expect(reply).toMatchObject({ revision: base, base });
+        expect(await snapshot()).toMatchObject({ text: edit.even, revision: base });
+        expect(seen).toEqual([]);
+      });
+
+      it('given the second statement of an if, when it is outdented by one unit, then it moves left and the text parses: Python leaves the if body, braces keep it in the block', async (ctx) => {
+        if (!(await announces('reindentBlock'))) return ctx.skip();
+        const base = await start(edit.even);
+
+        unwrap(await client.reindentBlock(rangeOf(edit.even, snippet.second), -1));
+
+        expect(await snapshot()).toMatchObject({ text: edit.outdented, revision: base + 1 });
+      });
+
+      it('given a function body with a statement over two lines, when it is re-indented with no count, then the second line keeps its offset to the first', async (ctx) => {
+        if (!(await announces('reindentBlock')) || language === 'python') return ctx.skip();
+        await start(edit.hang);
+
+        unwrap(await client.reindentBlock({ from: edit.hang.indexOf('total'), to: edit.hang.lastIndexOf(';') + 1 }));
+
+        expect(await snapshot()).toMatchObject({ text: edit.hangFixed });
+      });
+
+      it('given the caret inside a statement, when its block is re-indented, then the caret is on the same character in the new place', async (ctx) => {
+        if (!(await announces('reindentBlock'))) return ctx.skip();
+        await start(edit.pasted);
+        unwrap(await client.select(edit.pasted.indexOf(snippet.second) + 2));
+
+        unwrap(await client.reindentBlock(rangeOf(edit.pasted, edit.pastedIf)));
+
+        const caret = edit.even.indexOf(snippet.second) + 2;
+        expect((await snapshot()).selection.ranges[0]).toEqual({ anchor: caret, head: caret });
       });
     });
   });
