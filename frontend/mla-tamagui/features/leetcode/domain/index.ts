@@ -8,4 +8,5 @@ export * from './ports';
 export * from './run/verdict';
 export * from './run/runParams';
 export * from './run/customCase';
+export * from './run/customOutcome';
 export * from './completionEntries';
