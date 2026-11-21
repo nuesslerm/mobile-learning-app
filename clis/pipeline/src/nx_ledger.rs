@@ -75,7 +75,8 @@ fn newest(home: &Path, since: SystemTime) -> Option<(SystemTime, std::path::Path
 }
 
 /// The tasks of the newest `run.json` under `home` written at or after `since`.
-pub fn read(home: &Path, since: SystemTime) -> Vec<TaskRun> {
+#[cfg(test)]
+fn read(home: &Path, since: SystemTime) -> Vec<TaskRun> {
     newest(home, since).and_then(|(_, path)| std::fs::read_to_string(path).ok()).map(|raw| parse(&raw)).unwrap_or_default()
 }
 
