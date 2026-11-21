@@ -9,6 +9,10 @@ import {
   type EditorClient,
   type EditorConfig,
   type EditorEngine,
+  type EnclosingBlock,
+  type SyntaxNode,
+  type TreeParams,
+  type TreeValue,
 } from '@lib/code-editor-api';
 import { act, waitFor } from '@testing-library/react';
 
@@ -26,6 +30,12 @@ export type FlowCodeEditor = {
   diffRanges(): string[];
   /** The config the editor has now: the language it highlights and indents in, the tab size, the palette. */
   config(): Promise<EditorConfig>;
+  /** The syntax tree the editor holds, as the typed API answers it. */
+  tree(params?: TreeParams): Promise<TreeValue>;
+  /** The innermost statement at `pos`, or null where the tree is not read. */
+  statementAt(pos: number): Promise<SyntaxNode | null>;
+  /** The block a caret at `pos` types into, from the tree and the mirror's text. */
+  enclosingBlock(pos: number): Promise<EnclosingBlock | null>;
   /** A key CodeMirror's own keymap handles, pressed on its content element (not a toolbar key): the caller waits for the text to change. */
   press(key: 'Enter' | 'Tab' | 'Backspace'): Promise<void>;
 };
@@ -119,6 +129,9 @@ export async function mountedCodeEditor(container: HTMLElement): Promise<FlowCod
     diffRanges: () =>
       Array.from(doc.querySelectorAll('.cm-diff-change'), (el) => el.textContent ?? ''),
     config: async () => unwrap(await client.setConfig({})),
+    tree: async (params) => unwrap(await client.tree(params)),
+    statementAt: async (pos) => unwrap(await client.statementAt(pos)),
+    enclosingBlock: async (pos) => unwrap(await client.enclosingBlock(pos, { text: mirror.text() })),
     press: async (key) => {
       const content = doc.querySelector('.cm-content');
       const win = doc.defaultView as (Window & typeof globalThis) | null;
