@@ -318,8 +318,12 @@ jobs:
         run: |
           result=""
           for _ in $(seq 1 150); do
-            result=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '[.jobs[] | select(.name | endswith("eas-update-e2e"))][0].conclusion // empty' 2>/dev/null || true)
-            [ -z "$result" ] || break
+            # a refused call (rate limit, network) prints its error body on stdout: only a conclusion GitHub names ends the wait, anything else polls again
+            if answer=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '[.jobs[] | select(.name | endswith("eas-update-e2e"))][0].conclusion // empty' 2>/dev/null); then
+              case "$answer" in success|failure|cancelled|skipped|timed_out|neutral|action_required|stale) result=$answer; break;; esac
+            else
+              echo "the Actions API refused the poll; asking again"
+            fi
             sleep 10
           done
           [ -n "$result" ] || result=timed_out

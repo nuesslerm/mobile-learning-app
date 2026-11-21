@@ -29,6 +29,8 @@ mod shard_weights;
 mod ci_parallelism;
 #[path = "flow/ci_db.rs"]
 mod ci_db;
+#[path = "flow/ci_eas_wait.rs"]
+mod ci_eas_wait;
 #[path = "flow/ci_plan.rs"]
 mod ci_plan;
 #[path = "flow/ci_proven.rs"]
