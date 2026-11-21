@@ -44,6 +44,11 @@ local SEEDS = {
   broken = "class Solution:\n    def twoSum(self, nums, target)\n        return []\n",
 }
 
+local TRIE = "class Trie:\n    def __init__(self):\n        self.words = set()\n\n    def insert(self, word):\n        self.words.add(word)\n\n    def search(self, word):\n        return word in self.words\n\n    def startsWith(self, prefix):\n        return %s\n"
+local TRIE_GOOD = TRIE:format("any(w.startswith(prefix) for w in self.words)")
+local TRIE_WRONG = TRIE:format("False")
+local FLOYD = "class Solution:\n    def hasCycle(self, head: Optional[ListNode]) -> bool:\n        slow = fast = head\n        while fast and fast.next:\n            slow = slow.next\n            fast = fast.next.next\n            if slow is fast:\n                return True\n        return False\n"
+
 -- Expo Go bundles a route on first load; a link that lands elsewhere is opened again
 local function open(path, id, secs)
   local t0 = os.time()
@@ -180,6 +185,20 @@ local ok, failure = pcall(function()
     device:tap_on({id='ProblemEditorRunInputButton'})
     device:extended_wait_until{visible={id='ProblemEditorTestInputError', text='.*Expected 2 values.*'}, timeout=15000, label='the error under the field'}
     device:assert_not_visible({id='ProblemEditorRunOutcome'})
+  end)
+
+  run_flow("a design problem", function()
+    -- a list of operations on one Trie: the harness builds the instance, calls each operation and compares the list of results
+    run_seed("implement-trie-prefix-tree", TRIE_GOOD, { id = 'ProblemEditorRunOutcomeStatus', text = 'Accepted', label = 'Accepted' })
+    -- a wrong startsWith fails the cases that call it, and the first one lists its whole operations line once its Input is tapped open
+    run_seed("implement-trie-prefix-tree", TRIE_WRONG, { id = 'ProblemEditorRunOutcomeStatus', text = 'Wrong Answer', label = 'Wrong Answer' })
+    device:tap_on({id='ProblemEditorRunCase-0-Input-Toggle'})
+    device:extended_wait_until{visible={id='ProblemEditorRunCase-0-Input', text='.*arguments = .*'}, timeout=10000, label='the whole operations line'}
+  end)
+
+  run_flow("a cyclic list", function()
+    -- the case builds the list and links its tail back to the node `pos` names: Floyd's walk ends, a walk to the end would not
+    run_seed("linked-list-cycle", FLOYD, { id = 'ProblemEditorRunOutcomeStatus', text = 'Accepted', label = 'Accepted' })
   end)
 
   assert_true(#device:get_network_stub_hits() == 0, "a run reached the backend")

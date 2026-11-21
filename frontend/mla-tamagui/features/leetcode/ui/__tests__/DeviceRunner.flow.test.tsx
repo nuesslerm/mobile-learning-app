@@ -29,14 +29,14 @@ function setup(script: FakePageScript = {}) {
   return { gateway, host, runner };
 }
 
-async function renderEditor(gateway: LeetCodeGatewayPort, runner: PyodideRunner): Promise<FlowSession> {
+async function renderEditor(gateway: LeetCodeGatewayPort, runner: PyodideRunner, route = '/leetcode/two-sum'): Promise<FlowSession> {
   const ports: LeetCodePortOverrides = {
     gateway,
     voice: createFakeVoiceEditTransport() as unknown as VoiceEditTransportPort,
     audio: createFakeAudioRecorder(),
     deviceRunner: runner,
   };
-  const session = await app.render('/leetcode/two-sum', { overrides: { leetcode: ports } });
+  const session = await app.render(route, { overrides: { leetcode: ports } });
   await session.editor();
   return session;
 }
@@ -72,31 +72,34 @@ describe('Run Local on the device', () => {
     expect(host.loads).toBe(0);
   });
 
-  it('given the backend is chosen and a problem with a harness, when the user runs the tests, then the device runner answers with the harness in its call and the backend is not asked', async () => {
-    // Given the backend chosen and a problem the backend cannot run (no catalog problem has a harness yet, so two-sum is given one for this test)
+  it('given the backend is chosen and the Trie problem route, when the user runs the tests, then the page’s judge call carries the harness and the operations and arguments, the card shows case 1 as operations and arguments, and the backend is not asked', async () => {
+    // Given the backend chosen and a real catalog problem the backend cannot run (a design problem with a harness)
     useRunnerSettingStore.setState({ runner: 'backend' });
-    const problem = ProblemCatalog.getByIdOrThrow('two-sum');
-    problem.harness = { kind: 'design', className: 'Trie' };
-    try {
-      const calls: JudgeParams[] = [];
-      const { gateway, runner } = setup({
-        judge: (call) => {
-          calls.push(call);
-          return answers.allPass(call);
-        },
-      });
-      await renderEditor(gateway, runner);
+    const trie = ProblemCatalog.getByIdOrThrow('implement-trie-prefix-tree');
+    const cases = trie.testCases ?? [];
+    const calls: JudgeParams[] = [];
+    const { gateway, runner } = setup({
+      judge: (call) => {
+        calls.push(call);
+        return answers.allPass(call);
+      },
+    });
+    await renderEditor(gateway, runner, '/leetcode/implement-trie-prefix-tree');
 
-      // When the user presses Run Local
-      await press();
+    // When the user presses Run Local
+    await press();
 
-      // Then the page answers, its call carries the harness, and the backend was never asked
-      await waitFor(() => expect(status()).toBe('Accepted'));
-      expect(calls[0]?.payload.harness).toEqual({ kind: 'design', className: 'Trie' });
-      expect(gateway.runLocal).not.toHaveBeenCalled();
-    } finally {
-      delete problem.harness;
-    }
+    // Then the page answers over every bundled case, its call carries the harness and each case's operations and arguments, and the backend was never asked
+    await waitFor(() => expect(status()).toBe('Accepted'));
+    expect(screen.getByTestId('ProblemEditorRunOutcomeTotals').textContent).toBe(`${cases.length} / ${cases.length} test cases passed`);
+    expect(calls[0]?.payload.harness).toEqual({ kind: 'design', className: 'Trie' });
+    expect(calls[0]?.payload.testCases.map((testCase) => testCase.inputs)).toEqual(cases.map((testCase) => testCase.inputs));
+    expect(gateway.runLocal).not.toHaveBeenCalled();
+
+    // And case 1 reads as its operations then its arguments, clipped to a line until a tap opens it
+    expect(screen.getByTestId('ProblemEditorRunCase-0-Input').textContent).toMatch(/^operations = \["Trie","insert","search".*…$/);
+    await userEvent.click(screen.getByTestId('ProblemEditorRunCase-0-Input-Toggle'));
+    expect(screen.getByTestId('ProblemEditorRunCase-0-Input').textContent).toContain('], arguments = [[],["apple"]');
   });
 
   it('given the page answers a wrong answer, when the user runs the tests, then the card says Wrong Answer with the tally', async () => {
