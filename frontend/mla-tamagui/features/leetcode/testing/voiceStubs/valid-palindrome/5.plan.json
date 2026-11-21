@@ -1,0 +1,18 @@
+{
+  "transcript": "after that if, add one to left",
+  "alternatives": [
+    {
+      "id": "stub-1",
+      "label": "Advance left",
+      "summary": "After that if, add one to left.",
+      "confidence": 0.95,
+      "commands": [
+        {
+          "type": "insertAfterLine",
+          "line": 7,
+          "text": "            left += 1"
+        }
+      ]
+    }
+  ]
+}

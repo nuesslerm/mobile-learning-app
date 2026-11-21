@@ -1,0 +1,18 @@
+{
+  "transcript": "inside the loop, compute the width as right minus left",
+  "alternatives": [
+    {
+      "id": "stub-1",
+      "label": "Compute the width",
+      "summary": "Inside the loop, compute the width as right minus left.",
+      "confidence": 0.95,
+      "commands": [
+        {
+          "type": "insertAfterLine",
+          "line": 4,
+          "text": "            width = right - left"
+        }
+      ]
+    }
+  ]
+}

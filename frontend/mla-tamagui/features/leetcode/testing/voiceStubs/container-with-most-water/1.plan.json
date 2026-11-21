@@ -1,0 +1,19 @@
+{
+  "transcript": "declare left at zero, right at the last index, and best at zero",
+  "alternatives": [
+    {
+      "id": "stub-1",
+      "label": "Declare left, right and best",
+      "summary": "Declare left at zero, right at the last index, and best at zero.",
+      "confidence": 0.95,
+      "commands": [
+        {
+          "type": "replaceLines",
+          "startLine": 3,
+          "endLine": 3,
+          "newText": "        left, right, best = 0, len(height) - 1, 0"
+        }
+      ]
+    }
+  ]
+}

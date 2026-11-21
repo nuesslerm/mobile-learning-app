@@ -1,0 +1,18 @@
+{
+  "transcript": "at the very end of the method, after the loop, add return true",
+  "alternatives": [
+    {
+      "id": "stub-1",
+      "label": "Return True after the loop",
+      "summary": "At the very end of the method, after the loop, add return true.",
+      "confidence": 0.95,
+      "commands": [
+        {
+          "type": "insertAfterLine",
+          "line": 9,
+          "text": "        return True"
+        }
+      ]
+    }
+  ]
+}
