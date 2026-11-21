@@ -777,7 +777,11 @@ export function ProblemEditorScreen({
 
             <Pressable
               accessible={false}
-              onPress={dismissEditorKeyboard}
+              onPress={(event) => {
+                // on the web a click on the input field bubbles up to here and would blur it as it takes the focus
+                if ((event.target as unknown) === inputRef.current) return;
+                dismissEditorKeyboard();
+              }}
               testID="ProblemEditorTapAway"
             >
             <XStack

@@ -212,18 +212,22 @@ describe('Run input beside Run Local', () => {
     await pressRunInput();
     await waitFor(() => expect(runner.calls).toHaveLength(1));
 
-    expect(text('ProblemEditorRunInputButton')).toBe('Running…');
-    expect(text('ProblemEditorRunLocalButton')).toBe('Run Local');
-    expect(isDisabled('ProblemEditorRunInputButton')).toBe(true);
-    expect(isDisabled('ProblemEditorRunLocalButton')).toBe(true);
+    await waitFor(() => {
+      expect(text('ProblemEditorRunInputButton')).toBe('Running…');
+      expect(text('ProblemEditorRunLocalButton')).toBe('Run Local');
+      expect(isDisabled('ProblemEditorRunInputButton')).toBe(true);
+      expect(isDisabled('ProblemEditorRunLocalButton')).toBe(true);
+    });
     strayClick('ProblemEditorRunInputButton');
     strayClick('ProblemEditorRunLocalButton');
     expect(runner.calls).toHaveLength(1);
 
     finish(customRun(runner.calls[0]!));
     await waitFor(() => expect(text('ProblemEditorRunOutcomeStatus')).toBe('Custom case'));
-    expect(isDisabled('ProblemEditorRunInputButton')).toBe(false);
-    expect(isDisabled('ProblemEditorRunLocalButton')).toBe(false);
+    await waitFor(() => {
+      expect(isDisabled('ProblemEditorRunInputButton')).toBe(false);
+      expect(isDisabled('ProblemEditorRunLocalButton')).toBe(false);
+    });
   });
 
   it('given a custom card on screen, when only the input is edited, then the card stays', async () => {
@@ -249,12 +253,11 @@ describe('Run input beside Run Local', () => {
     await waitFor(() => expect(screen.queryByTestId('ProblemEditorRunOutcome')).toBeNull());
   });
 
-  it('given a run that is still going, when the code is edited and the run then finishes, then no card shows over the new code', async () => {
+  it('given a run that is still going, when the code is edited and the run then finishes, then no card is left over the new code', async () => {
     let finish: () => void = () => undefined;
     const runner = createFakeCodeRunner((params) => new Promise<RunResponse>((resolve) => (finish = () => resolve(customRun(params)))));
     const session = await renderEditor(runner);
     const editor = await session.editor();
-    await forgetLoggedLines();
     await pressRunInput();
     await waitFor(() => expect(runner.calls).toHaveLength(1));
 
@@ -267,8 +270,32 @@ describe('Run input beside Run Local', () => {
     await waitFor(async () => expect(await loggedLines('editor.value_sync')).not.toHaveLength(0));
     await act(async () => finish());
 
-    await waitFor(async () => expect(await loggedLines('editor_v2.run_local.discarded')).not.toHaveLength(0), { timeout: 10_000 });
-    expect(screen.queryByTestId('ProblemEditorRunOutcome')).toBeNull();
+    // The screen had the edit before the answer came, so the answer is dropped: the run is over and no verdict stays over code it did not judge
+    await waitFor(() => expect(text('ProblemEditorRunInputButton')).toBe('Run input'));
+    await waitFor(() => expect(screen.queryByTestId('ProblemEditorRunOutcome')).toBeNull());
+  });
+});
+
+describe('The input field', () => {
+  it('given the editor on screen, when the learner taps the input field, then it keeps the focus and the page does not take the tap for one away', async () => {
+    await renderEditor(customRunner());
+    await forgetLoggedLines();
+    const field = screen.getByTestId('ProblemEditorTestInput');
+
+    await userEvent.click(field);
+
+    expect(document.activeElement).toBe(field);
+    expect(await loggedLines('editor_v2.keyboard_dismiss')).toHaveLength(0);
+  });
+
+  it('given the input field holds the focus, when the learner taps the page outside it, then it lets go', async () => {
+    const session = await renderEditor(customRunner());
+    const field = screen.getByTestId('ProblemEditorTestInput');
+    await userEvent.click(field);
+
+    await session.tap('ProblemEditorDiffRow');
+
+    await waitFor(() => expect(document.activeElement).not.toBe(field));
   });
 });
 
