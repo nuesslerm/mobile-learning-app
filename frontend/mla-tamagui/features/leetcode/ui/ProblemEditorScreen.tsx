@@ -128,6 +128,7 @@ export function ProblemEditorScreen({
   );
 
   const [lang, setLang] = React.useState<EditorLanguage>('python3');
+  const editorLanguage = toEditorLanguage(lang) ?? 'python';
   const [editorText, setEditorText] = React.useState(
     () => seed || pickStarterCode(problem?.starterCode, lang)
   );
@@ -711,6 +712,7 @@ export function ProblemEditorScreen({
             editorRef={editorRef}
             source={editorText}
             selection={editorSelection}
+            language={editorLanguage}
             onConfigure={() => {
               Logger.info('editor_v2.toolbar_configure', {
                 problemId: problem?.id,
@@ -743,7 +745,7 @@ export function ProblemEditorScreen({
               <EditorInput
                 ref={editorRef}
                 testID="ProblemEditorInput"
-                language={toEditorLanguage(lang) ?? 'python'}
+                language={editorLanguage}
                 value={editorText}
                 onChangeText={handleEditorChange}
                 onSelectionChange={setEditorSelection}

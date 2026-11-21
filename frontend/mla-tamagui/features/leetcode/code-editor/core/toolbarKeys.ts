@@ -26,9 +26,11 @@ import {
   RotateCcw,
   RotateCw,
 } from '@lib/tamagui-design-system/icons';
+import type { Language } from '@lib/code-editor-api';
 import type { RefObject } from 'react';
 
 import type { EditorInputHandle } from './EditorInput';
+import { profileOf, type LanguageProfile } from './languageProfile';
 import {
   INDENT_UNIT,
   dedent,
@@ -44,6 +46,8 @@ export type KeyActionContext = {
   editorRef: RefObject<EditorInputHandle | null>;
   text: string;
   selection: Selection;
+  /** The language the editor is in: the Comment and Newline keys follow it. */
+  language: Language;
 };
 export type BuiltinKeyDef = {
   /** Human-readable name shown on the configure screen. */
@@ -66,9 +70,9 @@ function symbolRun(char: string) {
     ctx.editorRef.current?.typeText(char);
   };
 }
-function transformRun(fn: (text: string, sel: Selection) => EditResult) {
+function transformRun(make: (profile: LanguageProfile) => (text: string, sel: Selection) => EditResult) {
   return (ctx: KeyActionContext): void => {
-    ctx.editorRef.current?.transformDocument(fn);
+    ctx.editorRef.current?.transformDocument(make(profileOf(ctx.language)));
   };
 }
 export const BUILTIN_KEYS: Record<BuiltinKeyId, BuiltinKeyDef> = {
@@ -89,7 +93,7 @@ export const BUILTIN_KEYS: Record<BuiltinKeyId, BuiltinKeyDef> = {
   Dedent: {
     name: 'Dedent',
     icon: ArrowLeftToLine,
-    run: transformRun(dedent),
+    run: transformRun(() => dedent),
   },
   Paren: {
     name: 'Parentheses',
@@ -139,12 +143,12 @@ export const BUILTIN_KEYS: Record<BuiltinKeyId, BuiltinKeyDef> = {
   Comment: {
     name: 'Toggle comment',
     icon: Hash,
-    run: transformRun(toggleComment),
+    run: transformRun((profile) => (text, sel) => toggleComment(text, sel, profile)),
   },
   Newline: {
     name: 'New line (auto-indent)',
     icon: CornerDownLeft,
-    run: transformRun(smartNewline),
+    run: transformRun((profile) => (text, sel) => smartNewline(text, sel, profile)),
   },
   Left: {
     name: 'Cursor left',

@@ -1,3 +1,4 @@
+import type { Language } from '@lib/code-editor-api';
 import React from 'react';
 
 import type { EditorInputHandle } from '../core/EditorInput';
@@ -10,6 +11,7 @@ type Props = {
   editorRef: React.RefObject<EditorInputHandle | null>;
   source: string;
   selection: Selection;
+  language: Language;
   onConfigure: () => void;
   onDismissKeyboard: () => void;
   voiceButton?: React.ReactNode;
@@ -19,6 +21,7 @@ export function EditorHelperRails({
   editorRef,
   source,
   selection,
+  language,
   onConfigure,
   onDismissKeyboard,
   voiceButton,
@@ -29,6 +32,7 @@ export function EditorHelperRails({
         editorRef={editorRef}
         source={source}
         selection={selection}
+        language={language}
         onConfigure={onConfigure}
       />
       <ActionToolbar

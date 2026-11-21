@@ -1,4 +1,5 @@
 import { toolbarItemKey } from '../../domain';
+import type { Language } from '@lib/code-editor-api';
 import { Logger } from '@lib/logging';
 import {
   KeyboardToolbarButton,
@@ -18,6 +19,7 @@ type Props = {
   editorRef: React.RefObject<EditorInputHandle | null>;
   source: string;
   selection: Selection;
+  language: Language;
   onConfigure: () => void;
 };
 
@@ -25,12 +27,13 @@ export function SyntaxToolbar({
   editorRef,
   source,
   selection,
+  language,
   onConfigure,
 }: Props) {
   const items = useToolbarConfigStore((s) => s.items);
   const ctx: KeyActionContext = useMemo(
-    () => ({ editorRef, text: source, selection }),
-    [editorRef, selection, source]
+    () => ({ editorRef, text: source, selection, language }),
+    [editorRef, selection, source, language]
   );
 
   return (

@@ -2,6 +2,7 @@ import {
   createFakeAudioRecorder,
   createFakeVoiceEditTransport,
   screen,
+  userEvent,
   waitFor,
   type FlowCodeEditor,
   type FlowSession,
@@ -140,6 +141,66 @@ describe('the syntax toolbar on the real editor (indentation and lines)', () => 
     await undoRestores(session, editor, 'if x:');
   });
 
+});
+
+// The editor on JavaScript: the screen's language switched through the picker, as a person does it.
+async function prepareJavaScript(code: string, start: number, end = start) {
+  const opened = await openEditor();
+  await userEvent.click(screen.getByTestId('ProblemEditorLanguagePicker-Trigger'));
+  await waitFor(() => expect(screen.getByTestId('ProblemEditorLanguagePicker-JavaScript')).toBeTruthy());
+  await userEvent.click(screen.getByTestId('ProblemEditorLanguagePicker-JavaScript'));
+  await eventually(async () => expect((await opened.editor.config()).language).toBe('javascript'));
+  await opened.editor.setText(code);
+  await opened.editor.select(start, end);
+  await raiseKeyboard();
+  await eventually(() => expect(opened.editor.text()).toBe(code));
+  await eventually(() => expect(opened.editor.selection()).toEqual({ start, end }));
+  return opened;
+}
+
+describe('the syntax toolbar on the real editor (JavaScript)', () => {
+  it('given a JavaScript line and the caret after its text, when Comment is tapped twice, then it is commented with // and uncommented with the caret where the Python case puts it', async () => {
+    const { session, editor } = await prepareJavaScript('x = 1;', 6);
+    await session.tap('EditorSyntax-Comment');
+    await eventually(() => expect(editor.text()).toBe('// x = 1;'));
+    await eventually(() => expect(editor.selection()).toEqual(caret(9)));
+    await session.tap('EditorSyntax-Comment');
+    await eventually(() => expect(editor.text()).toBe('x = 1;'));
+    await eventually(() => expect(editor.selection()).toEqual(caret(6)));
+  });
+
+  it('given a line that ends in an opening brace, when Newline is tapped, then the next line is one level deeper, and Undo restores the text', async () => {
+    const { session, editor } = await prepareJavaScript('if (x) {', 8);
+    await session.tap('EditorSyntax-Newline');
+    await eventually(() => expect(editor.text()).toBe('if (x) {\n    '));
+    await undoRestores(session, editor, 'if (x) {');
+  });
+
+  it('given the brace key tapped on an empty line and then Newline, then the pair splits with an indented blank line between', async () => {
+    const { session, editor } = await prepareJavaScript('', 0);
+    await session.tap('EditorSyntax-Brace');
+    await eventually(() => expect(editor.text()).toBe('{}'));
+    await eventually(() => expect(editor.selection()).toEqual(caret(1)));
+    await session.tap('EditorSyntax-Newline');
+    await eventually(() => expect(editor.text()).toBe('{\n    \n}'));
+  });
+
+  it('given a Python buffer and then a switch to JavaScript, when Comment is tapped, then it is // and the key did not keep the Python context', async () => {
+    const { session, editor } = await prepare('x = 1', 5);
+    await session.tap('EditorSyntax-Comment');
+    await eventually(() => expect(editor.text()).toBe('# x = 1'));
+    await userEvent.click(screen.getByTestId('ProblemEditorLanguagePicker-Trigger'));
+    await waitFor(() => expect(screen.getByTestId('ProblemEditorLanguagePicker-JavaScript')).toBeTruthy());
+    await userEvent.click(screen.getByTestId('ProblemEditorLanguagePicker-JavaScript'));
+    await eventually(async () => expect((await editor.config()).language).toBe('javascript'));
+    await editor.setText('y = 2;');
+    await editor.select(6);
+    await eventually(() => expect(editor.selection()).toEqual(caret(6)));
+
+    await session.tap('EditorSyntax-Comment');
+
+    await eventually(() => expect(editor.text()).toBe('// y = 2;'));
+  });
 });
 
 describe('the syntax toolbar on the real editor (caret keys)', () => {
