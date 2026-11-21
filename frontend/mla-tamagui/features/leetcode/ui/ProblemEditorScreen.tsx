@@ -270,10 +270,8 @@ export function ProblemEditorScreen({
     'idle' | 'testing' | 'submitting'
   >('idle');
   const [diffMode, setDiffMode] = React.useState(false);
-  const [diffRange, setDiffRange] = React.useState<{
-    start: number;
-    end: number;
-  } | null>(null);
+  // whether a voice or plan edit has left a mark: the editor holds the mark and the range, the screen only the toggle
+  const [hasEdit, setHasEdit] = React.useState(false);
   const theme = useTheme();
   const isLoggedIn = useLeetCodeAuthStore((s) => s.isLoggedIn);
   const username = useLeetCodeAuthStore((s) => s.username);
@@ -515,12 +513,11 @@ export function ProblemEditorScreen({
     }
   }, [canRun, gateway, problem, editorText, testInput, lang]);
 
-  // React follows the page's contentChanged for the text; only the mark of what the edit changed is set here.
+  // React follows the page's contentChanged for the text, and the editor marks what the edit changed as it applies it; the screen only shows the toggle.
   const showEdit = React.useCallback((outcome: EditOutcome) => {
     if (!outcome.ok || !outcome.landed) return;
-    setDiffRange({ start: outcome.landed.from, end: outcome.landed.to });
+    setHasEdit(true);
     setDiffMode(true);
-    editorRef.current?.showDiff(outcome.landed.from, outcome.landed.to);
   }, []);
   const { apply: applyVoice, applyAt } = useVoiceApply({ target: editorTarget, voiceEdit, snapshot, problemId: problem?.id });
   const handleVoiceApply = React.useCallback(
@@ -559,13 +556,9 @@ export function ProblemEditorScreen({
     (enabled: boolean) => {
       Logger.info('editor_v2.diff_toggle', { enabled, problemId: problem?.id });
       setDiffMode(enabled);
-      if (enabled && diffRange) {
-        editorRef.current?.showDiff(diffRange.start, diffRange.end);
-      } else {
-        editorRef.current?.hideDiff();
-      }
+      editorRef.current?.setEditMarkHidden(!enabled);
     },
-    [diffRange, problem?.id]
+    [problem?.id]
   );
 
   const handleVoiceStart = React.useCallback(async () => {
@@ -631,10 +624,10 @@ export function ProblemEditorScreen({
         snapshot('reset');
         setEditorText(pickStarterCode(problem.starterCode, lang));
         clearCard();
-        // The diff range belongs to the code that was just discarded.
-        setDiffRange(null);
+        // The edit mark belongs to the code that was just discarded.
+        setHasEdit(false);
         setDiffMode(false);
-        editorRef.current?.hideDiff();
+        editorRef.current?.clearEditMark();
       },
       onCancel: () => {
         Logger.info('editor_v2.reset_code.cancel', { problemId: problem.id });
@@ -847,7 +840,7 @@ export function ProblemEditorScreen({
                 disabled={availableLanguages.length === 1}
                 testID="ProblemEditorLanguagePicker"
               />
-              {diffRange ? (
+              {hasEdit ? (
                 <DiffToggle
                   enabled={diffMode}
                   onToggle={handleDiffToggle}

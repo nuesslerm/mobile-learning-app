@@ -1,4 +1,4 @@
-import type { CompletionEntry, Language } from '@lib/code-editor-api';
+import type { CompletionEntry, Language, Reply } from '@lib/code-editor-api';
 import { Logger } from '@lib/logging';
 import { View } from '@lib/tamagui-design-system';
 import { decode } from '@lib/webview-rpc';
@@ -22,6 +22,7 @@ import type {
   ToEditorMessage,
 } from '../../domain/ports';
 import { writeThrough, type WriteRequest } from '../../domain/editor/documentWrite';
+import { clearEditMark, markEdit, setEditMarkHidden } from '../../domain/editor/editMark';
 import { createForwardingPost } from '../../domain/editor/editorForwarding';
 import { applyPlannedEdit, readBasis, type EditBasis, type EditOutcome, type EditTarget, type PlannedEdit } from '../../domain/editor/voiceEditPlan';
 import { useLeetCodePorts } from '../../state/ports';
@@ -66,8 +67,9 @@ export type EditorInputHandle = EditTarget & {
   clearErrorLine: () => Promise<void>;
   undo: () => void;
   redo: () => void;
-  showDiff: (start: number, end: number) => void;
-  hideDiff: () => void;
+  /** Shows or hides the highlight of what the last voice or plan edit changed; the mark stays and follows the text either way. */
+  setEditMarkHidden: (hidden: boolean) => void;
+  clearEditMark: () => void;
 };
 
 type Props = {
@@ -250,6 +252,19 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       [apiBridge, onChangeText, holdText]
     );
 
+    // The edit mark's calls wait behind a write that is still queued, so they act on the text that write is about to put there.
+    const queueMark = useCallback(
+      (effect: string, job: () => Promise<Reply<unknown> | null>): void => {
+        const run = async () => {
+          if (!isReadyRef.current || !isInitializedRef.current) return;
+          const reply = await job();
+          if (reply && !reply.ok) Logger.info('editor.edit_mark.failed', { effect, code: reply.error.code });
+        };
+        writeChainRef.current = writeChainRef.current.then(run, run);
+      },
+      []
+    );
+
     const updateHydrated = useCallback(
       (next: boolean) => {
         if (hydratedRef.current === next) {
@@ -390,6 +405,10 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             // a refused edit leaves the editor and the mirror as they were: a keystroke that made it stale reaches React as any keystroke does
             if (outcome.ok) {
               lastWebViewTextRef.current = outcome.modifiedText;
+              if (outcome.landed) {
+                const marked = await markEdit(apiBridge.client, outcome.landed, outcome.revision, edit.basis.instance);
+                if (!marked.ok) Logger.info('editor.edit_mark.failed', { effect: 'markEdit', code: marked.error.code });
+              }
               void apiBridge.client.focus();
             }
             return outcome;
@@ -398,27 +417,16 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           writeChainRef.current = outcome.then(() => undefined, () => undefined);
           return outcome;
         },
-        showDiff(start: number, end: number) {
-          // After the write that put the changed text there, which lands a few round trips after the call, and clamped to the text
-          // the view then has, not React's: a range past the view's end once left a decoration it could not map.
-          void writeChainRef.current.then(() => {
-            const max = lastWebViewTextRef.current.length;
-            const from = Math.max(0, Math.min(start, end, max));
-            const to = Math.min(Math.max(start, end), max);
-            Logger.info('editor.show_diff', {
-              effect: 'showDiff',
-              start: from,
-              end: to,
-            });
-            sendMessage({ type: 'showDiff', start: from, end: to });
-          });
+        setEditMarkHidden(hidden: boolean) {
+          Logger.info('editor.edit_mark.hidden', { effect: 'setEditMarkHidden', hidden });
+          queueMark('setEditMarkHidden', () => setEditMarkHidden(apiBridge.client, hidden));
         },
-        hideDiff() {
-          Logger.info('editor.hide_diff', { effect: 'hideDiff' });
-          void writeChainRef.current.then(() => sendMessage({ type: 'hideDiff' }));
+        clearEditMark() {
+          Logger.info('editor.edit_mark.clear', { effect: 'clearEditMark' });
+          queueMark('clearEditMark', () => clearEditMark(apiBridge.client));
         },
       }),
-      [sendMessage, apiBridge]
+      [sendMessage, apiBridge, queueMark]
     );
 
     const editorConfig = useMemo<EditorConfig>(

@@ -11,6 +11,7 @@ import { app } from '../../../../tests/flow/app';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useCodeHistoryStore } from '../../state/codeHistoryStore';
+import { useResetCodeRequestStore } from '../../state/resetCodeRequestStore';
 import {
   type LeetCodeGatewayPort,
   type LeetCodePortOverrides,
@@ -160,7 +161,8 @@ describe('ProblemEditorScreen flow (voice edit)', () => {
     });
     expect(editor.text()).not.toContain('return [0, 1]');
     await waitFor(() => expect(editor.diffRanges()).toEqual(['return [1, 2]']));
-    expect(screen.getByTestId('ProblemEditorDiffToggle')).toBeTruthy();
+    expect(await editor.marks()).toEqual([{ id: 'edit', kind: 'edit', range: { from: starter.length, to: starter.length + 'return [1, 2]'.length } }]);
+    expect(await screen.findByTestId('ProblemEditorDiffToggle')).toBeTruthy();
     // the edit comes with a selection, and the editor takes focus with it (the keyboard and toolbar are back for the next edit)
     await waitFor(() => expect(editor.focused()).toBe(true));
   }, 60_000); // Full record→review→pick flow on the real screen: ~6 s alone, over 20 s under the parallel pre-commit run.
@@ -255,6 +257,8 @@ describe('ProblemEditorScreen flow (voice edit)', () => {
     expect(editor.text()).toBe(typed);
     expect(editor.text()).not.toContain('seen = {}');
     expect(editor.diffRanges()).toEqual([]);
+    expect(await editor.marks()).toEqual([]);
+    expect(screen.queryByTestId('ProblemEditorDiffToggle')).toBeNull();
     expect(voiceEditSnapshots()).toEqual([]);
   }, 60_000);
 
@@ -297,6 +301,52 @@ describe('ProblemEditorScreen flow (voice edit)', () => {
     // Then the pick is refused, nothing of it is in the buffer and nothing was recorded
     await waitFor(() => expect(screen.getByTestId('ProblemEditorVoiceErrorText').textContent).toBe(STALE_BANNER));
     expect(editor.text()).toBe(typed);
+    expect(await editor.marks()).toEqual([]);
     expect(voiceEditSnapshots()).toEqual([]);
+  }, 60_000);
+
+  it('given an applied voice edit, when the toggle is turned off, the person types before the edit and the toggle is turned on, then the highlight is the same text at its moved place', async () => {
+    // Given a voice edit that landed and is highlighted
+    const voice = createFakeVoiceEditTransport({ transcript: 'declare seen', alternatives: [SEEN_EDIT] }) as unknown as VoiceEditTransportPort;
+    const session = await renderVoiceEditor({ gateway: fakeGateway(), voice, audio: createFakeAudioRecorder() });
+    const editor = await session.editor();
+    const starter = editor.text();
+    await sendTypedInstruction('declare seen');
+    await waitFor(() => expect(editor.diffRanges()).toEqual(['seen = {}']));
+
+    // When the toggle is turned off, nothing is drawn and the mark is kept
+    await userEvent.click(await screen.findByTestId('ProblemEditorDiffToggle'));
+    await waitFor(() => expect(editor.diffRanges()).toEqual([]));
+    expect(await editor.marks()).toMatchObject([{ id: 'edit', kind: 'edit', hidden: true }]);
+
+    // and the person types before the edit and turns it on again
+    await editor.select(0);
+    await editor.type('# ');
+    await userEvent.click(screen.getByTestId('ProblemEditorDiffToggle'));
+
+    // Then the same text is highlighted where the typing moved it
+    await waitFor(() => expect(editor.diffRanges()).toEqual(['seen = {}']));
+    expect(await editor.marks()).toEqual([{ id: 'edit', kind: 'edit', range: { from: starter.length + 2, to: starter.length + 2 + 'seen = {}'.length } }]);
+  }, 60_000);
+
+  it('given an applied voice edit, when the code is reset, then no edit mark is drawn or held and the toggle is gone', async () => {
+    // Given a voice edit that landed and is highlighted
+    const voice = createFakeVoiceEditTransport({ transcript: 'declare seen', alternatives: [SEEN_EDIT] }) as unknown as VoiceEditTransportPort;
+    const session = await renderVoiceEditor({ gateway: fakeGateway(), voice, audio: createFakeAudioRecorder() });
+    const editor = await session.editor();
+    const starter = editor.text();
+    await sendTypedInstruction('declare seen');
+    await waitFor(() => expect(editor.diffRanges()).toEqual(['seen = {}']));
+
+    // When the person resets the code and confirms (the flow router does not mount the reset route's dialog, whose Reset button calls the request's onConfirm)
+    await screen.findByTestId('ProblemEditorDiffToggle');
+    await userEvent.click(screen.getByTestId('ProblemEditorResetButton'));
+    await act(async () => useResetCodeRequestStore.getState().payload?.onConfirm());
+
+    // Then the starter is back, nothing is highlighted and the toggle is gone
+    await waitFor(() => expect(editor.text()).toBe(starter));
+    await waitFor(async () => expect(await editor.marks()).toEqual([]));
+    expect(editor.diffRanges()).toEqual([]);
+    await waitFor(() => expect(screen.queryByTestId('ProblemEditorDiffToggle')).toBeNull());
   }, 60_000);
 });
