@@ -11,6 +11,7 @@ import {
 import { useCallback, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
+import type { EditBasis } from '../domain/editor/voiceEditPlan';
 import type { Timed } from '../domain/ports';
 import { useLeetCodePorts } from './ports';
 import {
@@ -46,6 +47,8 @@ interface VoiceEditState {
   error: string | null;
   /** The alternative that should be auto-applied when the phase becomes 'applied'. */
   autoApply: EditAlternative | null;
+  /** The editor the plan was made for (text, revision, instance): the apply and the picker use it. Null without a basis reader. */
+  basis: EditBasis | null;
 }
 
 export interface UseVoiceEditResult {
@@ -78,6 +81,11 @@ export interface UseVoiceEditResult {
    * call it before `dismiss`.
    */
   markApplied: (applied: { pickedIndex?: number; codeAfter: string }) => void;
+  /**
+   * The screen could not apply the edit (the editor refused it): ends the turn in the
+   * error phase with `message`, which the banner shows and the stats row records.
+   */
+  fail: (message: string) => void;
 }
 
 /**
@@ -101,7 +109,10 @@ const EMPTY_STATE: VoiceEditState = {
   alternatives: [],
   error: null,
   autoApply: null,
+  basis: null,
 };
+
+const EDITOR_NOT_READY = 'The editor is not ready. Try again.';
 
 /**
  * The transport adapter normalizes network failures into a
@@ -130,7 +141,14 @@ export function useVoiceEdit(
   currentCode: string,
   language: string,
   filename: string,
-  context: { problemId?: string | null } = {}
+  context: {
+    problemId?: string | null;
+    /**
+     * Reads what the editor holds now (null: it cannot be read). With it a plan is made for the editor's own text and
+     * revision, not for `currentCode`, which lags a keystroke; without it the hook plans against `currentCode`.
+     */
+    readBasis?: () => Promise<EditBasis | null>;
+  } = {}
 ): UseVoiceEditResult {
   const { voice } = useLeetCodePorts();
   const recording = useVoiceRecording();
@@ -138,6 +156,7 @@ export function useVoiceEdit(
   const pendingAutoApplyRef = useRef<EditAlternative | null>(null);
   const turnStatsRef = useRef<TurnStats | null>(null);
   const problemId = context.problemId ?? null;
+  const readBasis = context.readBasis;
 
   const beginTurn = useCallback(
     (source: EditSource): string => {
@@ -185,13 +204,15 @@ export function useVoiceEdit(
    * moment the transcript arrives moves that whole call off the critical path
    * whenever the user accepts what whisper heard, which is the common case.
    *
-   * Keyed by the exact transcript and code it was computed for, so an edited
-   * transcript falls back to a fresh request rather than quietly planning
-   * against words the user rejected.
+   * Keyed by the exact transcript and code it was computed for (with a basis
+   * reader: the editor's revision and instance), so an edited transcript falls
+   * back to a fresh request rather than quietly planning against words the
+   * user rejected.
    */
   const speculativePlanRef = useRef<{
     transcript: string;
     code: string;
+    basis: EditBasis | null;
     language: string;
     promise: Promise<Timed<VoiceEditResponse>>;
   } | null>(null);
@@ -269,23 +290,30 @@ export function useVoiceEdit(
         // Fire the plan now, against whisper's own words. `.catch` here only
         // stops an unhandled rejection while nobody is awaiting it; the real
         // error handling still happens in confirmSend, which re-throws it.
-        const speculative = voice.plan({
-          transcript,
-          currentCode,
-          language,
-          source: 'voice',
-          editId,
-        });
-        speculative.catch(() => undefined);
-        speculativePlanRef.current = {
-          transcript,
-          code: currentCode,
-          language,
-          promise: speculative,
-        };
-        Logger.info('voice_edit.plan.speculative_start', {
-          transcriptLength: transcript.length,
-        });
+        // With a reader the plan is for the editor's own text; an editor that
+        // cannot be read starts none (Send reads it again).
+        const basis = readBasis ? await readBasis() : null;
+        if (!readBasis || basis) {
+          const code = basis?.text ?? currentCode;
+          const speculative = voice.plan({
+            transcript,
+            currentCode: code,
+            language,
+            source: 'voice',
+            editId,
+          });
+          speculative.catch(() => undefined);
+          speculativePlanRef.current = {
+            transcript,
+            code,
+            basis,
+            language,
+            promise: speculative,
+          };
+          Logger.info('voice_edit.plan.speculative_start', {
+            transcriptLength: transcript.length,
+          });
+        }
         setState((prev) => ({
           ...prev,
           phase: 'reviewing',
@@ -304,7 +332,7 @@ export function useVoiceEdit(
         setState({ ...EMPTY_STATE, phase: 'error', error: message });
       }
     },
-    [filename, currentCode, language, endTurn, voice]
+    [filename, currentCode, language, endTurn, voice, readBasis]
   );
 
   const stop = useCallback(async () => {
@@ -324,11 +352,30 @@ export function useVoiceEdit(
     const transcript = state.transcript;
     if (state.phase !== 'reviewing' || !transcript) return;
 
+    // With a reader, everything below works on the editor's own text and
+    // revision. Planning is shown first so a second tap while it is read
+    // is ignored.
+    let basis: EditBasis | null = null;
+    if (readBasis) {
+      setState((prev) => ({ ...prev, phase: 'planning' }));
+      basis = await readBasis();
+      if (!basis) {
+        Logger.info('voice_edit.basis.unavailable', {
+          editId: turnStatsRef.current?.editId,
+        });
+        speculativePlanRef.current = null;
+        endTurn('error', EDITOR_NOT_READY);
+        setState({ ...EMPTY_STATE, phase: 'error', error: EDITOR_NOT_READY });
+        return;
+      }
+    }
+    const code = basis?.text ?? currentCode;
+
     // A rename needs no planner: the transcript names both symbols and the
     // buffer says where the old one is. Skipping the round trip is the
     // difference between an edit that lands now and one that lands in ten
     // seconds -- and this is the edit a speaker repeats most.
-    const local = parseLocalEdit(transcript, currentCode);
+    const local = parseLocalEdit(transcript, code);
     if (local) {
       Logger.info('voice_edit.plan.local', {
         commandTypes: local.commands.map((c) => c.type),
@@ -347,6 +394,7 @@ export function useVoiceEdit(
         transcript,
         alternatives: [local],
         autoApply: local,
+        basis,
       }));
       return;
     }
@@ -356,7 +404,7 @@ export function useVoiceEdit(
     const source = state.source ?? 'voice';
     const editId = turnStatsRef.current?.editId;
     Logger.info('voice_edit.plan.send', {
-      codeLength: currentCode.length,
+      codeLength: code.length,
       language,
       transcriptLength: transcript.length,
       // `source` is the logger's own module field; the edit's origin needs another name.
@@ -366,21 +414,25 @@ export function useVoiceEdit(
 
     try {
       // Reuse the speculative plan only when it was computed for exactly these
-      // words and this buffer -- an edited transcript means the user rejected
-      // what it was planning from.
+      // words and this buffer (the same revision of the same editor, with a
+      // reader) -- an edited transcript means the user rejected what it was
+      // planning from.
       const pending = speculativePlanRef.current;
       const reusable =
         pending !== null &&
         pending.transcript === transcript &&
-        pending.code === currentCode &&
-        pending.language === language;
+        pending.language === language &&
+        (basis && pending.basis
+          ? pending.basis.revision === basis.revision &&
+            pending.basis.instance === basis.instance
+          : !basis && !pending.basis && pending.code === currentCode);
       speculativePlanRef.current = null;
       Logger.info('voice_edit.plan.speculative_hit', { reused: reusable });
       const response = await (reusable
         ? pending.promise
         : voice.plan({
             transcript,
-            currentCode,
+            currentCode: code,
             language,
             source,
             editId,
@@ -408,7 +460,7 @@ export function useVoiceEdit(
       // until the backend ships, which is the difference between a voice
       // session that can continue and one that is stuck.
       const alternatives = response.alternatives.map((alt) => {
-        const validated = validateAlternative(alt, currentCode, editSizeLimitsFor(transcript));
+        const validated = validateAlternative(alt, code, editSizeLimitsFor(transcript));
         return validated;
       });
       const rescued = alternatives.filter(
@@ -437,6 +489,7 @@ export function useVoiceEdit(
           transcript: response.transcript,
           alternatives,
           autoApply,
+          basis,
         }));
       } else {
         setState((prev) => ({
@@ -444,6 +497,7 @@ export function useVoiceEdit(
           phase: 'choosing',
           transcript: response.transcript,
           alternatives,
+          basis,
         }));
       }
     } catch (err) {
@@ -466,6 +520,7 @@ export function useVoiceEdit(
     language,
     endTurn,
     voice,
+    readBasis,
   ]);
 
   const reRecord = useCallback(() => {
@@ -517,6 +572,16 @@ export function useVoiceEdit(
     setState(EMPTY_STATE);
   }, [endTurn]);
 
+  const fail = useCallback(
+    (message: string) => {
+      speculativePlanRef.current = null;
+      pendingAutoApplyRef.current = null;
+      endTurn('error', message);
+      setState({ ...EMPTY_STATE, phase: 'error', error: message });
+    },
+    [endTurn]
+  );
+
   const consumeAutoApply = useCallback(() => {
     const alt = pendingAutoApplyRef.current;
     pendingAutoApplyRef.current = null;
@@ -537,5 +602,6 @@ export function useVoiceEdit(
     dismiss,
     consumeAutoApply,
     markApplied,
+    fail,
   };
 }
