@@ -1,3 +1,13 @@
+---
+status: open
+area: t3-serve
+paths:
+  - "clis/mimic/src/exec_verb.rs"
+  - "clis/t3-serve/tests/integration/rig.rs"
+opened: 2026-11-21
+last_verified: 2026-11-21
+links: []
+---
 # The T3 chain runs the real agent CLIs only through `wf mimic exec`, and the vault holds no credential for them yet
 
 `wf mimic scan` and the `wf-mimic` driver resolve real CLIs (`T3_CHAIN_CLIS`, `MIMIC_REAL_CLI_DIR`), and the rca backends run them in `real-backends.yml`. The T3 integration chain (`clis/t3-serve/tests/integration`) runs the scripted CLIs by default and the real ones when it is started through the launcher.

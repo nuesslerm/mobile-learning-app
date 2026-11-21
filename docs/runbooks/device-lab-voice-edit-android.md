@@ -12,6 +12,8 @@ The native twin of [`device-lab-voice-edit.md`](device-lab-voice-edit.md) (turn 
 [`e2e/voice-edit.lua`](../../e2e/voice-edit.lua)). Result:
 `docs/runbooks/.results/device-lab-voice-edit-android.json` (`platform: android-redroid`).
 
+The CI run of the script is stubbed (its three backend calls are answered by network stubs, issue 86, E3); this runbook is the live check, with `--env live=1`.
+
 ## Rules: the human input model
 
 - Act only through input: `wf android tap-on` (ids, or `--point x,y`), `swipe`, `press-key`, `back`. `get-element`, `get-device-state`, `take-screenshot` only read. Nothing is typed into the editor or the transcript.
