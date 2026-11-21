@@ -68,7 +68,7 @@ import { useCodeHistoryStore } from '../state/codeHistoryStore';
 import { useResetCodeRequestStore } from '../state/resetCodeRequestStore';
 
 import { AlternativePicker } from './AlternativePicker';
-import { RunCaseList } from './run/RunCaseList';
+import { RunOutcomeCard } from './run/RunOutcomeCard';
 import { DiffToggle } from './DiffToggle';
 import {
   EDITOR_LANGUAGES,
@@ -553,8 +553,6 @@ export function ProblemEditorScreen({
     void voiceEdit.confirmSend();
   }, [voiceEdit, problem?.id]);
 
-  const accepted = runOutcome?.status_msg === 'Accepted';
-
   const problemSubtitle = problem
     ? `${problem.category} · ${problem.difficulty[0]?.toUpperCase()}${problem.difficulty.slice(1)}`
     : undefined;
@@ -890,53 +888,7 @@ export function ProblemEditorScreen({
             </XStack>
 
             {/* Run Local result — server-executed pass/fail summary. */}
-            {runOutcome ? (
-              <YStack
-                mx="$3"
-                mb="$1"
-                px="$3"
-                py="$2"
-                rounded="$3"
-                borderWidth={1}
-                borderColor={accepted ? '$green9' : '$red9'}
-                onLayout={revealRunOutcome}
-                testID="ProblemEditorRunOutcome"
-              >
-                <Text
-                  variant="strong"
-                  color={accepted ? '$green10' : '$red10'}
-                  testID="ProblemEditorRunOutcomeStatus"
-                >
-                  {runOutcome.status_msg}
-                </Text>
-                {runOutcome.total_testcases > 0 ? (
-                  <Text variant="muted" testID="ProblemEditorRunOutcomeTotals">
-                    {`${runOutcome.total_correct} / ${runOutcome.total_testcases} test cases passed`}
-                  </Text>
-                ) : null}
-                {runOutcome.runtime_error ? (
-                  <Text
-                    variant="code"
-                    color="$red10"
-                    testID="ProblemEditorRunOutcomeRuntimeError"
-                  >
-                    {runOutcome.runtime_error}
-                  </Text>
-                ) : null}
-                {runOutcome.compile_error ? (
-                  <Text
-                    variant="code"
-                    color="$red10"
-                    testID="ProblemEditorRunOutcomeCompileError"
-                  >
-                    {runOutcome.compile_error}
-                  </Text>
-                ) : null}
-                {runOutcome.results?.length ? (
-                  <RunCaseList results={runOutcome.results} />
-                ) : null}
-              </YStack>
-            ) : null}
+            {runOutcome ? <RunOutcomeCard outcome={runOutcome} onLayout={revealRunOutcome} /> : null}
 
             {/* TestInput — fixed min-h, also scrollable. */}
             <YStack

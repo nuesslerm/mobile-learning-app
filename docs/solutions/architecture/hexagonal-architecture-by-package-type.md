@@ -92,7 +92,7 @@ frontend/                                              (landed 21 Nov; was propo
    │  └─ editor/              editorSettings · palettes
    ├─ ui/
    │  ├─ editor/              EditorInput (React) · toolbarKeys · helperbars/{Syntax,Action}Toolbar · EditorHelperRails
-   │  ├─ run/                 RunCaseList (the runner's view)
+   │  ├─ run/                 RunOutcomeCard · RunCaseList (the runner's view)
    │  └─ …                    screens, unchanged
    ├─ di/                     LeetCodeContainer, the one composition root
    ├─ routes/ · plan/         unchanged
