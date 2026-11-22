@@ -265,31 +265,52 @@ export const KeyboardToolbarAwareScrollView = forwardRef<
 export type KeyboardToolbarRailProps = {
   children: ReactNode;
   testID: string;
+  /**
+   * A slot at the left end that does not scroll with the keys. With one, `testID` names the scrolling region and the slot's own is
+   * `${testID}Leading`, so a swipe along the rail that starts at the region's edge never starts on the slot.
+   */
+  leading?: ReactNode;
 };
+
+const RAIL_CONTENT = { paddingHorizontal: 8, paddingVertical: 6, gap: 6 } as const;
+const SCROLL_REGION = { flex: 1 } as const;
 
 export function KeyboardToolbarRail({
   children,
   testID,
+  leading,
 }: KeyboardToolbarRailProps) {
-  return (
-    <YStack
-      bg="$color2"
-      borderTopWidth={1}
-      borderColor="$borderColor"
-      testID={testID}
+  const keys = (regionTestID?: string) => (
+    <ScrollView
+      horizontal
+      keyboardShouldPersistTaps="always"
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={RAIL_CONTENT}
+      {...(regionTestID ? { testID: regionTestID, style: SCROLL_REGION } : {})}
     >
-      <ScrollView
-        horizontal
-        keyboardShouldPersistTaps="always"
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingHorizontal: 8,
-          paddingVertical: 6,
-          gap: 6,
-        }}
+      {children}
+    </ScrollView>
+  );
+  if (!leading) {
+    return (
+      <YStack
+        bg="$color2"
+        borderTopWidth={1}
+        borderColor="$borderColor"
+        testID={testID}
       >
-        {children}
-      </ScrollView>
+        {keys()}
+      </YStack>
+    );
+  }
+  return (
+    <YStack bg="$color2" borderTopWidth={1} borderColor="$borderColor">
+      <XStack>
+        <XStack testID={`${testID}Leading`} items="stretch">
+          {leading}
+        </XStack>
+        {keys(testID)}
+      </XStack>
     </YStack>
   );
 }
