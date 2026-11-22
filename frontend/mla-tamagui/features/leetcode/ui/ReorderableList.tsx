@@ -1,6 +1,7 @@
 import { Logger } from '@lib/logging';
 import { Icon, View } from '@lib/tamagui-design-system';
 import { GripVertical } from '@lib/tamagui-design-system/icons';
+import type { LucideIcon } from 'lucide-react-native';
 import * as React from 'react';
 import { useEffect, type ReactNode } from 'react';
 import { useWindowDimensions, type ViewStyle } from 'react-native';
@@ -33,6 +34,8 @@ import Animated, {
  */
 type Positions = Record<string, number>;
 
+export type ReorderActivation = 'long-press' | 'immediate';
+
 type ReorderableListProps<T> = {
   data: T[];
   keyExtractor: (item: T) => string;
@@ -40,10 +43,14 @@ type ReorderableListProps<T> = {
   renderItem: (item: T, handle: ReactNode) => ReactNode;
   onReorder: (next: T[]) => void;
   rowHeight: number;
-  /** Live scroll offset (from the ScrollView's JS scroll callback). */
-  scrollOffset: SharedValue<number>;
+  /** Live scroll offset (from the ScrollView's JS scroll callback). Leave both scroll props out for a list that has no scroll view around it: it then does no edge auto-scroll. */
+  scrollOffset?: SharedValue<number>;
   /** Imperatively scroll the surrounding ScrollView (plain ref `.scrollTo`). */
-  scrollToY: (y: number) => void;
+  scrollToY?: (y: number) => void;
+  /** 'long-press' (the default) picks a row up after 250 ms on the handle; 'immediate' at the first movement, for a list that does not scroll under the finger. */
+  activation?: ReorderActivation;
+  /** The glyph on the handle (the grip by default). */
+  handleIcon?: LucideIcon;
 };
 
 // App #1 pulls this from its theme's motion config. One spring config used
@@ -112,6 +119,8 @@ function Row<T>({
   windowHeight,
   scrollOffset,
   scrollToY,
+  activation,
+  handleIcon,
   onCommit,
   renderItem,
 }: {
@@ -122,7 +131,9 @@ function Row<T>({
   count: SharedValue<number>;
   windowHeight: number;
   scrollOffset: SharedValue<number>;
-  scrollToY: (y: number) => void;
+  scrollToY: ((y: number) => void) | undefined;
+  activation: ReorderActivation;
+  handleIcon: LucideIcon;
   onCommit: () => void;
   renderItem: (item: T, handle: ReactNode) => ReactNode;
 }) {
@@ -165,7 +176,7 @@ function Row<T>({
 
   // Edge auto-scroll. Runs every frame but is a no-op unless this row is active.
   useFrameCallback(() => {
-    if (!isActive.value) return;
+    if (!isActive.value || scrollToY === undefined) return;
     if (pointerY.value < EDGE_TOP && scrollOffset.value > 0) {
       runOnJS(scrollToY)(scrollOffset.value - SCROLL_SPEED);
       updatePosition();
@@ -175,8 +186,8 @@ function Row<T>({
     }
   });
 
-  const pan = Gesture.Pan()
-    .activateAfterLongPress(250)
+  const basePan = Gesture.Pan();
+  const pan = (activation === 'long-press' ? basePan.activateAfterLongPress(250) : basePan)
     .onStart((e) => {
       isActive.value = true;
       startTop.value = positions.value[id] * rowHeight;
@@ -214,7 +225,7 @@ function Row<T>({
   const handle = (
     <GestureDetector gesture={pan}>
       <View style={HANDLE_STYLE} testID="ReorderableListHandle">
-        <Icon as={GripVertical} size={22} color="$color11" />
+        <Icon as={handleIcon} size={22} color="$color11" />
       </View>
     </GestureDetector>
   );
@@ -234,8 +245,11 @@ export function ReorderableList<T>({
   rowHeight,
   scrollOffset,
   scrollToY,
+  activation = 'long-press',
+  handleIcon = GripVertical,
 }: ReorderableListProps<T>) {
   const { height: windowHeight } = useWindowDimensions();
+  const ownScrollOffset = useSharedValue(0);
   const positions = useSharedValue<Positions>(
     buildPositions(data, keyExtractor)
   );
@@ -274,8 +288,10 @@ export function ReorderableList<T>({
             rowHeight={rowHeight}
             count={count}
             windowHeight={windowHeight}
-            scrollOffset={scrollOffset}
+            scrollOffset={scrollOffset ?? ownScrollOffset}
             scrollToY={scrollToY}
+            activation={activation}
+            handleIcon={handleIcon}
             onCommit={commit}
             renderItem={renderItem}
           />

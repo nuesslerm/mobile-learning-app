@@ -1,0 +1,39 @@
+{
+  "suite": "reorderablelist",
+  "step": "final-given-the-opt-ins-when-the-last-row-is-dragged-68b046",
+  "scheme": "dark",
+  "snapshot": "reorderablelist/final-given-the-opt-ins-when-the-last-row-is-dragged-68b046.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ReorderableList",
+      "ReorderableList-AnimatedView1",
+      "Row-one",
+      "ReorderableListHandle",
+      "Row-three",
+      "Row-two"
+    ],
+    "text": "one\nthree\ntwo"
+  },
+  "timings": {
+    "render_ms": 227
+  },
+  "name": "reorderablelist/final-given-the-opt-ins-when-the-last-row-is-dragged-68b046.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}
