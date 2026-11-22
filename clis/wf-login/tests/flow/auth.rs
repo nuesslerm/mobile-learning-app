@@ -82,10 +82,10 @@ fn wf_lists_the_tools_with_a_login_names_them_for_an_unknown_one_and_refuses_the
     let list = d.login(&["list"], &[]);
     let unknown = d.login(&["nope"], &[]);
     let retired = d.login(&["--remote", "claude"], &[]);
-    // Then every tool with an auth descriptor is printed in registry order with the vault key it lands in, the unknown one names them, and the flag is refused
+    // Then every tool with an auth descriptor is printed in registry order with its login mode and the vault key it lands in, the unknown one names them, and the flag is refused
     assert_eq!(
         (list.exit_code, list.stdout.as_str()),
-        (0, "claude: vault CLAUDE_CODE_OAUTH_TOKEN\ncodex: vault CODEX_OAUTH_JSON_B64\ncodex-ci: vault CODEX_CI_OAUTH_JSON_B64\nopencode\ngemini\ngcloud: vault GCLOUD_DRIVE_CREDENTIALS_DB_B64\nleetcode\n")
+        (0, "claude: link, vault CLAUDE_CODE_OAUTH_TOKEN\ncodex: link, vault CODEX_OAUTH_JSON_B64\ncodex-ci: link, vault CODEX_CI_OAUTH_JSON_B64\nopencode: vnc\ngemini: vnc\ngcloud: vnc, vault GCLOUD_DRIVE_CREDENTIALS_DB_B64\nleetcode: vnc\n")
     );
     assert_eq!((unknown.exit_code, unknown.stderr.as_str()), (1, "Unknown tool: nope\nKnown tools: claude, codex, codex-ci, opencode, gemini, gcloud, leetcode\n"));
     assert!(retired.exit_code == 2 && retired.stderr.contains("--remote was removed") && d.server.requests().is_empty(), "{}", retired.stderr);
@@ -100,7 +100,7 @@ fn a_person_logs_a_tool_in_through_the_shared_desktop_and_drives_its_capture() {
     // When a login starts and the listener says it finished (claude's reply carries the token its command printed)
     let ready = ("POST /auth/credential", MockReply::json(200, json!({ "ready": true, "outputSecret": { "key": "CLAUDE_CODE_OAUTH_TOKEN", "value": TOKEN } })));
     d.server.routes(&[("POST /auth/start", MockReply::json(200, session_for("claude"))), ready.clone(), ("POST /auth/done", MockReply::json(200, json!({})))]);
-    let finished = d.login(&["claude"], &[("BWS_ADMIN_ACCESS_TOKEN", Some("edit".to_string()))]);
+    let finished = d.login(&["claude", "--vnc"], &[("BWS_ADMIN_ACCESS_TOKEN", Some("edit".to_string()))]);
     let requests = d.server.requests();
     d.stub("bws", "printf '%s' \"${BWS_LIST:-[]}\"");
     // Then the link is printed, the session is closed, nothing is copied, and a stale credential here is never what decides
@@ -116,7 +116,7 @@ fn a_person_logs_a_tool_in_through_the_shared_desktop_and_drives_its_capture() {
 
     // When the listener never says it finished
     d.server.routes(&[("POST /auth/start", MockReply::json(200, session_for("claude")))]);
-    let timed_out = d.login(&["claude"], &[]);
+    let timed_out = d.login(&["claude", "--vnc"], &[]);
     // Then it times out with exit 1 and never signals done
     assert_eq!(timed_out.exit_code, 1);
     assert!(timed_out.stderr.contains("claude: login did not complete within the timeout"), "{}", timed_out.stderr);
@@ -126,7 +126,7 @@ fn a_person_logs_a_tool_in_through_the_shared_desktop_and_drives_its_capture() {
     d.server.routes(&[("POST /auth/start", MockReply::json(200, session_for("leetcode"))), ready.clone(), ("POST /auth/done", MockReply::json(200, json!({})))]);
     let leetcode = d.login(&["leetcode"], &[]);
     d.server.routes(&[("POST /auth/start", MockReply::json(200, session_for("codex"))), ready, ("POST /auth/done", MockReply::text(500, "boom"))]);
-    let codex = d.login(&["codex"], &[]);
+    let codex = d.login(&["codex", "--vnc"], &[]);
     // Then each is confirmed, and a failing done call does not undo a finished login
     assert_eq!(leetcode.exit_code, 0, "{}", leetcode.stderr);
     assert!(leetcode.stdout.contains("leetcode: authenticated ✓"), "{}", leetcode.stdout);
@@ -135,10 +135,10 @@ fn a_person_logs_a_tool_in_through_the_shared_desktop_and_drives_its_capture() {
 
     // When the listener refuses the start, the tool is unknown, or the listener credentials are missing
     d.server.routes(&[("POST /auth/start", MockReply::text(409, "in flight"))]);
-    let refused = d.login(&["claude"], &[]);
+    let refused = d.login(&["claude", "--vnc"], &[]);
     let unknown = d.login(&["nope"], &[]);
     let unknown_calls = d.server.requests().len();
-    let no_creds = d.login(&["claude"], &[("VNC_AUTH_TRIGGER_SECRET", None)]);
+    let no_creds = d.login(&["claude", "--vnc"], &[("VNC_AUTH_TRIGGER_SECRET", None)]);
     // Then each is explained and the last two call nothing
     assert_eq!(refused.exit_code, 1);
     assert!(refused.stderr.contains("Failed to start a login session: auth/start failed: 409 in flight"), "{}", refused.stderr);
@@ -551,7 +551,7 @@ fn login_with_clear_forgets_the_old_login_here_and_in_the_vm_before_it_starts_a_
         ("POST /auth/done", MockReply::json(200, json!({}))),
     ]);
     // When it logs in with --clear
-    let r = d.login(&["claude", "--clear"], &[("BWS_ADMIN_ACCESS_TOKEN", Some("edit".to_string()))]);
+    let r = d.login(&["claude", "--clear", "--vnc"], &[("BWS_ADMIN_ACCESS_TOKEN", Some("edit".to_string()))]);
     // Then the local file is gone, the VM is asked to log out before anything starts, and the login still completes
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
     assert!(r.stdout.contains("claude: cleared 1 file(s) here and 1 on the VM, browser cookies cleared"), "{}", r.stdout);
@@ -561,7 +561,7 @@ fn login_with_clear_forgets_the_old_login_here_and_in_the_vm_before_it_starts_a_
 
     // When the VM cannot be logged out
     d.server.routes(&[("POST /auth/logout", MockReply::text(502, "no"))]);
-    let failed = d.login(&["claude", "--clear"], &[]);
+    let failed = d.login(&["claude", "--clear", "--vnc"], &[]);
     // Then it says so and does not start a login
     assert!(failed.exit_code == 1 && failed.stderr.contains("Failed to clear the login on the VM"), "{}", failed.stderr);
     assert_eq!(d.urls(), ["/auth/logout"]);
@@ -720,7 +720,7 @@ fn a_login_stores_the_printed_token_as_a_plain_string_and_the_codex_file_as_base
         ("POST /auth/done", MockReply::json(200, json!({}))),
     ]);
     // When claude logs in
-    let claude = d.login(&["claude"], &edit);
+    let claude = d.login(&["claude", "--vnc"], &edit);
     // Then CLAUDE_CODE_OAUTH_TOKEN (not the key the reply named) is edited with the plain token, and the output never shows it
     assert_eq!(claude.exit_code, 0, "{}", claude.stderr);
     assert!(claude.stdout.contains("claude: vault secret CLAUDE_CODE_OAUTH_TOKEN updated"), "{}", claude.stdout);
@@ -735,7 +735,7 @@ fn a_login_stores_the_printed_token_as_a_plain_string_and_the_codex_file_as_base
         ("POST /auth/done", MockReply::json(200, json!({}))),
     ]);
     std::fs::remove_file(d.home.join("bws.log")).unwrap();
-    let codex = d.login(&["codex"], &edit);
+    let codex = d.login(&["codex", "--vnc"], &edit);
     // Then CODEX_OAUTH_JSON_B64 holds the base64 of the file, and nothing is copied here
     assert_eq!(codex.exit_code, 0, "{}", codex.stderr);
     assert!(codex.stdout.contains("codex: vault secret CODEX_OAUTH_JSON_B64 updated"), "{}", codex.stdout);
@@ -756,8 +756,8 @@ fn a_login_that_cannot_store_its_printed_token_fails_naming_the_key_and_never_th
         ("POST /auth/done", MockReply::json(200, json!({}))),
     ]);
     // When there is no vault write token, and when the vault rejects the write with an error that echoes the value
-    let no_token = d.login(&["claude"], &[("BWS_ADMIN_ACCESS_TOKEN", None)]);
-    let rejected = d.login(&["claude"], &[("BWS_ADMIN_ACCESS_TOKEN", Some("edit".to_string())), ("BWS_EDIT_FAILS", Some("1".to_string()))]);
+    let no_token = d.login(&["claude", "--vnc"], &[("BWS_ADMIN_ACCESS_TOKEN", None)]);
+    let rejected = d.login(&["claude", "--vnc"], &[("BWS_ADMIN_ACCESS_TOKEN", Some("edit".to_string())), ("BWS_EDIT_FAILS", Some("1".to_string()))]);
     // Then each exits 1 naming the key, and neither prints the token
     for run in [&no_token, &rejected] {
         assert_eq!(run.exit_code, 1, "{}{}", run.stdout, run.stderr);

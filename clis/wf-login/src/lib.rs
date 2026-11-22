@@ -3,6 +3,7 @@
 //! which is `wf` only, and ships the desktop's deploy leg.
 mod auth;
 mod help_table;
+mod link;
 mod vnc;
 
 pub use help_table::HELP;
@@ -24,7 +25,7 @@ pub fn run(rest: &[String]) -> Option<i32> {
         return auth::run(rest);
     }
     if rest.iter().any(|a| a == "--remote") {
-        eprintln!("wf: --remote was removed: `wf secret login <tool>` always logs in through the VM's browser (add --copy to also copy the credential to this machine)");
+        eprintln!("wf: --remote was removed: `wf secret login <tool>` logs in by the tool's own link (add --vnc for the shared desktop's browser, --copy to also copy the credential to this machine)");
         return Some(2);
     }
     let args: Vec<String> = std::iter::once("login".to_string()).chain(rest.iter().cloned()).collect();

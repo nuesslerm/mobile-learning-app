@@ -7,6 +7,7 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 
 use crate::vnc::descriptor::{self, builtin, Descriptor, KNOWN_TOOLS as TOOLS};
+
 const LINK_TTL_HOURS: u32 = 12;
 const DEFAULT_URL: &str = "http://vnc-auth:8795";
 
@@ -214,64 +215,73 @@ fn publish_to_vault(tool: &Descriptor, files: &Value) {
     }
 }
 
+/// Stores `value` under the vault key `key` for `tool`. A missing key names `wf secret create`; every message names the key and
+/// never the value, even when the vault's own error echoes it.
+pub(crate) fn vault_store(tool: &str, key: &str, value: &str) -> Result<(), ()> {
+    match secrets::update_secret_value(key, value) {
+        Ok(()) => Ok(()),
+        Err(e) if e.contains("does not exist") => {
+            eprintln!("{tool}: the vault has no secret {key} to update; create it first with `wf secret create {key}`");
+            Err(())
+        }
+        Err(e) => {
+            eprintln!("{tool}: could not update the vault secret {key}: {}", e.replace(value, "<redacted>"));
+            Err(())
+        }
+    }
+}
+
 /// Stores the secret the login command printed, as the plain string, under the descriptor's own vault key (never one the listener
-/// names). Unlike a file mirror this is the only copy of the credential, so a failure fails the login; the messages name the key
-/// and never the value, even when the vault's own error echoes it.
+/// names). Unlike a file mirror this is the only copy of the credential, so a failure fails the login.
 fn publish_output_secret(tool: &Descriptor, reply: &Value) -> Result<(), ()> {
     let Some(spec) = &tool.output_secret else { return Ok(()) };
     let Some(value) = reply["value"].as_str().filter(|v| !v.is_empty()) else {
         eprintln!("{}: the listener sent no secret to store as {}", tool.id, spec.key);
         return Err(());
     };
-    match secrets::update_secret_value(&spec.key, value) {
-        Ok(()) => {
-            println!("{}: vault secret {} updated", tool.id, spec.key);
-            Ok(())
-        }
-        Err(e) => {
-            eprintln!("{}: could not update the vault secret {}: {}", tool.id, spec.key, e.replace(value, "<redacted>"));
-            Err(())
-        }
-    }
+    vault_store(&tool.id, &spec.key, value)?;
+    println!("{}: vault secret {} updated", tool.id, spec.key);
+    Ok(())
 }
 
 /// `--clear`: forgets the tool's login on this machine (the files its config declares copyable, gcloud's account) and in the
 /// VM's login container (its credential files, a revoke, the browser's cookies), so the login that follows starts from nothing.
 /// agent-shell's relayed copy stays until that login overwrites it.
 fn clear_login(listener: &Listener, tool: &Descriptor) -> Result<(), i32> {
-    let here: Vec<&String> = tool.copy.iter().filter(|p| std::fs::remove_file(expand_tilde(p)).is_ok()).collect();
-    if let Some(vault) = &tool.vault {
-        match secrets::update_secret_value(&vault.key, LOGGED_OUT) {
-            Ok(()) => println!("{}: vault secret {} cleared", tool.id, vault.key),
-            Err(e) => eprintln!("{}: could not clear the vault secret {}: {e}", tool.id, vault.key),
-        }
-    }
-    if let Some(spec) = &tool.output_secret {
-        match secrets::update_secret_value(&spec.key, LOGGED_OUT) {
-            Ok(()) => println!("{}: vault secret {} cleared", tool.id, spec.key),
-            Err(e) => eprintln!("{}: could not clear the vault secret {}: {e}", tool.id, spec.key),
-        }
-    }
-    if tool.id == "gcloud" {
-        let _ = Command::new("gcloud").args(["config", "unset", "account"]).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).status();
-    }
+    let here = clear_here(tool);
     let reply = listener.post("/auth/logout", &json!({ "tool": tool.id }), " ").map_err(|e| {
         eprintln!("Failed to clear the login on the VM: {e}");
         1
     })?;
     let reply: Value = serde_json::from_str(&reply).unwrap_or(Value::Null);
     println!(
-        "{}: cleared {} file(s) here and {} on the VM{} (agent-shell keeps its copy until the new login replaces it)",
+        "{}: cleared {here} file(s) here and {} on the VM{} (agent-shell keeps its copy until the new login replaces it)",
         tool.id,
-        here.len(),
         reply["removed"].as_array().map_or(0, Vec::len),
         if reply["browser"] == json!(true) { ", browser cookies cleared" } else { "" }
     );
     Ok(())
 }
 
+/// The part of `--clear` that is this machine's and the vault's: the copyable files, the vault secrets (emptied to a value no
+/// restore can use as a login), gcloud's account. Returns how many files were removed.
+fn clear_here(tool: &Descriptor) -> usize {
+    let here = tool.copy.iter().filter(|p| std::fs::remove_file(expand_tilde(p)).is_ok()).count();
+    let keys = tool.vault.iter().map(|v| &v.key).chain(tool.output_secret.iter().map(|o| &o.key));
+    for key in keys {
+        match secrets::update_secret_value(key, LOGGED_OUT) {
+            Ok(()) => println!("{}: vault secret {key} cleared", tool.id),
+            Err(e) => eprintln!("{}: could not clear the vault secret {key}: {e}", tool.id),
+        }
+    }
+    if tool.id == "gcloud" {
+        let _ = Command::new("gcloud").args(["config", "unset", "account"]).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).status();
+    }
+    here
+}
+
 /// Writes each `{path, content}` the listener returned under this machine's home, owner-only, replacing what was there.
-fn store_files(files: &Value) -> Result<(), String> {
+pub(crate) fn store_files(files: &Value) -> Result<(), String> {
     use base64::Engine as _;
     use std::os::unix::fs::PermissionsExt;
     for file in files.as_array().ok_or("no files")? {
@@ -402,9 +412,11 @@ pub fn run(args: &[String]) -> Option<i32> {
         "list" => {
             parse_none(rest, &[], &[])?;
             for t in TOOLS {
-                match builtin(t).and_then(|d| d.vault.map(|v| v.key).or(d.output_secret.map(|o| o.key))) {
-                    Some(key) => println!("{t}: vault {key}"),
-                    None => println!("{t}"),
+                let d = builtin(t)?;
+                let mode = if d.link.is_some() { "link" } else { "vnc" };
+                match d.vault.map(|v| v.key).or(d.output_secret.map(|o| o.key)) {
+                    Some(key) => println!("{t}: {mode}, vault {key}"),
+                    None => println!("{t}: {mode}"),
                 }
             }
             Some(0)
@@ -423,12 +435,35 @@ pub fn run(args: &[String]) -> Option<i32> {
         }
         "listener" => crate::vnc::run_listener(rest),
         "login" => {
-            let p = parse(rest, &[], &["copy", "clear"]).filter(|p| p.positional.len() == 1)?;
+            let p = parse(rest, &["code"], &["copy", "clear", "vnc"]).filter(|p| p.positional.len() == 1)?;
             let tool = match find_tool(&p.positional[0]) {
                 Ok(t) => t,
                 Err(code) => return Some(code),
             };
-            exit_with(login(&tool, p.flag("copy"), p.flag("clear")))
+            let (copy, clear) = (p.flag("copy"), p.flag("clear"));
+            let Some(spec) = tool.link.clone().filter(|_| !p.flag("vnc")) else {
+                if p.opts.contains_key("code") {
+                    eprintln!("{}: --code goes with the link login, which this run does not use", tool.id);
+                    return Some(2);
+                }
+                return exit_with(login(&tool, copy, clear));
+            };
+            if let Some(code) = p.opts.get("code") {
+                if copy || clear {
+                    eprintln!("{}: --code only hands the code to the login that is waiting; run --copy and --clear on that login", tool.id);
+                    return Some(2);
+                }
+                return exit_with(crate::link::deliver_code(&tool, &spec, code));
+            }
+            if copy && spec.credential_file.is_none() {
+                eprintln!("{}: this login declares no credential to copy; run it without --copy", tool.id);
+                return Some(1);
+            }
+            if clear {
+                let removed = clear_here(&tool);
+                println!("{}: cleared {removed} file(s) here", tool.id);
+            }
+            exit_with(crate::link::login(&tool, &spec, copy))
         }
         _ => None,
     }
