@@ -16,6 +16,8 @@ import { Keyboard } from 'react-native';
 
 import type { EditorInputHandle } from '../EditorInput';
 import type { Selection } from '../../../domain/editor/types';
+import { useCursorHandleSettingStore } from '../../../state/editor/cursorHandleSettingStore';
+import { CursorHandle } from './CursorHandle';
 
 type Props = {
   editorRef: React.RefObject<EditorInputHandle | null>;
@@ -40,6 +42,7 @@ export function ActionToolbar({
           Math.max(selection.start, selection.end)
         );
   const hasSelection = selectedText.length > 0;
+  const cursorHandle = useCursorHandleSettingStore((s) => s.cursorHandle);
 
   const refocusEditor = useCallback(() => {
     Logger.info('toolbar.refocus', { action: 'refocus' });
@@ -76,7 +79,10 @@ export function ActionToolbar({
   }, [editorRef, refocusEditor, source]);
 
   return (
-    <KeyboardToolbarRail testID="EditorActionToolbar">
+    <KeyboardToolbarRail
+      testID="EditorActionToolbar"
+      leading={cursorHandle ? <CursorHandle editorRef={editorRef} /> : undefined}
+    >
       <KeyboardToolbarButton
         testID="EditorAction-Undo"
         accessibilityLabel="Undo"

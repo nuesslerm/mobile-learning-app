@@ -21,6 +21,9 @@ import type {
   FromEditorMessage,
   ToEditorMessage,
 } from '../../domain/ports';
+import { createCaretDrag, moveCaretBy, type CaretDrag } from '../../domain/editor/caretDrag';
+import type { Delta } from '../../domain/editor/cursorDrag';
+import type { Motion } from '../../domain/editor/cursorMotion';
 import { writeThrough, type WriteRequest } from '../../domain/editor/documentWrite';
 import { clearEditMark, markEdit, setEditMarkHidden } from '../../domain/editor/editMark';
 import { createForwardingPost } from '../../domain/editor/editorForwarding';
@@ -45,6 +48,13 @@ const HYDRATE_TIMEOUT_MS = 15_000;
 // A run waits this long for the editor's text; a page that is slower than this runs on the screen's text, with no error line.
 const CHECKPOINT_DEADLINE_MS = 500;
 
+export type CaretDragSession = {
+  move: (delta: Delta) => void;
+  end: () => Promise<void>;
+};
+
+const NO_CARET_DRAG: CaretDragSession = { move: () => undefined, end: () => Promise.resolve() };
+
 export type EditorInputHandle = EditTarget & {
   focus: () => void;
   blur: () => void;
@@ -56,6 +66,10 @@ export type EditorInputHandle = EditTarget & {
   setTextAndSelection: (text: string, sel: Selection) => void;
   /** Apply a pure whole-document edit to the editor's own text and selection (the toolbar's Tab on a selection, Dedent, Comment, Newline). */
   transformDocument: (transform: (text: string, sel: Selection) => EditResult) => void;
+  /** Starts a caret drag at the finger's grab: the editor is focused once, the page's selection events are held while it lasts, and React is told the selection once, at `end`. */
+  beginCaretDrag: () => CaretDragSession;
+  /** One caret motion from the editor's own caret, as an accessibility action asks for it. */
+  moveCaret: (motion: Motion) => Promise<void>;
   /** Whether the editor shows its suggestion list now, as far as the last event said. */
   isCompletionOpen: () => boolean;
   /** Takes the suggestion the list has selected; false when nothing was open or taken. */
@@ -128,6 +142,10 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     const queuedTextRef = useRef<{ text: string; sel: Selection } | null>(null);
     const valueRef = useRef(value);
     valueRef.current = value;
+    const onSelectionChangeRef = useRef(onSelectionChange);
+    onSelectionChangeRef.current = onSelectionChange;
+    // the live caret drag, and the last selection the page reported while it ran: React hears the drag's end once, not every call
+    const caretDragRef = useRef<{ drag: CaretDrag; held: Selection | null } | null>(null);
     const initialValueRef = useRef(value);
     // Tracks the last text CM6 reported via contentChanged, so we can detect
     // external store changes (e.g. replaceAll) and push them back to CM6.
@@ -340,6 +358,26 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             next: (current) => transform(current.text, current.selection),
             label: 'toolbar.transform',
           });
+        },
+        beginCaretDrag(): CaretDragSession {
+          if (!isReadyRef.current || !isInitializedRef.current) return NO_CARET_DRAG;
+          caretDragRef.current?.drag.cancel();
+          const session = { drag: createCaretDrag(apiBridge.client), held: null as Selection | null };
+          caretDragRef.current = session;
+          return {
+            move: (delta) => session.drag.move(delta),
+            async end() {
+              const landed = await session.drag.end();
+              if (caretDragRef.current !== session) return;
+              caretDragRef.current = null;
+              const selection = landed ?? session.held;
+              if (selection) onSelectionChangeRef.current(selection);
+            },
+          };
+        },
+        async moveCaret(motion: Motion) {
+          if (!isReadyRef.current || !isInitializedRef.current) return;
+          await moveCaretBy(apiBridge.client, motion);
         },
         isCompletionOpen() {
           return completionOpenRef.current;
@@ -586,6 +624,8 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         queuedFocusRef.current = false;
         queuedSelectionRef.current = null;
         queuedTextRef.current = null;
+        caretDragRef.current?.drag.cancel();
+        caretDragRef.current = null;
         updateHydratedRef.current(false);
       };
     }, []);
@@ -664,7 +704,8 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             onSelectionChange(m.selection);
             break;
           case 'selectionChanged':
-            onSelectionChange(m.selection);
+            if (caretDragRef.current) caretDragRef.current.held = m.selection;
+            else onSelectionChange(m.selection);
             break;
         }
       },
