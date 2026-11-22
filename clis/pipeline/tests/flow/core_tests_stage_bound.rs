@@ -168,3 +168,71 @@ fn a_job_that_runs_out_of_memory_has_its_largest_process_killed_and_named_in_the
     // And the guard does not outlive the step
     assert!(!running(&format!("{}/memguard.sh", guard.display())), "the guard survived the step");
 }
+
+#[test]
+fn a_guard_with_a_token_keeps_one_check_run_with_the_machines_state_and_completes_it_when_the_job_ends() {
+    // Given a `gh` that records its calls and answers a check run id, a stage log, and the guard started with a token and a name
+    let s = Scratch::new();
+    let calls = s.path("gh.calls");
+    s.stub("gh", &format!("echo \"$@\" >> {}\ncase \"$*\" in *POST*) echo 77;; esac", calls.display()));
+    std::fs::create_dir_all(s.path("stages")).unwrap();
+    std::fs::write(s.path("stages/flow-tests.log"), "line one\nthe last line of the stage\n").unwrap();
+    std::fs::write(s.path("guard.sh"), read(".github/actions/hosted-setup/memguard.sh")).unwrap();
+    let path = format!("{}:{}", s.bin.display(), std::env::var("PATH").unwrap_or_default());
+    let mut guard = std::process::Command::new("bash")
+        .arg(s.path("guard.sh"))
+        .args(["0", s.path("guard.log").to_str().unwrap(), s.path("stages").to_str().unwrap()])
+        .env("PATH", path)
+        .env("GH_TOKEN", "not-a-token")
+        .env("GITHUB_REPOSITORY", "owner/repo")
+        .env("GITHUB_SHA", "abc123")
+        .env("HEARTBEAT_NAME", "core-tests 3/6")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+
+    // When it runs for a moment and the job ends (the step stops it with SIGTERM)
+    std::thread::sleep(Duration::from_millis(1500));
+    let _ = std::process::Command::new("kill").args(["-TERM", &guard.id().to_string()]).status();
+    let _ = guard.wait();
+    let text = std::fs::read_to_string(&calls).unwrap_or_default();
+
+    // Then one check run was created for the commit under the job's name, and its first text holds the machine's state and the stage log's tail
+    assert_eq!(text.lines().filter(|l| l.contains("POST") && l.contains("repos/owner/repo/check-runs")).count(), 1, "{text}");
+    assert!(text.contains("name=heartbeat core-tests 3/6") && text.contains("head_sha=abc123"), "{text}");
+    assert!(text.contains("MemAvailable") && text.contains("the last line of the stage"), "{text}");
+
+    // And it was completed when the job ended, never left running
+    assert!(text.lines().any(|l| l.contains("PATCH") && l.contains("check-runs/77") && l.contains("status=completed") && l.contains("conclusion=neutral")), "{text}");
+}
+
+#[test]
+fn a_guard_without_a_token_posts_nothing() {
+    // Given a `gh` that records its calls and a guard started without a token
+    let s = Scratch::new();
+    let calls = s.path("gh.calls");
+    s.stub("gh", &format!("echo \"$@\" >> {}", calls.display()));
+    std::fs::write(s.path("guard.sh"), read(".github/actions/hosted-setup/memguard.sh")).unwrap();
+    let path = format!("{}:{}", s.bin.display(), std::env::var("PATH").unwrap_or_default());
+    let mut guard = std::process::Command::new("bash")
+        .arg(s.path("guard.sh"))
+        .args(["0", s.path("guard.log").to_str().unwrap()])
+        .env("PATH", path)
+        .env_remove("GH_TOKEN")
+        .env("GITHUB_REPOSITORY", "owner/repo")
+        .env("GITHUB_SHA", "abc123")
+        .env("HEARTBEAT_NAME", "core-tests 3/6")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+
+    // When it runs for a moment and is stopped
+    std::thread::sleep(Duration::from_millis(1200));
+    let _ = std::process::Command::new("kill").args(["-TERM", &guard.id().to_string()]).status();
+    let _ = guard.wait();
+
+    // Then gh was never called
+    assert!(!calls.exists(), "{}", std::fs::read_to_string(&calls).unwrap_or_default());
+}

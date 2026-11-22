@@ -355,6 +355,12 @@ jobs:
     if: ${{ ((needs.plan.outputs.flow_tests != '0' && needs.plan.outputs.run_flow == 'true') || (needs.plan.outputs.typecheck_lint_unit_tests != '0' && needs.plan.outputs.run_unit == 'true')) && (inputs.stages == 'all' || inputs.stages == 'core') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 30
+    # checks: write for the guard's heartbeat check run; a job's permissions replace the workflow's, so the others stay listed
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+      checks: write
     concurrency:
       group: ${{ format('hosted-core-tests-{0}-{1}-{2}{3}', github.workflow, matrix.shard, fromJSON(needs.plan.outputs.core_shard_keys)[matrix.shard], needs.plan.outputs.fresh == 'true' && '-fresh' || '') }}
       cancel-in-progress: false
@@ -415,6 +421,9 @@ jobs:
           STAGE_KILL_S: '15'
           # the largest process of the job is killed, and named in the log, when the machine is down to this much free memory: a shard that froze the runner left no log
           MEMGUARD_FLOOR_MB: '1200'
+          # the guard (only) posts the machine's state to a check run of the commit every 30 s; the token leaves the environment before any stage starts
+          HEARTBEAT_TOKEN: ${{ github.token }}
+          HEARTBEAT_NAME: core-tests ${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}
         # two tasks at a time per stage, two stages: four tasks on the 4 vCPUs
         run: |
           fresh=()
@@ -426,9 +435,10 @@ jobs:
             : > "$logs/memguard.log"
             tail -n +1 -f -s 0.2 "$logs/memguard.log" 2>/dev/null &
             tails+=("$!")
-            setsid bash "$guard" "$MEMGUARD_FLOOR_MB" "$logs/memguard.log" > /dev/null 2>&1 &
+            GH_TOKEN="${HEARTBEAT_TOKEN:-}" setsid bash "$guard" "$MEMGUARD_FLOOR_MB" "$logs/memguard.log" "$logs" > /dev/null 2>&1 &
             guardpid=$!
           fi
+          unset HEARTBEAT_TOKEN
           # a stage gets its own session (setsid) under timeout, its output goes to a file that tail streams into the log, and 10 seconds before the limit a snapshot of its process tree is taken, which is gone once the stage is killed
           stage() {
             local name=$1 pid d
