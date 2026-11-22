@@ -90,6 +90,7 @@ export {
   type ScreenHeaderProps,
 } from './composites/screen-header';
 export { useHeaderHeightStore } from './lib/headerHeightStore';
+export { DEFAULT_GLASS_HEADERS, useGlassHeaderStore } from './lib/glassHeaderStore';
 export {
   HeaderMenu,
   type HeaderMenuItem,

@@ -614,6 +614,9 @@ importers:
       '@lib/lint-rules':
         specifier: workspace:*
         version: link:../lint-rules
+      '@react-native-async-storage/async-storage':
+        specifier: 2.2.0
+        version: 2.2.0(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))
       '@types/react':
         specifier: 'catalog:'
         version: 19.2.17
@@ -626,6 +629,9 @@ importers:
       dependency-cruiser:
         specifier: ^17.4.3
         version: 17.4.3
+      expo-router:
+        specifier: ~58.0.32
+        version: 58.0.32(f01dd1c38c595c93f8ddc36fc378cc99)
       oxlint:
         specifier: 'catalog:'
         version: 1.87.0(oxlint-tsgolint@7.0.2003)
