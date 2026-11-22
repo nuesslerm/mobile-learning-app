@@ -1,4 +1,3 @@
-import type { EditorClient } from '@lib/code-editor-api';
 import { act, createFakeAudioRecorder, createFakeVoiceEditTransport, routerHarness, screen, userEvent, waitFor, type FlowCodeEditor, type FlowSession } from '@lib/flow-test-harness';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -6,11 +5,10 @@ import { app } from '../../../../tests/flow/app';
 import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLines';
 import type { CodeRunnerPort, LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../..';
 import type { EditorBridgePort } from '../../domain/ports';
-import { createWebViewEditorBridge } from '../../data/editor/cm6/webViewEditorBridge';
 import { createPyodideRunner, type PyodideRunner, type RunnerLimits } from '../../data/pyodide/pyodideRunner';
 import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSettingStore';
 import { useResetCodeRequestStore } from '../../state/resetCodeRequestStore';
-import { answers, createFakeCodeRunner, createFakePageHost, failingRun, type FakePageHost, type FakePageScript } from '../../testing';
+import { answers, createFakeCodeRunner, createFakePageHost, editorBridgeWith, failingRun, type FakePageHost, type FakePageScript } from '../../testing';
 
 // line 2 is the starter's own signature, so a reset leaves it in the part of the text that does not change
 const SEED = ['class Solution:', '    def twoSum(self, nums: List[int], target: int) -> List[int]:', '        seen = {}', '        value = seen[target]', '        pairs = [value]', '        return pairs'].join('\n');
@@ -46,18 +44,6 @@ async function renderEditor(options: { runner?: CodeRunnerPort; deviceRunner?: C
     ...(options.editorBridge ? { editorBridge: options.editorBridge } : {}),
   };
   return app.render('/leetcode/two-sum', { overrides: { leetcode: ports }, search: { seed: options.seed ?? SEED } });
-}
-
-/** A bridge whose client answers the calls `change` names itself, given the page's own client; every other call is the page's. */
-function bridgeWith(change: (real: EditorClient) => Partial<EditorClient>): EditorBridgePort {
-  const real = createWebViewEditorBridge();
-  return {
-    html: () => real.html(),
-    connect: (webView) => {
-      const bridge = real.connect(webView);
-      return { receive: bridge.receive, client: { ...bridge.client, ...change(bridge.client) } };
-    },
-  };
 }
 
 const pressRun = () => userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
@@ -207,7 +193,7 @@ describe('the mark lives as long as the card', () => {
     const { runner } = deviceRunner({ judge: (call) => answers.caseError(call, 'KeyError: 9', { line: 4 }, 1) });
     let release: () => void = () => undefined;
     const gate = new Promise<void>((resolve) => (release = resolve));
-    const held = bridgeWith((real) => ({
+    const held = editorBridgeWith((real) => ({
       setMarks: async (specs, options) => {
         await gate;
         return real.setMarks(specs, options);
@@ -288,7 +274,7 @@ describe('the page goes where the line is', () => {
   });
 
   it('given the editor refused the mark, when the card lays out, then the card is revealed as the fallback and nothing is offered as Line N', async () => {
-    const reportsAnotherPage = bridgeWith((real) => ({
+    const reportsAnotherPage = editorBridgeWith((real) => ({
       hello: async () => {
         const reply = await real.hello();
         return reply.ok ? { ...reply, value: { ...reply.value, instance: 'page-before-the-restart' } } : reply;
@@ -414,7 +400,7 @@ describe('an editor that cannot give its text', () => {
     // Given a bridge whose hello is never answered, so no checkpoint can be taken
     useRunnerSettingStore.setState({ runner: 'device' });
     const { host, runner } = deviceRunner({ judge: (call) => answers.caseError(call, 'KeyError: 9', { line: 4 }, 1) });
-    const session = await renderEditor({ deviceRunner: runner, editorBridge: bridgeWith(() => ({ hello: () => new Promise<never>(() => undefined) })) });
+    const session = await renderEditor({ deviceRunner: runner, editorBridge: editorBridgeWith(() => ({ hello: () => new Promise<never>(() => undefined) })) });
     const editor = await session.editor();
     await forgetLoggedLines();
 
@@ -434,7 +420,7 @@ describe('an editor that cannot give its text', () => {
     // Given a bridge that names the page as it was before a restart when the checkpoint is taken
     useRunnerSettingStore.setState({ runner: 'device' });
     const { runner } = deviceRunner({ judge: (call) => answers.caseError(call, 'KeyError: 9', { line: 4 }, 1) });
-    const reportsAnotherPage = bridgeWith((real) => ({
+    const reportsAnotherPage = editorBridgeWith((real) => ({
       hello: async () => {
         const reply = await real.hello();
         return reply.ok ? { ...reply, value: { ...reply.value, instance: 'page-before-the-restart' } } : reply;
