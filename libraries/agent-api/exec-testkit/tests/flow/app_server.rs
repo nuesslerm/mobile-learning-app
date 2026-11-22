@@ -104,3 +104,34 @@ fn given_a_client_that_leaves_the_script_when_it_sends_the_wrong_request_then_th
     assert_eq!(done.status.code(), Some(7));
     assert!(String::from_utf8_lossy(&done.stderr).contains("expected a thread/start"), "{}", String::from_utf8_lossy(&done.stderr));
 }
+
+#[test]
+fn given_a_codex_nobody_scripted_when_a_client_opens_threads_and_turns_then_every_turn_ends_completed_and_the_server_stays_up_for_the_next_message() {
+    // Given the scripted Codex as it comes, with no conversation written for it
+    let cli = ScriptedCli::install();
+    let mut child = start(&cli);
+    let mut out = BufReader::new(child.stdout.take().unwrap());
+    // When a client does the handshake, starts a thread and runs two turns on it, and resumes another thread
+    send(&mut child, json!({"id": 1, "method": "initialize", "params": {}}));
+    let init = read_until(&mut out, |f| f["id"] == 1);
+    send(&mut child, json!({"method": "initialized"}));
+    send(&mut child, json!({"id": 2, "method": "thread/start", "params": {}}));
+    let thread = read_until(&mut out, |f| f["id"] == 2);
+    let id = thread[0]["result"]["thread"]["id"].as_str().unwrap().to_string();
+    send(&mut child, json!({"id": 3, "method": "turn/start", "params": {"threadId": id, "input": []}}));
+    let first = read_until(&mut out, |f| f["method"] == "turn/completed");
+    send(&mut child, json!({"id": 4, "method": "turn/start", "params": {"threadId": id, "input": []}}));
+    let second = read_until(&mut out, |f| f["method"] == "turn/completed");
+    send(&mut child, json!({"id": 5, "method": "thread/resume", "params": {"threadId": "other"}}));
+    let resumed = read_until(&mut out, |f| f["id"] == 5);
+    // Then the handshake and the thread are answered under the client's ids, each turn starts and ends completed on its own id, and the resumed thread is the one named
+    assert_eq!((init[0]["id"].clone(), thread[0]["id"].clone()), (json!(1), json!(2)));
+    let ended = |frames: &[Value]| frames.last().unwrap()["params"]["turn"].clone();
+    assert_eq!((ended(&first)["status"].clone(), ended(&second)["status"].clone()), (json!("completed"), json!("completed")));
+    assert_ne!(ended(&first)["id"], ended(&second)["id"]);
+    assert!(first.iter().any(|f| f["method"] == "turn/started"), "{first:?}");
+    assert_eq!(resumed[0]["result"]["thread"]["id"], "other");
+    // And the process is still running, and the start is in the log of invocations
+    assert!(child.try_wait().unwrap().is_none());
+    assert_eq!(cli.invocations("codex").len(), 1);
+}

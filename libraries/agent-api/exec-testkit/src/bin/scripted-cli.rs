@@ -246,6 +246,44 @@ fn play_app_server(script: &Script, dir: &Path, program: &str) -> ! {
     std::process::exit(0)
 }
 
+/// Codex's app-server that nobody scripted: it answers the handshake and every thread and turn the client opens, and each turn ends completed having said
+/// nothing, as the unscripted start of Codex did before its server stayed up (it ended at once with code 0 and the turn was completed).
+fn serve_unscripted_app_server() -> ! {
+    let (mut threads, mut turns) = (0u64, 0u64);
+    for line in std::io::stdin().lock().lines().map_while(Result::ok) {
+        let Ok(request) = serde_json::from_str::<Value>(&line) else { continue };
+        let (Some(id), Some(method)) = (request.get("id").cloned(), request["method"].as_str()) else { continue };
+        let thread = request["params"]["threadId"].as_str().unwrap_or_default().to_string();
+        let mut notes = Vec::new();
+        let result = match method {
+            "initialize" => json!({"userAgent": "scripted-codex"}),
+            "thread/start" => {
+                threads += 1;
+                json!({"thread": {"id": format!("scripted-thread-{threads}"), "status": {"type": "idle"}}})
+            }
+            "thread/resume" | "thread/unarchive" => json!({"thread": {"id": thread, "status": {"type": "idle"}}}),
+            "turn/start" => {
+                turns += 1;
+                let turn = format!("scripted-turn-{turns}");
+                notes.push(json!({"method": "turn/started", "params": {"threadId": thread, "turn": {"id": turn, "items": [], "status": "inProgress", "error": null}}}));
+                notes.push(json!({"method": "thread/status/changed", "params": {"threadId": thread, "status": {"type": "idle"}}}));
+                notes.push(json!({"method": "turn/completed", "params": {"threadId": thread, "turn": {"id": turn, "items": [], "status": "completed", "error": null}}}));
+                json!({"turn": {"id": turn, "items": [], "itemsView": "notLoaded", "status": "inProgress", "error": null}})
+            }
+            "turn/steer" | "turn/interrupt" => json!({}),
+            other => {
+                print(&json!({"id": id, "error": {"code": -32601, "message": format!("no such method: {other}")}}).to_string());
+                continue;
+            }
+        };
+        print(&json!({"id": id, "result": result}).to_string());
+        for note in notes {
+            print(&note.to_string());
+        }
+    }
+    std::process::exit(0)
+}
+
 fn main() {
     let exe = std::env::current_exe().unwrap_or_else(|e| fail(1, &format!("no path of its own: {e}")));
     let (dir, program) = (exe.parent().unwrap_or(Path::new(".")).to_path_buf(), exe.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_string());
@@ -286,5 +324,8 @@ fn main() {
     let mut file = std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap_or_else(|e| fail(1, &format!("{}: {e}", log.display())));
     let _ = writeln!(file, "{}", serde_json::to_string(&invocation).unwrap_or_default());
     drop(file);
+    if args.first().map(String::as_str) == Some("app-server") && script.turns.is_empty() {
+        serve_unscripted_app_server();
+    }
     play(&turn, &program, &args)
 }

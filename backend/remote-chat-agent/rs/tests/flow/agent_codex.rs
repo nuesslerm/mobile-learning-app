@@ -242,3 +242,23 @@ async fn given_a_server_that_exits_leaving_a_process_holding_its_output_when_a_t
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_a_codex_nobody_scripted_when_two_turns_run_then_both_end_completed_on_the_one_server_that_started() {
+    // Given the service and the real executor, with the scripted Codex as it comes (no conversation written for it)
+    let env = Env::new(&[]);
+    let chain = chain_with(&env, Options::default()).await;
+    let mut agent = chain.agent().await;
+    thread(&mut agent, "t1").await;
+    // When two turns run on the thread
+    turn(&mut agent, "t1", "first", "full-access").await;
+    let first = agent.events_through("turn.finished").await;
+    turn(&mut agent, "t1", "second", "full-access").await;
+    let second = agent.events_through("turn.finished").await;
+    // Then each ends completed with no error and nothing said, and the one server of the workspace ran both
+    for events in [&first, &second] {
+        assert_eq!((kinds(events)[0], reason(events), events.iter().any(|e| e.kind == "error")), ("turn.started", json!("completed"), false), "{events:?}");
+    }
+    assert_eq!(spoken(&second), "");
+    assert_eq!(chain.cli.invocations("codex").len(), 1);
+}
