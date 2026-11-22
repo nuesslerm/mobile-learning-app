@@ -213,7 +213,7 @@ pub(crate) fn section(health: &Health) -> String {
     if health.events == 0 && health.findings.is_empty() && health.notes.is_empty() && health.shim.is_empty() {
         return String::new();
     }
-    let mut out = String::from("\n### 🗄️ Cache health\n\n");
+    let mut out = format!("\n{}\n\n", crate::ci_skeleton::CACHE_HEALTH);
     if health.findings.is_empty() {
         let replayed: u64 = health.stages.iter().map(|s| s.2).sum();
         let total: u64 = health.stages.iter().map(|s| s.3).sum();

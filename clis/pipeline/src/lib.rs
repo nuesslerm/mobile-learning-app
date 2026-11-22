@@ -20,6 +20,7 @@ mod ci_live;
 mod ci_prune;
 mod ci_telemetry;
 mod ci_trend;
+mod ci_skeleton;
 mod ci_plan;
 mod ci_preflight;
 mod ci_tidy;

@@ -2,6 +2,7 @@
 //! each failed job's log), the counts, a table of the jobs with a time bar, the VM's own numbers during the run (reporting-service),
 //! then the cache, crate and e2e details; posted on the open PR and in the job summary, and, when a job failed, on the pushed commit.
 //! Each run (and runner) keeps its own comment.
+use crate::ci_skeleton::{pending, CACHE, CACHE_HEALTH, CHART, FIXED_COST, IDLE, JOBS, RUNNERS, TODO, VM, WHERE_TIME};
 use cli_http::{Request, Response};
 use regex::Regex;
 use serde_json::{json, Value};
@@ -553,7 +554,7 @@ fn job_row(job: &Value, s: &Stats, index: usize, now: i64) -> String {
         Some("completed") if skipped => "-".to_string(),
         Some("completed") => took(job),
         Some("in_progress") => format!("🔄 {}", epoch(&job["started_at"]).map_or("running".to_string(), |a| format!("{} so far", seconds((now - a).max(0))))),
-        _ => "⏸️ waiting".to_string(),
+        _ => "⏸️ queued".to_string(),
     };
     let step = (job["status"] == "in_progress").then(|| job["steps"].as_array().and_then(|st| st.iter().find(|x| x["status"] == "in_progress")).map(|x| text(x, "name"))).flatten();
     let mut notes = notes(job, s);
@@ -652,8 +653,8 @@ fn flag(value: f64, orange: f64, red: f64) -> &'static str {
 
 /// The VM's own numbers over the run, from reporting-service: what the host was doing while the jobs ran (the average and the worst
 /// moment of each signal) and whether it stopped sampling. A line saying why it is missing when it cannot be read.
-fn vm_section(env: &Env, jobs: &[crate::ci_insights::JobTime], from_ms: i64, to_ms: i64) -> String {
-    let heading = "\n### 🖥️ VM during the run\n\n";
+fn vm_section(env: &Env, jobs: &[crate::ci_insights::JobTime], from_ms: i64, to_ms: i64, running: bool) -> String {
+    let heading = format!("\n{VM}\n\n");
     let now = wf_kit::time::now_ms() as i64;
     if (now - from_ms) / 1000 > 23 * 3600 {
         return format!("{heading}*VM stats unavailable: the run is older than the stored history.*\n");
@@ -667,7 +668,7 @@ fn vm_section(env: &Env, jobs: &[crate::ci_insights::JobTime], from_ms: i64, to_
     let sum = wf_vmops::host_summary::summarize(&points, from_ms, to_ms, 180_000);
     let samples = sum["samples"].as_u64().unwrap_or(0);
     if samples == 0 {
-        return format!("{heading}*No host samples were stored for the run.*\n");
+        return format!("{heading}{}\n", pending(running, "the first host samples", "no host samples were stored for the run"));
     }
     let sig = |name: &str| (sum["signals"][name]["avg"].as_f64(), sum["signals"][name]["peak"].as_f64(), sum["signals"][name]["atMs"].as_i64());
     let total = sum["memoryTotal"].as_f64().unwrap_or(0.0);
@@ -727,8 +728,8 @@ fn job_resources(points: &[Value], jobs: &[crate::ci_insights::JobTime]) -> Stri
 
 /// The runners' own numbers for a labelled pipeline (GitHub-hosted jobs are machines of their own, so the VM's history says nothing about
 /// them): every job leaves `stats-<job>.jsonl` (one `{t, cpu, memUsedMb, memTotalMb, load1, ...}` per sample) in `WF_CI_RUNNER_STATS_DIR`.
-fn runner_section(env: &Env) -> String {
-    let heading = "\n### 🖥️ Runners during the run\n\n";
+fn runner_section(env: &Env, running: bool) -> String {
+    let heading = format!("\n{RUNNERS}\n\n");
     if var("WF_CI_RUNNER_STATS_DIR").is_none() {
         return String::new();
     }
@@ -762,7 +763,7 @@ fn runner_section(env: &Env) -> String {
         ));
     }
     if rows.is_empty() {
-        return format!("{heading}*No runner samples were stored for this run.*\n");
+        return format!("{heading}{}\n", pending(running, "the first runner samples", "no runner samples were stored for this run"));
     }
     machines.sort();
     let mut kinds: Vec<(String, usize)> = Vec::new();
@@ -829,7 +830,7 @@ fn job_chart(shown: &[(&Value, Stats)]) -> String {
     if minutes.len() < 2 {
         return String::new();
     }
-    format!("\n### Minutes per job\n{}", bar_chart("Minutes per job (numbers as in the table)", "minutes", &labels, &minutes, 1.0, false))
+    format!("\n{CHART}\n{}", bar_chart("Minutes per job (numbers as in the table)", "minutes", &labels, &minutes, 1.0, false))
 }
 
 /// A vertical bar chart of one series, its labels and the unit on the axis; the axis tops out at the next ten above the peak. With `thin`,
@@ -970,8 +971,8 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
     glance.extend((replaced > 0).then(|| format!("**🚫 {replaced} replaced while pending by a newer run**")));
     let live_jobs = count(&|j| j["status"] == "in_progress");
     glance.extend((live_jobs > 0).then(|| format!("**🔄 {live_jobs} running**")));
-    let waiting = count(&|j| !matches!(j["status"].as_str(), Some("completed" | "in_progress")));
-    glance.extend((waiting > 0).then(|| format!("**⏸️ {waiting} waiting**")));
+    let queued = count(&|j| !matches!(j["status"].as_str(), Some("completed" | "in_progress")));
+    glance.extend((queued > 0).then(|| format!("**⏸️ {queued} queued**")));
     glance.extend((!failures.is_empty() && !skipped.is_empty()).then(|| format!("**⏭️ {} skipped after the failure**", skipped.len())));
     glance.extend(wall.map(|w| format!("⏱️ {w}")));
     glance.extend(percent(hits, hits + misses).map(|p| format!("🗄️ build cache {p}% hit")));
@@ -981,49 +982,56 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
     out.push_str(&format!("{}\n\n", glance.join(" · ")));
     let finished_jobs: Vec<&Value> = shown.iter().map(|(j, _)| *j).collect();
     let gathered = crate::ci_telemetry::gather(env, &finished_jobs, !running && !shown.is_empty());
-    let sealed = gathered.profile.as_ref().filter(|p| p.workflow.contains('+')).and_then(|_| crate::ci_trend::Sealed::open(&env.run).ok());
-    let trend = crate::ci_trend::section(sealed.as_ref(), gathered.profile.as_ref(), &finished_jobs);
-    let actions = crate::ci_actions::section(sealed.as_ref(), &gathered);
+    let sealed = Some(gathered.workflow.as_str()).filter(|w| w.contains('+')).and_then(|_| crate::ci_trend::Sealed::open(&env.run).ok());
+    let wall_so_far = started.filter(|_| running).map(|from| (now - from).max(0));
+    let trend = crate::ci_trend::section(sealed.as_ref(), &gathered.workflow, &crate::ci_trend::Now { profile: gathered.profile.as_ref(), wall_so_far, running, jobs: &finished_jobs });
+    let (idle, todo) = crate::ci_actions::section(sealed.as_ref(), &gathered);
     let telemetry = crate::ci_telemetry::section(&gathered, &failed_names(failures));
-    if !telemetry.headline.is_empty() {
-        out.push_str(&format!("{}\n\n", telemetry.headline));
-    }
-    if !telemetry.verdict.is_empty() {
-        out.push_str(&format!("{}\n\n", telemetry.verdict));
-    }
+    let line = |text: &str, what: &str, why: &str| if text.is_empty() { format!("{}\n\n", pending(running, what, why)) } else { format!("{text}\n\n") };
+    out.push_str(&line(&telemetry.headline, "the run to finish for its wall, runner time and parallel efficiency", "no job ran to completion, so the run has no profile"));
+    out.push_str(&line(&telemetry.verdict, "the run to finish for its critical path and fixed cost", "the profile has nothing to single out"));
 
-    out.push_str(&crate::ci_insights::where_time_went(&times, &facts));
-    out.push_str("### Jobs\n\n| | Job | Took |\n|---|---|---|\n");
+    let counted: Vec<crate::ci_insights::JobTime> = shown
+        .iter()
+        .map(|(j, _)| {
+            let mut t = job_time(j);
+            if running && j["status"] == "in_progress" {
+                t.ended = t.started.map(|_| now);
+            }
+            t
+        })
+        .collect();
+    let slot = |heading: &str, section: String, what: &str, why: &str| crate::ci_skeleton::slot(heading, section, running, what, why);
+    out.push_str(&slot(WHERE_TIME, crate::ci_insights::where_time_went(&counted, &facts, running), "the first job to start", "no job ran"));
+    out.push_str(&format!("\n{JOBS}\n\n| | Job | Took |\n|---|---|---|\n"));
     let mut crates: Vec<(String, String, bool)> = Vec::new();
     let mut caches: Vec<(String, Cache)> = Vec::new();
-    let mut waiting_names: Vec<String> = Vec::new();
     for (index, (job, job_stats)) in shown.iter().enumerate() {
-        if matches!(job["status"].as_str(), Some("completed" | "in_progress")) {
-            out.push_str(&job_row(job, job_stats, index + 1, now));
-        } else {
-            waiting_names.push(cell(&text(job, "name")));
-        }
+        out.push_str(&job_row(job, job_stats, index + 1, now));
         crates.extend(job_stats.crates.iter().map(|(name, hit)| (name.clone(), text(job, "name"), *hit)));
         caches.extend(job_stats.cache.map(|c| (text(job, "name"), c)));
-    }
-    if !waiting_names.is_empty() {
-        out.push_str(&format!("\n⏸️ waiting: {}\n", waiting_names.join(", ")));
     }
     if not_applying > 0 {
         out.push_str(&format!("\n⏭️ {not_applying} job{} of the shared pipeline did not apply to this workflow\n", if not_applying == 1 { "" } else { "s" }));
     }
-    out.push_str(&telemetry.tables);
-    out.push_str(&job_chart(&shown));
+    let fixed = if telemetry.tables.is_empty() { String::new() } else { format!("\n{FIXED_COST}\n{}", telemetry.tables) };
+    out.push_str(&slot(FIXED_COST, fixed, "the first finished job", "no job ran a setup step or waited for a runner"));
+    out.push_str(&slot(CHART, job_chart(&shown), "two finished jobs", "fewer than two jobs have a time to chart"));
     out.push_str(&trend);
-    out.push_str(&actions);
+    out.push_str(&slot(IDLE, idle, "the first step with CPU samples", "no step has CPU samples over it"));
+    out.push_str(&slot(TODO, todo, "the run to finish", "no signal is amber or red"));
     if env.label.is_some() {
-        out.push_str(&runner_section(env));
-    } else if let (Some(from), Some(to)) = (started, ended.or(started)) {
-        out.push_str(&vm_section(env, &times, from * 1000, to.max(from) * 1000 + 60_000));
+        out.push_str(&runner_section(env, running));
+    } else {
+        let window = started.map(|from| (from * 1000, if running { now } else { ended.unwrap_or(from) }.max(from) * 1000 + 60_000));
+        out.push_str(&match window {
+            Some((from_ms, to_ms)) => vm_section(env, &times, from_ms, to_ms, running),
+            None => slot(VM, String::new(), "the first job to start", "no job started"),
+        });
     }
-    out.push_str(&crate::ci_insights::cache_section(&cache_rows(&shown, &facts), &facts));
+    out.push_str(&slot(CACHE, crate::ci_insights::cache_section(&cache_rows(&shown, &facts), &facts), "the first finished job", "no job reported a cache"));
     let finished: Vec<(String, String)> = jobs.iter().zip(logs).filter(|(j, _)| !is_meta(j) && applies(j)).filter_map(|(j, l)| Some((text(j, "name"), l.as_ref().ok()?.clone()))).collect();
-    out.push_str(&crate::ci_cache_health::section(&crate::ci_cache_health::assess(&finished, crate::ci_cache_health::seeded(env))));
+    out.push_str(&slot(CACHE_HEALTH, crate::ci_cache_health::section(&crate::ci_cache_health::assess(&finished, crate::ci_cache_health::seeded(env))), "the first finished job log", "no job log held a cache event"));
     let (units, _) = units_table(env);
     out.push_str(&telemetry.details);
     out.push_str(&units);

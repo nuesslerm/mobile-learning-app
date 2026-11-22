@@ -1205,14 +1205,14 @@ fn the_live_comment_of_a_new_run_replaces_the_old_one_at_the_bottom_and_shows_wh
     // When the run's first job starts the live comment
     let r = github.ci_wf(&["live", "start"]);
 
-    // Then the old one is deleted, a new one is created, and it names the job running with its step and the one waiting
+    // Then the old one is deleted, a new one is created, and it names the job running with its step and the one queued
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
     assert_eq!(github.sent("DELETE").len(), 1, "the earlier run's comment goes, an unrelated one stays");
     let created = github.sent("POST");
     assert_eq!(created.len(), 1, "{:?}", github.server.requests());
     let body = posted_body(&created[0]);
-    assert!(body.contains("CI (GitHub-hosted) running") && body.contains("1 running") && body.contains("1 waiting"), "{body}");
-    assert!(body.contains("flow-tests") && body.contains("in: Flow tests") && body.contains("clis") && body.contains("waiting"), "{body}");
+    assert!(body.contains("CI (GitHub-hosted) running") && body.contains("1 running") && body.contains("1 queued"), "{body}");
+    assert!(body.contains("flow-tests") && body.contains("in: Flow tests") && body.contains("clis") && body.contains("queued"), "{body}");
 }
 
 #[test]
@@ -1718,6 +1718,7 @@ fn a_create_that_raced_another_writer_deletes_its_own_extra_comment() {
             MockReply::json(200, json!([{ "number": 7, "head": { "sha": SHA } }])),
             jobs,
             MockReply::text(200, "ok\n"),
+            MockReply::json(200, json!({ "name": "flow" })),
             MockReply::json(200, json!([])),
             MockReply::json(201, json!({ "id": 11 })),
             MockReply::json(200, json!([bot(10, marker), bot(11, marker)])),
@@ -2005,16 +2006,16 @@ fn the_job_table_lists_only_jobs_that_ran_and_names_shards_as_2_of_4() {
 }
 
 #[test]
-fn a_pending_job_is_not_a_row_but_is_counted_while_the_run_is_live() {
-    // Given a live run with one waiting job
+fn a_pending_job_is_a_queued_row_and_is_counted_while_the_run_is_live() {
+    // Given a live run with one job that has not started
     let github = live_github(json!([]));
     // When the live comment is built
     let r = github.ci_wf(&["live", "start"]);
     let body = posted_body(&github.sent("POST")[0]);
-    // Then the waiting job is named under the table and counted in the headline, with no row of its own
+    // Then the job has its own row marked queued, is counted in the headline, and no separate waiting line names it
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
-    assert!(body.contains("⏸️ waiting: clis") && body.contains("1 waiting"), "{body}");
-    assert!(!body.lines().any(|l| l.starts_with('|') && l.contains("clis")), "{body}");
+    assert!(body.lines().any(|l| l.starts_with("| ⏸️ 3 |") && l.contains("clis") && l.ends_with("⏸️ queued |")), "{body}");
+    assert!(body.contains("1 queued") && !body.contains("waiting:"), "{body}");
 }
 
 #[test]
@@ -2549,7 +2550,7 @@ fn every_amber_or_red_signal_has_one_action_line_from_the_fixed_table_and_a_gree
 }
 
 #[test]
-fn a_run_with_no_step_rows_and_no_samples_has_no_idle_block_and_no_overhead_and_an_unreadable_database_drops_only_what_it_held() {
+fn a_run_with_no_step_rows_and_no_samples_has_a_none_idle_block_and_no_overhead_and_an_unreadable_database_drops_only_what_it_held() {
     // Given the finished run with no steps and no sampler file (the first run after the table existed), and the run with steps and samples
     let db = tempfile::tempdir().unwrap();
     let sealed = sealed_actions(db.path());
@@ -2563,10 +2564,154 @@ fn a_run_with_no_step_rows_and_no_samples_has_no_idle_block_and_no_overhead_and_
     let without = actions_body(&bare, &bare_dir, &sealed, DB_KEY);
     let unreadable = actions_body(&full, &full_dir, &sealed, &"08".repeat(32));
 
-    // Then the first has no idle block and no overhead line, and says nothing about them
-    assert!(!without.contains("Where the idle time is") && !without.contains("Overhead"), "{without}");
+    // Then the first has its idle heading over a none sentence, no overhead line and no loading text
+    assert!(without.contains("### Where the idle time is\n\n_none: no step has CPU samples over it_") && !without.contains("Overhead") && !without.contains("loading"), "{without}");
     // And with the database unreadable the idle block stays without its median, and the lines that need history (wall, replay) are left out while the idle one remains
     assert!(unreadable.contains("### Where the idle time is") && unreadable.contains("**Overhead** (setup, install, runner start and stop, teardown): 38% of all step seconds."), "{unreadable}");
     assert!(!unreadable.contains("(median") && !unreadable.contains("**Wall time") && !unreadable.contains("**Nx replay"), "{unreadable}");
     assert!(unreadable.contains("**Idle share 74%**"), "{unreadable}");
+}
+
+/// The `###` headings of a comment, in order. The title (`##`) names the verdict, so it differs by design; a blockquote (a failure notice) is not a section.
+fn headings(body: &str) -> Vec<String> {
+    body.lines().filter(|l| l.starts_with("### ")).map(str::to_string).collect()
+}
+
+/// What stands under `heading` up to the next heading.
+fn under<'a>(body: &'a str, heading: &str) -> &'a str {
+    let from = body.find(&format!("\n{heading}\n")).unwrap_or_else(|| panic!("no {heading} in {body}")) + heading.len() + 2;
+    let rest = &body[from..];
+    &rest[..rest.find("\n### ").unwrap_or(rest.len())]
+}
+
+const SKELETON: [&str; 10] = [
+    "### ⏱️ Where the time went",
+    "### Jobs",
+    "### Fixed cost and the runner pool",
+    "### Minutes per job",
+    "### Trend",
+    "### Where the idle time is",
+    "### What to do",
+    "### 🖥️ VM during the run",
+    "### 🗄️ Cache",
+    "### 🗄️ Cache health",
+];
+
+/// Run 77 of `workflow` with the sampler's files and a sealed history that `key` opens, as a comment preview: finished (`partial` false, the jobs of `actions_run`) or going
+/// on (the plan job done, core-tests running, one more job queued). Returns the body.
+fn skeleton_body(partial: bool, workflow: &str, key: &str) -> String {
+    let (db, github) = (tempfile::tempdir().unwrap(), Github::start());
+    let sealed = sealed_actions(db.path());
+    let dir = actions_run(&github, true);
+    github.extra.borrow_mut().push(("GET /repos/o/r/actions/runs/77".to_string(), MockReply::json(200, json!({ "id": 77, "name": workflow, "run_started_at": iso(BASE), "created_at": iso(BASE) }))));
+    if partial {
+        let at = |s: i64| iso(BASE + s);
+        let mut plan = job(500, "plan", "success", &at(100), json!([]));
+        (plan["created_at"], plan["started_at"]) = (json!(at(0)), json!(at(0)));
+        let steps = json!([{ "name": "Set up job", "status": "completed", "conclusion": "success", "started_at": at(100), "completed_at": at(130) }, { "name": "Flow tests", "status": "in_progress", "conclusion": null, "started_at": at(130), "completed_at": null }]);
+        let running = json!({ "id": 501, "name": "core-tests (1/3)", "status": "in_progress", "conclusion": null, "created_at": at(100), "started_at": at(100), "completed_at": null, "html_url": "https://github.com/o/r/actions/runs/77/job/501", "steps": steps });
+        let queued = json!({ "id": 502, "name": "integration-tests (1/2)", "status": "queued", "conclusion": null, "created_at": at(100), "started_at": null, "completed_at": null, "html_url": "https://github.com/o/r/actions/runs/77/job/502", "steps": [] });
+        github.serve(&json!([plan, running, queued]), json!([]), created(), updated());
+    }
+    actions_body(&github, &dir, &sealed, key)
+}
+
+#[test]
+fn a_partial_comment_and_the_final_one_have_the_same_headings_in_the_same_order() {
+    // Given the same run of a hosted workflow, once with a job running and one queued, and once finished
+    let (partial, last) = (skeleton_body(true, "backend_core+publish", DB_KEY), skeleton_body(false, "backend_core+publish", DB_KEY));
+
+    // When only the headings are read
+    let (before, after) = (headings(&partial), headings(&last));
+
+    // Then both are the one skeleton, in the same order
+    assert_eq!(before, SKELETON, "{partial}");
+    assert_eq!(after, SKELETON, "{last}");
+}
+
+#[test]
+fn a_section_that_waits_for_data_says_so_in_one_line_and_the_data_replaces_it_where_it_stood() {
+    // Given a comment while one job is done, one runs and one is queued
+    let partial = skeleton_body(true, "backend_core+publish", DB_KEY);
+
+    // When the sections that need the whole run are read
+    // Then each is its heading over one fixed line saying what it waits for
+    for (heading, waits) in [("### Minutes per job", "two finished jobs"), ("### What to do", "the run to finish"), ("### Where the idle time is", "the first step with CPU samples")] {
+        assert_eq!(under(&partial, heading).trim(), format!("_loading: waits for {waits}_"), "{partial}");
+    }
+    // And the headline lines wait too, and the jobs table already has a row for the running job and one for the queued job, and the fixed cost shows what finished so far
+    assert!(partial.contains("_loading: waits for the run to finish for its wall, runner time and parallel efficiency_"), "{partial}");
+    assert!(partial.lines().any(|l| l.starts_with("| 🔄 2 |") && l.contains("core-tests (1/3)")) && partial.lines().any(|l| l.starts_with("| ⏸️ 3 |") && l.ends_with("⏸️ queued |")), "{partial}");
+    assert!(under(&partial, "### Fixed cost and the runner pool").contains("| job plan | 1m 40s | 1 |"), "{partial}");
+    // And the trend shows what is known (the history chart and the median) with this run's cells pending, its wall so far
+    let trend = under(&partial, "### Trend");
+    assert!(trend.contains("xychart-beta") && trend.contains("so far (median 6m 40s)") && trend.contains("pending (median 0s)"), "{trend}");
+    assert!(trend.contains("**Longest:** _loading: waits for the run to finish_"), "{trend}");
+
+    // When the run ends and the comment is made again
+    let last = skeleton_body(false, "backend_core+publish", DB_KEY);
+
+    // Then the same sections hold their data and the placeholders are gone
+    assert!(under(&last, "### Minutes per job").contains("xychart-beta"), "{last}");
+    assert!(under(&last, "### Fixed cost and the runner pool").contains("| Fixed cost |"), "{last}");
+    assert!(under(&last, "### What to do").contains("**Idle share"), "{last}");
+    assert!(under(&last, "### Trend").contains("| backend_core | 8m 40s") && under(&last, "### Trend").contains("**Longest:** critical path job"), "{last}");
+    assert!(!last.contains("loading") && !last.contains("pending") && !last.contains("so far"), "{last}");
+}
+
+#[test]
+fn a_section_that_does_not_apply_is_in_no_render() {
+    // Given a run of a workflow that is not one of the hosted ones, on a labelled pipeline whose runners were not sampled into any directory
+    let plain = |partial| {
+        let (github, dir) = (Github::start(), tempfile::tempdir().unwrap());
+        let _ = actions_run(&github, true);
+        github.extra.borrow_mut().push(("GET /repos/o/r/actions/runs/77".to_string(), MockReply::json(200, json!({ "id": 77, "name": "ci", "run_started_at": iso(BASE), "created_at": iso(BASE) }))));
+        let queued = json!({ "id": 502, "name": "integration-tests (1/2)", "status": "queued", "conclusion": null, "created_at": iso(BASE), "started_at": null, "completed_at": null, "html_url": "", "steps": [] });
+        let jobs = if partial { json!([job(500, "plan", "success", &iso(BASE + 100), json!([])), queued]) } else { json!([job(500, "plan", "success", &iso(BASE + 100), json!([]))]) };
+        github.serve(&jobs, json!([]), created(), updated());
+        let sealed = sealed_actions(dir.path());
+        let body = dry_body(&github, &[("WF_CI_SEALED_FILE", sealed.as_str()), ("CI_DB_KEY", DB_KEY), ("WF_CI_LABEL", "GitHub-hosted"), ("WF_VM_STATS_URL", "http://127.0.0.1:9")]);
+        (body, partial)
+    };
+
+    // When it is rendered while it runs and when it is over, and a hosted run is rendered with a key that does not open its history
+    let hosted = |partial| (skeleton_body(partial, "backend_core+publish", &"08".repeat(32)), partial);
+    for (body, partial) in [plain(true), plain(false)] {
+        // Then neither has a trend (not a hosted workflow), a runners section (no sampler directory) or a VM section (a labelled pipeline), and both keep the sections of every run
+        let list = headings(&body);
+        assert!(!list.iter().any(|h| h.contains("Trend") || h.contains("Runners during") || h.contains("VM during")), "{partial} {list:?}");
+        assert!(list.contains(&"### Jobs".to_string()) && list.contains(&"### 🗄️ Cache".to_string()), "{partial} {list:?}");
+    }
+    // And the unreadable history leaves the trend out of the running render and the finished one alike, with every other section as it was
+    let expected: Vec<&str> = SKELETON.iter().copied().filter(|h| *h != "### Trend").collect();
+    for (body, partial) in [hosted(true), hosted(false)] {
+        assert_eq!(headings(&body), expected, "{partial} {body}");
+    }
+}
+
+#[test]
+fn a_finished_run_never_says_loading_even_with_nothing_to_show_and_a_running_one_says_what_it_waits_for() {
+    // Given a finished run with one quick job, no sampler file and no history, a failed run, and a finished hosted run
+    let bare = {
+        let github = audit_github_of(&[timed_job(500, "plan", "success", 20)], "ok\n", &[]);
+        dry_body(&github, &[])
+    };
+    let red = {
+        let github = Github::start();
+        github.serve(&red_run(), json!([]), created(), updated());
+        dry_body(&github, &[])
+    };
+    let hosted = skeleton_body(false, "backend_core+publish", DB_KEY);
+
+    // When their text is read
+    // Then none says loading, and a section with nothing to show says none in a fixed sentence under its heading
+    for body in [&bare, &red, &hosted] {
+        assert!(!body.contains("loading"), "{body}");
+    }
+    assert_eq!(under(&bare, "### Minutes per job").trim(), "_none: fewer than two jobs have a time to chart_", "{bare}");
+    assert_eq!(under(&bare, "### 🗄️ Cache health").trim(), "_none: no job log held a cache event_", "{bare}");
+    assert_eq!(under(&bare, "### What to do").trim(), "_none: no signal is amber or red_", "{bare}");
+    // And the comment of a run that goes on says what each section waits for and has no none sentence there
+    let partial = skeleton_body(true, "backend_core+publish", DB_KEY);
+    assert!(under(&partial, "### What to do").contains("loading") && !under(&partial, "### What to do").contains("none"), "{partial}");
 }

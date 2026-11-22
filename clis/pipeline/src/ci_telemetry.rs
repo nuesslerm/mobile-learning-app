@@ -16,6 +16,8 @@ const WAIT_S: i64 = 30;
 
 #[derive(Default)]
 pub(crate) struct Telemetry {
+    /// The workflow's name as the run says it, known from the first render; the profile only exists once the run is over.
+    pub workflow: String,
     pub profile: Option<RunProfile>,
     pub resources: Vec<JobResources>,
     /// (what, total seconds, jobs)
@@ -89,8 +91,9 @@ pub(crate) fn gather(env: &Env, jobs: &[&Value], finished: bool) -> Telemetry {
     let workflow = env.label.clone().unwrap_or_default();
     t.resources = samples.iter().filter_map(|(job, s)| crate::ci_resources::job_resources(&env.run, job, &workflow, s)).collect();
     let owned: Vec<Value> = jobs.iter().map(|j| (*j).clone()).collect();
+    let run = send(env, "GET", &format!("{}/repos/{}/actions/runs/{}", env.api, env.repo, env.run), None).and_then(|r| json_of(r, "reading the run")).unwrap_or(Value::Null);
+    t.workflow = run["name"].as_str().unwrap_or_default().to_string();
     if finished {
-        let run = send(env, "GET", &format!("{}/repos/{}/actions/runs/{}", env.api, env.repo, env.run), None).and_then(|r| json_of(r, "reading the run")).unwrap_or(Value::Null);
         t.profile = Some(crate::ci_timings::profile(&run, &env.run, &owned)).filter(|p| p.jobs > 0);
     }
     let steps = crate::ci_timings::step_rows(&env.run, &owned);

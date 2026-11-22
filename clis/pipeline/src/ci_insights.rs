@@ -190,10 +190,12 @@ fn top<T: Clone>(items: &[T], n: usize, key: impl Fn(&T) -> f64) -> Vec<T> {
 }
 
 /// The first things to read: how the wall time splits into work and waiting, and the single biggest job, wait, step, suite, test and task.
-pub fn where_time_went(jobs: &[JobTime], facts: &[(String, LogFacts)]) -> String {
+/// With `so_far` the jobs still running count up to now, and the wall says it is not final.
+pub fn where_time_went(jobs: &[JobTime], facts: &[(String, LogFacts)], so_far: bool) -> String {
     let Some((wall, busy, idle)) = busy_and_idle(jobs) else { return String::new() };
-    let mut out = String::from("\n### ⏱️ Where the time went\n\n");
-    out.push_str(&format!("- **{} wall** = {} of jobs running + **{} waiting between them** (a stretch counts once, however many jobs ran in it)\n", span(wall), span(busy), span(idle)));
+    let mut out = format!("\n{}\n\n", crate::ci_skeleton::WHERE_TIME);
+    let wall_word = if so_far { "wall so far" } else { "wall" };
+    out.push_str(&format!("- **{} {wall_word}** = {} of jobs running + **{} waiting between them** (a stretch counts once, however many jobs ran in it)\n", span(wall), span(busy), span(idle)));
     let slow = top(&jobs.iter().filter_map(|j| Some((j.name.clone(), j.secs()?))).collect::<Vec<_>>(), 3, |(_, s)| *s as f64);
     if !slow.is_empty() {
         let list = slow.iter().map(|(n, s)| format!("**{n}** {} ({}% of the run)", span(*s), (*s as f64 * 100.0 / wall.max(1) as f64).round())).collect::<Vec<_>>().join(", ");
@@ -252,7 +254,7 @@ pub fn cache_section(rows: &[CacheFacts], facts: &[(String, LogFacts)]) -> Strin
     let nx = sum2(&|r| r.nx);
     let scc = sum2(&|r| r.sccache.map(|s| (s.0, s.0 + s.1)));
     let layers = sum2(&|r| r.layers);
-    let mut out = String::from("\n### 🗄️ Cache\n\n");
+    let mut out = format!("\n{}\n\n", crate::ci_skeleton::CACHE);
     out.push_str(&format!("**Whole run:** build cache {} · Nx tasks replayed {} · sccache {} · docker layers cached {}\n\n", pct(build.0, build.1), pct(nx.0, nx.1), pct(scc.0, scc.1), pct(layers.0, layers.1)));
     out.push_str("| Job | Nx tasks | Build cache | sccache | Layers |\n|---|---|---|---|---|\n");
     for r in rows {
@@ -353,7 +355,7 @@ mod tests {
     fn given_jobs_run_one_after_another_when_the_time_is_split_then_the_gaps_between_them_are_the_waiting() {
         let jobs = [job("a", 0, 100, 0), job("b", 160, 400, 60), job("c", 400, 450, 0)];
         assert_eq!(busy_and_idle(&jobs), Some((450, 390, 60)));
-        let text = where_time_went(&jobs, &[("b".to_string(), facts(LOG))]);
+        let text = where_time_went(&jobs, &[("b".to_string(), facts(LOG))], false);
         assert!(text.contains("7m 30s wall") && text.contains("1m 00s waiting between them"), "{text}");
         assert!(text.contains("**b** 4m 00s") && text.contains("Waited for the runner: **b** 1m 00s"), "{text}");
         assert!(text.contains("slow::one") && text.contains("crate-a:cargo-flow"), "{text}");

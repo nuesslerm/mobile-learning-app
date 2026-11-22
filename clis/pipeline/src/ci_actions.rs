@@ -336,7 +336,7 @@ fn action_block(lines: &[String]) -> String {
     if lines.is_empty() {
         return String::new();
     }
-    format!("\n### What to do\n\n{}", lines.concat())
+    format!("\n{}\n\n{}", crate::ci_skeleton::TODO, lines.concat())
 }
 
 fn idle_block(steps: &[StepResources], overhead: Option<f64>, overhead_median: Option<(f64, usize)>) -> String {
@@ -346,7 +346,7 @@ fn idle_block(steps: &[StepResources], overhead: Option<f64>, overhead_median: O
     if top.is_empty() && overhead.is_none() {
         return String::new();
     }
-    let mut out = String::from("\n### Where the idle time is\n\n");
+    let mut out = format!("\n{}\n\n", crate::ci_skeleton::IDLE);
     if !top.is_empty() {
         out.push_str("The five steps of this run with the most idle seconds (CPU under 25% of the samples over the step).\n\n| Step | Job | Idle | Share of the run's idle | Category |\n|---|---|---|---|---|\n");
         for s in top.iter().take(TOP_STEPS) {
@@ -361,9 +361,9 @@ fn idle_block(steps: &[StepResources], overhead: Option<f64>, overhead_median: O
     out
 }
 
-/// The block and the action lines for a comment; empty when the run has no step with samples over it, no profile and no signal to act on. `sealed` is the
-/// database of earlier runs (`None` when it cannot be read: the median and the ceilings are then left out and nothing else changes).
-pub(crate) fn section(sealed: Option<&Sealed>, t: &Telemetry) -> String {
+/// The idle block and the action block of a comment; each is empty when the run has no step with samples over it, or no profile and no signal to act on. `sealed` is
+/// the database of earlier runs (`None` when it cannot be read: the median and the ceilings are then left out and nothing else changes).
+pub(crate) fn section(sealed: Option<&Sealed>, t: &Telemetry) -> (String, String) {
     let key = t.profile.as_ref().and_then(|p| key_of(&p.workflow));
     let past = match (sealed, key) {
         (Some(s), Some(k)) => last_of(&s.past, k),
@@ -373,8 +373,8 @@ pub(crate) fn section(sealed: Option<&Sealed>, t: &Telemetry) -> String {
     let overhead = overhead_share(t.step_rows.iter().filter_map(|r| Some((r.step.as_str(), r.duration_s? as f64))));
     let past_overhead = sealed.map(|s| past_overheads(s, &runs)).unwrap_or_default();
     let overhead_median = median(past_overhead.clone()).map(|m| (m, past_overhead.len()));
-    let mut out = idle_block(&t.steps, overhead, overhead_median);
-    let Some(profile) = &t.profile else { return out };
+    let idle = idle_block(&t.steps, overhead, overhead_median);
+    let Some(profile) = &t.profile else { return (idle, String::new()) };
     let ceilings = sealed.map(|s| replay_ceilings(s, &runs)).unwrap_or_default();
     let replay: Vec<(String, f64)> = t
         .replay
@@ -388,8 +388,7 @@ pub(crate) fn section(sealed: Option<&Sealed>, t: &Telemetry) -> String {
     let wall_median = median(past.iter().map(|p| p.wall).collect());
     let all = readings(profile, &t.resources, &t.steps, overhead, wall_median, &replay, t);
     let lines: Vec<String> = all.iter().filter_map(action_line).collect();
-    out.push_str(&action_block(&lines));
-    out
+    (idle, action_block(&lines))
 }
 
 #[cfg(test)]

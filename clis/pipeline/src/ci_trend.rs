@@ -178,31 +178,57 @@ fn chart(sealed: &Sealed, key: &str) -> String {
     )
 }
 
-/// Empty for a run whose profile is not known yet, a workflow that is not a hosted one, an unreadable database and a database with no history.
-pub(crate) fn section(sealed: Option<&Sealed>, profile: Option<&RunProfile>, jobs: &[&Value]) -> String {
-    let Some(profile) = profile.filter(|p| p.workflow.contains('+')) else { return String::new() };
+/// What the run has shown so far, for the cells of the table that only a finished run fills.
+pub(crate) struct Now<'a> {
+    pub profile: Option<&'a RunProfile>,
+    /// Seconds from the first job's start to now while the run goes on.
+    pub wall_so_far: Option<i64>,
+    pub running: bool,
+    pub jobs: &'a [&'a Value],
+}
+
+/// A cell the finished run fills: this run's figure against the median, or `pending` with the median while the run goes on, or `none`.
+fn cell_of(now: &Now, figure: Option<f64>, typical: Option<f64>) -> String {
+    match (figure, now.running) {
+        (Some(v), _) => versus(v, typical),
+        (None, true) => typical.map_or("pending".to_string(), |m| format!("pending (median {})", span(m.round() as i64))),
+        (None, false) => "none".to_string(),
+    }
+}
+
+/// Empty for a workflow that is not a hosted one, an unreadable database and a database with no history: those are known before the run ends and stay so. Otherwise the
+/// heading, the table and the chart are there from the first render (the chart is history), with this run's cells `pending` until its profile exists.
+pub(crate) fn section(sealed: Option<&Sealed>, workflow: &str, now: &Now) -> String {
+    if !workflow.contains('+') {
+        return String::new();
+    }
     let Some(all) = sealed.map(|s| &s.past) else { return String::new() };
-    let key = key_of(&profile.workflow);
+    let key = key_of(workflow);
     let past = key.map(|k| last_of(all, k)).unwrap_or_default();
     let chart = key.zip(sealed).map(|(k, s)| chart(s, k)).unwrap_or_default();
     if chart.is_empty() && past.is_empty() {
         return String::new();
     }
     let typical = |pick: &dyn Fn(&&Past) -> f64| median(past.iter().map(pick).collect());
-    let mut out = String::from("\n### Trend\n");
+    let mut out = format!("\n{}\n", crate::ci_skeleton::TREND);
     if let Some(key) = key {
+        let wall_typical = typical(&|p| p.wall);
+        let wall = match (now.profile, now.wall_so_far) {
+            (None, Some(so_far)) if now.running => format!("{} so far{}", span(so_far), wall_typical.map_or(String::new(), |m| format!(" (median {})", span(m.round() as i64)))),
+            _ => cell_of(now, now.profile.map(|p| p.wall_s), wall_typical),
+        };
         out.push_str(&format!(
-            "\n| This run | Wall | Critical path | Queue |\n|---|---|---|---|\n| {key} | {} | {} | {} |\n",
-            versus(profile.wall_s, typical(&|p| p.wall)),
-            versus(profile.critical_path_s, typical(&|p| p.critical)),
-            versus(profile.queue_s_total, typical(&|p| p.queue)),
+            "\n| This run | Wall | Critical path | Queue |\n|---|---|---|---|\n| {key} | {wall} | {} | {} |\n",
+            cell_of(now, now.profile.map(|p| p.critical_path_s), typical(&|p| p.critical)),
+            cell_of(now, now.profile.map(|p| p.queue_s_total), typical(&|p| p.queue)),
         ));
         out.push_str(&format!("\nMedian of the last {} successful runs; ↑ slower, ↓ faster, → within {:.0}%.\n", past.len(), BAND * 100.0));
     }
-    if let Some(line) = longest(profile, jobs) {
-        out.push('\n');
-        out.push_str(&line);
-    }
+    let longest = now.profile.and_then(|p| longest(p, now.jobs)).unwrap_or_else(|| {
+        format!("**Longest:** {}\n", crate::ci_skeleton::pending(now.running, "the run to finish", "no job of the critical path has a recorded time"))
+    });
+    out.push('\n');
+    out.push_str(&longest);
     out.push_str(&chart);
     out
 }
