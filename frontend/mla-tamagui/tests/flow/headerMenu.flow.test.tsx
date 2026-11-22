@@ -3,6 +3,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from '@lib/flow-test-harness';
 import { HeaderMenu, type HeaderMenuItem } from '@lib/tamagui-design-system';
 import type { MenuNode } from '@lib/tamagui-design-system';
@@ -194,5 +195,178 @@ describe('HeaderMenu given only action rows, as every caller passes today', () =
     // Then the handler ran once and the menu is gone
     expect(onLogout).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.queryByTestId('MenuHistory')).toBeNull());
+  });
+});
+
+const FONT_SIZES = [12, 14, 16, 18] as const;
+
+function SettingsMenu({ onFormat }: { onFormat: () => void }) {
+  const [size, setSize] = useState<number>(16);
+  const [wrap, setWrap] = useState(true);
+  const items: MenuNode[] = [
+    {
+      kind: 'submenu',
+      testID: 'FontSize',
+      label: `Font size: ${size}px`,
+      icon: Info,
+      items: FONT_SIZES.map((candidate) => ({
+        testID: `Font${candidate}`,
+        label: `${candidate}px`,
+        checked: size === candidate,
+        keepOpen: true,
+        onPress: () => setSize(candidate),
+      })),
+    },
+    {
+      testID: 'Wrap',
+      label: 'Line wrap',
+      icon: Info,
+      checked: wrap,
+      keepOpen: true,
+      onPress: () => setWrap((on) => !on),
+    },
+    {
+      kind: 'confirm',
+      testID: 'Format',
+      label: 'Format Code',
+      icon: Info,
+      title: 'Format current code?',
+      message: 'Your code will be reformatted.',
+      confirmLabel: 'Format',
+      onConfirm: onFormat,
+    },
+  ];
+  return (
+    <HeaderMenu
+      icon={ChevronRight}
+      accessibilityLabel="Editor settings"
+      items={items}
+      size={34}
+      testID="SettingsMenu"
+    />
+  );
+}
+
+async function openSettings() {
+  await userEvent.click(screen.getByTestId('SettingsMenu'));
+  return waitFor(() => screen.getByTestId('FontSize'));
+}
+
+describe('HeaderMenu drilling into a submenu and confirming', () => {
+  it('Given the root list, When Font size is pressed, Then its rows replace the list in place under a header row, with the current size checked', async () => {
+    // Given the open menu
+    renderScreen(<SettingsMenu onFormat={() => {}} />);
+    await openSettings();
+
+    // When Font size is pressed
+    await userEvent.click(screen.getByTestId('FontSize'));
+
+    // Then the sizes are shown under a header row and the root rows are gone
+    const header = await waitFor(() => screen.getByTestId('FontSizeHeader'));
+    expect(header.getAttribute('aria-label')).toBe('Font size: 16px');
+    expect(
+      FONT_SIZES.every(
+        (candidate) => screen.queryByTestId(`Font${candidate}`) !== null
+      )
+    ).toBe(true);
+    expect(screen.getByTestId('Font16').getAttribute('aria-checked')).toBe(
+      'true'
+    );
+    expect(screen.getByTestId('Font14').getAttribute('aria-checked')).toBe(
+      'false'
+    );
+    expect(screen.queryByTestId('Wrap')).toBeNull();
+  });
+
+  it('Given a submenu is open, When its header row is pressed, Then the root list shows again', async () => {
+    // Given Font size open
+    renderScreen(<SettingsMenu onFormat={() => {}} />);
+    await openSettings();
+    await userEvent.click(screen.getByTestId('FontSize'));
+    await waitFor(() => screen.getByTestId('FontSizeHeader'));
+
+    // When the header row is pressed
+    await userEvent.click(screen.getByTestId('FontSizeHeader'));
+
+    // Then the root rows are back and the sizes are gone
+    await waitFor(() => screen.getByTestId('Wrap'));
+    expect(screen.queryByTestId('Font14')).toBeNull();
+  });
+
+  it('Given a submenu is open, When a size is picked, Then the menu stays open on the root with the new value in the Font size row', async () => {
+    // Given Font size open
+    renderScreen(<SettingsMenu onFormat={() => {}} />);
+    await openSettings();
+    await userEvent.click(screen.getByTestId('FontSize'));
+    await waitFor(() => screen.getByTestId('Font18'));
+
+    // When 18px is picked
+    await userEvent.click(screen.getByTestId('Font18'));
+
+    // Then the root shows the new size and the submenu rows are gone
+    await waitFor(() =>
+      expect(screen.getByTestId('FontSize').getAttribute('aria-label')).toBe(
+        'Font size: 18px'
+      )
+    );
+    expect(screen.queryByTestId('Font18')).toBeNull();
+  });
+
+  it('Given the root list, When Format Code is pressed, Then a card asks Format current code? with its message and one destructive button', async () => {
+    // Given the open menu
+    renderScreen(<SettingsMenu onFormat={() => {}} />);
+    await openSettings();
+
+    // When Format Code is pressed
+    await userEvent.click(screen.getByTestId('Format'));
+
+    // Then the card replaces the list with the title, the message and one button
+    const card = await waitFor(() => screen.getByTestId('FormatCard'));
+    expect(within(card).getByText('Format current code?')).not.toBeNull();
+    expect(
+      within(card).getByText('Your code will be reformatted.')
+    ).not.toBeNull();
+    expect(within(card).getAllByRole('button')).toHaveLength(1);
+    expect(screen.getByTestId('FormatConfirm').getAttribute('aria-label')).toBe(
+      'Format'
+    );
+    expect(screen.queryByTestId('Wrap')).toBeNull();
+  });
+
+  it('Given the confirmation card, When Format is pressed, Then the handler ran once and the menu closed', async () => {
+    // Given the card
+    const onFormat = vi.fn();
+    renderScreen(<SettingsMenu onFormat={onFormat} />);
+    await openSettings();
+    await userEvent.click(screen.getByTestId('Format'));
+    await waitFor(() => screen.getByTestId('FormatCard'));
+
+    // When Format is pressed
+    await userEvent.click(screen.getByTestId('FormatConfirm'));
+
+    // Then the handler ran once and nothing of the menu is left
+    expect(onFormat).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.queryByTestId('FormatCard')).toBeNull());
+  });
+
+  it('Given the confirmation card, When the person taps outside it, Then the menu closes without formatting and opens on the root next time', async () => {
+    // Given the card
+    const onFormat = vi.fn();
+    renderScreen(<SettingsMenu onFormat={onFormat} />);
+    await openSettings();
+    await userEvent.click(screen.getByTestId('Format'));
+    await waitFor(() => screen.getByTestId('FormatCard'));
+
+    // When the person taps outside
+    await userEvent.click(document.body);
+
+    // Then the card is gone and nothing was formatted
+    await waitFor(() => expect(screen.queryByTestId('FormatCard')).toBeNull());
+    expect(onFormat).not.toHaveBeenCalled();
+
+    // And opening the menu again shows the root list
+    await userEvent.click(screen.getByTestId('SettingsMenu'));
+    await waitFor(() => screen.getByTestId('FontSize'));
+    expect(screen.queryByTestId('FormatCard')).toBeNull();
   });
 });

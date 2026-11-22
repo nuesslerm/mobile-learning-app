@@ -1,0 +1,41 @@
+{
+  "suite": "headermenu",
+  "step": "final-given-a-submenu-is-open-when-a-size-is-picked-ea0c9e",
+  "scheme": "dark",
+  "snapshot": "headermenu/final-given-a-submenu-is-open-when-a-size-is-picked-ea0c9e.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "SettingsMenu",
+      "SettingsMenuContent",
+      "FontSize",
+      "FontSizeCheck",
+      "Wrap",
+      "WrapCheck",
+      "Format",
+      "FormatCheck"
+    ],
+    "text": "Font size: 18px\nLine wrap\nFormat Code"
+  },
+  "timings": {
+    "render_ms": 272
+  },
+  "name": "headermenu/final-given-a-submenu-is-open-when-a-size-is-picked-ea0c9e.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

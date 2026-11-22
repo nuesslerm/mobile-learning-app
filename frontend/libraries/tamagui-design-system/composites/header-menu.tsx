@@ -1,14 +1,22 @@
 import type { LucideIcon } from 'lucide-react-native';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text as RNText, View } from 'react-native';
 
-import { Check, ChevronRight } from '../icons';
+import { Check, ChevronDown, ChevronRight } from '../icons';
 import { Popover, useTheme } from '../primitives';
 import { Icon } from '../ui/icon';
 
 import {
+  menuNavigation,
+  resolveMenuView,
+  ROOT_PATH,
+  type MenuNavigationAction,
+  type MenuPath,
+} from './native-header/header-menu-navigation';
+import {
   isActionNode,
   type MenuActionNode,
+  type MenuConfirmNode,
   type MenuNode,
 } from './native-header/header-menu-spec';
 
@@ -25,7 +33,7 @@ export type HeaderMenuItem = {
 export type HeaderMenuProps = {
   icon: LucideIcon;
   accessibilityLabel: string;
-  /** Rows as today (HeaderMenuItem objects have no `kind`), or the menu tree: toggles, sections, submenus. */
+  /** Rows as today (HeaderMenuItem objects have no `kind`), or the menu tree: toggles, sections, submenus, a confirmation. */
   items: MenuNode[];
   /** Matches the control size of the sibling actions in the header pill. */
   size: number;
@@ -153,6 +161,41 @@ function MenuRow({
   );
 }
 
+function ConfirmCard({
+  node,
+  colors,
+  onConfirm,
+}: {
+  node: MenuConfirmNode;
+  colors: Colors;
+  onConfirm: () => void;
+}) {
+  return (
+    <View testID={`${node.testID}Card`} style={styles.confirm}>
+      <RNText style={[styles.confirmTitle, { color: colors.label }]}>
+        {node.title}
+      </RNText>
+      <RNText style={[styles.confirmMessage, { color: colors.muted }]}>
+        {node.message}
+      </RNText>
+      <Pressable
+        testID={`${node.testID}Confirm`}
+        accessibilityRole="button"
+        aria-label={node.confirmLabel}
+        onPress={onConfirm}
+        style={({ pressed: isPressed }) => [
+          styles.confirmButton,
+          { backgroundColor: isPressed ? colors.pressed : colors.border },
+        ]}
+      >
+        <RNText style={[styles.confirmLabel, { color: colors.destructive }]}>
+          {node.confirmLabel}
+        </RNText>
+      </Pressable>
+    </View>
+  );
+}
+
 /**
  * The overflow menu behind a header's "..." control.
  *
@@ -162,11 +205,13 @@ function MenuRow({
  * (Claude Code's own header menu, which is anchored) than this.
  *
  * It is the menu on Android and on the web, and on iOS where the native glass
- * bar is off: the native bar draws the same tree as a UIMenu. Tamagui's `Menu`
- * is not used because `@tamagui/create-menu` returns `null` on native unless an
- * adapter is registered, and every adapter (zeego, @expo/ui) needs native
- * modules; Stack.Toolbar renders nothing on web, needs @expo/ui on Android and
- * has no glass.
+ * bar is off: the native bar draws the same tree as a UIMenu. A submenu
+ * replaces the list in place under a header row that returns, a pick inside it
+ * returns to the root (what a rebuilt UIMenu does), and a confirm row opens a
+ * one-button card. Tamagui's `Menu` is not used because `@tamagui/create-menu`
+ * returns `null` on native unless an adapter is registered, and every adapter
+ * (zeego, @expo/ui) needs native modules; Stack.Toolbar renders nothing on
+ * web, needs @expo/ui on Android and has no glass.
  *
  * The ROWS are plain React Native primitives with explicit StyleSheet values,
  * not Tamagui shorthands. That is a deliberate retreat: the first version used
@@ -188,6 +233,7 @@ export function HeaderMenu({
   testID,
 }: HeaderMenuProps) {
   const [open, setOpen] = useState(false);
+  const [path, setPath] = useState<MenuPath>(ROOT_PATH);
   const theme = useTheme();
 
   const colors: Colors = {
@@ -199,73 +245,133 @@ export function HeaderMenu({
     destructive: theme.destructive?.val ?? '#ff453a',
   };
 
-  const columns = columnsOf(items);
-  const plain = isPlainList(items);
+  const view = resolveMenuView(items, path);
+
+  function go(action: MenuNavigationAction) {
+    setPath((current) => menuNavigation(current, action));
+  }
+
+  function closeMenu() {
+    setOpen(false);
+    go({ type: 'close' });
+  }
 
   function pressAction(node: MenuActionNode) {
     if (node.keepOpen) {
       node.onPress();
+      go({ type: 'pick' });
       return;
     }
     // Close before acting: several of these navigate, and a popover
     // still mounted over a screen that has already been replaced is
     // how you get a menu floating above the wrong route.
-    setOpen(false);
+    closeMenu();
     node.onPress();
   }
 
-  function renderNode(node: MenuNode, index: number): React.ReactNode {
-    if (node.kind === 'section') {
-      return (
-        <View
-          key={node.testID}
-          testID={node.testID}
-          style={[
-            styles.section,
-            index > 0 && {
-              borderTopWidth: StyleSheet.hairlineWidth,
-              borderTopColor: colors.border,
-            },
-          ]}
-        >
-          {node.title ? (
-            <RNText style={[styles.sectionTitle, { color: colors.muted }]}>
-              {node.title}
-            </RNText>
-          ) : null}
-          {node.items.map(renderNode)}
-        </View>
-      );
-    }
-    if (isActionNode(node)) {
+  function renderList(
+    nodes: readonly MenuNode[],
+    columns: Columns,
+    plain: boolean
+  ): ReactNode[] {
+    return nodes.map((node, index) => {
+      if (node.kind === 'section') {
+        return (
+          <View
+            key={node.testID}
+            testID={node.testID}
+            style={[
+              styles.section,
+              index > 0 && {
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: colors.border,
+              },
+            ]}
+          >
+            {node.title ? (
+              <RNText style={[styles.sectionTitle, { color: colors.muted }]}>
+                {node.title}
+              </RNText>
+            ) : null}
+            {renderList(node.items, columns, false)}
+          </View>
+        );
+      }
+      if (isActionNode(node)) {
+        return (
+          <MenuRow
+            key={node.testID}
+            testID={node.testID}
+            label={node.label}
+            detail={node.detail}
+            icon={node.icon}
+            checked={node.checked}
+            destructive={node.destructive}
+            disabled={node.disabled}
+            separated={plain && index > 0}
+            columns={columns}
+            colors={colors}
+            onPress={() => pressAction(node)}
+          />
+        );
+      }
       return (
         <MenuRow
           key={node.testID}
           testID={node.testID}
           label={node.label}
-          detail={node.detail}
           icon={node.icon}
-          checked={node.checked}
-          destructive={node.destructive}
-          disabled={node.disabled}
-          separated={plain && index > 0}
+          destructive={node.kind === 'submenu' ? node.destructive : undefined}
+          trailing={ChevronRight}
+          separated={false}
           columns={columns}
           colors={colors}
-          onPress={() => pressAction(node)}
+          onPress={() => go({ type: 'open', id: node.testID })}
+        />
+      );
+    });
+  }
+
+  function renderView(): ReactNode {
+    if (view.kind === 'confirm') {
+      return (
+        <ConfirmCard
+          node={view.node}
+          colors={colors}
+          onConfirm={() => {
+            closeMenu();
+            view.node.onConfirm();
+          }}
         />
       );
     }
+    const list = renderList(
+      view.items,
+      columnsOf(view.items),
+      isPlainList(view.items)
+    );
+    if (!view.header) return list;
     return (
-      <MenuRow
-        key={node.testID}
-        testID={node.testID}
-        label={node.label}
-        icon={node.icon}
-        trailing={ChevronRight}
-        separated={false}
-        columns={columns}
-        colors={colors}
-      />
+      <>
+        <View
+          style={{
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: colors.border,
+          }}
+        >
+          <MenuRow
+            testID={`${view.header.testID}Header`}
+            label={view.header.label}
+            icon={view.header.icon}
+            trailing={ChevronDown}
+            separated={false}
+            columns={{ checks: false, icons: view.header.icon !== undefined }}
+            colors={colors}
+            onPress={() => go({ type: 'back' })}
+          />
+        </View>
+        {list}
+      </>
     );
   }
 
@@ -278,7 +384,14 @@ export function HeaderMenu({
     // overflow button is always at the top with the whole screen beneath it, so
     // there is nothing for flip to decide; web never showed it because there
     // the boundary is the window.
-    <Popover open={open} onOpenChange={setOpen} placement="bottom-end">
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) go({ type: 'close' });
+      }}
+      placement="bottom-end"
+    >
       {/* Pressable, not View: `asChild` clones the child with Popover's own
           onPress, and a plain RN View has nowhere to put it -- the trigger
           silently stopped opening the menu. */}
@@ -314,7 +427,7 @@ export function HeaderMenu({
             { backgroundColor: colors.surface, borderColor: colors.border },
           ]}
         >
-          {items.map(renderNode)}
+          {renderView()}
         </View>
       </Popover.Content>
     </Popover>
@@ -355,4 +468,14 @@ const styles = StyleSheet.create({
   rowDetail: { fontSize: 13, marginTop: 1 },
   section: { paddingVertical: 4 },
   sectionTitle: { fontSize: 13, paddingHorizontal: 14, paddingVertical: 6 },
+  confirm: { padding: 16, gap: 6 },
+  confirmTitle: { fontSize: 17, fontWeight: '600' },
+  confirmMessage: { fontSize: 15, marginBottom: 10 },
+  confirmButton: {
+    minHeight: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmLabel: { fontSize: 17, fontWeight: '600' },
 });
