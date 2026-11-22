@@ -12,6 +12,7 @@ import {
   type LayoutWatcher,
 } from '../interactions/layout';
 import { snapshotPage, takeWrittenSnapshots } from '../interactions/snapshot';
+import { resetLiquidGlass } from '../glass';
 import { resetRouterHarness } from '../router';
 import { resetSafeArea } from '../safeArea';
 import { installFrameFidelity } from './frames';
@@ -191,6 +192,7 @@ afterEach(async (ctx) => {
   if (snapshots.length > 0) ctx.task.meta.flowSnapshots = snapshots;
   cleanup();
   resetRouterHarness();
+  resetLiquidGlass();
   resetStorageHarness();
   resetLayouts();
   resetSafeArea();

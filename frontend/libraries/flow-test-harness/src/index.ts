@@ -2,6 +2,7 @@ export { renderScreen, FlowProviders, type RenderScreenOptions } from './render'
 export { renderRoute, type RenderRouteOptions } from './route';
 export { createFlowApp, type FlowApp } from './flowApp';
 export { hydrationErrors } from './hydration';
+export { setLiquidGlass, resetLiquidGlass } from './glass';
 export {
   createSession,
   screenshot,

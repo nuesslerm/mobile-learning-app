@@ -72,6 +72,7 @@ export const flowTestAliases = (): { find: RegExp; replacement: string }[] => [
   { find: /^expo-router\/drawer$/, replacement: DRAWER_STUB },
   { find: /^expo-audio$/, replacement: stub('expo-audio') },
   { find: /^expo-font$/, replacement: stub('expo-font') },
+  { find: /^expo-glass-effect$/, replacement: stub('expo-glass-effect') },
   {
     find: /^@react-native-async-storage\/async-storage$/,
     replacement: stub('async-storage'),
