@@ -1148,7 +1148,8 @@ Usage: wf bucket state read [options] <path>
 Print the file at <path> of the tip of refs/wf/state on origin. Only the tip
 commit and its trees are fetched, into a scratch repository (no history, no
 other file, nothing written to the checkout); git then pulls just this one
-file. The ref keeps a sealed database per commit, so a plain fetch of it costs
+file. A write keeps the ref to one commit (the tip it read, with its change), so
+the ref holds one sealed database; a plain fetch of an older, longer history cost
 minutes. Each git call is bounded by WF_STATE_READ_TIMEOUT_S (default 90).
 
 Output: one JSON line, {ok, found, path, content}. A ref that does not exist

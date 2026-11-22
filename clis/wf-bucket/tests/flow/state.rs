@@ -168,3 +168,23 @@ fn given_a_write_when_it_lands_then_the_output_times_each_phase_so_a_slow_push_n
         assert!(out["timing"][phase].as_f64().is_some_and(|s| s >= 0.0), "{phase}: {out}");
     }
 }
+
+#[test]
+fn given_a_long_history_when_a_job_writes_then_the_ref_is_one_commit_and_the_other_files_survive() {
+    let remote = Remote::new();
+    let (first, second) = (remote.job("first"), remote.job("second"));
+    for n in 1..=3 {
+        let (code, out) = state(&first, &["write", "eas/latest-dev.json", "--message", &format!("pointer {n}")], Some(&format!("{{\"group\":\"g{n}\"}}")));
+        assert_eq!(code, 0, "{out}");
+    }
+    let (code, out) = state(&first, &["write", "ci/ci.sqlite.sealed", "--message", "sealed"], Some(&"x".repeat(200_000)));
+    assert_eq!(code, 0, "{out}");
+
+    let (code, out) = state(&second, &["write", "eas/latest-e2e.json", "--message", "e2e"], Some("{\"group\":\"e1\"}"));
+
+    assert_eq!(code, 0, "{out}");
+    assert_eq!(git(&remote.bare(), &["rev-list", "--count", "refs/wf/state"]), "1");
+    let (_, db) = state(&second, &["read", "ci/ci.sqlite.sealed"], None);
+    let (_, dev) = state(&second, &["read", "eas/latest-dev.json"], None);
+    assert_eq!((db["found"].clone(), dev["content"].as_str()), (serde_json::json!(true), Some("{\"group\":\"g3\"}")));
+}

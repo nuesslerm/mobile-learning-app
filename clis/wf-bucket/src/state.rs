@@ -2,8 +2,9 @@
 //! repository's `origin`. A ref outside `refs/heads` and `refs/tags` starts no workflow when pushed. Reads need only git, never
 //! the Actions API: they fetch just the tip commit and its trees (no history, no blobs) into a scratch repository and let `git show`
 //! pull the one blob asked for, because the ref's history holds a sealed database per commit and a plain fetch downloads all of
-//! them. Writes build the commit with plumbing (no checkout) and push it fast-forward only, fetching and retrying when another
-//! job moved the ref first.
+//! them. A write fetches the tip the same way, builds one parentless commit over its tree with plumbing (no checkout) and pushes it
+//! over the tip it read, guarded by a lease, so the ref is always a single snapshot: the history never holds more than one sealed
+//! database, and a job that lost a race fetches again and retries.
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -66,7 +67,7 @@ fn checked(path: &str) -> Result<(), String> {
 /// The remote's tip of the state ref, now in the local `refs/wf/state`: none when the remote has no such ref yet.
 fn fetch(base: Base) -> Result<Option<String>, String> {
     let spec = format!("+{REF}:{REF}");
-    let out = git(base, &["fetch", "--quiet", "--no-tags", "origin", &spec], &[], None)?;
+    let out = git(base, &["fetch", "--quiet", "--no-tags", "--depth=1", "--filter=blob:none", "origin", &spec], &[], None)?;
     if !out.ok {
         return if out.stderr.contains("couldn't find remote ref") { Ok(None) } else { Err(format!("git fetch origin {REF} failed: {}", out.stderr)) };
     }
@@ -212,12 +213,8 @@ fn commit_files(base: Base, parent: Option<&str>, files: &[(&str, &[u8])], messa
             let blob = text(run(base, &["hash-object", "-w", "--stdin"], &env, Some(body))?);
             run(base, &["update-index", "--add", "--cacheinfo", &format!("100644,{blob},{path}")], &env, None)?;
         }
-        let tree = text(run(base, &["write-tree"], &env, None)?);
-        let mut args = vec!["commit-tree", tree.as_str(), "-m", message];
-        if let Some(parent) = parent {
-            args.extend(["-p", parent]);
-        }
-        Ok(text(run(base, &args, &env, None)?))
+        let tree = text(run(base, &["write-tree", "--missing-ok"], &env, None)?);
+        Ok(text(run(base, &["commit-tree", tree.as_str(), "-m", message], &env, None)?))
     })();
     let _ = std::fs::remove_file(&index);
     result
@@ -259,7 +256,12 @@ pub fn write_timed(base: Base, files: &[(&str, &[u8])], message: &str) -> Result
         let commit = commit_files(base, parent.as_deref(), files, message)?;
         timing.commit_s += started.elapsed().as_secs_f64();
         let started = Instant::now();
-        let out = git(base, &["push", "--quiet", "origin", &format!("{commit}:{REF}")], &[], None)?;
+        let target = format!("{commit}:{REF}");
+        let lease = parent.as_deref().map(|p| format!("--force-with-lease={REF}:{p}"));
+        let mut args = vec!["push", "--quiet"];
+        args.extend(lease.as_deref());
+        args.extend(["origin", target.as_str()]);
+        let out = git(base, &args, &[], None)?;
         timing.push_s += started.elapsed().as_secs_f64();
         if out.ok {
             return Ok((commit, timing));
