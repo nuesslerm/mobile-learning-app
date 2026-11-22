@@ -131,7 +131,7 @@ fn replay_set(id: &str, rows: &[String], name: &str, failures: &mut Vec<String>)
     // When wf-mimic replays every group against a chain of its own: t3-serve wired to the real rca-service and rca-exec
     let (mut results, mut tests): (Vec<Value>, Vec<Value>) = (Vec::new(), Vec::new());
     let (mut new, mut stale): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
-    let scratch = std::env::temp_dir().join(format!("t3-serve-recorded-{name}-{}", std::process::id()));
+    let scratch = std::env::temp_dir().join(format!("t3-serve-recorded-{id}-{name}-{}", std::process::id()));
     for group in &groups {
         let chain = Chain::start();
         for ids in group.chunks(IDS_PER_CALL) {
