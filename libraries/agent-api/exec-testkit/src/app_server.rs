@@ -108,7 +108,7 @@ pub fn transcript(name: &str) -> Vec<Frame> {
 
 /// The recordings, by name.
 pub fn transcript_names() -> Vec<String> {
-    let mut names: Vec<String> = std::fs::read_dir(transcripts_dir()).into_iter().flatten().flatten().filter_map(|e| e.path().file_stem().map(|s| s.to_string_lossy().into_owned())).collect();
+    let mut names: Vec<String> = std::fs::read_dir(transcripts_dir()).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "ndjson")).filter_map(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned())).collect();
     names.sort();
     names
 }

@@ -199,7 +199,7 @@ mod tests {
             let value = match name.as_str() {
                 n if n.ends_with("_VARIANT") => "v1".to_string(),
                 n if n.ends_with("_STATS") || n == "RCA_BROWSER" => "1".to_string(),
-                n if n == "PORT" || n.ends_with("_MS") || n.ends_with("_HOURS") || n.ends_with("_TURNS") => "7".to_string(),
+                n if n == "PORT" || n.ends_with("_MS") || n.ends_with("_HOURS") || n.ends_with("_TURNS") || n.ends_with("_SECS") => "7".to_string(),
                 n => format!("sentinel-{n}"),
             };
             let only = |asked: &str| (asked == name).then(|| value.clone());
