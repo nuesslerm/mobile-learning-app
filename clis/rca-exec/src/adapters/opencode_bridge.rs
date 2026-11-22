@@ -282,3 +282,21 @@ impl<R: BufRead> Read for Body<R> {
         Ok(read)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn given_a_server_that_has_not_said_where_it_listens_when_a_request_on_a_route_is_made_then_it_is_refused_as_not_listening() {
+        // Given a bridge whose server has printed no port
+        let bridge = Bridge::new().unwrap();
+
+        // When a request on a route the adapter drives is made
+        let refused = bridge.request(r#"{"id":1,"method":"GET","path":"/global/health"}"#).unwrap_err();
+
+        // Then it is refused as the server not listening, and nothing was sent
+        assert_eq!(refused.code, Code::Io);
+        assert!(refused.message.contains("not listening"), "{}", refused.message);
+    }
+}

@@ -282,21 +282,19 @@ fn given_an_opencode_session_when_requests_are_sent_then_the_executor_makes_them
 }
 
 #[test]
-fn given_an_opencode_session_when_a_line_names_no_route_the_adapter_drives_or_comes_before_the_server_listens_then_it_is_refused_and_nothing_reaches_the_server() {
-    // Given an executor whose opencode is the scripted server, a session just opened (the server is not listening yet) and later one that is ready
+fn given_an_opencode_session_when_a_line_names_no_route_the_adapter_drives_then_it_is_refused_and_nothing_reaches_the_server() {
+    // Given an executor whose opencode is the scripted server, a session whose server is ready
     let ((_r, root), (_h, home)) = (dir(), dir());
     let cli = exec_testkit::ScriptedCli::install();
     cli.script("opencode", &exec_testkit::Script::of(vec![]));
     let ex = Arc::new(LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home)).with_cli_path(cli.dir().to_str().unwrap()));
     let heard = start_with(&ex, "a1", SessionOpen { session: "o-1".into(), program: "opencode".into(), args: Vec::new(), cwd: None });
     assert!(matches!(next(&heard), Heard::Started));
-    let early = send(&ex, "o-1", r#"{"id":1,"method":"GET","path":"/global/health"}"#);
     let mut text = String::new();
     lines_until(&heard, &mut text, |l| l.iter().any(|v| v["ready"] == true));
     // When a request off the list, a PUT and a line that is no request are sent
     let refused: Vec<_> = [r#"{"id":2,"method":"GET","path":"/file?path=/etc/passwd"}"#, r#"{"id":3,"method":"PUT","path":"/session/x"}"#, "not json"].iter().map(|line| send(&ex, "o-1", line).unwrap_err().code).collect();
-    // Then the early one was refused as the server not listening, the others are INVALID_ARGS, and the server saw nothing of them
-    assert_eq!(early.unwrap_err().code, Code::Io);
+    // Then the others are INVALID_ARGS, and the server saw nothing of them
     assert!(refused.iter().all(|c| *c == Code::InvalidArgs), "{refused:?}");
     assert!(cli.opencode_requests("opencode").iter().all(|r| r["path"] == "/global/event"), "{:?}", cli.opencode_requests("opencode"));
     // And a cancel ends the session with its server
