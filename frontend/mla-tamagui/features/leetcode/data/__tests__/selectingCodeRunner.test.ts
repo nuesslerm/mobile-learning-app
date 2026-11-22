@@ -9,15 +9,19 @@ const params = (lang: string): RunCodeParams => ({ lang, code: 'c', methodName: 
 
 function setup(choice: RunnerChoice) {
   const log: string[] = [];
+  const warmedWith: (string | undefined)[] = [];
   const runner = (name: string): CodeRunnerPort => ({
     run: async () => {
       log.push(name);
       return passingRun();
     },
-    warmUp: () => void log.push(`${name} warm`),
+    warmUp: (lang) => {
+      log.push(`${name} warm`);
+      warmedWith.push(lang);
+    },
   });
   const selecting = createSelectingCodeRunner({ choose: async () => choice, current: () => choice, runners: { backend: runner('backend'), device: runner('device') } });
-  return { log, selecting };
+  return { log, warmedWith, selecting };
 }
 
 describe('createSelectingCodeRunner', () => {
@@ -60,6 +64,26 @@ describe('createSelectingCodeRunner', () => {
     const backend = setup('backend');
     backend.selecting.warmUp?.();
     expect([device.log, backend.log]).toEqual([['device warm'], []]);
+  });
+
+  it("Given the device setting, When warmUp('python3') is called, Then the device runner is warmed with 'python3'", () => {
+    const { warmedWith, selecting } = setup('device');
+    selecting.warmUp?.('python3');
+    selecting.warmUp?.();
+    expect(warmedWith).toEqual(['python3', 'python3']);
+  });
+
+  it("Given the backend setting, When warmUp('python3') is called, Then nothing is warmed", () => {
+    const { log, selecting } = setup('backend');
+    selecting.warmUp?.('python3');
+    expect(log).toEqual([]);
+  });
+
+  it("Given the device setting, When warmUp('javascript') or warmUp('cpp') is called, Then nothing is warmed yet", () => {
+    const { log, selecting } = setup('device');
+    selecting.warmUp?.('javascript');
+    selecting.warmUp?.('cpp');
+    expect(log).toEqual([]);
   });
 });
 

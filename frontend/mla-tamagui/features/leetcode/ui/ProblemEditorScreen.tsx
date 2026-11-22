@@ -811,7 +811,7 @@ export function ProblemEditorScreen({
                 onSelectionChange={setEditorSelection}
                 onHydratedChange={(hydrated) => {
                   // the page may have been dropped while idle: bring it back while the person reads the problem, not at Run
-                  if (hydrated) runner.warmUp?.();
+                  if (hydrated) runner.warmUp?.(lang);
                 }}
               />
             </YStack>

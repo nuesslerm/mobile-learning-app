@@ -5,11 +5,11 @@ import { app } from '../../../../tests/flow/app';
 import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLines';
 import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../..';
 import { createPyodideRunner, type PyodideRunner, type RunnerLimits } from '../../data/pyodide/pyodideRunner';
-import type { RunCodeParams } from '../../domain/ports';
+import type { CodeRunnerPort, RunCodeParams } from '../../domain/ports';
 import { ProblemCatalog } from '../../domain/problemCatalog';
 import type { JudgeParams } from '../../data/pyodide/judgeProtocol';
 import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSettingStore';
-import { answers, createFakePageHost, customRun, HANG, type FakePageHost, type FakePageScript } from '../../testing';
+import { answers, createFakePageHost, customRun, HANG, passingRun, type FakePageHost, type FakePageScript } from '../../testing';
 
 const BACKEND_RUN: RunResponse = { source: 'backend-run', kind: 'test', state: 'SUCCESS', requestId: 'backend', run_success: true, status_msg: 'Accepted', total_correct: 5, total_testcases: 5 };
 const LIMITS: Partial<RunnerLimits> = { readyMs: 2000, pullMs: 2000, bootMs: 2000, waitMs: 2000, runMs: 250, rpcSlackMs: 100 };
@@ -29,7 +29,7 @@ function setup(script: FakePageScript = {}) {
   return { gateway, host, runner };
 }
 
-async function renderEditor(gateway: LeetCodeGatewayPort, runner: PyodideRunner, route = '/leetcode/two-sum'): Promise<FlowSession> {
+async function renderEditor(gateway: LeetCodeGatewayPort, runner: CodeRunnerPort, route = '/leetcode/two-sum'): Promise<FlowSession> {
   const ports: LeetCodePortOverrides = {
     gateway,
     voice: createFakeVoiceEditTransport() as unknown as VoiceEditTransportPort,
@@ -47,6 +47,20 @@ const status = () => screen.getByTestId('ProblemEditorRunOutcomeStatus').textCon
 afterEach(() => useRunnerSettingStore.setState({ runner: DEFAULT_RUNNER }));
 
 describe('Run Local on the device', () => {
+  it('given the device is chosen, when the editor hydrates, then the device runner is warmed once with python3', async () => {
+    // Given the device chosen and a device runner that only records its warm-ups
+    useRunnerSettingStore.setState({ runner: 'device' });
+    const { gateway } = setup();
+    const warmed: (string | undefined)[] = [];
+    const recording: CodeRunnerPort = { run: async () => passingRun(), warmUp: (lang) => void warmed.push(lang) };
+
+    // When the editor opens two-sum and hydrates
+    await renderEditor(gateway, recording);
+
+    // Then it was warmed once, for Python
+    await waitFor(() => expect(warmed).toEqual(['python3']));
+  });
+
   it('given the device is chosen, when the user runs the tests, then the on-device runner answers over every case and the backend is not asked', async () => {
     // Given the editor with the device chosen, and a page that has to be loaded by the first run
     useRunnerSettingStore.setState({ runner: 'device' });

@@ -1,7 +1,9 @@
 import type { CodeRunnerPort, RunnerChoice } from '../domain/ports';
+import { deviceLanguageOf, isPythonLanguage, type DeviceLanguage } from '../domain/run/runLanguage';
 import { needsDevice } from '../domain/run/runnerRouting';
 
-const isDeviceLanguage = (lang: string) => lang === 'python3' || lang === 'python';
+/** The languages whose runner is on the device today; JavaScript joins when its runner is reachable. */
+const DEVICE_LANGUAGES: readonly DeviceLanguage[] = ['python3'];
 
 /**
  * The runner Run Local calls. The setting is read per call (the container is built once), and only Python can run on the device:
@@ -17,11 +19,13 @@ export function createSelectingCodeRunner(config: {
   return {
     run: async (params) => {
       const choice = await choose();
-      const onDevice = isDeviceLanguage(params.lang) && (choice === 'device' || needsDevice(params));
+      const onDevice = isPythonLanguage(params.lang) && (choice === 'device' || needsDevice(params));
       return (onDevice ? runners.device : runners.backend).run(params);
     },
-    warmUp: () => {
-      if (current() === 'device') runners.device.warmUp?.();
+    warmUp: (lang) => {
+      if (current() !== 'device') return;
+      const language = lang === undefined ? 'python3' : deviceLanguageOf(lang);
+      if (language && DEVICE_LANGUAGES.includes(language)) runners.device.warmUp?.(language);
     },
   };
 }

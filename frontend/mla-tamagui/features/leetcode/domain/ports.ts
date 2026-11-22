@@ -162,8 +162,8 @@ export interface CodeEditorPort {
  */
 export interface CodeRunnerPort {
   run(p: RunCodeParams): Promise<RunResponse>;
-  /** Starts what the runner needs before its first run; a runner that needs nothing leaves it out. */
-  warmUp?(): void;
+  /** Starts what the runner needs before its first run, for the editor language it was asked about; a runner that needs nothing leaves it out. */
+  warmUp?(lang?: string): void;
 }
 
 /** Where Run Local executes: the leetcode-backend, or this device. */

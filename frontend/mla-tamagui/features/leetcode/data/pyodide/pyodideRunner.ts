@@ -3,6 +3,7 @@ import { Logger } from '@lib/logging';
 
 import type { RunResponse, TestResult } from '../../domain/run/execution';
 import { CodeRunnerError, type CodeRunnerPort, type CodeRunnerStage, type RunCodeParams } from '../../domain/ports';
+import { isPythonLanguage } from '../../domain/run/runLanguage';
 import { rawRunSchema, runResponseOf, type RawRun } from '../../domain/run/verdict';
 import { JUDGE_DEFAULTS, type JudgeParams } from './judgeProtocol';
 import type { PageHost, PageSession } from './pageHost';
@@ -42,7 +43,6 @@ export type PyodideRunner = CodeRunnerPort & {
 type Page = { session: PageSession; client: RpcClient; stopLost: () => void };
 type Job = { params: RunCodeParams; resolve: (response: RunResponse) => void; reject: (error: unknown) => void };
 
-const isPython = (lang: string) => lang === 'python3' || lang === 'python';
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
 const FATAL = /fatal error|maximum call stack/i;
 const realTimers: Timers = { set: (fn, ms) => setTimeout(fn, ms), clear: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>) };
@@ -303,7 +303,7 @@ export function createPyodideRunner(config: { host: PageHost; limits?: Partial<R
       void ensureLoaded().then(undefined, () => undefined);
     },
     run(params) {
-      if (!isPython(params.lang)) {
+      if (!isPythonLanguage(params.lang)) {
         return Promise.resolve(runResponseOf({ ok: false, error: `Unsupported language: ${params.lang}`, error_kind: 'compile' }, 'offline'));
       }
       return new Promise<RunResponse>((resolve, reject) => {
