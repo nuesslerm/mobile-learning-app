@@ -19,13 +19,25 @@ pub struct Cli {
     pub key: &'static str,
     /// The variable the CLI reads it from; none for a login that is a file (Codex's `auth.json`).
     pub env: Option<&'static str>,
+    /// For a file login, the directory under the run's home that holds it and is the CLI's `CODEX_HOME`.
+    pub login_dir: &'static str,
+    /// The launcher writes the login a run refreshed back to the vault itself (the single-use refresh token would otherwise be lost), instead of leaving it to a job of its own.
+    pub writes_back: bool,
 }
 
 pub const CLIS: [Cli; 3] = [
-    Cli { name: "claude", key: "CLAUDE_CODE_OAUTH_TOKEN", env: Some("CLAUDE_CODE_OAUTH_TOKEN") },
-    Cli { name: "codex", key: "CODEX_OAUTH_JSON_B64", env: None },
-    Cli { name: "opencode", key: "OPENCODE_GO_API_KEY", env: Some("OPENCODE_API_KEY") },
+    Cli { name: "claude", key: "CLAUDE_CODE_OAUTH_TOKEN", env: Some("CLAUDE_CODE_OAUTH_TOKEN"), login_dir: "", writes_back: false },
+    Cli { name: "codex", key: "CODEX_OAUTH_JSON_B64", env: None, login_dir: ".codex", writes_back: false },
+    Cli { name: "opencode", key: "OPENCODE_GO_API_KEY", env: Some("OPENCODE_API_KEY"), login_dir: "", writes_back: false },
 ];
+
+/// The second Codex login, for the tests that run the real codex: named on its own (`real` is the three above), kept where the service's provider layout puts a
+/// Codex login (`<root>/codex`) so the service's own process adapter finds it, and written back to the vault by the launcher.
+pub static CODEX_CI: Cli = Cli { name: "codex-ci", key: "CODEX_CI_OAUTH_JSON_B64", env: None, login_dir: "providers/codex", writes_back: true };
+
+fn named(name: &str) -> Option<&'static Cli> {
+    CLIS.iter().chain(std::iter::once(&CODEX_CI)).find(|c| c.name == name)
+}
 
 /// The CLIs `value` of `MODE_ENV` runs for real: none for the default.
 pub fn parse_mode(value: Option<&str>) -> Result<Vec<&'static Cli>, String> {
@@ -33,11 +45,11 @@ pub fn parse_mode(value: Option<&str>) -> Result<Vec<&'static Cli>, String> {
     let names = match value {
         "" | "scripted" => return Ok(Vec::new()),
         "real" => return Ok(CLIS.iter().collect()),
-        other => other.strip_prefix("real:").ok_or_else(|| format!("{MODE_ENV}={other:?}: say scripted, real or real:<claude,codex,opencode>"))?,
+        other => other.strip_prefix("real:").ok_or_else(|| format!("{MODE_ENV}={other:?}: say scripted, real or real:<claude,codex,opencode,codex-ci>"))?,
     };
     let mut out: Vec<&'static Cli> = Vec::new();
     for name in names.split(',').map(str::trim).filter(|n| !n.is_empty()) {
-        let cli = CLIS.iter().find(|c| c.name == name).ok_or_else(|| format!("{MODE_ENV}: {name:?} is no agent CLI (claude, codex, opencode)"))?;
+        let cli = named(name).ok_or_else(|| format!("{MODE_ENV}: {name:?} is no agent CLI (claude, codex, opencode, codex-ci)"))?;
         if out.iter().any(|c| c.name == name) {
             return Err(format!("{MODE_ENV}: {name} twice"));
         }
@@ -45,6 +57,9 @@ pub fn parse_mode(value: Option<&str>) -> Result<Vec<&'static Cli>, String> {
     }
     if out.is_empty() {
         return Err(format!("{MODE_ENV}=real: names no CLI"));
+    }
+    if out.iter().filter(|c| c.env.is_none()).count() > 1 {
+        return Err(format!("{MODE_ENV}: codex and codex-ci both set CODEX_HOME, name one"));
     }
     Ok(out)
 }
@@ -54,6 +69,12 @@ pub struct Resolved {
     home: PathBuf,
     creds: Vec<(&'static Cli, String)>,
     secrets: Vec<(String, String)>,
+}
+
+pub enum Resolution {
+    Ready(Resolved),
+    /// The registry keys that hold no value.
+    Empty(Vec<&'static str>),
 }
 
 /// Long strings whose own field is credential-named (token, secret, key, password); ids, plans and timestamps are not secrets and a log may hold them.
@@ -84,7 +105,7 @@ impl Resolved {
                 let mut found = Vec::new();
                 leaves(&json, false, &mut found);
                 resolved.secrets.extend(found.into_iter().map(|v| (cli.key.to_string(), v)));
-                let dir = home.join(".codex");
+                let dir = home.join(cli.login_dir);
                 {
                     use std::io::Write;
                     use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
@@ -98,13 +119,34 @@ impl Resolved {
         Ok(resolved)
     }
 
+    /// As `resolve`, but a credential that holds no value (missing, or only blanks) is not an error: the keys without one come back as `Empty`, and nothing was written.
+    pub fn resolve_unless_empty(clis: &[&'static Cli], home: &Path, lookup: Lookup) -> Result<Resolution, String> {
+        let keys: Vec<&str> = clis.iter().map(|c| c.key).collect();
+        let loaded = lookup(&keys);
+        let empty: Vec<&'static str> = clis.iter().filter(|c| loaded.get(c.key).and_then(|v| v.as_deref()).is_none_or(|v| v.trim().is_empty())).map(|c| c.key).collect();
+        if !empty.is_empty() {
+            return Ok(Resolution::Empty(empty));
+        }
+        Resolved::resolve(clis, home, &|_| loaded.clone()).map(Resolution::Ready)
+    }
+
     /// `resolve` from the vault, or from the caller's environment when no vault is configured.
     pub fn load(clis: &[&'static Cli], home: &Path) -> Result<Resolved, String> {
         Resolved::resolve(clis, home, &|keys| secrets::load_values(keys))
     }
 
+    /// `resolve_unless_empty` from the vault, or from the caller's environment when no vault is configured.
+    pub fn load_unless_empty(clis: &[&'static Cli], home: &Path) -> Result<Resolution, String> {
+        Resolved::resolve_unless_empty(clis, home, &|keys| secrets::load_values(keys))
+    }
+
     pub fn home(&self) -> &Path {
         &self.home
+    }
+
+    /// The file logins of these CLIs: the CLI and where its `auth.json` is.
+    pub fn logins(&self) -> Vec<(&'static Cli, PathBuf)> {
+        self.creds.iter().filter(|(c, _)| c.env.is_none()).map(|(c, _)| (*c, self.home.join(c.login_dir).join("auth.json"))).collect()
     }
 
     pub fn names(&self) -> Vec<&'static str> {
@@ -121,7 +163,7 @@ impl Resolved {
         let own = self.creds.iter().find(|(c, _)| c.name == cli.name);
         match (own, cli.env) {
             (Some((_, value)), Some(env)) => base.with([(env.to_string(), value.clone())]),
-            (Some(_), None) => base.with([("CODEX_HOME".to_string(), self.home.join(".codex").display().to_string())]),
+            (Some(_), None) => base.with([("CODEX_HOME".to_string(), self.home.join(cli.login_dir).display().to_string())]),
             (None, _) => base,
         }
     }

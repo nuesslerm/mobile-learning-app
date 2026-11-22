@@ -51,8 +51,8 @@ fn entry_of(ctx: &Ctx, key: &str) -> Option<Entry> {
 
 /* ---------- rotate-login ---------- */
 
-/// The key the login of `codex` is kept under.
-const CODEX_LOGIN_KEY: &str = "CODEX_OAUTH_JSON_B64";
+/// The Codex logins the vault keeps, by the name `rotate-login` takes: the owner's own, and the second one the real-CLI tests use so they never rotate it.
+pub const LOGINS: [(&str, &str); 2] = [("codex", "CODEX_OAUTH_JSON_B64"), ("codex-ci", "CODEX_CI_OAUTH_JSON_B64")];
 
 fn base64(bytes: &[u8]) -> String {
     const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -73,32 +73,49 @@ fn refresh_token_of(login: &serde_json::Value) -> Option<&str> {
     (!access.is_empty() && !refresh.is_empty()).then_some(refresh)
 }
 
-/// `wf secret rotate-login codex --from <auth.json>`: writes the login a CI run left (the refresh token is single-use, so the vault copy goes stale the
-/// moment Codex refreshes) back to the vault, and only that one key. Nothing is printed of the value; an unchanged refresh token writes nothing.
-pub fn cmd_rotate_login(p: Parsed) -> Result<i32, String> {
-    let Some(path) = p.opts.get("from") else { return Ok(plain("rotate-login needs --from <the auth.json the run left>")) };
+/// What writing a login back did: the vault now holds it, it already did, or the file was refused (the reason, never a value).
+pub enum Rotation {
+    Updated,
+    Unchanged,
+    Refused(String),
+}
+
+/// Writes the Codex login in the file at `path` (left by a run: the refresh token is single-use, so the vault copy goes stale the moment Codex refreshes) to
+/// the vault key `key` with the CI deploy credential, and only that key. A file that is no ChatGPT login, or one of another account, is refused; an
+/// unchanged refresh token writes nothing.
+pub fn rotate_login(key: &str, path: &str) -> Result<Rotation, String> {
     let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
     let login: serde_json::Value = match serde_json::from_str(&text) {
         Ok(v) => v,
-        Err(_) => return Ok(plain(&format!("{path} is not JSON: nothing was written"))),
+        Err(_) => return Ok(Rotation::Refused(format!("{path} is not JSON: nothing was written"))),
     };
-    let Some(fresh) = refresh_token_of(&login) else { return Ok(plain(&format!("{path} is not a ChatGPT login (it needs tokens.access_token and tokens.refresh_token): nothing was written"))) };
+    let Some(fresh) = refresh_token_of(&login) else { return Ok(Rotation::Refused(format!("{path} is not a ChatGPT login (it needs tokens.access_token and tokens.refresh_token): nothing was written"))) };
     let vault = vault::ci_vault()?;
-    let Some((id, current)) = vault.find(CODEX_LOGIN_KEY)? else { return Ok(plain(&format!("{CODEX_LOGIN_KEY} is not in the vault: mint it with `wf secret login codex` first"))) };
+    let Some((id, current)) = vault.find(key)? else { return Ok(Rotation::Refused(format!("{key} is not in the vault: mint it with `wf secret login` first"))) };
     let stored: Option<serde_json::Value> = text_of_b64(&current).and_then(|t| serde_json::from_str(&t).ok());
     // The file comes from a job that ran code we do not trust: a login of another account is refused, not stored.
     let account = |v: &serde_json::Value| v["tokens"]["account_id"].as_str().map(str::to_string);
     if let (Some(was), Some(now)) = (stored.as_ref().and_then(account), account(&login)) {
         if was != now {
-            return Ok(plain(&format!("{path} is a login of another account than the one in the vault: nothing was written")));
+            return Ok(Rotation::Refused(format!("{path} is a login of another account than the one in the vault: nothing was written")));
         }
     }
     if stored.as_ref().and_then(refresh_token_of) == Some(fresh) {
-        out(&format!("{CODEX_LOGIN_KEY}: unchanged\n"));
-        return Ok(0);
+        return Ok(Rotation::Unchanged);
     }
     vault.set_value(&id, &base64(text.trim().as_bytes()))?;
-    out(&format!("{CODEX_LOGIN_KEY}: updated\n"));
+    Ok(Rotation::Updated)
+}
+
+/// `wf secret rotate-login codex|codex-ci --from <auth.json>`: `rotate_login` for the login the name stands for. Nothing is printed of the value.
+pub fn cmd_rotate_login(p: Parsed) -> Result<i32, String> {
+    let Some(path) = p.opts.get("from") else { return Ok(plain("rotate-login needs --from <the auth.json the run left>")) };
+    let key = LOGINS.iter().find(|(name, _)| *name == p.positional[0]).map(|(_, key)| *key).ok_or_else(|| format!("rotate-login: {} is no login", p.positional[0]))?;
+    match rotate_login(key, path)? {
+        Rotation::Updated => out(&format!("{key}: updated\n")),
+        Rotation::Unchanged => out(&format!("{key}: unchanged\n")),
+        Rotation::Refused(why) => return Ok(plain(&why)),
+    }
     Ok(0)
 }
 

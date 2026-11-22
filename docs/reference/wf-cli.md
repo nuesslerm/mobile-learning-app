@@ -85,7 +85,7 @@ secret                       Manage secrets (macOS Keychain locally; Bitwarden i
   registry                   Secrets registry maintenance
     sync                     Rebuild wf after editing registry.json (the registry is compiled into it), then 
   rename                     Rename a vault secret in place, preserving its id (so UUID-addressed consumers k
-  rotate-login               Write the login a CI run refreshed back to the vault (codex)
+  rotate-login               Write the login a CI run refreshed back to the vault (codex, codex-ci)
   set                        Store secret (reads from stdin if value omitted) — macOS backend only
   sync-env                   Resolve keys (or --for <app>) through the active backend and write a .env — the 
   update                     Replace an EXISTING vault secret's value in place, keeping its key, note, projec
@@ -4834,6 +4834,15 @@ MIMIC_REAL_CLI_DIR; the test crate reads those and never resolves a credential. 
 command's stdout goes to this verb's stderr, so stdout is one JSON object.
 The modes are --clis or T3_CHAIN_CLIS: scripted (nothing resolved, nothing scanned), real,
 or real:claude,codex,opencode. With neither the verb fails (exit 2) instead of guessing.
+`codex-ci` is the second Codex login (CODEX_CI_OAUTH_JSON_B64), named on its own because
+`real` is the other three: it is restored to <home>/providers/codex/auth.json (the file
+0600, the directory 0700) and CODEX_HOME names that directory, so the service's own
+process adapter finds it. Codex refreshes it while it runs and the refresh token is
+single-use, so this verb writes a changed login back to the vault itself after the
+command, whatever the command's result (the CI deploy credential, in this process alone;
+`wf secret rotate-login codex-ci`'s rules: a login of another account is refused, an
+unchanged one writes nothing). A write-back that fails is a failure (the vault's login
+is dead until `wf secret login codex-ci` runs again). It cannot be named with codex.
 One executor process runs every real CLI, so each can read the others' environment
 variables there (a known gap, docs/gaps/t3-chain-real-clis.md).
 
@@ -4841,10 +4850,14 @@ Options:
   --clis <mode>        scripted | real | real:<names> (required unless $T3_CHAIN_CLIS is set)
   --cli-dir <dir>      the directory of the pinned CLI binaries (default $MIMIC_REAL_CLI_DIR)
   --scan <dirs>        comma-separated directories to scan after the run, besides $WF_TEST_OUTPUT_DIR
+  --skip-when-empty    a named credential that holds no value skips the run (exit 0, "skipped" says why,
+                       the command never starts) instead of failing with exit 2
   -h, --help           display help for command
 
 Output (schema mimic-exec/1):
-  {schema, ok, real_clis, command, exit, scanned, findings: ["<file> holds the value of <KEY>"], codex_login_rotated, warnings, next}
+  {schema, ok, ran, real_clis, command, exit, scanned, findings: ["<file> holds the value of <KEY>"], codex_login_rotated,
+   login_written_back: {"<KEY>": "updated" | "unchanged" | "refused" | "failed"}, warnings, next}
+  (a skipped run is {schema, ok: true, ran: false, skipped, ...} without exit)
 Exit 0 the command passed and the output is clean, 1 the command failed or a finding (hold the output back),
 2 no mode or command, a missing key or CLI directory. A rotated Codex login is a warning, never printed.
 ```
@@ -5173,7 +5186,7 @@ Commands:
                                         omitted) — macOS backend only
   delete <KEY>                          Remove secret — macOS backend only
   rotate-login [options] <provider>     Write the login a CI run refreshed back to
-                                        the vault (codex)
+                                        the vault (codex, codex-ci)
   env [options]                         Print KEY=value lines for all available
                                         secrets (eval-safe)
   sync-env [options] [keys...]          Resolve keys (or --for <app>) through
@@ -5915,9 +5928,9 @@ Options:
 
 ### `wf secret rotate-login`
 
-Write the Codex login a CI run left back to the vault (CODEX_OAUTH_JSON_B64), with the CI deploy credential, and only that key. The file must be a ChatGPT login (tokens.access_token and tokens.refresh_token) of the account the vault holds; an unchanged refresh token writes nothing, and no value is ever printed.
+Write the Codex login a CI run left back to the vault (CODEX_OAUTH_JSON_B64 for codex, CODEX_CI_OAUTH_JSON_B64 for codex-ci), with the CI deploy credential, and only that key. The file must be a ChatGPT login (tokens.access_token and tokens.refresh_token) of the account the vault holds; an unchanged refresh token writes nothing, and no value is ever printed.
 
-Usage: `wf secret rotate-login [options] codex`
+Usage: `wf secret rotate-login [options] <codex|codex-ci>`
 
 | Option | Meaning |
 |---|---|
@@ -5927,16 +5940,18 @@ Examples:
 
 ```sh
 wf secret rotate-login codex --from "$f"
+wf secret rotate-login codex-ci --from "$f"
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf secret rotate-login [options] codex
+Usage: wf secret rotate-login [options] <codex|codex-ci>
 
-Write the Codex login a CI run left back to the vault (CODEX_OAUTH_JSON_B64),
-with the CI deploy credential, and only that key. The file must be a ChatGPT
-login (tokens.access_token and tokens.refresh_token); an unchanged refresh
+Write the Codex login a CI run left back to the vault (CODEX_OAUTH_JSON_B64 for
+codex, CODEX_CI_OAUTH_JSON_B64 for codex-ci), with the CI deploy credential, and
+only that key. The file must be a ChatGPT login (tokens.access_token and
+tokens.refresh_token) of the account the vault holds; an unchanged refresh
 token writes nothing, and no value is ever printed.
 
 Options:

@@ -303,3 +303,151 @@ fn given_a_codex_login_when_it_is_resolved_then_its_directory_and_file_are_owner
     let mode = |p: &str| std::fs::metadata(work.path().join(p)).unwrap().permissions().mode() & 0o777;
     assert_eq!((mode("home/.codex"), mode("home/.codex/auth.json")), (0o700, 0o600));
 }
+
+const CI_KEY: &str = "CODEX_CI_OAUTH_JSON_B64";
+const CI_REFRESH: &str = "ci-refresh-token-value-0010";
+const CI_ROTATED: &str = "ci-rotated-refresh-token-0011";
+
+fn ci_login(refresh: &str, account: &str) -> String {
+    let json = format!(r#"{{"tokens":{{"access_token":"ci-access-token-value-0012","refresh_token":"{refresh}","account_id":"{account}"}}}}"#);
+    let out = std::process::Command::new("sh").arg("-c").arg(format!("printf %s '{json}' | base64 -w0")).output().unwrap();
+    String::from_utf8(out.stdout).unwrap()
+}
+
+/// The vault as `bws` serves it for the CI deploy credential: the listing it was given, every call logged beside it.
+struct Vault {
+    dir: tempfile::TempDir,
+}
+
+impl Vault {
+    fn holding(login: Option<&str>) -> Vault {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("bin")).unwrap();
+        let list = login.map_or_else(|| "[]".to_string(), |l| format!(r#"[{{"id":"cx","key":"{CI_KEY}","value":"{l}"}}]"#));
+        std::fs::write(dir.path().join("list.json"), list).unwrap();
+        let stub = dir.path().join("bin/bws");
+        std::fs::write(&stub, "#!/bin/sh\necho \"$* | token=$BWS_ACCESS_TOKEN\" >> \"$STUB_DIR/bws.log\"\nif [ \"$1 $2\" = \"secret list\" ]; then cat \"$STUB_DIR/list.json\"; fi\nexit 0\n").unwrap();
+        std::fs::set_permissions(&stub, std::os::unix::fs::PermissionsExt::from_mode(0o755)).unwrap();
+        Vault { dir }
+    }
+
+    /// `wf mimic exec --clis real:codex-ci` for `script`, with this vault and the CI deploy credential in the verb's environment alone.
+    fn exec(&self, extra: &[&str], script: &str) -> Run {
+        let bins = self.dir.path().join("cli");
+        std::fs::create_dir_all(&bins).unwrap();
+        let (bins_s, d) = (bins.display().to_string(), self.dir.path().display().to_string());
+        let path = format!("{d}/bin:{}", std::env::var("PATH").unwrap_or_default());
+        let env = [("PATH", Path::new(&path)), ("SECRETS_BACKEND", Path::new("bitwarden")), ("BWS_CI_DEPLOY_ACCESS_TOKEN", Path::new("ci-token")), ("STUB_DIR", Path::new(&d)), ("XDG_STATE_HOME", &self.dir.path().join("state"))];
+        let mut args = vec!["exec", "--clis", "real:codex-ci", "--cli-dir", &bins_s];
+        args.extend_from_slice(extra);
+        args.extend(["--", "sh", "-c", script]);
+        mimic(&args, &env)
+    }
+
+    fn calls(&self) -> Vec<String> {
+        std::fs::read_to_string(self.dir.path().join("bws.log")).map(|t| t.lines().filter(|l| !l.starts_with("secret list")).map(String::from).collect()).unwrap_or_default()
+    }
+}
+
+#[test]
+fn given_the_second_codex_login_when_it_is_named_then_real_does_not_include_it_and_it_cannot_run_beside_the_first() {
+    // Given/When the modes are read
+    let names = |v: &str| parse_mode(Some(v)).map(|c| c.iter().map(|c| c.name).collect::<Vec<_>>());
+    // Then real stays the three, the second login is named on its own, and the two Codex logins together are refused
+    assert_eq!(names("real").unwrap(), ["claude", "codex", "opencode"]);
+    assert_eq!(names("real:codex-ci").unwrap(), ["codex-ci"]);
+    assert_eq!(names("real:claude,codex-ci").unwrap(), ["claude", "codex-ci"]);
+    assert!(names("real:codex,codex-ci").unwrap_err().contains("CODEX_HOME"));
+}
+
+#[test]
+fn given_the_second_codex_login_in_the_vault_when_a_run_starts_then_it_is_restored_owner_only_where_the_provider_layout_reads_it_and_the_command_gets_no_vault_token() {
+    // Given the vault holding the login, and a command that reports where CODEX_HOME is, the mode of the login and what else it holds
+    let vault = Vault::holding(Some(&ci_login(CI_REFRESH, "acct-1")));
+    let dump = vault.dir.path().join("dump");
+    let script = format!("echo \"$CODEX_HOME\" > {d}.home; stat -c %a \"$CODEX_HOME/auth.json\" > {d}.mode; stat -c %a \"$CODEX_HOME\" > {d}.dirmode; cat \"$CODEX_HOME/auth.json\" > {d}.login; env > {d}.env", d = dump.display());
+    // When it is launched
+    let run = vault.exec(&[], &script);
+    // Then it passed naming the second login, and the command's CODEX_HOME is `<home>/providers/codex`, the directory 0700 and the file 0600 holding the vault's login
+    assert_eq!((run.code, run.json["ok"].clone(), run.json["real_clis"].clone()), (0, json!(true), json!(["codex-ci"])), "{}\n{}", run.json, run.stderr);
+    let d = dump.display().to_string();
+    let home = std::fs::read_to_string(format!("{d}.home")).unwrap();
+    assert!(home.trim().ends_with("/providers/codex"), "{home}");
+    assert_eq!((std::fs::read_to_string(format!("{d}.mode")).unwrap().trim(), std::fs::read_to_string(format!("{d}.dirmode")).unwrap().trim()), ("600", "700"));
+    assert!(std::fs::read_to_string(format!("{d}.login")).unwrap().contains(CI_REFRESH));
+    // And the command held no vault token and no login as a variable, and the directory is gone once the run ended
+    let held = std::fs::read_to_string(format!("{d}.env")).unwrap();
+    assert!(!held.contains("BWS_") && !held.contains("ci-token") && !held.contains(CI_KEY) && !held.contains(CI_REFRESH), "{held}");
+    assert!(!Path::new(home.trim()).exists());
+}
+
+#[test]
+fn given_a_run_that_refreshes_the_login_when_it_ends_then_it_is_written_back_to_the_one_key_and_no_value_is_printed() {
+    // Given the vault's login and a command that refreshes it as codex does
+    let vault = Vault::holding(Some(&ci_login(CI_REFRESH, "acct-1")));
+    let rotated = ci_login(CI_ROTATED, "acct-1");
+    let plain = String::from_utf8(std::process::Command::new("sh").arg("-c").arg(format!("printf %s '{rotated}' | base64 -d")).output().unwrap().stdout).unwrap();
+    // When the run ends, the command having printed nothing of the login
+    let run = vault.exec(&[], &format!("printf %s '{plain}' > \"$CODEX_HOME/auth.json\""));
+    // Then the new login was written to that one secret by id with the CI credential, the verb says updated, and no output of the verb holds either refresh token
+    assert_eq!((run.code, run.json["ok"].clone(), run.json["login_written_back"].clone(), run.json["codex_login_rotated"].clone()), (0, json!(true), json!({CI_KEY: "updated"}), json!(true)), "{}\n{}", run.json, run.stderr);
+    assert_eq!(vault.calls(), [format!("secret edit --value {rotated} --output none -- cx | token=ci-token")]);
+    for printed in [run.json.to_string(), run.stderr.clone()] {
+        assert!(!printed.contains(CI_REFRESH) && !printed.contains(CI_ROTATED) && !printed.contains(&rotated), "{printed}");
+    }
+}
+
+#[test]
+fn given_a_run_that_leaves_the_login_alone_or_fails_when_it_ends_then_nothing_is_written_unless_the_login_changed() {
+    // Given the vault's login
+    let vault = Vault::holding(Some(&ci_login(CI_REFRESH, "acct-1")));
+    // When a run leaves the file as it was
+    let calm = vault.exec(&[], "true");
+    // Then nothing was written and no write-back is reported
+    assert_eq!((calm.code, calm.json["login_written_back"].clone(), calm.json["codex_login_rotated"].clone()), (0, json!({}), json!(false)), "{}", calm.json);
+    assert!(vault.calls().is_empty(), "{:?}", vault.calls());
+    // And a run that refreshed the login and then failed still writes it back, because the old refresh token is dead either way
+    let rotated = ci_login(CI_ROTATED, "acct-1");
+    let plain = String::from_utf8(std::process::Command::new("sh").arg("-c").arg(format!("printf %s '{rotated}' | base64 -d")).output().unwrap().stdout).unwrap();
+    let failed = vault.exec(&[], &format!("printf %s '{plain}' > \"$CODEX_HOME/auth.json\"; exit 3"));
+    assert_eq!((failed.code, failed.json["exit"].clone(), failed.json["login_written_back"].clone()), (1, json!(3), json!({CI_KEY: "updated"})), "{}", failed.json);
+    assert_eq!(vault.calls().len(), 1);
+}
+
+#[test]
+fn given_a_refreshed_login_of_another_account_when_it_ends_then_it_is_refused_and_the_run_fails_naming_the_step_to_mint_it_again() {
+    // Given the vault's login and a command that leaves the login of another account
+    let vault = Vault::holding(Some(&ci_login(CI_REFRESH, "acct-1")));
+    let other = ci_login(CI_ROTATED, "acct-2");
+    let plain = String::from_utf8(std::process::Command::new("sh").arg("-c").arg(format!("printf %s '{other}' | base64 -d")).output().unwrap().stdout).unwrap();
+    // When the run ends
+    let run = vault.exec(&[], &format!("printf %s '{plain}' > \"$CODEX_HOME/auth.json\""));
+    // Then nothing was written, the run failed, and the message names the step and no value
+    assert_eq!((run.code, run.json["ok"].clone(), run.json["login_written_back"].clone()), (1, json!(false), json!({CI_KEY: "refused"})), "{}", run.json);
+    assert!(vault.calls().is_empty() && run.json["warnings"][0].as_str().unwrap().contains("wf secret login codex-ci"), "{}", run.json);
+    assert!(!run.json.to_string().contains(CI_ROTATED) && !run.stderr.contains(CI_ROTATED));
+}
+
+#[test]
+fn given_no_value_for_the_second_login_when_the_run_is_launched_then_it_is_skipped_with_the_reason_when_asked_and_fails_otherwise() {
+    // Given a vault that holds nothing under the key, and a marker the command would leave
+    let vault = Vault::holding(None);
+    let marker = vault.dir.path().join("ran");
+    let touch = format!("touch {}", marker.display());
+    // When it is launched asking to skip an empty credential
+    let skipped = vault.exec(&["--skip-when-empty"], &touch);
+    // Then it passed without running, the message names the key and the step to mint it, and it says so on stderr too
+    assert_eq!((skipped.code, skipped.json["ok"].clone(), skipped.json["ran"].clone()), (0, json!(true), json!(false)), "{}", skipped.json);
+    let why = skipped.json["skipped"].as_str().unwrap();
+    assert!(why.contains(CI_KEY) && why.contains("wf secret login codex-ci") && skipped.stderr.contains(why), "{why}");
+    assert!(!marker.exists());
+    // And a key held with an empty value is skipped the same way
+    let blank = Vault::holding(Some(""));
+    let blank_run = blank.exec(&["--skip-when-empty"], &touch);
+    assert_eq!((blank_run.code, blank_run.json["ran"].clone()), (0, json!(false)), "{}", blank_run.json);
+    assert!(!marker.exists());
+    // And without the flag the missing value fails with exit 2 and the command never ran
+    let failed = vault.exec(&[], &touch);
+    assert_eq!(failed.code, 2, "{}", failed.json);
+    assert!(failed.json["error"].as_str().unwrap().contains(CI_KEY) && !marker.exists(), "{}", failed.json);
+}

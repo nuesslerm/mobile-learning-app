@@ -967,6 +967,32 @@ fn given_a_login_codex_refreshed_in_ci_when_it_is_rotated_then_only_a_changed_re
 }
 
 #[test]
+fn given_the_second_codex_login_when_a_run_leaves_a_refreshed_one_then_it_is_written_to_its_own_key_and_the_owners_login_is_never_touched() {
+    // Given a vault holding the owner's login and the second one, and the file a CI run left of the second
+    let v = Vault::new();
+    let (owner, second) = (r#"{"tokens":{"access_token":"at-owner","refresh_token":"rt-owner","account_id":"acct-1"}}"#, r#"{"tokens":{"access_token":"at-ci","refresh_token":"rt-ci","account_id":"acct-2"}}"#);
+    let fresh = r#"{"tokens":{"access_token":"at-ci2","refresh_token":"rt-ci2","account_id":"acct-2"}}"#;
+    v.holds("ci-token", json!([{ "id": "cx", "key": "CODEX_OAUTH_JSON_B64", "value": b64(owner) }, { "id": "cc", "key": "CODEX_CI_OAUTH_JSON_B64", "value": b64(second) }]));
+    let left = v.dir.path().join("left.json");
+    std::fs::write(&left, fresh).unwrap();
+    let ci = [("BWS_CI_DEPLOY_ACCESS_TOKEN", "ci-token")];
+    let from = left.display().to_string();
+
+    // When the refreshed login is rotated under codex-ci, and an unknown login name is given
+    let changed = v.wf(&["rotate-login", "codex-ci", "--from", &from], &ci, None);
+    let written = v.writes();
+    v.forget();
+    let unknown = v.wf(&["rotate-login", "claude", "--from", &from], &ci, None);
+
+    // Then only the second login's secret is written, as base64 by id, saying neither value, and an unknown name is refused before the vault is asked
+    assert_eq!((changed.exit_code, changed.stdout.as_str()), (0, "CODEX_CI_OAUTH_JSON_B64: updated\n"), "{}", changed.stderr);
+    assert_eq!(written, [format!("secret edit --value {} --output none -- cc | token=ci-token url=", b64(fresh))]);
+    assert!(!changed.stdout.contains("rt-ci2") && !changed.stderr.contains("rt-ci2"));
+    assert_ne!(unknown.exit_code, 0);
+    assert!(v.calls().is_empty(), "{:?}", v.calls());
+}
+
+#[test]
 fn given_a_rotated_codex_login_when_the_next_run_reads_the_vault_then_it_starts_from_the_rotated_login_and_a_second_refresh_is_written_in_turn() {
     // Given a vault with the old Codex login, and a run that refreshed it
     let v = Vault::new();

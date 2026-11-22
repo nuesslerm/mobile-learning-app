@@ -16,7 +16,7 @@ mod vault;
 mod verify;
 mod writers;
 
-pub use writers::update_secret_value;
+pub use writers::{rotate_login, update_secret_value, Rotation};
 
 use wf_kit::args::{parse, parse_none, Parsed};
 use backend::Backend;
@@ -543,7 +543,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         "cache" => parse(rest, &[], &[]).filter(|p| p.positional == ["clear"]),
         "set" => parse(rest, &[], &[]).filter(|p| (1..=2).contains(&p.positional.len())),
         "delete" => parse(rest, &[], &[]).filter(|p| p.positional.len() == 1),
-        "rotate-login" => parse(rest, &["from"], &[]).filter(|p| p.positional == ["codex"]),
+        "rotate-login" => parse(rest, &["from"], &[]).filter(|p| p.positional.len() == 1 && writers::LOGINS.iter().any(|(name, _)| *name == p.positional[0])),
         "push-notes" => parse_none(rest, &[], &["apply", "verbose"]),
         "create" => parse(rest, &["value", "value-from"], &["value-stdin", "placeholder", "apply"]).filter(|p| p.positional.len() == 2),
         "update" => parse(rest, &["value"], &["value-stdin", "apply"]).filter(|p| p.positional.len() == 1),
