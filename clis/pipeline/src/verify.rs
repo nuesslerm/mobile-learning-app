@@ -564,6 +564,9 @@ fn fixture_gate(root: &Path, files: &[String]) -> i32 {
     0
 }
 
+/// A generated page: whether a staged file is one it is built from, and the Nx target that checks it fresh.
+type PageGate = (fn(&str) -> bool, &'static str);
+
 /// `check --staged [--files ...]`: lint, the budget, `dead_refs`, the editor bundle, the Pyodide bundle, the JavaScript runner's page and the tests of what is staged (or named).
 pub fn staged(args: &[String], dead_refs: DeadRefs) -> Option<i32> {
     let p = parse_spec(args, &STAGED)?;
@@ -612,7 +615,7 @@ pub fn staged(args: &[String], dead_refs: DeadRefs) -> Option<i32> {
         return Some(fixtures);
     }
     // the generated pages: each is checked fresh when a file it is built from is staged
-    let pages: [(fn(&str) -> bool, &str); 3] = [(is_cm6_input, "check:editor-bundle"), (is_pyodide_input, "check:pyodide"), (is_js_runner_input, "check:js-runner")];
+    let pages: [PageGate; 3] = [(is_cm6_input, "check:editor-bundle"), (is_pyodide_input, "check:pyodide"), (is_js_runner_input, "check:js-runner")];
     for (is_input, target) in pages {
         if !files.iter().any(|f| is_input(f)) {
             continue;
