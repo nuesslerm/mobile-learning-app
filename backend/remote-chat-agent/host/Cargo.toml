@@ -12,6 +12,7 @@ doctest = false
 
 [dependencies]
 async-trait.workspace = true
+libc = "0.2"
 rca-cli-driver = { path = "../cli-driver" }
 rca-core = { version = "0.1", registry = "mla" }
 rca-ladder = { version = "0.1", registry = "mla" }

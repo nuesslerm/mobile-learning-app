@@ -33,6 +33,11 @@ pub const OUTPUT_CAP: usize = 1 << 20;
 pub const READ_CAP: usize = 1 << 20;
 pub const LIST_CAP: usize = 5000;
 const SCAN_CAP: usize = 200_000;
+/// How long a command's pipes may stay quiet after it exited before what still holds them is killed, how long such a drain may go on in all,
+/// and how long the pipes get to hand over what is buffered after that kill.
+const EXIT_QUIET_GRACE: Duration = Duration::from_millis(300);
+const EXIT_DRAIN_CAP: Duration = Duration::from_secs(2);
+const SWEEP_DRAIN: Duration = Duration::from_millis(500);
 /// What an entry search does not descend into.
 const PRUNED: [&str; 2] = [".git", "node_modules"];
 
@@ -415,21 +420,39 @@ impl ToolExecutor for LocalExecutor {
                 output(stream, &String::from_utf8_lossy(take));
             }
         };
+        let (mut exited_at, mut last_data, mut swept_at) = (None::<Instant>, Instant::now(), None::<Instant>);
         loop {
             match rx.recv_timeout(Duration::from_millis(20)) {
-                Ok(chunk) => forward(chunk, &mut sent, &mut truncated),
+                Ok(chunk) => {
+                    forward(chunk, &mut sent, &mut truncated);
+                    last_data = Instant::now();
+                }
                 Err(RecvTimeoutError::Disconnected) => break,
                 Err(RecvTimeoutError::Timeout) => {}
             }
-            if !killed && (cancelled.load(Ordering::SeqCst) || Instant::now() >= deadline) {
+            let now = Instant::now();
+            if !killed && (cancelled.load(Ordering::SeqCst) || now >= deadline) {
                 timed_out = !cancelled.load(Ordering::SeqCst);
                 killed = true;
                 kill_group(pid);
             }
+            // A background process holding the pipes open keeps them from closing after the command exited: once the output has been quiet
+            // for the grace (or the drain has lasted its cap) the group is killed, and the pipes get a moment to hand over what is buffered.
+            if exited_at.is_none() && child.try_wait().map_err(io)?.is_some() {
+                (exited_at, last_data) = (Some(now), now);
+            }
+            if let (Some(exited), None) = (exited_at, swept_at) {
+                if now.duration_since(last_data) >= EXIT_QUIET_GRACE || now.duration_since(exited) >= EXIT_DRAIN_CAP {
+                    kill_group(pid);
+                    swept_at = Some(now);
+                }
+            }
+            if swept_at.is_some_and(|at| now.duration_since(at) >= SWEEP_DRAIN) {
+                break;
+            }
         }
         let status = child.wait().map_err(io)?;
         self.stop(id);
-        // A background process that kept the group alive past the pipes must not outlive the action.
         kill_group(pid);
         let exit_code = status.code().unwrap_or_else(|| 128 + status.signal().unwrap_or(0));
         Ok(RunResult { exit_code, timed_out, cancelled: cancelled.load(Ordering::SeqCst), truncated })

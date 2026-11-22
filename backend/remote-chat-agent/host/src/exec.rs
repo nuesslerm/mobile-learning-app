@@ -7,8 +7,21 @@ use rca_cli_driver::domain::{driver_of_command, provider_env};
 use std::path::Path;
 use std::process::Stdio;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
+
+/// How long a CLI's output may stay quiet after it exited before what still holds its pipes is killed, and how long such a drain may go on.
+const EXIT_QUIET_GRACE: Duration = Duration::from_millis(300);
+const EXIT_DRAIN_CAP: Duration = Duration::from_secs(2);
+
+/// Ends the process group `pid` leads (a child started by `provider_command` leads its own); a pid that leads none is a no-op.
+fn kill_group(pid: i32) {
+    // SAFETY: a negative pid addresses the process group the child leads; the call only sends a signal.
+    unsafe {
+        libc::kill(-pid, libc::SIGKILL);
+    }
+}
 
 /// The environment of this process as pairs, for `provider_env` to choose from.
 pub fn inherited() -> Vec<(String, String)> {
@@ -44,6 +57,7 @@ pub fn supervise(mut child: Child, merge_stderr: bool) -> Result<Supervised, Str
     let mut stdout = BufReader::new(child.stdout.take().ok_or("no stdout")?).lines();
     let mut stderr = child.stderr.take().ok_or("no stderr")?;
     let stdin = child.stdin.take();
+    let pid = child.id().and_then(|id| i32::try_from(id).ok());
     let (lines_tx, lines_rx) = tokio::sync::mpsc::channel::<String>(64);
     let (kill_tx, mut kill_rx) = tokio::sync::mpsc::channel::<()>(1);
     let (done_tx, done_rx) = tokio::sync::oneshot::channel::<Result<(), String>>();
@@ -79,17 +93,38 @@ pub fn supervise(mut child: Child, merge_stderr: bool) -> Result<Supervised, Str
             }
             text
         });
+        let mut exited = None;
         loop {
             tokio::select! {
                 line = stdout.next_line() => match line {
                     Ok(Some(line)) => { if lines_tx.send(line).await.is_err() { killed = true; let _ = child.kill().await; break; } }
                     _ => break,
                 },
+                status = child.wait() => { exited = Some(status); break; }
                 _ = kill_rx.recv() => { killed = true; let _ = child.kill().await; break; }
             }
         }
+        // The CLI is gone but a process it left running may hold the pipes open: hand over what was printed until the output has been quiet
+        // for the grace, then end the group, so the turn ends with the CLI and not with the daemon.
+        if exited.is_some() && !killed {
+            let started = tokio::time::Instant::now();
+            // The cap is checked before each read: a read that is always ready never times out, so a flooding process would keep the drain going.
+            while started.elapsed() < EXIT_DRAIN_CAP {
+                let wait = EXIT_QUIET_GRACE.min(EXIT_DRAIN_CAP.saturating_sub(started.elapsed()));
+                match tokio::time::timeout(wait, stdout.next_line()).await {
+                    Ok(Ok(Some(line))) => { if lines_tx.send(line).await.is_err() { break; } }
+                    _ => break,
+                }
+            }
+        }
         drop(lines_tx);
-        let status = child.wait().await;
+        let status = match exited {
+            Some(status) => status,
+            None => child.wait().await,
+        };
+        if let Some(pid) = pid {
+            kill_group(pid);
+        }
         if let Ok(text) = (&mut err_pipe).await {
             tail = text.chars().rev().take(400).collect::<Vec<_>>().into_iter().rev().collect();
         }
@@ -115,7 +150,7 @@ pub fn supervise(mut child: Child, merge_stderr: bool) -> Result<Supervised, Str
 /// variables of `provider_env`'s rule) and the working directory `cwd`.
 pub fn provider_command(root: &str, inherited: &[(String, String)], program: &str, args: &[String], cwd: &Path) -> Command {
     let mut command = Command::new(program);
-    command.args(args).current_dir(cwd);
+    command.args(args).current_dir(cwd).process_group(0);
     if let Some(driver) = driver_of_command(program, args) {
         command.env_clear().envs(provider_env(driver, root, inherited));
     }

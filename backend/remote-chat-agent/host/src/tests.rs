@@ -1,8 +1,12 @@
-use crate::{FileStore, HostFiles, System};
+use crate::{FileStore, HostFiles, Processes, System};
+use rca_cli_driver::application::ports::Spawner;
 use rca_service_core::application::runs::RunHosts;
 use remote_chat_agent_core::application::ports::{Commands, WorkspaceFiles};
 use remote_chat_agent_core::application::store::Store;
 use remote_chat_agent_core::domain::types::Event;
+use std::path::Path;
+use std::time::{Duration, Instant};
+use tokio_stream::StreamExt;
 
 #[tokio::test]
 async fn given_a_command_that_prints_when_it_runs_then_its_stdout_comes_back() {
@@ -59,4 +63,68 @@ fn given_a_log_cut_mid_append_when_it_is_read_then_the_fragment_is_dropped() {
 fn given_the_hosts_when_one_is_named_as_a_port_then_it_is_a_run_hosts() {
     fn port(_: &dyn RunHosts) {}
     port(&crate::Hosts);
+}
+
+async fn run_script(script: &str, dir: &Path) -> (Vec<String>, Result<(), String>, Duration) {
+    let started = Instant::now();
+    let mut process = Processes::at("/unused").spawn("sh", &["-c".to_string(), script.to_string()], dir).await.expect("sh starts");
+    let mut lines = Vec::new();
+    while let Some(line) = process.lines.next().await {
+        lines.push(line);
+    }
+    let ended = process.finish.await;
+    (lines, ended, started.elapsed())
+}
+
+fn gone(pid: i32) -> bool {
+    match std::fs::read_to_string(format!("/proc/{pid}/stat")) {
+        Err(_) => true,
+        Ok(stat) => stat.rsplit(')').next().is_some_and(|rest| rest.trim_start().starts_with('Z')),
+    }
+}
+
+#[tokio::test]
+async fn given_a_cli_that_leaves_a_background_process_holding_its_output_when_it_runs_then_the_turn_ends_with_the_cli_and_nothing_is_left_behind() {
+    // Given a CLI that prints a line, starts a long sleep with its stdout inherited, and exits 0
+    let dir = tempfile::tempdir().unwrap();
+    // When it runs
+    let (lines, ended, took) = run_script("echo printed; sleep 30 & echo $! > child.pid; exit 0", dir.path()).await;
+    // Then the process ends in seconds, not when the sleep does, with the line it printed and its own exit status
+    assert_eq!((lines, ended), (vec!["printed".to_string()], Ok(())));
+    assert!(took < Duration::from_secs(5), "{took:?}");
+    // And the background process is gone
+    let pid: i32 = std::fs::read_to_string(dir.path().join("child.pid")).unwrap().trim().parse().unwrap();
+    let until = Instant::now() + Duration::from_secs(10);
+    while !gone(pid) {
+        assert!(Instant::now() < until, "the background process is still running");
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+}
+
+#[tokio::test]
+async fn given_a_cli_that_prints_slowly_and_then_fails_when_it_runs_then_every_line_arrives_and_the_failure_names_its_stderr() {
+    // Given a CLI that prints a line every 350 ms (longer than the quiet grace after an exit), then fails
+    let dir = tempfile::tempdir().unwrap();
+    // When it runs
+    let (lines, ended, _) = run_script("for i in 1 2 3; do echo line$i; sleep 0.35; done; echo broke >&2; exit 3", dir.path()).await;
+    // Then all lines arrived in order and the end carries the exit status and the stderr tail
+    assert_eq!(lines, ["line1", "line2", "line3"]);
+    assert!(ended.as_ref().is_err_and(|e| e.starts_with("exited with") && e.ends_with("broke")), "{ended:?}");
+}
+
+#[tokio::test]
+async fn given_a_cli_that_leaves_a_process_flooding_its_output_when_it_runs_then_the_turn_still_ends_within_the_drain_cap() {
+    // Given a CLI that prints a line, leaves `yes` writing to its stdout without pause, and exits 0
+    let dir = tempfile::tempdir().unwrap();
+    let started = Instant::now();
+    let mut process = Processes::at("/unused").spawn("sh", &["-c".to_string(), "echo printed; yes spam & exit 0".to_string()], dir.path()).await.expect("sh starts");
+    // When it runs
+    let mut first = None;
+    while let Some(line) = process.lines.next().await {
+        first.get_or_insert(line);
+    }
+    let ended = process.finish.await;
+    // Then it ends in seconds with the first line and its own exit status
+    assert_eq!((first.as_deref(), ended), (Some("printed"), Ok(())));
+    assert!(started.elapsed() < Duration::from_secs(5), "{:?}", started.elapsed());
 }

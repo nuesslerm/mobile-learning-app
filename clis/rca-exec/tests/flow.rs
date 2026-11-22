@@ -164,6 +164,35 @@ fn run_command_past_its_timeout_is_killed_with_its_children() {
 }
 
 #[test]
+fn given_a_command_that_leaves_a_background_process_holding_its_output_when_it_runs_then_it_ends_when_the_command_exits_with_its_output_and_nothing_left_behind() {
+    // Given a command that prints a line, starts a long sleep with the inherited stdout, and exits 0
+    let dir = tempfile::tempdir().unwrap();
+    let ex = executor(dir.path());
+    let started = Instant::now();
+    // When it runs with a 60 s timeout
+    let (r, frames) = run(&ex, "holder", "echo printed; sleep 30 & echo $! > child.pid; exit 0", 60_000);
+    // Then it returns well before the timeout with the command's exit code and the line it printed
+    assert_eq!((r.exit_code, r.timed_out, r.cancelled), (0, false, false), "{r:?}");
+    assert!(started.elapsed() < Duration::from_secs(5), "{:?}", started.elapsed());
+    assert_eq!(frames.iter().map(|f| f.1.as_str()).collect::<String>(), "printed\n");
+    // And the background process is gone
+    let pid: i32 = std::fs::read_to_string(dir.path().join("child.pid")).unwrap().trim().parse().unwrap();
+    wait_for("the background process to die", || gone(pid));
+}
+
+#[test]
+fn given_a_command_that_prints_slowly_and_keeps_running_when_it_runs_then_all_of_its_output_is_streamed_before_it_ends() {
+    // Given a command that prints a line every 350 ms (longer than the wait for a quiet pipe after an exit) and then exits 4
+    let dir = tempfile::tempdir().unwrap();
+    let ex = executor(dir.path());
+    // When it runs
+    let (r, frames) = run(&ex, "slow", "for i in 1 2 3 4; do echo line$i; sleep 0.35; done; exit 4", 30_000);
+    // Then every line arrived in order and the exit code is the command's
+    assert_eq!((r.exit_code, r.timed_out, r.cancelled, r.truncated), (4, false, false, false), "{r:?}");
+    assert_eq!(frames.iter().map(|f| f.1.as_str()).collect::<String>(), "line1\nline2\nline3\nline4\n");
+}
+
+#[test]
 fn cancel_kills_the_running_commands_process_group_and_a_second_cancel_finds_nothing() {
     // Given a command running on another thread that started a background child
     let dir = tempfile::tempdir().unwrap();

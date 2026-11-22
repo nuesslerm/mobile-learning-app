@@ -2184,6 +2184,7 @@ name = "remote-chat-agent-host"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "libc",
  "rca-cli-driver",
  "rca-core",
  "rca-ladder",
