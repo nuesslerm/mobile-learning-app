@@ -10,7 +10,7 @@
   "screen": {
     "width": 378,
     "height": 1704,
-    "page_height": 5777
+    "page_height": 6003
   },
   "summary": {
     "testids": [
@@ -41,6 +41,12 @@
       "LeetcodeListAutocomplete",
       "LeetcodeListAutocompleteOff",
       "LeetcodeListAutocompleteOn",
+      "LeetcodeListCursorHandleRow",
+      "LeetcodeListCursorHandleLabel",
+      "LeetcodeListCursorHandleHint",
+      "LeetcodeListCursorHandle",
+      "LeetcodeListCursorHandleOff",
+      "LeetcodeListCursorHandleOn",
       "LeetcodeListSectionTitle",
       "LeetcodeListSection",
       "LeetcodeListItem",
@@ -54,10 +60,10 @@
       "DebugFabWrap",
       "DebugFab"
     ],
-    "text": "🟢 LIVE\n76 PROBLEMS\nBlind 75\nMaster the patterns. Ace the interview. 🚀\nNot signed in\nSign in to LeetCode to unlock account features.\nSign in\nRun code\nOn this device runs Python with no network. Other languages run on the server.\nServer\nThis device\nSuggestions\nThe editor offers names as you type, above the line. Tap one, or the Indent key, to take it. Return never takes it.\nOff\nOn\nArray & Hashing\n"
+    "text": "🟢 LIVE\n76 PROBLEMS\nBlind 75\nMaster the patterns. Ace the interview. 🚀\nNot signed in\nSign in to LeetCode to unlock account features.\nSign in\nRun code\nOn this device runs Python with no network. Other languages run on the server.\nServer\nThis device\nSuggestions\nThe editor offers names as you type, above the line. Tap one, or the Indent key, to take it. Return never takes it.\nOff\nOn\nCursor handle\nA "
   },
   "timings": {
-    "render_ms": 1126
+    "render_ms": 988
   },
   "name": "roottheme/final-given-a-preset-set-in-the-store-when-the-root-l-998465.light",
   "image": {

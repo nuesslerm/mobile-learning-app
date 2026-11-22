@@ -10,7 +10,7 @@
   "screen": {
     "width": 378,
     "height": 1704,
-    "page_height": 3244
+    "page_height": 3218
   },
   "summary": {
     "testids": [
@@ -68,7 +68,7 @@
     "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\n251 LETTERS\n0 MASTERED\nதமிழ் எழுத்து\nTrace every letter until your hand knows it. ✍️\nCourse progress\n0%\nWrite it large · letters and words\nWrite from memory\nஉயிர் · Vowels\nஉ\nஉயிர் எழுத்து I\nVowels: அ to ஊ\nNEW\n0/6\nஉ\nஉயிர் எழுத்து II\nVowels: எ to ஔ\nNEW\n0/6\nமெய் · Consonants\nவ\nவல்லினம்\nHard consonants\nN"
   },
   "timings": {
-    "render_ms": 324
+    "render_ms": 484
   },
   "name": "appdrawer/final-given-the-course-screen-when-its-menu-button-is-4e9cfa.dark",
   "image": {
