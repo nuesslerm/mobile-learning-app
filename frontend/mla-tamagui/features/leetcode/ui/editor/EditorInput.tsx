@@ -21,6 +21,7 @@ import type {
   FromEditorMessage,
   ToEditorMessage,
 } from '../../domain/ports';
+import type { BlockEditor } from '../../domain/blocks/blockEditor';
 import { createCaretDrag, moveCaretBy, type CaretDrag } from '../../domain/editor/caretDrag';
 import type { Delta } from '../../domain/editor/cursorDrag';
 import type { Motion } from '../../domain/editor/cursorMotion';
@@ -79,6 +80,8 @@ export type EditorInputHandle = EditTarget & {
   /** Marks the reported line of the checkpoint's text and scrolls it into view, with no selection or focus change; never throws. */
   showErrorLine: (checkpoint: ErrorCheckpoint, place: ErrorPlace | undefined) => Promise<ErrorJump>;
   clearErrorLine: () => Promise<void>;
+  /** The typed editor API for a client that reads and edits through it (the block view); null until the editor is ready and initialised. `settled` resolves when the writes still queued have landed. */
+  api: () => BlockEditor | null;
   undo: () => void;
   redo: () => void;
   /** Shows or hides the highlight of what the last voice or plan edit changed; the mark stays and follows the text either way. */
@@ -421,6 +424,15 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           if (!isReadyRef.current || !isInitializedRef.current) return;
           const refused = await clearErrorLine(apiBridge.client);
           if (refused) Logger.info('editor_v2.run_error.refused', { code: refused, call: 'clear' });
+        },
+        api() {
+          if (!isReadyRef.current || !isInitializedRef.current) return null;
+          return {
+            client: apiBridge.client,
+            settled: async () => {
+              await writeChainRef.current.catch(() => undefined);
+            },
+          };
         },
         undo() {
           Logger.info('editor.undo', { effect: 'undo' });

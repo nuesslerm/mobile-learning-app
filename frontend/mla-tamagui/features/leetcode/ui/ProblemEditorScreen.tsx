@@ -58,7 +58,9 @@ import type { PlanEditor } from '../plan';
 import { toEditorLanguage } from '../domain/editor/languageProfile';
 import { completionEntriesFor } from '../domain/completionEntries';
 import { useAutocompleteSettingStore } from '../state/autocompleteSettingStore';
+import { useBlockViewSettingStore } from '../state/blockViewSettingStore';
 import { type Selection } from '../domain/editor/types';
+import { BlockView } from './blocks/BlockView';
 import { EditorHelperRails } from './editor/helperbars/EditorHelperRails';
 import { ProblemCatalog } from '../domain/problemCatalog';
 import { customInputMessage, parameterNames, parseCustomInput, writeCustomInput } from '../domain/run/customCase';
@@ -128,6 +130,8 @@ export function ProblemEditorScreen({
   const [lang, setLang] = React.useState<EditorLanguage>('python3');
   const editorLanguage = toEditorLanguage(lang) ?? 'python';
   const autocomplete = useAutocompleteSettingStore((s) => s.autocomplete);
+  const blockView = useBlockViewSettingStore((s) => s.blockView);
+  const [editorReady, setEditorReady] = React.useState(false);
   // the suggestions follow the language: the problem's own names from its starter, and the language's keywords
   const completion = React.useMemo(
     () => ({ enabled: autocomplete, entries: problem ? completionEntriesFor(problem, editorLanguage) : [] }),
@@ -810,11 +814,14 @@ export function ProblemEditorScreen({
                 onChangeText={handleEditorChange}
                 onSelectionChange={setEditorSelection}
                 onHydratedChange={(hydrated) => {
+                  setEditorReady(hydrated);
                   // the page may have been dropped while idle: bring it back while the person reads the problem, not at Run
                   if (hydrated) runner.warmUp?.(lang);
                 }}
               />
             </YStack>
+
+            <BlockView enabled={blockView} language={editorLanguage} ready={editorReady} editorRef={editorRef} />
 
             <Pressable
               accessible={false}

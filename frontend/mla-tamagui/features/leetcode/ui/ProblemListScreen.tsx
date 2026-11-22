@@ -11,6 +11,7 @@ import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 import { ProblemCatalog } from '../domain/problemCatalog';
 import { useLeetCodeAuthStore } from '../state/authStore';
 import { AutocompleteSettingRow } from './AutocompleteSettingRow';
+import { BlockViewSettingRow } from './BlockViewSettingRow';
 import { CursorHandleSettingRow } from './editor/CursorHandleSettingRow';
 import { RunnerSettingRow } from './RunnerSettingRow';
 
@@ -230,6 +231,7 @@ export function ProblemListScreen(): React.ReactElement {
         <RunnerSettingRow />
         <AutocompleteSettingRow />
         <CursorHandleSettingRow />
+        <BlockViewSettingRow />
         {categories.map((category) => (
           <Fragment key={category.id}>
             <Text
