@@ -2,6 +2,7 @@ name: Nx local cache
 description: >-
   Every restore and save is recorded (`wf cache event`: a row of CI_CACHE_EVENTS, and an `::error title=cache restore failed::` annotation when it failed or timed out); the restore also
   snapshots what Nx's cache directory and its cache_outputs table hold, so a task that runs anyway is told apart from one whose entry was never there.
+  A save is decided by `wf cache gate nx` (a task ran and passed, or Nx's cache_outputs table or entry listing changed since the restore; it flushes the SQLite WAL first), never by counting entries.
   Restores or saves the Nx local cache of one test stage shard with actions/cache. It only moves the directories Nx keeps and sets no Nx
   environment (the test runner provides it). Restore runs before the test stage, save after it. The saved key is unique per run and names the calling workflow, so a later run of the same workflow restores its own newest entry and a sibling workflow's entries (same stage and shard count) no longer shadow it.
 inputs:
@@ -67,7 +68,6 @@ runs:
           cancelled) event=timeout; reason="actions/cache/restore was cancelled before it finished" ;;
           *) if [ -n "$MATCHED" ] || [ "$HIT" = true ]; then event=ok; else event=miss; fi; reason="" ;;
         esac
-        ls -1 ~/.nx/*/cache 2>/dev/null | wc -l > "$RUNNER_TEMP/nx-cache.entries" || echo 0 > "$RUNNER_TEMP/nx-cache.entries"
         args=(nx restore --outcome "$event" --hit "$HIT" --key "$KEY" --matched-key "$MATCHED" --stage "$STAGE" --started-ms "$STARTED_MS")
         [ -n "$reason" ] && args+=(--reason "$reason")
         if command -v wf >/dev/null 2>&1; then
@@ -101,7 +101,8 @@ runs:
           fi
           rm -f "$RUNNER_TEMP/nx-cache.started"
         fi
-    - name: Measure the Nx cache
+    # wf decides (a task ran and passed, or Nx's table or entry listing changed) and flushes the WAL into the database file the archive carries; without wf the save is not gated
+    - name: Decide whether to save the Nx cache
       id: measure
       if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') && (inputs.mode == 'save') }}
       shell: bash
@@ -110,20 +111,15 @@ runs:
         KEY: nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.lineage.outputs.workflow }}-${{ github.run_id }}-${{ github.run_attempt }}
         STAGE: ${{ inputs.stage }}
       run: |
-        before=$(cat "$RUNNER_TEMP/nx-cache.entries" 2>/dev/null || echo 0)
-        now=$(ls -1 ~/.nx/*/cache 2>/dev/null | wc -l || true)
-        mb=$(du -smc ~/.nx/*/cache ~/.nx/*/databases 2>/dev/null | tail -1 | cut -f1 || true)
-        mb=${mb:-0}
-        save=true; why=""
-        # an unchanged entry count means every task replayed: a new copy would only churn the repository's cache quota
-        if [ "$now" -le "$before" ]; then save=false; why="no new task results ($before entries restored, $now now)"; fi
-        if [ "$mb" -gt "$MAX_MB" ]; then save=false; why="over the size limit ($mb MB, limit $MAX_MB MB)"; echo "::warning::Nx cache is $mb MB, over $MAX_MB MB: not saved"; fi
-        echo "save=$save" >> "$GITHUB_OUTPUT"
-        echo "- **nx** ($GITHUB_JOB) before save: $mb MB, $now entries, $([ "$save" = true ] && echo saving || echo "not saving, $why")" | tee -a "$GITHUB_STEP_SUMMARY"
-        if [ "$save" = false ]; then
-          if command -v wf >/dev/null 2>&1; then
-            wf cache event nx save --outcome skipped --key "$KEY" --stage "$STAGE" --entries "$now" --entries-before "$before" --reason "$why" || true
-          fi
+        if command -v wf >/dev/null 2>&1; then
+          wf cache gate nx --max-mb "$MAX_MB" --key "$KEY" --stage "$STAGE" >"$RUNNER_TEMP/nx-cache.gate.out" || {
+            cat "$RUNNER_TEMP/nx-cache.gate.out"
+            printf 'save=true\nwhy=the save gate failed to run, saving\n' >> "$GITHUB_OUTPUT"
+          }
+          grep -v '^{' "$RUNNER_TEMP/nx-cache.gate.out" || true
+        else
+          printf 'save=true\nwhy=wf is not on PATH, saving without a gate\n' >> "$GITHUB_OUTPUT"
+          echo "- **nx** ($GITHUB_JOB) wf is not on PATH: saving without the gate" | tee -a "$GITHUB_STEP_SUMMARY"
         fi
     - name: Save the Nx cache
       id: save
@@ -141,13 +137,14 @@ runs:
       shell: bash
       env:
         STEP_OUTCOME: ${{ steps.save.outcome }}
+        WHY: ${{ steps.measure.outputs.why }}
         KEY: nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.lineage.outputs.workflow }}-${{ github.run_id }}-${{ github.run_attempt }}
         STAGE: ${{ inputs.stage }}
       run: |
         case "$STEP_OUTCOME" in
           failure) event=error; reason="actions/cache/save failed: see the Save the Nx cache step's log" ;;
           cancelled) event=timeout; reason="actions/cache/save was cancelled before it finished" ;;
-          *) event=ok; reason="" ;;
+          *) event=ok; reason="saved: $WHY" ;;
         esac
         args=(nx save --outcome "$event" --key "$KEY" --stage "$STAGE")
         [ -n "$reason" ] && args+=(--reason "$reason")

@@ -117,4 +117,6 @@ Commands:
   event <layer> <phase>       Record one restore or save of a CI cache layer in
                               CI_CACHE_EVENTS; loud (an ::error annotation) when
                               it failed, never a failed job
+  gate <layer>                Decide whether a CI job's Nx cache is saved:
+                              a task ran, or Nx's table or entries changed
   help [command]              display help for command

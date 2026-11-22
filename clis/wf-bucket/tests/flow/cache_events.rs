@@ -81,9 +81,9 @@ impl Job {
             std::fs::write(cache.join(e).join("terminalOutput"), "x").unwrap();
         }
         let conn = Connection::open(databases.join("abc-v3.db")).unwrap();
-        conn.execute_batch("CREATE TABLE cache_outputs (hash TEXT PRIMARY KEY, code INTEGER)").unwrap();
+        conn.execute_batch("CREATE TABLE cache_outputs (hash TEXT PRIMARY KEY, code INTEGER, created_at TEXT)").unwrap();
         for h in db_hashes {
-            conn.execute("INSERT INTO cache_outputs VALUES (?1, 0)", [h]).unwrap();
+            conn.execute("INSERT INTO cache_outputs VALUES (?1, 0, '2026-11-22 01:00:00')", [h]).unwrap();
         }
     }
 }
@@ -185,7 +185,7 @@ fn given_a_restore_that_matched_but_restored_no_entries_when_it_is_recorded_then
 }
 
 #[test]
-fn given_a_save_skipped_while_tasks_ran_and_passed_when_it_is_recorded_then_it_warns_that_their_results_are_lost() {
+fn given_a_save_skipped_while_tasks_ran_and_passed_when_it_is_recorded_then_it_is_an_error_that_their_results_are_lost() {
     // Given a job whose database holds two tasks that ran and passed and one that replayed
     let job = Job::new();
     let conn = wf_bucket::ci_db::open_ledger(&job.path("rows.sqlite")).unwrap();
@@ -197,12 +197,12 @@ fn given_a_save_skipped_while_tasks_ran_and_passed_when_it_is_recorded_then_it_w
     // When the save decision "no new entries" is recorded
     let r = job.event(&["nx", "save", "--outcome", "skipped", "--key", KEY, "--stage", "core-tests-1of3", "--reason", "no new task results (809 restored, 809 now)", "--entries", "809"]);
 
-    // Then it is a warning that names the layer, the reason and the number of tasks left behind
+    // Then it is an error annotation that names the layer, the reason and the number of tasks left behind
     let first = r.stdout.lines().next().unwrap();
-    assert_eq!(first, format!("::warning title=cache save skipped::layer=nx key={KEY} reason=no new task results (809 restored, 809 now); 2 task(s) ran and passed, and their results are not saved"), "{r:?}");
+    assert_eq!(first, format!("::error title=cache save skipped::layer=nx key={KEY} reason=no new task results (809 restored, 809 now); 2 task(s) ran and passed, and their results are not saved"), "{r:?}");
     assert_eq!(last_json(&r)["problem"], "save-skipped-tasks-ran");
     assert_eq!(has(&job.gauges(), "ci.cache.problems", "nx", "save-skipped-tasks-ran"), Some(1.0));
-    assert!(read(&job.path("summary.md")).contains("🟠 save skipped: **nx** (core-tests)"));
+    assert!(read(&job.path("summary.md")).contains("🔴 save skipped: **nx** (core-tests)"));
 }
 
 #[test]
@@ -253,4 +253,204 @@ fn given_an_outcome_the_table_does_not_know_when_it_is_recorded_then_the_command
     // Then the only non-zero exit of the verb says what is accepted
     assert_eq!(r.exit_code, 1, "{r:?}");
     assert!(last_json(&r)["error"].as_str().unwrap().contains("ok, miss, timeout, error, skipped"), "{r:?}");
+}
+
+const RESTORED_KEY: &str = "nx-core-tests-1of3-Linux-X64-CI-core-4000-1";
+
+impl Job {
+    /// The restore step as the action runs it: the snapshot of what the restore left is what the save gate compares with.
+    fn restored(&self) {
+        let r = self.event(&["nx", "restore", "--outcome", "ok", "--hit", "false", "--key", KEY, "--matched-key", RESTORED_KEY, "--stage", "core-tests-1of3"]);
+        assert_eq!(r.exit_code, 0, "{r:?}");
+    }
+
+    fn gate(&self, extra: &[&str]) -> (RunResult, Value) {
+        let mut argv = vec!["gate", "nx", "--key", KEY, "--stage", "core-tests-1of3"];
+        argv.extend(extra);
+        let mut full = vec!["cache"];
+        full.extend(argv);
+        let opts = RunOpts::default()
+            .env("WF_CI_DB", &self.path("rows.sqlite").display().to_string())
+            .env("HOME", &self.home().display().to_string())
+            .env("RUNNER_TEMP", &self.path("temp").display().to_string())
+            .env("GITHUB_STEP_SUMMARY", &self.path("summary.md").display().to_string())
+            .env("GITHUB_OUTPUT", &self.path("github.output").display().to_string())
+            .env("GITHUB_RUN_ID", "4242")
+            .env("GITHUB_RUN_ATTEMPT", "1")
+            .env("GITHUB_WORKFLOW", "CI core")
+            .env("GITHUB_JOB", "core-tests")
+            .env("WF_CI_METRICS_BASE", &format!("http://127.0.0.1:{}", self.source.port));
+        let r = run_wf(&full, &opts);
+        let out = last_json(&r);
+        (r, out)
+    }
+
+    /// A Nx database in WAL mode, the way Nx opens it; the returned connection is the writer that is still open.
+    fn wal_db(&self, rows: &[(&str, &str)]) -> Connection {
+        let databases = self.home().join(".nx/ws/databases");
+        std::fs::create_dir_all(&databases).unwrap();
+        std::fs::create_dir_all(self.home().join(".nx/ws/cache")).unwrap();
+        let conn = Connection::open(databases.join("abc-v3.db")).unwrap();
+        conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA wal_autocheckpoint=0; CREATE TABLE IF NOT EXISTS cache_outputs (hash TEXT PRIMARY KEY, code INTEGER, size INTEGER, created_at TEXT)").unwrap();
+        for (hash, created) in rows {
+            conn.execute("INSERT OR REPLACE INTO cache_outputs VALUES (?1, 0, 1, ?2)", [hash, created]).unwrap();
+        }
+        conn
+    }
+
+    fn entry(&self, hash: &str) {
+        let dir = self.home().join(".nx/ws/cache").join(hash);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("terminalOutput"), "x").unwrap();
+    }
+
+    fn ran(&self, task: &str, outcome: &str, passed: bool) {
+        let conn = wf_bucket::ci_db::open_ledger(&self.path("rows.sqlite")).unwrap();
+        conn.execute("INSERT INTO NX_TASKS (RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED) VALUES ('4242', 's', 1, 'core-tests', ?1, 'h1', ?2, 5, ?3)", rusqlite::params![task, outcome, passed as i64]).unwrap();
+    }
+}
+
+#[test]
+fn given_a_task_that_re_ran_over_an_entry_the_restore_held_when_the_gate_decides_then_the_cache_is_saved_and_nothing_is_skipped() {
+    // Given a restore that held entry h1 and its row, and a task that ran again over h1: the directory is rewritten in place, so the entry count is unchanged
+    let job = Job::new();
+    job.entry("h1");
+    let _conn = job.wal_db(&[("h1", "2026-11-22 01:00:00")]);
+    job.restored();
+    job.ran("crate-pipeline:cargo-contract", "ran", true);
+
+    // When the save gate decides
+    let (r, out) = job.gate(&[]);
+
+    // Then it saves, because a task ran and passed, and says so in the step output and in its reason
+    assert_eq!(r.exit_code, 0, "{r:?}");
+    assert_eq!(out["save"], json!(true), "{out}");
+    assert!(out["reason"].as_str().unwrap().contains("1 task(s) ran and passed"), "{out}");
+    assert_eq!(out["entries"]["added"], json!(0), "{out}");
+    let output = read(&job.path("github.output"));
+    assert!(output.contains("save=true") && output.contains("why=1 task(s) ran and passed"), "{output}");
+
+    // And no skipped row exists for the loop to hide in
+    assert_eq!(job.rows("SELECT OUTCOME FROM CI_CACHE_EVENTS WHERE PHASE = 'save'"), Vec::<Value>::new());
+    assert!(!r.stdout.contains("::error"), "{r:?}");
+}
+
+#[test]
+fn given_a_row_rewritten_in_place_and_no_ledger_when_the_gate_decides_then_the_moved_created_at_alone_saves() {
+    // Given a restore of h1 and a job whose ledger is empty, in which Nx replaced the row of h1 with a newer created_at
+    let job = Job::new();
+    job.entry("h1");
+    let conn = job.wal_db(&[("h1", "2026-11-22 01:00:00")]);
+    job.restored();
+    conn.execute("INSERT OR REPLACE INTO cache_outputs VALUES ('h1', 0, 1, '2026-11-22 02:30:00')", []).unwrap();
+
+    // When the save gate decides
+    let (_, out) = job.gate(&[]);
+
+    // Then it saves for the row alone: same entries, same row count, newer created_at
+    assert_eq!((out["save"].clone(), out["tasksRan"].clone()), (json!(true), json!(0)), "{out}");
+    assert_eq!((out["dbRows"]["before"].clone(), out["dbRows"]["now"].clone()), (json!(1), json!(1)), "{out}");
+    assert!(out["reason"].as_str().unwrap().contains("created_at"), "{out}");
+}
+
+#[test]
+fn given_a_new_entry_directory_and_nothing_else_when_the_gate_decides_then_the_listing_alone_saves() {
+    // Given a restore of h1 and a job that stored the directory h2 without a ledger row or a database change
+    let job = Job::new();
+    job.entry("h1");
+    let _conn = job.wal_db(&[("h1", "2026-11-22 01:00:00")]);
+    job.restored();
+    job.entry("h2");
+
+    // When the save gate decides
+    let (_, out) = job.gate(&[]);
+
+    // Then it saves and counts the added entry
+    assert_eq!((out["save"].clone(), out["entries"]["added"].clone()), (json!(true), json!(1)), "{out}");
+}
+
+#[test]
+fn given_every_task_replayed_and_nothing_changed_when_the_gate_decides_then_it_skips_and_records_why_as_a_row_without_an_error() {
+    // Given a restore of h1 and a job whose only task replayed from it
+    let job = Job::new();
+    job.entry("h1");
+    let _conn = job.wal_db(&[("h1", "2026-11-22 01:00:00")]);
+    job.restored();
+    job.ran("crate-pipeline:cargo-contract", "hit", true);
+
+    // When the save gate decides
+    let (r, out) = job.gate(&[]);
+
+    // Then it does not save, and the step output says so
+    assert_eq!(out["save"], json!(false), "{out}");
+    assert!(read(&job.path("github.output")).contains("save=false"));
+
+    // And the skip is a row of CI_CACHE_EVENTS with the reason and the entry counts, and not an error because no task ran
+    let rows = job.rows("SELECT PHASE, OUTCOME, ENTRIES, KEY_REQUESTED, REASON FROM CI_CACHE_EVENTS WHERE PHASE = 'save'");
+    assert_eq!(rows.len(), 1, "{rows:?}");
+    assert_eq!((rows[0]["PHASE"].clone(), rows[0]["OUTCOME"].clone(), rows[0]["ENTRIES"].clone(), rows[0]["KEY_REQUESTED"].clone()), (json!("save"), json!("skipped"), json!(1), json!(KEY)), "{rows:?}");
+    assert!(rows[0]["REASON"].as_str().unwrap().starts_with("nothing new"), "{rows:?}");
+    assert!(!r.stdout.contains("::error") && !r.stdout.contains("::warning"), "{r:?}");
+    assert!(read(&job.path("summary.md")).contains("not saving, nothing new"), "{}", read(&job.path("summary.md")));
+}
+
+#[test]
+fn given_rows_still_in_the_wal_when_the_gate_decides_then_they_are_flushed_into_the_database_file_the_archive_carries() {
+    // Given a restore of h1 and a new row h2 that Nx wrote and that still lives only in the -wal file (checkpointing is off, the writer is open)
+    let job = Job::new();
+    job.entry("h1");
+    let conn = job.wal_db(&[("h1", "2026-11-22 01:00:00")]);
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)", []).ok();
+    job.restored();
+    conn.execute("INSERT INTO cache_outputs VALUES ('h2', 0, 1, '2026-11-22 02:00:00')", []).unwrap();
+    let db = job.home().join(".nx/ws/databases/abc-v3.db");
+    let wal = job.home().join(".nx/ws/databases/abc-v3.db-wal");
+    assert!(std::fs::metadata(&wal).map_or(0, |m| m.len()) > 0, "the row must start in the WAL");
+
+    // When the save gate decides
+    let (_, out) = job.gate(&[]);
+
+    // Then it saves, the WAL is empty, and a copy of the database file alone (what the archive carries without a WAL) holds both rows
+    assert_eq!((out["save"].clone(), out["dbRows"]["now"].clone()), (json!(true), json!(2)), "{out}");
+    assert_eq!(std::fs::metadata(&wal).map_or(0, |m| m.len()), 0, "{out}");
+    let alone = job.path("alone.db");
+    std::fs::copy(&db, &alone).unwrap();
+    let copy = Connection::open(&alone).unwrap();
+    let hashes: Vec<String> = copy.prepare("SELECT hash FROM cache_outputs ORDER BY hash").unwrap().query_map([], |r| r.get(0)).unwrap().map(Result::unwrap).collect();
+    assert_eq!(hashes, vec!["h1".to_string(), "h2".to_string()]);
+}
+
+#[test]
+fn given_tasks_that_ran_but_a_cache_over_the_limit_when_the_gate_decides_then_the_skip_is_a_loud_error_and_a_row() {
+    // Given a job whose task ran and passed, and a size limit its cache exceeds
+    let job = Job::new();
+    job.entry("h1");
+    let _conn = job.wal_db(&[("h1", "2026-11-22 01:00:00")]);
+    job.restored();
+    job.ran("crate-deploy:cargo-flow", "ran", true);
+
+    // When the save gate decides with a limit of 0 MB
+    let (r, out) = job.gate(&["--max-mb", "0"]);
+
+    // Then nothing is saved, and the annotation is the save-skipped-tasks-ran error with the size reason
+    assert_eq!(out["save"], json!(false), "{out}");
+    assert!(r.stdout.contains("::warning::Nx cache is"), "{r:?}");
+    let annotation = r.stdout.lines().find(|l| l.starts_with("::error title=cache save skipped::")).unwrap_or_else(|| panic!("no error annotation: {r:?}"));
+    assert!(annotation.contains("over the size limit") && annotation.contains("1 task(s) ran and passed, and their results are not saved"), "{annotation}");
+    assert_eq!(out["event"]["problem"], json!("save-skipped-tasks-ran"), "{out}");
+    assert_eq!(job.rows("SELECT OUTCOME FROM CI_CACHE_EVENTS WHERE PHASE = 'save'"), vec![json!({ "OUTCOME": "skipped" })]);
+}
+
+#[test]
+fn given_no_restore_snapshot_when_the_gate_decides_then_a_cache_holding_entries_is_saved() {
+    // Given a job whose restore left no snapshot (wf was missing then) and a cache with one entry and one row
+    let job = Job::new();
+    job.entry("h1");
+    let _conn = job.wal_db(&[("h1", "2026-11-22 01:00:00")]);
+
+    // When the save gate decides
+    let (_, out) = job.gate(&[]);
+
+    // Then it saves, comparing with an empty restore
+    assert_eq!((out["save"].clone(), out["restoreSnapshot"].clone()), (json!(true), json!(false)), "{out}");
 }

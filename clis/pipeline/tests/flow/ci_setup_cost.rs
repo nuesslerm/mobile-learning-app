@@ -430,3 +430,21 @@ fn the_core_tests_job_does_not_join_the_tailnet_because_its_tests_reach_nothing_
     // Then it turns the tailnet join off
     assert!(setup.contains("tailnet: 'false'"), "{setup}");
 }
+
+#[test]
+fn the_nx_cache_action_decides_its_save_through_the_wf_gate_and_never_by_counting_entries() {
+    // Given the nx-cache action
+    let action = read(".github/actions/nx-cache/action.yml");
+
+    // When its save-mode steps are read
+    let gate = action.find("id: measure").expect("a step decides");
+    let save = action.find("id: save\n").expect("the save step");
+    let decide = &action[gate..save];
+
+    // Then the decision is the verb's, and no shell arithmetic over `ls | wc -l` is left to skip a save
+    assert!(decide.contains("wf cache gate nx"), "{decide}");
+    assert!(!action.contains("wc -l"), "the action must not count entries itself");
+    // And the save runs on the verb's answer, and its record carries the reason
+    assert!(action.contains("steps.measure.outputs.save == 'true'"));
+    assert!(action.contains("WHY: ${{ steps.measure.outputs.why }}"));
+}

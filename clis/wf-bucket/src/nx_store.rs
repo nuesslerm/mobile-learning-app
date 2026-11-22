@@ -20,6 +20,8 @@ pub struct Snapshot {
     /// The hashes of `cache_outputs`; `None` when no database, no such table or no `hash` column was found (`db_note` says which).
     pub db_hashes: Option<BTreeSet<String>>,
     pub db_rows: Option<i64>,
+    /// The newest `created_at` of `cache_outputs` as text (a re-run over an existing hash replaces its row and moves this), `None` without such a column.
+    pub db_created: Option<String>,
     pub wal_bytes: u64,
     pub db_note: String,
     pub bytes: u64,
@@ -47,7 +49,7 @@ pub fn bytes_of(paths: &[PathBuf]) -> u64 {
 }
 
 /// The hashes of one Nx database, `None` with the reason when it has no table of them.
-fn read_db(path: &Path) -> Result<(BTreeSet<String>, i64), String> {
+fn read_db(path: &Path) -> Result<(BTreeSet<String>, i64, Option<String>), String> {
     let conn = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY).map_err(|e| format!("{}: {e}", path.display()))?;
     let _ = conn.busy_timeout(std::time::Duration::from_secs(2));
     let columns: Vec<String> = conn
@@ -63,7 +65,37 @@ fn read_db(path: &Path) -> Result<(BTreeSet<String>, i64), String> {
     let mut stmt = conn.prepare(&format!("SELECT \"{hash}\" FROM cache_outputs")).map_err(|e| format!("{}: {e}", path.display()))?;
     let hashes: BTreeSet<String> = stmt.query_map([], |r| r.get::<_, String>(0)).map_err(|e| e.to_string())?.filter_map(Result::ok).collect();
     let rows = conn.query_row("SELECT COUNT(*) FROM cache_outputs", [], |r| r.get::<_, i64>(0)).map_err(|e| e.to_string())?;
-    Ok((hashes, rows))
+    let created = columns.iter().find(|c| c.eq_ignore_ascii_case("created_at")).and_then(|c| {
+        conn.query_row(&format!("SELECT MAX(CAST(\"{c}\" AS TEXT)) FROM cache_outputs"), [], |r| r.get::<_, Option<String>>(0)).ok().flatten()
+    });
+    Ok((hashes, rows, created))
+}
+
+/// One database's WAL flush: `Ok` with the frames moved into the database file, `Err` with why it could not be flushed (a locked database; a database not in WAL mode is not an error).
+pub struct Flush {
+    pub db: String,
+    pub result: Result<i64, String>,
+}
+
+/// Moves every row of the Nx databases under `home` out of the `-wal` file into the database file (`PRAGMA wal_checkpoint(TRUNCATE)`), so an archive of the
+/// `.db` file alone holds what Nx wrote. Never fails: what it could not flush is in the result.
+pub fn checkpoint(home: &Path) -> Vec<Flush> {
+    let mut out = Vec::new();
+    for dir in dirs(home, "databases") {
+        let mut files: Vec<PathBuf> = std::fs::read_dir(&dir).into_iter().flatten().filter_map(Result::ok).map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "db")).collect();
+        files.sort();
+        for file in files {
+            let result = Connection::open_with_flags(&file, OpenFlags::SQLITE_OPEN_READ_WRITE)
+                .and_then(|conn| {
+                    let _ = conn.busy_timeout(std::time::Duration::from_secs(5));
+                    conn.query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, i64>(2)?)))
+                })
+                .map_err(|e| e.to_string())
+                .and_then(|(busy, moved)| if busy == 0 { Ok(moved.max(0)) } else { Err("busy: another connection held the WAL".to_string()) });
+            out.push(Flush { db: file.display().to_string(), result });
+        }
+    }
+    out
 }
 
 /// What is in Nx's local cache under `home` now.
@@ -76,7 +108,7 @@ pub fn take(home: &Path) -> Snapshot {
     let databases = dirs(home, "databases");
     snapshot.bytes = bytes_of(&cache) + bytes_of(&databases);
     let mut notes = Vec::new();
-    let (mut hashes, mut rows, mut any) = (BTreeSet::new(), 0, false);
+    let (mut hashes, mut rows, mut any, mut created): (BTreeSet<String>, i64, bool, Option<String>) = (BTreeSet::new(), 0, false, None);
     for dir in &databases {
         for file in std::fs::read_dir(dir).into_iter().flatten().filter_map(Result::ok).map(|e| e.path()) {
             let name = file.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_string();
@@ -84,9 +116,10 @@ pub fn take(home: &Path) -> Snapshot {
                 snapshot.wal_bytes += std::fs::metadata(&file).map_or(0, |m| m.len());
             } else if name.ends_with(".db") {
                 match read_db(&file) {
-                    Ok((found, n)) => {
+                    Ok((found, n, newest)) => {
                         hashes.extend(found);
                         rows += n;
+                        created = created.max(newest);
                         any = true;
                     }
                     Err(note) => notes.push(note),
@@ -97,6 +130,7 @@ pub fn take(home: &Path) -> Snapshot {
     if any {
         snapshot.db_hashes = Some(hashes);
         snapshot.db_rows = Some(rows);
+        snapshot.db_created = created;
     } else if notes.is_empty() {
         notes.push("no Nx database under ~/.nx/*/databases".to_string());
     }
@@ -123,6 +157,7 @@ impl Snapshot {
             "entries": self.entries,
             "dbHashes": self.db_hashes,
             "dbRows": self.db_rows,
+            "dbCreated": self.db_created,
             "walBytes": self.wal_bytes,
             "dbNote": self.db_note,
             "bytes": self.bytes,
@@ -138,6 +173,7 @@ impl Snapshot {
             entries: set("entries").unwrap_or_default(),
             db_hashes: set("dbHashes"),
             db_rows: v["dbRows"].as_i64(),
+            db_created: v["dbCreated"].as_str().map(str::to_string),
             wal_bytes: v["walBytes"].as_u64().unwrap_or(0),
             db_note: v["dbNote"].as_str().unwrap_or_default().to_string(),
             bytes: v["bytes"].as_u64().unwrap_or(0),

@@ -335,6 +335,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         "restore" => pnpm::restore(&parse_spec(rest, &pnpm::SPEC)?),
         "save" => pnpm::save(&parse_spec(rest, &pnpm::SPEC)?),
         "event" => crate::cache_events::run(rest),
+        "gate" => crate::nx_gate::run(rest),
         "nx" => wrap::run("nx", rest, Layers { nx: true, sccache: false }),
         "sccache" => wrap::run("sccache", rest, Layers { nx: false, sccache: true }),
         _ => None,

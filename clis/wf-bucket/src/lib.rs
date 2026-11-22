@@ -11,6 +11,7 @@ mod help_table;
 mod state_verb;
 pub mod job_name;
 pub mod miss_reason;
+pub mod nx_gate;
 pub mod nx_store;
 pub mod nx_why;
 pub mod pins;

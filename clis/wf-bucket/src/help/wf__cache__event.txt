@@ -17,10 +17,11 @@ stdout, before its JSON, and a red line in the job's step summary:
 
 A restore of the nx layer that matched a key and left 0 entries in ~/.nx/*/cache is an
 error too ("matched <key> and restored 0 entries"). A save of the nx layer that was
-skipped while the job ran and passed tasks is a warning, because those results are
-lost to the next run:
+skipped while the job ran and passed tasks is an error, because those results are
+lost to the next run (`wf cache gate nx` decides saves and never skips one while a task ran,
+so it only happens over the size limit):
 
-  ::warning title=cache save skipped::layer=nx key=<key> reason=<why>; <n> task(s) ran and passed, and their results are not saved
+  ::error title=cache save skipped::layer=nx key=<key> reason=<why>; <n> task(s) ran and passed, and their results are not saved
 
 Layers: nx, sccache, pnpm, metro, playwright, references; a name with a stage after
 the layer (`sccache-flow-tests`) is that layer with that stage, any other name is the

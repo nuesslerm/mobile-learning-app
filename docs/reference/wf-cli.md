@@ -1401,10 +1401,11 @@ stdout, before its JSON, and a red line in the job's step summary:
 
 A restore of the nx layer that matched a key and left 0 entries in ~/.nx/*/cache is an
 error too ("matched <key> and restored 0 entries"). A save of the nx layer that was
-skipped while the job ran and passed tasks is a warning, because those results are
-lost to the next run:
+skipped while the job ran and passed tasks is an error, because those results are
+lost to the next run (`wf cache gate nx` decides saves and never skips one while a task ran,
+so it only happens over the size limit):
 
-  ::warning title=cache save skipped::layer=nx key=<key> reason=<why>; <n> task(s) ran and passed, and their results are not saved
+  ::error title=cache save skipped::layer=nx key=<key> reason=<why>; <n> task(s) ran and passed, and their results are not saved
 
 Layers: nx, sccache, pnpm, metro, playwright, references; a name with a stage after
 the layer (`sccache-flow-tests`) is that layer with that stage, any other name is the
@@ -1449,6 +1450,72 @@ Options:
   --snapshot-file <p>  where the nx snapshot goes (default $RUNNER_TEMP/nx-cache.restore.json)
   --path <p>...        the directories the layer moves, to measure their size
   -h, --help           display help for command
+```
+
+</details>
+
+#### `wf cache gate`
+
+Decide whether a CI job's Nx cache is saved: a task ran, or Nx's table or entries changed
+
+Usage: `wf cache gate [options] <layer>`
+
+Examples:
+
+```sh
+wf cache gate nx --max-mb "$MAX_MB" --key "$KEY" --stage "$STAGE"
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf cache gate [options] <layer>
+
+Decide whether a CI job's Nx cache (layer nx, the only one) is saved after its test
+stage. The nx-cache action calls it in save mode and saves when the step output it
+writes says save=true. It always exits 0 (1 only for a command line it cannot read).
+
+Why not count entries: a task that re-runs over an entry the restore already held
+rewrites the same directory, so the count stays equal, and the row Nx wrote to the
+cache_outputs table (Nx serves a hit from that table, in
+~/.nx/<id>/databases/*.db, WAL mode) was never uploaded; the next run restored the
+same state and ran the same task again.
+
+The verb flushes the WAL first (PRAGMA wal_checkpoint(TRUNCATE) on every
+~/.nx/*/databases/*.db, so the archive's database file holds the rows), then saves
+when any of these holds, against the snapshot the restore left
+($WF_CACHE_RESTORE_FILE, else $RUNNER_TEMP/nx-cache.restore.json, else an empty
+restore):
+  - a task of this job's ledger ran (was not a hit) and passed
+  - the row count of cache_outputs changed
+  - the newest created_at of cache_outputs moved
+  - the listing of ~/.nx/*/cache changed
+It does not save when ~/.nx/*/cache and ~/.nx/*/databases together exceed --max-mb
+(a warning; and an error annotation when tasks ran, see `wf cache event`), or when
+nothing changed.
+
+Every skip is recorded as a row of CI_CACHE_EVENTS (phase save, outcome skipped,
+the reason); a save carries its reason through the action's `Record the save` step
+(the step output `why`). A skip while tasks ran and passed prints
+`::error title=cache save skipped::` (problem save-skipped-tasks-ran).
+
+Writes to $GITHUB_OUTPUT: save=true|false and why=<reason>; one line to
+$GITHUB_STEP_SUMMARY.
+
+Output: one JSON object {ok, save, reason, mb, maxMb, tasksRan, restoreSnapshot,
+entries: {before, now, added, removed}, dbRows: {before, now}, dbCreated: {before,
+now}, checkpoint: [{db, frames, error}], event}. event is the recorded skip (see
+`wf cache event`) or null.
+
+Arguments:
+  layer       nx
+
+Options:
+  --max-mb <n>           the size above which nothing is saved (default 3072)
+  --key <key>            the key the save would use, for the recorded skip
+  --stage <name>         the stage and shard (default $WF_CACHE_STAGE)
+  --snapshot-file <p>    the restore's snapshot (default as above)
+  -h, --help             display help for command
 ```
 
 </details>

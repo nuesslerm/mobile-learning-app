@@ -81,14 +81,25 @@ fn usage(error: &str) -> Option<i32> {
 }
 
 pub fn run(args: &[String]) -> Option<i32> {
-    let parsed = wf_kit::args::parse_spec(args, &SPEC)?;
+    match record(args) {
+        Ok(out) => {
+            println!("{out}");
+            Some(0)
+        }
+        Err(code) => code,
+    }
+}
+
+/// Records the event the arguments describe and returns the JSON `run` prints; `Err` is the exit of a command line that could not be read.
+pub(crate) fn record(args: &[String]) -> Result<Value, Option<i32>> {
+    let parsed = wf_kit::args::parse_spec(args, &SPEC).ok_or(None)?;
     let (name, phase) = (parsed.positional[0].as_str(), parsed.positional[1].as_str());
     if !["restore", "save"].contains(&phase) {
-        return usage(&format!("the phase is restore or save, not {phase}"));
+        return Err(usage(&format!("the phase is restore or save, not {phase}")));
     }
-    let Some(outcome) = nonempty(&parsed, "outcome") else { return usage("--outcome is required") };
+    let Some(outcome) = nonempty(&parsed, "outcome") else { return Err(usage("--outcome is required")) };
     if !OUTCOMES.contains(&outcome.as_str()) {
-        return usage(&format!("the outcome is one of {}, not {outcome}", OUTCOMES.join(", ")));
+        return Err(usage(&format!("the outcome is one of {}, not {outcome}", OUTCOMES.join(", "))));
     }
     let (layer, tail) = split_layer(name);
     let stage_name = nonempty(&parsed, "stage").unwrap_or(tail);
@@ -197,12 +208,12 @@ pub fn run(args: &[String]) -> Option<i32> {
     let shown_key = key.clone().or_else(|| matched.clone()).unwrap_or_default();
     let note = match (failed, problem) {
         (true, _) => Some(annotation("error", &format!("cache {phase} failed"), &layer, &shown_key, &why)),
-        (false, Some(_)) => Some(annotation("warning", &format!("cache {phase} skipped"), &layer, &shown_key, &why)),
+        (false, Some(_)) => Some(annotation("error", &format!("cache {phase} skipped"), &layer, &shown_key, &why)),
         _ => None,
     };
     if let Some(note) = &note {
         println!("{note}");
-        let verdict = if failed { format!("🔴 {phase} failed") } else { format!("🟠 {phase} skipped") };
+        let verdict = if failed { format!("🔴 {phase} failed") } else { format!("🔴 {phase} skipped") };
         append(&env("GITHUB_STEP_SUMMARY"), &format!("- {verdict}: **{layer}** ({}) {why}; key `{}`", env("GITHUB_JOB"), if shown_key.is_empty() { "none" } else { &shown_key }));
     }
 
@@ -236,8 +247,7 @@ pub fn run(args: &[String]) -> Option<i32> {
     }
     gauges.send();
 
-    println!("{}", json!({ "ok": true, "recorded": recorded, "layer": layer, "phase": phase, "outcome": outcome, "reason": reason, "problem": problem, "annotation": note, "event": event_json(&event) }));
-    Some(0)
+    Ok(json!({ "ok": true, "recorded": recorded, "layer": layer, "phase": phase, "outcome": outcome, "reason": reason, "problem": problem, "annotation": note, "event": event_json(&event) }))
 }
 
 fn event_json(e: &CacheEvent) -> Value {
@@ -249,7 +259,7 @@ fn event_json(e: &CacheEvent) -> Value {
 }
 
 /// Tasks this job ran and passed, from the job's own database: the results a skipped save leaves behind.
-fn ran_tasks() -> usize {
+pub(crate) fn ran_tasks() -> usize {
     let Some(path) = ci_db::local_path().filter(|p| p.exists()) else { return 0 };
     ci_db::tasks_of(&path).map_or(0, |tasks| tasks.iter().filter(|t| t.outcome == "ran" && t.passed).count())
 }
