@@ -71,6 +71,10 @@ and which test got slower than its median (a trend per test: `SELECT TEST, RUN_I
 
 **`CI_RUN_PROFILE`**, one row per run (`RUN_ID`): `WORKFLOW, WALL_S` (run start to the last job's end), `RUNNER_S` (sum of job durations), `PEAK_JOBS` (most jobs running at once inside the run), `AVG_JOBS` (`RUNNER_S / WALL_S`), `QUEUE_S_TOTAL, QUEUE_S_MAX, JOBS, CRITICAL_PATH_JOB, CRITICAL_PATH_S, PARALLEL_EFFICIENCY` (`RUNNER_S / (WALL_S * PEAK_JOBS)`). Skipped jobs are left out. The Actions API does not say which job needs which, so the critical path is the chain from the last job to finish back through whichever job ended last at or before each one's start (a 2 s hand-over tolerance), joined with ` > `; `CRITICAL_PATH_S` is its first start to the last end. The report job itself is not finished when `wf ci timings` runs, so a profile covers the jobs before it.
 
+**`CI_CACHE_EVENTS`**, one row per restore or save of a cache layer of a job (`RUN_ID, JOB, STAGE, SHARD, LAYER, PHASE, TS`): `ATTEMPT, WORKFLOW, KEY_REQUESTED, KEY_MATCHED, MATCH_KIND` (`exact`, `restore-key`, `none`), `SIZE_BYTES, DURATION_MS, OUTCOME` (`ok`, `miss`, `timeout`, `error`, `skipped`), `REASON, ENTRIES, DB_ROWS, WAL_BYTES` (Nx's directory, its `cache_outputs` rows and its `-wal`; nx layer only). Written by `wf cache event` from the cache actions ([cache-layers](cache-layers.md#every-restore-and-save-is-a-row-every-miss-has-a-reason-22-nov)).
+
+**`NX_TASKS`** gained `WORKFLOW, GH_JOB, CACHE_STAGE` (`core-tests-1of3`), `ATTEMPT, RESTORED_KEY, DIR_HAS_HASH, DB_HAS_HASH` (1, 0 or null: the restored cache directory and Nx's table held the task's hash) and, for a task that ran, `MISS_REASON` and `MISS_DETAIL` (set by `wf ci db merge`). An index on `(TASK, HASH)` answers "which earlier runs executed this hash".
+
 **`CI_CONCURRENCY`**, one row per workflow and one for `all` per reading (`RUN_ID, PHASE, TS, WORKFLOW`): `BUSY` (jobs in progress), `QUEUED`, `RUNS_ACTIVE`, `CAP` (20; `WF_CI_RUNNER_CAP` overrides), `HEADROOM` (the account's: `CAP` less all busy jobs, repeated on each row). The reading is the repository's in-progress and queued runs from the Actions API; another repository on the same account is not seen.
 
 ## In the PR comment
@@ -126,9 +130,20 @@ Same record as `CI_METRICS`; labels are `scope` and `name` (see [betterstack-que
 | `ci.runners.busy`, `ci.runners.queued`, `ci.runners.headroom` | workflow (`all` for the account) | phase (`start`, `end`) | `wf ci concurrency` |
 | `ci.job.cpu_avg`, `cpu_p95`, `cpu_max`, `iowait_avg`, `mem_peak_mb`, `swap_peak_mb`, `psi_cpu_max`, `psi_mem_max`, `psi_io_max`, `idle_s`, `saturated_s` | job | workflow | `wf ci resources --send` |
 | `ci.step.idle_s` (steps over 30 s) | job | step | `wf ci resources --send` |
+| `ci.cache.events` | layer | `<phase>-<outcome>` (`restore-ok`, `restore-miss`, `save-skipped`...) | `wf cache event` |
+| `ci.cache.problems` | layer | `restore-error`, `restore-timeout`, `restore-empty`, `save-error`, `save-timeout`, `save-skipped-tasks-ran` | `wf cache event` |
+| `ci.nx.miss_tasks`, `ci.nx.miss_s` | stage | miss reason | `wf ci cache-misses --send` |
+| `ci.nx.exact_replay_ratio` | stage | `all` | `wf ci cache-misses --send` |
 | `ci.run.runner_s`, `peak_jobs`, `avg_jobs`, `queue_s_total`, `queue_s_max`, `critical_path_s`, `parallel_efficiency` | run id | workflow | `wf ci timings --send` |
 
 ## Recipes (`wf ci db query "<sql>"`)
+
+### Why tasks ran instead of replaying, and what the failed restores were
+
+```sql
+SELECT MISS_REASON, COUNT(*) AS tasks, ROUND(SUM(MS) / 1000.0) AS seconds FROM NX_TASKS WHERE OUTCOME = 'ran' AND MISS_REASON IS NOT NULL GROUP BY 1 ORDER BY seconds DESC;
+SELECT RUN_ID, JOB, STAGE, SHARD, LAYER, PHASE, OUTCOME, REASON FROM CI_CACHE_EVENTS WHERE OUTCOME IN ('error', 'timeout') ORDER BY TS DESC LIMIT 20;
+```
 
 ### Fixed overhead share per job
 
