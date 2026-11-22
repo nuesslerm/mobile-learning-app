@@ -45,6 +45,8 @@ mod e2e_backends;
 mod workflow_steps;
 #[path = "flow/nx_cache_restore_marker.rs"]
 mod nx_cache_restore_marker;
+#[path = "flow/e2e_nx_cache.rs"]
+mod e2e_nx_cache;
 #[path = "flow/expected_revisions.rs"]
 mod expected_revisions;
 #[path = "flow/integration_bundles.rs"]

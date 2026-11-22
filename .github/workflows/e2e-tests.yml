@@ -143,6 +143,13 @@ jobs:
       - name: Point the tests at the downloaded EAS pointers
         if: ${{ steps.eas_pointer.outcome == 'success' }}
         run: echo "WF_EAS_POINTER_DIR=$RUNNER_TEMP/eas-pointer" >> "$GITHUB_ENV"
+      # the Nx tasks of each e2e test are cached (tooling/nx/e2e-tests.js): the replay below and the run read the local cache this restores, and the save after the run keeps the tests that passed
+      - uses: ./.github/actions/nx-cache
+        timeout-minutes: 5
+        continue-on-error: true
+        with:
+          mode: restore
+          stage: ${{ inputs.platform }}-e2e-tests-${{ inputs.shard || 1 }}of${{ inputs.shards || 1 }}
       - name: Which e2e tests
         id: pick
         shell: bash
@@ -350,6 +357,13 @@ jobs:
         run: |
           # shellcheck disable=SC2086
           wf test run $SELECT --sha "$SHA" --out "$RUNNER_TEMP/e2e-runs" -- $FLAGS | tee "$RUNNER_TEMP/e2e-tests.jsonl"
+      - uses: ./.github/actions/nx-cache
+        timeout-minutes: 5
+        continue-on-error: true
+        if: ${{ !cancelled() && (steps.pick.outputs.any == 'true' || steps.pick.outputs.replay > 0) }}
+        with:
+          mode: save
+          stage: ${{ inputs.platform }}-e2e-tests-${{ inputs.shard || 1 }}of${{ inputs.shards || 1 }}
       - name: Upload the run bundles
         if: ${{ !cancelled() && (steps.pick.outputs.any == 'true' || steps.pick.outputs.replay > 0) }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
