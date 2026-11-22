@@ -126,6 +126,23 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn given_a_codex_cli_that_announces_its_thread_when_the_turn_ends_then_the_thread_keeps_it_and_the_next_turn_resumes_it() {
+        // Given Codex printing its thread.started line and an answer
+        let spawner = ScriptedSpawner::new();
+        spawner.script("codex", CliScript { lines: vec![r#"{"type":"thread.started","thread_id":"th-7"}"#.into(), r#"{"type":"item.completed","item":{"type":"agent_message","text":"done"}}"#.into()], ..CliScript::default() });
+        let turns = turns(&spawner);
+        let (command, req) = request(Driver::Codex, "t");
+        // When the turn ends, and the thread's next turn is built from the session the events named
+        let events = drain(turns.launch(spawner.as_ref(), Driver::Codex, "t", command.clone()).await.unwrap()).await;
+        let kept = events.iter().find_map(|e| if let ExecEvent::Session(id) = e { Some(id.clone()) } else { None });
+        let next = command_for(Driver::Codex, &TurnRequest { resume: kept.clone(), ..req });
+        // Then the events open with the thread, the first turn started fresh, and the next one resumes that thread
+        assert_eq!(events, vec![ExecEvent::Session("th-7".into()), ExecEvent::Text("done".into()), ExecEvent::Done]);
+        assert!(!command.args.contains(&"resume".to_string()), "{:?}", command.args);
+        assert!(next.args.windows(2).any(|w| w == ["resume", "th-7"]) && next.args.last().map(String::as_str) == Some("go"), "{:?}", next.args);
+    }
+
+    #[tokio::test]
     async fn given_a_cli_that_cannot_start_or_fails_when_a_turn_runs_then_the_refusal_or_the_error_is_what_the_client_hears() {
         // Given a CLI that is not installed, one that exits with a failure, and one that reports its own error line before exiting badly
         let spawner = ScriptedSpawner::new();

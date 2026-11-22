@@ -42,7 +42,7 @@ pub struct TurnRequest {
     pub prompt: String,
     pub runtime_mode: String,
     pub interaction_mode: String,
-    /// The CLI's conversation to go on with (Claude Code's `--resume`), when the thread has one.
+    /// The CLI's conversation to go on with (Claude Code's `--resume`, Codex's `exec resume`), when the thread has one.
     pub resume: Option<String>,
 }
 
@@ -95,6 +95,10 @@ pub fn command_for(driver: Driver, req: &TurnRequest) -> Command {
     };
     if let Some(model) = &req.model {
         a.extend(args(&[if driver == Driver::Codex || driver == Driver::Opencode { "-m" } else { "--model" }, model]));
+    }
+    // Codex's resume is a subcommand of `exec`, so every option stays ahead of it.
+    if let (Driver::Codex, Some(thread)) = (driver, &req.resume) {
+        a.extend(args(&["resume", thread]));
     }
     a.push(req.prompt.clone());
     Command { program: driver.program().into(), args: a, cwd: req.cwd.clone() }
@@ -163,6 +167,19 @@ mod tests {
         assert!(opencode.args.windows(2).any(|w| w == ["--session", "s-1"]), "{:?}", opencode.args);
         assert!(!command_for(Driver::Opencode, &req(None)).args.contains(&"--session".to_string()));
         assert!(!command_for(Driver::Codex, &asking).args.iter().any(|a| a == "--session" || a == "--resume"));
+    }
+
+    #[test]
+    fn given_a_codex_thread_with_and_without_a_conversation_when_its_turn_is_built_then_it_resumes_the_conversation_only_when_there_is_one() {
+        // Given a Codex turn with a model and a full-access sandbox, once for a thread with a conversation and once for a fresh one
+        let fresh = TurnRequest { instance_id: "codex".into(), ..req(Some("gpt-x")) };
+        let going_on = TurnRequest { resume: Some("th-1".into()), ..fresh.clone() };
+        // When each turn is built
+        let (first, next) = (command_for(Driver::Codex, &fresh), command_for(Driver::Codex, &going_on));
+        // Then the fresh one has no resume, and the other resumes the conversation with every option ahead of it and the prompt last
+        assert_eq!(first.args, ["exec", "--json", "--skip-git-repo-check", "--sandbox", "danger-full-access", "-m", "gpt-x", "hi there"]);
+        assert_eq!(next.args, ["exec", "--json", "--skip-git-repo-check", "--sandbox", "danger-full-access", "-m", "gpt-x", "resume", "th-1", "hi there"]);
+        assert_eq!(next.program, "codex");
     }
 
     #[test]

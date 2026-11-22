@@ -14,13 +14,14 @@ pub enum ExecEvent {
     Session(String),
 }
 
-/// The id of the CLI's conversation a line announces: Claude Code's `system` `init` line names it, and every line of `opencode run --format json` carries
-/// it as `sessionID`. None for every other line and for Codex, which has no conversation to go on with.
+/// The id of the CLI's conversation a line announces: Claude Code's `system` `init` line names it, Codex's `thread.started` line its thread, and every
+/// line of `opencode run --format json` carries it as `sessionID`. None for every other line.
 pub fn session_of(driver: Driver, line: &str) -> Option<String> {
     let v: Value = serde_json::from_str(line).ok()?;
     let id = match driver {
         Driver::ClaudeAgent if v["type"] == "system" && v["subtype"] == "init" => &v["session_id"],
         Driver::Opencode => &v["sessionID"],
+        Driver::Codex if v["type"] == "thread.started" => &v["thread_id"],
         _ => return None,
     };
     id.as_str().filter(|id| !id.is_empty()).map(str::to_string)
@@ -111,8 +112,8 @@ mod tests {
     }
 
     #[test]
-    fn given_the_lines_of_each_driver_when_asked_for_a_session_then_claude_codes_init_line_and_any_opencode_line_name_one() {
-        // Given Claude Code's init line, its other lines, and an opencode line that carries its sessionID
+    fn given_the_lines_of_each_driver_when_asked_for_a_session_then_each_drivers_own_announcing_line_names_one() {
+        // Given Claude Code's init line, its other lines, an opencode line that carries its sessionID and Codex's thread line
         let init = r#"{"type":"system","subtype":"init","session_id":"s-1","cwd":"/w"}"#;
         let result = r#"{"type":"result","is_error":false,"result":"ok","session_id":"s-1"}"#;
         let empty = r#"{"type":"system","subtype":"init","session_id":""}"#;
@@ -125,6 +126,20 @@ mod tests {
         assert_eq!((session_of(Driver::Codex, init), session_of(Driver::Codex, opencode)), (None, None));
         // And translate never turns it into an event
         assert!(translate(Driver::ClaudeAgent, init).is_empty());
+    }
+
+    #[test]
+    fn given_codexs_json_lines_when_asked_for_a_session_then_only_the_thread_started_line_names_one() {
+        // Given the thread.started line of `codex exec --json`, a line of the turn, an empty id, and the same line given to the other drivers
+        let started = r#"{"type":"thread.started","thread_id":"0199a213-81c0-7800-8aa1-bbab2a035a53"}"#;
+        let message = r#"{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"hi"}}"#;
+        let empty = r#"{"type":"thread.started","thread_id":""}"#;
+        // When each is asked for its session
+        // Then Codex names its thread from the first line only, the other drivers name none, and translate shows nothing for it
+        assert_eq!(session_of(Driver::Codex, started), Some("0199a213-81c0-7800-8aa1-bbab2a035a53".to_string()));
+        assert_eq!((session_of(Driver::Codex, message), session_of(Driver::Codex, empty), session_of(Driver::Codex, "not json")), (None, None, None));
+        assert_eq!((session_of(Driver::ClaudeAgent, started), session_of(Driver::Opencode, started)), (None, None));
+        assert!(translate(Driver::Codex, started).is_empty());
     }
 
     #[test]
