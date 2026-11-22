@@ -1,5 +1,6 @@
 use crate::{FileStore, HostFiles, Processes, System};
-use rca_cli_driver::application::ports::Spawner;
+use rca_cli_driver::application::ports::{Linker, Spawner};
+use rca_cli_driver::domain::Driver;
 use rca_service_core::application::runs::RunHosts;
 use remote_chat_agent_core::application::ports::{Commands, WorkspaceFiles};
 use remote_chat_agent_core::application::store::Store;
@@ -127,4 +128,77 @@ async fn given_a_cli_that_leaves_a_process_flooding_its_output_when_it_runs_then
     // Then it ends in seconds with the first line and its own exit status
     assert_eq!((first.as_deref(), ended), (Some("printed"), Ok(())));
     assert!(started.elapsed() < Duration::from_secs(5), "{:?}", started.elapsed());
+}
+
+/// Processes whose `codex` is the script `body` (run as the CLI's app-server), found on a path of its own.
+fn codex_with(body: &str, dir: &Path) -> Processes {
+    use std::os::unix::fs::PermissionsExt;
+    let bin = dir.join("bin");
+    std::fs::create_dir_all(&bin).unwrap();
+    let path = bin.join("codex");
+    std::fs::write(&path, format!("#!/bin/sh\n[ \"$1\" = app-server ] || exit 2\n{body}\n")).unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    Processes::with_inherited("/unused", vec![("PATH".to_string(), format!("{}:/usr/bin:/bin", bin.display()))])
+}
+
+async fn next_line(lines: &mut std::pin::Pin<Box<dyn tokio_stream::Stream<Item = String> + Send>>) -> String {
+    tokio::time::timeout(Duration::from_secs(10), lines.next()).await.expect("a line in time").expect("the process is still printing")
+}
+
+#[tokio::test]
+async fn given_a_cli_server_when_lines_are_sent_then_each_answer_comes_back_and_a_kill_ends_it_with_everything_it_started() {
+    // Given a Codex app-server that starts a long sleep, then answers every line it reads
+    let dir = tempfile::tempdir().unwrap();
+    let processes = codex_with(&format!("sleep 30 &\necho $! > {}/child.pid\nwhile IFS= read -r line; do printf 'echo:%s\\n' \"$line\"; done", dir.path().display()), dir.path());
+    let mut link = processes.open(Driver::Codex, dir.path()).await.expect("the server starts");
+    // When two lines are sent
+    assert!((link.send)("one".into()) && (link.send)("two".into()));
+    // Then both answers come back in order
+    assert_eq!((next_line(&mut link.running.lines).await, next_line(&mut link.running.lines).await), ("echo:one".to_string(), "echo:two".to_string()));
+    // And a kill ends the process as a success of its own doing, and the sleep it started is gone with it
+    (link.running.kill)();
+    assert_eq!(tokio::time::timeout(Duration::from_secs(10), link.running.finish).await.expect("it ends"), Ok(()));
+    let pid: i32 = std::fs::read_to_string(dir.path().join("child.pid")).unwrap().trim().parse().unwrap();
+    let until = Instant::now() + Duration::from_secs(10);
+    while !gone(pid) {
+        assert!(Instant::now() < until, "the background process is still running");
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+}
+
+#[tokio::test]
+async fn given_a_cli_server_that_exits_leaving_a_process_that_holds_its_output_when_it_ends_then_the_session_closes_in_seconds_and_nothing_is_left_behind() {
+    // Given a Codex app-server that prints a line, leaves a sleep holding its output and its input, and exits
+    let dir = tempfile::tempdir().unwrap();
+    let processes = codex_with(&format!("echo ready\nsleep 30 &\necho $! > {}/child.pid\nexit 0", dir.path().display()), dir.path());
+    let started = Instant::now();
+    let mut link = processes.open(Driver::Codex, dir.path()).await.expect("the server starts");
+    // When it runs to its end
+    let mut lines = Vec::new();
+    while let Some(line) = link.running.lines.next().await {
+        lines.push(line);
+    }
+    let ended = link.running.finish.await;
+    // Then it closed in seconds with the line it printed and its own exit status, and the sleep is gone
+    assert_eq!((lines, ended), (vec!["ready".to_string()], Ok(())));
+    assert!(started.elapsed() < Duration::from_secs(5), "{:?}", started.elapsed());
+    let pid: i32 = std::fs::read_to_string(dir.path().join("child.pid")).unwrap().trim().parse().unwrap();
+    let until = Instant::now() + Duration::from_secs(10);
+    while !gone(pid) {
+        assert!(Instant::now() < until, "the background process is still running");
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+}
+
+#[tokio::test]
+async fn given_a_driver_with_no_server_mode_or_a_missing_cli_when_a_server_is_opened_then_it_is_refused_with_the_reason() {
+    // Given processes with no codex on their path
+    let dir = tempfile::tempdir().unwrap();
+    let processes = Processes::with_inherited("/unused", vec![("PATH".to_string(), dir.path().display().to_string())]);
+    // When a server is opened for a driver that has none, and for Codex
+    let none = processes.open(Driver::ClaudeAgent, dir.path()).await.err();
+    let missing = processes.open(Driver::Codex, dir.path()).await.err();
+    // Then each is refused, the second as a program that is not found
+    assert_eq!(none.as_deref(), Some("claudeAgent has no server mode"));
+    assert_eq!(missing.as_deref(), Some("entity not found"));
 }

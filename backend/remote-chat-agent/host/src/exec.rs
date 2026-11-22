@@ -1,9 +1,9 @@
-//! The real adapter of the CLI driver's `Spawner`: provider CLIs as tokio child processes. A CLI of a provider starts with that provider's
+//! The real adapter of the CLI driver's `Spawner` and `Linker`: provider CLIs as tokio child processes. A CLI of a provider starts with that provider's
 //! environment alone (`provider_env`): the shared variables, its own prefixed credentials and its directory under the providers' root, so it
 //! cannot reach another provider's login nor the service's own secret.
 use async_trait::async_trait;
-use rca_cli_driver::application::ports::{Running, Spawner};
-use rca_cli_driver::domain::{driver_of_command, provider_env};
+use rca_cli_driver::application::ports::{Link, Linker, Running, Spawner};
+use rca_cli_driver::domain::{driver_of_command, provider_env, Driver};
 use std::path::Path;
 use std::process::Stdio;
 use std::sync::Arc;
@@ -171,5 +171,27 @@ impl Spawner for Processes {
         let mut command = provider_command(&self.root, inherited, program, args, cwd);
         let child = command.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true).spawn().map_err(|e| e.kind().to_string())?;
         Ok(supervise(child, false)?.running)
+    }
+}
+
+#[async_trait]
+impl Linker for Processes {
+    /// The driver's CLI as the server it has a mode for, with its input open, leading a process group of its own that dies with it.
+    async fn open(&self, driver: Driver, cwd: &Path) -> Result<Link, String> {
+        let words = driver.server_args().ok_or_else(|| format!("{} has no server mode", driver.id()))?;
+        let args: Vec<String> = words.iter().map(|w| w.to_string()).collect();
+        let live;
+        let inherited = match &self.inherited {
+            Some(vars) => vars,
+            None => {
+                live = inherited();
+                &live
+            }
+        };
+        let mut command = provider_command(&self.root, inherited, driver.program(), &args, cwd);
+        let child = command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true).spawn().map_err(|e| e.kind().to_string())?;
+        let Supervised { running, input } = supervise(child, false)?;
+        let input = input.ok_or("no input")?;
+        Ok(Link { running, send: Arc::new(move |line| input.send(line).is_ok()) })
     }
 }
