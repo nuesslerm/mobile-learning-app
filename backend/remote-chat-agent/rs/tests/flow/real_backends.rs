@@ -123,7 +123,7 @@ async fn given_the_pinned_codex_when_a_turn_writes_a_file_then_it_finishes_compl
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 #[ignore = "a real model: run by the real-backends job with RCA_REAL_CLI_DIR and the credential"]
 async fn given_the_pinned_opencode_when_a_turn_writes_a_file_then_it_finishes_completed_with_the_file_in_the_workspace() {
-    real_turn("opencode", Some("opencode-go/deepseek-v4.1-flash"), false).await;
+    real_turn("opencode", Some("opencode-go/deepseek-v4.1-flash"), true).await;
 }
 
 #[test]

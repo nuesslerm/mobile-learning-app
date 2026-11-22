@@ -44,6 +44,8 @@ mod agent_terminal;
 mod agent_claude;
 #[path = "flow/agent_codex.rs"]
 mod agent_codex;
+#[path = "flow/agent_opencode.rs"]
+mod agent_opencode;
 #[path = "flow/agent_threads.rs"]
 mod agent_threads;
 #[path = "flow/agent_workspace.rs"]

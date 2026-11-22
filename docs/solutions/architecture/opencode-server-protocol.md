@@ -16,7 +16,7 @@ related_components: [tooling]
 
 # opencode server protocol
 
-One `opencode serve` process hosts many sessions in many directories. The executor starts one per workspace and CLI, keeps it for the life of the workspace, and carries each phone message to it (HTTP) and each event back (SSE). This note is what the adapter codes against. It replaces the one-process-per-turn runner (`opencode run`).
+One `opencode serve` process hosts many sessions in many directories. The executor starts one per workspace and CLI, keeps it for the life of the workspace, and carries each phone message to it (HTTP) and each event back (SSE). This note is what the adapter codes against. It replaced the one-process-per-turn runner (`opencode run`), which is gone.
 
 Sources, tagged on every fact below:
 
@@ -24,6 +24,17 @@ Sources, tagged on every fact below:
 - **[spec]** the OpenAPI 3.1 document the same server serves at `GET /doc` (480 KB, 472 schemas, saved only under `/dev/shm`, not committed; refetch it with `curl $URL/doc`). Shapes marked [spec] were read there but not exercised.
 - **[t3]** `references/t3code/packages/provider-opencode/src/server/{OpenCodeRuntime,OpenCodeServerOwner,adapter}.ts` (the 1.x adapter, minimum version 1.14.19, drives the routes in this note through `@opencode-ai/sdk/v2`) and `.../v2/{OpenCode2Client,OpenCode2Server}.ts` (the 2.x adapter, drives `/api/*`).
 - **[rec]** the recorded wire transcripts `references/t3code/apps/server/src/orchestration-v2/testkit/fixtures/*/opencode_transcript.ndjson`: `simple`, `plan_questions`, `turn_interrupt` recorded against opencode 1.14.39 (real turns, SDK request and SSE boundary); `opencode2_*` recorded against 2.0.18. Some frames in `opencode_child_approval` carry hand-written ids (`evt_childperm0001`): treat them as shape examples only.
+
+## How the executor speaks it
+
+The service's driver (`OpencodeSessions`, `backend/remote-chat-agent/cli-driver`) and the executor's bridge (`clis/rca-exec/src/adapters/opencode_bridge.rs`) split the work so that the credential never leaves the machine the CLI runs on:
+
+- `session_open` with program `opencode` starts `opencode serve --hostname 127.0.0.1 --port 0` in the workspace, with a password the executor drew from `/dev/urandom` (`OPENCODE_SERVER_USERNAME=rca`, `OPENCODE_SERVER_PASSWORD`) and a parent-death signal. Nothing the server prints goes to the service; the executor reads the `listening on` line, opens `GET /global/event` itself and says `{"ready":true}` once the stream answers.
+- `session_send` takes one line, `{"id","method","path","body"}`, for a route of `exec_proc::SESSION_HTTP_ROUTES` (`/session`, `/permission`, `/question`, `/global/health`, `/config` read-only, `/agent`), makes the request with the credential and answers on the session's output with `{"id","status","body"}`. Every frame of the event stream goes out as `{"event": <frame>}` (the heartbeat dropped), the end of the stream as `{"closed": why}`. Every text that leaves is scrubbed of the password.
+- The driver keeps one server per workspace and one session per thread (`POST /session` with the permission rules of the thread's runtime mode, or `GET /session/{id}` for the id the thread stored; the server's store keeps sessions across a restart, so a resume is a lookup). A turn is `prompt_async` with `agent` (`plan` for the plan mode, else `build`) and the model when it names a provider (`provider/model`); it ends at the session's idle after the prompt's own user message was seen. The directory is named only when the thread's directory is absolute: the server runs in its workspace's directory, which is every other request's default.
+- A steer is another `prompt_async` on the session; the turn stays open until an idle that comes after the server stored every prompt sent. An interrupt is `POST /session/{id}/abort`; `MessageAbortedError` is read as no error, and a server that does not end the turn within 15 seconds is taken down. A permission request is an approval event answered with `POST /permission/{id}/reply` (`once`, `always`, `reject`); a question is an input event answered with `POST /question/{id}/reply` or `/reject`; a request that a subagent's session asks is routed to the thread of its root through `parentID`.
+- A server whose event stream ends is taken down (the stream is volatile on v1); its turns end with an error and the threads are resumed by their session ids on a new server. A server idle for `RCA_OPENCODE_IDLE_SECS` (600 by default, 0 for ever) is closed.
+- Not done: the service's tool server (`POST /mcp` is per directory, not per thread), the model gateway (`docs/gaps/opencode-session-not-through-gateway.md`), usage events (`ExecEvent` has none for any CLI), aborting a subagent's session with its parent.
 
 ## Two APIs in one binary
 

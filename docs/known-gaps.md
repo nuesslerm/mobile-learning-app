@@ -68,6 +68,8 @@ Pre-2026-10 history: [archive](archive/README.md).
 - remote-chat-agent · The model gateway has only run against an authored scripted upstream, and Headroom has no sidecar · 2d · [model-gateway-unproven-against-real-binaries](gaps/model-gateway-unproven-against-real-binaries.md)
 - remote-chat-agent · Codex's live session has run only against recordings and authored conversations, never against the real CLI · 0d · [codex-live-session-not-run-against-the-real-cli](gaps/codex-live-session-not-run-against-the-real-cli.md)
 - remote-chat-agent · A Codex thread is never routed through the model gateway · 0d · [codex-session-not-through-gateway](gaps/codex-session-not-through-gateway.md)
+- remote-chat-agent · opencode's live session has not run a model turn against the real server in any session of ours · 0d · [opencode-live-session-not-run-against-the-real-cli](gaps/opencode-live-session-not-run-against-the-real-cli.md)
+- remote-chat-agent · An opencode thread is never routed through the model gateway · 0d · [opencode-session-not-through-gateway](gaps/opencode-session-not-through-gateway.md)
 - runbooks · A VM-side `wf rca ask --runbook coding-agent-live-on-vm` cannot produce a result · 77d · [runbook-on-vm-cannot-record](gaps/runbook-on-vm-cannot-record.md)
 - secrets · A dispatch-test flake parked the secrets `runCliArgs` timeout fix · 50d · [dispatch-test-flake-parked-patch](gaps/dispatch-test-flake-parked-patch.md)
 - secrets · Secret-registry entries still describe the deleted mobile-learning-app (blocked) · 49d · [secret-registry-stale-mla-entries](gaps/secret-registry-stale-mla-entries.md)

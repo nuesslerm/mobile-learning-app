@@ -152,6 +152,11 @@ impl ScriptedCli {
         std::fs::read_to_string(self.dir().join(crate::opencode_live::password_file(program))).ok()
     }
 
+    /// The process id of the last start of the scripted `opencode serve`.
+    pub fn opencode_pid(&self, program: &str) -> Option<u32> {
+        std::fs::read_to_string(self.dir().join(crate::opencode_live::pid_file(program))).ok()?.trim().parse().ok()
+    }
+
     /// Every start of `program` since its script was set, oldest first.
     pub fn invocations(&self, program: &str) -> Vec<Invocation> {
         let path = self.dir().join(log_file(program));

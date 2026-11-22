@@ -30,6 +30,11 @@ pub fn password_file(program: &str) -> String {
     format!("{program}.password")
 }
 
+/// The process id of the last start of the server, so a test can kill it.
+pub fn pid_file(program: &str) -> String {
+    format!("{program}.serve-pid")
+}
+
 fn sessions_file(program: &str) -> String {
     format!("{program}.sessions.json")
 }
@@ -499,6 +504,7 @@ pub fn serve(script: Script, dir: &Path, program: &str, start: usize) -> ! {
         std::process::exit(6);
     };
     let _ = std::fs::write(dir.join(password_file(program)), &password);
+    let _ = std::fs::write(dir.join(pid_file(program)), std::process::id().to_string());
     let listener = TcpListener::bind("127.0.0.1:0").unwrap_or_else(|e| {
         eprintln!("scripted-cli: {e}");
         std::process::exit(1)

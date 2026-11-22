@@ -411,11 +411,11 @@ async fn restarted(old: Chain, env: &Env, options: Options) -> Chain {
 }
 
 /// How many sessions the `start`-th server of the scripted opencode was asked to make, and whether it was asked for the session `id`.
-fn created_by(requests: &[Value], start: u64) -> usize {
+pub(crate) fn created_by(requests: &[Value], start: u64) -> usize {
     requests.iter().filter(|r| r["start"] == start && r["method"] == "POST" && r["path"].as_str().is_some_and(|p| p == "/session" || p.starts_with("/session?"))).count()
 }
 
-fn looked_up(requests: &[Value], start: u64, id: &str) -> bool {
+pub(crate) fn looked_up(requests: &[Value], start: u64, id: &str) -> bool {
     requests.iter().any(|r| r["start"] == start && r["method"] == "GET" && r["path"].as_str().is_some_and(|p| p.starts_with(&format!("/session/{id}"))))
 }
 

@@ -12,6 +12,8 @@ mod devserver;
 mod hosted;
 #[path = "flow/model.rs"]
 mod model;
+#[path = "flow/opencode_live.rs"]
+mod opencode_live;
 #[path = "flow/recordings.rs"]
 mod recordings;
 #[path = "flow/repo.rs"]
