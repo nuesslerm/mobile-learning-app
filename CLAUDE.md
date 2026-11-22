@@ -34,9 +34,9 @@ Search `wf --help` first. A wrapper script that sets up env or flags is a smell;
 
 Pushing to `dev` runs one pipeline, the reusable `pipeline.yml`, called by `ci-hosted-backend-core.yml` on GitHub-hosted runners; every test stage replays through the Nx cache. The local gate is lefthook pre-commit (`wf check --staged`): a red hook is the failure to fix, never to bypass. Production ships only by a push to `dev`: CI builds the images on its runner and the legs redeploy that tag (`wf ship --redeploy-only`); agent sessions cannot dispatch workflows and nothing else builds a production image. Every stage, the deploy flow, the hand-deployed apps and the record triggers: `docs/solutions/ci/ci-pipeline-on-the-vm.md`.
 
-## Never wait on CI
+## Commit small, never wait on CI
 
-A running or queued CI run is never a reason to stop or idle: take the next item of the goal at once. Watch a run with one background Monitor; never poll, `sleep` or end a turn to wait. Push further commits while a run is queued (a newer push supersedes it); a red run is one more item of work. Hold a push only for a conflict with half-finished work in the tree.
+Land each unit once its own package tests and the gate pass: commit, `git fetch origin dev && git rebase origin/dev`, push, then the next unit. Split before a dozen files or an hour uncommitted: a restart loses unpushed work. CI running or queued is never a reason to idle: watch it with one background Monitor, never poll or `sleep`; a newer push supersedes it, a red run is one more item of work.
 
 ## Parallel agents in the sandbox
 
@@ -48,7 +48,7 @@ Goal, numbered decisions, `###` items (Local/CI boxes, Do, Proof, State), Blocke
 
 ## Land on dev
 
-Work autonomously on the `dev` trunk, never a session branch; never delete a branch. Before any work bring `dev` to parity with `main` (`docs/solutions/workflow/dev-parity-with-main.md`); land with `git fetch origin dev && git rebase origin/dev` (never over a merge of `main`), the lefthook suite, push. Deploy is automatic on push to `dev`; never call `/redeploy` by hand. When the open `dev` → `main` PR is merged or closed, open a new one titled exactly `dev → main` with the body exactly ``This is `dev` ``. More: `docs/solutions/workflow/land-on-dev.md`.
+Work autonomously on the `dev` trunk, never a session branch; never delete a branch. Before any work bring `dev` to parity with `main` (`docs/solutions/workflow/dev-parity-with-main.md`); land per the commit rule (never over a merge of `main`). Deploy is automatic on push to `dev`; never call `/redeploy` by hand. When the open `dev` → `main` PR is merged or closed, open a new one titled exactly `dev → main` with the body exactly ``This is `dev` ``. More: `docs/solutions/workflow/land-on-dev.md`.
 
 ## Benchmarks: always, and as cheap as still meaningful
 
