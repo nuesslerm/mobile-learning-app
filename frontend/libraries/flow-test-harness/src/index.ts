@@ -13,7 +13,15 @@ export type {
   StrokeUnits,
 } from '@lib/gesture-geometry';
 export { setSafeAreaDevice, resetSafeArea, type FlowSafeAreaDevice } from './safeArea';
-export { routerHarness, resetRouterHarness, type RouterHarness, type RouterCall } from './router';
+export {
+  routerHarness,
+  resetRouterHarness,
+  setStackHeadersRendered,
+  navigationTheme,
+  type NavigationThemeValue,
+  type RouterHarness,
+  type RouterCall,
+} from './router';
 export { storageHarness, resetStorageHarness, type StorageHarness } from './storage';
 export { createFakeAudioRecorder, type FakeAudioRecorder } from './doubles/fakeAudioRecorder';
 export {
