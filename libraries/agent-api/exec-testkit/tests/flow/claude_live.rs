@@ -180,3 +180,20 @@ fn a_turn_that_reads_a_line_waits_for_the_answer_to_its_request_and_a_turn_that_
     assert_eq!(live.child.wait().unwrap().code(), Some(3));
     assert!(live.lines.recv_timeout(Duration::from_secs(2)).is_err());
 }
+
+#[test]
+fn a_process_not_launched_in_full_access_refuses_to_enter_it_and_one_launched_in_it_takes_it() {
+    // Given one process launched in the mode that asks and one launched in full access
+    let cli = ScriptedCli::install();
+    let (mut asking, mut open) = (start(&cli, &["--permission-mode", "default"]), start(&cli, &["--permission-mode", "bypassPermissions"]));
+    // When each is asked to enter full access
+    for live in [&mut asking, &mut open] {
+        live.send(control("1", json!({"subtype": "set_permission_mode", "mode": "bypassPermissions"})));
+    }
+    // Then the first answers with an error naming the launch flag and the second with the mode
+    let (refused, taken) = (asking.next(), open.next());
+    assert_eq!(refused["response"]["subtype"], json!("error"));
+    assert!(refused["response"]["error"].as_str().unwrap_or_default().contains("not launched with --dangerously-skip-permissions"), "{refused}");
+    assert_eq!(taken["response"]["response"]["mode"], json!("bypassPermissions"));
+    assert_eq!((asking.close(), open.close()), (Some(0), Some(0)));
+}

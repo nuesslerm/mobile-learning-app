@@ -350,7 +350,13 @@ impl Live<'_> {
                 Heard::Quiet
             }
             (Some("control_request"), Some("set_permission_mode")) => {
-                print(&claude::control_success(&id, json!({"mode": message["request"]["mode"]})));
+                // The real CLI enters full access only when it was launched in it
+                let launched = self.args.windows(2).any(|w| w[0] == "--permission-mode" && w[1] == "bypassPermissions");
+                if message["request"]["mode"] == "bypassPermissions" && !launched {
+                    print(&json!({"type": "control_response", "response": {"subtype": "error", "request_id": id, "error": "Cannot set permission mode to bypassPermissions because the session was not launched with --dangerously-skip-permissions"}}).to_string());
+                } else {
+                    print(&claude::control_success(&id, json!({"mode": message["request"]["mode"]})));
+                }
                 Heard::Quiet
             }
             (Some("control_request"), Some("set_model")) => {
