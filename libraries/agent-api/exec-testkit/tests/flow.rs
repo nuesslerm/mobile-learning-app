@@ -6,6 +6,8 @@ mod app_server;
 mod claude_live;
 #[path = "flow/cli.rs"]
 mod cli;
+#[path = "flow/devserver.rs"]
+mod devserver;
 #[path = "flow/hosted.rs"]
 mod hosted;
 #[path = "flow/model.rs"]
