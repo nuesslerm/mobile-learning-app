@@ -491,7 +491,7 @@ fn is_uuid(text: &str) -> bool {
 /// A session's flags are pairs of one flag of the program's list and its value, each flag once; a conversation is named once, by a new id or by one to resume.
 fn check_session_flags(program: &str, given: &[String]) -> ExecResult<()> {
     let allowed = SESSION_FLAGS.iter().find(|(p, _)| *p == program).map_or(&[][..], |(_, f)| f);
-    if given.len() % 2 != 0 {
+    if !given.len().is_multiple_of(2) {
         return Err(ExecError::invalid_args("`args` is flag and value pairs"));
     }
     let mut seen: Vec<&str> = Vec::new();
