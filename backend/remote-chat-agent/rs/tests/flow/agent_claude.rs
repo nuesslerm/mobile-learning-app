@@ -273,3 +273,24 @@ async fn given_two_threads_when_each_runs_a_turn_then_each_has_a_process_and_a_c
     let prompts_of = |start: usize| -> Vec<String> { log.iter().filter(|r| r.start == start && r.message["type"] == "user").map(|r| r.message["message"]["content"][0]["text"].as_str().unwrap().to_string()).collect() };
     assert_eq!((prompts_of(1), prompts_of(2)), (vec!["first".to_string()], vec!["second".to_string()]));
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_a_thread_that_asked_before_each_tool_when_its_next_turn_is_full_access_then_a_process_launched_in_it_resumes_the_conversation_and_the_turn_runs() {
+    // Given a thread whose first turn ran in the mode that asks, in a process the CLI will not take into full access
+    let env = Env::new(&[]);
+    let chain = chain_with(&env, Options::default()).await;
+    chain.script(vec![Turn::replaying(&text_deltas("m1", "first")), Turn::replaying(&text_deltas("m2", "second"))]);
+    let mut agent = chain.agent().await;
+    thread(&mut agent, "t1").await;
+    turn(&mut agent, "t1", "one", "approval-required").await;
+    agent.events_through("turn.finished").await;
+    // When the thread's next turn is in full access
+    turn(&mut agent, "t1", "two", "full-access").await;
+    let events = agent.events_through("turn.finished").await;
+    // Then the turn completed on a second process that resumed the conversation of the first in full access, and no mode request was refused
+    assert_eq!((reason(&events), spoken(&events)), (json!("completed"), "second".to_string()));
+    let starts = chain.cli.invocations("claude");
+    assert_eq!(starts.len(), 2);
+    assert_eq!((flag(&starts[1].argv, "--resume"), flag(&starts[1].argv, "--permission-mode")), (flag(&starts[0].argv, "--session-id"), Some("bypassPermissions".to_string())));
+    assert!(!sent(&chain).iter().any(|(_, kind)| kind == "set_permission_mode"), "{:?}", sent(&chain));
+}

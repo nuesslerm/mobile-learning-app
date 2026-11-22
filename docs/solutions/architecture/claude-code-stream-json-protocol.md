@@ -192,7 +192,7 @@ Requests the host sends (all **[bin]** schema; **[live]** where marked). Each an
 | --- | --- | --- |
 | `initialize` | see section 2 | session description **[live]** |
 | `interrupt` | optional `cancel_queued:true`, `reason` | `{"still_queued":[uuid…]}` (plus `cancelled:[uuid…]` with `cancel_queued`) **[live]**: idle gives `{"still_queued":[]}` |
-| `set_permission_mode` | `mode` | `{"mode":"acceptEdits"}` **[live]**, and a `system/status` frame `{"status":null,"permissionMode":"acceptEdits"}` follows **[live]** |
+| `set_permission_mode` | `mode` | `{"mode":"acceptEdits"}` **[live]**, and a `system/status` frame `{"status":null,"permissionMode":"acceptEdits"}` follows **[live]**. `bypassPermissions` is refused with an `error` (`Cannot set permission mode to bypassPermissions because the session was not launched with --dangerously-skip-permissions`) unless the process was launched in that mode or with `--allow-dangerously-skip-permissions` **[bin]**: a thread that goes to full access after a process launched in another mode needs a new process (`--resume`), and the other way round is a control request |
 | `set_model` | `model` (alias, id, or `null` for default) | `{"model":"claude-sonnet-5-5"}` the resolved id **[live]** |
 | `set_max_thinking_tokens` | `max_thinking_tokens`, `thinking_display` | |
 | `mcp_status` | | `{"mcpServers":[{"name","status","config","transport","scope","source",…}]}` **[live]** (`[]` with no servers) |

@@ -60,6 +60,8 @@ struct Inner {
     failure: Option<String>,
     conversation: String,
     mode: String,
+    /// The process was launched in full access: the CLI enters that mode only then, so a thread that asks for it later needs a process started in it.
+    bypass: bool,
     model: Option<String>,
     /// The thread's conversation was let go: the process closes as soon as no turn runs in it.
     forgotten: bool,
@@ -137,7 +139,7 @@ impl ClaudeSessions {
         };
         let args = claude::session_args(req, resume, &conversation);
         let link = linker.open(Driver::ClaudeAgent, Path::new(&req.cwd), &args).await.map_err(|e| format!("claude could not start: {e}"))?;
-        let inner = Inner { last_active: Some(Instant::now()), conversation: conversation.clone(), mode: claude::permission_mode(req).to_string(), model: req.model.clone(), ..Inner::default() };
+        let inner = Inner { last_active: Some(Instant::now()), conversation: conversation.clone(), mode: claude::permission_mode(req).to_string(), bypass: claude::permission_mode(req) == "bypassPermissions", model: req.model.clone(), ..Inner::default() };
         let proc = Arc::new(Proc { thread: req.thread_id.clone(), workspace: workspace.to_string(), cwd: req.cwd.clone(), send: link.send, kill: link.running.kill, next: AtomicU64::new(0), inner: Mutex::new(inner), shared: Arc::clone(&self.shared) });
         tokio::spawn(Arc::clone(&proc).read(link.running.lines, link.running.finish));
         if let Err(why) = proc.request(claude::initialize).await {
@@ -153,6 +155,12 @@ impl ClaudeSessions {
 impl Proc {
     fn inner(&self) -> MutexGuard<'_, Inner> {
         locked(&self.inner)
+    }
+
+    /// Whether the process can run a turn in `mode`: full access can be entered only by a process launched in it (unless a turn runs, which is refused later).
+    fn takes(&self, mode: &str) -> bool {
+        let inner = self.inner();
+        mode != "bypassPermissions" || inner.bypass || inner.turn.is_some()
     }
 
     /// Whether the process is still to be used; it is counted as active from now, so the idle close cannot take it between this and the turn's start.
@@ -442,19 +450,33 @@ impl SessionDriver for ClaudeSessions {
         let slot = self.slot(&req.thread_id);
         let _starting = slot.lock().await;
         self.await_stopped_turn(&req.thread_id).await;
-        let reusable = self.live(&req.thread_id).filter(|p| p.cwd == req.cwd && p.workspace == workspace);
-        if let Some(stale) = self.live(&req.thread_id).filter(|p| reusable.as_ref().is_none_or(|r| !Arc::ptr_eq(p, r))) {
-            stale.shut("the Claude Code process was replaced, its workspace changed");
+        let mode = claude::permission_mode(req);
+        let live = self.live(&req.thread_id);
+        let reusable = live.clone().filter(|p| p.cwd == req.cwd && p.workspace == workspace && p.takes(mode));
+        // A process that cannot take the mode is replaced by one that resumes its conversation; a running turn is left to the busy check below
+        let mut resumed = None;
+        if let Some(stale) = live.filter(|p| reusable.as_ref().is_none_or(|r| !Arc::ptr_eq(p, r))) {
+            if stale.cwd == req.cwd && stale.workspace == workspace && stale.inner().ended.is_none() {
+                resumed = Some(stale.inner().conversation.clone());
+            }
+            stale.shut("the Claude Code process was replaced, its workspace or its mode changed");
         }
+        let again;
+        let start = match resumed {
+            Some(id) if req.resume.is_none() => {
+                again = TurnRequest { resume: Some(id), ..req.clone() };
+                &again
+            }
+            _ => req,
+        };
         let (proc, fresh) = match reusable.filter(|p| p.claim()) {
             Some(proc) => (proc, None),
-            None => self.start(workspace, linker, req).await?,
+            None => self.start(workspace, linker, start).await?,
         };
         if proc.inner().turn.is_some() {
             return Err(format!("thread {} already has a running turn", req.thread_id));
         }
         // A thread whose mode or model changed goes on in the same process
-        let mode = claude::permission_mode(req);
         if proc.inner().mode != mode {
             proc.request(|id| claude::set_permission_mode(id, mode)).await.map_err(|why| format!("claude did not take the mode {mode}: {why}"))?;
             proc.inner().mode = mode.to_string();
@@ -670,6 +692,24 @@ mod tests {
         assert_eq!(linker.starts(), 2);
         assert_ne!(first_session(&other), id);
         assert!(sessions.alive("t1") && sessions.alive("t2") && !sessions.alive("t3"));
+    }
+
+    #[tokio::test]
+    async fn given_a_process_launched_with_asking_when_the_thread_turns_to_full_access_then_a_process_launched_in_it_resumes_the_conversation_and_the_way_back_is_a_control_request() {
+        // Given a thread whose process was launched in the mode that asks before each tool
+        let (sessions, linker) = (ClaudeSessions::default(), claude_session());
+        let asking = TurnRequest { runtime_mode: "approval-required".into(), ..request("t1", "hello", None) };
+        let id = first_session(&drain(sessions.turn("w1", linker.as_ref(), &asking).await.unwrap()).await);
+        // When the thread's next turn is in full access, which the CLI enters only when it was launched in it, and the one after asks again
+        let open = TurnRequest { runtime_mode: "full-access".into(), ..request("t1", "hello", Some(&id)) };
+        let full = drain(sessions.turn("w1", linker.as_ref(), &open).await.unwrap()).await;
+        let back = drain(sessions.turn("w1", linker.as_ref(), &TurnRequest { runtime_mode: "approval-required".into(), ..open.clone() }).await.unwrap()).await;
+        // Then the first process was replaced by one that resumed the conversation in full access, without a mode request, and the turns ran
+        assert_eq!((full.last(), back.last()), (Some(&ExecEvent::Done), Some(&ExecEvent::Done)));
+        assert_eq!((linker.starts(), linker.kills()), (2, 1));
+        assert_eq!(linker.flags()[1][..4], ["--resume".to_string(), id.clone(), "--permission-mode".into(), "bypassPermissions".into()]);
+        let modes: Vec<(usize, Value)> = linker.received().into_iter().filter(|(_, m)| m["request"]["subtype"] == "set_permission_mode").map(|(start, m)| (start, m["request"]["mode"].clone())).collect();
+        assert_eq!(modes, vec![(2, json!("default"))]);
     }
 
     #[tokio::test]

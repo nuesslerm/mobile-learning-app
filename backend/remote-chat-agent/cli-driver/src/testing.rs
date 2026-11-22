@@ -339,7 +339,14 @@ pub fn claude_session() -> Arc<ScriptedLinker> {
         let session = conversation(flags);
         match (m["type"].as_str(), m["request"]["subtype"].as_str()) {
             (Some("control_request"), Some("initialize")) => vec![control(id, json!({"models": [], "pid": 1}))],
-            (Some("control_request"), Some("set_permission_mode")) => vec![control(id, json!({"mode": m["request"]["mode"]}))],
+            (Some("control_request"), Some("set_permission_mode")) => {
+                // The real CLI only enters full access when it was launched in it
+                let launched = flags.windows(2).any(|w| w[0] == "--permission-mode" && w[1] == "bypassPermissions");
+                if m["request"]["mode"] == "bypassPermissions" && !launched {
+                    return vec![say(json!({"type": "control_response", "response": {"subtype": "error", "request_id": id, "error": "Cannot set permission mode to bypassPermissions because the session was not launched with --dangerously-skip-permissions"}}))];
+                }
+                vec![control(id, json!({"mode": m["request"]["mode"]}))]
+            }
             (Some("control_request"), Some("set_model")) => vec![control(id, json!({"model": m["request"]["model"]}))],
             (Some("control_request"), Some("interrupt")) => {
                 let messages = std::mem::take(&mut *current.lock().unwrap_or_else(|p| p.into_inner()));
