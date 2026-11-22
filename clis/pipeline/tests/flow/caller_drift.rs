@@ -136,7 +136,7 @@ fn the_six_callers_pin_their_file_name_workflow_name_label_and_group_together() 
 }
 
 #[test]
-fn the_pipeline_group_scheme_shares_shard_groups_per_workflow_and_deploy_groups_across_workflows_and_guards_nothing_else() {
+fn the_pipeline_group_scheme_shares_shard_groups_per_workflow_and_deploy_groups_across_workflows_and_guards_only_the_one_rotating_login_besides() {
     // Given the pipeline's text
     let text = workflow("pipeline.yml");
 
@@ -145,7 +145,7 @@ fn the_pipeline_group_scheme_shares_shard_groups_per_workflow_and_deploy_groups_
     let cancels: Vec<&str> = text.lines().filter(|l| l.trim_start().starts_with("cancel-in-progress:")).collect();
 
     // Then the sharded jobs name github.workflow, the deploy jobs name the app only, and no job is guarded by a group that ends in a run id
-    assert_eq!(groups.len(), 5, "five jobs have a concurrency group: {groups:?}");
+    assert_eq!(groups.len(), 6, "six jobs have a concurrency group: {groups:?}");
     for job in ["core-tests", "integration", "cli-e2e-tests"] {
         let prefix = format!("group: ${{{{ format('hosted-{job}-{{0}}-");
         let hits: Vec<&&str> = groups.iter().filter(|g| g.trim_start().starts_with(&prefix)).collect();
@@ -155,6 +155,8 @@ fn the_pipeline_group_scheme_shares_shard_groups_per_workflow_and_deploy_groups_
     for (job, line) in [("deploy-build", "group: ${{ format('hosted-deploy-build-{0}', matrix.app) }}"), ("deploy", "group: ${{ format('hosted-deploy-{0}', matrix.app) }}")] {
         assert!(groups.iter().any(|g| g.trim() == line), "{job} is guarded per app across workflows: {groups:?}");
     }
+    // and the second Codex login, whose refresh token rotates on use, is held by one job at a time across every workflow and run: one fixed group, no workflow or run in its name
+    assert_eq!(groups.iter().filter(|g| g.trim() == "group: codex-ci-login").count(), 1, "the login group is fixed: {groups:?}");
     assert!(groups.iter().all(|g| !g.contains("run_id")), "no group ends in a run id: {groups:?}");
     assert_eq!(cancels.len(), groups.len(), "every group states cancel-in-progress");
     assert!(cancels.iter().all(|c| c.trim() == "cancel-in-progress: false"), "no group cancels a running job: {cancels:?}");
@@ -180,4 +182,29 @@ fn every_sharded_test_job_of_the_pipeline_puts_its_shard_index_before_its_shard_
     }
     // And the deploy groups stay per app
     assert!(text.contains("group: ${{ format('hosted-deploy-build-{0}', matrix.app) }}") && text.contains("group: ${{ format('hosted-deploy-{0}', matrix.app) }}"));
+}
+
+#[test]
+fn the_rotating_codex_login_is_reachable_only_from_a_push_to_dev_of_the_owners_repository_and_the_vault_token_is_in_one_step_of_its_job() {
+    // Given the pipeline's codex job and every workflow that calls the pipeline
+    let pipeline = workflow("pipeline.yml");
+    let job = job_block(&pipeline, "codex-session-proof");
+    let callers: Vec<String> = std::fs::read_dir(repo_root().join(".github/workflows")).unwrap().filter_map(|e| e.ok()).map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.ends_with(".yml") && workflow(n).contains("uses: ./.github/workflows/pipeline.yml")).collect();
+
+    // When its condition, its concurrency and where the vault token appears are read
+    let cond = job.lines().find(|l| l.starts_with("    if:")).expect("the job has a condition");
+    let token_steps = job.split("\n      - ").filter(|step| step.contains("BWS_CI_DEPLOY_ACCESS_TOKEN")).count();
+
+    // Then only a push to dev of a repository that is not a fork reaches it (no pull request, dispatch or fork), one job at a time across runs
+    for part in ["github.event_name == 'push'", "github.ref == 'refs/heads/dev'", "github.event.repository.fork == false", "needs.plan.outputs.is_head == 'true'"] {
+        assert!(cond.contains(part), "{part} in {cond}");
+    }
+    assert!(job.contains("    concurrency:\n      group: codex-ci-login\n      cancel-in-progress: false\n"), "{job}");
+    // And the vault token is in the one step that runs the verb, which gives it to no child, and no workflow that calls the pipeline is triggered by a pull request
+    assert_eq!(token_steps, 1, "the vault token is in one step: {job}");
+    assert!(job.contains("wf mimic exec --clis real:codex-ci --skip-when-empty"), "{job}");
+    assert!(!callers.is_empty());
+    for caller in callers {
+        assert!(!workflow(&caller).contains("pull_request"), "{caller} calls the pipeline and is triggered by a pull request");
+    }
 }

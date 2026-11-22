@@ -139,7 +139,7 @@ fn the_production_update_is_published_beside_the_tests_and_its_pointer_moves_onl
     for t in ["core-tests", "integration-tests", "cli-e2e-tests"] {
         assert!(p_cond.contains(&format!("contains(fromJSON('[\"success\",\"skipped\"]'), needs.{t}.result)")), "{p_cond}");
     }
-    assert!(text.contains("deployment-verification-tests, eas-update, eas-promote, eas-update-e2e"));
+    assert!(text.contains("deployment-verification-tests, codex-session-proof, eas-update, eas-promote, eas-update-e2e"));
 }
 
 #[test]

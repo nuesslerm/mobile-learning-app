@@ -243,7 +243,7 @@ The service keeps the live process and the executor only carries its lines (a re
 - **Steer and stop.** `turn.steer` is `turn/steer` on the live process, and the turn goes on as the same turn; a refused steer is an error in the log and a refusal. `turn.interrupt` is `turn/interrupt`; the turn ends `interrupted` when the server says so, and a server that does not end it within 15 seconds is killed.
 - **Approvals.** Command, file change and permission requests of the server are `approval.requested` events (`tool` `command`, `file_change`, `permissions`), answered by `approval.answer` on the live process; `accept_for_session` is the server's own `acceptForSession`. A request of any other kind is refused (`mcpServer/elicitation/request` is declined, the rest are a method not found), because the service does not opt into `experimentalApi`, so `item/tool/requestUserInput` is never sent.
 - **Life of the process.** Closed after `RCA_CODEX_IDLE_SECS` (default 600, 0 never) with no turn running, replaced when it dies, and every thread of a dead process is resumed by its stored conversation id on its next turn. A turn that was running when the process died ends failed with why; it is never run again.
-- **Not routed through the model gateway** (`docs/gaps/codex-session-not-through-gateway.md`), and **not run against the real CLI** (`docs/gaps/codex-live-session-not-run-against-the-real-cli.md`).
+- **Not routed through the model gateway** (`docs/gaps/codex-session-not-through-gateway.md`), and **not yet run against the real CLI** (`docs/gaps/codex-live-session-not-run-against-the-real-cli.md`; the `codex-session-proof` job, `docs/solutions/testing/real-codex-session.md`, makes the first run on `dev`).
 
 ## Not verified
 

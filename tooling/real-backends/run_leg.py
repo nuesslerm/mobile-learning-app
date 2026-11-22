@@ -7,6 +7,7 @@ Each run writes {leg, ok, ...} to REAL_BACKEND_OUT: the test's stable result (me
 merged with the exit code and version, or {leg, ok: false, missing_key} when the vault holds no value for the leg's credential.
 
 Usage: run_leg.py --leg claude|codex|opencode
+       run_leg.py --install claude|codex|opencode --into <fresh dir>   (only the pinned, hash-checked CLI: prints the directory to put on PATH)
 """
 import hashlib, json, os, re, subprocess, sys, tempfile, urllib.request
 
@@ -78,6 +79,11 @@ def scrub(text, secrets):
 
 
 def main():
+    if "--install" in sys.argv:
+        leg = sys.argv[sys.argv.index("--install") + 1]
+        LEG[0] = leg
+        print(install(leg, sys.argv[sys.argv.index("--into") + 1]))
+        return
     leg = sys.argv[sys.argv.index("--leg") + 1]
     LEG[0] = leg
     spec = LEGS[leg]

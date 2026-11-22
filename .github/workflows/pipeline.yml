@@ -1,7 +1,7 @@
 name: Pipeline
 
 # The one CI pipeline, called by ci-hosted-backend-core.yml on GitHub-hosted runners. The job graph is static: wf-build, plan (which also runs the preflight and
-# the head-of-dev check), core-tests (the flow stage and the typecheck, lint and unit stage side by side on one machine), clis, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, eas-update-e2e, the e2e suites, report.
+# the head-of-dev check), core-tests (the flow stage and the typecheck, lint and unit stage side by side on one machine), clis, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, codex-session-proof, eas-update, eas-update-e2e, the e2e suites, report.
 # `ship` publishes (latest images, the EAS Update), `deploy` runs the deploy legs, `e2e` runs the device suites, `stages` picks one stage of them and `area` one area of the core
 # stage, so a push is six runs of one graph that do not wait for each other: ci-hosted-mobile-core.yml, ci-hosted-cli-core.yml and ci-hosted-backend-core.yml (backend services) run `core`
 # (flow, lint, typecheck and unit tests) for their area, ci-hosted-cli-build.yml `cli` (the wf build and release, and the cli e2e tests), ci-hosted-backend-build.yml `deploy`
@@ -979,6 +979,82 @@ jobs:
           mode: upload
           job: deployment-verification-tests
 
+  # G4 of #83: the live Codex session (CodexSessions over the service's own process adapter) against the real `codex app-server`, two cheap turns with a close and a resume between them.
+  # It holds the one secret that rotates on use, the second Codex login, so: a push to dev of the owner's repository only (never a pull request, a dispatch or a fork), one job at a time across every
+  # run (the group below; a pending job is replaced by a newer one and ends cancelled, a running one is never cancelled), and `wf mimic exec` restores the login to a private CODEX_HOME,
+  # runs the test with a default-deny environment and writes a refreshed login back to the vault itself before the job ends. An empty secret skips the proof with the reason in the summary.
+  codex-session-proof:
+    name: codex-session-proof
+    needs: [plan, integration-tests]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.is_head == 'true' && needs.plan.outputs.run_service == 'true' && (needs.integration-tests.result == 'success' || needs.integration-tests.result == 'skipped') && github.event_name == 'push' && github.ref == 'refs/heads/dev' && github.event.repository.fork == false && vars.CODEX_CI_PROOF != 'off' && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 40
+    concurrency:
+      group: codex-ci-login
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-job
+        with:
+          wf-source: artifact
+          job: codex-session-proof
+          install: "false"
+          tailnet: "false"
+      - uses: ./.github/actions/install-test-deps
+        with:
+          rust: "true"
+      - uses: ./.github/actions/install-bws
+      # the pinned codex, hash-checked against tooling/mimic-drivers/provision/real-agents-pin.json; no credential is read here
+      - name: The pinned Codex CLI
+        timeout-minutes: 10
+        run: echo "MIMIC_REAL_CLI_DIR=$(python3 -I tooling/real-backends/run_leg.py --install codex --into "$RUNNER_TEMP/real-cli")" >> "$GITHUB_ENV"
+      # The vault token is in this step's environment and in the verb's alone: the test and everything it starts get the default-deny environment and a CODEX_HOME holding the login (docs/solutions/testing/real-codex-session.md)
+      - name: Codex session proof
+        timeout-minutes: 25
+        working-directory: backend/remote-chat-agent
+        env:
+          SECRETS_BACKEND: bitwarden
+          BWS_SERVER_URL: https://vault.bitwarden.eu
+          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+          WF_CODEX_CI_MODEL: ${{ vars.CODEX_CI_MODEL }}
+          RCA_REAL_RESULT_OUT: ${{ runner.temp }}/codex-proof/result.json
+        run: |
+          mkdir -p "$RUNNER_TEMP/codex-proof"
+          set +e
+          wf mimic exec --clis real:codex-ci --skip-when-empty --scan "$RUNNER_TEMP/codex-proof" -- cargo test --locked -p remote-chat-agent-host --test real_codex_session --manifest-path Cargo.toml -- --ignored --nocapture --test-threads=1 > "$RUNNER_TEMP/codex-proof/exec.json" 2> "$RUNNER_TEMP/codex-proof/exec.log"
+          code=$?
+          set -e
+          tail -c 6000 "$RUNNER_TEMP/codex-proof/exec.log"
+          cat "$RUNNER_TEMP/codex-proof/exec.json"
+          {
+            echo "### Codex session proof"
+            echo
+            if jq -e '.ran == false' "$RUNNER_TEMP/codex-proof/exec.json" > /dev/null 2>&1; then jq -r '.skipped' "$RUNNER_TEMP/codex-proof/exec.json"; else
+              echo "exit $code; login written back: $(jq -c '.login_written_back' "$RUNNER_TEMP/codex-proof/exec.json" 2>/dev/null || echo unknown)"
+              echo
+              echo '```'
+              tail -c 2500 "$RUNNER_TEMP/codex-proof/exec.log"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          name: codex-session-proof
+          path: ${{ runner.temp }}/codex-proof/result.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() }}
+        with:
+          mode: upload
+          job: codex-session-proof
+
   # When the app changed since the update the branch pointer names (the plan's eas_update), one EAS Update group for iOS and Android on branch dev
   # from this commit, so a failed publish is repaired by the next push. Without `ship` the bundle is exported and nothing is uploaded.
   eas-update:
@@ -1262,7 +1338,7 @@ jobs:
   # the pushed commit. A failure to report never turns the run's result into the report's; a cache that degraded, lost or refused a write does.
   report:
     name: report
-    needs: [wf-build, plan, core-tests, clis, deploy-build, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, eas-promote, eas-update-e2e, browser-e2e-tests, android-e2e-tests]
+    needs: [wf-build, plan, core-tests, clis, deploy-build, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, codex-session-proof, eas-update, eas-promote, eas-update-e2e, browser-e2e-tests, android-e2e-tests]
     if: ${{ always() }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 15

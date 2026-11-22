@@ -42,6 +42,30 @@ class RunLeg(unittest.TestCase):
         record = json.load(open(out)) if os.path.exists(out) else None
         return record, raised.exception.code, installs, stdout.getvalue()
 
+    def test_given_the_install_mode_when_a_cli_is_named_then_only_the_pinned_cli_is_installed_and_its_directory_printed_with_no_vault_read(self):
+        # Given an install that records what it was asked for, and a `wf` that would fail the run if the vault were asked
+        work = tempfile.mkdtemp()
+        bin_dir = os.path.join(work, "bin")
+        os.makedirs(bin_dir)
+        script(os.path.join(bin_dir, "wf"), "exit 9\n")
+        installs = []
+        saved = (dict(os.environ), run_leg.install, sys.argv)
+        os.environ["PATH"] = bin_dir + ":" + os.environ["PATH"]
+        run_leg.install = lambda leg, into: installs.append((leg, into)) or os.path.join(into, "bin")
+        sys.argv = ["run_leg.py", "--install", "codex", "--into", os.path.join(work, "cli")]
+        stdout = io.StringIO()
+        try:
+            # When it runs
+            with contextlib.redirect_stdout(stdout):
+                run_leg.main()
+        finally:
+            os.environ.clear()
+            os.environ.update(saved[0])
+            run_leg.install, sys.argv = saved[1], saved[2]
+        # Then the pinned codex was installed into the directory and its bin directory printed
+        self.assertEqual(installs, [("codex", os.path.join(work, "cli"))])
+        self.assertEqual(stdout.getvalue().strip(), os.path.join(work, "cli", "bin"))
+
     def test_given_a_passing_turn_when_the_leg_runs_then_the_record_merges_the_methods_and_final_state_and_no_value(self):
         # Given a vault with the key and a test that writes its result and passes
         result = json.dumps({"schema": "x", "driver": "codex", "methods": [{"method": "turn.start", "ok": True}], "final_state": "completed", "replied": True, "wrote_file": True})
