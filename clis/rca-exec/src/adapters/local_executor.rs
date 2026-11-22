@@ -417,6 +417,14 @@ impl ToolExecutor for LocalExecutor {
         let bridge = if args.program == "opencode" {
             let bridge = Bridge::new()?;
             cmd.envs(bridge.env());
+            // A server has no input to see its parent go: it dies with the executor instead of staying up holding its port and its database
+            // SAFETY: only prctl runs between fork and exec, which is async-signal-safe.
+            unsafe {
+                cmd.pre_exec(|| {
+                    libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL);
+                    Ok(())
+                });
+            }
             Some(bridge)
         } else {
             None

@@ -111,7 +111,8 @@ impl ScriptedCli {
         let _ = std::fs::remove_file(self.dir().join(format!("{program}.app-server.starts")));
         let _ = std::fs::remove_file(self.dir().join(claude_log_file(program)));
         let _ = std::fs::remove_file(self.dir().join(claude_turns_file(program)));
-        for file in [crate::opencode_live::http_log_file(program), crate::opencode_live::password_file(program), format!("{program}.sessions.json"), format!("{program}.serve-turns")] {
+        // the sessions stay: they are the server's database, which a new script does not clear
+        for file in [crate::opencode_live::http_log_file(program), crate::opencode_live::password_file(program), format!("{program}.serve-turns")] {
             let _ = std::fs::remove_file(self.dir().join(file));
         }
         let path = self.dir().join(script_file(program));
