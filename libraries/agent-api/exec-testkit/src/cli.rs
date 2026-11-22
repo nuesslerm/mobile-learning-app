@@ -1,7 +1,7 @@
 //! The scripted CLI as a test uses it: one program installed under the names `claude`, `codex` and `opencode` in a directory of its own, a
 //! script for each, and the log of how each was started. The directory goes first on the `PATH` of the process under test, which starts
 //! the program it would start for the real CLI.
-use crate::script::{app_server_log_file, log_file, script_file, Invocation, Received, Script, PROGRAMS};
+use crate::script::{app_server_log_file, claude_log_file, claude_turns_file, log_file, script_file, Invocation, Received, Script, PROGRAMS};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -63,15 +63,22 @@ fn binary() -> &'static Path {
 }
 
 impl ScriptedCli {
-    /// A directory of its own with the program under each name. A hard link, so the program knows its directory from where it was started; a
-    /// copy where the directories are on different file systems.
+    /// A directory of its own with the program under each name. A hard link, so the program knows its directory from where it was started: in the
+    /// temporary directory, or beside the binary where that is on another file system. A copy is the last resort, and a copy another test thread's
+    /// fork still holds open for writing cannot be executed (`ETXTBSY`).
     pub fn install() -> ScriptedCli {
+        let linked = |dir: tempfile::TempDir| PROGRAMS.iter().all(|program| std::fs::hard_link(binary(), dir.path().join(program)).is_ok()).then_some(dir);
+        let temporary = tempfile::Builder::new().prefix("scripted-cli-").tempdir().expect("a directory for the scripted CLIs");
+        if let Some(dir) = linked(temporary) {
+            return ScriptedCli { dir };
+        }
+        if let Some(beside) = binary().parent().and_then(|at| tempfile::Builder::new().prefix("scripted-cli-").tempdir_in(at).ok()).and_then(linked) {
+            return ScriptedCli { dir: beside };
+        }
         let dir = tempfile::Builder::new().prefix("scripted-cli-").tempdir().expect("a directory for the scripted CLIs");
         for program in PROGRAMS {
             let to = dir.path().join(program);
-            if std::fs::hard_link(binary(), &to).is_err() {
-                std::fs::copy(binary(), &to).unwrap_or_else(|e| panic!("{}: {e}", to.display()));
-            }
+            std::fs::copy(binary(), &to).unwrap_or_else(|e| panic!("{}: {e}", to.display()));
         }
         ScriptedCli { dir }
     }
@@ -93,6 +100,8 @@ impl ScriptedCli {
         let _ = std::fs::remove_file(self.dir().join(log_file(program)));
         let _ = std::fs::remove_file(self.dir().join(app_server_log_file(program)));
         let _ = std::fs::remove_file(self.dir().join(format!("{program}.app-server.starts")));
+        let _ = std::fs::remove_file(self.dir().join(claude_log_file(program)));
+        let _ = std::fs::remove_file(self.dir().join(claude_turns_file(program)));
         let path = self.dir().join(script_file(program));
         std::fs::write(&path, serde_json::to_string_pretty(script).expect("a script is JSON")).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     }
@@ -103,6 +112,18 @@ impl ScriptedCli {
         let path = self.dir().join(app_server_log_file(program));
         let Ok(text) = std::fs::read_to_string(&path) else { return Vec::new() };
         text.lines().map(|line| serde_json::from_str(line).unwrap_or_else(|e| panic!("{}: {line}: {e}", path.display()))).collect()
+    }
+
+    /// Every message the live scripted `claude` was sent since its script was set, oldest first, with the start it was sent to and that process's id.
+    pub fn claude_log(&self, program: &str) -> Vec<Received> {
+        let path = self.dir().join(claude_log_file(program));
+        let Ok(text) = std::fs::read_to_string(&path) else { return Vec::new() };
+        text.lines().map(|line| serde_json::from_str(line).unwrap_or_else(|e| panic!("{}: {line}: {e}", path.display()))).collect()
+    }
+
+    /// The text of every message of the person the live scripted `claude` was sent since its script was set, oldest first: what its turns were asked.
+    pub fn claude_prompts(&self, program: &str) -> Vec<String> {
+        self.claude_log(program).into_iter().filter(|r| r.message["type"] == "user").map(|r| r.message["message"]["content"][0]["text"].as_str().unwrap_or_default().to_string()).collect()
     }
 
     /// Every start of `program` since its script was set, oldest first.

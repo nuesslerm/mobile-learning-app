@@ -298,6 +298,16 @@ pub fn app_server_log_file(program: &str) -> String {
     format!("{program}.app-server.jsonl")
 }
 
+/// The file in the program's directory that holds one line per message a live scripted `claude` was sent (its handshake and mode changes too), and the one
+/// that counts the messages of the person it has played a turn for, across its starts.
+pub fn claude_log_file(program: &str) -> String {
+    format!("{program}.messages.jsonl")
+}
+
+pub fn claude_turns_file(program: &str) -> String {
+    format!("{program}.messages.turns")
+}
+
 /// One message the scripted app-server was sent: which start of it (from 1), its process id, and the message.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Received {

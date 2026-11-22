@@ -25,6 +25,7 @@
 //!   that went through it; `trace` turns windows on it into the method-hit trace of a chain run and the run record `wf test publish` takes.
 pub mod app_server;
 pub mod cassette;
+pub mod claude;
 pub mod cli;
 pub mod devserver;
 pub mod executor;

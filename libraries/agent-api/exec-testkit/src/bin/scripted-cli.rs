@@ -2,13 +2,15 @@
 //! `<name>.script.json` (what to do, `exec_testkit::script`) and `<name>.invocations.jsonl` (the log it appends to). It never reads its
 //! arguments for anything but the MCP server's address and the log: the script decides what it prints and how it ends.
 use exec_testkit::app_server::{Output, Player};
-use exec_testkit::script::{app_server_log_file, log_file, script_file, Invocation, Received, Script, Step, Turn};
+use exec_testkit::claude;
+use exec_testkit::script::{app_server_log_file, claude_log_file, claude_turns_file, log_file, script_file, Invocation, Received, Script, Step, Turn};
 use serde_json::{json, Value};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::sync::mpsc::{Receiver, TryRecvError};
+use std::time::{Duration, Instant};
 
 fn fail(code: i32, message: &str) -> ! {
     eprintln!("scripted-cli: {message}");
@@ -284,6 +286,234 @@ fn serve_unscripted_app_server() -> ! {
     std::process::exit(0)
 }
 
+
+/// What a message of the client's does to the turn that is playing.
+enum Heard {
+    Steer(Value),
+    Interrupt,
+    Answer(Value),
+    Quiet,
+}
+
+/// Claude Code over stream-json, kept up between turns: each message of the person plays the next turn of the script (the unscripted process plays an
+/// empty successful one), a `priority` `now` message aborts the turn that plays and plays the next, and control requests are answered as the CLI does.
+struct Live<'a> {
+    script: &'a Script,
+    dir: &'a Path,
+    program: &'a str,
+    args: &'a [String],
+    session: String,
+    start: usize,
+    input: Receiver<Option<String>>,
+    queued: VecDeque<Value>,
+    answers: VecDeque<Value>,
+}
+
+impl Live<'_> {
+    fn log(&self, message: &Value) {
+        let received = Received { start: self.start, pid: std::process::id(), message: message.clone() };
+        if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(self.dir.join(claude_log_file(self.program))) {
+            let _ = writeln!(file, "{}", serde_json::to_string(&received).unwrap_or_default());
+        }
+    }
+
+    /// The turns played so far by every start, so that a restarted process plays the script's next turn; the starts that were no live process (a login) played
+    /// the first turns of the script, and are not counted twice.
+    fn next_turn(&self) -> Turn {
+        let path = self.dir.join(claude_turns_file(self.program));
+        let played = std::fs::read_to_string(&path).map_or(0, |t| t.lines().count());
+        let elsewhere = std::fs::read_to_string(self.dir.join(log_file(self.program))).map_or(0, |t| t.lines().filter_map(|l| serde_json::from_str::<Invocation>(l).ok()).filter(|i| !claude::is_live(&i.argv)).count());
+        if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(&path) {
+            let _ = writeln!(file, "{}", std::process::id());
+        }
+        self.script.turn_for(elsewhere + played)
+    }
+
+    fn take(&mut self, line: Option<String>) -> Heard {
+        let Some(line) = line else { std::process::exit(0) };
+        let Ok(message) = serde_json::from_str::<Value>(&line) else { return Heard::Quiet };
+        self.log(&message);
+        let id = message["request_id"].clone();
+        match (message["type"].as_str(), message["request"]["subtype"].as_str()) {
+            (Some("user"), _) if message["priority"] == "now" => Heard::Steer(message),
+            (Some("user"), _) => {
+                self.queued.push_back(message);
+                Heard::Quiet
+            }
+            (Some("control_request"), Some("interrupt")) => {
+                let cancelled: Vec<Value> = if message["request"]["cancel_queued"] == true { self.queued.drain(..).filter_map(|m| m.get("uuid").cloned()).collect() } else { Vec::new() };
+                print(&claude::control_success(&id, json!({"still_queued": [], "cancelled": cancelled})));
+                Heard::Interrupt
+            }
+            (Some("control_request"), Some("initialize")) => {
+                print(&claude::control_success(&id, json!({"commands": [], "models": [], "pid": std::process::id(), "current_permission_mode": "default", "session_state": "idle"})));
+                Heard::Quiet
+            }
+            (Some("control_request"), Some("set_permission_mode")) => {
+                print(&claude::control_success(&id, json!({"mode": message["request"]["mode"]})));
+                Heard::Quiet
+            }
+            (Some("control_request"), Some("set_model")) => {
+                print(&claude::control_success(&id, json!({"model": message["request"]["model"]})));
+                Heard::Quiet
+            }
+            (Some("control_request"), other) => {
+                print(&json!({"type": "control_response", "response": {"subtype": "error", "request_id": id, "error": format!("Unsupported control request subtype: {}", other.unwrap_or_default()), "error_code": "unsupported_request"}}).to_string());
+                Heard::Quiet
+            }
+            (Some("control_response"), _) => Heard::Answer(message),
+            _ => Heard::Quiet,
+        }
+    }
+
+    fn poll(&mut self) -> Heard {
+        loop {
+            match self.input.try_recv() {
+                Ok(line) => match self.take(line) {
+                    Heard::Quiet => continue,
+                    heard => return heard,
+                },
+                Err(TryRecvError::Empty) => return Heard::Quiet,
+                Err(TryRecvError::Disconnected) => std::process::exit(0),
+            }
+        }
+    }
+
+    /// Plays the steps of `turn` for the messages it consumes; what interrupted it, if anything did.
+    fn play(&mut self, turn: &Turn, messages: &[String]) -> (Option<Heard>, bool) {
+        let mut resulted = false;
+        let pasted = String::new();
+        for step in &turn.steps {
+            match self.poll() {
+                Heard::Quiet => {}
+                Heard::Answer(answer) => self.answers.push_back(answer),
+                stop => return (Some(stop), resulted),
+            }
+            match step {
+                Step::Line { text } => {
+                    let named = claude::name_messages(text, messages);
+                    resulted |= named.is_some();
+                    print(&named.unwrap_or_else(|| text.clone()));
+                }
+                Step::Sleep { ms } => {
+                    let until = Instant::now() + Duration::from_millis(*ms);
+                    while Instant::now() < until {
+                        match self.poll() {
+                            Heard::Quiet => {}
+                            Heard::Answer(answer) => self.answers.push_back(answer),
+                            stop => return (Some(stop), resulted),
+                        }
+                        std::thread::sleep(Duration::from_millis(5));
+                    }
+                }
+                Step::McpCall { id, tool, args: input } => call_tool(self.program, self.args, id, tool, input),
+                Step::ReadLine => loop {
+                    if self.answers.pop_front().is_some() {
+                        break;
+                    }
+                    match self.poll() {
+                        Heard::Quiet => std::thread::sleep(Duration::from_millis(5)),
+                        Heard::Answer(answer) => {
+                            self.answers.push_back(answer);
+                        }
+                        stop => return (Some(stop), resulted),
+                    }
+                },
+                Step::Credential { env, file, content } => write_credential(env, file, content, &pasted),
+            }
+        }
+        (None, resulted)
+    }
+
+    /// One message of the person, and the steers that follow it, until the turn has its result.
+    fn turn(&mut self, first: Value) {
+        let mut message = first;
+        loop {
+            let uuid = message["uuid"].as_str().unwrap_or_default().to_string();
+            let messages = vec![uuid];
+            print(&claude::replay(&message));
+            print(&claude::init(&self.session));
+            let turn = self.next_turn();
+            let (stopped, resulted) = self.play(&turn, &messages);
+            match stopped {
+                Some(Heard::Steer(next)) => {
+                    print(&claude::result(&messages, true));
+                    message = next;
+                }
+                Some(Heard::Interrupt) => {
+                    print(&claude::result(&messages, true));
+                    return;
+                }
+                _ => {
+                    if !turn.stderr.is_empty() {
+                        eprintln!("{}", turn.stderr);
+                    }
+                    // A process that dies mid-turn says no result
+                    if turn.exit_code != 0 {
+                        std::process::exit(turn.exit_code);
+                    }
+                    if turn.hang && !resulted {
+                        match self.wait_to_be_stopped() {
+                            Heard::Steer(next) => {
+                                print(&claude::result(&messages, true));
+                                message = next;
+                                continue;
+                            }
+                            _ => {
+                                print(&claude::result(&messages, true));
+                                return;
+                            }
+                        }
+                    }
+                    if !resulted {
+                        print(&claude::result(&messages, false));
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    /// A turn that never ends by itself goes on until the person steers or interrupts it, or the process's input ends.
+    fn wait_to_be_stopped(&mut self) -> Heard {
+        loop {
+            match self.poll() {
+                Heard::Quiet => std::thread::sleep(Duration::from_millis(5)),
+                Heard::Answer(answer) => self.answers.push_back(answer),
+                stop => return stop,
+            }
+        }
+    }
+
+    fn run(&mut self) -> ! {
+        loop {
+            if let Some(next) = self.queued.pop_front() {
+                self.turn(next);
+                continue;
+            }
+            let line = self.input.recv().unwrap_or(None);
+            if let Heard::Steer(message) = self.take(line) {
+                self.queued.push_back(message);
+            }
+        }
+    }
+}
+
+/// Claude Code's stream-json process: the handshake, the person's messages and the control requests are answered from the script, and the process ends with its input.
+fn serve_claude(script: &Script, dir: &Path, program: &str, args: &[String], start: usize) -> ! {
+    let (tx, input) = std::sync::mpsc::channel::<Option<String>>();
+    std::thread::spawn(move || {
+        for line in std::io::stdin().lock().lines().map_while(Result::ok) {
+            if tx.send(Some(line)).is_err() {
+                return;
+            }
+        }
+        let _ = tx.send(None);
+    });
+    let session = claude::flag(args, "--resume").or_else(|| claude::flag(args, "--session-id")).unwrap_or("scripted-session").to_string();
+    Live { script, dir, program, args, session, start, input, queued: VecDeque::new(), answers: VecDeque::new() }.run()
+}
+
 fn main() {
     let exe = std::env::current_exe().unwrap_or_else(|e| fail(1, &format!("no path of its own: {e}")));
     let (dir, program) = (exe.parent().unwrap_or(Path::new(".")).to_path_buf(), exe.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_string());
@@ -326,6 +556,9 @@ fn main() {
     drop(file);
     if args.first().map(String::as_str) == Some("app-server") && script.turns.is_empty() {
         serve_unscripted_app_server();
+    }
+    if program == "claude" && claude::is_live(&args) {
+        serve_claude(&script, &dir, &program, &args, starts + 1);
     }
     play(&turn, &program, &args)
 }

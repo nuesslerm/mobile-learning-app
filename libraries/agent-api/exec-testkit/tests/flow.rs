@@ -2,6 +2,8 @@
 //! calls a tool over HTTP, exits or hangs), the temporary repository (real git), and the recordings with the index that vouches for them.
 #[path = "flow/app_server.rs"]
 mod app_server;
+#[path = "flow/claude_live.rs"]
+mod claude_live;
 #[path = "flow/cli.rs"]
 mod cli;
 #[path = "flow/hosted.rs"]
