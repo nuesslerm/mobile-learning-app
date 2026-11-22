@@ -6,8 +6,6 @@ use serde_json::Value;
 use wf_bucket::ci_db::{self, RunProfile, Working};
 
 const RUNS: usize = 20;
-/// Strictly fewer charts than six, so the comment stays light.
-const MAX_CHARTS: usize = 5;
 /// Fewer past runs than this make a line, not a trend.
 const MIN_CHART: usize = 3;
 /// Within this share of the median a run is neither slower nor faster.
@@ -107,17 +105,14 @@ fn longest(profile: &RunProfile, jobs: &[&Value]) -> Option<String> {
     Some(format!("**Longest:** critical path job `{}` {}{step}.\n", cell(&text(job, "name")), span(secs)))
 }
 
-fn charts(all: &[Past], first: Option<&str>) -> String {
-    let mut order: Vec<&str> = first.into_iter().collect();
-    order.extend(WORKFLOWS.iter().copied().filter(|w| Some(*w) != first));
-    let mut out = String::new();
-    for key in order.into_iter().filter(|k| WORKFLOWS.contains(k)).filter(|k| last_of(all, k).len() >= MIN_CHART).take(MAX_CHARTS) {
-        let runs = last_of(all, key);
-        let labels: Vec<String> = (1..=runs.len()).map(|i| i.to_string()).collect();
-        let minutes: Vec<f64> = runs.iter().map(|p| p.wall / 60.0).collect();
-        out.push_str(&format!("\n**{key}**, last {} successful runs, oldest first\n{}", runs.len(), line_chart(&format!("{key} wall time"), "minutes", &labels, &minutes)));
+fn chart(all: &[Past], key: &str) -> String {
+    let runs = last_of(all, key);
+    if runs.len() < MIN_CHART {
+        return String::new();
     }
-    out
+    let labels: Vec<String> = (1..=runs.len()).map(|i| i.to_string()).collect();
+    let minutes: Vec<f64> = runs.iter().map(|p| p.wall / 60.0).collect();
+    format!("\n**{key}**, last {} successful runs, oldest first\n{}", runs.len(), line_chart(&format!("{key} wall time"), "minutes", &labels, &minutes))
 }
 
 /// Empty for a run whose profile is not known yet, a workflow that is not a hosted one, an unreadable database and a database with no history.
@@ -126,7 +121,7 @@ pub(crate) fn section(sealed: Option<&Sealed>, profile: Option<&RunProfile>, job
     let Some(all) = sealed.map(|s| &s.past) else { return String::new() };
     let key = key_of(&profile.workflow);
     let past = key.map(|k| last_of(all, k)).unwrap_or_default();
-    let chart = charts(all, key);
+    let chart = key.map(|k| chart(all, k)).unwrap_or_default();
     if chart.is_empty() && past.is_empty() {
         return String::new();
     }

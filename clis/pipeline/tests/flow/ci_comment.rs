@@ -2247,12 +2247,10 @@ fn the_comment_charts_the_last_twenty_successful_runs_of_a_workflow_and_sets_thi
     assert!(body.contains("### Trend") && body.contains("```mermaid\nxychart-beta"), "{body}");
     assert!(body.contains(&format!("line [{}]", expected.join(", "))), "{body}");
     assert!(!body.contains("166.") && !body.contains("148.") && !body.contains("50.0"), "{body}");
-    // And a workflow with one or two runs has no chart, one with three has, and there are fewer than six charts
+    // And only this workflow is charted: the other workflows' histories (mobile_core has three runs, enough for a chart) are not in its comment
     assert_eq!(body.matches("xychart-beta\n    title \"backend_core wall time\"").count(), 1, "{body}");
-    assert_eq!(body.matches("title \"mobile_core wall time\"").count(), 1, "{body}");
-    assert_eq!(body.matches("title \"cli_core wall time\"").count(), 0, "{body}");
-    assert_eq!(body.matches("title \"cli_build wall time\"").count(), 0, "{body}");
-    assert!(body.matches("xychart-beta").count() < 6 && body.len() < 60_000);
+    assert_eq!(body.matches(" wall time\"").count(), 1, "{body}");
+    assert_eq!(body.matches("title \"mobile_core wall time\"").count(), 0, "{body}");
     // And this run (11m 40s wall and critical path, no wait) stands against the median of those twenty (6m 45s wall, 10 s wait) with arrows
     assert!(body.contains("| backend_core | 11m 40s ↑ (median 6m 45s) | 11m 40s ↑ (median 6m 45s) | 0s ↓ (median 10s) |"), "{body}");
     // And the longest line names the critical-path job and its slowest step
