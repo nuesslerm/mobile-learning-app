@@ -9,9 +9,25 @@ import { createJavaScriptRunner } from '../javascriptRunner';
 import { createNodePageHost } from './support/nodePageHost';
 import { watched } from './support/judgeRun';
 import { spawnNodeWorker } from './support/nodeWorkerSpawn';
+import { loadReferenceCorpus, referenceFor } from './support/referenceCorpus';
 import { signal } from './support/signal';
 
 vi.setConfig({ testTimeout: 60_000 });
+
+/** Arrays in both forms, two pointers, a stack, binary search, linked lists, a cycle, trees, a graph, a design class, a tree round trip and an in-place matrix. */
+const CHAIN = [
+  'two-sum',
+  'valid-palindrome',
+  'valid-parentheses',
+  'search-in-rotated-sorted-array',
+  'reverse-linked-list',
+  'linked-list-cycle',
+  'invert-binary-tree',
+  'clone-graph',
+  'implement-trie-prefix-tree',
+  'serialize-and-deserialize-binary-tree',
+  'rotate-image',
+];
 
 const named = JSON.parse(readFileSync(join(__dirname, 'fixtures/named.json'), 'utf8')) as Record<string, string>;
 const source = (key: string): string => named[key] ?? '';
@@ -53,5 +69,15 @@ describe('the JavaScript runner on real workers', () => {
     expect(await hung).toMatchObject({ status_msg: 'Wrong Answer', runtime_error: 'TimeoutError: Code execution timed out (5s limit)' });
     expect(await quick.run(run(source('TWO_SUM_FUNCTION')))).toMatchObject({ status_msg: 'Accepted' });
     quick.dispose();
+  });
+
+  it('Given the eleven references written for the catalog’s starters, When each runs through the runner with the problem’s own value types and harness, Then every one is Accepted over all its bundled cases', async () => {
+    const corpus = loadReferenceCorpus();
+    for (const id of CHAIN) {
+      const problem = ProblemCatalog.getByIdOrThrow(id);
+      const response = await runner.run(runParamsFor(problem, 'javascript', referenceFor(id, corpus)));
+      expect(response, id).toMatchObject({ source: 'offline', status_msg: 'Accepted', run_success: true, total_correct: problem.testCases?.length });
+      expect(response.total_testcases, id).toBeGreaterThan(0);
+    }
   });
 });
