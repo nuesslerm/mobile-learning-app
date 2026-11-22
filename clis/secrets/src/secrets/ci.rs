@@ -86,6 +86,12 @@ pub fn refusal(entry: &Entry) -> Option<String> {
 
 static MASK_TO_STDOUT: AtomicBool = AtomicBool::new(false);
 static MASKED: Mutex<Option<HashSet<String>>> = Mutex::new(None);
+static ANNOUNCE_OFF: AtomicBool = AtomicBool::new(false);
+
+/// A caller whose stdout and stderr land in files it scans for values turns the announcement off: the line would put the value in the file.
+pub fn announce_off(off: bool) {
+    ANNOUNCE_OFF.store(off, Ordering::Relaxed);
+}
 
 /// `sync-env` writes a file and prints no value, so it announces masks on stdout; every other verb (`get` and `env` print values,
 /// `verify` prints JSON) and every library caller whose stdout another program parses announces on stderr, which the runner reads for
@@ -96,7 +102,7 @@ pub fn mask_on_stdout(on: bool) {
 
 /// `::add-mask::` for each line of `value`, once per distinct line, flushed before the caller can use the value.
 pub fn announce(value: &str) {
-    if !in_actions() {
+    if !in_actions() || ANNOUNCE_OFF.load(Ordering::Relaxed) {
         return;
     }
     let mut seen = MASKED.lock().unwrap_or_else(|e| e.into_inner());

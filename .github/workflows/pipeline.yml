@@ -1064,16 +1064,29 @@ jobs:
           wf mimic exec --clis real:codex-ci --skip-when-empty --scan "$RUNNER_TEMP/codex-proof" -- cargo test --locked -p remote-chat-agent-host --test real_codex_session --manifest-path Cargo.toml -- --ignored --nocapture --test-threads=1 > "$RUNNER_TEMP/codex-proof/exec.json" 2> "$RUNNER_TEMP/codex-proof/exec.log"
           code=$?
           set -e
-          tail -c 6000 "$RUNNER_TEMP/codex-proof/exec.log"
-          cat "$RUNNER_TEMP/codex-proof/exec.json"
+          proof="$RUNNER_TEMP/codex-proof"
+          held=$(jq -r '(.findings // []) | map("- " + .) | join("\n")' "$proof/exec.json" 2>/dev/null || true)
+          if [ -n "$held" ]; then
+            # the guard tripped: nothing the run wrote (the log, the result) is printed or uploaded, only the findings, which name a file and a key and never a value
+            find "$proof" -type f ! -name exec.json -delete
+          else
+            tail -c 6000 "$proof/exec.log"
+          fi
+          cat "$proof/exec.json"
           {
             echo "### Codex session proof"
             echo
-            if jq -e '.ran == false' "$RUNNER_TEMP/codex-proof/exec.json" > /dev/null 2>&1; then jq -r '.skipped' "$RUNNER_TEMP/codex-proof/exec.json"; else
-              echo "exit $code; login written back: $(jq -c '.login_written_back' "$RUNNER_TEMP/codex-proof/exec.json" 2>/dev/null || echo unknown)"
+            if [ -n "$held" ]; then
+              echo "exit $code. The leak guard held the output back: it found a credential of the run's login where it must not be, so the log and the result were deleted and not uploaded. Each finding names the file and the secret key:"
+              echo
+              echo "$held"
+              echo
+              echo "Find what wrote the value, fix that writer, then run again."
+            elif jq -e '.ran == false' "$proof/exec.json" > /dev/null 2>&1; then jq -r '.skipped' "$proof/exec.json"; else
+              echo "exit $code; login written back: $(jq -c '.login_written_back' "$proof/exec.json" 2>/dev/null || echo unknown)"
               echo
               echo '```'
-              tail -c 2500 "$RUNNER_TEMP/codex-proof/exec.log"
+              tail -c 2500 "$proof/exec.log"
               echo '```'
             fi
           } >> "$GITHUB_STEP_SUMMARY"

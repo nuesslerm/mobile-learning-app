@@ -333,15 +333,31 @@ impl Vault {
 
     /// `wf mimic exec --clis real:codex-ci` for `script`, with this vault and the CI deploy credential in the verb's environment alone.
     fn exec(&self, extra: &[&str], script: &str) -> Run {
+        self.launch(extra, script, None)
+    }
+
+    /// The same as a GitHub Actions step runs it: `GITHUB_ACTIONS=true` and the verb's stderr redirected into `log`.
+    fn exec_on_a_runner(&self, extra: &[&str], script: &str, log: &Path) -> Run {
+        self.launch(extra, script, Some(log))
+    }
+
+    fn launch(&self, extra: &[&str], script: &str, runner_log: Option<&Path>) -> Run {
         let bins = self.dir.path().join("cli");
         std::fs::create_dir_all(&bins).unwrap();
         let (bins_s, d) = (bins.display().to_string(), self.dir.path().display().to_string());
         let path = format!("{d}/bin:{}", std::env::var("PATH").unwrap_or_default());
-        let env = [("PATH", Path::new(&path)), ("SECRETS_BACKEND", Path::new("bitwarden")), ("BWS_CI_DEPLOY_ACCESS_TOKEN", Path::new("ci-token")), ("STUB_DIR", Path::new(&d)), ("XDG_STATE_HOME", &self.dir.path().join("state"))];
+        let state = self.dir.path().join("state");
+        let mut env = vec![("PATH", Path::new(&path)), ("SECRETS_BACKEND", Path::new("bitwarden")), ("BWS_CI_DEPLOY_ACCESS_TOKEN", Path::new("ci-token")), ("STUB_DIR", Path::new(&d)), ("XDG_STATE_HOME", state.as_path())];
         let mut args = vec!["exec", "--clis", "real:codex-ci", "--cli-dir", &bins_s];
         args.extend_from_slice(extra);
         args.extend(["--", "sh", "-c", script]);
-        mimic(&args, &env)
+        match runner_log {
+            Some(log) => {
+                env.push(("GITHUB_ACTIONS", Path::new("true")));
+                mimic_logging_stderr(&args, &env, log)
+            }
+            None => mimic(&args, &env),
+        }
     }
 
     fn calls(&self) -> Vec<String> {
@@ -450,4 +466,47 @@ fn given_no_value_for_the_second_login_when_the_run_is_launched_then_it_is_skipp
     let failed = vault.exec(&[], &touch);
     assert_eq!(failed.code, 2, "{}", failed.json);
     assert!(failed.json["error"].as_str().unwrap().contains(CI_KEY) && !marker.exists(), "{}", failed.json);
+}
+
+/// What the real Codex proof prints: cargo's lines and the test's result, with no secret in them.
+const PROOF_OUTPUT: &str = "echo '   Compiling remote-chat-agent-host v0.1.0' >&2; echo 'running 1 test' >&2; echo 'test result: ok. 1 passed; 0 failed' >&2";
+
+#[test]
+fn given_a_step_on_a_runner_when_a_proof_with_the_normal_output_ends_then_its_log_beside_the_scanned_files_holds_no_value_and_the_run_passes() {
+    // Given the vault's login, a scan directory that holds the log the step redirects the verb's stderr into, and the verb running as on GitHub Actions
+    let vault = Vault::holding(Some(&ci_login(CI_REFRESH, "acct-1")));
+    let proof = vault.dir.path().join("codex-proof");
+    std::fs::create_dir_all(&proof).unwrap();
+    let log = proof.join("exec.log");
+    let scan = proof.display().to_string();
+    // When the proof runs and prints what the real test prints
+    let run = vault.exec_on_a_runner(&["--scan", &scan], PROOF_OUTPUT, &log);
+    // Then the run passed with no finding: the verb did not write the login into the log itself
+    assert_eq!((run.code, run.json["ok"].clone(), run.json["findings"].clone(), run.json["scanned"].clone()), (0, json!(true), json!([]), json!(1)), "{}\n{}", run.json, run.stderr);
+    // And the log holds the proof's lines and neither the login, its tokens, nor a mask announcement of them
+    let text = std::fs::read_to_string(&log).unwrap();
+    assert!(text.contains("test result: ok") && !text.contains("::add-mask::"), "{text}");
+    let login_b64 = ci_login(CI_REFRESH, "acct-1");
+    assert!(!text.contains(&login_b64) && !text.contains(CI_REFRESH) && !text.contains("ci-access-token-value-0012"), "{text}");
+}
+
+#[test]
+fn given_a_step_on_a_runner_when_a_proof_prints_or_writes_the_login_then_the_run_is_held_back_naming_the_finding_and_the_log_holds_no_value() {
+    // Given the vault's login, the scan directory with the step's log, and the verb running as on GitHub Actions
+    let vault = Vault::holding(Some(&ci_login(CI_REFRESH, "acct-1")));
+    let proof = vault.dir.path().join("codex-proof");
+    std::fs::create_dir_all(&proof).unwrap();
+    let log = proof.join("exec.log");
+    let scan = proof.display().to_string();
+    // When the proof prints a refresh token, and (second run) writes the login into a file of the scanned directory
+    let printed = vault.exec_on_a_runner(&["--scan", &scan], &format!("echo 'refreshed {CI_REFRESH}' >&2"), &log);
+    let planted = vault.exec_on_a_runner(&["--scan", &scan], &format!("echo '{CI_REFRESH}' > \"{scan}/result.json\""), &log);
+    // Then each is held back with exit 1, the first naming the output, the second the file, and both the key
+    assert_eq!((printed.code, printed.json["ok"].clone()), (1, json!(false)), "{}", printed.json);
+    assert_eq!(printed.json["findings"], json!([format!("the command's own output holds the value of {CI_KEY}")]));
+    assert_eq!((planted.code, planted.json["ok"].clone()), (1, json!(false)), "{}", planted.json);
+    assert_eq!(planted.json["findings"], json!([format!("result.json holds the value of {CI_KEY}")]));
+    // And what the verb let into the log is redacted: the token is not there
+    assert!(!std::fs::read_to_string(&log).unwrap().contains(CI_REFRESH));
+    assert!(!printed.json.to_string().contains(CI_REFRESH) && !planted.json.to_string().contains(CI_REFRESH));
 }

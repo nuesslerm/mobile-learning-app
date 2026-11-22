@@ -21,6 +21,8 @@ pub fn exec_verb(p: &Parsed) -> Done {
     if !clis.is_empty() && !bin.as_deref().is_some_and(Path::is_dir) {
         return Err(fail("real CLIs need the directory of their binaries: --cli-dir or MIMIC_REAL_CLI_DIR names none that exists", "wf mimic capture record --provision <set> installs them, or pass --cli-dir <dir>"));
     }
+    // stderr is the step's log, which this verb scans: a `::add-mask::<value>` line there would be the leak (the child's output is redacted below instead)
+    secrets::announce_masks_off();
     let home = private_home().map_err(|e| fail(e, "check TMPDIR is writable"))?;
     let resolution = if p.flag("skip-when-empty") { Resolved::load_unless_empty(&clis, &home) } else { Resolved::load(&clis, &home).map(Resolution::Ready) };
     let resolution = resolution.inspect_err(|_| {

@@ -16,6 +16,11 @@ mod vault;
 mod verify;
 mod writers;
 
+/// See `ci::announce_off`.
+pub fn announce_masks_off() {
+    ci::announce_off(true);
+}
+
 pub use writers::{rotate_login, update_secret_value, Rotation};
 
 use wf_kit::args::{parse, parse_none, Parsed};
