@@ -62,25 +62,33 @@ fn binary() -> &'static Path {
     BINARY.get_or_init(|| resolve(std::env::var_os(ENV_CLI), || build("scripted-cli")))
 }
 
+/// A directory of its own with `binary` under each of `programs`. A hard link, so the program knows its directory from where it was started: in the
+/// temporary directory, or beside the binary where that is on another file system. A copy is the last resort, and a copy another test thread's fork
+/// still holds open for writing cannot be executed (`ETXTBSY`).
+pub(crate) fn program_dir(prefix: &str, binary: &Path, programs: &[&str]) -> tempfile::TempDir {
+    let linked = |dir: tempfile::TempDir| programs.iter().all(|program| std::fs::hard_link(binary, dir.path().join(program)).is_ok()).then_some(dir);
+    let fresh = |at: Option<&Path>| match at {
+        Some(at) => tempfile::Builder::new().prefix(prefix).tempdir_in(at).ok(),
+        None => Some(tempfile::Builder::new().prefix(prefix).tempdir().expect("a directory for the scripted programs")),
+    };
+    if let Some(dir) = fresh(None).and_then(linked) {
+        return dir;
+    }
+    if let Some(dir) = fresh(binary.parent()).and_then(linked) {
+        return dir;
+    }
+    let dir = fresh(None).expect("a directory");
+    for program in programs {
+        let to = dir.path().join(program);
+        std::fs::copy(binary, &to).unwrap_or_else(|e| panic!("{}: {e}", to.display()));
+    }
+    dir
+}
+
 impl ScriptedCli {
-    /// A directory of its own with the program under each name. A hard link, so the program knows its directory from where it was started: in the
-    /// temporary directory, or beside the binary where that is on another file system. A copy is the last resort, and a copy another test thread's
-    /// fork still holds open for writing cannot be executed (`ETXTBSY`).
+    /// A directory of its own with the program under each name (`program_dir`).
     pub fn install() -> ScriptedCli {
-        let linked = |dir: tempfile::TempDir| PROGRAMS.iter().all(|program| std::fs::hard_link(binary(), dir.path().join(program)).is_ok()).then_some(dir);
-        let temporary = tempfile::Builder::new().prefix("scripted-cli-").tempdir().expect("a directory for the scripted CLIs");
-        if let Some(dir) = linked(temporary) {
-            return ScriptedCli { dir };
-        }
-        if let Some(beside) = binary().parent().and_then(|at| tempfile::Builder::new().prefix("scripted-cli-").tempdir_in(at).ok()).and_then(linked) {
-            return ScriptedCli { dir: beside };
-        }
-        let dir = tempfile::Builder::new().prefix("scripted-cli-").tempdir().expect("a directory for the scripted CLIs");
-        for program in PROGRAMS {
-            let to = dir.path().join(program);
-            std::fs::copy(binary(), &to).unwrap_or_else(|e| panic!("{}: {e}", to.display()));
-        }
-        ScriptedCli { dir }
+        ScriptedCli { dir: program_dir("scripted-cli-", binary(), &PROGRAMS) }
     }
 
     pub fn dir(&self) -> &Path {

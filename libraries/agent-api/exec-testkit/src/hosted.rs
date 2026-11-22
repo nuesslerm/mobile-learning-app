@@ -99,13 +99,7 @@ pub struct HostedClis {
 impl HostedClis {
     /// A directory of its own with the program under `gh` and `glab` (hard links, so it knows its directory from where it was started).
     pub fn install() -> HostedClis {
-        let dir = tempfile::Builder::new().prefix("fake-hosted-").tempdir().expect("a directory for the fake gh and glab");
-        for program in PROGRAMS {
-            let to = dir.path().join(program);
-            if std::fs::hard_link(binary(), &to).is_err() {
-                std::fs::copy(binary(), &to).unwrap_or_else(|e| panic!("{}: {e}", to.display()));
-            }
-        }
+        let dir = crate::cli::program_dir("fake-hosted-", binary(), &PROGRAMS);
         HostedClis { dir }
     }
 
