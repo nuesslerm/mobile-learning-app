@@ -71,3 +71,12 @@ One entry per night, appended by the nightly audit session (the "Nightly audit c
 - Earlier fixes checked: none listed in the last 7 days.
 - Tracker: t3 pinned 0.1.9, latest 0.1.11 (two releases behind now). Run 44716575119 (2026-11-20 10:07 UTC) failed in "Check the pins" with `no matching package named rca-core found` again: sixth failing run in a row, the `mla` registry is unreachable from the runner (owner item, see 2026-11-19). Nothing landed.
 - Not recorded in inbox issue `#79` (`gh issue` is blocked in this session).
+
+## 2026-11-22
+
+- The tick fired at 04:41 UTC and reached this session at 11:02 UTC (6 h 21 min late); there was no entry for 2026-11-21 night's own verdict (run 44892121839 of 2026-11-21 09:59 UTC was not read).
+- Verdict: run 45010088484 (scheduled 2026-11-22 09:58 UTC, about 1 h old), `ok: false`, 729 findings, 421 hard: 415 `should-have-hit`, 6 `group-overlap`, 26 `cancelled-while-running`, 282 `replayed-nothing`. Much worse than 2026-11-21 (392 findings, 76 hard); two new kinds, `group-overlap` and `cancelled-while-running`. Largest waste: `crate-t3-serve:replay-t3-core-core` (about 550 s each, repeated across runs), a stage not in the earlier top lists. The audit job itself ran 1 h 3 min (earlier nights 13 to 25 min), so many runs landed on `dev` in the window (cancellations and overlaps follow from newer pushes superseding runs).
+- Fixes landed: none. The cause of the `should-have-hit` misses is still not traced (seven nights, one clean); `wf ci audit` cannot run here (no `bws`, no ledger credentials).
+- Earlier fixes checked: none listed in the last 7 days.
+- Tracker: t3 pinned 0.1.9, latest 0.1.11. Run 45009674736 (2026-11-22 09:52 UTC) failed in "Check the pins" with `no matching package named rca-core found`: eighth failing run in a row, the `mla` registry is unreachable from the runner (owner item, see 2026-11-19). Nothing landed.
+- Not recorded in inbox issue `#79` (`gh issue` is blocked in this session).
