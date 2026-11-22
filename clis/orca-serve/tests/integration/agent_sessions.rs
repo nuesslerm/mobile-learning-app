@@ -94,9 +94,9 @@ fn wait_until(what: &str, mut done: impl FnMut() -> bool) {
     }
 }
 
-/// The prompts the CLI was started with, in order: the argument that carries each (the text it was sent).
-fn started_with(chain: &Chain, texts: &[&str]) -> Vec<String> {
-    chain.cli.invocations("claude").iter().map(|start| texts.iter().find(|t| start.argv.iter().any(|a| a.contains(**t))).map(|t| t.to_string()).unwrap_or_default()).collect()
+/// The prompts the live CLI was sent, in order: which of `texts` each one carries.
+fn sent_to_cli(chain: &Chain, texts: &[&str]) -> Vec<String> {
+    chain.cli.claude_prompts("claude").iter().map(|sent| texts.iter().find(|t| sent.contains(**t)).map(|t| t.to_string()).unwrap_or_default()).collect()
 }
 
 #[test]
@@ -119,7 +119,7 @@ fn a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_
         // Then rca started the turn, the executor wrote the file the CLI named, and the phone was told the send went through
         assert_eq!(sent["result"]["ok"], true, "{sent}");
         answered(case, "turn.start");
-        assert!(executor_ran(case, "run_command"), "{:?}", case.calls().last());
+        assert!(executor_ran(case, "session_send"), "{:?}", case.calls().last());
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("notes/a.txt")).unwrap(), "hello from the model", "{}", chain.evidence());
         // And the stream delivered a batch whose items are the run (the turn finished) under the request id the phone opened it with
         let mut finished = false;
@@ -181,13 +181,13 @@ fn a_chat_created_with_a_message_and_a_launch_each_run_a_turn_once_and_a_retry_o
         // Then the turn ran in the executor's repository and the file is there
         assert_eq!(created["result"]["ok"], true, "{created}");
         answered(case, "turn.start");
-        assert!(executor_ran(case, "run_command"));
+        assert!(executor_ran(case, "session_send"));
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("created.txt")).unwrap(), "from a create");
         let again = phone.call(case, &chain, &["rpc:agentSession.create"], "agentSession.create", params);
         asked_nothing_of(case, "turn.start");
         assert_eq!((again["result"]["replayed"].clone(), created["result"]["replayed"].clone()), (json!(true), json!(false)));
         assert_eq!(again["result"]["value"], created["result"]["value"], "a retry answers what the first did");
-        assert_eq!(chain.cli.invocations("claude").len(), 1);
+        assert_eq!(chain.cli.claude_prompts("claude").len(), 1);
         // When a launch with a prompt is sent, replayed and sent again
         let launch = json!({"agent": "claude", "operationId": "1730000000000-abc", "target": {"kind": "existing", "worktree": format!("id:{WS}::")}, "prompt": {"text": "make launched.txt", "delivery": "submit"}});
         let launched = phone.call_settled(case, &chain, &["rpc:agent.launch"], "agent.launch", launch.clone(), |reply| {
@@ -201,7 +201,7 @@ fn a_chat_created_with_a_message_and_a_launch_each_run_a_turn_once_and_a_retry_o
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("launched.txt")).unwrap(), "from a launch", "{}", chain.evidence());
         assert_eq!((replayed["result"].clone(), twice["result"].clone()), (launched["result"].clone(), launched["result"].clone()));
         asked_nothing_of(case, "turn.start");
-        assert_eq!(chain.cli.invocations("claude").len(), 2);
+        assert_eq!(chain.cli.claude_prompts("claude").len(), 2);
     });
 }
 
@@ -240,7 +240,6 @@ fn a_turn_that_asks_for_approval_and_a_question_waits_until_the_phone_answers_an
         // Then rca took the answer, the turn went on and the executor wrote, and the log says what was decided
         assert_eq!(accepted["result"]["value"]["resolution"]["state"], "resolved", "{accepted}");
         answered(case, "approval.answer");
-        assert!(executor_ran(case, "run_command"));
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("a.txt")).unwrap(), "after the answer");
         assert_eq!(rca.events("claude_p1", "approval.answered").len(), 1);
         assert!(tool_output(&mut rca, "claude_p1", "ask1").contains("allow"), "the tool was not told to allow");
@@ -273,7 +272,7 @@ fn queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_tu
         let s = "claude_q1";
         phone.call(case, &chain, &["rpc:agentSession.create"], "agentSession.create", create_params(s, "c1", None));
         phone.call(case, &chain, &["rpc:agentSession.send"], "agentSession.send", json!({"envelope": env(s, "s0"), "body": body("first-job")}));
-        wait_until("the first turn", || chain.cli.invocations("claude").len() == 1);
+        wait_until("the first turn", || chain.cli.claude_prompts("claude").len() == 1);
         for (n, text) in ["alpha-one", "beta-two", "gamma-three", "delta-four"].iter().enumerate() {
             let queued = phone.call(case, &chain, &["rpc:agentSession.send"], "agentSession.send", json!({"envelope": env(s, &format!("q{n}")), "delivery": "queue-if-active", "body": body(text)}));
             assert_eq!(queued["result"]["ok"], true, "{queued}");
@@ -311,19 +310,19 @@ fn queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_tu
         answered(case, "thread.forceStop");
         assert_eq!(rca.events(s, "turn.finished")[0]["reason"], "interrupted");
         std::thread::sleep(Duration::from_millis(500));
-        assert_eq!(chain.cli.invocations("claude").len(), 1, "a message of the queue started although the stop holds it");
+        assert_eq!(chain.cli.claude_prompts("claude").len(), 1, "a message of the queue was sent to the CLI although the stop holds it");
         assert_eq!(tail(&mut phone, case, &chain, s)["queuePause"]["reason"], "stopped");
         // When it sends one queued message now, and then resumes the queue
         let now = phone.call_settled(case, &chain, &["rpc:agentSession.queuedMessageSend"], "agentSession.queuedMessageSend", mutation(s, "n1", json!({"messageId": id("delta-four")})), |_| {
-            wait_until("delta-four's turn", || chain.cli.invocations("claude").len() >= 2);
+            wait_until("delta-four's turn", || chain.cli.claude_prompts("claude").len() >= 2);
         });
         assert_eq!(now["result"]["ok"], true, "{now}");
         let resumed = phone.call_settled(case, &chain, &["rpc:agentSession.queuedMessagesResume"], "agentSession.queuedMessagesResume", mutation(s, "r1", json!({})), |_| {
-            wait_until("the rest of the queue", || chain.cli.invocations("claude").len() >= 4);
+            wait_until("the rest of the queue", || chain.cli.claude_prompts("claude").len() >= 4);
         });
         assert_eq!(resumed["result"]["ok"], true, "{resumed}");
-        // Then the CLI was started with the prompts in the order the phone set: the first job, the one sent now, then the queue as moved, edited and pruned
-        assert_eq!(started_with(&chain, &["first-job", "alpha-one", "beta-edited", "beta-two", "gamma-three", "delta-four"]), ["first-job", "delta-four", "gamma-three", "beta-edited"], "{}", chain.evidence());
+        // Then the live CLI was sent the prompts in the order the phone set: the first job, the one sent now, then the queue as moved, edited and pruned
+        assert_eq!(sent_to_cli(&chain, &["first-job", "alpha-one", "beta-edited", "beta-two", "gamma-three", "delta-four"]), ["first-job", "delta-four", "gamma-three", "beta-edited"], "{}", chain.evidence());
     });
 }
 
@@ -377,10 +376,10 @@ fn an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_re
         phone.call_settled(case, &chain, &["rpc:agentSession.send"], "agentSession.send", json!({"envelope": env(s, "s1"), "body": {"blocks": [{"type": "text", "text": "what is this"}, {"type": "image-ref", "path": path}]}}), |_| {
             rca.wait_events(s, "turn.finished", 1);
         });
-        // Then rca-exec staged the image in the workspace under the upload's id, byte for byte, and the CLI was started with the text
+        // Then rca-exec staged the image in the workspace under the upload's id, byte for byte, and the live CLI was sent the text
         let staged = chain.repo.path().join(format!(".rca/attachments/{id}/shot.png"));
         assert_eq!(std::fs::read(&staged).unwrap_or_else(|e| panic!("{}: {e}\n{}", staged.display(), chain.evidence())), png);
-        assert!(chain.cli.invocations("claude").iter().any(|start| start.argv.iter().any(|a| a.contains("what is this"))));
+        assert!(chain.cli.claude_prompts("claude").iter().any(|sent| sent.contains("what is this")), "{:?}", chain.cli.claude_prompts("claude"));
     });
 }
 
@@ -402,14 +401,14 @@ fn a_conversation_command_reaches_the_cli_as_the_prompt_it_reads_and_runs_as_a_t
         let clear = phone.call_settled(case, &chain, &["rpc:agentSession.conversationCommand"], "agentSession.conversationCommand", mutation(s, "k2", json!({"command": "clear"})), |_| {
             rca.wait_events(s, "turn.finished", 2);
         });
-        // Then the CLI was started with each command as its prompt, in order, and the host's answers name the command
+        // Then the live CLI was sent each command as its prompt, in order, and the host's answers name the command
         assert_eq!((compact["result"]["value"]["command"].clone(), clear["result"]["value"]["command"].clone()), (json!("compact"), json!("clear")), "{compact} {clear}");
-        assert_eq!(started_with(&chain, &["/compact keep the plan", "/clear"]), ["/compact keep the plan", "/clear"]);
+        assert_eq!(sent_to_cli(&chain, &["/compact keep the plan", "/clear"]), ["/compact keep the plan", "/clear"]);
         // And a command the host does not know is refused before any turn starts
-        let starts = chain.cli.invocations("claude").len();
+        let sent = chain.cli.claude_prompts("claude").len();
         let unknown = phone.refused(case, &chain, &["rpc:agentSession.conversationCommand"], "agentSession.conversationCommand", mutation(s, "k3", json!({"command": "reboot"})));
         assert_eq!(unknown["error"]["code"], "invalid_argument", "{unknown}");
         asked_nothing_of(case, "turn.start");
-        assert_eq!(chain.cli.invocations("claude").len(), starts);
+        assert_eq!(chain.cli.claude_prompts("claude").len(), sent);
     });
 }

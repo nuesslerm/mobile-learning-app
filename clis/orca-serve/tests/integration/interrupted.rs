@@ -61,18 +61,18 @@ fn a_turn_cut_by_a_service_restart_shows_the_stop_row_and_continue_starts_one_mo
         }
         // When the phone continues the cut turn
         let done = phone.call(case, &chain, &["rpc:agentSession.continueInterrupted"], "agentSession.continueInterrupted", json!({"sessionId": SESSION, "turnItemId": turn_item}));
-        // Then rca started a turn, the answer is the accepted one, and the CLI was started a second time with the host's continue wording
+        // Then rca started a turn, the answer is the accepted one, and the live CLI was sent the host's continue wording
         assert_eq!(done["result"], json!({"sessionId": SESSION, "outcome": "pending"}), "{done}\n{}", chain.evidence());
         answered(case, "turn.start");
         chain.direct().wait_events(SESSION, "turn.finished", 2);
-        let starts = chain.cli.invocations("claude");
-        assert_eq!(starts.len(), 2, "{starts:?}");
-        assert!(starts[1].argv.iter().any(|a| a.contains("Orca restarted, so your previous reply was cut off")), "{:?}", starts[1].argv);
+        let prompts = chain.cli.claude_prompts("claude");
+        assert_eq!(prompts.len(), 2, "{prompts:?}");
+        assert!(prompts[1].contains("Orca restarted, so your previous reply was cut off"), "{prompts:?}");
         // When the same Continue arrives again
         let again = phone.call(case, &chain, &["rpc:agentSession.continueInterrupted"], "agentSession.continueInterrupted", json!({"sessionId": SESSION, "turnItemId": turn_item}));
         // Then it is superseded and rca was asked for no turn
         assert_eq!(again["result"], json!({"sessionId": SESSION, "outcome": "superseded"}));
         asked_nothing_of(case, "turn.start");
-        assert_eq!(chain.cli.invocations("claude").len(), 2);
+        assert_eq!(chain.cli.claude_prompts("claude").len(), 2);
     });
 }
