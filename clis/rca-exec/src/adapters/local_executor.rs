@@ -18,6 +18,7 @@ use exec_git::{GitCall, GitDiff, GitOp, Resolution, SetupEvent, SetupResult, Set
 use exec_proc::{ClaudeAnswer, ClaudeRequest, CliDetect, CliFound, CliUpdated, CodexAnswer, CodexRequest, UpdateProgram, LoginCancel, LoginProgram, LoginSend, LoginState, LoginStatus, McpAnswer, McpRequest, ProcSample, RunCommand, RunResult, SessionEnded, SessionOpen, SessionSend};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyOpen, PtyOpened, PtyResize, PtyWrite};
 use crate::adapters::git::{Repo, Watches};
+use crate::adapters::opencode_bridge::Bridge;
 use crate::adapters::hosted::Hosted;
 use crate::hosted::plan::Paths;
 use exec_hosted::{HostedCall, HostedOp};
@@ -263,6 +264,13 @@ impl LocalExecutor {
     }
 }
 
+/// A session's process as `drive` serves it: the name its input is kept under, how it is told the process started, and the bridge of an HTTP server.
+struct Live<'a> {
+    name: &'a str,
+    started: &'a mut dyn FnMut(Value),
+    bridge: Option<Arc<Bridge>>,
+}
+
 enum Chunk {
     Data(Stream, Vec<u8>),
 }
@@ -405,8 +413,16 @@ impl ToolExecutor for LocalExecutor {
         };
         let mut cmd = Command::new(path);
         cmd.args(args.argv()).current_dir(cwd).env("PATH", search).env("HOME", home).env("NO_COLOR", "1").stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).process_group(0);
+        // opencode is spoken to over HTTP: its credential is made here and goes to its environment only, the service gets a bridge
+        let bridge = if args.program == "opencode" {
+            let bridge = Bridge::new()?;
+            cmd.envs(bridge.env());
+            Some(bridge)
+        } else {
+            None
+        };
         self.sessions.reserve(&args.session)?;
-        let ended = self.drive(id, cmd, None, usize::MAX, Some((&args.session, events)), output);
+        let ended = self.drive(id, cmd, None, usize::MAX, Some(Live { name: &args.session, started: events, bridge }), output);
         self.sessions.release(&args.session);
         ended.map(|r| SessionEnded { exit_code: r.exit_code, cancelled: r.cancelled })
     }
@@ -1024,7 +1040,7 @@ impl LocalExecutor {
     /// Runs `cmd` to its end as one action `id`: its output goes to `output` (at most `cap` bytes), `cancel(id)` or the end of `limit` kills its
     /// group, and a process left holding the pipes after it exited is killed once they have been quiet. A `session` is given the child's input
     /// and told when the child has started.
-    fn drive(&self, id: &str, mut cmd: Command, limit: Option<Duration>, cap: usize, session: Option<(&str, &mut dyn FnMut(Value))>, output: &mut dyn FnMut(Stream, &str)) -> ExecResult<RunResult> {
+    fn drive(&self, id: &str, mut cmd: Command, limit: Option<Duration>, cap: usize, session: Option<Live<'_>>, output: &mut dyn FnMut(Stream, &str)) -> ExecResult<RunResult> {
         let cancelled = Arc::new(AtomicBool::new(false));
         self.running.lock().unwrap().insert(id.to_string(), cancelled.clone());
         let mut child = match cmd.spawn() {
@@ -1035,14 +1051,28 @@ impl LocalExecutor {
             }
         };
         let pid = child.id() as i32;
-        if let Some((name, started)) = session {
-            if let Some(input) = child.stdin.take() {
-                self.sessions.attach(name, input);
+        let bridge = session.as_ref().and_then(|live| live.bridge.clone());
+        if let Some(Live { name, started, .. }) = session {
+            match &bridge {
+                Some(bridge) => self.sessions.attach_http(name, Arc::clone(bridge)),
+                None => {
+                    if let Some(input) = child.stdin.take() {
+                        self.sessions.attach(name, input);
+                    }
+                }
             }
             started(serde_json::json!({"kind": "session.started"}));
         }
         let (tx, rx) = mpsc::channel();
-        pump(child.stdout.take().expect("piped"), Stream::Stdout, tx.clone());
+        match &bridge {
+            Some(bridge) => {
+                let lines = tx.clone();
+                bridge.watch(child.stdout.take().expect("piped"), Arc::new(move |line| {
+                    let _ = lines.send(Chunk::Data(Stream::Stdout, format!("{line}\n").into_bytes()));
+                }));
+            }
+            None => pump(child.stdout.take().expect("piped"), Stream::Stdout, tx.clone()),
+        }
         pump(child.stderr.take().expect("piped"), Stream::Stderr, tx);
         let deadline = limit.map(|limit| Instant::now() + limit);
         let (mut sent, mut truncated, mut timed_out, mut killed) = (0usize, false, false, false);
@@ -1055,7 +1085,11 @@ impl LocalExecutor {
             let take = &bytes[..bytes.len().min(room)];
             if !take.is_empty() {
                 *sent += take.len();
-                output(stream, &String::from_utf8_lossy(take));
+                let text = String::from_utf8_lossy(take);
+                match &bridge {
+                    Some(bridge) => output(stream, &bridge.scrub(&text)),
+                    None => output(stream, &text),
+                }
             }
         };
         let (mut exited_at, mut last_data, mut swept_at) = (None::<Instant>, Instant::now(), None::<Instant>);
@@ -1078,6 +1112,10 @@ impl LocalExecutor {
             // for the grace (or the drain has lasted its cap) the group is killed, and the pipes get a moment to hand over what is buffered.
             if exited_at.is_none() && child.try_wait().map_err(io)?.is_some() {
                 (exited_at, last_data) = (Some(now), now);
+                // nothing more is said for a server that is gone: the lines its bridge holds the output open with end here
+                if let Some(bridge) = &bridge {
+                    bridge.close();
+                }
             }
             if let (Some(exited), None) = (exited_at, swept_at) {
                 if now.duration_since(last_data) >= EXIT_QUIET_GRACE || now.duration_since(exited) >= EXIT_DRAIN_CAP {
@@ -1090,6 +1128,9 @@ impl LocalExecutor {
             }
         }
         let status = child.wait().map_err(io)?;
+        if let Some(bridge) = &bridge {
+            bridge.close();
+        }
         self.stop(id);
         kill_group(pid);
         let exit_code = status.code().unwrap_or_else(|| 128 + status.signal().unwrap_or(0));

@@ -43,7 +43,7 @@
         "tool": "session_open",
         "args": {
           "session": "s-1",
-          "program": "opencode"
+          "program": "gemini"
         }
       },
       "response": {
@@ -51,7 +51,7 @@
         "ok": false,
         "error": {
           "code": "INVALID_ARGS",
-          "message": "`program` is one of codex, claude, not \"opencode\""
+          "message": "`program` is one of codex, opencode, claude, not \"gemini\""
         }
       }
     },

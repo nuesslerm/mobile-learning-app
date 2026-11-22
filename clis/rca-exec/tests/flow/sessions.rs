@@ -227,3 +227,109 @@ fn given_a_claude_session_that_exits_leaving_a_process_that_holds_its_output_whe
         std::thread::sleep(Duration::from_millis(20));
     }
 }
+
+/// What an opencode session said, as the lines of its output, read until `want` of them match or it ends.
+fn lines_until(heard: &mpsc::Receiver<Heard>, text: &mut String, done: impl Fn(&[Value]) -> bool) -> Vec<Value> {
+    loop {
+        let lines: Vec<Value> = text.lines().filter_map(|l| serde_json::from_str(l).ok()).collect();
+        if done(&lines) {
+            return lines;
+        }
+        // the real server takes a while to start in a fresh home
+        match heard.recv_timeout(Duration::from_secs(90)).unwrap_or_else(|_| panic!("the session said nothing more: {}", &text[text.len().saturating_sub(3000)..])) {
+            Heard::Out(chunk) => text.push_str(&chunk),
+            Heard::Started => {}
+            Heard::Ended(_) => panic!("the session ended early: {text}"),
+        }
+    }
+}
+
+fn request(ex: &LocalExecutor, id: u64, method: &str, path: &str, body: Value) {
+    send(ex, "o-1", &serde_json::json!({"id": id, "method": method, "path": path, "body": body}).to_string()).unwrap();
+}
+
+fn answer(lines: &[Value], id: u64) -> Option<&Value> {
+    lines.iter().find(|l| l["id"] == id)
+}
+
+#[test]
+fn given_an_opencode_session_when_requests_are_sent_then_the_executor_makes_them_with_its_own_credential_and_the_answers_and_events_stream_back_without_it() {
+    // Given an executor whose opencode is the scripted server, a script that plays one turn saying hello, and a session opened for it
+    let ((_r, root), (_h, home)) = (dir(), dir());
+    let cli = exec_testkit::ScriptedCli::install();
+    cli.script("opencode", &exec_testkit::Script::of(vec![exec_testkit::Turn::default().then_line(r#"{"type":"text","part":{"text":"hello"}}"#)]));
+    let ex = Arc::new(LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home)).with_cli_path(cli.dir().to_str().unwrap()));
+    let heard = start_with(&ex, "a1", SessionOpen { session: "o-1".into(), program: "opencode".into(), args: Vec::new(), cwd: None });
+    let mut text = String::new();
+    // When the server is ready, a session is created and a prompt is sent
+    lines_until(&heard, &mut text, |l| l.iter().any(|v| v["ready"] == true));
+    request(&ex, 1, "POST", &format!("/session?directory={}", root.display()), serde_json::json!({"title": "t"}));
+    let lines = lines_until(&heard, &mut text, |l| answer(l, 1).is_some());
+    let created: Value = serde_json::from_str(answer(&lines, 1).unwrap()["body"].as_str().unwrap()).unwrap();
+    let session = created["id"].as_str().unwrap().to_string();
+    request(&ex, 2, "POST", &format!("/session/{session}/prompt_async?directory={}", root.display()), serde_json::json!({"parts": [{"type": "text", "text": "go"}]}));
+    let lines = lines_until(&heard, &mut text, |l| l.iter().any(|v| v["event"]["payload"]["type"] == "session.idle"));
+    // Then the server answered the create with 200 and the prompt with 204, and its events came as frames, the text among them
+    assert_eq!((answer(&lines, 1).unwrap()["status"].as_u64(), answer(&lines, 2).unwrap()["status"].as_u64()), (Some(200), Some(204)));
+    let kinds: Vec<&str> = lines.iter().filter_map(|l| l["event"]["payload"]["type"].as_str()).collect();
+    assert!(kinds.contains(&"session.status") && kinds.contains(&"message.part.delta") && kinds.contains(&"message.updated"), "{kinds:?}");
+    // And every request carried a valid credential, which is nowhere in what the session said
+    let requests = cli.opencode_requests("opencode");
+    assert!(!requests.is_empty() && requests.iter().all(|r| r["authorized"] == true), "{requests:?}");
+    let password = cli.opencode_password("opencode").unwrap();
+    assert!(password.len() >= 32 && !text.contains(&password));
+    assert!(ex.cancel("a1"));
+}
+
+#[test]
+fn given_an_opencode_session_when_a_line_names_no_route_the_adapter_drives_or_comes_before_the_server_listens_then_it_is_refused_and_nothing_reaches_the_server() {
+    // Given an executor whose opencode is the scripted server, a session just opened (the server is not listening yet) and later one that is ready
+    let ((_r, root), (_h, home)) = (dir(), dir());
+    let cli = exec_testkit::ScriptedCli::install();
+    cli.script("opencode", &exec_testkit::Script::of(vec![]));
+    let ex = Arc::new(LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home)).with_cli_path(cli.dir().to_str().unwrap()));
+    let heard = start_with(&ex, "a1", SessionOpen { session: "o-1".into(), program: "opencode".into(), args: Vec::new(), cwd: None });
+    assert!(matches!(next(&heard), Heard::Started));
+    let early = send(&ex, "o-1", r#"{"id":1,"method":"GET","path":"/global/health"}"#);
+    let mut text = String::new();
+    lines_until(&heard, &mut text, |l| l.iter().any(|v| v["ready"] == true));
+    // When a request off the list, a PUT and a line that is no request are sent
+    let refused: Vec<_> = [r#"{"id":2,"method":"GET","path":"/file?path=/etc/passwd"}"#, r#"{"id":3,"method":"PUT","path":"/session/x"}"#, "not json"].iter().map(|line| send(&ex, "o-1", line).unwrap_err().code).collect();
+    // Then the early one was refused as the server not listening, the others are INVALID_ARGS, and the server saw nothing of them
+    assert_eq!(early.unwrap_err().code, Code::Io);
+    assert!(refused.iter().all(|c| *c == Code::InvalidArgs), "{refused:?}");
+    assert!(cli.opencode_requests("opencode").iter().all(|r| r["path"] == "/global/event"), "{:?}", cli.opencode_requests("opencode"));
+    // And a cancel ends the session with its server
+    assert!(ex.cancel("a1"));
+    loop {
+        if let Heard::Ended(ended) = next(&heard) {
+            assert!(ended.unwrap().cancelled);
+            break;
+        }
+    }
+}
+
+#[test]
+#[ignore = "runs the real opencode of the PATH (no model turn): `cargo test -- --ignored real_opencode`"]
+fn given_the_real_opencode_when_a_session_is_opened_then_the_bridge_reaches_its_server_and_event_stream_with_the_credential_it_made() {
+    // Given an executor whose PATH is the real opencode's directory, and a session opened for it in a home of its own
+    let ((_r, root), (_h, home)) = (dir(), dir());
+    let real = std::env::var("OPENCODE_BIN_DIR").unwrap_or_else(|_| "/root/.local/bin".into());
+    let ex = Arc::new(LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home)).with_cli_path(&real));
+    let heard = start_with(&ex, "a1", SessionOpen { session: "o-1".into(), program: "opencode".into(), args: Vec::new(), cwd: None });
+    let mut text = String::new();
+    // When the server is ready, a session is created and a prompt that runs no model (noReply) is sent
+    lines_until(&heard, &mut text, |l| l.iter().any(|v| v["ready"] == true || v["closed"].is_string()));
+    request(&ex, 1, "GET", "/global/health", Value::Null);
+    request(&ex, 2, "POST", &format!("/session?directory={}", root.display()), serde_json::json!({"title": "real"}));
+    let lines = lines_until(&heard, &mut text, |l| answer(l, 1).is_some() && answer(l, 2).is_some());
+    let created: Value = serde_json::from_str(answer(&lines, 2).unwrap()["body"].as_str().unwrap()).unwrap();
+    let session = created["id"].as_str().unwrap().to_string();
+    request(&ex, 3, "POST", &format!("/session/{session}/prompt_async?directory={}", root.display()), serde_json::json!({"noReply": true, "parts": [{"type": "text", "text": "hi"}]}));
+    let lines = lines_until(&heard, &mut text, |l| l.iter().any(|v| v["event"]["payload"]["type"] == "message.part.updated" && v["event"]["payload"]["properties"]["part"]["text"] == "hi"));
+    // Then the health answered healthy, the create 200 with a session id, the prompt 204, and the prompt's own events came through the stream
+    assert!(answer(&lines, 1).unwrap()["body"].as_str().unwrap().contains("\"healthy\":true"));
+    assert_eq!((answer(&lines, 2).unwrap()["status"].as_u64(), answer(&lines, 3).unwrap()["status"].as_u64()), (Some(200), Some(204)));
+    assert!(session.starts_with("ses_"), "{session}");
+    assert!(ex.cancel("a1"));
+}

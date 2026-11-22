@@ -22,7 +22,7 @@ pub const LOGOUT: &str = "logout";
 pub const CLI_UPDATE: &str = "cli_update";
 /// One request to a `codex app-server` started for it and stopped after the answer, under the executor's own Codex login.
 pub const CODEX_APP_SERVER: &str = "codex_app_server_request";
-/// A live conversation process of an agent CLI (Codex's app-server), started once and talked to for as long as it runs: `session_open` streams its
+/// A live conversation process of an agent CLI (Codex's app-server, Claude Code's stream-json process, opencode's HTTP server), started once and talked to for as long as it runs: `session_open` streams its
 /// output lines and ends when it does, `session_send` writes one line to its input, and cancelling the open action stops it.
 pub const SESSION_OPEN: &str = "session_open";
 pub const SESSION_SEND: &str = "session_send";
@@ -101,13 +101,14 @@ pub const SESSION_LINE_MAX: usize = 1 << 20;
 pub const SESSIONS_MAX: usize = 64;
 /// What an agent CLI is started with by `session_open`, by program: the arguments are the CLI's own. The caller adds only the per-session flags of
 /// `SESSION_FLAGS`, each checked.
-pub const SESSION_ARGS: [(&str, &[&str]); 2] = [
+pub const SESSION_ARGS: [(&str, &[&str]); 3] = [
     ("codex", &["app-server"]),
+    ("opencode", &["serve", "--hostname", "127.0.0.1", "--port", "0"]),
     ("claude", &["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--include-partial-messages", "--replay-user-messages", "--permission-prompt-tool", "stdio"]),
 ];
 /// The flags a caller may add to a session's CLI, by program, each with one value: Claude Code's conversation (a new id, or one to resume), its permission
 /// mode, its model and the tool servers it is told of.
-pub const SESSION_FLAGS: [(&str, &[&str]); 2] = [("codex", &[]), ("claude", &["--session-id", "--resume", "--permission-mode", "--model", "--mcp-config"])];
+pub const SESSION_FLAGS: [(&str, &[&str]); 3] = [("codex", &[]), ("opencode", &[]), ("claude", &["--session-id", "--resume", "--permission-mode", "--model", "--mcp-config"])];
 /// The permission modes `--permission-mode` may name, and the longest value a flag may carry.
 pub const PERMISSION_MODES: [&str; 6] = ["default", "acceptEdits", "bypassPermissions", "plan", "dontAsk", "auto"];
 pub const SESSION_FLAG_VALUE_MAX: usize = 16 * 1024;
@@ -182,10 +183,10 @@ pub const ACTIONS: &[Action] = &[
     },
     Action {
         name: SESSION_OPEN,
-        about: "Start a live conversation process of an agent CLI (codex: `codex app-server`, claude: `claude -p` over stream-json) in the workspace, with the executor's own login, and stream its stdout lines until it ends; cancelling the action stops the process and everything it started.",
+        about: "Start a live conversation process of an agent CLI (codex: `codex app-server`, claude: `claude -p` over stream-json, opencode: `opencode serve` on a loopback port under a password only the executor holds) in the workspace, with the executor's own login, and stream its stdout lines until it ends; for opencode the lines are the executor's bridge to the server (`SessionHttp`), never the server's own output. Cancelling the action stops the process and everything it started.",
         properties: &[
             Property { name: "session", kind: "string", about: "An id the caller chooses, for session_send to name (1 to 128 characters, not in use)" },
-            Property { name: "program", kind: "string", about: "One of the agent CLIs that run as a session: codex, claude" },
+            Property { name: "program", kind: "string", about: "One of the agent CLIs that run as a session: codex, claude, opencode" },
             Property { name: "args", kind: "array", about: "Flags and their values for the CLI, from the program's list: claude takes --session-id or --resume (a UUID), --permission-mode, --model and --mcp-config" },
             Property { name: "cwd", kind: "string", about: "Directory relative to the workspace root" },
         ],
@@ -193,7 +194,7 @@ pub const ACTIONS: &[Action] = &[
     },
     Action {
         name: SESSION_SEND,
-        about: "Write one line (a JSON message, without its newline) to the input of a session that session_open started.",
+        about: "Write one line (a JSON message, without its newline) to the input of a session that session_open started; for an opencode session the line is an HTTP request for its server, answered on the session's output.",
         properties: &[Property { name: "session", kind: "string", about: "Id session_open was given" }, Property { name: "line", kind: "string", about: "The line to write, without its newline" }],
         required: &["session", "line"],
     },
@@ -549,6 +550,50 @@ pub struct SessionSent {
     pub written: usize,
 }
 
+/// The routes of an opencode server a session's request may name (the prefix of the path, then nothing, `/` or `?`): what the adapter drives, and
+/// nothing that writes configuration to the workspace (`/config` is read only here).
+pub const SESSION_HTTP_ROUTES: [&str; 6] = ["/session", "/permission", "/question", "/global/health", "/config", "/agent"];
+const SESSION_HTTP_METHODS: [&str; 4] = ["GET", "POST", "PATCH", "DELETE"];
+
+/// What `session_send` carries to an opencode session, as one line: `{"id": 7, "method": "POST", "path": "/session?directory=%2Fw", "body": {...}}`.
+/// The executor makes the request to its own server, adding the credential only it holds, and answers on the session's output with
+/// `{"id": 7, "status": 200, "body": "<text>"}` (`status` 0 and `error` when the request could not be made). The same output carries
+/// `{"ready": true}` once the server is up and its event stream is open, then `{"event": <frame of /global/event>}` for every frame of it (the heartbeat
+/// left out), and `{"closed": "<why>"}` when that stream ends.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SessionHttp {
+    pub id: u64,
+    pub method: String,
+    pub path: String,
+    pub body: Option<Value>,
+}
+
+impl SessionHttp {
+    pub fn parse(line: &str) -> ExecResult<SessionHttp> {
+        let v: Value = serde_json::from_str(line).map_err(|e| ExecError::invalid_args(format!("the line is no JSON request: {e}")))?;
+        let id = v["id"].as_u64().ok_or_else(|| ExecError::invalid_args("`id` must be a non-negative integer"))?;
+        let method = string(&v, "method")?;
+        if !SESSION_HTTP_METHODS.contains(&method.as_str()) {
+            return Err(ExecError::invalid_args(format!("`method` is one of {}", SESSION_HTTP_METHODS.join(", "))));
+        }
+        let path = string(&v, "path")?;
+        let (route, query) = path.split_once('?').unwrap_or((path.as_str(), ""));
+        let routed = SESSION_HTTP_ROUTES.iter().any(|r| route == *r || route.strip_prefix(r).is_some_and(|rest| rest.starts_with('/')));
+        let plain = |c: char| c.is_ascii_graphic() && c != '#' && c != '\\';
+        if !routed || !path.chars().all(plain) || route.split('/').any(|segment| segment == ".." || segment == ".") || query.contains("..%2") {
+            return Err(ExecError::invalid_args(format!("`path` is no route of the server a session may use: {path:?}")));
+        }
+        if (route == "/config" || route.starts_with("/config/")) && method != "GET" {
+            return Err(ExecError::invalid_args("`/config` is read only here"));
+        }
+        let body = match &v["body"] {
+            Value::Null => None,
+            other => Some(other.clone()),
+        };
+        Ok(SessionHttp { id, method, path, body })
+    }
+}
+
 /// `codex_app_server_request`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CodexRequest {
@@ -818,7 +863,7 @@ mod tests {
     fn given_session_requests_when_parsed_then_only_a_named_session_of_a_listed_program_opens_and_a_line_is_one_line() {
         // Given an open of codex, one of a program with no session mode, one with no id, one with an id that is too long, and lines with and without a newline
         let open = SessionOpen::parse(&json!({"session": "s1", "program": "codex", "cwd": "sub"})).unwrap();
-        let refused: Vec<_> = [json!({"session": "s1", "program": "opencode"}), json!({"program": "codex"}), json!({"session": "", "program": "codex"}), json!({"session": "x".repeat(129), "program": "codex"})].iter().map(|a| SessionOpen::parse(a).unwrap_err().code).collect();
+        let refused: Vec<_> = [json!({"session": "s1", "program": "gemini"}), json!({"program": "codex"}), json!({"session": "", "program": "codex"}), json!({"session": "x".repeat(129), "program": "codex"})].iter().map(|a| SessionOpen::parse(a).unwrap_err().code).collect();
         let sent = SessionSend::parse(&json!({"session": "s1", "line": "{\"id\":1}"})).unwrap();
         let two_lines = SessionSend::parse(&json!({"session": "s1", "line": "a\nb"})).unwrap_err();
         // Then the open starts the CLI with its own arguments, the others are INVALID_ARGS, and a line with a newline is refused
@@ -827,5 +872,29 @@ mod tests {
         assert_eq!(sent.line, "{\"id\":1}");
         assert!(two_lines.code == Code::InvalidArgs && two_lines.message.contains("one line"));
         assert_eq!(LONG, [SESSION_OPEN]);
+    }
+
+    #[test]
+    fn given_a_line_for_an_opencode_session_when_parsed_then_only_a_route_the_adapter_drives_is_a_request() {
+        // Given requests on the session, permission and question routes, a bare route with a query, and ones off the list
+        let call = |line: Value| SessionHttp::parse(&line.to_string());
+        let create = call(json!({"id": 1, "method": "POST", "path": "/session?directory=%2Fw%2Fp", "body": {"title": "t"}})).unwrap();
+        let reply = call(json!({"id": 2, "method": "POST", "path": "/permission/per_1/reply?directory=%2Fw", "body": {"reply": "once"}})).unwrap();
+        let health = call(json!({"id": 0, "method": "GET", "path": "/global/health"})).unwrap();
+        let refused = [
+            call(json!({"id": 3, "method": "GET", "path": "/file?path=x"})),
+            call(json!({"id": 3, "method": "GET", "path": "/session/../auth/x"})),
+            call(json!({"id": 3, "method": "GET", "path": "/sessions"})),
+            call(json!({"id": 3, "method": "GET", "path": "/session x"})),
+            call(json!({"id": 3, "method": "PATCH", "path": "/config"})),
+            call(json!({"id": 3, "method": "PUT", "path": "/session/s"})),
+            call(json!({"id": -1, "method": "GET", "path": "/session"})),
+            SessionHttp::parse("not json"),
+        ];
+        // Then the three are requests with their body, and the others are INVALID_ARGS
+        assert_eq!((create.id, create.method.as_str(), create.body), (1, "POST", Some(json!({"title": "t"}))));
+        assert_eq!((reply.path.as_str(), health.body), ("/permission/per_1/reply?directory=%2Fw", None));
+        assert!(refused.iter().all(|r| r.as_ref().is_err_and(|e| e.code == Code::InvalidArgs)), "{refused:?}");
+        assert_eq!(SessionOpen::parse(&json!({"session": "s", "program": "opencode"})).unwrap().argv(), ["serve", "--hostname", "127.0.0.1", "--port", "0"]);
     }
 }

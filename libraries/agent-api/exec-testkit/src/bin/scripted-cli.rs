@@ -563,6 +563,9 @@ fn main() {
     if args.first().map(String::as_str) == Some("app-server") && script.turns.is_empty() {
         serve_unscripted_app_server();
     }
+    if program == "opencode" && exec_testkit::opencode_live::is_serve(&args) {
+        exec_testkit::opencode_live::serve(script, &dir, &program, starts + 1);
+    }
     if program == "claude" && claude::is_live(&args) {
         serve_claude(&script, &dir, &program, &args, starts + 1);
     }

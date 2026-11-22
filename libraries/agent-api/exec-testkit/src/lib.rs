@@ -32,6 +32,7 @@ pub mod executor;
 pub mod hosted;
 pub mod model;
 pub mod opencode;
+pub mod opencode_live;
 pub mod recordings;
 pub mod repo;
 pub mod script;

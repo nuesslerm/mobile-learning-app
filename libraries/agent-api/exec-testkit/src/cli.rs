@@ -2,6 +2,7 @@
 //! script for each, and the log of how each was started. The directory goes first on the `PATH` of the process under test, which starts
 //! the program it would start for the real CLI.
 use crate::script::{app_server_log_file, claude_log_file, claude_turns_file, log_file, script_file, Invocation, Received, Script, PROGRAMS};
+use serde_json::Value;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -110,6 +111,9 @@ impl ScriptedCli {
         let _ = std::fs::remove_file(self.dir().join(format!("{program}.app-server.starts")));
         let _ = std::fs::remove_file(self.dir().join(claude_log_file(program)));
         let _ = std::fs::remove_file(self.dir().join(claude_turns_file(program)));
+        for file in [crate::opencode_live::http_log_file(program), crate::opencode_live::password_file(program), format!("{program}.sessions.json"), format!("{program}.serve-turns")] {
+            let _ = std::fs::remove_file(self.dir().join(file));
+        }
         let path = self.dir().join(script_file(program));
         std::fs::write(&path, serde_json::to_string_pretty(script).expect("a script is JSON")).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     }
@@ -132,6 +136,19 @@ impl ScriptedCli {
     /// The text of every message of the person the live scripted `claude` was sent since its script was set, oldest first: what its turns were asked.
     pub fn claude_prompts(&self, program: &str) -> Vec<String> {
         self.claude_log(program).into_iter().filter(|r| r.message["type"] == "user").map(|r| r.message["message"]["content"][0]["text"].as_str().unwrap_or_default().to_string()).collect()
+    }
+
+    /// Every request the scripted `opencode serve` received since its script was set, oldest first, as `{start, method, path, body, authorized}`: the
+    /// credential itself is never in it.
+    pub fn opencode_requests(&self, program: &str) -> Vec<Value> {
+        let path = self.dir().join(crate::opencode_live::http_log_file(program));
+        let Ok(text) = std::fs::read_to_string(&path) else { return Vec::new() };
+        text.lines().map(|line| serde_json::from_str(line).unwrap_or_else(|e| panic!("{}: {line}: {e}", path.display()))).collect()
+    }
+
+    /// The password the last start of the scripted `opencode serve` was given: what must be found nowhere the service or a client can read.
+    pub fn opencode_password(&self, program: &str) -> Option<String> {
+        std::fs::read_to_string(self.dir().join(crate::opencode_live::password_file(program))).ok()
     }
 
     /// Every start of `program` since its script was set, oldest first.

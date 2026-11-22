@@ -8,6 +8,7 @@ pub mod hosted;
 pub mod local_executor;
 pub mod logins;
 pub mod mcp;
+pub mod opencode_bridge;
 pub mod preview;
 pub mod provider_account;
 pub mod pty;
