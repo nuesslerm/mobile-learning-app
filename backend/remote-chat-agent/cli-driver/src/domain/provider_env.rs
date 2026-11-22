@@ -1,7 +1,7 @@
 //! The environment a provider CLI runs with. Each provider keeps its login and settings in a directory of its own on the service's volume
 //! (`/data/providers/<provider>`), named to the CLI through the variables it reads, and sees only the variables that are its own or shared and
 //! not secret: a second provider cannot reach the first one's tokens, and no CLI sees the service's own secret.
-use super::driver::{Command, Driver};
+use super::driver::Driver;
 
 /// Where the providers' directories live on the service's volume.
 pub const PROVIDERS_ROOT: &str = "/data/providers";
@@ -54,32 +54,6 @@ pub struct GatewayRoute {
     /// `<service>/gateway/<provider>`: what the CLI appends its own route to.
     pub base_url: String,
     pub token: String,
-}
-
-/// `command` pointed at the gateway: opencode through the `baseURL` of the provider block its config gets. Only a turn the service decided to route goes
-/// through here; a CLI that keeps its own subscription login is launched as `command` has it. Claude Code and Codex live as processes that outlast a turn, so they
-/// have no command to point (`docs/gaps/codex-session-not-through-gateway.md`, `docs/gaps/claude-session-not-through-gateway.md`).
-pub fn through_gateway(driver: Driver, mut command: Command, route: &GatewayRoute) -> Command {
-    match driver {
-        Driver::ClaudeAgent | Driver::Codex => command,
-        Driver::Opencode => {
-            const PREFIX: &str = "OPENCODE_CONFIG_CONTENT=";
-            let block = serde_json::json!({"options": {"baseURL": route.base_url, "apiKey": route.token}});
-            let at = command.args.iter().position(|a| a.starts_with(PREFIX));
-            let mut config = at.and_then(|i| serde_json::from_str::<serde_json::Value>(&command.args[i][PREFIX.len()..]).ok()).unwrap_or_else(|| serde_json::json!({}));
-            config["provider"][route.provider.as_str()] = block;
-            let setting = format!("{PREFIX}{config}");
-            match at {
-                Some(i) => command.args[i] = setting,
-                None => {
-                    let mut wrapped = vec![setting, command.program];
-                    wrapped.extend(command.args);
-                    return Command { program: "env".into(), args: wrapped, cwd: command.cwd };
-                }
-            }
-            command
-        }
-    }
 }
 
 #[cfg(test)]
@@ -165,51 +139,5 @@ mod tests {
         assert_eq!(value(&opencode, "XDG_CONFIG_HOME"), Some("/data/providers/opencode/config"));
         assert_eq!((value(&opencode, "CODEX_HOME"), value(&opencode, "CLAUDE_CONFIG_DIR")), (None, None));
         assert_eq!((value(&codex, "XDG_CONFIG_HOME"), value(&codex, "CLAUDE_CONFIG_DIR")), (None, None));
-    }
-
-    fn route(provider: &str) -> GatewayRoute {
-        GatewayRoute { provider: provider.into(), base_url: format!("http://svc:8787/gateway/{provider}"), token: "rcag_turn".into() }
-    }
-
-    fn request(driver: Driver, model: Option<&str>) -> super::super::driver::TurnRequest {
-        super::super::driver::TurnRequest { thread_id: "t".into(), run_id: "r".into(), instance_id: driver.id().into(), model: model.map(str::to_string), cwd: "/w".into(), prompt: "hi".into(), runtime_mode: "full-access".into(), interaction_mode: "default".into(), resume: None, tools: None }
-    }
-
-    #[test]
-    fn given_an_opencode_turn_routed_through_the_gateway_when_built_then_it_is_pointed_at_the_gateway_with_the_turn_token_and_runs_with_the_provider_environment() {
-        let (driver, provider) = (Driver::Opencode, "opencode-go");
-        // Given the host command of the turn
-        let host = super::super::driver::command_for_host(driver, &request(driver, Some("opencode-go/m")), "http://svc:8787/mcp/t", "mcp-tok").unwrap();
-        // When it is pointed at the gateway
-        let routed = through_gateway(driver, host.clone(), &route(provider));
-        let line = format!("{} {}", routed.program, routed.args.join(" "));
-        // Then the gateway's address and the turn's token are in it, the CLI's own program and prompt are still there and the prompt is last
-        assert!(line.contains(&format!("http://svc:8787/gateway/{provider}")) && line.contains("rcag_turn"), "{line}");
-        assert_eq!(routed.args.last(), host.args.last(), "{}", driver.id());
-        // And the command is still known as that CLI's, so the service's own environment is stripped from it
-        assert_eq!(super::super::login::driver_of_command(&routed.program, &routed.args), Some(driver), "{line}");
-    }
-
-    #[test]
-    fn given_a_command_of_a_cli_that_lives_when_routed_then_it_is_left_as_it_is() {
-        for (driver, args) in [(Driver::ClaudeAgent, "-p"), (Driver::Codex, "app-server")] {
-            let untouched = Command { program: driver.program().into(), args: vec![args.into()], cwd: ".".into() };
-            assert_eq!(through_gateway(driver, untouched.clone(), &route("anthropic")), untouched, "{}", driver.id());
-        }
-    }
-
-    #[test]
-    fn given_an_opencode_turn_with_a_tool_server_when_routed_then_the_provider_block_joins_the_config_it_already_had() {
-        // Given the host command of an opencode turn, whose config names the service's tool server
-        let host = super::super::driver::command_for_host(Driver::Opencode, &request(Driver::Opencode, Some("kimi-for-coding/k3")), "http://svc:8787/mcp/t", "mcp-tok").unwrap();
-        // When it is routed
-        let routed = through_gateway(Driver::Opencode, host, &route("kimi"));
-        // Then the single config setting has both the tool server and the provider's baseURL and token
-        let settings: Vec<&String> = routed.args.iter().filter(|a| a.starts_with("OPENCODE_CONFIG_CONTENT=")).collect();
-        assert_eq!(settings.len(), 1);
-        let config: serde_json::Value = serde_json::from_str(&settings[0]["OPENCODE_CONFIG_CONTENT=".len()..]).unwrap();
-        assert_eq!(config["mcp"]["executor"]["url"], "http://svc:8787/mcp/t");
-        assert_eq!(config["provider"]["kimi"]["options"]["baseURL"], "http://svc:8787/gateway/kimi");
-        assert_eq!(config["provider"]["kimi"]["options"]["apiKey"], "rcag_turn");
     }
 }

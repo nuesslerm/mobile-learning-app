@@ -1,5 +1,5 @@
 use crate::{FileStore, HostFiles, Processes, System};
-use rca_cli_driver::application::ports::{Linker, Spawner};
+use rca_cli_driver::application::ports::{Linker, Running};
 use rca_cli_driver::domain::Driver;
 use rca_service_core::application::runs::RunHosts;
 use remote_chat_agent_core::application::ports::{Commands, WorkspaceFiles};
@@ -8,6 +8,13 @@ use remote_chat_agent_core::domain::types::Event;
 use std::path::Path;
 use std::time::{Duration, Instant};
 use tokio_stream::StreamExt;
+
+/// A command started the way a live CLI is, with its input closed: what the supervision of its output and its end is tested through.
+async fn spawn_sh(args: &[String], cwd: &std::path::Path) -> Result<Running, String> {
+    let mut command = crate::provider_command("/unused", &[], "sh", args, cwd);
+    let child = command.stdin(std::process::Stdio::null()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped()).kill_on_drop(true).spawn().map_err(|e| e.kind().to_string())?;
+    Ok(crate::supervise(child, false)?.running)
+}
 
 #[tokio::test]
 async fn given_a_command_that_prints_when_it_runs_then_its_stdout_comes_back() {
@@ -68,7 +75,7 @@ fn given_the_hosts_when_one_is_named_as_a_port_then_it_is_a_run_hosts() {
 
 async fn run_script(script: &str, dir: &Path) -> (Vec<String>, Result<(), String>, Duration) {
     let started = Instant::now();
-    let mut process = Processes::at("/unused").spawn("sh", &["-c".to_string(), script.to_string()], dir).await.expect("sh starts");
+    let mut process = spawn_sh(&["-c".to_string(), script.to_string()], dir).await.expect("sh starts");
     let mut lines = Vec::new();
     while let Some(line) = process.lines.next().await {
         lines.push(line);
@@ -118,7 +125,7 @@ async fn given_a_cli_that_leaves_a_process_flooding_its_output_when_it_runs_then
     // Given a CLI that prints a line, leaves `yes` writing to its stdout without pause, and exits 0
     let dir = tempfile::tempdir().unwrap();
     let started = Instant::now();
-    let mut process = Processes::at("/unused").spawn("sh", &["-c".to_string(), "echo printed; yes spam & exit 0".to_string()], dir.path()).await.expect("sh starts");
+    let mut process = spawn_sh(&["-c".to_string(), "echo printed; yes spam & exit 0".to_string()], dir.path()).await.expect("sh starts");
     // When it runs
     let mut first = None;
     while let Some(line) = process.lines.next().await {

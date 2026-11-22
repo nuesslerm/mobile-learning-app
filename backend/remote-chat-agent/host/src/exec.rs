@@ -1,8 +1,8 @@
-//! The real adapter of the CLI driver's `Spawner` and `Linker`: provider CLIs as tokio child processes. A CLI of a provider starts with that provider's
+//! The real adapter of the CLI driver's `Linker`: provider CLIs as tokio child processes. A CLI of a provider starts with that provider's
 //! environment alone (`provider_env`): the shared variables, its own prefixed credentials and its directory under the providers' root, so it
 //! cannot reach another provider's login nor the service's own secret.
 use async_trait::async_trait;
-use rca_cli_driver::application::ports::{Link, Linker, Running, Spawner};
+use rca_cli_driver::application::ports::{Link, Linker, Running};
 use rca_cli_driver::domain::{driver_of_command, provider_env, Driver};
 use std::path::Path;
 use std::process::Stdio;
@@ -155,23 +155,6 @@ pub fn provider_command(root: &str, inherited: &[(String, String)], program: &st
         command.env_clear().envs(provider_env(driver, root, inherited));
     }
     command
-}
-
-#[async_trait]
-impl Spawner for Processes {
-    async fn spawn(&self, program: &str, args: &[String], cwd: &Path) -> Result<Running, String> {
-        let live;
-        let inherited = match &self.inherited {
-            Some(vars) => vars,
-            None => {
-                live = inherited();
-                &live
-            }
-        };
-        let mut command = provider_command(&self.root, inherited, program, args, cwd);
-        let child = command.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true).spawn().map_err(|e| e.kind().to_string())?;
-        Ok(supervise(child, false)?.running)
-    }
 }
 
 #[async_trait]

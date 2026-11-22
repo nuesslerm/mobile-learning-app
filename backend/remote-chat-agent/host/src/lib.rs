@@ -1,5 +1,5 @@
 //! The host adapters of the service: what spawns processes and touches the disk behind the ports of `rca-service-core` and
-//! `remote-chat-agent-core`: `System` (`Commands`), `Processes` (the CLI driver's `Spawner`), `HostFiles` (`WorkspaceFiles`), `FileStore`
+//! `remote-chat-agent-core`: `System` (`Commands`), `Processes` (the CLI driver's `Linker`), `HostFiles` (`WorkspaceFiles`), `FileStore`
 //! (the thread event log), `Documents` (`DocumentText`) and `Hosts`, the ladder's `RunHost` for a one-shot run.
 
 mod docs;

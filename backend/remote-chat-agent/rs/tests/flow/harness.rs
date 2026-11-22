@@ -2,7 +2,7 @@
 //! ports, driven through the router: an HTTP request goes in with `oneshot`, a WebSocket over an in-memory duplex pipe that the
 //! router serves as `axum::serve` serves a socket. The environment the service reads is a map of the flow's own (`Env`).
 
-use rca_group_agent::host::{AtWorkspace, CliLauncher, Fixed, FixedLinks};
+use rca_group_agent::host::{AtWorkspace, CliLauncher, FixedLinker};
 use super::doubles::{CommandsPort, FakeCommands, FakeOpencode, FakeOutbound, OpencodePort, OutboundPort};
 use axum::body::Body;
 use axum::extract::ConnectInfo;
@@ -10,8 +10,7 @@ use axum::http::{header, HeaderMap, Method, Request, StatusCode};
 use axum::Router;
 use futures_util::{SinkExt, StreamExt};
 use http_body_util::BodyExt;
-use rca_cli_driver::application::ports::Spawner;
-use rca_cli_driver::testing::ScriptedSpawner;
+use rca_cli_driver::testing::ScriptedOpencode;
 use rca_service::api::app::{AgentApi, App, Config};
 use rca_service::api::routes::router;
 use rca_ladder::file_store::FileLedgerStore;
@@ -120,13 +119,14 @@ pub struct Options {
     pub codex_idle: Duration,
     /// How long a Claude Code process may stay up with no turn running in it.
     pub claude_idle: Duration,
+    pub opencode_idle: Duration,
     /// The live CLIs a flow without an executor starts, in place of the launcher's own: none starts one.
     pub linker: Option<Arc<dyn rca_cli_driver::application::ports::Linker>>,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Self { gateway: None, secret: Some(SECRET), state_dir: None, hard_timeout_ms: 1_500, heartbeat: Duration::from_secs(15), default_cwd: None, requests_per_minute: rca_service::api::routes::REQUESTS_PER_MINUTE, ledger_error: None, files: None, at_workspace: false, browser: false, codex_idle: Duration::from_secs(600), claude_idle: Duration::from_secs(600), linker: None }
+        Self { gateway: None, secret: Some(SECRET), state_dir: None, hard_timeout_ms: 1_500, heartbeat: Duration::from_secs(15), default_cwd: None, requests_per_minute: rca_service::api::routes::REQUESTS_PER_MINUTE, ledger_error: None, files: None, at_workspace: false, browser: false, codex_idle: Duration::from_secs(600), claude_idle: Duration::from_secs(600), opencode_idle: Duration::from_secs(600), linker: None }
     }
 }
 
@@ -136,7 +136,8 @@ pub struct Service {
     pub opencode: Arc<FakeOpencode>,
     pub commands: Arc<FakeCommands>,
     pub outbound: Arc<FakeOutbound>,
-    pub spawner: Arc<ScriptedSpawner>,
+    /// opencode's server as the flows script it.
+    pub spawner: Arc<ScriptedOpencode>,
     /// The model the `git.ai` group asks.
     pub models: Arc<ScriptedModelApi>,
     /// The time the schedules read: a Tuesday evening, still until a flow moves it.
@@ -164,8 +165,8 @@ impl Ledgers for FileLedgers {
 
 /// The agent API `main` serves (`rca_service::agent_api`) for `config`, its CLIs started by `spawner`, its per-device state and its device
 /// bearers kept in the flow's home as the service keeps them.
-pub fn agent_api_for(env: &Env, config: &Config, spawner: Arc<dyn Spawner>) -> AgentApi {
-    agent_api_with(env, config, Arc::new(Fixed(spawner)), ScriptedModelApi::from_fixture(), Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS)), None)
+pub fn agent_api_for(env: &Env, config: &Config) -> AgentApi {
+    agent_api_with(env, config, Arc::new(FixedLinker(ScriptedOpencode::new().linker())), ScriptedModelApi::from_fixture(), Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS)), None)
 }
 
 /// `agent_api_for` with the model the `git.ai` group asks: the providers' directories and logins are the real adapters under the flow's home.
@@ -184,8 +185,8 @@ pub fn agent_api_with(env: &Env, config: &Config, launcher: Arc<dyn CliLauncher>
 /// The groups the service registers, for the flows that read the table and answer nothing.
 pub fn agent_api(env: &Env) -> AgentApi {
     let home = env.home.to_string_lossy().into_owned();
-    let config = Config { port: 0, allowed_origins: Vec::new(), api_secret: Some(SECRET.into()), commit: "flow-sha".into(), default_cwd: home.clone(), hard_timeout_ms: 1_500, state_dir: None, exec_root: home, heartbeat: Duration::from_secs(15), requests_per_minute: 120, edit_stats_flush: Duration::from_millis(50), state_seq_base: 0, agent_public_url: None, codex_idle: Duration::from_secs(600), claude_idle: Duration::from_secs(600), browser: false };
-    agent_api_for(env, &config, ScriptedSpawner::new())
+    let config = Config { port: 0, allowed_origins: Vec::new(), api_secret: Some(SECRET.into()), commit: "flow-sha".into(), default_cwd: home.clone(), hard_timeout_ms: 1_500, state_dir: None, exec_root: home, heartbeat: Duration::from_secs(15), requests_per_minute: 120, edit_stats_flush: Duration::from_millis(50), state_seq_base: 0, agent_public_url: None, codex_idle: Duration::from_secs(600), claude_idle: Duration::from_secs(600), opencode_idle: Duration::from_secs(600), browser: false };
+    agent_api_for(env, &config)
 }
 
 /// The service over fresh doubles.
@@ -195,27 +196,25 @@ pub fn service(env: &Env, options: Options) -> Service {
 
 /// The service over the given doubles, as a restart of one would find them.
 pub fn service_over(env: &Env, options: Options, opencode: Arc<FakeOpencode>, commands: Arc<FakeCommands>, outbound: Arc<FakeOutbound>) -> Service {
-    let spawner = ScriptedSpawner::new();
     let transport = Arc::new(OpencodePort(Arc::clone(&opencode)));
-    build(env, options, opencode, transport, commands, outbound, spawner.clone(), spawner)
+    build(env, options, opencode, transport, commands, outbound)
 }
 
 /// The service whose opencode is a real HTTP server on a loopback port (`Loopback`), reached through the production transport.
 pub fn service_over_loopback(env: &Env, options: Options, url: &str) -> Service {
-    let spawner = ScriptedSpawner::new();
     let transport = Arc::new(remote_chat_agent_opencode::Http::new(url, None));
-    build(env, options, FakeOpencode::new(), transport, FakeCommands::new(), FakeOutbound::new(), spawner.clone(), spawner)
+    build(env, options, FakeOpencode::new(), transport, FakeCommands::new(), FakeOutbound::new())
 }
 
-/// The service whose provider CLIs are started by `spawner` (a scripted program of the flow's own), the other ports doubled.
-pub fn service_spawning(env: &Env, options: Options, spawner: Arc<dyn Spawner>) -> Service {
+/// The service whose provider CLIs start where the options say (the workspace's executor, or the flow's own scripted servers), the other ports doubled.
+pub fn service_spawning(env: &Env, options: Options) -> Service {
     let opencode = FakeOpencode::new();
     let transport = Arc::new(OpencodePort(Arc::clone(&opencode)));
-    build(env, options, opencode, transport, FakeCommands::new(), FakeOutbound::new(), spawner, ScriptedSpawner::new())
+    build(env, options, opencode, transport, FakeCommands::new(), FakeOutbound::new())
 }
 
 #[allow(clippy::too_many_arguments)]
-fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, transport: Arc<dyn remote_chat_agent_core::application::ports::Opencode>, commands: Arc<FakeCommands>, outbound: Arc<FakeOutbound>, spawn: Arc<dyn Spawner>, spawner: Arc<ScriptedSpawner>) -> Service {
+fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, transport: Arc<dyn remote_chat_agent_core::application::ports::Opencode>, commands: Arc<FakeCommands>, outbound: Arc<FakeOutbound>) -> Service {
     let default_cwd = options.default_cwd.unwrap_or_else(|| env.home.to_string_lossy().into_owned());
     let config = Config {
         port: 0,
@@ -233,14 +232,16 @@ fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, transport: Ar
         agent_public_url: None,
         codex_idle: options.codex_idle,
         claude_idle: options.claude_idle,
+        opencode_idle: options.opencode_idle,
         browser: options.browser,
     };
     let models = ScriptedModelApi::from_fixture();
     let clock = Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS));
+    let spawner = ScriptedOpencode::new();
     let launcher: Arc<dyn CliLauncher> = match (options.at_workspace, options.linker) {
         (true, _) => Arc::new(AtWorkspace),
-        (false, Some(linker)) => Arc::new(FixedLinks(spawn.clone(), linker)),
-        (false, None) => Arc::new(Fixed(spawn.clone())),
+        (false, Some(linker)) => Arc::new(FixedLinker(linker)),
+        (false, None) => Arc::new(FixedLinker(spawner.linker())),
     };
     let agent_api = agent_api_with(env, &config, launcher, models.clone(), clock.clone(), options.gateway);
     let commands_port = Arc::new(CommandsPort(Arc::clone(&commands)));
@@ -248,7 +249,7 @@ fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, transport: Ar
     let settings = env.source().settings();
     let client = rca_service::compose::opencode_client(transport, env.source());
     let (orch, gateway) = rca_service::compose::orchestration(&config, &client, env.source().as_ref());
-    let ports = Ports { documents: Arc::new(remote_chat_agent_host::Documents::new(commands_port.clone(), &settings)), speech: Arc::new(remote_chat_agent_speech::Speech::new(outbound_port.clone(), commands_port.clone(), env.source())), spawner: spawn, client, orch, gateway, commands: commands_port, outbound: outbound_port, ledgers: Arc::new(FileLedgers { error: options.ledger_error, env: env.source() }), files: options.files.unwrap_or_else(|| Arc::new(remote_chat_agent_host::HostFiles)), hosts: Arc::new(remote_chat_agent_host::Hosts), env: env.source() };
+    let ports = Ports { documents: Arc::new(remote_chat_agent_host::Documents::new(commands_port.clone(), &settings)), speech: Arc::new(remote_chat_agent_speech::Speech::new(outbound_port.clone(), commands_port.clone(), env.source())), client, orch, gateway, commands: commands_port, outbound: outbound_port, ledgers: Arc::new(FileLedgers { error: options.ledger_error, env: env.source() }), files: options.files.unwrap_or_else(|| Arc::new(remote_chat_agent_host::HostFiles)), hosts: Arc::new(remote_chat_agent_host::Hosts), env: env.source() };
     let app = Arc::new(App::new(config, ports, agent_api));
     app.start();
     Service { router: router(Arc::clone(&app)), app, opencode, commands, outbound, spawner, models, clock }
@@ -337,27 +338,6 @@ impl Call {
 pub struct Sent((Request<Body>, SocketAddr));
 
 impl Service {
-    /// The model gateway `/gateway` answers for.
-    pub fn gateway(&self) -> Arc<rca_group_gateway::Gateway> {
-        Arc::clone(&self.app.model_gateway)
-    }
-
-    /// Like `send`, but the body's failure is the answer: a response whose body breaks part way is the chunks that came and why it ended.
-    pub async fn send_streamed(&self, sent: impl Into<Sent>) -> (StatusCode, Vec<u8>, Option<String>) {
-        let Sent((mut request, peer)) = sent.into();
-        request.extensions_mut().insert(ConnectInfo(peer));
-        let response = self.router.clone().oneshot(request).await.expect("the router answers");
-        let (parts, mut body) = response.into_parts();
-        let mut got = Vec::new();
-        while let Some(frame) = body.frame().await {
-            match frame {
-                Ok(frame) => got.extend(frame.into_data().map(|d| d.to_vec()).unwrap_or_default()),
-                Err(why) => return (parts.status, got, Some(why.to_string())),
-            }
-        }
-        (parts.status, got, None)
-    }
-
     /// A device bearer minted as an operator mints one, with the service secret: its token.
     pub async fn mint(&self, label: &str) -> String {
         let answer = self.send(post("/agent/v1/bearers").secret().json(json!({"label": label}))).await;

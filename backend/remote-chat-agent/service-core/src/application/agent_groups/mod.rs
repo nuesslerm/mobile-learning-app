@@ -45,14 +45,14 @@ mod tests {
     use agent_api_state as state_api;
     use agent_api_workspace as workspace_api;
     use rca_agent_core::{AgentApi, Build, Group, Served, Uses};
-    use rca_cli_driver::testing::ScriptedSpawner;
+    use rca_cli_driver::testing::ScriptedOpencode;
     use rca_group_state::testing::MemoryStore;
     use rca_exec_channel::remote::{ActionOutput, ExecutorChannel, RemoteError};
     use rca_exec_channel::testing::ScriptedChannel;
     use rca_exec_channel::{contract_actions, Registry};
 
-    /// The actions no method row calls: a turn's CLI runs through `run_command` and stops through `cancel` (`HostSpawner`), and a Codex thread's
-    /// live server through `session_open` and `session_send` (`HostLinker`).
+    /// The actions no method row calls: the commands the service runs at a workspace host (`run_command`, `cancel`), and the live processes of the CLIs, which
+    /// `HostLinker` starts and writes to through `session_open` and `session_send`.
     const TOOLS: [&str; 4] = ["run_command", "cancel", "session_open", "session_send"];
     use serde_json::{json, Value};
     use std::sync::Arc;
@@ -80,7 +80,7 @@ mod tests {
     }
 
     fn groups(executors: &Arc<Registry>) -> Vec<Arc<dyn Group>> {
-        let runner = rca_group_agent::Runner::new(Arc::new(rca_group_agent::testing::MemoryThreads::default()), executors.clone(), Arc::new(rca_group_agent::host::Fixed(ScriptedSpawner::new())), Arc::new(NoMcp));
+        let runner = rca_group_agent::Runner::new(Arc::new(rca_group_agent::testing::MemoryThreads::default()), executors.clone(), Arc::new(rca_group_agent::host::FixedLinker(ScriptedOpencode::new().linker())), Arc::new(NoMcp));
         let hub = Arc::new(StateHub::new(Arc::new(MemoryStore::default())));
         let previews = Previews::new(Arc::new(rca_group_preview::testing::FakeClock::at(1)), Arc::new(rca_group_preview::testing::CountingIds::default()), 0);
         vec![

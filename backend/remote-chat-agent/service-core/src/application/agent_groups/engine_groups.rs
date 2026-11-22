@@ -3,7 +3,7 @@
 use super::engine_threads::EngineThreads;
 use agent_api_proto::Event;
 use rca_agent_core::{AgentApi, Build, Group};
-use rca_cli_driver::testing::{app_server, claude_session, delta, finish, reply, started, CliScript, ScriptedLinker, ScriptedSpawner};
+use rca_cli_driver::testing::{app_server, claude_session, delta, finish, reply, started, CliScript, ScriptedLinker, ScriptedOpencode};
 use rca_exec_channel::mcp::ServiceTools;
 use rca_exec_channel::remote::{ActionOutput, ExecutorChannel};
 use rca_exec_channel::testing::ScriptedChannel;
@@ -27,12 +27,29 @@ impl McpEndpoint for Mcp {
     }
 }
 
+/// opencode's server for a thread of opencode, the scripted live process for every other CLI.
+struct Split {
+    opencode: Arc<dyn rca_cli_driver::application::ports::Linker>,
+    others: Arc<ScriptedLinker>,
+}
+
+#[async_trait::async_trait]
+impl rca_cli_driver::application::ports::Linker for Split {
+    async fn open(&self, driver: rca_cli_driver::domain::Driver, cwd: &std::path::Path, args: &[String]) -> Result<rca_cli_driver::application::ports::Link, String> {
+        match driver {
+            rca_cli_driver::domain::Driver::Opencode => self.opencode.open(driver, cwd, args).await,
+            _ => self.others.open(driver, cwd, args).await,
+        }
+    }
+}
+
 struct Rig {
     api: AgentApi,
     runner: Arc<Runner>,
     engine: Arc<EngineThreads>,
-    spawner: Arc<ScriptedSpawner>,
-    /// The live servers of the CLIs that stay up (Codex), as scripted processes.
+    /// opencode's server, scripted by what each prompt says.
+    spawner: Arc<ScriptedOpencode>,
+    /// The live processes of the other CLIs (Codex, Claude Code), as scripted ones.
     linker: Arc<ScriptedLinker>,
     /// The executor actions asked of the workspace's channel, with their args, in order.
     asked: Arc<std::sync::Mutex<Vec<(String, Value)>>>,
@@ -44,7 +61,7 @@ fn rig() -> Rig {
 
 fn rig_with(linker: Arc<ScriptedLinker>) -> Rig {
     let engine = Arc::new(EngineThreads::new(Arc::new(Engine::new(Box::new(MemoryStore::default()), "/work".into(), Arc::new(FixedClock(NOW)), Arc::new(CountingIds::default())))));
-    let (spawner, executors) = (ScriptedSpawner::new(), Arc::new(Registry::default()));
+    let (spawner, executors) = (ScriptedOpencode::new(), Arc::new(Registry::default()));
     let asked: Arc<std::sync::Mutex<Vec<(String, Value)>>> = Arc::default();
     let log = asked.clone();
     let channel = ScriptedChannel::new(move |tool, args| {
@@ -52,7 +69,7 @@ fn rig_with(linker: Arc<ScriptedLinker>) -> Rig {
         Ok(ActionOutput { result: json!({}), output: String::new() })
     });
     executors.open("w1", channel as Arc<dyn ExecutorChannel>).unwrap();
-    let runner = Runner::new(engine.clone(), executors, Arc::new(rca_group_agent::host::FixedLinks(spawner.clone(), linker.clone())), Arc::new(Mcp));
+    let runner = Runner::new(engine.clone(), executors, Arc::new(rca_group_agent::host::FixedLinker(Arc::new(Split { opencode: spawner.linker(), others: linker.clone() }))), Arc::new(Mcp));
     let groups: Vec<Arc<dyn Group>> = vec![
         Arc::new(AgentThreadsGroup::with_runner(runner.clone())),
         Arc::new(AgentRequestsGroup::new(runner.clone())),
@@ -62,14 +79,9 @@ fn rig_with(linker: Arc<ScriptedLinker>) -> Rig {
     Rig { api: AgentApi::new(groups).unwrap(), runner, engine, spawner, linker, asked }
 }
 
-/// A line of opencode's output, the CLI a turn runs as a process of its own (Claude Code and Codex live as sessions): the text it says.
+/// A line of what a scripted opencode's turn says, in the dialect of `opencode run --format json`: the text it says.
 fn said(text: &str) -> String {
     json!({"type": "text", "part": {"text": text}}).to_string()
-}
-
-/// A line of opencode's output that names its conversation.
-fn init(session: &str) -> String {
-    json!({"type": "step_start", "sessionID": session}).to_string()
 }
 
 fn script(lines: &[String], hold: bool) -> CliScript {
@@ -158,7 +170,7 @@ async fn given_a_turn_that_asks_to_run_a_tool_when_the_person_answers_then_the_w
     // Given a running turn and its permission prompt, asking to write a file
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script("env", script(&[said("working")], true));
+    rig.spawner.script(script(&[said("working")], true));
     let turn = rig.start("t", "make a note").await;
     let args = json!({"tool_name": "write_file", "input": {"path": "a.txt", "content": "x"}});
     let waiting = rig.calling("t", "approval_prompt", args.clone());
@@ -184,7 +196,7 @@ async fn given_decisions_other_than_accept_when_a_tool_is_asked_about_then_sessi
     // Given a running turn
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script("env", script(&[], true));
+    rig.spawner.script(script(&[], true));
     rig.start("t", "work").await;
     let ask = |tool: &str| rig.calling("t", "approval_prompt", json!({"tool_name": tool, "input": {}}));
     // When the person accepts a tool for the session, and the turn asks about it again, and about another tool
@@ -210,7 +222,7 @@ async fn given_decisions_other_than_accept_when_a_tool_is_asked_about_then_sessi
     assert_eq!(text_of(&cancelled.await.unwrap())["interrupt"], json!(true));
     rig.idle("t").await;
     assert_eq!(rig.events("t").last().unwrap().data["reason"], json!("interrupted"));
-    assert_eq!(rig.spawner.kills(), 1);
+    assert_eq!(rig.spawner.aborts(), 1);
 }
 
 #[tokio::test]
@@ -218,7 +230,7 @@ async fn given_a_question_a_turn_asks_when_it_is_answered_dismissed_or_the_turn_
     // Given a running turn that asks two questions and an approval
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script("env", script(&[], true));
+    rig.spawner.script(script(&[], true));
     rig.start("t", "work").await;
     let first = rig.calling("t", "ask_user", json!({"question": "Which?", "options": ["a", "b"]}));
     let asked = rig.open_request("t", "input.requested", 1).await;
@@ -253,7 +265,7 @@ async fn given_a_queue_when_prompts_are_added_edited_moved_and_deleted_then_the_
     // Given a thread with a turn running and three prompts queued, one of them added twice
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script("env", script(&[], true));
+    rig.spawner.script(script(&[], true));
     rig.start("t", "work").await;
     let mut added = Vec::new();
     for (item, prompt) in [("q1", "one"), ("q2", "two"), ("q3", "three"), ("q1", "one again")] {
@@ -291,7 +303,7 @@ async fn given_prompts_queued_behind_a_running_turn_when_it_ends_then_each_start
     // Given a turn that stays up, then two that finish, and two prompts queued behind the first
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script_each("env", vec![script(&[], true), script(&[said("one done")], false), script(&[said("two done")], false)]);
+    rig.spawner.script_each(vec![script(&[], true), script(&[said("one done")], false), script(&[said("two done")], false)]);
     let first = rig.start("t", "work").await;
     rig.ok("queue.add", json!({"thread": "t", "item": "q1", "prompt": "first queued"})).await;
     rig.ok("queue.add", json!({"thread": "t", "item": "q2", "prompt": "second queued", "model": "small"})).await;
@@ -305,10 +317,8 @@ async fn given_prompts_queued_behind_a_running_turn_when_it_ends_then_each_start
     assert_eq!(started, [first.as_str(), "q1", "q2"]);
     let position = |kind: &str, turn: &str| events.iter().position(|e| e.kind == kind && e.turn.as_deref() == Some(turn)).unwrap();
     assert!(position("queue.started", "q1") < position("turn.started", "q1") && position("queue.started", "q2") < position("turn.started", "q2"));
-    // And each ran the prompt it was queued with, the second with the model it named, the replies are theirs, and the queue is empty
-    let spawned = rig.spawner.spawned();
-    assert_eq!(spawned.len(), 3);
-    assert!(spawned[1].args.contains(&"first queued".to_string()) && spawned[2].args.contains(&"second queued".to_string()) && spawned[2].args.windows(2).any(|w| w == ["-m", "small"]));
+    // And each ran the prompt it was queued with, the replies are theirs, and the queue is empty
+    assert_eq!(rig.spawner.prompts(), ["work", "first queued", "second queued"]);
     assert!(events.iter().any(|e| e.kind == "message.delta" && e.turn.as_deref() == Some("q2") && e.data["text"] == json!("two done")));
     assert_eq!(events.iter().filter(|e| e.kind == "turn.finished").map(|e| e.data["reason"].clone()).collect::<Vec<_>>(), [json!("interrupted"), json!("completed"), json!("completed")]);
     assert_eq!(rig.ok("queue.list", json!({"thread": "t"})).await["items"], json!([]));
@@ -319,7 +329,7 @@ async fn given_a_forced_stop_when_the_turn_ends_then_its_queue_is_held_until_res
     // Given a turn that stays up with a prompt queued behind it, and a second run that finishes
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script_each("env", vec![script(&[said("stuck")], true), script(&[said("resumed")], false)]);
+    rig.spawner.script_each(vec![script(&[said("stuck")], true), script(&[said("resumed")], false)]);
     let turn = rig.start("t", "work").await;
     rig.ok("queue.add", json!({"thread": "t", "item": "q1", "prompt": "after"})).await;
     // When a forced stop names another turn, then the running one
@@ -329,21 +339,21 @@ async fn given_a_forced_stop_when_the_turn_ends_then_its_queue_is_held_until_res
     // Then the first is refused as superseded and nothing was killed, the second killed the process and held the queue, and the turn ended interrupted
     assert_eq!(code_of(&late), json!("SUPERSEDED"));
     assert_eq!((stopped["turn"].clone(), stopped["outcome"].clone(), stopped["shared_with"].clone()), (json!(turn), json!("killed"), json!([])));
-    assert_eq!(rig.spawner.kills(), 1);
+    assert_eq!(rig.spawner.aborts(), 1);
     assert_eq!(rig.kinds("t").iter().filter(|k| k.starts_with("thread.force") || *k == "queue.held").count(), 2);
     assert_eq!(rig.events("t").iter().rev().find(|e| e.kind == "turn.finished").unwrap().data["reason"], json!("interrupted"));
     // And the queued prompt did not start by itself, and the list says the queue is held
     tokio::time::sleep(Duration::from_millis(100)).await;
-    assert_eq!(rig.spawner.spawned().len(), 1);
+    assert_eq!(rig.spawner.prompts().len(), 1);
     assert_eq!(rig.ok("queue.list", json!({"thread": "t"})).await["held"], json!(true));
     // When the queue is resumed
     let resumed = rig.ok("queue.resume", json!({"thread": "t"})).await;
     rig.until("the queued turn finished", |r| r.kinds("t").iter().filter(|k| *k == "turn.finished").count() == 2).await;
     // Then it names the turn it started, which is the queued item's id, and the CLI ran its prompt
     assert_eq!((resumed["held"].clone(), resumed["started"].clone()), (json!(false), json!("q1")));
-    assert!(rig.spawner.spawned()[1].args.contains(&"after".to_string()));
+    assert_eq!(rig.spawner.prompts()[1], "after");
     // And a prompt sent now while a turn runs is refused, and so is a resume of a thread that is gone
-    rig.spawner.script("env", script(&[], true));
+    rig.spawner.script(script(&[], true));
     rig.start("t", "again").await;
     rig.ok("queue.add", json!({"thread": "t", "item": "q2", "prompt": "later"})).await;
     assert_eq!(rig.ask("queue.resume", json!({"thread": "t", "item": "q2"})).await["error"]["message"], json!("A queued user message can only be sent now while the thread is stopped."));
@@ -352,11 +362,11 @@ async fn given_a_forced_stop_when_the_turn_ends_then_its_queue_is_held_until_res
 }
 
 #[tokio::test]
-async fn given_a_running_turn_when_it_is_steered_then_its_cli_is_ended_and_another_runs_the_steer_prompt_in_the_same_turn_and_the_thread_ends_once() {
-    // Given a turn whose CLI announces its conversation and stays up, a second CLI that finishes, and a prompt in the thread's queue
+async fn given_a_running_turn_when_it_is_steered_then_its_session_takes_the_prompt_and_the_same_turn_goes_on_and_the_thread_ends_once() {
+    // Given a turn that stays up on its session, and a prompt in the thread's queue
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script_each("env", vec![script(&[init("s-1"), said("going right")], true), script(&[said("going left")], false)]);
+    rig.spawner.script(script(&[said("going right")], true));
     let turn = rig.start("t", "go right").await;
     rig.says("t", "going right").await;
     rig.ok("queue.add", json!({"thread": "t", "item": "q1", "prompt": "go left"})).await;
@@ -368,17 +378,15 @@ async fn given_a_running_turn_when_it_is_steered_then_its_cli_is_ended_and_anoth
     assert_eq!(code_of(&both), json!("INVALID_PARAMS"));
     assert_eq!(steered["turn"], json!(turn));
     assert_eq!(rig.ok("queue.list", json!({"thread": "t"})).await["items"], json!([]));
-    // And the first process was killed and the second ran the steer prompt in the conversation the first announced
-    let spawned = rig.spawner.spawned();
-    assert_eq!((rig.spawner.kills(), spawned.len()), (1, 2));
-    assert!(spawned[1].args.contains(&"go left".to_string()) && spawned[1].args.windows(2).any(|w| w == ["--session", "s-1"]), "{:?}", spawned[1].args);
-    // And the log has one start and one finish of the turn, with the steer between what the two processes said, and the turn completed
+    // And the session was given the steer as another prompt, with nothing aborted
+    assert_eq!((rig.spawner.prompts(), rig.spawner.aborts()), (vec!["go right".to_string(), "go left".to_string()], 0));
+    // And the log has one start and one finish of the turn, with the steer between what the session said, and the turn completed
     let events = rig.events("t");
     assert_eq!(events.iter().filter(|e| e.kind == "turn.started").count(), 1);
     let finishes: Vec<&Event> = events.iter().filter(|e| e.kind == "turn.finished").collect();
     assert_eq!((finishes.len(), finishes[0].data["reason"].clone(), finishes[0].turn.as_deref()), (1, json!("completed"), Some(turn.as_str())));
     let order: Vec<String> = events.iter().filter(|e| e.kind == "turn.steered" || (e.kind == "message.delta" && e.data["role"] == json!("assistant"))).map(|e| if e.kind == "turn.steered" { format!("steered {}", e.data["prompt"].as_str().unwrap()) } else { e.data["text"].as_str().unwrap().to_string() }).collect();
-    assert_eq!(order, ["going right", "steered go left", "going left"]);
+    assert_eq!(order, ["going right", "steered go left", " steered"]);
     // And a steer of a thread that runs nothing is refused
     assert_eq!(code_of(&rig.ask("turn.steer", json!({"thread": "t", "prompt": "now"})).await), json!("NO_TURN"));
 }
@@ -394,7 +402,7 @@ impl Rig {
 async fn given_a_thread_launched_and_one_that_cannot_start_when_launch_is_called_then_the_first_has_its_turn_and_the_second_leaves_no_thread_behind() {
     // Given a CLI that says something
     let rig = rig();
-    rig.spawner.script("env", script(&[said("hello")], false));
+    rig.spawner.script(script(&[said("hello")], false));
     // When a thread is launched with a prompt, again with its id, with a driver nobody runs, and in a workspace with no executor
     let launched = rig.ok("thread.launch", json!({"thread": "l1", "title": "Launched", "workspace": "w1", "driver": "opencode", "prompt": "begin"})).await;
     rig.idle("l1").await;
@@ -406,7 +414,7 @@ async fn given_a_thread_launched_and_one_that_cannot_start_when_launch_is_called
     assert!(rig.kinds("l1").contains(&"turn.finished".to_string()));
     assert_eq!([code_of(&again), code_of(&driver), code_of(&away)], [json!("THREAD_EXISTS"), json!("UNKNOWN_DRIVER"), json!("NO_EXECUTOR")]);
     assert!(rig.engine.get("l2").unwrap().is_none() && rig.engine.get("l3").unwrap().is_none());
-    assert_eq!(rig.spawner.spawned().len(), 1);
+    assert_eq!(rig.spawner.prompts().len(), 1);
 }
 
 #[tokio::test]
@@ -414,7 +422,7 @@ async fn given_threads_with_turns_when_forked_searched_and_listed_by_family_then
     // Given a parent with two finished turns, in a workspace
     let rig = rig();
     rig.create("parent").await;
-    rig.spawner.script_each("env", vec![script(&[said("alpha reply")], false), script(&[said("beta reply")], false), script(&[said("fork reply")], false)]);
+    rig.spawner.script_each(vec![script(&[said("alpha reply")], false), script(&[said("beta reply")], false), script(&[said("fork reply")], false)]);
     let first = rig.start("parent", "alpha question").await;
     rig.idle("parent").await;
     rig.start("parent", "beta question").await;
@@ -448,8 +456,7 @@ async fn given_threads_with_turns_when_forked_searched_and_listed_by_family_then
     rig.start("parent", "carry on").await;
     rig.idle("parent").await;
     // Then the CLI was given the fork's work as context before the prompt, the log says the context was taken, and nothing waits
-    let spawned = rig.spawner.spawned();
-    let given = spawned.last().unwrap().args.iter().find(|a| a.contains("carry on")).unwrap();
+    let given = rig.spawner.prompts().last().unwrap().clone();
     assert!(given.starts_with("Context carried over from the side thread zkid") && given.contains("gamma question") && given.ends_with("carry on"), "{given}");
     assert!(rig.kinds("parent").contains(&"thread.merge_consumed".to_string()));
     assert_eq!(rig.ok("thread.family", json!({"thread": "parent"})).await["threads"][0]["pending_merge_back"], json!(null));
@@ -459,7 +466,7 @@ async fn given_threads_with_turns_when_forked_searched_and_listed_by_family_then
 async fn given_threads_when_settled_snoozed_archived_and_deleted_then_each_state_is_what_the_call_set_the_shelves_page_and_a_delete_ends_what_runs() {
     // Given three idle threads with a turn each, and one running
     let rig = rig();
-    rig.spawner.script_each("env", vec![script(&[said("done")], false), script(&[said("done")], false), script(&[said("done")], false), script(&[], true)]);
+    rig.spawner.script_each(vec![script(&[said("done")], false), script(&[said("done")], false), script(&[said("done")], false), script(&[], true)]);
     for thread in ["a", "b", "c"] {
         rig.create(thread).await;
         rig.start(thread, "work").await;
@@ -493,7 +500,7 @@ async fn given_threads_when_settled_snoozed_archived_and_deleted_then_each_state
     assert_eq!(gone["deleted"], json!(true));
     assert_eq!(killed["deleted"], json!(true));
     rig.idle("busy").await;
-    assert_eq!(rig.spawner.kills(), 1);
+    assert_eq!(rig.spawner.aborts(), 1);
     assert!(rig.ok("thread.list", json!({})).await["threads"].as_array().unwrap().iter().all(|t| t["id"] != json!("a") && t["id"] != json!("busy")));
     assert_eq!(rig.ok("thread.shelf", json!({"shelf": "settled"})).await["threads"], json!([]));
 }
@@ -503,7 +510,7 @@ async fn given_a_failed_turn_when_it_is_retried_and_rolled_back_then_the_retry_r
     // Given a turn that fails and a CLI that then succeeds
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script_each("env", vec![CliScript { exit: Some("exited with 1: not logged in".into()), ..CliScript::default() }, script(&[said("fine")], false)]);
+    rig.spawner.script_each(vec![CliScript { exit: Some("exited with 1: not logged in".into()), ..CliScript::default() }, script(&[said("fine")], false)]);
     let failed = rig.start("t", "do the thing").await;
     rig.idle("t").await;
     // When the turn is retried, and the retried one again (it completed)
@@ -514,7 +521,7 @@ async fn given_a_failed_turn_when_it_is_retried_and_rolled_back_then_the_retry_r
     assert_eq!(retried["retry_of"], json!(failed));
     let new_turn = retried["turn"].as_str().unwrap();
     assert_ne!(new_turn, failed);
-    assert!(rig.spawner.spawned()[1].args.contains(&"do the thing".to_string()));
+    assert_eq!(rig.spawner.prompts()[1], "do the thing");
     assert!(rig.events("t").iter().any(|e| e.kind == "turn.finished" && e.turn.as_deref() == Some(new_turn) && e.data["reason"] == json!("completed")));
     assert_eq!(code_of(&again), json!("NOT_RETRYABLE"));
     // When the thread is rolled back to the failed turn while asking for the files back, and again without
@@ -532,31 +539,32 @@ async fn given_a_failed_turn_when_it_is_retried_and_rolled_back_then_the_retry_r
 
 #[tokio::test]
 async fn given_a_thread_whose_cli_announced_a_conversation_when_the_next_turn_runs_and_then_it_is_detached_then_the_turn_resumes_it_and_the_one_after_the_detach_does_not() {
-    // Given a CLI that announces conversation s-7 in every turn
+    // Given a server whose first session is ses-1
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script("env", script(&[init("s-7"), said("hi")], false));
+    rig.spawner.script(script(&[said("hi")], false));
     rig.start("t", "first").await;
     rig.idle("t").await;
     rig.until("the session is kept", |r| r.engine.provider_session("t", "opencode").unwrap().is_some()).await;
     // When the next turn runs
     rig.start("t", "second").await;
     rig.idle("t").await;
-    // Then it resumed the conversation and the first did not
-    let spawned = rig.spawner.spawned();
-    assert!(!spawned[0].args.contains(&"--session".to_string()) && spawned[1].args.windows(2).any(|w| w == ["--session", "s-7"]), "{:?}", spawned.iter().map(|s| s.args.clone()).collect::<Vec<_>>());
+    // Then the first made the session and the second went on in it, live, with no create and no lookup
+    let creates = || rig.spawner.server().received().iter().filter(|(_, m)| m["method"] == "POST" && m["path"] == "/session").count();
+    let looked_up = rig.spawner.server().received().iter().filter(|(_, m)| m["method"] == "GET" && m["path"] == "/session/ses-1").count();
+    assert_eq!((creates(), looked_up), (1, 0));
     // When another conversation is detached, then the thread's own, then it again
-    let other = rig.ask("thread.detach", json!({"thread": "t", "session": "s-9"})).await;
-    let detached = rig.ok("thread.detach", json!({"thread": "t", "session": "s-7", "reason": "stale"})).await;
-    let twice = rig.ask("thread.detach", json!({"thread": "t", "session": "s-7"})).await;
+    let other = rig.ask("thread.detach", json!({"thread": "t", "session": "ses-9"})).await;
+    let detached = rig.ok("thread.detach", json!({"thread": "t", "session": "ses-1", "reason": "stale"})).await;
+    let twice = rig.ask("thread.detach", json!({"thread": "t", "session": "ses-1"})).await;
     // Then only its own is detached, with the contract's refusal for the others
     assert_eq!((code_of(&other), code_of(&twice)), (json!("SESSION_NOT_OWNED"), json!("SESSION_NOT_OWNED")));
-    assert_eq!((detached["thread"].clone(), detached["session"].clone()), (json!("t"), json!("s-7")));
-    // And the next turn starts without resuming (it announces s-7 again and the thread keeps it for the one after)
+    assert_eq!((detached["thread"].clone(), detached["session"].clone()), (json!("t"), json!("ses-1")));
+    // And the next turn starts without resuming (the server makes a session, and the thread keeps it for the one after)
     rig.start("t", "third").await;
     rig.idle("t").await;
-    assert!(!rig.spawner.spawned()[2].args.contains(&"--session".to_string()));
-    assert_eq!(rig.engine.provider_session("t", "opencode").unwrap().as_deref(), Some("s-7"));
+    assert_eq!(creates(), 2);
+    rig.until("the new session is kept", |r| r.engine.provider_session("t", "opencode").unwrap().as_deref() == Some("ses-2")).await;
 }
 
 #[tokio::test]
@@ -564,7 +572,7 @@ async fn given_a_turn_with_a_workflow_and_a_transcript_when_the_workflow_is_stop
     // Given a turn that says something and stays up
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script("env", script(&[said("working on it")], true));
+    rig.spawner.script(script(&[said("working on it")], true));
     let turn = rig.start("t", "work").await;
     rig.says("t", "working on it").await;
     // When a workflow of another turn is stopped, then of the running turn naming the workflow
@@ -574,7 +582,7 @@ async fn given_a_turn_with_a_workflow_and_a_transcript_when_the_workflow_is_stop
     // Then the first is not a running turn, and the second ended the turn's process and the turn, with the stop in the log before the finish
     assert_eq!(code_of(&wrong), json!("NO_TURN"));
     assert_eq!(stopped["turn"], json!(turn));
-    assert_eq!(rig.spawner.kills(), 1);
+    assert_eq!(rig.spawner.aborts(), 1);
     let kinds = rig.kinds("t");
     assert!(kinds.iter().position(|k| k == "workflow.stopped").unwrap() < kinds.iter().position(|k| k == "turn.finished").unwrap());
     assert_eq!(rig.events("t").last().unwrap().data["reason"], json!("interrupted"));

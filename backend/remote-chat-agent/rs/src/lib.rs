@@ -107,7 +107,7 @@ pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn
         })
     };
     let runner = Runner::with_gateway(threads.clone(), executors.clone(), launcher, mcp.clone(), Arc::new(infrastructure::gateway_turns::GatewayTurns::new(model_gateway.clone(), mcp.clone())));
-    runner.sessions().set_idle(config.claude_idle, config.codex_idle);
+    runner.sessions().set_idle(config.claude_idle, config.codex_idle, config.opencode_idle);
     let hub = Arc::new(StateHub::from_base(state, config.state_seq_base));
     let attachments = Attachments::new(attachment_parts.store, attachment_parts.clock, attachment_parts.ids, executors.clone());
     let agent_threads = Arc::new(AgentThreadsGroup::with_runner(runner.clone()).with_staging(Arc::new(StagesAttachments::new(attachments.clone()))));

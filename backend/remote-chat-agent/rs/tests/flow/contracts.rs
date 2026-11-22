@@ -7,7 +7,7 @@ use crate::harness::{agent_api, service, Env, Options, SECRET};
 use agent_api_proto::testing::{Exchange, Fixture};
 use exec_proto::testing::Fixture as ExecFixture;
 use futures_util::{SinkExt, StreamExt};
-use rca_cli_driver::domain::{translate, Driver, ExecEvent};
+use rca_cli_driver::domain::{Driver, ExecEvent};
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 use std::sync::{Arc, Mutex};
@@ -156,18 +156,11 @@ fn every_recording_of_the_scripted_cli_translates_to_the_neutral_events_its_inde
     for recording in recordings {
         // When every line of one goes through the translation the service applies to the real CLI's output
         let driver = Driver::parse(&recording.driver).unwrap_or_else(|| panic!("{}: {} is no driver of the service", recording.name, recording.driver));
-        // Claude Code's lines are read by the live session's translator; Codex's are those of `codex exec --json`, which the service no longer runs: its server
-        // is read by `domain::codex`, whose recordings are in `agent_codex.rs`
+        // Claude Code's lines are read by the live session's translator; Codex's are those of `codex exec --json` and opencode's those of `opencode run --format json`,
+        // which the service no longer runs: Codex's server is read by `domain::codex` (its recordings are in `agent_codex.rs`) and opencode's by `domain::opencode`
         if driver == Driver::ClaudeAgent {
             assert_eq!(claude_kinds(&recording.lines), recording.expect, "{}", recording.name);
-            continue;
         }
-        if driver.lives() {
-            continue;
-        }
-        let events: Vec<String> = recording.lines.iter().flat_map(|line| translate(driver, line)).map(|event| kind_of(&event).to_string()).collect();
-        // Then the neutral events are the ones the index lists, in order
-        assert_eq!(events, recording.expect, "{}", recording.name);
     }
 }
 

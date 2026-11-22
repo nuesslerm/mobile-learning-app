@@ -10,7 +10,6 @@ use agent_api_proto::Event;
 use exec_testkit::script::{Script, Turn};
 use exec_testkit::{RcaExec, ScriptedCli, TempRepo};
 use rca_service::infrastructure::agent_socket::QUEUE;
-use rca_cli_driver::testing::ScriptedSpawner;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use std::time::Duration;
@@ -66,7 +65,7 @@ async fn chain_in(env: &Env, options: Options, exec_env: &[(String, String)]) ->
     let cli = ScriptedCli::install();
     env.use_path(&cli.path());
     let repo = TempRepo::new();
-    let svc = service_spawning(env, Options { at_workspace: true, ..options }, ScriptedSpawner::new());
+    let svc = service_spawning(env, Options { at_workspace: true, ..options });
     let port = svc.listen().await;
     let host_home = env.home.join("host");
     std::fs::create_dir_all(&host_home).expect("the host's home is made");
@@ -405,10 +404,19 @@ async fn restarted(old: Chain, env: &Env, options: Options) -> Chain {
     let Chain { _svc, cli, repo, exec, token, host_home, .. } = old;
     drop(exec);
     drop(_svc);
-    let svc = service_spawning(env, Options { at_workspace: true, ..options }, ScriptedSpawner::new());
+    let svc = service_spawning(env, Options { at_workspace: true, ..options });
     let port = svc.listen().await;
     let exec = tokio::task::block_in_place(|| RcaExec::serve_on(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &cli.path()));
     Chain { _svc: svc, port, cli, repo, exec: Some(exec), host_home, token }
+}
+
+/// How many sessions the `start`-th server of the scripted opencode was asked to make, and whether it was asked for the session `id`.
+fn created_by(requests: &[Value], start: u64) -> usize {
+    requests.iter().filter(|r| r["start"] == start && r["method"] == "POST" && r["path"].as_str().is_some_and(|p| p == "/session" || p.starts_with("/session?"))).count()
+}
+
+fn looked_up(requests: &[Value], start: u64, id: &str) -> bool {
+    requests.iter().any(|r| r["start"] == start && r["method"] == "GET" && r["path"].as_str().is_some_and(|p| p.starts_with(&format!("/session/{id}"))))
 }
 
 fn opencode_said(session: &str, text: &str) -> String {
@@ -442,11 +450,10 @@ async fn given_an_opencode_thread_whose_turn_named_a_session_when_the_service_an
     let second = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "opencode", "prompt": "two"})).await;
     assert!(second.get("result").is_some(), "{second}");
     history_with_finishes(&mut agent, "t1", 2).await;
-    // Then the first run of the CLI started a conversation of its own and the second one went on in the session the first named
-    let starts = chain.cli.invocations("opencode");
-    assert_eq!(starts.len(), 2, "{starts:?}");
-    let session_of = |argv: &Vec<String>| argv.iter().position(|a| a == "--session").map(|i| argv[i + 1].clone());
-    assert_eq!((session_of(&starts[0].argv), session_of(&starts[1].argv)), (None, Some("ses_resume_1".to_string())), "{:?}", starts.iter().map(|s| s.argv.clone()).collect::<Vec<_>>());
+    // Then the first server made a session of its own and the second one went on in the session the first named, with no session made
+    let requests = chain.cli.opencode_requests("opencode");
+    assert_eq!((created_by(&requests, 1), created_by(&requests, 2)), (1, 0), "{requests:?}");
+    assert!(looked_up(&requests, 2, "ses_scripted0001"), "{requests:?}");
 }
 
 async fn history_kinds(agent: &mut Agent, thread: &str) -> Vec<(String, Value)> {
@@ -513,20 +520,19 @@ async fn given_an_opencode_turn_interrupted_by_a_restart_with_a_prompt_queued_be
     assert_eq!(finishes, [json!("interrupted"), json!("completed")], "{kinds_seen:?}");
     assert!(kinds_seen.iter().any(|(kind, _)| kind == "queue.started"), "{kinds_seen:?}");
     assert_eq!(agent.ask("thread.get", json!({"thread": "t1"})).await["result"]["thread"]["status"], json!("idle"));
-    // And the queued prompt's CLI went on in the first turn's session
-    let session_of = |argv: &Vec<String>| argv.iter().position(|a| a == "--session").map(|i| argv[i + 1].clone());
-    let starts = chain.cli.invocations("opencode");
-    assert_eq!(starts.len(), 2, "{starts:?}");
-    assert_eq!((session_of(&starts[0].argv), session_of(&starts[1].argv)), (None, Some("ses_queue_1".to_string())));
+    // And the queued prompt went on in the first turn's session: the second server looked it up and made none
+    let requests = chain.cli.opencode_requests("opencode");
+    assert_eq!((created_by(&requests, 1), created_by(&requests, 2)), (1, 0), "{requests:?}");
+    assert!(looked_up(&requests, 2, "ses_scripted0001"), "{requests:?}");
     // When a follow-up prompt "continue" starts a turn
     agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
     let again = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "opencode", "prompt": "continue"})).await;
     assert!(again.get("result").is_some(), "{again}");
     history_with_finishes(&mut agent, "t1", 3).await;
-    // Then its CLI resumes the same session
-    let starts = chain.cli.invocations("opencode");
-    assert_eq!(starts.len(), 3, "{starts:?}");
-    assert_eq!(session_of(&starts[2].argv), Some("ses_queue_1".to_string()), "{:?}", starts[2].argv);
+    // Then it resumed the same session on the one server it has (a live one: no lookup, no session made)
+    let requests = chain.cli.opencode_requests("opencode");
+    assert_eq!(created_by(&requests, 2), 0, "{requests:?}");
+    assert!(requests.iter().filter(|r| r["start"] == 2 && r["path"].as_str().is_some_and(|p| p.starts_with("/session/ses_scripted0001/prompt_async"))).count() >= 2, "{requests:?}");
 }
 
 /// A chain whose first service (on a runtime of its own, shut down by the caller to crash it) holds a running opencode turn that has said something and
@@ -588,7 +594,7 @@ async fn restarted_with_a_late_executor(old: Chain, env: &Env, options: Options,
     let Chain { _svc, cli, repo, exec, token, host_home, .. } = old;
     drop(exec);
     drop(_svc);
-    let svc = service_spawning(env, Options { at_workspace: true, ..options }, ScriptedSpawner::new());
+    let svc = service_spawning(env, Options { at_workspace: true, ..options });
     let port = svc.listen().await;
     tokio::time::sleep(delay).await;
     let exec = tokio::task::block_in_place(|| RcaExec::serve_on(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &cli.path()));
@@ -612,11 +618,10 @@ async fn given_a_restart_whose_executor_attaches_late_when_a_prompt_is_queued_th
     assert!(started.elapsed() >= Duration::from_secs(3), "the queue ran before the executor attached");
     let finishes: Vec<Value> = seen.iter().filter(|(kind, _)| kind == "turn.finished").map(|(_, reason)| reason.clone()).collect();
     assert_eq!(finishes, [json!("interrupted"), json!("completed")], "{seen:?}");
-    // And its CLI went on in the first turn's session, started once
-    let session_of = |argv: &Vec<String>| argv.iter().position(|a| a == "--session").map(|i| argv[i + 1].clone());
-    let starts = chain.cli.invocations("opencode");
-    assert_eq!(starts.len(), 2, "{starts:?}");
-    assert_eq!(session_of(&starts[1].argv), Some("ses_queue_1".to_string()));
+    // And its prompt went on in the first turn's session: the second server looked it up and made none
+    let requests = chain.cli.opencode_requests("opencode");
+    assert_eq!(created_by(&requests, 2), 0, "{requests:?}");
+    assert!(looked_up(&requests, 2, "ses_scripted0001"), "{requests:?}");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]

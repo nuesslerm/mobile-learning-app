@@ -6,7 +6,6 @@
 use crate::harness::{service_spawning, Env, Options, SECRET};
 use crate::mapper::Agent;
 use exec_testkit::{RcaExec, TempRepo};
-use rca_cli_driver::testing::ScriptedSpawner;
 use serde_json::json;
 use std::time::Duration;
 
@@ -67,7 +66,7 @@ async fn real_turn(driver: &str, model: Option<&str>, follow_up: bool) {
     let (path, creds, home) = executor_env();
     env.use_path(&path);
     let repo = TempRepo::new();
-    let svc = service_spawning(&env, Options { at_workspace: true, ..Options::default() }, ScriptedSpawner::new());
+    let svc = service_spawning(&env, Options { at_workspace: true, ..Options::default() });
     let port = svc.listen().await;
     let _exec = tokio::task::block_in_place(|| RcaExec::serve_with_env(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &path, Some(home.path()), &creds));
     let token = svc.mint("real backend").await;

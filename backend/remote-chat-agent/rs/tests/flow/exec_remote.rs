@@ -1,23 +1,18 @@
 //! `/exec/v2` and `/mcp`, and the turns that use them: the executor channel, keyed by workspace. The service listens on a real loopback port; a
 //! WebSocket client plays `rca-exec` (it performs the actions in its own temporary directory); a mapper starts a turn with `turn.start` on the agent
-//! socket and follows the thread's events; a scripted program the Spawner starts plays the CLI and speaks MCP over HTTP to `/mcp/<thread>`.
+//! socket and follows the thread's events; the CLIs are the flow's scripted live servers (a Claude Code process asks for the tool server of its thread over HTTP at `/mcp/<thread>`).
 //! The retired routes (`/exec/v1/*`, `POST /exec/v2/turns`) answer 404, and the turns they ran are `agent.threads` turns now.
 use crate::harness::{call, get, post, service, service_spawning, Env, Options, Service, SECRET};
 use crate::mapper::Agent;
 use agent_api_proto::Event;
-use async_trait::async_trait;
 use axum::http::{Method, StatusCode};
-use futures_util::future::BoxFuture;
 use futures_util::stream::SplitSink;
 use futures_util::{SinkExt, StreamExt};
-use rca_cli_driver::application::ports::{Running, Spawner};
-use rca_cli_driver::testing::CliScript;
+use rca_cli_driver::testing::{claude_session, CliScript};
 use serde_json::{json, Value};
-use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::net::TcpStream;
-use tokio::sync::mpsc;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::WebSocketStream;
@@ -33,47 +28,6 @@ impl Mcp {
         let body = json!({"jsonrpc": "2.0", "id": 1, "method": method, "params": params});
         reqwest::Client::new().post(&self.url).json(&body).send().await.expect("the MCP server answers").json::<Value>().await.expect("a JSON-RPC reply")["result"].clone()
     }
-}
-
-type Script = Arc<dyn Fn(Mcp, mpsc::Sender<String>) -> BoxFuture<'static, ()> + Send + Sync>;
-
-fn script<F, Fut>(f: F) -> Script
-where
-    F: Fn(Mcp, mpsc::Sender<String>) -> Fut + Send + Sync + 'static,
-    Fut: std::future::Future<Output = ()> + Send + 'static,
-{
-    Arc::new(move |mcp, out| Box::pin(f(mcp, out)))
-}
-
-/// A CLI that is a program of the flow's own: it finds its MCP server in the config it was started with, as opencode does.
-struct ScriptedCli {
-    script: Script,
-    spawned: Mutex<Vec<(String, Vec<String>)>>,
-}
-
-#[async_trait]
-impl Spawner for ScriptedCli {
-    async fn spawn(&self, program: &str, args: &[String], _cwd: &Path) -> Result<Running, String> {
-        self.spawned.lock().unwrap().push((program.to_string(), args.to_vec()));
-        let config = args.iter().find_map(|a| a.strip_prefix("OPENCODE_CONFIG_CONTENT=")).ok_or("started without an MCP config")?;
-        let config: Value = serde_json::from_str(config).map_err(|e| e.to_string())?;
-        let mcp = Mcp { url: config["mcp"]["executor"]["url"].as_str().ok_or("no executor server in the config")?.to_string() };
-        let (lines, rx) = mpsc::channel(16);
-        let task = tokio::spawn((self.script)(mcp, lines));
-        let stop = task.abort_handle();
-        Ok(Running {
-            lines: Box::pin(tokio_stream::wrappers::ReceiverStream::new(rx)),
-            finish: Box::pin(async move {
-                let _ = task.await;
-                Ok(())
-            }),
-            kill: Arc::new(move || stop.abort()),
-        })
-    }
-}
-
-fn cli(f: Script) -> Arc<ScriptedCli> {
-    Arc::new(ScriptedCli { script: f, spawned: Mutex::new(Vec::new()) })
 }
 
 type Sink = Arc<tokio::sync::Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>;
@@ -171,33 +125,31 @@ fn kinds(events: &[Event]) -> Vec<&str> {
     events.iter().map(|e| e.kind.as_str()).collect()
 }
 
-/// A CLI that stays up until the test ends, holding its stream open.
-fn idle_cli() -> Arc<ScriptedCli> {
-    cli(script(|_mcp, out| async move {
-        let _open = out;
-        tokio::time::sleep(Duration::from_secs(30)).await;
-    }))
+/// What a CLI that stays up until the test ends says: nothing, and it does not end.
+fn hold() -> CliScript {
+    CliScript { hold: true, ..CliScript::default() }
 }
 
-/// Starts a turn of `thread` on workspace `w1` and returns once its CLI runs, so `/mcp/<thread>` resolves to the workspace's executor.
-async fn running_turn(svc: &Service, port: u16, cli: &Arc<ScriptedCli>, thread: &str) -> Agent {
+/// A service listening on a loopback port, whose opencode is the flow's scripted server.
+async fn listening(env: &Env) -> (Service, u16) {
+    let svc = service_spawning(env, Options::default());
+    let port = svc.listen().await;
+    (svc, port)
+}
+
+/// Starts a turn of `thread` of `driver` on workspace `w1` and returns once its CLI runs (`ready`), so `/mcp/<thread>` resolves to the workspace's executor.
+async fn running_turn(svc: &Service, port: u16, driver: &str, thread: &str, ready: impl Fn() -> bool) -> Agent {
     let mut agent = mapper(svc, port).await;
-    followed(&mut agent, thread, "w1", "opencode").await;
-    let started = agent.ask("turn.start", turn(thread, "w1", "opencode")).await;
+    followed(&mut agent, thread, "w1", driver).await;
+    let started = agent.ask("turn.start", turn(thread, "w1", driver)).await;
     assert!(started.get("result").is_some(), "{started}");
     for _ in 0..200 {
-        if !cli.spawned.lock().unwrap().is_empty() {
+        if ready() {
             return agent;
         }
         tokio::time::sleep(Duration::from_millis(25)).await;
     }
     panic!("the turn's CLI never started");
-}
-
-async fn listening(env: &Env, cli: Arc<ScriptedCli>) -> (Service, u16) {
-    let svc = service_spawning(env, Options::default(), cli);
-    let port = svc.listen().await;
-    (svc, port)
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -222,7 +174,7 @@ async fn given_the_retired_routes_when_called_with_the_service_secret_then_each_
         assert_eq!((answer.status, answer.json()), (StatusCode::NOT_FOUND, json!({"error": "not_found"})), "{path}");
     }
     // And no CLI started and nothing was written, while a route that is served answers the same secret
-    assert!(svc.spawner.spawned().is_empty());
+    assert!(svc.spawner.prompts().is_empty());
     assert_eq!(svc.send(get("/agent/v1/bearers").secret()).await.status, StatusCode::OK);
     assert_eq!(svc.send(post("/agent/v1/bearers").secret().json(json!({"label": "later"}))).await.status, StatusCode::CREATED);
 }
@@ -234,22 +186,18 @@ async fn given_a_cli_that_prints_its_stream_when_turns_run_then_it_becomes_neutr
     let svc = service(&env, Options::default());
     let port = svc.listen().await;
     let _executor = Executor::connect(port, "w1").await;
-    // opencode runs as `env OPENCODE_CONFIG_CONTENT=... opencode ...`, so the double is keyed by `env`
-    svc.spawner.script_each(
-        "env",
-        vec![
-            CliScript {
-                lines: [
-                    r#"{"type":"tool_use","sessionID":"ses_1","part":{"callID":"k1","tool":"bash","state":{"status":"completed","input":{"command":"ls"},"output":"a.txt"}}}"#,
-                    r#"{"type":"text","sessionID":"ses_1","part":{"text":"Done: a.txt"}}"#,
-                ]
-                .map(String::from)
-                .to_vec(),
-                ..CliScript::default()
-            },
-            CliScript { lines: vec![r#"{"type":"text","part":{"text":"from the second"}}"#.into()], ..CliScript::default() },
-        ],
-    );
+    svc.spawner.script_each(vec![
+        CliScript {
+            lines: [
+                r#"{"type":"tool_use","part":{"callID":"k1","tool":"bash","state":{"status":"completed","input":{"command":"ls"},"output":"a.txt"}}}"#,
+                r#"{"type":"text","part":{"text":"Done: a.txt"}}"#,
+            ]
+            .map(String::from)
+            .to_vec(),
+            ..CliScript::default()
+        },
+        CliScript { lines: vec![r#"{"type":"text","part":{"text":"from the second"}}"#.into()], ..CliScript::default() },
+    ]);
     let mut agent = mapper(&svc, port).await;
     followed(&mut agent, "t1", "w1", "opencode").await;
     followed(&mut agent, "t2", "w1", "opencode").await;
@@ -266,31 +214,23 @@ async fn given_a_cli_that_prints_its_stream_when_turns_run_then_it_becomes_neutr
     // And the second's text is the same kind of event
     assert_eq!(kinds(&second), ["turn.started", "message.delta", "message.delta", "turn.finished"]);
     assert_eq!((second[2].data["role"].clone(), second[2].data["text"].clone()), (json!("assistant"), json!("from the second")));
-    // And both ran at the workspace host's root with the model and the prompt, not interactively, none with its own tools switched off or its tool list narrowed
-    let spawned = svc.spawner.spawned();
-    assert_eq!(spawned.iter().map(|s| (s.program.as_str(), s.cwd.clone())).collect::<Vec<_>>(), [("env", ".".into()), ("env", ".".into())]);
-    assert!(spawned.iter().all(|s| s.args.contains(&"make a note".to_string()) && s.args.iter().any(|a| a == "opencode") && s.args.windows(2).any(|w| w == ["-m", "m1"])), "{spawned:?}");
-    let switched_off = ["--tools", "--allowedTools", "--allowed-tools", "--disallowedTools", "--disallowed-tools", "--no-builtin-tools"];
-    assert!(spawned.iter().all(|s| !s.args.iter().any(|a| switched_off.contains(&a.as_str()) || a.contains("\"tools\":"))), "{spawned:?}");
+    // And both ran on the one server, each with the prompt
+    assert_eq!(svc.spawner.prompts(), ["make a note", "make a note"]);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_clis_that_fail_when_turns_run_then_each_thread_logs_an_error_with_the_reason_and_finishes_failed() {
-    // Given an executor for the workspace, opencode reporting an error line, opencode exiting with stderr and no JSON, and a CLI that is not installed
+    // Given an executor for the workspace, opencode reporting an error line, and a session that fails with a reason
     let env = Env::new(&[]);
     let svc = service(&env, Options::default());
     let port = svc.listen().await;
     let _executor = Executor::connect(port, "w1").await;
-    svc.spawner.script_each(
-        "env",
-        vec![
-            CliScript { lines: vec![r#"{"type":"error","error":{"data":{"message":"rate limited"}}}"#.into()], ..CliScript::default() },
-            CliScript { exit: Some("exited with 1: not logged in".into()), ..CliScript::default() },
-            CliScript { not_started: Some("not found".into()), ..CliScript::default() },
-        ],
-    );
+    svc.spawner.script_each(vec![
+        CliScript { lines: vec![r#"{"type":"error","error":{"data":{"message":"rate limited"}}}"#.into()], ..CliScript::default() },
+        CliScript { exit: Some("exited with 1: not logged in".into()), ..CliScript::default() },
+    ]);
     let mut agent = mapper(&svc, port).await;
-    for thread in ["t1", "t2", "t3"] {
+    for thread in ["t1", "t2"] {
         followed(&mut agent, thread, "w1", "opencode").await;
     }
     // When a turn runs on each of the first two
@@ -303,13 +243,6 @@ async fn given_clis_that_fail_when_turns_run_then_each_thread_logs_an_error_with
     assert_eq!(error(&reported), Some((json!("CLI_ERROR"), json!("rate limited"))));
     assert_eq!(error(&exited), Some((json!("CLI_ERROR"), json!("exited with 1: not logged in"))));
     assert!(reported.last().unwrap().data["reason"] == json!("failed") && exited.last().unwrap().data["reason"] == json!("failed"));
-    // When a turn names a CLI that cannot be started
-    agent.ask("turn.start", turn("t3", "w1", "opencode")).await;
-    let missing = agent.events_through("turn.finished").await;
-    // Then the thread says it could not start and why, and finished failed
-    assert_eq!(error(&missing).map(|(code, _)| code), Some(json!("CLI_START_FAILED")));
-    assert!(error(&missing).unwrap().1.as_str().unwrap().contains("not found"), "{:?}", error(&missing));
-    assert_eq!(missing.last().unwrap().data["reason"], json!("failed"));
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -319,8 +252,7 @@ async fn given_an_executor_without_claude_when_a_turn_names_claude_code_then_it_
     let svc = service(&env, Options::default());
     let port = svc.listen().await;
     let _executor = Executor::connect_having(port, "w1", Some(vec!["opencode".into()])).await;
-    // opencode runs as `env OPENCODE_CONFIG_CONTENT=... opencode ...`, so the double is keyed by `env`
-    svc.spawner.script("env", CliScript { lines: vec![r#"{"type":"text","part":{"text":"from opencode"}}"#.into()], ..CliScript::default() });
+    svc.spawner.script(CliScript { lines: vec![r#"{"type":"text","part":{"text":"from opencode"}}"#.into()], ..CliScript::default() });
     let mut agent = mapper(&svc, port).await;
     followed(&mut agent, "t1", "w1", "claudeAgent").await;
     followed(&mut agent, "t2", "w1", "opencode").await;
@@ -337,14 +269,14 @@ async fn given_an_executor_without_claude_when_a_turn_names_claude_code_then_it_
     assert_eq!(refused["error"], json!({"code": "CLI_NOT_INSTALLED", "message": "claude is not installed on the executor of workspace w1"}));
     assert!(started.get("result").is_some(), "{started}");
     assert_eq!(ran.last().map(|e| e.data["reason"].clone()), Some(json!("completed")));
-    assert_eq!(svc.spawner.spawned().iter().map(|s| s.program.clone()).collect::<Vec<_>>(), ["env"]);
+    assert_eq!(svc.spawner.prompts(), ["make a note"]);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_the_mcp_server_when_a_client_initializes_and_lists_tools_then_it_gets_only_the_two_tools_the_service_answers() {
     // Given a service (no executor needed to list tools)
     let env = Env::new(&[]);
-    let (_svc, port) = listening(&env, cli(script(|_, _| async {}))).await;
+    let (_svc, port) = listening(&env).await;
     let mcp = Mcp { url: format!("http://127.0.0.1:{port}/mcp/t1") };
     // When the client initializes and lists the tools
     let init = mcp.rpc("initialize", json!({"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}})).await;
@@ -361,8 +293,7 @@ async fn given_the_mcp_server_when_a_client_initializes_and_lists_tools_then_it_
 async fn given_no_executor_for_the_workspace_when_a_turn_starts_then_it_says_no_executor_and_no_cli_runs() {
     // Given a service, an executor for another workspace, and a thread whose workspace has none
     let env = Env::new(&[]);
-    let cli = cli(script(|_, _| async {}));
-    let (svc, port) = listening(&env, cli.clone()).await;
+    let (svc, port) = listening(&env).await;
     let _other = Executor::connect(port, "elsewhere").await;
     let mut agent = mapper(&svc, port).await;
     followed(&mut agent, "lonely", "lonely", "opencode").await;
@@ -370,17 +301,15 @@ async fn given_no_executor_for_the_workspace_when_a_turn_starts_then_it_says_no_
     let refused = agent.ask("turn.start", turn("lonely", "lonely", "opencode")).await;
     // Then the turn is refused with NO_EXECUTOR and the CLI never started
     assert_eq!(refused["error"]["code"], json!("NO_EXECUTOR"));
-    assert!(cli.spawned.lock().unwrap().is_empty());
+    assert!(svc.spawner.prompts().is_empty());
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_a_turn_running_when_the_executors_channel_closes_then_the_turn_ends_failed_with_an_executor_gone_error_event() {
     // Given a CLI that goes on running, a connected executor, and a running turn
     let env = Env::new(&[]);
-    let cli = cli(script(|_, _| async {
-        tokio::time::sleep(Duration::from_secs(30)).await;
-    }));
-    let (svc, port) = listening(&env, cli).await;
+    let (svc, port) = listening(&env).await;
+    svc.spawner.script(hold());
     let executor = Executor::connect(port, "w1").await;
     let mut agent = mapper(&svc, port).await;
     followed(&mut agent, "t1", "w1", "opencode").await;
@@ -398,10 +327,10 @@ async fn given_a_turn_running_when_the_executors_channel_closes_then_the_turn_en
 async fn given_a_non_loopback_caller_when_it_posts_to_the_mcp_server_then_it_is_refused_with_403() {
     // Given an executor connected for the workspace and a running turn of the thread
     let env = Env::new(&[]);
-    let idle = idle_cli();
-    let (svc, port) = listening(&env, idle.clone()).await;
+    let (svc, port) = listening(&env).await;
+    svc.spawner.script(hold());
     let _executor = Executor::connect(port, "w1").await;
-    let _agent = running_turn(&svc, port, &idle, "t1").await;
+    let _agent = running_turn(&svc, port, "opencode", "t1", || !svc.spawner.prompts().is_empty()).await;
     let call = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}});
     // When a caller that is not loopback posts a request, and a loopback one posts the same
     let refused = svc.send(post("/mcp/t1").from([10, 1, 2, 3]).json(call.clone())).await;
@@ -412,16 +341,17 @@ async fn given_a_non_loopback_caller_when_it_posts_to_the_mcp_server_then_it_is_
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn given_a_cli_on_another_host_when_it_presents_the_turns_token_then_the_tool_server_answers_it_and_a_wrong_token_or_a_finished_turn_is_refused() {
-    // Given a running turn whose CLI was told the tool server's token, as one on the workspace host is
+async fn given_a_cli_on_another_host_when_it_presents_its_threads_token_then_the_tool_server_answers_it_and_a_wrong_token_or_another_threads_route_is_refused() {
+    // Given a running turn whose Claude Code process was told the tool server's token, as one on the workspace host is
     let env = Env::new(&[]);
-    let idle = idle_cli();
-    let (svc, port) = listening(&env, idle.clone()).await;
+    let linker = claude_session();
+    let svc = service_spawning(&env, Options { linker: Some(linker.clone()), ..Options::default() });
+    let port = svc.listen().await;
     let _executor = Executor::connect(port, "w1").await;
-    let mut agent = running_turn(&svc, port, &idle, "t1").await;
-    let args = idle.spawned.lock().unwrap()[0].1.clone();
-    let config: Value = serde_json::from_str(args.iter().find_map(|a| a.strip_prefix("OPENCODE_CONFIG_CONTENT=")).unwrap()).unwrap();
-    let bearer = config["mcp"]["executor"]["headers"]["Authorization"].as_str().unwrap().to_string();
+    let mut agent = running_turn(&svc, port, "claudeAgent", "t1", || linker.starts() > 0).await;
+    let flags = linker.flags()[0].clone();
+    let config: Value = serde_json::from_str(&flags[flags.iter().position(|f| f == "--mcp-config").unwrap() + 1]).unwrap();
+    let bearer = config["mcpServers"]["executor"]["headers"]["Authorization"].as_str().unwrap().to_string();
     let call = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}});
     let remote = |auth: &str| svc.send(post("/mcp/t1").from([10, 1, 2, 3]).header("authorization", auth).json(call.clone()));
     // When the same caller from another address presents that token, a wrong one, and the token for another thread's route
@@ -432,21 +362,21 @@ async fn given_a_cli_on_another_host_when_it_presents_the_turns_token_then_the_t
     // Then only the right token on its own thread's route is served
     assert_eq!(served.status, StatusCode::OK, "{}", served.json());
     assert_eq!((wrong.status, bare.status, elsewhere.status), (StatusCode::FORBIDDEN, StatusCode::FORBIDDEN, StatusCode::FORBIDDEN));
-    // And once the turn is over the token no longer opens the route
+    // And while the process lives the token still opens its thread's route, after the turn is over too
     agent.ask("turn.interrupt", json!({"thread": "t1"})).await;
     agent.events_through("turn.finished").await;
-    assert_eq!(remote(&bearer).await.status, StatusCode::FORBIDDEN);
+    assert_eq!(remote(&bearer).await.status, StatusCode::OK);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_a_channel_for_a_workspace_when_a_second_opens_then_the_first_closes_with_4001() {
     // Given two channels opened for one workspace, one after the other
     let env = Env::new(&[]);
-    let idle = idle_cli();
-    let (svc, port) = listening(&env, idle.clone()).await;
+    let (svc, port) = listening(&env).await;
+    svc.spawner.script(hold());
     let first = Executor::connect(port, "w1").await;
     let _second = Executor::connect(port, "w1").await;
-    let _agent = running_turn(&svc, port, &idle, "t1").await;
+    let _agent = running_turn(&svc, port, "opencode", "t1", || !svc.spawner.prompts().is_empty()).await;
     // Then the first was closed with 4001
     assert_eq!(first.closed_with().await, Some(4001));
 }
@@ -455,8 +385,7 @@ async fn given_a_channel_for_a_workspace_when_a_second_opens_then_the_first_clos
 async fn given_a_channel_or_turn_request_that_cannot_run_when_it_is_made_then_it_is_refused_with_its_reason_and_no_cli_starts() {
     // Given an executor connected for the workspace and a thread of it
     let env = Env::new(&[]);
-    let cli = cli(script(|_, _| async {}));
-    let (svc, port) = listening(&env, cli.clone()).await;
+    let (svc, port) = listening(&env).await;
     let _executor = Executor::connect(port, "w1").await;
     let mut agent = mapper(&svc, port).await;
     followed(&mut agent, "t1", "w1", "opencode").await;
@@ -470,33 +399,15 @@ async fn given_a_channel_or_turn_request_that_cannot_run_when_it_is_made_then_it
     assert_eq!(unknown["error"]["code"], json!("UNKNOWN_DRIVER"));
     assert_eq!((no_prompt["error"]["code"].clone(), no_prompt["error"]["message"].clone()), (json!("INVALID_PARAMS"), json!("prompt is required")));
     assert_eq!((no_workspace["error"]["code"].clone(), no_workspace["error"]["message"].clone()), (json!("INVALID_PARAMS"), json!("workspace is required")));
-    assert!(cli.spawned.lock().unwrap().is_empty());
-}
-
-struct Stopped(Arc<std::sync::atomic::AtomicBool>);
-
-impl Drop for Stopped {
-    fn drop(&mut self) {
-        self.0.store(true, std::sync::atomic::Ordering::SeqCst);
-    }
+    assert!(svc.spawner.prompts().is_empty());
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_a_running_turn_when_it_is_interrupted_then_the_cli_stops_and_the_turn_ends_interrupted() {
     // Given a CLI that goes on running, a turn of thread t1 on workspace w1
     let env = Env::new(&[]);
-    let stopped = Arc::new(std::sync::atomic::AtomicBool::new(false));
-    let cli = cli(script({
-        let stopped = stopped.clone();
-        move |_, _| {
-            let guard = Stopped(stopped.clone());
-            async move {
-                let _alive = guard;
-                tokio::time::sleep(Duration::from_secs(30)).await;
-            }
-        }
-    }));
-    let (svc, port) = listening(&env, cli).await;
+    let (svc, port) = listening(&env).await;
+    svc.spawner.script(hold());
     let _executor = Executor::connect(port, "w1").await;
     let mut agent = mapper(&svc, port).await;
     followed(&mut agent, "t1", "w1", "opencode").await;
@@ -504,15 +415,9 @@ async fn given_a_running_turn_when_it_is_interrupted_then_the_cli_stops_and_the_
     // When the turn is interrupted
     let interrupted = agent.ask("turn.interrupt", json!({"thread": "t1"})).await;
     let end = agent.events_through("turn.finished").await;
-    // Then the interrupt named the running turn and the CLI is stopped
+    // Then the interrupt named the running turn and its session was aborted
     assert_eq!(interrupted["result"], json!({"thread": "t1", "turn": started["result"]["turn"].clone()}));
-    for _ in 0..100 {
-        if stopped.load(std::sync::atomic::Ordering::SeqCst) {
-            break;
-        }
-        tokio::time::sleep(Duration::from_millis(30)).await;
-    }
-    assert!(stopped.load(std::sync::atomic::Ordering::SeqCst), "the CLI is still running");
+    assert_eq!(svc.spawner.aborts(), 1, "the session was not aborted");
     // And the turn's events end with its finish as interrupted
     assert_eq!(end.last().unwrap().data["reason"], json!("interrupted"));
 }

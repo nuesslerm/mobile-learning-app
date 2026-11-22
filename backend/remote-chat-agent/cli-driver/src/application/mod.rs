@@ -2,6 +2,6 @@
 
 pub mod claude_sessions;
 pub mod codex_sessions;
+pub mod opencode_sessions;
 pub mod sessions;
 pub mod ports;
-pub mod turns;

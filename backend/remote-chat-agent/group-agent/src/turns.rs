@@ -1,10 +1,8 @@
 //! The turns in flight: which thread runs which turn, whether it was asked to stop or to go on with another prompt, and the task that follows a CLI into the log.
-//! A steer of a CLI that runs a process for each turn ends it and starts another in the same turn, so such a turn is one or more processes; a CLI that
-//! lives takes the steer on its live session and the turn stays one.
-use crate::neutral::{Calls, CLI_START_FAILED, EXECUTOR_GONE};
+use crate::neutral::{Calls, EXECUTOR_GONE};
 use crate::runner::Runner;
 use agent_api_agent::{FinishReason, ThreadEvent};
-use rca_cli_driver::domain::{Driver, ExecEvent, TurnRequest};
+use rca_cli_driver::domain::{Driver, ExecEvent};
 use rca_exec_channel::remote::{ExecutorChannel, RemoteError};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -12,11 +10,7 @@ use tokio::sync::mpsc;
 
 struct Running {
     turn: String,
-    /// The turn's CLI is a live session: a steer goes to it as it is.
-    live: bool,
     interrupted: bool,
-    /// The prompt the turn goes on with once the CLI process it runs has ended.
-    steer: Option<String>,
     /// A `thread.detach` ran during the turn, so the conversation the CLI announced is not the thread's to keep.
     detached: bool,
 }
@@ -33,12 +27,12 @@ impl InFlight {
     }
 
     /// Takes the thread for `turn`, or none when it already runs one. The claim gives the thread back when it is dropped.
-    pub fn claim(self: &Arc<Self>, thread: &str, turn: &str, live: bool) -> Option<Claim> {
+    pub fn claim(self: &Arc<Self>, thread: &str, turn: &str) -> Option<Claim> {
         let mut held = self.held();
         if held.contains_key(thread) {
             return None;
         }
-        held.insert(thread.to_string(), Running { turn: turn.to_string(), live, interrupted: false, steer: None, detached: false });
+        held.insert(thread.to_string(), Running { turn: turn.to_string(), interrupted: false, detached: false });
         Some(Claim { in_flight: Arc::clone(self), thread: thread.to_string(), turn: turn.to_string(), ended: false })
     }
 
@@ -55,16 +49,10 @@ impl InFlight {
         self.held().get(thread).is_some_and(|r| r.interrupted)
     }
 
-    /// Names the thread's running turn that `prompt` steers, and whether its CLI is a live session that takes the prompt itself. A turn whose CLI
-    /// is a process for each turn is marked to go on with `prompt` when that process has ended. None when the thread runs no turn, runs one other than
-    /// `named`, or the turn is being stopped.
-    pub fn steer(&self, thread: &str, named: Option<&str>, prompt: &str) -> Option<(String, bool)> {
-        let mut held = self.held();
-        let running = held.get_mut(thread).filter(|r| !r.interrupted && named.is_none_or(|n| n == r.turn))?;
-        if !running.live {
-            running.steer = Some(prompt.to_string());
-        }
-        Some((running.turn.clone(), running.live))
+    /// Names the thread's running turn that a steer goes on in: none when the thread runs no turn, runs one other than `named`, or the turn is being stopped.
+    pub fn steer(&self, thread: &str, named: Option<&str>) -> Option<String> {
+        let held = self.held();
+        held.get(thread).filter(|r| !r.interrupted && named.is_none_or(|n| n == r.turn)).map(|r| r.turn.clone())
     }
 
     /// The turn the thread runs, as far as the group knows.
@@ -83,11 +71,9 @@ impl InFlight {
     }
 }
 
-/// What a turn's claim found when its process ended.
+/// What a turn's claim found when its session ended.
 pub struct End {
     pub interrupted: bool,
-    /// The prompt of a steer that arrived: the turn is not over, and its claim stays.
-    pub steer: Option<String>,
 }
 
 /// A thread's right to run a turn, held until the turn's task ends (or the turn fails to start).
@@ -99,28 +85,12 @@ pub struct Claim {
 }
 
 impl Claim {
-    /// Ends the turn unless a steer waits, and says which. Deciding both under one lock is what lets a steer that was accepted always run: it is
-    /// either found here or refused for want of a turn.
-    pub fn end(&mut self) -> End {
-        let mut held = self.in_flight.held();
-        if let Some(running) = held.get_mut(&self.thread).filter(|r| r.turn == self.turn) {
-            if !running.interrupted {
-                if let Some(steer) = running.steer.take() {
-                    return End { interrupted: false, steer: Some(steer) };
-                }
-            }
-        }
-        self.ended = true;
-        let gone = held.remove(&self.thread).filter(|r| r.turn == self.turn);
-        End { interrupted: gone.as_ref().is_some_and(|r| r.interrupted), steer: None }
-    }
-
-    /// Ends the turn whatever waits: a steer that came too late for a turn that cannot go on is dropped.
+    /// Ends the turn, and says whether it was asked to stop.
     pub fn finish(&mut self) -> End {
         let mut held = self.in_flight.held();
         self.ended = true;
         let gone = held.remove(&self.thread).filter(|r| r.turn == self.turn);
-        End { interrupted: gone.as_ref().is_some_and(|r| r.interrupted), steer: None }
+        End { interrupted: gone.as_ref().is_some_and(|r| r.interrupted) }
     }
 }
 
@@ -143,8 +113,6 @@ pub struct TurnTask {
     pub thread: String,
     pub turn: String,
     pub driver: Driver,
-    /// What the turn runs with: a steer runs it again with another prompt.
-    pub request: TurnRequest,
 }
 
 impl TurnTask {
@@ -190,40 +158,14 @@ impl TurnTask {
         }
     }
 
-    /// Starts the turn's CLI again with `prompt`, in the conversation the turn's own CLI announced when it did.
-    async fn relaunch(&mut self, prompt: String, session: &Option<String>) -> Result<mpsc::Receiver<ExecEvent>, String> {
-        self.request.prompt = prompt;
-        if session.is_some() {
-            self.request.resume = session.clone();
-        }
-        let command = self.runner.host_command(self.driver, &self.request, &self.thread).ok_or_else(|| format!("{} has no process to start again for a steer", self.driver.id()))?;
-        let spawner = self.runner.launcher().spawner(&self.channel);
-        self.runner.turns().launch(spawner.as_ref(), self.driver, &self.thread, command).await
-    }
-
-    /// Follows the CLI into the log until the turn ends (a steer starts another CLI in the same turn), records `interrupted`, `failed` or
-    /// `completed`, and lets the thread's queue run its next prompt.
+    /// Follows the session's events into the log until the turn ends, records `interrupted`, `failed` or `completed`, and lets the thread's queue run its next
+    /// prompt.
     pub async fn follow(mut self, mut events: mpsc::Receiver<ExecEvent>) {
         let mut calls = Calls::default();
         let (mut failed, mut session) = (false, None);
-        let end = loop {
-            let alive = self.pump(&mut events, &mut calls, &mut failed, &mut session).await;
-            self.keep_session(session.as_deref());
-            if !alive {
-                break self.claim.finish();
-            }
-            let end = self.claim.end();
-            let Some(prompt) = end.steer.clone() else { break end };
-            failed = false;
-            match self.relaunch(prompt, &session).await {
-                Ok(next) => events = next,
-                Err(why) => {
-                    self.record([ThreadEvent::Error { code: CLI_START_FAILED.into(), message: why }]);
-                    failed = true;
-                    break self.claim.finish();
-                }
-            }
-        };
+        self.pump(&mut events, &mut calls, &mut failed, &mut session).await;
+        self.keep_session(session.as_deref());
+        let end = self.claim.finish();
         let reason = if end.interrupted { FinishReason::Interrupted } else if failed { FinishReason::Failed } else { FinishReason::Completed };
         // The executor is let go before the finish is recorded: whoever sees the thread idle may start a turn that binds it again
         self.runner.executors().unbind(&self.thread);

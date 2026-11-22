@@ -1,111 +1,11 @@
-//! The double of the crate's port for tests: provider CLIs as scripted processes.
-use crate::application::ports::{Link, Linker, Running, Spawner};
+//! The double of the crate's port for tests: provider CLIs' live processes as scripted ones.
+use crate::application::ports::{Link, Linker, Running};
 use crate::domain::Driver;
 use async_trait::async_trait;
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-use tokio::sync::{mpsc, oneshot, Notify};
-
-/// What a faked provider CLI prints and how it ends.
-#[derive(Clone, Default)]
-pub struct CliScript {
-    pub lines: Vec<String>,
-    /// `Err` is the stderr tail of a CLI that exited with a failure.
-    pub exit: Option<String>,
-    /// The process stays up after its lines until it is killed.
-    pub hold: bool,
-    /// The program cannot be started (such as `not found`).
-    pub not_started: Option<String>,
-}
-
-/// One start the spawner was asked for.
-#[derive(Clone, Debug)]
-pub struct Spawned {
-    pub program: String,
-    pub args: Vec<String>,
-    pub cwd: PathBuf,
-}
-
-/// The provider CLIs as scripted processes, keyed by program name; a program with no script prints nothing and exits cleanly.
-#[derive(Default)]
-pub struct ScriptedSpawner {
-    scripts: Mutex<HashMap<String, Vec<CliScript>>>,
-    spawned: Mutex<Vec<Spawned>>,
-    killed: Arc<AtomicUsize>,
-}
-
-impl ScriptedSpawner {
-    pub fn new() -> Arc<Self> {
-        Arc::new(Self::default())
-    }
-
-    /// What every start of `program` does.
-    pub fn script(&self, program: &str, script: CliScript) {
-        self.script_each(program, vec![script]);
-    }
-
-    /// What the starts of `program` do, in order: the first start plays the first script, and a start after the last plays the last again.
-    pub fn script_each(&self, program: &str, scripts: Vec<CliScript>) {
-        self.scripts.lock().unwrap_or_else(|p| p.into_inner()).insert(program.to_string(), scripts);
-    }
-
-    pub fn spawned(&self) -> Vec<Spawned> {
-        self.spawned.lock().unwrap_or_else(|p| p.into_inner()).clone()
-    }
-
-    pub fn kills(&self) -> usize {
-        self.killed.load(Ordering::SeqCst)
-    }
-}
-
-#[async_trait]
-impl Spawner for ScriptedSpawner {
-    async fn spawn(&self, program: &str, args: &[String], cwd: &Path) -> Result<Running, String> {
-        let start = {
-            let mut spawned = self.spawned.lock().unwrap_or_else(|p| p.into_inner());
-            spawned.push(Spawned { program: program.into(), args: args.to_vec(), cwd: cwd.to_path_buf() });
-            spawned.iter().filter(|s| s.program == program).count() - 1
-        };
-        let script = self.scripts.lock().unwrap_or_else(|p| p.into_inner()).get(program).and_then(|all| all.get(start).or(all.last())).cloned().unwrap_or_default();
-        if let Some(why) = script.not_started.clone() {
-            return Err(why);
-        }
-        let (tx, rx) = mpsc::channel::<String>(64);
-        let (done_tx, done_rx) = oneshot::channel();
-        let stop = Arc::new(Notify::new());
-        let waiting = Arc::clone(&stop);
-        let counter = Arc::clone(&self.killed);
-        tokio::spawn(async move {
-            for line in script.lines {
-                if tx.send(line).await.is_err() {
-                    break;
-                }
-            }
-            let killed = if script.hold {
-                waiting.notified().await;
-                true
-            } else {
-                false
-            };
-            drop(tx);
-            let _ = done_tx.send(match (&script.exit, killed) {
-                (Some(stderr), false) => Err(stderr.clone()),
-                _ => Ok(()),
-            });
-        });
-        let kill: Arc<dyn Fn() + Send + Sync> = Arc::new(move || {
-            counter.fetch_add(1, Ordering::SeqCst);
-            stop.notify_one();
-        });
-        Ok(Running {
-            lines: Box::pin(futures_util::stream::unfold(rx, |mut rx| async move { rx.recv().await.map(|line| (line, rx)) })),
-            finish: Box::pin(async move { done_rx.await.unwrap_or(Ok(())) }),
-            kill,
-        })
-    }
-}
+use tokio::sync::{mpsc, oneshot};
 
 enum Emit {
     Line(String),
@@ -130,17 +30,24 @@ type React = Arc<dyn Fn(&[String], usize, &serde_json::Value) -> Vec<String> + S
 pub struct ScriptedLinker {
     state: Arc<Mutex<Starts>>,
     react: React,
+    /// What every process prints when it starts, before it is sent anything.
+    greeting: Vec<String>,
 }
 
 impl ScriptedLinker {
     /// A server that answers each message with the lines `react(start, message)` returns, `start` counting the processes from 1.
     pub fn reacting(react: impl Fn(usize, &serde_json::Value) -> Vec<String> + Send + Sync + 'static) -> Arc<ScriptedLinker> {
-        Arc::new(ScriptedLinker { state: Arc::default(), react: Arc::new(move |_, start, message| react(start, message)) })
+        Arc::new(ScriptedLinker { state: Arc::default(), react: Arc::new(move |_, start, message| react(start, message)), greeting: Vec::new() })
+    }
+
+    /// As `reacting`, for a process that says `greeting` when it starts.
+    pub fn reacting_greeted(greeting: Vec<String>, react: impl Fn(usize, &serde_json::Value) -> Vec<String> + Send + Sync + 'static) -> Arc<ScriptedLinker> {
+        Arc::new(ScriptedLinker { state: Arc::default(), react: Arc::new(move |_, start, message| react(start, message)), greeting })
     }
 
     /// As `reacting`, for a process that is told its flags when it starts (a conversation to run in).
     pub fn reacting_with_flags(react: impl Fn(&[String], usize, &serde_json::Value) -> Vec<String> + Send + Sync + 'static) -> Arc<ScriptedLinker> {
-        Arc::new(ScriptedLinker { state: Arc::default(), react: Arc::new(react) })
+        Arc::new(ScriptedLinker { state: Arc::default(), react: Arc::new(react), greeting: Vec::new() })
     }
 
     fn state(&self) -> std::sync::MutexGuard<'_, Starts> {
@@ -207,6 +114,9 @@ impl Linker for ScriptedLinker {
             state.flags.push(args.to_vec());
             let (tx, rx) = mpsc::unbounded_channel::<Emit>();
             state.emitters.push(tx.clone());
+            for line in &self.greeting {
+                let _ = tx.send(Emit::Line(line.clone()));
+            }
             (state.count, tx, rx)
         };
         let (done_tx, done_rx) = oneshot::channel();
@@ -402,4 +312,252 @@ pub fn claude_session() -> Arc<ScriptedLinker> {
             _ => vec![],
         }
     })
+}
+
+/// A line of the executor's bridge: the answer to request `id`.
+pub fn response(id: &serde_json::Value, status: u16, body: serde_json::Value) -> String {
+    say(serde_json::json!({"id": id, "status": status, "body": if body.is_null() { String::new() } else { body.to_string() }}))
+}
+
+/// A line of the executor's bridge: one frame of the server's event stream.
+pub fn frame(kind: &str, properties: serde_json::Value) -> String {
+    say(serde_json::json!({"event": {"directory": "/w", "payload": {"id": "evt", "type": kind, "properties": properties}}}))
+}
+
+fn user_message(session: &str, message: &str, text: &str) -> Vec<String> {
+    vec![
+        frame("message.updated", serde_json::json!({"sessionID": session, "info": {"id": message, "role": "user"}})),
+        frame("message.part.updated", serde_json::json!({"sessionID": session, "part": {"id": format!("{message}-p"), "messageID": message, "type": "text", "text": text}})),
+    ]
+}
+
+fn assistant_says(session: &str, message: &str, text: &str) -> Vec<String> {
+    use serde_json::json;
+    let part = format!("{message}-t");
+    vec![
+        frame("message.updated", json!({"sessionID": session, "info": {"id": message, "role": "assistant"}})),
+        frame("message.part.updated", json!({"sessionID": session, "part": {"id": part, "messageID": message, "type": "text", "text": ""}})),
+        frame("message.part.delta", json!({"sessionID": session, "messageID": message, "partID": part, "field": "text", "delta": text})),
+        frame("message.part.updated", json!({"sessionID": session, "part": {"id": part, "messageID": message, "type": "text", "text": text}})),
+    ]
+}
+
+fn idle(session: &str) -> Vec<String> {
+    vec![frame("session.status", serde_json::json!({"sessionID": session, "status": {"type": "idle"}})), frame("session.idle", serde_json::json!({"sessionID": session}))]
+}
+
+/// An opencode server behind the executor's bridge: it says it is ready when it starts, mints `ses-<n>` for each session created (and knows no session
+/// named `ses-missing`), and answers a prompt by its text: `hello` is answered at once (text, a tool call and its result, then idle), `hold` runs until it is
+/// steered or aborted, `approve` asks for the permission to run a command and goes on when the person has answered, `ask` asks a question, and `fail` fails
+/// the session. A prompt on a session that is busy is a steer.
+pub fn opencode_server() -> Arc<ScriptedLinker> {
+    use serde_json::json;
+    let (sessions, busy) = (AtomicUsize::new(0), Mutex::new(std::collections::HashSet::<String>::new()));
+    ScriptedLinker::reacting_greeted(vec![say(json!({"ready": true}))], move |start, m| {
+        let (id, path) = (&m["id"], m["path"].as_str().unwrap_or_default());
+        let route = path.split('?').next().unwrap_or_default();
+        let parts: Vec<&str> = route.trim_matches('/').split('/').collect();
+        let mut busy = busy.lock().unwrap_or_else(|p| p.into_inner());
+        match (m["method"].as_str().unwrap_or_default(), parts.as_slice()) {
+            ("POST", ["session"]) => vec![response(id, 200, json!({"id": format!("ses-{}", sessions.fetch_add(1, Ordering::SeqCst) + 1)}))],
+            ("GET", ["session", "ses-missing"]) => vec![response(id, 404, json!({"name": "NotFoundError", "data": {"message": "Session not found: ses-missing"}}))],
+            ("GET" | "PATCH", ["session", session]) => vec![response(id, 200, json!({"id": session}))],
+            ("POST", ["session", session, "prompt_async"]) => {
+                let (session, key) = (session.to_string(), format!("{start}/{session}"));
+                let text = m["body"]["parts"][0]["text"].as_str().unwrap_or_default().to_string();
+                let message = format!("u-{start}-{}", text.replace(' ', "-"));
+                let mut out = vec![response(id, 204, json!(null))];
+                out.extend(user_message(&session, &message, &text));
+                if busy.contains(&key) {
+                    out.extend(assistant_says(&session, &format!("a-{message}"), " steered"));
+                    out.extend(idle(&session));
+                    busy.remove(&key);
+                    return out;
+                }
+                out.push(frame("session.status", json!({"sessionID": session, "status": {"type": "busy"}})));
+                let reply = format!("a-{message}");
+                match text.as_str() {
+                    "hold" => {
+                        busy.insert(key.clone());
+                        out.extend(assistant_says(&session, &reply, "working"));
+                    }
+                    "approve" => {
+                        busy.insert(key.clone());
+                        out.extend(assistant_says(&session, &reply, "need to run it"));
+                        out.push(frame("permission.asked", json!({"id": "per_1", "sessionID": session, "permission": "bash", "patterns": ["touch a"], "metadata": {}, "always": ["bash"], "tool": {"messageID": reply, "callID": "c1"}})));
+                    }
+                    "ask" => {
+                        busy.insert(key.clone());
+                        out.extend(assistant_says(&session, &reply, "a question"));
+                        out.push(frame("question.asked", json!({"id": "que_1", "sessionID": session, "questions": [{"question": "Which library?", "header": "Library", "options": [{"label": "date-fns", "description": "a"}, {"label": "dayjs", "description": "b"}]}]})));
+                    }
+                    "fail" => {
+                        out.push(frame("session.error", json!({"sessionID": session, "error": {"name": "APIError", "data": {"message": "rate limited"}}})));
+                        out.extend(idle(&session));
+                    }
+                    _ => {
+                        out.extend(assistant_says(&session, &reply, "Hi"));
+                        out.push(frame("message.part.updated", json!({"sessionID": session, "part": {"id": format!("{reply}-k"), "messageID": reply, "type": "tool", "callID": "k1", "tool": "bash", "state": {"status": "running", "input": {"command": "ls"}}}})));
+                        out.push(frame("message.part.updated", json!({"sessionID": session, "part": {"id": format!("{reply}-k"), "messageID": reply, "type": "tool", "callID": "k1", "tool": "bash", "state": {"status": "completed", "input": {"command": "ls"}, "output": "a.txt"}}})));
+                        out.extend(idle(&session));
+                    }
+                }
+                out
+            }
+            ("POST", ["session", session, "abort"]) => {
+                let mut out = vec![response(id, 200, json!(true))];
+                if busy.remove(&format!("{start}/{session}")) {
+                    out.push(frame("session.error", json!({"sessionID": session, "error": {"name": "MessageAbortedError", "data": {"message": "aborted"}}})));
+                }
+                out.extend(idle(session));
+                out
+            }
+            ("POST", ["permission", request, "reply"]) => {
+                let session = "ses-1";
+                let reply = m["body"]["reply"].as_str().unwrap_or_default();
+                busy.remove(&format!("{start}/{session}"));
+                let mut out = vec![response(id, 200, json!(true)), frame("permission.replied", json!({"sessionID": session, "requestID": request, "reply": reply}))];
+                out.extend(assistant_says(session, "a-after", if reply == "reject" { "declined" } else { "done" }));
+                out.extend(idle(session));
+                out
+            }
+            ("POST", ["question", request, "reply" | "reject"]) => {
+                let session = "ses-1";
+                busy.remove(&format!("{start}/{session}"));
+                let mut out = vec![response(id, 200, json!(true)), frame("question.replied", json!({"sessionID": session, "requestID": request, "answers": m["body"]["answers"]}))];
+                out.extend(assistant_says(session, "a-after", "chose"));
+                out.extend(idle(session));
+                out
+            }
+            _ => vec![response(id, 404, json!({"name": "NotFoundError", "data": {"message": "no route"}}))],
+        }
+    })
+}
+
+/// What one prompt of a scripted opencode does: the lines it prints, in the dialect of `opencode run --format json` (a `text` line, a `tool_use` line with its
+/// state, an `error` line), and how the turn ends.
+#[derive(Clone, Default)]
+pub struct CliScript {
+    pub lines: Vec<String>,
+    /// The turn fails with this message after its lines.
+    pub exit: Option<String>,
+    /// The turn stays open after its lines until it is steered or aborted.
+    pub hold: bool,
+}
+
+/// An opencode server for the flows that need no more than "a CLI that says these lines": every prompt plays the next script (the last again after
+/// the end), as the events a real server sends for those lines. A steer of a held turn ends it; an abort ends it as an abort does.
+pub struct ScriptedOpencode {
+    linker: Arc<ScriptedLinker>,
+    scripts: Arc<Mutex<Vec<CliScript>>>,
+    prompts: Arc<Mutex<Vec<String>>>,
+    aborts: Arc<AtomicUsize>,
+}
+
+impl ScriptedOpencode {
+    pub fn new() -> Arc<ScriptedOpencode> {
+        use serde_json::{json, Value};
+        let scripts: Arc<Mutex<Vec<CliScript>>> = Arc::default();
+        let prompts: Arc<Mutex<Vec<String>>> = Arc::default();
+        let aborts = Arc::new(AtomicUsize::new(0));
+        let (played, sessions, held) = (Arc::new(AtomicUsize::new(0)), AtomicUsize::new(0), Mutex::new(std::collections::HashSet::<String>::new()));
+        let (read, seen, stopped) = (Arc::clone(&scripts), Arc::clone(&prompts), Arc::clone(&aborts));
+        let linker = ScriptedLinker::reacting_greeted(vec![say(json!({"ready": true}))], move |start, m| {
+            let (id, path) = (&m["id"], m["path"].as_str().unwrap_or_default());
+            let parts: Vec<&str> = path.split('?').next().unwrap_or_default().trim_matches('/').split('/').collect();
+            let mut held = held.lock().unwrap_or_else(|p| p.into_inner());
+            match (m["method"].as_str().unwrap_or_default(), parts.as_slice()) {
+                ("POST", ["session"]) => vec![response(id, 200, json!({"id": format!("ses-{}", sessions.fetch_add(1, Ordering::SeqCst) + 1)}))],
+                ("GET" | "PATCH", ["session", session]) => vec![response(id, 200, json!({"id": session}))],
+                ("POST", ["session", session, "abort"]) => {
+                    stopped.fetch_add(1, Ordering::SeqCst);
+                    let mut out = vec![response(id, 200, json!(true))];
+                    if held.remove(*session) {
+                        out.push(frame("session.error", json!({"sessionID": session, "error": {"name": "MessageAbortedError", "data": {"message": "aborted"}}})));
+                    }
+                    out.extend(idle(session));
+                    out
+                }
+                ("POST", ["session", session, "prompt_async"]) => {
+                    let text = m["body"]["parts"][0]["text"].as_str().unwrap_or_default().to_string();
+                    let n = played.fetch_add(1, Ordering::SeqCst);
+                    seen.lock().unwrap_or_else(|p| p.into_inner()).push(text.clone());
+                    let message = format!("u-{n}");
+                    let mut out = vec![response(id, 204, json!(null))];
+                    out.extend(user_message(session, &message, &text));
+                    if held.contains(*session) {
+                        out.extend(assistant_says(session, &format!("a-{message}"), " steered"));
+                        out.extend(idle(session));
+                        held.remove(*session);
+                        return out;
+                    }
+                    let script = {
+                        let all = read.lock().unwrap_or_else(|p| p.into_inner());
+                        all.get(n).or(all.last()).cloned().unwrap_or_default()
+                    };
+                    let reply = format!("a-{message}");
+                    out.push(frame("session.status", json!({"sessionID": session, "status": {"type": "busy"}})));
+                    out.push(frame("message.updated", json!({"sessionID": session, "info": {"id": reply, "role": "assistant"}})));
+                    for (i, line) in script.lines.iter().enumerate() {
+                        let Ok(line) = serde_json::from_str::<Value>(line) else { continue };
+                        let part = format!("{reply}-{i}");
+                        match line["type"].as_str() {
+                            Some("text") => {
+                                let text = line["part"]["text"].as_str().unwrap_or_default();
+                                out.push(frame("message.part.updated", json!({"sessionID": session, "part": {"id": part, "messageID": reply, "type": "text", "text": text}})));
+                            }
+                            Some("tool_use") => {
+                                let (tool, state) = (&line["part"], &line["part"]["state"]);
+                                for state in [json!({"status": "running", "input": state["input"]}), state.clone()] {
+                                    out.push(frame("message.part.updated", json!({"sessionID": session, "part": {"id": part, "messageID": reply, "type": "tool", "callID": tool["callID"], "tool": tool["tool"], "state": state}})));
+                                }
+                            }
+                            Some("error") => out.push(frame("session.error", json!({"sessionID": session, "error": {"name": "UnknownError", "data": {"message": line["error"]["data"]["message"]}}}))),
+                            _ => {}
+                        }
+                    }
+                    if let Some(why) = &script.exit {
+                        out.push(frame("session.error", json!({"sessionID": session, "error": {"name": "UnknownError", "data": {"message": why}}})));
+                    }
+                    if script.hold {
+                        held.insert(session.to_string());
+                    } else {
+                        out.extend(idle(session));
+                    }
+                    let _ = start;
+                    out
+                }
+                _ => vec![response(id, 404, json!({"name": "NotFoundError", "data": {"message": "no route"}}))],
+            }
+        });
+        Arc::new(ScriptedOpencode { linker, scripts, prompts, aborts })
+    }
+
+    /// What every prompt does, whichever it is.
+    pub fn script(&self, script: CliScript) {
+        self.script_each(vec![script]);
+    }
+
+    /// What the prompts do, in order: the first prompt plays the first script, and a prompt after the last plays the last again.
+    pub fn script_each(&self, scripts: Vec<CliScript>) {
+        *self.scripts.lock().unwrap_or_else(|p| p.into_inner()) = scripts;
+    }
+
+    pub fn linker(&self) -> Arc<dyn Linker> {
+        self.linker.clone()
+    }
+
+    pub fn server(&self) -> &Arc<ScriptedLinker> {
+        &self.linker
+    }
+
+    /// The prompts the server was sent, oldest first.
+    pub fn prompts(&self) -> Vec<String> {
+        self.prompts.lock().unwrap_or_else(|p| p.into_inner()).clone()
+    }
+
+    /// How many sessions were asked to abort.
+    pub fn aborts(&self) -> usize {
+        self.aborts.load(Ordering::SeqCst)
+    }
 }

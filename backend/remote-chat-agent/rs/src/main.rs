@@ -9,7 +9,7 @@ use rca_service_core::application::startup;
 use rca_service_core::application::log;
 use rca_service::infrastructure::env::ProcessEnv;
 use rca_service::infrastructure::{ords, outbound, secrets};
-use remote_chat_agent_host::{Documents, HostFiles, Hosts, Processes, System};
+use remote_chat_agent_host::{Documents, HostFiles, Hosts, System};
 use remote_chat_agent_opencode::Http;
 use rca_service_core::application::environment::Environment as _;
 use service_kit::{heartbeat, shutdown};
@@ -47,13 +47,12 @@ async fn main() -> ExitCode {
     };
     log::info!("server.listening", host = "0.0.0.0", port = port);
     let settings = ProcessEnv.settings();
-    let spawner = Arc::new(Processes::at(settings.providers_root.clone()));
     let outbound = Arc::new(outbound::Reqwest::default());
     let commands = Arc::new(System);
     let env = Arc::new(ProcessEnv);
     let client = compose::opencode_client(Arc::new(Http::from_settings(&settings)), env.clone());
     let (orch, gateway) = compose::orchestration(&config, &client, env.as_ref());
-    let ports = Ports { spawner: spawner.clone(), client, orch, gateway, commands: commands.clone(), outbound: outbound.clone(), documents: Arc::new(Documents::new(commands.clone(), &settings)), speech: Arc::new(remote_chat_agent_speech::Speech::new(outbound.clone(), commands.clone(), env.clone())), ledgers: Arc::new(ords::OrdsLedgers::from_settings(&settings)), files: Arc::new(HostFiles), hosts: Arc::new(Hosts), env };
+    let ports = Ports { client, orch, gateway, commands: commands.clone(), outbound: outbound.clone(), documents: Arc::new(Documents::new(commands.clone(), &settings)), speech: Arc::new(remote_chat_agent_speech::Speech::new(outbound.clone(), commands.clone(), env.clone())), ledgers: Arc::new(ords::OrdsLedgers::from_settings(&settings)), files: Arc::new(HostFiles), hosts: Arc::new(Hosts), env };
     let speech_engine = match remote_chat_agent_speech::resolve_engine(&settings.stt) {
         remote_chat_agent_speech::Engine::Sidecar(_) => "sidecar",
         remote_chat_agent_speech::Engine::Groq { .. } => "groq",

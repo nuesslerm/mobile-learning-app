@@ -13,8 +13,7 @@ use crate::gateway::{NoGateway, TurnGateway};
 use crate::host::CliLauncher;
 use rca_cli_driver::application::sessions::Sessions;
 use rca_cli_driver::application::ports::SessionDriver;
-use rca_cli_driver::application::turns::Turns;
-use rca_cli_driver::domain::{command_for_host, through_gateway, Command as CliCommand, Driver, GatewayRoute, ToolServer, TurnRequest, Verdict};
+use rca_cli_driver::domain::{Driver, ToolServer, TurnRequest, Verdict};
 use rca_exec_channel::remote::ExecutorChannel;
 use rca_exec_channel::Executors;
 use std::sync::{Arc, Weak};
@@ -98,7 +97,6 @@ impl Prepared {
     /// failed, in the log, as one that fails after it began does.
     pub async fn launch(self) -> Result<String, Refusal> {
         let Prepared { runner, thread, turn, driver, channel, workspace, claim, request, said, merge } = self;
-        let command = runner.host_command(driver, &request, &thread);
         let recorded = (|| {
             for event in [ThreadEvent::TurnStarted {}, ThreadEvent::MessageDelta { role: Role::User, text: said }] {
                 runner.engine.record(&thread, Some(&turn), event)?;
@@ -113,18 +111,10 @@ impl Prepared {
             return Err(refusal);
         }
         runner.executors.bind(&thread, &workspace);
-        let task = TurnTask { runner: Arc::clone(&runner), channel, claim, thread: thread.clone(), turn: turn.clone(), driver, request };
+        let task = TurnTask { runner: Arc::clone(&runner), channel, claim, thread: thread.clone(), turn: turn.clone(), driver };
         crate::checkpoint::take(runner.executors.as_ref(), &task.channel, &workspace, &thread, &turn).await;
-        let started = match command {
-            Some(command) => {
-                let spawner = runner.launcher.spawner(&task.channel);
-                runner.turns.launch(spawner.as_ref(), driver, &thread, command).await
-            }
-            None => {
-                let linker = runner.launcher.linker(&task.channel);
-                runner.sessions.turn(&workspace, linker.as_ref(), &task.request).await
-            }
-        };
+        let linker = runner.launcher.linker(&task.channel);
+        let started = runner.sessions.turn(&workspace, linker.as_ref(), &request).await;
         match started {
             Ok(events) => {
                 // A stop asked while the session was still starting found no turn on it to stop
@@ -158,16 +148,13 @@ fn with_context(merge: Option<&(String, String)>, prompt: &str) -> String {
 pub struct Runner {
     engine: Arc<dyn ThreadEngine>,
     executors: Arc<dyn Executors>,
-    turns: Arc<Turns>,
-    /// The live sessions of the CLIs that stay up between turns (Claude Code, Codex).
+    /// The live sessions of the CLIs (Claude Code, Codex, opencode).
     sessions: Arc<Sessions>,
     mcp: Arc<dyn McpEndpoint>,
     launcher: Arc<dyn CliLauncher>,
     /// The token each running turn gave its CLI for the service's tool server: the CLI may run on another host than the service.
     mcp_tokens: std::sync::Mutex<std::collections::HashMap<String, String>>,
     gateway: Arc<dyn TurnGateway>,
-    /// The gateway route each running turn started with: a steer starts another CLI in the same turn, which goes on with the token and the reroute the turn began with.
-    routes: std::sync::Mutex<std::collections::HashMap<String, Option<GatewayRoute>>>,
     in_flight: Arc<InFlight>,
     waiting: Waiting,
     me: Weak<Runner>,
@@ -180,7 +167,7 @@ impl Runner {
 
     /// A runner whose turns go through `gateway` when it routes them.
     pub fn with_gateway(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, launcher: Arc<dyn CliLauncher>, mcp: Arc<dyn McpEndpoint>, gateway: Arc<dyn TurnGateway>) -> Arc<Runner> {
-        let runner = Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::default()), sessions: Arc::new(Sessions::default()), mcp, launcher, mcp_tokens: Default::default(), gateway, routes: Default::default(), in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
+        let runner = Arc::new_cyclic(|me| Runner { engine, executors, sessions: Arc::new(Sessions::default()), mcp, launcher, mcp_tokens: Default::default(), gateway, in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
         let me = Arc::downgrade(&runner);
         runner.engine.on_settled(Arc::new(move |thread| {
             if let Some(runner) = me.upgrade() {
@@ -198,10 +185,6 @@ impl Runner {
         &self.executors
     }
 
-    pub fn turns(&self) -> &Arc<Turns> {
-        &self.turns
-    }
-
     /// The live sessions of the CLIs that stay up between turns: how long an idle one is kept is set on it.
     pub fn sessions(&self) -> &Arc<Sessions> {
         &self.sessions
@@ -209,17 +192,6 @@ impl Runner {
 
     pub fn launcher(&self) -> &Arc<dyn CliLauncher> {
         &self.launcher
-    }
-
-    /// The CLI invocation of the thread's turn at the workspace host: the service's tool server, and the gateway when the turn is routed. The route is
-    /// decided when the turn first asks and kept until it ends. None for a CLI that lives, whose turn is run on its session.
-    pub fn host_command(&self, driver: Driver, request: &TurnRequest, thread: &str) -> Option<CliCommand> {
-        let command = command_for_host(driver, request, &self.mcp_url(thread), &self.mcp_token(thread))?;
-        let route = self.routes.lock().unwrap_or_else(|p| p.into_inner()).entry(thread.to_string()).or_insert_with(|| self.gateway.route(thread, driver.id(), request.model.as_deref())).clone();
-        Some(match route {
-            Some(route) => through_gateway(driver, command, &route),
-            None => command,
-        })
     }
 
     pub fn mcp_url(&self, thread: &str) -> String {
@@ -307,7 +279,7 @@ impl Runner {
             // a live CLI is told of the tool server when its process starts
             tools: (driver == Driver::ClaudeAgent).then(|| ToolServer { url: self.mcp_url(thread), token: self.mcp_token(thread) }),
         };
-        let claim = self.in_flight.claim(thread, &turn, driver.lives()).ok_or_else(running)?;
+        let claim = self.in_flight.claim(thread, &turn).ok_or_else(running)?;
         Ok(Prepared { runner: Arc::clone(self), thread: thread.to_string(), turn, driver, channel, workspace: input.workspace, claim, request, said: input.prompt, merge })
     }
 
@@ -318,9 +290,8 @@ impl Runner {
         Some(turn)
     }
 
-    /// Stops what runs the thread's turn: the process of a CLI started for the turn, or the turn on the live session of a CLI that lives.
+    /// Stops what runs the thread's turn: the turn on its live session.
     pub fn stop_process(&self, thread: &str) {
-        self.turns.interrupt(thread);
         self.sessions.interrupt(thread);
     }
 
@@ -334,20 +305,15 @@ impl Runner {
         self.sessions.answer_input(thread, request, answer)
     }
 
-    /// The running turn goes on with `prompt`. A CLI that lives takes it on its session and the turn goes on as it is; for one started for the turn,
-    /// the CLI ends and the turn's task starts another in the same turn. The engine decides first, so a refusal changes nothing; a turn the group does not
-    /// run is refused for want of one. A live session that does not take the steer leaves an error in the turn's log and refuses the call.
+    /// The running turn goes on with `prompt`, which its live session takes as it is. The engine decides first, so a refusal changes nothing; a turn the group
+    /// does not run is refused for want of one. A session that does not take the steer leaves an error in the turn's log and refuses the call.
     pub async fn steer(&self, thread: &str, turn: Option<String>, prompt: Option<String>, item: Option<String>) -> Result<(String, Vec<Event>), Refusal> {
         let events = self.decide(thread, Command::Steer { turn: turn.clone(), prompt, item })?;
         let said = events.first().and_then(|e| e.data.get("prompt")).and_then(|p| p.as_str()).unwrap_or_default().to_string();
-        let (running, live) = self.in_flight.steer(thread, turn.as_deref(), &said).ok_or_else(|| Refusal::new(code::NO_TURN, message::no_turn(thread, turn.as_deref())))?;
-        if live {
-            if let Err(why) = self.sessions.steer(thread, &said).await {
-                self.engine.record(thread, Some(&running), ThreadEvent::Error { code: crate::neutral::CLI_ERROR.into(), message: why.clone() })?;
-                return Err(Refusal::new(code::NO_TURN, why));
-            }
-        } else {
-            self.turns.interrupt(thread);
+        let running = self.in_flight.steer(thread, turn.as_deref()).ok_or_else(|| Refusal::new(code::NO_TURN, message::no_turn(thread, turn.as_deref())))?;
+        if let Err(why) = self.sessions.steer(thread, &said).await {
+            self.engine.record(thread, Some(&running), ThreadEvent::Error { code: crate::neutral::CLI_ERROR.into(), message: why.clone() })?;
+            return Err(Refusal::new(code::NO_TURN, why));
         }
         Ok((running, events))
     }
@@ -374,7 +340,6 @@ impl Runner {
 
     /// The thread's gateway token opens nothing any more.
     pub fn release_route(&self, thread: &str) {
-        self.routes.lock().unwrap_or_else(|p| p.into_inner()).remove(thread);
         self.gateway.release(thread);
     }
 
