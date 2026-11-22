@@ -60,6 +60,7 @@ def install(leg, work):
     data = urllib.request.urlopen(url, timeout=600).read()
     if hashlib.sha256(data).hexdigest() != platform["sha256"]:
         fail(f"{leg} does not hash to its pin")
+    os.makedirs(work, exist_ok=True)
     archive = os.path.join(work, leg + ".tgz")
     open(archive, "wb").write(data)
     subprocess.run(["tar", "xzf", archive, "-C", work], check=True)

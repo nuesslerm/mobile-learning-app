@@ -80,6 +80,25 @@ class RunLeg(unittest.TestCase):
         record, code, _, _ = self.run_leg("claude", True, f"echo '{result}' > \"$RCA_REAL_RESULT_OUT\"\nexit 101\n")
         self.assertEqual((code, record["ok"], record["exit"], record["final_state"]), (101, False, 101, "failed"))
 
+    def test_given_an_install_directory_that_does_not_exist_when_a_cli_is_installed_then_the_directory_is_made_first(self):
+        # Given a pinned archive served from memory and a target directory nobody created
+        import hashlib, io, tarfile, unittest.mock
+        buf = io.BytesIO()
+        with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+            body = b"#!/bin/sh\n"
+            info = tarfile.TarInfo("codex")
+            info.size = len(body)
+            tar.addfile(info, io.BytesIO(body))
+        data = buf.getvalue()
+        pin = {"platforms": {"linux-x64": {"url": "https://example.invalid/codex.tgz", "sha256": hashlib.sha256(data).hexdigest()}}}
+        into = os.path.join(tempfile.mkdtemp(), "not", "yet", "there")
+        # When the CLI is installed into it
+        with unittest.mock.patch.dict(run_leg.PINS, {"codex": pin}), unittest.mock.patch("urllib.request.urlopen") as opened:
+            opened.return_value.read.return_value = data
+            bindir = run_leg.install("codex", into)
+        # Then the archive was unpacked there and the CLI is linked in its bin directory
+        self.assertTrue(os.path.islink(os.path.join(bindir, "codex")), bindir)
+
     def test_given_a_vault_without_the_key_when_the_leg_runs_then_it_writes_the_missing_key_and_installs_and_tests_nothing(self):
         # Given a vault that holds no value for the Claude token
         record, code, installs, _ = self.run_leg("claude", False, "touch \"$0.ran\"\nexit 0\n")
