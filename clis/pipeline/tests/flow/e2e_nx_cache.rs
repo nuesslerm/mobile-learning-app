@@ -31,6 +31,9 @@ fn the_e2e_workflow_restores_the_nx_cache_before_it_asks_which_tests_are_replaye
     // And the save runs after a failed test too (the tests that passed are kept), but never for a cancelled job
     let save_step = &text[text[..save].rfind("- uses: ./.github/actions/nx-cache").unwrap()..save];
     assert!(save_step.contains("!cancelled()"), "{save_step}");
+
+    // And never for a run with test flags, whose pass would be stored under the hash of an unflagged run
+    assert!(save_step.contains("!inputs.flags"), "{save_step}");
 }
 
 /// The command of an e2e target the way the generator writes it, for a test `probe` on `platform` in a scratch workspace.

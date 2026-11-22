@@ -360,7 +360,8 @@ jobs:
       - uses: ./.github/actions/nx-cache
         timeout-minutes: 5
         continue-on-error: true
-        if: ${{ !cancelled() && (steps.pick.outputs.any == 'true' || steps.pick.outputs.replay > 0) }}
+        # a run with test flags (--update-goldens skips the golden compare) passes under the hash of an unflagged one, so it is never stored
+        if: ${{ !cancelled() && !inputs.flags && (steps.pick.outputs.any == 'true' || steps.pick.outputs.replay > 0) }}
         with:
           mode: save
           stage: ${{ inputs.platform }}-e2e-tests-${{ inputs.shard || 1 }}of${{ inputs.shards || 1 }}
