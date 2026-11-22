@@ -348,11 +348,11 @@ fn idle(session: &str) -> Vec<String> {
 
 /// An opencode server behind the executor's bridge: it says it is ready when it starts, mints `ses-<n>` for each session created (and knows no session
 /// named `ses-missing`), and answers a prompt by its text: `hello` is answered at once (text, a tool call and its result, then idle), `hold` runs until it is
-/// steered or aborted, `approve` asks for the permission to run a command and goes on when the person has answered, `ask` asks a question, and `fail` fails
+/// steered or aborted, `silent` is taken and says nothing, `approve` asks for the permission to run a command and goes on when the person has answered, `ask` asks a question, and `fail` fails
 /// the session. A prompt on a session that is busy is a steer.
 pub fn opencode_server() -> Arc<ScriptedLinker> {
     use serde_json::json;
-    let (sessions, busy) = (AtomicUsize::new(0), Mutex::new(std::collections::HashSet::<String>::new()));
+    let (sessions, stored, busy) = (AtomicUsize::new(0), AtomicUsize::new(0), Mutex::new(std::collections::HashSet::<String>::new()));
     ScriptedLinker::reacting_greeted(vec![say(json!({"ready": true}))], move |start, m| {
         let (id, path) = (&m["id"], m["path"].as_str().unwrap_or_default());
         let route = path.split('?').next().unwrap_or_default();
@@ -365,8 +365,11 @@ pub fn opencode_server() -> Arc<ScriptedLinker> {
             ("POST", ["session", session, "prompt_async"]) => {
                 let (session, key) = (session.to_string(), format!("{start}/{session}"));
                 let text = m["body"]["parts"][0]["text"].as_str().unwrap_or_default().to_string();
-                let message = format!("u-{start}-{}", text.replace(' ', "-"));
+                let message = format!("u-{start}-{}-{}", stored.fetch_add(1, Ordering::SeqCst), text.replace(' ', "-"));
                 let mut out = vec![response(id, 204, json!(null))];
+                if text == "silent" {
+                    return out;
+                }
                 out.extend(user_message(&session, &message, &text));
                 if busy.contains(&key) {
                     out.extend(assistant_says(&session, &format!("a-{message}"), " steered"));

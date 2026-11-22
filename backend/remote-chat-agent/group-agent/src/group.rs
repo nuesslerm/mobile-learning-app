@@ -1,6 +1,6 @@
 //! The `agent.threads` group (`agent-api-agent`): the eight methods over the thread engine. `thread.*` read and write the engine's log through
 //! its port, `thread.subscribe` follows it, and `turn.start` runs an agent CLI whose file and shell tools are off and whose only tool server
-//! runs at the thread's workspace host (`command_for_host`), recording what the CLI does as the thread's events.
+//! runs at the thread's workspace host, recording what the CLI does as the thread's events.
 use crate::port::{NewThread, ThreadEngine};
 use crate::staging::AttachmentStaging;
 use crate::refusal::{respond, to_value, Answer, Refusal};

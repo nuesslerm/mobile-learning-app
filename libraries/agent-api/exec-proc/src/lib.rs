@@ -580,7 +580,7 @@ impl SessionHttp {
         let (route, query) = path.split_once('?').unwrap_or((path.as_str(), ""));
         let routed = SESSION_HTTP_ROUTES.iter().any(|r| route == *r || route.strip_prefix(r).is_some_and(|rest| rest.starts_with('/')));
         let plain = |c: char| c.is_ascii_graphic() && c != '#' && c != '\\';
-        if !routed || !path.chars().all(plain) || route.split('/').any(|segment| segment == ".." || segment == ".") || query.contains("..%2") {
+        if !routed || !path.chars().all(plain) || route.contains('%') || route.split('/').any(|segment| segment == ".." || segment == ".") || query.contains("..%2") {
             return Err(ExecError::invalid_args(format!("`path` is no route of the server a session may use: {path:?}")));
         }
         if (route == "/config" || route.starts_with("/config/")) && method != "GET" {
@@ -884,6 +884,7 @@ mod tests {
         let refused = [
             call(json!({"id": 3, "method": "GET", "path": "/file?path=x"})),
             call(json!({"id": 3, "method": "GET", "path": "/session/../auth/x"})),
+            call(json!({"id": 3, "method": "GET", "path": "/session/%2e%2e/auth/x"})),
             call(json!({"id": 3, "method": "GET", "path": "/sessions"})),
             call(json!({"id": 3, "method": "GET", "path": "/session x"})),
             call(json!({"id": 3, "method": "PATCH", "path": "/config"})),

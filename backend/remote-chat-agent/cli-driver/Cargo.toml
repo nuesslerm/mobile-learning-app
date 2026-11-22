@@ -11,7 +11,7 @@ path = "src/lib.rs"
 doctest = false
 
 [features]
-# The doubles of the crate's port (`ScriptedSpawner`), for the service crate's tests
+# The doubles of the crate's port (`ScriptedLinker`), for the service crate's tests
 testing = []
 
 [dependencies]

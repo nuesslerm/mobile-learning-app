@@ -355,10 +355,13 @@ impl Server {
             // What the session says outside a turn, and what its old one says before the new prompt is on its way, belongs to no turn
             let Some(tx) = t.tx.clone().filter(|_| t.armed || !matches!(kind, "session.idle" | "session.status")) else { return };
             let mut events = Vec::new();
-            let mut over = false;
+            let (mut over, mut failed) = (false, false);
             for step in t.translator.event(kind, properties) {
                 match step {
-                    Step::Event(e) => events.push(e),
+                    Step::Event(e) => {
+                        failed |= matches!(e, ExecEvent::Error(_));
+                        events.push(e);
+                    }
                     Step::Asked { id, ask, event } => {
                         asks.insert(id, Waiting { thread: session.to_string(), ask });
                         events.push(event);
@@ -370,6 +373,9 @@ impl Server {
                         t.admitted += 1;
                         over |= t.idle_seen && t.admitted >= t.prompts;
                     }
+                    // An idle before the server stored the turn's own prompt is the session's old one (the second of an earlier pair, an abort's on an idle
+                    // session); only a failure that came before it is this turn's
+                    Step::Idle if t.admitted == 0 && !failed => {}
                     // A steer that the server has not taken into a message yet keeps the turn open past an idle that was before it
                     Step::Idle if t.prompts > 1 && t.admitted < t.prompts => t.idle_seen = true,
                     Step::Idle => over = true,
@@ -687,6 +693,23 @@ mod tests {
         assert_eq!(count(&linker, "POST", "/session/ses-1/abort"), 1);
         assert_eq!(linker.kills(), 0);
         assert!(!sessions.interrupt("t1") && !sessions.interrupt("nobody"));
+    }
+
+    #[tokio::test]
+    async fn given_an_idle_that_reaches_a_turn_before_the_server_stored_its_prompt_when_the_turn_runs_then_it_is_the_sessions_old_one_and_the_turn_ends_at_its_own_idle() {
+        // Given a turn whose prompt the server took and has said nothing of yet
+        let (sessions, linker) = (OpencodeSessions::default(), opencode_server());
+        let mut events = sessions.turn("w1", linker.as_ref(), &request("t1", "silent", None)).await.unwrap();
+        assert_eq!(events.recv().await, Some(ExecEvent::Session("ses-1".into())));
+        // When the pair of idles of an earlier turn reaches it, and then the server stores the prompt, answers and goes idle
+        linker.emit(frame("session.status", json!({"sessionID": "ses-1", "status": {"type": "idle"}})));
+        linker.emit(frame("session.idle", json!({"sessionID": "ses-1"})));
+        linker.emit(frame("message.updated", json!({"sessionID": "ses-1", "info": {"id": "u1", "role": "user"}})));
+        linker.emit(frame("message.updated", json!({"sessionID": "ses-1", "info": {"id": "a1", "role": "assistant"}})));
+        linker.emit(frame("message.part.updated", json!({"sessionID": "ses-1", "part": {"id": "p1", "messageID": "a1", "type": "text", "text": "late"}})));
+        linker.emit(frame("session.status", json!({"sessionID": "ses-1", "status": {"type": "idle"}})));
+        // Then the turn kept what the server said and ended once, at its own idle
+        assert_eq!(drain(events).await, vec![ExecEvent::Text("late".into()), ExecEvent::Done]);
     }
 
     #[tokio::test]
