@@ -346,3 +346,84 @@ fn run_interactively_claude_takes_the_pasted_code_on_stdin() {
     assert!(edits.len() == 1 && edits[0].contains(&format!("--value {TOKEN}")), "{edits:?}");
     assert!(b.leftovers().is_empty());
 }
+
+#[test]
+fn a_code_left_by_a_login_that_was_killed_is_never_handed_to_the_next_login() {
+    // Given the control files a killed claude login left: a marker of a process that is gone, and the code it never took
+    let b = Bench::new();
+    let control = b.runtime.join("wf-login");
+    std::fs::create_dir_all(&control).unwrap();
+    std::fs::write(control.join("claude.waiting"), "2147483646").unwrap();
+    std::fs::write(control.join("claude.code"), "stale-code").unwrap();
+    b.stub("claude", &claude_stub("printf 'Your OAuth token:\\r\\n%s\\r\\n' \"$TOKEN\""));
+
+    // When a new login starts and the person sends the code for its own link
+    let mut first = spawn_wf(&["secret", "login", "claude"], &b.opts(&[]));
+    wait_until(Duration::from_secs(15), "the link", || first.out().contains("--code <code>"));
+    std::thread::sleep(Duration::from_millis(500));
+    let stale_used = b.logged("claude-code.log");
+    let sent = b.login(&["claude", "--code", CODE], &[]);
+
+    // Then claude only ever received the new code
+    assert!(stale_used.is_empty(), "the stale code reached the login: {stale_used:?}");
+    assert_eq!(sent.exit_code, 0, "{}{}", sent.stdout, sent.stderr);
+    assert_eq!(first.wait(Duration::from_secs(15)), Some(0), "{}", first.out());
+    assert_eq!(b.logged("claude-code.log"), [CODE]);
+}
+
+#[test]
+fn two_claude_logins_started_together_never_wait_on_the_same_code() {
+    // Given a claude that waits for its code
+    let b = Bench::new();
+    b.stub("claude", &claude_stub("sleep 30"));
+
+    // When two logins start at the same time
+    let mut one = spawn_wf(&["secret", "login", "claude"], &b.opts(&[]));
+    let mut two = spawn_wf(&["secret", "login", "claude"], &b.opts(&[]));
+    wait_until(Duration::from_secs(15), "one of them to be refused", || one.out().contains("already waiting") || two.out().contains("already waiting"));
+
+    // Then exactly one is refused, the other prints its link and goes on waiting
+    let (refused, running_one) = if one.out().contains("already waiting") { (&mut one, &mut two) } else { (&mut two, &mut one) };
+    assert_eq!(refused.wait(Duration::from_secs(15)), Some(1), "{}", refused.out());
+    wait_until(Duration::from_secs(15), "the link", || running_one.out().contains("--code <code>"));
+    assert!(!running_one.out().contains("already waiting"), "{}", running_one.out());
+    running_one.signal("TERM");
+    assert_eq!(running_one.wait(Duration::from_secs(15)), Some(143));
+    assert!(b.leftovers().is_empty(), "{:?}", b.leftovers());
+}
+
+#[test]
+fn a_login_that_was_killed_outright_has_its_private_directory_removed_by_the_next_one() {
+    // Given the directory of a login whose process is gone (it held a credential file), and one of a process that still runs
+    let b = Bench::new();
+    let (dead, alive) = (b.runtime.join("wf-login/run-2147483646-aaaa"), b.runtime.join(format!("wf-login/run-{}-bbbb", std::process::id())));
+    for dir in [&dead, &alive] {
+        std::fs::create_dir_all(dir).unwrap();
+        std::fs::write(dir.join("auth.json"), AUTH_JSON).unwrap();
+    }
+    b.stub("codex", CODEX_OK);
+
+    // When another login runs
+    let r = b.login(&["codex"], &[]);
+
+    // Then the dead one's directory is gone and the live one's is untouched
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert!(!dead.exists() && alive.join("auth.json").exists(), "{:?}", b.leftovers());
+}
+
+#[test]
+fn the_credential_file_is_gone_from_disk_before_the_vault_is_written() {
+    // Given a vault whose write records what is still under the private directory at that moment
+    let b = Bench::new();
+    b.stub("codex", CODEX_OK);
+    let runtime = b.runtime.join("wf-login").display().to_string();
+    b.stub("bws", &format!("echo \"$*\" >> \"$HOME/bws.log\"\nif [ \"$1 $2\" = \"secret list\" ]; then echo '[{{\"id\":\"x1\",\"key\":\"CODEX_OAUTH_JSON_B64\",\"value\":\"old\"}}]'; exit 0; fi\nif [ \"$1 $2\" = \"secret edit\" ]; then find {runtime} -name auth.json >> \"$HOME/at-write.log\"; fi\nexit 0"));
+
+    // When codex logs in
+    let r = b.login(&["codex"], &[]);
+
+    // Then no auth.json was on disk when the vault was written
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert_eq!(b.logged("at-write.log"), Vec::<String>::new());
+    assert_eq!(b.edits().len(), 1);
+}

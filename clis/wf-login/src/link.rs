@@ -46,7 +46,8 @@ struct RunDir(PathBuf);
 impl RunDir {
     fn create(runtime: &Path) -> std::io::Result<RunDir> {
         private_dir(runtime)?;
-        let dir = runtime.join(format!("run-{}", uuid::Uuid::new_v4().simple()));
+        sweep_dead(runtime);
+        let dir = runtime.join(format!("run-{}-{}", std::process::id(), uuid::Uuid::new_v4().simple()));
         private_dir(&dir)?;
         Ok(RunDir(dir))
     }
@@ -55,6 +56,19 @@ impl RunDir {
 impl Drop for RunDir {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// A login that was killed outright (SIGKILL, a dropped terminal) cannot remove its directory; the next login does, for every
+/// directory named after a process that is gone.
+fn sweep_dead(runtime: &Path) {
+    let Ok(entries) = std::fs::read_dir(runtime) else { return };
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let pid = name.strip_prefix("run-").and_then(|rest| rest.split('-').next()).and_then(|p| p.parse::<u32>().ok());
+        if pid.is_some_and(|p| !alive(p)) {
+            let _ = std::fs::remove_dir_all(entry.path());
+        }
     }
 }
 
@@ -68,6 +82,25 @@ struct Control {
 impl Control {
     fn of(runtime: &Path, tool: &str) -> Control {
         Control { waiting: runtime.join(format!("{tool}.waiting")), code: runtime.join(format!("{tool}.code")) }
+    }
+
+    /// Takes the marker for this process so two logins never wait on the same code; a marker of a dead process is replaced, and
+    /// so is the code file it left behind (that code belonged to another link).
+    fn claim(&self) -> Option<Waiting> {
+        for _ in 0..2 {
+            match std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&self.waiting) {
+                Ok(mut file) => {
+                    let _ = file.write_all(std::process::id().to_string().as_bytes());
+                    let _ = std::fs::remove_file(&self.code);
+                    return Some(Waiting(self.clone()));
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists && !self.is_waiting() => {
+                    let _ = std::fs::remove_file(&self.waiting);
+                }
+                Err(_) => return None,
+            }
+        }
+        None
     }
 
     fn is_waiting(&self) -> bool {
@@ -137,7 +170,7 @@ fn tail(text: &str, secrets: &[&str]) -> String {
     for secret in secrets.iter().filter(|s| !s.is_empty()) {
         joined = joined.replace(secret, "<redacted>");
     }
-    joined
+    regex::Regex::new(r"sk-ant-[A-Za-z0-9_-]+").expect("static pattern").replace_all(&joined, "<redacted>").into_owned()
 }
 
 /// How a link login ended, for the caller that stores what it produced.
@@ -163,10 +196,15 @@ pub(crate) fn login(tool: &Descriptor, spec: &LinkSpec, copy: bool) -> Result<()
         eprintln!("{}: cannot make a private directory under {}: {e}", tool.id, runtime.display());
         1
     })?;
-    if spec.needs_code && control.is_waiting() {
-        eprintln!("{}: another `wf secret login {}` is already waiting for its code; send it with --code, or stop it first", tool.id, tool.id);
-        return Err(1);
-    }
+    let waiting = if spec.needs_code {
+        let Some(guard) = control.claim() else {
+            eprintln!("{}: another `wf secret login {}` is already waiting for its code; send it with --code, or stop it first", tool.id, tool.id);
+            return Err(1);
+        };
+        Some(guard)
+    } else {
+        None
+    };
     let dir = run_dir.0.display().to_string();
     let mut command = Command::new("sh");
     command.args(["-c", &spec.command.replace(LOGIN_DIR_VAR, &dir)]);
@@ -187,7 +225,9 @@ pub(crate) fn login(tool: &Descriptor, spec: &LinkSpec, copy: bool) -> Result<()
     wf_kit::stop::release();
     let ended = ended?;
     drop(run);
-    store(tool, spec, ended, &run_dir, copy)
+    let stored = store(tool, spec, ended, &run_dir, copy);
+    drop(waiting);
+    stored
 }
 
 impl Run<'_> {
@@ -214,7 +254,6 @@ impl Run<'_> {
             rx
         });
         let mut exited: Option<Instant> = None;
-        let mut guard: Option<Waiting> = None;
         loop {
             let mut fresh = false;
             match rx.recv_timeout(TICK) {
@@ -236,11 +275,6 @@ impl Run<'_> {
             }
             if !link_shown {
                 if let Some(link) = first_group(&spec.link_pattern, &text) {
-                    if spec.needs_code {
-                        let _ = private_dir(self.control.waiting.parent().expect("a file in the runtime dir"));
-                        let _ = write_private(&self.control.waiting, std::process::id().to_string().as_bytes());
-                        guard.get_or_insert_with(|| Waiting(self.control.clone()));
-                    }
                     say(&format!("{}: open this link on any device and sign in:\n{link}\n", tool.id));
                     link_shown = true;
                 }
@@ -358,7 +392,10 @@ fn store(tool: &Descriptor, spec: &LinkSpec, ended: Ended, run_dir: &RunDir, cop
             None => return Err(1),
         },
         (Ended::Exited, Some(file), Some(vault)) => {
-            let bytes = match std::fs::read(run_dir.0.join(file)) {
+            let path = run_dir.0.join(file);
+            let read = std::fs::read(&path);
+            let _ = std::fs::remove_file(&path);
+            let bytes = match read {
                 Ok(bytes) if !bytes.is_empty() => bytes,
                 _ => {
                     eprintln!("{}: the login finished but left no {file} to store", tool.id);
