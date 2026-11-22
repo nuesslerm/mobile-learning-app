@@ -905,3 +905,32 @@ async fn given_two_claude_threads_when_each_runs_a_turn_then_each_has_a_process_
     let (a, b) = (rig.engine.provider_session("a", "claudeAgent").unwrap(), rig.engine.provider_session("b", "claudeAgent").unwrap());
     assert!(a.is_some() && b.is_some() && a != b);
 }
+
+#[tokio::test]
+async fn given_a_claude_turn_that_was_interrupted_when_another_starts_before_the_cli_has_ended_it_then_the_start_waits_for_the_end_instead_of_finding_the_thread_busy() {
+    // Given a process that ends an interrupted turn only a moment after it was asked to, and answers the next message at once
+    let linker = ScriptedLinker::reacting(|_, m| {
+        let ok = |body: Value| json!({"type": "control_response", "response": {"subtype": "success", "request_id": m["request_id"], "response": body}}).to_string();
+        match (m["type"].as_str(), m["request"]["subtype"].as_str(), m["message"]["content"][0]["text"].as_str()) {
+            (Some("control_request"), Some("initialize"), _) => vec![ok(json!({}))],
+            (Some("control_request"), Some("interrupt"), _) => vec![ok(json!({"still_queued": [], "cancelled": []}))],
+            (Some("user"), _, Some("again")) => vec![json!({"type": "result", "subtype": "success", "is_error": false, "user_message_uuids": [m["uuid"]]}).to_string()],
+            _ => vec![],
+        }
+    });
+    let rig = rig_with(linker.clone());
+    rig.create_claude("t").await;
+    rig.start_claude("t", "hold").await;
+    rig.ok("turn.interrupt", json!({"thread": "t"})).await;
+    let ends = async {
+        tokio::time::sleep(Duration::from_millis(150)).await;
+        let uuid = user_messages(&rig)[0]["uuid"].clone();
+        linker.emit(json!({"type": "result", "subtype": "error_during_execution", "is_error": true, "terminal_reason": "aborted_streaming", "user_message_uuids": [uuid]}).to_string());
+    };
+    // When the next turn starts at once, and the CLI ends the interrupted one a moment later
+    let (_, ()) = tokio::join!(rig.start_claude("t", "again"), ends);
+    rig.idle("t").await;
+    // Then the first turn finished interrupted and the second ran to its end in the same process
+    assert_eq!(reasons(&rig, "t"), vec![json!("interrupted"), json!("completed")]);
+    assert_eq!(rig.linker.starts(), 1);
+}

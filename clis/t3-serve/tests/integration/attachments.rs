@@ -119,7 +119,7 @@ fn an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_
         let (agent, executor) = last_window(case);
         assert!(agent.iter().any(|(m, ok)| m == "turn.start" && *ok), "{agent:?}");
         assert_eq!(executor.as_array().unwrap().iter().filter(|h| h["tool"] == "put_blob" && h["ok"] == true).count(), 3, "{executor}");
-        assert_eq!(hit(&executor, "tool", "run_command"), Some(&json!({"tool": "run_command", "ok": true})), "{executor}");
+        assert_eq!(hit(&executor, "tool", "session_send"), Some(&json!({"tool": "session_send", "ok": true})), "{executor}");
         // And the repository's status shows none of them, the CLI was started with the prompt and then both paths, and the CLI read the note
         assert_eq!(chain.repo.git(&["status", "--porcelain"]), "");
         let prompt = chain.cli.claude_prompts("claude").into_iter().find(|a| a.contains("look at these")).expect("the prompt reached the CLI");
@@ -185,10 +185,10 @@ fn a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_clim
             assert!(!outside.exists(), "{} was written", outside.display());
         }
         // When a message names an attachment by an id that climbs out, Then it is refused, no turn starts and the executor writes nothing more
-        let starts = chain.cli.invocations("claude").len();
+        let starts = chain.cli.claude_prompts("claude").len();
         let refused = phone.calls.call("orchestration.dispatchCommand", dispatch("c-b2", "x", vec![json!({"type": "file", "id": "../../etc/passwd", "name": "p", "mimeType": "text/plain", "sizeBytes": 1})]));
         assert!(failure(&refused).to_string().contains("every attachment needs an id"), "{refused}");
-        assert_eq!(chain.cli.invocations("claude").len(), starts);
+        assert_eq!(chain.cli.claude_prompts("claude").len(), starts);
         // And rca refuses such an id itself, to read, to delete and to place, so a mapper that let one through could not reach the volume or the workspace
         let mut rca = chain.direct();
         for bad in ["../../etc/passwd", "a/b", ".hidden"] {

@@ -36,11 +36,14 @@ struct Turn {
     stop_asked: bool,
 }
 
+/// The questions of an `AskUserQuestion` call and the answers given so far.
+type Asked = (Vec<Question>, Vec<(String, String)>);
+
 /// What the CLI waits for the person to say.
 struct Waiting {
     ask: ToolAsk,
     /// The questions of an `AskUserQuestion` call and the answers so far; none for a tool call that needs an allow or a deny.
-    questions: Option<(Vec<Question>, Vec<(String, String)>)>,
+    questions: Option<Asked>,
 }
 
 #[derive(Default)]
@@ -113,6 +116,16 @@ impl ClaudeSessions {
 
     fn slot(&self, thread: &str) -> Arc<tokio::sync::Mutex<()>> {
         Arc::clone(locked(&self.shared.slots).entry(thread.to_string()).or_default())
+    }
+
+    /// A turn that was asked to stop is over for the service as soon as it asks, but the CLI ends it with its own result a moment later: the thread's next turn
+    /// waits for that, as long as the grace a stopped turn has, instead of finding the thread busy.
+    async fn await_stopped_turn(&self, thread: &str) {
+        let Some(proc) = self.live(thread) else { return };
+        let until = Instant::now() + Duration::from_millis(self.shared.interrupt_grace_ms.load(Ordering::SeqCst)) + Duration::from_millis(250);
+        while Instant::now() < until && proc.inner().ended.is_none() && proc.inner().turn.as_ref().is_some_and(|t| t.stop_asked) {
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
     }
 
     /// Starts the thread's process: a new conversation under an id of ours on its first start, the stored one resumed after, and waits for the CLI to answer its
@@ -428,6 +441,7 @@ impl SessionDriver for ClaudeSessions {
     async fn turn(&self, workspace: &str, linker: &dyn Linker, req: &TurnRequest) -> Result<mpsc::Receiver<ExecEvent>, String> {
         let slot = self.slot(&req.thread_id);
         let _starting = slot.lock().await;
+        self.await_stopped_turn(&req.thread_id).await;
         let reusable = self.live(&req.thread_id).filter(|p| p.cwd == req.cwd && p.workspace == workspace);
         if let Some(stale) = self.live(&req.thread_id).filter(|p| reusable.as_ref().is_none_or(|r| !Arc::ptr_eq(p, r))) {
             stale.shut("the Claude Code process was replaced, its workspace changed");
@@ -773,6 +787,35 @@ mod tests {
         // And the thread runs another turn on it
         assert_eq!(drain(sessions.turn("w1", linker.as_ref(), &request("t1", "hello", Some("c"))).await.unwrap()).await.last(), Some(&ExecEvent::Done));
         assert_eq!(linker.starts(), 1);
+    }
+
+    #[tokio::test]
+    async fn given_an_interrupted_turn_the_cli_has_not_ended_yet_when_the_thread_runs_again_then_the_new_turn_waits_for_the_old_one_to_end_and_runs_in_the_same_process() {
+        // Given a process that takes its time to end an interrupted turn, and answers the next message at once
+        let linker = ScriptedLinker::reacting(|_, m| {
+            let ok = |body: Value| json!({"type": "control_response", "response": {"subtype": "success", "request_id": m["request_id"], "response": body}}).to_string();
+            match (m["type"].as_str(), m["request"]["subtype"].as_str(), m["message"]["content"][0]["text"].as_str()) {
+                (Some("control_request"), Some("initialize"), _) => vec![ok(json!({}))],
+                (Some("control_request"), Some("interrupt"), _) => vec![ok(json!({"still_queued": [], "cancelled": []}))],
+                (Some("user"), _, Some("again")) => vec![json!({"type": "result", "subtype": "success", "is_error": false, "user_message_uuids": [m["uuid"]]}).to_string()],
+                _ => vec![],
+            }
+        });
+        let sessions = ClaudeSessions::default();
+        let first = sessions.turn("w1", linker.as_ref(), &request("t1", "hold", None)).await.unwrap();
+        assert!(sessions.interrupt("t1"));
+        let ends = async {
+            tokio::time::sleep(Duration::from_millis(150)).await;
+            let uuid = linker.received().into_iter().map(|(_, m)| m).find(|m| m["type"] == "user").unwrap()["uuid"].clone();
+            linker.emit(json!({"type": "result", "subtype": "error_during_execution", "is_error": true, "terminal_reason": "aborted_streaming", "user_message_uuids": [uuid]}).to_string());
+        };
+        // When the thread runs another turn while the old one is still ending
+        let again = request("t1", "again", Some("c"));
+        let (second, ()) = tokio::join!(sessions.turn("w1", linker.as_ref(), &again), ends);
+        // Then the new turn was taken once the old one ended, in the same process, and both streams ended
+        assert_eq!(drain(second.unwrap()).await.last(), Some(&ExecEvent::Done));
+        assert_eq!(drain(first).await.last(), Some(&ExecEvent::Done));
+        assert_eq!((linker.starts(), linker.kills()), (1, 0));
     }
 
     #[tokio::test]

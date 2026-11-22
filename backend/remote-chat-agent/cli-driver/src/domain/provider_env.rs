@@ -176,19 +176,18 @@ mod tests {
     }
 
     #[test]
-    fn given_a_turn_routed_through_the_gateway_when_each_cli_is_built_then_it_is_pointed_at_the_gateway_with_the_turn_token_and_runs_with_the_provider_environment() {
-        for (driver, provider, model) in [(Driver::Opencode, "opencode-go", Some("opencode-go/m"))] {
-            // Given the host command of a turn of each CLI
-            let host = super::super::driver::command_for_host(driver, &request(driver, model), "http://svc:8787/mcp/t", "mcp-tok").unwrap();
-            // When it is pointed at the gateway
-            let routed = through_gateway(driver, host.clone(), &route(provider));
-            let line = format!("{} {}", routed.program, routed.args.join(" "));
-            // Then the gateway's address and the turn's token are in it, the CLI's own program and prompt are still there and the prompt is last
-            assert!(line.contains(&format!("http://svc:8787/gateway/{provider}")) && line.contains("rcag_turn"), "{line}");
-            assert_eq!(routed.args.last(), host.args.last(), "{}", driver.id());
-            // And the command is still known as that CLI's, so the service's own environment is stripped from it
-            assert_eq!(super::super::login::driver_of_command(&routed.program, &routed.args), Some(driver), "{line}");
-        }
+    fn given_an_opencode_turn_routed_through_the_gateway_when_built_then_it_is_pointed_at_the_gateway_with_the_turn_token_and_runs_with_the_provider_environment() {
+        let (driver, provider) = (Driver::Opencode, "opencode-go");
+        // Given the host command of the turn
+        let host = super::super::driver::command_for_host(driver, &request(driver, Some("opencode-go/m")), "http://svc:8787/mcp/t", "mcp-tok").unwrap();
+        // When it is pointed at the gateway
+        let routed = through_gateway(driver, host.clone(), &route(provider));
+        let line = format!("{} {}", routed.program, routed.args.join(" "));
+        // Then the gateway's address and the turn's token are in it, the CLI's own program and prompt are still there and the prompt is last
+        assert!(line.contains(&format!("http://svc:8787/gateway/{provider}")) && line.contains("rcag_turn"), "{line}");
+        assert_eq!(routed.args.last(), host.args.last(), "{}", driver.id());
+        // And the command is still known as that CLI's, so the service's own environment is stripped from it
+        assert_eq!(super::super::login::driver_of_command(&routed.program, &routed.args), Some(driver), "{line}");
     }
 
     #[test]

@@ -23,7 +23,7 @@ fn a_trivial_prompt_runs_a_turn_whose_methods_and_final_state_hold_for_the_cli_i
         let (agent, executor) = last_window(case);
         let methods: Vec<&str> = agent.iter().map(|(m, _)| m.as_str()).collect();
         assert!(agent.iter().all(|(_, ok)| *ok) && methods.contains(&"turn.start"), "{agent:?}\n{}", chain.evidence());
-        assert!(hit(&executor, "tool", "run_command").is_some_and(|h| h["ok"] == true), "{executor}");
+        assert!(hit(&executor, "tool", "session_send").is_some_and(|h| h["ok"] == true), "{executor}");
         assert_eq!(projection["runs"].as_array().and_then(|r| r.last()).map(|r| r["status"].clone()), Some(json!("completed")), "{projection}");
         // And the thread's shape: the user's message first, then an assistant message that has some text (which text is not compared)
         let roles: Vec<(&str, bool)> = projection["messages"].as_array().unwrap().iter().map(|m| (m["role"].as_str().unwrap(), m["text"].as_str().is_some_and(|t| !t.is_empty()))).collect();

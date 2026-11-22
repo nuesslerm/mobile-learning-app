@@ -268,6 +268,18 @@ impl Runner {
         }
     }
 
+    /// A turn asked to stop ends when its CLI says so, a moment later: a turn started on the thread meanwhile waits for that end (a few seconds at most)
+    /// instead of finding the thread busy.
+    pub async fn await_stopped(&self, thread: &str) {
+        if !self.in_flight.stopping(thread) {
+            return;
+        }
+        let until = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while std::time::Instant::now() < until && (self.in_flight.stopping(thread) || self.engine.get(thread).ok().flatten().is_some_and(|view| Known::of(&view).running)) {
+            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        }
+    }
+
     /// Checks that a turn can run and takes the thread for it. The order of the refusals is the contract's: the driver, the workspace's executor,
     /// a turn already running.
     pub fn prepare(self: &Arc<Self>, thread: &str, known: &Known, turn: Option<String>, input: TurnInput) -> Result<Prepared, Refusal> {

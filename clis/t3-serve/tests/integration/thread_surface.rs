@@ -108,11 +108,10 @@ fn settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_
         let projection = phone.command_settled(case, &chain, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m2", "threadId": "t1", "messageId": "m2", "text": "again"}), "t1", completed(2));
         // Then the turn ran Claude Code resuming the conversation it announced, and the executor wrote the note again
         let (agent, executor) = last_window(case);
-        assert!(agent.contains(&("turn.start".to_string(), true)) && hit(&executor, "tool", "run_command").is_some_and(|h| h["ok"] == true), "{agent:?} {executor}");
+        assert!(agent.contains(&("turn.start".to_string(), true)) && hit(&executor, "tool", "session_send").is_some_and(|h| h["ok"] == true), "{agent:?} {executor}");
         assert!(projection["runs"].as_array().unwrap().len() == 2);
-        let starts = chain.cli.invocations("claude");
-        assert_eq!(starts.len(), 2);
-        assert!(starts[1].argv.windows(2).any(|w| w == ["--resume", "sess-1"]), "{:?}", starts[1].argv);
+        // (the second message went to the live process the first one started: one process, two messages)
+        assert_eq!((chain.cli.invocations("claude").len(), chain.cli.claude_prompts("claude").len()), (1, 2));
         assert_eq!(rca.events("t1", "thread.merge_consumed").len(), 1);
         // When the phone marks the thread unread now that a run of it completed
         success(&phone.command(case, &chain, cmd("thread.mark-unread", "t1", json!({}))));
@@ -123,10 +122,10 @@ fn settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_
         success(&phone.command(case, &chain, cmd("provider-session.detach", "t1", json!({"providerSessionId": "sess-1"}))));
         assert!(answered(case, "thread.detach"), "{:?}", asked(case));
         phone.command_settled(case, &chain, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m3", "threadId": "t1", "messageId": "m3", "text": "fresh"}), "t1", completed(3));
-        // Then Claude Code started a new conversation: no --resume
+        // Then Claude Code started a new process with a new conversation: its own id, no --resume
         let starts = chain.cli.invocations("claude");
-        assert_eq!(starts.len(), 3);
-        assert!(!starts[2].argv.iter().any(|a| a == "--resume"), "{:?}", starts[2].argv);
+        assert_eq!(starts.len(), 2);
+        assert!(starts[1].argv.iter().any(|a| a == "--session-id") && !starts[1].argv.iter().any(|a| a == "--resume"), "{:?}", starts[1].argv);
         // When the fork is deleted
         success(&phone.command(case, &chain, cmd("thread.delete", "f1", json!({}))));
         // Then rca answered the delete and the fork is gone from rca and from the shell the phone reads
@@ -191,13 +190,13 @@ fn queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_s
         // Then rca steered the turn, and the executor wrote the steered file and, when the turn ended, the next queued item's file
         let (agent, executor) = last_window(case);
         assert!(agent.contains(&("turn.steer".to_string(), true)), "{agent:?}");
-        assert!(executor.as_array().unwrap().iter().filter(|h| h["tool"] == "run_command" && h["ok"] == true).count() >= 2, "{executor}");
+        assert!(hit(&executor, "tool", "session_send").is_some_and(|h| h["ok"] == true), "{executor}");
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("steered.txt")).unwrap(), "steered");
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("queued.txt")).unwrap(), "from the queue");
-        // And the CLI was started a second time with the steer text and a third time for the queued item, with nothing left queued
-        let starts = chain.cli.invocations("claude");
-        assert!(starts[1].argv.iter().any(|a| a.contains("the steer text")), "{:?}", starts[1].argv);
-        assert!(starts[2].argv.iter().any(|a| a.contains("edited queued")), "{:?}", starts[2].argv);
+        // And the one live process was sent the steer text and then the queued item, with nothing left queued
+        let prompts = chain.cli.claude_prompts("claude");
+        assert_eq!(chain.cli.invocations("claude").len(), 1);
+        assert!(prompts[1].contains("the steer text") && prompts[2].contains("edited queued"), "{prompts:?}");
         assert!(queued(&mut rca, "t1").is_empty());
         // (the turn rca started for the queued item is not a run of the phone's rows yet: they hold the one run the message started)
         assert_eq!(projection["runs"].as_array().unwrap().len(), 1);
@@ -244,7 +243,7 @@ fn a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_star
         assert!(result["outcome"].is_string() && result.get("sharedWithThreadIds").is_none_or(Value::is_array), "{result}");
         // And the queue is held: nothing starts by itself and all three items are still queued
         std::thread::sleep(std::time::Duration::from_millis(1500));
-        assert_eq!(chain.cli.invocations("claude").len(), 1);
+        assert_eq!(chain.cli.claude_prompts("claude").len(), 1);
         assert_eq!(queued(&mut rca, "t1").len(), 3);
         // When the thread is archived and the phone starts a queued run
         success(&phone.command(case, &chain, cmd("thread.archive", "t1", json!({}))));
@@ -263,8 +262,8 @@ fn a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_star
         // Then rca resumed that item, the executor wrote the queued file for it, and the CLI ran with that item's text
         let (agent, executor) = last_window(case);
         assert!(agent.contains(&("queue.resume".to_string(), true)), "{agent:?}");
-        assert!(hit(&executor, "tool", "run_command").is_some_and(|h| h["ok"] == true), "{executor}");
-        assert!(chain.cli.invocations("claude")[1].argv.iter().any(|a| a.contains("two")), "{:?}", chain.cli.invocations("claude")[1].argv);
+        assert!(hit(&executor, "tool", "session_send").is_some_and(|h| h["ok"] == true), "{executor}");
+        assert!(chain.cli.claude_prompts("claude")[1].contains("two"), "{:?}", chain.cli.claude_prompts("claude"));
     });
 }
 
@@ -294,12 +293,12 @@ fn resuming_a_held_queue_starts_its_items_one_after_the_other_through_rca_with_t
         // Then rca answered the resume, both items ran in order through the CLI, and the executor wrote each item's file
         let (agent, executor) = last_window(case);
         assert!(agent.contains(&("queue.resume".to_string(), true)), "{agent:?}");
-        assert!(executor.as_array().unwrap().iter().filter(|h| h["tool"] == "run_command" && h["ok"] == true).count() >= 2, "{executor}");
+        assert!(hit(&executor, "tool", "session_send").is_some_and(|h| h["ok"] == true), "{executor}");
         assert_eq!((std::fs::read_to_string(chain.repo.path().join("first.txt")).unwrap(), std::fs::read_to_string(chain.repo.path().join("second.txt")).unwrap()), ("one".to_string(), "two".to_string()));
         assert!(queued(&mut rca, "t1").is_empty());
-        let starts = chain.cli.invocations("claude");
-        assert_eq!(starts.len(), 3);
-        assert!(starts[1].argv.iter().any(|a| a.contains("one")) && starts[2].argv.iter().any(|a| a.contains("two")), "{starts:?}");
+        let prompts = chain.cli.claude_prompts("claude");
+        assert_eq!(prompts.len(), 3);
+        assert!(prompts[1].contains("one") && prompts[2].contains("two"), "{prompts:?}");
     });
 }
 
@@ -400,9 +399,8 @@ fn a_turn_waits_for_the_phones_approval_or_answer_and_runs_on_only_when_it_gets_
         let accept = cmd("runtime-request.respond", "t1", json!({"requestId": id, "decision": "accept"}));
         phone.command_settled(case, &chain, accept, "t1", completed(1));
         // Then rca took the answer, the turn went on and the executor wrote, and the log says what was decided
-        let (agent, executor) = last_window(case);
+        let (agent, _) = last_window(case);
         assert!(agent.contains(&("approval.answer".to_string(), true)), "{agent:?}");
-        assert!(hit(&executor, "tool", "run_command").is_some_and(|h| h["ok"] == true), "{executor}");
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("a.txt")).unwrap(), "after the answer");
         assert_eq!(rca.events("t1", "approval.answered").len(), 1);
         assert!(tool_output(&mut rca, "t1", "ask1").contains("allow"), "the tool was not told to allow");
@@ -494,7 +492,7 @@ fn a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_wh
         let tool = projection["turnItems"].as_array().unwrap().iter().find(|i| i["name"] == "run_command").expect("the turn left its command row").clone();
         // And the executor ran the command to completion
         let (_, executor) = last_window(case);
-        assert_eq!(hit(&executor, "tool", "run_command"), Some(&json!({"tool": "run_command", "ok": true})), "the command did not run through rca-exec: {executor}");
+        assert_eq!(hit(&executor, "tool", "session_send"), Some(&json!({"tool": "session_send", "ok": true})), "the CLI did not run through rca-exec: {executor}");
         let item = tool["id"].as_str().unwrap();
         // When the phone fetches the item and subscribes to its output
         let fetched = phone.call(case, &chain, &["rpc:orchestration.getTurnItem"], "orchestration.getTurnItem", json!({"threadId": "t1", "itemId": item}));

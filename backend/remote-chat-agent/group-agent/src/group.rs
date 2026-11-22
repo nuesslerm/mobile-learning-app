@@ -114,6 +114,8 @@ impl AgentThreadsGroup {
         if !ids.is_empty() && self.staging.is_none() {
             return Err(Refusal::invalid("attachments are not served: this service lists no attachments group"));
         }
+        self.thread(&p.thread)?;
+        self.runner.await_stopped(&p.thread).await;
         let thread = self.thread(&p.thread)?;
         let input = TurnInput { workspace: p.workspace.clone(), driver: p.driver.clone(), model: p.model.clone(), prompt: p.prompt.clone(), runtime_mode: p.runtime_mode.clone(), interaction_mode: p.interaction_mode.clone() };
         let mut prepared = self.runner.prepare(&p.thread, &Known::of(&thread), None, input)?;
