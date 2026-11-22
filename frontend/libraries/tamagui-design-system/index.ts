@@ -89,6 +89,20 @@ export {
   type ScreenHeaderAction,
   type ScreenHeaderProps,
 } from './composites/screen-header';
+export type {
+  HeaderActionSpec,
+  HeaderGroup,
+  ScreenHeaderSpec,
+} from './composites/native-header/header-spec';
+export type {
+  HeaderMenuSpec,
+  MenuActionNode,
+  MenuConfirmNode,
+  MenuNode,
+  MenuSectionNode,
+  MenuSubmenuNode,
+  SfSymbolName,
+} from './composites/native-header/header-menu-spec';
 export { useHeaderHeightStore } from './lib/headerHeightStore';
 export { DEFAULT_GLASS_HEADERS, useGlassHeaderStore } from './lib/glassHeaderStore';
 export {
