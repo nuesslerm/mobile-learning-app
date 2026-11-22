@@ -32,9 +32,9 @@ vi.mock('../../data/ExpoAudioRecorderAdapter', () => ({
 }));
 
 // The runner provider pulls react-native-webview, which cannot load in the node unit environment either; the container reads it through one hook.
-vi.mock('../../data/pyodide/PyodideRunnerProvider', () => ({
-  useOptionalPyodideCodeRunner: () => undefined,
-  PyodideRunnerProvider: ({ children }: { children: unknown }) => children,
+vi.mock('../../data/runner/DeviceRunnerProvider', () => ({
+  useOptionalDeviceCodeRunner: () => undefined,
+  DeviceRunnerProvider: ({ children }: { children: unknown }) => children,
 }));
 
 describe('createDefaultContainer', () => {

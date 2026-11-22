@@ -6,8 +6,8 @@ import { describe, expect, it } from 'vitest';
 import type { CodeRunnerPort } from '../../../domain/ports';
 import { ProblemCatalog } from '../../../domain/problemCatalog';
 import { runParamsFor } from '../../../domain/run/runParams';
-import { PyodideRunnerProvider, useOptionalPyodideCodeRunner } from '../PyodideRunnerProvider';
-import type { AssetIo } from '../pyodideAssets';
+import type { AssetIo } from '../../pyodide/pyodideAssets';
+import { DeviceRunnerProvider, useOptionalDeviceCodeRunner } from '../DeviceRunnerProvider';
 
 /**
  * The provider's hidden view over the app's real WebView twin: the page is an iframe running the real rpc server (bundled from
@@ -33,18 +33,18 @@ if (!problem) throw new Error('no two-sum');
 function mount() {
   const held: { runner?: CodeRunnerPort } = {};
   function Probe() {
-    held.runner = useOptionalPyodideCodeRunner();
+    held.runner = useOptionalDeviceCodeRunner();
     return null;
   }
   const view = renderScreen(
-    <PyodideRunnerProvider modules={MODULES} pageHtml={PAGE_HTML} io={io}>
+    <DeviceRunnerProvider modules={MODULES} pageHtml={PAGE_HTML} io={io}>
       <Probe />
-    </PyodideRunnerProvider>
+    </DeviceRunnerProvider>
   );
   return { held, view };
 }
 
-describe('the Pyodide runner provider', () => {
+describe('the device runner provider', () => {
   it('Given the provider mounted and no run made, When the tree renders, Then no page is mounted and the runner is available to the tree', () => {
     const { held, view } = mount();
     expect(held.runner).toBeDefined();
