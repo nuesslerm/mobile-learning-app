@@ -34,9 +34,9 @@ Search `wf --help` first. A wrapper script that sets up env or flags is a smell;
 
 Pushing to `dev` runs one pipeline, the reusable `pipeline.yml`, called by `ci-hosted-backend-core.yml` on GitHub-hosted runners; every test stage replays through the Nx cache. The local gate is lefthook pre-commit (`wf check --staged`): a red hook is the failure to fix, never to bypass. Production ships only by a push to `dev`: CI builds the images on its runner and the legs redeploy that tag (`wf ship --redeploy-only`); agent sessions cannot dispatch workflows and nothing else builds a production image. Every stage, the deploy flow, the hand-deployed apps and the record triggers: `docs/solutions/ci/ci-pipeline-on-the-vm.md`.
 
-## Commit small, never wait on CI
+## Commit by batch, never wait on CI
 
-Land each unit once its own package tests and the gate pass: commit, `git fetch origin dev && git rebase origin/dev`, push, then the next unit. Split before a dozen files or an hour uncommitted: a restart loses unpushed work. CI running or queued is never a reason to idle: watch it with one background Monitor, never poll or `sleep`; a newer push supersedes it, a red run is one more item of work.
+One commit per verified batch (a track or round of slices), never per slice: the gate costs 5 to 10 min a commit. Land it: `git fetch origin dev && git rebase origin/dev`, push; within an hour, a restart loses unpushed work. CI running or queued is never a reason to idle: watch it with one background Monitor, never poll or `sleep`; a newer push supersedes it, a red run is one more item of work.
 
 ## Parallel agents in the sandbox
 
