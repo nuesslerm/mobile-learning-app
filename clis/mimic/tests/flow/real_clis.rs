@@ -27,9 +27,7 @@ fn vault(codex: &str) -> impl Fn(&[&str]) -> HashMap<String, Option<String>> {
 /// A fake CLI of `name` that writes its environment, and the login file its `CODEX_HOME` names when it has one, beside itself.
 fn fake_cli(dir: &Path, name: &str) -> std::path::PathBuf {
     let path = dir.join(name);
-    std::fs::write(&path, format!("#!/bin/sh\nenv > \"{d}/{name}.env\"\n[ -n \"$CODEX_HOME\" ] && cp \"$CODEX_HOME/auth.json\" \"{d}/{name}.login\"\nexit 0\n", d = dir.display())).unwrap();
-    use std::os::unix::fs::PermissionsExt;
-    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    std::fs::write(&path, format!("env > \"{d}/{name}.env\"\n[ -n \"$CODEX_HOME\" ] && cp \"$CODEX_HOME/auth.json\" \"{d}/{name}.login\"\nexit 0\n", d = dir.display())).unwrap();
     path
 }
 
@@ -61,7 +59,8 @@ fn given_the_three_real_clis_when_each_is_run_then_it_holds_only_its_own_credent
     std::fs::create_dir(&bin).unwrap();
     // When each CLI is started with the environment built for it
     for cli in &CLIS {
-        let status = resolved.child_env(cli, base()).command(fake_cli(&bin, cli.name)).status().unwrap();
+        // run through `sh`, never the file itself: executing a file another test thread's forked child still holds open for writing fails with ETXTBSY
+        let status = resolved.child_env(cli, base()).command("/bin/sh").arg(fake_cli(&bin, cli.name)).status().unwrap();
         assert!(status.success());
     }
     let dump = |name: &str| std::fs::read_to_string(bin.join(format!("{name}.env"))).unwrap();
