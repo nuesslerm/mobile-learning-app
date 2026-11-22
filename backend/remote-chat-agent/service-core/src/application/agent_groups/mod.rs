@@ -51,8 +51,9 @@ mod tests {
     use rca_exec_channel::testing::ScriptedChannel;
     use rca_exec_channel::{contract_actions, Registry};
 
-    /// The actions no method row calls: a turn's CLI runs through `run_command` and stops through `cancel` (`HostSpawner`).
-    const TOOLS: [&str; 2] = ["run_command", "cancel"];
+    /// The actions no method row calls: a turn's CLI runs through `run_command` and stops through `cancel` (`HostSpawner`), and a Codex thread's
+    /// live server through `session_open` and `session_send` (`HostLinker`).
+    const TOOLS: [&str; 4] = ["run_command", "cancel", "session_open", "session_send"];
     use serde_json::{json, Value};
     use std::sync::Arc;
 

@@ -6,7 +6,7 @@ use exec_hosted::HostedOp;
 use exec_browser::BrowserOp;
 use exec_preview::PreviewOp;
 use exec_git::{DiffResult, GitDiff, GitOp, SetupEvent, SetupResult, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeListed, WorktreeRemove, WorktreeRemoved, WorktreeSetup};
-use exec_proc::{Cancel, CancelResult, ClaudeAnswer, ClaudeRequest, CliDetect, CliDetectResult, CliFound, CliUpdated, CodexAnswer, CodexRequest, LoggedOut, UpdateProgram, LoginCancel, LoginCancelled, LoginProgram, LoginSend, LoginStarted, LoginState, LoginStatus, McpAnswer, McpRequest, ProcSample, RunCommand, RunResult};
+use exec_proc::{Cancel, CancelResult, ClaudeAnswer, ClaudeRequest, CliDetect, CliDetectResult, CliFound, CliUpdated, CodexAnswer, CodexRequest, LoggedOut, UpdateProgram, LoginCancel, LoginCancelled, LoginProgram, LoginSend, LoginStarted, LoginState, LoginStatus, McpAnswer, McpRequest, ProcSample, RunCommand, RunResult, SessionEnded, SessionOpen, SessionSend, SessionSent};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyListed, PtyOpen, PtyOpened, PtyResize, PtyResized, PtyWrite, PtyWritten};
 use exec_proto::{to_value, Code, ExecError, ExecResult, Stream};
 use serde_json::Value;
@@ -15,6 +15,11 @@ use serde_json::Value;
 pub trait ToolExecutor: Send + Sync {
     /// Blocks until the process ends, calling `output` for each chunk as it arrives.
     fn run_command(&self, id: &str, args: &RunCommand, output: &mut dyn FnMut(Stream, &str)) -> ExecResult<RunResult>;
+    /// Starts the agent CLI's live conversation process and blocks until it ends, calling `events` once it has started (the session takes lines
+    /// from then on) and `output` for each chunk it prints; `cancel(id)` stops it.
+    fn session_open(&self, id: &str, args: &SessionOpen, output: &mut dyn FnMut(Stream, &str), events: &mut dyn FnMut(Value)) -> ExecResult<SessionEnded>;
+    /// Writes one line to the input of the open session; returns the bytes written.
+    fn session_send(&self, args: &SessionSend) -> ExecResult<usize>;
     fn read_file(&self, args: &ReadFile) -> ExecResult<ReadResult>;
     /// Returns the bytes written.
     fn write_file(&self, args: &WriteFile) -> ExecResult<usize>;
@@ -107,6 +112,8 @@ pub fn execute(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value, stream
 pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value, stream: &mut dyn FnMut(Stream, &str), events: &mut dyn FnMut(Value), binary: &mut dyn FnMut(Vec<u8>)) -> ExecResult<Value> {
     match tool {
         exec_proc::RUN_COMMAND => Ok(to_value(&ex.run_command(id, &RunCommand::parse(args)?, stream)?)),
+        exec_proc::SESSION_OPEN => Ok(to_value(&ex.session_open(id, &SessionOpen::parse(args)?, stream, events)?)),
+        exec_proc::SESSION_SEND => Ok(to_value(&SessionSent { written: ex.session_send(&SessionSend::parse(args)?)? })),
         exec_fs::READ_FILE => Ok(to_value(&ex.read_file(&ReadFile::parse(args)?)?)),
         exec_fs::WRITE_FILE => Ok(to_value(&WriteResult { bytes: ex.write_file(&WriteFile::parse(args)?)? })),
         exec_fs::LIST_DIR => Ok(to_value(&ListResult { entries: ex.list_dir(&ListDir::parse(args)?)? })),
@@ -201,6 +208,16 @@ mod tests {
             self.note(exec_proc::RUN_COMMAND);
             output(Stream::Stdout, id);
             Ok(RunResult { exit_code: 0, timed_out: false, cancelled: false, truncated: false })
+        }
+        fn session_open(&self, id: &str, _: &SessionOpen, output: &mut dyn FnMut(Stream, &str), events: &mut dyn FnMut(Value)) -> ExecResult<SessionEnded> {
+            self.note(exec_proc::SESSION_OPEN);
+            events(json!({"kind": "session.started"}));
+            output(Stream::Stdout, id);
+            Ok(SessionEnded { exit_code: 0, cancelled: false })
+        }
+        fn session_send(&self, args: &SessionSend) -> ExecResult<usize> {
+            self.note(exec_proc::SESSION_SEND);
+            Ok(args.line.len())
         }
         fn read_file(&self, _: &ReadFile) -> ExecResult<ReadResult> {
             self.note(exec_fs::READ_FILE);
@@ -401,6 +418,7 @@ mod tests {
             ("op", _) => json!("abort"),
             ("resolution", _) => json!("resolved"),
             ("provider", _) => json!("github"),
+            ("program", _) if action.name == exec_proc::SESSION_OPEN => json!("codex"),
             ("program", _) => json!("claude"),
             ("method", _) if action.name == exec_proc::CODEX_APP_SERVER => json!("account/read"),
             ("method", _) if action.name == exec_proc::MCP_REQUEST => json!("tools/list"),

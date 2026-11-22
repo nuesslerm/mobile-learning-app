@@ -15,7 +15,7 @@ use crate::domain::ToolExecutor;
 use base64::Engine;
 use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, EntryKind, FoundEntry, ListDir, MakeDir, PutBlob, PutTemp, ReadChunk, ReadFile, ReadResult, SearchEntries, SecretFilePut, SessionScan, SessionsFound, Skill, SkillDir, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
 use exec_git::{GitCall, GitDiff, GitOp, Resolution, SetupEvent, SetupResult, SetupStep, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeRemove, WorktreeSetup};
-use exec_proc::{ClaudeAnswer, ClaudeRequest, CliDetect, CliFound, CliUpdated, CodexAnswer, CodexRequest, UpdateProgram, LoginCancel, LoginProgram, LoginSend, LoginState, LoginStatus, McpAnswer, McpRequest, ProcSample, RunCommand, RunResult};
+use exec_proc::{ClaudeAnswer, ClaudeRequest, CliDetect, CliFound, CliUpdated, CodexAnswer, CodexRequest, UpdateProgram, LoginCancel, LoginProgram, LoginSend, LoginState, LoginStatus, McpAnswer, McpRequest, ProcSample, RunCommand, RunResult, SessionEnded, SessionOpen, SessionSend};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyOpen, PtyOpened, PtyResize, PtyWrite};
 use crate::adapters::git::{Repo, Watches};
 use crate::adapters::hosted::Hosted;
@@ -57,6 +57,7 @@ pub struct LocalExecutor {
     browser: BrowserTable,
     cli_path: Option<String>,
     logins: crate::adapters::logins::Logins,
+    sessions: crate::adapters::sessions::Sessions,
     claude_usage_url: String,
     version_timeout: Duration,
     skill_home: Option<PathBuf>,
@@ -80,7 +81,7 @@ fn outside(path: &str) -> ExecError {
 impl LocalExecutor {
     pub fn new(root: &Path) -> Result<LocalExecutor, String> {
         let root = fs::canonicalize(root).map_err(|e| format!("executor root {}: {e}", root.display()))?;
-        Ok(LocalExecutor { root, worktree_base: None, browse_allow: Vec::new(), artifact_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), browser: BrowserTable::default(), cli_path: None, logins: Default::default(), claude_usage_url: exec_proc::CLAUDE_USAGE_URL.to_string(), version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
+        Ok(LocalExecutor { root, worktree_base: None, browse_allow: Vec::new(), artifact_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), browser: BrowserTable::default(), cli_path: None, logins: Default::default(), sessions: Default::default(), claude_usage_url: exec_proc::CLAUDE_USAGE_URL.to_string(), version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
     }
 
     /// Widens confinement to the directory worktrees are made in (created when missing).
@@ -393,69 +394,25 @@ impl ToolExecutor for LocalExecutor {
         let mut cmd = Command::new("sh");
         cmd.arg("-c").arg(&args.command).current_dir(cwd).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).process_group(0);
         cmd.envs(args.env.iter().map(|(k, v)| (k, v)));
-        let cancelled = Arc::new(AtomicBool::new(false));
-        self.running.lock().unwrap().insert(id.to_string(), cancelled.clone());
-        let mut child = match cmd.spawn() {
-            Ok(c) => c,
-            Err(e) => {
-                self.stop(id);
-                return Err(io(e));
-            }
+        self.drive(id, cmd, Some(Duration::from_millis(args.timeout_ms)), OUTPUT_CAP, None, output)
+    }
+
+    fn session_open(&self, id: &str, args: &SessionOpen, output: &mut dyn FnMut(Stream, &str), events: &mut dyn FnMut(Value)) -> ExecResult<SessionEnded> {
+        let (path, search, home) = self.login_target(&args.program)?;
+        let cwd = match &args.cwd {
+            Some(c) => self.resolve(c)?,
+            None => self.root.clone(),
         };
-        let pid = child.id() as i32;
-        let (tx, rx) = mpsc::channel();
-        pump(child.stdout.take().expect("piped"), Stream::Stdout, tx.clone());
-        pump(child.stderr.take().expect("piped"), Stream::Stderr, tx);
-        let deadline = Instant::now() + Duration::from_millis(args.timeout_ms);
-        let (mut sent, mut truncated, mut timed_out, mut killed) = (0usize, false, false, false);
-        let mut forward = |chunk: Chunk, sent: &mut usize, truncated: &mut bool| {
-            let Chunk::Data(stream, bytes) = chunk;
-            let room = OUTPUT_CAP.saturating_sub(*sent);
-            if bytes.len() > room {
-                *truncated = true;
-            }
-            let take = &bytes[..bytes.len().min(room)];
-            if !take.is_empty() {
-                *sent += take.len();
-                output(stream, &String::from_utf8_lossy(take));
-            }
-        };
-        let (mut exited_at, mut last_data, mut swept_at) = (None::<Instant>, Instant::now(), None::<Instant>);
-        loop {
-            match rx.recv_timeout(Duration::from_millis(20)) {
-                Ok(chunk) => {
-                    forward(chunk, &mut sent, &mut truncated);
-                    last_data = Instant::now();
-                }
-                Err(RecvTimeoutError::Disconnected) => break,
-                Err(RecvTimeoutError::Timeout) => {}
-            }
-            let now = Instant::now();
-            if !killed && (cancelled.load(Ordering::SeqCst) || now >= deadline) {
-                timed_out = !cancelled.load(Ordering::SeqCst);
-                killed = true;
-                kill_group(pid);
-            }
-            // A background process holding the pipes open keeps them from closing after the command exited: once the output has been quiet
-            // for the grace (or the drain has lasted its cap) the group is killed, and the pipes get a moment to hand over what is buffered.
-            if exited_at.is_none() && child.try_wait().map_err(io)?.is_some() {
-                (exited_at, last_data) = (Some(now), now);
-            }
-            if let (Some(exited), None) = (exited_at, swept_at) {
-                if now.duration_since(last_data) >= EXIT_QUIET_GRACE || now.duration_since(exited) >= EXIT_DRAIN_CAP {
-                    kill_group(pid);
-                    swept_at = Some(now);
-                }
-            }
-            if swept_at.is_some_and(|at| now.duration_since(at) >= SWEEP_DRAIN) {
-                break;
-            }
-        }
-        let status = child.wait().map_err(io)?;
-        self.stop(id);
-        kill_group(pid);
-        let exit_code = status.code().unwrap_or_else(|| 128 + status.signal().unwrap_or(0));
-        Ok(RunResult { exit_code, timed_out, cancelled: cancelled.load(Ordering::SeqCst), truncated })
+        let mut cmd = Command::new(path);
+        cmd.args(args.args()).current_dir(cwd).env("PATH", search).env("HOME", home).env("NO_COLOR", "1").stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).process_group(0);
+        self.sessions.reserve(&args.session)?;
+        let ended = self.drive(id, cmd, None, usize::MAX, Some((&args.session, events)), output);
+        self.sessions.release(&args.session);
+        ended.map(|r| SessionEnded { exit_code: r.exit_code, cancelled: r.cancelled })
+    }
+
+    fn session_send(&self, args: &SessionSend) -> ExecResult<usize> {
+        self.sessions.send(&args.session, &args.line)
     }
 
     fn read_file(&self, args: &ReadFile) -> ExecResult<ReadResult> {
@@ -1064,6 +1021,81 @@ impl ToolExecutor for LocalExecutor {
 }
 
 impl LocalExecutor {
+    /// Runs `cmd` to its end as one action `id`: its output goes to `output` (at most `cap` bytes), `cancel(id)` or the end of `limit` kills its
+    /// group, and a process left holding the pipes after it exited is killed once they have been quiet. A `session` is given the child's input
+    /// and told when the child has started.
+    fn drive(&self, id: &str, mut cmd: Command, limit: Option<Duration>, cap: usize, session: Option<(&str, &mut dyn FnMut(Value))>, output: &mut dyn FnMut(Stream, &str)) -> ExecResult<RunResult> {
+        let cancelled = Arc::new(AtomicBool::new(false));
+        self.running.lock().unwrap().insert(id.to_string(), cancelled.clone());
+        let mut child = match cmd.spawn() {
+            Ok(c) => c,
+            Err(e) => {
+                self.stop(id);
+                return Err(io(e));
+            }
+        };
+        let pid = child.id() as i32;
+        if let Some((name, started)) = session {
+            if let Some(input) = child.stdin.take() {
+                self.sessions.attach(name, input);
+            }
+            started(serde_json::json!({"kind": "session.started"}));
+        }
+        let (tx, rx) = mpsc::channel();
+        pump(child.stdout.take().expect("piped"), Stream::Stdout, tx.clone());
+        pump(child.stderr.take().expect("piped"), Stream::Stderr, tx);
+        let deadline = limit.map(|limit| Instant::now() + limit);
+        let (mut sent, mut truncated, mut timed_out, mut killed) = (0usize, false, false, false);
+        let mut forward = |chunk: Chunk, sent: &mut usize, truncated: &mut bool| {
+            let Chunk::Data(stream, bytes) = chunk;
+            let room = cap.saturating_sub(*sent);
+            if bytes.len() > room {
+                *truncated = true;
+            }
+            let take = &bytes[..bytes.len().min(room)];
+            if !take.is_empty() {
+                *sent += take.len();
+                output(stream, &String::from_utf8_lossy(take));
+            }
+        };
+        let (mut exited_at, mut last_data, mut swept_at) = (None::<Instant>, Instant::now(), None::<Instant>);
+        loop {
+            match rx.recv_timeout(Duration::from_millis(20)) {
+                Ok(chunk) => {
+                    forward(chunk, &mut sent, &mut truncated);
+                    last_data = Instant::now();
+                }
+                Err(RecvTimeoutError::Disconnected) => break,
+                Err(RecvTimeoutError::Timeout) => {}
+            }
+            let now = Instant::now();
+            if !killed && (cancelled.load(Ordering::SeqCst) || deadline.is_some_and(|d| now >= d)) {
+                timed_out = !cancelled.load(Ordering::SeqCst);
+                killed = true;
+                kill_group(pid);
+            }
+            // A background process holding the pipes open keeps them from closing after the command exited: once the output has been quiet
+            // for the grace (or the drain has lasted its cap) the group is killed, and the pipes get a moment to hand over what is buffered.
+            if exited_at.is_none() && child.try_wait().map_err(io)?.is_some() {
+                (exited_at, last_data) = (Some(now), now);
+            }
+            if let (Some(exited), None) = (exited_at, swept_at) {
+                if now.duration_since(last_data) >= EXIT_QUIET_GRACE || now.duration_since(exited) >= EXIT_DRAIN_CAP {
+                    kill_group(pid);
+                    swept_at = Some(now);
+                }
+            }
+            if swept_at.is_some_and(|at| now.duration_since(at) >= SWEEP_DRAIN) {
+                break;
+            }
+        }
+        let status = child.wait().map_err(io)?;
+        self.stop(id);
+        kill_group(pid);
+        let exit_code = status.code().unwrap_or_else(|| 128 + status.signal().unwrap_or(0));
+        Ok(RunResult { exit_code, timed_out, cancelled: cancelled.load(Ordering::SeqCst), truncated })
+    }
+
     /// `<worktree base>/<name>`; the name is one plain segment (checked by the contract), so the path stays under the base.
     fn worktree_path(&self, name: &str) -> ExecResult<PathBuf> {
         let base = self.worktree_base.as_ref().ok_or_else(|| ExecError::new(Code::Io, "this executor has no worktree base (start it with --worktree-base)"))?;

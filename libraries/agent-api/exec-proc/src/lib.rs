@@ -22,6 +22,10 @@ pub const LOGOUT: &str = "logout";
 pub const CLI_UPDATE: &str = "cli_update";
 /// One request to a `codex app-server` started for it and stopped after the answer, under the executor's own Codex login.
 pub const CODEX_APP_SERVER: &str = "codex_app_server_request";
+/// A live conversation process of an agent CLI (Codex's app-server), started once and talked to for as long as it runs: `session_open` streams its
+/// output lines and ends when it does, `session_send` writes one line to its input, and cancelling the open action stops it.
+pub const SESSION_OPEN: &str = "session_open";
+pub const SESSION_SEND: &str = "session_send";
 /// One read of the executor's own Claude account (its usage), under the login the CLI keeps in the executor's home.
 pub const CLAUDE_ACCOUNT: &str = "claude_account_request";
 /// One sample of the processes below the executor: what the phone's resource view shows of the workspace host.
@@ -90,6 +94,14 @@ pub const VERSION_MAX: usize = 200;
 
 pub const DEFAULT_TIMEOUT_MS: u64 = 120_000;
 
+/// The actions that stay open and take a thread of their own at the executor.
+pub const LONG: &[&str] = &[SESSION_OPEN];
+/// The longest line `session_send` writes, and the most sessions one executor keeps open at once.
+pub const SESSION_LINE_MAX: usize = 1 << 20;
+pub const SESSIONS_MAX: usize = 64;
+/// What an agent CLI is started with by `session_open`, by program: the arguments are the CLI's own, never the caller's.
+pub const SESSION_ARGS: [(&str, &[&str]); 1] = [("codex", &["app-server"])];
+
 /// The family's actions, in the contract's order.
 pub const ACTIONS: &[Action] = &[
     Action {
@@ -157,6 +169,22 @@ pub const ACTIONS: &[Action] = &[
         about: "Run an agent CLI's own self-update (claude, opencode) at the executor and return the tail of its output and the version it now reports; codex has none and is refused.",
         properties: &[Property { name: "program", kind: "string", about: "One of claude, opencode" }],
         required: &["program"],
+    },
+    Action {
+        name: SESSION_OPEN,
+        about: "Start a live conversation process of an agent CLI (codex: `codex app-server`) in the workspace, with the executor's own login, and stream its stdout lines until it ends; cancelling the action stops the process and everything it started.",
+        properties: &[
+            Property { name: "session", kind: "string", about: "An id the caller chooses, for session_send to name (1 to 128 characters, not in use)" },
+            Property { name: "program", kind: "string", about: "One of the agent CLIs that run as a session: codex" },
+            Property { name: "cwd", kind: "string", about: "Directory relative to the workspace root" },
+        ],
+        required: &["session", "program"],
+    },
+    Action {
+        name: SESSION_SEND,
+        about: "Write one line (a JSON message, without its newline) to the input of a session that session_open started.",
+        properties: &[Property { name: "session", kind: "string", about: "Id session_open was given" }, Property { name: "line", kind: "string", about: "The line to write, without its newline" }],
+        required: &["session", "line"],
     },
     Action {
         name: CODEX_APP_SERVER,
@@ -407,6 +435,63 @@ pub struct CliUpdated {
     pub version: Option<String>,
 }
 
+/// `session_open`: the id the caller names the session by, the agent CLI to run and where.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SessionOpen {
+    pub session: String,
+    pub program: String,
+    pub cwd: Option<String>,
+}
+
+impl SessionOpen {
+    pub fn parse(args: &Value) -> ExecResult<SessionOpen> {
+        let session = string(args, "session")?;
+        if session.is_empty() || session.len() > 128 {
+            return Err(ExecError::invalid_args("`session` must hold 1 to 128 characters"));
+        }
+        let program = string(args, "program")?;
+        if !SESSION_ARGS.iter().any(|(p, _)| *p == program) {
+            let known: Vec<&str> = SESSION_ARGS.iter().map(|(p, _)| *p).collect();
+            return Err(ExecError::invalid_args(format!("`program` is one of {}, not {program:?}", known.join(", "))));
+        }
+        Ok(SessionOpen { session, program, cwd: opt_string(args, "cwd")? })
+    }
+
+    /// The arguments the CLI is started with.
+    pub fn args(&self) -> &'static [&'static str] {
+        SESSION_ARGS.iter().find(|(p, _)| *p == self.program).map_or(&[], |(_, a)| a)
+    }
+}
+
+/// How a session ended: the exit code of its process (`128 + signal` when a signal ended it) and whether cancelling the action ended it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SessionEnded {
+    pub exit_code: i32,
+    pub cancelled: bool,
+}
+
+/// `session_send`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SessionSend {
+    pub session: String,
+    pub line: String,
+}
+
+impl SessionSend {
+    pub fn parse(args: &Value) -> ExecResult<SessionSend> {
+        let line = string(args, "line")?;
+        if line.len() > SESSION_LINE_MAX || line.contains('\n') {
+            return Err(ExecError::invalid_args(format!("`line` is one line of at most {SESSION_LINE_MAX} bytes")));
+        }
+        Ok(SessionSend { session: string(args, "session")?, line })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SessionSent {
+    pub written: usize,
+}
+
 /// `codex_app_server_request`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CodexRequest {
@@ -641,5 +726,20 @@ mod tests {
         assert!(off.message.contains("account/read") && bad.message.contains("`params` must be an object"));
         assert_eq!(ClaudeRequest::parse(&json!({"request": "usage"})).unwrap().request, "usage");
         assert_eq!(ClaudeRequest::parse(&json!({"request": "token"})).unwrap_err().code, Code::InvalidArgs);
+    }
+
+    #[test]
+    fn given_session_requests_when_parsed_then_only_a_named_session_of_a_listed_program_opens_and_a_line_is_one_line() {
+        // Given an open of codex, one of a program with no session mode, one with no id, one with an id that is too long, and lines with and without a newline
+        let open = SessionOpen::parse(&json!({"session": "s1", "program": "codex", "cwd": "sub"})).unwrap();
+        let refused: Vec<_> = [json!({"session": "s1", "program": "claude"}), json!({"program": "codex"}), json!({"session": "", "program": "codex"}), json!({"session": "x".repeat(129), "program": "codex"})].iter().map(|a| SessionOpen::parse(a).unwrap_err().code).collect();
+        let sent = SessionSend::parse(&json!({"session": "s1", "line": "{\"id\":1}"})).unwrap();
+        let two_lines = SessionSend::parse(&json!({"session": "s1", "line": "a\nb"})).unwrap_err();
+        // Then the open starts the CLI with its own arguments, the others are INVALID_ARGS, and a line with a newline is refused
+        assert_eq!((open.args(), open.cwd.as_deref()), (&["app-server"][..], Some("sub")));
+        assert!(refused.iter().all(|c| *c == Code::InvalidArgs), "{refused:?}");
+        assert_eq!(sent.line, "{\"id\":1}");
+        assert!(two_lines.code == Code::InvalidArgs && two_lines.message.contains("one line"));
+        assert_eq!(LONG, [SESSION_OPEN]);
     }
 }

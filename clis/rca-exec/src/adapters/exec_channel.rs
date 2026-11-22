@@ -174,7 +174,7 @@ fn serve(mut socket: WebSocket<TcpStream>, ex: Arc<dyn ToolExecutor>, stop: &Ato
                             Ok(result) => result_frame(&id, &result),
                             Err(e) => error_frame(&id, e.code.as_str(), &e.message),
                         }));
-                    } else if exec_pty::LONG.contains(&tool.as_str()) || exec_git::LONG.contains(&tool.as_str()) || exec_hosted::LONG.contains(&tool.as_str()) || exec_preview::LONG.contains(&tool.as_str()) || exec_browser::LONG.contains(&tool.as_str()) {
+                    } else if exec_proc::LONG.contains(&tool.as_str()) || exec_pty::LONG.contains(&tool.as_str()) || exec_git::LONG.contains(&tool.as_str()) || exec_hosted::LONG.contains(&tool.as_str()) || exec_preview::LONG.contains(&tool.as_str()) || exec_browser::LONG.contains(&tool.as_str()) {
                         // A stream that stays open takes a thread of its own: a pool worker held by each would starve the other requests.
                         inflight.lock().unwrap().insert(id.clone());
                         longs.push(std::thread::spawn({ let (ex, out, inflight) = (ex.clone(), out_tx.clone(), inflight.clone()); move || run_job(&Job { id, tool, args }, ex.as_ref(), &out, &inflight) }));

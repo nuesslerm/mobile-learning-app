@@ -20,6 +20,8 @@ mod preview;
 mod provider_account;
 #[path = "flow/pty.rs"]
 mod pty;
+#[path = "flow/sessions.rs"]
+mod sessions;
 #[path = "flow/workspace.rs"]
 mod workspace;
 

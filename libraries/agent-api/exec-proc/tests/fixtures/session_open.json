@@ -1,0 +1,103 @@
+{
+  "action": "session_open",
+  "exchanges": [
+    {
+      "name": "streams the output of the session's CLI until it ends and answers how it ended",
+      "setup": {
+        "clis": {
+          "codex": "codex-cli 0.171.0"
+        }
+      },
+      "request": {
+        "id": "o1",
+        "tool": "session_open",
+        "args": {
+          "session": "s-1",
+          "program": "codex"
+        }
+      },
+      "stream": [
+        {
+          "stream": "stdout",
+          "data": "codex-cli 0.171.0\n"
+        }
+      ],
+      "events": [
+        {
+          "kind": "session.started"
+        }
+      ],
+      "response": {
+        "id": "o1",
+        "ok": true,
+        "result": {
+          "exit_code": 0,
+          "cancelled": false
+        }
+      }
+    },
+    {
+      "name": "refuses a program that has no session mode",
+      "request": {
+        "id": "o2",
+        "tool": "session_open",
+        "args": {
+          "session": "s-1",
+          "program": "claude"
+        }
+      },
+      "response": {
+        "id": "o2",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`program` is one of codex, not \"claude\""
+        }
+      }
+    },
+    {
+      "name": "refuses a session CLI the executor does not have",
+      "request": {
+        "id": "o3",
+        "tool": "session_open",
+        "args": {
+          "session": "s-1",
+          "program": "codex"
+        }
+      },
+      "response": {
+        "id": "o3",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "codex is not installed here"
+        }
+      }
+    },
+    {
+      "name": "refuses a directory outside the root",
+      "setup": {
+        "clis": {
+          "codex": "codex-cli 0.171.0"
+        }
+      },
+      "request": {
+        "id": "o4",
+        "tool": "session_open",
+        "args": {
+          "session": "s-1",
+          "program": "codex",
+          "cwd": "../elsewhere"
+        }
+      },
+      "response": {
+        "id": "o4",
+        "ok": false,
+        "error": {
+          "code": "PATH_OUTSIDE_ROOT",
+          "message": "../elsewhere is outside the root"
+        }
+      }
+    }
+  ]
+}

@@ -12,3 +12,4 @@ pub mod preview;
 pub mod provider_account;
 pub mod pty;
 pub mod sampling;
+pub mod sessions;
