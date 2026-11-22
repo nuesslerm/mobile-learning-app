@@ -211,7 +211,7 @@ pub(crate) fn overhead_share<'a>(steps: impl Iterator<Item = (&'a str, f64)>) ->
     (all > 0.0).then(|| overhead * 100.0 / all)
 }
 
-fn quoted(runs: &[&str]) -> String {
+pub(crate) fn quoted(runs: &[&str]) -> String {
     runs.iter().map(|r| format!("'{}'", r.replace('\'', "''"))).collect::<Vec<_>>().join(", ")
 }
 

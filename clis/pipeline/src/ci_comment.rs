@@ -836,22 +836,32 @@ fn job_chart(shown: &[(&Value, Stats)]) -> String {
 /// about six labels are printed (every one on a phone overlaps its neighbours) and the others get an invisible, distinct name (equal names
 /// would be one category).
 fn bar_chart(title: &str, unit: &str, labels: &[String], values: &[f64], floor_max: f64, thin: bool) -> String {
-    xy_chart("bar", title, unit, labels, values, floor_max, thin)
+    xy_chart(Look { init: "", kind: "bar", floor_max, thin }, title, unit, labels, &[values])
 }
 
-/// The same axes drawn as a line, for a series in time order.
-pub(crate) fn line_chart(title: &str, unit: &str, labels: &[String], values: &[f64]) -> String {
-    xy_chart("line", title, unit, labels, values, 1.0, true)
+/// Several series as lines on one set of axes, in the colours of `palette` (one `#rrggbb` per series, in order). Mermaid draws no legend, so the caller names the colours.
+pub(crate) fn multi_line_chart(title: &str, unit: &str, labels: &[String], series: &[Vec<f64>], palette: &[&str]) -> String {
+    let init = format!("%%{{init: {{\"themeVariables\": {{\"xyChart\": {{\"plotColorPalette\": \"{}\"}}}}}}}}%%\n", palette.join(", "));
+    let series: Vec<&[f64]> = series.iter().map(Vec::as_slice).collect();
+    xy_chart(Look { init: &init, kind: "line", floor_max: 1.0, thin: true }, title, unit, labels, &series)
 }
 
-fn xy_chart(kind: &str, title: &str, unit: &str, labels: &[String], values: &[f64], floor_max: f64, thin: bool) -> String {
-    let peak = values.iter().copied().fold(0.0_f64, f64::max);
+/// How a chart is drawn: a Mermaid init directive (or none), `bar` or `line`, the least height of the axis, and whether the labels are thinned.
+struct Look<'a> {
+    init: &'a str,
+    kind: &'a str,
+    floor_max: f64,
+    thin: bool,
+}
+
+fn xy_chart(Look { init, kind, floor_max, thin }: Look, title: &str, unit: &str, labels: &[String], series: &[&[f64]]) -> String {
+    let peak = series.iter().flat_map(|s| s.iter().copied()).fold(0.0_f64, f64::max);
     let step = if peak > 100.0 { 50.0 } else if peak > 20.0 { 10.0 } else { 5.0 };
     let top = ((peak / step).ceil() * step).max(floor_max);
     let every = if thin { labels.len().div_ceil(6).max(1) } else { 1 };
     let names = labels.iter().enumerate().map(|(i, l)| if i % every == 0 { format!("\"{l}\"") } else { format!("\"{}\"", "\u{200b}".repeat(i + 1)) }).collect::<Vec<_>>().join(", ");
-    let points = values.iter().map(|v| format!("{v:.1}")).collect::<Vec<_>>().join(", ");
-    mermaid(&format!("xychart-beta\n    title \"{title}\"\n    x-axis [{names}]\n    y-axis \"{unit}\" 0 --> {top:.0}\n    {kind} [{points}]\n"))
+    let plots: String = series.iter().map(|values| format!("    {kind} [{}]\n", values.iter().map(|v| format!("{v:.1}")).collect::<Vec<_>>().join(", "))).collect();
+    mermaid(&format!("{init}xychart-beta\n    title \"{title}\"\n    x-axis [{names}]\n    y-axis \"{unit}\" 0 --> {top:.0}\n{plots}"))
 }
 
 /// The VM's history as charts: I/O wait during the run and over the last day (the signal that says a stall is coming), with CPU and

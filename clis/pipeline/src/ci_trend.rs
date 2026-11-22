@@ -1,6 +1,7 @@
 //! The "Trend" section of the CI comment: the last successful runs of each hosted workflow from the sealed CI database, this run against their median,
 //! and the job and step that made this run long. The section is left out whenever the database cannot be read.
-use crate::ci_comment::{cell, line_chart, slowest_of, span_secs, text, var};
+use crate::ci_actions::quoted;
+use crate::ci_comment::{cell, multi_line_chart, slowest_of, span_secs, text, var};
 use crate::ci_insights::span;
 use serde_json::Value;
 use wf_bucket::ci_db::{self, RunProfile, Working};
@@ -10,6 +11,10 @@ const RUNS: usize = 20;
 const MIN_CHART: usize = 3;
 /// Within this share of the median a run is neither slower nor faster.
 const BAND: f64 = 0.10;
+/// The longest jobs that get a line next to the total; more lines than the palette has colours would not be told apart.
+const JOB_LINES: usize = 6;
+/// One colour per line, the total first; mid-tone so they read on GitHub's light and dark themes, each with the emoji square that names it in the legend.
+const PALETTE: [(&str, &str); JOB_LINES + 1] = [("#388bfd", "🟦"), ("#f0883e", "🟧"), ("#3fb950", "🟩"), ("#a371f7", "🟪"), ("#d4a72c", "🟨"), ("#f85149", "🟥"), ("#a0724a", "🟫")];
 const WORKFLOWS: [&str; 6] = ["cli_core", "mobile_core", "backend_core", "cli_build", "mobile_build", "backend_build"];
 
 /// A successful run: no job failed, was cancelled or has no conclusion. The table keeps no branch, and only dev's pipeline merges its rows.
@@ -105,14 +110,72 @@ fn longest(profile: &RunProfile, jobs: &[&Value]) -> Option<String> {
     Some(format!("**Longest:** critical path job `{}` {}{step}.\n", cell(&text(job, "name")), span(secs)))
 }
 
-fn chart(all: &[Past], key: &str) -> String {
-    let runs = last_of(all, key);
+/// A job's minutes in each of the runs (0 where it did not run), its shards as one: the slowest shard, since the shards run side by side and the slowest one is
+/// what the run waits for.
+struct JobLine {
+    name: String,
+    minutes: Vec<f64>,
+}
+
+impl JobLine {
+    fn typical(&self) -> f64 {
+        median(self.minutes.iter().copied().filter(|m| *m > 0.0).collect()).unwrap_or(0.0)
+    }
+}
+
+/// The longest jobs of these runs by their median, longest first; a job that ran in under half of them is left out, and so is the report itself. The count left out is returned.
+fn job_lines(sealed: &Sealed, runs: &[&Past]) -> (Vec<JobLine>, usize) {
+    let ids: Vec<&str> = runs.iter().map(|p| p.run.as_str()).collect();
+    let rows = sealed.rows(&format!(
+        "SELECT RUN_ID AS run, JOB AS job, SECS AS secs FROM CI_JOBS WHERE RUN_ID IN ({}) AND SECS > 0 AND COALESCE(CONCLUSION, '') <> 'skipped'",
+        quoted(&ids)
+    ));
+    let mut lines: Vec<JobLine> = Vec::new();
+    for r in &rows {
+        let Some(at) = ids.iter().position(|id| *id == text(r, "run")) else { continue };
+        let raw = text(r, "job");
+        let name = wf_bucket::job_name::stage(&raw);
+        if matches!(name, "report" | "budget") {
+            continue;
+        }
+        let minutes = r["secs"].as_f64().unwrap_or(0.0) / 60.0;
+        let line = match lines.iter().position(|l| l.name == name) {
+            Some(i) => &mut lines[i],
+            None => {
+                lines.push(JobLine { name: name.to_string(), minutes: vec![0.0; ids.len()] });
+                lines.last_mut().expect("just pushed")
+            }
+        };
+        line.minutes[at] = line.minutes[at].max(minutes);
+    }
+    lines.retain(|l| l.minutes.iter().filter(|m| **m > 0.0).count() * 2 >= ids.len());
+    lines.sort_by(|a, b| b.typical().total_cmp(&a.typical()).then_with(|| a.name.cmp(&b.name)));
+    let omitted = lines.len().saturating_sub(JOB_LINES);
+    lines.truncate(JOB_LINES);
+    (lines, omitted)
+}
+
+/// One line chart of this workflow's last runs, minutes, oldest first: the total wall time, then its longest jobs, each in its own colour and named in the line under
+/// the chart (Mermaid draws no legend). Empty below `MIN_CHART` runs.
+fn chart(sealed: &Sealed, key: &str) -> String {
+    let runs = last_of(&sealed.past, key);
     if runs.len() < MIN_CHART {
         return String::new();
     }
     let labels: Vec<String> = (1..=runs.len()).map(|i| i.to_string()).collect();
-    let minutes: Vec<f64> = runs.iter().map(|p| p.wall / 60.0).collect();
-    format!("\n**{key}**, last {} successful runs, oldest first\n{}", runs.len(), line_chart(&format!("{key} wall time"), "minutes", &labels, &minutes))
+    let (jobs, omitted) = job_lines(sealed, &runs);
+    let mut series = vec![runs.iter().map(|p| p.wall / 60.0).collect::<Vec<f64>>()];
+    series.extend(jobs.iter().map(|j| j.minutes.clone()));
+    let palette: Vec<&str> = PALETTE.iter().map(|(color, _)| *color).collect();
+    let mut names = vec![format!("{} total wall time", PALETTE[0].1)];
+    names.extend(jobs.iter().enumerate().map(|(i, j)| format!("{} `{}` (median {})", PALETTE[i + 1].1, cell(&j.name), span((j.typical() * 60.0).round() as i64))));
+    let note = if omitted > 0 { format!(" {omitted} shorter jobs are left out.") } else { String::new() };
+    format!(
+        "\n**{key}**, minutes of the last {} successful runs, oldest first\n{}\n{}\n\nA matrix job is one line at its slowest shard.{note}\n",
+        runs.len(),
+        multi_line_chart(&format!("{key} wall time and its longest jobs"), "minutes", &labels, &series, &palette),
+        names.join(" · ")
+    )
 }
 
 /// Empty for a run whose profile is not known yet, a workflow that is not a hosted one, an unreadable database and a database with no history.
@@ -121,7 +184,7 @@ pub(crate) fn section(sealed: Option<&Sealed>, profile: Option<&RunProfile>, job
     let Some(all) = sealed.map(|s| &s.past) else { return String::new() };
     let key = key_of(&profile.workflow);
     let past = key.map(|k| last_of(all, k)).unwrap_or_default();
-    let chart = key.map(|k| chart(all, k)).unwrap_or_default();
+    let chart = key.zip(sealed).map(|(k, s)| chart(s, k)).unwrap_or_default();
     if chart.is_empty() && past.is_empty() {
         return String::new();
     }

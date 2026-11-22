@@ -2203,6 +2203,39 @@ fn sealed_history(dir: &std::path::Path, runs: &[(String, &str, f64, f64, i64, &
     sealed
 }
 
+/// A run `(run, workflow, wall, ts, jobs as (name, seconds))`.
+type JobRun = (String, &'static str, f64, i64, Vec<(&'static str, i64)>);
+
+/// A sealed CI database of earlier successful runs `(run, workflow, wall, ts, jobs as (name, seconds))`, each job a successful row; a job of 0 s is stored as skipped.
+fn sealed_jobs(dir: &std::path::Path, runs: &[JobRun]) -> String {
+    let local = dir.join("job-rows.sqlite");
+    let conn = rusqlite::Connection::open(&local).unwrap();
+    conn.execute_batch(
+        "CREATE TABLE CI_RUN_PROFILE (RUN_ID TEXT NOT NULL PRIMARY KEY, WORKFLOW TEXT, WALL_S REAL, RUNNER_S REAL, PEAK_JOBS INTEGER, AVG_JOBS REAL, QUEUE_S_TOTAL REAL,
+           QUEUE_S_MAX REAL, JOBS INTEGER, CRITICAL_PATH_JOB TEXT, CRITICAL_PATH_S REAL, PARALLEL_EFFICIENCY REAL);
+         CREATE TABLE CI_JOBS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, KIND TEXT NOT NULL, JOB TEXT NOT NULL, SECS INTEGER NOT NULL, QUEUED INTEGER NOT NULL,
+           CONCLUSION TEXT, PRIMARY KEY (RUN_ID, JOB));",
+    )
+    .unwrap();
+    for (run, workflow, wall, ts, jobs) in runs {
+        conn.execute("INSERT INTO CI_RUN_PROFILE VALUES (?1, ?2, ?3, ?3, 2, 1.0, 0.0, 0.0, 2, 'plan', ?3, 0.5)", rusqlite::params![run, workflow, wall]).unwrap();
+        for (name, secs) in jobs {
+            let conclusion = if *secs == 0 { "skipped" } else { "success" };
+            conn.execute("INSERT INTO CI_JOBS VALUES (?1, 'abc', ?2, 'push', ?3, ?4, 0, ?5)", rusqlite::params![run, ts, name, secs, conclusion]).unwrap();
+        }
+    }
+    drop(conn);
+    let sealed = dir.join("jobs.sealed").display().to_string();
+    let merged = run_wf(&["ci", "db", "merge", "--sealed-file", &sealed, &local.display().to_string()], &RunOpts::default().env("CI_DB_KEY", DB_KEY));
+    assert_eq!(merged.exit_code, 0, "{}{}", merged.stdout, merged.stderr);
+    sealed
+}
+
+/// The `line [..]` rows of the Trend chart, one per series, in the order they are drawn.
+fn chart_lines(body: &str) -> Vec<String> {
+    body.lines().filter_map(|l| l.trim().strip_prefix("line [")).map(|l| l.trim_end_matches(']').to_string()).collect()
+}
+
 /// Run 77 of `workflow`: a plan job of 100 s, then core-tests of 600 s whose longest step is 550 s, and no wait for a runner.
 fn trend_run(github: &Github, workflow: &str) {
     let at = |s: i64| iso(BASE + s);
@@ -2242,19 +2275,114 @@ fn the_comment_charts_the_last_twenty_successful_runs_of_a_workflow_and_sets_thi
     // When the comment is previewed
     let body = trend_body(&github, &sealed, DB_KEY);
 
-    // Then the section has a line chart of the newest twenty walls in minutes, without the failed, the cancelled and the two oldest runs
+    // Then the section has a line chart whose first line is the newest twenty walls in minutes, without the failed, the cancelled and the two oldest runs
     let expected: Vec<String> = walls[2..].iter().map(|w| format!("{:.1}", w / 60.0)).collect();
-    assert!(body.contains("### Trend") && body.contains("```mermaid\nxychart-beta"), "{body}");
-    assert!(body.contains(&format!("line [{}]", expected.join(", "))), "{body}");
+    assert!(body.contains("### Trend") && body.contains("xychart-beta"), "{body}");
+    assert!(body.contains(&format!("    line [{}]\n", expected.join(", "))), "{body}");
     assert!(!body.contains("166.") && !body.contains("148.") && !body.contains("50.0"), "{body}");
     // And only this workflow is charted: the other workflows' histories (mobile_core has three runs, enough for a chart) are not in its comment
-    assert_eq!(body.matches("xychart-beta\n    title \"backend_core wall time\"").count(), 1, "{body}");
-    assert_eq!(body.matches(" wall time\"").count(), 1, "{body}");
-    assert_eq!(body.matches("title \"mobile_core wall time\"").count(), 0, "{body}");
+    assert_eq!(body.matches("title \"backend_core wall time and its longest jobs\"").count(), 1, "{body}");
+    assert_eq!(body.matches("title \"mobile_core").count(), 0, "{body}");
     // And this run (11m 40s wall and critical path, no wait) stands against the median of those twenty (6m 45s wall, 10 s wait) with arrows
     assert!(body.contains("| backend_core | 11m 40s ↑ (median 6m 45s) | 11m 40s ↑ (median 6m 45s) | 0s ↓ (median 10s) |"), "{body}");
     // And the longest line names the critical-path job and its slowest step
     assert!(body.contains("**Longest:** critical path job `core-tests (1/3)` 10m 00s, its slowest step `Flow, typecheck, lint and unit tests` 9m 10s."), "{body}");
+}
+
+fn job_history_runs(count: usize, workflow: &'static str, id0: usize, jobs: &dyn Fn(usize) -> Vec<(&'static str, i64)>) -> Vec<JobRun> {
+    (0..count).map(|i| (format!("{}", id0 + i), workflow, 600.0 + i as f64 * 60.0, (id0 + i) as i64, jobs(i))).collect()
+}
+
+#[test]
+fn the_trend_chart_draws_the_total_and_each_long_job_as_its_own_coloured_line_with_a_legend_under_it() {
+    // Given four successful runs of backend_core whose jobs are core-tests (the slowest), publish and plan, and a deploy that took 0 s (skipped)
+    let dir = tempfile::tempdir().unwrap();
+    let runs = job_history_runs(4, "backend_core+publish", 1000, &|i| vec![("plan", 60), ("publish", 120 + 60 * i as i64), ("core-tests", 300 + 60 * i as i64), ("deploy", 0)]);
+    let sealed = sealed_jobs(dir.path(), &runs);
+    let github = Github::start();
+    trend_run(&github, "backend_core+publish");
+
+    // When the comment is previewed
+    let body = trend_body(&github, &sealed, DB_KEY);
+
+    // Then one chart has the total first and then the jobs longest first, one line each, in minutes
+    let lines = chart_lines(&body);
+    assert_eq!(lines, ["10.0, 11.0, 12.0, 13.0", "5.0, 6.0, 7.0, 8.0", "2.0, 3.0, 4.0, 5.0", "1.0, 1.0, 1.0, 1.0"], "{body}");
+    assert_eq!(body.matches("title \"backend_core wall time and its longest jobs\"").count(), 1, "{body}");
+    // And the chart sets one colour per series in the same order, for the light and the dark theme alike (no theme is forced)
+    assert!(body.contains(r##"%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#388bfd, #f0883e, #3fb950, #a371f7, #d4a72c, #f85149, #a0724a"}}}}%%"##), "{body}");
+    assert!(!body.contains("\"theme\""), "{body}");
+    // And the line under the chart names each colour: the total first, then the jobs with their median; the skipped job has no line
+    assert!(body.contains("🟦 total wall time · 🟧 `core-tests` (median 6m 30s) · 🟩 `publish` (median 3m 30s) · 🟪 `plan` (median 1m 00s)"), "{body}");
+    assert!(!body.contains("deploy"), "{body}");
+}
+
+#[test]
+fn a_matrix_job_is_one_line_at_its_slowest_shard() {
+    // Given runs whose core-tests job is three shards of different length, and a flow-tests job that is a plain one
+    let dir = tempfile::tempdir().unwrap();
+    let runs = job_history_runs(3, "backend_core+publish", 1000, &|i| {
+        vec![("core-tests (1/3)", 120), ("core-tests (2/3)", 300 + 60 * i as i64), ("core-tests (3/3)", 180), ("run / flow-tests", 200)]
+    });
+    let sealed = sealed_jobs(dir.path(), &runs);
+    let github = Github::start();
+    trend_run(&github, "backend_core+publish");
+
+    // When the comment is previewed
+    let body = trend_body(&github, &sealed, DB_KEY);
+
+    // Then the shards are one series (the slowest shard of each run), named without the shard, next to the other job (its caller's prefix dropped)
+    assert_eq!(chart_lines(&body)[1..], ["5.0, 6.0, 7.0", "3.3, 3.3, 3.3"], "{body}");
+    assert!(body.contains("🟧 `core-tests` (median 6m 00s) · 🟩 `flow-tests` (median 3m 20s)"), "{body}");
+    assert!(body.contains("A matrix job is one line at its slowest shard."), "{body}");
+}
+
+#[test]
+fn only_the_six_longest_jobs_get_a_line_and_the_comment_says_how_many_were_left_out() {
+    // Given runs of eight jobs of 1 to 8 minutes
+    let dir = tempfile::tempdir().unwrap();
+    let names = ["j1", "j2", "j3", "j4", "j5", "j6", "j7", "j8"];
+    let runs = job_history_runs(3, "backend_core+publish", 1000, &|_| names.iter().enumerate().map(|(i, n)| (*n, 60 * (i as i64 + 1))).collect());
+    let sealed = sealed_jobs(dir.path(), &runs);
+    let github = Github::start();
+    trend_run(&github, "backend_core+publish");
+
+    // When the comment is previewed
+    let body = trend_body(&github, &sealed, DB_KEY);
+
+    // Then the total and six jobs are drawn, the longest first, and the two shortest are not
+    let lines = chart_lines(&body);
+    assert_eq!(lines.len(), 7, "{body}");
+    assert_eq!(lines[1..].iter().map(|l| l.split(',').next().unwrap().to_string()).collect::<Vec<_>>(), ["8.0", "7.0", "6.0", "5.0", "4.0", "3.0"], "{body}");
+    assert!(body.contains("🟫 `j3`") && !body.contains("`j2`") && !body.contains("`j1`"), "{body}");
+    // And the note says two shorter jobs are left out
+    assert!(body.contains("2 shorter jobs are left out."), "{body}");
+}
+
+#[test]
+fn a_workflow_with_fewer_than_three_runs_has_no_chart_and_other_workflows_jobs_are_not_drawn() {
+    // Given two successful runs of backend_core, and three of mobile_core with a job of its own
+    let dir = tempfile::tempdir().unwrap();
+    let mut runs = job_history_runs(2, "backend_core+publish", 1000, &|_| vec![("core-tests", 300)]);
+    runs.extend(job_history_runs(3, "mobile_core+publish", 2000, &|_| vec![("mobile-tests", 900)]));
+    let sealed = sealed_jobs(dir.path(), &runs);
+    let github = Github::start();
+    trend_run(&github, "backend_core+publish");
+
+    // When the comment of a backend_core run is previewed
+    let body = trend_body(&github, &sealed, DB_KEY);
+
+    // Then there is no chart and the table of the two runs is still there, and no other workflow's job shows up
+    assert!(!body.contains("xychart-beta\n    title \"backend_core") && !body.contains("mobile-tests"), "{body}");
+    assert!(body.contains("### Trend") && body.contains("Median of the last 2 successful runs"), "{body}");
+    // And with three runs of its own, the chart holds only that workflow's job
+    let more = job_history_runs(3, "backend_core+publish", 3000, &|_| vec![("core-tests", 300)]);
+    let again = tempfile::tempdir().unwrap();
+    let sealed = sealed_jobs(again.path(), &more);
+    let github = Github::start();
+    trend_run(&github, "backend_core+publish");
+    let body = trend_body(&github, &sealed, DB_KEY);
+    assert!(body.contains("`core-tests`") && !body.contains("mobile-tests"), "{body}");
 }
 
 #[test]
