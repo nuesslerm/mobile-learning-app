@@ -15,6 +15,8 @@ mod caller_drift;
 mod cargo_inputs;
 #[path = "flow/check.rs"]
 mod check;
+#[path = "flow/ci_cache_misses.rs"]
+mod ci_cache_misses;
 #[path = "flow/ci_comment.rs"]
 mod ci_comment;
 #[path = "flow/ci_timings.rs"]

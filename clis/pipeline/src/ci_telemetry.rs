@@ -67,7 +67,7 @@ pub(crate) fn common_cores(samples: &[(String, Vec<Value>)]) -> Option<u32> {
     cores.all(|c| c == Some(first)).then_some(first)
 }
 
-fn ledger_files() -> Vec<(String, PathBuf)> {
+pub(crate) fn ledger_files() -> Vec<(String, PathBuf)> {
     let Some(dir) = var("WF_CI_LEDGERS") else { return Vec::new() };
     let mut out = Vec::new();
     for entry in std::fs::read_dir(&dir).into_iter().flatten().filter_map(Result::ok) {

@@ -15,6 +15,9 @@ mod metrics;
 #[path = "flow/why.rs"]
 mod why;
 
+#[path = "flow/cache_events.rs"]
+mod cache_events;
+
 #[path = "flow/serve.rs"]
 mod serve;
 

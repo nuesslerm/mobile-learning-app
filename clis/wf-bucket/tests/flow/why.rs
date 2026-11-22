@@ -67,10 +67,15 @@ impl Why {
 
     /// `wf cache nx --why -- nx-run` where Nx ran `app:lint` under `hash` (status 0, or 1 when it failed) and the hasher says these inputs.
     fn run(&self, hash: &str, inputs: Value, failed: bool) -> (RunResult, Value) {
+        self.run_with(hash, inputs, failed, &[])
+    }
+
+    /// `run` with more variables: the restore snapshot a CI job's `wf cache event nx restore` left (`WF_CACHE_RESTORE_FILE`).
+    fn run_with(&self, hash: &str, inputs: Value, failed: bool, extra: &[(&str, &str)]) -> (RunResult, Value) {
         let table = self.dir.path().join("table.json");
         std::fs::write(&table, json!({ "runtime": {}, "tasks": { "app:lint": { "hash": hash, "inputs": inputs } } }).to_string()).unwrap();
         let run_json = json!({ "tasks": [{ "taskId": "app:lint", "hash": hash, "startTime": "2026-11-08T10:00:00.000Z", "endTime": "2026-11-08T10:00:02.000Z", "cacheStatus": "cache-miss", "status": i32::from(failed) }] }).to_string();
-        let opts = RunOpts::default()
+        let mut opts = RunOpts::default()
             .cwd(&self.repo())
             .bin_dir(&self.dir.path().join("bin"))
             .env("HOME", &self.dir.path().join("home").display().to_string())
@@ -82,6 +87,9 @@ impl Why {
             .env("GITHUB_RUN_ID", "")
             .env("GITHUB_SHA", "")
             .timeout(std::time::Duration::from_secs(120));
+        for (k, v) in extra {
+            opts = opts.env(k, v);
+        }
         let r = run_wf(&["cache", "nx", "--why", "--", "nx-run"], &opts);
         let line = r.stderr.lines().find_map(|l| l.strip_prefix("wf: nx why ")).unwrap_or_else(|| panic!("no `wf: nx why` line: {r:?}"));
         let why: Value = serde_json::from_str(line).unwrap();
@@ -173,4 +181,73 @@ fn a_failed_run_says_it_stored_nothing_and_so_does_the_earlier_failure_it_repeat
     assert_eq!((miss["verdict"].as_str(), miss["stored"].as_bool()), (Some("never-stored"), Some(false)), "{why}");
     assert!(miss["because"].as_str().unwrap().contains("stored nothing"), "{why}");
     assert!(miss["thisRun"].as_str().unwrap().contains("stored nothing"), "{why}");
+}
+
+/// The snapshot `wf cache event nx restore` leaves for the job: the restore's outcome and what Nx's cache directory and table held.
+fn snapshot(dir: &std::path::Path, outcome: &str, dir_hashes: &[&str], db_hashes: &[&str]) -> String {
+    let file = dir.join("nx-cache.restore.json");
+    let body = json!({ "outcome": outcome, "matchedKey": "nx-core-tests-1of3-Linux-X64-CI-7-1", "reason": if outcome == "ok" { Value::Null } else { json!("HTTP 503 from the cache service") }, "entries": dir_hashes, "dbHashes": db_hashes, "dbRows": db_hashes.len(), "walBytes": 0, "dbNote": "", "bytes": 10 });
+    std::fs::write(&file, body.to_string()).unwrap();
+    file.display().to_string()
+}
+
+#[test]
+fn a_task_that_ran_although_the_restored_cache_held_its_hash_in_the_directory_and_the_table_is_restored_but_reran() {
+    // Given an earlier run that stored the hash and a restore whose cache directory and Nx table both hold it
+    let w = Why::new();
+    w.store.seed(w.earlier(&w.commits.0, "H1", true, json!({ FILES: "1001", ENV: "5" })));
+    let file = snapshot(w.dir.path(), "ok", &["H1", "H9"], &["H1", "H9"]);
+
+    // When Nx ran the task under that hash anyway
+    let (_, why) = w.run_with("H1", json!({ FILES: "1001", ENV: "5" }), false, &[("WF_CACHE_RESTORE_FILE", &file)]);
+
+    // Then the miss says so, with the facts it rests on, and the run block carries what the restore held
+    let miss = &why["misses"][0];
+    assert_eq!(miss["reason"], "restored-but-reran", "{why}");
+    assert_eq!((miss["facts"]["dirHasHash"].clone(), miss["facts"]["dbHasHash"].clone()), (json!(true), json!(true)), "{why}");
+    assert_eq!((why["restore"]["outcome"].clone(), why["restore"]["entries"].clone(), why["restore"]["dbRows"].clone()), (json!("ok"), json!(2), json!(2)), "{why}");
+}
+
+#[test]
+fn a_hash_in_the_restored_directory_with_no_row_in_nx_s_table_is_named_as_such() {
+    // Given a restore whose directory holds the hash and whose Nx table does not
+    let w = Why::new();
+    w.store.seed(w.earlier(&w.commits.0, "H1", true, json!({ FILES: "1001", ENV: "5" })));
+    let file = snapshot(w.dir.path(), "ok", &["H1"], &["H9"]);
+
+    // When Nx ran the task
+    let (_, why) = w.run_with("H1", json!({ FILES: "1001", ENV: "5" }), false, &[("WF_CACHE_RESTORE_FILE", &file)]);
+
+    // Then the reason is the missing row, and the detail names it
+    assert_eq!(why["misses"][0]["reason"], "restored-without-db-row", "{why}");
+    assert!(why["misses"][0]["reasonDetail"].as_str().unwrap().contains("no row"), "{why}");
+}
+
+#[test]
+fn a_miss_after_a_failed_restore_is_the_restore_not_the_inputs() {
+    // Given a restore that failed with a service error, and an earlier run that stored the hash
+    let w = Why::new();
+    w.store.seed(w.earlier(&w.commits.0, "H1", true, json!({ FILES: "1001", ENV: "5" })));
+    let file = snapshot(w.dir.path(), "error", &[], &[]);
+
+    // When Nx ran the task on the empty cache
+    let (_, why) = w.run_with("H1", json!({ FILES: "1001", ENV: "5" }), false, &[("WF_CACHE_RESTORE_FILE", &file)]);
+
+    // Then the reason is restore-failed, carrying the restore's own words
+    assert_eq!(why["misses"][0]["reason"], "restore-failed", "{why}");
+    assert!(why["misses"][0]["reasonDetail"].as_str().unwrap().contains("HTTP 503"), "{why}");
+}
+
+#[test]
+fn a_miss_under_a_hash_no_run_stored_is_never_stored_even_with_a_healthy_restore() {
+    // Given a healthy restore and no earlier run of the task
+    let w = Why::new();
+    let file = snapshot(w.dir.path(), "ok", &["H9"], &["H9"]);
+
+    // When Nx ran the task
+    let (_, why) = w.run_with("H1", json!({ FILES: "1001", ENV: "5" }), false, &[("WF_CACHE_RESTORE_FILE", &file)]);
+
+    // Then the reason is never-stored and the facts say the hash was nowhere
+    assert_eq!(why["misses"][0]["reason"], "never-stored", "{why}");
+    assert_eq!((why["misses"][0]["facts"]["dirHasHash"].clone(), why["misses"][0]["facts"]["dbHasHash"].clone()), (json!(false), json!(false)), "{why}");
 }

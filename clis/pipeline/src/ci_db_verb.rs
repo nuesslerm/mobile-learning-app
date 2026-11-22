@@ -57,9 +57,21 @@ pub fn run(args: &[String]) -> Option<i32> {
                         Err(e) => skipped.push(json!({ "file": file, "error": e })),
                     }
                 }
+                // each task that ran in the merged runs gets its reason now, with the whole history in the database
+                let mut runs: Vec<String> = rest.iter().flat_map(|f| crate::ci_cache_misses::runs_of(std::path::Path::new(f))).collect();
+                runs.sort();
+                runs.dedup();
+                let mut classified = 0;
+                let mut unclassified = Vec::new();
+                for run in &runs {
+                    match wf_bucket::miss_reason::classify_db(&conn, Some(run), true) {
+                        Ok(rows) => classified += rows.len(),
+                        Err(e) => unclassified.push(json!({ "run": run, "error": e })),
+                    }
+                }
                 drop(conn);
                 let published = save(&work, &sealed_file, &format!("ci db: {merged} rows"))?;
-                Ok(json!({ "ok": true, "merged": merged, "skipped": skipped, "published": published }))
+                Ok(json!({ "ok": true, "merged": merged, "skipped": skipped, "classified": classified, "unclassified": unclassified, "published": published }))
             });
             match outcome {
                 Ok(out) => {

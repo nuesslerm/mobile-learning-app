@@ -4,7 +4,7 @@
 //! secret, but the file is sealed so the state ref carries nothing readable without the key.
 use chacha20poly1305::aead::{Aead, KeyInit};
 use chacha20poly1305::{XChaCha20Poly1305, XNonce};
-use rusqlite::Connection;
+pub use rusqlite::Connection;
 use serde_json::{Map, Value};
 use std::path::{Path, PathBuf};
 
@@ -153,7 +153,10 @@ pub fn ensure_ledger(conn: &Connection) -> Result<(), String> {
          CREATE TABLE IF NOT EXISTS CI_TESTS (RUN_ID TEXT NOT NULL, JOB TEXT NOT NULL, STAGE TEXT NOT NULL, UNIT TEXT NOT NULL, SUITE TEXT NOT NULL, TEST TEXT NOT NULL,
            MS INTEGER NOT NULL, OUTCOME TEXT NOT NULL, BASIS TEXT NOT NULL, PRIMARY KEY (RUN_ID, JOB, STAGE, UNIT, SUITE, TEST));
          CREATE TABLE IF NOT EXISTS CI_CONCURRENCY (TS INTEGER NOT NULL, RUN_ID TEXT NOT NULL, PHASE TEXT NOT NULL, WORKFLOW TEXT NOT NULL, BUSY INTEGER NOT NULL, QUEUED INTEGER NOT NULL,
-           RUNS_ACTIVE INTEGER NOT NULL, CAP INTEGER NOT NULL, HEADROOM INTEGER NOT NULL, PRIMARY KEY (RUN_ID, PHASE, TS, WORKFLOW));",
+           RUNS_ACTIVE INTEGER NOT NULL, CAP INTEGER NOT NULL, HEADROOM INTEGER NOT NULL, PRIMARY KEY (RUN_ID, PHASE, TS, WORKFLOW));
+         CREATE TABLE IF NOT EXISTS CI_CACHE_EVENTS (RUN_ID TEXT NOT NULL, TS INTEGER NOT NULL, ATTEMPT TEXT, WORKFLOW TEXT, JOB TEXT NOT NULL, STAGE TEXT NOT NULL, SHARD TEXT NOT NULL,
+           LAYER TEXT NOT NULL, PHASE TEXT NOT NULL, KEY_REQUESTED TEXT, KEY_MATCHED TEXT, MATCH_KIND TEXT NOT NULL, SIZE_BYTES INTEGER, DURATION_MS INTEGER, OUTCOME TEXT NOT NULL,
+           REASON TEXT, ENTRIES INTEGER, DB_ROWS INTEGER, WAL_BYTES INTEGER, PRIMARY KEY (RUN_ID, JOB, STAGE, SHARD, LAYER, PHASE, TS));",
     )
     .map_err(sql)?;
     // columns added later, to a database that had the first ones: what a job ended as, when it started (0: never), the concurrency group it queued in, the wait
@@ -169,11 +172,22 @@ pub fn ensure_ledger(conn: &Connection) -> Result<(), String> {
         ("NX_TASKS", "STARTED_MS", "INTEGER"),
         ("NX_TASKS", "ENDED_MS", "INTEGER"),
         ("NX_TASKS", "CPU_S", "REAL"),
+        ("NX_TASKS", "WORKFLOW", "TEXT"),
+        ("NX_TASKS", "GH_JOB", "TEXT"),
+        ("NX_TASKS", "CACHE_STAGE", "TEXT"),
+        ("NX_TASKS", "ATTEMPT", "TEXT"),
+        ("NX_TASKS", "RESTORED_KEY", "TEXT"),
+        ("NX_TASKS", "DIR_HAS_HASH", "INTEGER"),
+        ("NX_TASKS", "DB_HAS_HASH", "INTEGER"),
+        ("NX_TASKS", "MISS_REASON", "TEXT"),
+        ("NX_TASKS", "MISS_DETAIL", "TEXT"),
     ] {
         if !has_column(conn, "main", table, column)? {
             conn.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN {column} {kind}")).map_err(sql)?;
         }
     }
+    // the miss reasons and the hit rates ask, for each task that ran, which earlier runs executed this very hash
+    conn.execute_batch("CREATE INDEX IF NOT EXISTS NX_TASKS_TASK_HASH ON NX_TASKS (TASK, HASH)").map_err(sql)?;
     Ok(())
 }
 
@@ -220,6 +234,7 @@ pub fn record(table: &str, row: &Map<String, Value>) -> Result<bool, String> {
 }
 
 /// One task of a CI run's Nx ledger (`NX_TASKS`).
+#[derive(Debug, Clone, Default)]
 pub struct LedgerTask {
     pub run: String,
     pub sha: String,
@@ -234,6 +249,15 @@ pub struct LedgerTask {
     pub started_ms: i64,
     pub ended_ms: i64,
     pub cpu_s: f64,
+    /// Where the job's Nx cache came from, to explain a miss: the workflow, the job, the cache stage with its shard (`core-tests-1of3`), the attempt, the key the
+    /// restore matched, and whether the restored `cache/` directory and Nx's own `cache_outputs` table held this task's hash (`None`: not checked).
+    pub workflow: Option<String>,
+    pub gh_job: Option<String>,
+    pub cache_stage: Option<String>,
+    pub attempt: Option<String>,
+    pub restored_key: Option<String>,
+    pub dir_has_hash: Option<bool>,
+    pub db_has_hash: Option<bool>,
 }
 
 /// Writes tasks to the typed `NX_TASKS` table of the job's local database, which the report job merges into the sealed one with the other rows. A task already
@@ -245,8 +269,9 @@ pub fn record_tasks_local(tasks: &[LedgerTask]) -> Result<bool, String> {
     let tx = conn.transaction().map_err(sql)?;
     for t in tasks {
         tx.execute(
-            "INSERT OR IGNORE INTO NX_TASKS (RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED, STARTED_MS, ENDED_MS, CPU_S) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-            rusqlite::params![t.run, t.sha, t.ts, t.job, t.task, t.hash, t.outcome, t.ms, t.passed as i64, t.started_ms, t.ended_ms, t.cpu_s],
+            "INSERT OR IGNORE INTO NX_TASKS (RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED, STARTED_MS, ENDED_MS, CPU_S, WORKFLOW, GH_JOB, CACHE_STAGE, ATTEMPT, RESTORED_KEY, DIR_HAS_HASH, DB_HAS_HASH)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
+            rusqlite::params![t.run, t.sha, t.ts, t.job, t.task, t.hash, t.outcome, t.ms, t.passed as i64, t.started_ms, t.ended_ms, t.cpu_s, t.workflow, t.gh_job, t.cache_stage, t.attempt, t.restored_key, t.dir_has_hash.map(i64::from), t.db_has_hash.map(i64::from)],
         )
         .map_err(sql)?;
     }
@@ -431,7 +456,7 @@ pub fn tasks_of(path: &Path) -> Result<Vec<LedgerTask>, String> {
     let conn = open_at(path)?;
     ensure_ledger(&conn)?;
     let mut stmt = conn
-        .prepare("SELECT RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED, COALESCE(STARTED_MS, 0), COALESCE(ENDED_MS, 0), COALESCE(CPU_S, 0) FROM NX_TASKS")
+        .prepare("SELECT RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED, COALESCE(STARTED_MS, 0), COALESCE(ENDED_MS, 0), COALESCE(CPU_S, 0), WORKFLOW, GH_JOB, CACHE_STAGE, ATTEMPT, RESTORED_KEY, DIR_HAS_HASH, DB_HAS_HASH FROM NX_TASKS")
         .map_err(sql)?;
     let rows = stmt
         .query_map([], |r| {
@@ -448,6 +473,13 @@ pub fn tasks_of(path: &Path) -> Result<Vec<LedgerTask>, String> {
                 started_ms: r.get(9)?,
                 ended_ms: r.get(10)?,
                 cpu_s: r.get(11)?,
+                workflow: r.get(12)?,
+                gh_job: r.get(13)?,
+                cache_stage: r.get(14)?,
+                attempt: r.get(15)?,
+                restored_key: r.get(16)?,
+                dir_has_hash: r.get::<_, Option<i64>>(17)?.map(|v| v != 0),
+                db_has_hash: r.get::<_, Option<i64>>(18)?.map(|v| v != 0),
             })
         })
         .map_err(sql)?;
@@ -479,6 +511,86 @@ fn insert_local(statement: &str, rows: Vec<Cells>) -> Result<bool, String> {
     }
     tx.commit().map_err(sql)?;
     Ok(true)
+}
+
+/// One restore or save of one cache layer (`CI_CACHE_EVENTS`): what was asked for, what matched, how big and how long, and how it ended. `outcome` is `ok`,
+/// `miss`, `timeout`, `error` or `skipped`, `reason` the text a failure or a skipped save carries; the lineage is the workflow, the stage and its shard.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct CacheEvent {
+    pub run: String,
+    pub ts: i64,
+    pub attempt: String,
+    pub workflow: String,
+    pub job: String,
+    pub stage: String,
+    pub shard: String,
+    pub layer: String,
+    pub phase: String,
+    pub key_requested: Option<String>,
+    pub key_matched: Option<String>,
+    pub match_kind: String,
+    pub size_bytes: Option<i64>,
+    pub duration_ms: Option<i64>,
+    pub outcome: String,
+    pub reason: Option<String>,
+    pub entries: Option<i64>,
+    pub db_rows: Option<i64>,
+    pub wal_bytes: Option<i64>,
+}
+
+/// Writes cache events to the job's local database (the report job merges it); `false`, and nothing written, without one.
+pub fn record_cache_events_local(events: &[CacheEvent]) -> Result<bool, String> {
+    let cells = events
+        .iter()
+        .map(|e| {
+            let opt_text = |v: &Option<String>| v.as_deref().map_or(rusqlite::types::Value::Null, text);
+            let opt_int = |v: Option<i64>| v.map_or(rusqlite::types::Value::Null, int);
+            vec![
+                text(&e.run), int(e.ts), text(&e.attempt), text(&e.workflow), text(&e.job), text(&e.stage), text(&e.shard), text(&e.layer), text(&e.phase), opt_text(&e.key_requested),
+                opt_text(&e.key_matched), text(&e.match_kind), opt_int(e.size_bytes), opt_int(e.duration_ms), text(&e.outcome), opt_text(&e.reason), opt_int(e.entries), opt_int(e.db_rows),
+                opt_int(e.wal_bytes),
+            ]
+        })
+        .collect();
+    insert_local(
+        "INSERT OR IGNORE INTO CI_CACHE_EVENTS (RUN_ID, TS, ATTEMPT, WORKFLOW, JOB, STAGE, SHARD, LAYER, PHASE, KEY_REQUESTED, KEY_MATCHED, MATCH_KIND, SIZE_BYTES, DURATION_MS, OUTCOME, REASON, ENTRIES, DB_ROWS, WAL_BYTES)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
+        cells,
+    )
+}
+
+/// The cache events of the database file at `path` (a job's local database, or the merged one), oldest first; `run` narrows them to one run.
+pub fn cache_events_of(path: &Path, run: Option<&str>) -> Result<Vec<CacheEvent>, String> {
+    let conn = open_at(path)?;
+    ensure_ledger(&conn)?;
+    cache_events_in(&conn, run)
+}
+
+/// `cache_events_of` over a connection that already holds the ledger tables.
+pub fn cache_events_in(conn: &Connection, run: Option<&str>) -> Result<Vec<CacheEvent>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT RUN_ID, TS, COALESCE(ATTEMPT, ''), COALESCE(WORKFLOW, ''), JOB, STAGE, SHARD, LAYER, PHASE, KEY_REQUESTED, KEY_MATCHED, MATCH_KIND, SIZE_BYTES, DURATION_MS, OUTCOME, REASON, ENTRIES, DB_ROWS, WAL_BYTES
+             FROM CI_CACHE_EVENTS WHERE (?1 IS NULL OR RUN_ID = ?1) ORDER BY TS",
+        )
+        .map_err(sql)?;
+    let rows = stmt
+        .query_map([run], |r| {
+            Ok(CacheEvent {
+                run: r.get(0)?, ts: r.get(1)?, attempt: r.get(2)?, workflow: r.get(3)?, job: r.get(4)?, stage: r.get(5)?, shard: r.get(6)?, layer: r.get(7)?, phase: r.get(8)?,
+                key_requested: r.get(9)?, key_matched: r.get(10)?, match_kind: r.get(11)?, size_bytes: r.get(12)?, duration_ms: r.get(13)?, outcome: r.get(14)?, reason: r.get(15)?,
+                entries: r.get(16)?, db_rows: r.get(17)?, wal_bytes: r.get(18)?,
+            })
+        })
+        .map_err(sql)?;
+    rows.collect::<Result<_, _>>().map_err(sql)
+}
+
+/// Opens the database file at `path` with the ledger tables made (the typed ones a reader needs), for the verbs that classify what the jobs recorded.
+pub fn open_ledger(path: &Path) -> Result<Connection, String> {
+    let conn = open_at(path)?;
+    ensure_ledger(&conn)?;
+    Ok(conn)
 }
 
 /// One job's runner samples boiled down (`CI_JOB_RESOURCES`): what the machine did while the job ran.
@@ -794,7 +906,7 @@ mod tests {
     static ENV: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     fn task(hash: &str) -> LedgerTask {
-        LedgerTask { run: "1".into(), sha: "abc".into(), ts: 10, job: "flow-tests (1/6)".into(), task: "app:test".into(), hash: hash.into(), outcome: "ran".into(), ms: 4200, passed: true, started_ms: 1_000, ended_ms: 5_200, cpu_s: 3.5 }
+        LedgerTask { run: "1".into(), sha: "abc".into(), ts: 10, job: "flow-tests (1/6)".into(), task: "app:test".into(), hash: hash.into(), outcome: "ran".into(), ms: 4200, passed: true, started_ms: 1_000, ended_ms: 5_200, cpu_s: 3.5, ..Default::default() }
     }
 
     #[test]

@@ -334,6 +334,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         "save" if kind_of(rest) == Some("metro") => metro::save(&parse_spec(rest, &pnpm::SPEC)?),
         "restore" => pnpm::restore(&parse_spec(rest, &pnpm::SPEC)?),
         "save" => pnpm::save(&parse_spec(rest, &pnpm::SPEC)?),
+        "event" => crate::cache_events::run(rest),
         "nx" => wrap::run("nx", rest, Layers { nx: true, sccache: false }),
         "sccache" => wrap::run("sccache", rest, Layers { nx: false, sccache: true }),
         _ => None,

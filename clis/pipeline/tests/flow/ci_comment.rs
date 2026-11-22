@@ -390,7 +390,7 @@ fn a_green_run_whose_cache_writes_were_refused_for_a_full_tenancy_says_so_in_the
     let report = std::fs::read_to_string(&summary).unwrap();
     assert!(report.contains("Object Storage full: 2 cache write(s) refused"), "{report}");
     assert!(report.contains("Object Storage quota exceeded: 2 cache write(s) refused"), "{report}");
-    assert!(!report.contains("failed"), "{report}");
+    assert!(!report.replace("_none: no cache restore failed_", "").contains("failed"), "{report}");
 
     // And a run with no refused write has no such flag
     let clean = std::env::temp_dir().join(format!("ci-summary-clean-{}", std::process::id()));
@@ -1485,6 +1485,73 @@ fn the_cache_health_verb_does_not_fail_a_run_it_could_not_read() {
     assert!(out["reason"].is_string(), "{out}");
 }
 
+const RESTORE_FAILED_LOG: &str = "2026-10-23T10:00:08.0000000Z ts=1793000000 level=warn source=ci-cache msg=\"cache.event\" layer=nx phase=restore outcome=error match_kind=none key=nx-integration-tests-3of4-Linux-X64-Pipeline-77-1 matched_key=\"\" stage=integration-tests shard=3of4 entries=\"\" db_rows=\"\" size_bytes=\"\" duration_ms=2100 reason=\"Failed to restore: HTTP 503\"
+2026-10-23T10:00:09.0000000Z ts=1793000001 level=warn source=ci-cache msg=\"cache.event\" layer=nx phase=save outcome=skipped match_kind=none key=nx-core-tests-1of3-Linux-X64-Pipeline-77-1 matched_key=\"\" stage=core-tests shard=1of3 entries=809 reason=\"no new task results (809 restored, 809 now); 3 task(s) ran and passed, and their results are not saved\" tasks_ran=3
+";
+
+#[test]
+fn a_cache_restore_that_failed_turns_the_cache_health_check_red_and_names_the_layer_and_the_reason() {
+    // Given a green push to dev whose flow-tests job logged a failed nx restore and a skipped save that left three tasks behind
+    let github = Github::start();
+    let jobs = json!([job(500, "plan", "success", "2026-10-23T10:00:20Z", json!([])), job(501, "flow-tests", "success", "2026-10-23T10:02:00Z", json!([]))]);
+    github.serve_log(&jobs, json!([]), json!([]), created(), updated(), RESTORE_FAILED_LOG);
+
+    // When the report job's cache-health check judges the run
+    let r = health_wf(&github, "push");
+
+    // Then it exits 1 with a degraded finding that says which layer failed, why, and that the job ran cold
+    assert_eq!(r.exit_code, 1, "{}{}", r.stdout, r.stderr);
+    let findings = last_json(&r)["findings"].clone();
+    let degraded = findings.as_array().unwrap().iter().find(|f| f["kind"] == "degraded").unwrap_or_else(|| panic!("no degraded finding: {findings}"));
+    assert_eq!(degraded["job"], "flow-tests", "{findings}");
+    assert_eq!(degraded["detail"], "the nx restore failed (Failed to restore: HTTP 503): the job ran on a cold cache", "{findings}");
+}
+
+#[test]
+fn the_comment_lists_each_failed_restore_under_cache_problems_the_reasons_tasks_ran_and_the_replay_rate_per_stage() {
+    // Given a finished run whose job log holds a failed restore and a skipped save, the jobs' databases of this run, and a sealed history of an earlier run
+    let github = Github::start();
+    let jobs = json!([job(500, "plan", "success", "2026-10-23T10:00:20Z", json!([])), job(501, "flow-tests", "success", "2026-10-23T10:02:00Z", json!([]))]);
+    github.serve_log(&jobs, json!([]), json!([]), created(), updated(), RESTORE_FAILED_LOG);
+    let f = crate::ci_cache_misses::Fixture::new("70", "77");
+    let ledgers = f.ledgers().display().to_string();
+    let sealed = f.sealed().display().to_string();
+
+    // When the report job builds the comment
+    let body = dry_body(&github, &[("CI_DB_KEY", crate::ci_cache_misses::KEY), ("WF_CI_SEALED_FILE", sealed.as_str()), ("WF_CI_LEDGERS", ledgers.as_str())]);
+
+    // Then the Cache problems block has the failed restore with its layer, job, key and reason (once, though the database holds it too), and the skipped save
+    let block = under(&body, "### Cache problems");
+    assert!(block.contains("🔴 **1 cache restore or save failed**"), "{block}");
+    assert!(block.contains("| nx | flow-tests | restore failed | `nx-integration-tests-3of4-Linux-X64-Pipeline-77-1` | Failed to restore: HTTP 503 |"), "{block}");
+    assert!(block.contains("| nx | flow-tests | save skipped, results left behind |") && block.contains("3 task(s) ran and passed, and their results are not saved"), "{block}");
+    assert_eq!(block.matches("| restore failed |").count(), 1, "{block}");
+
+    // And it breaks down why tasks ran, with the seconds each reason cost and the never-stored ones unmarked
+    assert!(block.contains("🔴 **6 of 8 task(s) that ran had their hash executed before (60 s lost)**"), "{block}");
+    assert!(block.contains("| 🔴 earlier-save-skipped | 1 | 10 s |") && block.contains("| 🔴 restore-failed | 1 | 10 s |") && block.contains("| never-stored | 1 | 10 s |"), "{block}");
+
+    // And the cache section shows, per stage, the replay over the last runs split into inputs changed and exact hash seen before
+    let cache = under(&body, "### 🗄️ Cache");
+    assert!(cache.contains("**Nx replay per stage over the last 20 runs**"), "{cache}");
+    assert!(cache.contains("| core-tests | 11 | 9% | 6 | 🔴 20% (1 of 5) |"), "{cache}");
+}
+
+#[test]
+fn the_cache_problems_block_says_none_when_no_restore_failed() {
+    // Given a finished run whose logs hold no failed cache event and whose database has no tasks that ran
+    let github = Github::start();
+    let jobs = json!([job(500, "plan", "success", "2026-10-23T10:00:20Z", json!([])), job(501, "flow-tests", "success", "2026-10-23T10:02:00Z", json!([]))]);
+    github.serve_log(&jobs, json!([]), json!([]), created(), updated(), HEALTHY_LOG);
+
+    // When the comment is built
+    let body = dry_body(&github, &[]);
+
+    // Then the heading is there with the one fixed line
+    let block = under(&body, "### Cache problems");
+    assert_eq!(block.split("\n\n<details").next().unwrap().trim(), "_none: no cache restore failed_", "{body}");
+}
+
 #[test]
 fn the_live_comment_has_a_cache_health_section_naming_the_problems_and_a_healthy_run_says_so() {
     // Given a green run whose flow-tests job lost a write, and one whose cache was healthy
@@ -2403,9 +2470,11 @@ fn a_database_that_does_not_open_leaves_the_trend_out_and_the_rest_of_the_commen
         trend_body(&other, &sealed, DB_KEY)
     };
 
-    // Then the section is missing, nothing else says why, and the body is the one a run outside the hosted workflows gets
+    // Then the trend is missing, the cache problems block says the reasons are unavailable and why, and the rest is the body a run outside the hosted workflows gets
     assert!(!unreadable.contains("Trend") && unreadable.contains("### Jobs"), "{unreadable}");
-    assert_eq!(unreadable, not_hosted);
+    let notice = "\n\n_why tasks ran is unavailable: ci database: it does not open with CI_DB_KEY (another key, or changed)_\n";
+    assert!(unreadable.contains(notice), "{unreadable}");
+    assert_eq!(unreadable.replace(notice, ""), not_hosted);
 }
 
 /// A sealed database of five successful earlier runs of backend_core (wall 400 s, no wait; setup 10 s, install 10 s and tests 80 s per job, so 20% overhead; shard
@@ -2584,7 +2653,7 @@ fn under<'a>(body: &'a str, heading: &str) -> &'a str {
     &rest[..rest.find("\n### ").unwrap_or(rest.len())]
 }
 
-const SKELETON: [&str; 10] = [
+const SKELETON: [&str; 11] = [
     "### ⏱️ Where the time went",
     "### Jobs",
     "### Fixed cost and the runner pool",
@@ -2595,6 +2664,7 @@ const SKELETON: [&str; 10] = [
     "### 🖥️ VM during the run",
     "### 🗄️ Cache",
     "### 🗄️ Cache health",
+    "### Cache problems",
 ];
 
 /// Run 77 of `workflow` with the sampler's files and a sealed history that `key` opens, as a comment preview: finished (`partial` false, the jobs of `actions_run`) or going
@@ -2712,6 +2782,7 @@ fn a_finished_run_never_says_loading_even_with_nothing_to_show_and_a_running_one
     }
     assert_eq!(under(&bare, "### Minutes per job").trim(), "_none: fewer than two jobs have a time to chart_", "{bare}");
     assert_eq!(under(&bare, "### 🗄️ Cache health").trim(), "_none: no job log held a cache event_", "{bare}");
+    assert_eq!(under(&bare, "### Cache problems").trim(), "_none: no cache restore failed_", "{bare}");
     assert_eq!(under(&bare, "### What to do").trim(), "_none: no signal is amber or red_", "{bare}");
     // And the comment of a run that goes on says what each section waits for and has no none sentence there
     let partial = skeleton_body(true, "backend_core+publish", DB_KEY);

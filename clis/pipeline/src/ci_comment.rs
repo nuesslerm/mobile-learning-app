@@ -2,7 +2,7 @@
 //! each failed job's log), the counts, a table of the jobs with a time bar, the VM's own numbers during the run (reporting-service),
 //! then the cache, crate and e2e details; posted on the open PR and in the job summary, and, when a job failed, on the pushed commit.
 //! Each run (and runner) keeps its own comment.
-use crate::ci_skeleton::{pending, CACHE, CACHE_HEALTH, CHART, FIXED_COST, IDLE, JOBS, RUNNERS, TODO, VM, WHERE_TIME};
+use crate::ci_skeleton::{pending, CACHE, CACHE_HEALTH, CACHE_PROBLEMS, CHART, FIXED_COST, IDLE, JOBS, RUNNERS, TODO, VM, WHERE_TIME};
 use cli_http::{Request, Response};
 use regex::Regex;
 use serde_json::{json, Value};
@@ -1030,9 +1030,32 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
             None => slot(VM, String::new(), "the first job to start", "no job started"),
         });
     }
-    out.push_str(&slot(CACHE, crate::ci_insights::cache_section(&cache_rows(&shown, &facts), &facts), "the first finished job", "no job reported a cache"));
+    // the report job (it has the jobs' databases, or a sealed file) reads the database for why tasks ran and how each stage replayed over the last runs
+    let reads_database = !running && (var("WF_CI_LEDGERS").is_some() || var("WF_CI_SEALED_FILE").is_some());
+    let database = reads_database.then(|| crate::ci_cache_misses::Analysis::open(&env.run, &crate::ci_cache_misses::local_files()).and_then(|a| crate::ci_cache_misses::analyse(&a)));
+    let rates = match &database {
+        Some(Ok(found)) => crate::ci_cache_misses::rates_block(&found.rates),
+        _ => String::new(),
+    };
+    let cache = crate::ci_insights::cache_section(&cache_rows(&shown, &facts), &facts);
+    let cache = match (cache.is_empty(), rates.is_empty()) {
+        (_, true) => cache,
+        (true, false) => format!("\n{CACHE}\n{rates}"),
+        (false, false) => format!("{cache}{rates}"),
+    };
+    out.push_str(&slot(CACHE, cache, "the first finished job", "no job reported a cache"));
     let finished: Vec<(String, String)> = jobs.iter().zip(logs).filter(|(j, _)| !is_meta(j) && applies(j)).filter_map(|(j, l)| Some((text(j, "name"), l.as_ref().ok()?.clone()))).collect();
     out.push_str(&slot(CACHE_HEALTH, crate::ci_cache_health::section(&crate::ci_cache_health::assess(&finished, crate::ci_cache_health::seeded(env))), "the first finished job log", "no job log held a cache event"));
+    let mut cache_problems = crate::ci_cache_misses::problems_in_logs(&finished);
+    if let Some(Ok(found)) = &database {
+        // the log names the job the reader knows; the database only adds a failure whose log was not read
+        for p in crate::ci_cache_misses::problems_in_events(&found.events) {
+            if !cache_problems.iter().any(|q| (&q.layer, &q.phase, &q.key) == (&p.layer, &p.phase, &p.key)) {
+                cache_problems.push(p);
+            }
+        }
+    }
+    out.push_str(&slot(CACHE_PROBLEMS, crate::ci_cache_misses::problems_section(&cache_problems, database.as_ref(), running), "the first finished job log", "no cache restore failed"));
     let (units, _) = units_table(env);
     out.push_str(&telemetry.details);
     out.push_str(&units);
@@ -1322,6 +1345,7 @@ pub fn run(args: &[String]) -> Option<i32> {
     match verb.as_str() {
         "audit" => return crate::ci_audit::run(rest),
         "cache-health" => return crate::ci_cache_health::run(rest),
+        "cache-misses" => return crate::ci_cache_misses::run(rest),
         "prune" => return crate::ci_prune::run(rest),
         "db" => return crate::ci_db_verb::run(rest),
         "preflight" => return crate::ci_preflight::run(rest),

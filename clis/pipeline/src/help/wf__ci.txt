@@ -4,7 +4,7 @@ What a workflow decides and tells people about its own run: `wf ci plan` plans t
 failed in a red CI run on the pushed commit, `wf ci live` keeps the run's one pull
 request comment up to date, `wf ci prune` removes the comments of older heads, `wf ci tidy` frees the runner's disk, `wf ci preflight` checks first that
 everything the run needs is live, `wf ci audit` is the nightly audit of CI on dev
-(never a gate), `wf ci timings` and `wf ci progress` read what a run's jobs took, `wf ci resources` what their runners did meanwhile, `wf ci concurrency` how many runner slots are taken, `wf ci proven` names the shards that already passed on the same inputs, `wf ci failed` names the step of the running job that went red, `wf ci cache-health` fails a run whose cache layers broke and `wf ci db`
+(never a gate), `wf ci timings` and `wf ci progress` read what a run's jobs took, `wf ci resources` what their runners did meanwhile, `wf ci concurrency` how many runner slots are taken, `wf ci proven` names the shards that already passed on the same inputs, `wf ci failed` names the step of the running job that went red, `wf ci cache-health` fails a run whose cache layers broke, `wf ci cache-misses` gives every task that ran instead of replaying its reason and `wf ci db`
 keeps the sealed CI database (test runs, usage of the commands, health reports, the ledger).
 
 Options:
@@ -32,6 +32,9 @@ Commands:
   cache-health [options]
                        Fail the run when a cache layer degraded, lost or
                        refused a write.
+  cache-misses [options]
+                       Why each task of this run ran instead of replaying, and
+                       the replay rate per stage.
   db <merge|record|query>
                        The sealed CI database on the state ref.
   comment [options]    Comment on the pushed commit what failed in this CI run,

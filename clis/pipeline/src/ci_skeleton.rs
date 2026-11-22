@@ -13,6 +13,7 @@ pub(crate) const RUNNERS: &str = "### 🖥️ Runners during the run";
 pub(crate) const VM: &str = "### 🖥️ VM during the run";
 pub(crate) const CACHE: &str = "### 🗄️ Cache";
 pub(crate) const CACHE_HEALTH: &str = "### 🗄️ Cache health";
+pub(crate) const CACHE_PROBLEMS: &str = "### Cache problems";
 
 /// The line for data that is not there yet: fixed text per section, so a render never changes size by saying more or less.
 pub(crate) fn loading(waits_for: &str) -> String {

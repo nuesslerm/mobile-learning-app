@@ -6,6 +6,7 @@
 mod ci_actions;
 mod ci_audit;
 mod ci_cache_health;
+mod ci_cache_misses;
 mod ci_comment;
 mod ci_timings;
 mod ci_tests;

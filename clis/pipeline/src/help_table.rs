@@ -16,5 +16,6 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("ci proven", false, include_str!("help/wf__ci__proven.txt")),
     ("ci failed", false, include_str!("help/wf__ci__failed.txt")),
     ("ci cache-health", false, include_str!("help/wf__ci__cache-health.txt")),
+    ("ci cache-misses", false, include_str!("help/wf__ci__cache-misses.txt")),
     ("ci db", false, include_str!("help/wf__ci__db.txt")),
 ];

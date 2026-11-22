@@ -1,0 +1,42 @@
+Usage: wf ci cache-misses [options]
+
+Give every Nx task of this CI run that ran instead of replaying one reason, and
+say how often a hash that had already been executed replayed. Run it in the
+report job, after the jobs' databases are downloaded (WF_CI_LEDGERS): it opens
+the sealed CI database (CI_DB_KEY, or WF_CI_SEALED_FILE), merges this run's job
+files over it in a private copy, and decides each reason from what the jobs
+recorded (NX_TASKS: workflow, cache stage, whether the restored cache directory
+and Nx's cache_outputs table held the hash; CI_CACHE_EVENTS: the restores and
+saves). `wf ci db merge` stores the same reasons in NX_TASKS.MISS_REASON and
+MISS_DETAIL.
+
+Reasons (one per task that ran):
+  never-stored             no earlier run executed this hash: the inputs changed
+  restore-failed           the job's Nx cache restore failed; it ran on an empty cache
+  restore-timeout          the restore timed out
+  earlier-save-skipped     an earlier run of this workflow and shard executed the hash
+                           and its save gate skipped the save
+  earlier-save-failed      the same, and the save failed or the job ended before it
+  restored-but-reran       the restored directory and Nx's table held the hash, and
+                           the task ran anyway
+  restored-without-db-row  the directory held it, Nx's table had no row for it
+  restored-older-entry     the restore matched an entry older than the run that stored it
+  stored-entry-missing     the save landed, the restore is not older, the hash is gone
+  stored-by-other-shard    only another shard of the cache partition executed it
+  stored-by-other-workflow only another workflow executed it
+  uncacheable-by-design    the target is declared cache: false
+  unknown                  the lineage or the saves of the earlier run were not recorded
+
+Everything but never-stored and uncacheable-by-design is cache work that went to
+waste. Prints one JSON object {ok, run, ran, breakdown: [{reason, tasks, seconds,
+avoidable}], misses: [{run, job, cacheStage, task, hash, ms, reason, detail}],
+problems: [{job, layer, phase, outcome, key, reason}], rates: [{stage, tasks, replayed,
+inputsChanged, seenBefore, exactReplayPercent}]}, and for an avoidable miss one line
+`::warning title=cache misses under a hash that ran before::<n> task(s), <time> lost:
+<reason> x<n> (<time>), ...`. A run it cannot read says so ({ok: null, reason}); it
+always exits 0.
+
+Options:
+  --send      send the gauges ci.nx.miss_tasks{stage,reason}, ci.nx.miss_s{stage,reason}
+              and ci.nx.exact_replay_ratio{stage}
+  -h, --help  display help for command

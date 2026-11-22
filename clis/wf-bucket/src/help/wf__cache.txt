@@ -80,11 +80,14 @@ Each operation also leaves one structured event on stderr (logfmt, source `ci-ca
 the store failed), `cache.run` (one per shim layer, with seeded_checked and seeded_present: how many of its writes the store holds when asked again), `cache.write.refused` (warn: why the
 run reads only, and for a dirty tree the paths), `cache.put.dropped` (warn),
 `cache.shim.disabled` (warn: why the shared cache is off, also printed as a line),
-`gate.seeding`, `nx.stage.summary`, `drift.report`. The same steps send gauges to the
+`gate.seeding`, `nx.stage.summary`, `drift.report`, and `cache.event` (`wf cache event`: every restore and
+save of a GitHub Actions cache layer, with its outcome and reason). The same steps send gauges to the
 Better Stack source named by BETTERSTACK_METRICS_HOST and BETTERSTACK_METRICS_TOKEN
 (labels as scope, name): ci.cache.requests{kind,result}, ci.cache.step_seconds{kind,verb},
 ci.cache.degraded{kind,reason}, ci.cache.seeded{kind,checked|present}, ci.nx.tasks{stage,outcome}, ci.nx.replay_ratio{stage},
-ci.gate.seeded{stage}, ci.drift.tasks_drifted. Best effort: at most 6 seconds, never
+ci.gate.seeded{stage}, ci.drift.tasks_drifted, ci.cache.events{layer,phase-outcome}, ci.cache.problems{layer,reason}
+(`wf cache event`), and, from the report job, ci.nx.miss_tasks{stage,reason}, ci.nx.miss_s{stage,reason},
+ci.nx.exact_replay_ratio{stage} (`wf ci cache-misses`). Best effort: at most 6 seconds, never
 a failed run; WF_CI_METRICS=off turns them off.
 
 The verbs print one JSON object on stdout, documented under each verb; none
@@ -111,4 +114,7 @@ Commands:
                               directory (metro) from the bucket
   save <kind>                 Upload the pnpm store after a green install, or
                               the app build directory after a build
+  event <layer> <phase>       Record one restore or save of a CI cache layer in
+                              CI_CACHE_EVENTS; loud (an ::error annotation) when
+                              it failed, never a failed job
   help [command]              display help for command

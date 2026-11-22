@@ -198,6 +198,10 @@ fn record(stage: &str, tasks: &[TaskRun], cpu_seconds: f64) {
     let job = crate::ci_units::job_of(stage);
     let ts = wf_kit::time::now_ms() as i64;
     let rows: Vec<crate::ci_ledger::Observed> = tasks.iter().map(|t| crate::ci_ledger::Observed { run: run.clone(), sha: sha.clone(), ts, job: job.clone(), task: t.task.clone(), hash: t.hash.clone(), outcome: t.outcome.to_string(), ms: t.ms, passed: t.passed }).collect();
+    // where this job's Nx cache came from (set by `wf cache event nx restore`), so a miss can be told apart by workflow, shard and what the restore held
+    let restored = wf_bucket::nx_store::restored();
+    let (stage_key, restored_key) = (var(wf_bucket::nx_store::STAGE_ENV), var(wf_bucket::nx_store::KEY_ENV));
+    let (workflow, gh_job, attempt) = (var("GITHUB_WORKFLOW"), var("GITHUB_JOB"), var("GITHUB_RUN_ATTEMPT"));
     // A CI job writes to its own local database and the report job merges it into the sealed one: a job's token cannot push the state ref (the push was refused
     // five times per stage, 403, and cost seconds each time), and the sealed database never held these rows.
     let local: Vec<wf_bucket::ci_db::LedgerTask> = rows
@@ -216,6 +220,13 @@ fn record(stage: &str, tasks: &[TaskRun], cpu_seconds: f64) {
             started_ms: t.started_ms,
             ended_ms: t.ended_ms,
             cpu_s: cpu_share(tasks, t, cpu_seconds),
+            workflow: workflow.clone(),
+            gh_job: gh_job.clone(),
+            cache_stage: stage_key.clone(),
+            attempt: attempt.clone(),
+            restored_key: restored_key.clone(),
+            dir_has_hash: restored.as_ref().and_then(|r| r.has_dir(&o.hash)),
+            db_has_hash: restored.as_ref().and_then(|r| r.has_db(&o.hash)),
         })
         .collect();
     match wf_bucket::ci_db::record_tasks_local(&local) {

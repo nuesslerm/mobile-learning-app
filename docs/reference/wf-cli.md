@@ -1367,6 +1367,92 @@ Options:
 
 </details>
 
+#### `wf cache event`
+
+Record one restore or save of a CI cache layer in CI_CACHE_EVENTS; loud when it failed, never a failed job
+
+Usage: `wf cache event [options] <layer> <phase>`
+
+Examples:
+
+```sh
+wf cache event nx restore --outcome error --key "$KEY" --reason "actions/cache/restore failed"
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf cache event [options] <layer> <phase>
+
+Record one restore or save of a cache layer in a CI job: a row of CI_CACHE_EVENTS in
+the job's database (the report job merges it into the sealed one), a `cache.event`
+line on stderr, the gauges ci.cache.events{layer,phase-outcome} and, for a problem,
+ci.cache.problems{layer,reason}. The cache actions call it right after
+actions/cache, whose step is continue-on-error so that a failed restore never fails
+the job: this is where the failure stops being silent. It exits 0 whatever it finds
+(1 only for a command line it cannot read), and outside a CI job (no WF_CI_DB, no
+RUNNER_TEMP) it records nothing.
+
+Loud, not red: for outcome error or timeout it prints a workflow annotation on
+stdout, before its JSON, and a red line in the job's step summary:
+
+  ::error title=cache restore failed::layer=nx key=<key> reason=<text>
+  ::error title=cache save failed::layer=<layer> key=<key> reason=<text>
+
+A restore of the nx layer that matched a key and left 0 entries in ~/.nx/*/cache is an
+error too ("matched <key> and restored 0 entries"). A save of the nx layer that was
+skipped while the job ran and passed tasks is a warning, because those results are
+lost to the next run:
+
+  ::warning title=cache save skipped::layer=nx key=<key> reason=<why>; <n> task(s) ran and passed, and their results are not saved
+
+Layers: nx, sccache, pnpm, metro, playwright, references; a name with a stage after
+the layer (`sccache-flow-tests`) is that layer with that stage, any other name is the
+layer `other`. The lineage columns come from the job (GITHUB_WORKFLOW, GITHUB_JOB,
+GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT) and --stage: a stage ending in `-<n>of<m>` is the
+stage and its shard (`core-tests-1of3`).
+
+For the nx layer a restore also takes a snapshot of Nx's local cache (the entries of
+~/.nx/*/cache, the hashes in the cache_outputs table of ~/.nx/*/databases/*.db, the
+size of the -wal file) into $RUNNER_TEMP/nx-cache.restore.json and exports
+WF_CACHE_RESTORE_FILE, WF_CACHE_STAGE and WF_CACHE_RESTORED_KEY to the job. A task
+that ran later is recorded (NX_TASKS) with whether its hash was in the restored
+directory and in the table, which is what tells "the entry was there and Nx ran the
+task anyway" from "the entry was never there".
+
+Output: one JSON object {ok, recorded, layer, phase, outcome, reason, problem,
+annotation, event: {run, attempt, workflow, job, stage, shard, layer, phase,
+keyRequested, keyMatched, matchKind, sizeBytes, durationMs, outcome, reason, entries,
+dbRows, walBytes}}. problem is null, or restore-error, restore-timeout, restore-empty,
+save-error, save-timeout or save-skipped-tasks-ran.
+
+Arguments:
+  layer       the cache layer, or layer-stage (nx, sccache-flow-tests, pnpm, ...)
+  phase       restore or save
+
+Options:
+  --outcome <o>        ok, miss, timeout, error or skipped (required): from the
+                       cache step's `outcome` (failure is error, cancelled is
+                       timeout) and its cache-hit and cache-matched-key outputs
+  --key <key>          the key asked for (a save: the key saved under)
+  --matched-key <key>  the key the restore matched, empty for none
+  --hit <true|false>   the restore's cache-hit output: an exact match
+  --match-kind <k>     exact, restore-key or none (default: from --hit and --matched-key)
+  --stage <name>       the stage, with its shard when it has one (core-tests-1of3)
+  --shard <name>       the shard, when the stage name does not carry it
+  --size-bytes <n>     the size of what was moved (default: measured over --path)
+  --duration-ms <n>    how long the step took
+  --started-ms <n>     when the step started (epoch ms): the duration is measured from it
+  --reason <text>      what a failure, a timeout or a skipped save says for itself
+  --entries <n>        entries in the cache directory (default for nx: counted)
+  --entries-before <n> entries when the restore ended, for the save's decision
+  --snapshot-file <p>  where the nx snapshot goes (default $RUNNER_TEMP/nx-cache.restore.json)
+  --path <p>...        the directories the layer moves, to measure their size
+  -h, --help           display help for command
+```
+
+</details>
+
 #### `wf cache sccache`
 
 Run a command with Rust compiles served from the bucket
@@ -2428,6 +2514,67 @@ verdict says so ("ok": null with "reason", or "unreadable" and a note) and the
 exit stays 0: a failure to report never fails the run.
 
 Options:
+  -h, --help  display help for command
+```
+
+</details>
+
+### `wf ci cache-misses`
+
+Why each task of this run ran instead of replaying, and the replay rate per stage.
+
+Usage: `wf ci cache-misses [options]`
+
+Examples:
+
+```sh
+wf ci cache-misses --send
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci cache-misses [options]
+
+Give every Nx task of this CI run that ran instead of replaying one reason, and
+say how often a hash that had already been executed replayed. Run it in the
+report job, after the jobs' databases are downloaded (WF_CI_LEDGERS): it opens
+the sealed CI database (CI_DB_KEY, or WF_CI_SEALED_FILE), merges this run's job
+files over it in a private copy, and decides each reason from what the jobs
+recorded (NX_TASKS: workflow, cache stage, whether the restored cache directory
+and Nx's cache_outputs table held the hash; CI_CACHE_EVENTS: the restores and
+saves). `wf ci db merge` stores the same reasons in NX_TASKS.MISS_REASON and
+MISS_DETAIL.
+
+Reasons (one per task that ran):
+  never-stored             no earlier run executed this hash: the inputs changed
+  restore-failed           the job's Nx cache restore failed; it ran on an empty cache
+  restore-timeout          the restore timed out
+  earlier-save-skipped     an earlier run of this workflow and shard executed the hash
+                           and its save gate skipped the save
+  earlier-save-failed      the same, and the save failed or the job ended before it
+  restored-but-reran       the restored directory and Nx's table held the hash, and
+                           the task ran anyway
+  restored-without-db-row  the directory held it, Nx's table had no row for it
+  restored-older-entry     the restore matched an entry older than the run that stored it
+  stored-entry-missing     the save landed, the restore is not older, the hash is gone
+  stored-by-other-shard    only another shard of the cache partition executed it
+  stored-by-other-workflow only another workflow executed it
+  uncacheable-by-design    the target is declared cache: false
+  unknown                  the lineage or the saves of the earlier run were not recorded
+
+Everything but never-stored and uncacheable-by-design is cache work that went to
+waste. Prints one JSON object {ok, run, ran, breakdown: [{reason, tasks, seconds,
+avoidable}], misses: [{run, job, cacheStage, task, hash, ms, reason, detail}],
+problems: [{job, layer, phase, outcome, key, reason}], rates: [{stage, tasks, replayed,
+inputsChanged, seenBefore, exactReplayPercent}]}, and for an avoidable miss one line
+`::warning title=cache misses under a hash that ran before::<n> task(s), <time> lost:
+<reason> x<n> (<time>), ...`. A run it cannot read says so ({ok: null, reason}); it
+always exits 0.
+
+Options:
+  --send      send the gauges ci.nx.miss_tasks{stage,reason}, ci.nx.miss_s{stage,reason}
+              and ci.nx.exact_replay_ratio{stage}
   -h, --help  display help for command
 ```
 

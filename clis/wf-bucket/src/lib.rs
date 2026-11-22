@@ -2,6 +2,7 @@
 //! write links of the verification-artifacts bucket, and the `refs/wf/state` ref that keeps small cross-run files in the repository. A change here reruns every crate that publishes, plans or ships.
 pub mod artifacts;
 pub mod cache;
+pub mod cache_events;
 pub mod cache_runs;
 pub mod ci_db;
 pub mod ci_metric_catalog;
@@ -9,6 +10,8 @@ pub mod ci_metrics;
 mod help_table;
 mod state_verb;
 pub mod job_name;
+pub mod miss_reason;
+pub mod nx_store;
 pub mod nx_why;
 pub mod pins;
 pub mod serve;

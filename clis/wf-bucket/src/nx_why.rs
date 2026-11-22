@@ -391,8 +391,8 @@ fn store(shard: &mut Value, target: &str, mine: &[&Current]) -> Result<(), Strin
 }
 
 /// Explains every miss of `tasks` against the local history and, with `record`, stores this run's entries (hits too: a hit proves
-/// the hash is in the cache). `{schema, ok, run, source, misses: [{task, hash, verdict, because, against, changed[]}], recorded}`; the
-/// verdicts are `input-changed`, `expired` and `never-stored`.
+/// the hash is in the cache). `{schema, ok, run, source, restore, misses: [{task, hash, verdict, because, reason, reasonDetail, facts, against, changed[]}], recorded}`;
+/// the verdicts are `input-changed`, `expired` and `never-stored`, the reasons those of `miss_reason::Reason`.
 pub fn report(root: &Path, tasks: &[RunTask], record: bool) -> Value {
     let id = identity(root);
     let currents = match currents(root, tasks, &id) {
@@ -401,6 +401,7 @@ pub fn report(root: &Path, tasks: &[RunTask], record: bool) -> Value {
     };
     let mut misses = Vec::new();
     let mut recorded = json!(false);
+    let restored = crate::nx_store::restored();
     let mut targets: Vec<&str> = currents.iter().map(|c| target_of(&c.task.task)).collect();
     targets.sort_unstable();
     targets.dedup();
@@ -416,6 +417,7 @@ pub fn report(root: &Path, tasks: &[RunTask], record: bool) -> Value {
         };
         for c in mine.iter().filter(|c| c.task.ran) {
             let mut why = explain(root, &c.task.task, &c.now, &earlier_of(&shard, &c.task.task));
+            attach_reason(&mut why, &c.task, restored.as_ref());
             if let Some(computed) = &c.computed {
                 why["hasherDisagrees"] = json!(format!("the hasher computed {computed} for this task, Nx ran it under {}: the input table may not be what Nx hashed", c.now.hash));
             }
@@ -428,7 +430,30 @@ pub fn report(root: &Path, tasks: &[RunTask], record: bool) -> Value {
             }
         }
     }
-    json!({ "schema": 1, "ok": problems.is_empty(), "run": id.0, "source": id.2, "misses": misses, "recorded": recorded, "problems": problems })
+    let restore = restored.as_ref().map(|r| json!({ "outcome": r.outcome, "matchedKey": r.matched_key, "reason": r.reason, "entries": r.entries.len(), "dbRows": r.db_rows, "walBytes": r.wal_bytes, "dbNote": r.db_note }));
+    json!({ "schema": 2, "ok": problems.is_empty(), "run": id.0, "source": id.2, "restore": restore, "misses": misses, "recorded": recorded, "problems": problems })
+}
+
+/// Gives a miss its `reason` (`wf_bucket::miss_reason`: restore-failed, restored-but-reran, never-stored ...), the sentence that names the evidence and the
+/// `facts` it rests on. A task whose hash an earlier run of this history stored (`expired`) is read as executed by this lineage; the earlier save is not known here.
+fn attach_reason(why: &mut Value, task: &RunTask, restored: Option<&crate::nx_store::Snapshot>) {
+    use crate::miss_reason::{classify, Earlier, Facts, Relation, Restore, Save};
+    let earlier = if why["verdict"] == "expired" {
+        vec![Earlier { run: why["against"]["run"].as_str().unwrap_or_default().to_string(), relation: Relation::SameLineage, save: Save::Unrecorded }]
+    } else {
+        Vec::new()
+    };
+    let facts = Facts {
+        task: task.task.clone(),
+        restore: restored.map(|r| Restore { outcome: r.outcome.clone(), matched_key: r.matched_key.clone(), reason: r.reason.clone() }),
+        dir_has_hash: restored.and_then(|r| r.has_dir(&task.hash)),
+        db_has_hash: restored.and_then(|r| r.has_db(&task.hash)),
+        earlier,
+    };
+    let (reason, detail) = classify(&facts);
+    why["reason"] = json!(reason.as_str());
+    why["reasonDetail"] = json!(detail);
+    why["facts"] = json!({ "dirHasHash": facts.dir_has_hash, "dbHasHash": facts.db_has_hash, "restore": facts.restore.as_ref().map(|r| json!({ "outcome": r.outcome, "matchedKey": r.matched_key })) });
 }
 
 /// `report` for tasks that have not run: the hash each would run under, explained as a miss (`wf test run --probe`).

@@ -139,6 +139,15 @@ pub(crate) fn assess(logs: &[(String, String)], gate: bool) -> Health {
                         flag("pnpm-save-slow", job, format!("the pnpm save took {seconds:.0} s (limit {SLOW_PNPM_SAVE_SECONDS:.0} s)"));
                     }
                 }
+                "cache.event" => {
+                    let (layer, phase, outcome) = (get(&f, "layer"), get(&f, "phase"), get(&f, "outcome"));
+                    let why = if get(&f, "reason").is_empty() { "no reason recorded" } else { get(&f, "reason") };
+                    match (phase, outcome) {
+                        ("restore", "error" | "timeout") => flag("degraded", job, format!("the {layer} restore {} ({why}): the job ran on a cold cache", if outcome == "timeout" { "timed out" } else { "failed" })),
+                        ("save", "error" | "timeout") => flag("rejected-write", job, format!("the {layer} save {} ({why})", if outcome == "timeout" { "timed out" } else { "failed" })),
+                        _ => {}
+                    }
+                }
                 "nx.stage.summary" => {
                     let (ran, replayed) = (number(&f, "ran") as u64, number(&f, "replayed") as u64);
                     let total = stages.entry((job.clone(), get(&f, "stage").to_string())).or_default();

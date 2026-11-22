@@ -16,11 +16,22 @@ or `never-stored` (no earlier run, or the run that computed the hash failed and
 stored nothing); this run's own inputs are recorded for the next miss. A task that
 failed says it stored nothing.
 
+Every miss also carries a `reason` (never-stored, restore-failed, restore-timeout,
+restored-but-reran, restored-without-db-row, restored-older-entry,
+stored-entry-missing, earlier-save-failed, earlier-save-skipped,
+stored-by-other-shard, stored-by-other-workflow, uncacheable-by-design, unknown),
+the sentence `reasonDetail` that names its evidence and the `facts` it rests on:
+whether the restored cache directory and Nx's cache_outputs table held the hash
+(from the snapshot `wf cache event nx restore` left; null outside a CI job), and the
+restore's outcome. The report job decides the same reasons with the whole history
+(`wf ci cache-misses`).
+
 Output: the command's own, then one stderr line `wf: build cache {...}` and, with
---why, one `wf: nx why {schema, ok, run, source, misses: [{task, hash, verdict,
-because, against: {run, sha, ts, source, hash, outcome, passed}, changed: [{input,
-kind, change, name|files|was|now}], changedCount, stored, thisRun?}], recorded,
-problems}`.
+--why, one `wf: nx why {schema, ok, run, source, restore: {outcome, matchedKey,
+reason, entries, dbRows, walBytes, dbNote}|null, misses: [{task, hash, verdict,
+because, reason, reasonDetail, facts: {dirHasHash, dbHasHash, restore}, against:
+{run, sha, ts, source, hash, outcome, passed}, changed: [{input, kind, change,
+name|files|was|now}], changedCount, stored, thisRun?}], recorded, problems}`.
 
 Arguments:
   command     the command to run, after an optional --
