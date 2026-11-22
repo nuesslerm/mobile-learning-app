@@ -47,6 +47,8 @@ mod workflow_steps;
 mod nx_cache_restore_marker;
 #[path = "flow/e2e_nx_cache.rs"]
 mod e2e_nx_cache;
+#[path = "flow/core_tests_stage_bound.rs"]
+mod core_tests_stage_bound;
 #[path = "flow/expected_revisions.rs"]
 mod expected_revisions;
 #[path = "flow/integration_bundles.rs"]

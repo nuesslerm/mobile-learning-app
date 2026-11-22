@@ -410,23 +410,59 @@ jobs:
           SHARD: ${{ matrix.shard }}
           COUNT: ${{ needs.plan.outputs.shard_count }}
           FRESH: ${{ needs.plan.outputs.fresh }}
+          # each stage ends by our own hand 3 minutes before the step's 20 minute limit, with a log; a hung shard otherwise ran until the job was cancelled and left none
+          STAGE_LIMIT_S: '1020'
+          STAGE_KILL_S: '15'
         # two tasks at a time per stage, two stages: four tasks on the 4 vCPUs
         run: |
           fresh=()
           [ "$FRESH" != true ] || fresh=(--fresh)
-          pids=(); names=()
+          logs="$RUNNER_TEMP/stages"; mkdir -p "$logs"
+          pids=(); names=(); tails=(); snaps=()
+          # a stage gets its own session (setsid) under timeout, its output goes to a file that tail streams into the log, and 10 seconds before the limit a snapshot of its process tree is taken, which is gone once the stage is killed
+          stage() {
+            local name=$1 pid d
+            shift
+            : > "$logs/$name.log"
+            tail -n +1 -f -s 0.2 "$logs/$name.log" 2>/dev/null &
+            tails+=("$!")
+            setsid timeout -k "$STAGE_KILL_S" "$STAGE_LIMIT_S" "$@" > "$logs/$name.log" 2>&1 &
+            pid=$!; pids+=("$pid"); names+=("$name")
+            d=$((STAGE_LIMIT_S / 2 < 10 ? STAGE_LIMIT_S / 2 : 10))
+            ( sleep "$((STAGE_LIMIT_S - d))"; ps --sid "$pid" -o pid=,ppid=,etime=,args= > "$logs/$name.flat" 2>&1; ps --sid "$pid" -o pid,ppid,pgid,stat,etime,wchan:20,cmd --forest > "$logs/$name.snapshot" 2>&1 ) > /dev/null 2>&1 &
+            snaps+=("$!")
+          }
           if [ "$RUN_FLOW" = true ]; then
-            wf test run --stage flow-tests --plan "$RUNNER_TEMP/plan.json" --parallel 2 --shard "$SHARD/$COUNT" "${fresh[@]}" 2>&1 &
-            pids+=($!); names+=(flow-tests)
+            stage flow-tests wf test run --stage flow-tests --plan "$RUNNER_TEMP/plan.json" --parallel 2 --shard "$SHARD/$COUNT" "${fresh[@]}"
           fi
           if [ "$RUN_UNIT" = true ]; then
-            wf test run --stage typecheck-lint-unit-tests --plan "$RUNNER_TEMP/plan.json" --parallel 2 --shard "$((COUNT + 1 - SHARD))/$COUNT" "${fresh[@]}" 2>&1 &
-            pids+=($!); names+=(typecheck-lint-unit-tests)
+            stage typecheck-lint-unit-tests wf test run --stage typecheck-lint-unit-tests --plan "$RUNNER_TEMP/plan.json" --parallel 2 --shard "$((COUNT + 1 - SHARD))/$COUNT" "${fresh[@]}"
           fi
           rc=0
           for i in "${!pids[@]}"; do
-            wait "${pids[$i]}" || { echo "::error title=${names[$i]}::the ${names[$i]} stage failed on this machine"; rc=1; }
+            name=${names[$i]}
+            stage_rc=0
+            wait "${pids[$i]}" || stage_rc=$?
+            pkill -P "${snaps[$i]}" 2>/dev/null || true; kill "${snaps[$i]}" 2>/dev/null || true
+            if [ "$stage_rc" = 124 ] || { [ "$stage_rc" = 137 ] && [ -s "$logs/$name.snapshot" ]; }; then
+              sleep 1
+              echo "::error title=stage timed out::$name did not finish in ${STAGE_LIMIT_S} s and was killed"
+              echo "--- $name: its process tree shortly before the limit (pid ppid pgid stat etime wchan cmd)"
+              cat "$logs/$name.snapshot" 2>/dev/null || echo "(no snapshot)"
+              echo "--- $name: what was running in it (the processes that had no child: the test binaries and runners that did not finish)"
+              awk '{ pid[NR] = $1; row[NR] = $0; parent[$2] = 1 } END { for (i = 1; i <= NR; i++) if (!(pid[i] in parent)) print row[i] }' "$logs/$name.flat" 2>/dev/null || true
+              echo "--- $name: the last 40 lines of its output"
+              tail -n 40 "$logs/$name.log" || true
+              echo "--- $name: left in its session after the kill, now killed"
+              ps --sid "${pids[$i]}" -o pid,ppid,stat,etime,cmd --no-headers 2>/dev/null || true
+              pkill -KILL -s "${pids[$i]}" 2>/dev/null || true
+              rc=1
+            elif [ "$stage_rc" != 0 ]; then
+              echo "::error title=${name}::the ${name} stage failed on this machine"; rc=1
+            fi
           done
+          sleep 1
+          kill "${tails[@]}" 2>/dev/null || true
           # a process a test left behind can hold this step's output pipe open, and the runner then waits for it past every timeout with no log: kill the processes whose
           # stdout or stderr is this step's own pipe (never the runner's, which holds the other end) and name them
           me_out=$(readlink /proc/$$/fd/1 2>/dev/null || true); me_err=$(readlink /proc/$$/fd/2 2>/dev/null || true)
