@@ -15,6 +15,7 @@ import React, { useCallback } from 'react';
 import { Keyboard } from 'react-native';
 
 import type { EditorInputHandle } from '../EditorInput';
+import { caretValueText } from '../../../domain/editor/cursorActions';
 import type { Selection } from '../../../domain/editor/types';
 import { useCursorHandleSettingStore } from '../../../state/editor/cursorHandleSettingStore';
 import { CursorHandle } from './CursorHandle';
@@ -81,7 +82,7 @@ export function ActionToolbar({
   return (
     <KeyboardToolbarRail
       testID="EditorActionToolbar"
-      leading={cursorHandle ? <CursorHandle editorRef={editorRef} /> : undefined}
+      leading={cursorHandle ? <CursorHandle editorRef={editorRef} valueText={caretValueText(source, selection)} /> : undefined}
     >
       <KeyboardToolbarButton
         testID="EditorAction-Undo"

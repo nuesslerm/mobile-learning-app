@@ -87,6 +87,26 @@ describe('the cursor handle', () => {
     expect(screen.getByTestId('EditorActionToolbar').contains(screen.getByTestId('EditorAction-Done'))).toBe(true);
   });
 
+  it('given the handle on, when a screen reader reaches it, then it is an adjustable control with a name, a hint and the caret’s line and column as its value, and the keys keep their button role', async () => {
+    const { editor } = await openEditor(true);
+    await raiseKeyboard();
+    await editor.setText('abc\ndef');
+    await editor.select(5);
+
+    const pad = screen.getByTestId('EditorCursorHandle');
+
+    expect(pad.getAttribute('role')).toBe('slider');
+    expect(pad.getAttribute('aria-label')).toBe('Cursor handle');
+    await eventually(() => expect(pad.getAttribute('aria-valuetext')).toBe('Line 2, column 2'));
+    await editor.select(1, 6);
+    await eventually(() => expect(pad.getAttribute('aria-valuetext')).toBe('Selected from line 1, column 2 to line 2, column 3'));
+    for (const [testID, name] of [['EditorAction-Undo', 'Undo'], ['EditorAction-Copy', 'Copy selected code'], ['EditorAction-Done', 'Done editing']]) {
+      const key = screen.getByTestId(testID);
+      expect(key.getAttribute('role')).toBe('button');
+      expect(key.getAttribute('aria-label')).toBe(name);
+    }
+  });
+
   it('given a caret at 0, when the handle is dragged three characters to the right, then the caret is at 3, and farther it lands on a word start', async () => {
     const { session, editor } = await openEditor(true);
     await raiseKeyboard();
