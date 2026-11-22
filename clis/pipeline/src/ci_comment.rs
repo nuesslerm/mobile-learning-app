@@ -730,8 +730,9 @@ fn job_resources(points: &[Value], jobs: &[crate::ci_insights::JobTime]) -> Stri
 /// them): every job leaves `stats-<job>.jsonl` (one `{t, cpu, memUsedMb, memTotalMb, load1, ...}` per sample) in `WF_CI_RUNNER_STATS_DIR`.
 fn runner_section(env: &Env, running: bool) -> String {
     let heading = format!("\n{RUNNERS}\n\n");
+    // only the report job knows the sampler directory: a live update from another job must still keep the heading
     if var("WF_CI_RUNNER_STATS_DIR").is_none() {
-        return String::new();
+        return format!("{heading}{}\n", pending(running, "the first runner samples", "no runner samples were stored for this run"));
     }
     let all = crate::ci_telemetry::runner_samples();
     let mut rows = Vec::new();

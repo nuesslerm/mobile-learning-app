@@ -2661,7 +2661,7 @@ fn a_section_that_waits_for_data_says_so_in_one_line_and_the_data_replaces_it_wh
 
 #[test]
 fn a_section_that_does_not_apply_is_in_no_render() {
-    // Given a run of a workflow that is not one of the hosted ones, on a labelled pipeline whose runners were not sampled into any directory
+    // Given a run of a workflow that is not one of the hosted ones, on a labelled pipeline whose sampler directory is not set (a live update from a job other than the report)
     let plain = |partial| {
         let (github, dir) = (Github::start(), tempfile::tempdir().unwrap());
         let _ = actions_run(&github, true);
@@ -2677,9 +2677,11 @@ fn a_section_that_does_not_apply_is_in_no_render() {
     // When it is rendered while it runs and when it is over, and a hosted run is rendered with a key that does not open its history
     let hosted = |partial| (skeleton_body(partial, "backend_core+publish", &"08".repeat(32)), partial);
     for (body, partial) in [plain(true), plain(false)] {
-        // Then neither has a trend (not a hosted workflow), a runners section (no sampler directory) or a VM section (a labelled pipeline), and both keep the sections of every run
+        // Then neither has a trend (not a hosted workflow) or a VM section (a labelled pipeline), both have the runners heading (only the report job knows the sampler directory), and both keep the sections of every run
         let list = headings(&body);
-        assert!(!list.iter().any(|h| h.contains("Trend") || h.contains("Runners during") || h.contains("VM during")), "{partial} {list:?}");
+        assert!(!list.iter().any(|h| h.contains("Trend") || h.contains("VM during")), "{partial} {list:?}");
+        let waits = if partial { "_loading: waits for the first runner samples_" } else { "_none: no runner samples were stored for this run_" };
+        assert_eq!(under(&body, "### 🖥️ Runners during the run").trim(), waits, "{partial} {body}");
         assert!(list.contains(&"### Jobs".to_string()) && list.contains(&"### 🗄️ Cache".to_string()), "{partial} {list:?}");
     }
     // And the unreadable history leaves the trend out of the running render and the finished one alike, with every other section as it was
