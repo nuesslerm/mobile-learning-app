@@ -1,0 +1,15 @@
+{
+  "TWO_SUM_CLASS": "class Solution {\n  twoSum(nums, target) {\n    const seen = new Map();\n    for (let i = 0; i < nums.length; i += 1) {\n      if (seen.has(target - nums[i])) return [seen.get(target - nums[i]), i];\n      seen.set(nums[i], i);\n    }\n  }\n}\n",
+  "TWO_SUM_FUNCTION": "var twoSum = function(nums, target) {\n  const seen = new Map();\n  for (let i = 0; i < nums.length; i += 1) {\n    if (seen.has(target - nums[i])) return [seen.get(target - nums[i]), i];\n    seen.set(nums[i], i);\n  }\n};\n",
+  "MODULE_LOG": "console.log(\"module level\");\nclass Solution {\n  twoSum() { return [0, 1]; }\n}\n",
+  "CASE_LOG": "class Solution {\n  twoSum(nums, target) { console.log(\"case\", nums.length); return [0, 1]; }\n}\n",
+  "RETURNS_NAN": "class Solution {\n  twoSum() { return NaN; }\n}\n",
+  "RETURNS_UNDEFINED": "class Solution {\n  twoSum() { return undefined; }\n}\n",
+  "MUTATES_INPUT": "class Solution {\n  twoSum(nums, target) { nums.sort((a, b) => a - b); return [0, 1]; }\n}\n",
+  "INFINITE_LOOP_ONE_CASE": "var twoSum = function(nums, target) {\n  if (nums.length === 3 && nums[0] === 3) {\n    while (true) {}\n  }\n  return [0, 1];\n};\n",
+  "STRICT_DIRECTIVE": "'use strict';\nvar twoSum = function() { return typeof this; };\n",
+  "ASYNC_FUNCTION": "var twoSum = async function() { return [0, 1]; };\n",
+  "NO_REQUIRE": "var twoSum = function() { return require(\"fs\"); };\n",
+  "COUNTS_CALLS": "var calls = 0;\nvar twoSum = function(nums) {\n  calls += 1;\n  if (nums.length === 3 && nums[0] === 3) {\n    while (true) {}\n  }\n  return calls;\n};\n",
+  "HARNESS_ONLY_KEY": "class Solution {\n  hasCycle(...args) { return args.length; }\n}\n"
+}

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import type { TestCase } from '../../../../domain/run/execution';
 import { locationFromEvent, locationFromStack } from '../../harness/errorLocation';
+import type { WorkerSink } from '../../workerEngine';
 import type { CaseRow, FromWorker, HarnessConfig, ToWorker, WorkerError } from '../../workerProtocol';
 import { composeWorkerScript } from '../../workerSource';
 import { shippedPrelude } from './buildPrelude';
@@ -16,8 +17,6 @@ export type TestWorker = {
   post(message: ToWorker): void;
   terminate(): Promise<number>;
 };
-
-export type WorkerSink = { message(message: FromWorker): void; error(error: WorkerError): void };
 
 /** A worker thread that runs `script` as a classic script under a blob-like name, speaking the page's worker protocol. */
 export function spawnNodeWorker(script: string, sink: WorkerSink): TestWorker {
