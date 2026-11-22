@@ -41,6 +41,10 @@ mod ci_proven;
 mod ci_setup_cost;
 #[path = "flow/e2e_backends.rs"]
 mod e2e_backends;
+#[path = "flow/workflow_steps.rs"]
+mod workflow_steps;
+#[path = "flow/nx_cache_restore_marker.rs"]
+mod nx_cache_restore_marker;
 #[path = "flow/expected_revisions.rs"]
 mod expected_revisions;
 #[path = "flow/integration_bundles.rs"]

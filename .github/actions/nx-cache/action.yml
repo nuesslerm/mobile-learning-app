@@ -77,6 +77,8 @@ runs:
         fi
         # a restore of a stage that wf could not record still hands its lineage to the job
         echo "WF_CACHE_STAGE=$STAGE" >> "$GITHUB_ENV"
+        # this step runs only when the restore finished or failed, never when it was killed, so the marker is spent here whether or not wf could write the result file
+        rm -f "$RUNNER_TEMP/nx-cache.started"
     - uses: ./.github/actions/cache-summary
       if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') && (inputs.mode == 'restore') }}
       with:
@@ -92,7 +94,7 @@ runs:
         KEY: nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.lineage.outputs.workflow }}-${{ github.run_id }}-${{ github.run_attempt }}
         STAGE: ${{ inputs.stage }}
       run: |
-        if [ -f "$RUNNER_TEMP/nx-cache.started" ] && [ ! -f "$RUNNER_TEMP/nx-cache.restore.json" ]; then
+        if [ -f "$RUNNER_TEMP/nx-cache.started" ]; then
           reason="the restore started and left no result: it was killed by the step's time limit"
           if command -v wf >/dev/null 2>&1; then
             wf cache event nx restore --outcome timeout --key "$KEY" --stage "$STAGE" --started-ms "$(cat "$RUNNER_TEMP/nx-cache.started")" --reason "$reason" || true
