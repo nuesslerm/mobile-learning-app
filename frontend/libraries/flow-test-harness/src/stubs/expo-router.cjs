@@ -16,11 +16,13 @@ const useNavigation = () => {
 };
 
 // Opt-in (setStackHeadersRendered): the navigator's bar has no DOM, and turning it on for every test would move the editor-route goldens.
+const twin = require('./nativeHeaderTwin.cjs');
 const headersRendered = () => g.__flowRouter.stackHeadersRendered === true;
 const resolveOptions = (options, props) => (typeof options === 'function' ? options(props) : options) ?? {};
 const renderHeader = (options, route, navigation) => {
-  if (options.headerShown === false || typeof options.header !== 'function') return null;
-  return options.header({ navigation, route, options, back: undefined });
+  if (options.headerShown === false) return null;
+  if (typeof options.header === 'function') return options.header({ navigation, route, options, back: undefined });
+  return twin.renderNativeHeader(options);
 };
 const ScreenOptions = (props) => {
   const navigation = useNavigation();
