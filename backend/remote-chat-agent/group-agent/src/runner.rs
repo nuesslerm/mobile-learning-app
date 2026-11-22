@@ -127,6 +127,10 @@ impl Prepared {
         };
         match started {
             Ok(events) => {
+                // A stop asked while the session was still starting found no turn on it to stop
+                if runner.in_flight().stopping(&thread) {
+                    runner.sessions.interrupt(&thread);
+                }
                 tokio::spawn(task.follow(events));
             }
             Err(why) => {

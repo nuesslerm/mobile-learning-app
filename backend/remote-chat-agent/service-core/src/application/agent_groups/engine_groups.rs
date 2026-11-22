@@ -3,7 +3,7 @@
 use super::engine_threads::EngineThreads;
 use agent_api_proto::Event;
 use rca_agent_core::{AgentApi, Build, Group};
-use rca_cli_driver::testing::{app_server, CliScript, ScriptedLinker, ScriptedSpawner};
+use rca_cli_driver::testing::{app_server, delta, finish, reply, started, CliScript, ScriptedLinker, ScriptedSpawner};
 use rca_exec_channel::mcp::ServiceTools;
 use rca_exec_channel::remote::{ActionOutput, ExecutorChannel};
 use rca_exec_channel::testing::ScriptedChannel;
@@ -690,4 +690,31 @@ async fn given_a_codex_server_that_is_closed_when_idle_or_killed_when_the_thread
     rig.idle("t").await;
     assert_eq!((rig.linker.starts(), rig.linker.received_of("thread/resume").len(), rig.linker.received_of("thread/start").len()), (3, 2, 1));
     assert_eq!(reasons(&rig, "t").last(), Some(&json!("completed")));
+}
+
+#[tokio::test]
+async fn given_a_codex_turn_whose_thread_is_still_starting_when_it_is_interrupted_then_the_turn_is_stopped_on_the_server_as_soon_as_it_exists_and_ends_interrupted() {
+    // Given a server that holds its answer to thread/start until the test lets it go, and ends a turn when it is interrupted
+    let held = ScriptedLinker::reacting(|_, m| {
+        let id = &m["id"];
+        match m["method"].as_str() {
+            Some("initialize") => vec![reply(id, json!({}))],
+            Some("turn/start") => vec![reply(id, json!({"turn": {"id": "u-1"}})), started("th-1", "u-1"), delta("th-1", "u-1", "working")],
+            Some("turn/interrupt") => vec![reply(id, json!({})), finish("th-1", "u-1", "interrupted")],
+            _ => vec![],
+        }
+    });
+    let rig = rig_with(held);
+    rig.create("t").await;
+    // When the turn is interrupted while its thread is being started, and the server then answers
+    let (_, ()) = tokio::join!(rig.start_codex("t", "hold"), async {
+        rig.until("the thread request", |r| !r.linker.received_of("thread/start").is_empty()).await;
+        rig.ok("turn.interrupt", json!({"thread": "t"})).await;
+        let id = rig.linker.received_of("thread/start")[0].1["id"].clone();
+        rig.linker.emit(reply(&id, json!({"thread": {"id": "th-1"}})));
+    });
+    rig.idle("t").await;
+    // Then the server was told to interrupt the turn it started, and the turn ended interrupted
+    assert_eq!(rig.linker.received_of("turn/interrupt")[0].1["params"], json!({"threadId": "th-1", "turnId": "u-1"}));
+    assert_eq!(reasons(&rig, "t"), vec![json!("interrupted")]);
 }

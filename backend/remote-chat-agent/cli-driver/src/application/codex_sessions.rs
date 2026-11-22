@@ -112,7 +112,7 @@ impl CodexSessions {
     async fn server(&self, workspace: &str, linker: &dyn Linker, cwd: &Path) -> Result<Arc<Server>, String> {
         let slot = self.slot(workspace);
         let mut held = slot.0.lock().await;
-        if let Some(server) = held.as_ref().filter(|s| locked(&s.inner).ended.is_none()) {
+        if let Some(server) = held.as_ref().filter(|s| s.claim()) {
             return Ok(Arc::clone(server));
         }
         let link = linker.open(Driver::Codex, cwd).await.map_err(|e| format!("codex could not start: {e}"))?;
@@ -162,6 +162,22 @@ impl CodexSessions {
 impl Server {
     fn inner(&self) -> MutexGuard<'_, Inner> {
         locked(&self.inner)
+    }
+
+    /// Whether the server is still to be used; it is counted as active from now, so the idle close cannot take it between this and the turn's start.
+    fn claim(&self) -> bool {
+        let mut inner = self.inner();
+        let alive = inner.ended.is_none();
+        if alive {
+            inner.last_active = Some(Instant::now());
+        }
+        alive
+    }
+
+    /// Ends the process for `why`; from here no turn is given to this server, though what it was running is settled only when its output closes.
+    fn shut(&self, why: &str) {
+        self.inner().ended.get_or_insert_with(|| why.to_string());
+        (self.kill)();
     }
 
     /// Sends the request `line` builds for a fresh id and waits for the answer: its `result`, or why there is none.
@@ -235,18 +251,22 @@ impl Server {
         loop {
             let idle = Duration::from_millis(self.shared.idle_ms.load(Ordering::SeqCst));
             let wait = {
-                let inner = self.inner();
+                let mut inner = self.inner();
                 if inner.ended.is_some() {
                     return;
                 }
                 let busy = inner.threads.values().any(|t| t.tx.is_some()) || !inner.asks.is_empty();
-                if idle.is_zero() {
+                let wait = if idle.is_zero() {
                     Duration::from_secs(1)
                 } else if busy {
                     idle.clamp(Duration::from_millis(50), Duration::from_secs(1))
                 } else {
                     idle.saturating_sub(inner.last_active.map_or(idle, |at| at.elapsed()))
+                };
+                if wait.is_zero() {
+                    inner.ended = Some("the Codex app-server was closed after it sat idle".into());
                 }
+                wait
             };
             if wait.is_zero() {
                 (self.kill)();
@@ -436,7 +456,7 @@ impl SessionDriver for CodexSessions {
             tokio::time::sleep(grace).await;
             let still = server.inner().threads.get(&codex).is_some_and(|t| t.tx.is_some() && t.turn.as_deref() == Some(turn.as_str()));
             if still {
-                (server.kill)();
+                server.shut("the Codex app-server did not end the interrupted turn");
             }
         });
         true
@@ -469,7 +489,7 @@ impl SessionDriver for CodexSessions {
         let Ok(held) = slot.0.try_lock() else { return false };
         match held.as_ref() {
             Some(server) => {
-                (server.kill)();
+                server.shut("the Codex app-server was closed");
                 true
             }
             None => false,
@@ -739,5 +759,18 @@ mod tests {
         // Then one process was killed
         until("the kill", || linker.kills() == 1).await;
         assert_eq!((closed, none, linker.starts()), (true, false, 2));
+    }
+
+    #[tokio::test]
+    async fn given_a_server_that_was_just_closed_when_a_turn_asks_for_one_before_its_output_has_closed_then_a_new_process_runs_it_instead_of_the_dying_one() {
+        // Given a workspace whose server has run a turn
+        let (sessions, linker) = (CodexSessions::default(), app_server());
+        drain(sessions.turn("w1", linker.as_ref(), &request("t1", "hello", None)).await.unwrap()).await;
+        // When it is closed and the thread asks for a turn in the same breath, with its stored conversation
+        assert!(sessions.close("w1"));
+        let events = sessions.turn("w1", linker.as_ref(), &request("t1", "hello", Some("th-1"))).await.unwrap();
+        // Then the turn ran to its end on a second process that resumed the conversation
+        assert_eq!(drain(events).await, vec![ExecEvent::Text("Hi".into()), ExecEvent::Done]);
+        assert_eq!((linker.starts(), linker.received_of("thread/resume").len()), (2, 1));
     }
 }

@@ -50,6 +50,11 @@ impl InFlight {
         Some(running.turn.clone())
     }
 
+    /// Whether the thread's running turn was asked to stop.
+    pub fn stopping(&self, thread: &str) -> bool {
+        self.held().get(thread).is_some_and(|r| r.interrupted)
+    }
+
     /// Names the thread's running turn that `prompt` steers, and whether its CLI is a live session that takes the prompt itself. A turn whose CLI
     /// is a process for each turn is marked to go on with `prompt` when that process has ended. None when the thread runs no turn, runs one other than
     /// `named`, or the turn is being stopped.
