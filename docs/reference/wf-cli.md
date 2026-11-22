@@ -78,7 +78,7 @@ secret                       Manage secrets (macOS Keychain locally; Bitwarden i
     capture                  Run an ARBITRARY interactive login on the shared VNC desktop from a JSON spec: o
     done                     Signal that an interactive login is finished
     launch-url               Navigate the shared VNC desktop's browser to <url> (e.g. a magic-link URL copied
-    list                     List tools with a known auth descriptor, each with the vault secret its login lands in
+    list                     List tools with a known auth descriptor, each with its login mode (link: the tool's own link; vnc: the shared desktop's browser) and the vault secret its login lands in
     listener                 Run the auth-session listener (inside the shared desktop container): mints the t
   move                       Move a vault secret to another project in place, keeping its key, value, note an
   push-notes                 Sync each secret's registry description into its Bitwarden note (one-way: regist
@@ -5507,19 +5507,23 @@ Options:
 
 ### `wf secret login`
 
-Capture interactive tool logins (claude, codex, gcloud, ...): `wf secret login <tool>` starts the login in the shared VNC desktop's browser, prints the link to open on any device (a phone is enough) and waits until the login finished. The login stays on the VM and agent-shell gets its credential; `--copy` also writes the files the tool's config declares copyable to this machine's home. A tool whose config names a vault secret (gcloud, codex: the credential file's base64; claude: the token `claude setup-token` prints, matched by the descriptor's `outputSecret` pattern and stored as the plain string) also has it set when the login finishes, and emptied by `--clear` (both need the vault write token; a printed token that cannot be stored fails the login, naming the key and never the value).
+Log a tool in (claude, codex, ...) by its own link: `wf secret login <tool>` runs the tool's login here, prints the link to open on any device (a phone is enough) and, where the tool shows one, the one-time code, waits until the login finished and stores the credential in the vault: codex and codex-ci the base64 of `auth.json`, claude the token `claude setup-token` prints as the plain string (both need the vault write token and the secret to exist, else create it with `wf secret create`). Neither the token nor the file is ever printed; the login's private directory (owner-only, in memory) is removed afterwards. `claude` asks for the code its web page shows: paste it when run in a terminal, or run `wf secret login claude --code <code>` from another shell, which hands it to the waiting login through a private control file. A tool with no link login (opencode, gemini, gcloud, leetcode), and any tool given `--vnc`, logs in through the shared VNC desktop's browser instead: the login stays on the VM and agent-shell gets its credential. `--copy` also writes the files the tool's config declares copyable to this machine's home. `--clear` empties the tool's vault secrets first (and removes its copyable files here).
 
 Usage: `wf secret login [options] [command]`
 
 | Option | Meaning |
 |---|---|
-| `--copy` | also copy the finished login's credential files to this machine |
-| `--clear` | log the tool out first (its credential files here and in the VM, a revoke where the tool has one, the login browser's cookies), so the login starts from nothing |
+| `--copy` | also write the finished login's credential file to this machine's home (not for claude, which leaves no file) |
+| `--clear` | log the tool out first (its credential files here, its vault secrets and, with `--vnc`, the VM's files and login browser's cookies), so the login starts from nothing |
+| `--vnc` | log in through the shared VNC desktop's browser, not by the tool's own link (the only mode of a tool with no link login) |
+| `--code <code>` | hand the code the web page shows to the waiting `wf secret login <tool>` (claude), then return |
 
 Examples:
 
 ```sh
+wf secret login codex
 wf secret login claude
+wf secret login claude --code <code>
 wf secret login gcloud --clear --copy
 ```
 
@@ -5528,26 +5532,37 @@ wf secret login gcloud --clear --copy
 ```text
 Usage: wf secret login [options] [command]
 
-Capture interactive tool logins (claude, codex, gcloud, ...): `wf secret login
-<tool>` starts the login in the shared VNC desktop's browser, prints the link to
-open on any device (a phone is enough) and waits until the login finished. The
-login stays on the VM and agent-shell gets its credential; `--copy` also writes
-the files the tool's config declares copyable to this machine's home. A tool
-whose config names a vault secret (gcloud, codex: the credential file's base64;
-claude: the token `claude setup-token` prints, matched by the descriptor's
-`outputSecret` pattern and stored as the plain string) also has it set when the login finishes,
-and emptied by --clear (both need the vault write token; a printed token that
-cannot be stored fails the login, naming the key and never the value).
+Log a tool in (claude, codex, ...) by its own link: `wf secret login <tool>`
+runs the tool's login here, prints the link to open on any device (a phone is
+enough) and, where the tool shows one, the one-time code, waits until the login
+finished and stores the credential in the vault: codex and codex-ci the base64
+of auth.json, claude the token `claude setup-token` prints as the plain string
+(both need the vault write token and the secret to exist, else create it with
+`wf secret create`). Neither the token nor the file is ever printed; the
+login's private directory (owner-only, in memory) is removed afterwards.
+`claude` asks for the code its web page shows: paste it when run in a terminal,
+or run `wf secret login claude --code <code>` from another shell, which hands
+it to the waiting login through a private control file. A tool with no link
+login (opencode, gemini, gcloud, leetcode), and any tool given `--vnc`, logs in
+through the shared VNC desktop's browser instead: the login stays on the VM and
+agent-shell gets its credential. `--copy` also writes the files the tool's
+config declares copyable to this machine's home. `--clear` empties the tool's
+vault secrets first (and removes its copyable files here).
 
 Options:
-  --copy      also copy the finished login's credential files to this machine
-  --clear     log the tool out first (its credential files here and in the VM,
-              a revoke where the tool has one, the login browser's cookies), so
-              the login starts from nothing
-  -h, --help  display help for command
+  --copy         also write the finished login's credential file to this
+                 machine's home (not for claude, which leaves no file)
+  --clear        log the tool out first (its credential files here, its vault
+                 secrets and, with --vnc, the VM's files and login browser's
+                 cookies), so the login starts from nothing
+  --vnc          log in through the shared VNC desktop's browser, not by the
+                 tool's own link (the only mode of a tool with no link login)
+  --code <code>  hand the code the web page shows to the waiting
+                 `wf secret login <tool>` (claude), then return
+  -h, --help     display help for command
 
 Commands:
-  list        List tools with a known auth descriptor, each with the vault secret its login lands in
+  list        List tools with a known auth descriptor, each with its login mode (link or vnc) and the vault secret its login lands in
   capture     Run an ARBITRARY interactive login on the shared VNC desktop from a
               JSON spec and capture the credential out of the browser
   done        Signal that an interactive login is finished (what actually
@@ -5652,7 +5667,7 @@ Options:
 
 #### `wf secret login list`
 
-List tools with a known auth descriptor, each with the vault secret its login lands in
+List tools with a known auth descriptor, each with its login mode (link: the tool's own link; vnc: the shared desktop's browser) and the vault secret its login lands in
 
 Usage: `wf secret login list [options]`
 
@@ -5667,7 +5682,7 @@ wf secret login list
 ```text
 Usage: wf secret login list [options]
 
-List tools with a known auth descriptor, each with the vault secret its login lands in
+List tools with a known auth descriptor, each with its login mode (link: the tool's own link; vnc: the shared desktop's browser) and the vault secret its login lands in
 
 Options:
   -h, --help  display help for command
