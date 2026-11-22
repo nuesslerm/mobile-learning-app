@@ -61,6 +61,120 @@ pub struct Script {
     /// handshake (`initialize`) is always answered; a method not listed is answered with an error. Authored doubles, not recordings.
     #[serde(default)]
     pub app_server: std::collections::BTreeMap<String, Value>,
+    /// For a start as `app-server` that plays a conversation: the frames each start plays, in the order the starts come (the first start plays the
+    /// first run, a start after the last plays the last again). A run is a recording's frames, or ones a test authored (`Run`).
+    #[serde(default)]
+    pub app_server_runs: Vec<Vec<Frame>>,
+}
+
+/// One step of a conversation with the scripted app-server, as a recording of one has it (`transcripts/codex-app-server`): what the client sends
+/// and what the server says after it. The server keeps to the order: it says nothing until the client has sent what the next `Expect` waits for.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "step", rename_all = "snake_case")]
+pub enum Frame {
+    /// Waits for the client's next message: a request or notification of this `method`, or, with none, the client's answer to a request of the
+    /// server's. A message that is not what is waited for ends the run with code 7 and what was expected on stderr.
+    Expect { method: Option<String> },
+    /// Prints one frame. A response (an `id`-less `result` or `error`, or one with the `id` the recording had) is given the id of the client's request
+    /// that was last expected, so a client that numbers its requests another way is answered.
+    Emit { frame: Value },
+    Sleep { ms: u64 },
+    /// The process ends with this exit code at once, as one that crashes does.
+    Exit { code: i32 },
+}
+
+/// A conversation a test writes by hand: the frames of one start of the scripted app-server, built a step at a time.
+#[derive(Debug, Clone, Default)]
+pub struct Run(pub Vec<Frame>);
+
+impl Run {
+    pub fn new() -> Run {
+        Run::default()
+    }
+
+    /// `initialize`, its answer, and `initialized`.
+    pub fn handshake(self) -> Run {
+        self.expect("initialize").ok(serde_json::json!({"userAgent": "scripted-codex", "codexHome": "/scripted", "platformFamily": "unix", "platformOs": "linux"})).expect("initialized")
+    }
+
+    pub fn expect(mut self, method: &str) -> Run {
+        self.0.push(Frame::Expect { method: Some(method.into()) });
+        self
+    }
+
+    /// Waits for the client's answer to a request of the server's.
+    pub fn expect_answer(mut self) -> Run {
+        self.0.push(Frame::Expect { method: None });
+        self
+    }
+
+    /// The result of the request last expected.
+    pub fn ok(mut self, result: Value) -> Run {
+        self.0.push(Frame::Emit { frame: serde_json::json!({"result": result}) });
+        self
+    }
+
+    pub fn notify(mut self, method: &str, params: Value) -> Run {
+        self.0.push(Frame::Emit { frame: serde_json::json!({"method": method, "params": params}) });
+        self
+    }
+
+    /// A request of the server's, under its own id.
+    pub fn ask(mut self, id: u64, method: &str, params: Value) -> Run {
+        self.0.push(Frame::Emit { frame: serde_json::json!({"id": id, "method": method, "params": params}) });
+        self
+    }
+
+    pub fn sleeping(mut self, ms: u64) -> Run {
+        self.0.push(Frame::Sleep { ms });
+        self
+    }
+
+    pub fn exiting(mut self, code: i32) -> Run {
+        self.0.push(Frame::Exit { code });
+        self
+    }
+
+    pub fn then(mut self, frames: Vec<Frame>) -> Run {
+        self.0.extend(frames);
+        self
+    }
+
+    /// `thread/start` answered with a thread of this id.
+    pub fn thread_start(self, thread: &str) -> Run {
+        self.expect("thread/start").ok(serde_json::json!({"thread": {"id": thread, "status": {"type": "idle"}}}))
+    }
+
+    /// `thread/resume` answered with the same thread.
+    pub fn thread_resume(self, thread: &str) -> Run {
+        self.expect("thread/resume").ok(serde_json::json!({"thread": {"id": thread, "status": {"type": "idle"}}}))
+    }
+
+    /// `turn/start` answered with this turn, then what a turn that says `text` and ends sends.
+    pub fn turn_saying(self, thread: &str, turn: &str, text: &str) -> Run {
+        self.turn_begun(thread, turn)
+            .notify("item/started", serde_json::json!({"threadId": thread, "turnId": turn, "item": {"type": "agentMessage", "id": "m1", "text": "", "phase": "final_answer"}}))
+            .notify("item/agentMessage/delta", serde_json::json!({"threadId": thread, "turnId": turn, "itemId": "m1", "delta": text}))
+            .notify("item/completed", serde_json::json!({"threadId": thread, "turnId": turn, "item": {"type": "agentMessage", "id": "m1", "text": text, "phase": "final_answer"}}))
+            .turn_ended(thread, turn, "completed")
+    }
+
+    /// `turn/start` answered with this turn, and the turn started.
+    pub fn turn_begun(self, thread: &str, turn: &str) -> Run {
+        self.expect("turn/start")
+            .ok(serde_json::json!({"turn": {"id": turn, "items": [], "itemsView": "notLoaded", "status": "inProgress", "error": null}}))
+            .notify("turn/started", serde_json::json!({"threadId": thread, "turn": {"id": turn, "items": [], "status": "inProgress", "error": null}}))
+    }
+
+    pub fn turn_ended(self, thread: &str, turn: &str, status: &str) -> Run {
+        self.notify("thread/status/changed", serde_json::json!({"threadId": thread, "status": {"type": "idle"}})).notify("turn/completed", serde_json::json!({"threadId": thread, "turn": {"id": turn, "items": [], "status": status, "error": null}}))
+    }
+}
+
+impl From<Run> for Vec<Frame> {
+    fn from(run: Run) -> Vec<Frame> {
+        run.0
+    }
 }
 
 impl Turn {
@@ -142,6 +256,12 @@ impl Script {
         self
     }
 
+    /// Plays these conversations as the successive starts of `app-server` (a recording's frames, or a `Run`).
+    pub fn playing_app_server(mut self, runs: Vec<Vec<Frame>>) -> Script {
+        self.app_server_runs = runs;
+        self
+    }
+
     pub fn turn_for(&self, start: usize) -> Turn {
         self.turns.get(start.min(self.turns.len().saturating_sub(1))).cloned().unwrap_or_default()
     }
@@ -171,4 +291,17 @@ pub fn script_file(program: &str) -> String {
 /// The file in the program's directory that holds one line per start of `program`.
 pub fn log_file(program: &str) -> String {
     format!("{program}.invocations.jsonl")
+}
+
+/// The file in the program's directory that holds one line per message the scripted app-server was sent.
+pub fn app_server_log_file(program: &str) -> String {
+    format!("{program}.app-server.jsonl")
+}
+
+/// One message the scripted app-server was sent: which start of it (from 1), its process id, and the message.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Received {
+    pub start: usize,
+    pub pid: u32,
+    pub message: Value,
 }

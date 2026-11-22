@@ -1,7 +1,7 @@
 //! The scripted CLI as a test uses it: one program installed under the names `claude`, `codex` and `opencode` in a directory of its own, a
 //! script for each, and the log of how each was started. The directory goes first on the `PATH` of the process under test, which starts
 //! the program it would start for the real CLI.
-use crate::script::{log_file, script_file, Invocation, Script, PROGRAMS};
+use crate::script::{app_server_log_file, log_file, script_file, Invocation, Received, Script, PROGRAMS};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -91,8 +91,18 @@ impl ScriptedCli {
     pub fn script(&self, program: &str, script: &Script) {
         assert!(PROGRAMS.contains(&program), "{program} is not one of {PROGRAMS:?}");
         let _ = std::fs::remove_file(self.dir().join(log_file(program)));
+        let _ = std::fs::remove_file(self.dir().join(app_server_log_file(program)));
+        let _ = std::fs::remove_file(self.dir().join(format!("{program}.app-server.starts")));
         let path = self.dir().join(script_file(program));
         std::fs::write(&path, serde_json::to_string_pretty(script).expect("a script is JSON")).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    }
+
+    /// Every message the scripted app-server of `program` was sent since its script was set, oldest first, with the start it was sent to and that
+    /// process's id: a process that went on across turns shows one id, a restart another.
+    pub fn app_server_log(&self, program: &str) -> Vec<Received> {
+        let path = self.dir().join(app_server_log_file(program));
+        let Ok(text) = std::fs::read_to_string(&path) else { return Vec::new() };
+        text.lines().map(|line| serde_json::from_str(line).unwrap_or_else(|e| panic!("{}: {line}: {e}", path.display()))).collect()
     }
 
     /// Every start of `program` since its script was set, oldest first.

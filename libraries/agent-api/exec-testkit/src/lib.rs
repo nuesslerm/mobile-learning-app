@@ -4,6 +4,8 @@
 //! - `ScriptedCli`: one program (`scripted-cli`) installed as `claude`, `codex` and `opencode`. It prints the lines a script gives it (a
 //!   recording's stream-json, and the lines of a tool call it makes through the MCP server it was started with), logs its argv, its working
 //!   directory and the environment variables the script names, and then exits with the code the script gives or stays until it is killed.
+//! - `app_server`: what the scripted `codex app-server` plays: the recordings of `transcripts/codex-app-server` (Codex's JSON-RPC conversation, as another client's run of the
+//!   real server wrote it) and the runs a test writes with `Run`; `ScriptedCli::app_server_log` is what the server was sent.
 //! - `HostedClis`: one program (`fake-hosted`) installed as `gh` and `glab` that replays the output the real CLIs print for an argv (written from
 //!   their documented JSON), logs every start with its stdin, and exits with a chosen code, floods its output or hangs, so a test never needs a
 //!   real account or token.
@@ -21,6 +23,7 @@
 //!   `OpencodeServer::start_scripted` points an opencode at it, so the run needs no network and no key.
 //! - `Tap`: a recording WebSocket proxy between a mapper or an executor and the service, which keeps the agent API calls and executor tools
 //!   that went through it; `trace` turns windows on it into the method-hit trace of a chain run and the run record `wf test publish` takes.
+pub mod app_server;
 pub mod cassette;
 pub mod cli;
 pub mod devserver;
@@ -43,7 +46,7 @@ pub use model::FakeModel;
 pub use opencode::OpencodeServer;
 pub use recordings::Recording;
 pub use repo::{git_env, TempRepo};
-pub use script::{Invocation, Script, Step, Turn};
+pub use script::{Frame, Invocation, Run, Script, Step, Turn};
 pub use service::RcaService;
 pub use tap::{Seen, Tap};
 pub use trace::{attribute, write_replay_record, Case, Suite};

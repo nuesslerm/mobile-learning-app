@@ -1,7 +1,8 @@
 //! The program that stands in for `claude`, `codex` and `opencode`. It is started under one of those names from a directory that also holds
 //! `<name>.script.json` (what to do, `exec_testkit::script`) and `<name>.invocations.jsonl` (the log it appends to). It never reads its
 //! arguments for anything but the MCP server's address and the log: the script decides what it prints and how it ends.
-use exec_testkit::script::{log_file, script_file, Invocation, Script, Step, Turn};
+use exec_testkit::app_server::{Output, Player};
+use exec_testkit::script::{app_server_log_file, log_file, script_file, Invocation, Received, Script, Step, Turn};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader, Read, Write};
@@ -210,6 +211,41 @@ fn serve_app_server(script: &Script) -> ! {
     std::process::exit(0)
 }
 
+/// Codex's app-server playing a conversation: each message of the client is logged and answered from the run this start plays, and the process ends
+/// with its input (or as the run says). A message the run does not wait for ends it with code 7.
+fn play_app_server(script: &Script, dir: &Path, program: &str) -> ! {
+    let log = dir.join(app_server_log_file(program));
+    let start = std::fs::read_dir(dir).ok().and_then(|_| std::fs::read_to_string(dir.join(format!("{program}.app-server.starts"))).ok()).map_or(0, |t| t.lines().count()) + 1;
+    {
+        let mut starts = std::fs::OpenOptions::new().create(true).append(true).open(dir.join(format!("{program}.app-server.starts"))).unwrap_or_else(|e| fail(1, &e.to_string()));
+        let _ = writeln!(starts, "{}", std::process::id());
+    }
+    let run = script.app_server_runs.get((start - 1).min(script.app_server_runs.len().saturating_sub(1))).cloned().unwrap_or_default();
+    let mut player = Player::new(run);
+    let act = |outputs: Vec<Output>| {
+        for output in outputs {
+            match output {
+                Output::Line(line) => print(&line),
+                Output::Sleep(ms) => std::thread::sleep(Duration::from_millis(ms)),
+                Output::Exit(code) => std::process::exit(code),
+            }
+        }
+    };
+    act(player.begin());
+    for line in std::io::stdin().lock().lines().map_while(Result::ok) {
+        let Ok(message) = serde_json::from_str::<Value>(&line) else { continue };
+        let received = Received { start, pid: std::process::id(), message: message.clone() };
+        if let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(&log) {
+            let _ = writeln!(file, "{}", serde_json::to_string(&received).unwrap_or_default());
+        }
+        match player.on_client(&message) {
+            Ok(outputs) => act(outputs),
+            Err(why) => fail(7, &why),
+        }
+    }
+    std::process::exit(0)
+}
+
 fn main() {
     let exe = std::env::current_exe().unwrap_or_else(|e| fail(1, &format!("no path of its own: {e}")));
     let (dir, program) = (exe.parent().unwrap_or(Path::new(".")).to_path_buf(), exe.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_string());
@@ -226,6 +262,9 @@ fn main() {
             println!("{text}");
             std::process::exit(0);
         }
+    }
+    if args.first().map(String::as_str) == Some("app-server") && !script.app_server_runs.is_empty() {
+        play_app_server(&script, &dir, &program);
     }
     if args.first().map(String::as_str) == Some("app-server") && !script.app_server.is_empty() {
         serve_app_server(&script);
