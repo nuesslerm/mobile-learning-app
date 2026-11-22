@@ -102,7 +102,7 @@ fn check(rest: &[String]) -> Option<i32> {
     }
 }
 
-/// `check --drift`: the generated agent config, the editor bundle and the Pyodide bundle (the app's own `check:editor-bundle` and `check:pyodide` scripts) are all fresh.
+/// `check --drift`: the generated agent config, the editor bundle, the Pyodide bundle and the JavaScript runner's page (the app's own `check:editor-bundle`, `check:pyodide` and `check:js-runner` scripts) are all fresh.
 fn drift() -> i32 {
     let config = agent_config_sync::verb::run(&words(&["sync", "--check"], &[])).unwrap_or(2);
     let check = |script: &str| {
@@ -112,8 +112,8 @@ fn drift() -> i32 {
             .status()
             .map_or(2, |s| s.code().unwrap_or(2))
     };
-    let (bundle, pyodide) = (check("check:editor-bundle"), check("check:pyodide"));
-    [config, bundle, pyodide].into_iter().find(|code| *code != 0).unwrap_or(0)
+    let (bundle, pyodide, js_runner) = (check("check:editor-bundle"), check("check:pyodide"), check("check:js-runner"));
+    [config, bundle, pyodide, js_runner].into_iter().find(|code| *code != 0).unwrap_or(0)
 }
 
 /// `test`: planning and running the CI stages (`pipeline`), the e2e runner, preparing the web export, publishing a run, and the results of runs.

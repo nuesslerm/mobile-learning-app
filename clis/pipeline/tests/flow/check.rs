@@ -261,13 +261,36 @@ fn the_staged_gate_runs_through_nx() {
     assert_eq!(w.staged(&["--files", page], stale, &[]).exit_code, 4);
     assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), pyodide.clone()]);
 
-    // Given a change to the rpc library the editor page and the Pyodide page both bundle, Then both freshness checks run: each generated page carries a copy of it
+    // Given a change to the JavaScript runner's generated page or to the worker harness it carries, Then its freshness check runs before the gate too, and a stale one stops it
+    let js_runner = nx("check:js-runner", &["mla-tamagui"]);
+    for source in [
+        "frontend/mla-tamagui/features/leetcode/data/javascript/jsPage.ts",
+        "frontend/mla-tamagui/features/leetcode/data/javascript/harness/values.ts",
+        "frontend/mla-tamagui/features/leetcode/data/runner/judgeProtocol.ts",
+        "frontend/mla-tamagui/scripts/js-runner-build.mjs",
+    ] {
+        w.put(source, "export {};\n");
+        assert_eq!(w.staged(&["--files", source], json!([]), &[]).exit_code, 0, "{source}");
+        assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), js_runner.clone()], "{source}");
+        let stale = json!([{ "match": "check:js-runner", "code": 4 }]);
+        assert_eq!(w.staged(&["--files", source], stale, &[]).exit_code, 4, "{source}");
+        assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), js_runner.clone()], "{source}");
+    }
+
+    // Given a change under data/javascript/__tests__ only, Then the page is not rebuilt for it and its check does not run
+    let test_file = "frontend/mla-tamagui/features/leetcode/data/javascript/__tests__/judge.values.test.ts";
+    w.put(test_file, "export {};\n");
+    assert_eq!(w.staged(&["--files", test_file], json!([]), &[]).exit_code, 0);
+    assert!(!w.calls().contains(&js_runner), "{:?}", w.calls());
+
+    // Given a change to the rpc library the editor page, the Pyodide page and the JavaScript page all bundle, Then all three freshness checks run: each generated page carries a copy of it
     let rpc = "frontend/libraries/webview-rpc/src/core/server.ts";
     w.put(rpc, "export {};\n");
     let r = w.staged(&["--files", rpc], json!([]), &[]);
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
     assert!(w.calls().contains(&pyodide), "{:?}", w.calls());
     assert!(w.calls().contains(&bundle), "{:?}", w.calls());
+    assert!(w.calls().contains(&js_runner), "{:?}", w.calls());
 
     // Given a gated budget over its limit, Then lint ran, the gate did not, and the failure names the budget
     w.put("CLAUDE.md", &"x".repeat(10_000));

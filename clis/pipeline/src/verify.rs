@@ -282,6 +282,17 @@ fn is_pyodide_input(f: &str) -> bool {
         || f.starts_with("frontend/libraries/webview-rpc/")
 }
 
+/// What the JavaScript runner's page is built from: its sources and the worker harness (not its tests), the judge protocol it shares
+/// with the other runners, the bridge, and the two build scripts.
+fn is_js_runner_input(f: &str) -> bool {
+    f == "pnpm-lock.yaml"
+        || f == "frontend/mla-tamagui/scripts/js-runner-build.mjs"
+        || f == "frontend/mla-tamagui/scripts/js-runner-bundle.mjs"
+        || f == "frontend/mla-tamagui/features/leetcode/data/runner/judgeProtocol.ts"
+        || (f.starts_with("frontend/mla-tamagui/features/leetcode/data/javascript/") && !f.contains("/__tests__/"))
+        || f.starts_with("frontend/libraries/webview-rpc/src/")
+}
+
 pub struct Package {
     pub name: String,
     pub(crate) dir: String,
@@ -553,7 +564,7 @@ fn fixture_gate(root: &Path, files: &[String]) -> i32 {
     0
 }
 
-/// `check --staged [--files ...]`: lint, the budget, `dead_refs`, the editor bundle, the Pyodide bundle and the tests of what is staged (or named).
+/// `check --staged [--files ...]`: lint, the budget, `dead_refs`, the editor bundle, the Pyodide bundle, the JavaScript runner's page and the tests of what is staged (or named).
 pub fn staged(args: &[String], dead_refs: DeadRefs) -> Option<i32> {
     let p = parse_spec(args, &STAGED)?;
     let files_arg: Option<Vec<String>> = p.flag("files").then(|| p.values("files").into_iter().map(str::to_string).collect());
@@ -600,19 +611,15 @@ pub fn staged(args: &[String], dead_refs: DeadRefs) -> Option<i32> {
     if fixtures != 0 {
         return Some(fixtures);
     }
-    if files.iter().any(|f| is_cm6_input(f)) {
-        let code = match &gate {
-            Some(g) => run_nx(&g.nx, &root, "check:editor-bundle", &["mla-tamagui".to_string()], &g.env()),
-            None => exec("pnpm --filter mla-tamagui run check:editor-bundle"),
-        };
-        if code != 0 {
-            return Some(if lint_code != 0 { lint_code } else { code });
+    // the generated pages: each is checked fresh when a file it is built from is staged
+    let pages: [(fn(&str) -> bool, &str); 3] = [(is_cm6_input, "check:editor-bundle"), (is_pyodide_input, "check:pyodide"), (is_js_runner_input, "check:js-runner")];
+    for (is_input, target) in pages {
+        if !files.iter().any(|f| is_input(f)) {
+            continue;
         }
-    }
-    if files.iter().any(|f| is_pyodide_input(f)) {
         let code = match &gate {
-            Some(g) => run_nx(&g.nx, &root, "check:pyodide", &["mla-tamagui".to_string()], &g.env()),
-            None => exec("pnpm --filter mla-tamagui run check:pyodide"),
+            Some(g) => run_nx(&g.nx, &root, target, &["mla-tamagui".to_string()], &g.env()),
+            None => exec(&format!("pnpm --filter mla-tamagui run {target}")),
         };
         if code != 0 {
             return Some(if lint_code != 0 { lint_code } else { code });

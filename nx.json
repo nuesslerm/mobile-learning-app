@@ -224,6 +224,35 @@
           ]
         }
       ]
+    },
+    "check:js-runner": {
+      "cache": true,
+      "inputs": [
+        {
+          "fileset": "{projectRoot}/features/leetcode/data/javascript/**"
+        },
+        "!{projectRoot}/features/leetcode/data/javascript/__tests__/**",
+        {
+          "fileset": "{projectRoot}/features/leetcode/data/runner/judgeProtocol.ts"
+        },
+        {
+          "fileset": "{workspaceRoot}/frontend/libraries/webview-rpc/src/**"
+        },
+        {
+          "fileset": "{projectRoot}/scripts/js-runner-build.mjs"
+        },
+        {
+          "fileset": "{projectRoot}/scripts/js-runner-bundle.mjs"
+        },
+        {
+          "fileset": "{projectRoot}/package.json"
+        },
+        {
+          "externalDependencies": [
+            "esbuild"
+          ]
+        }
+      ]
     }
   },
   "pluginsConfig": {
