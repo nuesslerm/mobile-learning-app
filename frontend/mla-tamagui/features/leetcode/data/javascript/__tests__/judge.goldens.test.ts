@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ProblemCatalog } from '../../../domain/problemCatalog';
@@ -9,36 +11,11 @@ import { loadReferenceCorpus } from './support/referenceCorpus';
 
 vi.setConfig({ testTimeout: 120_000 });
 
-/** group-anagrams: the standard solution fails one case whose outer order the catalog fixed, and the backend scores it the same, so it is pinned by the Python goldens and has no reference here either. */
+/** group-anagrams: the standard solution fails one case whose outer order the catalog fixed, so the named test below pins it instead of a reference. */
 const NO_REFERENCE = ['group-anagrams'];
 
-/** The catalog problems that have no JavaScript reference yet. A batch of references removes its ids from this list; the list is deleted when it is empty. */
-const PENDING_REFERENCES = [
-  '3sum', 'alien-dictionary', 'best-time-to-buy-and-sell-stock',
-  'binary-tree-level-order-traversal', 'binary-tree-maximum-path-sum', 'climbing-stairs',
-  'coin-change', 'combination-sum', 'combination-sum-iv',
-  'construct-binary-tree-from-preorder-and-inorder-traversal', 'container-with-most-water', 'contains-duplicate',
-  'counting-bits', 'course-schedule', 'decode-ways',
-  'design-add-and-search-words-data-structure', 'encode-and-decode-strings', 'find-median-from-data-stream',
-  'find-minimum-in-rotated-sorted-array', 'graph-valid-tree', 'house-robber',
-  'house-robber-ii', 'insert-interval', 'jump-game',
-  'kth-smallest-element-in-a-bst', 'longest-common-subsequence', 'longest-consecutive-sequence',
-  'longest-increasing-subsequence', 'longest-palindromic-substring', 'longest-repeating-character-replacement',
-  'longest-substring-without-repeating-characters', 'lowest-common-ancestor-of-a-binary-search-tree', 'maximum-depth-of-binary-tree',
-  'maximum-product-subarray', 'maximum-subarray', 'meeting-rooms',
-  'meeting-rooms-ii', 'merge-intervals', 'merge-k-sorted-lists',
-  'merge-two-sorted-lists', 'minimum-window-substring', 'missing-number',
-  'non-overlapping-intervals', 'number-of-1-bits', 'number-of-connected-components-in-an-undirected-graph',
-  'number-of-islands', 'pacific-atlantic-water-flow', 'palindromic-substrings',
-  'product-of-array-except-self', 'remove-nth-node-from-end-of-list', 'reorder-list',
-  'reverse-bits', 'same-tree', 'set-matrix-zeroes',
-  'spiral-matrix', 'subtree-of-another-tree', 'sum-of-two-integers',
-  'top-k-frequent-elements', 'unique-paths', 'valid-anagram',
-  'validate-binary-search-tree', 'word-break', 'word-search',
-  'word-search-ii',
-];
-
 const goldens = loadReferenceCorpus();
+const named = JSON.parse(readFileSync(join(__dirname, 'fixtures/named.json'), 'utf8')) as Record<string, string>;
 
 function payloadFor(problemId: string, code: string): JudgePayload {
   const { lang: _lang, ...payload } = runParamsFor(ProblemCatalog.getByIdOrThrow(problemId), 'javascript', code);
@@ -46,14 +23,11 @@ function payloadFor(problemId: string, code: string): JudgePayload {
 }
 
 describe('the on-device JavaScript judge on known-good solutions', () => {
-  it('Given the catalog, When the pending list, the pinned exception and the corpus are compared, Then the problems with no reference are exactly the pending list', () => {
+  it('Given the catalog, When the corpus is listed, Then every problem has a reference and the only exception is the one whose standard solution fails a pinned case', () => {
     const covered = new Set(goldens.map(({ problem }) => problem));
-    const uncovered = ProblemCatalog.getAll()
-      .map((problem) => problem.id)
-      .filter((id) => !covered.has(id) && !NO_REFERENCE.includes(id));
 
-    // The failure names every problem that has no known-good solution and is not on the list, and every one on the list that now has one
-    expect([...uncovered].sort()).toEqual([...PENDING_REFERENCES].sort());
+    // The failure lists every catalog problem that has no known-good solution
+    expect(ProblemCatalog.getAll().map((problem) => problem.id).filter((id) => !covered.has(id))).toEqual(NO_REFERENCE);
   });
 
   it('Given the reference of every covered problem, When it runs with the catalog’s paramTypes, returnType, inPlace and harness, Then every bundled case passes', async () => {
@@ -79,5 +53,13 @@ describe('the on-device JavaScript judge on known-good solutions', () => {
       expect(response.status_msg, problem).not.toBe('Accepted');
       expect(`${response.compile_error ?? ''}${response.runtime_error ?? ''}`, problem).not.toMatch(/Runner error/);
     }
+  });
+
+  it('Given the standard group-anagrams solution, When it runs, Then it fails one case because the catalog fixes an outer order that the setOfSorted mode compares', async () => {
+    // Pinned catalog quirk: the Python goldens pin the same 10 of 11, and the backend cannot score a JavaScript starter, so only the local verdict is read
+    const { raw } = await judge(payloadFor('group-anagrams', named.GROUP_ANAGRAMS ?? ''));
+    const response = runResponseOf(raw, 'offline');
+
+    expect([response.total_correct, response.total_testcases]).toEqual([10, 11]);
   });
 });

@@ -11,5 +11,6 @@
   "ASYNC_FUNCTION": "var twoSum = async function() { return [0, 1]; };\n",
   "NO_REQUIRE": "var twoSum = function() { return require(\"fs\"); };\n",
   "COUNTS_CALLS": "var calls = 0;\nvar twoSum = function(nums) {\n  calls += 1;\n  if (nums.length === 3 && nums[0] === 3) {\n    while (true) {}\n  }\n  return calls;\n};\n",
-  "HARNESS_ONLY_KEY": "class Solution {\n  hasCycle(...args) { return args.length; }\n}\n"
+  "HARNESS_ONLY_KEY": "class Solution {\n  hasCycle(...args) { return args.length; }\n}\n",
+  "GROUP_ANAGRAMS": "var groupAnagrams = function(strs) {\n  const groups = new Map();\n  for (const s of strs) {\n    const key = [...s].sort().join('');\n    if (!groups.has(key)) groups.set(key, []);\n    groups.get(key).push(s);\n  }\n  return [...groups.values()];\n};\n"
 }
