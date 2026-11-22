@@ -32,7 +32,6 @@ import type { RefObject } from 'react';
 import type { EditorInputHandle } from './EditorInput';
 import { profileOf, type LanguageProfile } from '../../domain/editor/languageProfile';
 import {
-  INDENT_UNIT,
   dedent,
   indent,
   moveLeft,
@@ -48,6 +47,8 @@ export type KeyActionContext = {
   selection: Selection;
   /** The language the editor is in: the Comment and Newline keys follow it. */
   language: Language;
+  /** One indentation level: as many spaces as the person's Tabs preference. */
+  indentUnit: string;
 };
 export type BuiltinKeyDef = {
   /** Human-readable name shown on the configure screen. */
@@ -70,9 +71,9 @@ function symbolRun(char: string) {
     ctx.editorRef.current?.typeText(char);
   };
 }
-function transformRun(make: (profile: LanguageProfile) => (text: string, sel: Selection) => EditResult) {
+function transformRun(make: (profile: LanguageProfile, unit: string) => (text: string, sel: Selection) => EditResult) {
   return (ctx: KeyActionContext): void => {
-    ctx.editorRef.current?.transformDocument(make(profileOf(ctx.language)));
+    ctx.editorRef.current?.transformDocument(make(profileOf(ctx.language), ctx.indentUnit));
   };
 }
 export const BUILTIN_KEYS: Record<BuiltinKeyId, BuiltinKeyDef> = {
@@ -85,9 +86,9 @@ export const BUILTIN_KEYS: Record<BuiltinKeyId, BuiltinKeyDef> = {
       });
       const indentNow = () => {
         if (ctx.selection.start !== ctx.selection.end) {
-          ctx.editorRef.current?.transformDocument(indent);
+          ctx.editorRef.current?.transformDocument((text, sel) => indent(text, sel, ctx.indentUnit));
         } else {
-          ctx.editorRef.current?.insertAtCursor(INDENT_UNIT);
+          ctx.editorRef.current?.insertAtCursor(ctx.indentUnit);
         }
       };
       const editor = ctx.editorRef.current;
@@ -104,7 +105,7 @@ export const BUILTIN_KEYS: Record<BuiltinKeyId, BuiltinKeyDef> = {
   Dedent: {
     name: 'Dedent',
     icon: ArrowLeftToLine,
-    run: transformRun(() => dedent),
+    run: transformRun((_profile, unit) => (text, sel) => dedent(text, sel, unit)),
   },
   Paren: {
     name: 'Parentheses',
@@ -159,7 +160,7 @@ export const BUILTIN_KEYS: Record<BuiltinKeyId, BuiltinKeyDef> = {
   Newline: {
     name: 'New line (auto-indent)',
     icon: CornerDownLeft,
-    run: transformRun((profile) => (text, sel) => smartNewline(text, sel, profile)),
+    run: transformRun((profile, unit) => (text, sel) => smartNewline(text, sel, profile, unit)),
   },
   Left: {
     name: 'Cursor left',

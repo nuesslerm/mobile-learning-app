@@ -84,19 +84,19 @@ function insertText(
   return { text: newText, selection: { start: caret, end: caret } };
 }
 
-/** Indent: prepend one level to every selected line (or insert at the caret). */
-export function indent(text: string, sel: Selection): EditResult {
+/** Indent: prepend one level (`unit`, four spaces by default) to every selected line, or insert it at the caret. */
+export function indent(text: string, sel: Selection, unit: string = INDENT_UNIT): EditResult {
   if (sel.start === sel.end) {
-    return insertText(text, sel, INDENT_UNIT);
+    return insertText(text, sel, unit);
   }
-  return mapSelectedLines(text, sel, (line) => INDENT_UNIT + line);
+  return mapSelectedLines(text, sel, (line) => unit + line);
 }
 
-/** Dedent: remove up to one indent level of leading spaces from each line. */
-export function dedent(text: string, sel: Selection): EditResult {
+/** Dedent: remove up to one indent level (`unit`) of leading spaces from each line. */
+export function dedent(text: string, sel: Selection, unit: string = INDENT_UNIT): EditResult {
   return mapSelectedLines(text, sel, (line) => {
     let removed = 0;
-    while (removed < INDENT_UNIT.length && line[removed] === ' ') {
+    while (removed < unit.length && line[removed] === ' ') {
       removed += 1;
     }
     return line.slice(removed);
@@ -137,7 +137,8 @@ export function toggleComment(
 export function smartNewline(
   text: string,
   sel: Selection,
-  profile: LanguageProfile = PYTHON_PROFILE
+  profile: LanguageProfile = PYTHON_PROFILE,
+  unit: string = INDENT_UNIT
 ): EditResult {
   const start = Math.min(sel.start, sel.end);
   const ls = lineStartIndex(text, start);
@@ -147,10 +148,10 @@ export function smartNewline(
   const opensBlock =
     profile.openers.some((opener) => fullLine.endsWith(opener)) ||
     (profile.statementOpener?.test(fullLine) ?? false);
-  const nextIndent = opensBlock ? leading + INDENT_UNIT : leading;
+  const nextIndent = opensBlock ? leading + unit : leading;
   const between = text.slice(start - 1, start + 1);
   if (sel.start === sel.end && start > 0 && profile.pairs.includes(between)) {
-    const inner = `\n${leading + INDENT_UNIT}`;
+    const inner = `\n${leading + unit}`;
     const result = insertText(text, sel, `${inner}\n${leading}`);
     const caret = start + inner.length;
     return { text: result.text, selection: { start: caret, end: caret } };

@@ -8,6 +8,7 @@ import {
 import { Settings2 } from '@lib/tamagui-design-system/icons';
 import React, { useMemo } from 'react';
 
+import { useEditorPreferencesStore } from '../../../state/editor/editorPreferencesStore';
 import { useToolbarConfigStore } from '../../../state/toolbarConfigStore';
 import type { EditorInputHandle } from '../EditorInput';
 import { BUILTIN_KEYS, type KeyActionContext } from '../toolbarKeys';
@@ -31,9 +32,10 @@ export function SyntaxToolbar({
   onConfigure,
 }: Props) {
   const items = useToolbarConfigStore((s) => s.items);
+  const tabSize = useEditorPreferencesStore((s) => s.tabSize);
   const ctx: KeyActionContext = useMemo(
-    () => ({ editorRef, text: source, selection, language }),
-    [editorRef, selection, source, language]
+    () => ({ editorRef, text: source, selection, language, indentUnit: ' '.repeat(tabSize) }),
+    [editorRef, selection, source, language, tabSize]
   );
 
   return (

@@ -9,6 +9,7 @@ import {
   smartNewline,
   toggleComment,
 } from '../editing';
+import { profileOf } from '../languageProfile';
 
 const caret = (at: number) => ({ start: at, end: at });
 
@@ -114,5 +115,45 @@ describe('moveLeft and moveRight', () => {
     expect(moveLeft('abcdef', { start: 4, end: 2 })).toEqual(caret(2));
     expect(moveRight('abcdef', { start: 2, end: 4 })).toEqual(caret(4));
     expect(moveRight('abcdef', { start: 4, end: 2 })).toEqual(caret(4));
+  });
+});
+
+describe('with another indent unit', () => {
+  const two = '  ';
+  const eight = '        ';
+
+  it('given a unit of two, when indent runs at a caret and over lines, then two spaces go in', () => {
+    expect(indent('x', caret(0), two)).toEqual({ text: '  x', selection: caret(2) });
+    expect(indent('a\nb', { start: 0, end: 3 }, two)).toEqual({ text: '  a\n  b', selection: { start: 0, end: 7 } });
+  });
+
+  it('given a unit of eight, when indent runs, then eight spaces go in', () => {
+    expect(indent('x', caret(0), eight)).toEqual({ text: `${eight}x`, selection: caret(8) });
+  });
+
+  it('given a unit of two, when dedent runs on lines of four and one space, then at most two spaces go from each', () => {
+    expect(dedent('    a\n b', { start: 0, end: 7 }, two).text).toBe('  a\nb');
+  });
+
+  it('given a unit of eight, when dedent runs on a line of four and one of eight spaces, then up to eight go from each', () => {
+    expect(dedent('    a\n        b', { start: 0, end: 15 }, eight).text).toBe('a\nb');
+  });
+
+  it('given a unit of two, when newline runs after a colon, then the next line is two spaces deeper', () => {
+    expect(smartNewline('if x:', caret(5), undefined, two)).toEqual({ text: 'if x:\n  ', selection: caret(8) });
+  });
+
+  it('given a unit of eight and an indented line that opens a block, when newline runs, then the line goes eight deeper than its own indent', () => {
+    expect(smartNewline('  if x:', caret(7), undefined, eight).text).toBe(`  if x:\n  ${eight}`);
+  });
+
+  it('given a unit of two and the caret between a bracket pair in JavaScript, when newline runs, then the closer drops to its own line', () => {
+    expect(smartNewline('f()', caret(2), profileOf('javascript'), two)).toEqual({ text: 'f(\n  \n)', selection: caret(5) });
+  });
+
+  it('given no unit, when indent, dedent and newline run, then they use four spaces as before', () => {
+    expect(indent('x', caret(0)).text).toBe('    x');
+    expect(dedent('    x', caret(5)).text).toBe('x');
+    expect(smartNewline('if x:', caret(5)).text).toBe('if x:\n    ');
   });
 });

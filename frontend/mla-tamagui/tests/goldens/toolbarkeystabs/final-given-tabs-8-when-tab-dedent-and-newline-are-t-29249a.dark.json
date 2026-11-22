@@ -1,0 +1,86 @@
+{
+  "suite": "toolbarkeystabs",
+  "step": "final-given-tabs-8-when-tab-dedent-and-newline-are-t-29249a",
+  "scheme": "dark",
+  "snapshot": "toolbarkeystabs/final-given-tabs-8-when-tab-dedent-and-newline-are-t-29249a.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemWorkspaceTabs",
+      "ProblemWorkspaceTab-plan",
+      "ProblemWorkspaceTab-code",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorActions",
+      "ProblemEditorFormatButton",
+      "ProblemEditorRunLocalButton",
+      "ProblemEditorRunButton",
+      "ProblemEditorResetButton",
+      "ProblemEditorTextEditStartButton",
+      "ProblemEditorVoiceStartButton",
+      "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
+      "ProblemEditorTestInput",
+      "ProblemPlanTab",
+      "ProblemPlanSteps",
+      "ProblemPlanComposer",
+      "ProblemPlanMicButton",
+      "ProblemPlanTextInput",
+      "ProblemPlanAddButton",
+      "EditorHelperRails",
+      "EditorSyntaxToolbar",
+      "EditorSyntax-Tab",
+      "EditorSyntax-Dedent",
+      "EditorSyntax-Paren",
+      "EditorSyntax-Bracket",
+      "EditorSyntax-Brace",
+      "EditorSyntax-Quote",
+      "EditorSyntax-Apostrophe",
+      "EditorSyntax-Colon",
+      "EditorSyntax-Equals",
+      "EditorSyntax-Underscore",
+      "EditorSyntax-Dot",
+      "EditorSyntax-Comment",
+      "EditorSyntax-Newline",
+      "EditorSyntax-Left",
+      "EditorSyntax-Right",
+      "EditorSyntax-Configure",
+      "EditorActionToolbar",
+      "EditorAction-Undo",
+      "EditorAction-Redo",
+      "EditorAction-Copy",
+      "EditorAction-Paste",
+      "EditorAction-Done"
+    ],
+    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nDone"
+  },
+  "timings": {
+    "render_ms": 260
+  },
+  "name": "toolbarkeystabs/final-given-tabs-8-when-tab-dedent-and-newline-are-t-29249a.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}
