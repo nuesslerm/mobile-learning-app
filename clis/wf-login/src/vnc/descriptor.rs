@@ -82,6 +82,7 @@ fn builtin_json(id: &str) -> Option<String> {
     Some(match id {
         "claude" => r#"{"id":"claude","loginCmd":"script -qec 'stty cols 500; claude setup-token' /dev/null","outputSecret":{"pattern":"(sk-ant-oat\\d{2}-[A-Za-z0-9_-]+)\\s","vaultKey":"CLAUDE_CODE_OAUTH_TOKEN"},"copy":["~/.claude/.credentials.json"],"validCheck":{"path":"~/.claude/.credentials.json"},"authErrorPatterns":["401","403","invalid_grant","expired","not authenticated","unauthorized","oauth token has expired"]}"#.to_string(),
         "codex" => r#"{"id":"codex","loginCmd":"codex login","credentialPaths":["~/.codex/auth.json"],"copy":["~/.codex/auth.json"],"vault":{"key":"CODEX_OAUTH_JSON_B64","file":"~/.codex/auth.json"},"validCheck":{"path":"~/.codex/auth.json"},"authErrorPatterns":["401","403","invalid_grant","expired","not authenticated","unauthorized"]}"#.to_string(),
+        "codex-ci" => r#"{"id":"codex-ci","loginCmd":"CODEX_HOME=$HOME/.codex-ci codex login","credentialPaths":["~/.codex-ci/auth.json"],"copy":["~/.codex-ci/auth.json"],"vault":{"key":"CODEX_CI_OAUTH_JSON_B64","file":"~/.codex-ci/auth.json"},"validCheck":{"path":"~/.codex-ci/auth.json"},"authErrorPatterns":["401","403","invalid_grant","expired","not authenticated","unauthorized"]}"#.to_string(),
         "opencode" => file("opencode auth login", "~/.opencode/data/auth.json", GOOGLE_ERRORS),
         "gemini" => file("gemini", "~/.gemini/oauth_creds.json", r#"["401","403","invalid_grant","expired","not authenticated","unauthorized","reauth"]"#),
         "gcloud" => r#"{"id":"gcloud","loginCmd":"gcloud auth login --enable-gdrive-access","credentialPaths":["~/.config/gcloud/credentials.db"],"copy":["~/.config/gcloud/credentials.db"],"vault":{"key":"GCLOUD_DRIVE_CREDENTIALS_DB_B64","file":"~/.config/gcloud/credentials.db"},"validCheck":{"cmd":"gcloud auth list --filter=status:ACTIVE --format=\"value(account)\" | grep ."},"authErrorPatterns":["401","403","invalid_grant","reauth","not authenticated","unauthorized","ERROR: (gcloud.auth)"]}"#.to_string(),
@@ -90,7 +91,7 @@ fn builtin_json(id: &str) -> Option<String> {
     })
 }
 
-pub const KNOWN_TOOLS: [&str; 6] = ["claude", "codex", "opencode", "gemini", "gcloud", "leetcode"];
+pub const KNOWN_TOOLS: [&str; 7] = ["claude", "codex", "codex-ci", "opencode", "gemini", "gcloud", "leetcode"];
 
 pub fn builtin(id: &str) -> Option<Descriptor> {
     let value: Value = serde_json::from_str(&builtin_json(id)?).ok()?;

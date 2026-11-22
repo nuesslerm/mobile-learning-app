@@ -85,9 +85,9 @@ fn wf_lists_the_tools_with_a_login_names_them_for_an_unknown_one_and_refuses_the
     // Then every tool with an auth descriptor is printed in registry order with the vault key it lands in, the unknown one names them, and the flag is refused
     assert_eq!(
         (list.exit_code, list.stdout.as_str()),
-        (0, "claude: vault CLAUDE_CODE_OAUTH_TOKEN\ncodex: vault CODEX_OAUTH_JSON_B64\nopencode\ngemini\ngcloud: vault GCLOUD_DRIVE_CREDENTIALS_DB_B64\nleetcode\n")
+        (0, "claude: vault CLAUDE_CODE_OAUTH_TOKEN\ncodex: vault CODEX_OAUTH_JSON_B64\ncodex-ci: vault CODEX_CI_OAUTH_JSON_B64\nopencode\ngemini\ngcloud: vault GCLOUD_DRIVE_CREDENTIALS_DB_B64\nleetcode\n")
     );
-    assert_eq!((unknown.exit_code, unknown.stderr.as_str()), (1, "Unknown tool: nope\nKnown tools: claude, codex, opencode, gemini, gcloud, leetcode\n"));
+    assert_eq!((unknown.exit_code, unknown.stderr.as_str()), (1, "Unknown tool: nope\nKnown tools: claude, codex, codex-ci, opencode, gemini, gcloud, leetcode\n"));
     assert!(retired.exit_code == 2 && retired.stderr.contains("--remote was removed") && d.server.requests().is_empty(), "{}", retired.stderr);
 }
 
