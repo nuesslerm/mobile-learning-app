@@ -87,6 +87,7 @@ runs:
     - name: Restore the pnpm store
       id: pnpm-cache
       if: ${{ inputs.install == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && env.CACHE_PNPM == 'on' }}
+      continue-on-error: true
       uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: ${{ steps.pnpm-store.outputs.path }}
@@ -97,6 +98,8 @@ runs:
       if: ${{ inputs.install == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && env.CACHE_PNPM == 'on' }}
       with:
         layer: pnpm
+        outcome: ${{ steps.pnpm-cache.outcome }}
+        key: pnpm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
         hit: ${{ steps.pnpm-cache.outputs.cache-hit }}
         matched-key: ${{ steps.pnpm-cache.outputs.cache-matched-key }}
         paths: ${{ steps.pnpm-store.outputs.path }}

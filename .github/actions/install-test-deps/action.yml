@@ -67,6 +67,7 @@ runs:
     - name: Restore the reference trees' git objects
       id: refs-cache
       if: ${{ inputs.references == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') }}
+      continue-on-error: true
       uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: .git/modules/references
@@ -75,6 +76,8 @@ runs:
       if: ${{ inputs.references == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') }}
       with:
         layer: references
+        outcome: ${{ steps.refs-cache.outcome }}
+        key: ${{ steps.refs-key.outputs.key }}
         hit: ${{ steps.refs-cache.outputs.cache-hit }}
         matched-key: ${{ steps.refs-cache.outputs.cache-matched-key }}
         paths: .git/modules/references

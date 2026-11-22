@@ -1424,6 +1424,14 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
         run: wf ci concurrency --phase end
+      # why each task that ran did not replay (the jobs' databases over the sealed history), as gauges and a warning annotation; the reasons themselves are stored by the merge below; best effort
+      - name: Cache misses
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          WF_CI_LEDGERS: ${{ runner.temp }}/ci-db
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: wf ci cache-misses --send
       # what CI used to send to HEALTH_RPT (test runs, usage of the commands): the jobs' rows into the sealed CI database on refs/wf/state
       - name: CI database
         continue-on-error: true

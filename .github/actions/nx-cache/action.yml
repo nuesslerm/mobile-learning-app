@@ -1,5 +1,7 @@
 name: Nx local cache
 description: >-
+  Every restore and save is recorded (`wf cache event`: a row of CI_CACHE_EVENTS, and an `::error title=cache restore failed::` annotation when it failed or timed out); the restore also
+  snapshots what Nx's cache directory and its cache_outputs table hold, so a task that runs anyway is told apart from one whose entry was never there.
   Restores or saves the Nx local cache of one test stage shard with actions/cache. It only moves the directories Nx keeps and sets no Nx
   environment (the test runner provides it). Restore runs before the test stage, save after it. The saved key is unique per run and names the calling workflow, so a later run of the same workflow restores its own newest entry and a sibling workflow's entries (same stage and shard count) no longer shadow it.
 inputs:
@@ -22,9 +24,21 @@ runs:
       env:
         WORKFLOW: ${{ github.workflow }}
       run: echo "workflow=$(printf '%s' "$WORKFLOW" | tr -c 'A-Za-z0-9_-' '-' | cut -c1-48)" >> "$GITHUB_OUTPUT"
+    # the restore step has no time limit of its own here (a composite step cannot have one), so a restore killed by the caller's limit leaves this marker
+    # without a result file, and the save step records it as a timeout
+    - name: Mark the restore as started
+      id: started
+      if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') && (inputs.mode == 'restore') }}
+      shell: bash
+      run: |
+        ms=$(date +%s%3N)
+        echo "ms=$ms" >> "$GITHUB_OUTPUT"
+        printf '%s' "$ms" > "$RUNNER_TEMP/nx-cache.started"
+        rm -f "$RUNNER_TEMP/nx-cache.restore.json"
     - name: Restore the Nx cache
       id: restore
       if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') && (inputs.mode == 'restore') }}
+      continue-on-error: true
       uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: |
@@ -36,36 +50,85 @@ runs:
         restore-keys: |
           nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.lineage.outputs.workflow }}-
           nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-
-    - name: Note what was restored
+    - name: Record the restore
+      id: recorded
       if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') && (inputs.mode == 'restore') }}
       shell: bash
-      run: ls -1 ~/.nx/*/cache 2>/dev/null | wc -l > "$RUNNER_TEMP/nx-cache.entries" || echo 0 > "$RUNNER_TEMP/nx-cache.entries"
+      env:
+        STEP_OUTCOME: ${{ steps.restore.outcome }}
+        HIT: ${{ steps.restore.outputs.cache-hit }}
+        MATCHED: ${{ steps.restore.outputs.cache-matched-key }}
+        KEY: nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.lineage.outputs.workflow }}-${{ github.run_id }}-${{ github.run_attempt }}
+        STAGE: ${{ inputs.stage }}
+        STARTED_MS: ${{ steps.started.outputs.ms }}
+      run: |
+        case "$STEP_OUTCOME" in
+          failure) event=error; reason="actions/cache/restore failed: see the Restore the Nx cache step's log" ;;
+          cancelled) event=timeout; reason="actions/cache/restore was cancelled before it finished" ;;
+          *) if [ -n "$MATCHED" ] || [ "$HIT" = true ]; then event=ok; else event=miss; fi; reason="" ;;
+        esac
+        ls -1 ~/.nx/*/cache 2>/dev/null | wc -l > "$RUNNER_TEMP/nx-cache.entries" || echo 0 > "$RUNNER_TEMP/nx-cache.entries"
+        args=(nx restore --outcome "$event" --hit "$HIT" --key "$KEY" --matched-key "$MATCHED" --stage "$STAGE" --started-ms "$STARTED_MS")
+        [ -n "$reason" ] && args+=(--reason "$reason")
+        if command -v wf >/dev/null 2>&1; then
+          wf cache event "${args[@]}" || true
+        elif [ "$event" = error ] || [ "$event" = timeout ]; then
+          echo "::error title=cache restore failed::layer=nx key=$KEY reason=$reason"
+        fi
+        # a restore of a stage that wf could not record still hands its lineage to the job
+        echo "WF_CACHE_STAGE=$STAGE" >> "$GITHUB_ENV"
     - uses: ./.github/actions/cache-summary
       if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') && (inputs.mode == 'restore') }}
       with:
         layer: nx
         hit: ${{ steps.restore.outputs.cache-hit }}
         matched-key: ${{ steps.restore.outputs.cache-matched-key }}
+        outcome: ${{ steps.restore.outcome }}
         paths: ~/.nx/*/cache ~/.nx/*/databases ~/.cache/wf-nx-why
+    - name: A restore that never finished
+      if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') && (inputs.mode == 'save') }}
+      shell: bash
+      env:
+        KEY: nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.lineage.outputs.workflow }}-${{ github.run_id }}-${{ github.run_attempt }}
+        STAGE: ${{ inputs.stage }}
+      run: |
+        if [ -f "$RUNNER_TEMP/nx-cache.started" ] && [ ! -f "$RUNNER_TEMP/nx-cache.restore.json" ]; then
+          reason="the restore started and left no result: it was killed by the step's time limit"
+          if command -v wf >/dev/null 2>&1; then
+            wf cache event nx restore --outcome timeout --key "$KEY" --stage "$STAGE" --started-ms "$(cat "$RUNNER_TEMP/nx-cache.started")" --reason "$reason" || true
+          else
+            echo "::error title=cache restore failed::layer=nx key=$KEY reason=$reason"
+          fi
+          rm -f "$RUNNER_TEMP/nx-cache.started"
+        fi
     - name: Measure the Nx cache
       id: measure
       if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') && (inputs.mode == 'save') }}
       shell: bash
       env:
         MAX_MB: ${{ inputs.max-mb }}
+        KEY: nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.lineage.outputs.workflow }}-${{ github.run_id }}-${{ github.run_attempt }}
+        STAGE: ${{ inputs.stage }}
       run: |
         before=$(cat "$RUNNER_TEMP/nx-cache.entries" 2>/dev/null || echo 0)
         now=$(ls -1 ~/.nx/*/cache 2>/dev/null | wc -l || true)
         mb=$(du -smc ~/.nx/*/cache ~/.nx/*/databases 2>/dev/null | tail -1 | cut -f1 || true)
         mb=${mb:-0}
-        save=true
+        save=true; why=""
         # an unchanged entry count means every task replayed: a new copy would only churn the repository's cache quota
         if [ "$now" -le "$before" ]; then save=false; why="no new task results ($before entries restored, $now now)"; fi
-        if [ "$mb" -gt "$MAX_MB" ]; then save=false; why="over the size limit"; echo "::warning::Nx cache is $mb MB, over $MAX_MB MB: not saved"; fi
+        if [ "$mb" -gt "$MAX_MB" ]; then save=false; why="over the size limit ($mb MB, limit $MAX_MB MB)"; echo "::warning::Nx cache is $mb MB, over $MAX_MB MB: not saved"; fi
         echo "save=$save" >> "$GITHUB_OUTPUT"
         echo "- **nx** ($GITHUB_JOB) before save: $mb MB, $now entries, $([ "$save" = true ] && echo saving || echo "not saving, $why")" | tee -a "$GITHUB_STEP_SUMMARY"
+        if [ "$save" = false ]; then
+          if command -v wf >/dev/null 2>&1; then
+            wf cache event nx save --outcome skipped --key "$KEY" --stage "$STAGE" --entries "$now" --entries-before "$before" --reason "$why" || true
+          fi
+        fi
     - name: Save the Nx cache
+      id: save
       if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') && (inputs.mode == 'save' && steps.measure.outputs.save == 'true') }}
+      continue-on-error: true
       uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: |
@@ -73,3 +136,23 @@ runs:
           ~/.nx/*/databases
           ~/.cache/wf-nx-why
         key: nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.lineage.outputs.workflow }}-${{ github.run_id }}-${{ github.run_attempt }}
+    - name: Record the save
+      if: ${{ contains(env.CACHE_BACKENDS || 'gha', 'gha') && (inputs.mode == 'save' && steps.measure.outputs.save == 'true') }}
+      shell: bash
+      env:
+        STEP_OUTCOME: ${{ steps.save.outcome }}
+        KEY: nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.lineage.outputs.workflow }}-${{ github.run_id }}-${{ github.run_attempt }}
+        STAGE: ${{ inputs.stage }}
+      run: |
+        case "$STEP_OUTCOME" in
+          failure) event=error; reason="actions/cache/save failed: see the Save the Nx cache step's log" ;;
+          cancelled) event=timeout; reason="actions/cache/save was cancelled before it finished" ;;
+          *) event=ok; reason="" ;;
+        esac
+        args=(nx save --outcome "$event" --key "$KEY" --stage "$STAGE")
+        [ -n "$reason" ] && args+=(--reason "$reason")
+        if command -v wf >/dev/null 2>&1; then
+          wf cache event "${args[@]}" || true
+        elif [ "$event" != ok ]; then
+          echo "::error title=cache save failed::layer=nx key=$KEY reason=$reason"
+        fi

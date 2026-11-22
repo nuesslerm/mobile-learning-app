@@ -1,7 +1,9 @@
 name: Cache summary
 description: >-
   One line in the job summary for a cache layer: hit, partial (a restore key matched) or miss, and the restored size, from the outputs
-  of actions/cache/restore. Never fails the job.
+  of actions/cache/restore, and one row of CI_CACHE_EVENTS (`wf cache event`). A restore step that failed (its `outcome` is failure) or was cancelled is recorded
+  as outcome error or timeout and shouted as an `::error title=cache restore failed::` annotation, so the restore step can be continue-on-error and the failure
+  is never silent. Never fails the job.
 inputs:
   layer:
     description: The layer's name (pnpm, metro, nx)
@@ -15,6 +17,18 @@ inputs:
   paths:
     description: The restored paths, space separated, globs allowed
     required: true
+  outcome:
+    description: The restore step's `outcome` (success, failure, cancelled, skipped), before continue-on-error; empty when the caller does not pass it
+    default: ""
+  key:
+    description: The key the restore asked for
+    default: ""
+  stage:
+    description: The stage and shard the layer belongs to, such as core-tests-1of3
+    default: ""
+  started-ms:
+    description: When the restore step started (epoch ms), to record how long it took
+    default: ""
 runs:
   using: composite
   steps:
@@ -24,11 +38,36 @@ runs:
         HIT: ${{ inputs.hit }}
         MATCHED: ${{ inputs.matched-key }}
         CACHE_PATHS: ${{ inputs.paths }}
+        STEP_OUTCOME: ${{ inputs.outcome }}
+        KEY: ${{ inputs.key }}
+        STAGE: ${{ inputs.stage }}
+        STARTED_MS: ${{ inputs.started-ms }}
       run: |
-        if [ "$HIT" = true ]; then result="hit"
+        case "$STEP_OUTCOME" in
+          failure) event=error; reason="the restore step failed: see the step's log (actions/cache/restore)" ;;
+          cancelled) event=timeout; reason="the restore step was cancelled before it finished" ;;
+          *) if [ -n "$MATCHED" ] || [ "$HIT" = true ]; then event=ok; else event=miss; fi; reason="" ;;
+        esac
+        if [ "$event" = error ] || [ "$event" = timeout ]; then result="FAILED ($event)"
+        elif [ "$HIT" = true ]; then result="hit"
         elif [ -n "$MATCHED" ]; then result="partial (matched restore key \`$MATCHED\`)"
         else result="miss"; fi
         paths=${CACHE_PATHS//\~/$HOME}
         # shellcheck disable=SC2086
         mb=$(du -smc $paths 2>/dev/null | tail -1 | cut -f1 || true)
         echo "- **$LAYER** ($GITHUB_JOB): $result, restored ${mb:-0} MB" | tee -a "$GITHUB_STEP_SUMMARY"
+        # the layer's nx restore is recorded by its own action (it snapshots Nx's cache); every other layer is recorded here
+        if [ "$LAYER" != nx ]; then
+          args=("$LAYER" restore --outcome "$event" --hit "$HIT" --matched-key "$MATCHED")
+          [ -n "$KEY" ] && args+=(--key "$KEY")
+          [ -n "$STAGE" ] && args+=(--stage "$STAGE")
+          [ -n "$STARTED_MS" ] && args+=(--started-ms "$STARTED_MS")
+          [ -n "$reason" ] && args+=(--reason "$reason")
+          # shellcheck disable=SC2086
+          [ -n "$paths" ] && args+=(--path $paths)
+          if command -v wf >/dev/null 2>&1; then
+            wf cache event "${args[@]}" || true
+          elif [ "$event" = error ] || [ "$event" = timeout ]; then
+            echo "::error title=cache restore failed::layer=$LAYER key=${KEY:-none} reason=$reason"
+          fi
+        fi
