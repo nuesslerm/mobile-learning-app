@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { loadPyodide, type PyodideInterface } from 'pyodide';
 
 import { rawRunSchema, type RawRun } from '../../../../domain/run/verdict';
-import type { JudgePayload } from '../../judgeProtocol';
+import type { JudgePayload } from '../../../runner/judgeProtocol';
 
 const HERE = dirname(new URL(import.meta.url).pathname);
 const JUDGE_SOURCE = readFileSync(join(HERE, '../../harness/judge.py'), 'utf8');

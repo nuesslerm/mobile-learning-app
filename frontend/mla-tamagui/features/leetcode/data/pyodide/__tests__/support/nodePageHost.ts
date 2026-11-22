@@ -6,7 +6,7 @@ import { createLoopbackPair } from '@lib/webview-rpc/testing';
 import { loadPyodide } from 'pyodide';
 
 import { createPageHandlers } from '../../pageHandlers';
-import type { PageHost } from '../../pageHost';
+import type { PageHost } from '../../../runner/pageHost';
 
 const harnessSource = readFileSync(join(dirname(new URL(import.meta.url).pathname), '../../harness/judge.py'), 'utf8');
 

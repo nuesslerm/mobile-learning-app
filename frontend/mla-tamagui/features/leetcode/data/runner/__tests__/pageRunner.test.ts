@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { ProblemCatalog } from '../../../domain/problemCatalog';
+import { isJavaScriptLanguage, isPythonLanguage } from '../../../domain/run/runLanguage';
 import { runParamsFor } from '../../../domain/run/runParams';
 import { answers, createFakePageHost, HANG, type FakePageHost, type FakePageScript } from '../../../testing/fakePageHost';
-import { createPyodideRunner, type RunnerLimits, type RunnerState } from '../pyodideRunner';
+import { createPyodideRunner, type RunnerLimits, type RunnerState } from '../../pyodide/pyodideRunner';
+import { createPageRunner } from '../pageRunner';
 
 const problem = ProblemCatalog.getById('two-sum');
 if (!problem) throw new Error('the catalog has no two-sum');
@@ -175,5 +177,49 @@ describe('the Pyodide runner', () => {
     const payloads = host.calls.filter((c) => c.method === 'judge').map((c) => (c.params as { payload: Record<string, unknown> }).payload);
     expect(payloads[0]).toMatchObject({ harness: { kind: 'design', className: 'Trie' } });
     expect(payloads[1]?.harness).toBeFalsy();
+  });
+});
+
+describe('the page runner as an engine of any language', () => {
+  const MESSAGES = { stopped: 'stopped', crashed: 'crashed' };
+
+  it('Given a config whose session lists no files, When the page loads, Then no pull or chunk call is made and boot is called once', async () => {
+    const host = createFakePageHost({ files: {} });
+    const runner = createPageRunner({ engine: 'test', host, handles: isPythonLanguage, messages: MESSAGES, fatal: /never/, limits: FAST });
+    expect(await runner.run(params())).toMatchObject({ status_msg: 'Accepted' });
+    const methods = host.calls.map((call) => call.method);
+    expect(methods.filter((method) => method === 'boot')).toHaveLength(1);
+    expect(methods).not.toContain('pull');
+    expect(methods).not.toContain('chunk');
+  });
+
+  it('Given the javascript config, When a python3 run is made, Then the response is the compile error Unsupported language: python3 and no page is loaded', async () => {
+    const host = createFakePageHost();
+    const runner = createPageRunner({ engine: 'javascript', host, handles: isJavaScriptLanguage, messages: MESSAGES, fatal: /never/, limits: FAST });
+    const response = await runner.run(params());
+    expect(response).toMatchObject({ status_msg: 'Error', compile_error: 'Unsupported language: python3' });
+    expect(host.loads).toBe(0);
+  });
+
+  it('Given the Python config, When the page raises a stack overflow, Then the run answers with the Python crashed message', async () => {
+    const host = createFakePageHost({
+      judge: (call, load) => {
+        if (load === 1) throw new Error('RangeError: Maximum call stack size exceeded');
+        return answers.allPass(call);
+      },
+    });
+    const runner = createPyodideRunner({ host, limits: FAST });
+    const response = await runner.run(params());
+    expect(response).toMatchObject({ status_msg: 'Error', runtime_error: 'The Python runtime crashed, usually because of very deep recursion.' });
+  });
+
+  it('Given a config with its own words, When the page raises a fatal error, Then the run answers with that config’s crashed message', async () => {
+    const host = createFakePageHost({
+      judge: () => {
+        throw new Error('worker out of memory');
+      },
+    });
+    const runner = createPageRunner({ engine: 'test', host, handles: isPythonLanguage, messages: MESSAGES, fatal: /out of memory/, limits: FAST });
+    expect(await runner.run(params())).toMatchObject({ runtime_error: 'crashed' });
   });
 });

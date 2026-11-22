@@ -7,7 +7,7 @@ import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEdit
 import { createPyodideRunner, type PyodideRunner, type RunnerLimits } from '../../data/pyodide/pyodideRunner';
 import type { CodeRunnerPort, RunCodeParams } from '../../domain/ports';
 import { ProblemCatalog } from '../../domain/problemCatalog';
-import type { JudgeParams } from '../../data/pyodide/judgeProtocol';
+import type { JudgeParams } from '../../data/runner/judgeProtocol';
 import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSettingStore';
 import { answers, createFakePageHost, customRun, HANG, passingRun, type FakePageHost, type FakePageScript } from '../../testing';
 
@@ -143,7 +143,7 @@ describe('Run Local on the device', () => {
   });
 
   it('given a page that never answers, when the limit passes, then the card says Timeout, a fresh page is loaded, and the next run passes', async () => {
-    expectWarning(/pyodide_runner\.(timeout|page_lost)/);
+    expectWarning(/device_runner\.(timeout|page_lost)/);
     useRunnerSettingStore.setState({ runner: 'device' });
     const { gateway, host, runner } = setup({ judge: (call, load) => (load === 1 ? HANG : answers.allPass(call)) });
     await renderEditor(gateway, runner);
@@ -155,7 +155,7 @@ describe('Run Local on the device', () => {
   });
 
   it('given the assets cannot be loaded, when the user runs the tests, then the run fails visibly and the failure is logged without the code', async () => {
-    expectWarning(/pyodide_runner\.load_failed/);
+    expectWarning(/device_runner\.load_failed/);
     expectWarning(/editor_v2\.run_local\.error/);
     useRunnerSettingStore.setState({ runner: 'device' });
     const { gateway, runner } = setup({ assetsFail: 'the runtime files are missing' });
@@ -164,8 +164,8 @@ describe('Run Local on the device', () => {
     await press();
     await waitFor(() => expect(screen.getByTestId('ProblemEditorRunOutcomeRuntimeError').textContent).toContain('the runtime files are missing'));
     expect(status()).toBe('Error');
-    await waitFor(async () => expect((await loggedLines('pyodide_runner.load_failed')).length).toBeGreaterThan(0));
-    expect(JSON.stringify(await loggedLines('pyodide_runner'))).not.toContain('def twoSum');
+    await waitFor(async () => expect((await loggedLines('device_runner.load_failed')).length).toBeGreaterThan(0));
+    expect(JSON.stringify(await loggedLines('device_runner'))).not.toContain('def twoSum');
   });
 });
 
@@ -209,7 +209,7 @@ describe('Run input on the device', () => {
   });
 
   it('given the page never answers, when the limit passes, then the custom card says Timeout, a fresh page is loaded, and the next Run input answers', async () => {
-    expectWarning(/pyodide_runner\.(timeout|page_lost)/);
+    expectWarning(/device_runner\.(timeout|page_lost)/);
     useRunnerSettingStore.setState({ runner: 'device' });
     const { gateway, host, runner } = setup({ judge: (call, load) => (load === 1 ? HANG : answers.custom(call, [0, 1])) });
     await renderEditor(gateway, runner);

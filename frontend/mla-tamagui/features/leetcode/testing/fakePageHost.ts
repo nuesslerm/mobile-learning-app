@@ -4,9 +4,8 @@ import { createLoopbackPair } from '@lib/webview-rpc/testing';
 import type { TestResult } from '../domain/run/execution';
 import { CodeRunnerError } from '../domain/ports';
 import type { RawRun } from '../domain/run/verdict';
-import type { JudgeParams } from '../data/pyodide/judgeProtocol';
-import type { PyodideFileName } from '../data/pyodide/pageHandlers';
-import type { PageHost, PageSession } from '../data/pyodide/pageHost';
+import type { JudgeParams } from '../data/runner/judgeProtocol';
+import type { PageHost, PageSession } from '../data/runner/pageHost';
 
 /** What a scripted judge returns to make the page hang: it never answers, as a runaway loop would. */
 export const HANG: unique symbol = Symbol('hang');
@@ -15,6 +14,8 @@ export type FakePageScript = {
   readyAfterMs?: number;
   assetsFail?: string;
   pullFails?: boolean;
+  /** the runtime files the session lists; none makes a page that needs no pull */
+  files?: Record<string, string>;
   bootFails?: string;
   bootMs?: number;
   /** answers a run; the default passes every case. `load` counts the pages loaded so far, so a script can hang only the first. */
@@ -31,7 +32,7 @@ export type FakePageHost = PageHost & {
   script(next: Partial<FakePageScript>): void;
 };
 
-const FILES: Record<PyodideFileName, string> = { asm: 'fake://asm', lock: 'fake://lock', wasm: 'fake://wasm', stdlib: 'fake://stdlib' };
+const FILES: Record<string, string> = { asm: 'fake://asm', lock: 'fake://lock', wasm: 'fake://wasm', stdlib: 'fake://stdlib' };
 const later = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 const row = (pass: boolean, call: JudgeParams, index: number, over: Partial<TestResult> = {}): TestResult => ({
@@ -117,7 +118,7 @@ export function createFakePageHost(initial: FakePageScript = {}): FakePageHost {
       servers.push(server);
       return {
         transport: pair.host,
-        files: FILES,
+        files: scripted.files ?? FILES,
         show: () => void later(scripted.readyAfterMs ?? 0).then(() => server.emit('ready')),
         async *chunks() {
           yield { index: 0, total: 2, data: '' };

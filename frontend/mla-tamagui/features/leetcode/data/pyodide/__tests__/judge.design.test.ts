@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { TestCase } from '../../../domain/run/execution';
-import type { JudgePayload } from '../judgeProtocol';
+import type { JudgePayload } from '../../runner/judgeProtocol';
 import { bootNodeJudge, type NodeJudge } from './support/nodePyodide';
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });

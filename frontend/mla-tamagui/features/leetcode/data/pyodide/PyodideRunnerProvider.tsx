@@ -10,12 +10,12 @@ import { View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 import type { CodeRunnerPort } from '../../domain/ports';
+import { createWebViewPageHost } from '../runner/webViewPageHost';
 import { createExpoAssetIo } from './expoAssetIo';
 import { PYODIDE_PAGE_HTML } from './pageHtml';
 import type { PyodideFileName } from './pageHandlers';
-import type { AssetIo } from './pyodideAssets';
+import { resolvePage, type AssetIo } from './pyodideAssets';
 import { createPyodideRunner } from './pyodideRunner';
-import { createWebViewPageHost } from './webViewPageHost';
 
 const RunnerContext = createContext<CodeRunnerPort | undefined>(undefined);
 
@@ -46,10 +46,10 @@ export function PyodideRunnerProvider({
   io,
 }: Props) {
   const [{ view, runner }] = useState(() => {
+    const assetIo = io ?? createExpoAssetIo();
     const created = createWebViewPageHost({
-      modules,
-      pageHtml,
-      io: io ?? createExpoAssetIo(),
+      resolve: async () => resolvePage(await modules(), pageHtml, assetIo),
+      chunks: assetIo.chunks,
     });
     return {
       view: created.view,

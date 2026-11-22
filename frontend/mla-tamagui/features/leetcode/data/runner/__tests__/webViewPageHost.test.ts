@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { AssetIo } from '../pyodideAssets';
+import { resolvePage, type AssetIo } from '../../pyodide/pyodideAssets';
 import { createWebViewPageHost } from '../webViewPageHost';
 
 const MODULES = { asm: 1, lock: 2, wasm: 3, stdlib: 4 };
@@ -17,7 +17,7 @@ function setup(resolve: AssetIo['resolve'] = async (id) => `http://x/${id}.bin`)
     },
     chunks: async function* () {},
   };
-  const created = createWebViewPageHost({ modules: async () => MODULES, pageHtml: '<html>', io });
+  const created = createWebViewPageHost({ resolve: () => resolvePage(MODULES, '<html>', io), chunks: io.chunks });
   const scripts: string[] = [];
   created.view.bind({ injectJavaScript: (script) => void scripts.push(script) });
   return { ...created, scripts, resolutions: () => resolved };

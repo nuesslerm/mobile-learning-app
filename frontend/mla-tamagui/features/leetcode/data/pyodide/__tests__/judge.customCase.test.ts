@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { ProblemCatalog } from '../../../domain/problemCatalog';
 import { runParamsFor } from '../../../domain/run/runParams';
-import type { JudgePayload } from '../judgeProtocol';
+import type { JudgePayload } from '../../runner/judgeProtocol';
 import { bootNodeJudge, type NodeJudge } from './support/nodePyodide';
 import { loadReferenceCorpus } from './support/referenceCorpus';
 

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { ProblemCatalog } from '../../../domain/problemCatalog';
-import type { JudgePayload } from '../judgeProtocol';
+import type { JudgePayload } from '../../runner/judgeProtocol';
 import { bootNodeJudge, type NodeJudge } from './support/nodePyodide';
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });

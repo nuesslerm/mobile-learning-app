@@ -1,4 +1,5 @@
 import { CodeRunnerError } from '../../domain/ports';
+import type { PageSource } from '../runner/pageHost';
 import type { PyodideFileName } from './pageHandlers';
 
 export type AssetIo = {
@@ -11,9 +12,6 @@ export type AssetIo = {
     uri: string
   ): AsyncIterable<{ index: number; total: number; data: string }>;
 };
-
-/** Where the hidden WebView loads the page from: a file beside read access to the assets on a phone, html on the web. */
-export type PageSource = { uri: string; directory: string } | { html: string };
 
 /** The longest directory every uri sits in: the WebView is granted read access to it, so the page can read assets that live elsewhere. */
 export function commonDirectory(...uris: string[]): string {

@@ -1,7 +1,7 @@
 import type { RpcHandlers } from '@lib/webview-rpc';
 import type { PyodideInterface } from 'pyodide';
 
-import type { JudgeParams } from './judgeProtocol';
+import type { JudgeParams } from '../runner/judgeProtocol';
 
 export type PyodideFileName = 'asm' | 'lock' | 'wasm' | 'stdlib';
 type FileUrls = Record<PyodideFileName, string>;

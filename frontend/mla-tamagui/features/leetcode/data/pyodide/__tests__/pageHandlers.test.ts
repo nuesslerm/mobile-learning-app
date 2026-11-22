@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { ProblemCatalog } from '../../../domain/problemCatalog';
 import { rawRunSchema } from '../../../domain/run/verdict';
-import type { JudgeParams } from '../judgeProtocol';
+import type { JudgeParams } from '../../runner/judgeProtocol';
 import { createPageHandlers, type PageDeps } from '../pageHandlers';
 
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 120_000 });
