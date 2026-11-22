@@ -3,7 +3,7 @@
 use super::engine_threads::EngineThreads;
 use agent_api_proto::Event;
 use rca_agent_core::{AgentApi, Build, Group};
-use rca_cli_driver::testing::{app_server, delta, finish, reply, started, CliScript, ScriptedLinker, ScriptedSpawner};
+use rca_cli_driver::testing::{app_server, claude_session, delta, finish, reply, started, CliScript, ScriptedLinker, ScriptedSpawner};
 use rca_exec_channel::mcp::ServiceTools;
 use rca_exec_channel::remote::{ActionOutput, ExecutorChannel};
 use rca_exec_channel::testing::ScriptedChannel;
@@ -62,12 +62,14 @@ fn rig_with(linker: Arc<ScriptedLinker>) -> Rig {
     Rig { api: AgentApi::new(groups).unwrap(), runner, engine, spawner, linker, asked }
 }
 
+/// A line of opencode's output, the CLI a turn runs as a process of its own (Claude Code and Codex live as sessions): the text it says.
 fn said(text: &str) -> String {
-    json!({"type": "assistant", "message": {"content": [{"type": "text", "text": text}]}}).to_string()
+    json!({"type": "text", "part": {"text": text}}).to_string()
 }
 
+/// A line of opencode's output that names its conversation.
 fn init(session: &str) -> String {
-    json!({"type": "system", "subtype": "init", "session_id": session}).to_string()
+    json!({"type": "step_start", "sessionID": session}).to_string()
 }
 
 fn script(lines: &[String], hold: bool) -> CliScript {
@@ -87,7 +89,16 @@ impl Rig {
     }
 
     async fn create(&self, thread: &str) {
+        self.ok("thread.create", json!({"thread": thread, "title": format!("title of {thread}"), "workspace": "w1", "driver": "opencode"})).await;
+    }
+
+    async fn create_claude(&self, thread: &str) {
         self.ok("thread.create", json!({"thread": thread, "title": format!("title of {thread}"), "workspace": "w1", "driver": "claudeAgent"})).await;
+    }
+
+    /// A turn of a Claude Code thread, which runs in a process of its own that lives on after the turn.
+    async fn start_claude(&self, thread: &str, prompt: &str) -> String {
+        self.ok("turn.start", json!({"thread": thread, "workspace": "w1", "driver": "claudeAgent", "prompt": prompt, "runtime_mode": "approval-required"})).await["turn"].as_str().unwrap().to_string()
     }
 
     /// A turn of a Codex thread, which runs on the live session of the workspace.
@@ -96,7 +107,7 @@ impl Rig {
     }
 
     async fn start(&self, thread: &str, prompt: &str) -> String {
-        self.ok("turn.start", json!({"thread": thread, "workspace": "w1", "driver": "claudeAgent", "prompt": prompt})).await["turn"].as_str().unwrap().to_string()
+        self.ok("turn.start", json!({"thread": thread, "workspace": "w1", "driver": "opencode", "prompt": prompt})).await["turn"].as_str().unwrap().to_string()
     }
 
     fn events(&self, thread: &str) -> Vec<Event> {
@@ -147,7 +158,7 @@ async fn given_a_turn_that_asks_to_run_a_tool_when_the_person_answers_then_the_w
     // Given a running turn and its permission prompt, asking to write a file
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script("claude", script(&[said("working")], true));
+    rig.spawner.script("env", script(&[said("working")], true));
     let turn = rig.start("t", "make a note").await;
     let args = json!({"tool_name": "write_file", "input": {"path": "a.txt", "content": "x"}});
     let waiting = rig.calling("t", "approval_prompt", args.clone());
@@ -173,7 +184,7 @@ async fn given_decisions_other_than_accept_when_a_tool_is_asked_about_then_sessi
     // Given a running turn
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script("claude", script(&[], true));
+    rig.spawner.script("env", script(&[], true));
     rig.start("t", "work").await;
     let ask = |tool: &str| rig.calling("t", "approval_prompt", json!({"tool_name": tool, "input": {}}));
     // When the person accepts a tool for the session, and the turn asks about it again, and about another tool
@@ -207,7 +218,7 @@ async fn given_a_question_a_turn_asks_when_it_is_answered_dismissed_or_the_turn_
     // Given a running turn that asks two questions and an approval
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script("claude", script(&[], true));
+    rig.spawner.script("env", script(&[], true));
     rig.start("t", "work").await;
     let first = rig.calling("t", "ask_user", json!({"question": "Which?", "options": ["a", "b"]}));
     let asked = rig.open_request("t", "input.requested", 1).await;
@@ -242,7 +253,7 @@ async fn given_a_queue_when_prompts_are_added_edited_moved_and_deleted_then_the_
     // Given a thread with a turn running and three prompts queued, one of them added twice
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script("claude", script(&[], true));
+    rig.spawner.script("env", script(&[], true));
     rig.start("t", "work").await;
     let mut added = Vec::new();
     for (item, prompt) in [("q1", "one"), ("q2", "two"), ("q3", "three"), ("q1", "one again")] {
@@ -280,7 +291,7 @@ async fn given_prompts_queued_behind_a_running_turn_when_it_ends_then_each_start
     // Given a turn that stays up, then two that finish, and two prompts queued behind the first
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script_each("claude", vec![script(&[], true), script(&[said("one done")], false), script(&[said("two done")], false)]);
+    rig.spawner.script_each("env", vec![script(&[], true), script(&[said("one done")], false), script(&[said("two done")], false)]);
     let first = rig.start("t", "work").await;
     rig.ok("queue.add", json!({"thread": "t", "item": "q1", "prompt": "first queued"})).await;
     rig.ok("queue.add", json!({"thread": "t", "item": "q2", "prompt": "second queued", "model": "small"})).await;
@@ -297,7 +308,7 @@ async fn given_prompts_queued_behind_a_running_turn_when_it_ends_then_each_start
     // And each ran the prompt it was queued with, the second with the model it named, the replies are theirs, and the queue is empty
     let spawned = rig.spawner.spawned();
     assert_eq!(spawned.len(), 3);
-    assert!(spawned[1].args.contains(&"first queued".to_string()) && spawned[2].args.contains(&"second queued".to_string()) && spawned[2].args.windows(2).any(|w| w == ["--model", "small"]));
+    assert!(spawned[1].args.contains(&"first queued".to_string()) && spawned[2].args.contains(&"second queued".to_string()) && spawned[2].args.windows(2).any(|w| w == ["-m", "small"]));
     assert!(events.iter().any(|e| e.kind == "message.delta" && e.turn.as_deref() == Some("q2") && e.data["text"] == json!("two done")));
     assert_eq!(events.iter().filter(|e| e.kind == "turn.finished").map(|e| e.data["reason"].clone()).collect::<Vec<_>>(), [json!("interrupted"), json!("completed"), json!("completed")]);
     assert_eq!(rig.ok("queue.list", json!({"thread": "t"})).await["items"], json!([]));
@@ -308,7 +319,7 @@ async fn given_a_forced_stop_when_the_turn_ends_then_its_queue_is_held_until_res
     // Given a turn that stays up with a prompt queued behind it, and a second run that finishes
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script_each("claude", vec![script(&[said("stuck")], true), script(&[said("resumed")], false)]);
+    rig.spawner.script_each("env", vec![script(&[said("stuck")], true), script(&[said("resumed")], false)]);
     let turn = rig.start("t", "work").await;
     rig.ok("queue.add", json!({"thread": "t", "item": "q1", "prompt": "after"})).await;
     // When a forced stop names another turn, then the running one
@@ -332,7 +343,7 @@ async fn given_a_forced_stop_when_the_turn_ends_then_its_queue_is_held_until_res
     assert_eq!((resumed["held"].clone(), resumed["started"].clone()), (json!(false), json!("q1")));
     assert!(rig.spawner.spawned()[1].args.contains(&"after".to_string()));
     // And a prompt sent now while a turn runs is refused, and so is a resume of a thread that is gone
-    rig.spawner.script("claude", script(&[], true));
+    rig.spawner.script("env", script(&[], true));
     rig.start("t", "again").await;
     rig.ok("queue.add", json!({"thread": "t", "item": "q2", "prompt": "later"})).await;
     assert_eq!(rig.ask("queue.resume", json!({"thread": "t", "item": "q2"})).await["error"]["message"], json!("A queued user message can only be sent now while the thread is stopped."));
@@ -345,7 +356,7 @@ async fn given_a_running_turn_when_it_is_steered_then_its_cli_is_ended_and_anoth
     // Given a turn whose CLI announces its conversation and stays up, a second CLI that finishes, and a prompt in the thread's queue
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script_each("claude", vec![script(&[init("s-1"), said("going right")], true), script(&[said("going left")], false)]);
+    rig.spawner.script_each("env", vec![script(&[init("s-1"), said("going right")], true), script(&[said("going left")], false)]);
     let turn = rig.start("t", "go right").await;
     rig.says("t", "going right").await;
     rig.ok("queue.add", json!({"thread": "t", "item": "q1", "prompt": "go left"})).await;
@@ -360,7 +371,7 @@ async fn given_a_running_turn_when_it_is_steered_then_its_cli_is_ended_and_anoth
     // And the first process was killed and the second ran the steer prompt in the conversation the first announced
     let spawned = rig.spawner.spawned();
     assert_eq!((rig.spawner.kills(), spawned.len()), (1, 2));
-    assert!(spawned[1].args.contains(&"go left".to_string()) && spawned[1].args.windows(2).any(|w| w == ["--resume", "s-1"]), "{:?}", spawned[1].args);
+    assert!(spawned[1].args.contains(&"go left".to_string()) && spawned[1].args.windows(2).any(|w| w == ["--session", "s-1"]), "{:?}", spawned[1].args);
     // And the log has one start and one finish of the turn, with the steer between what the two processes said, and the turn completed
     let events = rig.events("t");
     assert_eq!(events.iter().filter(|e| e.kind == "turn.started").count(), 1);
@@ -383,13 +394,13 @@ impl Rig {
 async fn given_a_thread_launched_and_one_that_cannot_start_when_launch_is_called_then_the_first_has_its_turn_and_the_second_leaves_no_thread_behind() {
     // Given a CLI that says something
     let rig = rig();
-    rig.spawner.script("claude", script(&[said("hello")], false));
+    rig.spawner.script("env", script(&[said("hello")], false));
     // When a thread is launched with a prompt, again with its id, with a driver nobody runs, and in a workspace with no executor
-    let launched = rig.ok("thread.launch", json!({"thread": "l1", "title": "Launched", "workspace": "w1", "driver": "claudeAgent", "prompt": "begin"})).await;
+    let launched = rig.ok("thread.launch", json!({"thread": "l1", "title": "Launched", "workspace": "w1", "driver": "opencode", "prompt": "begin"})).await;
     rig.idle("l1").await;
-    let again = rig.ask("thread.launch", json!({"thread": "l1", "workspace": "w1", "driver": "claudeAgent", "prompt": "again"})).await;
+    let again = rig.ask("thread.launch", json!({"thread": "l1", "workspace": "w1", "driver": "opencode", "prompt": "again"})).await;
     let driver = rig.ask("thread.launch", json!({"thread": "l2", "workspace": "w1", "driver": "nobody", "prompt": "x"})).await;
-    let away = rig.ask("thread.launch", json!({"thread": "l3", "workspace": "w9", "driver": "claudeAgent", "prompt": "x"})).await;
+    let away = rig.ask("thread.launch", json!({"thread": "l3", "workspace": "w9", "driver": "opencode", "prompt": "x"})).await;
     // Then the first is a thread with a turn that ran the prompt, the others are refused with their codes, and the failed ones left no thread
     assert_eq!((launched["thread"]["id"].clone(), launched["thread"]["title"].clone(), launched["turn"].is_string()), (json!("l1"), json!("Launched"), true));
     assert!(rig.kinds("l1").contains(&"turn.finished".to_string()));
@@ -403,7 +414,7 @@ async fn given_threads_with_turns_when_forked_searched_and_listed_by_family_then
     // Given a parent with two finished turns, in a workspace
     let rig = rig();
     rig.create("parent").await;
-    rig.spawner.script_each("claude", vec![script(&[said("alpha reply")], false), script(&[said("beta reply")], false), script(&[said("fork reply")], false)]);
+    rig.spawner.script_each("env", vec![script(&[said("alpha reply")], false), script(&[said("beta reply")], false), script(&[said("fork reply")], false)]);
     let first = rig.start("parent", "alpha question").await;
     rig.idle("parent").await;
     rig.start("parent", "beta question").await;
@@ -448,7 +459,7 @@ async fn given_threads_with_turns_when_forked_searched_and_listed_by_family_then
 async fn given_threads_when_settled_snoozed_archived_and_deleted_then_each_state_is_what_the_call_set_the_shelves_page_and_a_delete_ends_what_runs() {
     // Given three idle threads with a turn each, and one running
     let rig = rig();
-    rig.spawner.script_each("claude", vec![script(&[said("done")], false), script(&[said("done")], false), script(&[said("done")], false), script(&[], true)]);
+    rig.spawner.script_each("env", vec![script(&[said("done")], false), script(&[said("done")], false), script(&[said("done")], false), script(&[], true)]);
     for thread in ["a", "b", "c"] {
         rig.create(thread).await;
         rig.start(thread, "work").await;
@@ -492,7 +503,7 @@ async fn given_a_failed_turn_when_it_is_retried_and_rolled_back_then_the_retry_r
     // Given a turn that fails and a CLI that then succeeds
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script_each("claude", vec![CliScript { exit: Some("exited with 1: not logged in".into()), ..CliScript::default() }, script(&[said("fine")], false)]);
+    rig.spawner.script_each("env", vec![CliScript { exit: Some("exited with 1: not logged in".into()), ..CliScript::default() }, script(&[said("fine")], false)]);
     let failed = rig.start("t", "do the thing").await;
     rig.idle("t").await;
     // When the turn is retried, and the retried one again (it completed)
@@ -524,16 +535,16 @@ async fn given_a_thread_whose_cli_announced_a_conversation_when_the_next_turn_ru
     // Given a CLI that announces conversation s-7 in every turn
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script("claude", script(&[init("s-7"), said("hi")], false));
+    rig.spawner.script("env", script(&[init("s-7"), said("hi")], false));
     rig.start("t", "first").await;
     rig.idle("t").await;
-    rig.until("the session is kept", |r| r.engine.provider_session("t", "claudeAgent").unwrap().is_some()).await;
+    rig.until("the session is kept", |r| r.engine.provider_session("t", "opencode").unwrap().is_some()).await;
     // When the next turn runs
     rig.start("t", "second").await;
     rig.idle("t").await;
     // Then it resumed the conversation and the first did not
     let spawned = rig.spawner.spawned();
-    assert!(!spawned[0].args.contains(&"--resume".to_string()) && spawned[1].args.windows(2).any(|w| w == ["--resume", "s-7"]), "{:?}", spawned.iter().map(|s| s.args.clone()).collect::<Vec<_>>());
+    assert!(!spawned[0].args.contains(&"--session".to_string()) && spawned[1].args.windows(2).any(|w| w == ["--session", "s-7"]), "{:?}", spawned.iter().map(|s| s.args.clone()).collect::<Vec<_>>());
     // When another conversation is detached, then the thread's own, then it again
     let other = rig.ask("thread.detach", json!({"thread": "t", "session": "s-9"})).await;
     let detached = rig.ok("thread.detach", json!({"thread": "t", "session": "s-7", "reason": "stale"})).await;
@@ -544,8 +555,8 @@ async fn given_a_thread_whose_cli_announced_a_conversation_when_the_next_turn_ru
     // And the next turn starts without resuming (it announces s-7 again and the thread keeps it for the one after)
     rig.start("t", "third").await;
     rig.idle("t").await;
-    assert!(!rig.spawner.spawned()[2].args.contains(&"--resume".to_string()));
-    assert_eq!(rig.engine.provider_session("t", "claudeAgent").unwrap().as_deref(), Some("s-7"));
+    assert!(!rig.spawner.spawned()[2].args.contains(&"--session".to_string()));
+    assert_eq!(rig.engine.provider_session("t", "opencode").unwrap().as_deref(), Some("s-7"));
 }
 
 #[tokio::test]
@@ -553,7 +564,7 @@ async fn given_a_turn_with_a_workflow_and_a_transcript_when_the_workflow_is_stop
     // Given a turn that says something and stays up
     let rig = rig();
     rig.create("t").await;
-    rig.spawner.script("claude", script(&[said("working on it")], true));
+    rig.spawner.script("env", script(&[said("working on it")], true));
     let turn = rig.start("t", "work").await;
     rig.says("t", "working on it").await;
     // When a workflow of another turn is stopped, then of the running turn naming the workflow
@@ -668,7 +679,7 @@ async fn given_a_codex_turn_that_is_working_when_it_is_interrupted_then_the_serv
 async fn given_a_codex_server_that_is_closed_when_idle_or_killed_when_the_thread_runs_again_then_a_new_process_resumes_the_conversation_by_its_id() {
     // Given a thread that ran a turn, and an idle time of 150 ms
     let rig = rig();
-    rig.runner.sessions().set_idle(Duration::from_millis(150));
+    rig.runner.sessions().codex.set_idle(Duration::from_millis(150));
     rig.create("t").await;
     rig.start_codex("t", "hello").await;
     rig.idle("t").await;
@@ -717,4 +728,180 @@ async fn given_a_codex_turn_whose_thread_is_still_starting_when_it_is_interrupte
     // Then the server was told to interrupt the turn it started, and the turn ended interrupted
     assert_eq!(rig.linker.received_of("turn/interrupt")[0].1["params"], json!({"threadId": "th-1", "turnId": "u-1"}));
     assert_eq!(reasons(&rig, "t"), vec![json!("interrupted")]);
+}
+
+/// The messages of the person the Claude Code process was sent, in order.
+fn user_messages(rig: &Rig) -> Vec<Value> {
+    rig.linker.received().into_iter().map(|(_, m)| m).filter(|m| m["type"] == "user").collect()
+}
+
+#[tokio::test]
+async fn given_a_claude_thread_when_its_turns_run_then_the_log_has_the_text_and_tool_items_and_the_conversation_is_kept_and_both_turns_ran_in_one_process() {
+    // Given a thread of the Claude Code driver
+    let rig = rig_with(claude_session());
+    rig.create_claude("t").await;
+    // When it runs a turn, and then another
+    rig.start_claude("t", "hello").await;
+    rig.idle("t").await;
+    let kept = rig.engine.provider_session("t", "claudeAgent").unwrap();
+    rig.start_claude("t", "hello").await;
+    rig.idle("t").await;
+    // Then each turn streamed its text into the log (once, though the complete frame followed it) and showed the tool it ran, and finished completed
+    assert_eq!((spoken(&rig, "t"), reasons(&rig, "t")), (vec!["Hi".to_string(), "Hi".to_string()], vec![json!("completed"), json!("completed")]));
+    assert_eq!(rig.kinds("t").iter().filter(|k| *k == "tool.started").count(), 2);
+    // And the conversation the service started the process with is the thread's, and one process ran both turns, the second with no new start
+    let id = kept.expect("the conversation is kept at once");
+    assert_eq!(rig.linker.flags()[0][..2], ["--session-id".to_string(), id.clone()]);
+    assert_eq!((rig.linker.starts(), rig.linker.received_of("initialize").len(), user_messages(&rig).len()), (1, 0, 2));
+    assert_eq!(rig.engine.provider_session("t", "claudeAgent").unwrap(), Some(id));
+    // And the process was told the service's tool server and the mode that asks, but no approval tool
+    let flags = rig.linker.flags()[0].join(" ");
+    assert!(flags.contains("--permission-mode default") && flags.contains("/mcp/t") && !flags.contains("approval_prompt"), "{flags}");
+}
+
+#[tokio::test]
+async fn given_a_claude_turn_that_asks_for_a_permission_when_the_person_answers_then_the_ask_is_an_approval_request_of_the_turn_and_the_answer_reaches_the_live_process_and_the_turn_goes_on() {
+    // Given a Claude Code turn that asks to write a file
+    let rig = rig_with(claude_session());
+    rig.create_claude("t").await;
+    let turn = rig.start_claude("t", "approve").await;
+    let asked = rig.open_request("t", "approval.requested", 1).await;
+    // Then the request is an event of the turn naming the tool and its input
+    assert_eq!((asked.turn.as_deref(), asked.data["tool"].clone(), asked.data["args"]["file_path"].clone()), (Some(turn.as_str()), json!("Write"), json!("a.txt")));
+    // When the person accepts it for the session
+    let approval = asked.data["approval"].as_str().unwrap().to_string();
+    rig.ok("approval.answer", json!({"thread": "t", "approval": approval, "decision": "accept_for_session"})).await;
+    rig.idle("t").await;
+    // Then the live process got the allow under the id of its request, no other process was started, and the turn went on to finish completed
+    let answers: Vec<Value> = rig.linker.received().into_iter().map(|(_, m)| m).filter(|m| m["type"] == "control_response").collect();
+    assert_eq!((answers.len(), answers[0]["response"]["request_id"].clone(), answers[0]["response"]["response"]["behavior"].clone()), (1, json!("c9"), json!("allow")));
+    assert_eq!((rig.linker.starts(), reasons(&rig, "t"), spoken(&rig, "t")), (1, vec![json!("completed")], vec!["written".to_string()]));
+    assert!(rig.kinds("t").contains(&"tool.finished".to_string()));
+}
+
+#[tokio::test]
+async fn given_a_claude_turn_that_asks_questions_when_the_person_answers_them_then_each_is_an_input_request_and_the_answers_reach_the_live_process_together() {
+    // Given a Claude Code turn whose model asks two questions at once
+    let rig = rig_with(claude_session());
+    rig.create_claude("t").await;
+    rig.start_claude("t", "ask").await;
+    let first = rig.open_request("t", "input.requested", 1).await;
+    assert_eq!((first.data["prompt"].clone(), first.data["options"].clone()), (json!("Which library?"), json!(["date-fns", "dayjs"])));
+    // When the person answers the first, and then the second that follows
+    rig.ok("input.answer", json!({"thread": "t", "request": first.data["request"], "answer": "dayjs"})).await;
+    let second = rig.open_request("t", "input.requested", 2).await;
+    assert_eq!(second.data["prompt"], json!("Which style?"));
+    rig.ok("input.answer", json!({"thread": "t", "request": second.data["request"], "answer": "tabs"})).await;
+    rig.idle("t").await;
+    // Then the process got one allow with both answers keyed by the questions' text, and the turn finished completed
+    let allow = rig.linker.received().into_iter().map(|(_, m)| m).find(|m| m["type"] == "control_response").unwrap();
+    assert_eq!(allow["response"]["response"]["updatedInput"]["answers"], json!({"Which library?": "dayjs", "Which style?": "tabs"}));
+    assert_eq!((reasons(&rig, "t"), spoken(&rig, "t")), (vec![json!("completed")], vec!["chose".to_string()]));
+}
+
+#[tokio::test]
+async fn given_a_claude_turn_that_is_working_when_it_is_steered_then_the_message_goes_to_the_live_process_with_priority_now_and_the_same_turn_finishes_once_with_no_process_ended_or_started() {
+    // Given a Claude Code turn that is working
+    let rig = rig_with(claude_session());
+    rig.create_claude("t").await;
+    let turn = rig.start_claude("t", "hold").await;
+    rig.until("the first text", |r| spoken(r, "t") == ["working"]).await;
+    // When it is steered
+    let steered = rig.ok("turn.steer", json!({"thread": "t", "prompt": "go left"})).await;
+    rig.idle("t").await;
+    // Then the answer names the same turn, the process was sent the message with priority now, and the turn finished once, completed, in spite of the aborted result between
+    assert_eq!(steered["turn"], json!(turn));
+    let sent = user_messages(&rig);
+    assert_eq!((sent.len(), sent[1]["priority"].clone(), sent[1]["message"]["content"][0]["text"].clone()), (2, json!("now"), json!("go left")));
+    assert_eq!(reasons(&rig, "t"), vec![json!("completed")]);
+    assert_eq!((rig.linker.starts(), rig.linker.kills(), rig.kinds("t").iter().filter(|k| *k == "turn.started").count()), (1, 0, 1));
+    // And the steer is in the log in order, between the first text and the one it caused
+    let order: Vec<String> = rig.events("t").iter().filter(|e| e.kind == "turn.steered" || (e.kind == "message.delta" && e.data["role"] == json!("assistant"))).map(|e| if e.kind == "turn.steered" { "steered".into() } else { e.data["text"].as_str().unwrap().to_string() }).collect();
+    assert_eq!(order, ["working", "steered", " steered"]);
+}
+
+#[tokio::test]
+async fn given_a_claude_turn_that_is_working_when_it_is_interrupted_then_the_process_is_told_to_interrupt_the_turn_ends_interrupted_and_the_thread_runs_again_in_the_same_process() {
+    // Given a Claude Code turn that is working
+    let rig = rig_with(claude_session());
+    rig.create_claude("t").await;
+    rig.start_claude("t", "hold").await;
+    rig.until("the first text", |r| spoken(r, "t") == ["working"]).await;
+    // When it is interrupted
+    rig.ok("turn.interrupt", json!({"thread": "t"})).await;
+    rig.idle("t").await;
+    // Then the turn ended interrupted, the process was asked to interrupt, and no process was ended
+    assert_eq!(reasons(&rig, "t"), vec![json!("interrupted")]);
+    assert_eq!(rig.linker.received_of("interrupt").len(), 0);
+    assert!(rig.linker.received().iter().any(|(_, m)| m["request"]["subtype"] == "interrupt"));
+    assert_eq!(rig.linker.kills(), 0);
+    // And the thread runs another turn in the same process
+    rig.start_claude("t", "hello").await;
+    rig.idle("t").await;
+    assert_eq!((rig.linker.starts(), reasons(&rig, "t")), (1, vec![json!("interrupted"), json!("completed")]));
+}
+
+#[tokio::test]
+async fn given_a_claude_process_that_is_closed_when_idle_or_killed_when_the_thread_runs_again_then_a_new_process_resumes_the_conversation_by_its_id() {
+    // Given a thread that ran a turn, and an idle time of 150 ms
+    let rig = rig_with(claude_session());
+    rig.runner.sessions().claude.set_idle(Duration::from_millis(150));
+    rig.create_claude("t").await;
+    rig.start_claude("t", "hello").await;
+    rig.idle("t").await;
+    let id = rig.engine.provider_session("t", "claudeAgent").unwrap().expect("kept");
+    // When nothing runs for longer than that
+    rig.until("the idle close", |r| r.linker.kills() == 1).await;
+    // Then the next turn starts a second process and resumes the conversation by the id the first one was given
+    rig.start_claude("t", "hold").await;
+    rig.until("the first text of the second turn", |r| spoken(r, "t").last().is_some_and(|t| t == "working")).await;
+    assert_eq!(rig.linker.starts(), 2);
+    assert_eq!(rig.linker.flags()[1][..2], ["--resume".to_string(), id.clone()]);
+    // When that process is killed in the middle of the turn
+    rig.linker.die("killed");
+    rig.idle("t").await;
+    // Then the turn finished failed with the reason in the log, and the next turn starts a third process and resumes the conversation again
+    assert!(rig.events("t").iter().any(|e| e.kind == "error" && e.data["message"].as_str().is_some_and(|m| m.contains("killed"))));
+    assert_eq!(reasons(&rig, "t"), vec![json!("completed"), json!("failed")]);
+    rig.start_claude("t", "hello").await;
+    rig.idle("t").await;
+    assert_eq!((rig.linker.starts(), reasons(&rig, "t").last().cloned()), (3, Some(json!("completed"))));
+    assert_eq!(rig.linker.flags()[2][..2], ["--resume".to_string(), id]);
+}
+
+#[tokio::test]
+async fn given_a_claude_thread_whose_conversation_is_detached_when_it_runs_again_then_its_process_was_closed_and_a_new_conversation_starts() {
+    // Given a thread that ran a turn in a live process
+    let rig = rig_with(claude_session());
+    rig.create_claude("t").await;
+    rig.start_claude("t", "hello").await;
+    rig.idle("t").await;
+    let id = rig.engine.provider_session("t", "claudeAgent").unwrap().expect("kept");
+    // When the thread's conversation is detached
+    rig.ok("thread.detach", json!({"thread": "t", "session": id, "reason": "stale"})).await;
+    rig.until("the close", |r| r.linker.kills() == 1).await;
+    // Then the next turn starts a new process with a new conversation of its own
+    rig.start_claude("t", "hello").await;
+    rig.idle("t").await;
+    assert_eq!(rig.linker.starts(), 2);
+    let flags = &rig.linker.flags()[1];
+    assert!(flags[0] == "--session-id" && flags[1] != id, "{flags:?}");
+}
+
+#[tokio::test]
+async fn given_two_claude_threads_when_each_runs_a_turn_then_each_has_a_process_and_a_conversation_of_its_own() {
+    // Given two threads of the Claude Code driver
+    let rig = rig_with(claude_session());
+    for thread in ["a", "b"] {
+        rig.create_claude(thread).await;
+    }
+    // When each runs a turn
+    for thread in ["a", "b"] {
+        rig.start_claude(thread, "hello").await;
+        rig.idle(thread).await;
+    }
+    // Then two processes ran, with different conversations
+    assert_eq!(rig.linker.starts(), 2);
+    let (a, b) = (rig.engine.provider_session("a", "claudeAgent").unwrap(), rig.engine.provider_session("b", "claudeAgent").unwrap());
+    assert!(a.is_some() && b.is_some() && a != b);
 }

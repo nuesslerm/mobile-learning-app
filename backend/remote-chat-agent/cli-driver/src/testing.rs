@@ -118,11 +118,12 @@ struct Starts {
     kills: usize,
     received: Vec<(usize, serde_json::Value)>,
     opened: Vec<PathBuf>,
+    flags: Vec<Vec<String>>,
     emitters: Vec<mpsc::UnboundedSender<Emit>>,
     refuse: Option<String>,
 }
 
-type React = Arc<dyn Fn(usize, &serde_json::Value) -> Vec<String> + Send + Sync>;
+type React = Arc<dyn Fn(&[String], usize, &serde_json::Value) -> Vec<String> + Send + Sync>;
 
 /// A CLI's live server as a scripted process: what it answers to each line it is sent is decided by a function of the start it is and the
 /// message. A test pushes lines of its own (`emit`) and ends the process as a crash does (`die`).
@@ -134,6 +135,11 @@ pub struct ScriptedLinker {
 impl ScriptedLinker {
     /// A server that answers each message with the lines `react(start, message)` returns, `start` counting the processes from 1.
     pub fn reacting(react: impl Fn(usize, &serde_json::Value) -> Vec<String> + Send + Sync + 'static) -> Arc<ScriptedLinker> {
+        Arc::new(ScriptedLinker { state: Arc::default(), react: Arc::new(move |_, start, message| react(start, message)) })
+    }
+
+    /// As `reacting`, for a process that is told its flags when it starts (a conversation to run in).
+    pub fn reacting_with_flags(react: impl Fn(&[String], usize, &serde_json::Value) -> Vec<String> + Send + Sync + 'static) -> Arc<ScriptedLinker> {
         Arc::new(ScriptedLinker { state: Arc::default(), react: Arc::new(react) })
     }
 
@@ -181,11 +187,16 @@ impl ScriptedLinker {
     pub fn opened(&self) -> Vec<PathBuf> {
         self.state().opened.clone()
     }
+
+    /// The flags each start was given, in order.
+    pub fn flags(&self) -> Vec<Vec<String>> {
+        self.state().flags.clone()
+    }
 }
 
 #[async_trait]
 impl Linker for ScriptedLinker {
-    async fn open(&self, _: Driver, cwd: &Path) -> Result<Link, String> {
+    async fn open(&self, _: Driver, cwd: &Path, args: &[String]) -> Result<Link, String> {
         let (start, tx, rx) = {
             let mut state = self.state();
             if let Some(why) = state.refuse.take() {
@@ -193,6 +204,7 @@ impl Linker for ScriptedLinker {
             }
             state.count += 1;
             state.opened.push(cwd.to_path_buf());
+            state.flags.push(args.to_vec());
             let (tx, rx) = mpsc::unbounded_channel::<Emit>();
             state.emitters.push(tx.clone());
             (state.count, tx, rx)
@@ -215,11 +227,11 @@ impl Linker for ScriptedLinker {
                 }
             }
         });
-        let (state, react, answer) = (Arc::clone(&self.state), Arc::clone(&self.react), tx.clone());
+        let (state, react, answer, flags) = (Arc::clone(&self.state), Arc::clone(&self.react), tx.clone(), args.to_vec());
         let send: Arc<dyn Fn(String) -> bool + Send + Sync> = Arc::new(move |line| {
             let Ok(message) = serde_json::from_str::<serde_json::Value>(&line) else { return false };
             state.lock().unwrap_or_else(|p| p.into_inner()).received.push((start, message.clone()));
-            for out in react(start, &message) {
+            for out in react(&flags, start, &message) {
                 if answer.send(Emit::Line(out)).is_err() {
                     return false;
                 }
@@ -295,6 +307,91 @@ pub fn app_server() -> Arc<ScriptedLinker> {
                 delta("th-1", "u-1", "done"),
                 finish("th-1", "u-1", "completed"),
             ],
+            _ => vec![],
+        }
+    })
+}
+
+/// A Claude Code process on stream-json: a prompt `hello` is answered at once (text, a tool call and its result, then the result frame), `hold` runs until it is
+/// steered or interrupted, `approve` asks for the permission to write a file and goes on when the person has answered, and `ask` asks two questions through
+/// `AskUserQuestion`. Every result names the messages it consumed.
+pub fn claude_session() -> Arc<ScriptedLinker> {
+    use serde_json::{json, Value};
+    let current = Mutex::new(Vec::<String>::new());
+    // The conversation a process runs in is the id its flags name, as the real CLI's frames carry it
+    let conversation = |flags: &[String]| flags.iter().position(|f| f == "--session-id" || f == "--resume").and_then(|at| flags.get(at + 1)).cloned().unwrap_or_default();
+    let control = |id: &Value, body: Value| say(json!({"type": "control_response", "response": {"subtype": "success", "request_id": id, "response": body}}));
+    let init = |id: &str| say(json!({"type": "system", "subtype": "init", "session_id": id}));
+    let delta = |message: &str, text: &str| {
+        [
+            say(json!({"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "message_start", "message": {"id": message}}})),
+            say(json!({"type": "stream_event", "parent_tool_use_id": null, "event": {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": text}}})),
+        ]
+    };
+    let result = |messages: &[String], aborted: bool, error: Option<&str>| {
+        say(json!({"type": "result", "subtype": if aborted { "error_during_execution" } else { "success" }, "is_error": aborted || error.is_some(), "terminal_reason": if aborted { "aborted_streaming" } else { "completed" }, "result": error, "user_message_uuids": messages}))
+    };
+    let tool = |id: &str, name: &str, input: Value| say(json!({"type": "assistant", "message": {"id": format!("m-{id}"), "content": [{"type": "tool_use", "id": id, "name": name, "input": input}]}}));
+    let finished = |id: &str, text: &str, is_error: bool| say(json!({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": id, "content": text, "is_error": is_error}]}}));
+    let asks = |request: &str, tool: &str, id: &str, input: Value| say(json!({"type": "control_request", "request_id": request, "request": {"subtype": "can_use_tool", "tool_name": tool, "input": input, "tool_use_id": id}}));
+    ScriptedLinker::reacting_with_flags(move |flags, _, m| {
+        let id = &m["request_id"];
+        let session = conversation(flags);
+        match (m["type"].as_str(), m["request"]["subtype"].as_str()) {
+            (Some("control_request"), Some("initialize")) => vec![control(id, json!({"models": [], "pid": 1}))],
+            (Some("control_request"), Some("set_permission_mode")) => vec![control(id, json!({"mode": m["request"]["mode"]}))],
+            (Some("control_request"), Some("set_model")) => vec![control(id, json!({"model": m["request"]["model"]}))],
+            (Some("control_request"), Some("interrupt")) => {
+                let messages = std::mem::take(&mut *current.lock().unwrap_or_else(|p| p.into_inner()));
+                vec![control(id, json!({"still_queued": [], "cancelled": []})), result(&messages, true, None)]
+            }
+            (Some("user"), _) => {
+                let uuid = m["uuid"].as_str().unwrap_or_default().to_string();
+                let mut messages = current.lock().unwrap_or_else(|p| p.into_inner());
+                if m["priority"] == "now" {
+                    let aborted = result(&messages, true, None);
+                    messages.push(uuid.clone());
+                    let mut out = vec![aborted, init(&session)];
+                    out.extend(delta("m-steer", " steered"));
+                    out.push(result(&[uuid], false, None));
+                    messages.clear();
+                    return out;
+                }
+                *messages = vec![uuid.clone()];
+                let mut out = vec![init(&session)];
+                match m["message"]["content"][0]["text"].as_str().unwrap_or_default() {
+                    "hold" => out.extend(delta("m1", "working")),
+                    "approve" => out.extend([tool("toolu_9", "Write", json!({"file_path": "a.txt"})), asks("c9", "Write", "toolu_9", json!({"file_path": "a.txt"}))]),
+                    "ask" => out.push(asks("q1", "AskUserQuestion", "toolu_q", json!({"questions": [
+                        {"question": "Which library?", "header": "Library", "multiSelect": false, "options": [{"label": "date-fns", "description": "a"}, {"label": "dayjs", "description": "b"}]},
+                        {"question": "Which style?", "header": "Style", "multiSelect": false, "options": [{"label": "tabs", "description": "a"}, {"label": "spaces", "description": "b"}]}]}))),
+                    _ => {
+                        out.extend(delta("m1", "Hi"));
+                        out.extend([say(json!({"type": "assistant", "message": {"id": "m1", "content": [{"type": "text", "text": "Hi"}]}})), tool("k1", "Bash", json!({"command": "ls"})), finished("k1", "a.txt", false), result(&[uuid], false, None)]);
+                        messages.clear();
+                    }
+                }
+                out
+            }
+            (Some("control_response"), _) => {
+                let (request, body) = (m["response"]["request_id"].as_str().unwrap_or_default(), &m["response"]["response"]);
+                let messages = std::mem::take(&mut *current.lock().unwrap_or_else(|p| p.into_inner()));
+                let mut out = Vec::new();
+                match (request, body["behavior"].as_str()) {
+                    ("c9", Some("allow")) => {
+                        out.push(finished("toolu_9", "wrote a.txt", false));
+                        out.extend(delta("m-after", "written"));
+                    }
+                    ("c9", Some("deny")) => {
+                        out.push(finished("toolu_9", "User declined tool execution.", true));
+                        out.extend(delta("m-after", "declined"));
+                    }
+                    ("q1", _) => out.extend(delta("m-after", "chose")),
+                    _ => return vec![],
+                }
+                out.push(result(&messages, false, None));
+                out
+            }
             _ => vec![],
         }
     })

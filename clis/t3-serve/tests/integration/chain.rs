@@ -147,7 +147,7 @@ fn an_interrupt_and_a_stop_each_end_the_turn_the_cli_is_running_by_telling_rca_t
             let message = json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": format!("c-m{n}"), "threadId": "t1", "messageId": format!("m{n}"), "text": "work"});
             success(&phone.call(case, &chain, &["rpc:orchestration.dispatchCommand", "command:message.dispatch"], "orchestration.dispatchCommand", message));
             let started = std::time::Instant::now();
-            while chain.cli.invocations("claude").len() < n + 1 {
+            while chain.cli.claude_prompts("claude").len() < n + 1 {
                 assert!(started.elapsed() < std::time::Duration::from_secs(30), "the CLI never started: {}", chain.evidence());
                 std::thread::sleep(std::time::Duration::from_millis(50));
             }

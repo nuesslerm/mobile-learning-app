@@ -79,16 +79,16 @@ async fn given_prompts_queued_behind_a_running_turn_when_it_ends_then_each_runs_
     let history = agent.ask("thread.history", json!({"thread": "t1"})).await;
     let logged: Vec<String> = history["result"]["events"].as_array().unwrap().iter().map(|e| e["type"].as_str().unwrap().to_string()).collect();
     assert_eq!(logged.iter().filter(|k| k.starts_with("queue.")).map(String::as_str).collect::<Vec<_>>(), ["queue.added", "queue.added", "queue.added", "queue.edited", "queue.moved", "queue.deleted", "queue.started", "queue.started"]);
-    assert_eq!(chain.cli.invocations("claude").len(), 3);
+    assert_eq!((chain.cli.claude_prompts("claude").len(), chain.cli.invocations("claude").len()), (3, 1));
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
-async fn given_a_running_turn_when_it_is_steered_then_its_cli_is_killed_and_the_next_writes_its_file_through_the_executor_in_the_same_turn() {
-    // Given a turn that says it is going right and stays up, and the CLI the steer starts, which writes a file
+async fn given_a_running_turn_when_it_is_steered_then_the_live_process_is_sent_the_steer_and_its_next_turn_writes_its_file_through_the_executor_in_the_same_turn() {
+    // Given a turn that says it is going right and stays up, and the turn the steer plays on the same process, which writes a file
     let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![
-        Turn::replaying(&[json!({"type": "system", "subtype": "init", "session_id": "s-1"}).to_string(), said("going right")]).hanging(),
+        Turn::replaying(&[said("going right")]).hanging(),
         Turn::replaying(&[said("going left")]).then_calling("k1", "write_file", write("notes/left.txt", "left")),
     ]);
     let mut agent = chain.agent().await;
@@ -101,14 +101,13 @@ async fn given_a_running_turn_when_it_is_steered_then_its_cli_is_killed_and_the_
     let steered = agent.ask("turn.steer", json!({"thread": "t1", "turn": turn, "prompt": "go left"})).await;
     let neither = agent.ask("turn.steer", json!({"thread": "t1"})).await;
     seen.extend(agent.events_through("turn.finished").await);
-    // Then the answer names the turn, the second CLI ran the steer prompt in the conversation the first announced, and its file is in the repository
+    // Then the answer names the turn, the one process was sent the steer prompt beside the first, and its file is in the repository
     assert_eq!(steered["result"]["turn"], json!(turn));
     assert_eq!(neither["error"]["code"], json!("INVALID_PARAMS"));
-    let starts = chain.cli.invocations("claude");
-    assert_eq!(starts.len(), 2);
-    assert!(starts[1].argv.contains(&"go left".to_string()) && starts[1].argv.windows(2).any(|w| w == ["--resume", "s-1"]), "{:?}", starts[1].argv);
+    assert_eq!(chain.cli.invocations("claude").len(), 1);
+    assert_eq!(chain.cli.claude_prompts("claude"), ["make a note", "go left"]);
     assert_eq!(std::fs::read_to_string(chain.repo.path().join("notes/left.txt")).unwrap(), "left");
-    // And the log has one start and one finish of the turn, with the steer between the two CLIs' words, and a steer after it is refused
+    // And the log has one start and one finish of the turn, with the steer between what the process said before and after it, and a steer after it is refused
     let order: Vec<&str> = kinds(&seen).into_iter().filter(|k| ["turn.started", "turn.steered", "turn.finished"].contains(k)).collect();
     assert_eq!(order, ["turn.started", "turn.steered", "turn.finished"]);
     assert_eq!(seen.last().unwrap().data["reason"], json!("completed"));
@@ -128,7 +127,7 @@ async fn given_a_forced_stop_when_the_turn_ends_then_the_queue_waits_until_it_is
     agent.ask("queue.add", json!({"thread": "t1", "item": "q1", "prompt": "after"})).await;
     // The first delta is the prompt the service records before it starts the CLI, so the wait is on the CLI's own start in its log
     agent.events_through("message.delta").await;
-    eventually("the turn's CLI started", || chain.cli.invocations("claude").len() == 1).await;
+    eventually("the turn's CLI started", || chain.cli.claude_prompts("claude").len() == 1).await;
     // When the turn is force stopped
     let stopped = agent.ask("thread.forceStop", json!({"thread": "t1", "turn": turn})).await;
     let ended = agent.events_through("turn.finished").await;

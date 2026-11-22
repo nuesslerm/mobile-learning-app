@@ -29,19 +29,20 @@ pub struct Link {
     pub send: Arc<dyn Fn(String) -> bool + Send + Sync>,
 }
 
-/// Where a CLI that lives is started: the driver's own server mode, in a directory, killed with everything it started.
+/// Where a CLI that lives is started: the driver's own live mode with `args` (the flags of one conversation) after it, in a directory, killed with
+/// everything it started.
 #[async_trait]
 pub trait Linker: Send + Sync {
-    /// `Err` is why the server could not start (such as `not found`).
-    async fn open(&self, driver: Driver, cwd: &Path) -> Result<Link, String>;
+    /// `Err` is why the process could not start (such as `not found`).
+    async fn open(&self, driver: Driver, cwd: &Path, args: &[String]) -> Result<Link, String>;
 }
 
-/// The live sessions of a CLI that lives: one server process per workspace, many conversations in it. A turn is run on its thread's session,
-/// which is started and its conversation resumed as needed; what the CLI does arrives as the neutral events of `ExecEvent`, ending with `Done`
-/// (or `Error`, then the end of the stream).
+/// The live sessions of a CLI that lives: one process per workspace with many conversations in it (Codex), or one process for each conversation (Claude Code).
+/// A turn is run on its thread's session, which is started and its conversation resumed as needed; what the CLI does arrives as the neutral events of
+/// `ExecEvent`, ending with `Done` (or `Error`, then the end of the stream).
 #[async_trait]
 pub trait SessionDriver: Send + Sync {
-    /// Makes sure the workspace's server runs, started in `cwd` through `linker`.
+    /// Makes sure the workspace's server runs, started in `cwd` through `linker` (a CLI with a process for each conversation starts it with the turn).
     async fn start(&self, workspace: &str, linker: &dyn Linker, cwd: &Path) -> Result<(), String>;
     /// Runs the turn of `req` on its thread, in the workspace's session: the thread is started, or resumed from `req.resume` when the session has
     /// not got it. `Err` is a refusal before anything ran.
@@ -52,6 +53,10 @@ pub trait SessionDriver: Send + Sync {
     fn interrupt(&self, thread: &str) -> bool;
     /// Answers the approval `approval` the thread's turn asked for; whether it was waiting.
     fn answer(&self, thread: &str, approval: &str, verdict: Verdict) -> bool;
+    /// Answers the question `request` the thread's turn asked (`None`: the person closed it); whether it was waiting.
+    fn answer_input(&self, thread: &str, request: &str, answer: Option<String>) -> bool;
+    /// Whether the thread has a live process now.
+    fn alive(&self, thread: &str) -> bool;
     /// The thread's conversation is let go: its next turn starts a new one.
     fn forget(&self, thread: &str);
     /// Ends the workspace's server and everything it started; whether there was one.

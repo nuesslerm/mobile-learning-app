@@ -1752,6 +1752,7 @@ dependencies = [
  "futures-util",
  "serde_json",
  "tokio",
+ "uuid",
 ]
 
 [[package]]

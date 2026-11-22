@@ -258,7 +258,7 @@ mod tests {
         }
 
         async fn start(&self, thread: &str) -> Value {
-            self.ask("turn.start", json!({"thread": thread, "workspace": "w1", "driver": "claudeAgent", "prompt": "make a note"})).await
+            self.ask("turn.start", json!({"thread": thread, "workspace": "w1", "driver": "opencode", "prompt": "make a note"})).await
         }
 
         async fn wait_idle(&self, thread: &str) {
@@ -276,8 +276,9 @@ mod tests {
         }
     }
 
+    /// A line of opencode's output (the CLI a turn runs as a process of its own; Claude Code and Codex live as sessions): the text it says.
     fn said(text: &str) -> String {
-        json!({"type": "assistant", "message": {"content": [{"type": "text", "text": text}]}}).to_string()
+        json!({"type": "text", "part": {"text": text}}).to_string()
     }
 
     fn code_of(answer: &Value) -> Value {
@@ -376,9 +377,9 @@ mod tests {
         let staging = Arc::new(Staging(Mutex::default(), None));
         let rig = rig_with_staging(staging.clone());
         rig.create("t").await;
-        rig.spawner.script("claude", CliScript { lines: vec![said("seen")], ..CliScript::default() });
+        rig.spawner.script("env", CliScript { lines: vec![said("seen")], ..CliScript::default() });
         // When a turn starts naming two attachments
-        let started = rig.ask("turn.start", json!({"thread": "t", "workspace": "w1", "driver": "claudeAgent", "prompt": "look at these", "attachments": ["a1", "a2"]})).await;
+        let started = rig.ask("turn.start", json!({"thread": "t", "workspace": "w1", "driver": "opencode", "prompt": "look at these", "attachments": ["a1", "a2"]})).await;
         rig.wait_idle("t").await;
         // Then staging was asked once, for that workspace and those ids in order
         assert!(started.get("result").is_some(), "{started}");
@@ -409,9 +410,8 @@ mod tests {
         // Given a CLI that says it will write, calls the executor's write_file and sees it succeed, then says it is done
         let rig = rig();
         rig.create("t").await;
-        let call = json!({"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "k1", "name": "mcp__executor__write_file", "input": {"path": "notes/a.txt", "content": "hi"}}]}});
-        let result = json!({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "k1", "content": "wrote 2 bytes", "is_error": false}]}});
-        rig.spawner.script("claude", CliScript { lines: vec![said("writing"), call.to_string(), result.to_string(), said("done")], ..CliScript::default() });
+        let call = json!({"type": "tool_use", "part": {"callID": "k1", "tool": "executor_write_file", "state": {"status": "completed", "input": {"path": "notes/a.txt", "content": "hi"}, "output": "wrote 2 bytes"}}});
+        rig.spawner.script("env", CliScript { lines: vec![said("writing"), call.to_string(), said("done")], ..CliScript::default() });
         // When a turn starts on the thread
         let started = rig.start("t").await;
         rig.wait_idle("t").await;
@@ -429,7 +429,7 @@ mod tests {
         let spawned = rig.spawner.spawned();
         assert_eq!(spawned.len(), 1);
         let args = &spawned[0].args;
-        assert!(args.iter().any(|a| a.contains("http://127.0.0.1:1/mcp/t")) && args.windows(2).any(|w| w == ["--model", "default-model"]), "{args:?}");
+        assert!(args.iter().any(|a| a.contains("http://127.0.0.1:1/mcp/t")) && args.windows(2).any(|w| w == ["-m", "default-model"]), "{args:?}");
         // And the thread is no longer bound to the executor, so its tool server resolves to none
         assert!(rig.executors.for_thread("t").is_none());
         // And the transcript is the rows a person reads
@@ -443,7 +443,7 @@ mod tests {
         // Given a CLI that stays up after its first line
         let rig = rig();
         rig.create("t").await;
-        rig.spawner.script("claude", CliScript { lines: vec![said("working")], hold: true, ..CliScript::default() });
+        rig.spawner.script("env", CliScript { lines: vec![said("working")], hold: true, ..CliScript::default() });
         let turn = rig.start("t").await["result"]["turn"].as_str().unwrap().to_string();
         // When a second turn starts, and an interrupt names another turn, then no turn, on this thread, and one on a thread that is idle
         rig.create("idle").await;
@@ -471,7 +471,7 @@ mod tests {
         // Given a CLI that stays up
         let rig = rig();
         rig.create("t").await;
-        rig.spawner.script("claude", CliScript { lines: vec![said("working")], hold: true, ..CliScript::default() });
+        rig.spawner.script("env", CliScript { lines: vec![said("working")], hold: true, ..CliScript::default() });
         rig.start("t").await;
         // When the workspace's executor closes its channel
         rig.channel.close(1006);
@@ -486,21 +486,21 @@ mod tests {
 
     #[tokio::test]
     async fn given_a_cli_that_cannot_start_or_fails_when_a_turn_runs_then_the_turn_is_started_and_ends_failed_with_the_reason_and_the_thread_is_free() {
-        // Given Claude Code that is not installed, and Opencode that exits with a failure
+        // Given opencode that cannot be started, and then opencode that exits with a failure
         let rig = rig();
         rig.create("t").await;
-        rig.spawner.script("claude", CliScript { not_started: Some("not found".into()), ..CliScript::default() });
         // opencode's tools are configured through its environment, so the service starts it as `env OPENCODE_CONFIG_CONTENT=... opencode ...`
-        rig.spawner.script("env", CliScript { exit: Some("exited with 1: not logged in".into()), ..CliScript::default() });
+        rig.spawner.script_each("env", vec![CliScript { not_started: Some("not found".into()), ..CliScript::default() }, CliScript { exit: Some("exited with 1: not logged in".into()), ..CliScript::default() }]);
         // When a turn starts for each
         let missing = rig.start("t").await;
-        let failing = rig.ask("turn.start", json!({"thread": "t", "workspace": "w1", "driver": "opencode", "prompt": "p"})).await;
+        rig.wait_idle("t").await;
+        let failing = rig.start("t").await;
         rig.wait_idle("t").await;
         // Then both answered with a turn, and the log has the start, the error and a failed finish of each
         assert!(missing["result"]["turn"].is_string() && failing["result"]["turn"].is_string());
         let events = rig.engine.events_of("t");
         let errors: Vec<(Value, Value)> = events.iter().filter(|e| e.kind == "error").map(|e| (e.data["code"].clone(), e.data["message"].clone())).collect();
-        assert_eq!(errors, [(json!("CLI_START_FAILED"), json!("claude could not start: not found")), (json!("CLI_ERROR"), json!("exited with 1: not logged in"))]);
+        assert_eq!(errors, [(json!("CLI_START_FAILED"), json!("env could not start: not found")), (json!("CLI_ERROR"), json!("exited with 1: not logged in"))]);
         assert_eq!(events.iter().filter(|e| e.kind == "turn.finished").map(|e| e.data["reason"].clone()).collect::<Vec<_>>(), [json!("failed"), json!("failed")]);
     }
 
@@ -511,7 +511,7 @@ mod tests {
         rig.create("t").await;
         rig.spawner.script("env", CliScript { lines: vec![], ..CliScript::default() });
         // When a turn names claude code
-        let refused = rig.start("t").await;
+        let refused = rig.ask("turn.start", json!({"thread": "t", "workspace": "w1", "driver": "claudeAgent", "prompt": "p"})).await;
         // Then it is refused up front naming the CLI, no CLI was spawned, the log is empty and the thread is free
         assert_eq!(refused["error"], json!({"code": "CLI_NOT_INSTALLED", "message": "claude is not installed on the executor of workspace w1"}));
         assert!(rig.engine.events_of("t").is_empty() && rig.spawner.kills() == 0);
@@ -529,13 +529,13 @@ mod tests {
         // Given a thread with a finished turn
         let rig = rig();
         rig.create("t").await;
-        rig.spawner.script("claude", CliScript { lines: vec![said("one"), said("two")], ..CliScript::default() });
+        rig.spawner.script("env", CliScript { lines: vec![said("one"), said("two")], ..CliScript::default() });
         rig.start("t").await;
         rig.wait_idle("t").await;
         let all = rig.engine.events_of("t").iter().map(|e| e.seq).collect::<Vec<_>>();
         // When a client subscribes from the start, and then a new turn adds events
         let (answer, first) = rig.ask_on("thread.subscribe", json!({"thread": "t"})).await;
-        rig.spawner.script("claude", CliScript { lines: vec![said("three")], ..CliScript::default() });
+        rig.spawner.script("env", CliScript { lines: vec![said("three")], ..CliScript::default() });
         rig.start("t").await;
         rig.wait_idle("t").await;
         tokio::time::sleep(Duration::from_millis(50)).await;
@@ -562,7 +562,7 @@ mod tests {
         // Given a thread with a turn of five CLI lines
         let rig = rig();
         rig.create("t").await;
-        rig.spawner.script("claude", CliScript { lines: (1..=5).map(|n| said(&format!("line {n}"))).collect(), ..CliScript::default() });
+        rig.spawner.script("env", CliScript { lines: (1..=5).map(|n| said(&format!("line {n}"))).collect(), ..CliScript::default() });
         rig.start("t").await;
         rig.wait_idle("t").await;
         // When the history is read two events at a time, each after the last seq of the page before

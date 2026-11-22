@@ -122,7 +122,7 @@ fn an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_
         assert_eq!(hit(&executor, "tool", "run_command"), Some(&json!({"tool": "run_command", "ok": true})), "{executor}");
         // And the repository's status shows none of them, the CLI was started with the prompt and then both paths, and the CLI read the note
         assert_eq!(chain.repo.git(&["status", "--porcelain"]), "");
-        let prompt = chain.cli.invocations("claude").iter().flat_map(|start| start.argv.clone()).find(|a| a.contains("look at these")).expect("the prompt reached the CLI");
+        let prompt = chain.cli.claude_prompts("claude").into_iter().find(|a| a.contains("look at these")).expect("the prompt reached the CLI");
         assert!(prompt.ends_with(&format!("\n- {}\n- {note_at}", staged(&image_id, "shot.png"))), "{prompt}");
         let output = rca.events("t1", "tool.output").iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n");
         assert!(output.contains("the note the phone attached"), "{output}");

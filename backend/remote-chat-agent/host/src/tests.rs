@@ -150,7 +150,7 @@ async fn given_a_cli_server_when_lines_are_sent_then_each_answer_comes_back_and_
     // Given a Codex app-server that starts a long sleep, then answers every line it reads
     let dir = tempfile::tempdir().unwrap();
     let processes = codex_with(&format!("sleep 30 &\necho $! > {}/child.pid\nwhile IFS= read -r line; do printf 'echo:%s\\n' \"$line\"; done", dir.path().display()), dir.path());
-    let mut link = processes.open(Driver::Codex, dir.path()).await.expect("the server starts");
+    let mut link = processes.open(Driver::Codex, dir.path(), &[]).await.expect("the server starts");
     // When two lines are sent
     assert!((link.send)("one".into()) && (link.send)("two".into()));
     // Then both answers come back in order
@@ -172,7 +172,7 @@ async fn given_a_cli_server_that_exits_leaving_a_process_that_holds_its_output_w
     let dir = tempfile::tempdir().unwrap();
     let processes = codex_with(&format!("echo ready\nsleep 30 &\necho $! > {}/child.pid\nexit 0", dir.path().display()), dir.path());
     let started = Instant::now();
-    let mut link = processes.open(Driver::Codex, dir.path()).await.expect("the server starts");
+    let mut link = processes.open(Driver::Codex, dir.path(), &[]).await.expect("the server starts");
     // When it runs to its end
     let mut lines = Vec::new();
     while let Some(line) = link.running.lines.next().await {
@@ -196,9 +196,55 @@ async fn given_a_driver_with_no_server_mode_or_a_missing_cli_when_a_server_is_op
     let dir = tempfile::tempdir().unwrap();
     let processes = Processes::with_inherited("/unused", vec![("PATH".to_string(), dir.path().display().to_string())]);
     // When a server is opened for a driver that has none, and for Codex
-    let none = processes.open(Driver::ClaudeAgent, dir.path()).await.err();
-    let missing = processes.open(Driver::Codex, dir.path()).await.err();
+    let none = processes.open(Driver::Opencode, dir.path(), &[]).await.err();
+    let missing = processes.open(Driver::Codex, dir.path(), &[]).await.err();
     // Then each is refused, the second as a program that is not found
-    assert_eq!(none.as_deref(), Some("claudeAgent has no server mode"));
+    assert_eq!(none.as_deref(), Some("opencode has no server mode"));
     assert_eq!(missing.as_deref(), Some("entity not found"));
+}
+
+#[tokio::test]
+async fn given_claude_code_when_a_process_is_opened_with_the_flags_of_a_conversation_then_its_own_stream_json_arguments_come_first_and_the_flags_after() {
+    // Given processes whose claude prints the arguments it was started with
+    use std::os::unix::fs::PermissionsExt;
+    let dir = tempfile::tempdir().unwrap();
+    let bin = dir.path().join("bin");
+    std::fs::create_dir_all(&bin).unwrap();
+    std::fs::write(bin.join("claude"), "#!/bin/sh\nprintf '%s\\n' \"$*\"\n").unwrap();
+    std::fs::set_permissions(bin.join("claude"), std::fs::Permissions::from_mode(0o755)).unwrap();
+    let processes = Processes::with_inherited("/unused", vec![("PATH".to_string(), format!("{}:/usr/bin:/bin", bin.display()))]);
+    // When a process is opened with a conversation and a mode
+    let mut link = processes.open(Driver::ClaudeAgent, dir.path(), &["--resume".into(), "c-1".into(), "--permission-mode".into(), "plan".into()]).await.expect("the process starts");
+    // Then its arguments are Claude Code's own for stream-json with the stdio permission prompt, then the flags
+    let argv = next_line(&mut link.running.lines).await;
+    assert!(argv.starts_with("-p --input-format stream-json --output-format stream-json --verbose") && argv.ends_with("--permission-prompt-tool stdio --resume c-1 --permission-mode plan"), "{argv}");
+}
+
+#[tokio::test]
+async fn given_a_claude_process_that_exits_leaving_a_process_that_holds_its_output_when_it_ends_then_the_session_closes_in_seconds_and_nothing_is_left_behind() {
+    // Given a claude that prints a line, leaves a sleep holding its output and its input, and exits
+    use std::os::unix::fs::PermissionsExt;
+    let dir = tempfile::tempdir().unwrap();
+    let bin = dir.path().join("bin");
+    std::fs::create_dir_all(&bin).unwrap();
+    std::fs::write(bin.join("claude"), format!("#!/bin/sh\necho ready\nsleep 30 &\necho $! > {}/child.pid\nexit 0\n", dir.path().display())).unwrap();
+    std::fs::set_permissions(bin.join("claude"), std::fs::Permissions::from_mode(0o755)).unwrap();
+    let processes = Processes::with_inherited("/unused", vec![("PATH".to_string(), format!("{}:/usr/bin:/bin", bin.display()))]);
+    let started = Instant::now();
+    let mut link = processes.open(Driver::ClaudeAgent, dir.path(), &[]).await.expect("the process starts");
+    // When it runs to its end
+    let mut lines = Vec::new();
+    while let Some(line) = link.running.lines.next().await {
+        lines.push(line);
+    }
+    let ended = link.running.finish.await;
+    // Then it closed in seconds with the line it printed and its own exit status, and the sleep is gone
+    assert_eq!((lines, ended), (vec!["ready".to_string()], Ok(())));
+    assert!(started.elapsed() < Duration::from_secs(5), "{:?}", started.elapsed());
+    let pid: i32 = std::fs::read_to_string(dir.path().join("child.pid")).unwrap().trim().parse().unwrap();
+    let until = Instant::now() + Duration::from_secs(10);
+    while !gone(pid) {
+        assert!(Instant::now() < until, "the background process is still running");
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
 }

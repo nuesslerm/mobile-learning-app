@@ -29,8 +29,8 @@ pub struct NoLinker;
 
 #[async_trait]
 impl Linker for NoLinker {
-    async fn open(&self, driver: Driver, _: &Path) -> Result<Link, String> {
-        Err(format!("this launcher starts no live server for {}", driver.id()))
+    async fn open(&self, driver: Driver, _: &Path, _: &[String]) -> Result<Link, String> {
+        Err(format!("this launcher starts no live process for {}", driver.id()))
     }
 }
 
@@ -80,12 +80,15 @@ pub struct HostLinker {
 
 #[async_trait]
 impl Linker for HostLinker {
-    async fn open(&self, driver: Driver, cwd: &Path) -> Result<Link, String> {
+    async fn open(&self, driver: Driver, cwd: &Path, flags: &[String]) -> Result<Link, String> {
         if self.channel.is_closed() {
             return Err("the workspace's executor is gone".into());
         }
         let session = format!("s-{}", uuid::Uuid::new_v4().simple());
         let mut request = json!({"session": session, "program": driver.program()});
+        if !flags.is_empty() {
+            request["args"] = json!(flags);
+        }
         if cwd != Path::new(".") {
             request["cwd"] = json!(cwd.to_string_lossy());
         }

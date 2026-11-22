@@ -60,7 +60,7 @@ async fn watching(chain: &Chain) -> (Agent, Agent) {
 }
 
 fn prompts(chain: &Chain) -> Vec<String> {
-    chain.cli.invocations("claude").iter().filter_map(|start| start.argv.iter().find(|a| a.contains("on schedule")).cloned()).collect()
+    chain.cli.claude_prompts("claude").into_iter().filter(|a| a.contains("on schedule")).collect()
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]

@@ -45,7 +45,7 @@ where
     Arc::new(move |mcp, out| Box::pin(f(mcp, out)))
 }
 
-/// A CLI that is a program of the flow's own: it finds its MCP server in the `--mcp-config` it was started with, as `claude` does.
+/// A CLI that is a program of the flow's own: it finds its MCP server in the config it was started with, as opencode does.
 struct ScriptedCli {
     script: Script,
     spawned: Mutex<Vec<(String, Vec<String>)>>,
@@ -55,9 +55,9 @@ struct ScriptedCli {
 impl Spawner for ScriptedCli {
     async fn spawn(&self, program: &str, args: &[String], _cwd: &Path) -> Result<Running, String> {
         self.spawned.lock().unwrap().push((program.to_string(), args.to_vec()));
-        let config = args.iter().position(|a| a == "--mcp-config").and_then(|at| args.get(at + 1)).ok_or("started without an MCP config")?;
+        let config = args.iter().find_map(|a| a.strip_prefix("OPENCODE_CONFIG_CONTENT=")).ok_or("started without an MCP config")?;
         let config: Value = serde_json::from_str(config).map_err(|e| e.to_string())?;
-        let mcp = Mcp { url: config["mcpServers"]["executor"]["url"].as_str().ok_or("no executor server in the config")?.to_string() };
+        let mcp = Mcp { url: config["mcp"]["executor"]["url"].as_str().ok_or("no executor server in the config")?.to_string() };
         let (lines, rx) = mpsc::channel(16);
         let task = tokio::spawn((self.script)(mcp, lines));
         let stop = task.abort_handle();
@@ -182,8 +182,8 @@ fn idle_cli() -> Arc<ScriptedCli> {
 /// Starts a turn of `thread` on workspace `w1` and returns once its CLI runs, so `/mcp/<thread>` resolves to the workspace's executor.
 async fn running_turn(svc: &Service, port: u16, cli: &Arc<ScriptedCli>, thread: &str) -> Agent {
     let mut agent = mapper(svc, port).await;
-    followed(&mut agent, thread, "w1", "claudeAgent").await;
-    let started = agent.ask("turn.start", turn(thread, "w1", "claudeAgent")).await;
+    followed(&mut agent, thread, "w1", "opencode").await;
+    let started = agent.ask("turn.start", turn(thread, "w1", "opencode")).await;
     assert!(started.get("result").is_some(), "{started}");
     for _ in 0..200 {
         if !cli.spawned.lock().unwrap().is_empty() {
@@ -217,7 +217,7 @@ async fn given_the_retired_routes_when_called_with_the_service_secret_then_each_
         (Method::POST, "/exec/v2/turns/t1/interrupt"),
     ];
     for (method, path) in routes {
-        let answer = svc.send(call(method, path).secret().json(json!({"threadId": "t1", "thread": "t1", "workspace": "w1", "driver": "claudeAgent", "prompt": "p", "cwd": "/", "root": "/", "path": "x", "contents": "x"}))).await;
+        let answer = svc.send(call(method, path).secret().json(json!({"threadId": "t1", "thread": "t1", "workspace": "w1", "driver": "opencode", "prompt": "p", "cwd": "/", "root": "/", "path": "x", "contents": "x"}))).await;
         // Then each is the router's own 404, and not a refusal of the caller
         assert_eq!((answer.status, answer.json()), (StatusCode::NOT_FOUND, json!({"error": "not_found"})), "{path}");
     }
@@ -228,84 +228,83 @@ async fn given_the_retired_routes_when_called_with_the_service_secret_then_each_
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn given_clis_that_print_their_streams_when_turns_run_then_each_becomes_the_same_neutral_events_in_the_thread_log() {
-    // Given a service with an executor for the workspace and two scripted CLIs: Claude Code printing a tool call and its answer, opencode printing text (Codex runs as a live session: `agent_codex.rs`)
+async fn given_a_cli_that_prints_its_stream_when_turns_run_then_it_becomes_neutral_events_in_the_thread_log() {
+    // Given a service with an executor for the workspace and opencode printing a tool call with its output, and then text (Claude Code and Codex run as live sessions: `agent_claude.rs`, `agent_codex.rs`)
     let env = Env::new(&[]);
     let svc = service(&env, Options::default());
     let port = svc.listen().await;
     let _executor = Executor::connect(port, "w1").await;
-    svc.spawner.script(
-        "claude",
-        CliScript {
-            lines: [
-                r#"{"type":"system","subtype":"init"}"#,
-                r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"k1","name":"Bash","input":{"command":"ls"}}]}}"#,
-                r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"k1","content":"a.txt","is_error":false}]}}"#,
-                r#"{"type":"assistant","message":{"content":[{"type":"text","text":"Done: a.txt"}]}}"#,
-                r#"{"type":"result","is_error":false,"result":"Done: a.txt"}"#,
-            ]
-            .map(String::from)
-            .to_vec(),
-            ..CliScript::default()
-        },
-    );
     // opencode runs as `env OPENCODE_CONFIG_CONTENT=... opencode ...`, so the double is keyed by `env`
-    svc.spawner.script("env", CliScript { lines: vec![r#"{"type":"text","part":{"text":"from opencode"}}"#.into()], ..CliScript::default() });
+    svc.spawner.script_each(
+        "env",
+        vec![
+            CliScript {
+                lines: [
+                    r#"{"type":"tool_use","sessionID":"ses_1","part":{"callID":"k1","tool":"bash","state":{"status":"completed","input":{"command":"ls"},"output":"a.txt"}}}"#,
+                    r#"{"type":"text","sessionID":"ses_1","part":{"text":"Done: a.txt"}}"#,
+                ]
+                .map(String::from)
+                .to_vec(),
+                ..CliScript::default()
+            },
+            CliScript { lines: vec![r#"{"type":"text","part":{"text":"from the second"}}"#.into()], ..CliScript::default() },
+        ],
+    );
     let mut agent = mapper(&svc, port).await;
-    followed(&mut agent, "t1", "w1", "claudeAgent").await;
+    followed(&mut agent, "t1", "w1", "opencode").await;
     followed(&mut agent, "t2", "w1", "opencode").await;
-    // When a turn runs on each
-    agent.ask("turn.start", turn("t1", "w1", "claudeAgent")).await;
-    let claude = agent.events_through("turn.finished").await;
+    // When a turn runs on each thread
+    agent.ask("turn.start", turn("t1", "w1", "opencode")).await;
+    let first = agent.events_through("turn.finished").await;
     agent.ask("turn.start", turn("t2", "w1", "opencode")).await;
-    let opencode = agent.events_through("turn.finished").await;
-    // Then Claude Code's are its tool call, the call's output and finish, the text and a completed finish, each of the thread that ran
-    assert_eq!(kinds(&claude), ["turn.started", "message.delta", "tool.started", "tool.output", "tool.finished", "message.delta", "turn.finished"]);
-    assert_eq!((claude[2].data["tool"].clone(), claude[2].data["args"].clone(), claude[3].data["data"].clone()), (json!("Bash"), json!({"command": "ls"}), json!("a.txt")));
-    assert_eq!((claude[5].data["role"].clone(), claude[5].data["text"].clone(), claude[6].data["reason"].clone()), (json!("assistant"), json!("Done: a.txt"), json!("completed")));
-    assert!(claude.iter().all(|e| e.thread.as_deref() == Some("t1")));
-    // And opencode's text is the same kind of event
-    assert_eq!(kinds(&opencode), ["turn.started", "message.delta", "message.delta", "turn.finished"]);
-    assert_eq!((opencode[2].data["role"].clone(), opencode[2].data["text"].clone()), (json!("assistant"), json!("from opencode")));
-    // And the CLIs were started at the workspace host's root with the model and the prompt, not interactively
+    let second = agent.events_through("turn.finished").await;
+    // Then the first is the tool call, the call's output and finish, the text and a completed finish, each of the thread that ran
+    assert_eq!(kinds(&first), ["turn.started", "message.delta", "tool.started", "tool.output", "tool.finished", "message.delta", "turn.finished"]);
+    assert_eq!((first[2].data["tool"].clone(), first[2].data["args"].clone(), first[3].data["data"].clone()), (json!("bash"), json!({"command": "ls"}), json!("a.txt")));
+    assert_eq!((first[5].data["role"].clone(), first[5].data["text"].clone(), first[6].data["reason"].clone()), (json!("assistant"), json!("Done: a.txt"), json!("completed")));
+    assert!(first.iter().all(|e| e.thread.as_deref() == Some("t1")));
+    // And the second's text is the same kind of event
+    assert_eq!(kinds(&second), ["turn.started", "message.delta", "message.delta", "turn.finished"]);
+    assert_eq!((second[2].data["role"].clone(), second[2].data["text"].clone()), (json!("assistant"), json!("from the second")));
+    // And both ran at the workspace host's root with the model and the prompt, not interactively, none with its own tools switched off or its tool list narrowed
     let spawned = svc.spawner.spawned();
-    assert_eq!((spawned[0].program.as_str(), spawned[0].cwd.clone()), ("claude", std::path::PathBuf::from(".")));
-    assert!(spawned[0].args.windows(2).any(|w| w == ["--model", "m1"]) && spawned[0].args.contains(&"stream-json".to_string()) && spawned[0].args.contains(&"make a note".to_string()), "{:?}", spawned[0].args);
-    // And both run at that root with the prompt, none with its own tools switched off or its tool list narrowed
-    assert_eq!(spawned.iter().map(|s| (s.program.as_str(), s.cwd.clone())).collect::<Vec<_>>(), [("claude", ".".into()), ("env", ".".into())]);
-    assert!(spawned.iter().all(|s| s.args.contains(&"make a note".to_string())), "{spawned:?}");
+    assert_eq!(spawned.iter().map(|s| (s.program.as_str(), s.cwd.clone())).collect::<Vec<_>>(), [("env", ".".into()), ("env", ".".into())]);
+    assert!(spawned.iter().all(|s| s.args.contains(&"make a note".to_string()) && s.args.iter().any(|a| a == "opencode") && s.args.windows(2).any(|w| w == ["-m", "m1"])), "{spawned:?}");
     let switched_off = ["--tools", "--allowedTools", "--allowed-tools", "--disallowedTools", "--disallowed-tools", "--no-builtin-tools"];
     assert!(spawned.iter().all(|s| !s.args.iter().any(|a| switched_off.contains(&a.as_str()) || a.contains("\"tools\":"))), "{spawned:?}");
-    assert!(spawned[1].args.iter().any(|a| a == "opencode"), "{spawned:?}");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_clis_that_fail_when_turns_run_then_each_thread_logs_an_error_with_the_reason_and_finishes_failed() {
-    // Given an executor for the workspace, Claude Code reporting an error result, opencode exiting with stderr and no JSON, and a CLI that is not installed
+    // Given an executor for the workspace, opencode reporting an error line, opencode exiting with stderr and no JSON, and a CLI that is not installed
     let env = Env::new(&[]);
     let svc = service(&env, Options::default());
     let port = svc.listen().await;
     let _executor = Executor::connect(port, "w1").await;
-    svc.spawner.script("claude", CliScript { lines: vec![r#"{"type":"result","is_error":true,"result":"rate limited"}"#.into()], ..CliScript::default() });
-    svc.spawner.script("env", CliScript { exit: Some("exited with 1: not logged in".into()), ..CliScript::default() });
+    svc.spawner.script_each(
+        "env",
+        vec![
+            CliScript { lines: vec![r#"{"type":"error","error":{"data":{"message":"rate limited"}}}"#.into()], ..CliScript::default() },
+            CliScript { exit: Some("exited with 1: not logged in".into()), ..CliScript::default() },
+            CliScript { not_started: Some("not found".into()), ..CliScript::default() },
+        ],
+    );
     let mut agent = mapper(&svc, port).await;
-    for (thread, driver) in [("t1", "claudeAgent"), ("t2", "opencode")] {
-        followed(&mut agent, thread, "w1", driver).await;
+    for thread in ["t1", "t2", "t3"] {
+        followed(&mut agent, thread, "w1", "opencode").await;
     }
-    // When a turn runs on each
-    agent.ask("turn.start", turn("t1", "w1", "claudeAgent")).await;
-    let claude = agent.events_through("turn.finished").await;
+    // When a turn runs on each of the first two
+    agent.ask("turn.start", turn("t1", "w1", "opencode")).await;
+    let reported = agent.events_through("turn.finished").await;
     agent.ask("turn.start", turn("t2", "w1", "opencode")).await;
-    let opencode = agent.events_through("turn.finished").await;
+    let exited = agent.events_through("turn.finished").await;
     // Then each ends with an error that says why, and a failed finish
     let error = |events: &[Event]| events.iter().find(|e| e.kind == "error").map(|e| (e.data["code"].clone(), e.data["message"].clone()));
-    assert_eq!(error(&claude), Some((json!("CLI_ERROR"), json!("rate limited"))));
-    assert_eq!(error(&opencode), Some((json!("CLI_ERROR"), json!("exited with 1: not logged in"))));
-    assert!(claude.last().unwrap().data["reason"] == json!("failed") && opencode.last().unwrap().data["reason"] == json!("failed"));
+    assert_eq!(error(&reported), Some((json!("CLI_ERROR"), json!("rate limited"))));
+    assert_eq!(error(&exited), Some((json!("CLI_ERROR"), json!("exited with 1: not logged in"))));
+    assert!(reported.last().unwrap().data["reason"] == json!("failed") && exited.last().unwrap().data["reason"] == json!("failed"));
     // When a turn names a CLI that cannot be started
-    svc.spawner.script("claude", CliScript { not_started: Some("not found".into()), ..CliScript::default() });
-    followed(&mut agent, "t3", "w1", "claudeAgent").await;
-    agent.ask("turn.start", turn("t3", "w1", "claudeAgent")).await;
+    agent.ask("turn.start", turn("t3", "w1", "opencode")).await;
     let missing = agent.events_through("turn.finished").await;
     // Then the thread says it could not start and why, and finished failed
     assert_eq!(error(&missing).map(|(code, _)| code), Some(json!("CLI_START_FAILED")));
@@ -366,9 +365,9 @@ async fn given_no_executor_for_the_workspace_when_a_turn_starts_then_it_says_no_
     let (svc, port) = listening(&env, cli.clone()).await;
     let _other = Executor::connect(port, "elsewhere").await;
     let mut agent = mapper(&svc, port).await;
-    followed(&mut agent, "lonely", "lonely", "claudeAgent").await;
+    followed(&mut agent, "lonely", "lonely", "opencode").await;
     // When a turn starts
-    let refused = agent.ask("turn.start", turn("lonely", "lonely", "claudeAgent")).await;
+    let refused = agent.ask("turn.start", turn("lonely", "lonely", "opencode")).await;
     // Then the turn is refused with NO_EXECUTOR and the CLI never started
     assert_eq!(refused["error"]["code"], json!("NO_EXECUTOR"));
     assert!(cli.spawned.lock().unwrap().is_empty());
@@ -384,8 +383,8 @@ async fn given_a_turn_running_when_the_executors_channel_closes_then_the_turn_en
     let (svc, port) = listening(&env, cli).await;
     let executor = Executor::connect(port, "w1").await;
     let mut agent = mapper(&svc, port).await;
-    followed(&mut agent, "t1", "w1", "claudeAgent").await;
-    agent.ask("turn.start", turn("t1", "w1", "claudeAgent")).await;
+    followed(&mut agent, "t1", "w1", "opencode").await;
+    agent.ask("turn.start", turn("t1", "w1", "opencode")).await;
     // When the executor's channel closes mid-turn
     executor.hang_up().await;
     let end = agent.events_through("turn.finished").await;
@@ -421,8 +420,8 @@ async fn given_a_cli_on_another_host_when_it_presents_the_turns_token_then_the_t
     let _executor = Executor::connect(port, "w1").await;
     let mut agent = running_turn(&svc, port, &idle, "t1").await;
     let args = idle.spawned.lock().unwrap()[0].1.clone();
-    let config: Value = serde_json::from_str(&args[args.iter().position(|a| a == "--mcp-config").unwrap() + 1]).unwrap();
-    let bearer = config["mcpServers"]["executor"]["headers"]["Authorization"].as_str().unwrap().to_string();
+    let config: Value = serde_json::from_str(args.iter().find_map(|a| a.strip_prefix("OPENCODE_CONFIG_CONTENT=")).unwrap()).unwrap();
+    let bearer = config["mcp"]["executor"]["headers"]["Authorization"].as_str().unwrap().to_string();
     let call = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}});
     let remote = |auth: &str| svc.send(post("/mcp/t1").from([10, 1, 2, 3]).header("authorization", auth).json(call.clone()));
     // When the same caller from another address presents that token, a wrong one, and the token for another thread's route
@@ -460,12 +459,12 @@ async fn given_a_channel_or_turn_request_that_cannot_run_when_it_is_made_then_it
     let (svc, port) = listening(&env, cli.clone()).await;
     let _executor = Executor::connect(port, "w1").await;
     let mut agent = mapper(&svc, port).await;
-    followed(&mut agent, "t1", "w1", "claudeAgent").await;
+    followed(&mut agent, "t1", "w1", "opencode").await;
     // When the channel is opened without the secret, a turn names a driver nobody runs, a turn misses its prompt, and one misses its workspace
     let unauthorised = open_channel(port, "w1", None).await.err();
     let unknown = agent.ask("turn.start", turn("t1", "w1", "nobody")).await;
-    let no_prompt = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "claudeAgent"})).await;
-    let no_workspace = agent.ask("turn.start", json!({"thread": "t1", "driver": "claudeAgent", "prompt": "x"})).await;
+    let no_prompt = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "opencode"})).await;
+    let no_workspace = agent.ask("turn.start", json!({"thread": "t1", "driver": "opencode", "prompt": "x"})).await;
     // Then the open is 401, the unknown driver is UNKNOWN_DRIVER, the missing prompt and workspace are INVALID_PARAMS naming the field, and no CLI started
     assert_eq!(unauthorised.map(|(status, _)| status), Some(401));
     assert_eq!(unknown["error"]["code"], json!("UNKNOWN_DRIVER"));
@@ -500,8 +499,8 @@ async fn given_a_running_turn_when_it_is_interrupted_then_the_cli_stops_and_the_
     let (svc, port) = listening(&env, cli).await;
     let _executor = Executor::connect(port, "w1").await;
     let mut agent = mapper(&svc, port).await;
-    followed(&mut agent, "t1", "w1", "claudeAgent").await;
-    let started = agent.ask("turn.start", turn("t1", "w1", "claudeAgent")).await;
+    followed(&mut agent, "t1", "w1", "opencode").await;
+    let started = agent.ask("turn.start", turn("t1", "w1", "opencode")).await;
     // When the turn is interrupted
     let interrupted = agent.ask("turn.interrupt", json!({"thread": "t1"})).await;
     let end = agent.events_through("turn.finished").await;

@@ -115,7 +115,7 @@ impl CodexSessions {
         if let Some(server) = held.as_ref().filter(|s| s.claim()) {
             return Ok(Arc::clone(server));
         }
-        let link = linker.open(Driver::Codex, cwd).await.map_err(|e| format!("codex could not start: {e}"))?;
+        let link = linker.open(Driver::Codex, cwd, &[]).await.map_err(|e| format!("codex could not start: {e}"))?;
         let server = Arc::new(Server { workspace: workspace.to_string(), send: link.send, kill: link.running.kill, next: AtomicU64::new(0), inner: Mutex::new(Inner { last_active: Some(Instant::now()), ..Inner::default() }), shared: Arc::clone(&self.shared) });
         tokio::spawn(Arc::clone(&server).read(link.running.lines, link.running.finish));
         if let Err(why) = server.request(codex::initialize).await {
@@ -475,6 +475,14 @@ impl SessionDriver for CodexSessions {
         (server.send)(codex::answer(&waiting.rpc, &waiting.kind, verdict))
     }
 
+    fn answer_input(&self, _: &str, _: &str, _: Option<String>) -> bool {
+        false
+    }
+
+    fn alive(&self, thread: &str) -> bool {
+        self.live(thread).is_some()
+    }
+
     fn forget(&self, thread: &str) {
         if let Some(live) = locked(&self.shared.live).remove(thread) {
             let mut inner = live.server.inner();
@@ -506,7 +514,7 @@ mod tests {
     use crate::testing::{app_server, reply, say, started};
 
     fn request(thread: &str, prompt: &str, resume: Option<&str>) -> TurnRequest {
-        TurnRequest { thread_id: thread.into(), run_id: "r".into(), instance_id: "codex".into(), model: None, cwd: "work".into(), prompt: prompt.into(), runtime_mode: "full-access".into(), interaction_mode: "default".into(), resume: resume.map(str::to_string) }
+        TurnRequest { thread_id: thread.into(), run_id: "r".into(), instance_id: "codex".into(), model: None, cwd: "work".into(), prompt: prompt.into(), runtime_mode: "full-access".into(), interaction_mode: "default".into(), resume: resume.map(str::to_string), tools: None }
     }
 
     async fn drain(mut events: mpsc::Receiver<ExecEvent>) -> Vec<ExecEvent> {

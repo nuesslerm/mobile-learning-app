@@ -15,6 +15,9 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use std::time::Duration;
 
+/// A conversation id a scripted Claude Code announces: the executor accepts only a UUID for `--resume`.
+pub(crate) const KEPT: &str = "3f1c0e52-8d3b-4c71-9a55-0a1b2c3d4e5f";
+
 pub(crate) fn seqs(events: &[Event]) -> Vec<u64> {
     events.iter().map(|e| e.seq).collect()
 }
@@ -135,7 +138,8 @@ async fn given_a_scripted_cli_that_writes_a_file_through_its_tool_when_a_turn_ru
     let argv = &starts[0].argv;
     let after = |flag: &str| argv[argv.iter().position(|a| a == flag).unwrap_or_else(|| panic!("{flag} is not in {argv:?}")) + 1].clone();
     assert!(after("--mcp-config").contains(&format!("http://127.0.0.1:{}/mcp/t1", chain.port)), "{argv:?}");
-    assert!(!argv.contains(&"--disallowedTools".to_string()) && !argv.contains(&"--strict-mcp-config".to_string()) && argv.contains(&"make a note".to_string()));
+    assert!(!argv.contains(&"--disallowedTools".to_string()) && !argv.contains(&"--strict-mcp-config".to_string()));
+    assert_eq!(chain.cli.claude_prompts("claude"), ["make a note"]);
     // And the thread is idle again with the newest seq, and its history and transcript read the same events from the engine
     let thread = agent.ask("thread.get", json!({"thread": "t1"})).await;
     assert_eq!((thread["result"]["thread"]["status"].clone(), thread["result"]["thread"]["last_seq"].clone()), (json!("idle"), json!(events.last().unwrap().seq)));
@@ -250,12 +254,13 @@ async fn given_a_running_turn_when_a_second_starts_and_the_first_is_interrupted_
     let again = start_turn(&mut agent, "t1").await;
     assert!(again["result"]["turn"].is_string() && again["result"]["turn"] != json!(turn), "{again}");
     for _ in 0..200 {
-        if chain.cli.invocations("claude").len() == 2 {
+        if chain.cli.claude_prompts("claude").len() == 2 {
             break;
         }
         tokio::time::sleep(Duration::from_millis(25)).await;
     }
-    assert_eq!(chain.cli.invocations("claude").len(), 2);
+    // (both turns ran on the one process of the thread)
+    assert_eq!((chain.cli.claude_prompts("claude").len(), chain.cli.invocations("claude").len()), (2, 1));
     agent.ask("turn.interrupt", json!({"thread": "t1"})).await;
     assert!(seen.len() >= 2);
 }
@@ -619,7 +624,7 @@ async fn given_an_executor_that_dies_during_a_tool_call_when_it_is_served_again_
     // Given a claude thread whose turn announced its session and is waiting on a command at the executor
     let env = Env::new(&[]);
     let mut chain = chain(&env).await;
-    let init = json!({"type": "system", "subtype": "init", "session_id": "ses_exec_1"}).to_string();
+    let init = json!({"type": "system", "subtype": "init", "session_id": KEPT}).to_string();
     chain.script(vec![
         Turn::replaying(&[init.clone(), said("starting")]).then_calling("k1", "run_command", json!({"command": "sleep 3"})).then_line(&said("never said")),
         Turn::replaying(&[init, said("back again")]),
@@ -649,5 +654,5 @@ async fn given_an_executor_that_dies_during_a_tool_call_when_it_is_served_again_
     let resumed = |argv: &Vec<String>| argv.iter().position(|a| a == "--resume").map(|i| argv[i + 1].clone());
     let starts = chain.cli.invocations("claude");
     assert_eq!(starts.len(), 2, "{starts:?}");
-    assert_eq!((resumed(&starts[0].argv), resumed(&starts[1].argv)), (None, Some("ses_exec_1".to_string())), "{:?}", starts.iter().map(|s| s.argv.clone()).collect::<Vec<_>>());
+    assert_eq!((resumed(&starts[0].argv), resumed(&starts[1].argv)), (None, Some(KEPT.to_string())), "{:?}", starts.iter().map(|s| s.argv.clone()).collect::<Vec<_>>());
 }

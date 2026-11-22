@@ -56,18 +56,12 @@ pub struct GatewayRoute {
     pub token: String,
 }
 
-/// `command` pointed at the gateway: Claude Code through `ANTHROPIC_BASE_URL` (the turn's token as its API key, and no subscription token beside
-/// it), opencode through the `baseURL` of the provider block its config gets. Only a turn the service decided to route goes through here; a CLI
-/// that keeps its own subscription login is launched as `command` has it. Codex lives as a server for all its threads, so it has no command to
-/// point (`docs/gaps/codex-session-not-through-gateway.md`).
+/// `command` pointed at the gateway: opencode through the `baseURL` of the provider block its config gets. Only a turn the service decided to route goes
+/// through here; a CLI that keeps its own subscription login is launched as `command` has it. Claude Code and Codex live as processes that outlast a turn, so they
+/// have no command to point (`docs/gaps/codex-session-not-through-gateway.md`, `docs/gaps/claude-session-not-through-gateway.md`).
 pub fn through_gateway(driver: Driver, mut command: Command, route: &GatewayRoute) -> Command {
     match driver {
-        Driver::ClaudeAgent => {
-            let mut wrapped = vec![format!("ANTHROPIC_BASE_URL={}", route.base_url), format!("ANTHROPIC_API_KEY={}", route.token), "CLAUDE_CODE_OAUTH_TOKEN=".to_string(), command.program];
-            wrapped.extend(command.args);
-            Command { program: "env".into(), args: wrapped, cwd: command.cwd }
-        }
-        Driver::Codex => command,
+        Driver::ClaudeAgent | Driver::Codex => command,
         Driver::Opencode => {
             const PREFIX: &str = "OPENCODE_CONFIG_CONTENT=";
             let block = serde_json::json!({"options": {"baseURL": route.base_url, "apiKey": route.token}});
@@ -178,12 +172,12 @@ mod tests {
     }
 
     fn request(driver: Driver, model: Option<&str>) -> super::super::driver::TurnRequest {
-        super::super::driver::TurnRequest { thread_id: "t".into(), run_id: "r".into(), instance_id: driver.id().into(), model: model.map(str::to_string), cwd: "/w".into(), prompt: "hi".into(), runtime_mode: "full-access".into(), interaction_mode: "default".into(), resume: None }
+        super::super::driver::TurnRequest { thread_id: "t".into(), run_id: "r".into(), instance_id: driver.id().into(), model: model.map(str::to_string), cwd: "/w".into(), prompt: "hi".into(), runtime_mode: "full-access".into(), interaction_mode: "default".into(), resume: None, tools: None }
     }
 
     #[test]
     fn given_a_turn_routed_through_the_gateway_when_each_cli_is_built_then_it_is_pointed_at_the_gateway_with_the_turn_token_and_runs_with_the_provider_environment() {
-        for (driver, provider, model) in [(Driver::ClaudeAgent, "anthropic", None), (Driver::Opencode, "opencode-go", Some("opencode-go/m"))] {
+        for (driver, provider, model) in [(Driver::Opencode, "opencode-go", Some("opencode-go/m"))] {
             // Given the host command of a turn of each CLI
             let host = super::super::driver::command_for_host(driver, &request(driver, model), "http://svc:8787/mcp/t", "mcp-tok").unwrap();
             // When it is pointed at the gateway
@@ -198,11 +192,11 @@ mod tests {
     }
 
     #[test]
-    fn given_a_routed_claude_turn_when_built_then_the_subscription_token_is_blanked_and_a_codex_command_is_left_as_it_is() {
-        let claude = through_gateway(Driver::ClaudeAgent, super::super::driver::command_for(Driver::ClaudeAgent, &request(Driver::ClaudeAgent, None)).unwrap(), &route("anthropic"));
-        assert!(claude.args.contains(&"CLAUDE_CODE_OAUTH_TOKEN=".to_string()) && claude.args.contains(&"ANTHROPIC_API_KEY=rcag_turn".to_string()), "{:?}", claude.args);
-        let untouched = Command { program: "codex".into(), args: vec!["app-server".into()], cwd: ".".into() };
-        assert_eq!(through_gateway(Driver::Codex, untouched.clone(), &route("openai")), untouched);
+    fn given_a_command_of_a_cli_that_lives_when_routed_then_it_is_left_as_it_is() {
+        for (driver, args) in [(Driver::ClaudeAgent, "-p"), (Driver::Codex, "app-server")] {
+            let untouched = Command { program: driver.program().into(), args: vec![args.into()], cwd: ".".into() };
+            assert_eq!(through_gateway(driver, untouched.clone(), &route("anthropic")), untouched, "{}", driver.id());
+        }
     }
 
     #[test]

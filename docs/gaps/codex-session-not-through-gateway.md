@@ -13,7 +13,7 @@ links:
 
 ## What is broken
 
-A turn of Claude Code or opencode is routed through the gateway when the service holds a key for the provider: the CLI is given the gateway's address and a token of that turn alone. Codex used to be too (`model_providers.gateway` and `CODEX_GATEWAY_TOKEN` on the command line of each `codex exec`). Codex now runs as one server for every thread of a workspace, so there is no command line per turn and an environment variable is the server's for good; a token that dies with each turn cannot be given to it that way. A Codex turn therefore runs with the login of the workspace host, whether or not the service holds an OpenAI key, and the key is never given to the host either.
+A turn of opencode is routed through the gateway when the service holds a key for the provider: the CLI is given the gateway's address and a token of that turn alone. Codex used to be too (`model_providers.gateway` and `CODEX_GATEWAY_TOKEN` on the command line of each `codex exec`). Codex now runs as one server for every thread of a workspace, so there is no command line per turn and an environment variable is the server's for good; a token that dies with each turn cannot be given to it that way. A Codex turn therefore runs with the login of the workspace host, whether or not the service holds an OpenAI key, and the key is never given to the host either.
 
 ## Why blocked
 

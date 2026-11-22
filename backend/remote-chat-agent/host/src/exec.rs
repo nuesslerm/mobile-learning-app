@@ -176,10 +176,11 @@ impl Spawner for Processes {
 
 #[async_trait]
 impl Linker for Processes {
-    /// The driver's CLI as the server it has a mode for, with its input open, leading a process group of its own that dies with it.
-    async fn open(&self, driver: Driver, cwd: &Path) -> Result<Link, String> {
+    /// The driver's CLI as the live process it has a mode for, with the flags of its conversation after its own, its input open, leading a process group of
+    /// its own that dies with it.
+    async fn open(&self, driver: Driver, cwd: &Path, flags: &[String]) -> Result<Link, String> {
         let words = driver.server_args().ok_or_else(|| format!("{} has no server mode", driver.id()))?;
-        let args: Vec<String> = words.iter().map(|w| w.to_string()).collect();
+        let args: Vec<String> = words.iter().map(|w| w.to_string()).chain(flags.iter().cloned()).collect();
         let live;
         let inherited = match &self.inherited {
             Some(vars) => vars,

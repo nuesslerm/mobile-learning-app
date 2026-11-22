@@ -58,7 +58,10 @@ fn record_result(result: &serde_json::Value) {
     }
 }
 
-async fn real_turn(driver: &str, model: Option<&str>) {
+/// The second prompt of a thread whose first turn replied PONG: only a live session that kept its conversation can answer it.
+const FOLLOW_UP: &str = "Without using any tool, reply with the single word you replied with just before.";
+
+async fn real_turn(driver: &str, model: Option<&str>, follow_up: bool) {
     // Given the service, the real executor with the pinned CLI and its credential, and a mapper following a new thread
     let env = Env::new(&[]);
     let (path, creds, home) = executor_env();
@@ -90,24 +93,38 @@ async fn real_turn(driver: &str, model: Option<&str>) {
     assert_eq!(finished.data["reason"], json!("completed"), "{driver}: {:?}", events.iter().map(|e| (e.kind.clone(), e.data.clone())).collect::<Vec<_>>());
     assert!(answer.to_uppercase().contains("PONG"), "{driver} answered {answer:?}");
     assert!(repo.path().join("hello.txt").exists(), "{driver} wrote no hello.txt: {:?}", events.iter().map(|e| e.kind.as_str()).collect::<Vec<_>>());
+    if !follow_up {
+        return;
+    }
+    // When the same thread is asked again, Then it runs on the process and conversation of the first turn and answers from them
+    let mut again = json!({"thread": "t1", "workspace": "w1", "driver": driver, "prompt": FOLLOW_UP, "runtime_mode": "full-access"});
+    if let Some(model) = model {
+        again["model"] = json!(model);
+    }
+    let asked = agent.ask("turn.start", again).await;
+    assert!(asked.get("result").is_some(), "{asked}");
+    let second = tokio::time::timeout(Duration::from_secs(420), agent.events_through("turn.finished")).await.expect("the second turn finished within seven minutes");
+    let reply: String = second.iter().filter(|e| e.kind == "message.delta" && e.data["role"] == json!("assistant")).filter_map(|e| e.data["text"].as_str()).collect();
+    assert_eq!(second.last().unwrap().data["reason"], json!("completed"), "{driver}: {:?}", second.iter().map(|e| (e.kind.clone(), e.data.clone())).collect::<Vec<_>>());
+    assert!(reply.to_uppercase().contains("PONG"), "{driver} lost its conversation: it answered {reply:?}");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 #[ignore = "a real model: run by the real-backends job with RCA_REAL_CLI_DIR and the credential"]
 async fn given_the_pinned_claude_when_a_turn_writes_a_file_then_it_finishes_completed_with_the_file_in_the_workspace() {
-    real_turn("claudeAgent", None).await;
+    real_turn("claudeAgent", None, true).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 #[ignore = "a real model: run by the real-backends job with RCA_REAL_CLI_DIR and the credential"]
 async fn given_the_pinned_codex_when_a_turn_writes_a_file_then_it_finishes_completed_with_the_file_in_the_workspace() {
-    real_turn("codex", None).await;
+    real_turn("codex", None, false).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 #[ignore = "a real model: run by the real-backends job with RCA_REAL_CLI_DIR and the credential"]
 async fn given_the_pinned_opencode_when_a_turn_writes_a_file_then_it_finishes_completed_with_the_file_in_the_workspace() {
-    real_turn("opencode", Some("opencode-go/deepseek-v4.1-flash")).await;
+    real_turn("opencode", Some("opencode-go/deepseek-v4.1-flash"), false).await;
 }
 
 #[test]

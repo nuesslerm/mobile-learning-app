@@ -2,7 +2,7 @@
 //! ports, driven through the router: an HTTP request goes in with `oneshot`, a WebSocket over an in-memory duplex pipe that the
 //! router serves as `axum::serve` serves a socket. The environment the service reads is a map of the flow's own (`Env`).
 
-use rca_group_agent::host::{AtWorkspace, CliLauncher, Fixed};
+use rca_group_agent::host::{AtWorkspace, CliLauncher, Fixed, FixedLinks};
 use super::doubles::{CommandsPort, FakeCommands, FakeOpencode, FakeOutbound, OpencodePort, OutboundPort};
 use axum::body::Body;
 use axum::extract::ConnectInfo;
@@ -118,11 +118,15 @@ pub struct Options {
     pub browser: bool,
     /// How long Codex's live server may stay up with no turn running.
     pub codex_idle: Duration,
+    /// How long a Claude Code process may stay up with no turn running in it.
+    pub claude_idle: Duration,
+    /// The live CLIs a flow without an executor starts, in place of the launcher's own: none starts one.
+    pub linker: Option<Arc<dyn rca_cli_driver::application::ports::Linker>>,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Self { gateway: None, secret: Some(SECRET), state_dir: None, hard_timeout_ms: 1_500, heartbeat: Duration::from_secs(15), default_cwd: None, requests_per_minute: rca_service::api::routes::REQUESTS_PER_MINUTE, ledger_error: None, files: None, at_workspace: false, browser: false, codex_idle: Duration::from_secs(600) }
+        Self { gateway: None, secret: Some(SECRET), state_dir: None, hard_timeout_ms: 1_500, heartbeat: Duration::from_secs(15), default_cwd: None, requests_per_minute: rca_service::api::routes::REQUESTS_PER_MINUTE, ledger_error: None, files: None, at_workspace: false, browser: false, codex_idle: Duration::from_secs(600), claude_idle: Duration::from_secs(600), linker: None }
     }
 }
 
@@ -180,7 +184,7 @@ pub fn agent_api_with(env: &Env, config: &Config, launcher: Arc<dyn CliLauncher>
 /// The groups the service registers, for the flows that read the table and answer nothing.
 pub fn agent_api(env: &Env) -> AgentApi {
     let home = env.home.to_string_lossy().into_owned();
-    let config = Config { port: 0, allowed_origins: Vec::new(), api_secret: Some(SECRET.into()), commit: "flow-sha".into(), default_cwd: home.clone(), hard_timeout_ms: 1_500, state_dir: None, exec_root: home, heartbeat: Duration::from_secs(15), requests_per_minute: 120, edit_stats_flush: Duration::from_millis(50), state_seq_base: 0, agent_public_url: None, codex_idle: Duration::from_secs(600), browser: false };
+    let config = Config { port: 0, allowed_origins: Vec::new(), api_secret: Some(SECRET.into()), commit: "flow-sha".into(), default_cwd: home.clone(), hard_timeout_ms: 1_500, state_dir: None, exec_root: home, heartbeat: Duration::from_secs(15), requests_per_minute: 120, edit_stats_flush: Duration::from_millis(50), state_seq_base: 0, agent_public_url: None, codex_idle: Duration::from_secs(600), claude_idle: Duration::from_secs(600), browser: false };
     agent_api_for(env, &config, ScriptedSpawner::new())
 }
 
@@ -228,11 +232,16 @@ fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, transport: Ar
         state_seq_base: 0,
         agent_public_url: None,
         codex_idle: options.codex_idle,
+        claude_idle: options.claude_idle,
         browser: options.browser,
     };
     let models = ScriptedModelApi::from_fixture();
     let clock = Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS));
-    let launcher: Arc<dyn CliLauncher> = if options.at_workspace { Arc::new(AtWorkspace) } else { Arc::new(Fixed(spawn.clone())) };
+    let launcher: Arc<dyn CliLauncher> = match (options.at_workspace, options.linker) {
+        (true, _) => Arc::new(AtWorkspace),
+        (false, Some(linker)) => Arc::new(FixedLinks(spawn.clone(), linker)),
+        (false, None) => Arc::new(Fixed(spawn.clone())),
+    };
     let agent_api = agent_api_with(env, &config, launcher, models.clone(), clock.clone(), options.gateway);
     let commands_port = Arc::new(CommandsPort(Arc::clone(&commands)));
     let outbound_port = Arc::new(OutboundPort(Arc::clone(&outbound)));

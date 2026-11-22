@@ -46,10 +46,10 @@ async fn given_a_turn_in_the_mode_that_asks_when_the_person_accepts_the_tool_the
     let position = |kind: &str| all.iter().position(|k| *k == kind).unwrap();
     assert!(position("tool.started") < position("tool.finished"), "{all:?}");
     assert!(seqs(&seen).windows(2).all(|pair| pair[0] < pair[1]));
-    // And the CLI read an allow carrying the input it asked about, and was started with the executor's approval tool as its permission prompt
+    // And the CLI read an allow carrying the input it asked about, and was started with the permission prompts of the live stream, not the service's approval tool
     assert_eq!(output_of(&seen, "k1"), json!({"behavior": "allow", "updatedInput": approval_call()["input"]}));
     let argv = chain.cli.invocations("claude")[0].argv.clone();
-    assert!(argv.windows(2).any(|w| w == ["--permission-prompt-tool", "mcp__executor__approval_prompt"]), "{argv:?}");
+    assert!(argv.windows(2).any(|w| w == ["--permission-prompt-tool", "stdio"]) && !argv.iter().any(|a| a.contains("approval_prompt")), "{argv:?}");
     // And nothing was written: the call was the service's to answer, and the executor was not asked
     assert_eq!(chain.repo.git(&["status", "--porcelain"]), "");
 }

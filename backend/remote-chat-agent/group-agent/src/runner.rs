@@ -11,10 +11,10 @@ use agent_api_agent::{code, message, FinishReason, Role, Status, ThreadEvent, Th
 use agent_api_proto::Event;
 use crate::gateway::{NoGateway, TurnGateway};
 use crate::host::CliLauncher;
-use rca_cli_driver::application::codex_sessions::CodexSessions;
+use rca_cli_driver::application::sessions::Sessions;
 use rca_cli_driver::application::ports::SessionDriver;
 use rca_cli_driver::application::turns::Turns;
-use rca_cli_driver::domain::{command_for_host, through_gateway, Command as CliCommand, Driver, GatewayRoute, TurnRequest, Verdict};
+use rca_cli_driver::domain::{command_for_host, through_gateway, Command as CliCommand, Driver, GatewayRoute, ToolServer, TurnRequest, Verdict};
 use rca_exec_channel::remote::ExecutorChannel;
 use rca_exec_channel::Executors;
 use std::sync::{Arc, Weak};
@@ -159,8 +159,8 @@ pub struct Runner {
     engine: Arc<dyn ThreadEngine>,
     executors: Arc<dyn Executors>,
     turns: Arc<Turns>,
-    /// The live sessions of the CLIs that stay up between turns (Codex).
-    sessions: Arc<CodexSessions>,
+    /// The live sessions of the CLIs that stay up between turns (Claude Code, Codex).
+    sessions: Arc<Sessions>,
     mcp: Arc<dyn McpEndpoint>,
     launcher: Arc<dyn CliLauncher>,
     /// The token each running turn gave its CLI for the service's tool server: the CLI may run on another host than the service.
@@ -180,7 +180,7 @@ impl Runner {
 
     /// A runner whose turns go through `gateway` when it routes them.
     pub fn with_gateway(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, launcher: Arc<dyn CliLauncher>, mcp: Arc<dyn McpEndpoint>, gateway: Arc<dyn TurnGateway>) -> Arc<Runner> {
-        let runner = Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::default()), sessions: Arc::new(CodexSessions::default()), mcp, launcher, mcp_tokens: Default::default(), gateway, routes: Default::default(), in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
+        let runner = Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::default()), sessions: Arc::new(Sessions::default()), mcp, launcher, mcp_tokens: Default::default(), gateway, routes: Default::default(), in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
         let me = Arc::downgrade(&runner);
         runner.engine.on_settled(Arc::new(move |thread| {
             if let Some(runner) = me.upgrade() {
@@ -203,7 +203,7 @@ impl Runner {
     }
 
     /// The live sessions of the CLIs that stay up between turns: how long an idle one is kept is set on it.
-    pub fn sessions(&self) -> &Arc<CodexSessions> {
+    pub fn sessions(&self) -> &Arc<Sessions> {
         &self.sessions
     }
 
@@ -226,15 +226,17 @@ impl Runner {
         self.mcp.url(thread)
     }
 
-    /// The token the thread's turn gives its CLI for the tool server, made when the turn first asks and gone when the turn is over.
+    /// The token the thread's turn gives its CLI for the tool server, made when the turn first asks and gone when the turn is over (a live CLI keeps the one
+    /// its process started with, so the token stays while the process does).
     pub fn mcp_token(&self, thread: &str) -> String {
         let mut tokens = self.mcp_tokens.lock().unwrap_or_else(|p| p.into_inner());
         tokens.entry(thread.to_string()).or_insert_with(|| uuid::Uuid::new_v4().simple().to_string()).clone()
     }
 
-    /// Whether `presented` is the token of the thread's running turn.
+    /// Whether `presented` is the token of the thread's running turn, or of its live process.
     pub fn admits_mcp(&self, thread: &str, presented: &str) -> bool {
-        self.mcp_tokens.lock().unwrap_or_else(|p| p.into_inner()).get(thread).is_some_and(|t| t == presented)
+        let held = self.mcp_tokens.lock().unwrap_or_else(|p| p.into_inner()).get(thread).is_some_and(|t| t == presented);
+        held && (self.in_flight.running(thread).is_some() || self.sessions.alive(thread))
     }
 
     pub fn waiting(&self) -> &Waiting {
@@ -290,6 +292,8 @@ impl Runner {
             runtime_mode: input.runtime_mode.clone().unwrap_or_else(|| "full-access".into()),
             interaction_mode: input.interaction_mode.clone().unwrap_or_else(|| "default".into()),
             resume: self.engine.provider_session(thread, driver.id()).unwrap_or(None),
+            // a live CLI is told of the tool server when its process starts
+            tools: (driver == Driver::ClaudeAgent).then(|| ToolServer { url: self.mcp_url(thread), token: self.mcp_token(thread) }),
         };
         let claim = self.in_flight.claim(thread, &turn, driver.lives()).ok_or_else(running)?;
         Ok(Prepared { runner: Arc::clone(self), thread: thread.to_string(), turn, driver, channel, workspace: input.workspace, claim, request, said: input.prompt, merge })
@@ -311,6 +315,11 @@ impl Runner {
     /// The person's answer to an approval a live session asked for; whether the session was waiting for it.
     pub fn answer_session(&self, thread: &str, approval: &str, verdict: Verdict) -> bool {
         self.sessions.answer(thread, approval, verdict)
+    }
+
+    /// The person's answer to a question a live session asked (`None`: they closed it); whether the session was waiting for it.
+    pub fn answer_input_session(&self, thread: &str, request: &str, answer: Option<String>) -> bool {
+        self.sessions.answer_input(thread, request, answer)
     }
 
     /// The running turn goes on with `prompt`. A CLI that lives takes it on its session and the turn goes on as it is; for one started for the turn,
@@ -359,7 +368,9 @@ impl Runner {
 
     /// The thread's requests that wait are answered as unanswerable: its turn is over.
     pub fn release_requests(&self, thread: &str) {
-        self.mcp_tokens.lock().unwrap_or_else(|p| p.into_inner()).remove(thread);
+        if !self.sessions.alive(thread) {
+            self.mcp_tokens.lock().unwrap_or_else(|p| p.into_inner()).remove(thread);
+        }
         self.release_route(thread);
         self.waiting.release(thread);
     }

@@ -32,6 +32,7 @@ fn kind(event: &ExecEvent) -> &'static str {
         ExecEvent::Reasoning(_) => "reasoning",
         ExecEvent::ToolStarted { .. } | ExecEvent::ToolFinished { .. } => "tool",
         ExecEvent::Approval { .. } => "approval",
+        ExecEvent::Input { .. } => "input",
         ExecEvent::Done => "done",
         ExecEvent::Error(_) => "error",
     }
@@ -48,6 +49,7 @@ fn request(prompt: &str, resume: Option<&str>, cwd: &Path) -> TurnRequest {
         runtime_mode: "approval-required".into(),
         interaction_mode: "default".into(),
         resume: resume.map(str::to_string),
+        tools: None,
     }
 }
 

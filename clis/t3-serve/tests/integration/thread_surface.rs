@@ -37,7 +37,8 @@ fn cmd(kind: &str, thread: &str, extra: Value) -> Value {
 
 fn wait_started(chain: &Chain, program: &str, count: usize) {
     let started = std::time::Instant::now();
-    while chain.cli.invocations(program).len() < count {
+    let seen = || if program == "claude" { chain.cli.claude_prompts(program).len() } else { chain.cli.invocations(program).len() };
+    while seen() < count {
         assert!(started.elapsed() < std::time::Duration::from_secs(30), "the CLI never started {count} times: {}", chain.evidence());
         std::thread::sleep(std::time::Duration::from_millis(50));
     }

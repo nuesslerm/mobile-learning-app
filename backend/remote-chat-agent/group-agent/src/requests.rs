@@ -202,14 +202,19 @@ impl AgentRequestsGroup {
     fn input_answer(&self, params: &Value) -> Answer {
         let p = InputAnswerParams::parse(params)?;
         let events = self.runner.decide(&p.thread, Command::InputAnswer { request: p.request.clone(), answer: p.answer.clone() })?;
-        self.runner.waiting().resolve(&p.thread, &p.request, Reply::Input(p.answer));
+        // The question is a tool call of the service's tool server that waits, or one a live session asked
+        if !self.runner.waiting().resolve(&p.thread, &p.request, Reply::Input(p.answer.clone())) {
+            self.runner.answer_input_session(&p.thread, &p.request, Some(p.answer));
+        }
         to_value(&AnswerResult { seq: self.runner.seq_of(&p.thread, &events)?, thread: p.thread, request: p.request })
     }
 
     fn input_dismiss(&self, params: &Value) -> Answer {
         let p = InputDismissParams::parse(params)?;
         let events = self.runner.decide(&p.thread, Command::InputDismiss { request: p.request.clone() })?;
-        self.runner.waiting().resolve(&p.thread, &p.request, Reply::Dismissed);
+        if !self.runner.waiting().resolve(&p.thread, &p.request, Reply::Dismissed) {
+            self.runner.answer_input_session(&p.thread, &p.request, None);
+        }
         to_value(&AnswerResult { seq: self.runner.seq_of(&p.thread, &events)?, thread: p.thread, request: p.request })
     }
 }

@@ -44,8 +44,12 @@ enum Heard {
 
 /// Opens `session` on a thread of its own, as the channel does for a long action.
 fn start(ex: &Arc<LocalExecutor>, id: &str, session: &str) -> mpsc::Receiver<Heard> {
+    start_with(ex, id, open(session))
+}
+
+fn start_with(ex: &Arc<LocalExecutor>, id: &str, args: SessionOpen) -> mpsc::Receiver<Heard> {
     let (tx, rx) = mpsc::channel();
-    let (ex, id, args) = (Arc::clone(ex), id.to_string(), open(session));
+    let (ex, id) = (Arc::clone(ex), id.to_string());
     std::thread::spawn(move || {
         let (out, started) = (tx.clone(), tx.clone());
         let ended = ex.session_open(&id, &args, &mut |s, d| {
@@ -191,4 +195,35 @@ fn given_a_claude_session_when_it_is_opened_with_a_conversation_then_the_cli_is_
     assert!(argv.starts_with("argv:-p --input-format stream-json --output-format stream-json --verbose") && argv.ends_with(&format!("--permission-prompt-tool stdio --resume {id} --permission-mode acceptEdits")), "{argv}");
     assert_eq!(text.lines().nth(1), Some(r#"echo:{"type":"user"}"#));
     assert!(ex.cancel("a1"));
+}
+
+#[test]
+fn given_a_claude_session_that_exits_leaving_a_process_that_holds_its_output_when_it_runs_then_the_open_ends_with_the_cli_in_seconds_and_nothing_is_left_behind() {
+    // Given a claude that prints a line, starts a long sleep that inherits its output, and exits 0
+    let ((_r, root), (_h, home), (_b, bin)) = (dir(), dir(), dir());
+    let pidfile = root.join("child.pid");
+    let path = bin.join("claude");
+    std::fs::write(&path, format!("#!/bin/sh\necho ready\nsleep 30 &\necho $! > {}\nexit 0\n", pidfile.display())).unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let ex = executor(&root, &home, &bin);
+    let started = Instant::now();
+    // When the session is opened
+    let heard = start_with(&ex, "a1", SessionOpen { session: "s-1".into(), program: "claude".into(), args: vec!["--session-id".into(), "6b0b2f0e-6d0e-4a0a-9a52-8d54b4b9a4de".into()], cwd: None });
+    let mut said = String::new();
+    let ended = loop {
+        match next(&heard) {
+            Heard::Started => {}
+            Heard::Out(text) => said.push_str(&text),
+            Heard::Ended(done) => break done,
+        }
+    };
+    // Then it ends in seconds with its own exit status and the line it printed, not when the sleep does, and the sleep is gone
+    assert_eq!((said.as_str(), ended.unwrap().exit_code), ("ready\n", 0));
+    assert!(started.elapsed() < Duration::from_secs(5), "{:?}", started.elapsed());
+    let pid: i32 = std::fs::read_to_string(&pidfile).unwrap().trim().parse().unwrap();
+    let until = Instant::now() + Duration::from_secs(10);
+    while !gone(pid) {
+        assert!(Instant::now() < until, "the background process is still running");
+        std::thread::sleep(Duration::from_millis(20));
+    }
 }

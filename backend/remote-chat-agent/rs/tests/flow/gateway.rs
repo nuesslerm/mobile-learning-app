@@ -17,7 +17,7 @@ fn keyed(upstream: &Arc<ScriptedUpstream>) -> Options {
     Options { gateway: Some(GatewayDoubles { upstream: upstream.clone(), keys: vec![("GATEWAY_ANTHROPIC_API_KEY", REAL), ("GATEWAY_OPENAI_API_KEY", REAL_OPENAI), ("GATEWAY_OPENCODE_GO_API_KEY", REAL_GO)] }), ..Options::default() }
 }
 
-const WATCHED: [&str; 6] = ["ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "GATEWAY_ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "CODEX_GATEWAY_TOKEN", "OPENCODE_CONFIG_CONTENT"];
+const WATCHED: [&str; 7] = ["ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "GATEWAY_ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "CODEX_GATEWAY_TOKEN", "OPENCODE_CONFIG_CONTENT", "GATEWAY_OPENCODE_GO_API_KEY"];
 
 fn held(turn: Turn) -> Turn {
     turn.then_sleeping(2500).logging_env(&WATCHED)
@@ -27,48 +27,61 @@ fn call(provider: &str, token: &str) -> crate::harness::Sent {
     post(&format!("/gateway/{provider}/v1/messages")).header("x-api-key", token).json(json!({"model": "opus", "max_tokens": 1}))
 }
 
+fn go_call(provider: &str, token: &str) -> crate::harness::Sent {
+    post(&format!("/gateway/{provider}/chat/completions")).header("authorization", &format!("Bearer {token}")).json(json!({"model": "deepseek-v4.1-flash"}))
+}
+
+async fn start_opencode(agent: &mut crate::mapper::Agent, thread: &str) {
+    agent.ask("turn.start", json!({"thread": thread, "workspace": "w1", "driver": "opencode", "model": "opencode-go/deepseek-v4.1-flash", "prompt": "go"})).await;
+}
+
+fn opencode_token(start: &exec_testkit::script::Invocation) -> String {
+    let config: Value = serde_json::from_str(start.env["OPENCODE_CONFIG_CONTENT"].as_deref().expect("a routed CLI is given a config")).unwrap();
+    config["provider"]["opencode-go"]["options"]["apiKey"].as_str().unwrap().to_string()
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
-async fn given_a_gateway_with_a_key_when_a_claude_turn_runs_then_the_cli_holds_a_token_and_the_gateway_address_never_the_key_and_the_provider_gets_the_key() {
-    // Given a service whose gateway holds the Anthropic key over a scripted provider, and a Claude Code CLI whose turn is held open and logs its environment
+async fn given_a_gateway_with_a_key_when_an_opencode_turn_runs_then_the_cli_holds_a_token_and_the_gateway_address_never_the_key_and_the_provider_gets_the_key() {
+    // Given a service whose gateway holds the opencode-go key over a scripted provider, and an opencode CLI whose turn is held open and logs its environment
     let env = Env::new(&[]);
     let upstream = ScriptedUpstream::streaming(&["data: one\n\n", "data: two\n\n"]);
     let chain = chain_with(&env, keyed(&upstream)).await;
-    chain.script(vec![held(Turn::replaying(&[said("hi")])), held(Turn::replaying(&[said("again")]))]);
+    chain.cli.script("opencode", &exec_testkit::script::Script::of(vec![held(Turn::default()), held(Turn::default())]).printing_version("0.0.0-flow"));
     let mut agent = chain.agent().await;
-    create(&mut agent, "t1").await;
+    agent.ask("thread.create", json!({"thread": "t1", "title": "n", "workspace": "w1", "driver": "opencode"})).await;
     agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
     // When a turn starts, and the CLI calls the gateway with what it was given
-    start_turn(&mut agent, "t1").await;
-    eventually("the CLI started", || !chain.cli.invocations("claude").is_empty()).await;
-    let start = chain.cli.invocations("claude").remove(0);
-    let token = start.env["ANTHROPIC_API_KEY"].clone().expect("a routed CLI is given an API key");
-    let answer = chain.service().send(call("anthropic", &token)).await;
-    // Then the CLI was given the gateway's address and a token of its own, no subscription token, and nothing of the provider's key anywhere it could read
-    assert_eq!(start.env["ANTHROPIC_BASE_URL"].as_deref(), Some(format!("http://127.0.0.1:{}/gateway/anthropic", chain.port).as_str()));
-    assert!(token.starts_with("rcag_") && token != REAL, "{token}");
-    assert_eq!(start.env["CLAUDE_CODE_OAUTH_TOKEN"].as_deref(), Some(""));
-    assert_eq!(start.env["GATEWAY_ANTHROPIC_API_KEY"], None);
-    assert!(!format!("{:?} {:?}", start.argv, start.env).contains(REAL));
+    start_opencode(&mut agent, "t1").await;
+    eventually("the CLI started", || !chain.cli.invocations("opencode").iter().all(|i| !i.argv.contains(&"go".to_string()))).await;
+    let start = chain.cli.invocations("opencode").into_iter().find(|i| i.argv.contains(&"go".to_string())).unwrap();
+    let token = opencode_token(&start);
+    let answer = chain.service().send(go_call("opencode-go", &token)).await;
+    // Then the CLI was given the gateway's address and a token of its own, and nothing of the provider's key anywhere it could read
+    let config: Value = serde_json::from_str(start.env["OPENCODE_CONFIG_CONTENT"].as_deref().unwrap()).unwrap();
+    assert_eq!(config["provider"]["opencode-go"]["options"]["baseURL"], json!(format!("http://127.0.0.1:{}/gateway/opencode-go", chain.port)));
+    assert!(token.starts_with("rcag_") && token != REAL_GO, "{token}");
+    assert_eq!(start.env["GATEWAY_OPENCODE_GO_API_KEY"], None);
+    assert!(!format!("{:?} {:?}", start.argv, start.env).contains(REAL_GO));
     // And the gateway streamed the provider's answer, which was called with the key and not with the token
     assert_eq!((answer.status, answer.text()), (StatusCode::OK, "data: one\n\ndata: two\n\n".to_string()));
     let sent = &upstream.seen()[0];
-    assert_eq!(sent.url(), "https://api.anthropic.com/v1/messages");
-    assert!(sent.headers.iter().any(|(n, v)| n == "x-api-key" && v == REAL) && sent.headers.iter().all(|(_, v)| !v.contains(&token)));
+    assert_eq!(sent.url(), "https://opencode.ai/zen/go/v1/chat/completions");
+    assert!(sent.headers.iter().any(|(n, v)| n == "authorization" && v == &format!("Bearer {REAL_GO}")) && sent.headers.iter().all(|(n, v)| n == "authorization" || !v.contains(&token)));
     // And the token is the turn's alone: another provider refuses it, the service secret opens nothing, and a restarted service knows no token
-    assert_eq!(chain.service().send(call("openai", &token)).await.json()["error"]["code"], json!("GATEWAY_WRONG_SCOPE"));
-    assert_eq!(chain.service().send(call("anthropic", crate::harness::SECRET)).await.status, StatusCode::UNAUTHORIZED);
+    assert_eq!(chain.service().send(go_call("openai", &token)).await.json()["error"]["code"], json!("GATEWAY_WRONG_SCOPE"));
+    assert_eq!(chain.service().send(go_call("opencode-go", crate::harness::SECRET)).await.status, StatusCode::UNAUTHORIZED);
     let restarted = service(&env, keyed(&upstream));
-    let dead = restarted.send(call("anthropic", &token)).await;
+    let dead = restarted.send(go_call("opencode-go", &token)).await;
     assert_eq!((dead.status, dead.json()["error"]["code"].clone()), (StatusCode::UNAUTHORIZED, json!("GATEWAY_TOKEN_DEAD")));
     assert!(dead.json()["error"]["message"].as_str().unwrap().contains("start the turn again"));
     // When the turn ends, its token is dead, and the next turn of the thread is given another that works
     agent.events_through("turn.finished").await;
-    assert_eq!(chain.service().send(call("anthropic", &token)).await.json()["error"]["code"], json!("GATEWAY_TOKEN_DEAD"));
-    start_turn(&mut agent, "t1").await;
-    eventually("the second turn started", || chain.cli.invocations("claude").len() == 2).await;
-    let fresh = chain.cli.invocations("claude")[1].env["ANTHROPIC_API_KEY"].clone().unwrap();
+    assert_eq!(chain.service().send(go_call("opencode-go", &token)).await.json()["error"]["code"], json!("GATEWAY_TOKEN_DEAD"));
+    start_opencode(&mut agent, "t1").await;
+    eventually("the second turn started", || chain.cli.invocations("opencode").iter().filter(|i| i.argv.contains(&"go".to_string())).count() == 2).await;
+    let fresh = opencode_token(chain.cli.invocations("opencode").iter().filter(|i| i.argv.contains(&"go".to_string())).nth(1).unwrap());
     assert_ne!(fresh, token);
-    assert_eq!(chain.service().send(call("anthropic", &fresh)).await.status, StatusCode::OK);
+    assert_eq!(chain.service().send(go_call("opencode-go", &fresh)).await.status, StatusCode::OK);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
@@ -113,7 +126,7 @@ async fn given_a_gateway_with_keys_when_an_opencode_and_a_codex_turn_run_then_op
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_gateway_that_holds_no_key_for_the_provider_when_a_turn_runs_then_it_is_not_routed_and_the_cli_keeps_its_own_login() {
-    // Given a service whose gateway holds only an OpenAI key, and a Claude Code CLI (a subscription login lives at its host)
+    // Given a service whose gateway holds only an OpenAI key, and a Claude Code CLI (a subscription login lives at its host, and Claude Code is never routed: `docs/gaps/claude-session-not-through-gateway.md`)
     let env = Env::new(&[]);
     let upstream = ScriptedUpstream::streaming(&["ok"]);
     let options = Options { gateway: Some(GatewayDoubles { upstream: upstream.clone(), keys: vec![("GATEWAY_OPENAI_API_KEY", REAL_OPENAI)] }), ..Options::default() };

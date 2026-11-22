@@ -5,7 +5,6 @@
 
 use crate::harness::{agent_api, service, Env, Options, SECRET};
 use agent_api_proto::testing::{Exchange, Fixture};
-use rca_cli_driver::testing::CliScript;
 use exec_proto::testing::Fixture as ExecFixture;
 use futures_util::{SinkExt, StreamExt};
 use rca_cli_driver::domain::{translate, Driver, ExecEvent};
@@ -129,7 +128,24 @@ fn kind_of(event: &ExecEvent) -> &'static str {
         ExecEvent::Error(_) => "error",
         ExecEvent::Session(_) => "session",
         ExecEvent::Approval { .. } => "approval",
+        ExecEvent::Input { .. } => "input",
     }
+}
+
+/// What the live Claude Code session makes of a recorded stream-json line: the events it shows, and an `error` for a failed turn's result.
+fn claude_kinds(lines: &[String]) -> Vec<String> {
+    use rca_cli_driver::domain::claude::{Step, Translator};
+    let mut translator = Translator::default();
+    lines
+        .iter()
+        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+        .flat_map(|frame| translator.frame(&frame))
+        .filter_map(|step| match step {
+            Step::Event(event) => Some(kind_of(&event).to_string()),
+            Step::Result(outcome) => outcome.error.map(|_| "error".to_string()),
+            Step::Conversation(_) => None,
+        })
+        .collect()
 }
 
 #[test]
@@ -140,7 +156,12 @@ fn every_recording_of_the_scripted_cli_translates_to_the_neutral_events_its_inde
     for recording in recordings {
         // When every line of one goes through the translation the service applies to the real CLI's output
         let driver = Driver::parse(&recording.driver).unwrap_or_else(|| panic!("{}: {} is no driver of the service", recording.name, recording.driver));
-        // Codex's lines are those of `codex exec --json`, which the service no longer runs: its server is read by `domain::codex`, whose recordings are in `agent_codex.rs`
+        // Claude Code's lines are read by the live session's translator; Codex's are those of `codex exec --json`, which the service no longer runs: its server
+        // is read by `domain::codex`, whose recordings are in `agent_codex.rs`
+        if driver == Driver::ClaudeAgent {
+            assert_eq!(claude_kinds(&recording.lines), recording.expect, "{}", recording.name);
+            continue;
+        }
         if driver.lives() {
             continue;
         }
@@ -221,13 +242,20 @@ async fn attach_recorded_executor(port: u16, workspace: &str, recorded: Vec<Exec
     });
 }
 
+/// A live Claude Code process that answers its handshake and then never ends a turn, as the replayed turns need.
+fn holding_claude() -> Arc<rca_cli_driver::testing::ScriptedLinker> {
+    rca_cli_driver::testing::ScriptedLinker::reacting(|_, m| match m["request"]["subtype"].as_str() {
+        Some("initialize") => vec![json!({"type": "control_response", "response": {"subtype": "success", "request_id": m["request_id"], "response": {}}}).to_string()],
+        _ => Vec::new(),
+    })
+}
+
 /// Replays `recorded` on a service of its own: an executor that answers from the recorded executor exchanges attached for each workspace the
-/// recorded listing names, and a CLI that stays up once started (the turns of `agent.threads` end only when a request ends them).
+/// recorded listing names, and a live Claude Code that stays up once started (the turns of `agent.threads` end only when a request ends them).
 async fn replay(env: &Env, recorded: &[&Fixture], workspaces: &[String]) {
     // A service of its own has no schedule an earlier one kept on the same home
     let _ = std::fs::remove_file(env.home.join(".local/state/rca/schedules.json"));
-    let svc = service(env, Options::default());
-    svc.spawner.script("claude", CliScript { hold: true, ..CliScript::default() });
+    let svc = service(env, Options { linker: Some(holding_claude()), ..Options::default() });
     let port = svc.listen().await;
     let seen: Arc<Mutex<Vec<String>>> = Arc::default();
     for workspace in workspaces {

@@ -355,7 +355,7 @@ mod tests {
     use super::*;
 
     fn req() -> TurnRequest {
-        TurnRequest { thread_id: "t".into(), run_id: "r".into(), instance_id: "codex".into(), model: Some("gpt-x".into()), cwd: ".".into(), prompt: "go".into(), runtime_mode: "full-access".into(), interaction_mode: "default".into(), resume: None }
+        TurnRequest { thread_id: "t".into(), run_id: "r".into(), instance_id: "codex".into(), model: Some("gpt-x".into()), cwd: ".".into(), prompt: "go".into(), runtime_mode: "full-access".into(), interaction_mode: "default".into(), resume: None, tools: None }
     }
 
     fn feed(translator: &mut Translator, frames: &[Value]) -> Vec<Step> {
