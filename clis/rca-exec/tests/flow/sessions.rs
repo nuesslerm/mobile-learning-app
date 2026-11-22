@@ -28,7 +28,7 @@ fn executor(root: &Path, home: &Path, bin: &Path) -> Arc<LocalExecutor> {
 }
 
 fn open(session: &str) -> SessionOpen {
-    SessionOpen { session: session.into(), program: "codex".into(), cwd: None }
+    SessionOpen { session: session.into(), program: "codex".into(), args: Vec::new(), cwd: None }
 }
 
 fn send(ex: &LocalExecutor, session: &str, line: &str) -> Result<usize, ExecError> {
@@ -152,4 +152,43 @@ fn given_a_session_cli_that_exits_leaving_a_process_that_holds_its_output_when_i
     }
     // And a line for the ended session is refused
     assert_eq!(send(&ex, "s-1", "late").unwrap_err().code, Code::NotFound);
+}
+
+#[test]
+fn given_a_claude_session_when_it_is_opened_with_a_conversation_then_the_cli_is_started_with_its_stream_json_arguments_and_the_callers_flags_and_a_line_reaches_it() {
+    // Given an executor whose claude prints the arguments it was started with, then echoes each line it reads
+    let ((_r, root), (_h, home), (_b, bin)) = (dir(), dir(), dir());
+    let path = bin.join("claude");
+    std::fs::write(&path, "#!/bin/sh\nprintf 'argv:%s\\n' \"$*\"\nwhile IFS= read -r line; do printf 'echo:%s\\n' \"$line\"; done\n").unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let ex = executor(&root, &home, &bin);
+    let id = "6b0b2f0e-6d0e-4a0a-9a52-8d54b4b9a4de";
+    let (tx, rx) = mpsc::channel();
+    let (runner, args) = (Arc::clone(&ex), SessionOpen { session: "s-1".into(), program: "claude".into(), args: vec!["--resume".into(), id.into(), "--permission-mode".into(), "acceptEdits".into()], cwd: None });
+    std::thread::spawn(move || {
+        let (out, started) = (tx.clone(), tx.clone());
+        let ended = runner.session_open("a1", &args, &mut |s, d| {
+            if s == Stream::Stdout {
+                let _ = out.send(Heard::Out(d.to_string()));
+            }
+        }, &mut |event: Value| {
+            if event["kind"] == "session.started" {
+                let _ = started.send(Heard::Started);
+            }
+        });
+        let _ = tx.send(Heard::Ended(ended));
+    });
+    assert!(matches!(next(&rx), Heard::Started));
+    // When a line is sent
+    send(&ex, "s-1", r#"{"type":"user"}"#).unwrap();
+    let mut text = String::new();
+    while text.matches('\n').count() < 2 {
+        let Heard::Out(chunk) = next(&rx) else { panic!("the session ended early") };
+        text.push_str(&chunk);
+    }
+    // Then the CLI started with its own arguments first and the caller's flags after, and answered the line on the same process
+    let argv = text.lines().next().unwrap();
+    assert!(argv.starts_with("argv:-p --input-format stream-json --output-format stream-json --verbose") && argv.ends_with(&format!("--permission-prompt-tool stdio --resume {id} --permission-mode acceptEdits")), "{argv}");
+    assert_eq!(text.lines().nth(1), Some(r#"echo:{"type":"user"}"#));
+    assert!(ex.cancel("a1"));
 }

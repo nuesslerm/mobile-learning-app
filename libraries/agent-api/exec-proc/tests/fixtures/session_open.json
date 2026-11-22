@@ -43,7 +43,7 @@
         "tool": "session_open",
         "args": {
           "session": "s-1",
-          "program": "claude"
+          "program": "opencode"
         }
       },
       "response": {
@@ -51,7 +51,7 @@
         "ok": false,
         "error": {
           "code": "INVALID_ARGS",
-          "message": "`program` is one of codex, not \"claude\""
+          "message": "`program` is one of codex, claude, not \"opencode\""
         }
       }
     },
@@ -96,6 +96,120 @@
         "error": {
           "code": "PATH_OUTSIDE_ROOT",
           "message": "../elsewhere is outside the root"
+        }
+      }
+    },
+    {
+      "name": "starts claude over stream-json with the flags of one conversation",
+      "setup": {
+        "clis": {
+          "claude": "2.1.330 (Claude Code)"
+        }
+      },
+      "request": {
+        "id": "o5",
+        "tool": "session_open",
+        "args": {
+          "session": "s-2",
+          "program": "claude",
+          "args": [
+            "--session-id",
+            "6b0b2f0e-6d0e-4a0a-9a52-8d54b4b9a4de",
+            "--permission-mode",
+            "acceptEdits",
+            "--model",
+            "sonnet"
+          ]
+        }
+      },
+      "stream": [
+        {
+          "stream": "stdout",
+          "data": "2.1.330 (Claude Code)\n"
+        }
+      ],
+      "events": [
+        {
+          "kind": "session.started"
+        }
+      ],
+      "response": {
+        "id": "o5",
+        "ok": true,
+        "result": {
+          "exit_code": 0,
+          "cancelled": false
+        }
+      }
+    },
+    {
+      "name": "refuses a flag the program does not take in a session",
+      "request": {
+        "id": "o6",
+        "tool": "session_open",
+        "args": {
+          "session": "s-2",
+          "program": "claude",
+          "args": [
+            "--dangerously-skip-permissions",
+            "x"
+          ]
+        }
+      },
+      "response": {
+        "id": "o6",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "claude takes no flag \"--dangerously-skip-permissions\" in a session (it takes --session-id, --resume, --permission-mode, --model, --mcp-config)"
+        }
+      }
+    },
+    {
+      "name": "refuses a conversation named twice",
+      "request": {
+        "id": "o7",
+        "tool": "session_open",
+        "args": {
+          "session": "s-2",
+          "program": "claude",
+          "args": [
+            "--session-id",
+            "6b0b2f0e-6d0e-4a0a-9a52-8d54b4b9a4de",
+            "--resume",
+            "6b0b2f0e-6d0e-4a0a-9a52-8d54b4b9a4de"
+          ]
+        }
+      },
+      "response": {
+        "id": "o7",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "--session-id and --resume name the conversation twice"
+        }
+      }
+    },
+    {
+      "name": "refuses flags for a program that takes none",
+      "request": {
+        "id": "o8",
+        "tool": "session_open",
+        "args": {
+          "session": "s-2",
+          "program": "codex",
+          "args": [
+            "--model",
+            "x"
+          ]
+        }
+      },
+      "response": {
+        "id": "o8",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "codex takes no flag \"--model\" in a session (it takes none)"
         }
       }
     }

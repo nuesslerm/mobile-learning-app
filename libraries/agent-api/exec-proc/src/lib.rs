@@ -99,8 +99,18 @@ pub const LONG: &[&str] = &[SESSION_OPEN];
 /// The longest line `session_send` writes, and the most sessions one executor keeps open at once.
 pub const SESSION_LINE_MAX: usize = 1 << 20;
 pub const SESSIONS_MAX: usize = 64;
-/// What an agent CLI is started with by `session_open`, by program: the arguments are the CLI's own, never the caller's.
-pub const SESSION_ARGS: [(&str, &[&str]); 1] = [("codex", &["app-server"])];
+/// What an agent CLI is started with by `session_open`, by program: the arguments are the CLI's own. The caller adds only the per-session flags of
+/// `SESSION_FLAGS`, each checked.
+pub const SESSION_ARGS: [(&str, &[&str]); 2] = [
+    ("codex", &["app-server"]),
+    ("claude", &["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--include-partial-messages", "--replay-user-messages", "--permission-prompt-tool", "stdio"]),
+];
+/// The flags a caller may add to a session's CLI, by program, each with one value: Claude Code's conversation (a new id, or one to resume), its permission
+/// mode, its model and the tool servers it is told of.
+pub const SESSION_FLAGS: [(&str, &[&str]); 2] = [("codex", &[]), ("claude", &["--session-id", "--resume", "--permission-mode", "--model", "--mcp-config"])];
+/// The permission modes `--permission-mode` may name, and the longest value a flag may carry.
+pub const PERMISSION_MODES: [&str; 6] = ["default", "acceptEdits", "bypassPermissions", "plan", "dontAsk", "auto"];
+pub const SESSION_FLAG_VALUE_MAX: usize = 16 * 1024;
 
 /// The family's actions, in the contract's order.
 pub const ACTIONS: &[Action] = &[
@@ -172,10 +182,11 @@ pub const ACTIONS: &[Action] = &[
     },
     Action {
         name: SESSION_OPEN,
-        about: "Start a live conversation process of an agent CLI (codex: `codex app-server`) in the workspace, with the executor's own login, and stream its stdout lines until it ends; cancelling the action stops the process and everything it started.",
+        about: "Start a live conversation process of an agent CLI (codex: `codex app-server`, claude: `claude -p` over stream-json) in the workspace, with the executor's own login, and stream its stdout lines until it ends; cancelling the action stops the process and everything it started.",
         properties: &[
             Property { name: "session", kind: "string", about: "An id the caller chooses, for session_send to name (1 to 128 characters, not in use)" },
-            Property { name: "program", kind: "string", about: "One of the agent CLIs that run as a session: codex" },
+            Property { name: "program", kind: "string", about: "One of the agent CLIs that run as a session: codex, claude" },
+            Property { name: "args", kind: "array", about: "Flags and their values for the CLI, from the program's list: claude takes --session-id or --resume (a UUID), --permission-mode, --model and --mcp-config" },
             Property { name: "cwd", kind: "string", about: "Directory relative to the workspace root" },
         ],
         required: &["session", "program"],
@@ -440,6 +451,8 @@ pub struct CliUpdated {
 pub struct SessionOpen {
     pub session: String,
     pub program: String,
+    /// The per-session flags and their values, as `SESSION_FLAGS` allows them.
+    pub args: Vec<String>,
     pub cwd: Option<String>,
 }
 
@@ -454,13 +467,57 @@ impl SessionOpen {
             let known: Vec<&str> = SESSION_ARGS.iter().map(|(p, _)| *p).collect();
             return Err(ExecError::invalid_args(format!("`program` is one of {}, not {program:?}", known.join(", "))));
         }
-        Ok(SessionOpen { session, program, cwd: opt_string(args, "cwd")? })
+        let given = match &args["args"] {
+            Value::Null => Vec::new(),
+            Value::Array(items) => items.iter().map(|v| v.as_str().map(str::to_string).ok_or_else(|| ExecError::invalid_args("`args` holds strings only"))).collect::<ExecResult<Vec<_>>>()?,
+            _ => return Err(ExecError::invalid_args("`args` must be an array of strings")),
+        };
+        check_session_flags(&program, &given)?;
+        Ok(SessionOpen { session, program, args: given, cwd: opt_string(args, "cwd")? })
     }
 
-    /// The arguments the CLI is started with.
-    pub fn args(&self) -> &'static [&'static str] {
-        SESSION_ARGS.iter().find(|(p, _)| *p == self.program).map_or(&[], |(_, a)| a)
+    /// The arguments the CLI is started with: its own, then the caller's flags.
+    pub fn argv(&self) -> Vec<String> {
+        let own = SESSION_ARGS.iter().find(|(p, _)| *p == self.program).map_or(&[][..], |(_, a)| a);
+        own.iter().map(|a| a.to_string()).chain(self.args.iter().cloned()).collect()
     }
+}
+
+fn is_uuid(text: &str) -> bool {
+    let parts: Vec<&str> = text.split('-').collect();
+    parts.len() == 5 && [8, 4, 4, 4, 12].iter().zip(&parts).all(|(n, p)| p.len() == *n && p.chars().all(|c| c.is_ascii_hexdigit()))
+}
+
+/// A session's flags are pairs of one flag of the program's list and its value, each flag once; a conversation is named once, by a new id or by one to resume.
+fn check_session_flags(program: &str, given: &[String]) -> ExecResult<()> {
+    let allowed = SESSION_FLAGS.iter().find(|(p, _)| *p == program).map_or(&[][..], |(_, f)| f);
+    if given.len() % 2 != 0 {
+        return Err(ExecError::invalid_args("`args` is flag and value pairs"));
+    }
+    let mut seen: Vec<&str> = Vec::new();
+    for pair in given.chunks(2) {
+        let (flag, value) = (pair[0].as_str(), pair[1].as_str());
+        if !allowed.contains(&flag) {
+            return Err(ExecError::invalid_args(format!("{program} takes no flag {flag:?} in a session (it takes {})", if allowed.is_empty() { "none".to_string() } else { allowed.join(", ") })));
+        }
+        if seen.contains(&flag) {
+            return Err(ExecError::invalid_args(format!("{flag} is given twice")));
+        }
+        seen.push(flag);
+        let fine = match flag {
+            "--session-id" | "--resume" => is_uuid(value),
+            "--permission-mode" => PERMISSION_MODES.contains(&value),
+            "--model" => !value.is_empty() && value.len() <= 128 && value.chars().all(|c| c.is_ascii_alphanumeric() || "-_.:/[]".contains(c)),
+            _ => value.len() <= SESSION_FLAG_VALUE_MAX && serde_json::from_str::<Value>(value).is_ok_and(|v| v.is_object()),
+        };
+        if !fine {
+            return Err(ExecError::invalid_args(format!("the value of {flag} is not acceptable")));
+        }
+    }
+    if seen.contains(&"--session-id") && seen.contains(&"--resume") {
+        return Err(ExecError::invalid_args("--session-id and --resume name the conversation twice"));
+    }
+    Ok(())
 }
 
 /// How a session ended: the exit code of its process (`128 + signal` when a signal ended it) and whether cancelling the action ended it.
@@ -639,6 +696,35 @@ mod tests {
     }
 
     #[test]
+    fn given_a_session_open_request_when_parsed_then_the_cli_keeps_its_own_arguments_and_only_the_listed_flags_with_good_values_are_added() {
+        // Given a claude session with a new conversation, a mode, a model and a tool server
+        let id = "6b0b2f0e-6d0e-4a0a-9a52-8d54b4b9a4de";
+        let open = |program: &str, args: Value| SessionOpen::parse(&json!({"session": "s", "program": program, "args": args}));
+        let ok = open("claude", json!(["--session-id", id, "--permission-mode", "plan", "--model", "claude-sonnet-5-5", "--mcp-config", "{\"mcpServers\":{}}"])).unwrap();
+        // When its arguments are built
+        let argv = ok.argv();
+        // Then the CLI's own come first (stream-json both ways, the stdio permission prompt), and the caller's follow in order
+        assert_eq!(&argv[..3], ["-p", "--input-format", "stream-json"]);
+        assert!(argv.windows(2).any(|w| w == ["--permission-prompt-tool", "stdio"]));
+        assert_eq!(&argv[argv.len() - 8..argv.len() - 6], ["--session-id", id]);
+        // And a flag off the list, a bad value, a repeat, an odd count, both ways to name a conversation and flags for codex are INVALID_ARGS
+        let refused = [
+            open("claude", json!(["--dangerously-skip-permissions", "x"])),
+            open("claude", json!(["--permission-mode", "yolo"])),
+            open("claude", json!(["--resume", "not-a-uuid"])),
+            open("claude", json!(["--model", "a b"])),
+            open("claude", json!(["--mcp-config", "[1]"])),
+            open("claude", json!(["--model", "a", "--model", "b"])),
+            open("claude", json!(["--model"])),
+            open("claude", json!(["--session-id", id, "--resume", id])),
+            open("claude", json!("--model")),
+            open("codex", json!(["--model", "x"])),
+        ];
+        assert!(refused.iter().all(|r| r.as_ref().is_err_and(|e| e.code == Code::InvalidArgs)), "{refused:?}");
+        assert_eq!(open("codex", json!([])).unwrap().argv(), ["app-server"]);
+    }
+
+    #[test]
     fn given_a_run_command_request_when_parsed_then_the_timeout_defaults_and_the_environment_keeps_its_order() {
         // Given a command with two variables and one with only a command
         let full = RunCommand::parse(&json!({"command": "ls", "cwd": "src", "timeout_ms": 5, "env": {"B": "2", "A": "1"}})).unwrap();
@@ -732,11 +818,11 @@ mod tests {
     fn given_session_requests_when_parsed_then_only_a_named_session_of_a_listed_program_opens_and_a_line_is_one_line() {
         // Given an open of codex, one of a program with no session mode, one with no id, one with an id that is too long, and lines with and without a newline
         let open = SessionOpen::parse(&json!({"session": "s1", "program": "codex", "cwd": "sub"})).unwrap();
-        let refused: Vec<_> = [json!({"session": "s1", "program": "claude"}), json!({"program": "codex"}), json!({"session": "", "program": "codex"}), json!({"session": "x".repeat(129), "program": "codex"})].iter().map(|a| SessionOpen::parse(a).unwrap_err().code).collect();
+        let refused: Vec<_> = [json!({"session": "s1", "program": "opencode"}), json!({"program": "codex"}), json!({"session": "", "program": "codex"}), json!({"session": "x".repeat(129), "program": "codex"})].iter().map(|a| SessionOpen::parse(a).unwrap_err().code).collect();
         let sent = SessionSend::parse(&json!({"session": "s1", "line": "{\"id\":1}"})).unwrap();
         let two_lines = SessionSend::parse(&json!({"session": "s1", "line": "a\nb"})).unwrap_err();
         // Then the open starts the CLI with its own arguments, the others are INVALID_ARGS, and a line with a newline is refused
-        assert_eq!((open.args(), open.cwd.as_deref()), (&["app-server"][..], Some("sub")));
+        assert_eq!((open.argv(), open.cwd.as_deref()), (vec!["app-server".to_string()], Some("sub")));
         assert!(refused.iter().all(|c| *c == Code::InvalidArgs), "{refused:?}");
         assert_eq!(sent.line, "{\"id\":1}");
         assert!(two_lines.code == Code::InvalidArgs && two_lines.message.contains("one line"));

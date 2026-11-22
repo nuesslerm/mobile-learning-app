@@ -404,7 +404,7 @@ impl ToolExecutor for LocalExecutor {
             None => self.root.clone(),
         };
         let mut cmd = Command::new(path);
-        cmd.args(args.args()).current_dir(cwd).env("PATH", search).env("HOME", home).env("NO_COLOR", "1").stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).process_group(0);
+        cmd.args(args.argv()).current_dir(cwd).env("PATH", search).env("HOME", home).env("NO_COLOR", "1").stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).process_group(0);
         self.sessions.reserve(&args.session)?;
         let ended = self.drive(id, cmd, None, usize::MAX, Some((&args.session, events)), output);
         self.sessions.release(&args.session);
