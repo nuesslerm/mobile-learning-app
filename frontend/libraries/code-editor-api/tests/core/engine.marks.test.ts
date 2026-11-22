@@ -132,3 +132,75 @@ describe('when the engine tells the host about marks', () => {
     expect(told.marks).toHaveLength(2);
   });
 });
+
+describe('a select step that reveals', () => {
+  it('given a select step with reveal, when it lands, then view reports the new head as revealed without the host being asked to center it, and the next edit clears it', async () => {
+    const { fake, told, client } = watched();
+
+    unwrap(await client.select(2, 6, { reveal: true }));
+
+    expect(unwrap(await client.marks()).revealed).toEqual({ from: 6, to: 6 });
+    expect(fake.peek()).toMatchObject({ selection: { ranges: [{ anchor: 2, head: 6 }] }, revealed: { from: 6, to: 6 } });
+    expect(told.reveals).toEqual([]);
+    unwrap(await client.insertAt(0, 'x'));
+    expect(unwrap(await client.marks()).revealed).toBeNull();
+  });
+
+  it('given a selection whose head is before its anchor, when it reveals, then the head is what is revealed', async () => {
+    const { client } = watched();
+
+    unwrap(await client.select(6, 2, { reveal: true }));
+
+    expect(unwrap(await client.marks()).revealed).toEqual({ from: 2, to: 2 });
+  });
+
+  it('given an earlier reveal, when a select step without reveal runs, then revealed is as it was', async () => {
+    const { client } = watched();
+    unwrap(await client.reveal({ from: 8, to: 9 }));
+
+    unwrap(await client.select(1));
+    unwrap(await client.select(3, 4, { reveal: false }));
+
+    expect(unwrap(await client.marks()).revealed).toEqual({ from: 8, to: 9 });
+  });
+
+  it('given a batch that edits and then selects with reveal, when it lands, then revealed is the head after the edit', async () => {
+    const { client } = watched();
+
+    unwrap(await client.transact([{ op: 'replace', range: { from: 0, to: 0 }, text: 'ab' }, { op: 'select', anchor: { step: 0, edge: 'end' }, reveal: true }]));
+
+    expect(unwrap(await client.marks()).revealed).toEqual({ from: 2, to: 2 });
+  });
+
+  it('given a preview with reveal, when it runs, then nothing is selected or revealed', async () => {
+    const { fake, client } = watched();
+
+    unwrap(await client.select(4, undefined, { reveal: true, preview: true }));
+
+    expect(unwrap(await client.marks()).revealed).toBeNull();
+    expect(fake.peek().selection.ranges[0]).toEqual({ anchor: 0, head: 0 });
+  });
+
+  it('given a host that cannot reveal, when a select step carries reveal, then it is unsupported naming view:reveal and the selection is where it was, and a select without reveal still lands', async () => {
+    const fake = createFakeEditor({ text: '0123456789', marks: false });
+    const client = createEditorClient(fake.engine);
+    fake.userSelects(1);
+
+    const refused = await client.select(5, undefined, { reveal: true });
+    const plain = await client.select(5);
+
+    expect(refused).toMatchObject({ ok: false, error: { code: 'unsupported', what: 'view:reveal' } });
+    expect(plain.ok).toBe(true);
+    expect(fake.peek().selection.ranges[0]).toEqual({ anchor: 5, head: 5 });
+  });
+
+  it('given a select step with reveal that is refused as stale, when it runs, then nothing is revealed', async () => {
+    const { fake, client } = watched();
+    fake.userTypes('k');
+
+    const reply = await client.select(3, undefined, { reveal: true, at: 0 });
+
+    expect(reply).toMatchObject({ ok: false, error: { code: 'stale' } });
+    expect(unwrap(await client.marks()).revealed).toBeNull();
+  });
+});

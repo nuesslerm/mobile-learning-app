@@ -39,7 +39,8 @@ export type EditorClient = {
   reindentBlock(node: Range | 'selection', by?: number, options?: Options): Promise<Reply<ApplyValue>>;
   /** removes the whole lines of the statement or run of statements `node` names (an empty 'selection' is the statement at the caret), with the comment lines above it; refused as `would-not-parse` when the code would break */
   deleteNode(node: Range | 'selection', options?: Options & { readonly expect?: string }): Promise<Reply<ApplyValue>>;
-  select(anchor: Point, head?: Point, options?: Options): Promise<Reply<ApplyValue>>;
+  /** `reveal` scrolls the new head into view at the nearest edge, in the same call; only when the engine announces `view.reveal` (else `unsupported`) */
+  select(anchor: Point, head?: Point, options?: Options & { readonly reveal?: boolean }): Promise<Reply<ApplyValue>>;
   undo(): Promise<Reply<HistoryValue>>;
   redo(): Promise<Reply<HistoryValue>>;
   load(text: string, selection?: SelRange): Promise<Reply<LoadValue>>;
@@ -148,7 +149,8 @@ export function createEditorClient(engine: EditorEngine, options: ClientOptions 
     insertSnippet: (at, text, extra) => transact([{ op: 'insertSnippet', at, text }], extra),
     reindentBlock: (node, by, extra) => transact([{ op: 'reindentBlock', node, ...(by === undefined ? {} : { by }) }], extra),
     deleteNode: (node, { expect, ...extra } = {}) => transact([{ op: 'deleteNode', node, ...(expect === undefined ? {} : { expect }) }], extra),
-    select: (anchor, head, extra) => transact([head === undefined ? { op: 'select', anchor } : { op: 'select', anchor, head }], extra),
+    select: (anchor, head, { reveal, ...extra } = {}) =>
+      transact([{ op: 'select', anchor, ...(head === undefined ? {} : { head }), ...(reveal ? { reveal: true } : {}) }], extra),
     undo: () => call('history', { direction: 'undo' }),
     redo: () => call('history', { direction: 'redo' }),
     load: (text, selection) => call('load', selection ? { text, selection } : { text }),

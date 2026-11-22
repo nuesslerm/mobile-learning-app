@@ -1,7 +1,7 @@
 import type { Change, ConfigPatch, EditorConfig, EditorError, Language, Mark, Range, Revision, SelRange, Selection, SyntaxNode, TreeDetail } from './protocol';
 
 export interface DocView { readonly length: number; slice(from: number, to: number): string }
-export type Commit = { readonly changes: readonly Change[]; readonly selection?: SelRange; readonly label?: string }; // [] = selection-only; selection is in result coordinates
+export type Commit = { readonly changes: readonly Change[]; readonly selection?: SelRange; readonly label?: string; readonly reveal?: boolean }; // [] = selection-only; selection is in result coordinates; reveal: scroll the selection's head into view at the nearest edge
 export type HostLoad = { readonly text: string; readonly selection: Selection; readonly revision: Revision }; // text is the normalised document
 
 /** The syntax tree of the document as it was when the snapshot was taken: parsed in slices the engine paces. */

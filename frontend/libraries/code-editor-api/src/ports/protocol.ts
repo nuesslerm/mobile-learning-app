@@ -34,7 +34,7 @@ export type Destination =
 export type Step =
   | { readonly op: 'replace'; readonly range: Target; readonly text: string; readonly expect?: string } // insertAt = empty range, delete = text ''
   | { readonly op: 'move'; readonly range: Target; readonly to: Pos; readonly expect?: string }
-  | { readonly op: 'select'; readonly anchor: Point; readonly head?: Point }
+  | { readonly op: 'select'; readonly anchor: Point; readonly head?: Point; readonly reveal?: boolean } // reveal: scroll the new head into view at the nearest edge, as a typed key does (view.reveal centers); needs view.reveal
   | { readonly op: 'type'; readonly text: string } // one keystroke at the live selection, through the editor's input handlers; the only step of its call
   | { readonly op: 'complete' } // accepts the completion the editor has open, at the live selection; the only step of its call, nothing when none is open
   | { readonly op: 'moveNode'; readonly node: Target; readonly to: Destination; readonly expect?: string }

@@ -1279,6 +1279,39 @@ export function editorContract(name: string, make: MakeSubject, options: Contrac
         expect(failed(await client.reveal({ from: 4, to: 40 }))).toMatchObject({ code: 'out-of-range', length: 10 });
         await nothingDrawn();
       });
+
+      it('given a document and a select step with reveal, when the call lands, then view reports revealed at the new head, the next edit clears it, and a select without reveal leaves it as it was', async (ctx) => {
+        if (!(await viewOf()).includes('reveal')) return ctx.skip();
+        await start(TEN, { anchor: 0, head: 0 });
+        unwrap(await client.reveal({ from: 8, to: 9 }));
+        unwrap(await client.select(1));
+        expect(unwrap(await client.marks()).revealed).toEqual({ from: 8, to: 9 });
+
+        const reply = unwrap(await client.select(4, 6, { reveal: true }));
+
+        expect(reply.selection.ranges[0]).toEqual({ anchor: 4, head: 6 });
+        expect(unwrap(await client.marks()).revealed).toEqual({ from: 6, to: 6 });
+        unwrap(await client.insertAt(0, 'x'));
+        expect(unwrap(await client.marks()).revealed).toBeNull();
+      });
+
+      it('given a batch that edits and then selects with reveal, when the call lands, then revealed is the head after the edit', async (ctx) => {
+        if (!(await viewOf()).includes('reveal')) return ctx.skip();
+        await start();
+
+        unwrap(await client.transact([replace(0, 0, 'ab'), { op: 'select', anchor: { step: 0, edge: 'end' }, reveal: true }]));
+
+        expect(unwrap(await client.marks()).revealed).toEqual({ from: 2, to: 2 });
+      });
+
+      it('given an engine that does not announce reveal, when a select step carries reveal, then it is unsupported naming view:reveal and the selection does not move', async (ctx) => {
+        if ((await viewOf()).includes('reveal')) return ctx.skip();
+        const base = await start(TEN, { anchor: 2, head: 2 });
+
+        expect(failed(await client.select(5, undefined, { reveal: true }))).toMatchObject({ code: 'unsupported', what: 'view:reveal' });
+
+        expect(await snapshot()).toMatchObject({ text: TEN, revision: base, selection: { ranges: [{ anchor: 2, head: 2 }] } });
+      });
     });
 
     describe('ordering', () => {

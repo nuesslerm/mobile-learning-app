@@ -142,13 +142,14 @@ export function createFakeEditor(options: FakeEditorOptions = {}): FakeEditor {
         }),
     ...(options.tree ? { tree: (): TreeSnapshot => snapshotFor(text, config.language), treeOf: (other: string): TreeSnapshot => snapshotFor(other, config.language) } : {}),
     indentUnit: () => ' '.repeat(config.tabSize),
-    commit({ changes, selection: next, label }) {
+    commit({ changes, selection: next, label, reveal }) {
       if (changes.length === 0) {
         if (next) reselect(next, 'select.api');
-        return;
+      } else {
+        edit(changes, next, `api.${label ?? 'apply'}`, true, 'api', label);
+        setCompletion(false);
       }
-      edit(changes, next, `api.${label ?? 'apply'}`, true, 'api', label);
-      setCompletion(false);
+      if (reveal) revealed = { from: selection.head, to: selection.head };
     },
     history(direction) {
       const popped = pop(past, direction === 'undo' ? 'done' : 'undone', text, selection);

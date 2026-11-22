@@ -110,7 +110,8 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
   };
 
   // Lands a planned batch: a preview only says what it would do; anything else is one commit, and the reply is for the revision it made.
-  const land = (plan: Plan, head: Revision, label: string | undefined, preview: boolean | undefined): Reply<ApplyValue> => {
+  // A select step that asked to reveal leaves the head as the revealed range, which a later text change clears like any other reveal.
+  const land = (plan: Plan, head: Revision, label: string | undefined, preview: boolean | undefined, reveal = false): Reply<ApplyValue> => {
     if (preview) {
       const text = applyChanges(host.doc.slice(0, host.doc.length), plan.changes);
       return success({ changes: [], selection: host.selection(), landed: plan.landed, preview: { text, diff: plan.changes, landed: plan.landed } }, head);
@@ -120,10 +121,15 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     }
     const main = host.selection().ranges[host.selection().main] ?? { anchor: 0, head: 0 };
     const selection = plan.select ?? (plan.changes.length > 0 ? mapSelRange(main, plan.changes) : null);
-    host.commit({ changes: plan.changes, ...(selection ? { selection } : {}), ...(label ? { label } : {}) });
+    host.commit({ changes: plan.changes, ...(selection ? { selection } : {}), ...(label ? { label } : {}), ...(reveal ? { reveal } : {}) });
     host.sync();
     if (plan.changes.length > 0 && log.head() === head) {
       return failure({ code: 'internal', message: 'the editor applied the edit and did not report it' });
+    }
+    if (reveal) {
+      const landedSelection = host.selection();
+      const caret = landedSelection.ranges[landedSelection.main]?.head ?? 0;
+      revealed = { from: caret, to: caret };
     }
     return success({ changes: plan.changes, selection: host.selection(), landed: plan.landed }, head);
   };
@@ -131,14 +137,14 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
   // A node step parses the document before it plans and the result before it commits, so its reply comes later, as a tree's does (the queue is released at once: an apply asked
   // meanwhile is answered first, and this call then finds the head moved). From the last parse to the commit nothing waits: a keystroke the host has not delivered yet is delivered by
   // the sync, and a head that moved ends the call as `structure-changed` with nothing applied.
-  const semanticApply = (parsing: ParsingHost, steps: readonly Step[], head: Revision, call: { readonly label?: string; readonly preview?: boolean; readonly budgetMs?: number }): Deferred => {
+  const semanticApply = (parsing: ParsingHost, steps: readonly Step[], head: Revision, call: { readonly label?: string; readonly preview?: boolean; readonly budgetMs?: number; readonly reveal?: boolean }): Deferred => {
     const clock = { now, yieldToEvents, head: () => log.head(), sliceMs };
     const deferred = runSemanticApply(parsing, steps, { clock, budgetMs: call.budgetMs ?? DEFAULT_SEMANTIC_BUDGET_MS })
       .then((outcome): Reply<unknown> => {
         if (!outcome.ok) return failure(outcome.error);
         host.sync();
         if (log.head() !== head) return failure({ code: 'structure-changed', message: 'the code changed while the step was being planned', head: log.head() });
-        return land(outcome.plan, head, call.label, call.preview);
+        return land(outcome.plan, head, call.label, call.preview, call.reveal);
       })
       .catch((error: unknown): Reply<unknown> => {
         logError(error);
@@ -151,6 +157,8 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     const parsed = parseApply(params);
     if (!parsed.ok) return failure(parsed.error);
     const { steps, at, stale = 'reject', instance, label, preview, budgetMs } = parsed.value;
+    const reveal = steps.some((step) => step.op === 'select' && step.reveal === true);
+    if (reveal && !host.reveal) return unsupportedView('reveal');
     if (instance !== undefined && instance !== options.instance) {
       return failure({ code: 'instance-mismatch', message: 'these revisions belong to another editor instance', expected: options.instance, actual: instance });
     }
@@ -165,7 +173,7 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
       const unplanned = steps.find((step) => isSemanticStep(step) && !plannerFor(step));
       if (unplanned) return unsupportedStep(unplanned.op);
       if (behind) return staleFailure();
-      return semanticApply(host, steps, head, { ...(label ? { label } : {}), ...(preview === undefined ? {} : { preview }), ...(budgetMs === undefined ? {} : { budgetMs }) });
+      return semanticApply(host, steps, head, { ...(label ? { label } : {}), ...(preview === undefined ? {} : { preview }), ...(budgetMs === undefined ? {} : { budgetMs }), ...(reveal ? { reveal } : {}) });
     }
     if (behind && (stale === 'reject' || at < log.floor())) return staleFailure();
     const sole = steps[0];
@@ -219,7 +227,7 @@ export function createEditorEngine(host: DocumentHost, options: EngineOptions): 
     }
     const planned = planBatch(host.doc, resolved);
     if (!planned.ok) return failure(planned.error);
-    return land(planned.plan, head, label, preview);
+    return land(planned.plan, head, label, preview, reveal);
   };
 
   const history = (params: unknown): Reply<HistoryValue> => {

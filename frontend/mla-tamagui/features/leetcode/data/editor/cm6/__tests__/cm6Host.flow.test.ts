@@ -3,9 +3,9 @@ import { defaultKeymap, history, indentWithTab, undo, undoDepth } from '@codemir
 import { cpp } from '@codemirror/lang-cpp';
 import { python } from '@codemirror/lang-python';
 import { indentUnit } from '@codemirror/language';
-import { EditorState } from '@codemirror/state';
+import { EditorState, StateEffect } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
-import { classify, createDocumentMirror, createEditorEngine, enclosingBlock, unwrap, type ApplyParams, type CompletionEntry, type EditorEvent, type EngineCore, type EngineOptions, type Language } from '@lib/code-editor-api';
+import { classify, createDocumentMirror, createEditorClient, createEditorEngine, enclosingBlock, unwrap, type ApplyParams, type CompletionEntry, type EditorEvent, type EngineCore, type EngineOptions, type Language } from '@lib/code-editor-api';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { createCm6Host, revisionField, setRevisionBase, typingCalls } from '../cm6Host';
@@ -63,6 +63,24 @@ describe('the CodeMirror host', () => {
       { from: 1, to: 2, changes: [{ from: 0, to: 0, insert: 'y' }], origin: 'api' },
     ]);
     expect(reply).toMatchObject({ ok: true, revision: 2, value: { text: 'yxabc' } });
+  });
+
+  // jsdom has no layout, so what is asserted is the intent the host gives CodeMirror: a transaction that scrolls the head into view at the nearest edge
+  it('given a select step with reveal, when it lands, then the transaction asks the view to scroll to the caret and moves the selection, and one without reveal asks for no scroll', async () => {
+    const { view, core } = mount('line one\nline two\nline three', { brokenListener: false });
+    const client = createEditorClient(core);
+    const asksToScroll: boolean[] = [];
+    view.dispatch({ effects: StateEffect.appendConfig.of(EditorView.updateListener.of((update) => asksToScroll.push(update.transactions.some((tr) => tr.scrollIntoView)))) });
+    asksToScroll.length = 0;
+
+    unwrap(await client.select(12, undefined, { reveal: true }));
+    unwrap(await client.select(2));
+
+    expect(asksToScroll).toEqual([true, false]);
+    expect(view.state.selection.main.head).toBe(2);
+    unwrap(await client.select(20, 14, { reveal: true }));
+    expect(view.state.selection.main).toMatchObject({ anchor: 20, head: 14 });
+    expect(unwrap(await client.marks()).revealed).toEqual({ from: 14, to: 14 });
   });
 
   it('given dispatches typed, unannotated and undone, when they are delivered, then they are user, api and history', async () => {

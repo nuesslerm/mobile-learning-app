@@ -53,6 +53,10 @@ describe('the wire validators', () => {
     ['a budget of 1001', { steps: [], budgetMs: 1001 }, 'invalid'],
     ['a budget of -1', { steps: [], budgetMs: -1 }, 'invalid'],
     ['a budget of 0 and of 1000', { steps: [], budgetMs: 0 }, 'ok'],
+    ['a select step with reveal', { steps: [{ op: 'select', anchor: 0, reveal: true }] }, 'ok'],
+    ['a select step with reveal false', { steps: [{ op: 'select', anchor: 0, head: 3, reveal: false }] }, 'ok'],
+    ['a select step with a reveal that is not a boolean', { steps: [{ op: 'select', anchor: 0, reveal: 'yes' }] }, 'invalid'],
+    ['a select step with a numeric reveal', { steps: [{ op: 'select', anchor: 0, reveal: 1 }] }, 'invalid'],
   ])('given %s, when apply params are parsed, then they are %s', (_name, params, expected) => {
     expect(code(parseApply(params))).toBe(expected);
   });
@@ -96,6 +100,20 @@ describe('the wire validators', () => {
   it('given a node step that fails, when parsed, then the error names its path', () => {
     expect(parseApply({ steps: [{ op: 'deleteNode', node: 'selection' }, { op: 'moveNode', node: 'selection', to: { into: { from: 0, to: 0 }, at: 'middle' } }] })).toMatchObject({ ok: false, error: { path: 'steps[1].to.at' } });
     expect(parseApply({ steps: [{ op: 'reindentBlock', node: 'selection', by: 9 }] })).toMatchObject({ ok: false, error: { path: 'steps[0].by' } });
+  });
+
+  it('given a select step with a reveal that is not a boolean, when parsed, then the error names the path of the reveal', () => {
+    expect(parseApply({ steps: [{ op: 'replace', range: 'selection', text: 'x' }, { op: 'select', anchor: 0, reveal: 'yes' }] })).toMatchObject({ ok: false, error: { code: 'invalid', path: 'steps[1].reveal' } });
+  });
+
+  it('given select steps with reveal true, with and without a head, and one with reveal false, when parsed, then reveal true is kept and false is not carried', () => {
+    const kept = parseApply({ steps: [{ op: 'select', anchor: 2, reveal: true }] });
+    const withHead = parseApply({ steps: [{ op: 'select', anchor: 2, head: 5, reveal: true }] });
+    const off = parseApply({ steps: [{ op: 'select', anchor: 2, head: 5, reveal: false }] });
+
+    expect(kept.ok && kept.value.steps[0]).toEqual({ op: 'select', anchor: 2, reveal: true });
+    expect(withHead.ok && withHead.value.steps[0]).toEqual({ op: 'select', anchor: 2, head: 5, reveal: true });
+    expect(off.ok && off.value.steps[0]).toEqual({ op: 'select', anchor: 2, head: 5 });
   });
 
   it('given a valid batch with options, when parsed, then nothing is dropped and no undefined field appears', () => {

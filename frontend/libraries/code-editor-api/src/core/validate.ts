@@ -111,9 +111,11 @@ function parseStep(value: unknown, index: number, steps: readonly unknown[]): Pa
   if (value.op === 'select') {
     const anchor = parsePoint(value.anchor, `${path}.anchor`, steps);
     if (!anchor.ok) return anchor;
-    if (value.head === undefined) return { ok: true, value: { op: 'select', anchor: anchor.value } };
+    if (value.reveal !== undefined && typeof value.reveal !== 'boolean') return bad(`${path}.reveal`, 'reveal is a boolean');
+    const reveal = value.reveal === true ? { reveal: true } : {};
+    if (value.head === undefined) return { ok: true, value: { op: 'select', anchor: anchor.value, ...reveal } };
     const head = parsePoint(value.head, `${path}.head`, steps);
-    return head.ok ? { ok: true, value: { op: 'select', anchor: anchor.value, head: head.value } } : head;
+    return head.ok ? { ok: true, value: { op: 'select', anchor: anchor.value, head: head.value, ...reveal } } : head;
   }
   if (value.op === 'type') {
     if (typeof value.text !== 'string') return bad(`${path}.text`, 'text is a string');

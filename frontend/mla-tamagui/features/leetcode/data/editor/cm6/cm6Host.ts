@@ -173,11 +173,13 @@ export function createCm6Host(deps: Cm6HostDeps): DocumentHost {
       deps.core()?.ingestSelection(selectionOf(editor.state));
       return accepted;
     },
-    commit({ changes, selection, label }) {
+    commit({ changes, selection, label, reveal }) {
       const editor = view();
       editor.dispatch({
         changes: changes.map(({ from, to, insert }) => ({ from, to, insert })),
         ...(selection ? { selection: EditorSelection.single(selection.anchor, selection.head) } : {}),
+        // the nearest edge, as a typed key scrolls: `reveal` above centers the line, which a caret drag must not
+        ...(reveal ? { scrollIntoView: true } : {}),
         userEvent: changes.length ? `api.${label ?? 'apply'}` : 'select.api',
         annotations: changes.length ? [apiCall.of(label ? { label } : {}), isolateHistory.of('full')] : [apiCall.of({})],
       });
