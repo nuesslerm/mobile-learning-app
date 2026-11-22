@@ -28,6 +28,7 @@ export {
   SegmentedControl,
   type SegmentedControlProps,
 } from './ui/segmented-control';
+export { Switch, type SwitchProps } from './ui/switch';
 export {
   Tabs,
   TabsContent,

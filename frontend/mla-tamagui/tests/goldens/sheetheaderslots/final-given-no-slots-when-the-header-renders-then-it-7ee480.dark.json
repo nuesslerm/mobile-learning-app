@@ -1,0 +1,36 @@
+{
+  "suite": "sheetheaderslots",
+  "step": "final-given-no-slots-when-the-header-renders-then-it-7ee480",
+  "scheme": "dark",
+  "snapshot": "sheetheaderslots/final-given-no-slots-when-the-header-renders-then-it-7ee480.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "SlotsSheet",
+      "SlotsHeader",
+      "SlotsHeaderClose"
+    ],
+    "text": "Plain"
+  },
+  "timings": {
+    "render_ms": 247
+  },
+  "name": "sheetheaderslots/final-given-no-slots-when-the-header-renders-then-it-7ee480.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

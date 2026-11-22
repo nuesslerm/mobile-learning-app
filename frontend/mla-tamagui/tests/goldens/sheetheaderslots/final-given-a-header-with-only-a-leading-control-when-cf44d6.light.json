@@ -1,0 +1,36 @@
+{
+  "suite": "sheetheaderslots",
+  "step": "final-given-a-header-with-only-a-leading-control-when-cf44d6",
+  "scheme": "light",
+  "snapshot": "sheetheaderslots/final-given-a-header-with-only-a-leading-control-when-cf44d6.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "SlotsSheet",
+      "SlotsHeader",
+      "SlotsReset"
+    ],
+    "text": "Reset\nSymbol Bar"
+  },
+  "timings": {
+    "render_ms": 232
+  },
+  "name": "sheetheaderslots/final-given-a-header-with-only-a-leading-control-when-cf44d6.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

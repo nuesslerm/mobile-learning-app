@@ -265,6 +265,10 @@ export type SheetHeaderProps = {
    */
   onClose?: () => void;
   closeAccessibilityLabel?: string;
+  /** Beside the title on the left (a Reset pill). With either slot the row centres its items vertically. */
+  leading?: ReactNode;
+  /** Beside the title on the right, before the close control (a Done pill). */
+  trailing?: ReactNode;
   testID: string;
 };
 
@@ -273,18 +277,27 @@ export function SheetHeader({
   children,
   onClose,
   closeAccessibilityLabel = 'Close',
+  leading,
+  trailing,
   testID,
 }: SheetHeaderProps) {
   const theme = useTheme();
   const border = theme.borderColor?.val ?? 'rgba(128,128,128,0.35)';
   const chip = theme.color4?.val ?? 'rgba(128,128,128,0.22)';
+  const hasSlots = leading != null || trailing != null;
 
   return (
     <View
       testID={testID}
-      style={[styles.header, { borderBottomColor: border }]}
+      style={[
+        styles.header,
+        hasSlots && styles.headerWithSlots,
+        { borderBottomColor: border },
+      ]}
     >
+      {leading != null ? <View style={styles.slot}>{leading}</View> : null}
       <View style={styles.headerBody}>{children}</View>
+      {trailing != null ? <View style={styles.slot}>{trailing}</View> : null}
       {onClose ? (
         <Pressable
           testID={`${testID}Close`}
@@ -319,7 +332,9 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  headerWithSlots: { alignItems: 'center' },
   headerBody: { flex: 1, minWidth: 0 },
+  slot: { flexShrink: 0 },
   close: {
     width: 32,
     height: 32,
