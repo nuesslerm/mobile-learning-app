@@ -14,7 +14,7 @@ links: []
 ## What exists
 
 `group-gateway` (credential injection, a same-protocol reroute pinned at a turn's start, an optional compression stage), the `/gateway/{provider}` route, the per-turn token (digests in memory,
-wiped by a restart) and the CLI wiring (Claude Code `ANTHROPIC_BASE_URL`, Codex `model_providers`, opencode `provider.options.baseURL`) are covered by flow tests. Every provider answer in them
+wiped by a restart) and the CLI wiring (Claude Code `ANTHROPIC_BASE_URL`, Codex `model_providers` (until Codex became a live server: `codex-session-not-through-gateway`), opencode `provider.options.baseURL`) are covered by flow tests. Every provider answer in them
 is an **authored double** (`rca_group_gateway::testing::ScriptedUpstream`), not a recording of a provider; the compression sidecar is `FakeSidecar`, also authored. The CLIs are the scripted CLI
 of `exec-testkit`, which logs the environment it was started with.
 

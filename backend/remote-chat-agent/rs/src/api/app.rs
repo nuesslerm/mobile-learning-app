@@ -60,6 +60,8 @@ pub struct Config {
     pub state_seq_base: u64,
     /// `AGENT_PUBLIC_URL`: the address of this service as a workspace host reaches it, which a CLI there is told for the service's tool server.
     pub agent_public_url: Option<String>,
+    /// `RCA_CODEX_IDLE_SECS`: how long Codex's server at a workspace host may stay up with no turn running (zero: for ever).
+    pub codex_idle: Duration,
     /// `RCA_BROWSER`: whether the `browser` group answers or refuses every method.
     pub browser: bool,
 }
@@ -80,6 +82,7 @@ impl Config {
             edit_stats_flush: edit_stats::FLUSH_EVERY,
             requests_per_minute: crate::api::routes::REQUESTS_PER_MINUTE,
             agent_public_url: s.agent_public_url,
+            codex_idle: Duration::from_secs(s.codex_idle_secs),
             browser: s.browser,
             state_seq_base: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_micros() as u64),
         }

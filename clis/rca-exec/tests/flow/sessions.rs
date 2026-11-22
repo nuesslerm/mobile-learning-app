@@ -97,7 +97,7 @@ fn given_a_session_cli_that_answers_each_line_when_lines_are_sent_then_each_answ
     // And a cancel of the open action ends it as cancelled and the process is gone, and its id can be used again
     assert!(ex.cancel("a1"));
     let Heard::Ended(ended) = next(&heard) else { panic!("no end") };
-    assert_eq!(ended.unwrap().cancelled, true);
+    assert!(ended.unwrap().cancelled);
     assert!(gone(pid));
     assert_eq!(send(&ex, "s-1", "late").unwrap_err().code, Code::NotFound);
     let again = start(&ex, "a2", "s-1");

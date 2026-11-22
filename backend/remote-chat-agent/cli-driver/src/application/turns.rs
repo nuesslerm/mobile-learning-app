@@ -69,7 +69,7 @@ mod tests {
 
     fn request(driver: Driver, thread: &str) -> (Command, TurnRequest) {
         let req = TurnRequest { thread_id: thread.into(), run_id: "r".into(), instance_id: driver.id().into(), model: None, cwd: "/w".into(), prompt: "go".into(), runtime_mode: "full-access".into(), interaction_mode: "default".into(), resume: None };
-        (command_for(driver, &req), req)
+        (command_for(driver, &req).expect("a driver that is started for each turn"), req)
     }
 
     async fn drain(mut events: mpsc::Receiver<ExecEvent>) -> Vec<ExecEvent> {
@@ -87,11 +87,7 @@ mod tests {
     #[tokio::test]
     async fn given_a_cli_that_prints_lines_when_a_turn_runs_then_each_driver_s_lines_arrive_as_neutral_events_ending_with_done() {
         // Given each driver's CLI printing one line of its own dialect
-        let lines = [
-            (Driver::ClaudeAgent, r#"{"type":"assistant","message":{"content":[{"type":"text","text":"hello"}]}}"#),
-            (Driver::Codex, r#"{"type":"item.completed","item":{"type":"agent_message","text":"hello"}}"#),
-            (Driver::Opencode, r#"{"type":"text","part":{"text":"hello"}}"#),
-        ];
+        let lines = [(Driver::ClaudeAgent, r#"{"type":"assistant","message":{"content":[{"type":"text","text":"hello"}]}}"#), (Driver::Opencode, r#"{"type":"text","part":{"text":"hello"}}"#)];
         for (driver, line) in lines {
             let spawner = ScriptedSpawner::new();
             spawner.script(driver.program(), CliScript { lines: vec![line.into(), "not json".into()], ..CliScript::default() });
@@ -105,56 +101,34 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn given_a_cli_that_announces_its_conversation_when_a_turn_runs_then_the_session_is_the_first_event_and_said_once_and_codex_has_none() {
-        // Given Claude Code printing its init line and a text, opencode printing two lines that carry its sessionID, and Codex printing a line with a session_id
+    async fn given_a_cli_that_announces_its_conversation_when_a_turn_runs_then_the_session_is_the_first_event_and_said_once() {
+        // Given Claude Code printing its init line and a text, and opencode printing two lines that carry its sessionID
         let spawner = ScriptedSpawner::new();
         spawner.script("claude", CliScript { lines: vec![r#"{"type":"system","subtype":"init","session_id":"s-9"}"#.into(), r#"{"type":"assistant","message":{"content":[{"type":"text","text":"hi"}]}}"#.into()], ..CliScript::default() });
         spawner.script("opencode", CliScript { lines: vec![r#"{"type":"step_start","sessionID":"ses_9"}"#.into(), r#"{"type":"step_finish","sessionID":"ses_9"}"#.into()], ..CliScript::default() });
-        spawner.script("codex", CliScript { lines: vec![r#"{"type":"system","subtype":"init","session_id":"s-9"}"#.into()], ..CliScript::default() });
         let turns = turns(&spawner);
         // When each turn runs
         let (command, _) = request(Driver::ClaudeAgent, "a");
         let claude = drain(turns.launch(spawner.as_ref(), Driver::ClaudeAgent, "a", command).await.unwrap()).await;
         let (command, _) = request(Driver::Opencode, "b");
         let opencode = drain(turns.launch(spawner.as_ref(), Driver::Opencode, "b", command).await.unwrap()).await;
-        let (command, _) = request(Driver::Codex, "c");
-        let codex = drain(turns.launch(spawner.as_ref(), Driver::Codex, "c", command).await.unwrap()).await;
-        // Then Claude Code's and opencode's events open with their session, once, and Codex's have none
+        // Then their events open with their session, once
         assert_eq!(claude, vec![ExecEvent::Session("s-9".into()), ExecEvent::Text("hi".into()), ExecEvent::Done]);
         assert_eq!(opencode, vec![ExecEvent::Session("ses_9".into()), ExecEvent::Done]);
-        assert_eq!(codex, vec![ExecEvent::Done]);
-    }
-
-    #[tokio::test]
-    async fn given_a_codex_cli_that_announces_its_thread_when_the_turn_ends_then_the_thread_keeps_it_and_the_next_turn_resumes_it() {
-        // Given Codex printing its thread.started line and an answer
-        let spawner = ScriptedSpawner::new();
-        spawner.script("codex", CliScript { lines: vec![r#"{"type":"thread.started","thread_id":"th-7"}"#.into(), r#"{"type":"item.completed","item":{"type":"agent_message","text":"done"}}"#.into()], ..CliScript::default() });
-        let turns = turns(&spawner);
-        let (command, req) = request(Driver::Codex, "t");
-        // When the turn ends, and the thread's next turn is built from the session the events named
-        let events = drain(turns.launch(spawner.as_ref(), Driver::Codex, "t", command.clone()).await.unwrap()).await;
-        let kept = events.iter().find_map(|e| if let ExecEvent::Session(id) = e { Some(id.clone()) } else { None });
-        let next = command_for(Driver::Codex, &TurnRequest { resume: kept.clone(), ..req });
-        // Then the events open with the thread, the first turn started fresh, and the next one resumes that thread
-        assert_eq!(events, vec![ExecEvent::Session("th-7".into()), ExecEvent::Text("done".into()), ExecEvent::Done]);
-        assert!(!command.args.contains(&"resume".to_string()), "{:?}", command.args);
-        assert!(next.args.windows(2).any(|w| w == ["resume", "th-7"]) && next.args.last().map(String::as_str) == Some("go"), "{:?}", next.args);
     }
 
     #[tokio::test]
     async fn given_a_cli_that_cannot_start_or_fails_when_a_turn_runs_then_the_refusal_or_the_error_is_what_the_client_hears() {
         // Given a CLI that is not installed, one that exits with a failure, and one that reports its own error line before exiting badly
         let spawner = ScriptedSpawner::new();
-        spawner.script("opencode", CliScript { not_started: Some("not found".into()), ..CliScript::default() });
-        spawner.script("codex", CliScript { exit: Some("exited with 1: not logged in".into()), ..CliScript::default() });
+        spawner.script_each("opencode", vec![CliScript { not_started: Some("not found".into()), ..CliScript::default() }, CliScript { exit: Some("exited with 1: not logged in".into()), ..CliScript::default() }]);
         spawner.script("claude", CliScript { lines: vec![r#"{"type":"result","is_error":true,"result":"rate limited"}"#.into()], exit: Some("exited with 1".into()), ..CliScript::default() });
         let turns = turns(&spawner);
         // When each turn is launched
         let (command, _) = request(Driver::Opencode, "a");
         let refused = turns.launch(spawner.as_ref(), Driver::Opencode, "a", command).await.err();
-        let (command, _) = request(Driver::Codex, "b");
-        let failed = drain(turns.launch(spawner.as_ref(), Driver::Codex, "b", command).await.unwrap()).await;
+        let (command, _) = request(Driver::Opencode, "b");
+        let failed = drain(turns.launch(spawner.as_ref(), Driver::Opencode, "b", command).await.unwrap()).await;
         let (command, _) = request(Driver::ClaudeAgent, "c");
         let reported = drain(turns.launch(spawner.as_ref(), Driver::ClaudeAgent, "c", command).await.unwrap()).await;
         // Then the first is refused before anything ran, the second ends in the stderr tail, and the third ends with the error it reported

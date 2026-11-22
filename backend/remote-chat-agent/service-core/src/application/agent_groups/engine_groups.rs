@@ -3,7 +3,7 @@
 use super::engine_threads::EngineThreads;
 use agent_api_proto::Event;
 use rca_agent_core::{AgentApi, Build, Group};
-use rca_cli_driver::testing::{CliScript, ScriptedSpawner};
+use rca_cli_driver::testing::{app_server, CliScript, ScriptedLinker, ScriptedSpawner};
 use rca_exec_channel::mcp::ServiceTools;
 use rca_exec_channel::remote::{ActionOutput, ExecutorChannel};
 use rca_exec_channel::testing::ScriptedChannel;
@@ -32,11 +32,17 @@ struct Rig {
     runner: Arc<Runner>,
     engine: Arc<EngineThreads>,
     spawner: Arc<ScriptedSpawner>,
+    /// The live servers of the CLIs that stay up (Codex), as scripted processes.
+    linker: Arc<ScriptedLinker>,
     /// The executor actions asked of the workspace's channel, with their args, in order.
     asked: Arc<std::sync::Mutex<Vec<(String, Value)>>>,
 }
 
 fn rig() -> Rig {
+    rig_with(app_server())
+}
+
+fn rig_with(linker: Arc<ScriptedLinker>) -> Rig {
     let engine = Arc::new(EngineThreads::new(Arc::new(Engine::new(Box::new(MemoryStore::default()), "/work".into(), Arc::new(FixedClock(NOW)), Arc::new(CountingIds::default())))));
     let (spawner, executors) = (ScriptedSpawner::new(), Arc::new(Registry::default()));
     let asked: Arc<std::sync::Mutex<Vec<(String, Value)>>> = Arc::default();
@@ -46,14 +52,14 @@ fn rig() -> Rig {
         Ok(ActionOutput { result: json!({}), output: String::new() })
     });
     executors.open("w1", channel as Arc<dyn ExecutorChannel>).unwrap();
-    let runner = Runner::new(engine.clone(), executors, Arc::new(rca_group_agent::host::Fixed(spawner.clone())), Arc::new(Mcp));
+    let runner = Runner::new(engine.clone(), executors, Arc::new(rca_group_agent::host::FixedLinks(spawner.clone(), linker.clone())), Arc::new(Mcp));
     let groups: Vec<Arc<dyn Group>> = vec![
         Arc::new(AgentThreadsGroup::with_runner(runner.clone())),
         Arc::new(AgentRequestsGroup::new(runner.clone())),
         Arc::new(AgentQueueGroup::new(runner.clone())),
         Arc::new(AgentLifecycleGroup::new(runner.clone())),
     ];
-    Rig { api: AgentApi::new(groups).unwrap(), runner, engine, spawner, asked }
+    Rig { api: AgentApi::new(groups).unwrap(), runner, engine, spawner, linker, asked }
 }
 
 fn said(text: &str) -> String {
@@ -82,6 +88,11 @@ impl Rig {
 
     async fn create(&self, thread: &str) {
         self.ok("thread.create", json!({"thread": thread, "title": format!("title of {thread}"), "workspace": "w1", "driver": "claudeAgent"})).await;
+    }
+
+    /// A turn of a Codex thread, which runs on the live session of the workspace.
+    async fn start_codex(&self, thread: &str, prompt: &str) -> String {
+        self.ok("turn.start", json!({"thread": thread, "workspace": "w1", "driver": "codex", "prompt": prompt})).await["turn"].as_str().unwrap().to_string()
     }
 
     async fn start(&self, thread: &str, prompt: &str) -> String {
@@ -563,4 +574,120 @@ async fn given_a_turn_with_a_workflow_and_a_transcript_when_the_workflow_is_stop
     assert_eq!((item["item"].clone(), item["thread"].clone()), (reply, json!("t")));
     let missing = rig.ask("item.get", json!({"thread": "t", "seq": 1})).await;
     assert_eq!((code_of(&missing), missing["error"]["message"].clone()), (json!("ITEM_NOT_FOUND"), json!("thread t has no item opened at seq 1")));
+}
+
+/// The text the thread's assistant has said so far, delta by delta.
+fn spoken(rig: &Rig, thread: &str) -> Vec<String> {
+    rig.events(thread).iter().filter(|e| e.kind == "message.delta" && e.data["role"] == json!("assistant")).map(|e| e.data["text"].as_str().unwrap().to_string()).collect()
+}
+
+fn reasons(rig: &Rig, thread: &str) -> Vec<Value> {
+    rig.events(thread).iter().filter(|e| e.kind == "turn.finished").map(|e| e.data["reason"].clone()).collect()
+}
+
+#[tokio::test]
+async fn given_a_codex_thread_when_its_turns_run_then_the_log_has_the_text_and_the_conversation_is_kept_and_both_turns_ran_in_one_server_process() {
+    // Given a thread of the Codex driver
+    let rig = rig();
+    rig.create("t").await;
+    // When it runs a turn, and then another
+    rig.start_codex("t", "hello").await;
+    rig.idle("t").await;
+    rig.start_codex("t", "hello").await;
+    rig.idle("t").await;
+    // Then each turn streamed its text into the log and finished completed, and the log says what the person said
+    assert_eq!((spoken(&rig, "t"), reasons(&rig, "t")), (vec!["Hi".to_string(), "Hi".to_string()], vec![json!("completed"), json!("completed")]));
+    // And the conversation the server announced is the thread's, and one server process ran both turns, with one thread started in it
+    assert_eq!(rig.engine.provider_session("t", "codex").unwrap().as_deref(), Some("th-1"));
+    assert_eq!((rig.linker.starts(), rig.linker.received_of("thread/start").len(), rig.linker.received_of("turn/start").len()), (1, 1, 2));
+}
+
+#[tokio::test]
+async fn given_a_codex_turn_that_asks_to_run_a_command_when_the_person_answers_then_the_ask_is_an_approval_request_of_the_turn_and_the_answer_reaches_the_live_server_and_the_turn_goes_on() {
+    // Given a Codex turn that asks to run a command
+    let rig = rig();
+    rig.create("t").await;
+    let turn = rig.start_codex("t", "approve").await;
+    let asked = rig.open_request("t", "approval.requested", 1).await;
+    // Then the request is an event of the turn naming the tool and the command
+    assert_eq!((asked.turn.as_deref(), asked.data["tool"].clone(), asked.data["args"]["command"].clone()), (Some(turn.as_str()), json!("command"), json!("touch a")));
+    assert_eq!(rig.engine.get("t").unwrap().unwrap().turn.as_deref(), Some(turn.as_str()));
+    // When the person accepts it for the session
+    let approval = asked.data["approval"].as_str().unwrap().to_string();
+    rig.ok("approval.answer", json!({"thread": "t", "approval": approval, "decision": "accept_for_session"})).await;
+    rig.idle("t").await;
+    // Then the live server got the decision under its own request id, no process was started for it, and the turn finished completed with the rest of its work
+    let answers: Vec<Value> = rig.linker.received().into_iter().map(|(_, m)| m).filter(|m| m.get("method").is_none() && m["id"] == 0).collect();
+    assert_eq!(answers, vec![json!({"id": 0, "result": {"decision": "acceptForSession"}})]);
+    assert_eq!((rig.linker.starts(), reasons(&rig, "t")), (1, vec![json!("completed")]));
+    assert!(rig.kinds("t").contains(&"tool.finished".to_string()));
+}
+
+#[tokio::test]
+async fn given_a_codex_turn_that_is_working_when_it_is_steered_then_the_prompt_goes_to_the_live_server_and_the_same_turn_finishes_once_with_no_process_ended_or_started() {
+    // Given a Codex turn that is working
+    let rig = rig();
+    rig.create("t").await;
+    let turn = rig.start_codex("t", "hold").await;
+    rig.until("the first text", |r| spoken(r, "t") == ["working"]).await;
+    // When it is steered
+    let steered = rig.ok("turn.steer", json!({"thread": "t", "prompt": "go left"})).await;
+    rig.idle("t").await;
+    // Then the answer names the same turn, the server was sent a steer for it, and the turn finished once, completed
+    assert_eq!(steered["turn"], json!(turn));
+    let steer = &rig.linker.received_of("turn/steer")[0].1;
+    assert_eq!((steer["params"]["expectedTurnId"].clone(), steer["params"]["input"][0]["text"].clone()), (json!("u-1"), json!("go left")));
+    assert_eq!(reasons(&rig, "t"), vec![json!("completed")]);
+    assert_eq!((rig.linker.starts(), rig.linker.kills(), rig.kinds("t").iter().filter(|k| *k == "turn.started").count()), (1, 0, 1));
+    // And the steer is in the log in order, between the first text and the one it caused
+    let order: Vec<String> = rig.events("t").iter().filter(|e| e.kind == "turn.steered" || (e.kind == "message.delta" && e.data["role"] == json!("assistant"))).map(|e| if e.kind == "turn.steered" { "steered".into() } else { e.data["text"].as_str().unwrap().to_string() }).collect();
+    assert_eq!(order, ["working", "steered", " steered"]);
+}
+
+#[tokio::test]
+async fn given_a_codex_turn_that_is_working_when_it_is_interrupted_then_the_server_is_told_to_interrupt_it_the_turn_ends_interrupted_and_the_thread_runs_again_on_the_same_process() {
+    // Given a Codex turn that is working
+    let rig = rig();
+    rig.create("t").await;
+    rig.start_codex("t", "hold").await;
+    rig.until("the first text", |r| spoken(r, "t") == ["working"]).await;
+    // When it is interrupted
+    rig.ok("turn.interrupt", json!({"thread": "t"})).await;
+    rig.idle("t").await;
+    // Then the turn ended interrupted, the server was asked to interrupt that turn, and no process was ended
+    assert_eq!(reasons(&rig, "t"), vec![json!("interrupted")]);
+    assert_eq!(rig.linker.received_of("turn/interrupt")[0].1["params"], json!({"threadId": "th-1", "turnId": "u-1"}));
+    assert_eq!(rig.linker.kills(), 0);
+    // And the thread runs another turn on the same process
+    rig.start_codex("t", "hello").await;
+    rig.idle("t").await;
+    assert_eq!((rig.linker.starts(), reasons(&rig, "t")), (1, vec![json!("interrupted"), json!("completed")]));
+}
+
+#[tokio::test]
+async fn given_a_codex_server_that_is_closed_when_idle_or_killed_when_the_thread_runs_again_then_a_new_process_resumes_the_conversation_by_its_id() {
+    // Given a thread that ran a turn, and an idle time of 150 ms
+    let rig = rig();
+    rig.runner.sessions().set_idle(Duration::from_millis(150));
+    rig.create("t").await;
+    rig.start_codex("t", "hello").await;
+    rig.idle("t").await;
+    // When nothing runs for longer than that
+    rig.until("the idle close", |r| r.linker.kills() == 1).await;
+    // Then the next turn starts a second process and resumes the thread by the id the first one announced
+    rig.start_codex("t", "hold").await;
+    rig.until("the first text of the second turn", |r| spoken(r, "t").last().is_some_and(|t| t == "working")).await;
+    assert_eq!(rig.linker.starts(), 2);
+    assert_eq!(rig.linker.received_of("thread/resume")[0].1["params"]["threadId"], json!("th-1"));
+    // When that process is killed in the middle of the turn
+    rig.linker.die("killed");
+    rig.idle("t").await;
+    // Then the turn finished failed with the reason in the log, and the next turn starts a third process and resumes the thread again
+    let events = rig.events("t");
+    assert!(events.iter().any(|e| e.kind == "error" && e.data["message"].as_str().is_some_and(|m| m.contains("killed"))));
+    assert_eq!(reasons(&rig, "t"), vec![json!("completed"), json!("failed")]);
+    rig.start_codex("t", "hello").await;
+    rig.idle("t").await;
+    assert_eq!((rig.linker.starts(), rig.linker.received_of("thread/resume").len(), rig.linker.received_of("thread/start").len()), (3, 2, 1));
+    assert_eq!(reasons(&rig, "t").last(), Some(&json!("completed")));
 }

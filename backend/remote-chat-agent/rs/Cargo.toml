@@ -20,6 +20,7 @@ inputs = [
   "../../../libraries/agent-api/agent-api-workspace/tests/fixtures/**",
   "../../../libraries/agent-api/agent-api-agent/tests/fixtures/**",
   "../../../libraries/agent-api/exec-testkit/cassettes/**",
+  "../../../libraries/agent-api/exec-testkit/transcripts/**",
   "../../../libraries/agent-api/exec-fs/tests/fixtures/**",
   "../../../libraries/agent-api/exec-proc/tests/fixtures/**",
   "../../../libraries/agent-api/exec-git/tests/fixtures/**",

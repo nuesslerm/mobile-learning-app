@@ -74,18 +74,20 @@ mod tests {
         let runner = Runner::with_gateway(Arc::new(MemoryThreads::default()), Arc::new(Registry::default()), Arc::new(Fixed(ScriptedSpawner::new())), Arc::new(Mcp), gateway.clone());
         let line = |command: rca_cli_driver::domain::Command| format!("{} {}", command.program, command.args.join(" "));
         // When the turn's CLI is started, and started again by a steer in the same turn
-        let first = line(runner.host_command(Driver::ClaudeAgent, &request(Driver::ClaudeAgent), "t"));
-        let steered = line(runner.host_command(Driver::ClaudeAgent, &request(Driver::ClaudeAgent), "t"));
+        let first = line(runner.host_command(Driver::ClaudeAgent, &request(Driver::ClaudeAgent), "t").unwrap());
+        let steered = line(runner.host_command(Driver::ClaudeAgent, &request(Driver::ClaudeAgent), "t").unwrap());
         // Then both are given the one token the turn started with
         assert!(first.contains("ANTHROPIC_API_KEY=rcag_1") && steered.contains("ANTHROPIC_API_KEY=rcag_1"), "{first} | {steered}");
         assert_eq!(*gateway.minted.lock().unwrap(), 1);
         // And when the turn is over, its token is released and the thread's next turn is given a fresh one
         runner.release_requests("t");
         assert_eq!(*gateway.released.lock().unwrap(), ["t"]);
-        assert!(line(runner.host_command(Driver::ClaudeAgent, &request(Driver::ClaudeAgent), "t")).contains("ANTHROPIC_API_KEY=rcag_2"));
+        assert!(line(runner.host_command(Driver::ClaudeAgent, &request(Driver::ClaudeAgent), "t").unwrap()).contains("ANTHROPIC_API_KEY=rcag_2"));
         // And a driver the gateway does not route is started as it always is
-        let plain = runner.host_command(Driver::Codex, &request(Driver::Codex), "u");
-        assert_eq!(plain.program, "codex");
+        let plain = runner.host_command(Driver::Opencode, &request(Driver::Opencode), "u").unwrap();
+        assert!(!line(plain).contains("rcag_"));
+        // And a CLI that lives has no command to route at all
+        assert_eq!(runner.host_command(Driver::Codex, &request(Driver::Codex), "u"), None);
     }
 
     #[tokio::test]
@@ -99,10 +101,9 @@ mod tests {
         // When the launch fails, and the thread's next turn is for another driver
         let failed = runner.prepare("t", &crate::runner::Known::default(), None, input("claudeAgent")).unwrap().launch().await;
         assert!(failed.is_err());
-        let next = runner.host_command(Driver::Codex, &request(Driver::Codex), "t");
+        let next = runner.host_command(Driver::Opencode, &request(Driver::Opencode), "t").unwrap();
         // Then the failed turn's token was released and the next turn did not inherit its route
         assert_eq!(*gateway.released.lock().unwrap(), ["t"]);
-        assert_eq!(next.program, "codex");
         assert!(!next.args.join(" ").contains("rcag_"));
     }
 }

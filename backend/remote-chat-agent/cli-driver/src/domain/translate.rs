@@ -1,6 +1,6 @@
 //! What a CLI's output lines mean: each driver's JSON lines become the neutral events a client shows.
 use super::driver::Driver;
-use serde_json::{json, Value};
+use serde_json::Value;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ExecEvent {
@@ -10,18 +10,20 @@ pub enum ExecEvent {
     ToolFinished { id: String, output: String, ok: bool },
     Done,
     Error(String),
-    /// The CLI's own id of the conversation this process is part of. `translate` never makes it: `Turns` sends it from `session_of`.
+    /// The CLI's own id of the conversation this process is part of. `translate` never makes it: `Turns` sends it from `session_of`, and a live
+    /// session when it starts a thread.
     Session(String),
+    /// The CLI asks the person whether `tool` may run with `args`, and waits: `id` is what the answer names. Only a live session makes it.
+    Approval { id: String, tool: String, args: Value },
 }
 
-/// The id of the CLI's conversation a line announces: Claude Code's `system` `init` line names it, Codex's `thread.started` line its thread, and every
-/// line of `opencode run --format json` carries it as `sessionID`. None for every other line.
+/// The id of the CLI's conversation a line announces: Claude Code's `system` `init` line names it, and every line of `opencode run --format json`
+/// carries it as `sessionID`. None for every other line, and for Codex, whose server says it in the answer to `thread/start`.
 pub fn session_of(driver: Driver, line: &str) -> Option<String> {
     let v: Value = serde_json::from_str(line).ok()?;
     let id = match driver {
         Driver::ClaudeAgent if v["type"] == "system" && v["subtype"] == "init" => &v["session_id"],
         Driver::Opencode => &v["sessionID"],
-        Driver::Codex if v["type"] == "thread.started" => &v["thread_id"],
         _ => return None,
     };
     id.as_str().filter(|id| !id.is_empty()).map(str::to_string)
@@ -35,12 +37,13 @@ fn s(v: &Value) -> String {
     }
 }
 
-/// The neutral events one output line stands for (none for a line that is not JSON or says nothing a client shows).
+/// The neutral events one output line stands for (none for a line that is not JSON or says nothing a client shows, and for Codex, whose
+/// server is read by `domain::codex`).
 pub fn translate(driver: Driver, line: &str) -> Vec<ExecEvent> {
     let Ok(v) = serde_json::from_str::<Value>(line) else { return vec![] };
     match driver {
         Driver::ClaudeAgent => claude(&v),
-        Driver::Codex => codex(&v),
+        Driver::Codex => vec![],
         Driver::Opencode => opencode(&v),
     }
 }
@@ -59,19 +62,6 @@ fn claude(v: &Value) -> Vec<ExecEvent> {
             .collect(),
         Some("user") => blocks.iter().filter(|b| b["type"] == "tool_result").map(|b| ExecEvent::ToolFinished { id: s(&b["tool_use_id"]), output: s(&b["content"]), ok: b["is_error"] != true }).collect(),
         Some("result") if v["is_error"] == true => vec![ExecEvent::Error(s(&v["result"]))],
-        _ => vec![],
-    }
-}
-
-fn codex(v: &Value) -> Vec<ExecEvent> {
-    let item = &v["item"];
-    match (v["type"].as_str(), item["type"].as_str()) {
-        (Some("item.completed"), Some("agent_message")) => vec![ExecEvent::Text(s(&item["text"]))],
-        (Some("item.completed"), Some("reasoning")) => vec![ExecEvent::Reasoning(s(&item["text"]))],
-        (Some("item.started"), Some("command_execution")) => vec![ExecEvent::ToolStarted { id: s(&item["id"]), name: "command".into(), input: json!({"command": item["command"]}) }],
-        (Some("item.completed"), Some("command_execution")) => vec![ExecEvent::ToolFinished { id: s(&item["id"]), output: s(&item["aggregated_output"]), ok: item["exit_code"].as_i64().unwrap_or(0) == 0 }],
-        (Some("turn.failed"), _) => vec![ExecEvent::Error(s(&v["error"]["message"]))],
-        (Some("error"), _) => vec![ExecEvent::Error(s(&v["message"]))],
         _ => vec![],
     }
 }
@@ -104,7 +94,7 @@ mod tests {
     #[test]
     fn claude_lines_become_text_a_tool_start_its_result_and_a_failed_result_an_error() {
         let text = translate(Driver::ClaudeAgent, r#"{"type":"assistant","message":{"content":[{"type":"text","text":"Hi"},{"type":"tool_use","id":"k","name":"Bash","input":{"command":"ls"}}]}}"#);
-        assert_eq!(text, vec![ExecEvent::Text("Hi".into()), ExecEvent::ToolStarted { id: "k".into(), name: "Bash".into(), input: json!({"command": "ls"}) }]);
+        assert_eq!(text, vec![ExecEvent::Text("Hi".into()), ExecEvent::ToolStarted { id: "k".into(), name: "Bash".into(), input: serde_json::json!({"command": "ls"}) }]);
         let done = translate(Driver::ClaudeAgent, r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"k","content":"a.txt","is_error":false}]}}"#);
         assert_eq!(done, vec![ExecEvent::ToolFinished { id: "k".into(), output: "a.txt".into(), ok: true }]);
         assert_eq!(translate(Driver::ClaudeAgent, r#"{"type":"result","is_error":true,"result":"rate limited"}"#), vec![ExecEvent::Error("rate limited".into())]);
@@ -113,7 +103,7 @@ mod tests {
 
     #[test]
     fn given_the_lines_of_each_driver_when_asked_for_a_session_then_each_drivers_own_announcing_line_names_one() {
-        // Given Claude Code's init line, its other lines, an opencode line that carries its sessionID and Codex's thread line
+        // Given Claude Code's init line, its other lines and an opencode line that carries its sessionID
         let init = r#"{"type":"system","subtype":"init","session_id":"s-1","cwd":"/w"}"#;
         let result = r#"{"type":"result","is_error":false,"result":"ok","session_id":"s-1"}"#;
         let empty = r#"{"type":"system","subtype":"init","session_id":""}"#;
@@ -129,23 +119,8 @@ mod tests {
     }
 
     #[test]
-    fn given_codexs_json_lines_when_asked_for_a_session_then_only_the_thread_started_line_names_one() {
-        // Given the thread.started line of `codex exec --json`, a line of the turn, an empty id, and the same line given to the other drivers
-        let started = r#"{"type":"thread.started","thread_id":"0199a213-81c0-7800-8aa1-bbab2a035a53"}"#;
-        let message = r#"{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"hi"}}"#;
-        let empty = r#"{"type":"thread.started","thread_id":""}"#;
-        // When each is asked for its session
-        // Then Codex names its thread from the first line only, the other drivers name none, and translate shows nothing for it
-        assert_eq!(session_of(Driver::Codex, started), Some("0199a213-81c0-7800-8aa1-bbab2a035a53".to_string()));
-        assert_eq!((session_of(Driver::Codex, message), session_of(Driver::Codex, empty), session_of(Driver::Codex, "not json")), (None, None, None));
-        assert_eq!((session_of(Driver::ClaudeAgent, started), session_of(Driver::Opencode, started)), (None, None));
-        assert!(translate(Driver::Codex, started).is_empty());
-    }
-
-    #[test]
-    fn codex_and_opencode_lines_become_the_same_neutral_events() {
-        let c = translate(Driver::Codex, r#"{"type":"item.completed","item":{"type":"command_execution","id":"c1","aggregated_output":"x","exit_code":2}}"#);
-        assert_eq!(c, vec![ExecEvent::ToolFinished { id: "c1".into(), output: "x".into(), ok: false }]);
+    fn opencode_lines_become_tool_events_and_codex_has_no_lines_to_translate() {
+        assert!(translate(Driver::Codex, r#"{"type":"item.completed","item":{"type":"agent_message","text":"x"}}"#).is_empty());
         let o = translate(Driver::Opencode, r#"{"type":"tool_use","part":{"callID":"o1","tool":"bash","state":{"status":"completed","input":{"c":1},"output":"done"}}}"#);
         assert_eq!(o.len(), 2);
         assert_eq!(translate(Driver::Opencode, r#"{"type":"text","part":{"text":"yo"}}"#), vec![ExecEvent::Text("yo".into())]);

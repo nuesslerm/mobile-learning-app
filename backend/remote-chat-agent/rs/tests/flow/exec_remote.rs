@@ -229,7 +229,7 @@ async fn given_the_retired_routes_when_called_with_the_service_secret_then_each_
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_clis_that_print_their_streams_when_turns_run_then_each_becomes_the_same_neutral_events_in_the_thread_log() {
-    // Given a service with an executor for the workspace and two scripted CLIs: Claude Code printing a tool call and its answer, opencode printing text
+    // Given a service with an executor for the workspace and two scripted CLIs: Claude Code printing a tool call and its answer, opencode printing text (Codex runs as a live session: `agent_codex.rs`)
     let env = Env::new(&[]);
     let svc = service(&env, Options::default());
     let port = svc.listen().await;
@@ -254,15 +254,11 @@ async fn given_clis_that_print_their_streams_when_turns_run_then_each_becomes_th
     let mut agent = mapper(&svc, port).await;
     followed(&mut agent, "t1", "w1", "claudeAgent").await;
     followed(&mut agent, "t2", "w1", "opencode").await;
-    followed(&mut agent, "t3", "w1", "codex").await;
-    svc.spawner.script("codex", CliScript { lines: vec![r#"{"type":"item.completed","item":{"type":"agent_message","text":"from codex"}}"#.into()], ..CliScript::default() });
     // When a turn runs on each
     agent.ask("turn.start", turn("t1", "w1", "claudeAgent")).await;
     let claude = agent.events_through("turn.finished").await;
     agent.ask("turn.start", turn("t2", "w1", "opencode")).await;
     let opencode = agent.events_through("turn.finished").await;
-    agent.ask("turn.start", turn("t3", "w1", "codex")).await;
-    agent.events_through("turn.finished").await;
     // Then Claude Code's are its tool call, the call's output and finish, the text and a completed finish, each of the thread that ran
     assert_eq!(kinds(&claude), ["turn.started", "message.delta", "tool.started", "tool.output", "tool.finished", "message.delta", "turn.finished"]);
     assert_eq!((claude[2].data["tool"].clone(), claude[2].data["args"].clone(), claude[3].data["data"].clone()), (json!("Bash"), json!({"command": "ls"}), json!("a.txt")));
@@ -275,12 +271,12 @@ async fn given_clis_that_print_their_streams_when_turns_run_then_each_becomes_th
     let spawned = svc.spawner.spawned();
     assert_eq!((spawned[0].program.as_str(), spawned[0].cwd.clone()), ("claude", std::path::PathBuf::from(".")));
     assert!(spawned[0].args.windows(2).any(|w| w == ["--model", "m1"]) && spawned[0].args.contains(&"stream-json".to_string()) && spawned[0].args.contains(&"make a note".to_string()), "{:?}", spawned[0].args);
-    // And all three run at that root with the prompt, none with its own tools switched off or its tool list narrowed
-    assert_eq!(spawned.iter().map(|s| (s.program.as_str(), s.cwd.clone())).collect::<Vec<_>>(), [("claude", ".".into()), ("env", ".".into()), ("codex", ".".into())]);
+    // And both run at that root with the prompt, none with its own tools switched off or its tool list narrowed
+    assert_eq!(spawned.iter().map(|s| (s.program.as_str(), s.cwd.clone())).collect::<Vec<_>>(), [("claude", ".".into()), ("env", ".".into())]);
     assert!(spawned.iter().all(|s| s.args.contains(&"make a note".to_string())), "{spawned:?}");
     let switched_off = ["--tools", "--allowedTools", "--allowed-tools", "--disallowedTools", "--disallowed-tools", "--no-builtin-tools"];
     assert!(spawned.iter().all(|s| !s.args.iter().any(|a| switched_off.contains(&a.as_str()) || a.contains("\"tools\":"))), "{spawned:?}");
-    assert!(spawned[1].args.iter().any(|a| a == "opencode") && spawned[2].args.contains(&"exec".to_string()), "{spawned:?}");
+    assert!(spawned[1].args.iter().any(|a| a == "opencode"), "{spawned:?}");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -319,29 +315,30 @@ async fn given_clis_that_fail_when_turns_run_then_each_thread_logs_an_error_with
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_an_executor_without_claude_when_a_turn_names_claude_code_then_it_is_not_listed_it_is_refused_naming_the_cli_and_the_cli_it_has_still_runs() {
-    // Given an executor for the workspace that reports codex installed and claude missing
+    // Given an executor for the workspace that reports opencode installed and claude missing
     let env = Env::new(&[]);
     let svc = service(&env, Options::default());
     let port = svc.listen().await;
-    let _executor = Executor::connect_having(port, "w1", Some(vec!["codex".into()])).await;
-    svc.spawner.script("codex", CliScript { lines: vec![r#"{"type":"item.completed","item":{"type":"agent_message","text":"from codex"}}"#.into()], ..CliScript::default() });
+    let _executor = Executor::connect_having(port, "w1", Some(vec!["opencode".into()])).await;
+    // opencode runs as `env OPENCODE_CONFIG_CONTENT=... opencode ...`, so the double is keyed by `env`
+    svc.spawner.script("env", CliScript { lines: vec![r#"{"type":"text","part":{"text":"from opencode"}}"#.into()], ..CliScript::default() });
     let mut agent = mapper(&svc, port).await;
     followed(&mut agent, "t1", "w1", "claudeAgent").await;
-    followed(&mut agent, "t2", "w1", "codex").await;
+    followed(&mut agent, "t2", "w1", "opencode").await;
     // When the executor's agents are listed
     let listed = agent.ask("agents.detect", json!({})).await;
-    // Then only codex is listed, the drivers whose CLI the executor lacks are left out
+    // Then only opencode is listed, the drivers whose CLI the executor lacks are left out
     let drivers: Vec<&str> = listed["result"]["agents"].as_array().unwrap_or_else(|| panic!("{listed}")).iter().filter_map(|a| a["driver"].as_str()).collect();
-    assert_eq!(drivers, ["codex"], "{listed}");
-    // When a turn names claude code, and another names codex
+    assert_eq!(drivers, ["opencode"], "{listed}");
+    // When a turn names claude code, and another names opencode
     let refused = agent.ask("turn.start", turn("t1", "w1", "claudeAgent")).await;
-    let started = agent.ask("turn.start", turn("t2", "w1", "codex")).await;
+    let started = agent.ask("turn.start", turn("t2", "w1", "opencode")).await;
     let ran = agent.events_through("turn.finished").await;
     // Then the first is refused naming claude and nothing ran for it, and the second ran to its finish
     assert_eq!(refused["error"], json!({"code": "CLI_NOT_INSTALLED", "message": "claude is not installed on the executor of workspace w1"}));
     assert!(started.get("result").is_some(), "{started}");
     assert_eq!(ran.last().map(|e| e.data["reason"].clone()), Some(json!("completed")));
-    assert_eq!(svc.spawner.spawned().iter().map(|s| s.program.clone()).collect::<Vec<_>>(), ["codex"]);
+    assert_eq!(svc.spawner.spawned().iter().map(|s| s.program.clone()).collect::<Vec<_>>(), ["env"]);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

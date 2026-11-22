@@ -128,6 +128,7 @@ fn kind_of(event: &ExecEvent) -> &'static str {
         ExecEvent::Done => "done",
         ExecEvent::Error(_) => "error",
         ExecEvent::Session(_) => "session",
+        ExecEvent::Approval { .. } => "approval",
     }
 }
 
@@ -139,6 +140,10 @@ fn every_recording_of_the_scripted_cli_translates_to_the_neutral_events_its_inde
     for recording in recordings {
         // When every line of one goes through the translation the service applies to the real CLI's output
         let driver = Driver::parse(&recording.driver).unwrap_or_else(|| panic!("{}: {} is no driver of the service", recording.name, recording.driver));
+        // Codex's lines are those of `codex exec --json`, which the service no longer runs: its server is read by `domain::codex`, whose recordings are in `agent_codex.rs`
+        if driver.lives() {
+            continue;
+        }
         let events: Vec<String> = recording.lines.iter().flat_map(|line| translate(driver, line)).map(|event| kind_of(&event).to_string()).collect();
         // Then the neutral events are the ones the index lists, in order
         assert_eq!(events, recording.expect, "{}", recording.name);

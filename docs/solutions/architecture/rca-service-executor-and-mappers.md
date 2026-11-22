@@ -29,12 +29,12 @@ phone (Orca app) ──▶ orca-serve ──┴──▶ rca-service ◀── r
 | `t3-serve` (`clis/t3-serve`) | server side, beside the service | T3's phone protocol (pairing, its RPCs and events), mapped to `/agent/v1`; our stand-in for the real `t3 serve` | files, CLIs, credentials |
 | `orca-serve` (`clis/orca-serve`) | server side | Orca's E2EE WebSocket RPC, mapped to `/agent/v1` | files, CLIs, credentials |
 | `rca-service` (`backend/remote-chat-agent`) | server side (the VM) | the agent API `/agent/v1`: threads, turns, queue, history, approvals and questions, git, terminals, catalog; the executor registry | a project's files; it never runs a turn's CLI |
-| `rca-exec` (`clis/rca-exec`) | the machine that holds the project | the executor contract: files, git, commands, ptys, `cli_detect`, the CLIs' own logins, updates and account reads (`login_*`, `cli_update`, `codex_app_server_request`, `claude_account_request`; the token stays at the executor), and starting the turn's CLI in the project folder | thread state |
+| `rca-exec` (`clis/rca-exec`) | the machine that holds the project | the executor contract: files, git, commands, ptys, `cli_detect`, the CLIs' own logins, updates and account reads (`login_*`, `cli_update`, `codex_app_server_request`, `claude_account_request`; the token stays at the executor), starting the turn's CLI in the project folder, and keeping Codex's server process open (`session_open`, `session_send`) | thread state |
 
 ## A turn
 
 1. The phone sends a message; the mapper calls `turn.start {thread, workspace, driver, model?, prompt}` on `rca-service`.
-2. The service builds the CLI's command for the driver (`command_for_host` in `cli-driver`) and asks the executor attached for that workspace to run it (`run_command`, streamed).
+2. The service builds the CLI's command for the driver (`command_for_host` in `cli-driver`) and asks the executor attached for that workspace to run it (`run_command`, streamed). Codex has no command: its server runs once per workspace (`session_open`), the thread starts or resumes in it and the turn is a request to it (`docs/solutions/architecture/codex-app-server-protocol.md`).
 3. `rca-exec` starts `claude`, `codex` or `opencode` in the project's root with the host's own credentials. The CLI edits files and runs commands with its own tools, on that machine.
 4. Its output streams back; the service turns it into neutral events (`message.delta`, `tool.*`, `file.changed`, `turn.finished`) with a per-thread `seq` and pushes them to the subscribed mapper, which renders them as the app's events.
 5. Approvals and questions (`approval_prompt`, `ask_user`) reach the service through its tool server `/mcp/<thread>`, which a remote host reaches with `AGENT_PUBLIC_URL` and the turn's bearer.

@@ -72,13 +72,14 @@ async fn given_a_gateway_with_a_key_when_a_claude_turn_runs_then_the_cli_holds_a
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
-async fn given_a_gateway_with_keys_when_a_codex_and_an_opencode_turn_run_then_each_is_pointed_at_its_provider_with_the_turn_token_and_not_the_key() {
-    // Given a gateway that holds the OpenAI and opencode-go keys, and Codex and opencode CLIs whose turns are held open
+async fn given_a_gateway_with_keys_when_an_opencode_and_a_codex_turn_run_then_opencode_is_pointed_at_its_provider_with_the_turn_token_and_codex_keeps_its_own_login() {
+    // Given a gateway that holds the OpenAI and opencode-go keys, an opencode CLI whose turn is held open, and a Codex server that answers a turn
     let env = Env::new(&[]);
     let upstream = ScriptedUpstream::streaming(&["ok"]);
     let chain = chain_with(&env, keyed(&upstream)).await;
-    chain.cli.script("codex", &exec_testkit::script::Script::of(vec![held(Turn::default())]).printing_version("0.0.0-flow"));
     chain.cli.script("opencode", &exec_testkit::script::Script::of(vec![held(Turn::default())]).printing_version("0.0.0-flow"));
+    let codex_turn = exec_testkit::script::Run::new().handshake().thread_start("th-1").turn_saying("th-1", "u-1", "ok");
+    chain.cli.script("codex", &exec_testkit::script::Script::default().printing_version("0.0.0-flow").playing_app_server(vec![codex_turn.into()]));
     let mut agent = chain.agent().await;
     for (thread, driver) in [("tc", "codex"), ("to", "opencode")] {
         let made = agent.ask("thread.create", json!({"thread": thread, "title": "n", "workspace": "w1", "driver": driver})).await;
@@ -89,27 +90,25 @@ async fn given_a_gateway_with_keys_when_a_codex_and_an_opencode_turn_run_then_ea
     agent.ask("turn.start", json!({"thread": "to", "workspace": "w1", "driver": "opencode", "model": "opencode-go/deepseek-v4.1-flash", "prompt": "go"})).await;
     // (the executor also asks each CLI for its version, which is no turn)
     let turn_of = |program: &str| chain.cli.invocations(program).into_iter().find(|i| i.argv.contains(&"go".to_string()));
-    eventually("both CLIs started", || turn_of("codex").is_some() && turn_of("opencode").is_some()).await;
-    let (codex, opencode) = (turn_of("codex").unwrap(), turn_of("opencode").unwrap());
-    // Then Codex names a provider entry at the gateway whose token variable holds the turn's token, and opencode's config names the baseURL and the token
+    eventually("both turns started", || turn_of("opencode").is_some() && chain.cli.app_server_log("codex").iter().any(|r| r.message["method"] == "turn/start")).await;
+    let opencode = turn_of("opencode").unwrap();
+    // Then opencode's config names the baseURL and the token of its provider
     let base = format!("http://127.0.0.1:{}/gateway", chain.port);
-    let codex_token = codex.env["CODEX_GATEWAY_TOKEN"].clone().unwrap_or_else(|| panic!("Codex is given a token: {:?} {:?}", codex.argv, codex.env));
-    assert!(codex.argv.iter().any(|a| a.contains(&format!("base_url = \"{base}/openai\"")) && a.contains("env_key = \"CODEX_GATEWAY_TOKEN\"")), "{:?}", codex.argv);
     let config: Value = serde_json::from_str(opencode.env["OPENCODE_CONFIG_CONTENT"].as_deref().expect("opencode is given a config")).unwrap();
     assert_eq!(config["provider"]["opencode-go"]["options"]["baseURL"], json!(format!("{base}/opencode-go")));
     let opencode_token = config["provider"]["opencode-go"]["options"]["apiKey"].as_str().unwrap().to_string();
-    // And neither holds a provider key, and each token opens its own provider: the key is what that provider is called with
-    for seen in [format!("{:?} {:?}", codex.argv, codex.env), format!("{:?} {:?}", opencode.argv, opencode.env)] {
+    // And Codex's server was sent no gateway address and no token, since it keeps the login of the host (`docs/gaps/codex-session-not-through-gateway.md`)
+    let sent = chain.cli.app_server_log("codex").iter().map(|r| r.message.to_string()).collect::<Vec<_>>().join("\n");
+    assert!(!sent.contains("/gateway") && !sent.contains("rcag_") && !sent.contains("model_provider"), "{sent}");
+    // And neither holds a provider key, and the opencode token opens its own provider: the key is what that provider is called with
+    for seen in [format!("{:?} {:?}", opencode.argv, opencode.env), sent] {
         assert!(!seen.contains(REAL_OPENAI) && !seen.contains(REAL_GO) && !seen.contains(REAL), "{seen}");
     }
-    let responses = chain.service().send(post("/gateway/openai/responses").header("authorization", &format!("Bearer {codex_token}")).json(json!({"model": "gpt"}))).await;
     let chat = chain.service().send(post("/gateway/opencode-go/chat/completions").header("authorization", &format!("Bearer {opencode_token}")).json(json!({"model": "deepseek-v4.1-flash"}))).await;
-    assert_eq!((responses.status, chat.status), (StatusCode::OK, StatusCode::OK), "{} {}", responses.text(), chat.text());
+    assert_eq!(chat.status, StatusCode::OK, "{}", chat.text());
     let seen = upstream.seen();
-    assert_eq!(seen[0].url(), "https://api.openai.com/v1/responses");
-    assert!(seen[0].headers.iter().any(|(n, v)| n == "authorization" && v == &format!("Bearer {REAL_OPENAI}")));
-    assert_eq!(seen[1].url(), "https://opencode.ai/zen/go/v1/chat/completions");
-    assert!(seen[1].headers.iter().any(|(n, v)| n == "authorization" && v == &format!("Bearer {REAL_GO}")));
+    assert_eq!(seen[0].url(), "https://opencode.ai/zen/go/v1/chat/completions");
+    assert!(seen[0].headers.iter().any(|(n, v)| n == "authorization" && v == &format!("Bearer {REAL_GO}")));
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]

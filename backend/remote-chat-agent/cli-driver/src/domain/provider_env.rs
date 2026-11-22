@@ -56,11 +56,10 @@ pub struct GatewayRoute {
     pub token: String,
 }
 
-const CODEX_TOKEN_VARIABLE: &str = "CODEX_GATEWAY_TOKEN";
-
 /// `command` pointed at the gateway: Claude Code through `ANTHROPIC_BASE_URL` (the turn's token as its API key, and no subscription token beside
-/// it), Codex through a `model_providers` entry, opencode through the `baseURL` of the provider block its config gets. Only a turn the service
-/// decided to route goes through here; a CLI that keeps its own subscription login is launched as `command` has it.
+/// it), opencode through the `baseURL` of the provider block its config gets. Only a turn the service decided to route goes through here; a CLI
+/// that keeps its own subscription login is launched as `command` has it. Codex lives as a server for all its threads, so it has no command to
+/// point (`docs/gaps/codex-session-not-through-gateway.md`).
 pub fn through_gateway(driver: Driver, mut command: Command, route: &GatewayRoute) -> Command {
     match driver {
         Driver::ClaudeAgent => {
@@ -68,14 +67,7 @@ pub fn through_gateway(driver: Driver, mut command: Command, route: &GatewayRout
             wrapped.extend(command.args);
             Command { program: "env".into(), args: wrapped, cwd: command.cwd }
         }
-        Driver::Codex => {
-            let provider = format!("model_providers.gateway={{ name = \"gateway\", base_url = \"{}\", env_key = \"{CODEX_TOKEN_VARIABLE}\", wire_api = \"responses\" }}", route.base_url);
-            let at = command.args.iter().position(|a| a == "exec").map_or(0, |i| i + 1);
-            command.args.splice(at..at, ["-c".to_string(), "model_provider=\"gateway\"".to_string(), "-c".to_string(), provider]);
-            let mut wrapped = vec![format!("{CODEX_TOKEN_VARIABLE}={}", route.token), command.program];
-            wrapped.extend(command.args);
-            Command { program: "env".into(), args: wrapped, cwd: command.cwd }
-        }
+        Driver::Codex => command,
         Driver::Opencode => {
             const PREFIX: &str = "OPENCODE_CONFIG_CONTENT=";
             let block = serde_json::json!({"options": {"baseURL": route.base_url, "apiKey": route.token}});
@@ -191,9 +183,9 @@ mod tests {
 
     #[test]
     fn given_a_turn_routed_through_the_gateway_when_each_cli_is_built_then_it_is_pointed_at_the_gateway_with_the_turn_token_and_runs_with_the_provider_environment() {
-        for (driver, provider, model) in [(Driver::ClaudeAgent, "anthropic", None), (Driver::Codex, "openai", None), (Driver::Opencode, "opencode-go", Some("opencode-go/m"))] {
+        for (driver, provider, model) in [(Driver::ClaudeAgent, "anthropic", None), (Driver::Opencode, "opencode-go", Some("opencode-go/m"))] {
             // Given the host command of a turn of each CLI
-            let host = super::super::driver::command_for_host(driver, &request(driver, model), "http://svc:8787/mcp/t", "mcp-tok");
+            let host = super::super::driver::command_for_host(driver, &request(driver, model), "http://svc:8787/mcp/t", "mcp-tok").unwrap();
             // When it is pointed at the gateway
             let routed = through_gateway(driver, host.clone(), &route(provider));
             let line = format!("{} {}", routed.program, routed.args.join(" "));
@@ -206,21 +198,17 @@ mod tests {
     }
 
     #[test]
-    fn given_a_routed_claude_turn_when_built_then_the_subscription_token_is_blanked_and_codex_names_a_provider_entry_before_the_prompt() {
-        let claude = through_gateway(Driver::ClaudeAgent, super::super::driver::command_for(Driver::ClaudeAgent, &request(Driver::ClaudeAgent, None)), &route("anthropic"));
+    fn given_a_routed_claude_turn_when_built_then_the_subscription_token_is_blanked_and_a_codex_command_is_left_as_it_is() {
+        let claude = through_gateway(Driver::ClaudeAgent, super::super::driver::command_for(Driver::ClaudeAgent, &request(Driver::ClaudeAgent, None)).unwrap(), &route("anthropic"));
         assert!(claude.args.contains(&"CLAUDE_CODE_OAUTH_TOKEN=".to_string()) && claude.args.contains(&"ANTHROPIC_API_KEY=rcag_turn".to_string()), "{:?}", claude.args);
-        let codex = through_gateway(Driver::Codex, super::super::driver::command_for(Driver::Codex, &request(Driver::Codex, None)), &route("openai"));
-        let at = codex.args.iter().position(|a| a == "exec").unwrap();
-        assert_eq!(codex.args[at + 1], "-c");
-        assert_eq!(codex.args[at + 2], "model_provider=\"gateway\"");
-        assert!(codex.args[at + 4].contains("base_url = \"http://svc:8787/gateway/openai\"") && codex.args[at + 4].contains("wire_api = \"responses\""));
-        assert!(codex.args.contains(&"CODEX_GATEWAY_TOKEN=rcag_turn".to_string()));
+        let untouched = Command { program: "codex".into(), args: vec!["app-server".into()], cwd: ".".into() };
+        assert_eq!(through_gateway(Driver::Codex, untouched.clone(), &route("openai")), untouched);
     }
 
     #[test]
     fn given_an_opencode_turn_with_a_tool_server_when_routed_then_the_provider_block_joins_the_config_it_already_had() {
         // Given the host command of an opencode turn, whose config names the service's tool server
-        let host = super::super::driver::command_for_host(Driver::Opencode, &request(Driver::Opencode, Some("kimi-for-coding/k3")), "http://svc:8787/mcp/t", "mcp-tok");
+        let host = super::super::driver::command_for_host(Driver::Opencode, &request(Driver::Opencode, Some("kimi-for-coding/k3")), "http://svc:8787/mcp/t", "mcp-tok").unwrap();
         // When it is routed
         let routed = through_gateway(Driver::Opencode, host, &route("kimi"));
         // Then the single config setting has both the tool server and the provider's baseURL and token

@@ -16,7 +16,7 @@ related_components: [tooling]
 
 # Codex app-server protocol
 
-One `codex app-server` process hosts many threads. The executor starts one per workspace and CLI, keeps it for the life of the workspace, and carries each phone message to it and each notification back. This note is what the adapter codes against. It replaces the one-process-per-turn runner and `exec resume` (gap `codex-resume-flags-unverified`).
+One `codex app-server` process hosts many threads. The executor starts one per workspace and CLI, keeps it for the life of the workspace, and carries each phone message to it and each notification back. This note is what the adapter codes against. It replaced the one-process-per-turn runner and `exec resume`, which are gone: the first implementation is below.
 
 Sources, tagged on every fact below:
 
@@ -232,6 +232,18 @@ spawn: codex app-server            (stdio, one per workspace and CLI)
 → turn/interrupt {threadId,turnId}               ← {} then turn/completed{interrupted}
 ← thread/tokenUsage/updated        ← turn/completed {status}
 ```
+
+## How the service speaks it
+
+The service keeps the live process and the executor only carries its lines (a relay and a recorder: nothing about a conversation is decided at the executor).
+
+- **Executor.** `session_open {session, program: "codex", cwd?}` starts `codex app-server` in the workspace's directory (or the worktree's) with the executor's home, answers `{kind: "session.started"}` as an event once the process has its input, streams its stdout, and ends when the process does (`{exit_code, cancelled}`). `session_send {session, line}` writes one line. A cancel of the open action kills the process group, so what the CLI started dies with it, and a process left holding the output after the CLI exited is killed once the output has been quiet (`clis/rca-exec/src/adapters/sessions.rs`, `drive` in `local_executor.rs`).
+- **Service.** `cli-driver` holds the protocol (`domain/codex.rs`: the requests, the lines, the notifications as neutral events, the approval answers) and `CodexSessions` (`application/codex_sessions.rs`), one server per workspace with every thread of the workspace in it. The `Linker` port starts the process: `HostLinker` over `session_open` and `session_send` in `group-agent`, `Processes` in `host` for a process on the service's own machine.
+- **Turn.** `thread/start` (the thread's id is announced as the session the engine keeps) or `thread/resume` by the stored id, then `turn/start` with the approval policy and sandbox of the thread's mode (`approval-required`: `untrusted` and `readOnly`; `auto-accept-edits`: `on-request` and `workspaceWrite`; `full-access`: `never` and `dangerFullAccess`; a plan: `never` and `readOnly`). `agentMessage` deltas are the text (a message that arrives only as its completed text is said whole), a `commandExecution` is a call named `command`, a `fileChange` is one call per change named for its kind (`create_file`, `Edit`, `delete_file`, which the log turns into `file.changed`), an `mcpToolCall` is `mcp__<server>__<tool>`, reasoning summaries are reasoning.
+- **Steer and stop.** `turn.steer` is `turn/steer` on the live process, and the turn goes on as the same turn; a refused steer is an error in the log and a refusal. `turn.interrupt` is `turn/interrupt`; the turn ends `interrupted` when the server says so, and a server that does not end it within 15 seconds is killed.
+- **Approvals.** Command, file change and permission requests of the server are `approval.requested` events (`tool` `command`, `file_change`, `permissions`), answered by `approval.answer` on the live process; `accept_for_session` is the server's own `acceptForSession`. A request of any other kind is refused (`mcpServer/elicitation/request` is declined, the rest are a method not found), because the service does not opt into `experimentalApi`, so `item/tool/requestUserInput` is never sent.
+- **Life of the process.** Closed after `RCA_CODEX_IDLE_SECS` (default 600, 0 never) with no turn running, replaced when it dies, and every thread of a dead process is resumed by its stored conversation id on its next turn. A turn that was running when the process died ends failed with why; it is never run again.
+- **Not routed through the model gateway** (`docs/gaps/codex-session-not-through-gateway.md`), and **not run against the real CLI** (`docs/gaps/codex-live-session-not-run-against-the-real-cli.md`).
 
 ## Not verified
 

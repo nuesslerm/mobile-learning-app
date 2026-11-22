@@ -506,21 +506,22 @@ mod tests {
 
     #[tokio::test]
     async fn given_an_executor_without_claude_when_a_turn_names_claude_code_then_it_is_refused_naming_the_cli_nothing_is_recorded_and_a_present_cli_still_runs() {
-        // Given an executor that has codex but not claude
-        let rig = rig_with(&["codex"]);
+        // Given an executor that has opencode (started as `env ... opencode`) but not claude
+        let rig = rig_with(&["opencode"]);
         rig.create("t").await;
-        rig.spawner.script("codex", CliScript { lines: vec![], ..CliScript::default() });
+        rig.spawner.script("env", CliScript { lines: vec![], ..CliScript::default() });
         // When a turn names claude code
         let refused = rig.start("t").await;
         // Then it is refused up front naming the CLI, no CLI was spawned, the log is empty and the thread is free
         assert_eq!(refused["error"], json!({"code": "CLI_NOT_INSTALLED", "message": "claude is not installed on the executor of workspace w1"}));
         assert!(rig.engine.events_of("t").is_empty() && rig.spawner.kills() == 0);
         // When a turn names the CLI it has
-        let started = rig.ask("turn.start", json!({"thread": "t", "workspace": "w1", "driver": "codex", "prompt": "p"})).await;
+        let started = rig.ask("turn.start", json!({"thread": "t", "workspace": "w1", "driver": "opencode", "prompt": "p"})).await;
         rig.wait_idle("t").await;
-        // Then it runs
+        // Then it runs to a finish that completed
         assert!(started["result"]["turn"].is_string(), "{started}");
         assert!(rig.kinds("t").contains(&"turn.started".to_string()));
+        assert_eq!(rig.engine.events_of("t").iter().find(|e| e.kind == "turn.finished").map(|e| e.data["reason"].clone()), Some(json!("completed")));
     }
 
     #[tokio::test]

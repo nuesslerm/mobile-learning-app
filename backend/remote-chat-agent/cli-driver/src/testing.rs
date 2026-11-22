@@ -1,5 +1,6 @@
 //! The double of the crate's port for tests: provider CLIs as scripted processes.
-use crate::application::ports::{Running, Spawner};
+use crate::application::ports::{Link, Linker, Running, Spawner};
+use crate::domain::Driver;
 use async_trait::async_trait;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -104,4 +105,197 @@ impl Spawner for ScriptedSpawner {
             kill,
         })
     }
+}
+
+enum Emit {
+    Line(String),
+    End(Result<(), String>),
+}
+
+#[derive(Default)]
+struct Starts {
+    count: usize,
+    kills: usize,
+    received: Vec<(usize, serde_json::Value)>,
+    opened: Vec<PathBuf>,
+    emitters: Vec<mpsc::UnboundedSender<Emit>>,
+    refuse: Option<String>,
+}
+
+type React = Arc<dyn Fn(usize, &serde_json::Value) -> Vec<String> + Send + Sync>;
+
+/// A CLI's live server as a scripted process: what it answers to each line it is sent is decided by a function of the start it is and the
+/// message. A test pushes lines of its own (`emit`) and ends the process as a crash does (`die`).
+pub struct ScriptedLinker {
+    state: Arc<Mutex<Starts>>,
+    react: React,
+}
+
+impl ScriptedLinker {
+    /// A server that answers each message with the lines `react(start, message)` returns, `start` counting the processes from 1.
+    pub fn reacting(react: impl Fn(usize, &serde_json::Value) -> Vec<String> + Send + Sync + 'static) -> Arc<ScriptedLinker> {
+        Arc::new(ScriptedLinker { state: Arc::default(), react: Arc::new(react) })
+    }
+
+    fn state(&self) -> std::sync::MutexGuard<'_, Starts> {
+        self.state.lock().unwrap_or_else(|p| p.into_inner())
+    }
+
+    /// Prints `line` on the newest process.
+    pub fn emit(&self, line: impl Into<String>) {
+        if let Some(tx) = self.state().emitters.last() {
+            let _ = tx.send(Emit::Line(line.into()));
+        }
+    }
+
+    /// Ends the newest process as one that crashed, with `stderr` as its last words.
+    pub fn die(&self, stderr: &str) {
+        if let Some(tx) = self.state().emitters.last() {
+            let _ = tx.send(Emit::End(Err(stderr.to_string())));
+        }
+    }
+
+    /// The next start is refused with `why`.
+    pub fn refuse_next(&self, why: &str) {
+        self.state().refuse = Some(why.to_string());
+    }
+
+    /// Every message the processes were sent, with the number of the process (from 1).
+    pub fn received(&self) -> Vec<(usize, serde_json::Value)> {
+        self.state().received.clone()
+    }
+
+    /// The messages with this `method` that were sent, with the number of the process.
+    pub fn received_of(&self, method: &str) -> Vec<(usize, serde_json::Value)> {
+        self.received().into_iter().filter(|(_, m)| m["method"] == method).collect()
+    }
+
+    pub fn starts(&self) -> usize {
+        self.state().count
+    }
+
+    pub fn kills(&self) -> usize {
+        self.state().kills
+    }
+
+    pub fn opened(&self) -> Vec<PathBuf> {
+        self.state().opened.clone()
+    }
+}
+
+#[async_trait]
+impl Linker for ScriptedLinker {
+    async fn open(&self, _: Driver, cwd: &Path) -> Result<Link, String> {
+        let (start, tx, rx) = {
+            let mut state = self.state();
+            if let Some(why) = state.refuse.take() {
+                return Err(why);
+            }
+            state.count += 1;
+            state.opened.push(cwd.to_path_buf());
+            let (tx, rx) = mpsc::unbounded_channel::<Emit>();
+            state.emitters.push(tx.clone());
+            (state.count, tx, rx)
+        };
+        let (done_tx, done_rx) = oneshot::channel();
+        let lines = futures_util::stream::unfold((rx, Some(done_tx)), |(mut rx, mut done)| async move {
+            match rx.recv().await {
+                Some(Emit::Line(line)) => Some((line, (rx, done))),
+                Some(Emit::End(result)) => {
+                    if let Some(done) = done.take() {
+                        let _ = done.send(result);
+                    }
+                    None
+                }
+                None => {
+                    if let Some(done) = done.take() {
+                        let _ = done.send(Ok(()));
+                    }
+                    None
+                }
+            }
+        });
+        let (state, react, answer) = (Arc::clone(&self.state), Arc::clone(&self.react), tx.clone());
+        let send: Arc<dyn Fn(String) -> bool + Send + Sync> = Arc::new(move |line| {
+            let Ok(message) = serde_json::from_str::<serde_json::Value>(&line) else { return false };
+            state.lock().unwrap_or_else(|p| p.into_inner()).received.push((start, message.clone()));
+            for out in react(start, &message) {
+                if answer.send(Emit::Line(out)).is_err() {
+                    return false;
+                }
+            }
+            true
+        });
+        let (state, stop) = (Arc::clone(&self.state), tx);
+        let kill: Arc<dyn Fn() + Send + Sync> = Arc::new(move || {
+            state.lock().unwrap_or_else(|p| p.into_inner()).kills += 1;
+            let _ = stop.send(Emit::End(Ok(())));
+        });
+        Ok(Link { running: Running { lines: Box::pin(lines), finish: Box::pin(async move { done_rx.await.unwrap_or(Ok(())) }), kill }, send })
+    }
+}
+
+/// What a scripted server says, as the lines it prints.
+pub fn say(v: serde_json::Value) -> String {
+    v.to_string()
+}
+
+pub fn reply(id: &serde_json::Value, result: serde_json::Value) -> String {
+    say(serde_json::json!({"id": id, "result": result}))
+}
+
+pub fn note(method: &str, params: serde_json::Value) -> String {
+    say(serde_json::json!({"method": method, "params": params}))
+}
+
+pub fn started(thread: &str, turn: &str) -> String {
+    note("turn/started", serde_json::json!({"threadId": thread, "turn": {"id": turn}}))
+}
+
+pub fn delta(thread: &str, turn: &str, text: &str) -> String {
+    note("item/agentMessage/delta", serde_json::json!({"threadId": thread, "turnId": turn, "itemId": "m", "delta": text}))
+}
+
+pub fn finish(thread: &str, turn: &str, status: &str) -> String {
+    note("turn/completed", serde_json::json!({"threadId": thread, "turn": {"id": turn, "status": status, "error": null}}))
+}
+
+/// A Codex app-server that mints `th-<n>` for each thread it starts and `u-<n>` for each turn: a prompt `hello` is answered at once, `hold` runs until
+/// it is steered or interrupted, `approve` asks to run a command and goes on when the person has answered.
+pub fn app_server() -> Arc<ScriptedLinker> {
+    use serde_json::json;
+    let (threads, turns) = (AtomicUsize::new(0), AtomicUsize::new(0));
+    ScriptedLinker::reacting(move |_, m| {
+        let (id, params) = (&m["id"], &m["params"]);
+        let thread = params["threadId"].as_str().unwrap_or_default().to_string();
+        match m["method"].as_str() {
+            Some("initialize") => vec![reply(id, json!({"userAgent": "scripted"}))],
+            Some("thread/start") => vec![reply(id, json!({"thread": {"id": format!("th-{}", threads.fetch_add(1, Ordering::SeqCst) + 1)}}))],
+            Some("thread/resume") => vec![reply(id, json!({"thread": {"id": thread}}))],
+            Some("turn/start") => {
+                let turn = format!("u-{}", turns.fetch_add(1, Ordering::SeqCst) + 1);
+                let mut out = vec![reply(id, json!({"turn": {"id": turn}})), started(&thread, &turn)];
+                match params["input"][0]["text"].as_str().unwrap_or_default() {
+                    "hold" => out.push(delta(&thread, &turn, "working")),
+                    "approve" => out.extend([
+                        note("item/started", json!({"threadId": thread, "turnId": turn, "item": {"type": "commandExecution", "id": "c1", "command": "touch a", "cwd": "/w"}})),
+                        say(json!({"id": 0, "method": "item/commandExecution/requestApproval", "params": {"threadId": thread, "turnId": turn, "itemId": "c1", "command": "touch a", "reason": "May I?"}})),
+                    ]),
+                    _ => out.extend([delta(&thread, &turn, "Hi"), finish(&thread, &turn, "completed")]),
+                }
+                out
+            }
+            Some("turn/steer") => {
+                let turn = params["expectedTurnId"].as_str().unwrap_or_default();
+                vec![reply(id, json!({"turnId": turn})), delta(&thread, turn, " steered"), finish(&thread, turn, "completed")]
+            }
+            Some("turn/interrupt") => vec![reply(id, json!({})), finish(&thread, params["turnId"].as_str().unwrap_or_default(), "interrupted")],
+            None if m["id"] == 0 => vec![
+                note("item/completed", json!({"threadId": "th-1", "turnId": "u-1", "item": {"type": "commandExecution", "id": "c1", "command": "touch a", "status": "completed", "aggregatedOutput": "", "exitCode": 0}})),
+                delta("th-1", "u-1", "done"),
+                finish("th-1", "u-1", "completed"),
+            ],
+            _ => vec![],
+        }
+    })
 }

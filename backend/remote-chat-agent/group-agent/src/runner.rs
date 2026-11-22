@@ -11,8 +11,10 @@ use agent_api_agent::{code, message, FinishReason, Role, Status, ThreadEvent, Th
 use agent_api_proto::Event;
 use crate::gateway::{NoGateway, TurnGateway};
 use crate::host::CliLauncher;
+use rca_cli_driver::application::codex_sessions::CodexSessions;
+use rca_cli_driver::application::ports::SessionDriver;
 use rca_cli_driver::application::turns::Turns;
-use rca_cli_driver::domain::{command_for_host, through_gateway, Command as CliCommand, Driver, GatewayRoute, TurnRequest};
+use rca_cli_driver::domain::{command_for_host, through_gateway, Command as CliCommand, Driver, GatewayRoute, TurnRequest, Verdict};
 use rca_exec_channel::remote::ExecutorChannel;
 use rca_exec_channel::Executors;
 use std::sync::{Arc, Weak};
@@ -113,8 +115,17 @@ impl Prepared {
         runner.executors.bind(&thread, &workspace);
         let task = TurnTask { runner: Arc::clone(&runner), channel, claim, thread: thread.clone(), turn: turn.clone(), driver, request };
         crate::checkpoint::take(runner.executors.as_ref(), &task.channel, &workspace, &thread, &turn).await;
-        let spawner = runner.launcher.spawner(&task.channel);
-        match runner.turns.launch(spawner.as_ref(), driver, &thread, command).await {
+        let started = match command {
+            Some(command) => {
+                let spawner = runner.launcher.spawner(&task.channel);
+                runner.turns.launch(spawner.as_ref(), driver, &thread, command).await
+            }
+            None => {
+                let linker = runner.launcher.linker(&task.channel);
+                runner.sessions.turn(&workspace, linker.as_ref(), &task.request).await
+            }
+        };
+        match started {
             Ok(events) => {
                 tokio::spawn(task.follow(events));
             }
@@ -144,6 +155,8 @@ pub struct Runner {
     engine: Arc<dyn ThreadEngine>,
     executors: Arc<dyn Executors>,
     turns: Arc<Turns>,
+    /// The live sessions of the CLIs that stay up between turns (Codex).
+    sessions: Arc<CodexSessions>,
     mcp: Arc<dyn McpEndpoint>,
     launcher: Arc<dyn CliLauncher>,
     /// The token each running turn gave its CLI for the service's tool server: the CLI may run on another host than the service.
@@ -163,7 +176,7 @@ impl Runner {
 
     /// A runner whose turns go through `gateway` when it routes them.
     pub fn with_gateway(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, launcher: Arc<dyn CliLauncher>, mcp: Arc<dyn McpEndpoint>, gateway: Arc<dyn TurnGateway>) -> Arc<Runner> {
-        let runner = Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::default()), mcp, launcher, mcp_tokens: Default::default(), gateway, routes: Default::default(), in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
+        let runner = Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::default()), sessions: Arc::new(CodexSessions::default()), mcp, launcher, mcp_tokens: Default::default(), gateway, routes: Default::default(), in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
         let me = Arc::downgrade(&runner);
         runner.engine.on_settled(Arc::new(move |thread| {
             if let Some(runner) = me.upgrade() {
@@ -185,19 +198,24 @@ impl Runner {
         &self.turns
     }
 
+    /// The live sessions of the CLIs that stay up between turns: how long an idle one is kept is set on it.
+    pub fn sessions(&self) -> &Arc<CodexSessions> {
+        &self.sessions
+    }
+
     pub fn launcher(&self) -> &Arc<dyn CliLauncher> {
         &self.launcher
     }
 
     /// The CLI invocation of the thread's turn at the workspace host: the service's tool server, and the gateway when the turn is routed. The route is
-    /// decided when the turn first asks and kept until it ends.
-    pub fn host_command(&self, driver: Driver, request: &TurnRequest, thread: &str) -> CliCommand {
-        let command = command_for_host(driver, request, &self.mcp_url(thread), &self.mcp_token(thread));
+    /// decided when the turn first asks and kept until it ends. None for a CLI that lives, whose turn is run on its session.
+    pub fn host_command(&self, driver: Driver, request: &TurnRequest, thread: &str) -> Option<CliCommand> {
+        let command = command_for_host(driver, request, &self.mcp_url(thread), &self.mcp_token(thread))?;
         let route = self.routes.lock().unwrap_or_else(|p| p.into_inner()).entry(thread.to_string()).or_insert_with(|| self.gateway.route(thread, driver.id(), request.model.as_deref())).clone();
-        match route {
+        Some(match route {
             Some(route) => through_gateway(driver, command, &route),
             None => command,
-        }
+        })
     }
 
     pub fn mcp_url(&self, thread: &str) -> String {
@@ -269,24 +287,43 @@ impl Runner {
             interaction_mode: input.interaction_mode.clone().unwrap_or_else(|| "default".into()),
             resume: self.engine.provider_session(thread, driver.id()).unwrap_or(None),
         };
-        let claim = self.in_flight.claim(thread, &turn).ok_or_else(running)?;
+        let claim = self.in_flight.claim(thread, &turn, driver.lives()).ok_or_else(running)?;
         Ok(Prepared { runner: Arc::clone(self), thread: thread.to_string(), turn, driver, channel, workspace: input.workspace, claim, request, said: input.prompt, merge })
     }
 
     /// Asks the running turn of `thread` (the one `named`, when one is) to stop, and stops its CLI; the turn ends `interrupted`. None when there is none.
     pub fn interrupt(&self, thread: &str, named: Option<&str>) -> Option<String> {
         let turn = self.in_flight.interrupt(thread, named)?;
-        self.turns.interrupt(thread);
+        self.stop_process(thread);
         Some(turn)
     }
 
-    /// The running turn goes on with `prompt`: its CLI ends and the turn's task starts another in the same turn. The engine decides first, so a
-    /// refusal changes nothing; a turn the group does not run is refused for want of one.
-    pub fn steer(&self, thread: &str, turn: Option<String>, prompt: Option<String>, item: Option<String>) -> Result<(String, Vec<Event>), Refusal> {
+    /// Stops what runs the thread's turn: the process of a CLI started for the turn, or the turn on the live session of a CLI that lives.
+    pub fn stop_process(&self, thread: &str) {
+        self.turns.interrupt(thread);
+        self.sessions.interrupt(thread);
+    }
+
+    /// The person's answer to an approval a live session asked for; whether the session was waiting for it.
+    pub fn answer_session(&self, thread: &str, approval: &str, verdict: Verdict) -> bool {
+        self.sessions.answer(thread, approval, verdict)
+    }
+
+    /// The running turn goes on with `prompt`. A CLI that lives takes it on its session and the turn goes on as it is; for one started for the turn,
+    /// the CLI ends and the turn's task starts another in the same turn. The engine decides first, so a refusal changes nothing; a turn the group does not
+    /// run is refused for want of one. A live session that does not take the steer leaves an error in the turn's log and refuses the call.
+    pub async fn steer(&self, thread: &str, turn: Option<String>, prompt: Option<String>, item: Option<String>) -> Result<(String, Vec<Event>), Refusal> {
         let events = self.decide(thread, Command::Steer { turn: turn.clone(), prompt, item })?;
         let said = events.first().and_then(|e| e.data.get("prompt")).and_then(|p| p.as_str()).unwrap_or_default().to_string();
-        let running = self.in_flight.steer(thread, turn.as_deref(), &said).ok_or_else(|| Refusal::new(code::NO_TURN, message::no_turn(thread, turn.as_deref())))?;
-        self.turns.interrupt(thread);
+        let (running, live) = self.in_flight.steer(thread, turn.as_deref(), &said).ok_or_else(|| Refusal::new(code::NO_TURN, message::no_turn(thread, turn.as_deref())))?;
+        if live {
+            if let Err(why) = self.sessions.steer(thread, &said).await {
+                self.engine.record(thread, Some(&running), ThreadEvent::Error { code: crate::neutral::CLI_ERROR.into(), message: why.clone() })?;
+                return Err(Refusal::new(code::NO_TURN, why));
+            }
+        } else {
+            self.turns.interrupt(thread);
+        }
         Ok((running, events))
     }
 
@@ -305,6 +342,7 @@ impl Runner {
     /// The CLI's conversation of the thread is detached: the running turn does not keep the one it announced, and the permissions given for the
     /// session are no more.
     pub fn forget_session(&self, thread: &str) {
+        self.sessions.forget(thread);
         self.in_flight.detach(thread);
         self.waiting.forget_grants(thread);
     }

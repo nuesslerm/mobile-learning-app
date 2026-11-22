@@ -11,10 +11,12 @@ Every action is `{id, tool, args}` and is answered by `{id, ok, result}` or `{id
 | tool | args | result |
 | --- | --- | --- |
 | `run_command` | `command` (shell string), `cwd?` (relative), `timeout_ms?` (default 120000), `env?` (extra vars) | `{exit_code, timed_out, truncated}`; output arrives as stream frames |
+| `session_open` | `session` (an id the caller chooses), `program` (`codex`), `cwd?` | `{exit_code, cancelled}` when the process ends; first an event `{kind:"session.started"}`, then its stdout as stream frames; a `cancel` of it kills the process group |
+| `session_send` | `session`, `line` (one line, no newline) | `{written}`; `NOT_FOUND` when no such session is open |
 | `read_file` | `path`, `offset?`, `limit?` (lines) | `{content, total_lines}` |
 | `write_file` | `path`, `content`, `create_dirs?` | `{bytes}` |
 | `list_dir` | `path`, `depth?` (default 1) | `{entries:[{name, kind:"file"|"dir", size}]}` |
-| `cancel` | `id` of a running action | `{cancelled}`; kills the process group of a `run_command` or stops a `worktree_setup` |
+| `cancel` | `id` of a running action | `{cancelled}`; kills the process group of a `run_command` or a `session_open`, or stops a `worktree_setup` |
 | `stat` | `path` | `{kind:"file"|"dir", size, modified_ms}` |
 | `read_chunk` | `path`, `offset?` (bytes), `length?` (at most 1 MiB, the default) | `{data (base64), offset, bytes, total_bytes, eof}` |
 | `create_file` | `path`, `content?`, `create_dirs?` | `{bytes}`; `ALREADY_EXISTS` when the path exists (never opened, never followed through a link) |

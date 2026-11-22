@@ -40,6 +40,8 @@ mod agent_catalog;
 mod agent_state;
 #[path = "flow/agent_terminal.rs"]
 mod agent_terminal;
+#[path = "flow/agent_codex.rs"]
+mod agent_codex;
 #[path = "flow/agent_threads.rs"]
 mod agent_threads;
 #[path = "flow/agent_workspace.rs"]

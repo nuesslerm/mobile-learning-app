@@ -11,8 +11,9 @@ pub mod remote;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 
-/// The action that starts a program at the executor: what a turn's CLI runs through.
-pub use exec_proc::{CliDetectResult, CLI_DETECT, MCP_REQUEST, PROC_SAMPLE, RUN_COMMAND};
+/// The actions that start a program at the executor: what a turn's CLI runs through (`run_command`), and the live server of a CLI that stays up
+/// between turns (`session_open`, `session_send`).
+pub use exec_proc::{CliDetectResult, CLI_DETECT, MCP_REQUEST, PROC_SAMPLE, RUN_COMMAND, SESSION_OPEN, SESSION_SEND};
 pub use placed::Placed;
 pub use registry::{Executors, Place, Registry, Route, RouteError, WorkspaceError, WorkspaceLedger};
 

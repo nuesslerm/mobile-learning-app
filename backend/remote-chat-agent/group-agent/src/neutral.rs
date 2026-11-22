@@ -67,6 +67,7 @@ impl Calls {
                 events
             }
             ExecEvent::Error(message) => vec![ThreadEvent::Error { code: CLI_ERROR.into(), message }],
+            ExecEvent::Approval { id, tool, args } => vec![ThreadEvent::ApprovalRequested { approval: id, tool, args }],
             ExecEvent::Done | ExecEvent::Session(_) => Vec::new(),
         }
     }

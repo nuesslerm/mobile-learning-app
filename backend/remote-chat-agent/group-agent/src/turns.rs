@@ -1,5 +1,6 @@
 //! The turns in flight: which thread runs which turn, whether it was asked to stop or to go on with another prompt, and the task that follows a CLI into the log.
-//! A steer ends the CLI process and starts another in the same turn, so a turn is one or more processes.
+//! A steer of a CLI that runs a process for each turn ends it and starts another in the same turn, so such a turn is one or more processes; a CLI that
+//! lives takes the steer on its live session and the turn stays one.
 use crate::neutral::{Calls, CLI_START_FAILED, EXECUTOR_GONE};
 use crate::runner::Runner;
 use agent_api_agent::{FinishReason, ThreadEvent};
@@ -11,6 +12,8 @@ use tokio::sync::mpsc;
 
 struct Running {
     turn: String,
+    /// The turn's CLI is a live session: a steer goes to it as it is.
+    live: bool,
     interrupted: bool,
     /// The prompt the turn goes on with once the CLI process it runs has ended.
     steer: Option<String>,
@@ -30,12 +33,12 @@ impl InFlight {
     }
 
     /// Takes the thread for `turn`, or none when it already runs one. The claim gives the thread back when it is dropped.
-    pub fn claim(self: &Arc<Self>, thread: &str, turn: &str) -> Option<Claim> {
+    pub fn claim(self: &Arc<Self>, thread: &str, turn: &str, live: bool) -> Option<Claim> {
         let mut held = self.held();
         if held.contains_key(thread) {
             return None;
         }
-        held.insert(thread.to_string(), Running { turn: turn.to_string(), interrupted: false, steer: None, detached: false });
+        held.insert(thread.to_string(), Running { turn: turn.to_string(), live, interrupted: false, steer: None, detached: false });
         Some(Claim { in_flight: Arc::clone(self), thread: thread.to_string(), turn: turn.to_string(), ended: false })
     }
 
@@ -47,13 +50,16 @@ impl InFlight {
         Some(running.turn.clone())
     }
 
-    /// Marks the thread's running turn to go on with `prompt` when its CLI process has ended, and names it. None when the thread runs no turn, runs
-    /// one other than `named`, or the turn is being stopped.
-    pub fn steer(&self, thread: &str, named: Option<&str>, prompt: &str) -> Option<String> {
+    /// Names the thread's running turn that `prompt` steers, and whether its CLI is a live session that takes the prompt itself. A turn whose CLI
+    /// is a process for each turn is marked to go on with `prompt` when that process has ended. None when the thread runs no turn, runs one other than
+    /// `named`, or the turn is being stopped.
+    pub fn steer(&self, thread: &str, named: Option<&str>, prompt: &str) -> Option<(String, bool)> {
         let mut held = self.held();
         let running = held.get_mut(thread).filter(|r| !r.interrupted && named.is_none_or(|n| n == r.turn))?;
-        running.steer = Some(prompt.to_string());
-        Some(running.turn.clone())
+        if !running.live {
+            running.steer = Some(prompt.to_string());
+        }
+        Some((running.turn.clone(), running.live))
     }
 
     /// The turn the thread runs, as far as the group knows.
@@ -159,7 +165,7 @@ impl TurnTask {
                     }
                     // The CLI ran at the executor, so its process ending in error while the channel is gone is the executor going away, however the two news race
                     Some(ExecEvent::Error(_)) if self.channel.is_closed() => {
-                        self.runner.turns().interrupt(&self.thread);
+                        self.runner.stop_process(&self.thread);
                         self.record([ThreadEvent::Error { code: EXECUTOR_GONE.into(), message: RemoteError::ExecutorGone.message() }]);
                         *failed = true;
                         return false;
@@ -170,7 +176,7 @@ impl TurnTask {
                     }
                 },
                 _ = self.channel.closed() => {
-                    self.runner.turns().interrupt(&self.thread);
+                    self.runner.stop_process(&self.thread);
                     self.record([ThreadEvent::Error { code: EXECUTOR_GONE.into(), message: RemoteError::ExecutorGone.message() }]);
                     *failed = true;
                     return false;
@@ -185,7 +191,7 @@ impl TurnTask {
         if session.is_some() {
             self.request.resume = session.clone();
         }
-        let command = self.runner.host_command(self.driver, &self.request, &self.thread);
+        let command = self.runner.host_command(self.driver, &self.request, &self.thread).ok_or_else(|| format!("{} has no process to start again for a steer", self.driver.id()))?;
         let spawner = self.runner.launcher().spawner(&self.channel);
         self.runner.turns().launch(spawner.as_ref(), self.driver, &self.thread, command).await
     }
