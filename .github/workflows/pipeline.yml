@@ -413,12 +413,22 @@ jobs:
           # each stage ends by our own hand 3 minutes before the step's 20 minute limit, with a log; a hung shard otherwise ran until the job was cancelled and left none
           STAGE_LIMIT_S: '1020'
           STAGE_KILL_S: '15'
+          # the largest process of the job is killed, and named in the log, when the machine is down to this much free memory: a shard that froze the runner left no log
+          MEMGUARD_FLOOR_MB: '1200'
         # two tasks at a time per stage, two stages: four tasks on the 4 vCPUs
         run: |
           fresh=()
           [ "$FRESH" != true ] || fresh=(--fresh)
           logs="$RUNNER_TEMP/stages"; mkdir -p "$logs"
           pids=(); names=(); tails=(); snaps=()
+          guard="${GITHUB_WORKSPACE:-.}/.github/actions/hosted-setup/memguard.sh"; guardpid=""
+          if [ -f "$guard" ]; then
+            : > "$logs/memguard.log"
+            tail -n +1 -f -s 0.2 "$logs/memguard.log" 2>/dev/null &
+            tails+=("$!")
+            setsid bash "$guard" "$MEMGUARD_FLOOR_MB" "$logs/memguard.log" > /dev/null 2>&1 &
+            guardpid=$!
+          fi
           # a stage gets its own session (setsid) under timeout, its output goes to a file that tail streams into the log, and 10 seconds before the limit a snapshot of its process tree is taken, which is gone once the stage is killed
           stage() {
             local name=$1 pid d
@@ -461,6 +471,7 @@ jobs:
               echo "::error title=${name}::the ${name} stage failed on this machine"; rc=1
             fi
           done
+          [ -z "$guardpid" ] || kill "$guardpid" 2>/dev/null || true
           sleep 1
           kill "${tails[@]}" 2>/dev/null || true
           # a process a test left behind can hold this step's output pipe open, and the runner then waits for it past every timeout with no log: kill the processes whose

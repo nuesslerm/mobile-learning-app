@@ -125,3 +125,46 @@ fn the_stage_limit_is_one_constant_under_the_step_limit_and_the_kill_grace_fits_
     assert!(stage_s + grace_s + 60 <= step_min * 60, "stage {stage_s} s + grace {grace_s} s vs step {step_min} min");
     assert!(stage_s >= 15 * 60, "an honest cold run takes up to 15 minutes: {stage_s} s");
 }
+
+#[test]
+fn a_job_that_runs_out_of_memory_has_its_largest_process_killed_and_named_in_the_log() {
+    // Given a checkout holding the guard, and a flow stage that starts a process holding 200 MB from the checkout, then hangs
+    let s = Scratch::new();
+    let guard = s.path("checkout/.github/actions/hosted-setup");
+    std::fs::create_dir_all(&guard).unwrap();
+    std::fs::write(guard.join("memguard.sh"), read(".github/actions/hosted-setup/memguard.sh")).unwrap();
+    let hog = s.path("checkout/hog-of-the-job.py");
+    std::fs::write(&hog, "import time\nx = bytearray(200_000_000)\ntime.sleep(600)\n").unwrap();
+    let flow = format!("python3 {} & echo $! > {}; exec sleep 600", hog.display(), s.path("hog.pid").display());
+    s.stub("wf", &format!("case \"$*\" in\n  *--stage\\ flow-tests*) {flow};;\n  *--stage\\ typecheck-lint-unit-tests*) echo unit-line;;\nesac"));
+    let script = step_script(&read(".github/workflows/pipeline.yml"), STEP);
+    std::fs::write(s.path("temp/plan.json"), "{}").unwrap();
+    let root = s.path("checkout");
+    let env = [
+        ("RUN_FLOW", "true"),
+        ("RUN_UNIT", "true"),
+        ("SHARD", "1"),
+        ("COUNT", "1"),
+        ("FRESH", "false"),
+        ("STAGE_LIMIT_S", "6"),
+        ("STAGE_KILL_S", "1"),
+        ("MEMGUARD_FLOOR_MB", "99999999"),
+        ("GITHUB_WORKSPACE", root.to_str().unwrap()),
+    ];
+
+    // When the step runs on a machine that is always under the floor
+    let out = s.run(&script, &env, false, false);
+    let text = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+
+    // Then the log says the memory ran out, lists the largest processes, and names the process it killed
+    assert!(text.contains("::error title=memory exhausted::"), "{text}");
+    assert!(text.contains("the largest processes"), "{text}");
+    assert!(text.contains("memguard: killed pid") && text.contains("hog-of-the-job.py"), "{text}");
+
+    // And the process is gone
+    let pid = std::fs::read_to_string(s.path("hog.pid")).unwrap();
+    assert!(!std::path::Path::new(&format!("/proc/{}", pid.trim())).exists() || std::fs::read_to_string(format!("/proc/{}/stat", pid.trim())).map(|t| t.contains(") Z")).unwrap_or(true), "the hog survived");
+
+    // And the guard does not outlive the step
+    assert!(!running(&format!("{}/memguard.sh", guard.display())), "the guard survived the step");
+}
