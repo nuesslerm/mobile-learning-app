@@ -755,7 +755,7 @@ fn a_traced_letter_goes_on_to_its_next_stroke_as_soon_as_that_strokes_guide_show
     let screens: Vec<String> = [("Stroke 1 of 3", ""), ("Stroke 2 of 3", ""), ("Stroke 3 of 3", ""), ("All 3 strokes written", badge)]
         .iter()
         .enumerate()
-        .map(|(n, (coach, extra))| s.file(&format!("pad-{n}.xml"), format!(r#"<hierarchy><node resource-id="TamilPracticeCanvasSurface" text="" bounds="[0,0][644,596]" /><node resource-id="TamilPracticeStrokeStep" text="{coach}" bounds="[20,620][300,660]" />{extra}</hierarchy>"#)))
+        .map(|(n, (coach, extra))| s.file(&format!("pad-{n}.xml"), format!(r#"<hierarchy><node resource-id="TamilPracticeCanvasSurface" text="" bounds="[0,0][644,596]" /><node resource-id="TamilPracticePosition" text="" bounds="[20,600][300,620]" /><node resource-id="TamilPracticeStrokeStep" text="{coach}" bounds="[20,620][300,660]" />{extra}</hierarchy>"#)))
         .collect();
     let seq = s.file("screens", format!("/tamil/uyirmei-k|{}\ninput motionevent UP|{}\ninput motionevent UP|{}\ninput motionevent UP|{}\n", screens[0], screens[1], screens[2], screens[3]));
     let png = fixtures_dir().join("trace/tamil-guide-pad.png").display().to_string();
