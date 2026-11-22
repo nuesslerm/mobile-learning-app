@@ -1,0 +1,34 @@
+{
+  "suite": "headermenu",
+  "step": "final-given-an-open-menu-when-a-plain-action-is-press-928d05",
+  "scheme": "dark",
+  "snapshot": "headermenu/final-given-an-open-menu-when-a-plain-action-is-press-928d05.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "EditorMenu"
+    ],
+    "text": ""
+  },
+  "timings": {
+    "render_ms": 218
+  },
+  "name": "headermenu/final-given-an-open-menu-when-a-plain-action-is-press-928d05.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

@@ -2,8 +2,15 @@ import type { LucideIcon } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text as RNText, View } from 'react-native';
 
+import { Check, ChevronRight } from '../icons';
 import { Popover, useTheme } from '../primitives';
 import { Icon } from '../ui/icon';
+
+import {
+  isActionNode,
+  type MenuActionNode,
+  type MenuNode,
+} from './native-header/header-menu-spec';
 
 export type HeaderMenuItem = {
   icon: LucideIcon;
@@ -18,13 +25,133 @@ export type HeaderMenuItem = {
 export type HeaderMenuProps = {
   icon: LucideIcon;
   accessibilityLabel: string;
-  items: HeaderMenuItem[];
+  /** Rows as today (HeaderMenuItem objects have no `kind`), or the menu tree: toggles, sections, submenus. */
+  items: MenuNode[];
   /** Matches the control size of the sibling actions in the header pill. */
   size: number;
   testID: string;
 };
 
 const MENU_WIDTH = 260;
+
+type Colors = {
+  surface: string;
+  border: string;
+  label: string;
+  muted: string;
+  pressed: string;
+  destructive: string;
+};
+
+type Columns = { checks: boolean; icons: boolean };
+
+function leaves(nodes: readonly MenuNode[]): MenuNode[] {
+  return nodes.flatMap((node) =>
+    node.kind === 'section' ? leaves(node.items) : [node]
+  );
+}
+
+function columnsOf(nodes: readonly MenuNode[]): Columns {
+  const rows = leaves(nodes);
+  return {
+    checks: rows.some((row) => isActionNode(row) && row.checked !== undefined),
+    icons: rows.some((row) => row.kind !== 'section' && row.icon !== undefined),
+  };
+}
+
+// A list of plain actions keeps today's hairline between rows; once a menu has toggles, sections or submenus only the sections are set apart, as in the reference.
+function isPlainList(nodes: readonly MenuNode[]): boolean {
+  return (
+    leaves(nodes).length === nodes.length &&
+    nodes.every((node) => isActionNode(node) && node.checked === undefined)
+  );
+}
+
+type RowProps = {
+  testID: string;
+  label: string;
+  detail?: string;
+  icon?: LucideIcon;
+  checked?: boolean;
+  destructive?: boolean;
+  disabled?: boolean;
+  trailing?: LucideIcon;
+  separated: boolean;
+  columns: Columns;
+  colors: Colors;
+  onPress?: () => void;
+};
+
+function MenuRow({
+  testID,
+  label,
+  detail,
+  icon,
+  checked,
+  destructive,
+  disabled,
+  trailing,
+  separated,
+  columns,
+  colors,
+  onPress,
+}: RowProps) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole={checked === undefined ? 'button' : 'checkbox'}
+      aria-label={label}
+      aria-checked={checked}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed: isPressed }) => [
+        styles.row,
+        separated && {
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.border,
+        },
+        disabled && styles.rowDisabled,
+        isPressed && !disabled && { backgroundColor: colors.pressed },
+      ]}
+    >
+      {columns.checks ? (
+        <View testID={`${testID}Check`} style={styles.rowCheck}>
+          {checked ? <Icon as={Check} size={17} /> : null}
+        </View>
+      ) : null}
+      {columns.icons ? (
+        <View style={styles.rowIcon}>
+          {icon ? <Icon as={icon} size={19} /> : null}
+        </View>
+      ) : null}
+      <View style={styles.rowText}>
+        <RNText
+          numberOfLines={1}
+          style={[
+            styles.rowLabel,
+            { color: destructive ? colors.destructive : colors.label },
+          ]}
+        >
+          {label}
+        </RNText>
+        {detail ? (
+          <RNText
+            numberOfLines={1}
+            style={[styles.rowDetail, { color: colors.muted }]}
+          >
+            {detail}
+          </RNText>
+        ) : null}
+      </View>
+      {trailing ? (
+        <View style={styles.rowTrailing}>
+          <Icon as={trailing} size={17} color="$color11" />
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
 
 /**
  * The overflow menu behind a header's "..." control.
@@ -34,10 +161,12 @@ const MENU_WIDTH = 260;
  * is not what a header overflow menu is, and it is further from the reference
  * (Claude Code's own header menu, which is anchored) than this.
  *
- * Tamagui's `Menu` -- the ready-made native one -- is not an option here:
- * `@tamagui/create-menu` returns `null` on native unless an adapter is
- * registered, and every adapter (zeego, @expo/ui) needs native modules and so a
- * dev client. Expo Go on SDK 54 cannot have it. See docs/known-gaps.md.
+ * It is the menu on Android and on the web, and on iOS where the native glass
+ * bar is off: the native bar draws the same tree as a UIMenu. Tamagui's `Menu`
+ * is not used because `@tamagui/create-menu` returns `null` on native unless an
+ * adapter is registered, and every adapter (zeego, @expo/ui) needs native
+ * modules; Stack.Toolbar renders nothing on web, needs @expo/ui on Android and
+ * has no glass.
  *
  * The ROWS are plain React Native primitives with explicit StyleSheet values,
  * not Tamagui shorthands. That is a deliberate retreat: the first version used
@@ -61,11 +190,84 @@ export function HeaderMenu({
   const [open, setOpen] = useState(false);
   const theme = useTheme();
 
-  const surface = theme.color2?.val ?? '#1c1c1e';
-  const border = theme.borderColor?.val ?? 'rgba(128,128,128,0.35)';
-  const label = theme.color?.val ?? '#ffffff';
-  const muted = theme.color11?.val ?? 'rgba(160,160,160,1)';
-  const pressed = theme.color5?.val ?? 'rgba(128,128,128,0.2)';
+  const colors: Colors = {
+    surface: theme.color2?.val ?? '#1c1c1e',
+    border: theme.borderColor?.val ?? 'rgba(128,128,128,0.35)',
+    label: theme.color?.val ?? '#ffffff',
+    muted: theme.color11?.val ?? 'rgba(160,160,160,1)',
+    pressed: theme.color5?.val ?? 'rgba(128,128,128,0.2)',
+    destructive: theme.destructive?.val ?? '#ff453a',
+  };
+
+  const columns = columnsOf(items);
+  const plain = isPlainList(items);
+
+  function pressAction(node: MenuActionNode) {
+    if (node.keepOpen) {
+      node.onPress();
+      return;
+    }
+    // Close before acting: several of these navigate, and a popover
+    // still mounted over a screen that has already been replaced is
+    // how you get a menu floating above the wrong route.
+    setOpen(false);
+    node.onPress();
+  }
+
+  function renderNode(node: MenuNode, index: number): React.ReactNode {
+    if (node.kind === 'section') {
+      return (
+        <View
+          key={node.testID}
+          testID={node.testID}
+          style={[
+            styles.section,
+            index > 0 && {
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: colors.border,
+            },
+          ]}
+        >
+          {node.title ? (
+            <RNText style={[styles.sectionTitle, { color: colors.muted }]}>
+              {node.title}
+            </RNText>
+          ) : null}
+          {node.items.map(renderNode)}
+        </View>
+      );
+    }
+    if (isActionNode(node)) {
+      return (
+        <MenuRow
+          key={node.testID}
+          testID={node.testID}
+          label={node.label}
+          detail={node.detail}
+          icon={node.icon}
+          checked={node.checked}
+          destructive={node.destructive}
+          disabled={node.disabled}
+          separated={plain && index > 0}
+          columns={columns}
+          colors={colors}
+          onPress={() => pressAction(node)}
+        />
+      );
+    }
+    return (
+      <MenuRow
+        key={node.testID}
+        testID={node.testID}
+        label={node.label}
+        icon={node.icon}
+        trailing={ChevronRight}
+        separated={false}
+        columns={columns}
+        colors={colors}
+      />
+    );
+  }
 
   return (
     // No `allowFlip`. floating-ui's collision boundary on native is the
@@ -88,7 +290,7 @@ export function HeaderMenu({
           style={({ pressed: isPressed }) => [
             styles.trigger,
             { width: size, height: size },
-            isPressed && { backgroundColor: pressed },
+            isPressed && { backgroundColor: colors.pressed },
           ]}
         >
           <Icon as={icon} size={19} />
@@ -109,55 +311,10 @@ export function HeaderMenu({
         <View
           style={[
             styles.card,
-            { backgroundColor: surface, borderColor: border },
+            { backgroundColor: colors.surface, borderColor: colors.border },
           ]}
         >
-          {items.map((item, index) => (
-            <Pressable
-              key={item.testID}
-              testID={item.testID}
-              accessibilityRole="button"
-              aria-label={item.label}
-              accessibilityState={{ disabled: item.disabled }}
-              disabled={item.disabled}
-              onPress={() => {
-                // Close before acting: several of these navigate, and a popover
-                // still mounted over a screen that has already been replaced is
-                // how you get a menu floating above the wrong route.
-                setOpen(false);
-                item.onPress();
-              }}
-              style={({ pressed: isPressed }) => [
-                styles.row,
-                index > 0 && {
-                  borderTopWidth: StyleSheet.hairlineWidth,
-                  borderTopColor: border,
-                },
-                item.disabled && styles.rowDisabled,
-                isPressed && !item.disabled && { backgroundColor: pressed },
-              ]}
-            >
-              <View style={styles.rowIcon}>
-                <Icon as={item.icon} size={19} />
-              </View>
-              <View style={styles.rowText}>
-                <RNText
-                  numberOfLines={1}
-                  style={[styles.rowLabel, { color: label }]}
-                >
-                  {item.label}
-                </RNText>
-                {item.detail ? (
-                  <RNText
-                    numberOfLines={1}
-                    style={[styles.rowDetail, { color: muted }]}
-                  >
-                    {item.detail}
-                  </RNText>
-                ) : null}
-              </View>
-            </Pressable>
-          ))}
+          {items.map(renderNode)}
         </View>
       </Popover.Content>
     </Popover>
@@ -184,10 +341,18 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   rowDisabled: { opacity: 0.4 },
+  rowCheck: { width: 24, alignItems: 'flex-start', justifyContent: 'center' },
   rowIcon: { width: 28, alignItems: 'flex-start', justifyContent: 'center' },
   // minWidth:0 is what lets numberOfLines truncate instead of forcing the row
   // wider than the card -- without it a long detail line stretches the layout.
   rowText: { flex: 1, minWidth: 0 },
+  rowTrailing: {
+    marginLeft: 8,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
   rowLabel: { fontSize: 16, fontWeight: '500' },
   rowDetail: { fontSize: 13, marginTop: 1 },
+  section: { paddingVertical: 4 },
+  sectionTitle: { fontSize: 13, paddingHorizontal: 14, paddingVertical: 6 },
 });

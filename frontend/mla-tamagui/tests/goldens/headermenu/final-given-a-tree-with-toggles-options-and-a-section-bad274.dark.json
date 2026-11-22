@@ -1,0 +1,46 @@
+{
+  "suite": "headermenu",
+  "step": "final-given-a-tree-with-toggles-options-and-a-section-bad274",
+  "scheme": "dark",
+  "snapshot": "headermenu/final-given-a-tree-with-toggles-options-and-a-section-bad274.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "EditorMenu",
+      "EditorMenuContent",
+      "Wrap",
+      "WrapCheck",
+      "Whitespace",
+      "WhitespaceCheck",
+      "Indent",
+      "Tabs2",
+      "Tabs2Check",
+      "Tabs4",
+      "Tabs4Check",
+      "Symbols",
+      "SymbolsCheck"
+    ],
+    "text": "Line wrap\nShow Whitespace\nTabs: 2\nTabs: 4\nSymbol Bar"
+  },
+  "timings": {
+    "render_ms": 268
+  },
+  "name": "headermenu/final-given-a-tree-with-toggles-options-and-a-section-bad274.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}
