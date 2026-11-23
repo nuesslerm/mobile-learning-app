@@ -296,8 +296,8 @@ fn the_repos_android_tests_run_against_the_update_and_the_browser_ones_against_t
     // Then every focused Android test loads the update CI publishes, every browser test the export, and no test, focused or not,
     // is against the dev Metro (the debugger probe is a browser test now)
     let names = |platform: &str, against: &str, focus: bool| rows.iter().filter(|r| r.1 == platform && r.2 == against && r.3 == focus).map(|r| r.0).collect::<Vec<_>>();
-    assert_eq!(names("android", "update", true), ["editor-typing", "local-run", "stubbed-run-local", "tamil-writing"], "{rows:?}");
-    assert_eq!(names("android", "update", false), ["review-sheet-keyboard", "stop-probe", "voice-edit"], "{rows:?}");
+    assert_eq!(names("android", "update", true), ["editor-typing", "local-run", "tamil-writing"], "{rows:?}");
+    assert_eq!(names("android", "update", false), ["review-sheet-keyboard", "stop-probe", "stubbed-run-local", "voice-edit"], "{rows:?}");
     assert!(rows.iter().all(|r| r.2 != "metro"), "a test is still against the dev Metro: {rows:?}");
     assert!(rows.contains(&("debugger-probe", "browser", "export", false)) && !rows.iter().any(|r| r.0 == "debugger-probe" && r.1 == "android"), "{rows:?}");
     assert!(!rows.iter().any(|r| r.0 == "metro-smoke"), "the Metro smoke is retired: {rows:?}");

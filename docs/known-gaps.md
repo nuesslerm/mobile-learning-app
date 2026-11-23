@@ -93,6 +93,7 @@ Pre-2026-10 history: [archive](archive/README.md).
 - t3-serve · The T3 chain runs the real agent CLIs only through `wf mimic exec`, and the vault holds no credential for them yet · 2d · [t3-chain-real-clis](gaps/t3-chain-real-clis.md)
 - tailnet · Tailnet hostnames drift to a `-N` suffix on redeploy and nothing asserts the name · 95d · [tailnet-hostname-drift-systemic](gaps/tailnet-hostname-drift-systemic.md)
 - tamil-writing · 123 of the 251 Tamil letters have no stroke guide (blocked) · 50d · [tamil-stroke-guides-missing](gaps/tamil-stroke-guides-missing.md)
+- testing · The Android stubbed-run-local goldens are stale · 0d · [android-stubbed-run-local-goldens-stale](gaps/android-stubbed-run-local-goldens-stale.md)
 - vm · The VM has almost no free memory when a device test overlaps a deploy build · 40d · [vm-memory-saturation](gaps/vm-memory-saturation.md)
 - vm-infra · vm-ops-api is the only way into the VM; there is no break-glass path (blocked) · 100d · [vm-has-no-second-door](gaps/vm-has-no-second-door.md)
 - vm-infra · The VM's bootstrap Bitwarden read token is revoked; a VM recreate with a working token is owner-gated (blocked) · 94d · [vm-bootstrap-bws-token-revoked](gaps/vm-bootstrap-bws-token-revoked.md)

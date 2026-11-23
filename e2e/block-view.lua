@@ -56,7 +56,15 @@ local function count_logged(needle)
   return n
 end
 
-local function buffer() return (device:get_element({id='CodeEditorInput'}) or {}).text or "" end
+-- the editor is on the Code tab: read it there and come back to Blocks (never inside a wait condition)
+local function buffer()
+  device:tap_on({id='ProblemWorkspaceTab-code'})
+  device:assert_visible({id='CodeEditorInput'}, {timeout=15000})
+  local text = (device:get_element({id='CodeEditorInput'}) or {}).text or ""
+  device:tap_on({id='ProblemWorkspaceTab-blocks'})
+  device:assert_visible({id='BlockRow-1'}, {timeout=15000})
+  return text
+end
 local function bounds(id) local e = device:get_element({id=id}); return e and e.bounds or nil end
 
 local function choose_blocks()
@@ -149,9 +157,10 @@ local ok, failure = pcall(function()
     device:extended_wait_until{condition=function() return logged('leetcode.blocks.drag_begin') end, timeout=10000, interval=250, label='the pan took the touch'}
     device:extended_wait_until{condition=function() return logged('leetcode.blocks.drop') end, timeout=20000, interval=250, label='the drop was made'}
     assert_true(logged('outcome: "moved"'), "the drop did not move")
-    device:extended_wait_until{condition=function() return buffer():find("\n        b = 2", 1, true) ~= nil end, timeout=15000, label='b = 2 at the if\'s indent'}
-    assert_true(buffer():find("\n            b = 2", 1, true) == nil, "b = 2 is still inside the if")
     device:extended_wait_until{condition=function() return count_logged('leetcode.blocks.read') >= 1 end, timeout=15000, interval=250, label='the rows were read again'}
+    local moved = buffer()
+    assert_true(moved:find("\n        b = 2", 1, true) ~= nil, "b = 2 is not at the if's indent: " .. moved)
+    assert_true(moved:find("\n            b = 2", 1, true) == nil, "b = 2 is still inside the if")
     device:take_screenshot(out .. "/moved.png")
     assert_clean_log()
   end)
@@ -160,9 +169,9 @@ local ok, failure = pcall(function()
     -- the while chip is the third of the palette; the end of the def body is below the last row, at the depth of the def's statements (2)
     local rows_before = 6
     device:swipe(center_of('BlockPaletteItem-while'), slot_point(rows_before, 2), {duration=900})
-    device:extended_wait_until{condition=function() return buffer():find("while condition:", 1, true) ~= nil end, timeout=15000, label='the snippet is in the buffer'}
-    assert_true(buffer():find("\n        while condition:\n            pass", 1, true) ~= nil, "the snippet is not at the def body's indent: " .. buffer())
     device:extended_wait_until{visible={id='BlockRow-7'}, timeout=15000, label='the two new rows are drawn'}
+    local inserted = buffer()
+    assert_true(inserted:find("\n        while condition:\n            pass", 1, true) ~= nil, "the snippet is not at the def body's indent: " .. inserted)
     device:take_screenshot(out .. "/inserted.png")
     device:assert_screenshot("block-view")
     assert_clean_log()

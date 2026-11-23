@@ -1,28 +1,25 @@
 {
   "platform": "browser",
-  "step": 9,
-  "last_action": "swipe{start='194,477', end='106,763', duration=900}",
+  "step": 14,
+  "last_action": "tap_on{id='ProblemWorkspaceTab-blocks'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:44101/mla-tamagui/leetcode/two-sum?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgdHdvU3VtKHNlbGYsIG51bXMsIHRhcmdldCk6CiAgICAgICAgaWYgbnVtczoKICAgICAgICAgICAgYSA9IDEKICAgICAgICAgICAgYiA9IDIKICAgICAgICByZXR1cm4gYQo",
+    "url": "http://127.0.0.1:44609/mla-tamagui/leetcode/two-sum?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgdHdvU3VtKHNlbGYsIG51bXMsIHRhcmdldCk6CiAgICAgICAgaWYgbnVtczoKICAgICAgICAgICAgYSA9IDEKICAgICAgICAgICAgYiA9IDIKICAgICAgICByZXR1cm4gYQo",
     "title": "",
     "testids": [
       "ProblemEditorHeader",
       "ProblemEditorHeaderBack",
       "ProblemEditorHeaderTitle",
       "ProblemEditorHeaderSubtitle",
-      "ProblemEditorHeaderActions",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
       "ProblemEditorInfoButton",
       "ProblemEditorMenuButton",
       "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
       "ProblemWorkspaceTab-code",
-      "ProblemEditorScreen",
-      "ProblemEditorToolbarTarget",
-      "ProblemEditorScroll",
-      "ProblemEditorEditorZone",
-      "ProblemEditorInput",
-      "CodeEditorInput",
+      "ProblemWorkspaceTab-blocks",
+      "ProblemWorkspaceBlocks",
       "ProblemEditorBlockView",
       "BlockPalette",
       "BlockPaletteItem-if",
@@ -44,33 +41,19 @@
       "BlockRow-6",
       "BlockHandle-6",
       "BlockRow-7",
-      "ProblemEditorTapAway",
-      "ProblemEditorDiffRow",
-      "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
       "PyodideHostWebView",
       "DebugFabWrap",
       "DebugFab"
     ],
-    "text": "Two Sum\nArray & Hashing · Easy\nPlan\nCode\nif\nfor\nwhile\ndef\nreturn\nclass Solution:\ndef twoSum(self, nums, target):\nif nums:\na = 1\nb = 2\nreturn a\nwhile condition:\npass\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
+    "text": "Two Sum\nArray & Hashing · Easy\nCode\nBlocks\nif\nfor\nwhile\ndef\nreturn\nclass Solution:\ndef twoSum(self, nums, target):\nif nums:\na = 1\nb = 2\nreturn a\nwhile condition:\npass"
   },
   "screen": {
     "width": 1254,
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 12862,
-    "capture_ms": 290
+    "since_start_ms": 14412,
+    "capture_ms": 304
   },
   "tolerance": {
     "threshold": 0.1,

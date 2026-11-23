@@ -4,19 +4,18 @@
   "last_action": "tap_on{id='ProblemEditorRunLocalButton'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:44019/mla-tamagui/leetcode/two-sum?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgdHdvU3VtKHNlbGYsIG51bXM6IExpc3RbaW50XSwgdGFyZ2V0OiBpbnQpIC0-IExpc3RbaW50XToKICAgICAgICAjIG5vdGUgMQogICAgICAgICMgbm90ZSAyCiAgICAgICAgIyBub3RlIDMKICAgICAgICAjIG5vdGUgNAogICAgICAgICMgbm90ZSA1CiAgICAgICAgIyBub3RlIDYKICAgICAgICAjIG5vdGUgNwogICAgICAgICMgbm90ZSA4CiAgICAgICAgIyBub3RlIDkKICAgICAgICAjIG5vdGUgMTAKICAgICAgICAjIG5vdGUgMTEKICAgICAgICAjIG5vdGUgMTIKICAgICAgICAjIG5vdGUgMTMKICAgICAgICAjIG5vdGUgMTQKICAgICAgICAjIG5vdGUgMTUKICAgICAgICAjIG5vdGUgMTYKICAgICAgICAjIG5vdGUgMTcKICAgICAgICAjIG5vdGUgMTgKICAgICAgICAjIG5vdGUgMTkKICAgICAgICAjIG5vdGUgMjAKICAgICAgICAjIG5vdGUgMjEKICAgICAgICAjIG5vdGUgMjIKICAgICAgICAjIG5vdGUgMjMKICAgICAgICAjIG5vdGUgMjQKICAgICAgICAjIG5vdGUgMjUKICAgICAgICAjIG5vdGUgMjYKICAgICAgICAjIG5vdGUgMjcKICAgICAgICAjIG5vdGUgMjgKICAgICAgICAjIG5vdGUgMjkKICAgICAgICAjIG5vdGUgMzAKICAgICAgICAjIG5vdGUgMzEKICAgICAgICAjIG5vdGUgMzIKICAgICAgICAjIG5vdGUgMzMKICAgICAgICAjIG5vdGUgMzQKICAgICAgICAjIG5vdGUgMzUKICAgICAgICAjIG5vdGUgMzYKICAgICAgICAjIG5vdGUgMzcKICAgICAgICAjIG5vdGUgMzgKICAgICAgICAjIG5vdGUgMzkKICAgICAgICAjIG5vdGUgNDAKICAgICAgICBpZiBudW1zID09IFszLCAyLCA0XToKICAgICAgICAgICAgcmFpc2UgSW5kZXhFcnJvcignYm9vbScpCiAgICAgICAgc2VlbiA9IHt9CiAgICAgICAgZm9yIGksIG4gaW4gZW51bWVyYXRlKG51bXMpOgogICAgICAgICAgICBpZiB0YXJnZXQgLSBuIGluIHNlZW46CiAgICAgICAgICAgICAgICByZXR1cm4gW3NlZW5bdGFyZ2V0IC0gbl0sIGldCiAgICAgICAgICAgIHNlZW5bbl0gPSBpCiAgICAgICAgcmV0dXJuIFtdCg",
+    "url": "http://127.0.0.1:38307/mla-tamagui/leetcode/two-sum?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgdHdvU3VtKHNlbGYsIG51bXM6IExpc3RbaW50XSwgdGFyZ2V0OiBpbnQpIC0-IExpc3RbaW50XToKICAgICAgICAjIG5vdGUgMQogICAgICAgICMgbm90ZSAyCiAgICAgICAgIyBub3RlIDMKICAgICAgICAjIG5vdGUgNAogICAgICAgICMgbm90ZSA1CiAgICAgICAgIyBub3RlIDYKICAgICAgICAjIG5vdGUgNwogICAgICAgICMgbm90ZSA4CiAgICAgICAgIyBub3RlIDkKICAgICAgICAjIG5vdGUgMTAKICAgICAgICAjIG5vdGUgMTEKICAgICAgICAjIG5vdGUgMTIKICAgICAgICAjIG5vdGUgMTMKICAgICAgICAjIG5vdGUgMTQKICAgICAgICAjIG5vdGUgMTUKICAgICAgICAjIG5vdGUgMTYKICAgICAgICAjIG5vdGUgMTcKICAgICAgICAjIG5vdGUgMTgKICAgICAgICAjIG5vdGUgMTkKICAgICAgICAjIG5vdGUgMjAKICAgICAgICAjIG5vdGUgMjEKICAgICAgICAjIG5vdGUgMjIKICAgICAgICAjIG5vdGUgMjMKICAgICAgICAjIG5vdGUgMjQKICAgICAgICAjIG5vdGUgMjUKICAgICAgICAjIG5vdGUgMjYKICAgICAgICAjIG5vdGUgMjcKICAgICAgICAjIG5vdGUgMjgKICAgICAgICAjIG5vdGUgMjkKICAgICAgICAjIG5vdGUgMzAKICAgICAgICAjIG5vdGUgMzEKICAgICAgICAjIG5vdGUgMzIKICAgICAgICAjIG5vdGUgMzMKICAgICAgICAjIG5vdGUgMzQKICAgICAgICAjIG5vdGUgMzUKICAgICAgICAjIG5vdGUgMzYKICAgICAgICAjIG5vdGUgMzcKICAgICAgICAjIG5vdGUgMzgKICAgICAgICAjIG5vdGUgMzkKICAgICAgICAjIG5vdGUgNDAKICAgICAgICBpZiBudW1zID09IFszLCAyLCA0XToKICAgICAgICAgICAgcmFpc2UgSW5kZXhFcnJvcignYm9vbScpCiAgICAgICAgc2VlbiA9IHt9CiAgICAgICAgZm9yIGksIG4gaW4gZW51bWVyYXRlKG51bXMpOgogICAgICAgICAgICBpZiB0YXJnZXQgLSBuIGluIHNlZW46CiAgICAgICAgICAgICAgICByZXR1cm4gW3NlZW5bdGFyZ2V0IC0gbl0sIGldCiAgICAgICAgICAgIHNlZW5bbl0gPSBpCiAgICAgICAgcmV0dXJuIFtdCg",
     "title": "",
     "testids": [
       "ProblemEditorHeader",
       "ProblemEditorHeaderBack",
       "ProblemEditorHeaderTitle",
       "ProblemEditorHeaderSubtitle",
-      "ProblemEditorHeaderActions",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
       "ProblemEditorInfoButton",
       "ProblemEditorMenuButton",
-      "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
-      "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
@@ -31,8 +30,6 @@
       "ProblemEditorRunLocalButton",
       "ProblemEditorRunButton",
       "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
       "ProblemEditorRunOutcome",
       "ProblemEditorRunOutcomeStatus",
       "ProblemEditorRunOutcomeLine",
@@ -66,17 +63,20 @@
       "ProblemEditorRunCase-2-Input",
       "ProblemEditorRunCase-2-Expected-Toggle",
       "ProblemEditorRunCase-2-Expected",
-      "ProblemEditorRunCase-2-Actual-Toggle"
+      "ProblemEditorRunCase-2-Actual-Toggle",
+      "ProblemEditorRunCase-2-Actual",
+      "ProblemEditorRunCase-3",
+      "ProblemEditorRunCase-3-Verdict"
     ],
-    "text": "Two Sum\nArray & Hashing · Easy\nPlan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nWrong Answer\nLine 44\n11 / 12 test cases passed\nIndexError: boom\nCase 2 · failed\n1.6 ms\nInput\nnums = [3,2,4], target = 6\nExpected\n[1,2]\nActual\n—\nError\nIndexError: boom\nCase 1 · passed\n8.1 ms\nInput\nnums = [2,7,11,15], target = 9\nExpected\n[0,1]\nActual\n[0,1]\nCase 3 · passed\n0.1 ms\nInput\nnums = [3,3], target = 6\nExpected\n[0,1]\nA"
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nFormat\nRun Local\nRun\nReset\nWrong Answer\nLine 44\n11 / 12 test cases passed\nIndexError: boom\nCase 2 · failed\n1.7 ms\nInput\nnums = [3,2,4], target = 6\nExpected\n[1,2]\nActual\n—\nError\nIndexError: boom\nCase 1 · passed\n7.7 ms\nInput\nnums = [2,7,11,15], target = 9\nExpected\n[0,1]\nActual\n[0,1]\nCase 3 · passed\n0.1 ms\nInput\nnums = [3,3], target = 6\nExpected\n[0,1]\nActual\n[0,1"
   },
   "screen": {
     "width": 1254,
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 10827,
-    "capture_ms": 415
+    "since_start_ms": 10845,
+    "capture_ms": 315
   },
   "tolerance": {
     "threshold": 0.1,

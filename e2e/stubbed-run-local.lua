@@ -2,7 +2,6 @@
 platform: android
 against: update
 timeout: 60
-focus: true
 features: leetcode
 ---]]
 -- Run Local against a stubbed leetcode-backend (wire format of webBridgeClient.ts fetchRunLocal: {ok, results}): the stub's 3 of 3 (the live backend runs 12 cases) proves the canned
