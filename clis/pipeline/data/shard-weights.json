@@ -1,14 +1,15 @@
 {
   "schema": 1,
-  "about": "Seconds each flow and integration unit costs on a shard (its build, its tests, its replays), dealt out longest first onto the least loaded shard (`shard_of`). A unit missing here costs the stage's default. Seeded 19 Nov from the shard times of run 44529824328 (flow 4 to 13 minutes, integration 5 to 11); replace with measured task times once the ledger holds them. Keys are the unit names of `wf ci plan tests --json`: a package, `crate-<crate>`, or `crate-<crate>/<group>` for the groups of an integration suite. Measured units regenerated from NX_TASKS (median of the ran tasks over 19 run(s)) by `wf ci plan shard-weights --write`. typecheck-lint-unit-tests and cli-e2e-tests weights (20 Nov) are the median seconds per unit of the ran tasks in NX_TASKS (a crate's unit, clippy and smoke tasks add up); the typecheck deal starts from the flow load of the machine it mirrors (`shard_in_plan`). android-e2e-tests: the measured per-test seconds of 20 Nov. A re-deal of 21 Nov that put tamil-writing after stubbed-run-local and local-run on one phone failed it on every hosted run (its first request to the stub never arrived), so tamil-writing runs first, beside editor-typing.",
+  "about": "Seconds each flow and integration unit costs on a shard (its build, its tests, its replays), dealt out longest first onto the least loaded shard (`shard_of`). A unit missing here costs the stage's default. Seeded 19 Nov from the shard times of run 44529824328 (flow 4 to 13 minutes, integration 5 to 11); replace with measured task times once the ledger holds them. Keys are the unit names of `wf ci plan tests --json`: a package, `crate-<crate>`, or `crate-<crate>/<group>` for the groups of a flow or integration suite (`crate-pipeline` is then the rest of its suite). Measured units regenerated from NX_TASKS (median of the ran tasks over 19 run(s)) by `wf ci plan shard-weights --write`. typecheck-lint-unit-tests and cli-e2e-tests weights (20 Nov) are the median seconds per unit of the ran tasks in NX_TASKS (a crate's unit, clippy and smoke tasks add up); the typecheck deal starts from the flow load of the machine it mirrors (`shard_in_plan`). android-e2e-tests: the measured per-test seconds of 20 Nov. A re-deal of 21 Nov that put tamil-writing after stubbed-run-local and local-run on one phone failed it on every hosted run (its first request to the stub never arrived), so tamil-writing runs first, beside editor-typing.",
   "stages": {
     "flow-tests": {
       "default": 40,
       "units": {
-        "crate-pipeline": 398,
         "crate-deploy": 302,
         "crate-orca-serve": 300,
         "crate-t3-serve": 240,
+        "crate-pipeline/nx_cache": 185,
+        "crate-pipeline/nx_crates": 176,
         "@app/remote-chat-agent": 169,
         "crate-rca": 130,
         "mla-tamagui": 85,
@@ -17,6 +18,7 @@
         "crate-wf-mimic": 67,
         "crate-wf-harness": 47,
         "@feature/coding-agent": 40,
+        "crate-pipeline": 37,
         "crate-wf-bucket": 34,
         "crate-wf-bench": 32,
         "crate-mimic-script-core": 30,

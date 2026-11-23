@@ -574,7 +574,7 @@ fn a_package_that_opts_in_to_crate_projects_is_planned_when_a_crate_it_builds_or
 }
 
 #[test]
-fn a_crate_with_flow_groups_is_planned_one_flow_entry_per_group_and_the_stage_runs_each_group_s_target() {
+fn a_crate_with_flow_groups_is_planned_the_rest_and_one_flow_entry_per_group_and_the_stage_runs_each_group_s_target() {
     // Given a cargo workspace whose crate splits its flow tests into groups, and a commit that changes the crate
     let w = Workspace::new("wf-flow-plan-groups-");
     let manifest = "[package]\nname = \"app\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[package.metadata.flow]\ngroups = { threads = [], vcs = [\"tests/fixtures/vcs/**\"] }\n";
@@ -589,9 +589,11 @@ fn a_crate_with_flow_groups_is_planned_one_flow_entry_per_group_and_the_stage_ru
 
     // When the commit is planned
     let (v, _) = w.plan("HEAD~1");
-    // Then the crate's flow tests are one entry per group, each its own Nx target, filtered to the group's module
+    // Then the crate's flow tests are the rest (every group's module skipped) and one entry per group, each its own Nx target, filtered to the group's module
     let planned: Vec<(String, String, String)> = v["stages"]["flow-tests"].as_array().unwrap().iter().map(|t| (t["group"].as_str().unwrap_or("-").to_string(), t["target"].as_str().unwrap_or("-").to_string(), t["command"].as_str().unwrap_or_default().to_string())).collect();
-    let expected: Vec<(String, String, String)> = groups.iter().map(|g| (g.clone(), format!("cargo-flow-{g}"), format!("cargo test --locked -p app --test flow --manifest-path tools/Cargo.toml {g}::"))).collect();
+    let skips: String = format!(" --{}", groups.iter().map(|g| format!(" --skip {g}::")).collect::<String>());
+    let rest = ("-".to_string(), "-".to_string(), format!("cargo test --locked -p app --test flow --manifest-path tools/Cargo.toml{skips}"));
+    let expected: Vec<(String, String, String)> = std::iter::once(rest).chain(groups.iter().map(|g| (g.clone(), format!("cargo-flow-{g}"), format!("cargo test --locked -p app --test flow --manifest-path tools/Cargo.toml {g}::")))).collect();
     assert_eq!(planned, expected, "{v}");
 
     // When the flow stage runs from that plan
@@ -601,6 +603,32 @@ fn a_crate_with_flow_groups_is_planned_one_flow_entry_per_group_and_the_stage_ru
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
     let targets = groups.iter().map(|g| format!(",cargo-flow-{g}")).collect::<String>();
     assert_eq!(w.s.calls("nx"), [format!("run-many -t test:flow,cargo-flow{targets} -p crate-app --parallel=4 --outputStyle=stream")]);
+}
+
+#[test]
+fn a_change_to_one_flow_group_s_module_plans_the_rest_and_every_group_for_nx_to_replay_and_a_change_to_a_support_file_plans_the_same() {
+    // Given a crate with two flow groups, a module of one of them changed in one commit and the shared support in the next
+    let w = Workspace::new("wf-flow-plan-group-change-");
+    w.write("repo/tools/Cargo.toml", "[workspace]\nmembers = [\"app\"]\nresolver = \"2\"\n");
+    w.write("repo/tools/app/Cargo.toml", "[package]\nname = \"app\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[package.metadata.flow]\nshared = [\"tests/flow/support/**\"]\n\n[package.metadata.flow.groups]\nthreads = []\nvcs = []\n");
+    w.write("repo/tools/app/tests/flow.rs", "mod threads;\nmod vcs;\nmod support;\n");
+    w.write("repo/tools/app/tests/flow/threads.rs", "\n");
+    w.write("repo/tools/app/tests/flow/vcs.rs", "\n");
+    w.write("repo/tools/app/tests/flow/support/mod.rs", "\n");
+    w.write("repo/tools/app/src/main.rs", "fn main() {}\n");
+    w.commit("a grouped crate");
+    let targets = |v: &Value| -> Vec<String> { v["stages"]["flow-tests"].as_array().unwrap().iter().map(|t| t["target"].as_str().unwrap_or("cargo-flow").to_string()).collect() };
+    let all = ["cargo-flow", "cargo-flow-threads", "cargo-flow-vcs"].map(String::from).to_vec();
+    w.write("repo/tools/app/tests/flow/threads.rs", "// edited\n");
+    w.commit("edit one group's module");
+    // When the module's commit is planned
+    let (module, _) = w.plan("HEAD~1");
+    w.write("repo/tools/app/tests/flow/support/mod.rs", "// edited\n");
+    w.commit("edit the support");
+    let (support, _) = w.plan("HEAD~1");
+    // Then each plan holds the rest and both groups: the crate's entries are all planned, the Nx cache keys (`nx_crates.rs`) rerun only what the file moves
+    assert_eq!(targets(&module), all, "{module}");
+    assert_eq!(targets(&support), all, "{support}");
 }
 
 /// A candidate crate `cand` replaying two recorded sets by feature, with the mapping crates `cand/map-a`, `cand/map-b` (which depends on `map-a`) and

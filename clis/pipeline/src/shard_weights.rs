@@ -25,11 +25,14 @@ fn stage_of(job: &str, task: &str) -> Option<&'static str> {
     STAGES.into_iter().find(|s| *s == base)
 }
 
-/// The unit a task counts for, as `wf ci plan tests` names them: a crate's replay group is `crate-<crate>/<group task>`, everything else of a project is the project.
+/// The unit a task counts for, as `wf ci plan tests` names them: a crate's replay group is `crate-<crate>/<group task>`, a flow or e2e group `crate-<crate>/<group>`, everything else of a project is the project.
 pub(crate) fn unit_of(stage: &str, task: &str) -> Option<String> {
     let (project, target) = task.split_once(':')?;
     if stage == "integration-tests" && project.starts_with("crate-") && target.starts_with("replay-") {
         return Some(format!("{project}/{target}"));
+    }
+    if stage == "flow-tests" && project.starts_with("crate-") && target.starts_with("cargo-flow-") {
+        return Some(format!("{project}/{}", &target["cargo-flow-".len()..]));
     }
     if stage == "cli-e2e-tests" && project.starts_with("crate-") && target.starts_with("cargo-e2e-") && target != "cargo-e2e-smoke" {
         return Some(format!("{project}/{}", &target["cargo-e2e-".len()..]));

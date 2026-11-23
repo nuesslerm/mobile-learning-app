@@ -9,6 +9,12 @@ description = "The pipeline: which tests, deploy legs and gates a change needs (
 # shapes_the_nx_graph in src/test_plan.rs); the static scans read the workflows and mise.toml.
 [package.metadata.flow]
 inputs = ["../secrets/src/data/registry.json", "../../nx.json", "../../.nxignore", "../../.gitignore", "../../tooling/nx/**/*", "../../e2e/*.lua", "../../**/package.json", "../../**/project.json", "../../**/Cargo.toml", "../../.github/**/*", "../../mise.toml"]
+shared = ["tests/flow/support/**"]
+
+# Two modules carry most of the suite's test time, so each is a unit the shards deal out (`crate-pipeline/<group>`) beside the rest, which skips them.
+[package.metadata.flow.groups]
+nx_cache = []
+nx_crates = []
 
 # The tests are one flow binary (tests/flow.rs) driving the thin binary below; the lib has no unit tests (plan D3).
 [lib]

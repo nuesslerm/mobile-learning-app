@@ -24,6 +24,7 @@ const KIT_FLOW: &str = "test kit flow";
 const HELPER_FLOW: &str = "test helper flow";
 const ALPHA: &str = "test tool flow alpha::";
 const BETA: &str = "test tool flow beta::";
+const TOOL_REST: &str = "test tool flow !alpha:: !beta::";
 const CLIPPED: [&str; 9] = ["kit", "assets-gen", "tool", "tool-alpha", "chain", "helper", "helper-plugin", "svc", "svc-core"];
 
 fn ran(items: &[&str]) -> Ran {
@@ -99,7 +100,7 @@ impl Fixture {
             &aside.join("bin/cargo"),
             r#"[ "$1" = metadata ] && { echo 'the Nx graph must not need cargo' >&2; exit 1; }
 sub="$1"; shift; p=""; t=""; f=""
-while [ $# -gt 0 ]; do case "$1" in -p) p="$2"; shift;; --test) t=" $2"; shift;; --lib|--bins) t=" unit";; --manifest-path) shift;; --) break;; -*) ;; *) f=" $1";; esac; shift; done
+while [ $# -gt 0 ]; do case "$1" in -p) p="$2"; shift;; --test) t=" $2"; shift;; --lib|--bins) t=" unit";; --manifest-path) shift;; --skip) f="$f !$2"; shift;; --) break;; -*) ;; *) f=" $1";; esac; shift; done
 # a test run's own arguments after `--`: its filters, and what it skips as `!<filter>`
 if [ "$sub" = test ] && [ "$1" = -- ]; then shift; while [ $# -gt 0 ]; do case "$1" in --skip) f="$f !$2"; shift;; -*) ;; *) f="$f $1";; esac; shift; done; fi
 echo "$sub $p$t$f" >> "$RAN_LOG"
@@ -122,8 +123,8 @@ if [ "$sub" = test ] && [ -n "$WF_TEST_OUTPUT_DIR" ]; then mkdir -p "$WF_TEST_OU
             &manifest("tool", "kit = { path = \"../kit\" }\ntool-alpha = { path = \"alpha\" }\n", "\n[package.metadata.flow]\ninputs = [\"../assets/**\"]\nuses = [\"helper\"]\nshared = [\"tests/flow/support/**\"]\ngroups = { alpha = [\"tool-alpha\"], beta = [\"tests/fixtures/beta/**\"] }\n"),
         );
         put_file(&ws, "clis/tool/src/main.rs", "fn main() {}\n");
-        put_file(&ws, "clis/tool/tests/flow.rs", "mod alpha;\nmod beta;\nmod support;\n");
-        for module in ["alpha", "beta"] {
+        put_file(&ws, "clis/tool/tests/flow.rs", "mod alpha;\nmod beta;\nmod misc;\nmod support;\n");
+        for module in ["alpha", "beta", "misc"] {
             put_file(&ws, &format!("clis/tool/tests/flow/{module}.rs"), "#[test]\nfn runs() {}\n");
         }
         put_file(&ws, "clis/tool/tests/flow/support/mod.rs", "pub fn tool() {}\n");
@@ -193,7 +194,7 @@ if [ "$sub" = test ] && [ -n "$WF_TEST_OUTPUT_DIR" ]; then mkdir -p "$WF_TEST_OU
         let chain = json!({ "kind": "integration", "crate": "chain" });
         let set = |g: &str| json!({ "kind": "integration", "crate": "chain", "group": g, "target": format!("cargo-integration-{g}") });
         let group = |g: &str| json!({ "kind": "flow", "crate": "tool", "group": g, "target": format!("cargo-flow-{g}") });
-        f.plan("flow-tests", json!([{ "kind": "flow", "package": "@fx/svc" }, flow("kit"), flow("chain"), flow("helper"), group("alpha"), group("beta")]));
+        f.plan("flow-tests", json!([{ "kind": "flow", "package": "@fx/svc" }, flow("kit"), flow("chain"), flow("helper"), flow("tool"), group("alpha"), group("beta")]));
         f.plan("integration-tests", json!([{ "kind": "integration", "package": "@fx/svc" }, chain, set("north"), set("south")]));
         let units = ["kit", "svc-core"].map(|c| json!({ "kind": "unit", "crate": c }));
         f.plan("typecheck-lint-unit-tests", Value::Array(units.into_iter().chain(CLIPPED.map(|c| json!({ "kind": "clippy", "crate": c }))).collect()));
@@ -272,7 +273,7 @@ if [ "$sub" = test ] && [ -n "$WF_TEST_OUTPUT_DIR" ]; then mkdir -p "$WF_TEST_OU
 }
 
 fn every_flow() -> Ran {
-    ran(&[SVC_FLOW, KIT_FLOW, CHAIN_FLOW, HELPER_FLOW, ALPHA, BETA])
+    ran(&[SVC_FLOW, KIT_FLOW, CHAIN_FLOW, HELPER_FLOW, TOOL_REST, ALPHA, BETA])
 }
 
 fn every_integration() -> Ran {
@@ -341,7 +342,7 @@ fn a_declared_glob_leaves_out_the_crates_nested_under_it() {
     f.check_cases(
         "flow-tests",
         vec![
-            ("a data file the flow tests declare", "clis/assets/logo.txt", ran(&[ALPHA, BETA])),
+            ("a data file the flow tests declare", "clis/assets/logo.txt", ran(&[TOOL_REST, ALPHA, BETA])),
             ("a crate nested in that dir, which tool does not build", "clis/assets/gen/src/lib.rs", ran(&[])),
             ("a crate nested in a used crate's dir, which that crate does not build", "libraries/helper/plugin/src/lib.rs", ran(&[])),
         ],
@@ -364,12 +365,13 @@ fn a_flow_group_runs_again_only_for_its_module_the_shared_files_and_the_crates_i
             ("one group's module", "clis/tool/tests/flow/alpha.rs", ran(&[ALPHA])),
             ("the other group's module", "clis/tool/tests/flow/beta.rs", ran(&[BETA])),
             ("a fixture only one group names", "clis/tool/tests/fixtures/beta/case.json", ran(&[BETA])),
-            ("the crate one group names", "clis/tool/alpha/src/lib.rs", ran(&[ALPHA])),
-            ("the support every group shares", "clis/tool/tests/flow/support/mod.rs", ran(&[ALPHA, BETA])),
-            ("the suite's module list", "clis/tool/tests/flow.rs", ran(&[ALPHA, BETA])),
-            ("the crate's own source", "clis/tool/src/main.rs", ran(&[ALPHA, BETA])),
-            ("the crate's manifest", "clis/tool/Cargo.toml", ran(&[ALPHA, BETA])),
-            ("a dependency no group names", "clis/kit/src/lib.rs", ran(&[KIT_FLOW, ALPHA, BETA])),
+            ("the crate one group names", "clis/tool/alpha/src/lib.rs", ran(&[TOOL_REST, ALPHA])),
+            ("a module in no group", "clis/tool/tests/flow/misc.rs", ran(&[TOOL_REST])),
+            ("the support every group shares", "clis/tool/tests/flow/support/mod.rs", ran(&[TOOL_REST, ALPHA, BETA])),
+            ("the suite's module list", "clis/tool/tests/flow.rs", ran(&[TOOL_REST, ALPHA, BETA])),
+            ("the crate's own source", "clis/tool/src/main.rs", ran(&[TOOL_REST, ALPHA, BETA])),
+            ("the crate's manifest", "clis/tool/Cargo.toml", ran(&[TOOL_REST, ALPHA, BETA])),
+            ("a dependency no group names", "clis/kit/src/lib.rs", ran(&[KIT_FLOW, TOOL_REST, ALPHA, BETA])),
             ("another crate's flow test", "clis/kit/tests/flow.rs", ran(&[KIT_FLOW])),
         ],
     );
@@ -384,13 +386,13 @@ fn a_rust_task_keys_on_the_lockfile_entries_its_crate_reaches_and_on_the_whole_f
     let lockfile = |file: &str, from: &str, to: &str, stage: &str, expected: Ran| f.with_replace(file, from, to, || assert_eq!(f.runs(stage), expected, "{stage}: {file} {from} -> {to}"));
 
     // When a registry crate only tool-alpha uses moves, Then the tasks of tool-alpha and of tool, which builds it, run; kit's do not
-    lockfile("clis/Cargo.lock", "checksum = \"aaa\"", "checksum = \"aab\"", "flow-tests", ran(&[ALPHA, BETA]));
+    lockfile("clis/Cargo.lock", "checksum = \"aaa\"", "checksum = \"aab\"", "flow-tests", ran(&[TOOL_REST, ALPHA, BETA]));
     lockfile("clis/Cargo.lock", "checksum = \"aaa\"", "checksum = \"aab\"", "typecheck-lint-unit-tests", checks(&[], &["tool-alpha", "tool"]));
     // When kit's registry crate moves, Then kit's tasks run, and tool's, which builds kit
-    lockfile("clis/Cargo.lock", "checksum = \"bbb\"", "checksum = \"bbc\"", "flow-tests", ran(&[KIT_FLOW, ALPHA, BETA]));
+    lockfile("clis/Cargo.lock", "checksum = \"bbb\"", "checksum = \"bbc\"", "flow-tests", ran(&[KIT_FLOW, TOOL_REST, ALPHA, BETA]));
     lockfile("clis/Cargo.lock", "checksum = \"bbb\"", "checksum = \"bbc\"", "typecheck-lint-unit-tests", checks(&["kit"], &["kit", "tool"]));
     // When the lockfile no longer parses, Then every task of its workspace runs: a slice it cannot read is the whole file
-    lockfile("clis/Cargo.lock", "[[package]]", "[[package", "flow-tests", ran(&[KIT_FLOW, CHAIN_FLOW, ALPHA, BETA]));
+    lockfile("clis/Cargo.lock", "[[package]]", "[[package", "flow-tests", ran(&[KIT_FLOW, CHAIN_FLOW, TOOL_REST, ALPHA, BETA]));
     lockfile("clis/Cargo.lock", "[[package]]", "[[package", "typecheck-lint-unit-tests", checks(&["kit"], &["kit", "assets-gen", "chain", "tool", "tool-alpha"]));
     // When only a comment of the lockfile changes, Then nothing runs
     f.check_cases("flow-tests", vec![("a comment in the lockfile", "clis/Cargo.lock", ran(&[]))]);
@@ -406,7 +408,7 @@ fn a_flow_test_keys_on_the_crates_it_uses_and_a_misspelled_one_stops_the_graph()
     f.seed("flow-tests", every_flow());
     f.seed("integration-tests", every_integration());
     f.seed("typecheck-lint-unit-tests", every_check());
-    let users = ran(&[HELPER_FLOW, ALPHA, BETA, SVC_FLOW]);
+    let users = ran(&[HELPER_FLOW, TOOL_REST, ALPHA, BETA, SVC_FLOW]);
 
     // When a file helper builds from changes, Then every flow suite that uses it runs
     f.check_cases(
@@ -488,7 +490,7 @@ fn an_integration_chain_keys_on_the_binaries_it_runs_in_other_workspaces_and_the
             ("the table the integration tests name", "clis/rows/table.json", ran(&[])),
             ("the chain's own source", "clis/chain/src/main.rs", ran(&[CHAIN_FLOW])),
             ("the chain's flow test", "clis/chain/tests/flow.rs", ran(&[CHAIN_FLOW])),
-            ("the helper the chain's integration tests run", "libraries/helper/src/main.rs", ran(&[HELPER_FLOW, ALPHA, BETA, SVC_FLOW])),
+            ("the helper the chain's integration tests run", "libraries/helper/src/main.rs", ran(&[HELPER_FLOW, TOOL_REST, ALPHA, BETA, SVC_FLOW])),
         ],
     );
 

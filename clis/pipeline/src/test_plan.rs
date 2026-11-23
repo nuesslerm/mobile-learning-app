@@ -330,16 +330,17 @@ fn has_unit_tests(dir: &Path) -> bool {
     })
 }
 
-/// A crate's flow-tests entries: one, or one per flow group, each the Nx task `cargo-flow-<group>` replayed on its own inputs.
+/// A crate's flow-tests entries: the suite, and for a crate with flow groups the rest of it (every group's module skipped, the Nx task `cargo-flow`) and one
+/// entry per group, each the Nx task `cargo-flow-<group>` replayed on its own inputs.
 fn flow_entries(root: &Path, c: &Crate, reason: &str) -> Vec<(String, Value)> {
     if !root.join(&c.dir).join("tests/flow.rs").is_file() {
         return vec![];
     }
     let command = format!("cargo test --locked -p {} --test flow --manifest-path {}", c.name, c.manifest);
-    if c.flow_groups.is_empty() {
-        return vec![("flow-tests".to_string(), json!({ "kind": "flow", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": command, "why": [reason] }))];
-    }
-    c.flow_groups.iter().map(|g| ("flow-tests".to_string(), json!({ "kind": "flow", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command} {g}::"), "group": g, "target": format!("cargo-flow-{g}"), "why": [reason] }))).collect()
+    let skips: String = if c.flow_groups.is_empty() { String::new() } else { format!(" --{}", c.flow_groups.iter().map(|g| format!(" --skip {g}::")).collect::<String>()) };
+    let rest = json!({ "kind": "flow", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command}{skips}"), "why": [reason] });
+    let groups = c.flow_groups.iter().map(|g| json!({ "kind": "flow", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command} {g}::"), "group": g, "target": format!("cargo-flow-{g}"), "why": [reason] }));
+    std::iter::once(rest).chain(groups).map(|entry| ("flow-tests".to_string(), entry)).collect()
 }
 
 /// The libtest module of a candidate's replay tests (`tests/integration/replay_features.rs`): one submodule per feature, each an Nx task of its own.
@@ -730,11 +731,11 @@ fn parse_shard(text: &str) -> Option<(usize, usize)> {
 }
 
 /// The unit a test deals out as: a package (or crate) with all its kinds goes to one shard, so its tasks share the cache and the build, except the
-/// groups of a crate's integration or e2e suite, which are slow tasks of their own and each deal out as a unit.
+/// groups of a crate's flow, integration or e2e suite, which are slow tasks of their own and each deal out as a unit.
 fn unit_key(t: &Value) -> String {
     let unit = t["package"].as_str().map(str::to_string).or_else(|| t["crate"].as_str().map(|c| format!("crate-{c}"))).unwrap_or_default();
     match (t["kind"].as_str(), t["group"].as_str()) {
-        (Some("integration" | "e2e"), Some(group)) => format!("{unit}/{group}"),
+        (Some("flow" | "integration" | "e2e"), Some(group)) => format!("{unit}/{group}"),
         _ => unit,
     }
 }
@@ -984,9 +985,9 @@ fn run_package_stage(nx: &Path, root: &Path, stage: &str, tests: &[Value], sha: 
         // the crates' tests run beside the packages' in one call: cargo serialises builds that share a target directory,
         // and the crates' (clis/) is not the packages' (18 Oct: one after the other overran the job)
         let target = if !crates.is_empty() && matches!(*kind, "flow" | "unit" | "integration" | "e2e" | "e2e-smoke" | "contract" | "deployment-verification") {
-            // a crate whose groups are all this shard holds of its suite (the groups of an integration or e2e suite deal out one by one) runs them
+            // a crate whose groups are all this shard holds of its suite (the groups of a flow, integration or e2e suite deal out one by one) runs them
             // in a call of its own: beside the others it would also run the task for the rest of the suite, which another shard's entry runs
-            if matches!(*kind, "integration" | "e2e") {
+            if matches!(*kind, "flow" | "integration" | "e2e") {
                 let whole = |c: &String| tests.iter().any(|t| t["kind"] == *kind && t["group"].is_null() && t["crate"].as_str().is_some_and(|n| format!("crate-{n}") == *c));
                 let (kept, only_groups): (Vec<String>, Vec<String>) = crates.into_iter().partition(whole);
                 crates = kept;
@@ -1256,8 +1257,8 @@ mod shard_tests {
 
     #[test]
     fn given_a_flow_stage_that_loads_one_machine_when_typecheck_is_dealt_then_the_machines_flow_heavy_part_gets_the_lighter_typecheck_and_every_unit_runs_once() {
-        // Given a plan whose flow stage has crate-pipeline (409 s, alone on its shard) and light crates, and many typecheck units
-        let flow: Vec<Value> = ["crate-pipeline", "crate-deploy", "crate-rca"].iter().map(|c| flow_test(c.trim_start_matches("crate-"))).collect();
+        // Given a plan whose flow stage has crate-deploy (302 s, alone on its shard) and light crates, and many typecheck units
+        let flow: Vec<Value> = ["crate-deploy", "crate-orca-serve", "crate-rca"].iter().map(|c| flow_test(c.trim_start_matches("crate-"))).collect();
         let unit: Vec<Value> = ["wf", "cdp", "harness-browser", "rca-exec", "wf-vmops", "harness-core", "orca-serve", "pipeline"].iter().map(|c| unit_test(c)).collect();
         let plan = json!({"stages": {"flow-tests": flow, "typecheck-lint-unit-tests": unit}});
         // When typecheck is dealt to three shards, as core-tests runs it mirrored against the flow shards
@@ -1270,7 +1271,7 @@ mod shard_tests {
         want.sort();
         assert_eq!(all, want);
         // And the machine that runs the heaviest flow shard holds the fewest typecheck seconds
-        let heavy = (1..=3).find(|i| flow_shard(*i).iter().any(|t| unit_key(t) == "crate-pipeline")).unwrap();
+        let heavy = (1..=3).find(|i| flow_shard(*i).iter().any(|t| unit_key(t) == "crate-deploy")).unwrap();
         let w = Weights::of_stage("typecheck-lint-unit-tests");
         let seconds = |part: &Vec<Value>| part.iter().map(|t| w.cost(&unit_key(t))).sum::<u64>();
         let mirrored = &parts[3 - heavy];
@@ -1323,6 +1324,53 @@ mod shard_tests {
         // And a stage with no entry has a default of 1, so every unit costs the same and the deal is the name order
         let none = Weights::of_stage("no-such-stage");
         assert_eq!((none.default, assign(&keys, 2, &none)), (1, vec![0, 1, 0, 1, 0]));
+    }
+
+    fn pipeline_flow_plan() -> Value {
+        let rest = json!({"kind": "flow", "crate": "pipeline"});
+        let group = |g: &str| json!({"kind": "flow", "crate": "pipeline", "group": g, "target": format!("cargo-flow-{g}")});
+        json!({"stages": {"flow-tests": [rest, group("nx_cache"), group("nx_crates")], "typecheck-lint-unit-tests": [unit_test("pipeline"), json!({"kind": "clippy", "crate": "pipeline"})]}})
+    }
+
+    #[test]
+    fn given_a_crate_with_flow_groups_when_dealt_to_three_or_six_shards_then_the_rest_and_each_group_are_on_three_different_shards_and_its_unit_and_clippy_stay_together() {
+        // Given the plan of crate-pipeline's flow suite (the rest and its two groups) beside its unit and clippy tests, with the committed weights
+        let plan = pipeline_flow_plan();
+        for count in [3, 6] {
+            // When the flow stage is dealt to `count` shards
+            let units_on = |i: usize| -> Vec<String> { shard_unit_keys_in_plan("flow-tests", &plan, i, count) };
+            let at = |key: &str| (1..=count).find(|i| units_on(*i).iter().any(|k| k == key)).unwrap_or_else(|| panic!("{key} is on no shard"));
+            // Then the three units are on three different shards, each once
+            let shards = [at("crate-pipeline"), at("crate-pipeline/nx_cache"), at("crate-pipeline/nx_crates")];
+            let distinct: std::collections::BTreeSet<usize> = shards.iter().copied().collect();
+            assert_eq!(distinct.len(), 3, "{count} shards: {shards:?}");
+            let all: usize = (1..=count).map(|i| shard_in_plan("flow-tests", &plan, i, count).len()).sum();
+            assert_eq!(all, 3);
+            // And the crate's unit and clippy tests share one shard
+            let kinds: Vec<usize> = (1..=count).filter(|i| !shard_in_plan("typecheck-lint-unit-tests", &plan, *i, count).is_empty()).collect();
+            assert_eq!(kinds.len(), 1, "{count} shards");
+            assert_eq!(shard_in_plan("typecheck-lint-unit-tests", &plan, kinds[0], count).len(), 2);
+        }
+    }
+
+    #[test]
+    fn given_the_flow_entries_of_a_grouped_crate_when_keyed_then_a_group_is_its_own_unit_and_the_rest_is_the_crate() {
+        // Given the rest and a group of a crate, and a package's flow entry
+        let rest = json!({"kind": "flow", "crate": "c"});
+        let group = json!({"kind": "flow", "crate": "c", "group": "g"});
+        // When they are keyed
+        // Then the group has its own key, the rest is the crate, and a package stays the package
+        assert_eq!((unit_key(&rest), unit_key(&group), unit_key(&json!({"kind": "flow", "package": "@a/x"}))), ("crate-c".to_string(), "crate-c/g".to_string(), "@a/x".to_string()));
+    }
+
+    #[test]
+    fn given_weights_with_group_keys_for_a_flow_stage_when_read_then_the_group_cost_is_its_own_not_the_default() {
+        // Given the committed flow weights
+        let w = Weights::of_stage("flow-tests");
+        // When the group keys of crate-pipeline are costed
+        // Then each has a listed weight and the crate key is the rest's
+        assert!(w.cost("crate-pipeline/nx_cache") != w.default && w.cost("crate-pipeline/nx_crates") != w.default);
+        assert!(w.cost("crate-pipeline") < w.cost("crate-pipeline/nx_cache"));
     }
 
     #[test]

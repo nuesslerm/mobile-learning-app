@@ -390,8 +390,16 @@ exports.createNodes = [
       const own = (f) => join(c.dir, f);
       const testTarget = (file, command, inputs, records) =>
         !pkg && existsSync(join(root, c.dir, 'tests', file)) ? rustTask(inputs, command, records) : null;
+      // a group's own module and files leave the rest's inputs (and another group's), so an edit to `tests/flow/<group>.rs` reruns that group alone
+      const groupOwn = (g) => [`tests/flow/${g}.rs`, `tests/flow/${g}/**`, ...c.flow.groups[g].filter((e) => !namesCrate(e))];
+      const withoutFlowGroups = (except) =>
+        Object.keys(c.flow.groups)
+          .filter((g) => g !== except)
+          .flatMap((g) => groupOwn(g).flatMap((f) => [{ fileset: `!{projectRoot}/${f}` }, { fileset: `!{workspaceRoot}/${own(f)}` }]));
       const flowCommand = `cargo test --locked -p ${c.name} --test flow --manifest-path ${c.manifest}`;
-      const flow = testTarget('flow.rs', flowCommand, [...OWN, ...tier, ...extra(c, [], 'flow')]);
+      // `[package.metadata.flow] groups`: `cargo-flow` is the rest of the suite, its command skips every group's module (the same skips as `flow_entries` in test_plan.rs)
+      const flowSkips = Object.keys(c.flow.groups).map((g) => `--skip ${g}::`);
+      const flow = testTarget('flow.rs', [flowCommand, ...(flowSkips.length ? ['--', ...flowSkips] : [])].join(' '), [...OWN, ...tier, ...extra(c, [], 'flow'), ...withoutFlowGroups(null)]);
       // the built binaries as a black box with every dependency a fake, one test at a time on a port of its own, after the services are deployed
       const integrationCommand = `cargo test --locked -p ${c.name} --test integration --manifest-path ${c.manifest} -- --test-threads=1`;
       // `[package.metadata.integration.groups]` (`{<group> = {filter, files}}`): a slow part of the suite (`filter`, a libtest filter) is one
@@ -523,7 +531,7 @@ exports.createNodes = [
         })
       );
       const targets = {
-        ...(flow && !flowGroups.length ? { 'cargo-flow': flow } : {}),
+        ...(flow ? { 'cargo-flow': flow } : {}),
         ...flowTargets,
         ...(integration ? { 'cargo-integration': integration } : {}),
         ...integrationTargets,

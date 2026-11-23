@@ -89,11 +89,42 @@ fn a_database_that_has_no_unit_spans_yet_still_regenerates_from_nx_tasks() {
 }
 
 #[test]
+fn a_flow_group_s_nx_task_is_weighted_as_the_unit_crate_slash_group_and_the_rest_stays_the_crate() {
+    // Given a sealed database whose Nx tasks ran a crate's rest of the flow suite and two of its groups
+    let dir = tempfile::tempdir().unwrap();
+    let out = dir.path().join("weights.json");
+    let statements = [task("1", "flow-tests (1/3)", "crate-big:cargo-flow", 37_000), task("1", "flow-tests (2/3)", "crate-big:cargo-flow-heavy", 185_000), task("1", "flow-tests (3/3)", "crate-big:cargo-flow-other", 176_000)].join("\n");
+    let sealed = sealed(dir.path(), &statements);
+
+    // When the weights are regenerated
+    let r = run_wf(&["ci", "plan", "shard-weights", "--write", "--sealed-file", &sealed, "--out", &out.display().to_string()], &opts());
+
+    // Then each group is a unit named `crate/group` and the rest is the crate, the keys the plan deals out
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    let file: Value = serde_json::from_str(&std::fs::read_to_string(&out).unwrap()).unwrap();
+    let flow = &file["stages"]["flow-tests"]["units"];
+    assert_eq!((flow["crate-big"].clone(), flow["crate-big/heavy"].clone(), flow["crate-big/other"].clone()), (json!(37), json!(185), json!(176)), "{file}");
+}
+
+#[test]
+fn the_committed_weights_split_the_pipeline_crate_s_flow_suite_into_two_groups_and_the_rest() {
+    // Given the committed weights file
+    let committed: Value = serde_json::from_str(&std::fs::read_to_string(wf_testkit::repo_root().join("clis/pipeline/data/shard-weights.json")).unwrap()).unwrap();
+    let units = &committed["stages"]["flow-tests"]["units"];
+
+    // When the units of crate-pipeline are read
+    let seconds = |k: &str| units[k].as_u64().unwrap_or_else(|| panic!("no weight for {k}"));
+
+    // Then both groups are weighted, and the rest is lighter than either, so the deal can spread them
+    assert!(seconds("crate-pipeline/nx_cache") > seconds("crate-pipeline") && seconds("crate-pipeline/nx_crates") > seconds("crate-pipeline"), "{units}");
+}
+
+#[test]
 fn a_report_sets_each_shards_predicted_seconds_from_the_committed_weights_against_the_seconds_its_units_took() {
     // Given a run of two flow shards whose two units took 20 s more and 30 s less than the committed weights say
     let committed: Value = serde_json::from_str(&std::fs::read_to_string(wf_testkit::repo_root().join("clis/pipeline/data/shard-weights.json")).unwrap()).unwrap();
     let weight = |u: &str| committed["stages"]["flow-tests"]["units"][u].as_i64().unwrap();
-    let (heavy, light) = ("crate-pipeline", "crate-deploy");
+    let (heavy, light) = ("crate-deploy", "crate-orca-serve");
     assert!(weight(heavy) > weight(light), "the test names the heavier unit first");
     let dir = tempfile::tempdir().unwrap();
     let statements = [
