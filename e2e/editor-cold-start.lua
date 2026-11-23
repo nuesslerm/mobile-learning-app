@@ -43,18 +43,20 @@ end
 for _, runner in ipairs({'device', 'backend'}) do
   run_flow("cold start with the " .. runner .. " runner", function()
     choose(runner)
-    local evals, hydrate, totals = {}, {}, {}
+    local mounts, hydrate = {}, {}
     for i = 1, RELOADS do
+      device:open_link(base .. "/")
+      device:assert_visible({id='LeetcodeListRunnerRow'}, {timeout=60000})
       device:clear_logs()
       device:open_link(base .. "/leetcode/two-sum")
       device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=60000})
       device:extended_wait_until{condition=function() return logged_line('editor.cold_start') ~= nil end, timeout=30000, interval=250, label='the editor.cold_start line'}
       local line = logged_line('editor.cold_start')
       if i == 1 then log(runner .. " first line: " .. line) end
-      evals[#evals + 1] = field(line, 'evalMs') or -1
+      mounts[#mounts + 1] = field(line, 'mountToReadyMs') or -1
       hydrate[#hydrate + 1] = field(line, 'readyToHydratedMs') or -1
-      totals[#totals + 1] = field(line, 'totalMs') or -1
     end
-    log(("%s runner, %d reloads: median evalMs %s, readyToHydratedMs %s, totalMs %s"):format(runner, RELOADS, median(evals), median(hydrate), median(totals)))
+    -- the console echo elides a line's later fields, so the first fields are the ones this reads
+    log(("%s runner, %d reloads: median mountToReadyMs %s, readyToHydratedMs %s"):format(runner, RELOADS, median(mounts), median(hydrate)))
   end)
 end
