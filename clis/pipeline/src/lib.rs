@@ -26,6 +26,7 @@ mod ci_plan;
 mod ci_preflight;
 mod ci_tidy;
 mod ci_insights;
+mod ci_last_run;
 pub mod arch_rules;
 pub mod ast_globs;
 pub mod workspace_deps;

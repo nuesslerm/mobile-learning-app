@@ -238,7 +238,11 @@ pub(crate) fn section(t: &Telemetry, failed: &[String]) -> Parts {
 
 /// The sampler's work as the extra columns of a runner row: CPU p95, iowait, swap, pressure, and the seconds idle and saturated.
 pub(crate) fn extra_columns(samples: &[Value], r: Option<&JobResources>) -> String {
-    let has = |key: &str| samples.iter().any(|s| s[key].is_number());
+    extra_columns_of(&|key| samples.iter().any(|s| s[key].is_number()), r)
+}
+
+/// The same columns where `has` says which signals the job sampled (a stored row holds them all).
+pub(crate) fn extra_columns_of(has: &dyn Fn(&str) -> bool, r: Option<&JobResources>) -> String {
     let Some(r) = r else { return " - | - | - | - | - | - |".to_string() };
     let show = |present: bool, v: String| if present { v } else { "-".to_string() };
     let psi = if has("psiCpu") || has("psiMem") || has("psiIo") { format!("{:.0}/{:.0}/{:.0}%", r.psi_cpu_max, r.psi_mem_max, r.psi_io_max) } else { "-".to_string() };

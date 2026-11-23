@@ -142,10 +142,8 @@ pub(crate) fn assess(logs: &[(String, String)], gate: bool) -> Health {
                 "cache.event" => {
                     let (layer, phase, outcome) = (get(&f, "layer"), get(&f, "phase"), get(&f, "outcome"));
                     let why = if get(&f, "reason").is_empty() { "no reason recorded" } else { get(&f, "reason") };
-                    match (phase, outcome) {
-                        ("restore", "error" | "timeout") => flag("degraded", job, format!("the {layer} restore {} ({why}): the job ran on a cold cache", if outcome == "timeout" { "timed out" } else { "failed" })),
-                        ("save", "error" | "timeout") => flag("rejected-write", job, format!("the {layer} save {} ({why})", if outcome == "timeout" { "timed out" } else { "failed" })),
-                        _ => {}
+                    if let Some((kind, detail)) = event_finding(layer, phase, outcome, why) {
+                        flag(kind, job, detail);
                     }
                 }
                 "nx.stage.summary" => {
@@ -173,6 +171,35 @@ pub(crate) fn assess(logs: &[(String, String)], gate: bool) -> Health {
     health.findings = found.into_iter().map(|((kind, job), detail)| Finding { kind, job, detail }).collect();
     health.shim = shim;
     health
+}
+
+/// The finding a restore or save event names, if it failed.
+fn event_finding(layer: &str, phase: &str, outcome: &str, why: &str) -> Option<(&'static str, String)> {
+    let word = if outcome == "timeout" { "timed out" } else { "failed" };
+    match (phase, outcome) {
+        ("restore", "error" | "timeout") => Some(("degraded", format!("the {layer} restore {word} ({why}): the job ran on a cold cache"))),
+        ("save", "error" | "timeout") => Some(("rejected-write", format!("the {layer} save {word} ({why})"))),
+        _ => None,
+    }
+}
+
+/// The health a finished run's stored cache events and Nx outcomes say (a stored run has no logs): the findings the `cache.event` lines of a log give, and the
+/// replay as `(job, ran, replayed)`.
+pub(crate) fn assess_events(events: &[wf_bucket::ci_db::CacheEvent], replay: &[(String, u64, u64)]) -> Health {
+    let mut found: BTreeMap<(&'static str, String), String> = BTreeMap::new();
+    for e in events {
+        let job = if e.shard.is_empty() { e.job.clone() } else { format!("{} ({})", e.job, e.shard) };
+        let why = e.reason.as_deref().filter(|r| !r.is_empty()).unwrap_or("no reason recorded");
+        if let Some((kind, detail)) = event_finding(&e.layer, &e.phase, &e.outcome, why) {
+            found.entry((kind, job)).or_insert(detail);
+        }
+    }
+    Health {
+        findings: found.into_iter().map(|((kind, job), detail)| Finding { kind, job, detail }).collect(),
+        stages: replay.iter().map(|(job, ran, replayed)| (job.clone(), String::new(), *replayed, ran + replayed)).collect(),
+        events: events.len(),
+        ..Health::default()
+    }
 }
 
 /// A detail with its numbers masked, so findings that differ only in a count are one kind of problem.

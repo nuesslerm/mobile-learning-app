@@ -279,13 +279,19 @@ pub fn cache_section(rows: &[CacheFacts], facts: &[(String, LogFacts)]) -> Strin
     out
 }
 
-/// The collapsed blocks: every slow step per job, the slowest tests and suites, the Nx runs and deploy phases.
-pub fn detail_blocks(jobs: &[JobTime], facts: &[(String, LogFacts)]) -> String {
-    let mut out = String::new();
+/// Every slow step per job as one collapsed table: the section "Slowest steps per job" holds it for this run and for the previous one. Empty when no job has a step of
+/// five seconds or more.
+pub fn slowest_steps(jobs: &[JobTime]) -> String {
     let rows: Vec<String> = jobs.iter().filter(|j| !j.steps.is_empty()).map(|j| format!("| {} | {} |\n", crate::ci_comment::cell(&j.name), j.steps.iter().take(6).map(|(s, t)| format!("{} {}", crate::ci_comment::cell(s), span(*t))).collect::<Vec<_>>().join("<br>"))).collect();
-    if !rows.is_empty() {
-        out.push_str(&format!("\n<details><summary>Slowest steps per job</summary>\n\n| Job | Steps (five seconds or more) |\n|---|---|\n{}\n</details>\n", rows.concat()));
+    if rows.is_empty() {
+        return String::new();
     }
+    format!("\n{}\n\n<details><summary>{} job{} with steps of five seconds or more</summary>\n\n| Job | Steps (five seconds or more) |\n|---|---|\n{}\n</details>\n", crate::ci_skeleton::SLOWEST_STEPS, rows.len(), if rows.len() == 1 { "" } else { "s" }, rows.concat())
+}
+
+/// The collapsed blocks: the slowest tests and suites, the Nx runs and deploy phases.
+pub fn detail_blocks(facts: &[(String, LogFacts)]) -> String {
+    let mut out = String::new();
     let tests: Vec<(String, String, f64)> = facts.iter().flat_map(|(_, f)| f.tests.clone()).collect();
     let tests = top(&tests, 15, |t| t.2);
     if !tests.is_empty() {

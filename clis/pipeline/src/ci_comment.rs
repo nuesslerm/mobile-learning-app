@@ -2,7 +2,7 @@
 //! each failed job's log), the counts, a table of the jobs with a time bar, the VM's own numbers during the run (reporting-service),
 //! then the cache, crate and e2e details; posted on the open PR and in the job summary, and, when a job failed, on the pushed commit.
 //! Each run (and runner) keeps its own comment.
-use crate::ci_skeleton::{pending, CACHE, CACHE_HEALTH, CACHE_PROBLEMS, CHART, FIXED_COST, IDLE, JOBS, RUNNERS, TODO, VM, WHERE_TIME};
+use crate::ci_skeleton::{pending, Lasts, Wait, CACHE, CACHE_HEALTH, CACHE_PROBLEMS, CHART, FIXED_COST, IDLE, JOBS, RUNNERS, SLOWEST_STEPS, TODO, VM, WHERE_TIME};
 use cli_http::{Request, Response};
 use regex::Regex;
 use serde_json::{json, Value};
@@ -735,37 +735,68 @@ fn runner_section(env: &Env, running: bool) -> String {
         return format!("{heading}{}\n", pending(running, "the first runner samples", "no runner samples were stored for this run"));
     }
     let all = crate::ci_telemetry::runner_samples();
-    let mut rows = Vec::new();
-    let mut machines: Vec<String> = Vec::new();
-    for (name, samples) in &all {
-        let series = |key: &str| samples.iter().filter_map(|s| s[key].as_f64()).collect::<Vec<f64>>();
-        let (cpu, mem, load) = (series("cpu"), series("memUsedMb"), series("load1"));
-        let (cores, total_mb) = crate::ci_telemetry::machine(samples);
-        let total = total_mb.unwrap_or(0.0);
-        let machine = format!("{} / {}", cores.map_or("cores not sampled".to_string(), |c| format!("{c} vCPU")), if total > 0.0 { format!("{:.0} GB", total / 1024.0) } else { "memory not sampled".to_string() });
-        machines.push(machine);
-        let avg = |v: &[f64]| if v.is_empty() { 0.0 } else { v.iter().sum::<f64>() / v.len() as f64 };
-        let peak = |v: &[f64]| v.iter().cloned().fold(0.0, f64::max);
-        let (mem_avg, mem_peak) = (avg(&mem), peak(&mem));
-        let mem_pct = if total > 0.0 { mem_peak * 100.0 / total } else { 0.0 };
-        let resources = crate::ci_resources::job_resources(&env.run, name, "", samples);
-        rows.push(format!(
-            "| {} {} | {:.0}% | **{:.0}%** | {:.1} GB | **{:.1} GB** ({:.0}%) | {:.1} | {} |{}\n",
-            flag(peak(&cpu), 70.0, 90.0),
-            cell(name),
-            avg(&cpu),
-            peak(&cpu),
-            mem_avg / 1000.0,
-            mem_peak / 1000.0,
-            mem_pct,
-            peak(&load),
-            samples.len(),
-            crate::ci_telemetry::extra_columns(samples, resources.as_ref())
-        ));
-    }
+    let rows: Vec<RunnerRow> = all
+        .iter()
+        .map(|(name, samples)| {
+            let series = |key: &str| samples.iter().filter_map(|s| s[key].as_f64()).collect::<Vec<f64>>();
+            let (cpu, mem, load) = (series("cpu"), series("memUsedMb"), series("load1"));
+            let (cores, total_mb) = crate::ci_telemetry::machine(samples);
+            let avg = |v: &[f64]| if v.is_empty() { 0.0 } else { v.iter().sum::<f64>() / v.len() as f64 };
+            let peak = |v: &[f64]| v.iter().cloned().fold(0.0, f64::max);
+            let resources = crate::ci_resources::job_resources(&env.run, name, "", samples);
+            RunnerRow {
+                job: name.clone(),
+                cpu: (avg(&cpu), peak(&cpu)),
+                mem_mb: (avg(&mem), peak(&mem)),
+                total_mb: total_mb.unwrap_or(0.0),
+                load_peak: peak(&load),
+                samples: samples.len(),
+                cores,
+                extra: crate::ci_telemetry::extra_columns(samples, resources.as_ref()),
+            }
+        })
+        .collect();
     if rows.is_empty() {
         return format!("{heading}{}\n", pending(running, "the first runner samples", "no runner samples were stored for this run"));
     }
+    format!("{heading}{}", runner_block(&rows))
+}
+
+/// One job's line of the runners table: CPU and memory as (average, peak), the machine, and the sampler's extra columns already formatted.
+pub(crate) struct RunnerRow {
+    pub job: String,
+    pub cpu: (f64, f64),
+    pub mem_mb: (f64, f64),
+    pub total_mb: f64,
+    pub load_peak: f64,
+    pub samples: usize,
+    pub cores: Option<u32>,
+    pub extra: String,
+}
+
+/// The runners as stored for a finished run (`CI_JOB_RESOURCES`), laid out like the live ones.
+pub(crate) fn runner_rows_of(resources: &[wf_bucket::ci_db::JobResources]) -> Vec<RunnerRow> {
+    resources
+        .iter()
+        .map(|r| RunnerRow {
+            job: r.job.clone(),
+            cpu: (r.cpu_avg, r.cpu_max),
+            mem_mb: (r.mem_avg_mb, r.mem_peak_mb),
+            total_mb: r.mem_total_mb,
+            load_peak: r.load1_max,
+            samples: r.samples.max(0) as usize,
+            cores: u32::try_from(r.cores).ok().filter(|c| *c > 0),
+            extra: crate::ci_telemetry::extra_columns_of(&|_| true, Some(r)),
+        })
+        .collect()
+}
+
+/// The sentence naming the machines and the table of what each job's runner did.
+pub(crate) fn runner_block(rows: &[RunnerRow]) -> String {
+    let mut machines: Vec<String> = rows
+        .iter()
+        .map(|r| format!("{} / {}", r.cores.map_or("cores not sampled".to_string(), |c| format!("{c} vCPU")), if r.total_mb > 0.0 { format!("{:.0} GB", r.total_mb / 1024.0) } else { "memory not sampled".to_string() }))
+        .collect();
     machines.sort();
     let mut kinds: Vec<(String, usize)> = Vec::new();
     for m in machines {
@@ -775,9 +806,27 @@ fn runner_section(env: &Env, running: bool) -> String {
         }
     }
     let sentence = kinds.iter().map(|(m, n)| format!("{m} ({n} job{})", if *n == 1 { "" } else { "s" })).collect::<Vec<_>>().join(", ");
+    let lines: String = rows
+        .iter()
+        .map(|r| {
+            let mem_pct = if r.total_mb > 0.0 { r.mem_mb.1 * 100.0 / r.total_mb } else { 0.0 };
+            format!(
+                "| {} {} | {:.0}% | **{:.0}%** | {:.1} GB | **{:.1} GB** ({:.0}%) | {:.1} | {} |{}\n",
+                flag(r.cpu.1, 70.0, 90.0),
+                cell(&r.job),
+                r.cpu.0,
+                r.cpu.1,
+                r.mem_mb.0 / 1000.0,
+                r.mem_mb.1 / 1000.0,
+                mem_pct,
+                r.load_peak,
+                r.samples,
+                r.extra
+            )
+        })
+        .collect();
     format!(
-        "{heading}Runners as sampled: {sentence}; every 5 s while the job runs.\n\n| Job | CPU busy avg | CPU busy peak | Memory avg | Memory peak | Load (1 min) peak | Samples | CPU p95 | I/O wait avg | Swap peak | Pressure cpu/mem/io | Idle s | Saturated s |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n{}",
-        rows.concat()
+        "Runners as sampled: {sentence}; every 5 s while the job runs.\n\n| Job | CPU busy avg | CPU busy peak | Memory avg | Memory peak | Load (1 min) peak | Samples | CPU p95 | I/O wait avg | Swap peak | Pressure cpu/mem/io | Idle s | Saturated s |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n{lines}"
     )
 }
 
@@ -985,6 +1034,8 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
     let gathered = crate::ci_telemetry::gather(env, &finished_jobs, !running && !shown.is_empty());
     let sealed = Some(gathered.workflow.as_str()).filter(|w| w.contains('+')).and_then(|_| crate::ci_trend::Sealed::open(&env.run).ok());
     let wall_so_far = started.filter(|_| running).map(|from| (now - from).max(0));
+    let last = sealed.as_ref().and_then(|s| crate::ci_last_run::read(s, &gathered.workflow, &env.run, &base));
+    let mut held = Lasts::default();
     let trend = crate::ci_trend::section(sealed.as_ref(), &gathered.workflow, &crate::ci_trend::Now { profile: gathered.profile.as_ref(), wall_so_far, running, jobs: &finished_jobs });
     let (idle, todo) = crate::ci_actions::section(sealed.as_ref(), &gathered);
     let telemetry = crate::ci_telemetry::section(&gathered, &failed_names(failures));
@@ -1019,10 +1070,12 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
     out.push_str(&slot(FIXED_COST, fixed, "the first finished job", "no job ran a setup step or waited for a runner"));
     out.push_str(&slot(CHART, job_chart(&shown), "two finished jobs", "fewer than two jobs have a time to chart"));
     out.push_str(&trend);
-    out.push_str(&slot(IDLE, idle, "the first step with CPU samples", "no step has CPU samples over it"));
-    out.push_str(&slot(TODO, todo, "the run to finish", "no signal is amber or red"));
+    let prev = |pick: &dyn Fn(&crate::ci_last_run::LastRun) -> &str| last.as_ref().map(|l| (l.label.as_str(), pick(l)));
+    let wait = |waits_for, why_none| Wait { running, waits_for, why_none };
+    out.push_str(&crate::ci_skeleton::summary_table(&mut held, IDLE, prev(&|l| &l.idle), &idle, "**Overhead**", wait("the first step with CPU samples", "no step has CPU samples over it")));
+    out.push_str(&crate::ci_skeleton::blocks(&mut held, TODO, prev(&|l| &l.todo), &todo, wait("the run to finish", "no signal is amber or red")));
     if env.label.is_some() {
-        out.push_str(&runner_section(env, running));
+        out.push_str(&crate::ci_skeleton::summary_table(&mut held, RUNNERS, prev(&|l| &l.runners), &runner_section(env, running), "Runners as sampled:", wait("the first runner samples", "no runner samples were stored for this run")));
     } else {
         let window = started.map(|from| (from * 1000, if running { now } else { ended.unwrap_or(from) }.max(from) * 1000 + 60_000));
         out.push_str(&match window {
@@ -1043,9 +1096,10 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
         (true, false) => format!("\n{CACHE}\n{rates}"),
         (false, false) => format!("{cache}{rates}"),
     };
-    out.push_str(&slot(CACHE, cache, "the first finished job", "no job reported a cache"));
+    out.push_str(&crate::ci_skeleton::summary_table(&mut held, CACHE, prev(&|l| &l.cache), &cache, "**Whole run:**", wait("the first finished job", "no job reported a cache")));
     let finished: Vec<(String, String)> = jobs.iter().zip(logs).filter(|(j, _)| !is_meta(j) && applies(j)).filter_map(|(j, l)| Some((text(j, "name"), l.as_ref().ok()?.clone()))).collect();
-    out.push_str(&slot(CACHE_HEALTH, crate::ci_cache_health::section(&crate::ci_cache_health::assess(&finished, crate::ci_cache_health::seeded(env))), "the first finished job log", "no job log held a cache event"));
+    let health = crate::ci_cache_health::section(&crate::ci_cache_health::assess(&finished, crate::ci_cache_health::seeded(env)));
+    out.push_str(&crate::ci_skeleton::blocks(&mut held, CACHE_HEALTH, prev(&|l| &l.health), &health, wait("the first finished job log", "no job log held a cache event")));
     let mut cache_problems = crate::ci_cache_misses::problems_in_logs(&finished);
     if let Some(Ok(found)) = &database {
         // the log names the job the reader knows; the database only adds a failure whose log was not read
@@ -1055,19 +1109,26 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
             }
         }
     }
-    out.push_str(&slot(CACHE_PROBLEMS, crate::ci_cache_misses::problems_section(&cache_problems, database.as_ref(), running), "the first finished job log", "no cache restore failed"));
+    let problems = crate::ci_cache_misses::problems_section(&cache_problems, database.as_ref(), running);
+    out.push_str(&crate::ci_skeleton::blocks(&mut held, CACHE_PROBLEMS, prev(&|l| &l.problems), &problems, wait("the first finished job log", "no cache restore failed")));
+    out.push_str(&crate::ci_skeleton::blocks(&mut held, SLOWEST_STEPS, prev(&|l| &l.steps), &crate::ci_insights::slowest_steps(&times), wait("the first finished job", "no job has a step of five seconds or more")));
     let (units, _) = units_table(env);
     out.push_str(&telemetry.details);
     out.push_str(&units);
     out.push_str(&cache_details(&caches));
     out.push_str(&crate::ci_insights::cost_block(&facts, crate::ci_telemetry::common_cores(&crate::ci_telemetry::runner_samples()).or_else(|| env.label.is_none().then_some(2))));
     out.push_str(&crates_table(&crates));
-    out.push_str(&crate::ci_insights::detail_blocks(&times, &facts));
+    out.push_str(&crate::ci_insights::detail_blocks(&facts));
     for f in failures.iter().filter(|f| !f.more.is_empty()) {
         let block = details(f);
-        if out.len() + block.len() <= BODY_CAP - RESERVED {
+        if out.len() + held.weight() + block.len() <= BODY_CAP - RESERVED {
             out.push_str(&block);
         }
+    }
+    let assembled = out;
+    let mut out = held.fill(&assembled, false);
+    if out.len() > BODY_CAP - RESERVED {
+        out = held.fill(&assembled, true);
     }
     if out.len() > BODY_CAP {
         let mut cut_at = BODY_CAP - RESERVED;

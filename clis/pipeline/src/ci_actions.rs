@@ -4,7 +4,7 @@
 use crate::ci_comment::{cell, text};
 use crate::ci_insights::span;
 use crate::ci_telemetry::Telemetry;
-use crate::ci_trend::{arrow, key_of, last_of, median, Sealed};
+use crate::ci_trend::{arrow, key_of, last_of, median, Past, Sealed};
 use wf_bucket::ci_db::{JobResources, RunProfile, StepResources};
 
 /// The steps the block lists.
@@ -348,7 +348,7 @@ fn idle_block(steps: &[StepResources], overhead: Option<f64>, overhead_median: O
     }
     let mut out = format!("\n{}\n\n", crate::ci_skeleton::IDLE);
     if !top.is_empty() {
-        out.push_str("The five steps of this run with the most idle seconds (CPU under 25% of the samples over the step).\n\n| Step | Job | Idle | Share of the run's idle | Category |\n|---|---|---|---|---|\n");
+        out.push_str("The five steps of the run with the most idle seconds (CPU under 25% of the samples over the step).\n\n| Step | Job | Idle | Share of the run's idle | Category |\n|---|---|---|---|---|\n");
         for s in top.iter().take(TOP_STEPS) {
             out.push_str(&format!("| {} | {} | {} | {:.0}% | {} |\n", cell(&s.step), cell(wf_bucket::job_name::job_name(&s.job)), span(s.idle_s.round() as i64), share(s.idle_s, total), classify(&s.step).name()));
         }
@@ -369,6 +369,11 @@ pub(crate) fn section(sealed: Option<&Sealed>, t: &Telemetry) -> (String, String
         (Some(s), Some(k)) => last_of(&s.past, k),
         _ => Vec::new(),
     };
+    section_over(sealed, t, &past)
+}
+
+/// `section` against the given earlier runs (oldest first): the previous run is judged against the runs before it, not against itself.
+pub(crate) fn section_over(sealed: Option<&Sealed>, t: &Telemetry, past: &[&Past]) -> (String, String) {
     let runs: Vec<&str> = past.iter().map(|p| p.run.as_str()).collect();
     let overhead = overhead_share(t.step_rows.iter().filter_map(|r| Some((r.step.as_str(), r.duration_s? as f64))));
     let past_overhead = sealed.map(|s| past_overheads(s, &runs)).unwrap_or_default();

@@ -11,10 +11,13 @@ const RUNS: usize = 20;
 const MIN_CHART: usize = 3;
 /// Within this share of the median a run is neither slower nor faster.
 const BAND: f64 = 0.10;
-/// The longest jobs that get a line next to the total; more lines than the palette has colours would not be told apart.
-const JOB_LINES: usize = 6;
+/// The longest job instances that get a line next to the total; more lines than the palette has colours would not be told apart.
+const JOB_LINES: usize = 8;
 /// One colour per line, the total first; mid-tone so they read on GitHub's light and dark themes, each with the emoji square that names it in the legend.
-const PALETTE: [(&str, &str); JOB_LINES + 1] = [("#388bfd", "🟦"), ("#f0883e", "🟧"), ("#3fb950", "🟩"), ("#a371f7", "🟪"), ("#d4a72c", "🟨"), ("#f85149", "🟥"), ("#a0724a", "🟫")];
+const PALETTE: [(&str, &str); JOB_LINES + 1] =
+    [("#388bfd", "🟦"), ("#f0883e", "🟧"), ("#3fb950", "🟩"), ("#a371f7", "🟪"), ("#d4a72c", "🟨"), ("#f85149", "🟥"), ("#a0724a", "🟫"), ("#57606a", "⬛"), ("#afb8c1", "⬜")];
+/// How many names of the instances without a line the note spells out.
+const NAMED_WITHOUT_LINE: usize = 3;
 const WORKFLOWS: [&str; 6] = ["cli_core", "mobile_core", "backend_core", "cli_build", "mobile_build", "backend_build"];
 
 /// A successful run: no job failed, was cancelled or has no conclusion. The table keeps no branch, and only dev's pipeline merges its rows.
@@ -22,6 +25,7 @@ const SQL: &str = "SELECT p.RUN_ID AS run, p.WORKFLOW AS workflow, p.WALL_S AS w
     FROM CI_RUN_PROFILE p JOIN CI_JOBS j ON j.RUN_ID = p.RUN_ID WHERE p.WORKFLOW LIKE '%+%' GROUP BY p.RUN_ID \
     HAVING SUM(CASE WHEN j.CONCLUSION IS NULL OR j.CONCLUSION IN ('failure', 'cancelled') THEN 1 ELSE 0 END) = 0 ORDER BY ts DESC, p.RUN_ID DESC LIMIT 2000";
 
+#[derive(Clone)]
 pub(crate) struct Past {
     pub run: String,
     pub key: &'static str,
@@ -46,6 +50,10 @@ impl Sealed {
         ci_db::ensure_ledger(&work.connect()?)?;
         let past = history(&work, run)?;
         Ok(Sealed { work, past })
+    }
+
+    pub(crate) fn conn(&self) -> Result<wf_bucket::ci_db::Connection, String> {
+        self.work.connect()
     }
 
     /// The rows of a query, none when it fails.
@@ -110,21 +118,26 @@ fn longest(profile: &RunProfile, jobs: &[&Value]) -> Option<String> {
     Some(format!("**Longest:** critical path job `{}` {}{step}.\n", cell(&text(job, "name")), span(secs)))
 }
 
-/// A job's minutes in each of the runs (0 where it did not run), its shards as one: the slowest shard, since the shards run side by side and the slowest one is
-/// what the run waits for.
+/// One job instance (a matrix shard is its own, named with its shard): its minutes in each of the runs, `None` where the run has no such job (a shard count that
+/// changed, a job that was skipped). A `None` is never drawn as 0.
 struct JobLine {
     name: String,
-    minutes: Vec<f64>,
+    minutes: Vec<Option<f64>>,
 }
 
 impl JobLine {
     fn typical(&self) -> f64 {
-        median(self.minutes.iter().copied().filter(|m| *m > 0.0).collect()).unwrap_or(0.0)
+        median(self.minutes.iter().flatten().copied().collect()).unwrap_or(0.0)
+    }
+
+    /// Mermaid's line has no hole to leave (a series is one number per run), so only an instance that every run has a time for can be drawn truthfully.
+    fn complete(&self) -> bool {
+        self.minutes.iter().all(Option::is_some)
     }
 }
 
-/// The longest jobs of these runs by their median, longest first; a job that ran in under half of them is left out, and so is the report itself. The count left out is returned.
-fn job_lines(sealed: &Sealed, runs: &[&Past]) -> (Vec<JobLine>, usize) {
+/// The job instances of these runs, longest first by their median; the report and the budget are left out.
+fn instances(sealed: &Sealed, runs: &[&Past]) -> Vec<JobLine> {
     let ids: Vec<&str> = runs.iter().map(|p| p.run.as_str()).collect();
     let rows = sealed.rows(&format!(
         "SELECT RUN_ID AS run, JOB AS job, SECS AS secs FROM CI_JOBS WHERE RUN_ID IN ({}) AND SECS > 0 AND COALESCE(CONCLUSION, '') <> 'skipped'",
@@ -134,44 +147,65 @@ fn job_lines(sealed: &Sealed, runs: &[&Past]) -> (Vec<JobLine>, usize) {
     for r in &rows {
         let Some(at) = ids.iter().position(|id| *id == text(r, "run")) else { continue };
         let raw = text(r, "job");
-        let name = wf_bucket::job_name::stage(&raw);
-        if matches!(name, "report" | "budget") {
+        if matches!(wf_bucket::job_name::stage(&raw), "report" | "budget") {
             continue;
         }
+        let name = wf_bucket::job_name::job_name(&raw);
         let minutes = r["secs"].as_f64().unwrap_or(0.0) / 60.0;
         let line = match lines.iter().position(|l| l.name == name) {
             Some(i) => &mut lines[i],
             None => {
-                lines.push(JobLine { name: name.to_string(), minutes: vec![0.0; ids.len()] });
+                lines.push(JobLine { name: name.to_string(), minutes: vec![None; ids.len()] });
                 lines.last_mut().expect("just pushed")
             }
         };
-        line.minutes[at] = line.minutes[at].max(minutes);
+        line.minutes[at] = Some(line.minutes[at].map_or(minutes, |m| m.max(minutes)));
     }
-    lines.retain(|l| l.minutes.iter().filter(|m| **m > 0.0).count() * 2 >= ids.len());
     lines.sort_by(|a, b| b.typical().total_cmp(&a.typical()).then_with(|| a.name.cmp(&b.name)));
-    let omitted = lines.len().saturating_sub(JOB_LINES);
-    lines.truncate(JOB_LINES);
-    (lines, omitted)
+    lines
 }
 
-/// One line chart of this workflow's last runs, minutes, oldest first: the total wall time, then its longest jobs, each in its own colour and named in the line under
-/// the chart (Mermaid draws no legend). Empty below `MIN_CHART` runs.
+/// The instances to draw (the longest `JOB_LINES` with a time in every run), the count of complete ones left out for length, and the instances missing from some run.
+fn drawn(all: Vec<JobLine>) -> (Vec<JobLine>, usize, Vec<JobLine>) {
+    let (mut whole, gappy): (Vec<JobLine>, Vec<JobLine>) = all.into_iter().partition(JobLine::complete);
+    let omitted = whole.len().saturating_sub(JOB_LINES);
+    whole.truncate(JOB_LINES);
+    (whole, omitted, gappy)
+}
+
+/// One line chart of this workflow's last runs, minutes, oldest first: the total wall time, then its longest job instances, each in its own colour and named in the line
+/// under the chart (Mermaid draws no legend). Empty below `MIN_CHART` runs.
 fn chart(sealed: &Sealed, key: &str) -> String {
     let runs = last_of(&sealed.past, key);
     if runs.len() < MIN_CHART {
         return String::new();
     }
     let labels: Vec<String> = (1..=runs.len()).map(|i| i.to_string()).collect();
-    let (jobs, omitted) = job_lines(sealed, &runs);
+    let (jobs, omitted, gappy) = drawn(instances(sealed, &runs));
     let mut series = vec![runs.iter().map(|p| p.wall / 60.0).collect::<Vec<f64>>()];
-    series.extend(jobs.iter().map(|j| j.minutes.clone()));
+    series.extend(jobs.iter().map(|j| j.minutes.iter().flatten().copied().collect::<Vec<f64>>()));
     let palette: Vec<&str> = PALETTE.iter().map(|(color, _)| *color).collect();
     let mut names = vec![format!("{} total wall time", PALETTE[0].1)];
     names.extend(jobs.iter().enumerate().map(|(i, j)| format!("{} `{}` (median {})", PALETTE[i + 1].1, cell(&j.name), span((j.typical() * 60.0).round() as i64))));
-    let note = if omitted > 0 { format!(" {omitted} shorter jobs are left out.") } else { String::new() };
+    let mut notes = String::new();
+    if omitted > 0 {
+        notes.push_str(&format!(" {omitted} shorter jobs are left out."));
+    }
+    if !gappy.is_empty() {
+        let named: Vec<String> = gappy.iter().take(NAMED_WITHOUT_LINE).map(|j| format!("`{}`", cell(&j.name))).collect();
+        let more = gappy.len().saturating_sub(NAMED_WITHOUT_LINE);
+        notes.push_str(&format!(
+            " {} job instance{} not in every one of these runs (a shard count changed, a job was skipped) and {} no line, because the chart cannot leave a point out: {}{}.",
+            gappy.len(),
+            if gappy.len() == 1 { " is" } else { "s are" },
+            if gappy.len() == 1 { "has" } else { "have" },
+            named.join(", "),
+            if more > 0 { format!(" and {more} more") } else { String::new() }
+        ));
+    }
+    let notes = if notes.is_empty() { String::new() } else { format!("\n{}\n", notes.trim_start()) };
     format!(
-        "\n**{key}**, minutes of the last {} successful runs, oldest first\n{}\n{}\n\nA matrix job is one line at its slowest shard.{note}\n",
+        "\n**{key}**, minutes of the last {} successful runs, oldest first\n{}\n{}\n{notes}",
         runs.len(),
         multi_line_chart(&format!("{key} wall time and its longest jobs"), "minutes", &labels, &series, &palette),
         names.join(" · ")
@@ -231,4 +265,38 @@ pub(crate) fn section(sealed: Option<&Sealed>, workflow: &str, now: &Now) -> Str
     out.push_str(&longest);
     out.push_str(&chart);
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn line(name: &str, minutes: &[Option<f64>]) -> JobLine {
+        JobLine { name: name.to_string(), minutes: minutes.to_vec() }
+    }
+
+    #[test]
+    fn given_instances_with_and_without_a_time_in_every_run_when_chosen_then_only_the_whole_ones_are_drawn_and_a_gap_is_never_a_zero() {
+        // Given a shard with a time in all three runs, a shard that appeared in the last run only, and one that is missing from the middle one
+        let all = vec![line("core-tests (1/2)", &[Some(5.0), Some(6.0), Some(7.0)]), line("core-tests (2/2)", &[None, None, Some(4.0)]), line("flow-tests", &[Some(3.0), None, Some(3.0)])];
+        // When the lines to draw are chosen
+        let (lines, omitted, gappy) = drawn(all);
+        // Then only the whole one is drawn, the other two are named as without a line, none has a zero in it and nothing is left out for length
+        assert_eq!(lines.iter().map(|l| l.name.as_str()).collect::<Vec<_>>(), ["core-tests (1/2)"]);
+        assert_eq!(gappy.iter().map(|l| l.name.as_str()).collect::<Vec<_>>(), ["core-tests (2/2)", "flow-tests"]);
+        assert_eq!(omitted, 0);
+        assert!(lines.iter().all(|l| l.minutes.iter().flatten().all(|m| *m > 0.0)));
+        // And the typical time of a partial instance counts only the runs it has
+        assert_eq!(gappy[1].typical(), 3.0);
+    }
+
+    #[test]
+    fn given_more_whole_instances_than_lines_when_chosen_then_the_longest_eight_are_drawn_and_the_rest_counted() {
+        // Given ten whole instances of 1 to 10 minutes
+        let all: Vec<JobLine> = (1..=10).rev().map(|m| line(&format!("j{m}"), &[Some(f64::from(m)); 3])).collect();
+        // When the lines are chosen
+        let (lines, omitted, gappy) = drawn(all);
+        // Then eight are drawn and two are counted as left out
+        assert_eq!((lines.len(), omitted, gappy.len()), (JOB_LINES, 2, 0));
+    }
 }

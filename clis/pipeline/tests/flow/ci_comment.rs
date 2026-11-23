@@ -1547,9 +1547,9 @@ fn the_cache_problems_block_says_none_when_no_restore_failed() {
     // When the comment is built
     let body = dry_body(&github, &[]);
 
-    // Then the heading is there with the one fixed line
+    // Then the heading is there with both halves: no previous run recorded, and this run's one fixed line
     let block = under(&body, "### Cache problems");
-    assert_eq!(block.split("\n\n<details").next().unwrap().trim(), "_none: no cache restore failed_", "{body}");
+    assert_eq!(block.trim(), "**Last run**\n\n_none recorded_\n\n**This run**\n\n_none: no cache restore failed_", "{body}");
 }
 
 #[test]
@@ -2247,6 +2247,7 @@ fn a_job_that_still_runs_with_a_red_step_is_a_failing_now_row_at_the_top_of_the_
     assert!(body.find("failing now") < body.find("### Jobs"), "{body}");
 }
 
+const LAST_SHA: &str = "9f8e7d6c5b4a39281706f5e4d3c2b1a098765432";
 const DB_KEY: &str = "0707070707070707070707070707070707070707070707070707070707070707";
 
 /// A sealed CI database holding the profile and one job of each run `(run, workflow, wall, queue, ts, conclusion)`, made the way the report job makes it: a job-local file merged in.
@@ -2378,7 +2379,7 @@ fn the_trend_chart_draws_the_total_and_each_long_job_as_its_own_coloured_line_wi
     assert_eq!(lines, ["10.0, 11.0, 12.0, 13.0", "5.0, 6.0, 7.0, 8.0", "2.0, 3.0, 4.0, 5.0", "1.0, 1.0, 1.0, 1.0"], "{body}");
     assert_eq!(body.matches("title \"backend_core wall time and its longest jobs\"").count(), 1, "{body}");
     // And the chart sets one colour per series in the same order, for the light and the dark theme alike (no theme is forced)
-    assert!(body.contains(r##"%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#388bfd, #f0883e, #3fb950, #a371f7, #d4a72c, #f85149, #a0724a"}}}}%%"##), "{body}");
+    assert!(body.contains(r##"%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#388bfd, #f0883e, #3fb950, #a371f7, #d4a72c, #f85149, #a0724a, #57606a, #afb8c1"}}}}%%"##), "{body}");
     assert!(!body.contains("\"theme\""), "{body}");
     // And the line under the chart names each colour: the total first, then the jobs with their median; the skipped job has no line
     assert!(body.contains("🟦 total wall time · 🟧 `core-tests` (median 6m 30s) · 🟩 `publish` (median 3m 30s) · 🟪 `plan` (median 1m 00s)"), "{body}");
@@ -2386,7 +2387,7 @@ fn the_trend_chart_draws_the_total_and_each_long_job_as_its_own_coloured_line_wi
 }
 
 #[test]
-fn a_matrix_job_is_one_line_at_its_slowest_shard() {
+fn a_matrix_job_is_one_line_per_shard_named_with_its_shard() {
     // Given runs whose core-tests job is three shards of different length, and a flow-tests job that is a plain one
     let dir = tempfile::tempdir().unwrap();
     let runs = job_history_runs(3, "backend_core+publish", 1000, &|i| {
@@ -2399,17 +2400,18 @@ fn a_matrix_job_is_one_line_at_its_slowest_shard() {
     // When the comment is previewed
     let body = trend_body(&github, &sealed, DB_KEY);
 
-    // Then the shards are one series (the slowest shard of each run), named without the shard, next to the other job (its caller's prefix dropped)
-    assert_eq!(chart_lines(&body)[1..], ["5.0, 6.0, 7.0", "3.3, 3.3, 3.3"], "{body}");
-    assert!(body.contains("🟧 `core-tests` (median 6m 00s) · 🟩 `flow-tests` (median 3m 20s)"), "{body}");
-    assert!(body.contains("A matrix job is one line at its slowest shard."), "{body}");
+    // Then every shard is a line of its own after the total, longest first, named with its shard, next to the other job (its caller's prefix dropped)
+    assert_eq!(chart_lines(&body)[1..], ["5.0, 6.0, 7.0", "3.3, 3.3, 3.3", "3.0, 3.0, 3.0", "2.0, 2.0, 2.0"], "{body}");
+    assert!(body.contains("🟧 `core-tests (2/3)` (median 6m 00s) · 🟩 `flow-tests` (median 3m 20s) · 🟪 `core-tests (3/3)` (median 3m 00s) · 🟨 `core-tests (1/3)` (median 2m 00s)"), "{body}");
+    // And the old collapse of the shards into their slowest is gone
+    assert!(!body.contains("slowest shard"), "{body}");
 }
 
 #[test]
-fn only_the_six_longest_jobs_get_a_line_and_the_comment_says_how_many_were_left_out() {
-    // Given runs of eight jobs of 1 to 8 minutes
+fn only_the_eight_longest_job_instances_get_a_line_and_the_comment_says_how_many_were_left_out() {
+    // Given runs of ten jobs of 1 to 10 minutes
     let dir = tempfile::tempdir().unwrap();
-    let names = ["j1", "j2", "j3", "j4", "j5", "j6", "j7", "j8"];
+    let names = ["j1", "j2", "j3", "j4", "j5", "j6", "j7", "j8", "j9", "j10"];
     let runs = job_history_runs(3, "backend_core+publish", 1000, &|_| names.iter().enumerate().map(|(i, n)| (*n, 60 * (i as i64 + 1))).collect());
     let sealed = sealed_jobs(dir.path(), &runs);
     let github = Github::start();
@@ -2418,13 +2420,38 @@ fn only_the_six_longest_jobs_get_a_line_and_the_comment_says_how_many_were_left_
     // When the comment is previewed
     let body = trend_body(&github, &sealed, DB_KEY);
 
-    // Then the total and six jobs are drawn, the longest first, and the two shortest are not
+    // Then the total and eight jobs are drawn, the longest first, and the two shortest are not
     let lines = chart_lines(&body);
-    assert_eq!(lines.len(), 7, "{body}");
-    assert_eq!(lines[1..].iter().map(|l| l.split(',').next().unwrap().to_string()).collect::<Vec<_>>(), ["8.0", "7.0", "6.0", "5.0", "4.0", "3.0"], "{body}");
-    assert!(body.contains("🟫 `j3`") && !body.contains("`j2`") && !body.contains("`j1`"), "{body}");
+    assert_eq!(lines.len(), 9, "{body}");
+    assert_eq!(lines[1..].iter().map(|l| l.split(',').next().unwrap().to_string()).collect::<Vec<_>>(), ["10.0", "9.0", "8.0", "7.0", "6.0", "5.0", "4.0", "3.0"], "{body}");
+    assert!(body.contains("⬜ `j3`") && !body.contains("`j2`") && !body.contains("`j1`"), "{body}");
     // And the note says two shorter jobs are left out
     assert!(body.contains("2 shorter jobs are left out."), "{body}");
+}
+
+#[test]
+fn a_job_instance_missing_from_an_older_run_has_no_line_and_is_never_drawn_as_zero() {
+    // Given four runs of backend_core: core-tests ran as three shards in the first two and as two shards (with other names) in the last two, and flow-tests ran in all four
+    let dir = tempfile::tempdir().unwrap();
+    let runs = job_history_runs(4, "backend_core+publish", 1000, &|i| {
+        if i < 2 {
+            vec![("core-tests (1/3)", 300), ("core-tests (2/3)", 240), ("core-tests (3/3)", 180), ("flow-tests", 200)]
+        } else {
+            vec![("core-tests (1/2)", 360), ("core-tests (2/2)", 330), ("flow-tests", 200)]
+        }
+    });
+    let sealed = sealed_jobs(dir.path(), &runs);
+    let github = Github::start();
+    trend_run(&github, "backend_core+publish");
+
+    // When the comment is previewed
+    let body = trend_body(&github, &sealed, DB_KEY);
+
+    // Then only the total and the instance every run has a time for are lines, and no line holds a 0
+    assert_eq!(chart_lines(&body), ["10.0, 11.0, 12.0, 13.0", "3.3, 3.3, 3.3, 3.3"], "{body}");
+    assert!(chart_lines(&body).iter().all(|l| !l.split(", ").any(|v| v == "0.0")), "{body}");
+    // And the note names the instances that are missing from some run and says why they have no line
+    assert!(body.contains("5 job instances are not in every one of these runs (a shard count changed, a job was skipped) and have no line, because the chart cannot leave a point out: `core-tests (1/2)`, `core-tests (2/2)`, `core-tests (1/3)` and 2 more."), "{body}");
 }
 
 #[test]
@@ -2472,7 +2499,7 @@ fn a_database_that_does_not_open_leaves_the_trend_out_and_the_rest_of_the_commen
 
     // Then the trend is missing, the cache problems block says the reasons are unavailable and why, and the rest is the body a run outside the hosted workflows gets
     assert!(!unreadable.contains("Trend") && unreadable.contains("### Jobs"), "{unreadable}");
-    let notice = "\n\n_why tasks ran is unavailable: ci database: it does not open with CI_DB_KEY (another key, or changed)_\n";
+    let notice = "\n\n_why tasks ran is unavailable: ci database: it does not open with CI_DB_KEY (another key, or changed)_";
     assert!(unreadable.contains(notice), "{unreadable}");
     assert_eq!(unreadable.replace(notice, ""), not_hosted);
 }
@@ -2480,6 +2507,11 @@ fn a_database_that_does_not_open_leaves_the_trend_out_and_the_rest_of_the_commen
 /// A sealed database of five successful earlier runs of backend_core (wall 400 s, no wait; setup 10 s, install 10 s and tests 80 s per job, so 20% overhead; shard
 /// core-tests-1 replayed 2 of 4 tasks, and 4 of 4 in the first three, so the median is the whole job), made the way the report job makes it.
 fn sealed_actions(dir: &std::path::Path) -> String {
+    sealed_actions_with(dir, &|_| {})
+}
+
+/// `sealed_actions` with `more` run on the job-local database before it is merged (extra rows for the previous run, 14).
+fn sealed_actions_with(dir: &std::path::Path, more: &dyn Fn(&rusqlite::Connection)) -> String {
     let local = dir.join("actions-rows.sqlite");
     let conn = rusqlite::Connection::open(&local).unwrap();
     conn.execute_batch(
@@ -2490,21 +2522,44 @@ fn sealed_actions(dir: &std::path::Path) -> String {
          CREATE TABLE CI_STEPS (RUN_ID TEXT NOT NULL, JOB TEXT NOT NULL, STEP_NO INTEGER NOT NULL, STEP TEXT, STARTED INTEGER, COMPLETED INTEGER, DURATION_S INTEGER, CONCLUSION TEXT,
            PRIMARY KEY (RUN_ID, JOB, STEP_NO));
          CREATE TABLE NX_TASKS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, JOB TEXT NOT NULL, TASK TEXT NOT NULL, HASH TEXT NOT NULL, OUTCOME TEXT NOT NULL, MS INTEGER NOT NULL,
-           PASSED INTEGER NOT NULL, STARTED_MS INTEGER, ENDED_MS INTEGER, CPU_S REAL, PRIMARY KEY (RUN_ID, TASK, HASH));",
+           PASSED INTEGER NOT NULL, STARTED_MS INTEGER, ENDED_MS INTEGER, CPU_S REAL, PRIMARY KEY (RUN_ID, TASK, HASH));
+         CREATE TABLE CI_JOB_RESOURCES (RUN_ID TEXT NOT NULL, JOB TEXT NOT NULL, WORKFLOW TEXT, RUNNER TEXT, CORES INTEGER, SAMPLES INTEGER, CPU_AVG REAL, CPU_P95 REAL,
+           CPU_MAX REAL, IOWAIT_AVG REAL, MEM_AVG_MB REAL, MEM_PEAK_MB REAL, MEM_TOTAL_MB REAL, SWAP_PEAK_MB REAL, LOAD1_MAX REAL, PSI_CPU_MAX REAL, PSI_MEM_MAX REAL, PSI_IO_MAX REAL,
+           READ_MB REAL, WRITE_MB REAL, DURATION_S REAL, IDLE_S REAL, SATURATED_S REAL, PRIMARY KEY (RUN_ID, JOB));
+         CREATE TABLE CI_STEP_RESOURCES (RUN_ID TEXT NOT NULL, JOB TEXT NOT NULL, STEP_NO INTEGER NOT NULL, STEP TEXT, DURATION_S REAL, IDLE_S REAL, SATURATED_S REAL,
+           IOWAIT_AVG REAL, PRIMARY KEY (RUN_ID, JOB, STEP_NO));
+         CREATE TABLE CI_CACHE_EVENTS (RUN_ID TEXT NOT NULL, TS INTEGER NOT NULL, ATTEMPT TEXT, WORKFLOW TEXT, JOB TEXT NOT NULL, STAGE TEXT NOT NULL, SHARD TEXT NOT NULL,
+           LAYER TEXT NOT NULL, PHASE TEXT NOT NULL, KEY_REQUESTED TEXT, KEY_MATCHED TEXT, MATCH_KIND TEXT NOT NULL, SIZE_BYTES INTEGER, DURATION_MS INTEGER, OUTCOME TEXT NOT NULL,
+           REASON TEXT, ENTRIES INTEGER, DB_ROWS INTEGER, WAL_BYTES INTEGER, PRIMARY KEY (RUN_ID, JOB, STAGE, SHARD, LAYER, PHASE, TS));",
     )
     .unwrap();
     for i in 0..5 {
-        let run = format!("{}", 1000 + i);
+        let run = format!("{}", 10 + i);
         conn.execute("INSERT INTO CI_RUN_PROFILE VALUES (?1, 'backend_core+publish', 400.0, 400.0, 1, 1.0, 0.0, 0.0, 1, 'core-tests', 400.0, 1.0)", [&run]).unwrap();
-        conn.execute("INSERT INTO CI_JOBS VALUES (?1, 'abc', ?2, 'push', 'plan', 5, 0, 'success')", rusqlite::params![run, 100 + i]).unwrap();
+        conn.execute("INSERT INTO CI_JOBS VALUES (?1, ?2, ?3, 'push', 'plan', 5, 0, 'success')", rusqlite::params![run, LAST_SHA, BASE - 7300 + i]).unwrap();
         for (no, step, secs) in [(1, "Set up job", 10), (2, "Run ./.github/actions/install-test-deps", 10), (3, "Flow tests", 80)] {
             conn.execute("INSERT INTO CI_STEPS VALUES (?1, 'core-tests (1/3)', ?2, ?3, 0, 0, ?4, 'success')", rusqlite::params![run, no, step, secs]).unwrap();
         }
+        conn.execute(
+            "INSERT INTO CI_JOB_RESOURCES (RUN_ID, JOB, WORKFLOW, RUNNER, CORES, SAMPLES, CPU_AVG, CPU_P95, CPU_MAX, IOWAIT_AVG, MEM_AVG_MB, MEM_PEAK_MB, MEM_TOTAL_MB, SWAP_PEAK_MB, LOAD1_MAX, PSI_CPU_MAX, PSI_MEM_MAX, PSI_IO_MAX, READ_MB, WRITE_MB, DURATION_S, IDLE_S, SATURATED_S) \
+             VALUES (?1, 'core-tests-1', 'backend_core+publish', 'GitHub Actions 3', 4, 20, 40.0, 80.0, 95.0, 3.0, 2000.0, 3000.0, 16000.0, 0.0, 2.5, 5.0, 6.0, 7.0, 10.0, 20.0, 100.0, 30.0, 10.0)",
+            [&run],
+        )
+        .unwrap();
+        for (no, step, secs, idle) in [(1, "Set up job", 10.0, 1.0), (2, "Run ./.github/actions/install-test-deps", 10.0, 6.0), (3, "Flow tests", 80.0, 40.0)] {
+            conn.execute("INSERT INTO CI_STEP_RESOURCES VALUES (?1, 'core-tests (1/3)', ?2, ?3, ?4, ?5, 0.0, 2.0)", rusqlite::params![run, no, step, secs, idle]).unwrap();
+        }
+        conn.execute(
+            "INSERT INTO CI_CACHE_EVENTS VALUES (?1, ?2, '1', 'backend_core+publish', 'core-tests', 'core-tests', '1of3', 'nx', 'restore', 'nx-key', NULL, 'none', NULL, 2100, ?3, 'Failed to restore: HTTP 503', NULL, NULL, NULL)",
+            rusqlite::params![run, BASE - 7300 + i, if i == 4 { "error" } else { "ok" }],
+        )
+        .unwrap();
         for task in 0..4 {
             let outcome = if i < 3 || task < 2 { "hit" } else { "ran" };
             conn.execute("INSERT INTO NX_TASKS VALUES (?1, 'abc', 1, 'core-tests-1', ?2, ?2, ?3, 10, 1, 0, 0, 0.0)", rusqlite::params![run, format!("t{task}"), outcome]).unwrap();
         }
     }
+    more(&conn);
     drop(conn);
     let sealed = dir.join("actions.sealed").display().to_string();
     let merged = run_wf(&["ci", "db", "merge", "--sealed-file", &sealed, &local.display().to_string()], &RunOpts::default().env("CI_DB_KEY", DB_KEY));
@@ -2554,11 +2609,14 @@ fn actions_run(github: &Github, with_steps: bool) -> std::path::PathBuf {
 }
 
 fn actions_body(github: &Github, dir: &std::path::Path, sealed: &str, key: &str) -> String {
-    let (stats, ledgers) = (dir.join("runner-stats").display().to_string(), dir.join("ci-db").display().to_string());
-    let r = github.comment_wf_with(
-        &["--dry-run"],
-        &[("WF_CI_SEALED_FILE", sealed), ("CI_DB_KEY", key), ("WF_VM_STATS_URL", "http://127.0.0.1:9"), ("WF_TAILNET_SOCKS", ""), ("WF_CI_RUNNER_STATS_DIR", &stats), ("WF_CI_LEDGERS", &ledgers)],
-    );
+    actions_body_with(github, dir, sealed, key, &[])
+}
+
+fn actions_body_with(github: &Github, dir: &std::path::Path, sealed: &str, key: &str, extra: &[(&str, &str)]) -> String {
+    let (stats, ledgers, now) = (dir.join("runner-stats").display().to_string(), dir.join("ci-db").display().to_string(), iso(BASE));
+    let mut env = vec![("WF_CI_SEALED_FILE", sealed), ("CI_DB_KEY", key), ("WF_VM_STATS_URL", "http://127.0.0.1:9"), ("WF_TAILNET_SOCKS", ""), ("WF_CI_RUNNER_STATS_DIR", stats.as_str()), ("WF_CI_LEDGERS", ledgers.as_str()), ("WF_CI_NOW", now.as_str())];
+    env.extend_from_slice(extra);
+    let r = github.comment_wf_with(&["--dry-run"], &env);
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
     last_json(&r)["body"].as_str().unwrap_or_default().to_string()
 }
@@ -2575,7 +2633,8 @@ fn the_comment_names_the_five_steps_with_the_most_idle_seconds_in_a_category_wit
 
     // Then the block lists the five steps with the most idle seconds, each with its job, idle time, share of the run's 310 idle seconds and category; ties keep step order
     let block = body.split("### Where the idle time is").nth(1).unwrap_or_default().split("\n### ").next().unwrap_or_default().to_string();
-    let rows: Vec<&str> = block.lines().filter(|l| l.starts_with("| ") && !l.starts_with("| Step") && !l.starts_with("|---")).collect();
+    let this = block.rsplit("**This run**").next().unwrap_or_default().to_string();
+    let rows: Vec<&str> = this.lines().filter(|l| l.starts_with("| ") && !l.starts_with("| Step") && !l.starts_with("|---")).collect();
     assert_eq!(
         rows,
         [
@@ -2603,7 +2662,7 @@ fn every_amber_or_red_signal_has_one_action_line_from_the_fixed_table_and_a_gree
     let body = actions_body(&github, &dir, &sealed, DB_KEY);
 
     // Then "What to do" has exactly six lines, one per signal that is not green, each with its colour, value, thresholds and the action of the table
-    let lines: Vec<&str> = body.split("### What to do").nth(1).unwrap_or_default().lines().filter(|l| l.starts_with("- ")).collect();
+    let lines: Vec<&str> = this_run(&body, "### What to do").lines().filter(|l| l.starts_with("- ")).collect();
     assert_eq!(lines.len(), 6, "{body}");
     let line = |label: &str| lines.iter().find(|l| l.contains(label)).copied().unwrap_or_else(|| panic!("no line for {label}: {body}"));
     assert!(line("Wall time").starts_with("- 🔴 **Wall time +30%** (red; amber over 10, red over 25 (% slower than the median)): Start with the longest job of the critical path"), "{lines:?}");
@@ -2633,10 +2692,13 @@ fn a_run_with_no_step_rows_and_no_samples_has_a_none_idle_block_and_no_overhead_
     let without = actions_body(&bare, &bare_dir, &sealed, DB_KEY);
     let unreadable = actions_body(&full, &full_dir, &sealed, &"08".repeat(32));
 
-    // Then the first has its idle heading over a none sentence, no overhead line and no loading text
-    assert!(without.contains("### Where the idle time is\n\n_none: no step has CPU samples over it_") && !without.contains("Overhead") && !without.contains("loading"), "{without}");
+    // Then the first has its idle heading over the table whose This run cell is a none sentence (no overhead line of its own, no loading text), and the previous run's
+    // overhead stands in the Last run cell
+    let row = under(&without, "### Where the idle time is").lines().find(|l| l.starts_with("| **Overhead**")).unwrap_or_default().to_string();
+    assert!(row.ends_with("| _none: no step has CPU samples over it_ |") && !without.contains("loading"), "{without}");
+    assert!(row.starts_with("| **Overhead** (setup, install, runner start and stop, teardown): 20% of all step seconds → (median 20% of the last 4 successful runs). |"), "{row}");
     // And with the database unreadable the idle block stays without its median, and the lines that need history (wall, replay) are left out while the idle one remains
-    assert!(unreadable.contains("### Where the idle time is") && unreadable.contains("**Overhead** (setup, install, runner start and stop, teardown): 38% of all step seconds."), "{unreadable}");
+    assert!(unreadable.contains("### Where the idle time is") && unreadable.contains("**Overhead** (setup, install, runner start and stop, teardown): 38% of all step seconds. |"), "{unreadable}");
     assert!(!unreadable.contains("(median") && !unreadable.contains("**Wall time") && !unreadable.contains("**Nx replay"), "{unreadable}");
     assert!(unreadable.contains("**Idle share 74%**"), "{unreadable}");
 }
@@ -2653,7 +2715,12 @@ fn under<'a>(body: &'a str, heading: &str) -> &'a str {
     &rest[..rest.find("\n### ").unwrap_or(rest.len())]
 }
 
-const SKELETON: [&str; 11] = [
+/// The This run half of a section laid out as two labelled blocks.
+fn this_run<'a>(body: &'a str, heading: &str) -> &'a str {
+    under(body, heading).rsplit("**This run**").next().unwrap_or_default().trim()
+}
+
+const SKELETON: [&str; 12] = [
     "### ⏱️ Where the time went",
     "### Jobs",
     "### Fixed cost and the runner pool",
@@ -2665,11 +2732,16 @@ const SKELETON: [&str; 11] = [
     "### 🗄️ Cache",
     "### 🗄️ Cache health",
     "### Cache problems",
+    "### Slowest steps per job",
 ];
 
 /// Run 77 of `workflow` with the sampler's files and a sealed history that `key` opens, as a comment preview: finished (`partial` false, the jobs of `actions_run`) or going
 /// on (the plan job done, core-tests running, one more job queued). Returns the body.
 fn skeleton_body(partial: bool, workflow: &str, key: &str) -> String {
+    skeleton_body_with(partial, workflow, key, &[])
+}
+
+fn skeleton_body_with(partial: bool, workflow: &str, key: &str, extra: &[(&str, &str)]) -> String {
     let (db, github) = (tempfile::tempdir().unwrap(), Github::start());
     let sealed = sealed_actions(db.path());
     let dir = actions_run(&github, true);
@@ -2683,7 +2755,7 @@ fn skeleton_body(partial: bool, workflow: &str, key: &str) -> String {
         let queued = json!({ "id": 502, "name": "integration-tests (1/2)", "status": "queued", "conclusion": null, "created_at": at(100), "started_at": null, "completed_at": null, "html_url": "https://github.com/o/r/actions/runs/77/job/502", "steps": [] });
         github.serve(&json!([plan, running, queued]), json!([]), created(), updated());
     }
-    actions_body(&github, &dir, &sealed, key)
+    actions_body_with(&github, &dir, &sealed, key, extra)
 }
 
 #[test]
@@ -2706,9 +2778,9 @@ fn a_section_that_waits_for_data_says_so_in_one_line_and_the_data_replaces_it_wh
 
     // When the sections that need the whole run are read
     // Then each is its heading over one fixed line saying what it waits for
-    for (heading, waits) in [("### Minutes per job", "two finished jobs"), ("### What to do", "the run to finish"), ("### Where the idle time is", "the first step with CPU samples")] {
-        assert_eq!(under(&partial, heading).trim(), format!("_loading: waits for {waits}_"), "{partial}");
-    }
+    assert_eq!(under(&partial, "### Minutes per job").trim(), "_loading: waits for two finished jobs_", "{partial}");
+    assert!(under(&partial, "### What to do").trim_end().ends_with("**This run**\n\n_loading: waits for the run to finish_"), "{partial}");
+    assert!(under(&partial, "### Where the idle time is").contains("| _loading: waits for the first step with CPU samples_ |"), "{partial}");
     // And the headline lines wait too, and the jobs table already has a row for the running job and one for the queued job, and the fixed cost shows what finished so far
     assert!(partial.contains("_loading: waits for the run to finish for its wall, runner time and parallel efficiency_"), "{partial}");
     assert!(partial.lines().any(|l| l.starts_with("| 🔄 2 |") && l.contains("core-tests (1/3)")) && partial.lines().any(|l| l.starts_with("| ⏸️ 3 |") && l.ends_with("⏸️ queued |")), "{partial}");
@@ -2751,7 +2823,7 @@ fn a_section_that_does_not_apply_is_in_no_render() {
         let list = headings(&body);
         assert!(!list.iter().any(|h| h.contains("Trend") || h.contains("VM during")), "{partial} {list:?}");
         let waits = if partial { "_loading: waits for the first runner samples_" } else { "_none: no runner samples were stored for this run_" };
-        assert_eq!(under(&body, "### 🖥️ Runners during the run").trim(), waits, "{partial} {body}");
+        assert!(under(&body, "### 🖥️ Runners during the run").trim().ends_with(&format!("| _none recorded_ | {waits} |")), "{partial} {body}");
         assert!(list.contains(&"### Jobs".to_string()) && list.contains(&"### 🗄️ Cache".to_string()), "{partial} {list:?}");
     }
     // And the unreadable history leaves the trend out of the running render and the finished one alike, with every other section as it was
@@ -2781,10 +2853,176 @@ fn a_finished_run_never_says_loading_even_with_nothing_to_show_and_a_running_one
         assert!(!body.contains("loading"), "{body}");
     }
     assert_eq!(under(&bare, "### Minutes per job").trim(), "_none: fewer than two jobs have a time to chart_", "{bare}");
-    assert_eq!(under(&bare, "### 🗄️ Cache health").trim(), "_none: no job log held a cache event_", "{bare}");
-    assert_eq!(under(&bare, "### Cache problems").trim(), "_none: no cache restore failed_", "{bare}");
-    assert_eq!(under(&bare, "### What to do").trim(), "_none: no signal is amber or red_", "{bare}");
-    // And the comment of a run that goes on says what each section waits for and has no none sentence there
+    assert_eq!(this_run(&bare, "### 🗄️ Cache health"), "_none: no job log held a cache event_", "{bare}");
+    assert_eq!(this_run(&bare, "### Cache problems"), "_none: no cache restore failed_", "{bare}");
+    assert_eq!(this_run(&bare, "### What to do"), "_none: no signal is amber or red_", "{bare}");
+    // And the comment of a run that goes on says what each section waits for and has no none sentence in its This run half
     let partial = skeleton_body(true, "backend_core+publish", DB_KEY);
-    assert!(under(&partial, "### What to do").contains("loading") && !under(&partial, "### What to do").contains("none"), "{partial}");
+    assert!(this_run(&partial, "### What to do").contains("loading") && !this_run(&partial, "### What to do").contains("none"), "{partial}");
+}
+
+/// The sections that have a Last run half: heading, and whether the half is a table row (its summary line) or labelled blocks.
+const SPLIT: [&str; 6] = ["### What to do", "### 🗄️ Cache health", "### Cache problems", "### Slowest steps per job", "### Where the idle time is", "### 🗄️ Cache"];
+
+#[test]
+fn the_last_run_half_is_filled_from_the_previous_runs_rows_while_this_run_waits_and_then_fills_in_place() {
+    // Given a run in progress of a workflow whose previous run (a commit two hours ago) left its steps, runner samples, Nx tasks and a failed cache restore in the database
+    let labelled = [("WF_CI_LABEL", "GitHub-hosted")];
+    let partial = skeleton_body_with(true, "backend_core+publish", DB_KEY, &labelled);
+
+    // When the sections are read
+    // Then each Last run label names the commit as a link, and says how long ago
+    let label = format!("Last run · [`9f8e7d6`](https://github.com/o/r/commit/{LAST_SHA}), 2h ago");
+    for heading in SPLIT.iter().chain(&["### 🖥️ Runners during the run"]) {
+        assert!(under(&partial, heading).contains(&label), "{heading} {partial}");
+    }
+    // And the previous run's halves hold its numbers: the overhead against its own earlier runs, the red Nx replay, the runner of its job, the cache, the failed restore, the slow step
+    assert!(under(&partial, "### Where the idle time is").contains("| **Overhead** (setup, install, runner start and stop, teardown): 20% of all step seconds → (median 20% of the last 4 successful runs). |"), "{partial}");
+    assert!(under(&partial, "### Where the idle time is").contains("| Flow tests | core-tests (1/3) | 40s | 85% | test wait |"), "{partial}");
+    assert!(under(&partial, "### What to do").contains("- 🔴 **Nx replay 50 points under**"), "{partial}");
+    assert!(under(&partial, "### 🖥️ Runners during the run").contains("| 🔴 core-tests-1 | 40% | **95%** | 2.0 GB | **3.0 GB** (19%) | 2.5 | 20 |"), "{partial}");
+    assert!(under(&partial, "### 🗄️ Cache").contains("Nx tasks replayed 50% (2/4)"), "{partial}");
+    assert!(under(&partial, "### 🗄️ Cache health").contains("🔴 **1 problem(s)**") && under(&partial, "### 🗄️ Cache health").contains("the nx restore failed (Failed to restore: HTTP 503)"), "{partial}");
+    assert!(under(&partial, "### Cache problems").contains("| nx | core-tests (1of3) | restore failed | `nx-key` | Failed to restore: HTTP 503 |"), "{partial}");
+    assert!(under(&partial, "### Slowest steps per job").contains("| core-tests (1/3) | Flow tests 1m 20s<br>Run ./.github/actions/install-test-deps 10s |"), "{partial}");
+    // And while the run goes on the This run halves are the fixed loading line (the idle table's cell and the blocks' last line), the runners already sampled shown
+    // in theirs
+    assert!(under(&partial, "### Where the idle time is").contains("| _loading: waits for the first step with CPU samples_ |"), "{partial}");
+    assert!(under(&partial, "### 🖥️ Runners during the run").contains("| Runners as sampled: 4 vCPU / 16 GB (1 job); every 5 s while the job runs. |\n"), "{partial}");
+    for (heading, waits) in [("### What to do", "the run to finish"), ("### Cache problems", "the first finished job log"), ("### Slowest steps per job", "the first finished job")] {
+        assert!(this_run(&partial, heading).starts_with(&format!("_loading: waits for {waits}_")), "{heading} {partial}");
+    }
+
+    // When the run ends and the comment is made again
+    let last = skeleton_body_with(false, "backend_core+publish", DB_KEY, &labelled);
+
+    // Then the This run halves hold the run's own numbers where the placeholders were, and the Last run halves are the same as before
+    assert!(this_run(&last, "### What to do").contains("**Idle share 74%**"), "{last}");
+    assert!(this_run(&last, "### Slowest steps per job").contains("| core-tests (1/3) |"), "{last}");
+    assert!(!last.contains("loading"), "{last}");
+    for heading in ["### What to do", "### Cache problems", "### Slowest steps per job"] {
+        let (before, after) = (under(&partial, heading).split("**This run**").next().unwrap_or_default(), under(&last, heading).split("**This run**").next().unwrap_or_default());
+        assert_eq!(before, after, "{heading}");
+    }
+}
+
+#[test]
+fn the_first_render_a_partial_one_and_the_final_one_have_the_same_headings_and_both_halves_in_every_split_section() {
+    // Given the comment before any job has started, while one runs, and when it is over, for a workflow with a previous run
+    let first = {
+        let (db, github) = (tempfile::tempdir().unwrap(), Github::start());
+        let sealed = sealed_actions(db.path());
+        let dir = actions_run(&github, true);
+        let queued = json!({ "id": 502, "name": "plan", "status": "queued", "conclusion": null, "created_at": iso(BASE), "started_at": null, "completed_at": null, "html_url": "", "steps": [] });
+        github.serve(&json!([queued]), json!([]), created(), updated());
+        actions_body(&github, &dir, &sealed, DB_KEY)
+    };
+    let (partial, last) = (skeleton_body(true, "backend_core+publish", DB_KEY), skeleton_body(false, "backend_core+publish", DB_KEY));
+
+    // When the headings and the labels of the halves are read
+    // Then the three have the same headings in the same order, and every split section has the Last run half and the This run half in every one of them
+    for body in [&first, &partial, &last] {
+        assert_eq!(headings(body), SKELETON, "{body}");
+        for heading in SPLIT {
+            let section = under(body, heading);
+            assert!(section.contains("Last run") && (section.contains("**This run**") || section.contains("| This run |")), "{heading} {body}");
+        }
+    }
+}
+
+#[test]
+fn a_workflow_with_no_previous_run_says_none_recorded_in_every_last_run_half_and_keeps_the_same_shape() {
+    // Given a run whose workflow has no earlier run in the database (the history holds only a later run id)
+    let (db, github) = (tempfile::tempdir().unwrap(), Github::start());
+    let sealed = sealed_jobs(db.path(), &job_history_runs(3, "backend_core+publish", 1000, &|_| vec![("plan", 60)]));
+    let dir = actions_run(&github, true);
+
+    // When the comment is previewed
+    let body = actions_body(&github, &dir, &sealed, DB_KEY);
+
+    // Then the headings are the skeleton, and each Last run half is the one fixed line (the table's cell for the idle section)
+    assert_eq!(headings(&body), SKELETON, "{body}");
+    for heading in ["### What to do", "### 🗄️ Cache health", "### Cache problems", "### Slowest steps per job"] {
+        assert!(under(&body, heading).trim_start().starts_with("**Last run**\n\n_none recorded_\n\n**This run**"), "{heading} {body}");
+    }
+    assert!(under(&body, "### Where the idle time is").contains("| Last run | This run |\n|---|---|\n| _none recorded_ |"), "{body}");
+    assert!(under(&body, "### 🗄️ Cache").contains("| Last run | This run |\n|---|---|\n| _none recorded_ |"), "{body}");
+}
+
+#[test]
+fn a_previous_run_with_rows_for_some_sections_only_says_none_recorded_in_the_others() {
+    // Given a previous run that has a profile and jobs but no steps, samples, Nx tasks or cache events (rows never recorded)
+    let (db, github) = (tempfile::tempdir().unwrap(), Github::start());
+    let sealed = sealed_jobs(db.path(), &job_history_runs(3, "backend_core+publish", 10, &|_| vec![("plan", 60)]));
+    let dir = actions_run(&github, true);
+
+    // When the comment is previewed
+    let body = actions_body_with(&github, &dir, &sealed, DB_KEY, &[("WF_CI_LABEL", "GitHub-hosted")]);
+
+    // Then the half is labelled with the run that was found, and the sections without rows say none recorded in the same place
+    assert!(under(&body, "### Slowest steps per job").contains("**Last run · [`abc`]") || under(&body, "### Slowest steps per job").contains("**Last run · `abc`, "), "{body}");
+    for heading in ["### 🗄️ Cache health", "### Cache problems", "### Slowest steps per job"] {
+        assert!(under(&body, heading).contains("\n\n_none recorded_\n\n**This run**"), "{heading} {body}");
+    }
+    assert!(under(&body, "### 🖥️ Runners during the run").contains("| _none recorded_ |"), "{body}");
+}
+
+#[test]
+fn a_very_long_run_stays_under_the_size_limit_and_the_last_run_halves_shrink_before_this_runs_do() {
+    // Given a previous run with long halves (200 jobs of steps, 80 runners, tasks, failed restores), and runs of many jobs of their own
+    let more = |conn: &rusqlite::Connection| {
+        for i in 0..200 {
+            conn.execute("INSERT INTO CI_STEPS VALUES ('14', ?1, 1, 'Flow tests', 0, 0, 90, 'success')", [format!("core-tests ({i}/200)")]).unwrap();
+        }
+        for i in 0..80 {
+            let job = format!("shard-{i}");
+            conn.execute("INSERT INTO CI_JOB_RESOURCES (RUN_ID, JOB, CORES, SAMPLES, CPU_AVG, CPU_P95, CPU_MAX, IOWAIT_AVG, MEM_AVG_MB, MEM_PEAK_MB, MEM_TOTAL_MB, SWAP_PEAK_MB, LOAD1_MAX, PSI_CPU_MAX, PSI_MEM_MAX, PSI_IO_MAX, READ_MB, WRITE_MB, DURATION_S, IDLE_S, SATURATED_S) VALUES ('14', ?1, 4, 20, 40.0, 80.0, 95.0, 3.0, 2000.0, 3000.0, 16000.0, 0.0, 2.5, 5.0, 6.0, 7.0, 10.0, 20.0, 100.0, 30.0, 10.0)", [&job]).unwrap();
+            conn.execute("INSERT INTO CI_CACHE_EVENTS VALUES ('14', ?1, '1', 'backend_core+publish', ?2, 'core-tests', ?3, 'nx', 'restore', 'nx-key', NULL, 'none', NULL, 2100, 'error', 'Failed to restore: HTTP 503', NULL, NULL, NULL)", rusqlite::params![BASE - 7000 + i, job, format!("{i}of80")]).unwrap();
+            conn.execute("INSERT INTO NX_TASKS VALUES ('14', 'abc', 1, ?1, ?2, ?2, 'ran', 10, 1, 0, 0, 0.0)", rusqlite::params![job, format!("x{i}")]).unwrap();
+        }
+    };
+    let many = |n: usize| {
+        let at = |s: i64| iso(BASE + s);
+        let jobs: Vec<Value> = (0..n)
+            .map(|i| {
+                let steps = json!([{ "name": "Flow tests", "conclusion": "success", "started_at": at(10), "completed_at": at(90) }]);
+                let mut j = job(1000 + i as u64, &format!("core-tests ({}/{n})", i + 1), "success", &at(100), steps);
+                (j["created_at"], j["started_at"]) = (json!(at(0)), json!(at(0)));
+                j
+            })
+            .collect();
+        let (db, github) = (tempfile::tempdir().unwrap(), Github::start());
+        let sealed = sealed_actions_with(db.path(), &more);
+        let dir = actions_run(&github, true);
+        github.extra.borrow_mut().push(("GET /repos/o/r/actions/runs/77".to_string(), MockReply::json(200, json!({ "id": 77, "name": "backend_core+publish", "run_started_at": at(0), "created_at": at(0) }))));
+        github.serve(&json!(jobs), json!([]), created(), updated());
+        actions_body(&github, &dir, &sealed, DB_KEY)
+    };
+
+    // When the comment is previewed for runs of growing length
+    let sizes: Vec<(usize, String)> = [150, 200, 230].iter().map(|n| (*n, many(*n))).collect();
+
+    // Then none is over GitHub's limit and every one still has every section
+    let shortened = |body: &str| body.matches("_shortened: the comment is near GitHub's size limit_").count();
+    let report = || sizes.iter().map(|(n, b)| (*n, b.len(), shortened(b))).collect::<Vec<_>>();
+    for (n, body) in &sizes {
+        assert!(body.len() < 65_536, "{n} jobs: {:?}", report());
+        assert_eq!(headings(body), SKELETON, "{n} jobs");
+    }
+    // And a run that would go over with the Last run halves in full has all of them shortened to one line while its own sections are whole (the last job's row is there)
+    let squeezed: Vec<&(usize, String)> = sizes.iter().filter(|(_, b)| shortened(b) > 0).collect();
+    assert!(!squeezed.is_empty(), "{:?}", report());
+    for (n, body) in squeezed {
+        assert!(!body.contains("*The rest is in the run.*") && body.contains(&format!("core-tests ({n}/{n})")), "{n} jobs: {:?}", report());
+        assert_eq!(shortened(body), 6, "{n} jobs");
+    }
+}
+
+#[test]
+#[ignore = "prints the comment of a run in progress with a previous run to .agents/tmp/ci-comment-sample.md"]
+fn print_a_sample_comment() {
+    let body = skeleton_body_with(true, "backend_core+publish", DB_KEY, &[("WF_CI_LABEL", "GitHub-hosted")]);
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.agents/tmp/ci-comment-sample.md");
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(&path, body).unwrap();
 }
