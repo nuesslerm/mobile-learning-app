@@ -139,25 +139,15 @@ describe('the problem editor header (characterisation)', () => {
     expect(await loggedLines('editor_v2.keyboard_dismiss')).not.toHaveLength(0);
   });
 
-  it('given the More menu, when it is opened, then it lists Format, Version history and Login with their details', async () => {
+  it('given the More menu, when it is opened, then it lists Version history and Login with their details and no Format row', async () => {
     await openEditor();
 
     await openMenu();
 
     const menu = within(screen.getByTestId('ProblemEditorMenuButtonContent'));
-    expect(menu.getByTestId('ProblemEditorMenuFormat').textContent).toBe('Format');
+    expect(menu.queryByTestId('ProblemEditorMenuFormat')).toBeNull();
     expect(menu.getByTestId('ProblemEditorMenuHistory').textContent).toContain('No versions yet');
     expect(menu.getByTestId('ProblemEditorMenuLogin').textContent).toContain('LeetCode');
-  });
-
-  it('given the More menu, when Format is pressed, then the menu closes and the gateway formats the buffer', async () => {
-    await openEditor();
-    await openMenu();
-
-    await userEvent.click(screen.getByTestId('ProblemEditorMenuFormat'));
-
-    await waitFor(() => expect(gateway.format).toHaveBeenCalledWith(expect.objectContaining({ lang: 'python3' })));
-    await waitFor(() => expect(screen.queryByTestId('ProblemEditorMenuFormat')).toBeNull());
   });
 
   it('given a count of saved versions, when Version history is pressed, then the restore request is registered and /history is pushed', async () => {

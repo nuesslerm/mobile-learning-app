@@ -9,7 +9,7 @@ import { Icon } from '../ui/icon';
 import { Spinner } from '../ui/spinner';
 import { Text } from '../ui/text';
 
-import { HeaderMenu } from './header-menu';
+import { MenuPanel } from './menu-panel';
 import {
   HEADER_BUSY_LABEL,
   headerGroups,
@@ -82,7 +82,7 @@ function GroupPill({ group, testID }: { group: HeaderGroup; testID: string }) {
     <XStack rounded={9999} bg="$color3" p="$0.5" gap="$0.5" testID={testID}>
       {group.map((member) =>
         isMenuSpec(member) ? (
-          <HeaderMenu
+          <MenuPanel
             key={member.testID}
             icon={member.icon}
             accessibilityLabel={member.accessibilityLabel}

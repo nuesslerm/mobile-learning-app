@@ -13,9 +13,9 @@ import {
 } from '@lib/flow-test-harness';
 
 import { app } from '../../../../tests/flow/app';
-import { useGlassHeaderStore } from '@lib/tamagui-design-system';
+import { useNativeHeaderStore } from '@lib/tamagui-design-system';
 import { Platform } from 'react-native';
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProblemCatalog } from '../../domain/problemCatalog';
 import { useCodeHistoryStore } from '../../state/codeHistoryStore';
@@ -54,13 +54,12 @@ beforeEach(() => {
   useLeetCodeAuthStore.setState({ isLoggedIn: false, username: null });
   useUnsavedChangesRequestStore.getState().clear();
   useCodeHistoryStore.setState({ snapshots: [] });
-  useGlassHeaderStore.setState({ enabled: true });
+  useNativeHeaderStore.setState({ enabled: true });
 });
 afterEach(() => {
   (Platform as { OS: string }).OS = realOS;
   useRunnerSettingStore.setState({ runner: DEFAULT_RUNNER });
 });
-afterAll(() => useGlassHeaderStore.setState({ enabled: false }));
 
 type Deferred = { runner: CodeRunnerPort; finish: () => void };
 
@@ -72,10 +71,10 @@ function pendingRunner(): Deferred {
   return { runner: { run: () => waiting }, finish: () => release(ACCEPTED) };
 }
 
-// The route's native modules load on the web platform, so iOS and the glass setting come on once the screen is up and the bar re-renders into the native one.
+// The route's native modules load on the web platform, so iOS comes on once the screen is up and a store write makes the bar re-render into the native one.
 async function openEditor(platform: 'ios' | 'web', runner?: CodeRunnerPort): Promise<FlowSession> {
   setStackHeadersRendered(true);
-  if (platform === 'ios') useGlassHeaderStore.setState({ enabled: false });
+  if (platform === 'ios') useNativeHeaderStore.setState({ enabled: false });
   const ports: LeetCodePortOverrides = {
     gateway,
     voice: createFakeVoiceEditTransport() as unknown as VoiceEditTransportPort,
@@ -86,7 +85,7 @@ async function openEditor(platform: 'ios' | 'web', runner?: CodeRunnerPort): Pro
   if (platform === 'ios') {
     (Platform as { OS: string }).OS = 'ios';
     setLiquidGlass(true);
-    await act(async () => useGlassHeaderStore.setState({ enabled: true }));
+    await act(async () => useNativeHeaderStore.setState({ enabled: true }));
   }
   return session;
 }

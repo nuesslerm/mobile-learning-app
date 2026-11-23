@@ -10,10 +10,9 @@ import {
   type FlowCodeEditor,
   type FlowSession,
 } from '@lib/flow-test-harness';
-import { useGlassHeaderStore } from '@lib/tamagui-design-system';
 
 import { app } from '../../../../tests/flow/app';
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_EDITOR_PREFERENCES } from '../../domain/editor-settings/editorPreferences';
 import { resetGroups } from '../../domain/editor-settings/symbolGroups';
@@ -24,7 +23,7 @@ import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSetting
 import { useToolbarConfigStore } from '../../state/toolbarConfigStore';
 import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../..';
 
-// The editor settings menu on the editor route with the glass-headers setting on, through the classic popover (the twin of the native menu):
+// The editor settings menu on the editor route through the in-place panel (the twin of the native menu):
 // every entry applies to the live page, toggles keep the menu open, Format Code confirms, Symbol Bar opens its sheet.
 
 const ACCEPTED: RunResponse = {
@@ -55,11 +54,9 @@ beforeEach(() => {
   useEditorPreferencesStore.setState(DEFAULT_EDITOR_PREFERENCES);
   useSymbolBarStore.setState({ shown: DEFAULT_SYMBOL_BAR_SHOWN, groups: resetGroups(), railStyle: DEFAULT_RAIL_STYLE });
   useCodeHistoryStore.setState({ snapshots: [] });
-  useGlassHeaderStore.setState({ enabled: true });
   vi.mocked(gateway.format).mockClear();
 });
 afterEach(() => useRunnerSettingStore.setState({ runner: DEFAULT_RUNNER }));
-afterAll(() => useGlassHeaderStore.setState({ enabled: false }));
 
 const eventually = (check: () => void | Promise<void>, timeout = 8_000) => waitFor(check, { timeout });
 
@@ -89,7 +86,7 @@ async function raiseKeyboard(): Promise<void> {
 }
 
 describe('the editor settings menu on the editor route', () => {
-  it('given the setting on, when the editor opens, then the settings pill, Info and More show with the same ids and More has no Format row', async () => {
+  it('given the editor route, when it opens, then the settings pill, Info and More show with the same ids and More has no Format row', async () => {
     await openEditor();
 
     expect(screen.getByTestId('ProblemEditorHeaderGroup0')).toBeTruthy();

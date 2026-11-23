@@ -6,7 +6,7 @@ import {
   Text,
   View,
   getPresetThemeById,
-  useGlassHeaderStore,
+  useNativeHeaderStore,
   usePresetThemeStore,
 } from '@lib/tamagui-design-system';
 import { Check } from '@lib/tamagui-design-system/icons';
@@ -120,8 +120,8 @@ export function AppearanceSettingsScreen() {
   const setThemeMode = usePresetThemeStore((s) => s.setThemeMode);
   const activeThemeId = usePresetThemeStore((s) => s.activeThemeId);
   const setActiveTheme = usePresetThemeStore((s) => s.setActiveTheme);
-  const glassHeaders = useGlassHeaderStore((s) => s.enabled);
-  const setGlassHeaders = useGlassHeaderStore((s) => s.setEnabled);
+  const nativeHeaders = useNativeHeaderStore((s) => s.enabled);
+  const setNativeHeaders = useNativeHeaderStore((s) => s.setEnabled);
   const systemScheme = useColorScheme();
   const scheme: 'light' | 'dark' =
     themeMode === 'system'
@@ -165,29 +165,27 @@ export function AppearanceSettingsScreen() {
           value={themeMode}
           onChange={handleModeChange}
         />
-        <View gap="$2" testID="AppearanceSettingsScreen-GlassHeaders">
+        <View gap="$2" testID="AppearanceSettingsScreen-NativeHeaders">
           <Text
             variant="strong"
-            testID="AppearanceSettingsScreen-GlassHeadersLabel"
+            testID="AppearanceSettingsScreen-NativeHeadersLabel"
           >
-            Glass top bars
+            Native headers
           </Text>
           <Text
             variant="muted"
-            testID="AppearanceSettingsScreen-GlassHeadersHint"
+            testID="AppearanceSettingsScreen-NativeHeadersHint"
           >
-            iOS 26 shows the top bar of the screens that have opted in as Liquid
-            Glass. Other devices keep the current bar, and the editor settings
-            menu works on all of them.
+            Use the iOS system header. Turn off for the app's own header.
           </Text>
           <SegmentedControl
-            testID="AppearanceSettingsScreen-GlassHeadersControl"
+            testID="AppearanceSettingsScreen-NativeHeadersControl"
             options={[
               { value: 'off', label: 'Off' },
               { value: 'on', label: 'On' },
             ]}
-            value={glassHeaders ? 'on' : 'off'}
-            onChange={(value) => setGlassHeaders(value === 'on')}
+            value={nativeHeaders ? 'on' : 'off'}
+            onChange={(value) => setNativeHeaders(value === 'on')}
           />
         </View>
         <View

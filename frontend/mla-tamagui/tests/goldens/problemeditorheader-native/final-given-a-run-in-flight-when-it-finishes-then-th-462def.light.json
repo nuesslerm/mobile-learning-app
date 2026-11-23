@@ -1,0 +1,68 @@
+{
+  "suite": "problemeditorheader-native",
+  "step": "final-given-a-run-in-flight-when-it-finishes-then-th-462def",
+  "scheme": "light",
+  "snapshot": "problemeditorheader-native/final-given-a-run-in-flight-when-it-finishes-then-th-462def.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 412,
+    "height": 837,
+    "page_height": 837
+  },
+  "summary": {
+    "testids": [
+      "ProblemEditorScreen",
+      "NativeHeader",
+      "NativeHeaderLeft",
+      "NativeHeaderItem-Back to the problem list",
+      "NativeHeaderTitle",
+      "ScreenHeaderGlassTitle",
+      "ScreenHeaderGlassTitleText",
+      "ScreenHeaderGlassTitleSubtitle",
+      "NativeHeaderRight",
+      "NativeHeaderMenuHost-Editor settings",
+      "NativeHeaderItem-Editor settings",
+      "NativeHeaderSpacing",
+      "NativeHeaderItem-Problem description",
+      "NativeHeaderMenuHost-More actions",
+      "NativeHeaderItem-More actions",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorActions",
+      "ProblemEditorFormatButton",
+      "ProblemEditorRunLocalButton",
+      "ProblemEditorRunButton",
+      "ProblemEditorResetButton",
+      "ProblemEditorRunOutcome",
+      "ProblemEditorRunOutcomeStatus",
+      "ProblemEditorRunOutcomeTotals",
+      "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
+      "ProblemEditorTestInput"
+    ],
+    "text": "Back to the problem list\nTwo Sum\nArray & Hashing · Easy\nPython\nProblem description\nMore actions\nPython\nFormat\nRun Local\nRun\nReset\nAccepted\n5 / 5 test cases passed\nOne JSON value per line: nums, target\nRun input"
+  },
+  "timings": {
+    "render_ms": 242
+  },
+  "name": "problemeditorheader-native/final-given-a-run-in-flight-when-it-finishes-then-th-462def.light",
+  "image": {
+    "width": 360,
+    "height": 731
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

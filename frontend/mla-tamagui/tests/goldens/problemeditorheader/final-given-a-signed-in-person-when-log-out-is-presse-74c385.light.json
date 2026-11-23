@@ -19,7 +19,9 @@
       "ProblemEditorHeaderBack",
       "ProblemEditorHeaderTitle",
       "ProblemEditorHeaderSubtitle",
-      "ProblemEditorHeaderActions",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
       "ProblemEditorInfoButton",
       "ProblemEditorMenuButton",
       "ProblemEditorToolbarTarget",
@@ -43,7 +45,7 @@
     "text": "Two Sum\nArray & Hashing · Easy\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
   },
   "timings": {
-    "render_ms": 224
+    "render_ms": 227
   },
   "name": "problemeditorheader/final-given-a-signed-in-person-when-log-out-is-presse-74c385.light",
   "image": {

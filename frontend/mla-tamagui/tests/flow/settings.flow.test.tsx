@@ -5,7 +5,7 @@ import {
   waitFor,
 } from '@lib/flow-test-harness';
 import {
-  useGlassHeaderStore,
+  useNativeHeaderStore,
   usePresetThemeStore,
 } from '@lib/tamagui-design-system';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -81,53 +81,46 @@ describe('Settings flow (index and appearance screens)', () => {
   });
 });
 
-describe('the Glass top bars row on the Appearance screen', () => {
+describe('the Native headers row on the Appearance screen', () => {
   beforeEach(() => {
-    useGlassHeaderStore.setState({ enabled: false });
+    useNativeHeaderStore.setState({ enabled: true });
   });
 
-  it('given the Appearance screen, when Off is tapped, then On, then On again, then the setting is on and stays on', async () => {
+  it('given a fresh install, when the Appearance screen renders, then native headers are on', async () => {
     await app.render('/settings/appearance');
-    expect(useGlassHeaderStore.getState().enabled).toBe(false);
 
-    await userEvent.click(
-      screen.getByTestId('AppearanceSettingsScreen-GlassHeadersControl-off')
-    );
-    expect(useGlassHeaderStore.getState().enabled).toBe(false);
-    await userEvent.click(
-      screen.getByTestId('AppearanceSettingsScreen-GlassHeadersControl-on')
-    );
-    await waitFor(() =>
-      expect(useGlassHeaderStore.getState().enabled).toBe(true)
-    );
-    await userEvent.click(
-      screen.getByTestId('AppearanceSettingsScreen-GlassHeadersControl-on')
-    );
-
-    expect(useGlassHeaderStore.getState().enabled).toBe(true);
+    expect(useNativeHeaderStore.getState().enabled).toBe(true);
+    expect(
+      screen.getByTestId('AppearanceSettingsScreen-NativeHeadersControl-on')
+    ).not.toBeNull();
   });
 
-  it('given the setting on, when Off is tapped, then the setting is off', async () => {
-    useGlassHeaderStore.setState({ enabled: true });
+  it('given the setting on, when Off is tapped, then the setting is off and On turns it back on', async () => {
     await app.render('/settings/appearance');
 
     await userEvent.click(
-      screen.getByTestId('AppearanceSettingsScreen-GlassHeadersControl-off')
+      screen.getByTestId('AppearanceSettingsScreen-NativeHeadersControl-off')
+    );
+    await waitFor(() =>
+      expect(useNativeHeaderStore.getState().enabled).toBe(false)
+    );
+    await userEvent.click(
+      screen.getByTestId('AppearanceSettingsScreen-NativeHeadersControl-on')
     );
 
     await waitFor(() =>
-      expect(useGlassHeaderStore.getState().enabled).toBe(false)
+      expect(useNativeHeaderStore.getState().enabled).toBe(true)
     );
   });
 
-  it('given the Appearance screen, when it renders, then the hint says iOS 26 shows the glass bar and other devices keep the current one', async () => {
+  it('given the Appearance screen, when it renders, then the hint names the iOS system header and the off switch', async () => {
     await app.render('/settings/appearance');
 
     const hint = screen.getByTestId(
-      'AppearanceSettingsScreen-GlassHeadersHint'
+      'AppearanceSettingsScreen-NativeHeadersHint'
     );
 
-    expect(hint.textContent).toContain('iOS 26');
-    expect(hint.textContent).toContain('Other devices keep the current bar');
+    expect(hint.textContent).toContain('iOS system header');
+    expect(hint.textContent).toContain("app's own header");
   });
 });

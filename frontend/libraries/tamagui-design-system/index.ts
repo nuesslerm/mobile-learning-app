@@ -107,13 +107,9 @@ export type {
 } from './composites/native-header/header-menu-spec';
 export { validateMenuTree } from './composites/native-header/header-menu-spec';
 export { useHeaderHeightStore } from './lib/headerHeightStore';
-export { DEFAULT_GLASS_HEADERS, useGlassHeaderStore } from './lib/glassHeaderStore';
+export { DEFAULT_NATIVE_HEADERS, useNativeHeaderStore } from './lib/nativeHeaderStore';
 export { useNativeHeaderPath } from './composites/native-header/use-header-env';
-export {
-  HeaderMenu,
-  type HeaderMenuItem,
-  type HeaderMenuProps,
-} from './composites/header-menu';
+export { MenuPanel, type MenuPanelProps } from './composites/menu-panel';
 export {
   KEYBOARD_TOOLBAR_Z,
   KeyboardToolbarAwareScrollView,

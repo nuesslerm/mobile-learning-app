@@ -1,11 +1,10 @@
 import type { HeaderMenuSpec, MenuNode, ScreenHeaderSpec } from '@lib/tamagui-design-system';
-import { History, Info, LogIn, LogOut, MoreHorizontal, RotateCcw, Wand2 } from '@lib/tamagui-design-system/icons';
+import { History, Info, LogIn, LogOut, MoreHorizontal, RotateCcw } from '@lib/tamagui-design-system/icons';
 
 export const EDITOR_HEADER_IDS = {
   header: 'ProblemEditorHeader',
   info: 'ProblemEditorInfoButton',
   menu: 'ProblemEditorMenuButton',
-  format: 'ProblemEditorMenuFormat',
   history: 'ProblemEditorMenuHistory',
   login: 'ProblemEditorMenuLogin',
   resetCode: 'ProblemEditorMenuResetCode',
@@ -17,15 +16,12 @@ export type EditorHeaderInput = {
   historyCount: number;
   isLoggedIn: boolean;
   username: string | null;
-  /** A run is in flight; shown as a spinner only in the glass layout. */
+  /** A run is in flight; shown as a spinner before the groups. */
   busy: boolean;
-  /** The glass layout: busy, the settings pill and the grouped Info and More pill. Off, the spec is the classic one. */
-  glass: boolean;
-  /** The editor settings menu, its own piece of glass in the glass layout. */
-  settings?: HeaderMenuSpec;
+  /** The editor settings menu, its own piece of glass. */
+  settings: HeaderMenuSpec;
   onBack: () => void;
   onInfo: () => void;
-  onFormat: () => void;
   onHistory: () => void;
   onLogin: () => void;
   /** Given only when the console replaces the Reset button of the classic rows. */
@@ -33,7 +29,6 @@ export type EditorHeaderInput = {
 };
 
 function moreMenu(input: EditorHeaderInput): HeaderMenuSpec {
-  const format: MenuNode = { icon: Wand2, label: 'Format', onPress: input.onFormat, testID: EDITOR_HEADER_IDS.format };
   const history: MenuNode = {
     icon: History,
     label: 'Version history',
@@ -54,11 +49,11 @@ function moreMenu(input: EditorHeaderInput): HeaderMenuSpec {
     sfSymbol: 'ellipsis',
     accessibilityLabel: 'More actions',
     testID: EDITOR_HEADER_IDS.menu,
-    items: input.glass ? [history, ...resetCode, login] : [format, history, ...resetCode, login],
+    items: [history, ...resetCode, login],
   };
 }
 
-/** The editor's top bar as data: the design system draws it as the classic header or the native glass bar. */
+/** The editor's top bar as data: the design system draws it as the system header on iOS and the app's own header elsewhere. */
 export function editorHeaderSpec(input: EditorHeaderInput): ScreenHeaderSpec {
   const base = {
     testID: EDITOR_HEADER_IDS.header,
@@ -74,7 +69,5 @@ export function editorHeaderSpec(input: EditorHeaderInput): ScreenHeaderSpec {
     testID: EDITOR_HEADER_IDS.info,
     onPress: input.onInfo,
   };
-  const more = moreMenu(input);
-  if (!input.glass) return { ...base, actions: [info], menu: more };
-  return { ...base, busy: input.busy, groups: [input.settings ? [input.settings] : [], [info, more]] };
+  return { ...base, busy: input.busy, groups: [[input.settings], [info, moreMenu(input)]] };
 }

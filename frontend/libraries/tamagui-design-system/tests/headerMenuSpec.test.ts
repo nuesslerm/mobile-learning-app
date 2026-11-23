@@ -1,7 +1,6 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { describe, expect, it } from 'vitest';
 
-import type { HeaderMenuItem } from '../composites/header-menu';
 import {
   headerGroups,
   isMenuSpec,
@@ -9,6 +8,7 @@ import {
 } from '../composites/native-header/header-spec';
 import {
   isActionNode,
+  type MenuActionNode,
   menuSignature,
   validateMenuTree,
   type HeaderMenuSpec,
@@ -130,7 +130,7 @@ describe('validateMenuTree', () => {
 
 describe('the header spec', () => {
   it("Given today's ScreenHeaderProps, When it is used as a spec, Then it is accepted and its actions and menu form one group", () => {
-    const item: HeaderMenuItem = {
+    const item: MenuActionNode = {
       icon,
       label: 'Format',
       onPress: () => undefined,

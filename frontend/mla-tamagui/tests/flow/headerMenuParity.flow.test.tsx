@@ -2,14 +2,13 @@ import {
   act,
   renderScreen,
   screen,
-  setLiquidGlass,
   setStackHeadersRendered,
   userEvent,
   waitFor,
 } from '@lib/flow-test-harness';
 import {
   ScreenHeader,
-  useGlassHeaderStore,
+  useNativeHeaderStore,
   type MenuNode,
 } from '@lib/tamagui-design-system';
 import { ChevronRight } from '@lib/tamagui-design-system/icons';
@@ -24,7 +23,7 @@ const setPlatform = (os: 'web' | 'ios') => {
 
 beforeEach(() => {
   act(() => {
-    useGlassHeaderStore.setState({ enabled: false });
+    useNativeHeaderStore.setState({ enabled: true });
   });
 });
 
@@ -253,11 +252,11 @@ async function run(menu: Menu, steps: [Step, Seen][]) {
   }
 }
 
-describe('One menu tree through the fallback popover and the native twin', () => {
+describe('One menu tree through the menu panel and the native twin', () => {
   it.each(BEHAVIOURS)(
-    'Given the same tree, When $name, Then the popover and the twin end each step alike with the same handler calls',
+    'Given the same tree, When $name, Then the panel and the twin end each step alike with the same handler calls',
     async ({ steps, calls: expectedCalls }) => {
-      // Given the tree in the fallback popover (Android, web, iOS below 26)
+      // Given the tree in the menu panel (Android and web)
       const fallbackCalls: string[] = [];
       const first = renderScreen(<Probe calls={fallbackCalls} glass />);
 
@@ -268,13 +267,9 @@ describe('One menu tree through the fallback popover and the native twin', () =>
       expect(fallbackCalls).toEqual(expectedCalls);
       first.unmount();
 
-      // Given the same tree on the native bar (iOS 26, glass, the setting on)
+      // Given the same tree on the native bar (iOS, the setting on)
       setPlatform('ios');
-      setLiquidGlass(true);
       setStackHeadersRendered(true);
-      act(() => {
-        useGlassHeaderStore.setState({ enabled: true });
-      });
       const twinCalls: string[] = [];
       renderScreen(<Probe calls={twinCalls} glass />);
 

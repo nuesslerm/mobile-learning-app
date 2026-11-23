@@ -32,8 +32,7 @@ import { collectHandlers, withStableHandlers } from './stable-spec';
 // Only built when the environment already said native, so the options builder's own check has nothing left to decide.
 const NATIVE_ENV: HeaderEnv = {
   platform: 'ios',
-  liquidGlass: true,
-  glassHeaders: true,
+  nativeHeaders: true,
   optedIn: true,
 };
 

@@ -5,7 +5,7 @@ import {
   setLiquidGlass,
 } from '@lib/flow-test-harness';
 import {
-  useGlassHeaderStore,
+  useNativeHeaderStore,
   usePresetThemeStore,
 } from '@lib/tamagui-design-system';
 import { DarkTheme, DefaultTheme } from 'expo-router';
@@ -30,12 +30,12 @@ const chrome = Appearance as unknown as Chrome;
 let recorded: ('light' | 'dark' | 'auto')[] = [];
 
 function settings(values: {
-  glass?: boolean;
+  native?: boolean;
   mode?: 'system' | 'light' | 'dark';
 }) {
   act(() => {
-    if (values.glass !== undefined)
-      useGlassHeaderStore.setState({ enabled: values.glass });
+    if (values.native !== undefined)
+      useNativeHeaderStore.setState({ enabled: values.native });
     if (values.mode !== undefined)
       usePresetThemeStore.setState({ themeMode: values.mode });
   });
@@ -51,7 +51,7 @@ beforeEach(() => {
   chrome.setColorScheme = (scheme) => {
     recorded.push(scheme);
   };
-  settings({ glass: false, mode: 'system' });
+  settings({ native: false, mode: 'system' });
 });
 
 afterEach(() => {
@@ -59,10 +59,10 @@ afterEach(() => {
 });
 
 describe('the OS chrome follows the app only while the native bar is in play', () => {
-  it('Given iOS with glass, the setting on and Dark chosen, When the bridge mounts, Then the OS was told dark', () => {
+  it('Given iOS, the setting on and Dark chosen, When the bridge mounts, Then the OS was told dark', () => {
     // Given the native path with the person's choice Dark
     nativePath();
-    settings({ glass: true, mode: 'dark' });
+    settings({ native: true, mode: 'dark' });
 
     // When the bridge mounts
     renderHook(() => useNativeChromeSync());
@@ -74,7 +74,7 @@ describe('the OS chrome follows the app only while the native bar is in play', (
   it('Given the native path and System chosen, When the bridge mounts, Then the OS was handed its own decision back', () => {
     // Given the native path with System chosen
     nativePath();
-    settings({ glass: true, mode: 'system' });
+    settings({ native: true, mode: 'system' });
 
     // When the bridge mounts
     renderHook(() => useNativeChromeSync());
@@ -86,7 +86,7 @@ describe('the OS chrome follows the app only while the native bar is in play', (
   it('Given the bridge mounted on the native path, When the choice flips to Light, Then it records again', () => {
     // Given the bridge on Dark
     nativePath();
-    settings({ glass: true, mode: 'dark' });
+    settings({ native: true, mode: 'dark' });
     renderHook(() => useNativeChromeSync());
 
     // When Light is chosen
@@ -99,11 +99,11 @@ describe('the OS chrome follows the app only while the native bar is in play', (
   it('Given the bridge mounted on the native path, When the setting is turned off, Then the OS is given its decision back', () => {
     // Given the bridge on Dark
     nativePath();
-    settings({ glass: true, mode: 'dark' });
+    settings({ native: true, mode: 'dark' });
     renderHook(() => useNativeChromeSync());
 
     // When the setting is turned off
-    settings({ glass: false });
+    settings({ native: false });
 
     // Then auto was recorded last
     expect(recorded).toEqual(['dark', 'auto']);
@@ -116,7 +116,7 @@ describe('the OS chrome follows the app only while the native bar is in play', (
       () => {
         setPlatform('android');
         setLiquidGlass(true);
-        settings({ glass: true });
+        settings({ native: true });
       },
     ],
     [
@@ -124,14 +124,7 @@ describe('the OS chrome follows the app only while the native bar is in play', (
       () => {
         setPlatform('web');
         setLiquidGlass(true);
-        settings({ glass: true });
-      },
-    ],
-    [
-      'Liquid Glass is not available',
-      () => {
-        setPlatform('ios');
-        settings({ glass: true });
+        settings({ native: true });
       },
     ],
   ])(
@@ -155,7 +148,7 @@ describe('the navigator theme', () => {
   it('Given the native path and Dark chosen, When the theme is read, Then it is react-navigation dark; and off the native path it is the light one', () => {
     // Given the native path with Dark
     nativePath();
-    settings({ glass: true, mode: 'dark' });
+    settings({ native: true, mode: 'dark' });
 
     // When the theme is read
     const { result } = renderHook(() => useNavigationTheme());
@@ -164,7 +157,7 @@ describe('the navigator theme', () => {
     expect(result.current).toBe(DarkTheme);
 
     // When the setting is turned off
-    settings({ glass: false });
+    settings({ native: false });
 
     // Then the light theme the navigator has today
     expect(result.current).toBe(DefaultTheme);

@@ -1,0 +1,76 @@
+{
+  "suite": "editorsettingsmenu",
+  "step": "final-given-every-setting-changed-when-the-language-i-f22514",
+  "scheme": "dark",
+  "snapshot": "editorsettingsmenu/final-given-every-setting-changed-when-the-language-i-f22514.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemEditorScreen",
+      "ProblemEditorHeader",
+      "ProblemEditorHeaderBack",
+      "ProblemEditorHeaderTitle",
+      "ProblemEditorHeaderSubtitle",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
+      "ProblemEditorInfoButton",
+      "ProblemEditorMenuButton",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorActions",
+      "ProblemEditorFormatButton",
+      "ProblemEditorRunLocalButton",
+      "ProblemEditorRunButton",
+      "ProblemEditorResetButton",
+      "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
+      "ProblemEditorTestInput",
+      "EditorSettingsButtonBackdrop",
+      "EditorSettingsButtonContent",
+      "EditorSettingsViewSection",
+      "EditorSettingsFontSize",
+      "EditorSettingsFontSizeCheck",
+      "EditorSettingsWhitespace",
+      "EditorSettingsWhitespaceCheck",
+      "EditorSettingsWrap",
+      "EditorSettingsWrapCheck",
+      "EditorSettingsToolsSection",
+      "EditorSettingsTabs",
+      "EditorSettingsTabsCheck",
+      "EditorSettingsSymbolBar",
+      "EditorSettingsSymbolBarCheck",
+      "EditorSettingsFormat",
+      "EditorSettingsFormatCheck"
+    ],
+    "text": "Two Sum\nArray & Hashing · Easy\nJavaScript\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nFont size: 18px\nShow Whitespace\nLine wrap\nTabs: 4\nSymbol Bar\nFormat Code"
+  },
+  "timings": {
+    "render_ms": 253
+  },
+  "name": "editorsettingsmenu/final-given-every-setting-changed-when-the-language-i-f22514.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

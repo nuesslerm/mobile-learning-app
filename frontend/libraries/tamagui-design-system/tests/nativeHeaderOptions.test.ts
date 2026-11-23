@@ -25,8 +25,7 @@ const noop = () => undefined;
 
 const NATIVE: HeaderEnv = {
   platform: 'ios',
-  liquidGlass: true,
-  glassHeaders: true,
+  nativeHeaders: true,
   optedIn: true,
 };
 
@@ -100,21 +99,18 @@ describe('nativeHeaderActive', () => {
   const flags = [true, false];
 
   const table = platforms.flatMap((platform) =>
-    flags.flatMap((liquidGlass) =>
-      flags.flatMap((glassHeaders) =>
-        flags.map((optedIn) => ({
-          platform,
-          liquidGlass,
-          glassHeaders,
-          optedIn,
-          active: platform === 'ios' && liquidGlass && glassHeaders && optedIn,
-        }))
-      )
+    flags.flatMap((nativeHeaders) =>
+      flags.map((optedIn) => ({
+        platform,
+        nativeHeaders,
+        optedIn,
+        active: platform === 'ios' && nativeHeaders && optedIn,
+      }))
     )
   );
 
   it.each(table)(
-    'Given platform $platform, glass $liquidGlass, setting $glassHeaders and opted in $optedIn, When asked, Then the native bar is active: $active',
+    'Given platform $platform, setting $nativeHeaders and opted in $optedIn, When asked, Then the native bar is active: $active',
     ({ active, ...env }) => {
       expect(nativeHeaderActive(env)).toBe(active);
     }
@@ -126,7 +122,7 @@ describe('nativeHeaderActive', () => {
 });
 
 describe('buildScreenHeaderOptions', () => {
-  it('Given ios, glass, the setting on and the screen opted in, When options are built, Then the bar is native, opaque and themed, with a title and both item functions', () => {
+  it('Given ios, the setting on and the screen opted in, When options are built, Then the bar is native, opaque and themed, with a title and both item functions', () => {
     const r = renderers();
 
     const built = options(NATIVE, editorSpec(), r);
@@ -180,8 +176,7 @@ describe('buildScreenHeaderOptions', () => {
   it.each<[string, HeaderEnv]>([
     ['android', { ...NATIVE, platform: 'android' }],
     ['web', { ...NATIVE, platform: 'web' }],
-    ['ios without glass', { ...NATIVE, liquidGlass: false }],
-    ['the setting off', { ...NATIVE, glassHeaders: false }],
+    ['the setting off', { ...NATIVE, nativeHeaders: false }],
     ['a screen that did not opt in', { ...NATIVE, optedIn: false }],
   ])(
     'Given %s, When options are built, Then only the header function is set, with none of the unstable_ keys',

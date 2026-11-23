@@ -12,7 +12,7 @@ import {
 } from '@lib/flow-test-harness';
 import {
   ScreenHeader,
-  useGlassHeaderStore,
+  useNativeHeaderStore,
   useHeaderHeightStore,
   useScreenHeaderOptions,
   type ScreenHeaderProps,
@@ -27,9 +27,9 @@ function setPlatform(os: 'web' | 'ios' | 'android') {
   (Platform as { OS: string }).OS = os;
 }
 
-function glassSetting(enabled: boolean) {
+function nativeSetting(enabled: boolean) {
   act(() => {
-    useGlassHeaderStore.setState({ enabled });
+    useNativeHeaderStore.setState({ enabled });
   });
 }
 
@@ -37,11 +37,11 @@ function native() {
   setPlatform('ios');
   setLiquidGlass(true);
   setStackHeadersRendered(true);
-  glassSetting(true);
+  nativeSetting(true);
 }
 
 beforeEach(() => {
-  glassSetting(false);
+  nativeSetting(true);
   useHeaderHeightStore.setState({ height: 0 });
 });
 
@@ -137,7 +137,7 @@ const Probe = (props: ProbeProps) => (
   </>
 );
 
-describe('ScreenHeader on the native glass bar', () => {
+describe('ScreenHeader on the native header', () => {
   it('Given iOS with Liquid Glass, the setting on and a screen that opted in, When it mounts, Then the twin shows the back item and the pieces of glass and the Tamagui header is absent', () => {
     // Given the native environment
     native();
@@ -167,9 +167,8 @@ describe('ScreenHeader on the native glass bar', () => {
   });
 
   it.each([
-    ['the setting is off', () => glassSetting(false)],
+    ['the setting is off', () => nativeSetting(false)],
     ['the platform is android', () => setPlatform('android')],
-    ['Liquid Glass is not available', () => setLiquidGlass(false)],
   ])(
     'Given the native environment except that %s, When the screen mounts, Then the Tamagui header draws with its ids and the twin shows no bar',
     (_name, spoil) => {
@@ -187,6 +186,20 @@ describe('ScreenHeader on the native glass bar', () => {
       expect(screen.queryByTestId('NativeHeader')).toBeNull();
     }
   );
+
+  it('Given iOS without Liquid Glass, the setting on and a screen that opted in, When it mounts, Then the native items still draw and the Tamagui header is absent', () => {
+    // Given iOS where the glass API is not available
+    native();
+    setLiquidGlass(false);
+
+    // When the screen mounts
+    renderScreen(<Probe />);
+
+    // Then the bar is native all the same
+    expect(screen.getByTestId('NativeHeader')).not.toBeNull();
+    expect(screen.getByTestId('NativeHeaderItem-Go back')).not.toBeNull();
+    expect(screen.queryByTestId('Bar')).toBeNull();
+  });
 
   it('Given the native environment, When the screen did not pass glass, Then the Tamagui header draws', () => {
     // Given the native environment

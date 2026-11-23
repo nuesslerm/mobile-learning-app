@@ -22,13 +22,14 @@
       "SettingsMenu",
       "BarGroup1",
       "MoreMenu",
+      "MoreMenuBackdrop",
       "MoreMenuContent",
       "MoreRow"
     ],
     "text": "Two Sum\nArray & Hashing · Easy\nMore row"
   },
   "timings": {
-    "render_ms": 209
+    "render_ms": 177
   },
   "name": "screenheader/final-given-two-menus-in-two-groups-when-each-is-open-f7529c.light",
   "image": {

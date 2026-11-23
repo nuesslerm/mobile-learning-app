@@ -1,0 +1,46 @@
+{
+  "suite": "nativeheader",
+  "step": "final-given-ios-without-liquid-glass-the-setting-on-a-c81b3c",
+  "scheme": "dark",
+  "snapshot": "nativeheader/final-given-ios-without-liquid-glass-the-setting-on-a-c81b3c.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "NativeHeader",
+      "NativeHeaderLeft",
+      "NativeHeaderItem-Go back",
+      "NativeHeaderTitle",
+      "ScreenHeaderGlassTitle",
+      "ScreenHeaderGlassTitleText",
+      "ScreenHeaderGlassTitleSubtitle",
+      "NativeHeaderRight",
+      "NativeHeaderMenuHost-Editor settings",
+      "NativeHeaderItem-Editor settings",
+      "NativeHeaderSpacing",
+      "NativeHeaderItem-Info",
+      "Body"
+    ],
+    "text": "Go back\nAppearance\nSettings\nEditor settings\nInfo\nBody"
+  },
+  "timings": {
+    "render_ms": 213
+  },
+  "name": "nativeheader/final-given-ios-without-liquid-glass-the-setting-on-a-c81b3c.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

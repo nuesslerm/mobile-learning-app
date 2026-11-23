@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
 
-import { act, screen, setStackHeadersRendered, userEvent, within } from '../index';
+import { act, screen, setLiquidGlass, setStackHeadersRendered, userEvent, within } from '../index';
 import { renderRoute } from '../route';
 
 type Options = NativeStackNavigationOptions;
@@ -129,6 +129,15 @@ describe('native header twin', () => {
 
     expect(back).toHaveBeenCalledTimes(1);
     expect(info).toHaveBeenCalledTimes(1);
+  });
+
+  it('given Liquid Glass is not available, when headers are rendered with items, then the items still draw as buttons', () => {
+    setLiquidGlass(false);
+
+    mountOptions(menuOf([{ type: 'action', label: 'Wrap', onPress: () => undefined }]));
+
+    expect(screen.getByTestId('NativeHeader')).toBeTruthy();
+    expect(screen.getByTestId('NativeHeaderItem-Settings')).toBeTruthy();
   });
 
   it('given a header function next to items, when headers are rendered, then the function wins and no bar draws', () => {

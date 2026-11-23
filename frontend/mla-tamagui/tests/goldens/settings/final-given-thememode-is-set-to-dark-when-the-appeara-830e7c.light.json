@@ -9,8 +9,8 @@
   },
   "screen": {
     "width": 378,
-    "height": 964,
-    "page_height": 964
+    "height": 941,
+    "page_height": 941
   },
   "summary": {
     "testids": [
@@ -38,12 +38,12 @@
       "AppearanceSettingsScreen-ModeControl-system",
       "AppearanceSettingsScreen-ModeControl-light",
       "AppearanceSettingsScreen-ModeControl-dark",
-      "AppearanceSettingsScreen-GlassHeaders",
-      "AppearanceSettingsScreen-GlassHeadersLabel",
-      "AppearanceSettingsScreen-GlassHeadersHint",
-      "AppearanceSettingsScreen-GlassHeadersControl",
-      "AppearanceSettingsScreen-GlassHeadersControl-off",
-      "AppearanceSettingsScreen-GlassHeadersControl-on",
+      "AppearanceSettingsScreen-NativeHeaders",
+      "AppearanceSettingsScreen-NativeHeadersLabel",
+      "AppearanceSettingsScreen-NativeHeadersHint",
+      "AppearanceSettingsScreen-NativeHeadersControl",
+      "AppearanceSettingsScreen-NativeHeadersControl-off",
+      "AppearanceSettingsScreen-NativeHeadersControl-on",
       "AppearanceSettingsScreen-ThemeGrid",
       "AppearanceSettingsScreen-ThemeTile-ios-native",
       "AppearanceSettingsScreen-ThemeTilePress-ios-native",
@@ -75,15 +75,15 @@
       "AppearanceSettingsScreen-ThemeTilePrimary-ocean-breeze",
       "AppearanceSettingsScreen-ThemeTileAccent-ocean-breeze"
     ],
-    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nAppearance\nSystem\nLight\nDark\nGlass top bars\niOS 26 shows the top bar of the screens that have opted in as Liquid Glass. Other devices keep the current bar, and the editor settings menu works on all of them.\nOff\nOn\niOS Native\nMonochrome Pro\nClassic Duolingo\nOcean Breeze\nForest Fresh\nDesert Dawn\nPastel"
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nAppearance\nSystem\nLight\nDark\nNative headers\nUse the iOS system header. Turn off for the app's own header.\nOff\nOn\niOS Native\nMonochrome Pro\nClassic Duolingo\nOcean Breeze\nForest Fresh\nDesert Dawn\nPastel Pop\nMidnight Neon\nRoyal Purple\nChess Wood\nSunset Vibes\nLeetCode Slate"
   },
   "timings": {
-    "render_ms": 248
+    "render_ms": 308
   },
   "name": "settings/final-given-thememode-is-set-to-dark-when-the-appeara-830e7c.light",
   "image": {
     "width": 360,
-    "height": 918
+    "height": 896
   },
   "tolerance": {
     "threshold": 0.1,

@@ -1,0 +1,77 @@
+{
+  "suite": "editorsettingsmenu",
+  "step": "final-given-the-root-menu-when-font-size-then-16px-is-b93517",
+  "scheme": "dark",
+  "snapshot": "editorsettingsmenu/final-given-the-root-menu-when-font-size-then-16px-is-b93517.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemEditorScreen",
+      "ProblemEditorHeader",
+      "ProblemEditorHeaderBack",
+      "ProblemEditorHeaderTitle",
+      "ProblemEditorHeaderSubtitle",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
+      "ProblemEditorInfoButton",
+      "ProblemEditorMenuButton",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorActions",
+      "ProblemEditorFormatButton",
+      "ProblemEditorRunLocalButton",
+      "ProblemEditorRunButton",
+      "ProblemEditorResetButton",
+      "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
+      "ProblemEditorTestInput",
+      "EditorSettingsButtonBackdrop",
+      "EditorSettingsButtonContent",
+      "EditorSettingsFontSizeHeader",
+      "EditorSettingsFontSize-12",
+      "EditorSettingsFontSize-12Check",
+      "EditorSettingsFontSize-13",
+      "EditorSettingsFontSize-13Check",
+      "EditorSettingsFontSize-14",
+      "EditorSettingsFontSize-14Check",
+      "EditorSettingsFontSize-15",
+      "EditorSettingsFontSize-15Check",
+      "EditorSettingsFontSize-16",
+      "EditorSettingsFontSize-16Check",
+      "EditorSettingsFontSize-18",
+      "EditorSettingsFontSize-18Check",
+      "EditorSettingsFontSize-20",
+      "EditorSettingsFontSize-20Check"
+    ],
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nFont size: 16px\n12px\n13px\n14px\n15px\n16px\n18px\n20px"
+  },
+  "timings": {
+    "render_ms": 270
+  },
+  "name": "editorsettingsmenu/final-given-the-root-menu-when-font-size-then-16px-is-b93517.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

@@ -1,5 +1,9 @@
-import { GlassView } from 'expo-glass-effect';
-import { StyleSheet } from 'react-native';
+import {
+  GlassView,
+  isGlassEffectAPIAvailable,
+  isLiquidGlassAvailable,
+} from 'expo-glass-effect';
+import { StyleSheet, View } from 'react-native';
 
 import { Text } from '../../ui/text';
 
@@ -7,11 +11,13 @@ import type { HeaderTitleProps } from './screen-header-options';
 
 export const GLASS_TITLE_ID = 'ScreenHeaderGlassTitle';
 
-/** The title and the subtitle as one glass capsule, the way the Claude app's bar draws its title; the native bar is only built where the glass API is there. */
+/** The title and the subtitle as one glass capsule, the way the Claude app's bar draws its title; below iOS 26 the same two lines show with no capsule. */
 export function GlassTitle({ title, subtitle, maxWidth }: HeaderTitleProps) {
+  const glass = isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
+  const Capsule = glass ? GlassView : View;
   return (
-    <GlassView
-      glassEffectStyle="regular"
+    <Capsule
+      {...(glass ? { glassEffectStyle: 'regular' as const } : {})}
       style={[styles.capsule, { maxWidth }]}
       testID={GLASS_TITLE_ID}
     >
@@ -27,7 +33,7 @@ export function GlassTitle({ title, subtitle, maxWidth }: HeaderTitleProps) {
           {subtitle}
         </Text>
       ) : null}
-    </GlassView>
+    </Capsule>
   );
 }
 

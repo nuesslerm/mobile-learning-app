@@ -29,7 +29,6 @@ import {
   ScreenHeader,
   Spinner,
   Text,
-  useGlassHeaderStore,
   useKeyboardFrame,
   View,
 } from '@lib/tamagui-design-system';
@@ -689,7 +688,6 @@ export function ProblemEditorScreen({
     router.push(`/leetcode/${problem.id}/reset-code`);
   }, [problem, lang, snapshot, clearCard, clearConsoleResult]);
 
-  const glassHeaders = useGlassHeaderStore((state) => state.enabled);
   const fontSize = useEditorPreferencesStore((s) => s.fontSize);
   const tabSize = useEditorPreferencesStore((s) => s.tabSize);
   const wrap = useEditorPreferencesStore((s) => s.wrap);
@@ -816,9 +814,7 @@ export function ProblemEditorScreen({
     isLoggedIn,
     username,
     busy: busy || running !== null,
-    glass: glassHeaders,
-    settings: glassHeaders
-      ? editorSettingsMenu(
+    settings: editorSettingsMenu(
           { fontSize, tabSize, wrap, whitespace },
           {
             onFontSize: setFontSize,
@@ -832,14 +828,9 @@ export function ProblemEditorScreen({
             },
           },
           languageLabel(lang)
-        )
-      : undefined,
+        ),
     onBack: handleBack,
     onInfo: handleInfo,
-    onFormat: () => {
-      Logger.info('editor_v2.format.tap', { problemId: problem?.id, from: 'header_menu' });
-      void handleFormat();
-    },
     onHistory: handleHistory,
     onLogin: handleLogin,
     ...(consoleEnabled ? { onResetCode: handleResetCode } : {}),

@@ -160,7 +160,7 @@ describe('ScreenHeader pills and busy status', () => {
     expect(screen.queryByTestId('MoreRow')).toBeNull();
 
     // When it is closed by a tap outside and the second is opened
-    await userEvent.click(document.body);
+    await userEvent.click(screen.getByTestId('SettingsMenuBackdrop'));
     await waitFor(() => expect(screen.queryByTestId('SettingsRow')).toBeNull());
     await userEvent.click(screen.getByTestId('MoreMenu'));
 
