@@ -5,7 +5,7 @@ timeout: 900
 focus: true
 features: leetcode
 ---]]
--- The console on the editor screen (issue 86, G8): turned on from the Console row of the problem list with "This device" chosen, Valid Parentheses
+-- The console on the editor screen (issue 86, G8): with "This device" chosen on the problem list, Valid Parentheses
 -- opens with its dock at the bottom. Console opens a sheet that stops below the header; a tap on the editor strip above it closes it (the sheet
 -- is non-modal on the web too). Case 3 is picked from the chips and Run gives Accepted with the field's text on the Input card; the rail's Run
 -- above the keyboard lowers it and runs; a custom case answers "Custom case"; a run that never ends (HANG typed at the end of the code) shows the Pending overlay and then
@@ -98,25 +98,7 @@ local function open_editor(code)
   hydrated()
   lower_keyboard()
   device:assert_visible({id='ConsoleDock'}, {timeout=10000})
-  device:assert_not_visible({id='ProblemEditorRunLocalButton'})
   device:clear_logs()
-end
-
-local function set_console(on)
-  open("/", 'LeetcodeListConsoleRow')
-  local id = on and 'LeetcodeListConsoleOn' or 'LeetcodeListConsoleOff'
-  if android then
-    device:scroll_until_visible{element={id=id}, direction='DOWN', timeout=30000}
-    device:tap_on({id=id})
-    return
-  end
-  device:scroll_until_visible{element={id=id}, direction='DOWN', timeout=30000}
-  device:clear_logs()
-  for _ = 1, 10 do
-    device:tap_on({id=id})
-    if device:extended_wait_until{condition=function() return logged('leetcode.list.console_tap') end, timeout=2000, interval=250, optional=true} then return end
-  end
-  error("the console choice never reached the screen")
 end
 
 local function choose_device()
@@ -167,10 +149,7 @@ end
 local function marked() return device:get_element({css='.cm-run-error-line'}) end
 
 local ok, failure = pcall(function()
-  run_flow("choose this device and turn the console on", function()
-    choose_device()
-    set_console(true)
-  end)
+  run_flow("choose this device", function() choose_device() end)
 
   if android then
     run_flow("android: open, chip, Run, result", function()
@@ -182,7 +161,6 @@ local ok, failure = pcall(function()
       local b, s = bounds('ConsoleSheet'), screen()
       assert_true(b.top >= 0 and b.bottom <= s.height + 1, "the sheet is outside the screen")
     end)
-    run_flow("turn the console off", function() set_console(false) end)
     assert_true(#device:get_network_stub_hits() == 0, "a run reached the backend")
     return
   end
@@ -303,8 +281,6 @@ local ok, failure = pcall(function()
     end, timeout=15000, interval=250, label='the marked line sits above where the sheet was'}
     assert_clean_log()
   end)
-
-  run_flow("turn the console off", function() set_console(false) end)
 
   assert_true(#device:get_network_stub_hits() == 0, "a run reached the backend")
 end)

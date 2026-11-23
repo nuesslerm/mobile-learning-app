@@ -29,17 +29,8 @@
       "ProblemEditorDiffToggle",
       "ProblemEditorDiffToggle-Indicator",
       "ProblemEditorDiffToggle-Label",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
       "ProblemEditorTextEditStartButton",
       "ProblemEditorVoiceStartButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
       "ProblemPlanTab",
       "ProblemPlanSteps",
       "ProblemPlanComposer",
@@ -47,6 +38,12 @@
       "ProblemPlanTextInput",
       "ProblemPlanAddButton",
       "EditorHelperRails",
+      "ConsoleActionBar",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "EditorSyntaxToolbar",
       "EditorSyntax-Tab",
       "EditorSyntax-Dedent",
@@ -71,10 +68,10 @@
       "EditorAction-Paste",
       "EditorAction-Done"
     ],
-    "text": "Plan\nCode\nPython\nDiff\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nDone"
+    "text": "Plan\nCode\nPython\nDiff\nConsole\nSubmit\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nDone"
   },
   "timings": {
-    "render_ms": 259
+    "render_ms": 277
   },
   "name": "voiceeditflow/final-given-the-problem-editor-with-an-injected-voice-dea925.light",
   "image": {

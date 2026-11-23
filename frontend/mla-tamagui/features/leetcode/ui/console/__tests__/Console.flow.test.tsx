@@ -7,7 +7,6 @@ import { forgetLoggedLines, loggedLines } from '../../../../../tests/flow/logged
 import type { LeetCodeGatewayPort, LeetCodePortOverrides, VoiceEditTransportPort } from '../../..';
 import { jsonText } from '../../../domain/console/caseFields';
 import { ProblemCatalog } from '../../../domain/problemCatalog';
-import { useConsoleSettingStore } from '../../../state/consoleSettingStore';
 import { useConsoleCasesStore } from '../../../state/console/consoleCasesStore';
 import { createFakeCodeRunner } from '../../../testing';
 
@@ -50,7 +49,6 @@ const selected = (id: string) => screen.getByTestId(id).getAttribute('aria-selec
 const chipCount = () => screen.getAllByTestId(/^ConsoleChip-\d+$/).length;
 
 function resetStores() {
-  useConsoleSettingStore.setState({ enabled: false });
   for (const problem of [parentheses, twoSum]) useConsoleCasesStore.getState().reset(problem);
 }
 
@@ -59,23 +57,10 @@ beforeEach(() => {
   Object.assign(window, { __MCP_KEYBOARD_VISIBLE__: false });
 });
 
-describe('the console setting off', () => {
-  it('given the console setting off, when the editor opens, then there is no dock and no sheet', async () => {
-    await openEditor();
-
-    expect(screen.queryByTestId('ConsoleDock')).toBeNull();
-    expect(screen.queryByTestId('ConsoleSheet')).toBeNull();
-    expect(screen.queryByTestId('ConsoleBarOpen')).toBeNull();
-  });
-});
-
 describe('the console sheet and its tabs', () => {
-  beforeEach(() => useConsoleSettingStore.setState({ enabled: true }));
-
   it('given the keyboard down, when the editor opens and Console is tapped, then the sheet opens on Testcase and the dock goes, and the Run Result tab shows its empty state', async () => {
     await openEditor();
     expect(screen.getByTestId('ConsoleBarOpen')).toBeTruthy();
-    expect(screen.queryByTestId('ProblemEditorRunLocalButton')).toBeNull();
     await forgetLoggedLines();
 
     await tap('ConsoleBarOpen');
@@ -94,8 +79,6 @@ describe('the console sheet and its tabs', () => {
 });
 
 describe('the Testcase tab', () => {
-  beforeEach(() => useConsoleSettingStore.setState({ enabled: true }));
-
   it('given valid-parentheses, when the Testcase tab shows and a chip is tapped, then the chips follow the catalog and the field shows that case as JSON', async () => {
     await openEditor();
     await tap('ConsoleBarOpen');
@@ -194,8 +177,6 @@ describe('the Testcase tab', () => {
 });
 
 describe('the action bar above the keyboard', () => {
-  beforeEach(() => useConsoleSettingStore.setState({ enabled: true }));
-
   it('given the keyboard up, when the editor shows, then the rail carries the bar and the dock is not mounted', async () => {
     await openEditor();
     await setKeyboard(true);
@@ -233,8 +214,6 @@ describe('the action bar above the keyboard', () => {
 });
 
 describe('the close paths', () => {
-  beforeEach(() => useConsoleSettingStore.setState({ enabled: true }));
-
   it('given the console open, when its handle is pressed, then it closes and the dock returns', async () => {
     await openEditor();
     await tap('ConsoleBarOpen');
@@ -295,8 +274,6 @@ describe('the close paths', () => {
 });
 
 describe('the editor strip above the open sheet', () => {
-  beforeEach(() => useConsoleSettingStore.setState({ enabled: true }));
-
   it('given the screen root laid out 700 high, when the console opens and closes, then the scroll padding follows', async () => {
     const session = await openEditor();
     await session.layout('ProblemEditorScreen', { x: 0, y: 0, width: 400, height: 700 });
@@ -313,8 +290,6 @@ describe('the editor strip above the open sheet', () => {
 });
 
 describe('the workspace', () => {
-  beforeEach(() => useConsoleSettingStore.setState({ enabled: true }));
-
   it('given the console open, when the Plan tab is tapped, then the sheet is gone with that reason and stays closed on Code', async () => {
     await openEditor('/leetcode/valid-parentheses', { aiEdit: true });
     await tap('ConsoleBarOpen');
@@ -331,17 +306,12 @@ describe('the workspace', () => {
 });
 
 describe('the screen with the console on', () => {
-  beforeEach(() => useConsoleSettingStore.setState({ enabled: true }));
-
-  it('given the console on, when two-sum opens, then the classic rows are gone, the pencil and the mic sit in the language row, and the header menu resets the code through the confirm route', async () => {
+  it('given the console on, when two-sum opens, then the pencil and the mic sit in the language row, and the header menu resets the code through the confirm route', async () => {
     const r = routerHarness();
     setStackHeadersRendered(true);
     await openEditor('/leetcode/two-sum', { aiEdit: true });
 
-    for (const id of ['ProblemEditorRunLocalButton', 'ProblemEditorRunInputButton', 'ProblemEditorRunButton', 'ProblemEditorResetButton', 'ProblemEditorFormatButton', 'ProblemEditorRunOutcome', 'ProblemEditorTestInputZone']) {
-      expect(screen.queryByTestId(id)).toBeNull();
-    }
-    const row = screen.getByTestId('ProblemEditorDiffRow');
+        const row = screen.getByTestId('ProblemEditorDiffRow');
     expect(within(row).getByTestId('ProblemEditorTextEditStartButton')).toBeTruthy();
     expect(within(row).getByTestId('ProblemEditorVoiceStartButton')).toBeTruthy();
 
@@ -350,16 +320,5 @@ describe('the screen with the console on', () => {
     await userEvent.click(within(screen.getByTestId('ProblemEditorMenuButtonContent')).getByTestId('ProblemEditorMenuResetCode'));
 
     await waitFor(() => expect(r.lastPush()).toBe('/leetcode/two-sum/reset-code'));
-  });
-
-  it('given the console off, when two-sum opens, then the classic rows are there and the header menu has no Reset code', async () => {
-    useConsoleSettingStore.setState({ enabled: false });
-    setStackHeadersRendered(true);
-    await openEditor('/leetcode/two-sum');
-
-    expect(screen.getByTestId('ProblemEditorRunLocalButton')).toBeTruthy();
-    await userEvent.click(screen.getByTestId('ProblemEditorMenuButton'));
-    await waitFor(() => expect(screen.getByTestId('ProblemEditorMenuButtonContent')).toBeTruthy());
-    expect(within(screen.getByTestId('ProblemEditorMenuButtonContent')).queryByTestId('ProblemEditorMenuResetCode')).toBeNull();
   });
 });

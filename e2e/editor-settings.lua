@@ -41,7 +41,7 @@ local first_open = true
 local function open_editor(path, wait_for)
   device:clear_logs()
   device:open_link(base .. path)
-  device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=60000})
+  device:assert_visible({id='ProblemEditorScreen'}, {timeout=60000})
   device:extended_wait_until{condition=function() return buffer():find(wait_for, 1, true) ~= nil end, timeout=30000, label='the starter'}
   local first = first_open
   if first_open then

@@ -206,19 +206,22 @@ describe('dragging a block by its grip', () => {
     expect(drops(recording)).toHaveLength(0);
   });
 
-  it('given a result card on show, when a block is dropped, then the card is cleared like after any change to the text', async () => {
+  it('given a result on the console, when a block is dropped, then the result is cleared like after any change to the text', async () => {
     const runner = createFakeCodeRunner();
     const { session } = await drawn(DEF_IF, { ports: { runner } });
     await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-code'));
-    await userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
-    await eventually(() => expect(screen.getByTestId('ProblemEditorRunOutcomeStatus')).toBeTruthy());
+    await userEvent.click(screen.getByTestId('ConsoleBarSubmit'));
+    await eventually(() => expect(screen.getByTestId('ConsoleResultVerdict')).toBeTruthy());
     await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-blocks'));
     await eventually(() => expect(rows()).toEqual(ROWS));
 
     await dragTo(session, rowIndex.b, 4, 1);
 
-    await eventually(() => expect(screen.queryByTestId('ProblemEditorRunOutcomeStatus')).toBeNull());
     await eventually(() => expect(rows()).toEqual(ROWS_MOVED));
+    await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-code'));
+    await userEvent.click(await screen.findByTestId('ConsoleBarOpen'));
+    await userEvent.click(await screen.findByTestId('ConsoleTabs-result'));
+    await eventually(() => expect(screen.getByTestId('ConsoleResultEmpty')).toBeTruthy());
   });
 
   it('given the setting is on, when the person switches tabs, then Code shows no block view, Blocks shows it, and a block dropped there shows in the editor back on Code', async () => {

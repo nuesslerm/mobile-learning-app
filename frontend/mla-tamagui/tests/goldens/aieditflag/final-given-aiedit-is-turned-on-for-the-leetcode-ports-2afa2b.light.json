@@ -22,7 +22,9 @@
       "ProblemEditorHeaderBack",
       "ProblemEditorHeaderTitle",
       "ProblemEditorHeaderSubtitle",
-      "ProblemEditorHeaderActions",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
       "ProblemEditorInfoButton",
       "ProblemEditorMenuButton",
       "ProblemEditorToolbarTarget",
@@ -33,17 +35,14 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
       "ProblemEditorTextEditStartButton",
       "ProblemEditorVoiceStartButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "ProblemPlanTab",
       "ProblemPlanSteps",
       "ProblemPlanComposer",
@@ -51,10 +50,10 @@
       "ProblemPlanTextInput",
       "ProblemPlanAddButton"
     ],
-    "text": "Plan\nCode\nTwo Sum\nArray & Hashing · Easy\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
+    "text": "Plan\nCode\nTwo Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit"
   },
   "timings": {
-    "render_ms": 280
+    "render_ms": 494
   },
   "name": "aieditflag/final-given-aiedit-is-turned-on-for-the-leetcode-ports-2afa2b.light",
   "image": {

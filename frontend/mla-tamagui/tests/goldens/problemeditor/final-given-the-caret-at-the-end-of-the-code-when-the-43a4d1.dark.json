@@ -15,6 +15,15 @@
   "summary": {
     "testids": [
       "ProblemEditorScreen",
+      "ProblemEditorHeader",
+      "ProblemEditorHeaderBack",
+      "ProblemEditorHeaderTitle",
+      "ProblemEditorHeaderSubtitle",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
+      "ProblemEditorInfoButton",
+      "ProblemEditorMenuButton",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
       "ProblemEditorEditorZone",
@@ -23,16 +32,13 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
       "EditorHelperRails",
+      "ConsoleActionBar",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "EditorSyntaxToolbar",
       "EditorSyntax-Tab",
       "EditorSyntax-Dedent",
@@ -57,10 +63,10 @@
       "EditorAction-Paste",
       "EditorAction-Done"
     ],
-    "text": "Python\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nDone"
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nDone"
   },
   "timings": {
-    "render_ms": 231
+    "render_ms": 241
   },
   "name": "problemeditor/final-given-the-caret-at-the-end-of-the-code-when-the-43a4d1.dark",
   "image": {

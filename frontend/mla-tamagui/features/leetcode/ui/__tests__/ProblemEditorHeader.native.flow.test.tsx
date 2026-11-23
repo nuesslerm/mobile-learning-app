@@ -129,7 +129,7 @@ describe('the problem editor header on the native twin', () => {
     await openEditor('ios', run.runner);
     expect(screen.queryByTestId('NativeHeaderCustom')).toBeNull();
 
-    await userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
+    await userEvent.click(screen.getByTestId('ConsoleBarSubmit'));
 
     await waitFor(() => expect(within(screen.getByTestId('NativeHeaderCustom')).getByLabelText('Working')).toBeTruthy());
     await act(async () => run.finish());
@@ -156,7 +156,7 @@ describe('the problem editor header on the native twin', () => {
     expect(within(screen.getByTestId('ProblemEditorHeaderGroup1')).getByTestId('ProblemEditorMenuButton')).toBeTruthy();
     expect(screen.queryByLabelText('Working')).toBeNull();
 
-    await userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
+    await userEvent.click(screen.getByTestId('ConsoleBarSubmit'));
 
     await waitFor(() => expect(screen.getByLabelText('Working')).toBeTruthy());
     await act(async () => run.finish());

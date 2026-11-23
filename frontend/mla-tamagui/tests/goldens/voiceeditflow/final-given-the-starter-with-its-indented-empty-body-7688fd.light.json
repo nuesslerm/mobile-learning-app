@@ -29,17 +29,14 @@
       "ProblemEditorDiffToggle",
       "ProblemEditorDiffToggle-Indicator",
       "ProblemEditorDiffToggle-Label",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
       "ProblemEditorTextEditStartButton",
       "ProblemEditorVoiceStartButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "ProblemPlanTab",
       "ProblemPlanSteps",
       "ProblemPlanComposer",
@@ -47,7 +44,7 @@
       "ProblemPlanTextInput",
       "ProblemPlanAddButton"
     ],
-    "text": "Plan\nCode\nPython\nDiff\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
+    "text": "Plan\nCode\nPython\nDiff\nConsole\nSubmit"
   },
   "timings": {
     "render_ms": 265

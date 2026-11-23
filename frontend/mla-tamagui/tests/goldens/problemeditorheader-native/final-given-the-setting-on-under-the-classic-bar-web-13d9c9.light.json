@@ -32,23 +32,26 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorRunOutcome",
-      "ProblemEditorRunOutcomeStatus",
-      "ProblemEditorRunOutcomeTotals",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput"
+      "ConsoleSheetHandle",
+      "ConsoleSheet",
+      "ConsoleTabs",
+      "SegmentedThumb",
+      "ConsoleTabs-testcase",
+      "ConsoleTabs-result",
+      "ConsoleBody",
+      "ConsolePanel-result",
+      "ConsoleResultVerdict",
+      "ConsoleResultCounts",
+      "ConsoleResultRuntime",
+      "ConsoleFooter",
+      "ConsoleFooterReset",
+      "ConsoleFooterRun",
+      "ConsoleFooterSubmit"
     ],
-    "text": "Two Sum\nArray & Hashing · Easy\nPython\nFormat\nRun Local\nRun\nReset\nAccepted\n5 / 5 test cases passed\nOne JSON value per line: nums, target\nRun input"
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nTestcase\nRun Result\nAccepted\n5 / 5 testcases passed\nRuntime 0 ms\nReset\nSubmit"
   },
   "timings": {
-    "render_ms": 238
+    "render_ms": 272
   },
   "name": "problemeditorheader-native/final-given-the-setting-on-under-the-classic-bar-web-13d9c9.light",
   "image": {

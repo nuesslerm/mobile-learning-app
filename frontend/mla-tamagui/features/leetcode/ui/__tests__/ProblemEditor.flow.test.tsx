@@ -1,14 +1,11 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 
 import {
   act,
   createFakeAudioRecorder,
   createFakeVoiceEditTransport,
-  expectWarning,
   fireEvent,
-  logAt,
   routerHarness,
+  setStackHeadersRendered,
   screen,
   userEvent,
   waitFor,
@@ -19,10 +16,8 @@ import { app } from '../../../../tests/flow/app';
 import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLines';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createLiveLeetCodeGateway } from '../../data/webBridgeClient';
 import { ProblemCatalog } from '../../domain/problemCatalog';
 import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSettingStore';
-import { createFakeCodeRunner, failingRun, passingRun } from '../../testing';
 
 // Native Expo/RN modules the screen's module graph pulls in but that cannot
 // load under jsdom. They are never exercised here -- the ports (audio, voice)
@@ -35,8 +30,6 @@ import { createFakeCodeRunner, failingRun, passingRun } from '../../testing';
 // its rows tap straight into onValueChanged, which is the screen-facing seam.
 
 import {
-  useLeetCodeAuthStore,
-  type CodeRunnerPort,
   type LeetCodeGatewayPort,
   type LeetCodePortOverrides,
   type RunResponse,
@@ -68,29 +61,27 @@ function fakeGateway(): { gateway: LeetCodeGatewayPort } {
   };
 }
 
-// the runs here go through the gateway, so the setting is the server unless a test hands in its own runner
 afterEach(() => useRunnerSettingStore.setState({ runner: DEFAULT_RUNNER }));
 
 async function renderEditor(
   gateway: LeetCodeGatewayPort,
-  search?: Record<string, string>,
-  runner?: CodeRunnerPort
+  search?: Record<string, string>
 ): Promise<FlowSession> {
-  if (!runner) useRunnerSettingStore.setState({ runner: 'backend' });
+  useRunnerSettingStore.setState({ runner: 'backend' });
   const ports: LeetCodePortOverrides = {
     gateway,
     voice: createFakeVoiceEditTransport() as unknown as VoiceEditTransportPort,
     audio: createFakeAudioRecorder(),
-    ...(runner ? { runner } : {}),
   };
   return app.render('/leetcode/two-sum', { overrides: { leetcode: ports }, search });
 }
 
-// the line of the reset handler's first statement, found in the source so that an edit above it does not move the test's logpoint
-const RESET_HANDLER_LINE =
-  readFileSync(join(__dirname, '../ProblemEditorScreen.tsx'), 'utf8')
-    .split('\n')
-    .findIndex((line) => line.includes('const handleResetCode')) + 2;
+async function formatThroughMenu(): Promise<void> {
+  await userEvent.click(screen.getByTestId('EditorSettingsButton'));
+  await waitFor(() => expect(screen.getByTestId('EditorSettingsButtonContent')).toBeTruthy());
+  await userEvent.click(screen.getByTestId('EditorSettingsFormat'));
+  await userEvent.click(screen.getByTestId('EditorSettingsFormatConfirm'));
+}
 
 describe('ProblemEditorScreen flow (editor buffer)', () => {
   // The export's prerendered editor frame posts its only 'ready' before hydration; 297214d fixed losing it.
@@ -103,94 +94,6 @@ describe('ProblemEditorScreen flow (editor buffer)', () => {
     expect(editor.text()).toContain('def twoSum');
   });
 
-  it('given a hydrated problem editor, when the user types in the editor, then the typed text is the code the gateway runs', async () => {
-    const { gateway } = fakeGateway();
-    const session = await renderEditor(gateway);
-    const editor = await session.editor();
-    expect(editor.text()).toContain('def twoSum');
-
-    await session.snapshot('editor-hydrated');
-
-    const typed = `${editor.text()}\n        return [0, 1]`;
-    await editor.select(0, editor.text().length);
-    await editor.type(typed);
-
-    await userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
-
-    await waitFor(() => {
-      expect(gateway.runLocal).toHaveBeenCalledWith(
-        expect.objectContaining({ code: typed, lang: 'python3', methodName: 'twoSum' })
-      );
-    });
-  });
-
-  it('given the editor hydrated with the starter code, when the user selects the pass body and types return [], then the run request buffer contains return []', async () => {
-    const { gateway } = fakeGateway();
-    const session = await renderEditor(gateway);
-    const editor = await session.editor();
-
-    const bodyStart = editor.text().lastIndexOf('\n') + 1;
-    await editor.select(bodyStart, editor.text().length);
-    await editor.type('return []');
-
-    await userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
-
-    await waitFor(() => {
-      expect(gateway.runLocal).toHaveBeenCalledWith(
-        expect.objectContaining({ code: expect.stringContaining('return []') })
-      );
-    });
-  });
-
-  it('given the problem editor, when the user runs the tests, then the gateway verdict is shown', async () => {
-    const { gateway } = fakeGateway();
-    const session = await renderEditor(gateway);
-    await session.editor();
-
-    await userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('ProblemEditorRunOutcome')).toBeTruthy();
-    });
-    expect(screen.getByTestId('ProblemEditorRunOutcomeStatus').textContent).toBe('Accepted');
-    expect(screen.getByTestId('ProblemEditorRunOutcomeTotals').textContent).toBe(
-      '5 / 5 test cases passed'
-    );
-
-    await session.snapshot('run-accepted');
-  });
-
-  it('given the leetcode backend sits behind a proxy that answers a run with a 502 page, when the user runs the tests, then the error shows and the log names the endpoint and status, then the problem', async () => {
-    // Given the real gateway over a fetch whose run endpoint answers 502
-    expectWarning(/leetcode\.api\.fail/);
-    expectWarning(/editor_v2\.run_local\.error/);
-    const realFetch = globalThis.fetch;
-    vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) =>
-      String(input).includes('/api/leetcode/run')
-        ? Promise.resolve(new Response('<html>Bad Gateway</html>', { status: 502, headers: { 'Content-Type': 'text/html' } }))
-        : realFetch(input, init)
-    );
-    try {
-      const session = await renderEditor(createLiveLeetCodeGateway('http://leetcode-backend.test'));
-      await session.editor();
-      await forgetLoggedLines();
-
-      // When the user runs the tests
-      await userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
-
-      // Then the screen shows an error outcome
-      expect((await screen.findByTestId('ProblemEditorRunOutcomeStatus')).textContent).toBe('Error');
-      // And the adapter line has the endpoint, status and a duration, the screen line the problem, and neither holds the backend URL
-      const [fail] = await loggedLines('leetcode.api.fail');
-      expect(fail?.context).toMatchObject({ endpoint: 'run', method: 'POST', status: 502 });
-      expect(typeof fail?.context?.ms).toBe('number');
-      const [error] = await loggedLines('editor_v2.run_local.error');
-      expect(error?.context).toMatchObject({ problemId: 'two-sum', lang: 'python3' });
-      expect(JSON.stringify([fail, error])).not.toContain('leetcode-backend.test');
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
 });
 
 describe('ProblemEditorScreen flow (language toggle)', () => {
@@ -364,32 +267,13 @@ describe('ProblemEditorScreen flow (languages a problem offers)', () => {
 });
 
 describe('ProblemEditorScreen flow (action buttons)', () => {
-  it('given a signed-in problem editor, when the user taps run, then the gateway is asked to test and poll the submission', async () => {
-    useLeetCodeAuthStore.setState({ isLoggedIn: true, username: 'flow-user' });
-    const { gateway } = fakeGateway();
-    const session = await renderEditor(gateway);
-    await session.editor();
-
-    await userEvent.click(screen.getByTestId('ProblemEditorRunButton'));
-
-    await waitFor(() => {
-      expect(gateway.test).toHaveBeenCalledWith(
-        expect.objectContaining({
-          slug: 'two-sum',
-          lang: 'python3',
-          dataInput: '[2,7,11,15]\n9',
-        })
-      );
-      expect(gateway.poll).toHaveBeenCalledWith('flow-interpret');
-    });
-  });
-
   it('given the problem editor, when the user taps format, then the gateway formats and the editor buffer is replaced', async () => {
+    setStackHeadersRendered(true);
     const { gateway } = fakeGateway();
     const session = await renderEditor(gateway);
     const editor = await session.editor();
 
-    await userEvent.click(screen.getByTestId('ProblemEditorFormatButton'));
+    await formatThroughMenu();
 
     await waitFor(() => {
       expect(gateway.format).toHaveBeenCalled();
@@ -432,29 +316,6 @@ describe('ProblemEditorScreen flow (router)', () => {
     await waitFor(async () => expect((await session.editor()).text()).toBe(second));
   });
 
-  it('given the problem editor with code on screen, when the user taps reset, then the app pushes the reset-code route and the reset request line runs once', async () => {
-    const r = routerHarness();
-    const { gateway } = fakeGateway();
-    const session = await renderEditor(gateway);
-    const editor = await session.editor();
-    const typed = `${editor.text()}\n        return [0, 1]`;
-    await editor.select(0, editor.text().length);
-    await editor.type(typed);
-
-    const probe = logAt('features/leetcode/ui/ProblemEditorScreen.tsx', RESET_HANDLER_LINE, ['problem.id']);
-    try {
-      await userEvent.click(screen.getByTestId('ProblemEditorResetButton'));
-    } finally {
-      probe.release();
-    }
-
-    await waitFor(() => {
-      expect(r.lastPush()).toBe('/leetcode/two-sum/reset-code');
-    });
-    expect(probe.stops).toHaveLength(1);
-    expect(probe.stops[0].values).toEqual({ 'problem.id': 'two-sum' });
-    expect(probe.stops[0].stack[0]).toMatchObject({ file: 'features/leetcode/ui/ProblemEditorScreen.tsx', line: RESET_HANDLER_LINE });
-  });
 });
 
 describe('ProblemEditorScreen flow (syntax toolbar)', () => {
@@ -467,6 +328,7 @@ describe('ProblemEditorScreen flow (syntax toolbar)', () => {
 
   it('given the caret at the end of the code, when the user taps Parentheses, then the editor adds the pair through its own bracket handling, caret between', async () => {
     // Given the hydrated editor with the caret after the last character
+    setStackHeadersRendered(true);
     const { gateway } = fakeGateway();
     const session = await renderEditor(gateway);
     const editor = await session.editor();
@@ -505,13 +367,14 @@ describe('ProblemEditorScreen flow (syntax toolbar)', () => {
 describe('ProblemEditorScreen flow (writes from outside the editor)', () => {
   it('given the code formatted by the gateway, when the user taps Undo, then the code before the format returns in one step', async () => {
     // Given the hydrated editor and the code it shows
+    setStackHeadersRendered(true);
     const { gateway } = fakeGateway();
     const session = await renderEditor(gateway);
     const editor = await session.editor();
     const before = editor.text();
 
     // When the gateway's format replaces the buffer, and the user taps the toolbar's Undo
-    await userEvent.click(screen.getByTestId('ProblemEditorFormatButton'));
+    await formatThroughMenu();
     await waitFor(() => expect(editor.text()).toBe(`# formatted\n${before}`), { timeout: 5_000 });
     Object.assign(window, { __MCP_KEYBOARD_VISIBLE__: true });
     window.dispatchEvent(new Event('mcp:keyboardframe'));
@@ -560,7 +423,7 @@ describe('ProblemEditorScreen flow (keyboard)', () => {
     expect(editor.focused()).toBe(true);
   });
 
-  it('given the editor holds the caret, when the user presses Run Local, then the screen dismisses the keyboard before it runs', async () => {
+  it('given the editor holds the caret, when the user taps Submit, then the screen dismisses the keyboard before it runs', async () => {
     // Given the hydrated editor with the caret in it
     const { gateway } = fakeGateway();
     const session = await renderEditor(gateway);
@@ -568,70 +431,11 @@ describe('ProblemEditorScreen flow (keyboard)', () => {
     await editor.focus();
     await forgetLoggedLines();
 
-    // When the user presses Run Local
-    await session.tap('ProblemEditorRunLocalButton');
+    // When the user taps Submit
+    await session.tap('ConsoleBarSubmit');
 
     // Then the dismissal is logged, so the result does not land under the keyboard, and the editor has let go of the caret
     await waitFor(() => expect(editor.focused()).toBe(false));
     expect(await loggedLines('editor_v2.keyboard_dismiss')).not.toHaveLength(0);
-  });
-});
-
-describe('ProblemEditorScreen flow (code runner port)', () => {
-  it('given a runner whose last case fails, when the user runs the tests, then the card shows that runner\'s verdict and the gateway is not asked', async () => {
-    // Given the editor with a runner that fails its last case, and a gateway that must not be reached
-    const { gateway } = fakeGateway();
-    const runner = createFakeCodeRunner(() => failingRun(3));
-    const session = await renderEditor(gateway, undefined, runner);
-    await session.editor();
-
-    // When the user presses Run Local
-    await userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
-
-    // Then the card reports the runner's wrong answer and tally, the runner was asked for this problem, the gateway was not
-    await waitFor(() => expect(screen.getByTestId('ProblemEditorRunOutcomeStatus').textContent).toBe('Wrong Answer'));
-    expect(screen.getByTestId('ProblemEditorRunOutcomeTotals').textContent).toBe('2 / 3 test cases passed');
-    expect(runner.calls).toEqual([expect.objectContaining({ lang: 'python3', methodName: 'twoSum' })]);
-    expect(gateway.runLocal).not.toHaveBeenCalled();
-  });
-
-  it('given a runner whose cases all pass, when the user runs the tests, then the card shows it accepted', async () => {
-    // Given the editor with a runner that passes every case
-    const { gateway } = fakeGateway();
-    const session = await renderEditor(gateway, undefined, createFakeCodeRunner(() => passingRun(4)));
-    await session.editor();
-
-    // When the user presses Run Local
-    await userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
-
-    // Then the card shows Accepted with every case passed
-    await waitFor(() => expect(screen.getByTestId('ProblemEditorRunOutcomeStatus').textContent).toBe('Accepted'));
-    expect(screen.getByTestId('ProblemEditorRunOutcomeTotals').textContent).toBe('4 / 4 test cases passed');
-  });
-
-  it('given a run that is still going, when the user edits the code and the run then finishes, then no verdict is shown over the new code', async () => {
-    // Given the editor with a runner whose answer is held back, and Run Local pressed on the starter code
-    const { gateway } = fakeGateway();
-    let finish: (run: RunResponse) => void = () => undefined;
-    const runner = createFakeCodeRunner(() => new Promise<RunResponse>((resolve) => (finish = resolve)));
-    const session = await renderEditor(gateway, undefined, runner);
-    const editor = await session.editor();
-    await forgetLoggedLines();
-    await userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
-    await waitFor(() => expect(runner.calls).toHaveLength(1));
-
-    // When the person goes on typing and the run then finishes
-    const edited = `${editor.text()}\n        return [0, 1]`;
-    await forgetLoggedLines();
-    await editor.select(0, editor.text().length);
-    await editor.type(edited);
-    await waitFor(() => expect(editor.text()).toBe(edited));
-    // the page's change reaches the screen's state after the page shows it: the editor's value sync is what says it has landed there
-    await waitFor(async () => expect(await loggedLines('editor.value_sync')).not.toHaveLength(0));
-    await act(async () => finish(passingRun(3)));
-
-    // Then no card appears for code that is no longer there, and the screen logs why it dropped the answer (and tells the person)
-    await waitFor(async () => expect(await loggedLines('editor_v2.run_local.discarded')).not.toHaveLength(0), { timeout: 10_000 });
-    expect(screen.queryByTestId('ProblemEditorRunOutcomeStatus')).toBeNull();
   });
 });

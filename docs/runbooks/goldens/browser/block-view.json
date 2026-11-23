@@ -4,7 +4,7 @@
   "last_action": "tap_on{id='ProblemWorkspaceTab-blocks'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:44609/mla-tamagui/leetcode/two-sum?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgdHdvU3VtKHNlbGYsIG51bXMsIHRhcmdldCk6CiAgICAgICAgaWYgbnVtczoKICAgICAgICAgICAgYSA9IDEKICAgICAgICAgICAgYiA9IDIKICAgICAgICByZXR1cm4gYQo",
+    "url": "http://127.0.0.1:35277/mla-tamagui/leetcode/two-sum?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgdHdvU3VtKHNlbGYsIG51bXMsIHRhcmdldCk6CiAgICAgICAgaWYgbnVtczoKICAgICAgICAgICAgYSA9IDEKICAgICAgICAgICAgYiA9IDIKICAgICAgICByZXR1cm4gYQo",
     "title": "",
     "testids": [
       "ProblemEditorHeader",
@@ -52,8 +52,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 14412,
-    "capture_ms": 304
+    "since_start_ms": 15023,
+    "capture_ms": 371
   },
   "tolerance": {
     "threshold": 0.1,

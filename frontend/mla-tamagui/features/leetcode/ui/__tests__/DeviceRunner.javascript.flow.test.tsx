@@ -44,13 +44,13 @@ async function renderEditor(gateway: LeetCodeGatewayPort, deviceRunner: LeetCode
   return app.render('/leetcode/two-sum', { overrides: { leetcode: ports }, search });
 }
 
-const press = () => userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
-const status = () => screen.getByTestId('ProblemEditorRunOutcomeStatus').textContent;
+const press = () => userEvent.click(screen.getByTestId('ConsoleBarSubmit'));
+const status = () => screen.getByTestId('ConsoleResultVerdict').textContent;
 
 afterEach(() => useRunnerSettingStore.setState({ runner: DEFAULT_RUNNER }));
 
-describe('Run Local in JavaScript on the device', () => {
-  it('given the backend is chosen and the editor opens in JavaScript, when the user presses Run Local, then the JavaScript page answers over 12 cases, the card says Accepted and neither the backend nor the Python page is asked', async () => {
+describe('Run in JavaScript on the device', () => {
+  it('given the backend is chosen and the editor opens in JavaScript, when the user taps Submit, then the JavaScript page answers over 12 cases, the console says Accepted and neither the backend nor the Python page is asked', async () => {
     useRunnerSettingStore.setState({ runner: 'backend' });
     const { gateway, python, js, deviceRunner } = setup();
     await renderEditor(gateway, deviceRunner);
@@ -58,7 +58,7 @@ describe('Run Local in JavaScript on the device', () => {
     await press();
 
     await waitFor(() => expect(status()).toBe('Accepted'));
-    expect(screen.getByTestId('ProblemEditorRunOutcomeTotals').textContent).toBe('12 / 12 test cases passed');
+    expect(screen.getByTestId('ConsoleResultCounts').textContent).toBe('12 / 12 testcases passed');
     expect(gateway.runLocal).not.toHaveBeenCalled();
     expect(js.loads).toBe(1);
     expect(python.loads).toBe(0);
@@ -80,7 +80,7 @@ describe('Run Local in JavaScript on the device', () => {
     expect(gateway.runLocal).not.toHaveBeenCalled();
   });
 
-  it('given a compile error at line 2, when the user presses Run Local, then the card shows it, offers Line 2 and the editor marks that line', async () => {
+  it('given a compile error at line 2, when the user taps Submit, then the console shows it, offers Line 2 and the editor marks that line', async () => {
     useRunnerSettingStore.setState({ runner: 'device' });
     const { gateway, deviceRunner } = setup({ judge: () => answers.compileError('SyntaxError: Unexpected token', { line: 2, column: 3 }) });
     const session = await renderEditor(gateway, deviceRunner, { lang: 'javascript', seed: SEED });
@@ -88,8 +88,8 @@ describe('Run Local in JavaScript on the device', () => {
 
     await press();
 
-    await waitFor(() => expect(screen.getByTestId('ProblemEditorRunOutcomeCompileError').textContent).toContain('Unexpected token'));
-    expect((await screen.findByTestId('ProblemEditorRunOutcomeLine')).textContent).toBe('Line 2');
+    await waitFor(() => expect(screen.getByTestId('ConsoleResultErrorText').textContent).toContain('Unexpected token'));
+    expect((await screen.findByTestId('ConsoleResultLine')).textContent).toContain('Line 2');
     await waitFor(async () => {
       const text = editor.text();
       expect((await editor.marks()).map((mark) => text.slice(mark.range.from, mark.range.to))).toEqual([LINE_2]);

@@ -91,13 +91,13 @@ end
 
 -- opens two-sum with `code` in the editor, the rows drawn, the keyboard lowered and the log empty
 local function open_with(code, last_row)
-  if device:get_element({id='ProblemEditorRunLocalButton'}) then
+  if device:get_element({id='ProblemEditorScreen'}) then
     device:open_link(base .. "/settings")
-    device:assert_not_visible({id='ProblemEditorRunLocalButton'})
+    device:assert_not_visible({id='ProblemEditorScreen'})
   end
   device:clear_logs()
   device:open_link(base .. "/leetcode/two-sum?seed64=" .. base64url(code))
-  device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=60000})
+  device:assert_visible({id='ProblemEditorScreen'}, {timeout=60000})
   device:extended_wait_until{condition=function() return logged('route.change') end, timeout=60000, interval=250, label='the page hydrated'}
   lower_keyboard()
   -- the block view is the Blocks tab of the workspace: the editor stays mounted on the Code tab

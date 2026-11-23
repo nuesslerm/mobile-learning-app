@@ -26,15 +26,12 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "ProblemWorkspaceBlocks",
       "ProblemEditorBlockView",
       "BlockPalette",
@@ -61,7 +58,7 @@
     "text": "Code\nBlocks\nif\nfor\nwhile\ndef\nreturn\ndef f(x):\nif x:\na = 1\nb = 2\nreturn b\nb = 2\nMove after if x:"
   },
   "timings": {
-    "render_ms": 351
+    "render_ms": 301
   },
   "name": "blockdrag/block-view-drag.light",
   "image": {

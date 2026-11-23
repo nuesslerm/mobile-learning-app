@@ -1,29 +1,20 @@
 --[[---
-platform: android, browser
-against: android=update, browser=export
+platform: browser
+against: browser=export
 timeout: 600
 focus: true
 features: leetcode
 ---]]
--- Run Local on the device (issue 86, B2): with "This device" chosen on the problem list, Python runs in the hidden Pyodide page and the
--- backend is never asked (a stub counts the requests that would reach it). A good solution is Accepted over all 12 cases, a solution that
--- raises on one input shows 11 / 12 and the error, one that never ends is stopped by the per-case limit, a syntax error shows the compile
--- error. The input zone's Run input runs the one typed case the same way: the card shows what came back and no verdict, and an input that
--- is not the arguments is refused under the field. The default (this device) is chosen first and never changed after, so later tests on
--- this device find what they expect.
+-- Run on the device (issue 86, B2): with "This device" chosen on the problem list, Python runs in the hidden Pyodide page and the backend is never
+-- asked (a stub counts the requests that would reach it). The console's Submit shows Accepted over all 12 cases, a solution that raises on one input shows
+-- 11 / 12 and the error, one that never ends is stopped by the per-case limit, a syntax error shows the compile error; a custom case runs the one typed case
+-- with no verdict, and a field that is not a value is refused under it. The default (this device) is chosen first and never changed after.
 -- wf browser test e2e/local-run.lua --env base=http://127.0.0.1:8800/mla-tamagui
--- wf android test e2e/local-run.lua --env base=exp://u.expo.dev/<projectId>/group/<group>/--
--- --env out=<dir> saves a screenshot of the input zone and of the custom card there.
--- --env console=1 (browser only) runs the same flows through the console: Submit is the old Run Local, a custom chip is Run input, and the verdict, counts and
--- error are read from the Run Result tab. wf test run local-run --platform browser -- --env console=1
 local android = device.platform == "android"
 local base = env.base or (not android and "http://127.0.0.1:8800/mla-tamagui" or nil)
 assert_true(base, "pass --env base=<update link>; wf test run does")
-local console = env.console == "1"
-assert_true(not (console and android), "the console path runs in the browser only")
--- the dock shows while the keyboard is down, so the console path waits for the screen and checks the dock once the keyboard is lowered
-local READY = console and 'ProblemEditorScreen' or 'ProblemEditorRunLocalButton'
-local function shot(name) if env.out then device:take_screenshot(env.out .. "/" .. name .. ".png") end end
+-- the dock shows while the keyboard is down, so the screen is awaited and the dock checked once the keyboard is lowered
+local READY = 'ProblemEditorScreen'
 local function stub_run() device:add_network_stub("POST", "*/api/leetcode/run", { body_file = "e2e/stubs/leetcode-run-two-sum.json", headers = { ["content-type"] = "application/json" } }) end
 
 local function base64url(s)
@@ -82,21 +73,15 @@ local function lower_keyboard()
     end
     return
   end
-  -- the web editor autofocuses and its keyboard covers Run Local: a tap on the page outside the editor lowers it, aimed at the part of the
-  -- language row the rail does not cover (as the typing test does)
+  -- the web editor autofocuses and its keyboard covers the dock
   if device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true} then
-    if console then
-      -- the console's rail is taller and covers the whole language row on a short screen: Done, at the end of the action toolbar, lowers the keyboard
-      -- the rail rises with the keyboard's frame: a tap before it sits above the keyboard would land on the keys
-      device:extended_wait_until{condition=function()
-        local kb, rail = device:get_device_state('keyboard'), device:get_element({id='EditorHelperRails'})
-        return kb.visible and kb.bounds ~= nil and rail ~= nil and rail.bounds.bottom <= kb.bounds.top + 2
-      end, timeout=10000, interval=250, label='the rail sits above the keyboard'}
-      device:tap_on({id='EditorAction-Done'})
-    else
-      local row, rail = device:get_element({id='ProblemEditorDiffRow'}).bounds, device:get_element({id='EditorHelperRails'}).bounds
-      device:tap_on({point=('%d,%d'):format((row.left + row.right) // 2, (row.top + math.min(row.bottom, rail.top - 4)) // 2)})
-    end
+    -- the console's rail is taller and covers the whole language row on a short screen: Done, at the end of the action toolbar, lowers the keyboard
+    -- the rail rises with the keyboard's frame: a tap before it sits above the keyboard would land on the keys
+    device:extended_wait_until{condition=function()
+      local kb, rail = device:get_device_state('keyboard'), device:get_element({id='EditorHelperRails'})
+      return kb.visible and kb.bounds ~= nil and rail ~= nil and rail.bounds.bottom <= kb.bounds.top + 2
+    end, timeout=10000, interval=250, label='the rail sits above the keyboard'}
+    device:tap_on({id='EditorAction-Done'})
     device:assert_not_visible({id='EditorHelperRails'})
   end
 end
@@ -115,14 +100,7 @@ local function open_editor(problem, code)
     end, timeout=60000, interval=250, label='the page hydrated'}
   end
   lower_keyboard()
-  if console then device:assert_visible({id='ConsoleDock'}, {timeout=10000}) end
-end
-
--- opens the problem and presses `button` (Run Local unless told); returns when the outcome card names a verdict
-local function run_seed(problem, code, expect_text, secs, button)
-  open_editor(problem, code)
-  device:tap_on({id=button or 'ProblemEditorRunLocalButton'})
-  device:extended_wait_until{visible={id=expect_text.id, text=expect_text.text}, timeout=(secs or 120) * 1000, label=problem .. ': ' .. expect_text.label}
+  device:assert_visible({id='ConsoleDock'}, {timeout=10000})
 end
 
 local function choose(runner)
@@ -155,18 +133,6 @@ local function logged(needle)
 end
 
 local function bounds(id) local e = device:get_element({id=id}); return e and e.bounds or nil end
-
-local function set_console(on)
-  open("/", 'LeetcodeListConsoleRow')
-  local id = on and 'LeetcodeListConsoleOn' or 'LeetcodeListConsoleOff'
-  device:scroll_until_visible{element={id=id}, direction='DOWN', timeout=30000}
-  device:clear_logs()
-  for _ = 1, 10 do
-    device:tap_on({id=id})
-    if device:extended_wait_until{condition=function() return logged('leetcode.list.console_tap') end, timeout=2000, interval=250, optional=true} then return end
-  end
-  error("the console choice never reached the screen")
-end
 
 local function open_sheet()
   local b = bounds('ConsoleBarOpen')
@@ -209,149 +175,78 @@ stub_run()
 local ok, failure = pcall(function()
   run_flow("choose this device", function()
     choose('device')
-    if console then set_console(true) end
   end)
 
   run_flow("accepted", function()
     -- the first run loads the interpreter: a cold phone takes a while
-    if console then
-      con_run("two-sum", SEEDS.good, 'ConsoleBarSubmit', 'Accepted', 240)
-      device:extended_wait_until{visible={id='ConsoleResultCounts', text='.*12 / 12.*'}, timeout=10000, label='12 / 12'}
-      return
-    end
-    run_seed("two-sum", SEEDS.good, { id = 'ProblemEditorRunOutcomeTotals', text = '.*12 / 12.*', label = '12 / 12' }, 240)
-    device:extended_wait_until{visible={id='ProblemEditorRunOutcomeStatus', text='Accepted'}, timeout=10000, label='Accepted'}
+    con_run("two-sum", SEEDS.good, 'ConsoleBarSubmit', 'Accepted', 240)
+    device:extended_wait_until{visible={id='ConsoleResultCounts', text='.*12 / 12.*'}, timeout=10000, label='12 / 12'}
   end)
 
   run_flow("a case raises", function()
-    if console then
-      con_run("two-sum", SEEDS.raises, 'ConsoleBarSubmit', 'Runtime Error')
-      device:extended_wait_until{visible={id='ConsoleResultCounts', text='.*11 / 12.*'}, timeout=10000, label='11 / 12'}
-      device:extended_wait_until{visible={id='ConsoleResultErrorText', text='.*IndexError.*'}, timeout=10000, label='the error text'}
-      return
-    end
-    run_seed("two-sum", SEEDS.raises, { id = 'ProblemEditorRunOutcomeTotals', text = '.*11 / 12.*', label = '11 / 12' })
-    device:extended_wait_until{visible={id='ProblemEditorRunOutcomeRuntimeError', text='.*IndexError.*'}, timeout=10000, label='the error text'}
+    con_run("two-sum", SEEDS.raises, 'ConsoleBarSubmit', 'Runtime Error')
+    device:extended_wait_until{visible={id='ConsoleResultCounts', text='.*11 / 12.*'}, timeout=10000, label='11 / 12'}
+    device:extended_wait_until{visible={id='ConsoleResultErrorText', text='.*IndexError.*'}, timeout=10000, label='the error text'}
   end)
 
   run_flow("a case never ends", function()
     -- the harness's per-case limit (5 s) stops it; the rest of the cases still run
-    if console then
-      con_run("two-sum", SEEDS.hang, 'ConsoleBarSubmit', 'Time Limit Exceeded', 90)
-      device:extended_wait_until{visible={id='ConsoleResultErrorText', text='.*Timeout.*'}, timeout=10000, label='Timeout'}
-      return
-    end
-    run_seed("two-sum", SEEDS.hang, { id = 'ProblemEditorRunOutcomeRuntimeError', text = '.*TimeoutError.*', label = 'TimeoutError' }, 90)
+    con_run("two-sum", SEEDS.hang, 'ConsoleBarSubmit', 'Time Limit Exceeded', 90)
+    device:extended_wait_until{visible={id='ConsoleResultErrorText', text='.*Timeout.*'}, timeout=10000, label='Timeout'}
   end)
 
   run_flow("a syntax error", function()
-    if console then
-      con_run("two-sum", SEEDS.broken, 'ConsoleBarRun', 'Compile Error')
-      device:extended_wait_until{visible={id='ConsoleResultErrorText', text='.*CompileError.*'}, timeout=10000, label='CompileError'}
-      return
-    end
-    run_seed("two-sum", SEEDS.broken, { id = 'ProblemEditorRunOutcomeCompileError', text = '.*CompileError.*', label = 'CompileError' })
+    con_run("two-sum", SEEDS.broken, 'ConsoleBarRun', 'Compile Error')
+    device:extended_wait_until{visible={id='ConsoleResultErrorText', text='.*CompileError.*'}, timeout=10000, label='CompileError'}
   end)
 
   run_flow("another problem", function()
     -- a deep link reloads the web page, so the warm interpreter is not what is proved here (the provider's flow test proves a second run reuses the page): a second problem's tests run on the device too
     local palindrome = "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        t = [c.lower() for c in s if c.isalnum()]\n        return t == t[::-1]\n"
-    if console then
-      con_run("valid-palindrome", palindrome, 'ConsoleBarSubmit', 'Accepted')
-      return
-    end
-    run_seed("valid-palindrome", palindrome, { id = 'ProblemEditorRunOutcomeStatus', text = 'Accepted', label = 'Accepted' })
+    con_run("valid-palindrome", palindrome, 'ConsoleBarSubmit', 'Accepted')
   end)
 
-  if console then
-    run_flow("a custom case runs on the device", function()
-      con_custom(SEEDS.good)
-      footer_run()
-      device:extended_wait_until{visible={id='ConsoleResultVerdict', text='Custom case'}, timeout=120000, label='Custom case'}
-      device:assert_visible({id='ConsoleResultOutput', text='\\[0,1\\]'}, {timeout=10000})
-      device:assert_not_visible({id='ConsoleResultCounts'})
-    end)
-
-    run_flow("a custom case that raises", function()
-      con_custom(SEEDS.raisesOnDefault)
-      footer_run()
-      device:extended_wait_until{visible={id='ConsoleResultVerdict', text='Runtime Error'}, timeout=120000, label='Runtime Error'}
-      device:assert_visible({id='ConsoleResultErrorText', text='.*IndexError.*'}, {timeout=10000})
-    end)
-
-    -- a field left focused keeps the browser's keyboard model up for the next page, so this flow runs last
-    run_flow("a design problem", function()
-      -- a list of operations on one Trie: the harness builds the instance, calls each operation and compares the list of results
-      con_run("implement-trie-prefix-tree", TRIE_GOOD, 'ConsoleBarSubmit', 'Accepted')
-      -- a wrong startsWith fails the cases that call it, and the first one lists its operations and its arguments
-      con_run("implement-trie-prefix-tree", TRIE_WRONG, 'ConsoleBarSubmit', 'Wrong Answer')
-      device:extended_wait_until{visible={id='ConsoleResultInput-operations', text='.*Trie.*'}, timeout=10000, label='the operations'}
-      device:extended_wait_until{visible={id='ConsoleResultInput-arguments'}, timeout=10000, label='the arguments'}
-    end)
-
-    run_flow("a cyclic list", function()
-      con_run("linked-list-cycle", FLOYD, 'ConsoleBarSubmit', 'Accepted')
-    end)
-
-    run_flow("a field that is not a value", function()
-      con_custom(SEEDS.good)
-      -- the custom case starts with Case 1's fields: taking the closing bracket off the first one leaves text that is not JSON
-      device:tap_on({id='ConsoleField-nums'})
-      device:press_key('Ctrl+End')
-      device:press_key('Backspace')
-      for _ = 1, 5 do
-        device:tap_on({id='ConsoleFooterRun'})
-        if device:extended_wait_until{visible={id='ConsoleFieldError', text='.*nums is not JSON.*'}, timeout=2500, optional=true} then break end
-      end
-      device:assert_visible({id='ConsoleFieldError', text='.*nums is not JSON.*'}, {timeout=5000})
-      device:assert_not_visible({id='ConsoleResultVerdict'})
-    end)
-
-    run_flow("turn the console off", function() set_console(false) end)
-    assert_true(#device:get_network_stub_hits() == 0, "a run reached the backend")
-    return
-  end
-
-  run_flow("a custom input runs on the device", function()
-    open_editor("two-sum", SEEDS.good)
-    shot("input-zone")
-    device:tap_on({id='ProblemEditorRunInputButton'})
-    device:extended_wait_until{visible={id='ProblemEditorCustomCase-Result', text='\\[0,1\\]'}, timeout=120000, label='the result'}
-    device:assert_visible({id='ProblemEditorRunOutcomeStatus', text='Custom case'})
-    device:assert_not_visible({id='ProblemEditorRunOutcomeTotals'})
-    shot("custom-card")
+  run_flow("a custom case runs on the device", function()
+    con_custom(SEEDS.good)
+    footer_run()
+    device:extended_wait_until{visible={id='ConsoleResultVerdict', text='Custom case'}, timeout=120000, label='Custom case'}
+    device:assert_visible({id='ConsoleResultOutput', text='\\[0,1\\]'}, {timeout=10000})
+    device:assert_not_visible({id='ConsoleResultCounts'})
   end)
 
-  run_flow("a custom input that raises", function()
-    run_seed("two-sum", SEEDS.raisesOnDefault, { id = 'ProblemEditorCustomCase-Error', text = '.*IndexError.*', label = 'the error' }, 120, 'ProblemEditorRunInputButton')
-    device:assert_visible({id='ProblemEditorRunOutcomeStatus', text='Error'})
-    shot("custom-card-error")
+  run_flow("a custom case that raises", function()
+    con_custom(SEEDS.raisesOnDefault)
+    footer_run()
+    device:extended_wait_until{visible={id='ConsoleResultVerdict', text='Runtime Error'}, timeout=120000, label='Runtime Error'}
+    device:assert_visible({id='ConsoleResultErrorText', text='.*IndexError.*'}, {timeout=10000})
   end)
 
-  run_flow("an input that is not the arguments", function()
-    open_editor("two-sum", SEEDS.good)
-    -- the field starts with the two arguments of the first case (the last is the 9): deleting it leaves one value too few
-    device:tap_on({id='ProblemEditorTestInput'})
-    device:press_key('Ctrl+End')
-    device:press_key('Backspace')
-    lower_keyboard()
-    device:tap_on({id='ProblemEditorRunInputButton'})
-    device:extended_wait_until{visible={id='ProblemEditorTestInputError', text='.*Expected 2 values.*'}, timeout=15000, label='the error under the field'}
-    device:assert_not_visible({id='ProblemEditorRunOutcome'})
-  end)
-
+  -- a field left focused keeps the browser's keyboard model up for the next page, so this flow runs last
   run_flow("a design problem", function()
     -- a list of operations on one Trie: the harness builds the instance, calls each operation and compares the list of results
-    run_seed("implement-trie-prefix-tree", TRIE_GOOD, { id = 'ProblemEditorRunOutcomeStatus', text = 'Accepted', label = 'Accepted' })
-    -- a wrong startsWith fails the cases that call it, and the first one lists its whole operations line once its Input is tapped open
-    run_seed("implement-trie-prefix-tree", TRIE_WRONG, { id = 'ProblemEditorRunOutcomeStatus', text = 'Wrong Answer', label = 'Wrong Answer' })
-    device:tap_on({id='ProblemEditorRunCase-0-Input-Toggle'})
-    device:extended_wait_until{visible={id='ProblemEditorRunCase-0-Input', text='.*arguments = .*'}, timeout=10000, label='the whole operations line'}
+    con_run("implement-trie-prefix-tree", TRIE_GOOD, 'ConsoleBarSubmit', 'Accepted')
+    -- a wrong startsWith fails the cases that call it, and the first one lists its operations and its arguments
+    con_run("implement-trie-prefix-tree", TRIE_WRONG, 'ConsoleBarSubmit', 'Wrong Answer')
+    device:extended_wait_until{visible={id='ConsoleResultInput-operations', text='.*Trie.*'}, timeout=10000, label='the operations'}
+    device:extended_wait_until{visible={id='ConsoleResultInput-arguments'}, timeout=10000, label='the arguments'}
   end)
 
   run_flow("a cyclic list", function()
-    -- the case builds the list and links its tail back to the node `pos` names: Floyd's walk ends, a walk to the end would not
-    run_seed("linked-list-cycle", FLOYD, { id = 'ProblemEditorRunOutcomeStatus', text = 'Accepted', label = 'Accepted' })
+    con_run("linked-list-cycle", FLOYD, 'ConsoleBarSubmit', 'Accepted')
+  end)
+
+  run_flow("a field that is not a value", function()
+    con_custom(SEEDS.good)
+    -- the custom case starts with Case 1's fields: taking the closing bracket off the first one leaves text that is not JSON
+    device:tap_on({id='ConsoleField-nums'})
+    device:press_key('Ctrl+End')
+    device:press_key('Backspace')
+    for _ = 1, 5 do
+      device:tap_on({id='ConsoleFooterRun'})
+      if device:extended_wait_until{visible={id='ConsoleFieldError', text='.*nums is not JSON.*'}, timeout=2500, optional=true} then break end
+    end
+    device:assert_visible({id='ConsoleFieldError', text='.*nums is not JSON.*'}, {timeout=5000})
+    device:assert_not_visible({id='ConsoleResultVerdict'})
   end)
 
   assert_true(#device:get_network_stub_hits() == 0, "a run reached the backend")

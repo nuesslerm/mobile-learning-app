@@ -19,7 +19,9 @@
       "ProblemEditorHeaderBack",
       "ProblemEditorHeaderTitle",
       "ProblemEditorHeaderSubtitle",
-      "ProblemEditorHeaderActions",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
       "ProblemEditorInfoButton",
       "ProblemEditorMenuButton",
       "ProblemEditorToolbarTarget",
@@ -30,24 +32,22 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
+      "ProblemEditorMenuButtonBackdrop",
       "ProblemEditorMenuButtonContent",
-      "ProblemEditorMenuFormat",
       "ProblemEditorMenuHistory",
+      "ProblemEditorMenuResetCode",
       "ProblemEditorMenuLogin"
     ],
-    "text": "Two Sum\nArray & Hashing · Easy\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nFormat\nVersion history\nNo versions yet\nLogin\nLeetCode"
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit\nVersion history\nNo versions yet\nReset code\nLogin\nLeetCode"
   },
   "timings": {
-    "render_ms": 238
+    "render_ms": 284
   },
   "name": "aieditflag/final-given-no-flag-is-set-when-the-editor-opens-the-eda05a.light",
   "image": {

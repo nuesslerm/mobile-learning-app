@@ -4,7 +4,7 @@
   "last_action": "tap_on{id='EditorSettingsButton'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:35161/mla-tamagui/leetcode/two-sum",
+    "url": "http://127.0.0.1:41809/mla-tamagui/leetcode/two-sum",
     "title": "",
     "testids": [
       "ProblemEditorHeader",
@@ -25,15 +25,12 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "PyodideHostWebView",
       "DebugFabWrap",
       "DebugFab",
@@ -49,15 +46,15 @@
       "EditorSettingsSymbolBar",
       "EditorSettingsFormat"
     ],
-    "text": "Two Sum\nArray & Hashing · Easy\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nFont size: 14px\nShow Whitespace\nLine wrap\nTabs: 4\nSymbol Bar\nFormat Code"
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit\nFont size: 14px\nShow Whitespace\nLine wrap\nTabs: 4\nSymbol Bar\nFormat Code"
   },
   "screen": {
     "width": 1254,
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 4792,
-    "capture_ms": 304
+    "since_start_ms": 7712,
+    "capture_ms": 430
   },
   "tolerance": {
     "threshold": 0.1,

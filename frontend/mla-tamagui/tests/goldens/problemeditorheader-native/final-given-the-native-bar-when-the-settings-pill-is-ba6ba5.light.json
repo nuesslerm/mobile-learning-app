@@ -32,6 +32,7 @@
       "NativeHeaderMenu-More actions",
       "NativeHeaderMenuItem-Version history",
       "NativeHeaderMenuDescription-Version history",
+      "NativeHeaderMenuItem-Reset code",
       "NativeHeaderMenuItem-Login",
       "NativeHeaderMenuDescription-Login",
       "ProblemEditorToolbarTarget",
@@ -42,20 +43,17 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput"
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit"
     ],
-    "text": "Back to the problem list\nTwo Sum\nArray & Hashing · Easy\nPython\nProblem description\nMore actions\nVersion historyNo versions yet\nLoginLeetCode\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
+    "text": "Back to the problem list\nTwo Sum\nArray & Hashing · Easy\nPython\nProblem description\nMore actions\nVersion historyNo versions yet\nReset code\nLoginLeetCode\nPython\nConsole\nSubmit"
   },
   "timings": {
-    "render_ms": 260
+    "render_ms": 265
   },
   "name": "problemeditorheader-native/final-given-the-native-bar-when-the-settings-pill-is-ba6ba5.light",
   "image": {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ProblemCatalog } from '../../problemCatalog';
-import { parameterNames, parseCustomInput, writeCustomInput } from '../../run/customCase';
+import { parameterNames } from '../../run/customCase';
 import { captionsOf, fieldTextsOf, jsonText, parseCaseFields } from '../caseFields';
 
 const problem = (id: string) => {
@@ -43,14 +43,13 @@ describe('parseCaseFields', () => {
     expect(parseCaseFields({ s: ' ' }, ['s'])).toEqual({ ok: false, name: 's', message: 's is empty' });
   });
 
-  it('given every bundled case, when its fields are written and parsed, then it agrees with parseCustomInput', () => {
+  it('given every bundled case, when its fields are written and parsed, then the same arguments come back in the same order', () => {
     const mismatches: string[] = [];
     for (const p of ProblemCatalog.getAll()) {
       const names = parameterNames(p);
       for (const [i, testCase] of (p.testCases ?? []).entries()) {
         const a = parseCaseFields(fieldTextsOf(testCase, names), names);
-        const b = parseCustomInput(writeCustomInput(testCase), names);
-        if (!(a.ok && b.ok && JSON.stringify(a.testCase) === JSON.stringify(b.testCase))) mismatches.push(`${p.id}#${i}`);
+        if (!(a.ok && JSON.stringify(Object.entries(a.testCase.inputs)) === JSON.stringify(Object.entries(testCase.inputs)))) mismatches.push(`${p.id}#${i}`);
       }
     }
     expect(mismatches).toEqual([]);

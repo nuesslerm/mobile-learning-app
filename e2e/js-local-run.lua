@@ -52,9 +52,9 @@ local function open(path, id, secs)
 end
 
 local function leave_editor()
-  if device:get_element({id='ProblemEditorRunLocalButton'}) then
+  if device:get_element({id='ProblemEditorScreen'}) then
     device:open_link(base .. "/settings")
-    device:assert_not_visible({id='ProblemEditorRunLocalButton'})
+    device:assert_not_visible({id='ProblemEditorScreen'})
   end
 end
 
@@ -67,8 +67,12 @@ local function lower_keyboard()
     return
   end
   if device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true} then
-    local row, rail = device:get_element({id='ProblemEditorDiffRow'}).bounds, device:get_element({id='EditorHelperRails'}).bounds
-    device:tap_on({point=('%d,%d'):format((row.left + row.right) // 2, (row.top + math.min(row.bottom, rail.top - 4)) // 2)})
+    -- the console's rail covers the language row: Done lowers the keyboard once the rail sits above it
+    device:extended_wait_until{condition=function()
+      local kb, rail = device:get_device_state('keyboard'), device:get_element({id='EditorHelperRails'})
+      return kb.visible and kb.bounds ~= nil and rail ~= nil and rail.bounds.bottom <= kb.bounds.top + 2
+    end, timeout=10000, interval=250, label='the rail sits above the keyboard'}
+    device:tap_on({id='EditorAction-Done'})
     device:assert_not_visible({id='EditorHelperRails'})
   end
 end
@@ -76,7 +80,7 @@ end
 local function open_editor(problem, code)
   leave_editor()
   device:clear_logs()
-  open("/leetcode/" .. problem .. "?lang=javascript&seed64=" .. base64url(code), 'ProblemEditorRunLocalButton')
+  open("/leetcode/" .. problem .. "?lang=javascript&seed64=" .. base64url(code), 'ProblemEditorScreen')
   if not android then
     device:extended_wait_until{condition=function()
       for _, l in ipairs(device:get_logs{level='info'}) do
@@ -85,11 +89,12 @@ local function open_editor(problem, code)
     end, timeout=60000, interval=250, label='the page hydrated'}
   end
   lower_keyboard()
+  device:assert_visible({id='ConsoleDock'}, {timeout=10000})
 end
 
-local function run_seed(problem, code, expect_text, secs)
+local function run_seed(problem, code, expect_text, secs, button)
   open_editor(problem, code)
-  device:tap_on({id='ProblemEditorRunLocalButton'})
+  device:tap_on({id=button or 'ConsoleBarSubmit'})
   device:extended_wait_until{visible={id=expect_text.id, text=expect_text.text}, timeout=(secs or 120) * 1000, label=problem .. ': ' .. expect_text.label}
 end
 
@@ -112,35 +117,37 @@ local function choose_device()
   error("the runner choice never reached the screen")
 end
 
-local ACCEPTED = { id = 'ProblemEditorRunOutcomeStatus', text = 'Accepted', label = 'Accepted' }
+local ACCEPTED = { id = 'ConsoleResultVerdict', text = 'Accepted', label = 'Accepted' }
 
 device:add_network_stub("POST", "*/api/leetcode/run", { body_file = "e2e/stubs/leetcode-run-two-sum.json", headers = { ["content-type"] = "application/json" } })
 local ok, failure = pcall(function()
   run_flow("choose this device", function() choose_device() end)
 
   run_flow("accepted over 12 cases", function()
-    run_seed("two-sum", SEEDS.good, { id = 'ProblemEditorRunOutcomeTotals', text = '.*12 / 12.*', label = '12 / 12' }, 240)
-    device:extended_wait_until{visible={id='ProblemEditorRunOutcomeStatus', text='Accepted'}, timeout=10000, label='Accepted'}
+    run_seed("two-sum", SEEDS.good, { id = 'ConsoleResultCounts', text = '.*12 / 12.*', label = '12 / 12' }, 240)
+    device:extended_wait_until{visible={id='ConsoleResultVerdict', text='Accepted'}, timeout=10000, label='Accepted'}
   end)
 
   run_flow("a printed line shows in the card", function()
-    run_seed("two-sum", SEEDS.printing, ACCEPTED)
-    device:extended_wait_until{visible={id='ProblemEditorRunCase-0-Stdout', text='.*hello from js.*'}, timeout=10000, label='the printed line'}
+    run_seed("two-sum", SEEDS.printing, ACCEPTED, nil, 'ConsoleBarRun')
+    device:scroll_until_visible{element={id='ConsoleResultStdout'}, direction='DOWN', from={id='ConsoleSheet'}, timeout=10000}
+    local printed = device:get_element({id='ConsoleResultStdout'})
+    assert_true(printed and (printed.text or ""):find("hello from js", 1, true), "the printed line is not in the Stdout card: " .. tostring(printed and printed.text))
   end)
 
   run_flow("a case throws", function()
-    run_seed("two-sum", SEEDS.raises, { id = 'ProblemEditorRunOutcomeTotals', text = '.*11 / 12.*', label = '11 / 12' })
-    device:extended_wait_until{visible={id='ProblemEditorRunOutcomeRuntimeError', text='.*TypeError.*'}, timeout=10000, label='the TypeError text'}
-    device:extended_wait_until{visible={id='ProblemEditorRunOutcomeLine', text='Line .*'}, timeout=10000, label='the Line chip'}
+    run_seed("two-sum", SEEDS.raises, { id = 'ConsoleResultCounts', text = '.*11 / 12.*', label = '11 / 12' })
+    device:extended_wait_until{visible={id='ConsoleResultErrorText', text='.*TypeError.*'}, timeout=10000, label='the TypeError text'}
+    device:extended_wait_until{visible={id='ConsoleResultLine', text='Line .*'}, timeout=10000, label='the Line chip'}
   end)
 
   run_flow("a case never ends", function()
-    run_seed("two-sum", SEEDS.hang, { id = 'ProblemEditorRunOutcomeRuntimeError', text = '.*TimeoutError.*', label = 'TimeoutError' }, 120)
-    device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals', text='.*11 / 12.*'}, timeout=30000, label='the rest still ran'}
+    run_seed("two-sum", SEEDS.hang, { id = 'ConsoleResultErrorText', text = '.*Timeout.*', label = 'Timeout' }, 120)
+    device:extended_wait_until{visible={id='ConsoleResultCounts', text='.*11 / 12.*'}, timeout=30000, label='the rest still ran'}
   end)
 
   run_flow("a syntax error", function()
-    run_seed("two-sum", SEEDS.broken, { id = 'ProblemEditorRunOutcomeCompileError', text = '.*Error.*', label = 'the compile error' })
+    run_seed("two-sum", SEEDS.broken, { id = 'ConsoleResultErrorText', text = '.*Error.*', label = 'the compile error' })
   end)
 
   run_flow("a design problem", function()

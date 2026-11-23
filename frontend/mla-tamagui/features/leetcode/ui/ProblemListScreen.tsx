@@ -13,7 +13,6 @@ import { useLeetCodeAuthStore } from '../state/authStore';
 import { useLeetCodeFlag } from '../state/useLeetCodeFlag';
 import { AutocompleteSettingRow } from './AutocompleteSettingRow';
 import { BlockViewSettingRow } from './BlockViewSettingRow';
-import { ConsoleSettingRow } from './ConsoleSettingRow';
 import { CursorHandleSettingRow } from './editor/CursorHandleSettingRow';
 import { RunnerSettingRow } from './RunnerSettingRow';
 
@@ -233,7 +232,6 @@ export function ProblemListScreen(): React.ReactElement {
         <AuthRow />
         <RunnerSettingRow />
         <AutocompleteSettingRow />
-        <ConsoleSettingRow />
         {cursorPad ? <CursorHandleSettingRow /> : null}
         <BlockViewSettingRow />
         {categories.map((category) => (

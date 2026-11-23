@@ -51,9 +51,9 @@ end
 
 -- a link to the route the app already shows remounts it a moment later, and a link to "/" does not leave a running Expo Go's editor: the app leaves for Settings first
 local function leave_editor()
-  if android and device:get_element({id='ProblemEditorRunLocalButton'}) then
+  if android and device:get_element({id='ProblemEditorScreen'}) then
     device:open_link(base .. "/settings")
-    device:assert_not_visible({id='ProblemEditorRunLocalButton'})
+    device:assert_not_visible({id='ProblemEditorScreen'})
   end
 end
 
@@ -93,7 +93,7 @@ local function keyboard_up() return device:get_device_state('keyboard').visible 
 
 run_flow("open the editor and bring the keyboard up", function()
   device:clear_logs()
-  go("/leetcode/two-sum", 'ProblemEditorRunLocalButton', 240)
+  go("/leetcode/two-sum", 'ProblemEditorScreen', 240)
   device:extended_wait_until{condition=function() return buffer():find("def twoSum", 1, true) ~= nil end, timeout=30000, label='the starter'}
   for _, marker in ipairs({'Q', 'W', 'X', 'Z', 'U', 'D'}) do
     assert_true(not buffer():find(marker, 1, true), "the starter already holds the marker " .. marker)

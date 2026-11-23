@@ -1,28 +1,9 @@
-// The problem editor screen.
-//
-// Layout (top → bottom, inside a keyboard-aware vertically scrolling page):
-//   • <Stack.Screen> header: problem title + info IconButton (right)
-//   • CodeMirror WebView editor (fixed min-h, fills top-to-bottom)
-//   • Action row: Format | Run Local | Run (mirrors V1's action row,
-//     minus the Submit button which the user explicitly dropped)
-//   • Custom test input (fixed min-h)
-//
-// The whole page is a `KeyboardToolbarAwareScrollView` so the editor +
-// test input remain reachable when the soft keyboard covers the lower
-// half of the screen; the scroll view's `contentContainerStyle`
-// automatically reserves space under the last child equal to the
-// keyboard height + the toolbar rail height (whenever the keyboard is
-// up, the portal is mounted, so the inset includes the toolbar). The
-// keyboard toolbar is the V1-style `EditorHelperRails` (toolbar keys)
-// hosted by `KeyboardToolbarTarget`. Results panel
-// and rename dialog are intentionally omitted (deferred to V1).
-import type { RunCodeParams, RunResponse } from '../domain';
+// The problem editor screen: the code editor, its keyboard rails and the console (action bar, dock, Testcase and Run Result sheet).
 import { Logger } from '@lib/logging';
 import { toast } from 'sonner-native';
 
 import { useUnsavedChangesRequestStore } from '../state/unsavedChangesRequestStore';
 import {
-  Button,
   IconButton,
   KeyboardToolbarAwareScrollView,
   KeyboardToolbarTarget,
@@ -36,8 +17,8 @@ import type { EditAlternative } from '@lib/voice-edit-dsl';
 import { router } from 'expo-router';
 import { Mic, Pencil } from '@lib/tamagui-design-system/icons';
 import React from 'react';
-import { BackHandler, Platform, Pressable, TextInput, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
-import { XStack, YStack, useTheme } from '@lib/tamagui-design-system/primitives';
+import { BackHandler, Platform, Pressable, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
+import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
 import { useLeetCodePorts } from '../state/ports';
 import { useLeetCodeFlag } from '../state/useLeetCodeFlag';
@@ -46,9 +27,7 @@ import {
   type EditorInputHandle,
 } from './editor/EditorInput';
 import type { EditOutcome, EditTarget } from '../domain/editor/voiceEditPlan';
-import type { ErrorCheckpoint, ErrorPlace } from '../domain/editor/errorJump';
 import { useErrorJump } from '../state/run/useErrorJump';
-import { runLocalOnce } from '../state/run/runLocalOnce';
 import type { PlanEditor } from '../plan';
 import { toEditorLanguage } from '../domain/editor/languageProfile';
 import { completionEntriesFor } from '../domain/completionEntries';
@@ -57,8 +36,6 @@ import { type Selection } from '../domain/editor/types';
 import type { BlocksSource } from './blocks/BlockView';
 import { EditorHelperRails } from './editor/helperbars/EditorHelperRails';
 import { ProblemCatalog } from '../domain/problemCatalog';
-import { customInputMessage, parameterNames, parseCustomInput, writeCustomInput } from '../domain/run/customCase';
-import { runParamsFor } from '../domain/run/runParams';
 import { compactVoiceError } from '../domain/voiceEditIdentity';
 import { useVoiceApply } from '../state/useVoiceApply';
 import { useVoiceEdit } from '../state/useVoiceEdit';
@@ -68,8 +45,6 @@ import { useCodeHistoryStore } from '../state/codeHistoryStore';
 import { useResetCodeRequestStore } from '../state/resetCodeRequestStore';
 
 import { AlternativePicker } from './AlternativePicker';
-import { errorLocationOf, type RunCard } from '../domain/run/runCard';
-import { RunOutcomeCard } from './run/RunOutcomeCard';
 import { DiffToggle } from './DiffToggle';
 import {
   EDITOR_LANGUAGES,
@@ -84,7 +59,6 @@ import { editorHeaderSpec } from './editor-header/editorHeaderSpec';
 import { editorSettingsMenu } from './editor-settings/editorSettingsMenu';
 import { SymbolBarSheet } from './editor-settings/SymbolBarSheet';
 import { useEditorPreferencesStore } from '../state/editor/editorPreferencesStore';
-import { useConsoleSettingStore } from '../state/consoleSettingStore';
 import { useConsole } from '../state/console/useConsole';
 import { consoleInset, editorZoneMinHeight } from '../domain/console/layout';
 import { ConsoleActionBar } from './console/ConsoleActionBar';
@@ -93,12 +67,6 @@ import { ConsoleFooter } from './console/ConsoleFooter';
 import { ConsoleSheet } from './console/ConsoleSheet';
 import { PendingOverlay } from './console/PendingOverlay';
 import { RunResult } from './console/RunResult';
-
-// The editor takes the leftover height; the test input is a fixed block at
-// the bottom. `flexGrow: 1` on the scroll view's content container lets the
-// editor expand, and the minimums keep both usable once the keyboard shrinks
-// the visible area below the editor's flex share.
-const TEST_INPUT_MIN_HEIGHT = 200;
 
 function pickStarterCode(
   starterCode: Record<string, string> | undefined,
@@ -109,12 +77,6 @@ function pickStarterCode(
 }
 
 const VOICE_ERROR_AUTO_DISMISS_MS = 8_000;
-
-// Which error text a run carries, never the text: it echoes the user's code.
-function runErrorKind(result: RunResponse): 'compile' | 'runtime' | 'none' {
-  if (result.compile_error) return 'compile';
-  return result.runtime_error ? 'runtime' : 'none';
-}
 
 const subscribeNever = () => () => undefined;
 // False while the web export's prerendered page hydrates (it has no problem yet), true from the next render on and always on a phone.
@@ -163,108 +125,26 @@ export function ProblemEditorScreen({
     end: 0,
   });
 
-  const [testInput, setTestInput] = React.useState(() => {
-    const first = problem?.testCases?.[0];
-    return first ? writeCustomInput(first) : '';
-  });
-  const [inputError, setInputError] = React.useState<string | null>(null);
-  const hydrated = useHydrated();
-  const argumentNames = React.useMemo(() => (problem && hydrated ? parameterNames(problem) : []), [problem, hydrated]);
-  const inputRef = React.useRef<React.ElementRef<typeof TextInput>>(null);
   const editorRef = React.useRef<EditorInputHandle>(null);
   // The editor's focus lives in a WebView that React Native does not track, so Keyboard.dismiss() and the scroll view's
   // tap-away reach nothing; the editor is told to blur itself.
   const dismissEditorKeyboard = React.useCallback(() => {
     Logger.debug('editor_v2.keyboard_dismiss', { problemId: problem?.id });
     editorRef.current?.blur();
-    inputRef.current?.blur();
   }, [problem?.id]);
-  const [running, setRunning] = React.useState<RunCard['mode'] | null>(null);
-  const [card, setCard] = React.useState<RunCard | null>(null);
-  // The buffer the current outcome describes. A result is a claim about the
-  // code that produced it, so once the code moves the card is describing
-  // something that no longer exists -- run to Accepted, edit the solution into
-  // nonsense, and a green "12/12" sat over it. Compared by value rather than
-  // cleared on every change because the editor echoes programmatic writes
-  // (format, language switch, voice apply) back through onChangeText, and an
-  // echo carries identical text.
-  const outcomeSourceRef = React.useRef<string | null>(null);
   // the buffer and the language as they are now, for a run that finishes after the person has gone on typing
   const latestBufferRef = React.useRef({ text: editorText, lang });
   React.useEffect(() => {
     latestBufferRef.current = { text: editorText, lang };
   }, [editorText, lang]);
-  // The gateway is the fetch client for leetcode-backend. It backs three
-  // buttons: `Run Local` and `Format` execute on the backend with no
-  // leetcode.com/session, while `Run` needs an auth'd session.
   const { gateway, runner } = useLeetCodePorts();
   const aiEdit = useLeetCodeFlag('aiEdit');
-  const consoleEnabled = useConsoleSettingStore((state) => state.enabled);
   const scrollRef = React.useRef<ScrollViewInstance>(null);
-  // Which outcome has already been scrolled to, so a re-layout (keyboard
-  // raise, rotation) does not yank the page back.
-  const revealedOutcomeRef = React.useRef<unknown>(null);
-  // The card whose error line is marked in the editor: only then does the card offer "Line N".
-  const [jumpedCard, setJumpedCard] = React.useState<RunCard | null>(null);
   const errorJump = useErrorJump(editorRef);
-  // a located jump is on its way and the card's own scroll waits for it (y: where the card laid out)
-  const heldRef = React.useRef<{ y: number | null } | null>(null);
-  const clearCard = React.useCallback(() => {
-    setCard(null);
-    setJumpedCard(null);
-    heldRef.current = null;
-    errorJump.clear();
-  }, [errorJump]);
-
-  // The result lands BELOW the fold, under the keyboard rails -- measured at
-  // y438-501 against rails occupying y480-582, which slices off the line
-  // carrying the failure reason. The scroll view already reserves room for the
-  // rails, so the content is reachable; nothing was bringing it into view at
-  // the one moment the user is waiting for it.
-  const scrollToCard = React.useCallback((shown: RunCard, y: number) => {
-    revealedOutcomeRef.current = shown;
-    Logger.info('editor_v2.run_outcome.reveal', { y });
-    scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
-  }, []);
-  const revealRunOutcome = (event: LayoutChangeEvent) => {
-    if (!card || revealedOutcomeRef.current === card) return;
-    const { y } = event.nativeEvent.layout;
-    // a located jump is on its way: its answer decides whether the page goes to the editor or down to the card
-    const held = heldRef.current;
-    if (held) {
-      held.y = y;
-      return;
-    }
-    scrollToCard(card, y);
-  };
   const scrollToEditor = React.useCallback((line: number) => {
     Logger.info('editor_v2.run_error.scroll_to_editor', { line });
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   }, []);
-  // Marks the reported line; once it is shown the page goes up to the editor instead of down to the card, and when it is not (or there is no
-  // line) the card is revealed as it always was.
-  const jumpToError = React.useCallback(
-    async (checkpoint: ErrorCheckpoint, place: ErrorPlace | undefined, shown: RunCard) => {
-      if (place) heldRef.current = { y: null };
-      const result = await errorJump.show(checkpoint, place);
-      if (!place || result.kind === 'stale') return;
-      const held = heldRef.current;
-      heldRef.current = null;
-      if (result.kind === 'shown') {
-        revealedOutcomeRef.current = shown;
-        setJumpedCard(shown);
-        scrollToEditor(result.line);
-      } else if (held && held.y !== null) {
-        scrollToCard(shown, held.y);
-      }
-    },
-    [errorJump, scrollToCard, scrollToEditor]
-  );
-  const handleShowLine = React.useCallback(async () => {
-    const result = await errorJump.showAgain();
-    if (result.kind === 'shown') scrollToEditor(result.line);
-    else if (result.kind === 'missed') setJumpedCard(null);
-  }, [errorJump, scrollToEditor]);
   const consoleRuntime = {
     runner,
     editor: () => editorRef.current,
@@ -276,7 +156,7 @@ export function ProblemEditorScreen({
   };
   const consoleState = useConsole(problem, consoleRuntime);
   const { closeConsole, openConsole, resetCases, clearResult: clearConsoleResult, onCodeChanged: onConsoleCodeChanged, pending: consolePending } = consoleState;
-  const consoleOpen = consoleEnabled && consoleState.open;
+  const consoleOpen = consoleState.open;
   const consolePendingRef = React.useRef(false);
   consolePendingRef.current = consolePending !== null;
   const keyboard = useKeyboardFrame();
@@ -303,6 +183,7 @@ export function ProblemEditorScreen({
     resetCases();
     toast('Testcases reset');
   }, [resetCases]);
+  const hydrated = useHydrated();
   const { run: runConsole } = consoleState;
   const consoleActions = {
     onOpen: handleOpenConsole,
@@ -310,15 +191,11 @@ export function ProblemEditorScreen({
     onRun: () => void runConsole('run'),
     onSubmit: () => void runConsole('submit'),
     pending: consolePending !== null,
-    noCases: !consoleState.hasBundled,
+    noCases: hydrated && !consoleState.hasBundled,
   };
-  const [runState, setRunState] = React.useState<
-    'idle' | 'testing' | 'submitting'
-  >('idle');
   const [diffMode, setDiffMode] = React.useState(false);
   // whether a voice or plan edit has left a mark: the editor holds the mark and the range, the screen only the toggle
   const [hasEdit, setHasEdit] = React.useState(false);
-  const theme = useTheme();
   const isLoggedIn = useLeetCodeAuthStore((s) => s.isLoggedIn);
   const username = useLeetCodeAuthStore((s) => s.username);
   const clearCredentials = useLeetCodeAuthStore((s) => s.clearCredentials);
@@ -342,8 +219,6 @@ export function ProblemEditorScreen({
     [problem, lang, editorText, recordSnapshot]
   );
 
-  const busy = runState !== 'idle';
-  const canRun = isLoggedIn && !busy;
   // The editor as a voice edit sees it: read for the plan and applied at the revision the plan was made for.
   const editorTarget = React.useMemo<EditTarget>(
     () => ({
@@ -389,11 +264,10 @@ export function ProblemEditorScreen({
       snapshot('language-switch');
       setLang(nextLang);
       setEditorText(pickStarterCode(problem?.starterCode, nextLang));
-      clearCard();
       clearConsoleResult();
       runner.warmUp?.(nextLang);
     },
-    [availableLanguages, lang, problem?.id, problem?.starterCode, snapshot, clearCard, clearConsoleResult, runner]
+    [availableLanguages, lang, problem?.id, problem?.starterCode, snapshot, clearConsoleResult, runner]
   );
 
   const handleFormat = React.useCallback(async () => {
@@ -419,149 +293,10 @@ export function ProblemEditorScreen({
     }
   }, [editorText, gateway, problem, lang, snapshot]);
 
-  // Run Local: execute the code against the problem's bundled testCases on
-  // leetcode-backend (no leetcode.com, no auth). Only `Submit` reaches
-  // leetcode.com.
   const handleEditorChange = React.useCallback((next: string) => {
     setEditorText(next);
     onConsoleCodeChanged(next);
-    const source = outcomeSourceRef.current;
-    if (source !== null && next !== source) {
-      outcomeSourceRef.current = null;
-      clearCard();
-    }
-  }, [clearCard, onConsoleCodeChanged]);
-
-  const runLocal = React.useCallback(
-    async (mode: RunCard['mode'], given: RunCodeParams, inputs?: Record<string, unknown>) => {
-      setRunning(mode);
-      clearCard();
-      const cardOf = (response: RunResponse): RunCard => (mode === 'custom' ? { mode, response, inputs: inputs ?? {} } : { mode, response });
-      try {
-        const outcome = await runLocalOnce({
-          runner,
-          editor: editorRef.current,
-          given,
-          isCurrent: (params) => latestBufferRef.current.text === params.code && latestBufferRef.current.lang === params.lang,
-          problemId: problem?.id,
-          mode,
-        });
-        if (outcome.kind === 'discarded') {
-          toast('Code changed while it ran', { description: 'Run it again to see its result.' });
-          return;
-        }
-        if (outcome.kind === 'failed') {
-          const err = outcome.error;
-          setCard(
-            cardOf({
-              source: 'backend-run',
-              kind: 'test',
-              state: 'FAILURE',
-              requestId: '',
-              run_success: false,
-              status_msg: 'Error',
-              total_correct: 0,
-              total_testcases: 0,
-              runtime_error: err instanceof Error ? err.message : String(err),
-            })
-          );
-          toast.error('Run failed', { description: err instanceof Error ? err.message : 'The backend did not respond.' });
-          return;
-        }
-        const { params, checkpoint, response: result } = outcome;
-        const shown = cardOf(result);
-        setCard(shown);
-        outcomeSourceRef.current = params.code;
-        if (checkpoint) void jumpToError(checkpoint, errorLocationOf(shown), shown);
-        // a typed case has no verdict: the response's tally and status describe a comparison that did not happen
-        Logger.info('editor_v2.run_local.result', {
-          mode,
-          problemId: problem?.id,
-          lang: params.lang,
-          errorKind: runErrorKind(result),
-          ms: outcome.ms,
-          ...(mode === 'tests'
-            ? { state: result.state, totalCorrect: result.total_correct, totalTestcases: result.total_testcases, statusMsg: result.status_msg }
-            : {}),
-        });
-        if (mode === 'custom') return;
-        // A run that reaches the backend and fails its tests is not an error --
-        // it is the normal case while solving. Only the transport failing is.
-        const passed = result.state === 'SUCCESS' && result.total_correct === result.total_testcases;
-        const tally = `${result.total_correct}/${result.total_testcases} tests`;
-        if (passed) toast.success('All tests passed', { description: tally });
-        else toast.error('Tests failed', { description: `${tally} · ${result.status_msg}` });
-      } finally {
-        setRunning(null);
-      }
-    },
-    [runner, problem, clearCard, jumpToError]
-  );
-
-  const handleRunLocally = React.useCallback(
-    () =>
-      runLocal('tests', problem ? runParamsFor(problem, lang, editorText) : { lang, code: editorText, methodName: '', testCases: [] }),
-    [runLocal, problem, lang, editorText]
-  );
-
-  // Run input: the typed arguments as one case with no expected value, so the card shows what the code returned and no verdict.
-  const handleRunInput = React.useCallback(() => {
-    if (!problem) return;
-    const parsed = parseCustomInput(testInput, argumentNames);
-    if (!parsed.ok) {
-      Logger.info('editor_v2.run_local.invalid_input', { problemId: problem.id, kind: parsed.problem.kind });
-      setInputError(customInputMessage(parsed.problem));
-      return;
-    }
-    setInputError(null);
-    void runLocal('custom', runParamsFor(problem, lang, editorText, [parsed.testCase]), parsed.testCase.inputs);
-  }, [problem, testInput, argumentNames, runLocal, lang, editorText]);
-
-  // Run: submit the current code + the custom testInput to the auth'd
-  // LeetCode bridge and await the judge result. Mirrors V1's `runTest`
-  // (V1:308). Requires `canRun` to be true (logged in + no other run in
-  // flight).
-  const runTest = React.useCallback(async () => {
-    if (!canRun || !problem) return;
-    setRunState('testing');
-    const startedAt = Date.now();
-    try {
-      const testResult = await gateway.test({
-        slug: problem.id,
-        lang,
-        questionId: problem.leetcodeId,
-        code: editorText,
-        dataInput: testInput,
-      });
-      // The live gateway's test returns { interpret_id }; the port types the
-      // whole judge surface as RunResponse, so the handle rides a narrow cast.
-      const interpretId = (testResult as unknown as { interpret_id?: string })
-        .interpret_id;
-      if (!interpretId) {
-        Logger.warn('editor_v2.run.no_interpret_id', {
-          problemId: problem.id,
-          lang,
-        });
-        return;
-      }
-      const result = await gateway.poll(interpretId);
-      Logger.info('editor_v2.run.result', {
-        state: result.state,
-        statusMsg: result.status_msg,
-        totalCorrect: result.total_correct,
-        totalTestcases: result.total_testcases,
-        problemId: problem.id,
-        lang,
-        ms: Date.now() - startedAt,
-      });
-    } catch (err) {
-      Logger.withError(err)
-        .withMetadata({ problemId: problem.id, ms: Date.now() - startedAt })
-        .error('editor_v2.run.error');
-    } finally {
-      setRunState('idle');
-    }
-  }, [canRun, gateway, problem, editorText, testInput, lang]);
+  }, [onConsoleCodeChanged]);
 
   // React follows the page's contentChanged for the text, and the editor marks what the edit changed as it applies it; the screen only shows the toggle.
   const showEdit = React.useCallback((outcome: EditOutcome) => {
@@ -679,7 +414,6 @@ export function ProblemEditorScreen({
         // genuinely irreversible -- the dialog said so. Snapshot first.
         snapshot('reset');
         setEditorText(pickStarterCode(problem.starterCode, lang));
-        clearCard();
         clearConsoleResult();
         // The edit mark belongs to the code that was just discarded.
         setHasEdit(false);
@@ -691,7 +425,7 @@ export function ProblemEditorScreen({
       },
     });
     router.push(`/leetcode/${problem.id}/reset-code`);
-  }, [problem, lang, snapshot, clearCard, clearConsoleResult]);
+  }, [problem, lang, snapshot, clearConsoleResult]);
 
   const fontSize = useEditorPreferencesStore((s) => s.fontSize);
   const tabSize = useEditorPreferencesStore((s) => s.tabSize);
@@ -818,7 +552,7 @@ export function ProblemEditorScreen({
     historyCount,
     isLoggedIn,
     username,
-    busy: busy || running !== null,
+    busy: consolePending !== null,
     settings: editorSettingsMenu(
           { fontSize, tabSize, wrap, whitespace },
           {
@@ -838,7 +572,7 @@ export function ProblemEditorScreen({
     onInfo: handleInfo,
     onHistory: handleHistory,
     onLogin: handleLogin,
-    ...(consoleEnabled ? { onResetCode: handleResetCode } : {}),
+    onResetCode: handleResetCode,
   });
 
   return (
@@ -846,7 +580,7 @@ export function ProblemEditorScreen({
       flex={1}
       bg="$background"
       testID="ProblemEditorScreen"
-      {...(consoleEnabled ? { onLayout: (event: LayoutChangeEvent) => setRootHeight(Math.round(event.nativeEvent.layout.height)) } : {})}
+      onLayout={(event: LayoutChangeEvent) => setRootHeight(Math.round(event.nativeEvent.layout.height))}
     >
       <ScreenHeader {...headerSpec} glass placement="navigator" />
       <KeyboardToolbarTarget
@@ -865,7 +599,7 @@ export function ProblemEditorScreen({
               router.push('/leetcode/toolbar');
             }}
             onDismissKeyboard={dismissEditorKeyboard}
-            topRow={consoleEnabled ? <ConsoleActionBar {...consoleActions} /> : undefined}
+            topRow={<ConsoleActionBar {...consoleActions} />}
           />
         )}
       >
@@ -911,11 +645,7 @@ export function ProblemEditorScreen({
 
             <Pressable
               accessible={false}
-              onPress={(event) => {
-                // on the web a click on the input field bubbles up to here and would blur it as it takes the focus
-                if ((event.target as unknown) === inputRef.current) return;
-                dismissEditorKeyboard();
-              }}
+              onPress={dismissEditorKeyboard}
               testID="ProblemEditorTapAway"
             >
             <XStack
@@ -940,157 +670,15 @@ export function ProblemEditorScreen({
                   testID="ProblemEditorDiffToggle"
                 />
               ) : null}
-              {consoleEnabled && aiEdit ? <XStack gap="$2">{editButtons}</XStack> : null}
+              {aiEdit ? <XStack gap="$2">{editButtons}</XStack> : null}
             </XStack>
 
-            {consoleEnabled ? null : (
-              <>
-            {/* Action row — Format / Run Local / Run, mirrors V1's action row
-                minus the Submit button which the user explicitly dropped. */}
-            <XStack
-              items="center"
-              gap="$2.5"
-              px="$3"
-              py="$1.5"
-              testID="ProblemEditorActions"
-            >
-              <Button
-                testID="ProblemEditorFormatButton"
-                variant="outline"
-                size="$2"
-                pressLog="off"
-                onPress={() => {
-                  Logger.info('editor_v2.format.tap', { problemId: problem?.id });
-                  dismissEditorKeyboard();
-                  void handleFormat();
-                }}
-              >
-                Format
-              </Button>
-              <Button
-                testID="ProblemEditorRunLocalButton"
-                variant="outline"
-                size="$2"
-                disabled={running !== null}
-                pressLog="off"
-                onPress={() => {
-                  Logger.info('editor_v2.run_local.tap', {
-                    mode: 'tests',
-                    problemId: problem?.id,
-                  });
-                  dismissEditorKeyboard();
-                  void handleRunLocally();
-                }}
-              >
-                {running === 'tests' ? 'Running…' : 'Run Local'}
-              </Button>
-              <Button
-                testID="ProblemEditorRunButton"
-                variant="outline"
-                size="$2"
-                disabled={!canRun}
-                pressLog="off"
-                onPress={() => {
-                  Logger.info('editor_v2.run.tap', { problemId: problem?.id });
-                  dismissEditorKeyboard();
-                  void runTest();
-                }}
-              >
-                {runState === 'testing' ? 'Running…' : 'Run'}
-              </Button>
-              <Button
-                testID="ProblemEditorResetButton"
-                variant="outline"
-                size="$2"
-                pressLog="off"
-                onPress={() => {
-                  dismissEditorKeyboard();
-                  handleResetCode();
-                }}
-              >
-                Reset
-              </Button>
-              {aiEdit ? (
-                <>
-                  <YStack flex={1} />
-                  {editButtons}
-                </>
-              ) : null}
-            </XStack>
-
-            {/* Run Local result — server-executed pass/fail summary. */}
-            {card ? <RunOutcomeCard card={card} onLayout={revealRunOutcome} onShowLine={jumpedCard === card ? () => void handleShowLine() : undefined} /> : null}
-
-            {/* TestInput — fixed min-h, also scrollable. */}
-            <YStack
-              minH={TEST_INPUT_MIN_HEIGHT}
-              px="$3"
-              py="$2"
-              gap="$2"
-              testID="ProblemEditorTestInputZone"
-            >
-              <XStack items="center" gap="$2.5">
-                <Text variant="muted" flex={1} testID="ProblemEditorTestInputHint">
-                  {!problem || !hydrated ? '' : argumentNames.length > 0 ? `One JSON value per line: ${argumentNames.join(', ')}` : 'No bundled cases for this problem'}
-                </Text>
-                <Button
-                  testID="ProblemEditorRunInputButton"
-                  variant="outline"
-                  size="$2"
-                  disabled={running !== null || argumentNames.length === 0}
-                  pressLog="off"
-                  onPress={() => {
-                    Logger.info('editor_v2.run_local.tap', {
-                      mode: 'custom',
-                      problemId: problem?.id,
-                    });
-                    dismissEditorKeyboard();
-                    handleRunInput();
-                  }}
-                >
-                  {running === 'custom' ? 'Running…' : 'Run input'}
-                </Button>
-              </XStack>
-              <TextInput
-                ref={inputRef}
-                testID="ProblemEditorTestInput"
-                value={testInput}
-                onChangeText={(text) => {
-                  setTestInput(text);
-                  setInputError(null);
-                }}
-                multiline
-                autoCorrect={false}
-                autoCapitalize="none"
-                spellCheck={false}
-                placeholder="Custom test input"
-                // A bare RN TextInput defaults to black text, which vanished on the dark theme.
-                placeholderTextColor={theme.color10?.val}
-                style={{
-                  color: theme.color?.val,
-                  flex: 1,
-                  borderRadius: 8,
-                  paddingHorizontal: 10,
-                  paddingVertical: 6,
-                  fontFamily: 'Menlo, Courier, monospace',
-                  fontSize: 13,
-                  textAlignVertical: 'top',
-                }}
-              />
-              {inputError ? (
-                <Text variant="small" color="$red10" role="alert" testID="ProblemEditorTestInputError">
-                  {inputError}
-                </Text>
-              ) : null}
-            </YStack>
-              </>
-            )}
             </Pressable>
           </YStack>
         </KeyboardToolbarAwareScrollView>
-        {consoleEnabled && !consoleOpen && !keyboard.visible ? <ConsoleDock {...consoleActions} /> : null}
+        {!consoleOpen && !keyboard.visible ? <ConsoleDock {...consoleActions} /> : null}
       </KeyboardToolbarTarget>
-      {consoleEnabled && problem ? (
+      {problem ? (
         <ConsoleSheet
           problem={problem}
           console={consoleState}
@@ -1109,7 +697,7 @@ export function ProblemEditorScreen({
         testID="ProblemEditorLanguagePicker"
       />
       <SymbolBarSheet open={symbolBarOpen} onOpenChange={handleSymbolBarOpenChange} />
-      {consoleEnabled && consolePending ? <PendingOverlay /> : null}
+      {consolePending ? <PendingOverlay /> : null}
       {voiceEdit.state.phase === 'planning' ? (
         <XStack
           position="absolute"

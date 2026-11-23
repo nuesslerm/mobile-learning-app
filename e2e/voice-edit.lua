@@ -1,6 +1,6 @@
 --[[---
-platform: android, browser
-against: android=update, browser=export
+platform: browser
+against: browser=export
 timeout: 180
 units: chunk=1; chunk=2; chunk=3; chunk=4; chunk=5; chunk=6; chunk=7; chunk=8
 features: leetcode, coding-agent
@@ -147,9 +147,9 @@ local seeded = chunk and chunk > 1
 -- the screen opens by deep link, seeded or not, on every platform (owner, 16 Oct); the app may be the one already running
 -- a reused app may still show this screen: a link to it remounts it a moment later, so the first wait would pass on the
 -- old one (18 Oct); the app leaves for Settings first (a link to "/" does not navigate a running Expo Go)
-if android and device:get_element({id='ProblemEditorRunLocalButton'}) then
+if android and device:get_element({id='ProblemEditorScreen'}) then
   device:open_link(base .. "/settings")
-  device:assert_not_visible({id='ProblemEditorRunLocalButton'})
+  device:assert_not_visible({id='ProblemEditorScreen'})
 end
 run_flow("open route", function()
   local link = base .. "/leetcode/" .. problem
@@ -159,7 +159,7 @@ run_flow("open route", function()
     link = link .. "?seed64=" .. base64url(seed)
   end
   device:open_link(link)
-  wait_route({id='ProblemEditorRunLocalButton'}, 240)
+  wait_route({id='ProblemEditorScreen'}, 240)
   -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: wait for the first route.change
   if not android then
     device:extended_wait_until{condition=function()
@@ -179,7 +179,10 @@ local function done() -- the only way a user dismisses the keyboard: Done at the
 end
 if autofocused then done() end
 if not seeded then
-device:tap_on({id='ProblemEditorResetButton'})
+-- Reset code is in the header menu with the console on
+device:tap_on({id='ProblemEditorMenuButton'})
+device:extended_wait_until{visible={id='ProblemEditorMenuResetCode'}, timeout=10000, label='the menu'}
+device:tap_on({id='ProblemEditorMenuResetCode'})
 -- the dialog is not in Android's accessibility tree (known gap): there the button is tapped where the dialog draws it
 if android and not device:extended_wait_until{visible={id='ResetCodeDialog-Confirm'}, timeout=3000, optional=true} then
   -- read its Reset button's blue off the screen: a tap before the dialog is drawn lands on the editor and raises the keyboard
@@ -318,10 +321,10 @@ if not final then
 end
 if device:get_element({id='EditorHelperRails'}) then done() end -- the keyboard covers the run buttons
 run_flow("run local", function()
-device:tap_on({id='ProblemEditorRunLocalButton'})
-device:assert_visible({id='ProblemEditorRunOutcomeTotals'}, {timeout=120000}) -- the local run executes the code in the page and may load a runtime first
+device:tap_on({id='ConsoleBarSubmit'})
+device:assert_visible({id='ConsoleResultCounts'}, {timeout=120000}) -- the local run executes the code in the page and may load a runtime first
 end)
-local totals = text_of("ProblemEditorRunOutcomeTotals")
+local totals = text_of("ConsoleResultCounts")
 device:take_screenshot(("%s/%s-final.png"):format(out, problem))
 local f = assert(io.open(out .. "/result.json", "w")); f:write(json.encode({ problem = problem, turns = turns, run_local = totals, agent = use_agent })); f:close()
 -- every case, not just a totals line: "0 / 12 test cases passed" contains the word too

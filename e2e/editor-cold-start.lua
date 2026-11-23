@@ -49,7 +49,7 @@ for _, runner in ipairs({'device', 'backend'}) do
       device:assert_visible({id='LeetcodeListRunnerRow'}, {timeout=60000})
       device:clear_logs()
       device:open_link(base .. "/leetcode/two-sum")
-      device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=60000})
+      device:assert_visible({id='ProblemEditorScreen'}, {timeout=60000})
       device:extended_wait_until{condition=function() return logged_line('editor.cold_start') ~= nil end, timeout=30000, interval=250, label='the editor.cold_start line'}
       local line = logged_line('editor.cold_start')
       if i == 1 then log(runner .. " first line: " .. line) end

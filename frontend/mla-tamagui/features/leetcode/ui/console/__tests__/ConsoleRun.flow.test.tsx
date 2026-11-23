@@ -11,7 +11,6 @@ import { ProblemCatalog } from '../../../domain/problemCatalog';
 import type { TestResult } from '../../../domain/run/execution';
 import { createPyodideRunner, type RunnerLimits } from '../../../data/pyodide/pyodideRunner';
 import { useConsoleCasesStore } from '../../../state/console/consoleCasesStore';
-import { useConsoleSettingStore } from '../../../state/consoleSettingStore';
 import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../../state/runnerSettingStore';
 import { answers, createFakePageHost, createGatedCodeRunner, passingRun, type GatedCodeRunner } from '../../../testing';
 
@@ -69,7 +68,6 @@ function response(rows: TestResult[], over: Partial<RunResponse> = {}): RunRespo
 const rowsOf = (count: number) => Array.from({ length: count }, (_, index) => row(index));
 
 function resetStores() {
-  useConsoleSettingStore.setState({ enabled: true });
   useRunnerSettingStore.setState({ runner: DEFAULT_RUNNER });
   for (const problem of [parentheses, twoSum]) useConsoleCasesStore.getState().reset(problem);
   resetReducedMotion();

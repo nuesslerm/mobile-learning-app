@@ -1,6 +1,6 @@
 --[[---
-platform: android, browser
-against: android=update, browser=export
+platform: browser
+against: browser=export
 timeout: 120
 features: leetcode
 ---]]
@@ -16,33 +16,6 @@ local base = env.base or (not android and "http://127.0.0.1:8800/mla-tamagui" or
 assert_true(base, "pass --env base=<update link>; wf test run does")
 local out = env.out or (".agents/tmp/runs/review-sheet-keyboard-" .. device.platform)
 os.execute("mkdir -p " .. out)
-
--- --env console=1 (browser only) runs it with the console on, turned on from the list as a person does: the pencil sits in the language row then
-local console = env.console == "1"
-assert_true(not (console and android), "the console path runs in the browser only")
-local function choose_console(id)
-  device:open_link(base .. "/")
-  device:assert_visible({id='LeetcodeListConsoleRow'}, {timeout=60000})
-  device:extended_wait_until{condition=function()
-    for _, l in ipairs(device:get_logs{level='info'}) do
-      if l:find('route.change', 1, true) then return true end
-    end
-  end, timeout=60000, interval=250, label='the page hydrated'}
-  device:scroll_until_visible{element={id=id}, direction='DOWN', timeout=30000}
-  device:clear_logs()
-  -- a tap before the page's scripts have hydrated its buttons is lost: it is repeated until the screen logs it
-  for _ = 1, 10 do
-    device:tap_on({id=id})
-    local got = device:extended_wait_until{condition=function()
-      for _, l in ipairs(device:get_logs{level='info'}) do
-        if l:find('leetcode.list.console_tap', 1, true) then return true end
-      end
-    end, timeout=2000, interval=250, optional=true}
-    if got then return end
-  end
-  error("the console choice never reached the screen")
-end
-if console then run_flow("turn the console on from the list", function() choose_console('LeetcodeListConsoleOn') end) end
 
 -- a reused app may still show this screen: a link to it remounts it a moment later, so the app leaves for Settings first
 if android and device:get_element({id='ProblemEditorTextEditStartButton'}) then
@@ -132,5 +105,4 @@ pcall(function()
   device:extended_wait_until{condition=function() return not device:get_device_state('keyboard').visible end, timeout=5000, optional=true}
   if android and device:get_device_state('keyboard').visible then device:press_key('Back') end
 end)
-if console then pcall(function() choose_console('LeetcodeListConsoleOff') end) end
 if not ok then error(failure, 0) end

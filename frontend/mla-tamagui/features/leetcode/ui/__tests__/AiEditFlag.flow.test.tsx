@@ -62,9 +62,7 @@ describe('the aiEdit flag', () => {
     expect(screen.queryByTestId('ProblemEditorTextEditStartButton')).toBeNull();
     expect(screen.queryByTestId('ProblemWorkspaceTab-plan')).toBeNull();
     expect(screen.queryByTestId('ProblemWorkspaceTabs')).toBeNull();
-    expect(screen.getByTestId('ProblemEditorFormatButton')).toBeTruthy();
-    expect(screen.getByTestId('ProblemEditorRunButton')).toBeTruthy();
-    expect(screen.getByTestId('ProblemEditorResetButton')).toBeTruthy();
+    expect(screen.getByTestId('ConsoleBarSubmit')).toBeTruthy();
     await userEvent.click(screen.getByTestId('ProblemEditorMenuButton'));
     await waitFor(() => expect(screen.getByTestId('ProblemEditorMenuButtonContent')).toBeTruthy());
     expect(within(screen.getByTestId('ProblemEditorMenuButtonContent')).getByTestId('ProblemEditorMenuHistory')).toBeTruthy();

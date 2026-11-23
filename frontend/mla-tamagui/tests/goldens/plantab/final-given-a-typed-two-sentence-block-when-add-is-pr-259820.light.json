@@ -23,17 +23,17 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
       "ProblemEditorTextEditStartButton",
       "ProblemEditorVoiceStartButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInput",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "ProblemPlanTab",
       "ProblemPlanSteps",
       "ProblemPlanStep-0",
@@ -62,7 +62,7 @@
     "text": "Plan\nCode\n1\nKeep only alphanumeric characters\npending\n2\nCompare the cleaned string with its reverse\npending\nAdd"
   },
   "timings": {
-    "render_ms": 260
+    "render_ms": 261
   },
   "name": "plantab/final-given-a-typed-two-sentence-block-when-add-is-pr-259820.light",
   "image": {

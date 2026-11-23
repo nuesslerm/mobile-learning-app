@@ -37,20 +37,17 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput"
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit"
     ],
-    "text": "Back to the problem list\nTwo Sum\nArray & Hashing · Easy\nPython\nProblem description\nMore actions\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
+    "text": "Back to the problem list\nTwo Sum\nArray & Hashing · Easy\nPython\nProblem description\nMore actions\nPython\nConsole\nSubmit"
   },
   "timings": {
-    "render_ms": 376
+    "render_ms": 346
   },
   "name": "problemeditorheader-native/final-given-a-clean-buffer-when-back-is-pressed-then-989156.dark",
   "image": {

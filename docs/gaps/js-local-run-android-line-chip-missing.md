@@ -3,16 +3,16 @@ status: open
 area: android-e2e
 paths:
   - "e2e/js-local-run.lua"
-  - "frontend/mla-tamagui/features/leetcode/ui/run/RunOutcomeCard.tsx"
+  - "frontend/mla-tamagui/features/leetcode/ui/console/ResultCards.tsx"
 opened: 2026-11-23
 last_verified: 2026-11-23
 links: []
 ---
-# On the Android emulator the JavaScript Run Local 'Line N' chip never showed for the throwing case
+# On the Android emulator the JavaScript run's 'Line N' chip never showed for the throwing case
 
 ## What is broken
 
-On dev head 5f6d7572 the `js-local-run` unit failed on the emulator while it passed in the browser: for the throwing case the `Line N` chip (`ProblemEditorRunOutcomeLine`, text `Line .*`) never appeared. The cause is not diagnosed (JavaScriptCore's stack format in the Android WebView is a candidate). The script is browser-only now.
+On dev head 5f6d7572 the `js-local-run` unit failed on the emulator while it passed in the browser: for the throwing case the `Line N` chip (the classic card's `ProblemEditorRunOutcomeLine`, now the console's `ConsoleResultLine`) never appeared. The cause is not diagnosed (JavaScriptCore's stack format in the Android WebView is a candidate). The script is browser-only now.
 
 ## Why blocked
 

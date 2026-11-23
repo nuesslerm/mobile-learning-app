@@ -1,6 +1,6 @@
 --[[---
-platform: android, browser
-against: android=update, browser=export
+platform: browser
+against: browser=export
 timeout: 180
 units: problem=valid-palindrome part=1; problem=valid-palindrome part=2; problem=valid-palindrome part=3; problem=two-sum part=1; problem=two-sum part=2
 focus: true
@@ -15,27 +15,9 @@ local out = env.out or (".agents/tmp/runs/editor-typing-" .. device.platform)
 local base = env.base or (not android and "http://127.0.0.1:8800/mla-tamagui" or nil)
 assert_true(base, "pass --env base=<update link>; wf test run does")
 os.execute("mkdir -p " .. out)
--- --env console=1 (browser only) types with the console on, turned on from the list: Reset code goes through the header menu, Done lowers the keyboard
--- (the console's rail covers the language row) and the last part ends with a console Submit read from the Run Result tab.
-local console = env.console == "1"
-assert_true(not (console and android), "the console path runs in the browser only")
-local READY = console and 'ProblemEditorScreen' or 'ProblemEditorRunLocalButton'
-local function choose_console(id)
-  local function logged_tap() for _, l in ipairs(device:get_logs{level='info'}) do if l:find('leetcode.list.console_tap', 1, true) then return true end end end
-  device:open_link(base .. "/")
-  device:assert_visible({id='LeetcodeListConsoleRow'}, {timeout=60000})
-  device:extended_wait_until{condition=function()
-    for _, l in ipairs(device:get_logs{level='info'}) do if l:find('route.change', 1, true) then return true end end
-  end, timeout=60000, interval=250, label='the page hydrated'}
-  device:scroll_until_visible{element={id=id}, direction='DOWN', timeout=30000}
-  device:clear_logs()
-  -- a tap before the page's scripts have hydrated its buttons is lost: it is repeated until the screen logs it
-  for _ = 1, 10 do
-    device:tap_on({id=id})
-    if device:extended_wait_until{condition=logged_tap, timeout=2000, interval=250, optional=true} then return end
-  end
-  error("the console choice never reached the screen")
-end
+-- Reset code goes through the header menu, Done lowers the keyboard (the console's rail covers the language row) and the last part ends with a console Submit
+-- read from the Run Result tab.
+local READY = 'ProblemEditorScreen'
 -- Expo Go bundles the route on first load; a fresh install also shows its one-time developer-menu intro, which a user dismisses with Continue
 local function wait_route(sel, secs)
   local t0 = os.time()
@@ -233,11 +215,10 @@ for _, p in ipairs(SOL) do
   local seeded = first > 1
   -- a reused app may still show this screen: a link to it remounts it a moment later, so the first wait would pass
   -- on the old one (18 Oct); the app leaves for Settings first (a link to "/" does not navigate a running Expo Go)
-  if android and device:get_element({id='ProblemEditorRunLocalButton'}) then
+  if android and device:get_element({id='ProblemEditorScreen'}) then
     device:open_link(base .. "/settings")
-    device:assert_not_visible({id='ProblemEditorRunLocalButton'})
+    device:assert_not_visible({id='ProblemEditorScreen'})
   end
-  if console then run_flow("turn the console on from the list", function() choose_console('LeetcodeListConsoleOn') end) end
   -- the screen opens by deep link, seeded or not, on every platform (owner, 16 Oct); the app may be the one already running
   run_flow("open route", function()
     local link = base .. "/leetcode/" .. p.id
@@ -266,34 +247,16 @@ for _, p in ipairs(SOL) do
   end
   -- the web editor autofocuses on open and its keyboard covers Reset, so an unseeded run lowers it; the Android one waits for a tap
   local focused = not android and device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true}
-  if focused and not seeded and console then
+  if focused and not seeded then
     -- the console's rail covers the language row: Done, at the end of the action toolbar, lowers the keyboard
     done()
     device:assert_visible({id='ConsoleDock'}, {timeout=10000})
     focused = false
-  elseif focused and not seeded then
-    -- a tap on the page outside the editor lowers its keyboard, as the Done key does: aimed at the part of the row the rail does not cover,
-    -- where a person's finger would land (the row's own tap point is a random one in its box, and the rail's top edge overlaps its lower part)
-    local row, rail = device:get_element({id='ProblemEditorDiffRow'}).bounds, device:get_element({id='EditorHelperRails'}).bounds
-    device:tap_on({point=('%d,%d'):format((row.left + row.right) // 2, (row.top + math.min(row.bottom, rail.top - 4)) // 2)})
-    device:assert_not_visible({id='EditorHelperRails'})
-    -- the console log follows the page by a moment: wait for the screen's own record that the press reached it
-    device:extended_wait_until{condition=function()
-      for _, l in ipairs(device:get_logs{level='debug'}) do
-        if l:find('editor_v2.keyboard_dismiss', 1, true) then return true end
-      end
-    end, timeout=5000, interval=250, label=p.id .. ': the tap outside the editor reached the screen'}
-    focused = false
   end
   if not seeded then
-    if console then
-      -- Reset code is in the header menu with the console on
-      device:tap_on({id='ProblemEditorMenuButton'})
-      device:extended_wait_until{visible={id='ProblemEditorMenuResetCode'}, timeout=10000, label='the menu'}
-      device:tap_on({id='ProblemEditorMenuResetCode'})
-    else
-      device:tap_on({id='ProblemEditorResetButton'})
-    end
+    device:tap_on({id='ProblemEditorMenuButton'})
+    device:extended_wait_until{visible={id='ProblemEditorMenuResetCode'}, timeout=10000, label='the menu'}
+    device:tap_on({id='ProblemEditorMenuResetCode'})
     -- the dialog is not in Android's accessibility tree (known gap): there the button is tapped where the dialog draws it
     if android and not device:extended_wait_until{visible={id='ResetCodeDialog-Confirm'}, timeout=3000, optional=true} then
       -- read its Reset button's blue off the screen: tap only once it is drawn, then see it gone (a slow first draw ate the tap)
@@ -372,9 +335,9 @@ for _, p in ipairs(SOL) do
   -- Run Local answers on the device (issue 86, B5), so no backend runs for this test; a part whose lines did not read back is not run,
   -- because its outcome would hide the line that went missing (reported below)
   if r.final and r.lines_match then
-    local totals_id = console and 'ConsoleResultCounts' or 'ProblemEditorRunOutcomeTotals'
+    local totals_id = 'ConsoleResultCounts'
     run_flow("run local", function()
-      device:tap_on({id=console and 'ConsoleBarSubmit' or 'ProblemEditorRunLocalButton'})
+      device:tap_on({id='ConsoleBarSubmit'})
       -- the first run of a launch loads the interpreter
       device:extended_wait_until{visible={id=totals_id}, timeout=90000, label=p.id .. ': the run outcome'}
     end)
@@ -415,6 +378,5 @@ for _, p in ipairs(SOL) do
   end
   assert_true(#r.warnings == 0, p.id .. ": JS warnings: " .. tostring(r.warnings[1]))
 end
-if console then run_flow("turn the console off again", function() choose_console('LeetcodeListConsoleOff') end) end
 log(json.encode(result.input))
 log("editor typing: pass")
