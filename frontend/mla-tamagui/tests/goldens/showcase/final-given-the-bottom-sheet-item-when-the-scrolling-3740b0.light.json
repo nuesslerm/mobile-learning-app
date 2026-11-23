@@ -10,7 +10,7 @@
   "screen": {
     "width": 378,
     "height": 1704,
-    "page_height": 2023
+    "page_height": 1988
   },
   "summary": {
     "testids": [
@@ -41,6 +41,9 @@
       "ShowcaseSheetOpenNoBackdrop",
       "ShowcaseSheetOpenScroll",
       "ShowcaseSheetOpenForm",
+      "ShowcaseSheet-ExpoUiLabel",
+      "ShowcaseSheet-ExpoUi",
+      "ShowcaseExpoSheetOpen",
       "ShowcaseSheetScroll",
       "ShowcaseSheetScrollHeader",
       "ShowcaseSheetScrollHeaderClose",
@@ -67,15 +70,12 @@
       "ShowcaseSheetScrollRow-Row 21",
       "ShowcaseSheetScrollRow-Row 22",
       "ShowcaseSheetScrollRow-Row 23",
-      "ShowcaseSheetScrollRow-Row 24",
-      "ShowcaseSheet-ExpoUiLabel",
-      "ShowcaseSheet-ExpoUi",
-      "ShowcaseExpoSheetOpen"
+      "ShowcaseSheetScrollRow-Row 24"
     ],
-    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nTamagui components, same names as app #1, beside their Expo UI counterparts\nOverlays: Bottom sheet\nBottom sheet\nTAMAGUI (DESIGN SYSTEM)\nDefault: two snap points\nCompact: one snap point, labelled handle\nNo backdrop: the page stays usable\nScrolling body\nWith a text field\nScrolling body\nRo"
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nTamagui components, same names as app #1, beside their Expo UI counterparts\nOverlays: Bottom sheet\nBottom sheet\nTAMAGUI (DESIGN SYSTEM)\nDefault: two snap points\nCompact: one snap point, labelled handle\nNo backdrop: the page stays usable\nScrolling body\nWith a text field\nEXPO UI\nOpen Expo"
   },
   "timings": {
-    "render_ms": 321
+    "render_ms": 335
   },
   "name": "showcase/final-given-the-bottom-sheet-item-when-the-scrolling-3740b0.light",
   "image": {

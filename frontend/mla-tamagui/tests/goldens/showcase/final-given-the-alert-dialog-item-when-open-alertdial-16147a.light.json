@@ -50,7 +50,7 @@
     "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nTamagui components, same names as app #1, beside their Expo UI counterparts\nOverlays: AlertDialog\nAlertDialog\nTAMAGUI (DESIGN SYSTEM)\nOpen AlertDialog\nDelete everything?\nThis confirms the dialog renders through the DS wrapper.\nCancel\nDelete\nEXPO UI\nNo Expo UI equivalent."
   },
   "timings": {
-    "render_ms": 232
+    "render_ms": 250
   },
   "name": "showcase/final-given-the-alert-dialog-item-when-open-alertdial-16147a.light",
   "image": {
