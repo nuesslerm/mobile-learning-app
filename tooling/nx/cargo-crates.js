@@ -48,6 +48,7 @@ function crates(root, manifest) {
     ];
     const flow = m.package.metadata?.flow ?? {};
     const integration = m.package.metadata?.integration ?? {};
+    const contract = m.package.metadata?.contract ?? {};
     return {
       name: m.package.name,
       dir: relative(root, resolve(root, dir)),
@@ -63,6 +64,8 @@ function crates(root, manifest) {
         shared: flow.shared ?? [],
         groups: flow.groups ?? {},
       },
+      // `[package.metadata.contract] groups` (`{<group> = [files from the crate dir]}`, a module of `tests/nx_contract.rs` each)
+      contract: { groups: contract.groups ?? {} },
       // what only the integration tests read: a chain that runs other crates' binaries and the files that name its rows
       integration: {
         inputs: integration.inputs ?? [],
@@ -477,14 +480,30 @@ exports.createNodes = [
       if (verifyDeployed) verifyDeployed.cache = false;
       // the Nx cache's contract, proved against the real Nx on a copy of the repository: minutes of work, so a task of its own that
       // `wf ci plan tests` selects only when a file that can move the contract changed. What decides a task's inputs is an input of it.
-      const contract = testTarget('nx_contract.rs', `cargo test --locked -p ${c.name} --test nx_contract --manifest-path ${c.manifest}`, [
+      // `[package.metadata.contract] groups` (`{<group> = [files]}`, a module of `tests/nx_contract.rs` each): `cargo-contract` is the rest of the suite, its
+      // command skips every group's module and its inputs leave out their files; a `cargo-contract-<group>` task leaves out the other groups' files.
+      const contractGroups = Object.keys(c.contract.groups);
+      const contractCommand = `cargo test --locked -p ${c.name} --test nx_contract --manifest-path ${c.manifest}`;
+      const withoutContractGroups = (except) =>
+        contractGroups
+          .filter((g) => g !== except)
+          .flatMap((g) => c.contract.groups[g].flatMap((f) => [{ fileset: `!{projectRoot}/${f}` }, { fileset: `!{workspaceRoot}/${own(f)}` }]));
+      const contractInputs = [
         ...checks,
         { fileset: '{workspaceRoot}/nx.json' },
         { fileset: '{workspaceRoot}/.nxignore' },
         { fileset: '{workspaceRoot}/tooling/nx/**/*' },
         { fileset: '{workspaceRoot}/**/project.json' },
         { fileset: '{workspaceRoot}/**/package.json' },
-      ]);
+      ];
+      const contract = testTarget(
+        'nx_contract.rs',
+        [contractCommand, ...(contractGroups.length ? ['--', ...contractGroups.map((g) => `--skip ${g}::`)] : [])].join(' '),
+        [...contractInputs, ...withoutContractGroups(null)]
+      );
+      const contractTargets = contract
+        ? Object.fromEntries(contractGroups.map((g) => [`cargo-contract-${g}`, rustTask([...contractInputs, ...withoutContractGroups(g)], `${contractCommand} ${g}::`)]))
+        : {};
       // A crate whose e2e suite is slow lists its groups in `[package.metadata.e2e]` (`groups`: a module of `tests/e2e.rs` each,
       // `shared`: files every group reads, `src`: the crate sources the suite exercises, `extra`: other repo files, all from the
       // crate dir): one `cargo-e2e-<group>` task each, keyed by those files alone, so a change reruns only the groups it can move.
@@ -538,6 +557,7 @@ exports.createNodes = [
         ...(integration ? replayTargets : {}),
         ...(verifyDeployed ? { 'cargo-verify-deployed': verifyDeployed } : {}),
         ...(contract ? { 'cargo-contract': contract } : {}),
+        ...contractTargets,
         ...(e2e && !groups.length ? { 'cargo-e2e': e2e } : {}),
         ...groupTargets,
         ...(e2eSmoke ? { 'cargo-e2e-smoke': e2eSmoke } : {}),

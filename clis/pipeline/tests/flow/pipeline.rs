@@ -631,6 +631,32 @@ fn a_change_to_one_flow_group_s_module_plans_the_rest_and_every_group_for_nx_to_
     assert_eq!(targets(&support), all, "{support}");
 }
 
+#[test]
+fn a_crate_with_contract_groups_is_planned_the_rest_of_its_contract_suite_and_one_entry_per_group_that_skip_and_filter_the_same_modules() {
+    // Given a cargo workspace whose crate splits its Nx contract binary into two groups, and a commit that changes the crate
+    let w = Workspace::new("wf-contract-plan-groups-");
+    w.write("repo/tools/Cargo.toml", "[workspace]\nmembers = [\"app\"]\nresolver = \"2\"\n");
+    w.write("repo/tools/app/Cargo.toml", "[package]\nname = \"app\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[package.metadata.contract.groups]\nslow_a = [\"tests/flow/slow_a.rs\"]\nslow_b = [\"tests/flow/slow_b.rs\"]\n");
+    w.write("repo/tools/app/tests/nx_contract.rs", "mod slow_a;\nmod slow_b;\nmod other;\n");
+    w.write("repo/tools/app/src/main.rs", "fn main() {}\n");
+    w.commit("a crate with a contract suite");
+    w.write("repo/tools/app/src/main.rs", "fn main() { }\n");
+    w.commit("change the crate");
+
+    // When the commit is planned
+    let (v, _) = w.plan("HEAD~1");
+
+    // Then the contract tests are the rest (both modules skipped) and one entry per group filtered to its module, each group its own Nx target
+    let planned: Vec<(String, String, String)> = v["stages"]["flow-tests"].as_array().unwrap().iter().filter(|t| t["kind"] == "contract").map(|t| (t["group"].as_str().unwrap_or("-").to_string(), t["target"].as_str().unwrap_or("-").to_string(), t["command"].as_str().unwrap_or_default().to_string())).collect();
+    let base = "cargo test --locked -p app --test nx_contract --manifest-path tools/Cargo.toml";
+    let expected = vec![
+        ("-".to_string(), "-".to_string(), format!("{base} -- --skip slow_a:: --skip slow_b::")),
+        ("slow_a".to_string(), "cargo-contract-slow_a".to_string(), format!("{base} slow_a::")),
+        ("slow_b".to_string(), "cargo-contract-slow_b".to_string(), format!("{base} slow_b::")),
+    ];
+    assert_eq!(planned, expected, "{v}");
+}
+
 /// A candidate crate `cand` replaying two recorded sets by feature, with the mapping crates `cand/map-a`, `cand/map-b` (which depends on `map-a`) and
 /// `cand/map-big` (two named features, one with the files that can move it, one without files).
 fn replay_workspace(prefix: &str) -> Workspace {

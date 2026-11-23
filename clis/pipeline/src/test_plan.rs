@@ -148,6 +148,7 @@ struct Crate {
     e2e_groups: Vec<String>,
     /// `[package.metadata.flow] groups`: the flow modules that are an Nx task each (`cargo-flow-<group>`).
     flow_groups: Vec<String>,
+    contract_groups: Vec<String>,
     /// The repo-relative globs of the files the flow tests read beyond the crate: `inputs`, `shared` and the groups' file globs.
     flow_files: Vec<String>,
     /// The crates whose binaries the flow tests run: `uses` and the crates the groups name.
@@ -207,6 +208,7 @@ fn rust_crates(root: &Path) -> Result<Vec<Crate>, String> {
             let metadata = |section: &str| m.get("package").and_then(|p| p.get("metadata")).and_then(|d| d.get(section)).and_then(|e| e.get("groups")).cloned();
             let e2e_groups = metadata("e2e").as_ref().and_then(toml::Value::as_array).into_iter().flatten().filter_map(toml::Value::as_str).map(str::to_string).collect();
             let flow_groups = metadata("flow").as_ref().and_then(toml::Value::as_table).into_iter().flat_map(|t| t.keys().cloned()).collect();
+            let contract_groups = metadata("contract").as_ref().and_then(toml::Value::as_table).into_iter().flat_map(|t| t.keys().cloned()).collect();
             let flow = m.get("package").and_then(|p| p.get("metadata")).and_then(|d| d.get("flow"));
             let list = |key: &str| -> Vec<String> { flow.and_then(|f| f.get(key)).and_then(toml::Value::as_array).into_iter().flatten().filter_map(toml::Value::as_str).map(str::to_string).collect() };
             let grouped: Vec<String> = flow.and_then(|f| f.get("groups")).and_then(toml::Value::as_table).into_iter().flat_map(|t| t.values()).filter_map(toml::Value::as_array).flatten().filter_map(toml::Value::as_str).map(str::to_string).collect();
@@ -235,7 +237,7 @@ fn rust_crates(root: &Path) -> Result<Vec<Crate>, String> {
                     replay_features.push(ReplayFeature { name: Some(feature.clone()), rows: strings(spec.get("rows")), files });
                 }
             }
-            out.push(Crate { name: name.to_string(), dir: normalize(&dir).to_string_lossy().to_string(), manifest: manifest.to_string(), deps, e2e_groups, flow_groups, flow_files, flow_uses, integration_files, integration_uses, integration_evidence, integration_groups, replay_sets, replay_features });
+            out.push(Crate { name: name.to_string(), dir: normalize(&dir).to_string_lossy().to_string(), manifest: manifest.to_string(), deps, e2e_groups, flow_groups, contract_groups, flow_files, flow_uses, integration_files, integration_uses, integration_evidence, integration_groups, replay_sets, replay_features });
         }
     }
     Ok(out)
@@ -340,6 +342,16 @@ fn flow_entries(root: &Path, c: &Crate, reason: &str) -> Vec<(String, Value)> {
     let skips: String = if c.flow_groups.is_empty() { String::new() } else { format!(" --{}", c.flow_groups.iter().map(|g| format!(" --skip {g}::")).collect::<String>()) };
     let rest = json!({ "kind": "flow", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command}{skips}"), "why": [reason] });
     let groups = c.flow_groups.iter().map(|g| json!({ "kind": "flow", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command} {g}::"), "group": g, "target": format!("cargo-flow-{g}"), "why": [reason] }));
+    std::iter::once(rest).chain(groups).map(|entry| ("flow-tests".to_string(), entry)).collect()
+}
+
+/// A crate's contract entries: the suite, and for a crate with `[package.metadata.contract.groups]` the rest of it (every group's module skipped, the Nx task
+/// `cargo-contract`) and one entry per group, each the Nx task `cargo-contract-<group>`.
+fn contract_entries(c: &Crate, reason: &str) -> Vec<(String, Value)> {
+    let command = format!("cargo test --locked -p {} --test nx_contract --manifest-path {}", c.name, c.manifest);
+    let skips: String = if c.contract_groups.is_empty() { String::new() } else { format!(" --{}", c.contract_groups.iter().map(|g| format!(" --skip {g}::")).collect::<String>()) };
+    let rest = json!({ "kind": "contract", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command}{skips}"), "why": [reason] });
+    let groups = c.contract_groups.iter().map(|g| json!({ "kind": "contract", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command} {g}::"), "group": g, "target": format!("cargo-contract-{g}"), "why": [reason] }));
     std::iter::once(rest).chain(groups).map(|entry| ("flow-tests".to_string(), entry)).collect()
 }
 
@@ -544,7 +556,7 @@ fn crate_tests(root: &Path, scope: &Scope, packages: &[Package], every: Vec<Crat
         out.push(("typecheck-lint-unit-tests".to_string(), json!({ "kind": "clippy", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("cargo clippy --locked -p {} --all-targets --manifest-path {} -- -D warnings", c.name, c.manifest), "why": [reason.clone()] })));
         out.extend(flow_entries(root, c, &reason));
         if root.join(&c.dir).join("tests/nx_contract.rs").is_file() && contract_selected(scope, &reason, &c.dir) {
-            out.push(("flow-tests".to_string(), json!({ "kind": "contract", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("cargo test --locked -p {} --test nx_contract --manifest-path {}", c.name, c.manifest), "why": [reason.clone()] })));
+            out.extend(contract_entries(c, &reason));
         }
         out.extend(integration_entry(root, c, &reason));
         out.extend(deployed_verification_entry(root, c, &reason));
@@ -735,7 +747,7 @@ fn parse_shard(text: &str) -> Option<(usize, usize)> {
 fn unit_key(t: &Value) -> String {
     let unit = t["package"].as_str().map(str::to_string).or_else(|| t["crate"].as_str().map(|c| format!("crate-{c}"))).unwrap_or_default();
     match (t["kind"].as_str(), t["group"].as_str()) {
-        (Some("flow" | "integration" | "e2e"), Some(group)) => format!("{unit}/{group}"),
+        (Some("flow" | "contract" | "integration" | "e2e"), Some(group)) => format!("{unit}/{group}"),
         _ => unit,
     }
 }
@@ -987,7 +999,7 @@ fn run_package_stage(nx: &Path, root: &Path, stage: &str, tests: &[Value], sha: 
         let target = if !crates.is_empty() && matches!(*kind, "flow" | "unit" | "integration" | "e2e" | "e2e-smoke" | "contract" | "deployment-verification") {
             // a crate whose groups are all this shard holds of its suite (the groups of a flow, integration or e2e suite deal out one by one) runs them
             // in a call of its own: beside the others it would also run the task for the rest of the suite, which another shard's entry runs
-            if matches!(*kind, "flow" | "integration" | "e2e") {
+            if matches!(*kind, "flow" | "contract" | "integration" | "e2e") {
                 let whole = |c: &String| tests.iter().any(|t| t["kind"] == *kind && t["group"].is_null() && t["crate"].as_str().is_some_and(|n| format!("crate-{n}") == *c));
                 let (kept, only_groups): (Vec<String>, Vec<String>) = crates.into_iter().partition(whole);
                 crates = kept;
@@ -1154,7 +1166,7 @@ mod tests {
     use serde_json::json;
 
     fn crate_at(dir: &str) -> Crate {
-        Crate { name: "svc".into(), dir: dir.into(), manifest: format!("{dir}/Cargo.toml"), deps: vec![], e2e_groups: vec![], flow_groups: vec![], flow_files: vec![], flow_uses: vec![], integration_files: vec![], integration_uses: vec![], integration_evidence: None, integration_groups: vec![], replay_sets: vec![], replay_features: vec![] }
+        Crate { name: "svc".into(), dir: dir.into(), manifest: format!("{dir}/Cargo.toml"), deps: vec![], e2e_groups: vec![], flow_groups: vec![], contract_groups: vec![], flow_files: vec![], flow_uses: vec![], integration_files: vec![], integration_uses: vec![], integration_evidence: None, integration_groups: vec![], replay_sets: vec![], replay_features: vec![] }
     }
 
     #[test]
@@ -1327,9 +1339,9 @@ mod shard_tests {
     }
 
     fn pipeline_flow_plan() -> Value {
-        let rest = json!({"kind": "flow", "crate": "pipeline"});
-        let group = |g: &str| json!({"kind": "flow", "crate": "pipeline", "group": g, "target": format!("cargo-flow-{g}")});
-        json!({"stages": {"flow-tests": [rest, group("nx_cache"), group("nx_crates")], "typecheck-lint-unit-tests": [unit_test("pipeline"), json!({"kind": "clippy", "crate": "pipeline"})]}})
+        let (flow, rest) = (json!({"kind": "flow", "crate": "pipeline"}), json!({"kind": "contract", "crate": "pipeline"}));
+        let group = |g: &str| json!({"kind": "contract", "crate": "pipeline", "group": g, "target": format!("cargo-contract-{g}")});
+        json!({"stages": {"flow-tests": [flow, rest, group("nx_cache"), group("nx_crates")], "typecheck-lint-unit-tests": [unit_test("pipeline"), json!({"kind": "clippy", "crate": "pipeline"})]}})
     }
 
     #[test]
@@ -1345,7 +1357,7 @@ mod shard_tests {
             let distinct: std::collections::BTreeSet<usize> = shards.iter().copied().collect();
             assert_eq!(distinct.len(), 3, "{count} shards: {shards:?}");
             let all: usize = (1..=count).map(|i| shard_in_plan("flow-tests", &plan, i, count).len()).sum();
-            assert_eq!(all, 3);
+            assert_eq!(all, 4);
             // And the crate's unit and clippy tests share one shard
             let kinds: Vec<usize> = (1..=count).filter(|i| !shard_in_plan("typecheck-lint-unit-tests", &plan, *i, count).is_empty()).collect();
             assert_eq!(kinds.len(), 1, "{count} shards");
@@ -1356,8 +1368,8 @@ mod shard_tests {
     #[test]
     fn given_the_flow_entries_of_a_grouped_crate_when_keyed_then_a_group_is_its_own_unit_and_the_rest_is_the_crate() {
         // Given the rest and a group of a crate, and a package's flow entry
-        let rest = json!({"kind": "flow", "crate": "c"});
-        let group = json!({"kind": "flow", "crate": "c", "group": "g"});
+        let rest = json!({"kind": "contract", "crate": "c"});
+        let group = json!({"kind": "contract", "crate": "c", "group": "g"});
         // When they are keyed
         // Then the group has its own key, the rest is the crate, and a package stays the package
         assert_eq!((unit_key(&rest), unit_key(&group), unit_key(&json!({"kind": "flow", "package": "@a/x"}))), ("crate-c".to_string(), "crate-c/g".to_string(), "@a/x".to_string()));

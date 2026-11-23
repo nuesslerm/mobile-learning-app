@@ -89,11 +89,11 @@ fn a_database_that_has_no_unit_spans_yet_still_regenerates_from_nx_tasks() {
 }
 
 #[test]
-fn a_flow_group_s_nx_task_is_weighted_as_the_unit_crate_slash_group_and_the_rest_stays_the_crate() {
+fn a_flow_or_contract_group_s_nx_task_is_weighted_as_the_unit_crate_slash_group_and_the_rest_stays_the_crate() {
     // Given a sealed database whose Nx tasks ran a crate's rest of the flow suite and two of its groups
     let dir = tempfile::tempdir().unwrap();
     let out = dir.path().join("weights.json");
-    let statements = [task("1", "flow-tests (1/3)", "crate-big:cargo-flow", 37_000), task("1", "flow-tests (2/3)", "crate-big:cargo-flow-heavy", 185_000), task("1", "flow-tests (3/3)", "crate-big:cargo-flow-other", 176_000)].join("\n");
+    let statements = [task("1", "flow-tests (1/3)", "crate-big:cargo-flow", 37_000), task("1", "flow-tests (2/3)", "crate-big:cargo-contract-heavy", 185_000), task("1", "flow-tests (3/3)", "crate-big:cargo-flow-other", 176_000)].join("\n");
     let sealed = sealed(dir.path(), &statements);
 
     // When the weights are regenerated

@@ -34,6 +34,9 @@ pub(crate) fn unit_of(stage: &str, task: &str) -> Option<String> {
     if stage == "flow-tests" && project.starts_with("crate-") && target.starts_with("cargo-flow-") {
         return Some(format!("{project}/{}", &target["cargo-flow-".len()..]));
     }
+    if stage == "flow-tests" && project.starts_with("crate-") && target.starts_with("cargo-contract-") {
+        return Some(format!("{project}/{}", &target["cargo-contract-".len()..]));
+    }
     if stage == "cli-e2e-tests" && project.starts_with("crate-") && target.starts_with("cargo-e2e-") && target != "cargo-e2e-smoke" {
         return Some(format!("{project}/{}", &target["cargo-e2e-".len()..]));
     }
