@@ -29,6 +29,9 @@ failed() {
 state_text() {
   {
     echo "$(date -u +%H:%M:%S) MemAvailable $(awk '/^MemAvailable/ { print int($2 / 1024) }' /proc/meminfo) MB, load $(cut -d' ' -f1 /proc/loadavg), $(ps -e --no-headers | wc -l) processes"
+    if [ -n "${STAGE_CGROUP:-}" ]; then
+      echo "stage cgroup: peak $(( $(cat "$STAGE_CGROUP/memory.peak" 2> /dev/null || echo 0) / 1048576 )) MB, current $(( $(cat "$STAGE_CGROUP/memory.current" 2> /dev/null || echo 0) / 1048576 )) MB, events $(tr '\n' ' ' < "$STAGE_CGROUP/memory.events" 2> /dev/null)"
+    fi
     echo "posts that failed: $fails$([ -z "$lastfail" ] || echo ", the last at $lastfail")"
     echo "network: $(ip -br addr 2> /dev/null | grep -v '^lo ' | head -n 3 | tr '\n' ';') default $(ip route 2> /dev/null | head -n 1), dns $(grep -m1 '^nameserver' /etc/resolv.conf 2> /dev/null), api.github.com $(timeout 3 getent hosts api.github.com 2> /dev/null | head -n 1 | cut -d' ' -f1)"
     echo "disk free (MB): / $(df -m --output=avail / 2> /dev/null | tail -n 1 | tr -d ' ')$([ -d /mnt ] && echo ", /mnt $(df -m --output=avail /mnt 2> /dev/null | tail -n 1 | tr -d ' ')"), used by the checkout $(du -sm "${GITHUB_WORKSPACE:-.}" 2> /dev/null | cut -f1) MB"

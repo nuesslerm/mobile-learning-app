@@ -421,6 +421,8 @@ jobs:
           STAGE_KILL_S: '15'
           # the largest process of the job is killed, and named in the log, when the machine is down to this much free memory: a shard that froze the runner left no log
           MEMGUARD_FLOOR_MB: '1200'
+          # the two stages share one cgroup limited to this share of the machine's memory: a test that allocates without end is killed inside it, named in the log, instead of starving the runner agent with it
+          STAGE_MEMORY_PCT: '80'
           # the guard (only) posts the machine's state to a check run of the commit every 30 s; the token leaves the environment before any stage starts
           HEARTBEAT_TOKEN: ${{ github.token }}
           HEARTBEAT_NAME: ${{ github.workflow }} core-tests ${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}
@@ -430,6 +432,22 @@ jobs:
           [ "$FRESH" != true ] || fresh=(--fresh)
           logs="$RUNNER_TEMP/stages"; mkdir -p "$logs"
           pids=(); names=(); tails=(); snaps=()
+          sudo=""; [ "$(id -u)" = 0 ] || sudo="sudo -n"
+          export SUDO_FOR_CGROUP="$sudo"
+          cg=""
+          if [ -n "${STAGE_MEMORY_PCT:-}" ]; then
+            cgroot="${CGROUP_ROOT:-/sys/fs/cgroup}"
+            limit=$(awk -v p="$STAGE_MEMORY_PCT" '/^MemTotal/ { printf "%d", $2 * 1024 / 100 * p }' /proc/meminfo)
+            dir="$cgroot/wf-stages-$$"
+            if $sudo mkdir -p "$dir" 2> /dev/null && echo "$limit" | $sudo tee "$dir/memory.max" > /dev/null 2>&1; then
+              echo 1 | $sudo tee "$dir/memory.oom.group" > /dev/null 2>&1 || true
+              cg="$dir"
+              echo "stage memory limit: $((limit / 1048576)) MB for both stages ($cg)"
+            else
+              echo "::warning title=no stage memory limit::could not create a memory cgroup under $cgroot; the stages run without one"
+            fi
+          fi
+          export STAGE_CGROUP="$cg"
           guard="${GITHUB_WORKSPACE:-.}/.github/actions/hosted-setup/memguard.sh"; guardpid=""
           if [ -f "$guard" ]; then
             : > "$logs/memguard.log"
@@ -446,7 +464,7 @@ jobs:
             : > "$logs/$name.log"
             tail -n +1 -f -s 0.2 "$logs/$name.log" 2>/dev/null &
             tails+=("$!")
-            setsid timeout -k "$STAGE_KILL_S" "$STAGE_LIMIT_S" "$@" > "$logs/$name.log" 2>&1 &
+            setsid timeout -k "$STAGE_KILL_S" "$STAGE_LIMIT_S" bash -c 'if [ -n "$STAGE_CGROUP" ]; then echo $$ | $SUDO_FOR_CGROUP tee "$STAGE_CGROUP/cgroup.procs" > /dev/null 2>&1 || true; fi; exec "$@"' stage "$@" > "$logs/$name.log" 2>&1 &
             pid=$!; pids+=("$pid"); names+=("$name")
             d=$((STAGE_LIMIT_S / 2 < 10 ? STAGE_LIMIT_S / 2 : 10))
             ( sleep "$((STAGE_LIMIT_S - d))"; ps --sid "$pid" -o pid=,ppid=,etime=,args= > "$logs/$name.flat" 2>&1; ps --sid "$pid" -o pid,ppid,pgid,stat,etime,wchan:20,cmd --forest > "$logs/$name.snapshot" 2>&1 ) > /dev/null 2>&1 &
@@ -483,6 +501,16 @@ jobs:
           done
           [ -z "$guardpid" ] || kill "$guardpid" 2>/dev/null || true
           sleep 1
+          if [ -n "$cg" ]; then
+            oom=$(awk '$1 == "oom_kill" { print $2 }' "$cg/memory.events" 2> /dev/null || echo 0)
+            peak=$(( $(cat "$cg/memory.peak" 2> /dev/null || echo 0) / 1048576 ))
+            echo "stage memory: peak ${peak} MB of the limit, ${oom:-0} process(es) killed by it"
+            if [ "${oom:-0}" -gt 0 ]; then
+              echo "::error title=stage killed by the memory limit::a stage used more than its share of the machine's memory (peak ${peak} MB); the last test lines above say where"
+              rc=1
+            fi
+            $sudo rmdir "$cg" 2> /dev/null || true
+          fi
           kill "${tails[@]}" 2>/dev/null || true
           # a process a test left behind can hold this step's output pipe open, and the runner then waits for it past every timeout with no log: kill the processes whose
           # stdout or stderr is this step's own pipe (never the runner's, which holds the other end) and name them
