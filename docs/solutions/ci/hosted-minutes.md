@@ -120,3 +120,12 @@ A push to `dev` is the only trigger (there is no manual one), and the commit mes
 - `[ci:flow,unit,service]` limits the test jobs to those named.
 
 A commit that changes no file starts the GitHub-hosted pipeline only when it carries a `[services:...]` or `[cache:...]` tag; the other empty commits are triggers of other workflows.
+
+## Per-shard tool needs (install-test-deps)
+
+- `core-tests` asks `wf ci plan needs --stage core --shard i --count n --plan plan.json --github-output` before `install-test-deps` and passes the outputs as its inputs. The union is over flow shard i and typecheck-lint-unit-tests shard `count + 1 - i`, dealt by `shard_in_plan`.
+- The data is `clis/pipeline/data/test-needs.json`: `units` (crate or package name to tools), `evidence` (per tool, what runs it) and `exempt` (a spawn the guard finds that starts nothing, with why). A unit it does not list gets every tool; a failed verb installs every tool and warns.
+- The guard (`ci_needs.rs` flow test) scans each listed unit's tests and unit-test sources for the strings of each tool and fails naming the unit when it is listed without it: add the tool to the unit's list, or exempt it with the reason.
+- `browser-harness` is printed but not passed on: `core-tests` has never built the device-frame page.
+- The `plan` job's checkout uses `filter: blob:none`: its commands read commits, trees and HEAD's blobs; an older blob (`wf ci plan legs` hashing a past commit) is fetched on demand.
+- The step durations the CI database holds are per action, not per tool inside it (`install-test-deps` 60 s on average over 1098 core-tests jobs, `setup-job` 56 s), so what a single tool costs is unmeasured.

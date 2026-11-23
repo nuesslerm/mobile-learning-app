@@ -1,4 +1,4 @@
-Usage: wf ci plan <tags|tests|shard-keys|shard-weights|legs|mimic> [options]
+Usage: wf ci plan <tags|tests|shard-keys|needs|shard-weights|legs|mimic> [options]
 
 Everything the pipeline decides before its jobs run, in one place; the plan job of
 pipeline.yml and the mimic-record and track-contracts workflows call it. Each
@@ -20,6 +20,10 @@ its jobs read to $GITHUB_OUTPUT.
                          integration shards' concurrency group: the crates plus a fingerprint of their inputs, so a later commit with the same crates and inputs queues
                          behind the earlier one and a changed crate starts at once. [--repo <dir>] for the repository. --units prints each shard's unit names instead
                          (a JSON array of arrays), so the shards' union can be set against the plan's whole list.
+  needs --stage core --shard <i> --count <n> --plan <file> [--github-output]
+                         the tools the core-tests machine of shard i installs, {playwright, ffmpeg, restic-sqlite, bun, java, rust, references, opencode,
+                         browser-harness} as booleans: the union over the units of flow shard i and typecheck-lint-unit-tests shard count+1-i (data/test-needs.json);
+                         a unit the data does not list needs every tool. --github-output appends the same keys to $GITHUB_OUTPUT.
   tests [options]        every test a change needs, by CI stage; runs nothing. Scope: --all, --changed [--base <ref>] (default
                          HEAD~1; `last-green`: the newest commit on dev whose CI passed, via gh), or e2e test names; [--sha S]. Package tests (flow test:flow, integration
                          test:integration, typecheck, lint, unit test:unit, deployment-verification test:verify:deployed) follow pnpm's
