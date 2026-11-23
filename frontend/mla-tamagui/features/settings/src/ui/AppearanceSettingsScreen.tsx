@@ -139,6 +139,7 @@ export function AppearanceSettingsScreen() {
   return (
     <View flex={1} bg="$background" testID="AppearanceSettingsScreen">
       <ScreenHeader
+        glass
         testID="AppearanceSettingsScreenHeader"
         title="Appearance"
         onBack={() => {

@@ -109,6 +109,7 @@ export function AboutSettingsScreen() {
   return (
     <View flex={1} bg="$background" testID="AboutSettingsScreen">
       <ScreenHeader
+        glass
         testID="AboutSettingsScreenHeader"
         title="About"
         onBack={() => {

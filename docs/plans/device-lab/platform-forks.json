@@ -124,6 +124,16 @@
       "class": "inherent",
       "why": "the browser has no keyboard events: a visualViewport source",
       "nativeTest": "frontend/libraries/tamagui-design-system/tests/keyboardSource.test.ts"
+    },
+    "frontend/libraries/tamagui-design-system/composites/native-header/use-header-env.ts": {
+      "class": "inherent",
+      "why": "native chrome (react-native-screens header items, Liquid Glass) exists only on iOS 26; every other platform keeps the Tamagui header",
+      "nativeTest": "frontend/libraries/tamagui-design-system/tests/nativeHeaderOptions.test.ts"
+    },
+    "frontend/mla-tamagui/app-shell/NativeChromeBridge.tsx": {
+      "class": "inherent",
+      "why": "Appearance.setColorScheme is called only on iOS with the native bar: the OS chrome (keyboards, alerts, the bar) follows the app's Light or Dark choice there and nowhere else",
+      "nativeTest": "frontend/mla-tamagui/tests/flow/nativeChrome.flow.test.tsx"
     }
   }
 }
