@@ -201,7 +201,7 @@ fn a_guard_with_a_token_keeps_one_check_run_with_the_machines_state_and_complete
     // Then one check run was created for the commit under the job's name, and its first text holds the machine's state and the stage log's tail
     assert_eq!(text.lines().filter(|l| l.contains("POST") && l.contains("repos/owner/repo/check-runs")).count(), 1, "{text}");
     assert!(text.contains("name=heartbeat core-tests 3/6") && text.contains("head_sha=abc123"), "{text}");
-    assert!(text.contains("MemAvailable") && text.contains("disk free (MB)") && text.contains("the_last_test_of_the_stage"), "{text}");
+    assert!(text.contains("MemAvailable") && text.contains("disk free (MB)") && text.contains("the_last_test_of_the_stage") && text.contains("busiest by cpu"), "{text}");
 
     // And nothing masked reaches it: no masked-value line, no long token-like string, no process arguments
     assert!(!text.contains("add-mask") && !text.contains("ThisIsAMaskedValue"), "{text}");

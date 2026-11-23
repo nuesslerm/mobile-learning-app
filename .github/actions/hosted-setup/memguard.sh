@@ -23,6 +23,9 @@ state_text() {
     echo "$(date -u +%H:%M:%S) MemAvailable $(awk '/^MemAvailable/ { print int($2 / 1024) }' /proc/meminfo) MB, load $(cut -d' ' -f1 /proc/loadavg), $(ps -e --no-headers | wc -l) processes"
     echo "disk free (MB): / $(df -m --output=avail / 2> /dev/null | tail -n 1 | tr -d ' ')$([ -d /mnt ] && echo ", /mnt $(df -m --output=avail /mnt 2> /dev/null | tail -n 1 | tr -d ' ')"), used by the checkout $(du -sm "${GITHUB_WORKSPACE:-.}" 2> /dev/null | cut -f1) MB"
     echo
+    echo "busiest by cpu (pid ppid %cpu etime stat cmd):"
+    ps -eo pid,ppid,pcpu,etimes,stat,comm --sort=-pcpu | sed -n '2,11p'
+    echo
     echo "largest by memory (pid ppid rss_kb %cpu etime stat cmd):"
     ps -eo pid,ppid,rss,pcpu,etimes,stat,comm --sort=-rss | sed -n '2,9p'
     if [ -n "$stages" ]; then
@@ -31,7 +34,7 @@ state_text() {
         echo
         echo "$(basename "$f"), the last test lines of it:"
         # only lines about tests and tasks, never a masked value (`::add-mask::` lines carry them) or a long token-like string: this text is public on a public repository
-        grep -E 'test .* \.\.\. |has been running for over|Running target|^wf: nx cost' "$f" 2> /dev/null | grep -v 'add-mask' | sed -E 's/[A-Za-z0-9+\/_=.-]{30,}/***/g' | tail -n 4 | cut -c1-200
+        grep -E 'test .* \.\.\. |has been running for over|Running target|^wf: nx cost' "$f" 2> /dev/null | grep -v 'add-mask' | sed -E 's/[A-Za-z0-9+\/=-]{24,}/***/g' | tail -n 8 | cut -c1-200
       done
     fi
   } 2> /dev/null
