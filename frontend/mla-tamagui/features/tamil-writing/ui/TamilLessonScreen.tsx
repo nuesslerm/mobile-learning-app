@@ -199,6 +199,7 @@ export function TamilLessonScreen({
     return (
       <View flex={1} bg="$background" testID="TamilLessonMissing">
         <ScreenHeader
+          glass
           title="Lesson not found"
           onBack={() => router.back()}
           testID="TamilLessonMissingHeader"
@@ -222,12 +223,14 @@ export function TamilLessonScreen({
   return (
     <View flex={1} bg="$background" testID="TamilLessonScreen">
       <ScreenHeader
+        glass
         title={lesson.title}
         subtitle={lesson.subtitle}
         onBack={() => router.back()}
         actions={[
           {
             icon: RotateCcw,
+            sfSymbol: 'arrow.counterclockwise',
             accessibilityLabel: 'Reset this lesson',
             testID: 'TamilLessonReset',
             onPress: () => {

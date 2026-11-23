@@ -106,6 +106,7 @@ export function TamilReviewScreen({ lessonId }: TamilReviewScreenProps = {}) {
     return (
       <View flex={1} bg="$background" testID="TamilReviewEmpty">
         <ScreenHeader
+          glass
           title="Nothing to review"
           onBack={() => router.back()}
           testID="TamilReviewEmptyHeader"
@@ -124,6 +125,7 @@ export function TamilReviewScreen({ lessonId }: TamilReviewScreenProps = {}) {
   return (
     <View flex={1} bg="$background" testID="TamilReviewScreen">
       <ScreenHeader
+        glass
         title="Write from memory"
         subtitle={lessonId ? 'This lesson' : 'Every letter'}
         onBack={() => router.back()}

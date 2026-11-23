@@ -28,6 +28,7 @@ Pre-2026-10 history: [archive](archive/README.md).
 - device-lab · A React state-update warning toast appeared once while typing in the Android editor · 41d · [android-editor-react-state-warning](gaps/android-editor-react-state-warning.md)
 - flow-tests · Golden screenshot checkpoints are a manual gate · 50d · [golden-checkpoints-manual](gaps/golden-checkpoints-manual.md)
 - flow-tests · The flow harness gesture stub starts a pan's translation at the touch, the real handler at activation · 0d · [gesture-stub-translation-starts-at-touch](gaps/gesture-stub-translation-starts-at-touch.md)
+- frontend · Flipping native-headers while a dashboards screen is mounted · 0d · [native-headers-toggle-throws-with-dashboards-mounted](gaps/native-headers-toggle-throws-with-dashboards-mounted.md)
 - gemini · Gemini Gem does not ground on the full content of a large attached Doc (blocked) · 50d · [gemini-gem-large-doc-grounding](gaps/gemini-gem-large-doc-grounding.md)
 - gemini · The Gemini bundle sync's second run and the Gem's answers are unverified · 50d · [gemini-sync-unverified](gaps/gemini-sync-unverified.md)
 - leetcode · Three leetcode UI files still import data/ or react-native-webview directly · 50d · [leetcode-ui-direct-io-debt](gaps/leetcode-ui-direct-io-debt.md)

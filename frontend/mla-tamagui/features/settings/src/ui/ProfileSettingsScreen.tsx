@@ -25,6 +25,7 @@ export function ProfileSettingsScreen() {
   return (
     <View flex={1} bg="$background" testID="ProfileSettingsScreen">
       <ScreenHeader
+        glass
         testID="ProfileSettingsScreenHeader"
         title="Profile"
         onBack={() => {

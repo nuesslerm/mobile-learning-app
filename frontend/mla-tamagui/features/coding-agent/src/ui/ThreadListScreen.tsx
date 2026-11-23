@@ -128,10 +128,12 @@ export function ThreadListScreen(): React.ReactElement {
   return (
     <View flex={1} testID="ThreadListScreen">
       <ScreenHeader
+        glass
         title="Coding agent"
         actions={[
           {
             icon: Plus,
+            sfSymbol: 'plus',
             accessibilityLabel: 'New thread',
             onPress: () => {
               void handleNewThread();

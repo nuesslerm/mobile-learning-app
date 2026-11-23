@@ -83,6 +83,7 @@ export function DispatchRunScreen({
   return (
     <View flex={1} testID="DispatchRunScreen">
       <ScreenHeader
+        glass
         title={title}
         subtitle={subtitle}
         onBack={() => {

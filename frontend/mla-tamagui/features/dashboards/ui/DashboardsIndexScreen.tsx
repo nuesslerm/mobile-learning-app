@@ -115,6 +115,7 @@ export function DashboardsIndexScreen() {
   return (
     <View flex={1} bg="$background" testID="DashboardsIndexScreen">
       <ScreenHeader
+        glass
         testID="DashboardsIndexScreenHeader"
         title="Dashboards"
         onBack={() => {

@@ -40,6 +40,7 @@ export function NotificationSettingsScreen() {
   return (
     <View flex={1} bg="$background" testID="NotificationSettingsScreen">
       <ScreenHeader
+        glass
         testID="NotificationSettingsScreenHeader"
         title="Notifications"
         onBack={() => {

@@ -451,6 +451,7 @@ export function AgentsDashboardScreen() {
   return (
     <View flex={1} bg="$background" testID="AgentsDashboardScreen">
       <ScreenHeader
+        glass
         testID="AgentsDashboardScreenHeader"
         title="Agents"
         onBack={() => {

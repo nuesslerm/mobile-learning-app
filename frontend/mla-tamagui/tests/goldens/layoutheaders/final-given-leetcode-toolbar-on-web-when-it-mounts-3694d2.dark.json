@@ -1,0 +1,53 @@
+{
+  "suite": "layoutheaders",
+  "step": "final-given-leetcode-toolbar-on-web-when-it-mounts-3694d2",
+  "scheme": "dark",
+  "snapshot": "layoutheaders/final-given-leetcode-toolbar-on-web-when-it-mounts-3694d2.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 1675,
+    "page_height": 1675
+  },
+  "summary": {
+    "testids": [
+      "ToolbarConfigHeader",
+      "ToolbarConfigHeaderBack",
+      "ToolbarConfigHeaderTitle",
+      "ToolbarConfigHeaderSubtitle",
+      "ToolbarConfigScreen",
+      "ToolbarScroll",
+      "ReorderableList",
+      "ReorderableList-AnimatedView1",
+      "ToolbarConfigRow",
+      "ToolbarRemove",
+      "ToolbarKeyPreview",
+      "ToolbarConfigRowName",
+      "ReorderableListHandle",
+      "ToolbarCustomSection",
+      "ToolbarLabelInput-Field",
+      "ToolbarLabelInput",
+      "ToolbarInsertInput-Field",
+      "ToolbarInsertInput",
+      "ToolbarAddCustom",
+      "ToolbarReset"
+    ],
+    "text": "Toolbar\nEditor shortcuts\nLong-press the handle to drag · tap − to remove\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\nDouble quote\n'\nSingle quote\n:\nColon\n=\nEquals\n_\nUnderscore\n.\nDot\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nUndo\nRedo\nCreate custom key\nKey label (shown on the bar)\nText to insert\nAdd custom key\nReset to default"
+  },
+  "timings": {
+    "render_ms": 256
+  },
+  "name": "layoutheaders/final-given-leetcode-toolbar-on-web-when-it-mounts-3694d2.dark",
+  "image": {
+    "width": 360,
+    "height": 1595
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

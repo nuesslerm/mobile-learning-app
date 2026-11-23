@@ -1,0 +1,70 @@
+{
+  "suite": "settingsglass",
+  "step": "final-given-settings-profile-on-the-native-bar-when-9e5928",
+  "scheme": "light",
+  "snapshot": "settingsglass/final-given-settings-profile-on-the-native-bar-when-9e5928.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "ProfileSettingsScreen",
+      "NativeHeader",
+      "NativeHeaderLeft",
+      "NativeHeaderItem-Go back",
+      "NativeHeaderTitle",
+      "ScreenHeaderGlassTitle",
+      "ScreenHeaderGlassTitleText",
+      "NativeHeaderRight",
+      "ProfileSettingsScreen-ScrollView",
+      "ProfileSettingsScreen-Group",
+      "ProfileSettingsScreen-DisplayNameRow",
+      "ProfileSettingsScreen-DisplayNameLeading",
+      "ProfileSettingsScreen-DisplayNameIcon",
+      "ProfileSettingsScreen-DisplayNameLabel",
+      "ProfileSettingsScreen-DisplayNameValue",
+      "ProfileSettingsScreen-AccountRow",
+      "ProfileSettingsScreen-AccountLeading",
+      "ProfileSettingsScreen-AccountLabel",
+      "ProfileSettingsScreen-AccountValue",
+      "ProfileSettingsScreen-SignOutRow",
+      "ProfileSettingsScreen-SignOutButton",
+      "ProfileSettingsScreen-Note"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nGo back\nProfile\nDisplay name\nAda Lovelace\nAccount\nada@example.com\nSign out\nLocal only — this screen is not connected to an account service."
+  },
+  "timings": {
+    "render_ms": 241
+  },
+  "name": "settingsglass/final-given-settings-profile-on-the-native-bar-when-9e5928.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

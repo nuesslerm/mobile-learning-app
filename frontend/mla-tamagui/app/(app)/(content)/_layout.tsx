@@ -1,4 +1,4 @@
-import { ScreenHeader } from '@lib/tamagui-design-system';
+import { useScreenHeaderOptions } from '@lib/tamagui-design-system';
 import { router, Stack } from 'expo-router';
 
 /**
@@ -8,6 +8,12 @@ import { router, Stack } from 'expo-router';
  * of this Stack's header rather than stacking two.
  */
 export default function ContentLayout() {
+  const serviceReportHeader = useScreenHeaderOptions({
+    glass: true,
+    testID: 'ServiceReportHeader',
+    title: 'Service Report',
+    onBack: () => router.back(),
+  });
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -44,15 +50,7 @@ export default function ContentLayout() {
       <Stack.Screen name="dashboards" options={{ headerShown: false }} />
       <Stack.Screen
         name="service-report"
-        options={{
-          header: () => (
-            <ScreenHeader
-              testID="ServiceReportHeader"
-              title="Service Report"
-              onBack={() => router.back()}
-            />
-          ),
-        }}
+        options={serviceReportHeader}
       />
     </Stack>
   );

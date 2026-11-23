@@ -107,6 +107,7 @@ export function TamilWriteScreen({ subjectId }: TamilWriteScreenProps) {
     return (
       <View flex={1} bg="$background" testID="TamilWriteMissing">
         <ScreenHeader
+          glass
           title="Nothing to write"
           onBack={() => router.back()}
           testID="TamilWriteMissingHeader"
@@ -125,6 +126,7 @@ export function TamilWriteScreen({ subjectId }: TamilWriteScreenProps) {
   return (
     <View flex={1} bg="$background" testID="TamilWriteScreen">
       <ScreenHeader
+        glass
         title={`${subject.glyph} · ${subject.transliteration}`}
         subtitle={subject.label}
         onBack={() => router.back()}

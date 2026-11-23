@@ -38,7 +38,59 @@ afterEach(() => {
   setPlatform(realOS as 'web');
 });
 
+const settingsScreens = [
+  ['/settings', 'SettingsIndexScreenHeader', 'settings.index.back'],
+  [
+    '/settings/profile',
+    'ProfileSettingsScreenHeader',
+    'settings.profile.back',
+  ],
+  [
+    '/settings/notifications',
+    'NotificationSettingsScreenHeader',
+    'settings.notifications.back',
+  ],
+  [
+    '/settings/storage',
+    'StorageSettingsScreenHeader',
+    'settings.storage.back',
+  ],
+] as const;
+
 describe('Settings screens on the native header', () => {
+  it.each(settingsScreens)(
+    'Given %s on the native bar, When the back item is pressed, Then the screen went back and the back line was logged',
+    async (route, headerId, line) => {
+      // Given the native bar
+      nativeBar();
+      await app.render(route);
+      expect(screen.queryByTestId(headerId)).toBeNull();
+
+      // When the back item is pressed
+      await userEvent.click(screen.getByTestId('NativeHeaderItem-Go back'));
+
+      // Then backTo ran and the line was logged
+      expect(routerHarness().calls()).toContainEqual(['back']);
+      expect((await loggedLines(line)).length).toBe(1);
+    }
+  );
+
+  it.each(settingsScreens)(
+    'Given %s with the setting off, When it mounts, Then the classic header and its ids draw',
+    async (route, headerId) => {
+      // Given the native environment with the setting off
+      nativeBar();
+      nativeSetting(false);
+
+      // When it mounts
+      await app.render(route);
+
+      // Then the Tamagui header is there and no native bar
+      expect(screen.getByTestId(headerId)).not.toBeNull();
+      expect(screen.queryByTestId('NativeHeader')).toBeNull();
+    }
+  );
+
   it('Given the About screen on iOS with the setting on, When the back item is pressed, Then the screen went back and settings.about.back was logged', async () => {
     // Given the native bar
     nativeBar();

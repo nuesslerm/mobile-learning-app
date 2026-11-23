@@ -43,12 +43,14 @@ export function ThreadScreen({
   return (
     <View flex={1} testID="ThreadScreen">
       <ScreenHeader
+        glass
         title="Coding agent"
         subtitle={shownId}
         onBack={() => router.back()}
         actions={[
           {
             icon: Settings,
+            sfSymbol: 'gearshape',
             accessibilityLabel: 'Thread settings',
             onPress: openSettings,
             testID: 'ThreadSettingsButton',

@@ -1,0 +1,85 @@
+{
+  "suite": "settingsglass",
+  "step": "final-given-settings-notifications-with-the-setting-o-7b002f",
+  "scheme": "dark",
+  "snapshot": "settingsglass/final-given-settings-notifications-with-the-setting-o-7b002f.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "NotificationSettingsScreen",
+      "NotificationSettingsScreenHeader",
+      "NotificationSettingsScreenHeaderBack",
+      "NotificationSettingsScreenHeaderTitle",
+      "NotificationSettingsScreen-ScrollView",
+      "NotificationSettingsScreen-Group",
+      "NotificationSettingsScreen-Row-push",
+      "NotificationSettingsScreen-RowContent-push",
+      "NotificationSettingsScreen-RowLeading-push",
+      "NotificationSettingsScreen-Icon-push",
+      "NotificationSettingsScreen-Label-push",
+      "NotificationSettingsScreen-Toggle-push",
+      "NotificationSettingsScreen-Toggle-push-Off",
+      "NotificationSettingsScreen-Toggle-push-OffLabel",
+      "NotificationSettingsScreen-Toggle-push-On",
+      "NotificationSettingsScreen-Toggle-push-OnLabel",
+      "NotificationSettingsScreen-Row-digest",
+      "NotificationSettingsScreen-RowContent-digest",
+      "NotificationSettingsScreen-RowLeading-digest",
+      "NotificationSettingsScreen-Icon-digest",
+      "NotificationSettingsScreen-Label-digest",
+      "NotificationSettingsScreen-Toggle-digest",
+      "NotificationSettingsScreen-Toggle-digest-Off",
+      "NotificationSettingsScreen-Toggle-digest-OffLabel",
+      "NotificationSettingsScreen-Toggle-digest-On",
+      "NotificationSettingsScreen-Toggle-digest-OnLabel",
+      "NotificationSettingsScreen-Row-updates",
+      "NotificationSettingsScreen-RowContent-updates",
+      "NotificationSettingsScreen-RowLeading-updates",
+      "NotificationSettingsScreen-Icon-updates",
+      "NotificationSettingsScreen-Label-updates",
+      "NotificationSettingsScreen-Toggle-updates",
+      "NotificationSettingsScreen-Toggle-updates-Off",
+      "NotificationSettingsScreen-Toggle-updates-OffLabel",
+      "NotificationSettingsScreen-Toggle-updates-On",
+      "NotificationSettingsScreen-Toggle-updates-OnLabel",
+      "NotificationSettingsScreen-Note"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nNotifications\nPush notifications\nOff\nOn\nDigest email\nOff\nOn\nProduct updates\nOff\nOn\nLocal only — this screen is not connected to an account service."
+  },
+  "timings": {
+    "render_ms": 229
+  },
+  "name": "settingsglass/final-given-settings-notifications-with-the-setting-o-7b002f.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

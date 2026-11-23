@@ -30,6 +30,7 @@ export function TamilTrackScreen({ trackId }: TamilTrackScreenProps) {
     return (
       <View flex={1} bg="$background" testID="TamilTrackMissing">
         <ScreenHeader
+          glass
           title="Track not found"
           onBack={() => router.back()}
           testID="TamilTrackMissingHeader"
@@ -48,6 +49,7 @@ export function TamilTrackScreen({ trackId }: TamilTrackScreenProps) {
   return (
     <View flex={1} bg="$background" testID="TamilTrackScreen">
       <ScreenHeader
+        glass
         title={track.title}
         subtitle={track.subtitle}
         onBack={() => router.back()}

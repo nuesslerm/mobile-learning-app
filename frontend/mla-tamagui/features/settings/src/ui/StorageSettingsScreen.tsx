@@ -39,6 +39,7 @@ export function StorageSettingsScreen() {
   return (
     <View flex={1} bg="$background" testID="StorageSettingsScreen">
       <ScreenHeader
+        glass
         testID="StorageSettingsScreenHeader"
         title="Storage"
         onBack={() => {

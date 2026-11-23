@@ -240,6 +240,7 @@ export function InfraDashboardScreen() {
   return (
     <View flex={1} bg="$background" testID="InfraDashboardScreen">
       <ScreenHeader
+        glass
         testID="InfraDashboardScreenHeader"
         title="Infrastructure"
         onBack={() => {

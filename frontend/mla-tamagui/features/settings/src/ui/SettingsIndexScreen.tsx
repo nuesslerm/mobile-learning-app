@@ -29,6 +29,7 @@ export function SettingsIndexScreen() {
   return (
     <View flex={1} bg="$background" testID="SettingsIndexScreen">
       <ScreenHeader
+        glass
         testID="SettingsIndexScreenHeader"
         title="Settings"
         onBack={() => {
