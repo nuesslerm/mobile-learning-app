@@ -15,11 +15,30 @@ os.execute("mkdir -p " .. out)
 
 local function buffer() local e = device:get_element({id='CodeEditorInput'}) return e and e.text or "" end
 
+-- --env console=1 resets through the header menu (Reset code) with the console on, turned on from the list first.
+local console = env.console == "1"
+local function choose_console(id)
+  local function logged_tap() for _, l in ipairs(device:get_logs{level='info'}) do if l:find('leetcode.list.console_tap', 1, true) then return true end end end
+  device:open_link(base .. "/")
+  device:assert_visible({id='LeetcodeListConsoleRow'}, {timeout=60000})
+  device:extended_wait_until{condition=function()
+    for _, l in ipairs(device:get_logs{level='info'}) do if l:find('route.change', 1, true) then return true end end
+  end, timeout=60000, interval=250, label='the page hydrated'}
+  device:scroll_until_visible{element={id=id}, direction='DOWN', timeout=30000}
+  device:clear_logs()
+  for _ = 1, 10 do
+    device:tap_on({id=id})
+    if device:extended_wait_until{condition=logged_tap, timeout=2000, interval=250, optional=true} then return end
+  end
+  error("the console choice never reached the screen")
+end
+if console then choose_console('LeetcodeListConsoleOn') end
+
 device:open_link(base .. "/")
 device:assert_visible({id='LeetcodeListItem'})
 device:scroll_until_visible{element={text='.*Two Sum.*'}, direction='DOWN'}
 device:tap_on({text='.*Two Sum.*'})
-device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=240000})
+device:assert_visible({id=console and 'ProblemEditorScreen' or 'ProblemEditorRunLocalButton'}, {timeout=240000})
 
 -- the only way a user lowers the keyboard: Done at the end of the toolbar rail
 local function done()
@@ -43,7 +62,13 @@ done()
 
 device:clear_logs()
 device:take_screenshot(out .. "/before-reset.png")
-device:tap_on({id='ProblemEditorResetButton'})
+if console then
+  device:tap_on({id='ProblemEditorMenuButton'})
+  device:extended_wait_until{visible={id='ProblemEditorMenuResetCode'}, timeout=10000, label='the menu'}
+  device:tap_on({id='ProblemEditorMenuResetCode'})
+else
+  device:tap_on({id='ProblemEditorResetButton'})
+end
 device:assert_visible({id='ResetCodeDialog-Confirm'})
 device:take_screenshot(out .. "/reset-dialog.png")
 device:tap_on({id='ResetCodeDialog-Confirm'})

@@ -1,0 +1,65 @@
+{
+  "platform": "browser",
+  "step": 9,
+  "last_action": "tap_on{id='ConsoleBarSubmit'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:45137/mla-tamagui/leetcode/two-sum",
+    "title": "",
+    "testids": [
+      "ProblemEditorHeader",
+      "ProblemEditorHeaderBack",
+      "ProblemEditorHeaderTitle",
+      "ProblemEditorHeaderSubtitle",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
+      "ProblemEditorInfoButton",
+      "ProblemEditorMenuButton",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleSheet",
+      "ConsoleTabs",
+      "SegmentedThumb",
+      "ConsoleTabs-testcase",
+      "ConsoleTabs-result",
+      "ConsoleBody",
+      "ConsolePanel-result",
+      "ConsoleResultVerdict",
+      "ConsoleResultCounts",
+      "ConsoleResultRuntime",
+      "ConsoleFooter",
+      "ConsoleFooterReset",
+      "ConsoleFooterRun",
+      "ConsoleFooterSubmit",
+      "ConsoleSheetHandle",
+      "PyodideHostWebView"
+    ],
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nTestcase\nRun Result\nAccepted\n3 / 3 testcases passed\nRuntime 3 ms\nReset\nSubmit"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 8702,
+    "capture_ms": 209
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "two-sum-stubbed-result-console",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

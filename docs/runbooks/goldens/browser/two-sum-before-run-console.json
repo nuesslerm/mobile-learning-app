@@ -1,0 +1,58 @@
+{
+  "platform": "browser",
+  "step": 8,
+  "last_action": "tap_on{point='196,419'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:45137/mla-tamagui/leetcode/two-sum",
+    "title": "",
+    "testids": [
+      "ProblemEditorHeader",
+      "ProblemEditorHeaderBack",
+      "ProblemEditorHeaderTitle",
+      "ProblemEditorHeaderSubtitle",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
+      "ProblemEditorInfoButton",
+      "ProblemEditorMenuButton",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
+      "PyodideHostWebView",
+      "DebugFabWrap",
+      "DebugFab"
+    ],
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 6702,
+    "capture_ms": 252
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "two-sum-before-run-console",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

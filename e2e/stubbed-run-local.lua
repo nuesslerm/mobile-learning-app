@@ -8,9 +8,18 @@ features: leetcode
 -- answer reached the screen, and no request left the device (Android: the stub server behind the DNAT rule answered it).
 -- wf browser test e2e/stubbed-run-local.lua --env base=http://127.0.0.1:8800/mla-tamagui
 -- wf android test e2e/stubbed-run-local.lua --env base=exp://u.expo.dev/<projectId>/group/<group>/--
+-- --env console=1 (browser only, run with wf browser test: the header registers the Android unit alone) drives Submit on the console and reads
+-- the Run Result tab; its goldens carry a -console suffix.
+-- wf browser test e2e/stubbed-run-local.lua --env base=http://127.0.0.1:8800/mla-tamagui --env console=1
 local android = device.platform == "android"
 local base = env.base or (not android and "http://127.0.0.1:8800/mla-tamagui" or nil)
 assert_true(base, "pass --env base=<update link>; wf test run does")
+local console = env.console == "1"
+assert_true(not (console and android), "the console path runs in the browser only")
+local READY = console and 'ProblemEditorScreen' or 'ProblemEditorRunLocalButton'
+local SUFFIX = console and "-console" or ""
+local RUN_BUTTON = console and 'ConsoleBarSubmit' or 'ProblemEditorRunLocalButton'
+local TOTALS = console and 'ConsoleResultCounts' or 'ProblemEditorRunOutcomeTotals'
 local function stub_run() device:add_network_stub("POST", "*/api/leetcode/run", { body_file = "e2e/stubs/leetcode-run-two-sum.json", headers = { ["content-type"] = "application/json" } }) end
 stub_run()
 if android then
@@ -26,7 +35,35 @@ local function choose(id)
   end
   device:tap_on({id=id})
 end
-run_flow("choose the server", function() choose('LeetcodeListRunnerBackend') end)
+
+local function logged(needle)
+  for _, l in ipairs(device:get_logs{level='info'}) do
+    if l:find(needle, 1, true) then return true end
+  end
+  return false
+end
+
+-- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: it is repeated until the screen logs it
+local function tap_choice(id, event)
+  device:open_link(base .. "/")
+  device:assert_visible({id=id}, {timeout=60000})
+  device:clear_logs()
+  for _ = 1, 10 do
+    device:scroll_until_visible{element={id=id}, direction='DOWN', timeout=30000}
+    device:tap_on({id=id})
+    if device:extended_wait_until{condition=function() return logged(event) end, timeout=2000, interval=250, optional=true} then return end
+  end
+  error("the choice " .. id .. " never reached the screen")
+end
+
+run_flow("choose the server", function()
+  if console then
+    tap_choice('LeetcodeListRunnerBackend', 'leetcode.list.runner_tap')
+    tap_choice('LeetcodeListConsoleOn', 'leetcode.list.console_tap')
+  else
+    choose('LeetcodeListRunnerBackend')
+  end
+end)
 local ok, failure = pcall(function()
   -- a reused app may still show this screen: a link to it remounts it a moment later, so the first wait would pass on the
   -- old one (18 Oct); the app leaves for Settings first (a link to "/" does not navigate a running Expo Go)
@@ -36,7 +73,7 @@ local ok, failure = pcall(function()
   end
   run_flow("open route", function()
     device:open_link(base .. "/leetcode/two-sum")
-    device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=60000})
+    device:assert_visible({id=READY}, {timeout=60000})
   end)
   -- the web export's first load hydrates a cold deep link with React #419 (docs/gaps/web-export-cold-deep-link-hydration-418.md); the stubbed interaction itself must stay clean
   device:clear_logs()
@@ -44,12 +81,19 @@ local ok, failure = pcall(function()
   -- screenshot with the rail half up differed by 11%): focus is waited for, Done at the end of the toolbar lowers it, and the shot is
   -- taken of the settled screen (on Android the editor often opens unfocused, with no keyboard and no toolbar to lower)
   device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true}
-  if device:get_element({id='EditorHelperRails'}) or device:get_device_state('keyboard').visible then
+  if console then
+    -- the console's rail is taller than the toolbar: a tap on the part of the language row it does not cover lowers the keyboard
+    if device:get_element({id='EditorHelperRails'}) then
+      local row, rail = device:get_element({id='ProblemEditorDiffRow'}).bounds, device:get_element({id='EditorHelperRails'}).bounds
+      device:tap_on({point=('%d,%d'):format((row.left + row.right) // 2, (row.top + math.min(row.bottom, rail.top - 4)) // 2)})
+      device:assert_not_visible({id='EditorHelperRails'})
+    end
+  elseif device:get_element({id='EditorHelperRails'}) or device:get_device_state('keyboard').visible then
     device:scroll_until_visible{element={id='EditorAction-Done'}, direction='RIGHT', from={id='EditorActionToolbar'}}
     device:tap_on({id='EditorAction-Done'})
     device:assert_not_visible({id='EditorHelperRails'})
   end
-  device:assert_screenshot("two-sum-before-run")
+  device:assert_screenshot("two-sum-before-run" .. SUFFIX)
   -- a run leaves the code as it was: the screen scrolls down to the result card, which puts the first lines of the editor behind the header
   -- an unfocused Android editor exposes no text on the WebView: the starter is then held by the two-sum-before-run golden, and the text checks apply where it is readable
   local function editor_text()
@@ -65,8 +109,8 @@ local ok, failure = pcall(function()
   run_flow("run local", function()
     -- declaring the stub again asserts the device's redirect rules again: the device can lose them between the start of the run and this tap
     stub_run()
-    device:tap_on({id='ProblemEditorRunLocalButton'})
-    shown = device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals', text='.*3 / 3.*'}, timeout=12000, optional=true}
+    device:tap_on({id=RUN_BUTTON})
+    shown = device:extended_wait_until{visible={id=TOTALS, text='.*3 / 3.*'}, timeout=12000, optional=true}
     if android and not shown then
       -- on the hosted runner the first request of a reused app sometimes sits unacknowledged on a connection the DNAT rule never saw (the device's socket
       -- table shows bytes queued to port 8789 and no answer): what the stub saw and the NAT rules are logged, and one more tap opens a fresh connection
@@ -81,7 +125,7 @@ local ok, failure = pcall(function()
       shown = device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals', text='.*3 / 3.*'}, timeout=30000, optional=true}
     end
   end)
-  local now = device:get_element({id='ProblemEditorRunOutcomeTotals'})
+  local now = device:get_element({id=TOTALS})
   local totals = (shown and shown.text) or (now and now.text) or ""
   log("totals", totals)
   if android and not shown then
@@ -94,7 +138,7 @@ local ok, failure = pcall(function()
   if code_before then assert_true(editor_text() == code_before, "the run changed the code in the editor") end
   device:assert_visible({text='.*Accepted.*'}, {timeout=5000, label='stubbed run shown as Accepted'})
   assert_true(not device:extended_wait_until{visible={text='.*Unknown error.*'}, timeout=1000, optional=true}, "the app could not read the stubbed answer")
-  device:assert_screenshot("two-sum-stubbed-result")
+  device:assert_screenshot("two-sum-stubbed-result" .. SUFFIX)
   local hits = device:get_network_stub_hits()
   assert_true(#hits == 1, "expected one stubbed request, got " .. #hits)
   log(json.encode(hits[1]))
@@ -102,8 +146,14 @@ local ok, failure = pcall(function()
   assert_true(#w == 0, "JS warnings after the load: " .. table.concat(w, " | "))
   -- BetterStack holds the run's result line for the session: a run that reached the screen must have logged it
   local info = table.concat(device:get_logs{level='info'}, "\n")
-  assert_true(info:find("editor_v2.run_local.result", 1, true), "no run_local.result line in the app log")
+  local result_line = console and "editor_v2.console.run_end" or "editor_v2.run_local.result"
+  assert_true(info:find(result_line, 1, true), "no " .. result_line .. " line in the app log")
 end)
 -- the default goes back whatever failed above: later tests on this device expect it
-pcall(function() choose('LeetcodeListRunnerDevice') end)
+if console then
+  pcall(function() tap_choice('LeetcodeListConsoleOff', 'leetcode.list.console_tap') end)
+  pcall(function() tap_choice('LeetcodeListRunnerDevice', 'leetcode.list.runner_tap') end)
+else
+  pcall(function() choose('LeetcodeListRunnerDevice') end)
+end
 if not ok then error(failure, 0) end

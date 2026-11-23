@@ -33,9 +33,27 @@ run_flow("turn suggestions on from the list", function()
   device:extended_wait_until{condition=function() return logged('info', 'leetcode.list.autocomplete_tap') end, timeout=15000, interval=250, label='the tap reached the screen'}
 end)
 
+-- --env console=1 runs it with the console on (the dock replaces Run Local), turned on from the list as a person does
+local console = env.console == "1"
+local READY = console and 'ProblemEditorScreen' or 'ProblemEditorRunLocalButton'
+local function choose_console(id)
+  device:open_link(base .. "/")
+  device:assert_visible({id='LeetcodeListConsoleRow'}, {timeout=60000})
+  device:extended_wait_until{condition=function() return logged('info', 'route.change') end, timeout=60000, interval=250, label='the page hydrated'}
+  device:scroll_until_visible{element={id=id}, direction='DOWN', timeout=30000}
+  device:clear_logs()
+  -- a tap before the page's scripts have hydrated its buttons is lost: it is repeated until the screen logs it
+  for _ = 1, 10 do
+    device:tap_on({id=id})
+    if device:extended_wait_until{condition=function() return logged('info', 'leetcode.list.console_tap') end, timeout=2000, interval=250, optional=true} then return end
+  end
+  error("the console choice never reached the screen")
+end
+if console then run_flow("turn the console on from the list", function() choose_console('LeetcodeListConsoleOn') end) end
+
 run_flow("open the editor and place the caret in the method body", function()
   device:open_link(base .. "/leetcode/two-sum")
-  device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=60000})
+  device:assert_visible({id=READY}, {timeout=60000})
   device:extended_wait_until{condition=function() return buffer():find("def twoSum", 1, true) ~= nil end, timeout=30000, label='the starter'}
   device:tap_on({css='.cm-line:last-child'})
   device:extended_wait_until{condition=function() return device:get_device_state('keyboard').visible end, timeout=15000, label='the keyboard is up'}
@@ -90,3 +108,4 @@ for _, line in ipairs(device:get_logs()) do
   if not (line:find("Response body loading was aborted", 1, true) or line:find("falling back to ArrayBuffer instantiation", 1, true)) then warnings[#warnings + 1] = line end
 end
 assert_true(#warnings == 0, "JS warning: " .. tostring(warnings[1]))
+if console then run_flow("turn the console off again", function() choose_console('LeetcodeListConsoleOff') end) end

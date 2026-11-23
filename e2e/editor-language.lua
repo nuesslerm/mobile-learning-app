@@ -13,10 +13,32 @@ local base = env.base or "http://127.0.0.1:8800/mla-tamagui"
 local out = env.out or ".agents/tmp/runs/editor-language"
 os.execute("mkdir -p " .. out)
 local function buffer() return (device:get_element({id='CodeEditorInput'}) or {}).text or "" end
+-- --env console=1 runs it with the console on (the dock replaces Run Local), turned on from the list as a person does
+local console = env.console == "1"
+local READY = console and 'ProblemEditorScreen' or 'ProblemEditorRunLocalButton'
+
+if console then
+  run_flow("turn the console on from the list", function()
+    device:open_link(base .. "/")
+    device:assert_visible({id='LeetcodeListConsoleRow'}, {timeout=60000})
+    device:extended_wait_until{condition=function()
+      for _, l in ipairs(device:get_logs{level='info'}) do
+        if l:find('route.change', 1, true) then return true end
+      end
+    end, timeout=60000, interval=250, label='the page hydrated'}
+    device:scroll_until_visible{element={id='LeetcodeListConsoleOn'}, direction='DOWN', timeout=30000}
+    device:tap_on({id='LeetcodeListConsoleOn'})
+    device:extended_wait_until{condition=function()
+      for _, l in ipairs(device:get_logs{level='info'}) do
+        if l:find('leetcode.list.console_tap', 1, true) then return true end
+      end
+    end, timeout=15000, interval=250, label='the tap reached the screen'}
+  end)
+end
 
 run_flow("open the editor", function()
   device:open_link(base .. "/leetcode/two-sum")
-  device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=60000})
+  device:assert_visible({id=READY}, {timeout=60000})
   device:extended_wait_until{condition=function() return buffer():find("def twoSum", 1, true) ~= nil end, timeout=30000, label='the Python starter'}
   -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: wait for the first route.change
   device:extended_wait_until{condition=function()
@@ -79,3 +101,23 @@ for _, line in ipairs(device:get_logs()) do
   if not (line:find("Response body loading was aborted", 1, true) or line:find("falling back to ArrayBuffer instantiation", 1, true)) then warnings[#warnings + 1] = line end
 end
 assert_true(#warnings == 0, "JS warning: " .. tostring(warnings[1]))
+
+if console then
+  run_flow("turn the console off again", function()
+    device:open_link(base .. "/")
+    device:assert_visible({id='LeetcodeListConsoleRow'}, {timeout=60000})
+    device:scroll_until_visible{element={id='LeetcodeListConsoleOff'}, direction='DOWN', timeout=30000}
+    device:clear_logs()
+    -- a tap before the page's scripts have hydrated its buttons is lost: it is repeated until the screen logs it
+    for _ = 1, 10 do
+      device:tap_on({id='LeetcodeListConsoleOff'})
+      local got = device:extended_wait_until{condition=function()
+        for _, l in ipairs(device:get_logs{level='info'}) do
+          if l:find('leetcode.list.console_tap', 1, true) then return true end
+        end
+      end, timeout=2000, interval=250, optional=true}
+      if got then return end
+    end
+    error("the console choice never reached the screen")
+  end)
+end
