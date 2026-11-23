@@ -33,6 +33,8 @@ pub(crate) struct Telemetry {
     pub steps: Vec<StepResources>,
     /// (job, tasks that ran, tasks a cache replayed) from the jobs' Nx ledgers.
     pub replay: Vec<(String, usize, usize)>,
+    /// Sustained memory or I/O pressure per job from the sampler's files; the stored rows keep only peaks, so a previous run has none.
+    pub pressure: Vec<crate::ci_resources::Pressure>,
 }
 
 pub(crate) struct Parts {
@@ -90,6 +92,7 @@ pub(crate) fn gather(env: &Env, jobs: &[&Value], finished: bool) -> Telemetry {
     let samples = runner_samples();
     let workflow = env.label.clone().unwrap_or_default();
     t.resources = samples.iter().filter_map(|(job, s)| crate::ci_resources::job_resources(&env.run, job, &workflow, s)).collect();
+    t.pressure = samples.iter().filter_map(|(job, s)| crate::ci_resources::sustained_pressure(job, s)).collect();
     let owned: Vec<Value> = jobs.iter().map(|j| (*j).clone()).collect();
     let run = send(env, "GET", &format!("{}/repos/{}/actions/runs/{}", env.api, env.repo, env.run), None).and_then(|r| json_of(r, "reading the run")).unwrap_or(Value::Null);
     t.workflow = run["name"].as_str().unwrap_or_default().to_string();

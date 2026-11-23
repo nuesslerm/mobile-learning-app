@@ -14,6 +14,10 @@ const SPEC: Spec = Spec { flags: &["send"], values: &["run", "stats", "ledgers"]
 const IDLE_CPU: f64 = 25.0;
 const SATURATED_CPU: f64 = 90.0;
 const SATURATED_PSI: f64 = 20.0;
+/// Memory or I/O pressure (`avg10`, percent of time some task stalled) over `PRESSURE_PSI` for `SUSTAINED_S` seconds on end is sustained; one high sample is a peak, which a
+/// spike during a cache restore produces without the job having waited.
+pub(crate) const PRESSURE_PSI: f64 = 20.0;
+pub(crate) const SUSTAINED_S: i64 = 30;
 const MB: f64 = 1_048_576.0;
 
 fn num(sample: &Value, key: &str) -> Option<f64> {
@@ -44,6 +48,40 @@ pub(crate) fn interval(samples: &[Value]) -> i64 {
     let mut gaps: Vec<i64> = samples.windows(2).filter_map(|w| Some(w[1]["t"].as_i64()? - w[0]["t"].as_i64()?)).filter(|g| *g > 0).collect();
     gaps.sort_unstable();
     gaps.get(gaps.len() / 2).copied().unwrap_or(5)
+}
+
+/// How long one job's memory or I/O pressure stayed over `PRESSURE_PSI` in stretches of at least `SUSTAINED_S`, for the signal that stalled longer.
+pub(crate) struct Pressure {
+    pub job: String,
+    pub kind: &'static str,
+    pub sustained_s: f64,
+    pub longest_s: f64,
+    pub duration_s: f64,
+}
+
+/// The sustained pressure of one job from its samples; `None` when the sampler wrote no memory or I/O pressure (the kernel had none), never a zero made up for it.
+pub(crate) fn sustained_pressure(job: &str, samples: &[Value]) -> Option<Pressure> {
+    let (first, last) = (samples.first()?, samples.last()?);
+    let dt = interval(samples);
+    let stretches = |key: &str| -> Option<(i64, i64)> {
+        samples.iter().any(|s| num(s, key).is_some()).then_some(())?;
+        let (mut sustained, mut longest, mut run) = (0, 0, 0);
+        for over in samples.iter().map(|s| num(s, key).is_some_and(|p| p > PRESSURE_PSI)).chain(std::iter::once(false)) {
+            if over {
+                run += dt;
+                continue;
+            }
+            if run >= SUSTAINED_S {
+                sustained += run;
+                longest = longest.max(run);
+            }
+            run = 0;
+        }
+        Some((sustained, longest))
+    };
+    let worst = [("memory", stretches("psiMem")), ("I/O", stretches("psiIo"))].into_iter().filter_map(|(kind, r)| Some((kind, r?))).max_by_key(|(_, r)| r.0)?;
+    let at = |s: &Value| s["t"].as_i64().unwrap_or(0);
+    Some(Pressure { job: job.to_string(), kind: worst.0, sustained_s: worst.1 .0 as f64, longest_s: worst.1 .1 as f64, duration_s: (at(last) - at(first) + dt) as f64 })
 }
 
 /// One job's samples boiled down; `None` when there are none.

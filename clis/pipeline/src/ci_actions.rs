@@ -2,6 +2,7 @@
 //! category, and the overhead share against the median of the last runs) and one action line per signal that is amber or red. The thresholds, the categories and the
 //! actions are the constants below, so a test reads the same table the comment is built from; no action is free text.
 use crate::ci_comment::{cell, text};
+use crate::ci_resources::{Pressure, PRESSURE_PSI};
 use crate::ci_insights::span;
 use crate::ci_telemetry::Telemetry;
 use crate::ci_trend::{arrow, key_of, last_of, median, Past, Sealed};
@@ -48,7 +49,7 @@ pub(crate) const RULES: [Rule; 8] = [
         amber: 10.0,
         red: 25.0,
         higher_is_better: false,
-        action: "Start with the longest job of the critical path and its slowest step; a shard far longer than its siblings means the weights need re-measuring (`wf ci plan shard-weights --report`).",
+        action: "Start with the longest job of the critical path and its slowest step; a `core-tests (i/6)` shard far longer than its siblings means the weights need re-measuring (`wf ci plan shard-weights --report`), not another shard count.",
     },
     Rule {
         signal: Signal::Overhead,
@@ -57,7 +58,7 @@ pub(crate) const RULES: [Rule; 8] = [
         amber: 30.0,
         red: 45.0,
         higher_is_better: false,
-        action: "Fixed cost eats the runners: merge jobs that each pay setup and install, and give every job only the work that needs its own runner.",
+        action: "Every runner pays the fixed cost, six times for six shards: make the dependency install a cache hit (`install-test-deps`, `nx-cache`) and trim `setup-job`, so each shard pays only what it cannot cache.",
     },
     Rule {
         signal: Signal::Idle,
@@ -66,7 +67,7 @@ pub(crate) const RULES: [Rule; 8] = [
         amber: 35.0,
         red: 55.0,
         higher_is_better: false,
-        action: "The CPUs wait: overlap the steps that idle (start the next stage while a wait runs) and run them on fewer, smaller runners.",
+        action: "The CPUs wait: raise `--parallel` of the Nx run in the step that idles, and drop the `needs` edge that holds the next stage back while a wait runs.",
     },
     Rule {
         signal: Signal::Efficiency,
@@ -75,7 +76,7 @@ pub(crate) const RULES: [Rule; 8] = [
         amber: 0.75,
         red: 0.6,
         higher_is_better: true,
-        action: "The jobs run in a chain or one shard dominates: let independent jobs start together and rebalance the shards.",
+        action: "The jobs run in a chain or one shard dominates: drop the `needs` edge between independent jobs so they start together, and re-measure the shard weights (`wf ci plan shard-weights --report`).",
     },
     Rule {
         signal: Signal::Queue,
@@ -84,7 +85,7 @@ pub(crate) const RULES: [Rule; 8] = [
         amber: 20.0,
         red: 60.0,
         higher_is_better: false,
-        action: "Jobs wait for runners: fewer, longer jobs ask less of the account's runner cap; the runner pool line says how much headroom there was.",
+        action: "Jobs wait for the account's runner cap: start the heavy stages in waves (a `needs` edge on the second wave) so the six `core-tests` shards get the runners first; the runner pool line says how much headroom there was.",
     },
     Rule {
         signal: Signal::Replay,
@@ -102,16 +103,16 @@ pub(crate) const RULES: [Rule; 8] = [
         amber: 10.0,
         red: 20.0,
         higher_is_better: false,
-        action: "The disk is the limit: cut what the step writes (cache entry size, docker layers) or work on tmpfs.",
+        action: "The disk is the limit: shrink the `nx-cache` or `sccache-cache` entry the step saves, or put the step's working directory on tmpfs.",
     },
     Rule {
         signal: Signal::Pressure,
-        label: "Pressure peak",
-        unit: "%",
-        amber: 40.0,
-        red: 60.0,
+        label: "Sustained pressure",
+        unit: "% of a job's seconds in stretches of 30 s or more over 20% memory or I/O pressure",
+        amber: 2.0,
+        red: 10.0,
         higher_is_better: false,
-        action: "The kernel stalls on CPU, memory or I/O: run fewer Nx tasks at once in that job or move it to a bigger runner.",
+        action: "The job stalled on memory or I/O for long stretches: lower `--parallel` in that job's test step so fewer Nx tasks hold memory at once, keeping the six shards; for I/O, shrink the cache entry it restores or saves.",
     },
 ];
 
@@ -159,12 +160,12 @@ impl Category {
     /// The lever of a category, said once for the idle block and the action lines.
     pub(crate) fn lever(self) -> &'static str {
         match self {
-            Category::Setup => "setup is paid once per runner: merge the jobs that each run it, or keep the toolchain in the runner image",
-            Category::Install => "cache the dependency install or merge shards that each install it",
-            Category::Cache => "a cache step over 60 s is not paying for itself: check the entry size",
+            Category::Setup => "setup is paid once per runner: keep the toolchain in the runner image or cache it in `setup-job`",
+            Category::Install => "make the dependency install a cache hit (`install-test-deps`) so each shard restores instead of installing",
+            Category::Cache => "a cache step over 60 s is not paying for itself: check the entry size of that cache (`nx-cache`, `sccache-cache`, `playwright-cache`, `metro-cache`)",
             Category::TestWait => "the machine waits inside the test or build step: run more tasks at once in it, or split what is serial",
             Category::E2eBoot => "start the device or the browser while the build runs, not after it",
-            Category::Teardown => "teardown is the runner stopping: the only lever is fewer runners, so fewer, longer jobs",
+            Category::Teardown => "teardown is the runner stopping: shrink what the `Post` steps save (the `nx-cache` and `sccache-cache` entries)",
             Category::Other => "look at what the step does while the CPU waits",
         }
     }
@@ -308,9 +309,14 @@ fn readings(profile: &RunProfile, resources: &[JobResources], steps: &[StepResou
     if let Some(r) = resources.iter().filter(|r| r.samples > 0).max_by(|a, b| a.iowait_avg.total_cmp(&b.iowait_avg)) {
         out.push(Reading { signal: Signal::Iowait, value: r.iowait_avg, shown: format!("{:.0}%", r.iowait_avg), hint: format!("Worst: {}.", named(&r.job)) });
     }
-    let pressure = |r: &JobResources| r.psi_cpu_max.max(r.psi_mem_max).max(r.psi_io_max);
-    if let Some(r) = resources.iter().filter(|r| r.samples > 0).max_by(|a, b| pressure(a).total_cmp(&pressure(b))) {
-        out.push(Reading { signal: Signal::Pressure, value: pressure(r), shown: format!("{:.0}%", pressure(r)), hint: format!("Worst: {}.", named(&r.job)) });
+    let share_of = |p: &Pressure| share(p.sustained_s, p.duration_s);
+    if let Some(p) = t.pressure.iter().max_by(|a, b| share_of(a).total_cmp(&share_of(b))) {
+        let hint = if p.sustained_s > 0.0 {
+            format!("Worst: {}, {} pressure over {PRESSURE_PSI:.0}% for {} on end ({} in all).", named(&p.job), p.kind, span(p.longest_s as i64), span(p.sustained_s as i64))
+        } else {
+            String::new()
+        };
+        out.push(Reading { signal: Signal::Pressure, value: share_of(p), shown: format!("{:.0}%", share_of(p)), hint });
     }
     out
 }
@@ -414,7 +420,7 @@ mod tests {
                 (Signal::Queue, 20.0, 60.0),
                 (Signal::Replay, 10.0, 30.0),
                 (Signal::Iowait, 10.0, 20.0),
-                (Signal::Pressure, 40.0, 60.0),
+                (Signal::Pressure, 2.0, 10.0),
             ]
         );
         // When values on, between and past them are leveled
@@ -435,8 +441,9 @@ mod tests {
         // Then every signal has its own non-empty action, and the levers the owner named are in the table
         assert_eq!(actions.len(), RULES.len());
         assert!(actions.iter().all(|a| !a.is_empty()));
-        assert!(Category::Install.lever().contains("cache the dependency install or merge shards that each install it"));
-        assert!(Category::Cache.lever().contains("a cache step over 60 s is not paying for itself: check the entry size"));
+        assert!(Category::Install.lever().contains("make the dependency install a cache hit (`install-test-deps`) so each shard restores instead of installing"));
+        assert!(Category::Cache.lever().contains("a cache step over 60 s is not paying for itself: check the entry size of that cache"));
+        assert!(RULES.iter().map(|r| r.action).chain([Category::Setup, Category::Install, Category::Teardown].map(Category::lever)).all(|a| !a.contains("merge") && !a.contains("fewer, longer")));
         assert!(rule(Signal::Replay).action.contains("skip the runner"));
     }
 

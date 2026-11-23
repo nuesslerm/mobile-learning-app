@@ -130,9 +130,10 @@ impl JobLine {
         median(self.minutes.iter().flatten().copied().collect()).unwrap_or(0.0)
     }
 
-    /// Mermaid's line has no hole to leave (a series is one number per run), so only an instance that every run has a time for can be drawn truthfully.
-    fn complete(&self) -> bool {
-        self.minutes.iter().all(Option::is_some)
+    /// The runs, counted back from the newest, that all have a time for this instance. Mermaid's line has no hole to leave (a series is one number per run), so an
+    /// instance can only be drawn truthfully over such a stretch.
+    fn recent_run(&self) -> usize {
+        self.minutes.iter().rev().take_while(|m| m.is_some()).count()
     }
 }
 
@@ -165,29 +166,50 @@ fn instances(sealed: &Sealed, runs: &[&Past]) -> Vec<JobLine> {
     lines
 }
 
-/// The instances to draw (the longest `JOB_LINES` with a time in every run), the count of complete ones left out for length, and the instances missing from some run.
-fn drawn(all: Vec<JobLine>) -> (Vec<JobLine>, usize, Vec<JobLine>) {
-    let (mut whole, gappy): (Vec<JobLine>, Vec<JobLine>) = all.into_iter().partition(JobLine::complete);
+/// The lines to draw, the window of runs they cover, and what was left out.
+struct Drawn {
+    lines: Vec<JobLine>,
+    /// The newest runs the chart covers: the longest stretch, at least `MIN_CHART`, in which every drawn instance has a time.
+    window: usize,
+    /// Complete instances left out for length.
+    omitted: usize,
+    /// The instances with no time in some of the newest `MIN_CHART` runs: too young or too sporadic for any window.
+    gappy: Vec<JobLine>,
+}
+
+/// The instances to draw: of those with a time in each of the newest `MIN_CHART` of `total` runs, the longest `JOB_LINES`, over the longest recent window all of them share
+/// (a re-sharded job gets its lines over the runs since the change). Each line is cut to that window.
+fn drawn(all: Vec<JobLine>, total: usize) -> Drawn {
+    let shortest = MIN_CHART.min(total);
+    let (mut whole, gappy): (Vec<JobLine>, Vec<JobLine>) = all.into_iter().partition(|l| l.recent_run() >= shortest);
     let omitted = whole.len().saturating_sub(JOB_LINES);
     whole.truncate(JOB_LINES);
-    (whole, omitted, gappy)
+    let window = whole.iter().map(JobLine::recent_run).min().unwrap_or(total).min(total);
+    for line in &mut whole {
+        line.minutes = line.minutes.split_off(total - window);
+    }
+    Drawn { lines: whole, window, omitted, gappy }
 }
 
 /// One line chart of this workflow's last runs, minutes, oldest first: the total wall time, then its longest job instances, each in its own colour and named in the line
-/// under the chart (Mermaid draws no legend). Empty below `MIN_CHART` runs.
+/// under the chart (Mermaid draws no legend), over the window of runs they all have. Empty below `MIN_CHART` runs.
 fn chart(sealed: &Sealed, key: &str) -> String {
     let runs = last_of(&sealed.past, key);
     if runs.len() < MIN_CHART {
         return String::new();
     }
-    let labels: Vec<String> = (1..=runs.len()).map(|i| i.to_string()).collect();
-    let (jobs, omitted, gappy) = drawn(instances(sealed, &runs));
-    let mut series = vec![runs.iter().map(|p| p.wall / 60.0).collect::<Vec<f64>>()];
+    let Drawn { lines: jobs, window, omitted, gappy } = drawn(instances(sealed, &runs), runs.len());
+    let shown = &runs[runs.len() - window..];
+    let labels: Vec<String> = (1..=window).map(|i| i.to_string()).collect();
+    let mut series = vec![shown.iter().map(|p| p.wall / 60.0).collect::<Vec<f64>>()];
     series.extend(jobs.iter().map(|j| j.minutes.iter().flatten().copied().collect::<Vec<f64>>()));
     let palette: Vec<&str> = PALETTE.iter().map(|(color, _)| *color).collect();
     let mut names = vec![format!("{} total wall time", PALETTE[0].1)];
     names.extend(jobs.iter().enumerate().map(|(i, j)| format!("{} `{}` (median {})", PALETTE[i + 1].1, cell(&j.name), span((j.typical() * 60.0).round() as i64))));
     let mut notes = String::new();
+    if window < runs.len() {
+        notes.push_str(&format!(" The chart covers the last {window} of {} runs, the longest stretch in which every drawn job exists (a shard count changed or a job was added).", runs.len()));
+    }
     if omitted > 0 {
         notes.push_str(&format!(" {omitted} shorter jobs are left out."));
     }
@@ -195,9 +217,10 @@ fn chart(sealed: &Sealed, key: &str) -> String {
         let named: Vec<String> = gappy.iter().take(NAMED_WITHOUT_LINE).map(|j| format!("`{}`", cell(&j.name))).collect();
         let more = gappy.len().saturating_sub(NAMED_WITHOUT_LINE);
         notes.push_str(&format!(
-            " {} job instance{} not in every one of these runs (a shard count changed, a job was skipped) and {} no line, because the chart cannot leave a point out: {}{}.",
+            " {} job instance{} not in every one of {} (a shard count changed, a job was skipped) and {} no line, because the chart cannot leave a point out: {}{}.",
             gappy.len(),
             if gappy.len() == 1 { " is" } else { "s are" },
+            if window < runs.len() { format!("the last {MIN_CHART} runs") } else { "these runs".to_string() },
             if gappy.len() == 1 { "has" } else { "have" },
             named.join(", "),
             if more > 0 { format!(" and {more} more") } else { String::new() }
@@ -206,7 +229,7 @@ fn chart(sealed: &Sealed, key: &str) -> String {
     let notes = if notes.is_empty() { String::new() } else { format!("\n{}\n", notes.trim_start()) };
     format!(
         "\n**{key}**, minutes of the last {} successful runs, oldest first\n{}\n{}\n{notes}",
-        runs.len(),
+        window,
         multi_line_chart(&format!("{key} wall time and its longest jobs"), "minutes", &labels, &series, &palette),
         names.join(" · ")
     )
@@ -276,15 +299,15 @@ mod tests {
     }
 
     #[test]
-    fn given_instances_with_and_without_a_time_in_every_run_when_chosen_then_only_the_whole_ones_are_drawn_and_a_gap_is_never_a_zero() {
+    fn given_instances_with_and_without_a_time_in_every_recent_run_when_chosen_then_only_the_whole_ones_are_drawn_and_a_gap_is_never_a_zero() {
         // Given a shard with a time in all three runs, a shard that appeared in the last run only, and one that is missing from the middle one
         let all = vec![line("core-tests (1/2)", &[Some(5.0), Some(6.0), Some(7.0)]), line("core-tests (2/2)", &[None, None, Some(4.0)]), line("flow-tests", &[Some(3.0), None, Some(3.0)])];
         // When the lines to draw are chosen
-        let (lines, omitted, gappy) = drawn(all);
-        // Then only the whole one is drawn, the other two are named as without a line, none has a zero in it and nothing is left out for length
+        let Drawn { lines, window, omitted, gappy } = drawn(all, 3);
+        // Then only the whole one is drawn over all three runs, the other two are named as without a line, none has a zero in it and nothing is left out for length
         assert_eq!(lines.iter().map(|l| l.name.as_str()).collect::<Vec<_>>(), ["core-tests (1/2)"]);
         assert_eq!(gappy.iter().map(|l| l.name.as_str()).collect::<Vec<_>>(), ["core-tests (2/2)", "flow-tests"]);
-        assert_eq!(omitted, 0);
+        assert_eq!((window, omitted), (3, 0));
         assert!(lines.iter().all(|l| l.minutes.iter().flatten().all(|m| *m > 0.0)));
         // And the typical time of a partial instance counts only the runs it has
         assert_eq!(gappy[1].typical(), 3.0);
@@ -295,8 +318,19 @@ mod tests {
         // Given ten whole instances of 1 to 10 minutes
         let all: Vec<JobLine> = (1..=10).rev().map(|m| line(&format!("j{m}"), &[Some(f64::from(m)); 3])).collect();
         // When the lines are chosen
-        let (lines, omitted, gappy) = drawn(all);
+        let Drawn { lines, omitted, gappy, .. } = drawn(all, 3);
         // Then eight are drawn and two are counted as left out
         assert_eq!((lines.len(), omitted, gappy.len()), (JOB_LINES, 2, 0));
+    }
+
+    #[test]
+    fn given_a_job_that_changed_its_shard_count_when_chosen_then_every_line_is_cut_to_the_runs_since_the_change() {
+        // Given a job in all six runs and a shard that exists in the last four only
+        let all = vec![line("flow-tests", &[Some(3.0); 6]), line("core-tests (1/6)", &[None, None, Some(1.0), Some(2.0), Some(3.0), Some(4.0)])];
+        // When the lines are chosen
+        let Drawn { lines, window, gappy, .. } = drawn(all, 6);
+        // Then both are drawn over the last four runs, the older job cut to them
+        assert_eq!((window, gappy.len()), (4, 0));
+        assert!(lines.iter().all(|l| l.minutes.len() == 4 && l.minutes.iter().all(Option::is_some)));
     }
 }

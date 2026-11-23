@@ -2455,6 +2455,55 @@ fn a_job_instance_missing_from_an_older_run_has_no_line_and_is_never_drawn_as_ze
 }
 
 #[test]
+fn a_re_shard_from_three_to_six_in_the_last_four_runs_draws_the_six_shard_lines_over_a_four_run_window_and_the_note_names_it() {
+    // Given twelve runs of backend_core whose core-tests ran as three shards in the first eight and as six in the last four, next to a flow-tests and a plan job in all twelve
+    let dir = tempfile::tempdir().unwrap();
+    let runs = job_history_runs(12, "backend_core+publish", 1000, &|i| {
+        if i < 8 {
+            vec![("core-tests (1/3)", 300), ("core-tests (2/3)", 300), ("core-tests (3/3)", 300), ("flow-tests", 200), ("plan", 60)]
+        } else {
+            vec![("core-tests (1/6)", 130), ("core-tests (2/6)", 160), ("core-tests (3/6)", 190), ("core-tests (4/6)", 220), ("core-tests (5/6)", 250), ("core-tests (6/6)", 280), ("flow-tests", 200), ("plan", 60)]
+        }
+    });
+    let sealed = sealed_jobs(dir.path(), &runs);
+    let github = Github::start();
+    trend_run(&github, "backend_core+publish");
+
+    // When the comment is previewed
+    let body = trend_body(&github, &sealed, DB_KEY);
+
+    // Then the total and the eight jobs (the six shards, flow-tests, plan) are drawn over the last four runs only, the shards longest first
+    assert_eq!(
+        chart_lines(&body),
+        ["18.0, 19.0, 20.0, 21.0", "4.7, 4.7, 4.7, 4.7", "4.2, 4.2, 4.2, 4.2", "3.7, 3.7, 3.7, 3.7", "3.3, 3.3, 3.3, 3.3", "3.2, 3.2, 3.2, 3.2", "2.7, 2.7, 2.7, 2.7", "2.2, 2.2, 2.2, 2.2", "1.0, 1.0, 1.0, 1.0"],
+        "{body}"
+    );
+    assert!(body.contains("minutes of the last 4 successful runs, oldest first"), "{body}");
+    // And every shard is named in the legend
+    assert!((1..=6).all(|n| body.contains(&format!("`core-tests ({n}/6)`"))), "{body}");
+    // And the note says the chart covers 4 of the 12 runs, and the old three-shard instances, absent from the window, keep the no-line note
+    assert!(body.contains("The chart covers the last 4 of 12 runs, the longest stretch in which every drawn job exists"), "{body}");
+    assert!(body.contains("3 job instances are not in every one of the last 3 runs (a shard count changed, a job was skipped) and have no line, because the chart cannot leave a point out: `core-tests (1/3)`, `core-tests (2/3)`, `core-tests (3/3)`."), "{body}");
+}
+
+#[test]
+fn a_workflow_with_unchanged_jobs_charts_every_run_and_does_not_mention_a_window() {
+    // Given six runs whose jobs never changed
+    let dir = tempfile::tempdir().unwrap();
+    let runs = job_history_runs(6, "backend_core+publish", 1000, &|_| vec![("core-tests (1/6)", 300), ("plan", 60)]);
+    let sealed = sealed_jobs(dir.path(), &runs);
+    let github = Github::start();
+    trend_run(&github, "backend_core+publish");
+
+    // When the comment is previewed
+    let body = trend_body(&github, &sealed, DB_KEY);
+
+    // Then all six runs are drawn and no note about a window is there
+    assert!(chart_lines(&body).iter().all(|l| l.split(", ").count() == 6), "{body}");
+    assert!(!body.contains("The chart covers"), "{body}");
+}
+
+#[test]
 fn a_workflow_with_fewer_than_three_runs_has_no_chart_and_other_workflows_jobs_are_not_drawn() {
     // Given two successful runs of backend_core, and three of mobile_core with a job of its own
     let dir = tempfile::tempdir().unwrap();
@@ -2652,8 +2701,8 @@ fn the_comment_names_the_five_steps_with_the_most_idle_seconds_in_a_category_wit
 
 #[test]
 fn every_amber_or_red_signal_has_one_action_line_from_the_fixed_table_and_a_green_one_has_none() {
-    // Given the same run: wall 30% over the median (red), overhead 38% (amber), idle 74% (red), I/O wait 12% (amber), pressure 45% (amber), replay 25 points under the median (amber),
-    // while the parallel efficiency is 1.00 and the queue wait 0 s (both green)
+    // Given the same run: wall 30% over the median (red), overhead 38% (amber), idle 74% (red), I/O wait 12% (amber), replay 25 points under the median (amber), a one-sample
+    // I/O pressure peak of 45% that is not sustained (green), while the parallel efficiency is 1.00 and the queue wait 0 s (both green)
     let (db, github) = (tempfile::tempdir().unwrap(), Github::start());
     let sealed = sealed_actions(db.path());
     let dir = actions_run(&github, true);
@@ -2661,20 +2710,50 @@ fn every_amber_or_red_signal_has_one_action_line_from_the_fixed_table_and_a_gree
     // When the comment is previewed
     let body = actions_body(&github, &dir, &sealed, DB_KEY);
 
-    // Then "What to do" has exactly six lines, one per signal that is not green, each with its colour, value, thresholds and the action of the table
+    // Then "What to do" has exactly five lines, one per signal that is not green, each with its colour, value, thresholds and the action of the table
     let lines: Vec<&str> = this_run(&body, "### What to do").lines().filter(|l| l.starts_with("- ")).collect();
-    assert_eq!(lines.len(), 6, "{body}");
+    assert_eq!(lines.len(), 5, "{body}");
     let line = |label: &str| lines.iter().find(|l| l.contains(label)).copied().unwrap_or_else(|| panic!("no line for {label}: {body}"));
     assert!(line("Wall time").starts_with("- 🔴 **Wall time +30%** (red; amber over 10, red over 25 (% slower than the median)): Start with the longest job of the critical path"), "{lines:?}");
     assert!(line("Overhead share").starts_with("- 🟠 **Overhead share 38%** (amber; amber over 30, red over 45"), "{lines:?}");
-    assert!(line("Overhead share").contains("Biggest part is install: cache the dependency install or merge shards that each install it."), "{lines:?}");
+    assert!(line("Overhead share").contains("Biggest part is install: make the dependency install a cache hit (`install-test-deps`) so each shard restores instead of installing."), "{lines:?}");
     assert!(line("Idle share").starts_with("- 🔴 **Idle share 74%** (red; amber over 35, red over 55"), "{lines:?}");
-    assert!(line("Idle share").contains("Most idle is in install steps: cache the dependency install or merge shards that each install it."), "{lines:?}");
+    assert!(line("Idle share").contains("Most idle is in install steps: make the dependency install a cache hit (`install-test-deps`) so each shard restores instead of installing."), "{lines:?}");
     assert!(line("I/O wait average").starts_with("- 🟠 **I/O wait average 12%**") && line("I/O wait average").contains("Worst: core-tests-1."), "{lines:?}");
-    assert!(line("Pressure peak").starts_with("- 🟠 **Pressure peak 45%**"), "{lines:?}");
     assert!(line("Nx replay").starts_with("- 🟠 **Nx replay 25 points under**") && line("Nx replay").contains("skip the runner"), "{lines:?}");
-    // And the two green signals say nothing
-    assert!(!body.contains("Parallel efficiency") && !body.contains("Queue wait in total"), "{body}");
+    // And the green signals say nothing, the 45% peak included (it lasted one sample), and no line tells to merge jobs
+    assert!(!body.contains("Parallel efficiency") && !body.contains("Queue wait in total") && !body.contains("pressure"), "{body}");
+    assert!(!this_run(&body, "### What to do").contains("merge"), "{body}");
+}
+
+#[test]
+fn memory_pressure_over_20_percent_for_a_sustained_stretch_is_a_red_line_naming_the_job_and_the_lever() {
+    // Given the same run whose sampler saw memory pressure at 35% from 300 s to 400 s (21 samples, 105 of the job's 420 s) and a lone 45% I/O sample
+    let (db, github) = (tempfile::tempdir().unwrap(), Github::start());
+    let sealed = sealed_actions(db.path());
+    let dir = actions_run(&github, true);
+    let file = dir.join("runner-stats/stats-core-tests-1.jsonl");
+    let rewritten: Vec<String> = std::fs::read_to_string(&file)
+        .unwrap()
+        .lines()
+        .map(|l| {
+            let t: i64 = l.split("\"t\":").nth(1).unwrap().split(',').next().unwrap().parse().unwrap();
+            let mem = if ((BASE + 300)..=(BASE + 400)).contains(&t) { 35 } else { 0 };
+            l.replace("\"psiMem\":0", &format!("\"psiMem\":{mem}"))
+        })
+        .collect();
+    std::fs::write(&file, rewritten.join("\n")).unwrap();
+
+    // When the comment is previewed
+    let body = actions_body(&github, &dir, &sealed, DB_KEY);
+
+    // Then "What to do" has a red line with the 25% of the job's seconds, the job, the kind and the stretch, and a lever that keeps the six shards
+    let lines: Vec<&str> = this_run(&body, "### What to do").lines().filter(|l| l.starts_with("- ")).collect();
+    let line = lines.iter().find(|l| l.contains("Sustained pressure")).copied().unwrap_or_else(|| panic!("no pressure line: {body}"));
+    assert!(line.starts_with("- 🔴 **Sustained pressure 25%** (red; amber over 2, red over 10"), "{line}");
+    assert!(line.contains("Worst: core-tests-1, memory pressure over 20% for 1m 45s on end (1m 45s in all)."), "{line}");
+    assert!(line.contains("lower `--parallel` in that job's test step") && line.contains("keeping the six shards"), "{line}");
+    assert!(!line.contains("peak"), "{line}");
 }
 
 #[test]
