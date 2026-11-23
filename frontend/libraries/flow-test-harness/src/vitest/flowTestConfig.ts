@@ -279,7 +279,12 @@ export async function flowTestConfig(
     test: {
       include: [FLOW_TEST_GLOB],
       environment: 'jsdom',
-      setupFiles: [path.resolve(here, 'setup.ts')],
+      setupFiles: [
+        path.resolve(here, 'setup.ts'),
+        ...(process.env.FLOW_GOLDENS_OUT
+          ? [path.resolve(here, 'goldens.ts')]
+          : []),
+      ],
       reporters: ['default', reporter],
       env: { FLOW_DEBUG_OUT: debugOut },
       provide: { flowAppRoot: options.packageDir },

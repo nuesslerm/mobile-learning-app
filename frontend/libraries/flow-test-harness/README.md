@@ -126,6 +126,10 @@ expect(editor.diffRanges()).toEqual(['return [1, 2]']); // CodeMirror's .cm-diff
 
 `editor.keys(text)` types keystrokes through the editor's input handlers, and `editor.completions()`, `editor.completionOpen()` and `editor.pickCompletion(label)` read and press the suggestion list. `editor.tree()`, `editor.statementAt(pos)` and `editor.enclosingBlock(pos)` read the syntax tree the editor holds, through the same typed API. `editor.marks()` lists the marks the typed API holds (hidden ones too), `editor.errorLines()` is the text CodeMirror draws under `.cm-run-error` and `editor.revealedLine()` is the 1-based line of the last range the API revealed (the engine's record of it, since jsdom has no layout to scroll). `editor.apply(steps, options)` makes one call of steps through the typed API (the node steps `moveNode`, `wrapNode`, `deleteNode`... among them, `{preview: true}` to ask what a call would do) and answers the reply as it is, so a refusal is asserted on and not thrown; it waits for the mirror only when the call changed the text. `editor.undo()` undoes the last change and says whether there was one. `editor.config()` reads the config the editor has now (language, tab size, palette) and `editor.press('Enter')` presses a key on CodeMirror's content element, so its own keymap and the language's grammar act on it.
 
+### Golden capture is an extension
+
+The final screen of every test is written as a golden snapshot by `src/vitest/goldens.ts`, which `flowTestConfig` adds to `setupFiles` only when `FLOW_GOLDENS_OUT` is set (`wf flow run` sets it). A plain `vitest run` with a package's flow config skips it and runs about twice as fast on editor screens (the capture waits a second for the editor to go quiet). Explicit `session.screenshot(name)` calls still write.
+
 ### Rendering like the web export
 
 `app.render` server-renders the route first, lets prerendered iframes finish
