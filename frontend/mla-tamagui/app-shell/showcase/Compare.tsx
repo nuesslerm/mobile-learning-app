@@ -1,4 +1,5 @@
 import { Separator, Text, View } from '@lib/tamagui-design-system';
+import { Column, Host } from '@expo/ui';
 import type { ReactNode } from 'react';
 
 type Props = {
@@ -32,5 +33,16 @@ export function Compare({ tamagui, expoUi, testID }: Props) {
         </Text>
       )}
     </View>
+  );
+}
+
+/** Expo UI draws inside a Host that sizes to its content; a Column keeps several controls apart and the Host spans the row. */
+export function ExpoHost({ children }: { children: ReactNode }) {
+  return (
+    <Host matchContents={{ vertical: true }} style={{ width: '100%' }}>
+      <Column spacing={12} alignment="start">
+        {children}
+      </Column>
+    </Host>
   );
 }

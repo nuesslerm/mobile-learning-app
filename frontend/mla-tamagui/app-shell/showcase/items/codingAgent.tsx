@@ -20,7 +20,12 @@ const CODING_AGENT_DIFF: ParsedDiffFile[] = [
       {
         header: '@@ -1,3 +1,4 @@',
         lines: [
-          { kind: 'ctx', text: 'export function greet() {', oldNo: 1, newNo: 1 },
+          {
+            kind: 'ctx',
+            text: 'export function greet() {',
+            oldNo: 1,
+            newNo: 1,
+          },
           { kind: 'del', text: '  return "hi";', oldNo: 2 },
           { kind: 'add', text: '  const name = "world";', newNo: 2 },
           { kind: 'add', text: '  return `hello, ${name}`;', newNo: 3 },

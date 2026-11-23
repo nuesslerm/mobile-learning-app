@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { SHOWCASE_GROUPS } from './catalog';
 import { SHOWCASE_ITEMS } from './items';
 import { ItemSheet } from './ItemSheet';
+import { OverlayHost } from './overlayHost';
 
 /**
  * Exercises the design system's real components rather than raw Tamagui, so
@@ -32,30 +33,32 @@ export function ShowcaseScreen() {
   const Selected = selected.Component;
 
   return (
-    <ScrollView bg="$background">
-      <View gap="$4" p="$4" pt="$8">
-        <Text variant="h1" testID="ShowcaseHeading">
-          Design system
-        </Text>
-        <Text variant="muted" testID="ShowcaseSubtitle">
-          Tamagui components, same names as app #1, beside their Expo UI
-          counterparts
-        </Text>
+    <View flex={1} bg="$background">
+      <ScrollView flex={1} contentInsetAdjustmentBehavior="automatic">
+        <View gap="$4" p="$4">
+          <Text variant="h1" testID="ShowcaseHeading">
+            Design system
+          </Text>
+          <Text variant="muted" testID="ShowcaseSubtitle">
+            Tamagui components, same names as app #1, beside their Expo UI
+            counterparts
+          </Text>
 
-        <Button
-          variant="outline"
-          icon={ChevronDown}
-          testID="ShowcaseItemButton"
-          onPress={() => setPickerOpen(true)}
-        >
-          {`${group?.title ?? ''}: ${selected.title}`}
-        </Button>
+          <Button
+            variant="outline"
+            icon={ChevronDown}
+            testID="ShowcaseItemButton"
+            onPress={() => setPickerOpen(true)}
+          >
+            {`${group?.title ?? ''}: ${selected.title}`}
+          </Button>
 
-        <Text variant="h2" testID="ShowcaseItemTitle">
-          {selected.title}
-        </Text>
-        <Selected />
-      </View>
+          <Text variant="h2" testID="ShowcaseItemTitle">
+            {selected.title}
+          </Text>
+          <Selected />
+        </View>
+      </ScrollView>
 
       <ItemSheet
         open={pickerOpen}
@@ -67,6 +70,7 @@ export function ShowcaseScreen() {
           setPickerOpen(false);
         }}
       />
-    </ScrollView>
+      <OverlayHost />
+    </View>
   );
 }

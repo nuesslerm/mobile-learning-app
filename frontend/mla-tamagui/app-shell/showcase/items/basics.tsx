@@ -10,9 +10,9 @@ import {
 } from '@lib/tamagui-design-system';
 import { Rocket, Settings, Sparkles } from '@lib/tamagui-design-system/icons';
 import { XStack } from '@lib/tamagui-design-system/primitives';
-import { Button as ExpoButton, Host, Text as ExpoText } from '@expo/ui';
+import { Button as ExpoButton, Text as ExpoText } from '@expo/ui';
 
-import { Compare } from '../Compare';
+import { Compare, ExpoHost } from '../Compare';
 
 export function TextItem() {
   return (
@@ -28,7 +28,7 @@ export function TextItem() {
         </View>
       }
       expoUi={
-        <Host matchContents>
+        <ExpoHost>
           <ExpoText textStyle={{ fontSize: 28, fontWeight: 'bold' }}>
             Heading 1
           </ExpoText>
@@ -36,7 +36,7 @@ export function TextItem() {
             Heading 2
           </ExpoText>
           <ExpoText>Body text</ExpoText>
-        </Host>
+        </ExpoHost>
       }
     />
   );
@@ -88,15 +88,19 @@ export function ButtonItem() {
         </XStack>
       }
       expoUi={
-        <Host matchContents>
-          <ExpoButton label="Filled" variant="filled" testID="ExpoButtonFilled" />
+        <ExpoHost>
+          <ExpoButton
+            label="Filled"
+            variant="filled"
+            testID="ExpoButtonFilled"
+          />
           <ExpoButton
             label="Outlined"
             variant="outlined"
             testID="ExpoButtonOutlined"
           />
           <ExpoButton label="Text" variant="text" testID="ExpoButtonText" />
-        </Host>
+        </ExpoHost>
       }
     />
   );

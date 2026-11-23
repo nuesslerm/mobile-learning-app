@@ -5,6 +5,7 @@ import {
   ListItem,
   StatTile,
   Text,
+  View,
 } from '@lib/tamagui-design-system';
 import { Rocket, Settings } from '@lib/tamagui-design-system/icons';
 import { XStack } from '@lib/tamagui-design-system/primitives';
@@ -67,15 +68,17 @@ export function ListItemsItem() {
         </InsetGroup>
       }
       expoUi={
-        <Host matchContents>
-          <List testID="ShowcaseExpoList">
-            <ExpoListItem onPress={() => {}} supportingText="Opens settings">
-              Settings
-            </ExpoListItem>
-            <ExpoListItem onPress={() => {}}>Second row</ExpoListItem>
-            <ExpoListItem>Not pressable</ExpoListItem>
-          </List>
-        </Host>
+        <View height={200}>
+          <Host style={{ flex: 1 }}>
+            <List testID="ShowcaseExpoList">
+              <ExpoListItem onPress={() => {}} supportingText="Opens settings">
+                Settings
+              </ExpoListItem>
+              <ExpoListItem onPress={() => {}}>Second row</ExpoListItem>
+              <ExpoListItem>Not pressable</ExpoListItem>
+            </List>
+          </Host>
+        </View>
       }
     />
   );

@@ -6,10 +6,10 @@ import {
 } from '@lib/tamagui-design-system';
 import { Code, Sparkles } from '@lib/tamagui-design-system/icons';
 import { XStack } from '@lib/tamagui-design-system/primitives';
-import { Host, Picker, Switch as ExpoSwitch, TextInput } from '@expo/ui';
+import { Picker, Switch as ExpoSwitch, TextInput } from '@expo/ui';
 import { useState } from 'react';
 
-import { Compare } from '../Compare';
+import { Compare, ExpoHost } from '../Compare';
 
 export function TextFieldItem() {
   const [name, setName] = useState('');
@@ -27,12 +27,12 @@ export function TextFieldItem() {
         />
       }
       expoUi={
-        <Host matchContents>
+        <ExpoHost>
           <TextInput
             placeholder="Ada Lovelace"
             accessibilityLabel="Your name (Expo UI)"
           />
-        </Host>
+        </ExpoHost>
       }
     />
   );
@@ -53,14 +53,14 @@ export function SwitchItem() {
         />
       }
       expoUi={
-        <Host matchContents>
+        <ExpoHost>
           <ExpoSwitch
             value={expoOn}
             onValueChange={setExpoOn}
             label="Notifications"
             testID="ShowcaseExpoSwitch"
           />
-        </Host>
+        </ExpoHost>
       }
     />
   );
@@ -83,7 +83,7 @@ export function SegmentedControlItem() {
         />
       }
       expoUi={
-        <Host matchContents>
+        <ExpoHost>
           <Picker
             selectedValue={segment}
             onValueChange={(value) => setSegment(value as 'build' | 'plan')}
@@ -93,7 +93,7 @@ export function SegmentedControlItem() {
             <Picker.Item label="Build" value="build" />
             <Picker.Item label="Plan" value="plan" />
           </Picker>
-        </Host>
+        </ExpoHost>
       }
     />
   );

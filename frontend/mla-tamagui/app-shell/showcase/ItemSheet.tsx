@@ -7,15 +7,9 @@ import {
 } from '@lib/tamagui-design-system';
 import { Check } from '@lib/tamagui-design-system/icons';
 import { XStack } from '@lib/tamagui-design-system/primitives';
-import {
-  Sheet,
-  SheetHeader,
-} from '@lib/tamagui-design-system/ui/sheet';
+import { Sheet, SheetHeader } from '@lib/tamagui-design-system/ui/sheet';
 
-import {
-  SHOWCASE_GROUPS,
-  type ShowcaseItem,
-} from './catalog';
+import { SHOWCASE_GROUPS, type ShowcaseItem } from './catalog';
 
 type Props = {
   open: boolean;
