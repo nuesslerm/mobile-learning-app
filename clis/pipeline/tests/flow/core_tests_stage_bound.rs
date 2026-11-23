@@ -241,14 +241,14 @@ fn a_guard_without_a_token_posts_nothing() {
     assert!(!calls.exists(), "{}", std::fs::read_to_string(&calls).unwrap_or_default());
 }
 
-fn step_with(s: &Scratch, flow: &str, extra: &[(&str, &str)]) -> Run {
+fn step_with(s: &Scratch, flow: &str, extra: &[(&str, &str)], as_user: bool) -> Run {
     s.stub("wf", &format!("case \"$*\" in\n  *--stage\\ flow-tests*) {flow};;\n  *--stage\\ typecheck-lint-unit-tests*) echo unit-line;;\nesac"));
     let script = step_script(&read(".github/workflows/pipeline.yml"), STEP);
     std::fs::write(s.path("temp/plan.json"), "{}").unwrap();
     let mut env = vec![("RUN_FLOW", "true"), ("RUN_UNIT", "true"), ("SHARD", "1"), ("COUNT", "1"), ("FRESH", "false"), ("STAGE_LIMIT_S", "6"), ("STAGE_KILL_S", "1")];
     env.extend_from_slice(extra);
     let started = Instant::now();
-    let out = s.run(&script, &env, false, false);
+    let out = s.run(&script, &env, as_user, false);
     Run { code: out.status.code(), out: format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr)), took: started.elapsed() }
 }
 
@@ -261,7 +261,7 @@ fn the_stages_run_in_a_memory_cgroup_limited_to_a_share_of_the_machine() {
     let flow = "echo \"in-cgroup: $STAGE_CGROUP\"; test -f \"$STAGE_CGROUP/memory.max\" && echo limit-file-present";
 
     // When the step runs
-    let run = step_with(&s, flow, &[("STAGE_MEMORY_PCT", "50"), ("CGROUP_ROOT", root.to_str().unwrap())]);
+    let run = step_with(&s, flow, &[("STAGE_MEMORY_PCT", "50"), ("CGROUP_ROOT", root.to_str().unwrap())], false);
 
     // Then it passes, says the limit, and the cgroup got a numeric limit of about half the machine's memory, group kill, and the stages' pids
     assert_eq!(run.code, Some(0), "{}", run.out);
@@ -276,16 +276,16 @@ fn the_stages_run_in_a_memory_cgroup_limited_to_a_share_of_the_machine() {
     assert!(run.out.contains("stage memory: peak"), "{}", run.out);
 }
 
-#[test]
-fn a_stage_the_kernel_killed_for_its_memory_fails_the_step_and_says_so() {
+fn a_stage_the_kernel_killed_for_its_memory_fails_the_step(as_user: bool) {
     // Given a flow stage that passes but whose cgroup reports one process killed by the memory limit
     let s = Scratch::new();
     let root = s.path("cgroup");
     std::fs::create_dir_all(&root).unwrap();
+    std::fs::set_permissions(&root, std::os::unix::fs::PermissionsExt::from_mode(0o777)).unwrap();
     let flow = "echo flow-line; printf 'low 0\\nmax 0\\noom 1\\noom_kill 1\\n' > \"$STAGE_CGROUP/memory.events\"";
 
     // When the step runs
-    let run = step_with(&s, flow, &[("STAGE_MEMORY_PCT", "50"), ("CGROUP_ROOT", root.to_str().unwrap())]);
+    let run = step_with(&s, flow, &[("STAGE_MEMORY_PCT", "50"), ("CGROUP_ROOT", root.to_str().unwrap())], as_user);
 
     // Then the step fails and names the memory limit as the reason
     assert_eq!(run.code, Some(1), "{}", run.out);
@@ -294,12 +294,24 @@ fn a_stage_the_kernel_killed_for_its_memory_fails_the_step_and_says_so() {
 }
 
 #[test]
+fn a_stage_the_kernel_killed_for_its_memory_fails_the_step_and_says_so_as_root() {
+    a_stage_the_kernel_killed_for_its_memory_fails_the_step(false);
+}
+
+#[test]
+fn a_stage_the_kernel_killed_for_its_memory_fails_the_step_and_says_so_as_an_unprivileged_user() {
+    if running_as_root() {
+        a_stage_the_kernel_killed_for_its_memory_fails_the_step(true);
+    }
+}
+
+#[test]
 fn a_cgroup_that_cannot_be_made_is_a_warning_and_the_stages_still_run() {
     // Given a cgroup root that cannot be written
     let s = Scratch::new();
 
     // When the step runs
-    let run = step_with(&s, "echo flow-line", &[("STAGE_MEMORY_PCT", "50"), ("CGROUP_ROOT", "/proc/no-such-cgroup-root")]);
+    let run = step_with(&s, "echo flow-line", &[("STAGE_MEMORY_PCT", "50"), ("CGROUP_ROOT", "/proc/no-such-cgroup-root")], false);
 
     // Then the step passes, the log carries a warning, and the stage's output is there
     assert_eq!(run.code, Some(0), "{}", run.out);

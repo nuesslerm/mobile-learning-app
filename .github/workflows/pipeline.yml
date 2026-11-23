@@ -432,11 +432,11 @@ jobs:
           [ "$FRESH" != true ] || fresh=(--fresh)
           logs="$RUNNER_TEMP/stages"; mkdir -p "$logs"
           pids=(); names=(); tails=(); snaps=()
-          sudo=""; [ "$(id -u)" = 0 ] || sudo="sudo -n"
+          cgroot="${CGROUP_ROOT:-/sys/fs/cgroup}"
+          sudo=""; [ "$(id -u)" = 0 ] || [ -w "$cgroot" ] || sudo="sudo -n"
           export SUDO_FOR_CGROUP="$sudo"
           cg=""
           if [ -n "${STAGE_MEMORY_PCT:-}" ]; then
-            cgroot="${CGROUP_ROOT:-/sys/fs/cgroup}"
             limit=$(awk -v p="$STAGE_MEMORY_PCT" '/^MemTotal/ { printf "%d", $2 * 1024 / 100 * p }' /proc/meminfo)
             dir="$cgroot/wf-stages-$$"
             if $sudo mkdir -p "$dir" 2> /dev/null && echo "$limit" | $sudo tee "$dir/memory.max" > /dev/null 2>&1; then
