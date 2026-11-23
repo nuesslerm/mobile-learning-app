@@ -12,6 +12,10 @@ const oxlint = path.join(path.dirname(createRequire(import.meta.url).resolve('ox
 
 /** One planted file per rule the repo's oxlint configs run from this plugin. */
 const PLANTED: Record<string, { file: string; code: string }> = {
+  'no-direct-screen-header': {
+    file: 'screen.tsx',
+    code: 'const Stack = { Screen: (_: object) => null };\nexport const s = <Stack.Screen name="x" options={{ unstable_headerRightItems: () => [] }} />;\n',
+  },
   'no-hermes-unsupported-api': { file: 'hermes.ts', code: 'export const s = AbortSignal.timeout(5);\n' },
   'no-unhandled-catch': { file: 'catch.ts', code: 'export function f(g: () => void) {\n  try {\n    g();\n  } catch (e) {\n    void e;\n  }\n}\n' },
 };

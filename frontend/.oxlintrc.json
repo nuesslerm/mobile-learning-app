@@ -90,8 +90,15 @@
         // AbortSignal.timeout() typechecks and works in every browser check, but Hermes lacks it: it crashed a real device
         "mobile-learn/no-hermes-unsupported-api": "error",
         // a catch block logs or rethrows: a swallowed error is a silent failure on a device
-        "mobile-learn/no-unhandled-catch": "error"
+        "mobile-learn/no-unhandled-catch": "error",
+        // headers come from the design system (ScreenHeader, useScreenHeaderOptions): one place owns the native bar
+        "mobile-learn/no-direct-screen-header": "error"
       }
+    },
+    {
+      // the design system's native-header composite builds the header options, and tests plant them
+      "files": ["**/composites/native-header/**", "**/*.test.{ts,tsx}", "**/__tests__/**", "**/tests/**"],
+      "rules": { "mobile-learn/no-direct-screen-header": "off" }
     },
     {
       // test infrastructure: its catches report through the test run

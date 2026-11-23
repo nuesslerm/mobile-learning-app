@@ -3,6 +3,7 @@ import rules from '../src/rules/index.js';
 
 describe('eslint-plugin ("./src/index.ts")', () => {
   const ruleKeys = [
+    'no-direct-screen-header',
     'no-hermes-unsupported-api',
     'no-unhandled-catch',
   ];
