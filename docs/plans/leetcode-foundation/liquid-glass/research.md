@@ -1,5 +1,7 @@
 # Research behind section H: Expo SDK 58, the topbars and the editor settings
 
+> Note, 23 Nov 2026: the Tamagui Popover `HeaderMenu` was deleted (commit 87bbbf8d). The native bar's gate is now `ios && optedIn && the native-headers setting` (default on, key `native-headers`, off switch in Appearance), and `MenuPanel` is the Android and web fallback; the old `glass-headers` value is ignored by the key rename. The voice, AI edit, Plan tab and cursor pad entry points are behind local flags (`domain/featureFlags.ts`). Decisions 88, 89, 93, 94 and 100 of issue 86 are superseded by decision 107 (to be recorded).
+
 Read-only research of 22 Nov 2026 (evidence is a file and line in the installed packages, or a v58 docs URL). The plan is [plan.md](plan.md).
 
 ## native-apis: what Expo SDK 58 (expo-router 58.0.32, react-native-screens 4.30.1, @expo/ui 58.0.29, expo-glass-effect 58.0.5) gives for Liquid Glass top bars, the morphing settings menu and the grouped toolbar pill, in Expo Go 58 on iOS 26, with Android and web fallbacks

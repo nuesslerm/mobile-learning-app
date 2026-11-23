@@ -23,3 +23,5 @@ Not blocked. A Pyodide interpreter on the main thread has no other way to be int
 ## What unblocks it
 
 Run the interpreter in a Web Worker with Pyodide's interrupt buffer (`setInterruptBuffer`, needs a `SharedArrayBuffer`, so cross-origin isolation in the WebView and in the web export) or a worker that the page can terminate (issue #86, B2.8, risk R2: only if the phone shows it). For `dispose()`, check the engine's generation after every await in `execute` and bail out without reloading.
+
+JavaScript has no such gap: each run is a Web Worker that the page terminates at the deadline, so a catch block or an infinite loop cannot defeat the limit.

@@ -94,3 +94,9 @@ The drag handle, as a fixed pad at the left end of the action rail, off by defau
 - TalkBack and VoiceOver: the adjustable role, the increment and decrement actions, and the four named actions.
 - The cold start as felt on a mid or low Android phone, and one cold open on the phone so the `editor.cold_start` line can be read from the mobile log source; the owner decides the keep or revert threshold for slice 15 (default 30 ms on the CI emulator) and whether trading warm-up timing for typing smoothness (slice 14) is wanted.
 - Flipping the handle's default to on (slice 12), and the Android goldens that follow from the CI Android bundle.
+
+## As built (23 Nov 2026)
+
+- F2.9 to F2.11 landed (fc5b0784, a89bcbc3, d7b44176): `domain/editor/cursorActions.ts` is a pure name-to-behaviour table (one character per increment or decrement, four named actions for a word or a line); the pad is an adjustable control with a value text ('Line L, column C' or 'Selected from ... to ...') that lags during a finger drag until the finger lifts. The browser e2e `editor-cursor` passed 5 of 5 idle and loaded; on the emulator the unit failed in CI on dev head 5f6d7572 (docs/gaps/editor-cursor-android-unit-failed-in-ci.md), so the script is browser-only now. Accessibility actions cannot be fired in a DOM test (docs/gaps/cursor-handle-accessibility-and-android-unit-unverified.md).
+- The cursor pad entry point is behind a local flag, default off (`domain/featureFlags.ts`).
+- F2.13 landed (05af313b): the editor logs one `editor.cold_start` line per editor; the numbers wait for one browser run of `editor-cold-start.lua` and a hosted Android run (baseline in docs/gaps/android-pyodide-warmup-may-stall-editor-events.md).

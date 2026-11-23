@@ -21,3 +21,7 @@ The hosted Android jobs cannot read the app's own log lines (`BetterStack config
 ## What unblocks it
 
 Give the hosted android-e2e-tests jobs the CH_MOBILE_* variables (CI secrets live in Bitwarden) or have the harness copy `adb logcat -d -s ReactNativeJS` into the bundle on a failed unit, then check whether the stall lines up with the load. If it does: warm the runner only after the editor has been quiet for a moment, or boot Pyodide off the renderer's main thread.
+
+## Baseline (F2.13)
+
+The editor now logs one `editor.cold_start` line per editor at its first hydrated (nth, htmlBytes, evalMs, mountToReadyMs, readyToHydratedMs, totalMs, and on a phone loadStartToReadyMs). Before numbers: bundle 662,693 chars (htmlBytes 659,028 in the page). Twin sample (one run, jsdom, not a phone number): evalMs 92, readyToHydratedMs 94.5, totalMs 331.6. `editor-typing` now prints this line and `pyodide_runner.load` in each unit after `open route`, so a hosted Android run gives cold samples when the log is readable; the existing blocker (no CH_MOBILE_* in hosted jobs) still hides them. Browser medians come from `wf browser test e2e/editor-cold-start.lua`, which has not been run.
