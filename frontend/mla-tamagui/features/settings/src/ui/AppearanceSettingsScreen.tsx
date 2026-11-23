@@ -8,6 +8,7 @@ import {
   getPresetThemeById,
   useNativeHeaderStore,
   usePresetThemeStore,
+  useScrollUnder,
 } from '@lib/tamagui-design-system';
 import { Check } from '@lib/tamagui-design-system/icons';
 import { PRESET_COLORS } from '@lib/tamagui-design-system/theme/presetColors';
@@ -116,6 +117,7 @@ function ThemeTile({
 }
 
 export function AppearanceSettingsScreen() {
+  const scrollUnder = useScrollUnder(true);
   const themeMode = usePresetThemeStore((s) => s.themeMode);
   const setThemeMode = usePresetThemeStore((s) => s.setThemeMode);
   const activeThemeId = usePresetThemeStore((s) => s.activeThemeId);
@@ -140,6 +142,7 @@ export function AppearanceSettingsScreen() {
     <View flex={1} bg="$background" testID="AppearanceSettingsScreen">
       <ScreenHeader
         glass
+        transparent
         testID="AppearanceSettingsScreenHeader"
         title="Appearance"
         onBack={() => {
@@ -148,6 +151,7 @@ export function AppearanceSettingsScreen() {
         }}
       />
       <ScrollView
+        {...scrollUnder}
         testID="AppearanceSettingsScreen-ScrollView"
         contentContainerStyle={{
           paddingVertical: 16,

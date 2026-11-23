@@ -86,12 +86,18 @@ export function buildScreenHeaderOptions({
 
   const items = buildNativeHeaderItems(spec, renderers);
   const maxWidth = titleMaxWidth(windowWidth, countHeaderControls(spec));
+  const transparent = spec.transparent === true;
   return {
     headerShown: true,
-    headerTransparent: false,
+    headerTransparent: transparent,
+    ...(transparent
+      ? { scrollEdgeEffects: { top: 'automatic' as const } }
+      : {}),
     headerBackVisible: false,
     headerShadowVisible: false,
-    headerStyle: { backgroundColor: theme.background },
+    ...(transparent
+      ? {}
+      : { headerStyle: { backgroundColor: theme.background } }),
     headerTintColor: theme.tint,
     headerUserInterfaceStyle: scheme,
     title: spec.title,
@@ -111,6 +117,7 @@ export function headerSignature(spec: ScreenHeaderSpec): string {
     back: spec.onBack !== undefined,
     backLabel: spec.backAccessibilityLabel,
     busy: spec.busy === true,
+    transparent: spec.transparent === true,
     groups: headerGroups(spec).map((group) =>
       group.map((member) =>
         isMenuSpec(member)

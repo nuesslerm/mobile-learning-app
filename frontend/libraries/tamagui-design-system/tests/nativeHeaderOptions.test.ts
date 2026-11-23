@@ -146,6 +146,29 @@ describe('buildScreenHeaderOptions', () => {
     expect(r.classic).not.toHaveBeenCalled();
   });
 
+  it('Given transparent true on the native bar, When options are built, Then the bar is transparent with a top edge effect and no background', () => {
+    const built = options(NATIVE, { ...editorSpec(), transparent: true });
+
+    expect(built.headerTransparent).toBe(true);
+    expect(built.scrollEdgeEffects).toEqual({ top: 'automatic' });
+    expect(built.headerStyle).toBeUndefined();
+  });
+
+  it('Given transparent true on the fallback, When options are built, Then it is ignored', () => {
+    const built = options(
+      { ...NATIVE, platform: 'android' },
+      { ...editorSpec(), transparent: true }
+    );
+
+    expect(Object.keys(built)).toEqual(['header']);
+  });
+
+  it('Given the same bar with and without transparent, When the signatures are taken, Then they differ', () => {
+    expect(headerSignature({ ...editorSpec(), transparent: true })).not.toBe(
+      headerSignature(editorSpec())
+    );
+  });
+
   it('Given the native bar, When the title is drawn, Then the injected factory gets the title, the subtitle and a width the controls leave', () => {
     const r = renderers();
     const built = options(NATIVE, editorSpec(), r);

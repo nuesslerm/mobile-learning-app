@@ -6,6 +6,7 @@ import {
   ScreenHeader,
   Text,
   View,
+  useScrollUnder,
 } from '@lib/tamagui-design-system';
 import { Bot, Cpu } from '@lib/tamagui-design-system/icons';
 import { backTo } from '@lib/tamagui-design-system/lib/backTo';
@@ -84,6 +85,7 @@ function DashboardRow({
 }
 
 export function DashboardsIndexScreen() {
+  const scrollUnder = useScrollUnder(true);
   const [dataAge, setDataAge] = useState<DataAgeState>({ status: 'loading' });
   const { reportingGateway } = useDashboardsPorts();
 
@@ -116,6 +118,7 @@ export function DashboardsIndexScreen() {
     <View flex={1} bg="$background" testID="DashboardsIndexScreen">
       <ScreenHeader
         glass
+        transparent
         testID="DashboardsIndexScreenHeader"
         title="Dashboards"
         onBack={() => {
@@ -124,6 +127,7 @@ export function DashboardsIndexScreen() {
         }}
       />
       <ScrollView
+        {...scrollUnder}
         testID="DashboardsIndexScreen-ScrollView"
         contentContainerStyle={{ paddingVertical: 16, gap: 12 }}
       >

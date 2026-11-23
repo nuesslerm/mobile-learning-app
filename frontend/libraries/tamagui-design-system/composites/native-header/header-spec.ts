@@ -30,6 +30,8 @@ export type ScreenHeaderSpec = {
   groups?: HeaderGroup[];
   /** A run is in flight: a spinner on a piece of glass of its own. */
   busy?: boolean;
+  /** Native bar only: the content scrolls under the glass instead of starting below an opaque bar. Ignored by the classic header. */
+  transparent?: boolean;
   testID: string;
 };
 
