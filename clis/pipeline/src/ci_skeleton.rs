@@ -111,7 +111,9 @@ fn shortened(content: &str, minimal: bool) -> String {
         kept.push_str(line);
         kept.push('\n');
     }
-    format!("{}\n{CUT}", kept.trim_end())
+    let kept = kept.trim_end();
+    let unclosed = kept.matches("<details").count().saturating_sub(kept.matches("</details>").count());
+    format!("{kept}{}\n\n{CUT}", "\n</details>".repeat(unclosed))
 }
 
 fn last_label(label: Option<&str>) -> String {

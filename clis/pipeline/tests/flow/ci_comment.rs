@@ -3019,6 +3019,30 @@ fn a_very_long_run_stays_under_the_size_limit_and_the_last_run_halves_shrink_bef
 }
 
 #[test]
+fn a_long_last_run_slowest_steps_half_is_cut_with_its_details_block_closed_so_this_run_stays_outside_it() {
+    // Given a previous run with 80 jobs of slow steps, so its collapsed Slowest steps table is over the half's cap
+    let more = |conn: &rusqlite::Connection| {
+        for i in 0..80 {
+            conn.execute("INSERT INTO CI_STEPS VALUES ('14', ?1, 1, 'Flow tests', 0, 0, 90, 'success')", [format!("core-tests ({i}/80)")]).unwrap();
+        }
+    };
+    let (db, github) = (tempfile::tempdir().unwrap(), Github::start());
+    let sealed = sealed_actions_with(db.path(), &more);
+    let dir = actions_run(&github, true);
+
+    // When the comment is previewed
+    let body = actions_body(&github, &dir, &sealed, DB_KEY);
+
+    // Then the section says it was shortened, every details block is closed, and the This run label comes after the Last run block's closing tag
+    let section = under(&body, "### Slowest steps per job");
+    assert!(section.contains("_shortened: the previous run's first rows are shown_"), "{section}");
+    assert_eq!(section.matches("<details>").count(), section.matches("</details>").count(), "{section}");
+    let (last, this) = section.split_once("**This run**").expect("This run label");
+    assert!(last.trim_end().ends_with("</details>") || last.contains("</details>"), "{section}");
+    assert_eq!(this.matches("<details>").count(), this.matches("</details>").count(), "{section}");
+}
+
+#[test]
 #[ignore = "prints the comment of a run in progress with a previous run to .agents/tmp/ci-comment-sample.md"]
 fn print_a_sample_comment() {
     let body = skeleton_body_with(true, "backend_core+publish", DB_KEY, &[("WF_CI_LABEL", "GitHub-hosted")]);
