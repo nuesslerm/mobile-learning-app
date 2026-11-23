@@ -2,7 +2,7 @@ import { createContext, useContext, type ReactNode } from 'react';
 
 import type { LeetCodePorts } from '../domain/ports';
 
-const LeetCodePortsContext = createContext<LeetCodePorts | null>(null);
+export const LeetCodePortsContext = createContext<LeetCodePorts | null>(null);
 
 export function LeetCodeContainerProvider({
   value,

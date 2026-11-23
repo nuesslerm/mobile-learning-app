@@ -1,11 +1,18 @@
 import { screen, userEvent, waitFor } from '@lib/flow-test-harness';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { app } from '../../../../tests/flow/app';
 import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLines';
 import { DEFAULT_CURSOR_HANDLE, useCursorHandleSettingStore } from '../../state/editor/cursorHandleSettingStore';
 
 // reset before the screen mounts: a store write while a screen is still mounted is an update outside act
+beforeEach(() => {
+  process.env.EXPO_PUBLIC_LEETCODE_CURSOR_PAD = '1';
+});
+afterEach(() => {
+  delete process.env.EXPO_PUBLIC_LEETCODE_CURSOR_PAD;
+});
+
 beforeEach(() => useCursorHandleSettingStore.setState({ cursorHandle: DEFAULT_CURSOR_HANDLE }));
 
 describe('the cursor handle setting on the problem list', () => {

@@ -4,7 +4,7 @@ import { DEFAULT_LEETCODE_FLAGS, resolveLeetCodeFlags } from '../featureFlags';
 
 describe('resolveLeetCodeFlags', () => {
   it('Given no env value and no override, When the flags resolve, Then aiEdit is off', () => {
-    expect(resolveLeetCodeFlags({})).toEqual({ aiEdit: false });
+    expect(resolveLeetCodeFlags({})).toEqual({ aiEdit: false, cursorPad: false });
     expect(DEFAULT_LEETCODE_FLAGS.aiEdit).toBe(false);
   });
 

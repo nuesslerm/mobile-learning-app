@@ -2,7 +2,6 @@
 platform: browser
 against: browser=export
 timeout: 180
-focus: true
 features: leetcode
 ---]]
 -- The cursor handle on the phone editor: with the setting on, the action row above the keyboard starts with a pad, a drag on it moves the caret

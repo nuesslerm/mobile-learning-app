@@ -10,6 +10,7 @@ import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
 import { ProblemCatalog } from '../domain/problemCatalog';
 import { useLeetCodeAuthStore } from '../state/authStore';
+import { useLeetCodeFlag } from '../state/useLeetCodeFlag';
 import { AutocompleteSettingRow } from './AutocompleteSettingRow';
 import { BlockViewSettingRow } from './BlockViewSettingRow';
 import { ConsoleSettingRow } from './ConsoleSettingRow';
@@ -144,6 +145,7 @@ function HeroChip({
 
 export function ProblemListScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
+  const cursorPad = useLeetCodeFlag('cursorPad');
   const categories = useMemo(() => ProblemCatalog.getCategories(), []);
   const total = useMemo(() => ProblemCatalog.getAll().length, []);
   const navigation = useNavigation();
@@ -232,7 +234,7 @@ export function ProblemListScreen(): React.ReactElement {
         <RunnerSettingRow />
         <AutocompleteSettingRow />
         <ConsoleSettingRow />
-        <CursorHandleSettingRow />
+        {cursorPad ? <CursorHandleSettingRow /> : null}
         <BlockViewSettingRow />
         {categories.map((category) => (
           <Fragment key={category.id}>

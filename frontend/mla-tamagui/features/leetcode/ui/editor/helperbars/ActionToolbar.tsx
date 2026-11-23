@@ -18,6 +18,7 @@ import type { EditorInputHandle } from '../EditorInput';
 import { caretValueText } from '../../../domain/editor/cursorActions';
 import type { Selection } from '../../../domain/editor/types';
 import { useCursorHandleSettingStore } from '../../../state/editor/cursorHandleSettingStore';
+import { useLeetCodeFlag } from '../../../state/useLeetCodeFlag';
 import { CursorHandle } from './CursorHandle';
 
 type Props = {
@@ -43,7 +44,9 @@ export function ActionToolbar({
           Math.max(selection.start, selection.end)
         );
   const hasSelection = selectedText.length > 0;
-  const cursorHandle = useCursorHandleSettingStore((s) => s.cursorHandle);
+  const cursorHandleSetting = useCursorHandleSettingStore((s) => s.cursorHandle);
+  const cursorPad = useLeetCodeFlag('cursorPad');
+  const cursorHandle = cursorHandleSetting && cursorPad;
 
   const refocusEditor = useCallback(() => {
     Logger.info('toolbar.refocus', { action: 'refocus' });

@@ -45,7 +45,7 @@ const eventually = (check: () => void | Promise<void>, timeout = 8_000) => waitF
 
 async function openEditor(handle: boolean): Promise<{ session: FlowSession; editor: FlowCodeEditor }> {
   useCursorHandleSettingStore.setState({ cursorHandle: handle });
-  const ports: LeetCodePortOverrides = { gateway, voice: createFakeVoiceEditTransport() as unknown as VoiceEditTransportPort, audio: createFakeAudioRecorder() };
+  const ports: LeetCodePortOverrides = { flags: { cursorPad: true }, gateway, voice: createFakeVoiceEditTransport() as unknown as VoiceEditTransportPort, audio: createFakeAudioRecorder() };
   const session = await app.render('/leetcode/two-sum', { overrides: { leetcode: ports } });
   return { session, editor: await session.editor() };
 }

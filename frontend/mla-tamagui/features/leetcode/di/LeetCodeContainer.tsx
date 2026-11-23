@@ -33,7 +33,7 @@ export function createDefaultContainer(
     voice: overrides.voice ?? createLiveVoiceEditTransport(),
     audio: overrides.audio,
     flags: resolveLeetCodeFlags(
-      { aiEdit: process.env.EXPO_PUBLIC_LEETCODE_AI_EDIT },
+      { aiEdit: process.env.EXPO_PUBLIC_LEETCODE_AI_EDIT, cursorPad: process.env.EXPO_PUBLIC_LEETCODE_CURSOR_PAD },
       overrides.flags
     ),
     deviceRunner,
