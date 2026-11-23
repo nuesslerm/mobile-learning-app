@@ -1,0 +1,70 @@
+{
+  "platform": "browser",
+  "step": 31,
+  "last_action": "tap_on{id='ConsoleBarRun'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:38745/mla-tamagui/leetcode/valid-parentheses?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgaXNWYWxpZChzZWxmLCBzOiBzdHIpIC0-IGJvb2w6CiAgICAgICAgcmFpc2UgVmFsdWVFcnJvcignYm9vbScpCg",
+    "title": "",
+    "testids": [
+      "ProblemEditorHeader",
+      "ProblemEditorHeaderBack",
+      "ProblemEditorHeaderTitle",
+      "ProblemEditorHeaderSubtitle",
+      "ProblemEditorHeaderActions",
+      "ProblemEditorInfoButton",
+      "ProblemEditorMenuButton",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleSheet",
+      "ConsoleTabs",
+      "SegmentedThumb",
+      "ConsoleTabs-testcase",
+      "ConsoleTabs-result",
+      "ConsoleBody",
+      "ConsolePanel-result",
+      "ConsoleResultVerdict",
+      "ConsoleResultError",
+      "ConsoleResultErrorText",
+      "ConsoleResultLine",
+      "ConsoleResultLastInput",
+      "ConsoleResultOpenCase",
+      "ConsoleResultLast-s-Card",
+      "ConsoleResultLast-s-Caption",
+      "ConsoleResultLast-s-Toggle",
+      "ConsoleResultLast-s",
+      "ConsoleFooter",
+      "ConsoleFooterReset",
+      "ConsoleFooterRun",
+      "ConsoleFooterSubmit",
+      "ConsoleSheetHandle",
+      "PyodideHostWebView"
+    ],
+    "text": "Valid Parentheses\nStack · Easy\nPython\nTestcase\nRun Result\nRuntime Error\nValueError: boom\nLine 3 (Solution.py)\nLast Executed Input\nOpen Testcase\ns =\n\"()\"\nReset\nSubmit"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 37360,
+    "capture_ms": 266
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "console-result-error",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}
