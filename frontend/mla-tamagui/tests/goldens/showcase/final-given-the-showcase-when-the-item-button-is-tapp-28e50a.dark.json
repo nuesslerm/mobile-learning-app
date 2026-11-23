@@ -1,0 +1,91 @@
+{
+  "suite": "showcase",
+  "step": "final-given-the-showcase-when-the-item-button-is-tapp-28e50a",
+  "scheme": "dark",
+  "snapshot": "showcase/final-given-the-showcase-when-the-item-button-is-tapp-28e50a.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 1704,
+    "page_height": 2079
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "ShowcaseHeading",
+      "ShowcaseSubtitle",
+      "ShowcaseItemButton",
+      "ShowcaseItemTitle",
+      "ShowcaseText",
+      "ShowcaseText-TamaguiLabel",
+      "ShowcaseText-Tamagui",
+      "ShowcaseText-ExpoUiLabel",
+      "ShowcaseText-ExpoUi",
+      "ShowcaseItemSheet",
+      "ShowcaseItemSheetHeader",
+      "ShowcaseItemSheetHeaderClose",
+      "ShowcaseItemGroup-basics",
+      "ShowcaseItemList-basics",
+      "ShowcaseItem-text",
+      "ShowcaseItem-badge",
+      "ShowcaseItem-button",
+      "ShowcaseItem-icon-button",
+      "ShowcaseItem-icon",
+      "ShowcaseItem-separator",
+      "ShowcaseItem-spinner",
+      "ShowcaseItemGroup-inputs",
+      "ShowcaseItemList-inputs",
+      "ShowcaseItem-text-field",
+      "ShowcaseItem-switch",
+      "ShowcaseItem-segmented-control",
+      "ShowcaseItem-chip",
+      "ShowcaseItemGroup-surfaces",
+      "ShowcaseItemList-surfaces",
+      "ShowcaseItem-card",
+      "ShowcaseItem-list",
+      "ShowcaseItem-stat-tile",
+      "ShowcaseItemGroup-overlays",
+      "ShowcaseItemList-overlays",
+      "ShowcaseItem-alert-dialog",
+      "ShowcaseItem-prompt-dialog",
+      "ShowcaseItem-sheet",
+      "ShowcaseItemGroup-coding-agent",
+      "ShowcaseItemList-coding-agent",
+      "ShowcaseItem-code-block",
+      "ShowcaseItem-markdown",
+      "ShowcaseItem-diff-view",
+      "ShowcaseItem-composer"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nTamagui components, same names as app #1, beside their Expo UI counterparts\nBasics: Text\nText\nTAMAGUI (DESIGN SYSTEM)\nHeading 1\nHeading 2\nBody text\nMuted text\nSMALL LABEL\nEXPO UI\nHeading 1\nHeading 2\nBody text\nItems\nBASICS\nText\nBadge\nButton\nIconButton\nIcon\nSeparator\nSpinner\nINPUTS\nTextFi"
+  },
+  "timings": {
+    "render_ms": 338
+  },
+  "name": "showcase/final-given-the-showcase-when-the-item-button-is-tapp-28e50a.dark",
+  "image": {
+    "width": 360,
+    "height": 1623
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

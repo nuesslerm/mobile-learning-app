@@ -190,7 +190,7 @@ try {
       }
 
       // ---- (4) Second step: showcase DiffView rows ----------------------
-      await goto('showcase');
+      await goto('showcase?item=diff-view');
       let diffReady = null;
       for (let attempt = 0; attempt < 20; attempt++) {
         await sleep(400);
@@ -200,7 +200,7 @@ try {
         if (diffReady) break;
       }
       if (!diffReady) {
-        fail(`the showcase DiffView never rendered after goto('showcase')`);
+        fail(`the showcase DiffView never rendered after goto('showcase?item=diff-view')`);
         return;
       }
       const showcaseAdd = await evalInApp(

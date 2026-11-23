@@ -1,0 +1,66 @@
+{
+  "suite": "showcase",
+  "step": "final-given-the-bottom-sheet-item-when-the-compact-ex-20937b",
+  "scheme": "light",
+  "snapshot": "showcase/final-given-the-bottom-sheet-item-when-the-compact-ex-20937b.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 883,
+    "page_height": 883
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "ShowcaseHeading",
+      "ShowcaseSubtitle",
+      "ShowcaseItemButton",
+      "ShowcaseItemTitle",
+      "ShowcaseSheet",
+      "ShowcaseSheet-TamaguiLabel",
+      "ShowcaseSheet-Tamagui",
+      "ShowcaseSheetOpenDefault",
+      "ShowcaseSheetOpenCompact",
+      "ShowcaseSheetOpenNoBackdrop",
+      "ShowcaseSheetOpenScroll",
+      "ShowcaseSheetOpenForm",
+      "ShowcaseSheetCompactHandle",
+      "ShowcaseSheetCompact",
+      "ShowcaseSheetCompactHeader",
+      "ShowcaseSheet-ExpoUiLabel",
+      "ShowcaseSheet-ExpoUi",
+      "ShowcaseExpoSheetOpen"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nTamagui components, same names as app #1, beside their Expo UI counterparts\nOverlays: Bottom sheet\nBottom sheet\nTAMAGUI (DESIGN SYSTEM)\nDefault: two snap points\nCompact: one snap point, labelled handle\nNo backdrop: the page stays usable\nScrolling body\nWith a text field\nCompact\nThe handl"
+  },
+  "timings": {
+    "render_ms": 237
+  },
+  "name": "showcase/final-given-the-bottom-sheet-item-when-the-compact-ex-20937b.light",
+  "image": {
+    "width": 360,
+    "height": 841
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

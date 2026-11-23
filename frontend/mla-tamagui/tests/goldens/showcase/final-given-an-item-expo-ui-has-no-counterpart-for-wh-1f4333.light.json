@@ -1,0 +1,64 @@
+{
+  "suite": "showcase",
+  "step": "final-given-an-item-expo-ui-has-no-counterpart-for-wh-1f4333",
+  "scheme": "light",
+  "snapshot": "showcase/final-given-an-item-expo-ui-has-no-counterpart-for-wh-1f4333.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "ShowcaseHeading",
+      "ShowcaseSubtitle",
+      "ShowcaseItemButton",
+      "ShowcaseItemTitle",
+      "ShowcaseBadge",
+      "ShowcaseBadge-TamaguiLabel",
+      "ShowcaseBadge-Tamagui",
+      "BadgeDefault",
+      "BadgePrimary",
+      "BadgeSuccess",
+      "BadgeDestructive",
+      "BadgeOutline",
+      "ShowcaseBadge-ExpoUiLabel",
+      "ShowcaseBadge-NoExpoUi",
+      "DebugFabWrap",
+      "DebugFab"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nTamagui components, same names as app #1, beside their Expo UI counterparts\nBasics: Badge\nBadge\nTAMAGUI (DESIGN SYSTEM)\ndefault\nprimary\nsuccess\ndestructive\noutline\nEXPO UI\nNo Expo UI equivalent."
+  },
+  "timings": {
+    "render_ms": 234
+  },
+  "name": "showcase/final-given-an-item-expo-ui-has-no-counterpart-for-wh-1f4333.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

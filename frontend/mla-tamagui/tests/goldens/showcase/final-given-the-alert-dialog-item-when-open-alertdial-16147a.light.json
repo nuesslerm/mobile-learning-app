@@ -1,0 +1,65 @@
+{
+  "suite": "showcase",
+  "step": "final-given-the-alert-dialog-item-when-open-alertdial-16147a",
+  "scheme": "light",
+  "snapshot": "showcase/final-given-the-alert-dialog-item-when-open-alertdial-16147a.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "ShowcaseHeading",
+      "ShowcaseSubtitle",
+      "ShowcaseItemButton",
+      "ShowcaseItemTitle",
+      "ShowcaseAlertDialog",
+      "ShowcaseAlertDialog-TamaguiLabel",
+      "ShowcaseAlertDialog-Tamagui",
+      "ShowcaseDestructive",
+      "ShowcaseAlert",
+      "ShowcaseAlert-Title",
+      "ShowcaseAlert-Description",
+      "ShowcaseAlert-Cancel",
+      "ShowcaseAlert-Confirm",
+      "ShowcaseAlertDialog-ExpoUiLabel",
+      "ShowcaseAlertDialog-NoExpoUi",
+      "DebugFabWrap",
+      "DebugFab"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nTamagui components, same names as app #1, beside their Expo UI counterparts\nOverlays: AlertDialog\nAlertDialog\nTAMAGUI (DESIGN SYSTEM)\nOpen AlertDialog\nDelete everything?\nThis confirms the dialog renders through the DS wrapper.\nCancel\nDelete\nEXPO UI\nNo Expo UI equivalent."
+  },
+  "timings": {
+    "render_ms": 232
+  },
+  "name": "showcase/final-given-the-alert-dialog-item-when-open-alertdial-16147a.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

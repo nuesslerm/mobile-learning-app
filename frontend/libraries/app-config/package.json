@@ -15,18 +15,19 @@
     "./dev-runtime-config.json": "./dev-runtime-config.json"
   },
   "dependencies": {
+    "@expo/ui": "~58.0.29",
     "@lib/logging": "workspace:*",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@typescript/native": "catalog:",
-    "expo-router": "~58.0.32",
-    "dependency-cruiser": "^17.4.3"
+    "dependency-cruiser": "^17.4.3",
+    "expo-router": "~58.0.32"
   },
   "peerDependencies": {
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "vite-plugin-babel": "catalog:"
+    "vite-plugin-babel": "catalog:",
+    "vitest": "catalog:"
   },
   "peerDependenciesMeta": {
     "typescript": {

@@ -49,6 +49,7 @@
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.5",
+    "@expo/ui": "~58.0.29",
     "@feature/coding-agent": "workspace:*",
     "@feature/service-report": "workspace:*",
     "@feature/settings": "workspace:*",

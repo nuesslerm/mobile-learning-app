@@ -1,0 +1,62 @@
+{
+  "suite": "showcase",
+  "step": "final-given-a-link-with-an-item-id-when-the-route-ren-55adeb",
+  "scheme": "dark",
+  "snapshot": "showcase/final-given-a-link-with-an-item-id-when-the-route-ren-55adeb.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "ShowcaseHeading",
+      "ShowcaseSubtitle",
+      "ShowcaseItemButton",
+      "ShowcaseItemTitle",
+      "ShowcaseDiffView",
+      "ShowcaseDiffView-TamaguiLabel",
+      "ShowcaseDiffView-Tamagui",
+      "Showcase-CodingAgent-DiffView",
+      "DiffFile-0-Toggle",
+      "DiffFile-1-Toggle",
+      "ShowcaseDiffView-ExpoUiLabel",
+      "ShowcaseDiffView-NoExpoUi",
+      "DebugFabWrap",
+      "DebugFab"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nTamagui components, same names as app #1, beside their Expo UI counterparts\nCoding agent: DiffView\nDiffView\nTAMAGUI (DESIGN SYSTEM)\nsrc/index.ts\n+2\n−1\n@@ -1,3 +1,4 @@\n1\n1\n \nexport function greet() {\n2\n−\n  return \"hi\";\n2\n+\n  const name = \"world\";\n3\n+\n  return `hello, ${name}`;\n3\n4\n \n}\nRE"
+  },
+  "timings": {
+    "render_ms": 329
+  },
+  "name": "showcase/final-given-a-link-with-an-item-id-when-the-route-ren-55adeb.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}
