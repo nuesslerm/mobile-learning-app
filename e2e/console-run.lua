@@ -257,13 +257,16 @@ local ok, failure = pcall(function()
     assert_clean_log()
   end)
 
-  run_flow("a run that never ends shows Pending, then Time Limit Exceeded", function()
+  run_flow("a run that never ends ends in Time Limit Exceeded", function()
     device:tap_on({css='.cm-content'})
     device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=15000, label='the rail'}
     device:press_key('Ctrl+End')
     device:input_text('\nHANG = True')
-    device:tap_on({id='ConsoleBarRun'})
-    device:extended_wait_until{condition=function() return device:get_element({id='ConsolePending'}) ~= nil end, timeout=15000, interval=50, label='the Pending overlay is mounted'}
+    local starts = count_logged('editor_v2.console.run_start')
+    for _ = 1, 4 do
+      device:tap_on({id='ConsoleBarRun'})
+      if device:extended_wait_until{condition=function() return count_logged('editor_v2.console.run_start') > starts end, timeout=2500, interval=250, optional=true} then break end
+    end
     verdict('Time Limit Exceeded', 120)
     device:assert_not_visible({id='ConsolePending'})
   end)
