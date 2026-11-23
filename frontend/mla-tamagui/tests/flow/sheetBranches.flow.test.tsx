@@ -1,4 +1,4 @@
-import { renderScreen, waitFor } from '@lib/flow-test-harness';
+import { fireEvent, renderScreen, waitFor } from '@lib/flow-test-harness';
 import { Sheet } from '@lib/tamagui-design-system/ui/sheet';
 import { Keyboard, Platform, TextInput } from 'react-native';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -70,5 +70,52 @@ describe('Sheet platform branches', () => {
     await waitFor(() => expect(dismiss).toHaveBeenCalled());
     expect(document.activeElement).toBe(field);
     expect(sheet.getAttribute('data-active-offset-y')).toBeNull();
+  });
+
+  it('Given a sheet with no new props, When it opens, Then it has a backdrop and the container passes no touch rule', async () => {
+    renderScreen(<Scene open />);
+
+    const sheet = await waitFor(() => {
+      const el = document.querySelector('[data-sheet="true"]');
+      if (!el) throw new Error('the sheet has not mounted');
+      return el;
+    });
+
+    expect(sheet.getAttribute('data-backdrop')).toBe('true');
+    expect(sheet.getAttribute('data-container-pointer-events')).toBeNull();
+    expect(document.querySelector('[data-testid="TheSheetHandle"]')).toBeNull();
+  });
+
+  it('Given backdrop none, When it opens, Then there is no backdrop and the container lets touches through', async () => {
+    renderScreen(
+      <Sheet open onOpenChange={() => {}} backdrop="none" testID="TheSheet">
+        <></>
+      </Sheet>
+    );
+
+    const sheet = await waitFor(() => {
+      const el = document.querySelector('[data-sheet="true"]');
+      if (!el) throw new Error('the sheet has not mounted');
+      return el;
+    });
+
+    expect(sheet.getAttribute('data-backdrop')).toBe('false');
+    expect(sheet.getAttribute('data-container-pointer-events')).toBe('box-none');
+  });
+
+  it('Given a handle label, When the handle is pressed, Then it is a labelled button that asks the sheet to close', async () => {
+    const onOpenChange = vi.fn();
+    const view = renderScreen(
+      <Sheet open onOpenChange={onOpenChange} handleLabel="Close console" testID="ConsoleSheet">
+        <></>
+      </Sheet>
+    );
+
+    const handle = await waitFor(() => view.getByTestId('ConsoleSheetHandle'));
+    expect(handle.getAttribute('aria-label')).toBe('Close console');
+    expect(handle.getAttribute('role')).toBe('button');
+    fireEvent.click(handle);
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

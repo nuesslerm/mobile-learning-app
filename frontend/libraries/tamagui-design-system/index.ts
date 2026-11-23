@@ -129,6 +129,7 @@ export {
   type UseKeyboardToolbarTargetOptions,
 } from './composites/keyboard-toolbar';
 export { useKeyboardFrame } from './lib/keyboard/useKeyboardFrame';
+export { useReducedMotion } from './lib/reducedMotion/useReducedMotion';
 export type { KeyboardFrame } from './lib/keyboard/types';
 export { useKeyboardStore } from './lib/keyboardStore';
 export { createOverlayRequestStore } from './lib/overlayRequestStore';

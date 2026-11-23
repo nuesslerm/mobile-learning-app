@@ -15,11 +15,16 @@ const Sheet = (props) =>
       dataSet: {
         sheet: 'true',
         keyboardLift: String(props.bottomInset ?? 0),
+        backdrop: String(Boolean(props.backdropComponent)),
+        ...(props.containerStyle && props.containerStyle.pointerEvents
+          ? { containerPointerEvents: props.containerStyle.pointerEvents }
+          : {}),
         ...(props.activeOffsetY
           ? { activeOffsetY: JSON.stringify(props.activeOffsetY) }
           : {}),
       },
     },
+    props.handleComponent ? React.createElement(props.handleComponent, {}) : null,
     props.children
   );
 const named = {

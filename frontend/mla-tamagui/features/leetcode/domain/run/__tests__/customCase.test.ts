@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Blind75Problem } from '../../models';
 import { ProblemCatalog } from '../../problemCatalog';
-import { customInputMessage, MAX_CUSTOM_INPUT_CHARS, parameterNames, parseCustomInput, writeCustomInput } from '../customCase';
+import { customInputMessage, MAX_CUSTOM_INPUT_CHARS, parameterNames, parseCustomInput, parseJsonValue, writeCustomInput } from '../customCase';
 import type { TestCase } from '../execution';
 
 const TWO_SUM = ['nums', 'target'];
@@ -37,6 +37,16 @@ describe('parameterNames', () => {
 
   it('given a problem with an empty case list, when its names are read, then there are none', () => {
     expect(parameterNames(problemWith([]))).toEqual([]);
+  });
+});
+
+describe('parseJsonValue', () => {
+  it('given text with curly quotes, when it is read, then it reads as JSON', () => {
+    expect(parseJsonValue('“abc”')).toEqual({ ok: true, value: 'abc' });
+  });
+
+  it('given broken JSON, when it is read, then it is not ok', () => {
+    expect(parseJsonValue('[1,')).toEqual({ ok: false });
   });
 });
 

@@ -13,6 +13,7 @@ import {
 } from '../interactions/layout';
 import { snapshotPage, takeWrittenSnapshots } from '../interactions/snapshot';
 import { resetLiquidGlass } from '../glass';
+import { flowMatchMedia, resetReducedMotion } from '../reducedMotion';
 import { resetRouterHarness } from '../router';
 import { resetSafeArea } from '../safeArea';
 import { installFrameFidelity } from './frames';
@@ -26,18 +27,7 @@ installFrameFidelity();
 // A wait on a condition returns the moment it holds, so its cap only ends a hang: it is set far past what a loaded machine takes (1 s by default).
 configure({ asyncUtilTimeout: 20_000 });
 
-if (!window.matchMedia) {
-  window.matchMedia = (query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: () => undefined,
-    removeListener: () => undefined,
-    addEventListener: () => undefined,
-    removeEventListener: () => undefined,
-    dispatchEvent: () => false,
-  });
-}
+if (!window.matchMedia) window.matchMedia = flowMatchMedia;
 if (!(window as any).ResizeObserver) {
   // Recording stub: react-native-web's onLayout relies on ResizeObserver, and
   // the layout driver (interactions/layout.ts) fires the observers it records.
@@ -193,6 +183,7 @@ afterEach(async (ctx) => {
   cleanup();
   resetRouterHarness();
   resetLiquidGlass();
+  resetReducedMotion();
   resetStorageHarness();
   resetLayouts();
   resetSafeArea();

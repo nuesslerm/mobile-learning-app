@@ -3,6 +3,7 @@ export { renderRoute, type RenderRouteOptions } from './route';
 export { createFlowApp, type FlowApp } from './flowApp';
 export { hydrationErrors } from './hydration';
 export { setLiquidGlass, resetLiquidGlass } from './glass';
+export { setReducedMotion, resetReducedMotion } from './reducedMotion';
 export {
   createSession,
   screenshot,

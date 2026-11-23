@@ -20,6 +20,15 @@ export function parameterNames(problem: Blind75Problem): string[] {
 const CURLY_DOUBLE = /[“”]/g;
 const CURLY_SINGLE = /[‘’]/g;
 
+/** One JSON value as a phone keyboard may have typed it: curly quotes read as straight ones. */
+export function parseJsonValue(text: string): { ok: true; value: unknown } | { ok: false } {
+  try {
+    return { ok: true, value: JSON.parse(text.replace(CURLY_DOUBLE, '"').replace(CURLY_SINGLE, "'")) };
+  } catch {
+    return { ok: false };
+  }
+}
+
 /**
  * One JSON value per line in parameter order, the format of the leetcode.com Run. The case it builds has an explicit `expected: null`,
  * because the backend's `TestCase.expected` has no serde default; the key order of `inputs` is the harness's positional argument order.
@@ -34,11 +43,9 @@ export function parseCustomInput(text: string, names: readonly string[]): Custom
   if (lines.length !== names.length) return { ok: false, problem: { kind: 'count', names: [...names], got: lines.length } };
   const values: unknown[] = [];
   for (const [index, entry] of lines.entries()) {
-    try {
-      values.push(JSON.parse(entry.value.replace(CURLY_DOUBLE, '"').replace(CURLY_SINGLE, "'")));
-    } catch {
-      return { ok: false, problem: { kind: 'json', line: entry.line, name: names[index] ?? '' } };
-    }
+    const parsed = parseJsonValue(entry.value);
+    if (!parsed.ok) return { ok: false, problem: { kind: 'json', line: entry.line, name: names[index] ?? '' } };
+    values.push(parsed.value);
   }
   return { ok: true, testCase: { inputs: Object.fromEntries(names.map((name, index) => [name, values[index]])), expected: null } };
 }

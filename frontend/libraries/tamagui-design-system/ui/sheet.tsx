@@ -38,6 +38,13 @@ export type SheetProps = {
    * one loses. The handle and the backdrop still dismiss.
    */
   disableContentPanningGesture?: boolean;
+  /**
+   * 'dim' (default) is a modal sheet with a tappable dimmed layer. 'none' draws no layer and lets touches through the container to
+   * what is behind the sheet: a non-modal panel the page above it stays usable beside.
+   */
+  backdrop?: 'dim' | 'none';
+  /** Makes the drag handle a button with this label (`${testID}Handle`) that closes the sheet and exposes a dismiss action. */
+  handleLabel?: string;
   testID: string;
 };
 
@@ -133,12 +140,33 @@ function useDismissKeyboardWhileOpen(open: boolean): void {
   }, [open]);
 }
 
+function LabeledHandle({ label, testID, color, onDismiss }: { label: string; testID: string; color: string; onDismiss: () => void }) {
+  return (
+    <Pressable
+      testID={`${testID}Handle`}
+      accessibilityRole="button"
+      aria-label={label}
+      accessibilityActions={[{ name: 'dismiss', label }]}
+      onAccessibilityAction={(event) => {
+        if (event.nativeEvent.actionName === 'dismiss') onDismiss();
+      }}
+      onPress={onDismiss}
+      hitSlop={8}
+      style={styles.handle}
+    >
+      <View style={[styles.handleBar, { backgroundColor: color }]} />
+    </Pressable>
+  );
+}
+
 export function Sheet({
   open,
   onOpenChange,
   children,
   snapPoints = [85, 50],
   disableContentPanningGesture = false,
+  backdrop = 'dim',
+  handleLabel,
   testID,
 }: SheetProps) {
   const theme = useTheme();
@@ -207,6 +235,11 @@ export function Sheet({
   const keyboardLift = open && keyboard.visible ? keyboard.height + (Platform.OS === 'android' ? insets.bottom : 0) : 0;
 
   const mounted = useMountedAfterFirstFrame();
+  const indicatorColor = theme.color8?.val ?? '#999';
+  const renderHandle = useCallback(
+    () => <LabeledHandle label={handleLabel ?? ''} testID={testID} color={indicatorColor} onDismiss={handleClose} />,
+    [handleLabel, testID, indicatorColor, handleClose]
+  );
 
   if (!mounted || !open) return null;
 
@@ -221,7 +254,10 @@ export function Sheet({
       enableContentPanningGesture={!disableContentPanningGesture}
       // Dynamic sizing fights explicit snap points; app #1 hardcodes it off.
       enableDynamicSizing={false}
-      backdropComponent={renderBackdrop}
+      backdropComponent={backdrop === 'none' ? undefined : renderBackdrop}
+      // gorhom's web container is a full-size absolute div that would swallow every tap meant for what is behind a sheet with no backdrop
+      {...(backdrop === 'none' ? { containerStyle: styles.passThrough } : {})}
+      {...(handleLabel ? { handleComponent: renderHandle } : {})}
       keyboardBehavior="interactive"
       // gorhom default is 'none', which leaves the keyboard up over the sheet.
       keyboardBlurBehavior="restore"
@@ -324,6 +360,9 @@ export function SheetHeader({
 }
 
 const styles = StyleSheet.create({
+  passThrough: { pointerEvents: 'box-none' },
+  handle: { alignItems: 'center', justifyContent: 'center', paddingTop: 10, paddingBottom: 10 },
+  handleBar: { width: 36, height: 4, borderRadius: 2 },
   frame: { flex: 1, paddingHorizontal: 16, paddingTop: 4, gap: 12 },
   header: {
     flexDirection: 'row',
