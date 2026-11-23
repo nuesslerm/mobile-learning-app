@@ -19,6 +19,7 @@ Pre-2026-10 history: [archive](archive/README.md).
 - browser-harness · video-check finds no tap dot in a recording made while the machine is CPU-starved · 35d · [video-check-misses-tap-dot-under-load](gaps/video-check-misses-tap-dot-under-load.md)
 - ci · The record-references trigger is a commit marker, not a dispatch, and has not run live · 16d · [record-trigger-without-dispatch](gaps/record-trigger-without-dispatch.md)
 - ci · A few CLI flow tests still assert against the wall clock · 2d · [wall-clock-assertions-in-cli-flow-tests](gaps/wall-clock-assertions-in-cli-flow-tests.md)
+- ci · The Android e2e shard fails on an STT model download · 0d · [ci-stt-model-download-503-fails-android-shard](gaps/ci-stt-model-download-503-fails-android-shard.md)
 - ci · The gate budget scan walks .claude/worktrees · 0d · [gate-budget-scan-walks-worktrees](gaps/gate-budget-scan-walks-worktrees.md)
 - ci · The staged gate replayed nx tasks from the cache for test-only changes · 0d · [staged-gate-replays-nx-for-test-only-changes](gaps/staged-gate-replays-nx-for-test-only-changes.md)
 - coding-agent · The Build/Plan segmented control overlaps its neighbours at 393 px · 50d · [coding-agent-segmented-control-overlap](gaps/coding-agent-segmented-control-overlap.md)
