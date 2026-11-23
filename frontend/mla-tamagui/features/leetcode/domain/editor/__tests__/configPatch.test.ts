@@ -44,6 +44,17 @@ describe('the config patch mapping', () => {
 
   it('given the page config, when shown to the typed API, then the palette is nested', () => {
     const legacy: LegacyEditorConfig = { initialText: '', language: 'cpp', ...ALL };
-    expect(toEditorConfig(legacy)).toEqual({ language: 'cpp', wrap: true, tabSize: 2, fontSize: 15, lineHeight: 22, palette: { dark: true, cursor: '#a', selection: '#b', background: '#c', gutter: '#d', border: '#e' } });
+    expect(toEditorConfig(legacy)).toEqual({ language: 'cpp', wrap: true, whitespace: false, tabSize: 2, fontSize: 15, lineHeight: 22, palette: { dark: true, cursor: '#a', selection: '#b', background: '#c', gutter: '#d', border: '#e' } });
+  });
+
+  it('given a patch with showWhitespace beside fontSize, when mapped, then it is not refused and the key round-trips', () => {
+    const typed = toConfigPatch({ fontSize: 16, showWhitespace: true });
+
+    expect(typed).toEqual({ fontSize: 16, whitespace: true });
+    expect(toLegacyPatch(typed ?? {})).toEqual({ fontSize: 16, showWhitespace: true });
+  });
+
+  it('given a page config with showWhitespace on, when shown to the typed API, then it reports whitespace', () => {
+    expect(toEditorConfig({ initialText: '', language: 'python', ...ALL, showWhitespace: true }).whitespace).toBe(true);
   });
 });

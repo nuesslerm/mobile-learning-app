@@ -15,6 +15,8 @@ const LANGUAGE_LABELS: Record<EditorLanguage, string> = {
   javascript: 'JavaScript',
 };
 
+export const languageLabel = (value: EditorLanguage): string => LANGUAGE_LABELS[value];
+
 /** Every language the picker can offer; a problem offers the ones it has a starter for. */
 export const EDITOR_LANGUAGES: readonly EditorLanguage[] = ['python3', 'javascript'];
 

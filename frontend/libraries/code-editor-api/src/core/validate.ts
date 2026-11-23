@@ -299,6 +299,10 @@ export function parseConfigPatch(params: unknown): Parsed<ConfigPatch> {
     if (typeof params.wrap !== 'boolean') return bad('wrap', 'wrap is a boolean');
     patch.wrap = params.wrap;
   }
+  if (params.whitespace !== undefined) {
+    if (typeof params.whitespace !== 'boolean') return bad('whitespace', 'whitespace is a boolean');
+    patch.whitespace = params.whitespace;
+  }
   if (params.tabSize !== undefined) {
     if (!isInt(params.tabSize) || params.tabSize < 1 || params.tabSize > 32) return bad('tabSize', 'tabSize is an integer from 1 to 32');
     patch.tabSize = params.tabSize;

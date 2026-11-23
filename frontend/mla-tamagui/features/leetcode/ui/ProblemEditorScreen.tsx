@@ -29,20 +29,12 @@ import {
   ScreenHeader,
   Spinner,
   Text,
+  useGlassHeaderStore,
   View,
 } from '@lib/tamagui-design-system';
 import type { EditAlternative } from '@lib/voice-edit-dsl';
-import { Stack, router } from 'expo-router';
-import {
-  History,
-  Info,
-  LogIn,
-  LogOut,
-  Mic,
-  Pencil,
-  MoreHorizontal,
-  Wand2,
-} from '@lib/tamagui-design-system/icons';
+import { router } from 'expo-router';
+import { Mic, Pencil } from '@lib/tamagui-design-system/icons';
 import React from 'react';
 import { Pressable, TextInput, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import { XStack, YStack, useTheme } from '@lib/tamagui-design-system/primitives';
@@ -81,10 +73,15 @@ import {
   EDITOR_LANGUAGES,
   LanguagePicker,
   LanguageSheet,
+  languageLabel,
   type EditorLanguage,
 } from './LanguagePicker';
 import { VoiceRecordingToolbar } from './VoiceRecordingToolbar';
 import { VoiceReviewSheet } from './VoiceReviewSheet';
+import { editorHeaderSpec } from './editor-header/editorHeaderSpec';
+import { editorSettingsMenu } from './editor-settings/editorSettingsMenu';
+import { SymbolBarSheet } from './editor-settings/SymbolBarSheet';
+import { useEditorPreferencesStore } from '../state/editor/editorPreferencesStore';
 
 // The editor takes the leftover height; the test input is a fixed block at
 // the bottom. `flexGrow: 1` on the scroll view's content container lets the
@@ -646,133 +643,130 @@ export function ProblemEditorScreen({
     router.push(`/leetcode/${problem.id}/reset-code`);
   }, [problem, lang, snapshot, clearCard]);
 
+  const glassHeaders = useGlassHeaderStore((state) => state.enabled);
+  const fontSize = useEditorPreferencesStore((s) => s.fontSize);
+  const tabSize = useEditorPreferencesStore((s) => s.tabSize);
+  const wrap = useEditorPreferencesStore((s) => s.wrap);
+  const whitespace = useEditorPreferencesStore((s) => s.whitespace);
+  const setFontSize = useEditorPreferencesStore((s) => s.setFontSize);
+  const setTabSize = useEditorPreferencesStore((s) => s.setTabSize);
+  const setWrap = useEditorPreferencesStore((s) => s.setWrap);
+  const setWhitespace = useEditorPreferencesStore((s) => s.setWhitespace);
+  const [symbolBarOpen, setSymbolBarOpen] = React.useState(false);
+  // Whether the editor held the caret when the sheet opened: Done gives the keyboard back only then.
+  const editorFocusedRef = React.useRef(false);
+  const refocusAfterSheetRef = React.useRef(false);
+  const handleSymbolBarOpen = React.useCallback(() => {
+    Logger.info('editor_v2.symbol_bar.open', { problemId: problem?.id });
+    refocusAfterSheetRef.current = editorFocusedRef.current;
+    dismissEditorKeyboard();
+    setSymbolBarOpen(true);
+  }, [dismissEditorKeyboard, problem?.id]);
+  const handleSymbolBarOpenChange = React.useCallback((open: boolean) => {
+    setSymbolBarOpen(open);
+    if (open || !refocusAfterSheetRef.current) return;
+    refocusAfterSheetRef.current = false;
+    editorRef.current?.focus();
+  }, []);
+
+  const handleBack = () => {
+    Logger.info('editor.back', {
+      problemId: problem?.id,
+      dirty: isDirty,
+    });
+    if (!isDirty) {
+      router.back();
+      return;
+    }
+    requestUnsavedChanges({
+      problemId: problem?.id ?? '',
+      onDiscard: () => {
+        // Snapshot BEFORE leaving: the buffer is useState seeded
+        // from starter code and persisted nowhere, so without this
+        // "discard" would be irreversible.
+        snapshot('navigate-away');
+        router.back();
+      },
+      onCancel: () => {},
+    });
+    router.push(`/leetcode/${id ?? ''}/unsaved`);
+  };
+
+  const handleInfo = () => {
+    Logger.info('editor_v2.info_tap', { problemId: problem?.id });
+    dismissEditorKeyboard();
+    if (problem) router.push(`/leetcode/${problem.id}/description`);
+  };
+
+  const handleHistory = () => {
+    Logger.info('editor_v2.history_tap', { problemId: problem?.id, count: historyCount });
+    dismissEditorKeyboard();
+    if (!problem) return;
+    // Register the restore target BEFORE pushing: the sheet
+    // is its own route, so it shares no React tree with this
+    // screen and cannot reach setEditorText directly.
+    useCodeHistoryRequestStore.getState().request({
+      problemId: problem.id,
+      onRestore: (code, language) => {
+        snapshot('reset');
+        setEditorText(code);
+        editorRef.current?.setTextAndSelection(code, { start: code.length, end: code.length });
+        if (language !== lang) {
+          setLang(language as EditorLanguage);
+        }
+      },
+    });
+    router.push(`/leetcode/${problem.id}/history`);
+  };
+
+  const handleLogin = () => {
+    if (isLoggedIn) {
+      Logger.info('editor_v2.logout_tap', { problemId: problem?.id });
+      clearCredentials();
+      return;
+    }
+    Logger.info('editor_v2.login_tap', { problemId: problem?.id });
+    router.push('/leetcode/login');
+  };
+
+  const headerSpec = editorHeaderSpec({
+    title: problem?.title ?? 'Problem',
+    subtitle: problemSubtitle,
+    historyCount,
+    isLoggedIn,
+    username,
+    busy: busy || running !== null,
+    glass: glassHeaders,
+    settings: glassHeaders
+      ? editorSettingsMenu(
+          { fontSize, tabSize, wrap, whitespace },
+          {
+            onFontSize: setFontSize,
+            onTabSize: setTabSize,
+            onWrap: setWrap,
+            onWhitespace: setWhitespace,
+            onSymbolBar: handleSymbolBarOpen,
+            onFormat: () => {
+              Logger.info('editor_v2.format.tap', { problemId: problem?.id, from: 'settings_menu' });
+              void handleFormat();
+            },
+          },
+          languageLabel(lang)
+        )
+      : undefined,
+    onBack: handleBack,
+    onInfo: handleInfo,
+    onFormat: () => {
+      Logger.info('editor_v2.format.tap', { problemId: problem?.id, from: 'header_menu' });
+      void handleFormat();
+    },
+    onHistory: handleHistory,
+    onLogin: handleLogin,
+  });
+
   return (
     <View flex={1} bg="$background" testID="ProblemEditorScreen">
-      <Stack.Screen
-        options={{
-          // A custom header, not headerTitle/headerRight: the stock bar has one
-          // text slot, so the category and difficulty had nowhere to go and the
-          // back button carried the parent's title as a long label beside them.
-          header: () => (
-            <ScreenHeader
-              testID="ProblemEditorHeader"
-              title={problem?.title ?? 'Problem'}
-              subtitle={problemSubtitle}
-              backAccessibilityLabel="Back to the problem list"
-              onBack={() => {
-                Logger.info('editor.back', {
-                  problemId: problem?.id,
-                  dirty: isDirty,
-                });
-                if (!isDirty) {
-                  router.back();
-                  return;
-                }
-                requestUnsavedChanges({
-                  problemId: problem?.id ?? '',
-                  onDiscard: () => {
-                    // Snapshot BEFORE leaving: the buffer is useState seeded
-                    // from starter code and persisted nowhere, so without this
-                    // "discard" would be irreversible.
-                    snapshot('navigate-away');
-                    router.back();
-                  },
-                  onCancel: () => {},
-                });
-                router.push(`/leetcode/${id ?? ''}/unsaved`);
-              }}
-              actions={[
-                {
-                  icon: Info,
-                  accessibilityLabel: 'Problem description',
-                  testID: 'ProblemEditorInfoButton',
-                  onPress: () => {
-                    Logger.info('editor_v2.info_tap', {
-                      problemId: problem?.id,
-                    });
-                    dismissEditorKeyboard();
-                    if (problem)
-                      router.push(`/leetcode/${problem.id}/description`);
-                  },
-                },
-              ]}
-              menu={{
-                icon: MoreHorizontal,
-                accessibilityLabel: 'More actions',
-                testID: 'ProblemEditorMenuButton',
-                items: [
-                  {
-                    icon: Wand2,
-                    label: 'Format',
-                    onPress: () => {
-                      Logger.info('editor_v2.format.tap', {
-                        problemId: problem?.id,
-                        from: 'header_menu',
-                      });
-                      void handleFormat();
-                    },
-                    testID: 'ProblemEditorMenuFormat',
-                  },
-                  {
-                    icon: History,
-                    label: 'Version history',
-                    detail:
-                      historyCount > 0
-                        ? `${historyCount} saved`
-                        : 'No versions yet',
-                    onPress: () => {
-                      Logger.info('editor_v2.history_tap', {
-                        problemId: problem?.id,
-                        count: historyCount,
-                      });
-                      dismissEditorKeyboard();
-                      if (!problem) return;
-                      // Register the restore target BEFORE pushing: the sheet
-                      // is its own route, so it shares no React tree with this
-                      // screen and cannot reach setEditorText directly.
-                      useCodeHistoryRequestStore.getState().request({
-                        problemId: problem.id,
-                        onRestore: (code, language) => {
-                          snapshot('reset');
-                          setEditorText(code);
-                          editorRef.current?.setTextAndSelection(code, {
-                            start: code.length,
-                            end: code.length,
-                          });
-                          if (language !== lang) {
-                            setLang(language as EditorLanguage);
-                          }
-                        },
-                      });
-                      router.push(`/leetcode/${problem.id}/history`);
-                    },
-                    testID: 'ProblemEditorMenuHistory',
-                  },
-                  {
-                    icon: isLoggedIn ? LogOut : LogIn,
-                    label: isLoggedIn ? 'Log out' : 'Login',
-                    detail: isLoggedIn ? (username ?? undefined) : 'LeetCode',
-                    onPress: () => {
-                      if (isLoggedIn) {
-                        Logger.info('editor_v2.logout_tap', {
-                          problemId: problem?.id,
-                        });
-                        clearCredentials();
-                        return;
-                      }
-                      Logger.info('editor_v2.login_tap', {
-                        problemId: problem?.id,
-                      });
-                      router.push('/leetcode/login');
-                    },
-                    testID: 'ProblemEditorMenuLogin',
-                  },
-                ],
-              }}
-            />
-          ),
-        }}
-      />
+      <ScreenHeader {...headerSpec} glass placement="navigator" />
       <KeyboardToolbarTarget
         testID="ProblemEditorToolbarTarget"
         toolbarTestID="EditorHelperRails"
@@ -819,6 +813,9 @@ export function ProblemEditorScreen({
                 value={editorText}
                 onChangeText={handleEditorChange}
                 onSelectionChange={setEditorSelection}
+                onFocusChange={(focused) => {
+                  editorFocusedRef.current = focused;
+                }}
                 onHydratedChange={(hydrated) => {
                   setEditorReady(hydrated);
                   // the page may have been dropped while idle: bring it back while the person reads the problem, not at Run
@@ -1040,6 +1037,7 @@ export function ProblemEditorScreen({
         languages={availableLanguages}
         testID="ProblemEditorLanguagePicker"
       />
+      <SymbolBarSheet open={symbolBarOpen} onOpenChange={handleSymbolBarOpenChange} />
       {voiceEdit.state.phase === 'planning' ? (
         <XStack
           position="absolute"

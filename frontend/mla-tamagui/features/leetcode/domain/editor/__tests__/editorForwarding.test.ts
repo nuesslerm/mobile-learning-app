@@ -240,10 +240,10 @@ describe('the editor port forwarding', () => {
 
   it('given the ten keys EditorInput sends, when updateConfig is posted, then it is applied through the typed API', async () => {
     const { client, legacy, post } = setup();
-    post({ type: 'updateConfig', config: { wordWrap: true, isDark: true, fontSize: 16, lineHeight: 24, tabSize: 2, cursorColor: '#1', selectionColor: '#2', backgroundColor: '#3', gutterColor: '#4', borderColor: '#5' } });
+    post({ type: 'updateConfig', config: { wordWrap: true, showWhitespace: true, isDark: true, fontSize: 16, lineHeight: 24, tabSize: 2, cursorColor: '#1', selectionColor: '#2', backgroundColor: '#3', gutterColor: '#4', borderColor: '#5' } });
     await settled();
     const config = await client.setConfig({});
-    expect(config).toMatchObject({ ok: true, value: { wrap: true, fontSize: 16, tabSize: 2, palette: { dark: true, gutter: '#4' } } });
+    expect(config).toMatchObject({ ok: true, value: { wrap: true, whitespace: true, fontSize: 16, tabSize: 2, palette: { dark: true, gutter: '#4' } } });
     expect(legacy).toEqual([]);
   });
 

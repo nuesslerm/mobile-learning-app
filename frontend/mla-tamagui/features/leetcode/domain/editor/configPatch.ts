@@ -7,6 +7,7 @@ export type LegacyEditorConfig = {
   fontSize: number;
   lineHeight: number;
   wordWrap: boolean;
+  showWhitespace?: boolean;
   language: string;
   cursorColor: string;
   selectionColor: string;
@@ -17,7 +18,7 @@ export type LegacyEditorConfig = {
 };
 export type LegacyConfigPatch = Partial<LegacyEditorConfig>;
 
-const MAPPED = new Set(['language', 'wordWrap', 'isDark', 'cursorColor', 'selectionColor', 'backgroundColor', 'gutterColor', 'borderColor', 'fontSize', 'lineHeight', 'tabSize']);
+const MAPPED = new Set(['language', 'wordWrap', 'showWhitespace', 'isDark', 'cursorColor', 'selectionColor', 'backgroundColor', 'gutterColor', 'borderColor', 'fontSize', 'lineHeight', 'tabSize']);
 
 /** The typed-API form of an old patch, or null when it holds a key the typed API does not carry (`initialText`, a language it does not name, anything unknown). */
 export function toConfigPatch(legacy: LegacyConfigPatch): ConfigPatch | null {
@@ -34,6 +35,7 @@ export function toConfigPatch(legacy: LegacyConfigPatch): ConfigPatch | null {
   return {
     ...(legacy.language === undefined || !isLanguage(legacy.language) ? {} : { language: legacy.language }),
     ...(legacy.wordWrap === undefined ? {} : { wrap: legacy.wordWrap }),
+    ...(legacy.showWhitespace === undefined ? {} : { whitespace: legacy.showWhitespace }),
     ...(legacy.tabSize === undefined ? {} : { tabSize: legacy.tabSize }),
     ...(legacy.fontSize === undefined ? {} : { fontSize: legacy.fontSize }),
     ...(legacy.lineHeight === undefined ? {} : { lineHeight: legacy.lineHeight }),
@@ -47,6 +49,7 @@ export function toLegacyPatch(patch: ConfigPatch): LegacyConfigPatch {
   return {
     ...(patch.language === undefined ? {} : { language: patch.language }),
     ...(patch.wrap === undefined ? {} : { wordWrap: patch.wrap }),
+    ...(patch.whitespace === undefined ? {} : { showWhitespace: patch.whitespace }),
     ...(patch.tabSize === undefined ? {} : { tabSize: patch.tabSize }),
     ...(patch.fontSize === undefined ? {} : { fontSize: patch.fontSize }),
     ...(patch.lineHeight === undefined ? {} : { lineHeight: patch.lineHeight }),
@@ -63,6 +66,7 @@ export function toEditorConfig(legacy: LegacyEditorConfig, completion?: Completi
   return {
     language: isLanguage(legacy.language) ? legacy.language : 'python',
     wrap: legacy.wordWrap,
+    whitespace: legacy.showWhitespace ?? false,
     tabSize: legacy.tabSize,
     fontSize: legacy.fontSize,
     lineHeight: legacy.lineHeight,

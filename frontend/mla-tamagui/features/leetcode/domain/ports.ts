@@ -106,6 +106,7 @@ export type EditorConfig = {
   fontSize: number;
   lineHeight: number;
   wordWrap: boolean;
+  showWhitespace?: boolean;
   language: string;
   cursorColor: string;
   selectionColor: string;

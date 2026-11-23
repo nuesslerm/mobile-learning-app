@@ -13,7 +13,7 @@ export type Language = (typeof LANGUAGE_NAMES)[number];
 export type Palette = { readonly dark: boolean; readonly cursor: string; readonly selection: string; readonly background: string; readonly gutter: string; readonly border: string };
 export type CompletionEntry = { readonly label: string; readonly type?: string; readonly detail?: string; readonly boost?: number }; // a name the editor may offer: a word of a problem's signature
 export type CompletionConfig = { readonly enabled: boolean; readonly entries: readonly CompletionEntry[] };
-export type EditorConfig = { readonly language: Language; readonly wrap: boolean; readonly tabSize: number; readonly fontSize: number; readonly lineHeight: number; readonly palette: Palette; readonly completion?: CompletionConfig };
+export type EditorConfig = { readonly language: Language; readonly wrap: boolean; readonly whitespace: boolean; readonly tabSize: number; readonly fontSize: number; readonly lineHeight: number; readonly palette: Palette; readonly completion?: CompletionConfig };
 export type ConfigPatch = Partial<Omit<EditorConfig, 'palette'>> & { readonly palette?: Partial<Palette> };
 
 export type Target = Range | 'selection'; // an explicit range, or what the engine has selected when the batch runs

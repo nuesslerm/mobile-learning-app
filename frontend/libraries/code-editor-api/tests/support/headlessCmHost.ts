@@ -18,7 +18,7 @@ export function createHeadlessCm(options: { text?: string; instance?: string; lo
   let clock = 1_000_000;
   let focused = false;
   let config: EditorConfig = {
-    language: 'python', wrap: false, tabSize: 4, fontSize: 14, lineHeight: 20,
+    language: 'python', wrap: false, whitespace: false, tabSize: 4, fontSize: 14, lineHeight: 20,
     palette: { dark: false, cursor: '#000000', selection: '#cccccc', background: '#ffffff', gutter: '#eeeeee', border: '#dddddd' },
   };
   const errors: unknown[] = [];

@@ -997,8 +997,23 @@ export function editorContract(name: string, make: MakeSubject, options: Contrac
         expect(reply.revision).toBe(base);
       });
 
+      it('given whitespace configured, when a language is set and a document loaded, then the config still reports it', async () => {
+        await start();
+        const original = unwrap(await client.setConfig({})).whitespace;
+        try {
+          expect(unwrap(await client.setConfig({ whitespace: true })).whitespace).toBe(true);
+          const language = unwrap(await client.hello()).capabilities.languages[0] as Language;
+          expect(unwrap(await client.setConfig({ language })).whitespace).toBe(true);
+          await start('abc');
+          expect(unwrap(await client.setConfig({})).whitespace).toBe(true);
+        } finally {
+          unwrap(await client.setConfig({ whitespace: original }));
+        }
+      });
+
       it('given bad values, when configure runs, then it is invalid and names the path', async () => {
         await start();
+        expect(failed(await client.setConfig({ whitespace: 'yes' as unknown as boolean }))).toMatchObject({ code: 'invalid', path: 'whitespace' });
         expect(failed(await client.setConfig({ tabSize: 0 }))).toMatchObject({ code: 'invalid', path: 'tabSize' });
         expect(failed(await client.setConfig({ palette: { cursor: 5 as unknown as string } })).code).toBe('invalid');
       });

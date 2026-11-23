@@ -44,6 +44,7 @@ export type FakeEditor = {
 const DEFAULT_CONFIG: EditorConfig = {
   language: 'python',
   wrap: false,
+  whitespace: false,
   tabSize: 4,
   fontSize: 14,
   lineHeight: 20,

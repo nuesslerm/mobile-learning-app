@@ -30,9 +30,10 @@ import { createColdStart, nextEditorNth } from '../../domain/editor/coldStart';
 import { clearEditMark, markEdit, setEditMarkHidden } from '../../domain/editor/editMark';
 import { createForwardingPost } from '../../domain/editor/editorForwarding';
 import { applyPlannedEdit, readBasis, type EditBasis, type EditOutcome, type EditTarget, type PlannedEdit } from '../../domain/editor/voiceEditPlan';
+import { lineHeightFor } from '../../domain/editor-settings/editorPreferences';
+import { useEditorPreferencesStore } from '../../state/editor/editorPreferencesStore';
 import { useLeetCodePorts } from '../../state/ports';
 import {
-  getCodeFont,
   getPalette,
   useCodeEditorSettingsStore,
 } from '../../state/editor/editorSettings';
@@ -96,7 +97,6 @@ type Props = {
   onSelectionChange: (sel: Selection) => void;
   onHydratedChange?: (hydrated: boolean) => void;
   onFocusChange?: (focused: boolean) => void;
-  tabSize?: number;
   /** The language the editor highlights and indents in; changing it switches the live editor. */
   language?: Language;
   /** Suggestions while typing: off when absent or not enabled. The names are what the problem's own signature adds. */
@@ -120,7 +120,6 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       onSelectionChange,
       onHydratedChange,
       onFocusChange,
-      tabSize = 4,
       language = 'python',
       completion,
       testID,
@@ -176,10 +175,12 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     const initLanguageRef = useRef(language);
 
     const paletteId = useCodeEditorSettingsStore((s) => s.paletteId);
-    const fontSize = useCodeEditorSettingsStore((s) => s.fontSize);
-    const wordWrap = useCodeEditorSettingsStore((s) => s.wordWrap);
+    const fontSize = useEditorPreferencesStore((s) => s.fontSize);
+    const wordWrap = useEditorPreferencesStore((s) => s.wrap);
+    const tabSize = useEditorPreferencesStore((s) => s.tabSize);
+    const showWhitespace = useEditorPreferencesStore((s) => s.whitespace);
     const palette = getPalette(paletteId);
-    const { lineHeight } = getCodeFont(fontSize);
+    const lineHeight = lineHeightFor(fontSize);
     const isDark = palette.appearance === 'dark';
     // Editor chrome colors (gutter + border) are intentionally tied to the
     // editor palette's appearance, not the OS theme — they live inside the
@@ -493,6 +494,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         fontSize,
         lineHeight,
         wordWrap,
+        showWhitespace,
         language,
         cursorColor: palette.cursor,
         selectionColor: palette.selection,
@@ -512,6 +514,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         tabSize,
         value,
         wordWrap,
+        showWhitespace,
         language,
       ]
     );
@@ -552,6 +555,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           fontSize,
           lineHeight,
           wordWrap,
+          showWhitespace,
           cursorColor: palette.cursor,
           selectionColor: palette.selection,
           backgroundColor: palette.background,
@@ -564,6 +568,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       paletteId,
       fontSize,
       wordWrap,
+      showWhitespace,
       tabSize,
       sendMessage,
       isDark,

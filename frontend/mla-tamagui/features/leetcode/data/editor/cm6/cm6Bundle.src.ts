@@ -34,6 +34,7 @@ import {
   keymap,
   lineNumbers,
   Decoration,
+  highlightWhitespace,
   ViewPlugin,
   type ViewUpdate,
 } from '@codemirror/view';
@@ -172,6 +173,7 @@ function parseEditorConfig(value: unknown): EditorConfig | null {
     fontSize,
     lineHeight,
     wordWrap: value.wordWrap,
+    showWhitespace: value.showWhitespace === true,
     language: value.language,
     cursorColor,
     selectionColor,
@@ -279,6 +281,9 @@ function buildConfigExtensions(cfg: EditorConfig) {
         background: cfg.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
         borderBottom: `1px solid ${cfg.cursorColor}`,
       },
+      '.cm-highlightSpace': {
+        backgroundImage: `radial-gradient(circle at 50% 55%, ${cfg.isDark ? '#8b93a1' : '#9aa0a6'} 20%, transparent 5%)`,
+      },
       '.cm-run-error-line': {
         background: cfg.isDark ? 'rgba(248,113,113,0.2)' : 'rgba(220,38,38,0.12)',
       },
@@ -298,6 +303,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
     cfg.isDark ? oneDark : [],
     theme,
     cfg.wordWrap ? EditorView.lineWrapping : [],
+    cfg.showWhitespace ? highlightWhitespace() : [],
   ];
 }
 

@@ -38,6 +38,8 @@ export type FlowCodeEditor = {
   marks(): Promise<readonly Mark[]>;
   /** Text of each error mark CodeMirror is currently drawing: what is underlined, not the whole row. */
   errorLines(): string[];
+  /** How many whitespace marks CodeMirror is drawing (its highlight-space and highlight-tab spans). */
+  whitespaceMarks(): number;
   /** The 1-based line of the last range the API was asked to reveal, null when none (an edit or a load clears it). Intent, not pixels: jsdom has no layout. */
   revealedLine(): Promise<number | null>;
   /** The config the editor has now: the language it highlights and indents in, the tab size, the palette. */
@@ -165,6 +167,7 @@ export async function mountedCodeEditor(container: HTMLElement): Promise<FlowCod
       Array.from(doc.querySelectorAll('.cm-diff-change'), (el) => el.textContent ?? ''),
     marks: async () => unwrap(await client.marks()).marks,
     errorLines: () => Array.from(doc.querySelectorAll('.cm-run-error'), (el) => el.textContent ?? ''),
+    whitespaceMarks: () => doc.querySelectorAll('.cm-highlightSpace, .cm-highlightTab').length,
     revealedLine: async () => {
       const { revealed } = unwrap(await client.marks());
       if (!revealed) return null;
