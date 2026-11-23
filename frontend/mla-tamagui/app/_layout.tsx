@@ -13,7 +13,7 @@ import {
   usePresetThemeStore,
 } from '@lib/tamagui-design-system';
 import { tamaguiConfig } from '@lib/tamagui-design-system/theme';
-import { Stack } from 'expo-router';
+import { Stack, ThemeProvider } from 'expo-router';
 import { Platform, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -25,6 +25,10 @@ import { DeviceRunnerRoot } from '@/features/leetcode';
 
 import { AgentationMarkerLog } from '../app-shell/AgentationMarkerLog';
 import { DebugFab } from '../app-shell/DebugFab';
+import {
+  NativeChromeBridge,
+  useNavigationTheme,
+} from '../app-shell/NativeChromeBridge';
 import { RouteLogger } from '../app-shell/RouteLogger';
 
 // Module scope keeps the options object identity stable across renders. The
@@ -76,6 +80,7 @@ function HeaderClearToaster() {
 }
 
 export default function RootLayout() {
+  const navigationTheme = useNavigationTheme();
   const scheme = useColorScheme();
   const activeThemeId = usePresetThemeStore((s) => s.activeThemeId);
   const themeMode = usePresetThemeStore((s) => s.themeMode);
@@ -97,6 +102,7 @@ export default function RootLayout() {
                 is the only way into the problem description. Only the drawer
                 group hides its header, because its screens carry their own. */}
             <DeviceRunnerRoot>
+            <ThemeProvider value={navigationTheme}>
             <Stack>
               {/* `title` even though the header is hidden: a child route's
                   back button labels itself from its PARENT's title, so without
@@ -121,7 +127,9 @@ export default function RootLayout() {
                 }}
               />
             </Stack>
+            </ThemeProvider>
             </DeviceRunnerRoot>
+            <NativeChromeBridge />
             <RouteLogger />
             <DebugFab />
             {/* AgentationMarkerLog calls useAgentation, which throws

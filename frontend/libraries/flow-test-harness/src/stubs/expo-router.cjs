@@ -19,16 +19,20 @@ const useNavigation = () => {
 const twin = require('./nativeHeaderTwin.cjs');
 const headersRendered = () => g.__flowRouter.stackHeadersRendered === true;
 const resolveOptions = (options, props) => (typeof options === 'function' ? options(props) : options) ?? {};
-const renderHeader = (options, route, navigation) => {
+const renderHeader = (options, route, navigation, version) => {
   if (options.headerShown === false) return null;
   if (typeof options.header === 'function') return options.header({ navigation, route, options, back: undefined });
-  return twin.renderNativeHeader(options);
+  return twin.renderNativeHeader(options, version);
 };
+// How many times this screen's options object was replaced: a bar rebuilt from a new object is what recreates an open UIMenu on a phone.
 const ScreenOptions = (props) => {
   const navigation = useNavigation();
+  const held = React.useRef({ options: undefined, version: 0 });
   if (!headersRendered()) return null;
   const route = { key: props.name ?? 'screen', name: props.name ?? 'screen', params: g.__flowRouter.params };
-  return renderHeader(resolveOptions(props.options, { route, navigation }), route, navigation);
+  const options = resolveOptions(props.options, { route, navigation });
+  if (held.current.options !== options) held.current = { options, version: held.current.version + 1 };
+  return renderHeader(options, route, navigation, held.current.version);
 };
 // A name matches the end of the pathname, a [param] segment any one segment; `index` never matches.
 const nameMatches = (name, pathname) => {

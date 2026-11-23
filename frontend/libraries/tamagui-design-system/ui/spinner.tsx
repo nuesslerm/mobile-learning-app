@@ -11,6 +11,8 @@ export type SpinnerProps = {
   /** A theme token name, e.g. `color11`. Resolved here because ActivityIndicator takes a plain string. */
   colorToken?: string;
   style?: StyleProp<ViewStyle>;
+  /** What a screen reader says for it; none unless given. */
+  accessibilityLabel?: string;
   testID?: string;
 };
 
@@ -37,6 +39,7 @@ export function Spinner({
   size = 'small',
   colorToken = 'color11',
   style,
+  accessibilityLabel,
   testID,
 }: SpinnerProps) {
   const theme = useTheme();
@@ -47,6 +50,7 @@ export function Spinner({
       size={size}
       color={color}
       style={style}
+      aria-label={accessibilityLabel}
       testID={testID}
     />
   );

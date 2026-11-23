@@ -3,8 +3,10 @@ import React from 'react';
 
 import type { EditorInputHandle } from '../EditorInput';
 import type { Selection } from '../../../domain/editor/types';
+import { useSymbolBarStore } from '../../../state/editor/symbolBarStore';
 
 import { ActionToolbar } from './ActionToolbar';
+import { SymbolBarRail } from './SymbolBarRail';
 import { SyntaxToolbar } from './SyntaxToolbar';
 
 type Props = {
@@ -26,15 +28,28 @@ export function EditorHelperRails({
   onDismissKeyboard,
   voiceButton,
 }: Props) {
+  const shown = useSymbolBarStore((s) => s.shown);
+  const railStyle = useSymbolBarStore((s) => s.railStyle);
+
   return (
     <>
-      <SyntaxToolbar
-        editorRef={editorRef}
-        source={source}
-        selection={selection}
-        language={language}
-        onConfigure={onConfigure}
-      />
+      {!shown ? null : railStyle === 'symbols' ? (
+        <SymbolBarRail
+          editorRef={editorRef}
+          source={source}
+          selection={selection}
+          language={language}
+          onDismissKeyboard={onDismissKeyboard}
+        />
+      ) : (
+        <SyntaxToolbar
+          editorRef={editorRef}
+          source={source}
+          selection={selection}
+          language={language}
+          onConfigure={onConfigure}
+        />
+      )}
       <ActionToolbar
         editorRef={editorRef}
         source={source}

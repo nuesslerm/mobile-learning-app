@@ -1,0 +1,43 @@
+{
+  "suite": "screenheader",
+  "step": "final-given-two-menus-in-two-groups-when-each-is-open-f7529c",
+  "scheme": "dark",
+  "snapshot": "screenheader/final-given-two-menus-in-two-groups-when-each-is-open-f7529c.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "Bar",
+      "BarBack",
+      "BarTitle",
+      "BarSubtitle",
+      "BarGroup0",
+      "SettingsMenu",
+      "BarGroup1",
+      "MoreMenu",
+      "MoreMenuContent",
+      "MoreRow"
+    ],
+    "text": "Two Sum\nArray & Hashing · Easy\nMore row"
+  },
+  "timings": {
+    "render_ms": 226
+  },
+  "name": "screenheader/final-given-two-menus-in-two-groups-when-each-is-open-f7529c.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

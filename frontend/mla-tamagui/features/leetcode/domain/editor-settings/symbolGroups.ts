@@ -64,6 +64,19 @@ export function moveGroup(groups: readonly SymbolGroup[], from: number, to: numb
   return next;
 }
 
+/** The one move that turns `before` into `after` (a drag moves a single group), or null when the order is the same or took more than one move. */
+export function moveBetween(before: readonly SymbolGroup[], after: readonly SymbolGroup[]): { from: number; to: number } | null {
+  if (before.length !== after.length) return null;
+  const first = before.findIndex((group, index) => group.id !== after[index].id);
+  if (first < 0) return null;
+  let last = before.length - 1;
+  while (before[last].id === after[last].id) last -= 1;
+  const reproduces = (from: number, to: number) => moveGroup(before, from, to).every((group, index) => group.id === after[index].id);
+  if (reproduces(first, last)) return { from: first, to: last };
+  if (reproduces(last, first)) return { from: last, to: first };
+  return null;
+}
+
 export function setGroupChars(groups: readonly SymbolGroup[], id: SymbolGroupId, raw: string): readonly SymbolGroup[] {
   const chars = normalizeGroup(raw);
   return groups.map((group) => (group.id === id ? { ...group, chars } : group));

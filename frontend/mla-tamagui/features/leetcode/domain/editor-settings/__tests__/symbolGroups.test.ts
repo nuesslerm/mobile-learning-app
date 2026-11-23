@@ -6,6 +6,7 @@ import {
   groupCells,
   groupLabel,
   isDefaultGroups,
+  moveBetween,
   moveGroup,
   normalizeGroup,
   resetGroups,
@@ -113,6 +114,38 @@ describe('moveGroup and groupLabel', () => {
     moveGroup(DEFAULT_SYMBOL_GROUPS, 0, 7);
 
     expect(chars(DEFAULT_SYMBOL_GROUPS)).toEqual(before);
+  });
+});
+
+describe('moveBetween', () => {
+  it('Given a list and the same list with group 2 moved below group 3, When compared, Then the move is from 1 to 2', () => {
+    expect(moveBetween(DEFAULT_SYMBOL_GROUPS, moveGroup(DEFAULT_SYMBOL_GROUPS, 1, 2))).toEqual({ from: 1, to: 2 });
+  });
+
+  it('Given the last group moved to the front, When compared, Then the move is from 7 to 0', () => {
+    expect(moveBetween(DEFAULT_SYMBOL_GROUPS, moveGroup(DEFAULT_SYMBOL_GROUPS, 7, 0))).toEqual({ from: 7, to: 0 });
+  });
+
+  it('Given a move over several places in either direction, When compared, Then the move found is the one made', () => {
+    for (const [from, to] of [[0, 5], [5, 0], [2, 6], [6, 2]] as const) {
+      const after = moveGroup(DEFAULT_SYMBOL_GROUPS, from, to);
+
+      expect(moveBetween(DEFAULT_SYMBOL_GROUPS, after)).toEqual({ from, to });
+    }
+  });
+
+  it('Given the same order, When compared, Then there is no move', () => {
+    expect(moveBetween(DEFAULT_SYMBOL_GROUPS, resetGroups())).toBeNull();
+  });
+
+  it('Given two groups swapped far apart, When compared, Then it is not one move', () => {
+    const swapped = DEFAULT_SYMBOL_GROUPS.map((_group, index) => DEFAULT_SYMBOL_GROUPS[index === 1 ? 5 : index === 5 ? 1 : index]);
+
+    expect(moveBetween(DEFAULT_SYMBOL_GROUPS, swapped)).toBeNull();
+  });
+
+  it('Given lists of different lengths, When compared, Then there is no move', () => {
+    expect(moveBetween(DEFAULT_SYMBOL_GROUPS, DEFAULT_SYMBOL_GROUPS.slice(1))).toBeNull();
   });
 });
 

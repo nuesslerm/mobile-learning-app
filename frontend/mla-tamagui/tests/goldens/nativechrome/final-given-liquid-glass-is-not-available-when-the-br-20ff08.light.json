@@ -1,0 +1,32 @@
+{
+  "suite": "nativechrome",
+  "step": "final-given-liquid-glass-is-not-available-when-the-br-20ff08",
+  "scheme": "light",
+  "snapshot": "nativechrome/final-given-liquid-glass-is-not-available-when-the-br-20ff08.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [],
+    "text": ""
+  },
+  "timings": {
+    "render_ms": 171
+  },
+  "name": "nativechrome/final-given-liquid-glass-is-not-available-when-the-br-20ff08.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

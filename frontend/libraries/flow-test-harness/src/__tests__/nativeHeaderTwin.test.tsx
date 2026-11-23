@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
 
-import { screen, setStackHeadersRendered, userEvent, within } from '../index';
+import { act, screen, setStackHeadersRendered, userEvent, within } from '../index';
 import { renderRoute } from '../route';
 
 type Options = NativeStackNavigationOptions;
@@ -259,5 +259,32 @@ describe('native header twin', () => {
     await userEvent.click(screen.getByTestId('NativeHeaderItem-Settings'));
 
     expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('given a Stack.Screen whose options object is kept and then replaced, when the screen re-renders, then the bar reports a new options version only for the new object', () => {
+    const first: Options = { unstable_headerRightItems: () => [{ type: 'button', label: 'Info', onPress: () => undefined }] };
+    const held: { options: Options; rerender: () => void } = { options: first, rerender: () => undefined };
+    function Screen() {
+      const [, setCount] = useState(0);
+      held.rerender = () => setCount((count) => count + 1);
+      return (
+        <View>
+          <Stack.Screen options={held.options} />
+        </View>
+      );
+    }
+    setStackHeadersRendered(true);
+    renderRoute({ layouts: [], screen: Screen });
+    const version = () => screen.getByTestId('NativeHeader').getAttribute('data-options-version');
+    const initial = version();
+
+    act(() => held.rerender());
+
+    expect(version()).toBe(initial);
+
+    held.options = { ...first };
+    act(() => held.rerender());
+
+    expect(Number(version())).toBe(Number(initial) + 1);
   });
 });

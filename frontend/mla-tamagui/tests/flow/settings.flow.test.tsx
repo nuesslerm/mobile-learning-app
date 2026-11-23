@@ -2,8 +2,12 @@ import {
   routerHarness,
   screen,
   userEvent,
+  waitFor,
 } from '@lib/flow-test-harness';
-import { usePresetThemeStore } from '@lib/tamagui-design-system';
+import {
+  useGlassHeaderStore,
+  usePresetThemeStore,
+} from '@lib/tamagui-design-system';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { app } from './app';
@@ -74,5 +78,56 @@ describe('Settings flow (index and appearance screens)', () => {
     expect(
       opaqueBackground('AppearanceSettingsScreen-ModeControl-system')
     ).toBe(false);
+  });
+});
+
+describe('the Glass top bars row on the Appearance screen', () => {
+  beforeEach(() => {
+    useGlassHeaderStore.setState({ enabled: false });
+  });
+
+  it('given the Appearance screen, when Off is tapped, then On, then On again, then the setting is on and stays on', async () => {
+    await app.render('/settings/appearance');
+    expect(useGlassHeaderStore.getState().enabled).toBe(false);
+
+    await userEvent.click(
+      screen.getByTestId('AppearanceSettingsScreen-GlassHeadersControl-off')
+    );
+    expect(useGlassHeaderStore.getState().enabled).toBe(false);
+    await userEvent.click(
+      screen.getByTestId('AppearanceSettingsScreen-GlassHeadersControl-on')
+    );
+    await waitFor(() =>
+      expect(useGlassHeaderStore.getState().enabled).toBe(true)
+    );
+    await userEvent.click(
+      screen.getByTestId('AppearanceSettingsScreen-GlassHeadersControl-on')
+    );
+
+    expect(useGlassHeaderStore.getState().enabled).toBe(true);
+  });
+
+  it('given the setting on, when Off is tapped, then the setting is off', async () => {
+    useGlassHeaderStore.setState({ enabled: true });
+    await app.render('/settings/appearance');
+
+    await userEvent.click(
+      screen.getByTestId('AppearanceSettingsScreen-GlassHeadersControl-off')
+    );
+
+    await waitFor(() =>
+      expect(useGlassHeaderStore.getState().enabled).toBe(false)
+    );
+  });
+
+  it('given the Appearance screen, when it renders, then the hint says iOS 26 shows the glass bar and other devices keep the current one', async () => {
+    await app.render('/settings/appearance');
+
+    const hint = screen.getByTestId(
+      'AppearanceSettingsScreen-GlassHeadersHint'
+    );
+
+    expect(hint.textContent).toContain('iOS 26');
+    expect(hint.textContent).toContain('Other devices keep the current bar');
   });
 });

@@ -33,6 +33,9 @@ export type ScreenHeaderSpec = {
   testID: string;
 };
 
+/** What a screen reader hears from the spinner of a busy bar. */
+export const HEADER_BUSY_LABEL = 'Working';
+
 export function isMenuSpec(item: HeaderGroupItem): item is HeaderMenuSpec {
   return 'items' in item;
 }

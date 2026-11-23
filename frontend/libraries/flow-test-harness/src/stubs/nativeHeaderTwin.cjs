@@ -111,7 +111,7 @@ const renderTitle = (options) => {
 };
 
 // The bar a screen's options make native: only items or a headerTitle draw one; a bare `title` is the stock bar, not modelled.
-const renderNativeHeader = (options) => {
+const renderNativeHeader = (options, version) => {
   const left = options.unstable_headerLeftItems;
   const right = options.unstable_headerRightItems;
   const title = renderTitle(options);
@@ -120,7 +120,7 @@ const renderNativeHeader = (options) => {
   const items = (make) => (make ? make(props) : []).map((item, index) => h(Item, { key: index, item }));
   return h(
     'div',
-    { 'data-testid': 'NativeHeader', 'data-header-shown': 'true', 'data-header-transparent': String(options.headerTransparent === true), style: { ...row, justifyContent: 'space-between', padding: 8 } },
+    { 'data-testid': 'NativeHeader', 'data-header-shown': 'true', 'data-header-transparent': String(options.headerTransparent === true), 'data-options-version': version === undefined ? undefined : String(version), style: { ...row, justifyContent: 'space-between', padding: 8 } },
     h('div', { 'data-testid': 'NativeHeaderLeft', role: 'group', style: row }, items(left)),
     title === null ? null : h('div', { 'data-testid': 'NativeHeaderTitle' }, title),
     h('div', { 'data-testid': 'NativeHeaderRight', role: 'group', style: row }, items(right))

@@ -6,6 +6,7 @@ import {
   Text,
   View,
   getPresetThemeById,
+  useGlassHeaderStore,
   usePresetThemeStore,
 } from '@lib/tamagui-design-system';
 import { Check } from '@lib/tamagui-design-system/icons';
@@ -119,6 +120,8 @@ export function AppearanceSettingsScreen() {
   const setThemeMode = usePresetThemeStore((s) => s.setThemeMode);
   const activeThemeId = usePresetThemeStore((s) => s.activeThemeId);
   const setActiveTheme = usePresetThemeStore((s) => s.setActiveTheme);
+  const glassHeaders = useGlassHeaderStore((s) => s.enabled);
+  const setGlassHeaders = useGlassHeaderStore((s) => s.setEnabled);
   const systemScheme = useColorScheme();
   const scheme: 'light' | 'dark' =
     themeMode === 'system'
@@ -161,6 +164,31 @@ export function AppearanceSettingsScreen() {
           value={themeMode}
           onChange={handleModeChange}
         />
+        <View gap="$2" testID="AppearanceSettingsScreen-GlassHeaders">
+          <Text
+            variant="strong"
+            testID="AppearanceSettingsScreen-GlassHeadersLabel"
+          >
+            Glass top bars
+          </Text>
+          <Text
+            variant="muted"
+            testID="AppearanceSettingsScreen-GlassHeadersHint"
+          >
+            iOS 26 shows the top bar of the screens that have opted in as Liquid
+            Glass. Other devices keep the current bar, and the editor settings
+            menu works on all of them.
+          </Text>
+          <SegmentedControl
+            testID="AppearanceSettingsScreen-GlassHeadersControl"
+            options={[
+              { value: 'off', label: 'Off' },
+              { value: 'on', label: 'On' },
+            ]}
+            value={glassHeaders ? 'on' : 'off'}
+            onChange={(value) => setGlassHeaders(value === 'on')}
+          />
+        </View>
         <View
           flexDirection="row"
           flexWrap="wrap"

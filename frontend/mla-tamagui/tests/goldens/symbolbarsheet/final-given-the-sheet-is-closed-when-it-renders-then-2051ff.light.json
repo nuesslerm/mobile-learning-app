@@ -1,0 +1,32 @@
+{
+  "suite": "symbolbarsheet",
+  "step": "final-given-the-sheet-is-closed-when-it-renders-then-2051ff",
+  "scheme": "light",
+  "snapshot": "symbolbarsheet/final-given-the-sheet-is-closed-when-it-renders-then-2051ff.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [],
+    "text": ""
+  },
+  "timings": {
+    "render_ms": 202
+  },
+  "name": "symbolbarsheet/final-given-the-sheet-is-closed-when-it-renders-then-2051ff.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

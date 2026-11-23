@@ -1,0 +1,32 @@
+{
+  "suite": "nativechrome",
+  "step": "final-given-the-platform-is-web-when-the-bridge-mount-54c61b",
+  "scheme": "light",
+  "snapshot": "nativechrome/final-given-the-platform-is-web-when-the-bridge-mount-54c61b.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [],
+    "text": ""
+  },
+  "timings": {
+    "render_ms": 165
+  },
+  "name": "nativechrome/final-given-the-platform-is-web-when-the-bridge-mount-54c61b.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

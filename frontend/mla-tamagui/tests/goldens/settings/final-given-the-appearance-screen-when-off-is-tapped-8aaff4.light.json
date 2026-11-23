@@ -1,0 +1,93 @@
+{
+  "suite": "settings",
+  "step": "final-given-the-appearance-screen-when-off-is-tapped-8aaff4",
+  "scheme": "light",
+  "snapshot": "settings/final-given-the-appearance-screen-when-off-is-tapped-8aaff4.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 964,
+    "page_height": 964
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "AppearanceSettingsScreen",
+      "AppearanceSettingsScreenHeader",
+      "AppearanceSettingsScreenHeaderBack",
+      "AppearanceSettingsScreenHeaderTitle",
+      "AppearanceSettingsScreen-ScrollView",
+      "AppearanceSettingsScreen-ModeControl",
+      "AppearanceSettingsScreen-ModeControl-system",
+      "AppearanceSettingsScreen-ModeControl-light",
+      "AppearanceSettingsScreen-ModeControl-dark",
+      "AppearanceSettingsScreen-GlassHeaders",
+      "AppearanceSettingsScreen-GlassHeadersLabel",
+      "AppearanceSettingsScreen-GlassHeadersHint",
+      "AppearanceSettingsScreen-GlassHeadersControl",
+      "AppearanceSettingsScreen-GlassHeadersControl-off",
+      "AppearanceSettingsScreen-GlassHeadersControl-on",
+      "AppearanceSettingsScreen-ThemeGrid",
+      "AppearanceSettingsScreen-ThemeTile-ios-native",
+      "AppearanceSettingsScreen-ThemeTilePress-ios-native",
+      "AppearanceSettingsScreen-ThemeTileSwatches-ios-native",
+      "AppearanceSettingsScreen-ThemeTilePrimary-ios-native",
+      "AppearanceSettingsScreen-ThemeTileAccent-ios-native",
+      "AppearanceSettingsScreen-ThemeTileColor6-ios-native",
+      "AppearanceSettingsScreen-ThemeTileLabelRow-ios-native",
+      "AppearanceSettingsScreen-ThemeTileLabel-ios-native",
+      "AppearanceSettingsScreen-ThemeTile-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTilePress-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileSwatches-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTilePrimary-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileAccent-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileColor6-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileLabelRow-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileLabel-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTile-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTilePress-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileSwatches-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTilePrimary-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileAccent-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileColor6-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileLabelRow-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileLabel-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTile-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTilePress-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTileSwatches-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTilePrimary-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTileAccent-ocean-breeze"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nAppearance\nSystem\nLight\nDark\nGlass top bars\niOS 26 shows the top bar of the screens that have opted in as Liquid Glass. Other devices keep the current bar, and the editor settings menu works on all of them.\nOff\nOn\niOS Native\nMonochrome Pro\nClassic Duolingo\nOcean Breeze\nForest Fresh\nDesert Dawn\nPastel"
+  },
+  "timings": {
+    "render_ms": 256
+  },
+  "name": "settings/final-given-the-appearance-screen-when-off-is-tapped-8aaff4.light",
+  "image": {
+    "width": 360,
+    "height": 918
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

@@ -87,6 +87,7 @@ export {
 } from './composites/diff-view';
 export {
   ScreenHeader,
+  useScreenHeaderOptions,
   type ScreenHeaderAction,
   type ScreenHeaderProps,
 } from './composites/screen-header';
@@ -104,8 +105,10 @@ export type {
   MenuSubmenuNode,
   SfSymbolName,
 } from './composites/native-header/header-menu-spec';
+export { validateMenuTree } from './composites/native-header/header-menu-spec';
 export { useHeaderHeightStore } from './lib/headerHeightStore';
 export { DEFAULT_GLASS_HEADERS, useGlassHeaderStore } from './lib/glassHeaderStore';
+export { useNativeHeaderPath } from './composites/native-header/use-header-env';
 export {
   HeaderMenu,
   type HeaderMenuItem,
