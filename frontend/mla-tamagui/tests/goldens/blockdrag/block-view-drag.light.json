@@ -14,12 +14,28 @@
   },
   "summary": {
     "testids": [
+      "ProblemWorkspaceTabs",
+      "ProblemWorkspaceTab-code",
+      "ProblemWorkspaceTab-blocks",
       "ProblemEditorScreen",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorActions",
+      "ProblemEditorFormatButton",
+      "ProblemEditorRunLocalButton",
+      "ProblemEditorRunButton",
+      "ProblemEditorResetButton",
+      "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
+      "ProblemEditorTestInput",
+      "ProblemWorkspaceBlocks",
       "ProblemEditorBlockView",
       "BlockPalette",
       "BlockPaletteItem-if",
@@ -40,24 +56,12 @@
       "BlockHandle-4",
       "BlockGhost",
       "BlockDropIndicator",
-      "BlockDropIndicatorText",
-      "ProblemEditorTapAway",
-      "ProblemEditorDiffRow",
-      "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput"
+      "BlockDropIndicatorText"
     ],
-    "text": "if\nfor\nwhile\ndef\nreturn\ndef f(x):\nif x:\na = 1\nb = 2\nreturn b\nb = 2\nMove after if x:\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
+    "text": "Code\nBlocks\nif\nfor\nwhile\ndef\nreturn\ndef f(x):\nif x:\na = 1\nb = 2\nreturn b\nb = 2\nMove after if x:"
   },
   "timings": {
-    "render_ms": 239
+    "render_ms": 351
   },
   "name": "blockdrag/block-view-drag.light",
   "image": {

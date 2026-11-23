@@ -44,6 +44,7 @@ async function openWith(code: string, options: { recording?: RecordingEditorBrid
   const session = await app.render('/leetcode/two-sum', { overrides: { leetcode: ports } });
   const editor = await session.editor();
   await editor.setText(code);
+  await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-blocks'));
   return { session, editor, recording };
 }
 
@@ -208,12 +209,30 @@ describe('dragging a block by its grip', () => {
   it('given a result card on show, when a block is dropped, then the card is cleared like after any change to the text', async () => {
     const runner = createFakeCodeRunner();
     const { session } = await drawn(DEF_IF, { ports: { runner } });
+    await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-code'));
     await userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
     await eventually(() => expect(screen.getByTestId('ProblemEditorRunOutcomeStatus')).toBeTruthy());
+    await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-blocks'));
+    await eventually(() => expect(rows()).toEqual(ROWS));
 
     await dragTo(session, rowIndex.b, 4, 1);
 
     await eventually(() => expect(screen.queryByTestId('ProblemEditorRunOutcomeStatus')).toBeNull());
     await eventually(() => expect(rows()).toEqual(ROWS_MOVED));
+  });
+
+  it('given the setting is on, when the person switches tabs, then Code shows no block view, Blocks shows it, and a block dropped there shows in the editor back on Code', async () => {
+    const { session, editor } = await drawn(DEF_IF);
+    await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-code'));
+    expect(screen.queryByTestId('ProblemEditorBlockView')).toBeNull();
+    await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-blocks'));
+    await eventually(() => expect(rows()).toEqual(ROWS));
+
+    await dragTo(session, rowIndex.b, 4, 1);
+    await eventually(() => expect(rows()).toEqual(ROWS_MOVED));
+    await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-code'));
+
+    expect(screen.queryByTestId('ProblemEditorBlockView')).toBeNull();
+    expect(editor.text()).toBe(MOVED);
   });
 });

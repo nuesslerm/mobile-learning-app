@@ -17,9 +17,7 @@ import { BlockPalette } from './BlockPalette';
 import { BlockRow } from './BlockRow';
 import type { DragShell, DragState } from './useBlockDrag';
 
-type Props = {
-  /** the person turned the block view on */
-  enabled: boolean;
+export type BlocksSource = {
   language: Language;
   /** the editor page has hydrated: its typed API answers */
   ready: boolean;
@@ -35,12 +33,9 @@ function messageFor(status: BlockModelStatus, rows: number): string | null {
 
 const sameDrag = (a: DragState | null, b: DragState): boolean => a !== null && a.plan?.slot.id === b.plan?.slot.id && a.pointer.x === b.pointer.x && a.pointer.y === b.pointer.y;
 
-/**
- * The code as rows under the editor, for Python while the setting is on and the editor is ready. It reads the editor through its typed API and a drop is one call to it. It
- * sits between the editor zone and the tap-away Pressable, in neither: a tap on it is its own and does not lower the keyboard.
- */
-export function BlockView({ enabled, language, ready, editorRef }: Props) {
-  const visible = enabled && language === 'python' && ready;
+/** The code as rows, for Python once the editor is ready: the body of the Blocks tab. It reads the editor through its typed API and a drop is one call to it. */
+export function BlockView({ language, ready, editorRef }: BlocksSource) {
+  const visible = language === 'python' && ready;
   const [editor, setEditor] = React.useState<BlockEditor | null>(null);
   React.useEffect(() => {
     setEditor(visible ? (editorRef.current?.api() ?? null) : null);
@@ -103,14 +98,20 @@ export function BlockView({ enabled, language, ready, editorRef }: Props) {
     [hold, release, drop]
   );
 
-  if (!visible) return null;
+  if (!visible) {
+    return language === 'python' ? null : (
+      <Text variant="muted" p="$3" testID="BlockViewUnavailable">
+        Blocks show Python code only.
+      </Text>
+    );
+  }
 
   const rows = model?.rows ?? [];
   const message = dropMessage ?? messageFor(status, rows.length);
   const source = drag?.source;
   const draggedLabel = source?.kind === 'block' ? rows.find((row) => row.id === source.id)?.label : source?.kind === 'palette' ? paletteItem(source.item)?.label : undefined;
   return (
-    <YStack mx="$3" mb="$2" rounded="$3" borderWidth={1} borderColor="$borderColor" bg="$background" overflow="hidden" testID="ProblemEditorBlockView">
+    <YStack m="$3" rounded="$3" borderWidth={1} borderColor="$borderColor" bg="$background" overflow="hidden" testID="ProblemEditorBlockView">
       {model ? <BlockPalette shell={shell} /> : null}
       <View height={listHeight(rows.length)} testID="BlockViewRows">
         {rows.map((row) => (

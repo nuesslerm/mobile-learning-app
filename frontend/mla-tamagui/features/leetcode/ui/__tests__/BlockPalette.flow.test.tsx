@@ -1,4 +1,4 @@
-import { createFakeAudioRecorder, createFakeVoiceEditTransport, screen, waitFor, type FlowCodeEditor, type FlowSession } from '@lib/flow-test-harness';
+import { createFakeAudioRecorder, createFakeVoiceEditTransport, screen, userEvent, waitFor, type FlowCodeEditor, type FlowSession } from '@lib/flow-test-harness';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { app } from '../../../../tests/flow/app';
@@ -40,6 +40,7 @@ async function open(code: string, recording: RecordingEditorBridge = recordingEd
   const session = await app.render('/leetcode/two-sum', { overrides: { leetcode: ports } });
   const editor = await session.editor();
   await editor.setText(code);
+  await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-blocks'));
   return { session, editor, recording };
 }
 

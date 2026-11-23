@@ -1,5 +1,8 @@
 # F3. Spike: a drag-and-drop block view on the API: the plan of item F3 of issue 86
 
+> 23 Nov 2026 (owner): the block view is the Blocks tab of the workspace (shown only when leetcode-block-view is on), beside Code and, with aiEdit, Plan. The editor stays mounted on the Code tab; a drop on Blocks edits the one document. The sections below that say the view sits under the editor describe the first build.
+
+
 Planned 22 Nov 2026 by a read-only reader of the code, checked against the issue (Decisions 1 to 47, sections A to E). The issue body (#86) holds the decisions and the item state; this file holds the slice-level plan: files, tests and what proves each slice. Shorthand: `L/` is `frontend/mla-tamagui/features/leetcode/`.
 
 ## Summary

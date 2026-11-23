@@ -33,11 +33,13 @@ afterEach(() => useRunnerSettingStore.setState({ runner: DEFAULT_RUNNER }));
 
 const DEF_IF = 'def f(x):\n    if x:\n        a = 1\n        b = 2\n    return b\n';
 
-async function openEditor(blockView: boolean): Promise<{ session: FlowSession; editor: FlowCodeEditor }> {
+async function openEditor(blockView: boolean, tab: 'code' | 'blocks' = 'blocks'): Promise<{ session: FlowSession; editor: FlowCodeEditor }> {
   useBlockViewSettingStore.setState({ blockView });
   const ports: LeetCodePortOverrides = { gateway, voice: createFakeVoiceEditTransport() as unknown as VoiceEditTransportPort, audio: createFakeAudioRecorder() };
   const session = await app.render('/leetcode/two-sum', { overrides: { leetcode: ports } });
-  return { session, editor: await session.editor() };
+  const editor = await session.editor();
+  if (blockView && tab === 'blocks') await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-blocks'));
+  return { session, editor };
 }
 
 const drawn = () => screen.queryAllByTestId(/^BlockRow-\d+$/).map((row) => row.getAttribute('aria-label'));
@@ -100,10 +102,13 @@ describe('the block view under the editor', () => {
     await editor.setText(DEF_IF);
     await eventually(() => expect(drawn()).toHaveLength(5));
 
+    await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-code'));
     await userEvent.click(screen.getByTestId('ProblemEditorLanguagePicker-Trigger'));
     await userEvent.click(await screen.findByTestId('ProblemEditorLanguagePicker-JavaScript'));
+    await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-blocks'));
 
-    await eventually(() => expect(screen.queryByTestId('ProblemEditorBlockView')).toBeNull());
+    await eventually(() => expect(screen.getByTestId('BlockViewUnavailable')).toBeTruthy());
+    expect(screen.queryByTestId('ProblemEditorBlockView')).toBeNull();
   });
 
   it.each([

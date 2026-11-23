@@ -6,10 +6,12 @@ import {
   View,
 } from '@lib/tamagui-design-system';
 import React from 'react';
-import { PanResponder } from 'react-native';
+import { PanResponder, ScrollView } from 'react-native';
 
 import { PlanTab, type PlanEditor } from '../plan';
+import { useBlockViewSettingStore } from '../state/blockViewSettingStore';
 import { useLeetCodeFlag } from '../state/useLeetCodeFlag';
+import { BlockView, type BlocksSource } from './blocks/BlockView';
 import { ProblemEditorScreen } from './ProblemEditorScreen';
 
 const SWIPE_ACTIVATE_DX = 20;
@@ -22,13 +24,14 @@ const NO_EDITOR: PlanEditor = {
   applyEdit: async () => ({ ok: false, reason: 'not-ready', code: 'not-ready' }),
 };
 
-type WorkspaceTab = 'plan' | 'code';
+type WorkspaceTab = 'plan' | 'code' | 'blocks';
 
 export function ProblemWorkspace({ id, seed, lang }: { id?: string; seed?: string; lang?: 'javascript' }) {
   const aiEdit = useLeetCodeFlag('aiEdit');
-  // Off by default, the code stays wired: see domain/featureFlags.ts.
-  return aiEdit ? (
-    <TabbedWorkspace id={id} seed={seed} lang={lang} />
+  const blockView = useBlockViewSettingStore((s) => s.blockView);
+  // Off by default, the code stays wired: see domain/featureFlags.ts. With neither tab on, the editor screen is the one view.
+  return aiEdit || blockView ? (
+    <TabbedWorkspace id={id} seed={seed} lang={lang} plan={aiEdit} blocks={blockView} />
   ) : (
     <View flex={1} bg="$background">
       <ProblemEditorScreen id={id} seed={seed} lang={lang} />
@@ -36,9 +39,16 @@ export function ProblemWorkspace({ id, seed, lang }: { id?: string; seed?: strin
   );
 }
 
-function TabbedWorkspace({ id, seed, lang }: { id?: string; seed?: string; lang?: 'javascript' }) {
-  const [tab, setTab] = React.useState<WorkspaceTab>('code');
+function TabbedWorkspace({ id, seed, lang, plan, blocks }: { id?: string; seed?: string; lang?: 'javascript'; plan: boolean; blocks: boolean }) {
+  const [picked, setTab] = React.useState<WorkspaceTab>('code');
   const [api, setApi] = React.useState<PlanEditor | null>(null);
+  const [blocksSource, setBlocksSource] = React.useState<BlocksSource | null>(null);
+  const order = React.useMemo<WorkspaceTab[]>(() => [...(plan ? (['plan'] as const) : []), 'code', ...(blocks ? (['blocks'] as const) : [])], [plan, blocks]);
+  const tab = order.includes(picked) ? picked : 'code';
+  const tabRef = React.useRef(tab);
+  const orderRef = React.useRef(order);
+  tabRef.current = tab;
+  orderRef.current = order;
   const consoleOpenRef = React.useRef(false);
   const handleConsoleOpenChange = React.useCallback((open: boolean) => {
     consoleOpenRef.current = open;
@@ -47,13 +57,16 @@ function TabbedWorkspace({ id, seed, lang }: { id?: string; seed?: string; lang?
   const panResponder = React.useMemo(
     () =>
       PanResponder.create({
+        // the Blocks tab is all block drags: the grip's drag has the touch, and a tab is chosen by a tap there
         onMoveShouldSetPanResponder: (_event, gesture) =>
           !consoleOpenRef.current &&
+          tabRef.current !== 'blocks' &&
           Math.abs(gesture.dx) > SWIPE_ACTIVATE_DX &&
           Math.abs(gesture.dx) > Math.abs(gesture.dy),
         onPanResponderRelease: (_event, gesture) => {
-          if (gesture.dx > SWIPE_THRESHOLD_PX) setTab('plan');
-          else if (gesture.dx < -SWIPE_THRESHOLD_PX) setTab('code');
+          const at = orderRef.current.indexOf(tabRef.current);
+          const next = orderRef.current[gesture.dx > SWIPE_THRESHOLD_PX ? at - 1 : gesture.dx < -SWIPE_THRESHOLD_PX ? at + 1 : at];
+          if (next) setTab(next);
         },
       }),
     []
@@ -76,20 +89,28 @@ function TabbedWorkspace({ id, seed, lang }: { id?: string; seed?: string; lang?
         {...panResponder.panHandlers}
       >
         <TabsList testID="ProblemWorkspaceTabs">
-          <TabsTrigger value="plan" testID="ProblemWorkspaceTab-plan">
-            Plan
-          </TabsTrigger>
+          {plan ? (
+            <TabsTrigger value="plan" testID="ProblemWorkspaceTab-plan">
+              Plan
+            </TabsTrigger>
+          ) : null}
           <TabsTrigger value="code" testID="ProblemWorkspaceTab-code">
             Code
           </TabsTrigger>
+          {blocks ? (
+            <TabsTrigger value="blocks" testID="ProblemWorkspaceTab-blocks">
+              Blocks
+            </TabsTrigger>
+          ) : null}
         </TabsList>
         <TabsContent
           value="code"
           forceMount
           display={tab === 'code' ? 'flex' : 'none'}
         >
-          <ProblemEditorScreen id={id} seed={seed} lang={lang} onWorkspaceApi={setApi} active={tab === 'code'} onConsoleOpenChange={handleConsoleOpenChange} />
+          <ProblemEditorScreen id={id} seed={seed} lang={lang} onWorkspaceApi={setApi} active={tab === 'code'} onConsoleOpenChange={handleConsoleOpenChange} onBlocksSource={setBlocksSource} />
         </TabsContent>
+        {plan ? (
         <TabsContent
           value="plan"
           forceMount
@@ -100,6 +121,16 @@ function TabbedWorkspace({ id, seed, lang }: { id?: string; seed?: string; lang?
               and only realising is held back -- never a dead screen. */}
           <PlanTab problemId={id ?? ''} {...(api ?? NO_EDITOR)} canRealize={api !== null} />
         </TabsContent>
+        ) : null}
+        {blocks ? (
+          <TabsContent value="blocks" display={tab === 'blocks' ? 'flex' : 'none'}>
+            {tab === 'blocks' && blocksSource ? (
+              <ScrollView testID="ProblemWorkspaceBlocks">
+                <BlockView {...blocksSource} />
+              </ScrollView>
+            ) : null}
+          </TabsContent>
+        ) : null}
       </Tabs>
     </View>
   );

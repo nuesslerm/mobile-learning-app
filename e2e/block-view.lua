@@ -5,7 +5,7 @@ timeout: 420
 focus: true
 features: leetcode
 ---]]
--- The block view with a real touch (issue 86, F3.10): turn "Blocks (experimental)" on from the problem list, open two-sum with a body that has an if holding two statements, and drag with a
+-- The block view with a real touch (issue 86, F3.10): turn "Blocks (experimental)" on from the problem list, open two-sum, open its Blocks tab with a body that has an if holding two statements, and drag with a
 -- touch swipe: the grip of the second statement to the boundary after the if (it leaves the if), the "while" chip to the end of the def body (a new statement lands there), and a block to a
 -- boundary that would leave it where it is (nothing changes). Every wait is on a log line or a read, never on a clock: leetcode.block_view.set, route.change, leetcode.blocks.read,
 -- leetcode.blocks.drop, leetcode.blocks.drag_end. The run records itself (a video and the swipes, published by `wf test publish`); no run reaches a backend.
@@ -70,7 +70,7 @@ local function choose_blocks()
   device:extended_wait_until{condition=function() return logged('leetcode.block_view.set') end, timeout=15000, interval=250, label='the setting reached the store'}
 end
 
--- the web editor autofocuses and its keyboard covers the view under it: the rail's Done key lowers it (the tap-away area is below the view, under the keyboard)
+-- the web editor autofocuses and its keyboard covers the screen: the rail's Done key lowers it, on the Code tab
 local function lower_keyboard()
   device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=15000, optional=true}
   if device:get_element({id='EditorHelperRails'}) then
@@ -91,9 +91,11 @@ local function open_with(code, last_row)
   device:open_link(base .. "/leetcode/two-sum?seed64=" .. base64url(code))
   device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=60000})
   device:extended_wait_until{condition=function() return logged('route.change') end, timeout=60000, interval=250, label='the page hydrated'}
-  device:extended_wait_until{condition=function() return device:get_element({id='BlockRow-' .. last_row}) ~= nil end, timeout=60000, label='the rows are drawn'}
   lower_keyboard()
-  -- the view sits under the editor: the page is scrolled until the last row is on screen
+  -- the block view is the Blocks tab of the workspace: the editor stays mounted on the Code tab
+  device:tap_on({id='ProblemWorkspaceTab-blocks'})
+  device:extended_wait_until{condition=function() return device:get_element({id='BlockRow-' .. last_row}) ~= nil end, timeout=60000, label='the rows are drawn'}
+  -- a long list scrolls inside the tab: it is scrolled until the last row is on screen
   device:scroll_until_visible{element={id='BlockRow-' .. last_row}, direction='DOWN', timeout=30000}
   device:clear_logs()
 end

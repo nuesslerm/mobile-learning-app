@@ -53,9 +53,8 @@ import type { PlanEditor } from '../plan';
 import { toEditorLanguage } from '../domain/editor/languageProfile';
 import { completionEntriesFor } from '../domain/completionEntries';
 import { useAutocompleteSettingStore } from '../state/autocompleteSettingStore';
-import { useBlockViewSettingStore } from '../state/blockViewSettingStore';
 import { type Selection } from '../domain/editor/types';
-import { BlockView } from './blocks/BlockView';
+import type { BlocksSource } from './blocks/BlockView';
 import { EditorHelperRails } from './editor/helperbars/EditorHelperRails';
 import { ProblemCatalog } from '../domain/problemCatalog';
 import { customInputMessage, parameterNames, parseCustomInput, writeCustomInput } from '../domain/run/customCase';
@@ -128,6 +127,7 @@ export function ProblemEditorScreen({
   onWorkspaceApi,
   active = true,
   onConsoleOpenChange,
+  onBlocksSource,
 }: {
   id?: string;
   /** Dev bundles only: the code the editor opens on, so a device-lab job can start mid-problem. */
@@ -138,6 +138,8 @@ export function ProblemEditorScreen({
   /** False while another workspace tab is shown: the console is closed then. */
   active?: boolean;
   onConsoleOpenChange?: (open: boolean) => void;
+  /** What the Blocks tab reads the code through: the editor handle, its language and whether its page has hydrated. */
+  onBlocksSource?: (source: BlocksSource) => void;
 }) {
   const problem = React.useMemo(
     () => (id ? ProblemCatalog.getById(id) : undefined),
@@ -147,7 +149,6 @@ export function ProblemEditorScreen({
   const [lang, setLang] = React.useState<EditorLanguage>(initialLang ?? 'python3');
   const editorLanguage = toEditorLanguage(lang) ?? 'python';
   const autocomplete = useAutocompleteSettingStore((s) => s.autocomplete);
-  const blockView = useBlockViewSettingStore((s) => s.blockView);
   const [editorReady, setEditorReady] = React.useState(false);
   // the suggestions follow the language: the problem's own names from its starter, and the language's keywords
   const completion = React.useMemo(
@@ -601,6 +602,10 @@ export function ProblemEditorScreen({
     });
   }, [lang, onWorkspaceApi, editorTarget, applyAt, showEdit]);
 
+  React.useEffect(() => {
+    onBlocksSource?.({ editorRef, language: editorLanguage, ready: editorReady });
+  }, [onBlocksSource, editorLanguage, editorReady]);
+
   const handleDiffToggle = React.useCallback(
     (enabled: boolean) => {
       Logger.info('editor_v2.diff_toggle', { enabled, problemId: problem?.id });
@@ -903,8 +908,6 @@ export function ProblemEditorScreen({
                 }}
               />
             </YStack>
-
-            <BlockView enabled={blockView} language={editorLanguage} ready={editorReady} editorRef={editorRef} />
 
             <Pressable
               accessible={false}
