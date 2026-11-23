@@ -21,6 +21,7 @@ post() {
 state_text() {
   {
     echo "$(date -u +%H:%M:%S) MemAvailable $(awk '/^MemAvailable/ { print int($2 / 1024) }' /proc/meminfo) MB, load $(cut -d' ' -f1 /proc/loadavg), $(ps -e --no-headers | wc -l) processes"
+    echo "disk free (MB): / $(df -m --output=avail / 2> /dev/null | tail -n 1 | tr -d ' ')$([ -d /mnt ] && echo ", /mnt $(df -m --output=avail /mnt 2> /dev/null | tail -n 1 | tr -d ' ')"), used by the checkout $(du -sm "${GITHUB_WORKSPACE:-.}" 2> /dev/null | cut -f1) MB"
     echo
     echo "largest by memory (pid ppid rss_kb %cpu etime stat cmd):"
     ps -eo pid,ppid,rss,pcpu,etimes,stat,comm --sort=-rss | sed -n '2,9p'
@@ -77,9 +78,10 @@ while nap 2; do
     beat=0
     echo "memguard: $(date -u +%H:%M:%S) MemAvailable ${avail} MB, load $(cut -d' ' -f1 /proc/loadavg), $(ps -e --no-headers | wc -l) processes" >> "$log"
   fi
-  [ "${avail:-0}" -lt "$floor" ] || continue
+  disk=$(df -m --output=avail / 2> /dev/null | tail -n 1 | tr -d ' ')
+  [ "${avail:-0}" -lt "$floor" ] || [ "${disk:-99999}" -lt "${DISK_FLOOR_MB:-700}" ] || continue
   {
-    echo "::error title=memory exhausted::MemAvailable ${avail} MB is under ${floor} MB"
+    echo "::error title=machine exhausted::MemAvailable ${avail} MB (floor ${floor}), disk free ${disk} MB (floor ${DISK_FLOOR_MB:-700})"
     echo "--- the largest processes (pid ppid rss_kb etime cmd)"
     ps -eo pid,ppid,rss,etimes,args --sort=-rss | head -n 16 | cut -c1-220
   } >> "$log"
