@@ -80,3 +80,11 @@ One entry per night, appended by the nightly audit session (the "Nightly audit c
 - Earlier fixes checked: none listed in the last 7 days.
 - Tracker: t3 pinned 0.1.9, latest 0.1.11. Run 45009674736 (2026-11-22 09:52 UTC) failed in "Check the pins" with `no matching package named rca-core found`: eighth failing run in a row, the `mla` registry is unreachable from the runner (owner item, see 2026-11-19). Nothing landed.
 - Not recorded in inbox issue `#79` (`gh issue` is blocked in this session).
+
+## 2026-11-23
+
+- Verdict: run 45019672027 (scheduled 2026-11-22 11:55 UTC, about 17 h old, the workflow run itself ended `failure` after 49 min but wrote the artifact), `ok: false`, 759 findings, 419 hard: 413 `should-have-hit`, 6 `group-overlap`, 27 `cancelled-while-running`, 28 `key-drift` (new kind), 285 `replayed-nothing`. Same picture as 2026-11-22 (729 findings, 421 hard); the largest waste is still `crate-t3-serve:replay-t3-core-core` (about 550 s each).
+- Fixes landed: none. The cause of the `should-have-hit` misses is still not traced; `key-drift` points at a cache key that moves between runs, which fits a cache input that changes per run (first thing to read when `wf ci audit` or the ledger is reachable). `wf ci audit` cannot run here (no `bws`, no ledger credentials).
+- Earlier fixes checked: none listed in the last 7 days.
+- Tracker: t3 pinned 0.1.9, latest 0.1.11. No new track-contracts run since 45009674736 (2026-11-22 09:52 UTC, failed on `no matching package named rca-core found`, the unreachable `mla` registry; owner item, see 2026-11-19). Nothing landed.
+- Not recorded in inbox issue `#79` (`gh issue` is blocked in this session).
