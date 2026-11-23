@@ -138,7 +138,11 @@ local ok, failure = pcall(function()
     device:extended_wait_until{condition=function() return buffer() ~= before end, timeout=10000, label='the character is in the buffer'}
     device:extended_wait_until{condition=no_mark, timeout=10000, label='the mark is gone'}
     lower_keyboard()
-    device:tap_on({id='ConsoleBarOpen'})
+    -- the keyboard leaving moves the dock: a tap that lands before it settles is lost, so it is repeated until the sheet is up
+    for _ = 1, 4 do
+      device:tap_on({id='ConsoleBarOpen'})
+      if device:extended_wait_until{visible={id='ConsoleSheet'}, timeout=3000, optional=true} then break end
+    end
     device:extended_wait_until{visible={id='ConsoleSheet'}, timeout=15000, label='the sheet'}
     device:tap_on({id='ConsoleTabs-result'})
     device:extended_wait_until{visible={id='ConsoleResultEmpty'}, timeout=15000, label='the result is gone'}

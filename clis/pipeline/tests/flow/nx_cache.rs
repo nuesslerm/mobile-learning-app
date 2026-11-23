@@ -17,7 +17,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 const BROWSER: [&str; 4] = ["app-routes", "editor-typing", "tamil-writing", "voice-edit"];
-const ANDROID: [&str; 4] = ["editor-typing", "stubbed-run-local", "tamil-writing", "voice-edit"];
+const ANDROID: [&str; 1] = ["tamil-writing"];
 const HARNESS: [&str; 5] = ["@cli/harness-contracts", "@cli/harness-data", "@cli/harness-use-cases", "@cli/harness-di", "@cli/harness-ui"];
 const SERVICES: [&str; 5] = ["@app/leetcode-auth-cookie-capture", "@app/leetcode-backend", "@app/remote-chat-agent", "@backend/reporting-service", "@infra/watchdog"];
 const CRATES: [&str; 17] = ["agent-config-sync", "cdp", "cli-http", "harness-flow", "knowledge", "rca-core", "rca-ladder", "wf", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "secrets", "deploy", "wf-vmops"];
@@ -231,13 +231,13 @@ fn nx_runs_an_e2e_test_exactly_when_its_feature_code_test_case_or_the_app_shell_
     let (all_b, all_a) = (set(&BROWSER), set(&ANDROID));
     let cases: Vec<(&str, &str, BTreeSet<String>, BTreeSet<String>)> = vec![
         ("an in-app feature's code", "frontend/mla-tamagui/features/tamil-writing/data/tamilCourse.ts", set(&["app-routes", "tamil-writing"]), set(&["tamil-writing"])),
-        ("the leetcode feature's code", "frontend/mla-tamagui/features/leetcode/auth/LeetCodeBridge.tsx", set(&["app-routes", "editor-typing", "voice-edit"]), set(&["editor-typing", "stubbed-run-local", "voice-edit"])),
+        ("the leetcode feature's code", "frontend/mla-tamagui/features/leetcode/auth/LeetCodeBridge.tsx", set(&["app-routes", "editor-typing", "voice-edit"]), set(&[])),
         ("a new file in a feature", "frontend/mla-tamagui/features/tamil-writing/data/added.ts", set(&["app-routes", "tamil-writing"]), set(&["tamil-writing"])),
-        ("a feature package's code", "frontend/mla-tamagui/features/coding-agent/src/contracts/dispatchRuns.ts", set(&["app-routes", "voice-edit"]), set(&["voice-edit"])),
+        ("a feature package's code", "frontend/mla-tamagui/features/coding-agent/src/contracts/dispatchRuns.ts", set(&["app-routes", "voice-edit"]), set(&[])),
         // the whole-app test is app-routes in the browser; no focused Android test is, so an app change none of them names publishes an update
         // no Android run loads (progress ledger, 22 Oct S3 stage 1: open items)
         ("a feature package no test names", "frontend/mla-tamagui/features/settings/src/index.ts", set(&["app-routes"]), set(&[])),
-        ("one test case's script", "e2e/editor-typing.lua", set(&["editor-typing"]), set(&["editor-typing"])),
+        ("one test case's script", "e2e/editor-typing.lua", set(&["editor-typing"]), set(&[])),
         ("the Android warm-up every Android test starts with", "e2e/warm-app.lua", set(&[]), all_a.clone()),
         ("an Android golden", "docs/runbooks/goldens/android/editor-two-sum-result.json", set(&[]), all_a.clone()),
         ("a browser golden", "docs/runbooks/goldens/browser/web-home.json", all_b.clone(), set(&[])),
@@ -275,7 +275,7 @@ fn nx_runs_an_e2e_test_exactly_when_its_feature_code_test_case_or_the_app_shell_
     let sonner = std::fs::read_to_string(w.path("pnpm-lock.yaml")).unwrap().lines().find(|l| l.starts_with("  sonner-native@")).unwrap().to_string();
     let repatched = format!("{}0", &sonner[..sonner.len() - 1]);
     w.with_replace("pnpm-lock.yaml", &sonner, &repatched, || {
-        assert_eq!((w.would_run("browser"), w.would_run("android")), (set(&["app-routes", "editor-typing", "voice-edit"]), set(&["editor-typing", "stubbed-run-local", "voice-edit"])), "sonner-native patched");
+        assert_eq!((w.would_run("browser"), w.would_run("android")), (set(&["app-routes", "editor-typing", "voice-edit"]), set(&[])), "sonner-native patched");
     });
     // And once each file is back, every test is replayed again
     assert_eq!((w.would_run("browser"), w.would_run("android")), (set(&[]), set(&[])), "every edit put back");
@@ -289,7 +289,7 @@ fn nx_runs_an_e2e_test_exactly_when_its_feature_code_test_case_or_the_app_shell_
         let (r, did) = w.run_stage("android-e2e-tests", &plan, &[]);
         assert_eq!((r.exit_code, did), (0, set(&["e2e android tamil-writing"])));
         let summary: Value = serde_json::from_str(r.stdout.trim().lines().last().unwrap()).unwrap();
-        assert_eq!((summary["ran"].clone(), summary["cached"].as_array().unwrap().len()), (json!(["tamil-writing"]), 3), "the other three are replayed with their earlier runs");
+        assert_eq!((summary["ran"].clone(), summary["cached"].as_array().unwrap().len()), (json!(["tamil-writing"]), ANDROID.len() - 1), "the others are replayed with their earlier runs");
         assert_eq!(w.would_run("android"), set(&[]), "the pass is cached");
     });
 
