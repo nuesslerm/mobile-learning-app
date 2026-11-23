@@ -39,7 +39,7 @@ state_text() {
 redact_old() {
   [ -n "${GH_TOKEN:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ] || return 0
   local sha id
-  for sha in $(timeout 20 gh api "repos/$GITHUB_REPOSITORY/commits?sha=dev&per_page=8" --jq '.[].sha' 2> /dev/null); do
+  for sha in $(timeout 20 gh api "repos/$GITHUB_REPOSITORY/commits?sha=dev&per_page=4" --jq '.[].sha' 2> /dev/null); do
     for id in $(timeout 30 gh api "repos/$GITHUB_REPOSITORY/commits/$sha/check-runs?per_page=100" --jq '.check_runs[] | select((.name | startswith("heartbeat")) and ((.output.summary // "") | test("add-mask|ords/health"))) | .id' 2> /dev/null); do
       timeout 20 gh api -X PATCH "repos/$GITHUB_REPOSITORY/check-runs/$id" -f "output[title]=redacted" -f "output[summary]=redacted: an earlier version of this heartbeat quoted stage log lines" > /dev/null 2>&1 || true
     done
@@ -60,6 +60,7 @@ roots=()
 [ -z "${RUNNER_TEMP:-}" ] || roots+=("$RUNNER_TEMP")
 beat=0
 cloud=0
+sweeps=0
 post in_progress "started: $(state_text)"
 redact_old &
 while nap 2; do
@@ -69,6 +70,8 @@ while nap 2; do
   if [ "$cloud" -ge 30 ]; then
     cloud=0
     post in_progress "$(state_text)"
+    sweeps=$((sweeps + 1))
+    [ $((sweeps % 4)) -ne 0 ] || redact_old &
   fi
   if [ "$beat" -ge 60 ]; then
     beat=0
