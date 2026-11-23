@@ -56,10 +56,10 @@
       "SymbolBarRailStyle-classic",
       "SymbolBarRailStyle-symbols"
     ],
-    "text": "Reset\nSymbol Bar\nDone\nShow Symbol Bar\nShown above the keyboard while editing code.\nGroup 1\nGroup 2\nGroup 3\nGroup 4\nGroup 5\nGroup 6\nGroup 7\nGroup 8\nEach group holds up to 4 characters. Leave a group empty to hide it. Drag the handle to reorder.\nClassic\nSymbols\nClassic keeps today's keys; Symbols shows Tab and these groups."
+    "text": "Reset\nSymbol Bar\nDone\nShow Symbol Bar\nShown above the keyboard while editing code.\nGroup 1\nGroup 2\nGroup 3\nGroup 4\nGroup 5\nGroup 6\nGroup 7\nGroup 8\nEach group holds up to 4 characters. Leave a group empty to hide it. Drag the handle to reorder.\nClassic\nSymbols\nSymbols shows Tab and these groups; Classic shows the character keys and its own toolbar settings."
   },
   "timings": {
-    "render_ms": 270
+    "render_ms": 228
   },
   "name": "symbolbarsheet/final-given-the-defaults-when-group-2-is-dragged-belo-3b96cc.light",
   "image": {

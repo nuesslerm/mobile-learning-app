@@ -18,6 +18,39 @@ os.execute("mkdir -p " .. out)
 -- Reset code goes through the header menu, Done lowers the keyboard (the console's rail covers the language row) and the last part ends with a console Submit
 -- read from the Run Result tab.
 local READY = 'ProblemEditorScreen'
+local function choose_autocomplete_off()
+  device:open_link(base .. "/")
+  device:assert_visible({id='LeetcodeListRunnerRow'}, {timeout=60000})
+  device:extended_wait_until{condition=function()
+    for _, l in ipairs(device:get_logs{level='info'}) do if l:find('route.change', 1, true) then return true end end
+  end, timeout=60000, interval=250, label='the page hydrated'}
+  device:scroll_until_visible{element={id='LeetcodeListAutocompleteOff'}, direction='DOWN', timeout=30000}
+  device:clear_logs()
+  -- a tap before the page's scripts have hydrated its buttons is lost: it is repeated until the screen logs it
+  for _ = 1, 10 do
+    device:tap_on({id='LeetcodeListAutocompleteOff'})
+    if device:extended_wait_until{condition=function() for _, l in ipairs(device:get_logs{level='info'}) do if l:find('leetcode.list.autocomplete_tap', 1, true) then return true end end end, timeout=2000, interval=250, optional=true} then return end
+  end
+  error("the suggestions choice never reached the screen")
+end
+-- the symbols rail is the default and this script presses the classic character keys: Classic is chosen in the Symbol Bar sheet, as a person does
+local function choose_classic_rail()
+  device:clear_logs()
+  device:tap_on({id='EditorSettingsButton'})
+  device:assert_visible({id='EditorSettingsButtonContent'}, {timeout=10000})
+  device:tap_on({id='EditorSettingsSymbolBar'})
+  device:assert_visible({id='SymbolBarSheetHeader'}, {timeout=10000})
+  device:scroll_until_visible{element={id='SymbolBarRailStyle-classic'}, direction='DOWN', timeout=10000, optional=true}
+  device:tap_on({id='SymbolBarRailStyle-classic'})
+  device:extended_wait_until{condition=function()
+    for _, l in ipairs(device:get_logs{level='info'}) do
+      if l:find('leetcode.symbol_bar.rail_style_tap', 1, true) then return true end
+    end
+  end, timeout=15000, interval=250, label='the Classic tap reached the screen'}
+  device:tap_on({id='SymbolBarDone'})
+  device:extended_wait_until{not_visible={id='SymbolBarSheetHeader'}, timeout=10000, label='the sheet is gone'}
+end
+
 -- Expo Go bundles the route on first load; a fresh install also shows its one-time developer-menu intro, which a user dismisses with Continue
 local function wait_route(sel, secs)
   local t0 = os.time()
@@ -219,6 +252,8 @@ for _, p in ipairs(SOL) do
     device:open_link(base .. "/settings")
     device:assert_not_visible({id='ProblemEditorScreen'})
   end
+  -- suggestions are on by default and this script types key by key without them (browser only: the Android unit cannot be verified here)
+  if not android then run_flow("turn suggestions off from the list", function() choose_autocomplete_off() end) end
   -- the screen opens by deep link, seeded or not, on every platform (owner, 16 Oct); the app may be the one already running
   run_flow("open route", function()
     local link = base .. "/leetcode/" .. p.id
@@ -245,6 +280,7 @@ for _, p in ipairs(SOL) do
   for _, l in ipairs(device:get_logs{level='info'}) do
     if l:find('editor.cold_start', 1, true) or l:find('pyodide_runner.load', 1, true) then log(p.id .. " cold start: " .. l) end
   end
+  run_flow("choose the classic rail", choose_classic_rail)
   -- the web editor autofocuses on open and its keyboard covers Reset, so an unseeded run lowers it; the Android one waits for a tap
   local focused = not android and device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true}
   if focused and not seeded then

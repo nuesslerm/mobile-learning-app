@@ -1,8 +1,8 @@
 {
-  "suite": "console",
-  "step": "final-given-the-console-on-when-two-sum-opens-then-t-49319e",
-  "scheme": "light",
-  "snapshot": "console/final-given-the-console-on-when-two-sum-opens-then-t-49319e.html",
+  "suite": "voiceeditflow",
+  "step": "final-given-a-keystroke-typed-in-the-editor-when-send-9d1196",
+  "scheme": "dark",
+  "snapshot": "voiceeditflow/final-given-a-keystroke-typed-in-the-editor-when-send-9d1196.html",
   "viewport": {
     "width": 393,
     "height": 852
@@ -18,13 +18,6 @@
       "ProblemWorkspaceTab-plan",
       "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
-      "ProblemEditorHeader",
-      "ProblemEditorHeaderBack",
-      "ProblemEditorHeaderTitle",
-      "ProblemEditorHeaderSubtitle",
-      "ProblemEditorHeaderActions",
-      "ProblemEditorInfoButton",
-      "ProblemEditorMenuButton",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
       "ProblemEditorEditorZone",
@@ -41,6 +34,9 @@
       "ConsoleBarReset",
       "ConsoleBarRun",
       "ConsoleBarSubmit",
+      "ProblemEditorVoiceProcessing",
+      "ProblemEditorVoiceProcessingSpinner",
+      "ProblemEditorVoiceProcessingText",
       "ProblemPlanTab",
       "ProblemPlanSteps",
       "ProblemPlanComposer",
@@ -48,12 +44,12 @@
       "ProblemPlanTextInput",
       "ProblemPlanAddButton"
     ],
-    "text": "Plan\nCode\nTwo Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit"
+    "text": "Plan\nCode\nPython\nConsole\nSubmit\nThinking…"
   },
   "timings": {
-    "render_ms": 224
+    "render_ms": 247
   },
-  "name": "console/final-given-the-console-on-when-two-sum-opens-then-t-49319e.light",
+  "name": "voiceeditflow/final-given-a-keystroke-typed-in-the-editor-when-send-9d1196.dark",
   "image": {
     "width": 360,
     "height": 780

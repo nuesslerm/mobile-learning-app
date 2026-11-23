@@ -12,6 +12,7 @@ import { app } from '../../../../tests/flow/app';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSettingStore';
+import { useSymbolBarStore } from '../../state/editor/symbolBarStore';
 import { useToolbarConfigStore } from '../../state/toolbarConfigStore';
 import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../..';
 
@@ -45,6 +46,7 @@ const gateway: LeetCodeGatewayPort = {
 // reset before the screen mounts: a store write while a screen is still mounted is an update outside act
 beforeEach(() => {
   useRunnerSettingStore.setState({ runner: 'backend' });
+  useSymbolBarStore.setState({ railStyle: 'classic' });
   useToolbarConfigStore.getState().resetToDefault();
 });
 afterEach(() => useRunnerSettingStore.setState({ runner: DEFAULT_RUNNER }));

@@ -18,7 +18,7 @@ import { DEFAULT_EDITOR_PREFERENCES } from '../../domain/editor-settings/editorP
 import { resetGroups } from '../../domain/editor-settings/symbolGroups';
 import { useCodeHistoryStore } from '../../state/codeHistoryStore';
 import { useEditorPreferencesStore } from '../../state/editor/editorPreferencesStore';
-import { DEFAULT_RAIL_STYLE, DEFAULT_SYMBOL_BAR_SHOWN, useSymbolBarStore } from '../../state/editor/symbolBarStore';
+import { DEFAULT_SYMBOL_BAR_SHOWN, useSymbolBarStore } from '../../state/editor/symbolBarStore';
 import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSettingStore';
 import { useToolbarConfigStore } from '../../state/toolbarConfigStore';
 import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../..';
@@ -52,7 +52,7 @@ beforeEach(() => {
   useRunnerSettingStore.setState({ runner: 'backend' });
   useToolbarConfigStore.getState().resetToDefault();
   useEditorPreferencesStore.setState(DEFAULT_EDITOR_PREFERENCES);
-  useSymbolBarStore.setState({ shown: DEFAULT_SYMBOL_BAR_SHOWN, groups: resetGroups(), railStyle: DEFAULT_RAIL_STYLE });
+  useSymbolBarStore.setState({ shown: DEFAULT_SYMBOL_BAR_SHOWN, groups: resetGroups(), railStyle: 'classic' });
   useCodeHistoryStore.setState({ snapshots: [] });
   vi.mocked(gateway.format).mockClear();
 });

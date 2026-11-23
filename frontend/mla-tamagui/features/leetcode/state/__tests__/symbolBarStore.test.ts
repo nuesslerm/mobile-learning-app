@@ -27,53 +27,53 @@ beforeEach(async () => {
 });
 
 describe('useSymbolBarStore', () => {
-  it('Given no stored value, When the store is read, Then the bar is shown, the groups are the eight defaults and the rail is the classic one', () => {
+  it('Given no stored value, When the store is read, Then the bar is shown, the groups are the eight defaults and the rail is the symbols one', () => {
     const { shown, groups, railStyle } = useSymbolBarStore.getState();
 
     expect(shown).toBe(true);
     expect(DEFAULT_SYMBOL_BAR_SHOWN).toBe(true);
     expect(isDefaultGroups(groups)).toBe(true);
-    expect(railStyle).toBe('classic');
-    expect(DEFAULT_RAIL_STYLE).toBe('classic');
+    expect(railStyle).toBe('symbols');
+    expect(DEFAULT_RAIL_STYLE).toBe('symbols');
   });
 
   it('Given a stored choice, When the store rehydrates, Then the switch, the order, the characters and the rail style all hold', async () => {
     const moved = moveGroup(DEFAULT_SYMBOL_GROUPS, 1, 2).map((group) => (group.id === 'g1' ? { ...group, chars: '#' } : group));
-    await stored({ shown: false, groups: moved, railStyle: 'symbols' });
+    await stored({ shown: false, groups: moved, railStyle: 'classic' });
 
     await useSymbolBarStore.persist.rehydrate();
 
     expect(useSymbolBarStore.getState().shown).toBe(false);
     expect(groupsOf()).toEqual(moved);
-    expect(useSymbolBarStore.getState().railStyle).toBe('symbols');
+    expect(useSymbolBarStore.getState().railStyle).toBe('classic');
   });
 
   it('Given a stored switch that is not a boolean, When the store rehydrates, Then that field alone falls back', async () => {
-    await stored({ shown: 'yes', groups: moveGroup(DEFAULT_SYMBOL_GROUPS, 0, 7), railStyle: 'symbols' });
+    await stored({ shown: 'yes', groups: moveGroup(DEFAULT_SYMBOL_GROUPS, 0, 7), railStyle: 'classic' });
 
     await useSymbolBarStore.persist.rehydrate();
 
     expect(useSymbolBarStore.getState().shown).toBe(true);
     expect(groupsOf().map((group) => group.id)).toEqual(['g2', 'g3', 'g4', 'g5', 'g6', 'g7', 'g8', 'g1']);
-    expect(useSymbolBarStore.getState().railStyle).toBe('symbols');
+    expect(useSymbolBarStore.getState().railStyle).toBe('classic');
   });
 
   it('Given stored groups that are not eight valid ones, When the store rehydrates, Then the groups fall back to the defaults and the other fields hold', async () => {
-    await stored({ shown: false, groups: DEFAULT_SYMBOL_GROUPS.slice(0, 7), railStyle: 'symbols' });
+    await stored({ shown: false, groups: DEFAULT_SYMBOL_GROUPS.slice(0, 7), railStyle: 'classic' });
 
     await useSymbolBarStore.persist.rehydrate();
 
     expect(isDefaultGroups(groupsOf())).toBe(true);
     expect(useSymbolBarStore.getState().shown).toBe(false);
-    expect(useSymbolBarStore.getState().railStyle).toBe('symbols');
+    expect(useSymbolBarStore.getState().railStyle).toBe('classic');
   });
 
-  it('Given a stored rail style that is neither classic nor symbols, When the store rehydrates, Then it is classic and the other fields hold', async () => {
+  it('Given a stored rail style that is neither classic nor symbols, When the store rehydrates, Then it is the symbols rail and the other fields hold', async () => {
     await stored({ shown: false, groups: DEFAULT_SYMBOL_GROUPS, railStyle: 'wide' });
 
     await useSymbolBarStore.persist.rehydrate();
 
-    expect(useSymbolBarStore.getState().railStyle).toBe('classic');
+    expect(useSymbolBarStore.getState().railStyle).toBe('symbols');
     expect(useSymbolBarStore.getState().shown).toBe(false);
   });
 
@@ -83,7 +83,7 @@ describe('useSymbolBarStore', () => {
     await useSymbolBarStore.persist.rehydrate();
 
     const { shown, groups, railStyle } = useSymbolBarStore.getState();
-    expect([shown, isDefaultGroups(groups), railStyle]).toEqual([true, true, 'classic']);
+    expect([shown, isDefaultGroups(groups), railStyle]).toEqual([true, true, 'symbols']);
   });
 
   it('Given a group edited to more than four characters, When it is set, Then it holds the first four and the other groups are untouched', () => {

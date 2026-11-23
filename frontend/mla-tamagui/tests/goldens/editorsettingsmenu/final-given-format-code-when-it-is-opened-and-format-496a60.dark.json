@@ -32,20 +32,17 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput"
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit"
     ],
-    "text": "Two Sum\nArray & Hashing · Easy\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit"
   },
   "timings": {
-    "render_ms": 235
+    "render_ms": 285
   },
   "name": "editorsettingsmenu/final-given-format-code-when-it-is-opened-and-format-496a60.dark",
   "image": {

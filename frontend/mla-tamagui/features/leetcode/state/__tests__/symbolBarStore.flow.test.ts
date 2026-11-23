@@ -15,14 +15,14 @@ describe('the symbol bar store, as logged', () => {
       result.current.setShown(false);
       result.current.setGroup('g2', 'abcdef');
       result.current.move(1, 2);
-      result.current.setRailStyle('symbols');
+      result.current.setRailStyle('classic');
       result.current.reset();
     });
 
     expect((await loggedLines('leetcode.symbol_bar.set_shown'))[0]?.context).toMatchObject({ shown: false });
     expect((await loggedLines('leetcode.symbol_bar.set_group'))[0]?.context).toMatchObject({ id: 'g2', length: 4 });
     expect((await loggedLines('leetcode.symbol_bar.move'))[0]?.context).toMatchObject({ from: 1, to: 2 });
-    expect((await loggedLines('leetcode.symbol_bar.set_rail_style'))[0]?.context).toMatchObject({ railStyle: 'symbols' });
+    expect((await loggedLines('leetcode.symbol_bar.set_rail_style'))[0]?.context).toMatchObject({ railStyle: 'classic' });
     expect(await loggedLines('leetcode.symbol_bar.reset')).toHaveLength(1);
   });
 

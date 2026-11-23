@@ -14,10 +14,12 @@ import {
 
 import { app } from '../../../../tests/flow/app';
 import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLines';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProblemCatalog } from '../../domain/problemCatalog';
+import { useAutocompleteSettingStore } from '../../state/autocompleteSettingStore';
 import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSettingStore';
+import { useSymbolBarStore } from '../../state/editor/symbolBarStore';
 
 // Native Expo/RN modules the screen's module graph pulls in but that cannot
 // load under jsdom. They are never exercised here -- the ports (audio, voice)
@@ -61,6 +63,11 @@ function fakeGateway(): { gateway: LeetCodeGatewayPort } {
   };
 }
 
+// none of these tests is about suggestions and each presses the classic character keys: both are set before the screen mounts
+beforeEach(() => {
+  useAutocompleteSettingStore.setState({ autocomplete: false });
+  useSymbolBarStore.setState({ railStyle: 'classic' });
+});
 afterEach(() => useRunnerSettingStore.setState({ runner: DEFAULT_RUNNER }));
 
 async function renderEditor(

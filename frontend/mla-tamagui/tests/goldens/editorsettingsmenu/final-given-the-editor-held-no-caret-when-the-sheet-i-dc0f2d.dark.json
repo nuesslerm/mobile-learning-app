@@ -32,16 +32,13 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
       "EditorHelperRails",
+      "ConsoleActionBar",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "EditorSyntaxToolbar",
       "EditorSyntax-Tab",
       "EditorSyntax-Dedent",
@@ -66,10 +63,10 @@
       "EditorAction-Paste",
       "EditorAction-Done"
     ],
-    "text": "Two Sum\nArray & Hashing · Easy\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nDone"
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nDone"
   },
   "timings": {
-    "render_ms": 226
+    "render_ms": 251
   },
   "name": "editorsettingsmenu/final-given-the-editor-held-no-caret-when-the-sheet-i-dc0f2d.dark",
   "image": {

@@ -1,8 +1,8 @@
 {
   "suite": "console",
-  "step": "final-given-the-console-on-when-two-sum-opens-then-t-49319e",
+  "step": "final-given-the-console-on-when-two-sum-opens-then-t-2dce91",
   "scheme": "dark",
-  "snapshot": "console/final-given-the-console-on-when-two-sum-opens-then-t-49319e.html",
+  "snapshot": "console/final-given-the-console-on-when-two-sum-opens-then-t-2dce91.html",
   "viewport": {
     "width": 393,
     "height": 852
@@ -22,7 +22,9 @@
       "ProblemEditorHeaderBack",
       "ProblemEditorHeaderTitle",
       "ProblemEditorHeaderSubtitle",
-      "ProblemEditorHeaderActions",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
       "ProblemEditorInfoButton",
       "ProblemEditorMenuButton",
       "ProblemEditorToolbarTarget",
@@ -51,9 +53,9 @@
     "text": "Plan\nCode\nTwo Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit"
   },
   "timings": {
-    "render_ms": 245
+    "render_ms": 249
   },
-  "name": "console/final-given-the-console-on-when-two-sum-opens-then-t-49319e.dark",
+  "name": "console/final-given-the-console-on-when-two-sum-opens-then-t-2dce91.dark",
   "image": {
     "width": 360,
     "height": 780

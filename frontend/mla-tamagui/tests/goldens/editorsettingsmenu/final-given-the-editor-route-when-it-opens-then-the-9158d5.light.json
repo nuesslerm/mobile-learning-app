@@ -32,24 +32,22 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "ProblemEditorMenuButtonBackdrop",
       "ProblemEditorMenuButtonContent",
       "ProblemEditorMenuHistory",
+      "ProblemEditorMenuResetCode",
       "ProblemEditorMenuLogin"
     ],
-    "text": "Two Sum\nArray & Hashing · Easy\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nVersion history\nNo versions yet\nLogin\nLeetCode"
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit\nVersion history\nNo versions yet\nReset code\nLogin\nLeetCode"
   },
   "timings": {
-    "render_ms": 255
+    "render_ms": 250
   },
   "name": "editorsettingsmenu/final-given-the-editor-route-when-it-opens-then-the-9158d5.light",
   "image": {

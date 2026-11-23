@@ -35,6 +35,30 @@ end)
 
 local READY = 'ProblemEditorScreen'
 
+-- the symbols rail is the default and this script presses the classic character keys: Classic is chosen in the Symbol Bar sheet, as a person does
+local function choose_classic_rail()
+  device:clear_logs()
+  device:tap_on({id='EditorSettingsButton'})
+  device:assert_visible({id='EditorSettingsButtonContent'}, {timeout=10000})
+  device:tap_on({id='EditorSettingsSymbolBar'})
+  device:assert_visible({id='SymbolBarSheetHeader'}, {timeout=10000})
+  device:scroll_until_visible{element={id='SymbolBarRailStyle-classic'}, direction='DOWN', timeout=10000, optional=true}
+  device:tap_on({id='SymbolBarRailStyle-classic'})
+  device:extended_wait_until{condition=function()
+    for _, l in ipairs(device:get_logs{level='info'}) do
+      if l:find('leetcode.symbol_bar.rail_style_tap', 1, true) then return true end
+    end
+  end, timeout=15000, interval=250, label='the Classic tap reached the screen'}
+  device:tap_on({id='SymbolBarDone'})
+  device:extended_wait_until{not_visible={id='SymbolBarSheetHeader'}, timeout=10000, label='the sheet is gone'}
+end
+
+run_flow("choose the classic rail", function()
+  device:open_link(base .. "/leetcode/two-sum")
+  device:assert_visible({id=READY}, {timeout=60000})
+  choose_classic_rail()
+end)
+
 run_flow("open the editor and place the caret in the method body", function()
   device:open_link(base .. "/leetcode/two-sum")
   device:assert_visible({id=READY}, {timeout=60000})

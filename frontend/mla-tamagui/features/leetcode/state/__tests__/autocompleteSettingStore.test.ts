@@ -16,11 +16,19 @@ vi.mock('@react-native-async-storage/async-storage', () => {
 });
 
 describe('useAutocompleteSettingStore', () => {
-  it('Given no stored value, When the store is read, Then suggestions are off', async () => {
+  it('Given no stored value, When the store is read, Then suggestions are on', async () => {
+    await useAutocompleteSettingStore.persist.rehydrate();
+
+    expect(useAutocompleteSettingStore.getState().autocomplete).toBe(true);
+    expect(DEFAULT_AUTOCOMPLETE).toBe(true);
+  });
+
+  it('Given the person turned suggestions off, When the store is rehydrated from storage, Then off still wins over the default', async () => {
+    await AsyncStorage.setItem('leetcode-autocomplete', JSON.stringify({ state: { autocomplete: false }, version: 1 }));
+
     await useAutocompleteSettingStore.persist.rehydrate();
 
     expect(useAutocompleteSettingStore.getState().autocomplete).toBe(false);
-    expect(DEFAULT_AUTOCOMPLETE).toBe(false);
   });
 
   it('Given the person turns suggestions on, When the store is rehydrated from storage, Then the choice survives', async () => {
@@ -31,7 +39,7 @@ describe('useAutocompleteSettingStore', () => {
     expect(useAutocompleteSettingStore.getState().autocomplete).toBe(true);
   });
 
-  it('Given a stored value that is not a boolean, When the store rehydrates, Then it falls back to off', async () => {
+  it('Given a stored value that is not a boolean, When the store rehydrates, Then it falls back to the default', async () => {
     await AsyncStorage.setItem('leetcode-autocomplete', JSON.stringify({ state: { autocomplete: 'yes' }, version: 1 }));
 
     await useAutocompleteSettingStore.persist.rehydrate();

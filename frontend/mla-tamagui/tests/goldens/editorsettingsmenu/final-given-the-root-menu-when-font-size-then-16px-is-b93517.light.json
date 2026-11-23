@@ -32,15 +32,12 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "EditorSettingsButtonBackdrop",
       "EditorSettingsButtonContent",
       "EditorSettingsFontSizeHeader",
@@ -59,10 +56,10 @@
       "EditorSettingsFontSize-20",
       "EditorSettingsFontSize-20Check"
     ],
-    "text": "Two Sum\nArray & Hashing · Easy\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nFont size: 16px\n12px\n13px\n14px\n15px\n16px\n18px\n20px"
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit\nFont size: 16px\n12px\n13px\n14px\n15px\n16px\n18px\n20px"
   },
   "timings": {
-    "render_ms": 241
+    "render_ms": 281
   },
   "name": "editorsettingsmenu/final-given-the-root-menu-when-font-size-then-16px-is-b93517.light",
   "image": {

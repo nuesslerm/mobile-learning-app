@@ -32,16 +32,13 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
       "EditorHelperRails",
+      "ConsoleActionBar",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "EditorSymbolBar",
       "SymbolBarTab",
       "SymbolBarGroup-g1",
@@ -73,12 +70,15 @@
       "SymbolBarKey-g6-0",
       "SymbolBarKey-g6-1",
       "SymbolBarKey-g6-2",
-      "SymbolBarKey-g6-3"
+      "SymbolBarKey-g6-3",
+      "SymbolBarGroup-g7",
+      "SymbolBarKey-g7-0",
+      "SymbolBarKey-g7-1"
     ],
-    "text": "Two Sum\nArray & Hashing · Easy\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nTab\n#\n$\n^\n%\n\\\n@\n~\n_\n&\n|\n?\n!\n+\n-\n*\n/\n'\n\"\n`\n=\n{\n}\n[\n]\n(\n)\n<\n>\n.\n:\n,\n;\nHide\nUndo\nRedo\nCopy\nPaste\nDone"
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit\nTab\n#\n$\n^\n%\n\\\n@\n~\n_\n&\n|\n?\n!\n+\n-\n*\n/\n'\n\"\n`\n=\n{\n}\n[\n]\n(\n)\n<\n>\n.\n:\n,\n;\nHide\nUndo\nRedo\nCopy\nPaste\nDone"
   },
   "timings": {
-    "render_ms": 250
+    "render_ms": 255
   },
   "name": "editorsettingsmenu/final-given-the-symbols-style-and-the-keyboard-up-whe-02593a.dark",
   "image": {

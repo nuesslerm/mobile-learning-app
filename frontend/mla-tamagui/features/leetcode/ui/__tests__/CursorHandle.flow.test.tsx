@@ -15,6 +15,7 @@ import { DEFAULT_TUNING } from '../../domain/editor/cursorDrag';
 import { stepChars, stepLines, stepWords } from '../../domain/editor/cursorMotion';
 import { DEFAULT_CURSOR_HANDLE, useCursorHandleSettingStore } from '../../state/editor/cursorHandleSettingStore';
 import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSettingStore';
+import { useSymbolBarStore } from '../../state/editor/symbolBarStore';
 import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../..';
 
 // The cursor handle on the real editor, through the screen: a drag on the pad moves the caret by what the finger covered, a selection keeps its
@@ -37,6 +38,7 @@ const gateway: LeetCodeGatewayPort = {
 // set before the screen mounts: a store write while a screen is still mounted is an update outside act
 beforeEach(() => {
   useRunnerSettingStore.setState({ runner: 'backend' });
+  useSymbolBarStore.setState({ railStyle: 'classic' });
   useCursorHandleSettingStore.setState({ cursorHandle: DEFAULT_CURSOR_HANDLE });
 });
 afterEach(() => useRunnerSettingStore.setState({ runner: DEFAULT_RUNNER }));

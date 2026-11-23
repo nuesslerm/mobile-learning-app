@@ -19,8 +19,8 @@ import { useToolbarConfigStore } from '../../state/toolbarConfigStore';
 import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../..';
 
 // The symbol rail above the keyboard on the real editor: the person's groups in their order, each key typed through the editor so
-// brackets close themselves, a closer is stepped over and a selection is wrapped. The classic rail stays the default; it is the one
-// every other flow test of the screen already runs on.
+// brackets close themselves, a closer is stepped over and a selection is wrapped. The symbols rail is the default; the flow tests that press the
+// classic character keys pin the classic rail.
 
 const ACCEPTED: RunResponse = {
   source: 'backend-run',

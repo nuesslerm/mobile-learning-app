@@ -1,0 +1,93 @@
+{
+  "suite": "voiceeditflow",
+  "step": "final-given-the-picker-open-and-the-editor-changed-mea-b03aff",
+  "scheme": "light",
+  "snapshot": "voiceeditflow/final-given-the-picker-open-and-the-editor-changed-mea-b03aff.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemWorkspaceTabs",
+      "ProblemWorkspaceTab-plan",
+      "ProblemWorkspaceTab-code",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorTextEditStartButton",
+      "ProblemEditorVoiceStartButton",
+      "ProblemEditorVoiceErrorBanner",
+      "ProblemEditorVoiceErrorText",
+      "ProblemEditorVoiceErrorHint",
+      "ProblemPlanTab",
+      "ProblemPlanSteps",
+      "ProblemPlanComposer",
+      "ProblemPlanMicButton",
+      "ProblemPlanTextInput",
+      "ProblemPlanAddButton",
+      "EditorHelperRails",
+      "ConsoleActionBar",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
+      "EditorSymbolBar",
+      "SymbolBarTab",
+      "SymbolBarGroup-g1",
+      "SymbolBarKey-g1-0",
+      "SymbolBarKey-g1-1",
+      "SymbolBarKey-g1-2",
+      "SymbolBarKey-g1-3",
+      "SymbolBarGroup-g2",
+      "SymbolBarKey-g2-0",
+      "SymbolBarKey-g2-1",
+      "SymbolBarKey-g2-2",
+      "SymbolBarKey-g2-3",
+      "SymbolBarGroup-g3",
+      "SymbolBarKey-g3-0",
+      "SymbolBarKey-g3-1",
+      "SymbolBarKey-g3-2",
+      "SymbolBarKey-g3-3",
+      "SymbolBarGroup-g4",
+      "SymbolBarKey-g4-0",
+      "SymbolBarKey-g4-1",
+      "SymbolBarKey-g4-2",
+      "SymbolBarKey-g4-3",
+      "SymbolBarGroup-g5",
+      "SymbolBarKey-g5-0",
+      "SymbolBarKey-g5-1",
+      "SymbolBarKey-g5-2",
+      "SymbolBarKey-g5-3",
+      "SymbolBarGroup-g6",
+      "SymbolBarKey-g6-0",
+      "SymbolBarKey-g6-1"
+    ],
+    "text": "Plan\nCode\nPython\nThe code changed while the edit was being planned. Say it again.\nTap to dismiss\nConsole\nSubmit\nTab\n#\n$\n^\n%\n&\n|\n?\n!\n\\\n@\n~\n_\n+\n-\n*\n/\n'\n\"\n`\n=\n{\n}\n[\n]\n(\n)\n<\n>\n.\n:\n,\n;\nHide\nUndo\nRedo\nCopy\nPaste\nDone"
+  },
+  "timings": {
+    "render_ms": 258
+  },
+  "name": "voiceeditflow/final-given-the-picker-open-and-the-editor-changed-mea-b03aff.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-export const DEFAULT_AUTOCOMPLETE = false;
+export const DEFAULT_AUTOCOMPLETE = true;
 const autocompleteSchema = z.boolean();
 
 type AutocompleteSettingState = {

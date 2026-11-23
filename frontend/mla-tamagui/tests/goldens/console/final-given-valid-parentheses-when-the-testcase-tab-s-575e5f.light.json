@@ -63,7 +63,7 @@
     "text": "Python\nTestcase\nRun Result\nCase 1\nCase 2\nCase 3\nCase 4\nCase 5\nCase 6\nCase 7\nCase 8\nCase 9\nCase 10\nCase 11\nCase 12\nCase 13\nCase 14\nCase 15\ns\n\"(]\"\nReset\nSubmit"
   },
   "timings": {
-    "render_ms": 224
+    "render_ms": 225
   },
   "name": "console/final-given-valid-parentheses-when-the-testcase-tab-s-575e5f.light",
   "image": {

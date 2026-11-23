@@ -32,15 +32,12 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "EditorSettingsButtonBackdrop",
       "EditorSettingsButtonContent",
       "EditorSettingsViewSection",
@@ -58,10 +55,10 @@
       "EditorSettingsFormat",
       "EditorSettingsFormatCheck"
     ],
-    "text": "Two Sum\nArray & Hashing · Easy\nJavaScript\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nFont size: 18px\nShow Whitespace\nLine wrap\nTabs: 4\nSymbol Bar\nFormat Code"
+    "text": "Two Sum\nArray & Hashing · Easy\nJavaScript\nConsole\nSubmit\nFont size: 18px\nShow Whitespace\nLine wrap\nTabs: 4\nSymbol Bar\nFormat Code"
   },
   "timings": {
-    "render_ms": 282
+    "render_ms": 261
   },
   "name": "editorsettingsmenu/final-given-every-setting-changed-when-the-language-i-f22514.light",
   "image": {

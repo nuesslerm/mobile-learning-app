@@ -16,7 +16,7 @@ import {
 export const RAIL_STYLES = ['classic', 'symbols'] as const;
 export type RailStyle = (typeof RAIL_STYLES)[number];
 
-export const DEFAULT_RAIL_STYLE: RailStyle = 'classic';
+export const DEFAULT_RAIL_STYLE: RailStyle = 'symbols';
 export const DEFAULT_SYMBOL_BAR_SHOWN = true;
 
 const shownSchema = z.boolean();

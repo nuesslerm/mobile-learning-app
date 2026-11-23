@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { app } from '../../../../tests/flow/app';
 import { DEFAULT_RUNNER, useRunnerSettingStore } from '../../state/runnerSettingStore';
+import { useSymbolBarStore } from '../../state/editor/symbolBarStore';
 import { DEFAULT_AUTOCOMPLETE, useAutocompleteSettingStore } from '../../state/autocompleteSettingStore';
 import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../..';
 
@@ -32,6 +33,7 @@ const gateway: LeetCodeGatewayPort = {
 // set before the screen mounts: a store write while a screen is still mounted is an update outside act
 beforeEach(() => {
   useRunnerSettingStore.setState({ runner: DEFAULT_RUNNER });
+  useSymbolBarStore.setState({ railStyle: 'classic' });
   useAutocompleteSettingStore.setState({ autocomplete: DEFAULT_AUTOCOMPLETE });
 });
 
@@ -106,7 +108,7 @@ describe('suggestions on the problem editor', () => {
     await eventually(() => expect(editor.text()).toBe('ret\n'));
   });
 
-  it('given suggestions off, the default, when ret is typed and 600 ms pass, then no list shows', async () => {
+  it('given suggestions off, when ret is typed and 600 ms pass, then no list shows', async () => {
     const { editor } = await openEditor(false);
 
     await typing(editor, '', 'ret');

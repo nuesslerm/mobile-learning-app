@@ -58,7 +58,7 @@ function GroupRow({ group, index, handle }: { group: SymbolGroup; index: number;
 
 /**
  * The recording's Symbol Bar sheet: the switch, the eight groups (each edited in place and reordered by its handle) and Reset and Done. It reads and writes only the symbol bar store; the caller owns whether it is open.
- * The Classic | Symbols control is temporary: it goes when the symbols rail becomes the default.
+ * The Classic | Symbols control switches back to the classic character-key rail; Symbols is the default.
  */
 export function SymbolBarSheet({ open, onOpenChange, testID = 'SymbolBarSheet' }: Props) {
   const shown = useSymbolBarStore((s) => s.shown);
@@ -171,7 +171,7 @@ export function SymbolBarSheet({ open, onOpenChange, testID = 'SymbolBarSheet' }
               ))}
             </XStack>
             <Text variant="muted" px="$2">
-              Classic keeps today's keys; Symbols shows Tab and these groups.
+              Symbols shows Tab and these groups; Classic shows the character keys and its own toolbar settings.
             </Text>
           </YStack>
         </YStack>

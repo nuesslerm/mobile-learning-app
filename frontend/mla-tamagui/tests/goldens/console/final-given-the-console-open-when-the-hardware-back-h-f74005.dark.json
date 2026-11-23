@@ -34,7 +34,7 @@
     "text": "class Solution:\n    def isValid(self, s: str) -> bool:\n        \nPython\nConsole\nSubmit"
   },
   "timings": {
-    "render_ms": 230
+    "render_ms": 255
   },
   "name": "console/final-given-the-console-open-when-the-hardware-back-h-f74005.dark",
   "image": {

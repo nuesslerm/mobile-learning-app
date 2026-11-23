@@ -121,16 +121,16 @@ describe('the Symbol Bar sheet', () => {
     await waitFor(() => expect(useSymbolBarStore.getState().groups[1].chars).toBe('&|'));
   });
 
-  it('Given the classic rail, When Symbols is pressed and then Classic, Then the store follows each choice and the pressed one reads checked', async () => {
+  it('Given the symbols rail, When Classic is pressed and then Symbols, Then the store follows each choice and the pressed one reads checked', async () => {
     const view = await openSheet();
-    expect(view.getByTestId('SymbolBarRailStyle-classic').getAttribute('aria-checked')).toBe('true');
-
-    fireEvent.click(view.getByTestId('SymbolBarRailStyle-symbols'));
-    await waitFor(() => expect(useSymbolBarStore.getState().railStyle).toBe('symbols'));
     expect(view.getByTestId('SymbolBarRailStyle-symbols').getAttribute('aria-checked')).toBe('true');
-    fireEvent.click(view.getByTestId('SymbolBarRailStyle-classic'));
 
+    fireEvent.click(view.getByTestId('SymbolBarRailStyle-classic'));
     await waitFor(() => expect(useSymbolBarStore.getState().railStyle).toBe('classic'));
+    expect(view.getByTestId('SymbolBarRailStyle-classic').getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(view.getByTestId('SymbolBarRailStyle-symbols'));
+
+    await waitFor(() => expect(useSymbolBarStore.getState().railStyle).toBe('symbols'));
   });
 
   it('Given the sheet is open, When Done is pressed, Then the sheet asks to close once and nothing in the store changed', async () => {

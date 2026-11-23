@@ -14,9 +14,6 @@
   },
   "summary": {
     "testids": [
-      "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
-      "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
@@ -26,24 +23,13 @@
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInputHint",
-      "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
-      "ProblemPlanTab",
-      "ProblemPlanSteps",
-      "ProblemPlanComposer",
-      "ProblemPlanMicButton",
-      "ProblemPlanTextInput",
-      "ProblemPlanAddButton",
       "EditorHelperRails",
+      "ConsoleActionBar",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "EditorActionToolbar",
       "EditorAction-Undo",
       "EditorAction-Redo",
@@ -51,10 +37,10 @@
       "EditorAction-Paste",
       "EditorAction-Done"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nUndo\nRedo\nCopy\nPaste\nDone"
+    "text": "Python\nConsole\nSubmit\nUndo\nRedo\nCopy\nPaste\nDone"
   },
   "timings": {
-    "render_ms": 208
+    "render_ms": 246
   },
   "name": "symbolbar/final-given-the-switch-is-off-with-the-symbols-style-1aff09.light",
   "image": {
