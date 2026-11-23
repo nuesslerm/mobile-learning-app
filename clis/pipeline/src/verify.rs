@@ -385,14 +385,14 @@ fn run_nx(nx: &Path, root: &Path, targets: &str, projects: &[String], env: &[(&s
     ran.code
 }
 
-/// Typecheck, unit and flow tests of every package a staged code file reaches (the file's package and what depends on it).
+/// Typecheck and unit tests of every package a staged code file reaches (the file's package and what depends on it). The flow suites run in CI: the owner cut them from the pre-commit gate (23 Nov 2026), which took 6 to 25 minutes a commit.
 fn run_gate(nx: &Path, root: &Path, files: &[String], packages: &[Package], env: &[(&str, String)]) -> i32 {
     let affected = affected(files, packages);
     if affected.is_empty() {
         println!("verify: no workspace package affected");
         return 0;
     }
-    run_nx(nx, root, "typecheck,test:unit,test:flow", &affected, env)
+    run_nx(nx, root, "typecheck,test:unit", &affected, env)
 }
 
 /// The projects that own a staged file: a file's lint is its own project's, not its dependents'. A file no package owns belongs

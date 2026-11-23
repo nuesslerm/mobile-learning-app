@@ -24,7 +24,7 @@ pre-commit:
   parallel: true
   jobs:
     - name: verify
-      # ESLint per owning package, simplicity budget, wf bundle freshness, affected typecheck/test:unit/test:flow (use-cases/verify/gate.ts).
+      # ESLint per owning package, simplicity budget, wf bundle freshness, affected typecheck/test:unit (use-cases/verify/gate.ts); the flow suites run in CI.
       # 8GB heap: type-aware linting of a huge staged set OOMs at Node's default; it is a limit, not a reservation.
       # Through the lazy launcher: it builds the `wf` of the checked-out tree (cargo's own freshness), so the gate is never an older build on PATH.
       run: NODE_OPTIONS=--max-old-space-size=8192 cargo run -q --locked --manifest-path clis/Cargo.toml -p wf-lazy -- check --staged

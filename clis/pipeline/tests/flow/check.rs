@@ -174,7 +174,7 @@ fn lint(pkgs: &[&str]) -> String {
 }
 
 fn gate(pkgs: &[&str]) -> String {
-    nx("typecheck,test:unit,test:flow", pkgs)
+    nx("typecheck,test:unit", pkgs)
 }
 
 #[test]
@@ -194,7 +194,7 @@ fn the_staged_gate_runs_through_nx() {
     assert!(r.stdout.contains("msg=\"pre-commit-jobs\""));
     // And what Nx replayed is said, so a recommit shows what the cache served
     assert!(r.stdout.contains("verify: nx lint over 1 projects: 1 of 2 tasks replayed from the cache\n"), "{}", r.stdout);
-    assert!(r.stdout.contains("verify: nx typecheck,test:unit,test:flow over 3 projects: 1 of 2 tasks replayed from the cache\n"), "{}", r.stdout);
+    assert!(r.stdout.contains("verify: nx typecheck,test:unit over 3 projects: 1 of 2 tasks replayed from the cache\n"), "{}", r.stdout);
 
     // Given files in the git index, Then added and modified code is gated, and deletions and non-code are not
     w.put("libraries/b/gone.ts", "old\n");
@@ -337,7 +337,7 @@ fn the_staged_gate_gives_nx_the_build_cache_and_writes_to_it_only_from_a_clean_c
     git(&["add", "-A"]);
     git(&["commit", "-qm", "base"]);
     git(&["update-ref", "refs/remotes/origin/dev", "HEAD"]);
-    let (bucket, links) = fake_bucket(&["h-lint", "h-typechecktestunittestflow"]);
+    let (bucket, links) = fake_bucket(&["h-lint", "h-typechecktestunit"]);
     let gate = |extra: &[(&'static str, &'static str)]| {
         bucket.clear();
         let mut env = borrowed(&links);

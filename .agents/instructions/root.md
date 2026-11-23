@@ -30,15 +30,15 @@ Search `wf --help` first. A wrapper script that sets up env or flags is a smell;
 
 ## CI runs on GitHub-hosted runners
 
-Pushing to `dev` runs one pipeline, the reusable `pipeline.yml`, called by `ci-hosted-backend-core.yml` on GitHub-hosted runners; every test stage replays through the Nx cache. The local gate is lefthook pre-commit (`wf check --staged`): a red hook is the failure to fix, never to bypass. Production ships only by a push to `dev`: CI builds the images on its runner and the legs redeploy that tag (`wf ship --redeploy-only`); agent sessions cannot dispatch workflows and nothing else builds a production image. Every stage, the deploy flow, the hand-deployed apps and the record triggers: `docs/solutions/ci/ci-pipeline-on-the-vm.md`.
+Pushing to `dev` runs one pipeline, the reusable `pipeline.yml`, called by `ci-hosted-backend-core.yml` on GitHub-hosted runners; every test stage replays through the Nx cache. The local gate is lefthook pre-commit (`wf check --staged`: typecheck, lint, unit; flow tests run in CI): a red hook is the failure to fix, never to bypass. Production ships only by a push to `dev`: CI builds the images on its runner and the legs redeploy that tag (`wf ship --redeploy-only`); agent sessions cannot dispatch workflows and nothing else builds a production image. Every stage, the deploy flow, the hand-deployed apps and the record triggers: `docs/solutions/ci/ci-pipeline-on-the-vm.md`.
 
 ## Commit by batch, never wait on CI
 
-One commit per verified batch (a track or round of slices), never per slice: the gate costs 5 to 10 min a commit. Land it: `git fetch origin dev && git rebase origin/dev`, push; within an hour, a restart loses unpushed work. CI running or queued is never a reason to idle: watch it with one background Monitor, never poll or `sleep`; a newer push supersedes it, a red run is one more item of work.
+One commit per verified batch (a track or round of slices), never per slice. Land it: `git fetch origin dev && git rebase origin/dev`, push; within an hour, a restart loses unpushed work. CI running or queued is never a reason to idle: watch it with one background Monitor, never poll or `sleep`; a newer push supersedes it, a red run is one more item of work.
 
 ## Parallel agents in the sandbox
 
-Work independent issue items in parallel, one agent per git worktree that never pushes or touches the main checkout; every `cargo`, `pnpm` test and `wf check|test` command runs as `flock /tmp/cargo.lock <command>`; stop and report at under 1.2 GB free. Details: `docs/solutions/workflow/parallel-agents-in-the-sandbox.md`.
+Work independent issue items in parallel, at most 2 agents at once, one per git worktree that never pushes or touches the main checkout; no lock, run commands directly (cargo is capped at 2 jobs); stop and report at under 1.2 GB free. Details: `docs/solutions/workflow/parallel-agents-in-the-sandbox.md`.
 
 ## Track long work in one issue
 
