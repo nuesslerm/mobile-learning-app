@@ -23,7 +23,7 @@ const NO_EDITOR: PlanEditor = {
 
 type WorkspaceTab = 'plan' | 'code';
 
-export function ProblemWorkspace({ id, seed }: { id?: string; seed?: string }) {
+export function ProblemWorkspace({ id, seed, lang }: { id?: string; seed?: string; lang?: 'javascript' }) {
   const [tab, setTab] = React.useState<WorkspaceTab>('code');
   const [api, setApi] = React.useState<PlanEditor | null>(null);
 
@@ -70,7 +70,7 @@ export function ProblemWorkspace({ id, seed }: { id?: string; seed?: string }) {
           forceMount
           display={tab === 'code' ? 'flex' : 'none'}
         >
-          <ProblemEditorScreen id={id} seed={seed} onWorkspaceApi={setApi} />
+          <ProblemEditorScreen id={id} seed={seed} lang={lang} onWorkspaceApi={setApi} />
         </TabsContent>
         <TabsContent
           value="plan"

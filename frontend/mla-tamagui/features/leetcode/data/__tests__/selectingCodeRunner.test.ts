@@ -38,10 +38,20 @@ describe('createSelectingCodeRunner', () => {
     expect(log).toEqual(['device', 'device']);
   });
 
-  it('Given the device setting, When a JavaScript run is made, Then the backend runs it because only Python runs on the device', async () => {
-    const { log, selecting } = setup('device');
-    await selecting.run(params('javascript'));
-    expect(log).toEqual(['backend']);
+  it('Given either setting, When a JavaScript run is made, Then the device runs it and the backend is never called', async () => {
+    const device = setup('device');
+    await device.selecting.run(params('javascript'));
+    const backend = setup('backend');
+    await backend.selecting.run(params('javascript'));
+    expect([device.log, backend.log]).toEqual([['device'], ['device']]);
+  });
+
+  it('Given either setting, When a C++ run is made, Then the backend runs it', async () => {
+    const device = setup('device');
+    await device.selecting.run(params('cpp'));
+    const backend = setup('backend');
+    await backend.selecting.run(params('cpp'));
+    expect([device.log, backend.log]).toEqual([['backend'], ['backend']]);
   });
 
   it('Given the backend setting, When a Python run with an approx case is made, Then the device runner answers and the backend is not called', async () => {
@@ -79,11 +89,17 @@ describe('createSelectingCodeRunner', () => {
     expect(log).toEqual([]);
   });
 
-  it("Given the device setting, When warmUp('javascript') or warmUp('cpp') is called, Then nothing is warmed yet", () => {
-    const { log, selecting } = setup('device');
+  it("Given the device setting, When warmUp('javascript') and warmUp('cpp') are called, Then only JavaScript is warmed", () => {
+    const { log, warmedWith, selecting } = setup('device');
     selecting.warmUp?.('javascript');
     selecting.warmUp?.('cpp');
-    expect(log).toEqual([]);
+    expect([log, warmedWith]).toEqual([['device warm'], ['javascript']]);
+  });
+
+  it("Given the backend setting, When warmUp('javascript') is called, Then the device runner is warmed because JavaScript runs there whatever the setting says", () => {
+    const { warmedWith, selecting } = setup('backend');
+    selecting.warmUp?.('javascript');
+    expect(warmedWith).toEqual(['javascript']);
   });
 });
 

@@ -55,6 +55,7 @@ export async function mountPage(options: { init: boolean; language?: string }) {
   const rpc = createRpcClient(client, { timeoutMs: 2000 });
   const errors: unknown[] = [];
   const crossed: string[] = [];
+  const readyMessages: unknown[] = [];
   const sendInit = () => ref.current?.injectJavaScript(deliverScript(JSON.stringify({ ...INIT, config: { ...INIT.config, language: options.language ?? INIT.config.language } })));
   let announced = false;
   const container = document.body.appendChild(document.createElement('div'));
@@ -82,6 +83,7 @@ export async function mountPage(options: { init: boolean; language?: string }) {
               if (type) crossed.push(type);
             }
             host.receive(raw);
+            if (decoded.type === 'foreign' && (JSON.parse(raw) as { type?: string }).type === 'ready') readyMessages.push(JSON.parse(raw));
             if (decoded.type === 'foreign' && (JSON.parse(raw) as { type?: string }).type === 'ready' && !announced) {
               announced = true;
               if (options.init) sendInit();
@@ -96,6 +98,6 @@ export async function mountPage(options: { init: boolean; language?: string }) {
   await waitFor(() => {
     if (!announced) throw new Error('the page has not announced itself');
   });
-  return { engine, rpc, sendInit, frame, crossed, errors, faults };
+  return { engine, rpc, sendInit, frame, crossed, errors, faults, readyMessages };
 }
 

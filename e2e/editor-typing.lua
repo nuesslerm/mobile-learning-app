@@ -235,6 +235,13 @@ for _, p in ipairs(SOL) do
       end, timeout=60000, interval=250, label='the page hydrated'}
     end
   end)
+  -- the cold start of this unit's app start, printed and never judged: a hosted Android job may not carry the app's log, so a missing line is no failure
+  device:extended_wait_until{condition=function()
+    for _, l in ipairs(device:get_logs{level='info'}) do if l:find('editor.cold_start', 1, true) then return true end end
+  end, timeout=android and 3000 or 15000, optional=true, label=p.id .. ': the editor.cold_start line'}
+  for _, l in ipairs(device:get_logs{level='info'}) do
+    if l:find('editor.cold_start', 1, true) or l:find('pyodide_runner.load', 1, true) then log(p.id .. " cold start: " .. l) end
+  end
   -- the web editor autofocuses on open and its keyboard covers Reset, so an unseeded run lowers it; the Android one waits for a tap
   local focused = not android and device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true}
   if focused and not seeded then

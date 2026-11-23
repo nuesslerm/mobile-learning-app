@@ -130,7 +130,7 @@ type EditorSelection = { start: number; end: number };
 
 // Mirrors the webview's postMessage protocol (see data/editor/cm6/cm6Bundle.src.ts).
 export type FromEditorMessage =
-  | { type: 'ready' }
+  | { type: 'ready'; evalMs?: number }
   | { type: 'hydrated'; text: string; selection: EditorSelection }
   | { type: 'focused' }
   | { type: 'blurred' }
@@ -184,6 +184,8 @@ export class CodeRunnerError extends Error {
 }
 
 export interface LeetCodePorts {
+  /** A monotonic clock in milliseconds; the editor's cold start is measured with it. */
+  clock: () => number;
   /** The CodeMirror page and the typed editor API over it. */
   editorBridge: EditorBridgePort;
   gateway: LeetCodeGatewayPort;

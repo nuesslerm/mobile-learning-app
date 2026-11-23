@@ -26,6 +26,7 @@ export function createDefaultContainer(
     );
   const deviceRunner = overrides.deviceRunner ?? createUnavailableCodeRunner();
   return {
+    clock: overrides.clock ?? (() => performance.now()),
     editorBridge: overrides.editorBridge ?? createWebViewEditorBridge(),
     gateway,
     voice: overrides.voice ?? createLiveVoiceEditTransport(),

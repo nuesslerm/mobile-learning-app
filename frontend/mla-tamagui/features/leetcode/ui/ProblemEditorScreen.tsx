@@ -115,11 +115,14 @@ const useHydrated = () => React.useSyncExternalStore(subscribeNever, () => true,
 export function ProblemEditorScreen({
   id,
   seed,
+  lang: initialLang,
   onWorkspaceApi,
 }: {
   id?: string;
   /** Dev bundles only: the code the editor opens on, so a device-lab job can start mid-problem. */
   seed?: string;
+  /** Dev bundles only: the language the editor opens in. */
+  lang?: EditorLanguage;
   onWorkspaceApi?: (api: PlanEditor) => void;
 }) {
   const problem = React.useMemo(
@@ -127,7 +130,7 @@ export function ProblemEditorScreen({
     [id]
   );
 
-  const [lang, setLang] = React.useState<EditorLanguage>('python3');
+  const [lang, setLang] = React.useState<EditorLanguage>(initialLang ?? 'python3');
   const editorLanguage = toEditorLanguage(lang) ?? 'python';
   const autocomplete = useAutocompleteSettingStore((s) => s.autocomplete);
   const blockView = useBlockViewSettingStore((s) => s.blockView);
@@ -348,8 +351,9 @@ export function ProblemEditorScreen({
       setLang(nextLang);
       setEditorText(pickStarterCode(problem?.starterCode, nextLang));
       clearCard();
+      runner.warmUp?.(nextLang);
     },
-    [availableLanguages, lang, problem?.id, problem?.starterCode, snapshot, clearCard]
+    [availableLanguages, lang, problem?.id, problem?.starterCode, snapshot, clearCard, runner]
   );
 
   const handleFormat = React.useCallback(async () => {

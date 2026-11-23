@@ -59,11 +59,13 @@ export function buildEditorHtml(options: { debug?: boolean } = {}): string {
     };
   })();
 </script>
-${options.debug ? '<script>window.__EDITOR_DEBUG__ = true;</script>\n' : ''}<script>${CM6_BUNDLE_JS}</script>
+${options.debug ? '<script>window.__EDITOR_DEBUG__ = true;</script>\n' : ''}<script>window.__cm6T0 = performance.now();</script>
+<script>${CM6_BUNDLE_JS}</script>
+<script>window.__cm6EvalMs = Math.round(performance.now() - window.__cm6T0);</script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     if (window.ReactNativeWebView) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ready' }));
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ready', evalMs: window.__cm6EvalMs }));
     }
   });
 </script>

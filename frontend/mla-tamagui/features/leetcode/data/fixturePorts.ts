@@ -190,6 +190,7 @@ function createFixtureAudio(): AudioRecordingPort {
 export function createFixturePorts(): LeetCodePorts {
   const gateway = createFixtureGateway();
   return {
+    clock: () => performance.now(),
     editorBridge: createWebViewEditorBridge(),
     gateway,
     voice: createFixtureVoice(),

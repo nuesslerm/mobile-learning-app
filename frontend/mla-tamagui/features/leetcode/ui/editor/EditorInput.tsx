@@ -26,6 +26,7 @@ import { createCaretDrag, moveCaretBy, type CaretDrag } from '../../domain/edito
 import type { Delta } from '../../domain/editor/cursorDrag';
 import type { Motion } from '../../domain/editor/cursorMotion';
 import { writeThrough, type WriteRequest } from '../../domain/editor/documentWrite';
+import { createColdStart, nextEditorNth } from '../../domain/editor/coldStart';
 import { clearEditMark, markEdit, setEditMarkHidden } from '../../domain/editor/editMark';
 import { createForwardingPost } from '../../domain/editor/editorForwarding';
 import { applyPlannedEdit, readBasis, type EditBasis, type EditOutcome, type EditTarget, type PlannedEdit } from '../../domain/editor/voiceEditPlan';
@@ -187,8 +188,14 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     const borderColor = isDark ? '#3e4451' : '#dadce0';
 
     // HTML is static — no config injected. All config flows via postMessage.
-    const { editorBridge } = useLeetCodePorts();
+    const { editorBridge, clock } = useLeetCodePorts();
     const html = useMemo(() => editorBridge.html(), [editorBridge]);
+    const coldStartRef = useRef<ReturnType<typeof createColdStart> | null>(null);
+    if (coldStartRef.current === null) {
+      coldStartRef.current = createColdStart({ clock, nth: nextEditorNth(), htmlBytes: html.length });
+      coldStartRef.current.mark('mount');
+    }
+    const pageEvalMsRef = useRef<number | undefined>(undefined);
 
     // One CodeEditorPort per editor instance, bound to this WebView: post()
     // drives the injectJavaScript channel, onMessage() fans webview events out
@@ -642,17 +649,26 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       };
     }, []);
 
+    const logColdStart = () => {
+      const report = coldStartRef.current?.take({ evalMs: pageEvalMsRef.current });
+      if (report) Logger.info('editor.cold_start', report);
+    };
+
     const handleEditorMessage = useCallback(
       (m: FromEditorMessage) => {
         switch (m.type) {
           case 'ready':
             Logger.info('editor.webview.ready', {});
+            coldStartRef.current?.mark('ready');
+            pageEvalMsRef.current = m.evalMs;
             isReadyRef.current = true;
             initializeEditor();
             break;
           case 'hydrated':
             holdText(m.text);
             updateHydrated(true);
+            coldStartRef.current?.mark('hydrated');
+            logColdStart();
             // The view hydrated from whatever `initialText` was when it
             // mounted; React state may have moved since. Reconcile to state
             // -- a queued programmatic write first (it carries a selection),
@@ -777,6 +793,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           source={{ html }}
           onMessage={handleMessage}
           onLoadStart={() => {
+            coldStartRef.current?.mark('loadStart');
             Logger.info('editor.webview.load_start', {});
           }}
           onLoadEnd={() => {
