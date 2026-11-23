@@ -423,7 +423,7 @@ jobs:
           MEMGUARD_FLOOR_MB: '1200'
           # the guard (only) posts the machine's state to a check run of the commit every 30 s; the token leaves the environment before any stage starts
           HEARTBEAT_TOKEN: ${{ github.token }}
-          HEARTBEAT_NAME: core-tests ${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}
+          HEARTBEAT_NAME: ${{ github.workflow }} core-tests ${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}
         # two tasks at a time per stage, two stages: four tasks on the 4 vCPUs
         run: |
           fresh=()

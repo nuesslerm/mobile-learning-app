@@ -8,19 +8,29 @@ floor="${1:?floor in MB}"
 log="${2:?log file}"
 stages="${3:-}"
 check=""
+fails=0
+lastfail=""
+errfile=$(mktemp)
 post() {
   [ -n "${GH_TOKEN:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ] && [ -n "${GITHUB_SHA:-}" ] && [ -n "${HEARTBEAT_NAME:-}" ] || return 0
   local state="$1" text="$2" conclusion=()
   [ "$state" != completed ] || conclusion=(-f conclusion=neutral)
   if [ -z "$check" ]; then
-    check=$(timeout 20 gh api -X POST "repos/$GITHUB_REPOSITORY/check-runs" -f "name=heartbeat $HEARTBEAT_NAME" -f "head_sha=$GITHUB_SHA" -f status=in_progress -f "output[title]=$HEARTBEAT_NAME" -f "output[summary]=$text" --jq .id 2> /dev/null) || check=""
+    check=$(timeout 20 gh api -X POST "repos/$GITHUB_REPOSITORY/check-runs" -f "name=heartbeat $HEARTBEAT_NAME" -f "head_sha=$GITHUB_SHA" -f status=in_progress -f "output[title]=$HEARTBEAT_NAME" -f "output[summary]=$text" --jq .id 2> "$errfile") || { check=""; failed; }
     return 0
   fi
-  timeout 20 gh api -X PATCH "repos/$GITHUB_REPOSITORY/check-runs/$check" -f "status=$state" "${conclusion[@]}" -f "output[title]=$HEARTBEAT_NAME" -f "output[summary]=$text" > /dev/null 2>&1 || true
+  timeout 20 gh api -X PATCH "repos/$GITHUB_REPOSITORY/check-runs/$check" -f "status=$state" "${conclusion[@]}" -f "output[title]=$HEARTBEAT_NAME" -f "output[summary]=$text" > /dev/null 2> "$errfile" || failed
+}
+# a post that did not go through is kept for the next one, which says how many failed and the last reason: a runner whose network was cut posts nothing, but the first post after it returns tells when
+failed() {
+  fails=$((fails + 1))
+  lastfail="$(date -u +%H:%M:%S) $(head -c 160 "$errfile" 2> /dev/null | tr '\n' ' ')"
 }
 state_text() {
   {
     echo "$(date -u +%H:%M:%S) MemAvailable $(awk '/^MemAvailable/ { print int($2 / 1024) }' /proc/meminfo) MB, load $(cut -d' ' -f1 /proc/loadavg), $(ps -e --no-headers | wc -l) processes"
+    echo "posts that failed: $fails$([ -z "$lastfail" ] || echo ", the last at $lastfail")"
+    echo "network: $(ip -br addr 2> /dev/null | grep -v '^lo ' | head -n 3 | tr '\n' ';') default $(ip route 2> /dev/null | head -n 1), dns $(grep -m1 '^nameserver' /etc/resolv.conf 2> /dev/null), api.github.com $(timeout 3 getent hosts api.github.com 2> /dev/null | head -n 1 | cut -d' ' -f1)"
     echo "disk free (MB): / $(df -m --output=avail / 2> /dev/null | tail -n 1 | tr -d ' ')$([ -d /mnt ] && echo ", /mnt $(df -m --output=avail /mnt 2> /dev/null | tail -n 1 | tr -d ' ')"), used by the checkout $(du -sm "${GITHUB_WORKSPACE:-.}" 2> /dev/null | cut -f1) MB"
     echo
     echo "busiest by cpu (pid ppid %cpu etime stat cmd):"
