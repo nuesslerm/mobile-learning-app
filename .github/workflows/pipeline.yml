@@ -393,9 +393,14 @@ jobs:
           SHARD: ${{ matrix.shard }}
           COUNT: ${{ needs.plan.outputs.shard_count }}
         run: |
-          if ! wf ci plan needs --stage core --shard "$SHARD" --count "$COUNT" --plan "$RUNNER_TEMP/plan.json" --github-output; then
-            echo "::warning title=tools of this shard::wf ci plan needs failed; every tool is installed"
-            for tool in playwright ffmpeg restic-sqlite bun java rust references opencode; do echo "$tool=true" >> "$GITHUB_OUTPUT"; done
+          # an empty output reads as false in install-test-deps, so a run that exits 0 without printing every key is as bad as a failed one
+          tools="playwright ffmpeg restic-sqlite bun java rust references opencode"
+          ok=true
+          wf ci plan needs --stage core --shard "$SHARD" --count "$COUNT" --plan "$RUNNER_TEMP/plan.json" --github-output || ok=false
+          for tool in $tools; do grep -q "^$tool=" "$GITHUB_OUTPUT" 2>/dev/null || ok=false; done
+          if [ "$ok" != true ]; then
+            echo "::warning title=tools of this shard::wf ci plan needs failed or printed no tools; every tool is installed"
+            for tool in $tools; do echo "$tool=true" >> "$GITHUB_OUTPUT"; done
           fi
       - uses: ./.github/actions/install-test-deps
         with:

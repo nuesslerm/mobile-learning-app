@@ -215,3 +215,43 @@ fn a_crate_or_package_whose_tests_spawn_a_tool_is_listed_with_it_so_a_new_chromi
     }
     assert!(missing.is_empty(), "{}", missing.join("\n"));
 }
+
+/// The step "Which tools this shard needs" of core-tests, run as the runner runs it with a stub `wf` that does `body`; its step outputs and stdout.
+fn tools_step(body: &str) -> (std::collections::BTreeMap<String, String>, String) {
+    use crate::workflow_steps::{read, step_script, Scratch};
+    let scratch = Scratch::new();
+    scratch.stub("wf", body);
+    let out = scratch.path("gh-output");
+    let script = step_script(&read(".github/workflows/pipeline.yml"), "Which tools this shard needs");
+    let run = scratch.run(&script, &[("SHARD", "1"), ("COUNT", "2"), ("GITHUB_OUTPUT", &out.display().to_string())], false, false);
+    assert!(run.status.success(), "the step never fails the job: {}", String::from_utf8_lossy(&run.stderr));
+    let outputs = std::fs::read_to_string(&out).unwrap_or_default().lines().filter_map(|l| l.split_once('=')).map(|(k, v)| (k.to_string(), v.to_string())).collect();
+    (outputs, String::from_utf8_lossy(&run.stdout).into_owned())
+}
+
+#[test]
+fn a_tools_step_whose_verb_exits_zero_without_printing_the_tools_installs_every_tool() {
+    // Given a wf that exits 0 and writes nothing to the step outputs (an empty output reads as false in install-test-deps)
+    // When the step runs
+    let (outputs, log) = tools_step("exit 0");
+    // Then every tool install-test-deps is given is true, with a warning, and the job is not red
+    let want: Vec<(&str, &str)> = ["playwright", "ffmpeg", "restic-sqlite", "bun", "java", "rust", "references", "opencode"].iter().map(|t| (*t, "true")).collect();
+    let mut got: Vec<(&str, &str)> = outputs.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+    let mut want_sorted = want.clone();
+    got.sort();
+    want_sorted.sort();
+    assert_eq!(got, want_sorted, "{log}");
+    assert!(log.contains("::warning"), "{log}");
+}
+
+#[test]
+fn a_tools_step_whose_verb_fails_installs_every_tool_and_one_that_answers_keeps_its_answer() {
+    // Given a wf that fails, and a wf that prints every key with playwright off
+    let (failed, _) = tools_step("exit 2");
+    let answer = "for t in playwright ffmpeg restic-sqlite bun java rust references opencode browser-harness; do echo \"$t=$([ $t = playwright ] && echo false || echo true)\" >> \"$GITHUB_OUTPUT\"; done";
+    let (answered, log) = tools_step(answer);
+    // Then the failure turns every tool on, and the answer is passed on as it is, without a warning
+    assert!(failed.len() == 8 && failed.values().all(|v| v == "true"), "{failed:?}");
+    assert_eq!((answered["playwright"].as_str(), answered["rust"].as_str()), ("false", "true"), "{answered:?}");
+    assert!(!log.contains("::warning"), "{log}");
+}
