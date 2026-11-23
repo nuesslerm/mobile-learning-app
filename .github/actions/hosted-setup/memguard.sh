@@ -23,16 +23,27 @@ state_text() {
     echo "$(date -u +%H:%M:%S) MemAvailable $(awk '/^MemAvailable/ { print int($2 / 1024) }' /proc/meminfo) MB, load $(cut -d' ' -f1 /proc/loadavg), $(ps -e --no-headers | wc -l) processes"
     echo
     echo "largest by memory (pid ppid rss_kb %cpu etime stat cmd):"
-    ps -eo pid,ppid,rss,pcpu,etimes,stat,args --sort=-rss | sed -n '2,9p' | cut -c1-200
+    ps -eo pid,ppid,rss,pcpu,etimes,stat,comm --sort=-rss | sed -n '2,9p'
     if [ -n "$stages" ]; then
       for f in "$stages"/*.log; do
         [ -f "$f" ] || continue
         echo
-        echo "$(basename "$f"), its last 4 lines:"
-        tail -n 4 "$f" | cut -c1-240
+        echo "$(basename "$f"), the last test lines of it:"
+        # only lines about tests and tasks, never a masked value (`::add-mask::` lines carry them) or a long token-like string: this text is public on a public repository
+        grep -E 'test .* \.\.\. |has been running for over|Running target|^wf: nx cost' "$f" 2> /dev/null | grep -v 'add-mask' | sed -E 's/[A-Za-z0-9+\/_=.-]{30,}/***/g' | tail -n 4 | cut -c1-200
       done
     fi
   } 2> /dev/null
+}
+# an earlier version of this text quoted stage log lines, among them masked values: blank every heartbeat of the last commits that still holds one
+redact_old() {
+  [ -n "${GH_TOKEN:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ] || return 0
+  local sha id
+  for sha in $(timeout 20 gh api "repos/$GITHUB_REPOSITORY/commits?sha=dev&per_page=8" --jq '.[].sha' 2> /dev/null); do
+    for id in $(timeout 30 gh api "repos/$GITHUB_REPOSITORY/commits/$sha/check-runs?per_page=100" --jq '.check_runs[] | select((.name | startswith("heartbeat")) and ((.output.summary // "") | test("add-mask|ords/health"))) | .id' 2> /dev/null); do
+      timeout 20 gh api -X PATCH "repos/$GITHUB_REPOSITORY/check-runs/$id" -f "output[title]=redacted" -f "output[summary]=redacted: an earlier version of this heartbeat quoted stage log lines" > /dev/null 2>&1 || true
+    done
+  done
 }
 finish() {
   post completed "ended with its job: $(state_text)"
@@ -50,6 +61,7 @@ roots=()
 beat=0
 cloud=0
 post in_progress "started: $(state_text)"
+redact_old &
 while nap 2; do
   avail=$(awk '/^MemAvailable/ { print int($2 / 1024) }' /proc/meminfo)
   beat=$((beat + 2))

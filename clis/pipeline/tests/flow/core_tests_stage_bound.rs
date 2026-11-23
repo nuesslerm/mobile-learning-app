@@ -176,7 +176,7 @@ fn a_guard_with_a_token_keeps_one_check_run_with_the_machines_state_and_complete
     let calls = s.path("gh.calls");
     s.stub("gh", &format!("echo \"$@\" >> {}\ncase \"$*\" in *POST*) echo 77;; esac", calls.display()));
     std::fs::create_dir_all(s.path("stages")).unwrap();
-    std::fs::write(s.path("stages/flow-tests.log"), "line one\nthe last line of the stage\n").unwrap();
+    std::fs::write(s.path("stages/flow-tests.log"), "line one\ncrate-x: test the_last_test_of_the_stage ... ok\n::add-mask::ThisIsAMaskedValueOfTwentyFourChars\ncrate-x: test with_a_secret_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA ... ok\n").unwrap();
     std::fs::write(s.path("guard.sh"), read(".github/actions/hosted-setup/memguard.sh")).unwrap();
     let path = format!("{}:{}", s.bin.display(), std::env::var("PATH").unwrap_or_default());
     let mut guard = std::process::Command::new("bash")
@@ -201,7 +201,11 @@ fn a_guard_with_a_token_keeps_one_check_run_with_the_machines_state_and_complete
     // Then one check run was created for the commit under the job's name, and its first text holds the machine's state and the stage log's tail
     assert_eq!(text.lines().filter(|l| l.contains("POST") && l.contains("repos/owner/repo/check-runs")).count(), 1, "{text}");
     assert!(text.contains("name=heartbeat core-tests 3/6") && text.contains("head_sha=abc123"), "{text}");
-    assert!(text.contains("MemAvailable") && text.contains("the last line of the stage"), "{text}");
+    assert!(text.contains("MemAvailable") && text.contains("the_last_test_of_the_stage"), "{text}");
+
+    // And nothing masked reaches it: no masked-value line, no long token-like string, no process arguments
+    assert!(!text.contains("add-mask") && !text.contains("ThisIsAMaskedValue"), "{text}");
+    assert!(!text.contains("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), "{text}");
 
     // And it was completed when the job ended, never left running
     assert!(text.lines().any(|l| l.contains("PATCH") && l.contains("check-runs/77") && l.contains("status=completed") && l.contains("conclusion=neutral")), "{text}");
