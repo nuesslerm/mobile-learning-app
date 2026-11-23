@@ -1,5 +1,5 @@
 import type { HeaderMenuSpec, MenuNode, ScreenHeaderSpec } from '@lib/tamagui-design-system';
-import { History, Info, LogIn, LogOut, MoreHorizontal, Wand2 } from '@lib/tamagui-design-system/icons';
+import { History, Info, LogIn, LogOut, MoreHorizontal, RotateCcw, Wand2 } from '@lib/tamagui-design-system/icons';
 
 export const EDITOR_HEADER_IDS = {
   header: 'ProblemEditorHeader',
@@ -8,6 +8,7 @@ export const EDITOR_HEADER_IDS = {
   format: 'ProblemEditorMenuFormat',
   history: 'ProblemEditorMenuHistory',
   login: 'ProblemEditorMenuLogin',
+  resetCode: 'ProblemEditorMenuResetCode',
 } as const;
 
 export type EditorHeaderInput = {
@@ -27,6 +28,8 @@ export type EditorHeaderInput = {
   onFormat: () => void;
   onHistory: () => void;
   onLogin: () => void;
+  /** Given only when the console replaces the Reset button of the classic rows. */
+  onResetCode?: () => void;
 };
 
 function moreMenu(input: EditorHeaderInput): HeaderMenuSpec {
@@ -45,12 +48,13 @@ function moreMenu(input: EditorHeaderInput): HeaderMenuSpec {
     onPress: input.onLogin,
     testID: EDITOR_HEADER_IDS.login,
   };
+  const resetCode: MenuNode[] = input.onResetCode ? [{ icon: RotateCcw, label: 'Reset code', onPress: input.onResetCode, testID: EDITOR_HEADER_IDS.resetCode }] : [];
   return {
     icon: MoreHorizontal,
     sfSymbol: 'ellipsis',
     accessibilityLabel: 'More actions',
     testID: EDITOR_HEADER_IDS.menu,
-    items: input.glass ? [history, login] : [format, history, login],
+    items: input.glass ? [history, ...resetCode, login] : [format, history, ...resetCode, login],
   };
 }
 

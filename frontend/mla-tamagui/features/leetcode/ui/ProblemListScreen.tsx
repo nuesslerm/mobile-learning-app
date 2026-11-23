@@ -12,6 +12,7 @@ import { ProblemCatalog } from '../domain/problemCatalog';
 import { useLeetCodeAuthStore } from '../state/authStore';
 import { AutocompleteSettingRow } from './AutocompleteSettingRow';
 import { BlockViewSettingRow } from './BlockViewSettingRow';
+import { ConsoleSettingRow } from './ConsoleSettingRow';
 import { CursorHandleSettingRow } from './editor/CursorHandleSettingRow';
 import { RunnerSettingRow } from './RunnerSettingRow';
 
@@ -230,6 +231,7 @@ export function ProblemListScreen(): React.ReactElement {
         <AuthRow />
         <RunnerSettingRow />
         <AutocompleteSettingRow />
+        <ConsoleSettingRow />
         <CursorHandleSettingRow />
         <BlockViewSettingRow />
         {categories.map((category) => (

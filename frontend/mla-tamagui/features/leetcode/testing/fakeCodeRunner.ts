@@ -67,3 +67,32 @@ export function createFakeCodeRunner(answer: (p: RunCodeParams) => RunResponse |
     },
   };
 }
+
+export type GatedCodeRunner = FakeCodeRunner & {
+  /** Runs asked for and not yet answered. */
+  readonly held: number;
+  /** Answers the oldest held run with a response, or makes it throw when given an error. */
+  release: (answer?: RunResponse | Error | ((p: RunCodeParams) => RunResponse)) => void;
+};
+
+/** A runner that holds every run until the test releases it, so a state that lasts only while a run is pending can be asserted. */
+export function createGatedCodeRunner(): GatedCodeRunner {
+  const calls: RunCodeParams[] = [];
+  const waiting: { params: RunCodeParams; settle: (answer: RunResponse | Error) => void }[] = [];
+  return {
+    calls,
+    get held() {
+      return waiting.length;
+    },
+    run: (params) =>
+      new Promise<RunResponse>((resolve, reject) => {
+        calls.push(params);
+        waiting.push({ params, settle: (answer) => (answer instanceof Error ? reject(answer) : resolve(answer)) });
+      }),
+    release: (answer = passingRun()) => {
+      const next = waiting.shift();
+      if (!next) return;
+      next.settle(typeof answer === 'function' ? answer(next.params) : answer);
+    },
+  };
+}

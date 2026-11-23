@@ -1,0 +1,57 @@
+{
+  "suite": "consolerun",
+  "step": "final-given-two-custom-chips-and-case-3-selected-when-361e07",
+  "scheme": "light",
+  "snapshot": "consolerun/final-given-two-custom-chips-and-case-3-selected-when-361e07.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleSheetHandle",
+      "ConsoleSheet",
+      "ConsoleTabs",
+      "SegmentedThumb",
+      "ConsoleTabs-testcase",
+      "ConsoleTabs-result",
+      "ConsoleBody",
+      "ConsolePanel-result",
+      "ConsoleResultVerdict",
+      "ConsoleResultCounts",
+      "ConsoleResultRuntime",
+      "ConsoleFooter",
+      "ConsoleFooterReset",
+      "ConsoleFooterRun",
+      "ConsoleFooterSubmit"
+    ],
+    "text": "Python\nTestcase\nRun Result\nAccepted\n15 / 15 testcases passed\nRuntime 15 ms\nReset\nSubmit"
+  },
+  "timings": {
+    "render_ms": 226
+  },
+  "name": "consolerun/final-given-two-custom-chips-and-case-3-selected-when-361e07.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

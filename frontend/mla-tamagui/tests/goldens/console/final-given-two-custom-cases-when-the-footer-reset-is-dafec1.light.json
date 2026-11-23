@@ -1,0 +1,78 @@
+{
+  "suite": "console",
+  "step": "final-given-two-custom-cases-when-the-footer-reset-is-dafec1",
+  "scheme": "light",
+  "snapshot": "console/final-given-two-custom-cases-when-the-footer-reset-is-dafec1.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleSheetHandle",
+      "ConsoleSheet",
+      "ConsoleTabs",
+      "SegmentedThumb",
+      "ConsoleTabs-testcase",
+      "ConsoleTabs-result",
+      "ConsoleBody",
+      "ConsolePanel-testcase",
+      "ConsoleChips",
+      "ConsoleChipScroll",
+      "ConsoleChip-1",
+      "ConsoleChip-2",
+      "ConsoleChip-3",
+      "ConsoleChip-4",
+      "ConsoleChip-5",
+      "ConsoleChip-6",
+      "ConsoleChip-7",
+      "ConsoleChip-8",
+      "ConsoleChip-9",
+      "ConsoleChip-10",
+      "ConsoleChip-11",
+      "ConsoleChip-12",
+      "ConsoleChip-13",
+      "ConsoleChip-14",
+      "ConsoleChip-15",
+      "ConsoleChipAdd",
+      "ConsoleChipEdit",
+      "ConsoleFields",
+      "ConsoleField-s-Card",
+      "ConsoleField-s-Caption",
+      "ConsoleField-s-Toggle",
+      "ConsoleField-s",
+      "ConsoleFooter",
+      "ConsoleFooterReset",
+      "ConsoleFooterRun",
+      "ConsoleFooterSubmit"
+    ],
+    "text": "Python\nTestcase\nRun Result\nCase 1\nCase 2\nCase 3\nCase 4\nCase 5\nCase 6\nCase 7\nCase 8\nCase 9\nCase 10\nCase 11\nCase 12\nCase 13\nCase 14\nCase 15\ns\n\"()\"\nReset\nSubmit"
+  },
+  "timings": {
+    "render_ms": 213
+  },
+  "name": "console/final-given-two-custom-cases-when-the-footer-reset-is-dafec1.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

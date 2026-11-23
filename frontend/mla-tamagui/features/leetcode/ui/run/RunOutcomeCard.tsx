@@ -4,17 +4,12 @@ import type { ReactNode } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 
 import { customOutcomeOf } from '../../domain/run/customOutcome';
-import type { ErrorLocation, RunResponse } from '../../domain/run/execution';
+import type { RunResponse } from '../../domain/run/execution';
+import { errorLocationOf, type RunCard } from '../../domain/run/runCard';
 import { CustomCaseResult } from './CustomCaseResult';
 import { RunCaseList } from './RunCaseList';
 
-/** What the card on screen shows: a run of the bundled cases, or of one case the learner typed (with the inputs it ran on). */
-export type RunCard = { mode: 'tests'; response: RunResponse } | { mode: 'custom'; response: RunResponse; inputs: Record<string, unknown> };
-
-/** The line the run reported, when it did: the response's for the bundled cases, the typed case's own row for a custom card. */
-export function errorLocationOf(card: RunCard): ErrorLocation | undefined {
-  return card.mode === 'custom' ? customOutcomeOf(card.response, card.inputs).errorAt : card.response.error_at;
-}
+export { errorLocationOf, type RunCard };
 
 type OnLayout = (event: LayoutChangeEvent) => void;
 type ShowLine = { line: number; onPress: () => void };

@@ -39,11 +39,16 @@ export function ProblemWorkspace({ id, seed, lang }: { id?: string; seed?: strin
 function TabbedWorkspace({ id, seed, lang }: { id?: string; seed?: string; lang?: 'javascript' }) {
   const [tab, setTab] = React.useState<WorkspaceTab>('code');
   const [api, setApi] = React.useState<PlanEditor | null>(null);
+  const consoleOpenRef = React.useRef(false);
+  const handleConsoleOpenChange = React.useCallback((open: boolean) => {
+    consoleOpenRef.current = open;
+  }, []);
 
   const panResponder = React.useMemo(
     () =>
       PanResponder.create({
         onMoveShouldSetPanResponder: (_event, gesture) =>
+          !consoleOpenRef.current &&
           Math.abs(gesture.dx) > SWIPE_ACTIVATE_DX &&
           Math.abs(gesture.dx) > Math.abs(gesture.dy),
         onPanResponderRelease: (_event, gesture) => {
@@ -83,7 +88,7 @@ function TabbedWorkspace({ id, seed, lang }: { id?: string; seed?: string; lang?
           forceMount
           display={tab === 'code' ? 'flex' : 'none'}
         >
-          <ProblemEditorScreen id={id} seed={seed} lang={lang} onWorkspaceApi={setApi} />
+          <ProblemEditorScreen id={id} seed={seed} lang={lang} onWorkspaceApi={setApi} active={tab === 'code'} onConsoleOpenChange={handleConsoleOpenChange} />
         </TabsContent>
         <TabsContent
           value="plan"

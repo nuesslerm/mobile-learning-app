@@ -17,6 +17,8 @@ type Props = {
   onConfigure: () => void;
   onDismissKeyboard: () => void;
   voiceButton?: React.ReactNode;
+  /** A row of its own above the symbol toolbar (the console's action bar). */
+  topRow?: React.ReactNode;
 };
 
 export function EditorHelperRails({
@@ -27,12 +29,14 @@ export function EditorHelperRails({
   onConfigure,
   onDismissKeyboard,
   voiceButton,
+  topRow,
 }: Props) {
   const shown = useSymbolBarStore((s) => s.shown);
   const railStyle = useSymbolBarStore((s) => s.railStyle);
 
   return (
     <>
+      {topRow}
       {!shown ? null : railStyle === 'symbols' ? (
         <SymbolBarRail
           editorRef={editorRef}
