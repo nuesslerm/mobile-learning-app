@@ -10,13 +10,10 @@
   "screen": {
     "width": 378,
     "height": 1704,
-    "page_height": 2170
+    "page_height": 2111
   },
   "summary": {
     "testids": [
-      "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
-      "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
@@ -31,8 +28,6 @@
       "ProblemEditorRunLocalButton",
       "ProblemEditorRunButton",
       "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
       "ProblemEditorRunOutcome",
       "ProblemEditorRunOutcomeStatus",
       "ProblemEditorRunOutcomeTotals",
@@ -73,12 +68,17 @@
       "ProblemEditorRunCase-2-Expected",
       "ProblemEditorRunCase-2-Actual-Toggle",
       "ProblemEditorRunCase-2-Actual",
-      "ProblemEditorRunCase-4"
+      "ProblemEditorRunCase-4",
+      "ProblemEditorRunCase-4-Verdict",
+      "ProblemEditorRunCase-4-Time",
+      "ProblemEditorRunCase-4-Input-Toggle",
+      "ProblemEditorRunCase-4-Input",
+      "ProblemEditorRunCase-4-Expected-Toggle"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nWrong Answer\n11 / 12 test cases passed\nCase 4 · failed\n1 ms\nInput\nnums = [-1,-2,-3,-4,-5], target = -8\nExpected\n[2,4]\nActual\nnull\nCase 1 · passed\n1 ms\nInput\nnums = [2,7,11,15], target = 9\nExpected\n[0,1]\nActual\n[0,1]\nCase 2 · passed\n1 ms\nInput\nnums = [3,2,4], target = 6\nExpected\n[1,2]\nActual\n[1,2]\nCase 3 · passed\n1 ms\nInput\nnums = [3,3], target = 6\nExpect"
+    "text": "Python\nFormat\nRun Local\nRun\nReset\nWrong Answer\n11 / 12 test cases passed\nCase 4 · failed\n1 ms\nInput\nnums = [-1,-2,-3,-4,-5], target = -8\nExpected\n[2,4]\nActual\nnull\nCase 1 · passed\n1 ms\nInput\nnums = [2,7,11,15], target = 9\nExpected\n[0,1]\nActual\n[0,1]\nCase 2 · passed\n1 ms\nInput\nnums = [3,2,4], target = 6\nExpected\n[1,2]\nActual\n[1,2]\nCase 3 · passed\n1 ms\nInput\nnums = [3,3], target = 6\nExpected\n[0,1]\nA"
   },
   "timings": {
-    "render_ms": 364
+    "render_ms": 282
   },
   "name": "runerrorline/final-given-a-result-with-no-line-when-the-user-runs-173b92.light",
   "image": {

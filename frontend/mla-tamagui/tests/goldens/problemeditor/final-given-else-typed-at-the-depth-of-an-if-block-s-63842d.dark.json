@@ -14,9 +14,6 @@
   },
   "summary": {
     "testids": [
-      "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
-      "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
@@ -31,18 +28,10 @@
       "ProblemEditorRunLocalButton",
       "ProblemEditorRunButton",
       "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
       "ProblemEditorTestInputZone",
       "ProblemEditorTestInputHint",
       "ProblemEditorRunInputButton",
       "ProblemEditorTestInput",
-      "ProblemPlanTab",
-      "ProblemPlanSteps",
-      "ProblemPlanComposer",
-      "ProblemPlanMicButton",
-      "ProblemPlanTextInput",
-      "ProblemPlanAddButton",
       "EditorHelperRails",
       "EditorSyntaxToolbar",
       "EditorSyntax-Tab",
@@ -68,10 +57,10 @@
       "EditorAction-Paste",
       "EditorAction-Done"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nDone"
+    "text": "Python\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nConfigure\nUndo\nRedo\nCopy\nPaste\nDone"
   },
   "timings": {
-    "render_ms": 392
+    "render_ms": 211
   },
   "name": "problemeditor/final-given-else-typed-at-the-depth-of-an-if-block-s-63842d.dark",
   "image": {

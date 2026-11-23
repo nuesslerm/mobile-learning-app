@@ -3,6 +3,9 @@
  * (docs/archive/README.md) against the served web export,
  * into .report/leetcode/<shot>.png.
  *
+ * The mic, review and picker frames need the aiEdit flag on in that export:
+ * EXPO_PUBLIC_LEETCODE_AI_EDIT=1, off by default (features/leetcode/domain/featureFlags.ts).
+ *
  * Each shot waits for that state's testID before capturing so no shot catches a
  * blank frame. The voice states are driven through the real controls (mic -> stop -> review -> send
  * -> alternative picker -> Run Local), made deterministic by the fixture ports;

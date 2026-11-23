@@ -8,15 +8,12 @@
     "height": 852
   },
   "screen": {
-    "width": 378,
-    "height": 867,
-    "page_height": 867
+    "width": 393,
+    "height": 852,
+    "page_height": 852
   },
   "summary": {
     "testids": [
-      "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
-      "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
@@ -24,12 +21,23 @@
       "ProblemEditorInput",
       "CodeEditorInput",
       "ProblemEditorBlockView",
+      "BlockPalette",
+      "BlockPaletteItem-if",
+      "BlockPaletteItem-for",
+      "BlockPaletteItem-while",
+      "BlockPaletteItem-def",
+      "BlockPaletteItem-return",
       "BlockViewRows",
       "BlockRow-0",
+      "BlockHandle-0",
       "BlockRow-1",
+      "BlockHandle-1",
       "BlockRow-2",
+      "BlockHandle-2",
       "BlockRow-3",
+      "BlockHandle-3",
       "BlockRow-4",
+      "BlockHandle-4",
       "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
@@ -38,28 +46,20 @@
       "ProblemEditorRunLocalButton",
       "ProblemEditorRunButton",
       "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
       "ProblemEditorTestInputZone",
       "ProblemEditorTestInputHint",
       "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
-      "ProblemPlanTab",
-      "ProblemPlanSteps",
-      "ProblemPlanComposer",
-      "ProblemPlanMicButton",
-      "ProblemPlanTextInput",
-      "ProblemPlanAddButton"
+      "ProblemEditorTestInput"
     ],
-    "text": "Plan\nCode\ndef f(x):\nif x:\na = 1\nb = 2\nreturn b\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
+    "text": "if\nfor\nwhile\ndef\nreturn\ndef f(x):\nif x:\na = 1\nb = 2\nreturn b\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
   },
   "timings": {
-    "render_ms": 302
+    "render_ms": 224
   },
   "name": "blockview/block-view-rows.dark",
   "image": {
     "width": 360,
-    "height": 826
+    "height": 780
   },
   "tolerance": {
     "threshold": 0.1,

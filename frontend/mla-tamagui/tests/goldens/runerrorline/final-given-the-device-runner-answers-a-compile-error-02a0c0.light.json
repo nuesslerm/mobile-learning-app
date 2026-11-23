@@ -14,9 +14,6 @@
   },
   "summary": {
     "testids": [
-      "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
-      "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
@@ -31,8 +28,6 @@
       "ProblemEditorRunLocalButton",
       "ProblemEditorRunButton",
       "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
       "ProblemEditorRunOutcome",
       "ProblemEditorRunOutcomeStatus",
       "ProblemEditorRunOutcomeLine",
@@ -41,18 +36,12 @@
       "ProblemEditorTestInputZone",
       "ProblemEditorTestInputHint",
       "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
-      "ProblemPlanTab",
-      "ProblemPlanSteps",
-      "ProblemPlanComposer",
-      "ProblemPlanMicButton",
-      "ProblemPlanTextInput",
-      "ProblemPlanAddButton"
+      "ProblemEditorTestInput"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nError\nLine 2\n0 / 12 test cases passed\nCompileError: expected ':'\nOne JSON value per line: nums, target\nRun input"
+    "text": "Python\nFormat\nRun Local\nRun\nReset\nError\nLine 2\n0 / 12 test cases passed\nCompileError: expected ':'\nOne JSON value per line: nums, target\nRun input"
   },
   "timings": {
-    "render_ms": 258
+    "render_ms": 233
   },
   "name": "runerrorline/final-given-the-device-runner-answers-a-compile-error-02a0c0.light",
   "image": {

@@ -9,8 +9,8 @@
   },
   "screen": {
     "width": 378,
-    "height": 1143,
-    "page_height": 1143
+    "height": 1120,
+    "page_height": 1120
   },
   "summary": {
     "testids": [
@@ -75,12 +75,12 @@
     "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nஉயிர் எழுத்து I\nVowels: அ to ஊ\nLetter 1 of 6\nஅ\na\nஅகரம்\nshort \"a\", as in about\nUpper hook first, then the long vertical with its foot curling right.\nஅம்மா · ammā · mother\nStroke 1 of 2\nFrom the top centre, across to the right, curving clockwise.\nWrite it large, with instructions\nPractise again\nGot it\n"
   },
   "timings": {
-    "render_ms": 606
+    "render_ms": 273
   },
   "name": "colddeeplinks/final-given-a-cold-load-of-tamil-lessonid-at-tamil-1baf7b.light",
   "image": {
     "width": 360,
-    "height": 1089
+    "height": 1067
   },
   "tolerance": {
     "threshold": 0.1,

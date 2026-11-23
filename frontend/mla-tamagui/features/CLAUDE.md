@@ -29,3 +29,7 @@ There are no `-mocks`/`-impl` sibling packages.
 Feature flow tests mount whole routes via `createFlowApp` with `useDependencyOverrides` overrides; how it works and how a feature opts in: `docs/solutions/testing/flow-tests-mount-whole-routes.md`.
 
 Never `vi.mock` in a flow test (oxlint rejects it). Interact through the `FlowSession` (`tap`, `type`, `layout`, `stroke`, `editor()`). A new fake for a port ships from the port owner's `testing` entry, never from the harness; only a native package is a harness stub (`frontend/libraries/flow-test-harness/README.md`, "Adding a double or a stub"). Where doubles live: `docs/solutions/architecture/hexagonal-architecture-by-package-type.md`.
+
+## Feature flags
+
+A feature flag is a boolean in the feature's `domain/featureFlags.ts`, default off, with a two-line why-comment above the defaults. The feature's `di/` resolves it once (one literal `process.env.EXPO_PUBLIC_<FEATURE>_<NAME>` read, then the override) onto its ports object; `ui/` reads it only through `use<Feature>Flag(name)` in `state/`. A flow test turns it on with `overrides: { <feature>: { flags: { name: true } } }`. No remote service and no `vi.mock`; `@lib/app-config` `feature_flags` is the dev-runtime-config switch and is not this. Example: `aiEdit` in `features/leetcode`.

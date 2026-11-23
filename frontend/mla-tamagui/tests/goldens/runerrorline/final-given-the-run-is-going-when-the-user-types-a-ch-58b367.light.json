@@ -9,14 +9,11 @@
   },
   "screen": {
     "width": 378,
-    "height": 1104,
-    "page_height": 1104
+    "height": 1045,
+    "page_height": 1045
   },
   "summary": {
     "testids": [
-      "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
-      "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
@@ -31,8 +28,6 @@
       "ProblemEditorRunLocalButton",
       "ProblemEditorRunButton",
       "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
       "ProblemEditorRunOutcome",
       "ProblemEditorRunOutcomeStatus",
       "ProblemEditorRunOutcomeLine",
@@ -72,18 +67,23 @@
       "ProblemEditorTestInputHint",
       "ProblemEditorRunInputButton",
       "ProblemEditorTestInput",
-      "ProblemPlanTab",
-      "ProblemPlanSteps"
+      "EditorHelperRails",
+      "EditorSyntaxToolbar",
+      "EditorSyntax-Tab",
+      "EditorSyntax-Dedent",
+      "EditorSyntax-Paren",
+      "EditorSyntax-Bracket",
+      "EditorSyntax-Brace"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nWrong Answer\nLine 4\n2 / 3 test cases passed\nKeyError: 9\nCase 3 · failed\n1 ms\nInput\ncase = 2\nExpected\n2\nActual\n-1\nOutput\nsaw -1\nCase 1 · passed\n1 ms\nInput\ncase = 0\nExpected\n0\nActual\n0\nCase 2 · passed\n1 ms\nInput\ncase = 1\nExpected\n1\nActual\n1\nOne JSON value per line: nums, target\nRun input\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\n"
+    "text": "Python\nFormat\nRun Local\nRun\nReset\nWrong Answer\nLine 4\n2 / 3 test cases passed\nKeyError: 9\nCase 3 · failed\n1 ms\nInput\ncase = 2\nExpected\n2\nActual\n-1\nOutput\nsaw -1\nCase 1 · passed\n1 ms\nInput\ncase = 0\nExpected\n0\nActual\n0\nCase 2 · passed\n1 ms\nInput\ncase = 1\nExpected\n1\nActual\n1\nOne JSON value per line: nums, target\nRun input\nIndent\nDedent\nParentheses\nBrackets\nBraces\n\"\n'\n:\n=\n_\n.\nToggle comment\nNew line ("
   },
   "timings": {
-    "render_ms": 350
+    "render_ms": 250
   },
   "name": "runerrorline/final-given-the-run-is-going-when-the-user-types-a-ch-58b367.light",
   "image": {
     "width": 360,
-    "height": 1051
+    "height": 995
   },
   "tolerance": {
     "threshold": 0.1,

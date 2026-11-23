@@ -48,7 +48,7 @@ function fakeGateway(): LeetCodeGatewayPort {
 }
 
 async function renderVoiceEditor(ports: LeetCodePortOverrides) {
-  return app.render('/leetcode/two-sum', { overrides: { leetcode: ports } });
+  return app.render('/leetcode/two-sum', { overrides: { leetcode: { ...ports, flags: { aiEdit: true } } } });
 }
 
 const STALE_BANNER = 'The code changed while the edit was being planned. Say it again.';

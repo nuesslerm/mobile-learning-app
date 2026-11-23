@@ -14,9 +14,6 @@
   },
   "summary": {
     "testids": [
-      "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
-      "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
@@ -31,8 +28,6 @@
       "ProblemEditorRunLocalButton",
       "ProblemEditorRunButton",
       "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
       "ProblemEditorRunOutcome",
       "ProblemEditorRunOutcomeStatus",
       "ProblemEditorRunOutcomeLine",
@@ -48,18 +43,12 @@
       "ProblemEditorTestInputZone",
       "ProblemEditorTestInputHint",
       "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
-      "ProblemPlanTab",
-      "ProblemPlanSteps",
-      "ProblemPlanComposer",
-      "ProblemPlanMicButton",
-      "ProblemPlanTextInput",
-      "ProblemPlanAddButton"
+      "ProblemEditorTestInput"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nError\nLine 4\nInput\nnums = [2,7,11,15], target = 9\nResult\n—\nError\nKeyError: 9\nTime\n1 ms\nOne JSON value per line: nums, target\nRun input"
+    "text": "Python\nFormat\nRun Local\nRun\nReset\nError\nLine 4\nInput\nnums = [2,7,11,15], target = 9\nResult\n—\nError\nKeyError: 9\nTime\n1 ms\nOne JSON value per line: nums, target\nRun input"
   },
   "timings": {
-    "render_ms": 238
+    "render_ms": 223
   },
   "name": "runerrorline/final-given-the-page-raises-at-line-4-for-a-typed-case-21fe00.dark",
   "image": {

@@ -8,15 +8,12 @@
     "height": 852
   },
   "screen": {
-    "width": 378,
-    "height": 867,
-    "page_height": 867
+    "width": 393,
+    "height": 852,
+    "page_height": 852
   },
   "summary": {
     "testids": [
-      "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
-      "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
@@ -24,6 +21,12 @@
       "ProblemEditorInput",
       "CodeEditorInput",
       "ProblemEditorBlockView",
+      "BlockPalette",
+      "BlockPaletteItem-if",
+      "BlockPaletteItem-for",
+      "BlockPaletteItem-while",
+      "BlockPaletteItem-def",
+      "BlockPaletteItem-return",
       "BlockViewRows",
       "BlockRow-0",
       "BlockHandle-0",
@@ -46,28 +49,20 @@
       "ProblemEditorRunLocalButton",
       "ProblemEditorRunButton",
       "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
       "ProblemEditorTestInputZone",
       "ProblemEditorTestInputHint",
       "ProblemEditorRunInputButton",
-      "ProblemEditorTestInput",
-      "ProblemPlanTab",
-      "ProblemPlanSteps",
-      "ProblemPlanComposer",
-      "ProblemPlanMicButton",
-      "ProblemPlanTextInput",
-      "ProblemPlanAddButton"
+      "ProblemEditorTestInput"
     ],
-    "text": "Plan\nCode\ndef f(x):\nif x:\na = 1\nb = 2\nreturn b\nb = 2\nMove after if x:\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
+    "text": "if\nfor\nwhile\ndef\nreturn\ndef f(x):\nif x:\na = 1\nb = 2\nreturn b\nb = 2\nMove after if x:\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input"
   },
   "timings": {
-    "render_ms": 287
+    "render_ms": 239
   },
   "name": "blockdrag/block-view-drag.light",
   "image": {
     "width": 360,
-    "height": 826
+    "height": 780
   },
   "tolerance": {
     "threshold": 0.1,

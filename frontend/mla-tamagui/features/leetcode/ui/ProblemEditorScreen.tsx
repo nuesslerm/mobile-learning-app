@@ -13,8 +13,8 @@
 // automatically reserves space under the last child equal to the
 // keyboard height + the toolbar rail height (whenever the keyboard is
 // up, the portal is mounted, so the inset includes the toolbar). The
-// keyboard toolbar is the V1-style `EditorHelperRails` (toolbar keys +
-// VoiceCommandButton) hosted by `KeyboardToolbarTarget`. Results panel
+// keyboard toolbar is the V1-style `EditorHelperRails` (toolbar keys)
+// hosted by `KeyboardToolbarTarget`. Results panel
 // and rename dialog are intentionally omitted (deferred to V1).
 import type { RunCodeParams, RunResponse } from '../domain';
 import { Logger } from '@lib/logging';
@@ -48,6 +48,7 @@ import { Pressable, TextInput, type LayoutChangeEvent, type ScrollViewInstance }
 import { XStack, YStack, useTheme } from '@lib/tamagui-design-system/primitives';
 
 import { useLeetCodePorts } from '../state/ports';
+import { useLeetCodeFlag } from '../state/useLeetCodeFlag';
 import {
   EditorInput,
   type EditorInputHandle,
@@ -183,6 +184,7 @@ export function ProblemEditorScreen({
   // buttons: `Run Local` and `Format` execute on the backend with no
   // leetcode.com/session, while `Run` needs an auth'd session.
   const { gateway, runner } = useLeetCodePorts();
+  const aiEdit = useLeetCodeFlag('aiEdit');
   const scrollRef = React.useRef<ScrollViewInstance>(null);
   // Which outcome has already been scrolled to, so a re-layout (keyboard
   // raise, rotation) does not yank the page back.
@@ -925,35 +927,40 @@ export function ProblemEditorScreen({
               >
                 Reset
               </Button>
-              <YStack flex={1} />
-              <IconButton
-                testID="ProblemEditorTextEditStartButton"
-                icon={Pencil}
-                variant="default"
-                aria-label="Type an edit instruction"
-                pressLog="off"
-                onPress={() => {
-                  Logger.info('editor_v2.text_edit_button.tap', {
-                    problemId: problem?.id,
-                  });
-                  dismissEditorKeyboard();
-                  handleTextEditStart();
-                }}
-              />
-              <IconButton
-                testID="ProblemEditorVoiceStartButton"
-                icon={Mic}
-                variant="default"
-                aria-label="Start voice edit"
-                pressLog="off"
-                onPress={() => {
-                  Logger.info('editor_v2.voice_start_button.tap', {
-                    problemId: problem?.id,
-                  });
-                  dismissEditorKeyboard();
-                  void handleVoiceStart();
-                }}
-              />
+              {/* Off by default, the code stays wired: see domain/featureFlags.ts. */}
+              {aiEdit ? (
+                <>
+                  <YStack flex={1} />
+                  <IconButton
+                    testID="ProblemEditorTextEditStartButton"
+                    icon={Pencil}
+                    variant="default"
+                    aria-label="Type an edit instruction"
+                    pressLog="off"
+                    onPress={() => {
+                      Logger.info('editor_v2.text_edit_button.tap', {
+                        problemId: problem?.id,
+                      });
+                      dismissEditorKeyboard();
+                      handleTextEditStart();
+                    }}
+                  />
+                  <IconButton
+                    testID="ProblemEditorVoiceStartButton"
+                    icon={Mic}
+                    variant="default"
+                    aria-label="Start voice edit"
+                    pressLog="off"
+                    onPress={() => {
+                      Logger.info('editor_v2.voice_start_button.tap', {
+                        problemId: problem?.id,
+                      });
+                      dismissEditorKeyboard();
+                      void handleVoiceStart();
+                    }}
+                  />
+                </>
+              ) : null}
             </XStack>
 
             {/* Run Local result — server-executed pass/fail summary. */}

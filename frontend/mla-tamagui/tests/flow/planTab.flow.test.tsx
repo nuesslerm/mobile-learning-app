@@ -82,6 +82,7 @@ async function renderPlan() {
       sendEditStats: (row: unknown) => sendEditStats(row),
     } as unknown as VoiceEditTransportPort,
     audio: createFakeAudioRecorder(),
+    flags: { aiEdit: true },
   };
   const session = await app.render(`/leetcode/${PROBLEM}`, { overrides: { leetcode: ports } });
   await userEvent.click(screen.getByTestId('ProblemWorkspaceTab-plan'));

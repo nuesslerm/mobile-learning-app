@@ -6,6 +6,7 @@ import {
   createFakeAudioRecorder,
   createFakeVoiceEditTransport,
   expectWarning,
+  fireEvent,
   logAt,
   routerHarness,
   screen,
@@ -548,8 +549,11 @@ describe('ProblemEditorScreen flow (keyboard)', () => {
     await editor.focus();
     await forgetLoggedLines();
 
-    // When a tap lands on the editor's own area (a phone reports it to the page as well as to the WebView)
-    await session.tap('ProblemEditorEditorZone');
+    // When a tap lands on the editor's own area (a phone reports it to the page as well as to the WebView). A click event, not a pointer press: a press on a
+    // box that cannot take focus blurs the focused frame in jsdom, which a phone's tap on the WebView does not.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('ProblemEditorEditorZone'));
+    });
 
     // Then the page does not take it for a tap away: nothing is dismissed and the editor still holds the caret
     expect(await loggedLines('editor_v2.keyboard_dismiss')).toHaveLength(0);

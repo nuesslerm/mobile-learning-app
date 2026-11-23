@@ -4,6 +4,7 @@
 // dependency-free.
 
 import type { EditorClient } from '@lib/code-editor-api';
+import type { LeetCodeFlags } from './featureFlags';
 import type { RunResponse, TestCase } from './run/execution';
 import type { Harness, NodeType } from './models';
 import type {
@@ -195,10 +196,14 @@ export interface LeetCodePorts {
   runner: CodeRunnerPort;
   /** The on-device runner the setting can choose; a flow may supply its own. */
   deviceRunner: CodeRunnerPort;
+  /** Config the container resolves once; it rides the ports object so a flow test can turn a flag on without a module mock. */
+  flags: LeetCodeFlags;
 }
 
-/** What a caller may supply; the container fills the rest (the runner defaults to the gateway's). */
-export type LeetCodePortOverrides = Partial<LeetCodePorts>;
+/** What a caller may supply; the container fills the rest (the runner defaults to the gateway's). A test names only the flag it turns on. */
+export type LeetCodePortOverrides = Partial<Omit<LeetCodePorts, 'flags'>> & {
+  flags?: Partial<LeetCodeFlags>;
+};
 
 export class VoiceEditTransportError extends Error {
   constructor(

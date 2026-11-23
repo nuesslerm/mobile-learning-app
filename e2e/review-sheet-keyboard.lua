@@ -2,9 +2,9 @@
 platform: android, browser
 against: android=update, browser=export
 timeout: 120
-focus: true
 features: leetcode
 ---]]
+-- Paused: voice and AI edit entry points are flagged off (domain/featureFlags.ts). Add focus: true and bake EXPO_PUBLIC_LEETCODE_AI_EDIT=1 into the export or update to run it again.
 -- The voice-edit review sheet keeps its Send button above the keyboard. Typing an edit raises the keyboard over a sheet that sits at the bottom
 -- of the screen: a Send that ends up behind the keyboard cannot be tapped (the voice-edit run on the CI emulator lost a chunk to exactly that:
 -- the transcript took focus and the keyboard covered the sheet's lower half). No backend is needed: the text mode of the sheet is typed, not

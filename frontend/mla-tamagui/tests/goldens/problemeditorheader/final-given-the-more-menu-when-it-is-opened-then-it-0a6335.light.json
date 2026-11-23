@@ -14,9 +14,6 @@
   },
   "summary": {
     "testids": [
-      "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
-      "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
       "ProblemEditorHeader",
       "ProblemEditorHeaderBack",
@@ -38,27 +35,19 @@
       "ProblemEditorRunLocalButton",
       "ProblemEditorRunButton",
       "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
       "ProblemEditorTestInputZone",
       "ProblemEditorTestInputHint",
       "ProblemEditorRunInputButton",
       "ProblemEditorTestInput",
-      "ProblemPlanTab",
-      "ProblemPlanSteps",
-      "ProblemPlanComposer",
-      "ProblemPlanMicButton",
-      "ProblemPlanTextInput",
-      "ProblemPlanAddButton",
       "ProblemEditorMenuButtonContent",
       "ProblemEditorMenuFormat",
       "ProblemEditorMenuHistory",
       "ProblemEditorMenuLogin"
     ],
-    "text": "Plan\nCode\nTwo Sum\nArray & Hashing · Easy\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nFormat\nVersion history\nNo versions yet\nLogin\nLeetCode"
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nFormat\nRun Local\nRun\nReset\nOne JSON value per line: nums, target\nRun input\nFormat\nVersion history\nNo versions yet\nLogin\nLeetCode"
   },
   "timings": {
-    "render_ms": 257
+    "render_ms": 226
   },
   "name": "problemeditorheader/final-given-the-more-menu-when-it-is-opened-then-it-0a6335.light",
   "image": {

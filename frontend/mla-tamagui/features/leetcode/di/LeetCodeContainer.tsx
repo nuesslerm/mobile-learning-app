@@ -3,6 +3,7 @@ import { appConfig } from '@lib/app-config';
 import { useMemo, type ReactNode } from 'react';
 
 import type { AudioRecordingPort, LeetCodePortOverrides, LeetCodePorts } from '../domain/ports';
+import { resolveLeetCodeFlags } from '../domain/featureFlags';
 import { createWebViewEditorBridge } from '../data/editor/cm6/webViewEditorBridge';
 import { ExpoAudioRecorderProvider, useExpoAudioRecordingPort } from '../data/ExpoAudioRecorderAdapter';
 import { createGatewayCodeRunner } from '../data/gatewayCodeRunner';
@@ -31,6 +32,10 @@ export function createDefaultContainer(
     gateway,
     voice: overrides.voice ?? createLiveVoiceEditTransport(),
     audio: overrides.audio,
+    flags: resolveLeetCodeFlags(
+      { aiEdit: process.env.EXPO_PUBLIC_LEETCODE_AI_EDIT },
+      overrides.flags
+    ),
     deviceRunner,
     runner:
       overrides.runner ??

@@ -10,13 +10,10 @@
   "screen": {
     "width": 378,
     "height": 1704,
-    "page_height": 2218
+    "page_height": 2159
   },
   "summary": {
     "testids": [
-      "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
-      "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
@@ -31,8 +28,6 @@
       "ProblemEditorRunLocalButton",
       "ProblemEditorRunButton",
       "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
       "ProblemEditorRunOutcome",
       "ProblemEditorRunOutcomeStatus",
       "ProblemEditorRunOutcomeTotals",
@@ -73,12 +68,17 @@
       "ProblemEditorRunCase-3-Input-Toggle",
       "ProblemEditorRunCase-3-Input",
       "ProblemEditorRunCase-3-Expected-Toggle",
-      "ProblemEditorRunCase-3-Expected"
+      "ProblemEditorRunCase-3-Expected",
+      "ProblemEditorRunCase-3-Actual-Toggle",
+      "ProblemEditorRunCase-3-Actual",
+      "ProblemEditorRunCase-4",
+      "ProblemEditorRunCase-4-Verdict",
+      "ProblemEditorRunCase-4-Time"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nWrong Answer\n11 / 12 test cases passed\nKeyError: 9\nCase 2 · failed\n1 ms\nInput\nnums = [3,2,4], target = 6\nExpected\n[1,2]\nActual\n—\nError\nKeyError: 9\nCase 1 · passed\n1 ms\nInput\nnums = [2,7,11,15], target = 9\nExpected\n[0,1]\nActual\n[0,1]\nCase 3 · passed\n1 ms\nInput\nnums = [3,3], target = 6\nExpected\n[0,1]\nActual\n[0,1]\nCase 4 · passed\n1 ms\nInput\nnums = [-1,-2,-3"
+    "text": "Python\nFormat\nRun Local\nRun\nReset\nWrong Answer\n11 / 12 test cases passed\nKeyError: 9\nCase 2 · failed\n1 ms\nInput\nnums = [3,2,4], target = 6\nExpected\n[1,2]\nActual\n—\nError\nKeyError: 9\nCase 1 · passed\n1 ms\nInput\nnums = [2,7,11,15], target = 9\nExpected\n[0,1]\nActual\n[0,1]\nCase 3 · passed\n1 ms\nInput\nnums = [3,3], target = 6\nExpected\n[0,1]\nActual\n[0,1]\nCase 4 · passed\n1 ms\nInput\nnums = [-1,-2,-3,-4,-5], t"
   },
   "timings": {
-    "render_ms": 362
+    "render_ms": 347
   },
   "name": "runerrorline/final-given-a-result-whose-line-is-past-the-end-of-the-ee601a.light",
   "image": {

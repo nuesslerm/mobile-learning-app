@@ -1,3 +1,4 @@
+// Off by default, the code stays wired: see domain/featureFlags.ts.
 import { Logger } from '@lib/logging';
 import {
   parseLocalEdit,

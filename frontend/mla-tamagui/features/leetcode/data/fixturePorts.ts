@@ -187,7 +187,7 @@ function createFixtureAudio(): AudioRecordingPort {
   };
 }
 
-export function createFixturePorts(): LeetCodePorts {
+export function createFixturePorts(): Omit<LeetCodePorts, 'flags'> {
   const gateway = createFixtureGateway();
   return {
     clock: () => performance.now(),

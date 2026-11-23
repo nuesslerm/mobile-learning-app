@@ -9,6 +9,7 @@ import React from 'react';
 import { PanResponder } from 'react-native';
 
 import { PlanTab, type PlanEditor } from '../plan';
+import { useLeetCodeFlag } from '../state/useLeetCodeFlag';
 import { ProblemEditorScreen } from './ProblemEditorScreen';
 
 const SWIPE_ACTIVATE_DX = 20;
@@ -24,6 +25,18 @@ const NO_EDITOR: PlanEditor = {
 type WorkspaceTab = 'plan' | 'code';
 
 export function ProblemWorkspace({ id, seed, lang }: { id?: string; seed?: string; lang?: 'javascript' }) {
+  const aiEdit = useLeetCodeFlag('aiEdit');
+  // Off by default, the code stays wired: see domain/featureFlags.ts.
+  return aiEdit ? (
+    <TabbedWorkspace id={id} seed={seed} lang={lang} />
+  ) : (
+    <View flex={1} bg="$background">
+      <ProblemEditorScreen id={id} seed={seed} lang={lang} />
+    </View>
+  );
+}
+
+function TabbedWorkspace({ id, seed, lang }: { id?: string; seed?: string; lang?: 'javascript' }) {
   const [tab, setTab] = React.useState<WorkspaceTab>('code');
   const [api, setApi] = React.useState<PlanEditor | null>(null);
 
