@@ -1,4 +1,4 @@
-import type { CompletionEntry, Language, Reply } from '@lib/code-editor-api';
+import { normalizeText, type CompletionEntry, type Language, type Reply } from '@lib/code-editor-api';
 import { Logger } from '@lib/logging';
 import { View } from '@lib/tamagui-design-system';
 import { decode } from '@lib/webview-rpc';
@@ -94,6 +94,8 @@ type Props = {
   onSelectionChange: (sel: Selection) => void;
   onHydratedChange?: (hydrated: boolean) => void;
   onFocusChange?: (focused: boolean) => void;
+  onUndoAvailabilityChange?: (canUndo: boolean) => void;
+  documentKey?: string;
   /** The language the editor highlights and indents in; changing it switches the live editor. */
   language?: Language;
   /** Suggestions while typing: off when absent or not enabled. The names are what the problem's own signature adds. */
@@ -118,6 +120,8 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       onSelectionChange,
       onHydratedChange,
       onFocusChange,
+      onUndoAvailabilityChange,
+      documentKey,
       language = 'python',
       completion,
       testID,
@@ -149,6 +153,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     // the live caret drag, and the last selection the page reported while it ran: React hears the drag's end once, not every call
     const caretDragRef = useRef<{ drag: CaretDrag; held: Selection | null } | null>(null);
     const initialValueRef = useRef(value);
+    const appliedDocumentKey = useRef(documentKey);
     // Tracks the last text CM6 reported via contentChanged, so we can detect
     // external store changes (e.g. replaceAll) and push them back to CM6.
     const lastWebViewTextRef = useRef(value);
@@ -522,6 +527,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
 
     // Render-phase sync: before the WebView initializes, keep the pending initial text aligned with the latest React value
     if (!isInitializedRef.current) {
+      appliedDocumentKey.current = documentKey;
       initialValueRef.current = value;
       lastWebViewTextRef.current = value;
       textMirror.set(value, false);
@@ -625,10 +631,27 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     useEffect(() => {
       Logger.debug('editor.value_sync', { effect: 'valueSync' });
       if (!isInitializedRef.current) return;
+      if (appliedDocumentKey.current !== documentKey) {
+        appliedDocumentKey.current = documentKey;
+        const loadDocument = async () => {
+          if (!isReadyRef.current || appliedDocumentKey.current !== documentKey) return;
+          const reply = await apiBridge.client.load(value);
+          if (appliedDocumentKey.current !== documentKey) return;
+          if (!reply.ok) {
+            Logger.warn('editor.document.load_failed', { code: reply.error.code });
+            return;
+          }
+          holdText(normalizeText(value));
+          onUndoAvailabilityChange?.(false);
+          onSelectionChange({ start: 0, end: 0 });
+        };
+        writeChainRef.current = writeChainRef.current.then(loadDocument, loadDocument);
+        return;
+      }
       if (value !== lastWebViewTextRef.current) {
         void writeDocument({ next: () => ({ text: valueRef.current }), label: 'react.value' });
       }
-    }, [value, writeDocument]);
+    }, [apiBridge, documentKey, holdText, onSelectionChange, onUndoAvailabilityChange, value, writeDocument]);
 
     const updateHydratedRef = useRef(updateHydrated);
     updateHydratedRef.current = updateHydrated;
@@ -684,6 +707,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             break;
           case 'hydrated':
             holdText(m.text);
+            onUndoAvailabilityChange?.(false);
             updateHydrated(true);
             coldStartRef.current?.mark('hydrated');
             logColdStart();
@@ -746,6 +770,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             break;
           case 'contentChanged':
             holdText(m.text);
+            onUndoAvailabilityChange?.(m.canUndo);
             onChangeText(m.text);
             onSelectionChange(m.selection);
             break;
@@ -760,6 +785,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         onChangeText,
         onFocusChange,
         onSelectionChange,
+        onUndoAvailabilityChange,
         listenForCompletion,
         sendCompletion,
         sendMessage,

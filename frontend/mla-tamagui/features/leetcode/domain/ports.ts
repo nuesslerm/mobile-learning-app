@@ -140,7 +140,7 @@ export type FromEditorMessage =
   | { type: 'blurred' }
   | { type: 'log'; message: string }
   | { type: 'error'; message: string }
-  | { type: 'contentChanged'; text: string; selection: EditorSelection }
+  | { type: 'contentChanged'; text: string; selection: EditorSelection; canUndo: boolean }
   | { type: 'selectionChanged'; selection: EditorSelection };
 
 /** What the editor view hands the page it shows: a WebView that takes scripts. */

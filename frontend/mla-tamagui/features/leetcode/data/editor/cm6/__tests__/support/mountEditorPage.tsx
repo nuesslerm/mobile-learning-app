@@ -8,6 +8,7 @@ import { WebView } from 'react-native-webview';
 import { afterAll } from 'vitest';
 
 import { buildEditorHtml } from '../../editorHtml';
+import type { FromEditorMessage } from '../../../../../domain/ports';
 
 export const INIT = {
   type: 'init',
@@ -56,6 +57,7 @@ export async function mountPage(options: { init: boolean; language?: string; con
   const errors: unknown[] = [];
   const crossed: string[] = [];
   const readyMessages: unknown[] = [];
+  const changes: Extract<FromEditorMessage, { type: 'contentChanged' }>[] = [];
   const sendInit = () => ref.current?.injectJavaScript(deliverScript(JSON.stringify({
     ...INIT,
     config: {
@@ -90,10 +92,16 @@ export async function mountPage(options: { init: boolean; language?: string; con
               if (type) crossed.push(type);
             }
             host.receive(raw);
-            if (decoded.type === 'foreign' && (JSON.parse(raw) as { type?: string }).type === 'ready') readyMessages.push(JSON.parse(raw));
-            if (decoded.type === 'foreign' && (JSON.parse(raw) as { type?: string }).type === 'ready' && !announced) {
-              announced = true;
-              if (options.init) sendInit();
+            if (decoded.type === 'foreign') {
+              const message = JSON.parse(raw) as FromEditorMessage;
+              if (message.type === 'contentChanged') changes.push(message);
+              if (message.type === 'ready') {
+                readyMessages.push(message);
+                if (!announced) {
+                  announced = true;
+                  if (options.init) sendInit();
+                }
+              }
             }
           }}
         />
@@ -105,6 +113,6 @@ export async function mountPage(options: { init: boolean; language?: string; con
   await waitFor(() => {
     if (!announced) throw new Error('the page has not announced itself');
   });
-  return { engine, rpc, sendInit, frame, crossed, errors, faults, readyMessages };
+  return { engine, rpc, sendInit, frame, crossed, errors, faults, readyMessages, changes };
 }
 

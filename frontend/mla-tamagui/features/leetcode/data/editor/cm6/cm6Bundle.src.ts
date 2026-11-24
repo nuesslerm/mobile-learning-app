@@ -14,6 +14,7 @@ import {
   defaultKeymap,
   historyKeymap,
   indentWithTab,
+  undoDepth,
 } from '@codemirror/commands';
 import {
   indentOnInput,
@@ -371,6 +372,7 @@ function buildState(cfg: EditorConfig, doc: string, selection?: SelRange) {
       postToRN({
         type: 'contentChanged',
         text: update.state.doc.toString(),
+        canUndo: undoDepth(update.state) > 0,
         ...getEditorState(update.view),
       });
     }

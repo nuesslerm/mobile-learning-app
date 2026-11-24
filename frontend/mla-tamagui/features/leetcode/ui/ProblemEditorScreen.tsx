@@ -133,6 +133,7 @@ function ProblemEditorContent({
   const editorLanguage = toEditorLanguage(lang) ?? 'python';
   const autocomplete = useAutocompleteSettingStore((s) => s.autocomplete);
   const [editorReady, setEditorReady] = React.useState(false);
+  const [canUndo, setCanUndo] = React.useState(false);
   // the suggestions follow the language: the problem's own names from its starter, and the language's keywords
   const completion = React.useMemo(
     () => ({ enabled: autocomplete, entries: problem ? completionEntriesFor(problem, editorLanguage) : [] }),
@@ -297,6 +298,7 @@ function ProblemEditorContent({
         problemId: problem?.id,
       });
       snapshot('language-switch');
+      setCanUndo(false);
       setLang(nextLang);
       setEditorText(readDraft?.(nextLang) ?? pickStarterCode(problem?.starterCode, nextLang));
       clearConsoleResult();
@@ -622,7 +624,7 @@ function ProblemEditorContent({
         ),
     onBack: handleBack,
     onInfo: handleInfo,
-    onUndo: iosCanvas && isDirty ? () => editorRef.current?.undo() : undefined,
+    onUndo: iosCanvas && canUndo ? () => editorRef.current?.undo() : undefined,
     onHistory: handleHistory,
     onLogin: handleLogin,
     onResetCode: handleResetCode,
@@ -684,6 +686,7 @@ function ProblemEditorContent({
               testID="ProblemEditorEditorZone"
             >
               <EditorInput
+                documentKey={iosCanvas ? lang : undefined}
                 ref={editorRef}
                 testID="ProblemEditorInput"
                 appearance={iosCanvas ? 'canvas' : 'panel'}
@@ -692,13 +695,13 @@ function ProblemEditorContent({
                 value={editorText}
                 onChangeText={handleEditorChange}
                 onSelectionChange={setEditorSelection}
+                onUndoAvailabilityChange={iosCanvas ? setCanUndo : undefined}
                 onFocusChange={(focused) => {
                   editorFocusedRef.current = focused;
                   if (focused) closeConsole('editor-focus');
                 }}
                 onHydratedChange={(hydrated) => {
                   setEditorReady(hydrated);
-                  // the page may have been dropped while idle: bring it back while the person reads the problem, not at Run
                   if (hydrated) runner.warmUp?.(lang);
                 }}
               />

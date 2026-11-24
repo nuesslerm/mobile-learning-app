@@ -16,6 +16,18 @@ async function readyPage(language: string, contrastCanvas = false) {
 }
 
 describe('the language of the real CodeMirror page', () => {
+  it('given a loaded draft, when a symbol is inserted and undone, then the editor reports Undo for the live edit only', async () => {
+    const { page, client } = await readyPage('javascript', true);
+    unwrap(await client.load('const value = 1'));
+    expect(page.changes).toHaveLength(0);
+
+    unwrap(await client.insertAt(15, ';'));
+    await waitFor(() => expect(page.changes.at(-1)).toMatchObject({ text: 'const value = 1;', canUndo: true }));
+
+    unwrap(await client.undo());
+    await waitFor(() => expect(page.changes.at(-1)).toMatchObject({ text: 'const value = 1', canUndo: false }));
+  });
+
   it('given the page initialised with javascript, when the config is read, then it names javascript and the page offers all three languages', async () => {
     const { client } = await readyPage('javascript');
 
