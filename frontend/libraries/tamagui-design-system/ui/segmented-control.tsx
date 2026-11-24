@@ -1,6 +1,6 @@
 import { Logger } from '@lib/logging';
 import { useEffect, useState } from 'react';
-import type { GestureResponderEvent, LayoutChangeEvent } from 'react-native';
+import type { GestureResponderEvent, LayoutChangeEvent, ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { useReducedMotion } from '../lib/reducedMotion/useReducedMotion';
@@ -23,6 +23,8 @@ export type SegmentedControlProps = {
   variant?: 'filled' | 'thumb';
   tone?: 'accent' | 'neutral';
   density?: 'default' | 'compact';
+  trackStyle?: ViewStyle;
+  thumbStyle?: ViewStyle;
   testID?: string;
 };
 
@@ -37,7 +39,7 @@ export function thumbGeometry(index: number, count: number, trackWidth: number, 
   return { width, offset: Math.max(0, index) * (width + SEGMENT_GAP) };
 }
 
-function Thumb({ index, count, trackWidth, padding, tone }: { index: number; count: number; trackWidth: number; padding: number; tone: 'accent' | 'neutral' }) {
+function Thumb({ index, count, trackWidth, padding, tone, thumbStyle }: { index: number; count: number; trackWidth: number; padding: number; thumbStyle?: ViewStyle; tone: 'accent' | 'neutral' }) {
   const theme = useTheme();
   const reduced = useReducedMotion();
   const { width, offset } = thumbGeometry(index, count, trackWidth, padding);
@@ -50,7 +52,7 @@ function Thumb({ index, count, trackWidth, padding, tone }: { index: number; cou
     <Animated.View
       testID="SegmentedThumb"
       pointerEvents="none"
-      style={[{ position: 'absolute', top: padding, bottom: padding, left: padding, width, borderRadius: 10, backgroundColor: (tone === 'neutral' ? theme.color7?.val : theme.color9?.val) ?? '#444' }, style]}
+      style={[{ position: 'absolute', top: padding, bottom: padding, left: padding, width, borderRadius: 10, backgroundColor: (tone === 'neutral' ? theme.color7?.val : theme.color9?.val) ?? '#444' }, thumbStyle, style]}
     />
   );
 }
@@ -61,7 +63,7 @@ function Thumb({ index, count, trackWidth, padding, tone }: { index: number; cou
  * "the chosen one" against the neutral rail; the unselected segments stay
  * transparent until pressed.
  */
-export function SegmentedControl({ options, value, onChange, pressLog, variant = 'filled', tone = 'accent', density = 'default', testID }: SegmentedControlProps) {
+export function SegmentedControl({ options, value, onChange, pressLog, variant = 'filled', tone = 'accent', density = 'default', trackStyle, thumbStyle, testID }: SegmentedControlProps) {
   const thumb = variant === 'thumb';
   const neutral = tone === 'neutral';
   const compact = density === 'compact';
@@ -71,13 +73,14 @@ export function SegmentedControl({ options, value, onChange, pressLog, variant =
   return (
     <XStack
       testID={testID}
+      style={trackStyle}
       bg={neutral ? "$color4" : "$color3"}
       rounded={compact ? "$10" : "$4"}
       p={compact ? padding : "$1"}
       gap="$1"
       {...(thumb ? { role: 'tablist' as const, onLayout: (event: LayoutChangeEvent) => setTrackWidth(event.nativeEvent.layout.width) } : {})}
     >
-      {thumb ? <Thumb index={selectedIndex} count={options.length} trackWidth={trackWidth} padding={padding} tone={tone} /> : null}
+      {thumb ? <Thumb index={selectedIndex} count={options.length} trackWidth={trackWidth} padding={padding} tone={tone} thumbStyle={thumbStyle} /> : null}
       {options.map((option) => {
         const selected = option.value === value;
         const handlePress = (_event: GestureResponderEvent) => {

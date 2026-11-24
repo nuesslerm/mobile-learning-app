@@ -14,6 +14,7 @@ export type ConsoleActionsProps = {
   pending: boolean;
   /** The problem has no bundled cases: there is nothing to run or submit. */
   noCases: boolean;
+  noSelectedCase?: boolean;
 };
 
 /** The console's actions in two forms: the bar above the keyboard and the dock (Console, Reset, Run, Submit), the footer inside the sheet (a Reset pill, Run, Submit). */
@@ -63,7 +64,7 @@ function ConsoleReset({ footer, canvas, onReset }: { footer: boolean; canvas?: b
   );
 }
 
-export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubmit, pending, noCases }: ConsoleActionsProps) {
+export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubmit, pending, noCases, noSelectedCase }: ConsoleActionsProps) {
   const prefix = variant === 'footer' ? 'ConsoleFooter' : 'ConsoleBar';
   const off = pending || noCases;
   const run = (
@@ -75,7 +76,7 @@ export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubm
       variant="secondary"
       size={canvas ? 42 : "$3"}
       pressLog="off"
-      disabled={off}
+      disabled={off || noSelectedCase}
       accessibilityLabel="Run"
       onPress={onRun}
       style={canvas ? (variant === 'footer' ? FOOTER_PILL : CANVAS_PILL) : undefined}

@@ -227,6 +227,7 @@ function ProblemEditorContent({
     onSubmit: () => void runConsole('submit'),
     pending: consolePending !== null,
     noCases: hydrated && !consoleState.hasBundled,
+    noSelectedCase: hydrated && !consoleState.selected,
   };
   const [diffMode, setDiffMode] = React.useState(false);
   // whether a voice or plan edit has left a mark: the editor holds the mark and the range, the screen only the toggle

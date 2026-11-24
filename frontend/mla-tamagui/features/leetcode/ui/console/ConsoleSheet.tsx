@@ -19,6 +19,8 @@ const FLOATING_SNAP_POINTS = [FLOATING_CONSOLE_SNAP_PERCENT];
 const FLOATING_CONTENT = { gap: 8, paddingHorizontal: 12, paddingTop: 0, paddingBottom: 38 };
 const CONSOLE_HANDLE = { width: 60, height: 4, backgroundColor: 'rgba(175,175,185,0.47)', transform: [{ translateY: -4 }] } as const;
 const CASE_CARD = '#1d1d20';
+const CONSOLE_TAB_TRACK = { backgroundColor: '#222227' };
+const CONSOLE_TAB_THUMB = { backgroundColor: '#595860', borderRadius: 16 };
 const BACKDROP_OPACITY = 0.5;
 const TABS = [
   { value: 'testcase', label: 'Testcase' },
@@ -82,7 +84,7 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
       handleLabel="Close console"
       testID="ConsoleSheet"
     >
-      <SegmentedControl variant="thumb" tone={floating ? "neutral" : "accent"} density={floating ? "compact" : "default"} testID="ConsoleTabs" options={TABS} value={state.tab} onChange={(tab) => state.setTab(tab as ConsoleTab)} />
+      <SegmentedControl variant="thumb" tone={floating ? "neutral" : "accent"} density={floating ? "compact" : "default"} trackStyle={darkGlass ? CONSOLE_TAB_TRACK : undefined} thumbStyle={darkGlass ? CONSOLE_TAB_THUMB : undefined} testID="ConsoleTabs" options={TABS} value={state.tab} onChange={(tab) => state.setTab(tab as ConsoleTab)} />
       <Sheet.ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 12, paddingBottom: 12 }} testID="ConsoleBody">
         {state.tab === 'testcase' ? (
           <YStack gap="$3" role="tabpanel" testID="ConsolePanel-testcase">
@@ -98,7 +100,7 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
               </>
             ) : (
               <Text variant="muted" testID="ConsoleNoCases">
-                This problem has no bundled cases.
+                {state.hasBundled ? 'Add a case or reset to the samples.' : 'This problem has no bundled cases.'}
               </Text>
             )}
           </YStack>

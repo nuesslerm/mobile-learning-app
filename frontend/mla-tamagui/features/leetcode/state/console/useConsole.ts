@@ -115,7 +115,11 @@ export function useConsole(problem: Blind75Problem | undefined, runtime: Console
     },
     [problemId, store]
   );
-  const removeCase = React.useCallback((id: string) => problem && store.getState().removeCase(problem, id), [problem, store]);
+  const removeCase = React.useCallback((id: string) => {
+    if (!problem) return;
+    if (selected?.id === id) setFieldError(null);
+    store.getState().removeCase(problem, id);
+  }, [problem, selected?.id, store]);
 
   const clearResult = React.useCallback(() => {
     sourceRef.current = null;

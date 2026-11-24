@@ -43,7 +43,7 @@ export function CaseChips({ cases, selectedId, atCap, neutral = false, editing =
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{ flex: 1 }}
-        contentContainerStyle={{ gap: 8, paddingTop: editing ? 4 : 2, paddingBottom: 2 }}
+        contentContainerStyle={{ gap: neutral ? 12 : 8, paddingLeft: neutral ? 4 : 0, paddingTop: editing ? 6 : 2, paddingRight: editing ? 12 : 0, paddingBottom: 2 }}
         onLayout={(event: LayoutChangeEvent) => {
           viewport.current = event.nativeEvent.layout.width;
         }}
@@ -78,7 +78,7 @@ export function CaseChips({ cases, selectedId, atCap, neutral = false, editing =
                   </Text>
                 </XStack>
               </Pressable>
-              {entry.kind === 'custom' && onRemove ? (
+              {onRemove ? (
                 <Pressable
                   testID={`ConsoleChipRemove-${index + 1}`}
                   accessibilityRole="button"
@@ -103,14 +103,14 @@ export function CaseChips({ cases, selectedId, atCap, neutral = false, editing =
 const styles = StyleSheet.create({
   remove: {
     position: 'absolute',
-    top: -4,
-    right: 1,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    top: -5,
+    right: -12,
+    width: 22,
+    height: 20,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#404047',
+    backgroundColor: '#303034',
   },
-  minus: { width: 9, height: 2, borderRadius: 1, backgroundColor: '#f5f5f7' },
+  minus: { width: 12, height: 2, borderRadius: 1, backgroundColor: '#f5f5f7' },
 });

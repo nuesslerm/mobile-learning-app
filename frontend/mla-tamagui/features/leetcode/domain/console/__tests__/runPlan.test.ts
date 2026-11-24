@@ -4,7 +4,7 @@ import type { Blind75Problem } from '../../models';
 import { ProblemCatalog } from '../../problemCatalog';
 import { runParamsFor } from '../../run/runParams';
 import { planRun, type RunPlan } from '../runPlan';
-import { addDraft, consoleCases, editDraft, EMPTY_DRAFTS } from '../testcases';
+import { addDraft, consoleCases, editDraft, EMPTY_DRAFTS, removeDraft, resetDrafts } from '../testcases';
 
 const catalog = (id: string): Blind75Problem => {
   const found = ProblemCatalog.getById(id);
@@ -64,6 +64,28 @@ describe('planRun', () => {
     const submission = planned(planRun({ problem, lang: 'javascript', code: 'code', mode: 'submit', drafts, selectedId: added?.id ?? null }));
     expect(submission.params.testCases).toEqual(problem.testCases);
     expect(submission.cases).toHaveLength(problem.testCases?.length ?? 0);
+  });
+
+  it('given removed sample chips, when Run and Submit are planned, then only the editable console list is filtered and Reset restores it', () => {
+    const problem = catalog('merge-two-sorted-lists');
+    const input = { problem, lang: 'javascript', code: 'code' };
+    const first = removeDraft(problem, EMPTY_DRAFTS, 'bundled:0', 'bundled:2');
+    expect(first.selectedId).toBe('bundled:2');
+    expect(consoleCases(problem, first.drafts).map((entry) => entry.id)).toEqual(['bundled:1', 'bundled:2']);
+    expect(planned(planRun({ ...input, ...first, mode: 'run' })).params.testCases).toEqual([problem.testCases?.[2]]);
+
+    const second = removeDraft(problem, first.drafts, 'bundled:1', first.selectedId);
+    const last = removeDraft(problem, second.drafts, 'bundled:2', second.selectedId);
+    expect(consoleCases(problem, last.drafts)).toEqual([]);
+    expect(planRun({ ...input, ...last, mode: 'run' })).toEqual({ ok: false, reason: 'no-cases' });
+    expect(planned(planRun({ ...input, ...last, mode: 'submit' })).params.testCases).toEqual(problem.testCases);
+
+    const added = addDraft(problem, last.drafts, null);
+    expect(added).not.toBeNull();
+    expect(consoleCases(problem, added?.drafts ?? EMPTY_DRAFTS).map((entry) => entry.kind)).toEqual(['custom']);
+    const reset = resetDrafts(problem);
+    expect(consoleCases(problem, reset.drafts).map((entry) => entry.id)).toEqual(['bundled:0', 'bundled:1', 'bundled:2']);
+    expect(reset.selectedId).toBe('bundled:0');
   });
 
   it('given a problem with no bundled cases, when planned, then it is refused no-cases', () => {

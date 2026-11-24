@@ -30,7 +30,7 @@ export const useConsoleCasesStore = create<ConsoleCasesState>()((set, get) => ({
     set((state) => ({ drafts: { ...state.drafts, [problemId]: editDraft(state.drafts[problemId] ?? EMPTY_DRAFTS, id, name, text) } })),
   removeCase: (problem, id) =>
     set((state) => {
-      const removed = removeDraft(problem, state.drafts[problem.id] ?? EMPTY_DRAFTS, id);
+      const removed = removeDraft(problem, state.drafts[problem.id] ?? EMPTY_DRAFTS, id, state.selected[problem.id] ?? null);
       return { drafts: { ...state.drafts, [problem.id]: removed.drafts }, selected: { ...state.selected, [problem.id]: removed.selectedId } };
     }),
   reset: (problem) =>
