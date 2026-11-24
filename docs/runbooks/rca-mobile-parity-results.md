@@ -125,3 +125,13 @@ The simulator foreground bundle was `com.t3tools.t3code` during these follow-ups
 ## Orca queue handoff integration
 
 Orca now advertises queueing and reordering and projects dispatch handoffs in history and subscription replay. The Linux paired-client regression checked reorder, edit, removal, stop, send now, resume and handoff identity after reconnect. All six Orca agent-session integration tests passed. A separate paired Orca session also read both handoffs from the T3 Codex queue fixture. Native Orca queue lifecycle and editing while a turn finishes remain open. RCA's scheduler does not enforce the Orca edit lease.
+
+## Confirmed Orca Codex queue and displayed default
+
+The foreground bundle was `com.stably.orca.mobile` before and after recording. Create a Codex tab in an RCA-registered test worktree and send a timed command without opening the model picker. The Codex turn record matched the displayed GPT-6.1 Sol. Queue two marked replies from the Orca composer. Drag the second card above the first, then tap Stop. RCA recorded one move and held both original cards in the reversed order. Opening Edit withdrew the first-created card and moved its text to the composer. Resume ran the remaining card once, rendered its reply and cleared the queue. A fresh Orca history response linked its submission to the original card ID.
+
+Queue lifecycle remains partial because the edit did not preserve the card. The first-send default passed. Orca's in-thread alternate model and queued model retention remain open. The recording, screenshots, RCA events and provider model IDs are under `.context/rca-orca-confirmed/published/run-b9eb8616709985c7/` in Zagreb.
+
+## Orca Codex loads a skill from slash autocomplete
+
+Register a disposable RCA worktree and add the `rca-parity-compass` fixture under `.agents/skills/`. Open a Codex tab in that worktree with `com.stably.orca.mobile` foreground. Type the slash prefix, select the skill, and ask for the compass fixture marker without writing the marker in the prompt. Codex's turn record contains the expanded skill path and file marker. Orca shows the marker in the reply from the same turn. This passes `skill-load` for Orca with Codex. The fixture, recording, screenshots and filtered provider receipt are under `.context/rca-native-skill/published/run-569e7301fb781322/` in Zagreb.
