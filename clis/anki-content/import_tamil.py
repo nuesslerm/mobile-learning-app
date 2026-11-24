@@ -1,6 +1,7 @@
 """Convert the approved Tamil Anki deck into the app's offline curriculum."""
 
 import argparse
+import base64
 from collections import defaultdict
 import hashlib
 from html.parser import HTMLParser
@@ -25,6 +26,7 @@ NUMBER_LABEL = re.compile(r"^\d+\s*[-–:]\s*")
 SOUND = re.compile(r"\[sound:([^\]]+)\]")
 TAMIL_CORRECTIONS = {"mtw$JQ`*ON": "சாத்துக்குடி"}
 TAMIL = re.compile(r"[\u0b80-\u0bff]")
+PACKED_AUDIO_COUNT = 128
 
 
 class PlainText(HTMLParser):
@@ -153,7 +155,7 @@ def generate(package, output, check):
 
         sections = []
         audio_lines = []
-        audio_size = 0
+        audio = {}
         for section, topics in SECTIONS.items():
             section_topics = []
             for topic in topics:
@@ -163,10 +165,17 @@ def generate(package, output, check):
                     for exercise in task["exercises"]:
                         contents = archive.read(exercise.pop("asset"))
                         relative = f"audio/{exercise['id']}.mp3"
-                        audio_size += len(contents)
                         emit(relative, contents)
-                        audio_lines.append(f"  '{exercise['id']}': () => require('./{relative}') as number,")
+                        audio[exercise["id"]] = contents
             sections.append({"id": slug(section), "title": section, "topics": section_topics})
+
+    packed_ids = set(sorted(audio, key=lambda key: (len(audio[key]), key))[:PACKED_AUDIO_COUNT])
+    packed = {}
+    for exercise_id, contents in audio.items():
+        if exercise_id in packed_ids:
+            packed[exercise_id] = base64.b64encode(contents).decode("ascii")
+        else:
+            audio_lines.append(f"  '{exercise_id}': () => require('./audio/{exercise_id}.mp3') as number,")
 
     with package.open("rb") as original:
         checksum = hashlib.file_digest(original, "sha256").hexdigest()
@@ -180,11 +189,15 @@ def generate(package, output, check):
         "export const tamilAudio: Readonly<Record<string, () => number>> = {\n"
         + "\n".join(audio_lines) + "\n};\n"
     ).encode())
+    emit("audio.packed.json", (json.dumps(packed, indent=2) + "\n").encode())
     actual = {file.relative_to(output).as_posix() for file in (output / "audio").glob("*.mp3")}
     extra = actual - files
     if extra:
         raise ValueError(f"Remove stale media files: {', '.join(sorted(extra))}")
-    print(json.dumps({"notes": 1014, "topics": len(notes), "tamilAudio": len(audio_lines), "audioBytes": audio_size}))
+    print(json.dumps({
+        "notes": 1014, "topics": len(notes), "tamilAudio": len(audio),
+        "audioBytes": sum(map(len, audio.values())), "packedAudio": len(packed),
+    }))
 
 
 if __name__ == "__main__":

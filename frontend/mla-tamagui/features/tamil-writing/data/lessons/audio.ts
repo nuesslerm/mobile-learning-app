@@ -4,6 +4,10 @@ import { Platform } from 'react-native';
 
 import type { TamilAudioPort } from '../../domain/lessons/ports';
 import { tamilAudio } from './audio.generated';
+import packedAudio from './audio.packed.json';
+import { packedAudioUri } from './packedAudioUri';
+
+const packedTamilAudio: Readonly<Partial<Record<string, string>>> = packedAudio;
 
 export function createExpoTamilAudio(): TamilAudioPort {
   let current: AudioPlayer | undefined;
@@ -19,12 +23,13 @@ export function createExpoTamilAudio(): TamilAudioPort {
   return {
     async play(id, slow) {
       stop();
-      const asset = tamilAudio[id];
-      if (!asset) throw new Error('Tamil recording is unavailable');
       const request = playback;
       if (Platform.OS !== 'web') await setAudioModeAsync({ playsInSilentMode: true });
       if (request !== playback) return;
-      const player = createAudioPlayer(asset(), { updateInterval: 100 });
+      const packed = packedTamilAudio[id];
+      const source = packed === undefined ? tamilAudio[id]?.() : packedAudioUri(id, packed);
+      if (source === undefined) throw new Error('Tamil recording is unavailable');
+      const player = createAudioPlayer(source, { updateInterval: 100 });
       current = player;
       player.shouldCorrectPitch = true;
       player.setPlaybackRate(slow ? 0.75 : 1);

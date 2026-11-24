@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { curriculum } from './curriculum';
 import { tamilAudio } from './audio.generated';
+import packedAudio from './audio.packed.json';
 import { checkAnswer, nextTask } from '../../domain/lessons/course';
 
 describe('Tamil curriculum', () => {
@@ -13,7 +14,9 @@ describe('Tamil curriculum', () => {
     expect(sections.flatMap((section) => section.topics)).toHaveLength(31);
     expect(targets).toHaveLength(1014);
     expect(new Set(targets.map((exercise) => exercise.sourceGuid)).size).toBe(1014);
-    expect(Object.keys(tamilAudio).sort()).toEqual(targets.map(({ id }) => id).sort());
+    expect([...Object.keys(tamilAudio), ...Object.keys(packedAudio)].sort()).toEqual(
+      targets.map(({ id }) => id).sort()
+    );
     for (const exercise of targets) {
       const answer = exercise.kind === 'fill' ? [exercise.words[exercise.blank]] : exercise.words;
       expect(checkAnswer(exercise, answer).correct).toBe(true);
