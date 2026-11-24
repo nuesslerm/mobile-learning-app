@@ -11,9 +11,5 @@ export type {
   ConsoleSink,
 } from './builtInTransports/consoleTransport.js';
 
-// Re-export the distributed stage factories so hosts can pull
-// everything they need from one place.
-export { appendToLiveTail } from '../liveTail/appendToLiveTail.js';
-
 export { appendToBetterStack } from './appendToBetterStack.js';
 export type { AppendToBetterStackOptions, BetterStackFetch } from './appendToBetterStack.js';

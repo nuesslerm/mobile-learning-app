@@ -49,21 +49,20 @@ longer lint rules (owner, 20 Oct; `require-structured-log` never fired and went 
 
 ```
 Logger.*  ->  host LogLayer (configureLogger)  ->  scrubber plugin
-          ->  PipelineTransport: buffered batches -> stages (appendToLiveTail, appendToBetterStack)
-          ->  ConsoleEchoTransport (the real console)
-console.* ->  installConsoleCapture -> live tail
+          ->  PipelineTransport: buffered batches -> appendToBetterStack
+          ->  ConsoleEchoTransport -> console -> Buoy in native development
 ```
 
 - `logger/`: `Logger`, `configureLogger`. Without `configureLogger` every call
   is a silent no-op, so the host's wiring module must be the first import.
-- `pipeline/`, `liveTail/`, `install/`: the transport, the in-memory tail, and console capture.
+- `pipeline/` contains the console transport and BetterStack forwarding.
 - `primitives/`: buffered sink, clock, secret redaction, and `withTraceparent`
   (the W3C `traceparent` header the voice-edit and web-bridge clients send, so
   backend spans join the app's trace).
 
 The app configures the transport once in `frontend/mla-tamagui/lib/logger.ts`.
 BetterStack receives info and higher when the ingest pair is configured. Native
-development sends the selected editor timing events to the console Buoy wraps.
+development sends all levels to the console Buoy captures. Flow tests observe the same console methods in Vitest.
 The web harness can read the console with `wf browser get-logs --level info`.
 
 ### Resolving exception stacks
@@ -217,7 +216,7 @@ Each row's `raw` is the full JSON we sent (`dt`, `level`, `message`, `module`,
 
 1. Add `@lib/logging` as a workspace dependency.
 2. Build a `LogLayer` with the transports you want, e.g.
-   `new PipelineTransport({ serialize, stages: [appendToLiveTail()] })` and
+   `new PipelineTransport({ serialize, stages: [appendToBetterStack({ host, token })] })` and
    `new ConsoleEchoTransport({ console: hostConsole })`.
 3. Call `configureLogger({ root: () => layer })` once at start-up, before any
    other import logs.

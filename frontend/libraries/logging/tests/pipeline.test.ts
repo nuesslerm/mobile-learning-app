@@ -1,16 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { __resetLiveTail, liveTail, type LogEntry } from '../src/liveTail';
 import {
   ConsoleEchoTransport,
   PipelineTransport,
-  appendToLiveTail,
   toStoreLevel,
   type Stage,
 } from '../src/pipeline';
 
 beforeEach(() => {
-  __resetLiveTail();
   vi.useFakeTimers();
 });
 
@@ -37,15 +34,14 @@ function params(
 
 function serializeToLogEntry(
   p: import('@loglayer/transport').LogLayerTransportParams
-): LogEntry {
+) {
   return {
-    id: 0,
-    ts: Date.now(),
     level: toStoreLevel(p.logLevel),
     text: String(p.messages[0] ?? ''),
-    context: {},
   };
 }
+
+type LogEntry = ReturnType<typeof serializeToLogEntry>;
 
 describe('toStoreLevel', () => {
   it('passes standard levels through', () => {
@@ -121,26 +117,6 @@ describe('PipelineTransport — stages compose from the same batch', () => {
   });
 });
 
-describe('appendToLiveTail stage', () => {
-  it('appends the batch to liveTail', async () => {
-    const stage = appendToLiveTail();
-    await stage([
-      { level: 'info', text: 'a', source: 'Module', context: { foo: 1 } },
-    ]);
-    const entries = liveTail.getEntries();
-    expect(entries).toHaveLength(1);
-    expect(entries[0]!.text).toBe('a');
-    expect(entries[0]!.source).toBe('Module');
-    expect(entries[0]!.context).toEqual({ foo: 1 });
-  });
-
-  it('is a no-op on an empty batch', async () => {
-    const before = liveTail.getVersion();
-    await appendToLiveTail()([]);
-    expect(liveTail.getVersion()).toBe(before);
-  });
-});
-
 describe('ConsoleEchoTransport — echoes to the injected console', () => {
   it('echoes via the configured console sink on flush', () => {
     const log = vi.fn();
@@ -150,21 +126,6 @@ describe('ConsoleEchoTransport — echoes to the injected console', () => {
     expect(log).toHaveBeenCalledWith('hello');
     const call = log.mock.calls[0];
     expect(call).toEqual(['hello']);
-  });
-
-  it('Given a filtered console sink, When a batch flushes, Then it receives only accepted events', () => {
-    const info = vi.fn();
-    const transport = new ConsoleEchoTransport({
-      id: 'diagnostics',
-      console: { info },
-      accepts: (event) => event === 'editor.input_timing',
-    });
-
-    transport.shipToLogger(params('info', ['app.boot']));
-    transport.shipToLogger(params('info', ['editor.input_timing']));
-    vi.advanceTimersByTime(1000);
-
-    expect(info.mock.calls).toEqual([['editor.input_timing']]);
   });
 
   it('falls back to console.log when the level-specific method is missing', () => {

@@ -2,7 +2,7 @@
   "name": "@lib/logging",
   "version": "0.0.1",
   "private": true,
-  "description": "Transport-agnostic logging core: Logger, PipelineTransport and stages, live tail, console capture, secret and PII scrubbing. Hosts wire their own LogLayer transports via configureLogger().",
+  "description": "Structured logging with secret scrubbing, buffered console output and BetterStack forwarding.",
   "type": "module",
   "main": "./src/index.ts",
   "react-native": "./src/index.ts",
@@ -12,9 +12,7 @@
     "./logger": "./src/logger/index.ts",
     "./plugins": "./src/plugins/index.ts",
     "./primitives": "./src/primitives/index.ts",
-    "./liveTail": "./src/liveTail/index.ts",
     "./pipeline": "./src/pipeline/index.ts",
-    "./install": "./src/install/index.ts",
     "./package.json": "./package.json"
   },
   "files": [

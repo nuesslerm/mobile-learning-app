@@ -1,7 +1,4 @@
-// The failure line goes straight to the live tail, never through the pipeline, so a dead sink cannot feed itself.
-// Entries arrive scrubbed: `configureLogger` puts the scrubber on the root LogLayer, ahead of every transport.
-
-import { liveTail } from '../liveTail/liveTail.js';
+import { createScrubber } from '../primitives/secretRedaction.js';
 import { createBufferedSink, type BufferedSink } from '../primitives/bufferedSink.js';
 
 type BetterStackEntry = {
@@ -58,6 +55,7 @@ export function appendToBetterStack(opts: AppendToBetterStackOptions): (batch: r
   const minRank = LEVEL_RANK[opts.minLevel ?? 'debug'] ?? 0;
   const send = opts.fetch ?? defaultFetch();
   let keepaliveInFlight = 0;
+  const scrubFailure = createScrubber({ extraSecretValues: [opts.token] });
   let outage = false;
   let sink: BufferedSink<Item> | undefined;
 
@@ -65,7 +63,8 @@ export function appendToBetterStack(opts: AppendToBetterStackOptions): (batch: r
   function failed(detail: Record<string, unknown>): void {
     if (outage) return;
     outage = true;
-    liveTail.add('warn', 'logging.forward_failed', { source: 'appendToBetterStack', context: { url, ...detail } });
+    // Reporting through Logger would send the outage back to the failing ingest.
+    console.warn('logging.forward_failed', scrubFailure({ source: 'appendToBetterStack', url, ...detail }));
   }
 
   function post(batch: Item[]): Promise<void> | undefined {

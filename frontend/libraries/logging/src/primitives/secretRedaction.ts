@@ -204,11 +204,6 @@ export type RedactRule<T> = {
  * sensitive keys from each entry's `context` bag. Custom rules can be
  * supplied to handle entry-shape variations.
  *
- *   pipelineStages = [
- *     appendToLiveTail(),
- *     redactSensitiveFields({ keys: ['authorization', 'cookie'] }),
- *   ];
- *
  * The returned Stage is read-only on the batch — it never mutates the
  * original entries. It builds a shallow-cloned entry with the redacted
  * context bag.

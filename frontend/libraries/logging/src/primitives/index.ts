@@ -1,6 +1,3 @@
-// Primitives — generic, no domain knowledge about log entries, the
-// live tail, or the pipeline. Used by stages and transports.
-
 export { createBufferedSink, drainAllBufferedSinks, flushAllBufferedSinks } from './bufferedSink.js';
 export type { BufferedSink, BufferedSinkOptions } from './bufferedSink.js';
 

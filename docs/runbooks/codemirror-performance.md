@@ -18,10 +18,9 @@ language, and keyboard for both sides of a comparison.
 To investigate a blank editor, open a problem, navigate away and back, and
 check for a new `nth` and its cold-start timings. To investigate typing, wait
 for hydration, then enter the same text at the same position. The probe only
-sends timings and counts. The dev-only Buoy transport forwards those events
-through the existing console capture, while the editor calls the standard
-logger. Buoy's JS-thread profiler samples React Native. The editor probe
-samples the separate WebView.
+sends timings and counts. Buoy captures those events through the same console transport as other
+application logs. Buoy's JS-thread profiler samples React Native. The editor
+probe samples the separate WebView.
 
 ## Measuring the problem-to-editor transition on iOS
 

@@ -1,5 +1,4 @@
 import { expectWarning, screen } from '@lib/flow-test-harness';
-import { liveTail } from '@lib/logging/liveTail';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { appWithRoot as app } from './appWithRoot';
@@ -9,6 +8,7 @@ const HOST = 'ingest.betterstack.flow.test';
 const TOKEN = 'flow-test-ingest-token';
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
@@ -20,6 +20,8 @@ describe('given a build without the BetterStack ingest pair', () => {
     vi.stubEnv('EXPO_PUBLIC_BETTERSTACK_HOST', '');
     const ingest = fetchDouble(HOST);
     vi.stubGlobal('fetch', ingest.fetch);
+    // oxlint-disable-next-line no-restricted-properties -- observe the platform console that Buoy captures.
+    const [info, errors] = (['info', 'error'] as const).map((level) => vi.spyOn(console, level));
     const fatalSeen: unknown[] = [];
     const uncaught = nativeGlobalHandler((error) => fatalSeen.push(error));
 
@@ -31,9 +33,9 @@ describe('given a build without the BetterStack ingest pair', () => {
     uncaught(boom, true);
     await vi.waitFor(() => expect(fatalSeen).toEqual([boom]));
 
-    // Then both lines reached the live tail, and no request left the app at all
-    const texts = liveTail.getEntries().map((e) => e.text);
-    expect(texts).toEqual(expect.arrayContaining(['app.boot', 'app.crash']));
+    // Then both lines reached the console, and no request left the app at all
+    expect(info).toHaveBeenCalledWith('app.boot', expect.objectContaining({ source: 'AppShell' }));
+    expect(errors).toHaveBeenCalledWith('app.crash', expect.objectContaining({ fatal: true }));
     expect(ingest.requests).toEqual([]);
   });
 });

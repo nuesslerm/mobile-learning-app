@@ -6,10 +6,6 @@
 // reference, so stages MUST be read-only on the batch (mutating would
 // corrupt later stages).
 //
-//   pipelineStages = [
-//     appendToLiveTail(),
-//   ];
-//
 // Conventions:
 //   - Stages are READ-ONLY on the batch.
 //   - Stages must not throw (the pipeline wraps each call in try/catch).

@@ -1,7 +1,6 @@
 import type { LogLayerTransportParams } from '@loglayer/transport';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { __resetLiveTail, liveTail } from '../src/liveTail';
 import {
   PipelineTransport,
   appendToBetterStack,
@@ -25,15 +24,16 @@ function recordingFetch(respond: () => Promise<{ ok: boolean; status: number }> 
   return { posts, fetch, items };
 }
 
-const failures = () => liveTail.getEntries().filter((e) => e.text === 'logging.forward_failed');
+const failures = () => vi.mocked(console.warn).mock.calls.filter(([event]) => event === 'logging.forward_failed');
 
 beforeEach(() => {
   vi.useFakeTimers();
-  __resetLiveTail();
+  vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 });
 
 afterEach(() => {
   flushAllBufferedSinks();
+  vi.restoreAllMocks();
   vi.useRealTimers();
 });
 
@@ -108,7 +108,7 @@ describe('appendToBetterStack', () => {
     expect(net.items().map((i) => i.message)).toEqual(['app.boot', 'app.crash']);
   });
 
-  it('given a sink that fails, when two batches are posted, then each is dropped without a retry and the live tail gets one forward_failed line', async () => {
+  it('given a sink that fails, when two batches are posted, then each is dropped without a retry and the console gets one forward_failed line', async () => {
     // Given an ingest that answers 401, then rejects
     const answers = [
       () => Promise.resolve({ ok: false, status: 401 }),
@@ -129,8 +129,8 @@ describe('appendToBetterStack', () => {
     // Then each batch went out once, nothing was resent, and one failure line names the status, never the token
     expect(net.items().map((i) => i.message)).toEqual(['first', 'second']);
     expect(failures()).toHaveLength(1);
-    expect(failures()[0]?.context).toMatchObject({ status: 401, dropped: 1, url: `https://${HOST}` });
-    expect(JSON.stringify(liveTail.getEntries())).not.toContain(TOKEN);
+    expect(failures()[0]?.[1]).toMatchObject({ status: 401, dropped: 1, url: `https://${HOST}` });
+    expect(JSON.stringify(failures())).not.toContain(TOKEN);
   });
 
   it('given a fetch that throws and a context that cannot be serialized, when posted, then nothing throws and the line still goes out', () => {
@@ -141,7 +141,7 @@ describe('appendToBetterStack', () => {
       host: HOST,
       token: TOKEN,
       fetch: () => {
-        throw new Error('bad url');
+        throw new Error(`bad url: ${TOKEN}`);
       },
     });
     const net = recordingFetch();
@@ -155,7 +155,7 @@ describe('appendToBetterStack', () => {
     }).not.toThrow();
 
     // Then the throw became one failure line, and the circular entry kept its line without its fields
-    expect(failures().map((e) => e.context?.reason)).toEqual(['bad url']);
+    expect(failures().map(([, fields]) => fields.reason)).toEqual(['bad url: [REDACTED]']);
     expect(net.posts[0]?.url).toBe(`https://${HOST}`);
     expect(net.items()).toEqual([expect.objectContaining({ level: 'warn', message: 'odd', unserializable: true })]);
   });
@@ -270,6 +270,6 @@ describe('appendToBetterStack', () => {
     }
 
     // Then each outage was reported once
-    expect(failures().map((e) => e.context?.status)).toEqual([503, 429]);
+    expect(failures().map(([, fields]) => fields.status)).toEqual([503, 429]);
   });
 });

@@ -1,16 +1,3 @@
-// Pipeline transport — the composition primitive for the package.
-//
-// A LogLayer transport receives one entry per `log.info(...)` call.
-// `PipelineTransport<T>` runs each entry through a chain of stages:
-// in-memory live tail → durable backend → remote sink → etc.
-//
-// Stages are flat functions: `(batch: T[]) => Promise<void> | void`.
-// The pipeline calls them sequentially per batch (so a slow persistence
-// write doesn't delay the in-memory write), but the batch itself is
-// reused — there's no copying between stages. The buffer is registered
-// for crash-path drain (`register: true`) so the very last entries
-// reach every stage before JS tears down.
-
 import type { LogLayerTransportParams } from '@loglayer/transport';
 import { LoggerlessTransport } from '@loglayer/transport';
 
