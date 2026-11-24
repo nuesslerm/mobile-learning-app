@@ -107,6 +107,7 @@
     "@buoy-gg/highlight-updates": "7.0.103",
     "@buoy-gg/image-overlay": "7.0.103",
     "@buoy-gg/network": "7.0.103",
+    "@buoy-gg/perf-monitor": "7.0.103",
     "@buoy-gg/route-events": "7.0.103",
     "@buoy-gg/storage": "7.0.103",
     "@buoy-gg/zustand": "7.0.103",
@@ -130,6 +131,8 @@
     "dependency-cruiser": "^17.4.3",
     "oxlint": "catalog:",
     "pyodide": "314.0.8",
+    "react-native-nitro-modules": "0.35.10",
+    "react-native-performance-toolkit": "0.3.1",
     "typescript": "catalog:"
   },
   "nx": {
