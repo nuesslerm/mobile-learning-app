@@ -72,6 +72,8 @@ For future harness integration, drive the app through accessibility labels or st
 
 Keep a per-run JSON result keyed by case ID, app, provider, and evidence tier (`simulator`, `adapter`, or `physical`). Record the app build, server revision, host OS, start and finish times, verdict (`pass`, `fail`, `partial`, `blocked`, or `not-run`), assertion outcomes, and evidence paths. Add thread, turn, queue and request IDs where relevant. Keep recordings and sanitized event traces beside the result and link the report from the results ledger. Exclude pairing data, authorization headers, and unrelated workspaces from the bundle.
 
+Store the case receipts in `parity-results.json` with schema `rca-mobile-parity-results/1` alongside the harness `report.json`. Use `results[]` to keep separate variants, such as a seeded queue reconnect and native queue creation. Include boolean assertions and paths relative to the bundle. Simulator entries carry the foreground bundle ID. Write receipts as `.json` and copy raw line-delimited traces or fixture sources with a `.txt` suffix so the publisher includes them. Publish with `wf test publish` and verify every path in `results[].evidence` appears in `bundle.json` and exists on disk. The publisher currently uses `integration` for these bundles. The per-case tier identifies simulator, adapter or physical evidence.
+
 ## Retire test worktrees
 
 At the end of a run, or before starting another run, use `git worktree list` to find checkouts created for finished test rows and temporary verification. Keep any checkout still needed to reproduce a failure or open in an active test. Save the evidence outside the checkout and verify that its commits are reachable from a retained branch or merged PR.

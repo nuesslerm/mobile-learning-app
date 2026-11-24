@@ -4,24 +4,24 @@ The [case manifest](rca-mobile-parity.json) defines the assertions to automate. 
 
 ## Latest coverage by case
 
-The initial matrix and dated sections below preserve earlier observations, including failures that later changes resolved.
+The initial matrix and dated sections below preserve earlier observations, including failures that later changes resolved. The original Zagreb workspace also has a checked index of local bundles at `.context/rca-mobile-parity-evidence-index.json`.
 
 | Case | Strongest simulator evidence | Remaining coverage |
 | --- | --- | --- |
-| `reconnect` | Both apps recovered a Claude question and the same two queued messages after an adapter restart. Both recovered a pending Codex approval. | OpenCode restart while a native request is pending. |
+| `reconnect` | Both apps recovered Claude and OpenCode questions with two queued messages after adapter restarts. Both recovered a pending Codex approval. | Additional interruption timings and physical-network handoff. |
 | `queue-lifecycle` | Orca Codex completed native creation, edit, reorder, Stop and Resume. T3 Codex completed creation, edit, Stop and Resume. Orca Claude and OpenCode and T3 OpenCode exercised native queue delivery and steering. | T3 native reorder and the startup interval when the composer disables Send. |
-| `approve-deny-question` | Native Codex Allow and Deny on both apps. Native Claude structured questions on both apps. | Native OpenCode request resolution, including reconnect. |
+| `approve-deny-question` | Native Codex and OpenCode Allow and Deny on both apps. Native Claude and OpenCode structured questions on both apps. | Cross-turn stale-response rejection through the native clients. |
 | `photo-picker` | T3 Claude and Orca Codex sent two images in order and retained the previews after a cold reopen. | Additional provider and app combinations. |
-| `model-switch` | Codex switched models in both apps and retained the queued model. Claude switched Sonnet to Haiku in both apps. Orca retained Haiku on a queued Claude turn. | T3 Claude queued model and an authorized alternate for OpenCode. |
+| `model-switch` | Codex switched models in both apps and retained the queued model. Both apps switched Claude Sonnet and Haiku and retained Haiku on a queued turn. | An authorized alternate for OpenCode. |
 | `skill-load` | Orca Codex and T3 OpenCode selected and ran a skill from autocomplete. T3 Codex invoked a typed skill. | Native selection on the other provider combinations. |
 | `child-and-background` | Both apps launched actual child agents and background work for all three providers. Foreground Claude and OpenCode cancellation exited the exact owned PID. | Codex Stop left the owned shell fixture alive. Detached Claude completion needed a subsequent prompt. T3 OpenCode's first completion fixture relaunched. |
 | `history-reopen` | Warm and cold opens in both apps against 96-turn histories, with ordered scroll samples and paired history receipts. | Physical-device latency. |
 | `worktree-retirement` | Both apps kept two branches, files and chats isolated and returned to the survivor after removing the clean checkout. T3 required Settle to remove its retired chat from Working. | None for the tested variants. |
-| `linux-host-phone` | No end-to-end run. | Reachable Linux adapters, an enrolled iPhone and both physical network paths. |
+| `linux-host-phone` | No end-to-end run. | The physical iPhone appeared briefly, but both deployed adapter health probes failed over the tailnet. |
 
 ## Initial provider matrix
 
-The first six rows created Python services and merged into `dev`. Five rows had green merge-commit CI in the recorded run. The detailed interaction traces and screenshots are indexed in `.context/rca-native-check/interaction-evidence/README.md` on the original Mac checkout. [#88](https://github.com/nuesslerm/mobile-learning-app/pull/88), [#89](https://github.com/nuesslerm/mobile-learning-app/pull/89), [#90](https://github.com/nuesslerm/mobile-learning-app/pull/90), [#91](https://github.com/nuesslerm/mobile-learning-app/pull/91), [#92](https://github.com/nuesslerm/mobile-learning-app/pull/92), [#93](https://github.com/nuesslerm/mobile-learning-app/pull/93)
+The first six rows created Python services and merged into `dev`. Five rows passed all three merge-commit core CI workflows. On #88, backend core passed and CLI and mobile core failed. Later dev revisions passed those core workflows. The detailed interaction traces and screenshots are indexed in `.context/rca-native-check/interaction-evidence/README.md` on the original Mac checkout. [#88](https://github.com/nuesslerm/mobile-learning-app/pull/88), [#89](https://github.com/nuesslerm/mobile-learning-app/pull/89), [#90](https://github.com/nuesslerm/mobile-learning-app/pull/90), [#91](https://github.com/nuesslerm/mobile-learning-app/pull/91), [#92](https://github.com/nuesslerm/mobile-learning-app/pull/92), [#93](https://github.com/nuesslerm/mobile-learning-app/pull/93)
 
 | App | Provider | Adapter and provider proof | Native simulator proof |
 | --- | --- | --- | --- |
@@ -105,7 +105,7 @@ This passes the forced-disconnect command-approval variant of `reconnect` on Orc
 
 Attach the blue/orange swatch first and the green/purple swatch second through Orca's Photos picker. Confirm two composer previews. Send a prompt asking for the colors in order, terminate Orca, relaunch it and reopen the same chat. Codex reported blue, orange, green and purple in order. Both thumbnails rendered after cold reopen. The restored history had two ordered image references. Preview bytes matched the hashes stored by RCA, and the decoded RGB pixels matched the original library images exactly. The uploaded PNGs had different file hashes from the originals.
 
-RCA now includes ordered attachment references in the user message event. Orca uses those references when it rebuilds the transcript. Messages already saved without references have no source for thumbnail replay. The Linux regression failed against the old code and passed after the fix. The Orca agent-session integration suite passed all six cases. This run covers Orca with Codex. T3 photo persistence and the other providers still need native evidence.
+RCA now includes ordered attachment references in the user message event. Orca uses those references when it rebuilds the transcript. Messages already saved without references have no source for thumbnail replay. The Linux regression failed against the old code and passed after the fix. The Orca agent-session integration suite passed all six cases. This run covers Orca with Codex. Its bundle is under `.context/rca-orca-approval/photo-published/run-12ffe4c675f30c96/`. The T3 follow-up is below.
 
 ## T3 queue follow when RCA is unavailable
 
@@ -123,7 +123,7 @@ T3 still projects the pending upload IDs on the sent message. The pinned T3 serv
 
 Repeat the two-photo picker with Claude Sonnet. After send, use a paired connection to call `attachments.delete` for both pending upload IDs, then fully terminate and relaunch T3. Reopen the same chat from the Chats list. Both thumbnails render and both inline photo links open the correct image. The reopened projection preserves the message ID, both attachment IDs and the composer records that bind those links. The agent identified blue, orange, green and purple in order. Both `assets.createUrl` reads return PNG bytes with the original fixtures' SHA-256 digests after the cleanup and after cold reopen.
 
-T3 now protects blobs referenced by a saved message from draft cleanup and persists composer context on the message and user turn item. The regressions confirm that an abandoned upload still deletes, a sent upload can be read after cleanup and a new paired connection, and both launch paths preserve composer context across a T3 restart. The affected Linux suites passed 17 flow and 4 integration tests. This passes `photo-picker` on T3 with Claude Sonnet. The other T3 providers still need native coverage.
+T3 now protects blobs referenced by a saved message from draft cleanup and persists composer context on the message and user turn item. The regressions confirm that an abandoned upload still deletes, a sent upload can be read after cleanup and a new paired connection, and both launch paths preserve composer context across a T3 restart. The affected Linux suites passed 17 flow and 4 integration tests. This passes `photo-picker` on T3 with Claude Sonnet. The bundle is under `.context/rca-t3-photo/published/run-283ba599e47fa289/`. The other T3 providers still need native coverage.
 
 ## T3 creates two queued messages from the composer
 
@@ -256,3 +256,20 @@ Use a Claude chat displaying Sonnet and send one marked turn. Select Haiku and s
 ## Worktree retirement recovers a lost executor reply
 
 Retiring the clean T3 survivor after skill testing returned `EXECUTOR_GONE`. Git already removed its directory, but RCA still listed the workspace after the executor reattached. An unfixed retry returned `NOT_FOUND` and left the registration. With the fixed local RCA service, retrying the same clean removal cleared the stale entry after the attached executor confirmed the checkout was absent. The repository workspace, other test worktree and both T3 branch refs survived. Other errors, including Git's refusal to remove a dirty checkout, still leave the registration. The workspace group passed all 10 tests on macOS and Linux arm64. The live retry and failing regression are in `.context/rca-t3-worktree-retirement/published/run-4deb82c8c56c4d40/`.
+
+
+## OpenCode native questions and approvals in both apps
+
+Open a fresh OpenCode chat in the native app. Ask the provider to use its structured question tool for Blue or Green. Seed two distinct follow-ups using paired T3 dispatch or RCA queue operations, record both IDs and restart only the adapter. Both native apps recovered the question. T3's paired projection retained the pending request ID and displayed the same two queue entries. Orca retained both queue IDs and its Green action resolved the original question. Each app's journal recorded one answer on the original turn and one start and finish for each queued item, in order. Both native transcripts showed both replies and the queue cleared.
+
+In the same provider's app controls, choose Supervised in T3 or Ask for approval in Orca. Run separate Bash prompts with test-only stdout markers. Use Allow once in T3 or Allow in Orca for the first request. Use Decline in T3 or Deny in Orca for the second. Both recorded one matching decision per request. The allowed tool printed the exact marker. The denied tool returned the provider's permission refusal and produced no command marker. The controls cleared. The four recordings, filtered journals, and before and after queue receipts are in `.context/rca-opencode-native-requests/published/run-211eee23cc7c3a42/`.
+
+## T3 retains Haiku when the Claude composer switches back to Sonnet
+
+Start a bounded command with Claude Sonnet. While the command holds the original turn, select Haiku and queue a follow-up through the T3 Send menu. Switch the composer back to Sonnet. RCA retained Haiku on the same queue item. Release the command, wait for one queue dispatch, then send a direct turn. The Claude provider log shows Sonnet, Haiku and Sonnet on the active, queued and next direct replies. Evidence is under `.context/rca-t3-claude-queued-model/published/run-fed95d27f44d9c65/`.
+
+## Physical iPhone and Linux host probe
+
+The device driver briefly listed a physical iPhone. Neither service's deployment answered its tailnet health probe, and the local VM Ops credential was unavailable. The Wi-Fi and cellular handoff remains blocked. The redacted probes are in `.context/rca-opencode-native-requests/published/run-9598815fb0c33c8f/`.
+
+The T3 skill catalog change passed [CLI CI](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45366730433) and [backend CI](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45366730593). The worktree retirement retry passed [CLI CI](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45368550307) and [backend CI](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45368550376).
