@@ -1,13 +1,6 @@
 // In-memory log tail — the bounded, snapshot-based pub-sub buffer that
 // drives the on-screen overlay UI.
 //
-// Two distinct roles from `persistence/` (which lives at a different
-// layer):
-//   - liveTail is FAST (sync, microsecond), EPHEMERAL (lost on restart),
-//     bounded (rolling 10K window). Used for "what just happened" overlays.
-//   - persistence is SLOW (async, disk I/O), DURABLE (survives restart),
-//     larger (50K+ rows). Used for "load older" history queries.
-//
 // Snapshot contract (REQUIRED for `useSyncExternalStore`):
 //   - `getEntries()` returns a NEW readonly array on every mutation so
 //     React's `Object.is` snapshot comparison fails the way it should
@@ -47,9 +40,6 @@ export type AddOptions = {
   context?: Record<string, unknown> | undefined;
 };
 
-/** In-memory live-tail cap. FlatList virtualizes rendering, so this is
- *  bounded by memory, not render cost. History beyond this lives in
- *  the host's persistence backend. */
 export const MAX_LIVE_ENTRIES = 10000;
 
 const EMPTY: readonly LogEntry[] = Object.freeze([]);

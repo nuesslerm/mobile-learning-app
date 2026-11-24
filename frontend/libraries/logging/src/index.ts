@@ -5,7 +5,6 @@
 //   plugins/     — the scrubber loglayer plugin
 //   primitives/  — generic, no domain knowledge (bufferedSink, clock, secretRedaction, traceparent)
 //   liveTail/    — in-memory log tail + appendToLiveTail Pipeline stage
-//   persistence/ — durable storage contract + impls + appendToPersistence stage
 //   pipeline/    — composition (PipelineTransport, built-in ConsoleEchoTransport, levelMap)
 //   install/     — generic platform hookups (installConsoleCapture)
 
@@ -20,7 +19,6 @@ export { installConsoleCapture, restoreConsole, getOriginalConsole } from './ins
 export type { InstallConsoleCaptureOptions, ConsoleCaptureTarget } from './install/installConsoleCapture.js';
 
 export type { LogEntry, LogLevel, AddOptions, LiveTailListener } from './liveTail/index.js';
-export type { LogPersistence, PersistedLogEntry, StoreLine, QueryPageOptions } from './persistence/index.js';
 
 export type {
   LoggerConfig,

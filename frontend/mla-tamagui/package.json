@@ -56,7 +56,6 @@
     "@lib/app-di": "workspace:*",
     "@lib/code-editor-api": "workspace:*",
     "@lib/logging": "workspace:*",
-    "@lib/rn-agentation": "workspace:*",
     "@lib/tamagui-design-system": "workspace:*",
     "@lib/voice-edit-dsl": "workspace:*",
     "@lib/webview-rpc": "workspace:*",

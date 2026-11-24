@@ -49,16 +49,14 @@ longer lint rules (owner, 20 Oct; `require-structured-log` never fired and went 
 
 ```
 Logger.*  ->  host LogLayer (configureLogger)  ->  scrubber plugin
-          ->  PipelineTransport: buffered batches -> stages (appendToLiveTail, appendToPersistence)
+          ->  PipelineTransport: buffered batches -> stages (appendToLiveTail, appendToBetterStack)
           ->  ConsoleEchoTransport (the real console)
 console.* ->  installConsoleCapture -> live tail
 ```
 
 - `logger/`: `Logger`, `configureLogger`. Without `configureLogger` every call
   is a silent no-op, so the host's wiring module must be the first import.
-- `pipeline/`, `liveTail/`, `persistence/`, `install/`: the transport, the
-  in-memory tail, the storage contract with an in-memory
-  implementation, and console capture.
+- `pipeline/`, `liveTail/`, `install/`: the transport, the in-memory tail, and console capture.
 - `primitives/`: buffered sink, clock, secret redaction, and `withTraceparent`
   (the W3C `traceparent` header the voice-edit and web-bridge clients send, so
   backend spans join the app's trace).

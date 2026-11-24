@@ -207,7 +207,6 @@ export type RedactRule<T> = {
  *   pipelineStages = [
  *     appendToLiveTail(),
  *     redactSensitiveFields({ keys: ['authorization', 'cookie'] }),
- *     appendToPersistence(persistence),
  *   ];
  *
  * The returned Stage is read-only on the batch — it never mutates the

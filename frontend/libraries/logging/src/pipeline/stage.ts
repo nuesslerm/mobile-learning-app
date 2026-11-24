@@ -8,7 +8,6 @@
 //
 //   pipelineStages = [
 //     appendToLiveTail(),
-//     appendToPersistence(persistence),
 //   ];
 //
 // Conventions:

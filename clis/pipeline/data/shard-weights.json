@@ -81,7 +81,6 @@
         "crate-exec-browser": 9,
         "crate-orca-map-browser": 9,
         "crate-agent-api-hosted": 7,
-        "@lib/rn-agentation": 6,
         "crate-orca-map-mobile": 6,
         "@app/remote-chat-agent": 5,
         "@feature/service-report": 5,

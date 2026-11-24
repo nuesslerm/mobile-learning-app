@@ -6,7 +6,6 @@ import '../lib/logger';
 // Second, so a throw while the imports below evaluate is still logged as app.crash.
 import '../app-shell/crashHandlerBoot';
 
-import { AgentationProvider } from '@lib/rn-agentation';
 import {
   resolveActiveThemeName,
   useHeaderHeightStore,
@@ -24,23 +23,11 @@ import { TamaguiProvider, Theme } from '@lib/tamagui-design-system/primitives';
 
 import { DeviceRunnerRoot } from '@/features/leetcode';
 
-import { AgentationMarkerLog } from '../app-shell/AgentationMarkerLog';
 import {
   NativeChromeBridge,
   useNavigationTheme,
 } from '../app-shell/NativeChromeBridge';
 import { RouteLogger } from '../app-shell/RouteLogger';
-
-// Module scope keeps the options object identity stable across renders. The
-// web driver resolves nodes from the document, so no inspectedRef is needed
-// here (the old app passed one because it drove native node handles).
-const AGENTATION_OPTIONS = {
-  documentTreeDriverOptions: {
-    // The debug sheet sits above app content in the DOM, so excluding it keeps
-    // findDeepestAtPoint resolving to the element underneath.
-    ignoredSelectors: ['#rn-agentation-debug-sheet'],
-  },
-};
 
 // A require, not an import: production inlines the flag and Platform.OS, so a flagless or native build (the CI's EAS
 // Update bakes the flag in for its seed) folds this branch away and the lab's web-only Alert never reaches the bundle.
@@ -149,13 +136,6 @@ export default function RootLayout() {
             </DeviceRunnerRoot>
             <NativeChromeBridge />
             <RouteLogger />
-            {/* AgentationMarkerLog calls useAgentation, which throws
-                  outright when no provider is above it -- and a throw here
-                  takes the whole tree down, so every route renders blank
-                  rather than just losing the marker log. */}
-            <AgentationProvider options={AGENTATION_OPTIONS}>
-              <AgentationMarkerLog />
-            </AgentationProvider>
             {/* Defaults, deliberately -- including `fullWindowOverlay`, which
                 sonner sets true and which renders the toasts into a separate
                 iOS UIWindow above every presented view controller. That is the

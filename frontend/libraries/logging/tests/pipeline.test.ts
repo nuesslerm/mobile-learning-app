@@ -2,14 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { __resetLiveTail, liveTail, type LogEntry } from '../src/liveTail';
 import {
-  createInMemoryPersistence,
-  type LogPersistence,
-} from '../src/persistence';
-import {
   ConsoleEchoTransport,
   PipelineTransport,
   appendToLiveTail,
-  appendToPersistence,
   toStoreLevel,
   type Stage,
 } from '../src/pipeline';
@@ -146,37 +141,6 @@ describe('appendToLiveTail stage', () => {
   });
 });
 
-describe('appendToPersistence stage', () => {
-  it('fire-and-forgets the batch into the persistence adapter', async () => {
-    const appended: unknown[] = [];
-    const persistence: LogPersistence = {
-      appendBatch: vi.fn(async (lines) => {
-        appended.push(lines);
-      }),
-      queryPage: vi.fn(),
-      clear: vi.fn(),
-    };
-    const stage = appendToPersistence(persistence);
-    await stage([{ level: 'warn', text: 'oops', context: { retry: 3 } }]);
-    await Promise.resolve();
-    expect(appended).toHaveLength(1);
-  });
-
-  it('swallows persistence failures (defensive)', async () => {
-    const persistence: LogPersistence = {
-      appendBatch: vi.fn().mockRejectedValue(new Error('disk full')),
-      queryPage: vi.fn(),
-      clear: vi.fn(),
-    };
-    const stage = appendToPersistence(persistence);
-    expect(() =>
-      stage([{ level: 'info', text: 'x', context: {} }])
-    ).not.toThrow();
-    await Promise.resolve();
-    await Promise.resolve();
-  });
-});
-
 describe('ConsoleEchoTransport — echoes to the injected console', () => {
   it('echoes via the configured console sink on flush', () => {
     const log = vi.fn();
@@ -221,17 +185,5 @@ describe('ConsoleEchoTransport — echoes to the injected console', () => {
     expect(log).toHaveBeenCalledWith('event', { userId: 1 });
     const call = log.mock.calls[0];
     expect(call).toEqual(['event', { userId: 1 }]);
-  });
-});
-
-describe('createInMemoryPersistence', () => {
-  it('round-trips entries via appendBatch + queryPage', async () => {
-    const p = createInMemoryPersistence();
-    await p.appendBatch([
-      { level: 'info', text: 'a', context: {} },
-      { level: 'info', text: 'b', context: {} },
-    ]);
-    const page = await p.queryPage({ limit: 10 });
-    expect(page.map((e) => e.text)).toEqual(['b', 'a']);
   });
 });

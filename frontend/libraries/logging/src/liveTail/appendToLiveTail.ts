@@ -7,7 +7,6 @@
 //
 //   const stages = [
 //     appendToLiveTail(),
-//     appendToPersistence(persistence),
 //   ];
 //   new PipelineTransport({ serialize, stages });
 

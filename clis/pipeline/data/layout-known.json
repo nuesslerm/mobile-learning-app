@@ -76,12 +76,6 @@
     },
     {
       "pass": "membership",
-      "package": "frontend/libraries/rn-agentation",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
       "package": "frontend/libraries/tamagui-design-system",
       "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
       "reason": "not yet typed: opts in with its section H item"

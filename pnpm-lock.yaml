@@ -491,40 +491,6 @@ importers:
         specifier: ^17.4.3
         version: 17.4.3
 
-  frontend/libraries/rn-agentation:
-    dependencies:
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.2.17
-      react:
-        specifier: 19.3.0
-        version: 19.3.0
-      react-native:
-        specifier: 'catalog:'
-        version: 0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10)
-      typescript:
-        specifier: 'catalog:'
-        version: '@typescript/typescript6@6.0.2'
-      vitest:
-        specifier: 'catalog:'
-        version: 3.2.6(@types/debug@4.1.13)(@types/node@24.13.1)(jiti@2.7.0)(jsdom@30.0.1(@noble/hashes@1.8.0))(lightningcss@1.32.0)(terser@5.48.0)(tsx@4.22.4)(yaml@2.9.0)
-    devDependencies:
-      '@react-native-async-storage/async-storage':
-        specifier: 2.2.0
-        version: 2.2.0(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))
-      '@typescript/native':
-        specifier: 'catalog:'
-        version: typescript@7.0.2
-      dependency-cruiser:
-        specifier: ^17.4.3
-        version: 17.4.3
-      expo-clipboard:
-        specifier: ~58.0.4
-        version: 58.0.4(expo@58.0.26)(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10))(react@19.3.0)
-      zustand:
-        specifier: ^5.0.14
-        version: 5.0.14(@types/react@19.2.17)(immer@11.1.8)(react@19.3.0)(use-sync-external-store@1.6.0(react@19.3.0))
-
   frontend/libraries/tamagui-design-system:
     dependencies:
       '@expo/ui':
@@ -716,9 +682,6 @@ importers:
       '@lib/logging':
         specifier: workspace:*
         version: link:../libraries/logging
-      '@lib/rn-agentation':
-        specifier: workspace:*
-        version: link:../libraries/rn-agentation
       '@lib/tamagui-design-system':
         specifier: workspace:*
         version: link:../libraries/tamagui-design-system
