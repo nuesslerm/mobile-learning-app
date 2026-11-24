@@ -178,9 +178,19 @@ impl Runner {
         let journal = engine.clone();
         let claude = ClaudeSessions::reporting_tasks(move |thread, task| {
             let call = format!("claude-task:{}:{}:{}", task.turn, task.provider_run.as_deref().unwrap_or_default(), task.id);
+            let mut output = task.summary;
+            if let Some(stdout) = task.stdout {
+                if !stdout.text.is_empty() {
+                    output.push_str("\n\n");
+                    output.push_str(&stdout.text);
+                }
+                if stdout.truncated {
+                    output.push_str("\n[Background stdout truncated]");
+                }
+            }
             let events = [
                 ThreadEvent::ToolStarted { call: call.clone(), tool: "Background task".into(), args: serde_json::json!({"taskId": task.id}) },
-                ThreadEvent::ToolOutput { call: call.clone(), stream: agent_api_agent::OutputStream::Stdout, data: task.summary },
+                ThreadEvent::ToolOutput { call: call.clone(), stream: agent_api_agent::OutputStream::Stdout, data: output },
                 ThreadEvent::ToolFinished { call, ok: task.status == "completed", result: serde_json::json!({"status": task.status}) },
             ];
             for event in events {

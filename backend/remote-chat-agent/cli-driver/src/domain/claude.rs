@@ -14,7 +14,13 @@ pub(crate) struct TaskId {
 
 pub(crate) enum TaskFrame {
     Started(TaskId),
-    Finished { id: TaskId, status: String, summary: String },
+    Finished { id: TaskId, status: String, summary: String, stdout: Option<TaskStdout> },
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct TaskStdout {
+    pub text: String,
+    pub truncated: bool,
 }
 
 pub(crate) fn task_frame(frame: &Value) -> Option<TaskFrame> {
@@ -27,7 +33,12 @@ pub(crate) fn task_frame(frame: &Value) -> Option<TaskFrame> {
         "task_notification" => {
             let status = frame["status"].as_str()?;
             matches!(status, "completed" | "failed" | "stopped").then_some(())?;
-            Some(TaskFrame::Finished { id: id()?, status: status.to_string(), summary: frame["summary"].as_str()?.to_string() })
+            let output = &frame["rca_task_stdout"];
+            let stdout = output["text"].as_str().and_then(|text| Some(TaskStdout {
+                text: text.to_string(),
+                truncated: output["truncated"].as_bool()?,
+            }));
+            Some(TaskFrame::Finished { id: id()?, status: status.to_string(), summary: frame["summary"].as_str()?.to_string(), stdout })
         }
         _ => None,
     }

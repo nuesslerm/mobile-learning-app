@@ -3,7 +3,7 @@
 //! is resumed by its conversation id (`--resume`) on its next turn. A steer is a message with priority `now`, an interrupt a control request, and a permission the CLI
 //! asks for is handed out as an event and answered on the same process. A change of the thread's mode or model is a control request, not a restart.
 use super::ports::{Linker, SessionDriver};
-use crate::domain::claude::{self, Inbound, Outcome, Question, Step, TaskFrame, TaskId, ToolAsk, Translator};
+use crate::domain::claude::{self, Inbound, Outcome, Question, Step, TaskFrame, TaskId, TaskStdout, ToolAsk, Translator};
 use crate::domain::{Driver, ExecEvent, TurnRequest, Verdict};
 use async_trait::async_trait;
 use futures_util::StreamExt;
@@ -95,6 +95,7 @@ pub struct CompletedTask {
     pub provider_run: Option<String>,
     pub status: String,
     pub summary: String,
+    pub stdout: Option<TaskStdout>,
 }
 
 type TaskReporter = Box<dyn Fn(&str, CompletedTask) + Send + Sync>;
@@ -360,9 +361,9 @@ impl Proc {
                     }
                     None
                 }
-                TaskFrame::Finished { id, status, summary } => inner.tasks.remove(&id).map(|turn| {
+                TaskFrame::Finished { id, status, summary, stdout } => inner.tasks.remove(&id).map(|turn| {
                     inner.last_active = Some(Instant::now());
-                    CompletedTask { turn, id: id.task, provider_run: id.run, status, summary }
+                    CompletedTask { turn, id: id.task, provider_run: id.run, status, summary, stdout }
                 }),
             }
         };

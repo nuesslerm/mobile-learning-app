@@ -71,10 +71,82 @@ fn next(rx: &mpsc::Receiver<Heard>) -> Heard {
 }
 
 fn gone(pid: i32) -> bool {
+    #[cfg(not(target_os = "linux"))]
+    {
+        // SAFETY: signal zero only checks whether this PID exists.
+        let status = unsafe { libc::kill(pid, 0) };
+        status == -1 && std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH)
+    }
+    #[cfg(target_os = "linux")]
     match std::fs::read_to_string(format!("/proc/{pid}/stat")) {
         Err(_) => true,
         Ok(stat) => stat.rsplit(')').next().is_some_and(|rest| rest.trim_start().starts_with('Z')),
     }
+}
+
+#[test]
+fn given_a_claude_shell_task_when_it_completes_then_the_session_relays_only_its_owned_output() {
+    use serde_json::json;
+    use std::os::unix::fs::symlink;
+
+    // Given a Claude session with task output in its spool and a second task pointing outside it
+    let ((_r, root), (_h, home), (_b, bin)) = (dir(), dir(), dir());
+    let session_id = "3f1c0e52-8d3b-4c71-9a55-0a1b2c3d4e5f";
+    let base = std::env::var_os("CLAUDE_CODE_TMPDIR").map(PathBuf::from).unwrap_or_else(|| {
+        if cfg!(target_os = "macos") { PathBuf::from("/tmp") } else { std::env::temp_dir() }
+    });
+    let uid = unsafe { libc::geteuid() };
+    let spool = base.join(format!("claude-{uid}"));
+    std::fs::create_dir_all(&spool).unwrap();
+    let case = tempfile::tempdir_in(spool).unwrap();
+    let task_dir = std::fs::canonicalize(case.path()).unwrap().join(session_id).join("tasks");
+    std::fs::create_dir_all(&task_dir).unwrap();
+    let allowed = task_dir.join("owned.output");
+    let outside = case.path().join("outside.output");
+    std::fs::write(&allowed, "detached stdout marker\n").unwrap();
+    std::fs::write(&outside, "unrelated file").unwrap();
+    let large = task_dir.join("large.output");
+    std::fs::write(&large, "x".repeat((32 << 10) + 1)).unwrap();
+    symlink(&outside, task_dir.join("linked.output")).unwrap();
+    std::fs::hard_link(&outside, task_dir.join("hardlinked.output")).unwrap();
+    let cli = bin.join("claude");
+    let mut lines = Vec::new();
+    for (task, file, kind) in [
+        ("owned", allowed, "local_bash"),
+        ("large", large, "local_bash"),
+        ("outside", outside, "local_bash"),
+        ("linked", task_dir.join("linked.output"), "local_bash"),
+        ("hardlinked", task_dir.join("hardlinked.output"), "local_bash"),
+        ("transcript", {
+            let file = task_dir.join("transcript.output");
+            std::fs::write(&file, "unrelated agent transcript").unwrap();
+            file
+        }, "local_agent"),
+    ] {
+        lines.push(json!({"type":"system","subtype":"task_started","session_id":session_id,"task_id":task,"run_id":"provider-run","is_backgrounded":true,"task_type":kind}));
+        lines.push(json!({"type":"system","subtype":"task_notification","session_id":session_id,"task_id":task,"run_id":"provider-run","status":"completed","summary":"Task finished","output_file":file}));
+    }
+    let frames = lines.iter().map(Value::to_string).collect::<Vec<_>>().join("\n");
+    std::fs::write(&cli, format!("#!/bin/sh\n/bin/cat <<'RCA_FRAMES'\n{frames}\nRCA_FRAMES\n")).unwrap();
+    std::fs::set_permissions(&cli, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+    // When the real executor streams the provider's task notifications
+    let ex = executor(&root, &home, &bin);
+    let args = SessionOpen { session: "claude-case".into(), program: "claude".into(), args: vec!["--session-id".into(), session_id.into()], cwd: None };
+    let mut stdout = String::new();
+    let ended = ex.session_open("claude-case", &args, &mut |stream, text| {
+        if stream == Stream::Stdout {
+            stdout.push_str(text);
+        }
+    }, &mut |_| {}).unwrap();
+
+    // Then only the session's regular shell output was attached and all notifications arrived
+    assert_eq!(ended.exit_code, 0);
+    let notifications: Vec<Value> = stdout.lines().map(|line| serde_json::from_str::<Value>(line).unwrap()).filter(|v| v["subtype"] == "task_notification").collect();
+    assert_eq!(notifications.len(), 6);
+    assert_eq!(notifications[0]["rca_task_stdout"], json!({"text":"detached stdout marker\n","truncated":false}));
+    assert_eq!(notifications[1]["rca_task_stdout"], json!({"text":"x".repeat(32 << 10),"truncated":true}));
+    assert!(notifications[2..].iter().all(|frame| frame.get("rca_task_stdout").is_none()));
 }
 
 #[test]
