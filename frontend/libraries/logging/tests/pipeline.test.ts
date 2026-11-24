@@ -188,6 +188,21 @@ describe('ConsoleEchoTransport — echoes to the injected console', () => {
     expect(call).toEqual(['hello']);
   });
 
+  it('Given a filtered console sink, When a batch flushes, Then it receives only accepted events', () => {
+    const info = vi.fn();
+    const transport = new ConsoleEchoTransport({
+      id: 'diagnostics',
+      console: { info },
+      accepts: (event) => event === 'editor.input_timing',
+    });
+
+    transport.shipToLogger(params('info', ['app.boot']));
+    transport.shipToLogger(params('info', ['editor.input_timing']));
+    vi.advanceTimersByTime(1000);
+
+    expect(info.mock.calls).toEqual([['editor.input_timing']]);
+  });
+
   it('falls back to console.log when the level-specific method is missing', () => {
     const log = vi.fn();
     const transport = new ConsoleEchoTransport({ console: { log } });

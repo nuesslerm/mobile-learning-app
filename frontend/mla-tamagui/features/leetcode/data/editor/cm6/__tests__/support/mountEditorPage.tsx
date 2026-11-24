@@ -39,7 +39,7 @@ afterAll(async () => {
   }
 });
 
-export async function mountPage(options: { init: boolean; language?: string; contrastCanvas?: boolean }) {
+export async function mountPage(options: { init: boolean; language?: string; contrastCanvas?: boolean; profileInput?: boolean }) {
   // the flow config aliases react-native-webview to the app's web twin, whose handle injects scripts into the iframe
   const ref = createRef<{ injectJavaScript(script: string): void }>();
   const host = createWebViewHostTransport(() => ref.current);
@@ -57,6 +57,7 @@ export async function mountPage(options: { init: boolean; language?: string; con
   const errors: unknown[] = [];
   const crossed: string[] = [];
   const readyMessages: unknown[] = [];
+  const inputTimings: Extract<FromEditorMessage, { type: 'inputTiming' }>[] = [];
   const changes: Extract<FromEditorMessage, { type: 'contentChanged' }>[] = [];
   const sendInit = () => ref.current?.injectJavaScript(deliverScript(JSON.stringify({
     ...INIT,
@@ -75,7 +76,7 @@ export async function mountPage(options: { init: boolean; language?: string; con
       <FlowProviders>
         <WebView
           ref={ref as never}
-          source={{ html: buildEditorHtml({ debug: true }) }}
+          source={{ html: buildEditorHtml({ debug: true, profileInput: options.profileInput }) }}
           onMessage={(event: { nativeEvent: { data: string } }) => {
             const raw = event.nativeEvent.data;
             const decoded = decode(raw);
@@ -95,6 +96,7 @@ export async function mountPage(options: { init: boolean; language?: string; con
             if (decoded.type === 'foreign') {
               const message = JSON.parse(raw) as FromEditorMessage;
               if (message.type === 'contentChanged') changes.push(message);
+              if (message.type === 'inputTiming') inputTimings.push(message);
               if (message.type === 'ready') {
                 readyMessages.push(message);
                 if (!announced) {
@@ -113,6 +115,6 @@ export async function mountPage(options: { init: boolean; language?: string; con
   await waitFor(() => {
     if (!announced) throw new Error('the page has not announced itself');
   });
-  return { engine, rpc, sendInit, frame, crossed, errors, faults, readyMessages, changes };
+  return { engine, rpc, sendInit, frame, crossed, errors, faults, readyMessages, changes, inputTimings };
 }
 

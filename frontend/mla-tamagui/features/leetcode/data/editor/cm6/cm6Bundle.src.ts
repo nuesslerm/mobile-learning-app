@@ -77,6 +77,7 @@ declare global {
     __editorEngine__?: EditorEngine;
     /** set by the page html in tests only */
     __EDITOR_DEBUG__?: boolean;
+    __EDITOR_PROFILE_INPUT__?: boolean;
     __editorDebug__?: {
       simulateUser(
         spec:
@@ -368,9 +369,40 @@ function languageOf(id: string): Language {
 }
 const randomId = () =>
   Date.now().toString(36) + Math.random().toString(36).slice(2);
+function profileInput() {
+  let inputAt: number | null = null;
+  let lastReport = -Infinity;
+  let updates = 0;
+  return {
+    observer: EditorView.domEventObservers({
+      beforeinput: () => { inputAt = performance.now(); },
+    }),
+    updated() {
+      const updatedAt = performance.now();
+      const inputToUpdateMs = inputAt === null ? null : updatedAt - inputAt;
+      inputAt = null;
+      updates += 1;
+      if (updatedAt - lastReport < 250) return;
+      lastReport = updatedAt;
+      const sampledUpdates = updates;
+      updates = 0;
+      requestAnimationFrame(() => {
+        postToRN({
+          type: 'inputTiming',
+          inputToUpdateMs,
+          updateToFrameMs: performance.now() - updatedAt,
+          updates: sampledUpdates,
+          sentAtMs: Date.now(),
+        });
+      });
+    },
+  };
+}
 function buildState(cfg: EditorConfig, doc: string, selection?: SelRange) {
+  const inputTiming = window.__EDITOR_PROFILE_INPUT__ ? profileInput() : null;
   const updateListener = EditorView.updateListener.of((update) => {
     if (update.docChanged) {
+      inputTiming?.updated();
       postToRN({
         type: 'contentChanged',
         text: update.state.doc.toString(),
@@ -458,6 +490,7 @@ function buildState(cfg: EditorConfig, doc: string, selection?: SelRange) {
       updateListener,
       apiListener,
       touchHandler,
+      ...(inputTiming ? [inputTiming.observer] : []),
     ],
   });
 }

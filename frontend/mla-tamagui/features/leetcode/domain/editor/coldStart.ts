@@ -11,6 +11,7 @@ export type ColdStartReport = {
 };
 
 export type ColdStart = {
+  readonly nth: number;
   mark(name: ColdStartMark): void;
   /** The report of this editor's first hydration; null while a mark is missing and once it has been taken. */
   take(page: { evalMs?: number }): ColdStartReport | null;
@@ -28,6 +29,7 @@ export function createColdStart(options: { clock: () => number; nth: number; htm
   const marks = new Map<ColdStartMark, number>();
   let taken = false;
   return {
+    nth: options.nth,
     mark(name) {
       if (!marks.has(name)) marks.set(name, options.clock());
     },

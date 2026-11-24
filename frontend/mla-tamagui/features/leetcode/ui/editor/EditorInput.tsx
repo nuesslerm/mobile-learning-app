@@ -771,6 +771,15 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
               message: m.message.slice(0, 200),
             });
             break;
+          case 'inputTiming':
+            if (__DEV__) Logger.info('editor.input_timing', {
+              inputToUpdateMs: m.inputToUpdateMs,
+              updateToFrameMs: m.updateToFrameMs,
+              updates: m.updates,
+              frameToHostMs: Math.max(0, Date.now() - m.sentAtMs),
+              nth: coldStartRef.current?.nth,
+            });
+            break;
           case 'contentChanged':
             holdText(m.text);
             onUndoAvailabilityChange?.(m.canUndo);

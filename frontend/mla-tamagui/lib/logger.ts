@@ -30,6 +30,7 @@ import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import { appLogFields } from '../app-shell/runId';
 import { LogLayer, type LogLayerTransportParams } from 'loglayer';
+import { Platform } from 'react-native';
 
 type AppLogEntry = {
   level: string;
@@ -48,6 +49,9 @@ const originalConsole = {
   error: console.error.bind(console),
   debug: console.debug.bind(console),
 };
+
+const buoyEnabled = __DEV__ && Platform.OS !== 'web';
+const isEditorTiming = (event: unknown) => event === 'editor.cold_start' || event === 'editor.input_timing';
 
 function stringify(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -104,7 +108,16 @@ if (betterStackToken && betterStackHost) {
 const rootLogLayer = new LogLayer({
   transport: [
     new PipelineTransport<AppLogEntry>({ serialize, stages }),
-    new ConsoleEchoTransport({ console: originalConsole }),
+    new ConsoleEchoTransport({
+      console: originalConsole,
+      accepts: buoyEnabled ? (event) => !isEditorTiming(event) : undefined,
+    }),
+    ...(buoyEnabled ? [new ConsoleEchoTransport({
+      id: 'buoy',
+      accepts: isEditorTiming,
+      // Buoy wraps the live console after this logger is initialized.
+      console: { info: (...args: unknown[]) => console.info(...args) },
+    })] : []),
   ],
 });
 rootLogLayer.setLevel('debug');

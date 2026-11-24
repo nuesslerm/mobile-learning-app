@@ -8,7 +8,7 @@ import { buildEditorHtml } from './editorHtml';
 /** The CodeMirror page in a WebView, and the typed editor API over it: requests go down as injected scripts, replies and events come back as posted messages. */
 export function createWebViewEditorBridge(): EditorBridgePort {
   return {
-    html: () => buildEditorHtml(),
+    html: () => buildEditorHtml({ profileInput: __DEV__ && process.env.EXPO_PUBLIC_EDITOR_PERF === '1' }),
     connect(webView) {
       const transport = createWebViewHostTransport(webView);
       const rpc = createRpcClient(transport, { timeoutMs: 5000 });

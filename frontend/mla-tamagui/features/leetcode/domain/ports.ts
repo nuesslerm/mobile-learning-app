@@ -141,7 +141,8 @@ export type FromEditorMessage =
   | { type: 'log'; message: string }
   | { type: 'error'; message: string }
   | { type: 'contentChanged'; text: string; selection: EditorSelection; canUndo: boolean }
-  | { type: 'selectionChanged'; selection: EditorSelection };
+  | { type: 'selectionChanged'; selection: EditorSelection }
+  | { type: 'inputTiming'; inputToUpdateMs: number | null; updateToFrameMs: number; updates: number; sentAtMs: number };
 
 /** What the editor view hands the page it shows: a WebView that takes scripts. */
 export type WebViewHandle = { injectJavaScript(script: string): void };

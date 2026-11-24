@@ -30,6 +30,8 @@ export type ConsoleSink = {
 };
 
 export type ConsoleEchoTransportOptions = {
+  id?: string;
+  accepts?: (event: unknown) => boolean;
   /** Where to write the echoes. Falls back to the method-per-level lookup
    *  below; a missing method is replaced by `console.log` so a partial
    *  console (e.g. one without `debug`) still works. */
@@ -43,9 +45,11 @@ type ConsoleLine = { level: string; args: unknown[] };
 export class ConsoleEchoTransport extends LoggerlessTransport {
   private readonly sink: BufferedSink<ConsoleLine>;
   private readonly console: ConsoleSink;
+  private readonly accepts?: ConsoleEchoTransportOptions['accepts'];
 
   constructor(opts: ConsoleEchoTransportOptions = {}) {
-    super({ id: 'console' });
+    super({ id: opts.id ?? 'console' });
+    this.accepts = opts.accepts;
     this.console = opts.console ?? {};
     this.sink = createBufferedSink<ConsoleLine>({
       flushMs: opts.flushMs ?? DEFAULT_FLUSH_MS,
@@ -72,6 +76,7 @@ export class ConsoleEchoTransport extends LoggerlessTransport {
     data,
     hasData,
   }: LogLayerTransportParams): unknown[] {
+    if (this.accepts && !this.accepts(messages[0])) return messages;
     const args = hasData && data ? [...messages, eventFieldsFirst(data)] : messages;
     this.sink.push({ level: toStoreLevel(logLevel), args });
     return messages;
