@@ -144,7 +144,7 @@ describe('editorSettingsMenu', () => {
       'textformat.size',
       'space',
       'decrease.indent',
-      'text.alignleft',
+      'text.alignright',
       'keyboard',
       'wand.and.sparkles',
     ]);

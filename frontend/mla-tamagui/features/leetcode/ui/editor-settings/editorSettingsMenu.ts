@@ -48,7 +48,7 @@ const GLYPHS = {
   fontSize: { icon: CaseSensitive, sfSymbol: 'textformat.size' },
   whitespace: { icon: Space, sfSymbol: 'space' },
   wrap: { icon: WrapText, sfSymbol: 'decrease.indent' },
-  tabSize: { icon: IndentIncrease, sfSymbol: 'text.alignleft' },
+  tabSize: { icon: IndentIncrease, sfSymbol: 'text.alignright' },
   symbolBar: { icon: Keyboard, sfSymbol: 'keyboard' },
   format: { icon: Wand2, sfSymbol: 'wand.and.sparkles' },
 } as const satisfies Record<
