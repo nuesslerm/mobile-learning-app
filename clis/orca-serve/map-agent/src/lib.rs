@@ -182,12 +182,13 @@ pub fn body_fingerprint(session: &str, text: &str) -> String {
     queued::fingerprint(session, &queued::body_of(text))
 }
 
-/// The agent rows; it holds the uploads in flight, so one value serves every connection.
+/// The agent rows share in-flight requests and launch reservations across connections.
 #[derive(Default)]
 pub struct AgentArea {
     uploads: attach::Uploads,
     clips: clipboard::Clips,
     dictations: speech::Dictations,
+    launches: std::sync::Mutex<()>,
 }
 
 impl Area for AgentArea {
@@ -204,7 +205,7 @@ impl Area for AgentArea {
     }
 
     fn capabilities(&self) -> &'static [&'static str] {
-        &[status_stream::STRUCTURED, status_stream::STATUS_FEED, interrupted::CONTINUE, interrupted::CONTINUE_PHONE, queued::MESSAGES, queued::REORDER, queued::EDIT]
+        &[status_stream::STRUCTURED, status_stream::STATUS_FEED, interrupted::CONTINUE, interrupted::CONTINUE_PHONE, queued::MESSAGES, queued::REORDER, queued::EDIT, launch::ROUTING, launch::REPLAY_REQUIRED, launch::REGISTERED_AGENTS]
     }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
@@ -265,8 +266,14 @@ impl Area for AgentArea {
             SKILLS_DISCOVER => skills::discover(agent, params),
             AI_VAULT_LIST_SESSIONS => vault::list_sessions(agent, params),
             AI_VAULT_PREPARE_SESSION_RESUME => vault::prepare_resume(params),
-            AGENT_LAUNCH => launch::launch(agent, params),
-            AGENT_LAUNCH_REPLAY => launch::replay(agent, params),
+            AGENT_LAUNCH | AGENT_LAUNCH_REPLAY => {
+                let _guard = self.launches.lock().map_err(|_| Failure::internal("Launch reservation unavailable"))?;
+                if method == AGENT_LAUNCH {
+                    launch::launch(agent, params)
+                } else {
+                    launch::replay(agent, params)
+                }
+            }
             NATIVE_CHAT_READ_SESSION => session::read_session(agent, params),
             // With a subscription id, that one native-chat stream of this connection; without, all of them.
             NATIVE_CHAT_UNSUBSCRIBE => {

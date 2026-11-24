@@ -415,6 +415,63 @@ fn given_launches_when_sent_then_a_chat_starts_in_an_existing_workspace_with_the
 }
 
 #[test]
+fn a_reserved_mobile_launch_creates_an_opencode_chat_once_and_replays_the_receipt() {
+    // Given an existing workspace and the session ID reserved by the mobile launch.
+    let mut rig = Rig::new();
+    let launch = json!({
+        "agent": "opencode",
+        "operationId": "1730000000000-native",
+        "target": {"kind": "existing", "worktree": "id:main::"},
+        "sessionId": "opencode_reserved",
+        "paneKey": "ignored-by-the-chat-launch",
+        "prompt": {"text": "read workspace", "delivery": "submit"},
+    });
+
+    // When the phone repeats the durable launch after losing the first reply.
+    let first = rig.ok("agent.launchReplay", launch.clone());
+    let again = rig.ok("agent.launchReplay", launch.clone());
+
+    // Then it gets one structured tab, one first turn and the same receipt.
+    assert_eq!(first, again);
+    assert_eq!(first["outcome"]["kind"], "structured");
+    assert_eq!(first["outcome"]["sessionId"], "opencode_reserved");
+    let tabs = orca_map_workspace::layout::kept(rig.agent.as_ref(), "main").unwrap();
+    assert_eq!(tabs.len(), 1);
+    assert_eq!(tabs[0]["id"], first["outcome"]["tabId"]);
+    assert_eq!(tabs[0]["agent"], "opencode");
+    assert_eq!(first["prompt"]["outcome"], "journaled");
+    assert_eq!(sent(&rig, "thread.create").len(), 1);
+    assert_eq!(sent(&rig, "turn.start").len(), 1);
+    let mut other = launch;
+    other["sessionId"] = "opencode_different".into();
+    assert_eq!(rig.err("agent.launchReplay", other).1, "agent_session_operation_conflict");
+}
+
+#[test]
+fn an_interrupted_mobile_launch_keeps_its_reservation_and_never_restarts_the_first_turn() {
+    // Given a service that loses its answer when the first turn is sent.
+    let mut rig = Rig::new();
+    rig.agent.reply("turn.start", |_| Err(orca_core::AgentError::Failed("lost connection".into())));
+    let launch = json!({
+        "agent": "opencode",
+        "operationId": "1730000000000-unconfirmed",
+        "target": {"kind": "existing", "worktree": "id:main::"},
+        "sessionId": "opencode_unconfirmed",
+        "prompt": {"text": "read workspace", "delivery": "submit"},
+    });
+
+    // When the phone starts and retries the launch.
+    let first = rig.err("agent.launchReplay", launch.clone());
+    let again = rig.err("agent.launchReplay", launch);
+
+    // Then both answers preserve the uncertainty, with one chat and one start request.
+    assert_eq!(first.0, "agent_session_operation_unknown");
+    assert_eq!(first, again);
+    assert_eq!(sent(&rig, "thread.create").len(), 1);
+    assert_eq!(sent(&rig, "turn.start").len(), 1);
+}
+
+#[test]
 fn given_a_session_when_held_released_and_read_as_a_native_chat_then_hold_needs_the_session_and_the_chat_is_its_messages_paged_by_offset() {
     // Given the recorded thread
     let mut rig = Rig::new();
@@ -1392,6 +1449,9 @@ fn given_the_host_when_status_is_read_then_it_advertises_the_status_feed_and_str
         "agent-session.queued-messages.v2",
         "agent-session.queued-message-reorder.v1",
         "agent-session.queued-message-edit.v1",
+        "agent.launch.v2",
+        "agent.launch.replay-required.v1",
+        "agent-session.structured.registered-agents.v1",
     ]);
 }
 
