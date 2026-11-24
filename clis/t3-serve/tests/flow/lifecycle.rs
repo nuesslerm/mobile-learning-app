@@ -66,7 +66,7 @@ fn every_forwarded_command_asks_the_agent_api_for_its_method_and_an_accepted_one
         (cmd("queued-run.reorder", json!({"runId": "q1", "beforeRunId": "q2"})), Op::QueueMove { thread: t(), item: "q1".into(), before: Some("q2".into()) }),
         (cmd("queued-run.edit", json!({"runId": "q1", "text": "sooner"})), Op::QueueEdit { thread: t(), item: "q1".into(), prompt: "sooner".into() }),
         (cmd("queued-run.cancel", json!({"runId": "q1"})), Op::QueueDelete { thread: t(), item: "q1".into() }),
-        (cmd("queued-message.promote-to-steer", json!({"queuedRunId": "q1", "targetRunId": "r9"})), Op::TurnSteer { thread: t(), turn: Some("r9".into()), item: Some("q1".into()) }),
+        (cmd("queued-message.promote-to-steer", json!({"queuedRunId": "q1", "targetRunId": "r9"})), Op::TurnSteer { thread: t(), turn: Some("r9".into()), item: Some("q1".into()), prompt: None }),
         (cmd("runtime-request.respond", json!({"requestId": "a1", "decision": "acceptForSession"})), Op::ApprovalAnswer { thread: t(), approval: "a1".into(), decision: "accept_for_session".into() }),
         (cmd("runtime-request.respond", json!({"requestId": "i1", "answers": {"q1": "yes", "q2": ["a", "b"]}})), Op::InputAnswer { thread: t(), request: "i1".into(), answer: "yes\na, b".into() }),
         (cmd("thread.user-input.dismiss", json!({"requestId": "i1"})), Op::InputDismiss { thread: t(), request: "i1".into() }),

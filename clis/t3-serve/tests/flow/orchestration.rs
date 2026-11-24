@@ -370,6 +370,47 @@ fn a_queued_message_is_steered_into_a_turn_only_once_the_provider_has_begun_it()
 }
 
 #[test]
+fn the_mobile_steer_action_delivers_once_into_the_active_provider_turn() {
+    // Given an active provider turn and an existing queued message.
+    let (h, _events, _thread) = started();
+    let mut rpc = connect(&h);
+    h.agent.hold.store(true, std::sync::atomic::Ordering::SeqCst);
+    success(&dispatch(&mut rpc, message("first", "keep running")));
+    success(&dispatch(&mut rpc, queued("queued", "wait until later")));
+    h.agent.append("t1", Some("u1"), AgentEventKind::Text("working".into()));
+    for _ in 0..30 {
+        if projection(&mut rpc)["providerTurns"].as_array().unwrap().iter().any(|p| p["status"] == "running") {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+
+    // When the mobile composer sends Steer now and retries the same command.
+    let mut steer = message("steer", "change the active work");
+    steer["creationSource"] = "mobile".into();
+    steer["dispatchMode"] = json!({"type": "start_immediately"});
+    steer["deliveryIntent"] = "steer".into();
+    let first = dispatch(&mut rpc, steer.clone());
+    assert_eq!(success(&first), success(&dispatch(&mut rpc, steer)));
+
+    // Then one steer was sent and appears in the active run with nothing added to the queue.
+    let operations = h.agent.ops.lock().unwrap();
+    let steers: Vec<_> = operations.iter().filter_map(|op| match op {
+        t3_core::ports::Op::TurnSteer { prompt, turn, item, .. } => Some((prompt.as_deref(), turn.as_deref(), item.as_deref())),
+        _ => None,
+    }).collect();
+    assert_eq!(steers, [(Some("change the active work"), Some("u1"), None)]);
+    drop(operations);
+    let projection = projection(&mut rpc);
+    assert_eq!(projection["runs"].as_array().unwrap().len(), 2);
+    assert_eq!(projection["runs"][0]["status"], "running");
+    assert_eq!(projection["runs"][1]["status"], "queued");
+    let item = projection["turnItems"].as_array().unwrap().iter().find(|r| r["text"] == "change the active work").expect("one visible steer");
+    assert_eq!(item["runId"], projection["runs"][0]["id"]);
+    assert_eq!(item["inputIntent"], "steer");
+}
+
+#[test]
 fn undecodable_commands_are_defects_and_commands_the_server_does_not_build_are_typed_refusals() {
     let (_h, mut rpc, _thread) = started();
     // When a command misses its id, names an unknown type, and one is a real type this server does not build; and a dispatch mode it does not offer

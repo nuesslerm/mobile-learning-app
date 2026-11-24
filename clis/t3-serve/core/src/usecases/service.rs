@@ -6,13 +6,13 @@ use super::projects::FORWARDED as FORWARDED_PROJECTS;
 use super::runner::Runner;
 use crate::domain::command::Command;
 use crate::domain::command::Family;
-use crate::domain::decider::Effect;
+use crate::domain::decider::{may_steer, Effect};
 use crate::domain::auth::{hash_secret, opaque_secret, token_id};
 use crate::ports::{AgentApi, AuthStore, Clock, HostProbe, Ids, Log, MetaStore, ModelCatalog, StorageProbe, TicketRecord, TokenRecord};
 use super::settings::Held;
 use crate::rpc::Connection;
 use serde_json::{json, Value};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use t3_contracts::scopes::legacy_subset;
 use t3_contracts::time::iso;
 use t3_contracts::wire::{self, ConfigInput, Environment, Model, BEARER_TTL_SECONDS, TICKET_TTL_SECONDS, TOKEN_EXCHANGE_GRANT};
@@ -62,7 +62,7 @@ pub struct Parts {
 }
 
 #[derive(Clone)]
-pub struct Service(pub(crate) Arc<Parts>, pub(super) Arc<Runner>, pub(crate) Arc<Held>);
+pub struct Service(pub(crate) Arc<Parts>, pub(super) Arc<Runner>, pub(crate) Arc<Held>, Arc<Mutex<()>>);
 
 pub(super) fn refuse(status: u16, body: Value) -> Refusal {
     Refusal { status, body }
@@ -78,7 +78,7 @@ impl Refusal {
 impl Service {
     pub fn new(parts: Parts) -> Service {
         let runner = Arc::new(Runner::new(parts.agent.clone(), parts.engine.clone(), parts.meta.clone(), parts.log.clone()));
-        Service(Arc::new(parts), runner, Arc::new(Held::default()))
+        Service(Arc::new(parts), runner, Arc::new(Held::default()), Arc::default())
     }
 
     pub(crate) fn turn_of_started_run(&self, run: &str) -> Option<String> {
@@ -113,6 +113,18 @@ impl Service {
     pub(super) fn dispatch_as(&self, family: Family, raw: &Value, announce: bool) -> Result<Dispatched, Failure> {
         let parsed = Command::parse(raw, family).ok();
         let fresh = |cmd: &Command| !self.0.engine.accepted(&cmd.command_id).unwrap_or(false);
+        let steering = parsed.as_ref().filter(|cmd| family == Family::Thread && may_steer(cmd));
+        let _steer_guard = steering.map(|_| self.3.lock().unwrap_or_else(|poisoned| poisoned.into_inner()));
+        let steer = if let Some(cmd) = steering {
+            let refused = |message| Failure::Refused { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), message };
+            if self.0.engine.accepted(&cmd.command_id).map_err(|error| refused(error.0))? {
+                None
+            } else {
+                self.forward_steer(cmd).map_err(refused)?
+            }
+        } else {
+            None
+        };
         let forwarded = match &parsed {
             Some(cmd) if family == Family::Thread && is_forwarded(&cmd.kind) && fresh(cmd) && cmd.str("threadId").or(cmd.str("sourceThreadId")).is_none_or(|t| self.0.engine.thread_exists(t)) => {
                 let outcome = self.forward(cmd).map_err(|message| Failure::Refused { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), message })?;
@@ -129,7 +141,7 @@ impl Service {
         if let Some(cmd) = project {
             self.project_before(cmd).map_err(|message| Failure::Refused { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), message })?;
         }
-        let dispatched = self.0.engine.dispatch(family, raw)?;
+        let dispatched = self.0.engine.dispatch(family, steer.as_ref().unwrap_or(raw))?;
         if let Some((cmd, _)) = &forwarded {
             self.mirror(cmd);
         }

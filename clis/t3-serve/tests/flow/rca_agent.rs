@@ -396,7 +396,7 @@ fn every_op() -> Vec<Op> {
         Op::QueueMove { thread: t(), item: "q1".into(), before: Some("q2".into()) },
         Op::QueueDelete { thread: t(), item: "q1".into() },
         Op::QueueResume { thread: t(), item: None },
-        Op::TurnSteer { thread: t(), turn: Some(TURN.into()), item: Some("q1".into()) },
+        Op::TurnSteer { thread: t(), turn: Some(TURN.into()), item: Some("q1".into()), prompt: None },
         Op::ThreadArchive { thread: t(), archived: true },
         Op::ThreadDelete { thread: t(), only_if_unused: true },
         Op::ThreadFork { thread: t(), fork: "f1".into(), turn: None, title: None },

@@ -284,7 +284,7 @@ pub enum Op {
     QueueDelete { thread: String, item: String },
     QueueResume { thread: String, item: Option<String> },
     QueueList { thread: String },
-    TurnSteer { thread: String, turn: Option<String>, item: Option<String> },
+    TurnSteer { thread: String, turn: Option<String>, item: Option<String>, prompt: Option<String> },
     ThreadArchive { thread: String, archived: bool },
     ThreadDelete { thread: String, only_if_unused: bool },
     ThreadFork { thread: String, fork: String, turn: Option<String>, title: Option<String> },

@@ -489,14 +489,69 @@ fn dispatch_mode(cmd: &Command) -> &str {
     }
 }
 
+pub(crate) fn may_steer(cmd: &Command) -> bool {
+    cmd.kind == "message.dispatch" && (dispatch_mode(cmd) == "steer_active"
+        || (dispatch_mode(cmd) == "start_immediately" && matches!(cmd.str("deliveryIntent"), Some("auto" | "steer"))))
+}
+
+pub(crate) fn direct_steer(state: &State, thread: &str, cmd: &Command) -> Result<Option<(String, String)>, String> {
+    let explicit = dispatch_mode(cmd) == "steer_active";
+    let automatic = !explicit && cmd.str("deliveryIntent") == Some("auto");
+    let Some(active) = active_run(state, thread) else {
+        return if explicit { Err(format!("thread {thread} has no active run")) } else { Ok(None) };
+    };
+    let run = active["id"].as_str().ok_or("Active run has no id")?;
+    if explicit && cmd.body["dispatchMode"]["targetRunId"] != run {
+        return Err(format!("Run {run} is the active run of thread {thread}."));
+    }
+    if !provider_turn_running(state, thread, run) {
+        return if automatic { Ok(None) } else { Err(format!("No running provider turn found for active run {run}.")) };
+    }
+    let (prompt, attachments) = dispatch_content(cmd)?;
+    if !attachments.is_empty() {
+        return if automatic { Ok(None) } else { Err("Attachments can only be sent in a new or queued turn.".into()) };
+    }
+    if cmd.body.get("modelSelection").is_some_and(|model| {
+        ["instanceId", "model"].iter().any(|key| model[*key].as_str().is_some_and(|v| active["modelSelection"][*key] != v))
+    }) {
+        return if automatic { Ok(None) } else { Err("Changing models needs a new or queued turn.".into()) };
+    }
+    Ok(Some((run.to_string(), prompt.to_string())))
+}
+
+fn dispatch_content(cmd: &Command) -> Result<(&str, Vec<Value>), String> {
+    let message = cmd.body.get("message").filter(|m| m.is_object());
+    let text = message.and_then(|m| m["text"].as_str()).or_else(|| cmd.str("text")).or_else(|| cmd.str("content")).filter(|t| !t.is_empty()).ok_or("message.dispatch needs the message text")?;
+    let attachments = message_attachments(message.or(Some(&Value::Object(cmd.body.clone()))))?;
+    Ok((text, attachments))
+}
+
+fn dispatched_user_message(thread: &str, run: &str, cmd: &Command, text: &str, attachments: &[Value], ctx: &Ctx) -> Value {
+    let input = cmd.body.get("message").filter(|m| m.is_object());
+    let id = input.and_then(|m| m["messageId"].as_str()).or_else(|| cmd.str("messageId")).map(str::to_string).unwrap_or_else(|| (ctx.new_id)());
+    let at = iso(ctx.now);
+    let mut message = json!({
+        "id": id, "threadId": thread, "runId": run, "nodeId": runs::node_id(run), "role": "user", "streaming": false,
+        "text": text, "attachments": attachments, "createdBy": cmd.str("createdBy").unwrap_or("user"),
+        "creationSource": cmd.str("creationSource").unwrap_or("web"), "createdAt": at, "updatedAt": at,
+    });
+    if let Some(context) = input.and_then(|m| m.get("context")).or_else(|| cmd.body.get("context")).and_then(composer_context) {
+        message["context"] = context;
+    }
+    message
+}
+
 fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ctx: &Ctx) -> Result<Decision, String> {
     let thread = shell["id"].as_str().unwrap_or("");
     if is_archived(shell) {
         return Err(format!("thread {thread} is archived"));
     }
-    let active = active_run(state, thread);
     let requested = dispatch_mode(cmd);
-    let mode = if requested == "start_immediately" && cmd.str("deliveryIntent") == Some("auto") && active.as_ref().is_some_and(|run| !provider_turn_running(state, thread, run["id"].as_str().unwrap_or(""))) {
+    if requested == "steer_active" {
+        return record_steer(state, thread, cmd, ctx);
+    }
+    let active = active_run(state, thread);
+    let mode = if requested == "start_immediately" && cmd.str("deliveryIntent") == Some("auto") && active.is_some() {
         "queue_after_active"
     } else {
         requested
@@ -508,27 +563,20 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
     if active && mode != "queue_after_active" {
         return Err(format!("thread {thread} already has an active run"));
     }
-    let message = cmd.body.get("message").filter(|m| m.is_object());
-    let text = message.and_then(|m| m["text"].as_str()).or_else(|| cmd.str("text")).or_else(|| cmd.str("content")).filter(|t| !t.is_empty()).ok_or("message.dispatch needs the message text")?;
-    let attachments = message_attachments(message.or(Some(&Value::Object(cmd.body.clone()))))?;
-    let message_id = message.and_then(|m| m["messageId"].as_str()).or_else(|| cmd.str("messageId")).map(str::to_string).unwrap_or_else(|| (ctx.new_id)());
+    let (text, attachments) = dispatch_content(cmd)?;
     let existing = state.entities.get(thread).map(|e| e.runs.as_slice()).unwrap_or(&[]);
     let ordinal = existing.len() as u64 + 1;
     let run_id = runs::run_id(thread, ordinal);
     let at = iso(ctx.now);
     let instance = shell["providerInstanceId"].as_str().unwrap_or("opencode").to_string();
     let model = shell["modelSelection"]["model"].as_str().map(str::to_string);
-    let (created_by, source) = (cmd.str("createdBy").unwrap_or("user"), cmd.str("creationSource").unwrap_or("web"));
-    let mut message_entity = json!({"attachments": attachments, "createdAt": at, "createdBy": created_by, "creationSource": source, "id": message_id, "nodeId": runs::node_id(&run_id), "role": "user", "runId": run_id, "streaming": false, "text": text, "threadId": thread, "updatedAt": at});
-    if let Some(context) = message.and_then(|m| m.get("context")).or_else(|| cmd.body.get("context")).and_then(composer_context) {
-        message_entity["context"] = context;
-    }
+    let message_entity = dispatched_user_message(thread, &run_id, cmd, text, &attachments, ctx);
     let (native, session) = existing.first().map_or_else(|| ((ctx.new_id)(), (ctx.new_id)()), |first| (first["nativeThreadId"].clone().as_str().unwrap_or("").to_string(), first["sessionUuid"].as_str().unwrap_or("").to_string()));
     let queued = active;
     let preparing = mode == "defer_start";
     let rank = existing.iter().filter_map(|r| r["queueRank"].as_f64()).fold(0.0, f64::max) + 1.0;
     let run = json!({
-        "id": run_id, "threadId": thread, "ordinal": ordinal, "status": if queued { "queued" } else if preparing { "preparing" } else { "running" }, "userMessageId": message_id, "stopRequested": false, "error": null,
+        "id": run_id, "threadId": thread, "ordinal": ordinal, "status": if queued { "queued" } else if preparing { "preparing" } else { "running" }, "userMessageId": message_entity["id"], "stopRequested": false, "error": null,
         "providerInstanceId": instance, "modelSelection": shell["modelSelection"], "requestedAt": at, "startedAt": if queued || preparing { Value::Null } else { at.clone().into() }, "completedAt": null,
         "nativeThreadId": native, "sessionUuid": session, "queueRank": if queued { json!(rank) } else { Value::Null }, "updatedAt": at,
     });
@@ -576,6 +624,22 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
         Some(Effect::Launch(launch))
     };
     Ok(Decision { drafts, effect })
+}
+
+fn record_steer(state: &State, thread: &str, cmd: &Command, ctx: &Ctx) -> Result<Decision, String> {
+    let run_id = cmd.body["dispatchMode"]["targetRunId"].as_str().ok_or("Steer needs a target run")?;
+    let run = run_named(state, thread, run_id).ok_or("The target run does not exist")?;
+    let (text, attachments) = dispatch_content(cmd)?;
+    let message = dispatched_user_message(thread, run_id, cmd, text, &attachments, ctx);
+    let at = iso(ctx.now);
+    let provider = thread_provider_thread(state, thread, run["providerInstanceId"].as_str().unwrap_or(""), run_id);
+    let mut item = user_item(thread, &run, &provider, &message, "steer", &at);
+    item["ordinal"] = runs::item_ordinal(run["ordinal"].as_u64().unwrap_or(0), items_of(state, thread, run_id) + 1).into();
+    let drafts = vec![
+        draft("message.updated", Some(thread), None, ctx.now, message),
+        draft("turn-item.updated", Some(thread), None, ctx.now, item),
+    ];
+    Ok(Decision { drafts, effect: None })
 }
 
 fn composer_context(value: &Value) -> Option<Value> {

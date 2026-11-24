@@ -2,7 +2,8 @@
 //! thread's rows. A command that a person's device keeps (pins, visits, modes, the order of the lists) is also kept in the agent API's `state`.
 use super::service::Service;
 use crate::domain::command::Command;
-use crate::domain::decider::{provider_turn_running, queued_may_start};
+use crate::domain::decider::{direct_steer, provider_turn_running, queued_may_start};
+use crate::domain::state::is_archived;
 use crate::ports::{AgentError, AgentThread, Op};
 use serde_json::{json, Value};
 
@@ -71,6 +72,23 @@ fn text(v: &Value, key: &str) -> Option<String> {
 }
 
 impl Service {
+    pub(super) fn forward_steer(&self, cmd: &Command) -> Result<Option<Value>, String> {
+        let thread = cmd.str("threadId").unwrap_or_default();
+        let delivery = self.engine().read(|state| {
+            match state.threads.get(thread) {
+                Some(shell) if is_archived(shell) => Err(format!("thread {thread} is archived")),
+                Some(_) => direct_steer(state, thread, cmd),
+                None => Ok(None),
+            }
+        })?;
+        let Some((run, prompt)) = delivery else { return Ok(None) };
+        let turn = self.turn_of(&run).ok_or_else(|| format!("No running provider turn found for active run {run}."))?;
+        self.ask(&Op::TurnSteer { thread: thread.to_string(), turn: Some(turn), item: None, prompt: Some(prompt) })?;
+        let mut body = cmd.body.clone();
+        body.insert("dispatchMode".into(), json!({"type": "steer_active", "targetRunId": run}));
+        Ok(Some(Value::Object(body)))
+    }
+
     pub(crate) fn thread_for_agent(&self, id: &str) -> Option<AgentThread> {
         self.engine().read(|state| {
             let shell = state.threads.get(id)?;
@@ -137,7 +155,7 @@ impl Service {
                 if waiting {
                     return Err(format!("No running provider turn found for active run {target}."));
                 }
-                vec![Op::TurnSteer { thread, turn: Some(self.turn_of(&target).unwrap_or(target)), item: Some(run("queuedRunId")?) }]
+                vec![Op::TurnSteer { thread, turn: Some(self.turn_of(&target).unwrap_or(target)), item: Some(run("queuedRunId")?), prompt: None }]
             }
             "runtime-request.respond" => {
                 let request = run("requestId")?;
