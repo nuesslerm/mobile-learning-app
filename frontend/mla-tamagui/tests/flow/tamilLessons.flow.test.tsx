@@ -150,6 +150,7 @@ describe('Tamil flash cards', () => {
     expect(routerHarness().calls()).toContainEqual(['push', {
       pathname: '/tamil/lessons/[groupId]/[taskId]', params: { groupId: topic.id, taskId: task.id, mode: 'flash-cards' },
     }]);
+    list.unmount();
     const flash = { ...props, search: { mode: 'flash-cards' } };
     const session = await app.render(route, flash);
     await waitFor(() => screen.getByTestId('TamilFlashReveal'));
@@ -167,6 +168,7 @@ describe('Tamil flash cards', () => {
     await waitFor(() => screen.getByText(task.exercises[0].tamil));
     expect(screen.getByTestId('TamilFlashAudio')).toBeTruthy();
     expect(screen.queryByText(task.exercises[0].english)).toBeNull();
+    expect(screen.queryByText(task.title)).toBeNull();
     for (const phrase of task.exercises) {
       await waitFor(() => screen.getByText(phrase.tamil));
       await session.tap('TamilFlashReveal');
