@@ -414,6 +414,14 @@ pub fn queued_runs(state: &State, thread: &str) -> Vec<Value> {
     queued
 }
 
+pub fn queue_hold_events(state: &State, thread: &str, held: bool, now: Millis) -> Vec<EventDraft> {
+    queued_runs(state, thread).into_iter().filter(|run| run["queueHeld"].as_bool().unwrap_or(false) != held).map(|mut run| {
+        run["queueHeld"] = held.into();
+        run["updatedAt"] = iso(now).into();
+        draft("run.updated", Some(thread), None, now, run)
+    }).collect()
+}
+
 /// Whether the provider has begun the run's turn: it has shown something of its own, which a hung or not yet answering turn has not.
 pub fn provider_turn_running(state: &State, thread: &str, run: &str) -> bool {
     state.entities.get(thread).is_some_and(|e| e.turn_items.iter().any(|i| i["runId"] == run && !matches!(i["type"].as_str(), Some("user_message" | "run_interrupt_request" | "run_interrupt_result"))))

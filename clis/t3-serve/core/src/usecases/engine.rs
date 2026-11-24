@@ -2,7 +2,7 @@
 //! subscriber's view agree. Commands are idempotent by `commandId`; a stream starts from a snapshot or, inside the gap, a replay.
 use crate::domain::auth::uuid_v4;
 use crate::domain::command::{Command, Family};
-use crate::domain::decider::{decide, decide_adopt, decide_run_step, Ctx, Effect, Rejection, RunStep};
+use crate::domain::decider::{decide, decide_adopt, decide_run_step, queue_hold_events, Ctx, Effect, Rejection, RunStep};
 use crate::domain::state::{event_json, State};
 use crate::ports::{Clock, EventDraft, EventStore, Ids, StoreError, StoredEvent};
 use serde_json::{json, Map, Value};
@@ -178,6 +178,15 @@ impl Engine {
             return Ok(());
         }
         self.commit(&mut inner, drafts, command_id, receipt.then_some((command_id, "agent.event"))).map(|_| ())
+    }
+
+    pub fn record_queue_hold(&self, thread: &str, held: bool) -> Result<(), StoreError> {
+        let mut inner = self.lock();
+        let drafts = queue_hold_events(&inner.state, thread, held, self.clock.now_ms());
+        if drafts.is_empty() {
+            return Ok(());
+        }
+        self.commit(&mut inner, drafts, &format!("queue-hold-{thread}"), None).map(|_| ())
     }
 
     /// A queued run the agent API did not accept ends cancelled, with its message taken back.

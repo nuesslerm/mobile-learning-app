@@ -213,10 +213,13 @@ fn after_a_restart_the_phones_queue_receives_both_automatically_dispatched_turns
 
 #[test]
 fn after_a_restart_a_forced_stop_keeps_the_queue_waiting_until_the_phone_resumes_it() {
-    // Given a completed stop on disk and a queued run still held by RCA.
-    let (h, _) = seeded();
+    // Given a running turn with a queued follow-up, the phone stops the turn and sees the hold.
+    let (h, mut initial) = seeded();
     let original = crashed_run(&h, "original");
     let queued = queued_run(&h, "held");
+    let projection = |rpc: &mut Rpc| success(&rpc.call("orchestration.getThreadProjection", json!({"threadId": "t1"}))).clone();
+    success(&initial.call("orchestration.dispatchCommand", json!({"type": "thread.stop", "threadId": "t1", "commandId": "c-stop"})));
+    assert_eq!(projection(&mut initial)["runs"][1]["queueHeld"], true);
     h.service.engine().record("t1", &original, &RunStep::Finished(Outcome::Interrupted)).unwrap();
     h.agent.replies.lock().unwrap().insert("queue.list", Ok(json!({"held": true})));
     rca_runs(&h, "original");
@@ -227,17 +230,34 @@ fn after_a_restart_a_forced_stop_keeps_the_queue_waiting_until_the_phone_resumes
     let before = h.agent.ops.lock().unwrap().len();
     restarted.service.resume_runs();
     wait_until(|| h.agent.ops.lock().unwrap().iter().any(|op| op.method() == "queue.list"));
-    let projection = |rpc: &mut Rpc| success(&rpc.call("orchestration.getThreadProjection", json!({"threadId": "t1"}))).clone();
     assert_eq!(projection(&mut rpc)["runs"][1]["status"], "queued");
+    assert_eq!(projection(&mut rpc)["runs"][1]["queueHeld"], true);
     assert_eq!(h.agent.ops.lock().unwrap()[before..].iter().map(|op| op.method()).collect::<Vec<_>>(), ["queue.list"]);
 
     // Then the user's Resume is what allows RCA to start the turn and T3 to show the reply.
     success(&rpc.call("orchestration.dispatchCommand", json!({"type": "queue.resume", "threadId": "t1", "commandId": "c-resume"})));
+    assert_eq!(projection(&mut rpc)["runs"][1]["queueHeld"], false);
     h.agent.append("t1", Some(&queued), AgentEventKind::TurnStarted);
     h.agent.append("t1", Some(&queued), AgentEventKind::Text("reply after resume".into()));
     h.agent.append("t1", Some(&queued), AgentEventKind::TurnFinished(Finish::Completed));
     wait_until(|| projection(&mut rpc)["runs"][1]["status"] == "completed");
     assert!(texts(&projection(&mut rpc)).iter().any(|(role, text)| role == "assistant" && text == "reply after resume"));
+}
+
+#[test]
+fn restart_recovers_a_hold_missing_from_the_saved_queue_rows() {
+    // Given RCA holds a queue that T3 saved before it projected queue holds.
+    let (h, _) = seeded();
+    let original = crashed_run(&h, "original");
+    queued_run(&h, "held");
+    h.service.engine().record("t1", &original, &RunStep::Finished(Outcome::Interrupted)).unwrap();
+    h.agent.replies.lock().unwrap().insert("queue.list", Ok(json!({"held": true})));
+
+    // When the adapter restarts, then the phone can resume the existing queued run.
+    let restarted = h.restart();
+    let mut rpc = connect(&restarted);
+    restarted.service.resume_runs();
+    wait_until(|| success(&rpc.call("orchestration.getThreadProjection", json!({"threadId": "t1"})))["runs"][1]["queueHeld"] == true);
 }
 
 #[test]

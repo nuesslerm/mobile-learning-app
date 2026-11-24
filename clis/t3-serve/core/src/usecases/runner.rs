@@ -109,6 +109,9 @@ impl Runner {
                 }
                 return;
             }
+            if me.set(&me.held).contains(&launch.thread_id) {
+                me.record_queue_hold(&launch.thread_id, true);
+            }
             me.remember(&turn_key(&launch.thread_id, &launch.run_id), &launch.run_id);
             me.remember(&run_key(&launch.run_id), &launch.run_id);
             if me.engine.active_run(&launch.thread_id).is_none() {
@@ -119,7 +122,11 @@ impl Runner {
 
     /// The phone started a queued run, or resumed the queue: the hold is over and the turns the agent API starts are followed.
     pub fn resume_queue(self: &Arc<Self>, thread: &str, started: Option<String>) {
-        self.set(&self.held).remove(thread);
+        {
+            let mut held = self.set(&self.held);
+            held.remove(thread);
+            self.record_queue_hold(thread, false);
+        }
         let (me, key) = (self.clone(), thread.to_string());
         let name = key.clone();
         self.spawn(&name, move |stop| {
@@ -178,13 +185,44 @@ impl Runner {
             stop.store(true, Ordering::SeqCst);
         }
         let stopped = if hold {
-            self.set(&self.held).insert(thread_id.to_string());
-            self.agent.run(&Op::ThreadForceStop { thread: thread_id.to_string(), turn: None }).map(drop)
+            self.force_stop(thread_id, None).map(drop)
         } else {
             self.agent.interrupt(thread_id)
         };
         if let Err(e) = stopped {
             self.log.event("run.interrupt.failed", &[("thread", thread_id.to_string()), ("error", e.message())]);
+        }
+    }
+
+    pub fn force_stop(&self, thread: &str, turn: Option<String>) -> Result<serde_json::Value, AgentError> {
+        let mut held = self.set(&self.held);
+        let stopped = self.agent.run(&Op::ThreadForceStop { thread: thread.to_string(), turn })?;
+        held.insert(thread.to_string());
+        self.record_queue_hold(thread, true);
+        Ok(stopped)
+    }
+
+    fn record_queue_hold(&self, thread: &str, held: bool) {
+        if let Err(error) = self.engine.record_queue_hold(thread, held) {
+            self.log.event("run.queue.hold.record.failed", &[("thread", thread.to_string()), ("error", error.0)]);
+        }
+    }
+
+    fn recover_queue(&self, thread: &str) {
+        let mut held = self.set(&self.held);
+        match self.agent.run(&Op::QueueList { thread: thread.to_string() }) {
+            Ok(queue) if queue["held"] == true => {
+                held.insert(thread.to_string());
+                self.record_queue_hold(thread, true);
+            }
+            Ok(queue) if queue["held"] == false => {
+                held.remove(thread);
+                self.record_queue_hold(thread, false);
+                drop(held);
+                self.drain(thread);
+            }
+            Ok(_) => {}
+            Err(e) => self.log.event("run.queue.recover.failed", &[("thread", thread.to_string()), ("error", e.message())]),
         }
     }
 
@@ -338,11 +376,7 @@ impl Runner {
                     me.log.event("run.resumed", &[("thread", thread.clone()), ("run", run)]);
                 }
                 if me.engine.next_queued(&thread).is_some() {
-                    match me.agent.run(&Op::QueueList { thread: thread.clone() }) {
-                        Ok(queue) if queue["held"] == false => me.drain(&thread),
-                        Ok(_) => {}
-                        Err(e) => me.log.event("run.queue.recover.failed", &[("thread", thread.clone()), ("error", e.message())]),
-                    }
+                    me.recover_queue(&thread);
                 }
                 let mut stops = me.stops();
                 if stops.get(&thread).is_some_and(|current| Arc::ptr_eq(current, &stop)) {

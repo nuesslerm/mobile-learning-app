@@ -62,7 +62,7 @@ pub struct Parts {
 }
 
 #[derive(Clone)]
-pub struct Service(pub(crate) Arc<Parts>, Arc<Runner>, pub(crate) Arc<Held>);
+pub struct Service(pub(crate) Arc<Parts>, pub(super) Arc<Runner>, pub(crate) Arc<Held>);
 
 pub(super) fn refuse(status: u16, body: Value) -> Refusal {
     Refusal { status, body }
