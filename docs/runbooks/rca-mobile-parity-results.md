@@ -43,3 +43,13 @@ cargo test --manifest-path clis/Cargo.toml -p orca-serve --test integration -- -
 T3 thread surface passed 12 of 12. T3 attachment-filtered integration passed 3 of 4. Orca integration passed 18 of 36, including queue, approval, question, catalog and restart recovery. Other Orca failures included the attachment socket reset, missing executor Chromium and replay failures in a checkout whose Orca reference differed from its pin. Keep these integration failures visible alongside the native evidence.
 
 In a local Linux arm64 container at `53775ec2`, T3 passed all 12 `thread_surface::` integration cases and Orca passed all six `agent_sessions::` cases, including the image readback that had failed in the Mac run. The deployed Linux host and the physical network handoff remain unverified.
+
+## T3 runtime-request follow-up
+
+On the same iPhone simulator build, a fresh Claude question displayed Blue and Green. Restarting only the T3 adapter dropped the client connection while the RCA turn stayed active. The request retained its ID after reconnect. Selecting Green in T3 recorded one `input.answered` event, resolved the request and completed the original turn with Green.
+
+Codex in Supervised mode displayed Allow once and Decline for two read-only Python commands. Allow once produced `RCA_PARITY_T3_ALLOW_ONCE` on stdout. Decline resolved the other request without executing its output marker. Both controls cleared after the user acted. The combined reconnect case still needs a populated queue.
+
+The paired-client integration regression checks pending approval and question projection, the question snapshot after a new socket connects, and resolution after approval, answer and dismissal. The local T3 thread-surface suite passed 12 tests and the RCA adapter flow suite passed 14. Simulator recordings, screenshots and request IDs are under `.context/rca-runtime-requests/` in Zagreb.
+
+The device driver can now see the physical iPhone with both apps installed. The deployed `t3-serve` and `orca-serve` tailnet health probes still fail, so the phone-to-Linux network check remains open.

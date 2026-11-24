@@ -198,7 +198,7 @@ fn the_events_of_the_contracts_two_recorded_turns_each_read_as_what_t3_shows_and
     // When each is read as t3 does
     let read: Vec<AgentEvent> = recorded.iter().map(|e| agent_event(e).unwrap_or_else(|e| panic!("{}", e.message()))).collect();
     // Then each keeps its number and turn, those t3 shows nothing of are `Other` and no other is
-    let unshown = ["file.changed", "approval.requested", "input.requested", "plan.updated", "usage"];
+    let unshown = ["file.changed", "plan.updated", "usage"];
     for (wire, got) in recorded.iter().zip(&read) {
         assert_eq!((wire.seq, &wire.turn), (got.seq, &got.turn));
         assert_eq!(got.kind == AgentEventKind::Other, unshown.contains(&wire.kind.as_str()), "{}", wire.kind);
@@ -213,8 +213,8 @@ fn the_events_of_the_contracts_two_recorded_turns_each_read_as_what_t3_shows_and
     let mut stranger = recorded[0].clone();
     stranger.kind = "item.completed".into();
     assert!(agent_event(&stranger).unwrap_err().message().contains("item.completed is not a thread event"));
-    // And every kind the queue, request and lifecycle groups write on the thread's topic is read as no change of the turn, never as a failure
-    for kind in agent_api_agent::queue::events::KINDS.iter().chain(&agent_api_agent::requests::events::KINDS).chain(&agent_api_agent::lifecycle::events::KINDS) {
+    // And every kind the queue and lifecycle groups write on the thread's topic is read as no change of the turn, never as a failure
+    for kind in agent_api_agent::queue::events::KINDS.iter().chain(&agent_api_agent::lifecycle::events::KINDS) {
         let mut own = recorded[0].clone();
         own.kind = (*kind).into();
         assert_eq!(agent_event(&own).unwrap().kind, AgentEventKind::Other, "{kind}");

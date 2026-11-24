@@ -13,6 +13,7 @@ pub struct Entities {
     pub messages: Vec<Value>,
     pub turn_items: Vec<Value>,
     pub provider_turns: Vec<Value>,
+    pub runtime_requests: Vec<Value>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -284,6 +285,19 @@ impl State {
                     upsert(&mut self.entities.entry(id.clone()).or_default().provider_turns, &e.payload);
                 }
             }
+            "runtime-request.updated" => {
+                if let Some(id) = &e.thread_id {
+                    let entities = self.entities.entry(id.clone()).or_default();
+                    upsert(&mut entities.runtime_requests, &e.payload);
+                    if let Some(shell) = self.threads.get_mut(id) {
+                        let pending = entities.runtime_requests.iter().find(|request| request["status"] == "pending");
+                        shell.insert("pendingRuntimeRequest".into(), pending.map_or(Value::Null, |r| {
+                            json!({"id": r["id"], "kind": r["kind"], "createdAt": r["createdAt"]})
+                        }));
+                        applied.shell_changed = true;
+                    }
+                }
+            }
             "message.updated" => {
                 if let Some(id) = &e.thread_id {
                     let entities = self.entities.entry(id.clone()).or_default();
@@ -391,7 +405,7 @@ impl State {
             ("providerSessions", Value::Array(rows.provider_sessions)),
             ("providerThreads", Value::Array(rows.provider_threads)),
             ("providerTurns", json!(entities.provider_turns)),
-            ("runtimeRequests", none()),
+            ("runtimeRequests", json!(entities.runtime_requests)),
             ("messages", Value::Array(entities.messages.iter().map(message_wire).collect())),
             ("plans", none()),
             ("visibleTurnItems", Value::Array(projected_rows(id, &items))),

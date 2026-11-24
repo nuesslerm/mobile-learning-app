@@ -23,7 +23,7 @@ use exec_fs::{EntryKind, ListResult, ReadResult};
 use serde_json::{json, Value};
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
-use t3_core::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, CatalogModel, CatalogProvider, DirEntry, Finish, Follow, History, Op, SetupBatch, SetupEvent, TerminalBatch, TerminalEvent, TerminalSummary};
+use t3_core::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, CatalogModel, CatalogProvider, DirEntry, Finish, Follow, History, Op, RuntimeRequestEvent, RuntimeResponse, SetupBatch, SetupEvent, TerminalBatch, TerminalEvent, TerminalSummary};
 
 pub struct RcaAgent {
     authority: String,
@@ -229,8 +229,25 @@ fn under(root: &str, path: &str) -> String {
 
 /// What a wire event is to t3, or why it is none: a kind the contract does not have or a field it does not read.
 pub fn agent_event(event: &Event) -> Result<AgentEvent, AgentError> {
-    // the queue, request and lifecycle groups write their own kinds on the thread's topic: the rows keep their own record of those
-    if [queue::events::KINDS.as_slice(), requests::events::KINDS.as_slice(), lifecycle::events::KINDS.as_slice()].iter().any(|kinds| kinds.contains(&event.kind.as_str())) {
+    if requests::events::KINDS.contains(&event.kind.as_str()) {
+        use requests::events::RequestEvent;
+        let read = RequestEvent::from_event(event).map_err(|e| AgentError::Failed(format!("rca sent a request event this t3 serve cannot read: {}", e.0)))?;
+        let (id, response) = match read {
+            RequestEvent::ApprovalAnswered { approval, decision } => {
+                let decision = match decision {
+                    Decision::Accept => "accept",
+                    Decision::AcceptForSession => "acceptForSession",
+                    Decision::Decline => "decline",
+                    Decision::Cancel => "cancel",
+                };
+                (approval, RuntimeResponse::Approval(decision))
+            }
+            RequestEvent::InputAnswered { request, answer } => (request, RuntimeResponse::Answer(answer)),
+            RequestEvent::InputDismissed { request } => (request, RuntimeResponse::Dismissed),
+        };
+        return Ok(AgentEvent { seq: event.seq, turn: event.turn.clone(), kind: AgentEventKind::Request(RuntimeRequestEvent::Closed { id, response }) });
+    }
+    if queue::events::KINDS.contains(&event.kind.as_str()) || lifecycle::events::KINDS.contains(&event.kind.as_str()) {
         return Ok(AgentEvent { seq: event.seq, turn: event.turn.clone(), kind: AgentEventKind::Other });
     }
     let read = ThreadEvent::from_event(event).map_err(|e| AgentError::Failed(format!("rca sent an event this t3 serve cannot read: {}", e.0)))?;
@@ -248,7 +265,9 @@ pub fn agent_event(event: &Event) -> Result<AgentEvent, AgentError> {
             FinishReason::Interrupted => Finish::Interrupted,
             FinishReason::Failed => Finish::Failed,
         }),
-        ThreadEvent::FileChanged { .. } | ThreadEvent::ApprovalRequested { .. } | ThreadEvent::InputRequested { .. } | ThreadEvent::PlanUpdated { .. } | ThreadEvent::Usage(_) => AgentEventKind::Other,
+        ThreadEvent::ApprovalRequested { approval, tool, args } => AgentEventKind::Request(RuntimeRequestEvent::Approval { id: approval, tool, args }),
+        ThreadEvent::InputRequested { request, prompt, options } => AgentEventKind::Request(RuntimeRequestEvent::Question { id: request, prompt, options }),
+        ThreadEvent::FileChanged { .. } | ThreadEvent::PlanUpdated { .. } | ThreadEvent::Usage(_) => AgentEventKind::Other,
     };
     Ok(AgentEvent { seq: event.seq, turn: event.turn.clone(), kind })
 }

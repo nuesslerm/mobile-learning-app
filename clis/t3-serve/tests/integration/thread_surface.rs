@@ -391,13 +391,20 @@ fn a_turn_waits_for_the_phones_approval_or_answer_and_runs_on_only_when_it_gets_
         let mut rca = chain.direct();
         phone.seed(case, &chain);
         // When the first turn asks for approval, it has not written, and the phone accepts the request rca logged
-        success(&phone.command(case, &chain, message("m1", "t1", "go")));
+        let waiting = phone.command_until(case, &chain, message("m1", "t1", "go"), "t1", |projection| {
+            projection["runtimeRequests"][0]["status"] == "pending"
+        });
         let approval = rca.wait_event("t1", "approval.requested");
         let id = approval["approval"].as_str().unwrap().to_string();
-        std::thread::sleep(std::time::Duration::from_millis(500));
+        assert_eq!(waiting["runtimeRequests"][0]["id"], id);
+        assert_eq!(waiting["runtimeRequests"][0]["kind"], "file-change");
+        assert_eq!(waiting["runtimeRequests"][0]["responseCapability"]["type"], "live");
+        assert!(waiting["turnItems"].as_array().unwrap().iter().any(|item| item["type"] == "approval_request" && item["requestId"] == id));
         assert!(!chain.repo.path().join("a.txt").exists(), "the turn ran past the approval");
         let accept = cmd("runtime-request.respond", "t1", json!({"requestId": id, "decision": "accept"}));
-        phone.command_settled(case, &chain, accept, "t1", completed(1));
+        let approved = phone.command_settled(case, &chain, accept, "t1", completed(1));
+        assert_eq!(approved["runtimeRequests"][0]["status"], "resolved");
+        assert_eq!(approved["runtimeRequests"][0]["decision"], "accept");
         // Then rca took the answer, the turn went on and the executor wrote, and the log says what was decided
         let (agent, _) = last_window(case);
         assert!(agent.contains(&("approval.answer".to_string(), true)), "{agent:?}");
@@ -405,10 +412,24 @@ fn a_turn_waits_for_the_phones_approval_or_answer_and_runs_on_only_when_it_gets_
         assert_eq!(rca.events("t1", "approval.answered").len(), 1);
         assert!(tool_output(&mut rca, "t1", "ask1").contains("allow"), "the tool was not told to allow");
         // When the second turn asks a question and the phone answers it
-        success(&phone.command(case, &chain, message("m2", "t1", "again")));
+        phone.command_until(case, &chain, message("m2", "t1", "again"), "t1", |projection| {
+            projection["runtimeRequests"][1]["status"] == "pending"
+        });
         let question = rca.wait_event("t1", "input.requested");
-        let answer = cmd("runtime-request.respond", "t1", json!({"requestId": question["request"], "answers": {"q1": "b"}}));
-        phone.command_settled(case, &chain, answer, "t1", completed(2));
+        drop(phone);
+        let mut phone = Phone::connect(case, &chain);
+        let snapshot = phone.call(case, &chain, &["rpc:orchestration.getThreadProjection"], "orchestration.getThreadProjection", json!({"threadId": "t1"}));
+        let projection = success(&snapshot);
+        assert_eq!(projection["runtimeRequests"][1]["id"], question["request"]);
+        assert_eq!(projection["runtimeRequests"][1]["kind"], "user_input");
+        assert_eq!(projection["runtimeRequests"][1]["status"], "pending");
+        let item = projection["turnItems"].as_array().unwrap().iter().find(|item| item["type"] == "user_input_request" && item["requestId"] == question["request"]).unwrap();
+        assert_eq!(item["questions"][0]["question"], "which one?");
+        assert_eq!(item["questions"][0]["options"][1]["label"], "b");
+        let question_id = item["questions"][0]["id"].as_str().unwrap();
+        let answer = cmd("runtime-request.respond", "t1", json!({"requestId": question["request"], "answers": { (question_id): "b"}}));
+        let answered_projection = phone.command_settled(case, &chain, answer, "t1", completed(2));
+        assert_eq!(answered_projection["runtimeRequests"][1]["status"], "resolved");
         // Then rca took the answer as the question's text, the turn wrote after it, and the tool's result carried the answer
         assert!(answered(case, "input.answer"), "{:?}", asked(case));
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("b.txt")).unwrap(), "after the answer");
@@ -423,7 +444,8 @@ fn a_turn_waits_for_the_phones_approval_or_answer_and_runs_on_only_when_it_gets_
         }
         let requested = rca.events("t1", "input.requested");
         let dismiss = cmd("thread.user-input.dismiss", "t1", json!({"requestId": requested.last().unwrap()["request"]}));
-        phone.command_settled(case, &chain, dismiss, "t1", completed(3));
+        let dismissed = phone.command_settled(case, &chain, dismiss, "t1", completed(3));
+        assert_eq!(dismissed["runtimeRequests"][2]["status"], "cancelled");
         // Then rca closed the request as dismissed
         assert!(answered(case, "input.dismiss"), "{:?}", asked(case));
         assert_eq!(rca.events("t1", "input.dismissed").len(), 1);

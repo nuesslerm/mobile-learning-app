@@ -2,7 +2,7 @@
 //! recorded shape), so folding an event is a merge. Run steps (what a provider turn reports) are decided here too.
 use super::command::{Command, Family, ACCEPTED_ONLY};
 use super::state::{is_archived, State};
-use crate::ports::{AgentEventKind, EventDraft, Finish, Millis};
+use crate::ports::{AgentEventKind, EventDraft, Finish, Millis, RuntimeRequestEvent, RuntimeResponse};
 use serde_json::{json, Map, Value};
 use t3_contracts::rows::{project_defaults, thread_defaults, thread_event_row};
 use t3_contracts::runs;
@@ -861,6 +861,7 @@ pub enum RunStep {
     ToolStarted { id: String, name: String, input: Value },
     ToolOutput { id: String, data: String },
     ToolFinished { id: String, ok: bool },
+    Request(RuntimeRequestEvent),
     /// The turn logged a failure; the first one is the run's error.
     Failure(String),
     Finished(Outcome),
@@ -875,6 +876,7 @@ impl RunStep {
             AgentEventKind::ToolStarted { id, name, input } => RunStep::ToolStarted { id: id.clone(), name: name.clone(), input: input.clone() },
             AgentEventKind::ToolOutput { id, data } => RunStep::ToolOutput { id: id.clone(), data: data.clone() },
             AgentEventKind::ToolFinished { id, ok } => RunStep::ToolFinished { id: id.clone(), ok: *ok },
+            AgentEventKind::Request(request) => RunStep::Request(request.clone()),
             AgentEventKind::Failure(message) => RunStep::Failure(message.clone()),
             AgentEventKind::TurnFinished(Finish::Completed) => RunStep::Finished(Outcome::Completed),
             AgentEventKind::TurnFinished(Finish::Interrupted) => RunStep::Finished(Outcome::Interrupted),
@@ -887,6 +889,15 @@ impl RunStep {
 
 /// The error of a failed turn that logged none.
 pub const TURN_FAILED: &str = "the turn failed";
+
+fn approval_kind(tool: &str) -> &'static str {
+    match tool.to_ascii_lowercase().as_str() {
+        "bash" | "command" | "exec_command" | "run_command" | "shell" => "command",
+        "read" | "read_file" => "file-read",
+        "edit" | "write" | "write_file" | "apply_patch" => "file-change",
+        _ => "permission",
+    }
+}
 
 /// The events one report of a turn stands for. A turn that already ended records nothing more.
 pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep, ctx: &Ctx) -> Vec<EventDraft> {
@@ -928,6 +939,45 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
     let printed = |id: &str| existing(&format!("{run_id}:tool:{id}")).and_then(|o| o["output"].as_str().map(str::to_string));
     let attempt_id = runs::attempt_id(run_id);
     let provider_turn = entities.and_then(|e| e.provider_turns.iter().find(|turn| turn["runAttemptId"] == attempt_id));
+    let provider_turn_id = format!("provider-turn:run:{}", runs::enc(run_id));
+    let request_item_id = |id: &str| format!("{run_id}:request:{id}");
+    let open_request = |id: &str, kind: &str, item_type: &str, fields: Value| {
+        let session = state.threads.get(thread).zip(entities).and_then(|(shell, entities)| {
+            state.run_rows(shell, thread, &entities.runs).provider_sessions.into_iter().next()
+        });
+        let Some(session) = session else { return vec![] };
+        let mut card = item(request_item_id(id), item_type, "waiting", fields);
+        card["requestId"] = json!(id);
+        card["providerTurnId"] = json!(provider_turn_id);
+        card["providerThreadId"] = json!(thread_provider_thread(state, thread, instance.as_str().unwrap_or(""), run_id));
+        let request = json!({
+            "id": id, "nodeId": runs::node_id(run_id), "providerTurnId": provider_turn_id,
+            "nativeRequestRef": null, "kind": kind, "status": "pending",
+            "responseCapability": {"type": "live", "providerSessionId": session["id"]},
+            "createdAt": at, "resolvedAt": null,
+        });
+        vec![draft("turn-item.updated", t, None, ctx.now, card), draft("runtime-request.updated", t, None, ctx.now, request)]
+    };
+    let pending = || entities.into_iter().flat_map(|e| &e.runtime_requests).filter(|r| r["status"] == "pending" && r["nodeId"] == runs::node_id(run_id));
+    let close_request = |old: &Value, response: &RuntimeResponse| {
+        let mut request = old.clone();
+        let id = old["id"].as_str().unwrap_or_default();
+        let cancelled = matches!(response, RuntimeResponse::Dismissed);
+        request["status"] = json!(if cancelled { "cancelled" } else { "resolved" });
+        request["resolvedAt"] = json!(at);
+        match response {
+            RuntimeResponse::Approval(decision) => request["decision"] = json!(decision),
+            RuntimeResponse::Answer(answer) => request["answers"] = json!({(id): answer}),
+            RuntimeResponse::Dismissed => {}
+        }
+        let mut events = vec![draft("runtime-request.updated", t, None, ctx.now, request)];
+        if let Some(mut card) = existing(&request_item_id(id)) {
+            card["status"] = json!(if cancelled { "cancelled" } else { "completed" });
+            card["updatedAt"] = json!(at);
+            events.push(draft("turn-item.updated", t, None, ctx.now, card));
+        }
+        events
+    };
     let mut events = match step {
         RunStep::Started => vec![],
         RunStep::Text(delta) => vec![draft("turn-item.updated", t, None, ctx.now, item(assistant_id.clone(), "assistant_message", "streaming", json!({"text": grown(&assistant_id, delta), "messageId": message_id})))],
@@ -938,6 +988,18 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
         RunStep::ToolStarted { id, name, input } => vec![draft("turn-item.updated", t, None, ctx.now, item(format!("{run_id}:tool:{id}"), "command_execution", "running", json!({"name": name, "input": input, "output": null})))],
         RunStep::ToolOutput { id, data } => tool(id, "running", json!(format!("{}{data}", printed(id).unwrap_or_default()))).into_iter().collect(),
         RunStep::ToolFinished { id, ok } => tool(id, if *ok { "completed" } else { "failed" }, json!(printed(id).unwrap_or_default())).into_iter().collect(),
+        RunStep::Request(RuntimeRequestEvent::Approval { id, tool, args }) => {
+            let kind = approval_kind(tool);
+            let prompt = args["command"].as_str().map(str::to_string).unwrap_or_else(|| format!("{tool} {args}"));
+            open_request(id, kind, "approval_request", json!({"requestKind": kind, "prompt": prompt}))
+        }
+        RunStep::Request(RuntimeRequestEvent::Question { id, prompt, options }) => {
+            let prompt = if prompt.trim().is_empty() { "Input requested" } else { prompt.trim() };
+            let choices: Vec<_> = options.iter().filter(|option| !option.trim().is_empty())
+                .map(|option| json!({"label": option.trim(), "description": option.trim(), "value": option})).collect();
+            open_request(id, "user_input", "user_input_request", json!({"questions": [{"id": id, "header": "Question", "question": prompt, "options": choices, "allowCustomAnswer": choices.is_empty()}]}))
+        }
+        RunStep::Request(RuntimeRequestEvent::Closed { id, response }) => pending().find(|request| request["id"] == id.as_str()).map_or_else(Vec::new, |request| close_request(request, response)),
         RunStep::Failure(_) if existing(&error_id).is_some() => vec![],
         RunStep::Failure(message) => vec![error(message)],
         RunStep::Finished(outcome) => {
@@ -947,7 +1009,7 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
                 Outcome::Interrupted => ("interrupted", Value::Null),
                 Outcome::Failed(m) | Outcome::OpenFailed(m) => ("failed", json!(logged.clone().unwrap_or_else(|| m.clone()))),
             };
-            let mut out = vec![];
+            let mut out: Vec<_> = pending().flat_map(|request| close_request(request, &RuntimeResponse::Dismissed)).collect();
             if let Some(streaming) = existing(&assistant_id) {
                 let text = streaming["text"].clone();
                 out.push(draft("turn-item.updated", t, None, ctx.now, item(assistant_id, "assistant_message", "completed", json!({"text": text, "messageId": message_id}))));
@@ -982,7 +1044,7 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
             out
         }
     };
-    if provider_turn.is_none() && matches!(step, RunStep::Text(_) | RunStep::Reasoning(_) | RunStep::ToolStarted { .. }) {
+    if provider_turn.is_none() && matches!(step, RunStep::Text(_) | RunStep::Reasoning(_) | RunStep::ToolStarted { .. } | RunStep::Request(RuntimeRequestEvent::Approval { .. } | RuntimeRequestEvent::Question { .. })) {
         if let Some((shell, entities)) = state.threads.get(thread).zip(entities).filter(|(_, entities)| entities.provider_turns.is_empty()) {
             let rows = state.run_rows(shell, thread, &entities.runs);
             events.extend(rows.provider_sessions.into_iter().map(|row| draft("provider-session.attached", t, None, ctx.now, row)));
@@ -990,7 +1052,7 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
         }
         let provider_thread = thread_provider_thread(state, thread, instance.as_str().unwrap_or(""), run_id);
         let turn = json!({
-            "id": format!("provider-turn:run:{}", runs::enc(run_id)),
+            "id": provider_turn_id,
             "providerThreadId": provider_thread,
             "nodeId": runs::node_id(run_id),
             "runAttemptId": attempt_id,

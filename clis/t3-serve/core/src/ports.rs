@@ -195,7 +195,7 @@ pub enum Finish {
 }
 
 /// What a thread's log says happened, neutral of any provider's own wire. `Other` is what t3 shows nothing of yet (usage, plans, file
-/// changes, requests for an answer).
+/// changes).
 #[derive(Debug, Clone, PartialEq)]
 pub enum AgentEventKind {
     TurnStarted,
@@ -206,9 +206,24 @@ pub enum AgentEventKind {
     ToolStarted { id: String, name: String, input: Value },
     ToolOutput { id: String, data: String },
     ToolFinished { id: String, ok: bool },
+    Request(RuntimeRequestEvent),
     Failure(String),
     TurnFinished(Finish),
     Other,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum RuntimeRequestEvent {
+    Approval { id: String, tool: String, args: Value },
+    Question { id: String, prompt: String, options: Vec<String> },
+    Closed { id: String, response: RuntimeResponse },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum RuntimeResponse {
+    Approval(&'static str),
+    Answer(String),
+    Dismissed,
 }
 
 /// `seq` is the thread's own event number; `turn` the turn the event belongs to.
