@@ -3,6 +3,8 @@ import { StyleSheet, useColorScheme } from 'react-native';
 
 import { usePresetThemeStore } from '../theme/state/presetThemeStore';
 
+export const DARK_GLASS_CONTROL_TINT = 'rgba(0,0,0,0.45)';
+
 export function supportsGlassControl(): boolean {
   return isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
 }
@@ -16,7 +18,7 @@ export function GlassControlBackground() {
       pointerEvents="none"
       glassEffectStyle="regular"
       colorScheme={scheme}
-      tintColor={scheme === 'dark' ? 'rgba(0,0,0,0.45)' : undefined}
+      tintColor={scheme === 'dark' ? DARK_GLASS_CONTROL_TINT : undefined}
       style={styles.surface}
     />
   );

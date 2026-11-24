@@ -17,6 +17,8 @@ import {
 import { isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { useState, type ReactElement } from 'react';
 
+import { DARK_GLASS_CONTROL_TINT } from '../../ui/glass-control-background';
+
 import type { GlassMenuGroupRenderer } from './glass-menu-group';
 import type { HeaderMenuSpec, MenuConfirmNode, MenuNode } from './header-menu-spec';
 
@@ -49,6 +51,8 @@ function menuNode(node: MenuNode, confirm: (node: MenuConfirmNode) => void): Rea
   }
 }
 
+const MENU_HEIGHT = 46;
+
 function NativeGlassMenuGroup({ menus, scheme }: {
   menus: readonly HeaderMenuSpec[];
   scheme: 'light' | 'dark';
@@ -63,7 +67,16 @@ function NativeGlassMenuGroup({ menus, scheme }: {
         onIsPresentedChange={(presented) => { if (!presented) setConfirmation(null); }}
       >
         <Alert.Trigger>
-          <HStack spacing={0} modifiers={[padding({ horizontal: 5 }), glassEffect({ shape: 'capsule' })]}>
+          <HStack
+            spacing={0}
+            modifiers={[
+              padding({ horizontal: 7 }),
+              glassEffect({
+                shape: 'capsule',
+                glass: { variant: 'regular', tint: scheme === 'dark' ? DARK_GLASS_CONTROL_TINT : undefined },
+              }),
+            ]}
+          >
             {menus.map((menu) => (
               <Menu
                 key={menu.testID}
@@ -75,11 +88,11 @@ function NativeGlassMenuGroup({ menus, scheme }: {
                   accessibilityIdentifier(menu.testID),
                 ]}
                 label={menu.label || !menu.sfSymbol ? (
-                  <Text modifiers={[font({ size: 16 }), foregroundStyle('primary'), fixedSize(), padding({ horizontal: 10 }), frame({ minWidth: 76, minHeight: 44, maxHeight: 44 })]}>
+                  <Text modifiers={[font({ size: 16 }), foregroundStyle('primary'), fixedSize(), padding({ horizontal: 10 }), frame({ minWidth: 76, minHeight: MENU_HEIGHT, maxHeight: MENU_HEIGHT })]}>
                     {menu.label ?? menu.accessibilityLabel}
                   </Text>
                 ) : (
-                  <Image systemName={menu.sfSymbol} size={17} modifiers={[foregroundStyle('primary'), frame({ width: 40, height: 44 })]} />
+                  <Image systemName={menu.sfSymbol} size={17} modifiers={[foregroundStyle('primary'), frame({ width: 40, height: MENU_HEIGHT })]} />
                 )}
               >
                 {menu.items.map((item) => menuNode(item, setConfirmation))}

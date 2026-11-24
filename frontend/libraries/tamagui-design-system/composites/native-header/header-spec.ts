@@ -14,6 +14,7 @@ export type HeaderActionSpec = {
 export type HeaderStatusSpec = {
   label: string;
   icon: LucideIcon;
+  sfSymbol?: SfSymbolName;
   testID: string;
   menu?: Pick<HeaderMenuSpec, 'accessibilityLabel' | 'items'>;
 };

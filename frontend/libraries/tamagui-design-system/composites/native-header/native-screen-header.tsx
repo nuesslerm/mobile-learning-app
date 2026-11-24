@@ -57,10 +57,10 @@ const RENDERERS: HeaderRenderers = {
   ),
   title: (props) => <GlassTitle {...props} />,
   menuGroup: renderGlassMenuGroup,
-  status: ({ icon, label, testID, menu }) => {
+  status: ({ icon, sfSymbol, label, testID, menu }) => {
     const content = (
       <XStack items="center" gap="$1" testID={menu ? undefined : testID}>
-        <Icon as={icon} size={13} color="$color10" />
+        <Icon as={icon} size={sfSymbol ? 16 : 13} color="$color10" systemSymbol={sfSymbol} />
         <Text color="$color10" fontSize={11} lineHeight={14}>{label}</Text>
       </XStack>
     );

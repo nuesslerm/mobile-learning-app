@@ -95,6 +95,7 @@ export function editorHeaderSpec(input: EditorHeaderInput): ScreenHeaderSpec {
       leadingStatus: {
         label: SAVE_LABELS[native.saveStatus],
         icon: Cloud,
+        sfSymbol: 'cloud',
         testID: 'ProblemEditorSaveStatus',
         menu: {
           accessibilityLabel: 'Problem actions',

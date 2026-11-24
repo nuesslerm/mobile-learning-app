@@ -121,6 +121,7 @@ export function headerSignature(spec: ScreenHeaderSpec): string {
       id: spec.leadingStatus.testID,
       label: spec.leadingStatus.label,
       icon: spec.leadingStatus.icon.displayName,
+      sfSymbol: spec.leadingStatus.sfSymbol,
       menu: spec.leadingStatus.menu ? menuSignature(spec.leadingStatus.menu.items) : undefined,
     } : undefined,
     back: spec.onBack !== undefined,
