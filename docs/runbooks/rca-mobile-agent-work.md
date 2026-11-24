@@ -6,7 +6,7 @@ tier: runbook
 
 # RCA mobile agent work
 
-Use the local RCA stack and the native iPhone Simulator builds. Pair T3 Code and Orca Mobile to that stack. Use the checkout of `git@github.com:nuesslerm/mobile-learning-app.git`. The phone pairing setup is covered in [phone-test-pairing.md](phone-test-pairing.md).
+Use the checkout of `git@github.com:nuesslerm/mobile-learning-app.git` and native T3 Code and Orca Mobile builds on the iPhone Simulator. Start the local RCA service and executor with `t3-serve` and `orca-serve` connected to that service. In the [Mac pairing site](../../clis/rca/pairing-site/README.md), choose each app and open its generated link in the simulator. Confirm both app pickers show the local Mobile Learning App repository. The [deployed phone pairing guide](phone-test-pairing.md) covers pairing a physical phone to the VM.
 
 Start the local `rca-exec` with `--worktree-base` pointing to a dedicated directory outside its repository root. Confirm the executor can use Git, GitHub CLI, Python, and the three provider CLIs under its own account. Verify GitHub access to this repository before asking an agent to publish a PR.
 
@@ -32,6 +32,12 @@ On repeat runs, append a unique run suffix to both the branch and directory. Kee
 5. Keep simulator evidence showing the selected provider and final reply. Keep credentials and unrelated project contents out of evidence. The row passes only after the PR is merged and the checks for its merge commit finish successfully.
 
 In Orca's worktree picker, select `origin/dev` as the source. Under Options, turn off **Existing branch** and enter the matrix branch as the name and new branch name. In T3 Code, choose **New worktree**, enable **Start from remote**, and select `origin/dev`. If T3 assigns its own branch name, verify the worktree was created at the recorded SHA and have the agent rename that test branch to the matrix name before it edits or pushes.
+
+## Commit gate and evidence
+
+The Python tests can run on the Mac. The repository's Lefthook `workflows` job also exercises Linux process handling. If that job fails on macOS, preserve the staged files and run the installed pre-commit hook for the same worktree and index in a native Linux environment. Keep Git signing enabled when committing. Record any operator action needed to finish the row, including approvals, publishing and merging.
+
+For each row, record the app and provider, starting SHA, worktree and branch, local test command and count, simulator screenshot, PR link, merge SHA, and GitHub Actions run links and conclusions. Check the base revision's Actions runs when diagnosing failures shared with the merge.
 
 ## Prompt
 
