@@ -22,6 +22,8 @@ type Props = {
 
 const FLOATING_TRAILING_GUTTER = 16;
 const EDIT_TRAILING_GUTTER = 28;
+const DARK_GLASS_ACTION = { bg: '#252427' } as const;
+const FLOATING_CHIP_TEXT = { fontSize: 14.5, lineHeight: 18, fontWeight: '600', y: 1 } as const;
 
 /** One chip per case in a plain horizontal scroller (the sheet's one registered scrollable is its body), with + and the pencil pinned at the right. */
 export function CaseChips({ cases, selectedId, atCap, neutral = false, darkGlass = false, editing = false, onSelect, onAdd, onEdit, onRemove }: Props) {
@@ -30,7 +32,7 @@ export function CaseChips({ cases, selectedId, atCap, neutral = false, darkGlass
   const scrollX = React.useRef(0);
   const positions = React.useRef(new Map<string, { x: number; width: number }>());
   const activeColor = darkGlass ? '#262428' : neutral ? '$color6' : '$color9';
-  const inactiveColor = darkGlass ? '#1d1e20' : '$color4';
+  const inactiveColor = darkGlass ? '#1a1b1d' : '$color4';
   const trailingGutter = editing ? EDIT_TRAILING_GUTTER : neutral ? FLOATING_TRAILING_GUTTER : undefined;
 
   const reveal = React.useCallback((chip: { x: number; width: number }) => {
@@ -52,7 +54,7 @@ export function CaseChips({ cases, selectedId, atCap, neutral = false, darkGlass
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{ flex: 1 }}
-        contentContainerStyle={{ gap: neutral ? 12 : 8, paddingTop: editing ? 6 : 2, paddingRight: trailingGutter ?? 0, paddingBottom: 2 }}
+        contentContainerStyle={{ gap: neutral ? 10 : 8, paddingTop: editing ? 6 : 2, paddingRight: trailingGutter ?? 0, paddingBottom: 2 }}
         onLayout={(event: LayoutChangeEvent) => {
           viewport.current = event.nativeEvent.layout.width;
           revealSelected();
@@ -84,10 +86,10 @@ export function CaseChips({ cases, selectedId, atCap, neutral = false, darkGlass
                 onPress={() => onSelect(entry.id)}
               >
                 <XStack
-                  px={neutral ? 15 : '$3'} py="$2" rounded="$10"
+                  px={neutral ? 13 : '$3'} py={neutral ? 8 : '$2'} rounded="$10"
                   bg={selected ? activeColor : inactiveColor}
                 >
-                  <Text variant="small" color={selected && !neutral ? '$color1' : '$color'} opacity={darkGlass && !selected ? 0.5 : undefined}>
+                  <Text variant="small" color={selected && !neutral ? '$color1' : '$color'} opacity={darkGlass && !selected ? 0.5 : undefined} {...(neutral ? FLOATING_CHIP_TEXT : {})}>
                     {entry.label}
                   </Text>
                 </XStack>
@@ -108,8 +110,8 @@ export function CaseChips({ cases, selectedId, atCap, neutral = false, darkGlass
           );
         })}
       </ScrollView>
-      <IconButton testID="ConsoleChipAdd" icon={Plus} iconSize={neutral ? 15 : undefined} iconSystemSymbol={neutral ? 'plus' : undefined} variant="secondary" size="$3" pressLog="off" disabled={atCap} accessibilityLabel="Add a case" onPress={onAdd} />
-      <IconButton testID="ConsoleChipEdit" icon={editing ? Check : Pencil} iconSize={neutral ? 15 : undefined} iconSystemSymbol={neutral ? (editing ? 'checkmark' : 'pencil') : undefined} variant="secondary" size="$3" pressLog="off" accessibilityLabel={editing ? "Done editing test cases" : "Edit this case"} onPress={onEdit} />
+      <IconButton testID="ConsoleChipAdd" icon={Plus} iconSize={neutral ? 15 : undefined} iconSystemSymbol={neutral ? 'plus' : undefined} variant="secondary" {...(darkGlass ? DARK_GLASS_ACTION : {})} y={neutral ? 1 : undefined} size="$3" pressLog="off" disabled={atCap} accessibilityLabel="Add a case" onPress={onAdd} />
+      <IconButton testID="ConsoleChipEdit" icon={editing ? Check : Pencil} iconSize={neutral ? 15 : undefined} iconSystemSymbol={neutral ? (editing ? 'checkmark' : 'pencil') : undefined} variant="secondary" {...(darkGlass ? DARK_GLASS_ACTION : {})} y={neutral ? 1 : undefined} size="$3" pressLog="off" accessibilityLabel={editing ? "Done editing test cases" : "Edit this case"} onPress={onEdit} />
     </XStack>
   );
 }

@@ -88,7 +88,7 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
       <SegmentedControl variant="thumb" tone={floating ? "neutral" : "accent"} density={floating ? "compact" : "default"} trackStyle={darkGlass ? CONSOLE_TAB_TRACK : undefined} thumbStyle={darkGlass ? CONSOLE_TAB_THUMB : undefined} testID="ConsoleTabs" options={TABS} value={state.tab} onChange={(tab) => state.setTab(tab as ConsoleTab)} />
       <Sheet.ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 12, paddingBottom: 12 }} testID="ConsoleBody">
         {state.tab === 'testcase' ? (
-          <YStack gap={floating ? '$2' : '$3'} role="tabpanel" testID="ConsolePanel-testcase">
+          <YStack gap={floating ? (editing ? '$2' : 10) : '$3'} role="tabpanel" testID="ConsolePanel-testcase">
             <CaseChips neutral={floating} darkGlass={darkGlass} editing={editing} cases={state.cases} selectedId={selected?.id ?? null} atCap={state.atCap} onSelect={state.select} onAdd={add} onEdit={edit} onRemove={floating && editing ? state.removeCase : undefined} />
             {selected ? (
               <>

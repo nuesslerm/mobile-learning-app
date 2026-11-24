@@ -6,7 +6,7 @@ import { forgetLoggedLines, loggedLines } from '../../../../../tests/flow/logged
 import type { LeetCodePortOverrides, RunResponse, VoiceEditTransportPort } from '../../..';
 import { CodeRunnerError } from '../../../domain/ports';
 import { ProblemCatalog } from '../../../domain/problemCatalog';
-import { createFakeCodeRunner, customRun, passingRun, type FakeCodeRunner } from '../../../testing';
+import { createFakeCodeRunner, createGatedCodeRunner, customRun, passingRun, type FakeCodeRunner } from '../../../testing';
 import { exists, fakeGateway, resetConsoleTwin, tap, text, verdict } from './consoleTwinSupport';
 
 async function renderEditor(runner: FakeCodeRunner, route = '/leetcode/two-sum'): Promise<FlowSession> {
@@ -165,13 +165,16 @@ describe('a custom case through the console', () => {
 
   it('given a runner that rejects, when the case runs, then the result reads Run failed with its message and the typed fields are untouched', async () => {
     expectWarning(/editor_v2\.run_local\.error/);
-    await renderEditor(createFakeCodeRunner(() => Promise.reject(new CodeRunnerError('unavailable', 'the runtime files are missing', 'assets'))));
+    const runner = createGatedCodeRunner();
+    await renderEditor(runner);
     await openWithCustomCase();
     typeField('nums', '[1,2]');
     typeField('target', '3');
     await forgetLoggedLines();
 
     await tap('ConsoleFooterRun');
+    await waitFor(() => expect(runner.held).toBe(1));
+    await act(async () => runner.release(new CodeRunnerError('unavailable', 'the runtime files are missing', 'assets')));
 
     await waitFor(() => expect(verdict()).toBe('Run failed'));
     await waitFor(async () => expect(await loggedLines('editor_v2.run_local.error')).not.toHaveLength(0));
