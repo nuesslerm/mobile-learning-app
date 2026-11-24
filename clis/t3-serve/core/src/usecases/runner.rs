@@ -169,6 +169,9 @@ impl Runner {
             self.remember(&turn_key(thread, &run), &run);
             self.remember(&run_key(&run), &run);
             self.follow_to_end(thread, &run, &stop);
+            if self.engine.next_queued(thread).as_deref() == Some(run.as_str()) {
+                break;
+            }
         }
         self.set(&self.draining).remove(thread);
     }

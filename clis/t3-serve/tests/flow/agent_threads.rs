@@ -261,6 +261,38 @@ fn restart_recovers_a_hold_missing_from_the_saved_queue_rows() {
 }
 
 #[test]
+fn the_queue_stays_pending_when_its_first_subscription_fails_and_can_be_followed_again() {
+    use std::sync::Arc;
+    use t3_core::ports::AgentError;
+    use t3_core::usecases::{engine::Engine, runner::Runner};
+
+    // Given the queued follow-up is saved in T3 and its events are available at RCA.
+    let (h, _) = seeded();
+    let first = crashed_run(&h, "original");
+    let queued = queued_run(&h, "follow-up");
+    h.service.engine().record("t1", &first, &RunStep::Finished(Outcome::Completed)).unwrap();
+    h.agent.append("t1", Some(&queued), AgentEventKind::TurnStarted);
+    h.agent.append("t1", Some(&queued), AgentEventKind::Text("the existing reply".into()));
+    h.agent.append("t1", Some(&queued), AgentEventKind::TurnFinished(Finish::Completed));
+    let engine = Arc::new(Engine::open(h.store.clone(), h.clock.clone(), h.ids.clone()).unwrap());
+    let runner = Runner::new(h.agent.clone(), engine.clone(), h.store.clone(), h.log.clone());
+    let attempts = || h.agent.calls.lock().unwrap().iter().filter(|method| **method == "thread.subscribe").count();
+
+    // When the first attempt to follow fails before reading the queued turn.
+    *h.agent.follow_error_once.lock().unwrap() = Some(AgentError::Failed("connection refused".into()));
+    runner.drain("t1");
+
+    // Then T3 stops after one attempt and can follow the same turn on the next drain.
+    assert_eq!(attempts(), 1);
+    assert_eq!(engine.next_queued("t1").as_deref(), Some(queued.as_str()));
+    runner.drain("t1");
+    assert_eq!(attempts(), 2);
+    assert!(engine.next_queued("t1").is_none());
+    assert!(engine.read(|state| state.entities["t1"].runs[1]["status"] == "completed"));
+    assert!(h.agent.turns.lock().unwrap().is_empty(), "a retry only follows the existing turn");
+}
+
+#[test]
 fn after_a_restart_a_queued_run_that_already_started_keeps_receiving_its_reply() {
     // Given T3 persisted a waiting row, but RCA started its turn before T3 restarted.
     let (h, _) = seeded();

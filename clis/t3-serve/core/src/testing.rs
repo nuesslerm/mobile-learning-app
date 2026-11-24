@@ -252,6 +252,7 @@ pub struct ScriptedAgent {
     pub interrupted: Mutex<Vec<String>>,
     /// While set, `history` answers it instead of the log.
     pub history_error: Mutex<Option<AgentError>>,
+    pub follow_error_once: Mutex<Option<AgentError>>,
     /// While set, `list_dir` answers it: a folder the executor does not have.
     pub dir_error: Mutex<Option<AgentError>>,
     /// While true, `history` sends the log from its first event whatever number it is asked after.
@@ -395,6 +396,9 @@ impl AgentApi for ScriptedAgent {
 
     fn follow(&self, thread_id: &str, after_seq: u64, sink: &mut dyn FnMut(AgentEvent) -> Follow) -> Result<(), AgentError> {
         self.called("thread.subscribe");
+        if let Some(error) = self.follow_error_once.lock().unwrap().take() {
+            return Err(error);
+        }
         let mut seen = after_seq;
         loop {
             let news: Vec<AgentEvent> = {
