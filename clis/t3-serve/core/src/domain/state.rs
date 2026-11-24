@@ -57,6 +57,10 @@ fn message_wire(value: &Value) -> Value {
         fields.entry("nodeId").or_insert_with(|| value["runId"].as_str().map_or(Value::Null, |run| json!(runs::node_id(run))));
         fields.entry("attachments").or_insert_with(|| json!([]));
         fields.entry("streaming").or_insert_with(|| json!(false));
+        if value["role"] == "assistant" {
+            fields.entry("createdBy").or_insert_with(|| json!("agent"));
+            fields.entry("creationSource").or_insert_with(|| json!("provider"));
+        }
     }
     message
 }

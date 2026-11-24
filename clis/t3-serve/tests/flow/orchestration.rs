@@ -124,6 +124,11 @@ fn a_message_starts_a_turn_in_the_agent_api_and_the_thread_shows_the_streamed_te
     assert_eq!(tool["nodeId"], p["messages"][1]["nodeId"]);
     assert_eq!(p["messages"][1]["streaming"], false);
     assert_eq!(p["messages"][1]["attachments"], json!([]));
+    assert_eq!(p["messages"][1]["createdBy"], "agent");
+    assert_eq!(p["messages"][1]["creationSource"], "provider");
+    let assistant = events.iter().find(|(kind, row)| kind == "message.updated" && row["role"] == "assistant").unwrap();
+    assert_eq!(assistant.1["createdBy"], "agent");
+    assert_eq!(assistant.1["creationSource"], "provider");
     assert_eq!((p["runs"][0]["status"].as_str(), p["thread"]["archivedAt"].clone()), (Some("completed"), Value::Null));
     // And the shell row shows an idle thread whose latest run completed
     let shell = rpc.send("orchestration.subscribeShell", json!({}));
