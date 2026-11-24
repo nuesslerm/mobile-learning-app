@@ -24,6 +24,7 @@ const RESET_CONFIRM = 'ConsoleResetConfirmation';
 const RESET_PATH = [RESET_CONFIRM];
 const CANVAS_PILL = { backgroundColor: '#101010', borderColor: '#252525', borderWidth: 1 } as const;
 const FOOTER_PILL = { backgroundColor: '#39383c', borderColor: '#49484c', borderWidth: 1 } as const;
+const SUBMIT_RIM = { borderColor: '#25dd4f', borderWidth: 1 } as const;
 const SUBMIT_GLOW = { shadowColor: '#28dc57', shadowOpacity: 0.48, shadowRadius: 15, shadowOffset: { width: 0, height: 5 } } as const;
 const CANVAS_CONTROL = { height: 42, fontSize: 17, color: '#f5f5f7' } as const;
 
@@ -95,7 +96,7 @@ export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubm
       disabled={off}
       accessibilityLabel="Submit"
       onPress={onSubmit}
-      {...(canvas ? { ...CANVAS_CONTROL, minW: 86, fontWeight: "600", style: { backgroundColor: '#1ec843', ...(variant === 'footer' ? SUBMIT_GLOW : {}) } } : {})}
+      {...(canvas ? { ...CANVAS_CONTROL, minW: 86, fontWeight: "600", style: { backgroundColor: '#1ec843', ...(variant === 'footer' ? SUBMIT_GLOW : SUBMIT_RIM) } } : {})}
     >
       Submit
     </Button>
@@ -128,12 +129,12 @@ export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubm
         size="$3"
         rounded="$10"
         icon={canvas ? SquareTerminal : Terminal}
-        iconSize={canvas ? 15 : iosIconSize}
-        iconSystemSymbol={canvas ? 'terminal' : undefined}
+        iconSize={canvas ? 16 : iosIconSize}
+        iconSystemSymbol={canvas ? { name: 'terminal', weight: 'medium' } : undefined}
         pressLog="off"
         accessibilityLabel="Open console"
         onPress={onOpen}
-        {...(canvas ? { ...CANVAS_CONTROL, minW: 128, style: CANVAS_PILL } : {})}
+        {...(canvas ? { ...CANVAS_CONTROL, height: 44, fontSize: 17.5, minW: 128, style: CANVAS_PILL } : {})}
       >
         Console
       </Button>
