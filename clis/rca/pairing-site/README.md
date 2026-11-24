@@ -8,6 +8,6 @@ To add an app, register its route, name, description, and credential handler in 
 
 Desktop browsers show a QR code linking to the current setup page. The Mac generates it locally with Core Image through `/usr/bin/swift` (Xcode or the Command Line Tools). The phone still needs Tailscale.
 
-The HTML templates under `pages/` share a layout, Back control, and app card partial. They use the locally served Bootstrap 5.3.9 stylesheet (MIT, see `LICENSE.bootstrap`) for buttons, cards, form controls, and layout utilities. `static/site.css` contains the pairing theme and layout.
+The HTML templates under `pages/` share a layout, Back control, and app card partial. The site serves daisyUI 5.8.2 locally (MIT, see `LICENSE.daisyui`). Its stylesheet combines the distribution's reset, root colors, light and dark themes, and the button, card, collapse, select, textarea, and badge components. `static/site.css` handles the page layout. The appearance control defaults to the device setting and remembers an explicit choice across pages.
 
-Use Bootstrap button variants for navigation controls and Bootstrap Icons for navigation symbols. The Back partial uses the Bootstrap Icons 1.13.1 `arrow-left` SVG (MIT, see `LICENSE.bootstrap-icons`).
+Use daisyUI button variants for navigation controls. The Back partial uses the Bootstrap Icons 1.13.1 `arrow-left` SVG (MIT, see `LICENSE.bootstrap-icons`).

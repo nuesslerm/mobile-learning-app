@@ -4,13 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>$title · RCA Pairing</title>
-  <link rel="stylesheet" href="/assets/bootstrap-5.3.9.min.css">
+  <script src="/assets/theme.js"></script>
+  <link rel="stylesheet" href="/assets/daisyui-5.8.2.css">
   <link rel="stylesheet" href="/assets/site.css">
 </head>
 <body>
   <div class="shell">
-    <nav class="pairing-nav d-flex align-items-center justify-content-between sticky-top" aria-label="Pairing">
-      $navigation
+    <nav class="pairing-nav" aria-label="Pairing">
+      <div class="nav-links">$navigation</div>
+      <label class="appearance-picker" hidden>
+        <span class="sr-only">Appearance</span>
+        <select id="appearance" class="select select-sm">
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
     </nav>
     <div class="page">
       <main class="$page_class">$content</main>
