@@ -62,6 +62,14 @@ Reuse the row's fresh workspace after its Python tests. Keep these prompts read-
 
 Keep a result for every operation in every row. Record the thread and turn IDs, the selected model, and the screenshot or event sequence that supports the result. Label a device action separately from an adapter RPC and a CLI tool trace. If a turn returns slowly or a send times out, look up the turn and queue by ID before retrying.
 
+## Parity regression cases
+
+Use the case IDs and Given/When/Then steps in [the parity case manifest](rca-mobile-parity.json). Compare with [observed results](rca-mobile-parity-results.md) before assigning a gap to the client, adapter, or provider. Run each relevant case on both apps and use the three providers wherever the case exercises provider behavior.
+
+For future harness integration, drive the app through accessibility labels or stable test IDs where the installed build exposes them. Pair each UI action with a read-only adapter or RCA assertion. Wait for the case's specific event, such as a pending request or a queued item ID, before the next action. Use scripted providers and release gates for ordering, disconnection, prompts, and pagination. Run a separate live-provider check for vision output, effective model, skill loading, child execution, and background output. The current `wf test run` targets Android and browser. The iOS visual check captures and compares a screen and needs an iOS driver to exercise these flows.
+
+Keep a per-run JSON result keyed by case ID, app, provider, and evidence tier (`simulator`, `adapter`, or `physical`). Record the app build, server revision, host OS, start and finish times, verdict (`pass`, `fail`, `partial`, `blocked`, or `not-run`), assertion outcomes, and evidence paths. Add thread, turn, queue and request IDs where relevant. Keep recordings and sanitized event traces beside the result and link the report from the results ledger. Exclude pairing data, authorization headers, and unrelated workspaces from the bundle.
+
 ## Retire test worktrees
 
 At the end of a run, or before starting another run, use `git worktree list` to find checkouts created for finished test rows and temporary verification. Keep any checkout still needed to reproduce a failure or open in an active test. Save the evidence outside the checkout and verify that its commits are reachable from a retained branch or merged PR.
