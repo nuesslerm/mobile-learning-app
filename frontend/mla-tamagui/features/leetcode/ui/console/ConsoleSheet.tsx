@@ -3,7 +3,7 @@ import { Sheet } from '@lib/tamagui-design-system/ui/sheet';
 import { Trash2 } from '@lib/tamagui-design-system/icons';
 import { YStack } from '@lib/tamagui-design-system/primitives';
 import React from 'react';
-import { Keyboard, Platform, Pressable, StyleSheet, View, useColorScheme, useWindowDimensions } from 'react-native';
+import { Keyboard, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FullWindowOverlay } from 'react-native-screens';
 
@@ -31,6 +31,7 @@ const TABS = [
 type Props = {
   problem: Blind75Problem;
   console: ConsoleState;
+  colorScheme: 'light' | 'dark';
   fieldError: { name: string; message: string } | null;
   result: React.ReactNode;
   footer: React.ReactNode;
@@ -40,17 +41,16 @@ type Props = {
 };
 
 const floating = Platform.OS === 'ios';
-export function ConsoleSheet({ problem, console: state, fieldError, result, footer, onSheetClosed, editorHeightBelowNativeHeader, nativeHeaderBottom }: Props) {
+export function ConsoleSheet({ problem, console: state, colorScheme, fieldError, result, footer, onSheetClosed, editorHeightBelowNativeHeader, nativeHeaderBottom }: Props) {
   const captions = React.useMemo(() => captionsOf(problem), [problem]);
   const [focusToken, setFocusToken] = React.useState(0);
   const [editing, setEditing] = React.useState(false);
   const { selected } = state;
-  const scheme = useColorScheme();
   const { height: windowHeight } = useWindowDimensions();
   const { top } = useSafeAreaInsets();
   const headerBottom = nativeHeaderBottom ?? (editorHeightBelowNativeHeader ? windowHeight - editorHeightBelowNativeHeader : 0);
   const headerHeight = Math.max(0, headerBottom - top);
-  const darkGlass = floating && scheme === 'dark';
+  const darkGlass = floating && colorScheme === 'dark';
   React.useEffect(() => {
     if (!state.open) setEditing(false);
   }, [state.open]);
@@ -77,7 +77,9 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
       floating={floating}
       floatingHorizontalInset={8}
       floatingBottomInset={8}
-      cornerRadius={floating ? 28 : undefined}
+      cornerRadius={floating ? 38 : undefined}
+      bottomCornerRadius={floating ? 46 : undefined}
+      glassColorScheme={floating ? colorScheme : undefined}
       glassTintColor={darkGlass ? 'rgba(10, 10, 10, 0.17)' : undefined}
       glassOverlayColor={darkGlass ? 'rgba(0,0,0,0.40)' : undefined}
       handleIndicatorStyle={floating ? CONSOLE_HANDLE : undefined}

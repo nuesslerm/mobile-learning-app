@@ -41,6 +41,7 @@ export type SheetProps = {
   /** Distance from the window's bottom edge for a floating sheet. Defaults to the safe area plus 8 points. */
   floatingBottomInset?: number;
   cornerRadius?: number;
+  bottomCornerRadius?: number;
   glassColorScheme?: GlassColorScheme;
   glassTintColor?: ColorValue;
   glassOverlayColor?: ColorValue;
@@ -196,6 +197,7 @@ export function Sheet({
   floatingHorizontalInset = 12,
   floatingBottomInset,
   cornerRadius,
+  bottomCornerRadius,
   glassColorScheme,
   glassTintColor,
   glassOverlayColor,
@@ -293,6 +295,10 @@ export function Sheet({
     ),
     [handleLabel, testID, indicatorColor, handleIndicatorStyle, handleClose]
   );
+  const bottomCorners = useMemo(() => bottomCornerRadius === undefined ? undefined : {
+    borderBottomLeftRadius: bottomCornerRadius,
+    borderBottomRightRadius: bottomCornerRadius,
+  }, [bottomCornerRadius]);
   const renderGlassBackground = useCallback(
     ({ style }: BottomSheetBackgroundProps) => (
       <GlassView
@@ -307,14 +313,15 @@ export function Sheet({
             borderTopLeftRadius: cornerRadius,
             borderTopRightRadius: cornerRadius,
           },
+          bottomCorners,
         ]}
       >
         {glassOverlayColor ? (
-          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: cornerRadius ?? 28, backgroundColor: glassOverlayColor }]} />
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: cornerRadius ?? 28, backgroundColor: glassOverlayColor }, bottomCorners]} />
         ) : null}
       </GlassView>
     ),
-    [cornerRadius, glassColorScheme, glassTintColor, glassOverlayColor]
+    [bottomCorners, cornerRadius, glassColorScheme, glassTintColor, glassOverlayColor]
   );
   const renderDimBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => renderBackdrop(props, backdropOpacity),
@@ -357,6 +364,7 @@ export function Sheet({
         !useGlass && { backgroundColor: theme.color2?.val ?? '#fff' },
         floating && styles.floatingBackground,
         cornerRadius === undefined ? null : { borderRadius: cornerRadius },
+        bottomCorners,
       ]}
       handleIndicatorStyle={[
         { backgroundColor: floating ? 'rgba(127, 127, 127, 0.65)' : indicatorColor },
