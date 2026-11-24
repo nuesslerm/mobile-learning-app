@@ -95,3 +95,9 @@ RCA now includes ordered attachment references in the user message event. Orca u
 During the local RCA restart for photo verification, repeated subscription failures left the head of several T3 queues in place. T3 kept taking the same head in the same drain. The Mac counted about 16,000 RCA connections in TIME_WAIT, and loopback requests failed across both adapters and the simulator driver. Suspending the local T3 process stopped the new connections and freed the ports.
 
 T3 now returns from that drain if the same row is still waiting. The regression forces the first subscription to fail before the queued turn starts. It asserts one attempt in that drain, persistence of the waiting row, and successful playback on a later drain without starting another RCA turn. It passed on Mac and the ten Linux agent-thread flow tests passed. After restarting the patched local T3 adapter, RCA, T3 and Orca all returned HTTP 200.
+
+## T3 photo preview after a cold reopen
+
+Select the same two swatches in the same order with T3's Photo Library picker, then send a Claude Sonnet turn and cold-reopen the chat. Both composer images appeared. The staged files matched both original PNG SHA-256 digests, and Claude reported the colors in order. The reopened projection still had both upload IDs, but the thumbnails were blank and both paired `assets.createUrl` requests returned `AssetAttachmentNotFoundError`.
+
+T3 still projects the pending upload IDs on the sent message. The pinned T3 server claims a permanent copy before dispatch so pending-upload cleanup can remove its own copy. The RCA adapter has no equivalent claim step. The end-to-end failing check now has stable assertions for the before and after projection, staged hashes and asset readback.
