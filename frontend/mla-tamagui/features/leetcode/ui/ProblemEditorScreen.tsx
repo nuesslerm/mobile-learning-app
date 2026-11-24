@@ -721,7 +721,7 @@ export function ProblemEditorScreen({
           console={consoleState}
           fieldError={consoleState.fieldError}
           result={<RunResult outcome={consoleState.outcome} actions={{ onShowLine: () => void consoleState.showLine(), canOpenCase: (label) => consoleState.caseIdOf(label) !== null, onOpenCase: consoleState.openCase }} />}
-          footer={<ConsoleFooter {...consoleActions} />}
+          footer={<ConsoleFooter {...consoleActions} canvas={darkCanvas} />}
           onSheetClosed={handleConsoleClosed}
         />
       ) : null}

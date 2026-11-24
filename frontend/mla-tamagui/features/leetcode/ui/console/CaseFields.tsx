@@ -15,10 +15,11 @@ type Props = {
   fieldError: { name: string; message: string } | null;
   onEdit: (name: string, text: string) => void;
   inset?: boolean;
+  surfaceColor?: string;
 };
 
 /** One field per parameter: a read-only card for a bundled case, an editable JSON text for a custom one. */
-export function CaseFields({ entry, captions, focusToken, fieldError, onEdit, inset = false }: Props) {
+export function CaseFields({ entry, captions, focusToken, fieldError, onEdit, inset = false, surfaceColor }: Props) {
   const theme = useTheme();
   const first = React.useRef<React.ElementRef<typeof TextInput>>(null);
   React.useEffect(() => {
@@ -29,9 +30,9 @@ export function CaseFields({ entry, captions, focusToken, fieldError, onEdit, in
     <YStack gap={inset ? "$2" : "$3"} testID="ConsoleFields">
       {captions.map(({ name, caption }, index) =>
         entry.kind === 'bundled' ? (
-          <ValueCard key={`${entry.id}:${name}`} id={`ConsoleField-${name}`} caption={inset ? name : caption} inset={inset} value={entry.fields[name] ?? ''} />
+          <ValueCard key={`${entry.id}:${name}`} id={`ConsoleField-${name}`} caption={inset ? name : caption} inset={inset} surfaceColor={surfaceColor} value={entry.fields[name] ?? ''} />
         ) : (
-          <YStack key={`${entry.id}:${name}`} gap="$1" {...(inset ? INSET_VALUE_SURFACE : {})}>
+          <YStack key={`${entry.id}:${name}`} gap="$1" {...(inset ? INSET_VALUE_SURFACE : {})} style={surfaceColor ? { backgroundColor: surfaceColor } : undefined}>
             <Text variant="muted" fontSize={inset ? 11 : undefined} testID={`ConsoleField-${name}-Caption`}>
               {inset ? name : caption}
             </Text>

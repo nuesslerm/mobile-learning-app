@@ -1,7 +1,9 @@
+import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import type { LucideIcon } from 'lucide-react-native';
 import { useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import {
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text as RNText,
@@ -38,7 +40,8 @@ export type MenuPanelProps = {
   testID: string;
   trigger?: ReactNode;
   triggerStyle?: StyleProp<ViewStyle>;
-  placement?: 'above' | 'below';
+  placement?: 'above' | 'below' | 'beside';
+  glass?: boolean;
   openPath?: MenuPath;
   panelWidth?: number;
 };
@@ -206,6 +209,7 @@ export function MenuPanel({
   trigger,
   triggerStyle,
   placement = 'below',
+  glass = false,
   openPath = ROOT_PATH,
   panelWidth = PANEL_WIDTH,
 }: MenuPanelProps) {
@@ -350,12 +354,19 @@ export function MenuPanel({
   }
 
   const width = Math.min(panelWidth, windowWidth - 2 * EDGE);
+  const beside = placement === 'beside' && anchor && anchor.x + anchor.width + GAP * 2 + width + EDGE <= windowWidth;
+  const nativeGlass = glass && Platform.OS === 'ios' && isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
   const right = anchor
     ? Math.min(windowWidth - width - EDGE, Math.max(EDGE, windowWidth - (anchor.x + anchor.width)))
     : EDGE + 4;
-  const vertical = placement === 'above'
-    ? { bottom: anchor ? Math.max(EDGE, windowHeight - anchor.y + GAP) : FALLBACK_TOP }
-    : { top: anchor ? anchor.y + anchor.height + GAP : FALLBACK_TOP };
+  const position = beside
+    ? { left: anchor.x + anchor.width + GAP * 2, bottom: Math.max(EDGE, windowHeight - anchor.y - anchor.height - 20) }
+    : {
+        right,
+        ...(placement === 'below'
+          ? { top: anchor ? anchor.y + anchor.height + GAP : FALLBACK_TOP }
+          : { bottom: anchor ? Math.max(EDGE, windowHeight - anchor.y + GAP) : FALLBACK_TOP }),
+      };
 
   return (
     <>
@@ -387,7 +398,7 @@ export function MenuPanel({
             testID={`${testID}Backdrop`}
             accessibilityLabel="Close menu"
             onPress={closePanel}
-            style={[styles.backdrop, { backgroundColor: colors.scrim }]}
+            style={[styles.backdrop, { backgroundColor: nativeGlass ? "transparent" : colors.scrim }]}
           />
           <View
             testID={`${testID}Content`}
@@ -395,13 +406,15 @@ export function MenuPanel({
               styles.card,
               {
                 width,
-                ...vertical,
-                right,
-                backgroundColor: colors.surface,
+                ...position,
+                backgroundColor: nativeGlass ? 'transparent' : colors.surface,
                 borderColor: colors.border,
               },
             ]}
           >
+            {nativeGlass ? (
+              <GlassView pointerEvents="none" glassEffectStyle="regular" tintColor="rgba(20,20,22,0.45)" style={styles.glassCard} />
+            ) : null}
             {renderView()}
           </View>
         </Modal>
@@ -428,6 +441,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 16,
   },
+  glassCard: { ...StyleSheet.absoluteFill, borderRadius: 20 },
   list: { paddingVertical: 6 },
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
   row: {

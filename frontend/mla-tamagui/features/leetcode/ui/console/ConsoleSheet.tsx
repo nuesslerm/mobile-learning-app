@@ -15,6 +15,8 @@ import { CaseFields } from './CaseFields';
 const SNAP_POINTS = [CONSOLE_SNAP_PERCENT];
 const FLOATING_SNAP_POINTS = [FLOATING_CONSOLE_SNAP_PERCENT];
 const FLOATING_CONTENT = { gap: 8, paddingHorizontal: 12, paddingTop: 0, paddingBottom: 38 };
+const CONSOLE_HANDLE = { width: 60, height: 4, backgroundColor: 'rgba(175,175,185,0.47)', transform: [{ translateY: -4 }] } as const;
+const CASE_CARD = '#1d1d20';
 const TABS = [
   { value: 'testcase', label: 'Testcase' },
   { value: 'result', label: 'Run Result' },
@@ -35,15 +37,15 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
   const [focusToken, setFocusToken] = React.useState(0);
   const [editing, setEditing] = React.useState(false);
   const { selected } = state;
-  const dark = useColorScheme() === 'dark';
+  const scheme = useColorScheme();
+  const darkGlass = floating && scheme === 'dark';
   React.useEffect(() => {
     if (!state.open) setEditing(false);
   }, [state.open]);
 
   const add = () => {
     if (!state.addCase()) return;
-    if (floating) setEditing(true);
-    else setFocusToken((token) => token + 1);
+    if (!floating) setFocusToken((token) => token + 1);
   };
   const edit = () => {
     if (floating) {
@@ -63,7 +65,9 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
       floatingHorizontalInset={8}
       floatingBottomInset={8}
       cornerRadius={floating ? 28 : undefined}
-      glassTintColor={floating && dark ? 'rgba(10, 10, 10, 0.17)' : undefined}
+      glassTintColor={darkGlass ? 'rgba(10, 10, 10, 0.17)' : undefined}
+      glassOverlayColor={darkGlass ? 'rgba(0,0,0,0.36)' : undefined}
+      handleIndicatorStyle={floating ? CONSOLE_HANDLE : undefined}
       contentStyle={floating ? FLOATING_CONTENT : undefined}
       handleLabel="Close console"
       testID="ConsoleSheet"
@@ -72,11 +76,11 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
       <Sheet.ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 12, paddingBottom: 12 }} testID="ConsoleBody">
         {state.tab === 'testcase' ? (
           <YStack gap="$3" role="tabpanel" testID="ConsolePanel-testcase">
-            <CaseChips neutral={floating} editing={editing} cases={state.cases} selectedId={selected?.id ?? null} atCap={state.atCap} onSelect={state.select} onAdd={add} onEdit={edit} />
+            <CaseChips neutral={floating} editing={editing} cases={state.cases} selectedId={selected?.id ?? null} atCap={state.atCap} onSelect={state.select} onAdd={add} onEdit={edit} onRemove={floating && editing ? state.removeCase : undefined} />
             {selected ? (
               <>
-                <CaseFields inset={floating} entry={selected} captions={captions} focusToken={focusToken} fieldError={fieldError} onEdit={(name, text) => state.editField(selected.id, name, text)} />
-                {selected.kind === 'custom' && (!floating || editing) ? (
+                <CaseFields inset={floating} surfaceColor={darkGlass ? CASE_CARD : undefined} entry={selected} captions={captions} focusToken={focusToken} fieldError={fieldError} onEdit={(name, text) => state.editField(selected.id, name, text)} />
+                {selected.kind === 'custom' && !floating ? (
                   <Button testID="ConsoleDeleteCase" variant="outline" size="$3" icon={Trash2} pressLog="off" onPress={() => state.removeCase(selected.id)}>
                     Delete case
                   </Button>

@@ -8,11 +8,11 @@ import { clip } from '../../domain/run/caseDisplay';
 export const INSET_VALUE_SURFACE = { px: '$3', py: '$2.5', rounded: '$3', bg: '$color4' } as const;
 
 /** A caption over a monospace value on a card; a value longer than a line is clipped and a tap opens it. */
-export function ValueCard({ id, caption, value, tone, inset = false }: { id: string; caption: string; value: string; tone?: '$red10'; inset?: boolean }) {
+export function ValueCard({ id, caption, value, tone, inset = false, surfaceColor }: { id: string; caption: string; value: string; tone?: '$red10'; inset?: boolean; surfaceColor?: string }) {
   const [open, setOpen] = useState(false);
   const shown = open ? { text: value, clipped: true } : clip(value);
   return (
-    <YStack gap="$1" testID={`${id}-Card`} {...(inset ? INSET_VALUE_SURFACE : {})}>
+    <YStack gap="$1" testID={`${id}-Card`} {...(inset ? INSET_VALUE_SURFACE : {})} style={surfaceColor ? { backgroundColor: surfaceColor } : undefined}>
       <Text variant="muted" fontSize={inset ? 11 : undefined} testID={`${id}-Caption`}>
         {caption}
       </Text>

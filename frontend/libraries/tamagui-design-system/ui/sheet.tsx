@@ -43,6 +43,7 @@ export type SheetProps = {
   cornerRadius?: number;
   glassColorScheme?: GlassColorScheme;
   glassTintColor?: ColorValue;
+  glassOverlayColor?: ColorValue;
   /** Controls whether the sheet itself is a single accessibility element. */
   accessible?: boolean;
   /** Keep the bottom inset fixed. A form's scroll view handles the keyboard overlap. */
@@ -197,6 +198,7 @@ export function Sheet({
   cornerRadius,
   glassColorScheme,
   glassTintColor,
+  glassOverlayColor,
   accessible,
   keyboardOverlay = false,
   disableContentPanningGesture = false,
@@ -306,9 +308,13 @@ export function Sheet({
             borderTopRightRadius: cornerRadius,
           },
         ]}
-      />
+      >
+        {glassOverlayColor ? (
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: cornerRadius ?? 28, backgroundColor: glassOverlayColor }]} />
+        ) : null}
+      </GlassView>
     ),
-    [cornerRadius, glassColorScheme, glassTintColor]
+    [cornerRadius, glassColorScheme, glassTintColor, glassOverlayColor]
   );
   const renderDimBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => renderBackdrop(props, backdropOpacity),
