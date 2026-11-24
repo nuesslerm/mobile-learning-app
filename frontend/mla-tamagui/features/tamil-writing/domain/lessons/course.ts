@@ -18,6 +18,11 @@ export type Task = {
 
 export type Topic = { id: string; title: string; tasks: readonly Task[] };
 export type Section = { id: string; title: string; topics: readonly Topic[] };
+export function exerciseCount(topics: readonly Topic[]) {
+  return topics.reduce((total, topic) =>
+    total + topic.tasks.reduce((count, task) => count + task.exercises.length, 0), 0);
+}
+
 export type Answer = string | readonly string[];
 export type Verdict = { correct: boolean; expected: string };
 export type Outcome = 'correct' | 'missed' | 'skipped';

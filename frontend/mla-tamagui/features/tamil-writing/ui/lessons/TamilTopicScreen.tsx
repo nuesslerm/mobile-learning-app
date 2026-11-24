@@ -2,58 +2,67 @@ import { DenseActionRow, Icon, SearchPill, useCompactColors } from '@lib/tamagui
 import { BookOpen, ChevronRight } from '@lib/tamagui-design-system/icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Keyboard, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Keyboard, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { matchesTask, nextTask, reviewExercises } from '../../domain/lessons/course';
+import { exerciseCount, matchesTask, nextTask, reviewExercises } from '../../domain/lessons/course';
 import { useCourse } from '../../state/lessons/useCourse';
 import { backTo, CourseButton, CourseLayout, CourseMessage } from '../library/CourseLayout';
 
-export function TamilTopicScreen({ topicId }: { topicId: string }) {
+export function TamilTopicScreen({ topicId }: { topicId?: string }) {
   const colors = useCompactColors();
   const { bottom } = useSafeAreaInsets();
   const { course, error, reload } = useCourse();
   const [query, setQuery] = useState('');
   useFocusEffect(useCallback(() => { void reload(); }, [reload]));
-  const topic = course?.sections.flatMap((section) => section.topics).find((item) => item.id === topicId);
+  const topics = (course?.sections.flatMap((section) => section.topics) ?? [])
+    .filter((topic) => topicId === undefined || topic.id === topicId);
+  const title = topicId === undefined ? 'All Topics' : topics[0]?.title;
+  const tasks = topics.flatMap((topic) => topic.tasks.map((task) => ({ topic, task })));
   const progress = course?.progress;
-  const completed = topic?.tasks.filter((task) => progress?.tasks[task.id]?.completed).length ?? 0;
-  const next = topic && progress ? nextTask(topic.tasks, progress.tasks, progress.active[topic.id]) : undefined;
-  const review = topic?.tasks.find((task) => reviewExercises(task, progress?.tasks[task.id]).length > 0);
-  const filtered = topic?.tasks.filter((task) => matchesTask(task, query)) ?? [];
-  function openTask(id: string) {
+  const completed = tasks.filter(({ task }) => progress?.tasks[task.id]?.completed).length;
+  const next = topics.map((topic) => ({
+    topic, task: progress && nextTask(topic.tasks, progress.tasks, progress.active[topic.id]),
+  })).find((row) => row.task);
+  const review = tasks.find(({ task }) => reviewExercises(task, progress?.tasks[task.id]).length > 0) ?? tasks[0];
+  const practice = next?.task ? { topic: next.topic, task: next.task } : review;
+  const filtered = tasks.filter(({ task }) => matchesTask(task, query));
+  function openTask(groupId: string, id: string) {
     Keyboard.dismiss();
-    router.push({ pathname: '/tamil/lessons/[groupId]/[taskId]', params: { groupId: topicId, taskId: id } });
+    router.push({ pathname: '/tamil/lessons/[groupId]/[taskId]', params: { groupId, taskId: id } });
   }
 
   return (
-    <CourseLayout title={topic?.title ?? 'Tamil Lessons'} onBack={() => backTo('/tamil')} testID="TamilTopic">
-      {!topic ? <CourseMessage text={error ? 'Couldn’t load this topic.' : course ? 'Topic unavailable.' : 'Loading lessons…'}
+    <CourseLayout title={title ?? 'Tamil Lessons'} onBack={() => backTo('/tamil')} testID="TamilTopic">
+      {!topics.length ? <CourseMessage text={error ? 'Couldn’t load this topic.' : course ? 'Topic unavailable.' : 'Loading lessons…'}
         retry={error ? () => { void reload(); } : undefined} /> : (
         <>
           <View style={styles.search}>
             <SearchPill value={query} onChangeText={setQuery} onSubmit={Keyboard.dismiss}
               onCancel={query ? () => { setQuery(''); Keyboard.dismiss(); } : undefined} testID="TamilTaskSearch" />
           </View>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingBottom: bottom + 24 }]}>
+          <FlatList data={filtered} keyExtractor={({ task }) => task.id} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingBottom: bottom + 24 }]}
+            ListHeaderComponent={(
             <View style={styles.hero}>
               <View style={[styles.artwork, { backgroundColor: colors.surface }]}>
                 <Icon as={BookOpen} color={colors.gold} size={34} />
               </View>
-              <Text accessibilityRole="header" style={[styles.title, { color: colors.foreground }]}>{topic.title}</Text>
-              <Text style={{ color: colors.muted }}>{completed}/{topic.tasks.length} tasks completed</Text>
-              <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: topic.tasks.length, now: completed }}
+              <Text accessibilityRole="header" style={[styles.title, { color: colors.foreground }]}>{title}</Text>
+              <Text style={{ color: colors.muted }}>{completed}/{tasks.length} tasks completed · {exerciseCount(topics).toLocaleString('en-US')} exercises</Text>
+              <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: tasks.length, now: completed }}
                 style={[styles.track, { backgroundColor: colors.raised }]}>
-                <View style={{ backgroundColor: colors.green, height: 4, width: `${100 * completed / topic.tasks.length}%` }} />
+                <View style={{ backgroundColor: colors.green, height: 4, width: `${100 * completed / Math.max(tasks.length, 1)}%` }} />
               </View>
               <CourseButton label={next ? 'Practice' : 'Review'} testID="TamilPractice"
-                onPress={() => { const task = next ?? review ?? topic.tasks[0]; if (task) openTask(task.id); }} />
+                onPress={() => { if (practice) openTask(practice.topic.id, practice.task.id); }} />
             </View>
-            {filtered.map((task) => {
+            )}
+            ListEmptyComponent={<CourseMessage text="No tasks match your search." />}
+            renderItem={({ item: { topic, task } }) => {
               const tint = task.difficulty === 'Easy' ? colors.green : task.difficulty === 'Medium' ? colors.gold : colors.red;
               const finished = progress?.tasks[task.id]?.completed;
               return (
-                <DenseActionRow key={task.id} label={`${task.number}. ${task.title}`} onPress={() => openTask(task.id)}
+                <DenseActionRow key={task.id} label={`${task.number}. ${task.title}`} onPress={() => openTask(topic.id, task.id)}
                   testID={`TamilTask-${task.id}`} trailing={<Icon as={ChevronRight} size={17} color={colors.muted} />}>
                   <View style={styles.row}>
                     <Text style={[styles.badge, { color: tint, backgroundColor: `${tint}23` }]}>{task.difficulty}</Text>
@@ -62,9 +71,8 @@ export function TamilTopicScreen({ topicId }: { topicId: string }) {
                   <Text style={{ color: colors.muted, fontSize: 12 }}>{finished ? '✓  Completed' : `${task.exercises.length} exercises`}</Text>
                 </DenseActionRow>
               );
-            })}
-            {!filtered.length && <CourseMessage text="No tasks match your search." />}
-          </ScrollView>
+            }}
+          />
         </>
       )}
     </CourseLayout>

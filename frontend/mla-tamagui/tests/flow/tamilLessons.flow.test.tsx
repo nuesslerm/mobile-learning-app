@@ -23,6 +23,25 @@ async function setup() {
 }
 
 describe('Offline Tamil lessons', () => {
+  it('Given the full library, When a learner searches All Topics by an exercise, Then its task opens in the owning topic', async () => {
+    const { options } = await setup();
+    const sections = await tamilTestCurriculum.listSections();
+    const topic = sections[sections.length - 1].topics.at(-1)!;
+    const task = topic.tasks.at(-1)!;
+    const exercise = task.exercises.at(-1)!;
+    const library = await app.render('/tamil', options);
+    await waitFor(() => screen.getByText('31 topics · 160 tasks · 1,014 exercises'));
+    await library.tap('TamilAllTopics');
+    expect(routerHarness().calls()).toContainEqual(['push', '/tamil/all-topics']);
+    const list = await app.render('/tamil/all-topics', options);
+    await waitFor(() => screen.getByTestId('TamilTaskSearch'));
+    await list.type('TamilTaskSearch', exercise.english);
+    await list.tap(`TamilTask-${task.id}`);
+    expect(routerHarness().calls()).toContainEqual(['push', {
+      pathname: '/tamil/lessons/[groupId]/[taskId]', params: { groupId: topic.id, taskId: task.id },
+    }]);
+  });
+
   it('Given the library, When a topic and Practice are opened, Then the first task is ready', async () => {
     const { options, route, topic, task } = await setup();
     const session = await app.render('/tamil', options);
