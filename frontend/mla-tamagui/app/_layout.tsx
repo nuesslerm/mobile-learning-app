@@ -70,6 +70,9 @@ const WEB_TOAST_ANIMATION = { enter: FadeIn.duration(200), exit: FadeOut.duratio
 const FloatingDevTools = __DEV__ && Platform.OS !== 'web'
   ? (require('@buoy-gg/core') as typeof import('@buoy-gg/core')).FloatingDevTools
   : null;
+const BuoyRouterStore = FloatingDevTools
+  ? (require('../app-shell/buoyRouterStore') as typeof import('../app-shell/buoyRouterStore')).BuoyRouterStore
+  : null;
 const buoyStores = { theme: usePresetThemeStore, sheets: useOpenSheetStore };
 
 function HeaderClearToaster() {
@@ -152,6 +155,7 @@ export default function RootLayout() {
                   (src/constants.ts), so its own default is a plain vertical
                   list -- not the stacked pile sonner is known for. Opt in. */}
             <HeaderClearToaster />
+            {BuoyRouterStore && <BuoyRouterStore />}
             {FloatingDevTools && <FloatingDevTools zustandStores={buoyStores} />}
           </Theme>
         </TamaguiProvider>

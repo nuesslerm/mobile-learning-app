@@ -103,6 +103,8 @@
     "@buoy-gg/console": "7.0.103",
     "@buoy-gg/core": "7.0.103",
     "@buoy-gg/env": "7.0.103",
+    "@buoy-gg/external-sync": "7.0.103",
+    "@buoy-gg/highlight-updates": "7.0.103",
     "@buoy-gg/image-overlay": "7.0.103",
     "@buoy-gg/network": "7.0.103",
     "@buoy-gg/route-events": "7.0.103",

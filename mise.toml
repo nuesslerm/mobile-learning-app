@@ -20,7 +20,7 @@ terraform = "latest"
 # Tailscale CLI + daemon. Lets a sandboxed session JOIN the tailnet in userspace
 # mode and reach vm-ops-api/vm-gateway directly, with no Funnel and no SSH --
 # see docs/solutions/infra/sandbox-joins-tailnet-instead-of-funnel.md.
-tailscale = "1.86.2"
+"aqua:tailscale/tailscale" = "1.86.2"
 # Bitwarden Secrets Manager CLI — reads deploy-vault secrets (see clis/secrets).
 # Releases are tagged "bws-vX.Y.Z" in the bitwarden/sdk-sm monorepo (shared with
 # unrelated Rust/Python releases), so the version pin must be the full tag.

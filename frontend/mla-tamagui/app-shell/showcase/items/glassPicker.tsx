@@ -1,26 +1,80 @@
-import { Button, Icon, InsetGroup, Text, View } from '@lib/tamagui-design-system';
-import { Brain, Check, ChevronDown, Clock, ListTodo, Zap } from '@lib/tamagui-design-system/icons';
-import { Theme, XStack, YStack } from '@lib/tamagui-design-system/primitives';
-import { Sheet } from '@lib/tamagui-design-system/ui/sheet';
+import { Button, Icon } from '@lib/tamagui-design-system';
+import { Check, ChevronDown, Hand, Settings, ShieldAlert, ShieldCheck } from '@lib/tamagui-design-system/icons';
+import { Theme, XStack } from '@lib/tamagui-design-system/primitives';
+import { Sheet, SheetText } from '@lib/tamagui-design-system/ui/sheet';
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { Overlay } from '../overlayHost';
 
-const LENGTHS = [
-  { minutes: 5, description: 'Review a few flashcards', icon: Zap },
-  { minutes: 15, description: 'Practice one topic', icon: Clock },
-  { minutes: 25, description: 'Work through a problem set', icon: ListTodo },
-  { minutes: 45, description: 'Settle into a longer study session', icon: Brain },
+const swiftUI = Platform.OS === 'ios'
+  ? (require('@expo/ui/swift-ui') as typeof import('@expo/ui/swift-ui'))
+  : null;
+
+const APPROVALS = [
+  {
+    id: 'ask',
+    label: 'Ask for approval',
+    detail: 'Always ask to edit external files and use\nthe internet',
+    symbol: 'hand.raised',
+    icon: Hand,
+  },
+  {
+    id: 'automatic',
+    label: 'Approve for me',
+    detail: 'Only ask for actions detected as\npotentially unsafe',
+    symbol: 'shield',
+    icon: ShieldCheck,
+  },
+  {
+    id: 'full',
+    label: 'Full access',
+    detail: 'Full computer access (elevated risk)',
+    symbol: 'exclamationmark.shield',
+    icon: ShieldAlert,
+  },
+  {
+    id: 'custom',
+    label: 'Custom (config.toml)',
+    detail: 'Uses permissions defined in config.toml',
+    symbol: 'gearshape',
+    icon: Settings,
+  },
 ] as const;
-const LINK_COLOR = '#A4DBFF';
-const SELECTED_COLOR = '#A2E3CE';
-const LONG_SESSION_COLOR = '#F4C48B';
+
+const LINK = 'https://developers.openai.com/codex/agent-approvals-security';
+type Approval = (typeof APPROVALS)[number];
+
+function ApprovalSymbol({ symbol, icon, size = 20, color = '#F9F9FB' }: {
+  symbol: Approval['symbol'] | 'checkmark';
+  icon: Approval['icon'];
+  size?: number;
+  color?: string;
+}) {
+  if (swiftUI) {
+    return (
+      <View style={styles.symbol}>
+        <swiftUI.Host matchContents>
+          <swiftUI.Image systemName={symbol} size={size} color={color} />
+        </swiftUI.Host>
+        {symbol === 'shield' && (
+          <View style={styles.shieldFace}>
+            <View style={styles.shieldMarks}><View style={styles.shieldDot} /><View style={styles.shieldDot} /></View>
+            <View style={styles.shieldDash} />
+          </View>
+        )}
+      </View>
+    );
+  }
+  return <Icon as={icon} size={size} color={color} />;
+}
 
 export function GlassPickerItem() {
   const [open, setOpen] = useState(false);
-  const [minutes, setMinutes] = useState(15);
+  const [selection, setSelection] = useState<Approval>(APPROVALS[1]);
+  const { width, height } = useWindowDimensions();
+  const snapPoint = Math.min(92, 100 * (width * (1317 / 1284)) / Math.max(1, height));
 
   return (
     <>
@@ -28,105 +82,176 @@ export function GlassPickerItem() {
         variant="outline"
         rounded="$7"
         justify="space-between"
-        testID="ShowcaseOpenSessionLength"
+        testID="ShowcaseOpenApprovals"
         aria-expanded={open}
         onPress={() => setOpen(true)}
       >
+        <SheetText style={styles.triggerLabel}>Approval mode</SheetText>
         <XStack items="center" gap="$2">
-          <Icon as={Clock} size={18} />
-          <Text>Session length</Text>
-        </XStack>
-        <XStack items="center" gap="$2">
-          <Text variant="muted" testID="ShowcaseSessionLengthValue">{minutes} minutes</Text>
-          <Icon as={ChevronDown} size={16} color="$color11" />
+          <SheetText testID="ShowcaseApprovalValue" style={styles.triggerLabel}>{selection.label}</SheetText>
+          <Icon as={ChevronDown} size={16} />
         </XStack>
       </Button>
+      <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.preview}>
+        <View style={styles.previewBand} />
+        <View style={styles.previewMiddleBand} />
+        <View style={styles.previewLowerBand} />
+        <View style={styles.previewAccent} />
+      </View>
       <Overlay id="showcase-glass-picker">
         <Theme name="dark">
           <Sheet
             accessible={false}
             floating
-            floatingBottomInset={10}
+            floatingHorizontalInset={Math.round(width * (26 / 1284))}
+            floatingBottomInset={Math.round(height * (26 / 2778))}
+            cornerRadius={34}
+            backdropOpacity={0.43}
             glassColorScheme="dark"
-            glassTintColor="rgba(23, 23, 24, 0.56)"
+            glassTintColor="rgba(31, 31, 33, 0.36)"
             open={open}
             onOpenChange={setOpen}
-            snapPoints={[47]}
-            testID="ShowcaseSessionLengthSheet"
+            snapPoints={[snapPoint]}
+            handleLabel="Dismiss approval mode"
+            handleIndicatorStyle={styles.indicator}
+            contentStyle={styles.content}
+            testID="ShowcaseApprovalSheet"
           >
-            <XStack items="center" justify="space-between" pl="$2" gap="$3">
-              <Text variant="h3" role="heading" flex={1}>Session length</Text>
-              <Button
-                variant="outline"
-                borderColor="rgba(255, 255, 255, 0.24)"
-                rounded="$12"
-                size="$3"
-                testID="ShowcaseCloseSessionLength"
-                onPress={() => setOpen(false)}
-              >
-                Done
-              </Button>
-            </XStack>
-            <Sheet.ScrollView>
+            <View style={styles.header}>
+              <SheetText accessibilityRole="header" style={styles.title}>
+                How should Codex actions be approved?
+              </SheetText>
+              <Link href={LINK} target="_blank" style={styles.link}>Learn more</Link>
+            </View>
+            <Sheet.ScrollView showsVerticalScrollIndicator={false}>
               <View
-                {...(Platform.OS === 'web' ? { role: 'radiogroup', 'aria-label': 'Session length' } : {})}
-                bg="rgba(255, 255, 255, 0.06)"
-                rounded="$6"
-                overflow="hidden"
+                {...(Platform.OS === 'web' ? { role: 'radiogroup', 'aria-label': 'Approval mode' } : {})}
+                style={styles.group}
               >
-                <InsetGroup inset={false} surface="transparent" testID="ShowcaseSessionLengths">
-                  {LENGTHS.map(({ minutes: length, description, icon }) => {
-                    const selected = minutes === length;
-                    const label = `${length} minutes`;
-
-                    return (
-                      <XStack
-                        key={length}
-                        role="radio"
-                        aria-label={label}
-                        aria-checked={selected}
-                        {...(Platform.OS === 'ios' ? { accessible: true, accessibilityHint: description } : {})}
-                        tabIndex={0}
-                        testID={`ShowcaseSessionLength-${length}`}
-                        items="center"
-                        gap="$3"
-                        minH={72}
-                        px="$3"
-                        py="$2"
-                        bg={selected ? 'rgba(127, 220, 191, 0.14)' : 'transparent'}
-                        pressStyle={{ bg: 'rgba(127, 127, 127, 0.22)' }}
-                        cursor="pointer"
-                        onPress={() => setMinutes(length)}
+                {APPROVALS.map((option, index) => {
+                  const checked = selection.id === option.id;
+                  const elevated = option.id === 'full';
+                  return (
+                    <View key={option.id}>
+                      <Pressable
+                        accessibilityRole="radio"
+                        accessibilityLabel={option.label}
+                        accessibilityHint={option.detail.replace('\n', ' ')}
+                        accessibilityState={{ checked }}
+                        {...(Platform.OS === 'web'
+                          ? { role: 'radio', 'aria-label': option.label, 'aria-checked': checked }
+                          : {})}
+                        testID={`ShowcaseApproval-${option.id}`}
+                        onPress={() => setSelection(option)}
+                        style={({ pressed }) => [
+                          styles.row,
+                          index >= 2 && styles.compactRow,
+                          pressed && styles.pressedRow,
+                        ]}
                       >
-                        <View width={34} height={34} items="center" justify="center" rounded="$4" bg="rgba(255, 255, 255, 0.08)">
-                          <Icon as={icon} size={17} color="$color11" />
+                        <View style={styles.leading}>
+                          <ApprovalSymbol symbol={option.symbol} icon={option.icon} color={elevated ? '#FF9C65' : undefined} />
                         </View>
-                        <YStack flex={1}>
-                          <Text color={selected ? SELECTED_COLOR : length === 45 ? LONG_SESSION_COLOR : '$color'}>{label}</Text>
-                          <Text variant="muted">{description}</Text>
-                        </YStack>
-                        {selected && <Icon as={Check} size={19} />}
-                      </XStack>
-                    );
-                  })}
-                </InsetGroup>
+                        <View style={styles.rowText}>
+                          <SheetText style={[styles.label, elevated && styles.elevated]}>{option.label}</SheetText>
+                          <SheetText style={[styles.detail, elevated && styles.elevatedDetail]}>{option.detail}</SheetText>
+                        </View>
+                        <View style={styles.trailing}>
+                          {checked && <ApprovalSymbol symbol="checkmark" icon={Check} size={17} />}
+                        </View>
+                      </Pressable>
+                      {index < APPROVALS.length - 1 && <View style={styles.divider} />}
+                    </View>
+                  );
+                })}
               </View>
             </Sheet.ScrollView>
-            <XStack items="center" flexWrap="wrap" justify="space-between" px="$2" pb="$5" gap="$2">
-              <Link href="/" onPress={() => setOpen(false)}>
-                <Text variant="small" size="$4" color={LINK_COLOR} textDecorationLine="underline">
-                  Practice problems
-                </Text>
-              </Link>
-              <Link href="https://lsc.cornell.edu/how-to-study/" target="_blank">
-                <Text variant="small" size="$4" color={LINK_COLOR} textDecorationLine="underline">
-                  Study guide
-                </Text>
-              </Link>
-            </XStack>
           </Sheet>
         </Theme>
       </Overlay>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  triggerLabel: { color: '#9A9AA0', fontSize: 15 },
+  preview: { height: 458, marginTop: 16, position: 'relative' },
+  previewBand: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 91,
+    height: 62,
+    borderRadius: 24,
+    backgroundColor: '#3A3A3A',
+  },
+  previewMiddleBand: {
+    position: 'absolute',
+    left: 6,
+    right: 5,
+    top: 190,
+    height: 42,
+    borderRadius: 22,
+    backgroundColor: '#272727',
+  },
+  previewLowerBand: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 348,
+    height: 83,
+    borderRadius: 24,
+    backgroundColor: '#252525',
+  },
+  previewAccent: {
+    position: 'absolute',
+    right: 6,
+    top: 381,
+    height: 42,
+    width: 34,
+    borderRadius: 12,
+    backgroundColor: '#3053AD',
+  },
+  indicator: {
+    width: 58,
+    height: 3,
+    backgroundColor: 'rgba(224, 224, 229, 0.43)',
+    transform: [{ translateY: -4 }],
+  },
+  content: { gap: 15, paddingHorizontal: 24, paddingTop: 1, paddingBottom: 16 },
+  header: { alignItems: 'center' },
+  title: { color: '#F7F7F9', textAlign: 'center', fontSize: 15, lineHeight: 20, fontWeight: '500' },
+  link: { color: '#379AFF', fontSize: 15, lineHeight: 19 },
+  group: {
+    backgroundColor: 'rgba(255, 255, 255, 0.048)',
+    borderRadius: 25,
+    overflow: 'hidden',
+  },
+  row: {
+    minHeight: 90,
+    flexDirection: 'row',
+    gap: 13,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  compactRow: { minHeight: 68 },
+  pressedRow: { backgroundColor: 'rgba(255, 255, 255, 0.09)' },
+  symbol: { alignItems: 'center', justifyContent: 'center' },
+  shieldFace: { position: 'absolute', top: 6, alignItems: 'center', gap: 2 },
+  shieldMarks: { flexDirection: 'row', gap: 3 },
+  shieldDot: { width: 2, height: 2, backgroundColor: '#F9F9FB' },
+  shieldDash: { width: 4, height: 1, backgroundColor: '#F9F9FB' },
+  leading: { width: 24, alignItems: 'center' },
+  rowText: { flex: 1, minWidth: 0, gap: 1 },
+  label: { color: '#F5F5F7', fontSize: 16, lineHeight: 20 },
+  detail: { color: '#AAAAAE', fontSize: 14, lineHeight: 18 },
+  elevated: { color: '#FFA16B' },
+  elevatedDetail: { color: '#FF955D' },
+  trailing: { width: 20, alignItems: 'center' },
+  divider: {
+    marginLeft: 50,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(255, 255, 255, 0.13)',
+  },
+});

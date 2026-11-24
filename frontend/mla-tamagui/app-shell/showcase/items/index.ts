@@ -93,7 +93,7 @@ export const SHOWCASE_ITEMS: ShowcaseItem[] = [
   {
     id: 'glass-picker',
     group: 'overlays',
-    title: 'Glass option picker',
+    title: 'Glass approval picker',
     Component: GlassPickerItem,
   },
   {

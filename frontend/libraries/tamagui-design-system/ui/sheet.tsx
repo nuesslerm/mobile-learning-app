@@ -17,6 +17,8 @@ import {
   Text as RNText,
   View,
   type ColorValue,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -35,8 +37,10 @@ export type SheetProps = {
   snapPoints?: number[];
   topInset?: number;
   floating?: boolean;
+  floatingHorizontalInset?: number;
   /** Distance from the window's bottom edge for a floating sheet. Defaults to the safe area plus 8 points. */
   floatingBottomInset?: number;
+  cornerRadius?: number;
   glassColorScheme?: GlassColorScheme;
   glassTintColor?: ColorValue;
   /** Controls whether the sheet itself is a single accessibility element. */
@@ -56,8 +60,11 @@ export type SheetProps = {
    * what is behind the sheet: a non-modal panel the page above it stays usable beside.
    */
   backdrop?: 'dim' | 'none';
+  backdropOpacity?: number;
   /** Makes the drag handle a button with this label (`${testID}Handle`) that closes the sheet and exposes a dismiss action. */
   handleLabel?: string;
+  handleIndicatorStyle?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
   testID: string;
 };
 
@@ -108,10 +115,11 @@ function useMountedAfterFirstFrame(): boolean {
  * sits at index 0, where the stock backdrop never renders -- leaving nothing to
  * tap and no way out.
  */
-function renderBackdrop(props: BottomSheetBackdropProps) {
+function renderBackdrop(props: BottomSheetBackdropProps, opacity?: number) {
   return (
     <BottomSheetBackdrop
       {...props}
+      opacity={opacity}
       appearsOnIndex={0}
       disappearsOnIndex={-1}
       pressBehavior="close"
@@ -153,7 +161,12 @@ function useDismissKeyboardWhileOpen(open: boolean): void {
   }, [open]);
 }
 
-function LabeledHandle({ label, testID, color, onDismiss }: { label: string; testID: string; color: string; onDismiss: () => void }) {
+function LabeledHandle({ label, testID, indicatorStyle, onDismiss }: {
+  label: string;
+  testID: string;
+  indicatorStyle: StyleProp<ViewStyle>;
+  onDismiss: () => void;
+}) {
   return (
     <Pressable
       testID={`${testID}Handle`}
@@ -167,7 +180,7 @@ function LabeledHandle({ label, testID, color, onDismiss }: { label: string; tes
       hitSlop={8}
       style={styles.handle}
     >
-      <View style={[styles.handleBar, { backgroundColor: color }]} />
+      <View style={[styles.handleBar, indicatorStyle]} />
     </Pressable>
   );
 }
@@ -179,14 +192,19 @@ export function Sheet({
   snapPoints = [85, 50],
   topInset,
   floating = false,
+  floatingHorizontalInset = 12,
   floatingBottomInset,
+  cornerRadius,
   glassColorScheme,
   glassTintColor,
   accessible,
   keyboardOverlay = false,
   disableContentPanningGesture = false,
   backdrop = 'dim',
+  backdropOpacity,
   handleLabel,
+  handleIndicatorStyle,
+  contentStyle,
   testID,
 }: SheetProps) {
   const theme = useTheme();
@@ -263,8 +281,15 @@ export function Sheet({
   const mounted = useMountedAfterFirstFrame();
   const indicatorColor = theme.color8?.val ?? '#999';
   const renderHandle = useCallback(
-    () => <LabeledHandle label={handleLabel ?? ''} testID={testID} color={indicatorColor} onDismiss={handleClose} />,
-    [handleLabel, testID, indicatorColor, handleClose]
+    () => (
+      <LabeledHandle
+        label={handleLabel ?? ''}
+        testID={testID}
+        indicatorStyle={[{ backgroundColor: indicatorColor }, handleIndicatorStyle]}
+        onDismiss={handleClose}
+      />
+    ),
+    [handleLabel, testID, indicatorColor, handleIndicatorStyle, handleClose]
   );
   const renderGlassBackground = useCallback(
     ({ style }: BottomSheetBackgroundProps) => (
@@ -272,10 +297,22 @@ export function Sheet({
         glassEffectStyle="regular"
         colorScheme={glassColorScheme}
         tintColor={glassTintColor}
-        style={[style, styles.glassBackground]}
+        style={[
+          style,
+          styles.glassBackground,
+          cornerRadius === undefined ? null : {
+            borderRadius: cornerRadius,
+            borderTopLeftRadius: cornerRadius,
+            borderTopRightRadius: cornerRadius,
+          },
+        ]}
       />
     ),
-    [glassColorScheme, glassTintColor]
+    [cornerRadius, glassColorScheme, glassTintColor]
+  );
+  const renderDimBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => renderBackdrop(props, backdropOpacity),
+    [backdropOpacity]
   );
 
   if (!mounted || !open) return null;
@@ -292,7 +329,7 @@ export function Sheet({
       enableContentPanningGesture={!disableContentPanningGesture}
       // Dynamic sizing fights explicit snap points; app #1 hardcodes it off.
       enableDynamicSizing={false}
-      backdropComponent={backdrop === 'none' ? undefined : renderBackdrop}
+      backdropComponent={backdrop === 'none' ? undefined : renderDimBackdrop}
       // gorhom's web container is a full-size absolute div that would swallow every tap meant for what is behind a sheet with no backdrop
       {...(backdrop === 'none' ? { containerStyle: styles.passThrough } : {})}
       {...(handleLabel ? { handleComponent: renderHandle } : {})}
@@ -302,7 +339,7 @@ export function Sheet({
       topInset={topInset}
       bottomInset={bottomInset}
       detached={floating}
-      style={floating ? styles.floating : undefined}
+      style={floating ? { marginHorizontal: floatingHorizontalInset } : undefined}
       android_keyboardInputMode="adjustResize"
       // color2, NOT `background`: a sheet painted in the page's own background
       // is invisible on the dark theme -- on a device the only things that read
@@ -313,8 +350,12 @@ export function Sheet({
       backgroundStyle={[
         !useGlass && { backgroundColor: theme.color2?.val ?? '#fff' },
         floating && styles.floatingBackground,
+        cornerRadius === undefined ? null : { borderRadius: cornerRadius },
       ]}
-      handleIndicatorStyle={{ backgroundColor: floating ? 'rgba(127, 127, 127, 0.65)' : indicatorColor }}
+      handleIndicatorStyle={[
+        { backgroundColor: floating ? 'rgba(127, 127, 127, 0.65)' : indicatorColor },
+        handleIndicatorStyle,
+      ]}
       // RNGH's web pan handler drops its default min-distance activation as
       // soon as ANY custom offset is set, so a sheet configured with only a
       // horizontal fail-offset ends up with no activation criterion at all and
@@ -324,7 +365,7 @@ export function Sheet({
         ? { activeOffsetY: [-15, 15] as [number, number] }
         : {})}
     >
-      <View testID={testID} style={styles.frame}>
+      <View testID={testID} style={[styles.frame, contentStyle]}>
         {children}
       </View>
     </BottomSheet>
@@ -406,7 +447,6 @@ export function SheetHeader({
 
 const styles = StyleSheet.create({
   passThrough: { pointerEvents: 'box-none' },
-  floating: { marginHorizontal: 12 },
   floatingBackground: { borderRadius: 28 },
   glassBackground: { pointerEvents: 'none', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   handle: { alignItems: 'center', justifyContent: 'center', paddingTop: 10, paddingBottom: 10 },

@@ -94,24 +94,25 @@ describe('Design system showcase', () => {
     expect(screen.getByTestId('ShowcaseSheetCompactHandle')).toBeTruthy();
   });
 
-  it('given the glass picker, when a session length is chosen, then the selection stays checked after reopening', async () => {
+  it('given the glass approval picker, when another mode is chosen, then the selection stays checked after reopening', async () => {
     const session = await app.render('/showcase', { search: { item: 'glass-picker' } });
-    await session.tap('ShowcaseOpenSessionLength');
-    expect(await screen.findByRole('radio', { name: '15 minutes', checked: true })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Practice problems' }).getAttribute('href')).toBe('/');
-    expect(screen.getByRole('link', { name: 'Study guide' }).getAttribute('href')).toBe(
-      'https://lsc.cornell.edu/how-to-study/'
+    await session.tap('ShowcaseOpenApprovals');
+    expect(await screen.findByRole('radio', { name: 'Approve for me', checked: true })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Learn more' }).getAttribute('href')).toBe(
+      'https://developers.openai.com/codex/agent-approvals-security'
     );
 
-    await session.tap('ShowcaseSessionLength-25');
-    expect(await screen.findByRole('radio', { name: '25 minutes', checked: true })).toBeTruthy();
+    await session.tap('ShowcaseApproval-full');
+    expect(await screen.findByRole('radio', { name: 'Full access', checked: true })).toBeTruthy();
 
-    await session.tap('ShowcaseCloseSessionLength');
-    expect(screen.queryByRole('radio', { name: '25 minutes' })).toBeNull();
-    expect(screen.getByTestId('ShowcaseSessionLengthValue').textContent).toBe('25 minutes');
+    await session.tap('ShowcaseApprovalSheetHandle');
+    expect(screen.queryByRole('radio', { name: 'Full access' })).toBeNull();
+    expect(screen.getByTestId('ShowcaseApprovalValue').textContent).toBe('Full access');
 
-    await session.tap('ShowcaseOpenSessionLength');
-    expect(await screen.findByRole('radio', { name: '25 minutes', checked: true })).toBeTruthy();
+    await session.tap('ShowcaseOpenApprovals');
+    expect(await screen.findByRole('radio', { name: 'Full access', checked: true })).toBeTruthy();
+    await session.tap('ShowcaseApproval-automatic');
+    expect(await screen.findByRole('radio', { name: 'Approve for me', checked: true })).toBeTruthy();
   });
 
   it('given the iOS form sheet, when its field opens the keyboard, then the sheet stays anchored', async () => {

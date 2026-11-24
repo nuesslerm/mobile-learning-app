@@ -863,6 +863,12 @@ importers:
       '@buoy-gg/env':
         specifier: 7.0.103
         version: 7.0.103(99d85492c6e7a5ef7be7f7c5b30f4909)
+      '@buoy-gg/external-sync':
+        specifier: 7.0.103
+        version: 7.0.103(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10)
+      '@buoy-gg/highlight-updates':
+        specifier: 7.0.103
+        version: 7.0.103(ac6127bf1180ab2f5de14840b13908ee)
       '@buoy-gg/image-overlay':
         specifier: 7.0.103
         version: 7.0.103(08a5567fc6e44d0d48e02fd5b4aea2d5)
@@ -1859,6 +1865,21 @@ packages:
       react-native-web:
         optional: true
 
+  '@buoy-gg/external-sync@7.0.103':
+    resolution: {integrity: sha512-bTyaLOsBtwtzZ1NVzgv50tDgaCF6d4g1p3ATx0QN+dnR22eemushdy7QXPRYq5apvwfEh2f93UE4gyN278jTjw==}
+    peerDependencies:
+      react: 19.3.0
+      react-dom: '*'
+      react-native: '*'
+      react-native-web: '*'
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+      react-native:
+        optional: true
+      react-native-web:
+        optional: true
+
   '@buoy-gg/floating-tools-core@7.0.103':
     resolution: {integrity: sha512-KmIu56uccHgwIg129LCtsrpmYRF6JJsSsoRgeUK/Ps8ZySn5HshXOPowfUblwNEExxgIH0fKJFbJgNyTATdSaQ==}
     peerDependencies:
@@ -1878,6 +1899,25 @@ packages:
     resolution: {integrity: sha512-bov7kPhw4bprYUXx4yDVp70UtVwpopgJY0uwjR3bKPLPlOw4DNor6RwW4W5ce2D4kvVr83PJ77/BJCv3WDqEvg==}
     peerDependencies:
       react: 19.3.0
+
+  '@buoy-gg/highlight-updates@7.0.103':
+    resolution: {integrity: sha512-oD7YrzQ56Lfxh7/Sz4wK44ilf/6I33KlAD/SGClx2ZKNMPd/aaxOj7e2fXFTFYnWcPwdfE5vmXE5YFo0Hp75hg==}
+    peerDependencies:
+      '@buoy-gg/core': '*'
+      '@buoy-gg/license': 7.0.103
+      react: 19.3.0
+      react-dom: '*'
+      react-native: '*'
+      react-native-web: '*'
+    peerDependenciesMeta:
+      '@buoy-gg/core':
+        optional: true
+      react-dom:
+        optional: true
+      react-native:
+        optional: true
+      react-native-web:
+        optional: true
 
   '@buoy-gg/image-overlay@7.0.103':
     resolution: {integrity: sha512-UJNcL94Vkl2AlwXTiZ6u7tzb2IOciCgckgNX+S7YK4np5ZZ28cGuS5t3R9+XXW0/UIDq7Z/lKuj/XjTzVJnE7g==}
@@ -3911,6 +3951,9 @@ packages:
     resolution: {integrity: sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==}
     engines: {node: '>=18'}
 
+  '@socket.io/component-emitter@3.1.2':
+    resolution: {integrity: sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==}
+
   '@swc/helpers@0.5.23':
     resolution: {integrity: sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw==}
 
@@ -5547,6 +5590,13 @@ packages:
 
   end-of-stream@1.4.5:
     resolution: {integrity: sha512-ooEGc6HP26xXq/N+GCGOT0JKCLDGrq2bQUZrQ7gyrJiZANJ/8YDTxTpQBXGMn+WbIQXNVpyWymm7KYVICQnyOg==}
+
+  engine.io-client@6.6.8:
+    resolution: {integrity: sha512-DPN6+2uNi3A2cbSR3gqJepLVOnSQmbaJT4USgU+TgGPczEqLQT0i6t05jHrf4TT6rcxABrGp/1As0FyqwIZlGg==}
+
+  engine.io-parser@5.2.3:
+    resolution: {integrity: sha512-HqD3yTBfnBxIrbnM1DoD6Pcq8NECnh8d4As1Qgh0z5Gg3jRRIqijury0CL3ghu/edArpUYiYqQiDUQBIs4np3Q==}
+    engines: {node: '>=10.0.0'}
 
   enhanced-resolve@5.22.1:
     resolution: {integrity: sha512-6QEuw3zoX1SJQc7b87aBXke/no+mG2bTBgw29gWMQonLmpEkWoCAVkl+M49e48AZlWzxiDzDZzYdp6kobcyLww==}
@@ -7920,6 +7970,14 @@ packages:
     resolution: {integrity: sha512-dWUG8F5sIIARXih1DTaQAX4SsiTXhInKf1buxdY9DIg4ZYPZK5nGM1VRIYmEbDbsHt7USo99xSLFu5Q1IqTmsg==}
     engines: {node: '>= 18'}
 
+  socket.io-client@4.8.4:
+    resolution: {integrity: sha512-7wjKAvVXYOJsbmUgkWbnhPD4bFpkqrUR0++XOjpGFmqDqsqV1CI93VTraeExLxpjxEqrWgFoSRZu1ihjLWfkAA==}
+    engines: {node: '>=10.0.0'}
+
+  socket.io-parser@4.2.7:
+    resolution: {integrity: sha512-IH/iSeO9T6gz1KkFleGDWkG9N3dl4jXVYUtMhIqH10Md0ttMer8nUNWiP1DKuNrybD2xBrixLJdCC9J6ECoYkg==}
+    engines: {node: '>=10.0.0'}
+
   sonner-native@0.26.4:
     resolution: {integrity: sha512-wBE/pctNfz+ieXjpYX7uu5hH38ws8xRmH0AFmEdEgkOS363k6N8QfFoyjGqDmdUDy15m4AAvOjd2Wz/jATukIA==}
     peerDependencies:
@@ -8575,6 +8633,10 @@ packages:
 
   xmlchars@2.2.0:
     resolution: {integrity: sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==}
+
+  xmlhttprequest-ssl@2.1.2:
+    resolution: {integrity: sha512-TEU+nJVUUnA4CYJFLvK5X9AOeH4KvDvhIfm0vV1GaQRtchnG0hgK5p8hw/xjv8cunWYCsiPCSDzObPyhEwq3KQ==}
+    engines: {node: '>=0.4.0'}
 
   y18n@5.0.8:
     resolution: {integrity: sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==}
@@ -9240,6 +9302,20 @@ snapshots:
       - expo-file-system
       - react-native-safe-area-context
 
+  '@buoy-gg/external-sync@7.0.103(bufferutil@4.1.0)(react-dom@19.3.0(react@19.3.0))(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10)':
+    dependencies:
+      '@buoy-gg/license': 7.0.103(react-dom@19.3.0(react@19.3.0))(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
+      react: 19.3.0
+      socket.io-client: 4.8.4(bufferutil@4.1.0)(supports-color@7.2.0)(utf-8-validate@5.0.10)
+    optionalDependencies:
+      react-dom: 19.3.0(react@19.3.0)
+      react-native: 0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10)
+      react-native-web: 0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
   '@buoy-gg/floating-tools-core@7.0.103(react-dom@19.3.0(react@19.3.0))(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)':
     dependencies:
       react: 19.3.0
@@ -9256,6 +9332,23 @@ snapshots:
       - react-dom
       - react-native
       - react-native-web
+
+  '@buoy-gg/highlight-updates@7.0.103(ac6127bf1180ab2f5de14840b13908ee)':
+    dependencies:
+      '@buoy-gg/floating-tools-core': 7.0.103(react-dom@19.3.0(react@19.3.0))(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
+      '@buoy-gg/license': 7.0.103(react-dom@19.3.0(react@19.3.0))(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
+      '@buoy-gg/shared-ui': 7.0.103(08a5567fc6e44d0d48e02fd5b4aea2d5)
+      react: 19.3.0
+    optionalDependencies:
+      '@buoy-gg/core': 7.0.103(8bf5affa60efdd2934c8ca964ca7b183)
+      react-dom: 19.3.0(react@19.3.0)
+      react-native: 0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10)
+      react-native-web: 0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+    transitivePeerDependencies:
+      - '@react-native-clipboard/clipboard'
+      - expo-clipboard
+      - expo-file-system
+      - react-native-safe-area-context
 
   '@buoy-gg/image-overlay@7.0.103(08a5567fc6e44d0d48e02fd5b4aea2d5)':
     dependencies:
@@ -11522,6 +11615,8 @@ snapshots:
     optional: true
 
   '@sindresorhus/merge-streams@4.0.0': {}
+
+  '@socket.io/component-emitter@3.1.2': {}
 
   '@swc/helpers@0.5.23':
     dependencies:
@@ -13930,6 +14025,20 @@ snapshots:
   end-of-stream@1.4.5:
     dependencies:
       once: 1.4.0
+
+  engine.io-client@6.6.8(bufferutil@4.1.0)(supports-color@7.2.0)(utf-8-validate@5.0.10):
+    dependencies:
+      '@socket.io/component-emitter': 3.1.2
+      debug: 4.4.3(supports-color@7.2.0)
+      engine.io-parser: 5.2.3
+      ws: 8.21.3(bufferutil@4.1.0)(utf-8-validate@5.0.10)
+      xmlhttprequest-ssl: 2.1.2
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
+  engine.io-parser@5.2.3: {}
 
   enhanced-resolve@5.22.1:
     dependencies:
@@ -16988,6 +17097,24 @@ snapshots:
 
   smol-toml@1.6.1: {}
 
+  socket.io-client@4.8.4(bufferutil@4.1.0)(supports-color@7.2.0)(utf-8-validate@5.0.10):
+    dependencies:
+      '@socket.io/component-emitter': 3.1.2
+      debug: 4.4.3(supports-color@7.2.0)
+      engine.io-client: 6.6.8(bufferutil@4.1.0)(supports-color@7.2.0)(utf-8-validate@5.0.10)
+      socket.io-parser: 4.2.7(supports-color@7.2.0)
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
+  socket.io-parser@4.2.7(supports-color@7.2.0):
+    dependencies:
+      '@socket.io/component-emitter': 3.1.2
+      debug: 4.4.3(supports-color@7.2.0)
+    transitivePeerDependencies:
+      - supports-color
+
   sonner-native@0.26.4(patch_hash=5e22591d717dac441a8f6b3c835937f09d8bf7b21375545adcb597647595d273)(29837ed38837887e3d6f251e716dc599):
     dependencies:
       react: 19.3.0
@@ -17948,6 +18075,8 @@ snapshots:
   xmlbuilder@15.1.1: {}
 
   xmlchars@2.2.0: {}
+
+  xmlhttprequest-ssl@2.1.2: {}
 
   y18n@5.0.8: {}
 

@@ -1,0 +1,60 @@
+{
+  "suite": "showcase",
+  "step": "final-given-the-glass-approval-picker-when-another-mo-6a39ad",
+  "scheme": "dark",
+  "snapshot": "showcase/final-given-the-glass-approval-picker-when-another-mo-6a39ad.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 1389,
+    "page_height": 1389
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "ShowcaseNavigation",
+      "ShowcaseNavigationBack",
+      "ShowcaseNavigationTitle",
+      "ShowcaseItemButton",
+      "ShowcaseItemTitle",
+      "ShowcaseOpenApprovals",
+      "ShowcaseApprovalValue",
+      "ShowcaseApprovalSheetHandle",
+      "ShowcaseApprovalSheet",
+      "ShowcaseApproval-ask",
+      "ShowcaseApproval-automatic",
+      "ShowcaseApproval-full",
+      "ShowcaseApproval-custom"
+    ],
+    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nBrowse components\nOverlays\nGlass approval picker\nApproval mode\nApprove for me\nHow should Codex actions be approved?\nLearn more\nAsk for approval\nAlways ask to edit external files and use\nthe internet\nApprove for me\nOnly ask for actions detected as\npotentially unsafe\nFull access\nFull computer acces"
+  },
+  "timings": {
+    "render_ms": 251
+  },
+  "name": "showcase/final-given-the-glass-approval-picker-when-another-mo-6a39ad.dark",
+  "image": {
+    "width": 360,
+    "height": 1323
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

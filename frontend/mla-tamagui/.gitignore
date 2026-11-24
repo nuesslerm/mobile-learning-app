@@ -13,3 +13,6 @@ expo-env.d.ts
 # @end expo-cli.env.eas-simulator
 
 .env.eas-simulator
+
+# Buoy license key (per developer - do not commit)
+.env.development.local
