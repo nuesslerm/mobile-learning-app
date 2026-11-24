@@ -513,7 +513,10 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
     let instance = shell["providerInstanceId"].as_str().unwrap_or("opencode").to_string();
     let model = shell["modelSelection"]["model"].as_str().map(str::to_string);
     let (created_by, source) = (cmd.str("createdBy").unwrap_or("user"), cmd.str("creationSource").unwrap_or("web"));
-    let message_entity = json!({"attachments": attachments, "createdAt": at, "createdBy": created_by, "creationSource": source, "id": message_id, "nodeId": runs::node_id(&run_id), "role": "user", "runId": run_id, "streaming": false, "text": text, "threadId": thread, "updatedAt": at});
+    let mut message_entity = json!({"attachments": attachments, "createdAt": at, "createdBy": created_by, "creationSource": source, "id": message_id, "nodeId": runs::node_id(&run_id), "role": "user", "runId": run_id, "streaming": false, "text": text, "threadId": thread, "updatedAt": at});
+    if let Some(context) = message.and_then(|m| m.get("context")).or_else(|| cmd.body.get("context")).and_then(composer_context) {
+        message_entity["context"] = context;
+    }
     let (native, session) = existing.first().map_or_else(|| ((ctx.new_id)(), (ctx.new_id)()), |first| (first["nativeThreadId"].clone().as_str().unwrap_or("").to_string(), first["sessionUuid"].as_str().unwrap_or("").to_string()));
     let queued = active;
     let preparing = mode == "defer_start";
@@ -530,10 +533,10 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
         run["workspacePreparation"] = strategy.clone();
     }
     let t = Some(thread);
-    let mut drafts = vec![draft("message.updated", t, None, ctx.now, message_entity)];
+    let mut drafts = Vec::new();
     if !queued {
         let pt = thread_provider_thread(state, thread, &instance, &run_id);
-        let mut item = user_item(thread, &run, &pt, &message_id, text, &attachments, created_by, source, "turn_start", &at);
+        let mut item = user_item(thread, &run, &pt, &message_entity, "turn_start", &at);
         let earlier = state.entities.get(thread).and_then(|e| e.turn_items.iter().find(|i| i["id"] == item["id"])).map(|i| i["ordinal"].clone());
         if let Some(ordinal) = &earlier {
             item["ordinal"] = ordinal.clone();
@@ -546,6 +549,7 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
             drafts.push(draft("turn-item.updated", t, None, ctx.now, row));
         }
     }
+    drafts.insert(0, draft("message.updated", t, None, ctx.now, message_entity));
     drafts.push(draft("run.created", t, None, ctx.now, run));
     let launch = Launch {
         thread_id: thread.to_string(),
@@ -568,14 +572,26 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
     Ok(Decision { drafts, effect })
 }
 
-#[allow(clippy::too_many_arguments)]
-fn user_item(thread: &str, run: &Value, provider_thread: &str, message: &str, text: &str, attachments: &[Value], created_by: &str, source: &str, intent: &str, at: &str) -> Value {
+fn composer_context(value: &Value) -> Option<Value> {
+    let records = value["records"].as_array()?;
+    // Guest attribution is assigned by the host.
+    (value["version"] == 1 && records.len() <= 200).then(|| json!({"version": 1, "records": records}))
+}
+
+fn user_item(thread: &str, run: &Value, provider_thread: &str, message: &Value, intent: &str, at: &str) -> Value {
     let run_id = run["id"].as_str().unwrap_or("");
-    json!({
-        "attachments": attachments, "completedAt": at, "createdBy": created_by, "creationSource": source, "id": runs::message_item_id(message), "inputIntent": intent, "messageId": message,
+    let message_id = message["id"].as_str().unwrap_or("");
+    let attachments = message["attachments"].as_array().map(Vec::as_slice).unwrap_or_default();
+    let mut item = json!({
+        "attachments": attachments, "completedAt": at, "createdBy": message["createdBy"].as_str().unwrap_or("user"), "creationSource": message["creationSource"].as_str().unwrap_or("web"),
+        "id": runs::message_item_id(message_id), "inputIntent": intent, "messageId": message_id,
         "nativeItemRef": null, "nodeId": runs::node_id(run_id), "ordinal": runs::item_ordinal(run["ordinal"].as_u64().unwrap_or(0), 1), "parentItemId": null, "providerThreadId": provider_thread,
-        "providerTurnId": null, "runId": run_id, "startedAt": at, "status": "completed", "text": text, "threadId": thread, "title": null, "type": "user_message", "updatedAt": at,
-    })
+        "providerTurnId": null, "runId": run_id, "startedAt": at, "status": "completed", "text": message["text"].as_str().unwrap_or(""), "threadId": thread, "title": null, "type": "user_message", "updatedAt": at,
+    });
+    if let Some(context) = message.get("context") {
+        item["context"] = context.clone();
+    }
+    item
 }
 
 /// The title the workspace row of a preparing run carries; it is also how the row is found again.
@@ -692,8 +708,7 @@ fn start_queued(state: &State, thread: &str, run: &Value, held: Option<bool>, ct
     }
     let instance = run["providerInstanceId"].as_str().unwrap_or("");
     let pt = thread_provider_thread(state, thread, instance, run_id);
-    let attachments = message["attachments"].as_array().cloned().unwrap_or_default();
-    let item = user_item(thread, run, &pt, message["id"].as_str().unwrap_or(""), message["text"].as_str().unwrap_or(""), &attachments, message["createdBy"].as_str().unwrap_or("user"), message["creationSource"].as_str().unwrap_or("web"), "queued_turn", &at);
+    let item = user_item(thread, run, &pt, &message, "queued_turn", &at);
     vec![draft("turn-item.updated", Some(thread), None, ctx.now, item), draft("run.updated", Some(thread), None, ctx.now, started)]
 }
 

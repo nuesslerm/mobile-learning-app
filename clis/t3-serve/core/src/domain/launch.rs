@@ -20,9 +20,10 @@ pub struct InitialMessage {
     pub message_id: Option<String>,
     pub text: String,
     pub attachments: Vec<Value>,
+    pub context: Option<Value>,
 }
 
-/// The fields this server reads; `generateTitle` and the message's `context` are accepted and not used.
+/// The fields this server reads; `generateTitle` is accepted and not used.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LaunchRequest {
     pub command_id: String,
@@ -101,6 +102,7 @@ impl LaunchRequest {
                     message_id: optional_text(message, &["initialMessage", "messageId"])?,
                     text: text(message, &["initialMessage", "text"])?,
                     attachments: attachments.as_array().ok_or_else(|| expected("array", &["initialMessage", "attachments"]))?.clone(),
+                    context: message.get("context").cloned(),
                 })
             }
         };
@@ -202,6 +204,9 @@ pub fn initial_message(req: &LaunchRequest, thread_id: &str) -> Option<Value> {
     }
     if !m.attachments.is_empty() {
         message["attachments"] = json!(m.attachments);
+    }
+    if let Some(context) = &m.context {
+        message["context"] = context.clone();
     }
     let mut command = json!({
         "type": "message.dispatch",

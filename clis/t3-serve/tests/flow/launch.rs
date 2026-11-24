@@ -65,6 +65,37 @@ fn a_new_task_is_one_launch_that_creates_the_thread_runs_its_first_message_and_a
 }
 
 #[test]
+fn a_reopened_thread_keeps_the_attachment_binding_for_the_first_message_and_a_follow_up() {
+    // Given a photo referenced by a composer context link.
+    let (h, mut rpc) = started();
+    let attachment = json!({"type": "image", "id": "pending-a1", "name": "shot.png", "mimeType": "image/png", "sizeBytes": 4});
+    let context = json!({"version": 1, "records": [{"version": 1, "contextId": "00143898-0772-4f8a-94b1-175114f8797c",
+        "kind": "image", "label": "shot.png", "attachmentId": "pending-a1", "name": "shot.png", "mimeType": "image/png", "sizeBytes": 4}]});
+    let text = "![shot.png](t3-context://v1/image/00143898-0772-4f8a-94b1-175114f8797c) what is this?";
+    let mut payload = launch("c-photo", Some("t-photo"));
+    payload["initialMessage"] = json!({"messageId": "m-first", "text": text, "attachments": [attachment], "context": context});
+
+    // When the phone launches with the photo, sends it again, and reconnects.
+    success(&rpc.call("orchestration.launchThread", payload));
+    settled(&mut rpc, "t-photo");
+    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "commandId": "c-follow-up",
+        "threadId": "t-photo", "messageId": "m-second", "createdBy": "user", "creationSource": "mobile",
+        "text": text, "attachments": [attachment], "context": context})));
+    settled(&mut rpc, "t-photo");
+    let restarted = h.restart();
+    let mut reopened = connect(&restarted);
+    let projection = reopened.call("orchestration.getThreadProjection", json!({"threadId": "t-photo"}));
+
+    // Then both the transcript and the turn items retain the metadata used to resolve each link.
+    let projection = success(&projection);
+    for (key, field, kind) in [("messages", "role", "user"), ("turnItems", "type", "user_message")] {
+        let bindings: Vec<_> = projection[key].as_array().unwrap().iter().filter(|item| item[field] == kind)
+            .map(|item| (&item["context"], &item["attachments"])).collect();
+        assert_eq!(bindings, [(&context, &json!([attachment])); 2]);
+    }
+}
+
+#[test]
 fn a_retried_launch_is_resumed_writes_nothing_and_without_a_thread_id_lands_on_the_thread_the_first_made() {
     // Given a launch without a thread id that was answered and whose turn ended
     let (h, mut rpc) = started();

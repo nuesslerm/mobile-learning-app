@@ -129,8 +129,18 @@ fn an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_
         // And the message's row shows both attachments as the phone sent them
         let row = projection["messages"].as_array().unwrap().iter().find(|m| m["id"] == "m-c-a1").expect("the message row").clone();
         assert_eq!(row["attachments"], json!(attachments));
-        // When the phone asks for asset URLs and fetches them
+        // When the phone cleans up its pending uploads after sending and reconnects.
+        for id in [&image_id, &note_id] {
+            let deleted = phone.call(case, &chain, &[], "attachments.delete", json!({"attachmentId": id}));
+            assert_eq!(*success(&deleted), Value::Null);
+        }
+        let mut phone = Phone::connect_with(case, &chain, &all_scopes());
+        let reopened = phone.call(case, &chain, &[], "orchestration.getThreadProjection", json!({"threadId": "t1"}));
+        let message = success(&reopened)["messages"].as_array().unwrap().iter().find(|m| m["id"] == "m-c-a1").unwrap();
+        assert_eq!(message["attachments"], json!(attachments));
+        // Then both assets referenced by the reopened message still return the uploaded bytes.
         let image_asset = phone.call(case, &chain, &["rpc:assets.createUrl"], "assets.createUrl", json!({"resource": {"_tag": "attachment", "attachmentId": image_id, "disposition": "inline"}}));
+        success(&image_asset);
         answered(case, "attachment.get");
         let note_asset = phone.call(case, &chain, &[], "assets.createUrl", json!({"resource": {"_tag": "attachment", "attachmentId": note_id, "disposition": "inline"}}));
         let (image_path, note_path) = (success(&image_asset)["relativeUrl"].as_str().unwrap().to_string(), success(&note_asset)["relativeUrl"].as_str().unwrap().to_string());
