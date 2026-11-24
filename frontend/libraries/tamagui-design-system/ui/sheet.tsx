@@ -6,7 +6,7 @@ import BottomSheet, {
   type BottomSheetBackgroundProps,
 } from '@gorhom/bottom-sheet';
 import { Logger } from '@lib/logging';
-import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
+import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable, type GlassColorScheme } from 'expo-glass-effect';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -16,6 +16,7 @@ import {
   StyleSheet,
   Text as RNText,
   View,
+  type ColorValue,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -34,6 +35,10 @@ export type SheetProps = {
   snapPoints?: number[];
   topInset?: number;
   floating?: boolean;
+  /** Distance from the window's bottom edge for a floating sheet. Defaults to the safe area plus 8 points. */
+  floatingBottomInset?: number;
+  glassColorScheme?: GlassColorScheme;
+  glassTintColor?: ColorValue;
   /** Controls whether the sheet itself is a single accessibility element. */
   accessible?: boolean;
   /** Keep the bottom inset fixed. A form's scroll view handles the keyboard overlap. */
@@ -167,15 +172,6 @@ function LabeledHandle({ label, testID, color, onDismiss }: { label: string; tes
   );
 }
 
-function GlassSheetBackground({ style }: BottomSheetBackgroundProps) {
-  return (
-    <GlassView
-      glassEffectStyle="regular"
-      style={[style, styles.glassBackground]}
-    />
-  );
-}
-
 export function Sheet({
   open,
   onOpenChange,
@@ -183,6 +179,9 @@ export function Sheet({
   snapPoints = [85, 50],
   topInset,
   floating = false,
+  floatingBottomInset,
+  glassColorScheme,
+  glassTintColor,
   accessible,
   keyboardOverlay = false,
   disableContentPanningGesture = false,
@@ -257,13 +256,26 @@ export function Sheet({
   const keyboardLift = open && keyboard.visible && !keyboardOverlay
     ? keyboard.height + (Platform.OS === 'android' ? insets.bottom : 0)
     : 0;
-  const bottomInset = floating ? Math.max(keyboardLift, insets.bottom + 8) : keyboardLift;
+  const bottomInset = floating
+    ? Math.max(keyboardLift, floatingBottomInset ?? insets.bottom + 8)
+    : keyboardLift;
 
   const mounted = useMountedAfterFirstFrame();
   const indicatorColor = theme.color8?.val ?? '#999';
   const renderHandle = useCallback(
     () => <LabeledHandle label={handleLabel ?? ''} testID={testID} color={indicatorColor} onDismiss={handleClose} />,
     [handleLabel, testID, indicatorColor, handleClose]
+  );
+  const renderGlassBackground = useCallback(
+    ({ style }: BottomSheetBackgroundProps) => (
+      <GlassView
+        glassEffectStyle="regular"
+        colorScheme={glassColorScheme}
+        tintColor={glassTintColor}
+        style={[style, styles.glassBackground]}
+      />
+    ),
+    [glassColorScheme, glassTintColor]
   );
 
   if (!mounted || !open) return null;
@@ -297,7 +309,7 @@ export function Sheet({
       // as a sheet at all were the handle and one hairline divider, over what
       // looked like empty screen. This is the same elevated surface the header
       // menu's card uses.
-      backgroundComponent={useGlass ? GlassSheetBackground : undefined}
+      backgroundComponent={useGlass ? renderGlassBackground : undefined}
       backgroundStyle={[
         !useGlass && { backgroundColor: theme.color2?.val ?? '#fff' },
         floating && styles.floatingBackground,

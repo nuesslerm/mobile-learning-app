@@ -22,7 +22,6 @@
     "verify:renders": "node e2e/verify-renders.mjs",
     "verify:charts-spike": "node e2e/verify-charts-spike.mjs",
     "verify:settings": "node e2e/verify-settings.mjs",
-    "verify:debug-sheet": "node e2e/verify-debug-sheet.mjs",
     "verify:leetcode": "node e2e/verify-leetcode.mjs",
     "verify:leetcode-shots": "node e2e/capture-leetcode-shots.mjs",
     "verify:tamil": "node e2e/verify-tamil.mjs",
@@ -100,6 +99,15 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@buoy-gg/assets": "7.0.103",
+    "@buoy-gg/console": "7.0.103",
+    "@buoy-gg/core": "7.0.103",
+    "@buoy-gg/env": "7.0.103",
+    "@buoy-gg/image-overlay": "7.0.103",
+    "@buoy-gg/network": "7.0.103",
+    "@buoy-gg/route-events": "7.0.103",
+    "@buoy-gg/storage": "7.0.103",
+    "@buoy-gg/zustand": "7.0.103",
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/commands": "^6.10.3",
     "@codemirror/lang-cpp": "^6.0.3",

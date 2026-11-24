@@ -1,10 +1,10 @@
 {
   "platform": "browser",
-  "step": 5,
-  "last_action": "tap_on{point='196,419'}",
+  "step": 4,
+  "last_action": "open_link{link='http://127.0.0.1:8818/mla-tamagui/leetcode/two-sum'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:33613/mla-tamagui/leetcode/two-sum",
+    "url": "http://127.0.0.1:8818/mla-tamagui/leetcode/two-sum",
     "title": "",
     "testids": [
       "ProblemEditorHeader",
@@ -31,9 +31,7 @@
       "ConsoleBarReset",
       "ConsoleBarRun",
       "ConsoleBarSubmit",
-      "PyodideHostWebView",
-      "DebugFabWrap",
-      "DebugFab"
+      "PyodideHostWebView"
     ],
     "text": "Two Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit"
   },
@@ -42,8 +40,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 5083,
-    "capture_ms": 279
+    "since_start_ms": 5209,
+    "capture_ms": 131
   },
   "tolerance": {
     "threshold": 0.1,

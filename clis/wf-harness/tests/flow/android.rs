@@ -1196,11 +1196,11 @@ fn the_cold_start_ends_at_once_on_expo_gos_error_screen_with_what_its_error_log_
 
 #[test]
 fn the_cold_start_opens_the_link_it_is_told_and_an_update_is_told_it_bare() {
-    // Given Expo Go showing the app's first frame (its debug button), and an update's base with its link without /--
+    // Given Expo Go showing the app's first frame (the Blind 75 menu button), and an update's base with its link without /--
     let s = sandbox("wf-flow-android-bare-open-");
     s.file("e2e/warm-app.lua", std::fs::read(crate::support::repo_root().join("e2e/warm-app.lua")).unwrap());
     s.file("ui.xml", r#"<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><hierarchy rotation="0">
-<node index="0" text="" resource-id="DebugFab" class="android.widget.Button" bounds="[400,900][460,960]" clickable="true" />
+<node index="0" text="" resource-id="LeetcodeListMenuButton" class="android.widget.Button" bounds="[400,900][460,960]" clickable="true" />
 </hierarchy>"#);
     let (update, out_dir) = ("exp://u.expo.dev/p/group/g", s.repo.join("warm").display().to_string());
     let open = |extra: &[&str]| {
@@ -1233,7 +1233,7 @@ fn an_android_test_case_run_without_a_base_stops_before_it_opens_any_link() {
         s.file(&format!("e2e/{script}.lua"), std::fs::read(repo_root().join(format!("e2e/{script}.lua"))).unwrap());
     }
     s.file("ui.xml", r#"<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><hierarchy rotation="0">
-<node index="0" text="" resource-id="DebugFab" class="android.widget.Button" bounds="[400,900][460,960]" clickable="true" />
+<node index="0" text="" resource-id="LeetcodeListMenuButton" class="android.widget.Button" bounds="[400,900][460,960]" clickable="true" />
 </hierarchy>"#);
     let out_env = format!("out={}", s.repo.join("warm").display());
     let run = |script: &str, extra: &[&str]| {

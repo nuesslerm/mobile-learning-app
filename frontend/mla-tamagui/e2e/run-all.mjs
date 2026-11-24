@@ -46,7 +46,6 @@ const CHECKS = [
     [],
     { path: 'settings/appearance' },
   ],
-  ['debug FAB opens the live log sheet', 'verify-debug-sheet.mjs', []],
   ['leetcode: list, editor, typing, description', 'verify-leetcode.mjs', []],
   [
     'tamil: course list, practice screen, grading advances',

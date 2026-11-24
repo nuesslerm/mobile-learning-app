@@ -98,6 +98,10 @@ describe('Design system showcase', () => {
     const session = await app.render('/showcase', { search: { item: 'glass-picker' } });
     await session.tap('ShowcaseOpenSessionLength');
     expect(await screen.findByRole('radio', { name: '15 minutes', checked: true })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Practice problems' }).getAttribute('href')).toBe('/');
+    expect(screen.getByRole('link', { name: 'Study guide' }).getAttribute('href')).toBe(
+      'https://lsc.cornell.edu/how-to-study/'
+    );
 
     await session.tap('ShowcaseSessionLength-25');
     expect(await screen.findByRole('radio', { name: '25 minutes', checked: true })).toBeTruthy();

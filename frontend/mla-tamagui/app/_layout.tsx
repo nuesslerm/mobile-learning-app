@@ -10,6 +10,7 @@ import { AgentationProvider } from '@lib/rn-agentation';
 import {
   resolveActiveThemeName,
   useHeaderHeightStore,
+  useOpenSheetStore,
   usePresetThemeStore,
 } from '@lib/tamagui-design-system';
 import { tamaguiConfig } from '@lib/tamagui-design-system/theme';
@@ -24,7 +25,6 @@ import { TamaguiProvider, Theme } from '@lib/tamagui-design-system/primitives';
 import { DeviceRunnerRoot } from '@/features/leetcode';
 
 import { AgentationMarkerLog } from '../app-shell/AgentationMarkerLog';
-import { DebugFab } from '../app-shell/DebugFab';
 import {
   NativeChromeBridge,
   useNavigationTheme,
@@ -67,6 +67,10 @@ if (process.env.EXPO_PUBLIC_DEVICE_LAB === '1' && Platform.OS === 'web') {
  */
 // Reanimated on web only runs predefined entering/exiting animations; sonner's custom worklets log a warning.
 const WEB_TOAST_ANIMATION = { enter: FadeIn.duration(200), exit: FadeOut.duration(200) };
+const FloatingDevTools = __DEV__ && Platform.OS !== 'web'
+  ? (require('@buoy-gg/core') as typeof import('@buoy-gg/core')).FloatingDevTools
+  : null;
+const buoyStores = { theme: usePresetThemeStore, sheets: useOpenSheetStore };
 
 function HeaderClearToaster() {
   const headerHeight = useHeaderHeightStore((state) => state.height);
@@ -131,7 +135,6 @@ export default function RootLayout() {
             </DeviceRunnerRoot>
             <NativeChromeBridge />
             <RouteLogger />
-            <DebugFab />
             {/* AgentationMarkerLog calls useAgentation, which throws
                   outright when no provider is above it -- and a throw here
                   takes the whole tree down, so every route renders blank
@@ -149,6 +152,7 @@ export default function RootLayout() {
                   (src/constants.ts), so its own default is a plain vertical
                   list -- not the stacked pile sonner is known for. Opt in. */}
             <HeaderClearToaster />
+            {FloatingDevTools && <FloatingDevTools zustandStores={buoyStores} />}
           </Theme>
         </TamaguiProvider>
       </GestureHandlerRootView>

@@ -52,7 +52,6 @@ Pre-2026-10 history: [archive](archive/README.md).
 - mla-tamagui · A cold load of /tamil/review?lessonId= from the web export hydrates with React #418 · 42d · [web-export-cold-deep-link-hydration-418](gaps/web-export-cold-deep-link-hydration-418.md)
 - mla-tamagui · The charts-spike probe crashes on load in the static web export · 33d · [charts-spike-export-unknown-module](gaps/charts-spike-export-unknown-module.md)
 - mla-tamagui · The app uses the deprecated react-native-gesture-handler builder API · 0d · [gesture-handler-builder-api-deprecated](gaps/gesture-handler-builder-api-deprecated.md)
-- mla-tamagui-e2e · `verify-debug-sheet` cannot press a Tamagui Button, so `ds.button.press` never logs · 50d · [verify-debug-sheet-press](gaps/verify-debug-sheet-press.md)
 - mla-tamagui-e2e · No real-browser check that the service-report dashboard renders themed · 32d · [service-report-no-real-render-check](gaps/service-report-no-real-render-check.md)
 - mobile-app · Nothing in the app has been verified on a real device or simulator from a session (blocked) · 99d · [no-real-device-verification](gaps/no-real-device-verification.md)
 - rca · `wf rca ask --runbook` still drives a local opencode, and a remote run reports no token usage · 27d · [rca-runbook-and-remote-run-usage](gaps/rca-runbook-and-remote-run-usage.md)

@@ -10,7 +10,7 @@
   "screen": {
     "width": 378,
     "height": 1704,
-    "page_height": 6206
+    "page_height": 5980
   },
   "summary": {
     "testids": [
@@ -41,12 +41,6 @@
       "LeetcodeListAutocomplete",
       "LeetcodeListAutocompleteOff",
       "LeetcodeListAutocompleteOn",
-      "LeetcodeListCursorHandleRow",
-      "LeetcodeListCursorHandleLabel",
-      "LeetcodeListCursorHandleHint",
-      "LeetcodeListCursorHandle",
-      "LeetcodeListCursorHandleOff",
-      "LeetcodeListCursorHandleOn",
       "LeetcodeListBlockViewRow",
       "LeetcodeListBlockViewLabel",
       "LeetcodeListBlockViewHint",
@@ -62,14 +56,12 @@
       "LeetcodeListMenuButtonCompact",
       "LeetcodeListCompactTitle",
       "LeetcodeListCompactCount",
-      "LeetcodeListCompactCountText",
-      "DebugFabWrap",
-      "DebugFab"
+      "LeetcodeListCompactCountText"
     ],
-    "text": "🟢 LIVE\n76 PROBLEMS\nBlind 75\nMaster the patterns. Ace the interview. 🚀\nNot signed in\nSign in to LeetCode to unlock account features.\nSign in\nRun code\nOn this device runs Python with no network. Other languages run on the server.\nServer\nThis device\nSuggestions\nThe editor offers names as you type, above the line. Tap one, or the Indent key, to take it. Return never takes it.\nOff\nOn\nCursor handle\nA "
+    "text": "🟢 LIVE\n76 PROBLEMS\nBlind 75\nMaster the patterns. Ace the interview. 🚀\nNot signed in\nSign in to LeetCode to unlock account features.\nSign in\nRun code\nOn this device runs Python with no network. Other languages run on the server.\nServer\nThis device\nSuggestions\nThe editor offers names as you type, above the line. Tap one, or the Indent key, to take it. Return never takes it.\nOff\nOn\nBlocks (experime"
   },
   "timings": {
-    "render_ms": 854
+    "render_ms": 526
   },
   "name": "nativechrome/final-given-the-web-build-with-dark-chosen-when-the-r-5925cc.dark",
   "image": {

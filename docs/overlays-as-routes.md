@@ -26,9 +26,7 @@ Several overlays are **not** migrated yet and are still siblings mounted by
 whatever opens them, driven by component state rather than a route, among
 them `frontend/mla-tamagui/features/leetcode/ui/AlternativePicker.tsx` and the
 voice-edit `frontend/mla-tamagui/features/leetcode/ui/VoiceReviewSheet.tsx`
-(both mounted by `ProblemEditorScreen.tsx` from the voice-edit phase), and the
-debug log sheet `frontend/mla-tamagui/app-shell/DebugLogSheet.tsx` (a
-`useState` in `DebugFab.tsx`; the old dev-tools `DebugSheet` is gone).
+(both mounted by `ProblemEditorScreen.tsx` from the voice-edit phase).
 Migrate them with this same recipe. `LanguageSheet` (`ui/LanguagePicker.tsx`) is also a
 sibling, rendered at the end of `ProblemEditorScreen`'s own tree on purpose:
 it does not portal, so it only covers what comes before it (see its comment).

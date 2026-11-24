@@ -384,24 +384,7 @@ for _, p in ipairs(SOL) do
 end
 result.input = { keys = keys, toolbar_taps = toolbar.taps, toolbar_typed_on_keyboard = toolbar.typed }
 
--- The app's own log sink: the editor's Logger lines reach the live tail the debug sheet reads.
-if not android then
-  run_flow("logs reach the debug sheet", function()
-    -- the Run Result sheet the last Submit left open covers the debug button
-    if device:get_element({id='ConsoleSheet'}) then
-      device:tap_on({id='ConsoleSheetHandle'})
-      device:extended_wait_until{not_visible={id='ConsoleSheet'}, timeout=15000, label='the console sheet closes'}
-    end
-    device:tap_on({id='DebugFab'})
-    device:assert_visible({id='DebugLogSheetList'})
-    -- newest first: a long part can push the editor's lines below the fold, so the list is scrolled like a finger would
-    result.logged = device:scroll_until_visible{element={text='.*editor[.](focus|blur|send_message).*'}, direction='DOWN', from={id='DebugLogSheetList'}, timeout=10000, optional=true} ~= nil
-    device:take_screenshot(out .. "/debug-log-sheet.png")
-  end)
-end
-
 local f = assert(io.open(out .. "/result.json", "w")); f:write(json.encode(result)); f:close()
-assert_true(android or result.logged, "the editor's log lines did not reach the debug sheet")
 for _, p in ipairs(SOL) do
   local r = result[p.id]
   assert_true(r.keyboard_at_start, p.id .. ": keyboard not shown")

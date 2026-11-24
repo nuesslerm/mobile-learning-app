@@ -109,8 +109,8 @@ const OUTPUT_DIR = 'dist';
 //
 // ENVIRONMENT EARMARK: remote Expo Go previews (EAS updates) default to
 // 'staging'. A published bundle runs with __DEV__ === false, so without this
-// the app would resolve appEnv to 'production' and hide every dev affordance
-// (DebugFab, dev-runtime-config route override). Local `expo start` stays
+// the app would resolve appEnv to 'production' and hide dev-runtime affordances.
+// Local `expo start` stays
 // 'development' via __DEV__; a REAL production publish must say so explicitly
 // with EXPO_PUBLIC_APP_ENV=production.
 const appEnv = process.env.EXPO_PUBLIC_APP_ENV ?? 'staging';

@@ -1,10 +1,10 @@
 {
   "platform": "browser",
-  "step": 14,
+  "step": 12,
   "last_action": "tap_on{id='ProblemWorkspaceTab-blocks'}",
   "warnings": [],
   "summary": {
-    "url": "http://127.0.0.1:35277/mla-tamagui/leetcode/two-sum?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgdHdvU3VtKHNlbGYsIG51bXMsIHRhcmdldCk6CiAgICAgICAgaWYgbnVtczoKICAgICAgICAgICAgYSA9IDEKICAgICAgICAgICAgYiA9IDIKICAgICAgICByZXR1cm4gYQo",
+    "url": "http://127.0.0.1:8818/mla-tamagui/leetcode/two-sum?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgdHdvU3VtKHNlbGYsIG51bXMsIHRhcmdldCk6CiAgICAgICAgaWYgbnVtczoKICAgICAgICAgICAgYSA9IDEKICAgICAgICAgICAgYiA9IDIKICAgICAgICByZXR1cm4gYQo",
     "title": "",
     "testids": [
       "ProblemEditorHeader",
@@ -41,9 +41,7 @@
       "BlockRow-6",
       "BlockHandle-6",
       "BlockRow-7",
-      "PyodideHostWebView",
-      "DebugFabWrap",
-      "DebugFab"
+      "PyodideHostWebView"
     ],
     "text": "Two Sum\nArray & Hashing · Easy\nCode\nBlocks\nif\nfor\nwhile\ndef\nreturn\nclass Solution:\ndef twoSum(self, nums, target):\nif nums:\na = 1\nb = 2\nreturn a\nwhile condition:\npass"
   },
@@ -52,8 +50,8 @@
     "height": 2748
   },
   "timings": {
-    "since_start_ms": 15023,
-    "capture_ms": 371
+    "since_start_ms": 25536,
+    "capture_ms": 130
   },
   "tolerance": {
     "threshold": 0.1,

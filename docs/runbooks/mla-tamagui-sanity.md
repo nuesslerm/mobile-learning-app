@@ -1,6 +1,6 @@
 ---
 title: mla-tamagui sanity runbook
-verifies: That app #2 (the Tamagui side of the side-by-side) works end to end -- problem list, editor with a live CodeMirror WebView, keyboard toolbar rails, overlays and the debug log sheet -- in both the browser and Expo Go.
+verifies: That app #2 (the Tamagui side of the side-by-side) works end to end -- problem list, editor with a live CodeMirror WebView, keyboard toolbar rails and overlays -- in both the browser and Expo Go.
 tier: manual
 maxAgeDays: 90
 date: 2026-08-28
@@ -42,7 +42,6 @@ differ from origin/main, `verify-sheet` fails "tapping the backdrop dismisses th
 ```
 › design system renders themed
 ok: "Design system" — button rgb(0, 145, 255), badge rgb(0, 145, 255) r9999px, group rgb(242, 242, 242) r9px
-› debug FAB opens the live log sheet
 ok: FAB moved the sheet from top 1059 to 145 (viewport 852) — 3 rows ("3 entries") …
 › leetcode: list, editor, typing, description
 ok: list "Blind 75" — 72 rows in 16 sections … CodeMirror held 87 chars … accepted "verify_marker" …
@@ -96,7 +95,6 @@ Then walk the same path the browser suite walks, and screenshot each step:
 | 6 | Type | Characters land in CodeMirror with syntax highlighting |
 | 7 | Tap a toolbar key (Indent, Parentheses) | It inserts at the caret and the keyboard stays up |
 | 8 | Tap ⓘ in the header | The description sheet slides up over a dimmed backdrop; it scrolls; pan-down dismisses it |
-| 9 | Tap the debug FAB | The log sheet opens with live entries, newest first |
 
 Step 5 is the one worth the trip. The browser suite emulates iOS's overlay
 strategy (`docs/archive/README.md`),

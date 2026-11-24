@@ -8,9 +8,9 @@
     "height": 852
   },
   "screen": {
-    "width": 393,
-    "height": 852,
-    "page_height": 852
+    "width": 378,
+    "height": 863,
+    "page_height": 863
   },
   "summary": {
     "testids": [
@@ -43,15 +43,15 @@
       "ShowcaseSessionLength-25",
       "ShowcaseSessionLength-45"
     ],
-    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nBrowse components\nOverlays\nGlass option picker\nSession length\n25 minutes\nSession length\nDone\n5 minutes\nReview a few flashcards\n15 minutes\nPractice one topic\n25 minutes\nWork through a problem set\n45 minutes\nSettle into a longer study session"
+    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nBrowse components\nOverlays\nGlass option picker\nSession length\n25 minutes\nSession length\nDone\n5 minutes\nReview a few flashcards\n15 minutes\nPractice one topic\n25 minutes\nWork through a problem set\n45 minutes\nSettle into a longer study session\nPractice problems\nStudy guide"
   },
   "timings": {
-    "render_ms": 214
+    "render_ms": 243
   },
   "name": "showcase/final-given-the-glass-picker-when-a-session-length-is-40d436.dark",
   "image": {
     "width": 360,
-    "height": 780
+    "height": 822
   },
   "tolerance": {
     "threshold": 0.1,
