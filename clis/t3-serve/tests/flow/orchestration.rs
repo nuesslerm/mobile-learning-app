@@ -1,7 +1,7 @@
 //! Orchestration V2 through the socket: thread commands and their events, a turn from message to finished run on a scripted
 //! agent API double, interrupts and failures, the file RPCs, and the declared-unsupported table.
 use super::support::*;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use t3_core::ports::AgentEventKind;
 
 const QUIET: Duration = Duration::from_millis(300);
@@ -90,6 +90,12 @@ fn a_thread_can_be_pinned_visited_and_have_its_modes_and_model_changed_each_as_a
 fn a_message_starts_a_turn_in_the_agent_api_and_the_thread_shows_the_streamed_text_a_tool_row_and_a_finished_run() {
     // Given an agent API whose turn answers with two text deltas around one tool call that prints twice
     let (h, mut rpc, thread) = started();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !h.agent.calls.lock().unwrap().contains(&"thread.subscribe") {
+        assert!(Instant::now() < deadline, "the thread event watcher did not subscribe");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    h.agent.calls.lock().unwrap().clear();
     *h.agent.script.lock().unwrap() = vec![
         AgentEventKind::Text("Hel".into()),
         AgentEventKind::ToolStarted { id: "k1".into(), name: "bash".into(), input: json!({"command": "ls"}) },

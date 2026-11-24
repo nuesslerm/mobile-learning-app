@@ -23,7 +23,7 @@ Found by scanning each test's source for the exec-testkit helpers (comments skip
 | `chain` | 6 | 3 | 10 | none | none | none | none |
 | `checkpoint_rollback` | 3 | 1 | 5 | none | none | none | none |
 | `guest_share` | 1 | 2 | none | none | none | none | none |
-| `thread_surface` | 12 | 9 | 21 | none | none | none | none |
+| `thread_surface` | 13 | 9 | 23 | none | none | none | none |
 
 ## (a) recorded, clean or drift-only gaps: switch the row to `"oracle": "mimic"`
 

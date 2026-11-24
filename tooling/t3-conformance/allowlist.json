@@ -57,6 +57,7 @@
     { "path": "settings.cursorKeychainUsageEnabled", "reason": "this set was recorded on server v0.1.6 and t3-serve answers the settings of the pinned v0.1.9, where this setting is gone", "phase": "R2a" }
   ],
   "shapeOnly": [
+    { "path": "settings.providerInstances", "reason": "The provider instance catalog reflects the drivers installed on the executor. The T3 chain checks the complete catalog for its scripted executor.", "phase": "RCA mobile" },
     {
       "path": "providers",
       "reason": "the provider list is this server's own",

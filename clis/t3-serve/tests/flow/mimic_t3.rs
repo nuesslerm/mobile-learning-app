@@ -31,8 +31,8 @@ fn the_imported_session_of_the_real_server_replays_through_the_router_with_no_di
     assert!(found.is_empty(), "{} differences:\n{}", found.len(), found.join("\n"));
 }
 
-/// Values that equal the recorded ones on a host like the recording machine (linux x64), so removing their entry fails only elsewhere.
-const HOST_DEPENDENT: [&str; 2] = ["platform.os", "platform.arch"];
+/// The in-process double has no catalog, so it matches the recording's empty provider map. The integration chain checks the installed providers.
+const HOST_DEPENDENT: [&str; 3] = ["platform.os", "platform.arch", "settings.providerInstances"];
 
 type Section = fn(&mut mimic_core::allowlist::Allowlist) -> &mut Vec<mimic_core::allowlist::Entry>;
 
