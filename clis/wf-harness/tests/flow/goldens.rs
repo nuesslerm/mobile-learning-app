@@ -78,4 +78,26 @@ fn ios_reference_comparison_keeps_the_source_and_writes_a_diff() {
     assert_eq!(update.exit_code, 2, "{}{}", update.stdout, update.stderr);
     assert!(update.stdout.contains("cannot be used with --update-goldens"), "{}", update.stdout);
     assert_eq!(std::fs::read(reference).unwrap(), source);
+
+    // Given a difference below Pixelmatch's colour threshold
+    let near = s.file("near.png", png(1));
+    let args = ["test", "ios-visual", "editor", "--device", "test-sim", "--expect", "Editor", "--reference", &near, "--out", "run"];
+    let env = [("CAPTURED", captured.as_str())];
+
+    // When the reference is compared with or without exact mode
+    let perceptual = s.run(&args, &env);
+    let exact = s.run(&[args.as_slice(), &["--exact", "--ignore", "0,0,4,1"]].concat(), &env);
+
+    // Then the regular check matches and exact mode counts every unmasked change
+    assert_eq!(perceptual.exit_code, 0, "{}{}", perceptual.stdout, perceptual.stderr);
+    assert_eq!(exact.exit_code, 1, "{}{}", exact.stdout, exact.stderr);
+    let exact_result: Value = serde_json::from_str(exact.stdout.trim()).unwrap();
+    assert_eq!(exact_result["differing_pixels"], 28);
+    assert_eq!(exact_result["comparison"], "exact");
+    assert!(s.repo.join(exact_result["diff"].as_str().unwrap()).is_file());
+
+    let identical = s.run(&["test", "ios-visual", "editor", "--device", "test-sim", "--expect", "Editor", "--reference", &captured, "--exact", "--out", "run"], &env);
+    assert_eq!(identical.exit_code, 0, "{}{}", identical.stdout, identical.stderr);
+    let match_result: Value = serde_json::from_str(identical.stdout.trim()).unwrap();
+    assert_eq!(match_result["differing_pixels"], 0);
 }

@@ -69,7 +69,7 @@ pub fn run(args: &[String]) -> Option<i32> {
     let report = p.val("report").map(PathBuf::from).unwrap_or_else(|| snap_dir.parent().unwrap_or(Path::new(".")).join("report.html"));
     let report_dir = report.parent().filter(|d| !d.as_os_str().is_empty()).unwrap_or(Path::new(".")).to_path_buf();
     let num = |k: &str, d: f64| p.val(k).and_then(|v| v.parse::<f64>().ok()).unwrap_or(d);
-    let tol = Tolerance { threshold: num("pixel-threshold", golden::THRESHOLD), max_ratio: num("threshold", golden::MAX_RATIO), ignore: vec![] };
+    let tol = Tolerance { exact: false, threshold: num("pixel-threshold", golden::THRESHOLD), max_ratio: num("threshold", golden::MAX_RATIO), ignore: vec![] };
     let (width, height, max_width) = (num("width", 393.0) as i64, num("height", 852.0) as i64, num("max-width", golden::MAX_WIDTH as f64) as usize);
     let max_height = num("max-height", 2.0 * height as f64) as usize;
     let update = p.flag("update");

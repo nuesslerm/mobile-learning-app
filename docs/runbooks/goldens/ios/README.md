@@ -49,6 +49,13 @@ pixelmatch difference over the usual 0.2% tolerance exits with status 1 and
 writes a diff. This is a visual comparison with a tolerance. Each reference
 comparison writes its own run folder, and the supplied image is read-only.
 
+Add `--exact` to the reference comparison to require identical RGBA values
+after normalization. Any unmasked pixel that differs produces a mismatch,
+including antialiased edges and one-level channel changes. The result then
+includes `"comparison": "exact"`. Omit all `--ignore` rectangles to compare
+the full screen. With different viewport sizes, exact mode describes the
+normalized images.
+
 ## Replay the editor selection round trip
 
 Frames 23–25 of the LeetCode recording show the menu at the caret, Console

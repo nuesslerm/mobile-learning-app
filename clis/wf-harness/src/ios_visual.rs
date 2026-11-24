@@ -11,7 +11,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         &Spec {
             values: &["device", "expect", "out", "ignore", "reference"],
             required: &["device", "expect"],
-            flags: &["update-goldens"],
+            flags: &["update-goldens", "exact"],
             positional: Positional::Exactly(1),
             ..Spec::NONE
         },
@@ -36,6 +36,9 @@ fn capture(args: &Parsed) -> Result<Outcome, String> {
     let reference = args.val("reference").map(Path::new);
     if reference.is_some() && args.flag("update-goldens") {
         return Err("--reference compares against a supplied image and cannot be used with --update-goldens".into());
+    }
+    if args.flag("exact") && reference.is_none() {
+        return Err("--exact requires --reference".into());
     }
     let device = args.val("device").expect("required by parse_spec");
     let expected_id = args.val("expect").expect("required by parse_spec");
@@ -77,7 +80,12 @@ fn compare_reference(args: &Parsed, name: &str, reference: &Path, run: &Path, by
             reference_image.width, reference_image.height, native.width, native.height,
         ));
     }
-    let tol = Tolerance { ignore: ignore_rectangles(args, &reference_image)?, ..Tolerance::default() };
+    let ignore = ignore_rectangles(args, &reference_image)?;
+    let tol = if args.flag("exact") {
+        Tolerance { exact: true, threshold: 0.0, max_ratio: 0.0, ignore }
+    } else {
+        Tolerance { ignore, ..Tolerance::default() }
+    };
     if let Some(parent) = run.parent() {
         std::fs::create_dir_all(parent).map_err(|e| format!("cannot create {}: {e}", parent.display()))?;
     }

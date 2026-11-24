@@ -21,6 +21,7 @@ pub struct Image {
 
 #[derive(Clone)]
 pub struct Tolerance {
+    pub exact: bool,
     pub threshold: f64,
     pub max_ratio: f64,
     /// Rectangles (left, top, right, bottom) in golden pixels that never count, such as a status-bar clock.
@@ -29,7 +30,7 @@ pub struct Tolerance {
 
 impl Default for Tolerance {
     fn default() -> Self {
-        Tolerance { threshold: THRESHOLD, max_ratio: MAX_RATIO, ignore: vec![] }
+        Tolerance { exact: false, threshold: THRESHOLD, max_ratio: MAX_RATIO, ignore: vec![] }
     }
 }
 
@@ -45,6 +46,7 @@ pub struct Outcome {
     pub diff: Option<PathBuf>,
     pub differing: usize,
     pub ratio: f64,
+    exact: bool,
 }
 
 impl Outcome {
@@ -54,11 +56,15 @@ impl Outcome {
 
     pub fn json(&self) -> Value {
         let p = |p: &Option<PathBuf>| p.as_ref().map(|p| p.display().to_string());
-        json!({
+        let mut result = json!({
             "name": self.name, "verdict": self.verdict, "ok": self.ok(), "message": self.message,
             "golden": self.golden.display().to_string(), "actual": self.actual.display().to_string(),
             "expected": p(&self.expected), "diff": p(&self.diff), "differing_pixels": self.differing, "ratio": self.ratio,
-        })
+        });
+        if self.exact {
+            result["comparison"] = json!("exact");
+        }
+        result
     }
 }
 
@@ -121,7 +127,11 @@ fn pad(img: &Image, w: usize, h: usize) -> Vec<u8> {
 pub fn compare(actual: &Image, expected: &Image, tol: &Tolerance) -> (Vec<bool>, usize, usize) {
     let (w, h) = (actual.width.max(expected.width), actual.height.max(expected.height));
     let (a, e) = (pad(actual, w, h), pad(expected, w, h));
-    let mut mask = diff_mask(&a, &e, w, h, tol.threshold);
+    let mut mask = if tol.exact {
+        a.chunks_exact(4).zip(e.chunks_exact(4)).map(|(a, e)| a != e).collect()
+    } else {
+        diff_mask(&a, &e, w, h, tol.threshold)
+    };
     for (i, m) in mask.iter_mut().enumerate() {
         let (x, y) = (i % w, i / w);
         if x >= actual.width.min(expected.width) || y >= actual.height.min(expected.height) {
@@ -183,7 +193,7 @@ pub fn save(name: &str, img: &Image, out_stem: &Path, meta: Value) -> Result<Out
     meta["name"] = json!(name);
     meta["image"] = json!({ "width": img.width, "height": img.height });
     write(&sibling(out_stem, ".json"), format!("{}\n", serde_json::to_string_pretty(&meta).unwrap_or_default()).as_bytes())?;
-    Ok(Outcome { name: name.into(), verdict: "saved", message: format!("screenshot '{name}' saved to {}", shot.display()), golden: PathBuf::new(), actual: shot, expected: None, diff: None, differing: 0, ratio: 0.0 })
+    Ok(Outcome { name: name.into(), verdict: "saved", message: format!("screenshot '{name}' saved to {}", shot.display()), golden: PathBuf::new(), actual: shot, expected: None, diff: None, differing: 0, ratio: 0.0, exact: false })
 }
 
 pub fn check(name: &str, img: &Image, golden: &Path, out_stem: &Path, update: bool, tol: &Tolerance, meta: Value) -> Result<Outcome, String> {
@@ -194,7 +204,7 @@ pub fn check(name: &str, img: &Image, golden: &Path, out_stem: &Path, update: bo
     meta["name"] = json!(name);
     meta["image"] = json!({ "width": img.width, "height": img.height });
     meta["tolerance"] = json!({ "threshold": tol.threshold, "max_ratio": tol.max_ratio, "ignore": tol.ignore });
-    let mut o = Outcome { name: name.into(), verdict: "match", message: String::new(), golden: golden.into(), actual, expected: None, diff: None, differing: 0, ratio: 0.0 };
+    let mut o = Outcome { name: name.into(), verdict: "match", message: String::new(), golden: golden.into(), actual, expected: None, diff: None, differing: 0, ratio: 0.0, exact: tol.exact };
     if update {
         write(golden, &bytes)?;
         write(&golden.with_extension("json"), format!("{}\n", serde_json::to_string_pretty(&meta).unwrap_or_default()).as_bytes())?;
