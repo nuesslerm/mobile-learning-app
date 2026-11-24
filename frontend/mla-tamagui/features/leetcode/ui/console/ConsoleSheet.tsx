@@ -3,7 +3,9 @@ import { Sheet } from '@lib/tamagui-design-system/ui/sheet';
 import { Trash2 } from '@lib/tamagui-design-system/icons';
 import { YStack } from '@lib/tamagui-design-system/primitives';
 import React from 'react';
-import { Keyboard, Platform, useColorScheme } from 'react-native';
+import { Keyboard, Platform, Pressable, useColorScheme, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FullWindowOverlay } from 'react-native-screens';
 
 import { captionsOf } from '../../domain/console/caseFields';
 import { CONSOLE_SNAP_PERCENT, FLOATING_CONSOLE_SNAP_PERCENT } from '../../domain/console/layout';
@@ -17,6 +19,7 @@ const FLOATING_SNAP_POINTS = [FLOATING_CONSOLE_SNAP_PERCENT];
 const FLOATING_CONTENT = { gap: 8, paddingHorizontal: 12, paddingTop: 0, paddingBottom: 38 };
 const CONSOLE_HANDLE = { width: 60, height: 4, backgroundColor: 'rgba(175,175,185,0.47)', transform: [{ translateY: -4 }] } as const;
 const CASE_CARD = '#1d1d20';
+const BACKDROP_OPACITY = 0.5;
 const TABS = [
   { value: 'testcase', label: 'Testcase' },
   { value: 'result', label: 'Run Result' },
@@ -29,15 +32,19 @@ type Props = {
   result: React.ReactNode;
   footer: React.ReactNode;
   onSheetClosed: () => void;
+  editorHeightBelowNativeHeader?: number;
 };
 
 const floating = Platform.OS === 'ios';
-export function ConsoleSheet({ problem, console: state, fieldError, result, footer, onSheetClosed }: Props) {
+export function ConsoleSheet({ problem, console: state, fieldError, result, footer, onSheetClosed, editorHeightBelowNativeHeader }: Props) {
   const captions = React.useMemo(() => captionsOf(problem), [problem]);
   const [focusToken, setFocusToken] = React.useState(0);
   const [editing, setEditing] = React.useState(false);
   const { selected } = state;
   const scheme = useColorScheme();
+  const { height: windowHeight } = useWindowDimensions();
+  const { top } = useSafeAreaInsets();
+  const headerHeight = editorHeightBelowNativeHeader ? Math.max(0, windowHeight - editorHeightBelowNativeHeader - top) : 0;
   const darkGlass = floating && scheme === 'dark';
   React.useEffect(() => {
     if (!state.open) setEditing(false);
@@ -55,12 +62,13 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
     else setFocusToken((token) => token + 1);
   };
 
-  return (
+  const sheet = (
     <Sheet
       open={state.open}
       onOpenChange={(open) => !open && onSheetClosed()}
       snapPoints={floating ? FLOATING_SNAP_POINTS : SNAP_POINTS}
       backdrop={floating ? 'dim' : 'none'}
+      backdropOpacity={BACKDROP_OPACITY}
       floating={floating}
       floatingHorizontalInset={8}
       floatingBottomInset={8}
@@ -100,5 +108,29 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
       </Sheet.ScrollView>
       {footer}
     </Sheet>
+  );
+
+  return (
+    <>
+      {sheet}
+      {floating && state.open && headerHeight > 0 ? (
+        <FullWindowOverlay unstable_accessibilityContainerViewIsModal={false}>
+          <Pressable
+            testID="ConsoleNativeHeaderBackdrop"
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss console"
+            onPress={onSheetClosed}
+            style={{
+              position: 'absolute',
+              top,
+              left: 0,
+              right: 0,
+              height: headerHeight,
+              backgroundColor: `rgba(0,0,0,${BACKDROP_OPACITY})`,
+            }}
+          />
+        </FullWindowOverlay>
+      ) : null}
+    </>
   );
 }

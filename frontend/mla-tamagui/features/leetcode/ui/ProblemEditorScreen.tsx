@@ -723,6 +723,7 @@ export function ProblemEditorScreen({
           result={<RunResult outcome={consoleState.outcome} actions={{ onShowLine: () => void consoleState.showLine(), canOpenCase: (label) => consoleState.caseIdOf(label) !== null, onOpenCase: consoleState.openCase }} />}
           footer={<ConsoleFooter {...consoleActions} canvas={darkCanvas} />}
           onSheetClosed={handleConsoleClosed}
+          editorHeightBelowNativeHeader={nativeEditorHeader ? rootHeight : undefined}
         />
       ) : null}
       <LanguageSheet
