@@ -7,35 +7,37 @@
   --accent: #205748;
   --line: #a9b9ac;
   --display: Georgia, serif;
+  --bs-code-color: var(--ink);
   font: 17px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--paper); color: var(--ink); }
+body { font: inherit; background: var(--paper); color: var(--ink); }
 a { color: var(--accent); text-underline-offset: .18em; }
-:focus-visible { outline: 3px solid #a35d15; outline-offset: 5px; }
+:focus-visible, .btn:focus-visible { outline: 3px solid #a35d15; outline-offset: 3px; }
 .shell { max-width: 1080px; margin: 0 auto; padding: 0 clamp(20px, 6vw, 64px); }
-nav {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.pairing-nav {
   min-height: 56px;
   border-bottom: 1px solid var(--line);
   background: var(--paper);
 }
 .brand { font-weight: 750; text-decoration: none; color: var(--ink); }
-a.brand, .nav-back {
+a.brand {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
   padding-inline: 6px;
 }
-.nav-back { gap: 7px; font-weight: 700; text-decoration: none; }
+.nav-back, .copy-button {
+  --bs-btn-color: var(--accent);
+  --bs-btn-hover-color: var(--accent);
+  --bs-btn-hover-bg: #e5ede2;
+  --bs-btn-active-color: var(--accent);
+  --bs-btn-active-bg: #dfeadc;
+  --bs-btn-font-weight: 700;
+  min-height: 44px;
+}
 .nav-back span { font-size: 1.6rem; line-height: 1; }
-.nav-back:hover, a.brand:hover { text-decoration: underline; }
+a.brand:hover { text-decoration: underline; }
 main { padding: clamp(26px, 6vw, 63px) 0 58px; }
 h1, h2, p { margin: 0 0 14px; }
 h1, h2, .app-name { font-family: var(--display); line-height: 1.08; }
@@ -51,15 +53,17 @@ h1 { font-size: clamp(2.3rem, 7vw, 5.3rem); font-weight: 500; letter-spacing: -.
 .landing section { margin-top: 24px; }
 .picker-label { font: inherit; font-weight: 700; }
 .app-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.card {
+  --bs-card-color: var(--ink);
+  --bs-card-bg: var(--card);
+  --bs-card-border-color: var(--line);
+}
 .app-card {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 4px 14px;
   padding: clamp(16px, 3vw, 24px);
-  border: 1px solid var(--line);
   border-radius: 4px 18px 4px 4px;
-  background: var(--card);
-  color: var(--ink);
   text-decoration: none;
 }
 .app-card:hover { border-color: var(--accent); background: #edf2e7; }
@@ -106,32 +110,28 @@ h1 { font-size: clamp(2.3rem, 7vw, 5.3rem); font-weight: 500; letter-spacing: -.
   font-size: .8rem;
 }
 .steps h2 { margin-bottom: 8px; font-size: 1.36rem; }
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.pairing-action {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--accent);
+  --bs-btn-border-color: var(--accent);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #123c31;
+  --bs-btn-hover-border-color: #123c31;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #123c31;
+  --bs-btn-font-weight: 680;
   min-height: 48px;
-  border: 1px solid var(--accent);
-  border-radius: 5px;
   padding: 8px 16px;
-  background: var(--accent);
-  color: #fff;
-  font: inherit;
-  font-weight: 680;
-  text-decoration: none;
-  cursor: pointer;
 }
-.button:hover { background: #123c31; }
 figure { max-width: 530px; margin: 16px 0 0; }
 img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 5px; }
 figcaption { margin-top: 5px; color: var(--muted); font-size: .86rem; }
-details, .credentials { border: 1px solid var(--line); border-radius: 5px; background: var(--card); }
-details { padding: 0 14px; }
+details { padding: 0 14px; border: 1px solid var(--line); border-radius: 5px; background: var(--card); }
 details[open] { padding-bottom: 14px; }
 summary, dt { font-weight: 700; }
 summary { min-height: 44px; padding-block: 9px; cursor: pointer; }
 details p { margin: 10px 0; }
-textarea { width: 100%; padding: 8px; font: inherit; }
+textarea.form-control { --bs-border-color: var(--line); }
 code, textarea { overflow-wrap: anywhere; }
 .credentials { margin: 0 0 14px; }
 .credential { padding: 12px 14px; }
@@ -145,17 +145,13 @@ code, textarea { overflow-wrap: anywhere; }
 }
 .credential code { user-select: all; }
 .copy-button {
+  --bs-btn-bg: var(--paper);
+  --bs-btn-border-color: var(--line);
+  --bs-btn-hover-border-color: var(--line);
   flex: none;
   min-width: 60px;
-  min-height: 44px;
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  background: var(--paper);
-  color: var(--accent);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
 }
+.copy-button[hidden] { display: none; }
 .copy-status { color: var(--accent); font-size: .88rem; }
 .copy-status:empty { margin: 0; }
 
@@ -171,9 +167,7 @@ code, textarea { overflow-wrap: anywhere; }
     align-self: start;
     margin-top: clamp(26px, 6vw, 63px);
     padding: 16px;
-    border: 1px solid var(--line);
     border-radius: 4px 16px 4px 4px;
-    background: var(--card);
   }
   .phone-handoff h2 { font-size: 1.35rem; }
   .phone-handoff p { color: var(--muted); font-size: .9rem; }
@@ -186,7 +180,7 @@ code, textarea { overflow-wrap: anywhere; }
 }
 
 @media (max-width: 610px) {
-  .button { width: 100%; }
+  .pairing-action { width: 100%; }
   .hero { padding: 22px; }
   h1, .guide-header h1 { font-size: clamp(2rem, 9vw, 2.7rem); }
   .steps li { padding-left: 36px; }

@@ -75,11 +75,10 @@ ASSETS = {
 
 def app_cards():
     return ''.join(
-        f'<a class="app-card" href="{escape(route)}">'
-        f'<span class="app-mark" aria-hidden="true">{escape(app.mark)}</span>'
-        f'<span class="app-name">{escape(app.name)}</span>'
-        f'<span class="app-description">{escape(app.description)}</span>'
-        '<span class="app-arrow" aria-hidden="true">›</span></a>'
+        render(
+            'app-card', route=escape(route), mark=escape(app.mark),
+            name=escape(app.name), description=escape(app.description),
+        )
         for route, app in APPS.items()
     )
 
@@ -110,10 +109,7 @@ class Page(BaseHTTPRequestHandler):
         if back and back != '/':
             navigation = '<a class="brand" href="/">All apps</a>'
         if back:
-            navigation = (
-                f'<a class="nav-back" href="{escape(back)}">'
-                '<span aria-hidden="true">‹</span> Back</a>' + navigation
-            )
+            navigation = render('back-link', target=escape(back)) + navigation
         handoff = ''
         if phone_route is not None:
             handoff = render(
