@@ -48,7 +48,9 @@ In a local Linux arm64 container at `53775ec2`, T3 passed all 12 `thread_surface
 
 On the same iPhone simulator build, a fresh Claude question displayed Blue and Green. Restarting only the T3 adapter dropped the client connection while the RCA turn stayed active. The request retained its ID after reconnect. Selecting Green in T3 recorded one `input.answered` event, resolved the request and completed the original turn with Green.
 
-Codex in Supervised mode displayed Allow once and Decline for two read-only Python commands. Allow once produced `RCA_PARITY_T3_ALLOW_ONCE` on stdout. Decline resolved the other request without executing its output marker. Both controls cleared after the user acted. The combined reconnect case still needs a populated queue.
+Codex in Supervised mode displayed Allow once and Decline for two read-only Python commands. Allow once produced `RCA_PARITY_T3_ALLOW_ONCE` on stdout. Decline resolved the other request without executing its output marker. Both controls cleared after the user acted.
+
+For the combined reconnect case, open a Claude question from T3 and seed two uniquely marked follow-ups through the paired T3 adapter. Wait for both queue IDs at RCA before restarting only the T3 adapter. T3 showed the same question and two queued messages after reconnect. Submitting Green resolved the question and RCA ran both follow-ups once, in order. T3's projection still showed both entries as queued after RCA recorded both completions, leaving the app-side assertion failing. The seeded queue exercises recovery with existing messages. The native Queue composer remains a separate check.
 
 The paired-client integration regression checks pending approval and question projection, the question snapshot after a new socket connects, and resolution after approval, answer and dismissal. The local T3 thread-surface suite passed 12 tests and the RCA adapter flow suite passed 14. Simulator recordings, screenshots and request IDs are under `.context/rca-runtime-requests/` in Zagreb.
 
