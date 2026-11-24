@@ -768,3 +768,99 @@ fn a_triage_session_is_written_at_the_executor_from_the_services_own_log_and_the
         assert!(events.iter().any(|e| e["event"] == "server.listening"), "{logs}");
     });
 }
+
+#[test]
+#[ignore = "requires RCA_NATIVE_FIXTURE_DIR and a connected native client"]
+fn native_reconnected_approval_fixture() {
+    exec_testkit::case!(SUITE, |case| {
+        let output = std::path::PathBuf::from(std::env::var("RCA_NATIVE_FIXTURE_DIR").unwrap());
+        let chain = Chain::start();
+        chain.cli.script("claude", &Script::of(vec![
+            asking("approval_prompt", json!({"tool_name": "write_file", "input": {"path": "rca_approval_alpha.txt"}}), "rca_approval_alpha.txt"),
+            asking("approval_prompt", json!({"tool_name": "write_file", "input": {"path": "rca_approval_bravo.txt"}}), "rca_approval_bravo.txt"),
+        ]).printing_version("2.2.0"));
+        let mut probe = Phone::connect(case, &chain);
+        probe.seed(case, &chain);
+        let config = json!({"address": format!("http://{}", chain.addr), "pairingCode": chain.pair_with(&[]), "thread": "t1"});
+        std::fs::write(output.join("session.local"), config.to_string()).unwrap();
+
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(480);
+        while !output.join("start-alpha").exists() {
+            assert!(std::time::Instant::now() < deadline, "phone never opened the thread");
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        let mut direct = chain.direct();
+        success(&probe.calls.call("orchestration.dispatchCommand", message("first", "t1", "RCAFIXTURE_APPROVAL_ALPHA")));
+        let old = direct.wait_event("t1", "approval.requested")["approval"].clone();
+        std::fs::write(output.join("approval-alpha.json"), json!({"id": old}).to_string()).unwrap();
+        while !output.join("start-external-bravo").exists() {
+            assert!(std::time::Instant::now() < deadline, "phone never asked to start the external turn");
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        success(&probe.calls.call("orchestration.dispatchCommand", cmd("runtime-request.respond", "t1", json!({"requestId": old, "decision": "decline"}))));
+        wait_finished(&mut direct, "t1", 1);
+        let external = direct.call("agent.threads", "turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "claudeAgent", "prompt": "RCAFIXTURE_APPROVAL_BRAVO"})).unwrap();
+        let fresh = loop {
+            if let Some(event) = direct.events("t1", "approval.requested").into_iter().find(|event| event["turn"] == external["turn"]) {
+                break event["approval"].clone();
+            }
+            assert!(std::time::Instant::now() < deadline, "external RCA approval did not start");
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        };
+        std::fs::write(output.join("approval-bravo.json"), json!({"id": fresh, "turn": external["turn"]}).to_string()).unwrap();
+        while direct.events("t1", "turn.finished").len() < 2 {
+            assert!(std::time::Instant::now() < deadline, "phone never answered the external approval");
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        let answered = direct.events("t1", "approval.answered");
+        assert_eq!(answered.len(), 2);
+        assert_eq!(answered[0]["approval"], old);
+        assert_eq!(answered[1]["approval"], fresh);
+        assert_eq!(direct.events("t1", "turn.started").len(), 2);
+        assert_eq!(std::fs::read_to_string(chain.repo.path().join("rca_approval_bravo.txt")).unwrap(), "after the answer");
+        std::fs::write(output.join("approval-receipt.json"), json!({"alpha": old, "bravo": fresh, "answers": answered.iter().map(|event| json!({"approval": event["approval"], "decision": event["decision"]})).collect::<Vec<_>>(), "turns": 2}).to_string()).unwrap();
+        while std::time::Instant::now() < deadline && !output.join("close-fixture").exists() {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+    });
+}
+
+#[test]
+fn codex_approval_reconnect_probe() {
+    exec_testkit::case!(SUITE, |case| {
+        let chain = Chain::start();
+        chain.cli.script("codex", &Script::default().printing_version("0.0.0-flow").playing_app_server(vec![
+            exec_testkit::app_server::transcript("tool_call_read_only_on_request")
+        ]));
+        let mut phone = Phone::connect(case, &chain);
+        phone.seed(case, &chain);
+        let command = json!({"type": "thread.create", "commandId": "codex-thread", "threadId": "codex-probe", "projectId": "p1", "title": "Codex approval probe", "modelSelection": {"instanceId": "codex", "model": "gpt-6.1-sol"}, "createdBy": "user", "creationSource": "mobile", "runtimeMode": "approval-required", "interactionMode": "default", "branch": null, "worktreePath": null});
+        success(&phone.calls.call("orchestration.dispatchCommand", command));
+        drop(phone);
+        let mut rca = chain.direct();
+        let thread = "codex-probe";
+        rca.call("agent.threads", "turn.start", json!({"thread": thread, "workspace": "w1", "driver": "codex", "prompt": "write the fixture file", "runtime_mode": "auto-accept-edits"})).unwrap();
+        let id = rca.wait_event(thread, "approval.requested")["approval"].clone();
+        let mut phone = Phone::connect(case, &chain);
+        phone.stream(case, &chain, &["rpc:orchestration.subscribeThread"], "orchestration.subscribeThread", json!({"threadId": thread}));
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        loop {
+            let response = phone.calls.call("orchestration.getThreadProjection", json!({"threadId": thread}));
+            let projection = success(&response);
+            if projection["runtimeRequests"][0]["id"] == id {
+                assert_eq!(projection["runtimeRequests"][0]["status"], "pending");
+                assert_eq!(projection["runtimeRequests"][0]["kind"], "command");
+                break;
+            }
+            assert!(std::time::Instant::now() < deadline, "Codex approval did not project");
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+        let request = cmd("runtime-request.respond", thread, json!({"requestId": id, "decision": "accept"}));
+        let completed = phone.command_settled(case, &chain, request, thread, completed(1));
+        assert_eq!(completed["runtimeRequests"][0]["status"], "resolved");
+        assert_eq!(rca.events(thread, "approval.answered").len(), 1);
+        assert_eq!(rca.events(thread, "turn.started").len(), 1);
+        let journal = rca.events(thread, "message.delta");
+        assert!(journal.iter().any(|row| row["role"] == "assistant"));
+    });
+}

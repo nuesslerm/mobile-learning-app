@@ -126,6 +126,10 @@ export default function RootLayout() {
                 name="(app)"
                 options={{ headerShown: false, title: 'Blind 75' }}
               />
+              <Stack.Screen
+                name="settings"
+                options={{ headerShown: false, presentation: 'modal' }}
+              />
               {/* The leetcode group is a Stack of its own and its screens draw their
                   headers there; left on, this Stack paints a second bar captioned
                   with the group's name above them. */}

@@ -122,6 +122,7 @@ patchedDependencies:
   react-native-svg@15.16.0: patches/react-native-svg@15.16.0.patch
   '@gluestack-ui/core@5.0.15': patches/@gluestack-ui__core@5.0.15.patch
   '@gorhom/bottom-sheet@5.2.14': patches/@gorhom__bottom-sheet@5.2.14.patch
+  react-native-drawer-layout@4.2.13: patches/react-native-drawer-layout@4.2.13.patch
 
 # ---------------------------------------------------------------------------
 # Hoisting. THIS is where pnpm 11 reads it -- `.npmrc` is not consulted for

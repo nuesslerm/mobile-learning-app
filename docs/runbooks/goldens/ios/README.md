@@ -61,6 +61,13 @@ includes `"comparison": "exact"`. Omit all `--ignore` rectangles to compare
 the full screen. With different viewport sizes, exact mode describes the
 normalized images.
 
+To allow up to 5% of the unmasked pixels to differ, add
+`--exact --max-diff-ratio 0.05`. Overlapping masks exclude each pixel once.
+The result reports `compared_pixels` and `agreement` and saves a diff even
+when the reference check passes. Native golden checks keep their existing
+tolerance. To score a frame extracted from a simulator recording, replace
+`--device` and `--expect` with `--capture path/to/frame.png`.
+
 ## Replay the editor selection round trip
 
 Frames 23–25 of the LeetCode recording show the menu at the caret, Console

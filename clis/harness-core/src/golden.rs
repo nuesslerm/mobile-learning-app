@@ -47,6 +47,7 @@ pub struct Outcome {
     pub differing: usize,
     pub ratio: f64,
     exact: bool,
+    compared: Option<usize>,
 }
 
 impl Outcome {
@@ -63,6 +64,10 @@ impl Outcome {
         });
         if self.exact {
             result["comparison"] = json!("exact");
+        }
+        if let Some(compared) = self.compared {
+            result["compared_pixels"] = json!(compared);
+            result["agreement"] = json!(1.0 - self.ratio);
         }
         result
     }
@@ -125,6 +130,11 @@ fn pad(img: &Image, w: usize, h: usize) -> Vec<u8> {
 
 /// Differing pixels on the canvas both images fit in (anything outside the smaller one differs), ignored rectangles excluded.
 pub fn compare(actual: &Image, expected: &Image, tol: &Tolerance) -> (Vec<bool>, usize, usize) {
+    let (mask, w, h, _) = compare_counted(actual, expected, tol);
+    (mask, w, h)
+}
+
+fn compare_counted(actual: &Image, expected: &Image, tol: &Tolerance) -> (Vec<bool>, usize, usize, usize) {
     let (w, h) = (actual.width.max(expected.width), actual.height.max(expected.height));
     let (a, e) = (pad(actual, w, h), pad(expected, w, h));
     let mut mask = if tol.exact {
@@ -132,6 +142,7 @@ pub fn compare(actual: &Image, expected: &Image, tol: &Tolerance) -> (Vec<bool>,
     } else {
         diff_mask(&a, &e, w, h, tol.threshold)
     };
+    let mut compared = w * h;
     for (i, m) in mask.iter_mut().enumerate() {
         let (x, y) = (i % w, i / w);
         if x >= actual.width.min(expected.width) || y >= actual.height.min(expected.height) {
@@ -139,9 +150,10 @@ pub fn compare(actual: &Image, expected: &Image, tol: &Tolerance) -> (Vec<bool>,
         }
         if tol.ignore.iter().any(|&(l, t, r, b)| x >= l && x < r && y >= t && y < b) {
             *m = false;
+            compared -= 1;
         }
     }
-    (mask, w, h)
+    (mask, w, h, compared)
 }
 
 /// Red where pixels differ, a faded copy of the golden elsewhere.
@@ -193,10 +205,18 @@ pub fn save(name: &str, img: &Image, out_stem: &Path, meta: Value) -> Result<Out
     meta["name"] = json!(name);
     meta["image"] = json!({ "width": img.width, "height": img.height });
     write(&sibling(out_stem, ".json"), format!("{}\n", serde_json::to_string_pretty(&meta).unwrap_or_default()).as_bytes())?;
-    Ok(Outcome { name: name.into(), verdict: "saved", message: format!("screenshot '{name}' saved to {}", shot.display()), golden: PathBuf::new(), actual: shot, expected: None, diff: None, differing: 0, ratio: 0.0, exact: false })
+    Ok(Outcome { name: name.into(), verdict: "saved", message: format!("screenshot '{name}' saved to {}", shot.display()), golden: PathBuf::new(), actual: shot, expected: None, diff: None, differing: 0, ratio: 0.0, exact: false, compared: None })
 }
 
 pub fn check(name: &str, img: &Image, golden: &Path, out_stem: &Path, update: bool, tol: &Tolerance, meta: Value) -> Result<Outcome, String> {
+    check_image(name, img, golden, out_stem, update, tol, meta, false)
+}
+
+pub fn check_reference(name: &str, img: &Image, golden: &Path, out_stem: &Path, tol: &Tolerance, meta: Value) -> Result<Outcome, String> {
+    check_image(name, img, golden, out_stem, false, tol, meta, true)
+}
+
+fn check_image(name: &str, img: &Image, golden: &Path, out_stem: &Path, update: bool, tol: &Tolerance, meta: Value, reference: bool) -> Result<Outcome, String> {
     let bytes = encode(img)?;
     let actual = sibling(out_stem, ".actual.png");
     write(&actual, &bytes)?;
@@ -204,7 +224,7 @@ pub fn check(name: &str, img: &Image, golden: &Path, out_stem: &Path, update: bo
     meta["name"] = json!(name);
     meta["image"] = json!({ "width": img.width, "height": img.height });
     meta["tolerance"] = json!({ "threshold": tol.threshold, "max_ratio": tol.max_ratio, "ignore": tol.ignore });
-    let mut o = Outcome { name: name.into(), verdict: "match", message: String::new(), golden: golden.into(), actual, expected: None, diff: None, differing: 0, ratio: 0.0, exact: tol.exact };
+    let mut o = Outcome { name: name.into(), verdict: "match", message: String::new(), golden: golden.into(), actual, expected: None, diff: None, differing: 0, ratio: 0.0, exact: tol.exact, compared: None };
     if update {
         write(golden, &bytes)?;
         write(&golden.with_extension("json"), format!("{}\n", serde_json::to_string_pretty(&meta).unwrap_or_default()).as_bytes())?;
@@ -215,27 +235,35 @@ pub fn check(name: &str, img: &Image, golden: &Path, out_stem: &Path, update: bo
         o.message = format!("golden '{name}': no golden at {} (run with --update-goldens to record it); actual: {}", golden.display(), o.actual.display());
     } else {
         let want = std::fs::read(golden).map_err(|e| format!("cannot read {}: {e}", golden.display())).and_then(|b| decode(&b).map_err(|e| format!("golden {}: {e}", golden.display())))?;
-        let (mask, w, h) = compare(img, &want, tol);
+        let (mask, w, h, compared) = compare_counted(img, &want, tol);
+        let checked = if reference {
+            if compared == 0 {
+                return Err("reference masks exclude every pixel".into());
+            }
+            o.compared = Some(compared);
+            compared
+        } else {
+            (w * h).max(1)
+        };
         o.differing = mask.iter().filter(|m| **m).count();
-        o.ratio = o.differing as f64 / (w * h).max(1) as f64;
-        if o.ratio > tol.max_ratio {
+        o.ratio = o.differing as f64 / checked as f64;
+        if reference || o.ratio > tol.max_ratio {
             let (expected, diff) = (sibling(out_stem, ".expected.png"), sibling(out_stem, ".diff.png"));
             write(&expected, &encode(&want)?)?;
             write(&diff, &encode(&diff_image(&want, &mask, w, h))?)?;
-            o.verdict = "mismatch";
-            let size = if (img.width, img.height) != (want.width, want.height) { format!(" (size {}x{}, golden {}x{})", img.width, img.height, want.width, want.height) } else { String::new() };
-            o.message = format!(
-                "golden '{name}' differs: {} pixels ({:.3}%) over the {:.3}% tolerance{size}; expected {}, actual {}, diff {}",
-                o.differing,
-                o.ratio * 100.0,
-                tol.max_ratio * 100.0,
-                expected.display(),
-                o.actual.display(),
-                diff.display()
-            );
+            if o.ratio > tol.max_ratio {
+                o.verdict = "mismatch";
+                let size = if (img.width, img.height) != (want.width, want.height) { format!(" (size {}x{}, golden {}x{})", img.width, img.height, want.width, want.height) } else { String::new() };
+                o.message = format!(
+                    "golden '{name}' differs: {} pixels ({:.3}%) over the {:.3}% tolerance{size}; expected {}, actual {}, diff {}",
+                    o.differing, o.ratio * 100.0, tol.max_ratio * 100.0,
+                    expected.display(), o.actual.display(), diff.display()
+                );
+            }
             o.expected = Some(expected);
             o.diff = Some(diff);
-        } else {
+        }
+        if o.ok() {
             o.message = format!("golden '{name}' matches ({} pixels differ)", o.differing);
         }
     }

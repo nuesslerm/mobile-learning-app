@@ -100,4 +100,30 @@ fn ios_reference_comparison_keeps_the_source_and_writes_a_diff() {
     assert_eq!(identical.exit_code, 0, "{}{}", identical.stdout, identical.stderr);
     let match_result: Value = serde_json::from_str(identical.stdout.trim()).unwrap();
     assert_eq!(match_result["differing_pixels"], 0);
+
+    // Given overlapping masks and a 5% budget, when one of 16 scored pixels differs, then it fails at 6.25%.
+    let mut rgba = [0, 0, 0, 255].repeat(32);
+    rgba[16 * 4] = 1;
+    let frame = s.file("recorded.png", wf_harness::golden::encode(&wf_harness::golden::Image {
+        width: 4, height: 8, rgba,
+    }).unwrap());
+    let compare = ["test", "ios-visual", "editor", "--capture", &frame, "--reference", &captured, "--exact",
+        "--ignore", "0,0,4,4", "--ignore", "0,0,2,2", "--out", "run"];
+    let rejected = s.run(&[compare.as_slice(), &["--max-diff-ratio", "0.05"]].concat(), &[]);
+    let rejected_result: Value = serde_json::from_str(rejected.stdout.trim()).unwrap();
+    assert_eq!(rejected.exit_code, 1, "{rejected_result}");
+    assert_eq!(rejected_result["compared_pixels"], 16);
+    assert_eq!(rejected_result["agreement"], 0.9375);
+
+    // When the budget includes the difference, then the run passes and retains the diff.
+    let accepted = s.run(&[compare.as_slice(), &["--max-diff-ratio", "0.0625"]].concat(), &[]);
+    let accepted_result: Value = serde_json::from_str(accepted.stdout.trim()).unwrap();
+    assert_eq!(accepted.exit_code, 0, "{accepted_result}");
+    assert!(s.repo.join(accepted_result["diff"].as_str().unwrap()).is_file());
+
+    // When masks cover the entire frame, then there is no comparable evidence.
+    let masked = s.run(&[compare.as_slice(), &["--ignore", "0,4,4,8"]].concat(), &[]);
+    assert_eq!(masked.exit_code, 2, "{}", masked.stdout);
+    assert!(masked.stdout.contains("masks exclude every pixel"));
+
 }

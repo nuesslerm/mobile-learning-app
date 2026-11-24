@@ -17,6 +17,7 @@ import {
   User,
 } from '@lib/tamagui-design-system/icons';
 import { ScrollView } from 'react-native';
+import { router } from 'expo-router';
 
 import { SettingsRow } from './SettingsRow';
 import { backTo } from '@lib/tamagui-design-system/lib/backTo';
@@ -37,7 +38,8 @@ export function SettingsIndexScreen() {
         title="Settings"
         onBack={() => {
           Logger.info('settings.index.back', { to: '/' });
-          backTo('/');
+          if (router.canGoBack()) router.back();
+          else backTo('/');
         }}
       />
       <ScrollView

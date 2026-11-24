@@ -49,7 +49,7 @@ export function LibraryHomeScreen() {
     if (nativeEvent.layout.width > 0) setWidth(nativeEvent.layout.width);
   }} style={{ flex: 1, backgroundColor: colors.background, paddingTop: top }}>
     <View style={styles.header}>
-      <CompactIconButton label="Open app menu" icon={Menu} onPress={() => navigation.getParent()?.dispatch({ type: 'OPEN_DRAWER' })} />
+      <CompactIconButton label="Open app menu" icon={Menu} testID="LibraryHomeMenuButton" onPress={() => navigation.dispatch({ type: 'OPEN_DRAWER' })} />
       <Text accessibilityRole="header" style={[styles.title, { color: colors.foreground }]}>Library</Text>
     </View>
     <ScrollView ref={scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottom + 150 }}>

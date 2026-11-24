@@ -9,8 +9,7 @@ pub fn run(args: &[String]) -> Option<i32> {
     let args = parse_spec(
         args,
         &Spec {
-            values: &["device", "expect", "out", "ignore", "reference"],
-            required: &["device", "expect"],
+            values: &["device", "expect", "out", "ignore", "reference", "max-diff-ratio", "capture"],
             flags: &["update-goldens", "exact"],
             positional: Positional::Exactly(1),
             ..Spec::NONE
@@ -40,15 +39,26 @@ fn capture(args: &Parsed) -> Result<Outcome, String> {
     if args.flag("exact") && reference.is_none() {
         return Err("--exact requires --reference".into());
     }
-    let device = args.val("device").expect("required by parse_spec");
-    let expected_id = args.val("expect").expect("required by parse_spec");
-    let tree: Vec<Value> = serde_json::from_slice(&idb(device, &["ui", "describe-all", "--json"])?)
-        .map_err(|err| format!("cannot read idb accessibility tree: {err}"))?;
-    if !tree.iter().any(|element| element["AXUniqueId"].as_str() == Some(expected_id)) {
-        return Err(format!("'{expected_id}' is missing from the simulator's accessibility tree"));
+    let ratio = args.val("max-diff-ratio");
+    if (ratio.is_some() || args.val("capture").is_some()) && reference.is_none() {
+        return Err("--max-diff-ratio and --capture require --reference".into());
     }
-
-    let bytes = idb(device, &["screenshot", "-"])?;
+    let max_ratio = ratio.map(parse_ratio).transpose()?;
+    let (bytes, meta) = if let Some(path) = args.val("capture") {
+        if args.val("device").is_some() || args.val("expect").is_some() {
+            return Err("--capture replaces --device and --expect".into());
+        }
+        (std::fs::read(path).map_err(|err| format!("cannot read captured frame {path}: {err}"))?, json!({ "platform": "ios", "capturedFrame": path }))
+    } else {
+        let device = args.val("device").ok_or("give --device and --expect to capture the simulator")?;
+        let expected_id = args.val("expect").ok_or("give --device and --expect to capture the simulator")?;
+        let tree: Vec<Value> = serde_json::from_slice(&idb(device, &["ui", "describe-all", "--json"])?)
+            .map_err(|err| format!("cannot read idb accessibility tree: {err}"))?;
+        if !tree.iter().any(|element| element["AXUniqueId"].as_str() == Some(expected_id)) {
+            return Err(format!("'{expected_id}' is missing from the simulator's accessibility tree"));
+        }
+        (idb(device, &["screenshot", "-"])?, json!({ "platform": "ios", "expectedTestID": expected_id }))
+    };
     let img = golden::decode(&bytes)?;
     if img.width >= img.height {
         return Err("rotate the simulator to portrait before capturing".into());
@@ -57,10 +67,9 @@ fn capture(args: &Parsed) -> Result<Outcome, String> {
     let baseline = root.join("docs/runbooks/goldens/ios").join(format!("{name}.png"));
     let stamp = SystemTime::now().duration_since(UNIX_EPOCH).map_err(|err| err.to_string())?.as_millis();
     let out = args.val("out").map(PathBuf::from).unwrap_or_else(|| root.join(".agents/tmp/runs").join(format!("ios-visual-{stamp}-{}", std::process::id())));
-    let meta = json!({ "platform": "ios", "expectedTestID": expected_id });
     if let Some(reference) = reference {
         let run = out.join(format!("{name}-{stamp}-{}", std::process::id()));
-        return compare_reference(args, name, reference, &run, &bytes, &img, meta);
+        return compare_reference(args, name, reference, &run, &bytes, &img, meta, max_ratio);
     }
     let mut ignore = vec![(0, 0, img.width, img.height * 7 / 100)];
     ignore.extend(ignore_rectangles(args, &img)?);
@@ -71,7 +80,12 @@ fn capture(args: &Parsed) -> Result<Outcome, String> {
     golden::check(name, &img, &baseline, &out.join(name), args.flag("update-goldens"), &tol, meta)
 }
 
-fn compare_reference(args: &Parsed, name: &str, reference: &Path, run: &Path, bytes: &[u8], native: &golden::Image, mut meta: Value) -> Result<Outcome, String> {
+fn parse_ratio(value: &str) -> Result<f64, String> {
+    value.parse().ok().filter(|ratio| (0.0..=1.0).contains(ratio))
+        .ok_or_else(|| "--max-diff-ratio expects a value from 0 to 1".into())
+}
+
+fn compare_reference(args: &Parsed, name: &str, reference: &Path, run: &Path, bytes: &[u8], native: &golden::Image, mut meta: Value, max_ratio: Option<f64>) -> Result<Outcome, String> {
     let reference_image = golden::decode(&std::fs::read(reference).map_err(|e| format!("cannot read {}: {e}", reference.display()))?)?;
     let aspect_ratio = reference_image.width as f64 * native.height as f64 / (reference_image.height as f64 * native.width as f64);
     if !(0.99..=1.01).contains(&aspect_ratio) {
@@ -82,9 +96,9 @@ fn compare_reference(args: &Parsed, name: &str, reference: &Path, run: &Path, by
     }
     let ignore = ignore_rectangles(args, &reference_image)?;
     let tol = if args.flag("exact") {
-        Tolerance { exact: true, threshold: 0.0, max_ratio: 0.0, ignore }
+        Tolerance { exact: true, threshold: 0.0, max_ratio: max_ratio.unwrap_or(0.0), ignore }
     } else {
-        Tolerance { ignore, ..Tolerance::default() }
+        Tolerance { ignore, max_ratio: max_ratio.unwrap_or(golden::MAX_RATIO), ..Tolerance::default() }
     };
     if let Some(parent) = run.parent() {
         std::fs::create_dir_all(parent).map_err(|e| format!("cannot create {}: {e}", parent.display()))?;
@@ -100,7 +114,7 @@ fn compare_reference(args: &Parsed, name: &str, reference: &Path, run: &Path, by
     meta["reference"] = json!(reference);
     meta["nativeCapture"] = json!({ "path": raw, "width": native.width, "height": native.height });
     meta["comparisonColorSpace"] = json!("sRGB");
-    golden::check(name, &actual, &target, &run.join(name), false, &tol, meta)
+    golden::check_reference(name, &actual, &target, &run.join(name), &tol, meta)
 }
 
 fn normalize(source: &Path, out: &Path, size: &golden::Image) -> Result<(), String> {

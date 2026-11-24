@@ -10,6 +10,8 @@ Actions:
                          capture the selected iOS simulator with idb and compare to docs/runbooks/goldens/ios/.
                          Requires the testID on screen. Ignores the status bar and any --ignore left,top,right,bottom
                          rectangles. Writes actual and, on a mismatch, expected and diff PNGs. Use --update-goldens to record an intentional baseline.
+                         With --reference <png>, always writes a diff and scores unmasked pixels. Use --exact and --max-diff-ratio 0.05
+                         for 95% exact agreement. --capture <png> replaces --device and --expect for a recorded frame.
   run --stage <stage> [--plan <file>] [--parallel <n>] [--shard <i>/<n>] [--probe] [--fresh]
                          run one stage of a plan (default: plan HEAD~1..HEAD) through the workspace's Nx cache: a task whose
                          inputs hash the same as an earlier pass is replayed, the rest run. A package stage runs each kind's

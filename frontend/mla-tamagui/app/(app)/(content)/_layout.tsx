@@ -1,7 +1,8 @@
+import { useResolvedScheme } from '@/app-shell/NativeChromeBridge';
 import { useScreenHeaderOptions } from '@lib/tamagui-design-system';
 import { router, Stack } from 'expo-router';
 import { useDrawerProgress } from 'expo-router/drawer';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 /**
@@ -12,12 +13,23 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
  */
 export default function ContentLayout() {
   const drawerProgress = useDrawerProgress();
+  const scheme = useResolvedScheme();
+  const ios = Platform.OS === 'ios';
+  const dark = scheme === 'dark';
   const pageStyle = useAnimatedStyle(() => ({
-    borderRadius: 28 * drawerProgress.value,
-    transform: [{ scale: 1 - 0.06 * drawerProgress.value }],
+    borderTopStartRadius: (ios ? 66 : 42) * drawerProgress.value,
+    borderBottomStartRadius: (ios ? 66 : 42) * drawerProgress.value,
+  }));
+  const shadowStyle = useAnimatedStyle(() => ({
+    shadowOpacity: 0.18 * drawerProgress.value,
   }));
   const shadeStyle = useAnimatedStyle(() => ({
-    opacity: 0.24 * drawerProgress.value,
+    opacity: ios && dark
+      ? 0.72 * Math.min(drawerProgress.value * 2, 1)
+      : 0.24 * drawerProgress.value,
+  }));
+  const edgeStyle = useAnimatedStyle(() => ({
+    opacity: 0.39 * drawerProgress.value,
   }));
   const serviceReportHeader = useScreenHeaderOptions({
     glass: true,
@@ -26,12 +38,17 @@ export default function ContentLayout() {
     onBack: () => router.back(),
   });
   return (
-    <Animated.View style={[styles.page, pageStyle]}>
-      <ContentStack serviceReportHeader={serviceReportHeader} />
-      <Animated.View
-        pointerEvents="none"
-        style={[StyleSheet.absoluteFill, styles.shade, shadeStyle]}
-      />
+    <Animated.View style={[styles.frame, ios && shadowStyle]}>
+      <Animated.View style={[styles.page, pageStyle]}>
+        <ContentStack serviceReportHeader={serviceReportHeader} />
+        <Animated.View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, ios && dark ? styles.darkShade : styles.shade, shadeStyle]}
+        />
+      </Animated.View>
+      {ios && dark && (
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.edge, pageStyle, edgeStyle]} />
+      )}
     </Animated.View>
   );
 }
@@ -49,32 +66,6 @@ function ContentStack({
       <Stack.Screen name="coding-agent" options={{ headerShown: false }} />
       {/* The Tamil screens carry their own headers; the tamil/ layout mounts the feature's container and owns the nested Stack. */}
       <Stack.Screen name="tamil" options={{ headerShown: false }} />
-      {/* settings and service-report are files in THIS group, so their
-          screens register here. Registered on the root Stack instead, expo-router
-          reports `No route named "settings" exists in nested children` and the
-          route is unreachable -- while typecheck and a grep for the name both
-          still pass. */}
-      <Stack.Screen
-        name="settings/index"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="settings/profile"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="settings/appearance"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="settings/notifications"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="settings/storage"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen name="settings/about" options={{ headerShown: false }} />
       <Stack.Screen name="dashboards" options={{ headerShown: false }} />
       <Stack.Screen
         name="service-report"
@@ -85,6 +76,9 @@ function ContentStack({
 }
 
 const styles = StyleSheet.create({
+  frame: { flex: 1, shadowColor: '#000', shadowRadius: 4, shadowOffset: { width: -2, height: 0 } },
   page: { flex: 1, overflow: 'hidden', borderCurve: 'continuous' },
   shade: { backgroundColor: '#000' },
+  darkShade: { backgroundColor: '#1d1d1d' },
+  edge: { borderColor: '#646464', borderWidth: StyleSheet.hairlineWidth, borderCurve: 'continuous' },
 });
