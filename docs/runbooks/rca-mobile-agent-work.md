@@ -26,6 +26,8 @@ When testing Codex, compare the model offered in the app with the connected CLI'
 
 ## Run one row
 
+Explicitly launch the selected app by bundle ID before recording or interacting with it. Check and record the foreground bundle ID before the first action and after the last action. Use `com.t3tools.t3code` for T3 Code and `com.stably.orca.mobile` for Orca. The harness should stop the row on a mismatch. Record paired adapter probes separately because both apps can display sessions from the same RCA service.
+
 1. Fetch `origin/dev` and record its SHA. In the app on the simulator, select the project, create a fresh workspace from that `dev` revision and select the row’s provider. Verify the new branch and worktree in the app or by inspecting the checkout locally.
 2. Send the prompt below through the app. If the provider requests approval, read the proposed command in the app and allow it if it stays within this row. Check that the selected provider replies, that output streams into the app, and that the reported diff matches the files in the fresh workspace.
 3. Independently run the provided Python tests and check that the diff against the starting SHA only touches the assigned directory. Verify the agent-created PR targets `dev` and describes the actual changes and commands run.
