@@ -90,11 +90,28 @@ pub(crate) fn page(session: &str, folded: &Folded, direction: &str, cursor_seq: 
         "after" => newest.or(cursor_seq).unwrap_or(folded.last_seq),
         _ => oldest.unwrap_or(0),
     };
+    let submissions: Vec<Value> = folded
+        .handoffs
+        .iter()
+        .filter(|handoff| {
+            let in_window = oldest
+                .zip(newest)
+                .is_some_and(|(first, last)| (first..=last).contains(&handoff.sequence));
+            let turn_opener_in_window = items.iter().any(|item| {
+                item.sequence > handoff.sequence
+                    && item.body["kind"] == "turn"
+                    && item.turn == handoff.turn
+            });
+            let at_live_edge = direction == "tail" && handoff.sequence > newest.unwrap_or(0);
+            in_window || turn_opener_in_window || at_live_edge
+        })
+        .map(|handoff| handoff.render(session))
+        .collect();
     let epoch = epoch_of(folded);
     let mut page = json!({
         "sessionId": session, "epoch": epoch, "fence": FENCE, "direction": direction,
         "items": items.iter().map(|i| i.render()).collect::<Vec<_>>(),
-        "removedItemIds": [], "submissions": [],
+        "removedItemIds": [], "submissions": submissions,
         "window": {"oldest": oldest.map(|s| cursor_at(&epoch, s)), "newest": newest.map(|s| cursor_at(&epoch, s)), "nextCursor": cursor_at(&epoch, next)},
         "liveCursor": cursor_at(&epoch, folded.last_seq), "hasOlder": has_older, "hasNewer": has_newer,
     });

@@ -30,7 +30,8 @@ pub(crate) fn base(connection: &str, session: &str) -> String {
 
 fn batch(session: &str, folded: &crate::fold::Folded, after: u64) -> Value {
     let items: Vec<Value> = folded.items.iter().filter(|i| i.revision > after).map(|i| i.render()).collect();
-    let mut frame = json!({"type": "batch", "sessionId": session, "batch": {"cursor": cursor_at(&epoch_of(folded), folded.last_seq), "items": items, "removedItemIds": [], "submissions": []}, "fence": FENCE, "hostNow": now_ms()});
+    let submissions: Vec<Value> = folded.handoffs.iter().filter(|row| row.sequence > after).map(|row| row.render(session)).collect();
+    let mut frame = json!({"type": "batch", "sessionId": session, "batch": {"cursor": cursor_at(&epoch_of(folded), folded.last_seq), "items": items, "removedItemIds": [], "submissions": submissions}, "fence": FENCE, "hostNow": now_ms()});
     if let (Some(f), Some(w)) = (frame.as_object_mut(), current_work(folded).as_object()) {
         f.extend(w.clone());
     }

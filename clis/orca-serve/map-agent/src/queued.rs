@@ -10,6 +10,9 @@ use orca_core::AgentApi;
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
+pub(crate) const MESSAGES: &str = "agent-session.queued-messages.v2";
+pub(crate) const REORDER: &str = "agent-session.queued-message-reorder.v1";
+
 /// How long an edit lease holds a card for its editor unless renewed.
 const LEASE_MS: u64 = 30_000;
 
@@ -34,6 +37,17 @@ pub(crate) fn body_of(prompt: &str) -> Value {
 pub(crate) fn fingerprint(session: &str, body: &Value) -> String {
     let payload = json!({"method": "agentSession.send", "sessionId": session, "fields": {"body": body}});
     Sha256::digest(canonical(&payload).as_bytes()).iter().map(|b| format!("{b:02x}")).collect()
+}
+
+pub(crate) fn handoff(session: &str, item: &str, prompt: &str) -> Value {
+    let id = format!(
+        "queue-send-{:x}",
+        Sha256::digest(json!([session, item]).to_string().as_bytes())
+    );
+    let mut value = submission(&id, &fingerprint(session, &body_of(prompt)));
+    value["submittedAt"] = 0.into();
+    value["queuedMessageId"] = item.into();
+    value
 }
 
 struct Queue {
@@ -114,6 +128,7 @@ pub(crate) fn send(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failur
         return Ok(done);
     }
     let message = id(params)?;
+    let prompt = read(agent, &env.session)?.items.into_iter().find(|(item, _)| item == message).map(|(_, prompt)| prompt);
     let running = crate::journal::view(agent, &env.session)?["status"] == "running";
     let sent = if running { agent.request(TURN_STEER.name(), json!({"thread": env.session, "item": message})) } else { agent.request(QUEUE_RESUME.name(), json!({"thread": env.session, "item": message})) };
     match sent {
@@ -127,7 +142,8 @@ pub(crate) fn send(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failur
         }
         Err(e) => return Err(crate::agent::refusal(e)),
     }
-    let answer = accepted(agent, &env.session, json!({"clientMessageId": env.op, "submission": submission(&env.op, &env.fingerprint)}))?;
+    let submission = handoff(&env.session, message, prompt.as_deref().unwrap_or_default());
+    let answer = accepted(agent, &env.session, json!({"clientMessageId": submission["clientMessageId"], "submission": submission}))?;
     finish(agent, &env, answer)
 }
 

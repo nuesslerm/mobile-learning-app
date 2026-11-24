@@ -323,6 +323,45 @@ fn queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_tu
         assert_eq!(resumed["result"]["ok"], true, "{resumed}");
         // Then the live CLI was sent the prompts in the order the phone set: the first job, the one sent now, then the queue as moved, edited and pruned
         assert_eq!(sent_to_cli(&chain, &["first-job", "alpha-one", "beta-edited", "beta-two", "gamma-three", "delta-four"]), ["first-job", "delta-four", "gamma-three", "beta-edited"], "{}", chain.evidence());
+
+        // And after reconnect the journal links each dispatched card to a distinct submission in dispatch order.
+        rca.wait_events(s, "turn.finished", 4);
+        let mut reopened = Phone::connect(case, &chain);
+        let history = tail(&mut reopened, case, &chain, s);
+        let handoffs = history["submissions"].as_array().unwrap();
+        let ids = [id("delta-four"), id("gamma-three"), id("beta-two")];
+        assert_eq!(
+            handoffs
+                .iter()
+                .map(|row| row["queuedMessageId"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            ids.iter().map(String::as_str).collect::<Vec<_>>()
+        );
+        assert!(handoffs.iter().all(|row| row["clientMessageId"].is_string()
+            && row["clientMessageId"] != row["queuedMessageId"]));
+        assert_eq!(
+            now["result"]["value"]["submission"]["clientMessageId"],
+            handoffs[0]["clientMessageId"]
+        );
+        assert_eq!(
+            handoffs[2]["payloadFingerprint"],
+            orca_map_agent::body_fingerprint(s, "beta-edited")
+        );
+        assert_eq!(history["queuedMessages"], json!([]));
+
+        // And a subscription resumed from before dispatch contains the same handoffs.
+        let (_, replay) = reopened.subscribe(
+            case,
+            &chain,
+            &[],
+            "agentSession.subscribe",
+            json!({"sessionId": s, "cursor": page["liveCursor"]}),
+        );
+        assert_eq!(replay["result"]["batch"]["submissions"], json!(handoffs));
+        let status = reopened.call(case, &chain, &[], "status.get", json!({}));
+        let features = status["result"]["capabilities"].as_array().unwrap();
+        assert!(features.contains(&json!("agent-session.queued-messages.v2")));
+        assert!(features.contains(&json!("agent-session.queued-message-reorder.v1")));
     });
 }
 
