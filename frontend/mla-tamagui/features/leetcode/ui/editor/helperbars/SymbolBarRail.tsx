@@ -28,6 +28,7 @@ const COMPACT_CELL_WIDTH = 11;
 const COMPACT_CELL_HEIGHT = 16;
 const CANVAS_KEY = '#08070a';
 const CANVAS_LABEL = '#f4f4f5';
+const EXPANDED_CANVAS_LABEL = { fontSize: 17, fontWeight: '500', color: CANVAS_LABEL } as const;
 
 type Props = {
   editorRef: React.RefObject<EditorInputHandle | null>;
@@ -145,7 +146,7 @@ export function SymbolBarRail({
             accessibilityLabel={`Type ${char}`}
             label={char}
             {...keyProps}
-            labelStyle={canvas ? { ...styles.canvasLabel, fontWeight: '500' } : keyProps.labelStyle}
+            labelStyle={canvas ? (char === '|' ? styles.expandedPipeLabel : EXPANDED_CANVAS_LABEL) : keyProps.labelStyle}
             onPress={() => typeSymbol(expanded, index, char)}
           />
         ))}
@@ -153,9 +154,9 @@ export function SymbolBarRail({
           testID="SymbolBarCloseGroup"
           accessibilityLabel="Close symbol group"
           icon={X}
-          systemSymbol={{ name: 'xmark', weight: 'medium' }}
+          systemSymbol="xmark"
           {...keyProps}
-          iconSize={18}
+          iconSize={16}
           onPress={() => setExpandedId(null)}
         />
       </KeyboardToolbarRail>
@@ -218,5 +219,6 @@ const styles = StyleSheet.create({
   canvasGlyph: { fontFamily: 'Menlo', fontWeight: '500', lineHeight: COMPACT_CELL_HEIGHT, color: CANVAS_LABEL },
   compactLabel: { fontSize: 17, fontWeight: '600' },
   canvasLabel: { fontSize: 17, fontWeight: '600', color: CANVAS_LABEL },
+  expandedPipeLabel: { ...EXPANDED_CANVAS_LABEL, transform: [{ scaleY: 1.25 }] },
   canvasButton: { minWidth: 34, paddingHorizontal: 0, height: COMPACT_KEY_HEIGHT, borderRadius: 5, backgroundColor: CANVAS_KEY },
 });

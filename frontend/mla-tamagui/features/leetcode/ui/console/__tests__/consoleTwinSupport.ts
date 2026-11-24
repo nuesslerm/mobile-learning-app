@@ -1,4 +1,4 @@
-import { screen, userEvent } from '@lib/flow-test-harness';
+import { act, screen, userEvent } from '@lib/flow-test-harness';
 import { vi } from 'vitest';
 
 import type { LeetCodeGatewayPort, RunResponse } from '../../..';
@@ -27,7 +27,11 @@ export function resetConsoleTwin(...problemIds: string[]): void {
   for (const id of problemIds) useConsoleCasesStore.getState().reset(ProblemCatalog.getByIdOrThrow(id));
 }
 
-export const tap = (id: string) => userEvent.click(screen.getByTestId(id));
+export const tap = async (id: string) => {
+  await userEvent.click(screen.getByTestId(id));
+  // The web keyboard publishes the focus change on the next frame.
+  await act(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+};
 export const text = (id: string) => screen.getByTestId(id).textContent;
 export const exists = (id: string) => screen.queryByTestId(id) !== null;
 export const verdict = () => text('ConsoleResultVerdict');
