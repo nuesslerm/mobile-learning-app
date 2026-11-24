@@ -22,6 +22,7 @@ import {
 
 import { MenuPanel } from '../menu-panel';
 
+import { renderGlassMenuGroup } from './glass-menu-group';
 import { GlassTitle } from './glass-title';
 import type { HeaderEnv } from './header-env';
 import { HEADER_BUSY_LABEL, type ScreenHeaderSpec } from './header-spec';
@@ -55,6 +56,7 @@ const RENDERERS: HeaderRenderers = {
     </View>
   ),
   title: (props) => <GlassTitle {...props} />,
+  menuGroup: renderGlassMenuGroup,
   status: ({ icon, label, testID, menu }) => {
     const content = (
       <XStack items="center" gap="$1" testID={menu ? undefined : testID}>

@@ -84,7 +84,7 @@ export function buildScreenHeaderOptions({
   if (!nativeHeaderActive(env))
     return { header: () => renderers.classic(spec) };
 
-  const items = buildNativeHeaderItems(spec, renderers);
+  const items = buildNativeHeaderItems(spec, renderers, scheme);
   const maxWidth = titleMaxWidth(windowWidth, countHeaderControls(spec));
   const transparent = spec.transparent === true;
   return {
@@ -116,6 +116,7 @@ export function headerSignature(spec: ScreenHeaderSpec): string {
     subtitle: spec.subtitle,
     nativeTitle: spec.nativeTitle,
     nativeBackgroundColor: spec.nativeBackgroundColor,
+    nativeGlassMenuGroups: spec.nativeGlassMenuGroups,
     leadingStatus: spec.leadingStatus ? {
       id: spec.leadingStatus.testID,
       label: spec.leadingStatus.label,

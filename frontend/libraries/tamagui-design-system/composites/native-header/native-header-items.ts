@@ -6,6 +6,8 @@ import type {
 } from 'expo-router';
 import type { ReactElement } from 'react';
 
+import type { GlassMenuGroupRenderer } from './glass-menu-group';
+
 import {
   isActionNode,
   type HeaderMenuSpec,
@@ -27,6 +29,7 @@ export type NativeHeaderFactories = {
   /** The spinner on its own piece of glass; a bar item is sized by its element, so the size is passed in. */
   busy: (size: number) => ReactElement;
   status?: (status: HeaderStatusSpec) => ReactElement;
+  menuGroup?: GlassMenuGroupRenderer;
 };
 
 export type NativeHeaderItems = {
@@ -139,7 +142,8 @@ function toButton(
  */
 export function buildNativeHeaderItems(
   spec: ScreenHeaderSpec,
-  factories: NativeHeaderFactories
+  factories: NativeHeaderFactories,
+  scheme: 'light' | 'dark' = 'light'
 ): NativeHeaderItems {
   const left: NativeStackHeaderItem[] = [];
   if (spec.onBack) {
@@ -167,6 +171,13 @@ export function buildNativeHeaderItems(
   for (const group of headerGroups(spec)) {
     separate();
     const shared = group.length > 1;
+    const capsule = spec.nativeGlassMenuGroups && shared && group.every(isMenuSpec)
+      ? factories.menuGroup?.(group, scheme)
+      : undefined;
+    if (capsule) {
+      right.push({ type: 'custom', element: capsule, hidesSharedBackground: true });
+      continue;
+    }
     for (const member of group)
       right.push(
         isMenuSpec(member) ? toMenu(member, shared) : toButton(member, shared)

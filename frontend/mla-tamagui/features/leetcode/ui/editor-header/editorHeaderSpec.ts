@@ -86,6 +86,7 @@ export function editorHeaderSpec(input: EditorHeaderInput): ScreenHeaderSpec {
     busy: input.busy,
     ...(native ? {
       nativeTitle: 'hidden' as const,
+      nativeGlassMenuGroups: true,
       nativeBackgroundColor: native.backgroundColor,
       leadingStatus: {
         label: native.dirty ? 'Unsaved' : 'Saved',

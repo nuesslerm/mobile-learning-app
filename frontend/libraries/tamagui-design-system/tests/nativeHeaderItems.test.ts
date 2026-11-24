@@ -56,6 +56,18 @@ function menuSpec(
 const noop = () => undefined;
 
 describe('buildNativeHeaderItems', () => {
+  it('Given adjacent menus opt into a shared capsule, When the native renderer returns one, Then both menus have one bar item', () => {
+    const menus = [menuSpec([], { testID: 'Language' }), menuSpec([], { testID: 'Settings' })];
+    const capsule = createElement('menu-capsule');
+    const menuGroup = vi.fn(() => capsule);
+    const spec = { title: 'Two Sum', testID: 'Header', nativeGlassMenuGroups: true, groups: [menus] };
+
+    expect(buildNativeHeaderItems(spec, { busy: busyFactory, menuGroup }, 'dark').right)
+      .toEqual([{ type: 'custom', element: capsule, hidesSharedBackground: true }]);
+    expect(menuGroup).toHaveBeenCalledExactlyOnceWith(menus, 'dark');
+    expect(build(spec).right.map((item) => item.type)).toEqual(['menu', 'menu']);
+  });
+
   it('Given back, groups of settings and of info and more, and busy, When items are built, Then the bar reads left to right as one back button and the glass pieces apart', () => {
     const onBack = vi.fn();
     const info = vi.fn();
