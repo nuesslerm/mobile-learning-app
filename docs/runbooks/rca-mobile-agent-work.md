@@ -72,9 +72,29 @@ For Codex Stop, use the complete 0.172.0 release or a release whose app-server s
 
 Use the case IDs and Given/When/Then steps in [the parity case manifest](rca-mobile-parity.json). Compare with [observed results](rca-mobile-parity-results.md) before assigning a gap to the client, adapter, or provider. Run each relevant case on both apps and use the three providers wherever the case exercises provider behavior.
 
+### Queue ordering and startup
+
+Start a bounded foreground command from the composer. While its run shows Pending, enter a short draft and record the action label, whether it is enabled, and the result of invoking it. Confirm any queue addition against the parent turn ID before the worker starts. Keep the recording if the button is disabled or the server refuses the action, and check that the draft survives. After the worker starts, explicitly select Queue for two uniquely marked messages. Stop and confirm the queue is held before attempting to move the second card ahead of the first.
+
+Capture the card menu and before-and-after queue IDs. If the app exposes no native rearrangement, record the blocked native assertion. Run the paired move separately and check that the queue remains held. Resume in the app and match each journal start and reply to its original card ID. Keep the input order, moved order and execution order in the receipt.
+
+### Stale approvals
+
+On a disposable supervised Codex thread, request approval A for a harmless command with a unique stdout marker. Capture the native card. Pause only the app's local adapter with a bounded recovery timer so the native app retains A, then decline A through RCA. Wait for its turn to finish and start B on the same thread through RCA. Wait for B's distinct approval ID before tapping the still-visible A control. Resume the adapter and record the request and turn IDs plus the number of answers and stdout events before any action on B.
+
+Pass the stale-tap assertion if A has exactly one denial, B is still pending, and the stale command never runs. Check the app after resuming for removal of A and recovery of B. If the app renders B, approve the harmless B command from the new controls and verify the matching stdout. If the fixture's externally started B stays invisible, close it through RCA and record the projection gap separately.
+
+### Photos and skills across providers
+
+For each app and provider, select the same two Photos fixtures in the same order. Capture the picker, composer, sent turn, and restored previews after terminating and relaunching the app. Compare originals and readbacks byte for byte where preserved, or compare the decoded pixels and verify the stored hashes when the picker re-encodes the images. Check the original turn's provider reply and the native transcript separately, including assistant text produced after a tool call.
+
+Use a fresh thread for each provider's first skill attempt. Confirm the effective RCA driver because the model label can change while an existing thread keeps its current driver. Record actual skill expansion in the provider transcript or a successful Skill tool call and check that the app renders the undisclosed marker. Keep a cold launch timeout even if the provider later completes. Use a distinct fixture and marker for a warm-session check.
+
 For future harness integration, drive the app through accessibility labels or stable test IDs where the installed build exposes them. Pair each UI action with a read-only adapter or RCA assertion. Wait for the case's specific event, such as a pending request or a queued item ID, before the next action. Use scripted providers and release gates for ordering, disconnection, prompts, and pagination. Run a separate live-provider check for vision output, effective model, skill loading, child execution, and background output. The current `wf test run` targets Android and browser. The iOS visual check captures and compares a screen and needs an iOS driver to exercise these flows.
 
 Keep a per-run JSON result keyed by case ID, app, provider, and evidence tier (`simulator`, `adapter`, or `physical`). Record the app build, server revision, host OS, start and finish times, verdict (`pass`, `fail`, `partial`, `blocked`, or `not-run`), assertion outcomes, and evidence paths. Add thread, turn, queue and request IDs where relevant. Keep recordings and sanitized event traces beside the result and link the report from the results ledger. Exclude pairing data, authorization headers, and unrelated workspaces from the bundle.
+
+Check sanitized receipts into `.results/` with the ledger update. Include the bundle ID and SHA-256 digests of the referenced media. Keep simulator recordings and full-size screenshots in the local published bundle.
 
 Store the case receipts in `parity-results.json` with schema `rca-mobile-parity-results/1` alongside the harness `report.json`. Use `results[]` to keep separate variants, such as a seeded queue reconnect and native queue creation. Include boolean assertions and paths relative to the bundle. Simulator entries carry the foreground bundle ID. Write receipts as `.json` and copy raw line-delimited traces or fixture sources with a `.txt` suffix so the publisher includes them. Publish with `wf test publish` and verify every path in `results[].evidence` appears in `bundle.json` and exists on disk. The publisher currently uses `integration` for these bundles. The per-case tier identifies simulator, adapter or physical evidence.
 

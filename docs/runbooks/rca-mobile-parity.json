@@ -25,25 +25,25 @@
     {
       "id": "queue-lifecycle",
       "priority": 0,
-      "given": "A scripted turn is active and holds until released.",
-      "when": ["Queue A and B from the composer.", "Edit A to A2 and move it behind B.", "Stop the active turn and resume the held queue."],
-      "then": ["Both cards are visible while waiting.", "RCA sees no start while held and exactly one start each for B and A2, in that order.", "Each assistant reply contains its own marker."],
+      "given": "A scripted turn can wait independently at provider startup and after its worker starts.",
+      "when": ["Attempt a follow-up while the app shows the parent as Pending.", "Once the worker starts, queue A and B from the composer.", "Stop the active turn, edit A to A2, move it behind B and resume."],
+      "then": ["The startup follow-up is queued once. A disabled or rejected action preserves the draft and is recorded as a separate outcome.", "Both cards are visible while waiting. The native order matches the RCA queue IDs.", "RCA sees no start while held and exactly one start each for B and A2, in that order.", "Each assistant reply contains its own marker."],
       "fixture": "scripted stop-aware turn and two distinct text markers"
     },
     {
       "id": "approve-deny-question",
       "priority": 0,
       "given": "The provider fixture emits a command approval and a structured question with stable request IDs.",
-      "when": ["Approve a harmless marker command.", "Deny a second marker command.", "Reopen the app while the question is pending and select the second option."],
-      "then": ["Only the approved command produces output.", "The denial and choice reach their original request IDs exactly once.", "Resolved controls clear and a stale response cannot affect another turn."],
+      "when": ["Approve a harmless marker command.", "Deny a second marker command.", "Reopen the app while the question is pending and select the second option.", "Hold approval A visible by pausing the app adapter. Deny A through RCA, wait for a new approval B on the next turn, tap the cached A action and resume the adapter."],
+      "then": ["Only the approved command produces output.", "The denial and choice reach their original request IDs exactly once.", "The stale tap creates no second answer to A and leaves B pending. After reconnect, the app clears A and reports separately whether it shows B."],
       "fixture": "scripted provider prompts, stdout marker and approval and question receipts"
     },
     {
       "id": "photo-picker",
       "priority": 0,
       "given": "The simulator photo library contains blue-orange and green-purple PNG fixtures in a known order.",
-      "when": ["Attach both with the app's Photos control.", "Send a prompt requesting the colors in attachment order.", "Reopen the thread."],
-      "then": ["Two chips appear before send and two previews appear after reopen.", "The received attachment hashes and order match the fixtures.", "A vision-capable provider reports the four expected colors in order."],
+      "when": ["Attach both with the app's Photos control.", "Send a prompt requesting the colors in attachment order.", "Terminate the app, launch it and reopen the same thread."],
+      "then": ["Two chips appear before send and two previews appear after reopen.", "The original bytes or decoded pixels match in order, and the readback hashes match the stored attachments.", "A vision-capable provider reports the four expected colors in order. The app restores the complete original reply."],
       "fixture": "two small generated PNGs and their SHA-256 digests"
     },
     {
@@ -58,8 +58,8 @@
       "id": "skill-load",
       "priority": 1,
       "given": "A workspace skill includes a unique marker that the prompt does not disclose.",
-      "when": ["Open slash autocomplete, select the fixture skill, and send a read-only task that requires it."],
-      "then": ["The skill appears in autocomplete.", "A tool or provider receipt shows it was loaded, and the reply includes the undisclosed marker."],
+      "when": ["Open a thread for the intended provider and verify the effective RCA driver.", "Open slash autocomplete, select the fixture skill, and send a read-only task that requires it."],
+      "then": ["The skill appears in autocomplete.", "A successful skill tool call or expanded provider input proves the fixture was loaded.", "The native reply includes the undisclosed marker. Record provider completion separately if the app timed out."],
       "fixture": "test-only SKILL.md and a unique marker"
     },
     {
