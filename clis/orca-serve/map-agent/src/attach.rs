@@ -5,7 +5,7 @@
 use crate::agent::{ask, refused_code};
 use crate::ids::mint_upload;
 use crate::journal::view;
-use agent_api_attachments::{code, Kind, CHUNK_MAX, GET, MAX_BYTES, UPLOAD_PUT};
+use agent_api_attachments::{code, safe_file_name, Kind, CHUNK_MAX, GET, MAX_BYTES, STAGE_DIR, UPLOAD_PUT};
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use orca_core::wire::{Failure, RUNTIME_ERROR};
@@ -126,8 +126,20 @@ fn is_upload_id(s: &str) -> bool {
 /// The attachment id and name of a committed store path; anything else is no attachment of this host.
 pub(crate) fn parse_path(path: &str) -> Option<(String, String)> {
     let rest = path.strip_prefix(STORE_ROOT)?.strip_prefix('/')?;
+    parse_attachment_leaf(rest)
+}
+
+fn parse_attachment_leaf(rest: &str) -> Option<(String, String)> {
     let (id, name) = rest.split_once('/')?;
     (is_upload_id(id) && !name.is_empty() && !name.contains(['/', '\\']) && name != PART_FILE && name != ".." && name != ".").then(|| (id.to_string(), name.to_string()))
+}
+
+fn workspace_image_path(path: &str) -> Option<(String, String)> {
+    let (prefix, rest) = path.rsplit_once(STAGE_DIR)?;
+    if !prefix.is_empty() && !(prefix.starts_with('/') && prefix.ends_with('/')) {
+        return None;
+    }
+    parse_attachment_leaf(rest.strip_prefix('/')?)
 }
 
 fn store_path(id: &str, name: &str) -> String {
@@ -256,11 +268,13 @@ fn window(agent: &dyn AgentApi, id: &str, offset: u64, length: u64) -> Result<Op
 }
 
 /// The whole of an image attachment as the phone's preview reply, or the host's uniform refusal.
-fn image_preview(agent: &dyn AgentApi, path: &str, refusal: &str) -> Result<Value, Failure> {
-    let (id, name) = image_path(agent, path)?.ok_or_else(|| plain(refusal))?;
+fn image_preview(agent: &dyn AgentApi, (id, name): (String, String), refusal: &str) -> Result<Value, Failure> {
     let mime = orca_map_workspace::image_mime(&name).ok_or_else(|| plain(refusal))?;
     let limit = orca_map_workspace::previewable_limit() as u64;
     let (view, mut bytes) = window(agent, &id, 0, CHUNK_MAX)?.ok_or_else(|| plain(refusal))?;
+    if view["name"].as_str().is_none_or(|stored| name != stored && name != safe_file_name(stored)) {
+        return Err(plain(refusal));
+    }
     let size = view["size_bytes"].as_u64().unwrap_or(bytes.len() as u64);
     if size > limit {
         return Err(plain("file_too_large"));
@@ -277,13 +291,16 @@ fn image_preview(agent: &dyn AgentApi, path: &str, refusal: &str) -> Result<Valu
 
 pub(crate) fn read(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let p = strict(params, &["path"])?;
-    image_preview(agent, string(p, "path", 4096)?, NOT_AN_IMAGE)
+    let image = image_path(agent, string(p, "path", 4096)?)?.ok_or_else(|| plain(NOT_AN_IMAGE))?;
+    image_preview(agent, image, NOT_AN_IMAGE)
 }
 
 pub(crate) fn read_chat_image(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let p = strict(params, &["worktree", "path"])?;
     orca_map_workspace::resolve(agent, string(p, "worktree", 4096)?)?;
-    image_preview(agent, string(p, "path", 4096)?, "not_an_image")
+    let path = string(p, "path", 4096)?;
+    let image = image_path(agent, path)?.or_else(|| workspace_image_path(path)).ok_or_else(|| plain("not_an_image"))?;
+    image_preview(agent, image, "not_an_image")
 }
 
 pub(crate) fn read_text_chunk(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {

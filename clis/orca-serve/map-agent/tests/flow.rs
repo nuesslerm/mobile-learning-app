@@ -861,6 +861,22 @@ fn given_an_uploaded_image_when_read_as_attachment_or_chat_image_then_the_previe
 }
 
 #[test]
+fn given_an_uploaded_image_when_chat_references_the_staged_copy_then_its_preview_comes_from_the_attachment_store() {
+    let mut rig = Rig::new();
+    rig.idle("claude_a");
+    let png = bytes_of(5000);
+    let stored = rig.upload("claude_a", "shot.PNG", &png);
+    let id = stored["path"].as_str().unwrap().split('/').nth(3).unwrap();
+    let staged = agent_api_attachments::staged_path(id, "shot.PNG");
+    for path in [staged.clone(), format!("/srv/main/{staged}")] {
+        let preview = rig.ok("files.readChatImage", json!({"worktree": "id:main::", "path": path}));
+        assert_eq!(preview, json!({"content": STANDARD.encode(&png), "isBinary": true, "isImage": true, "mimeType": "image/png"}));
+    }
+    let wrong = format!("/srv/main/.rca/attachments/{id}/other.png");
+    assert_eq!(rig.err("files.readChatImage", json!({"worktree": "id:main::", "path": wrong})).1, "not_an_image");
+}
+
+#[test]
 fn given_an_image_too_large_for_one_reply_when_previewed_then_it_is_file_too_large_and_a_missing_attachment_is_not_an_image() {
     // Given an uploaded png larger than one reply carries
     let mut rig = Rig::new();

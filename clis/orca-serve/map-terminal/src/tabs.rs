@@ -149,18 +149,29 @@ fn base(connection: &str, worktree_id: &str) -> String {
     format!("session.tabs:{connection}:{worktree_id}")
 }
 
-pub(crate) fn unsubscribe(ctx: &mut Ctx, params: &Value) -> Result<Value, Failure> {
-    let selected = selector(params)?;
-    // An `id:` selector names the worktree without asking rca; any other is resolved and may not exist.
-    let worktree_id = match selected.strip_prefix("id:") {
-        Some(id) => id.to_string(),
-        None => orca_map_workspace::resolve(ctx.agent, selected)?.id,
-    };
-    let base = base(ctx.connection_id, &worktree_id);
-    match params.get("subscriptionId").and_then(Value::as_str) {
+fn cancel_tabs(ctx: &mut Ctx, worktree_id: &str, subscription_id: Option<&str>) -> bool {
+    let base = base(ctx.connection_id, worktree_id);
+    match subscription_id {
         Some(id) => ctx.subscriptions.cancel(&format!("{base}:{id}")),
         None => ctx.subscriptions.cancel_prefix(&base) > 0,
-    };
+    }
+}
+
+pub(crate) fn unsubscribe(ctx: &mut Ctx, params: &Value) -> Result<Value, Failure> {
+    let selected = selector(params)?;
+    let subscription_id = params.get("subscriptionId").and_then(Value::as_str);
+    if let Some(id) = selected.strip_prefix("id:") {
+        if cancel_tabs(ctx, id, subscription_id) {
+            return Ok(json!({"unsubscribed": true}));
+        }
+        // Picker ids can name the parent repo while the stream is keyed by the managed workspace.
+        if let Ok(target) = orca_map_workspace::resolve(ctx.agent, selected) {
+            cancel_tabs(ctx, &target.id, subscription_id);
+        }
+    } else {
+        let target = orca_map_workspace::resolve(ctx.agent, selected)?;
+        cancel_tabs(ctx, &target.id, subscription_id);
+    }
     Ok(json!({"unsubscribed": true}))
 }
 

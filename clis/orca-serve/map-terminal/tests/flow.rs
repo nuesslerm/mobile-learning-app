@@ -301,6 +301,28 @@ fn given_an_open_tabs_stream_when_a_tab_appears_then_the_phone_gets_a_snapshot_t
 }
 
 #[test]
+fn given_two_tab_streams_for_a_picker_worktree_when_one_is_unsubscribed_then_only_that_stream_ends() {
+    let mut rig = Rig::new();
+    let worktree = "id:main::/srv/wt/feat";
+    let first = rig.frames("session.tabs.subscribe", json!({"worktree": worktree}));
+    let second = rig.frames("session.tabs.subscribe", json!({"worktree": worktree}));
+    assert_eq!(first[0]["result"]["type"], "snapshot");
+    assert_eq!(second[0]["result"]["type"], "snapshot");
+
+    let ended = rig.frames("session.tabs.unsubscribe", json!({"worktree": worktree, "subscriptionId": first[0]["id"]}));
+    assert_eq!(ended[0]["result"], json!({"unsubscribed": true}));
+    assert_eq!(ended.len(), 2);
+    assert_eq!(ended[1]["id"], first[0]["id"]);
+    assert_eq!(ended[1]["result"], json!({"type": "end"}));
+
+    rig.ok("session.tabs.createTerminal", json!({"worktree": worktree}));
+    let updates = rig.stream_events();
+    assert_eq!(updates.len(), 1);
+    assert_eq!(updates[0]["type"], "updated");
+    assert_eq!(tabs_of(&updates[0]).len(), 3);
+}
+
+#[test]
 fn given_a_terminal_that_printed_colored_lines_when_it_is_read_then_the_tail_is_plain_lines_limited_and_a_cursor_returns_only_what_followed() {
     let mut rig = Rig::new();
     // Given a terminal that printed three lines with colors and a title sequence
