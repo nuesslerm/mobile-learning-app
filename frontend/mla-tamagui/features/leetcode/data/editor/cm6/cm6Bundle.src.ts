@@ -37,6 +37,7 @@ import {
   Decoration,
   highlightWhitespace,
   highlightActiveLine,
+  highlightActiveLineGutter,
   ViewPlugin,
   type ViewUpdate,
 } from '@codemirror/view';
@@ -242,6 +243,8 @@ const completionFor = (language: string) =>
     entries: currentCompletion.entries,
     onOpenChange: (open) => core?.ingestCompletion(open),
   });
+const CANVAS_FONT_SCALE = 1.04;
+
 const contrastHighlight = HighlightStyle.define([
   { tag: [tags.keyword, tags.definitionKeyword, tags.controlKeyword], color: '#FF3B91' },
   { tag: [tags.className, tags.typeName], color: '#65DCC3' },
@@ -258,7 +261,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
   const theme = EditorView.theme(
     {
       '&': {
-        fontSize: `${cfg.fontSize}px`,
+        fontSize: `${canvas ? cfg.fontSize * CANVAS_FONT_SCALE : cfg.fontSize}px`,
         lineHeight: `${cfg.lineHeight}px`,
         fontFamily: "'Menlo', 'Courier New', monospace",
         height: '100%',
@@ -266,12 +269,13 @@ function buildConfigExtensions(cfg: EditorConfig) {
         ...(contrast ? { color: '#F1F1F4' } : {}),
       },
       '.cm-content': {
-        padding: canvas ? '2px 0 12px' : '12px 0',
+        padding: canvas ? '0 0 12px' : '12px 0',
         caretColor: cfg.cursorColor,
       },
       '.cm-line': {
-        padding: canvas ? '0 2px 0 10px' : '0 12px',
+        padding: canvas ? '0 6px 0 10px' : '0 12px',
       },
+      ...(canvas ? { '.cm-lineWrapping': { whiteSpace: 'pre-wrap' } } : {}),
       '.cm-scroller': {
         fontFamily: "'Menlo', 'Courier New', monospace",
       },
@@ -285,7 +289,11 @@ function buildConfigExtensions(cfg: EditorConfig) {
       '.cm-activeLine': {
         background: 'transparent',
       },
-      ...(contrast ? { '&.cm-focused .cm-activeLine': { backgroundColor: '#111116' } } : {}),
+      ...(contrast ? {
+        '&.cm-focused .cm-activeLine': { backgroundColor: '#0f0f15' },
+        '.cm-activeLineGutter': { backgroundColor: 'transparent' },
+        '&.cm-focused .cm-activeLineGutter': { color: '#f1f1f4' },
+      } : {}),
       '.cm-gutters': {
         background: cfg.backgroundColor,
         borderRight: `1px solid ${cfg.borderColor}`,
@@ -303,7 +311,9 @@ function buildConfigExtensions(cfg: EditorConfig) {
         borderBottom: `1px solid ${cfg.cursorColor}`,
       },
       '.cm-highlightSpace': {
-        backgroundImage: `radial-gradient(circle at 50% 55%, ${cfg.isDark ? '#8b93a1' : '#9aa0a6'} 20%, transparent 5%)`,
+        backgroundImage: canvas
+          ? `radial-gradient(circle at 50% 55%, ${cfg.isDark ? '#6a7584' : '#9aa0a6'} 0.75px, transparent 1.25px)`
+          : `radial-gradient(circle at 50% 55%, ${cfg.isDark ? '#8b93a1' : '#9aa0a6'} 20%, transparent 5%)`,
       },
       '.cm-run-error-line': {
         background: cfg.isDark ? 'rgba(248,113,113,0.2)' : 'rgba(220,38,38,0.12)',
@@ -323,7 +333,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
     indentUnit.of(' '.repeat(cfg.tabSize)),
     theme,
     cfg.isDark ? (contrast ? [oneDarkTheme, syntaxHighlighting(contrastHighlight)] : oneDark) : [],
-    contrast ? highlightActiveLine() : [],
+    contrast ? [highlightActiveLine(), highlightActiveLineGutter()] : [],
     cfg.wordWrap ? EditorView.lineWrapping : [],
     cfg.showWhitespace ? highlightWhitespace() : [],
   ];
