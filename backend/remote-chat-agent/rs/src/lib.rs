@@ -160,7 +160,7 @@ pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn
         Arc::new(ScheduleGroup::new(schedules.clone())),
         Arc::new(ScheduleWatchGroup::new(schedules.clone())),
         Arc::new(AttachmentsGroup::new(attachments)),
-        Arc::new(CatalogGroup::new(Catalog::new(executors.clone(), Arc::new(infrastructure::catalog::SystemClock), speech))),
+        Arc::new(CatalogGroup::new(Catalog::new(executors.clone(), Arc::new(infrastructure::catalog::SystemClock), speech, config.opencode_models.as_deref()))),
         Arc::new(PreviewGroup::new(executors.clone())),
         Arc::new(PreviewSessionGroup::new(previews.clone())),
         Arc::new(PreviewWatchGroup::new(previews)),

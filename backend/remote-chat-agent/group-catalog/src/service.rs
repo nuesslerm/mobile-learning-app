@@ -1,7 +1,7 @@
 //! The use cases of the group over the executors and the table of the drivers.
 use crate::ports::{Clock, Refusal, Speech};
 use crate::table;
-use agent_api_catalog::{code, message, skill_dirs, Command, CommandKind, CommandsParams, CommandsResult, DetectParams, DetectResult, DetectedAgent, DetectedTool, ModelsParams, ModelsResult, Scope, SessionsParams, SessionsResult, VaultSession, SkillsParams, SkillsResult, SpeechStatusResult, SpeechTranscribeParams, SpeechTranscribeResult, DRIVERS, TOOLS};
+use agent_api_catalog::{code, message, skill_dirs, Command, CommandKind, CommandsParams, CommandsResult, DetectParams, DetectResult, DetectedAgent, DetectedTool, Model, ModelsParams, ModelsResult, Scope, SessionsParams, SessionsResult, VaultSession, SkillsParams, SkillsResult, SpeechStatusResult, SpeechTranscribeParams, SpeechTranscribeResult, DRIVERS, TOOLS};
 use agent_api_proto::code as proto_code;
 use exec_proto::Code;
 use rca_exec_channel::remote::RemoteError;
@@ -18,6 +18,7 @@ pub struct Catalog {
     clock: Arc<dyn Clock>,
     speech: Arc<dyn Speech>,
     detected: Mutex<HashMap<String, DetectResult>>,
+    opencode_models: Vec<Model>,
 }
 
 fn relay(e: RemoteError) -> Refusal {
@@ -29,8 +30,14 @@ fn read<T: serde::de::DeserializeOwned>(result: Value) -> Result<T, Refusal> {
 }
 
 impl Catalog {
-    pub fn new(executors: Arc<dyn Executors>, clock: Arc<dyn Clock>, speech: Arc<dyn Speech>) -> Arc<Catalog> {
-        Arc::new(Catalog { executors, clock, speech, detected: Mutex::default() })
+    pub fn new(executors: Arc<dyn Executors>, clock: Arc<dyn Clock>, speech: Arc<dyn Speech>, opencode_models: Option<&str>) -> Arc<Catalog> {
+        Arc::new(Catalog {
+            executors,
+            clock,
+            speech,
+            detected: Mutex::default(),
+            opencode_models: table::configured_opencode_models(opencode_models),
+        })
     }
 
     pub fn speech_status(&self) -> SpeechStatusResult {
@@ -52,7 +59,11 @@ impl Catalog {
     }
 
     pub fn models(&self, p: ModelsParams) -> Result<ModelsResult, Refusal> {
-        Ok(table::for_driver(&p.driver))
+        let mut catalog = table::for_driver(&p.driver);
+        if p.driver == "opencode" {
+            catalog.models.extend_from_slice(&self.opencode_models);
+        }
+        Ok(catalog)
     }
 
     pub async fn detect(&self, p: DetectParams) -> Result<DetectResult, Refusal> {

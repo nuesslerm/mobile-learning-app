@@ -225,7 +225,7 @@ impl Service {
             // The executor's credential-file probe cannot rule out Keychain or environment login.
             row["auth"]["status"] = json!(if provider.signed_in == Some(true) { "authenticated" } else { "unknown" });
             row.as_object_mut().unwrap().remove("message");
-            if provider.driver != "opencode" || row["models"].as_array().is_none_or(Vec::is_empty) {
+            if provider.driver != "opencode" || provider.models.len() > 1 || row["models"].as_array().is_none_or(Vec::is_empty) {
                 row["models"] = json!(provider.models.iter().map(|model| {
                     json!({"slug": model.slug, "name": model.name, "isCustom": false, "capabilities": null})
                 }).collect::<Vec<_>>());
