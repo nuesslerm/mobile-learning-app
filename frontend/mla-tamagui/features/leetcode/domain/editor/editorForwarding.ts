@@ -20,17 +20,13 @@ type Unlisted = Exclude<
 export const everyMessageIsListed: [Unlisted] extends [never] ? true : never =
   true;
 
-const reportFailure = (type: string) => (reply: Reply<unknown>) => {
-  if (!reply.ok)
-    Logger.warn('editor.port.forward_failed', { type, code: reply.error.code });
-};
-
 export type ForwardingOptions = {
   /**
    * false on iOS: the page's own script for `blur` is the one proven there (the keyboard comes back on the next tap), and the typed
    * `blur` runs the same hidden-button trick but nobody has watched it on an iPhone yet. It becomes true there when a person has.
    */
   readonly blurThroughApi: boolean;
+  readonly isDisposing?: () => boolean;
 };
 
 /**
@@ -43,6 +39,13 @@ export function createForwardingPost(
   legacyPost: (msg: ToEditorMessage) => void,
   options: ForwardingOptions = { blurThroughApi: true }
 ): (msg: ToEditorMessage) => void {
+  const reportFailure = (type: string) => (reply: Reply<unknown>) => {
+    if (reply.ok) return;
+    const { error } = reply;
+    if (error.code === 'transport' && error.cause === 'closed' && options.isDisposing?.()) return;
+    Logger.warn('editor.port.forward_failed', { type, code: error.code });
+  };
+
   return (msg) => {
     switch (msg.type) {
       case 'undo':

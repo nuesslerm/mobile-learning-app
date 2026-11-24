@@ -110,16 +110,16 @@ describe('the problem editor header on the native twin', () => {
     expect(screen.queryByTestId('NativeHeaderCustom')).toBeNull();
   });
 
-  it('given the native bar, when the settings pill is opened, then the menu has the two sections and More has no Format row', async () => {
+  it('given the native bar, when a setting is selected, then its menu closes and More has no Format row', async () => {
     await openEditor('ios');
 
     await userEvent.click(screen.getByTestId('NativeHeaderItem-Editor settings'));
     const menu = await waitFor(() => screen.getByTestId('NativeHeaderMenu-Editor settings'));
 
     expect(within(menu).getByTestId('NativeHeaderMenuItem-Font size: 14px')).toBeTruthy();
-    expect(within(menu).getByTestId('NativeHeaderMenuItem-Line wrap').getAttribute('data-keeps-menu-presented')).toBe('true');
-    expect(within(menu).getByTestId('NativeHeaderMenuItem-Symbol Bar').getAttribute('data-keeps-menu-presented')).toBe('false');
-    await userEvent.click(screen.getByTestId('NativeHeaderItem-Editor settings'));
+    expect(within(menu).getByTestId('NativeHeaderMenuItem-Symbol Bar')).toBeTruthy();
+    await userEvent.click(within(menu).getByTestId('NativeHeaderMenuItem-Line wrap'));
+    expect(screen.queryByTestId('NativeHeaderMenu-Editor settings')).toBeNull();
     await userEvent.click(screen.getByTestId('NativeHeaderItem-More actions'));
     const more = await waitFor(() => screen.getByTestId('NativeHeaderMenu-More actions'));
     expect(within(more).queryByTestId('NativeHeaderMenuItem-Format')).toBeNull();

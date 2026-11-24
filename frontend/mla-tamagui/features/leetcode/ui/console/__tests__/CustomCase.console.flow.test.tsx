@@ -169,10 +169,12 @@ describe('a custom case through the console', () => {
     await openWithCustomCase();
     typeField('nums', '[1,2]');
     typeField('target', '3');
+    await forgetLoggedLines();
 
     await tap('ConsoleFooterRun');
 
     await waitFor(() => expect(verdict()).toBe('Run failed'));
+    await waitFor(async () => expect(await loggedLines('editor_v2.run_local.error')).not.toHaveLength(0));
     expect(text('ConsoleResultErrorText')).toBe('the runtime files are missing');
     await tap('ConsoleTabs-testcase');
     expect((screen.getByTestId('ConsoleField-nums') as HTMLTextAreaElement).value).toBe('[1,2]');
