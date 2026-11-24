@@ -10,8 +10,9 @@ use agent_api_proto::Method as AgentMethod;
 use orca_core::wire::{Failure, RUNTIME_ERROR};
 use orca_core::{Area, AgentApi, AgentError, Ctx, Kind, Method, Subscription};
 use serde_json::{json, Value};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 mod signin;
 #[cfg(any(test, feature = "testing"))]
@@ -136,7 +137,8 @@ impl Area for AccountsArea {
                 let first = snapshot(ctx.agent, &self.usage, false)?;
                 let id = ctx.subscription_id(STREAM_PREFIX);
                 let ready = json!({"type": "ready", "subscriptionId": id, "snapshot": first});
-                Ok(Box::new(Watch { id, agent: ctx.agent_handle.clone(), usage: self.usage.clone(), ready: Some(ready), last: first, asked: Instant::now() }))
+                let (updates, stop) = watch_accounts(ctx.agent_handle.clone(), self.usage.clone(), first)?;
+                Ok(Box::new(Watch { id, ready: Some(ready), updates, _stop: stop }))
             }
             other => Err(Failure::new(orca_core::wire::METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
         }
@@ -145,11 +147,23 @@ impl Area for AccountsArea {
 
 struct Watch {
     id: String,
-    agent: Arc<dyn AgentApi>,
-    usage: Arc<UsageCache>,
     ready: Option<Value>,
-    last: Value,
-    asked: Instant,
+    updates: Receiver<Value>,
+    _stop: Sender<()>,
+}
+
+fn watch_accounts(agent: Arc<dyn AgentApi>, usage: Arc<UsageCache>, mut last: Value) -> Result<(Receiver<Value>, Sender<()>), Failure> {
+    let (send_update, updates) = mpsc::sync_channel(1);
+    let (stop, stopped) = mpsc::channel();
+    std::thread::Builder::new().name("orca-accounts-watch".into()).spawn(move || {
+        while stopped.recv_timeout(POLL) == Err(RecvTimeoutError::Timeout) {
+            let Ok(now) = snapshot(agent.as_ref(), &usage, false) else { continue };
+            if now != last && send_update.try_send(json!({"type": "snapshot", "snapshot": now})).is_ok() {
+                last = now;
+            }
+        }
+    }).map_err(|error| Failure::new(RUNTIME_ERROR, format!("Could not watch accounts: {error}")))?;
+    Ok((updates, stop))
 }
 
 impl Subscription for Watch {
@@ -161,18 +175,7 @@ impl Subscription for Watch {
         if let Some(ready) = self.ready.take() {
             return vec![ready];
         }
-        if self.asked.elapsed() < POLL {
-            return Vec::new();
-        }
-        self.asked = Instant::now();
-        // a list that cannot be read now is read again at the next poll: the phone keeps the last snapshot it has
-        match snapshot(self.agent.as_ref(), &self.usage, false) {
-            Ok(now) if now != self.last => {
-                self.last = now.clone();
-                vec![json!({"type": "snapshot", "snapshot": now})]
-            }
-            _ => Vec::new(),
-        }
+        self.updates.try_recv().into_iter().collect()
     }
 
     fn end(&mut self) -> Vec<Value> {

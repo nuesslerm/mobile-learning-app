@@ -167,7 +167,23 @@ impl Rig {
 
     fn events_after_waiting(&mut self) -> Vec<Value> {
         std::thread::sleep(std::time::Duration::from_millis(600));
+        self.events()
+    }
+
+    fn events(&mut self) -> Vec<Value> {
         self.conn.poll().iter().map(|f| serde_json::from_str::<Value>(f).unwrap()["result"].clone()).collect()
+    }
+
+    fn wait_for_account_update(&mut self) -> Vec<Value> {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
+        loop {
+            let events = self.events();
+            if !events.is_empty() {
+                return events;
+            }
+            assert!(std::time::Instant::now() < deadline, "account update did not arrive");
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
     }
 }
 
@@ -187,7 +203,7 @@ fn given_a_phone_watching_the_accounts_when_a_provider_signs_in_then_it_gets_the
     assert_eq!(rig.events_after_waiting(), Vec::<Value>::new());
     // And when Claude signs in
     rig.providers.signed_in("claudeAgent");
-    let events = rig.events_after_waiting();
+    let events = rig.wait_for_account_update();
     // Then one `snapshot` event carries the list with Claude's account
     assert_eq!(events.len(), 1, "{events:?}");
     assert_eq!(events[0]["type"], "snapshot");
@@ -195,6 +211,39 @@ fn given_a_phone_watching_the_accounts_when_a_provider_signs_in_then_it_gets_the
     assert_eq!(events[0]["snapshot"], rig.ok("accounts.list", json!({})));
     // And a list that is unchanged is not sent again
     assert_eq!(rig.events_after_waiting(), Vec::<Value>::new());
+}
+
+#[test]
+fn given_a_blocked_account_refresh_when_the_phone_sends_another_rpc_then_the_reply_can_leave_the_same_connection() {
+    // Given an account stream whose next provider list waits for the executor
+    use std::sync::{mpsc, Mutex};
+    use std::time::Duration;
+
+    let mut rig = Rig::new();
+    rig.frames("accounts.subscribe", json!({}));
+    let (refresh_started, entered) = mpsc::channel();
+    let (release, blocked) = mpsc::channel();
+    let blocked = Mutex::new(blocked);
+    rig.agent.reply("provider.list", move |_| {
+        let _ = refresh_started.send(());
+        let _ = blocked.lock().unwrap().recv();
+        Ok(json!({"providers": []}))
+    });
+
+    // When a different request runs on the same connection as the refresh
+    let (answer, answered) = mpsc::channel();
+    let phone = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(600));
+        let reply = rig.ok("accounts.unsubscribe", json!({"subscriptionId": "accounts-other-1"}));
+        answer.send(reply).unwrap();
+    });
+    entered.recv_timeout(Duration::from_secs(3)).unwrap();
+    let reply = answered.recv_timeout(Duration::from_millis(700));
+    release.send(()).unwrap();
+    phone.join().unwrap();
+
+    // Then the refresh does not have to finish before the phone sees the reply
+    assert_eq!(reply.expect("the refresh held the unrelated reply"), json!({"unsubscribed": true}));
 }
 
 #[test]
@@ -207,7 +256,7 @@ fn given_an_open_accounts_stream_when_the_phone_unsubscribes_then_the_stream_end
     assert_eq!(rig.ok("accounts.unsubscribe", json!({"subscriptionId": "accounts-other-1"})), json!({"unsubscribed": true}));
     // Then the stream still runs: a change still reaches it
     rig.providers.signed_in("codex");
-    assert_eq!(rig.events_after_waiting().len(), 1);
+    assert_eq!(rig.wait_for_account_update().len(), 1);
     // When it unsubscribes from the stream
     let (_, closing) = rig.frames("accounts.unsubscribe", json!({"subscriptionId": stream}));
     // Then the answer is `unsubscribed`, the stream closes with `end` on its own request, and no change reaches the phone after it
@@ -239,7 +288,7 @@ fn given_rca_cannot_list_its_providers_when_the_phone_subscribes_then_it_is_refu
     // And once rca answers again with a change, the phone gets it
     rig.providers.install(&rig.agent);
     rig.providers.signed_in("codex");
-    assert_eq!(rig.events_after_waiting().len(), 1);
+    assert_eq!(rig.wait_for_account_update().len(), 1);
 }
 
 #[test]
