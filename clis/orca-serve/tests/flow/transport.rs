@@ -234,3 +234,16 @@ fn given_an_authenticated_phone_when_it_sends_binary_frames_that_do_not_open_the
     assert_eq!((closed.code, closed.reason.as_str()), (4003, "Too many decryption failures"));
     assert!(h.probe_inbound.lock().unwrap().is_empty());
 }
+
+#[test]
+fn given_an_accepted_socket_when_the_request_head_arrives_in_parts_then_health_answers() {
+    use std::io::{Read, Write};
+    let host = harness();
+    let mut socket = std::net::TcpStream::connect(host.addr).unwrap();
+    socket.write_all(b"GET /health HTTP/1.1\r\n").unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(60));
+    socket.write_all(b"Host: localhost\r\n\r\n").unwrap();
+    let mut reply = String::new();
+    socket.read_to_string(&mut reply).unwrap();
+    assert!(reply.starts_with("HTTP/1.1 200"), "{reply}");
+}

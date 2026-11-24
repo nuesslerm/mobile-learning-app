@@ -76,13 +76,15 @@ impl Connection {
         let host = self.host.clone();
         let runtime_id = host.runtime_id.as_str();
         let mut frames: Vec<Out> = Vec::new();
+        let span = tracing::info_span!("orca.rpc.invalid", otel.name = tracing::field::Empty, api.outcome = "invalid").entered();
         let request = match wire::parse(text) {
             Ok(r) => r,
             Err(unparsed) => return vec![Out::Text(wire::failure(&unparsed.0, runtime_id, &unparsed.1).to_string())],
         };
         let entry = host.table.get(&request.method);
         let method = if entry.is_some() { request.method.as_str() } else { "unknown" };
-        let _span = tracing::info_span!("orca.rpc", otel.name = %format!("orca.rpc.{method}")).entered();
+        span.record("otel.name", tracing::field::display(format_args!("orca.rpc.{method}")));
+        span.record("api.outcome", "denied");
         if request.device_token.as_deref().is_some_and(|t| t != self.device_token) {
             return vec![Out::Text(wire::failure(&request.id, runtime_id, &Failure::new(wire::UNAUTHORIZED, "Device token mismatch")).to_string())];
         }
@@ -120,6 +122,7 @@ impl Connection {
                 }
             }
         };
+        span.record("api.outcome", if reply.is_ok() { "ok" } else { "refused" });
         match reply {
             Ok(Some(result)) => frames.push(Out::Text(wire::success(&request.id, runtime_id, result).to_string())),
             Ok(None) => {}

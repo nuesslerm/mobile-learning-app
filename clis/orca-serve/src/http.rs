@@ -51,6 +51,7 @@ fn reason(status: u16) -> &'static str {
 }
 
 pub fn respond(stream: &mut TcpStream, status: u16, body: &Value) {
+    tracing::Span::current().record("http.response.status_code", status);
     let text = body.to_string();
     let head = format!("HTTP/1.1 {status} {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", reason(status), text.len());
     let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.write_all(text.as_bytes())).and_then(|()| stream.flush());

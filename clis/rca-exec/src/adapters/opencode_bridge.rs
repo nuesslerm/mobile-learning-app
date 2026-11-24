@@ -127,13 +127,28 @@ impl Bridge {
 
     /// One request to the server and its answer: the status and the body as text.
     fn call(&self, method: &str, path: &str, body: Option<&Value>) -> Result<(u16, String), String> {
-        let _span = tracing::info_span!("opencode.http").entered();
+        let route = path.split('?').next().unwrap_or("");
+        let segments: Vec<_> = route.trim_start_matches('/').split('/').collect();
+        let route = match segments.as_slice() {
+            ["session", _] => "/session/:id",
+            ["session", _, "abort"] => "/session/:id/abort",
+            ["session", _, "prompt_async"] => "/session/:id/prompt_async",
+            ["session", _, "message"] => "/session/:id/message",
+            ["permission", _, "reply"] => "/permission/:id/reply",
+            ["question", _, "reply"] => "/question/:id/reply",
+            ["question", _, "reject"] => "/question/:id/reject",
+            _ if exec_proc::SESSION_HTTP_ROUTES.contains(&route) => route,
+            _ => "other",
+        };
+        let span = tracing::info_span!("opencode.http", otel.name = %format!("opencode.http.{method} {route}"), api.outcome = "error", http.response.status_code = tracing::field::Empty).entered();
         let mut stream = self.connect(REQUEST_TIMEOUT)?;
         self.send_head(&mut stream, method, path, body.map(Value::to_string).as_deref(), "application/json", true)?;
         let mut reader = BufReader::new(stream);
         let (status, chunked, length) = read_head(&mut reader)?;
         let mut payload = Vec::new();
         Body { reader: &mut reader, chunked, length, left: 0, done: false }.take(BODY_MAX as u64).read_to_end(&mut payload).map_err(|e| format!("the answer could not be read: {e}"))?;
+        span.record("http.response.status_code", status);
+        span.record("api.outcome", if status >= 400 { "error" } else { "ok" });
         Ok((status, self.scrub(&String::from_utf8_lossy(&payload))))
     }
 
@@ -185,12 +200,13 @@ impl Bridge {
 
     /// `GET /global/event`, answered `200`; the reader of its decoded body.
     fn open_stream(&self) -> Result<BufReader<Body<BufReader<TcpStream>>>, String> {
-        let _span = tracing::info_span!("opencode.events.open").entered();
+        let span = tracing::info_span!("opencode.events.open", api.outcome = "error", http.response.status_code = tracing::field::Empty).entered();
         let mut stream = self.connect(STREAM_TIMEOUT)?;
         self.send_head(&mut stream, "GET", "/global/event", None, "text/event-stream", false)?;
         let kept = stream.try_clone().map_err(|e| e.to_string())?;
         let mut reader = BufReader::new(stream);
         let (status, chunked, length) = read_head(&mut reader)?;
+        span.record("http.response.status_code", status);
         if status != 200 {
             return Err(format!("it answered {status}"));
         }
@@ -198,6 +214,7 @@ impl Bridge {
         if self.closed.load(Ordering::SeqCst) {
             self.close();
         }
+        span.record("api.outcome", "ok");
         Ok(BufReader::new(Body { reader, chunked, length, left: 0, done: false }))
     }
 }

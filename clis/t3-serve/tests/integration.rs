@@ -32,3 +32,5 @@ mod thread_surface;
 mod voice;
 #[path = "integration/performance.rs"]
 mod performance;
+#[path = "integration/catalog.rs"]
+mod catalog;

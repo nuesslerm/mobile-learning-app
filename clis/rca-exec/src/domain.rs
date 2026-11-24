@@ -110,8 +110,8 @@ pub fn execute(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value, stream
 
 /// `execute` with a sink for the binary frames (`exec_pty::encode_frame`) of `pty_attach`.
 pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value, stream: &mut dyn FnMut(Stream, &str), events: &mut dyn FnMut(Value), binary: &mut dyn FnMut(Vec<u8>)) -> ExecResult<Value> {
-    let span = tracing::info_span!("rca.executor", otel.name = %format!("rca.executor.{tool}")).entered();
-    match tool {
+    let span = tracing::info_span!("rca.executor", otel.name = %format!("rca.executor.{tool}"), api.outcome = tracing::field::Empty).entered();
+    let result = (|| match tool {
         exec_proc::RUN_COMMAND => Ok(to_value(&ex.run_command(id, &RunCommand::parse(args)?, stream)?)),
         exec_proc::SESSION_OPEN => Ok(to_value(&ex.session_open(id, &SessionOpen::parse(args)?, stream, events)?)),
         exec_proc::SESSION_SEND => Ok(to_value(&SessionSent { written: ex.session_send(&SessionSend::parse(args)?)? })),
@@ -184,7 +184,9 @@ pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value,
                 Err(ExecError::new(Code::UnknownTool, format!("unknown tool {other}")))
             }
         },
-    }
+    })();
+    span.record("api.outcome", if result.is_ok() { "ok" } else { "error" });
+    result
 }
 
 #[cfg(test)]
@@ -443,6 +445,23 @@ mod tests {
 
     #[test]
     fn given_every_action_of_the_contract_when_a_request_names_it_then_the_executor_is_asked_for_that_action_and_no_other() {
+        check_contract_actions();
+    }
+
+    #[test]
+    #[ignore = "wire catalog measured through wf test run --performance"]
+    fn performance_catalog_dispatches_every_registered_executor_action() {
+        let dir = std::path::PathBuf::from(std::env::var_os("WF_PERFORMANCE_CATALOG_DIR").unwrap());
+        let names: Vec<_> = actions().iter().map(|action| action.name).collect();
+        std::fs::write(dir.join("rca.executor.json"), serde_json::to_vec(&names).unwrap()).unwrap();
+        let endpoint = std::env::var("WF_PERFORMANCE_ENDPOINT").unwrap();
+        let (dispatch, exporter) = telemetry::build(telemetry::source!("rca-exec-catalog"), vec![], Some(telemetry::Destination::new(endpoint, "")));
+        let _guard = tracing::dispatcher::set_default(&dispatch);
+        check_contract_actions();
+        exporter.shutdown();
+    }
+
+    fn check_contract_actions() {
         for action in actions() {
             // Given a request with the arguments the action requires
             let args: serde_json::Map<String, Value> = match exec_hosted::ACTIONS.iter().find(|a| a.name == action.name) {

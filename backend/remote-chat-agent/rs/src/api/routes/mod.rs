@@ -8,7 +8,6 @@ use axum::extract::{ConnectInfo, DefaultBodyLimit, FromRequest, Request};
 use axum::http::header::{HeaderName, HeaderValue, CONTENT_TYPE};
 use axum::http::{HeaderMap, Method, StatusCode};
 use axum::response::{IntoResponse, Response};
-use axum::routing::{delete, get, post};
 use axum::Router;
 use serde_json::{json, Value};
 use service_kit::{rate_limit, trace};
@@ -173,47 +172,69 @@ impl<S: Send + Sync> axum::extract::FromRequestParts<S> for Req {
 
 /// The routes and their handlers, without the edge layers.
 pub fn router(app: Arc<App>) -> Router {
-    let http = Router::new()
-        .route("/health", get(health))
-        .route("/api/source-control/pull-requests", get(source_control::list).post(source_control::create))
-        .route("/api/source-control/pull-requests/{number}", get(source_control::get))
-        .route("/api/agent-clis", get(inventory::agent_clis))
-        .route("/api/models/preferences", get(inventory::preferences))
-        .route("/api/models/recent", get(inventory::models_recent))
-        .route("/api/models", get(inventory::models))
-        .route("/api/mcp", get(inventory::mcp_list))
-        .route("/api/mcp/{name}/connect", post(inventory::mcp_connect))
-        .route("/api/mcp/{name}/disconnect", post(inventory::mcp_disconnect))
-        .route("/api/skills", get(inventory::skills))
-        .route("/api/commands", get(inventory::commands))
-        .route("/api/plan/{id}", get(plan::get))
-        .route("/api/plan/{id}/annotate", post(plan::annotate))
-        .route("/api/convert", post(convert::post))
-        .route("/api/tamil/check", post(tamil::check))
-        .route("/api/voice-transcribe", post(voice::transcribe))
-        .route("/api/voice-plan", post(voice::plan))
-        .route("/api/voice-edit", post(voice::edit))
-        .route("/api/edit-stats", post(edit_stats::post))
-        .route("/agent/v1/bearers", post(bearers::mint).get(bearers::list))
-        .route("/agent/v1/bearers/{id}", delete(bearers::revoke))
-        .route("/hooks/v1/schedules/{id}/{token}", post(schedules::webhook).layer(DefaultBodyLimit::max(schedules::BODY_LIMIT)))
-        .route("/runs", post(runs::post))
-        .route("/runs/log", get(runs::log))
-        .route("/runs/sessions", delete(runs::purge))
-        .route("/runs/cooldowns/clear", post(runs::clear_cooldown))
-        .route("/api/control/stop", post(control::stop))
-        .route("/api/control/queue", post(control::queue))
-        .route("/api/control/steer", post(control::steer))
-        .route("/api/question/{request_id}/reply", post(question::reply))
-        .route("/api/file/{*path}", get(file_preview::get).post(file_preview::annotate))
+    router_with_inventory(app, |_, _| {})
+}
+
+/// Builds the same router while visiting its registered method and path templates.
+pub fn router_with_inventory(app: Arc<App>, mut registered: impl FnMut(&'static str, &'static str)) -> Router {
+    macro_rules! routes {
+        ($($path:expr => $first:ident($handler:path) $(.$more:ident($other:path))* $([$layer:expr])?;)+) => {{
+            let router = Router::new();
+            $(
+                registered(stringify!($first), $path);
+                $(registered(stringify!($more), $path);)*
+                let router = router.route($path, axum::routing::$first($handler) $(.$more($other))* $(.layer($layer))?);
+            )+
+            router
+        }};
+    }
+    let http = routes! {
+        "/health" => get(health);
+        "/api/source-control/pull-requests" => get(source_control::list).post(source_control::create);
+        "/api/source-control/pull-requests/{number}" => get(source_control::get);
+        "/api/agent-clis" => get(inventory::agent_clis);
+        "/api/models/preferences" => get(inventory::preferences);
+        "/api/models/recent" => get(inventory::models_recent);
+        "/api/models" => get(inventory::models);
+        "/api/mcp" => get(inventory::mcp_list);
+        "/api/mcp/{name}/connect" => post(inventory::mcp_connect);
+        "/api/mcp/{name}/disconnect" => post(inventory::mcp_disconnect);
+        "/api/skills" => get(inventory::skills);
+        "/api/commands" => get(inventory::commands);
+        "/api/plan/{id}" => get(plan::get);
+        "/api/plan/{id}/annotate" => post(plan::annotate);
+        "/api/convert" => post(convert::post);
+        "/api/tamil/check" => post(tamil::check);
+        "/api/voice-transcribe" => post(voice::transcribe);
+        "/api/voice-plan" => post(voice::plan);
+        "/api/voice-edit" => post(voice::edit);
+        "/api/edit-stats" => post(edit_stats::post);
+        "/agent/v1/bearers" => post(bearers::mint).get(bearers::list);
+        "/agent/v1/bearers/{id}" => delete(bearers::revoke);
+        "/hooks/v1/schedules/{id}/{token}" => post(schedules::webhook) [DefaultBodyLimit::max(schedules::BODY_LIMIT)];
+        "/runs" => post(runs::post);
+        "/runs/log" => get(runs::log);
+        "/runs/sessions" => delete(runs::purge);
+        "/runs/cooldowns/clear" => post(runs::clear_cooldown);
+        "/api/control/stop" => post(control::stop);
+        "/api/control/queue" => post(control::queue);
+        "/api/control/steer" => post(control::steer);
+        "/api/question/{request_id}/reply" => post(question::reply);
+        "/api/file/{*path}" => get(file_preview::get).post(file_preview::annotate);
+    }
         .fallback(not_found)
         .with_state(Arc::clone(&app));
     http.layer(DefaultBodyLimit::max(BODY_LIMIT))
         .layer(rate_limit::per_minute_by(app.config.requests_per_minute, caller::Caller))
         .layer(cors_layer(app.config.allowed_origins.clone()))
-        .merge(Router::new().route(ws::PATH, get(upgrade)).with_state(Arc::clone(&app)))
+        .merge(routes! { ws::PATH => get(upgrade); }.with_state(Arc::clone(&app)))
         // The channel and the MCP server are called by machines (a long-lived socket, a CLI making many calls), so no rate limit; a tool call may carry a big file.
-        .merge(Router::new().route("/agent/v1/socket", get(agent::socket)).route("/exec/v2/executors", get(exec_remote::channel)).route("/mcp/{thread}", post(exec_remote::mcp_server)).route("/gateway/{provider}/{*rest}", axum::routing::any(gateway::forward)).layer(DefaultBodyLimit::max(BODY_LIMIT)).with_state(app))
+        .merge(routes! {
+            "/agent/v1/socket" => get(agent::socket);
+            "/exec/v2/executors" => get(exec_remote::channel);
+            "/mcp/{thread}" => post(exec_remote::mcp_server);
+            "/gateway/{provider}/{*rest}" => any(gateway::forward);
+        }.layer(DefaultBodyLimit::max(BODY_LIMIT)).with_state(app))
         .layer(CatchPanicLayer::custom(|_| respond(500, &json!({ "error": "internal_error" }))))
         .layer(axum::middleware::from_fn(trace::log_request))
         .layer(trace::layer())

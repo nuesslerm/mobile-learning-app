@@ -31,6 +31,16 @@ CREATE TABLE IF NOT EXISTS span_sources (
     run_id TEXT, trace_id TEXT, span_id TEXT, service TEXT, caller_file TEXT, caller_line INTEGER,
     PRIMARY KEY(run_id, trace_id, span_id)
 );
+CREATE TABLE IF NOT EXISTS span_results (
+    run_id TEXT, trace_id TEXT, span_id TEXT, outcome TEXT, http_status INTEGER,
+    PRIMARY KEY(run_id, trace_id, span_id)
+);
+CREATE TABLE IF NOT EXISTS run_notes (run_id TEXT PRIMARY KEY, note TEXT);
+CREATE TABLE IF NOT EXISTS sample_requirements (run_id TEXT PRIMARY KEY, minimum INTEGER);
+CREATE TABLE IF NOT EXISTS catalog (
+    run_id TEXT, endpoint TEXT, probe TEXT, operation TEXT, note TEXT, samples INTEGER, outcomes TEXT,
+    median_ms REAL, reference_ms REAL, limit_ms REAL, verdict TEXT, PRIMARY KEY(run_id,endpoint)
+);
 CREATE TABLE IF NOT EXISTS metrics (
     run_id TEXT, name TEXT, samples INTEGER, p95_ms REAL, budget_ms REAL,
     PRIMARY KEY(run_id, name)
@@ -61,6 +71,7 @@ def receiver(database, run):
                 batch = json.loads(self.rfile.read(length))
                 rows = []
                 sources = []
+                results = []
                 for resource in batch["resourceSpans"]:
                     resource_attrs = {a["key"]: a["value"] for a in resource.get("resource", {}).get("attributes", [])}
                     service = resource_attrs.get("service.name", {}).get("stringValue")
@@ -75,21 +86,35 @@ def receiver(database, run):
                             ):
                                 raise ValueError("invalid span")
                             attrs = {a["key"]: a["value"] for a in span.get("attributes", [])}
+                            outcome = attrs.get("api.outcome", {}).get("stringValue")
+                            status = attrs.get("http.response.status_code", attrs.get("http.status_code", {})).get("intValue")
+                            if outcome is None and status is not None:
+                                outcome = "error" if int(status) >= 400 else "ok"
+                            if outcome is None and span.get("status", {}).get("code") in (2, "STATUS_CODE_ERROR"):
+                                outcome = "error"
+                            if outcome is not None or status is not None:
+                                results.append((run, span["traceId"], span["spanId"], outcome, status))
                             sources.append((run, span["traceId"], span["spanId"], service,
                                             attrs.get("caller.file", {}).get("stringValue"),
                                             attrs.get("caller.line", {}).get("intValue")))
+                            name = span["name"]
+                            if service in ("remote-chat-agent", "rca-service-catalog") and "http.route" in attrs and "http.method" in attrs:
+                                route = attrs["http.route"].get("stringValue", "unknown")
+                                method = attrs["http.method"].get("stringValue", "OTHER")
+                                name = f"rca.http.{method} {route}"
                             rows.append(
                                 (
                                     run,
                                     span["traceId"],
                                     span["spanId"],
                                     span.get("parentSpanId"),
-                                    span["name"],
+                                    name,
                                     start,
                                     end,
                                 )
                             )
                 with sqlite3.connect(database, timeout=30) as db:
+                    db.executemany("INSERT OR IGNORE INTO span_results VALUES (?,?,?,?,?)", results)
                     db.executemany("INSERT OR IGNORE INTO span_sources VALUES (?,?,?,?,?,?)", sources)
                     db.executemany("INSERT OR IGNORE INTO spans VALUES (?,?,?,?,?,?,?)", rows)
             except (ValueError, KeyError, TypeError, OverflowError):
@@ -144,6 +169,8 @@ def publish(metrics, suite, profile):
 def main():
     parser = argparse.ArgumentParser(prog="wf --performance")
     mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--catalog", action="store_true")
+    mode.add_argument("--report", type=Path)
     mode.add_argument("--budgets", type=Path)
     mode.add_argument("--merge", type=Path, nargs="+", help="merge downloaded performance databases")
     parser.add_argument(
@@ -156,6 +183,12 @@ def main():
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
+    root = Path(os.environ["WF_PERFORMANCE_ROOT"])
+    sys.path.insert(0, str(root / "clis/wf-kit/src"))
+    if args.report:
+        from performance_report import report
+        print(json.dumps(report(args.db, args.report, root)))
+        return 0
     if args.merge:
         args.db.parent.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(args.db, timeout=30) as db:
@@ -166,8 +199,9 @@ def main():
                 db.execute("ATTACH DATABASE ? AS imported", (str(source),))
                 with db:
                     tables = ["runs", "spans", "metrics"]
-                    if db.execute("SELECT 1 FROM imported.sqlite_master WHERE type='table' AND name='span_sources'").fetchone():
-                        tables.append("span_sources")
+                    for extra in ("span_sources", "span_results", "catalog", "sample_requirements", "run_notes"):
+                        if db.execute("SELECT 1 FROM imported.sqlite_master WHERE type='table' AND name=?", (extra,)).fetchone():
+                            tables.append(extra)
                     for table in tables:
                         db.execute(f"INSERT OR IGNORE INTO main.{table} SELECT * FROM imported.{table}")
                 db.execute("DETACH DATABASE imported")
@@ -176,7 +210,7 @@ def main():
     if not command:
         parser.error("supply the workload command after --")
     spec = json.loads(args.budgets.read_text()) if args.budgets else dict(suite="cli", p95_ms={}, min_samples=1)
-    suite = spec["suite"]
+    suite = "rca-api-catalog-v1" if args.catalog else spec["suite"]
     budgets = spec["p95_ms"]
     minimum = spec["min_samples"]
     changes = spec.get("min_change_ms", {})
@@ -227,7 +261,12 @@ def main():
         worker = threading.Thread(target=server.serve_forever, daemon=True)
         worker.start()
         try:
-            status = subprocess.run(command, env=env, stdout=sys.stderr if args.budgets else None).returncode
+            entries = []
+            if args.catalog:
+                import performance_catalog
+                status, entries = performance_catalog.exercise(command, root, env)
+            else:
+                status = subprocess.run(command, env=env, stdout=sys.stderr if args.budgets else None).returncode
         except OSError as error:
             print(f"cannot start benchmark: {error}", file=sys.stderr)
             status = 1
@@ -242,7 +281,11 @@ def main():
     passed = status == 0
     metrics = []
     with db:
+        if budgets:
+            db.execute("INSERT INTO sample_requirements VALUES(?,?)", (run, minimum))
         observed = [row[0] for row in db.execute("SELECT DISTINCT name FROM spans WHERE run_id=? ORDER BY name", (run,))]
+        if args.catalog:
+            passed = performance_catalog.check(db, run, baseline, entries) and passed
         for name in dict.fromkeys([*budgets, *observed]):
             budget = budgets.get(name)
             times = db.execute(
@@ -274,8 +317,8 @@ def main():
             export = "sent"
         except (OSError, KeyError, ValueError) as error:
             export = f"failed ({type(error).__name__})"
-    print(json.dumps(dict(ok=passed, run=run, database=str(args.db), metrics=metrics, export=export)), file=sys.stdout if args.budgets else sys.stderr)
-    return (0 if passed else 1) if args.budgets else (128 - status if status < 0 else status)
+    print(json.dumps(dict(ok=passed, run=run, database=str(args.db), metrics=metrics, export=export)), file=sys.stdout if args.budgets or args.catalog else sys.stderr)
+    return (0 if passed else 1) if args.budgets or args.catalog else (128 - status if status < 0 else status)
 
 
 if __name__ == "__main__":

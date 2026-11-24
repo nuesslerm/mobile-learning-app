@@ -110,13 +110,15 @@ pub struct Fire {
 
 impl Fire {
     pub fn send(&self, method: &str, params: Value, session: Option<&str>) -> Result<(), String> {
-        let _span = tracing::info_span!("cdp.client", otel.name = %format!("cdp.client.{method}")).entered();
+        let span = tracing::info_span!("cdp.client", otel.name = %format!("cdp.client.{method}"), api.outcome = "error").entered();
         let id = self.next_id.fetch_add(1, Ordering::SeqCst);
         let mut request = json!({ "id": id, "method": method, "params": params });
         if let Some(s) = session {
             request["sessionId"] = json!(s);
         }
-        send_frame(&self.writer, &request.to_string())
+        send_frame(&self.writer, &request.to_string())?;
+        span.record("api.outcome", "sent");
+        Ok(())
     }
 }
 
@@ -268,6 +270,7 @@ impl Cdp {
 
     /// Like `call_on`, waiting at most `wait` for the answer; a late answer is dropped.
     pub fn call_within(&self, method: &str, params: Value, session: Option<&str>, wait: Duration) -> Result<Value, String> {
+        let span = tracing::info_span!("cdp.client", otel.name = %format!("cdp.client.{method}"), api.outcome = "error").entered();
         let id = self.next_id.fetch_add(1, Ordering::SeqCst);
         let mut request = json!({ "id": id, "method": method, "params": params });
         if let Some(s) = session {
@@ -292,7 +295,10 @@ impl Cdp {
         })?;
         match reply.get("error") {
             Some(e) => Err(format!("{method} failed: {}", e["message"].as_str().unwrap_or("unknown error"))),
-            None => Ok(reply["result"].clone()),
+            None => {
+                span.record("api.outcome", "ok");
+                Ok(reply["result"].clone())
+            }
         }
     }
 }

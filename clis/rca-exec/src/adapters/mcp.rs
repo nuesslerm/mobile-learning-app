@@ -58,14 +58,22 @@ pub fn request(args: &McpRequest, server: &Server, root: &Path, search: &str, ho
         let mut input = child.stdin.take().ok_or_else(|| ExecError::new(Code::Io, format!("{who} takes no input")))?;
         let deadline = Instant::now() + Duration::from_millis(args.timeout_ms);
         let mut send = |value: Value| writeln!(input, "{value}").and_then(|()| input.flush()).map_err(io);
+        let initialize = tracing::info_span!("mcp.initialize", api.outcome = "error").entered();
         send(json!({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": MCP_PROTOCOL, "capabilities": {}, "clientInfo": {"name": "rca-exec", "version": "1.0.0"}}}))?;
         answer_with(&rx, 1, deadline, &who, false)?;
+        initialize.record("api.outcome", "ok");
+        drop(initialize);
+        let notice = tracing::info_span!("mcp.notifications.initialized", api.outcome = "error").entered();
         send(json!({"jsonrpc": "2.0", "method": "notifications/initialized"}))?;
+        notice.record("api.outcome", "sent");
+        drop(notice);
+        let request = tracing::info_span!("mcp.request", otel.name = %format!("mcp.{}", args.method), api.outcome = "error").entered();
         send(json!({"jsonrpc": "2.0", "id": 2, "method": args.method, "params": args.params}))?;
         let result = answer_with(&rx, 2, deadline, &who, false)?;
         if result.to_string().len() > MCP_ANSWER_MAX {
             return Err(ExecError::new(Code::Io, format!("{who} answered more than {MCP_ANSWER_MAX} bytes")));
         }
+        request.record("api.outcome", "ok");
         Ok(McpAnswer { result })
     })();
     kill_group(&mut child);

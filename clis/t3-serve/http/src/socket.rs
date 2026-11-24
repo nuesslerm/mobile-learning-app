@@ -20,6 +20,7 @@ pub fn upgrade(mut stream: TcpStream, request: &Request, mut connection: Connect
     if stream.write_all(head.as_bytes()).and_then(|()| stream.flush()).is_err() {
         return;
     }
+    span.record("http.response.status_code", 101);
     drop(span);
     let _ = stream.set_nodelay(true);
     let _ = stream.set_read_timeout(Some(Duration::from_millis(20)));

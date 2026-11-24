@@ -299,3 +299,41 @@ async fn every_recorded_request_is_answered_as_recorded_and_the_executor_is_aske
     // Then every exchange was answered as recorded (the assertions are in the replay)
     assert!(threads.iter().flat_map(|f| &f.exchanges).any(|e| e.request["method"] == "turn.start" && e.succeeds()), "a turn started in a recorded exchange");
 }
+
+#[tokio::test]
+#[ignore = "wire catalog measured through wf test run --performance"]
+async fn performance_catalog_dispatches_each_registered_agent_method_and_records_its_reply() {
+    use service_kit::telemetry;
+    let env = Env::detached();
+    let api = agent_api(&env).groups;
+    let methods: Vec<_> = api.served().map(|s| s.method.name()).collect();
+    let dir = std::path::PathBuf::from(std::env::var_os("WF_PERFORMANCE_CATALOG_DIR").unwrap());
+    std::fs::write(dir.join("rca.rpc.json"), serde_json::to_vec(&methods).unwrap()).unwrap();
+    let endpoint = std::env::var("WF_PERFORMANCE_ENDPOINT").unwrap();
+    let (dispatch, exporter) = telemetry::build(telemetry::source!("rca-service-catalog"), vec![], Some(telemetry::Destination::new(endpoint, "")));
+    let _guard = tracing::dispatcher::set_default(&dispatch);
+    for method in methods {
+        let span = tracing::info_span!("catalog.call", otel.name = %format!("catalog.rca.rpc.{method}"), api.outcome = tracing::field::Empty).entered();
+        let frame = json!({"id":"catalog","method":method,"params":{}}).to_string();
+        let build = rca_agent_core::Build { version: "fixture", commit: "catalog" };
+        let reply = api.dispatch_text(build, &frame).await;
+        assert_eq!(reply["id"], "catalog", "{method}");
+        span.record("api.outcome", if reply.get("error").is_some() { "refused" } else { "ok" });
+    }
+    let svc = service(&env, Options::default());
+    let mut http = Vec::new();
+    for (verb, template) in svc.http_operations() {
+        // The gateway accepts any method. Its catalog probe uses POST.
+        let method = if verb == "any" { "POST".to_owned() } else { verb.to_uppercase() };
+        let operation = format!("{method} {template}");
+        let path = template.split('/').map(|part| if part.starts_with('{') { "catalog" } else { part }).collect::<Vec<_>>().join("/");
+        let call = crate::harness::call(method.parse().unwrap(), &path).json(json!({}));
+        let span = tracing::info_span!("catalog.call", otel.name = %format!("catalog.rca.http.{operation}"), api.outcome = tracing::field::Empty, http.response.status_code = tracing::field::Empty).entered();
+        let answer = svc.send(call).await;
+        span.record("http.response.status_code", answer.status.as_u16());
+        span.record("api.outcome", if answer.status.is_client_error() || answer.status.is_server_error() { "refused" } else { "ok" });
+        http.push(operation);
+    }
+    std::fs::write(dir.join("rca.http.json"), serde_json::to_vec(&http).unwrap()).unwrap();
+    exporter.shutdown();
+}

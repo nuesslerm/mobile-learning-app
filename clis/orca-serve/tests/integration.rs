@@ -30,3 +30,5 @@ mod terminal_artifacts;
 mod terminal_pty;
 #[path = "integration/performance.rs"]
 mod performance;
+#[path = "integration/catalog.rs"]
+mod catalog;

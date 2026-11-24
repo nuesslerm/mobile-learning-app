@@ -22,19 +22,28 @@ pub(crate) fn command(args: &[String]) -> i32 {
 
 /// Record the RCA integration suite or import a previously captured CI database.
 pub fn integration(args: &[String]) -> Option<i32> {
-    let opts = crate::args::parse_none(args, &["db", "profile", "merge"], &["performance", "send"])?;
+    let opts = crate::args::parse_none(args, &["db", "profile", "merge", "report"], &["performance", "send", "catalog"])?;
+    if [opts.flag("catalog"), opts.val("report").is_some(), opts.val("merge").is_some()].into_iter().filter(|active| *active).count() > 1 { return None; }
     let root = crate::root::repo_root();
     let mut cmd = runner();
     for key in ["db", "profile"] {
         if let Some(value) = opts.val(key) { cmd.arg(format!("--{key}")).arg(value); }
     }
     if opts.flag("send") { cmd.arg("--send"); }
-    if opts.val("merge").is_some() {
+    if let Some(path) = opts.val("report") {
+        cmd.arg("--report").arg(path);
+    } else if opts.val("merge").is_some() {
         cmd.arg("--merge").args(opts.values("merge"));
     } else {
-        cmd.arg("--budgets").arg(root.join("clis/app-bench/scenarios/rca-hosts-trace.json"))
-            .args(["--", "cargo", "test", "--locked", "--manifest-path"]).arg(root.join("clis/Cargo.toml"))
-            .args(["-p", "orca-serve", "-p", "t3-serve", "--test", "integration", "performance::", "--", "--ignored", "--test-threads=1"]);
+        let filter = if opts.flag("catalog") {
+            cmd.arg("--catalog");
+            "catalog::"
+        } else {
+            cmd.arg("--budgets").arg(root.join("clis/app-bench/scenarios/rca-hosts-trace.json"));
+            "performance::"
+        };
+        cmd.args(["--", "cargo", "test", "--locked", "--manifest-path"]).arg(root.join("clis/Cargo.toml"))
+            .args(["-p", "orca-serve", "-p", "t3-serve", "--test", "integration", filter, "--", "--ignored", "--test-threads=1"]);
     }
     Some(run(&mut cmd))
 }
@@ -42,7 +51,7 @@ pub fn integration(args: &[String]) -> Option<i32> {
 #[track_caller]
 pub fn external(client: &'static str) -> tracing::span::EnteredSpan {
     let caller = std::panic::Location::caller();
-    tracing::info_span!("external.api", otel.name = %format!("external.{client}"), caller.file = caller.file(), caller.line = caller.line()).entered()
+    tracing::info_span!("external.api", otel.name = %format!("external.{client}"), caller.file = caller.file(), caller.line = caller.line(), api.outcome = tracing::field::Empty).entered()
 }
 
 pub(crate) struct Capture(Arc<Mutex<Option<Telemetry>>>);

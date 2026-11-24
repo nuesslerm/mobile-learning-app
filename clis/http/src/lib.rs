@@ -140,15 +140,17 @@ impl Request {
 
     fn client_span(&self, site: &std::panic::Location<'_>) -> tracing::Span {
         let method = match self.method.as_str() { m @ ("GET" | "POST" | "PATCH" | "PUT" | "DELETE" | "HEAD" | "OPTIONS") => m, _ => "OTHER" };
-        tracing::info_span!("http.client", otel.name = %format!("http.client.{method}"), caller.file = site.file(), caller.line = site.line())
+        tracing::info_span!("http.client", otel.name = %format!("http.client.{method}"), caller.file = site.file(), caller.line = site.line(), api.outcome = "error", http.response.status_code = tracing::field::Empty)
     }
 
     #[track_caller]
     pub fn send(self) -> Result<Response, String> {
-        let _span = self.client_span(std::panic::Location::caller()).entered();
+        let span = self.client_span(std::panic::Location::caller()).entered();
         let mut response = self.exchange()?;
         let (status, headers) = (response.status().as_u16(), header_list(&response));
+        span.record("http.response.status_code", status);
         let body = response.body_mut().with_config().limit(BODY_LIMIT).read_to_vec().map_err(|e| e.to_string())?;
+        span.record("api.outcome", if status < 400 { "ok" } else { "error" });
         Ok(Response { status, headers, body })
     }
 
@@ -156,9 +158,10 @@ impl Request {
     /// Any other status comes back as `send` gives it, with no file; a 2xx comes back with an empty body.
     #[track_caller]
     pub fn send_to_file(self, dest: &Path) -> Result<Response, String> {
-        let _span = self.client_span(std::panic::Location::caller()).entered();
+        let span = self.client_span(std::panic::Location::caller()).entered();
         let mut response = self.exchange()?;
         let (status, headers) = (response.status().as_u16(), header_list(&response));
+        span.record("http.response.status_code", status);
         if !(200..300).contains(&status) {
             let body = response.body_mut().with_config().limit(BODY_LIMIT).read_to_vec().map_err(|e| e.to_string())?;
             return Ok(Response { status, headers, body });
@@ -179,6 +182,7 @@ impl Request {
             let _ = std::fs::remove_file(&part);
             return Err(error);
         }
+        span.record("api.outcome", "ok");
         Ok(Response { status, headers, body: Vec::new() })
     }
 
@@ -223,17 +227,20 @@ fn header_list(response: &http::Response<ureq::Body>) -> Vec<(String, String)> {
 }
 
 /// Whether a local service answers a GET with a 2xx inside `timeout`: the probe `curl -sf --max-time` made.
+#[track_caller]
 pub fn answers(url: &str, timeout: Duration) -> bool {
     Request::get(url).direct().timeout(timeout).send().is_ok_and(|r| r.ok())
 }
 
 /// The body of a GET to a local service, when it answers 2xx.
+#[track_caller]
 pub fn fetch_local(url: &str, timeout: Duration) -> Option<String> {
     Request::get(url).direct().timeout(timeout).send().ok().filter(Response::ok).map(|r| r.text())
 }
 
 /// Downloads `url` into `dest` (redirects followed), streamed, so a body above the read cap is fine; a failed download leaves no
 /// file behind.
+#[track_caller]
 pub fn download(url: &str, dest: &Path, timeout: Duration) -> Result<(), String> {
     let response = Request::get(url).follow_redirects().timeout(timeout).send_to_file(dest)?;
     if !response.ok() {
@@ -244,6 +251,7 @@ pub fn download(url: &str, dest: &Path, timeout: Duration) -> Result<(), String>
 
 /// PUTs the file at `path` to `url`, streamed from disk with its size as the length, so a file above the read cap goes out without
 /// being held in memory.
+#[track_caller]
 pub fn put_file(url: &str, path: &Path, timeout: Duration) -> Result<Response, String> {
     Request::new("PUT", url).body_file(path).timeout(timeout).send()
 }

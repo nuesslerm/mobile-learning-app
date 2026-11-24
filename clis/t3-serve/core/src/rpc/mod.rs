@@ -54,6 +54,20 @@ pub struct Connection {
     setup_tx: Sender<(Value, Value)>,
 }
 
+fn command_span(tag: &str, payload: &Value) -> Option<tracing::Span> {
+    let kind = payload.get("command").filter(|v| v.is_object()).unwrap_or(payload).get("type").and_then(Value::as_str).unwrap_or("");
+    let (family, known) = match tag {
+        "projects.mutate" => ("mutation", crate::usecases::projects::FORWARDED.contains(&kind)),
+        "orchestration.dispatchCommand" => {
+            static TYPES: std::sync::OnceLock<Vec<&str>> = std::sync::OnceLock::new();
+            ("command", TYPES.get_or_init(t3_contracts::rows::command_types).contains(&kind))
+        }
+        _ => return None,
+    };
+    let name = if known { kind } else { "unknown" };
+    Some(tracing::info_span!("t3.command", otel.name = %format!("t3.{family}.{name}"), api.outcome = tracing::field::Empty))
+}
+
 impl Connection {
     pub fn new(svc: Service, principal: Principal) -> Connection {
         let (tx, live) = channel();
@@ -66,24 +80,26 @@ impl Connection {
     pub fn on_message(&mut self, text: &str) -> Vec<String> {
         let mut out = Vec::new();
         match rpc::parse_client_message(text) {
-            Err(e) => out.push(rpc::protocol_error(&e.0)),
+            Err(e) => tracing::info_span!("t3.protocol.invalid", api.outcome = "invalid").in_scope(|| out.push(rpc::protocol_error(&e.0))),
             Ok(frames) => {
                 for frame in frames {
                     match frame {
-                        FromClient::Ping => out.push(rpc::pong()),
+                        FromClient::Ping => tracing::info_span!("t3.protocol.ping", api.outcome = "ok").in_scope(|| out.push(rpc::pong())),
                         FromClient::Ack { request_id } => {
+                            let _span = tracing::info_span!("t3.protocol.ack", api.outcome = "ok").entered();
                             if let Some(s) = self.streams.iter_mut().find(|s| s.id == request_id) {
                                 s.pacer.ack();
                             }
                         }
                         FromClient::Interrupt { request_id } => {
+                            let _span = tracing::info_span!("t3.protocol.interrupt", api.outcome = "ok").entered();
                             if self.streams.iter().any(|s| s.id == request_id) {
                                 self.streams.retain(|s| s.id != request_id);
                                 self.fibers += 1;
                                 out.push(rpc::exit_interrupted(&request_id, self.fibers));
                             }
                         }
-                        FromClient::Eof => {}
+                        FromClient::Eof => tracing::info_span!("t3.protocol.eof", api.outcome = "ok").in_scope(|| ()),
                         FromClient::Request { id, tag, payload } => out.extend(self.request(id, &tag, &payload)),
                     }
                 }
@@ -159,7 +175,16 @@ impl Connection {
             required_scopes(tag)
         };
         let method = if scopes.is_some() { tag } else { "unknown" };
-        let _span = tracing::info_span!("t3.rpc", otel.name = %format!("t3.rpc.{method}")).entered();
+        let span = tracing::info_span!("t3.rpc", otel.name = %format!("t3.rpc.{method}"), api.outcome = tracing::field::Empty).entered();
+        let child = if span.is_disabled() { None } else { command_span(tag, payload).map(tracing::Span::entered) };
+        let frames = self.dispatch_request(id, tag, payload, scopes);
+        let outcome = if frames.iter().any(|frame| frame.pointer("/exit/_tag").and_then(Value::as_str) == Some("Failure")) { "refused" } else { "ok" };
+        span.record("api.outcome", outcome);
+        if let Some(child) = child { child.record("api.outcome", outcome); }
+        frames
+    }
+
+    fn dispatch_request(&mut self, id: Value, tag: &str, payload: &Value, scopes: Option<&[&str]>) -> Vec<Value> {
         match scopes {
             None => {
                 self.svc.log("rpc.unsupported", &[("tag", tag.to_string()), ("known", "false".into())]);

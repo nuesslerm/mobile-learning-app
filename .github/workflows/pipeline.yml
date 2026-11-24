@@ -124,7 +124,7 @@ jobs:
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: .performance/history.sqlite
-          key: perf-rca-hosts-file-chat-v2-ubuntu24-x64
+          key: perf-rca-hosts-catalog-v1-ubuntu24-x64
       - name: Measure RCA through Orca and T3 and check latency budgets
         if: inputs.stages == 'cli' && matrix.arch == 'x64'
         timeout-minutes: 30
@@ -132,18 +132,30 @@ jobs:
           WF_PERFORMANCE_DB: .performance/history.sqlite
           WF_PERFORMANCE_PROFILE: ubuntu24-x64-debug
         run: wf test run --performance
+      - name: Exercise each Orca, T3 and RCA API and verify capture
+        if: always() && inputs.stages == 'cli' && matrix.arch == 'x64' && hashFiles('.performance/history.sqlite') != ''
+        timeout-minutes: 30
+        env:
+          WF_PERFORMANCE_DB: .performance/history.sqlite
+          WF_PERFORMANCE_PROFILE: ubuntu24-x64-debug
+        run: wf test run --performance --catalog
       - name: Pin the first passing baseline for this fixture and runner
         if: success() && inputs.stages == 'cli' && matrix.arch == 'x64' && steps.perf-baseline.outputs.cache-hit != 'true'
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: .performance/history.sqlite
-          key: perf-rca-hosts-file-chat-v2-ubuntu24-x64
+          key: perf-rca-hosts-catalog-v1-ubuntu24-x64
+      - name: Render every call and its outcome
+        if: always() && inputs.stages == 'cli' && matrix.arch == 'x64' && hashFiles('.performance/history.sqlite') != ''
+        run: wf test run --performance --db .performance/history.sqlite --report .performance/report.html
       - name: Publish the raw traces and verdict
         if: always() && inputs.stages == 'cli' && matrix.arch == 'x64' && hashFiles('.performance/history.sqlite') != ''
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: performance-sqlite
-          path: .performance/history.sqlite
+          path: |
+            .performance/history.sqlite
+            .performance/report.html
           include-hidden-files: true
           retention-days: 90
       - uses: ./.github/actions/sccache-cache

@@ -339,6 +339,12 @@ impl Call {
 pub struct Sent((Request<Body>, SocketAddr));
 
 impl Service {
+    pub fn http_operations(&self) -> Vec<(&'static str, &'static str)> {
+        let mut rows = Vec::new();
+        let _router = rca_service::api::routes::router_with_inventory(self.app.clone(), |method, path| rows.push((method, path)));
+        rows
+    }
+
     /// A device bearer minted as an operator mints one, with the service secret: its token.
     pub async fn mint(&self, label: &str) -> String {
         let answer = self.send(post("/agent/v1/bearers").secret().json(json!({"label": label}))).await;

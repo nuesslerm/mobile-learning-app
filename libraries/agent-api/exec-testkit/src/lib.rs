@@ -79,3 +79,24 @@ pub fn stop_fixture(child: &mut std::process::Child, signal: &str) {
     let _ = child.kill();
     let _ = child.wait();
 }
+
+/// The pinned wire inventory and the first schema-valid request fixture for each row.
+pub fn performance_catalog(dir: &std::path::Path) -> Vec<(serde_json::Value, serde_json::Value)> {
+    use serde_json::Value;
+    let read = |name: &str| -> Value {
+        serde_json::from_slice(&std::fs::read(dir.join(name)).unwrap()).unwrap()
+    };
+    let corpus = read("corpus.json");
+    let mut inputs = std::collections::HashMap::new();
+    for generator in corpus["generators"].as_array().unwrap() {
+        for case in generator["cases"].as_array().unwrap() {
+            if case["tags"].as_array().unwrap().iter().any(|tag| tag == "class:valid") {
+                inputs.entry(case["row"].as_str().unwrap()).or_insert(&case["input"]);
+            }
+        }
+    }
+    read("inventory.json")["endpoints"].as_array().unwrap().iter().map(|row| {
+        let input = inputs.get(row["id"].as_str().unwrap()).copied().cloned().unwrap_or(Value::Null);
+        (row.clone(), input)
+    }).collect()
+}

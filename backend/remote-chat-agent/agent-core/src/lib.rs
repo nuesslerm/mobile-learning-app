@@ -136,7 +136,7 @@ impl AgentApi {
     pub async fn dispatch_on(&self, build: Build<'_>, text: &str, connection: &Connection) -> Value {
         match Request::parse(text) {
             Ok(request) => self.dispatch(build, request, connection).await.to_value(),
-            Err(refusal) => refusal.to_value(),
+            Err(refusal) => tracing::info_span!("rca.server.invalid", api.outcome = "invalid").in_scope(|| refusal.to_value()),
         }
     }
 
@@ -144,9 +144,11 @@ impl AgentApi {
         let Request { id, method, params } = request;
         let found = self.groups.iter().find_map(|group| group.methods().iter().find(|served| served.method.name() == method).map(|served| (group, served.method)));
         let name = found.as_ref().map_or("unknown", |(_, method)| method.name());
-        let span = tracing::info_span!("rca.server", otel.name = %format!("rca.server.{name}"));
+        let span = tracing::info_span!("rca.server", otel.name = %format!("rca.server.{name}"), api.outcome = "refused");
         let Some((group, method)) = found else { return Response::error(id, code::UNKNOWN_METHOD, format!("{method} is not a method of this service")) };
-        tracing::Instrument::instrument(group.handle(Call { id, method, params: &params, build, listed: &self.listed, connection }), span).await
+        let response = tracing::Instrument::instrument(group.handle(Call { id, method, params: &params, build, listed: &self.listed, connection }), span.clone()).await;
+        if matches!(response, Response::Result { .. }) { span.record("api.outcome", "ok"); }
+        response
     }
 }
 

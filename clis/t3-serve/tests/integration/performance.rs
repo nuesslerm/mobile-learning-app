@@ -3,7 +3,7 @@ use crate::support;
 use exec_testkit::Case;
 use serde_json::json;
 
-fn exporter() -> (tracing::Dispatch, telemetry::Telemetry) {
+pub(super) fn exporter() -> (tracing::Dispatch, telemetry::Telemetry) {
     let endpoint =
         std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").expect("run under wf test run --performance");
     let destination = telemetry::Destination::new(endpoint, "");

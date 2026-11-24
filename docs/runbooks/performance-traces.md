@@ -38,3 +38,18 @@ Each job publishes a `performance-sqlite` artifact, including on budget failures
 gh run download "$RUN_ID" -n performance-sqlite -D ".performance/import/$RUN_ID"
 wf test run --performance --merge ".performance/import/$RUN_ID/history.sqlite"
 ```
+
+## Per-call API report
+
+Run the host and RCA catalog on the same machine and build profile for comparable results.
+
+```sh
+wf test run --performance --catalog
+wf test run --performance --report .performance/report.html
+```
+
+The catalog runner reads the pinned Orca and T3 endpoint inventories, the RCA HTTP router and service method registry, and the executor action table. Each of five rounds starts fresh test hosts. Orca and T3 dispatch recorded schema-valid payloads where available, falling back to minimal inputs. T3 HTTP and the Orca handshake use loopback sockets. RCA service methods receive an empty parameter object on an isolated service. RCA HTTP probes pass through the actual router with empty JSON and no credentials. Executor actions run with their required arguments against the recording executor. The report labels accepted calls, refusals and HTTP statuses. Seven upstream HTTP calls originate on the Orca phone and are listed as external.
+
+CI requires five calls with outcomes for each local endpoint. A first passing catalog run seeds each median. Later runs with the same suite, profile and outcome counts must stay within that median plus the greater of 50% or 5 ms. A decrease in the number of successful calls also fails the gate. The separate full-chain tests continue to enforce 30-sample p95 limits. Both workloads publish their SQLite data and the offline HTML report in the CI artifact.
+
+Open an endpoint in **Endpoint coverage** to inspect individual invocations. **Per-API regression checks** records each comparable median and verdict. **Operation timings** includes every recorded operation, and **Individual calls and spans** lists the time, duration, result, HTTP status, service, call site and trace identifiers where available. The run selector includes older captures. Their missing outcome and source fields are displayed as empty. Traces stay local unless export is enabled. The pinned host inventory is always available, and imported catalog runs add their captured RCA and executor inventories.
