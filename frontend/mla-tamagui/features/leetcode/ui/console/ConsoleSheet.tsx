@@ -16,10 +16,10 @@ import { CaseFields } from './CaseFields';
 
 const SNAP_POINTS = [CONSOLE_SNAP_PERCENT];
 const FLOATING_SNAP_POINTS = [FLOATING_CONSOLE_SNAP_PERCENT];
-const FLOATING_CONTENT = { gap: 8, paddingHorizontal: 12, paddingTop: 0, paddingBottom: 38 };
+const FLOATING_CONTENT = { gap: 4, paddingHorizontal: 16, paddingTop: 0, paddingBottom: 38 };
 const CONSOLE_HANDLE = { width: 60, height: 4, backgroundColor: 'rgba(175,175,185,0.47)', transform: [{ translateY: -4 }] } as const;
 const CASE_CARD = '#1d1d20';
-const CONSOLE_TAB_TRACK = { backgroundColor: '#222227' };
+const CONSOLE_TAB_TRACK = { backgroundColor: '#222227', transform: [{ translateY: -4 }] };
 const CONSOLE_TAB_THUMB = { backgroundColor: '#595860', borderRadius: 16 };
 const BACKDROP_OPACITY = 0.5;
 const TABS = [
@@ -87,8 +87,8 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
       <SegmentedControl variant="thumb" tone={floating ? "neutral" : "accent"} density={floating ? "compact" : "default"} trackStyle={darkGlass ? CONSOLE_TAB_TRACK : undefined} thumbStyle={darkGlass ? CONSOLE_TAB_THUMB : undefined} testID="ConsoleTabs" options={TABS} value={state.tab} onChange={(tab) => state.setTab(tab as ConsoleTab)} />
       <Sheet.ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 12, paddingBottom: 12 }} testID="ConsoleBody">
         {state.tab === 'testcase' ? (
-          <YStack gap="$3" role="tabpanel" testID="ConsolePanel-testcase">
-            <CaseChips neutral={floating} editing={editing} cases={state.cases} selectedId={selected?.id ?? null} atCap={state.atCap} onSelect={state.select} onAdd={add} onEdit={edit} onRemove={floating && editing ? state.removeCase : undefined} />
+          <YStack gap={floating ? '$2' : '$3'} role="tabpanel" testID="ConsolePanel-testcase">
+            <CaseChips neutral={floating} darkGlass={darkGlass} editing={editing} cases={state.cases} selectedId={selected?.id ?? null} atCap={state.atCap} onSelect={state.select} onAdd={add} onEdit={edit} onRemove={floating && editing ? state.removeCase : undefined} />
             {selected ? (
               <>
                 <CaseFields inset={floating} surfaceColor={darkGlass ? CASE_CARD : undefined} entry={selected} captions={captions} focusToken={focusToken} fieldError={fieldError} onEdit={(name, text) => state.editField(selected.id, name, text)} />

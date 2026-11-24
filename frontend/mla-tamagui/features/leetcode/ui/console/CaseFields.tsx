@@ -5,7 +5,7 @@ import { TextInput } from 'react-native';
 
 import type { CaseFieldCaption } from '../../domain/console/caseFields';
 import type { ConsoleCase } from '../../domain/console/testcases';
-import { INSET_VALUE_SURFACE, ValueCard } from './ValueCard';
+import { INSET_VALUE_CAPTION_OPACITY, INSET_VALUE_SURFACE, ValueCard } from './ValueCard';
 
 type Props = {
   entry: ConsoleCase;
@@ -33,7 +33,7 @@ export function CaseFields({ entry, captions, focusToken, fieldError, onEdit, in
           <ValueCard key={`${entry.id}:${name}`} id={`ConsoleField-${name}`} caption={inset ? name : caption} inset={inset} surfaceColor={surfaceColor} value={entry.fields[name] ?? ''} />
         ) : (
           <YStack key={`${entry.id}:${name}`} gap="$1" {...(inset ? INSET_VALUE_SURFACE : {})} style={surfaceColor ? { backgroundColor: surfaceColor } : undefined}>
-            <Text variant="muted" fontSize={inset ? 11 : undefined} testID={`ConsoleField-${name}-Caption`}>
+            <Text variant="muted" fontSize={inset ? 11 : undefined} opacity={inset && surfaceColor ? INSET_VALUE_CAPTION_OPACITY : undefined} testID={`ConsoleField-${name}-Caption`}>
               {inset ? name : caption}
             </Text>
             <TextInput

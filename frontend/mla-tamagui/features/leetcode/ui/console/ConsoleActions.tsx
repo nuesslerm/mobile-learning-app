@@ -23,7 +23,7 @@ const iosIconSize = ios ? 14 : undefined;
 const RESET_CONFIRM = 'ConsoleResetConfirmation';
 const RESET_PATH = [RESET_CONFIRM];
 const CANVAS_PILL = { backgroundColor: '#101010', borderColor: '#252525', borderWidth: 1 } as const;
-const FOOTER_PILL = { backgroundColor: '#29292c', borderColor: '#45454a', borderWidth: 1 } as const;
+const FOOTER_PILL = { backgroundColor: '#39383c', borderColor: '#49484c', borderWidth: 1 } as const;
 const SUBMIT_GLOW = { shadowColor: '#28dc57', shadowOpacity: 0.48, shadowRadius: 15, shadowOffset: { width: 0, height: 5 } } as const;
 const CANVAS_CONTROL = { height: 42, fontSize: 17, color: '#f5f5f7' } as const;
 
@@ -74,7 +74,7 @@ export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubm
       icon={Play}
       iconSize={canvas ? 16 : iosIconSize}
       iconFilled={canvas}
-      iconSystemSymbol={canvas && variant === 'bar' ? 'play.fill' : undefined}
+      iconSystemSymbol={canvas ? 'play.fill' : undefined}
       variant="secondary"
       glass={canvas && variant === 'bar'}
       size={canvas ? 42 : "$3"}
