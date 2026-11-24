@@ -1,7 +1,9 @@
+import type { MenuActionNode } from '@lib/tamagui-design-system';
 import { describe, expect, it, vi } from 'vitest';
 
 import { editorSettingsMenu } from '../../editor-settings/editorSettingsMenu';
 import { DEFAULT_EDITOR_PREFERENCES } from '../../../domain/editor-settings/editorPreferences';
+import { editorLanguageMenu } from '../editorLanguageMenu';
 import { editorHeaderSpec, type EditorHeaderInput } from '../editorHeaderSpec';
 
 function inputs(patch: Partial<EditorHeaderInput> = {}): EditorHeaderInput {
@@ -61,7 +63,7 @@ describe('the editor header spec', () => {
     const onUndo = vi.fn();
     const input = inputs({
       onUndo,
-      nativeWorkspace: { dirty: true, language: { ...settingsMenu(), testID: 'ProblemEditorLanguageMenu' } },
+      nativeWorkspace: { dirty: true, backgroundColor: '#000000', language: { ...settingsMenu(), testID: 'ProblemEditorLanguageMenu' } },
     });
 
     const spec = editorHeaderSpec(input);
@@ -77,5 +79,22 @@ describe('the editor header spec', () => {
 
   it('given no run in flight, when built, then busy is false', () => {
     expect(editorHeaderSpec(inputs({ settings: settingsMenu() })).busy).toBe(false);
+  });
+});
+
+describe('the editor language menu', () => {
+  it('given the available runners, when the native menu opens, then it preserves the recorded order and changes only to enabled languages', () => {
+    const onChange = vi.fn();
+    const menu = editorLanguageMenu('python3', ['python3', 'javascript'], onChange);
+    const rows = menu.items.filter((row): row is MenuActionNode => row.kind === undefined || row.kind === 'action');
+
+    expect(menu.label).toBe('Python3');
+    expect(rows.map((row) => row.label)).toEqual([
+      'C++', 'Java', 'Python3', 'Python', 'JavaScript', 'TypeScript', 'C#', 'C', 'Go', 'Kotlin', 'Swift', 'Rust',
+    ]);
+    expect(rows.filter((row) => !row.disabled).map((row) => row.label)).toEqual(['Python3', 'JavaScript']);
+    expect(rows.filter((row) => row.checked).map((row) => row.label)).toEqual(['Python3']);
+    for (const row of rows) row.onPress();
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('javascript');
   });
 });

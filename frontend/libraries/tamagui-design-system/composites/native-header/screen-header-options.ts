@@ -97,7 +97,7 @@ export function buildScreenHeaderOptions({
     headerShadowVisible: false,
     ...(transparent
       ? {}
-      : { headerStyle: { backgroundColor: theme.background } }),
+      : { headerStyle: { backgroundColor: spec.nativeBackgroundColor ?? theme.background } }),
     headerTintColor: theme.tint,
     headerUserInterfaceStyle: scheme,
     title: spec.title,
@@ -115,6 +115,7 @@ export function headerSignature(spec: ScreenHeaderSpec): string {
     title: spec.title,
     subtitle: spec.subtitle,
     nativeTitle: spec.nativeTitle,
+    nativeBackgroundColor: spec.nativeBackgroundColor,
     leadingStatus: spec.leadingStatus ? {
       id: spec.leadingStatus.testID,
       label: spec.leadingStatus.label,

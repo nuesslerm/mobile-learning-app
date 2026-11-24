@@ -33,11 +33,7 @@ import { applyPlannedEdit, readBasis, type EditBasis, type EditOutcome, type Edi
 import { lineHeightFor } from '../../domain/editor-settings/editorPreferences';
 import { useEditorPreferencesStore } from '../../state/editor/editorPreferencesStore';
 import { useLeetCodePorts } from '../../state/ports';
-import {
-  getPalette,
-  useCodeEditorSettingsStore,
-} from '../../state/editor/editorSettings';
-import { DEFAULT_PALETTE_ID } from '../../state/editor/palettes';
+import { useEditorAppearance } from './useEditorAppearance';
 import type { EditResult } from '../../domain/editor/editing';
 import { checkpointWithin, clearErrorLine, showErrorLine, type ErrorCheckpoint, type ErrorJump, type ErrorPlace } from '../../domain/editor/errorJump';
 import type { Selection } from '../../domain/editor/types';
@@ -177,18 +173,13 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     const completionOpenRef = useRef(false);
     const initLanguageRef = useRef(language);
 
-    const paletteId = useCodeEditorSettingsStore((s) => s.paletteId);
     const fontSize = useEditorPreferencesStore((s) => s.fontSize);
     const wordWrap = useEditorPreferencesStore((s) => s.wrap);
     const tabSize = useEditorPreferencesStore((s) => s.tabSize);
     const showWhitespace = useEditorPreferencesStore((s) => s.whitespace);
-    const palette = getPalette(paletteId);
     const canvas = appearance === 'canvas';
-    const contrastPalette = canvas && paletteId === DEFAULT_PALETTE_ID;
-    const syntaxPalette = canvas ? (contrastPalette ? 'contrast' : 'default') : undefined;
-    const backgroundColor = contrastPalette ? '#000000' : palette.background;
+    const { backgroundColor, syntaxPalette, isDark, palette, paletteId } = useEditorAppearance(canvas);
     const lineHeight = lineHeightFor(fontSize);
-    const isDark = palette.appearance === 'dark';
     // Editor chrome colors (gutter + border) are intentionally tied to the
     // editor palette's appearance, not the OS theme — they live inside the
     // embedded WebView, so the surrounding app's tokens don't apply.

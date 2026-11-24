@@ -41,6 +41,7 @@ export type ScreenHeaderSpec = {
   busy?: boolean;
   /** Native bar only: the content scrolls under the glass instead of starting below an opaque bar. Ignored by the classic header. */
   transparent?: boolean;
+  nativeBackgroundColor?: string;
   testID: string;
 };
 

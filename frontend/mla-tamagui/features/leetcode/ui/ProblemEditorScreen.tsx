@@ -12,13 +12,14 @@ import {
   Text,
   useKeyboardFrame,
   useNativeHeaderStore,
+  usePresetThemeStore,
   View,
 } from '@lib/tamagui-design-system';
 import type { EditAlternative } from '@lib/voice-edit-dsl';
 import { router } from 'expo-router';
-import { Code, Mic, Pencil } from '@lib/tamagui-design-system/icons';
+import { Mic, Pencil } from '@lib/tamagui-design-system/icons';
 import React from 'react';
-import { BackHandler, Platform, Pressable, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
+import { BackHandler, Platform, Pressable, useColorScheme, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
 import { useLeetCodePorts } from '../state/ports';
@@ -56,6 +57,8 @@ import {
 } from './LanguagePicker';
 import { VoiceRecordingToolbar } from './VoiceRecordingToolbar';
 import { VoiceReviewSheet } from './VoiceReviewSheet';
+import { useEditorAppearance } from './editor/useEditorAppearance';
+import { editorLanguageMenu } from './editor-header/editorLanguageMenu';
 import { editorHeaderSpec } from './editor-header/editorHeaderSpec';
 import { editorSettingsMenu } from './editor-settings/editorSettingsMenu';
 import { SymbolBarSheet } from './editor-settings/SymbolBarSheet';
@@ -559,6 +562,11 @@ export function ProblemEditorScreen({
     </>
   );
 
+  const { backgroundColor, palette } = useEditorAppearance(iosCanvas);
+  const appThemeMode = usePresetThemeStore((state) => state.themeMode);
+  const systemScheme = useColorScheme();
+  const appScheme = appThemeMode === 'system' ? systemScheme ?? 'light' : appThemeMode;
+  const canvasBackground = iosCanvas && appScheme === palette.appearance ? backgroundColor : undefined;
   const headerSpec = editorHeaderSpec({
     title: problem?.title ?? 'Problem',
     subtitle: problemSubtitle,
@@ -568,18 +576,8 @@ export function ProblemEditorScreen({
     busy: consolePending !== null,
     nativeWorkspace: nativeEditorHeader ? {
       dirty: isDirty,
-      language: {
-        testID: 'ProblemEditorLanguageMenu',
-        accessibilityLabel: 'Language',
-        icon: Code,
-        label: lang === 'python3' ? 'Python3' : languageLabel(lang),
-        items: availableLanguages.map((choice) => ({
-          testID: `ProblemEditorLanguagePicker-${languageLabel(choice)}`,
-          label: choice === 'python3' ? 'Python3' : languageLabel(choice),
-          checked: choice === lang,
-          onPress: () => { if (choice !== lang) handleLanguageChange(choice); },
-        })),
-      },
+      backgroundColor: canvasBackground,
+      language: editorLanguageMenu(lang, availableLanguages, handleLanguageChange),
     } : undefined,
     settings: editorSettingsMenu(
           { fontSize, tabSize, wrap, whitespace },
@@ -608,6 +606,7 @@ export function ProblemEditorScreen({
     <View
       flex={1}
       bg="$background"
+      style={{ backgroundColor: canvasBackground }}
       testID="ProblemEditorScreen"
       onLayout={(event: LayoutChangeEvent) => setRootHeight(Math.round(event.nativeEvent.layout.height))}
     >
@@ -707,7 +706,7 @@ export function ProblemEditorScreen({
             </Pressable>
           </YStack>
         </KeyboardToolbarAwareScrollView>
-        {!consoleOpen && !keyboard.visible ? <ConsoleDock {...consoleActions} /> : null}
+        {!consoleOpen && !keyboard.visible ? <ConsoleDock {...consoleActions} backgroundColor={canvasBackground} /> : null}
       </KeyboardToolbarTarget>
       {problem ? (
         <ConsoleSheet
