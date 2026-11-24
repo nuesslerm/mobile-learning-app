@@ -50,14 +50,18 @@ describe('given a build that carries the BetterStack ingest pair', () => {
       });
     }
     const items = ingest.posts.flatMap((p) => p.items);
-    expect(items.find((i) => i.message === 'app.boot')).toMatchObject({ level: 'info', source: 'AppShell', app: 'mla-tamagui', platform: 'web' });
+    const boot = items.find((i) => i.message === 'app.boot');
+    expect(boot).toMatchObject({ level: 'info', source: 'AppShell', app: 'mla-tamagui', platform: 'web' });
+    for (const field of ['file', 'line', 'fn', 'fnPath', 'testID']) {
+      expect(boot).not.toHaveProperty(field);
+    }
     // BetterStack's `message` is the event name, so the crash's own message field arrives as context_message
     expect(items.find((i) => i.message === 'app.crash')).toMatchObject({
       level: 'error',
       kind: 'error',
       fatal: true,
       context_message: 'boom',
-      error: expect.objectContaining({ message: 'boom' }),
+      error: expect.objectContaining({ message: 'boom', stack: expect.stringContaining('Error: boom') }),
       app: 'mla-tamagui',
     });
   });

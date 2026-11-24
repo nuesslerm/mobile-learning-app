@@ -12,8 +12,7 @@ Options:
   --platform <platform>      all | ios | android: one update group for those
                              platforms (default: the script's own, ios)
   --pointer-dir <dir>        Write the summary as <dir>/<group>/summary.json
-                             beside the group's source maps (default:
-                             WF_EAS_POINTER_DIR; none: nothing is stored)
+                             (default: WF_EAS_POINTER_DIR).
   --pointer                  Also write <dir>/latest-<branch>.json, the branch's
                              latest update, which the same run's e2e job loads
                              (CI's publish only: they refuse an update without
@@ -29,7 +28,7 @@ Options:
 
 Output: one JSON line on stdout {published, branch, initialRoute, commit, group,
 platform, platforms[], env[], hosts[], memory {peakRssMb, vm}, timing {exportS,
-uploadS, servedS}, link, maps {stored, base, files[] | error}, served
+uploadS, servedS}, link, maps {found | stored | error}, served
 {platform, runtimeVersion, url, status, s | error}, pointers {summary, latest |
 error}}. env holds the names (never the values) of the EXPO_PUBLIC_* variables
 the bundle baked in, hosts the hosts their URLs name. peakRssMb is the largest
@@ -40,5 +39,6 @@ when the group has it; WF_EAS_UPDATES_URL overrides the host, and
 WF_EAS_SERVED_TIMEOUT_S the 120 s it waits). With a pointer dir the line is
 written as <dir>/<group>/summary.json and, with --pointer, as
 <dir>/latest-<branch>.json.
-Exit 1 when the publish fails (the tail of its output on stderr) or, with
---pointer, when latest-<branch>.json was not written; 2 on a bad option.
+WF_EAS_MAPS_DIR writes maps separately as <dir>/<group>/<platform>.map.sealed
+using CI_DB_KEY from the vault. Exit 1 when the publish fails or a requested
+archive or branch pointer could not be written; 2 on a bad option.

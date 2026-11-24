@@ -2,7 +2,6 @@
 //
 // Layered architecture (top → bottom, callers read top-down):
 //   logger/      — JS-facing API (Logger)
-//   babel/       — compile-time call-site injection (injectLoggerSource)
 //   plugins/     — the scrubber loglayer plugin
 //   primitives/  — generic, no domain knowledge (bufferedSink, clock, secretRedaction, traceparent)
 //   liveTail/    — in-memory log tail + appendToLiveTail Pipeline stage

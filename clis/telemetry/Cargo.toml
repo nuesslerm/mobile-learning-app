@@ -17,7 +17,7 @@ oneshot = ["dep:ureq"]
 # `logger emit`, the shell scripts' logger, as a library (`wf log emit`) and as the static `logger` binary.
 cli = ["oneshot"]
 
-# The black-box check of the call-site contract (`contract/callsite.json`), for Rust's own tests and the TypeScript logger's.
+# The black-box check of the call-site contract (`contract/callsite.json`), for the Rust logger's tests.
 callsite = []
 
 # Gauges to an OTLP/HTTP metrics source, one request per batch (`OtlpMetricsSink`).

@@ -30,6 +30,7 @@ telemetry = { version = "0.1", registry = "mla", features = ["metrics", "oneshot
 serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
 hex = "0.4"
+flate2 = "1"
 tiny_http = "0.12"
 rusqlite = { version = "0.37", features = ["bundled"] }
 chacha20poly1305 = { version = "0.10", default-features = false, features = ["alloc"] }

@@ -51,7 +51,6 @@
     "react-native-css-interop": "catalog:",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
-    "vite-plugin-babel": "catalog:",
     "vitest": "catalog:"
   },
   "peerDependenciesMeta": {
@@ -65,9 +64,6 @@
       "optional": true
     },
     "expo-router": {
-      "optional": true
-    },
-    "vite-plugin-babel": {
       "optional": true
     },
     "@types/react": {

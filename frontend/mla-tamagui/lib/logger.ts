@@ -7,9 +7,9 @@
  * call in the app AND in the design system silently vanish — an absence that
  * looks exactly like the app being quiet. App #1 carries the same warning.
  *
- *   Logger -> PipelineTransport -> [appendToLiveTail] -> the debug sheet
+ *   Logger -> PipelineTransport -> [appendToLiveTail] -> the local log tail
  *                                -> [appendToBetterStack] -> BetterStack (info and up), when the build carries its ingest pair
- *   console -> installConsoleCapture -> the debug sheet only
+ *   console -> installConsoleCapture -> the local log tail only
  *
  * The forwarder is on only when EXPO_PUBLIC_BETTERSTACK_TOKEN and
  * EXPO_PUBLIC_BETTERSTACK_HOST are both baked in (CI's EAS Update step does it);
@@ -84,6 +84,12 @@ function serialize(p: LogLayerTransportParams): AppLogEntry {
 const betterStackToken = process.env.EXPO_PUBLIC_BETTERSTACK_TOKEN;
 const betterStackHost = process.env.EXPO_PUBLIC_BETTERSTACK_HOST;
 
+const manifest = Updates.manifest;
+const metadata = manifest && 'metadata' in manifest ? manifest.metadata : undefined;
+const updateGroup = metadata && 'updateGroup' in metadata && typeof metadata.updateGroup === 'string'
+  ? metadata.updateGroup
+  : undefined;
+
 const stages: Stage<AppLogEntry>[] = [appendToLiveTail() as Stage<AppLogEntry>];
 if (betterStackToken && betterStackHost) {
   stages.push(
@@ -97,6 +103,9 @@ if (betterStackToken && betterStackHost) {
         platform: process.env.EXPO_OS,
         version: Constants.expoConfig?.version,
         updateId: Updates.updateId ?? undefined,
+        updateGroup,
+        embeddedUpdate: Updates.isEmbeddedLaunch,
+        nativeBuildVersion: Constants.platform?.ios?.buildNumber ?? Constants.platform?.android?.versionCode,
         runtimeVersion: Updates.runtimeVersion ?? undefined,
         // the other fields are equal on the phone and every CI emulator; this one tells their launches apart
         sessionId: Constants.sessionId,
@@ -128,12 +137,9 @@ configureLogger({ root: () => rootLogLayer });
 // dependency is visible rather than invisible.
 installConsoleCapture({ target: liveTail });
 
-// One line at boot proves the chain end to end: if the debug sheet is empty,
-// the wiring is broken rather than the app being quiet.
 Logger.info('app.boot', { source: 'AppShell' });
 
-// Dev only: the debug sheet's tail for a page script. A driven run reads the same lines off the console
-// (ConsoleEchoTransport): `wf browser get-logs --level info`.
+// The web harness can read the local tail or the console echo.
 if (__DEV__ && typeof globalThis !== 'undefined') {
   (globalThis as { __liveTail?: typeof liveTail }).__liveTail = liveTail;
 }

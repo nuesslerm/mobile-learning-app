@@ -818,6 +818,10 @@ pub fn merge(into: &Connection, from: &Path) -> Result<usize, String> {
 pub fn key() -> Result<[u8; 32], String> {
     let values = secrets::load_values(&[KEY]);
     let text = values.get(KEY).cloned().flatten().ok_or_else(|| format!("{KEY} is not set and the vault has none"))?;
+    decode_key(&text)
+}
+
+pub(crate) fn decode_key(text: &str) -> Result<[u8; 32], String> {
     let bytes = hex::decode(text.trim()).map_err(|_| format!("{KEY} is not hex"))?;
     bytes.try_into().map_err(|_| format!("{KEY} is not 32 bytes"))
 }

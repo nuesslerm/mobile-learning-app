@@ -5,13 +5,13 @@
 use regex::Regex;
 use serde_json::{json, Map, Value};
 use sourcemap::SourceMap;
+use std::collections::{BTreeSet, HashMap};
 use std::time::{Duration, Instant};
 
 /// The launch-URL query the app reads its run id from (`frontend/mla-tamagui/app-shell/runId.ts`).
 pub const RUN_QUERY: &str = "wfRun";
 /// The env var the harness sets for the run, which `open_link` reads.
 const RUN_ENV: &str = "WF_APP_RUN_ID";
-const MAPS_PREFIX: &str = "verification/eas-updates";
 /// How long to wait for BetterStack to ingest the run's lines, in seconds.
 const WAIT_ENV: &str = "WF_ANDROID_LOGS_WAIT_S";
 const DEFAULT_WAIT_S: u64 = 30;
@@ -49,27 +49,17 @@ pub fn group_of(link: &str) -> Option<String> {
     Regex::new(r"/group/([A-Za-z0-9-]+)").unwrap().captures(link).map(|c| c[1].to_string())
 }
 
-fn valid_group(group: &str) -> bool {
-    !group.is_empty() && group.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+fn fetch_map(group: &str, platform: &str) -> Result<(SourceMap, String), String> {
+    let artifact = wf_bucket::eas_maps::read(group, platform)?;
+    let map = crate::browser_debug::parse_map(&artifact.bytes).ok_or("invalid EAS source map")?;
+    Ok((map, artifact.update_id))
 }
 
-/// The group's source map for a platform, from the bucket `wf ship eas` uploaded it to (the group's summary.json lists its files).
-fn fetch_map(group: &str, platform: &str) -> Result<(SourceMap, String), String> {
-    if !valid_group(group) {
-        return Err(format!("'{group}' is not an update group id (letters, digits and dashes)"));
+fn check_update(expected: Option<&str>, actual: &str) -> Result<(), String> {
+    if let Some(expected) = expected.filter(|id| !id.eq_ignore_ascii_case(actual)) {
+        return Err(format!("the source map belongs to update {actual}, but the stack belongs to {expected}"));
     }
-    let base = format!("{}/{MAPS_PREFIX}/{group}", wf_bucket::artifacts::public_base());
-    let summary = wf_bucket::artifacts::read_public(&format!("{base}/summary.json"))?.ok_or_else(|| format!("the bucket has no summary for update group {group}: it was published before source maps were stored, or by a build that stored none"))?;
-    let summary: Value = serde_json::from_str(&summary).map_err(|e| format!("summary.json of group {group} is not JSON: {e}"))?;
-    let files = summary["maps"]["files"].as_array().ok_or_else(|| format!("group {group} stored no source maps: {}", summary["maps"]["error"].as_str().unwrap_or("its summary lists none")))?;
-    let rel = files
-        .iter()
-        .filter_map(Value::as_str)
-        .find(|f| f.ends_with(".map") && f.contains(&format!("/{platform}/")))
-        .ok_or_else(|| format!("group {group} has no {platform} source map among {} files", files.len()))?;
-    let text = wf_bucket::artifacts::read_public(&format!("{base}/{rel}"))?.ok_or_else(|| format!("{base}/{rel} is listed in the summary but not in the bucket"))?;
-    let map = crate::browser_debug::parse_map(text.as_bytes()).ok_or_else(|| format!("{rel} is not a source map"))?;
-    Ok((map, rel.to_string()))
+    Ok(())
 }
 
 /// One stack line mapped to its source: Hermes prints `at name (address at bundle:LINE:COL)`, columns counted from 1.
@@ -98,7 +88,7 @@ fn frame_text(frame: &Value) -> String {
 }
 
 /// `wf android stack <group> [--platform P] [--file F]`: the stack on stdin (or in F) mapped through the group's source map.
-pub fn stack(group: &str, platform: &str, file: Option<&str>) -> Result<Value, String> {
+pub fn stack(group: &str, platform: &str, file: Option<&str>, update_id: Option<&str>, map_file: Option<&str>) -> Result<Value, String> {
     use std::io::{IsTerminal, Read};
     let text = match file {
         Some(f) => std::fs::read_to_string(f).map_err(|e| format!("cannot read {f}: {e}"))?,
@@ -109,10 +99,24 @@ pub fn stack(group: &str, platform: &str, file: Option<&str>) -> Result<Value, S
             text
         }
     };
-    let (map, rel) = fetch_map(group, platform)?;
+    if !wf_bucket::eas_maps::valid_id(group) || !matches!(platform, "ios" | "android") {
+        return Err("give an EAS group id and either the ios or android platform".into());
+    }
+    let (map, source, resolved_update_id) = if let Some(path) = map_file {
+        if update_id.is_some() {
+            return Err("--update-id requires a sealed map with an authenticated update id".into());
+        }
+        let bytes = std::fs::read(path).map_err(|e| format!("cannot read source map {path}: {e}"))?;
+        let map = crate::browser_debug::parse_map(&bytes).ok_or("invalid local source map")?;
+        (map, path.to_string(), None)
+    } else {
+        let (map, id) = fetch_map(group, platform)?;
+        check_update(update_id, &id)?;
+        (map, format!("{platform}.map.sealed"), Some(id))
+    };
     let frames = map_stack(&map, &text);
     let text = frames.iter().map(frame_text).collect::<Vec<_>>().join("\n");
-    Ok(json!({ "group": group, "platform": platform, "map": rel, "frames": frames, "text": text }))
+    Ok(json!({ "group": group, "platform": platform, "map": source, "updateId": resolved_update_id, "frames": frames, "text": text }))
 }
 
 /// The stack a log line carries: a `stack` field, or the `stack` of its `error` field (an Error serialized) or the error text itself.
@@ -170,22 +174,7 @@ pub fn collect(run_id: &str, group: Option<&str>, platform: &str) -> Value {
         std::thread::sleep(POLL);
     };
     let mut lines: Vec<Value> = rows.iter().map(|r| line_of(r)).collect();
-    let mut map_note = None;
-    if let Some(group) = group {
-        if lines.iter().any(|l| l["stack"].is_string()) {
-            match fetch_map(group, platform) {
-                Ok((map, _)) => {
-                    for l in lines.iter_mut().filter(|l| l["stack"].is_string()) {
-                        let frames = map_stack(&map, l["stack"].as_str().unwrap_or_default());
-                        l["mappedStack"] = json!(frames.iter().map(frame_text).collect::<Vec<_>>().join("\n"));
-                    }
-                }
-                Err(e) => map_note = Some(format!("stacks stay as logged: {e}")),
-            }
-        }
-    } else if lines.iter().any(|l| l["stack"].is_string()) {
-        map_note = Some("stacks stay as logged: the run did not load an update group (no --env base=exp://.../group/<group>)".to_string());
-    }
+    let map_note = map_logged_stacks(&mut lines, group, platform);
     lines.sort_by_key(rank);
     let note = match (rows.len(), settled) {
         (0, _) => format!("no line carried this run's id after {}s: the app may not have started with the id, the build may carry no BetterStack ingest pair, or ingest is slow, so lines may be missing", wait.as_secs()),
@@ -193,6 +182,33 @@ pub fn collect(run_id: &str, group: Option<&str>, platform: &str) -> Value {
         (n, false) => format!("{n} lines when the {}s wait for ingest ended with the count still changing: later lines may be missing", wait.as_secs()),
     };
     merge(json!({ "lines": lines, "note": note, "mapNote": map_note }))
+}
+
+fn map_logged_stacks(lines: &mut [Value], run_group: Option<&str>, platform: &str) -> Option<String> {
+    let mut maps = HashMap::new();
+    let mut failures = BTreeSet::new();
+    for line in lines.iter_mut().filter(|line| line["stack"].is_string()) {
+        let fields = &line["fields"];
+        if fields["embeddedUpdate"].as_bool() == Some(true) {
+            failures.insert("an embedded update needs the map from its native build".to_string());
+            continue;
+        }
+        let Some(group) = fields["updateGroup"].as_str().or(run_group) else {
+            failures.insert("the log and run have no EAS update group".to_string());
+            continue;
+        };
+        let result = maps.entry(group.to_string()).or_insert_with(|| fetch_map(group, platform));
+        let mapped = result.as_ref().map_err(Clone::clone).and_then(|(map, update_id)| {
+            check_update(fields["updateId"].as_str(), update_id)?;
+            let stack = line["stack"].as_str().unwrap_or_default();
+            Ok(map_stack(map, stack).iter().map(frame_text).collect::<Vec<_>>().join("\n"))
+        });
+        match mapped {
+            Ok(stack) => line["mappedStack"] = json!(stack),
+            Err(error) => { failures.insert(error); }
+        }
+    }
+    (!failures.is_empty()).then(|| format!("some stacks stay as logged: {}", failures.into_iter().collect::<Vec<_>>().join(" | ")))
 }
 
 /// The report's section: the note, then crashes with mapped stacks, errors and warnings, then up to `SHOWN_INFO` other lines.

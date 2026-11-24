@@ -26,7 +26,6 @@
   },
   "peerDependencies": {
     "typescript": "catalog:",
-    "vite-plugin-babel": "catalog:",
     "vitest": "catalog:"
   },
   "peerDependenciesMeta": {
@@ -34,9 +33,6 @@
       "optional": true
     },
     "vitest": {
-      "optional": true
-    },
-    "vite-plugin-babel": {
       "optional": true
     }
   }

@@ -1,7 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import babel from 'vite-plugin-babel';
 import { defineConfig } from 'vitest/config';
 
 const featuresDir = path.dirname(fileURLToPath(import.meta.url));
@@ -21,7 +20,6 @@ const stubAliases = [
 // Unit tests for a `@feature/*` package, run from its directory; flow tests have their own config.
 export function createFeatureVitestConfig(): ReturnType<typeof defineConfig> {
   return defineConfig({
-    plugins: [babel({ babelConfig: { configFile: './babel.config.cjs' } })],
     resolve: { alias: stubAliases },
     test: {
       include: ['src/**/*.test.{ts,tsx}'],

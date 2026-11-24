@@ -77,18 +77,8 @@ export class ConsoleEchoTransport extends LoggerlessTransport {
     hasData,
   }: LogLayerTransportParams): unknown[] {
     if (this.accepts && !this.accepts(messages[0])) return messages;
-    const args = hasData && data ? [...messages, eventFieldsFirst(data)] : messages;
+    const args = hasData && data ? [...messages, data] : messages;
     this.sink.push({ level: toStoreLevel(logLevel), args });
     return messages;
   }
-}
-
-const CALL_SITE = ['file', 'line', 'fn', 'fnPath', 'testID'];
-
-// a console preview shows an object's first five fields: the event's own (an app.crash's error, a press's testID) come
-// before the call site the babel plugin injects
-function eventFieldsFirst(data: Record<string, unknown>): Record<string, unknown> {
-  const own = ([k, v]: [string, unknown]) => !CALL_SITE.includes(k) || (k === 'testID' && v != null);
-  const entries = Object.entries(data);
-  return Object.fromEntries([...entries.filter(own), ...entries.filter((e) => !own(e))]);
 }

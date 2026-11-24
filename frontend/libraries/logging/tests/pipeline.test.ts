@@ -222,33 +222,6 @@ describe('ConsoleEchoTransport — echoes to the injected console', () => {
     const call = log.mock.calls[0];
     expect(call).toEqual(['event', { userId: 1 }]);
   });
-
-  it('puts the event fields before the injected call site, so a console preview shows them', () => {
-    // Given an entry whose data starts with the call site the babel plugin injects
-    const error = vi.fn();
-    const transport = new ConsoleEchoTransport({ console: { error } });
-    const data = { file: 'a.ts', line: 3, fn: 'crash', fnPath: 'install > crash', testID: null, kind: 'error', fatal: true, error: 'boom' };
-    // When it is echoed
-    transport.shipToLogger(params('error', ['app.crash'], data, true));
-    vi.advanceTimersByTime(1000);
-    // Then its own fields come first and the call site follows, nothing dropped
-    const echoed = error.mock.calls[0]?.[1] as Record<string, unknown>;
-    expect(Object.keys(echoed)).toEqual(['kind', 'fatal', 'error', 'file', 'line', 'fn', 'fnPath', 'testID']);
-    expect(echoed).toEqual(data);
-  });
-
-  it('keeps a press event\'s own testID among its fields', () => {
-    // Given a press whose testID is the event's subject, not an empty call-site slot
-    const info = vi.fn();
-    const transport = new ConsoleEchoTransport({ console: { info } });
-    const data = { file: 'Button.tsx', line: 66, fn: 'onPress', fnPath: 'Button > onPress', testID: 'Save', variant: 'primary' };
-    // When it is echoed
-    transport.shipToLogger(params('info', ['ds.button.press'], data, true));
-    vi.advanceTimersByTime(1000);
-    // Then the testID stays in the first five fields a preview shows
-    const echoed = info.mock.calls[0]?.[1] as Record<string, unknown>;
-    expect(Object.keys(echoed)).toEqual(['testID', 'variant', 'file', 'line', 'fn', 'fnPath']);
-  });
 });
 
 describe('createInMemoryPersistence', () => {

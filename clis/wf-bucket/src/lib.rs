@@ -7,6 +7,7 @@ pub mod cache_runs;
 pub mod ci_db;
 pub mod ci_metric_catalog;
 pub mod ci_metrics;
+pub mod eas_maps;
 mod help_table;
 mod state_verb;
 pub mod job_name;

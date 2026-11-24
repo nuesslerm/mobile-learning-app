@@ -1204,12 +1204,14 @@ jobs:
           scope: export
       # every push to dev ships the update phones open, whatever the tests say: this is development, not a release
       - name: Publish the EAS Update
+        id: publish
         if: ${{ inputs.ship && needs.plan.outputs.is_head == 'true' }}
         timeout-minutes: 20
         env:
           EXPO_PUBLIC_DEVICE_LAB: "1"
           WF_VM_SAMPLE_SECS: "5"
           WF_EAS_POINTER_DIR: ${{ runner.temp }}/eas-pointer
+          WF_EAS_MAPS_DIR: ${{ runner.temp }}/eas-maps
           EXPO_PUBLIC_BETTERSTACK_TOKEN: ${{ vars.EXPO_PUBLIC_BETTERSTACK_TOKEN }}
           EXPO_PUBLIC_BETTERSTACK_HOST: ${{ vars.EXPO_PUBLIC_BETTERSTACK_HOST }}
         run: |
@@ -1253,12 +1255,13 @@ jobs:
           fi
           wf ship eas --platform all --branch dev --pointer --message "$(git log -1 --format=%s "$GITHUB_SHA")" | tee "$RUNNER_TEMP/eas.log"
           summary=$(tail -1 "$RUNNER_TEMP/eas.log")
+          echo "group=$(jq -er .group <<<"$summary")" >> "$GITHUB_OUTPUT"
           {
             echo "### EAS Update"
             echo "[Open the update]($(jq -r '.link // empty' <<<"$summary")) on branch dev for $(jq -r '.platforms | join(", ")' <<<"$summary"), group \`$(jq -r '.group' <<<"$summary")\`, commit \`${GITHUB_SHA::9}\`"
             echo "Export $(jq -r '.timing.exportS // "-"' <<<"$summary") s, upload $(jq -r '.timing.uploadS // "-"' <<<"$summary") s, $(jq -r 'if .timing.servedS then "served \(.timing.servedS) s after the upload" else "not served: \(.served.error // "-")" end' <<<"$summary")"
             echo "Memory: largest process $(jq -r '.memory.peakRssMb // "-"' <<<"$summary") MB, VM MemAvailable low $(jq -r '.memory.vm.memAvailableMinMb // "-"' <<<"$summary") MB"
-            echo "Source maps: $(jq -r '.maps.uploaded // .maps.error' <<<"$summary") under $(jq -r '.maps.base // "-"' <<<"$summary"); latest-dev pointer: $(jq -r '.pointers.latest // .pointers.error // "-"' <<<"$summary")"
+            echo "Sealed source maps: $(jq -r '.maps.stored // .maps.error' <<<"$summary"); latest-dev pointer: $(jq -r '.pointers.latest // .pointers.error // "-"' <<<"$summary")"
             echo "BetterStack forwarder: $forwarder"
           } >> "$GITHUB_STEP_SUMMARY"
       # the pointers wait for the tests in eas-promote, which writes them to the state ref
@@ -1269,6 +1272,15 @@ jobs:
           name: eas-pointer-production
           path: ${{ runner.temp }}/eas-pointer
           retention-days: 2
+          if-no-files-found: error
+      - name: Upload sealed EAS source maps
+        if: steps.publish.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: eas-maps-${{ steps.publish.outputs.group }}
+          path: ${{ runner.temp }}/eas-maps/${{ steps.publish.outputs.group }}/*.map.sealed
+          compression-level: 0
+          retention-days: 30
           if-no-files-found: error
       - name: Export the EAS bundle (not published)
         if: ${{ !inputs.ship }}
@@ -1362,6 +1374,7 @@ jobs:
       # runner, which the emulator reaches as 10.0.2.2, so they load this variant of the same commit from branch e2e (its pointer is theirs,
       # WF_EAS_UPDATE_BRANCH in e2e-tests.yml). The bearer is the one that job's leetcode backend starts with (E2E_LEETCODE_BEARER there).
       - name: Publish the EAS Update the Android e2e tests load
+        id: publish
         if: ${{ inputs.ship && inputs.e2e }}
         timeout-minutes: 20
         env:
@@ -1371,10 +1384,12 @@ jobs:
           EXPO_PUBLIC_AGENT_BASE_URL: http://10.0.2.2:8787
           EXPO_PUBLIC_VM_OPS_API_BASE_URL: http://127.0.0.1:1
           WF_EAS_POINTER_DIR: ${{ runner.temp }}/eas-pointer
+          WF_EAS_MAPS_DIR: ${{ runner.temp }}/eas-maps
         run: |
           set -o pipefail
           wf ship eas --platform android --branch e2e --pointer --message "$(git log -1 --format=%s "$GITHUB_SHA")" | tee "$RUNNER_TEMP/eas-e2e.log"
           summary=$(tail -1 "$RUNNER_TEMP/eas-e2e.log")
+          echo "group=$(jq -er .group <<<"$summary")" >> "$GITHUB_OUTPUT"
           {
             echo "### EAS Update for the Android e2e tests"
             echo "Branch e2e, group \`$(jq -r '.group' <<<"$summary")\`, commit \`${GITHUB_SHA::9}\`: dials the runner's backends at 10.0.2.2, not the deployed ones. Not for a phone."
@@ -1387,6 +1402,15 @@ jobs:
           name: eas-pointer
           path: ${{ runner.temp }}/eas-pointer
           retention-days: 2
+          if-no-files-found: error
+      - name: Upload sealed EAS source maps
+        if: steps.publish.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: eas-maps-${{ steps.publish.outputs.group }}
+          path: ${{ runner.temp }}/eas-maps/${{ steps.publish.outputs.group }}/*.map.sealed
+          compression-level: 0
+          retention-days: 30
           if-no-files-found: error
       # the pointer outlives the run, as the production one does
       - name: Push the EAS pointer to the state ref

@@ -1344,25 +1344,40 @@ assert_true(device:press_key('Backspace', {optional=true}) == nil, "a key with t
 }
 
 #[test]
-fn stack_maps_a_logged_hermes_stack_through_the_groups_source_map_from_the_bucket() {
-    // Given a bucket holding an update group's summary and its android source map (one mapping: bundle 1:1 is boom, features/a.ts:1:1)
-    let bucket = crate::support::MockServer::start(None);
+fn stack_uses_the_sealed_map_for_the_requested_update() {
+    // Given a published group and an authenticated artifact containing its Android map
+    let s = sandbox("wf-flow-android-stack-");
     let map = json!({ "version": 3, "sources": ["features/a.ts"], "names": ["boom"], "mappings": "AAAAA" });
-    bucket.routes(&[
-        ("GET /verification/eas-updates/g-1/summary.json", crate::support::MockReply::json(200, json!({ "maps": { "files": ["_expo/static/js/ios/e.hbc.map", "_expo/static/js/android/e.hbc.map"] } }))),
-        ("GET /verification/eas-updates/g-1/_expo/static/js/android/e.hbc.map", crate::support::MockReply::json(200, map)),
-    ]);
+    let key = [42u8; 32];
+    let key_hex = "2a".repeat(32);
+    wf_bucket::eas_maps::write(&s.repo, &key, "g-1", "android", "update-1", map.to_string().as_bytes()).unwrap();
+    let sealed = s.repo.join("g-1/android.map.sealed");
+    s.stub("gh", r#"case "$1" in
+  api) case "$2" in *name=eas-maps-g-1) echo 123;; esac;;
+  run) [ "$*" = "run download 123 --name eas-maps-g-1 --dir $7" ] || exit 1
+       cp "$SEALED_MAP" "$7/android.map.sealed";;
+esac"#);
     let stack = "Error: x\n    at boom (address at index.android.bundle:1:1)\n    at native (native)";
-    let opts = RunOpts::default().clean_env().env("VERIFICATION_ARTIFACTS_READ_URL", &format!("http://127.0.0.1:{}", bucket.port)).input(stack);
+    let opts = RunOpts::default().clean_env().cwd(&s.repo).bin_dir(&s.bin_dir)
+        .env("CI_DB_KEY", &key_hex).env("SEALED_MAP", &sealed.display().to_string()).input(stack);
+    let run = |group, id| crate::support::run_wf(&["android", "stack", group, "--update-id", id], &opts);
 
-    // When the stack is mapped for that group, and for a group the bucket does not have
-    let mapped = last_json(&crate::support::run_wf(&["android", "stack", "g-1"], &opts));
-    let missing = crate::support::run_wf(&["android", "stack", "g-2"], &opts);
+    // When the stack is resolved by its group and update ID
+    let mapped = last_json(&run("g-1", "update-1"));
 
-    // Then the located frame names its source line, the others stay as logged, and the unknown group fails with the next step
+    // Then the JavaScript frame resolves while the native frame remains as logged
+    assert_eq!(mapped["result"]["updateId"], "update-1");
     assert_eq!(mapped["result"]["frames"][1]["source"], "features/a.ts");
     assert_eq!(mapped["result"]["text"], "Error: x\nboom (features/a.ts:1:1)\nat native (native)");
     assert_eq!(mapped["result"]["frames"][2]["mapped"], false);
-    assert_eq!(missing.exit_code, 1);
-    assert!(last_json(&missing)["error"].as_str().unwrap().contains("no summary for update group g-2"));
+
+    // Given another update ID, an unknown group, or a key that cannot authenticate the archive,
+    // when requested, then the stack command fails without returning any mapped frames.
+    let wrong_update = run("g-1", "update-2");
+    let missing = run("g-2", "update-2");
+    let wrong_key = crate::support::run_wf(&["android", "stack", "g-1"], &opts.clone().env("CI_DB_KEY", &"ff".repeat(32)));
+    for (result, error) in [(wrong_update, "stack belongs to update-2"), (missing, "no retained source map artifact"), (wrong_key, "cannot authenticate")] {
+        assert_eq!(result.exit_code, 1, "{}", out(&result));
+        assert!(last_json(&result)["error"].as_str().unwrap_or_default().contains(error), "{}", out(&result));
+    }
 }

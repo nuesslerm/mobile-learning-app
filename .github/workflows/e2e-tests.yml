@@ -353,6 +353,7 @@ jobs:
         # bash with pipefail: the step fails when wf test run does, not when tee does
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           SELECT: ${{ steps.pick.outputs.select }}
         run: |
           # shellcheck disable=SC2086

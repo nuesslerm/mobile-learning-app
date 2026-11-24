@@ -33,6 +33,7 @@ wf-kit = { path = "../wf-kit" }
 serde_json = { version = "1", features = ["preserve_order"] }
 
 [dev-dependencies]
+wf-bucket = { path = "../wf-bucket" }
 wf-testkit = { path = "../wf-testkit" }
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
 tempfile = "3"
