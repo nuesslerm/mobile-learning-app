@@ -1,5 +1,8 @@
 import { useScreenHeaderOptions } from '@lib/tamagui-design-system';
 import { router, Stack } from 'expo-router';
+import { useDrawerProgress } from 'expo-router/drawer';
+import { StyleSheet } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 /**
  * The inner Stack every drawer destination lives in.
@@ -8,6 +11,14 @@ import { router, Stack } from 'expo-router';
  * of this Stack's header rather than stacking two.
  */
 export default function ContentLayout() {
+  const drawerProgress = useDrawerProgress();
+  const pageStyle = useAnimatedStyle(() => ({
+    borderRadius: 28 * drawerProgress.value,
+    transform: [{ scale: 1 - 0.06 * drawerProgress.value }],
+  }));
+  const shadeStyle = useAnimatedStyle(() => ({
+    opacity: 0.24 * drawerProgress.value,
+  }));
   const serviceReportHeader = useScreenHeaderOptions({
     glass: true,
     testID: 'ServiceReportHeader',
@@ -15,9 +26,25 @@ export default function ContentLayout() {
     onBack: () => router.back(),
   });
   return (
+    <Animated.View style={[styles.page, pageStyle]}>
+      <ContentStack serviceReportHeader={serviceReportHeader} />
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, styles.shade, shadeStyle]}
+      />
+    </Animated.View>
+  );
+}
+
+function ContentStack({
+  serviceReportHeader,
+}: {
+  serviceReportHeader: ReturnType<typeof useScreenHeaderOptions>;
+}) {
+  return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="showcase" options={{ title: 'Design system' }} />
+      <Stack.Screen name="showcase" options={{ headerShown: false, title: 'Design system' }} />
       <Stack.Screen name="coding-agent" options={{ headerShown: false }} />
       {/* The Tamil screens carry their own headers; the tamil/ layout mounts the feature's container and owns the nested Stack. */}
       <Stack.Screen name="tamil" options={{ headerShown: false }} />
@@ -55,3 +82,8 @@ export default function ContentLayout() {
     </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  page: { flex: 1, overflow: 'hidden', borderCurve: 'continuous' },
+  shade: { backgroundColor: '#000' },
+});

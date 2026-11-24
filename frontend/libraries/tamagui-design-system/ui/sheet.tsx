@@ -3,8 +3,10 @@ import BottomSheet, {
   BottomSheetFlatList,
   BottomSheetScrollView,
   type BottomSheetBackdropProps,
+  type BottomSheetBackgroundProps,
 } from '@gorhom/bottom-sheet';
 import { Logger } from '@lib/logging';
+import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -30,6 +32,12 @@ export type SheetProps = {
   children: ReactNode;
   /** Percentages of screen height, largest first. */
   snapPoints?: number[];
+  topInset?: number;
+  floating?: boolean;
+  /** Controls whether the sheet itself is a single accessibility element. */
+  accessible?: boolean;
+  /** Keep the bottom inset fixed. A form's scroll view handles the keyboard overlap. */
+  keyboardOverlay?: boolean;
   /**
    * Hands the vertical drag to whatever the body renders instead of the sheet.
    * Pass it when the body holds a scrollable that is NOT one of gorhom's own
@@ -111,7 +119,7 @@ function renderBackdrop(props: BottomSheetBackdropProps) {
  * The keyboard toolbar rail reads this and unmounts; see openSheetStore for why
  * a z-index cannot do that job.
  */
-function usePublishSheetOpen(open: boolean): void {
+export function usePublishSheetOpen(open: boolean): void {
   useEffect(() => {
     if (!open) return;
     const { open: openSheet, close: closeSheet } = useOpenSheetStore.getState();
@@ -159,11 +167,24 @@ function LabeledHandle({ label, testID, color, onDismiss }: { label: string; tes
   );
 }
 
+function GlassSheetBackground({ style }: BottomSheetBackgroundProps) {
+  return (
+    <GlassView
+      glassEffectStyle="regular"
+      style={[style, styles.glassBackground]}
+    />
+  );
+}
+
 export function Sheet({
   open,
   onOpenChange,
   children,
   snapPoints = [85, 50],
+  topInset,
+  floating = false,
+  accessible,
+  keyboardOverlay = false,
   disableContentPanningGesture = false,
   backdrop = 'dim',
   handleLabel,
@@ -171,6 +192,7 @@ export function Sheet({
 }: SheetProps) {
   const theme = useTheme();
   const ref = useRef<BottomSheet>(null);
+  const useGlass = Platform.OS === 'ios' && isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
   // gorhom computes the sheet's total available height from the LAST entry
   // of the `snapPoints` array it is given (`highestDetentPosition =
   // detents[detents.length - 1]`), which only lands on the tallest point when
@@ -232,7 +254,10 @@ export function Sheet({
   const insets = useSafeAreaInsets();
   // Android's keyboard events leave out the navigation bar that the keyboard also covers (the toolbar rail adds it the same way), and
   // the sheet's container ends at the bottom of the window
-  const keyboardLift = open && keyboard.visible ? keyboard.height + (Platform.OS === 'android' ? insets.bottom : 0) : 0;
+  const keyboardLift = open && keyboard.visible && !keyboardOverlay
+    ? keyboard.height + (Platform.OS === 'android' ? insets.bottom : 0)
+    : 0;
+  const bottomInset = floating ? Math.max(keyboardLift, insets.bottom + 8) : keyboardLift;
 
   const mounted = useMountedAfterFirstFrame();
   const indicatorColor = theme.color8?.val ?? '#999';
@@ -246,6 +271,7 @@ export function Sheet({
   return (
     <BottomSheet
       ref={ref}
+      accessible={accessible}
       index={index}
       snapPoints={points}
       onClose={handleClose}
@@ -258,18 +284,25 @@ export function Sheet({
       // gorhom's web container is a full-size absolute div that would swallow every tap meant for what is behind a sheet with no backdrop
       {...(backdrop === 'none' ? { containerStyle: styles.passThrough } : {})}
       {...(handleLabel ? { handleComponent: renderHandle } : {})}
-      keyboardBehavior="interactive"
+      keyboardBehavior={keyboardOverlay ? 'extend' : 'interactive'}
       // gorhom default is 'none', which leaves the keyboard up over the sheet.
       keyboardBlurBehavior="restore"
-      bottomInset={keyboardLift}
+      topInset={topInset}
+      bottomInset={bottomInset}
+      detached={floating}
+      style={floating ? styles.floating : undefined}
       android_keyboardInputMode="adjustResize"
       // color2, NOT `background`: a sheet painted in the page's own background
       // is invisible on the dark theme -- on a device the only things that read
       // as a sheet at all were the handle and one hairline divider, over what
       // looked like empty screen. This is the same elevated surface the header
       // menu's card uses.
-      backgroundStyle={{ backgroundColor: theme.color2?.val ?? '#fff' }}
-      handleIndicatorStyle={{ backgroundColor: theme.color8?.val ?? '#999' }}
+      backgroundComponent={useGlass ? GlassSheetBackground : undefined}
+      backgroundStyle={[
+        !useGlass && { backgroundColor: theme.color2?.val ?? '#fff' },
+        floating && styles.floatingBackground,
+      ]}
+      handleIndicatorStyle={{ backgroundColor: floating ? 'rgba(127, 127, 127, 0.65)' : indicatorColor }}
       // RNGH's web pan handler drops its default min-distance activation as
       // soon as ANY custom offset is set, so a sheet configured with only a
       // horizontal fail-offset ends up with no activation criterion at all and
@@ -319,7 +352,7 @@ export function SheetHeader({
 }: SheetHeaderProps) {
   const theme = useTheme();
   const border = theme.borderColor?.val ?? 'rgba(128,128,128,0.35)';
-  const chip = theme.color4?.val ?? 'rgba(128,128,128,0.22)';
+  const chip = theme.color3?.val ?? 'rgba(128,128,128,0.22)';
   const hasSlots = leading != null || trailing != null;
 
   return (
@@ -361,6 +394,9 @@ export function SheetHeader({
 
 const styles = StyleSheet.create({
   passThrough: { pointerEvents: 'box-none' },
+  floating: { marginHorizontal: 12 },
+  floatingBackground: { borderRadius: 28 },
+  glassBackground: { pointerEvents: 'none', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   handle: { alignItems: 'center', justifyContent: 'center', paddingTop: 10, paddingBottom: 10 },
   handleBar: { width: 36, height: 4, borderRadius: 2 },
   frame: { flex: 1, paddingHorizontal: 16, paddingTop: 4, gap: 12 },

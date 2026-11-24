@@ -5,6 +5,7 @@ export type ShowcaseGroupId =
   | 'inputs'
   | 'surfaces'
   | 'overlays'
+  | 'navigation'
   | 'coding-agent';
 
 export type ShowcaseItem = {
@@ -19,5 +20,6 @@ export const SHOWCASE_GROUPS: { id: ShowcaseGroupId; title: string }[] = [
   { id: 'inputs', title: 'Inputs' },
   { id: 'surfaces', title: 'Lists and surfaces' },
   { id: 'overlays', title: 'Overlays' },
+  { id: 'navigation', title: 'Navigation' },
   { id: 'coding-agent', title: 'Coding agent' },
 ];

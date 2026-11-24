@@ -16,7 +16,6 @@
     "testids": [
       "AppDrawer",
       "AppDrawerTitle",
-      "AppDrawerSubtitle",
       "DrawerItemHome",
       "DrawerItemHomeLabel",
       "DrawerItemShowcase",
@@ -29,8 +28,9 @@
       "DrawerItemSettingsLabel",
       "DrawerItemDashboards",
       "DrawerItemDashboardsLabel",
-      "ShowcaseHeading",
-      "ShowcaseSubtitle",
+      "ShowcaseNavigation",
+      "ShowcaseNavigationBack",
+      "ShowcaseNavigationTitle",
       "ShowcaseItemButton",
       "ShowcaseItemTitle",
       "ShowcaseBadge",
@@ -42,14 +42,12 @@
       "BadgeDestructive",
       "BadgeOutline",
       "ShowcaseBadge-ExpoUiLabel",
-      "ShowcaseBadge-NoExpoUi",
-      "DebugFabWrap",
-      "DebugFab"
+      "ShowcaseBadge-NoExpoUi"
     ],
-    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nTamagui components, same names as app #1, beside their Expo UI counterparts\nBasics: Badge\nBadge\nTAMAGUI (DESIGN SYSTEM)\ndefault\nprimary\nsuccess\ndestructive\noutline\nEXPO UI\nNo Expo UI equivalent."
+    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nBrowse components\nBasics\nBadge\nTamagui\ndefault\nprimary\nsuccess\ndestructive\noutline\nExpo UI\nNo Expo UI equivalent."
   },
   "timings": {
-    "render_ms": 247
+    "render_ms": 289
   },
   "name": "showcase/final-given-an-item-expo-ui-has-no-counterpart-for-wh-1f4333.light",
   "image": {

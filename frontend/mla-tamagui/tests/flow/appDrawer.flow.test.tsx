@@ -13,11 +13,12 @@ describe('App drawer', () => {
     });
 
     expect(screen.getByTestId('AppDrawer')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Tamil writing' })).toBeNull();
     expect(closeDrawer()).toBeNull();
     expect(screen.getByTestId('TamilCourseScreen').closest('[aria-hidden="true"]')).toBeNull();
   });
 
-  it('given the course screen, when its menu button is tapped, then the drawer opens over the screen', async () => {
+  it('given the course screen, when its menu button is tapped, then the drawer reveals the active destination', async () => {
     const session = await app.render('/tamil');
     await waitFor(() => {
       expect(screen.getByTestId('TamilCourseMenuButton')).toBeTruthy();
@@ -30,6 +31,7 @@ describe('App drawer', () => {
     });
     expect(screen.getByTestId('TamilCourseScreen').closest('[aria-hidden="true"]')).not.toBeNull();
     expect(screen.getByTestId('DrawerItemTamilLabel').textContent).toBe('Tamil writing');
+    expect(screen.getByRole('button', { name: 'Tamil writing', current: 'page' })).toBeTruthy();
   });
 
   it('given the open drawer, when a destination is tapped, then the drawer closes and the app pushes that route', async () => {

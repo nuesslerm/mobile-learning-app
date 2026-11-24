@@ -16,7 +16,6 @@
     "testids": [
       "AppDrawer",
       "AppDrawerTitle",
-      "AppDrawerSubtitle",
       "DrawerItemHome",
       "DrawerItemHomeLabel",
       "DrawerItemShowcase",
@@ -73,10 +72,10 @@
       "LeetcodeListCompactCount",
       "LeetcodeListCompactCountText"
     ],
-    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\n🟢 LIVE\n76 PROBLEMS\nBlind 75\nMaster the patterns. Ace the interview. 🚀\nNot signed in\nSign in to LeetCode to unlock account features.\nSign in\nRun code\nOn this device runs Python with no network. Other languages run on the server.\nServer\nThis device\nSuggestions\nThe editor offers names as you type, abo"
+    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\n🟢 LIVE\n76 PROBLEMS\nBlind 75\nMaster the patterns. Ace the interview. 🚀\nNot signed in\nSign in to LeetCode to unlock account features.\nSign in\nRun code\nOn this device runs Python with no network. Other languages run on the server.\nServer\nThis device\nSuggestions\nThe editor offers names as you type, above the lin"
   },
   "timings": {
-    "render_ms": 841
+    "render_ms": 588
   },
   "name": "appdrawer/final-given-the-open-drawer-when-a-destination-is-tap-dbf648.light",
   "image": {

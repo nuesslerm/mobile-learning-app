@@ -13,15 +13,15 @@ type Props = {
 export function Compare({ tamagui, expoUi, testID }: Props) {
   return (
     <View gap="$3" testID={testID}>
-      <Text variant="small" testID={`${testID}-TamaguiLabel`}>
-        TAMAGUI (DESIGN SYSTEM)
+      <Text variant="muted" testID={`${testID}-TamaguiLabel`}>
+        Tamagui
       </Text>
       <View gap="$2" testID={`${testID}-Tamagui`}>
         {tamagui}
       </View>
       <Separator />
-      <Text variant="small" testID={`${testID}-ExpoUiLabel`}>
-        EXPO UI
+      <Text variant="muted" testID={`${testID}-ExpoUiLabel`}>
+        Expo UI
       </Text>
       {expoUi ? (
         <View gap="$2" testID={`${testID}-ExpoUi`}>

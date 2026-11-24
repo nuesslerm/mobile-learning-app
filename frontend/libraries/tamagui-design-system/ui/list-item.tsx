@@ -55,7 +55,7 @@ export function ListItem({
       {...(onPress
         ? {
             onPress: handlePress,
-            pressStyle: { bg: '$color4' },
+            pressStyle: { bg: '$color3' },
             cursor: 'pointer',
           }
         : {})}

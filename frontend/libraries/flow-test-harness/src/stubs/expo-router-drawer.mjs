@@ -6,9 +6,16 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { Drawer as DrawerLayout } from 'react-native-drawer-layout';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+export { useDrawerProgress } from 'react-native-drawer-layout';
+
 const g = globalThis;
 g.__flowDrawerNavigation ??= React.createContext(undefined);
 const DrawerNavigationContext = g.__flowDrawerNavigation;
+const DrawerStatusContext = React.createContext('closed');
+
+export function useDrawerStatus() {
+  return React.useContext(DrawerStatusContext);
+}
 
 const DRAWER_ACTIONS = {
   OPEN_DRAWER: () => true,
@@ -57,7 +64,11 @@ export function Drawer({ drawerContent, screenOptions }) {
         // The export's `body { overflow: hidden }` is the phone's screen edge: the content slid aside goes off it.
         style: styles.screenEdge,
         renderDrawerContent: () =>
-          drawerContent ? drawerContent({ state, navigation, descriptors: {} }) : null,
+          React.createElement(
+            DrawerStatusContext.Provider,
+            { value: open ? 'open' : 'closed' },
+            drawerContent ? drawerContent({ state, navigation, descriptors: {} }) : null
+          ),
       },
       screen
     )

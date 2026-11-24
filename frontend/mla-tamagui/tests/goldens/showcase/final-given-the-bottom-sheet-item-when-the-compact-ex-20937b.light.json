@@ -8,15 +8,14 @@
     "height": 852
   },
   "screen": {
-    "width": 393,
-    "height": 852,
-    "page_height": 852
+    "width": 378,
+    "height": 1110,
+    "page_height": 1110
   },
   "summary": {
     "testids": [
       "AppDrawer",
       "AppDrawerTitle",
-      "AppDrawerSubtitle",
       "DrawerItemHome",
       "DrawerItemHomeLabel",
       "DrawerItemShowcase",
@@ -29,8 +28,9 @@
       "DrawerItemSettingsLabel",
       "DrawerItemDashboards",
       "DrawerItemDashboardsLabel",
-      "ShowcaseHeading",
-      "ShowcaseSubtitle",
+      "ShowcaseNavigation",
+      "ShowcaseNavigationBack",
+      "ShowcaseNavigationTitle",
       "ShowcaseItemButton",
       "ShowcaseItemTitle",
       "ShowcaseSheet",
@@ -43,20 +43,24 @@
       "ShowcaseSheetOpenForm",
       "ShowcaseSheet-ExpoUiLabel",
       "ShowcaseSheet-ExpoUi",
-      "ShowcaseExpoSheetOpen",
+      "ShowcaseExpoSheetOpenDefault",
+      "ShowcaseExpoSheetOpenCompact",
+      "ShowcaseExpoSheetOpenScroll",
+      "ShowcaseExpoSheetOpenForm",
       "ShowcaseSheetCompactHandle",
       "ShowcaseSheetCompact",
-      "ShowcaseSheetCompactHeader"
+      "ShowcaseSheetCompactHeader",
+      "ShowcaseSheetCompactHeaderClose"
     ],
-    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nTamagui components, same names as app #1, beside their Expo UI counterparts\nOverlays: Bottom sheet\nBottom sheet\nTAMAGUI (DESIGN SYSTEM)\nDefault: two snap points\nCompact: one snap point, labelled handle\nNo backdrop: the page stays usable\nScrolling body\nWith a text field\nEXPO UI\nOpen Expo"
+    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nBrowse components\nOverlays\nBottom sheet\nTamagui\nTwo snap points\nCompact sheet\nKeep the page interactive\nScrolling body\nWith a text field\nExpo UI\nTwo snap points\nCompact sheet\nScrolling body\nWith a text field\nExpo supports an interactive sheet background on iOS.\nCompact sheet\nA single height for a"
   },
   "timings": {
-    "render_ms": 256
+    "render_ms": 259
   },
   "name": "showcase/final-given-the-bottom-sheet-item-when-the-compact-ex-20937b.light",
   "image": {
     "width": 360,
-    "height": 780
+    "height": 1057
   },
   "tolerance": {
     "threshold": 0.1,

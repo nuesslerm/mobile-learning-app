@@ -16,7 +16,6 @@
     "testids": [
       "AppDrawer",
       "AppDrawerTitle",
-      "AppDrawerSubtitle",
       "DrawerItemHome",
       "DrawerItemHomeLabel",
       "DrawerItemShowcase",
@@ -29,8 +28,9 @@
       "DrawerItemSettingsLabel",
       "DrawerItemDashboards",
       "DrawerItemDashboardsLabel",
-      "ShowcaseHeading",
-      "ShowcaseSubtitle",
+      "ShowcaseNavigation",
+      "ShowcaseNavigationBack",
+      "ShowcaseNavigationTitle",
       "ShowcaseItemButton",
       "ShowcaseItemTitle",
       "ShowcaseAlertDialog",
@@ -43,14 +43,12 @@
       "ShowcaseAlert-Cancel",
       "ShowcaseAlert-Confirm",
       "ShowcaseAlertDialog-ExpoUiLabel",
-      "ShowcaseAlertDialog-NoExpoUi",
-      "DebugFabWrap",
-      "DebugFab"
+      "ShowcaseAlertDialog-NoExpoUi"
     ],
-    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nTamagui components, same names as app #1, beside their Expo UI counterparts\nOverlays: AlertDialog\nAlertDialog\nTAMAGUI (DESIGN SYSTEM)\nOpen AlertDialog\nDelete everything?\nThis confirms the dialog renders through the DS wrapper.\nCancel\nDelete\nEXPO UI\nNo Expo UI equivalent."
+    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nBrowse components\nOverlays\nAlertDialog\nTamagui\nOpen AlertDialog\nDelete everything?\nThis confirms the dialog renders through the DS wrapper.\nCancel\nDelete\nExpo UI\nNo Expo UI equivalent."
   },
   "timings": {
-    "render_ms": 256
+    "render_ms": 201
   },
   "name": "showcase/final-given-the-alert-dialog-item-when-open-alertdial-16147a.dark",
   "image": {

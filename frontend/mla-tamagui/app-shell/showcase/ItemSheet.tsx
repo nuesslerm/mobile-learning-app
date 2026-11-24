@@ -1,13 +1,15 @@
 import {
   Icon,
+  IconButton,
   InsetGroup,
   ListItem,
   Text,
   View,
 } from '@lib/tamagui-design-system';
-import { Check } from '@lib/tamagui-design-system/icons';
+import { Check, X } from '@lib/tamagui-design-system/icons';
 import { XStack } from '@lib/tamagui-design-system/primitives';
-import { Sheet, SheetHeader } from '@lib/tamagui-design-system/ui/sheet';
+import { Sheet } from '@lib/tamagui-design-system/ui/sheet';
+import { StyleSheet } from 'react-native';
 
 import { SHOWCASE_GROUPS, type ShowcaseItem } from './catalog';
 
@@ -31,23 +33,34 @@ export function ItemSheet({
     <Sheet
       open={open}
       onOpenChange={onOpenChange}
-      snapPoints={[80]}
+      floating
+      snapPoints={[62]}
       testID="ShowcaseItemSheet"
     >
-      <SheetHeader
-        onClose={() => onOpenChange(false)}
-        testID="ShowcaseItemSheetHeader"
-      >
-        <Text variant="large">Items</Text>
-      </SheetHeader>
-      <Sheet.ScrollView>
-        <View gap="$3" p="$4">
+      <XStack items="center" testID="ShowcaseItemSheetHeader">
+        <View width={44} />
+        <Text variant="large" role="heading" flex={1} style={styles.title}>
+          Choose a component
+        </Text>
+        <IconButton
+          icon={X}
+          accessibilityLabel="Close"
+          onPress={() => onOpenChange(false)}
+          testID="ShowcaseItemSheetHeaderClose"
+        />
+      </XStack>
+      <Sheet.ScrollView style={styles.options}>
+        <View gap="$3" px="$3" py="$3">
           {SHOWCASE_GROUPS.map((group) => (
             <View key={group.id} gap="$2">
-              <Text variant="small" testID={`ShowcaseItemGroup-${group.id}`}>
-                {group.title.toUpperCase()}
+              <Text variant="muted" testID={`ShowcaseItemGroup-${group.id}`}>
+                {group.title}
               </Text>
-              <InsetGroup testID={`ShowcaseItemList-${group.id}`}>
+              <InsetGroup
+                inset={false}
+                surface="transparent"
+                testID={`ShowcaseItemList-${group.id}`}
+              >
                 {items
                   .filter((item) => item.group === group.id)
                   .map((item) => (
@@ -57,8 +70,10 @@ export function ItemSheet({
                       testID={`ShowcaseItem-${item.id}`}
                       onPress={() => onSelect(item.id)}
                     >
-                      <XStack items="center" justify="space-between" flex={1}>
-                        <Text>{item.title}</Text>
+                      <XStack items="center" justify="space-between">
+                        <Text numberOfLines={1} style={styles.rowLabel}>
+                          {item.title}
+                        </Text>
                         {item.id === selectedId ? (
                           <Icon as={Check} size={16} color="$color11" />
                         ) : null}
@@ -73,3 +88,14 @@ export function ItemSheet({
     </Sheet>
   );
 }
+
+const styles = StyleSheet.create({
+  title: { textAlign: 'center' },
+  rowLabel: { flexShrink: 1 },
+  options: {
+    backgroundColor: 'rgba(127, 127, 127, 0.10)',
+    borderRadius: 20,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+});

@@ -87,7 +87,7 @@ overrides:
 
 patchedDependencies:
   '@gluestack-ui/core@5.0.15': 7d11cdb27022db74c329eab945607a9dd512a10487e66f33d814491ed6387977
-  '@gorhom/bottom-sheet@5.2.14': fa330dd6144f9315ba9c66dcc52e62cdf5f72b7f3700f9c655ee45a75d6edd51
+  '@gorhom/bottom-sheet@5.2.14': 95207956157e962a74019be937430549b7dcdd1706ef0184f76a83311472f261
   '@quidone/react-native-wheel-picker@1.7.1': e025e9e2e4c1ede0e37cd0117e1eaa7ead11b9de51c02a168d83479c0b44b869
   lucide-react-native@1.17.0: 1fc755e52ddf964b0b56abb493918a46a9aa864211172430e73e84612caaf841
   react-native-css-interop@0.2.5: 0a96a2c1ec090bb7ae9bf642b870d14946b7950bfa6e0942102178d2449cb15b
@@ -549,7 +549,7 @@ importers:
         version: 5.0.6(react-dom@19.3.0(react@19.3.0))(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)(tailwindcss@3.4.19(tsx@4.22.4)(yaml@2.9.0))
       '@gorhom/bottom-sheet':
         specifier: ^5.2.14
-        version: 5.2.14(patch_hash=fa330dd6144f9315ba9c66dcc52e62cdf5f72b7f3700f9c655ee45a75d6edd51)(8895cbace4060da88c19104eda3f2c22)
+        version: 5.2.14(patch_hash=95207956157e962a74019be937430549b7dcdd1706ef0184f76a83311472f261)(8895cbace4060da88c19104eda3f2c22)
       '@lib/logging':
         specifier: workspace:*
         version: link:../logging
@@ -10265,7 +10265,7 @@ snapshots:
     transitivePeerDependencies:
       - react-dom
 
-  '@gorhom/bottom-sheet@5.2.14(patch_hash=fa330dd6144f9315ba9c66dcc52e62cdf5f72b7f3700f9c655ee45a75d6edd51)(8895cbace4060da88c19104eda3f2c22)':
+  '@gorhom/bottom-sheet@5.2.14(patch_hash=95207956157e962a74019be937430549b7dcdd1706ef0184f76a83311472f261)(8895cbace4060da88c19104eda3f2c22)':
     dependencies:
       '@gorhom/portal': 1.0.14(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
       invariant: 2.2.4

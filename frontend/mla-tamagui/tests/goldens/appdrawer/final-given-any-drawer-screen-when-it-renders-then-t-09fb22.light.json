@@ -16,7 +16,6 @@
     "testids": [
       "AppDrawer",
       "AppDrawerTitle",
-      "AppDrawerSubtitle",
       "DrawerItemHome",
       "DrawerItemHomeLabel",
       "DrawerItemShowcase",
@@ -65,10 +64,10 @@
       "TamilCourseCompactCount",
       "TamilCourseCompactCountText"
     ],
-    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\n251 LETTERS\n0 MASTERED\nதமிழ் எழுத்து\nTrace every letter until your hand knows it. ✍️\nCourse progress\n0%\nWrite it large · letters and words\nWrite from memory\nஉயிர் · Vowels\nஉ\nஉயிர் எழுத்து I\nVowels: அ to ஊ\nNEW\n0/6\nஉ\nஉயிர் எழுத்து II\nVowels: எ to ஔ\nNEW\n0/6\nமெய் · Consonants\nவ\nவல்லினம்\nHard consonants\nN"
+    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\n251 LETTERS\n0 MASTERED\nதமிழ் எழுத்து\nTrace every letter until your hand knows it. ✍️\nCourse progress\n0%\nWrite it large · letters and words\nWrite from memory\nஉயிர் · Vowels\nஉ\nஉயிர் எழுத்து I\nVowels: அ to ஊ\nNEW\n0/6\nஉ\nஉயிர் எழுத்து II\nVowels: எ to ஔ\nNEW\n0/6\nமெய் · Consonants\nவ\nவல்லினம்\nHard consonants\nNEW\n0/6\nம\nம"
   },
   "timings": {
-    "render_ms": 434
+    "render_ms": 1828
   },
   "name": "appdrawer/final-given-any-drawer-screen-when-it-renders-then-t-09fb22.light",
   "image": {

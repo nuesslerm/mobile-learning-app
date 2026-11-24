@@ -1,10 +1,13 @@
 import type { ComponentType } from 'react';
 import {
+  act,
   createFlowApp,
   screen,
   userEvent,
   waitFor,
 } from '@lib/flow-test-harness';
+import { useKeyboardStore } from '@lib/tamagui-design-system';
+import { Platform } from 'react-native';
 import { describe, expect, it } from 'vitest';
 
 const app = createFlowApp({
@@ -29,10 +32,12 @@ describe('Design system showcase', () => {
 
   it('given the showcase, when the item button is tapped, then a bottom sheet lists every item under its item type', async () => {
     await app.render('/showcase');
+    expect(screen.getByRole('button', { name: 'Browse components' })).toBeTruthy();
     await userEvent.click(await screen.findByTestId('ShowcaseItemButton'));
 
     await screen.findByTestId('ShowcaseItemSheetHeader');
-    for (const group of ['basics', 'inputs', 'surfaces', 'overlays', 'coding-agent']) {
+    expect(screen.getByRole('heading', { name: 'Choose a component' })).toBeTruthy();
+    for (const group of ['basics', 'inputs', 'surfaces', 'overlays', 'navigation', 'coding-agent']) {
       expect(screen.getByTestId(`ShowcaseItemGroup-${group}`)).toBeTruthy();
     }
     expect(screen.getByTestId('ShowcaseItem-button')).toBeTruthy();
@@ -68,6 +73,18 @@ describe('Design system showcase', () => {
     expect(await screen.findByTestId('Showcase-CodingAgent-DiffView')).toBeTruthy();
   });
 
+  it('given the navigation drawer example, when the drawer is opened and dismissed, then the example stays selected', async () => {
+    const session = await app.render('/showcase', { search: { item: 'drawer' } });
+    await session.tap('ShowcaseOpenDrawer');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Close drawer' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Close drawer' })).toBeNull();
+      expect(screen.getByTestId('ShowcaseItemTitle').textContent).toBe('Navigation drawer');
+    });
+  });
+
   it('given the bottom sheet item, when the compact example is opened, then its sheet shows with a labelled handle', async () => {
     await app.render('/showcase');
     await pick('sheet');
@@ -77,12 +94,67 @@ describe('Design system showcase', () => {
     expect(screen.getByTestId('ShowcaseSheetCompactHandle')).toBeTruthy();
   });
 
+  it('given the glass picker, when a session length is chosen, then the selection stays checked after reopening', async () => {
+    const session = await app.render('/showcase', { search: { item: 'glass-picker' } });
+    await session.tap('ShowcaseOpenSessionLength');
+    expect(await screen.findByRole('radio', { name: '15 minutes', checked: true })).toBeTruthy();
+
+    await session.tap('ShowcaseSessionLength-25');
+    expect(await screen.findByRole('radio', { name: '25 minutes', checked: true })).toBeTruthy();
+
+    await session.tap('ShowcaseCloseSessionLength');
+    expect(screen.queryByRole('radio', { name: '25 minutes' })).toBeNull();
+    expect(screen.getByTestId('ShowcaseSessionLengthValue').textContent).toBe('25 minutes');
+
+    await session.tap('ShowcaseOpenSessionLength');
+    expect(await screen.findByRole('radio', { name: '25 minutes', checked: true })).toBeTruthy();
+  });
+
+  it('given the iOS form sheet, when its field opens the keyboard, then the sheet stays anchored', async () => {
+    const platform = Platform as { OS: string };
+    const originalOS = platform.OS;
+    try {
+      const session = await app.render('/showcase', { search: { item: 'sheet' } });
+      await screen.findByTestId('ShowcaseSheetOpenForm');
+      platform.OS = 'ios';
+      await session.tap('ShowcaseSheetOpenForm');
+      await session.tap('ShowcaseSheetFormField');
+
+      const sheet = screen.getByTestId('ShowcaseSheetForm').closest('[data-sheet="true"]');
+      expect(sheet?.getAttribute('data-keyboard-lift')).toBe('0');
+      await act(async () => {
+        useKeyboardStore.getState().setKeyboardShown(300);
+      });
+
+      expect(sheet?.getAttribute('data-keyboard-lift')).toBe('0');
+    } finally {
+      await act(async () => {
+        useKeyboardStore.getState().setKeyboardHidden();
+      });
+      platform.OS = originalOS;
+    }
+  });
+
   it('given the bottom sheet item, when the scrolling example is opened, then its rows render in the sheet', async () => {
     await app.render('/showcase');
     await pick('sheet');
     await userEvent.click(await screen.findByTestId('ShowcaseSheetOpenScroll'));
 
     expect(await screen.findByTestId('ShowcaseSheetScrollRow-Row 1')).toBeTruthy();
+    expect(screen.getByTestId('ShowcaseNavigationBack')).toBeTruthy();
+    await userEvent.click(screen.getByTestId('ShowcaseSheetScrollHeaderClose'));
+    await waitFor(() => expect(screen.queryByTestId('ShowcaseSheetScrollHeader')).toBeNull());
+    expect(screen.getByTestId('ShowcaseNavigationBack')).toBeTruthy();
+  });
+
+  it('given the bottom sheet item, when the Expo scrolling example is opened and closed, then its list appears and is dismissed', async () => {
+    await app.render('/showcase', { search: { item: 'sheet' } });
+    await userEvent.click(await screen.findByTestId('ShowcaseExpoSheetOpenScroll'));
+
+    expect(await screen.findByText('Row 24')).toBeTruthy();
+    await userEvent.click(screen.getByTestId('ShowcaseExpoSheetHeaderClose'));
+
+    await waitFor(() => expect(screen.queryByText('Row 24')).toBeNull());
   });
 
   it('given the alert dialog item, when Open AlertDialog is tapped, then the dialog shows', async () => {

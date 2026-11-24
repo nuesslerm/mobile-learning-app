@@ -4,6 +4,7 @@ import {
   useOpenSheetStore,
 } from '@lib/tamagui-design-system';
 import { Bug } from '@lib/tamagui-design-system/icons';
+import { usePathname, useRootNavigationState } from 'expo-router';
 import { useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -39,6 +40,22 @@ const FAB_SIZE_PX = 56;
 // instant you start dragging back toward "home".
 const SLACK_PX = 8;
 
+function useIsDrawerOpen() {
+  let state: Partial<ReturnType<typeof useRootNavigationState>> | undefined =
+    useRootNavigationState();
+  while (state) {
+    if (state.type === 'drawer') {
+      return state.history?.some((entry) =>
+        !!entry && typeof entry === 'object' &&
+        'type' in entry && entry.type === 'drawer' &&
+        'status' in entry && entry.status === 'open'
+      ) ?? false;
+    }
+    state = state.routes?.[state.index ?? 0]?.state as typeof state;
+  }
+  return false;
+}
+
 /**
  * Opens the log sheet on a tap; draggable on a pan so it can be moved off
  * whatever it's currently covering.
@@ -57,6 +74,8 @@ const SLACK_PX = 8;
  * both" case.
  */
 export function DebugFab() {
+  const pathname = usePathname();
+  const drawerOpen = useIsDrawerOpen();
   const [open, setOpen] = useState(false);
   // The sheet pulls in bottom-sheet and reanimated, so it is not built until the first tap.
   const [sheetMounted, setSheetMounted] = useState(false);
@@ -118,7 +137,7 @@ export function DebugFab() {
     <DebugLogSheet open={open} onOpenChange={setOpen} />
   ) : null;
 
-  if (sheetOpen && !open) return sheet;
+  if (pathname === '/showcase' || drawerOpen || (sheetOpen && !open)) return sheet;
 
   return (
     <>

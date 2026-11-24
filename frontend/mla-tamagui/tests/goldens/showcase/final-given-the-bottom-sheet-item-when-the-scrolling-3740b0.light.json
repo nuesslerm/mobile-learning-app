@@ -9,14 +9,13 @@
   },
   "screen": {
     "width": 378,
-    "height": 1704,
-    "page_height": 1988
+    "height": 948,
+    "page_height": 948
   },
   "summary": {
     "testids": [
       "AppDrawer",
       "AppDrawerTitle",
-      "AppDrawerSubtitle",
       "DrawerItemHome",
       "DrawerItemHomeLabel",
       "DrawerItemShowcase",
@@ -29,8 +28,9 @@
       "DrawerItemSettingsLabel",
       "DrawerItemDashboards",
       "DrawerItemDashboardsLabel",
-      "ShowcaseHeading",
-      "ShowcaseSubtitle",
+      "ShowcaseNavigation",
+      "ShowcaseNavigationBack",
+      "ShowcaseNavigationTitle",
       "ShowcaseItemButton",
       "ShowcaseItemTitle",
       "ShowcaseSheet",
@@ -43,44 +43,20 @@
       "ShowcaseSheetOpenForm",
       "ShowcaseSheet-ExpoUiLabel",
       "ShowcaseSheet-ExpoUi",
-      "ShowcaseExpoSheetOpen",
-      "ShowcaseSheetScroll",
-      "ShowcaseSheetScrollHeader",
-      "ShowcaseSheetScrollHeaderClose",
-      "ShowcaseSheetScrollRow-Row 1",
-      "ShowcaseSheetScrollRow-Row 2",
-      "ShowcaseSheetScrollRow-Row 3",
-      "ShowcaseSheetScrollRow-Row 4",
-      "ShowcaseSheetScrollRow-Row 5",
-      "ShowcaseSheetScrollRow-Row 6",
-      "ShowcaseSheetScrollRow-Row 7",
-      "ShowcaseSheetScrollRow-Row 8",
-      "ShowcaseSheetScrollRow-Row 9",
-      "ShowcaseSheetScrollRow-Row 10",
-      "ShowcaseSheetScrollRow-Row 11",
-      "ShowcaseSheetScrollRow-Row 12",
-      "ShowcaseSheetScrollRow-Row 13",
-      "ShowcaseSheetScrollRow-Row 14",
-      "ShowcaseSheetScrollRow-Row 15",
-      "ShowcaseSheetScrollRow-Row 16",
-      "ShowcaseSheetScrollRow-Row 17",
-      "ShowcaseSheetScrollRow-Row 18",
-      "ShowcaseSheetScrollRow-Row 19",
-      "ShowcaseSheetScrollRow-Row 20",
-      "ShowcaseSheetScrollRow-Row 21",
-      "ShowcaseSheetScrollRow-Row 22",
-      "ShowcaseSheetScrollRow-Row 23",
-      "ShowcaseSheetScrollRow-Row 24"
+      "ShowcaseExpoSheetOpenDefault",
+      "ShowcaseExpoSheetOpenCompact",
+      "ShowcaseExpoSheetOpenScroll",
+      "ShowcaseExpoSheetOpenForm"
     ],
-    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nTamagui components, same names as app #1, beside their Expo UI counterparts\nOverlays: Bottom sheet\nBottom sheet\nTAMAGUI (DESIGN SYSTEM)\nDefault: two snap points\nCompact: one snap point, labelled handle\nNo backdrop: the page stays usable\nScrolling body\nWith a text field\nEXPO UI\nOpen Expo"
+    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nBrowse components\nOverlays\nBottom sheet\nTamagui\nTwo snap points\nCompact sheet\nKeep the page interactive\nScrolling body\nWith a text field\nExpo UI\nTwo snap points\nCompact sheet\nScrolling body\nWith a text field\nExpo supports an interactive sheet background on iOS."
   },
   "timings": {
-    "render_ms": 335
+    "render_ms": 238
   },
   "name": "showcase/final-given-the-bottom-sheet-item-when-the-scrolling-3740b0.light",
   "image": {
     "width": 360,
-    "height": 1623
+    "height": 903
   },
   "tolerance": {
     "threshold": 0.1,

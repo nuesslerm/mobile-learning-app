@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { PRESET_COLORS } from '../presetColors';
 import { themes } from '../themes';
 
 const RGB_CSS_PATTERN = /^rgb\(\d+, \d+, \d+\)$/;
@@ -33,17 +34,26 @@ describe('given the ios-native preset is the default', () => {
     expect(themes.light).toBe(themes['ios-native_light']);
     expect(themes.dark).toBe(themes['ios-native_dark']);
   });
+
+  it('when the interaction colors resolve, then quiet surfaces use muted tones in both appearances', () => {
+    for (const theme of [themes.light, themes.dark]) {
+      expect(theme.color4).toBe(theme.color3);
+      expect(theme.color4).not.toBe(theme.color9);
+    }
+  });
 });
 
 describe('given the raw preset color records', () => {
-  it('when themes are built, then every value is an rgb() string or a CSS keyword', () => {
-    for (const [name, theme] of Object.entries(themes)) {
-      for (const [key, value] of Object.entries(theme)) {
-        const isRgb = RGB_CSS_PATTERN.test(value);
-        const isKeyword = ['transparent', 'currentColor', 'inherit'].includes(
-          value
-        );
-        expect(isRgb || isKeyword, `${name}.${key} = ${value}`).toBe(true);
+  it('when themes are built, then preset colors resolve to rgb() strings or CSS keywords', () => {
+    for (const [id, preset] of Object.entries(PRESET_COLORS)) {
+      for (const [appearance, colors] of Object.entries(preset)) {
+        const name = `${id}_${appearance}`;
+        for (const key of Object.keys(colors)) {
+          const value = themes[name][key];
+          const isRgb = RGB_CSS_PATTERN.test(value);
+          const isKeyword = ['transparent', 'currentColor', 'inherit'].includes(value);
+          expect(isRgb || isKeyword, `${name}.${key} = ${value}`).toBe(true);
+        }
       }
     }
   });

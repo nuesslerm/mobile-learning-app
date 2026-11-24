@@ -135,3 +135,31 @@ index 879061dec2ecf791e91da8141805789bcbbf96a8..d06b8dbc97199f1e0c9b2dd0069be883
        onLayout={shouldCalculateHeight ? handleLayoutEvent : undefined}
        style={containerStyle}
        collapsable={true}
+diff --git a/src/components/bottomSheet/BottomSheetContent.tsx b/src/components/bottomSheet/BottomSheetContent.tsx
+--- a/src/components/bottomSheet/BottomSheetContent.tsx
++++ b/src/components/bottomSheet/BottomSheetContent.tsx
+@@ -187,3 +187,3 @@
+     if (containerHeight === INITIAL_LAYOUT_VALUE) {
+-      return {};
++      return { height: 0 };
+     }
+diff --git a/lib/commonjs/components/bottomSheet/BottomSheetContent.js b/lib/commonjs/components/bottomSheet/BottomSheetContent.js
+--- a/lib/commonjs/components/bottomSheet/BottomSheetContent.js
++++ b/lib/commonjs/components/bottomSheet/BottomSheetContent.js
+@@ -146,3 +146,5 @@
+     if (containerHeight === _constants.INITIAL_LAYOUT_VALUE) {
+-      return {};
++      return {
++        height: 0
++      };
+     }
+diff --git a/lib/module/components/bottomSheet/BottomSheetContent.js b/lib/module/components/bottomSheet/BottomSheetContent.js
+--- a/lib/module/components/bottomSheet/BottomSheetContent.js
++++ b/lib/module/components/bottomSheet/BottomSheetContent.js
+@@ -140,3 +140,5 @@
+     if (containerHeight === INITIAL_LAYOUT_VALUE) {
+-      return {};
++      return {
++        height: 0
++      };
+     }

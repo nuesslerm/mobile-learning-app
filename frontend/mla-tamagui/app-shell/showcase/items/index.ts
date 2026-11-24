@@ -15,12 +15,14 @@ import {
   DiffViewItem,
   MarkdownItem,
 } from './codingAgent';
+import { GlassPickerItem } from './glassPicker';
 import {
   ChipItem,
   SegmentedControlItem,
   SwitchItem,
   TextFieldItem,
 } from './inputs';
+import { DrawerItem } from './navigation';
 import { AlertDialogItem, PromptDialogItem } from './overlays';
 import { SheetExamples } from './sheets';
 import { CardItem, ListItemsItem, StatTileItem } from './surfaces';
@@ -61,7 +63,7 @@ export const SHOWCASE_ITEMS: ShowcaseItem[] = [
   {
     id: 'list',
     group: 'surfaces',
-    title: 'InsetGroup and ListItem',
+    title: 'Lists',
     Component: ListItemsItem,
   },
   {
@@ -87,6 +89,18 @@ export const SHOWCASE_ITEMS: ShowcaseItem[] = [
     group: 'overlays',
     title: 'Bottom sheet',
     Component: SheetExamples,
+  },
+  {
+    id: 'glass-picker',
+    group: 'overlays',
+    title: 'Glass option picker',
+    Component: GlassPickerItem,
+  },
+  {
+    id: 'drawer',
+    group: 'navigation',
+    title: 'Navigation drawer',
+    Component: DrawerItem,
   },
   {
     id: 'code-block',

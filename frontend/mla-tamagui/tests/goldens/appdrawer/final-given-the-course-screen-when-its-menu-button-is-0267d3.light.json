@@ -1,8 +1,8 @@
 {
   "suite": "appdrawer",
-  "step": "final-given-the-course-screen-when-its-menu-button-is-4e9cfa",
-  "scheme": "dark",
-  "snapshot": "appdrawer/final-given-the-course-screen-when-its-menu-button-is-4e9cfa.html",
+  "step": "final-given-the-course-screen-when-its-menu-button-is-0267d3",
+  "scheme": "light",
+  "snapshot": "appdrawer/final-given-the-course-screen-when-its-menu-button-is-0267d3.html",
   "viewport": {
     "width": 393,
     "height": 852
@@ -16,7 +16,6 @@
     "testids": [
       "AppDrawer",
       "AppDrawerTitle",
-      "AppDrawerSubtitle",
       "DrawerItemHome",
       "DrawerItemHomeLabel",
       "DrawerItemShowcase",
@@ -65,12 +64,12 @@
       "TamilCourseCompactCount",
       "TamilCourseCompactCountText"
     ],
-    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\n251 LETTERS\n0 MASTERED\nதமிழ் எழுத்து\nTrace every letter until your hand knows it. ✍️\nCourse progress\n0%\nWrite it large · letters and words\nWrite from memory\nஉயிர் · Vowels\nஉ\nஉயிர் எழுத்து I\nVowels: அ to ஊ\nNEW\n0/6\nஉ\nஉயிர் எழுத்து II\nVowels: எ to ஔ\nNEW\n0/6\nமெய் · Consonants\nவ\nவல்லினம்\nHard consonants\nN"
+    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\n251 LETTERS\n0 MASTERED\nதமிழ் எழுத்து\nTrace every letter until your hand knows it. ✍️\nCourse progress\n0%\nWrite it large · letters and words\nWrite from memory\nஉயிர் · Vowels\nஉ\nஉயிர் எழுத்து I\nVowels: அ to ஊ\nNEW\n0/6\nஉ\nஉயிர் எழுத்து II\nVowels: எ to ஔ\nNEW\n0/6\nமெய் · Consonants\nவ\nவல்லினம்\nHard consonants\nNEW\n0/6\nம\nம"
   },
   "timings": {
-    "render_ms": 380
+    "render_ms": 427
   },
-  "name": "appdrawer/final-given-the-course-screen-when-its-menu-button-is-4e9cfa.dark",
+  "name": "appdrawer/final-given-the-course-screen-when-its-menu-button-is-0267d3.light",
   "image": {
     "width": 360,
     "height": 1623

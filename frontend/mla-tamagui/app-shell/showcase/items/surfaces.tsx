@@ -9,9 +9,13 @@ import {
 } from '@lib/tamagui-design-system';
 import { Rocket, Settings } from '@lib/tamagui-design-system/icons';
 import { XStack } from '@lib/tamagui-design-system/primitives';
-import { Host, List, ListItem as ExpoListItem } from '@expo/ui';
+import { Host, ListItem as ExpoListItem, Text as ExpoText } from '@expo/ui';
 
 import { Compare } from '../Compare';
+import {
+  ShowcaseNativeList,
+  showcaseNativeRowModifiers,
+} from './ShowcaseNativeList';
 
 export function CardItem() {
   return (
@@ -42,7 +46,7 @@ export function ListItemsItem() {
     <Compare
       testID="ShowcaseList"
       tamagui={
-        <InsetGroup testID="ShowcaseGroup">
+        <InsetGroup inset={false} surface="transparent" testID="ShowcaseGroup">
           <ListItem
             testID="RowSettings"
             variant="grouped"
@@ -63,20 +67,30 @@ export function ListItemsItem() {
             <Text testID="RowSecondLabel">Second row</Text>
           </ListItem>
           <ListItem testID="RowThird" variant="grouped">
-            <Text testID="RowThirdLabel">No chevron, not pressable</Text>
+            <Text testID="RowThirdLabel">Read-only row</Text>
           </ListItem>
         </InsetGroup>
       }
       expoUi={
-        <View height={200}>
+        <View height={168}>
           <Host style={{ flex: 1 }}>
-            <List testID="ShowcaseExpoList">
-              <ExpoListItem onPress={() => {}} supportingText="Opens settings">
+            <ShowcaseNativeList>
+              <ExpoListItem
+                modifiers={showcaseNativeRowModifiers}
+                onPress={() => {}}
+              >
                 Settings
               </ExpoListItem>
-              <ExpoListItem onPress={() => {}}>Second row</ExpoListItem>
-              <ExpoListItem>Not pressable</ExpoListItem>
-            </List>
+              <ExpoListItem
+                modifiers={showcaseNativeRowModifiers}
+                onPress={() => {}}
+              >
+                Second row
+              </ExpoListItem>
+              <ExpoText modifiers={showcaseNativeRowModifiers}>
+                Read-only row
+              </ExpoText>
+            </ShowcaseNativeList>
           </Host>
         </View>
       }
