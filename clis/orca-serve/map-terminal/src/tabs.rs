@@ -6,8 +6,9 @@ use orca_core::wire::{Failure, RUNTIME_ERROR};
 use orca_core::{AgentApi, Ctx, Subscription};
 use orca_map_workspace::{layout, Target};
 use serde_json::{json, Value};
-use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, LazyLock};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 pub const SESSION_TABS_LIST: &str = "session.tabs.list";
 pub const SESSION_TABS_ACTIVATE: &str = "session.tabs.activate";
@@ -18,6 +19,9 @@ pub const SESSION_TABS_UNSUBSCRIBE: &str = "session.tabs.unsubscribe";
 
 const POLL: Duration = Duration::from_millis(250);
 const SCOPE: &str = "orca";
+static PUBLICATION_EPOCH: LazyLock<u128> =
+    LazyLock::new(|| SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos());
+static SNAPSHOT_VERSION: AtomicU64 = AtomicU64::new(1);
 
 fn selector(params: &Value) -> Result<&str, Failure> {
     params.get("worktree").and_then(Value::as_str).filter(|s| !s.is_empty()).ok_or_else(|| Failure::invalid("Missing worktree selector"))
@@ -53,15 +57,6 @@ fn foreground(list: &[Value], extras: &[Value], chosen: Option<String>) -> Optio
         .or_else(|| extras.first().map(id))
 }
 
-/// A number that moves when the tabs do and stays a safe integer.
-fn version(tabs: &[Value], active: &Option<String>) -> u64 {
-    let mut h: u64 = 1469598103934665603;
-    for b in json!([tabs, active]).to_string().bytes() {
-        h = (h ^ u64::from(b)).wrapping_mul(1099511628211);
-    }
-    h % (1 << 31)
-}
-
 fn snapshot(agent: &dyn AgentApi, target: &Target, chosen: Option<String>) -> Result<Value, Failure> {
     let list = terminals(agent, &target.workspace)?;
     let extras = layout::kept(agent, &target.workspace)?;
@@ -78,9 +73,9 @@ fn snapshot(agent: &dyn AgentApi, target: &Target, chosen: Option<String>) -> Re
         })
         .collect();
     tabs.extend(extras.iter().map(|t| layout::project(target, t, active.as_deref())));
-    let version = version(&tabs, &active);
+    let version = SNAPSHOT_VERSION.fetch_add(1, Ordering::Relaxed);
     let active_type = active.as_ref().and_then(|a| tabs.iter().find(|t| t["id"] == a.as_str())).map(|t| t["type"].clone());
-    Ok(json!({"worktree": target.id, "publicationEpoch": format!("rca:{}", target.workspace), "snapshotVersion": version, "activeGroupId": null, "activeTabId": active, "activeTabType": active_type, "tabs": tabs}))
+    Ok(json!({"worktree": target.id, "publicationEpoch": format!("rca:{}:{}", *PUBLICATION_EPOCH, target.workspace), "snapshotVersion": version, "activeGroupId": null, "activeTabId": active, "activeTabType": active_type, "tabs": tabs}))
 }
 
 fn read(agent: &dyn AgentApi, target: &Target) -> Result<Value, Failure> {
@@ -173,7 +168,7 @@ struct TabsStream {
     id: String,
     agent: Arc<dyn AgentApi>,
     target: Target,
-    last: Option<u64>,
+    last: Option<Value>,
     asked: Option<Instant>,
 }
 
@@ -196,12 +191,12 @@ impl Subscription for TabsStream {
         }
         self.asked = Some(Instant::now());
         let Ok(mut frame) = read(self.agent.as_ref(), &self.target) else { return Vec::new() };
-        let version = frame["snapshotVersion"].as_u64();
-        if version == self.last {
+        let content = json!([frame["tabs"], frame["activeTabId"]]);
+        if self.last.as_ref() == Some(&content) {
             return Vec::new();
         }
         let kind = if self.last.is_none() { "snapshot" } else { "updated" };
-        self.last = version;
+        self.last = Some(content);
         frame["type"] = json!(kind);
         vec![frame]
     }

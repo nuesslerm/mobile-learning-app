@@ -164,6 +164,11 @@ impl Area for WorkspaceArea {
         NOT_OFFERED
     }
 
+    fn capabilities(&self) -> &'static [&'static str] {
+        // Mobile uses this capability for create-new and checks a separate one for open-existing-v2.
+        &["worktree.open-existing-branch.v2"]
+    }
+
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
         let agent = ctx.agent;
         match method {

@@ -280,6 +280,15 @@ fn the_groups_a_mapper_needs_are_those_of_the_methods_it_really_sends() {
         "turn.interrupt" => vec![answer(request, json!({"thread": "t1", "turn": TURN}))],
         "file.list" => vec![answer(request, entries.clone())],
         "file.read" => vec![answer(request, json!({"content": "x", "total_lines": 1, "truncated": false}))],
+        "agents.detect" => vec![answer(request, json!({"agents": [
+            {"driver": "claudeAgent", "installed": true, "signed_in": true},
+            {"driver": "codex", "installed": true, "signed_in": false},
+            {"driver": "opencode", "installed": true},
+        ]}))],
+        "models.list" => vec![answer(request, json!({"models": [
+            {"id": "default", "label": "Default", "is_default": true},
+        ]}))],
+        "worktree.list" => vec![answer(request, json!({"worktrees": [{"path": "/work/proj", "is_main": false}]}))],
         "terminal.list" => vec![answer(request, json!({"workspace": "w1", "terminals": []}))],
         "terminal.attach" => vec![answer(request, json!({"workspace": "w1", "terminal": "t1.a", "after_offset": null, "start_offset": 0, "offset": 0, "reset": false, "cols": 80, "rows": 24, "status": "running", "exit_code": null}))],
         "git.subscribe" => vec![answer(request, json!({"workspace": "w1", "seq": 0})), agent_api_git::status_event(1, "w1", &json!({"branch": "main", "files": []})).to_value()],
@@ -293,6 +302,9 @@ fn the_groups_a_mapper_needs_are_those_of_the_methods_it_really_sends() {
     let agent = rca.agent();
     // When every operation of the port is run once, and the start check
     agent.check_agent_api().unwrap();
+    let providers = agent.catalog_providers().unwrap();
+    assert_eq!(providers.iter().map(|p| (p.driver.as_str(), p.signed_in, p.models[0].slug.as_str())).collect::<Vec<_>>(),
+        [("claudeAgent", Some(true), "default"), ("codex", Some(false), "default"), ("opencode", None, "default")]);
     agent.ensure_thread(&thread()).unwrap();
     agent.start_turn(&turn()).unwrap();
     agent.follow("t1", BEFORE, &mut |_| Follow::Stop).unwrap();
@@ -618,8 +630,10 @@ fn a_directory_in_a_worktree_is_asked_for_in_that_worktrees_workspace_and_any_ot
     let paths: Vec<String> = worktrees["worktrees"].as_array().unwrap().iter().map(|w| w["path"].as_str().unwrap().to_string()).collect();
     let (main, linked) = (paths[0].clone(), paths[1].clone());
     let name = linked.rsplit('/').next().unwrap().to_string();
+    let registered = json!({"repos": [{"workspace": name, "kind": "worktree", "path": linked}]});
     let rca = rca(Box::new(move |request| match request["method"].as_str().unwrap() {
         "worktree.list" => vec![answer(request, worktrees.clone())],
+        "repo.list" => vec![answer(request, registered.clone())],
         "file.stat" => vec![answer(request, json!({"kind": "file", "size": 1, "modified_ms": 0}))],
         "file.write" => vec![answer(request, json!({"bytes": 1}))],
         "file.search" => vec![answer(request, json!({"entries": [], "truncated": false}))],
@@ -658,9 +672,11 @@ fn the_setup_events_of_a_worktree_are_those_rca_replays_after_its_answer_and_a_w
     let name = linked.rsplit('/').next().unwrap().to_string();
     let executor_events = [exec_git::SetupEvent::Started { steps: 1 }, exec_git::SetupEvent::StepStarted { step: 0, command: "pnpm i".into() }, exec_git::SetupEvent::StepOutput { step: 0, stream: "stdout".into(), data: "ok\n".into() }, exec_git::SetupEvent::StepFinished { step: 0, exit_code: 0 }, exec_git::SetupEvent::Finished { ok: true }];
     let (worktrees, workspace_name) = (recorded_worktrees(), name.clone());
+    let registered = json!({"repos": [{"workspace": name, "kind": "worktree", "path": linked}]});
     let wire: Vec<Value> = executor_events.iter().enumerate().map(|(i, e)| agent_api_workspace::worktrees::setup_event(&name, i as u64 + 1, &serde_json::to_value(e).unwrap()).to_value()).collect();
     let rca = rca(Box::new(move |request| match request["method"].as_str().unwrap() {
         "worktree.list" => vec![answer(request, worktrees.clone())],
+        "repo.list" => vec![answer(request, registered.clone())],
         "worktree.setup.subscribe" if request["params"]["workspace"] == workspace_name.as_str() => {
             let after = request["params"]["after_seq"].as_u64().unwrap();
             let mut frames = vec![answer(request, json!({"workspace": workspace_name, "after_seq": after, "last_seq": 5, "running": false}))];
@@ -688,7 +704,15 @@ fn the_setup_events_of_a_worktree_are_those_rca_replays_after_its_answer_and_a_w
 fn a_git_request_for_a_directory_of_a_worktree_is_asked_of_that_worktrees_workspace_with_the_params_the_contract_names_and_a_blob_comes_back_as_text() {
     // Given an rca with a worktree workspace wt at /base/wt, whose blob is the bytes of "hi\n"
     let rca = rca(Box::new(|request| match request["method"].as_str().unwrap() {
-        "worktree.list" => vec![answer(request, json!({"worktrees": [{"path": "/work/proj", "is_main": true}, {"path": "/base/wt", "is_main": false}]}))],
+        "worktree.list" => vec![answer(request, json!({"worktrees": [
+            {"path": "/work/main", "is_main": true},
+            {"path": "/work/proj", "is_main": false},
+            {"path": "/base/wt", "is_main": false},
+        ]}))],
+        "repo.list" => vec![answer(request, json!({"repos": [
+            {"workspace": WORKSPACE, "executor": WORKSPACE, "kind": "root", "attached": true},
+            {"workspace": "wt", "executor": WORKSPACE, "kind": "worktree", "attached": true, "path": "/base/wt"},
+        ]}))],
         "git.blob" => vec![answer(request, json!({"rev": "HEAD", "path": "a.txt", "size": 3, "data": "aGkK", "truncated": false, "binary": false}))],
         "git.pull" => vec![refuse(request, "INVALID_ARGS", "this repository has no remote configured")],
         _ => vec![answer(request, json!({}))],

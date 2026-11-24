@@ -129,6 +129,18 @@ fn a_code_minted_while_serve_runs_pairs_a_client_once_and_a_wrong_or_expired_cod
 }
 
 #[test]
+fn a_client_discovering_the_host_receives_a_supported_platform() {
+    // Given a running server, When a client reads its descriptor,
+    // Then the platform uses the T3 wire values.
+    let dir = tempfile::tempdir().unwrap();
+    let server = Server::start(dir.path(), &[]);
+    let descriptor = http(server.addr(), "GET", "/.well-known/t3/environment", &[], "").body;
+    assert!(matches!(descriptor["platform"]["os"].as_str(), Some("darwin" | "linux" | "windows" | "unknown")));
+    assert!(matches!(descriptor["platform"]["arch"].as_str(), Some("arm64" | "x64" | "other")));
+    server.stop();
+}
+
+#[test]
 fn what_a_client_created_and_its_token_survive_a_restart_with_the_same_environment_and_sequence() {
     // Given a paired client that created a project and a thread
     let dir = tempfile::tempdir().unwrap();

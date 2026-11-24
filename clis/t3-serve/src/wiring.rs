@@ -46,12 +46,17 @@ fn hex_of(bytes: &[u8]) -> String {
 }
 
 pub fn platform() -> (String, String) {
+    let os = match std::env::consts::OS {
+        "macos" => "darwin",
+        os @ ("linux" | "windows") => os,
+        _ => "unknown",
+    };
     let arch = match std::env::consts::ARCH {
         "aarch64" => "arm64",
         "x86_64" => "x64",
-        other => other,
+        _ => "other",
     };
-    (std::env::consts::OS.to_string(), arch.to_string())
+    (os.to_string(), arch.to_string())
 }
 
 pub struct Wired {

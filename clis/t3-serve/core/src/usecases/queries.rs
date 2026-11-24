@@ -69,7 +69,7 @@ impl Service {
             return Ok(json!({"item": null}));
         }
         self.sync_thread(&thread);
-        Ok(json!({"item": self.engine().read(|state| state.entities.get(&thread).and_then(|e| e.turn_items.iter().find(|i| i["id"] == item).cloned()))}))
+        Ok(json!({"item": self.engine().read(|state| state.entities.get(&thread).and_then(|e| e.turn_items.iter().find(|i| i["id"] == item).map(crate::domain::state::turn_item_wire)))}))
     }
 
     /// `orchestration.searchThreads`: the agent API's matches, with the project of each thread. A title match reads as a user match on the title.

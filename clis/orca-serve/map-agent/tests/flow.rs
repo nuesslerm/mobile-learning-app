@@ -139,6 +139,33 @@ fn given_a_new_chat_with_a_first_message_when_created_then_the_thread_runs_it_in
 }
 
 #[test]
+fn given_the_mobile_clients_uuid_when_creating_a_chat_then_rca_keeps_that_id() {
+    // Given the UUID that identifies a new chat in Orca Mobile
+    let mut rig = Rig::new();
+    let session = "10ff0071-ec9f-44fa-aef7-38b30a43f4aa";
+    let params = json!({
+        "envelope": env(session, "mobile-create", "fingerprint"),
+        "worktree": "id:main::",
+        "agent": "claude",
+    });
+    // When the client opens the chat and retries its create operation
+    let created = rig.ok("agentSession.create", params.clone());
+    let replayed = rig.ok("agentSession.create", params);
+    // Then RCA receives the same identity once and the client can reopen the chat by that identity
+    assert_eq!(sent(&rig, "thread.create"), vec![json!({
+        "thread": session, "workspace": "main", "driver": "claudeAgent"
+    })]);
+    assert_eq!(created["value"]["sessionId"], session);
+    assert_eq!(replayed["value"], created["value"]);
+    assert_eq!(replayed["replayed"], true);
+    let history = rig.ok("agentSession.history", json!({"sessionId": session, "direction": "tail"}));
+    assert_eq!(history, json!({"ok": true, "page": created["value"]["page"]}));
+    assert_eq!(orca_map_workspace::layout::kept(rig.agent.as_ref(), "main").unwrap(), [
+        json!({"id": session, "kind": "agent-session", "sessionId": session, "agent": "claude", "title": "Chat"}),
+    ]);
+}
+
+#[test]
 fn given_creates_the_host_refuses_when_sent_then_each_is_refused_before_a_thread_exists() {
     // Given a host
     let mut rig = Rig::new();

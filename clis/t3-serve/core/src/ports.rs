@@ -23,6 +23,13 @@ pub struct CatalogModel {
     pub name: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct CatalogProvider {
+    pub driver: String,
+    pub signed_in: Option<bool>,
+    pub models: Vec<CatalogModel>,
+}
+
 /// The models the `rca` provider lists in `ServerConfig`.
 pub trait ModelCatalog: Send + Sync {
     fn models(&self) -> Vec<CatalogModel>;
@@ -484,6 +491,9 @@ pub trait AgentApi: Send + Sync {
     /// of anything, and what needs the agent API says so when it is asked for.
     fn configured(&self) -> bool {
         true
+    }
+    fn catalog_providers(&self) -> Result<Vec<CatalogProvider>, AgentError> {
+        Ok(Vec::new())
     }
     /// One request of `Op`: the contract's result.
     fn run(&self, op: &Op) -> Result<Value, AgentError>;

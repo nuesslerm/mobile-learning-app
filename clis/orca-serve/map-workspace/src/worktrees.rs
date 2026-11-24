@@ -138,12 +138,16 @@ pub(crate) fn create(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
         Some(n) => n,
         None => format!("wt-{}", checkouts(agent, &repo.workspace)?.len() + 1),
     };
-    let mut args = json!({"workspace": repo.workspace, "worktree": name, "branch": name});
+    if text(params, "branchIntent").is_some_and(|intent| intent != "create-new") {
+        return Err(Failure::new(RUNTIME_ERROR, "Opening an existing branch is unsupported"));
+    }
+    let branch = text(params, "branchNameOverride").filter(|branch| !branch.is_empty()).unwrap_or(&name);
+    let mut args = json!({"workspace": repo.workspace, "worktree": name, "branch": branch});
     if let Some(base) = text(params, "baseBranch").filter(|b| !b.is_empty()) {
         args["base"] = base.into();
     }
     let made = ask(agent, WORKTREE_CREATE.name(), args)?;
-    let c = Checkout { path: made["path"].as_str().unwrap_or_default().to_string(), head: made["head"].as_str().unwrap_or_default().to_string(), branch: made["branch"].as_str().unwrap_or(&name).to_string(), is_main: false };
+    let c = Checkout { path: made["path"].as_str().unwrap_or_default().to_string(), head: made["head"].as_str().unwrap_or_default().to_string(), branch: made["branch"].as_str().unwrap_or(branch).to_string(), is_main: false };
     if let Some(display) = text(params, "displayName").filter(|d| !d.is_empty()) {
         put(agent, &meta_key(&id_of(&repo.workspace, &c.path)), json!({"displayName": display}))?;
     }

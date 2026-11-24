@@ -210,6 +210,25 @@ fn tabs_of(snapshot: &Value) -> Vec<(String, bool)> {
 }
 
 #[test]
+fn given_changed_tabs_when_a_mobile_client_reads_each_snapshot_then_the_versions_increase() {
+    // Given a worktree with one tab and the mobile client's initial snapshot
+    let mut rig = Rig::new();
+    let target = json!({"worktree": "id:main::/srv/main"});
+    let initial = rig.ok("session.tabs.list", target.clone());
+    let mut previous = initial["snapshotVersion"].as_u64().unwrap();
+    // When the phone creates more tabs
+    for _ in 0..4 {
+        rig.ok("session.tabs.createTerminal", target.clone());
+        let updated = rig.ok("session.tabs.list", target.clone());
+        // Then a change is never rejected as stale in the same publication epoch
+        assert_eq!(updated["publicationEpoch"], initial["publicationEpoch"]);
+        let version = updated["snapshotVersion"].as_u64().unwrap();
+        assert!(version > previous, "{version} is not newer than {previous}");
+        previous = version;
+    }
+}
+
+#[test]
 fn given_a_worktree_with_terminals_when_its_tabs_are_listed_activated_and_closed_then_each_terminal_is_a_tab_and_the_phone_owns_which_is_in_front() {
     let mut rig = Rig::new();
     let feat = json!({"worktree": "path:/srv/wt/feat"});

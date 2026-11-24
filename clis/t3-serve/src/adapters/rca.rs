@@ -18,11 +18,12 @@ use agent_api_schedules as schedules;
 use agent_api_attachments as attachments;
 use agent_api_hosted as hosted;
 use agent_api_terminal as terminal;
-use agent_api_workspace::{code as workspace_code, edit, worktrees, FILE_LIST, FILE_READ, WORKSPACE, WORKSPACE_CREATE, WORKSPACE_REMOVE};
+use agent_api_workspace::{code as workspace_code, edit, worktrees, FILE_LIST, FILE_READ, REPO_LIST, WORKSPACE, WORKSPACE_CREATE, WORKSPACE_REMOVE};
 use exec_fs::{EntryKind, ListResult, ReadResult};
 use serde_json::{json, Value};
+use std::sync::OnceLock;
 use std::time::{Duration, Instant};
-use t3_core::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, DirEntry, Finish, Follow, History, Op, SetupBatch, SetupEvent, TerminalBatch, TerminalEvent, TerminalSummary};
+use t3_core::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, CatalogModel, CatalogProvider, DirEntry, Finish, Follow, History, Op, SetupBatch, SetupEvent, TerminalBatch, TerminalEvent, TerminalSummary};
 
 pub struct RcaAgent {
     authority: String,
@@ -30,11 +31,12 @@ pub struct RcaAgent {
     bearer: String,
     /// The rca workspace whose executor works where the projects' files are: every turn and file call acts there.
     workspace: String,
+    providers: OnceLock<Vec<CatalogProvider>>,
 }
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 140] = [
+pub const USES: [Method; 143] = [
     STATUS,
     THREAD_CREATE,
     THREAD_SUBSCRIBE,
@@ -79,6 +81,7 @@ pub const USES: [Method; 140] = [
     worktrees::WORKTREE_CREATE,
     worktrees::WORKTREE_REMOVE,
     worktrees::WORKTREE_LIST,
+    REPO_LIST,
     worktrees::SETUP_SUBSCRIBE,
     worktrees::SETUP_CANCEL,
     terminal::OPEN,
@@ -174,6 +177,8 @@ pub const USES: [Method; 140] = [
     catalog::SPEECH_STATUS,
     catalog::SPEECH_TRANSCRIBE,
     catalog::SESSIONS_LIST,
+    catalog::AGENTS_DETECT,
+    catalog::MODELS_LIST,
     agent_api_service::LOGS,
 ];
 
@@ -251,7 +256,7 @@ impl RcaAgent {
     /// `url` is `http://host:port`; anything else is refused at startup.
     pub fn new(url: &str, bearer: &str, workspace: &str) -> Result<RcaAgent, String> {
         let authority = url.strip_prefix("http://").map(|r| r.trim_end_matches('/').to_string()).filter(|a| !a.is_empty() && !a.contains('/'));
-        authority.map(|authority| RcaAgent { authority, bearer: bearer.to_string(), workspace: workspace.to_string() }).ok_or_else(|| format!("rca url {url} must be http://host:port"))
+        authority.map(|authority| RcaAgent { authority, bearer: bearer.to_string(), workspace: workspace.to_string(), providers: OnceLock::new() }).ok_or_else(|| format!("rca url {url} must be http://host:port"))
     }
 
     fn open(&self) -> Result<Client, Error> {
@@ -278,8 +283,7 @@ impl RcaAgent {
         client.call(method, params).map_err(failed)
     }
 
-    /// The workspace `root` is in and `path` under it: the worktree whose directory `root` is or is below (the repository's worktrees, as git
-    /// lists them, each a workspace named by its directory), else the configured workspace with `root` joined to the path.
+    /// Use a separate workspace only when RCA registered the Git worktree.
     fn place(&self, client: &mut Client, root: &str, path: &str) -> Result<(String, String), AgentError> {
         let own = |path: &str| (self.workspace.clone(), under(root, path));
         if root.is_empty() {
@@ -287,10 +291,14 @@ impl RcaAgent {
         }
         let listed = client.call(worktrees::WORKTREE_LIST, json!({"workspace": self.workspace})).unwrap_or_default();
         let found = listed["worktrees"].as_array().into_iter().flatten().filter(|w| w["is_main"] != true).filter_map(|w| w["path"].as_str()).filter(|p| root == *p || root.strip_prefix(p).is_some_and(|rest| rest.starts_with('/'))).max_by_key(|p| p.len());
-        Ok(match found {
-            Some(dir) => (dir.rsplit('/').next().unwrap_or_default().to_string(), under(root[dir.len()..].trim_start_matches('/'), path)),
-            None => own(path),
-        })
+        let Some(dir) = found else { return Ok(own(path)) };
+        let registered = Self::call(client, REPO_LIST, json!({}))?;
+        let workspace = registered["repos"].as_array().into_iter().flatten()
+            .find(|row| row["kind"] == "worktree" && row["path"] == dir)
+            .and_then(|row| row["workspace"].as_str());
+        Ok(workspace.map_or_else(|| own(path), |workspace| {
+            (workspace.into(), under(root[dir.len()..].trim_start_matches('/'), path))
+        }))
     }
 
     /// The workspace a turn runs in: the one the thread's worktree is, else the executor's own (a worktree the agent API does not list is no workspace
@@ -569,6 +577,29 @@ fn unreadable(method: &str) -> impl Fn(serde_json::Error) -> AgentError + '_ {
 }
 
 impl AgentApi for RcaAgent {
+    fn catalog_providers(&self) -> Result<Vec<CatalogProvider>, AgentError> {
+        if let Some(providers) = self.providers.get() {
+            return Ok(providers.clone());
+        }
+        let mut client = self.connect()?;
+        let detected = Self::call(&mut client, catalog::AGENTS_DETECT, json!({"executor": self.workspace}))?;
+        let mut providers = Vec::new();
+        for row in detected["agents"].as_array().into_iter().flatten() {
+            let Some(driver) = row["driver"].as_str().filter(|d| catalog::DRIVERS.contains(d)) else { continue };
+            if row["installed"] != true { continue; }
+            let listing = Self::call(&mut client, catalog::MODELS_LIST, json!({"driver": driver}))?;
+            let models = listing["models"].as_array().into_iter().flatten().filter_map(|model| Some(CatalogModel {
+                slug: model["id"].as_str()?.into(),
+                name: model["label"].as_str()?.into(),
+            })).collect();
+            providers.push(CatalogProvider { driver: driver.into(), signed_in: row["signed_in"].as_bool(), models });
+        }
+        if !providers.is_empty() {
+            let _ = self.providers.set(providers.clone());
+        }
+        Ok(providers)
+    }
+
     fn run(&self, op: &Op) -> Result<Value, AgentError> {
         let mut client = self.connect()?;
         let (method, params) = match self.placed(&mut client, op)? {

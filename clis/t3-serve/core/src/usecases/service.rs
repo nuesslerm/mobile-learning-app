@@ -184,6 +184,34 @@ impl Service {
         if let (Some(settings), Some(map)) = (self.config_settings(), config.as_object_mut()) {
             map.insert("settings".into(), settings);
         }
+        let providers = match self.0.agent.catalog_providers() {
+            Ok(providers) => providers,
+            Err(error) => {
+                self.log("catalog.providers.failed", &[("error", error.message())]);
+                return config;
+            }
+        };
+        for provider in providers {
+            let Some(row) = config["providers"].as_array_mut().into_iter().flatten()
+                .find(|row| row["instanceId"] == provider.driver.as_str()) else { continue };
+            row["enabled"] = json!(true);
+            row["installed"] = json!(true);
+            row["status"] = json!("ready");
+            // The executor's credential-file probe cannot rule out Keychain or environment login.
+            row["auth"]["status"] = json!(if provider.signed_in == Some(true) { "authenticated" } else { "unknown" });
+            row.as_object_mut().unwrap().remove("message");
+            if provider.driver != "opencode" || row["models"].as_array().is_none_or(Vec::is_empty) {
+                row["models"] = json!(provider.models.iter().map(|model| {
+                    json!({"slug": model.slug, "name": model.name, "isCustom": false, "capabilities": null})
+                }).collect::<Vec<_>>());
+            }
+            let settings = &mut config["settings"]["providerInstances"];
+            if !settings.is_object() {
+                *settings = json!({});
+            }
+            settings.as_object_mut().unwrap().entry(&provider.driver)
+                .or_insert_with(|| json!({"driver": provider.driver, "enabled": true}));
+        }
         config
     }
 

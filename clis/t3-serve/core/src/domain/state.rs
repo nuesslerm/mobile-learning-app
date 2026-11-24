@@ -36,14 +36,77 @@ pub struct Applied {
 
 /// The event as the thread stream sends it.
 pub fn event_json(e: &StoredEvent) -> Value {
+    let payload = match e.kind.as_str() {
+        "turn-item.updated" => turn_item_wire(&e.payload),
+        "message.updated" => message_wire(&e.payload),
+        _ => e.payload.clone(),
+    };
     json!({
         "id": e.event_id,
         "threadId": e.thread_id,
         "providerInstanceId": e.payload.get("providerInstanceId").cloned().unwrap_or(Value::Null),
         "occurredAt": iso(e.occurred_at),
         "type": e.kind,
-        "payload": e.payload,
+        "payload": payload,
     })
+}
+
+fn message_wire(value: &Value) -> Value {
+    let mut message = value.clone();
+    if let Some(fields) = message.as_object_mut() {
+        fields.entry("nodeId").or_insert_with(|| value["runId"].as_str().map_or(Value::Null, |run| json!(runs::node_id(run))));
+        fields.entry("attachments").or_insert_with(|| json!([]));
+        fields.entry("streaming").or_insert_with(|| json!(false));
+    }
+    message
+}
+
+pub(crate) fn turn_item_wire(value: &Value) -> Value {
+    let mut item = value.clone();
+    let Some(fields) = item.as_object_mut() else { return item };
+    let streaming = value["status"] == "streaming";
+    if streaming {
+        fields.insert("status".into(), json!("running"));
+    }
+    fields.entry("nodeId").or_insert_with(|| value["runId"].as_str().map_or(Value::Null, |run| json!(runs::node_id(run))));
+    for field in ["providerThreadId", "providerTurnId", "nativeItemRef", "parentItemId"] {
+        fields.entry(field).or_insert(Value::Null);
+    }
+    fields.entry("title").or_insert_with(|| value["name"].clone());
+    fields.entry("startedAt").or_insert_with(|| value["createdAt"].clone());
+    fields.entry("completedAt").or_insert_with(|| {
+        if matches!(value["status"].as_str(), Some("completed" | "failed" | "cancelled" | "interrupted")) {
+            value["updatedAt"].clone()
+        } else {
+            Value::Null
+        }
+    });
+    match value["type"].as_str() {
+        Some("assistant_message" | "reasoning" | "proposed_plan") => {
+            fields.entry("streaming").or_insert_with(|| json!(streaming));
+        }
+        Some("command_execution") => {
+            let input = &value["input"];
+            if !input.is_string() {
+                let command = input["command"].as_str().map(str::to_string)
+                    .unwrap_or_else(|| if input.is_null() { String::new() } else { input.to_string() });
+                fields.insert("input".into(), json!(command));
+            }
+            if value["output"].is_null() {
+                fields.remove("output");
+            }
+        }
+        Some("error") if fields.get("failure").is_none() => {
+            fields.insert("failure".into(), json!({
+                "class": "provider_error",
+                "message": value["message"].as_str().unwrap_or("The provider failed"),
+                "code": null,
+                "retryable": null,
+            }));
+        }
+        _ => {}
+    }
+    item
 }
 
 /// The keys of a thread row that the real projection carries only after an event of that kind set them: the recorded pin leaves `pinOrderKey` out, the unpin and the settle carry it as null.
@@ -208,7 +271,10 @@ impl State {
                             shell.insert("latestUserMessageAt".into(), e.payload["createdAt"].clone());
                             shell.insert("latestUserAuthoredMessageAt".into(), e.payload["createdAt"].clone());
                         }
-                        shell.insert("latestVisibleMessage".into(), json!({"id": e.payload["id"], "role": e.payload["role"], "text": e.payload["text"], "createdAt": e.payload["createdAt"]}));
+                        shell.insert("latestVisibleMessage".into(), json!({
+                            "id": e.payload["id"], "role": e.payload["role"], "text": e.payload["text"],
+                            "updatedAt": e.payload.get("updatedAt").unwrap_or(&updated_at),
+                        }));
                         shell.insert("updatedAt".into(), updated_at);
                         applied.shell_changed = true;
                     }
@@ -289,7 +355,7 @@ impl State {
             }
         }
         out.insert("thread".into(), thread);
-        let list = |items: &Vec<Value>| Value::Array(items.clone());
+        let items: Vec<Value> = entities.turn_items.iter().map(turn_item_wire).collect();
         let none = || json!([]);
         for (key, value) in [
             ("runs", Value::Array(rows.runs)),
@@ -300,14 +366,14 @@ impl State {
             ("providerThreads", Value::Array(rows.provider_threads)),
             ("providerTurns", none()),
             ("runtimeRequests", none()),
-            ("messages", list(&entities.messages)),
+            ("messages", Value::Array(entities.messages.iter().map(message_wire).collect())),
             ("plans", none()),
-            ("turnItems", list(&entities.turn_items)),
+            ("visibleTurnItems", Value::Array(projected_rows(id, &items))),
+            ("turnItems", Value::Array(items)),
             ("checkpointScopes", Value::Array(rows.checkpoint_scopes)),
             ("checkpoints", none()),
             ("contextHandoffs", Value::Array(rows.context_handoffs)),
             ("contextTransfers", none()),
-            ("visibleTurnItems", Value::Array(projected_rows(id, &entities.turn_items))),
         ] {
             out.insert(key.into(), value);
         }

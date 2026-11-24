@@ -110,6 +110,8 @@ fn a_message_starts_a_turn_in_the_agent_api_and_the_thread_shows_the_streamed_te
     let kinds: Vec<&str> = events.iter().map(|(k, _)| k.as_str()).collect();
     assert_eq!(kinds.first(), Some(&"message.updated"));
     assert!(kinds.contains(&"run.created") && kinds.last() == Some(&"run.updated"), "{kinds:?}");
+    let streamed = events.iter().find(|(kind, row)| kind == "turn-item.updated" && row["type"] == "assistant_message").unwrap();
+    assert_eq!((&streamed.1["status"], &streamed.1["streaming"]), (&json!("running"), &json!(true)));
     // And the projection holds both messages, the three items and a completed run
     let p = projection(&mut rpc);
     let texts: Vec<(&str, &str)> = p["messages"].as_array().unwrap().iter().map(|m| (m["role"].as_str().unwrap(), m["text"].as_str().unwrap())).collect();
@@ -118,11 +120,21 @@ fn a_message_starts_a_turn_in_the_agent_api_and_the_thread_shows_the_streamed_te
     assert_eq!(items, [("user_message", "completed"), ("assistant_message", "completed"), ("command_execution", "completed")]);
     let tool = p["turnItems"].as_array().unwrap().iter().find(|i| i["type"] == "command_execution").unwrap();
     assert_eq!((tool["name"].as_str(), tool["output"].as_str()), (Some("bash"), Some("a.txt\nb.txt\n")));
+    assert_eq!(tool["input"], "ls");
+    assert_eq!(tool["nodeId"], p["messages"][1]["nodeId"]);
+    assert_eq!(p["messages"][1]["streaming"], false);
+    assert_eq!(p["messages"][1]["attachments"], json!([]));
     assert_eq!((p["runs"][0]["status"].as_str(), p["thread"]["archivedAt"].clone()), (Some("completed"), Value::Null));
     // And the shell row shows an idle thread whose latest run completed
     let shell = rpc.send("orchestration.subscribeShell", json!({}));
     let row = rpc.chunk(&shell)[0]["snapshot"]["threads"][0].clone();
     assert_eq!((row["status"].as_str(), row["activeRunId"].clone(), row["itemCount"].as_i64()), (Some("idle"), Value::Null, Some(3)));
+    assert_eq!(row["latestVisibleMessage"], json!({
+        "id": p["messages"][1]["id"],
+        "role": "assistant",
+        "text": "Hello",
+        "updatedAt": p["messages"][1]["updatedAt"],
+    }));
 }
 
 #[test]

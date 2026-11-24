@@ -1,7 +1,7 @@
 //! The files rows through the `Host` dispatcher with an in-memory workspace set as rca: each reply is read the way the phone reads it, and the
 //! agent methods the mapper sent are held to its `USES` list. Given/When/Then in each test.
 use orca_core::testing::{RevocablePrincipals, ScriptedAgent};
-use orca_core::AgentApi;
+use orca_core::{AgentApi, Area};
 use orca_core::{Host, HostInfo, ServiceStatus};
 use orca_map_workspace::testing::Workspaces;
 use orca_map_workspace::{WorkspaceArea, NOT_OFFERED, USES};
@@ -371,6 +371,28 @@ fn given_stored_settings_when_the_project_views_are_read_then_each_is_the_same_r
 }
 
 #[test]
+fn given_a_root_without_a_path_when_mobile_lists_repos_then_it_has_the_primary_checkout_path() {
+    // Given RCA's root row and the Git checkouts its executor returns
+    let mut rig = Rig::new();
+    rig.agent.reply("worktree.list", |params| {
+        assert_eq!(params, &json!({"workspace": "main"}));
+        Ok(json!({"worktrees": [
+            {"path": "/srv/feature", "branch": "feature", "is_main": false},
+            {"path": "/srv/project", "branch": "main", "is_main": true},
+        ]}))
+    });
+    // When the mobile workspace picker reads its project sources
+    let repos = rig.ok("repo.list", json!({}));
+    let setups = rig.ok("projectHostSetup.list", json!({}));
+    // Then the root is selectable and refers to the primary checkout
+    assert_eq!(repos["repos"][1], json!({
+        "displayName": "main", "badgeColor": "#737373", "addedAt": 0,
+        "kind": "git", "id": "main", "path": "/srv/project",
+    }));
+    assert_eq!(setups["setups"][1]["path"], "/srv/project");
+}
+
+#[test]
 fn given_a_repo_update_and_sparse_presets_when_read_back_then_they_are_what_was_written_and_a_resave_by_id_replaces() {
     // Given a repo
     let mut rig = Rig::new();
@@ -426,6 +448,25 @@ fn given_a_stat_that_fails_for_another_reason_when_hooks_are_read_then_the_failu
     // Then each is the refusal the mapper maps it to, never hasHooksFile false
     assert_eq!(down.0, "runtime_unavailable");
     assert_eq!(denied, ("runtime_error".to_string(), "no".to_string()));
+}
+
+#[test]
+fn given_the_mobile_branch_choice_when_creating_a_worktree_then_rca_uses_the_chosen_base_and_branch() {
+    // Given a repository and the branch choice sent by the mobile dialog
+    let mut rig = Rig::new();
+    let params = json!({
+        "repo": "main", "name": "test workspace", "branchIntent": "create-new",
+        "baseBranch": "origin/dev", "branchNameOverride": "dev-claude-orca",
+    });
+    // When Orca creates a new branch from the selected ref
+    rig.ok("worktree.create", params);
+    // Then RCA receives the base and branch, and the client can discover this request shape
+    let requests: Vec<_> = rig.agent.requests().into_iter()
+        .filter_map(|(method, params)| (method == "worktree.create").then_some(params)).collect();
+    assert_eq!(requests, [json!({
+        "workspace": "main", "worktree": "test-workspace", "branch": "dev-claude-orca", "base": "origin/dev",
+    })]);
+    assert!(WorkspaceArea::default().capabilities().contains(&"worktree.open-existing-branch.v2"));
 }
 
 #[test]

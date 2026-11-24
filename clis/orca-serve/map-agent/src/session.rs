@@ -195,6 +195,8 @@ pub(crate) fn create(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
     let loaded = load(agent, &env.session)?;
     let mut shown = page(&env.session, &loaded.folded, "tail", None, journal::DEFAULT_LIMIT);
     crate::queued::publish(agent, &env.session, &mut shown)?;
+    let title = thread["title"].as_str().filter(|t| !t.is_empty()).unwrap_or("Chat");
+    orca_map_workspace::layout::open_chat(agent, &target.workspace, &env.session, agent_id, title)?;
     let mut value = json!({"sessionId": env.session, "fence": FENCE, "page": shown, "unconfirmedClientMessageIds": []});
     if let Some(f) = first {
         value["firstMessage"] = f;

@@ -11,7 +11,7 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use t3_contracts::time::iso;
-use t3_contracts::wire::{self, Model};
+use t3_contracts::wire;
 
 const SETTINGS_SCOPE: &str = "t3";
 const SETTINGS_KEY: &str = "server.settings";
@@ -391,10 +391,6 @@ impl Service {
         }
     }
 
-    fn catalog_models(&self) -> Vec<(String, String)> {
-        self.0.catalog.models().into_iter().map(|m| (m.slug, m.name)).collect()
-    }
-
     /// `server.refreshProviders`: the accounts group looks again at the providers (one, or all), and the answer is the providers as signed in or
     /// out.
     pub fn refresh_providers(&self, payload: &Value) -> Result<Value, QueryFailure> {
@@ -405,9 +401,10 @@ impl Service {
         self.account(instance.unwrap_or_default(), "refresh", &Op::AccountsRefresh { provider: instance.map(str::to_string) })?;
         let listed = self.account(instance.unwrap_or_default(), "refresh", &Op::AccountsList)?;
         let logins: Vec<(String, String)> = listed["providers"].as_array().into_iter().flatten().filter_map(|p| Some((p["provider"].as_str()?.to_string(), p["status"].as_str()?.to_string()))).collect();
-        let models = self.catalog_models();
-        let models: Vec<Model> = models.iter().map(|(slug, name)| Model { slug, name }).collect();
-        Ok(json!({"providers": wire::providers_with_logins(&models, &iso(self.now_ms()), &logins)}))
+        let mut config = self.server_config();
+        let providers = config["providers"].as_array_mut().expect("server_config builds providers");
+        wire::apply_provider_logins(providers, &logins);
+        Ok(json!({"providers": providers}))
     }
 
     /// `server.updateProvider`: a provider's CLI is part of the service's image, so a version is updated by shipping the image.

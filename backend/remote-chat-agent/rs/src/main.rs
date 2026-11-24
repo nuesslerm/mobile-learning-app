@@ -37,15 +37,15 @@ async fn main() -> ExitCode {
     }
     let config = Config::from_env(&ProcessEnv);
     let port = config.port;
-    // All interfaces: the app container is reached from its compose network and from the tailscale sidecar.
-    let listener = match tokio::net::TcpListener::bind(("0.0.0.0", port)).await {
+    let bind = ProcessEnv.var("RCA_BIND").unwrap_or_else(|| "0.0.0.0".into());
+    let listener = match tokio::net::TcpListener::bind((bind.as_str(), port)).await {
         Ok(listener) => listener,
         Err(e) => {
             log::error!("server.bind.failed", port = port, error = e.to_string());
             return ExitCode::FAILURE;
         }
     };
-    log::info!("server.listening", host = "0.0.0.0", port = port);
+    log::info!("server.listening", host = bind, port = port);
     let settings = ProcessEnv.settings();
     let outbound = Arc::new(outbound::Reqwest::default());
     let commands = Arc::new(System);

@@ -164,9 +164,9 @@ impl PtyTable {
             return Err(ExecError::new(Code::Io, format!("{} ptys are open", ptys.len())));
         }
         let (mut master, mut slave) = (-1, -1);
-        let size = winsize(spawn.cols, spawn.rows);
+        let mut size = winsize(spawn.cols, spawn.rows);
         // SAFETY: both out-pointers are valid; the name and termios are null (defaults); the winsize outlives the call.
-        let made = unsafe { libc::openpty(&mut master, &mut slave, std::ptr::null_mut(), std::ptr::null(), &size as *const libc::winsize as _) };
+        let made = unsafe { libc::openpty(&mut master, &mut slave, std::ptr::null_mut(), std::ptr::null_mut(), std::ptr::addr_of_mut!(size)) };
         if made != 0 {
             return Err(io(format!("openpty: {}", std::io::Error::last_os_error())));
         }

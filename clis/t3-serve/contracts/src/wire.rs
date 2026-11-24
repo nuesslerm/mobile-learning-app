@@ -310,16 +310,14 @@ pub fn providers(models: &[Model], checked_at: &str) -> Vec<Value> {
 
 /// The provider instances as `server.refreshProviders` shows them once the accounts group has said which are signed in: the login can be
 /// started on each, and `auth.status` follows the login (`status` is the accounts group's `signed_in`, `signed_out` or `authenticating`).
-pub fn providers_with_logins(models: &[Model], checked_at: &str, logins: &[(String, String)]) -> Vec<Value> {
-    let mut list = providers(models, checked_at);
-    for provider in &mut list {
+pub fn apply_provider_logins(list: &mut [Value], logins: &[(String, String)]) {
+    for provider in list {
         let status = logins.iter().find(|(instance, _)| provider["instanceId"] == instance.as_str()).map(|(_, status)| status.as_str());
         provider["setup"]["canAuthenticate"] = json!(true);
         if let Some(status) = status {
             provider["auth"]["status"] = json!(if status == "signed_in" { "authenticated" } else { "unauthenticated" });
         }
     }
-    list
 }
 
 /// `ServerSettings` before anything was changed: the template's.
