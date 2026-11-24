@@ -63,7 +63,7 @@ export type EditorInputHandle = EditTarget & {
   /** Text as if typed at the caret: auto-closed brackets, re-indented `else:` and the rest of what typing does. */
   typeText: (text: string) => void;
   /** Replace the whole document and place the selection: one hunk, one undo step. */
-  setTextAndSelection: (text: string, sel: Selection) => void;
+  setTextAndSelection: (text: string, sel: Selection, focus?: boolean) => void;
   /** Apply a pure whole-document edit to the editor's own text and selection (the toolbar's Tab on a selection, Dedent, Comment, Newline). */
   transformDocument: (transform: (text: string, sel: Selection) => EditResult) => void;
   /** Starts a caret drag at the finger's grab: the editor is focused once, the page's selection events are held while it lasts, and React is told the selection once, at `end`. */
@@ -145,7 +145,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
      * displayed the 68-character stub while the backend reported a
      * CompileError on a `while` at line 5.
      */
-    const queuedTextRef = useRef<{ text: string; sel: Selection } | null>(null);
+    const queuedTextRef = useRef<{ text: string; sel: Selection; focus: boolean } | null>(null);
     const valueRef = useRef(value);
     valueRef.current = value;
     const onSelectionChangeRef = useRef(onSelectionChange);
@@ -193,10 +193,13 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
 
     // HTML is static — no config injected. All config flows via postMessage.
     const { editorBridge, clock } = useLeetCodePorts();
-    const html = useMemo(() => editorBridge.html(), [editorBridge]);
+    const { source, htmlBytes } = useMemo(() => {
+      const html = editorBridge.html();
+      return { source: editorBridge.pageSource?.(html) ?? { html }, htmlBytes: html.length };
+    }, [editorBridge]);
     const coldStartRef = useRef<ReturnType<typeof createColdStart> | null>(null);
     if (coldStartRef.current === null) {
-      coldStartRef.current = createColdStart({ clock, nth: nextEditorNth(), htmlBytes: html.length });
+      coldStartRef.current = createColdStart({ clock, nth: nextEditorNth(), htmlBytes });
       coldStartRef.current.mark('mount');
     }
     const pageEvalMsRef = useRef<number | undefined>(undefined);
@@ -353,7 +356,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           Logger.info('editor.type_text', { effect: 'typeText' });
           sendMessage({ type: 'typeText', text });
         },
-        setTextAndSelection(text: string, sel: Selection) {
+        setTextAndSelection(text: string, sel: Selection, focus = true) {
           Logger.info('editor.set_text_and_selection', {
             effect: 'setTextAndSelection',
             queued: !isReadyRef.current || !isInitializedRef.current,
@@ -362,10 +365,10 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             // Deliver on `hydrated`, like focus and selection already do. The
             // mirror is left alone: it must describe what the view HAS, not
             // what it was asked for.
-            queuedTextRef.current = { text, sel };
+            queuedTextRef.current = { text, sel, focus };
             return;
           }
-          void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.text', focus: true });
+          void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.text', focus });
         },
         transformDocument(transform: (text: string, sel: Selection) => EditResult) {
           Logger.info('editor.transform_document', { effect: 'transformDocument' });
@@ -527,6 +530,11 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         language,
       ]
     );
+
+    const [initialConfig] = useState(editorConfig);
+    const bootstrapScript = useMemo(() => Platform.OS === 'ios' && canvas
+      ? `window.__editorInitialConfig = ${JSON.stringify(initialConfig)}; true;`
+      : undefined, [canvas, initialConfig]);
 
     // Render-phase sync: before the WebView initializes, keep the pending initial text aligned with the latest React value
     if (!isInitializedRef.current) {
@@ -706,7 +714,17 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             coldStartRef.current?.mark('ready');
             pageEvalMsRef.current = m.evalMs;
             isReadyRef.current = true;
-            initializeEditor();
+            if (m.initializedOnPage) {
+              isInitializedRef.current = true;
+              appliedLanguageRef.current = initialConfig.language as Language;
+              initLanguageRef.current = initialConfig.language as Language;
+              if (initialConfig !== editorConfig) {
+                const { initialText: _text, noAutoFocus: _focus, surface: _surface, ...settings } = editorConfig;
+                sendMessage({ type: 'updateConfig', config: settings });
+              }
+            } else {
+              initializeEditor();
+            }
             break;
           case 'hydrated':
             holdText(m.text);
@@ -720,9 +738,9 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
             // otherwise the current value -- so the editor never shows code
             // other than what Run Local will run.
             if (queuedTextRef.current != null) {
-              const { text, sel } = queuedTextRef.current;
+              const { text, sel, focus } = queuedTextRef.current;
               queuedTextRef.current = null;
-              void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.queued', focus: true });
+              void writeDocument({ next: () => ({ text, selection: sel }), label: 'react.queued', focus });
             } else if (m.text !== valueRef.current) {
               Logger.info('editor.hydrated.reconciled', {
                 viewLength: m.text.length,
@@ -794,6 +812,8 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       },
       [
         initializeEditor,
+        initialConfig,
+        editorConfig,
         onChangeText,
         onFocusChange,
         onSelectionChange,
@@ -846,7 +866,8 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         <WebView<object>
           testID="CodeEditorInput"
           ref={webViewRef}
-          source={{ html }}
+          source={source}
+          injectedJavaScriptBeforeContentLoaded={bootstrapScript}
           onMessage={handleMessage}
           onLoadStart={() => {
             coldStartRef.current?.mark('loadStart');

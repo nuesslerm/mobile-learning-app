@@ -90,7 +90,6 @@ export function editorHeaderSpec(input: EditorHeaderInput): ScreenHeaderSpec {
     busy: input.busy,
     ...(native ? {
       nativeTitle: 'hidden' as const,
-      nativeGlassMenuGroups: true,
       hideNativeControlBackgrounds: native.hideControlBackgrounds,
       nativeBackgroundColor: native.backgroundColor,
       leadingStatus: {

@@ -135,7 +135,7 @@ type EditorSelection = { start: number; end: number };
 
 // Mirrors the webview's postMessage protocol (see data/editor/cm6/cm6Bundle.src.ts).
 export type FromEditorMessage =
-  | { type: 'ready'; evalMs?: number }
+  | { type: 'ready'; evalMs?: number; initializedOnPage?: boolean }
   | { type: 'hydrated'; text: string; selection: EditorSelection }
   | { type: 'focused' }
   | { type: 'blurred' }
@@ -154,6 +154,7 @@ export type WebViewHandle = { injectJavaScript(script: string): void };
  */
 export interface EditorBridgePort {
   html(): string;
+  pageSource?(html: string): { html: string } | { uri: string };
   connect(webView: () => WebViewHandle | null): { client: EditorClient; receive(raw: string): void; close(): void };
 }
 

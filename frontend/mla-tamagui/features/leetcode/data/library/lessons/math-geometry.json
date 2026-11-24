@@ -1,0 +1,540 @@
+{
+ "rotate-image": {
+  "url": "https://neetcode.io/problems/rotate-matrix?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=fMSJSS7eO1w",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def rotate(self, matrix: List[List[int]]) -> None:\n        n = len(matrix)\n        rotated = [[0] * n for _ in range(n)]\n\n        for i in range(n):\n            for j in range(n):\n                rotated[j][n - 1 - i] = matrix[i][j]\n\n        for i in range(n):\n            for j in range(n):\n                matrix[i][j] = rotated[i][j]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Rotate By Four Cells"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def rotate(self, matrix: List[List[int]]) -> None:\n        l, r = 0, len(matrix) - 1\n        while l < r:\n            for i in range(r - l):\n                top, bottom = l, r\n\n                # save the topleft\n                topLeft = matrix[top][l + i]\n\n                # move bottom left into top left\n                matrix[top][l + i] = matrix[bottom - i][l]\n\n                # move bottom right into bottom left\n                matrix[bottom - i][l] = matrix[bottom][r - i]\n\n                # move top right into bottom right\n                matrix[bottom][r - i] = matrix[top + i][r]\n\n                # move top left into top right\n                matrix[top + i][r] = topLeft\n            r -= 1\n            l += 1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Reverse And Transpose"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def rotate(self, matrix: List[List[int]]) -> None:\n        # Reverse the matrix vertically\n        matrix.reverse()\n\n        # Transpose the matrix\n        for i in range(len(matrix)):\n            for j in range(i + 1, len(matrix)):\n                matrix[i][j], matrix[j][i] = matrix[j][i], matrix[i][j]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "spiral-matrix": {
+  "url": "https://neetcode.io/problems/spiral-matrix?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=BJnMZNwUk1M",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def spiralOrder(self, matrix: List[List[int]]) -> List[int]:\n        m, n = len(matrix), len(matrix[0])\n        res = []\n\n        # append all the elements in the given direction\n        def dfs(row, col, r, c, dr, dc):\n            if row == 0 or col == 0:\n                return\n\n            for i in range(col):\n                r += dr\n                c += dc\n                res.append(matrix[r][c])\n\n            # sub-problem\n            dfs(col, row - 1, r, c, dc, -dr)\n\n        # start by going to the right\n        dfs(m, n, 0, -1, 0, 1)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(min(m, n)) space for recursion stack.\nO(m * n) space for the output list."
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iteration"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def spiralOrder(self, matrix: List[List[int]]) -> List[int]:\n        res = []\n        left, right = 0, len(matrix[0])\n        top, bottom = 0, len(matrix)\n\n        while left < right and top < bottom:\n            for i in range(left, right):\n                res.append(matrix[top][i])\n            top += 1\n            for i in range(top, bottom):\n                res.append(matrix[i][right - 1])\n            right -= 1\n            if not (left < right and top < bottom):\n                break\n            for i in range(right - 1, left - 1, -1):\n                res.append(matrix[bottom - 1][i])\n            bottom -= 1\n            for i in range(bottom - 1, top - 1, -1):\n                res.append(matrix[i][left])\n            left += 1\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(m * n) space for the output list."
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Iteration (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def spiralOrder(self, matrix: List[List[int]]) -> List[int]:\n        res = []\n        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]\n        steps = [len(matrix[0]), len(matrix) - 1]\n\n        r, c, d = 0, -1, 0\n        while steps[d & 1]:\n            for i in range(steps[d & 1]):\n                r += directions[d][0]\n                c += directions[d][1]\n                res.append(matrix[r][c])\n            steps[d & 1] -= 1\n            d += 1\n            d %= 4\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(m * n) space for the output list."
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   }
+  ]
+ },
+ "set-matrix-zeroes": {
+  "url": "https://neetcode.io/problems/set-zeroes-in-matrix?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=T41rL0L3Pnw",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def setZeroes(self, matrix: List[List[int]]) -> None:\n        ROWS, COLS = len(matrix), len(matrix[0])\n        mark = [[matrix[r][c] for c in range(COLS)] for r in range(ROWS)]\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if matrix[r][c] == 0:\n                    for col in range(COLS):\n                        mark[r][col] = 0\n                    for row in range(ROWS):\n                        mark[row][c] = 0\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                matrix[r][c] = mark[r][c]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O((m * n) * (m + n))"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iteration"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def setZeroes(self, matrix: List[List[int]]) -> None:\n        ROWS, COLS = len(matrix), len(matrix[0])\n        rows, cols = [False] * ROWS, [False] * COLS\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if matrix[r][c] == 0:\n                    rows[r] = True\n                    cols[c] = True\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if rows[r] or cols[c]:\n                    matrix[r][c] = 0"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m + n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Iteration (Space Optimized)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def setZeroes(self, matrix: List[List[int]]) -> None:\n        ROWS, COLS = len(matrix), len(matrix[0])\n        rowZero = False\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                if matrix[r][c] == 0:\n                    matrix[0][c] = 0\n                    if r > 0:\n                        matrix[r][0] = 0\n                    else:\n                        rowZero = True\n\n        for r in range(1, ROWS):\n            for c in range(1, COLS):\n                if matrix[0][c] == 0 or matrix[r][0] == 0:\n                    matrix[r][c] = 0\n\n        if matrix[0][0] == 0:\n            for r in range(ROWS):\n                matrix[r][0] = 0\n\n        if rowZero:\n            for c in range(COLS):\n                matrix[0][c] = 0"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   }
+  ]
+ },
+ "happy-number": {
+  "url": "https://neetcode.io/problems/non-cyclical-number?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=ljz85bxOYJ0",
+  "prerequisites": [
+   {
+    "title": "Fast and Slow Pointers Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/5"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Hash Set"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isHappy(self, n: int) -> bool:\n        visit = set()\n\n        while n not in visit:\n            visit.add(n)\n            n = self.sumOfSquares(n)\n            if n == 1:\n                return True\n        return False\n\n    def sumOfSquares(self, n: int) -> int:\n        output = 0\n\n        while n:\n            digit = n % 10\n            digit = digit ** 2\n            output += digit\n            n = n // 10\n        return output"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(log n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Fast And Slow Pointers - I"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isHappy(self, n: int) -> bool:\n        slow, fast = n, self.sumOfSquares(n)\n\n        while slow != fast:\n            fast = self.sumOfSquares(fast)\n            fast = self.sumOfSquares(fast)\n            slow = self.sumOfSquares(slow)\n        return True if fast == 1 else False\n\n    def sumOfSquares(self, n: int) -> int:\n        output = 0\n\n        while n:\n            digit = n % 10\n            digit = digit ** 2\n            output += digit\n            n = n // 10\n        return output"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Fast And Slow Pointers - II"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isHappy(self, n: int) -> bool:\n        slow, fast = n, self.sumOfSquares(n)\n        power = lam = 1\n\n        while slow != fast:\n            if power == lam:\n                slow = fast\n                power *= 2\n                lam = 0\n            fast = self.sumOfSquares(fast)\n            lam += 1\n        return True if fast == 1 else False\n\n    def sumOfSquares(self, n: int) -> int:\n        output = 0\n\n        while n:\n            digit = n % 10\n            digit = digit ** 2\n            output += digit\n            n = n // 10\n        return output"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "plus-one": {
+  "url": "https://neetcode.io/problems/plus-one?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=jIaA8boiG1s",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def plusOne(self, digits: List[int]) -> List[int]:\n        if not digits:\n            return [1]\n\n        if digits[-1] < 9:\n            digits[-1] += 1\n            return digits\n        else:\n            return self.plusOne(digits[:-1]) + [0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iteration - I"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def plusOne(self, digits: List[int]) -> List[int]:\n        one = 1\n        i = 0\n        digits.reverse()\n\n        while one:\n            if i < len(digits):\n                if digits[i] == 9:\n                    digits[i] = 0\n                else:\n                    digits[i] += 1\n                    one = 0\n            else:\n                digits.append(one)\n                one = 0\n            i += 1\n\n        digits.reverse()\n        return digits"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) or O(n) depending on the language."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Iteration - II"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def plusOne(self, digits: List[int]) -> List[int]:\n        n = len(digits)\n        for i in range(n - 1, -1, -1):\n            if digits[i] < 9:\n                digits[i] += 1\n                return digits\n            digits[i] = 0\n\n        return [1] + digits"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "powx-n": {
+  "url": "https://neetcode.io/problems/pow-x-n?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=g9YQyYi4IQQ",
+  "prerequisites": [
+   {
+    "title": "Factorial Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/8"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def myPow(self, x: float, n: int) -> float:\n        if x == 0:\n            return 0\n        if n == 0:\n            return 1\n\n        res = 1\n        for i in range(abs(n)):\n            res *= x\n        return res if n >= 0 else 1 / res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Binary Exponentiation (Recursive)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def myPow(self, x: float, n: int) -> float:\n        def helper(x, n):\n            if x == 0:\n                return 0\n            if n == 0:\n                return 1\n\n            res = helper(x * x, n // 2)\n            return x * res if n % 2 else res\n\n        res = helper(x, abs(n))\n        return res if n >= 0 else 1 / res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(log n) for recursion stack."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Binary Exponentiation (Iterative)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def myPow(self, x: float, n: int) -> float:\n        if x == 0:\n            return 0\n        if n == 0:\n            return 1\n\n        res = 1\n        power = abs(n)\n\n        while power:\n            if power & 1:\n                res *= x\n            x *= x\n            power >>= 1\n\n        return res if n >= 0 else 1 / res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "multiply-strings": {
+  "url": "https://neetcode.io/problems/multiply-strings?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=1vZswirL8Y8",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Multiplication & Addition"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def multiply(self, num1: str, num2: str) -> str:\n        if num1 == \"0\" or num2 == \"0\":\n            return \"0\"\n\n        if len(num1) < len(num2):\n            return self.multiply(num2, num1)\n\n        res, zero = \"\", 0\n        for i in range(len(num2) - 1, -1, -1):\n            cur = self.mul(num1, num2[i], zero)\n            res = self.add(res, cur)\n            zero += 1\n\n        return res\n\n    def mul(self, s: str, d: str, zero: int) -> str:\n        i, carry = len(s) - 1, 0\n        d = int(d)\n        cur = []\n\n        while i >= 0 or carry:\n            n = int(s[i]) if i >= 0 else 0\n            prod = n * d + carry\n            cur.append(str(prod % 10))\n            carry = prod // 10\n            i -= 1\n\n        return ''.join(cur[::-1]) + '0' * zero\n\n    def add(self, num1: str, num2: str) -> str:\n        i, j, carry = len(num1) - 1, len(num2) - 1, 0\n        res = []\n\n        while i >= 0 or j >= 0 or carry:\n            n1 = int(num1[i]) if i >= 0 else 0\n            n2 = int(num2[j]) if j >= 0 else 0\n            total = n1 + n2 + carry\n            res.append(str(total % 10))\n            carry = total // 10\n            i -= 1\n            j -= 1\n\n        return ''.join(res[::-1])"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(min(m, n) * (m + n))"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m + n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string num1 and n is the length of the string num2."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Multiplication"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def multiply(self, num1: str, num2: str) -> str:\n        if \"0\" in [num1, num2]:\n            return \"0\"\n\n        res = [0] * (len(num1) + len(num2))\n        num1, num2 = num1[::-1], num2[::-1]\n        for i1 in range(len(num1)):\n            for i2 in range(len(num2)):\n                digit = int(num1[i1]) * int(num2[i2])\n                res[i1 + i2] += digit\n                res[i1 + i2 + 1] += res[i1 + i2] // 10\n                res[i1 + i2] = res[i1 + i2] % 10\n\n        res, beg = res[::-1], 0\n        while beg < len(res) and res[beg] == 0:\n            beg += 1\n        res = map(str, res[beg:])\n        return \"\".join(res)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m + n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string num1 and n is the length of the string num2."
+   }
+  ]
+ },
+ "detect-squares": {
+  "url": "https://neetcode.io/problems/count-squares?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=bahebearrDc",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Hash Map - I"
+   },
+   {
+    "kind": "pre",
+    "text": "class CountSquares:\n    def __init__(self):\n        self.ptsCount = defaultdict(int)\n        self.pts = []\n\n    def add(self, point: List[int]) -> None:\n        self.ptsCount[tuple(point)] += 1\n        self.pts.append(point)\n\n    def count(self, point: List[int]) -> int:\n        res = 0\n        px, py = point\n        for x, y in self.pts:\n            if (abs(py - y) != abs(px - x)) or x == px or y == py:\n                continue\n            res += self.ptsCount[(x, py)] * self.ptsCount[(px, y)]\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1) for add(), O(n) for count()."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Hash Map - II"
+   },
+   {
+    "kind": "pre",
+    "text": "class CountSquares:\n\n    def __init__(self):\n        self.ptsCount = defaultdict(lambda: defaultdict(int))\n\n    def add(self, point: List[int]) -> None:\n        self.ptsCount[point[0]][point[1]] += 1\n\n    def count(self, point: List[int]) -> int:\n        res = 0\n        x1, y1 = point\n        for y2 in self.ptsCount[x1]:\n            side = y2 - y1\n            if side == 0:\n                continue\n\n            x3, x4 = x1 + side, x1 - side\n            res += (self.ptsCount[x1][y2] * self.ptsCount[x3][y1] *\n                    self.ptsCount[x3][y2])\n\n            res += (self.ptsCount[x1][y2] * self.ptsCount[x4][y1] *\n                    self.ptsCount[x4][y2])\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1) for add(), O(n) for count()."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ }
+}

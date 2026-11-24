@@ -5,6 +5,7 @@ import type { LibrarySnapshot, LibraryStoragePort } from '../../domain/library/l
 
 const schema = z.object({
   lastOpened: z.string().nullable(),
+  savedCollections: z.array(z.string()).optional(),
   lists: z.array(z.object({
     id: z.string(),
     name: z.string(),

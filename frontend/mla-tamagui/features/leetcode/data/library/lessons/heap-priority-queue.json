@@ -1,0 +1,649 @@
+{
+ "kth-largest-element-in-a-stream": {
+  "url": "https://neetcode.io/problems/kth-largest-integer-in-a-stream?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=hOjcdrqMoQ8",
+  "prerequisites": [
+   {
+    "title": "Heap Properties Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/23"
+   },
+   {
+    "title": "Push and Pop Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/24"
+   },
+   {
+    "title": "Heapify Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/25"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Sorting"
+   },
+   {
+    "kind": "pre",
+    "text": "class KthLargest:\n\n    def __init__(self, k: int, nums: List[int]):\n        self.k = k\n        self.arr = nums\n\n    def add(self, val: int) -> int:\n        self.arr.append(val)\n        self.arr.sort()\n        return self.arr[len(self.arr) - self.k]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * nlog n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(m) extra space.\nO(1) or O(n) space depending on the sorting algorithm."
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of calls made to add() and n is the current size of the array."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Min-Heap"
+   },
+   {
+    "kind": "pre",
+    "text": "class KthLargest:\n\n    def __init__(self, k: int, nums: List[int]):\n        self.minHeap, self.k = nums, k\n        heapq.heapify(self.minHeap)\n        while len(self.minHeap) > k:\n            heapq.heappop(self.minHeap)\n\n    def add(self, val: int) -> int:\n        heapq.heappush(self.minHeap, val)\n        if len(self.minHeap) > self.k:\n            heapq.heappop(self.minHeap)\n        return self.minHeap[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * log k)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(k)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of calls made to add()."
+   }
+  ]
+ },
+ "last-stone-weight": {
+  "url": "https://neetcode.io/problems/last-stone-weight?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=B-QCq79-Vfw",
+  "prerequisites": [
+   {
+    "title": "Heap Properties Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/23"
+   },
+   {
+    "title": "Push and Pop Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/24"
+   },
+   {
+    "title": "Heapify Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/25"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Sorting"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def lastStoneWeight(self, stones: List[int]) -> int:\n\n        while len(stones) > 1:\n            stones.sort()\n            cur = stones.pop() - stones.pop()\n            if cur:\n                stones.append(cur)\n\n        return stones[0] if stones else 0"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2 log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) or O(n) depending on the sorting algorithm."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Binary Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def lastStoneWeight(self, stones: List[int]) -> int:\n        stones.sort()\n        n = len(stones)\n\n        while n > 1:\n            cur = stones.pop() - stones.pop()\n            n -= 2\n            if cur > 0:\n                l, r = 0, n\n                while l < r:\n                    mid = (l + r) // 2\n                    if stones[mid] < cur:\n                        l = mid + 1\n                    else:\n                        r = mid\n                pos = l\n                n += 1\n                stones.append(0)\n                for i in range(n - 1, pos, -1):\n                    stones[i] = stones[i - 1]\n                stones[pos] = cur\n\n        return stones[0] if n > 0 else 0"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) or O(n) depending on the sorting algorithm."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Heap"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def lastStoneWeight(self, stones: List[int]) -> int:\n        stones = [-s for s in stones]\n        heapq.heapify(stones)\n\n        while len(stones) > 1:\n            first = heapq.heappop(stones)\n            second = heapq.heappop(stones)\n            if second > first:\n                heapq.heappush(stones, first - second)\n\n        stones.append(0)\n        return abs(stones[0])"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Bucket Sort"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def lastStoneWeight(self, stones: List[int]) -> int:\n\n        maxStone = max(stones)\n        bucket = [0] * (maxStone + 1)\n        for stone in stones:\n            bucket[stone] += 1\n\n        first = second = maxStone\n        while first > 0:\n            if bucket[first] % 2 == 0:\n                first -= 1\n                continue\n\n            j = min(first - 1, second)\n            while j > 0 and bucket[j] == 0:\n                j -= 1\n\n            if j == 0:\n                return first\n            second = j\n            bucket[first] -= 1\n            bucket[second] -= 1\n            bucket[first - second] += 1\n            first = max(first - second, second)\n        return first"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n + w)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(w)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the stones array and w is the maximum value in the stones array."
+   }
+  ]
+ },
+ "k-closest-points-to-origin": {
+  "url": "https://neetcode.io/problems/k-closest-points-to-origin?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=rI2EBUEMfTk",
+  "prerequisites": [
+   {
+    "title": "Heap Properties Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/23"
+   },
+   {
+    "title": "Push and Pop Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/24"
+   },
+   {
+    "title": "Heapify Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/25"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Sorting"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def kClosest(self, points: List[List[int]], k: int) -> List[List[int]]:\n        points.sort(key=lambda p: p[0]**2 + p[1]**2)\n        return points[:k]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) or O(n) depending on the sorting algorithm."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Min-Heap"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def kClosest(self, points: List[List[int]], k: int) -> List[List[int]]:\n        minHeap = []\n        for x, y in points:\n            dist = (x ** 2) + (y ** 2)\n            minHeap.append([dist, x, y])\n\n        heapq.heapify(minHeap)\n        res = []\n        while k > 0:\n            dist, x, y = heapq.heappop(minHeap)\n            res.append([x, y])\n            k -= 1\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n + k * log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the array points."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Max Heap"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def kClosest(self, points: List[List[int]], k: int) -> List[List[int]]:\n        maxHeap = []\n        for x, y in points:\n            dist = -(x ** 2 + y ** 2)\n            heapq.heappush(maxHeap, [dist, x, y])\n            if len(maxHeap) > k:\n                heapq.heappop(maxHeap)\n\n        res = []\n        while maxHeap:\n            dist, x, y = heapq.heappop(maxHeap)\n            res.append([x, y])\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * log k)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(k)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the array points."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Quick Select"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def kClosest(self, points, k):\n        euclidean = lambda x: x[0] ** 2 + x[1] ** 2\n        def partition(l, r):\n            pivotIdx = r\n            pivotDist = euclidean(points[pivotIdx])\n            i = l\n            for j in range(l, r):\n                if euclidean(points[j]) <= pivotDist:\n                    points[i], points[j] = points[j], points[i]\n                    i += 1\n            points[i], points[r] = points[r], points[i]\n            return i\n\n        L, R = 0, len(points) - 1\n        pivot = len(points)\n\n        while pivot != k:\n            pivot = partition(L, R)\n            if pivot < k:\n                L = pivot + 1\n            else:\n                R = pivot - 1\n        return points[:k]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n) in average case, O(n ^ 2) in worst case."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "kth-largest-element-in-an-array": {
+  "url": "https://neetcode.io/problems/kth-largest-element-in-an-array?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=XEmy13g1Qxc",
+  "prerequisites": [],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Sorting"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findKthLargest(self, nums: List[int], k: int) -> int:\n        nums.sort()\n        return nums[len(nums) - k]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) or O(n) depending on the sorting algorithm."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Min-Heap"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findKthLargest(self, nums, k):\n        return heapq.nlargest(k, nums)[-1]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log k)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(k)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the array nums."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Quick Select"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n\n    def findKthLargest(self, nums: List[int], k: int) -> int:\n        k = len(nums) - k\n\n        def quickSelect(l, r):\n            pivot, p = nums[r], l\n            for i in range(l, r):\n                if nums[i] <= pivot:\n                    nums[p], nums[i] = nums[i], nums[p]\n                    p += 1\n            nums[p], nums[r] = nums[r], nums[p]\n\n            if p > k:\n                return quickSelect(l, p - 1)\n            elif p < k:\n                return quickSelect(p + 1, r)\n            else:\n                return nums[p]\n\n        return quickSelect(0, len(nums) - 1)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n) in average case, O(n ^ 2) in worst case."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Quick Select (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def partition(self, nums: List[int], left: int, right: int) -> int:\n        mid = (left + right) >> 1\n        nums[mid], nums[left + 1] = nums[left + 1], nums[mid]\n\n        if nums[left] < nums[right]:\n            nums[left], nums[right] = nums[right], nums[left]\n        if nums[left + 1] < nums[right]:\n            nums[left + 1], nums[right] = nums[right], nums[left + 1]\n        if nums[left] < nums[left + 1]:\n            nums[left], nums[left + 1] = nums[left + 1], nums[left]\n\n        pivot = nums[left + 1]\n        i = left + 1\n        j = right\n\n        while True:\n            while True:\n                i += 1\n                if not nums[i] > pivot:\n                    break\n            while True:\n                j -= 1\n                if not nums[j] < pivot:\n                    break\n            if i > j:\n                break\n            nums[i], nums[j] = nums[j], nums[i]\n\n        nums[left + 1], nums[j] = nums[j], nums[left + 1]\n        return j\n\n    def quickSelect(self, nums: List[int], k: int) -> int:\n        left = 0\n        right = len(nums) - 1\n\n        while True:\n            if right <= left + 1:\n                if right == left + 1 and nums[right] > nums[left]:\n                    nums[left], nums[right] = nums[right], nums[left]\n                return nums[k]\n\n            j = self.partition(nums, left, right)\n\n            if j >= k:\n                right = j - 1\n            if j <= k:\n                left = j + 1\n\n    def findKthLargest(self, nums: List[int], k: int) -> int:\n        return self.quickSelect(nums, k - 1)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n) in average case, O(n ^ 2) in worst case."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "task-scheduler": {
+  "url": "https://neetcode.io/problems/task-scheduling?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=s8p8ukTyA2I",
+  "prerequisites": [
+   {
+    "title": "Heap Properties Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/23"
+   },
+   {
+    "title": "Push and Pop Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/24"
+   },
+   {
+    "title": "Heapify Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/25"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def leastInterval(self, tasks: List[str], n: int) -> int:\n        count = [0] * 26\n        for task in tasks:\n            count[ord(task) - ord('A')] += 1\n\n        arr = []\n        for i in range(26):\n            if count[i] > 0:\n                arr.append([count[i], i])\n\n        time = 0\n        processed = []\n        while arr:\n            maxi = -1\n            for i in range(len(arr)):\n                if all(processed[j] != arr[i][1] for j in range(max(0, time - n), time)):\n                    if maxi == -1 or arr[maxi][0] < arr[i][0]:\n                        maxi = i\n\n            time += 1\n            cur = -1\n            if maxi != -1:\n                cur = arr[maxi][1]\n                arr[maxi][0] -= 1\n                if arr[maxi][0] == 0:\n                    arr.pop(maxi)\n            processed.append(cur)\n        return time"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(t * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(t)"
+   },
+   {
+    "kind": "p",
+    "text": "Where t is the time to process given tasks and n is the cooldown time."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Max-Heap"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def leastInterval(self, tasks: List[str], n: int) -> int:\n        count = Counter(tasks)\n        maxHeap = [-cnt for cnt in count.values()]\n        heapq.heapify(maxHeap)\n\n        time = 0\n        q = deque()  # pairs of [-cnt, idleTime]\n        while maxHeap or q:\n            time += 1\n\n            if not maxHeap:\n                time = q[0][1]\n            else:\n                cnt = 1 + heapq.heappop(maxHeap)\n                if cnt:\n                    q.append([cnt, time + n])\n            if q and q[0][1] == time:\n                heapq.heappush(maxHeap, q.popleft()[0])\n        return time"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) since we have at most 26 different characters."
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of tasks."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Greedy"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def leastInterval(self, tasks: List[str], n: int) -> int:\n        count = [0] * 26\n        for task in tasks:\n            count[ord(task) - ord('A')] += 1\n\n        count.sort()\n        maxf = count[25]\n        idle = (maxf - 1) * n\n\n        for i in range(24, -1, -1):\n            idle -= min(maxf - 1, count[i])\n        return max(0, idle) + len(tasks)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) since we have at most 26 different characters."
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of tasks."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Math"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def leastInterval(self, tasks: List[str], n: int) -> int:\n        count = [0] * 26\n        for task in tasks:\n            count[ord(task) - ord('A')] += 1\n\n        maxf = max(count)\n        maxCount = 0\n        for i in count:\n            maxCount += 1 if i == maxf else 0\n\n        time = (maxf - 1) * (n + 1) + maxCount\n        return max(len(tasks), time)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) since we have at most 26 different characters."
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of tasks."
+   }
+  ]
+ },
+ "design-twitter": {
+  "url": "https://neetcode.io/problems/design-twitter-feed?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=pNichitDD2E",
+  "prerequisites": [
+   {
+    "title": "Heap Properties Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/23"
+   },
+   {
+    "title": "Push and Pop Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/24"
+   },
+   {
+    "title": "Hash Usage Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/26"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Sorting"
+   },
+   {
+    "kind": "pre",
+    "text": "class Twitter:\n\n    def __init__(self):\n        self.time = 0\n        self.followMap = defaultdict(set)\n        self.tweetMap = defaultdict(list)\n\n    def postTweet(self, userId: int, tweetId: int) -> None:\n        self.tweetMap[userId].append((self.time, tweetId))\n        self.time += 1\n\n    def getNewsFeed(self, userId: int) -> List[int]:\n        feed = self.tweetMap[userId][:]\n        for followeeId in self.followMap[userId]:\n            feed.extend(self.tweetMap[followeeId])\n\n        feed.sort(key=lambda x: -x[0])\n        return [tweetId for _, tweetId in feed[:10]]\n\n    def follow(self, followerId: int, followeeId: int) -> None:\n        if followerId != followeeId:\n            self.followMap[followerId].add(followeeId)\n\n    def unfollow(self, followerId: int, followeeId: int) -> None:\n        self.followMap[followerId].discard(followeeId)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * m + tlog t) for each getNewsFeed() call and O(1) for remaining methods."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(N * m + N * M)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the total number of followeeIds associated with the userId, m is the maximum number of tweets by any user, t is the total number of tweets associated with the userId and its followeeIds, N is the total number of userIds and M is the maximum number of followees for any user."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Heap"
+   },
+   {
+    "kind": "pre",
+    "text": "class Twitter:\n    def __init__(self):\n        self.count = 0\n        self.tweetMap = defaultdict(list)  # userId -> list of [count, tweetIds]\n        self.followMap = defaultdict(set)  # userId -> set of followeeId\n\n    def postTweet(self, userId: int, tweetId: int) -> None:\n        self.tweetMap[userId].append([self.count, tweetId])\n        self.count -= 1\n\n    def getNewsFeed(self, userId: int) -> List[int]:\n        res = []\n        minHeap = []\n\n        self.followMap[userId].add(userId)\n        for followeeId in self.followMap[userId]:\n            if followeeId in self.tweetMap:\n                index = len(self.tweetMap[followeeId]) - 1\n                count, tweetId = self.tweetMap[followeeId][index]\n                heapq.heappush(minHeap, [count, tweetId, followeeId, index - 1])\n\n        while minHeap and len(res) < 10:\n            count, tweetId, followeeId, index = heapq.heappop(minHeap)\n            res.append(tweetId)\n            if index >= 0:\n                count, tweetId = self.tweetMap[followeeId][index]\n                heapq.heappush(minHeap, [count, tweetId, followeeId, index - 1])\n        return res\n\n    def follow(self, followerId: int, followeeId: int) -> None:\n        self.followMap[followerId].add(followeeId)\n\n    def unfollow(self, followerId: int, followeeId: int) -> None:\n        if followeeId in self.followMap[followerId]:\n            self.followMap[followerId].remove(followeeId)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n) for each getNewsFeed() call and O(1) for remaining methods."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(N * m + N * M + n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the total number of followeeIds associated with the userId, m is the maximum number of tweets by any user, N is the total number of userIds and M is the maximum number of followees for any user."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Heap (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Twitter:\n\n    def __init__(self):\n        self.count = 0\n        self.tweetMap = defaultdict(list)  # userId -> list of [count, tweetIds]\n        self.followMap = defaultdict(set)  # userId -> set of followeeId\n\n    def postTweet(self, userId: int, tweetId: int) -> None:\n        self.tweetMap[userId].append([self.count, tweetId])\n        if len(self.tweetMap[userId]) > 10:\n            self.tweetMap[userId].pop(0)\n        self.count -= 1\n\n    def getNewsFeed(self, userId: int) -> List[int]:\n        res = []\n        minHeap = []\n        self.followMap[userId].add(userId)\n        if len(self.followMap[userId]) >= 10:\n            maxHeap = []\n            for followeeId in self.followMap[userId]:\n                if followeeId in self.tweetMap:\n                    index = len(self.tweetMap[followeeId]) - 1\n                    count, tweetId = self.tweetMap[followeeId][index]\n                    heapq.heappush(maxHeap, [-count, tweetId, followeeId, index - 1])\n                    if len(maxHeap) > 10:\n                        heapq.heappop(maxHeap)\n            while maxHeap:\n                count, tweetId, followeeId, index = heapq.heappop(maxHeap)\n                heapq.heappush(minHeap, [-count, tweetId, followeeId, index])\n        else:\n            for followeeId in self.followMap[userId]:\n                if followeeId in self.tweetMap:\n                    index = len(self.tweetMap[followeeId]) - 1\n                    count, tweetId = self.tweetMap[followeeId][index]\n                    heapq.heappush(minHeap, [count, tweetId, followeeId, index - 1])\n\n        while minHeap and len(res) < 10:\n            count, tweetId, followeeId, index = heapq.heappop(minHeap)\n            res.append(tweetId)\n            if index >= 0:\n                count, tweetId = self.tweetMap[followeeId][index]\n                heapq.heappush(minHeap, [count, tweetId, followeeId, index - 1])\n\n        return res\n\n    def follow(self, followerId: int, followeeId: int) -> None:\n        self.followMap[followerId].add(followeeId)\n\n    def unfollow(self, followerId: int, followeeId: int) -> None:\n        if followeeId in self.followMap[followerId]:\n            self.followMap[followerId].remove(followeeId)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n) for each getNewsFeed() call and O(1) for remaining methods."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(N * m + N * M + n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the total number of followeeIds associated with the userId, m is the maximum number of tweets by any user (m can be at most 10), N is the total number of userIds and M is the maximum number of followees for any user."
+   }
+  ]
+ },
+ "find-median-from-data-stream": {
+  "url": "https://neetcode.io/problems/find-median-in-a-data-stream?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=itmhHWaHupI",
+  "prerequisites": [
+   {
+    "title": "Heap Properties Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/23"
+   },
+   {
+    "title": "Push and Pop Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/24"
+   },
+   {
+    "title": "Two Heaps Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/10"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Sorting"
+   },
+   {
+    "kind": "pre",
+    "text": "class MedianFinder:\n\n    def __init__(self):\n        self.data = []\n\n    def addNum(self, num: int) -> None:\n        self.data.append(num)\n\n    def findMedian(self) -> float:\n        self.data.sort()\n        n = len(self.data)\n        return (self.data[n // 2] if (n & 1) else\n                (self.data[n // 2] + self.data[n // 2 - 1]) / 2)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m) for addNum(), O(m * n log n) for findMedian()."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of function calls and n is the length of the array."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Heap"
+   },
+   {
+    "kind": "pre",
+    "text": "class MedianFinder:\n    def __init__(self):\n        # two heaps, large, small, minheap, maxheap\n        # heaps should be equal size\n        self.small, self.large = [], []\n\n    def addNum(self, num: int) -> None:\n        if self.large and num > self.large[0]:\n            heapq.heappush(self.large, num)\n        else:\n            heapq.heappush(self.small, -1 * num)\n\n        if len(self.small) > len(self.large) + 1:\n            val = -1 * heapq.heappop(self.small)\n            heapq.heappush(self.large, val)\n        if len(self.large) > len(self.small) + 1:\n            val = heapq.heappop(self.large)\n            heapq.heappush(self.small, -1 * val)\n\n    def findMedian(self) -> float:\n        if len(self.small) > len(self.large):\n            return -1 * self.small[0]\n        elif len(self.large) > len(self.small):\n            return self.large[0]\n        return (-1 * self.small[0] + self.large[0]) / 2.0"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * log n) for addNum(), O(m) for findMedian()."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of function calls and n is the length of the array."
+   }
+  ]
+ }
+}

@@ -1,0 +1,1370 @@
+{
+ "unique-paths": {
+  "url": "https://neetcode.io/problems/count-paths?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=IlEsdxuD4lY",
+  "prerequisites": [
+   {
+    "title": "Matrix DFS Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/29"
+   },
+   {
+    "title": "2-Dimension DP Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/33"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def uniquePaths(self, m: int, n: int) -> int:\n\n        def dfs(i, j):\n            if i == (m - 1) and j == (n - 1):\n                return 1\n            if i >= m or j >= n:\n                return 0\n            return dfs(i, j + 1) + dfs(i + 1, j)\n\n        return dfs(0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(2 ^ {m + n})"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m + n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def uniquePaths(self, m: int, n: int) -> int:\n        memo = [[-1] * n for _ in range(m)]\n        def dfs(i, j):\n            if i == (m - 1) and j == (n - 1):\n                return 1\n            if i >= m or j >= n:\n                return 0\n            if memo[i][j] != -1:\n                return memo[i][j]\n\n            memo[i][j] =  dfs(i, j + 1) + dfs(i + 1, j)\n            return memo[i][j]\n\n        return dfs(0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def uniquePaths(self, m: int, n: int) -> int:\n        dp = [[0] * (n + 1) for _ in range(m + 1)]\n        dp[m - 1][n - 1] = 1\n\n        for i in range(m - 1, -1, -1):\n            for j in range(n - 1, -1, -1):\n                dp[i][j] += dp[i + 1][j] + dp[i][j + 1]\n\n        return dp[0][0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Dynamic Programming (Space Optimized)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def uniquePaths(self, m: int, n: int) -> int:\n        row = [1] * n\n\n        for i in range(m - 1):\n            newRow = [1] * n\n            for j in range(n - 2, -1, -1):\n                newRow[j] = newRow[j + 1] + row[j]\n            row = newRow\n        return row[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   },
+   {
+    "kind": "h2",
+    "text": "5. Dynamic Programming (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def uniquePaths(self, m: int, n: int) -> int:\n        dp = [1] * n\n        for i in range(m - 2, -1, -1):\n            for j in range(n - 2, -1, -1):\n                dp[j] += dp[j + 1]\n\n        return dp[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   },
+   {
+    "kind": "h2",
+    "text": "6. Math"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def uniquePaths(self, m: int, n: int) -> int:\n        if m == 1 or n == 1:\n            return 1\n        if m < n:\n            m, n = n, m\n\n        res = j = 1\n        for i in range(m, m + n - 1):\n            res *= i\n            res //= j\n            j += 1\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(min(m, n))"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns."
+   }
+  ]
+ },
+ "longest-common-subsequence": {
+  "url": "https://neetcode.io/problems/longest-common-subsequence?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=Ua0GhsJSlWM",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "2-Dimension DP Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/33"
+   },
+   {
+    "title": "LCS Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/20"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def longestCommonSubsequence(self, text1: str, text2: str) -> int:\n\n        def dfs(i, j):\n            if i == len(text1) or j == len(text2):\n                return 0\n            if text1[i] == text2[j]:\n                return 1 + dfs(i + 1, j + 1)\n            return max(dfs(i + 1, j), dfs(i, j + 1))\n\n        return dfs(0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(2 ^ {m + n})"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m + n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string text1 and n is the length of the string text2."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def longestCommonSubsequence(self, text1: str, text2: str) -> int:\n        memo = {}\n\n        def dfs(i, j):\n            if i == len(text1) or j == len(text2):\n                return 0\n            if (i, j) in memo:\n                return memo[(i, j)]\n\n            if text1[i] == text2[j]:\n                memo[(i, j)] = 1 + dfs(i + 1, j + 1)\n            else:\n                memo[(i, j)] = max(dfs(i + 1, j), dfs(i, j + 1))\n\n            return memo[(i, j)]\n\n        return dfs(0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string text1 and n is the length of the string text2."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def longestCommonSubsequence(self, text1: str, text2: str) -> int:\n        dp = [[0 for j in range(len(text2) + 1)]\n                 for i in range(len(text1) + 1)]\n\n        for i in range(len(text1) - 1, -1, -1):\n            for j in range(len(text2) - 1, -1, -1):\n                if text1[i] == text2[j]:\n                    dp[i][j] = 1 + dp[i + 1][j + 1]\n                else:\n                    dp[i][j] = max(dp[i][j + 1], dp[i + 1][j])\n\n        return dp[0][0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string text1 and n is the length of the string text2."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Dynamic Programming (Space Optimized)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def longestCommonSubsequence(self, text1: str, text2: str) -> int:\n        if len(text1) < len(text2):\n            text1, text2 = text2, text1\n\n        prev = [0] * (len(text2) + 1)\n        curr = [0] * (len(text2) + 1)\n\n        for i in range(len(text1) - 1, -1, -1):\n            for j in range(len(text2) - 1, -1, -1):\n                if text1[i] == text2[j]:\n                    curr[j] = 1 + prev[j + 1]\n                else:\n                    curr[j] = max(curr[j + 1], prev[j])\n            prev, curr = curr, prev\n\n        return prev[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(min(m, n))"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string text1 and n is the length of the string text2."
+   },
+   {
+    "kind": "h2",
+    "text": "5. Dynamic Programming (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def longestCommonSubsequence(self, text1: str, text2: str) -> int:\n        if len(text1) < len(text2):\n            text1, text2 = text2, text1\n\n        dp = [0] * (len(text2) + 1)\n\n        for i in range(len(text1) - 1, -1, -1):\n            prev = 0\n            for j in range(len(text2) - 1, -1, -1):\n                temp = dp[j]\n                if text1[i] == text2[j]:\n                    dp[j] = 1 + prev\n                else:\n                    dp[j] = max(dp[j], dp[j + 1])\n                prev = temp\n\n        return dp[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(min(m, n))"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string text1 and n is the length of the string text2."
+   }
+  ]
+ },
+ "best-time-to-buy-and-sell-stock-with-cooldown": {
+  "url": "https://neetcode.io/problems/buy-and-sell-crypto-with-cooldown?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=I7j0F7AHpb8",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "2-Dimension DP Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/33"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxProfit(self, prices: List[int]) -> int:\n\n        def dfs(i, buying):\n            if i >= len(prices):\n                return 0\n\n            cooldown = dfs(i + 1, buying)\n            if buying:\n                buy = dfs(i + 1, not buying) - prices[i]\n                return max(buy, cooldown)\n            else:\n                sell = dfs(i + 2, not buying) + prices[i]\n                return max(sell, cooldown)\n\n        return dfs(0, True)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxProfit(self, prices: List[int]) -> int:\n        dp = {}  # key=(i, buying) val=max_profit\n\n        def dfs(i, buying):\n            if i >= len(prices):\n                return 0\n            if (i, buying) in dp:\n                return dp[(i, buying)]\n\n            cooldown = dfs(i + 1, buying)\n            if buying:\n                buy = dfs(i + 1, not buying) - prices[i]\n                dp[(i, buying)] = max(buy, cooldown)\n            else:\n                sell = dfs(i + 2, not buying) + prices[i]\n                dp[(i, buying)] = max(sell, cooldown)\n            return dp[(i, buying)]\n\n        return dfs(0, True)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxProfit(self, prices: List[int]) -> int:\n        n = len(prices)\n        dp = [[0] * 2 for _ in range(n + 1)]\n\n        for i in range(n - 1, -1, -1):\n            for buying in [True, False]:\n                if buying:\n                    buy = dp[i + 1][False] - prices[i] if i + 1 < n else -prices[i]\n                    cooldown = dp[i + 1][True] if i + 1 < n else 0\n                    dp[i][1] = max(buy, cooldown)\n                else:\n                    sell = dp[i + 2][True] + prices[i] if i + 2 < n else prices[i]\n                    cooldown = dp[i + 1][False] if i + 1 < n else 0\n                    dp[i][0] = max(sell, cooldown)\n\n        return dp[0][1]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Dynamic Programming (Space Optimized)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxProfit(self, prices: List[int]) -> int:\n        n = len(prices)\n        dp1_buy, dp1_sell = 0, 0\n        dp2_buy = 0\n\n        for i in range(n - 1, -1, -1):\n            dp_buy = max(dp1_sell - prices[i], dp1_buy)\n            dp_sell = max(dp2_buy + prices[i], dp1_sell)\n            dp2_buy = dp1_buy\n            dp1_buy, dp1_sell = dp_buy, dp_sell\n\n        return dp1_buy"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "coin-change-ii": {
+  "url": "https://neetcode.io/problems/coin-change-ii?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=Mjy4hd2xgrs",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "2-Dimension DP Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/33"
+   },
+   {
+    "title": "Unbounded Knapsack Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/19"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def change(self, amount: int, coins: List[int]) -> int:\n        coins.sort()\n\n        def dfs(i, a):\n            if a == 0:\n                return 1\n            if i >= len(coins):\n                return 0\n\n            res = 0\n            if a >= coins[i]:\n                res = dfs(i + 1, a)\n                res += dfs(i, a - coins[i])\n            return res\n\n        return dfs(0, amount)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(2 ^ {max(n, \\frac{a}{m})})"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(max(n, \\frac{a}{m}))"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of coins, a is the given amount and m is the minimum value among all the coins."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def change(self, amount: int, coins: List[int]) -> int:\n        coins.sort()\n        memo = [[-1] * (amount + 1) for _ in range(len(coins) + 1)]\n\n        def dfs(i, a):\n            if a == 0:\n                return 1\n            if i >= len(coins):\n                return 0\n            if memo[i][a] != -1:\n                return memo[i][a]\n\n            res = 0\n            if a >= coins[i]:\n                res = dfs(i + 1, a)\n                res += dfs(i, a - coins[i])\n\n            memo[i][a] = res\n            return res\n\n        return dfs(0, amount)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * a)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n * a)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of coins and a is the given amount."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def change(self, amount: int, coins: List[int]) -> int:\n        n = len(coins)\n        coins.sort()\n        dp = [[0] * (amount + 1) for _ in range(n + 1)]\n\n        for i in range(n + 1):\n            dp[i][0] = 1\n\n        for i in range(n - 1, -1, -1):\n            for a in range(amount + 1):\n                if a >= coins[i]:\n                    dp[i][a] = dp[i + 1][a]\n                    dp[i][a] += dp[i][a - coins[i]]\n\n        return dp[0][amount]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * a)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n * a)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of coins and a is the given amount."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Dynamic Programming (Space Optimized)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def change(self, amount: int, coins: List[int]) -> int:\n        dp = [0] * (amount + 1)\n        dp[0] = 1\n        for i in range(len(coins) - 1, -1, -1):\n            nextDP = [0] * (amount + 1)\n            nextDP[0] = 1\n\n            for a in range(1, amount + 1):\n                nextDP[a] = dp[a]\n                if a - coins[i] >= 0:\n                    nextDP[a] += nextDP[a - coins[i]]\n            dp = nextDP\n        return dp[amount]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * a)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(a)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of coins and a is the given amount."
+   },
+   {
+    "kind": "h2",
+    "text": "5. Dynamic Programming (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def change(self, amount: int, coins: List[int]) -> int:\n        dp = [0] * (amount + 1)\n        dp[0] = 1\n        for i in range(len(coins) - 1, -1, -1):\n            for a in range(1, amount + 1):\n                dp[a] += dp[a - coins[i]] if coins[i] <= a else 0\n        return dp[amount]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * a)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(a)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of coins and a is the given amount."
+   }
+  ]
+ },
+ "target-sum": {
+  "url": "https://neetcode.io/problems/target-sum?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=dwMOrl85Xes",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "2-Dimension DP Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/33"
+   },
+   {
+    "title": "0 / 1 Knapsack Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/18"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findTargetSumWays(self, nums: List[int], target: int) -> int:\n\n        def backtrack(i, total):\n            if i ==len(nums):\n                return  total == target\n\n            return (backtrack(i + 1, total + nums[i]) +\n                    backtrack(i + 1, total - nums[i]))\n\n        return backtrack(0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(2 ^ n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findTargetSumWays(self, nums: List[int], target: int) -> int:\n        dp = {}  # (index, total) -> # of ways\n\n        def backtrack(i, total):\n            if i == len(nums):\n                return 1 if total == target else 0\n            if (i, total) in dp:\n                return dp[(i, total)]\n\n            dp[(i, total)] = (backtrack(i + 1, total + nums[i]) +\n                              backtrack(i + 1, total - nums[i]))\n            return dp[(i, total)]\n\n        return backtrack(0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n * m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the array nums and m is the sum of all the elements in the array."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findTargetSumWays(self, nums: List[int], target: int) -> int:\n        n = len(nums)\n        dp = [defaultdict(int) for _ in range(n + 1)]\n        dp[0][0] = 1\n\n        for i in range(n):\n            for total, count in dp[i].items():\n                dp[i + 1][total + nums[i]] += count\n                dp[i + 1][total - nums[i]] += count\n\n        return dp[n][target]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n * m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the array nums and m is the sum of all the elements in the array."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Dynamic Programming (Space Optimized)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findTargetSumWays(self, nums: List[int], target: int) -> int:\n        dp = defaultdict(int)\n        dp[0] = 1\n\n        for num in nums:\n            next_dp = defaultdict(int)\n            for total, count in dp.items():\n                next_dp[total + num] += count\n                next_dp[total - num] += count\n            dp = next_dp\n\n        return dp[target]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the array nums and m is the sum of all the elements in the array."
+   }
+  ]
+ },
+ "interleaving-string": {
+  "url": "https://neetcode.io/problems/interleaving-string?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=3Rw3p9LrgvE",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "2-Dimension DP Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/33"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isInterleave(self, s1: str, s2: str, s3: str) -> bool:\n\n        def dfs(i, j, k):\n            if k == len(s3):\n                return (i == len(s1)) and (j == len(s2))\n\n            if i < len(s1) and s1[i] == s3[k]:\n                if dfs(i + 1, j, k + 1):\n                    return True\n\n            if j < len(s2) and s2[j] == s3[k]:\n                if dfs(i, j + 1, k + 1):\n                    return True\n\n            return False\n\n        return dfs(0, 0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(2 ^ {m + n})"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m + n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s1 and n is the length of the string s2."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isInterleave(self, s1: str, s2: str, s3: str) -> bool:\n        if len(s1) + len(s2) != len(s3):\n            return False\n\n        dp = {}\n        def dfs(i, j, k):\n            if k == len(s3):\n                return (i == len(s1)) and (j == len(s2))\n            if (i, j) in dp:\n                return dp[(i, j)]\n\n            res = False\n            if i < len(s1) and s1[i] == s3[k]:\n                res = dfs(i + 1, j, k + 1)\n            if not res and j < len(s2) and s2[j] == s3[k]:\n                res = dfs(i, j + 1, k + 1)\n\n            dp[(i, j)] = res\n            return res\n\n        return dfs(0, 0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s1 and n is the length of the string s2."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isInterleave(self, s1: str, s2: str, s3: str) -> bool:\n        if len(s1) + len(s2) != len(s3):\n            return False\n\n        dp = [[False] * (len(s2) + 1) for i in range(len(s1) + 1)]\n        dp[len(s1)][len(s2)] = True\n\n        for i in range(len(s1), -1, -1):\n            for j in range(len(s2), -1, -1):\n                if i < len(s1) and s1[i] == s3[i + j] and dp[i + 1][j]:\n                    dp[i][j] = True\n                if j < len(s2) and s2[j] == s3[i + j] and dp[i][j + 1]:\n                    dp[i][j] = True\n        return dp[0][0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s1 and n is the length of the string s2."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Dynamic Programming (Space Optimized)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isInterleave(self, s1: str, s2: str, s3: str) -> bool:\n        m, n = len(s1), len(s2)\n        if m + n != len(s3):\n            return False\n        if n < m:\n            s1, s2 = s2, s1\n            m, n = n, m\n\n        dp = [False for _ in range(n + 1)]\n        dp[n] = True\n        for i in range(m, -1, -1):\n            nextDp = [False for _ in range(n + 1)]\n            if i == m:\n                nextDp[n] = True\n            for j in range(n, -1, -1):\n                if i < m and s1[i] == s3[i + j] and dp[j]:\n                    nextDp[j] = True\n                if j < n and s2[j] == s3[i + j] and nextDp[j + 1]:\n                    nextDp[j] = True\n            dp = nextDp\n        return dp[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(min(m, n))"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s1 and n is the length of the string s2."
+   },
+   {
+    "kind": "h2",
+    "text": "5. Dynamic Programming (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isInterleave(self, s1: str, s2: str, s3: str) -> bool:\n        m, n = len(s1), len(s2)\n        if m + n != len(s3):\n            return False\n        if n < m:\n            s1, s2 = s2, s1\n            m, n = n, m\n\n        dp = [False for _ in range(n + 1)]\n        dp[n] = True\n        for i in range(m, -1, -1):\n            nextDp = True if i == m else False\n            for j in range(n, -1, -1):\n                res = False if j < n else nextDp\n                if i < m and s1[i] == s3[i + j] and dp[j]:\n                    res = True\n                if j < n and s2[j] == s3[i + j] and nextDp:\n                    res = True\n                dp[j] = res\n                nextDp = dp[j]\n        return dp[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(min(m, n))"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s1 and n is the length of the string s2."
+   }
+  ]
+ },
+ "longest-increasing-path-in-a-matrix": {
+  "url": "https://neetcode.io/problems/longest-increasing-path-in-matrix?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=wCc_nd-GiEc",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "Matrix DFS Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/29"
+   },
+   {
+    "title": "2-Dimension DP Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/33"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def longestIncreasingPath(self, matrix: List[List[int]]) -> int:\n        ROWS, COLS = len(matrix), len(matrix[0])\n        directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]\n\n        def dfs(r, c, prevVal):\n            if (min(r, c) < 0 or r >= ROWS or\n                c >= COLS or matrix[r][c] <= prevVal\n            ):\n                return 0\n\n            res = 1\n            for d in directions:\n                res = max(res, 1 + dfs(r + d[0], c + d[1], matrix[r][c]))\n            return res\n\n        LIP = 0\n        for r in range(ROWS):\n            for c in range(COLS):\n                LIP = max(LIP, dfs(r, c, float('-inf')))\n        return LIP"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n * 4 ^ {m * n})"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns in the given matrix."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def longestIncreasingPath(self, matrix: List[List[int]]) -> int:\n        ROWS, COLS = len(matrix), len(matrix[0])\n        dp = {}  # (r, c) -> LIP\n\n        def dfs(r, c, prevVal):\n            if (r < 0 or r == ROWS or c < 0 or\n                c == COLS or matrix[r][c] <= prevVal\n            ):\n                return 0\n            if (r, c) in dp:\n                return dp[(r, c)]\n\n            res = 1\n            res = max(res, 1 + dfs(r + 1, c, matrix[r][c]))\n            res = max(res, 1 + dfs(r - 1, c, matrix[r][c]))\n            res = max(res, 1 + dfs(r, c + 1, matrix[r][c]))\n            res = max(res, 1 + dfs(r, c - 1, matrix[r][c]))\n            dp[(r, c)] = res\n            return res\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                dfs(r, c, -1)\n        return max(dp.values())"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns in the given matrix."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Topological Sort (Kahn's Algorithm)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def longestIncreasingPath(self, matrix: List[List[int]]) -> int:\n        ROWS, COLS = len(matrix), len(matrix[0])\n        directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]\n        indegree = [[0] * COLS for _ in range(ROWS)]\n\n        for r in range(ROWS):\n            for c in range(COLS):\n                for d in directions:\n                    nr, nc = d[0] + r, d[1] + c\n                    if (0 <= nr < ROWS and 0 <= nc < COLS and\n                        matrix[nr][nc] < matrix[r][c]\n                    ):\n                        indegree[r][c] += 1\n\n        q = deque()\n        for r in range(ROWS):\n            for c in range(COLS):\n                if indegree[r][c] == 0:\n                    q.append([r, c])\n\n        LIS = 0\n        while q:\n            for _ in range(len(q)):\n                r, c = q.popleft()\n                for d in directions:\n                    nr, nc = r + d[0], c + d[1]\n                    if (0 <= nr < ROWS and 0 <= nc < COLS and\n                        matrix[nr][nc] > matrix[r][c]\n                    ):\n                        indegree[nr][nc] -= 1\n                        if indegree[nr][nc] == 0:\n                            q.append([nr, nc])\n            LIS += 1\n        return LIS"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of rows and n is the number of columns in the given matrix."
+   }
+  ]
+ },
+ "distinct-subsequences": {
+  "url": "https://neetcode.io/problems/count-subsequences?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=-RDzMJ33nx8",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "2-Dimension DP Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/33"
+   },
+   {
+    "title": "LCS Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/20"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def numDistinct(self, s: str, t: str) -> int:\n        if len(t) > len(s):\n            return 0\n\n        def dfs(i, j):\n            if j == len(t):\n                return 1\n            if i == len(s):\n                return 0\n\n            res = dfs(i + 1, j)\n            if s[i] == t[j]:\n                res += dfs(i + 1, j + 1)\n            return res\n\n        return dfs(0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(2 ^ m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def numDistinct(self, s: str, t: str) -> int:\n        if len(t) > len(s):\n            return 0\n\n        dp = {}\n        def dfs(i, j):\n            if j == len(t):\n                return 1\n            if i == len(s):\n                return 0\n            if (i, j) in dp:\n                return dp[(i, j)]\n\n            res = dfs(i + 1, j)\n            if s[i] == t[j]:\n                res += dfs(i + 1, j + 1)\n            dp[(i, j)] = res\n            return res\n\n        return dfs(0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s and n is the length of the string t."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def numDistinct(self, s: str, t: str) -> int:\n        m, n = len(s), len(t)\n        dp = [[0] * (n + 1) for _ in range(m + 1)]\n\n        for i in range(m + 1):\n            dp[i][n] = 1\n\n        for i in range(m - 1, -1, -1):\n            for j in range(n - 1, -1, -1):\n                dp[i][j] = dp[i + 1][j]\n                if s[i] == t[j]:\n                    dp[i][j] += dp[i + 1][j + 1]\n\n        return dp[0][0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s and n is the length of the string t."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Dynamic Programming (Space Optimized)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def numDistinct(self, s: str, t: str) -> int:\n        m, n = len(s), len(t)\n        dp = [0] * (n + 1)\n        nextDp = [0] * (n + 1)\n\n        dp[n] = nextDp[n] = 1\n        for i in range(m - 1, -1, -1):\n            for j in range(n - 1, -1, -1):\n                nextDp[j] = dp[j]\n                if s[i] == t[j]:\n                    nextDp[j] += dp[j + 1]\n            dp = nextDp[:]\n\n        return dp[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s and n is the length of the string t."
+   },
+   {
+    "kind": "h2",
+    "text": "5. Dynamic Programming (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def numDistinct(self, s: str, t: str) -> int:\n        m, n = len(s), len(t)\n        dp = [0] * (n + 1)\n\n        dp[n] = 1\n        for i in range(m - 1, -1, -1):\n            prev = 1\n            for j in range(n - 1, -1, -1):\n                res = dp[j]\n                if s[i] == t[j]:\n                    res += prev\n\n                prev = dp[j]\n                dp[j] = res\n\n        return dp[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s and n is the length of the string t."
+   }
+  ]
+ },
+ "edit-distance": {
+  "url": "https://neetcode.io/problems/edit-distance?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=XYi2-LPrwm4",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "2-Dimension DP Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/33"
+   },
+   {
+    "title": "LCS Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/20"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def minDistance(self, word1: str, word2: str) -> int:\n        m, n = len(word1), len(word2)\n\n        def dfs(i, j):\n            if i == m:\n                return n - j\n            if j == n:\n                return m - i\n            if word1[i] == word2[j]:\n                return dfs(i + 1, j + 1)\n            res = min(dfs(i + 1, j), dfs(i, j + 1))\n            res = min(res, dfs(i + 1, j + 1))\n            return res + 1\n\n        return dfs(0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(3 ^ {m + n})"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m + n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of word1 and n is the length of word2."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def minDistance(self, word1: str, word2: str) -> int:\n        m, n = len(word1), len(word2)\n\n        dp = {}\n        def dfs(i, j):\n            if i == m:\n                return n - j\n            if j == n:\n                return m - i\n            if (i, j) in dp:\n                return dp[(i, j)]\n\n            if word1[i] == word2[j]:\n                dp[(i, j)] = dfs(i + 1, j + 1)\n            else:\n                res = min(dfs(i + 1, j), dfs(i, j + 1))\n                res = min(res, dfs(i + 1, j + 1))\n                dp[(i, j)] = res + 1\n            return dp[(i, j)]\n\n        return dfs(0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of word1 and n is the length of word2."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def minDistance(self, word1: str, word2: str) -> int:\n        dp = [[float(\"inf\")] * (len(word2) + 1) for i in range(len(word1) + 1)]\n\n        for j in range(len(word2) + 1):\n            dp[len(word1)][j] = len(word2) - j\n        for i in range(len(word1) + 1):\n            dp[i][len(word2)] = len(word1) - i\n\n        for i in range(len(word1) - 1, -1, -1):\n            for j in range(len(word2) - 1, -1, -1):\n                if word1[i] == word2[j]:\n                    dp[i][j] = dp[i + 1][j + 1]\n                else:\n                    dp[i][j] = 1 + min(dp[i + 1][j], dp[i][j + 1], dp[i + 1][j + 1])\n        return dp[0][0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of word1 and n is the length of word2."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Dynamic Programming (Space Optimized)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def minDistance(self, word1: str, word2: str) -> int:\n        m, n = len(word1), len(word2)\n        if m < n:\n            m, n = n, m\n            word1, word2 = word2, word1\n\n        dp = [0] * (n + 1)\n        nextDp = [0] * (n + 1)\n\n        for j in range(n + 1):\n            dp[j] = n - j\n\n        for i in range(m - 1, -1, -1):\n            nextDp[n] = m - i\n            for j in range(n - 1, -1, -1):\n                if word1[i] == word2[j]:\n                    nextDp[j] = dp[j + 1]\n                else:\n                    nextDp[j] = 1 + min(dp[j], nextDp[j + 1], dp[j + 1])\n            dp = nextDp[:]\n\n        return dp[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(min(m, n))"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of word1 and n is the length of word2."
+   },
+   {
+    "kind": "h2",
+    "text": "5. Dynamic Programming (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def minDistance(self, word1: str, word2: str) -> int:\n        m, n = len(word1), len(word2)\n        if m < n:\n            m, n = n, m\n            word1, word2 = word2, word1\n\n        dp = [n - i for i in range(n + 1)]\n\n        for i in range(m - 1, -1, -1):\n            nextDp = dp[n]\n            dp[n] = m - i\n            for j in range(n - 1, -1, -1):\n                temp = dp[j]\n                if word1[i] == word2[j]:\n                    dp[j] = nextDp\n                else:\n                    dp[j] = 1 + min(dp[j], dp[j + 1], nextDp)\n                nextDp = temp\n        return dp[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(min(m, n))"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of word1 and n is the length of word2."
+   }
+  ]
+ },
+ "burst-balloons": {
+  "url": "https://neetcode.io/problems/burst-balloons?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=VFskby7lUbw",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "2-Dimension DP Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/33"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force (Recursion)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxCoins(self, nums: List[int]) -> int:\n        nums = [1] + nums + [1]\n\n        def dfs(nums):\n            if len(nums) == 2:\n                return 0\n\n            maxCoins = 0\n            for i in range(1, len(nums) - 1):\n                coins = nums[i - 1] * nums[i] * nums[i + 1]\n                coins += dfs(nums[:i] + nums[i + 1:])\n                maxCoins = max(maxCoins, coins)\n            return maxCoins\n\n        return dfs(nums)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n*2^n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n*2^n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxCoins(self, nums: List[int]) -> int:\n        nums = [1] + nums + [1]\n        dp = {}\n        def dfs(l, r):\n            if l > r:\n                return 0\n            if (l, r) in dp:\n                return dp[(l, r)]\n\n            dp[(l, r)] = 0\n            for i in range(l, r + 1):\n                coins = nums[l - 1] * nums[i] * nums[r + 1]\n                coins += dfs(l, i - 1) + dfs(i + 1, r)\n                dp[(l, r)] = max(dp[(l, r)], coins)\n            return dp[(l, r)]\n\n        return dfs(1, len(nums) - 2)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 3)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxCoins(self, nums):\n        n = len(nums)\n        new_nums = [1] + nums + [1]\n\n        dp = [[0] * (n + 2) for _ in range(n + 2)]\n        for l in range(n, 0, -1):\n            for r in range(l, n + 1):\n                for i in range(l, r + 1):\n                    coins = new_nums[l - 1] * new_nums[i] * new_nums[r + 1]\n                    coins += dp[l][i - 1] + dp[i + 1][r]\n                    dp[l][r] = max(dp[l][r], coins)\n\n        return dp[1][n]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n^3)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n^2)"
+   }
+  ]
+ },
+ "regular-expression-matching": {
+  "url": "https://neetcode.io/problems/regular-expression-matching?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=HAA8mgxlov8",
+  "prerequisites": [
+   {
+    "title": "Tree Maze Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/22"
+   },
+   {
+    "title": "2-Dimension DP Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/33"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isMatch(self, s: str, p: str) -> bool:\n        m, n = len(s), len(p)\n\n        def dfs(i, j):\n            if j == n:\n                return i == m\n\n            match = i < m and (s[i] == p[j] or p[j] == \".\")\n            if (j + 1) < n and p[j + 1] == \"*\":\n                return (dfs(i, j + 2) or          # don't use *\n                       (match and dfs(i + 1, j))) # use *\n            if match:\n                return dfs(i + 1, j + 1)\n            return False\n\n        return dfs(0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(2 ^ {m + n})"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m + n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s and n is the length of the string p."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Dynamic Programming (Top-Down)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isMatch(self, s: str, p: str) -> bool:\n        m, n = len(s), len(p)\n        cache = {}\n\n        def dfs(i, j):\n            if j == n:\n                return i == m\n            if (i, j) in cache:\n                return cache[(i, j)]\n\n            match = i < m and (s[i] == p[j] or p[j] == \".\")\n            if (j + 1) < n and p[j + 1] == \"*\":\n                cache[(i, j)] = (dfs(i, j + 2) or\n                                (match and dfs(i + 1, j)))\n                return cache[(i, j)]\n\n            if match:\n                cache[(i, j)] = dfs(i + 1, j + 1)\n                return cache[(i, j)]\n\n            cache[(i, j)] = False\n            return False\n\n        return dfs(0, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s and n is the length of the string p."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming (Bottom-Up)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isMatch(self, s: str, p: str) -> bool:\n        dp = [[False] * (len(p) + 1) for i in range(len(s) + 1)]\n        dp[len(s)][len(p)] = True\n\n        for i in range(len(s), -1, -1):\n            for j in range(len(p) - 1, -1, -1):\n                match = i < len(s) and (s[i] == p[j] or p[j] == \".\")\n\n                if (j + 1) < len(p) and p[j + 1] == \"*\":\n                    dp[i][j] = dp[i][j + 2]\n                    if match:\n                        dp[i][j] = dp[i + 1][j] or dp[i][j]\n                elif match:\n                    dp[i][j] = dp[i + 1][j + 1]\n\n        return dp[0][0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m * n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s and n is the length of the string p."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Dynamic Programming (Space Optimized)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isMatch(self, s: str, p: str) -> bool:\n        dp = [False] * (len(p) + 1)\n        dp[len(p)] = True\n\n        for i in range(len(s), -1, -1):\n            nextDp = [False] * (len(p) + 1)\n            nextDp[len(p)] = (i == len(s))\n\n            for j in range(len(p) - 1, -1, -1):\n                match = i < len(s) and (s[i] == p[j] or p[j] == \".\")\n\n                if (j + 1) < len(p) and p[j + 1] == \"*\":\n                    nextDp[j] = nextDp[j + 2]\n                    if match:\n                        nextDp[j] |= dp[j]\n                elif match:\n                    nextDp[j] = dp[j + 1]\n\n            dp = nextDp\n\n        return dp[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s and n is the length of the string p."
+   },
+   {
+    "kind": "h2",
+    "text": "5. Dynamic Programming (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isMatch(self, s: str, p: str) -> bool:\n        dp = [False] * (len(p) + 1)\n        dp[len(p)] = True\n\n        for i in range(len(s), -1, -1):\n            dp1 = dp[len(p)]\n            dp[len(p)] = (i == len(s))\n\n            for j in range(len(p) - 1, -1, -1):\n                match = i < len(s) and (s[i] == p[j] or p[j] == \".\")\n                res = False\n                if (j + 1) < len(p) and p[j + 1] == \"*\":\n                    res = dp[j + 2]\n                    if match:\n                        res |= dp[j]\n                elif match:\n                    res = dp1\n                dp[j], dp1 = res, dp[j]\n\n        return dp[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of the string s and n is the length of the string p."
+   }
+  ]
+ }
+}

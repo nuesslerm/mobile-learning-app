@@ -24,7 +24,9 @@ export default function LeetCodeLayout() {
     <LeetCodeFixtureOverrides>
       <LeetCodeLiveContainer>
         <Stack>
-          <Stack.Screen name="[id]/problem" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+          <Stack.Screen name="library/collection" options={{ headerShown: false }} />
+          <Stack.Screen name="library/contest" options={{ headerShown: false }} />
+          <Stack.Screen name="[id]/problem" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
           <Stack.Screen name="[id]/submission/[submissionId]" options={{ headerShown: false }} />
           {/* Overlays are routes, so the screen that opens one does not
             have to share a React tree with it. Each carries its own sheet

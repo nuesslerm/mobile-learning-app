@@ -1,0 +1,610 @@
+{
+ "single-number": {
+  "url": "https://neetcode.io/problems/single-number?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=qMPX1AOa83k",
+  "prerequisites": [
+   {
+    "title": "Bit Operations Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/34"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def singleNumber(self, nums: List[int]) -> int:\n        for i in range(len(nums)):\n            flag = True\n            for j in range(len(nums)):\n                if i != j and nums[i] == nums[j]:\n                    flag = False\n                    break\n            if flag:\n                return nums[i]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Hash Set"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def singleNumber(self, nums: List[int]) -> int:\n        seen = set()\n        for num in nums:\n            if num in seen:\n                seen.remove(num)\n            else:\n                seen.add(num)\n        return list(seen)[0]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Sorting"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def singleNumber(self, nums: List[int]) -> int:\n        nums.sort()\n        i = 0\n        while i < len(nums) - 1:\n            if nums[i] == nums[i + 1]:\n                i += 2\n            else:\n                return nums[i]\n        return nums[i]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) or O(n) depending on the sorting algorithm."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Bit Manipulation"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def singleNumber(self, nums: List[int]) -> int:\n        res = 0\n        for num in nums:\n            res = num ^ res\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "number-of-1-bits": {
+  "url": "https://neetcode.io/problems/number-of-one-bits?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=5Km3utixwZs",
+  "prerequisites": [
+   {
+    "title": "Bit Operations Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/34"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "Video Solution"
+   },
+   {
+    "kind": "h2",
+    "text": "1. Bit Mask - I"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def hammingWeight(self, n: int) -> int:\n        res = 0\n        for i in range(32):\n            if (1 << i) & n:\n                res += 1\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Bit Mask - II"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def hammingWeight(self, n: int) -> int:\n        res = 0\n        while n:\n            res += 1 if n & 1 else 0\n            n >>= 1\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Bit Mask (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def hammingWeight(self, n: int) -> int:\n        res = 0\n        while n:\n            n &= n - 1\n            res += 1\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Built-In Function"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def hammingWeight(self, n: int) -> int:\n        return bin(n).count('1')"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "counting-bits": {
+  "url": "https://neetcode.io/problems/counting-bits?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=RyBM56RIWrM",
+  "prerequisites": [
+   {
+    "title": "Bit Operations Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/34"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Bit Manipulation - I"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def countBits(self, n: int) -> List[int]:\n        res = []\n        for num in range(n + 1):\n            one = 0\n            for i in range(32):\n                if num & (1 << i):\n                    one += 1\n            res.append(one)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n) space for the output array."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Bit Manipulation - II"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def countBits(self, n: int) -> List[int]:\n        res = [0] * (n + 1)\n        for i in range(1, n + 1):\n            num = i\n            while num != 0:\n                res[i] += 1\n                num &= (num - 1)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n) space for the output array."
+   },
+   {
+    "kind": "h2",
+    "text": "3. In-Built Function"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def countBits(self, n: int) -> List[int]:\n        return [bin(i).count('1') for i in range(n + 1)]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n) space for the output array."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Bit Manipulation (DP)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def countBits(self, n: int) -> List[int]:\n        dp = [0] * (n + 1)\n        offset = 1\n\n        for i in range(1, n + 1):\n            if offset * 2 == i:\n                offset = i\n            dp[i] = 1 + dp[i - offset]\n        return dp"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n) space for the output array."
+   },
+   {
+    "kind": "h2",
+    "text": "5. Bit Manipulation (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def countBits(self, n: int) -> List[int]:\n        dp = [0] * (n + 1)\n        for i in range(n + 1):\n            dp[i] = dp[i >> 1] + (i & 1)\n        return dp"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n) space for the output array."
+   }
+  ]
+ },
+ "reverse-bits": {
+  "url": "https://neetcode.io/problems/reverse-bits?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=UcoN6UjAI64",
+  "prerequisites": [
+   {
+    "title": "Bit Operations Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/34"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def reverseBits(self, n: int) -> int:\n        binary = \"\"\n        for i in range(32):\n            if n & (1 << i):\n                binary += \"1\"\n            else:\n                binary += \"0\"\n\n        res = 0\n        for i, bit in enumerate(binary[::-1]):\n            if bit == \"1\":\n                res |= (1 << i)\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Bit Manipulation"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def reverseBits(self, n: int) -> int:\n        res = 0\n        for i in range(32):\n            bit = (n >> i) & 1\n            res += (bit << (31 - i))\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Bit Manipulation (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def reverseBits(self, n: int) -> int:\n        res = n\n        res = (res >> 16) | (res << 16) & 0xFFFFFFFF\n        res = ((res & 0xff00ff00) >> 8) | ((res & 0x00ff00ff) << 8)\n        res = ((res & 0xf0f0f0f0) >> 4) | ((res & 0x0f0f0f0f) << 4)\n        res = ((res & 0xcccccccc) >> 2) | ((res & 0x33333333) << 2)\n        res = ((res & 0xaaaaaaaa) >> 1) | ((res & 0x55555555) << 1)\n        return res & 0xFFFFFFFF"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "missing-number": {
+  "url": "https://neetcode.io/problems/missing-number?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=WnPLSRLSANE",
+  "prerequisites": [
+   {
+    "title": "Bit Operations Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/34"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Sorting"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def missingNumber(self, nums: List[int]) -> int:\n        n = len(nums)\n        nums.sort()\n        for i in range(n):\n            if nums[i] != i:\n                return i\n        return n"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) or O(n) depending on the sorting algorithm."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Hash Set"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def missingNumber(self, nums: List[int]) -> int:\n        num_set = set(nums)\n        n = len(nums)\n        for i in range(n + 1):\n            if i not in num_set:\n                return i"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Bitwise XOR"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def missingNumber(self, nums: List[int]) -> int:\n        n = len(nums)\n        xorr = n\n        for i in range(n):\n            xorr ^= i ^ nums[i]\n        return xorr"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Math"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def missingNumber(self, nums: List[int]) -> int:\n        res = len(nums)\n\n        for i in range(len(nums)):\n            res += i - nums[i]\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "sum-of-two-integers": {
+  "url": "https://neetcode.io/problems/sum-of-two-integers?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=gVUrDV4tZfY",
+  "prerequisites": [
+   {
+    "title": "Bit Operations Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/34"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def getSum(self, a: int, b: int) -> int:\n        return a + b"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Bit Manipulation"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def getSum(self, a: int, b: int) -> int:\n        carry = 0\n        res = 0\n        mask = 0xFFFFFFFF\n\n        for i in range(32):\n            a_bit = (a >> i) & 1\n            b_bit = (b >> i) & 1\n            cur_bit = a_bit ^ b_bit ^ carry\n            carry = (a_bit + b_bit + carry) >= 2\n            if cur_bit:\n                res |= (1 << i)\n\n        if res > 0x7FFFFFFF:\n            res = ~(res ^ mask)\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Bit Manipulation (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def getSum(self, a: int, b: int) -> int:\n        mask = 0xFFFFFFFF\n        max_int = 0x7FFFFFFF\n\n        while b != 0:\n            carry = (a & b) << 1\n            a = (a ^ b) & mask\n            b = carry & mask\n\n        return a if a <= max_int else ~(a ^ mask)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "reverse-integer": {
+  "url": "https://neetcode.io/problems/reverse-integer?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=HAgLH58IgJQ",
+  "prerequisites": [
+   {
+    "title": "Bit Operations Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/34"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def reverse(self, x: int) -> int:\n        org = x\n        x = abs(x)\n        res = int(str(x)[::-1])\n        if org < 0:\n            res *= -1\n        if res < -(1 << 31) or res > (1 << 31) - 1:\n            return 0\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Recursion"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def reverse(self, x: int) -> int:\n        def rec(n: int, rev: int) -> int:\n            if n == 0:\n                return rev\n\n            rev = rev * 10 + n % 10\n            return rec(n // 10, rev)\n\n        sign = -1 if x < 0 else 1\n        x = abs(x)\n        reversed_num = rec(x, 0)\n        reversed_num *= sign\n        if reversed_num < -(1 << 31) or reversed_num > (1 << 31) - 1:\n            return 0\n\n        return reversed_num"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Iteration"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def reverse(self, x: int) -> int:\n        MIN = -2147483648  # -2^31,\n        MAX = 2147483647  #  2^31 - 1\n\n        res = 0\n        while x:\n            digit = int(math.fmod(x, 10))\n            x = int(x / 10)\n\n            if res > MAX // 10 or (res == MAX // 10 and digit > MAX % 10):\n                return 0\n            if res < MIN // 10 or (res == MIN // 10 and digit < MIN % 10):\n                return 0\n            res = (res * 10) + digit\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ }
+}

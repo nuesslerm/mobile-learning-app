@@ -1,0 +1,846 @@
+{
+ "valid-palindrome": {
+  "url": "https://neetcode.io/problems/is-palindrome?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=jJXJ16kPFWg",
+  "prerequisites": [
+   {
+    "title": "Two Pointers Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/3"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Reverse String"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "To check if a string is a palindrome, we only care about letters and digits—everything else can be ignored.\nWe can build a cleaned version of the string that contains only alphanumeric characters, all converted to lowercase for consistency.\nOnce we have this cleaned string, the problem becomes very simple:\na string is a palindrome if it is exactly the same as its reverse."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create an empty string newStr."
+   },
+   {
+    "kind": "li",
+    "text": "Loop through each character c in the input string:\nIf c is alphanumeric, convert it to lowercase and add it to newStr."
+   },
+   {
+    "kind": "li",
+    "text": "Compare newStr with its reverse (newStr[::-1]):\nIf they are equal, return True.\nOtherwise, return False."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        newStr = ''\n        for c in s:\n            if c.isalnum():\n                newStr += c.lower()\n        return newStr == newStr[::-1]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Two Pointers"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Instead of building a new string, we can check the palindrome directly in-place using two pointers.\nOne pointer starts at the beginning (l) and the other at the end (r).\nWe move both pointers inward, skipping any characters that are not letters or digits.\nWhenever both pointers point to valid characters, we compare them in lowercase form.\nIf at any point they differ, the string is not a palindrome.\nThis method avoids extra space and keeps the logic simple and efficient."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize two pointers:\nl at the start of the string,\nr at the end of the string."
+   },
+   {
+    "kind": "li",
+    "text": "While l is less than r:\nMove l forward until it points to an alphanumeric character.\nMove r backward until it points to an alphanumeric character.\nCompare the lowercase characters at l and r:\nIf they don’t match, return False.\n\n\nMove both pointers inward: l += 1, r -= 1."
+   },
+   {
+    "kind": "li",
+    "text": "If the loop finishes without mismatches, return True."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        l, r = 0, len(s) - 1\n\n        while l < r:\n            while l < r and not self.alphaNum(s[l]):\n                l += 1\n            while r > l and not self.alphaNum(s[r]):\n                r -= 1\n            if s[l].lower() != s[r].lower():\n                return False\n            l, r = l + 1, r - 1\n        return True\n\n    def alphaNum(self, c):\n        return (ord('A') <= ord(c) <= ord('Z') or\n                ord('a') <= ord(c) <= ord('z') or\n                ord('0') <= ord(c) <= ord('9'))"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "two-sum-ii-input-array-is-sorted": {
+  "url": "https://neetcode.io/problems/two-integer-sum-ii?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=cQ1Oz4ckceM",
+  "prerequisites": [
+   {
+    "title": "Two Pointers Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/3"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Brute force ignores the ordering and simply checks every possible pair.\nFor each index i, we look at every index j > i and check whether their sum equals the target.\nThis approach is easy to understand but inefficient because it tries all combinations without using the sorted property."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Loop through the array using index i from 0 to n - 1."
+   },
+   {
+    "kind": "li",
+    "text": "For each i, loop through index j from i + 1 to n - 1."
+   },
+   {
+    "kind": "li",
+    "text": "If numbers[i] + numbers[j] equals the target:\nReturn [i + 1, j + 1] (1-indexed as required by the problem)."
+   },
+   {
+    "kind": "li",
+    "text": "If no such pair is found, return an empty list."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def twoSum(self, numbers: List[int], target: int) -> List[int]:\n        for i in range(len(numbers)):\n            for j in range(i + 1, len(numbers)):\n                if numbers[i] + numbers[j] == target:\n                    return [i + 1, j + 1]\n        return []"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Binary Search"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Because the array is already sorted, we don’t need to check every pair.\nFor each number at index i, we know exactly what value we need to find:\ntarget - numbers[i].\nSince the array is sorted, we can efficiently search for this value using binary search instead of scanning linearly.\nThis reduces the inner search from O(n) to O(log n), making the solution much faster."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Loop through each index i from 0 to n - 1."
+   },
+   {
+    "kind": "li",
+    "text": "For each number numbers[i], compute the needed complement:\ntmp = target - numbers[i]"
+   },
+   {
+    "kind": "li",
+    "text": "Perform binary search on the subarray from i + 1 to the end:\nIf numbers[mid] == tmp, return [i + 1, mid + 1]\nIf numbers[mid] < tmp, search the right half\nOtherwise, search the left half"
+   },
+   {
+    "kind": "li",
+    "text": "If no pair is found after checking all indices, return an empty list."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def twoSum(self, numbers: List[int], target: int) -> List[int]:\n        for i in range(len(numbers)):\n            l, r = i + 1, len(numbers) - 1\n            tmp = target - numbers[i]\n            while l <= r:\n                mid = l + (r - l)//2\n                if numbers[mid] == tmp:\n                    return [i + 1, mid + 1]\n                elif numbers[mid] < tmp:\n                    l = mid + 1\n                else:\n                    r = mid - 1\n        return []"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Hash Map"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Even though the array is sorted, we can still use a hash map to solve the problem efficiently.\nAs we scan through the list, we compute the needed complement for each number.\nIf that complement has already been seen earlier (stored in the hash map), then we have found the required pair.\nOtherwise, we store the current number with its (1-indexed) position."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create an empty hash map mp that maps numbers to their 1-indexed positions."
+   },
+   {
+    "kind": "li",
+    "text": "Loop through the array with index i from 0 to n - 1:\nCompute the complement: tmp = target - numbers[i]\nIf tmp exists in mp, return [mp[tmp], i + 1]\nOtherwise, store the current number in the map:\nmp[numbers[i]] = i + 1"
+   },
+   {
+    "kind": "li",
+    "text": "If no pair is found, return an empty list."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def twoSum(self, numbers: List[int], target: int) -> List[int]:\n        mp = defaultdict(int)\n        for i in range(len(numbers)):\n            tmp = target - numbers[i]\n            if mp[tmp]:\n                return [mp[tmp], i + 1]\n            mp[numbers[i]] = i + 1\n        return []"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Two Pointers"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Because the array is sorted, we can use two pointers to adjust the sum efficiently.\nIf the current sum is too big, moving the right pointer left makes the sum smaller.\nIf the sum is too small, moving the left pointer right makes the sum larger.\nThis lets us quickly close in on the target without checking every pair."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize two pointers:  \nl = 0 (start)  \nr = len(numbers) - 1 (end)"
+   },
+   {
+    "kind": "li",
+    "text": "While l < r:\nCompute curSum = numbers[l] + numbers[r].\nIf curSum > target, move r left to reduce the sum.\nIf curSum < target, move l right to increase the sum.\nIf curSum == target, return [l + 1, r + 1]."
+   },
+   {
+    "kind": "li",
+    "text": "If no pair matches the target, return an empty list."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def twoSum(self, numbers: List[int], target: int) -> List[int]:\n        l, r = 0, len(numbers) - 1\n\n        while l < r:\n            curSum = numbers[l] + numbers[r]\n\n            if curSum > target:\n                r -= 1\n            elif curSum < target:\n                l += 1\n            else:\n                return [l + 1, r + 1]\n        return []"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "3sum": {
+  "url": "https://neetcode.io/problems/three-integer-sum?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=jzZsG8n2R9A",
+  "prerequisites": [
+   {
+    "title": "Two Pointers Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/3"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "The brute-force approach simply tries every possible triplet.\nSince we check all combinations (i, j, k) with i < j < k, we are guaranteed to find all sets of three numbers that sum to zero.\nSorting helps keep the triplets in order and makes it easier to avoid duplicates by storing them in a set."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Sort the array to make handling duplicates easier."
+   },
+   {
+    "kind": "li",
+    "text": "Create an empty set res to store unique triplets."
+   },
+   {
+    "kind": "li",
+    "text": "Use three nested loops:\nFor each i,  \nFor each j > i,  \nFor each k > j,  \nCheck if nums[i] + nums[j] + nums[k] == 0.\nIf true, add the sorted triplet to the set."
+   },
+   {
+    "kind": "li",
+    "text": "Convert the set of tuples back into a list of lists."
+   },
+   {
+    "kind": "li",
+    "text": "Return the result."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def threeSum(self, nums: List[int]) -> List[List[int]]:\n        res = set()\n        nums.sort()\n        for i in range(len(nums)):\n            for j in range(i + 1, len(nums)):\n                for k in range(j + 1, len(nums)):\n                    if nums[i] + nums[j] + nums[k] == 0:\n                        tmp = [nums[i], nums[j], nums[k]]\n                        res.add(tuple(tmp))\n        return [list(i) for i in res]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 3)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of triplets and n is the length of the given array."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Hash Map"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "After sorting the array, we can fix two numbers and look for the third number that completes the triplet.\nTo do this efficiently, we use a hash map that stores how many times each number appears.\nAs we pick the first and second numbers, we temporarily reduce their counts in the map so we don’t reuse them.\nThen we check whether the needed third value still exists in the map.\nSorting also helps us skip duplicates easily so we only add unique triplets."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Sort the array to organize duplicates and allow easy skipping."
+   },
+   {
+    "kind": "li",
+    "text": "Build a frequency map count for all numbers."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize an empty list res for storing valid triplets."
+   },
+   {
+    "kind": "li",
+    "text": "Loop through each index i:\nDecrease the count of nums[i] (so it won’t be reused).\nSkip duplicates of the first element.\nLoop through each index j > i:\nDecrease the count of nums[j].\nSkip duplicates of the second element.\nCompute the needed third value:\ntarget = -(nums[i] + nums[j])\nIf target still has a positive count, add the triplet.\n\n\nAfter finishing all js, restore the counts for the second loop by adding back the decremented values."
+   },
+   {
+    "kind": "li",
+    "text": "Return res containing all found triplets."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def threeSum(self, nums: List[int]) -> List[List[int]]:\n        nums.sort()\n        count = defaultdict(int)\n        for num in nums:\n            count[num] += 1\n\n        res = []\n        for i in range(len(nums)):\n            count[nums[i]] -= 1\n            if i and nums[i] == nums[i - 1]:\n                continue\n\n            for j in range(i + 1, len(nums)):\n                count[nums[j]] -= 1\n                if j - 1 > i and nums[j] == nums[j - 1]:\n                    continue\n                target = -(nums[i] + nums[j])\n                if count[target] > 0:\n                    res.append([nums[i], nums[j], target])\n\n            for j in range(i + 1, len(nums)):\n                count[nums[j]] += 1\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Two Pointers"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "After sorting the array, we can fix one number and then search for the other two using the two-pointer technique.\nSorting helps in two ways:"
+   },
+   {
+    "kind": "li",
+    "text": "It lets us skip duplicates easily."
+   },
+   {
+    "kind": "li",
+    "text": "It ensures that moving the left or right pointer will increase or decrease the sum in a predictable way."
+   },
+   {
+    "kind": "p",
+    "text": "For each fixed number a, we place two pointers:"
+   },
+   {
+    "kind": "li",
+    "text": "l starts just after i,"
+   },
+   {
+    "kind": "li",
+    "text": "r starts at the end."
+   },
+   {
+    "kind": "p",
+    "text": "If the current sum is too large, we move r left to reduce it.\nIf the sum is too small, we move l right to increase it.\nWhen the sum is exactly zero, we record the triplet and skip duplicates."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Sort the array to handle duplicates and enable two-pointer logic."
+   },
+   {
+    "kind": "li",
+    "text": "Loop through the array using index i:\nLet a = nums[i].\nIf a > 0, break (all remaining numbers are positive).\nSkip duplicate values for the first number."
+   },
+   {
+    "kind": "li",
+    "text": "Set two pointers:\nl = i + 1\nr = len(nums) - 1"
+   },
+   {
+    "kind": "li",
+    "text": "While l < r:\nCompute threeSum = a + nums[l] + nums[r].\nIf threeSum > 0, move r left.\nIf threeSum < 0, move l right.\nIf threeSum == 0:\nAdd the triplet to the result.\nMove both pointers inward.\nSkip duplicates at the left pointer."
+   },
+   {
+    "kind": "li",
+    "text": "Return the list of all valid triplets."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def threeSum(self, nums: List[int]) -> List[List[int]]:\n        res = []\n        nums.sort()\n\n        for i, a in enumerate(nums):\n            if a > 0:\n                break\n\n            if i > 0 and a == nums[i - 1]:\n                continue\n\n            l, r = i + 1, len(nums) - 1\n            while l < r:\n                threeSum = a + nums[l] + nums[r]\n                if threeSum > 0:\n                    r -= 1\n                elif threeSum < 0:\n                    l += 1\n                else:\n                    res.append([a, nums[l], nums[r]])\n                    l += 1\n                    r -= 1\n                    while nums[l] == nums[l - 1] and l < r:\n                        l += 1\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) or O(n) extra space depending on the sorting algorithm.\nO(m) space for the output list."
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the number of triplets and n is the length of the given array."
+   }
+  ]
+ },
+ "container-with-most-water": {
+  "url": "https://neetcode.io/problems/max-water-container?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=UuiTKBwPgAo",
+  "prerequisites": [
+   {
+    "title": "Two Pointers Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/3"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We try every possible pair of lines and compute the area they form.\nFor each pair (i, j), the height of the container is the shorter of the two lines, and the width is the distance between them.\nBy checking all pairs, we are guaranteed to find the maximum area."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize res = 0 to track the maximum area found."
+   },
+   {
+    "kind": "li",
+    "text": "Use two nested loops:\nOuter loop picks the left line i.\nInner loop picks the right line j > i."
+   },
+   {
+    "kind": "li",
+    "text": "For each pair (i, j):\nCompute the height as min(heights[i], heights[j]).\nCompute the width as j - i.\nUpdate res with the maximum of its current value and the new area."
+   },
+   {
+    "kind": "li",
+    "text": "After checking all pairs, return res."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxArea(self, heights: List[int]) -> int:\n        res = 0\n        for i in range(len(heights)):\n            for j in range(i + 1, len(heights)):\n                res = max(res, min(heights[i], heights[j]) * (j - i))\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Two Pointers"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Using two pointers lets us efficiently search for the maximum area without checking every pair.\nWe start with the widest container (left at start, right at end).\nThe height is limited by the shorter line, so to potentially increase the area, we must move the pointer at the shorter line inward.\nMoving the taller line never helps because it keeps the height the same but reduces the width.\nBy always moving the shorter side, we explore all meaningful possibilities."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize two pointers:\nl = 0 \nr = len(heights) - 1"
+   },
+   {
+    "kind": "li",
+    "text": "Set res = 0 to store the maximum area."
+   },
+   {
+    "kind": "li",
+    "text": "While l < r:\nCompute the current area:\narea = min(heights[l], heights[r]) * (r - l)\nUpdate res with the maximum area so far.\nMove the pointer at the shorter height:\nIf heights[l] <= heights[r], move l right.\nOtherwise, move r left."
+   },
+   {
+    "kind": "li",
+    "text": "Return res after the pointers meet."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxArea(self, heights: List[int]) -> int:\n        l, r = 0, len(heights) - 1\n        res = 0\n\n        while l < r:\n            area = min(heights[l], heights[r]) * (r - l)\n            res = max(res, area)\n            if heights[l] <= heights[r]:\n                l += 1\n            else:\n                r -= 1\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "trapping-rain-water": {
+  "url": "https://neetcode.io/problems/trapping-rain-water?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=ZI2z5pq0TqA",
+  "prerequisites": [
+   {
+    "title": "Two Pointers Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/3"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "For each position, the water trapped above it depends on the tallest bar to its left and the tallest bar to its right.\nIf we know these two values, the water at index i is:"
+   },
+   {
+    "kind": "p",
+    "text": "min(leftMax, rightMax) - height[i]"
+   },
+   {
+    "kind": "p",
+    "text": "The brute-force method recomputes the left maximum and right maximum for every index by scanning the array each time."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the input list is empty, return 0."
+   },
+   {
+    "kind": "li",
+    "text": "Let n be the length of the array and initialize res = 0."
+   },
+   {
+    "kind": "li",
+    "text": "For each index i:\nCompute leftMax by scanning from index 0 to i.\nCompute rightMax by scanning from index i + 1 to the end.\nAdd min(leftMax, rightMax) - height[i] to res."
+   },
+   {
+    "kind": "li",
+    "text": "After processing all positions, return res."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def trap(self, height: List[int]) -> int:\n        if not height:\n            return 0\n        n = len(height)\n        res = 0\n\n        for i in range(n):\n            leftMax = rightMax = height[i]\n\n            for j in range(i):\n                leftMax = max(leftMax, height[j])\n            for j in range(i + 1, n):\n                rightMax = max(rightMax, height[j])\n\n            res += min(leftMax, rightMax) - height[i]\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Prefix & Suffix Arrays"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Instead of recomputing the tallest bar to the left and right for every index, we can precompute these values once.\nWe build two arrays:"
+   },
+   {
+    "kind": "li",
+    "text": "leftMax[i] = tallest bar from the start up to index i"
+   },
+   {
+    "kind": "li",
+    "text": "rightMax[i] = tallest bar from the end up to index i"
+   },
+   {
+    "kind": "p",
+    "text": "Once we have these, the trapped water at position i is simply:"
+   },
+   {
+    "kind": "p",
+    "text": "min(leftMax[i], rightMax[i]) - height[i]"
+   },
+   {
+    "kind": "p",
+    "text": "This removes the repeated work from the brute-force approach and makes the solution more efficient and easier to understand."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the array is empty, return 0."
+   },
+   {
+    "kind": "li",
+    "text": "Create two arrays:\nleftMax of size n\nrightMax of size n"
+   },
+   {
+    "kind": "li",
+    "text": "Fill leftMax:\nleftMax[0] = height[0]\nFor each i from 1 to n - 1,\nleftMax[i] = max(leftMax[i - 1], height[i])"
+   },
+   {
+    "kind": "li",
+    "text": "Fill rightMax:\nrightMax[n - 1] = height[n - 1]\nFor each i from n - 2 down to 0,\nrightMax[i] = max(rightMax[i + 1], height[i])"
+   },
+   {
+    "kind": "li",
+    "text": "Compute trapped water:\nFor each index i, add min(leftMax[i], rightMax[i]) - height[i] to the result."
+   },
+   {
+    "kind": "li",
+    "text": "Return the total trapped water."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def trap(self, height: List[int]) -> int:\n        n = len(height)\n        if n == 0:\n            return 0\n\n        leftMax = [0] * n\n        rightMax = [0] * n\n\n        leftMax[0] = height[0]\n        for i in range(1, n):\n            leftMax[i] = max(leftMax[i - 1], height[i])\n\n        rightMax[n - 1] = height[n - 1]\n        for i in range(n - 2, -1, -1):\n            rightMax[i] = max(rightMax[i + 1], height[i])\n\n        res = 0\n        for i in range(n):\n            res += min(leftMax[i], rightMax[i]) - height[i]\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Stack"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "The stack helps us find places where water can collect.\nWhen we see a bar that is taller than the bar on top of the stack, it means we’ve found a right wall for a container.\nThe bar we pop is the bottom, and the new top of the stack becomes the left wall.\nWith a left wall, bottom, and right wall, we can calculate how much water fits in between.\nWe keep doing this as long as the current bar keeps forming valid containers."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create an empty stack and set res = 0."
+   },
+   {
+    "kind": "li",
+    "text": "Loop through each index i:\nWhile the stack is not empty and height[i] is taller than the bar at the stack’s top:\nPop the top index — that’s the bottom.\nIf the stack is not empty:\nCompute the trapped water between the new top (left wall) and the current bar (right wall).\nAdd it to res.\n\n\n\n\nPush the current index onto the stack."
+   },
+   {
+    "kind": "li",
+    "text": "Return res after the loop finishes."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def trap(self, height: List[int]) -> int:\n        if not height:\n            return 0\n        stack = []\n        res = 0\n\n        for i in range(len(height)):\n            while stack and height[i] >= height[stack[-1]]:\n                mid = height[stack.pop()]\n                if stack:\n                    right = height[i]\n                    left = height[stack[-1]]\n                    h = min(right, left) - mid\n                    w = i - stack[-1] - 1\n                    res += h * w\n            stack.append(i)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Two Pointers"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Water at any position depends on the shorter wall between the left and right sides.\nSo if the left wall is shorter, the right wall can’t help us—water is limited by the left side.\nThat means we safely move the left pointer inward and calculate how much water can be trapped there.\nSimilarly, if the right wall is shorter, we move the right pointer left."
+   },
+   {
+    "kind": "p",
+    "text": "As we move the pointers, we keep track of the highest wall seen so far on each side (leftMax and rightMax).\nThe water at each position is simply:"
+   },
+   {
+    "kind": "p",
+    "text": "max wall on that side – height at that position"
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Set two pointers:\nl at the start  \nr at the end\nTrack leftMax and rightMax as the tallest walls seen."
+   },
+   {
+    "kind": "li",
+    "text": "While l < r:\nIf leftMax < rightMax:\nMove l right.\nUpdate leftMax.\nAdd leftMax - height[l] to the result.\n\n\nElse:\nMove r left.\nUpdate rightMax.\nAdd rightMax - height[r] to the result."
+   },
+   {
+    "kind": "li",
+    "text": "Return the total trapped water."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def trap(self, height: List[int]) -> int:\n        if not height:\n            return 0\n\n        l, r = 0, len(height) - 1\n        leftMax, rightMax = height[l], height[r]\n        res = 0\n        while l < r:\n            if leftMax < rightMax:\n                l += 1\n                leftMax = max(leftMax, height[l])\n                res += leftMax - height[l]\n            else:\n                r -= 1\n                rightMax = max(rightMax, height[r])\n                res += rightMax - height[r]\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ }
+}

@@ -1,0 +1,566 @@
+{
+ "network-delay-time": {
+  "url": "https://neetcode.io/problems/network-delay-time?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=EaphyqKU4PQ",
+  "prerequisites": [
+   {
+    "title": "Adjacency List Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/31"
+   },
+   {
+    "title": "Dijkstra's Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/14"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def networkDelayTime(self, times: List[List[int]], n: int, k: int) -> int:\n        adj = defaultdict(list)\n        for u, v, w in times:\n            adj[u].append((v, w))\n\n        dist = {node: float(\"inf\") for node in range(1, n + 1)}\n\n        def dfs(node, time):\n            if time >= dist[node]:\n                return\n\n            dist[node] = time\n            for nei, w in adj[node]:\n                dfs(nei, time + w)\n\n        dfs(k, 0)\n        res = max(dist.values())\n        return res if res < float('inf') else -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V * E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices and E is the number of edges."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Floyd Warshall Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def networkDelayTime(self, times: List[List[int]], n: int, k: int) -> int:\n        inf = float('inf')\n        dist = [[inf] * n for _ in range(n)]\n\n        for u, v, w in times:\n            dist[u-1][v-1] = w\n        for i in range(n):\n            dist[i][i] = 0\n\n        for mid in range(n):\n            for i in range(n):\n                for j in range(n):\n                    dist[i][j] = min(dist[i][j], dist[i][mid] + dist[mid][j])\n\n        res = max(dist[k-1])\n        return res if res < inf else -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V ^ 3)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V ^ 2)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Bellman Ford Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def networkDelayTime(self, times: List[List[int]], n: int, k: int) -> int:\n        dist = [float('inf')] * n\n        dist[k - 1] = 0\n        for _ in range(n - 1):\n            for u, v, w in times:\n                if dist[u - 1] + w < dist[v - 1]:\n                    dist[v - 1] = dist[u - 1] + w\n        max_dist = max(dist)\n        return max_dist if max_dist < float('inf') else -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V * E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices and E is the number of edges."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Shortest Path Faster Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def networkDelayTime(self, times, n, k):\n        adj = defaultdict(list)\n        for u, v, w in times:\n            adj[u].append((v, w))\n\n        dist = {node: float(\"inf\") for node in range(1, n + 1)}\n        q = deque([(k, 0)])\n        dist[k] = 0\n\n        while q:\n            node, time = q.popleft()\n            if dist[node] < time:\n                continue\n            for nei, w in adj[node]:\n                if time + w < dist[nei]:\n                    dist[nei] = time + w\n                    q.append((nei, time + w))\n\n        res = max(dist.values())\n        return res if res < float('inf') else -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(V + E) in average case, O(V * E) in worst case."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices and E is the number of edges."
+   },
+   {
+    "kind": "h2",
+    "text": "5. Dijkstra's Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def networkDelayTime(self, times: List[List[int]], n: int, k: int) -> int:\n        edges = collections.defaultdict(list)\n        for u, v, w in times:\n            edges[u].append((v, w))\n\n        minHeap = [(0, k)]\n        visit = set()\n        t = 0\n        while minHeap:\n            w1, n1 = heapq.heappop(minHeap)\n            if n1 in visit:\n                continue\n            visit.add(n1)\n            t = w1\n\n            for n2, w2 in edges[n1]:\n                if n2 not in visit:\n                    heapq.heappush(minHeap, (w1 + w2, n2))\n        return t if len(visit) == n else -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(E log V)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of vertices and E is the number of edges."
+   }
+  ]
+ },
+ "reconstruct-itinerary": {
+  "url": "https://neetcode.io/problems/reconstruct-flight-path?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=ZyB_gQ8vqGA",
+  "prerequisites": [
+   {
+    "title": "Adjacency List Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/31"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findItinerary(self, tickets: List[List[str]]) -> List[str]:\n        adj = {src: [] for src, dst in tickets}\n        tickets.sort()\n        for src, dst in tickets:\n            adj[src].append(dst)\n\n        res = [\"JFK\"]\n        def dfs(src):\n            if len(res) == len(tickets) + 1:\n                return True\n            if src not in adj:\n                return False\n\n            temp = list(adj[src])\n            for i, v in enumerate(temp):\n                adj[src].pop(i)\n                res.append(v)\n                if dfs(v): return True\n                adj[src].insert(i, v)\n                res.pop()\n            return False\n\n        dfs(\"JFK\")\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(E * V)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(E * V)"
+   },
+   {
+    "kind": "p",
+    "text": "Where E is the number of tickets (edges) and V is the number of airports (vertices)."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Hierholzer's Algorithm (Recursion)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findItinerary(self, tickets: List[List[str]]) -> List[str]:\n        adj = defaultdict(list)\n        for src, dst in sorted(tickets)[::-1]:\n            adj[src].append(dst)\n\n        res = []\n        def dfs(src):\n            while adj[src]:\n                dst = adj[src].pop()\n                dfs(dst)\n            res.append(src)\n\n        dfs('JFK')\n        return res[::-1]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(Elog E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where E is the number of tickets (edges) and V is the number of airports (vertices)."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Hierholzer's Algorithm (Iteration)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findItinerary(self, tickets: List[List[str]]) -> List[str]:\n        adj = defaultdict(list)\n        for src, dst in sorted(tickets)[::-1]:\n            adj[src].append(dst)\n\n        stack = [\"JFK\"]\n        res = []\n\n        while stack:\n            curr = stack[-1]\n            if not adj[curr]:\n                res.append(stack.pop())\n            else:\n                stack.append(adj[curr].pop())\n\n        return res[::-1]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(Elog E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where E is the number of tickets (edges) and V is the number of airports (vertices)."
+   }
+  ]
+ },
+ "min-cost-to-connect-all-points": {
+  "url": "https://neetcode.io/problems/min-cost-to-connect-points?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=f7JOBJIC-NA",
+  "prerequisites": [
+   {
+    "title": "Adjacency List Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/31"
+   },
+   {
+    "title": "Prim's Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/15"
+   },
+   {
+    "title": "Kruskal's Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/16"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Kruskal's Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "class DSU:\n    def __init__(self, n):\n        self.Parent = list(range(n + 1))\n        self.Size = [1] * (n + 1)\n\n    def find(self, node):\n        if self.Parent[node] != node:\n            self.Parent[node] = self.find(self.Parent[node])\n        return self.Parent[node]\n\n    def union(self, u, v):\n        pu = self.find(u)\n        pv = self.find(v)\n        if pu == pv:\n            return False\n        if self.Size[pu] < self.Size[pv]:\n            pu, pv = pv, pu\n        self.Size[pu] += self.Size[pv]\n        self.Parent[pv] = pu\n        return True\n\nclass Solution:\n    def minCostConnectPoints(self, points: List[List[int]]) -> int:\n        n = len(points)\n        dsu = DSU(n)\n        edges = []\n        for i in range(n):\n            x1, y1 = points[i]\n            for j in range(i + 1, n):\n                x2, y2 = points[j]\n                dist = abs(x1 - x2) + abs(y1 - y2)\n                edges.append((dist, i, j))\n\n        edges.sort()\n        res = 0\n        for dist, u, v in edges:\n            if dsu.union(u, v):\n                res += dist\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2 log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Prim's Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def minCostConnectPoints(self, points: List[List[int]]) -> int:\n        N = len(points)\n        adj = {i: [] for i in range(N)}\n        for i in range(N):\n            x1, y1 = points[i]\n            for j in range(i + 1, N):\n                x2, y2 = points[j]\n                dist = abs(x1 - x2) + abs(y1 - y2)\n                adj[i].append([dist, j])\n                adj[j].append([dist, i])\n\n        res = 0\n        visit = set()\n        minH = [[0, 0]]\n        while len(visit) < N:\n            cost, i = heapq.heappop(minH)\n            if i in visit:\n                continue\n            res += cost\n            visit.add(i)\n            for neiCost, nei in adj[i]:\n                if nei not in visit:\n                    heapq.heappush(minH, [neiCost, nei])\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2 log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Prim's Algorithm (Optimal)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def minCostConnectPoints(self, points: List[List[int]]) -> int:\n        n, node = len(points), 0\n        dist = [100000000] * n\n        visit = [False] * n\n        edges, res = 0, 0\n\n        while edges < n - 1:\n            visit[node] = True\n            nextNode = -1\n            for i in range(n):\n                if visit[i]:\n                    continue\n                curDist = (abs(points[i][0] - points[node][0]) +\n                           abs(points[i][1] - points[node][1]))\n                dist[i] = min(dist[i], curDist)\n                if nextNode == -1 or dist[i] < dist[nextNode]:\n                    nextNode = i\n\n            res += dist[nextNode]\n            node = nextNode\n            edges += 1\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "swim-in-rising-water": {
+  "url": "https://neetcode.io/problems/swim-in-rising-water?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=amvrKlMLuGY",
+  "prerequisites": [
+   {
+    "title": "Adjacency List Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/31"
+   },
+   {
+    "title": "Dijkstra's Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/14"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def swimInWater(self, grid: List[List[int]]) -> int:\n        n = len(grid)\n        visit = [[False] * n for _ in range(n)]\n\n        def dfs(node, t):\n            r, c = node\n            if min(r, c) < 0 or max(r, c) >= n or visit[r][c]:\n                return 1000000\n            if r == (n - 1) and c == (n - 1):\n                return max(t, grid[r][c])\n            visit[r][c] = True\n            t = max(t, grid[r][c])\n            res = min(dfs((r + 1, c), t),\n                       dfs((r - 1, c), t),\n                       dfs((r, c + 1), t),\n                       dfs((r, c - 1), t))\n            visit[r][c] = False\n            return res\n\n        return dfs((0, 0), 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(4 ^ {n ^ 2})"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def swimInWater(self, grid: List[List[int]]) -> int:\n        n = len(grid)\n        visit = [[False] * n for _ in range(n)]\n        minH = maxH = grid[0][0]\n        for row in range(n):\n            maxH = max(maxH, max(grid[row]))\n            minH = min(minH, min(grid[row]))\n\n        def dfs(node, t):\n            r, c = node\n            if (min(r, c) < 0 or max(r, c) >= n or\n                visit[r][c] or grid[r][c] > t):\n                return False\n            if r == (n - 1) and c == (n - 1):\n                return True\n            visit[r][c] = True\n            return (dfs((r + 1, c), t) or\n                    dfs((r - 1, c), t) or\n                    dfs((r, c + 1), t) or\n                    dfs((r, c - 1), t))\n\n        for t in range(minH, maxH):\n            if dfs((0, 0), t):\n                return t\n            for r in range(n):\n                for c in range(n):\n                    visit[r][c] = False\n\n        return maxH"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 4)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Binary Search + DFS"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def swimInWater(self, grid: List[List[int]]) -> int:\n        n = len(grid)\n        visit = [[False] * n for _ in range(n)]\n        minH = maxH = grid[0][0]\n        for row in range(n):\n            maxH = max(maxH, max(grid[row]))\n            minH = min(minH, min(grid[row]))\n\n        def dfs(node, t):\n            r, c = node\n            if (min(r, c) < 0 or max(r, c) >= n or\n                visit[r][c] or grid[r][c] > t):\n                return False\n            if r == (n - 1) and c == (n - 1):\n                return True\n            visit[r][c] = True\n            return (dfs((r + 1, c), t) or\n                    dfs((r - 1, c), t) or\n                    dfs((r, c + 1), t) or\n                    dfs((r, c - 1), t))\n\n        l, r = minH, maxH\n        while l < r:\n            m = (l + r) >> 1\n            if dfs((0, 0), m):\n                r = m\n            else:\n                l = m + 1\n            for row in range(n):\n                for col in range(n):\n                    visit[row][col] = False\n\n        return r"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2 log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Dijkstra's Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def swimInWater(self, grid: List[List[int]]) -> int:\n        N = len(grid)\n        visit = set()\n        minH = [[grid[0][0], 0, 0]]  # (time/max-height, r, c)\n        directions = [[0, 1], [0, -1], [1, 0], [-1, 0]]\n\n        visit.add((0, 0))\n        while minH:\n            t, r, c = heapq.heappop(minH)\n            if r == N - 1 and c == N - 1:\n                return t\n            for dr, dc in directions:\n                neiR, neiC = r + dr, c + dc\n                if (neiR < 0 or neiC < 0 or\n                    neiR == N or neiC == N or\n                    (neiR, neiC) in visit\n                ):\n                    continue\n                visit.add((neiR, neiC))\n                heapq.heappush(minH, [max(t, grid[neiR][neiC]), neiR, neiC])"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2 log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "h2",
+    "text": "5. Kruskal's Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "class DSU:\n    def __init__(self, n):\n        self.Parent = list(range(n + 1))\n        self.Size = [1] * (n + 1)\n\n    def find(self, node):\n        if self.Parent[node] != node:\n            self.Parent[node] = self.find(self.Parent[node])\n        return self.Parent[node]\n\n    def union(self, u, v):\n        pu = self.find(u)\n        pv = self.find(v)\n        if pu == pv:\n            return False\n        if self.Size[pu] < self.Size[pv]:\n            pu, pv = pv, pu\n        self.Size[pu] += self.Size[pv]\n        self.Parent[pv] = pu\n        return True\n\n    def connected(self, u, v):\n        return self.find(u) == self.find(v)\n\nclass Solution:\n    def swimInWater(self, grid: List[List[int]]) -> int:\n        N = len(grid)\n        dsu = DSU(N * N)\n        positions = sorted((grid[r][c], r, c) for r in range(N) for c in range(N))\n        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]\n\n        for t, r, c in positions:\n            for dr, dc in directions:\n                nr, nc = r + dr, c + dc\n                if 0 <= nr < N and 0 <= nc < N and grid[nr][nc] <= t:\n                    dsu.union(r * N + c, nr * N + nc)\n            if dsu.connected(0, N * N - 1):\n                return t"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2 log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n ^ 2)"
+   }
+  ]
+ },
+ "alien-dictionary": {
+  "url": "https://neetcode.io/problems/foreign-dictionary?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=6kTZYvNNyps",
+  "prerequisites": [
+   {
+    "title": "Adjacency List Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/31"
+   },
+   {
+    "title": "Topological Sort Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/17"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Depth First Search"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def foreignDictionary(self, words: List[str]) -> str:\n        adj = {c: set() for w in words for c in w}\n\n        for i in range(len(words) - 1):\n            w1, w2 = words[i], words[i + 1]\n            minLen = min(len(w1), len(w2))\n            if len(w1) > len(w2) and w1[:minLen] == w2[:minLen]:\n                return \"\"\n            for j in range(minLen):\n                if w1[j] != w2[j]:\n                    adj[w1[j]].add(w2[j])\n                    break\n\n        visited = {}\n        res = []\n\n        def dfs(char):\n            if char in visited:\n                return visited[char]\n\n            visited[char] = True\n\n            for neighChar in adj[char]:\n                if dfs(neighChar):\n                    return True\n\n            visited[char] = False\n            res.append(char)\n\n        for char in adj:\n            if dfs(char):\n                return \"\"\n\n        res.reverse()\n        return \"\".join(res)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(N + V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of unique characters, E is the number of edges and N is the sum of lengths of all the strings."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Topological Sort (Kahn's Algorithm)"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def foreignDictionary(self, words):\n        adj = {c: set() for w in words for c in w}\n        indegree = {c: 0 for c in adj}\n\n        for i in range(len(words) - 1):\n            w1, w2 = words[i], words[i + 1]\n            minLen = min(len(w1), len(w2))\n            if len(w1) > len(w2) and w1[:minLen] == w2[:minLen]:\n                return \"\"\n            for j in range(minLen):\n                if w1[j] != w2[j]:\n                    if w2[j] not in adj[w1[j]]:\n                        adj[w1[j]].add(w2[j])\n                        indegree[w2[j]] += 1\n                    break\n\n        q = deque([c for c in indegree if indegree[c] == 0])\n        res = []\n\n        while q:\n            char = q.popleft()\n            res.append(char)\n            for neighbor in adj[char]:\n                indegree[neighbor] -= 1\n                if indegree[neighbor] == 0:\n                    q.append(neighbor)\n\n        if len(res) != len(indegree):\n            return \"\"\n\n        return \"\".join(res)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(N + V + E)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(V + E)"
+   },
+   {
+    "kind": "p",
+    "text": "Where V is the number of unique characters, E is the number of edges and N is the sum of lengths of all the strings."
+   }
+  ]
+ },
+ "cheapest-flights-within-k-stops": {
+  "url": "https://neetcode.io/problems/cheapest-flight-path?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=5eIK3zUdYmE",
+  "prerequisites": [
+   {
+    "title": "Adjacency List Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/31"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Dijkstra's Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findCheapestPrice(self, n: int, flights: List[List[int]], src: int, dst: int, k: int) -> int:\n        INF = float(\"inf\")\n        adj = [[] for _ in range(n)]\n        dist = [[INF] * (k + 5) for _ in range(n)]\n        for u, v, cst in flights:\n            adj[u].append([v, cst])\n\n        dist[src][0] = 0\n        minHeap = [(0, src, -1)] # cost, node, stops\n        while len(minHeap):\n            cst, node, stops = heapq.heappop(minHeap)\n            if dst == node: return cst\n            if stops == k or dist[node][stops + 1] < cst:\n                continue\n            for nei, w in adj[node]:\n                nextCst = cst + w\n                nextStops = 1 + stops\n                if dist[nei][nextStops + 1] > nextCst:\n                    dist[nei][nextStops + 1] = nextCst\n                    heapq.heappush(minHeap, (nextCst, nei, nextStops))\n\n        return -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O((n + m) * k)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n * k)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of cities, m is the number of flights and k is the number of stops."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Bellman Ford Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findCheapestPrice(self, n: int, flights: List[List[int]], src: int, dst: int, k: int) -> int:\n        prices = [float(\"inf\")] * n\n        prices[src] = 0\n\n        for i in range(k + 1):\n            tmpPrices = prices.copy()\n\n            for s, d, p in flights:  # s=source, d=dest, p=price\n                if prices[s] == float(\"inf\"):\n                    continue\n                if prices[s] + p < tmpPrices[d]:\n                    tmpPrices[d] = prices[s] + p\n            prices = tmpPrices\n        return -1 if prices[dst] == float(\"inf\") else prices[dst]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n + (m * k))"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of cities, m is the number of flights and k is the number of stops."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Shortest Path Faster Algorithm"
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findCheapestPrice(self, n: int, flights: List[List[int]], src: int, dst: int, k: int) -> int:\n        prices = [float(\"inf\")] * n\n        prices[src] = 0\n        adj = [[] for _ in range(n)]\n        for u, v, cst in flights:\n            adj[u].append([v, cst])\n\n        q = deque([(0, src, 0)])\n        while q:\n            cst, node, stops = q.popleft()\n            if stops > k:\n                continue\n\n            for nei, w in adj[node]:\n                nextCost = cst + w\n                if nextCost < prices[nei]:\n                    prices[nei] = nextCost\n                    q.append((nextCost, nei, stops + 1))\n\n        return prices[dst] if prices[dst] != float(\"inf\") else -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * k)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n + m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the number of cities, m is the number of flights and k is the number of stops."
+   }
+  ]
+ }
+}

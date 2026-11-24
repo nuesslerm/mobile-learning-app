@@ -20,7 +20,7 @@ import type { EditAlternative } from '@lib/voice-edit-dsl';
 import { router } from 'expo-router';
 import { Mic, Pencil } from '@lib/tamagui-design-system/icons';
 import React from 'react';
-import { BackHandler, Platform, Pressable, useColorScheme, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
+import { BackHandler, Platform, Pressable, TextInput, useColorScheme, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
 import { useLeetCodePorts } from '../state/ports';
@@ -144,6 +144,11 @@ function ProblemEditorContent({
     end: 0,
   });
 
+  const startupInput = React.useRef<React.ComponentRef<typeof TextInput>>(null);
+  const startupLanguage = React.useRef<EditorLanguage | null>(null);
+  const startupSelection = React.useRef<Selection>({ start: 0, end: 0 });
+  // The native input owns its buffer until blur. An echo from the warming page must never replace a newer keystroke.
+  const [startupBuffer, setStartupBuffer] = React.useState<string | null>(null);
   const editorRef = React.useRef<EditorInputHandle>(null);
   const editorFocusedRef = React.useRef(false);
   const refocusAfterConsole = React.useRef(false);
@@ -151,6 +156,7 @@ function ProblemEditorContent({
   // tap-away reach nothing; the editor is told to blur itself.
   const dismissEditorKeyboard = React.useCallback(() => {
     Logger.debug('editor_v2.keyboard_dismiss', { problemId: problem?.id });
+    startupInput.current?.blur();
     editorRef.current?.blur();
   }, [problem?.id]);
   // the buffer and the language as they are now, for a run that finishes after the person has gone on typing
@@ -167,7 +173,7 @@ function ProblemEditorContent({
   }, []);
   const consoleRuntime = {
     runner,
-    editor: () => editorRef.current,
+    editor: () => startupBuffer === null ? editorRef.current : null,
     latest: () => latestBufferRef.current,
     dismissKeyboard: dismissEditorKeyboard,
     errorJump,
@@ -293,6 +299,9 @@ function ProblemEditorContent({
         to: nextLang,
         problemId: problem?.id,
       });
+      startupLanguage.current = null;
+      startupInput.current?.blur();
+      setStartupBuffer(null);
       snapshot('language-switch');
       setCanUndo(false);
       setLang(nextLang);
@@ -687,8 +696,8 @@ function ProblemEditorContent({
                 appearance={iosCanvas ? 'canvas' : 'panel'}
                 language={editorLanguage}
                 completion={completion}
-                value={editorText}
-                onChangeText={handleEditorChange}
+                value={startupBuffer ?? editorText}
+                onChangeText={(next) => { if (!startupInput.current?.isFocused()) handleEditorChange(next); }}
                 onSelectionChange={setEditorSelection}
                 onUndoAvailabilityChange={iosCanvas ? setCanUndo : undefined}
                 onFocusChange={(focused) => {
@@ -700,6 +709,28 @@ function ProblemEditorContent({
                   if (hydrated) runner.warmUp?.(lang);
                 }}
               />
+              {iosCanvas && (!editorReady || startupBuffer !== null) && (
+                <XStack position="absolute" t={0} l={0} r={0} b={0} style={{ backgroundColor }}>
+                  <Text accessible={false} width={36} pr={6} text="right" style={{ color: palette.defaultText }}
+                    opacity={0.55} fontFamily="$mono" fontSize={fontSize} lineHeight={lineHeightFor(fontSize)}>
+                    {editorText.split('\n', 40).map((_, index) => index + 1).join('\n')}
+                  </Text>
+                  <TextInput ref={startupInput} testID="ProblemEditorStartupInput" accessibilityLabel="Code editor" multiline
+                    autoCapitalize="none" autoCorrect={false} spellCheck={false} value={editorText}
+                    onFocus={() => { startupLanguage.current = lang; setStartupBuffer(editorText); }}
+                    onEndEditing={({ nativeEvent }) => {
+                      if (startupLanguage.current !== lang) return;
+                      startupLanguage.current = null;
+                      handleEditorChange(nativeEvent.text);
+                      editorRef.current?.setTextAndSelection(nativeEvent.text, startupSelection.current, false);
+                      setStartupBuffer(null);
+                    }}
+                    onChangeText={handleEditorChange}
+                    onSelectionChange={({ nativeEvent }) => { startupSelection.current = nativeEvent.selection; }}
+                    style={{ flex: 1, padding: 0, paddingHorizontal: 6, fontFamily: 'Menlo', fontSize, lineHeight: lineHeightFor(fontSize),
+                      color: palette.defaultText, textAlignVertical: 'top' }} />
+                </XStack>
+              )}
             </YStack>
 
             <Pressable

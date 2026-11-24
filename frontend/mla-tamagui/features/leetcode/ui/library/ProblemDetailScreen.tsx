@@ -5,14 +5,15 @@ import {
   Building2, ChevronDown, Lightbulb, MessageSquare, PenLine, Play, Share, Star, Tag, ThumbsDown, ThumbsUp,
 } from '@lib/tamagui-design-system/icons';
 import { router, type Href } from 'expo-router';
-import { useState } from 'react';
-import { Keyboard, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { Solution } from '../../domain/library/library';
 import type { Blind75Problem } from '../../domain/models';
 import { useLibrary } from '../../state/library/useLibrary';
 import { useLeetCodePorts } from '../../state/ports';
+import { NeetCodeLesson } from './NeetCodeLesson';
 import { shareProblem } from './libraryShare';
 import { ProblemInformationSheet, type ProblemInformation } from './ProblemInformationSheets';
 
@@ -31,7 +32,7 @@ const filters = [
 export function ProblemDetailScreen({ id }: { id: string }) {
   const colors = useCompactColors();
   const { top, bottom } = useSafeAreaInsets();
-  const { libraryContent } = useLeetCodePorts();
+  const { libraryContent, editorBridge } = useLeetCodePorts();
   const problem = libraryContent.problem(id);
   const row = libraryContent.rows.find((entry) => entry.id === id);
   const { lists, actions } = useLibrary();
@@ -45,7 +46,19 @@ export function ProblemDetailScreen({ id }: { id: string }) {
   const submissions = libraryContent.submissions(id);
   const solutions = libraryContent.solutions(id);
   const hints = problem ? libraryContent.hints(problem) : [];
-  const openEditor = () => router.push({ pathname: '/leetcode/[id]', params: { id, lang: 'javascript' } });
+  const study = libraryContent.studyPlan.find((entry) => entry.id === id);
+  const lesson = useMemo(() => tab === 'editorial' && study ? libraryContent.lesson(id) : undefined, [id, libraryContent, study, tab]);
+  const editorRoute = useMemo(() => ({ pathname: '/leetcode/[id]' as const, params: { id, lang: 'javascript' } }), [id]);
+  const hasProblem = Boolean(problem);
+  useEffect(() => {
+    if (hasProblem) void actions.openProblem(id);
+  }, [actions, hasProblem, id]);
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || !hasProblem) return;
+    const work = requestIdleCallback(() => editorBridge.pageSource?.(editorBridge.html()));
+    return () => cancelIdleCallback(work);
+  }, [editorBridge, hasProblem]);
+  const openEditor = () => router.push(editorRoute);
 
   return (
     <View testID="AlgorithmsProblemDetail" style={[styles.screen, { backgroundColor: colors.background, paddingTop: top }]}>
@@ -64,6 +77,11 @@ export function ProblemDetailScreen({ id }: { id: string }) {
             onScroll={({ nativeEvent }) => setScrolled(nativeEvent.contentOffset.y > 45)}
             contentContainerStyle={[styles.content, { paddingBottom: bottom + 89 }]}>
             <Text accessibilityRole="header" style={[styles.title, { color: colors.foreground }]}>{title}</Text>
+            {study && <Pressable accessibilityRole="button" testID="ProblemOpenLesson" onPress={() => setTab('editorial')}
+              style={[styles.lessonLink, { backgroundColor: colors.surface }]}>
+              <Text style={{ color: colors.green, fontWeight: '600' }}>NeetCode 150 · {study.group}</Text>
+              <Text style={{ color: colors.foreground }}>View lesson ›</Text>
+            </Pressable>}
             {problem ? <Description problem={problem} onInformation={setInformation} /> :
               <Text style={{ color: colors.muted }}>The description for this problem isn’t available in the local collection.</Text>}
           </ScrollView>
@@ -93,7 +111,8 @@ export function ProblemDetailScreen({ id }: { id: string }) {
           {!submissions.length && <Empty text="No submissions yet." />}
         </ScrollView>
       )}
-      {tab === 'editorial' && (
+      {tab === 'editorial' && lesson && <NeetCodeLesson title={problem?.title ?? title} lesson={lesson} />}
+      {tab === 'editorial' && !lesson && (
         <ScrollView contentContainerStyle={styles.content}>
           {solutions[0] ? <>
             <Text style={[styles.title, { color: colors.foreground }]}>{solutions[0].title}</Text>
@@ -261,6 +280,7 @@ function Solutions({ solutions }: { solutions: ReadonlyArray<Solution> }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  lessonLink: { marginBottom: 12, padding: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' },
   headerActions: { flexDirection: 'row', gap: 2 },
   content: { paddingHorizontal: 18, paddingTop: 14 },
   title: { fontSize: 22, fontWeight: '600', marginBottom: 12 },

@@ -1,0 +1,2794 @@
+{
+ "reverse-linked-list": {
+  "url": "https://neetcode.io/problems/reverse-a-linked-list?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=G0_I-ZF0S38",
+  "prerequisites": [
+   {
+    "title": "Singly Linked Lists Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/5"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Reversing a linked list using recursion works by thinking in terms of “reverse the rest, then fix the pointer for the current node.”\nWhen we recursively go to the end of the list, that last node becomes the new head.\nWhile the recursion unwinds, each node points backward to the one that called it.\nFinally, we set the original head’s next to None to finish the reversal."
+   },
+   {
+    "kind": "p",
+    "text": "This approach uses the call stack to naturally reverse the direction of the pointers."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the list is empty, return None."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively call the function on head.next to reverse the rest of the list."
+   },
+   {
+    "kind": "li",
+    "text": "After the recursive call returns:\nMake head.next.next = head so the next node points back to the current node."
+   },
+   {
+    "kind": "li",
+    "text": "Set head.next = None to avoid cycles."
+   },
+   {
+    "kind": "li",
+    "text": "Return the new head returned by the deepest recursive call."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def reverseList(self, head: Optional[ListNode]) -> Optional[ListNode]:\n        if not head:\n            return None\n\n        newHead = head\n        if head.next:\n            newHead = self.reverseList(head.next)\n            head.next.next = head\n        head.next = None\n\n        return newHead"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iteration"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Reversing a linked list iteratively is all about flipping pointers one step at a time.\nWe walk through the list from left to right, and for each node, we redirect its next pointer to point to the node behind it."
+   },
+   {
+    "kind": "p",
+    "text": "To avoid losing track of the rest of the list, we keep three pointers:"
+   },
+   {
+    "kind": "li",
+    "text": "curr → the current node we are processing"
+   },
+   {
+    "kind": "li",
+    "text": "prev → the node that should come after curr once reversed"
+   },
+   {
+    "kind": "li",
+    "text": "temp → the original next node (so we don’t break the chain)"
+   },
+   {
+    "kind": "p",
+    "text": "By moving these pointers forward in each step, we gradually reverse the entire list.\nWhen curr becomes None, the list is fully reversed, and prev points to the new head."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize:\nprev = None\ncurr = head"
+   },
+   {
+    "kind": "li",
+    "text": "While curr exists:\nSave the next node: temp = curr.next\nReverse the pointer: curr.next = prev\nMove prev to curr\nMove curr to temp"
+   },
+   {
+    "kind": "li",
+    "text": "When the loop ends, prev is the new head of the reversed list."
+   },
+   {
+    "kind": "li",
+    "text": "Return prev."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def reverseList(self, head: ListNode) -> ListNode:\n        prev, curr = None, head\n\n        while curr:\n            temp = curr.next\n            curr.next = prev\n            prev = curr\n            curr = temp\n        return prev"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "merge-two-sorted-lists": {
+  "url": "https://neetcode.io/problems/merge-two-sorted-linked-lists?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=XIdigk956u0",
+  "prerequisites": [
+   {
+    "title": "Singly Linked Lists Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/5"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Merging two sorted linked lists recursively works by always choosing the smaller head node of the two lists.\nWhichever list has the smaller value should appear first in the merged list.\nSo we:"
+   },
+   {
+    "kind": "li",
+    "text": "Pick the smaller node."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively merge the rest of the lists."
+   },
+   {
+    "kind": "li",
+    "text": "Attach the result to the chosen node."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If one list is empty, return the other list — nothing left to merge."
+   },
+   {
+    "kind": "li",
+    "text": "Compare the head values of list1 and list2:\nIf list1.val <= list2.val:\nSet list1.next to the merged result of the remaining nodes.\nReturn list1 as the current head.\n\n\nOtherwise:\nSet list2.next to the merged result of the remaining nodes.\nReturn list2 as the current head."
+   },
+   {
+    "kind": "li",
+    "text": "The recursion continues until both lists are fully merged."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def mergeTwoLists(self, list1: Optional[ListNode], list2: Optional[ListNode]) -> Optional[ListNode]:\n        if list1 is None:\n            return list2\n        if list2 is None:\n            return list1\n        if list1.val <= list2.val:\n            list1.next = self.mergeTwoLists(list1.next, list2)\n            return list1\n        else:\n            list2.next = self.mergeTwoLists(list1, list2.next)\n            return list2"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n + m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n + m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of list1 and m is the length of list2."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iteration"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "To merge two sorted linked lists iteratively, we build the result step-by-step.\nWe keep a pointer (node) to the current end of the merged list, and at each step we choose the smaller head node from list1 or list2."
+   },
+   {
+    "kind": "p",
+    "text": "Because the lists are already sorted, whichever head is smaller must come next in the merged list.\nWe attach that node, move the pointer forward, and continue until one list is empty.\nFinally, we attach the remaining nodes from the non-empty list."
+   },
+   {
+    "kind": "p",
+    "text": "Using a dummy node makes handling the head of the merged list simple and clean."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a dummy node and a node pointer pointing to it."
+   },
+   {
+    "kind": "li",
+    "text": "While both lists have nodes:\nCompare list1.val and list2.val.\nAttach the smaller node to node.next.\nMove forward in the chosen list.\nMove node to node.next."
+   },
+   {
+    "kind": "li",
+    "text": "When one list becomes empty:\nAttach the remaining nodes of the other list to node.next."
+   },
+   {
+    "kind": "li",
+    "text": "Return dummy.next, which is the head of the merged list."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def mergeTwoLists(self, list1: ListNode, list2: ListNode) -> ListNode:\n        dummy = node = ListNode()\n\n        while list1 and list2:\n            if list1.val < list2.val:\n                node.next = list1\n                list1 = list1.next\n            else:\n                node.next = list2\n                list2 = list2.next\n            node = node.next\n\n        node.next = list1 or list2\n\n        return dummy.next"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n + m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of list1 and m is the length of list2."
+   }
+  ]
+ },
+ "linked-list-cycle": {
+  "url": "https://neetcode.io/problems/linked-list-cycle-detection?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=gBTe7lFR3vc",
+  "prerequisites": [
+   {
+    "title": "Singly Linked Lists Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/5"
+   },
+   {
+    "title": "Fast and Slow Pointers Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/5"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Hash Set"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "To detect whether a linked list has a cycle, one simple idea is to remember every node we visit.\nAs we move forward through the list, if we ever reach a node we’ve already seen before, it means the list loops back on itself — so a cycle exists."
+   },
+   {
+    "kind": "p",
+    "text": "If we reach the end (None) without repeating a node, then there is no cycle."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create an empty hash set to store visited nodes."
+   },
+   {
+    "kind": "li",
+    "text": "Start from the head and move through the list one node at a time."
+   },
+   {
+    "kind": "li",
+    "text": "For each node:\nIf it is already in the set, a cycle exists → return True.\nOtherwise, add it to the set and continue."
+   },
+   {
+    "kind": "li",
+    "text": "If you reach None, no cycle exists → return False."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def hasCycle(self, head: Optional[ListNode]) -> bool:\n        seen = set()\n        cur = head\n        while cur:\n            if cur in seen:\n                return True\n            seen.add(cur)\n            cur = cur.next\n        return False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Fast And Slow Pointers"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We use two pointers moving through the list at different speeds:"
+   },
+   {
+    "kind": "li",
+    "text": "slow moves one step at a time"
+   },
+   {
+    "kind": "li",
+    "text": "fast moves two steps at a time"
+   },
+   {
+    "kind": "p",
+    "text": "If the list has a cycle, the fast pointer will eventually “lap” the slow pointer — meaning they will meet at some node inside the cycle."
+   },
+   {
+    "kind": "p",
+    "text": "If the list has no cycle, the fast pointer will reach the end (None) and the loop stops."
+   },
+   {
+    "kind": "p",
+    "text": "This method is efficient and uses constant extra space."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize two pointers:\nslow = head\nfast = head"
+   },
+   {
+    "kind": "li",
+    "text": "Move through the list:\nslow moves one step.\nfast moves two steps."
+   },
+   {
+    "kind": "li",
+    "text": "If at any point slow == fast, a cycle exists → return True."
+   },
+   {
+    "kind": "li",
+    "text": "If fast reaches the end (None or fast.next is None), no cycle exists → return False."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def hasCycle(self, head: Optional[ListNode]) -> bool:\n        slow, fast = head, head\n\n        while fast and fast.next:\n            slow = slow.next\n            fast = fast.next.next\n            if slow == fast:\n                return True\n        return False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "reorder-list": {
+  "url": "https://neetcode.io/problems/reorder-linked-list?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=S5bfdUTrKLM",
+  "prerequisites": [
+   {
+    "title": "Singly Linked Lists Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/5"
+   },
+   {
+    "title": "Fast and Slow Pointers Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/5"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "To reorder the linked list in the pattern:"
+   },
+   {
+    "kind": "p",
+    "text": "L0 → Ln → L1 → L(n−1) → L2 → ..."
+   },
+   {
+    "kind": "p",
+    "text": "A straightforward approach is to store all nodes in an array.\nOnce stored, we can easily access nodes from both the start and end using two pointers.\nBy alternately linking nodes from the front (i) and back (j), we can reshape the list in the required order."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Traverse the linked list and push every node into an array."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize two pointers:\ni = 0 (start)\nj = len(nodes) - 1 (end)"
+   },
+   {
+    "kind": "li",
+    "text": "While i < j:\nLink nodes[i].next to nodes[j]; increment i.\nIf i >= j, break the loop.\nLink nodes[j].next to nodes[i]; decrement j."
+   },
+   {
+    "kind": "li",
+    "text": "After the loop, set nodes[i].next = None to terminate the list."
+   },
+   {
+    "kind": "li",
+    "text": "The reordered list is constructed in-place."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def reorderList(self, head: Optional[ListNode]) -> None:\n        if not head:\n            return\n\n        nodes = []\n        cur = head\n        while cur:\n            nodes.append(cur)\n            cur = cur.next\n\n        i, j = 0, len(nodes) - 1\n        while i < j:\n            nodes[i].next = nodes[j]\n            i += 1\n            if i >= j:\n                break\n            nodes[j].next = nodes[i]\n            j -= 1\n\n        nodes[i].next = None"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Recursion"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "This recursive approach reorders the list by pairing nodes from the front and back during the recursion unwind phase."
+   },
+   {
+    "kind": "p",
+    "text": "The idea is:"
+   },
+   {
+    "kind": "li",
+    "text": "Move to the end of the list using recursion."
+   },
+   {
+    "kind": "li",
+    "text": "On the way back up (unwinding), connect the current node from the end (cur) to the corresponding node from the front (root)."
+   },
+   {
+    "kind": "li",
+    "text": "Advance the front pointer (root) step-by-step as recursion unwinds."
+   },
+   {
+    "kind": "li",
+    "text": "Stop when the pointers meet or cross."
+   },
+   {
+    "kind": "p",
+    "text": "Recursion naturally processes the list from back to front, making it convenient to match front and back nodes without using extra lists."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Define a recursive function rec(root, cur):\ncur moves to the end of the list via recursion.\nroot marks the current front node during unwinding."
+   },
+   {
+    "kind": "li",
+    "text": "In the base case:\nIf cur is None, return the front pointer (root)."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively call rec on cur.next to reach the tail."
+   },
+   {
+    "kind": "li",
+    "text": "During unwinding:\nIf root meets or crosses cur, set cur.next = None to finish and stop further links.\nOtherwise:\nTemporarily save root.next.\nLink root.next → cur.\nLink cur.next → temp."
+   },
+   {
+    "kind": "li",
+    "text": "Return the next node (temp) as the updated front pointer."
+   },
+   {
+    "kind": "li",
+    "text": "Start recursion with rec(head, head.next)."
+   },
+   {
+    "kind": "p",
+    "text": "This reorders the list in place without extra storage."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def reorderList(self, head: Optional[ListNode]) -> None:\n\n        def rec(root: ListNode, cur: ListNode) -> ListNode:\n            if not cur:\n                return root\n\n            root = rec(root, cur.next)\n            if not root:\n                return None\n\n            tmp = None\n            if root == cur or root.next == cur:\n                cur.next = None\n            else:\n                tmp = root.next\n                root.next = cur\n                cur.next = tmp\n\n            return tmp\n\n        head = rec(head, head.next)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Reverse And Merge"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "To reorder the list into the pattern\nL1 → Ln → L2 → Ln−1 → L3 → Ln−2 → ...,\nwe can break the problem into three simple steps:"
+   },
+   {
+    "kind": "li",
+    "text": "Find the middle of the linked list using slow & fast pointers.\nThis splits the list into two halves."
+   },
+   {
+    "kind": "li",
+    "text": "Reverse the second half of the list.\nDoing this makes it easy to merge nodes from the front and back alternately."
+   },
+   {
+    "kind": "li",
+    "text": "Merge the two halves one-by-one:\nTake one node from the first half, then one from the reversed second half, and repeat."
+   },
+   {
+    "kind": "p",
+    "text": "This method is clean, intuitive, and uses only O(1) extra space."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Find the middle:\n\nUse slow and fast pointers.\nWhen fast reaches the end, slow will be at the midpoint."
+   },
+   {
+    "kind": "li",
+    "text": "Reverse the second half:\n\nStart from slow.next.\nReverse it using the standard linked-list reversal approach."
+   },
+   {
+    "kind": "li",
+    "text": "Merge the two lists:\n\nTake a node from the first half.\nTake a node from the reversed second half.\nContinue until the second half is exhausted."
+   },
+   {
+    "kind": "p",
+    "text": "This produces the desired reordered list in-place with no extra memory."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def reorderList(self, head: Optional[ListNode]) -> None:\n        slow, fast = head, head.next\n        while fast and fast.next:\n            slow = slow.next\n            fast = fast.next.next\n\n        second = slow.next\n        prev = slow.next = None\n        while second:\n            tmp = second.next\n            second.next = prev\n            prev = second\n            second = tmp\n\n        first, second = head, prev\n        while second:\n            tmp1, tmp2 = first.next, second.next\n            first.next = second\n            second.next = tmp1\n            first, second = tmp1, tmp2"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "remove-nth-node-from-end-of-list": {
+  "url": "https://neetcode.io/problems/remove-node-from-end-of-linked-list?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=XVuQxVej6y8",
+  "prerequisites": [
+   {
+    "title": "Singly Linked Lists Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/5"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We store all nodes in an array so we can directly access the node that is n positions from the end.\nOnce we know which node to delete, we simply adjust the next pointer of the previous node."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Traverse the linked list and push every node into an array."
+   },
+   {
+    "kind": "li",
+    "text": "Compute the index of the node to remove: len(nodes) - n."
+   },
+   {
+    "kind": "li",
+    "text": "If this index is 0, it means the head must be removed → return head.next."
+   },
+   {
+    "kind": "li",
+    "text": "Otherwise, connect nodes[removeIndex - 1].next to nodes[removeIndex].next."
+   },
+   {
+    "kind": "li",
+    "text": "Return the updated head."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def removeNthFromEnd(self, head: Optional[ListNode], n: int) -> Optional[ListNode]:\n        nodes = []\n        cur = head\n        while cur:\n            nodes.append(cur)\n            cur = cur.next\n\n        removeIndex = len(nodes) - n\n        if removeIndex == 0:\n            return head.next\n\n        nodes[removeIndex - 1].next = nodes[removeIndex].next\n        return head"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(N)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(N)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iteration (Two Pass)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We first count how many nodes are in the list.\nOnce we know the total length, the node to delete is at position N - n from the start.\nWe run a second pass to reach the node just before it and skip it."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Traverse the list once to compute total nodes N."
+   },
+   {
+    "kind": "li",
+    "text": "Compute removeIndex = N - n."
+   },
+   {
+    "kind": "li",
+    "text": "If removeIndex == 0, delete the head → return head.next."
+   },
+   {
+    "kind": "li",
+    "text": "Traverse again until reaching the node before removeIndex."
+   },
+   {
+    "kind": "li",
+    "text": "Update its next pointer to skip the unwanted node."
+   },
+   {
+    "kind": "li",
+    "text": "Return the modified head."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def removeNthFromEnd(self, head: Optional[ListNode], n: int) -> Optional[ListNode]:\n        N = 0\n        cur = head\n        while cur:\n            N += 1\n            cur = cur.next\n\n        removeIndex = N - n\n        if removeIndex == 0:\n            return head.next\n\n        cur = head\n        for i in range(N - 1):\n            if (i + 1) == removeIndex:\n                cur.next = cur.next.next\n                break\n            cur = cur.next\n        return head"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(N)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Recursion"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Recursion naturally processes the list from the end toward the start.\nWhen the recursive calls unwind, we count backwards.\nWhen the count reaches the nth node from the end, we skip it by returning head.next instead of the current node."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Recursively go to the end of the list."
+   },
+   {
+    "kind": "li",
+    "text": "As recursion unwinds, decrement n each time you return."
+   },
+   {
+    "kind": "li",
+    "text": "When n becomes 0, this is the node to delete → return its next node."
+   },
+   {
+    "kind": "li",
+    "text": "Otherwise, return the current node to rebuild the list."
+   },
+   {
+    "kind": "li",
+    "text": "The head of the resulting rebuilt list is the final answer."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def rec(self, head, n):\n        if not head:\n            return None\n\n        head.next = self.rec(head.next, n)\n        n[0] -= 1\n        if n[0] == 0:\n            return head.next\n        return head\n\n    def removeNthFromEnd(self, head, n):\n        return self.rec(head, [n])"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(N)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(N) for recursion stack."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Two Pointers"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Use two pointers so that the gap between them is exactly n.\nMove the right pointer n steps ahead first.\nThen move both pointers together.\nWhen the right pointer reaches the end, the left pointer will be just before the node we must remove.\nThis avoids counting the entire list and removes the target in one pass."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a dummy node pointing to the head (helps handle deletion of the first node)."
+   },
+   {
+    "kind": "li",
+    "text": "Set two pointers:  \nleft at dummy  \nright at head"
+   },
+   {
+    "kind": "li",
+    "text": "Move right forward n steps."
+   },
+   {
+    "kind": "li",
+    "text": "Move both pointers until right reaches the end."
+   },
+   {
+    "kind": "li",
+    "text": "Now left.next is the node to delete → skip it by doing left.next = left.next.next."
+   },
+   {
+    "kind": "li",
+    "text": "Return dummy.next as the updated head."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def removeNthFromEnd(self, head: Optional[ListNode], n: int) -> Optional[ListNode]:\n        dummy = ListNode(0, head)\n        left = dummy\n        right = head\n\n        while n > 0:\n            right = right.next\n            n -= 1\n\n        while right:\n            left = left.next\n            right = right.next\n\n        left.next = left.next.next\n        return dummy.next"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(N)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "copy-list-with-random-pointer": {
+  "url": "https://neetcode.io/problems/copy-linked-list-with-random-pointer?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=5Y2EiZST97Y",
+  "prerequisites": [
+   {
+    "title": "Singly Linked Lists Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/5"
+   },
+   {
+    "title": "Doubly Linked Lists Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/6"
+   },
+   {
+    "title": "Hash Usage Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/26"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion + Hash Map"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We must create a deep copy of a linked list where each node has both next and random pointers.\nThe main difficulty: multiple nodes may point to the same random node, so we must ensure each original node is copied exactly once."
+   },
+   {
+    "kind": "p",
+    "text": "A hash map helps us remember the copied version of each original node.\nUsing recursion, we:"
+   },
+   {
+    "kind": "li",
+    "text": "copy the current node,"
+   },
+   {
+    "kind": "li",
+    "text": "store it in the map,"
+   },
+   {
+    "kind": "li",
+    "text": "recursively copy its next,"
+   },
+   {
+    "kind": "li",
+    "text": "link its random using the map."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the current node is None, return None."
+   },
+   {
+    "kind": "li",
+    "text": "If the node is already copied (exists in the map), return the stored copy."
+   },
+   {
+    "kind": "li",
+    "text": "Create a new copy node and store it in the map."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively copy the next pointer."
+   },
+   {
+    "kind": "li",
+    "text": "Set the random pointer using the map."
+   },
+   {
+    "kind": "li",
+    "text": "Return the copied node."
+   },
+   {
+    "kind": "pre",
+    "text": "\"\"\"\n# Definition for a Node.\nclass Node:\n    def __init__(self, x: int, next: 'Node' = None, random: 'Node' = None):\n        self.val = int(x)\n        self.next = next\n        self.random = random\n\"\"\"\n\nclass Solution:\n    def __init__(self):\n        self.map = {}\n\n    def copyRandomList(self, head: 'Optional[Node]') -> 'Optional[Node]':\n        if head is None:\n            return None\n        if head in self.map:\n            return self.map[head]\n\n        copy = Node(head.val)\n        self.map[head] = copy\n        copy.next = self.copyRandomList(head.next)\n        copy.random = self.map.get(head.random)\n        return copy"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Hash Map (Two Pass)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We want to copy a linked list where each node has both next and random pointers.\nThe challenge is that the random pointer can point anywhere — forward, backward, or even None.\nSo we must ensure every original node is copied exactly once, and all pointers are reconnected correctly."
+   },
+   {
+    "kind": "p",
+    "text": "A simple solution:"
+   },
+   {
+    "kind": "li",
+    "text": "Pass 1: Create a copy of every node (just values), and store the mapping:\noriginal_node → copied_node"
+   },
+   {
+    "kind": "li",
+    "text": "Pass 2: Use this map to connect next and random pointers for each copied node."
+   },
+   {
+    "kind": "p",
+    "text": "This guarantees all pointers are valid and no node is duplicated."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a hash map oldToCopy, mapping each original node to its copied node.\nInclude None → None for convenience."
+   },
+   {
+    "kind": "li",
+    "text": "First pass: iterate through the original list  \nCreate a copy of each node.  \nStore the mapping in oldToCopy."
+   },
+   {
+    "kind": "li",
+    "text": "Second pass: iterate again  \nSet copy.next using oldToCopy[original.next].  \nSet copy.random using oldToCopy[original.random]."
+   },
+   {
+    "kind": "li",
+    "text": "Return the copied version of the head using oldToCopy[head]."
+   },
+   {
+    "kind": "pre",
+    "text": "\"\"\"\n# Definition for a Node.\nclass Node:\n    def __init__(self, x: int, next: 'Node' = None, random: 'Node' = None):\n        self.val = int(x)\n        self.next = next\n        self.random = random\n\"\"\"\n\nclass Solution:\n    def copyRandomList(self, head: 'Optional[Node]') -> 'Optional[Node]':\n        oldToCopy = {None: None}\n\n        cur = head\n        while cur:\n            copy = Node(cur.val)\n            oldToCopy[cur] = copy\n            cur = cur.next\n        cur = head\n        while cur:\n            copy = oldToCopy[cur]\n            copy.next = oldToCopy[cur.next]\n            copy.random = oldToCopy[cur.random]\n            cur = cur.next\n        return oldToCopy[head]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Hash Map (One Pass)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We want to copy a linked list where every node has a next pointer and a random pointer.\nNormally we need two passes: one to create nodes, and another to connect pointers.\nBut we can actually do both at the same time by using a hash map that automatically creates a copy node whenever we access it."
+   },
+   {
+    "kind": "p",
+    "text": "So when we say:"
+   },
+   {
+    "kind": "li",
+    "text": "oldToCopy[cur] → gives the copied node"
+   },
+   {
+    "kind": "li",
+    "text": "oldToCopy[cur.next] → gives the copy of cur.next (created if not present)"
+   },
+   {
+    "kind": "li",
+    "text": "oldToCopy[cur.random] → gives the copy of cur.random"
+   },
+   {
+    "kind": "p",
+    "text": "This lets us fill val, next, and random in one single pass."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a hash map oldToCopy that returns a new empty node whenever we access a key that doesn’t exist yet."
+   },
+   {
+    "kind": "li",
+    "text": "Set oldToCopy[None] = None so next or random can safely point to None."
+   },
+   {
+    "kind": "li",
+    "text": "Traverse the list once:\nSet the copied node’s value.  \nLink its next pointer using the map.  \nLink its random pointer using the map."
+   },
+   {
+    "kind": "li",
+    "text": "Return the copied head from the hash map."
+   },
+   {
+    "kind": "pre",
+    "text": "\"\"\"\n# Definition for a Node.\nclass Node:\n    def __init__(self, x: int, next: 'Node' = None, random: 'Node' = None):\n        self.val = int(x)\n        self.next = next\n        self.random = random\n\"\"\"\n\nclass Solution:\n    def copyRandomList(self, head: 'Optional[Node]') -> 'Optional[Node]':\n        oldToCopy = collections.defaultdict(lambda: Node(0))\n        oldToCopy[None] = None\n\n        cur = head\n        while cur:\n            oldToCopy[cur].val = cur.val\n            oldToCopy[cur].next = oldToCopy[cur.next]\n            oldToCopy[cur].random = oldToCopy[cur.random]\n            cur = cur.next\n        return oldToCopy[head]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Space Optimized - I"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We want to copy the list without using extra space like a hash map.\nThe trick is to interleave copied nodes inside the original list:"
+   },
+   {
+    "kind": "p",
+    "text": "Original:\nA → B → C"
+   },
+   {
+    "kind": "p",
+    "text": "After interleaving:\nA → A' → B → B' → C → C'"
+   },
+   {
+    "kind": "p",
+    "text": "Now every copied node (A', B', C') is right next to the original node, so we can easily:"
+   },
+   {
+    "kind": "li",
+    "text": "Set random of the copied node: A'.random = A.random.next"
+   },
+   {
+    "kind": "li",
+    "text": "Finally separate the two lists again."
+   },
+   {
+    "kind": "p",
+    "text": "This gives a perfect clone using O(1) extra space."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Interleave copy nodes\n\nFor each original node A, create a copy A' and insert it right after A."
+   },
+   {
+    "kind": "li",
+    "text": "Assign random pointers\n\nFor each original node A, if A.random exists, then A'.random = A.random.next."
+   },
+   {
+    "kind": "li",
+    "text": "Unweave the lists\n\nRestore the original list.\nExtract all the copy nodes into a separate new list."
+   },
+   {
+    "kind": "li",
+    "text": "Return the head of the copied list."
+   },
+   {
+    "kind": "pre",
+    "text": "\"\"\"\n# Definition for a Node.\nclass Node:\n    def __init__(self, x: int, next: 'Node' = None, random: 'Node' = None):\n        self.val = int(x)\n        self.next = next\n        self.random = random\n\"\"\"\n\nclass Solution:\n    def copyRandomList(self, head: 'Optional[Node]') -> 'Optional[Node]':\n        if head is None:\n            return None\n\n        l1 = head\n        while l1 is not None:\n            l2 = Node(l1.val)\n            l2.next = l1.next\n            l1.next = l2\n            l1 = l2.next\n\n        newHead = head.next\n\n        l1 = head\n        while l1 is not None:\n            if l1.random is not None:\n                l1.next.random = l1.random.next\n            l1 = l1.next.next\n\n        l1 = head\n        while l1 is not None:\n            l2 = l1.next\n            l1.next = l2.next\n            if l2.next is not None:\n                l2.next = l2.next.next\n            l1 = l1.next\n\n        return newHead"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n) for the output."
+   },
+   {
+    "kind": "h2",
+    "text": "5. Space Optimized - II"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "This method also avoids extra space like a hash map, but instead of inserting copied nodes into the next pointer chain, we temporarily use the random pointer to store the copied nodes."
+   },
+   {
+    "kind": "p",
+    "text": "For every original node:"
+   },
+   {
+    "kind": "li",
+    "text": "We create its copy and store it in the original node’s random pointer."
+   },
+   {
+    "kind": "li",
+    "text": "The copy’s next pointer initially points to whatever the original node’s random was pointing to."
+   },
+   {
+    "kind": "p",
+    "text": "This allows us to:"
+   },
+   {
+    "kind": "li",
+    "text": "Create all copies without extra memory."
+   },
+   {
+    "kind": "li",
+    "text": "Fix the random pointers of the copied nodes using the original structure."
+   },
+   {
+    "kind": "li",
+    "text": "Reconnect the next pointers to build the final deep-copy list."
+   },
+   {
+    "kind": "li",
+    "text": "Restore the original list."
+   },
+   {
+    "kind": "p",
+    "text": "Everything happens using only pointer manipulations — no extra arrays, no hash map."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create all copied nodes\n\nFor each original node A, create a copy A'.\nStore this copy inside A.random.\nPoint A'.next = A.random_old."
+   },
+   {
+    "kind": "li",
+    "text": "Fix random pointers of copies\n\nFor each original node A, set:\nA'.random = A.random_old.random' (if exists)."
+   },
+   {
+    "kind": "li",
+    "text": "Extract the copied list and restore original list\n\nFor each original node A:\nRestore A.random = original_random.\nConnect A'.next to the next copied node."
+   },
+   {
+    "kind": "li",
+    "text": "Return the head of the copied list (which is head.random)."
+   },
+   {
+    "kind": "pre",
+    "text": "\"\"\"\n# Definition for a Node.\nclass Node:\n    def __init__(self, x: int, next: 'Node' = None, random: 'Node' = None):\n        self.val = int(x)\n        self.next = next\n        self.random = random\n\"\"\"\n\nclass Solution:\n    def copyRandomList(self, head: 'Optional[Node]') -> 'Optional[Node]':\n        if head is None:\n            return None\n\n        l1 = head\n        while l1:\n            l2 = Node(l1.val)\n            l2.next = l1.random\n            l1.random = l2\n            l1 = l1.next\n\n        newHead = head.random\n\n        l1 = head\n        while l1:\n            l2 = l1.random\n            l2.random = l2.next.random if l2.next else None\n            l1 = l1.next\n\n        l1 = head\n        while l1 is not None:\n            l2 = l1.random\n            l1.random = l2.next\n            l2.next = l1.next.random if l1.next else None\n            l1 = l1.next\n\n        return newHead"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n) for the output."
+   }
+  ]
+ },
+ "add-two-numbers": {
+  "url": "https://neetcode.io/problems/add-two-numbers?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=wgFPrzTjm7s",
+  "prerequisites": [
+   {
+    "title": "Singly Linked Lists Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/5"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We add the two linked lists exactly like adding two numbers on paper."
+   },
+   {
+    "kind": "p",
+    "text": "Each node contains one digit, and since the lists are stored in reverse order, the head contains the ones place — making addition easy.\nAt every step:"
+   },
+   {
+    "kind": "li",
+    "text": "Take a digit from l1 (or 0 if it’s finished)"
+   },
+   {
+    "kind": "li",
+    "text": "Take a digit from l2 (or 0 if it’s finished)"
+   },
+   {
+    "kind": "li",
+    "text": "Add them with the incoming carry"
+   },
+   {
+    "kind": "li",
+    "text": "Create a new node for the current digit (sum % 10)"
+   },
+   {
+    "kind": "li",
+    "text": "Pass the new carry (sum // 10) forward using recursion"
+   },
+   {
+    "kind": "p",
+    "text": "The recursion naturally processes digits from left to right and stops only when:"
+   },
+   {
+    "kind": "li",
+    "text": "both lists are fully processed and"
+   },
+   {
+    "kind": "li",
+    "text": "no carry remains."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Define a recursive function add(l1, l2, carry):\n\nIf l1, l2 are both None and carry is 0, return None.\nExtract:\nv1 = l1.val if l1 exists, else 0\nv2 = l2.val if l2 exists, else 0\n\n\nCompute:\ntotal = v1 + v2 + carry\ncarry, digit = divmod(total, 10)\n\n\nRecursively compute the next node using:\nl1.next if exists  \nl2.next if exists  \nupdated carry\n\n\nReturn a node with value digit whose next is the recursive result."
+   },
+   {
+    "kind": "li",
+    "text": "In addTwoNumbers, call:\n\nreturn add(l1, l2, 0)"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def add(self, l1: Optional[ListNode], l2: Optional[ListNode], carry: int) -> Optional[ListNode]:\n        if not l1 and not l2 and carry == 0:\n            return None\n\n        v1 = l1.val if l1 else 0\n        v2 = l2.val if l2 else 0\n\n        carry, val = divmod(v1 + v2 + carry, 10)\n\n        next_node = self.add(\n            l1.next if l1 else None,\n            l2.next if l2 else None,\n            carry\n        )\n        return ListNode(val, next_node)\n\n    def addTwoNumbers(self, l1: Optional[ListNode], l2: Optional[ListNode]) -> Optional[ListNode]:\n        return self.add(l1, l2, 0)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m + n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m + n)"
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of l1 and n is the length of l2."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iteration"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We simulate normal addition the same way we do on paper — digit by digit."
+   },
+   {
+    "kind": "p",
+    "text": "The linked lists store numbers in reverse order, so the first nodes represent the 1’s place.\nThis makes addition straightforward:"
+   },
+   {
+    "kind": "li",
+    "text": "Add the two digits."
+   },
+   {
+    "kind": "li",
+    "text": "Add the carry from the previous step."
+   },
+   {
+    "kind": "li",
+    "text": "Save the resulting digit (sum % 10) into a new node."
+   },
+   {
+    "kind": "li",
+    "text": "Update the carry (sum // 10)."
+   },
+   {
+    "kind": "li",
+    "text": "Move both pointers forward."
+   },
+   {
+    "kind": "p",
+    "text": "We continue until both lists are finished AND no carry remains.\nA dummy node helps us easily build and return the final linked list."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create:\n\na dummy node (to build the answer)\na pointer cur pointing to dummy\nan integer carry = 0"
+   },
+   {
+    "kind": "li",
+    "text": "Loop while l1 exists, l2 exists, or carry is non-zero:\n\nRead the current digit of each list (0 if that list already ended)\nCompute\nsum = v1 + v2 + carry\nUpdate:\ncarry = sum // 10\ndigit = sum % 10\nAppend a new node containing digit\nMove the pointers l1, l2, and cur forward"
+   },
+   {
+    "kind": "li",
+    "text": "Return dummy.next (the head of the result list)"
+   },
+   {
+    "kind": "p",
+    "text": "This ensures correct handling of:"
+   },
+   {
+    "kind": "li",
+    "text": "different lengths of input lists"
+   },
+   {
+    "kind": "li",
+    "text": "leftover carry"
+   },
+   {
+    "kind": "li",
+    "text": "building the result in one pass"
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def addTwoNumbers(self, l1: Optional[ListNode], l2: Optional[ListNode]) -> Optional[ListNode]:\n        dummy = ListNode()\n        cur = dummy\n\n        carry = 0\n        while l1 or l2 or carry:\n            v1 = l1.val if l1 else 0\n            v2 = l2.val if l2 else 0\n\n            # new digit\n            val = v1 + v2 + carry\n            carry = val // 10\n            val = val % 10\n            cur.next = ListNode(val)\n\n            # update ptrs\n            cur = cur.next\n            l1 = l1.next if l1 else None\n            l2 = l2.next if l2 else None\n\n        return dummy.next"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m + n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(max(m, n)) for the output list."
+   },
+   {
+    "kind": "p",
+    "text": "Where m is the length of l1 and n is the length of l2."
+   }
+  ]
+ },
+ "find-the-duplicate-number": {
+  "url": "https://neetcode.io/problems/find-duplicate-integer?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=wjYnzkAhcNk",
+  "prerequisites": [
+   {
+    "title": "Singly Linked Lists Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/5"
+   },
+   {
+    "title": "Fast and Slow Pointers Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/5"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Sorting"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "If we sort the array, any duplicate numbers will appear next to each other.\nSo after sorting, we just scan once and check if any two consecutive elements are equal.\nThe first equal pair we find is the duplicate."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Sort the array."
+   },
+   {
+    "kind": "li",
+    "text": "Loop through the array from index 0 to n - 2."
+   },
+   {
+    "kind": "li",
+    "text": "For each index i, check if nums[i] == nums[i + 1].\nIf yes, return that value (this is the duplicate)."
+   },
+   {
+    "kind": "li",
+    "text": "If no duplicate is found (theoretically impossible for this problem), return -1."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findDuplicate(self, nums: List[int]) -> int:\n        nums.sort()\n        for i in range(len(nums) - 1):\n            if nums[i] == nums[i + 1]:\n                return nums[i]\n        return -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) or O(n) depending on the sorting algorithm."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Hash Set"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We can detect duplicates by remembering which numbers we have already seen.\nAs we scan the array, each new number is checked:"
+   },
+   {
+    "kind": "li",
+    "text": "If it's not in the set, we add it."
+   },
+   {
+    "kind": "li",
+    "text": "If it is already in the set, that number must be the duplicate."
+   },
+   {
+    "kind": "p",
+    "text": "A set gives constant-time lookup, so this approach is simple and efficient."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create an empty hash set seen."
+   },
+   {
+    "kind": "li",
+    "text": "Loop through each number in the array:\nIf the number is already in seen, return it (this is the duplicate).\nOtherwise, insert the number into seen."
+   },
+   {
+    "kind": "li",
+    "text": "If no duplicate is found (should not happen in this problem), return -1."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findDuplicate(self, nums: List[int]) -> int:\n        seen = set()\n        for num in nums:\n            if num in seen:\n                return num\n            seen.add(num)\n        return -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Array"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Since the values in the array are from 1 to n, we can use an array to track whether we’ve seen a number before.\nEach number directly maps to an index (num - 1)."
+   },
+   {
+    "kind": "li",
+    "text": "If that index is already marked, we’ve seen the number before → it's the duplicate."
+   },
+   {
+    "kind": "li",
+    "text": "Otherwise, we mark it as seen."
+   },
+   {
+    "kind": "p",
+    "text": "This avoids using a hash set while still providing fast lookups."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create an array seen of size n filled with zeros."
+   },
+   {
+    "kind": "li",
+    "text": "For each number num in the input array:\nCheck if seen[num - 1] is already set to 1.\nIf yes → return num (duplicate found).\n\n\nOtherwise, set seen[num - 1] = 1."
+   },
+   {
+    "kind": "li",
+    "text": "Return -1 if no duplicate is found (though the problem guarantees one)."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findDuplicate(self, nums: List[int]) -> int:\n        seen = [0] * len(nums)\n        for num in nums:\n            if seen[num - 1]:\n                return num\n            seen[num - 1] = 1\n        return -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Negative Marking"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Since every value is between 1 and n, each number corresponds to an index in the array (num - 1).\nWe can use the array itself as a marking tool:"
+   },
+   {
+    "kind": "li",
+    "text": "When we see a number, we go to its corresponding index and flip the sign of the value there."
+   },
+   {
+    "kind": "li",
+    "text": "If we ever visit an index that is already negative, it means we've visited this number before → it's the duplicate."
+   },
+   {
+    "kind": "p",
+    "text": "This method avoids extra memory and uses the input array as a tracking structure."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Loop through every number num in the array."
+   },
+   {
+    "kind": "li",
+    "text": "Compute its corresponding index: idx = abs(num) - 1."
+   },
+   {
+    "kind": "li",
+    "text": "If nums[idx] is already negative:\nA duplicate has been found → return abs(num)."
+   },
+   {
+    "kind": "li",
+    "text": "Otherwise:\nMark the index by multiplying nums[idx] by -1."
+   },
+   {
+    "kind": "li",
+    "text": "If no duplicate is found (though guaranteed), return -1."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findDuplicate(self, nums: List[int]) -> int:\n        for num in nums :\n            idx = abs(num) - 1\n            if nums[idx] < 0 :\n                return abs(num)\n            nums[idx] *= -1\n        return -1"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "5. Binary Search"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "This method uses binary search on the value range, not on the array itself."
+   },
+   {
+    "kind": "p",
+    "text": "If all numbers from 1 to mid appeared at most once, then the count of numbers ≤ mid should be ≤ mid.\nBut if the count is greater than mid, it means the duplicate must be in the range [1, mid], because too many numbers fall into that range."
+   },
+   {
+    "kind": "p",
+    "text": "So we repeatedly:"
+   },
+   {
+    "kind": "li",
+    "text": "Count how many values are ≤ mid."
+   },
+   {
+    "kind": "li",
+    "text": "Shrink the search space based on whether this count is “too large.”"
+   },
+   {
+    "kind": "p",
+    "text": "Eventually, low == high, and that value is the duplicate."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Let low = 1 and high = n - 1 (value range)."
+   },
+   {
+    "kind": "li",
+    "text": "While low < high:\nCompute mid = (low + high) // 2.\nCount how many numbers in the array are ≤ mid.\nIf the count is greater than mid, the duplicate lies in [low, mid], so set high = mid.\nOtherwise, it lies in [mid + 1, high], so set low = mid + 1."
+   },
+   {
+    "kind": "li",
+    "text": "When the loop ends, low is the duplicate."
+   },
+   {
+    "kind": "li",
+    "text": "Return low."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findDuplicate(self, nums: List[int]) -> int:\n        n = len(nums)\n        low, high = 1, n - 1\n        while low < high:\n            mid = low + (high - low) // 2\n            lessOrEqual = sum(1 for num in nums if num <= mid)\n\n            if lessOrEqual <= mid:\n                low = mid + 1\n            else:\n                high = mid\n\n        return low"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "6. Bit Manipulation"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Every number from 1 to n−1 should appear exactly once, but in the array, one number appears twice.\nSo for each bit position, we compare:"
+   },
+   {
+    "kind": "li",
+    "text": "How many times this bit is set among all numbers in the array."
+   },
+   {
+    "kind": "li",
+    "text": "How many times this bit should be set among the numbers 1 to n-1."
+   },
+   {
+    "kind": "p",
+    "text": "If a bit appears more times in the array than expected, that bit must belong to the duplicate number."
+   },
+   {
+    "kind": "p",
+    "text": "By combining all such bits, we reconstruct the duplicate."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Let res = 0 to build the duplicate number bit by bit."
+   },
+   {
+    "kind": "li",
+    "text": "For each bit position b from 0 to 31:\nCompute mask = 1 << b.\nCount how many numbers in nums have this bit set → call it x.\nCount how many numbers from 1 to n−1 should have this bit set → call it y."
+   },
+   {
+    "kind": "li",
+    "text": "If x > y, it means the duplicate has this bit set, so add it to the answer:\nres |= mask."
+   },
+   {
+    "kind": "li",
+    "text": "After processing all bits, return res."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findDuplicate(self, nums: List[int]) -> int:\n        n = len(nums)\n        res = 0\n        for b in range(32):\n            x = y = 0\n            mask = 1 << b\n            for num in nums:\n                if num & mask:\n                    x += 1\n\n            for num in range(1, n):\n                if num & mask:\n                    y += 1\n\n            if x > y:\n                res |= mask\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(32 * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "7. Fast And Slow Pointers"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Treat the array like a linked list, where each index points to the next index given by its value.\nBecause one number is duplicated, two indices will point into the same chain, creating a cycle — exactly like a linked list with a loop."
+   },
+   {
+    "kind": "p",
+    "text": "Using Floyd’s Fast & Slow Pointer technique:"
+   },
+   {
+    "kind": "li",
+    "text": "The slow pointer moves one step at a time."
+   },
+   {
+    "kind": "li",
+    "text": "The fast pointer moves two steps at a time."
+   },
+   {
+    "kind": "li",
+    "text": "If there’s a cycle, they will eventually meet."
+   },
+   {
+    "kind": "p",
+    "text": "Once they meet, we start a new pointer from the beginning:"
+   },
+   {
+    "kind": "li",
+    "text": "Move both pointers one step at a time."
+   },
+   {
+    "kind": "li",
+    "text": "The point where they meet again is the duplicate number (the entry point of the cycle)."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize two pointers slow = 0 and fast = 0."
+   },
+   {
+    "kind": "li",
+    "text": "Move:\nslow = nums[slow]\nfast = nums[nums[fast]]\nuntil slow == fast."
+   },
+   {
+    "kind": "li",
+    "text": "Start a new pointer slow2 = 0."
+   },
+   {
+    "kind": "li",
+    "text": "Move both:\nslow = nums[slow]\nslow2 = nums[slow2]\nuntil they meet."
+   },
+   {
+    "kind": "li",
+    "text": "The meeting point is the duplicate number."
+   },
+   {
+    "kind": "li",
+    "text": "Return that number."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def findDuplicate(self, nums: List[int]) -> int:\n        slow, fast = 0, 0\n        while True:\n            slow = nums[slow]\n            fast = nums[nums[fast]]\n            if slow == fast:\n                break\n\n        slow2 = 0\n        while True:\n            slow = nums[slow]\n            slow2 = nums[slow2]\n            if slow == slow2:\n                return slow"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "lru-cache": {
+  "url": "https://neetcode.io/problems/lru-cache?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=7ABFKPK2hD4",
+  "prerequisites": [
+   {
+    "title": "Singly Linked Lists Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/5"
+   },
+   {
+    "title": "Doubly Linked Lists Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/6"
+   },
+   {
+    "title": "Hash Usage Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/26"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We store all (key, value) pairs in a list.\nTo follow LRU (Least Recently Used) behavior:"
+   },
+   {
+    "kind": "li",
+    "text": "Whenever we access a key, we move it to the end of the list (most recently used)."
+   },
+   {
+    "kind": "li",
+    "text": "When inserting a new key:\nIf the key already exists → update its value and move it to the end.\nIf the cache is full → remove the first element (least recently used).\nThen add the new key at the end."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialization\n\nStore the cache as a list.\nStore the capacity."
+   },
+   {
+    "kind": "li",
+    "text": "get(key)\n\nLoop through the list to find the key.\nIf found:\nRemove it from its current position.\nAppend it to the end (mark as recently used).\nReturn its value.\n\n\nIf not found, return -1."
+   },
+   {
+    "kind": "li",
+    "text": "put(key, value)\n\nLook for the key in the list.\nIf found:\nRemove it.\nUpdate the value.\nAppend it to the end.\nReturn.\n\n\n\n\nIf not found:\nIf the cache is full, remove the first element.\nAppend [key, value] to the end."
+   },
+   {
+    "kind": "pre",
+    "text": "class LRUCache:\n\n    def __init__(self, capacity: int):\n        self.cache = []\n        self.capacity = capacity\n\n    def get(self, key: int) -> int:\n        for i in range(len(self.cache)):\n            if self.cache[i][0] == key:\n                tmp = self.cache.pop(i)\n                self.cache.append(tmp)\n                return tmp[1]\n        return -1\n\n    def put(self, key: int, value: int) -> None:\n        for i in range(len(self.cache)):\n            if self.cache[i][0] == key:\n                tmp = self.cache.pop(i)\n                tmp[1] = value\n                self.cache.append(tmp)\n                return\n\n        if self.capacity == len(self.cache):\n            self.cache.pop(0)\n\n        self.cache.append([key, value])"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n) for each put() and get() operation."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Doubly Linked List"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We want all operations to be O(1) while still following LRU (Least Recently Used) rules."
+   },
+   {
+    "kind": "p",
+    "text": "To do that, we combine:"
+   },
+   {
+    "kind": "li",
+    "text": "Hash Map → quickly find a node by its key in O(1)."
+   },
+   {
+    "kind": "li",
+    "text": "Doubly Linked List → quickly move nodes to the most recently used position and remove the least recently used node from the other end in O(1)."
+   },
+   {
+    "kind": "p",
+    "text": "We keep:"
+   },
+   {
+    "kind": "li",
+    "text": "The most recently used node near the right side."
+   },
+   {
+    "kind": "li",
+    "text": "The least recently used node near the left side."
+   },
+   {
+    "kind": "p",
+    "text": "Whenever we:"
+   },
+   {
+    "kind": "li",
+    "text": "Get a key: move that node to the right (most recently used)."
+   },
+   {
+    "kind": "li",
+    "text": "Put a key:\nIf it exists: update value and move it to the right.\nIf it’s new:\nIf at capacity: remove the leftmost real node (LRU).\nInsert the new node at the right."
+   },
+   {
+    "kind": "p",
+    "text": "Dummy left and right nodes make insert/remove logic cleaner."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Data Structures\n\nA hash map cache that maps key → node.\nA doubly linked list with:\nleft dummy: before the least recently used node.\nright dummy: after the most recently used node."
+   },
+   {
+    "kind": "li",
+    "text": "Helper: remove(node)\n\nUnlink node from the list by connecting its prev and next nodes."
+   },
+   {
+    "kind": "li",
+    "text": "Helper: insert(node)\n\nInsert node just before right (mark as most recently used)."
+   },
+   {
+    "kind": "li",
+    "text": "get(key)\n\nIf key not in cache, return -1.\nOtherwise:\nRemove its node from the list.\nInsert it again near right (mark as recently used).\nReturn the node’s value."
+   },
+   {
+    "kind": "li",
+    "text": "put(key, value)\n\nIf key already exists:\nRemove its old node from the list.\n\n\nCreate or update the node and store it in cache[key].\nInsert the node near right.\nIf len(cache) > capacity:\nTake the node right after left (this is LRU).\nRemove it from the list.\nDelete its key from the hash map."
+   },
+   {
+    "kind": "p",
+    "text": "This way, both get and put run in O(1) time, and the LRU policy is always maintained."
+   },
+   {
+    "kind": "pre",
+    "text": "class Node:\n    def __init__(self, key, val):\n        self.key, self.val = key, val\n        self.prev = self.next = None\n\nclass LRUCache:\n    def __init__(self, capacity: int):\n        self.cap = capacity\n        self.cache = {}  # map key to node\n\n        self.left, self.right = Node(0, 0), Node(0, 0)\n        self.left.next, self.right.prev = self.right, self.left\n\n    def remove(self, node):\n        prev, nxt = node.prev, node.next\n        prev.next, nxt.prev = nxt, prev\n\n    def insert(self, node):\n        prev, nxt = self.right.prev, self.right\n        prev.next = nxt.prev = node\n        node.next, node.prev = nxt, prev\n\n    def get(self, key: int) -> int:\n        if key in self.cache:\n            self.remove(self.cache[key])\n            self.insert(self.cache[key])\n            return self.cache[key].val\n        return -1\n\n    def put(self, key: int, value: int) -> None:\n        if key in self.cache:\n            self.remove(self.cache[key])\n        self.cache[key] = Node(key, value)\n        self.insert(self.cache[key])\n\n        if len(self.cache) > self.cap:\n            lru = self.left.next\n            self.remove(lru)\n            del self.cache[lru.key]"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1) for each put() and get() operation."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Built-In Data Structure"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Many languages provide a built-in ordered map / dictionary that:"
+   },
+   {
+    "kind": "li",
+    "text": "Stores key–value pairs"
+   },
+   {
+    "kind": "li",
+    "text": "Keeps track of the order in which keys were inserted or recently updated"
+   },
+   {
+    "kind": "p",
+    "text": "This is perfect for an LRU cache:"
+   },
+   {
+    "kind": "li",
+    "text": "When we access a key (get or put), we mark it as most recently used by moving it to the “end” of the order."
+   },
+   {
+    "kind": "li",
+    "text": "When the cache exceeds capacity, we remove the key that is at the front of the order (the least recently used)."
+   },
+   {
+    "kind": "p",
+    "text": "So the ordered map itself handles:"
+   },
+   {
+    "kind": "li",
+    "text": "Fast lookups (like a normal hash map)"
+   },
+   {
+    "kind": "li",
+    "text": "Fast updates of usage order (moving keys to the end)"
+   },
+   {
+    "kind": "li",
+    "text": "Fast removal of the least recently used key (from the front)"
+   },
+   {
+    "kind": "p",
+    "text": "This gives a clean and concise LRU implementation using library support."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialization\n\nCreate an ordered map cache.\nStore the maximum capacity cap."
+   },
+   {
+    "kind": "li",
+    "text": "get(key)\n\nIf key is not in cache, return -1.\nOtherwise:\nMove key to the “most recent” position in the ordered map.\nReturn the associated value."
+   },
+   {
+    "kind": "li",
+    "text": "put(key, value)\n\nIf key is already in cache:\nUpdate its value.\nMove key to the “most recent” position.\n\n\nIf key is not in cache:\nInsert (key, value) into cache at the “most recent” position.\n\n\nIf the size of cache is now greater than cap:\nRemove the least recently used key (the one at the “oldest” position in the ordered map)."
+   },
+   {
+    "kind": "p",
+    "text": "This uses the built-in ordered map to achieve LRU behavior with O(1) average time for both get and put."
+   },
+   {
+    "kind": "pre",
+    "text": "class LRUCache:\n\n    def __init__(self, capacity: int):\n        self.cache = OrderedDict()\n        self.cap = capacity\n\n    def get(self, key: int) -> int:\n        if key not in self.cache:\n            return -1\n        self.cache.move_to_end(key)\n        return self.cache[key]\n\n    def put(self, key: int, value: int) -> None:\n        if key in self.cache:\n            self.cache.move_to_end(key)\n        self.cache[key] = value\n\n        if len(self.cache) > self.cap:\n            self.cache.popitem(last=False)"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(1) for each put() and get() operation."
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ },
+ "merge-k-sorted-lists": {
+  "url": "https://neetcode.io/problems/merge-k-sorted-linked-lists?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=q5a5OiGbT6Q",
+  "prerequisites": [
+   {
+    "title": "Singly Linked Lists Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/5"
+   },
+   {
+    "title": "Merge Sort Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/11"
+   },
+   {
+    "title": "Heap Properties Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/23"
+   },
+   {
+    "title": "Push and Pop Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/24"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "The simplest way to merge all linked lists is to ignore the list structure, collect every value, sort them, and then rebuild a single sorted linked list.\nThis doesn’t use any clever merging logic — it is purely based on gathering and sorting.\nIt’s easy to implement but not efficient because sorting dominates the runtime."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create an empty list nodes."
+   },
+   {
+    "kind": "li",
+    "text": "For each linked list:\nTraverse it and append every node’s value to nodes."
+   },
+   {
+    "kind": "li",
+    "text": "Sort the nodes list."
+   },
+   {
+    "kind": "li",
+    "text": "Create a new linked list:\nUse a dummy head.\nFor each value in the sorted list, create a new node and attach it."
+   },
+   {
+    "kind": "li",
+    "text": "Return the head of the new merged linked list."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def mergeKLists(self, lists: List[Optional[ListNode]]) -> Optional[ListNode]:\n        nodes = []\n        for lst in lists:\n            while lst:\n                nodes.append(lst.val)\n                lst = lst.next\n        nodes.sort()\n\n        res = ListNode(0)\n        cur = res\n        for node in nodes:\n            cur.next = ListNode(node)\n            cur = cur.next\n        return res.next"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iteration"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We repeatedly pick the smallest head node among all the lists and attach it to our result list.\nAt every step:"
+   },
+   {
+    "kind": "li",
+    "text": "Look at the first node of each non-empty list."
+   },
+   {
+    "kind": "li",
+    "text": "Choose the one with the smallest value."
+   },
+   {
+    "kind": "li",
+    "text": "Move that list’s pointer forward."
+   },
+   {
+    "kind": "li",
+    "text": "Append the chosen node to our merged list."
+   },
+   {
+    "kind": "p",
+    "text": "This is similar to merging k sorted arrays by always picking the smallest available element."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a dummy node to build the merged list."
+   },
+   {
+    "kind": "li",
+    "text": "Set a pointer cur to the dummy."
+   },
+   {
+    "kind": "li",
+    "text": "Repeat:\nSearch through all lists to find the list whose current node has the smallest value.\nIf no list has remaining nodes (all are empty), stop.\nAttach the smallest node to cur.next.\nMove cur forward.\nMove the chosen list’s pointer to its next node."
+   },
+   {
+    "kind": "li",
+    "text": "Return the merged list starting from dummy.next."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def mergeKLists(self, lists: List[Optional[ListNode]]) -> Optional[ListNode]:\n        res = ListNode(0)\n        cur = res\n\n        while True:\n            minNode = -1\n            for i in range(len(lists)):\n                if not lists[i]:\n                    continue\n                if minNode == -1 or lists[minNode].val > lists[i].val:\n                    minNode = i\n\n            if minNode == -1:\n                break\n            cur.next = lists[minNode]\n            lists[minNode] = lists[minNode].next\n            cur = cur.next\n\n        return res.next"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * k)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "p",
+    "text": "Where k is the total number of lists and n is the total number of nodes across k lists."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Merge Lists One By One"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Instead of merging all k lists at once, we can merge them one by one."
+   },
+   {
+    "kind": "li",
+    "text": "First merge list 0 and list 1 → get a sorted list."
+   },
+   {
+    "kind": "li",
+    "text": "Then merge that result with list 2."
+   },
+   {
+    "kind": "li",
+    "text": "Then merge that result with list 3."
+   },
+   {
+    "kind": "li",
+    "text": "Repeat until all lists are merged."
+   },
+   {
+    "kind": "p",
+    "text": "Each merge operation is just like the standard “merge two sorted linked lists” problem:"
+   },
+   {
+    "kind": "li",
+    "text": "Compare the heads."
+   },
+   {
+    "kind": "li",
+    "text": "Attach the smaller one."
+   },
+   {
+    "kind": "li",
+    "text": "Move that list’s pointer forward."
+   },
+   {
+    "kind": "li",
+    "text": "Continue until one list is empty, then attach the rest of the other list."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If the list of lists is empty, return null (or equivalent)."
+   },
+   {
+    "kind": "li",
+    "text": "For each list from index 1 to k - 1:\nMerge lists[i - 1] and lists[i] into a single sorted list.\nStore the merged result back into lists[i]."
+   },
+   {
+    "kind": "li",
+    "text": "After the loop, lists[k - 1] will contain the fully merged list."
+   },
+   {
+    "kind": "li",
+    "text": "Return lists[k - 1]."
+   },
+   {
+    "kind": "p",
+    "text": "Merging two lists (mergeList(l1, l2)):"
+   },
+   {
+    "kind": "li",
+    "text": "Create a dummy node and a tail pointer starting at the dummy."
+   },
+   {
+    "kind": "li",
+    "text": "While both l1 and l2 are non-empty:\nCompare l1.val and l2.val.\nAttach the smaller node to tail.next.\nMove that list’s pointer forward.\nMove tail forward."
+   },
+   {
+    "kind": "li",
+    "text": "If one list still has remaining nodes, attach it to tail.next."
+   },
+   {
+    "kind": "li",
+    "text": "Return dummy.next as the merged head."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def mergeKLists(self, lists: List[Optional[ListNode]]) -> Optional[ListNode]:\n        if len(lists) == 0:\n            return None\n\n        for i in range(1, len(lists)):\n            lists[i] = self.mergeList(lists[i - 1], lists[i])\n\n        return lists[-1]\n\n    def mergeList(self, l1, l2):\n        dummy = ListNode()\n        tail = dummy\n\n        while l1 and l2:\n            if l1.val < l2.val:\n                tail.next = l1\n                l1 = l1.next\n            else:\n                tail.next = l2\n                l2 = l2.next\n            tail = tail.next\n        if l1:\n            tail.next = l1\n        if l2:\n            tail.next = l2\n        return dummy.next"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * k)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "p",
+    "text": "Where k is the total number of lists and n is the total number of nodes across k lists."
+   },
+   {
+    "kind": "h2",
+    "text": "4. Heap"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We want to always pick the smallest current node among all k lists as efficiently as possible."
+   },
+   {
+    "kind": "p",
+    "text": "Instead of scanning all heads every time (which is slow), we can use a min-heap (priority queue):"
+   },
+   {
+    "kind": "li",
+    "text": "Push the head of each non-empty list into the heap."
+   },
+   {
+    "kind": "li",
+    "text": "The heap always gives us the node with the smallest value on top."
+   },
+   {
+    "kind": "li",
+    "text": "We pop that node, attach it to our result list, and then push its next node (if it exists) into the heap."
+   },
+   {
+    "kind": "li",
+    "text": "Repeat until the heap is empty."
+   },
+   {
+    "kind": "p",
+    "text": "This way, at every step we choose the globally smallest node in O(log k) time, where k is the number of lists."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a min-heap (priority queue)."
+   },
+   {
+    "kind": "li",
+    "text": "For each non-empty linked list:\nPush its head node into the heap (keyed by node value)."
+   },
+   {
+    "kind": "li",
+    "text": "Create a dummy node to start the result list, and a pointer cur pointing to it."
+   },
+   {
+    "kind": "li",
+    "text": "While the heap is not empty:\nPop the node with the smallest value from the heap.\nAttach this node to cur.next, and move cur forward.\nIf this node has a next node, push that next node into the heap."
+   },
+   {
+    "kind": "li",
+    "text": "When the heap is empty, all nodes have been merged in sorted order."
+   },
+   {
+    "kind": "li",
+    "text": "Return dummy.next as the head of the merged list."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass NodeWrapper:\n    def __init__(self, node):\n        self.node = node\n\n    def __lt__(self, other):\n        return self.node.val < other.node.val\n\nclass Solution:\n    def mergeKLists(self, lists: List[Optional[ListNode]]) -> Optional[ListNode]:\n        if len(lists) == 0:\n            return None\n\n        res = ListNode(0)\n        cur = res\n        minHeap = []\n\n        for lst in lists:\n            if lst is not None:\n                heapq.heappush(minHeap, NodeWrapper(lst))\n\n        while minHeap:\n            node_wrapper = heapq.heappop(minHeap)\n            cur.next = node_wrapper.node\n            cur = cur.next\n\n            if node_wrapper.node.next:\n                heapq.heappush(minHeap, NodeWrapper(node_wrapper.node.next))\n\n        return res.next"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log k)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(k)"
+   },
+   {
+    "kind": "p",
+    "text": "Where k is the total number of lists and n is the total number of nodes across k lists."
+   },
+   {
+    "kind": "h2",
+    "text": "5. Divide And Conquer (Recursion)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Instead of merging all k lists at once or one by one in order, we can use a divide and conquer strategy, similar to how merge sort works."
+   },
+   {
+    "kind": "p",
+    "text": "Idea:"
+   },
+   {
+    "kind": "li",
+    "text": "Split the list of linked lists into two halves."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively merge the left half into one sorted list."
+   },
+   {
+    "kind": "li",
+    "text": "Recursively merge the right half into one sorted list."
+   },
+   {
+    "kind": "li",
+    "text": "Finally, merge these two sorted lists into a single sorted list."
+   },
+   {
+    "kind": "p",
+    "text": "By always merging pairs of lists, we reduce the total work compared to merging k lists sequentially.\nEach merge of two lists is linear in their total length, and we do about log k levels of merging."
+   },
+   {
+    "kind": "p",
+    "text": "This makes the approach both clean and efficient."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Base Cases\n\nIf the input list lists is empty, return null.\nUse a recursive function divide(lists, l, r):\nIf l > r, return null.\nIf l == r, return lists[l] (only one list to return)."
+   },
+   {
+    "kind": "li",
+    "text": "Divide Step\n\nCompute mid = (l + r) // 2.\nRecursively compute:\nleft = divide(lists, l, mid)\nright = divide(lists, mid + 1, r)"
+   },
+   {
+    "kind": "li",
+    "text": "Conquer Step (merge two lists)\n\nMerge left and right using the standard merge two sorted linked lists routine:\nCreate a dummy node and use a curr pointer.\nWhile both lists are non-empty:\nAttach the smaller node to curr.next.\nMove that list’s pointer forward.\nMove curr forward.\n\n\nAttach any remaining nodes from either list.\n\n\nReturn the merged list."
+   },
+   {
+    "kind": "li",
+    "text": "Final Answer\n\nCall divide(lists, 0, len(lists) - 1) and return the resulting list."
+   },
+   {
+    "kind": "p",
+    "text": "This approach efficiently merges k sorted linked lists in a structured, recursive way."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def mergeKLists(self, lists):\n        if not lists or len(lists) == 0:\n            return None\n        return self.divide(lists, 0, len(lists) - 1)\n\n    def divide(self, lists, l, r):\n        if l > r:\n            return None\n        if l == r:\n            return lists[l]\n\n        mid = l + (r - l) // 2\n        left = self.divide(lists, l, mid)\n        right = self.divide(lists, mid + 1, r)\n\n        return self.conquer(left, right)\n\n    def conquer(self, l1, l2):\n        dummy = ListNode(0)\n        curr = dummy\n\n        while l1 and l2:\n            if l1.val <= l2.val:\n                curr.next = l1\n                l1 = l1.next\n            else:\n                curr.next = l2\n                l2 = l2.next\n            curr = curr.next\n\n        if l1:\n            curr.next = l1\n        else:\n            curr.next = l2\n\n        return dummy.next"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log k)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(log k)"
+   },
+   {
+    "kind": "p",
+    "text": "Where k is the total number of lists and n is the total number of nodes across k lists."
+   },
+   {
+    "kind": "h2",
+    "text": "6. Divide And Conquer (Iteration)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "This is the same idea as divide and conquer, but done iteratively instead of using recursion."
+   },
+   {
+    "kind": "p",
+    "text": "We repeatedly merge the lists in pairs:"
+   },
+   {
+    "kind": "li",
+    "text": "In one pass:\nMerge list 0 and list 1 → get M0  \nMerge list 2 and list 3 → get M1  \nMerge list 4 and list 5 → get M2  \n… and so on."
+   },
+   {
+    "kind": "li",
+    "text": "After this pass, we have fewer lists (about half as many)."
+   },
+   {
+    "kind": "li",
+    "text": "Repeat this process on the new list of merged lists until only one list remains."
+   },
+   {
+    "kind": "p",
+    "text": "Each pairwise merge is just the usual merge of two sorted linked lists.\nBy always merging lists two at a time, the total work is efficient and structured, similar to the merge step in merge sort."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If lists is empty, return null."
+   },
+   {
+    "kind": "li",
+    "text": "While the number of lists is greater than 1:\nCreate an empty list mergedLists.\nLoop over lists in steps of 2:\nLet l1 = lists[i].\nLet l2 = lists[i + 1] if it exists, otherwise None.\nMerge l1 and l2 using mergeList and append the result to mergedLists.\n\n\nSet lists = mergedLists."
+   },
+   {
+    "kind": "li",
+    "text": "When the loop ends, lists[0] is the fully merged sorted list. Return it."
+   },
+   {
+    "kind": "p",
+    "text": "Merging two lists (mergeList(l1, l2)):"
+   },
+   {
+    "kind": "li",
+    "text": "Create a dummy node and a tail pointer pointing to it."
+   },
+   {
+    "kind": "li",
+    "text": "While both l1 and l2 are non-empty:\nAttach the smaller of l1 and l2 to tail.next.\nMove the chosen list’s pointer forward.\nMove tail forward."
+   },
+   {
+    "kind": "li",
+    "text": "Attach any remaining nodes from l1 or l2 to tail.next."
+   },
+   {
+    "kind": "li",
+    "text": "Return dummy.next as the merged head."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n\n    def mergeKLists(self, lists: List[Optional[ListNode]]) -> Optional[ListNode]:\n        if not lists or len(lists) == 0:\n            return None\n\n        while len(lists) > 1:\n            mergedLists = []\n            for i in range(0, len(lists), 2):\n                l1 = lists[i]\n                l2 = lists[i + 1] if (i + 1) < len(lists) else None\n                mergedLists.append(self.mergeList(l1, l2))\n            lists = mergedLists\n        return lists[0]\n\n    def mergeList(self, l1, l2):\n        dummy = ListNode()\n        tail = dummy\n\n        while l1 and l2:\n            if l1.val < l2.val:\n                tail.next = l1\n                l1 = l1.next\n            else:\n                tail.next = l2\n                l2 = l2.next\n            tail = tail.next\n\n        if l1:\n            tail.next = l1\n        if l2:\n            tail.next = l2\n\n        return dummy.next"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log k)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(k)"
+   },
+   {
+    "kind": "p",
+    "text": "Where k is the total number of lists and n is the total number of nodes across k lists."
+   }
+  ]
+ },
+ "reverse-nodes-in-k-group": {
+  "url": "https://neetcode.io/problems/reverse-nodes-in-k-group?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=1UOPsfP85V4",
+  "prerequisites": [
+   {
+    "title": "Singly Linked Lists Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/5"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Recursion"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "To reverse nodes in groups of k, we first check whether the current segment contains at least k nodes."
+   },
+   {
+    "kind": "li",
+    "text": "If fewer than k, we leave the nodes as they are."
+   },
+   {
+    "kind": "li",
+    "text": "If we do have k nodes, then:\nRecursively reverse the rest of the list starting from the node after these k nodes.\nThen reverse the current group of k nodes.\nAttach the reversed group to the already-processed remainder."
+   },
+   {
+    "kind": "p",
+    "text": "This gives a clean top-down approach:\nsolve the rest of the list first, then fix the current group."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Start at the given head and try to move forward k nodes.\n\nCount how many nodes are available.\nIf fewer than k, return the current head unchanged."
+   },
+   {
+    "kind": "li",
+    "text": "If exactly k nodes exist:\n\nRecursively call the function on the node after these k nodes.\nThis returns the head of the reversed remainder.\n\n\nReverse the current group of k nodes:\nFor each of the k nodes:\nTemporarily store head.next\nPoint head.next to the result of the recursive call\nMove forward\n\n\n\n\nAfter reversing all k nodes, return the new head of this group."
+   },
+   {
+    "kind": "li",
+    "text": "The recursion ensures each segment is reversed and correctly connected to the next processed segment."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def reverseKGroup(self, head: Optional[ListNode], k: int) -> Optional[ListNode]:\n        cur = head\n        group = 0\n        while cur and group < k:\n            cur = cur.next\n            group += 1\n\n        if group == k:\n            cur = self.reverseKGroup(cur, k)\n            while group > 0:\n                tmp = head.next\n                head.next = cur\n                cur = head\n                head = tmp\n                group -= 1\n            head = cur\n        return head"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(\\frac{n}{k})"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Iteration"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We reverse the list one k-sized group at a time using pointers, without recursion."
+   },
+   {
+    "kind": "p",
+    "text": "Key ideas:"
+   },
+   {
+    "kind": "li",
+    "text": "Use a dummy node before the head to simplify edge cases."
+   },
+   {
+    "kind": "li",
+    "text": "For each step, we:\nFind the k-th node from the current group's previous node.\nIf there aren’t k nodes left, we stop (leave the rest as-is).\n\n\nReverse the nodes in this k-sized segment.\nRe-connect the reversed segment back into the list.\nMove forward to the next group."
+   },
+   {
+    "kind": "p",
+    "text": "By repeating this process, we reverse every full group of k nodes while keeping the rest of the list intact."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a dummy node pointing to head.\nSet groupPrev = dummy (the node just before the current group)."
+   },
+   {
+    "kind": "li",
+    "text": "Loop:\n\nUse a helper getKth(groupPrev, k) to find the k-th node from groupPrev.\nIf kth is null, there are fewer than k nodes left → break."
+   },
+   {
+    "kind": "li",
+    "text": "Let:\n\ngroupNext = kth.next (first node after the current group).\nprev = groupNext\ncurr = groupPrev.next (first node in the current group)"
+   },
+   {
+    "kind": "li",
+    "text": "Reverse the current group:\n\nWhile curr != groupNext:\nStore curr.next in tmp.\nPoint curr.next to prev.\nMove prev to curr.\nMove curr to tmp."
+   },
+   {
+    "kind": "li",
+    "text": "After reversing:\n\ngroupPrev.next is now the start of the reversed group (kth node).\nStore the original first node of this group (tmp = groupPrev.next before rewiring).\nSet groupPrev.next = kth.\nMove groupPrev = tmp (now the end of the reversed group)."
+   },
+   {
+    "kind": "li",
+    "text": "Repeat steps 2–5 until no more full k-groups remain."
+   },
+   {
+    "kind": "li",
+    "text": "Return dummy.next as the new head of the list."
+   },
+   {
+    "kind": "pre",
+    "text": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\n\nclass Solution:\n    def reverseKGroup(self, head: Optional[ListNode], k: int) -> Optional[ListNode]:\n        dummy = ListNode(0, head)\n        groupPrev = dummy\n\n        while True:\n            kth = self.getKth(groupPrev, k)\n            if not kth:\n                break\n            groupNext = kth.next\n\n            prev, curr = kth.next, groupPrev.next\n            while curr != groupNext:\n                tmp = curr.next\n                curr.next = prev\n                prev = curr\n                curr = tmp\n\n            tmp = groupPrev.next\n            groupPrev.next = kth\n            groupPrev = tmp\n        return dummy.next\n\n    def getKth(self, curr, k):\n        while curr and k > 0:\n            curr = curr.next\n            k -= 1\n        return curr"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ }
+}

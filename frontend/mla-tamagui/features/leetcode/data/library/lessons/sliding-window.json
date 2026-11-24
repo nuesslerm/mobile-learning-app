@@ -1,0 +1,1278 @@
+{
+ "best-time-to-buy-and-sell-stock": {
+  "url": "https://neetcode.io/problems/buy-and-sell-crypto?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=1pkOgXD63yU",
+  "prerequisites": [
+   {
+    "title": "Sliding Window Fixed Size Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/1"
+   },
+   {
+    "title": "Sliding Window Variable Size Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/2"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "The brute-force approach checks every possible buy–sell pair.\nFor each day, we pretend to buy the stock, and then we look at all the future days to see what the best selling price would be.\nAmong all these profits, we keep the highest one."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize res = 0 to store the maximum profit."
+   },
+   {
+    "kind": "li",
+    "text": "Loop through each day i as the buy day."
+   },
+   {
+    "kind": "li",
+    "text": "For each buy day, loop through each day j > i as the sell day."
+   },
+   {
+    "kind": "li",
+    "text": "Calculate the profit prices[j] - prices[i] and update res."
+   },
+   {
+    "kind": "li",
+    "text": "Return res after checking all pairs."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxProfit(self, prices: List[int]) -> int:\n        res = 0\n        for i in range(len(prices)):\n            buy = prices[i]\n            for j in range(i + 1, len(prices)):\n                sell  = prices[j]\n                res = max(res, sell - buy)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Two Pointers"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We want to buy at a low price and sell at a higher price that comes after it.\nUsing two pointers helps us track this efficiently:"
+   },
+   {
+    "kind": "li",
+    "text": "l is the buy day (looking for the lowest price)"
+   },
+   {
+    "kind": "li",
+    "text": "r is the sell day (looking for a higher price)"
+   },
+   {
+    "kind": "p",
+    "text": "If the price at r is higher than at l, we can make a profit — so we update the maximum.\nIf the price at r is lower, then r becomes the new l because a cheaper buying price is always better."
+   },
+   {
+    "kind": "p",
+    "text": "By moving the pointers this way, we scan the list once and always keep the best buying opportunity."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Set two pointers:\nl = 0 (buy day)\nr = 1 (sell day)\nmaxP = 0 to track maximum profit"
+   },
+   {
+    "kind": "li",
+    "text": "While r is within the array:\nIf prices[r] > prices[l], compute the profit and update maxP.\nOtherwise, move l to r (we found a cheaper buy price).\nMove r to the next day."
+   },
+   {
+    "kind": "li",
+    "text": "Return maxP at the end."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxProfit(self, prices: List[int]) -> int:\n        l, r = 0, 1\n        maxP = 0\n\n        while r < len(prices):\n            if prices[l] < prices[r]:\n                profit = prices[r] - prices[l]\n                maxP = max(maxP, profit)\n            else:\n                l = r\n            r += 1\n        return maxP"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Dynamic Programming"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "As we scan through the prices, we keep track of two things:"
+   },
+   {
+    "kind": "li",
+    "text": "The lowest price so far → this is the best day to buy."
+   },
+   {
+    "kind": "li",
+    "text": "The best profit so far → selling today minus the lowest buy price seen earlier."
+   },
+   {
+    "kind": "p",
+    "text": "At each price, we imagine selling on that day.\nThe profit would be:\ncurrent price – lowest price seen so far"
+   },
+   {
+    "kind": "p",
+    "text": "We then update:"
+   },
+   {
+    "kind": "li",
+    "text": "the maximum profit,"
+   },
+   {
+    "kind": "li",
+    "text": "and the lowest price if we find a cheaper one."
+   },
+   {
+    "kind": "p",
+    "text": "This way, we make the optimal buy–sell decision in one simple pass."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize:\nminBuy as the first price,\nmaxP = 0 for the best profit."
+   },
+   {
+    "kind": "li",
+    "text": "Loop through each price sell:\nUpdate maxP with sell - minBuy.\nUpdate minBuy if we find a smaller price."
+   },
+   {
+    "kind": "li",
+    "text": "Return maxP after scanning all days."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxProfit(self, prices: List[int]) -> int:\n        maxP = 0\n        minBuy = prices[0]\n\n        for sell in prices:\n            maxP = max(maxP, sell - minBuy)\n            minBuy = min(minBuy, sell)\n        return maxP"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "longest-substring-without-repeating-characters": {
+  "url": "https://neetcode.io/problems/longest-substring-without-duplicates?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=wiGpQwVHdE0",
+  "prerequisites": [
+   {
+    "title": "Sliding Window Fixed Size Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/1"
+   },
+   {
+    "title": "Sliding Window Variable Size Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/2"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "The brute-force idea is to try starting a substring at every index and keep extending it until we see a repeated character.\nFor each starting point, we use a set to track the characters we’ve seen so far.\nAs soon as a duplicate appears, that substring can’t grow anymore, so we stop and record its length.\nBy doing this for every index, we are guaranteed to find the longest valid substring, though the approach is slow."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize res = 0 to store the maximum length."
+   },
+   {
+    "kind": "li",
+    "text": "For each starting index i:\nCreate an empty set charSet.\nExtend the substring by moving j from i forward:\nIf s[j] is already in the set, break.\nOtherwise, add it to the set.\n\n\nUpdate res with the size of charSet."
+   },
+   {
+    "kind": "li",
+    "text": "Return res after checking all starting positions."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def lengthOfLongestSubstring(self, s: str) -> int:\n        res = 0\n        for i in range(len(s)):\n            charSet = set()\n            for j in range(i, len(s)):\n                if s[j] in charSet:\n                    break\n                charSet.add(s[j])\n            res = max(res, len(charSet))\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the string and m is the total number of unique characters in the string."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Sliding Window"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Instead of restarting at every index like brute force, we can keep one window that always has unique characters.\nWe expand the window by moving the right pointer.\nIf we ever see a repeated character, we shrink the window from the left until the duplicate is removed.\nThis way, the window always represents a valid substring, and we track its maximum size.\nIt’s efficient because each character is added and removed at most once."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create an empty set charSet and two pointers:\nl = left edge of the window\nr = right edge that moves through the string"
+   },
+   {
+    "kind": "li",
+    "text": "For each r:\nWhile s[r] is already in the set:\nRemove s[l] from the set and move l right.\n\n\nAdd s[r] to the set.\nUpdate the result with the window size: r - l + 1."
+   },
+   {
+    "kind": "li",
+    "text": "Return the maximum window size found."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def lengthOfLongestSubstring(self, s: str) -> int:\n        charSet = set()\n        l = 0\n        res = 0\n\n        for r in range(len(s)):\n            while s[r] in charSet:\n                charSet.remove(s[l])\n                l += 1\n            charSet.add(s[r])\n            res = max(res, r - l + 1)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the string and m is the total number of unique characters in the string."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Sliding Window (Optimal)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Instead of removing characters one by one when we see a repeat, we can jump the left pointer directly to the correct position.\nWe keep a map that stores the last index where each character appeared.\nWhen a character repeats, the earliest valid starting point moves to one position after its previous occurrence.\nThis lets us adjust the window in one step and always keep it valid, making the approach fast and clean."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a map mp to store the last index of each character."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize:\nl = 0 for the start of the window,\nres = 0 for the longest length."
+   },
+   {
+    "kind": "li",
+    "text": "Loop through the string with index r:\nIf s[r] is already in mp, move l to mp[s[r]] + 1, but never backward.\nUpdate mp[s[r]] = r.\nUpdate the longest length: res = max(res, r - l + 1)."
+   },
+   {
+    "kind": "li",
+    "text": "Return res at the end."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def lengthOfLongestSubstring(self, s: str) -> int:\n        mp = {}\n        l = 0\n        res = 0\n\n        for r in range(len(s)):\n            if s[r] in mp:\n                l = max(mp[s[r]] + 1, l)\n            mp[s[r]] = r\n            res = max(res, r - l + 1)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the string and m is the total number of unique characters in the string."
+   }
+  ]
+ },
+ "longest-repeating-character-replacement": {
+  "url": "https://neetcode.io/problems/longest-repeating-substring-with-replacement?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=gqXU1UyA8pk",
+  "prerequisites": [
+   {
+    "title": "Sliding Window Fixed Size Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/1"
+   },
+   {
+    "title": "Sliding Window Variable Size Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/2"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "The brute-force idea is to try every possible substring starting at every index.\nFor each start point, we expand the substring and keep track of how many times each character appears.\nA substring is valid if we can make all its characters the same by replacing at most k of them.\nTo check this, we track the most frequent character inside the substring — everything else would need to be replaced.\nIf the number of replacements needed is within k, we update the answer.\nThis works but is slow because it checks many overlapping substrings."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Initialize res = 0 to store the longest valid window."
+   },
+   {
+    "kind": "li",
+    "text": "For each starting index i:\nCreate an empty frequency map and set maxf = 0.\nExtend the substring by increasing j from i to the end:\nUpdate the frequency of s[j].\nUpdate maxf (most frequent character in the current window).\nIf the window size minus maxf is <= k, it is valid.\nUpdate res with the window size."
+   },
+   {
+    "kind": "li",
+    "text": "Return res after testing all starting positions."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def characterReplacement(self, s: str, k: int) -> int:\n        res = 0\n        for i in range(len(s)):\n            count, maxf = {}, 0\n            for j in range(i, len(s)):\n                count[s[j]] = 1 + count.get(s[j], 0)\n                maxf = max(maxf, count[s[j]])\n                if (j - i + 1) - maxf <= k:\n                    res = max(res, j - i + 1)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the string and m is the total number of unique characters in the string."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Sliding Window"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We try to make a valid window where all characters become the same, but instead of checking every substring, we fix a target character c and ask:"
+   },
+   {
+    "kind": "p",
+    "text": "“How long can the window be if we want the entire window to become c using at most k replacements?”"
+   },
+   {
+    "kind": "p",
+    "text": "We slide a window across the string and count how many characters inside it already match c.\nIf the number of characters that don’t match c is more than k, the window is invalid, so we shrink it from the left.\nBy doing this for every possible character, we find the longest valid window."
+   },
+   {
+    "kind": "p",
+    "text": "This idea is simple and beginner-friendly because we only track:"
+   },
+   {
+    "kind": "li",
+    "text": "how many characters match c"
+   },
+   {
+    "kind": "li",
+    "text": "how many replacements are needed"
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Put all unique characters of the string into a set charSet."
+   },
+   {
+    "kind": "li",
+    "text": "For each character c in charSet:\nSet l = 0 and count = 0 (count of c inside the window).\nSlide the right pointer r across the string:\nIncrease count when s[r] == c.\nIf the window needs more than k replacements, move l forward and adjust count.\nUpdate res with the current valid window size."
+   },
+   {
+    "kind": "li",
+    "text": "Return the maximum window size found."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def characterReplacement(self, s: str, k: int) -> int:\n        res = 0\n        charSet = set(s)\n\n        for c in charSet:\n            count = l = 0\n            for r in range(len(s)):\n                if s[r] == c:\n                    count += 1\n\n                while (r - l + 1) - count > k:\n                    if s[l] == c:\n                        count -= 1\n                    l += 1\n\n                res = max(res, r - l + 1)\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(m * n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the string and m is the total number of unique characters in the string."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Sliding Window (Optimal)"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We want the longest window where we can make all characters the same using at most k replacements.\nThe key insight is that the window is valid as long as:"
+   },
+   {
+    "kind": "p",
+    "text": "window size – count of the most frequent character ≤ k"
+   },
+   {
+    "kind": "p",
+    "text": "Why?\nBecause the characters that aren’t the most frequent are the ones we would need to replace."
+   },
+   {
+    "kind": "p",
+    "text": "So while expanding the window, we track:"
+   },
+   {
+    "kind": "li",
+    "text": "the frequency of each character,"
+   },
+   {
+    "kind": "li",
+    "text": "the most frequent character inside the window (maxf)."
+   },
+   {
+    "kind": "p",
+    "text": "If the window becomes invalid, we shrink it from the left.\nThis gives us one clean sliding window pass."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create a frequency map count and initialize l = 0, maxf = 0, and res = 0."
+   },
+   {
+    "kind": "li",
+    "text": "Move the right pointer r across the string:\nUpdate the frequency of s[r].\nUpdate maxf with the highest frequency seen so far."
+   },
+   {
+    "kind": "li",
+    "text": "If the window is invalid (window size - maxf > k):\nShrink the window from the left and adjust counts."
+   },
+   {
+    "kind": "li",
+    "text": "Update the result with the valid window size."
+   },
+   {
+    "kind": "li",
+    "text": "Return res at the end."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def characterReplacement(self, s: str, k: int) -> int:\n        count = {}\n        res = 0\n\n        l = 0\n        maxf = 0\n        for r in range(len(s)):\n            count[s[r]] = 1 + count.get(s[r], 0)\n            maxf = max(maxf, count[s[r]])\n\n            while (r - l + 1) - maxf > k:\n                count[s[l]] -= 1\n                l += 1\n            res = max(res, r - l + 1)\n\n        return res"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the string and m is the total number of unique characters in the string."
+   }
+  ]
+ },
+ "permutation-in-string": {
+  "url": "https://neetcode.io/problems/permutation-string?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=UbyhOgBN834",
+  "prerequisites": [
+   {
+    "title": "Sliding Window Fixed Size Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/1"
+   },
+   {
+    "title": "Sliding Window Variable Size Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/2"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "The brute-force approach tries every possible substring of s2 and checks whether it is a permutation of s1.\nTo do this, we sort s1 once, and then for each substring of s2, we sort it and compare.\nIf the sorted substring matches the sorted s1, it means the substring contains exactly the same characters.\nThis method is simple to understand but very slow because it examines all substrings and sorts each one."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Sort s1 so we can compare substrings against it."
+   },
+   {
+    "kind": "li",
+    "text": "Loop through every starting index i in s2."
+   },
+   {
+    "kind": "li",
+    "text": "For each i, loop through every ending index j ≥ i:\nExtract the substring s2[i : j + 1].\nSort it and compare with sorted s1.\nIf they match, return True."
+   },
+   {
+    "kind": "li",
+    "text": "If no matching substring is found, return False."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def checkInclusion(self, s1: str, s2: str) -> bool:\n        s1 = sorted(s1)\n\n        for i in range(len(s2)):\n            for j in range(i, len(s2)):\n                subStr = s2[i : j + 1]\n                subStr = sorted(subStr)\n                if subStr == s1:\n                    return True\n        return False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 3 log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "2. Hash Table"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We first count the characters in s1, since any valid substring in s2 must match these exact frequencies.\nThen, for every starting point in s2, we build a frequency map as we extend the substring.\nIf we ever exceed the needed count for a character, we stop early because the substring can no longer be a valid permutation.\nIf all character counts match exactly, we have found a valid permutation.\nThis method is much cleaner than brute force but still slow because it restarts counting for each position."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Build a frequency map count1 for all characters in s1."
+   },
+   {
+    "kind": "li",
+    "text": "Let need be the number of unique characters in s1 whose counts must match."
+   },
+   {
+    "kind": "li",
+    "text": "For each starting index i in s2:\nCreate an empty map count2 and a match counter cur = 0.\nExtend the substring by moving j from i forward:\nIncrement the frequency of s2[j] in count2.\nIf count2[s2[j]] exceeds what count1 requires, break — this substring can’t work.\nIf the count for this character now matches count1, increase cur.\nIf cur == need, return True — we found a valid permutation."
+   },
+   {
+    "kind": "li",
+    "text": "If no starting index yields a match, return False."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def checkInclusion(self, s1: str, s2: str) -> bool:\n        count1 = {}\n        for c in s1:\n            count1[c] = 1 + count1.get(c, 0)\n\n        need = len(count1)\n        for i in range(len(s2)):\n            count2, cur = {}, 0\n            for j in range(i, len(s2)):\n                count2[s2[j]] = 1 + count2.get(s2[j], 0)\n                if count1.get(s2[j], 0) < count2[s2[j]]:\n                    break\n                if count1.get(s2[j], 0) == count2[s2[j]]:\n                    cur += 1\n                if cur == need:\n                    return True\n        return False"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1) since we have at most 26 different characters."
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the string1 and m is the length of string2."
+   },
+   {
+    "kind": "h2",
+    "text": "3. Sliding Window"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Since a permutation of s1 must have the same character counts, we can use a fixed-size sliding window over s2 whose length is exactly len(s1).\nWe maintain two frequency arrays:"
+   },
+   {
+    "kind": "li",
+    "text": "one for s1"
+   },
+   {
+    "kind": "li",
+    "text": "one for the current window in s2"
+   },
+   {
+    "kind": "p",
+    "text": "If these two arrays ever match, the window is a valid permutation.\nAs we slide the window forward, we update counts by removing the left character and adding the new right character — no need to rebuild the counts each time.\nThis makes the solution fast and efficient."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If s1 is longer than s2, return False."
+   },
+   {
+    "kind": "li",
+    "text": "Build character frequency arrays for:\ns1 \nthe first window of s2 of size len(s1)"
+   },
+   {
+    "kind": "li",
+    "text": "Count how many positions match between the two arrays (matches)."
+   },
+   {
+    "kind": "li",
+    "text": "Slide the window from left to right across s2:\nAt each step, add the new right character and update counts/matches.\nRemove the left character and update counts/matches.\nIf at any time matches == 26, return True."
+   },
+   {
+    "kind": "li",
+    "text": "After finishing the loop, return whether matches == 26."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def checkInclusion(self, s1: str, s2: str) -> bool:\n        if len(s1) > len(s2):\n            return False\n\n        s1Count, s2Count = [0] * 26, [0] * 26\n        for i in range(len(s1)):\n            s1Count[ord(s1[i]) - ord('a')] += 1\n            s2Count[ord(s2[i]) - ord('a')] += 1\n\n        matches = 0\n        for i in range(26):\n            matches += (1 if s1Count[i] == s2Count[i] else 0)\n\n        l = 0\n        for r in range(len(s1), len(s2)):\n            if matches == 26:\n                return True\n\n            index = ord(s2[r]) - ord('a')\n            s2Count[index] += 1\n            if s1Count[index] == s2Count[index]:\n                matches += 1\n            elif s1Count[index] + 1 == s2Count[index]:\n                matches -= 1\n\n            index = ord(s2[l]) - ord('a')\n            s2Count[index] -= 1\n            if s1Count[index] == s2Count[index]:\n                matches += 1\n            elif s1Count[index] - 1 == s2Count[index]:\n                matches -= 1\n            l += 1\n        return matches == 26"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(1)"
+   }
+  ]
+ },
+ "minimum-window-substring": {
+  "url": "https://neetcode.io/problems/minimum-window-with-characters?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=jSto0O4AJbM",
+  "prerequisites": [
+   {
+    "title": "Hash Usage Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/26"
+   },
+   {
+    "title": "Sliding Window Fixed Size Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/1"
+   },
+   {
+    "title": "Sliding Window Variable Size Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/2"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We want the smallest substring of s that contains all characters of t (with the right counts).\nThe brute-force way is to try every possible substring of s and check whether it covers all the characters in t.\nFor each starting index, we expand the end index and keep a frequency map for the current substring.\nWhenever the substring has all required characters, we see if it’s the smallest one so far.\nThis is simple to understand but very slow because we check many overlapping substrings."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If t is empty, return an empty string."
+   },
+   {
+    "kind": "li",
+    "text": "Build a frequency map countT for all characters in t."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize:\nres = [-1, -1] to store the best window,\nresLen = infinity to store the smallest length found."
+   },
+   {
+    "kind": "li",
+    "text": "For each starting index i in s:\nCreate an empty frequency map countS.\nFor each ending index j from i to the end of s:\nAdd s[j] to countS.\nCheck if the current substring from i to j contains all characters in t:\nFor each character c in countT, ensure countS[c] is at least countT[c].\n\n\nIf it satisfies all requirements and is smaller than the current best, update res and resLen."
+   },
+   {
+    "kind": "li",
+    "text": "After all checks:\nIf resLen is still infinity, return \"\".\nOtherwise, return the substring s[res[0] : res[1] + 1]."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def minWindow(self, s: str, t: str) -> str:\n        if t == \"\":\n            return \"\"\n\n        countT = {}\n        for c in t:\n            countT[c] = 1 + countT.get(c, 0)\n\n        res, resLen = [-1, -1], float(\"infinity\")\n        for i in range(len(s)):\n            countS = {}\n            for j in range(i, len(s)):\n                countS[s[j]] = 1 + countS.get(s[j], 0)\n\n                flag = True\n                for c in countT:\n                    if countT[c] > countS.get(c, 0):\n                        flag = False\n                        break\n\n                if flag and (j - i + 1) < resLen:\n                    resLen = j - i + 1\n                    res = [i, j]\n\n        l, r = res\n        return s[l : r + 1] if resLen != float(\"infinity\") else \"\""
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n ^ 2 * m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the string s and m is the total number of unique characters in the strings t and s."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Sliding Window"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We want the smallest window in s that contains all characters of t (with the right counts).\nInstead of checking all substrings, we use a sliding window:"
+   },
+   {
+    "kind": "li",
+    "text": "Expand the window by moving the right pointer r and adding characters into a window map."
+   },
+   {
+    "kind": "li",
+    "text": "Once the window has all required characters (i.e., it “covers” t), we try to shrink it from the left with pointer l to make it as small as possible while still valid."
+   },
+   {
+    "kind": "p",
+    "text": "During this process, we keep track of the best (smallest) window seen so far.\nThis way, we only scan each character at most two times, making it efficient and still easy to follow."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "If t is empty, return \"\"."
+   },
+   {
+    "kind": "li",
+    "text": "Build a frequency map countT for characters in t."
+   },
+   {
+    "kind": "li",
+    "text": "Initialize:\nwindow as an empty map for the current window counts.\nhave = 0 = how many characters currently meet the required count.\nneed = len(countT) = how many distinct characters we need to match.\nres = [-1, -1] and resLen = infinity to store the best window."
+   },
+   {
+    "kind": "li",
+    "text": "Use a right pointer r to expand the window over s:\nAdd s[r] to window.\nIf s[r] is in countT and its count in window matches countT, increment have."
+   },
+   {
+    "kind": "li",
+    "text": "When have == need, the window is valid:\nUpdate the best result if the current window is smaller.\nThen shrink from the left:\nDecrease the count of s[l] in window.\nIf s[l] is in countT and its count in window falls below countT, decrement have.\nMove l right."
+   },
+   {
+    "kind": "li",
+    "text": "After the loop, return the substring defined by res if found; otherwise, return \"\"."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def minWindow(self, s: str, t: str) -> str:\n        if t == \"\":\n            return \"\"\n\n        countT, window = {}, {}\n        for c in t:\n            countT[c] = 1 + countT.get(c, 0)\n\n        have, need = 0, len(countT)\n        res, resLen = [-1, -1], float(\"infinity\")\n        l = 0\n        for r in range(len(s)):\n            c = s[r]\n            window[c] = 1 + window.get(c, 0)\n\n            if c in countT and window[c] == countT[c]:\n                have += 1\n\n            while have == need:\n                if (r - l + 1) < resLen:\n                    res = [l, r]\n                    resLen = r - l + 1\n\n                window[s[l]] -= 1\n                if s[l] in countT and window[s[l]] < countT[s[l]]:\n                    have -= 1\n                l += 1\n        l, r = res\n        return s[l : r + 1] if resLen != float(\"infinity\") else \"\""
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n + m)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(m)"
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the string s and m is the total number of unique characters in the strings t and s."
+   }
+  ]
+ },
+ "sliding-window-maximum": {
+  "url": "https://neetcode.io/problems/sliding-window-maximum?list=neetcode150",
+  "video": "https://www.youtube.com/watch?v=DfljaUwZsOk",
+  "prerequisites": [
+   {
+    "title": "Queues Data Structures & Algorithms for Beginners",
+    "url": "https://neetcode.io/courses/dsa-for-beginners/7"
+   },
+   {
+    "title": "Sliding Window Fixed Size Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/1"
+   },
+   {
+    "title": "Sliding Window Variable Size Advanced Algorithms",
+    "url": "https://neetcode.io/courses/advanced-algorithms/2"
+   }
+  ],
+  "blocks": [
+   {
+    "kind": "h2",
+    "text": "1. Brute Force"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "For every possible window of size k, we simply look at all k elements and pick the maximum.\nWe slide the window one step at a time, and each time we scan all elements inside it to find the max.\nThis method is very easy to understand but slow, because we repeatedly re-scan many of the same elements."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Create an empty list output to store the maximum of each window."
+   },
+   {
+    "kind": "li",
+    "text": "For each starting index i from 0 to len(nums) - k:\nSet maxi to nums[i].\nScan all elements from i to i + k - 1 and update maxi.\nAppend maxi to output."
+   },
+   {
+    "kind": "li",
+    "text": "Return output after checking all windows."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxSlidingWindow(self, nums: List[int], k: int) -> List[int]:\n        output = []\n\n        for i in range(len(nums) - k + 1):\n            maxi = nums[i]\n            for j in range(i, i + k):\n                maxi = max(maxi, nums[j])\n            output.append(maxi)\n\n        return output"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n * k)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity:\nO(1) extra space.\nO(n - k + 1) space for the output array."
+   },
+   {
+    "kind": "p",
+    "text": "Where n is the length of the array and k is the size of the window."
+   },
+   {
+    "kind": "h2",
+    "text": "2. Segment Tree"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "The brute-force solution recomputes the maximum for every window by scanning all k elements each time, which is slow.\nA Segment Tree helps us answer “what is the maximum in this range?” much faster after some preprocessing."
+   },
+   {
+    "kind": "p",
+    "text": "Think of the segment tree as a special structure built on top of the array where:"
+   },
+   {
+    "kind": "li",
+    "text": "Each node stores the maximum of a segment (range) of the array."
+   },
+   {
+    "kind": "li",
+    "text": "The root stores the maximum of the whole array."
+   },
+   {
+    "kind": "li",
+    "text": "Its children store the maximum of left half and right half, and so on."
+   },
+   {
+    "kind": "p",
+    "text": "Once we build this tree:"
+   },
+   {
+    "kind": "li",
+    "text": "We can query the maximum for any range [L, R] (our sliding window) in O(log n) time."
+   },
+   {
+    "kind": "li",
+    "text": "We just slide the window and ask the segment tree for the max in each range."
+   },
+   {
+    "kind": "p",
+    "text": "So the process is:\nbuild once → query many times efficiently."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Build the Segment Tree\n\nStart with an array tree big enough to store a full binary tree.\nPlace the original elements in the leaves (second half of tree).\nFor each internal node, store the maximum of its two children.\nAfter this step, tree[1] (the root) holds the maximum of the entire array."
+   },
+   {
+    "kind": "li",
+    "text": "Range Maximum Query (Segment Tree query(l, r)):\n\nShift l and r to point to the leaves representing those indices.\nWhile l <= r in the tree:\nIf l is a right child, consider tree[l] in the answer and move l to the next segment.\nIf r is a left child, consider tree[r] in the answer and move r to the previous segment.\nMove both l and r up one level by dividing by 2.\n\n\nReturn the maximum found."
+   },
+   {
+    "kind": "li",
+    "text": "Sliding Window using the Segment Tree\n\nFor each window starting at index i (from 0 to n - k):\nQuery the segment tree for the range [i, i + k - 1].\nAppend this maximum to the output list."
+   },
+   {
+    "kind": "li",
+    "text": "Return the output list containing the maximum for each sliding window."
+   },
+   {
+    "kind": "pre",
+    "text": "class SegmentTree:\n    def __init__(self, N, A):\n        self.n = N\n        while (self.n & (self.n - 1)) != 0:\n            self.n += 1\n        self.build(N, A)\n\n    def build(self, N, A):\n        self.tree = [float('-inf')] * (2 * self.n)\n        for i in range(N):\n            self.tree[self.n + i] = A[i]\n        for i in range(self.n - 1, 0, -1):\n            self.tree[i] = max(self.tree[i << 1], self.tree[i << 1 | 1])\n\n    def query(self, l, r):\n        res = float('-inf')\n        l += self.n\n        r += self.n + 1\n        while l < r:\n            if l & 1:\n                res = max(res, self.tree[l])\n                l += 1\n            if r & 1:\n                r -= 1\n                res = max(res, self.tree[r])\n            l >>= 1\n            r >>= 1\n        return res\n\n\nclass Solution:\n    def maxSlidingWindow(self, nums, k):\n        n = len(nums)\n        segTree = SegmentTree(n, nums)\n        output = []\n        for i in range(n - k + 1):\n            output.append(segTree.query(i, i + k - 1))\n        return output"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "3. Heap"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "We want to quickly get the maximum value inside a sliding window that moves across the array.\nA max-heap is perfect for this because it always lets us access the largest element instantly."
+   },
+   {
+    "kind": "p",
+    "text": "As we slide the window:"
+   },
+   {
+    "kind": "li",
+    "text": "We keep inserting new elements into the heap."
+   },
+   {
+    "kind": "li",
+    "text": "Some old elements will fall out of the left side of the window."
+   },
+   {
+    "kind": "li",
+    "text": "If the largest element in the heap is no longer inside the window, we remove it."
+   },
+   {
+    "kind": "li",
+    "text": "The top of the heap always represents the current maximum for the window."
+   },
+   {
+    "kind": "p",
+    "text": "This way, we efficiently maintain the maximum even as the window moves."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Use a max-heap to store pairs of (value, index) for all elements we encounter."
+   },
+   {
+    "kind": "li",
+    "text": "Expand the window by inserting each new element into the heap."
+   },
+   {
+    "kind": "li",
+    "text": "Once the window size becomes k:\nRemove elements from the heap if their index is outside the current window.\nThe top of the heap now gives the maximum for the window."
+   },
+   {
+    "kind": "li",
+    "text": "Add this maximum to the result list."
+   },
+   {
+    "kind": "li",
+    "text": "Continue sliding the window until the end of the array and return all collected maximums."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxSlidingWindow(self, nums: List[int], k: int) -> List[int]:\n        heap = []\n        output = []\n        for i in range(len(nums)):\n            heapq.heappush(heap, (-nums[i], i))\n            if i >= k - 1:\n                while heap[0][1] <= i - k:\n                    heapq.heappop(heap)\n                output.append(-heap[0][0])\n        return output"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n log n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "4. Dynamic Programming"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "Instead of recalculating the maximum for each sliding window, we can preprocess the array so that every window’s maximum can be answered in O(1) time."
+   },
+   {
+    "kind": "p",
+    "text": "We divide the array into blocks of size k.\nWithin each block, we build:"
+   },
+   {
+    "kind": "li",
+    "text": "a leftMax array: left-to-right maximums inside each block"
+   },
+   {
+    "kind": "li",
+    "text": "a rightMax array: right-to-left maximums inside each block"
+   },
+   {
+    "kind": "p",
+    "text": "For any sliding window:"
+   },
+   {
+    "kind": "li",
+    "text": "its left part falls inside some block, so the maximum for that region is in rightMax[i]"
+   },
+   {
+    "kind": "li",
+    "text": "its right part falls inside a block, so the maximum is in leftMax[i + k - 1]"
+   },
+   {
+    "kind": "p",
+    "text": "The true window maximum is the larger of those two.\nThis lets us compute each window's maximum instantly."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Split the array conceptually into blocks of size k."
+   },
+   {
+    "kind": "li",
+    "text": "Build a leftMax array:\nScan left to right.\nFor each block, restart the maximum at the block boundary."
+   },
+   {
+    "kind": "li",
+    "text": "Build a rightMax array:\nScan right to left.\nFor each block, restart the maximum at the block boundary."
+   },
+   {
+    "kind": "li",
+    "text": "For each sliding window of size k:\nThe maximum is max(rightMax[window_start], leftMax[window_end])."
+   },
+   {
+    "kind": "li",
+    "text": "Return all computed maximums."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxSlidingWindow(self, nums: List[int], k: int) -> List[int]:\n        n = len(nums)\n        leftMax = [0] * n\n        rightMax = [0] * n\n\n        leftMax[0] = nums[0]\n        rightMax[n - 1] = nums[n - 1]\n\n        for i in range(1, n):\n            if i % k == 0:\n                leftMax[i] = nums[i]\n            else:\n                leftMax[i] = max(leftMax[i - 1], nums[i])\n\n            if (n - 1 - i) % k == 0:\n                rightMax[n - 1 - i] = nums[n - 1 - i]\n            else:\n                rightMax[n - 1 - i] = max(rightMax[n - i], nums[n - 1 - i])\n\n        output = [0] * (n - k + 1)\n\n        for i in range(n - k + 1):\n            output[i] = max(leftMax[i + k - 1], rightMax[i])\n\n        return output"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   },
+   {
+    "kind": "h2",
+    "text": "5. Deque"
+   },
+   {
+    "kind": "h3",
+    "text": "Intuition"
+   },
+   {
+    "kind": "p",
+    "text": "A deque helps us efficiently track the maximum inside the sliding window.\nThe key idea is to keep the deque storing indices of elements in decreasing order of their values.\nThis guarantees that:"
+   },
+   {
+    "kind": "li",
+    "text": "The front of the deque always holds the index of the current window’s maximum."
+   },
+   {
+    "kind": "li",
+    "text": "Smaller elements behind a bigger one are useless (they can never become the max later),\nso we remove them when pushing a new number."
+   },
+   {
+    "kind": "li",
+    "text": "If the element at the front falls out of the window, we remove it."
+   },
+   {
+    "kind": "p",
+    "text": "By maintaining this structure, each element is added and removed at most once, giving an optimal solution."
+   },
+   {
+    "kind": "h3",
+    "text": "Algorithm"
+   },
+   {
+    "kind": "li",
+    "text": "Use a deque to store indices of elements in decreasing order of their values."
+   },
+   {
+    "kind": "li",
+    "text": "Expand the window by moving the right pointer:\nBefore inserting the new index, remove indices whose values are smaller than the new value (they cannot be future maximums).\nAdd the new index to the deque."
+   },
+   {
+    "kind": "li",
+    "text": "If the left pointer passes the front index, remove it (it’s outside the window)."
+   },
+   {
+    "kind": "li",
+    "text": "Once the window reaches size k, the front of the deque represents the maximum — add it to the output."
+   },
+   {
+    "kind": "li",
+    "text": "Slide the window and repeat."
+   },
+   {
+    "kind": "pre",
+    "text": "class Solution:\n    def maxSlidingWindow(self, nums: List[int], k: int) -> List[int]:\n        output = []\n        q = deque()  # index\n        l = r = 0\n\n        while r < len(nums):\n            while q and nums[q[-1]] < nums[r]:\n                q.pop()\n            q.append(r)\n\n            if l > q[0]:\n                q.popleft()\n\n            if (r + 1) >= k:\n                output.append(nums[q[0]])\n                l += 1\n            r += 1\n\n        return output"
+   },
+   {
+    "kind": "h3",
+    "text": "Time & Space Complexity"
+   },
+   {
+    "kind": "li",
+    "text": "Time complexity: O(n)"
+   },
+   {
+    "kind": "li",
+    "text": "Space complexity: O(n)"
+   }
+  ]
+ }
+}

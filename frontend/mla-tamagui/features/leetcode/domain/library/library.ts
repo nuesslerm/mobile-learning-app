@@ -23,6 +23,7 @@ export type SavedProblemList = {
 export type LibrarySnapshot = {
   lists: SavedProblemList[];
   lastOpened: string | null;
+  savedCollections?: string[];
 };
 
 export interface LibraryStoragePort {
@@ -60,7 +61,23 @@ export type Solution = {
   metrics: string;
 };
 
+export interface LibraryLesson {
+  url: string;
+  video: string | null;
+  prerequisites: { title: string; url: string }[];
+  blocks: { kind: 'h2' | 'h3' | 'p' | 'li' | 'pre'; text: string }[];
+}
+
+export interface StudyEntry {
+  id: string;
+  group: string;
+  topicId: string;
+  topics: string[];
+}
+
 export interface LibraryContentPort {
+  studyPlan: readonly StudyEntry[];
+  lesson(id: string): LibraryLesson | undefined;
   rows: readonly LibraryRow[];
   problem(id: string): Blind75Problem | undefined;
   submissions(id: string): ReadonlyArray<Submission>;

@@ -65,7 +65,12 @@ ${options.profileInput ? '<script>window.__EDITOR_PROFILE_INPUT__ = true;</scrip
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     if (window.ReactNativeWebView) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ready', evalMs: window.__cm6EvalMs }));
+      var config = window.__editorInitialConfig;
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ready', evalMs: window.__cm6EvalMs, initializedOnPage: !!config }));
+      if (config) {
+        delete window.__editorInitialConfig;
+        window.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'init', config: config }) }));
+      }
     }
   });
 </script>

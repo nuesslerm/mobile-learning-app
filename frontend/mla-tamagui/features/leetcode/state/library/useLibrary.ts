@@ -48,6 +48,10 @@ function createLibraryState(storage: LibraryStoragePort) {
       return () => { listeners.delete(listener); };
     },
     openProblem: (id: string) => update((previous) => ({ ...previous, lastOpened: id })),
+    toggleCollection: (name: string) => update((previous) => {
+      const saved = previous.savedCollections ?? [];
+      return { ...previous, savedCollections: saved.includes(name) ? saved.filter((item) => item !== name) : [...saved, name] };
+    }),
     save: (listId: string, problemId: string) => update((previous) => ({
       ...previous, lists: previous.lists.map((list) => list.id === listId ? putInList(list, problemId) : list),
     })),

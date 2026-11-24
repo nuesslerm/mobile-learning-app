@@ -3,6 +3,12 @@ import type { Blind75Problem } from '../../domain/models';
 import { ProblemCatalog } from '../../domain/problemCatalog';
 import { companies, sampleSolutions, sampleSubmissionCode, sampleSubmissions, twoSumHints } from './problemActivity';
 
+import collectionProblems from './collectionProblems.json';
+import studyPlan from './neetCode150.json';
+import { readLesson } from './lessonReader';
+
+const additionalProblems: Readonly<Record<string, Blind75Problem>> = collectionProblems as Record<string, Blind75Problem>;
+const entries = new Map(studyPlan.map((item) => [item.id, item]));
 const recordedRows: LibraryRow[] = [
   { id: 'two-sum', number: 1, title: 'Two Sum', difficulty: 'easy', acceptance: '58.2%', frequency: '100.0%', solved: true },
   { id: 'add-two-numbers', number: 2, title: 'Add Two Numbers', difficulty: 'medium', acceptance: '49.7%', frequency: '96.5%' },
@@ -19,15 +25,26 @@ const recordedRows: LibraryRow[] = [
   { id: 'number-of-dice-rolls-with-target-sum', number: 1155, title: 'Number of Dice Rolls With Target Sum', difficulty: 'medium' },
 ];
 
+const topicMetrics: Record<number, Pick<LibraryRow, 'acceptance' | 'frequency' | 'solved'>> = {
+  5: { acceptance: '39.0%', frequency: '98.3%', solved: true },
+  10: { acceptance: '32.2%', frequency: '67.4%' },
+  22: { acceptance: '79.8%', frequency: '89.3%', solved: true },
+  32: { acceptance: '41.6%', frequency: '75.7%' },
+  79: { acceptance: '48.4%', frequency: '65.8%', solved: true },
+  94: { acceptance: '80.8%', frequency: '55.8%', solved: true },
+  98: { acceptance: '36.6%', frequency: '61.6%', solved: true },
+  99: { acceptance: '61.5%', frequency: '35.6%' },
+};
+
 export const libraryRows: LibraryRow[] = [
   ...recordedRows,
-  ...ProblemCatalog.getAll().filter((problem) => !recordedRows.some((row) => row.number === problem.leetcodeId)).map((problem) => ({
+  ...[...ProblemCatalog.getAll(), ...Object.values(additionalProblems)].filter((problem) => !recordedRows.some((row) => row.number === problem.leetcodeId)).map((problem) => ({
     id: problem.id,
     number: problem.leetcodeId,
     title: problem.title,
     difficulty: problem.difficulty,
   })),
-];
+].map((row) => ({ ...row, ...topicMetrics[row.number] }));
 
 const twoSumDescription = 'You are given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\n\nYou can return the answer in any order.';
 
@@ -55,7 +72,7 @@ const diceProblem: Blind75Problem = {
 
 export function findLibraryProblem(id: string) {
   if (id === diceProblem.id) return diceProblem;
-  const problem = ProblemCatalog.getById(id);
+  const problem = additionalProblems[id] ?? ProblemCatalog.getById(id);
   return problem?.id === 'two-sum' ? { ...problem, description: twoSumDescription } : problem;
 }
 
@@ -70,6 +87,11 @@ export const sampleLibrary: LibrarySnapshot = {
 
 export const bundledLibrary: LibraryContentPort = {
   rows: libraryRows,
+  studyPlan,
+  lesson(id) {
+    const entry = entries.get(id);
+    return entry && readLesson(entry.topicId, id);
+  },
   problem: findLibraryProblem,
   submissions: (id) => id === 'two-sum' ? sampleSubmissions : [],
   submission: (id, submissionId) => Promise.resolve(id === 'two-sum' ? sampleSubmissions.find((row) => row.id === submissionId) : undefined),
