@@ -23,7 +23,9 @@ import { BUILTIN_KEYS, type KeyActionContext } from '../toolbarKeys';
 
 const CELL_WIDTH = 30;
 const CELL_HEIGHT = 24;
-const COMPACT_KEY_HEIGHT = 40;
+const COMPACT_KEY_HEIGHT = 41;
+const COMPACT_CELL_WIDTH = 13;
+const COMPACT_CELL_HEIGHT = 17;
 const CANVAS_KEY = '#08070a';
 const CANVAS_LABEL = '#f4f4f5';
 
@@ -54,13 +56,15 @@ function SymbolGroupBlock({
     <YStack
       testID={compact ? undefined : testID}
       rounded="$3"
+      height={compact ? COMPACT_KEY_HEIGHT : undefined}
+      justify={compact ? "center" : undefined}
       bg="$color3"
       overflow="hidden"
       pointerEvents={compact ? "none" : undefined}
       style={canvas ? styles.canvasKey : undefined}
     >
       {groupCells(group.chars).map((cells, row) => (
-        <XStack key={row}>
+        <XStack key={row} justify={compact ? "center" : undefined}>
           {cells.map((char, column) => {
             const index = row * 2 + column;
             return (
@@ -68,15 +72,14 @@ function SymbolGroupBlock({
                 key={index}
                 testID={`SymbolBarKey-${group.id}-${index}`}
                 {...(!compact ? { role: 'button', 'aria-label': `Type ${char}`, onPress: () => onType(group, index, char) } : {})}
-                width={compact ? undefined : CELL_WIDTH}
-                flex={compact ? 1 : undefined}
-                height={compact ? COMPACT_KEY_HEIGHT / 2 : CELL_HEIGHT}
+                width={compact ? COMPACT_CELL_WIDTH : CELL_WIDTH}
+                height={compact ? COMPACT_CELL_HEIGHT : CELL_HEIGHT}
                 items="center"
                 justify="center"
                 pressStyle={compact ? undefined : { bg: '$color5' }}
                 cursor={compact ? undefined : "pointer"}
               >
-                <Text variant="code" fontSize={compact ? 11 : undefined} style={canvas ? styles.canvasGlyph : undefined}>{char}</Text>
+                <Text variant="code" fontSize={compact ? 12 : undefined} style={canvas ? styles.canvasGlyph : undefined}>{char}</Text>
               </XStack>
             );
           })}
@@ -134,7 +137,7 @@ export function SymbolBarRail({
 
   if (expanded) {
     return (
-      <KeyboardToolbarRail testID="EditorExpandedSymbols" {...railProps}>
+      <KeyboardToolbarRail testID="EditorExpandedSymbols" {...railProps} contentContainerStyle={styles.expandedRail}>
         {Array.from(expanded.chars).map((char, index) => (
           <KeyboardToolbarButton
             key={index}
@@ -149,6 +152,7 @@ export function SymbolBarRail({
           testID="SymbolBarCloseGroup"
           accessibilityLabel="Close symbol group"
           icon={X}
+          systemSymbol="xmark"
           {...keyProps}
           onPress={() => setExpandedId(null)}
         />
@@ -164,6 +168,7 @@ export function SymbolBarRail({
         label={compact ? undefined : "Tab"}
         {...keyProps}
         icon={tab.icon}
+        systemSymbol={compact ? "arrow.right.to.line" : undefined}
         onPress={() => {
           Logger.info('symbol_bar.tab_press', {});
           tab.run(ctx);
@@ -186,6 +191,8 @@ export function SymbolBarRail({
         {...keyProps}
         style={canvas ? { ...styles.canvasButton, backgroundColor: 'transparent' } : keyProps.style}
         icon={compact ? KeyboardIcon : ChevronDown}
+        iconSize={compact ? 18 : undefined}
+        systemSymbol={compact ? "keyboard.chevron.compact.down" : undefined}
         tone={compact ? "default" : "accent"}
         onPress={() => {
           Logger.info('symbol_bar.dismiss_press', {});
@@ -199,7 +206,8 @@ export function SymbolBarRail({
 
 
 const styles = StyleSheet.create({
-  compactRail: { gap: 4, paddingHorizontal: 8, paddingTop: 3, paddingBottom: 5 },
+  compactRail: { gap: 5, paddingLeft: 8, paddingRight: 0, paddingTop: 3, paddingBottom: 7 },
+  expandedRail: { gap: 6, paddingHorizontal: 4, paddingTop: 3, paddingBottom: 7 },
   compactGroup: { flex: 1, minWidth: 34 },
   compactButton: { minWidth: 34, paddingHorizontal: 0, height: COMPACT_KEY_HEIGHT, borderRadius: 5 },
   canvasKey: { backgroundColor: CANVAS_KEY, borderRadius: 5 },

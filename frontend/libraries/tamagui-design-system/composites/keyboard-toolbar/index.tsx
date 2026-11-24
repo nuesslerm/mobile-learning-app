@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKeyboardFrame } from '../../lib/keyboard/useKeyboardFrame';
 import { useOpenSheetStore } from '../../lib/openSheetStore';
 import { XStack, YStack } from '../../primitives';
-import { Icon } from '../../ui/icon';
+import { Icon, type IconProps } from '../../ui/icon';
 import { Text } from '../../ui/text';
 
 import { KeyboardToolbarPortal } from './portal';
@@ -337,6 +337,8 @@ export type KeyboardToolbarButtonProps = {
   style?: ViewStyle;
   labelStyle?: TextStyle;
   iconColor?: string;
+  iconSize?: number;
+  systemSymbol?: IconProps['systemSymbol'];
 };
 
 const TONE_COLOR = {
@@ -359,6 +361,8 @@ export function KeyboardToolbarButton({
   style,
   labelStyle,
   iconColor,
+  iconSize = 16,
+  systemSymbol,
 }: KeyboardToolbarButtonProps) {
   return (
     <XStack
@@ -379,7 +383,7 @@ export function KeyboardToolbarButton({
       style={style}
       onPress={disabled ? undefined : onPress}
     >
-      {icon ? <Icon as={icon} size={16} color={iconColor ?? TONE_COLOR[tone]} /> : null}
+      {icon ? <Icon as={icon} size={iconSize} color={iconColor ?? TONE_COLOR[tone]} systemSymbol={systemSymbol} /> : null}
       {label ? <Text variant="small" color={TONE_COLOR[tone]} style={labelStyle}>{label}</Text> : null}
     </XStack>
   );
