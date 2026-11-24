@@ -135,3 +135,13 @@ Queue lifecycle remains partial because the edit did not preserve the card. The 
 ## Orca Codex loads a skill from slash autocomplete
 
 Register a disposable RCA worktree and add the `rca-parity-compass` fixture under `.agents/skills/`. Open a Codex tab in that worktree with `com.stably.orca.mobile` foreground. Type the slash prefix, select the skill, and ask for the compass fixture marker without writing the marker in the prompt. Codex's turn record contains the expanded skill path and file marker. Orca shows the marker in the reply from the same turn. This passes `skill-load` for Orca with Codex. The fixture, recording, screenshots and filtered provider receipt are under `.context/rca-native-skill/published/run-569e7301fb781322/` in Zagreb.
+
+## Confirmed Orca Codex alternate and queued model
+
+In an existing Orca Codex chat, select GPT-5.6 Sol and start a timed command. Queue a follow-up on that model, then select GPT-6.1 Sol before the command finishes. The queued card retains its ID and GPT-5.6 Sol. Codex's turn records show GPT-5.6 Sol for the timed and queued turns. The next direct turn uses GPT-6.1 Sol. RCA recorded one queued dispatch and the app rendered all expected replies. Together with the verified fresh-chat default, this passes `model-switch` for Orca with Codex. The recording, screenshots and filtered provider receipts are under `.context/rca-orca-confirmed-model/published/run-7e4518c1bb9eb455/` in Zagreb.
+
+## Orca switches worktrees and removes the retired checkout
+
+Register two RCA worktrees of the same repo at different committed revisions. From the Orca picker, open B, start a Codex tab and run a read-only branch, revision and file marker probe. Return to A and run the same probe. Each tab displayed its own branch, revision and marker count. RCA assigned their threads to different workspace IDs. Verify B is clean and idle, then call `worktree.remove` without force. B disappeared from RCA and the Orca picker. Both branch refs remained. A reopened with its prior tabs and transcript. This passes `worktree-retirement` for Orca with Codex.
+
+T3's Add Project refused the same registered external folder because it was outside the adapter's configured project root. Its complete switch-and-retire case still needs a run through T3's own New worktree flow. Recordings, screenshots, tool stdout, branch refs and removal receipts are under `.context/rca-worktree-parity/published/run-b914dcc3fc30fa59/` in Zagreb.
