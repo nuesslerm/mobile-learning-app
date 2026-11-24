@@ -1478,6 +1478,7 @@ fn given_the_host_when_status_is_read_then_it_advertises_the_status_feed_and_str
         "agent.launch.replay-required.v1",
         "agent-session.structured.registered-agents.v1",
         "agent-session.permission-modes.v1",
+        "skills.discover-workspace.v1",
     ]);
 }
 
