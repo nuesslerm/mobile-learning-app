@@ -8,6 +8,9 @@
 // The on-device runner: the app root mounts it so the interpreter outlives the screens
 export { DeviceRunnerRoot } from './di/DeviceRunnerRoot';
 
+export { editorPageSource } from './data/editor/cm6/webViewEditorBridge';
+export { PreparedEditorPages } from './ui/editor/EditorPage';
+
 // Screens (ui layer)
 export { ProblemListScreen } from './ui/ProblemListScreen';
 

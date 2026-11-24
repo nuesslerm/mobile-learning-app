@@ -21,7 +21,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'sonner-native';
 import { TamaguiProvider, Theme } from '@lib/tamagui-design-system/primitives';
 
-import { DeviceRunnerRoot } from '@/features/leetcode';
+import { DeviceRunnerRoot, editorPageSource, PreparedEditorPages } from '@/features/leetcode';
 
 import {
   NativeChromeBridge,
@@ -103,6 +103,7 @@ export default function RootLayout() {
                 is the only way into the problem description. Only the drawer
                 group hides its header, because its screens carry their own. */}
             <DeviceRunnerRoot>
+            <PreparedEditorPages getSource={editorPageSource}>
             <ThemeProvider value={navigationTheme}>
             <Stack>
               {/* `title` even though the header is hidden: a child route's
@@ -133,6 +134,7 @@ export default function RootLayout() {
               />
             </Stack>
             </ThemeProvider>
+            </PreparedEditorPages>
             </DeviceRunnerRoot>
             <NativeChromeBridge />
             <RouteLogger />

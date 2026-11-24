@@ -5,6 +5,7 @@ import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { libraryArtwork } from './libraryArtwork';
+import { usePrefetchProblem } from './usePrefetchProblem';
 import { useLibrary } from '../../state/library/useLibrary';
 import { useLeetCodePorts } from '../../state/ports';
 
@@ -16,12 +17,13 @@ const tabs = [
   { label: 'Search', icon: Search },
 ];
 
-export function LibraryDock({ onLibrary, onSearch }: { onLibrary: () => void; onSearch: () => void }) {
+export function LibraryDock({ onLibrary, onSearch, prefetchResume = false }: { prefetchResume?: boolean; onLibrary: () => void; onSearch: () => void }) {
   const colors = useCompactColors();
   const { bottom } = useSafeAreaInsets();
   const { libraryContent } = useLeetCodePorts();
   const { lastOpened } = useLibrary();
   const resume = libraryContent.rows.find((row) => row.id === lastOpened);
+  usePrefetchProblem(prefetchResume ? resume?.id : undefined);
   const dockBottom = Math.max(bottom - 14, 10);
   return <>
           {resume && <FloatingBar style={styles.bar} bottom={dockBottom + 74}>

@@ -13,7 +13,7 @@ import React, {
   useState,
 } from 'react';
 import { Platform } from 'react-native';
-import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+import type { WebView } from 'react-native-webview';
 
 import type {
   CodeEditorPort,
@@ -33,6 +33,7 @@ import { applyPlannedEdit, readBasis, type EditBasis, type EditOutcome, type Edi
 import { lineHeightFor } from '../../domain/editor-settings/editorPreferences';
 import { useEditorPreferencesStore } from '../../state/editor/editorPreferencesStore';
 import { useLeetCodePorts } from '../../state/ports';
+import { EditorPage } from './EditorPage';
 import { useEditorAppearance } from './useEditorAppearance';
 import type { EditResult } from '../../domain/editor/editing';
 import { checkpointWithin, clearErrorLine, showErrorLine, type ErrorCheckpoint, type ErrorJump, type ErrorPlace } from '../../domain/editor/errorJump';
@@ -834,15 +835,15 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
 
     // The WebView's onMessage feeds this editor first, then any port subscribers.
     const handleMessage = useCallback(
-      (event: WebViewMessageEvent) => {
+      (raw: string) => {
         // A typed-API frame goes to the rpc client and never enters the old path, whose listeners expect a `type`.
-        if (decode(event.nativeEvent.data).type !== 'foreign') {
-          apiBridge.receive(event.nativeEvent.data);
+        if (decode(raw).type !== 'foreign') {
+          apiBridge.receive(raw);
           return;
         }
         let msg: FromEditorMessage;
         try {
-          msg = JSON.parse(event.nativeEvent.data) as FromEditorMessage;
+          msg = JSON.parse(raw) as FromEditorMessage;
         } catch (err) {
           Logger.withError(err).debug('editor.message.parse_skip');
           return;
@@ -863,45 +864,16 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         rounded={canvas ? 0 : "$3"}
         style={{ backgroundColor }}
       >
-        <WebView<object>
-          testID="CodeEditorInput"
-          ref={webViewRef}
-          preloadOnMount={Platform.OS === 'ios' && canvas}
-          source={source}
-          injectedJavaScriptBeforeContentLoaded={bootstrapScript}
-          onMessage={handleMessage}
-          onLoadStart={() => {
+        <EditorPage nativeRef={webViewRef} source={source} canvas={canvas} beforeLoad={bootstrapScript}
+          backgroundColor={backgroundColor} onData={handleMessage} onTerminate={() => {
+            isReadyRef.current = false;
+            isInitializedRef.current = false;
+            updateHydrated(false);
+            webViewRef.current?.reload();
+          }} onLoadStart={() => {
             coldStartRef.current?.mark('loadStart');
             Logger.info('editor.webview.load_start', {});
-          }}
-          onLoadEnd={() => {
-            Logger.info('editor.webview.load_end', {});
-          }}
-          onError={(e) => {
-            Logger.warn('editor.webview.error', {
-              desc: e.nativeEvent.description,
-            });
-          }}
-          onHttpError={(e) => {
-            Logger.warn('editor.webview.http_error', {
-              statusCode: e.nativeEvent.statusCode,
-            });
-          }}
-          onRenderProcessGone={(e) => {
-            Logger.error('editor.webview.process_gone', {
-              didCrash: e.nativeEvent.didCrash,
-            });
-          }}
-          originWhitelist={['*']}
-          javaScriptEnabled
-          domStorageEnabled={false}
-          bounces={false}
-          scrollEnabled={false}
-          keyboardDisplayRequiresUserAction={false}
-          hideKeyboardAccessoryView
-          allowsInlineMediaPlayback
-          style={{ flex: 1, backgroundColor }}
-        />
+          }} />
         {Platform.OS === 'android' ? <EditorTextMirror source={textMirror} /> : null}
       </View>
     );

@@ -8,10 +8,18 @@ import { buildEditorHtml } from './editorHtml';
 
 let page: string | undefined;
 
+function editorHtml() {
+  return page ??= buildEditorHtml({ profileInput: __DEV__ && process.env.EXPO_PUBLIC_EDITOR_PERF === '1' });
+}
+
+export function editorPageSource() {
+  return editorSource(editorHtml());
+}
+
 /** The CodeMirror page in a WebView, and the typed editor API over it: requests go down as injected scripts, replies and events come back as posted messages. */
 export function createWebViewEditorBridge(): EditorBridgePort {
   return {
-    html: () => page ??= buildEditorHtml({ profileInput: __DEV__ && process.env.EXPO_PUBLIC_EDITOR_PERF === '1' }),
+    html: editorHtml,
     pageSource: editorSource,
     connect(webView) {
       const transport = createWebViewHostTransport(webView);

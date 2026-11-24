@@ -1,7 +1,7 @@
 import { CompactHeader, CompactIconButton, CompactTabs, FloatingBar, Icon, useCompactColors } from '@lib/tamagui-design-system';
 import { ChevronDown, Lightbulb, Play, Share, Star, Tag } from '@lib/tamagui-design-system/icons';
 import { Link, router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -31,9 +31,9 @@ export function ProblemDetailScreen({ id }: { id: string }) {
   const study = libraryContent.studyPlan.find((entry) => entry.id === id);
   const lesson = useMemo(() => tab === 'lesson' ? libraryContent.lesson(id) : undefined, [id, libraryContent, tab]);
   const hasProblem = Boolean(problem);
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (hasProblem) void actions.openProblem(id);
-  }, [actions, hasProblem, id]);
+  }, [actions, hasProblem, id]));
   const editorRoute = useMemo(() => ({ pathname: '/leetcode/[id]' as const, params: { id, lang: 'javascript' } }), [id]);
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'ios' || !hasProblem) return;

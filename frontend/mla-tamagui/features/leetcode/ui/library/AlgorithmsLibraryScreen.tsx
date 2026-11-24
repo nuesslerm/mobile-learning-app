@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { filterLibrary, type LibraryRow } from '../../domain/library/library';
 import { useLeetCodePorts } from '../../state/ports';
 import { collectionRows } from '../../domain/library/collections';
+import { usePrefetchProblem } from './usePrefetchProblem';
 import { LibraryDock } from './LibraryDock';
 import { libraryArtwork } from './libraryArtwork';
 import { useLibrary } from '../../state/library/useLibrary';
@@ -35,6 +36,7 @@ export function AlgorithmsLibraryScreen({ collection, focusSearch = false }: { c
   const searchRef = useRef<ComponentRef<typeof TextInput>>(null);
   const rows = useMemo(() => collectionRows(libraryContent, collection), [libraryContent, collection]);
   const filtered = useMemo(() => filterLibrary(rows, query), [rows, query]);
+  usePrefetchProblem(query ? undefined : filtered[0]?.id);
   const { actions, savedCollections } = useLibrary();
   const saved = savedCollections?.includes(collection);
   const artwork = collectionArtwork.get(collection);
