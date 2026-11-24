@@ -4,6 +4,8 @@ use crate::rig::*;
 use crate::support::mimic_t3;
 use crate::support::*;
 use exec_testkit::script::{Script, Turn};
+use exec_testkit::tap::Seen;
+use std::time::{Duration, Instant};
 use t3_contracts::history::Cursor;
 
 pub(crate) fn said(text: &str) -> String {
@@ -39,12 +41,26 @@ fn a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_th
         chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello from the model")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         assert_eq!(success(&phone.call(case, &chain, &["rpc:server.probe"], "server.probe", json!({}))), &json!({}));
-        phone.stream(case, &chain, &["rpc:subscribeServerConfig"], "subscribeServerConfig", json!({}));
+        let (_, config) = phone.stream(case, &chain, &["rpc:subscribeServerConfig"], "subscribeServerConfig", json!({}));
+        let expected_instances = json!({
+            "opencode": {"driver": "opencode", "enabled": true},
+            "claudeAgent": {"driver": "claudeAgent", "enabled": true},
+            "codex": {"driver": "codex", "enabled": true},
+        });
+        assert_eq!(config[0]["config"]["settings"]["providerInstances"], expected_instances);
+        let config = phone.call(case, &chain, &["rpc:server.getConfig"], "server.getConfig", json!({}));
+        assert_eq!(success(&config)["settings"]["providerInstances"], expected_instances);
         phone.stream(case, &chain, &["rpc:subscribeServerLifecycle"], "subscribeServerLifecycle", json!({}));
         phone.seed(case, &chain);
         let (_, shell) = phone.stream(case, &chain, &["rpc:orchestration.subscribeShell"], "orchestration.subscribeShell", json!({}));
         assert_eq!((shell[0]["snapshot"]["projects"][0]["id"].as_str(), shell[0]["snapshot"]["threads"][0]["id"].as_str()), (Some("p1"), Some("t1")));
+        let before_watch = chain.tap.mark();
         let (thread_stream, _) = phone.stream(case, &chain, &["rpc:orchestration.subscribeThread"], "orchestration.subscribeThread", json!({"threadId": "t1"}));
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !chain.tap.since(before_watch).iter().any(|hit| matches!(hit, Seen::Agent { method, ok: true, .. } if method == "thread.subscribe")) {
+            assert!(Instant::now() < deadline, "Claude receipt watcher did not subscribe: {}", chain.evidence());
+            std::thread::sleep(Duration::from_millis(5));
+        }
         // When the phone sends a message and the run it starts ends
         let projection = phone.message(case, &chain, "t1", "c-m1", "make a note");
         // Then the file is in the repository, written by the CLI running at the workspace host, and not in the directory the service runs from

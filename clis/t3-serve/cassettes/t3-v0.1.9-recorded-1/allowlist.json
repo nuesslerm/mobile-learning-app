@@ -88,6 +88,7 @@
     }
   ],
   "shapeOnly": [
+    { "path": "settings.providerInstances", "reason": "The provider instance catalog reflects the drivers installed on the executor. The T3 chain checks the complete catalog for its scripted executor.", "phase": "RCA mobile" },
     {
       "path": "providers",
       "reason": "the provider list is this server's own",
