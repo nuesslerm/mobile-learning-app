@@ -64,6 +64,8 @@ Reuse the row's fresh workspace after its Python tests. Keep these prompts read-
 
 Keep a result for every operation in every row. Record the thread and turn IDs, the selected model, and the screenshot or event sequence that supports the result. Label a device action separately from an adapter RPC and a CLI tool trace. If a turn returns slowly or a send times out, look up the turn and queue by ID before retrying.
 
+For the detached completion variant, give the bounded shell fixture a unique case ID and a release file. Ask Claude to launch it with `run_in_background: true` and finish the turn immediately. Match the provider task ID in the launch output, wait for `turn.finished`, and reopen the thread while the owned PID is still running. Create the release file and verify one completion receipt with the same task ID and turn ID. Record the receipt's journal sequence, the app's rendered tool details, the actual stdout marker, and the queue before and after release. Check app rendering and stdout separately. A provider completion summary can arrive before the app shows any command stdout.
+
 ## Parity regression cases
 
 Use the case IDs and Given/When/Then steps in [the parity case manifest](rca-mobile-parity.json). Compare with [observed results](rca-mobile-parity-results.md) before assigning a gap to the client, adapter, or provider. Run each relevant case on both apps and use the three providers wherever the case exercises provider behavior.

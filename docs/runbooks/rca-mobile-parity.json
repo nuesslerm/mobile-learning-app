@@ -58,8 +58,8 @@
       "id": "child-and-background",
       "priority": 1,
       "given": "A real provider supports a native child agent and a bounded background command in the test worktree.",
-      "when": ["Launch the child and background command through the native composer.", "Navigate away and reopen the parent before releasing completion.", "Repeat with a fresh child or command and cancel where the app exposes cancellation."],
-      "then": ["The child reports the fixture's line count and the command's actual stdout reaches the parent.", "The app restores activity and final status.", "A cancelled fixture PID exits and emits no completion marker."],
+      "when": ["Launch the child and background command through the native composer.", "For a detached command, wait for the parent turn to finish and reopen the thread before releasing the worker.", "Repeat with a fresh child or command and cancel where the app exposes cancellation."],
+      "then": ["The child reports the fixture's line count and the command's actual stdout reaches the parent.", "A detached completion receipt appears once on the original turn and survives reopen. The queue stays unchanged and no new turn starts.", "The app restores activity and final status.", "A cancelled fixture PID exits and emits no completion marker."],
       "fixture": "read-only line-count file and stoppable bounded background job"
     },
     {

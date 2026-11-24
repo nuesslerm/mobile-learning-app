@@ -12,6 +12,7 @@ use agent_api_agent::{code, message, FinishReason, MessageAttachment, Role, Stat
 use agent_api_proto::Event;
 use crate::gateway::{NoGateway, TurnGateway};
 use crate::host::CliLauncher;
+use rca_cli_driver::application::claude_sessions::ClaudeSessions;
 use rca_cli_driver::application::sessions::Sessions;
 use rca_cli_driver::application::ports::SessionDriver;
 use rca_cli_driver::domain::{Driver, ToolServer, TurnRequest, Verdict};
@@ -174,7 +175,23 @@ impl Runner {
 
     /// A runner whose turns go through `gateway` when it routes them.
     pub fn with_gateway(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, launcher: Arc<dyn CliLauncher>, mcp: Arc<dyn McpEndpoint>, gateway: Arc<dyn TurnGateway>) -> Arc<Runner> {
-        let runner = Arc::new_cyclic(|me| Runner { engine, executors, sessions: Arc::new(Sessions::default()), mcp, launcher, mcp_tokens: Default::default(), gateway, in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), edit_holds: Default::default(), me: me.clone() });
+        let journal = engine.clone();
+        let claude = ClaudeSessions::reporting_tasks(move |thread, task| {
+            let call = format!("claude-task:{}:{}:{}", task.turn, task.provider_run.as_deref().unwrap_or_default(), task.id);
+            let events = [
+                ThreadEvent::ToolStarted { call: call.clone(), tool: "Background task".into(), args: serde_json::json!({"taskId": task.id}) },
+                ThreadEvent::ToolOutput { call: call.clone(), stream: agent_api_agent::OutputStream::Stdout, data: task.summary },
+                ThreadEvent::ToolFinished { call, ok: task.status == "completed", result: serde_json::json!({"status": task.status}) },
+            ];
+            for event in events {
+                if let Err(error) = journal.record(thread, Some(&task.turn), event) {
+                    tracing::warn!(event = "claude.task_completion_record_failed", thread, turn = %task.turn, error = %error.0);
+                    break;
+                }
+            }
+        });
+        let sessions = Arc::new(Sessions { claude, ..Sessions::default() });
+        let runner = Arc::new_cyclic(|me| Runner { engine, executors, sessions, mcp, launcher, mcp_tokens: Default::default(), gateway, in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), edit_holds: Default::default(), me: me.clone() });
         let me = Arc::downgrade(&runner);
         runner.engine.on_settled(Arc::new(move |thread| {
             if let Some(runner) = me.upgrade() {

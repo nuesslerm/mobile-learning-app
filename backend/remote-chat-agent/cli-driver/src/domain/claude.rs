@@ -6,6 +6,33 @@ use super::translate::ExecEvent;
 use serde_json::{json, Value};
 use std::collections::HashSet;
 
+#[derive(PartialEq, Eq, Hash)]
+pub(crate) struct TaskId {
+    pub task: String,
+    pub run: Option<String>,
+}
+
+pub(crate) enum TaskFrame {
+    Started(TaskId),
+    Finished { id: TaskId, status: String, summary: String },
+}
+
+pub(crate) fn task_frame(frame: &Value) -> Option<TaskFrame> {
+    if frame["type"] != "system" {
+        return None;
+    }
+    let id = || Some(TaskId { task: frame["task_id"].as_str()?.to_string(), run: frame["run_id"].as_str().map(str::to_string) });
+    match frame["subtype"].as_str()? {
+        "task_started" if frame["is_backgrounded"] == true => Some(TaskFrame::Started(id()?)),
+        "task_notification" => {
+            let status = frame["status"].as_str()?;
+            matches!(status, "completed" | "failed" | "stopped").then_some(())?;
+            Some(TaskFrame::Finished { id: id()?, status: status.to_string(), summary: frame["summary"].as_str()?.to_string() })
+        }
+        _ => None,
+    }
+}
+
 /// The permission mode of the CLI for a turn: a plan only plans, the mode that asks has the CLI ask (as a `can_use_tool` request the session
 /// hands to the person), the mode that accepts edits asks for the rest, and full access never asks.
 pub fn permission_mode(req: &TurnRequest) -> &'static str {
