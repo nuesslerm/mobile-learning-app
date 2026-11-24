@@ -64,6 +64,8 @@ serde_json = { version = "1", features = ["preserve_order"] }
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 
 [dev-dependencies]
+telemetry = { version = "0.1", registry = "mla", features = ["service"] }
+tracing = "0.1"
 toml = { version = "0.8", default-features = false, features = ["parse"] }
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 orca-serve = { path = ".", features = ["testing"] }

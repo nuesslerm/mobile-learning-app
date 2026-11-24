@@ -203,3 +203,4 @@ repomix-output.md
 # the runner's kept checkout still holds the record older e2e jobs tee'd here (they write it under RUNNER_TEMP now)
 /e2e-tests.jsonl
 .superpowers/
+/.performance/

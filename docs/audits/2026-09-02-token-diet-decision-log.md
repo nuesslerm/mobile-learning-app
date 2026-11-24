@@ -3458,3 +3458,5 @@ Run live over SSH into `agent-shell-sessions` (the machine-only e2e identity fro
 - 24 Nov, encrypted EAS source maps (n=1, no model). With the network publish doubled, archiving the 20,630,792-byte iOS map took 0.29 s and produced 6,542,052 bytes. Authenticating, decompressing, and parsing it through `wf android stack` took 0.18 s locally. A thrown exception from a minified Expo bundle resolved to its original TypeScript line. Keep gzip before encryption and retain only encrypted maps in the CI archive.
 
 - 24 Nov, masked iOS reference comparison (one flow run, no model). The comparison flow took 2.48 s. One differing pixel among 16 scored pixels failed a 5% budget and passed at 6.25%. Keep the explicit budget and reject fully masked frames.
+
+- 24 Nov, RCA protocol performance tracing (macOS arm64 debug, one local run, 30 iterations per client). Opening a 4 KiB file through the Orca artifact protocol took 74.4 ms p95. Listing and reading it through T3 took 146.8 ms p95. SQLite held all 180 parent and child spans in 92 KiB. Keep trace capture local and compare hosted runs against a separate pinned runner baseline.

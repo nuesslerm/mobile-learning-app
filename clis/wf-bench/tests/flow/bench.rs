@@ -64,7 +64,7 @@ fn repo_bench_cli_times_every_startup_target_of_a_binary_and_counts_the_reposito
     std::fs::create_dir_all(tree.join("node_modules/pkg/lib")).unwrap();
     std::fs::write(tree.join("node_modules/pkg/lib/a.js"), "").unwrap();
     std::fs::write(tree.join("node_modules/pkg/package.json"), "").unwrap();
-    let r = run_wf(&["bench", "cli", "--runs", "1"], &RunOpts::default().cwd(&tree).env("WF_BIN", "/bin/true"));
+    let r = run_wf(&["bench", "cli", "--runs", "1"], &RunOpts::default().cwd(&tree).env("WF_BIN", "true"));
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
     // pkg, pkg/lib, pkg/lib/a.js, pkg/package.json
     assert!(r.stdout.contains("bundle alpha/index.js: 1.00 MB\n") && !r.stdout.contains("beta") && r.stdout.ends_with("node_modules files: 4\n"), "{}", r.stdout);
@@ -239,4 +239,35 @@ fn repo_bench_cold_starts_the_lab_apk_on_the_android_lab_device_through_the_vm()
     vm.replies(&replies);
     let r = lab.bench(&["android", "--runs", "1"], &[("WF_TAILNET_SOCKS", &vm.tailnet.address()), ("VM_OPS_API_AUTH_TOKEN", wf_vmops::testing::VM_SEED), ("VM_GATEWAY_REQUEST_SIGNING_PRIVATE_KEY", &vm.private_one_line)]);
     assert!(r.exit_code != 0 && format!("{}{}", r.stdout, r.stderr).contains("did not log") && format!("{}{}", r.stdout, r.stderr).contains("Activity class"), "{}{}", r.stdout, r.stderr);
+}
+
+#[test]
+fn given_a_pinned_latency_when_later_traces_slow_or_disappear_then_the_gate_fails_and_history_survives() {
+    let dir = tempfile::tempdir().unwrap();
+    let budgets = dir.path().join("budget.json");
+    let db = dir.path().join("history.sqlite");
+    std::fs::write(&budgets, r#"{"suite":"fixture-v1","min_samples":1,"p95_ms":{"read":100}}"#).unwrap();
+    let emit = r#"import json,os,sys,urllib.request
+span = dict(traceId="a"*32, spanId="b"*16, name="read", startTimeUnixNano="1", endTimeUnixNano=str(1+int(sys.argv[1])*1000000))
+payload = {"resourceSpans":[{"scopeSpans":[{"spans":[span]}]}]}
+url = os.environ["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"]
+urllib.request.urlopen(urllib.request.Request(url,json.dumps(payload).encode(),{"Content-Type":"application/json"})).read()"#;
+    let measure = |program: &[&str]| {
+        let mut args = vec!["bench", "trace", "--db", db.to_str().unwrap(), "--budgets", budgets.to_str().unwrap(), "--"];
+        args.extend_from_slice(program);
+        run_wf(&args, &RunOpts::default())
+    };
+    let first = measure(&["python3", "-c", emit, "10"]);
+    assert_eq!(first.exit_code, 0, "{}", first.stderr);
+    let slow = measure(&["python3", "-c", emit, "16"]);
+    assert_eq!(slow.exit_code, 1, "{}", slow.stderr);
+    let summary: Value = serde_json::from_str(&slow.stdout).unwrap();
+    assert_eq!(summary["metrics"][0]["budget_ms"], 15.0);
+    let absent = measure(&["true"]);
+    assert_eq!(absent.exit_code, 1);
+    assert_eq!(serde_json::from_str::<Value>(&absent.stdout).unwrap()["metrics"][0]["samples"], 0);
+    let merged = dir.path().join("merged.sqlite");
+    let import = run_wf(&["bench", "trace", "--db", merged.to_str().unwrap(), "--merge", db.to_str().unwrap(), db.to_str().unwrap()], &RunOpts::default());
+    assert_eq!(import.exit_code, 0, "{}", import.stderr);
+    assert_eq!(serde_json::from_str::<Value>(&import.stdout).unwrap()["runs"], 3);
 }

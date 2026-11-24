@@ -20,6 +20,7 @@ const SUITES: [&str; 5] = ["build", "memory", "runtime", "startup", "android"];
 const USAGE: &str = "wf bench <command> [options]
 
 Commands:
+  trace --budgets <json> [--db <sqlite>] [--send] -- <command>   Capture benchmark spans and check p95
   build | memory | runtime | startup | android   Run one suite (android boots a slim redroid on the VM and removes it)
     --runs <n>               Runs to take the median over (default: the scenario's)
     --record <mode>          initial | current | both | none (default: none). \"both\" adds the metrics the initial block lacks and replaces current

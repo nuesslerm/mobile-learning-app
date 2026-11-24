@@ -1,0 +1,12 @@
+{
+  "suite": "rca-hosts-file-4k-v1",
+  "min_samples": 30,
+  "p95_ms": {
+    "orca.artifact.open": 750,
+    "orca.artifact.resolve": 400,
+    "orca.artifact.read": 400,
+    "t3.project.open": 750,
+    "t3.project.list": 400,
+    "t3.project.read": 400
+  }
+}
