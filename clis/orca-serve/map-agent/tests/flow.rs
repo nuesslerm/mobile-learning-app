@@ -1564,6 +1564,25 @@ fn given_a_pasted_image_when_saved_as_a_temp_file_then_it_is_kept_and_staged_in_
 }
 
 #[test]
+fn given_a_clipboard_photo_when_sent_to_a_structured_chat_then_the_chat_receives_its_attachment() {
+    // Given a photo picked by the mobile composer and saved to a temporary file
+    let mut rig = Rig::new();
+    rig.idle("claude_a");
+    let path = rig.ok("clipboard.saveImageAsTempFile", json!({"contentBase64": STANDARD.encode(PNG)}));
+    // When the structured composer sends the returned path
+    let params = |op, path| json!({"envelope": env("claude_a", op, "fp"), "body": {"blocks": [{"type": "text", "text": "what is this"}, {"type": "image-ref", "path": path}]}});
+    let sent = rig.ok("agentSession.send", params("photo", path.clone()));
+    // Then the upload is delivered to the turn and can also be read for a preview
+    assert_eq!(sent["ok"], true);
+    let turn = rig.agent.requests().into_iter().find(|(method, _)| method == "turn.start").unwrap().1;
+    assert_eq!(turn["attachments"][0], rig.agent.requests().into_iter().find(|(method, _)| method == "upload.put").unwrap().1["id"]);
+    let preview = rig.ok("files.readChatImage", json!({"path": path, "worktree": "main"}));
+    assert_eq!(preview["content"], STANDARD.encode(PNG));
+    // A different path does not refer to the stored upload
+    assert_eq!(rig.err("agentSession.send", params("unknown", json!(format!("{}.png", path.as_str().unwrap())))).1, "Image path is not an attachment of this host");
+}
+
+#[test]
 fn given_an_image_uploaded_in_chunks_when_committed_then_it_keeps_the_picked_name_and_each_wrong_step_is_the_hosts_refusal() {
     // Given an upload of a picked photo started and sent in two chunks of base64
     let mut rig = Rig::new();

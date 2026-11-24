@@ -200,6 +200,7 @@ fn write(agent: &dyn AgentApi, bytes: &[u8], connection: Option<&str>, picked: O
     ask(agent, UPLOAD_PUT.name(), json!({"id": id, "name": name, "mime_type": mime(detected), "kind": "image", "data": base64::engine::general_purpose::STANDARD.encode(bytes)}))?;
     let staged = ask(agent, STAGE.name(), json!({"workspace": root.workspace, "ids": [id], "temp": true}))?;
     let path = staged["files"][0]["path"].as_str().ok_or_else(|| plain("attachment.stage answered no path"))?;
+    crate::attach::remember_staged_image(agent, path, &id, &name)?;
     Ok(json!(path))
 }
 

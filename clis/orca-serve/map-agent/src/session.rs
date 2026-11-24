@@ -52,7 +52,7 @@ pub(crate) fn agent_session_id(params: &Value) -> Result<&str, Failure> {
 }
 
 /// The text of a send body and the attachment ids of its `image-ref` blocks, in order.
-pub(crate) fn body_parts(body: &Value) -> Result<(String, Vec<String>), Failure> {
+pub(crate) fn body_parts(agent: &dyn AgentApi, body: &Value) -> Result<(String, Vec<String>), Failure> {
     let blocks = body["blocks"].as_array().ok_or_else(|| Failure::invalid("Invalid message body"))?;
     let mut texts = Vec::new();
     let mut images = Vec::new();
@@ -63,7 +63,7 @@ pub(crate) fn body_parts(body: &Value) -> Result<(String, Vec<String>), Failure>
             _ => return Err(Failure::invalid("Invalid message body")),
         }
     }
-    Ok((texts.join("\n"), crate::attach::image_ids(&images)?))
+    Ok((texts.join("\n"), crate::attach::image_ids(agent, &images)?))
 }
 
 pub(crate) fn submission(client_message_id: &str, fingerprint: &str) -> Value {
@@ -136,7 +136,7 @@ pub(crate) fn send(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failur
     if let Some(done) = lookup(agent, &env)? {
         return Ok(done);
     }
-    let (prompt, images) = body_parts(&params["body"])?;
+    let (prompt, images) = body_parts(agent, &params["body"])?;
     let thread = view(agent, &env.session)?;
     let running = thread["status"] == "running";
     let model = params["options"]["model"].as_str().or_else(|| params["selection"]["model"].as_str());
@@ -191,7 +191,7 @@ pub(crate) fn create(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
     let mut first = None;
     if let Some(message) = params.get("firstMessage").filter(|m| m.is_object()) {
         let id = text(message, "clientMessageId").ok_or_else(|| Failure::invalid("Invalid client message id"))?;
-        let (first_text, first_images) = body_parts(&message["body"])?;
+        let (first_text, first_images) = body_parts(agent, &message["body"])?;
         match start_turn(agent, &env.session, &first_text, &first_images, model, &thread)? {
             Started::Turn => first = Some(submission(id, &env.fingerprint)),
             Started::Refused(r) => return Ok(r),

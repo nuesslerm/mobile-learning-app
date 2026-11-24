@@ -1,6 +1,6 @@
 ---
 title: rca-mobile-agent-work - exercise all six mobile app and provider combinations
-verifies: Each provider can start from dev in a fresh workspace through T3 Code and Orca Mobile, edit and test a small service, and deliver a GitHub PR whose merge commit passes dev CI.
+verifies: Each provider can start from dev through T3 Code and Orca Mobile, deliver a tested PR, and handle interactive agent work in the app.
 tier: runbook
 ---
 
@@ -49,3 +49,15 @@ Replace the branch and directory with the values for the row.
 > Work in this fresh `dev`-based workspace on branch `BRANCH` in the Mobile Learning App repository. Inside `DIRECTORY`, build a tiny Python standard-library HTTP server that binds to loopback. Give it a JSON `GET /healthz` endpoint and return 404 for an unknown path. Add tests that make real HTTP requests against an ephemeral port, plus a short README with the exact commands. Run the tests locally. Change files only inside `DIRECTORY`. Commit and push the branch and open a GitHub PR against `dev`. Describe the change and include the actual test command and result. Report the test result and the PR URL in this chat. Leave merging to the operator.
 
 When a row stops early, record which screen or operation failed, the exact error, the time, and the checked-out revision. Treat a standalone API response as diagnostic evidence. The matrix requires a prompt and reply through the native app for each row.
+
+## Run the interaction checks
+
+Reuse the row's fresh workspace after its Python tests. Keep these prompts read-only. Use a unique marker per app, provider, and operation so replies and tool output can be matched to their turns.
+
+1. **Model switching.** In the same thread, send a short prompt with the first model. Choose a different model in the app, send a second prompt, and check the provider's turn metadata or CLI log for the effective model. Record a single-model catalog or a rejected provider credential as a blocker for this check.
+2. **Media.** Import two synthetic PNGs into simulator Photos, each with two distinct color blocks. Attach both in the app and ask the agent to report the left and right colors of each in attachment order. Compare the reply to the images. Record how the app renders the sent attachments and screenshots of the reply.
+3. **Skills.** Type `/` in the workspace composer. Select an installed project skill and ask the agent to apply it to a read-only check, such as verifying a reported Python test command. Capture the menu, the agent's skill load or tool request, and the result of the check. Catalog discovery and skill execution are separate checks.
+4. **Subagent and background task.** Ask the CLI to start a native subagent that counts lines in the row's `server.py` and returns the count. Ask the parent to start a background task that sleeps for 60 seconds and prints your background marker. Have the parent collect the result. Verify the subagent invocation, the task output, and the exit status or the provider's completion event. Record whether the app displayed child activity.
+5. **Steer and queue.** Once the provider is active in step 4, send a message to add a steer marker to the active turn's report. Use the app's steer control or promote a queued message to steer. Then queue a separate message with a different marker and leave it waiting. Record `turn.steered`, the first report, and `queue.started` after the original `turn.finished`. Verify that the queued prompt runs once and that its reply contains only its own marker. To exercise queued model selection, choose the second model before queuing and check the effective model when the queued turn starts.
+
+Keep a result for every operation in every row. Record the thread and turn IDs, the selected model, and the screenshot or event sequence that supports the result. Label a device action separately from an adapter RPC and a CLI tool trace. If a turn returns slowly or a send times out, look up the turn and queue by ID before retrying.
