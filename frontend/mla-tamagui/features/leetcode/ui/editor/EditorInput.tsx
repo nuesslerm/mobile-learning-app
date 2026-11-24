@@ -500,7 +500,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         gutterColor,
         borderColor,
         tabSize,
-        ...(canvas ? { noAutoFocus: true, syntaxPalette } : {}),
+        ...(canvas ? { noAutoFocus: true, surface: 'canvas' as const, syntaxPalette } : {}),
       }),
       [
         fontSize,

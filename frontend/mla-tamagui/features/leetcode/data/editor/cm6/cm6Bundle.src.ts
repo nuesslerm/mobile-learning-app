@@ -172,6 +172,7 @@ function parseEditorConfig(value: unknown): EditorConfig | null {
   return {
     initialText,
     noAutoFocus: value.noAutoFocus === true,
+    ...(value.surface === 'canvas' ? { surface: 'canvas' as const } : {}),
     syntaxPalette: value.syntaxPalette === 'contrast' ? 'contrast' : 'default',
     isDark: value.isDark,
     fontSize,
@@ -252,6 +253,7 @@ const contrastHighlight = HighlightStyle.define([
 
 function buildConfigExtensions(cfg: EditorConfig) {
   const contrast = cfg.isDark && cfg.syntaxPalette === 'contrast';
+  const canvas = cfg.surface === 'canvas';
   const theme = EditorView.theme(
     {
       '&': {
@@ -263,11 +265,11 @@ function buildConfigExtensions(cfg: EditorConfig) {
         ...(contrast ? { color: '#F1F1F4' } : {}),
       },
       '.cm-content': {
-        padding: '12px 0',
+        padding: canvas ? '2px 0 12px' : '12px 0',
         caretColor: cfg.cursorColor,
       },
       '.cm-line': {
-        padding: '0 12px',
+        padding: canvas ? '0 2px 0 10px' : '0 12px',
       },
       '.cm-scroller': {
         fontFamily: "'Menlo', 'Courier New', monospace",
@@ -289,7 +291,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
       },
       '.cm-lineNumbers .cm-gutterElement': {
         padding: '0 8px 0 4px',
-        minWidth: '28px',
+        minWidth: canvas ? '40px' : '28px',
       },
       '&.cm-focused': {
         outline: 'none',

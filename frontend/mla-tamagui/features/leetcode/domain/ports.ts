@@ -115,6 +115,7 @@ export type EditorConfig = {
   borderColor: string;
   tabSize: number;
   noAutoFocus?: boolean;
+  surface?: 'canvas';
   syntaxPalette?: 'default' | 'contrast';
 };
 
