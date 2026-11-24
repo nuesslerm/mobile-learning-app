@@ -112,7 +112,7 @@ impl TranscriptResult {
             let Ok(kind) = ThreadEvent::from_event(event) else { continue };
             let (seq, turn) = (event.seq, event.turn.clone());
             match kind {
-                ThreadEvent::MessageDelta { role, text } => match items.last_mut() {
+                ThreadEvent::MessageDelta { role, text, .. } => match items.last_mut() {
                     Some(TranscriptItem::Message { turn: t, role: r, text: body, .. }) if *t == turn && *r == role => body.push_str(&text),
                     _ => items.push(TranscriptItem::Message { seq, turn, role, text }),
                 },
@@ -189,8 +189,8 @@ mod tests {
             at(1, "u1", ThreadEvent::TurnStarted {}),
             at(2, "u1", ThreadEvent::ReasoningDelta { text: "look ".into() }),
             at(3, "u1", ThreadEvent::ReasoningDelta { text: "first".into() }),
-            at(4, "u1", ThreadEvent::MessageDelta { role: Role::Assistant, text: "Rea".into() }),
-            at(5, "u1", ThreadEvent::MessageDelta { role: Role::Assistant, text: "ding".into() }),
+            at(4, "u1", ThreadEvent::message_delta(Role::Assistant, "Rea".into())),
+            at(5, "u1", ThreadEvent::message_delta(Role::Assistant, "ding".into())),
             at(6, "u1", ThreadEvent::ToolStarted { call: "c1".into(), tool: "run_command".into(), args: json!({"command": "ls"}) }),
             at(7, "u1", ThreadEvent::ToolOutput { call: "c1".into(), stream: OutputStream::Stdout, data: "a\n".into() }),
             at(8, "u1", ThreadEvent::ToolOutput { call: "c1".into(), stream: OutputStream::Stdout, data: "b\n".into() }),
@@ -202,7 +202,7 @@ mod tests {
             at(14, "u1", ThreadEvent::Usage(crate::events::Usage { input_tokens: 1, output_tokens: 1, cache_read_tokens: None })),
             at(15, "u1", ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None }),
             at(16, "u2", ThreadEvent::TurnStarted {}),
-            at(17, "u2", ThreadEvent::MessageDelta { role: Role::Assistant, text: "Again".into() }),
+            at(17, "u2", ThreadEvent::message_delta(Role::Assistant, "Again".into())),
             at(18, "u2", ThreadEvent::Error { code: "RATE_LIMITED".into(), message: "slow down".into() }),
         ];
         // When folded

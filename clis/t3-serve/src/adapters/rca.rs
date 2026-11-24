@@ -253,8 +253,8 @@ pub fn agent_event(event: &Event) -> Result<AgentEvent, AgentError> {
     let read = ThreadEvent::from_event(event).map_err(|e| AgentError::Failed(format!("rca sent an event this t3 serve cannot read: {}", e.0)))?;
     let kind = match read {
         ThreadEvent::TurnStarted {} => AgentEventKind::TurnStarted,
-        ThreadEvent::MessageDelta { role: Role::User, text } => AgentEventKind::UserText(text),
-        ThreadEvent::MessageDelta { role: Role::Assistant, text } => AgentEventKind::Text(text),
+        ThreadEvent::MessageDelta { role: Role::User, text, .. } => AgentEventKind::UserText(text),
+        ThreadEvent::MessageDelta { role: Role::Assistant, text, .. } => AgentEventKind::Text(text),
         ThreadEvent::ReasoningDelta { text } => AgentEventKind::Reasoning(text),
         ThreadEvent::ToolStarted { call, tool, args } => AgentEventKind::ToolStarted { id: call, name: tool, input: args },
         ThreadEvent::ToolOutput { call, data, .. } => AgentEventKind::ToolOutput { id: call, data },

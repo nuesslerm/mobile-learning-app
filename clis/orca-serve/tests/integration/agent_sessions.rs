@@ -371,15 +371,29 @@ fn an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_re
         assert_eq!(aborted["result"], json!({"aborted": true}));
         let gone = phone.refused(case, &chain, &["rpc:agentSessionAttachment.uploadAppend"], "agentSessionAttachment.uploadAppend", json!({"uploadId": spare["result"]["uploadId"], "offset": 0, "contentBase64": b64(b"0123456789")}));
         assert_eq!(gone["error"]["message"], "Attachment upload was not found");
-        // When a message names the image
+        // Given a second committed image with different bytes.
+        let second = phone.call(case, &chain, &[], "agentSessionAttachment.uploadStart", json!({"sessionId": s, "name": "another.png", "byteLength": 3}));
+        let second_upload = &second["result"]["uploadId"];
+        phone.call(case, &chain, &[], "agentSessionAttachment.uploadAppend", json!({"uploadId": second_upload, "offset": 0, "contentBase64": b64(b"two")}));
+        let second_path = phone.call(case, &chain, &[], "agentSessionAttachment.uploadCommit", json!({"uploadId": second_upload}))["result"]["path"].clone();
+        // When the phone sends both and a fresh connection reads the chat.
         let id = path.split('/').nth(3).unwrap().to_string();
-        phone.call_settled(case, &chain, &["rpc:agentSession.send"], "agentSession.send", json!({"envelope": env(s, "s1"), "body": {"blocks": [{"type": "text", "text": "what is this"}, {"type": "image-ref", "path": path}]}}), |_| {
+        phone.call_settled(case, &chain, &["rpc:agentSession.send"], "agentSession.send", json!({"envelope": env(s, "s1"), "body": {"blocks": [{"type": "text", "text": "what is this"}, {"type": "image-ref", "path": path}, {"type": "image-ref", "path": second_path}]}}), |_| {
             rca.wait_events(s, "turn.finished", 1);
         });
         // Then rca-exec staged the image in the workspace under the upload's id, byte for byte, and the live CLI was sent the text
         let staged = chain.repo.path().join(format!(".rca/attachments/{id}/shot.png"));
         assert_eq!(std::fs::read(&staged).unwrap_or_else(|e| panic!("{}: {e}\n{}", staged.display(), chain.evidence())), png);
         assert!(chain.cli.claude_prompts("claude").iter().any(|sent| sent.contains("what is this")), "{:?}", chain.cli.claude_prompts("claude"));
+        // And the replayed user message retains both image blocks in order and both paths still read back the original bytes.
+        let mut reopened = Phone::connect(case, &chain);
+        let page = tail(&mut reopened, case, &chain, s);
+        let message = items(&page).into_iter().find(|i| i["body"]["role"] == "user").unwrap();
+        assert_eq!(message["body"]["blocks"], json!([{"type": "text", "text": "what is this"}, {"type": "image-ref", "path": path}, {"type": "image-ref", "path": second_path}]));
+        for (block, expected) in message["body"]["blocks"].as_array().unwrap()[1..].iter().zip([png.as_slice(), b"two"]) {
+            let preview = reopened.call(case, &chain, &[], "files.readChatImage", json!({"worktree": format!("id:{WS}::"), "path": block["path"]}));
+            assert_eq!(decode(&preview), expected);
+        }
     });
 }
 

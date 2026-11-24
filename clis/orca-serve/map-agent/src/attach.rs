@@ -312,6 +312,15 @@ pub(crate) fn read_text_chunk(agent: &dyn AgentApi, params: &Value) -> Result<Va
     Ok(json!({"size": size, "snapshot": snapshot, "contentBase64": STANDARD.encode(&bytes), "bytesRead": read, "eof": offset + read == size}))
 }
 
+pub(crate) fn image_block(attachment: &Value) -> Option<Value> {
+    let id = attachment["id"].as_str()?;
+    let name = attachment["name"].as_str()?;
+    orca_map_workspace::image_mime(name)?;
+    let path = store_path(id, name);
+    parse_path(&path)?;
+    Some(json!({"type": "image-ref", "path": path}))
+}
+
 /// Attachment ids from the store or from a photo staged by the clipboard upload.
 pub(crate) fn image_ids(agent: &dyn AgentApi, blocks: &[&Value]) -> Result<Vec<String>, Failure> {
     blocks

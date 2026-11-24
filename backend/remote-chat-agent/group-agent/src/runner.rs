@@ -7,7 +7,7 @@ use crate::requests::Waiting;
 use crate::turns::{Claim, InFlight, TurnTask};
 use agent_api_agent::lifecycle::LifecycleEvent;
 use agent_api_agent::queue::QueueItem;
-use agent_api_agent::{code, message, FinishReason, Role, Status, ThreadEvent, ThreadView};
+use agent_api_agent::{code, message, FinishReason, MessageAttachment, Role, Status, ThreadEvent, ThreadView};
 use agent_api_proto::Event;
 use crate::gateway::{NoGateway, TurnGateway};
 use crate::host::CliLauncher;
@@ -61,6 +61,7 @@ pub struct Prepared {
     request: TurnRequest,
     /// What the person said, as the log records it.
     said: String,
+    attachments: Vec<MessageAttachment>,
     merge: Option<(String, String)>,
 }
 
@@ -75,8 +76,12 @@ impl Prepared {
         self.request.prompt = with_context(self.merge.as_ref(), prompt);
     }
 
-    /// Tells the CLI, after the prompt, which files of the workspace the person attached; the log still records only what the person said.
-    pub fn note_files(&mut self, paths: &[String]) {
+    /// Tells the CLI where the attachments were staged and keeps their references for message history.
+    pub fn note_files(&mut self, ids: &[String], paths: &[String]) {
+        self.attachments = ids.iter().zip(paths).filter_map(|(id, path)| {
+            let (_, name) = path.rsplit_once('/')?;
+            Some(MessageAttachment { id: id.clone(), name: name.to_string() })
+        }).collect();
         let list: String = paths.iter().map(|p| format!("\n- {p}")).collect();
         self.request.prompt = format!("{}\n\nFiles attached to this message, in the workspace:{list}", self.request.prompt);
     }
@@ -96,9 +101,9 @@ impl Prepared {
     /// Records the turn's start and its prompt, and runs its CLI; the turn is followed on a task of its own. A CLI that cannot start ends the turn
     /// failed, in the log, as one that fails after it began does.
     pub async fn launch(self) -> Result<String, Refusal> {
-        let Prepared { runner, thread, turn, driver, channel, workspace, claim, request, said, merge } = self;
+        let Prepared { runner, thread, turn, driver, channel, workspace, claim, request, said, attachments, merge } = self;
         let recorded = (|| {
-            for event in [ThreadEvent::TurnStarted {}, ThreadEvent::MessageDelta { role: Role::User, text: said }] {
+            for event in [ThreadEvent::TurnStarted {}, ThreadEvent::MessageDelta { role: Role::User, text: said, attachments }] {
                 runner.engine.record(&thread, Some(&turn), event)?;
             }
             if let Some((source, _)) = &merge {
@@ -280,7 +285,7 @@ impl Runner {
             tools: (driver == Driver::ClaudeAgent).then(|| ToolServer { url: self.mcp_url(thread), token: self.mcp_token(thread) }),
         };
         let claim = self.in_flight.claim(thread, &turn).ok_or_else(running)?;
-        Ok(Prepared { runner: Arc::clone(self), thread: thread.to_string(), turn, driver, channel, workspace: input.workspace, claim, request, said: input.prompt, merge })
+        Ok(Prepared { runner: Arc::clone(self), thread: thread.to_string(), turn, driver, channel, workspace: input.workspace, claim, request, said: input.prompt, attachments: Vec::new(), merge })
     }
 
     /// Asks the running turn of `thread` (the one `named`, when one is) to stop, and stops its CLI; the turn ends `interrupted`. None when there is none.
@@ -446,7 +451,7 @@ impl Runner {
         let turn = Some(item.item.as_str());
         for event in [
             ThreadEvent::TurnStarted {},
-            ThreadEvent::MessageDelta { role: Role::User, text: item.prompt.clone() },
+            ThreadEvent::message_delta(Role::User, item.prompt.clone()),
             ThreadEvent::Error { code: why.code.clone(), message: why.message.clone() },
             ThreadEvent::TurnFinished { reason: FinishReason::Failed, cause: None },
         ] {

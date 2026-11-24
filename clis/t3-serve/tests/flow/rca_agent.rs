@@ -105,7 +105,7 @@ fn turning(events: Vec<ThreadEvent>) -> Rca {
             let mut frames = vec![answer(request, json!({"topic": "thread/t1", "after_seq": after, "last_seq": BEFORE}))];
             if started.load(std::sync::atomic::Ordering::SeqCst) {
                 // A late event of an earlier turn comes first: the log has it, and it is not this turn's
-                let log = std::iter::once(event("u8", BEFORE + 1, ThreadEvent::MessageDelta { role: Role::Assistant, text: "from the last turn".into() })).chain(events.iter().enumerate().map(|(i, e)| event(TURN, BEFORE + 2 + i as u64, e.clone())));
+                let log = std::iter::once(event("u8", BEFORE + 1, ThreadEvent::message_delta(Role::Assistant, "from the last turn".into()))).chain(events.iter().enumerate().map(|(i, e)| event(TURN, BEFORE + 2 + i as u64, e.clone())));
                 frames.extend(log.filter(|frame| frame["event"]["seq"].as_u64().unwrap() > after));
             }
             frames
@@ -143,7 +143,7 @@ fn a_turn_is_created_started_and_followed_in_the_contracts_words_and_every_event
     let args = json!({"command": "ls"});
     let events = vec![
         ThreadEvent::TurnStarted {},
-        ThreadEvent::MessageDelta { role: Role::User, text: "say hi".into() },
+        ThreadEvent::message_delta(Role::User, "say hi".into()),
         ThreadEvent::ReasoningDelta { text: "look first".into() },
         ThreadEvent::ToolStarted { call: "c1".into(), tool: "run_command".into(), args: args.clone() },
         ThreadEvent::ToolOutput { call: "c1".into(), stream: OutputStream::Stdout, data: "a.txt\n".into() },
@@ -151,7 +151,7 @@ fn a_turn_is_created_started_and_followed_in_the_contracts_words_and_every_event
         ThreadEvent::ToolFinished { call: "c1".into(), ok: true, result: json!({"exit_code": 0}) },
         ThreadEvent::FileChanged { path: "a.txt".into(), op: agent_api_agent::FileOp::Edit },
         ThreadEvent::Usage(Default::default()),
-        ThreadEvent::MessageDelta { role: Role::Assistant, text: "Done: a.txt".into() },
+        ThreadEvent::message_delta(Role::Assistant, "Done: a.txt".into()),
         ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None },
     ];
     let count = events.len() + 1;

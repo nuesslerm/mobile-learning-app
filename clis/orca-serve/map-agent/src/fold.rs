@@ -123,10 +123,13 @@ pub fn fold(events: &[Value]) -> Folded {
             kind @ ("message.delta" | "reasoning.delta") => {
                 let role = if kind == "reasoning.delta" { "reasoning" } else { e["role"].as_str().unwrap_or("assistant") };
                 let text = e["text"].as_str().unwrap_or_default();
+                let images = || e["attachments"].as_array().into_iter().flatten().filter_map(crate::attach::image_block);
                 match out.items.last_mut() {
                     Some(i) if i.turn == turn && i.body["kind"] == "message" && i.body["role"] == role => {
                         let joined = format!("{}{text}", i.body["blocks"][0]["text"].as_str().unwrap_or_default());
-                        i.body["blocks"] = json!([text_block(&joined)]);
+                        let blocks = i.body["blocks"].as_array_mut().expect("message blocks");
+                        blocks[0] = text_block(&joined);
+                        blocks.extend(images());
                         i.revision = seq;
                     }
                     _ => {
@@ -138,7 +141,8 @@ pub fn fold(events: &[Value]) -> Folded {
                                 t.body["userItemId"] = id.clone().into();
                             }
                         }
-                        out.items.push(Item { id, turn, sequence: seq, revision: seq, body: json!({"kind": "message", "role": role, "blocks": [text_block(text)]}) });
+                        let blocks = std::iter::once(text_block(text)).chain(images()).collect::<Vec<_>>();
+                        out.items.push(Item { id, turn, sequence: seq, revision: seq, body: json!({"kind": "message", "role": role, "blocks": blocks}) });
                     }
                 }
             }

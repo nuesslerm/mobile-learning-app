@@ -54,6 +54,13 @@ pub struct Usage {
     pub cache_read_tokens: Option<u64>,
 }
 
+/// An attachment staged for this message, in user-supplied order.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MessageAttachment {
+    pub id: String,
+    pub name: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum ThreadEvent {
@@ -61,7 +68,12 @@ pub enum ThreadEvent {
     #[serde(rename = "turn.started")]
     TurnStarted {},
     #[serde(rename = "message.delta")]
-    MessageDelta { role: Role, text: String },
+    MessageDelta {
+        role: Role,
+        text: String,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        attachments: Vec<MessageAttachment>,
+    },
     #[serde(rename = "reasoning.delta")]
     ReasoningDelta { text: String },
     /// `call` ties this to the `tool.output` and `tool.finished` of the same call.
@@ -117,6 +129,10 @@ pub const KINDS: [&str; 13] = [
 ];
 
 impl ThreadEvent {
+    pub fn message_delta(role: Role, text: String) -> Self {
+        Self::MessageDelta { role, text, attachments: Vec::new() }
+    }
+
     /// The event's `type`.
     pub fn kind(&self) -> &'static str {
         match self {
@@ -169,7 +185,7 @@ mod tests {
     fn one_of_each() -> Vec<ThreadEvent> {
         vec![
             ThreadEvent::TurnStarted {},
-            ThreadEvent::MessageDelta { role: Role::Assistant, text: "Hi".into() },
+            ThreadEvent::message_delta(Role::Assistant, "Hi".into()),
             ThreadEvent::ReasoningDelta { text: "think".into() },
             ThreadEvent::ToolStarted { call: "c1".into(), tool: "read_file".into(), args: json!({"path": "a.txt"}) },
             ThreadEvent::ToolOutput { call: "c1".into(), stream: OutputStream::Stdout, data: "x".into() },
@@ -206,7 +222,7 @@ mod tests {
     #[test]
     fn given_an_event_when_written_then_its_fields_sit_beside_the_envelope_fields_and_a_field_that_is_none_is_left_out() {
         // Given a text delta and a usage with no cache count
-        let delta = ThreadEvent::MessageDelta { role: Role::Assistant, text: "hi".into() }.into_event("t1", Some("u1"), 12);
+        let delta = ThreadEvent::message_delta(Role::Assistant, "hi".into()).into_event("t1", Some("u1"), 12);
         let usage = ThreadEvent::Usage(Usage { input_tokens: 1, output_tokens: 2, cache_read_tokens: None }).into_event("t1", None, 13);
         // When written, Then the frames are the owner's shape
         assert_eq!(delta.encode(), r#"{"event":{"seq":12,"thread":"t1","turn":"u1","type":"message.delta","role":"assistant","text":"hi"}}"#);

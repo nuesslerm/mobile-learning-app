@@ -77,3 +77,15 @@ The adapter projects the hold after RCA accepts a forced stop and restores it fr
 Use a new Supervised Codex thread on GPT-6.1 Sol. Send a read-only shell command that prints one fixed marker. Wait for Allow once and confirm one pending command request in the paired T3 projection. Seed two distinguishable follow-ups and wait for RCA to list both queue IDs. Restart only the T3 adapter. Confirm the same approval ID and queue IDs, then tap Allow once in T3. RCA recorded one acceptance for that request on the original turn and one stdout event with the expected marker. The original turn and the two queued turns started and completed once in order. T3 showed both follow-up replies, the approval cleared, and the queue emptied.
 
 This passes the forced-disconnect command-approval variant of `reconnect` for T3 with Codex. The equivalent Orca command-approval replay and the full app–provider matrix remain open. The fixture seeds the queue through a paired connection so a harness can run it independently of native queue creation.
+
+## Orca reconnect with a pending command approval
+
+The Orca Codex permission picker showed Host's Agent Permissions as disabled, and a harmless command sent from the composer completed without a prompt under that host default. To exercise approval reconnect without changing host permissions, start one turn with `runtime_mode: approval-required` through RCA in an Orca test chat. Queue two marked follow-ups through the paired adapter. Restart only the Orca adapter, confirm the same approval and queue IDs, then tap Allow in Orca. RCA recorded one matching approval answer and stdout event. Both follow-ups started and finished once in order, and the Orca transcript showed both replies and an empty queue.
+
+This passes the forced-disconnect command-approval variant of `reconnect` on Orca with Codex and an RCA-started fixture. Configuring an approval-required turn from the Orca app remains open.
+
+## Orca photo previews after a cold reopen
+
+Attach the blue/orange swatch first and the green/purple swatch second through Orca's Photos picker. Confirm two composer previews. Send a prompt asking for the colors in order, terminate Orca, relaunch it and reopen the same chat. Codex reported blue, orange, green and purple in order. Both thumbnails rendered after cold reopen. The restored history had two ordered image references. Preview bytes matched the hashes stored by RCA, and the decoded RGB pixels matched the original library images exactly. The uploaded PNGs had different file hashes from the originals.
+
+RCA now includes ordered attachment references in the user message event. Orca uses those references when it rebuilds the transcript. Messages already saved without references have no source for thumbnail replay. The Linux regression failed against the old code and passed after the fix. The Orca agent-session integration suite passed all six cases. This run covers Orca with Codex. T3 photo persistence and the other providers still need native evidence.

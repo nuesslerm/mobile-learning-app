@@ -121,7 +121,7 @@ impl AgentThreadsGroup {
         let mut prepared = self.runner.prepare(&p.thread, &Known::of(&thread), None, input)?;
         prepared.require_cli().await?;
         if let Some(staging) = self.staging.as_ref().filter(|_| !ids.is_empty()) {
-            prepared.note_files(&staging.stage(&p.workspace, &ids).await?);
+            prepared.note_files(&ids, &staging.stage(&p.workspace, &ids).await?);
         }
         let turn = prepared.launch().await?;
         to_value(&StartResult { thread: p.thread, turn })
@@ -374,7 +374,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn given_a_turn_with_attachments_when_started_then_they_are_staged_first_the_cli_is_told_where_and_the_log_keeps_only_what_was_said() {
+    async fn given_a_turn_with_attachments_when_started_then_the_cli_is_told_where_and_the_log_keeps_the_references() {
         // Given a service whose staging answers a path per id, and a thread
         let staging = Arc::new(Staging(Mutex::default(), None));
         let rig = rig_with_staging(staging.clone());
@@ -386,10 +386,12 @@ mod tests {
         // Then staging was asked once, for that workspace and those ids in order
         assert!(started.get("result").is_some(), "{started}");
         assert_eq!(*staging.0.lock().unwrap(), [("w1".to_string(), vec!["a1".to_string(), "a2".to_string()])]);
-        // And the CLI's prompt has what was said and then each path, while the thread records only what was said
+        // And history keeps the original text and ordered attachment references from the staged files.
         let prompt = rig.spawner.prompts()[0].clone();
         assert!(prompt.starts_with("look at these") && prompt.ends_with("\n- .rca/attachments/a1/f.txt\n- .rca/attachments/a2/f.txt"), "{prompt}");
-        assert_eq!(rig.engine.events_of("t")[1].data["text"], json!("look at these"));
+        let events = rig.engine.events_of("t");
+        assert_eq!(events[1].data["text"], json!("look at these"));
+        assert_eq!(events[1].data["attachments"], json!([{"id": "a1", "name": "f.txt"}, {"id": "a2", "name": "f.txt"}]));
     }
 
     #[tokio::test]
