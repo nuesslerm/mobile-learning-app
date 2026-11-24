@@ -145,6 +145,7 @@ export function SymbolBarRail({
             accessibilityLabel={`Type ${char}`}
             label={char}
             {...keyProps}
+            labelStyle={canvas ? { ...styles.canvasLabel, fontWeight: '500' } : keyProps.labelStyle}
             onPress={() => typeSymbol(expanded, index, char)}
           />
         ))}
@@ -152,8 +153,9 @@ export function SymbolBarRail({
           testID="SymbolBarCloseGroup"
           accessibilityLabel="Close symbol group"
           icon={X}
-          systemSymbol="xmark"
+          systemSymbol={{ name: 'xmark', weight: 'medium' }}
           {...keyProps}
+          iconSize={18}
           onPress={() => setExpandedId(null)}
         />
       </KeyboardToolbarRail>

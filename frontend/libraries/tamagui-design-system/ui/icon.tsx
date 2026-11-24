@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react-native';
 
 import { useTheme } from '../primitives';
-import { renderSystemSymbol, type SystemSymbolName } from './system-symbol';
+import { renderSystemSymbol, type SystemSymbol } from './system-symbol';
 
 export type IconProps = {
   as: LucideIcon;
@@ -9,7 +9,7 @@ export type IconProps = {
   /** Tamagui theme token or a literal color. Defaults to the active `$color`. */
   color?: string;
   filled?: boolean;
-  systemSymbol?: SystemSymbolName;
+  systemSymbol?: SystemSymbol;
   /** Required by the repo's E2E-selector lint rule on every rendered icon. */
   testID?: string;
 };
