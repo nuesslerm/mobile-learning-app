@@ -1,8 +1,6 @@
-import { useLocalSearchParams } from 'expo-router';
-
-import { SubmissionDetailScreen } from '../../../ui/library/SubmissionDetailScreen';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 
 export default function ProblemSubmissionRoute() {
-  const { id, submissionId } = useLocalSearchParams<{ id: string; submissionId: string }>();
-  return <SubmissionDetailScreen key={`${id}:${submissionId}`} id={id} submissionId={submissionId} />;
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return <Redirect href={{ pathname: '/leetcode/[id]/problem', params: { id } }} />;
 }

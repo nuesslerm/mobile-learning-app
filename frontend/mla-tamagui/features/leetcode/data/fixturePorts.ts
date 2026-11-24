@@ -1,4 +1,4 @@
-import { bundledLibrary, sampleLibrary } from './library/libraryContent';
+import { bundledLibrary } from './library/libraryContent';
 import type { LibrarySnapshot } from '../domain/library/library';
 import type { RunResponse } from '../domain';
 import { createWebViewEditorBridge } from './editor/cm6/webViewEditorBridge';
@@ -192,17 +192,11 @@ function createFixtureAudio(): AudioRecordingPort {
 export function createFixturePorts(): Omit<LeetCodePorts, 'flags' | 'libraryCover'> {
   const gateway = createFixtureGateway();
   const drafts = new Map<string, string>();
-  let library: LibrarySnapshot = sampleLibrary;
+  let library: LibrarySnapshot | null = null;
   return {
     clock: () => performance.now(),
     libraryStorage: { read: async () => library, write: async (next) => { library = next; } },
-    libraryContent: {
-      ...bundledLibrary,
-      async submission(id, submissionId) {
-        await new Promise((resolve) => setTimeout(resolve, 650));
-        return bundledLibrary.submission(id, submissionId);
-      },
-    },
+    libraryContent: bundledLibrary,
     editorBridge: createWebViewEditorBridge(),
     codeDrafts: {
       read: async (problemId, language) => drafts.get(`${problemId}:${language}`) ?? null,

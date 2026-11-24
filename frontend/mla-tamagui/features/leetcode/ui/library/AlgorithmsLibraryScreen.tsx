@@ -17,10 +17,10 @@ import { shareProblem } from './libraryShare';
 import { SavedListSheets } from './SavedListSheets';
 
 const difficultyText = { easy: 'Easy', medium: 'Med.', hard: 'Hard' } as const;
-const recordedCollections = new Map([
-  ['All Topics', { icon: libraryArtwork.allTopics, saved: '100', solved: 213, total: '4,123' }],
-  ['Depth-First Search', { icon: libraryArtwork.depthFirst, saved: '4,388', solved: 35, total: '351' }],
-  ['Dynamic Programming', { icon: libraryArtwork.dynamicProgramming, saved: '14,116', solved: 41, total: '687' }],
+const collectionArtwork = new Map([
+  ['All Topics', libraryArtwork.allTopics],
+  ['Depth-First Search', libraryArtwork.depthFirst],
+  ['Dynamic Programming', libraryArtwork.dynamicProgramming],
 ]);
 
 export function AlgorithmsLibraryScreen({ collection, focusSearch = false }: { collection: string; focusSearch?: boolean }) {
@@ -35,10 +35,9 @@ export function AlgorithmsLibraryScreen({ collection, focusSearch = false }: { c
   const searchRef = useRef<ComponentRef<typeof TextInput>>(null);
   const rows = useMemo(() => collectionRows(libraryContent, collection), [libraryContent, collection]);
   const filtered = useMemo(() => filterLibrary(rows, query), [rows, query]);
-  const solved = useMemo(() => rows.filter((row) => row.solved).length, [rows]);
   const { actions, savedCollections } = useLibrary();
   const saved = savedCollections?.includes(collection);
-  const recorded = recordedCollections.get(collection);
+  const artwork = collectionArtwork.get(collection);
   const isTopic = collection === 'Depth-First Search' || collection === 'Dynamic Programming';
   const isAlgorithms = collection === 'Algorithms';
   const accent = isAlgorithms ? colors.gold : collection === 'Dynamic Programming' ? colors.green : '#ac84f3';
@@ -63,7 +62,7 @@ export function AlgorithmsLibraryScreen({ collection, focusSearch = false }: { c
   };
 
   return (
-    <View testID="AlgorithmsLibrary" style={[styles.screen, { backgroundColor: colors.background, paddingTop: recorded ? Math.max(0, top - 12) : top }]}>
+    <View testID="AlgorithmsLibrary" style={[styles.screen, { backgroundColor: colors.background, paddingTop: artwork ? Math.max(0, top - 12) : top }]}>
       {!searching && <CompactHeader onClose={back} closeIcon={ChevronLeft} trailing={
         <View style={styles.headerActions}>
         {isTopic && <CompactIconButton label={saved ? 'Unsave collection' : 'Save collection'} icon={Star} filled={saved} onPress={() => { void actions.toggleCollection(collection); }} />}
@@ -85,26 +84,18 @@ export function AlgorithmsLibraryScreen({ collection, focusSearch = false }: { c
         ListHeaderComponent={
         <View style={[styles.hero, searching && styles.searchHero]}>
           <View style={[styles.artwork, { backgroundColor: colors.surface }]}>
-            {recorded ? <Image source={recorded.icon} style={{ width: 80, height: 80, borderRadius: 10 }} /> : <Icon as={Network} color={accent} size={43} />}
+            {artwork ? <Image source={artwork} style={{ width: 80, height: 80, borderRadius: 10 }} /> : <Icon as={Network} color={accent} size={43} />}
           </View>
           <Text style={[styles.title, { color: colors.foreground }]}>{collection}</Text>
           <Text style={[styles.heroMeta, { color: colors.muted }]}>{collection === 'NeetCode 150' ? 'NeetCode' : 'LeetCode'}</Text>
-          <Text style={[styles.heroMeta, { color: colors.muted }]}>{recorded ? `${recorded.saved} saved` : isAlgorithms ? '100 saved' : `${rows.length} problems`}</Text>
-          {query.trim() ? <Text style={[styles.searchCount, { color: colors.muted }]}>{filtered.length} {filtered.length === 1 ? 'question' : 'questions'}</Text> : (
-            <View style={styles.progress}>
-              <View style={[styles.progressTrack, { backgroundColor: colors.raised }]}>
-                <View style={[styles.progressBar, { backgroundColor: colors.green, width: recorded ? 173 * recorded.solved / Number(recorded.total.replace(',', '')) : isAlgorithms ? 10 : 173 * solved / Math.max(rows.length, 1) }]} />
-              </View>
-              <Text style={{ color: colors.foreground, fontSize: 12 }}>{recorded?.solved ?? (isAlgorithms ? 210 : solved)}<Text style={{ color: colors.muted }}>/{recorded?.total ?? (isAlgorithms ? '3,705' : rows.length)}</Text></Text>
-            </View>
-          )}
+          <Text style={[styles.heroMeta, { color: colors.muted }]}>{rows.length} {rows.length === 1 ? 'problem' : 'problems'}</Text>
+          {!!query.trim() && <Text style={[styles.searchCount, { color: colors.muted }]}>{filtered.length} {filtered.length === 1 ? 'match' : 'matches'}</Text>}
           <Pressable accessibilityRole="button" testID="AlgorithmsPractice" disabled={!filtered.length} onPress={() => openProblem(filtered[0].id)}>
             <FloatingSurface style={styles.practice}>
               <Icon as={Play} size={16} color={colors.green} filled />
               <Text style={{ color: colors.green, fontSize: 16, fontWeight: '700' }}>Practice</Text>
             </FloatingSurface>
           </Pressable>
-          {isTopic && <Text style={{ alignSelf: 'flex-start', color: colors.muted, marginTop: 22, fontSize: 13 }}>The list updated 1 weeks ago.</Text>}
         </View>
         } />
       {!keyboard.visible && <LibraryDock onSearch={() => searchRef.current?.focus()} onLibrary={() => router.dismissTo('/')} />}
@@ -129,12 +120,7 @@ function LibraryProblemRow({ row, topic, onOpen, onSave }: { row: LibraryRow; to
         <Text style={[styles.difficulty, { color: tint, backgroundColor: `${tint}23` }]}>{difficultyText[row.difficulty]}</Text>
         <Text numberOfLines={1} style={[styles.rowTitle, { color: colors.foreground }]}>{row.number}. {row.title}</Text>
       </View>
-      <View style={styles.rowLine}>
-        <Text style={{ color: row.solved ? colors.green : colors.muted, width: 38, textAlign: 'center', fontSize: 12 }}>{row.solved ? '✓' : '–'}</Text>
-        {topic && <Text style={[styles.metadata, { color: colors.muted }]}>{topic}</Text>}
-        {row.acceptance && <Text style={[styles.metadata, { color: colors.muted }]}>Acceptance {row.acceptance}</Text>}
-        {row.frequency && <Text style={[styles.metadata, { color: colors.muted }]}>Frequency {row.frequency}</Text>}
-      </View>
+      {topic && <Text style={[styles.metadata, { color: colors.muted }]}>{topic}</Text>}
     </DenseActionRow>
   );
 }
@@ -150,9 +136,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 23, fontWeight: '600' },
   heroMeta: { fontSize: 13 },
   searchCount: { fontSize: 12, paddingTop: 8 },
-  progress: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingTop: 10 },
-  progressTrack: { width: 173, height: 4, borderRadius: 3 },
-  progressBar: { width: 10, height: 4, borderRadius: 3 },
   practice: { minWidth: 176, minHeight: 48, borderRadius: 24, marginTop: 10, paddingHorizontal: 32, gap: 6, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
   rowLine: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   difficulty: { paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3, minWidth: 38, textAlign: 'center', fontSize: 11, fontWeight: '700' },

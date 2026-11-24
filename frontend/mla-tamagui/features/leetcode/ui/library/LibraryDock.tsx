@@ -1,7 +1,7 @@
 import { FloatingBar, FloatingSurface, Icon, MarqueeLabel, useCompactColors } from '@lib/tamagui-design-system';
 import { BookOpen, CalendarDays, MessageSquare, Play, Search, User } from '@lib/tamagui-design-system/icons';
 import { router } from 'expo-router';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { libraryArtwork } from './libraryArtwork';
@@ -40,12 +40,13 @@ export function LibraryDock({ onLibrary, onSearch }: { onLibrary: () => void; on
             <FloatingSurface testID="AlgorithmsTabBar" tone="overlay" style={styles.tabBar}>
               {tabs.map(({ label, icon }) => {
                 const selected = label === 'Library';
-                const disabled = label === 'Discuss' || label === 'Calendar';
+                const disabled = label === 'Calendar';
                 const color = selected ? colors.gold : colors.foreground;
                 return (
                   <Pressable key={label} accessibilityRole="tab" accessibilityState={{ selected, disabled }} accessibilityLabel={label} disabled={disabled}
                     testID={`AlgorithmsTab-${label}`} style={styles.tab} onPress={() => {
                       if (label === 'Search') onSearch();
+                      else if (label === 'Discuss') void Linking.openURL('https://leetcode.com/discuss/');
                       else if (label === 'You') router.push('/settings');
                       else onLibrary();
                     }}>

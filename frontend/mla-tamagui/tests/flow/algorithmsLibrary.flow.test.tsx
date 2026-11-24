@@ -39,11 +39,26 @@ describe('Algorithms library journey', () => {
     expect(screen.getByTestId('ProblemOpenEditor')).toBeTruthy();
   });
 
-  it('Given the problem submissions tab, When I open an accepted submission, Then the matching submission route opens', async () => {
-    const router = routerHarness();
-    const session = await app.render('/leetcode/two-sum/problem');
-    await session.tap('ProblemTab-submissions');
-    await session.tap('ProblemSubmission-1');
-    await waitFor(() => expect(router.lastPush()).toBe('/leetcode/two-sum/submission/1'));
+  it('Given a real problem, When I open its description, Then its solutions link points to the original problem and no voting controls are offered', async () => {
+    await app.render('/leetcode/two-sum/problem');
+    expect(screen.getByText('Community solutions on LeetCode ↗').closest('a')?.getAttribute('href')).toBe('https://leetcode.com/problems/two-sum/solutions/');
+    expect(screen.queryByLabelText('Like')).toBeNull();
+    expect(screen.queryByLabelText('Dislike')).toBeNull();
+    expect(screen.queryByLabelText('Discussion')).toBeNull();
+  });
+
+  it('Given an unknown problem link, When I open it, Then the app shows an unavailable message without exercise actions', async () => {
+    await app.render('/leetcode/unknown-exercise/problem');
+    expect(screen.getByText('This problem is unavailable in the local collection.')).toBeTruthy();
+    expect(screen.queryByTestId('ProblemOpenEditor')).toBeNull();
+    expect(screen.queryByTestId('ProblemCommunitySolutions')).toBeNull();
+    expect(screen.queryByTestId('ProblemOpenLesson')).toBeNull();
+  });
+
+  it('Given a problem outside NeetCode 150, When I open it, Then I can read the exercise without a placeholder lesson', async () => {
+    await app.render('/leetcode/two-sum-less-than-k/problem');
+    expect(screen.getByText('1099. Two Sum Less Than K')).toBeTruthy();
+    expect(screen.queryByTestId('ProblemOpenLesson')).toBeNull();
+    expect(screen.queryByTestId('ProblemTab-lesson')).toBeNull();
   });
 });

@@ -3,9 +3,8 @@ import { useMemo, type ReactNode } from 'react';
 
 import { createFixturePorts } from '../data/fixturePorts';
 import { createDeviceLibrary } from '../data/library/deviceLibrary';
-import { sampleLibrary } from '../data/library/libraryContent';
 
-const replayLibrary = createDeviceLibrary('leetcode-library-replay-v1', sampleLibrary);
+const replayLibrary = createDeviceLibrary('leetcode-library-replay-v1');
 
 export function LeetCodeFixtureOverrides({ children }: { children: ReactNode }) {
   const fixturePorts = useMemo(() => ({ ...createFixturePorts(), libraryStorage: replayLibrary }), []);
