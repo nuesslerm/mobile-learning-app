@@ -505,6 +505,61 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn given_claude_is_waiting_to_open_when_a_turn_is_sent_then_its_id_arrives_before_startup_and_the_reply_uses_that_id() {
+        use rca_cli_driver::application::ports::{Link, Linker};
+        use rca_cli_driver::domain::Driver;
+        use std::path::Path;
+        use tokio::sync::Notify;
+
+        struct GatedLinker {
+            inner: Arc<dyn Linker>,
+            opening: Notify,
+            release: Notify,
+        }
+
+        #[async_trait]
+        impl Linker for GatedLinker {
+            async fn open(&self, driver: Driver, cwd: &Path, args: &[String]) -> Result<Link, String> {
+                self.opening.notify_one();
+                self.release.notified().await;
+                self.inner.open(driver, cwd, args).await
+            }
+        }
+
+        // Given a provider that cannot open until the test releases it.
+        let mut rig = rig();
+        let linker = Arc::new(GatedLinker { inner: rca_cli_driver::testing::claude_session(), opening: Notify::new(), release: Notify::new() });
+        let group = AgentThreadsGroup::new(rig.engine.clone(), rig.executors.clone(), Arc::new(crate::host::FixedLinker(linker.clone())), Arc::new(Mcp));
+        rig.api = AgentApi::new(vec![Arc::new(group)]).unwrap();
+        rig.create("t").await;
+
+        // When the client submits a turn and the provider starts opening.
+        let rig = Arc::new(rig);
+        let submitting = Arc::clone(&rig);
+        let request = tokio::spawn(async move {
+            submitting.ask("turn.start", json!({"thread": "t", "workspace": "w1", "driver": "claudeAgent", "prompt": "hello"})).await
+        });
+        tokio::time::timeout(Duration::from_secs(2), linker.opening.notified()).await.expect("provider started opening");
+
+        // Then the start receipt is available while the provider is still blocked.
+        let answer = tokio::time::timeout(Duration::from_secs(2), request).await.expect("start receipt before provider startup completes").unwrap();
+        let turn = answer["result"]["turn"].as_str().expect("turn ID in start receipt");
+        let pending = rig.engine.events_of("t");
+        assert_eq!(pending[0].turn.as_deref(), Some(turn));
+        assert_eq!(pending[0].kind, "turn.started");
+        assert!(!pending.iter().any(|event| event.kind == "turn.finished"));
+
+        // And completing startup delivers the reply once under the acknowledged ID.
+        linker.release.notify_one();
+        rig.wait_idle("t").await;
+        let events = rig.engine.events_of("t");
+        let replies = events.iter().filter(|event| event.data.get("role") == Some(&json!("assistant"))).map(|event| (event.turn.as_deref(), &event.data["text"])).collect::<Vec<_>>();
+        assert_eq!(replies, [(Some(turn), &json!("Hi"))]);
+        assert_eq!(events.last().unwrap().turn.as_deref(), Some(turn));
+        assert_eq!(events.last().unwrap().data["reason"], "completed");
+    }
+
+    #[tokio::test]
     async fn given_an_executor_without_claude_when_a_turn_names_claude_code_then_it_is_refused_naming_the_cli_nothing_is_recorded_and_a_present_cli_still_runs() {
         // Given an executor that has opencode but not claude
         let rig = rig_with(&["opencode"]);

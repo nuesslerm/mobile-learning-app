@@ -100,8 +100,7 @@ impl Prepared {
         Err(Refusal::new(code::CLI_NOT_INSTALLED, message::cli_not_installed(program, &self.workspace)))
     }
 
-    /// Records the turn's start and its prompt, and runs its CLI; the turn is followed on a task of its own. A CLI that cannot start ends the turn
-    /// failed, in the log, as one that fails after it began does.
+    /// Acknowledges a recorded Claude turn after its checkpoint, before Claude answers its startup handshake.
     pub async fn launch(self) -> Result<String, Refusal> {
         let Prepared { runner, thread, turn, driver, channel, workspace, claim, request, said, attachments, merge } = self;
         let recorded = (|| {
@@ -120,25 +119,29 @@ impl Prepared {
         runner.executors.bind(&thread, &workspace);
         let task = TurnTask { runner: Arc::clone(&runner), channel, claim, thread: thread.clone(), turn: turn.clone(), driver };
         crate::checkpoint::take(runner.executors.as_ref(), &task.channel, &workspace, &thread, &turn).await;
-        let linker = runner.launcher.linker(&task.channel);
-        let started = runner.sessions.turn(&workspace, linker.as_ref(), &request).await;
-        match started {
-            Ok(events) => {
-                // A stop asked while the session was still starting found no turn on it to stop
-                if runner.in_flight().stopping(&thread) {
-                    runner.sessions.interrupt(&thread);
+        let start = async move {
+            if driver == Driver::ClaudeAgent && runner.in_flight().stopping(&task.thread) {
+                task.finish(false);
+                return;
+            }
+            let linker = runner.launcher.linker(&task.channel);
+            match runner.sessions.turn(&workspace, linker.as_ref(), &request).await {
+                Ok(events) => {
+                    if runner.in_flight().stopping(&task.thread) {
+                        runner.sessions.interrupt(&task.thread);
+                    }
+                    tokio::spawn(task.follow(events));
                 }
-                tokio::spawn(task.follow(events));
+                Err(message) => {
+                    task.record([ThreadEvent::Error { code: CLI_START_FAILED.into(), message }]);
+                    task.finish(true);
+                }
             }
-            Err(why) => {
-                // Started and ended: whoever follows the thread hears why, as for a turn whose CLI fails after it began
-                let mut task = task;
-                task.record([ThreadEvent::Error { code: CLI_START_FAILED.into(), message: why }, ThreadEvent::TurnFinished { reason: FinishReason::Failed, cause: None }]);
-                task.claim.finish();
-                runner.release_route(&thread);
-                runner.executors.unbind(&thread);
-                runner.start_next_later(&thread);
-            }
+        };
+        if driver == Driver::ClaudeAgent {
+            tokio::spawn(start);
+        } else {
+            start.await;
         }
         Ok(turn)
     }
