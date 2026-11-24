@@ -24,8 +24,8 @@ import { BUILTIN_KEYS, type KeyActionContext } from '../toolbarKeys';
 const CELL_WIDTH = 30;
 const CELL_HEIGHT = 24;
 const COMPACT_KEY_HEIGHT = 41;
-const COMPACT_CELL_WIDTH = 13;
-const COMPACT_CELL_HEIGHT = 17;
+const COMPACT_CELL_WIDTH = 11;
+const COMPACT_CELL_HEIGHT = 16;
 const CANVAS_KEY = '#08070a';
 const CANVAS_LABEL = '#f4f4f5';
 
@@ -189,7 +189,8 @@ export function SymbolBarRail({
         accessibilityLabel="Hide keyboard"
         label={compact ? undefined : "Hide"}
         {...keyProps}
-        style={canvas ? { ...styles.canvasButton, backgroundColor: 'transparent' } : keyProps.style}
+        stretch={compact ? false : undefined}
+        style={compact ? { ...styles.compactDismiss, backgroundColor: canvas ? 'transparent' : undefined } : undefined}
         icon={compact ? KeyboardIcon : ChevronDown}
         iconSize={compact ? 18 : undefined}
         systemSymbol={compact ? "keyboard.chevron.compact.down" : undefined}
@@ -210,8 +211,9 @@ const styles = StyleSheet.create({
   expandedRail: { gap: 6, paddingHorizontal: 4, paddingTop: 3, paddingBottom: 7 },
   compactGroup: { flex: 1, minWidth: 34 },
   compactButton: { minWidth: 34, paddingHorizontal: 0, height: COMPACT_KEY_HEIGHT, borderRadius: 5 },
+  compactDismiss: { width: 38, paddingLeft: 0, paddingRight: 5, height: COMPACT_KEY_HEIGHT, borderRadius: 5 },
   canvasKey: { backgroundColor: CANVAS_KEY, borderRadius: 5 },
-  canvasGlyph: { fontFamily: 'Menlo', fontWeight: '600', color: CANVAS_LABEL },
+  canvasGlyph: { fontFamily: 'Menlo', fontWeight: '500', lineHeight: COMPACT_CELL_HEIGHT, color: CANVAS_LABEL },
   compactLabel: { fontSize: 17, fontWeight: '600' },
   canvasLabel: { fontSize: 17, fontWeight: '600', color: CANVAS_LABEL },
   canvasButton: { minWidth: 34, paddingHorizontal: 0, height: COMPACT_KEY_HEIGHT, borderRadius: 5, backgroundColor: CANVAS_KEY },
