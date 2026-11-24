@@ -44,6 +44,7 @@ export type ScreenHeaderSpec = {
   transparent?: boolean;
   nativeBackgroundColor?: string;
   nativeGlassMenuGroups?: boolean;
+  hideNativeControlBackgrounds?: boolean;
   testID: string;
 };
 

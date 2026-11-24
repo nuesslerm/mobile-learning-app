@@ -117,6 +117,7 @@ export function headerSignature(spec: ScreenHeaderSpec): string {
     nativeTitle: spec.nativeTitle,
     nativeBackgroundColor: spec.nativeBackgroundColor,
     nativeGlassMenuGroups: spec.nativeGlassMenuGroups,
+    hideNativeControlBackgrounds: spec.hideNativeControlBackgrounds,
     leadingStatus: spec.leadingStatus ? {
       id: spec.leadingStatus.testID,
       label: spec.leadingStatus.label,

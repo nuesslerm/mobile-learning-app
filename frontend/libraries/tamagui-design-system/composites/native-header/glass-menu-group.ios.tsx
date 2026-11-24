@@ -53,11 +53,16 @@ function menuNode(node: MenuNode, confirm: (node: MenuConfirmNode) => void): Rea
 
 const MENU_HEIGHT = 46;
 
-function NativeGlassMenuGroup({ menus, scheme }: {
+function NativeGlassMenuGroup({ menus, scheme, hideBackground }: {
   menus: readonly HeaderMenuSpec[];
   scheme: 'light' | 'dark';
+  hideBackground: boolean;
 }) {
   const [confirmation, setConfirmation] = useState<MenuConfirmNode | null>(null);
+  const capsule = hideBackground ? [] : [glassEffect({
+    shape: 'capsule',
+    glass: { variant: 'regular', tint: scheme === 'dark' ? DARK_GLASS_CONTROL_TINT : undefined },
+  })];
 
   return (
     <Host matchContents alignment="trailing" colorScheme={scheme} ignoreSafeArea="all">
@@ -69,13 +74,7 @@ function NativeGlassMenuGroup({ menus, scheme }: {
         <Alert.Trigger>
           <HStack
             spacing={0}
-            modifiers={[
-              padding({ horizontal: 7 }),
-              glassEffect({
-                shape: 'capsule',
-                glass: { variant: 'regular', tint: scheme === 'dark' ? DARK_GLASS_CONTROL_TINT : undefined },
-              }),
-            ]}
+            modifiers={[padding({ horizontal: 7 }), ...capsule]}
           >
             {menus.map((menu) => (
               <Menu
@@ -112,7 +111,7 @@ function NativeGlassMenuGroup({ menus, scheme }: {
   );
 }
 
-export const renderGlassMenuGroup: GlassMenuGroupRenderer = (menus, scheme) => {
+export const renderGlassMenuGroup: GlassMenuGroupRenderer = (menus, scheme, hideBackground) => {
   if (!isLiquidGlassAvailable() || !isGlassEffectAPIAvailable()) return undefined;
-  return <NativeGlassMenuGroup menus={menus} scheme={scheme} />;
+  return <NativeGlassMenuGroup menus={menus} scheme={scheme} hideBackground={hideBackground} />;
 };

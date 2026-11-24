@@ -25,7 +25,7 @@ export type EditorHeaderInput = {
   busy: boolean;
   /** The editor settings menu, its own piece of glass. */
   settings: HeaderMenuSpec;
-  nativeWorkspace?: { language: HeaderMenuSpec; saveStatus: DraftStatus; backgroundColor?: string; railStyle?: MenuNode };
+  nativeWorkspace?: { language: HeaderMenuSpec; saveStatus: DraftStatus; backgroundColor?: string; railStyle?: MenuNode; hideControlBackgrounds?: boolean };
   onBack: () => void;
   onInfo: () => void;
   onUndo?: () => void;
@@ -91,6 +91,7 @@ export function editorHeaderSpec(input: EditorHeaderInput): ScreenHeaderSpec {
     ...(native ? {
       nativeTitle: 'hidden' as const,
       nativeGlassMenuGroups: true,
+      hideNativeControlBackgrounds: native.hideControlBackgrounds,
       nativeBackgroundColor: native.backgroundColor,
       leadingStatus: {
         label: SAVE_LABELS[native.saveStatus],

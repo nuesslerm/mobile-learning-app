@@ -64,8 +64,23 @@ describe('buildNativeHeaderItems', () => {
 
     expect(buildNativeHeaderItems(spec, { busy: busyFactory, menuGroup }, 'dark').right)
       .toEqual([{ type: 'custom', element: capsule, hidesSharedBackground: true }]);
-    expect(menuGroup).toHaveBeenCalledExactlyOnceWith(menus, 'dark');
+    expect(menuGroup).toHaveBeenCalledExactlyOnceWith(menus, 'dark', false);
     expect(build(spec).right.map((item) => item.type)).toEqual(['menu', 'menu']);
+  });
+
+  it('given a header behind a sheet, when its backgrounds are hidden, then the back action and both menus remain available', () => {
+    const menus = [menuSpec([], { testID: 'Language' }), menuSpec([], { testID: 'Settings' })];
+    const menuGroup = vi.fn(() => createElement('menu-group'));
+    const spec = { title: 'Two Sum', testID: 'Header', nativeGlassMenuGroups: true, hideNativeControlBackgrounds: true, onBack: noop, groups: [menus] };
+
+    const { left, right } = buildNativeHeaderItems(spec, { busy: busyFactory, menuGroup }, 'dark');
+    expect(left[0]).toMatchObject({ type: 'button', hidesSharedBackground: true, onPress: noop });
+    expect(right).toHaveLength(1);
+    expect(menuGroup).toHaveBeenCalledExactlyOnceWith(menus, 'dark', true);
+    expect(build(spec).right).toEqual([
+      expect.objectContaining({ type: 'menu', hidesSharedBackground: true }),
+      expect.objectContaining({ type: 'menu', hidesSharedBackground: true }),
+    ]);
   });
 
   it('Given back, groups of settings and of info and more, and busy, When items are built, Then the bar reads left to right as one back button and the glass pieces apart', () => {
