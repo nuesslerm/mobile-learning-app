@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+from functools import lru_cache
 from html import escape
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
+import logging
 import os
 from pathlib import Path
 from string import Template
@@ -61,6 +63,8 @@ APPS = {
     '/orca': PairingApp('Orca Mobile', 'O', 'Pair with a link that opens directly in Orca.', orca_offer),
     '/t3': PairingApp('T3 Code', 'T3', 'Add your Mac as an environment with a one-time code.', t3_offer),
 }
+QR_PATHS = {'/': '/qr/home.png', **{route: f'/qr{route}.png' for route in APPS}}
+QR_TARGETS = {path: route for route, path in QR_PATHS.items()}
 
 ASSETS = {
     f'/assets/{path.name}': (path, ASSET_TYPES[path.suffix])
@@ -80,6 +84,13 @@ def app_cards():
     )
 
 
+@lru_cache(maxsize=len(QR_PATHS))
+def qr_image(route):
+    return subprocess.check_output(
+        ['/usr/bin/swift', SITE / 'qr.swift', ORIGIN + route], timeout=15,
+    )
+
+
 class Page(BaseHTTPRequestHandler):
     def log_message(self, *_):
         pass
@@ -94,7 +105,7 @@ class Page(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def reply(self, status, title, content, *, back='/'):
+    def reply(self, status, title, content, *, back='/', phone_route=None):
         navigation = '<span class="brand">RCA Pairing</span>'
         if back and back != '/':
             navigation = '<a class="brand" href="/">All apps</a>'
@@ -103,9 +114,16 @@ class Page(BaseHTTPRequestHandler):
                 f'<a class="nav-back" href="{escape(back)}">'
                 '<span aria-hidden="true">‹</span> Back</a>' + navigation
             )
+        handoff = ''
+        if phone_route is not None:
+            handoff = render(
+                'phone-handoff', qr=escape(QR_PATHS[phone_route]),
+                target=escape(ORIGIN + phone_route),
+            )
         document = render(
             'layout', title=escape(title), content=content,
             page_class='guide' if back else 'landing', navigation=navigation,
+            handoff=handoff,
         )
         self.send(status, document.encode(), 'text/html; charset=utf-8')
 
@@ -120,9 +138,17 @@ class Page(BaseHTTPRequestHandler):
             return
         route = urlsplit(self.path).path
         if route == '/':
-            self.reply(200, 'Choose an app', render('home', cards=app_cards()), back=None)
+            self.reply(200, 'Choose an app', render('home', cards=app_cards()), back=None, phone_route=route)
         elif route in APPS:
-            self.reply(200, f'Pair {APPS[route].name}', render(route[1:]))
+            self.reply(200, f'Pair {APPS[route].name}', render(route[1:]), phone_route=route)
+        elif route in QR_TARGETS:
+            try:
+                image = qr_image(QR_TARGETS[route])
+            except (OSError, subprocess.SubprocessError):
+                logging.getLogger(__name__).exception('pairing_qr_generation_failed')
+                self.send(503, b'QR code unavailable', 'text/plain; charset=utf-8')
+            else:
+                self.send(200, image, 'image/png')
         elif route in ASSETS:
             path, content_type = ASSETS[route]
             self.send(200, path.read_bytes(), content_type)

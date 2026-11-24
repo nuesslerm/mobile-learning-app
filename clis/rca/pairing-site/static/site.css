@@ -159,8 +159,33 @@ code, textarea { overflow-wrap: anywhere; }
 .copy-status { color: var(--accent); font-size: .88rem; }
 .copy-status:empty { margin: 0; }
 
-@media (max-width: 610px) {
+.phone-handoff { display: none; }
+@media (min-width: 760px) and (hover: hover) and (pointer: fine) {
+  .page:has(.phone-handoff) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 24px;
+  }
+  .phone-handoff {
+    display: block;
+    align-self: start;
+    margin-top: clamp(26px, 6vw, 63px);
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 4px 16px 4px 4px;
+    background: var(--card);
+  }
+  .phone-handoff h2 { font-size: 1.35rem; }
+  .phone-handoff p { color: var(--muted); font-size: .9rem; }
+  .phone-handoff a { display: block; width: fit-content; }
+  .phone-handoff img { width: 160px; image-rendering: pixelated; }
+}
+
+@media (max-width: 940px) {
   .app-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 610px) {
   .button { width: 100%; }
   .hero { padding: 22px; }
   h1, .guide-header h1 { font-size: clamp(2rem, 9vw, 2.7rem); }
