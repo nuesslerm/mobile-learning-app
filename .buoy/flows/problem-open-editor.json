@@ -1,0 +1,15 @@
+{
+  "steps": [
+    {
+      "tap": "Open editor"
+    },
+    {
+      "waitFor": "ProblemEditorSaveStatus",
+      "timeoutMs": 5000
+    },
+    {
+      "waitGone": "ProblemEditorStartupInput",
+      "timeoutMs": 8000
+    }
+  ]
+}

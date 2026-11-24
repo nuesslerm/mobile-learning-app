@@ -25,6 +25,15 @@ samples the separate WebView.
 
 ## Measuring the problem-to-editor transition on iOS
 
+Start with the [Buoy Optimize skill](https://buoy.gg/buoy/latest/docs/optimize)
+and select the native app's simulator ID in Buoy. From the description,
+replay `problem-open-editor` with `run_flow` to confirm the editor appears
+and its startup input disappears. Record the same interaction to measure
+when the syntax colors first appear. On an account with render attribution,
+run `measure_renders` around the editor tap to see which React components
+rendered. The [tool index](https://buoy.gg/llms.txt) lists the React Native
+guides for Bench, Highlight Updates, JS Top and Console.
+
 Use the installed app build with its patched WebView. Open
 `/leetcode/container-with-most-water/problem`, wait on the description, then
 tap **Open editor**. The app starts the JavaScript editor while the description
