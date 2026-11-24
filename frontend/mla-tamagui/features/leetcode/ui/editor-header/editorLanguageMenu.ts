@@ -21,7 +21,8 @@ const languages: readonly { label: string; language?: EditorLanguage }[] = [
 export function editorLanguageMenu(
   selected: EditorLanguage,
   available: readonly EditorLanguage[],
-  onChange: (language: EditorLanguage) => void
+  onChange: (language: EditorLanguage) => void,
+  onUnavailable: (label: string) => void
 ): HeaderMenuSpec {
   return {
     testID: 'ProblemEditorLanguageMenu',
@@ -35,10 +36,10 @@ export function editorLanguageMenu(
           ? `ProblemEditorLanguagePicker-${languageLabel(language)}`
           : `ProblemEditorLanguageUnavailable-${label}`,
         label,
-        checked: language === selected,
-        disabled: !enabled,
+        checked: enabled ? language === selected : undefined,
         onPress: () => {
-          if (enabled && language !== selected) onChange(language);
+          if (!enabled) onUnavailable(label);
+          else if (language !== selected) onChange(language);
         },
       };
     }),

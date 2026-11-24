@@ -601,7 +601,9 @@ function ProblemEditorContent({
       saveStatus: draftStatus ?? (isDirty ? 'unsaved' : 'saved'),
       backgroundColor: canvasBackground,
       railStyle: railStyleMenu(railStyle, setRailStyle),
-      language: editorLanguageMenu(lang, availableLanguages, handleLanguageChange),
+      language: editorLanguageMenu(lang, availableLanguages, handleLanguageChange, (label) => {
+        toast(`${label} is unavailable in this editor`);
+      }),
     } : undefined,
     settings: editorSettingsMenu(
           { fontSize, tabSize, wrap, whitespace },
