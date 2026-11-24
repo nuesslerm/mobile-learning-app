@@ -4,6 +4,7 @@
 // dependency-free.
 
 import type { EditorClient } from '@lib/code-editor-api';
+import type { LibraryContentPort, LibraryCoverPort, LibraryStoragePort } from './library/library';
 import type { LeetCodeFlags } from './featureFlags';
 import type { RunResponse, TestCase } from './run/execution';
 import type { Harness, NodeType } from './models';
@@ -194,6 +195,9 @@ export interface CodeDraftPort {
 }
 
 export interface LeetCodePorts {
+  libraryStorage: LibraryStoragePort;
+  libraryContent: LibraryContentPort;
+  libraryCover: LibraryCoverPort;
   /** A monotonic clock in milliseconds; the editor's cold start is measured with it. */
   clock: () => number;
   /** The CodeMirror page and the typed editor API over it. */

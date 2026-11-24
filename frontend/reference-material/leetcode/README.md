@@ -1,5 +1,7 @@
 # LeetCode editor reference
 
+The [library and problem journeys](library/README.md) cover the two later recordings.
+
 These 33 PNGs are full-size 1284 × 2778 frames from the supplied recording of Merge Two Sorted Lists. They retain the phone viewport, including the status bar and keyboard where visible. They are design reference material kept outside the application and are not native regression baselines.
 
 For an overlay, select the same problem, language, keyboard and console state. Align the full device viewports at a common width and exclude the status bar from pixel scoring. The source recording is compressed, so the PNGs preserve the decoded recording pixels.

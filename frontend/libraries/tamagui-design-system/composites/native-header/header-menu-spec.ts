@@ -28,6 +28,7 @@ export type MenuActionNode = MenuNodeBase & {
   };
   checked?: boolean;
   keepOpen?: boolean;
+  afterDismiss?: boolean;
   destructive?: boolean;
   disabled?: boolean;
   onPress: () => void;

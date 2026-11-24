@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Logger } from '@lib/logging';
 import { Platform, ScrollView } from 'react-native';
 
@@ -15,6 +16,7 @@ export type CodeBlockProps = {
   language?: string;
   /** When provided, a copy IconButton is rendered in the header. */
   onCopy?: (code: string) => void;
+  renderCode?: (code: string) => ReactNode;
   testID?: string;
 };
 
@@ -30,6 +32,7 @@ export function CodeBlock({
   title,
   language,
   onCopy,
+  renderCode,
   testID,
 }: CodeBlockProps) {
   const theme = useTheme();
@@ -79,7 +82,7 @@ export function CodeBlock({
             ? { userSelect: 'text' as const }
             : { selectable: true })}
         >
-          {code}
+          {renderCode ? renderCode(code) : code}
         </Text>
       </ScrollView>
     </YStack>

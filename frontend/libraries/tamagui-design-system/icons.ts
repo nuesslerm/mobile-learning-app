@@ -94,6 +94,19 @@ import SlidersHorizontalIcon from 'lucide-react-native/dist/esm/icons/sliders-ho
 import SpaceIcon from 'lucide-react-native/dist/esm/icons/space.mjs';
 import WrapTextIcon from 'lucide-react-native/dist/esm/icons/text-wrap.mjs';
 
+import SearchIcon from 'lucide-react-native/dist/esm/icons/search.mjs';
+import StarIcon from 'lucide-react-native/dist/esm/icons/star.mjs';
+import ShareIcon from 'lucide-react-native/dist/esm/icons/share.mjs';
+import BookOpenIcon from 'lucide-react-native/dist/esm/icons/book-open.mjs';
+import CalendarDaysIcon from 'lucide-react-native/dist/esm/icons/calendar-days.mjs';
+import CameraIcon from 'lucide-react-native/dist/esm/icons/camera.mjs';
+import NetworkIcon from 'lucide-react-native/dist/esm/icons/network.mjs';
+import TagIcon from 'lucide-react-native/dist/esm/icons/tag.mjs';
+import LightbulbIcon from 'lucide-react-native/dist/esm/icons/lightbulb.mjs';
+import Building2Icon from 'lucide-react-native/dist/esm/icons/building-2.mjs';
+import ThumbsUpIcon from 'lucide-react-native/dist/esm/icons/thumbs-up.mjs';
+import ThumbsDownIcon from 'lucide-react-native/dist/esm/icons/thumbs-down.mjs';
+
 export const ArrowLeft: LucideIcon = ArrowLeftIcon;
 export const ArrowLeftToLine: LucideIcon = ArrowLeftToLineIcon;
 export const ArrowRight: LucideIcon = ArrowRightIcon;
@@ -176,3 +189,15 @@ export const Keyboard: LucideIcon = KeyboardIcon;
 export const SlidersHorizontal: LucideIcon = SlidersHorizontalIcon;
 export const Space: LucideIcon = SpaceIcon;
 export const WrapText: LucideIcon = WrapTextIcon;
+export const Search: LucideIcon = SearchIcon;
+export const Star: LucideIcon = StarIcon;
+export const Share: LucideIcon = ShareIcon;
+export const BookOpen: LucideIcon = BookOpenIcon;
+export const CalendarDays: LucideIcon = CalendarDaysIcon;
+export const Camera: LucideIcon = CameraIcon;
+export const Network: LucideIcon = NetworkIcon;
+export const Tag: LucideIcon = TagIcon;
+export const Lightbulb: LucideIcon = LightbulbIcon;
+export const Building2: LucideIcon = Building2Icon;
+export const ThumbsUp: LucideIcon = ThumbsUpIcon;
+export const ThumbsDown: LucideIcon = ThumbsDownIcon;

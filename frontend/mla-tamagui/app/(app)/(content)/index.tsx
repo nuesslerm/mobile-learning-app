@@ -1,5 +1,1 @@
-import { ProblemListScreen } from '@/features/leetcode';
-
-export default function HomeScreen() {
-  return <ProblemListScreen />;
-}
+export { default } from '@/features/leetcode/routes/library';

@@ -39,7 +39,6 @@ import { useAutocompleteSettingStore } from '../state/autocompleteSettingStore';
 import { type Selection } from '../domain/editor/types';
 import type { BlocksSource } from './blocks/BlockView';
 import { EditorHelperRails } from './editor/helperbars/EditorHelperRails';
-import { ProblemCatalog } from '../domain/problemCatalog';
 import { compactVoiceError } from '../domain/voiceEditIdentity';
 import { useVoiceApply } from '../state/useVoiceApply';
 import { useVoiceEdit } from '../state/useVoiceEdit';
@@ -124,10 +123,8 @@ function ProblemEditorContent({
   onBlocksSource,
   drafts,
 }: EditorScreenProps & { drafts?: CodeDraftSession }) {
-  const problem = React.useMemo(
-    () => (id ? ProblemCatalog.getById(id) : undefined),
-    [id]
-  );
+  const { gateway, runner, libraryContent } = useLeetCodePorts();
+  const problem = React.useMemo(() => id ? libraryContent.problem(id) : undefined, [id, libraryContent]);
 
   const [lang, setLang] = React.useState<EditorLanguage>(initialLang ?? 'python3');
   const editorLanguage = toEditorLanguage(lang) ?? 'python';
@@ -161,7 +158,6 @@ function ProblemEditorContent({
   React.useEffect(() => {
     latestBufferRef.current = { text: editorText, lang };
   }, [editorText, lang]);
-  const { gateway, runner } = useLeetCodePorts();
   const aiEdit = useLeetCodeFlag('aiEdit');
   const scrollRef = React.useRef<ScrollViewInstance>(null);
   const errorJump = useErrorJump(editorRef);

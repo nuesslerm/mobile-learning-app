@@ -44,6 +44,7 @@ function ContentStack({
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="blind75" options={{ headerShown: false }} />
       <Stack.Screen name="showcase" options={{ headerShown: false, title: 'Design system' }} />
       <Stack.Screen name="coding-agent" options={{ headerShown: false }} />
       {/* The Tamil screens carry their own headers; the tamil/ layout mounts the feature's container and owns the nested Stack. */}

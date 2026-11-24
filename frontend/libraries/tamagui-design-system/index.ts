@@ -167,3 +167,6 @@ export {
 } from './ui/charts/TimeSeriesChart';
 
 export * from './theme';
+export { CompactHeader, CompactIconButton, CompactTabs, DenseActionRow, FloatingBar, FloatingSurface, SearchPill, useCompactColors } from './composites/compact-navigation';
+export { SheetPager } from './composites/sheet-pager';
+export { MarqueeLabel } from './composites/marquee-label';

@@ -43,10 +43,11 @@ export type MenuPanelProps = {
   trigger?: ReactNode;
   triggerStyle?: StyleProp<ViewStyle>;
   glassTrigger?: boolean;
-  placement?: 'above' | 'below' | 'beside';
+  placement?: 'above' | 'below' | 'beside' | 'overlap';
   glass?: boolean;
   openPath?: MenuPath;
   panelWidth?: number;
+  panelRadius?: number;
 };
 
 const PANEL_WIDTH = 288;
@@ -219,8 +220,10 @@ export function MenuPanel({
   glass = false,
   openPath = ROOT_PATH,
   panelWidth = PANEL_WIDTH,
+  panelRadius = 20,
 }: MenuPanelProps) {
   const [open, setOpen] = useState(false);
+  const [afterDismiss, setAfterDismiss] = useState<(() => void) | null>(null);
   const [path, setPath] = useState<MenuPath>(ROOT_PATH);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const triggerRef = useRef<ComponentRef<typeof Pressable>>(null);
@@ -239,7 +242,7 @@ export function MenuPanel({
   };
 
   const view = resolveMenuView(items, path);
-  const nativePopover = placement !== 'below' && glass && supportsMenuPanelPopover();
+  const nativePopover = (placement === 'above' || placement === 'beside') && glass && supportsMenuPanelPopover();
   const nativeGlassTrigger = glassTrigger && supportsGlassControl();
 
   function go(action: MenuNavigationAction) {
@@ -268,6 +271,11 @@ export function MenuPanel({
       return;
     }
     // Close before acting: several of these navigate, and a panel still mounted over a replaced screen floats above the wrong route.
+    if (node.afterDismiss && Platform.OS === 'ios' && !nativePopover) {
+      setAfterDismiss(() => node.onPress);
+      closePanel();
+      return;
+    }
     closePanel();
     node.onPress();
   }
@@ -372,13 +380,16 @@ export function MenuPanel({
   const right = anchor
     ? Math.min(windowWidth - width - EDGE, Math.max(EDGE, windowWidth - (anchor.x + anchor.width)))
     : EDGE + 4;
+  const overlap = placement === 'overlap' && anchor;
   const position = beside
     ? { left: anchor.x + anchor.width + GAP * 2, bottom: Math.max(EDGE, windowHeight - anchor.y - anchor.height - 20) }
     : {
         right,
         ...(placement === 'below'
           ? { top: anchor ? anchor.y + anchor.height + GAP : FALLBACK_TOP }
-          : { bottom: anchor ? Math.max(EDGE, windowHeight - anchor.y + GAP) : FALLBACK_TOP }),
+          : { bottom: overlap
+            ? Math.max(EDGE, windowHeight - overlap.y - overlap.height - GAP)
+            : anchor ? Math.max(EDGE, windowHeight - anchor.y + GAP) : FALLBACK_TOP }),
       };
 
   const buttonStyle = [
@@ -410,10 +421,14 @@ export function MenuPanel({
   return (
     <>
       {triggerButton}
-      {open ? (
+      {open || afterDismiss ? (
         <Modal
-          visible
+          visible={open}
           transparent
+          onDismiss={() => {
+            setAfterDismiss(null);
+            afterDismiss?.();
+          }}
           animationType="none"
           onRequestClose={closePanel}
           statusBarTranslucent
@@ -430,6 +445,7 @@ export function MenuPanel({
               styles.card,
               {
                 width,
+                borderRadius: panelRadius,
                 ...position,
                 backgroundColor: nativeGlass ? 'transparent' : colors.surface,
                 borderColor: colors.border,
@@ -437,7 +453,7 @@ export function MenuPanel({
             ]}
           >
             {nativeGlass ? (
-              <GlassView pointerEvents="none" glassEffectStyle="regular" tintColor="rgba(20,20,22,0.45)" style={styles.glassCard} />
+              <GlassView pointerEvents="none" glassEffectStyle="regular" tintColor="rgba(20,20,22,0.45)" style={[styles.glassCard, { borderRadius: panelRadius }]} />
             ) : null}
             {renderView()}
           </View>
