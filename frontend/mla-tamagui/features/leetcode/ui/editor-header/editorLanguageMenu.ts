@@ -16,6 +16,13 @@ const languages: readonly { label: string; language?: EditorLanguage }[] = [
   { label: 'Kotlin' },
   { label: 'Swift' },
   { label: 'Rust' },
+  { label: 'Ruby' },
+  { label: 'PHP' },
+  { label: 'Dart' },
+  { label: 'Scala' },
+  { label: 'Elixir' },
+  { label: 'Erlang' },
+  { label: 'Racket' },
 ];
 
 export function editorLanguageMenu(

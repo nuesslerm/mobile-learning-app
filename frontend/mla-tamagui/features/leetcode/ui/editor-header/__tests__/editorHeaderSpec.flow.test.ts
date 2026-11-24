@@ -83,7 +83,7 @@ describe('the editor header spec', () => {
 });
 
 describe('the editor language menu', () => {
-  it('given the available runners, when the menu actions are pressed, then it preserves the recorded order and explains unavailable languages', () => {
+  it('given the available runners, when the menu actions are pressed, then it lists the problem languages in order and explains unavailable languages', () => {
     const onChange = vi.fn();
     const onUnavailable = vi.fn();
     const menu = editorLanguageMenu('python3', ['python3', 'javascript'], onChange, onUnavailable);
@@ -92,10 +92,14 @@ describe('the editor language menu', () => {
     expect(menu.label).toBe('Python3');
     expect(rows.map((row) => row.label)).toEqual([
       'C++', 'Java', 'Python3', 'Python', 'JavaScript', 'TypeScript', 'C#', 'C', 'Go', 'Kotlin', 'Swift', 'Rust',
+      'Ruby', 'PHP', 'Dart', 'Scala', 'Elixir', 'Erlang', 'Racket',
     ]);
     expect(rows.filter((row) => row.checked).map((row) => row.label)).toEqual(['Python3']);
     for (const row of rows) row.onPress();
     expect(onChange).toHaveBeenCalledExactlyOnceWith('javascript');
-    expect(onUnavailable.mock.calls.flat()).toEqual(['C++', 'Java', 'Python', 'TypeScript', 'C#', 'C', 'Go', 'Kotlin', 'Swift', 'Rust']);
+    expect(onUnavailable.mock.calls.flat()).toEqual([
+      'C++', 'Java', 'Python', 'TypeScript', 'C#', 'C', 'Go', 'Kotlin', 'Swift', 'Rust',
+      'Ruby', 'PHP', 'Dart', 'Scala', 'Elixir', 'Erlang', 'Racket',
+    ]);
   });
 });
