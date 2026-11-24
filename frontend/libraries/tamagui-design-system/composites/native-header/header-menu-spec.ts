@@ -21,6 +21,11 @@ export type MenuActionNode = MenuNodeBase & {
   label: string;
   /** Second line under the label. */
   detail?: string;
+  /** Inline PNGs for SwiftUI menus. Their pixel dimensions are used as points. */
+  iosMenuImage?: {
+    light: string;
+    dark: string;
+  };
   checked?: boolean;
   keepOpen?: boolean;
   destructive?: boolean;
@@ -131,6 +136,7 @@ function project(node: MenuNode): unknown {
         label: node.label,
         detail: node.detail,
         sf: node.sfSymbol,
+        iosMenuImage: node.iosMenuImage,
         checked: node.checked,
         keepOpen: node.keepOpen,
         destructive: node.destructive,

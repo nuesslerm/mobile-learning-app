@@ -1,4 +1,4 @@
-import { Alert, Button, Host, HStack, Image, Menu, Section, Text, Toggle } from '@expo/ui/swift-ui';
+import { Alert, Button, Host, HStack, Image, Label, Menu, Section, Text, Toggle } from '@expo/ui/swift-ui';
 import {
   accessibilityIdentifier,
   accessibilityLabel,
@@ -22,14 +22,18 @@ import { DARK_GLASS_CONTROL_TINT } from '../../ui/glass-control-background';
 import type { GlassMenuGroupRenderer } from './glass-menu-group';
 import type { HeaderMenuSpec, MenuConfirmNode, MenuNode } from './header-menu-spec';
 
-function menuNode(node: MenuNode, confirm: (node: MenuConfirmNode) => void): ReactElement {
+function menuNode(
+  node: MenuNode,
+  confirm: (node: MenuConfirmNode) => void,
+  scheme: 'light' | 'dark'
+): ReactElement {
   const id = accessibilityIdentifier(node.testID);
   switch (node.kind) {
     case 'section':
-      return <Section key={node.testID} title={node.title}>{node.items.map((item) => menuNode(item, confirm))}</Section>;
+      return <Section key={node.testID} title={node.title}>{node.items.map((item) => menuNode(item, confirm, scheme))}</Section>;
     case 'submenu':
       return <Menu key={node.testID} label={node.label} systemImage={node.sfSymbol} modifiers={[id]}>
-        {node.items.map((item) => menuNode(item, confirm))}
+        {node.items.map((item) => menuNode(item, confirm, scheme))}
       </Menu>;
     case 'confirm':
       return (
@@ -43,10 +47,23 @@ function menuNode(node: MenuNode, confirm: (node: MenuConfirmNode) => void): Rea
       );
     default: {
       const modifiers = [id, disabled(node.disabled ?? false), menuActionDismissBehavior(node.keepOpen ? 'disabled' : 'enabled')];
+      const image = node.iosMenuImage;
+      const label = image ? (
+        <Label title={node.label} icon={<Image uiImage={image[scheme]} />} />
+      ) : undefined;
+      const labelProps = image ? {} : { label: node.label, systemImage: node.sfSymbol };
       if (node.checked !== undefined) {
-        return <Toggle key={node.testID} label={node.label} systemImage={node.sfSymbol} isOn={node.checked} onIsOnChange={node.onPress} modifiers={modifiers} />;
+        return (
+          <Toggle key={node.testID} {...labelProps} isOn={node.checked} onIsOnChange={node.onPress} modifiers={modifiers}>
+            {label}
+          </Toggle>
+        );
       }
-      return <Button key={node.testID} label={node.label} systemImage={node.sfSymbol} role={node.destructive ? 'destructive' : undefined} onPress={node.onPress} modifiers={modifiers} />;
+      return (
+        <Button key={node.testID} {...labelProps} role={node.destructive ? 'destructive' : undefined} onPress={node.onPress} modifiers={modifiers}>
+          {label}
+        </Button>
+      );
     }
   }
 }
@@ -94,7 +111,7 @@ function NativeGlassMenuGroup({ menus, scheme, hideBackground }: {
                   <Image systemName={menu.sfSymbol} size={17} modifiers={[foregroundStyle('primary'), frame({ width: 40, height: MENU_HEIGHT })]} />
                 )}
               >
-                {menu.items.map((item) => menuNode(item, setConfirmation))}
+                {menu.items.map((item) => menuNode(item, setConfirmation, scheme))}
               </Menu>
             ))}
           </HStack>

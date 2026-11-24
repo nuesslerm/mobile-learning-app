@@ -26,6 +26,8 @@ import {
   type SettingsRow,
 } from '../../domain/editor-settings/settingsMenu';
 
+import lineWrapMenuIcon from './line-wrap-menu-icon.json';
+
 export const EDITOR_SETTINGS_IDS = {
   button: 'EditorSettingsButton',
   viewSection: 'EditorSettingsViewSection',
@@ -47,13 +49,17 @@ const GLYPHS = {
   button: { icon: SlidersHorizontal, sfSymbol: 'slider.horizontal.3' },
   fontSize: { icon: CaseSensitive, sfSymbol: 'textformat.size' },
   whitespace: { icon: Space, sfSymbol: 'space' },
-  wrap: { icon: WrapText, sfSymbol: 'decrease.indent' },
+  wrap: {
+    icon: WrapText,
+    sfSymbol: 'decrease.indent',
+    iosMenuImage: lineWrapMenuIcon,
+  },
   tabSize: { icon: IndentIncrease, sfSymbol: 'text.alignright' },
   symbolBar: { icon: Keyboard, sfSymbol: 'keyboard' },
   format: { icon: Wand2, sfSymbol: 'wand.and.sparkles' },
 } as const satisfies Record<
   Exclude<keyof typeof EDITOR_SETTINGS_IDS, 'viewSection' | 'toolsSection'>,
-  { icon: unknown; sfSymbol: SfSymbolName }
+  { icon: unknown; sfSymbol: SfSymbolName; iosMenuImage?: MenuActionNode['iosMenuImage'] }
 >;
 
 export type EditorSettingsHandlers = {
