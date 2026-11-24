@@ -11,13 +11,14 @@ export function createWebViewEditorBridge(): EditorBridgePort {
     html: () => buildEditorHtml(),
     connect(webView) {
       const transport = createWebViewHostTransport(webView);
-      const engine = toRemoteEngine(createRpcClient(transport, { timeoutMs: 5000 }), (error) => {
+      const rpc = createRpcClient(transport, { timeoutMs: 5000 });
+      const engine = toRemoteEngine(rpc, (error) => {
         // a listener that leaves after its page has gone finds the channel closed: that is the page going away, not a failure
         if (error instanceof RpcError && error.code === 'closed') Logger.debug('editor.api.channel_closed');
         else Logger.withError(error).warn('editor.api.remote_failed');
       });
       const client = createEditorClient(engine, { trace: (call) => Logger.debug('editor.api.call', { ...call }) });
-      return { client, receive: (raw) => transport.receive(raw) };
+      return { client, receive: (raw) => transport.receive(raw), close: () => rpc.close() };
     },
   };
 }

@@ -21,6 +21,7 @@ import {
   bracketMatching,
   syntaxHighlighting,
   defaultHighlightStyle,
+  HighlightStyle,
 } from '@codemirror/language';
 import {
   Compartment,
@@ -28,7 +29,7 @@ import {
   EditorState,
   RangeSetBuilder,
 } from '@codemirror/state';
-import { oneDark } from '@codemirror/theme-one-dark';
+import { oneDark, oneDarkTheme } from '@codemirror/theme-one-dark';
 import {
   EditorView,
   keymap,
@@ -51,6 +52,7 @@ import {
   type Language,
   type SelRange,
 } from '@lib/code-editor-api';
+import { tags } from '@lezer/highlight';
 import { Logger } from '@lib/logging';
 import { createPageTransport } from '@lib/webview-rpc';
 import { createCm6Host, revisionField, selectionOf, setRevisionBase, typingCalls } from './cm6Host';
@@ -169,6 +171,8 @@ function parseEditorConfig(value: unknown): EditorConfig | null {
   }
   return {
     initialText,
+    noAutoFocus: value.noAutoFocus === true,
+    syntaxPalette: value.syntaxPalette === 'contrast' ? 'contrast' : 'default',
     isDark: value.isDark,
     fontSize,
     lineHeight,
@@ -236,7 +240,18 @@ const completionFor = (language: string) =>
     entries: currentCompletion.entries,
     onOpenChange: (open) => core?.ingestCompletion(open),
   });
+const contrastHighlight = HighlightStyle.define([
+  { tag: [tags.keyword, tags.definitionKeyword, tags.controlKeyword], color: '#FF3B91' },
+  { tag: [tags.className, tags.typeName], color: '#65DCC3' },
+  { tag: tags.function(tags.variableName), color: '#52C7B0' },
+  { tag: [tags.null, tags.bool, tags.number], color: '#AC64FA' },
+  { tag: [tags.string, tags.regexp], color: '#9ACC78' },
+  { tag: [tags.comment, tags.docComment], color: '#6A7584' },
+  { tag: [tags.punctuation, tags.operator], color: '#A0ABB9' },
+]);
+
 function buildConfigExtensions(cfg: EditorConfig) {
+  const contrast = cfg.isDark && cfg.syntaxPalette === 'contrast';
   const theme = EditorView.theme(
     {
       '&': {
@@ -245,6 +260,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
         fontFamily: "'Menlo', 'Courier New', monospace",
         height: '100%',
         backgroundColor: cfg.backgroundColor,
+        ...(contrast ? { color: '#F1F1F4' } : {}),
       },
       '.cm-content': {
         padding: '12px 0',
@@ -302,7 +318,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
     // Spaces, as in every LeetCode stub: Python rejects a tab-indented line under a space-indented one (TabError).
     indentUnit.of(' '.repeat(cfg.tabSize)),
     theme,
-    cfg.isDark ? oneDark : [],
+    cfg.isDark ? (contrast ? [oneDarkTheme, syntaxHighlighting(contrastHighlight)] : oneDark) : [],
     cfg.wordWrap ? EditorView.lineWrapping : [],
     cfg.showWhitespace ? highlightWhitespace() : [],
   ];
@@ -475,7 +491,7 @@ function createEditor(cfg: EditorConfig) {
   disableTextAssist(document.documentElement);
   disableTextAssist(document.body);
   disableTextAssist(view.contentDOM);
-  view.focus();
+  if (!cfg.noAutoFocus) view.focus();
   postToRN({
     type: 'hydrated',
     text: view.state.doc.toString(),

@@ -115,6 +115,7 @@ export type EditorConfig = {
   borderColor: string;
   tabSize: number;
   noAutoFocus?: boolean;
+  syntaxPalette?: 'default' | 'contrast';
 };
 
 export type ToEditorMessage =
@@ -150,7 +151,7 @@ export type WebViewHandle = { injectJavaScript(script: string): void };
  */
 export interface EditorBridgePort {
   html(): string;
-  connect(webView: () => WebViewHandle | null): { client: EditorClient; receive(raw: string): void };
+  connect(webView: () => WebViewHandle | null): { client: EditorClient; receive(raw: string): void; close(): void };
 }
 
 export interface CodeEditorPort {

@@ -1,24 +1,11 @@
 import { isLanguage, type CompletionConfig, type ConfigPatch, type EditorConfig } from '@lib/code-editor-api';
 
-/** The config the page and the old `init` message speak. */
-export type LegacyEditorConfig = {
-  initialText: string;
-  isDark: boolean;
-  fontSize: number;
-  lineHeight: number;
-  wordWrap: boolean;
-  showWhitespace?: boolean;
-  language: string;
-  cursorColor: string;
-  selectionColor: string;
-  backgroundColor: string;
-  gutterColor: string;
-  borderColor: string;
-  tabSize: number;
-};
+import type { EditorConfig as LegacyEditorConfig } from '../ports';
+
+export type { LegacyEditorConfig };
 export type LegacyConfigPatch = Partial<LegacyEditorConfig>;
 
-const MAPPED = new Set(['language', 'wordWrap', 'showWhitespace', 'isDark', 'cursorColor', 'selectionColor', 'backgroundColor', 'gutterColor', 'borderColor', 'fontSize', 'lineHeight', 'tabSize']);
+const MAPPED = new Set(['language', 'wordWrap', 'showWhitespace', 'isDark', 'cursorColor', 'selectionColor', 'backgroundColor', 'gutterColor', 'borderColor', 'syntaxPalette', 'fontSize', 'lineHeight', 'tabSize']);
 
 /** The typed-API form of an old patch, or null when it holds a key the typed API does not carry (`initialText`, a language it does not name, anything unknown). */
 export function toConfigPatch(legacy: LegacyConfigPatch): ConfigPatch | null {
@@ -31,6 +18,7 @@ export function toConfigPatch(legacy: LegacyConfigPatch): ConfigPatch | null {
     ...(legacy.backgroundColor === undefined ? {} : { background: legacy.backgroundColor }),
     ...(legacy.gutterColor === undefined ? {} : { gutter: legacy.gutterColor }),
     ...(legacy.borderColor === undefined ? {} : { border: legacy.borderColor }),
+    ...(legacy.syntaxPalette === undefined ? {} : { syntax: legacy.syntaxPalette }),
   };
   return {
     ...(legacy.language === undefined || !isLanguage(legacy.language) ? {} : { language: legacy.language }),
@@ -59,6 +47,7 @@ export function toLegacyPatch(patch: ConfigPatch): LegacyConfigPatch {
     ...(palette?.background === undefined ? {} : { backgroundColor: palette.background }),
     ...(palette?.gutter === undefined ? {} : { gutterColor: palette.gutter }),
     ...(palette?.border === undefined ? {} : { borderColor: palette.border }),
+    ...(palette?.syntax === undefined ? {} : { syntaxPalette: palette.syntax }),
   };
 }
 
@@ -70,7 +59,7 @@ export function toEditorConfig(legacy: LegacyEditorConfig, completion?: Completi
     tabSize: legacy.tabSize,
     fontSize: legacy.fontSize,
     lineHeight: legacy.lineHeight,
-    palette: { dark: legacy.isDark, cursor: legacy.cursorColor, selection: legacy.selectionColor, background: legacy.backgroundColor, gutter: legacy.gutterColor, border: legacy.borderColor },
+    palette: { dark: legacy.isDark, cursor: legacy.cursorColor, selection: legacy.selectionColor, background: legacy.backgroundColor, gutter: legacy.gutterColor, border: legacy.borderColor, ...(legacy.syntaxPalette === undefined ? {} : { syntax: legacy.syntaxPalette }) },
     ...(completion ? { completion } : {}),
   };
 }

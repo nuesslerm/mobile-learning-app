@@ -184,7 +184,9 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     const showWhitespace = useEditorPreferencesStore((s) => s.whitespace);
     const palette = getPalette(paletteId);
     const canvas = appearance === 'canvas';
-    const backgroundColor = canvas && paletteId === DEFAULT_PALETTE_ID ? '#000000' : palette.background;
+    const contrastPalette = canvas && paletteId === DEFAULT_PALETTE_ID;
+    const syntaxPalette = canvas ? (contrastPalette ? 'contrast' : 'default') : undefined;
+    const backgroundColor = contrastPalette ? '#000000' : palette.background;
     const lineHeight = lineHeightFor(fontSize);
     const isDark = palette.appearance === 'dark';
     // Editor chrome colors (gutter + border) are intentionally tied to the
@@ -507,12 +509,13 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         gutterColor,
         borderColor,
         tabSize,
-        noAutoFocus: canvas,
+        ...(canvas ? { noAutoFocus: true, syntaxPalette } : {}),
       }),
       [
         fontSize,
         lineHeight,
         canvas,
+        syntaxPalette,
         palette,
         backgroundColor,
         isDark,
@@ -566,6 +569,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           cursorColor: palette.cursor,
           selectionColor: palette.selection,
           backgroundColor,
+          ...(syntaxPalette ? { syntaxPalette } : {}),
           gutterColor,
           borderColor,
           tabSize,
@@ -583,6 +587,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       palette.cursor,
       palette.selection,
       backgroundColor,
+      syntaxPalette,
       gutterColor,
       borderColor,
     ]);
@@ -647,7 +652,9 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       return () => clearTimeout(timer);
     }, []);
 
+    const bridgeEpoch = useRef(0);
     useLayoutEffect(() => {
+      const epoch = ++bridgeEpoch.current;
       Logger.debug('editor.cleanup', { effect: 'cleanup' });
       return () => {
         isReadyRef.current = false;
@@ -658,8 +665,14 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         caretDragRef.current?.drag.cancel();
         caretDragRef.current = null;
         updateHydratedRef.current(false);
+        queueMicrotask(() => {
+          if (bridgeEpoch.current !== epoch) return;
+          apiBridge.close();
+          completionListenerRef.current?.();
+          completionListenerRef.current = null;
+        });
       };
-    }, []);
+    }, [apiBridge]);
 
     const logColdStart = () => {
       const report = coldStartRef.current?.take({ evalMs: pageEvalMsRef.current });

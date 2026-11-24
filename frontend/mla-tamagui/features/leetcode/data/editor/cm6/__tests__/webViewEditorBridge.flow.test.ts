@@ -14,4 +14,15 @@ describe('the WebView editor bridge', () => {
     expect((await loggedLines('editor.api.channel_closed')).length).toBeGreaterThan(0);
     expect(await loggedLines('editor.api.remote_failed')).toEqual([]);
   });
+
+  it('given a pending editor subscription, when the page closes, then the request ends as an ordinary channel close', async () => {
+    await forgetLoggedLines();
+    const bridge = createWebViewEditorBridge().connect(() => ({ injectJavaScript: () => undefined }));
+    bridge.client.on('changed', () => undefined);
+
+    bridge.close();
+
+    expect((await loggedLines('editor.api.channel_closed')).length).toBeGreaterThan(0);
+    expect(await loggedLines('editor.api.remote_failed')).toEqual([]);
+  });
 });

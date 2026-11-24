@@ -3,7 +3,7 @@ import { Sheet } from '@lib/tamagui-design-system/ui/sheet';
 import { Trash2 } from '@lib/tamagui-design-system/icons';
 import { YStack } from '@lib/tamagui-design-system/primitives';
 import React from 'react';
-import { Keyboard, Platform } from 'react-native';
+import { Keyboard, Platform, useColorScheme } from 'react-native';
 
 import { captionsOf } from '../../domain/console/caseFields';
 import { CONSOLE_SNAP_PERCENT, FLOATING_CONSOLE_SNAP_PERCENT } from '../../domain/console/layout';
@@ -35,6 +35,7 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
   const [focusToken, setFocusToken] = React.useState(0);
   const [editing, setEditing] = React.useState(false);
   const { selected } = state;
+  const dark = useColorScheme() === 'dark';
   React.useEffect(() => {
     if (!state.open) setEditing(false);
   }, [state.open]);
@@ -62,6 +63,7 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
       floatingHorizontalInset={8}
       floatingBottomInset={8}
       cornerRadius={floating ? 28 : undefined}
+      glassTintColor={floating && dark ? 'rgba(10, 10, 10, 0.17)' : undefined}
       contentStyle={floating ? FLOATING_CONTENT : undefined}
       handleLabel="Close console"
       testID="ConsoleSheet"

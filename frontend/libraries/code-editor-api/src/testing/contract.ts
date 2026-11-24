@@ -991,8 +991,8 @@ export function editorContract(name: string, make: MakeSubject, options: Contrac
     describe('config and view', () => {
       it('given a config patch, when it is applied, then the effective config comes back with the palette merged and the revision unchanged', async () => {
         const base = await start();
-        const reply = await client.setConfig({ wrap: true, palette: { dark: true } });
-        expect(unwrap(reply)).toMatchObject({ wrap: true, palette: { dark: true } });
+        const reply = await client.setConfig({ wrap: true, palette: { dark: true, syntax: 'contrast' } });
+        expect(unwrap(reply)).toMatchObject({ wrap: true, palette: { dark: true, syntax: 'contrast' } });
         expect(typeof unwrap(reply).palette.cursor).toBe('string');
         expect(reply.revision).toBe(base);
       });
@@ -1016,6 +1016,7 @@ export function editorContract(name: string, make: MakeSubject, options: Contrac
         expect(failed(await client.setConfig({ whitespace: 'yes' as unknown as boolean }))).toMatchObject({ code: 'invalid', path: 'whitespace' });
         expect(failed(await client.setConfig({ tabSize: 0 }))).toMatchObject({ code: 'invalid', path: 'tabSize' });
         expect(failed(await client.setConfig({ palette: { cursor: 5 as unknown as string } })).code).toBe('invalid');
+        expect(failed(await client.setConfig({ palette: { syntax: 'unknown' as never } }))).toMatchObject({ code: 'invalid', path: 'palette.syntax' });
       });
 
       it('given a language outside the API\'s vocabulary, when configure runs, then it is unsupported, names the language and changes nothing', async () => {

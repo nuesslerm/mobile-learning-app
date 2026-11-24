@@ -908,6 +908,9 @@ importers:
       '@codemirror/view':
         specifier: ^6.43.0
         version: 6.43.6
+      '@lezer/highlight':
+        specifier: 1.2.3
+        version: 1.2.3
       '@lib/browser-client':
         specifier: workspace:*
         version: link:../../libraries/browser-client

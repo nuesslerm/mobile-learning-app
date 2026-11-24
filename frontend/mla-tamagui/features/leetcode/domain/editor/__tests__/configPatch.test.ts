@@ -21,7 +21,7 @@ describe('the config patch mapping', () => {
     expect(toLegacyPatch({ palette: { gutter: '#1' } })).toEqual({ gutterColor: '#1' });
   });
 
-  it.each([['initialText', { initialText: 'x' }], ['a language the API does not name', { language: 'rust' }], ['an unknown key', { noAutoFocus: true } as never]])('given a patch holding %s, when mapped, then it stays on the old path', (_name, patch) => {
+  it.each([['initialText', { initialText: 'x' }], ['a language the API does not name', { language: 'rust' }], ['the initial focus policy', { noAutoFocus: true }]])('given a patch holding %s, when mapped, then it stays on the old path', (_name, patch) => {
     expect(toConfigPatch(patch)).toBeNull();
   });
 
@@ -52,6 +52,14 @@ describe('the config patch mapping', () => {
 
     expect(typed).toEqual({ fontSize: 16, whitespace: true });
     expect(toLegacyPatch(typed ?? {})).toEqual({ fontSize: 16, showWhitespace: true });
+  });
+
+  it('given a contrast palette, when the editor updates its palette, then the syntax style survives both message formats', () => {
+    const typed = toConfigPatch({ syntaxPalette: 'contrast' });
+
+    expect(typed).toEqual({ palette: { syntax: 'contrast' } });
+    expect(toLegacyPatch(typed ?? {})).toEqual({ syntaxPalette: 'contrast' });
+    expect(toEditorConfig({ initialText: '', language: 'python', ...ALL, syntaxPalette: 'contrast' }).palette.syntax).toBe('contrast');
   });
 
   it('given a page config with showWhitespace on, when shown to the typed API, then it reports whitespace', () => {
