@@ -76,14 +76,21 @@ describe('the language of the real CodeMirror page', () => {
     expect(names()).toEqual([]);
   });
 
-  it('given Python on the contrast canvas, when annotations use a union and a generic, then only names in the annotations get the type color', async () => {
+  it('given Python on the contrast canvas, when known types are called, then those calls and annotations get the type color', async () => {
     const { page, client } = await readyPage('python', true);
-    unwrap(await client.load('def solve(node: ListNode | None) -> Optional[ListNode]:\n    return node.next'));
-    const names = Array.from(
+    unwrap(await client.load(
+      'class Local:\n    pass\n' +
+      'def solve(node: ListNode | None) -> Optional[ListNode]:\n' +
+      '    return node.next, ListNode(), Local(), node.ListNode(), MakeNode()'
+    ));
+    const names = () => Array.from(
       page.frame()?.document.querySelectorAll('.cm-type-name') ?? [],
       (reference) => reference.textContent,
     );
-    expect(names).toEqual(['ListNode', 'Optional', 'ListNode']);
+    expect(names()).toEqual(['ListNode', 'Optional', 'ListNode', 'ListNode', 'Local']);
+
+    unwrap(await client.load('def solve(node):\n    return ListNode()'));
+    expect(names()).toEqual([]);
   });
 
   it('given an init with a language the page does not know, when the config is read, then the page started on python', async () => {
