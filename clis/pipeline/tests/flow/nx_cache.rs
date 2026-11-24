@@ -243,7 +243,7 @@ fn nx_runs_an_e2e_test_exactly_when_its_feature_code_test_case_or_the_app_shell_
         ("a browser golden", "docs/runbooks/goldens/browser/web-home.json", all_b.clone(), set(&[])),
         ("the app shell", "frontend/mla-tamagui/app-shell/AppDrawerContent.tsx", all_b.clone(), all_a.clone()),
         ("a library every feature imports", "frontend/libraries/tamagui-design-system/composites/collapsing-header.tsx", all_b.clone(), all_a.clone()),
-        ("a library the leetcode feature imports", "frontend/libraries/webview-rpc/src/index.ts", set(&["app-routes", "editor-typing", "voice-edit"]), set(&[])),
+        ("a library the app tooling imports outside the features", "libraries/browser-client/src/index.mjs", set(&["app-routes"]), set(&[])),
         // a service has its own deployment verification tests (owner, 18 Oct), and the lockfile counts only through the packages the code imports
         ("the backend a test calls", "backend/remote-chat-agent/rs/src/api/app.rs", set(&[]), set(&[])),
         ("a crate that backend builds", "libraries/rca-core/src/file_store.rs", set(&[]), set(&[])),
