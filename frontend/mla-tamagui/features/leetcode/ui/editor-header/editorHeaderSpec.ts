@@ -1,6 +1,8 @@
 import type { HeaderMenuSpec, MenuNode, ScreenHeaderSpec } from '@lib/tamagui-design-system';
 import { Cloud, History, Info, LogIn, LogOut, MoreHorizontal, RotateCcw } from '@lib/tamagui-design-system/icons';
 
+import type { DraftStatus } from '../../state/editor/useCodeDrafts';
+
 export const EDITOR_HEADER_IDS = {
   header: 'ProblemEditorHeader',
   info: 'ProblemEditorInfoButton',
@@ -10,6 +12,8 @@ export const EDITOR_HEADER_IDS = {
   resetCode: 'ProblemEditorMenuResetCode',
   undo: 'ProblemEditorUndo',
 } as const;
+
+const SAVE_LABELS: Record<DraftStatus, string> = { saved: 'Saved', saving: 'Saving…', unsaved: 'Unsaved' };
 
 export type EditorHeaderInput = {
   title: string;
@@ -21,7 +25,7 @@ export type EditorHeaderInput = {
   busy: boolean;
   /** The editor settings menu, its own piece of glass. */
   settings: HeaderMenuSpec;
-  nativeWorkspace?: { language: HeaderMenuSpec; dirty: boolean; backgroundColor?: string; railStyle?: MenuNode };
+  nativeWorkspace?: { language: HeaderMenuSpec; saveStatus: DraftStatus; backgroundColor?: string; railStyle?: MenuNode };
   onBack: () => void;
   onInfo: () => void;
   onUndo?: () => void;
@@ -89,7 +93,7 @@ export function editorHeaderSpec(input: EditorHeaderInput): ScreenHeaderSpec {
       nativeGlassMenuGroups: true,
       nativeBackgroundColor: native.backgroundColor,
       leadingStatus: {
-        label: native.dirty ? 'Unsaved' : 'Saved',
+        label: SAVE_LABELS[native.saveStatus],
         icon: Cloud,
         testID: 'ProblemEditorSaveStatus',
         menu: {

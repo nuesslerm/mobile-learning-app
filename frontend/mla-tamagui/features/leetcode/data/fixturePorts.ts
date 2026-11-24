@@ -189,9 +189,18 @@ function createFixtureAudio(): AudioRecordingPort {
 
 export function createFixturePorts(): Omit<LeetCodePorts, 'flags'> {
   const gateway = createFixtureGateway();
+  const drafts = new Map<string, string>();
   return {
     clock: () => performance.now(),
     editorBridge: createWebViewEditorBridge(),
+    codeDrafts: {
+      read: async (problemId, language) => drafts.get(`${problemId}:${language}`) ?? null,
+      write: async (problemId, language, code) => {
+        const key = `${problemId}:${language}`;
+        if (code === null) drafts.delete(key);
+        else drafts.set(key, code);
+      },
+    },
     gateway,
     voice: createFixtureVoice(),
     audio: createFixtureAudio(),

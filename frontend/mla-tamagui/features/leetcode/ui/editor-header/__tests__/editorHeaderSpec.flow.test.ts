@@ -63,7 +63,7 @@ describe('the editor header spec', () => {
     const onUndo = vi.fn();
     const input = inputs({
       onUndo,
-      nativeWorkspace: { dirty: true, backgroundColor: '#000000', language: { ...settingsMenu(), testID: 'ProblemEditorLanguageMenu' } },
+      nativeWorkspace: { saveStatus: 'unsaved', backgroundColor: '#000000', language: { ...settingsMenu(), testID: 'ProblemEditorLanguageMenu' } },
     });
 
     const spec = editorHeaderSpec(input);

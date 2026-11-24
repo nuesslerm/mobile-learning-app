@@ -187,11 +187,17 @@ export class CodeRunnerError extends Error {
   }
 }
 
+export interface CodeDraftPort {
+  read(problemId: string, language: string): Promise<string | null>;
+  write(problemId: string, language: string, code: string | null): Promise<void>;
+}
+
 export interface LeetCodePorts {
   /** A monotonic clock in milliseconds; the editor's cold start is measured with it. */
   clock: () => number;
   /** The CodeMirror page and the typed editor API over it. */
   editorBridge: EditorBridgePort;
+  codeDrafts: CodeDraftPort;
   gateway: LeetCodeGatewayPort;
   voice: VoiceEditTransportPort;
   audio: AudioRecordingPort;

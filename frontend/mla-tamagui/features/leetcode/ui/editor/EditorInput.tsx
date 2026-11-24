@@ -599,7 +599,9 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       if (sentCompletionRef.current === key || (sentCompletionRef.current === null && !wanted.enabled)) return;
       sentCompletionRef.current = key;
       void apiBridge.client.setConfig({ completion: wanted }).then((reply) => {
-        if (!reply.ok) Logger.warn('editor.completion.config_failed', { code: reply.error.code });
+        if (reply.ok) return;
+        if (reply.error.code === 'transport' && reply.error.cause === 'closed' && !isInitializedRef.current) return;
+        Logger.warn('editor.completion.config_failed', { code: reply.error.code });
       });
     }, [apiBridge]);
     const completionKey = JSON.stringify(completion ?? null);

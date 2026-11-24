@@ -66,6 +66,7 @@ import { editorSettingsMenu } from './editor-settings/editorSettingsMenu';
 import { SymbolBarSheet } from './editor-settings/SymbolBarSheet';
 import { railStyleMenu } from './editor-settings/railStyleMenu';
 import { useSymbolBarStore } from '../state/editor/symbolBarStore';
+import { useCodeDrafts, type CodeDraftSession } from '../state/editor/useCodeDrafts';
 import { useEditorPreferencesStore } from '../state/editor/editorPreferencesStore';
 import { useConsole } from '../state/console/useConsole';
 import { consoleInset, editorZoneMinHeight } from '../domain/console/layout';
@@ -92,7 +93,27 @@ const subscribeNever = () => () => undefined;
 // False while the web export's prerendered page hydrates (it has no problem yet), true from the next render on and always on a phone.
 const useHydrated = () => React.useSyncExternalStore(subscribeNever, () => true, () => false);
 
-export function ProblemEditorScreen({
+type EditorScreenProps = {
+  id?: string;
+  seed?: string;
+  lang?: EditorLanguage;
+  onWorkspaceApi?: (api: PlanEditor) => void;
+  active?: boolean;
+  underlapNativeHeader?: boolean;
+  onConsoleOpenChange?: (open: boolean) => void;
+  onBlocksSource?: (source: BlocksSource) => void;
+};
+
+export function ProblemEditorScreen(props: EditorScreenProps) {
+  const draftProblemId = Platform.OS === 'ios' && props.seed === undefined ? props.id : undefined;
+  const { session, loading } = useCodeDrafts(draftProblemId, EDITOR_LANGUAGES);
+  if (loading) {
+    return <YStack flex={1} items="center" justify="center" bg="$background"><Spinner /></YStack>;
+  }
+  return <ProblemEditorContent {...props} drafts={session} />;
+}
+
+function ProblemEditorContent({
   id,
   seed,
   lang: initialLang,
@@ -101,20 +122,8 @@ export function ProblemEditorScreen({
   underlapNativeHeader = false,
   onConsoleOpenChange,
   onBlocksSource,
-}: {
-  id?: string;
-  /** Dev bundles only: the code the editor opens on, so a device-lab job can start mid-problem. */
-  seed?: string;
-  /** Dev bundles only: the language the editor opens in. */
-  lang?: EditorLanguage;
-  onWorkspaceApi?: (api: PlanEditor) => void;
-  /** False while another workspace tab is shown: the console is closed then. */
-  active?: boolean;
-  underlapNativeHeader?: boolean;
-  onConsoleOpenChange?: (open: boolean) => void;
-  /** What the Blocks tab reads the code through: the editor handle, its language and whether its page has hydrated. */
-  onBlocksSource?: (source: BlocksSource) => void;
-}) {
+  drafts,
+}: EditorScreenProps & { drafts?: CodeDraftSession }) {
   const problem = React.useMemo(
     () => (id ? ProblemCatalog.getById(id) : undefined),
     [id]
@@ -130,7 +139,7 @@ export function ProblemEditorScreen({
     [autocomplete, problem, editorLanguage]
   );
   const [editorText, setEditorText] = React.useState(
-    () => seed || pickStarterCode(problem?.starterCode, lang)
+    () => drafts?.read(lang) ?? (seed || pickStarterCode(problem?.starterCode, lang))
   );
   const [editorSelection, setEditorSelection] = React.useState<Selection>({
     start: 0,
@@ -258,13 +267,14 @@ export function ProblemEditorScreen({
     readBasis: editorTarget.basis,
   });
 
-  // "Dirty" is measured against the starter code for the CURRENT language, not
-  // against a saved copy -- there is no saved copy. Switching language resets
-  // the buffer to that language's starter, so the comparison stays honest.
-  const isDirty = React.useMemo(
-    () => editorText !== pickStarterCode(problem?.starterCode, lang),
-    [editorText, problem?.starterCode, lang]
-  );
+  const isDirty = editorText !== pickStarterCode(problem?.starterCode, lang);
+  const saveDraft = drafts?.save;
+  const readDraft = drafts?.read;
+  const draftStatus = drafts?.status(lang);
+  const updateCode = React.useCallback((code: string, language: EditorLanguage = lang) => {
+    setEditorText(code);
+    saveDraft?.(language, code === pickStarterCode(problem?.starterCode, language) ? null : code);
+  }, [lang, problem?.starterCode, saveDraft]);
   const requestUnsavedChanges = useUnsavedChangesRequestStore((s) => s.request);
   const [languageSheetOpen, setLanguageSheetOpen] = React.useState(false);
 
@@ -285,22 +295,20 @@ export function ProblemEditorScreen({
         to: nextLang,
         problemId: problem?.id,
       });
-      // A language switch discards the whole buffer for the new language's
-      // starter code. That was silent data loss before this snapshot.
       snapshot('language-switch');
       setLang(nextLang);
-      setEditorText(pickStarterCode(problem?.starterCode, nextLang));
+      setEditorText(readDraft?.(nextLang) ?? pickStarterCode(problem?.starterCode, nextLang));
       clearConsoleResult();
       runner.warmUp?.(nextLang);
     },
-    [availableLanguages, lang, problem?.id, problem?.starterCode, snapshot, clearConsoleResult, runner]
+    [availableLanguages, lang, problem?.id, problem?.starterCode, snapshot, clearConsoleResult, runner, readDraft]
   );
 
   const handleFormat = React.useCallback(async () => {
     try {
       const formatted = await gateway.format({ lang, code: editorText });
       snapshot('format');
-      setEditorText(formatted);
+      updateCode(formatted);
       Logger.info('editor_v2.format.result', {
         length: formatted.length,
         problemId: problem?.id,
@@ -317,12 +325,12 @@ export function ProblemEditorScreen({
           err instanceof Error ? err.message : 'The formatter did not respond.',
       });
     }
-  }, [editorText, gateway, problem, lang, snapshot]);
+  }, [editorText, gateway, problem, lang, snapshot, updateCode]);
 
   const handleEditorChange = React.useCallback((next: string) => {
-    setEditorText(next);
+    updateCode(next);
     onConsoleCodeChanged(next);
-  }, [onConsoleCodeChanged]);
+  }, [onConsoleCodeChanged, updateCode]);
 
   // React follows the page's contentChanged for the text, and the editor marks what the edit changed as it applies it; the screen only shows the toggle.
   const showEdit = React.useCallback((outcome: EditOutcome) => {
@@ -439,7 +447,7 @@ export function ProblemEditorScreen({
         // Reset is the most destructive path in the screen and used to be
         // genuinely irreversible -- the dialog said so. Snapshot first.
         snapshot('reset');
-        setEditorText(pickStarterCode(problem.starterCode, lang));
+        updateCode(pickStarterCode(problem.starterCode, lang));
         clearConsoleResult();
         // The edit mark belongs to the code that was just discarded.
         setHasEdit(false);
@@ -451,7 +459,7 @@ export function ProblemEditorScreen({
       },
     });
     router.push(`/leetcode/${problem.id}/reset-code`);
-  }, [problem, lang, snapshot, clearConsoleResult]);
+  }, [problem, lang, snapshot, clearConsoleResult, updateCode]);
 
   const fontSize = useEditorPreferencesStore((s) => s.fontSize);
   const tabSize = useEditorPreferencesStore((s) => s.tabSize);
@@ -486,16 +494,13 @@ export function ProblemEditorScreen({
       problemId: problem?.id,
       dirty: isDirty,
     });
-    if (!isDirty) {
+    if (!isDirty || draftStatus === 'saved') {
       router.back();
       return;
     }
     requestUnsavedChanges({
       problemId: problem?.id ?? '',
       onDiscard: () => {
-        // Snapshot BEFORE leaving: the buffer is useState seeded
-        // from starter code and persisted nowhere, so without this
-        // "discard" would be irreversible.
         snapshot('navigate-away');
         router.back();
       },
@@ -521,7 +526,7 @@ export function ProblemEditorScreen({
       problemId: problem.id,
       onRestore: (code, language) => {
         snapshot('reset');
-        setEditorText(code);
+        updateCode(code, language as EditorLanguage);
         editorRef.current?.setTextAndSelection(code, { start: code.length, end: code.length });
         if (language !== lang) {
           setLang(language as EditorLanguage);
@@ -592,7 +597,7 @@ export function ProblemEditorScreen({
     username,
     busy: consolePending !== null,
     nativeWorkspace: nativeEditorHeader ? {
-      dirty: isDirty,
+      saveStatus: draftStatus ?? (isDirty ? 'unsaved' : 'saved'),
       backgroundColor: canvasBackground,
       railStyle: railStyleMenu(railStyle, setRailStyle),
       language: editorLanguageMenu(lang, availableLanguages, handleLanguageChange),
