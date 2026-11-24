@@ -29,6 +29,16 @@ pub(crate) fn stored_model(agent: &dyn AgentApi, session: &str) -> Result<Option
     Ok(stored(agent, session)?.get("model").and_then(Value::as_str).map(str::to_string))
 }
 
+pub(crate) fn permission_mode(agent: &dyn AgentApi, session: &str, settings: &Value) -> Result<Option<&'static str>, Failure> {
+    let options = stored(agent, session)?;
+    let mode = options.get("permissionMode").and_then(Value::as_str).or_else(|| settings["nativeChatPermissionMode"].as_str());
+    Ok(mode.map(|mode| match mode {
+        "full-access" => "full-access",
+        "accept-edits" => "accept-edits",
+        _ => "ask",
+    }))
+}
+
 fn models_of(agent: &dyn AgentApi, driver: &str) -> Result<Value, Failure> {
     ask(agent, MODELS_LIST.name(), json!({"driver": driver}))
 }
@@ -82,7 +92,8 @@ pub(crate) fn options(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fai
     let picked = stored_model(agent, session)?;
     let named = picked.or_else(|| thread["model"].as_str().map(str::to_string));
     let model = named.clone().or_else(|| default_model(&catalog));
-    let mut current = json!({});
+    let settings = crate::agent::state_get(agent, "settings")?.unwrap_or(Value::Null);
+    let mut current = json!({"permissionMode": permission_mode(agent, session, &settings)?.unwrap_or("full-access")});
     if let Some(m) = model {
         current["model"] = m.into();
     }
@@ -92,7 +103,7 @@ pub(crate) fn options(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fai
     Ok(json!({"models": model_options(&catalog), "current": current, "acceptsImages": true, "rewind": {"supported": true}, "conversationCommands": ["clear", "compact"], "compactInstructions": true}))
 }
 
-/// `agentSession.setOption`: the model of the session's next turns. The turn takes no effort and no permission mode of the phone's, so those keys are refused.
+/// `agentSession.setOption`: the model and permission policy of the next turn.
 pub(crate) fn set_option(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let env = Envelope::read(params)?;
     if let Some(done) = lookup(agent, &env)? {
@@ -100,25 +111,31 @@ pub(crate) fn set_option(agent: &dyn AgentApi, params: &Value) -> Result<Value, 
     }
     let key = text(params, "key").ok_or_else(|| Failure::invalid("Invalid option key"))?;
     let value = params["value"].as_str().ok_or_else(|| Failure::invalid("Invalid option value"))?;
-    if key != "model" {
+    if !matches!(key, "model" | "permissionMode") {
         return Ok(refused("agent_session_option_unsupported", &format!("the option {key} is not offered by this host")));
     }
     let thread = view(agent, &env.session)?;
-    let catalog = models_of(agent, session_driver(&thread)?)?;
-    if !model_options(&catalog).iter().any(|m| m["id"] == value) {
-        return Ok(refused("agent_session_option_unsupported", &format!("{value} is not a model of this agent")));
-    }
+    let driver = session_driver(&thread)?;
     let mut options = stored(agent, &env.session)?;
-    if default_model(&catalog).as_deref() == Some(value) {
-        options.remove("model");
+    if key == "permissionMode" {
+        if !matches!(value, "ask" | "full-access") && !(value == "accept-edits" && driver == "claudeAgent") {
+            return Ok(refused("agent_session_option_unsupported", &format!("{value} is not a permission mode of this agent on this host")));
+        }
+        options.insert(key.into(), value.into());
     } else {
-        options.insert("model".into(), value.into());
+        let catalog = models_of(agent, driver)?;
+        if !model_options(&catalog).iter().any(|m| m["id"] == value) {
+            return Ok(refused("agent_session_option_unsupported", &format!("{value} is not a model of this agent")));
+        }
+        if default_model(&catalog).as_deref() == Some(value) {
+            options.remove("model");
+        } else {
+            options.insert(key.into(), value.into());
+        }
     }
     state_set(agent, &options_key(&env.session), Value::Object(options.clone()))?;
     let mut shown = options;
-    if shown.is_empty() {
-        shown.insert("model".into(), value.into());
-    }
+    shown.entry(key).or_insert_with(|| value.into());
     let answer = accepted(agent, &env.session, json!({"key": key, "value": value, "options": shown}))?;
     finish(agent, &env, answer)
 }

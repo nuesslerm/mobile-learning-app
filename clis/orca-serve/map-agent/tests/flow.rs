@@ -1010,6 +1010,31 @@ fn default_id(models: &[Value]) -> Value {
 }
 
 #[test]
+fn a_permission_pick_applies_to_direct_and_queued_turns_until_the_next_pick() {
+    // Given a Codex chat with the default permissions.
+    let mut rig = Rig::new();
+    rig.agent.request("thread.create", json!({"thread": "codex_policy", "workspace": "main", "driver": "codex"})).unwrap();
+    let options = |rig: &mut Rig| rig.ok("agentSession.options", json!({"sessionId": "codex_policy"}))["current"]["permissionMode"].clone();
+    assert_eq!(options(&mut rig), "full-access");
+    let pick = |rig: &mut Rig, op: &str, value: &str| rig.ok("agentSession.setOption", json!({"envelope": env("codex_policy", op, "fp"), "key": "permissionMode", "value": value}));
+
+    // When the phone picks Ask, sends directly, queues a follow-up and switches back.
+    assert_eq!(pick(&mut rig, "p1", "ask")["value"]["options"]["permissionMode"], "ask");
+    assert_eq!(options(&mut rig), "ask");
+    rig.ok("agentSession.send", json!({"envelope": env("codex_policy", "s1", "fp"), "body": body("first")}));
+    rig.ok("agentSession.send", json!({"envelope": env("codex_policy", "s2", "fp"), "body": body("queued"), "delivery": "queue-if-active"}));
+    assert_eq!(pick(&mut rig, "p2", "full-access")["value"]["options"]["permissionMode"], "full-access");
+    rig.threads.finish("codex_policy", "completed");
+    rig.ok("agentSession.send", json!({"envelope": env("codex_policy", "s3", "fp"), "body": body("next")}));
+
+    // Then the queued request retains its original mode and later sends use the new pick.
+    let starts: Vec<_> = sent(&rig, "turn.start").into_iter().map(|p| p["runtime_mode"].clone()).collect();
+    assert_eq!(starts, [json!("approval-required"), json!("full-access")]);
+    assert_eq!(sent(&rig, "queue.add")[0]["runtime_mode"], "approval-required");
+    assert_eq!(options(&mut rig), "full-access");
+}
+
+#[test]
 fn given_a_session_when_its_options_are_read_then_the_models_are_the_drivers_with_their_efforts_and_the_current_model_is_the_catalogs_default_until_one_is_picked() {
     // Given a claude session and the models the catalog lists for its driver
     let mut rig = Rig::new();
@@ -1452,6 +1477,7 @@ fn given_the_host_when_status_is_read_then_it_advertises_the_status_feed_and_str
         "agent.launch.v2",
         "agent.launch.replay-required.v1",
         "agent-session.structured.registered-agents.v1",
+        "agent-session.permission-modes.v1",
     ]);
 }
 
