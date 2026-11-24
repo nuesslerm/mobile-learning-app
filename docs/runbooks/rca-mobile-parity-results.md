@@ -157,3 +157,18 @@ RCA discovered a test skill in that worktree. The previous local T3 binary requi
 Start a timed Codex turn from the Orca composer. Queue A and B. Edit A in the inline editor and confirm RCA still lists the same card ID while its edit lease is held. Save the correction and drag B ahead of A. Tap Stop and verify both cards are held in the new order with no queued turn started. Tap Resume. RCA started and finished B and edited A once each, in that order. Orca displayed both replies and cleared the queue. A fresh history read linked both submissions to their original cards. This passes `queue-lifecycle` for Orca with Codex.
 
 RCA now holds the edit lease at the queue scheduler. The Linux paired-client regression lets the active question turn finish during the edit, verifies the old prompt stays queued and releases the card only after saving. It failed on the original adapter and passed with the fix. The Linux checks passed 33 agent API unit, 4 queue flow, 6 contract flow and 7 Orca agent-session integration tests. The native recording, screenshots and event assertions are under `.context/rca-orca-queue-edit/published/run-5124a3b7656ea687/` in Zagreb.
+
+## Cold and warm reopen with seeded 96-turn histories
+
+Both native bundle IDs were verified. Each app used its own fixture with ordinal markers so replay, scroll order and duplicate detection can be automated independently of model output. One real T3 turn supplied the fixture shape. The other 95 turns were synthetic.
+
+| App | Warm reopen (ms) | Cold tap (ms) | Cold launch through first message (ms) | History assertion |
+| --- | --- | --- | --- | --- |
+| Orca | 1285, 1273, 1332 | 1405 | 7647 | Native replies 052–096 were contiguous across more than two page boundaries. Eight paired history pages reassembled all 96 replies in order. |
+| T3 | 1533, 1541, 1576 | 1934 | 7861 | Native scroll reached reply 045, with consecutive ordinals in each sampled window. The paired projection decoded all 192 messages and verified all 96 reply markers in order. |
+
+Timing includes the simulator driver's observation latency. T3 originally displayed Reconnecting and its WebSocket closed after 327,202 bytes of a declared 720,896-byte response. macOS accepted sockets inherited nonblocking mode from the listener. T3 now puts each accepted socket into blocking mode before reading its HTTP request. With the updated adapter, the same response arrived in full. The delayed-reader regression failed on the original Mac build and passed after the change. All 19 targeted T3 socket flow tests passed separately on macOS and Linux. The CI catalog regression traced to an outdated Codex model recording. Updating it to match the advertised models passed all four RCA service catalog flow tests on Linux.
+
+The local RCA launch configuration now persists thread state. A separate real Codex sentinel retained its thread, event and turn IDs through an RCA restart. The recorded initial restart used an in-memory test service and cleared its local test threads.
+
+Bundles in Zagreb are `.context/rca-long-history/published/run-e4c839f2014f4988/` for Orca and `.context/rca-t3-large-history/published/run-5b9ed2affaf4e5f8/` for T3. They contain recordings, screenshots, individual timing measurements and machine-readable ordinal assertions.

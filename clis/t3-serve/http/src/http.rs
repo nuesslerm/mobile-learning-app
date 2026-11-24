@@ -241,6 +241,10 @@ fn respond_joined(stream: &mut TcpStream, share: &str, token: &str) {
 }
 
 pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
+    // Accepted sockets can inherit the listener's nonblocking mode on macOS.
+    if stream.set_nonblocking(false).is_err() {
+        return;
+    }
     let _ = stream.set_read_timeout(Some(Duration::from_secs(10)));
     let request = match read_request(&mut stream) {
         Ok(r) => r,

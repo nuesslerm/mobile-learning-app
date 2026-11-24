@@ -64,6 +64,39 @@ fn a_created_project_and_thread_appear_in_the_shell_snapshot_and_the_thread_snap
 }
 
 #[test]
+fn a_long_thread_projection_arrives_in_full_and_the_socket_stays_open() {
+    use t3_core::ports::{EventDraft, EventStore};
+
+    // Given a saved thread whose projection is larger than a TCP send buffer.
+    let original = Harness::start();
+    seed(&mut connect(&original));
+    let padding = "x".repeat(12 * 1024);
+    let messages: Vec<_> = (1..=96).map(|ordinal| format!("history-{ordinal:03} {padding}")).collect();
+    let drafts = messages.iter().enumerate().map(|(ordinal, text)| EventDraft {
+        event_id: format!("history-event-{ordinal}"),
+        kind: "message.updated".into(),
+        thread_id: Some("t1".into()),
+        project_id: None,
+        occurred_at: START_MS + ordinal as i64,
+        payload: json!({"id": format!("history-message-{ordinal}"), "threadId": "t1", "role": "assistant", "text": text, "status": "completed"}),
+    }).collect();
+    original.store.append(drafts, None).unwrap();
+    let server = original.restart();
+    let mut rpc = connect(&server);
+
+    // When the client requests the projection and pauses reads, like a backgrounded phone.
+    let request = rpc.send("orchestration.getThreadProjection", json!({"threadId": "t1"}));
+    std::thread::sleep(Duration::from_millis(150));
+    let frame = rpc.recv();
+
+    // Then all messages arrive in order and the same connection answers the next request.
+    assert_eq!(frame["requestId"], request);
+    let replies: Vec<_> = success(&frame["exit"])["messages"].as_array().unwrap().iter().map(|message| message["text"].as_str().unwrap()).collect();
+    assert_eq!(replies, messages.iter().map(String::as_str).collect::<Vec<_>>());
+    assert_eq!(success(&rpc.call("server.probe", json!({}))), &json!({}));
+}
+
+#[test]
 fn an_event_after_the_snapshot_reaches_both_open_streams_live() {
     // Given a client with the shell and the thread open after the snapshot
     let h = Harness::start();
