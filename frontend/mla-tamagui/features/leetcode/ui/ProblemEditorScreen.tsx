@@ -606,7 +606,6 @@ function ProblemEditorContent({
     nativeWorkspace: nativeEditorHeader ? {
       saveStatus: draftStatus ?? (isDirty ? 'unsaved' : 'saved'),
       backgroundColor: canvasBackground,
-      hideControlBackgrounds: darkCanvas && consoleOpen,
       railStyle: railStyleMenu(railStyle, setRailStyle),
       language: editorLanguageMenu(lang, availableLanguages, handleLanguageChange, (label) => {
         toast(`${label} is unavailable in this editor`);

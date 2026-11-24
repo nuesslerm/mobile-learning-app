@@ -9,16 +9,17 @@ export function supportsGlassControl(): boolean {
   return isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
 }
 
-export function GlassControlBackground() {
+export function GlassControlBackground({ interactive = false, tintColor }: { interactive?: boolean; tintColor?: string }) {
   const system = useColorScheme();
   const mode = usePresetThemeStore((state) => state.themeMode);
   const scheme = mode === 'system' ? system ?? 'light' : mode;
   return (
     <GlassView
+      isInteractive={interactive}
       pointerEvents="none"
       glassEffectStyle="regular"
       colorScheme={scheme}
-      tintColor={scheme === 'dark' ? DARK_GLASS_CONTROL_TINT : undefined}
+      tintColor={tintColor ?? (scheme === 'dark' ? DARK_GLASS_CONTROL_TINT : undefined)}
       style={styles.surface}
     />
   );

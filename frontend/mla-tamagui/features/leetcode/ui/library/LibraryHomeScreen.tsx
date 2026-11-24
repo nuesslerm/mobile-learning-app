@@ -3,20 +3,12 @@ import { CompactIconButton, Icon, useCompactColors } from '@lib/tamagui-design-s
 import { BookOpen, ChevronRight, Code, Menu, Network } from '@lib/tamagui-design-system/icons';
 import { router, useNavigation, type Href } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ScrollViewInstance } from 'react-native';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLeetCodePorts } from '../../state/ports';
 import { LibraryDock } from './LibraryDock';
 
-const brands = [
-  { name: 'Google', image: libraryArtwork.google },
-  { name: 'Amazon', image: libraryArtwork.amazon },
-  { name: 'Meta', image: libraryArtwork.meta },
-  { name: 'Microsoft', image: libraryArtwork.microsoft },
-  { name: 'Apple', image: libraryArtwork.apple },
-  { name: 'Bloomberg', image: libraryArtwork.bloomberg },
-];
 const categories = [
   { name: 'All Topics', icon: BookOpen, color: '#c790eb' },
   { name: 'Algorithms', icon: Network, color: '#ffa318' },
@@ -37,7 +29,7 @@ function openCollection(name: string, search = false) {
 export function LibraryHomeScreen() {
   const colors = useCompactColors();
   const { top, bottom } = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const [width, setWidth] = useState(390);
   const scroll = useRef<ScrollViewInstance>(null);
   const navigation = useNavigation();
   const { libraryContent } = useLeetCodePorts();
@@ -53,12 +45,14 @@ export function LibraryHomeScreen() {
   const chip = (name: string) => <Pressable key={name} accessibilityRole="button" testID={`LibraryTopic-${name}`} onPress={() => select(name)}
     style={[styles.chip, { backgroundColor: colors.surface }]}><Text style={{ color: colors.muted, fontSize: 15, fontWeight: '600' }}>{name}</Text></Pressable>;
 
-  return <View testID="LibraryHome" style={{ flex: 1, backgroundColor: colors.background, paddingTop: Math.max(top - 12, 0) }}>
+  return <View testID="LibraryHome" onLayout={({ nativeEvent }) => {
+    if (nativeEvent.layout.width > 0) setWidth(nativeEvent.layout.width);
+  }} style={{ flex: 1, backgroundColor: colors.background, paddingTop: top }}>
+    <View style={styles.header}>
+      <CompactIconButton label="Open app menu" icon={Menu} onPress={() => navigation.getParent()?.dispatch({ type: 'OPEN_DRAWER' })} />
+      <Text accessibilityRole="header" style={[styles.title, { color: colors.foreground }]}>Library</Text>
+    </View>
     <ScrollView ref={scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottom + 150 }}>
-      <View style={styles.header}>
-        <Text accessibilityRole="header" style={[styles.title, { color: colors.foreground }]}>Library</Text>
-        <CompactIconButton label="Open app menu" icon={Menu} onPress={() => navigation.getParent()?.dispatch({ type: 'OPEN_DRAWER' })} />
-      </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} decelerationRate="fast" snapToInterval={bannerWidth + 10}
         contentContainerStyle={styles.rail}>
         <Pressable accessibilityRole="button" accessibilityLabel="Weekly Contest" onPress={() => router.push('/leetcode/library/contest' as Href)}
@@ -85,25 +79,13 @@ export function LibraryHomeScreen() {
         <View style={{ gap: 8 }}>{firstTopics.map((topics) => <View key={topics[0]} style={styles.chipRow}>{topics.map(chip)}</View>)}</View>
       </ScrollView>
       {expanded && <View style={styles.expanded}>{groups.filter((name) => !firstTopics.flat().includes(name)).map(chip)}</View>}
-      <Pressable accessibilityRole="link" onPress={() => { void Linking.openURL('https://leetcode.com/company/'); }} style={styles.sectionLink}>
-        {heading('Companies')}<Icon as={ChevronRight} color={colors.muted} size={20} />
-      </Pressable>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail}>
-        {[brands.slice(0, 3), brands.slice(3)].map((column) => <View key={column[0].name} style={{ width: width * 0.605 }}>
-          {column.map(({ name, image }) => <Pressable key={name} accessibilityRole="link" onPress={() => { void Linking.openURL(`https://leetcode.com/company/${name.toLowerCase()}/`); }}
-            style={[styles.company, { borderColor: colors.line }]}>
-            <Image source={image} style={styles.logo} /><View><Text style={{ color: colors.foreground, fontSize: 17 }}>{name}</Text>
-              </View>
-          </Pressable>)}
-        </View>)}
-      </ScrollView>
     </ScrollView>
     <LibraryDock onSearch={() => openCollection('All Topics', true)} onLibrary={() => scroll.current?.scrollTo({ y: 0 })} />
   </View>;
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 20, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header: { paddingHorizontal: 20, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { fontSize: 34, letterSpacing: -0.8, fontWeight: '700' },
   rail: { paddingHorizontal: 20, gap: 10 },
   banner: { borderRadius: 14, overflow: 'hidden', padding: 22, justifyContent: 'flex-end', backgroundColor: '#ffae39' },
@@ -115,6 +97,4 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', gap: 8 },
   chip: { paddingHorizontal: 13, paddingVertical: 6, borderRadius: 16 },
   expanded: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 20, paddingTop: 8, gap: 8 },
-  company: { flexDirection: 'row', gap: 12, alignItems: 'center', minHeight: 60, borderBottomWidth: StyleSheet.hairlineWidth },
-  logo: { width: 48, height: 48, borderRadius: 8 },
 });

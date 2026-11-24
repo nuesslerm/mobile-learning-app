@@ -215,7 +215,7 @@ export function MenuPanel({
   testID,
   trigger,
   triggerStyle,
-  glassTrigger,
+  glassTrigger = true,
   placement = 'below',
   glass = false,
   openPath = ROOT_PATH,
@@ -409,7 +409,7 @@ export function MenuPanel({
       onPress={openPanel}
       style={({ pressed: isPressed }) => [buttonStyle, isPressed && { backgroundColor: colors.pressed }]}
     >
-      {nativeGlassTrigger ? <GlassControlBackground /> : null}
+      {nativeGlassTrigger ? <GlassControlBackground interactive /> : null}
       {trigger ?? <Icon as={icon} size={19} />}
     </Pressable>
   );

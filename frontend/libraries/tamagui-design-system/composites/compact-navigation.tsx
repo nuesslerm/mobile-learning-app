@@ -22,19 +22,21 @@ export function useCompactColors() {
   return (mode === 'system' ? system : mode) === 'dark' ? darkColors : lightColors;
 }
 
-export function FloatingSurface({ children, style, testID, tone = 'regular' }: {
+export function FloatingSurface({ children, style, testID, tone = 'regular', interactive, tintColor }: {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  interactive?: boolean;
+  tintColor?: string;
   tone?: 'regular' | 'subtle' | 'overlay';
 }) {
   const colors = useCompactColors();
   const glass = supportsGlassControl();
   const subtleFill = colors === darkColors ? 'rgba(16,16,18,0.82)' : colors.surface;
-  const fill = tone === 'regular' ? colors.surface : tone === 'overlay' && glass ? 'transparent' : subtleFill;
+  const fill = glass ? 'transparent' : tone === 'regular' ? colors.surface : subtleFill;
   return (
     <View testID={testID} style={[styles.surface, { backgroundColor: fill, borderColor: colors.line }, style]}>
-      {glass && <GlassControlBackground />}
+      {glass && <GlassControlBackground interactive={interactive} tintColor={tintColor} />}
       {children}
     </View>
   );
@@ -65,8 +67,10 @@ export function CompactIconButton({ icon, label, onPress, testID, color, filled,
       hitSlop={4}
       style={({ pressed }) => ({ opacity: disabled ? 0.4 : pressed ? 0.65 : 1 })}
     >
-      {emphasis ? <View style={[styles.emphasis, { backgroundColor: colors.green }]}>{content}</View> :
-        <FloatingSurface style={styles.iconButton}>{content}</FloatingSurface>}
+      <FloatingSurface interactive={!disabled} tintColor={emphasis ? colors.green : undefined}
+        style={emphasis ? [styles.emphasis, !supportsGlassControl() && { backgroundColor: colors.green }] : styles.iconButton}>
+        {content}
+      </FloatingSurface>
     </Pressable>
   );
 }
@@ -115,9 +119,10 @@ export function SearchPill({ value, onChangeText, onFocus, onBlur, onSubmit, onC
   );
 }
 
-export function CompactHeader({ title, onClose, trailing, closeIcon = ChevronLeft, closeLabel = 'Back' }: {
+export function CompactHeader({ title, onClose, leading, trailing, closeIcon = ChevronLeft, closeLabel = 'Back' }: {
   title?: string;
   onClose: () => void;
+  leading?: ReactNode;
   trailing?: ReactNode;
   closeIcon?: LucideIcon;
   closeLabel?: string;
@@ -128,7 +133,10 @@ export function CompactHeader({ title, onClose, trailing, closeIcon = ChevronLef
       <View style={styles.headerTitle} pointerEvents="none">
         <Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 15, fontWeight: '600' }}>{title}</Text>
       </View>
-      <CompactIconButton icon={closeIcon} label={closeLabel} onPress={onClose} />
+      <View style={styles.trailing}>
+        {leading}
+        <CompactIconButton icon={closeIcon} label={closeLabel} onPress={onClose} />
+      </View>
       <View style={styles.trailing}>{trailing}</View>
     </View>
   );
@@ -143,11 +151,13 @@ export function CompactTabs<T extends string>({ items, value, onChange, testID }
   testID: string;
 }) {
   const colors = useCompactColors();
+  const glass = supportsGlassControl();
   return (
     <ScrollView horizontal style={styles.tabStrip} showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.tabs}>
       {items.map(({ id, label, accent }) => (
         <Pressable key={id} testID={`${testID}-${id}`} accessibilityRole="tab" accessibilityState={{ selected: id === value }}
-          style={[styles.tab, id === value && { backgroundColor: colors.raised }]} onPress={() => onChange(id)}>
+          style={[styles.tab, !glass && id === value && { backgroundColor: colors.raised }]} onPress={() => onChange(id)}>
+          {glass && <GlassControlBackground interactive tintColor={id === value ? colors.raised : undefined} />}
           <Text style={{ color: id === value ? colors.foreground : accent ? colors.gold : colors.muted, fontSize: 13, fontWeight: '600' }}>{label}</Text>
         </Pressable>
       ))}

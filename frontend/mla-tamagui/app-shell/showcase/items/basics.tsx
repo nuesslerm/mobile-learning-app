@@ -10,8 +10,9 @@ import {
 } from '@lib/tamagui-design-system';
 import { Rocket, Settings, Sparkles } from '@lib/tamagui-design-system/icons';
 import { XStack } from '@lib/tamagui-design-system/primitives';
-import { Button as ExpoButton, Text as ExpoText } from '@expo/ui';
+import { Text as ExpoText } from '@expo/ui';
 
+import { ExpoButton } from './ExpoButton';
 import { Compare, ExpoHost } from '../Compare';
 
 export function TextItem() {

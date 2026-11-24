@@ -78,7 +78,7 @@ function NativeGlassMenuGroup({ menus, scheme, hideBackground }: {
   const [confirmation, setConfirmation] = useState<MenuConfirmNode | null>(null);
   const capsule = hideBackground ? [] : [glassEffect({
     shape: 'capsule',
-    glass: { variant: 'regular', tint: scheme === 'dark' ? DARK_GLASS_CONTROL_TINT : undefined },
+    glass: { variant: 'regular', interactive: true, tint: scheme === 'dark' ? DARK_GLASS_CONTROL_TINT : undefined },
   })];
 
   return (

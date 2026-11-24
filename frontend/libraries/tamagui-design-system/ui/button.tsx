@@ -5,6 +5,7 @@ import type { GestureResponderEvent } from 'react-native';
 import {
   Button as TamaguiButton,
   type ButtonProps as TamaguiButtonProps,
+  useTheme,
 } from '../primitives';
 
 import { GlassControlBackground, supportsGlassControl } from './glass-control-background';
@@ -66,7 +67,7 @@ export function Button({
   iconSize = 18,
   iconFilled,
   iconSystemSymbol,
-  glass,
+  glass = true,
   pressLog,
   onPress,
   testID,
@@ -74,6 +75,8 @@ export function Button({
   accessibilityLabel,
   ...rest
 }: ButtonProps) {
+  const theme = useTheme();
+  const tints: Partial<Record<ButtonVariant, string>> = { default: theme.blue9?.val, destructive: theme.red9?.val, success: theme.success?.val };
   const nativeGlass = glass && supportsGlassControl();
   const handlePress = (event: GestureResponderEvent) => {
     if (pressLog !== 'off') Logger.info('ds.button.press', { testID, variant });
@@ -98,7 +101,7 @@ export function Button({
       // Tamagui hands RN's accessibilityLabel to the DOM as an unknown attribute on web; aria-label works on both
       aria-label={rest['aria-label'] ?? accessibilityLabel}
     >
-      {nativeGlass ? <GlassControlBackground /> : null}
+      {nativeGlass ? <GlassControlBackground interactive={!rest.disabled} tintColor={tints[variant]} /> : null}
       {icon ? <Icon as={icon} size={iconSize} filled={iconFilled} systemSymbol={iconSystemSymbol} /> : null}
       {children}
     </TamaguiButton>

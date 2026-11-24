@@ -16,7 +16,7 @@ export function TamilLibraryScreen() {
   const topics = course?.sections.flatMap((section) => section.topics) ?? [];
   return (
     <CourseLayout title="Tamil" onBack={() => backTo('/')} testID="TamilLibrary"
-      trailing={<CompactIconButton icon={Menu} label="Open menu" testID="TamilCourseMenuButton"
+      leading={<CompactIconButton icon={Menu} label="Open menu" testID="TamilCourseMenuButton"
         onPress={() => navigation.getParent()?.dispatch({ type: 'OPEN_DRAWER' })} />}>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + bottom }]}>
         <Text accessibilityRole="header" style={[styles.heading, { color: colors.foreground }]}>Tamil Library</Text>

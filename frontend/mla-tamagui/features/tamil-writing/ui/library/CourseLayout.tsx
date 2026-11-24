@@ -10,12 +10,13 @@ export function backTo(href: Href) {
   else router.replace(href);
 }
 
-export function CourseLayout({ title, children, testID, onBack, header, trailing }: {
+export function CourseLayout({ title, children, testID, onBack, header, leading, trailing }: {
   title: string;
   children: ReactNode;
   testID: string;
   onBack: () => void;
   header?: ReactNode;
+  leading?: ReactNode;
   trailing?: ReactNode;
 }) {
   const colors = useCompactColors();
@@ -28,7 +29,7 @@ export function CourseLayout({ title, children, testID, onBack, header, trailing
         paddingTop: header ? 0 : top,
         paddingBottom: Platform.OS === 'web' ? keyboard.height : 0,
       }]} testID={testID}>
-      {header ?? <CompactHeader onClose={onBack} closeIcon={ChevronLeft} title={title} trailing={trailing} />}
+      {header ?? <CompactHeader onClose={onBack} closeIcon={ChevronLeft} title={title} leading={leading} trailing={trailing} />}
       {children}
     </KeyboardAvoidingView>
   );
