@@ -36,6 +36,8 @@ type Positions = Record<string, number>;
 
 export type ReorderActivation = 'long-press' | 'immediate';
 
+type LiftedRowStyle = { backgroundColor: string; left?: number; right?: number };
+
 type ReorderableListProps<T> = {
   data: T[];
   keyExtractor: (item: T) => string;
@@ -53,7 +55,7 @@ type ReorderableListProps<T> = {
   handleIcon?: LucideIcon;
   handleIconColor?: ComponentProps<typeof Icon>['color'];
   handleSystemSymbol?: ComponentProps<typeof Icon>['systemSymbol'];
-  liftedRowColor?: string;
+  liftedRowStyle?: LiftedRowStyle;
 };
 
 // App #1 pulls this from its theme's motion config. One spring config used
@@ -126,7 +128,7 @@ function Row<T>({
   handleIcon,
   handleIconColor,
   handleSystemSymbol,
-  liftedRowColor,
+  liftedRowStyle,
   onCommit,
   renderItem,
 }: {
@@ -142,7 +144,7 @@ function Row<T>({
   handleIcon: LucideIcon;
   handleIconColor?: ComponentProps<typeof Icon>['color'];
   handleSystemSymbol?: ComponentProps<typeof Icon>['systemSymbol'];
-  liftedRowColor?: string;
+  liftedRowStyle?: LiftedRowStyle;
   onCommit: () => void;
   renderItem: (item: T, handle: ReactNode) => ReactNode;
 }) {
@@ -221,19 +223,19 @@ function Row<T>({
   const style = useAnimatedStyle(
     () => ({
       position: 'absolute',
-      left: 0,
-      right: 0,
+      left: isActive.value ? liftedRowStyle?.left ?? 0 : 0,
+      right: isActive.value ? liftedRowStyle?.right ?? 0 : 0,
       top: top.value,
       height: rowHeight,
       zIndex: isActive.value ? 10 : 0,
       elevation: isActive.value ? 8 : 0,
-      backgroundColor: isActive.value ? liftedRowColor : undefined,
-      shadowColor: liftedRowColor ? '#000' : undefined,
-      shadowOpacity: isActive.value && liftedRowColor ? 0.3 : 0,
+      backgroundColor: isActive.value ? liftedRowStyle?.backgroundColor : undefined,
+      shadowColor: liftedRowStyle ? '#000' : undefined,
+      shadowOpacity: isActive.value && liftedRowStyle ? 0.3 : 0,
       shadowRadius: 8,
       shadowOffset: { width: 0, height: 3 },
     }),
-    [rowHeight]
+    [rowHeight, liftedRowStyle]
   );
 
   const handle = (
@@ -263,7 +265,7 @@ export function ReorderableList<T>({
   handleIcon = GripVertical,
   handleIconColor,
   handleSystemSymbol,
-  liftedRowColor,
+  liftedRowStyle,
 }: ReorderableListProps<T>) {
   const { height: windowHeight } = useWindowDimensions();
   const ownScrollOffset = useSharedValue(0);
@@ -311,7 +313,7 @@ export function ReorderableList<T>({
             handleIcon={handleIcon}
             handleIconColor={handleIconColor}
             handleSystemSymbol={handleSystemSymbol}
-            liftedRowColor={liftedRowColor}
+            liftedRowStyle={liftedRowStyle}
             onCommit={commit}
             renderItem={renderItem}
           />

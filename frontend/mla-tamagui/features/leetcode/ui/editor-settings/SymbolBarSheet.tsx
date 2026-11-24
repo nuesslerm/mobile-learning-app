@@ -23,6 +23,10 @@ import { RAIL_STYLE_LABELS } from './railStyleMenu';
 const nativePage = Platform.OS === 'ios';
 const ROW_HEIGHT = nativePage ? 55.75 : 56;
 const CHARS_STYLE = { fontFamily: nativePage ? 'Menlo' : 'Menlo, Courier, monospace', textAlign: 'right' } as const;
+const LIFTED_ROW = {
+  dark: { backgroundColor: '#19181b', left: -11, right: -1 },
+  light: { backgroundColor: '#fff', left: -11, right: -1 },
+} as const;
 
 const pageColors = {
   dark: { page: '#0d0d0f', group: '#1b1a1d', divider: '#272629', pill: '#29282b', pillBorder: '#444247', label: '#fff', caption: '#8d8d93', handle: '#555459' },
@@ -191,7 +195,7 @@ export function SymbolBarSheet({ open, onOpenChange, onDismiss, showRailStyle = 
           </YStack>
 
           <YStack gap={colors ? 8 : "$2"}>
-            <YStack rounded={colors ? 28 : "$5"} bg="$color3" style={colors && { backgroundColor: colors.group }} overflow="hidden" testID="SymbolBarGroups">
+            <YStack rounded={colors ? 28 : "$5"} bg="$color3" style={colors && { backgroundColor: colors.group }} overflow={colors ? 'visible' : 'hidden'} testID="SymbolBarGroups">
               <ReorderableList
                 data={groups.slice()}
                 keyExtractor={keyOf}
@@ -200,7 +204,7 @@ export function SymbolBarSheet({ open, onOpenChange, onDismiss, showRailStyle = 
                 handleIcon={Menu}
                 handleIconColor={colors?.handle}
                 handleSystemSymbol={colors ? 'line.3.horizontal' : undefined}
-                liftedRowColor={colors?.group}
+                liftedRowStyle={colors && LIFTED_ROW[scheme === 'dark' ? 'dark' : 'light']}
                 onReorder={onReorder}
                 renderItem={(group, handle) => (
                   <GroupRow
