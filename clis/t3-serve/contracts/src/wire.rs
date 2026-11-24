@@ -23,7 +23,7 @@ const CONFIG_TEMPLATE: &str = include_str!("../data/server-config.json");
 pub const DATABASE_MIGRATION: u32 = 76;
 
 /// The capability flags this server advertises as true: only the ones whose feature a flow test proves (plan.md section 8).
-pub const SUPPORTED_CAPABILITIES: [&str; 5] = ["connectionProbe", "threadPinning", "threadVisitedTracking", "threadStop", "threadRestartContinuation"];
+pub const SUPPORTED_CAPABILITIES: [&str; 6] = ["connectionProbe", "providerWorkspaceSnapshotsOnDemand", "threadPinning", "threadVisitedTracking", "threadStop", "threadRestartContinuation"];
 
 /// Every flag the real server lists, true for the supported ones. `fileAttachments` is an object, so it is left out when unsupported.
 pub fn capabilities() -> Value {

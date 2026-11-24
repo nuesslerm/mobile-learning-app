@@ -244,6 +244,7 @@ fn the_login_stream_says_where_the_login_stands_and_each_state_it_passes_through
 
 #[test]
 fn a_workspace_provider_refresh_lists_its_skills_and_slash_commands() {
+    // Given a paired composer that can read orchestration and a scoped command catalog
     let h = Harness::start();
     let mut rpc = connect_with(&h, PairingRequest { scopes: vec!["orchestration:read".into()], ..PairingRequest::default() });
     reply(&h, "commands.list", Ok(json!({"driver": "codex", "commands": [
@@ -251,7 +252,12 @@ fn a_workspace_provider_refresh_lists_its_skills_and_slash_commands() {
         {"name": "clear", "kind": "command", "description": "Clear the chat"}
     ]})));
 
+    // When the composer reads the environment config and loads its workspace catalog
+    let config = rpc.call("server.getConfig", json!({}));
+    assert_eq!(success(&config)["environment"]["capabilities"]["providerWorkspaceSnapshotsOnDemand"], true);
+    forget_ops(&h);
     let answer = rpc.call("server.refreshProviders", json!({"instanceId": "codex", "cwd": "/work/proj", "workspaceSnapshotsOnDemand": true}));
+    // Then the advertised catalog is available on demand to the paired composer
     let rows = success(&answer)["providers"].as_array().unwrap();
     let codex = rows.iter().find(|row| row["instanceId"] == "codex").unwrap();
     let snapshot = &codex["workspaceSnapshots"][0];

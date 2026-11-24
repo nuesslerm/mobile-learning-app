@@ -2,6 +2,23 @@
 
 The [case manifest](rca-mobile-parity.json) defines the assertions to automate. Each result below records the strongest evidence available for that assertion. Simulator runs used native T3 Code and Orca Mobile builds on iPhone Simulator, with RCA and both adapters on the Mac. Integration tests used the real adapters with scripted providers.
 
+## Latest coverage by case
+
+The initial matrix and dated sections below preserve earlier observations, including failures that later changes resolved.
+
+| Case | Strongest simulator evidence | Remaining coverage |
+| --- | --- | --- |
+| `reconnect` | Both apps recovered a Claude question and the same two queued messages after an adapter restart. Both recovered a pending Codex approval. | OpenCode restart while a native request is pending. |
+| `queue-lifecycle` | Orca Codex completed native creation, edit, reorder, Stop and Resume. T3 Codex completed creation, edit, Stop and Resume. Orca Claude and OpenCode and T3 OpenCode exercised native queue delivery and steering. | T3 native reorder and the startup interval when the composer disables Send. |
+| `approve-deny-question` | Native Codex Allow and Deny on both apps. Native Claude structured questions on both apps. | Native OpenCode request resolution, including reconnect. |
+| `photo-picker` | T3 Claude and Orca Codex sent two images in order and retained the previews after a cold reopen. | Additional provider and app combinations. |
+| `model-switch` | Codex switched models in both apps and retained the queued model. T3 Claude switched Sonnet to Haiku. | Orca Claude queued model and an authorized alternate for OpenCode. |
+| `skill-load` | Orca Codex and T3 OpenCode selected and ran a skill from autocomplete. T3 Codex invoked a typed skill. | Native selection on the other provider combinations. |
+| `child-and-background` | Both apps launched actual child agents and background work for all three providers. Foreground Claude and OpenCode cancellation exited the exact owned PID. | Codex Stop left the owned shell fixture alive. Detached Claude completion needed a subsequent prompt. T3 OpenCode's first completion fixture relaunched. |
+| `history-reopen` | Warm and cold opens in both apps against 96-turn histories, with ordered scroll samples and paired history receipts. | Physical-device latency. |
+| `worktree-retirement` | Both apps kept two branches, files and chats isolated and returned to the survivor after removing the clean checkout. T3 required Settle to remove its retired chat from Working. | None for the tested variants. |
+| `linux-host-phone` | No end-to-end run. | Reachable Linux adapters, an enrolled iPhone and both physical network paths. |
+
 ## Initial provider matrix
 
 The first six rows created Python services and merged into `dev`. Five rows had green merge-commit CI in the recorded run. The detailed interaction traces and screenshots are indexed in `.context/rca-native-check/interaction-evidence/README.md` on the original Mac checkout. [#88](https://github.com/nuesslerm/mobile-learning-app/pull/88), [#89](https://github.com/nuesslerm/mobile-learning-app/pull/89), [#90](https://github.com/nuesslerm/mobile-learning-app/pull/90), [#91](https://github.com/nuesslerm/mobile-learning-app/pull/91), [#92](https://github.com/nuesslerm/mobile-learning-app/pull/92), [#93](https://github.com/nuesslerm/mobile-learning-app/pull/93)
@@ -214,3 +231,19 @@ Orca queued A and B and then used the composer's Steer action on the original ac
 T3's OpenCode Queue action likewise added two cards and ran each once. Direct Steer now originally left its draft and the error “already has an active run.” The adapter now forwards the steer text to the active RCA turn and projects one user item with the steer intent on that same run. Its receipt prevents an accepted command from forwarding again on retry. During the retest, the app cleared the draft and the provider's reply contained the unique steer marker while the projection still contained one run. This passes the OpenCode direct-steer variant. Linux passed all 285 T3 flow tests and 12 paired thread-surface integration tests. Evidence is under `.context/rca-t3-direct-steer/published/run-0473d788c8cee63d/`.
 
 The preceding Orca permission change passed [GitHub CLI CI](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45358867623) and [GitHub backend CI](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45358867697).
+
+
+## T3 creates, switches and retires two test worktrees
+
+Create A and B independently using New worktree, Base branch and `origin/dev`. Run a read-only branch and HEAD probe in each native OpenCode thread. Write one untracked test marker in A, confirm that B cannot read it and switch back to A to confirm it remains. After checking B is idle, has an empty queue and a clean checkout, remove it through RCA with `force: false`. The registered workspace and directory disappeared and both refs remained. T3 retained B's chat until its native Settle action removed it from Working. A reopened with its existing transcript. The recordings, branch and stdout checks, and removal receipt are in `.context/rca-t3-worktree-retirement/published/run-25db32e77643de5d/`.
+
+The first workspace skill attempt in A reached OpenCode from the native composer, but its skill tool returned “not found” for the installed fixture. The matching call ID ended with `ok: false`. A different shell tool read the skill file and exposed the marker. The adapter's paired command discovery found the skill. The bundle records the distinction as partial. Accept a provider skill assertion only when the matching tool call succeeds or the provider records actual skill expansion.
+
+The T3 direct steering change passed [GitHub CLI CI](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45362407456) and [GitHub backend CI](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45362407650).
+
+
+## T3 loads an OpenCode skill from slash autocomplete
+
+The native client sent the correct provider instance and checkout path in its scoped refresh. The adapter returned the workspace catalog but advertised `providerWorkspaceSnapshotsOnDemand: false` in the environment config. T3 uses that flag when deciding whether to merge a fetched catalog into its composer state. The adapter now advertises the on-demand catalog it already serves. The config-and-refresh flow test reproduced the false flag and then passed with the fix. All 285 T3 flow tests passed on Linux arm64.
+
+After installing the rebuilt adapter locally and cold-launching T3, the same workspace's skill appeared under Commands. Tapping it inserted a skill token. The OpenCode tool returned the fixture contents and finished successfully under the same call ID, and the app displayed the marker. The final prompt omitted the marker. This retest used the existing workspace, where the provider had copied the fixture into `.claude/skills` during the first diagnostic. This passes `skill-load` for T3 with OpenCode. The recording, filtered tool receipt, binary checksums and paired refresh diagnosis are in `.context/rca-t3-worktree-retirement/published/run-d15c6671721b41db/`.
