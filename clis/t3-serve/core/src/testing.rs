@@ -90,7 +90,7 @@ struct Data {
 }
 
 #[derive(Default)]
-pub struct MemStore(Mutex<Data>);
+pub struct MemStore(Mutex<Data>, AtomicU64);
 
 /// The reading of a database the double has, changed by a test.
 pub struct FixedStorage(pub Mutex<Result<StorageSample, String>>);
@@ -102,6 +102,10 @@ impl StorageProbe for FixedStorage {
 }
 
 impl MemStore {
+    pub fn history_reads(&self) -> u64 {
+        self.1.load(Ordering::SeqCst)
+    }
+
     fn data(&self) -> std::sync::MutexGuard<'_, Data> {
         self.0.lock().unwrap()
     }
@@ -123,6 +127,7 @@ impl EventStore for MemStore {
     }
 
     fn read_after(&self, after: u64) -> StoreResult<Vec<StoredEvent>> {
+        self.1.fetch_add(1, Ordering::SeqCst);
         Ok(self.data().events.iter().filter(|e| e.sequence > after).cloned().collect())
     }
 

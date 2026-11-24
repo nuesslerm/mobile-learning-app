@@ -155,6 +155,14 @@ fn merge(into: &mut Map<String, Value>, patch: &Value) {
     }
 }
 
+fn shell_field(key: &str, value: &Value) -> Value {
+    if key == "forkedFrom" && value.is_object() && value.get("type").is_none() {
+        Value::Null
+    } else {
+        value.clone()
+    }
+}
+
 fn upsert(list: &mut Vec<Value>, entity: &Value) {
     match list.iter_mut().find(|e| e["id"] == entity["id"]) {
         Some(slot) => *slot = entity.clone(),
@@ -211,7 +219,7 @@ impl State {
                     let mut shell = thread_defaults();
                     for (k, v) in e.payload.as_object().into_iter().flatten() {
                         if shell.contains_key(k) {
-                            shell.insert(k.clone(), v.clone());
+                            shell.insert(k.clone(), shell_field(k, v));
                         }
                     }
                     self.threads.insert(id.clone(), shell);
@@ -238,7 +246,10 @@ impl State {
                     }
                     for (k, v) in e.payload.as_object().into_iter().flatten() {
                         if k != "id" && shell.contains_key(k) {
-                            applied.shell_changed |= shell.insert(k.clone(), v.clone()).as_ref() != Some(v);
+                            let normalized = shell_field(k, v);
+                            let changed = shell.get(k) != Some(&normalized);
+                            shell.insert(k.clone(), normalized);
+                            applied.shell_changed |= changed;
                         }
                     }
                     if let Some(id) = &e.thread_id {

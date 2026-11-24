@@ -8,13 +8,14 @@ The initial matrix and dated sections below preserve earlier observations, inclu
 
 | Case | Strongest simulator evidence | Remaining coverage |
 | --- | --- | --- |
+| `fresh-chat-launch` | T3 automatically sent the pending current-checkout chat after the shell synchronized, then launched a new chat in a worktree based on `origin/dev`. | Native coverage includes Claude in both workspace modes and Codex in the current checkout. |
 | `reconnect` | Both apps recovered Claude and OpenCode questions with two queued messages after adapter restarts. Both recovered a pending Codex approval. | Additional interruption timings and physical-network handoff. |
 | `queue-lifecycle` | Orca Codex completed native creation, edit, reorder, Stop and Resume. T3 Codex completed creation, edit, Stop and Resume. Orca Claude and OpenCode and T3 OpenCode exercised native queue delivery and steering. | T3 native reorder and the startup interval when the composer disables Send. |
 | `approve-deny-question` | Native Codex and OpenCode Allow and Deny on both apps. Native Claude and OpenCode structured questions on both apps. | Cross-turn stale-response rejection through the native clients. |
 | `photo-picker` | T3 Claude and Orca Codex sent two images in order and retained the previews after a cold reopen. | Additional provider and app combinations. |
 | `model-switch` | Codex, Claude and OpenCode switched models in both apps and retained the queued selection after the composer changed again. OpenCode used two configured MiniMax models. | Deployed host catalog and credentials still need physical-device verification. |
 | `skill-load` | OpenCode selected and ran a workspace skill from autocomplete in both apps. Orca Codex passed autocomplete and T3 Codex invoked a typed skill. | Native selection on the other provider combinations. |
-| `child-and-background` | Both apps launched actual child agents and background work for all three providers. Foreground Claude and OpenCode cancellation exited the exact owned PID. Both apps displayed Claude's detached completion receipt and actual stdout on the original turn. T3 also replayed a receipt delivered while the thread was closed. | Codex Stop left the owned shell fixture alive. T3 OpenCode's first completion fixture relaunched. |
+| `child-and-background` | Both apps launched child agents and background work for all three providers. Claude, OpenCode and Codex 0.172.0 Stop exited the owned worker PID in the tested active turns. Both apps displayed Claude's detached completion receipt and stdout on the original turn. | Older Codex releases lack the targeted terminal API. T3 OpenCode's first completion fixture relaunched. |
 | `history-reopen` | Warm and cold opens in both apps against 96-turn histories, with ordered scroll samples and paired history receipts. | Physical-device latency. |
 | `worktree-retirement` | Both apps kept two branches, files and chats isolated and returned to the survivor after removing the clean checkout. T3 required Settle to remove its retired chat from Working. | None for the tested variants. |
 | `linux-host-phone` | No end-to-end run. | The physical iPhone appeared briefly, but both deployed adapter health probes failed over the tailnet. |
@@ -313,3 +314,15 @@ In the first native test, the worker completed while T3 was still on the search 
 Claude's completion frame identifies a spool file on the executor host. The executor now attaches up to 32 KiB from a regular file for the matching shell task in its Claude session. The tests verify the truncation marker and exclude subagent transcripts, files outside the task directory, and linked files. macOS and Linux arm64 each passed eight executor session flows. The backend flow still attributes the receipt to the original turn.
 
 In both native apps, start the gated worker and reopen the chat after the parent says `STARTED` and completes. Release the same worker, then expand the background task details. Both apps showed the two expected stdout lines, including a marker absent from the prompt. The journal matched the provider's spool and recorded one receipt per original turn. The queues stayed unchanged and neither app started a follow-up turn. The fixture, recordings, screenshots, and filtered timeline are under `.context/rca-claude-stdout/published/run-1d8260a4073d8dc5/`.
+
+## T3 sends fresh chats after the workspace list synchronizes
+
+The native outbox waits for a live workspace list before sending a creation. A warm shell subscription reread the entire event store and timed out after 24 seconds on the local fixture. The adapter now retains the shell deltas within the existing replay window. The same caught-up subscription returned its completion marker in 4 ms. The native decoder also rejected an older fork row with a source thread but no source point type. T3 now reads that field as unknown and preserves the parent in the lineage.
+
+The simulator's pending current-checkout send launched once after reconnect. A second native chat launched once from a fresh worktree based on `origin/dev`. Both replies contained their markers. Linux arm64 passed all 287 T3 flows, including regressions for the replay window and saved fork. The recordings, decoder result, and receipt IDs are under `.context/rca-t3-fresh/published/run-11dddfa86c68e400/`.
+
+## Codex 0.172.0 terminates the stopped turn's worker
+
+The release still leaves an interactive process running after a plain turn interrupt. RCA now uses the app-server's thread-scoped terminal list and terminates only the terminal items started by the interrupted turn. A real app-server probe with a scripted model verified that the selected worker exited and that earlier work in the same thread and work in another thread stayed alive.
+
+The installed native T3 and Orca apps each started a bounded worker through Codex 0.172.0. After I tapped Stop, each app recorded an interrupted turn and the owned PID exited before its natural-completion marker. The first T3 attempt with the standalone Codex binary needed the matching Code Mode helper before it could start the worker. The scoped termination regression and all 73 CLI driver tests passed on Linux arm64. The two recordings, exact worker receipts, and the app-server probe are under `.context/rca-codex-stop-0172/published/run-e8e66cf9d97aa11e/`.

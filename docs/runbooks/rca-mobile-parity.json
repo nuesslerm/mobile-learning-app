@@ -7,6 +7,14 @@
   "providers": ["claude", "codex", "opencode"],
   "cases": [
     {
+      "id": "fresh-chat-launch",
+      "priority": 0,
+      "given": "The paired T3 app can reopen an existing chat and its workspace list contains a saved fork from an earlier adapter.",
+      "when": ["Submit a new chat from the current checkout with a unique reply marker.", "Reconnect the adapter with pending work in the app outbox.", "Start another native chat from a new worktree based on origin/dev."],
+      "then": ["The workspace list decodes and finishes synchronization without reading the event store on resume.", "The pending request launches once and the new worktree request launches once.", "The simple reply in each chat contains its marker and the fork retains its parent."],
+      "fixture": "legacy fork record, a shell replay cursor and unique reply markers"
+    },
+    {
       "id": "reconnect",
       "priority": 0,
       "given": "A paired app shows a test thread with an active scripted turn, a pending approval and two queued prompts.",

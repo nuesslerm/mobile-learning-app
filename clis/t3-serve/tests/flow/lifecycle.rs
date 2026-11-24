@@ -88,6 +88,7 @@ fn every_forwarded_command_asks_the_agent_api_for_its_method_and_an_accepted_one
     // And the rows carry what was accepted: the fork is a thread of the family, the archive was undone and the delete marked the thread deleted, as the real server's projection of a deleted thread does
     let fork = row(&mut rpc, "f1");
     assert_eq!((fork["lineage"]["parentThreadId"].as_str(), fork["lineage"]["relationshipToParent"].as_str()), (Some("t1"), Some("fork")));
+    assert!(fork["forkedFrom"].is_null());
     assert!(row(&mut rpc, "t1")["deletedAt"].is_string());
 }
 

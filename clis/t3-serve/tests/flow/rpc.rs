@@ -152,6 +152,9 @@ fn resuming_after_a_sequence_replays_only_what_was_missed_and_can_mark_the_end()
     let mut rpc = connect(&h);
     seed(&mut rpc);
     rpc.call("orchestration.dispatchCommand", json!({"type": "thread.metadata.update", "commandId": "c-r", "threadId": "t1", "title": "Renamed"}));
+    let h = h.restart();
+    let mut rpc = connect(&h);
+    let reads_after_restart = h.store.history_reads();
 
     // When the shell resumes after sequence 1 with a completion marker, and the thread after sequence 2
     let shell = rpc.send("orchestration.subscribeShell", json!({"afterSequence": 1, "requestCompletionMarker": true}));
@@ -163,6 +166,39 @@ fn resuming_after_a_sequence_replays_only_what_was_missed_and_can_mark_the_end()
     let kinds: Vec<(&str, Option<i64>)> = frames.iter().map(|f| (f["kind"].as_str().unwrap(), f["sequence"].as_i64())).collect();
     assert_eq!(kinds, [("thread.updated", Some(2)), ("thread.updated", Some(3)), ("synchronized", None)]);
     assert_eq!(events.iter().map(|f| (f["kind"].as_str().unwrap(), f["sequence"].as_i64().unwrap())).collect::<Vec<_>>(), [("event", 3)]);
+    // And shell replay, including an already current client, never rereads the event store.
+    let reads_after_thread = h.store.history_reads();
+    assert_eq!(reads_after_thread, reads_after_restart + 1);
+    let mut caught_up = connect(&h);
+    let shell = caught_up.send("orchestration.subscribeShell", json!({"afterSequence": 3, "requestCompletionMarker": true}));
+    assert_eq!(caught_up.chunk(&shell), [json!({"kind":"synchronized"})]);
+    assert_eq!(h.store.history_reads(), reads_after_thread);
+}
+
+#[test]
+fn a_saved_fork_without_a_source_point_keeps_its_parent_and_replays_a_valid_shell_row() {
+    use t3_core::ports::{EventDraft, EventStore};
+    // Given the fork shape written by older adapters.
+    let h = Harness::start();
+    seed(&mut connect(&h));
+    let fork = EventDraft {
+        event_id: "legacy-fork".into(),
+        kind: "thread.created".into(),
+        thread_id: Some("fork".into()),
+        project_id: Some("p1".into()),
+        occurred_at: START_MS,
+        payload: json!({"id":"fork","projectId":"p1","title":"Fork","forkedFrom":{"threadId":"t1"},"lineage":{"parentThreadId":"t1","relationshipToParent":"fork","rootThreadId":"t1"}}),
+    };
+    h.store.append(vec![fork], None).unwrap();
+    let h = h.restart();
+    // When the native client resumes after its initial shell snapshot.
+    let mut rpc = connect(&h);
+    let sub = rpc.send("orchestration.subscribeShell", json!({"afterSequence":2,"requestCompletionMarker":true}));
+    let frames = rpc.chunk(&sub);
+    // Then the row retains its family and represents an unknown fork source with null.
+    assert_eq!(frames[0]["thread"]["lineage"]["parentThreadId"], "t1");
+    assert_eq!(frames[0]["thread"]["forkedFrom"], Value::Null);
+    assert_eq!(frames[1]["kind"], "synchronized");
 }
 
 #[test]

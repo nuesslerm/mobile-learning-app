@@ -167,7 +167,7 @@ fn fork_or_merge(state: &State, cmd: &Command, ctx: &Ctx) -> Result<Decision, St
             ("id", target.into()),
             ("title", title.into()),
             ("lineage", json!({"parentThreadId": source, "relationshipToParent": "fork", "rootThreadId": root})),
-            ("forkedFrom", json!({"threadId": source})),
+            ("forkedFrom", Value::Null),
             ("createdAt", at.clone().into()),
         ],
     );

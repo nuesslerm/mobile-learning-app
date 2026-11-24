@@ -6,7 +6,7 @@ use crate::domain::decider::{decide, decide_adopt, decide_run_step, queue_hold_e
 use crate::domain::state::{event_json, State};
 use crate::ports::{Clock, EventDraft, EventStore, Ids, StoreError, StoredEvent};
 use serde_json::{json, Map, Value};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
@@ -40,6 +40,7 @@ pub struct Dispatched {
 struct Inner {
     state: State,
     subscribers: Vec<Sender<Arc<Published>>>,
+    shell_replay: VecDeque<(u64, Vec<Value>)>,
     /// Command ids refused for a missing thread, with the first refusal's message; the pin refuses a repeat with it (a restart forgets them).
     rejected: HashMap<String, String>,
 }
@@ -61,10 +62,19 @@ fn uuid(ids: &dyn Ids) -> String {
 impl Engine {
     pub fn open(store: Arc<dyn EventStore>, clock: Arc<dyn Clock>, ids: Arc<dyn Ids>) -> Result<Engine, StoreError> {
         let mut state = State::default();
-        for event in store.read_after(0)? {
-            state.apply(&event);
+        let events = store.read_after(0)?;
+        let replay_after = events.last().map_or(0, |event| event.sequence.saturating_sub(REPLAY_GAP));
+        let mut shell_replay = VecDeque::new();
+        for event in events {
+            let applied = state.apply(&event);
+            if event.sequence > replay_after {
+                let frames = state.shell_frames(&event, &applied);
+                if !frames.is_empty() {
+                    shell_replay.push_back((event.sequence, frames));
+                }
+            }
         }
-        Ok(Engine { store, clock, ids, inner: Mutex::new(Inner { state, subscribers: Vec::new(), rejected: HashMap::new() }) })
+        Ok(Engine { store, clock, ids, inner: Mutex::new(Inner { state, subscribers: Vec::new(), shell_replay, rejected: HashMap::new() }) })
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
@@ -91,6 +101,13 @@ impl Engine {
         for event in stored.iter() {
             let applied = inner.state.apply(event);
             let published = Arc::new(Published { event: event.clone(), shell: inner.state.shell_frames(event, &applied) });
+            if !published.shell.is_empty() {
+                inner.shell_replay.push_back((event.sequence, published.shell.clone()));
+            }
+            let cutoff = event.sequence.saturating_sub(REPLAY_GAP);
+            while inner.shell_replay.front().is_some_and(|(seq, _)| *seq <= cutoff) {
+                inner.shell_replay.pop_front();
+            }
             inner.subscribers.retain(|tx| tx.send(published.clone()).is_ok());
         }
         Ok(stored)
@@ -237,14 +254,7 @@ impl Engine {
         let Some(after) = Self::replayable(after, last) else {
             return Ok((vec![inner.state.shell_snapshot()], last));
         };
-        let mut scratch = State::default();
-        let mut frames = Vec::new();
-        for event in self.store.read_after(0).map_err(|e| e.0)? {
-            let applied = scratch.apply(&event);
-            if event.sequence > after {
-                frames.extend(scratch.shell_frames(&event, &applied));
-            }
-        }
+        let frames = inner.shell_replay.iter().filter(|(seq, _)| *seq > after).flat_map(|(_, frames)| frames.iter().cloned()).collect();
         Ok((frames, last))
     }
 

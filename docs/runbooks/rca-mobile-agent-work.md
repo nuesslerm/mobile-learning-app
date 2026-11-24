@@ -66,6 +66,8 @@ Keep a result for every operation in every row. Record the thread and turn IDs, 
 
 For the detached completion variant, give the bounded shell fixture a unique case ID, a release file, and an expected stdout marker stored in a sidecar file. Keep the marker out of the prompt. Ask Claude to launch the fixture with `run_in_background: true` and finish the turn immediately. Match the provider task ID in the launch output, wait for `turn.finished`, and reopen the thread while the owned PID is still running. Create the release file and verify one completion receipt with the same task ID and turn ID. Expand the task details and compare the rendered stdout with the worker's expected lines and the RCA receipt. Record the receipt's journal sequence and the queue before and after release.
 
+For Codex Stop, use the complete 0.172.0 release or a release whose app-server supports `thread/backgroundTerminals/list` and `thread/backgroundTerminals/terminate`. Start a bounded worker from each app and keep the turn polling the worker. Verify its exact PID is alive before tapping Stop and gone after the same turn reports interruption. A separate process fixture can leave older work in that thread and work in a second thread to verify both survive targeted termination.
+
 ## Parity regression cases
 
 Use the case IDs and Given/When/Then steps in [the parity case manifest](rca-mobile-parity.json). Compare with [observed results](rca-mobile-parity-results.md) before assigning a gap to the client, adapter, or provider. Run each relevant case on both apps and use the three providers wherever the case exercises provider behavior.
