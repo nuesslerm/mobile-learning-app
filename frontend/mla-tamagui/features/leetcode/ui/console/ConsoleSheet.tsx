@@ -3,7 +3,7 @@ import { Sheet } from '@lib/tamagui-design-system/ui/sheet';
 import { Trash2 } from '@lib/tamagui-design-system/icons';
 import { YStack } from '@lib/tamagui-design-system/primitives';
 import React from 'react';
-import { Keyboard, Platform, Pressable, useColorScheme, useWindowDimensions } from 'react-native';
+import { Keyboard, Platform, Pressable, StyleSheet, View, useColorScheme, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FullWindowOverlay } from 'react-native-screens';
 
@@ -33,10 +33,11 @@ type Props = {
   footer: React.ReactNode;
   onSheetClosed: () => void;
   editorHeightBelowNativeHeader?: number;
+  nativeHeaderBottom?: number;
 };
 
 const floating = Platform.OS === 'ios';
-export function ConsoleSheet({ problem, console: state, fieldError, result, footer, onSheetClosed, editorHeightBelowNativeHeader }: Props) {
+export function ConsoleSheet({ problem, console: state, fieldError, result, footer, onSheetClosed, editorHeightBelowNativeHeader, nativeHeaderBottom }: Props) {
   const captions = React.useMemo(() => captionsOf(problem), [problem]);
   const [focusToken, setFocusToken] = React.useState(0);
   const [editing, setEditing] = React.useState(false);
@@ -44,7 +45,8 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
   const scheme = useColorScheme();
   const { height: windowHeight } = useWindowDimensions();
   const { top } = useSafeAreaInsets();
-  const headerHeight = editorHeightBelowNativeHeader ? Math.max(0, windowHeight - editorHeightBelowNativeHeader - top) : 0;
+  const headerBottom = nativeHeaderBottom ?? (editorHeightBelowNativeHeader ? windowHeight - editorHeightBelowNativeHeader : 0);
+  const headerHeight = Math.max(0, headerBottom - top);
   const darkGlass = floating && scheme === 'dark';
   React.useEffect(() => {
     if (!state.open) setEditing(false);
@@ -112,7 +114,11 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
 
   return (
     <>
-      {sheet}
+      {nativeHeaderBottom === undefined ? sheet : (
+        <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, { top: nativeHeaderBottom }]}>
+          {sheet}
+        </View>
+      )}
       {floating && state.open && headerHeight > 0 ? (
         <FullWindowOverlay unstable_accessibilityContainerViewIsModal={false}>
           <Pressable

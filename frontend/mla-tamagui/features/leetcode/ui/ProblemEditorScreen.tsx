@@ -11,6 +11,7 @@ import {
   Spinner,
   Text,
   useKeyboardFrame,
+  useNativeStackHeaderHeight,
   useNativeHeaderStore,
   usePresetThemeStore,
   View,
@@ -32,6 +33,7 @@ import type { EditOutcome, EditTarget } from '../domain/editor/voiceEditPlan';
 import { useErrorJump } from '../state/run/useErrorJump';
 import type { PlanEditor } from '../plan';
 import { toEditorLanguage } from '../domain/editor/languageProfile';
+import { lineHeightFor } from '../domain/editor-settings/editorPreferences';
 import { completionEntriesFor } from '../domain/completionEntries';
 import { useAutocompleteSettingStore } from '../state/autocompleteSettingStore';
 import { type Selection } from '../domain/editor/types';
@@ -83,6 +85,7 @@ function pickStarterCode(
 }
 
 const VOICE_ERROR_AUTO_DISMISS_MS = 8_000;
+const MAX_EDITOR_HEADER_UNDERLAP = 12;
 const iosCanvas = Platform.OS === 'ios';
 
 const subscribeNever = () => () => undefined;
@@ -95,6 +98,7 @@ export function ProblemEditorScreen({
   lang: initialLang,
   onWorkspaceApi,
   active = true,
+  underlapNativeHeader = false,
   onConsoleOpenChange,
   onBlocksSource,
 }: {
@@ -106,6 +110,7 @@ export function ProblemEditorScreen({
   onWorkspaceApi?: (api: PlanEditor) => void;
   /** False while another workspace tab is shown: the console is closed then. */
   active?: boolean;
+  underlapNativeHeader?: boolean;
   onConsoleOpenChange?: (open: boolean) => void;
   /** What the Blocks tab reads the code through: the editor handle, its language and whether its page has hydrated. */
   onBlocksSource?: (source: BlocksSource) => void;
@@ -170,6 +175,10 @@ export function ProblemEditorScreen({
   consolePendingRef.current = consolePending !== null;
   const keyboard = useKeyboardFrame();
   const nativeEditorHeader = useNativeHeaderStore((state) => state.enabled) && iosCanvas;
+  const measuredHeaderHeight = useNativeStackHeaderHeight();
+  const nativeHeaderBottom = nativeEditorHeader && underlapNativeHeader && measuredHeaderHeight
+    ? measuredHeaderHeight
+    : undefined;
   const [rootHeight, setRootHeight] = React.useState(0);
   React.useEffect(() => {
     onConsoleOpenChange?.(consoleOpen);
@@ -567,6 +576,9 @@ export function ProblemEditorScreen({
   );
 
   const { backgroundColor, palette } = useEditorAppearance(iosCanvas);
+  // Keep the middle of the first editable line below the native bar's touch region.
+  const underlap = Math.min(MAX_EDITOR_HEADER_UNDERLAP, Math.floor(lineHeightFor(fontSize) / 2) - 1);
+  const editorHeightBelowHeader = Math.max(0, rootHeight - (nativeHeaderBottom ?? 0));
   const appThemeMode = usePresetThemeStore((state) => state.themeMode);
   const systemScheme = useColorScheme();
   const appScheme = appThemeMode === 'system' ? systemScheme ?? 'light' : appThemeMode;
@@ -616,7 +628,7 @@ export function ProblemEditorScreen({
       testID="ProblemEditorScreen"
       onLayout={(event: LayoutChangeEvent) => setRootHeight(Math.round(event.nativeEvent.layout.height))}
     >
-      <ScreenHeader {...headerSpec} glass placement="navigator" />
+      <ScreenHeader {...headerSpec} glass transparent={nativeHeaderBottom !== undefined} placement="navigator" />
       <KeyboardToolbarTarget
         testID="ProblemEditorToolbarTarget"
         toolbarTestID="EditorHelperRails"
@@ -643,7 +655,11 @@ export function ProblemEditorScreen({
           ref={scrollRef}
           testID="ProblemEditorScroll"
           keyboardShouldPersistTaps="handled"
-          {...(consoleOpen && rootHeight > 0 ? { bottomInset: consoleInset(rootHeight, iosCanvas) } : {})}
+          {...(nativeHeaderBottom === undefined ? {} : {
+            contentInsetAdjustmentBehavior: 'never' as const,
+            contentContainerStyle: { paddingTop: Math.max(0, nativeHeaderBottom - underlap) },
+          })}
+          {...(consoleOpen && editorHeightBelowHeader > 0 ? { bottomInset: consoleInset(editorHeightBelowHeader, iosCanvas) } : {})}
         >
           {/* A tap on the page outside the editor lowers its keyboard. The editor sits beside that Pressable and not
               inside it: a view that claims the touch responder above the WebView makes Android cancel the WebView's
@@ -723,7 +739,8 @@ export function ProblemEditorScreen({
           result={<RunResult outcome={consoleState.outcome} actions={{ onShowLine: () => void consoleState.showLine(), canOpenCase: (label) => consoleState.caseIdOf(label) !== null, onOpenCase: consoleState.openCase }} />}
           footer={<ConsoleFooter {...consoleActions} canvas={darkCanvas} />}
           onSheetClosed={handleConsoleClosed}
-          editorHeightBelowNativeHeader={nativeEditorHeader ? rootHeight : undefined}
+          editorHeightBelowNativeHeader={nativeEditorHeader && nativeHeaderBottom === undefined ? rootHeight : undefined}
+          nativeHeaderBottom={nativeHeaderBottom}
         />
       ) : null}
       <LanguageSheet

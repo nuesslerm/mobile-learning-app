@@ -34,7 +34,7 @@ export function ProblemWorkspace({ id, seed, lang }: { id?: string; seed?: strin
     <TabbedWorkspace id={id} seed={seed} lang={lang} plan={aiEdit} blocks={blockView} />
   ) : (
     <View flex={1} bg="$background">
-      <ProblemEditorScreen id={id} seed={seed} lang={lang} />
+      <ProblemEditorScreen id={id} seed={seed} lang={lang} underlapNativeHeader />
     </View>
   );
 }
