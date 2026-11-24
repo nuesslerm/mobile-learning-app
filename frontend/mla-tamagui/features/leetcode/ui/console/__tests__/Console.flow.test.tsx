@@ -58,7 +58,7 @@ beforeEach(() => {
 });
 
 describe('the console sheet and its tabs', () => {
-  it('given the keyboard down, when the editor opens and Console is tapped, then the sheet opens on Testcase and the dock goes, and the Run Result tab shows its empty state', async () => {
+  it('given the keyboard down, when the editor opens and Console is tapped, then the sheet opens on Testcase and covers the dock, and the Run Result tab shows its empty state', async () => {
     await openEditor();
     expect(screen.getByTestId('ConsoleBarOpen')).toBeTruthy();
     await forgetLoggedLines();
@@ -67,7 +67,7 @@ describe('the console sheet and its tabs', () => {
 
     await waitFor(() => expect(screen.getByTestId('ConsoleSheet')).toBeTruthy());
     expect(selected('ConsoleTabs-testcase')).toBe('true');
-    expect(screen.queryByTestId('ConsoleDock')).toBeNull();
+    expect(screen.getByTestId('ConsoleDock').getAttribute('aria-hidden')).toBe('true');
     expect(await loggedLines('editor_v2.console.open')).not.toHaveLength(0);
 
     await tap('ConsoleTabs-result');
@@ -273,19 +273,32 @@ describe('the close paths', () => {
   });
 });
 
-describe('the editor strip above the open sheet', () => {
-  it('given the screen root laid out 700 high, when the console opens and closes, then the scroll padding follows', async () => {
+describe('the Console overlay', () => {
+  it('given the editor is laid out, when Console opens and closes, then the editor keeps its layout and iframe', async () => {
     const session = await openEditor();
     await session.layout('ProblemEditorScreen', { x: 0, y: 0, width: 400, height: 700 });
     const content = () => screen.getByTestId('ProblemEditorScroll').firstElementChild as HTMLElement;
+    const editorZone = screen.getByTestId('ProblemEditorEditorZone');
+    const editorStyle = editorZone.getAttribute('style');
+    const editorClass = editorZone.getAttribute('class');
+    const iframe = editorZone.querySelector('iframe');
+    expect(iframe).not.toBeNull();
+    expect(content().style.paddingBottom).toBe('24px');
 
     await tap('ConsoleBarOpen');
 
-    await waitFor(() => expect(content().style.paddingBottom).toBe('490px'));
+    await waitFor(() => expect(screen.getByTestId('ConsoleSheet')).toBeTruthy());
+    expect(content().style.paddingBottom).toBe('24px');
+    expect(editorZone.getAttribute('style')).toBe(editorStyle);
+    expect(editorZone.getAttribute('class')).toBe(editorClass);
+    expect(editorZone.querySelector('iframe')).toBe(iframe);
+    expect(screen.getByTestId('ConsoleDock').getAttribute('aria-hidden')).toBe('true');
 
     await tap('ConsoleSheetHandle');
 
-    await waitFor(() => expect(content().style.paddingBottom).toBe('24px'));
+    await waitFor(() => expect(screen.queryByTestId('ConsoleSheet')).toBeNull());
+    expect(editorZone.querySelector('iframe')).toBe(iframe);
+    expect(screen.getByTestId('ConsoleDock').getAttribute('aria-hidden')).toBe('false');
   });
 });
 

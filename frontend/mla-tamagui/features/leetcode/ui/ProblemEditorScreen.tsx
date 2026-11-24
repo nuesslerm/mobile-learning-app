@@ -69,7 +69,7 @@ import { useSymbolBarStore } from '../state/editor/symbolBarStore';
 import { useCodeDrafts, type CodeDraftSession } from '../state/editor/useCodeDrafts';
 import { useEditorPreferencesStore } from '../state/editor/editorPreferencesStore';
 import { useConsole } from '../state/console/useConsole';
-import { consoleInset, editorZoneMinHeight } from '../domain/console/layout';
+import { EDITOR_ZONE_MIN_HEIGHT } from '../domain/console/layout';
 import { ConsoleActionBar } from './console/ConsoleActionBar';
 import { ConsoleDock } from './console/ConsoleDock';
 import { ConsoleFooter } from './console/ConsoleFooter';
@@ -586,7 +586,6 @@ function ProblemEditorContent({
   const { backgroundColor, palette } = useEditorAppearance(iosCanvas);
   // Keep the middle of the first editable line below the native bar's touch region.
   const underlap = Math.min(MAX_EDITOR_HEADER_UNDERLAP, Math.floor((lineHeightFor(fontSize) - 1) / 2));
-  const editorHeightBelowHeader = Math.max(0, rootHeight - (nativeHeaderBottom ?? 0));
   const appThemeMode = usePresetThemeStore((state) => state.themeMode);
   const systemScheme = useColorScheme();
   const appScheme = appThemeMode === 'system' ? systemScheme ?? 'light' : appThemeMode;
@@ -670,7 +669,6 @@ function ProblemEditorContent({
             contentInsetAdjustmentBehavior: 'never' as const,
             contentContainerStyle: { paddingTop: Math.max(0, nativeHeaderBottom - underlap) },
           })}
-          {...(consoleOpen && editorHeightBelowHeader > 0 ? { bottomInset: consoleInset(editorHeightBelowHeader, iosCanvas) } : {})}
         >
           {/* A tap on the page outside the editor lowers its keyboard. The editor sits beside that Pressable and not
               inside it: a view that claims the touch responder above the WebView makes Android cancel the WebView's
@@ -681,7 +679,7 @@ function ProblemEditorContent({
                 visible area. */}
             <YStack
               flex={1}
-              minH={editorZoneMinHeight(consoleOpen)}
+              minH={EDITOR_ZONE_MIN_HEIGHT}
               px={iosCanvas ? 0 : "$3"}
               py={iosCanvas ? 0 : "$2"}
               testID="ProblemEditorEditorZone"
@@ -741,7 +739,9 @@ function ProblemEditorContent({
             </Pressable>
           </YStack>
         </KeyboardToolbarAwareScrollView>
-        {!consoleOpen && !keyboard.visible ? <ConsoleDock {...consoleActions} canvas={darkCanvas} backgroundColor={canvasBackground} /> : null}
+        {!keyboard.visible ? (
+          <ConsoleDock {...consoleActions} canvas={darkCanvas} backgroundColor={canvasBackground} covered={consoleOpen} />
+        ) : null}
       </KeyboardToolbarTarget>
       {problem ? (
         <ConsoleSheet
