@@ -17,7 +17,7 @@ import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 import { Platform } from 'react-native';
 
 const DESTINATIONS = [
-  { label: 'Blind 75', href: '/', icon: Code, testID: 'DrawerItemHome' },
+  { label: 'LeetCode Library', href: '/', icon: Code, testID: 'DrawerItemHome' },
   {
     label: 'Design system',
     href: '/showcase',
