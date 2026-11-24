@@ -70,6 +70,12 @@ fn given_every_driver_of_the_contract_when_its_models_are_listed_then_one_is_the
     }
 }
 
+#[test]
+fn given_the_codex_catalog_when_a_client_lists_models_then_gpt_6_1_sol_is_available_for_selection() {
+    let listed = table::for_driver("codex");
+    assert!(listed.models.iter().any(|m| m.id == "gpt-6.1-sol" && m.label == "GPT-6.1 Sol"));
+}
+
 #[tokio::test]
 async fn given_an_executor_with_two_of_the_clis_when_agents_are_detected_then_each_driver_is_reported_in_table_order_and_the_answer_is_kept_until_it_is_old_or_refreshed() {
     // Given an executor that has claude and codex

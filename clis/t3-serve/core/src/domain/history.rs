@@ -1,6 +1,6 @@
 //! A thread's timeline read from the read model: a page of it older than a cursor, and the whole of it as a transcript. Pure; the
 //! paging follows the pin's `threadHistoryPaging.ts` for the rows this server writes (no user-turn rows, so the row cap is 75).
-use super::state::State;
+use super::state::{turn_item_wire, State};
 use serde_json::Value;
 use t3_contracts::history::{self, Cursor, PAGE_MAX_ENCODED_BYTES, PAGE_MAX_ITEMS, TRANSCRIPT_MAX_BYTES};
 
@@ -13,7 +13,8 @@ pub enum HistoryError {
 
 fn timeline(state: &State, thread: &str) -> Result<Vec<Value>, HistoryError> {
     state.threads.get(thread).ok_or(HistoryError::ThreadNotFound)?;
-    Ok(history::projected_rows(thread, state.entities.get(thread).map_or(&[][..], |e| &e.turn_items)))
+    let items: Vec<_> = state.entities.get(thread).into_iter().flat_map(|e| &e.turn_items).map(turn_item_wire).collect();
+    Ok(history::projected_rows(thread, &items))
 }
 
 /// The index the page ends before: the cursor's row by identity (after it when inclusive), else the first row at its position.

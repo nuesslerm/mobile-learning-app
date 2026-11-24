@@ -11,7 +11,7 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use t3_contracts::time::iso;
-use t3_contracts::wire;
+use t3_contracts::wire::{self, Model};
 
 const SETTINGS_SCOPE: &str = "t3";
 const SETTINGS_KEY: &str = "server.settings";
@@ -401,9 +401,11 @@ impl Service {
         self.account(instance.unwrap_or_default(), "refresh", &Op::AccountsRefresh { provider: instance.map(str::to_string) })?;
         let listed = self.account(instance.unwrap_or_default(), "refresh", &Op::AccountsList)?;
         let logins: Vec<(String, String)> = listed["providers"].as_array().into_iter().flatten().filter_map(|p| Some((p["provider"].as_str()?.to_string(), p["status"].as_str()?.to_string()))).collect();
-        let mut config = self.server_config();
-        let providers = config["providers"].as_array_mut().expect("server_config builds providers");
-        wire::apply_provider_logins(providers, &logins);
+        let models = self.0.catalog.models();
+        let models: Vec<_> = models.iter().map(|m| Model { slug: &m.slug, name: &m.name }).collect();
+        let mut providers = wire::providers(&models, &iso(self.now_ms()));
+        self.apply_provider_catalog(&mut providers);
+        wire::apply_provider_logins(&mut providers, &logins);
         Ok(json!({"providers": providers}))
     }
 

@@ -184,16 +184,29 @@ impl Service {
         if let (Some(settings), Some(map)) = (self.config_settings(), config.as_object_mut()) {
             map.insert("settings".into(), settings);
         }
+        let providers = config["providers"].as_array_mut().expect("server_config builds providers");
+        for driver in self.apply_provider_catalog(providers) {
+            let settings = &mut config["settings"]["providerInstances"];
+            if !settings.is_object() {
+                *settings = json!({});
+            }
+            settings.as_object_mut().unwrap().entry(&driver)
+                .or_insert_with(|| json!({"driver": driver, "enabled": true}));
+        }
+        config
+    }
+
+    pub(super) fn apply_provider_catalog(&self, rows: &mut [Value]) -> Vec<String> {
         let providers = match self.0.agent.catalog_providers() {
             Ok(providers) => providers,
             Err(error) => {
                 self.log("catalog.providers.failed", &[("error", error.message())]);
-                return config;
+                return Vec::new();
             }
         };
+        let mut installed = Vec::new();
         for provider in providers {
-            let Some(row) = config["providers"].as_array_mut().into_iter().flatten()
-                .find(|row| row["instanceId"] == provider.driver.as_str()) else { continue };
+            let Some(row) = rows.iter_mut().find(|row| row["instanceId"] == provider.driver.as_str()) else { continue };
             row["enabled"] = json!(true);
             row["installed"] = json!(true);
             row["status"] = json!("ready");
@@ -205,14 +218,9 @@ impl Service {
                     json!({"slug": model.slug, "name": model.name, "isCustom": false, "capabilities": null})
                 }).collect::<Vec<_>>());
             }
-            let settings = &mut config["settings"]["providerInstances"];
-            if !settings.is_object() {
-                *settings = json!({});
-            }
-            settings.as_object_mut().unwrap().entry(&provider.driver)
-                .or_insert_with(|| json!({"driver": provider.driver, "enabled": true}));
+            installed.push(provider.driver);
         }
-        config
+        installed
     }
 
     /// `POST /oauth/token`: RFC 8693 token exchange of a pairing code for a 30-day bearer token.
