@@ -6,8 +6,8 @@ import { mountPage } from './support/mountEditorPage';
 
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
-async function readyPage(language: string) {
-  const page = await mountPage({ init: true, language });
+async function readyPage(language: string, contrastCanvas = false) {
+  const page = await mountPage({ init: true, language, contrastCanvas });
   await waitFor(async () => {
     const reply = await page.engine.request('hello', undefined);
     if (!reply.ok || !reply.value.ready) throw new Error('the editor is not ready');
@@ -45,6 +45,33 @@ describe('the language of the real CodeMirror page', () => {
     expect(after.revision).toBe(typed.revision);
     unwrap(await client.undo());
     expect(unwrap(await client.getText()).text).toBe('abc');
+  });
+
+  it('given JavaScript on the contrast canvas, when an initializer becomes an arrow function, then its binding picks up the function color', async () => {
+    const { page, client } = await readyPage('javascript', true);
+    const code = 'const count = 1, solve = function(input) {}, map = value';
+    unwrap(await client.load(code));
+    const names = () => Array.from(
+      page.frame()?.document.querySelectorAll('.cm-function-name') ?? [],
+      (binding) => binding.textContent,
+    );
+    expect(names()).toEqual(['solve']);
+
+    unwrap(await client.insertAt(code.length, ' => value'));
+    expect(names()).toEqual(['solve', 'map']);
+
+    unwrap(await client.setConfig({ language: 'python' }));
+    expect(names()).toEqual([]);
+  });
+
+  it('given Python on the contrast canvas, when annotations use a union and a generic, then only names in the annotations get the type color', async () => {
+    const { page, client } = await readyPage('python', true);
+    unwrap(await client.load('def solve(node: ListNode | None) -> Optional[ListNode]:\n    return node.next'));
+    const names = Array.from(
+      page.frame()?.document.querySelectorAll('.cm-type-name') ?? [],
+      (reference) => reference.textContent,
+    );
+    expect(names).toEqual(['ListNode', 'Optional', 'ListNode']);
   });
 
   it('given an init with a language the page does not know, when the config is read, then the page started on python', async () => {

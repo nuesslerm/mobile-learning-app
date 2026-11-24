@@ -65,7 +65,7 @@ import {
 } from '../../../domain/editor/configPatch';
 import { marksField } from './cm6Marks';
 import { completionExtensions } from './completionExtension';
-import { languageCompartment, languageExtension } from './languageExtensions';
+import { contrastSyntaxFor, languageCompartment, languageExtension } from './languageExtensions';
 declare global {
   type ReactNativeWebViewBridge = {
     postMessage: (msg: string) => void;
@@ -244,20 +244,25 @@ const completionFor = (language: string) =>
     onOpenChange: (open) => core?.ingestCompletion(open),
   });
 const CANVAS_FONT_SCALE = 1.04;
+const CONTRAST_FUNCTION = '#52C7B0';
+const CONTRAST_COMMENT = '#6A7584';
+const CONTRAST_TYPE = '#65DCC3';
 
 const contrastHighlight = HighlightStyle.define([
   { tag: [tags.keyword, tags.definitionKeyword, tags.controlKeyword], color: '#FF3B91' },
-  { tag: [tags.className, tags.typeName], color: '#65DCC3' },
-  { tag: tags.function(tags.variableName), color: '#52C7B0' },
-  { tag: [tags.null, tags.bool, tags.number], color: '#AC64FA' },
+  { tag: [tags.className, tags.typeName], color: CONTRAST_TYPE },
+  { tag: tags.function(tags.variableName), color: CONTRAST_FUNCTION },
+  { tag: [tags.null, tags.bool, tags.number, tags.propertyName], color: '#AC64FA' },
   { tag: [tags.string, tags.regexp], color: '#9ACC78' },
-  { tag: [tags.comment, tags.docComment], color: '#6A7584' },
+  { tag: [tags.comment, tags.docComment], color: CONTRAST_COMMENT },
   { tag: [tags.punctuation, tags.operator], color: '#A0ABB9' },
 ]);
 
 function buildConfigExtensions(cfg: EditorConfig) {
   const contrast = cfg.isDark && cfg.syntaxPalette === 'contrast';
   const canvas = cfg.surface === 'canvas';
+  const whitespaceColor = cfg.isDark ? (canvas ? CONTRAST_COMMENT : '#8b93a1') : '#9aa0a6';
+  const whitespaceStops = canvas ? '0.75px, transparent 1.25px' : '20%, transparent 5%';
   const theme = EditorView.theme(
     {
       '&': {
@@ -292,6 +297,8 @@ function buildConfigExtensions(cfg: EditorConfig) {
       ...(contrast ? {
         '&.cm-focused .cm-activeLine': { backgroundColor: '#0f0f15' },
         '.cm-activeLineGutter': { backgroundColor: 'transparent' },
+        '.cm-function-name': { color: CONTRAST_FUNCTION },
+        '.cm-type-name, .cm-type-name span': { color: CONTRAST_TYPE },
         '&.cm-focused .cm-activeLineGutter': { color: '#f1f1f4' },
       } : {}),
       '.cm-gutters': {
@@ -311,9 +318,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
         borderBottom: `1px solid ${cfg.cursorColor}`,
       },
       '.cm-highlightSpace': {
-        backgroundImage: canvas
-          ? `radial-gradient(circle at 50% 55%, ${cfg.isDark ? '#6a7584' : '#9aa0a6'} 0.75px, transparent 1.25px)`
-          : `radial-gradient(circle at 50% 55%, ${cfg.isDark ? '#8b93a1' : '#9aa0a6'} 20%, transparent 5%)`,
+        backgroundImage: `radial-gradient(circle at 50% 55%, ${whitespaceColor} ${whitespaceStops})`,
       },
       '.cm-run-error-line': {
         background: cfg.isDark ? 'rgba(248,113,113,0.2)' : 'rgba(220,38,38,0.12)',
@@ -333,7 +338,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
     indentUnit.of(' '.repeat(cfg.tabSize)),
     theme,
     cfg.isDark ? (contrast ? [oneDarkTheme, syntaxHighlighting(contrastHighlight)] : oneDark) : [],
-    contrast ? [highlightActiveLine(), highlightActiveLineGutter()] : [],
+    contrast ? [highlightActiveLine(), highlightActiveLineGutter(), contrastSyntaxFor(cfg.language)] : [],
     cfg.wordWrap ? EditorView.lineWrapping : [],
     cfg.showWhitespace ? highlightWhitespace() : [],
   ];

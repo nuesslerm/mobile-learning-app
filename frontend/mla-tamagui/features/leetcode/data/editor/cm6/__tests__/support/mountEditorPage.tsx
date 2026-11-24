@@ -38,7 +38,7 @@ afterAll(async () => {
   }
 });
 
-export async function mountPage(options: { init: boolean; language?: string }) {
+export async function mountPage(options: { init: boolean; language?: string; contrastCanvas?: boolean }) {
   // the flow config aliases react-native-webview to the app's web twin, whose handle injects scripts into the iframe
   const ref = createRef<{ injectJavaScript(script: string): void }>();
   const host = createWebViewHostTransport(() => ref.current);
@@ -56,7 +56,14 @@ export async function mountPage(options: { init: boolean; language?: string }) {
   const errors: unknown[] = [];
   const crossed: string[] = [];
   const readyMessages: unknown[] = [];
-  const sendInit = () => ref.current?.injectJavaScript(deliverScript(JSON.stringify({ ...INIT, config: { ...INIT.config, language: options.language ?? INIT.config.language } })));
+  const sendInit = () => ref.current?.injectJavaScript(deliverScript(JSON.stringify({
+    ...INIT,
+    config: {
+      ...INIT.config,
+      language: options.language ?? INIT.config.language,
+      ...(options.contrastCanvas ? { isDark: true, surface: 'canvas', syntaxPalette: 'contrast' } : {}),
+    },
+  })));
   let announced = false;
   const container = document.body.appendChild(document.createElement('div'));
   const root = createRoot(container);
