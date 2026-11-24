@@ -2,7 +2,7 @@ import { Logger } from '@lib/logging';
 import { BarChart, CodeBlock, CompactHeader, CompactIconButton, LineChart, useCompactColors } from '@lib/tamagui-design-system';
 import { Share } from '@lib/tamagui-design-system/icons';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -24,6 +24,8 @@ export function SubmissionDetailScreen({ id, submissionId }: { id: string; submi
   const { libraryContent } = useLeetCodePorts();
   const { top, bottom } = useSafeAreaInsets();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
+  const screenRef = useRef<ComponentRef<typeof View>>(null);
+  const [windowTop, setWindowTop] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [metric, setMetric] = useState<'Runtime' | 'Memory'>('Runtime');
   useEffect(() => {
@@ -41,9 +43,14 @@ export function SubmissionDetailScreen({ id, submissionId }: { id: string; submi
   const problem = libraryContent.problem(id);
   const title = problem ? `${problem.leetcodeId}. ${problem.title}` : 'Problem';
   return (
-    <View testID="ProblemSubmissionDetail" style={[styles.screen, { backgroundColor: colors.background, paddingTop: top }]}>
+    <View
+      ref={screenRef}
+      onLayout={() => screenRef.current?.measureInWindow((_, y) => setWindowTop(Math.max(0, y)))}
+      testID="ProblemSubmissionDetail"
+      style={[styles.screen, { backgroundColor: colors.background, paddingTop: Math.max(0, top - windowTop) }]}
+    >
       <CompactHeader title="Submission" onClose={() => router.canGoBack() ? router.back() : router.replace('/')}
-        trailing={<CompactIconButton icon={Share} label="Share problem" onPress={() => { void shareProblem(id, title); }} />} />
+        trailing={<CompactIconButton icon={Share} label="Share problem" testID="ProblemSubmissionShare" onPress={() => { void shareProblem(id, title); }} />} />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottom + 12 }]}>
         {state.status === 'loading' && <View accessibilityLabel="Loading submission" testID="ProblemSubmissionLoading" style={{ gap: 14 }}>
           {[180, 140, 120, 155].map((width) => <View key={width} style={{ width, height: 13, borderRadius: 5, backgroundColor: colors.raised }} />)}
@@ -70,16 +77,16 @@ export function SubmissionDetailScreen({ id, submissionId }: { id: string; submi
               <Text style={{ color: colors.foreground, fontWeight: '600' }}>{metric} Distribution</Text>
               <Text style={{ color: colors.muted }}>{metric === 'Runtime' ? state.submission.runtime : state.submission.memory}</Text>
             </View>
-            <BarChart data={metric === 'Runtime' ? runtimeBars : memoryBars} height={145} />
+            <BarChart variant="distribution" data={metric === 'Runtime' ? runtimeBars : memoryBars} height={174} />
             <View style={[styles.cardHeader, { marginTop: 12 }]}>
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={{ color: colors.foreground, fontWeight: '600' }}>Time Complexity</Text>
                 <Text style={{ color: colors.muted }}>Current: O(N)</Text>
                 <Text style={{ color: '#b77de8' }}>Suggested: O(N)</Text>
               </View>
-              <View style={{ width: 128 }}><LineChart data={complexity} height={65} color="accent" /></View>
+              <View style={{ width: 128 }}><LineChart data={complexity} height={77} color="accent" /></View>
             </View>
-            <Text style={{ color: colors.muted, lineHeight: 18 }}>You have already reached the optimal time complexity with your hash table implementation.</Text>
+            <Text style={{ color: colors.muted, lineHeight: 21, fontSize: 16 }}>You have already reached the optimal time complexity with your hash table implementation.</Text>
             <Text style={{ color: colors.muted, textAlign: 'center', fontSize: 12 }}>•  ·</Text>
           </View>}
           {state.submission.status === 'Accepted' && <CodeBlock title="Code" language={state.submission.language} code={libraryContent.submissionCode}
@@ -109,6 +116,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 21, fontWeight: '600' },
   metric: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 41 },
   glyph: { width: 31, height: 31, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  distribution: { borderRadius: 13, padding: 13, gap: 11 },
+  distribution: { borderRadius: 13, padding: 15, gap: 16 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
 });
