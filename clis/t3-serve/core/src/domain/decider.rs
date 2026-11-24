@@ -494,11 +494,17 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
     if is_archived(shell) {
         return Err(format!("thread {thread} is archived"));
     }
-    let mode = dispatch_mode(cmd);
+    let active = active_run(state, thread);
+    let requested = dispatch_mode(cmd);
+    let mode = if requested == "start_immediately" && cmd.str("deliveryIntent") == Some("auto") && active.as_ref().is_some_and(|run| !provider_turn_running(state, thread, run["id"].as_str().unwrap_or(""))) {
+        "queue_after_active"
+    } else {
+        requested
+    };
     if !["start_immediately", "queue_after_active", "defer_start"].contains(&mode) {
         return Err(format!("dispatch mode {mode} is not supported by this server"));
     }
-    let active = active_run(state, thread).is_some();
+    let active = active.is_some();
     if active && mode != "queue_after_active" {
         return Err(format!("thread {thread} already has an active run"));
     }

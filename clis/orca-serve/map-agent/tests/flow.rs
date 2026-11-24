@@ -10,8 +10,8 @@ use orca_map_workspace::testing::Workspaces;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use serde_json::{json, Value};
-use std::collections::BTreeSet;
-use std::sync::Arc;
+use std::collections::{BTreeSet, VecDeque};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 const EVENTS: &str = include_str!("../../../../libraries/agent-api/agent-api-agent/tests/fixtures/thread-events.jsonl");
@@ -543,6 +543,26 @@ fn given_a_queued_prompt_when_updated_then_it_is_saved_only_against_the_fingerpr
 fn given_a_queued_prompt_when_an_edit_lease_is_acquired_renewed_and_released_then_the_phone_gets_the_host_s_statuses() {
     // Given three queued prompts
     let (mut rig, ids) = queued_rig();
+    let item = ids[0].clone();
+    let responses = Mutex::new(VecDeque::from([
+        ("acquire", "e1", "held"),
+        ("acquire", "e2", "changed"),
+        ("renew", "e1", "held"),
+        ("renew", "e2", "expired"),
+        ("release", "e2", "released"),
+        ("renew", "e1", "held"),
+        ("release", "e1", "released"),
+        ("renew", "e1", "expired"),
+    ]));
+    rig.agent.reply("queue.editHold", move |params| {
+        let (action, edit, status) = responses.lock().unwrap().pop_front().expect("unexpected queue.editHold request");
+        let mut expected = json!({"thread": "claude_q", "item": item, "edit": edit, "action": action});
+        if action == "acquire" {
+            expected["expected_prompt"] = "one".into();
+        }
+        assert_eq!(*params, expected);
+        Ok(json!({"status": status, "prompt": "one", "lease_duration_ms": 30000}))
+    });
     let hold = |rig: &mut Rig, action: &str, edit: &str, id: &str, fp: Option<&str>| {
         let mut p = json!({"sessionId": "claude_q", "messageId": id, "editId": edit, "action": action});
         if let Some(f) = fp {
@@ -894,6 +914,7 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     rig.ok("skills.discover", json!({"worktreeId": "feat"}));
     rig.ok("aiVault.listSessions", json!({}));
     let (mut q, ids) = queued_rig();
+    q.agent.reply("queue.editHold", |_| Ok(json!({"status": "released"})));
     let fp = body_fingerprint("claude_q", "one");
     q.ok("agentSession.queuedMessageUpdate", mutation("claude_q", "e1", json!({"messageId": ids[0], "expectedBodyFingerprint": fp, "text": "uno"})));
     q.ok("agentSession.queuedMessageMove", mutation("claude_q", "e2", json!({"messageId": ids[2], "beforeMessageId": ids[0]})));
@@ -1362,8 +1383,16 @@ fn given_chats_when_a_capable_client_subscribes_to_the_status_feed_then_it_gets_
 fn given_the_host_when_status_is_read_then_it_advertises_the_status_feed_and_structured_capabilities_it_serves() {
     // Given the agent area
     let area = AgentArea::default();
-    // When its capabilities are read, Then it names both
-    assert_eq!(orca_core::Area::capabilities(&area), ["agent-session.structured.v1", "agent-session.status-feed.v1", "agent-session.continue-interrupted.v1", "agent-session.continue-interrupted.phone.v1"]);
+    // When its capabilities are read, Then it names the session and queue features
+    assert_eq!(orca_core::Area::capabilities(&area), [
+        "agent-session.structured.v1",
+        "agent-session.status-feed.v1",
+        "agent-session.continue-interrupted.v1",
+        "agent-session.continue-interrupted.phone.v1",
+        "agent-session.queued-messages.v2",
+        "agent-session.queued-message-reorder.v1",
+        "agent-session.queued-message-edit.v1",
+    ]);
 }
 
 /// A chat with two finished turns ("one" then "two"), nothing open, and the ids of the two user messages.

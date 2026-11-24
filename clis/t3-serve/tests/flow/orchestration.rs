@@ -266,6 +266,35 @@ fn queued(command_id: &str, text: &str) -> Value {
     json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": command_id, "threadId": "t1", "messageId": format!("m-{command_id}"), "text": text, "dispatchMode": {"type": "queue_after_active"}})
 }
 
+#[test]
+fn automatic_mobile_follow_up_queues_while_the_provider_turn_is_starting() {
+    // Given a run that owns the thread, before its provider opens a turn.
+    let (h, mut rpc, _thread) = started();
+    h.agent.hold.store(true, std::sync::atomic::Ordering::SeqCst);
+    success(&dispatch(&mut rpc, message("first", "start")));
+
+    // When an explicitly immediate send and then an automatic mobile send arrive.
+    let immediate = dispatch(&mut rpc, message("immediate", "refused"));
+    assert!(failure(&immediate)["message"].as_str().unwrap().contains("already has an active run"));
+    let mut automatic = message("auto", "deliver once");
+    automatic["creationSource"] = "mobile".into();
+    automatic["dispatchMode"] = json!({"type": "start_immediately"});
+    automatic["deliveryIntent"] = "auto".into();
+    let sent = dispatch(&mut rpc, automatic.clone());
+    assert_eq!(success(&sent), success(&dispatch(&mut rpc, automatic)));
+    drain(&mut rpc);
+
+    // Then the duplicate command has the same receipt and only one queued card.
+    let ops = h.agent.ops.lock().unwrap();
+    let adds: Vec<_> = ops.iter().filter_map(|op| match op {
+        t3_core::ports::Op::QueueAdd { item, prompt, .. } => Some((item.as_str(), prompt.as_str())),
+        _ => None,
+    }).collect();
+    assert_eq!(adds, [("run:thread:t1:ordinal:2", "deliver once")]);
+    drop(ops);
+    assert_eq!(run_rows(&mut rpc).into_iter().map(|(_, status, _)| status).collect::<Vec<_>>(), ["running", "queued"]);
+}
+
 fn run_rows(rpc: &mut Rpc) -> Vec<(String, String, Value)> {
     projection(rpc)["runs"].as_array().unwrap().iter().map(|r| (r["id"].as_str().unwrap().to_string(), r["status"].as_str().unwrap().to_string(), r["queuePosition"].clone())).collect()
 }

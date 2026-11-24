@@ -172,3 +172,19 @@ Timing includes the simulator driver's observation latency. T3 originally displa
 The local RCA launch configuration now persists thread state. A separate real Codex sentinel retained its thread, event and turn IDs through an RCA restart. The recorded initial restart used an in-memory test service and cleared its local test threads.
 
 Bundles in Zagreb are `.context/rca-long-history/published/run-e4c839f2014f4988/` for Orca and `.context/rca-t3-large-history/published/run-5b9ed2affaf4e5f8/` for T3. They contain recordings, screenshots, individual timing measurements and machine-readable ordinal assertions.
+
+## Native child agents, background completion and process cancellation
+
+The Codex completion run passed in both apps. The child counted 17 lines in the fixture and returned to the parent. A separately controlled Python process remained alive through navigation away and reopening the same thread. After the host released it, the process exited and RCA recorded the actual completion stdout once. Orca and T3 displayed the child count and the command result.
+
+The cancellation variant failed in both apps with Codex CLI 0.163.0. Each native Stop action produced one interrupted RCA turn, but the exact fixture PID remained alive. In Orca the Python process was the leader of its own process group. The app server's command termination operation addresses only client-supplied process IDs from a direct command-execution RPC. These model tool commands used no such client ID. The test harness terminated each verified fixture PID after recording the failure. Both cancellation markers were absent. Completion and cancellation are separate results in `.context/rca-native-background/published/run-043fd5873df2d799/`.
+
+Orca with Claude spawned a real Agent, got the same count, and started Bash with the background flag. The parent settled while the Bash PID stayed active and the reopened chat showed its task ID. After release, the provider's original output file contained both markers and exit code zero. The app surfaced completion only after a separate native prompt asked Claude to read that file. Automatic completion delivery and native cancellation are open. Evidence is under `.context/rca-native-background/published/run-9c2c0d48e107314b/`.
+
+## T3 automatic follow-up during provider startup
+
+The pinned mobile client sends automatic delivery with a start-immediately dispatch placeholder. If a run is active and the provider turn has yet to open, T3 now queues automatic follow-ups. An explicit immediate command still receives a refusal. The red-to-green paired test sends the same automatic command twice and verifies one queued run with the same dispatch receipt.
+
+In the native Claude fixture the composer disabled Send in the startup window the test reached. After startup, the follow-up completed. This records an adapter pass and a partial native case. T3 native reorder and delivery through the startup control still need evidence. See `.context/rca-t3-startup-queue/published/run-8273729c8deab53b/`.
+
+The history and catalog push passed [GitHub backend CI](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45350384909). Its [CLI workflow](https://github.com/nuesslerm/mobile-learning-app/actions/runs/45350384652) exposed the missing Orca edit-lease declaration, test double and stale generated coverage. The follow-up passed 71 Orca mapper flow tests, both coverage checks and 15 T3 orchestration flow tests on Linux.
