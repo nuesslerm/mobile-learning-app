@@ -110,6 +110,15 @@ fn a_message_starts_a_turn_in_the_agent_api_and_the_thread_shows_the_streamed_te
     let kinds: Vec<&str> = events.iter().map(|(k, _)| k.as_str()).collect();
     assert_eq!(kinds.first(), Some(&"message.updated"));
     assert!(kinds.contains(&"run.created") && kinds.last() == Some(&"run.updated"), "{kinds:?}");
+    for (kind, row) in &events {
+        if matches!(kind.as_str(), "run.created" | "run.updated") {
+            assert_eq!(row["rootNodeId"], json!(t3_contracts::runs::node_id(row["id"].as_str().unwrap())));
+            assert_eq!(row["activeAttemptId"], json!(t3_contracts::runs::attempt_id(row["id"].as_str().unwrap())));
+            for required in ["providerThreadId", "checkpointId", "contextHandoffId"] {
+                assert_eq!(row.get(required), Some(&Value::Null), "{kind}: {required}");
+            }
+        }
+    }
     let streamed = events.iter().find(|(kind, row)| kind == "turn-item.updated" && row["type"] == "assistant_message").unwrap();
     assert_eq!((&streamed.1["status"], &streamed.1["streaming"]), (&json!("running"), &json!(true)));
     // And the projection holds both messages, the three items and a completed run

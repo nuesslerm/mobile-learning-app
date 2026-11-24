@@ -39,6 +39,7 @@ pub fn event_json(e: &StoredEvent) -> Value {
     let payload = match e.kind.as_str() {
         "turn-item.updated" => turn_item_wire(&e.payload),
         "message.updated" => message_wire(&e.payload),
+        "run.created" | "run.updated" => run_wire(&e.payload),
         _ => e.payload.clone(),
     };
     json!({
@@ -49,6 +50,17 @@ pub fn event_json(e: &StoredEvent) -> Value {
         "type": e.kind,
         "payload": payload,
     })
+}
+
+fn run_wire(value: &Value) -> Value {
+    let mut run = value.clone();
+    let (Some(id), Some(fields)) = (value["id"].as_str(), run.as_object_mut()) else { return run };
+    fields.entry("rootNodeId").or_insert_with(|| json!(runs::node_id(id)));
+    fields.entry("activeAttemptId").or_insert_with(|| json!(runs::attempt_id(id)));
+    for field in ["providerThreadId", "checkpointId", "contextHandoffId"] {
+        fields.entry(field).or_insert(Value::Null);
+    }
+    run
 }
 
 fn message_wire(value: &Value) -> Value {
