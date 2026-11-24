@@ -244,6 +244,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
         lineHeight: `${cfg.lineHeight}px`,
         fontFamily: "'Menlo', 'Courier New', monospace",
         height: '100%',
+        backgroundColor: cfg.backgroundColor,
       },
       '.cm-content': {
         padding: '12px 0',
@@ -300,8 +301,8 @@ function buildConfigExtensions(cfg: EditorConfig) {
     EditorState.tabSize.of(cfg.tabSize),
     // Spaces, as in every LeetCode stub: Python rejects a tab-indented line under a space-indented one (TabError).
     indentUnit.of(' '.repeat(cfg.tabSize)),
-    cfg.isDark ? oneDark : [],
     theme,
+    cfg.isDark ? oneDark : [],
     cfg.wordWrap ? EditorView.lineWrapping : [],
     cfg.showWhitespace ? highlightWhitespace() : [],
   ];

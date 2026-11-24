@@ -37,6 +37,7 @@ import {
   getPalette,
   useCodeEditorSettingsStore,
 } from '../../state/editor/editorSettings';
+import { DEFAULT_PALETTE_ID } from '../../state/editor/palettes';
 import type { EditResult } from '../../domain/editor/editing';
 import { checkpointWithin, clearErrorLine, showErrorLine, type ErrorCheckpoint, type ErrorJump, type ErrorPlace } from '../../domain/editor/errorJump';
 import type { Selection } from '../../domain/editor/types';
@@ -102,6 +103,7 @@ type Props = {
   /** Suggestions while typing: off when absent or not enabled. The names are what the problem's own signature adds. */
   completion?: { enabled: boolean; entries: readonly CompletionEntry[] };
   testID?: string;
+  appearance?: 'panel' | 'canvas';
 };
 
 /**
@@ -123,6 +125,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       language = 'python',
       completion,
       testID,
+      appearance = 'panel',
     },
     ref
   ) {
@@ -180,13 +183,15 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
     const tabSize = useEditorPreferencesStore((s) => s.tabSize);
     const showWhitespace = useEditorPreferencesStore((s) => s.whitespace);
     const palette = getPalette(paletteId);
+    const canvas = appearance === 'canvas';
+    const backgroundColor = canvas && paletteId === DEFAULT_PALETTE_ID ? '#000000' : palette.background;
     const lineHeight = lineHeightFor(fontSize);
     const isDark = palette.appearance === 'dark';
     // Editor chrome colors (gutter + border) are intentionally tied to the
     // editor palette's appearance, not the OS theme — they live inside the
     // embedded WebView, so the surrounding app's tokens don't apply.
     const gutterColor = isDark ? '#5c6370' : '#9aa0a6';
-    const borderColor = isDark ? '#3e4451' : '#dadce0';
+    const borderColor = canvas ? backgroundColor : isDark ? '#3e4451' : '#dadce0';
 
     // HTML is static — no config injected. All config flows via postMessage.
     const { editorBridge, clock } = useLeetCodePorts();
@@ -498,16 +503,18 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         language,
         cursorColor: palette.cursor,
         selectionColor: palette.selection,
-        backgroundColor: palette.background,
+        backgroundColor,
         gutterColor,
         borderColor,
         tabSize,
-        noAutoFocus: false,
+        noAutoFocus: canvas,
       }),
       [
         fontSize,
         lineHeight,
+        canvas,
         palette,
+        backgroundColor,
         isDark,
         gutterColor,
         borderColor,
@@ -558,7 +565,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           showWhitespace,
           cursorColor: palette.cursor,
           selectionColor: palette.selection,
-          backgroundColor: palette.background,
+          backgroundColor,
           gutterColor,
           borderColor,
           tabSize,
@@ -575,7 +582,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
       lineHeight,
       palette.cursor,
       palette.selection,
-      palette.background,
+      backgroundColor,
       gutterColor,
       borderColor,
     ]);
@@ -789,8 +796,8 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         testID={testID ?? 'CodeEditorContainer'}
         flex={1}
         overflow="hidden"
-        rounded="$3"
-        style={{ backgroundColor: palette.background }}
+        rounded={canvas ? 0 : "$3"}
+        style={{ backgroundColor }}
       >
         <WebView<object>
           testID="CodeEditorInput"
@@ -827,7 +834,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
           keyboardDisplayRequiresUserAction={false}
           hideKeyboardAccessoryView
           allowsInlineMediaPlayback
-          style={{ flex: 1, backgroundColor: palette.background }}
+          style={{ flex: 1, backgroundColor }}
         />
         {Platform.OS === 'android' ? <EditorTextMirror source={textMirror} /> : null}
       </View>

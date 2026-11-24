@@ -6781,7 +6781,7 @@ Options:
 
 The e2e tests: scripted Lua tests in e2e/<name>.lua, each run through its harness (`wf android test` / `wf browser test`). A runbook is something else: plain text an agent drives. There is no queue: CI's plan job (`wf ci plan`) writes the plan once and each stage job (flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deployment-verification-tests, browser-e2e-tests, android-e2e-tests) runs its part with `wf test run --stage`.
 
-Usage: `wf test [options] <run|prepare|backends|publish|results|goldens> [args]`
+Usage: `wf test [options] <run|prepare|backends|publish|results|goldens|ios-visual> [args]`
 
 Examples:
 
@@ -6797,7 +6797,7 @@ wf test backends up
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf test [options] <run|prepare|backends|drift|publish|results|goldens> [args]
+Usage: wf test [options] <run|prepare|backends|drift|publish|results|goldens|ios-visual> [args]
 
 The e2e tests: scripted Lua tests in e2e/<name>.lua, each run through its harness (`wf android test` / `wf browser test`).
 A runbook is something else: plain text an agent drives. There is no queue: CI's plan job (`wf ci plan`) writes the plan once and
@@ -6805,6 +6805,10 @@ each stage job (flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2
 with `wf test run --stage`.
 
 Actions:
+  ios-visual <name> --device <udid> --expect <testID> [--update-goldens] [--out <dir>]
+                         capture the selected iOS simulator with idb and compare to docs/runbooks/goldens/ios/.
+                         Requires the testID on screen. Ignores the status bar and any --ignore left,top,right,bottom
+                         rectangles. Writes actual and, on a mismatch, expected and diff PNGs. Use --update-goldens to record an intentional baseline.
   run --stage <stage> [--plan <file>] [--parallel <n>] [--shard <i>/<n>] [--probe] [--fresh]
                          run one stage of a plan (default: plan HEAD~1..HEAD) through the workspace's Nx cache: a task whose
                          inputs hash the same as an earlier pass is replayed, the rest run. A package stage runs each kind's

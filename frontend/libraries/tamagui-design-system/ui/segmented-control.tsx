@@ -21,6 +21,8 @@ export type SegmentedControlProps = {
   pressLog?: 'off';
   /** 'filled' (default) paints the chosen segment; 'thumb' slides one thumb under the chosen label and gives the control tab roles. */
   variant?: 'filled' | 'thumb';
+  tone?: 'accent' | 'neutral';
+  density?: 'default' | 'compact';
   testID?: string;
 };
 
@@ -29,16 +31,16 @@ const SEGMENT_GAP = 4;
 const THUMB_MS = 180;
 
 /** Where the thumb sits for the chosen segment: its width and how far it is moved, in a track of `trackWidth` with `count` segments. */
-export function thumbGeometry(index: number, count: number, trackWidth: number): { width: number; offset: number } {
+export function thumbGeometry(index: number, count: number, trackWidth: number, padding = TRACK_PADDING): { width: number; offset: number } {
   if (count <= 0 || trackWidth <= 0) return { width: 0, offset: 0 };
-  const width = Math.max(0, (trackWidth - 2 * TRACK_PADDING - SEGMENT_GAP * (count - 1)) / count);
+  const width = Math.max(0, (trackWidth - 2 * padding - SEGMENT_GAP * (count - 1)) / count);
   return { width, offset: Math.max(0, index) * (width + SEGMENT_GAP) };
 }
 
-function Thumb({ index, count, trackWidth }: { index: number; count: number; trackWidth: number }) {
+function Thumb({ index, count, trackWidth, padding, tone }: { index: number; count: number; trackWidth: number; padding: number; tone: 'accent' | 'neutral' }) {
   const theme = useTheme();
   const reduced = useReducedMotion();
-  const { width, offset } = thumbGeometry(index, count, trackWidth);
+  const { width, offset } = thumbGeometry(index, count, trackWidth, padding);
   const x = useSharedValue(offset);
   useEffect(() => {
     x.value = reduced ? offset : withTiming(offset, { duration: THUMB_MS });
@@ -48,7 +50,7 @@ function Thumb({ index, count, trackWidth }: { index: number; count: number; tra
     <Animated.View
       testID="SegmentedThumb"
       pointerEvents="none"
-      style={[{ position: 'absolute', top: TRACK_PADDING, bottom: TRACK_PADDING, left: TRACK_PADDING, width, borderRadius: 10, backgroundColor: theme.color9?.val ?? '#444' }, style]}
+      style={[{ position: 'absolute', top: padding, bottom: padding, left: padding, width, borderRadius: 10, backgroundColor: (tone === 'neutral' ? theme.color7?.val : theme.color9?.val) ?? '#444' }, style]}
     />
   );
 }
@@ -59,20 +61,23 @@ function Thumb({ index, count, trackWidth }: { index: number; count: number; tra
  * "the chosen one" against the neutral rail; the unselected segments stay
  * transparent until pressed.
  */
-export function SegmentedControl({ options, value, onChange, pressLog, variant = 'filled', testID }: SegmentedControlProps) {
+export function SegmentedControl({ options, value, onChange, pressLog, variant = 'filled', tone = 'accent', density = 'default', testID }: SegmentedControlProps) {
   const thumb = variant === 'thumb';
+  const neutral = tone === 'neutral';
+  const compact = density === 'compact';
+  const padding = compact ? 2 : TRACK_PADDING;
   const [trackWidth, setTrackWidth] = useState(0);
   const selectedIndex = options.findIndex((option) => option.value === value);
   return (
     <XStack
       testID={testID}
-      bg="$color3"
-      rounded="$4"
-      p="$1"
+      bg={neutral ? "$color4" : "$color3"}
+      rounded={compact ? "$10" : "$4"}
+      p={compact ? padding : "$1"}
       gap="$1"
       {...(thumb ? { role: 'tablist' as const, onLayout: (event: LayoutChangeEvent) => setTrackWidth(event.nativeEvent.layout.width) } : {})}
     >
-      {thumb ? <Thumb index={selectedIndex} count={options.length} trackWidth={trackWidth} /> : null}
+      {thumb ? <Thumb index={selectedIndex} count={options.length} trackWidth={trackWidth} padding={padding} tone={tone} /> : null}
       {options.map((option) => {
         const selected = option.value === value;
         const handlePress = (_event: GestureResponderEvent) => {
@@ -92,15 +97,15 @@ export function SegmentedControl({ options, value, onChange, pressLog, variant =
             flex={1}
             items="center"
             justify="center"
-            py="$2"
+            py={compact ? "$1" : "$2"}
             rounded="$3"
-            bg={selected && !thumb ? '$color9' : 'transparent'}
+            bg={selected && !thumb ? (neutral ? '$color7' : '$color9') : 'transparent'}
             pressStyle={selected ? undefined : { opacity: 0.7 }}
             cursor="pointer"
             onPress={handlePress}
             {...(thumb ? { role: 'tab' as const, 'aria-selected': selected } : {})}
           >
-            <Text color={selected ? '$color1' : '$color'}>{option.label}</Text>
+            <Text variant={compact ? "small" : undefined} color={selected && !neutral ? '$color1' : '$color'}>{option.label}</Text>
           </XStack>
         );
       })}

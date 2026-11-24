@@ -30,12 +30,12 @@ harness-core = { path = "../harness-core" }
 harness-browser = { path = "../harness-browser" }
 harness-android = { path = "../harness-android" }
 wf-kit = { path = "../wf-kit" }
+serde_json = { version = "1", features = ["preserve_order"] }
 
 [dev-dependencies]
 wf-testkit = { path = "../wf-testkit" }
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
 tempfile = "3"
-serde_json = { version = "1", features = ["preserve_order"] }
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
 # This crate's own flow tests use the doubles it ships.
 wf-harness = { path = ".", features = ["testing"] }

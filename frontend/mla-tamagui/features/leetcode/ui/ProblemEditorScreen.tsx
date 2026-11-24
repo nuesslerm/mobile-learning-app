@@ -77,6 +77,7 @@ function pickStarterCode(
 }
 
 const VOICE_ERROR_AUTO_DISMISS_MS = 8_000;
+const iosCanvas = Platform.OS === 'ios';
 
 const subscribeNever = () => () => undefined;
 // False while the web export's prerendered page hydrates (it has no problem yet), true from the next render on and always on a phone.
@@ -607,7 +608,7 @@ export function ProblemEditorScreen({
           ref={scrollRef}
           testID="ProblemEditorScroll"
           keyboardShouldPersistTaps="handled"
-          {...(consoleOpen && rootHeight > 0 ? { bottomInset: consoleInset(rootHeight) } : {})}
+          {...(consoleOpen && rootHeight > 0 ? { bottomInset: consoleInset(rootHeight, iosCanvas) } : {})}
         >
           {/* A tap on the page outside the editor lowers its keyboard. The editor sits beside that Pressable and not
               inside it: a view that claims the touch responder above the WebView makes Android cancel the WebView's
@@ -619,13 +620,14 @@ export function ProblemEditorScreen({
             <YStack
               flex={1}
               minH={editorZoneMinHeight(consoleOpen)}
-              px="$3"
-              py="$2"
+              px={iosCanvas ? 0 : "$3"}
+              py={iosCanvas ? 0 : "$2"}
               testID="ProblemEditorEditorZone"
             >
               <EditorInput
                 ref={editorRef}
                 testID="ProblemEditorInput"
+                appearance={iosCanvas ? 'canvas' : 'panel'}
                 language={editorLanguage}
                 completion={completion}
                 value={editorText}

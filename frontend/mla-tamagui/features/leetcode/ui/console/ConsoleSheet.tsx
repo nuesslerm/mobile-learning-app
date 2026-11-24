@@ -3,15 +3,18 @@ import { Sheet } from '@lib/tamagui-design-system/ui/sheet';
 import { Trash2 } from '@lib/tamagui-design-system/icons';
 import { YStack } from '@lib/tamagui-design-system/primitives';
 import React from 'react';
+import { Platform } from 'react-native';
 
 import { captionsOf } from '../../domain/console/caseFields';
-import { CONSOLE_SNAP_PERCENT } from '../../domain/console/layout';
+import { CONSOLE_SNAP_PERCENT, FLOATING_CONSOLE_SNAP_PERCENT } from '../../domain/console/layout';
 import type { Blind75Problem } from '../../domain/models';
 import type { ConsoleState, ConsoleTab } from '../../state/console/useConsole';
 import { CaseChips } from './CaseChips';
 import { CaseFields } from './CaseFields';
 
 const SNAP_POINTS = [CONSOLE_SNAP_PERCENT];
+const FLOATING_SNAP_POINTS = [FLOATING_CONSOLE_SNAP_PERCENT];
+const FLOATING_CONTENT = { gap: 8, paddingHorizontal: 12, paddingTop: 0, paddingBottom: 38 };
 const TABS = [
   { value: 'testcase', label: 'Testcase' },
   { value: 'result', label: 'Run Result' },
@@ -26,7 +29,7 @@ type Props = {
   onSheetClosed: () => void;
 };
 
-/** The console: a sheet with no backdrop (the editor above stays usable), the Testcase and Run Result tabs, and the footer actions. */
+const floating = Platform.OS === 'ios';
 export function ConsoleSheet({ problem, console: state, fieldError, result, footer, onSheetClosed }: Props) {
   const captions = React.useMemo(() => captionsOf(problem), [problem]);
   const [focusToken, setFocusToken] = React.useState(0);
@@ -41,12 +44,24 @@ export function ConsoleSheet({ problem, console: state, fieldError, result, foot
   };
 
   return (
-    <Sheet open={state.open} onOpenChange={(open) => !open && onSheetClosed()} snapPoints={SNAP_POINTS} backdrop="none" handleLabel="Close console" testID="ConsoleSheet">
-      <SegmentedControl variant="thumb" testID="ConsoleTabs" options={TABS} value={state.tab} onChange={(tab) => state.setTab(tab as ConsoleTab)} />
+    <Sheet
+      open={state.open}
+      onOpenChange={(open) => !open && onSheetClosed()}
+      snapPoints={floating ? FLOATING_SNAP_POINTS : SNAP_POINTS}
+      backdrop={floating ? 'dim' : 'none'}
+      floating={floating}
+      floatingHorizontalInset={8}
+      floatingBottomInset={8}
+      cornerRadius={floating ? 28 : undefined}
+      contentStyle={floating ? FLOATING_CONTENT : undefined}
+      handleLabel="Close console"
+      testID="ConsoleSheet"
+    >
+      <SegmentedControl variant="thumb" tone={floating ? "neutral" : "accent"} density={floating ? "compact" : "default"} testID="ConsoleTabs" options={TABS} value={state.tab} onChange={(tab) => state.setTab(tab as ConsoleTab)} />
       <Sheet.ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 12, paddingBottom: 12 }} testID="ConsoleBody">
         {state.tab === 'testcase' ? (
           <YStack gap="$3" role="tabpanel" testID="ConsolePanel-testcase">
-            <CaseChips cases={state.cases} selectedId={selected?.id ?? null} atCap={state.atCap} onSelect={state.select} onAdd={add} onEdit={edit} />
+            <CaseChips neutral={floating} cases={state.cases} selectedId={selected?.id ?? null} atCap={state.atCap} onSelect={state.select} onAdd={add} onEdit={edit} />
             {selected ? (
               <>
                 <CaseFields entry={selected} captions={captions} focusToken={focusToken} fieldError={fieldError} onEdit={(name, text) => state.editField(selected.id, name, text)} />

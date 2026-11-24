@@ -517,7 +517,10 @@ jobs:
               echo "::error title=${name}::the ${name} stage failed on this machine"; rc=1
             fi
           done
-          [ -z "$guardpid" ] || kill "$guardpid" 2>/dev/null || true
+          if [ -n "$guardpid" ]; then
+            kill "$guardpid" 2>/dev/null || true
+            wait "$guardpid" 2>/dev/null || true
+          fi
           sleep 1
           if [ -n "$cg" ]; then
             oom=$(awk '$1 == "oom_kill" { print $2 }' "$cg/memory.events" 2> /dev/null || echo 0)
