@@ -27,7 +27,7 @@ a.brand {
   min-height: 44px;
   padding-inline: 6px;
 }
-.nav-back, .copy-button {
+.copy-button {
   --bs-btn-color: var(--accent);
   --bs-btn-hover-color: var(--accent);
   --bs-btn-hover-bg: #e5ede2;
@@ -36,7 +36,6 @@ a.brand {
   --bs-btn-font-weight: 700;
   min-height: 44px;
 }
-.nav-back span { font-size: 1.6rem; line-height: 1; }
 a.brand:hover { text-decoration: underline; }
 main { padding: clamp(26px, 6vw, 63px) 0 58px; }
 h1, h2, p { margin: 0 0 14px; }
