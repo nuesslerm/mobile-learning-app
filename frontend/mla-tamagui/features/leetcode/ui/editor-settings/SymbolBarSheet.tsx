@@ -25,8 +25,8 @@ const nativePage = Platform.OS === 'ios';
 const CHARS_STYLE = { fontFamily: nativePage ? 'Menlo' : 'Menlo, Courier, monospace', textAlign: 'right' } as const;
 
 const pageColors = {
-  dark: { page: '#0d0d0f', group: '#1b1a1d', divider: '#29282b', pill: '#29282b', label: '#f5f5f7', caption: '#8d8d93', handle: '#555459' },
-  light: { page: '#f2f2f7', group: '#ffffff', divider: '#dedee3', pill: '#e5e5ea', label: '#17171a', caption: '#696970', handle: '#8e8e93' },
+  dark: { page: '#0d0d0f', group: '#1b1a1d', divider: '#29282b', pill: '#29282b', pillBorder: '#444247', label: '#fff', caption: '#8d8d93', handle: '#555459' },
+  light: { page: '#f2f2f7', group: '#ffffff', divider: '#dedee3', pill: '#e5e5ea', pillBorder: '#d1d1d6', label: '#17171a', caption: '#696970', handle: '#8e8e93' },
 } as const;
 type PageColors = (typeof pageColors)[keyof typeof pageColors];
 
@@ -57,11 +57,11 @@ function GroupRow({
       height={ROW_HEIGHT}
       items="center"
       gap={colors ? 0 : '$3'}
-      pl={colors ? 20 : '$4'}
+      pl={colors ? 21 : '$4'}
       pr={colors ? 12 : 0}
       testID={`SymbolBarRow-${group.id}`}
     >
-      <Text flex={1} color={colors?.label ?? "$color"} testID={`SymbolBarRowLabel-${group.id}`}>
+      <Text flex={1} color={colors?.label ?? "$color"} fontSize={colors ? 18 : undefined} testID={`SymbolBarRowLabel-${group.id}`}>
         {groupLabel(index)}
       </Text>
       <Input
@@ -110,10 +110,11 @@ export function SymbolBarSheet({ open, onOpenChange, onDismiss, showRailStyle = 
   const BodyScrollView = nativePage ? ScrollView : Sheet.ScrollView;
   const headerPill = colors && {
     height: 44,
-    minW: 74,
+    minW: 76,
     fontSize: 17,
+    fontWeight: '500' as const,
     color: colors.label,
-    style: { backgroundColor: colors.pill },
+    style: { backgroundColor: colors.pill, borderColor: colors.pillBorder, borderWidth: StyleSheet.hairlineWidth },
   };
   const content = (
     <>
@@ -165,14 +166,14 @@ export function SymbolBarSheet({ open, onOpenChange, onDismiss, showRailStyle = 
             <XStack
               items="center"
               justify="space-between"
-              px={colors ? 20 : "$4"}
+              px={colors ? 21 : "$4"}
               py={colors ? 0 : "$3"}
               height={colors ? 54 : undefined}
               rounded={colors ? 27 : "$5"}
               bg="$color3"
               style={colors && { backgroundColor: colors.group }}
             >
-              <Text color={colors?.label ?? "$color"}>Show Symbol Bar</Text>
+              <Text color={colors?.label ?? "$color"} fontSize={colors ? 18 : undefined}>Show Symbol Bar</Text>
               <View style={colors && styles.switchFrame}>
                 <Switch
                   testID="SymbolBarSwitch"
@@ -197,6 +198,8 @@ export function SymbolBarSheet({ open, onOpenChange, onDismiss, showRailStyle = 
                 activation="immediate"
                 handleIcon={Menu}
                 handleIconColor={colors?.handle}
+                handleSystemSymbol={colors ? 'line.3.horizontal' : undefined}
+                liftedRowColor={colors?.group}
                 onReorder={onReorder}
                 renderItem={(group, handle) => (
                   <GroupRow
@@ -259,7 +262,7 @@ export function SymbolBarSheet({ open, onOpenChange, onDismiss, showRailStyle = 
 const styles = StyleSheet.create({
   page: { paddingHorizontal: 20, paddingTop: 7 },
   header: { borderBottomWidth: 0, paddingBottom: 0 },
-  body: { paddingTop: 47 },
+  body: { paddingTop: 48 },
   switchFrame: { height: 28, justifyContent: 'center' },
-  divider: { position: 'absolute', bottom: 0, left: 20, right: 20, height: StyleSheet.hairlineWidth },
+  divider: { position: 'absolute', bottom: 0, left: 20, right: 20, height: 1 },
 });

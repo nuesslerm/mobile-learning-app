@@ -22,7 +22,14 @@ export function PageSheet({ open, onOpenChange, onDismiss, testID, children, con
       onRequestClose={() => onOpenChange(false)}
       onDismiss={onDismiss}
     >
-      <YStack testID={testID} flex={1} bg="$color2" px="$4" pt="$3" style={contentStyle}>
+      <YStack
+        testID={testID}
+        flex={1}
+        bg="$color2"
+        px={contentStyle?.paddingHorizontal === undefined ? '$4' : undefined}
+        pt={contentStyle?.paddingTop === undefined ? '$3' : undefined}
+        style={contentStyle}
+      >
         {children}
       </YStack>
     </Modal>
