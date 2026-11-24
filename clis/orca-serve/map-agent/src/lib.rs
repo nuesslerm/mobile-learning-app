@@ -204,7 +204,7 @@ impl Area for AgentArea {
     }
 
     fn capabilities(&self) -> &'static [&'static str] {
-        &[status_stream::STRUCTURED, status_stream::STATUS_FEED, interrupted::CONTINUE, interrupted::CONTINUE_PHONE, queued::MESSAGES, queued::REORDER]
+        &[status_stream::STRUCTURED, status_stream::STATUS_FEED, interrupted::CONTINUE, interrupted::CONTINUE_PHONE, queued::MESSAGES, queued::REORDER, queued::EDIT]
     }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {

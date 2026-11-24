@@ -28,6 +28,27 @@ pub struct ListResult {
     pub thread: String,
     pub held: bool,
     pub items: Vec<QueueItem>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub editing: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EditHoldStatus {
+    Held,
+    Released,
+    Gone,
+    Changed,
+    Expired,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EditHoldResult {
+    pub status: EditHoldStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lease_duration_ms: Option<u64>,
 }
 
 /// The result of `queue.add`: the item as queued and its place (1 is next).

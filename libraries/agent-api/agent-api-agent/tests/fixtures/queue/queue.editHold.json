@@ -1,0 +1,68 @@
+{
+  "method": "queue.editHold",
+  "exchanges": [
+    {
+      "name": "acquires an edit hold on a waiting prompt",
+      "before": [
+        {
+          "id": "setup-thread",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-queue-edit-hold",
+            "title": "Edit queue",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        },
+        {
+          "id": "setup-queue",
+          "method": "queue.add",
+          "params": {
+            "thread": "t-queue-edit-hold",
+            "item": "q1",
+            "prompt": "first"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "queue.editHold",
+        "params": {
+          "thread": "t-queue-edit-hold",
+          "item": "q1",
+          "edit": "phone-1",
+          "action": "acquire",
+          "expected_prompt": "first"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "status": "held",
+          "prompt": "first",
+          "lease_duration_ms": 30000
+        }
+      }
+    },
+    {
+      "name": "refuses an acquisition without the text the phone saw",
+      "request": {
+        "id": "2",
+        "method": "queue.editHold",
+        "params": {
+          "thread": "t-queue-edit-hold",
+          "item": "q1",
+          "edit": "phone-1",
+          "action": "acquire"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "expected_prompt is required for acquire"
+        }
+      }
+    }
+  ]
+}

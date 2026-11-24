@@ -1,20 +1,18 @@
 //! The queued-message rows over `agent.queue`: a queued card is a queued rca prompt (its message id is the queue item id), the card list rides
 //! beside the history pages and batches, and the body fingerprint the phone compares with is the hash the host computes of the card's body.
-use crate::agent::{ask, refused_code, state_get, state_set};
+use crate::agent::{ask, refused_code};
 use crate::journal::events_after;
 use crate::ops::{lookup, refused, Envelope};
-use crate::session::{accepted, finish, now_ms, submission, text};
-use agent_api_agent::queue::{code, QUEUE_DELETE, QUEUE_EDIT, QUEUE_LIST, QUEUE_MOVE, QUEUE_RESUME, TURN_STEER};
+use crate::session::{accepted, finish, submission, text};
+use agent_api_agent::queue::{code, QUEUE_DELETE, QUEUE_EDIT, QUEUE_EDIT_HOLD, QUEUE_LIST, QUEUE_MOVE, QUEUE_RESUME, TURN_STEER};
 use orca_core::wire::Failure;
 use orca_core::AgentApi;
-use serde_json::{json, Map, Value};
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
 pub(crate) const MESSAGES: &str = "agent-session.queued-messages.v2";
 pub(crate) const REORDER: &str = "agent-session.queued-message-reorder.v1";
-
-/// How long an edit lease holds a card for its editor unless renewed.
-const LEASE_MS: u64 = 30_000;
+pub(crate) const EDIT: &str = "agent-session.queued-message-edit.v1";
 
 fn canonical(v: &Value) -> String {
     match v {
@@ -52,20 +50,22 @@ pub(crate) fn handoff(session: &str, item: &str, prompt: &str) -> Value {
 
 struct Queue {
     held: bool,
+    editing: Vec<String>,
     items: Vec<(String, String)>,
 }
 
 fn read(agent: &dyn AgentApi, session: &str) -> Result<Queue, Failure> {
     let list = ask(agent, QUEUE_LIST.name(), json!({"thread": session}))?;
     let items = list["items"].as_array().map(|a| a.iter().map(|i| (i["item"].as_str().unwrap_or_default().to_string(), i["prompt"].as_str().unwrap_or_default().to_string())).collect()).unwrap_or_default();
-    Ok(Queue { held: list["held"] == true, items })
+    let editing = list["editing"].as_array().into_iter().flatten().filter_map(|id| id.as_str().map(str::to_string)).collect();
+    Ok(Queue { held: list["held"] == true, editing, items })
 }
 
 /// Adds `queuedMessages`, `queuePause` and `nextQueuedMessageId` to a history page or a stream frame, where the phone reads them.
 pub(crate) fn publish(agent: &dyn AgentApi, session: &str, frame: &mut Value) -> Result<(), Failure> {
     let queue = read(agent, session)?;
     let cards: Vec<Value> = queue.items.iter().enumerate().map(|(n, (id, prompt))| json!({"messageId": id, "position": n + 1, "body": body_of(prompt), "state": "waiting"})).collect();
-    let next = if queue.held { None } else { queue.items.first().map(|(id, _)| id.clone()) };
+    let next = queue.items.first().filter(|(id, _)| !queue.held && !queue.editing.contains(id)).map(|(id, _)| id.clone());
     if let Some(h) = frame.as_object_mut() {
         h.insert("queuedMessages".into(), Value::Array(cards));
         h.insert("queuePause".into(), if queue.held { json!({"reason": "stopped"}) } else { Value::Null });
@@ -133,6 +133,7 @@ pub(crate) fn send(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failur
     let sent = if running { agent.request(TURN_STEER.name(), json!({"thread": env.session, "item": message})) } else { agent.request(QUEUE_RESUME.name(), json!({"thread": env.session, "item": message})) };
     match sent {
         Ok(_) => {}
+        Err(e) if refused_code(&e) == Some(code::ITEM_EDITING) => return Ok(invalid("This queued message is being edited.")),
         Err(e) if refused_code(&e) == Some(code::ITEM_NOT_QUEUED) => {
             return Ok(match gone(agent, &env.session, message)? {
                 "dispatched" => invalid("This queued message was already sent."),
@@ -228,12 +229,6 @@ pub(crate) fn move_to(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fai
     finish(agent, &env, answer)
 }
 
-fn lease_key(session: &str) -> String {
-    format!("queue-edit.{session}")
-}
-
-/// `agentSession.queuedMessageEditHold`: the edit lease of a card. The lease is kept in rca's state under the editor's id with its deadline;
-/// rca's queue has no per-card hold, so a card that starts while it is leased answers the save as `gone`, dispatched.
 pub(crate) fn edit_hold(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     if !params.is_object() && !params.is_null() {
         return Err(Failure::invalid(format!("Invalid input: expected object, received {}", orca_core::wire::received(params))));
@@ -242,40 +237,30 @@ pub(crate) fn edit_hold(agent: &dyn AgentApi, params: &Value) -> Result<Value, F
     let session = crate::session::agent_session_id(params)?;
     let message = id(params)?;
     let edit = text(params, "editId").ok_or_else(|| Failure::invalid("Invalid edit id"))?;
-    let now = now_ms();
-    let mut leases: Map<String, Value> = match state_get(agent, &lease_key(session))? {
-        Some(Value::Object(m)) => m,
-        _ => Map::new(),
-    };
-    leases.retain(|_, l| l["expiresAt"].as_u64().is_some_and(|t| t > now));
-    let held_by_other = leases.get(message).is_some_and(|l| l["editId"] != edit);
-    let result = match action {
-        "release" => {
-            if leases.get(message).is_some_and(|l| l["editId"] == edit) {
-                leases.remove(message);
-            }
-            json!({"status": "released"})
+    let mut request = json!({"thread": session, "item": message, "edit": edit, "action": action});
+    if action == "acquire" {
+        let queue = read(agent, session)?;
+        let Some((_, prompt)) = queue.items.iter().find(|(id, _)| id == message) else {
+            return Ok(json!({"status": "gone", "disposition": gone(agent, session, message)?}));
+        };
+        let fp = fingerprint(session, &body_of(prompt));
+        if params["expectedBodyFingerprint"] != fp {
+            return Ok(json!({"status": "changed"}));
         }
-        _ => {
-            let queue = read(agent, session)?;
-            match queue.items.iter().find(|(i, _)| i == message) {
-                None => json!({"status": "gone"}),
-                Some((_, prompt)) => {
-                    let fp = fingerprint(session, &body_of(prompt));
-                    if action == "renew" && !leases.get(message).is_some_and(|l| l["editId"] == edit) {
-                        json!({"status": "expired"})
-                    } else if action == "acquire" && (params["expectedBodyFingerprint"] != fp.as_str() || held_by_other) {
-                        json!({"status": "changed"})
-                    } else {
-                        leases.insert(message.to_string(), json!({"editId": edit, "expiresAt": now + LEASE_MS}));
-                        json!({"status": "held", "fingerprint": fp, "leaseDurationMs": LEASE_MS, "remainingMs": LEASE_MS})
-                    }
-                }
-            }
+        request["expected_prompt"] = prompt.as_str().into();
+    }
+    let value = ask(agent, QUEUE_EDIT_HOLD.name(), request)?;
+    match value["status"].as_str() {
+        Some("held") => {
+            let prompt = value["prompt"].as_str().ok_or_else(|| Failure::invalid("Queued message lease did not return text"))?;
+            Ok(json!({
+                "status": "held", "fingerprint": fingerprint(session, &body_of(prompt)),
+                "leaseDurationMs": value["lease_duration_ms"], "remainingMs": value["lease_duration_ms"],
+            }))
         }
-    };
-    state_set(agent, &lease_key(session), Value::Object(leases))?;
-    Ok(result)
+        Some("gone") => Ok(json!({"status": "gone", "disposition": gone(agent, session, message)?})),
+        _ => Ok(json!({"status": value["status"]})),
+    }
 }
 
 #[cfg(test)]

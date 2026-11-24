@@ -2,6 +2,7 @@
 //! Starting a turn, steering, stopping one and starting the queue's next prompt are all here.
 use crate::neutral::CLI_START_FAILED;
 use crate::port::{Command, ThreadEngine};
+use crate::queue::EditHolds;
 use crate::refusal::Refusal;
 use crate::requests::Waiting;
 use crate::turns::{Claim, InFlight, TurnTask};
@@ -162,6 +163,7 @@ pub struct Runner {
     gateway: Arc<dyn TurnGateway>,
     in_flight: Arc<InFlight>,
     waiting: Waiting,
+    edit_holds: std::sync::Mutex<EditHolds>,
     me: Weak<Runner>,
 }
 
@@ -172,7 +174,7 @@ impl Runner {
 
     /// A runner whose turns go through `gateway` when it routes them.
     pub fn with_gateway(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, launcher: Arc<dyn CliLauncher>, mcp: Arc<dyn McpEndpoint>, gateway: Arc<dyn TurnGateway>) -> Arc<Runner> {
-        let runner = Arc::new_cyclic(|me| Runner { engine, executors, sessions: Arc::new(Sessions::default()), mcp, launcher, mcp_tokens: Default::default(), gateway, in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
+        let runner = Arc::new_cyclic(|me| Runner { engine, executors, sessions: Arc::new(Sessions::default()), mcp, launcher, mcp_tokens: Default::default(), gateway, in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), edit_holds: Default::default(), me: me.clone() });
         let me = Arc::downgrade(&runner);
         runner.engine.on_settled(Arc::new(move |thread| {
             if let Some(runner) = me.upgrade() {
@@ -313,7 +315,13 @@ impl Runner {
     /// The running turn goes on with `prompt`, which its live session takes as it is. The engine decides first, so a refusal changes nothing; a turn the group
     /// does not run is refused for want of one. A session that does not take the steer leaves an error in the turn's log and refuses the call.
     pub async fn steer(&self, thread: &str, turn: Option<String>, prompt: Option<String>, item: Option<String>) -> Result<(String, Vec<Event>), Refusal> {
-        let events = self.decide(thread, Command::Steer { turn: turn.clone(), prompt, item })?;
+        let events = {
+            let edits = self.edit_holds();
+            if item.as_deref().is_some_and(|item| edits.holds(thread, item)) {
+                return Err(Refusal::new(agent_api_agent::queue::code::ITEM_EDITING, "This queued message is being edited."));
+            }
+            self.decide(thread, Command::Steer { turn: turn.clone(), prompt, item })?
+        };
         let said = events.first().and_then(|e| e.data.get("prompt")).and_then(|p| p.as_str()).unwrap_or_default().to_string();
         let running = self.in_flight.steer(thread, turn.as_deref()).ok_or_else(|| Refusal::new(code::NO_TURN, message::no_turn(thread, turn.as_deref())))?;
         if let Err(why) = self.sessions.steer(thread, &said).await {
@@ -365,6 +373,23 @@ impl Runner {
         });
     }
 
+    pub(crate) fn edit_holds(&self) -> std::sync::MutexGuard<'_, EditHolds> {
+        let mut holds = self.edit_holds.lock().unwrap_or_else(|error| error.into_inner());
+        holds.prune();
+        holds
+    }
+
+    pub(crate) fn wake_queue_after(&self, thread: &str, wait: std::time::Duration) {
+        let (runner, thread) = (self.me.clone(), thread.to_string());
+        tokio::spawn(async move {
+            tokio::time::sleep(wait).await;
+            if let Some(runner) = runner.upgrade() {
+                drop(runner.edit_holds());
+                runner.start_next(&thread).await;
+            }
+        });
+    }
+
     /// After a restart settled the thread's turn as interrupted: starts the next queued prompt once the workspace's executor is back. The interrupted
     /// turn itself is never run again, it may have had side effects; a prompt sent after it resumes the kept session.
     fn resume_queue_later(&self, thread: &str) {
@@ -403,7 +428,7 @@ impl Runner {
     pub async fn start_next(self: &Arc<Self>, thread: &str) -> Option<String> {
         let mut first = None;
         while let Some(item) = self.next_item(thread) {
-            match self.start_item(thread, item).await {
+            match self.start_item(thread, &item.item).await {
                 Started::Running(turn) => return first.or(Some(turn)),
                 Started::Failed(turn) => {
                     first.get_or_insert(turn);
@@ -414,35 +439,46 @@ impl Runner {
         first
     }
 
-    async fn start_item(self: &Arc<Self>, thread: &str, item: QueueItem) -> Started {
-        let Ok(view) = self.thread(thread) else { return Started::Nothing };
-        let (workspace, driver) = (item.workspace.clone().or_else(|| view.workspace.clone()), item.driver.clone().or_else(|| view.driver.clone()));
-        let input = TurnInput { workspace: workspace.unwrap_or_default(), driver: driver.unwrap_or_default(), model: item.model.clone(), prompt: item.prompt.clone(), runtime_mode: item.runtime_mode.clone(), interaction_mode: item.interaction_mode.clone() };
-        let prepared = self.prepare(thread, &Known::of(&view), Some(item.item.clone()), input);
-        let log_refused = |why: &str| tracing::warn!(event = "agent_queue.start_refused", thread = %thread, item = %item.item, reason = %why);
-        match prepared {
-            Ok(prepared) => match self.decide(thread, Command::QueueStart { item: item.item.clone() }) {
-                Ok(_) => match prepared.launch().await {
-                    Ok(turn) => Started::Running(turn),
-                    Err(refusal) => {
-                        log_refused(&refusal.message);
-                        Started::Nothing
-                    }
-                },
-                Err(refusal) => {
-                    log_refused(&refusal.message);
-                    Started::Nothing
-                }
-            },
-            Err(refusal) if refusal.code == code::TURN_RUNNING => Started::Nothing,
+    async fn start_item(self: &Arc<Self>, thread: &str, item: &str) -> Started {
+        let prepared = match self.prepare_queued(thread, item) {
+            Ok(prepared) => prepared,
+            Err(outcome) => return outcome,
+        };
+        match prepared.launch().await {
+            Ok(turn) => Started::Running(turn),
             Err(refusal) => {
-                log_refused(&refusal.message);
-                match self.fail_item(thread, &item, &refusal) {
-                    Ok(()) => Started::Failed(item.item),
-                    Err(_) => Started::Nothing,
-                }
+                tracing::warn!(event = "agent_queue.start_refused", thread = %thread, item = %item, reason = %refusal.message);
+                Started::Nothing
             }
         }
+    }
+
+    fn prepare_queued(self: &Arc<Self>, thread: &str, wanted: &str) -> Result<Prepared, Started> {
+        let edits = self.edit_holds();
+        let item = self.next_item(thread).filter(|item| item.item == wanted).ok_or(Started::Nothing)?;
+        if edits.holds(thread, wanted) {
+            return Err(Started::Nothing);
+        }
+        let view = self.thread(thread).map_err(|_| Started::Nothing)?;
+        let workspace = item.workspace.clone().or_else(|| view.workspace.clone()).unwrap_or_default();
+        let driver = item.driver.clone().or_else(|| view.driver.clone()).unwrap_or_default();
+        let input = TurnInput { workspace, driver, model: item.model.clone(), prompt: item.prompt.clone(), runtime_mode: item.runtime_mode.clone(), interaction_mode: item.interaction_mode.clone() };
+        let prepared = match self.prepare(thread, &Known::of(&view), Some(item.item.clone()), input) {
+            Ok(prepared) => prepared,
+            Err(refusal) if refusal.code == code::TURN_RUNNING => return Err(Started::Nothing),
+            Err(refusal) => {
+                tracing::warn!(event = "agent_queue.start_refused", thread = %thread, item = %wanted, reason = %refusal.message);
+                return Err(match self.fail_item(thread, &item, &refusal) {
+                    Ok(()) => Started::Failed(item.item),
+                    Err(_) => Started::Nothing,
+                });
+            }
+        };
+        self.decide(thread, Command::QueueStart { item: item.item.clone() }).map_err(|refusal| {
+            tracing::warn!(event = "agent_queue.start_refused", thread = %thread, item = %wanted, reason = %refusal.message);
+            Started::Nothing
+        })?;
+        Ok(prepared)
     }
 
     /// The prompt of `item` cannot run: it leaves the queue as a turn of its own id that began and failed with the reason.

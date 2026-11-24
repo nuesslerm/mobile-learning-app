@@ -366,6 +366,58 @@ fn queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_tu
 }
 
 #[test]
+fn a_queued_message_being_edited_waits_for_its_new_text_when_the_active_turn_finishes() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a running turn waiting on a question and a queued message the phone is editing.
+        let chain = Chain::start(None);
+        let waiting = Turn::replaying(&[said("waiting")])
+            .then_calling("ask1", "ask_user", json!({"question": "Continue?", "options": ["yes"]}));
+        chain.cli.script("claude", &Script::of(vec![waiting, Turn::replaying(&[said("done")])]).printing_version("0.0.0-flow"));
+        let mut phone = Phone::connect(case, &chain);
+        let mut rca = chain.direct();
+        let session = "claude_edit_queue";
+        phone.call(case, &chain, &["rpc:agentSession.create"], "agentSession.create", create_params(session, "create", None));
+        phone.call(case, &chain, &["rpc:agentSession.send"], "agentSession.send", mutation(session, "first", json!({"body": body("first-job")})));
+        rca.wait_events(session, "input.requested", 1);
+        let queued = phone.call(case, &chain, &["rpc:agentSession.send"], "agentSession.send", mutation(session, "queue", json!({"delivery": "queue-if-active", "body": body("before-edit")})));
+        let card = queued["result"]["value"]["queued"]["messageId"].as_str().unwrap();
+        let fingerprint = orca_map_agent::body_fingerprint(session, "before-edit");
+        let lease = |action: &str| json!({"sessionId": session, "messageId": card, "editId": "edit-1", "action": action, "expectedBodyFingerprint": fingerprint});
+        let held = phone.call(case, &chain, &["rpc:agentSession.queuedMessageEditHold"], "agentSession.queuedMessageEditHold", lease("acquire"));
+        assert_eq!(held["result"]["status"], "held", "{held}");
+
+        // When the first turn finishes and the queue is asked to dispatch, the original card stays queued.
+        let page = tail(&mut phone, case, &chain, session);
+        let question = items(&page).into_iter().find(|item| item["body"]["kind"] == "question").expect("a pending question");
+        let answer = mutation(session, "answer", json!({"itemId": question["itemId"], "expectedRevision": question["revision"], "optionId": "yes"}));
+        phone.call_settled(case, &chain, &["rpc:agentSession.respondToQuestion"], "agentSession.respondToQuestion", answer, |_| {
+            rca.wait_events(session, "turn.finished", 1);
+        });
+        phone.call(case, &chain, &["rpc:agentSession.queuedMessagesResume"], "agentSession.queuedMessagesResume", mutation(session, "wake", json!({})));
+        let waiting = tail(&mut phone, case, &chain, session);
+        assert_eq!(waiting["queuedMessages"][0]["messageId"], card, "{waiting}");
+        assert_eq!(waiting["nextQueuedMessageId"], Value::Null);
+        assert!(rca.events(session, "queue.started").is_empty());
+
+        // When the phone saves and releases the lease, only the edited text runs under the same card id.
+        let update = mutation(session, "update", json!({"messageId": card, "expectedBodyFingerprint": fingerprint, "text": "after-edit"}));
+        let updated = phone.call(case, &chain, &["rpc:agentSession.queuedMessageUpdate"], "agentSession.queuedMessageUpdate", update);
+        assert_eq!(updated["result"]["value"]["status"], "updated", "{updated}");
+        let released = phone.call_settled(case, &chain, &["rpc:agentSession.queuedMessageEditHold"], "agentSession.queuedMessageEditHold", lease("release"), |_| {
+            rca.wait_events(session, "turn.finished", 2);
+        });
+        assert_eq!(released["result"]["status"], "released", "{released}");
+        let starts = rca.events(session, "queue.started");
+        assert_eq!(starts.len(), 1);
+        assert_eq!(starts[0]["item"], card);
+        assert_eq!(sent_to_cli(&chain, &["first-job", "before-edit", "after-edit"]), ["first-job", "after-edit"]);
+        let finished = tail(&mut phone, case, &chain, session);
+        assert_eq!(finished["submissions"][0]["queuedMessageId"], card);
+        assert_eq!(finished["queuedMessages"], json!([]));
+    });
+}
+
+#[test]
 fn an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it() {
     exec_testkit::case!(SUITE, |case| {
         // Given a chat and a png of more than one 384 KiB chunk, and a CLI whose turn only answers
