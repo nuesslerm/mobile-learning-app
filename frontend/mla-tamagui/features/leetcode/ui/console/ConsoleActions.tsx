@@ -23,10 +23,22 @@ const iosIconSize = ios ? 14 : undefined;
 const RESET_CONFIRM = 'ConsoleResetConfirmation';
 const RESET_PATH = [RESET_CONFIRM];
 const CANVAS_PILL = { backgroundColor: '#101010', borderColor: '#252525', borderWidth: 1 } as const;
-const FOOTER_PILL = { backgroundColor: '#39383c', borderColor: '#49484c', borderWidth: 1 } as const;
-const FOOTER_SHADOW = { shadowColor: '#777479', shadowOpacity: 0.18, shadowRadius: 13, shadowOffset: { width: 5, height: 8 } } as const;
+const FOOTER_PILL = {
+  backgroundColor: '#3a393d',
+  backgroundImage: 'linear-gradient(180deg, #424145, #38373b 25%, #3f3e42 90%, #464549)',
+  boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.17), inset 0 -1px 1px rgba(255,255,255,0.11)',
+} as const;
+const FOOTER_SHADOW = { shadowColor: '#777479', shadowOpacity: 0.27, shadowRadius: 13, shadowOffset: { width: 6, height: 9 } } as const;
 const SUBMIT_RIM = { borderColor: '#25dd4f', borderWidth: 1 } as const;
-const SUBMIT_GLOW = { shadowColor: '#28dc57', shadowOpacity: 0.48, shadowRadius: 15, shadowOffset: { width: 0, height: 5 } } as const;
+const FOOTER_SUBMIT = {
+  backgroundColor: '#25c749',
+  backgroundImage: 'linear-gradient(180deg, #2ddf57, #25c749 14%, #25c749 86%, #37e861)',
+  boxShadow: 'inset 0 1px 1px rgba(130,255,150,0.42), inset 0 -1px 1px rgba(130,255,150,0.38)',
+  shadowColor: '#28dc57',
+  shadowOpacity: 0.58,
+  shadowRadius: 15,
+  shadowOffset: { width: 8, height: 7 },
+} as const;
 const CANVAS_CONTROL = { height: 42, fontSize: 17, color: '#f5f5f7' } as const;
 
 function ConsoleReset({ footer, canvas, onReset }: { footer: boolean; canvas?: boolean; onReset: () => void }) {
@@ -40,7 +52,7 @@ function ConsoleReset({ footer, canvas, onReset }: { footer: boolean; canvas?: b
         size={canvas ? 42 : 36}
         icon={RotateCcw}
         trigger={footer ? <Text variant="small" px="$2" fontSize={canvas ? 16 : undefined}>Reset</Text> : <Icon as={RotateCcw} size={canvas ? 19 : 14} color={canvas ? "#f5f5f7" : undefined} systemSymbol={canvas ? 'arrow.counterclockwise' : undefined} />}
-        triggerStyle={canvas ? (footer ? { ...FOOTER_PILL, ...FOOTER_SHADOW, minWidth: 74 } : CANVAS_PILL) : { backgroundColor: theme.color4?.val }}
+        triggerStyle={canvas ? (footer ? { ...FOOTER_PILL, ...FOOTER_SHADOW, minWidth: 76 } : CANVAS_PILL) : { backgroundColor: theme.color4?.val }}
         glassTrigger={canvas && !footer}
         placement={canvas && footer ? "beside" : "above"}
         glass={canvas}
@@ -99,7 +111,7 @@ export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubm
       disabled={off}
       accessibilityLabel="Submit"
       onPress={onSubmit}
-      {...(canvas ? { ...CANVAS_CONTROL, ...(footer ? { height: 40, minW: 82, px: 11, hitSlop: 2 } : { minW: 86 }), fontWeight: "600", style: { backgroundColor: '#1ec843', ...SUBMIT_RIM, ...(footer ? SUBMIT_GLOW : {}) } } : {})}
+      {...(canvas ? { ...CANVAS_CONTROL, ...(footer ? { height: 40, minW: 84, px: 11, hitSlop: 2 } : { minW: 86 }), fontWeight: "600", style: footer ? FOOTER_SUBMIT : { backgroundColor: '#1ec843', ...SUBMIT_RIM } } : {})}
     >
       Submit
     </Button>
