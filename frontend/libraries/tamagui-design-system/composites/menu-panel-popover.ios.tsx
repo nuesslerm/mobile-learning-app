@@ -9,14 +9,15 @@ export function supportsMenuPanelPopover(): boolean {
   return isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
 }
 
-export function MenuPanelPopover({ trigger, content, width, open, onClose }: MenuPanelPopoverProps) {
+export function MenuPanelPopover({ trigger, content, width, open, placement, onClose }: MenuPanelPopoverProps) {
+  const beside = placement === 'beside';
   return (
     <View>
       {trigger}
       <Host style={StyleSheet.absoluteFill} pointerEvents="none">
         <Popover
-          attachmentAnchor="trailing"
-          arrowEdge="leading"
+          attachmentAnchor={beside ? 'trailing' : 'top'}
+          arrowEdge={beside ? 'leading' : 'bottom'}
           isPresented={open}
           onIsPresentedChange={(presented) => { if (!presented) onClose(); }}
         >

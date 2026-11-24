@@ -15,6 +15,7 @@ import {
 
 import { Check, ChevronDown, ChevronRight } from '../icons';
 import { useTheme } from '../primitives';
+import { GlassControlBackground, supportsGlassControl } from '../ui/glass-control-background';
 import { Icon } from '../ui/icon';
 import { MenuPanelPopover, supportsMenuPanelPopover } from './menu-panel-popover';
 
@@ -41,6 +42,7 @@ export type MenuPanelProps = {
   testID: string;
   trigger?: ReactNode;
   triggerStyle?: StyleProp<ViewStyle>;
+  glassTrigger?: boolean;
   placement?: 'above' | 'below' | 'beside';
   glass?: boolean;
   openPath?: MenuPath;
@@ -212,6 +214,7 @@ export function MenuPanel({
   testID,
   trigger,
   triggerStyle,
+  glassTrigger,
   placement = 'below',
   glass = false,
   openPath = ROOT_PATH,
@@ -236,7 +239,8 @@ export function MenuPanel({
   };
 
   const view = resolveMenuView(items, path);
-  const nativePopover = placement === 'beside' && glass && supportsMenuPanelPopover();
+  const nativePopover = placement !== 'below' && glass && supportsMenuPanelPopover();
+  const nativeGlassTrigger = glassTrigger && supportsGlassControl();
 
   function go(action: MenuNavigationAction) {
     setPath((current) => menuNavigation(current, action));
@@ -381,6 +385,7 @@ export function MenuPanel({
     styles.trigger,
     trigger ? { minWidth: size, height: size, paddingHorizontal: 4 } : { width: size, height: size },
     triggerStyle,
+    nativeGlassTrigger && styles.glassTrigger,
   ];
 
   const triggerButton = (
@@ -393,12 +398,13 @@ export function MenuPanel({
       onPress={openPanel}
       style={({ pressed: isPressed }) => [buttonStyle, isPressed && { backgroundColor: colors.pressed }]}
     >
+      {nativeGlassTrigger ? <GlassControlBackground /> : null}
       {trigger ?? <Icon as={icon} size={19} />}
     </Pressable>
   );
 
   if (nativePopover) {
-    return <MenuPanelPopover trigger={triggerButton} content={renderView()} width={width} open={open} onClose={closePanel} />;
+    return <MenuPanelPopover trigger={triggerButton} content={renderView()} width={width} open={open} placement={placement} onClose={closePanel} />;
   }
 
   return (
@@ -448,6 +454,7 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
   },
   backdrop: StyleSheet.absoluteFill,
+  glassTrigger: { backgroundColor: 'transparent', borderWidth: 0 },
   card: {
     position: 'absolute',
     borderRadius: 20,

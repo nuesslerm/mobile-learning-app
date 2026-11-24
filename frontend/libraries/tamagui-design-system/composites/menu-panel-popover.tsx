@@ -5,6 +5,7 @@ export type MenuPanelPopoverProps = {
   content: ReactElement;
   width: number;
   open: boolean;
+  placement: 'above' | 'beside';
   onClose: () => void;
 };
 

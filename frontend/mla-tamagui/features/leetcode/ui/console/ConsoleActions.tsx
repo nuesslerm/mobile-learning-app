@@ -37,10 +37,11 @@ function ConsoleReset({ footer, canvas, onReset }: { footer: boolean; canvas?: b
         accessibilityLabel="Reset testcases"
         size={canvas ? 42 : 36}
         icon={RotateCcw}
-        trigger={footer ? <Text variant="small" px="$2" fontSize={canvas ? 16 : undefined}>Reset</Text> : <Icon as={RotateCcw} size={canvas ? 19 : 14} color={canvas ? "#f5f5f7" : undefined} />}
+        trigger={footer ? <Text variant="small" px="$2" fontSize={canvas ? 16 : undefined}>Reset</Text> : <Icon as={RotateCcw} size={canvas ? 19 : 14} color={canvas ? "#f5f5f7" : undefined} systemSymbol={canvas ? 'arrow.counterclockwise' : undefined} />}
         triggerStyle={canvas ? (footer ? { ...FOOTER_PILL, minWidth: 74 } : CANVAS_PILL) : { backgroundColor: theme.color4?.val }}
+        glassTrigger={canvas && !footer}
         placement={canvas && footer ? "beside" : "above"}
-        glass={canvas && footer}
+        glass={canvas}
         panelWidth={canvas && footer ? 244 : 224}
         openPath={RESET_PATH}
         items={[{
@@ -73,7 +74,9 @@ export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubm
       icon={Play}
       iconSize={canvas ? 16 : iosIconSize}
       iconFilled={canvas}
+      iconSystemSymbol={canvas && variant === 'bar' ? 'play.fill' : undefined}
       variant="secondary"
+      glass={canvas && variant === 'bar'}
       size={canvas ? 42 : "$3"}
       pressLog="off"
       disabled={off || noSelectedCase}
@@ -121,10 +124,12 @@ export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubm
       <Button
         testID="ConsoleBarOpen"
         variant="secondary"
+        glass={canvas}
         size="$3"
         rounded="$10"
         icon={canvas ? SquareTerminal : Terminal}
-        iconSize={canvas ? 18 : iosIconSize}
+        iconSize={canvas ? 15 : iosIconSize}
+        iconSystemSymbol={canvas ? 'terminal' : undefined}
         pressLog="off"
         accessibilityLabel="Open console"
         onPress={onOpen}

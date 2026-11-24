@@ -7,7 +7,8 @@ import {
   type ButtonProps as TamaguiButtonProps,
 } from '../primitives';
 
-import { Icon } from './icon';
+import { GlassControlBackground, supportsGlassControl } from './glass-control-background';
+import { Icon, type IconProps } from './icon';
 
 export type ButtonVariant =
   | 'default'
@@ -24,6 +25,9 @@ export type ButtonProps = Omit<TamaguiButtonProps, 'variant'> & {
   icon?: LucideIcon;
   iconSize?: number;
   iconFilled?: boolean;
+  iconSystemSymbol?: IconProps['systemSymbol'];
+  /** Uses a native glass capsule where supported. */
+  glass?: boolean;
   /** Suppress the automatic press log. Use on rows that would log themselves. */
   pressLog?: 'off';
   testID?: string;
@@ -61,6 +65,8 @@ export function Button({
   icon,
   iconSize = 18,
   iconFilled,
+  iconSystemSymbol,
+  glass,
   pressLog,
   onPress,
   testID,
@@ -68,6 +74,7 @@ export function Button({
   accessibilityLabel,
   ...rest
 }: ButtonProps) {
+  const nativeGlass = glass && supportsGlassControl();
   const handlePress = (event: GestureResponderEvent) => {
     if (pressLog !== 'off') Logger.info('ds.button.press', { testID, variant });
     onPress?.(event);
@@ -87,10 +94,12 @@ export function Button({
       disabledStyle={{ opacity: 0.4 }}
       {...VARIANT_PROPS[variant]}
       {...rest}
+      {...(nativeGlass ? { style: [rest.style, { backgroundColor: 'transparent', borderWidth: 0 }] } : {})}
       // Tamagui hands RN's accessibilityLabel to the DOM as an unknown attribute on web; aria-label works on both
       aria-label={rest['aria-label'] ?? accessibilityLabel}
     >
-      {icon ? <Icon as={icon} size={iconSize} filled={iconFilled} /> : null}
+      {nativeGlass ? <GlassControlBackground /> : null}
+      {icon ? <Icon as={icon} size={iconSize} filled={iconFilled} systemSymbol={iconSystemSymbol} /> : null}
       {children}
     </TamaguiButton>
   );
