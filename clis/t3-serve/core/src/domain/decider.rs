@@ -961,6 +961,13 @@ pub enum RunStep {
 }
 
 impl RunStep {
+    pub fn is_detached_receipt(&self) -> bool {
+        match self {
+            RunStep::ToolStarted { id, .. } | RunStep::ToolOutput { id, .. } | RunStep::ToolFinished { id, .. } => id.starts_with(DETACHED_TASK_CALL_PREFIX),
+            _ => false,
+        }
+    }
+
     /// The step an agent event stands for; none for what t3 shows nothing of (the user's own message is the dispatch's).
     pub fn of(kind: &AgentEventKind) -> Option<RunStep> {
         Some(match kind {
@@ -992,7 +999,9 @@ fn approval_kind(tool: &str) -> &'static str {
     }
 }
 
-/// The events one report of a turn stands for. A turn that already ended records nothing more.
+pub(super) const DETACHED_TASK_CALL_PREFIX: &str = "claude-task:";
+
+/// The events one report of a turn stands for. An ended turn can still record its detached task receipt.
 pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep, ctx: &Ctx) -> Vec<EventDraft> {
     let entities = state.entities.get(thread);
     let Some(run) = entities.and_then(|e| e.runs.iter().find(|r| r["id"] == run_id)).cloned() else {
@@ -1001,7 +1010,7 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
     if run["status"] == "queued" {
         return if matches!(step, RunStep::Started) { start_queued(state, thread, &run, None, ctx) } else { vec![] };
     }
-    if run["status"] != "running" || matches!(step, RunStep::Started) {
+    if (run["status"] != "running" && !step.is_detached_receipt()) || matches!(step, RunStep::Started) {
         return vec![];
     }
     let at = iso(ctx.now);

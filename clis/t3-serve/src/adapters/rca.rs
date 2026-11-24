@@ -22,6 +22,7 @@ use agent_api_workspace::{code as workspace_code, edit, worktrees, FILE_LIST, FI
 use exec_fs::{EntryKind, ListResult, ReadResult};
 use serde_json::{json, Value};
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use t3_core::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, CatalogModel, CatalogProvider, DirEntry, Finish, Follow, History, Op, RuntimeRequestEvent, RuntimeResponse, SetupBatch, SetupEvent, TerminalBatch, TerminalEvent, TerminalSummary};
 
@@ -672,16 +673,17 @@ impl AgentApi for RcaAgent {
         }
     }
 
-    fn follow(&self, thread_id: &str, after_seq: u64, sink: &mut dyn FnMut(AgentEvent) -> Follow) -> Result<(), AgentError> {
+    fn follow_until(&self, thread_id: &str, after_seq: u64, stop: &AtomicBool, sink: &mut dyn FnMut(AgentEvent) -> Follow) -> Result<(), AgentError> {
         let mut client = self.connect()?;
         let params = SubscribeParams { thread: thread_id.to_string(), after_seq };
         client.subscribe(Subscribe::new(thread_topic(thread_id), THREAD_SUBSCRIBE, params.to_value(), "after_seq")).map_err(failed)?;
-        loop {
+        while !stop.load(Ordering::SeqCst) {
             let Some(event) = client.next_event(QUIET).map_err(failed)? else { continue };
             if sink(agent_event(&event)?) == Follow::Stop {
                 return Ok(());
             }
         }
+        Ok(())
     }
 
     fn history(&self, thread_id: &str, after_seq: u64, limit: u32) -> Result<History, AgentError> {

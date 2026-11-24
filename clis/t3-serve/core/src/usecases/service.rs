@@ -13,6 +13,7 @@ use super::settings::Held;
 use crate::rpc::Connection;
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::AtomicBool;
 use t3_contracts::scopes::legacy_subset;
 use t3_contracts::time::iso;
 use t3_contracts::wire::{self, ConfigInput, Environment, Model, BEARER_TTL_SECONDS, TICKET_TTL_SECONDS, TOKEN_EXCHANGE_GRANT};
@@ -101,6 +102,14 @@ impl Service {
     /// Catches a thread's rows up with its log in the agent API before they are read.
     pub fn sync_thread(&self, thread: &str) {
         self.1.sync_thread(thread);
+    }
+
+    pub fn start_detached_receipt_follow(&self, thread: &str, stop: Arc<AtomicBool>) {
+        if self.agent().configured() && self.thread_for_agent(thread).is_some_and(|thread| thread.instance_id == "claudeAgent") {
+            let runner = self.1.clone();
+            let thread = thread.to_string();
+            std::thread::spawn(move || runner.follow_detached_receipts(&thread, &stop));
+        }
     }
 
     /// Decides and stores a command, then starts or stops the run it asked for.

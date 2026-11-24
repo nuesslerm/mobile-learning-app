@@ -394,13 +394,13 @@ impl AgentApi for ScriptedAgent {
         Ok(())
     }
 
-    fn follow(&self, thread_id: &str, after_seq: u64, sink: &mut dyn FnMut(AgentEvent) -> Follow) -> Result<(), AgentError> {
+    fn follow_until(&self, thread_id: &str, after_seq: u64, stop: &std::sync::atomic::AtomicBool, sink: &mut dyn FnMut(AgentEvent) -> Follow) -> Result<(), AgentError> {
         self.called("thread.subscribe");
         if let Some(error) = self.follow_error_once.lock().unwrap().take() {
             return Err(error);
         }
         let mut seen = after_seq;
-        loop {
+        while !stop.load(Ordering::SeqCst) {
             let news: Vec<AgentEvent> = {
                 let agents = self.state();
                 let Some(log) = agents.logs.get(thread_id) else { return Err(AgentError::NoThread) };
@@ -417,6 +417,7 @@ impl AgentApi for ScriptedAgent {
                 }
             }
         }
+        Ok(())
     }
 
     fn history(&self, thread_id: &str, after_seq: u64, limit: u32) -> Result<History, AgentError> {

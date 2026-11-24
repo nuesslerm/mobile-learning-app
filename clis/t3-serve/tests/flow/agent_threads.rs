@@ -70,6 +70,65 @@ fn script() -> Vec<AgentEventKind> {
 }
 
 #[test]
+fn a_detached_claude_receipt_updates_the_original_run_live_and_after_reopening() {
+    // Given a completed Claude turn and an open mobile thread subscription
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    success(&rpc.call("projects.mutate", project_create("c-p1", "p1")));
+    let mut create = thread_create("c-t1", "t1", "p1");
+    create["modelSelection"] = json!({"instanceId": "claudeAgent", "model": "sonnet"});
+    success(&rpc.call("orchestration.dispatchCommand", create));
+    *h.agent.script.lock().unwrap() = vec![
+        AgentEventKind::ToolStarted { id: "bash".into(), name: "Bash".into(), input: json!({"command": "python3 work.py", "run_in_background": true}) },
+        AgentEventKind::ToolOutput { id: "bash".into(), data: "Command running in background with ID: task. Output is being written to its task file.".into() },
+        AgentEventKind::ToolFinished { id: "bash".into(), ok: true },
+        AgentEventKind::Text("STARTED".into()),
+    ];
+    dispatch_message(&mut rpc, "c-1", "launch a background task");
+    let p = settled(&mut rpc, "t1");
+    let run = p["runs"][0]["id"].clone();
+    assert_eq!(p["runs"][0]["status"], "completed");
+    let mut reader = connect(&h);
+    let thread = reader.send("orchestration.subscribeThread", json!({"threadId": "t1"}));
+    assert_eq!(reader.chunk(&thread)[0]["kind"], "snapshot");
+
+    // When the task finishes after the originating turn
+    let call = "claude-task:u1:provider-run:task";
+    h.agent.append("t1", Some("unrelated"), AgentEventKind::ToolStarted { id: "claude-task:unknown:provider-run:task".into(), name: "Background task".into(), input: json!({}) });
+    for event in [
+        AgentEventKind::ToolStarted { id: call.into(), name: "Background task".into(), input: json!({"taskId": "task"}) },
+        AgentEventKind::ToolOutput { id: call.into(), data: "Background command completed (exit code 0)".into() },
+        AgentEventKind::ToolFinished { id: call.into(), ok: true },
+    ] {
+        h.agent.append("t1", Some("u1"), event);
+    }
+
+    // Then the live subscriber gets a completed tool row on the already-finished run
+    let summary = "Background command completed (exit code 0)";
+    let completed = loop {
+        let rows = reader.chunk(&thread);
+        if let Some(row) = rows.into_iter().find(|row| row["event"]["payload"]["name"] == "Background task" && row["event"]["payload"]["status"] == "completed") {
+            break row["event"]["payload"].clone();
+        }
+    };
+    assert_eq!(completed["runId"], run);
+    assert_eq!(completed["input"], summary);
+    assert_eq!(completed["output"], summary);
+
+    // And reopening reads one receipt with the same output and does not start another turn
+    drop(reader);
+    let p = settled(&mut rpc, "t1");
+    assert_eq!(p["runs"].as_array().unwrap().len(), 1);
+    assert_eq!(p["runs"][0]["status"], "completed");
+    let tools: Vec<_> = p["turnItems"].as_array().unwrap().iter().filter(|row| row["name"] == "Background task").collect();
+    assert_eq!(tools, [&completed]);
+    let bash = p["turnItems"].as_array().unwrap().iter().find(|row| row["name"] == "Bash").unwrap();
+    assert_eq!(bash["input"], "python3 work.py");
+    assert_eq!(bash["output"], "Command running in background with ID: task. Output is being written to its task file.");
+    assert_eq!(h.agent.turns.lock().unwrap().len(), 1);
+}
+
+#[test]
 fn the_recorded_turns_of_the_contract_become_the_threads_rows_a_failing_tool_a_logged_error_and_the_events_t3_shows_nothing_of() {
     // Given the events the contract recorded for two turns of a thread, read as t3 reads them
     let recorded: Vec<_> = thread_events().iter().map(|e| agent_event(e).unwrap()).collect();

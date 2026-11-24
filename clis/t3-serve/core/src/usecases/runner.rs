@@ -24,6 +24,7 @@ pub struct Runner {
     held: Mutex<HashSet<String>>,
     /// Threads whose queued turns one task is following, so two never follow the same one.
     draining: Mutex<HashSet<String>>,
+    detached_cursors: Mutex<()>,
 }
 
 fn turn_key(thread: &str, turn: &str) -> String {
@@ -40,7 +41,7 @@ fn cursor_key(thread: &str) -> String {
 
 impl Runner {
     pub fn new(agent: Arc<dyn AgentApi>, engine: Arc<Engine>, meta: Arc<dyn MetaStore>, log: Arc<dyn Log>) -> Runner {
-        Runner { agent, engine, meta, log, stops: Mutex::new(HashMap::new()), held: Mutex::new(HashSet::new()), draining: Mutex::new(HashSet::new()) }
+        Runner { agent, engine, meta, log, stops: Mutex::new(HashMap::new()), held: Mutex::new(HashSet::new()), draining: Mutex::new(HashSet::new()), detached_cursors: Mutex::default() }
     }
 
     pub fn agent(&self) -> &dyn AgentApi {
@@ -357,6 +358,32 @@ impl Runner {
             if !page.more {
                 return;
             }
+        }
+    }
+
+    pub(super) fn follow_detached_receipts(&self, thread: &str, stop: &AtomicBool) {
+        let key = format!("agent-detached-seq:{thread}");
+        let cursor = || self.recall(&key).and_then(|seq| seq.parse::<u64>().ok()).unwrap_or(0);
+        let after = cursor();
+        let mut seen = after;
+        let followed = self.agent.follow_until(thread, after, stop, &mut |event| {
+            if let Some(step) = RunStep::of(&event.kind).filter(RunStep::is_detached_receipt) {
+                if let Some(run) = event.turn.as_deref().and_then(|turn| self.recall(&turn_key(thread, turn))) {
+                    if let Err(error) = self.engine.record_agent(thread, &run, event.seq, &step) {
+                        self.log.event("run.detached_receipt.record.failed", &[("thread", thread.to_string()), ("error", error.0)]);
+                        return Follow::Stop;
+                    }
+                }
+            }
+            seen = event.seq;
+            Follow::Continue
+        });
+        let _cursor_update = self.detached_cursors.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if seen > cursor() {
+            self.remember(&key, &seen.to_string());
+        }
+        if let Err(error) = followed {
+            self.log.event("run.detached_receipt.follow.failed", &[("thread", thread.to_string()), ("error", error.message())]);
         }
     }
 

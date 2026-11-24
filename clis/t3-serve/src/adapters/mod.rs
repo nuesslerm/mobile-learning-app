@@ -26,7 +26,7 @@ impl AgentApi for NoAgent {
     fn interrupt(&self, _: &str) -> Result<(), AgentError> {
         Ok(())
     }
-    fn follow(&self, _: &str, _: u64, _: &mut dyn FnMut(AgentEvent) -> Follow) -> Result<(), AgentError> {
+    fn follow_until(&self, _: &str, _: u64, _: &std::sync::atomic::AtomicBool, _: &mut dyn FnMut(AgentEvent) -> Follow) -> Result<(), AgentError> {
         Err(AgentError::Failed(NO_AGENT.into()))
     }
     fn history(&self, _: &str, _: u64, _: u32) -> Result<History, AgentError> {

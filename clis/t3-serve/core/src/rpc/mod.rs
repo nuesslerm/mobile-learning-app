@@ -16,10 +16,10 @@ use t3_contracts::rpc::{self, FromClient, StreamPacer};
 use t3_contracts::scopes::required_scopes;
 use t3_contracts::wire;
 
-/// Tells the thread following a worktree's setup to stop once the stream it feeds is gone.
-struct StopSetup(Arc<AtomicBool>);
+/// Stops a background follower when the RPC stream that owns it closes.
+struct StopFollow(Arc<AtomicBool>);
 
-impl Drop for StopSetup {
+impl Drop for StopFollow {
     fn drop(&mut self) {
         self.0.store(true, Ordering::SeqCst);
     }
@@ -27,11 +27,11 @@ impl Drop for StopSetup {
 
 enum Kind {
     Shell,
-    Thread(String),
+    Thread { id: String, _stop: StopFollow },
     Idle,
     /// The pull request refresh stream, with the last epoch it has reached (a new follower starts at the current one: the recorded host sends it no replay).
     Refreshes(u64),
-    Followed { _stop: StopSetup },
+    Followed { _stop: StopFollow },
 }
 
 struct Stream {
@@ -101,7 +101,7 @@ impl Connection {
             for s in self.streams.iter_mut().filter(|s| seq > s.floor) {
                 match &s.kind {
                     Kind::Shell => published.shell.iter().for_each(|f| s.pacer.push(f.clone())),
-                    Kind::Thread(id) if published.event.thread_id.as_deref() == Some(id) => s.pacer.push(thread_event_frame(&published.event)),
+                    Kind::Thread { id, .. } if published.event.thread_id.as_deref() == Some(id) => s.pacer.push(thread_event_frame(&published.event)),
                     _ => {}
                 }
                 s.floor = seq;
@@ -214,7 +214,9 @@ impl Connection {
                 };
                 match self.svc.engine().thread_start(thread, after) {
                     Ok((frames, floor)) => {
-                        self.open(id, Kind::Thread(thread.to_string()), floor, synchronized(frames));
+                        let stop = Arc::new(AtomicBool::new(false));
+                        self.svc.start_detached_receipt_follow(thread, stop.clone());
+                        self.open(id, Kind::Thread { id: thread.to_string(), _stop: StopFollow(stop) }, floor, synchronized(frames));
                         vec![]
                     }
                     Err(_) => vec![rpc::exit_failure(&id, wire::thread_projection_error(thread))],
@@ -339,7 +341,7 @@ impl Connection {
                         if !fold.finished() {
                             self.svc.follow_setup(thread, fold, id.clone(), self.setup_tx.clone(), stop.clone());
                         }
-                        self.open(id, Kind::Followed { _stop: StopSetup(stop) }, 0, vec![first]);
+                        self.open(id, Kind::Followed { _stop: StopFollow(stop) }, 0, vec![first]);
                     }
                     None => self.open(id, Kind::Idle, 0, vec![Value::Null]),
                 }
@@ -359,7 +361,7 @@ impl Connection {
                     if !follow.ended() {
                         self.svc.follow_terminal(follow, id.clone(), self.setup_tx.clone(), stop.clone());
                     }
-                    self.open(id, Kind::Followed { _stop: StopSetup(stop) }, 0, first);
+                    self.open(id, Kind::Followed { _stop: StopFollow(stop) }, 0, first);
                     vec![]
                 }
                 Err(failure) => vec![self.answered(&id, tag, Err(failure))],
@@ -382,7 +384,7 @@ impl Connection {
                 Ok((fold, first)) => {
                     let stop = Arc::new(AtomicBool::new(false));
                     self.svc.follow_vcs_status(fold, id.clone(), self.setup_tx.clone(), stop.clone());
-                    self.open(id, Kind::Followed { _stop: StopSetup(stop) }, 0, vec![first]);
+                    self.open(id, Kind::Followed { _stop: StopFollow(stop) }, 0, vec![first]);
                     vec![]
                 }
                 Err(failure) => vec![self.answered(&id, tag, Err(failure))],
@@ -391,7 +393,7 @@ impl Connection {
                 Ok((fold, first)) => {
                     let stop = Arc::new(AtomicBool::new(false));
                     self.svc.follow_vcs_status(fold, id.clone(), self.setup_tx.clone(), stop.clone());
-                    self.open(id, Kind::Followed { _stop: StopSetup(stop) }, 0, vec![first]);
+                    self.open(id, Kind::Followed { _stop: StopFollow(stop) }, 0, vec![first]);
                     vec![]
                 }
                 Err(failure) => vec![self.answered(&id, tag, Err(failure))],
@@ -400,7 +402,7 @@ impl Connection {
                 let stop = Arc::new(AtomicBool::new(false));
                 match self.svc.run_stacked_action(payload, id.clone(), self.setup_tx.clone(), stop.clone()) {
                     Ok(()) => {
-                        self.open(id, Kind::Followed { _stop: StopSetup(stop) }, 0, vec![]);
+                        self.open(id, Kind::Followed { _stop: StopFollow(stop) }, 0, vec![]);
                         vec![]
                     }
                     Err(failure) => vec![self.answered(&id, tag, Err(failure))],
@@ -410,7 +412,7 @@ impl Connection {
                 Ok((fold, first)) => {
                     let stop = Arc::new(AtomicBool::new(false));
                     self.svc.follow_terminal_metadata(fold, id.clone(), self.setup_tx.clone(), stop.clone());
-                    self.open(id, Kind::Followed { _stop: StopSetup(stop) }, 0, vec![first]);
+                    self.open(id, Kind::Followed { _stop: StopFollow(stop) }, 0, vec![first]);
                     vec![]
                 }
                 Err(failure) => vec![self.answered(&id, tag, Err(failure))],
@@ -440,7 +442,7 @@ impl Connection {
                 Ok((fold, first)) => {
                     let stop = Arc::new(AtomicBool::new(false));
                     self.svc.follow_auth(fold, id.clone(), self.setup_tx.clone(), stop.clone());
-                    self.open(id, Kind::Followed { _stop: StopSetup(stop) }, 0, vec![first]);
+                    self.open(id, Kind::Followed { _stop: StopFollow(stop) }, 0, vec![first]);
                     vec![]
                 }
                 Err(failure) => vec![self.answered(&id, tag, Err(failure))],
@@ -528,7 +530,7 @@ impl Connection {
                 let (fold, first) = self.svc.open_project_clones();
                 let stop = Arc::new(AtomicBool::new(false));
                 self.svc.follow_project_clones(fold, id.clone(), self.setup_tx.clone(), stop.clone());
-                self.open(id, Kind::Followed { _stop: StopSetup(stop) }, 0, vec![first]);
+                self.open(id, Kind::Followed { _stop: StopFollow(stop) }, 0, vec![first]);
                 vec![]
             }
             "attachments.createUploadUrl" | "attachments.delete" | "assets.createUrl" | "assets.persistChatAttachments" => {
@@ -555,7 +557,7 @@ impl Connection {
                 Ok(cursor) => {
                     // The stream is open before the follower may send: a change it sends first would find no stream to go to
                     let stop = Arc::new(AtomicBool::new(false));
-                    self.open(id.clone(), Kind::Followed { _stop: StopSetup(stop.clone()) }, 0, vec![]);
+                    self.open(id.clone(), Kind::Followed { _stop: StopFollow(stop.clone()) }, 0, vec![]);
                     self.svc.follow_preview_events(cursor, id, self.setup_tx.clone(), stop);
                     vec![]
                 }
@@ -575,7 +577,7 @@ impl Connection {
                 Ok((fold, first)) => {
                     let stop = Arc::new(AtomicBool::new(false));
                     self.svc.follow_schedules(fold, id.clone(), self.setup_tx.clone(), stop.clone());
-                    self.open(id, Kind::Followed { _stop: StopSetup(stop) }, 0, vec![first]);
+                    self.open(id, Kind::Followed { _stop: StopFollow(stop) }, 0, vec![first]);
                     vec![]
                 }
                 Err(failure) => vec![self.answered(&id, tag, Err(failure))],
@@ -584,7 +586,7 @@ impl Connection {
                 let (fold, first) = self.svc.open_storage_stream();
                 let stop = Arc::new(AtomicBool::new(false));
                 self.svc.follow_storage(fold, id.clone(), self.setup_tx.clone(), stop.clone());
-                self.open(id, Kind::Followed { _stop: StopSetup(stop) }, 0, vec![first]);
+                self.open(id, Kind::Followed { _stop: StopFollow(stop) }, 0, vec![first]);
                 vec![]
             }
             _ if crate::usecases::desk_admin::handles(tag) => match self.svc.desk_admin(tag, payload, &self.principal) {

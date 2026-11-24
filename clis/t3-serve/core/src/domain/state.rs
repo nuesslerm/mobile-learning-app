@@ -105,7 +105,12 @@ pub(crate) fn turn_item_wire(value: &Value) -> Value {
         }
         Some("command_execution") => {
             let input = &value["input"];
-            if !input.is_string() {
+            let detached_receipt = value["id"].as_str().and_then(|id| id.split_once(":tool:")).is_some_and(|(_, call)| call.starts_with(super::decider::DETACHED_TASK_CALL_PREFIX));
+            if detached_receipt {
+                // The mobile command card displays its input. The receipt has no command to show.
+                let summary = value["output"].as_str().filter(|summary| !summary.is_empty()).unwrap_or("Background task");
+                fields.insert("input".into(), json!(summary));
+            } else if !input.is_string() {
                 let command = input["command"].as_str().map(str::to_string)
                     .unwrap_or_else(|| if input.is_null() { String::new() } else { input.to_string() });
                 fields.insert("input".into(), json!(command));
