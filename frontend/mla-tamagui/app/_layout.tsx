@@ -14,7 +14,7 @@ import {
   usePresetThemeStore,
 } from '@lib/tamagui-design-system';
 import { tamaguiConfig } from '@lib/tamagui-design-system/theme';
-import { Stack, ThemeProvider } from 'expo-router';
+import { Stack, ThemeProvider, useGlobalSearchParams } from 'expo-router';
 import { Platform, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -74,6 +74,13 @@ const BuoyRouterStore = FloatingDevTools
   ? (require('../app-shell/buoyRouterStore') as typeof import('../app-shell/buoyRouterStore')).BuoyRouterStore
   : null;
 const buoyStores = { theme: usePresetThemeStore, sheets: useOpenSheetStore };
+
+function BuoyDevTools() {
+  const { visualCapture } = useGlobalSearchParams<{ visualCapture?: string }>();
+  return FloatingDevTools
+    ? <FloatingDevTools hidden={visualCapture === '1'} zustandStores={buoyStores} />
+    : null;
+}
 
 function HeaderClearToaster() {
   const headerHeight = useHeaderHeightStore((state) => state.height);
@@ -156,7 +163,7 @@ export default function RootLayout() {
                   list -- not the stacked pile sonner is known for. Opt in. */}
             <HeaderClearToaster />
             {BuoyRouterStore && <BuoyRouterStore />}
-            {FloatingDevTools && <FloatingDevTools zustandStores={buoyStores} />}
+            {FloatingDevTools && <BuoyDevTools />}
           </Theme>
         </TamaguiProvider>
       </GestureHandlerRootView>
