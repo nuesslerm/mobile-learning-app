@@ -21,7 +21,7 @@ export type EditorHeaderInput = {
   busy: boolean;
   /** The editor settings menu, its own piece of glass. */
   settings: HeaderMenuSpec;
-  nativeWorkspace?: { language: HeaderMenuSpec; dirty: boolean; backgroundColor?: string };
+  nativeWorkspace?: { language: HeaderMenuSpec; dirty: boolean; backgroundColor?: string; railStyle?: MenuNode };
   onBack: () => void;
   onInfo: () => void;
   onUndo?: () => void;
@@ -92,7 +92,10 @@ export function editorHeaderSpec(input: EditorHeaderInput): ScreenHeaderSpec {
         label: native.dirty ? 'Unsaved' : 'Saved',
         icon: Cloud,
         testID: 'ProblemEditorSaveStatus',
-        menu: { accessibilityLabel: 'Problem actions', items: [{ ...info, label: 'Problem description' }, ...more.items] },
+        menu: {
+          accessibilityLabel: 'Problem actions',
+          items: [{ ...info, label: 'Problem description' }, ...more.items, ...(native.railStyle ? [native.railStyle] : [])],
+        },
       },
     } : {}),
     groups: [...workspaceActions, ...(native ? [[native.language, input.settings]] : [[input.settings], [info, more]])],

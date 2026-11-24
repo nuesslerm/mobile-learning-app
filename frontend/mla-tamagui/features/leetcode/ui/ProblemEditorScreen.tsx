@@ -62,6 +62,8 @@ import { editorLanguageMenu } from './editor-header/editorLanguageMenu';
 import { editorHeaderSpec } from './editor-header/editorHeaderSpec';
 import { editorSettingsMenu } from './editor-settings/editorSettingsMenu';
 import { SymbolBarSheet } from './editor-settings/SymbolBarSheet';
+import { railStyleMenu } from './editor-settings/railStyleMenu';
+import { useSymbolBarStore } from '../state/editor/symbolBarStore';
 import { useEditorPreferencesStore } from '../state/editor/editorPreferencesStore';
 import { useConsole } from '../state/console/useConsole';
 import { consoleInset, editorZoneMinHeight } from '../domain/console/layout';
@@ -450,6 +452,8 @@ export function ProblemEditorScreen({
   const setTabSize = useEditorPreferencesStore((s) => s.setTabSize);
   const setWrap = useEditorPreferencesStore((s) => s.setWrap);
   const setWhitespace = useEditorPreferencesStore((s) => s.setWhitespace);
+  const railStyle = useSymbolBarStore((state) => state.railStyle);
+  const setRailStyle = useSymbolBarStore((state) => state.setRailStyle);
   const [symbolBarOpen, setSymbolBarOpen] = React.useState(false);
   const refocusAfterSheetRef = React.useRef(false);
   const handleSymbolBarOpen = React.useCallback(() => {
@@ -577,6 +581,7 @@ export function ProblemEditorScreen({
     nativeWorkspace: nativeEditorHeader ? {
       dirty: isDirty,
       backgroundColor: canvasBackground,
+      railStyle: railStyleMenu(railStyle, setRailStyle),
       language: editorLanguageMenu(lang, availableLanguages, handleLanguageChange),
     } : undefined,
     settings: editorSettingsMenu(
@@ -726,7 +731,12 @@ export function ProblemEditorScreen({
         languages={availableLanguages}
         testID="ProblemEditorLanguagePicker"
       />
-      <SymbolBarSheet open={symbolBarOpen} onOpenChange={handleSymbolBarOpenChange} onDismiss={restoreAfterSymbolBar} />
+      <SymbolBarSheet
+        open={symbolBarOpen}
+        onOpenChange={handleSymbolBarOpenChange}
+        onDismiss={restoreAfterSymbolBar}
+        showRailStyle={!nativeEditorHeader}
+      />
       {consolePending ? <PendingOverlay /> : null}
       {voiceEdit.state.phase === 'planning' ? (
         <XStack

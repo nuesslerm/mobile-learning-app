@@ -392,6 +392,7 @@ export type SheetHeaderProps = {
   /** Beside the title on the right, before the close control (a Done pill). */
   trailing?: ReactNode;
   testID: string;
+  style?: StyleProp<ViewStyle>;
 };
 
 /** A non-scrolling header pinned above the sheet's scrollable body. */
@@ -402,6 +403,7 @@ export function SheetHeader({
   leading,
   trailing,
   testID,
+  style,
 }: SheetHeaderProps) {
   const theme = useTheme();
   const border = theme.borderColor?.val ?? 'rgba(128,128,128,0.35)';
@@ -415,6 +417,7 @@ export function SheetHeader({
         styles.header,
         hasSlots && styles.headerWithSlots,
         { borderBottomColor: border },
+        style,
       ]}
     >
       {leading != null ? <View style={styles.slot}>{leading}</View> : null}
