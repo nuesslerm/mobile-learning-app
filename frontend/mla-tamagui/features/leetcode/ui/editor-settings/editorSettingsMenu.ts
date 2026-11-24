@@ -80,7 +80,6 @@ function optionNodes<T extends number>(
         testID: `${EDITOR_SETTINGS_IDS[row.id]}-${value}`,
         label: option.label,
         checked: option.checked,
-        keepOpen: true,
         onPress: () => pick(value),
       },
     ];
@@ -106,7 +105,6 @@ function toNode(row: SettingsRow, handlers: EditorSettingsHandlers): MenuNode {
         label: row.label,
         ...GLYPHS[row.id],
         checked: row.checked,
-        keepOpen: true,
         onPress: () =>
           (row.id === 'wrap' ? handlers.onWrap : handlers.onWhitespace)(
             !row.checked
