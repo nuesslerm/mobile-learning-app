@@ -87,3 +87,24 @@ Run the command in step 3. The accessibility guard establishes that the console 
 Use the mobile accessibility tree to confirm that Case 3 is selected. iOS supplies the
 edit menu and keyboard, so keep their OS version, language and viewport in
 the evidence when comparing different devices.
+
+## Replay a saved draft
+
+Use a simulator with disposable drafts for Merge Two Sorted Lists. Save the
+clipboard and editor preferences before replaying, then restore them afterward.
+Open the normal problem route so the editor uses its persistent draft store.
+
+- For frames 01–11, paste the [Python draft](../../../../frontend/reference-material/leetcode/python-draft.txt)
+  with the iOS edit menu. Wait for Saved and reopen the editor to clear undo
+  history. Start at 16 px, tab width 4, and visible whitespace. Open Settings,
+  choose tab widths 2 and 8 in order, toggle whitespace, choose 14 px, then
+  open the language picker and select JavaScript. Record the replay to capture
+  the menus in motion in frames 09 and 10.
+- For frame 33, paste the [JavaScript draft](../../../../frontend/reference-material/leetcode/javascript-draft.txt).
+  Its empty function-body line has four spaces in the recording. Place the
+  caret after the final semicolon and wait for Saved. Open symbol Group 1 and
+  insert `$`. Wait for Saved with Undo still visible. Tap Undo and verify the
+  new character disappears while the keyboard stays open.
+
+Paste with the iOS edit menu to preserve indentation. Reset only the test
+edits and reopen the editor to verify that the starting draft is restored.

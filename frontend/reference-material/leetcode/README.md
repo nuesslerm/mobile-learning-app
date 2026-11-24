@@ -4,6 +4,8 @@ These 33 PNGs are full-size 1284 × 2778 frames from the supplied recording of M
 
 For an overlay, select the same problem, language, keyboard and console state. Align the full device viewports at a common width and exclude the status bar from pixel scoring. The source recording is compressed, so the PNGs preserve the decoded recording pixels.
 
+The [Python draft](python-draft.txt) and [JavaScript draft](javascript-draft.txt) provide the editor text for the [saved-draft replay](../../../docs/runbooks/goldens/ios/README.md#replay-a-saved-draft).
+
 | Time (s) | Frame |
 | ---: | --- |
 | 0.65 | [editor python](01-editor-python.png) |
