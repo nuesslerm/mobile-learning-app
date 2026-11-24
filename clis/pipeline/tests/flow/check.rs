@@ -1008,7 +1008,11 @@ fn a_script_that_records_into_a_fixtures_path_fails_the_budget_unless_the_allowl
     put(root, "clis/x/fixtures/set/cassette.json", "{}");
     put(root, "clis/x/fixtures/set/interactions.jsonl", "");
     put(root, "tooling/mimic-drivers/src/generate-all.ts", "writeFileSync('fixtures/a.json', '')");
-    assert!(on(&budget(), r#"msg="handrolled-recorder-violations" value=0 "#));
+    put(root, ".context/local-reference/package.json", "{}");
+    put(root, ".context/local-reference/goldens/generate.mjs", "// external recorder");
+    let r = budget();
+    assert!(on(&r, r#"msg="handrolled-recorder-violations" value=0 "#));
+    assert!(on(&r, r#"msg="ts-package-violations" value=0 "#));
 
     // Given a generate script under a fixtures path, a script that writes into a vectors path, interactions with no cassette.json and a RECORD_ switch in a test
     put(root, "clis/x/fixtures/generate.mjs", "// regenerates the goldens");
