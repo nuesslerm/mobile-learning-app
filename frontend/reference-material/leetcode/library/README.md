@@ -7,7 +7,7 @@ The PNGs preserve the decoded frames. The timestamps identify stills to align wi
 | Recording | Time | State |
 | --- | ---: | --- |
 | algorithms-to-editor | 0.35s | [library](algorithms-to-editor-library.png) |
-| algorithms-to-editor | 2.20s | [search focused](algorithms-to-editor-search-focused.png) |
+| algorithms-to-editor | 3.05s | [search focused](algorithms-to-editor-search-focused.png) |
 | algorithms-to-editor | 5.65s | [search typing](algorithms-to-editor-search-typing.png) |
 | algorithms-to-editor | 8.25s | [search results](algorithms-to-editor-search-results.png) |
 | algorithms-to-editor | 10.90s | [description](algorithms-to-editor-description.png) |

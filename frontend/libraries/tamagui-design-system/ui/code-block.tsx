@@ -17,6 +17,7 @@ export type CodeBlockProps = {
   /** When provided, a copy IconButton is rendered in the header. */
   onCopy?: (code: string) => void;
   renderCode?: (code: string) => ReactNode;
+  surfaceColor?: string;
   testID?: string;
 };
 
@@ -33,10 +34,11 @@ export function CodeBlock({
   language,
   onCopy,
   renderCode,
+  surfaceColor,
   testID,
 }: CodeBlockProps) {
   const theme = useTheme();
-  const surface = theme.color3?.val ?? '#1c1c1e';
+  const surface = surfaceColor ?? theme.color3?.val ?? '#1c1c1e';
   const border = theme.borderColor?.val ?? 'rgba(128,128,128,0.35)';
   const muted = theme.color11?.val ?? 'rgba(160,160,160,1)';
 

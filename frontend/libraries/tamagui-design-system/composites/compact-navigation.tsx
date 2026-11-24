@@ -99,6 +99,7 @@ export function SearchPill({ value, onChangeText, onFocus, onBlur, onSubmit, onC
           autoCorrect={false}
           autoCapitalize="none"
           returnKeyType="search"
+          keyboardAppearance={colors === darkColors ? 'dark' : 'light'}
           onFocus={onFocus}
           onBlur={onBlur}
           onChangeText={onChangeText}

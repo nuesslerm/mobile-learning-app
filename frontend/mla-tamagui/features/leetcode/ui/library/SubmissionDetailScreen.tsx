@@ -2,8 +2,8 @@ import { Logger } from '@lib/logging';
 import { BarChart, CodeBlock, CompactHeader, CompactIconButton, LineChart, useCompactColors } from '@lib/tamagui-design-system';
 import { Share } from '@lib/tamagui-design-system/icons';
 import { router } from 'expo-router';
-import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { Submission } from '../../domain/library/library';
@@ -24,8 +24,6 @@ export function SubmissionDetailScreen({ id, submissionId }: { id: string; submi
   const { libraryContent } = useLeetCodePorts();
   const { top, bottom } = useSafeAreaInsets();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
-  const screenRef = useRef<ComponentRef<typeof View>>(null);
-  const [windowTop, setWindowTop] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [metric, setMetric] = useState<'Runtime' | 'Memory'>('Runtime');
   useEffect(() => {
@@ -44,10 +42,8 @@ export function SubmissionDetailScreen({ id, submissionId }: { id: string; submi
   const title = problem ? `${problem.leetcodeId}. ${problem.title}` : 'Problem';
   return (
     <View
-      ref={screenRef}
-      onLayout={() => screenRef.current?.measureInWindow((_, y) => setWindowTop(Math.max(0, y)))}
       testID="ProblemSubmissionDetail"
-      style={[styles.screen, { backgroundColor: colors.background, paddingTop: Math.max(0, top - windowTop) }]}
+      style={[styles.screen, { backgroundColor: colors.background, paddingTop: Platform.OS === 'ios' ? 0 : top }]}
     >
       <CompactHeader title="Submission" onClose={() => router.canGoBack() ? router.back() : router.replace('/')}
         trailing={<CompactIconButton icon={Share} label="Share problem" testID="ProblemSubmissionShare" onPress={() => { void shareProblem(id, title); }} />} />
@@ -72,7 +68,7 @@ export function SubmissionDetailScreen({ id, submissionId }: { id: string; submi
             <Metric label={`Runtime ${state.submission.runtime ?? 'N/A'}`} value={state.submission.runtime ? 'Beats 100.00%' : ''} glyph="◷" tint="#69adff" onPress={() => setMetric('Runtime')} />
             <Metric label={`Memory ${state.submission.memory ?? 'N/A'}`} value={state.submission.memory ? 'Beats 12.41%' : ''} glyph="▤" tint="#c48af1" onPress={() => setMetric('Memory')} />
           </View>
-          {state.submission.runtime && <View style={[styles.distribution, { backgroundColor: colors.background === '#000' ? '#211d2c' : colors.surface }]} testID="ProblemSubmissionDistribution">
+          {state.submission.runtime && <View style={[styles.distribution, { backgroundColor: colors.background === '#000' ? '#191624' : colors.surface }]} testID="ProblemSubmissionDistribution">
             <View style={styles.cardHeader}>
               <Text style={{ color: colors.foreground, fontWeight: '600' }}>{metric} Distribution</Text>
               <Text style={{ color: colors.muted }}>{metric === 'Runtime' ? state.submission.runtime : state.submission.memory}</Text>
@@ -90,7 +86,7 @@ export function SubmissionDetailScreen({ id, submissionId }: { id: string; submi
             <Text style={{ color: colors.muted, textAlign: 'center', fontSize: 12 }}>•  ·</Text>
           </View>}
           {state.submission.status === 'Accepted' && <CodeBlock title="Code" language={state.submission.language} code={libraryContent.submissionCode}
-            testID="ProblemSubmissionCode" renderCode={(code) => code.split(keywords).map((token, index) =>
+            testID="ProblemSubmissionCode" surfaceColor={colors.background === '#000' ? '#131416' : colors.surface} renderCode={(code) => code.split(keywords).map((token, index) =>
               index % 2 ? <Text key={index} style={{ color: '#f178af' }}>{token}</Text> : token
             )} />}
         </>}
