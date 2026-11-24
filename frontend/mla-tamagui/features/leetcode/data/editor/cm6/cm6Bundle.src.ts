@@ -36,6 +36,7 @@ import {
   lineNumbers,
   Decoration,
   highlightWhitespace,
+  highlightActiveLine,
   ViewPlugin,
   type ViewUpdate,
 } from '@codemirror/view';
@@ -284,6 +285,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
       '.cm-activeLine': {
         background: 'transparent',
       },
+      ...(contrast ? { '&.cm-focused .cm-activeLine': { backgroundColor: '#111116' } } : {}),
       '.cm-gutters': {
         background: cfg.backgroundColor,
         borderRight: `1px solid ${cfg.borderColor}`,
@@ -321,6 +323,7 @@ function buildConfigExtensions(cfg: EditorConfig) {
     indentUnit.of(' '.repeat(cfg.tabSize)),
     theme,
     cfg.isDark ? (contrast ? [oneDarkTheme, syntaxHighlighting(contrastHighlight)] : oneDark) : [],
+    contrast ? highlightActiveLine() : [],
     cfg.wordWrap ? EditorView.lineWrapping : [],
     cfg.showWhitespace ? highlightWhitespace() : [],
   ];

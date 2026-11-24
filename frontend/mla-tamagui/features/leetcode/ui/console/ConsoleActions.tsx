@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 
 export type ConsoleActionsProps = {
   variant: 'bar' | 'footer';
+  canvas?: boolean;
   onOpen?: () => void;
   onReset: () => void;
   onRun: () => void;
@@ -20,8 +21,10 @@ const ios = Platform.OS === 'ios';
 const iosIconSize = ios ? 14 : undefined;
 const RESET_CONFIRM = 'ConsoleResetConfirmation';
 const RESET_PATH = [RESET_CONFIRM];
+const CANVAS_PILL = { backgroundColor: '#101010', borderColor: '#252525', borderWidth: 1 } as const;
+const CANVAS_CONTROL = { height: 42, fontSize: 17, color: '#f5f5f7' } as const;
 
-function ConsoleReset({ footer, onReset }: { footer: boolean; onReset: () => void }) {
+function ConsoleReset({ footer, canvas, onReset }: { footer: boolean; canvas?: boolean; onReset: () => void }) {
   const theme = useTheme();
   const testID = footer ? 'ConsoleFooterReset' : 'ConsoleBarReset';
   if (ios) {
@@ -29,10 +32,10 @@ function ConsoleReset({ footer, onReset }: { footer: boolean; onReset: () => voi
       <MenuPanel
         testID={testID}
         accessibilityLabel="Reset testcases"
-        size={36}
+        size={canvas ? 42 : 36}
         icon={RotateCcw}
-        trigger={footer ? <Text variant="small" px="$2">Reset</Text> : <Icon as={RotateCcw} size={14} />}
-        triggerStyle={{ backgroundColor: theme.color4?.val }}
+        trigger={footer ? <Text variant="small" px="$2">Reset</Text> : <Icon as={RotateCcw} size={canvas ? 19 : 14} color={canvas ? "#f5f5f7" : undefined} />}
+        triggerStyle={canvas ? CANVAS_PILL : { backgroundColor: theme.color4?.val }}
         placement="above"
         panelWidth={224}
         openPath={RESET_PATH}
@@ -57,14 +60,35 @@ function ConsoleReset({ footer, onReset }: { footer: boolean; onReset: () => voi
   );
 }
 
-export function ConsoleActions({ variant, onOpen, onReset, onRun, onSubmit, pending, noCases }: ConsoleActionsProps) {
+export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubmit, pending, noCases }: ConsoleActionsProps) {
   const prefix = variant === 'footer' ? 'ConsoleFooter' : 'ConsoleBar';
   const off = pending || noCases;
   const run = (
-    <IconButton testID={`${prefix}Run`} icon={Play} iconSize={iosIconSize} variant="secondary" size="$3" pressLog="off" disabled={off} accessibilityLabel="Run" onPress={onRun} />
+    <IconButton
+      testID={`${prefix}Run`}
+      icon={Play}
+      iconSize={canvas ? 18 : iosIconSize}
+      variant="secondary"
+      size="$3"
+      pressLog="off"
+      disabled={off}
+      accessibilityLabel="Run"
+      onPress={onRun}
+      {...(canvas ? { ...CANVAS_CONTROL, width: 42, style: CANVAS_PILL } : {})}
+    />
   );
   const submit = (
-    <Button testID={`${prefix}Submit`} variant="success" size="$3" rounded="$10" pressLog="off" disabled={off} accessibilityLabel="Submit" onPress={onSubmit}>
+    <Button
+      testID={`${prefix}Submit`}
+      variant="success"
+      size="$3"
+      rounded="$10"
+      pressLog="off"
+      disabled={off}
+      accessibilityLabel="Submit"
+      onPress={onSubmit}
+      {...(canvas ? { ...CANVAS_CONTROL, minW: 84, style: { backgroundColor: '#1ec843' } } : {})}
+    >
       Submit
     </Button>
   );
@@ -89,11 +113,22 @@ export function ConsoleActions({ variant, onOpen, onReset, onRun, onSubmit, pend
   }
   return (
     <XStack items="center" justify="space-between" gap="$2" testID="ConsoleBar">
-      <Button testID="ConsoleBarOpen" variant="secondary" size="$3" rounded="$10" icon={Terminal} iconSize={iosIconSize} pressLog="off" accessibilityLabel="Open console" onPress={onOpen}>
+      <Button
+        testID="ConsoleBarOpen"
+        variant="secondary"
+        size="$3"
+        rounded="$10"
+        icon={Terminal}
+        iconSize={canvas ? 18 : iosIconSize}
+        pressLog="off"
+        accessibilityLabel="Open console"
+        onPress={onOpen}
+        {...(canvas ? { ...CANVAS_CONTROL, minW: 122, style: CANVAS_PILL } : {})}
+      >
         Console
       </Button>
       <XStack items="center" gap="$2">
-        <ConsoleReset footer={false} onReset={onReset} />
+        <ConsoleReset footer={false} canvas={canvas} onReset={onReset} />
         {run}
         {submit}
       </XStack>

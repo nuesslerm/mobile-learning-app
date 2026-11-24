@@ -5,7 +5,7 @@ import { useTheme } from '../primitives';
 export type IconProps = {
   as: LucideIcon;
   size?: number;
-  /** Tamagui theme token (e.g. `$color11`). Falls back to the active `$color`. */
+  /** Tamagui theme token or a literal color. Defaults to the active `$color`. */
   color?: string;
   /** Required by the repo's E2E-selector lint rule on every rendered icon. */
   testID?: string;
@@ -18,6 +18,6 @@ export type IconProps = {
  */
 export function Icon({ as: Component, size = 20, color, testID }: IconProps) {
   const theme = useTheme();
-  const resolved = color ? theme[color]?.get() : theme.color?.get();
+  const resolved = color && !color.startsWith('$') ? color : theme[color ?? 'color']?.get();
   return <Component size={size} color={resolved as string} testID={testID} />;
 }

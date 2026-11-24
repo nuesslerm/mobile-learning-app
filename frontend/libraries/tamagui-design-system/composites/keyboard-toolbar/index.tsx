@@ -11,7 +11,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { ScrollViewInstance, ScrollViewProps } from 'react-native';
+import type { ScrollViewInstance, ScrollViewProps, TextStyle, ViewStyle } from 'react-native';
 import { Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -271,6 +271,8 @@ export type KeyboardToolbarRailProps = {
    */
   leading?: ReactNode;
   density?: 'default' | 'compact';
+  style?: ViewStyle;
+  contentContainerStyle?: ScrollViewProps['contentContainerStyle'];
 };
 
 const RAIL_CONTENT = { paddingHorizontal: 8, paddingVertical: 6, gap: 6 } as const;
@@ -282,13 +284,16 @@ export function KeyboardToolbarRail({
   testID,
   leading,
   density = 'default',
+  style,
+  contentContainerStyle,
 }: KeyboardToolbarRailProps) {
+  const padding = density === 'compact' ? COMPACT_RAIL_CONTENT : RAIL_CONTENT;
   const keys = (regionTestID?: string) => (
     <ScrollView
       horizontal
       keyboardShouldPersistTaps="always"
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={density === 'compact' ? COMPACT_RAIL_CONTENT : RAIL_CONTENT}
+      contentContainerStyle={contentContainerStyle ? [padding, contentContainerStyle] : padding}
       {...(regionTestID ? { testID: regionTestID, style: SCROLL_REGION } : {})}
     >
       {children}
@@ -301,13 +306,14 @@ export function KeyboardToolbarRail({
         borderTopWidth={1}
         borderColor="$borderColor"
         testID={testID}
+        style={style}
       >
         {keys()}
       </YStack>
     );
   }
   return (
-    <YStack bg="$color2" borderTopWidth={1} borderColor="$borderColor">
+    <YStack bg="$color2" borderTopWidth={1} borderColor="$borderColor" style={style}>
       <XStack>
         <XStack testID={`${testID}Leading`} items="stretch">
           {leading}
@@ -328,6 +334,9 @@ export type KeyboardToolbarButtonProps = {
   tone?: 'default' | 'accent' | 'success' | 'danger';
   density?: 'default' | 'compact';
   stretch?: boolean;
+  style?: ViewStyle;
+  labelStyle?: TextStyle;
+  iconColor?: string;
 };
 
 const TONE_COLOR = {
@@ -347,6 +356,9 @@ export function KeyboardToolbarButton({
   tone = 'default',
   density = 'default',
   stretch,
+  style,
+  labelStyle,
+  iconColor,
 }: KeyboardToolbarButtonProps) {
   return (
     <XStack
@@ -364,10 +376,11 @@ export function KeyboardToolbarButton({
       opacity={disabled ? 0.4 : 1}
       pressStyle={{ bg: '$color5' }}
       cursor={disabled ? 'default' : 'pointer'}
+      style={style}
       onPress={disabled ? undefined : onPress}
     >
-      {icon ? <Icon as={icon} size={16} color={TONE_COLOR[tone]} /> : null}
-      {label ? <Text variant="small" color={TONE_COLOR[tone]}>{label}</Text> : null}
+      {icon ? <Icon as={icon} size={16} color={iconColor ?? TONE_COLOR[tone]} /> : null}
+      {label ? <Text variant="small" color={TONE_COLOR[tone]} style={labelStyle}>{label}</Text> : null}
     </XStack>
   );
 }

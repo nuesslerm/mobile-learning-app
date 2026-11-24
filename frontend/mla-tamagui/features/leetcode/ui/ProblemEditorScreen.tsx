@@ -571,6 +571,7 @@ export function ProblemEditorScreen({
   const systemScheme = useColorScheme();
   const appScheme = appThemeMode === 'system' ? systemScheme ?? 'light' : appThemeMode;
   const canvasBackground = iosCanvas && appScheme === palette.appearance ? backgroundColor : undefined;
+  const darkCanvas = iosCanvas && appScheme === 'dark' && palette.appearance === 'dark';
   const headerSpec = editorHeaderSpec({
     title: problem?.title ?? 'Problem',
     subtitle: problemSubtitle,
@@ -633,7 +634,8 @@ export function ProblemEditorScreen({
             }}
             onDismissKeyboard={dismissEditorKeyboard}
             compactSymbols={iosCanvas && !aiEdit}
-            topRow={<ConsoleActionBar {...consoleActions} />}
+            symbolBarBackground={darkCanvas ? canvasBackground : undefined}
+            topRow={<ConsoleActionBar {...consoleActions} canvas={darkCanvas} backgroundColor={darkCanvas ? canvasBackground : undefined} />}
           />
         )}
       >
@@ -711,7 +713,7 @@ export function ProblemEditorScreen({
             </Pressable>
           </YStack>
         </KeyboardToolbarAwareScrollView>
-        {!consoleOpen && !keyboard.visible ? <ConsoleDock {...consoleActions} backgroundColor={canvasBackground} /> : null}
+        {!consoleOpen && !keyboard.visible ? <ConsoleDock {...consoleActions} canvas={darkCanvas} backgroundColor={canvasBackground} /> : null}
       </KeyboardToolbarTarget>
       {problem ? (
         <ConsoleSheet

@@ -8,7 +8,7 @@ import {
 import { ChevronDown, Keyboard as KeyboardIcon, X } from '@lib/tamagui-design-system/icons';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 import React, { useMemo, useState } from 'react';
-import { Keyboard, Pressable } from 'react-native';
+import { Keyboard, Pressable, StyleSheet } from 'react-native';
 
 import {
   groupCells,
@@ -23,7 +23,9 @@ import { BUILTIN_KEYS, type KeyActionContext } from '../toolbarKeys';
 
 const CELL_WIDTH = 30;
 const CELL_HEIGHT = 24;
-const COMPACT_CELL_SIZE = 18;
+const COMPACT_KEY_HEIGHT = 40;
+const CANVAS_KEY = '#08070a';
+const CANVAS_LABEL = '#f4f4f5';
 
 type Props = {
   editorRef: React.RefObject<EditorInputHandle | null>;
@@ -32,15 +34,18 @@ type Props = {
   language: Language;
   onDismissKeyboard: () => void;
   compact?: boolean;
+  backgroundColor?: string;
 };
 
 function SymbolGroupBlock({
   group,
   onExpand,
   onType,
+  canvas,
 }: {
   group: SymbolGroup;
   onExpand?: () => void;
+  canvas: boolean;
   onType: (group: SymbolGroup, index: number, char: string) => void;
 }) {
   const compact = onExpand !== undefined;
@@ -52,6 +57,7 @@ function SymbolGroupBlock({
       bg="$color3"
       overflow="hidden"
       pointerEvents={compact ? "none" : undefined}
+      style={canvas ? styles.canvasKey : undefined}
     >
       {groupCells(group.chars).map((cells, row) => (
         <XStack key={row}>
@@ -62,14 +68,15 @@ function SymbolGroupBlock({
                 key={index}
                 testID={`SymbolBarKey-${group.id}-${index}`}
                 {...(!compact ? { role: 'button', 'aria-label': `Type ${char}`, onPress: () => onType(group, index, char) } : {})}
-                width={compact ? COMPACT_CELL_SIZE : CELL_WIDTH}
-                height={compact ? COMPACT_CELL_SIZE : CELL_HEIGHT}
+                width={compact ? undefined : CELL_WIDTH}
+                flex={compact ? 1 : undefined}
+                height={compact ? COMPACT_KEY_HEIGHT / 2 : CELL_HEIGHT}
                 items="center"
                 justify="center"
                 pressStyle={compact ? undefined : { bg: '$color5' }}
                 cursor={compact ? undefined : "pointer"}
               >
-                <Text variant="code" fontSize={compact ? 11 : undefined}>{char}</Text>
+                <Text variant="code" fontSize={compact ? 11 : undefined} style={canvas ? styles.canvasGlyph : undefined}>{char}</Text>
               </XStack>
             );
           })}
@@ -79,7 +86,7 @@ function SymbolGroupBlock({
   );
   if (!onExpand) return content;
   return (
-    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={`Show symbols ${group.chars}`} onPress={onExpand} style={{ flexGrow: 1 }}>
+    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={`Show symbols ${group.chars}`} onPress={onExpand} style={styles.compactGroup}>
       {content}
     </Pressable>
   );
@@ -93,6 +100,7 @@ export function SymbolBarRail({
   language,
   onDismissKeyboard,
   compact = false,
+  backgroundColor,
 }: Props) {
   const groups = useSymbolBarStore((s) => s.groups);
   const tabSize = useEditorPreferencesStore((s) => s.tabSize);
@@ -103,6 +111,19 @@ export function SymbolBarRail({
   );
   const tab = BUILTIN_KEYS.Tab;
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const canvas = compact && backgroundColor !== undefined;
+  const railProps = compact ? {
+    density: 'compact' as const,
+    style: canvas ? { backgroundColor, borderTopWidth: 0 } : undefined,
+    contentContainerStyle: styles.compactRail,
+  } : {};
+  const keyProps = compact ? {
+    density: 'compact' as const,
+    stretch: true,
+    style: canvas ? styles.canvasButton : styles.compactButton,
+    labelStyle: canvas ? styles.canvasLabel : styles.compactLabel,
+    iconColor: canvas ? CANVAS_LABEL : undefined,
+  } : {};
   const expanded = compact ? shown.find((group) => group.id === expandedId) : undefined;
   const typeSymbol = (group: SymbolGroup, index: number, char: string) => {
     Logger.info('symbol_bar.key_press', { group: group.id, index, char });
@@ -113,15 +134,14 @@ export function SymbolBarRail({
 
   if (expanded) {
     return (
-      <KeyboardToolbarRail testID="EditorExpandedSymbols" density="compact">
+      <KeyboardToolbarRail testID="EditorExpandedSymbols" {...railProps}>
         {Array.from(expanded.chars).map((char, index) => (
           <KeyboardToolbarButton
             key={index}
             testID={`SymbolBarKey-${expanded.id}-${index}`}
             accessibilityLabel={`Type ${char}`}
             label={char}
-            density="compact"
-            stretch
+            {...keyProps}
             onPress={() => typeSymbol(expanded, index, char)}
           />
         ))}
@@ -129,7 +149,7 @@ export function SymbolBarRail({
           testID="SymbolBarCloseGroup"
           accessibilityLabel="Close symbol group"
           icon={X}
-          density="compact"
+          {...keyProps}
           onPress={() => setExpandedId(null)}
         />
       </KeyboardToolbarRail>
@@ -137,12 +157,12 @@ export function SymbolBarRail({
   }
 
   return (
-    <KeyboardToolbarRail testID="EditorSymbolBar" density={compact ? "compact" : "default"}>
+    <KeyboardToolbarRail testID="EditorSymbolBar" {...railProps}>
       <KeyboardToolbarButton
         testID="SymbolBarTab"
         accessibilityLabel={tab.name}
         label={compact ? undefined : "Tab"}
-        density={compact ? "compact" : "default"}
+        {...keyProps}
         icon={tab.icon}
         onPress={() => {
           Logger.info('symbol_bar.tab_press', {});
@@ -156,13 +176,14 @@ export function SymbolBarRail({
           group={group}
           onExpand={compact ? () => setExpandedId(group.id) : undefined}
           onType={typeSymbol}
+          canvas={canvas}
         />
       ))}
       <KeyboardToolbarButton
         testID="SymbolBarDismiss"
         accessibilityLabel="Hide keyboard"
         label={compact ? undefined : "Hide"}
-        density={compact ? "compact" : "default"}
+        {...keyProps}
         icon={compact ? KeyboardIcon : ChevronDown}
         tone={compact ? "default" : "accent"}
         onPress={() => {
@@ -174,3 +195,15 @@ export function SymbolBarRail({
     </KeyboardToolbarRail>
   );
 }
+
+
+const styles = StyleSheet.create({
+  compactRail: { gap: 4, paddingHorizontal: 8, paddingTop: 3, paddingBottom: 5 },
+  compactGroup: { flex: 1, minWidth: 34 },
+  compactButton: { minWidth: 34, paddingHorizontal: 0, height: COMPACT_KEY_HEIGHT, borderRadius: 5 },
+  canvasKey: { backgroundColor: CANVAS_KEY, borderRadius: 5 },
+  canvasGlyph: { fontFamily: 'Menlo', fontWeight: '600', color: CANVAS_LABEL },
+  compactLabel: { fontSize: 17, fontWeight: '600' },
+  canvasLabel: { fontSize: 17, fontWeight: '600', color: CANVAS_LABEL },
+  canvasButton: { minWidth: 34, paddingHorizontal: 0, height: COMPACT_KEY_HEIGHT, borderRadius: 5, backgroundColor: CANVAS_KEY },
+});
