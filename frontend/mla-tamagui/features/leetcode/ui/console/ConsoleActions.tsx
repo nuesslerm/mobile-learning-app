@@ -1,5 +1,5 @@
 import { Button, Icon, IconButton, MenuPanel, Text } from '@lib/tamagui-design-system';
-import { Play, RotateCcw, Terminal } from '@lib/tamagui-design-system/icons';
+import { Play, RotateCcw, SquareTerminal, Terminal } from '@lib/tamagui-design-system/icons';
 import { XStack, YStack, useTheme } from '@lib/tamagui-design-system/primitives';
 import { Platform } from 'react-native';
 
@@ -70,14 +70,15 @@ export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubm
     <IconButton
       testID={`${prefix}Run`}
       icon={Play}
-      iconSize={canvas ? 18 : iosIconSize}
+      iconSize={canvas ? 16 : iosIconSize}
+      iconFilled={canvas}
       variant="secondary"
-      size="$3"
+      size={canvas ? 42 : "$3"}
       pressLog="off"
       disabled={off}
       accessibilityLabel="Run"
       onPress={onRun}
-      {...(canvas ? { ...CANVAS_CONTROL, width: 42, style: variant === 'footer' ? FOOTER_PILL : CANVAS_PILL } : {})}
+      style={canvas ? (variant === 'footer' ? FOOTER_PILL : CANVAS_PILL) : undefined}
     />
   );
   const submit = (
@@ -90,7 +91,7 @@ export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubm
       disabled={off}
       accessibilityLabel="Submit"
       onPress={onSubmit}
-      {...(canvas ? { ...CANVAS_CONTROL, minW: 84, style: { backgroundColor: '#1ec843', ...(variant === 'footer' ? SUBMIT_GLOW : {}) } } : {})}
+      {...(canvas ? { ...CANVAS_CONTROL, minW: 86, fontWeight: "600", style: { backgroundColor: '#1ec843', ...(variant === 'footer' ? SUBMIT_GLOW : {}) } } : {})}
     >
       Submit
     </Button>
@@ -121,12 +122,12 @@ export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubm
         variant="secondary"
         size="$3"
         rounded="$10"
-        icon={Terminal}
+        icon={canvas ? SquareTerminal : Terminal}
         iconSize={canvas ? 18 : iosIconSize}
         pressLog="off"
         accessibilityLabel="Open console"
         onPress={onOpen}
-        {...(canvas ? { ...CANVAS_CONTROL, minW: 122, style: CANVAS_PILL } : {})}
+        {...(canvas ? { ...CANVAS_CONTROL, minW: 128, style: CANVAS_PILL } : {})}
       >
         Console
       </Button>

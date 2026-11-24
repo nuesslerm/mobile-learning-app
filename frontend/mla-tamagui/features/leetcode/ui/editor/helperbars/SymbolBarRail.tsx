@@ -184,6 +184,7 @@ export function SymbolBarRail({
         accessibilityLabel="Hide keyboard"
         label={compact ? undefined : "Hide"}
         {...keyProps}
+        style={canvas ? { ...styles.canvasButton, backgroundColor: 'transparent' } : keyProps.style}
         icon={compact ? KeyboardIcon : ChevronDown}
         tone={compact ? "default" : "accent"}
         onPress={() => {

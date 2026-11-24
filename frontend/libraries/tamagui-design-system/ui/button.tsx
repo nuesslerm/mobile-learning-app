@@ -23,6 +23,7 @@ export type ButtonProps = Omit<TamaguiButtonProps, 'variant'> & {
   /** Lucide icon rendered before the label. */
   icon?: LucideIcon;
   iconSize?: number;
+  iconFilled?: boolean;
   /** Suppress the automatic press log. Use on rows that would log themselves. */
   pressLog?: 'off';
   testID?: string;
@@ -59,6 +60,7 @@ export function Button({
   variant = 'default',
   icon,
   iconSize = 18,
+  iconFilled,
   pressLog,
   onPress,
   testID,
@@ -88,7 +90,7 @@ export function Button({
       // Tamagui hands RN's accessibilityLabel to the DOM as an unknown attribute on web; aria-label works on both
       aria-label={rest['aria-label'] ?? accessibilityLabel}
     >
-      {icon ? <Icon as={icon} size={iconSize} /> : null}
+      {icon ? <Icon as={icon} size={iconSize} filled={iconFilled} /> : null}
       {children}
     </TamaguiButton>
   );

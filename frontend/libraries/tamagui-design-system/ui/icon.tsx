@@ -7,6 +7,7 @@ export type IconProps = {
   size?: number;
   /** Tamagui theme token or a literal color. Defaults to the active `$color`. */
   color?: string;
+  filled?: boolean;
   /** Required by the repo's E2E-selector lint rule on every rendered icon. */
   testID?: string;
 };
@@ -16,8 +17,8 @@ export type IconProps = {
  * `className` can colour it; Tamagui has no equivalent, so the colour is
  * resolved from the theme and passed as a prop instead.
  */
-export function Icon({ as: Component, size = 20, color, testID }: IconProps) {
+export function Icon({ as: Component, size = 20, color, filled, testID }: IconProps) {
   const theme = useTheme();
-  const resolved = color && !color.startsWith('$') ? color : theme[color ?? 'color']?.get();
-  return <Component size={size} color={resolved as string} testID={testID} />;
+  const resolved = (color && !color.startsWith('$') ? color : theme[color ?? 'color']?.get()) as string;
+  return <Component size={size} color={resolved} {...(filled ? { fill: resolved } : {})} testID={testID} />;
 }
