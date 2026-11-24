@@ -398,19 +398,20 @@ impl Service {
         if instance.is_some_and(|i| self.configured_instance(i, "refresh").is_err()) {
             return Ok(json!({"providers": []}));
         }
-        self.account(instance.unwrap_or_default(), "refresh", &Op::AccountsRefresh { provider: instance.map(str::to_string) })?;
-        let listed = self.account(instance.unwrap_or_default(), "refresh", &Op::AccountsList)?;
-        let logins: Vec<(String, String)> = listed["providers"].as_array().into_iter().flatten().filter_map(|p| Some((p["provider"].as_str()?.to_string(), p["status"].as_str()?.to_string()))).collect();
         let models = self.0.catalog.models();
         let models: Vec<_> = models.iter().map(|m| Model { slug: &m.slug, name: &m.name }).collect();
         let checked_at = iso(self.now_ms());
         let mut providers = wire::providers(&models, &checked_at);
         self.apply_provider_catalog(&mut providers);
-        wire::apply_provider_logins(&mut providers, &logins);
-        if let (Some(cwd), Some(instance)) = (payload["cwd"].as_str(), instance) {
+        if let Some((instance, cwd)) = t3_contracts::payload::workspace_provider_refresh(payload) {
             if let Some(provider) = providers.iter_mut().find(|row| row["instanceId"] == instance) {
                 self.set_workspace_catalog(provider, cwd, &checked_at);
             }
+        } else {
+            self.account(instance.unwrap_or_default(), "refresh", &Op::AccountsRefresh { provider: instance.map(str::to_string) })?;
+            let listed = self.account(instance.unwrap_or_default(), "refresh", &Op::AccountsList)?;
+            let logins: Vec<(String, String)> = listed["providers"].as_array().into_iter().flatten().filter_map(|p| Some((p["provider"].as_str()?.to_string(), p["status"].as_str()?.to_string()))).collect();
+            wire::apply_provider_logins(&mut providers, &logins);
         }
         Ok(json!({"providers": providers}))
     }

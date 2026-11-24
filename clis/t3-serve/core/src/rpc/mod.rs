@@ -153,7 +153,12 @@ impl Connection {
     }
 
     fn request(&mut self, id: Value, tag: &str, payload: &Value) -> Vec<Value> {
-        match required_scopes(tag) {
+        let scopes = if tag == "server.refreshProviders" && t3_contracts::payload::workspace_provider_refresh(payload).is_some() {
+            required_scopes("orchestration.getThreadProjection")
+        } else {
+            required_scopes(tag)
+        };
+        match scopes {
             None => {
                 self.svc.log("rpc.unsupported", &[("tag", tag.to_string()), ("known", "false".into())]);
                 return vec![rpc::exit_defect(&id, &format!("Unknown request tag: {tag}"))];

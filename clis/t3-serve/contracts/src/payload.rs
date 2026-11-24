@@ -356,6 +356,12 @@ fn minimal_of(schema: &str) -> Value {
     Value::Object(fields.collect())
 }
 
+pub fn workspace_provider_refresh(payload: &Value) -> Option<(&str, &str)> {
+    let instance = payload["instanceId"].as_str().filter(|value| !value.trim().is_empty())?;
+    let cwd = payload["cwd"].as_str().filter(|value| !value.trim().is_empty())?;
+    Some((instance, cwd))
+}
+
 /// The defect text when `payload` does not decode as the schema of `tag`; `None` when it does or the tag has no schema here.
 pub fn defect(tag: &str, payload: &Value) -> Option<String> {
     if tag == "device.action" {

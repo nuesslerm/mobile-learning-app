@@ -244,9 +244,8 @@ fn the_login_stream_says_where_the_login_stands_and_each_state_it_passes_through
 
 #[test]
 fn a_workspace_provider_refresh_lists_its_skills_and_slash_commands() {
-    let (h, mut rpc) = started();
-    reply(&h, "provider.refresh", Ok(recorded("provider.refresh", "refreshes one provider")));
-    reply(&h, "provider.list", Ok(recorded("provider.list", "lists every provider")));
+    let h = Harness::start();
+    let mut rpc = connect_with(&h, PairingRequest { scopes: vec!["orchestration:read".into()], ..PairingRequest::default() });
     reply(&h, "commands.list", Ok(json!({"driver": "codex", "commands": [
         {"name": "proof", "kind": "skill", "path": ".agents/skills/proof/SKILL.md", "description": "Print a test marker"},
         {"name": "clear", "kind": "command", "description": "Clear the chat"}
@@ -259,6 +258,9 @@ fn a_workspace_provider_refresh_lists_its_skills_and_slash_commands() {
     assert_eq!(snapshot["cwd"], "/work/proj");
     assert_eq!(snapshot["skills"], json!([{"name": "proof", "enabled": true, "path": ".agents/skills/proof/SKILL.md", "description": "Print a test marker"}]));
     assert_eq!(snapshot["slashCommands"], json!([{"name": "clear", "description": "Clear the chat"}]));
+    assert_eq!(ops(&h), [Op::ProviderCommands { root: "/work/proj".into(), driver: "codex".into() }]);
+    let refresh = rpc.call("server.refreshProviders", json!({"instanceId": "codex"}));
+    assert_eq!(failure(&refresh)["_tag"], "EnvironmentAuthorizationError");
 }
 
 #[test]
