@@ -48,3 +48,30 @@ The output includes paths to the normalized capture and reference. A
 pixelmatch difference over the usual 0.2% tolerance exits with status 1 and
 writes a diff. This is a visual comparison with a tolerance. Each reference
 comparison writes its own run folder, and the supplied image is read-only.
+
+## Replay the editor selection round trip
+
+Frames 23–25 of the LeetCode recording show the menu at the caret, Console
+opening with Case 3 selected, and the keyboard returning to the caret.
+
+1. Open Merge Two Sorted Lists with the JavaScript starter. Use 14 px text,
+   visible whitespace, and the on-screen German–English keyboard. In Symbol
+   Bar settings, move Group 2 below Group 3.
+2. Open Console, select Case 3, and close the sheet. Place the caret after
+   the last semicolon. Tap the caret again to open the native edit menu.
+3. With the menu still open, tap Console. Wait for the sheet to settle.
+   Verify that Case 3 is selected and the fields read `[]` and `[0]`.
+4. Tap the sheet handle. Verify that the keyboard, caret, and reordered symbol
+   bar return. Record the round trip to retain evidence of the transition.
+
+```sh
+wf test ios-visual selection-roundtrip-case-three --device <simulator-udid> \
+  --expect ConsoleSheetHandle \
+  --reference frontend/reference-material/leetcode/24-console-over-focused-editor.png \
+  --ignore 0,0,1284,174 --out .context/ios-reference
+```
+
+Run the command in step 3. The accessibility guard establishes that the console is open.
+Use the mobile accessibility tree to confirm that Case 3 is selected. iOS supplies the
+edit menu and keyboard, so keep their OS version, language and viewport in
+the evidence when comparing different devices.
