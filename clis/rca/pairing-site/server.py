@@ -18,7 +18,11 @@ OWNER = os.environ['PAIR_OWNER']
 PORT = 18798
 ORIGIN = f'https://{HOST}:{PORT}'
 T3_ADDRESS = f'https://{HOST}:18797'
-ASSET_TYPES = {'.css': 'text/css; charset=utf-8', '.jpg': 'image/jpeg'}
+ASSET_TYPES = {
+    '.css': 'text/css; charset=utf-8',
+    '.jpg': 'image/jpeg',
+    '.js': 'text/javascript; charset=utf-8',
+}
 
 
 @dataclass(frozen=True)
@@ -71,7 +75,7 @@ def app_cards():
         f'<span class="app-mark" aria-hidden="true">{escape(app.mark)}</span>'
         f'<span class="app-name">{escape(app.name)}</span>'
         f'<span class="app-description">{escape(app.description)}</span>'
-        '<span class="app-action">Pair app <span aria-hidden="true">↗</span></span></a>'
+        '<span class="app-arrow" aria-hidden="true">›</span></a>'
         for route, app in APPS.items()
     )
 
@@ -90,11 +94,18 @@ class Page(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def reply(self, status, title, content, *, landing=False):
+    def reply(self, status, title, content, *, back='/'):
+        navigation = '<span class="brand">RCA Pairing</span>'
+        if back and back != '/':
+            navigation = '<a class="brand" href="/">All apps</a>'
+        if back:
+            navigation = (
+                f'<a class="nav-back" href="{escape(back)}">'
+                '<span aria-hidden="true">‹</span> Back</a>' + navigation
+            )
         document = render(
             'layout', title=escape(title), content=content,
-            page_class='landing' if landing else 'guide',
-            navigation='' if landing else '<a class="nav-back" href="/">All apps</a>',
+            page_class='guide' if back else 'landing', navigation=navigation,
         )
         self.send(status, document.encode(), 'text/html; charset=utf-8')
 
@@ -109,7 +120,7 @@ class Page(BaseHTTPRequestHandler):
             return
         route = urlsplit(self.path).path
         if route == '/':
-            self.reply(200, 'Choose an app', render('home', cards=app_cards()), landing=True)
+            self.reply(200, 'Choose an app', render('home', cards=app_cards()), back=None)
         elif route in APPS:
             self.reply(200, f'Pair {APPS[route].name}', render(route[1:]))
         elif route in ASSETS:
@@ -130,10 +141,11 @@ class Page(BaseHTTPRequestHandler):
         except (KeyError, ValueError, OSError, subprocess.SubprocessError):
             self.reply(
                 503, 'Pairing unavailable',
-                f'<h1>Couldn’t start pairing</h1><a href="{escape(self.path)}">Back to {escape(app.name)} setup</a>',
+                '<h1>Couldn’t start pairing</h1><p>Go back to the setup guide to try again.</p>',
+                back=self.path,
             )
             return
-        self.reply(200, f'Finish pairing {app.name}', content)
+        self.reply(200, f'Finish pairing {app.name}', content, back=self.path)
 
 
 def main():

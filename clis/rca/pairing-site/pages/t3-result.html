@@ -3,10 +3,21 @@
   <p>Open <strong>Settings → Environments → Add environment</strong>. Enter the address and code below, then tap the checkmark.</p>
 </header>
 <dl class="credentials">
-  <dt>Server address</dt>
-  <dd><code>$address</code></dd>
-  <dt>One-time code</dt>
-  <dd><strong><code>$code</code></strong></dd>
+  <div class="credential">
+    <dt>Server address</dt>
+    <dd>
+      <code id="pairing-address">$address</code>
+      <button class="copy-button" type="button" aria-label="Copy server address" data-copy="pairing-address" hidden>Copy</button>
+    </dd>
+  </div>
+  <div class="credential">
+    <dt>One-time code</dt>
+    <dd>
+      <strong><code id="pairing-code">$code</code></strong>
+      <button class="copy-button" type="button" aria-label="Copy one-time code" data-copy="pairing-code" hidden>Copy</button>
+    </dd>
+  </div>
 </dl>
+<p id="copy-status" class="copy-status" role="status"></p>
 <p>The code expires in five minutes. Once connected, select <strong>Mac · Mobile Learning</strong> in T3 Code.</p>
-<a class="back" href="/t3">Back to T3 Code instructions</a>
+<script src="/assets/copy.js" defer></script>
