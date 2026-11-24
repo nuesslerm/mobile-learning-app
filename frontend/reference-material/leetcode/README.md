@@ -19,7 +19,7 @@ For an overlay, select the same problem, language, keyboard and console state. A
 | 19.50 | [language picker](11-language-picker.png) |
 | 21.70 | [editor javascript](12-editor-javascript.png) |
 | 24.50 | [console case one](13-console-case-one.png) |
-| 25.55 | [console case two](14-console-case-two.png) |
+| 25.55 | [console case one before switching](14-console-case-one-before-switch.png) |
 | 26.65 | [console case three](15-console-case-three.png) |
 | 34.85 | [keyboard symbol groups](16-keyboard-symbol-groups.png) |
 | 36.50 | [keyboard expanded symbol group](17-keyboard-expanded-symbol-group.png) |

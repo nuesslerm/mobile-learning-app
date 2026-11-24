@@ -24,6 +24,7 @@ const RESET_CONFIRM = 'ConsoleResetConfirmation';
 const RESET_PATH = [RESET_CONFIRM];
 const CANVAS_PILL = { backgroundColor: '#101010', borderColor: '#252525', borderWidth: 1 } as const;
 const FOOTER_PILL = { backgroundColor: '#39383c', borderColor: '#49484c', borderWidth: 1 } as const;
+const FOOTER_SHADOW = { shadowColor: '#777479', shadowOpacity: 0.18, shadowRadius: 13, shadowOffset: { width: 5, height: 8 } } as const;
 const SUBMIT_RIM = { borderColor: '#25dd4f', borderWidth: 1 } as const;
 const SUBMIT_GLOW = { shadowColor: '#28dc57', shadowOpacity: 0.48, shadowRadius: 15, shadowOffset: { width: 0, height: 5 } } as const;
 const CANVAS_CONTROL = { height: 42, fontSize: 17, color: '#f5f5f7' } as const;
@@ -39,7 +40,7 @@ function ConsoleReset({ footer, canvas, onReset }: { footer: boolean; canvas?: b
         size={canvas ? 42 : 36}
         icon={RotateCcw}
         trigger={footer ? <Text variant="small" px="$2" fontSize={canvas ? 16 : undefined}>Reset</Text> : <Icon as={RotateCcw} size={canvas ? 19 : 14} color={canvas ? "#f5f5f7" : undefined} systemSymbol={canvas ? 'arrow.counterclockwise' : undefined} />}
-        triggerStyle={canvas ? (footer ? { ...FOOTER_PILL, minWidth: 74 } : CANVAS_PILL) : { backgroundColor: theme.color4?.val }}
+        triggerStyle={canvas ? (footer ? { ...FOOTER_PILL, ...FOOTER_SHADOW, minWidth: 74 } : CANVAS_PILL) : { backgroundColor: theme.color4?.val }}
         glassTrigger={canvas && !footer}
         placement={canvas && footer ? "beside" : "above"}
         glass={canvas}
@@ -67,7 +68,8 @@ function ConsoleReset({ footer, canvas, onReset }: { footer: boolean; canvas?: b
 }
 
 export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubmit, pending, noCases, noSelectedCase }: ConsoleActionsProps) {
-  const prefix = variant === 'footer' ? 'ConsoleFooter' : 'ConsoleBar';
+  const footer = variant === 'footer';
+  const prefix = footer ? 'ConsoleFooter' : 'ConsoleBar';
   const off = pending || noCases;
   const run = (
     <IconButton
@@ -77,13 +79,14 @@ export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubm
       iconFilled={canvas}
       iconSystemSymbol={canvas ? 'play.fill' : undefined}
       variant="secondary"
-      glass={canvas && variant === 'bar'}
-      size={canvas ? 42 : "$3"}
+      glass={canvas && !footer}
+      size={canvas ? (footer ? 40 : 42) : "$3"}
+      hitSlop={canvas && footer ? 2 : undefined}
       pressLog="off"
       disabled={off || noSelectedCase}
       accessibilityLabel="Run"
       onPress={onRun}
-      style={canvas ? (variant === 'footer' ? FOOTER_PILL : CANVAS_PILL) : undefined}
+      style={canvas ? (footer ? { ...FOOTER_PILL, ...FOOTER_SHADOW } : CANVAS_PILL) : undefined}
     />
   );
   const submit = (
@@ -96,7 +99,7 @@ export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubm
       disabled={off}
       accessibilityLabel="Submit"
       onPress={onSubmit}
-      {...(canvas ? { ...CANVAS_CONTROL, minW: 86, fontWeight: "600", style: { backgroundColor: '#1ec843', ...(variant === 'footer' ? SUBMIT_GLOW : SUBMIT_RIM) } } : {})}
+      {...(canvas ? { ...CANVAS_CONTROL, ...(footer ? { height: 40, minW: 82, px: 11, hitSlop: 2 } : { minW: 86 }), fontWeight: "600", style: { backgroundColor: '#1ec843', ...SUBMIT_RIM, ...(footer ? SUBMIT_GLOW : {}) } } : {})}
     >
       Submit
     </Button>
@@ -106,7 +109,7 @@ export function ConsoleActions({ variant, canvas, onOpen, onReset, onRun, onSubm
       This problem has no bundled cases to run.
     </Text>
   ) : null;
-  if (variant === 'footer') {
+  if (footer) {
     return (
       <YStack gap="$1.5" testID="ConsoleFooter">
         <XStack items="center" justify="space-between" gap="$2">
