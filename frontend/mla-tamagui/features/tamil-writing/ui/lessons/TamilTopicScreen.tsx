@@ -65,7 +65,7 @@ export function TamilTopicScreen({ topicId, sectionId }: { topicId?: string; sec
               const tint = task.difficulty === 'Easy' ? colors.green : task.difficulty === 'Medium' ? colors.gold : colors.red;
               const finished = progress?.tasks[task.id]?.completed;
               return (
-                <DenseActionRow key={task.id} label={`${task.number}. ${task.title}`} onPress={() => openTask(topic.id, task.id)}
+                <View><DenseActionRow label={`${task.number}. ${task.title}`} onPress={() => openTask(topic.id, task.id)}
                   testID={`TamilTask-${task.id}`} trailing={<Icon as={ChevronRight} size={17} color={colors.muted} />}>
                   <View style={styles.row}>
                     <Text style={[styles.badge, { color: tint, backgroundColor: `${tint}23` }]}>{task.difficulty}</Text>
@@ -73,6 +73,10 @@ export function TamilTopicScreen({ topicId, sectionId }: { topicId?: string; sec
                   </View>
                   <Text style={{ color: colors.muted, fontSize: 12 }}>{finished ? '✓  Completed' : `${task.exercises.length} exercises`}</Text>
                 </DenseActionRow>
+                <CourseButton label="Flash cards" testID={`TamilFlashCards-${task.id}`} onPress={() => {
+                  Keyboard.dismiss();
+                  router.push({ pathname: '/tamil/lessons/[groupId]/[taskId]', params: { groupId: topic.id, taskId: task.id, mode: 'flash-cards' } });
+                }} /></View>
               );
             }}
           />

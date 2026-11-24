@@ -1,7 +1,7 @@
 import { routerHarness, screen, waitFor } from '@lib/flow-test-harness';
 import { describe, expect, it } from 'vitest';
 
-import { createCourseProgress, createMemoryTamilStorage, tamilTestCurriculum } from '@/features/tamil-writing/testing';
+import { createCourseProgress, createFlashCardProgress, createMemoryTamilStorage, tamilTestCurriculum } from '@/features/tamil-writing/testing';
 
 import { app } from './app';
 
@@ -131,5 +131,54 @@ describe('Offline Tamil lessons', () => {
     await session.tap('TamilTile-bank-0');
     await session.tap('TamilCheck');
     await waitFor(() => screen.getByText('Correct'));
+  });
+});
+
+describe('Tamil flash cards', () => {
+  it('Given a task, When flipping and rating in either direction, Then the schedule survives a return to practice', async () => {
+    const { topic, task, route, options, courseProgress, played } = await setup();
+    const storage = createMemoryTamilStorage();
+    let fail = true;
+    const flashCards = createFlashCardProgress({ ...storage, async setItem(key, value) {
+      if (fail) { fail = false; throw new Error('Disk full'); }
+      await storage.setItem(key, value);
+    } });
+    const props = { overrides: { tamilWriting: { ...options.overrides.tamilWriting, flashCards } } };
+    const list = await app.render('/tamil/lessons/' + topic.id, props);
+    await waitFor(() => screen.getByTestId('TamilFlashCards-' + task.id));
+    await list.tap('TamilFlashCards-' + task.id);
+    expect(routerHarness().calls()).toContainEqual(['push', {
+      pathname: '/tamil/lessons/[groupId]/[taskId]', params: { groupId: topic.id, taskId: task.id, mode: 'flash-cards' },
+    }]);
+    const flash = { ...props, search: { mode: 'flash-cards' } };
+    const session = await app.render(route, flash);
+    await waitFor(() => screen.getByTestId('TamilFlashReveal'));
+    expect(screen.queryByText(task.exercises[0].tamil)).toBeNull();
+    expect(screen.queryByTestId('TamilFlashAudio')).toBeNull();
+    await session.tap('TamilFlashReveal');
+    await session.tap('TamilFlashAudio');
+    expect(played).toEqual([false]);
+    await session.tap('TamilFlashRate-Good');
+    await waitFor(() => screen.getByText('Couldn’t finish that action. Try again.'));
+    expect(screen.getByText(task.exercises[0].tamil)).toBeTruthy();
+    await session.tap('TamilFlashRate-Good');
+    await waitFor(() => screen.getByText(task.exercises[1].english));
+    await session.tap('TamilFlash-tamil-first');
+    await waitFor(() => screen.getByText(task.exercises[0].tamil));
+    expect(screen.getByTestId('TamilFlashAudio')).toBeTruthy();
+    expect(screen.queryByText(task.exercises[0].english)).toBeNull();
+    for (const phrase of task.exercises) {
+      await waitFor(() => screen.getByText(phrase.tamil));
+      await session.tap('TamilFlashReveal');
+      expect(screen.getByText(phrase.english)).toBeTruthy();
+      await session.tap('TamilFlashRate-Easy');
+    }
+    await waitFor(() => screen.getByText(/Next review/));
+    session.unmount();
+    const reopened = await app.render(route, flash);
+    await waitFor(() => screen.getByText(/Next review/));
+    await reopened.tap('TamilFlash-english-first');
+    await waitFor(() => screen.getByText(task.exercises[1].english));
+    expect((await courseProgress.read()).tasks).toEqual({});
   });
 });

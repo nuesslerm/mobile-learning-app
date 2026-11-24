@@ -9,16 +9,18 @@ import { useCourse } from '../../state/lessons/useCourse';
 import { useTaskPractice } from '../../state/lessons/useTaskPractice';
 import { backTo, CourseButton, CourseLayout, CourseMessage } from '../library/CourseLayout';
 
+import { FlashCardPractice } from './FlashCardPractice';
+
 const titles = { translate: 'Translate into Tamil', fill: 'Complete the sentence', listen: 'Tap what you hear' };
 
-export function TamilTaskScreen({ topicId, taskId }: { topicId: string; taskId: string }) {
+export function TamilTaskScreen({ topicId, taskId, flashCards }: { topicId: string; taskId: string; flashCards?: boolean }) {
   const { course, error, reload, save } = useCourse();
   const topic = course?.sections.flatMap((section) => section.topics).find((item) => item.id === topicId);
   const task = topic?.tasks.find((item) => item.id === taskId);
   return (
     <CourseLayout title={topic?.title ?? 'Tamil Practice'} testID="TamilPracticeScreen"
       onBack={() => backTo({ pathname: '/tamil/lessons/[groupId]', params: { groupId: topicId } })}>
-      {course && topic && task ? <TaskPractice key={task.id} topic={topic} task={task} progress={course.progress} save={save} />
+      {course && topic && task ? flashCards ? <FlashCardPractice key={task.id} task={task} /> : <TaskPractice key={task.id} topic={topic} task={task} progress={course.progress} save={save} />
         : <CourseMessage text={error ? 'Couldn’t load this task.' : course ? 'Task unavailable.' : 'Loading practice…'}
           retry={error ? () => { void reload(); } : undefined} />}
     </CourseLayout>

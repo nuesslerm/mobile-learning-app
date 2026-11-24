@@ -4,6 +4,7 @@ import { createJSONStorage } from 'zustand/middleware';
 
 import { createExpoTamilAudio } from '../data/lessons/audio';
 import { curriculum } from '../data/lessons/curriculum';
+import { createFlashCardProgress } from '../data/progress/flashCards';
 import { createCourseProgress } from '../data/progress/courseProgress';
 import { createDeviceStorage } from '../data/progress/deviceStorage';
 import { createSnapshotStorage } from '../data/progress/snapshotStorage';
@@ -15,6 +16,7 @@ import { useTamilProgressStore } from '../state/tamilProgressStore';
 export const TAMIL_WRITING_OVERRIDES = overrideKey<TamilWritingPorts>('tamilWriting');
 
 const storage = createSnapshotStorage(createDeviceStorage());
+const flashCards = createFlashCardProgress(storage);
 const courseProgress = createCourseProgress(storage);
 
 useTamilProgressStore.persist.setOptions({ storage: createJSONStorage(() => createWritingStorage(storage)) });
@@ -22,6 +24,7 @@ let initialized = false;
 
 export function createDefaultPorts(overrides: Partial<TamilWritingPorts> = {}): TamilWritingPorts {
   return {
+    flashCards: overrides.flashCards ?? flashCards,
     curriculum: overrides.curriculum ?? curriculum,
     courseProgress: overrides.courseProgress ?? courseProgress,
     audio: overrides.audio ?? createExpoTamilAudio(),
