@@ -61,3 +61,11 @@ Reuse the row's fresh workspace after its Python tests. Keep these prompts read-
 5. **Steer and queue.** Once the provider is active in step 4, send a message to add a steer marker to the active turn's report. Use the app's steer control or promote a queued message to steer. Then queue a separate message with a different marker and leave it waiting. Record `turn.steered`, the first report, and `queue.started` after the original `turn.finished`. Verify that the queued prompt runs once and that its reply contains only its own marker. To exercise queued model selection, choose the second model before queuing and check the effective model when the queued turn starts.
 
 Keep a result for every operation in every row. Record the thread and turn IDs, the selected model, and the screenshot or event sequence that supports the result. Label a device action separately from an adapter RPC and a CLI tool trace. If a turn returns slowly or a send times out, look up the turn and queue by ID before retrying.
+
+## Retire test worktrees
+
+At the end of a run, or before starting another run, use `git worktree list` to find checkouts created for finished test rows and temporary verification. Keep any checkout still needed to reproduce a failure or open in an active test. Save the evidence outside the checkout and verify that its commits are reachable from a retained branch or merged PR.
+
+Check that no turns, queued messages, setup jobs, or terminal commands still need the workspace. Close any idle test-only terminals for the worktree you are retiring. Run `git status --porcelain --untracked-files=all` in the checkout and inspect ignored files for local evidence. Move any evidence or untracked caches you need to keep out of the checkout. Leave worktrees with uncommitted work for follow-up.
+
+Remove an idle, clean worktree through RCA's `worktree.remove` if it is still registered. For a checkout left behind after an RCA restart or created directly in Git, use `git worktree remove -- "<path>"`. Verify the checkout is gone from Git and any RCA registration is gone from the host. Keep the test branch and PR links so the checkout can be recreated later.
