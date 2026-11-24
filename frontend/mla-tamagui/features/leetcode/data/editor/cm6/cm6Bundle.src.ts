@@ -244,12 +244,12 @@ const completionFor = (language: string) =>
     entries: currentCompletion.entries,
     onOpenChange: (open) => core?.ingestCompletion(open),
   });
-const CANVAS_FONT_SCALE = 1.04;
+const CANVAS_FONT_SCALE = 1.055;
 const CANVAS_LINE_HEIGHT_SCALE = 0.982;
 const EDITOR_FONT = "'Menlo', 'Courier New', monospace";
-const CANVAS_LINE_INSET = '10px';
+const CANVAS_LINE_INSET = '9px';
 const CONTRAST_ACTIVE_LINE = '#0f0f15';
-const CONTRAST_FUNCTION = '#52C7B0';
+const CONTRAST_FUNCTION = '#40A990';
 const CONTRAST_COMMENT = '#57606D';
 const CONTRAST_TYPE = '#65DCC3';
 
