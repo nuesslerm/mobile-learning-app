@@ -20,12 +20,12 @@ import { ReorderableList } from '../ReorderableList';
 
 import { RAIL_STYLE_LABELS } from './railStyleMenu';
 
-const ROW_HEIGHT = 56;
 const nativePage = Platform.OS === 'ios';
+const ROW_HEIGHT = nativePage ? 55.75 : 56;
 const CHARS_STYLE = { fontFamily: nativePage ? 'Menlo' : 'Menlo, Courier, monospace', textAlign: 'right' } as const;
 
 const pageColors = {
-  dark: { page: '#0d0d0f', group: '#1b1a1d', divider: '#29282b', pill: '#29282b', pillBorder: '#444247', label: '#fff', caption: '#8d8d93', handle: '#555459' },
+  dark: { page: '#0d0d0f', group: '#1b1a1d', divider: '#272629', pill: '#29282b', pillBorder: '#444247', label: '#fff', caption: '#8d8d93', handle: '#555459' },
   light: { page: '#f2f2f7', group: '#ffffff', divider: '#dedee3', pill: '#e5e5ea', pillBorder: '#d1d1d6', label: '#17171a', caption: '#696970', handle: '#8e8e93' },
 } as const;
 type PageColors = (typeof pageColors)[keyof typeof pageColors];
@@ -73,7 +73,8 @@ function GroupRow({
         autoCorrect={false}
         borderWidth={0}
         bg="transparent"
-        style={colors ? { ...CHARS_STYLE, color: colors.label, paddingHorizontal: 0, fontSize: 16 } : CHARS_STYLE}
+        {...(colors ? { px: 0 } : {})}
+        style={colors ? { ...CHARS_STYLE, color: colors.label, fontSize: 18 } : CHARS_STYLE}
         onChangeText={(text) => setGroup(group.id, text)}
       />
       {handle}
@@ -161,15 +162,15 @@ export function SymbolBarSheet({ open, onOpenChange, onDismiss, showRailStyle = 
       </SheetHeader>
 
       <BodyScrollView testID="SymbolBarScroll" keyboardShouldPersistTaps="handled" contentContainerStyle={colors && styles.body}>
-        <YStack gap={colors ? 28 : "$4"} pb="$6">
+        <YStack gap={colors ? 26 : "$4"} pb="$6">
           <YStack gap={colors ? 8 : "$2"}>
             <XStack
               items="center"
               justify="space-between"
               px={colors ? 21 : "$4"}
               py={colors ? 0 : "$3"}
-              height={colors ? 54 : undefined}
-              rounded={colors ? 27 : "$5"}
+              height={colors ? 56 : undefined}
+              rounded={colors ? 28 : "$5"}
               bg="$color3"
               style={colors && { backgroundColor: colors.group }}
             >
@@ -184,7 +185,7 @@ export function SymbolBarSheet({ open, onOpenChange, onDismiss, showRailStyle = 
                 />
               </View>
             </XStack>
-            <Text variant="muted" px={colors ? 20 : "$2"} style={colors && { color: colors.caption, fontSize: 13, lineHeight: 19 }} testID="SymbolBarSwitchCaption">
+            <Text variant="muted" px={colors ? 21 : "$2"} style={colors && [styles.caption, { color: colors.caption }]} testID="SymbolBarSwitchCaption">
               Shown above the keyboard while editing code.
             </Text>
           </YStack>
@@ -212,7 +213,7 @@ export function SymbolBarSheet({ open, onOpenChange, onDismiss, showRailStyle = 
                 )}
               />
             </YStack>
-            <Text variant="muted" px={colors ? 20 : "$2"} style={colors && { color: colors.caption, fontSize: 13, lineHeight: 19 }} testID="SymbolBarGroupsCaption">
+            <Text variant="muted" px={colors ? 21 : "$2"} style={colors && [styles.caption, { color: colors.caption }]} testID="SymbolBarGroupsCaption">
               Each group holds up to 4 characters. Leave a group empty to hide it. Drag the handle to reorder.
             </Text>
           </YStack>
@@ -263,6 +264,7 @@ const styles = StyleSheet.create({
   page: { paddingHorizontal: 20, paddingTop: 7 },
   header: { borderBottomWidth: 0, paddingBottom: 0 },
   body: { paddingTop: 48 },
+  caption: { fontSize: 13.5, lineHeight: 19 },
   switchFrame: { height: 28, justifyContent: 'center' },
   divider: { position: 'absolute', bottom: 0, left: 20, right: 20, height: 1 },
 });
