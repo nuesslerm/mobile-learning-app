@@ -866,7 +866,7 @@ importers:
         version: 7.0.103(08a5567fc6e44d0d48e02fd5b4aea2d5)
       '@buoy-gg/perf-monitor':
         specifier: 7.0.103
-        version: 7.0.103(4b8f121ebff66ab0be2b0c6ad76c10e9)
+        version: 7.0.103(41eaf095cd7059ea0ebab5b3a39141f2)
       '@buoy-gg/route-events':
         specifier: 7.0.103
         version: 7.0.103(f7afd0820a38e194898a0b97eda680ab)
@@ -937,11 +937,11 @@ importers:
         specifier: 314.0.8
         version: 314.0.8(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       react-native-nitro-modules:
-        specifier: 0.35.10
-        version: 0.35.10(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
+        specifier: 0.37.2
+        version: 0.37.2(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
       react-native-performance-toolkit:
         specifier: 0.3.1
-        version: 0.3.1(af965f936504322cc838fff34b3180b8)
+        version: 0.3.1(4b9230548dd38a6a9e964bcebb0d1569)
       typescript:
         specifier: 'catalog:'
         version: '@typescript/typescript6@6.0.2'
@@ -7062,6 +7062,9 @@ packages:
   neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
 
+  nitro-core@0.37.2:
+    resolution: {integrity: sha512-dhagikz9VXXzfidRH/vPNJfYWPmTBArDOo9wE/wEqeERU9C8uRWz9YccOyNUOvADccPAZq319yzhDMoJ9excSQ==}
+
   node-fetch@2.7.0:
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
     engines: {node: 4.x || >=6.0.0}
@@ -7581,8 +7584,8 @@ packages:
       react: 19.3.0
       react-native: '>=0.50.4'
 
-  react-native-nitro-modules@0.35.10:
-    resolution: {integrity: sha512-KsySOAIkbSTjNiX2GvXiNT9P5DMeZd99yvtE/+Lw7RXV7Ztxh9Z+YyAbYkBqadhN5J/KXXuPjhRYgyLOIZgsbQ==}
+  react-native-nitro-modules@0.37.2:
+    resolution: {integrity: sha512-Odnrq/p6/q0R01qZlkqeXu9VHHMuGEnZZmyxMvehEu6QiACNHhBCmAHgyBDqOSo9Lb3G0TscFAT+HG0uxsR/GA==}
     peerDependencies:
       react: 19.3.0
       react-native: '*'
@@ -9431,15 +9434,15 @@ snapshots:
       - expo-file-system
       - react-native-safe-area-context
 
-  '@buoy-gg/perf-monitor@7.0.103(4b8f121ebff66ab0be2b0c6ad76c10e9)':
+  '@buoy-gg/perf-monitor@7.0.103(41eaf095cd7059ea0ebab5b3a39141f2)':
     dependencies:
       '@buoy-gg/shared-ui': 7.0.103(08a5567fc6e44d0d48e02fd5b4aea2d5)
       react: 19.3.0
     optionalDependencies:
       react-dom: 19.3.0(react@19.3.0)
       react-native: 0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10)
-      react-native-nitro-modules: 0.35.10(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
-      react-native-performance-toolkit: 0.3.1(af965f936504322cc838fff34b3180b8)
+      react-native-nitro-modules: 0.37.2(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
+      react-native-performance-toolkit: 0.3.1(4b9230548dd38a6a9e964bcebb0d1569)
       react-native-reanimated: 4.7.1(react-native-worklets@0.13.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
       react-native-web: 0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react-native-worklets: 0.13.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
@@ -15881,6 +15884,8 @@ snapshots:
 
   neo-async@2.6.2: {}
 
+  nitro-core@0.37.2: {}
+
   node-fetch@2.7.0:
     dependencies:
       whatwg-url: 5.0.0
@@ -16519,16 +16524,17 @@ snapshots:
       react-native: 0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@5.0.10)
       react-native-fit-image: 1.5.5
 
-  react-native-nitro-modules@0.35.10(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0):
+  react-native-nitro-modules@0.37.2(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0):
     dependencies:
+      nitro-core: 0.37.2
       react: 19.3.0
       react-native: 0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10)
 
-  react-native-performance-toolkit@0.3.1(af965f936504322cc838fff34b3180b8):
+  react-native-performance-toolkit@0.3.1(4b9230548dd38a6a9e964bcebb0d1569):
     dependencies:
       react: 19.3.0
       react-native: 0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10)
-      react-native-nitro-modules: 0.35.10(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
+      react-native-nitro-modules: 0.37.2(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
     optionalDependencies:
       react-native-gesture-handler: 3.3.0(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)
       react-native-reanimated: 4.7.1(react-native-worklets@0.13.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0))(react-native@0.88.1(@babel/core@7.29.7)(@react-native/metro-config@0.88.1(@babel/core@7.29.7)(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@types/react@19.2.17)(bufferutil@4.1.0)(react@19.3.0)(supports-color@7.2.0)(utf-8-validate@5.0.10))(react@19.3.0)

@@ -131,7 +131,7 @@
     "dependency-cruiser": "^17.4.3",
     "oxlint": "catalog:",
     "pyodide": "314.0.8",
-    "react-native-nitro-modules": "0.35.10",
+    "react-native-nitro-modules": "0.37.2",
     "react-native-performance-toolkit": "0.3.1",
     "typescript": "catalog:"
   },
