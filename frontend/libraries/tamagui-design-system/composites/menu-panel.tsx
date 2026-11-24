@@ -1,6 +1,6 @@
 import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import type { LucideIcon } from 'lucide-react-native';
-import { useRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { useRef, useState, type ComponentRef, type ReactElement, type ReactNode } from 'react';
 import {
   Modal,
   Platform,
@@ -16,6 +16,7 @@ import {
 import { Check, ChevronDown, ChevronRight } from '../icons';
 import { useTheme } from '../primitives';
 import { Icon } from '../ui/icon';
+import { MenuPanelPopover, supportsMenuPanelPopover } from './menu-panel-popover';
 
 import {
   menuNavigation,
@@ -58,6 +59,7 @@ type Colors = {
   muted: string;
   pressed: string;
   destructive: string;
+  popoverButton: string;
   scrim: string;
 };
 
@@ -164,15 +166,17 @@ function MenuRow({
 function ConfirmCard({
   node,
   colors,
+  popover,
   onConfirm,
 }: {
   node: MenuConfirmNode;
   colors: Colors;
+  popover: boolean;
   onConfirm: () => void;
 }) {
   return (
-    <View testID={`${node.testID}Card`} style={styles.confirm}>
-      <RNText style={[styles.confirmTitle, { color: colors.label }]}>
+    <View testID={`${node.testID}Card`} style={[styles.confirm, popover && styles.popoverConfirm]}>
+      <RNText style={[styles.confirmTitle, popover && styles.popoverConfirmTitle, { color: colors.label }]}>
         {node.title}
       </RNText>
       {node.message ? <RNText style={[styles.confirmMessage, { color: colors.muted }]}>{node.message}</RNText> : null}
@@ -183,10 +187,10 @@ function ConfirmCard({
         onPress={onConfirm}
         style={({ pressed: isPressed }) => [
           styles.confirmButton,
-          { backgroundColor: isPressed ? colors.pressed : colors.border },
+          { backgroundColor: isPressed ? colors.pressed : popover ? colors.popoverButton : colors.border },
         ]}
       >
-        <RNText style={[styles.confirmLabel, { color: colors.destructive }]}>
+        <RNText style={[styles.confirmLabel, popover && styles.popoverConfirmLabel, { color: colors.destructive }]}>
           {node.confirmLabel}
         </RNText>
       </Pressable>
@@ -227,19 +231,23 @@ export function MenuPanel({
     muted: theme.color11?.val ?? 'rgba(160,160,160,1)',
     pressed: theme.color5?.val ?? 'rgba(128,128,128,0.2)',
     destructive: theme.destructive?.val ?? '#ff453a',
+    popoverButton: 'rgba(128,128,128,0.28)',
     scrim: 'rgba(0,0,0,0.28)',
   };
 
   const view = resolveMenuView(items, path);
+  const nativePopover = placement === 'beside' && glass && supportsMenuPanelPopover();
 
   function go(action: MenuNavigationAction) {
     setPath((current) => menuNavigation(current, action));
   }
 
   function openPanel() {
-    triggerRef.current?.measureInWindow((x, y, width, height) => {
-      setAnchor(width > 0 ? { x, y, width, height } : null);
-    });
+    if (!nativePopover) {
+      triggerRef.current?.measureInWindow((x, y, width, height) => {
+        setAnchor(width > 0 ? { x, y, width, height } : null);
+      });
+    }
     setPath(openPath);
     setOpen(true);
   }
@@ -320,12 +328,13 @@ export function MenuPanel({
     });
   }
 
-  function renderView(): ReactNode {
+  function renderView(): ReactElement {
     if (view.kind === 'confirm') {
       return (
         <ConfirmCard
           node={view.node}
           colors={colors}
+          popover={nativePopover}
           onConfirm={() => {
             closePanel();
             view.node.onConfirm();
@@ -368,24 +377,33 @@ export function MenuPanel({
           : { bottom: anchor ? Math.max(EDGE, windowHeight - anchor.y + GAP) : FALLBACK_TOP }),
       };
 
+  const buttonStyle = [
+    styles.trigger,
+    trigger ? { minWidth: size, height: size, paddingHorizontal: 4 } : { width: size, height: size },
+    triggerStyle,
+  ];
+
+  const triggerButton = (
+    <Pressable
+      ref={triggerRef}
+      testID={testID}
+      accessibilityRole="button"
+      aria-label={accessibilityLabel}
+      aria-expanded={open}
+      onPress={openPanel}
+      style={({ pressed: isPressed }) => [buttonStyle, isPressed && { backgroundColor: colors.pressed }]}
+    >
+      {trigger ?? <Icon as={icon} size={19} />}
+    </Pressable>
+  );
+
+  if (nativePopover) {
+    return <MenuPanelPopover trigger={triggerButton} content={renderView()} width={width} open={open} onClose={closePanel} />;
+  }
+
   return (
     <>
-      <Pressable
-        ref={triggerRef}
-        testID={testID}
-        accessibilityRole="button"
-        aria-label={accessibilityLabel}
-        aria-expanded={open}
-        onPress={openPanel}
-        style={({ pressed: isPressed }) => [
-          styles.trigger,
-          trigger ? { minWidth: size, height: size, paddingHorizontal: 4 } : { width: size, height: size },
-          triggerStyle,
-          isPressed && { backgroundColor: colors.pressed },
-        ]}
-      >
-        {trigger ?? <Icon as={icon} size={19} />}
-      </Pressable>
+      {triggerButton}
       {open ? (
         <Modal
           visible
@@ -476,4 +494,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   confirmLabel: { fontSize: 17, fontWeight: '600' },
+  popoverConfirm: { padding: 16, gap: 16 },
+  popoverConfirmTitle: { paddingHorizontal: 14, paddingTop: 8, maxWidth: 170, fontWeight: '400', lineHeight: 24 },
+  popoverConfirmLabel: { fontWeight: '500' },
 });
