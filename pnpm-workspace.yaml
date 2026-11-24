@@ -102,6 +102,7 @@ overrides:
   '@react-types/switch': 3.5.17
 
 patchedDependencies:
+  react-native-webview@14.0.1: patches/react-native-webview@14.0.1.patch
   react-native-css-interop@0.2.5: patches/react-native-css-interop@0.2.5.patch
   # lucide-react-native's exports map stops at `.` and `./icons`, both of which
   # are barrels. Metro does not tree-shake them, so importing one icon pulled all

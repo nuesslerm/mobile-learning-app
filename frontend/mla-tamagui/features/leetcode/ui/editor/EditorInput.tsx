@@ -866,6 +866,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         <WebView<object>
           testID="CodeEditorInput"
           ref={webViewRef}
+          preloadOnMount={Platform.OS === 'ios' && canvas}
           source={source}
           injectedJavaScriptBeforeContentLoaded={bootstrapScript}
           onMessage={handleMessage}

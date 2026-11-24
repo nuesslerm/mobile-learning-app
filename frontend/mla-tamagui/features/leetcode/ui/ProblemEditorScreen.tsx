@@ -17,7 +17,7 @@ import {
   View,
 } from '@lib/tamagui-design-system';
 import type { EditAlternative } from '@lib/voice-edit-dsl';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Mic, Pencil } from '@lib/tamagui-design-system/icons';
 import React from 'react';
 import { BackHandler, Platform, Pressable, TextInput, useColorScheme, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
@@ -130,6 +130,9 @@ function ProblemEditorContent({
   const editorLanguage = toEditorLanguage(lang) ?? 'python';
   const autocomplete = useAutocompleteSettingStore((s) => s.autocomplete);
   const [editorReady, setEditorReady] = React.useState(false);
+  useFocusEffect(React.useCallback(() => {
+    if (editorReady) runner.warmUp?.(lang);
+  }, [editorReady, lang, runner]));
   const [canUndo, setCanUndo] = React.useState(false);
   // the suggestions follow the language: the problem's own names from its starter, and the language's keywords
   const completion = React.useMemo(
@@ -703,10 +706,7 @@ function ProblemEditorContent({
                   editorFocusedRef.current = focused;
                   if (focused) closeConsole('editor-focus');
                 }}
-                onHydratedChange={(hydrated) => {
-                  setEditorReady(hydrated);
-                  if (hydrated) runner.warmUp?.(lang);
-                }}
+                onHydratedChange={setEditorReady}
               />
               {iosCanvas && (!editorReady || startupBuffer !== null) && (
                 <XStack position="absolute" t={0} l={0} r={0} b={0} style={{ backgroundColor }}>

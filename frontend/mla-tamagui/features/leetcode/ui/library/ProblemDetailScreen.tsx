@@ -1,7 +1,7 @@
 import { CompactHeader, CompactIconButton, CompactTabs, FloatingBar, Icon, useCompactColors } from '@lib/tamagui-design-system';
 import { ChevronDown, Lightbulb, Play, Share, Star, Tag } from '@lib/tamagui-design-system/icons';
-import { Link, router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { Link, router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -20,7 +20,7 @@ const tabs = [
 export function ProblemDetailScreen({ id }: { id: string }) {
   const colors = useCompactColors();
   const { top, bottom } = useSafeAreaInsets();
-  const { libraryContent, editorBridge } = useLeetCodePorts();
+  const { libraryContent } = useLeetCodePorts();
   const problem = libraryContent.problem(id);
   const { lists, actions } = useLibrary();
   const favorited = lists.some((list) => list.id === 'favorite' && list.problemIds.includes(id));
@@ -34,11 +34,12 @@ export function ProblemDetailScreen({ id }: { id: string }) {
   useEffect(() => {
     if (hasProblem) void actions.openProblem(id);
   }, [actions, hasProblem, id]);
-  useEffect(() => {
+  const editorRoute = useMemo(() => ({ pathname: '/leetcode/[id]' as const, params: { id, lang: 'javascript' } }), [id]);
+  useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'ios' || !hasProblem) return;
-    const work = requestIdleCallback(() => editorBridge.pageSource?.(editorBridge.html()));
+    const work = requestIdleCallback(() => router.prefetch(editorRoute));
     return () => cancelIdleCallback(work);
-  }, [editorBridge, hasProblem]);
+  }, [editorRoute, hasProblem]));
 
   return <View testID="AlgorithmsProblemDetail" style={{ flex: 1, backgroundColor: colors.background, paddingTop: top }}>
     <CompactHeader title={scrolled ? title : undefined} closeIcon={ChevronDown} closeLabel="Close problem"
@@ -69,7 +70,7 @@ export function ProblemDetailScreen({ id }: { id: string }) {
       </ScrollView>
       {problem && <FloatingBar bottom={bottom + 7} style={{ justifyContent: 'flex-end' }}>
         <CompactIconButton icon={Play} label="Open editor" testID="ProblemOpenEditor" emphasis filled
-          onPress={() => router.push({ pathname: '/leetcode/[id]', params: { id, lang: 'javascript' } })} />
+          onPress={() => router.push(editorRoute)} />
       </FloatingBar>}
     </>}
     {information && problem && <ProblemInformationSheet kind={information} topics={problem.topics} hints={problem.hints} onClose={() => setInformation(undefined)} />}
