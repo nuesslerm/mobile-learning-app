@@ -268,22 +268,46 @@ fn a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_star
 }
 
 #[test]
-fn resuming_a_held_queue_starts_its_items_one_after_the_other_through_rca_with_the_executor_writing_for_each() {
+fn reordering_and_resuming_a_held_queue_starts_each_item_once_in_the_new_order() {
     exec_testkit::case!(SUITE, |case| {
         // Given a thread force stopped with two items queued behind its turn, so the queue is held
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![stays(), writes("first.txt", "one"), writes("second.txt", "two")]).printing_version("0.0.0-flow"));
+        chain.cli.script("claude", &Script::of(vec![stays(), writes("second.txt", "two"), writes("first.txt", "one")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         phone.seed(case, &chain);
         success(&phone.command(case, &chain, message("m1", "t1", "work")));
         wait_started(&chain, "claude", 1);
         let run = phone.run_of("t1");
-        for (item, prompt) in [("q1", "one"), ("q2", "two")] {
-            rca.call("agent.queue", "queue.add", json!({"thread": "t1", "item": item, "prompt": prompt})).expect("rca queues it");
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        for (index, (id, prompt)) in [("q1", "one"), ("q2", "two")].into_iter().enumerate() {
+            let mut command = message(id, "t1", prompt);
+            command["dispatchMode"] = json!({"type": "queue_after_active"});
+            success(&phone.command(case, &chain, command));
+            while queued(&mut rca, "t1").len() <= index {
+                assert!(std::time::Instant::now() < deadline, "RCA did not receive queued message {id}");
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
         }
+        let original = queued(&mut rca, "t1");
+        assert_eq!(original.iter().map(|item| item.1.as_str()).collect::<Vec<_>>(), ["one", "two"]);
         success(&phone.call(case, &chain, &["rpc:orchestration.forceStopThread"], "orchestration.forceStopThread", json!({"threadId": "t1", "runId": run})));
         wait_finished(&mut rca, "t1", 1);
+        let (stream, _) = phone.stream(case, &chain, &["rpc:orchestration.subscribeThread"], "orchestration.subscribeThread", json!({"threadId": "t1"}));
+        // When the phone moves the second item before the first, the queue stays held
+        success(&phone.command(case, &chain, cmd("queued-run.reorder", "t1", json!({"runId": original[1].0, "beforeRunId": original[0].0}))));
+        assert_eq!(queued(&mut rca, "t1"), [original[1].clone(), original[0].clone()]);
+        let positions: std::collections::BTreeMap<_, _> = phone.drain_watch().into_iter()
+            .filter(|frame| frame["requestId"] == stream && frame["_tag"] == "Chunk")
+            .flat_map(|frame| frame["values"].as_array().unwrap().clone())
+            .filter(|frame| frame["event"]["type"] == "run.updated" && frame["event"]["payload"]["status"] == "queued")
+            .map(|frame| {
+                let row = &frame["event"]["payload"];
+                (row["id"].as_str().unwrap().to_string(), row["queuePosition"].as_u64())
+            }).collect();
+        assert_eq!(positions.get(&original[1].0), Some(&Some(1)));
+        assert_eq!(positions.get(&original[0].0), Some(&Some(2)));
+        assert_eq!(rca.events("t1", "turn.started").len(), 1);
         // When the phone resumes the queue
         case.call(&chain.tap, &rows(&["rpc:orchestration.dispatchCommand", "command:queue.resume"]), || {
             let exit = phone.calls.call("orchestration.dispatchCommand", cmd("queue.resume", "t1", json!({})));
@@ -298,7 +322,11 @@ fn resuming_a_held_queue_starts_its_items_one_after_the_other_through_rca_with_t
         assert!(queued(&mut rca, "t1").is_empty());
         let prompts = chain.cli.claude_prompts("claude");
         assert_eq!(prompts.len(), 3);
-        assert!(prompts[1].contains("one") && prompts[2].contains("two"), "{prompts:?}");
+        assert!(prompts[1].contains("two") && prompts[2].contains("one"), "{prompts:?}");
+        let started: Vec<_> = rca.events("t1", "turn.started").into_iter().map(|event| event["turn"].clone()).collect();
+        let finished: Vec<_> = rca.events("t1", "turn.finished").into_iter().map(|event| event["turn"].clone()).collect();
+        assert_eq!(started, finished);
+        assert_eq!(started[1..], [json!(original[1].0), json!(original[0].0)]);
     });
 }
 
@@ -449,6 +477,59 @@ fn a_turn_waits_for_the_phones_approval_or_answer_and_runs_on_only_when_it_gets_
         // Then rca closed the request as dismissed
         assert!(answered(case, "input.dismiss"), "{:?}", asked(case));
         assert_eq!(rca.events("t1", "input.dismissed").len(), 1);
+    });
+}
+
+#[test]
+fn a_reconnected_phone_can_answer_the_new_rca_approval_after_tapping_the_old_one() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given an approval answered on the phone and a second turn started through RCA while it is disconnected
+        let chain = Chain::start();
+        chain.cli.script("claude", &Script::of(vec![
+            asking("approval_prompt", json!({"tool_name": "write_file", "input": {"path": "a.txt"}}), "a.txt"),
+            asking("approval_prompt", json!({"tool_name": "write_file", "input": {"path": "b.txt"}}), "b.txt"),
+        ]).printing_version("0.0.0-flow"));
+        let mut phone = Phone::connect(case, &chain);
+        let mut rca = chain.direct();
+        phone.seed(case, &chain);
+        let first = phone.command_until(case, &chain, message("m1", "t1", "first"), "t1", |p| p["runtimeRequests"][0]["status"] == "pending");
+        let old = first["runtimeRequests"][0]["id"].clone();
+        phone.command_settled(case, &chain, cmd("runtime-request.respond", "t1", json!({"requestId": old, "decision": "accept"})), "t1", completed(1));
+        drop(phone);
+        let external = rca.call("agent.threads", "turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "claudeAgent", "prompt": "second"})).expect("RCA starts the second turn");
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+        let new = loop {
+            if let Some(request) = rca.events("t1", "approval.requested").into_iter().find(|event| event["turn"] == external["turn"]) {
+                break request["approval"].clone();
+            }
+            assert!(std::time::Instant::now() < deadline, "the RCA turn never requested a second approval");
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        };
+        // When the phone reconnects and taps the stale approval, RCA leaves the newer request pending
+        let mut phone = Phone::connect(case, &chain);
+        let stale = phone.command(case, &chain, cmd("runtime-request.respond", "t1", json!({"requestId": old, "decision": "accept"})));
+        assert_ne!(stale["_tag"], "Success", "{stale}");
+        assert_eq!(rca.events("t1", "approval.answered").len(), 1);
+        assert!(!chain.repo.path().join("b.txt").exists());
+        // Then the new card has RCA's exact request id and can be answered once from the phone
+        phone.stream(case, &chain, &["rpc:orchestration.subscribeThread"], "orchestration.subscribeThread", json!({"threadId": "t1"}));
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        let projection = loop {
+            let response = phone.calls.call("orchestration.getThreadProjection", json!({"threadId": "t1"}));
+            let projection = success(&response);
+            if projection["runtimeRequests"][1]["id"] == new {
+                break projection.clone();
+            }
+            assert!(std::time::Instant::now() < deadline, "the reconnected phone did not show approval {new}");
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        };
+        assert_eq!(projection["runtimeRequests"][1]["status"], "pending");
+        assert!(projection["turnItems"].as_array().unwrap().iter().any(|item| item["type"] == "approval_request" && item["requestId"] == new));
+        let approved = phone.command_settled(case, &chain, cmd("runtime-request.respond", "t1", json!({"requestId": new, "decision": "accept"})), "t1", completed(2));
+        assert_eq!(approved["runtimeRequests"][1]["status"], "resolved");
+        assert_eq!(std::fs::read_to_string(chain.repo.path().join("b.txt")).unwrap(), "after the answer");
+        assert_eq!(rca.events("t1", "approval.answered").iter().filter(|e| e["approval"] == new).count(), 1);
+        assert_eq!(rca.events("t1", "turn.started").len(), 2);
     });
 }
 

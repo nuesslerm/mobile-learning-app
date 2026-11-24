@@ -62,6 +62,11 @@ fn run_wire(value: &Value) -> Value {
     for field in ["providerThreadId", "checkpointId", "contextHandoffId"] {
         fields.entry(field).or_insert(Value::Null);
     }
+    if value["status"] == "queued" {
+        if let Some(rank) = value["queueRank"].as_f64() {
+            fields.insert("queuePosition".into(), json!(rank as u64));
+        }
+    }
     run
 }
 

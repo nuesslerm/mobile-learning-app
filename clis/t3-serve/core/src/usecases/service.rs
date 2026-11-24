@@ -104,11 +104,11 @@ impl Service {
         self.1.sync_thread(thread);
     }
 
-    pub fn start_detached_receipt_follow(&self, thread: &str, stop: Arc<AtomicBool>) {
-        if self.agent().configured() && self.thread_for_agent(thread).is_some_and(|thread| thread.instance_id == "claudeAgent") {
+    pub fn start_thread_event_follow(&self, thread: &str, stop: Arc<AtomicBool>) {
+        if self.agent().configured() && self.thread_for_agent(thread).is_some() {
             let runner = self.1.clone();
             let thread = thread.to_string();
-            std::thread::spawn(move || runner.follow_detached_receipts(&thread, &stop));
+            std::thread::spawn(move || runner.follow_thread_events(&thread, &stop));
         }
     }
 

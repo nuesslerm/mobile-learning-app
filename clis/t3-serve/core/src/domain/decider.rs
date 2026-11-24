@@ -820,7 +820,10 @@ fn queue_command(state: &State, thread: &str, cmd: &Command, ctx: &Ctx) -> Resul
             order.retain(|r| r["id"] != run["id"]);
             let at_index = cmd.str("beforeRunId").and_then(|before| order.iter().position(|r| r["id"] == before)).unwrap_or(order.len());
             order.insert(at_index, run.clone());
-            let drafts = order.into_iter().enumerate().filter(|(i, r)| r["queueRank"].as_f64() != Some(*i as f64 + 1.0)).map(|(i, r)| changed(r, vec![("queueRank", json!(i as f64 + 1.0))])).collect();
+            if order.iter().enumerate().all(|(i, r)| r["queueRank"].as_f64() == Some(i as f64 + 1.0)) {
+                return Ok(Decision { drafts: vec![], effect: None });
+            }
+            let drafts = order.into_iter().enumerate().map(|(i, r)| changed(r, vec![("queueRank", json!(i + 1))])).collect();
             Ok(Decision { drafts, effect: None })
         }
         _ => {
@@ -1000,6 +1003,41 @@ fn approval_kind(tool: &str) -> &'static str {
 }
 
 pub(super) const DETACHED_TASK_CALL_PREFIX: &str = "claude-task:";
+
+pub fn observe_run(state: &State, thread: &str, run_id: &str, text: &str, ctx: &Ctx) -> Vec<EventDraft> {
+    let Some(shell) = state.threads.get(thread) else { return vec![] };
+    if active_run(state, thread).is_some() || run_named(state, thread, run_id).is_some() {
+        return vec![];
+    }
+    let existing = state.entities.get(thread).map(|entities| entities.runs.as_slice()).unwrap_or(&[]);
+    let ordinal = existing.len() as u64 + 1;
+    let at = iso(ctx.now);
+    let instance = shell["providerInstanceId"].as_str().unwrap_or("opencode");
+    let message_id = format!("{run_id}:user-message");
+    let (native, session) = existing.first().map_or_else(
+        || (json!((ctx.new_id)()), json!((ctx.new_id)())),
+        |first| (first["nativeThreadId"].clone(), first["sessionUuid"].clone()),
+    );
+    let run = json!({
+        "id": run_id, "threadId": thread, "ordinal": ordinal, "status": "running",
+        "userMessageId": message_id, "stopRequested": false, "error": null,
+        "providerInstanceId": instance, "modelSelection": shell["modelSelection"], "requestedAt": at,
+        "startedAt": at, "completedAt": null, "nativeThreadId": native, "sessionUuid": session,
+        "queueRank": null, "updatedAt": at,
+    });
+    let message = json!({
+        "id": message_id, "threadId": thread, "runId": run_id, "nodeId": runs::node_id(run_id),
+        "role": "user", "streaming": false, "text": text, "attachments": [],
+        "createdBy": "user", "creationSource": "server", "createdAt": at, "updatedAt": at,
+    });
+    let provider_thread = thread_provider_thread(state, thread, instance, run_id);
+    let item = user_item(thread, &run, &provider_thread, &message, "turn_start", &at);
+    vec![
+        draft("message.updated", Some(thread), None, ctx.now, message),
+        draft("turn-item.updated", Some(thread), None, ctx.now, item),
+        draft("run.created", Some(thread), None, ctx.now, run),
+    ]
+}
 
 /// The events one report of a turn stands for. An ended turn can still record its detached task receipt.
 pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep, ctx: &Ctx) -> Vec<EventDraft> {

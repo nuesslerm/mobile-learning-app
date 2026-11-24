@@ -3,7 +3,7 @@
 //! running is followed to its end. An agent event is folded once: its receipt in the event store says so, so a replay writes nothing twice.
 use super::engine::Engine;
 use crate::domain::decider::{Launch, Outcome, RunStep};
-use crate::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, Follow, Log, MetaStore, Op};
+use crate::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, Follow, Log, MetaStore, Op, StoreError};
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -37,6 +37,10 @@ fn run_key(run: &str) -> String {
 
 fn cursor_key(thread: &str) -> String {
     format!("agent-seq:{thread}")
+}
+
+fn observed_run(thread: &str, turn: &str) -> String {
+    format!("rca-run:{}:{thread}:{turn}", thread.len())
 }
 
 impl Runner {
@@ -327,12 +331,30 @@ impl Runner {
         }
         let run = if self.engine.knows_run(thread, turn) {
             turn.to_string()
+        } else if self.engine.knows_run(thread, &observed_run(thread, turn)) {
+            observed_run(thread, turn)
         } else {
             self.engine.active_run(thread).filter(|run| self.recall(&run_key(run)).is_none())?
         };
         self.remember(&turn_key(thread, turn), &run);
         self.remember(&run_key(&run), turn);
         Some(run)
+    }
+
+    fn observe(&self, thread: &str, turn: &str, event: &AgentEvent) -> Result<(), StoreError> {
+        let run = observed_run(thread, turn);
+        match &event.kind {
+            AgentEventKind::UserText(text) if self.engine.observe_agent_run(thread, &run, text)? => {
+                self.remember(&turn_key(thread, turn), &run);
+                self.remember(&run_key(&run), turn);
+            }
+            _ => {
+                if let Some(step) = RunStep::of(&event.kind) {
+                    self.engine.record_agent(thread, &run, event.seq, &step)?;
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Catches the thread's rows up with its log in the agent API. Whatever it cannot reach leaves the rows as they are.
@@ -348,8 +370,12 @@ impl Runner {
                 Err(e) => return self.log.event("run.sync.failed", &[("thread", thread.to_string()), ("error", e.message())]),
             };
             for event in &page.events {
-                if let Some(run) = event.turn.as_deref().and_then(|turn| self.run_of(thread, turn)) {
-                    self.fold(thread, &run, event);
+                if let Some(turn) = event.turn.as_deref() {
+                    if let Some(run) = self.run_of(thread, turn) {
+                        self.fold(thread, &run, event);
+                    } else if let Err(error) = self.observe(thread, turn, event) {
+                        return self.log.event("run.observe.failed", &[("thread", thread.to_string()), ("error", error.0)]);
+                    }
                 }
             }
             let Some(last) = page.events.last() else { return };
@@ -361,18 +387,24 @@ impl Runner {
         }
     }
 
-    pub(super) fn follow_detached_receipts(&self, thread: &str, stop: &AtomicBool) {
+    pub(super) fn follow_thread_events(&self, thread: &str, stop: &AtomicBool) {
         let key = format!("agent-detached-seq:{thread}");
         let cursor = || self.recall(&key).and_then(|seq| seq.parse::<u64>().ok()).unwrap_or(0);
         let after = cursor();
         let mut seen = after;
         let followed = self.agent.follow_until(thread, after, stop, &mut |event| {
-            if let Some(step) = RunStep::of(&event.kind).filter(RunStep::is_detached_receipt) {
-                if let Some(run) = event.turn.as_deref().and_then(|turn| self.recall(&turn_key(thread, turn))) {
-                    if let Err(error) = self.engine.record_agent(thread, &run, event.seq, &step) {
-                        self.log.event("run.detached_receipt.record.failed", &[("thread", thread.to_string()), ("error", error.0)]);
-                        return Follow::Stop;
-                    }
+            if let Some(turn) = event.turn.as_deref() {
+                let result = match self.recall(&turn_key(thread, turn)) {
+                    Some(run) => match RunStep::of(&event.kind) {
+                        Some(step) if run == observed_run(thread, turn) || step.is_detached_receipt() => self.engine.record_agent(thread, &run, event.seq, &step),
+                        _ => Ok(()),
+                    },
+                    None if !self.engine.knows_run(thread, turn) => self.observe(thread, turn, &event),
+                    None => Ok(()),
+                };
+                if let Err(error) = result {
+                    self.log.event("run.thread_event.record.failed", &[("thread", thread.to_string()), ("error", error.0)]);
+                    return Follow::Stop;
                 }
             }
             seen = event.seq;
@@ -383,7 +415,7 @@ impl Runner {
             self.remember(&key, &seen.to_string());
         }
         if let Err(error) = followed {
-            self.log.event("run.detached_receipt.follow.failed", &[("thread", thread.to_string()), ("error", error.message())]);
+            self.log.event("run.thread_event.follow.failed", &[("thread", thread.to_string()), ("error", error.message())]);
         }
     }
 

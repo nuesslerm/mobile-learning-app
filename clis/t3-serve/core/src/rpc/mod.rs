@@ -215,7 +215,7 @@ impl Connection {
                 match self.svc.engine().thread_start(thread, after) {
                     Ok((frames, floor)) => {
                         let stop = Arc::new(AtomicBool::new(false));
-                        self.svc.start_detached_receipt_follow(thread, stop.clone());
+                        self.svc.start_thread_event_follow(thread, stop.clone());
                         self.open(id, Kind::Thread { id: thread.to_string(), _stop: StopFollow(stop) }, floor, synchronized(frames));
                         vec![]
                     }

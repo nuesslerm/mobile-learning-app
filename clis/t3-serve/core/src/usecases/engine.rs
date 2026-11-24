@@ -2,7 +2,7 @@
 //! subscriber's view agree. Commands are idempotent by `commandId`; a stream starts from a snapshot or, inside the gap, a replay.
 use crate::domain::auth::uuid_v4;
 use crate::domain::command::{Command, Family};
-use crate::domain::decider::{decide, decide_adopt, decide_run_step, queue_hold_events, Ctx, Effect, Rejection, RunStep};
+use crate::domain::decider::{decide, decide_adopt, decide_run_step, observe_run, queue_hold_events, Ctx, Effect, Rejection, RunStep};
 use crate::domain::state::{event_json, State};
 use crate::ports::{Clock, EventDraft, EventStore, Ids, StoreError, StoredEvent};
 use serde_json::{json, Map, Value};
@@ -182,6 +182,17 @@ impl Engine {
     /// of the thread's log writes nothing twice.
     pub fn record_agent(&self, thread_id: &str, run_id: &str, seq: u64, step: &RunStep) -> Result<(), StoreError> {
         self.record_as(thread_id, run_id, step, &format!("agent:{thread_id}:{seq}"), true)
+    }
+
+    pub fn observe_agent_run(&self, thread: &str, run: &str, text: &str) -> Result<bool, StoreError> {
+        let mut inner = self.lock();
+        let new_id = || uuid(self.ids.as_ref());
+        let drafts = observe_run(&inner.state, thread, run, text, &Ctx { now: self.clock.now_ms(), new_id: &new_id });
+        if drafts.is_empty() {
+            return Ok(false);
+        }
+        self.commit(&mut inner, drafts, run, None)?;
+        Ok(true)
     }
 
     fn record_as(&self, thread_id: &str, run_id: &str, step: &RunStep, command_id: &str, receipt: bool) -> Result<(), StoreError> {

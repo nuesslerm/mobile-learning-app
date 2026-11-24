@@ -58,7 +58,7 @@ fn a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_th
         let (thread_stream, _) = phone.stream(case, &chain, &["rpc:orchestration.subscribeThread"], "orchestration.subscribeThread", json!({"threadId": "t1"}));
         let deadline = Instant::now() + Duration::from_secs(5);
         while !chain.tap.since(before_watch).iter().any(|hit| matches!(hit, Seen::Agent { method, ok: true, .. } if method == "thread.subscribe")) {
-            assert!(Instant::now() < deadline, "Claude receipt watcher did not subscribe: {}", chain.evidence());
+            assert!(Instant::now() < deadline, "thread event watcher did not subscribe: {}", chain.evidence());
             std::thread::sleep(Duration::from_millis(5));
         }
         // When the phone sends a message and the run it starts ends
@@ -80,8 +80,15 @@ fn a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_th
         // And the thread stream the phone had open carried the run from its creation to its end, and the projection read on its own says the same
         let events: Vec<String> = phone.drain_watch().iter().filter(|f| f["requestId"] == thread_stream && f["_tag"] == "Chunk").flat_map(|f| f["values"].as_array().unwrap().clone()).filter(|v| v["kind"] == "event").map(|v| v["event"]["type"].as_str().unwrap().to_string()).collect();
         assert!(events.contains(&"run.created".to_string()) && events.last().is_some_and(|e| e == "run.updated"), "{events:?}");
-        let again = phone.call(case, &chain, &["rpc:orchestration.getThreadProjection"], "orchestration.getThreadProjection", json!({"threadId": "t1"}));
-        assert_eq!(success(&again)["runs"][0]["status"], "completed");
+        // When the phone closes its sockets and opens the thread on a new connection, both messages are in the snapshot.
+        drop(phone);
+        let mut reopened = Phone::connect(case, &chain);
+        let (_, frames) = reopened.stream(case, &chain, &["rpc:orchestration.subscribeThread"], "orchestration.subscribeThread", json!({"threadId": "t1"}));
+        let snapshot = &frames[0]["projection"];
+        assert_eq!(snapshot["messages"], projection["messages"]);
+        assert_eq!(snapshot["runs"].as_array().unwrap().len(), 1);
+        assert_eq!(snapshot["runs"][0]["status"], "completed");
+        assert_eq!(chain.direct().events("t1", "turn.started").len(), 1);
     });
 }
 
