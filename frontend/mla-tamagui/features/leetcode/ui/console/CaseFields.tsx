@@ -5,7 +5,7 @@ import { TextInput } from 'react-native';
 
 import type { CaseFieldCaption } from '../../domain/console/caseFields';
 import type { ConsoleCase } from '../../domain/console/testcases';
-import { INSET_VALUE_CAPTION_OPACITY, INSET_VALUE_SURFACE, ValueCard } from './ValueCard';
+import { DARK_INSET_VALUE_TEXT, INSET_VALUE_CAPTION_OPACITY, INSET_VALUE_SURFACE, INSET_VALUE_TYPOGRAPHY, ValueCard } from './ValueCard';
 
 type Props = {
   entry: ConsoleCase;
@@ -52,8 +52,8 @@ export function CaseFields({ entry, captions, focusToken, fieldError, onEdit, in
                 borderRadius: 8,
                 paddingHorizontal: inset ? 0 : 12,
                 paddingVertical: inset ? 0 : 10,
-                fontFamily: 'Menlo, Courier, monospace',
-                fontSize: 13,
+                ...(inset ? INSET_VALUE_TYPOGRAPHY : { fontFamily: 'Menlo, Courier, monospace', fontSize: 13 }),
+                ...(inset && surfaceColor ? DARK_INSET_VALUE_TEXT : {}),
                 textAlignVertical: 'top',
               }}
             />

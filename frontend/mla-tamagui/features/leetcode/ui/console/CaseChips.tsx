@@ -20,6 +20,7 @@ type Props = {
   onRemove?: (id: string) => void;
 };
 
+const FLOATING_TRAILING_GUTTER = 16;
 const EDIT_TRAILING_GUTTER = 28;
 
 /** One chip per case in a plain horizontal scroller (the sheet's one registered scrollable is its body), with + and the pencil pinned at the right. */
@@ -30,11 +31,12 @@ export function CaseChips({ cases, selectedId, atCap, neutral = false, darkGlass
   const positions = React.useRef(new Map<string, { x: number; width: number }>());
   const activeColor = darkGlass ? '#262428' : neutral ? '$color6' : '$color9';
   const inactiveColor = darkGlass ? '#1d1e20' : '$color4';
+  const trailingGutter = editing ? EDIT_TRAILING_GUTTER : neutral ? FLOATING_TRAILING_GUTTER : undefined;
 
   const reveal = React.useCallback((chip: { x: number; width: number }) => {
-    const target = chipScrollTarget(chip, viewport.current, scrollX.current, editing ? EDIT_TRAILING_GUTTER : undefined);
+    const target = chipScrollTarget(chip, viewport.current, scrollX.current, trailingGutter);
     if (target !== scrollX.current) scrollRef.current?.scrollTo({ x: target, animated: true });
-  }, [editing]);
+  }, [trailingGutter]);
 
   const revealSelected = React.useCallback(() => {
     const chip = selectedId ? positions.current.get(selectedId) : undefined;
@@ -50,7 +52,7 @@ export function CaseChips({ cases, selectedId, atCap, neutral = false, darkGlass
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{ flex: 1 }}
-        contentContainerStyle={{ gap: neutral ? 12 : 8, paddingTop: editing ? 6 : 2, paddingRight: editing ? EDIT_TRAILING_GUTTER : 0, paddingBottom: 2 }}
+        contentContainerStyle={{ gap: neutral ? 12 : 8, paddingTop: editing ? 6 : 2, paddingRight: trailingGutter ?? 0, paddingBottom: 2 }}
         onLayout={(event: LayoutChangeEvent) => {
           viewport.current = event.nativeEvent.layout.width;
           revealSelected();

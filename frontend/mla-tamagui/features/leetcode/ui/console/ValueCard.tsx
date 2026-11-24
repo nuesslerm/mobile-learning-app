@@ -7,6 +7,8 @@ import { clip } from '../../domain/run/caseDisplay';
 
 export const INSET_VALUE_SURFACE = { px: 16, py: 8, rounded: '$3', bg: '$color4' } as const;
 export const INSET_VALUE_CAPTION_OPACITY = 0.4;
+export const INSET_VALUE_TYPOGRAPHY = { fontSize: 16, lineHeight: 26 } as const;
+export const DARK_INSET_VALUE_TEXT = { color: '#fff', fontWeight: '500' } as const;
 
 /** A caption over a monospace value on a card; a value longer than a line is clipped and a tap opens it. */
 export function ValueCard({ id, caption, value, tone, inset = false, surfaceColor }: { id: string; caption: string; value: string; tone?: '$red10'; inset?: boolean; surfaceColor?: string }) {
@@ -20,7 +22,7 @@ export function ValueCard({ id, caption, value, tone, inset = false, surfaceColo
       </Text>
       <Pressable disabled={!shown.clipped} onPress={() => setOpen((was) => !was)} accessibilityRole={shown.clipped ? 'button' : undefined} testID={`${id}-Toggle`}>
         <YStack {...(!inset ? { px: '$3', py: '$2.5', rounded: '$3', bg: '$color3' } : {})}>
-          <Text variant={inset ? undefined : 'code'} color={tone ?? (darkSurface ? '#fff' : undefined)} fontWeight={darkSurface ? '500' : undefined} testID={id}>
+          <Text variant={inset ? undefined : 'code'} color={tone ?? (darkSurface ? DARK_INSET_VALUE_TEXT.color : undefined)} fontWeight={darkSurface ? DARK_INSET_VALUE_TEXT.fontWeight : undefined} {...(inset ? INSET_VALUE_TYPOGRAPHY : {})} testID={id}>
             {shown.text}
           </Text>
         </YStack>
