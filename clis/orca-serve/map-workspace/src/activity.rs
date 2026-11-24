@@ -4,7 +4,7 @@
 //! shows them) and `worktree.sleep` and `.activate` (`terminal.sleep` and `terminal.wake`, with the agents of the worktree stopped on a sleep and its
 //! finished panes read on an activation). A pane is a thread (`thread:<id>`); a worktree's agents are the threads that run in its workspace.
 use crate::agent::{ask, refusal};
-use crate::repos::repo_row;
+use crate::repos::{object, repo_key};
 use crate::target::{id_of, targets, Target};
 use crate::worktrees::{checkouts, find, record, selector, Checkout};
 use agent_api_agent::lifecycle::THREAD_FORCE_STOP;
@@ -18,7 +18,7 @@ use orca_core::wire::{received, Failure, RUNTIME_ERROR};
 use orca_core::{AgentApi, AgentError, Ctx, EventStream, Subscription};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -374,9 +374,8 @@ fn agent_rows(all: &[panes::PaneView], workspace: Option<&str>) -> Vec<Value> {
         .collect()
 }
 
-fn summary(agent: &dyn AgentApi, platform: &str, p: &Placed, all_panes: &[panes::PaneView]) -> Result<Value, Failure> {
+fn summary(agent: &dyn AgentApi, platform: &str, p: &Placed, repo_name: &Value, all_panes: &[panes::PaneView]) -> Result<Value, Failure> {
     let base = record(agent, &p.repo, &p.checkout)?;
-    let repo = repo_row(agent, &p.repo)?;
     let terminals = match &p.workspace {
         Some(w) => terminals_of(agent, w)?,
         None => Vec::new(),
@@ -393,7 +392,7 @@ fn summary(agent: &dyn AgentApi, platform: &str, p: &Placed, all_panes: &[panes:
     put("worktreeId", p.id.clone().into());
     put("repoId", p.repo.workspace.clone().into());
     put("terminalPlatform", platform.into());
-    put("repo", repo["displayName"].clone());
+    put("repo", repo_name.clone());
     put("path", p.checkout.path.clone().into());
     put("branch", base["branch"].clone());
     put("isArchived", base["isArchived"].clone());
@@ -512,9 +511,19 @@ pub(crate) fn ps(agent: &dyn AgentApi, platform: &str, params: &Value) -> Result
         return Err(Failure::new("invalid_limit", "invalid_limit"));
     }
     let all_panes: Vec<panes::PaneView> = serde_json::from_value(ask(agent, panes::LIST.name(), json!({}))?["panes"].clone()).map_err(|e| Failure::new(RUNTIME_ERROR, e.to_string()))?;
+    let worktrees = placed(agent)?;
+    let mut repo_names = BTreeMap::new();
     let mut rows = Vec::new();
-    for p in placed(agent)? {
-        rows.push(summary(agent, platform, &p, &all_panes)?);
+    for p in &worktrees {
+        let repo = p.repo.workspace.as_str();
+        let name = match repo_names.entry(repo) {
+            Entry::Occupied(saved) => saved.into_mut(),
+            Entry::Vacant(slot) => {
+                let mut meta = object(agent, &repo_key(repo))?;
+                slot.insert(meta.remove("displayName").unwrap_or_else(|| repo.into()))
+            }
+        };
+        rows.push(summary(agent, platform, p, name, &all_panes)?);
     }
     rows.sort_by(row_order);
     let total = rows.len();

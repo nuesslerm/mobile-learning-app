@@ -604,6 +604,29 @@ fn given_a_main_checkout_with_a_terminal_and_a_finished_agent_when_worktree_ps_i
 }
 
 #[test]
+fn given_two_checkouts_when_worktree_ps_builds_their_summaries_then_it_shares_the_repo_name_read_for_that_request() {
+    // Given two checkouts of a renamed repository
+    let mut rig = busy();
+    rig.agent.set_state("orca", "orca.repo.main", json!({"displayName": "Renamed repo"}));
+
+    // When the phone refreshes its worktrees
+    let ps = rig.ok("worktree.ps", json!({}));
+
+    // Then both rows show that name and the listing enumerates Git checkouts only once
+    let rows = ps["worktrees"].as_array().unwrap();
+    assert_eq!(rows.len(), 2);
+    assert!(rows.iter().all(|row| row["repo"] == "Renamed repo"));
+    let calls = rig.agent.calls();
+    assert_eq!(calls.iter().filter(|method| method.as_str() == "worktree.list").count(), 1);
+    assert_eq!(calls.iter().filter(|method| method.as_str() == "state.get").count(), 3);
+
+    // The next request sees a later name
+    rig.agent.set_state("orca", "orca.repo.main", json!({"displayName": "Another name"}));
+    let next = rig.ok("worktree.ps", json!({}));
+    assert!(next["worktrees"].as_array().unwrap().iter().all(|row| row["repo"] == "Another name"));
+}
+
+#[test]
 fn given_a_caller_that_sends_snapshot_ids_when_the_rows_change_then_it_gets_the_id_then_unchanged_then_the_rows_it_does_not_hold() {
     // Given the rows of a busy service asked for with row deltas accepted
     let mut rig = busy();
