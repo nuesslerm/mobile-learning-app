@@ -18,9 +18,8 @@ fn models(driver: &str) -> Vec<Model> {
             model("haiku", "Haiku", Some("The fastest"), false),
         ],
         "codex" => vec![
-            model("gpt-6.1-sol", "GPT-6.1 Sol", None, false),
-            model("gpt-5-codex", "GPT-5 Codex", None, true),
-            model("gpt-5", "GPT-5", None, false),
+            model("gpt-6.1-sol", "GPT-6.1 Sol", None, true),
+            model("gpt-5.6-sol", "GPT-5.6 Sol", None, false),
         ],
         _ => vec![model("default", "Default", Some("The model opencode is configured with"), true)],
     }

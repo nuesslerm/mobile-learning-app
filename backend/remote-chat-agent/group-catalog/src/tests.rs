@@ -71,9 +71,10 @@ fn given_every_driver_of_the_contract_when_its_models_are_listed_then_one_is_the
 }
 
 #[test]
-fn given_the_codex_catalog_when_a_client_lists_models_then_gpt_6_1_sol_is_available_for_selection() {
+fn given_the_codex_catalog_when_a_phone_switches_models_then_it_has_two_models_supported_by_codex_accounts() {
     let listed = table::for_driver("codex");
-    assert!(listed.models.iter().any(|m| m.id == "gpt-6.1-sol" && m.label == "GPT-6.1 Sol"));
+    let choices: Vec<_> = listed.models.iter().map(|model| (model.id.as_str(), model.is_default)).collect();
+    assert_eq!(choices, [("gpt-6.1-sol", true), ("gpt-5.6-sol", false)]);
 }
 
 #[tokio::test]
