@@ -7,7 +7,7 @@ assert_true(base, "pass --env base=<update link>; wf test run does")
 -- what the start opens: the app's root under base, unless the caller names the link (an EAS Update opens bare: its
 -- manifest answers 404 with a /--/ path after it, CI run 39593152492)
 local link = env.open or (base .. "/")
-local ready = {id=env.ready or 'LeetcodeListMenuButton'}
+local ready = {id=env.ready or 'LibraryHomeMenuButton'}
 local out = env.out or ".agents/tmp/warm-app"
 os.execute("mkdir -p " .. out)
 
