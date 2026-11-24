@@ -503,6 +503,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::QueueMove { thread, item, before } => (queue::QUEUE_MOVE, queue::MoveParams { thread: same(thread), item: same(item), before: before.clone() }.to_value()),
         Op::QueueDelete { thread, item } => (queue::QUEUE_DELETE, queue::DeleteParams { thread: same(thread), item: same(item) }.to_value()),
         Op::QueueResume { thread, item } => (queue::QUEUE_RESUME, queue::ResumeParams { thread: same(thread), item: item.clone() }.to_value()),
+        Op::QueueList { thread } => (queue::QUEUE_LIST, queue::ListParams { thread: same(thread) }.to_value()),
         Op::TurnSteer { thread, turn, item } => (TURN_STEER, queue::SteerParams { thread: same(thread), turn: turn.clone(), prompt: None, item: item.clone() }.to_value()),
         Op::ThreadArchive { thread, archived } => (lifecycle::THREAD_ARCHIVE, lifecycle::ArchiveParams { thread: same(thread), archived: Some(*archived) }.to_value()),
         Op::ThreadDelete { thread, only_if_unused } => (lifecycle::THREAD_DELETE, lifecycle::DeleteParams { thread: same(thread), only_if_unused: Some(*only_if_unused) }.to_value()),

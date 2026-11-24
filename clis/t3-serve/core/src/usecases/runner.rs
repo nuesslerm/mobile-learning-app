@@ -283,11 +283,11 @@ impl Runner {
         if let Some(run) = self.recall(&turn_key(thread, turn)) {
             return Some(run);
         }
-        // A queued run's turn has its id
-        if self.engine.knows_run(thread, turn) {
-            return Some(turn.to_string());
-        }
-        let run = self.engine.active_run(thread).filter(|run| self.recall(&run_key(run)).is_none())?;
+        let run = if self.engine.knows_run(thread, turn) {
+            turn.to_string()
+        } else {
+            self.engine.active_run(thread).filter(|run| self.recall(&run_key(run)).is_none())?
+        };
         self.remember(&turn_key(thread, turn), &run);
         self.remember(&run_key(&run), turn);
         Some(run)
@@ -319,26 +319,35 @@ impl Runner {
         }
     }
 
-    /// Follows every run a restart left running: caught up from the log, then to its end, or failed when its turn was never started.
+    /// Catch up after downtime and keep following RCA's turns through the end of the queue.
     pub fn resume(self: &Arc<Self>) {
-        for (thread, run) in self.engine.running() {
+        for thread in self.engine.recoverable_threads() {
             let me = self.clone();
             let key = thread.clone();
-            self.spawn(&key, move |_| {
+            self.spawn(&key, move |stop| {
                 me.sync_thread(&thread);
-                if me.engine.active_run(&thread).as_deref() != Some(run.as_str()) {
-                    return;
+                if let Some(run) = me.engine.active_run(&thread) {
+                    let result = match me.recall(&run_key(&run)) {
+                        Some(turn) => me.follow(&thread, &run, &turn, me.cursor(&thread)).map_err(|e| e.message()),
+                        None => Err("t3 serve stopped before the turn was started".to_string()),
+                    };
+                    match result {
+                        Ok(()) => me.finish(&thread, &run, Outcome::Completed),
+                        Err(message) => me.finish(&thread, &run, Outcome::Failed(message)),
+                    }
+                    me.log.event("run.resumed", &[("thread", thread.clone()), ("run", run)]);
                 }
-                let result = match me.recall(&run_key(&run)) {
-                    Some(turn) => me.follow(&thread, &run, &turn, me.cursor(&thread)).map_err(|e| e.message()),
-                    None => Err("t3 serve stopped before the turn was started".to_string()),
-                };
-                match result {
-                    Ok(()) => me.finish(&thread, &run, Outcome::Completed),
-                    Err(message) => me.finish(&thread, &run, Outcome::Failed(message)),
+                if me.engine.next_queued(&thread).is_some() {
+                    match me.agent.run(&Op::QueueList { thread: thread.clone() }) {
+                        Ok(queue) if queue["held"] == false => me.drain(&thread),
+                        Ok(_) => {}
+                        Err(e) => me.log.event("run.queue.recover.failed", &[("thread", thread.clone()), ("error", e.message())]),
+                    }
                 }
-                me.log.event("run.resumed", &[("thread", thread.clone()), ("run", run.clone())]);
-                me.stops().remove(&thread);
+                let mut stops = me.stops();
+                if stops.get(&thread).is_some_and(|current| Arc::ptr_eq(current, &stop)) {
+                    stops.remove(&thread);
+                }
             });
         }
     }

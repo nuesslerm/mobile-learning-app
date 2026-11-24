@@ -55,3 +55,11 @@ For the combined reconnect case, open a Claude question from T3 and seed two uni
 The paired-client integration regression checks pending approval and question projection, the question snapshot after a new socket connects, and resolution after approval, answer and dismissal. The local T3 thread-surface suite passed 12 tests and the RCA adapter flow suite passed 14. Simulator recordings, screenshots and request IDs are under `.context/rca-runtime-requests/` in Zagreb.
 
 The device driver can now see the physical iPhone with both apps installed. The deployed `t3-serve` and `orca-serve` tailnet health probes still fail, so the phone-to-Linux network check remains open.
+
+## T3 queue recovery after adapter restart
+
+Replayed `reconnect` on T3 with Claude and two follow-ups seeded through the paired adapter. The same question and queue IDs survived the socket drop. Submitting Green resolved the question exactly once. RCA started and finished each queued turn once, in A then B order. T3 showed both replies, completed all three runs and removed the queue control without a history refresh. The simulator recording, screenshots and ordered event receipts are under `.context/rca-queue-recovery/` in Zagreb.
+
+The restart regression in `agent_threads::` asserts playback through both queued turns, recovery of a queued turn already in flight, and user-controlled resume of a force-stopped queue. All eight focused flow tests and all twelve thread-surface integration tests passed on Linux. The concurrent Mac checks hit connection resets in the loopback HTTP helper. The serial Mac flow run passed all eight cases.
+
+The seeded native queue controls test used T3's Stop button on a pending question. RCA held both entries across an adapter restart. T3's edit updated the first queued prompt in place. Tapping Send now started that edited entry and released the queue, which ran the second entry in order. Both finished once. The queue menu offered Send now, Edit and Remove. The held entries lacked `queueHeld` in T3's projection, so the dedicated Resume queue control did not appear. Native queue creation and reorder remain open.

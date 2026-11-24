@@ -209,11 +209,12 @@ impl Engine {
         self.lock().state.entities.get(thread_id).is_some_and(|e| e.runs.iter().any(|r| r["id"] == run_id))
     }
 
-    /// Every thread with a run that is running, and that run.
-    pub fn running(&self) -> Vec<(String, String)> {
+    /// Threads with active or queued work whose updates may have arrived while T3 was down.
+    pub fn recoverable_threads(&self) -> Vec<String> {
         let inner = self.lock();
-        let running = |(thread, e): (&String, &crate::domain::state::Entities)| e.runs.iter().rev().find(|r| r["status"] == "running").and_then(|r| r["id"].as_str().map(|run| (thread.clone(), run.to_string())));
-        inner.state.entities.iter().filter_map(running).collect()
+        inner.state.entities.iter().filter(|(thread, entities)| {
+            inner.state.threads.contains_key(*thread) && entities.runs.iter().any(|r| matches!(r["status"].as_str(), Some("running" | "queued")))
+        }).map(|(thread, _)| thread.clone()).collect()
     }
 
     fn replayable(after: Option<u64>, last: u64) -> Option<u64> {
