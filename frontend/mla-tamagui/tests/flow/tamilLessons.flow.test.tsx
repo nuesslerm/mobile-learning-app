@@ -42,6 +42,25 @@ describe('Offline Tamil lessons', () => {
     }]);
   });
 
+  it('Given the Tamil Library, When a section cover opens, Then only its lessons are listed', async () => {
+    const { options } = await setup();
+    const [first, second] = await tamilTestCurriculum.listSections();
+    const library = await app.render('/tamil', options);
+    await waitFor(() => screen.getByTestId(`TamilCollection-${second.id}`));
+    await library.tap(`TamilCollection-${second.id}`);
+    expect(routerHarness().calls()).toContainEqual(['push', { pathname: '/tamil/all-topics', params: { section: second.id } }]);
+    await app.render('/tamil/all-topics', { ...options, search: { section: second.id } });
+    await waitFor(() => screen.getByTestId(`TamilTask-${second.topics[0].tasks[0].id}`));
+    expect(screen.queryByTestId(`TamilTask-${first.topics[0].tasks[0].id}`)).toBeNull();
+  });
+
+  it('Given a collection, When Handwriting is selected in the dock, Then its catalog opens', async () => {
+    const { options } = await setup();
+    const collection = await app.render('/tamil/all-topics', options);
+    await collection.tap('TamilHandwritingEntry');
+    expect(routerHarness().calls()).toContainEqual(['navigate', '/tamil/handwriting']);
+  });
+
   it('Given the library, When a topic and Practice are opened, Then the first task is ready', async () => {
     const { options, route, topic, task } = await setup();
     const session = await app.render('/tamil', options);

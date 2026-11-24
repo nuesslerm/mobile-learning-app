@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { characterGroups, matchesCharacter } from '../../domain/handwriting/catalog';
 import { backTo, CourseLayout, CourseMessage } from '../library/CourseLayout';
 
+import { TamilLibraryDock } from '../library/TamilLibraryDock';
+
 export function HandwritingLibrary() {
   const colors = useCompactColors();
   const { bottom } = useSafeAreaInsets();
@@ -25,7 +27,7 @@ export function HandwritingLibrary() {
           onCancel={searching ? () => { setQuery(''); Keyboard.dismiss(); } : undefined}
           testID="TamilHandwritingSearch" />
       </View>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingBottom: bottom + 20 }]}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingBottom: bottom + 100 }]}>
         {groups.map((group) => {
           const open = searching || expanded === group.id;
           return (
@@ -58,6 +60,7 @@ export function HandwritingLibrary() {
           <Text style={[styles.title, { color: colors.foreground }]}>Alphabet lessons</Text>
         </DenseActionRow>
       </ScrollView>
+      <TamilLibraryDock selected="Handwriting" />
     </CourseLayout>
   );
 }

@@ -9,15 +9,18 @@ import { exerciseCount, matchesTask, nextTask, reviewExercises } from '../../dom
 import { useCourse } from '../../state/lessons/useCourse';
 import { backTo, CourseButton, CourseLayout, CourseMessage } from '../library/CourseLayout';
 
-export function TamilTopicScreen({ topicId }: { topicId?: string }) {
+import { TamilLibraryDock } from '../library/TamilLibraryDock';
+
+export function TamilTopicScreen({ topicId, sectionId }: { topicId?: string; sectionId?: string }) {
   const colors = useCompactColors();
   const { bottom } = useSafeAreaInsets();
   const { course, error, reload } = useCourse();
   const [query, setQuery] = useState('');
   useFocusEffect(useCallback(() => { void reload(); }, [reload]));
-  const topics = (course?.sections.flatMap((section) => section.topics) ?? [])
+  const sections = course?.sections.filter((section) => !sectionId || section.id === sectionId);
+  const topics = (sections?.flatMap((section) => section.topics) ?? [])
     .filter((topic) => topicId === undefined || topic.id === topicId);
-  const title = topicId === undefined ? 'All Topics' : topics[0]?.title;
+  const title = topicId ? topics[0]?.title : sectionId ? sections?.[0]?.title : 'All Topics';
   const tasks = topics.flatMap((topic) => topic.tasks.map((task) => ({ topic, task })));
   const progress = course?.progress;
   const completed = tasks.filter(({ task }) => progress?.tasks[task.id]?.completed).length;
@@ -41,7 +44,7 @@ export function TamilTopicScreen({ topicId }: { topicId?: string }) {
             <SearchPill value={query} onChangeText={setQuery} onSubmit={Keyboard.dismiss}
               onCancel={query ? () => { setQuery(''); Keyboard.dismiss(); } : undefined} testID="TamilTaskSearch" />
           </View>
-          <FlatList data={filtered} keyExtractor={({ task }) => task.id} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingBottom: bottom + 24 }]}
+          <FlatList data={filtered} keyExtractor={({ task }) => task.id} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingBottom: bottom + 100 }]}
             ListHeaderComponent={(
             <View style={styles.hero}>
               <View style={[styles.artwork, { backgroundColor: colors.surface }]}>
@@ -75,6 +78,7 @@ export function TamilTopicScreen({ topicId }: { topicId?: string }) {
           />
         </>
       )}
+      <TamilLibraryDock selected={topicId || sectionId ? undefined : 'All Topics'} />
     </CourseLayout>
   );
 }
