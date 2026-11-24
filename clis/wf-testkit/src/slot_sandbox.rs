@@ -22,8 +22,10 @@ impl SlotSandbox {
         for dir in [&repo, &reg_dir, &bin_dir] {
             std::fs::create_dir(dir).unwrap();
         }
-        assert!(Command::new("git").args(["init", "-q", "-b", "main"]).current_dir(&repo).status().unwrap().success());
-        assert!(Command::new("git").args(["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "x"]).current_dir(&repo).status().unwrap().success());
+        // a commit hook points GIT_INDEX_FILE at the outer repo's temporary index
+        let git = |args: &[&str]| Command::new("git").args(args).current_dir(&repo).env_remove("GIT_INDEX_FILE").env_remove("GIT_DIR").env_remove("GIT_WORK_TREE").status().unwrap().success();
+        assert!(git(&["init", "-q", "-b", "main"]));
+        assert!(git(&["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "x"]));
         let sandbox = Self { _root: root, repo, reg_dir, bin_dir };
         sandbox.seed(&json!({}));
         sandbox
@@ -63,7 +65,14 @@ impl SlotSandbox {
 
     /// Runs `wf <args>` in the repo with the stubs first on PATH; `ts=<seconds>` at the start of a log line reads `ts=T`.
     pub fn run(&self, args: &[&str], env: &[(&str, &str)]) -> RunResult {
+        self.run_within(args, env, None)
+    }
+
+    /// `run` with the child killed after `limit` (the runner's default is 15 s), for a run that waits on a condition a loaded
+    /// machine could stretch past it.
+    pub fn run_within(&self, args: &[&str], env: &[(&str, &str)], limit: Option<std::time::Duration>) -> RunResult {
         let mut opts = RunOpts::default().bin_dir(&self.bin_dir).cwd(&self.repo).env("WF_REGISTRY_DIR", &self.reg_dir.display().to_string()).env("ANDROID_SERIAL", "emulator-5554");
+        opts.timeout = limit;
         for (key, value) in env {
             opts = opts.env(key, value);
         }

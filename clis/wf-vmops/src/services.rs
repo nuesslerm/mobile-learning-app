@@ -10,7 +10,6 @@ pub const RECOVER_APPS: &[&str] = &[
     "remote-chat-agent",
     "leetcode-auth-cookie-capture",
     "agent-shell",
-    "ci-runner",
     "vnc-auth-session",
     "reporting-service",
     "t3-serve",
@@ -29,11 +28,6 @@ pub fn app_image(app: &str) -> &str {
         "vnc-auth-session" => "vnc-auth-capture",
         _ => app,
     }
-}
-
-/// The apps that run a published image and have none of their own to build: `wf ship` only redeploys them.
-pub fn is_imageless(app: &str) -> bool {
-    app == "ci-runner"
 }
 
 /// Where an app answers `/health` on the tailnet; the apps without an HTTP health have none.
@@ -100,7 +94,13 @@ pub fn ps(app: &str) -> Result<Vec<Value>, String> {
 /// running image. A container that was created or stopped runs nothing: a redeploy that died half-way leaves the tag on containers that never started.
 pub fn running_commit(app: &str) -> Option<String> {
     if app == VM_OPS_API {
-        return request_json("/health", &Opts::get()).ok()?["commit"].as_str().filter(|c| !c.is_empty()).map(str::to_string);
+        return match request_json("/health", &Opts::get()) {
+            Ok(health) => health["commit"].as_str().filter(|c| !c.is_empty()).map(str::to_string),
+            Err(e) => {
+                wf_kit::wf_err!("wf: {VM_OPS_API} did not answer /health, planning it as changed: {e}");
+                None
+            }
+        };
     }
     let tag = format!("/{}:sha-", app_image(app));
     match ps(app) {

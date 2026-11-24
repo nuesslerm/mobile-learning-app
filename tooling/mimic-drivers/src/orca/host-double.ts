@@ -4,6 +4,7 @@
 // `node src/orca/host-double.ts` prints the ready line an orcad prints (`orca_server_ready` with a pairing url) and serves until stdin
 // closes; ORCA_DOUBLE_METHODS (a JSON method table) says what it answers.
 import { createHash } from 'node:crypto'
+import { existsSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import type { Socket } from 'node:net'
 import { bundleModule } from '../bundle.ts'
@@ -27,9 +28,12 @@ let lib: Promise<Lib> | undefined
 function load(): Promise<Lib> {
   lib ??= (async () => {
     assertAtPin()
+    // The channel moved to rpc/mobile/e2ee (1.4.259).
+    const channel = ['src/main/runtime/rpc/e2ee-channel', 'src/main/runtime/rpc/mobile/e2ee/e2ee-channel'].map((c) => `${orcaRoot()}/${c}`).find((c) => existsSync(`${c}.ts`))
+    if (!channel) throw new Error('e2ee-channel is in neither known place of the Orca checkout at the pin: Orca moved the module again')
     return bundleModule<Lib>(`
 import nacl from 'tweetnacl'
-import { E2EEChannel } from '${orcaRoot()}/src/main/runtime/rpc/e2ee-channel'
+import { E2EEChannel } from '${channel}'
 export { nacl, E2EEChannel }
 `, undefined, [{ filter: /^posthog-node$/, contents: 'module.exports = { PostHog: class { capture() {} shutdown() {} } }' }])
   })()

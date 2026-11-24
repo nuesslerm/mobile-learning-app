@@ -10,7 +10,7 @@ const listed = JSON.parse(fs.readFileSync(path.join(repo, 'docs/plans/device-lab
 >;
 
 const ROOTS = ['frontend/mla-tamagui', 'libraries', 'features'];
-const SKIP = /(^|\/)(node_modules|dist|\.expo|\.serve-tmp[^/]*|__tests__|tests|e2e|eslint-plugin-mobile-learn)(\/|$)|\.test\.tsx?$/;
+const SKIP = /(^|\/)(node_modules|dist|\.expo|\.serve-tmp[^/]*|__tests__|tests|e2e|lint-rules)(\/|$)|\.test\.tsx?$/;
 const NATIVE_UI = /from ['"](react-native-gesture-handler|react-native-reanimated|@shopify\/react-native-skia)['"]/;
 
 function walk(dir: string, found: string[] = []): string[] {

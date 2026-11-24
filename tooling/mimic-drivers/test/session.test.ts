@@ -5,8 +5,6 @@ import { PassThrough } from 'node:stream'
 import { test } from 'node:test'
 import { serve, type Driver } from '../src/protocol.ts'
 import { shared } from '../src/session.ts'
-import { t3 } from '../src/t3/index.ts'
-import { fakeT3 } from './support/fake-t3.ts'
 
 function counting() {
   const log: string[] = []
@@ -102,33 +100,4 @@ test('Given no concurrency setting, When requests are sent, Then they are answer
   const lines = [60, 1].map((ms, i) => `{"id":"r${i}","op":"nap","input":{"ms":${ms}}}`)
   const { replies } = await talk(sleeper([]), lines, {})
   assert.deepEqual(replies.map((r) => r.id), ['r0', 'r1'])
-})
-
-const withPrelude = () => ({ prelude: 'session' as const, settle_ms: 30, script: [{ 'ws-send': { _tag: 'Request', id: '7', tag: 'test.value', payload: {}, headers: [] } }, { 'ws-close': {} }] })
-
-test('Given a session driver on a stand-in T3, When two interactions ask for the session prelude, Then the pairing is minted once, both start with the same prelude steps and each has its own answer', async () => {
-  const fake = await fakeT3()
-  const minted: string[] = []
-  let starts = 0
-  try {
-    const launch = async <R>(use: (s: { baseUrl: string; workspace: string; mint: () => Promise<string> }) => Promise<R>): Promise<R> => {
-      starts += 1
-      return use({ baseUrl: fake.url, workspace: '/w', mint: async () => (fake.minted.push('CODE'), minted.push('CODE'), 'CODE') })
-    }
-    const driver = t3(launch, '1.0.0', { session: true })
-    const a = await driver.ops.script!(withPrelude())
-    const b = await driver.ops.script!(withPrelude())
-    assert.equal(starts, 1, 'one server for both')
-    assert.equal(minted.length, 1, 'one pairing credential: the prelude ran once')
-    const opening = (steps: any[]) => steps.slice(0, steps.findIndex((s) => s.channel === 'ws:open') + 1)
-    assert.deepEqual(opening(a.steps), opening(b.steps), 'the opening steps are the pristine prelude')
-    for (const r of [a, b]) assert.ok(r.steps.some((s: any) => s.dir === 's2c' && s.channel === 'ws' && s.payload._tag === 'Exit' && s.rid === '7'), 'the interaction was answered on its own socket')
-    assert.equal(fake.sockets.length, 3, 'the prelude socket and one socket per interaction')
-    await driver.reset!()
-    await driver.ops.script!(withPrelude())
-    assert.equal(starts, 2, 'a reset gives a new server')
-    assert.equal(minted.length, 2, 'and a new prelude')
-  } finally {
-    await fake.close()
-  }
 })

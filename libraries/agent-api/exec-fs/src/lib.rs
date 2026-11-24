@@ -10,17 +10,21 @@ pub mod testing;
 
 pub const READ_FILE: &str = "read_file";
 pub const WRITE_FILE: &str = "write_file";
-pub const EDIT_FILE: &str = "edit_file";
 pub const LIST_DIR: &str = "list_dir";
-pub const SEARCH: &str = "search";
 pub const STAT: &str = "stat";
 pub const READ_CHUNK: &str = "read_chunk";
 pub const CREATE_FILE: &str = "create_file";
 pub const BROWSE: &str = "browse";
 pub const SEARCH_ENTRIES: &str = "search_entries";
 pub const PUT_BLOB: &str = "put_blob";
+pub const PUT_TEMP: &str = "put_temp";
 pub const MAKE_DIR: &str = "make_dir";
+pub const SECRET_FILE_PUT: &str = "secret_file_put";
+pub const ARTIFACT_STAT: &str = "artifact_stat";
+pub const ARTIFACT_READ: &str = "artifact_read";
+pub const ARTIFACT_WRITE: &str = "artifact_write";
 pub const SKILL_SCAN: &str = "skill_scan";
+pub const SESSION_SCAN: &str = "session_scan";
 
 /// Where `skill_scan` looks for skills, below the scanned directory and below the executor's home: one directory per skill, holding `SKILL.md`.
 pub const SKILL_DIRS: [&str; 3] = [".claude/skills", ".agents/skills", ".codex/skills"];
@@ -34,6 +38,17 @@ pub const SKILL_READ_MAX: u64 = 64 << 10;
 pub const SKILL_NAME_MAX: usize = 200;
 pub const SKILL_DESCRIPTION_MAX: usize = 1000;
 
+/// The agent CLIs whose session files `session_scan` reads, below the executor's home: `~/.claude/projects/<project>/<id>.jsonl` and
+/// `~/.codex/sessions/<year>/<month>/<day>/rollout-*.jsonl`; the line formats come from the CLIs' own files, unpinned.
+pub const SESSION_AGENTS: [&str; 2] = ["claude", "codex"];
+/// The most sessions one `session_scan` returns; a larger `limit` is cut to it.
+pub const SESSIONS_MAX: usize = 500;
+const SESSIONS_DEFAULT: usize = 100;
+/// How much of one session file is read; a longer file counts the messages of this much.
+pub const SESSION_READ_MAX: u64 = 4 << 20;
+/// The longest prompt and title kept.
+pub const PROMPT_MAX: usize = 300;
+
 /// The most bytes one `read_chunk` returns; a longer `length` is cut to it.
 pub const CHUNK_MAX: u64 = 1 << 20;
 /// The most entries one `search_entries` returns; a larger `limit` is cut to it.
@@ -41,6 +56,13 @@ pub const ENTRIES_MAX: usize = 500;
 const ENTRIES_DEFAULT: usize = 100;
 /// The most bytes one `put_blob` writes (decoded); a longer `data` is refused.
 pub const BLOB_MAX: u64 = 10 << 20;
+/// The most bytes one `secret_file_put` writes: a key, a token or a certificate, never a blob.
+pub const SECRET_MAX: usize = 16 << 10;
+
+/// The most bytes of a file an artifact fingerprint covers; a longer file is pinned by its identity alone and is refused by `artifact_write`.
+pub const ARTIFACT_HASH_MAX: u64 = 16 << 20;
+/// The most bytes one `artifact_write` writes.
+pub const ARTIFACT_WRITE_MAX: usize = 4 << 20;
 
 const PATH: Property = Property { name: "path", kind: "string", about: "Path relative to the workspace root" };
 
@@ -58,29 +80,12 @@ pub const ACTIONS: &[Action] = &[
         properties: &[PATH, Property { name: "content", kind: "string", about: "The whole new content" }, Property { name: "create_dirs", kind: "boolean", about: "Create missing parent directories" }],
         required: &["path", "content"],
     },
-    Action {
-        name: EDIT_FILE,
-        about: "Replace text in a file in the workspace.",
-        properties: &[PATH, Property { name: "old", kind: "string", about: "Text to replace" }, Property { name: "new", kind: "string", about: "Replacement text" }, Property { name: "replace_all", kind: "boolean", about: "Replace every occurrence" }],
-        required: &["path", "old", "new"],
-    },
     Action { name: LIST_DIR, about: "List a directory in the workspace.", properties: &[PATH, Property { name: "depth", kind: "integer", about: "How many levels to list (default 1)" }], required: &["path"] },
-    Action {
-        name: SEARCH,
-        about: "Search file contents or file names in the workspace.",
-        properties: &[
-            Property { name: "pattern", kind: "string", about: "Pattern to look for" },
-            Property { name: "path", kind: "string", about: "Directory to search in" },
-            Property { name: "glob", kind: "string", about: "Only files matching this glob" },
-            Property { name: "kind", kind: "string", about: "\"content\" or \"files\"" },
-        ],
-        required: &["pattern", "kind"],
-    },
     Action { name: STAT, about: "Kind, size and modification time of a path in the workspace.", properties: &[PATH], required: &["path"] },
     Action {
         name: READ_CHUNK,
         about: "Read a byte range of a file in the workspace, base64 encoded (binary safe).",
-        properties: &[PATH, Property { name: "offset", kind: "integer", about: "First byte to return (default 0)" }, Property { name: "length", kind: "integer", about: "Number of bytes to return (at most 1 MiB, the default)" }],
+        properties: &[PATH, Property { name: "offset", kind: "integer", about: "First byte to return (default 0)" }, Property { name: "length", kind: "integer", about: "Number of bytes to return (at most 1 MiB, the default)" }, Property { name: "scope", kind: "string", about: "`claudeProjects` reads an absolute path below the executor's own ~/.claude/projects instead of the workspace" }],
         required: &["path"],
     },
     Action {
@@ -112,10 +117,53 @@ pub const ACTIONS: &[Action] = &[
         required: &["path", "data"],
     },
     Action {
+        name: PUT_TEMP,
+        about: "Write a pasted file into a new folder of the executor's temporary directory (never the workspace) and answer its absolute path: the name is one path segment (a separator, a control character or a leading dot is replaced), at most 10 MiB.",
+        properties: &[Property { name: "name", kind: "string", about: "The file's name" }, Property { name: "data", kind: "string", about: "The bytes, base64 (standard alphabet, padded)" }],
+        required: &["name", "data"],
+    },
+    Action {
         name: MAKE_DIR,
         about: "Make a directory in the workspace, held to the root like every path. Without `parents` the parent must exist and a path that exists is refused (a claim of the name); with it missing parents are made and a directory that exists is accepted.",
         properties: &[PATH, Property { name: "parents", kind: "boolean", about: "Make missing parent directories and accept a directory that exists" }],
         required: &["path"],
+    },
+    Action {
+        name: SECRET_FILE_PUT,
+        about: "Write a secret a person typed into a new file of the workspace, mode 0600, never replacing a path and never echoing the value (not in the result, not in an error); at most 16 KiB. The model learns the path, not the value.",
+        properties: &[PATH, Property { name: "value", kind: "string", about: "The secret, as typed" }],
+        required: &["path", "value"],
+    },
+    Action {
+        name: ARTIFACT_STAT,
+        about: "Kind, size, times, identity and content fingerprint of a file a terminal printed, which may lie outside the workspace root: only inside the root, the worktree base and the directories the executor was told to allow for artifacts (none by default). The canonical path (links resolved) is answered.",
+        properties: &[Property { name: "path", kind: "string", about: "Absolute path, or relative to the workspace root" }, Property { name: "within", kind: "string", about: "The workspace directory the root and the worktree base are narrowed to (absent: the whole root and worktree base); the allowed artifact directories stay open" }],
+        required: &["path"],
+    },
+    Action {
+        name: ARTIFACT_READ,
+        about: "Read a byte range of a file `artifact_stat` described, base64 encoded; with the identity or fingerprint it answered, refused with CHANGED when the file is no longer the one they name.",
+        properties: &[
+            Property { name: "path", kind: "string", about: "The canonical path `artifact_stat` answered" },
+            Property { name: "within", kind: "string", about: "The workspace directory the root and the worktree base are narrowed to (absent: the whole root and worktree base); the allowed artifact directories stay open" },
+            Property { name: "offset", kind: "integer", about: "First byte to return (default 0)" },
+            Property { name: "length", kind: "integer", about: "Number of bytes to return (at most 1 MiB, the default)" },
+            Property { name: "identity", kind: "string", about: "The identity `artifact_stat` answered; the read is refused when it no longer matches" },
+            Property { name: "fingerprint", kind: "string", about: "The fingerprint `artifact_stat` answered (absent for a file longer than 16 MiB); the read is refused when it no longer matches" },
+        ],
+        required: &["path"],
+    },
+    Action {
+        name: ARTIFACT_WRITE,
+        about: "Replace the content of an existing file, atomically and keeping its mode; with the identity or fingerprint `artifact_stat` answered, refused with CHANGED when the file is no longer the one they name. Never creates a file; at most 4 MiB.",
+        properties: &[
+            Property { name: "path", kind: "string", about: "The canonical path `artifact_stat` answered" },
+            Property { name: "within", kind: "string", about: "The workspace directory the root and the worktree base are narrowed to (absent: the whole root and worktree base); the allowed artifact directories stay open" },
+            Property { name: "content", kind: "string", about: "The new content" },
+            Property { name: "identity", kind: "string", about: "The identity `artifact_stat` answered; the write is refused when it no longer matches" },
+            Property { name: "fingerprint", kind: "string", about: "The fingerprint `artifact_stat` answered; the write is refused when it no longer matches" },
+        ],
+        required: &["path", "content"],
     },
     Action {
         name: SKILL_SCAN,
@@ -123,8 +171,19 @@ pub const ACTIONS: &[Action] = &[
         properties: &[
             Property { name: "root", kind: "string", about: "Directory relative to the workspace root whose skill directories are listed (\".\" is the root)" },
             Property { name: "home", kind: "boolean", about: "Also list the skill directories of the executor's own home" },
+            Property { name: "dirs", kind: "array", about: "The skill directories to list below `root`, relative and without `..` (default .claude/skills, .agents/skills, .codex/skills)" },
+            Property { name: "home_dirs", kind: "array", about: "The skill directories to list below the home, relative and without `..` (default the same three)" },
         ],
         required: &["root"],
+    },
+    Action {
+        name: SESSION_SCAN,
+        about: "List the sessions the agent CLIs (claude, codex) keep in the executor's own home, newest file first: id, title, directory, branch, model, times, message count, first and last prompt, and the file as ~/<path>.",
+        properties: &[
+            Property { name: "agents", kind: "array", about: "The CLIs to list, each claude or codex (default both)" },
+            Property { name: "limit", kind: "integer", about: "The most sessions to return (default 100, at most 500)" },
+        ],
+        required: &[],
     },
 ];
 
@@ -168,25 +227,6 @@ pub struct WriteResult {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct EditFile {
-    pub path: String,
-    pub old: String,
-    pub new: String,
-    pub replace_all: bool,
-}
-
-impl EditFile {
-    pub fn parse(args: &Value) -> ExecResult<EditFile> {
-        Ok(EditFile { path: string(args, "path")?, old: string(args, "old")?, new: string(args, "new")?, replace_all: flag(args, "replace_all") })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct EditResult {
-    pub replacements: usize,
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub struct ListDir {
     pub path: String,
     pub depth: usize,
@@ -217,46 +257,6 @@ pub struct ListResult {
     pub entries: Vec<Entry>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SearchKind {
-    Content,
-    Files,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Search {
-    pub pattern: String,
-    pub path: String,
-    pub glob: Option<String>,
-    pub kind: SearchKind,
-}
-
-impl Search {
-    pub fn parse(args: &Value) -> ExecResult<Search> {
-        let kind = match args["kind"].as_str() {
-            Some("content") => SearchKind::Content,
-            Some("files") => SearchKind::Files,
-            _ => return Err(ExecError::invalid_args("`kind` must be \"content\" or \"files\"")),
-        };
-        Ok(Search { pattern: string(args, "pattern")?, path: opt_string(args, "path")?.unwrap_or_else(|| ".".into()), glob: opt_string(args, "glob")?, kind })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Match {
-    pub path: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub line: Option<usize>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub text: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Found {
-    pub matches: Vec<Match>,
-    pub truncated: bool,
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Stat {
     pub path: String,
@@ -280,11 +280,20 @@ pub struct ReadChunk {
     pub path: String,
     pub offset: u64,
     pub length: u64,
+    /// `Some(CLAUDE_PROJECTS)` reads below the executor's home `.claude/projects`, not the workspace.
+    pub scope: Option<String>,
 }
+
+/// The `scope` of a `read_chunk` that reads the Claude CLI's own projects directory (workflow scripts and logs).
+pub const CLAUDE_PROJECTS: &str = "claudeProjects";
 
 impl ReadChunk {
     pub fn parse(args: &Value) -> ExecResult<ReadChunk> {
-        Ok(ReadChunk { path: string(args, "path")?, offset: opt_uint(args, "offset")?.unwrap_or(0), length: opt_uint(args, "length")?.unwrap_or(CHUNK_MAX).min(CHUNK_MAX) })
+        let scope = opt_string(args, "scope")?;
+        if scope.as_deref().is_some_and(|s| s != CLAUDE_PROJECTS) {
+            return Err(ExecError::invalid_args(format!("`scope` must be `{CLAUDE_PROJECTS}`")));
+        }
+        Ok(ReadChunk { path: string(args, "path")?, offset: opt_uint(args, "offset")?.unwrap_or(0), length: opt_uint(args, "length")?.unwrap_or(CHUNK_MAX).min(CHUNK_MAX), scope })
     }
 }
 
@@ -334,6 +343,155 @@ pub struct PutBlobResult {
     pub bytes: u64,
 }
 
+/// `secret_file_put`: one secret into one new file. Its `Debug` hides the value, so no log line or panic message can carry it.
+#[derive(Clone, PartialEq)]
+pub struct SecretFilePut {
+    pub path: String,
+    pub value: String,
+}
+
+impl std::fmt::Debug for SecretFilePut {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SecretFilePut").field("path", &self.path).field("value", &"<hidden>").finish()
+    }
+}
+
+impl SecretFilePut {
+    pub fn parse(args: &Value) -> ExecResult<SecretFilePut> {
+        let value = string(args, "value")?;
+        if value.is_empty() || value.len() > SECRET_MAX {
+            return Err(ExecError::invalid_args(format!("`value` must hold 1 to {SECRET_MAX} bytes")));
+        }
+        Ok(SecretFilePut { path: string(args, "path")?, value })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SecretFilePutResult {
+    pub path: String,
+    pub bytes: u64,
+}
+
+/// `artifact_stat`: one path a terminal printed.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArtifactStat {
+    pub path: String,
+    pub within: Option<String>,
+}
+
+impl ArtifactStat {
+    pub fn parse(args: &Value) -> ExecResult<ArtifactStat> {
+        Ok(ArtifactStat { path: string(args, "path")?, within: opt_string(args, "within")? })
+    }
+}
+
+/// `identity` names the file (device, inode, size and both times); `fingerprint` is a hash of its first 16 MiB, absent for a directory and a longer
+/// file. A grant holds both, and a read or write is refused with `CHANGED` when either no longer matches.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ArtifactStatResult {
+    pub path: String,
+    pub kind: EntryKind,
+    pub size: u64,
+    pub modified_ms: u64,
+    pub changed_ms: u64,
+    pub identity: String,
+    pub fingerprint: Option<String>,
+    pub binary: bool,
+}
+
+/// What a read or write names of the file it was granted for: each part given is checked, and a part left out is not.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Granted {
+    pub identity: Option<String>,
+    pub fingerprint: Option<String>,
+}
+
+impl Granted {
+    fn parse(args: &Value) -> ExecResult<Granted> {
+        Ok(Granted { identity: opt_string(args, "identity")?, fingerprint: opt_string(args, "fingerprint")? })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArtifactRead {
+    pub path: String,
+    pub within: Option<String>,
+    pub offset: u64,
+    pub length: u64,
+    pub granted: Granted,
+}
+
+impl ArtifactRead {
+    pub fn parse(args: &Value) -> ExecResult<ArtifactRead> {
+        Ok(ArtifactRead { path: string(args, "path")?, within: opt_string(args, "within")?, offset: opt_uint(args, "offset")?.unwrap_or(0), length: opt_uint(args, "length")?.unwrap_or(CHUNK_MAX).min(CHUNK_MAX), granted: Granted::parse(args)? })
+    }
+}
+
+#[derive(Clone, PartialEq)]
+pub struct ArtifactWrite {
+    pub path: String,
+    pub within: Option<String>,
+    pub content: String,
+    pub granted: Granted,
+}
+
+/// The content is the person's text: no log line or panic message carries it.
+impl std::fmt::Debug for ArtifactWrite {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ArtifactWrite").field("path", &self.path).field("content", &format_args!("<{} bytes>", self.content.len())).field("granted", &self.granted).finish()
+    }
+}
+
+impl ArtifactWrite {
+    pub fn parse(args: &Value) -> ExecResult<ArtifactWrite> {
+        let content = args.get("content").and_then(Value::as_str).ok_or_else(|| ExecError::invalid_args("`content` must be a string"))?.to_string();
+        if content.len() > ARTIFACT_WRITE_MAX {
+            return Err(ExecError::invalid_args(format!("`content` must hold at most {ARTIFACT_WRITE_MAX} bytes")));
+        }
+        Ok(ArtifactWrite { path: string(args, "path")?, within: opt_string(args, "within")?, content, granted: Granted::parse(args)? })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ArtifactWriteResult {
+    pub path: String,
+    pub bytes: u64,
+    pub identity: String,
+    pub fingerprint: Option<String>,
+}
+
+/// `put_temp`: a file of its own in the executor's temporary directory.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PutTemp {
+    /// One path segment, made safe.
+    pub name: String,
+    /// Base64 of the bytes; the executor decodes it.
+    pub data: String,
+}
+
+impl PutTemp {
+    pub fn parse(args: &Value) -> ExecResult<PutTemp> {
+        let data = string(args, "data")?;
+        if data.len() as u64 > BLOB_MAX.div_ceil(3) * 4 {
+            return Err(ExecError::invalid_args(format!("`data` is longer than {BLOB_MAX} bytes")));
+        }
+        let given = string(args, "name")?;
+        let last = given.rsplit(['/', '\\']).next().unwrap_or("");
+        let name: String = last.chars().map(|c| if c.is_control() || c == ':' { '_' } else { c }).collect::<String>().trim_start_matches('.').trim().chars().take(255).collect();
+        if name.is_empty() {
+            return Err(ExecError::invalid_args("`name` must name a file"));
+        }
+        Ok(PutTemp { name, data })
+    }
+}
+
+/// Where `put_temp` wrote the file: an absolute path at the executor.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PutTempResult {
+    pub path: String,
+    pub bytes: u64,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct MakeDir {
     pub path: String,
@@ -357,12 +515,39 @@ pub struct MakeDirResult {
 pub struct SkillScan {
     pub root: String,
     pub home: bool,
+    pub dirs: Vec<String>,
+    pub home_dirs: Vec<String>,
+}
+
+/// The most skill directories one `skill_scan` lists below each of the root and the home.
+pub const SKILL_DIRS_MAX: usize = 64;
+
+fn skill_dirs(args: &Value, key: &str) -> ExecResult<Vec<String>> {
+    let Some(given) = args.get(key).filter(|v| !v.is_null()) else { return Ok(SKILL_DIRS.iter().map(|d| d.to_string()).collect()) };
+    let list = given.as_array().ok_or_else(|| ExecError::invalid_args(format!("`{key}` must be a list of directories")))?;
+    if list.len() > SKILL_DIRS_MAX {
+        return Err(ExecError::invalid_args(format!("`{key}` holds at most {SKILL_DIRS_MAX} directories")));
+    }
+    list.iter()
+        .map(|d| {
+            let dir = d.as_str().unwrap_or_default();
+            let relative = !dir.is_empty() && dir.len() <= 200 && !dir.starts_with(['/', '~', '\\']) && dir.split('/').all(|part| !part.is_empty() && part != ".." && part != ".");
+            relative.then(|| dir.to_string()).ok_or_else(|| ExecError::invalid_args(format!("`{key}`: {dir:?} is not a relative directory")))
+        })
+        .collect()
 }
 
 impl SkillScan {
     pub fn parse(args: &Value) -> ExecResult<SkillScan> {
-        Ok(SkillScan { root: string(args, "root")?, home: flag(args, "home") })
+        Ok(SkillScan { root: string(args, "root")?, home: flag(args, "home"), dirs: skill_dirs(args, "dirs")?, home_dirs: skill_dirs(args, "home_dirs")? })
     }
+}
+
+/// A skill directory the scan found (whether or not it held a skill): what tells a missing directory from an empty one.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SkillDir {
+    pub scope: SkillScope,
+    pub dir: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -372,7 +557,7 @@ pub enum SkillScope {
     Home,
 }
 
-/// One skill. `dir` is the one of `SKILL_DIRS` it lies in. `path` is its `SKILL.md`: relative to the executor's root for the workspace, and
+/// One skill. `dir` is the scanned directory it lies in. `path` is its `SKILL.md`: relative to the executor's root for the workspace, and
 /// `~/<dir>/<name>/SKILL.md` for the home (the home's own location never leaves the executor). `name` is the front matter's, else the
 /// directory's; `description` is absent when the front matter has none.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -385,11 +570,14 @@ pub struct Skill {
     pub path: String,
 }
 
-/// The workspace's skills first, then the home's, each by directory order of `SKILL_DIRS` and then by directory name.
+/// The workspace's skills first, then the home's, each by the order of the scanned directories and then by directory name. `present` lists
+/// the scanned directories that exist (an older executor answers none).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SkillsFound {
     pub skills: Vec<Skill>,
     pub truncated: bool,
+    #[serde(default)]
+    pub present: Vec<SkillDir>,
 }
 
 fn cut(text: &str, max: usize) -> String {
@@ -452,6 +640,165 @@ pub fn front_matter(text: &str) -> (Option<String>, Option<String>) {
     }
     finish(&mut current);
     (name, description)
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SessionScan {
+    pub agents: Vec<String>,
+    pub limit: usize,
+}
+
+impl SessionScan {
+    pub fn parse(args: &Value) -> ExecResult<SessionScan> {
+        let limit = opt_uint(args, "limit")?.map_or(SESSIONS_DEFAULT, |l| (l as usize).clamp(1, SESSIONS_MAX));
+        let agents = match args.get("agents").filter(|v| !v.is_null()) {
+            None => SESSION_AGENTS.iter().map(|a| a.to_string()).collect(),
+            Some(given) => {
+                let list = given.as_array().filter(|l| !l.is_empty() && l.len() <= SESSION_AGENTS.len()).ok_or_else(|| ExecError::invalid_args("`agents` must be a list of one or two CLIs"))?;
+                let mut agents: Vec<String> = Vec::new();
+                for agent in list {
+                    let name = agent.as_str().filter(|a| SESSION_AGENTS.contains(a)).ok_or_else(|| ExecError::invalid_args(format!("`agents` names claude or codex, not {agent}")))?;
+                    if agents.iter().any(|a| a == name) {
+                        return Err(ExecError::invalid_args(format!("`agents` names {name} twice")));
+                    }
+                    agents.push(name.to_string());
+                }
+                agents
+            }
+        };
+        Ok(SessionScan { agents, limit })
+    }
+}
+
+/// One session file of a CLI. `path` is `~/<path>` (the home's own location never leaves the executor); the times are the file's own
+/// ISO strings, `modified_ms` is the file's modification time.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VaultSession {
+    pub agent: String,
+    pub session_id: String,
+    pub path: String,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branch: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    pub modified_ms: u64,
+    pub message_count: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_prompt: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_prompt: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SessionsFound {
+    pub sessions: Vec<VaultSession>,
+    pub truncated: bool,
+}
+
+/// What one session file says about itself.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Digest {
+    pub session_id: Option<String>,
+    pub title: Option<String>,
+    pub cwd: Option<String>,
+    pub branch: Option<String>,
+    pub model: Option<String>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub message_count: u64,
+    pub first_prompt: Option<String>,
+    pub last_prompt: Option<String>,
+}
+
+fn text_of(content: &Value, kinds: &[&str]) -> Option<String> {
+    let text = match content {
+        Value::String(s) => s.clone(),
+        Value::Array(blocks) => blocks.iter().filter(|b| b.get("type").and_then(Value::as_str).is_some_and(|t| kinds.contains(&t))).filter_map(|b| b.get("text").and_then(Value::as_str)).collect::<Vec<_>>().join("\n"),
+        _ => return None,
+    };
+    let text = text.trim();
+    (!text.is_empty()).then(|| text.to_string())
+}
+
+fn string_at(value: &Value, key: &str) -> Option<String> {
+    value.get(key).and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string)
+}
+
+/// The digest of a session file's text for `agent` claude or codex. A non-JSON line is skipped; a prompt is a user message that is text,
+/// not a tool result or the CLI's own context block.
+pub fn digest(agent: &str, text: &str) -> Digest {
+    let mut d = Digest::default();
+    let prompt = |d: &mut Digest, text: String| {
+        let text = cut(&text, PROMPT_MAX);
+        d.first_prompt.get_or_insert_with(|| text.clone());
+        d.last_prompt = Some(text);
+    };
+    for line in text.lines() {
+        let Ok(entry) = serde_json::from_str::<Value>(line) else { continue };
+        let stamp = string_at(&entry, "timestamp");
+        let kind = entry.get("type").and_then(Value::as_str).unwrap_or_default();
+        if agent == "codex" {
+            let payload = entry.get("payload").unwrap_or(&Value::Null);
+            match kind {
+                "session_meta" => {
+                    d.session_id = d.session_id.take().or_else(|| string_at(payload, "id"));
+                    d.cwd = d.cwd.take().or_else(|| string_at(payload, "cwd"));
+                    d.branch = d.branch.take().or_else(|| payload.get("git").and_then(|g| string_at(g, "branch")));
+                    d.created_at = d.created_at.take().or_else(|| string_at(payload, "timestamp")).or(stamp.clone());
+                }
+                "turn_context" => d.model = d.model.take().or_else(|| string_at(payload, "model")),
+                "response_item" if payload.get("type").and_then(Value::as_str) == Some("message") => {
+                    match payload.get("role").and_then(Value::as_str) {
+                        Some("user") => {
+                            if let Some(t) = text_of(&payload["content"], &["input_text"]).filter(|t| !t.starts_with("<environment_context") && !t.starts_with("<user_instructions")) {
+                                d.message_count += 1;
+                                prompt(&mut d, t);
+                            }
+                        }
+                        Some("assistant") => d.message_count += 1,
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
+        } else {
+            if entry.get("isSidechain").and_then(Value::as_bool) == Some(true) {
+                continue;
+            }
+            match kind {
+                "summary" => d.title = d.title.take().or_else(|| string_at(&entry, "summary")),
+                "user" | "assistant" => {
+                    d.session_id = d.session_id.take().or_else(|| string_at(&entry, "sessionId"));
+                    d.cwd = d.cwd.take().or_else(|| string_at(&entry, "cwd"));
+                    d.branch = d.branch.take().or_else(|| string_at(&entry, "gitBranch"));
+                    d.created_at = d.created_at.take().or(stamp.clone());
+                    let message = entry.get("message").unwrap_or(&Value::Null);
+                    if kind == "assistant" {
+                        d.model = string_at(message, "model").or(d.model.take());
+                        d.message_count += 1;
+                    } else if entry.get("isMeta").and_then(Value::as_bool) != Some(true) {
+                        if let Some(t) = text_of(&message["content"], &["text"]) {
+                            d.message_count += 1;
+                            prompt(&mut d, t);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        if stamp.is_some() {
+            d.updated_at = stamp;
+        }
+    }
+    d.title = d.title.or_else(|| d.first_prompt.clone());
+    d
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -520,14 +867,11 @@ mod tests {
         // When they are parsed
         let read = ReadFile::parse(&json!({"path": "a"})).unwrap();
         let write = WriteFile::parse(&json!({"path": "a", "content": "c"})).unwrap();
-        let edit = EditFile::parse(&json!({"path": "a", "old": "x", "new": "y"})).unwrap();
         let list = ListDir::parse(&json!({"path": "."})).unwrap();
-        let search = Search::parse(&json!({"pattern": "p", "kind": "files"})).unwrap();
-        // Then a read starts at line 0 with no limit, a write and an edit do not create or replace all, a listing is one level, a search starts at "."
+        // Then a read starts at line 0 with no limit, a write does not create, a listing is one level
         assert_eq!((read.offset, read.limit), (0, None));
-        assert_eq!((write.create_dirs, edit.replace_all), (false, false));
+        assert!(!write.create_dirs);
         assert_eq!(list.depth, 1);
-        assert_eq!((search.path.as_str(), search.glob, search.kind), (".", None, SearchKind::Files));
     }
 
     #[test]
@@ -538,17 +882,21 @@ mod tests {
             let parse = |args: &Value| match action.name {
                 READ_FILE => ReadFile::parse(args).map(drop),
                 WRITE_FILE => WriteFile::parse(args).map(drop),
-                EDIT_FILE => EditFile::parse(args).map(drop),
                 LIST_DIR => ListDir::parse(args).map(drop),
-                SEARCH => Search::parse(args).map(drop),
                 STAT => Stat::parse(args).map(drop),
                 READ_CHUNK => ReadChunk::parse(args).map(drop),
                 CREATE_FILE => CreateFile::parse(args).map(drop),
                 BROWSE => Browse::parse(args).map(drop),
                 SEARCH_ENTRIES => SearchEntries::parse(args).map(drop),
                 PUT_BLOB => PutBlob::parse(args).map(drop),
+                PUT_TEMP => PutTemp::parse(args).map(drop),
                 MAKE_DIR => MakeDir::parse(args).map(drop),
+                SECRET_FILE_PUT => SecretFilePut::parse(args).map(drop),
+                ARTIFACT_STAT => ArtifactStat::parse(args).map(drop),
+                ARTIFACT_READ => ArtifactRead::parse(args).map(drop),
+                ARTIFACT_WRITE => ArtifactWrite::parse(args).map(drop),
                 SKILL_SCAN => SkillScan::parse(args).map(drop),
+                SESSION_SCAN => SessionScan::parse(args).map(drop),
                 other => panic!("{other} is not parsed here"),
             };
             assert!(parse(&Value::Object(full.clone())).is_ok(), "{}", action.name);
@@ -563,11 +911,15 @@ mod tests {
     }
 
     #[test]
-    fn given_a_search_kind_that_is_neither_content_nor_files_when_parsed_then_it_is_refused_before_the_pattern() {
-        // Given a search with no pattern and a wrong kind
-        let e = Search::parse(&json!({"kind": "names"})).unwrap_err();
-        // Then the kind is what is refused
-        assert!(e.message.contains("`kind`"), "{e:?}");
+    fn given_a_secret_when_its_arguments_are_read_then_an_empty_or_oversized_value_is_refused_and_no_debug_text_shows_it() {
+        // Given a valid secret, an empty one and one over the cap
+        let valid = SecretFilePut::parse(&json!({"path": "k", "value": "s3cr3t"})).unwrap();
+        let empty = SecretFilePut::parse(&json!({"path": "k", "value": ""}));
+        let long = SecretFilePut::parse(&json!({"path": "k", "value": "x".repeat(SECRET_MAX + 1)}));
+        // Then the valid one reads back, the others are INVALID_ARGS, and the Debug text of the valid one hides the value
+        assert_eq!((valid.path.as_str(), valid.value.as_str()), ("k", "s3cr3t"));
+        assert_eq!((empty.unwrap_err().code, long.unwrap_err().code), (Code::InvalidArgs, Code::InvalidArgs));
+        assert!(!format!("{valid:?}").contains("s3cr3t") && format!("{valid:?}").contains("<hidden>"));
     }
 
     #[test]
@@ -576,12 +928,10 @@ mod tests {
         // When they are encoded
         let read = to_value(&ReadResult { content: "x".into(), total_lines: 1, truncated: false }).to_string();
         let list = to_value(&ListResult { entries: vec![Entry { name: "src".into(), kind: EntryKind::Dir, size: 4096 }] }).to_string();
-        let found = to_value(&Found { matches: vec![Match { path: "a".into(), line: Some(2), text: Some("t".into()) }, Match { path: "b".into(), line: None, text: None }], truncated: true }).to_string();
-        // Then the keys are the contract's, a match carries only the parts it has, and the order is declaration order
+        // Then the keys are the contract's and the order is declaration order
         assert_eq!(read, r#"{"content":"x","total_lines":1,"truncated":false}"#);
         assert_eq!(list, r#"{"entries":[{"name":"src","kind":"dir","size":4096}]}"#);
-        assert_eq!(found, r#"{"matches":[{"path":"a","line":2,"text":"t"},{"path":"b"}],"truncated":true}"#);
-        assert_eq!((to_value(&WriteResult { bytes: 2 }).to_string(), to_value(&EditResult { replacements: 1 }).to_string()), (r#"{"bytes":2}"#.to_string(), r#"{"replacements":1}"#.to_string()));
+        assert_eq!(to_value(&WriteResult { bytes: 2 }).to_string(), r#"{"bytes":2}"#);
     }
     #[test]
     fn given_a_chunk_or_entry_request_with_limits_out_of_range_when_parsed_then_they_are_cut_to_the_contract_maxima() {
@@ -672,5 +1022,43 @@ mod tests {
         let (_, description) = front_matter(&text);
         // Then it is the cap's bytes and whole characters
         assert_eq!(description.map(|d| (d.len(), d.chars().all(|c| c == 'é'))), Some((SKILL_DESCRIPTION_MAX, true)));
+    }
+
+    #[test]
+    fn given_session_files_of_each_cli_when_digested_then_prompts_and_facts_come_out() {
+        // Given a claude file with a summary, a context-free prompt, a tool result and a reply, and a codex file with its context block
+        let claude = concat!(
+            r#"{"type":"summary","summary":"Fix the build"}"#, "\n",
+            r#"{"type":"user","sessionId":"s1","cwd":"/w","gitBranch":"main","timestamp":"2026-11-01T10:00:00Z","message":{"role":"user","content":"fix it"}}"#, "\n",
+            r#"{"type":"assistant","timestamp":"2026-11-01T10:00:05Z","message":{"role":"assistant","model":"claude-x","content":[{"type":"text","text":"ok"}]}}"#, "\n",
+            r#"{"type":"user","timestamp":"2026-11-01T10:00:09Z","message":{"role":"user","content":[{"type":"tool_result","content":"x"}]}}"#, "\n",
+            "not json\n",
+        );
+        let codex = concat!(
+            r#"{"type":"session_meta","payload":{"id":"c1","cwd":"/w","timestamp":"2026-11-02T09:00:00Z","git":{"branch":"dev"}}}"#, "\n",
+            r#"{"type":"turn_context","payload":{"model":"gpt-x"}}"#, "\n",
+            r#"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"<environment_context>x"}]}}"#, "\n",
+            r#"{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"add a test"}]}}"#, "\n",
+            r#"{"timestamp":"2026-11-02T09:01:00Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"done"}]}}"#, "\n",
+        );
+        // When digested
+        let (c, x) = (digest("claude", claude), digest("codex", codex));
+        // Then each says what its file holds, and a summary is the claude title
+        assert_eq!((c.session_id.as_deref(), c.title.as_deref(), c.cwd.as_deref(), c.branch.as_deref(), c.model.as_deref()), (Some("s1"), Some("Fix the build"), Some("/w"), Some("main"), Some("claude-x")));
+        assert_eq!((c.message_count, c.first_prompt.as_deref(), c.updated_at.as_deref()), (2, Some("fix it"), Some("2026-11-01T10:00:09Z")));
+        assert_eq!((x.session_id.as_deref(), x.title.as_deref(), x.branch.as_deref(), x.model.as_deref()), (Some("c1"), Some("add a test"), Some("dev"), Some("gpt-x")));
+        assert_eq!((x.message_count, x.created_at.as_deref(), x.updated_at.as_deref()), (2, Some("2026-11-02T09:00:00Z"), Some("2026-11-02T09:01:00Z")));
+    }
+
+    #[test]
+    fn given_a_session_scan_request_when_parsed_then_both_clis_and_a_clamped_limit_are_the_default() {
+        // Given no arguments, a one-CLI list, and lists that name an unknown or repeated CLI
+        let all = SessionScan::parse(&json!({})).unwrap();
+        let one = SessionScan::parse(&json!({"agents": ["codex"], "limit": 0})).unwrap();
+        // Then the defaults fill in, the limit is clamped, and a bad list is INVALID_ARGS
+        assert_eq!((all.agents.len(), all.limit, one.agents, one.limit), (2, 100, vec!["codex".to_string()], 1));
+        for bad in [json!({"agents": ["opencode"]}), json!({"agents": ["codex", "codex"]}), json!({"agents": []})] {
+            assert_eq!(SessionScan::parse(&bad).unwrap_err().code, Code::InvalidArgs, "{bad}");
+        }
     }
 }

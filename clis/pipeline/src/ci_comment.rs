@@ -2,6 +2,7 @@
 //! each failed job's log), the counts, a table of the jobs with a time bar, the VM's own numbers during the run (reporting-service),
 //! then the cache, crate and e2e details; posted on the open PR and in the job summary, and, when a job failed, on the pushed commit.
 //! Each run (and runner) keeps its own comment.
+use crate::ci_skeleton::{pending, Lasts, Wait, CACHE, CACHE_HEALTH, CACHE_PROBLEMS, CHART, FIXED_COST, IDLE, JOBS, RUNNERS, SLOWEST_STEPS, TODO, VM, WHERE_TIME};
 use cli_http::{Request, Response};
 use regex::Regex;
 use serde_json::{json, Value};
@@ -17,6 +18,7 @@ const LINE_CAP: usize = 300;
 const CAUSE_LINES: usize = 8;
 const DETAIL_LINES: usize = 40;
 const SKIPPED_NAMES: usize = 5;
+const UNIT_ROWS: usize = 200;
 const CAUSE: &str = r#"^##\[error\]|\bsccache: error\b|^wf: |returned HTTP \d{3}|\bexitCode"?\s*[=:]\s*"?[1-9]|^#\d+ ERROR|^ERROR: |^Error response from daemon|^test .* FAILED$|^test result: FAILED|^error(\[E\d+\])?: |^\w*Error: |^FAIL |\berror TS\d+|^NX .*\bfailed\b|^Failed tasks:$|"verdict"\s*:\s*"(fail|error)"|"ok"\s*:\s*false|panicked at|^--- script (stdout|stderr|output) ---$"#;
 
 #[derive(Clone)]
@@ -51,7 +53,18 @@ pub(crate) fn var(name: &str) -> Option<String> {
 }
 
 impl Env {
+    /// The environment of a verb that is not about one run (`wf ci prune`): the run and the sha may be missing.
+    pub(crate) fn lenient() -> Result<Env, String> {
+        let mut env = Env::read_with(|name| var(name).or_else(|| matches!(name, "GITHUB_RUN_ID" | "GITHUB_SHA").then(|| "0".to_string())))?;
+        env.summary = None;
+        Ok(env)
+    }
+
     pub(crate) fn read() -> Result<Env, String> {
+        Env::read_with(var)
+    }
+
+    fn read_with(var: impl Fn(&str) -> Option<String>) -> Result<Env, String> {
         let need = |name: &str| var(name).ok_or_else(|| format!("{name} is not set"));
         let base = |name: &str, default: &str| var(name).unwrap_or_else(|| default.to_string()).trim_end_matches('/').to_string();
         Ok(Env {
@@ -111,6 +124,10 @@ fn html(line: &str) -> String {
 }
 
 pub(crate) fn cell(line: &str) -> String {
+    let line = match line.split_once("${{") {
+        Some((stem, _)) => stem.trim_end(),
+        None => line,
+    };
     html(line).replace('|', "\\|")
 }
 
@@ -147,7 +164,18 @@ fn is_failed(job: &Value) -> bool {
     matches!(job["conclusion"].as_str(), Some("failure" | "timed_out"))
 }
 
-fn failed_step(job: &Value) -> String {
+/// A job GitHub ended within this many seconds of its recorded start was replaced while pending by a newer job of its concurrency group (it records its start at the
+/// moment of the replacement); the owner accepts that, a job cancelled after running longer was killed.
+pub(crate) const REPLACED_SECS: i64 = 2;
+
+pub(crate) fn is_replaced_while_pending(job: &Value) -> bool {
+    job["conclusion"] == "cancelled" && match (epoch(&job["started_at"]), epoch(&job["completed_at"])) {
+        (Some(from), Some(to)) => to - from <= REPLACED_SECS,
+        _ => false,
+    }
+}
+
+pub(crate) fn failed_step(job: &Value) -> String {
     let steps = job["steps"].as_array().map(Vec::as_slice).unwrap_or_default();
     let with = |conclusions: &[&str]| steps.iter().find(|s| s["conclusion"].as_str().is_some_and(|c| conclusions.contains(&c)));
     with(&["failure", "timed_out"]).or_else(|| with(&["cancelled"])).map_or_else(|| "-".to_string(), |s| text(s, "name"))
@@ -191,7 +219,13 @@ pub(crate) fn list_jobs_of(env: &Env, run: &str) -> Result<Vec<Value>, String> {
             // a matrix job that was skipped before it expanded keeps its template as its name
             let name = job["name"].as_str().map(|n| n.replace("${{ matrix.app }}", "services"));
             if let Some(name) = name {
+                // a name that still holds its template never expanded: the job did not run, the part before the template is its stem
+                let (name, unexpanded) = match name.split_once("${{") {
+                    Some((stem, _)) => (stem.trim().to_string(), true),
+                    None => (name, false),
+                };
                 job["name"] = Value::String(wf_bucket::job_name::job_name(&name).to_string());
+                job["unexpanded"] = Value::Bool(unexpanded);
             }
             job
         }));
@@ -326,6 +360,14 @@ pub(crate) fn read_log(env: &Env, job: &Value) -> Result<String, String> {
     send(env, "GET", &url, None).and_then(|r| if r.ok() { Ok(r.text()) } else { Err(format!("HTTP {}", r.status)) })
 }
 
+/// The failed step of a finished job and the lines of its log that say why, as one short text for the CI database (`CI_JOBS.EXCERPT`): the same causes the run
+/// comment shows, joined, at most 700 characters. Empty when the log cannot be read.
+pub(crate) fn excerpt_of(env: &Env, job: &Value) -> (String, String) {
+    let step = failed_step(job);
+    let cause = read_log(env, job).map(|log| analyse(&log, &env.token).0.join("\n")).unwrap_or_default();
+    (step, cause.chars().take(700).collect())
+}
+
 fn failure(env: &Env, job: &Value, log: &Result<String, String>) -> Failure {
     let (cause, more) = match log {
         Ok(log) => analyse(log, &env.token),
@@ -344,17 +386,16 @@ fn details(f: &Failure) -> String {
 pub(crate) const LIVE_PREFIX: &str = "<!-- ci-live";
 
 /// The part of the marker that tells a pipeline's comments from another's: empty for the CI itself, `:github-hosted` for one labelled so.
-fn flavor(env: &Env) -> String {
-    env.label.as_ref().map_or(String::new(), |l| format!(":{}", l.to_lowercase().chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '-' }).collect::<String>().trim_matches('-')))
+pub(crate) fn flavor(env: &Env) -> String {
+    env.label.as_deref().map_or(String::new(), flavor_of)
+}
+
+pub(crate) fn flavor_of(label: &str) -> String {
+    format!(":{}", label.to_lowercase().chars().map(|c| if c.is_ascii_alphanumeric() { c } else { '-' }).collect::<String>().trim_matches('-'))
 }
 
 pub(crate) fn live_marker(env: &Env) -> String {
     format!("{LIVE_PREFIX}{} run:{} -->", flavor(env), env.run)
-}
-
-/// Whether a comment is one of this pipeline's (the CI keeps its older `ci-comment` format too), so a second pipeline never deletes the first's.
-fn same_flavor(env: &Env, text: &str) -> bool {
-    text.starts_with(&format!("{LIVE_PREFIX}{} ", flavor(env))) || (env.label.is_none() && text.starts_with("<!-- ci-comment"))
 }
 
 fn marker(env: &Env) -> String {
@@ -455,14 +496,19 @@ fn seconds(span: i64) -> String {
     }
 }
 
-fn slowest_step(job: &Value) -> Option<String> {
+/// The longest step of a job that is the job's own work (not its setup or post steps) and its seconds.
+pub(crate) fn slowest_of(job: &Value) -> Option<(String, i64)> {
     let steps = job["steps"].as_array()?;
     let span = |s: &Value| Some(epoch(&s["completed_at"])? - epoch(&s["started_at"])?);
     let (step, span) = steps.iter().filter(|s| !text(s, "name").starts_with("Post ") && !text(s, "name").starts_with("Set up")).filter_map(|s| Some((s, span(s)?))).max_by_key(|(_, span)| *span)?;
-    (span >= 30).then(|| format!("slowest step: {} {}", text(step, "name"), seconds(span)))
+    Some((text(step, "name"), span))
 }
 
-fn span_secs(job: &Value) -> Option<i64> {
+fn slowest_step(job: &Value) -> Option<String> {
+    slowest_of(job).filter(|(_, span)| *span >= 30).map(|(name, span)| format!("slowest step: {name} {}", seconds(span)))
+}
+
+pub(crate) fn span_secs(job: &Value) -> Option<i64> {
     match (epoch(&job["started_at"]), epoch(&job["completed_at"])) {
         (Some(from), Some(to)) if to >= from => Some(to - from),
         _ => None,
@@ -508,7 +554,7 @@ fn job_row(job: &Value, s: &Stats, index: usize, now: i64) -> String {
         Some("completed") if skipped => "-".to_string(),
         Some("completed") => took(job),
         Some("in_progress") => format!("🔄 {}", epoch(&job["started_at"]).map_or("running".to_string(), |a| format!("{} so far", seconds((now - a).max(0))))),
-        _ => "⏸️ waiting".to_string(),
+        _ => "⏸️ queued".to_string(),
     };
     let step = (job["status"] == "in_progress").then(|| job["steps"].as_array().and_then(|st| st.iter().find(|x| x["status"] == "in_progress")).map(|x| text(x, "name"))).flatten();
     let mut notes = notes(job, s);
@@ -544,23 +590,49 @@ fn crates_table(rows: &[(String, String, bool)]) -> String {
     out
 }
 
-/// The e2e units of this commit's published runs, from the file `wf test results --json` wrote.
-fn units_table(env: &Env) -> String {
-    let Some(path) = &env.results else { return String::new() };
-    let Ok(raw) = std::fs::read_to_string(path) else { return String::new() };
+/// The e2e units of this commit's published runs, from the file `wf test results --json` wrote: one collapsed block with the counts in its
+/// summary, open only when a unit failed, the failing rows first, then the slowest.
+fn units_table(env: &Env) -> (String, Vec<String>) {
+    let Some(path) = &env.results else { return (String::new(), Vec::new()) };
+    let Ok(raw) = std::fs::read_to_string(path) else { return (String::new(), Vec::new()) };
     let start = raw.find('{').unwrap_or(0);
-    let Ok(doc) = serde_json::from_str::<Value>(&raw[start..]) else { return String::new() };
+    let Ok(doc) = serde_json::from_str::<Value>(&raw[start..]) else { return (String::new(), Vec::new()) };
     let mut runs: Vec<&Value> = doc["runs"].as_array().map(|a| a.iter().filter(|r| r["sha"] == env.sha.as_str()).collect()).unwrap_or_default();
     if runs.is_empty() {
-        return String::new();
+        return (String::new(), Vec::new());
     }
-    runs.sort_by_key(|r| (text(r, "platform"), text(r, "test"), text(r, "unit")));
-    let mut out = String::from("\n### 🧪 E2E units\n\n| Platform | Test | Unit | Verdict | Took | App start |\n|---|---|---|---|---|---|\n");
-    for r in runs.iter().take(80) {
+    // a unit that ran again keeps its newest run
+    runs.sort_by_key(|r| (text(r, "platform"), text(r, "test"), text(r, "unit"), text(r, "publishedAt")));
+    let mut newest: Vec<&Value> = Vec::new();
+    for r in runs {
+        let same = |o: &&Value| ["platform", "test", "unit"].iter().all(|k| text(o, k) == text(r, k));
+        match newest.last_mut().filter(|o| same(o)) {
+            Some(last) => *last = r,
+            None => newest.push(r),
+        }
+    }
+    let verdict = |r: &Value| text(r, "verdict").to_lowercase();
+    let is_failed = |r: &Value| matches!(verdict(r).as_str(), "fail" | "failed" | "error");
+    let is_passed = |r: &Value| matches!(verdict(r).as_str(), "pass" | "passed" | "ok" | "success");
+    let (passed, failed) = (newest.iter().filter(|r| is_passed(r)).count(), newest.iter().filter(|r| is_failed(r)).count());
+    let other = newest.len() - passed - failed;
+    newest.sort_by(|a, b| is_failed(b).cmp(&is_failed(a)).then(b["durationS"].as_f64().unwrap_or(0.0).total_cmp(&a["durationS"].as_f64().unwrap_or(0.0))));
+    let named: Vec<String> = newest.iter().filter(|r| is_failed(r)).take(5).map(|r| format!("{} {}", text(r, "test"), text(r, "unit")).trim().to_string()).collect();
+    let mut counts = format!("{passed} passed, {failed} failed");
+    if other > 0 {
+        counts.push_str(&format!(", {other} other"));
+    }
+    let open = if failed > 0 { " open" } else { "" };
+    let mut out = format!("\n<details{open}><summary>🧪 E2E units: {counts}</summary>\n\n| Platform | Test | Unit | Verdict | Took | App start |\n|---|---|---|---|---|---|\n");
+    for r in newest.iter().take(UNIT_ROWS) {
         let (took, start) = (r["durationS"].as_f64().map_or("-".to_string(), |d| format!("{d:.1} s")), r["startupS"].as_f64().map_or("-".to_string(), |d| format!("{d:.1} s ({})", text(r, "appStart"))));
         out.push_str(&format!("| {} | {} | {} | {} | {} | {} |\n", cell(&text(r, "platform")), cell(&text(r, "test")), cell(&text(r, "unit")), cell(&text(r, "verdict")), took, start));
     }
-    out
+    if newest.len() > UNIT_ROWS {
+        out.push_str(&format!("\n... and {} more\n", newest.len() - UNIT_ROWS));
+    }
+    out.push_str("\n</details>\n");
+    (out, named)
 }
 
 /// `HH:MM` (UTC) of an instant in milliseconds.
@@ -581,8 +653,8 @@ fn flag(value: f64, orange: f64, red: f64) -> &'static str {
 
 /// The VM's own numbers over the run, from reporting-service: what the host was doing while the jobs ran (the average and the worst
 /// moment of each signal) and whether it stopped sampling. A line saying why it is missing when it cannot be read.
-fn vm_section(env: &Env, jobs: &[crate::ci_insights::JobTime], from_ms: i64, to_ms: i64) -> String {
-    let heading = "\n### 🖥️ VM during the run\n\n";
+fn vm_section(env: &Env, jobs: &[crate::ci_insights::JobTime], from_ms: i64, to_ms: i64, running: bool) -> String {
+    let heading = format!("\n{VM}\n\n");
     let now = wf_kit::time::now_ms() as i64;
     if (now - from_ms) / 1000 > 23 * 3600 {
         return format!("{heading}*VM stats unavailable: the run is older than the stored history.*\n");
@@ -596,7 +668,7 @@ fn vm_section(env: &Env, jobs: &[crate::ci_insights::JobTime], from_ms: i64, to_
     let sum = wf_vmops::host_summary::summarize(&points, from_ms, to_ms, 180_000);
     let samples = sum["samples"].as_u64().unwrap_or(0);
     if samples == 0 {
-        return format!("{heading}*No host samples were stored for the run.*\n");
+        return format!("{heading}{}\n", pending(running, "the first host samples", "no host samples were stored for the run"));
     }
     let sig = |name: &str| (sum["signals"][name]["avg"].as_f64(), sum["signals"][name]["peak"].as_f64(), sum["signals"][name]["atMs"].as_i64());
     let total = sum["memoryTotal"].as_f64().unwrap_or(0.0);
@@ -655,44 +727,107 @@ fn job_resources(points: &[Value], jobs: &[crate::ci_insights::JobTime]) -> Stri
 }
 
 /// The runners' own numbers for a labelled pipeline (GitHub-hosted jobs are machines of their own, so the VM's history says nothing about
-/// them): every job leaves `stats-<job>.jsonl` (one `{t, cpu, memUsedMb, memTotalMb, load1}` per sample) in `WF_CI_RUNNER_STATS_DIR`.
-fn runner_section(env: &Env) -> String {
-    let heading = "\n### 🖥️ Runners during the run\n\n";
-    let Some(dir) = var("WF_CI_RUNNER_STATS_DIR") else { return String::new() };
-    let mut files: Vec<std::path::PathBuf> = std::fs::read_dir(&dir).map(|d| d.filter_map(|e| e.ok().map(|e| e.path())).filter(|p| p.extension().is_some_and(|x| x == "jsonl")).collect()).unwrap_or_default();
-    files.sort();
-    let mut rows = Vec::new();
-    for path in files {
-        let name = path.file_stem().and_then(|n| n.to_str()).unwrap_or("job").trim_start_matches("stats-").to_string();
-        let samples: Vec<Value> = std::fs::read_to_string(&path).unwrap_or_default().lines().filter_map(|l| serde_json::from_str(l).ok()).collect();
-        if samples.is_empty() {
-            continue;
-        }
-        let series = |key: &str| samples.iter().filter_map(|s| s[key].as_f64()).collect::<Vec<f64>>();
-        let (cpu, mem, load) = (series("cpu"), series("memUsedMb"), series("load1"));
-        let total = samples.iter().filter_map(|s| s["memTotalMb"].as_f64()).fold(0.0, f64::max);
-        let avg = |v: &[f64]| if v.is_empty() { 0.0 } else { v.iter().sum::<f64>() / v.len() as f64 };
-        let peak = |v: &[f64]| v.iter().cloned().fold(0.0, f64::max);
-        let (mem_avg, mem_peak) = (avg(&mem), peak(&mem));
-        let mem_pct = if total > 0.0 { mem_peak * 100.0 / total } else { 0.0 };
-        rows.push(format!(
-            "| {} {} | {:.0}% | **{:.0}%** | {:.1} GB | **{:.1} GB** ({:.0}%) | {:.1} | {} |\n",
-            flag(peak(&cpu), 70.0, 90.0),
-            cell(&name),
-            avg(&cpu),
-            peak(&cpu),
-            mem_avg / 1000.0,
-            mem_peak / 1000.0,
-            mem_pct,
-            peak(&load),
-            samples.len()
-        ));
+/// them): every job leaves `stats-<job>.jsonl` (one `{t, cpu, memUsedMb, memTotalMb, load1, ...}` per sample) in `WF_CI_RUNNER_STATS_DIR`.
+fn runner_section(env: &Env, running: bool) -> String {
+    let heading = format!("\n{RUNNERS}\n\n");
+    // only the report job knows the sampler directory: a live update from another job must still keep the heading
+    if var("WF_CI_RUNNER_STATS_DIR").is_none() {
+        return format!("{heading}{}\n", pending(running, "the first runner samples", "no runner samples were stored for this run"));
     }
+    let all = crate::ci_telemetry::runner_samples();
+    let rows: Vec<RunnerRow> = all
+        .iter()
+        .map(|(name, samples)| {
+            let series = |key: &str| samples.iter().filter_map(|s| s[key].as_f64()).collect::<Vec<f64>>();
+            let (cpu, mem, load) = (series("cpu"), series("memUsedMb"), series("load1"));
+            let (cores, total_mb) = crate::ci_telemetry::machine(samples);
+            let avg = |v: &[f64]| if v.is_empty() { 0.0 } else { v.iter().sum::<f64>() / v.len() as f64 };
+            let peak = |v: &[f64]| v.iter().cloned().fold(0.0, f64::max);
+            let resources = crate::ci_resources::job_resources(&env.run, name, "", samples);
+            RunnerRow {
+                job: name.clone(),
+                cpu: (avg(&cpu), peak(&cpu)),
+                mem_mb: (avg(&mem), peak(&mem)),
+                total_mb: total_mb.unwrap_or(0.0),
+                load_peak: peak(&load),
+                samples: samples.len(),
+                cores,
+                extra: crate::ci_telemetry::extra_columns(samples, resources.as_ref()),
+            }
+        })
+        .collect();
     if rows.is_empty() {
-        return format!("{heading}*No runner samples were stored for this run.*\n");
+        return format!("{heading}{}\n", pending(running, "the first runner samples", "no runner samples were stored for this run"));
     }
-    let _ = env;
-    format!("{heading}Each GitHub-hosted job is its own 2-core machine; the numbers are sampled every 5 s while the job runs.\n\n| Job | CPU busy avg | CPU busy peak | Memory avg | Memory peak | Load (1 min) peak | Samples |\n|---|---|---|---|---|---|---|\n{}", rows.concat())
+    format!("{heading}{}", runner_block(&rows))
+}
+
+/// One job's line of the runners table: CPU and memory as (average, peak), the machine, and the sampler's extra columns already formatted.
+pub(crate) struct RunnerRow {
+    pub job: String,
+    pub cpu: (f64, f64),
+    pub mem_mb: (f64, f64),
+    pub total_mb: f64,
+    pub load_peak: f64,
+    pub samples: usize,
+    pub cores: Option<u32>,
+    pub extra: String,
+}
+
+/// The runners as stored for a finished run (`CI_JOB_RESOURCES`), laid out like the live ones.
+pub(crate) fn runner_rows_of(resources: &[wf_bucket::ci_db::JobResources]) -> Vec<RunnerRow> {
+    resources
+        .iter()
+        .map(|r| RunnerRow {
+            job: r.job.clone(),
+            cpu: (r.cpu_avg, r.cpu_max),
+            mem_mb: (r.mem_avg_mb, r.mem_peak_mb),
+            total_mb: r.mem_total_mb,
+            load_peak: r.load1_max,
+            samples: r.samples.max(0) as usize,
+            cores: u32::try_from(r.cores).ok().filter(|c| *c > 0),
+            extra: crate::ci_telemetry::extra_columns_of(&|_| true, Some(r)),
+        })
+        .collect()
+}
+
+/// The sentence naming the machines and the table of what each job's runner did.
+pub(crate) fn runner_block(rows: &[RunnerRow]) -> String {
+    let mut machines: Vec<String> = rows
+        .iter()
+        .map(|r| format!("{} / {}", r.cores.map_or("cores not sampled".to_string(), |c| format!("{c} vCPU")), if r.total_mb > 0.0 { format!("{:.0} GB", r.total_mb / 1024.0) } else { "memory not sampled".to_string() }))
+        .collect();
+    machines.sort();
+    let mut kinds: Vec<(String, usize)> = Vec::new();
+    for m in machines {
+        match kinds.last_mut().filter(|(k, _)| *k == m) {
+            Some((_, n)) => *n += 1,
+            None => kinds.push((m, 1)),
+        }
+    }
+    let sentence = kinds.iter().map(|(m, n)| format!("{m} ({n} job{})", if *n == 1 { "" } else { "s" })).collect::<Vec<_>>().join(", ");
+    let lines: String = rows
+        .iter()
+        .map(|r| {
+            let mem_pct = if r.total_mb > 0.0 { r.mem_mb.1 * 100.0 / r.total_mb } else { 0.0 };
+            format!(
+                "| {} {} | {:.0}% | **{:.0}%** | {:.1} GB | **{:.1} GB** ({:.0}%) | {:.1} | {} |{}\n",
+                flag(r.cpu.1, 70.0, 90.0),
+                cell(&r.job),
+                r.cpu.0,
+                r.cpu.1,
+                r.mem_mb.0 / 1000.0,
+                r.mem_mb.1 / 1000.0,
+                mem_pct,
+                r.load_peak,
+                r.samples,
+                r.extra
+            )
+        })
+        .collect();
+    format!(
+        "Runners as sampled: {sentence}; every 5 s while the job runs.\n\n| Job | CPU busy avg | CPU busy peak | Memory avg | Memory peak | Load (1 min) peak | Samples | CPU p95 | I/O wait avg | Swap peak | Pressure cpu/mem/io | Idle s | Saturated s |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n{lines}"
+    )
 }
 
 /// The containers that used the VM during the run, biggest disk writers first: who the I/O wait and the memory belong to.
@@ -745,20 +880,39 @@ fn job_chart(shown: &[(&Value, Stats)]) -> String {
     if minutes.len() < 2 {
         return String::new();
     }
-    format!("\n### Minutes per job\n{}", bar_chart("Minutes per job (numbers as in the table)", "minutes", &labels, &minutes, 1.0, false))
+    format!("\n{CHART}\n{}", bar_chart("Minutes per job (numbers as in the table)", "minutes", &labels, &minutes, 1.0, false))
 }
 
 /// A vertical bar chart of one series, its labels and the unit on the axis; the axis tops out at the next ten above the peak. With `thin`,
 /// about six labels are printed (every one on a phone overlaps its neighbours) and the others get an invisible, distinct name (equal names
 /// would be one category).
 fn bar_chart(title: &str, unit: &str, labels: &[String], values: &[f64], floor_max: f64, thin: bool) -> String {
-    let peak = values.iter().copied().fold(0.0_f64, f64::max);
+    xy_chart(Look { init: "", kind: "bar", floor_max, thin }, title, unit, labels, &[values])
+}
+
+/// Several series as lines on one set of axes, in the colours of `palette` (one `#rrggbb` per series, in order). Mermaid draws no legend, so the caller names the colours.
+pub(crate) fn multi_line_chart(title: &str, unit: &str, labels: &[String], series: &[Vec<f64>], palette: &[&str]) -> String {
+    let init = format!("%%{{init: {{\"themeVariables\": {{\"xyChart\": {{\"plotColorPalette\": \"{}\"}}}}}}}}%%\n", palette.join(", "));
+    let series: Vec<&[f64]> = series.iter().map(Vec::as_slice).collect();
+    xy_chart(Look { init: &init, kind: "line", floor_max: 1.0, thin: true }, title, unit, labels, &series)
+}
+
+/// How a chart is drawn: a Mermaid init directive (or none), `bar` or `line`, the least height of the axis, and whether the labels are thinned.
+struct Look<'a> {
+    init: &'a str,
+    kind: &'a str,
+    floor_max: f64,
+    thin: bool,
+}
+
+fn xy_chart(Look { init, kind, floor_max, thin }: Look, title: &str, unit: &str, labels: &[String], series: &[&[f64]]) -> String {
+    let peak = series.iter().flat_map(|s| s.iter().copied()).fold(0.0_f64, f64::max);
     let step = if peak > 100.0 { 50.0 } else if peak > 20.0 { 10.0 } else { 5.0 };
     let top = ((peak / step).ceil() * step).max(floor_max);
     let every = if thin { labels.len().div_ceil(6).max(1) } else { 1 };
     let names = labels.iter().enumerate().map(|(i, l)| if i % every == 0 { format!("\"{l}\"") } else { format!("\"{}\"", "\u{200b}".repeat(i + 1)) }).collect::<Vec<_>>().join(", ");
-    let points = values.iter().map(|v| format!("{v:.1}")).collect::<Vec<_>>().join(", ");
-    mermaid(&format!("xychart-beta\n    title \"{title}\"\n    x-axis [{names}]\n    y-axis \"{unit}\" 0 --> {top:.0}\n    bar [{points}]\n"))
+    let plots: String = series.iter().map(|values| format!("    {kind} [{}]\n", values.iter().map(|v| format!("{v:.1}")).collect::<Vec<_>>().join(", "))).collect();
+    mermaid(&format!("{init}xychart-beta\n    title \"{title}\"\n    x-axis [{names}]\n    y-axis \"{unit}\" 0 --> {top:.0}\n{plots}"))
 }
 
 /// The VM's history as charts: I/O wait during the run and over the last day (the signal that says a stall is coming), with CPU and
@@ -833,44 +987,75 @@ fn failures_block(failures: &[Failure], skipped: &[String]) -> String {
 fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[Failure], skipped: &[String]) -> String {
     let (short, base) = (env.sha.chars().take(7).collect::<String>(), format!("{}/{}", env.server, env.repo));
     let run = format!("{base}/actions/runs/{}", env.run);
-    let shown: Vec<(&Value, Stats)> = jobs.iter().zip(logs).filter(|(j, _)| !is_meta(j)).map(|(j, l)| (j, l.as_ref().map(|l| stats(l)).unwrap_or_default())).collect();
+    let shown: Vec<(&Value, Stats)> = jobs.iter().zip(logs).filter(|(j, _)| !is_meta(j) && applies(j)).map(|(j, l)| (j, l.as_ref().map(|l| stats(l)).unwrap_or_default())).collect();
     let started = shown.iter().filter_map(|(j, _)| epoch(&j["started_at"])).min();
     let ended = shown.iter().filter_map(|(j, _)| epoch(&j["completed_at"])).max();
     let now = wf_kit::time::now_ms() as i64 / 1000;
     let running = shown.iter().any(|(j, _)| j["status"] != "completed");
     let wall = started.zip(if running { Some(now) } else { ended }).filter(|(f, t)| t >= f).map(|(f, t)| seconds(t - f));
-    let (verdict, mark) = match (running, failures.is_empty()) {
+    let failing = failing_now(&shown, now);
+    let replaced = shown.iter().filter(|(j, _)| is_replaced_while_pending(j)).count();
+    let cancelled = shown.iter().filter(|(j, _)| j["conclusion"] == "cancelled").count();
+    let (verdict, mark) = match (running, failures.is_empty() && failing.is_empty()) {
         (true, true) => ("running", "🟡"),
         (true, false) => ("running, a job failed", "🟠"),
+        (false, true) if replaced > 0 && replaced == cancelled => ("superseded by a newer run of the same inputs", "⏭️"),
+        (false, true) if cancelled > 0 => ("cancelled", "🚫"),
         (false, true) => ("passed", "✅"),
         (false, false) => ("failed", "❌"),
     };
-    let title = format!("## {mark} CI ({}) {verdict} · `{short}` · {}{}", env.label.as_deref().unwrap_or("self-hosted"), env.branch, wall.as_ref().map_or(String::new(), |w| format!(" · {w}")));
+    let title = format!("## {mark} CI ({}) {verdict} · `{short}` · {}{}", env.label.as_deref().unwrap_or("GitHub-hosted"), env.branch, wall.as_ref().map_or(String::new(), |w| format!(" · {w}")));
     let mut out = format!("{}\n{title}\n[Commit `{short}`]({base}/commit/{}) · [run {}]({run}) · runner `{}`\n\n", live_marker(env), env.sha, env.run, env.runner);
+    out.push_str(&failing_now_block(&failing));
     out.push_str(failures_block(failures, skipped).trim_start_matches('\n'));
 
     let count = |pred: &dyn Fn(&Value) -> bool| shown.iter().filter(|(j, _)| pred(j)).count();
-    let (passed, failed, skipped_jobs) = (count(&|j| j["conclusion"] == "success"), count(&is_failed), count(&|j| j["conclusion"] == "skipped"));
+    let (passed, failed) = (count(&|j| j["conclusion"] == "success"), count(&is_failed));
+    let not_applying = jobs.iter().filter(|j| !is_meta(j) && !applies(j)).count();
     let (hits, misses) = shown.iter().filter_map(|(_, s)| s.cache).fold((0, 0), |(h, m), c| (h + c.hits, m + c.misses));
     let layers = shown.iter().filter_map(|(_, s)| s.layers).fold((0, 0), |(c, t), l| (c + l.0, t + l.1));
     let times: Vec<crate::ci_insights::JobTime> = shown.iter().map(|(j, _)| job_time(j)).collect();
-    let facts: Vec<(String, crate::ci_insights::LogFacts)> = jobs.iter().zip(logs).filter(|(j, _)| !is_meta(j)).filter_map(|(j, l)| Some((text(j, "name"), crate::ci_insights::facts(l.as_ref().ok()?)))).collect();
+    let facts: Vec<(String, crate::ci_insights::LogFacts)> = jobs.iter().zip(logs).filter(|(j, _)| !is_meta(j) && applies(j)).filter_map(|(j, l)| Some((text(j, "name"), crate::ci_insights::facts(l.as_ref().ok()?)))).collect();
     let mut glance = vec![format!("**✅ {passed} passed**")];
     glance.extend((failed > 0).then(|| format!("**❌ {failed} failed**")));
+    glance.extend((replaced > 0).then(|| format!("**🚫 {replaced} replaced while pending by a newer run**")));
     let live_jobs = count(&|j| j["status"] == "in_progress");
     glance.extend((live_jobs > 0).then(|| format!("**🔄 {live_jobs} running**")));
-    let waiting = count(&|j| !matches!(j["status"].as_str(), Some("completed" | "in_progress")));
-    glance.extend((waiting > 0).then(|| format!("**⏸️ {waiting} waiting**")));
-    glance.extend((skipped_jobs > 0).then(|| format!("**⏭️ {skipped_jobs} skipped**")));
+    let queued = count(&|j| !matches!(j["status"].as_str(), Some("completed" | "in_progress")));
+    glance.extend((queued > 0).then(|| format!("**⏸️ {queued} queued**")));
+    glance.extend((!failures.is_empty() && !skipped.is_empty()).then(|| format!("**⏭️ {} skipped after the failure**", skipped.len())));
     glance.extend(wall.map(|w| format!("⏱️ {w}")));
     glance.extend(percent(hits, hits + misses).map(|p| format!("🗄️ build cache {p}% hit")));
     let refused: u64 = shown.iter().filter_map(|(_, s)| s.cache).map(|c| c.quota).sum();
     glance.extend((refused > 0).then(|| format!("**⚠️ Object Storage full: {refused} cache write(s) refused**")));
     glance.extend((layers.1 > 0).then(|| format!("🐳 docker layers {} of {} cached", layers.0, layers.1)));
     out.push_str(&format!("{}\n\n", glance.join(" · ")));
+    let finished_jobs: Vec<&Value> = shown.iter().map(|(j, _)| *j).collect();
+    let gathered = crate::ci_telemetry::gather(env, &finished_jobs, !running && !shown.is_empty());
+    let sealed = Some(gathered.workflow.as_str()).filter(|w| w.contains('+')).and_then(|_| crate::ci_trend::Sealed::open(&env.run).ok());
+    let wall_so_far = started.filter(|_| running).map(|from| (now - from).max(0));
+    let last = sealed.as_ref().and_then(|s| crate::ci_last_run::read(s, &gathered.workflow, &env.run, &base));
+    let mut held = Lasts::default();
+    let trend = crate::ci_trend::section(sealed.as_ref(), &gathered.workflow, &crate::ci_trend::Now { profile: gathered.profile.as_ref(), wall_so_far, running, jobs: &finished_jobs });
+    let (idle, todo) = crate::ci_actions::section(sealed.as_ref(), &gathered);
+    let telemetry = crate::ci_telemetry::section(&gathered, &failed_names(failures));
+    let line = |text: &str, what: &str, why: &str| if text.is_empty() { format!("{}\n\n", pending(running, what, why)) } else { format!("{text}\n\n") };
+    out.push_str(&line(&telemetry.headline, "the run to finish for its wall, runner time and parallel efficiency", "no job ran to completion, so the run has no profile"));
+    out.push_str(&line(&telemetry.verdict, "the run to finish for its critical path and fixed cost", "the profile has nothing to single out"));
 
-    out.push_str(&crate::ci_insights::where_time_went(&times, &facts));
-    out.push_str("### Jobs\n\n| | Job | Took |\n|---|---|---|\n");
+    let counted: Vec<crate::ci_insights::JobTime> = shown
+        .iter()
+        .map(|(j, _)| {
+            let mut t = job_time(j);
+            if running && j["status"] == "in_progress" {
+                t.ended = t.started.map(|_| now);
+            }
+            t
+        })
+        .collect();
+    let slot = |heading: &str, section: String, what: &str, why: &str| crate::ci_skeleton::slot(heading, section, running, what, why);
+    out.push_str(&slot(WHERE_TIME, crate::ci_insights::where_time_went(&counted, &facts, running), "the first job to start", "no job ran"));
+    out.push_str(&format!("\n{JOBS}\n\n| | Job | Took |\n|---|---|---|\n"));
     let mut crates: Vec<(String, String, bool)> = Vec::new();
     let mut caches: Vec<(String, Cache)> = Vec::new();
     for (index, (job, job_stats)) in shown.iter().enumerate() {
@@ -878,25 +1063,72 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
         crates.extend(job_stats.crates.iter().map(|(name, hit)| (name.clone(), text(job, "name"), *hit)));
         caches.extend(job_stats.cache.map(|c| (text(job, "name"), c)));
     }
-    out.push_str(&job_chart(&shown));
-    if env.label.is_some() {
-        out.push_str(&runner_section(env));
-    } else if let (Some(from), Some(to)) = (started, ended.or(started)) {
-        out.push_str(&vm_section(env, &times, from * 1000, to.max(from) * 1000 + 60_000));
+    if not_applying > 0 {
+        out.push_str(&format!("\n⏭️ {not_applying} job{} of the shared pipeline did not apply to this workflow\n", if not_applying == 1 { "" } else { "s" }));
     }
-    out.push_str(&crate::ci_insights::cache_section(&cache_rows(&shown, &facts), &facts));
-    let finished: Vec<(String, String)> = jobs.iter().zip(logs).filter(|(j, _)| !is_meta(j)).filter_map(|(j, l)| Some((text(j, "name"), l.as_ref().ok()?.clone()))).collect();
-    out.push_str(&crate::ci_cache_health::section(&crate::ci_cache_health::assess(&finished, crate::ci_cache_health::is_push_to_dev(env))));
-    out.push_str(&units_table(env));
+    let fixed = if telemetry.tables.is_empty() { String::new() } else { format!("\n{FIXED_COST}\n{}", telemetry.tables) };
+    out.push_str(&slot(FIXED_COST, fixed, "the first finished job", "no job ran a setup step or waited for a runner"));
+    out.push_str(&slot(CHART, job_chart(&shown), "two finished jobs", "fewer than two jobs have a time to chart"));
+    out.push_str(&trend);
+    let prev = |pick: &dyn Fn(&crate::ci_last_run::LastRun) -> &str| last.as_ref().map(|l| (l.label.as_str(), pick(l)));
+    let wait = |waits_for, why_none| Wait { running, waits_for, why_none };
+    out.push_str(&crate::ci_skeleton::summary_table(&mut held, IDLE, prev(&|l| &l.idle), &idle, "**Overhead**", wait("the first step with CPU samples", "no step has CPU samples over it")));
+    out.push_str(&crate::ci_skeleton::blocks(&mut held, TODO, prev(&|l| &l.todo), &todo, wait("the run to finish", "no signal is amber or red")));
+    if env.label.is_some() {
+        out.push_str(&crate::ci_skeleton::summary_table(&mut held, RUNNERS, prev(&|l| &l.runners), &runner_section(env, running), "Runners as sampled:", wait("the first runner samples", "no runner samples were stored for this run")));
+    } else {
+        let window = started.map(|from| (from * 1000, if running { now } else { ended.unwrap_or(from) }.max(from) * 1000 + 60_000));
+        out.push_str(&match window {
+            Some((from_ms, to_ms)) => vm_section(env, &times, from_ms, to_ms, running),
+            None => slot(VM, String::new(), "the first job to start", "no job started"),
+        });
+    }
+    // the report job (it has the jobs' databases, or a sealed file) reads the database for why tasks ran and how each stage replayed over the last runs
+    let reads_database = !running && (var("WF_CI_LEDGERS").is_some() || var("WF_CI_SEALED_FILE").is_some());
+    let database = reads_database.then(|| crate::ci_cache_misses::Analysis::open(&env.run, &crate::ci_cache_misses::local_files()).and_then(|a| crate::ci_cache_misses::analyse(&a)));
+    let rates = match &database {
+        Some(Ok(found)) => crate::ci_cache_misses::rates_block(&found.rates),
+        _ => String::new(),
+    };
+    let cache = crate::ci_insights::cache_section(&cache_rows(&shown, &facts), &facts);
+    let cache = match (cache.is_empty(), rates.is_empty()) {
+        (_, true) => cache,
+        (true, false) => format!("\n{CACHE}\n{rates}"),
+        (false, false) => format!("{cache}{rates}"),
+    };
+    out.push_str(&crate::ci_skeleton::summary_table(&mut held, CACHE, prev(&|l| &l.cache), &cache, "**Whole run:**", wait("the first finished job", "no job reported a cache")));
+    let finished: Vec<(String, String)> = jobs.iter().zip(logs).filter(|(j, _)| !is_meta(j) && applies(j)).filter_map(|(j, l)| Some((text(j, "name"), l.as_ref().ok()?.clone()))).collect();
+    let health = crate::ci_cache_health::section(&crate::ci_cache_health::assess(&finished, crate::ci_cache_health::seeded(env)));
+    out.push_str(&crate::ci_skeleton::blocks(&mut held, CACHE_HEALTH, prev(&|l| &l.health), &health, wait("the first finished job log", "no job log held a cache event")));
+    let mut cache_problems = crate::ci_cache_misses::problems_in_logs(&finished);
+    if let Some(Ok(found)) = &database {
+        // the log names the job the reader knows; the database only adds a failure whose log was not read
+        for p in crate::ci_cache_misses::problems_in_events(&found.events) {
+            if !cache_problems.iter().any(|q| (&q.layer, &q.phase, &q.key) == (&p.layer, &p.phase, &p.key)) {
+                cache_problems.push(p);
+            }
+        }
+    }
+    let problems = crate::ci_cache_misses::problems_section(&cache_problems, database.as_ref(), running);
+    out.push_str(&crate::ci_skeleton::blocks(&mut held, CACHE_PROBLEMS, prev(&|l| &l.problems), &problems, wait("the first finished job log", "no cache restore failed")));
+    out.push_str(&crate::ci_skeleton::blocks(&mut held, SLOWEST_STEPS, prev(&|l| &l.steps), &crate::ci_insights::slowest_steps(&times), wait("the first finished job", "no job has a step of five seconds or more")));
+    let (units, _) = units_table(env);
+    out.push_str(&telemetry.details);
+    out.push_str(&units);
     out.push_str(&cache_details(&caches));
-    out.push_str(&crate::ci_insights::cost_block(&facts));
+    out.push_str(&crate::ci_insights::cost_block(&facts, crate::ci_telemetry::common_cores(&crate::ci_telemetry::runner_samples()).or_else(|| env.label.is_none().then_some(2))));
     out.push_str(&crates_table(&crates));
-    out.push_str(&crate::ci_insights::detail_blocks(&times, &facts));
+    out.push_str(&crate::ci_insights::detail_blocks(&facts));
     for f in failures.iter().filter(|f| !f.more.is_empty()) {
         let block = details(f);
-        if out.len() + block.len() <= BODY_CAP - RESERVED {
+        if out.len() + held.weight() + block.len() <= BODY_CAP - RESERVED {
             out.push_str(&block);
         }
+    }
+    let assembled = out;
+    let mut out = held.fill(&assembled, false);
+    if out.len() > BODY_CAP - RESERVED {
+        out = held.fill(&assembled, true);
     }
     if out.len() > BODY_CAP {
         let mut cut_at = BODY_CAP - RESERVED;
@@ -907,6 +1139,34 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
         out.push_str("\n\n*The rest is in the run.*\n");
     }
     out
+}
+
+/// The jobs still running with a step that already went red: (job, step, link, how long the job has run), so the report shows a failure while the job's other steps go on.
+fn failing_now(jobs: &[(&Value, Stats)], now: i64) -> Vec<(String, String, String, String)> {
+    jobs.iter()
+        .filter(|(j, _)| j["status"] == "in_progress")
+        .filter_map(|(j, _)| {
+            let step = j["steps"].as_array()?.iter().find(|s| matches!(s["conclusion"].as_str(), Some("failure" | "timed_out")))?;
+            let ran = epoch(&j["started_at"]).map_or_else(|| "-".to_string(), |from| seconds((now - from).max(0)));
+            Some((text(j, "name"), text(step, "name"), text(j, "html_url"), ran))
+        })
+        .collect()
+}
+
+fn failing_now_block(rows: &[(String, String, String, String)]) -> String {
+    let mut out = String::new();
+    for (name, step, url, ran) in rows {
+        let link = if url.is_empty() { String::new() } else { format!(" · [open the job]({url})") };
+        out.push_str(&format!("> ### 🟠 {} failing now\n> step **{}** is red, the job still runs ({ran} in){link}\n>\n", html(name), html(step)));
+    }
+    if !out.is_empty() {
+        out.push('\n');
+    }
+    out
+}
+
+fn failed_names(failures: &[Failure]) -> Vec<String> {
+    failures.iter().map(|f| f.name.clone()).collect()
 }
 
 fn job_time(job: &Value) -> crate::ci_insights::JobTime {
@@ -953,12 +1213,14 @@ fn skipped_after(jobs: &[Value], failed: &[&Value]) -> Vec<String> {
 }
 
 /// The id of the comment under `list` (an API path) that carries `marker`, if any.
-fn find_comment(env: &Env, list: &str, marker: &str) -> Result<Option<u64>, String> {
+fn find_comment(env: &Env, list: &str) -> Result<Option<u64>, String> {
+    let run = env.run.parse::<u64>().unwrap_or(0);
+    let ours = |c: &Value| c["user"]["login"] == "github-actions[bot]" && c["body"].as_str().and_then(crate::ci_prune::marker_parts).is_some_and(|(f, r)| f.is_empty() && r == run);
     for page in 1..=5 {
         let url = format!("{}{list}?per_page=100&page={page}", env.api);
         let comments = json_of(send(env, "GET", &url, None)?, "listing the comments")?;
         let comments = comments.as_array().cloned().unwrap_or_default();
-        if let Some(found) = comments.iter().find(|c| c["body"].as_str().is_some_and(|b| b.contains(marker))) {
+        if let Some(found) = comments.iter().find(|c| ours(c)) {
             return Ok(found["id"].as_u64());
         }
         if comments.len() < 100 {
@@ -968,9 +1230,9 @@ fn find_comment(env: &Env, list: &str, marker: &str) -> Result<Option<u64>, Stri
     Ok(None)
 }
 
-/// Creates the comment under `list`, or updates the one this run and runner already made (never another run's).
+/// Creates the comment under `list`, or updates the one this run already made, whichever runner wrote it (never another run's).
 fn post_comment(env: &Env, list: &str, on_commit: bool, body: &str) -> Result<(&'static str, Value), String> {
-    let (method, url, action) = match find_comment(env, list, &marker(env))? {
+    let (method, url, action) = match find_comment(env, list)? {
         Some(id) => ("PATCH", format!("{}/repos/{}/{}comments/{id}", env.api, env.repo, if on_commit { "" } else { "issues/" }), "updated"),
         None => ("POST", format!("{}{list}", env.api), "created"),
     };
@@ -978,10 +1240,18 @@ fn post_comment(env: &Env, list: &str, on_commit: bool, body: &str) -> Result<(&
     Ok((action, posted["id"].clone()))
 }
 
-pub(crate) fn open_pr(env: &Env) -> Result<Option<u64>, String> {
+/// The open pull request of the branch: its number and its head sha (absent when GitHub did not say).
+pub(crate) fn open_pr(env: &Env) -> Result<Option<(u64, Option<String>)>, String> {
     let owner = env.repo.split('/').next().unwrap_or_default();
     let url = format!("{}/repos/{}/pulls?head={owner}:{}&state=open&per_page=1", env.api, env.repo, env.branch);
-    Ok(json_of(send(env, "GET", &url, None)?, "finding the pull request")?.as_array().and_then(|a| a.first()).and_then(|p| p["number"].as_u64()))
+    let found = json_of(send(env, "GET", &url, None)?, "finding the pull request")?;
+    Ok(found.as_array().and_then(|a| a.first()).and_then(|p| Some((p["number"].as_u64()?, p["head"]["sha"].as_str().map(str::to_string)))))
+}
+
+/// A job that is a row of the report: it ran, is running or is waiting for a runner. The jobs of the shared pipeline that the caller's `stages` or
+/// `area` left out are skipped (or never expanded) and are one count under the table.
+fn applies(job: &Value) -> bool {
+    job["conclusion"] != "skipped" && job["unexpanded"] != true
 }
 
 /// The jobs that are not part of what the report is about: the report itself and the budget that runs after it.
@@ -1028,47 +1298,73 @@ pub(crate) fn report(env: &Env) -> Result<Report, String> {
     Ok(Report { body, failed: failed.iter().map(|j| text(j, "name")).collect() })
 }
 
-/// The pull request's comments that belong to a CI run (this format or the one before it) with their ids and bodies.
-fn ci_comments(env: &Env, pr: u64) -> Result<Vec<(u64, String)>, String> {
+/// The comments of the pull request with their ids, authors and bodies.
+fn pr_comments(env: &Env, pr: u64) -> Result<Vec<Value>, String> {
     let mut found = Vec::new();
     for page in 1..=10 {
         let url = format!("{}/repos/{}/issues/{pr}/comments?per_page=100&page={page}", env.api, env.repo);
         let comments = json_of(send(env, "GET", &url, None)?, "listing the comments")?;
         let comments = comments.as_array().cloned().unwrap_or_default();
-        found.extend(comments.iter().filter_map(|c| {
-            let body = c["body"].as_str()?;
-            (body.starts_with(LIVE_PREFIX) || body.starts_with("<!-- ci-comment")).then(|| (c["id"].as_u64().unwrap_or(0), body.to_string()))
-        }));
-        if comments.len() < 100 {
+        let full = comments.len() >= 100;
+        found.extend(comments);
+        if !full {
             break;
         }
     }
     Ok(found)
 }
 
-/// Makes this run's comment the only CI comment of the pull request, and the last one: the other runs' are deleted, this run's is edited in
-/// place, or created when the run has none yet.
-pub(crate) fn sync_live(env: &Env, pr: u64, body: &str) -> Result<(&'static str, Value), String> {
-    let mine_marker = live_marker(env);
-    let existing = ci_comments(env, pr)?;
-    let mut mine = None;
-    for (id, text) in existing.iter().filter(|c| same_flavor(env, &c.1)) {
-        if text.contains(&mine_marker) {
-            mine = Some(*id);
-        } else {
-            send(env, "DELETE", &format!("{}/repos/{}/issues/comments/{id}", env.api, env.repo), None)?;
-        }
+/// The ids of this run's comments of this pipeline on the pull request, lowest first.
+fn mine_of(env: &Env, comments: &[Value]) -> Vec<u64> {
+    let (flavor, run) = (flavor(env), env.run.parse::<u64>().unwrap_or(0));
+    let mut ids: Vec<u64> = comments.iter().filter(|c| crate::ci_prune::is_bot(c)).filter(|c| c["body"].as_str().and_then(crate::ci_prune::marker_parts).is_some_and(|(f, r)| f == flavor && r == run)).filter_map(|c| c["id"].as_u64()).collect();
+    ids.sort_unstable();
+    ids
+}
+
+fn delete_comment(env: &Env, id: u64) -> Result<(), String> {
+    send(env, "DELETE", &format!("{}/repos/{}/issues/comments/{id}", env.api, env.repo), None).map(|_| ())
+}
+
+/// Makes this run's comment the one comment of the run: edited in place (the lowest id when a race made two), created when the run has none
+/// yet and converged to one when another writer created one at the same time; then the comments of older heads are pruned.
+pub(crate) fn sync_live(env: &Env, pr: u64, head: Option<&str>, body: &str) -> Result<(&'static str, Value), String> {
+    let comments_url = format!("{}/repos/{}/issues/comments", env.api, env.repo);
+    let all = pr_comments(env, pr)?;
+    let (flavor, run) = (flavor(env), env.run.parse::<u64>().unwrap_or(0));
+    let newer = all.iter().filter(|c| crate::ci_prune::is_bot(c)).any(|c| c["body"].as_str().and_then(crate::ci_prune::marker_parts).is_some_and(|(f, r)| f == flavor && r > run));
+    if newer {
+        // a newer run of this workflow owns the comment: writing would only be pruned and re-posted
+        return Ok(("skipped", Value::Null));
     }
-    match mine {
-        Some(id) => {
-            json_of(send(env, "PATCH", &format!("{}/repos/{}/issues/comments/{id}", env.api, env.repo), Some(&json!({ "body": body })))?, "updating the comment")?;
-            Ok(("updated", json!(id)))
+    let mine = mine_of(env, &all);
+    let result = match mine.split_first() {
+        Some((first, rest)) => {
+            for id in rest {
+                let _ = delete_comment(env, *id);
+            }
+            json_of(send(env, "PATCH", &format!("{comments_url}/{first}"), Some(&json!({ "body": body })))?, "updating the comment")?;
+            ("updated", json!(first))
         }
         None => {
             let posted = json_of(send(env, "POST", &format!("{}/repos/{}/issues/{pr}/comments", env.api, env.repo), Some(&json!({ "body": body })))?, "posting the comment")?;
-            Ok(("created", posted["id"].clone()))
+            let mut id = posted["id"].clone();
+            if let Ok(now) = pr_comments(env, pr) {
+                let ids = mine_of(env, &now);
+                if let Some(first) = ids.first().filter(|_| ids.len() > 1) {
+                    for extra in ids.iter().skip(1) {
+                        delete_comment(env, *extra)?;
+                    }
+                    id = json!(first);
+                }
+            }
+            ("created", id)
         }
+    };
+    if let Some(head) = head {
+        crate::ci_prune::prune_pr(env, pr, head, true, false);
     }
+    Ok(result)
 }
 
 fn attempt(dry_run: bool, names: &mut Vec<String>) -> Result<Value, String> {
@@ -1084,13 +1380,20 @@ fn attempt(dry_run: bool, names: &mut Vec<String>) -> Result<Value, String> {
         let wrote = std::fs::OpenOptions::new().append(true).create(true).open(path).and_then(|mut f| writeln!(f, "{body}"));
         out["summary"] = json!(wrote.is_ok());
     }
-    if !failed.is_empty() {
-        // the commit's own comment keeps the report of a red run; its marker is the older per-run one
+    let pr = open_pr(&env);
+    if let Ok(Some((_, Some(head)))) = &pr {
+        if *head != env.sha {
+            out["reason"] = json!(format!("superseded: head moved to {}", head.chars().take(7).collect::<String>()));
+            return Ok(out);
+        }
+    }
+    if !failed.is_empty() && !matches!(pr, Ok(Some(_))) {
+        // with a pull request the live comment holds the failure report; the commit's own comment is for a push nobody has opened a PR for
         let for_commit = body.replacen(&live_marker(&env), &marker(&env), 1);
         let (action, id) = post_comment(&env, &format!("/repos/{}/commits/{}/comments", env.repo, env.sha), true, &for_commit)?;
         (out["posted"], out["action"], out["commentId"]) = (json!(true), json!(action), id);
     }
-    match open_pr(&env).and_then(|pr| pr.map(|n| sync_live(&env, n, &body).map(|(action, id)| json!({ "number": n, "action": action, "commentId": id }))).transpose()) {
+    match pr.and_then(|pr| pr.map(|(n, head)| sync_live(&env, n, head.as_deref(), &body).map(|(action, id)| json!({ "number": n, "action": action, "commentId": id }))).transpose()) {
         Ok(pr) => out["prComment"] = pr.unwrap_or(Value::Null),
         Err(reason) => out["prComment"] = json!({ "error": redact(&reason, &env.token) }),
     }
@@ -1103,9 +1406,17 @@ pub fn run(args: &[String]) -> Option<i32> {
     match verb.as_str() {
         "audit" => return crate::ci_audit::run(rest),
         "cache-health" => return crate::ci_cache_health::run(rest),
+        "cache-misses" => return crate::ci_cache_misses::run(rest),
+        "prune" => return crate::ci_prune::run(rest),
+        "db" => return crate::ci_db_verb::run(rest),
         "preflight" => return crate::ci_preflight::run(rest),
         "live" => return crate::ci_live::run(rest),
+        "plan" => return crate::ci_plan::run(rest),
         "tidy" => return crate::ci_tidy::run(rest),
+        "timings" | "progress" | "failed" => return crate::ci_timings::run(verb, rest),
+        "resources" => return crate::ci_resources::run(verb, rest),
+        "concurrency" => return crate::ci_concurrency::run(verb, rest),
+        "proven" => return crate::ci_proven::run(verb, rest),
         _ => {}
     }
     if verb != "comment" {

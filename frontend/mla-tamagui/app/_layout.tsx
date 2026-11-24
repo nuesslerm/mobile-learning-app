@@ -10,10 +10,11 @@ import { AgentationProvider } from '@lib/rn-agentation';
 import {
   resolveActiveThemeName,
   useHeaderHeightStore,
+  useOpenSheetStore,
   usePresetThemeStore,
 } from '@lib/tamagui-design-system';
 import { tamaguiConfig } from '@lib/tamagui-design-system/theme';
-import { Stack } from 'expo-router';
+import { Stack, ThemeProvider } from 'expo-router';
 import { Platform, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -21,8 +22,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'sonner-native';
 import { TamaguiProvider, Theme } from '@lib/tamagui-design-system/primitives';
 
+import { DeviceRunnerRoot } from '@/features/leetcode';
+
 import { AgentationMarkerLog } from '../app-shell/AgentationMarkerLog';
-import { DebugFab } from '../app-shell/DebugFab';
+import {
+  NativeChromeBridge,
+  useNavigationTheme,
+} from '../app-shell/NativeChromeBridge';
 import { RouteLogger } from '../app-shell/RouteLogger';
 
 // Module scope keeps the options object identity stable across renders. The
@@ -61,6 +67,13 @@ if (process.env.EXPO_PUBLIC_DEVICE_LAB === '1' && Platform.OS === 'web') {
  */
 // Reanimated on web only runs predefined entering/exiting animations; sonner's custom worklets log a warning.
 const WEB_TOAST_ANIMATION = { enter: FadeIn.duration(200), exit: FadeOut.duration(200) };
+const FloatingDevTools = __DEV__ && Platform.OS !== 'web'
+  ? (require('@buoy-gg/core') as typeof import('@buoy-gg/core')).FloatingDevTools
+  : null;
+const BuoyRouterStore = FloatingDevTools
+  ? (require('../app-shell/buoyRouterStore') as typeof import('../app-shell/buoyRouterStore')).BuoyRouterStore
+  : null;
+const buoyStores = { theme: usePresetThemeStore, sheets: useOpenSheetStore };
 
 function HeaderClearToaster() {
   const headerHeight = useHeaderHeightStore((state) => state.height);
@@ -74,6 +87,7 @@ function HeaderClearToaster() {
 }
 
 export default function RootLayout() {
+  const navigationTheme = useNavigationTheme();
   const scheme = useColorScheme();
   const activeThemeId = usePresetThemeStore((s) => s.activeThemeId);
   const themeMode = usePresetThemeStore((s) => s.themeMode);
@@ -94,6 +108,8 @@ export default function RootLayout() {
                 and header buttons via Stack.Screen -- the editor's Info button
                 is the only way into the problem description. Only the drawer
                 group hides its header, because its screens carry their own. */}
+            <DeviceRunnerRoot>
+            <ThemeProvider value={navigationTheme}>
             <Stack>
               {/* `title` even though the header is hidden: a child route's
                   back button labels itself from its PARENT's title, so without
@@ -110,7 +126,7 @@ export default function RootLayout() {
               {/* Full screens, so they keep a header -- but it has to be the
                   app's own, or the title falls back to the route pattern. */}
               <Stack.Screen
-                name="coding-agent/[threadId]/settings"
+                name="coding-agent"
                 options={{
                   presentation: 'transparentModal',
                   headerShown: false,
@@ -118,8 +134,10 @@ export default function RootLayout() {
                 }}
               />
             </Stack>
+            </ThemeProvider>
+            </DeviceRunnerRoot>
+            <NativeChromeBridge />
             <RouteLogger />
-            <DebugFab />
             {/* AgentationMarkerLog calls useAgentation, which throws
                   outright when no provider is above it -- and a throw here
                   takes the whole tree down, so every route renders blank
@@ -137,6 +155,8 @@ export default function RootLayout() {
                   (src/constants.ts), so its own default is a plain vertical
                   list -- not the stacked pile sonner is known for. Opt in. */}
             <HeaderClearToaster />
+            {BuoyRouterStore && <BuoyRouterStore />}
+            {FloatingDevTools && <FloatingDevTools zustandStores={buoyStores} />}
           </Theme>
         </TamaguiProvider>
       </GestureHandlerRootView>

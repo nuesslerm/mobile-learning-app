@@ -1,0 +1,29 @@
+{
+  "method": "mr.fileViewed",
+  "exchanges": [
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "mr.fileViewed",
+        "params": {
+          "path": "src/a.rs",
+          "provider": "gitlab",
+          "pull_request": "",
+          "viewed": true,
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`pull_request` must be an id of letters, digits, `_`, `-`, `=`"
+        }
+      },
+      "actions": [
+        "hosted_pr_file_viewed"
+      ]
+    }
+  ]
+}

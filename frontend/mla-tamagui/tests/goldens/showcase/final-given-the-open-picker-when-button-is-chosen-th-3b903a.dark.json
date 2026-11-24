@@ -1,0 +1,64 @@
+{
+  "suite": "showcase",
+  "step": "final-given-the-open-picker-when-button-is-chosen-th-3b903a",
+  "scheme": "dark",
+  "snapshot": "showcase/final-given-the-open-picker-when-button-is-chosen-th-3b903a.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "ShowcaseNavigation",
+      "ShowcaseNavigationBack",
+      "ShowcaseNavigationTitle",
+      "ShowcaseItemButton",
+      "ShowcaseItemTitle",
+      "ShowcaseButton",
+      "ShowcaseButton-TamaguiLabel",
+      "ShowcaseButton-Tamagui",
+      "ButtonDefault",
+      "ButtonSecondary",
+      "ButtonOutline",
+      "ButtonGhost",
+      "ShowcaseButton-ExpoUiLabel",
+      "ShowcaseButton-ExpoUi",
+      "ExpoButtonFilled",
+      "ExpoButtonOutlined",
+      "ExpoButtonText"
+    ],
+    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nBrowse components\nBasics\nButton\nTamagui\nDefault\nSecondary\nOutline\nGhost\nExpo UI\nFilled\nOutlined\nText"
+  },
+  "timings": {
+    "render_ms": 198
+  },
+  "name": "showcase/final-given-the-open-picker-when-button-is-chosen-th-3b903a.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

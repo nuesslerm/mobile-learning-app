@@ -6,9 +6,9 @@ units: part=vowels letters=1-2; part=vowels letters=3-4; part=vowels letters=5-6
 focus: true
 features: tamil-writing
 ---]]
--- device-lab Tamil writing: traced letters (guide), a write path (template) and three words against the live marker backend.
+-- device-lab Tamil writing: traced letters (guide), a write path (template) and three words, with the marker answered by a stub: no test starts or needs a backend.
 -- wf android|browser test e2e/tamil-writing.lua --env out=<dir> [--env base=<exp://u.expo.dev/<projectId>/group/<group>/-- | http://127.0.0.1:8800/mla-tamagui>] [--env package=host.exp.exponent]
--- Gates: every traced letter at least 90% on the line, write path and words "LOOKS RIGHT" (one retry per word), zero JS warnings
+-- Gates: every traced letter at least 90% on the line, write path and words "LOOKS RIGHT" from the stubbed marker (one retry per word), zero JS warnings
 -- per lesson and word. Input is touch only (the strokes follow the pad's own guide/template). The test records itself.
 local android = device.platform == "android"
 local out = env.out or (".agents/tmp/runs/tamil-writing-" .. device.platform)
@@ -54,6 +54,9 @@ local function warnings_gate(name)
 end
 -- the screen opens by deep link on every platform (owner, 16 Oct); the app may be the one already running
 local function open_route(path, wait_for, timeout) run_flow("open route", function()
+  -- a unit that ended on Enter or Ctrl+End left the display out of touch mode, and a screen that mounts before the next touch takes focus on a control
+  -- lower down and scrolls to it (CI run 44932009867: three lessons opened scrolled): the first act on a phone is a touch, here on the header's empty top edge
+  if android then device:tap_on({point='50%,4.5%'}) end
   -- a reused app may still show this kind of screen from the last unit, and a link to it remounts it a moment later: the
   -- trace then follows the old template (18 Oct: word-uyir-aa drew அம்மா). The app leaves for Settings first.
   if android and device:get_element(wait_for) then
@@ -76,6 +79,8 @@ end) end
 local function lesson(route, first, last)
   device:clear_logs()
   open_route("/tamil/" .. route, {id='TamilPracticeCanvasSurface'}, 240)
+  -- a lesson opens at its top; one that opened scrolled fails here by name, not at the first Next or golden
+  if android then device:assert_visible({id='TamilPracticePosition'}, {timeout=5000}) end
   -- a swipe flings to a different offset each run, so the golden is taken before it
   if android and first == 1 then device:assert_screenshot("tamil-" .. route .. "-open", { ignore = { { 0, 0, SW, math.floor(40 * SW / 540) } } }) end
   -- a later unit starts where a person would after the earlier letters: Next until its first letter is up
@@ -157,7 +162,7 @@ local function writepad(name)
     -- scroll_until_visible drags from the screen's centre, which is the pad: the page is dragged at its left edge instead
     if not device:get_element({id='TamilWriteCheck'}) then scroll_down() end
     device:tap_on({id='TamilWriteCheck'})
-    device:extended_wait_until{visible={id='TamilWriteVerdictBadge'}, timeout=90000, optional=true} -- the check is a real backend call; a miss is read as "no verdict" below
+    device:extended_wait_until{visible={id='TamilWriteVerdictBadge'}, timeout=90000, optional=true} -- the stubbed marker answers; a miss is read as "no verdict" below
     device:take_screenshot(("%s/%s-a%d-verdict.png"):format(out, name, attempt))
     verdict = text_of("TamilWriteVerdictBadge") or "no verdict"
     local w = device:get_logs()
@@ -192,6 +197,10 @@ local from, to = tostring(env.letters or "1-6"):match("^(%d+)-(%d+)$")
 assert_true(from ~= nil, "letters is a range like 3-4, not " .. tostring(env.letters))
 if runs("vowels") then lesson("uyir-1", tonumber(from), tonumber(to)) end
 if runs("consonant") then lesson("uyirmei-k", 1, 1) end
+-- POST /api/tamil/check is the marker (remote-chat-agent, a vision model): the stub answers LOOKS RIGHT, so the pads, strokes and verdict badge are what the test proves
+if runs("write") or runs("words") then
+  device:add_network_stub("POST", "*/api/tamil/check", { json_body = { ok = true, score = 96, summary = "Stubbed verdict: the marker is not reached, so no test needs a backend." } })
+end
 local ok_write = not runs("write") or writepad("uyir-a")
 local ok_words = true
 if runs("words") then

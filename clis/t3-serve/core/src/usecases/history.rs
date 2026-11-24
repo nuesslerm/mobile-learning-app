@@ -16,27 +16,44 @@ pub struct EnvironmentRequest<'a> {
 }
 
 impl Service {
-    fn environment_refusal(&self, route: &'static str, error: EnvironmentError) -> Refusal {
+    pub(super) fn environment_refusal(&self, route: &'static str, error: EnvironmentError) -> Refusal {
         let trace_id = opaque_secret(&self.0.ids.random_bytes(16));
         self.log("orchestration.http.refused", &[("route", route.to_string()), ("status", error.status().to_string()), ("traceId", trace_id.clone())]);
         Refusal { status: error.status(), body: error.body(&trace_id) }
     }
 
     pub(super) fn environment_gate(&self, route: &'static str, request: &EnvironmentRequest) -> Result<(), Refusal> {
-        if request.protocol != Some("2") {
-            self.log("orchestration.http.refused", &[("route", route.to_string()), ("status", "426".into())]);
-            return Err(Refusal { status: 426, body: wire::protocol_incompatible() });
+        match request.protocol {
+            Some("2") => {}
+            None => {
+                self.log("orchestration.http.refused", &[("route", route.to_string()), ("status", "400".into())]);
+                return Err(Refusal::bare(400));
+            }
+            Some(_) => {
+                self.log("orchestration.http.refused", &[("route", route.to_string()), ("status", "426".into())]);
+                return Err(Refusal { status: 426, body: wire::protocol_incompatible() });
+            }
         }
-        if !request.authorization.is_some_and(|h| h.starts_with("Bearer ")) {
+        self.read_gate(route, request.authorization)
+    }
+
+    /// The bearer (401) and `orchestration:read` (403) of a read route, which the protocol header does not gate.
+    pub(super) fn read_gate(&self, route: &'static str, authorization: Option<&str>) -> Result<(), Refusal> {
+        self.scope_gate(route, authorization, READ_SCOPE)
+    }
+
+    /// The bearer (401) and the one `scope` (403) a route asks of it.
+    pub(super) fn scope_gate(&self, route: &'static str, authorization: Option<&str>, scope: &'static str) -> Result<(), Refusal> {
+        if !authorization.is_some_and(|h| h.starts_with("Bearer ")) {
             return Err(self.environment_refusal(route, EnvironmentError::CredentialMissing));
         }
-        let principal = match self.authenticate(request.authorization) {
+        let principal = match self.authenticate(authorization) {
             Ok(principal) => principal,
             Err(refused) if refused.status == 401 => return Err(self.environment_refusal(route, EnvironmentError::CredentialInvalid)),
             Err(refused) => return Err(refused),
         };
-        if !principal.scopes.iter().any(|s| s == READ_SCOPE) {
-            return Err(self.environment_refusal(route, EnvironmentError::ScopeRequired(READ_SCOPE)));
+        if !principal.scopes.iter().any(|s| s == scope) {
+            return Err(self.environment_refusal(route, EnvironmentError::ScopeRequired(scope)));
         }
         Ok(())
     }

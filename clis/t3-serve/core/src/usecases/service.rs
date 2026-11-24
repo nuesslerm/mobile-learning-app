@@ -57,13 +57,22 @@ pub struct Parts {
     pub host: Arc<dyn HostProbe>,
     /// The database `server.getDatabaseStorage` measures.
     pub storage: Arc<dyn StorageProbe>,
+    /// `T3_GUEST_HOST`: the address a guest reaches a link at; none, and no link can be made.
+    pub guest_host: Option<String>,
 }
 
 #[derive(Clone)]
 pub struct Service(pub(crate) Arc<Parts>, Arc<Runner>, pub(crate) Arc<Held>);
 
-fn refuse(status: u16, body: Value) -> Refusal {
+pub(super) fn refuse(status: u16, body: Value) -> Refusal {
     Refusal { status, body }
+}
+
+impl Refusal {
+    /// An answer with no body, which the pin gives a request its schema refuses.
+    pub fn bare(status: u16) -> Refusal {
+        Refusal { status, body: Value::Null }
+    }
 }
 
 impl Service {
@@ -72,8 +81,8 @@ impl Service {
         Service(Arc::new(parts), runner, Arc::new(Held::default()))
     }
 
-    pub(crate) fn turn_of_run(&self, run: &str) -> Option<String> {
-        self.1.turn_of_run(run)
+    pub(crate) fn turn_of_started_run(&self, run: &str) -> Option<String> {
+        self.1.turn_of_started_run(run)
     }
 
     pub fn agent(&self) -> &dyn AgentApi {
@@ -83,6 +92,10 @@ impl Service {
     /// Follows the runs a restart left running; called once, when the server starts.
     pub fn resume_runs(&self) {
         self.1.resume();
+        // A worktree the server was making when it stopped is made again (or found, when it was recorded): the run still waits for it
+        for (thread, run) in self.engine().read(|state| state.entities.iter().flat_map(|(t, e)| e.runs.iter().filter(|r| r["status"] == "preparing" && r["workspacePreparation"].is_object()).map(move |r| (t.clone(), r["id"].as_str().unwrap_or_default().to_string()))).collect::<Vec<_>>()) {
+            self.prepare_run(&thread, &run);
+        }
     }
 
     /// Catches a thread's rows up with its log in the agent API before they are read.
@@ -101,7 +114,7 @@ impl Service {
         let parsed = Command::parse(raw, family).ok();
         let fresh = |cmd: &Command| !self.0.engine.accepted(&cmd.command_id).unwrap_or(false);
         let forwarded = match &parsed {
-            Some(cmd) if family == Family::Thread && is_forwarded(&cmd.kind) && fresh(cmd) => {
+            Some(cmd) if family == Family::Thread && is_forwarded(&cmd.kind) && fresh(cmd) && cmd.str("threadId").or(cmd.str("sourceThreadId")).is_none_or(|t| self.0.engine.thread_exists(t)) => {
                 let outcome = self.forward(cmd).map_err(|message| Failure::Refused { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), message })?;
                 Some((cmd.clone(), outcome))
             }
@@ -130,7 +143,10 @@ impl Service {
         }
         match &dispatched.effect {
             Some(Effect::Launch(launch)) => self.1.launch(launch.clone()),
-            Some(Effect::Interrupt { thread_id }) => self.1.interrupt(thread_id),
+            Some(Effect::Queue(launch)) => self.1.queue(launch.clone()),
+            Some(Effect::Interrupt { thread_id, hold }) => self.1.interrupt(thread_id, *hold),
+            Some(Effect::Follow { thread_id, run_id }) => self.1.resume_queue(thread_id, run_id.clone()),
+            Some(Effect::Prepare { thread_id, run_id }) => self.prepare_run(thread_id, run_id),
             None => {}
         }
         Ok(dispatched)
@@ -168,7 +184,43 @@ impl Service {
         if let (Some(settings), Some(map)) = (self.config_settings(), config.as_object_mut()) {
             map.insert("settings".into(), settings);
         }
+        let providers = config["providers"].as_array_mut().expect("server_config builds providers");
+        for driver in self.apply_provider_catalog(providers) {
+            let settings = &mut config["settings"]["providerInstances"];
+            if !settings.is_object() {
+                *settings = json!({});
+            }
+            settings.as_object_mut().unwrap().entry(&driver)
+                .or_insert_with(|| json!({"driver": driver, "enabled": true}));
+        }
         config
+    }
+
+    pub(super) fn apply_provider_catalog(&self, rows: &mut [Value]) -> Vec<String> {
+        let providers = match self.0.agent.catalog_providers() {
+            Ok(providers) => providers,
+            Err(error) => {
+                self.log("catalog.providers.failed", &[("error", error.message())]);
+                return Vec::new();
+            }
+        };
+        let mut installed = Vec::new();
+        for provider in providers {
+            let Some(row) = rows.iter_mut().find(|row| row["instanceId"] == provider.driver.as_str()) else { continue };
+            row["enabled"] = json!(true);
+            row["installed"] = json!(true);
+            row["status"] = json!("ready");
+            // The executor's credential-file probe cannot rule out Keychain or environment login.
+            row["auth"]["status"] = json!(if provider.signed_in == Some(true) { "authenticated" } else { "unknown" });
+            row.as_object_mut().unwrap().remove("message");
+            if provider.driver != "opencode" || row["models"].as_array().is_none_or(Vec::is_empty) {
+                row["models"] = json!(provider.models.iter().map(|model| {
+                    json!({"slug": model.slug, "name": model.name, "isCustom": false, "capabilities": null})
+                }).collect::<Vec<_>>());
+            }
+            installed.push(provider.driver);
+        }
+        installed
     }
 
     /// `POST /oauth/token`: RFC 8693 token exchange of a pairing code for a 30-day bearer token.
@@ -197,7 +249,7 @@ impl Service {
         Ok(wire::token_response(&secret, &grant.scopes))
     }
 
-    fn store_failed(&self, event: &'static str, error: String) -> Refusal {
+    pub(super) fn store_failed(&self, event: &'static str, error: String) -> Refusal {
         self.log(event, &[("error", error)]);
         refuse(500, json!({"code": "internal", "message": "The server could not reach its store."}))
     }
@@ -236,34 +288,37 @@ impl Service {
         Ok(wire::ticket_response(&secret, &iso(expires_at)))
     }
 
+    /// The principal behind the bearer when it holds `access:write`, which the routes that hand out or take back access need.
+    pub(super) fn access_writer(&self, header: Option<&str>) -> Result<Principal, Refusal> {
+        let principal = self.authenticate(header)?;
+        if !principal.scopes.iter().any(|s| s == "access:write") {
+            return Err(self.insufficient_scope(&principal, "access:write"));
+        }
+        Ok(principal)
+    }
+
+    fn insufficient_scope(&self, principal: &Principal, scope: &str) -> Refusal {
+        self.log("access.scope.refused", &[("scope", scope.to_string()), ("tokenId", principal.token_id.clone())]);
+        refuse(403, json!({"_tag": "EnvironmentScopeRequiredError", "code": "insufficient_scope", "requiredScope": scope, "traceId": opaque_secret(&self.0.ids.random_bytes(16))}))
+    }
+
     /// `POST /api/auth/pairing-token`: a pairing code for another device, which a client with `access:write` mints and which carries only scopes
     /// that client holds itself, so a device can never hand out more than it has.
     pub fn pairing_credential(&self, header: Option<&str>, body: &Value) -> Result<Value, Refusal> {
-        let principal = self.authenticate(header)?;
-        let insufficient = |scope: &str| {
-            self.log("pairing.credential.refused", &[("scope", scope.to_string()), ("tokenId", principal.token_id.clone())]);
-            refuse(403, json!({"_tag": "EnvironmentScopeRequiredError", "code": "insufficient_scope", "requiredScope": scope, "traceId": opaque_secret(&self.0.ids.random_bytes(16))}))
-        };
-        if !principal.scopes.iter().any(|s| s == "access:write") {
-            return Err(insufficient("access:write"));
-        }
-        let invalid = |message: &str| refuse(400, json!({"_tag": "EnvironmentHttpBadRequestError", "code": "bad_request", "reason": "invalid_scope", "message": message}));
+        let principal = self.access_writer(header)?;
         let label = match body.get("label") {
             None => None,
-            Some(v) => Some(v.as_str().map(str::trim).filter(|l| !l.is_empty()).ok_or_else(|| refuse(400, wire::bad_request("label is a non-empty string")))?.to_string()),
+            Some(v) => Some(v.as_str().map(str::trim).filter(|l| !l.is_empty()).ok_or_else(|| Refusal::bare(400))?.to_string()),
         };
         let scopes: Vec<String> = match body.get("scopes") {
             None => t3_contracts::scopes::DEFAULT_PAIRING_SCOPES.iter().map(|s| s.to_string()).collect(),
-            Some(v) => v.as_array().and_then(|a| a.iter().map(|s| s.as_str().map(str::to_string)).collect()).ok_or_else(|| refuse(400, wire::bad_request("scopes is a list of scope names")))?,
+            Some(v) => v.as_array().and_then(|a| a.iter().map(|s| s.as_str().map(str::to_string)).collect()).ok_or_else(|| Refusal::bare(400))?,
         };
-        if scopes.is_empty() || scopes.iter().enumerate().any(|(i, s)| scopes[..i].contains(s)) {
-            return Err(invalid("scopes is a non-empty list with no scope twice"));
-        }
-        if let Some(unknown) = scopes.iter().find(|s| !t3_contracts::scopes::is_scope(s)) {
-            return Err(invalid(&format!("{unknown} is not a scope")));
+        if scopes.is_empty() || scopes.iter().enumerate().any(|(i, s)| scopes[..i].contains(s)) || scopes.iter().any(|s| !t3_contracts::scopes::is_scope(s)) {
+            return Err(Refusal::bare(400));
         }
         if let Some(missing) = scopes.iter().find(|s| !principal.scopes.contains(s)) {
-            return Err(insufficient(missing));
+            return Err(self.insufficient_scope(&principal, missing));
         }
         let request = PairingRequest { scopes, label: label.clone().unwrap_or_else(|| "pairing link".into()), ttl_seconds: wire::PAIRING_TTL_SECONDS };
         let pairing = mint(self.0.auth.as_ref(), self.0.clock.as_ref(), self.0.ids.as_ref(), request).map_err(|e| self.store_failed("pairing.credential.failed", e))?;

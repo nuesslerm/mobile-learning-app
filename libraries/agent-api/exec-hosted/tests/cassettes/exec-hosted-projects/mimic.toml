@@ -1,0 +1,6 @@
+# Recorded by wf mimic record-projects, which needs a token and a real gh: wf mimic record does not apply.
+rules = "rules.json"
+[reference]
+driver = "stdio"
+command = ["wf", "mimic", "record-projects"]
+pin = "pin.json"

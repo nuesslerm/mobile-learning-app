@@ -1,0 +1,48 @@
+# R2 scenarios: stateful sequences of the T3 API (a turn answered by the scripted CLI on T3_CLI_DIR, thread and project lifecycles, every entity-naming method asked about its entity). Inputs: `node tooling/mimic-drivers/src/cli.ts scenarios t3` from the committed crawl (t3-api). One fresh server and home per scenario.
+rules = "rules.json"
+corpus = "corpus.json"
+allowlist = "allowlist.json"
+provision_file = "//tooling/mimic-drivers/provision/t3.toml"
+
+[diff]
+ignore_dirs = ["c2s"]
+breaking_paths = ["steps.http:ret:_.payload.status", "steps.ws:open:s2c:_.payload.status"]
+advertised_prefixes = ["capabilities."]
+
+[diff.fold]
+channel = "ws"
+tag = "/_tag"
+chunk = "Chunk"
+values = "/values"
+once = [["/kind", "snapshot"]]
+squash = ["/exit/cause"]
+
+[reference]
+name = "t3"
+driver = "script"
+pin = "../../../../tooling/t3-conformance/t3-pin.json"
+version_pointer = "/version"
+commit_pointer = "/commit"
+timeout_ms = 900000
+live_when_named = "downloads and runs the pinned release: `wf mimic verify <set> --live`, on the VM"
+
+[reference.script]
+target = "spawn"
+prelude = "../t3-prelude.json"
+
+[record]
+# a live reference moves its ids and timestamps between two records; the tagged cases are listed in stability-allowlist.json
+allow_nondeterministic = true
+
+# the chain the integration tests replay against, started by the replay itself (`examples/chain.rs` of t3-serve, built by the provision steps of `when = "replay"`); the tests pass --addr and start their own
+[candidate.t3-serve]
+driver = "script"
+
+[candidate.t3-serve.script]
+target = "chain"
+launch = ["{work}/chain-bin/chain", "--t3-serve", "{work}/chain-bin/t3-serve", "--rca-service", "{work}/chain-bin/rca-service", "--rca-exec", "{work}/chain-bin/rca-exec", "--scripted-cli", "{work}/chain-bin/scripted-cli"]
+ready_ms = 120000
+prelude = "../t3-prelude.json"
+session = true
+# a candidate that answers from memory on loopback: a frame that is coming arrives within this
+quiet_cap_ms = 120

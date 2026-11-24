@@ -36,21 +36,45 @@ fn command(nx: &Path, root: &Path, target: &str, projects: &[String], parallel: 
 /// Runs `target` of `projects`, its output on stderr (stdout carries this command's JSON lines); true when every task passed.
 pub fn run_many(nx: &Path, root: &Path, stage: &str, target: &str, projects: &[String], parallel: usize, env: &[(&str, String)]) -> bool {
     let mut cmd = command(nx, root, target, projects, parallel, env);
-    cmd.stdout(Stdio::from(std::io::stderr()));
+    let capture = crate::ci_tests::capturing(stage).then(crate::ci_tests::shared);
+    // a stage's output is read for its test results while it is passed on to stderr as it arrives
+    cmd.stdout(if capture.is_some() { Stdio::piped() } else { Stdio::from(std::io::stderr()) });
     let since = std::time::SystemTime::now();
+    crate::ci_units::started(stage, target, projects);
     let (cpu_before, written_before) = children_cost();
-    let passed = traced_status(&mut cmd);
+    let passed = traced_status(&mut cmd, capture.as_ref());
     let (cpu_after, written_after) = children_cost();
     let seconds = since.elapsed().map(|d| d.as_secs_f64()).unwrap_or(0.0);
-    eprintln!("wf: nx cost {}", serde_json::json!({ "target": target, "cpuSeconds": ((cpu_after - cpu_before) * 10.0).round() / 10.0, "writtenBytes": written_after.saturating_sub(written_before), "seconds": (seconds * 10.0).round() / 10.0 }));
-    crate::nx_ledger::emit(since, stage, target);
+    let cpu_seconds = ((cpu_after - cpu_before) * 10.0).round() / 10.0;
+    eprintln!("wf: nx cost {}", serde_json::json!({ "target": target, "cpuSeconds": cpu_seconds, "writtenBytes": written_after.saturating_sub(written_before), "seconds": (seconds * 10.0).round() / 10.0 }));
+    let seen = capture.map(|c| crate::ci_tests::snapshot(&c)).unwrap_or_default();
+    crate::nx_ledger::emit(since, stage, target, cpu_seconds, &seen);
+    crate::ci_units::clear_running(stage);
     passed
 }
 
-/// Runs the command; under `WF_NX_TRACE=1` a thread prints the process table every 30 s, so a silent stretch of a run names what it waits for.
-fn traced_status(cmd: &mut Command) -> bool {
+/// Runs the command; under `WF_NX_TRACE=1` a thread prints the process table every 30 s, so a silent stretch of a run names what it waits for. With a `capture`
+/// the piped stdout is copied to stderr by a reader thread that feeds the capture.
+fn traced_status(cmd: &mut Command, capture: Option<&std::sync::Arc<std::sync::Mutex<crate::ci_tests::Capture>>>) -> bool {
     let trace = std::env::var_os("WF_NX_TRACE").is_some_and(|v| !v.is_empty());
     let Ok(mut child) = cmd.spawn() else { return false };
+    let (done, finished) = std::sync::mpsc::channel::<()>();
+    if let (Some(out), Some(capture)) = (child.stdout.take(), capture) {
+        let capture = std::sync::Arc::clone(capture);
+        std::thread::spawn(move || {
+            crate::ci_tests::tee(out, std::io::stderr(), &capture);
+            let _ = done.send(());
+        });
+    } else {
+        drop(done);
+    }
+    let passed = wait_traced(&mut child, trace);
+    // a process a test left behind can hold the pipe open: what was read by now is what the stage gets
+    let _ = finished.recv_timeout(std::time::Duration::from_secs(2));
+    passed
+}
+
+fn wait_traced(child: &mut std::process::Child, trace: bool) -> bool {
     let mut waited = 0u32;
     loop {
         match child.try_wait() {

@@ -180,7 +180,7 @@ fn an_android_script_reads_the_screen_drives_the_device_and_calls_an_agent() {
     // When the script stubs a backend route and lets the device call it
     let backend = MockServer::start(None);
     backend.routes(&[("GET /api/problems", MockReply::text(200, "from the backend"))]);
-    let lua = format!("local r = device:add_network_stub('POST', '*/api/leetcode/run', {{ json_body = {{ ok = true }}, status = 201 }})\nlog('answer ' .. device:run_shell('wf-probe ' .. r.port))\nlog('forwarded ' .. device:run_shell('wf-forward ' .. r.port .. ' {}'))\nlog('hits ' .. #device:get_network_stub_hits() .. ' ' .. device:get_network_stub_hits()[1].url)", backend.port);
+    let lua = format!("local r = device:add_network_stub('POST', '*/api/leetcode/run', {{ json_body = {{ ok = true }}, status = 201 }})\ndevice:add_network_stub('POST', '*/api/leetcode/run', {{ json_body = {{ ok = true }}, status = 201 }})\nlog('answer ' .. device:run_shell('wf-probe ' .. r.port))\nlog('forwarded ' .. device:run_shell('wf-forward ' .. r.port .. ' {}'))\nlog('hits ' .. #device:get_network_stub_hits() .. ' ' .. device:get_network_stub_hits()[1].url)", backend.port);
     let stubbed = android(&lua, &["--test-output-dir", "stub-rec"], &[]);
     let calls = s.calls("adb");
     // Then the device got the canned answer and the hit was kept under the backend's URL, the backend ports went to the stub server, and the rules were cleared
@@ -188,6 +188,8 @@ fn an_android_script_reads_the_screen_drives_the_device_and_calls_an_agent() {
     assert!(stubbed.stdout.contains("answer {\"ok\":true}") && stubbed.stdout.contains("hits 1 http://100.64.0.9:8789/api/leetcode/run"), "{}", stubbed.stdout);
     // and a call no stub matches went on to the backend its Host header names, leaving no hit
     assert!(stubbed.stdout.contains("forwarded from the backend") && backend.requests().len() == 1, "{}", stubbed.stdout);
+    // and a stub declared again on the running server installs the rules again, for a device that lost them since the run began
+    assert_eq!(calls.iter().filter(|c| c.contains("wf-stub-rules-ok")).count(), 2, "{calls:?}");
     let rules = calls.iter().find(|c| c.contains("wf-stub-rules-ok")).unwrap_or_else(|| panic!("no rules in {calls:?}"));
     assert!(rules.contains("--dport 8787 -m comment --comment wf-stub -j DNAT --to-destination 127.0.0.1:") && rules.contains("--dport 8789 "), "{rules}");
     assert!(rules.contains("--ctorigdstport 8789 ! --ctstate DNAT -m comment --comment wf-stub -j REJECT --reject-with tcp-reset"), "a connection opened before the rule bypasses the stub: {rules}");
@@ -236,31 +238,31 @@ fn an_android_script_reads_the_screen_drives_the_device_and_calls_an_agent() {
 }
 
 #[test]
-fn a_browser_run_told_to_publish_leaves_its_bundle_in_the_bucket_through_the_publisher_wf_sets() {
-    // Given a browser session on a mock daemon, a bucket whose index lists no run, and a table that takes a row
+fn a_browser_run_told_to_publish_leaves_its_bundle_in_the_runs_folder_through_the_publisher_wf_sets() {
+    // Given a browser session on a mock daemon, an empty runs folder, and a table that takes a row
     let s = sandbox("wf-flow-harness-publish-");
     let daemon = MockDaemon::start();
     s.seed(&json!({ "main/mla-tamagui/default": { "createdAt": "2026-01-01T00:00:00Z", "browserMcp": { "url": daemon.url, "startedAt": "2026-01-01T00:00:00Z" } } }));
-    let bucket = MockServer::start(None);
-    bucket.queue(vec![MockReply::json(200, json!({ "schema": 1, "runs": [] }))], true);
     let ords = MockServer::start(None);
     ords.queue(vec![MockReply::json(201, json!({}))], false);
-    let par = format!("http://127.0.0.1:{}/p/", bucket.port);
-    let read = format!("http://127.0.0.1:{}/o", bucket.port);
+    let runs = tempfile::tempdir().unwrap();
+    let runs_dir = runs.path().display().to_string();
     let table = format!("http://127.0.0.1:{}/ords/health_rpt/test_runs/", ords.port);
-    let env = [("VERIFICATION_ARTIFACTS_PAR_URL", par.as_str()), ("VERIFICATION_ARTIFACTS_READ_URL", read.as_str()), ("TEST_RUNS_ORDS_BASE_URL", table.as_str()), ("HEALTH_REPORTS_ORDS_PASSWORD", "pw"), ("WF_SITE", "sandbox")];
+    let env = [("WF_TEST_RUNS_DIR", runs_dir.as_str()), ("TEST_RUNS_ORDS_BASE_URL", table.as_str()), ("HEALTH_REPORTS_ORDS_PASSWORD", "pw"), ("WF_SITE", "sandbox")];
 
     // When a script runs with --publish
     let r = script(&s, "browser", "log('ran')", &["--test-output-dir", "pub-rec", "--no-record", "--publish"], &env);
-    // Then the run passes, says where its bundle is, and the bundle and the index are in the bucket with the run's report
+    // Then the run passes, says where its bundle is, and the bundle and the index are in the folder with the run's report
     assert_eq!(r.exit_code, 0, "{}", out(&r));
     let said = r.stdout.lines().find_map(|l| l.strip_prefix("bundle: ")).unwrap_or_else(|| panic!("no bundle line: {}", out(&r))).to_string();
-    let puts: Vec<String> = bucket.requests().iter().filter(|q| q.method == "PUT").map(|q| q.url.clone()).collect();
-    assert!(said.starts_with(&format!("{read}/verification/test-runs/run-")) && said.ends_with("/bundle.json"), "{said}");
-    assert!(puts.iter().any(|u| u.ends_with("/report.json")) && puts.iter().any(|u| u.ends_with("/bundle.json")) && puts.last().is_some_and(|u| u.ends_with("/test-runs/index.json")), "{puts:?}");
+    assert!(said.starts_with(&format!("{runs_dir}/run-")) && said.ends_with("/bundle.json"), "{said}");
+    let folder = std::path::Path::new(&said).parent().unwrap();
+    assert!(folder.join("report.json").is_file() && std::path::Path::new(&said).is_file(), "{:?}", std::fs::read_dir(folder).map(|d| d.flatten().map(|e| e.file_name()).collect::<Vec<_>>()));
+    let index: Value = serde_json::from_str(&std::fs::read_to_string(runs.path().join("index.json")).unwrap()).unwrap();
+    assert_eq!(index["runs"].as_array().map(Vec::len), Some(1), "{index}");
     // and the row was posted to the table, and a run not told to publish touches neither
     assert_eq!(ords.requests().len(), 1);
-    let before = bucket.requests().len();
     let quiet = script(&s, "browser", "log('ran')", &["--test-output-dir", "quiet-rec", "--no-record"], &env);
-    assert_eq!((quiet.exit_code, bucket.requests().len()), (0, before), "{}", out(&quiet));
+    let after: Value = serde_json::from_str(&std::fs::read_to_string(runs.path().join("index.json")).unwrap()).unwrap();
+    assert_eq!((quiet.exit_code, ords.requests().len(), after), (0, 1, index), "{}", out(&quiet));
 }

@@ -44,7 +44,7 @@ Any popular registry must be a configuration change, never a code or manifest re
 Spike first (changes nothing that ships), then one library at a time, each through the gate and CI:
 
 1. **Spike on `rca-core` + `rca-ladder`**: one consumer, already its own workspace. Release both to a scratch prefix, point rca's workspace at the sparse registry, build the image from it. Record Docker build seconds cold and warm and peak memory before and after (n=1; n=3 only if a number is close). Pass line: no slower, no more memory, same behavior.
-2. **`telemetry`, then `service-kit`**: release 1.0.0 then 1.0.1 with a trivial change and bump one service only. Pass line: only that service's `deploy (<service>)` leg runs, CI under 10 minutes (hard cap 20), the other five images keep their `nx-<hash>` tags (`wf ship --changed` lists one service).
+2. **`telemetry`, then `service-kit`**: release 1.0.0 then 1.0.1 with a trivial change and bump one service only. Pass line: only that service's `deploy (<service>)` leg runs, CI under 10 minutes (hard cap 20), the other five images keep their `nx-<hash>` tags (`wf ci plan legs` lists one service).
 3. **`canary`, `status` and `prune`** into the pre-push gate and the weekly audit; flow tests drive the real verbs against the in-memory store double.
 4. **Retarget rehearsal**: `wf lib retarget` to crates.io's sparse index shape against a local static server, so the later move is proven rather than assumed.
 

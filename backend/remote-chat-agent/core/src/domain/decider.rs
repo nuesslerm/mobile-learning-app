@@ -3,7 +3,7 @@
 
 use super::lifecycle;
 use super::projector::ReadModel;
-use super::types::*;
+use super::types::{Activity, Body, Command, Event, ModelSelection, Thread};
 use serde_json::{json, Map, Value};
 
 /// The kind of the engine event that holds one neutral event of the agent API.

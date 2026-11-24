@@ -1,0 +1,63 @@
+{
+  "method": "pane.mark",
+  "exchanges": [
+    {
+      "name": "marks none of the panes the service does not have",
+      "request": {
+        "id": 1,
+        "method": "pane.mark",
+        "params": {
+          "panes": [
+            "thread:ghost",
+            "tab:1"
+          ],
+          "mark": "read"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "marked": 0
+        }
+      }
+    },
+    {
+      "name": "a mark that is none of read, unread and clear is refused",
+      "request": {
+        "id": 1,
+        "method": "pane.mark",
+        "params": {
+          "panes": [
+            "thread:a"
+          ],
+          "mark": "hide"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "mark is read, unread or clear"
+        }
+      }
+    },
+    {
+      "name": "no panes is refused",
+      "request": {
+        "id": 1,
+        "method": "pane.mark",
+        "params": {
+          "panes": [],
+          "mark": "clear"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "panes names 1 to 500 panes"
+        }
+      }
+    }
+  ]
+}

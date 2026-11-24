@@ -13,7 +13,9 @@ pub mod ports;
 pub mod sccache_server;
 pub mod storage_guard;
 pub mod storage_policy;
+pub mod stores;
 
 pub use cache::{Cache, Put, Skip, Writes};
 pub use nx_server::{NxServer, Served};
+pub use stores::Stores;
 pub use sccache_server::SccacheServer;

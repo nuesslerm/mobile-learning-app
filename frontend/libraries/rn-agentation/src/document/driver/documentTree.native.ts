@@ -2,8 +2,6 @@ import type { AgentationLogger, SourceLocation } from '../../domain/types';
 import { noopLogger } from '../../domain/types';
 import type { DocumentNode, DocumentTreeDriver, DocumentTreeDriverOptions } from '../domain/types';
 
-declare const require: (id: string) => unknown;
-
 interface InspectorSource {
   fileName?: string;
   lineNumber?: number;
@@ -43,20 +41,23 @@ type GetInspectorDataForViewAtPoint = (
 let cachedFn: GetInspectorDataForViewAtPoint | null | undefined;
 let cachedFindNodeHandle: ((ref: unknown) => number | null) | undefined;
 
-async function loadInspector(logger: AgentationLogger): Promise<GetInspectorDataForViewAtPoint | null> {
-  if (cachedFn !== undefined) return cachedFn;
+const importInspector = () => import('./inspectorModule.native');
+
+async function loadInspector(logger: AgentationLogger, load: NonNullable<DocumentTreeDriverOptions['loadInspector']>): Promise<GetInspectorDataForViewAtPoint | null> {
+  const injected = load !== importInspector;
+  if (!injected && cachedFn !== undefined) return cachedFn;
   try {
     // A separate module on purpose: React Native warns about its private deep
     // import when the module holding the require() first runs, so only a real
     // inspection pays for it instead of every app start.
-    const loaded = await import('./inspectorModule.native');
-    cachedFn = loaded.inspectorFn;
-    cachedFindNodeHandle = loaded.findNodeHandle;
+    const loaded = await load();
+    cachedFn = loaded.inspectorFn as GetInspectorDataForViewAtPoint;
+    cachedFindNodeHandle = loaded.findNodeHandle as typeof cachedFindNodeHandle;
   } catch (err) {
     logger.withMetadata({ err: String(err) }).info('agentation.native_driver.unavailable');
     cachedFn = null;
   }
-  return cachedFn;
+  return cachedFn ?? null;
 }
 
 function normalizeFileName(fileName: string): string {
@@ -123,7 +124,7 @@ export function createNativeDocumentTreeDriver(options?: DocumentTreeDriverOptio
   const inspectedView = options?.inspectedView ?? null;
   return {
     async takeSnapshot() {
-      const fn = await loadInspector(logger);
+      const fn = await loadInspector(logger, options?.loadInspector ?? importInspector);
       if (!fn) return null;
 
       return new Promise<DocumentNode | null>((resolve) => {
@@ -166,7 +167,8 @@ export function createNativeDocumentTreeDriver(options?: DocumentTreeDriverOptio
               let data: InspectorData | undefined;
               try {
                 data = item.getInspectorData(cachedFindNodeHandle);
-              } catch {
+              } catch (err) {
+                logger.withMetadata({ err: String(err) }).info('agentation.native_driver.inspector_data_failed');
                 data = undefined;
               }
               const source = toSource(data?.source);

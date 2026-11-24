@@ -97,20 +97,20 @@ async fn given_a_failing_docker_or_ingest_when_swept_then_failures_become_error_
 }
 
 /// agent-shell as compose runs it: every service in the tailscale sidecar's network. Sweeps 1 and 2: the dind is unhealthy. Sweep 2:
-/// the sidecar was recreated (a new id), the dind followed it, the CI runner and a stopped session still point at the old one.
+/// the sidecar was recreated (a new id), the dind followed it, the droid daemon and a stopped session still point at the old one.
 fn agent_shell(k: usize) -> Vec<Container> {
     let tailscale = if k == 1 { "ts-old" } else { "ts-new" };
     let in_net = |name, health, network_of| Container { service: Some(name), network_of: Some(network_of), ..app(name, health, 0) };
     vec![
         Container { id: Some(tailscale), ..named("tailscale", Some("healthy"), 0) },
         in_net("agent-dind", Some(if k <= 2 { "unhealthy" } else { "healthy" }), tailscale),
-        in_net("gh-runner", None, "ts-old"),
+        in_net("agent-droid", None, "ts-old"),
         Container { running: false, ..in_net("agent-sessions", Some("healthy"), "ts-old") },
     ]
 }
 
 #[tokio::test]
-async fn given_a_runner_left_in_the_network_of_a_recreated_sidecar_when_swept_then_only_it_is_recreated_and_never_its_sidecar() {
+async fn given_a_daemon_left_in_the_network_of_a_recreated_sidecar_when_swept_then_only_it_is_recreated_and_never_its_sidecar() {
     let docker = Docker::new((1..=3).map(agent_shell).collect());
 
     let seen = run(docker, "main", EVERY, 3, None).await;
@@ -118,11 +118,11 @@ async fn given_a_runner_left_in_the_network_of_a_recreated_sidecar_when_swept_th
     let recreate = |service| argv(&["compose", "-p", "proj", "up", "-d", "--force-recreate", "--no-deps", service]);
     assert_eq!(
         seen.compose_calls(),
-        [(30, recreate("agent-dind")), (60, recreate("gh-runner"))],
-        "the dind alone once it has been unhealthy on two sweeps, its sidecar untouched; then the runner whose network has been gone on two sweeps, once (cooldown); a stopped container is left alone"
+        [(30, recreate("agent-dind")), (60, recreate("agent-droid"))],
+        "the dind alone once it has been unhealthy on two sweeps, its sidecar untouched; then the droid daemon whose network has been gone on two sweeps, once (cooldown); a stopped container is left alone"
     );
     let reasons: Vec<(&str, &str)> = seen.named("watchdog.recreated").iter().map(|r| (r.get("container"), r.get("reason"))).collect();
-    assert_eq!(reasons, [("agent-dind", "unhealthy"), ("gh-runner", "orphaned_network")]);
+    assert_eq!(reasons, [("agent-dind", "unhealthy"), ("agent-droid", "orphaned_network")]);
 }
 
 /// The reporting-service sidecar on 24 Oct: a redeploy's compose stop read it unhealthy for one sweep, and the recreate the watchdog

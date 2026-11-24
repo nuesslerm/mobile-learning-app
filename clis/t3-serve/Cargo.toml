@@ -21,15 +21,17 @@ test = false
 [package.metadata.flow]
 # The replay of the imported cassettes links mimic-core as a dev-dependency: an edit to it reruns the flow task.
 uses = ["mimic-core"]
-inputs = ["cassettes/**", "../../docs/plans/rca-parity/coverage/t3-methods.json", "../../libraries/agent-api/agent-api-service/tests/fixtures/**", "../../libraries/agent-api/agent-api-workspace/tests/fixtures/**", "../../libraries/agent-api/agent-api-agent/tests/fixtures/**", "../../libraries/agent-api/agent-api-terminal/tests/fixtures/**", "../../libraries/agent-api/agent-api-git/tests/fixtures/**", "../../libraries/agent-api/agent-api-accounts/tests/fixtures/**", "../../libraries/agent-api/agent-api-hosted/tests/fixtures/**", "../../libraries/agent-api/agent-api-schedules/tests/fixtures/**", "../../libraries/agent-api/agent-api-attachments/tests/fixtures/**", "../../libraries/agent-api/agent-api-preview/tests/fixtures/**"]
+inputs = ["cassettes/**", "../../docs/plans/rca-parity/coverage/t3-methods.json", "../../libraries/agent-api/agent-api-service/tests/fixtures/**", "../../libraries/agent-api/agent-api-workspace/tests/fixtures/**", "../../libraries/agent-api/agent-api-agent/tests/fixtures/**", "../../libraries/agent-api/agent-api-terminal/tests/fixtures/**", "../../libraries/agent-api/agent-api-git/tests/fixtures/**", "../../libraries/agent-api/agent-api-accounts/tests/fixtures/**", "../../libraries/agent-api/agent-api-hosted/tests/fixtures/**", "../../libraries/agent-api/agent-api-schedules/tests/fixtures/**", "../../libraries/agent-api/agent-api-attachments/tests/fixtures/**", "../../libraries/agent-api/agent-api-preview/tests/fixtures/**", "../../libraries/agent-api/agent-api-catalog/tests/fixtures/**"]
 
 # The integration chain (tests/integration.rs) runs the built binaries t3-serve, rca-service and rca-exec against each other, and the scripted CLI
 # that exec-testkit builds from its own workspace: a change to any of the last three reruns it (`uses`, with their workspaces' manifests and
-# lockfile slices), and so does a change to the methods list it names its rows from and to the cassettes and the hosted fixtures its replay reads. The flow task reads
+# lockfile slices), and so does a change to the methods list it names its rows from and to the cassettes its replay reads. The flow task reads
 # neither the crates it uses nor these files.
 [package.metadata.integration]
-uses = ["rca-service", "rca-exec", "exec-testkit", "mimic-core"]
-inputs = ["cassettes/**", "../../tooling/t3-conformance/t3-pin.json", "../../docs/plans/rca-parity/coverage/t3-methods.json", "../../libraries/agent-api/exec-hosted/tests/cassettes/**"]
+uses = ["rca-service", "rca-exec", "exec-testkit", "wf-mimic", "mimic-core"]
+# the crate files the chain reads: the binary's sources, its own tests and the client they share with the flow tests; a flow test, the Dockerfile and the compose file are not
+sources = ["src/**", "tests/integration.rs", "tests/integration/**", "tests/flow/support/**"]
+inputs = ["cassettes/**", "../../tooling/t3-conformance/t3-pin.json", "../../docs/plans/rca-parity/coverage/t3-methods.json"]
 
 [features]
 testing = ["t3-core/testing"]
@@ -42,6 +44,7 @@ t3-store = { path = "store" }
 t3-http = { path = "http" }
 agent-api-accounts = { path = "../../libraries/agent-api/agent-api-accounts" }
 agent-api-agent = { path = "../../libraries/agent-api/agent-api-agent" }
+agent-api-catalog = { path = "../../libraries/agent-api/agent-api-catalog" }
 agent-api-client = { path = "../../libraries/agent-api/agent-api-client" }
 agent-api-proto = { path = "../../libraries/agent-api/agent-api-proto" }
 agent-api-service = { path = "../../libraries/agent-api/agent-api-service" }
@@ -58,6 +61,7 @@ serde_json = { version = "1", features = ["preserve_order"] }
 getrandom = "0.3"
 
 [dev-dependencies]
+toml = { version = "0.8", default-features = false, features = ["parse"] }
 base64 = "0.22"
 t3-serve = { path = ".", features = ["testing"] }
 agent-api-accounts = { path = "../../libraries/agent-api/agent-api-accounts", features = ["testing"] }
@@ -70,9 +74,18 @@ agent-api-hosted = { path = "../../libraries/agent-api/agent-api-hosted", featur
 agent-api-schedules = { path = "../../libraries/agent-api/agent-api-schedules", features = ["testing"] }
 agent-api-attachments = { path = "../../libraries/agent-api/agent-api-attachments", features = ["testing"] }
 agent-api-preview = { path = "../../libraries/agent-api/agent-api-preview", features = ["testing"] }
-exec-hosted = { path = "../../libraries/agent-api/exec-hosted", features = ["testing"] }
 exec-git = { path = "../../libraries/agent-api/exec-git" }
 exec-testkit = { path = "../../libraries/agent-api/exec-testkit" }
-mimic-core = { path = "../mimic/core" }
+mimic-core = { version = "0.1.2", registry = "mla" }
+mimic-script-core = { version = "0.1.7", registry = "mla" }
+mimic-script-host = { version = "0.1.10", registry = "mla" }
 tempfile = "3"
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+
+[package.metadata.arch]
+type = "cli-crate"
+
+# The recorded sets replayed by feature (tests/integration/replay_features.rs): t3-core names the rows of each feature and the files that
+# can move them (its own `[package.metadata.integration.replay.<feature>]`), and `wf test plan` makes one Nx task of each, `replay-t3-core-<feature>`.
+[package.metadata.integration.replay]
+sets = ["t3-v0.1.9-agent-cues", "t3-v0.1.9-agent-real", "t3-v0.1.9-agent-methods", "t3-v0.1.9-agent-queries", "t3-v0.1.9-agent-turns", "t3-v0.1.9-crawl", "t3-v0.1.9-recorded-1", "t3-v0.1.9-recorded-2", "t3-v0.1.9-recorded-3", "t3-v0.1.9-scenarios"]

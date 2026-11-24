@@ -56,8 +56,6 @@ What would make it offered: a guest endpoint, a signing key or a person's creden
 
 | Row | Reason |
 | --- | --- |
-| `thread.guest-message.dismiss` | guest sharing needs a public guest endpoint and a guest identity on the service; rca has no guest concept and no share can exist through the chain, so the dismiss and close commands could only pass on an empty set. Proposed default awaiting owner confirmation. |
-| `thread.guest-share.close` | guest sharing needs a public guest endpoint and a guest identity on the service; rca has no guest concept and no share can exist through the chain, so the dismiss and close commands could only pass on an empty set. Proposed default awaiting owner confirmation. |
 | `connect.linkProof` | T3 Connect and relay need an environment signing key and a hosted relay account (a person's credential); the service holds none and the mapper never mints one. Proposed default awaiting owner confirmation. |
 | `connect.relayConfig` | T3 Connect and relay need an environment signing key and a hosted relay account (a person's credential); the service holds none and the mapper never mints one. Proposed default awaiting owner confirmation. |
 | `peerLinks.answerRequest` | peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Proposed default awaiting owner confirmation. |

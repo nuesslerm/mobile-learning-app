@@ -108,8 +108,6 @@ fn secrets_check(repo: &Path) -> Value {
     for app in &apps {
         let extra: &[&str] = match app.as_str() {
             "oracle-terraform" => &TERRAFORM_EXTRAS,
-            // not in the group (the container never holds it), but `wf ship ci-runner` mints the runner's registration token with it
-            "ci-runner" => &["VM_PROVISION_GITHUB_TOKEN"],
             _ => &[],
         };
         if let Err(why) = secrets::verify_for(app, extra) {
@@ -140,7 +138,7 @@ fn tailnet_check() -> Value {
     }
 }
 
-/// No workflow run is in progress: a recreate takes the runner down with it. Queued runs are advisory, they wait for the new runner.
+/// No workflow run is in progress: a recreate mid-deploy-leg breaks the leg. Queued runs are advisory.
 fn ci_check() -> Value {
     let mut runs = Vec::new();
     for status in IN_FLIGHT {
@@ -150,7 +148,7 @@ fn ci_check() -> Value {
             Err(e) => return check("ci", false, format!("gh could not run: {e}"), "install gh or set GH_TOKEN"),
         };
         if !out.status.success() {
-            return check("ci", false, format!("gh api {path} failed: {}", String::from_utf8_lossy(&out.stderr).trim()), "run the preflight where the Actions API is reachable (the VM's runner or a laptop)");
+            return check("ci", false, format!("gh api {path} failed: {}", String::from_utf8_lossy(&out.stderr).trim()), "run the preflight where the Actions API is reachable (a hosted runner or a laptop)");
         }
         let body: Value = serde_json::from_slice(&out.stdout).unwrap_or(Value::Null);
         for r in body["workflow_runs"].as_array().into_iter().flatten() {
@@ -159,7 +157,7 @@ fn ci_check() -> Value {
     }
     let running: Vec<&String> = runs.iter().filter(|r| r.contains("(in_progress,")).collect();
     if running.is_empty() {
-        let detail = if runs.is_empty() { "no workflow run is queued or in progress".to_string() } else { format!("{} run(s) only queued (they wait for the new runner): {}", runs.len(), runs.join("; ")) };
+        let detail = if runs.is_empty() { "no workflow run is queued or in progress".to_string() } else { format!("{} run(s) only queued: {}", runs.len(), runs.join("; ")) };
         return check("ci", true, detail, "");
     }
     check("ci", false, format!("{} run(s) in progress: {}", running.len(), running.iter().map(|r| r.as_str()).collect::<Vec<_>>().join("; ")), "wait for them, or `wf vm ops cancel-run --run <id>`, then rerun the preflight")

@@ -5,9 +5,22 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 import { flowTestConfig } from '@lib/flow-test-harness/vitest';
+import { configDefaults } from 'vitest/config';
+
+import { featurePackages } from './features/packages.mjs';
 
 export default flowTestConfig({
   packageDir: path.dirname(fileURLToPath(import.meta.url)),
+  overrides: {
+    test: {
+      // Also the in-app features' own flow tests; the package features run theirs from their own config.
+      include: ['features/*/**/*.flow.test.{ts,tsx}'],
+      exclude: [
+        ...configDefaults.exclude,
+        ...featurePackages().map((dir) => `${dir}/**`),
+      ],
+    },
+  },
   extraAlias: [
     {
       find: '@',

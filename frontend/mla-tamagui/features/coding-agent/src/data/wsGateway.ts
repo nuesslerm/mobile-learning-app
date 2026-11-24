@@ -40,7 +40,7 @@ import type {
   OrchestrationShellListener,
   OrchestrationStatusListener,
   OrchestrationThreadListener,
-} from './orchestrationGateway';
+} from '../domain/ports';
 import {
   createWsRpcClient,
   type WsRpcClient,

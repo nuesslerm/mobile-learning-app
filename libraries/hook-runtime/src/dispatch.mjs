@@ -21,7 +21,7 @@ export const STEPS = {
     { run: 'wf agent-config mcp-guard', tools: /^mcp__/ },
     { run: 'bash .agents/hooks/rtk-rewrite.sh', tools: /^Bash$/ },
   ],
-  PostToolUse: [{ run: 'node scripts/hooks/mask-large-output.mjs', tools: /^(Bash|Read)$/ }],
+  PostToolUse: [{ run: 'node libraries/hook-runtime/src/hooks/mask-large-output.mjs', tools: /^(Bash|Read)$/ }],
 };
 
 const CONTEXT_EVENTS = new Set(['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse']);

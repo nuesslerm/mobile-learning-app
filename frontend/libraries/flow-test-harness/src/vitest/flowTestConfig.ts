@@ -37,6 +37,15 @@ export interface FlowTestConfigOptions {
 export const flowTestAliases = (): { find: RegExp; replacement: string }[] => [
   { find: /^react-native$/, replacement: 'react-native-web' },
   {
+    // react-native 0.87+ no longer ships it; react-native-svg's web build still imports it, as metro's web resolver maps it.
+    find: /^@react-native\/assets-registry\/registry$/,
+    replacement: 'react-native-web/dist/modules/AssetRegistry/index.js',
+  },
+  {
+    find: /^(\.\.?\/)+(async-require\/setup|winter)$|^expo\/build\/(async-require\/setup|winter)$/,
+    replacement: stub('expo-fx-noop'),
+  },
+  {
     find: /^react-native-reanimated$/,
     replacement: stub('react-native-reanimated'),
   },
@@ -63,6 +72,7 @@ export const flowTestAliases = (): { find: RegExp; replacement: string }[] => [
   { find: /^expo-router\/drawer$/, replacement: DRAWER_STUB },
   { find: /^expo-audio$/, replacement: stub('expo-audio') },
   { find: /^expo-font$/, replacement: stub('expo-font') },
+  { find: /^expo-glass-effect$/, replacement: stub('expo-glass-effect') },
   {
     find: /^@react-native-async-storage\/async-storage$/,
     replacement: stub('async-storage'),
@@ -269,7 +279,12 @@ export async function flowTestConfig(
     test: {
       include: [FLOW_TEST_GLOB],
       environment: 'jsdom',
-      setupFiles: [path.resolve(here, 'setup.ts')],
+      setupFiles: [
+        path.resolve(here, 'setup.ts'),
+        ...(process.env.FLOW_GOLDENS_OUT
+          ? [path.resolve(here, 'goldens.ts')]
+          : []),
+      ],
       reporters: ['default', reporter],
       env: { FLOW_DEBUG_OUT: debugOut },
       provide: { flowAppRoot: options.packageDir },

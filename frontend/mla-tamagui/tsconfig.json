@@ -29,11 +29,23 @@
       "@lib/voice-edit-dsl": [
         "../libraries/voice-edit-dsl/src/index.ts"
       ],
+      "@lib/code-editor-api": [
+        "../libraries/code-editor-api/src/index.ts"
+      ],
+      "@lib/code-editor-api/testing": [
+        "../libraries/code-editor-api/src/testing/index.ts"
+      ],
+      "@lib/webview-rpc": [
+        "../libraries/webview-rpc/src/index.ts"
+      ],
+      "@lib/webview-rpc/testing": [
+        "../libraries/webview-rpc/src/testing/index.ts"
+      ],
       "@app/remote-chat-agent-contracts": [
-        "../../backend/remote-chat-agent-contracts/src/index.ts"
+        "../libraries/remote-chat-agent-contracts/src/index.ts"
       ],
       "@app/remote-chat-agent-contracts/orchestration": [
-        "../../backend/remote-chat-agent-contracts/src/orchestration/index.ts"
+        "../libraries/remote-chat-agent-contracts/src/orchestration/index.ts"
       ]
     }
   },

@@ -3,7 +3,7 @@
 // Deterministic fixture export for the fake servers in this package (WS
 // agent + opencode-log). Runs via `tsx` (this package's devDependency)
 // so it can import the TypeScript barrel
-// `../../fixtures/index.ts` and write the serializable
+// `../fixtures/index.ts` and write the serializable
 // `fixtures.json` (beside this file) (FIXTURE_THREADS + FIXTURE_SERVER_CONFIG +
 // dispatchRuns) that the plain-JS servers load. Regenerated on demand when
 // `fakeWsAgentServer.mjs` finds the file missing or when
@@ -17,7 +17,7 @@ import {
   FIXTURE_THREADS,
   FIXTURE_SERVER_CONFIG,
   FIXTURE_DISPATCH_RUNS,
-} from '../../fixtures/index.ts';
+} from '../fixtures/index.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outFile = join(here, 'fixtures.json');

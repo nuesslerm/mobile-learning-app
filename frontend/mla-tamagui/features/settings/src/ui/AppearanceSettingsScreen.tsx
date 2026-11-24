@@ -6,14 +6,16 @@ import {
   Text,
   View,
   getPresetThemeById,
+  useNativeHeaderStore,
   usePresetThemeStore,
+  useScrollUnder,
 } from '@lib/tamagui-design-system';
 import { Check } from '@lib/tamagui-design-system/icons';
 import { PRESET_COLORS } from '@lib/tamagui-design-system/theme/presetColors';
 import * as React from 'react';
 import { ScrollView, useColorScheme } from 'react-native';
 
-import { backTo } from './backTo';
+import { backTo } from '@lib/tamagui-design-system/lib/backTo';
 
 function ThemeTile({
   presetId,
@@ -115,10 +117,13 @@ function ThemeTile({
 }
 
 export function AppearanceSettingsScreen() {
+  const scrollUnder = useScrollUnder(true);
   const themeMode = usePresetThemeStore((s) => s.themeMode);
   const setThemeMode = usePresetThemeStore((s) => s.setThemeMode);
   const activeThemeId = usePresetThemeStore((s) => s.activeThemeId);
   const setActiveTheme = usePresetThemeStore((s) => s.setActiveTheme);
+  const nativeHeaders = useNativeHeaderStore((s) => s.enabled);
+  const setNativeHeaders = useNativeHeaderStore((s) => s.setEnabled);
   const systemScheme = useColorScheme();
   const scheme: 'light' | 'dark' =
     themeMode === 'system'
@@ -136,6 +141,8 @@ export function AppearanceSettingsScreen() {
   return (
     <View flex={1} bg="$background" testID="AppearanceSettingsScreen">
       <ScreenHeader
+        glass
+        transparent
         testID="AppearanceSettingsScreenHeader"
         title="Appearance"
         onBack={() => {
@@ -144,6 +151,7 @@ export function AppearanceSettingsScreen() {
         }}
       />
       <ScrollView
+        {...scrollUnder}
         testID="AppearanceSettingsScreen-ScrollView"
         contentContainerStyle={{
           paddingVertical: 16,
@@ -161,6 +169,29 @@ export function AppearanceSettingsScreen() {
           value={themeMode}
           onChange={handleModeChange}
         />
+        <View gap="$2" testID="AppearanceSettingsScreen-NativeHeaders">
+          <Text
+            variant="strong"
+            testID="AppearanceSettingsScreen-NativeHeadersLabel"
+          >
+            Native headers
+          </Text>
+          <Text
+            variant="muted"
+            testID="AppearanceSettingsScreen-NativeHeadersHint"
+          >
+            Use the iOS system header. Turn off for the app's own header.
+          </Text>
+          <SegmentedControl
+            testID="AppearanceSettingsScreen-NativeHeadersControl"
+            options={[
+              { value: 'off', label: 'Off' },
+              { value: 'on', label: 'On' },
+            ]}
+            value={nativeHeaders ? 'on' : 'off'}
+            onChange={(value) => setNativeHeaders(value === 'on')}
+          />
+        </View>
         <View
           flexDirection="row"
           flexWrap="wrap"

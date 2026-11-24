@@ -1,0 +1,39 @@
+# R2 scenarios: stateful sequences of the Orca API (a repository, a worktree, files, git, a terminal made first, then the method asked about them). Inputs: `node tooling/mimic-drivers/src/cli.ts scenarios orca` from the committed crawl (orca-api). One fresh orcad, user data and HOME per scenario.
+corpus = "corpus.json"
+rules = "rules.json"
+allowlist = "allowlist.json"
+provision_file = "//tooling/mimic-drivers/provision/orca.toml"
+
+[reference]
+name = "orca"
+driver = "script"
+pin = "../../../../tooling/orca-conformance/orca-pin.json"
+version_pointer = "/version"
+commit_pointer = "/commit"
+timeout_ms = 3600000
+live_when_named = "orcad is built at the pin on the VM (arm64): verify <set> --live runs it, --all --live never does"
+
+# The phone's own client behind the Rust step interpreter (the sidecar); the host to pair with comes from the environment, by name only.
+[reference.script]
+target = "orca"
+sidecar = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "sidecar", "orca"]
+env_pass = ["ORCA_ORCAD_CHECKOUT", "ORCA_PAIRING_URI", "ORCA_ENDPOINT", "ORCA_DEVICE_TOKEN", "ORCA_SERVER_PUBLIC_KEY_B64", "MIMIC_ORCA_ROOT"]
+session = false
+
+[candidate.orca-serve]
+driver = "script"
+
+# the chain the integration tests replay against (orca-serve over rca-service and rca-exec, the scripted CLIs), started by the replay itself from the
+# binaries the provision steps of `when = "replay"` built: `examples/chain.rs` of orca-serve prints its pairing link, which only the sidecar is given
+[candidate.orca-serve.script]
+target = "orca"
+launch = ["{work}/chain-bin/chain", "--orca-serve", "{work}/chain-bin/orca-serve", "--rca-service", "{work}/chain-bin/rca-service", "--rca-exec", "{work}/chain-bin/rca-exec", "--scripted-cli", "{work}/chain-bin/scripted-cli"]
+ready_ms = 120000
+sidecar = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "sidecar", "orca"]
+env_pass = ["ORCA_PAIRING_URI", "MIMIC_ORCA_ROOT"]
+session = false
+
+[record]
+stability_pct = 98
+# the pinned reference is a live server whose ids and timestamps move between two records
+allow_nondeterministic = true

@@ -1,0 +1,42 @@
+{
+  "suite": "nativeheader",
+  "step": "final-given-the-navigator-placement-off-the-native-bar-3c076b",
+  "scheme": "dark",
+  "snapshot": "nativeheader/final-given-the-navigator-placement-off-the-native-bar-3c076b.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "Bar",
+      "BarBack",
+      "BarTitle",
+      "BarSubtitle",
+      "BarGroup0",
+      "BarSettings",
+      "BarGroup1",
+      "BarInfo",
+      "Body"
+    ],
+    "text": "Appearance\nSettings\nBody"
+  },
+  "timings": {
+    "render_ms": 246
+  },
+  "name": "nativeheader/final-given-the-navigator-placement-off-the-native-bar-3c076b.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

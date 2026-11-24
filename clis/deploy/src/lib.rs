@@ -5,8 +5,6 @@
 mod agent_deps;
 mod build_image;
 mod ci_build;
-mod ci_runner;
-mod runner_check;
 mod cancel_run;
 mod install_clis;
 mod token_permissions;
@@ -27,6 +25,7 @@ mod host_history;
 mod vm_ops;
 mod vm_recover;
 mod vm_state;
+mod vm_stock;
 pub mod verify_tier3;
 
 use wf_kit::args::probe;
@@ -34,9 +33,9 @@ use wf_kit::args::probe;
 pub use help_table::HELP;
 pub use ship::run;
 
-/// What the thin binary mounts: `ship`, `check` (`--deployed` and `--health`), `vm`, and `secret`, which the health report runs again
+/// What the thin binary mounts: `ship`, `ci` (`ci plan legs`), `check` (`--deployed` and `--health`), `vm`, and `secret`, which the health report runs again
 /// through the executable.
-pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[("check", check), ("ship", run), ("vm", run_vm), ("secret", secrets::run)];
+pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[("check", check), ("ship", run), ("vm", run_vm), ("secret", secrets::run), ("ci", pipeline::ci)];
 
 /// `check --health`, or `check --deployed <sha>`: the real run, or its plan with `--dry-run`. `wf` adds the staged gate, the budget
 /// and the other gates to the same line.
@@ -78,6 +77,7 @@ pub fn run_vm(rest: &[String]) -> Option<i32> {
         },
         "terraform" => infra::run_tf(tail),
         "state" => vm_state::run(tail),
+        "stock" => vm_stock::run(tail),
         "net" => net(tail),
         _ => None,
     }

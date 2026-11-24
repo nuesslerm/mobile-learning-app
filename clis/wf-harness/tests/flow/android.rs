@@ -12,10 +12,11 @@ use std::time::Duration;
 /// One `adb` for every journey: it logs its argv and answers the boot polls, the screen, the keyboard, logcat and recordings;
 /// with STUB_UI_XML_AFTER the screen is that one from the first `input swipe` on, with STUB_UI_SEQ (lines `<argv part>|<xml>`,
 /// taken in order) the screen is a line's xml from the first call naming its part on, with STUB_TYPE_LOWERS typed text lowers
-/// the keyboard, and with STUB_DEVICE_BIN the recorder's stop runs its device script with that directory's tools alone.
+/// the keyboard (and a call naming STUB_IME_LOWERS_ON does), and with STUB_DEVICE_BIN the recorder's stop runs its device script with that directory's tools alone.
 const STUB_ADB: &str = r#"echo "$*" >> "$0.log"
 case "$*" in *"input swipe"*) touch "$0.swiped";; esac
 case "$*" in *"input text"*) [ -n "${STUB_TYPE_LOWERS:-}" ] && echo false > "$0.ime";; esac
+[ -n "${STUB_IME_LOWERS_ON:-}" ] && case "$*" in *"$STUB_IME_LOWERS_ON"*) echo false > "$0.ime";; esac
 [ -n "${STUB_UI_XML_AFTER:-}" ] && [ -e "$0.swiped" ] && STUB_UI_XML="$STUB_UI_XML_AFTER"
 if [ -n "${STUB_UI_SEQ:-}" ]; then
   i=$(cat "$0.seq" 2>/dev/null || echo 1); next=$(sed -n "${i}p" "$STUB_UI_SEQ")
@@ -70,12 +71,17 @@ pub(crate) fn sandbox(prefix: &str) -> SlotSandbox {
 /// `wf android <args>` with the dump path (no UI server), the metro pid dir and the evidence dir in the sandbox, and `extra`
 /// on top.
 fn android(s: &SlotSandbox, args: &[&str], extra: &[(&str, &str)]) -> RunResult {
+    android_within(s, args, extra, None)
+}
+
+/// `android` with the run killed after `limit` instead of the runner's 15 s.
+fn android_within(s: &SlotSandbox, args: &[&str], extra: &[(&str, &str)], limit: Option<Duration>) -> RunResult {
     let (xml, pids, evidence) = (s.repo.join("ui.xml").display().to_string(), s.reg_dir.display().to_string(), s.repo.join("evidence").display().to_string());
     let mut env = vec![("STUB_UI_XML", xml.as_str()), ("WF_ANDROID_UIA", "dump"), ("WF_METRO_PID_DIR", pids.as_str()), ("WF_TEST_OUTPUT_DIR", evidence.as_str())];
     env.extend_from_slice(extra);
     let mut full = vec!["android"];
     full.extend_from_slice(args);
-    s.run(&full, &env)
+    s.run_within(&full, &env, limit)
 }
 
 fn out(r: &RunResult) -> String {
@@ -480,7 +486,7 @@ fn the_lab_scripts_boot_a_slim_redroid_safely_and_report_its_features() {
     assert!(screen.contains("androidboot.redroid_width=720") && screen.contains("androidboot.redroid_dpi=320"), "{screen}");
     assert_eq!(json_out(&second)["device"], json!("rdl-bench"));
     assert!(script_of(&second).contains("docker run -d --name rdl-bench --privileged --cpus 1.5 -p 5556:5555 -v rdl-bench-data:/data"), "{}", out(&second));
-    assert!(expo.contains("Expo-Go-57.0.9.apk") && expo.contains("pm install -r /data/local/tmp/expogo.apk"), "{expo}");
+    assert!(expo.contains("Expo-Go-58.0.5.apk") && expo.contains("pm install -r /data/local/tmp/expogo.apk"), "{expo}");
     assert!(expo.rfind("expogo.apk").unwrap() > expo.find("boot_fresh || exit 1").unwrap(), "Expo Go goes in after the device booted");
     // and WF_ANDROID_NAME names the container when --name does not
     assert!(script_of(&android(&s, &["start-device", "--dry-run"], &[("WF_ANDROID_NAME", "rdl-2")])).contains("docker run -d --name rdl-2 "));
@@ -749,7 +755,7 @@ fn a_traced_letter_goes_on_to_its_next_stroke_as_soon_as_that_strokes_guide_show
     let screens: Vec<String> = [("Stroke 1 of 3", ""), ("Stroke 2 of 3", ""), ("Stroke 3 of 3", ""), ("All 3 strokes written", badge)]
         .iter()
         .enumerate()
-        .map(|(n, (coach, extra))| s.file(&format!("pad-{n}.xml"), format!(r#"<hierarchy><node resource-id="TamilPracticeCanvasSurface" text="" bounds="[0,0][644,596]" /><node resource-id="TamilPracticeStrokeStep" text="{coach}" bounds="[20,620][300,660]" />{extra}</hierarchy>"#)))
+        .map(|(n, (coach, extra))| s.file(&format!("pad-{n}.xml"), format!(r#"<hierarchy><node resource-id="TamilPracticeCanvasSurface" text="" bounds="[0,0][644,596]" /><node resource-id="TamilPracticePosition" text="" bounds="[20,600][300,620]" /><node resource-id="TamilPracticeStrokeStep" text="{coach}" bounds="[20,620][300,660]" />{extra}</hierarchy>"#)))
         .collect();
     let seq = s.file("screens", format!("/tamil/uyirmei-k|{}\ninput motionevent UP|{}\ninput motionevent UP|{}\ninput motionevent UP|{}\n", screens[0], screens[1], screens[2], screens[3]));
     let png = fixtures_dir().join("trace/tamil-guide-pad.png").display().to_string();
@@ -768,6 +774,143 @@ fn a_traced_letter_goes_on_to_its_next_stroke_as_soon_as_that_strokes_guide_show
     assert!(gaps.iter().all(|&ms| ms < 2000), "ms from one stroke to the next: {gaps:?}");
     assert_eq!(s.calls("adb").iter().filter(|c| c.contains("input motionevent UP")).count(), 3);
     assert!(text.contains("uyirmei-k letter 1 attempt 2: drew=true, next guide: Stroke 3 of 3") && text.contains("uyirmei-k/1\t100% ON THE LINE\tok"), "{text}");
+}
+
+/// The editor-typing test case's screens for two-sum part 1, as the stub serves them in order: `editor(text)` is the editor with
+/// the helper rails and the toolbars. `CodeEditorText` is the app's own copy of the document, which the test case reads; the web
+/// view's `CodeEditorInput` carries no text, as the accessibility tree of a web view that never built one.
+fn editor_screen(text: &str) -> String {
+    let text = text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;").replace('\n', "&#10;");
+    let node = |id: &str, bounds: &str, text: &str| format!(r#"<node resource-id="{id}" text="{text}" bounds="{bounds}" />"#);
+    [
+        node("ProblemEditorRunLocalButton", "[100,640][200,700]", ""),
+        node("CodeEditorInput", "[20,190][460,480]", ""),
+        node("CodeEditorText", "[20,190][21,191]", &text),
+        node("EditorHelperRails", "[0,490][480,610]", ""),
+        node("EditorSyntaxToolbar", "[0,500][480,548]", ""),
+        node("EditorSyntax-Equals", "[200,500][280,548]", ""),
+        node("EditorSyntax-Colon", "[300,500][380,548]", ""),
+        node("EditorActionToolbar", "[0,560][480,606]", ""),
+        node("EditorAction-Undo", "[330,570][370,600]", ""),
+        node("EditorAction-Redo", "[380,570][420,600]", ""),
+        node("EditorAction-Done", "[441,570][479,600]", ""),
+    ]
+    .join("")
+}
+
+const TWO_SUM_HEAD: &str = "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:";
+const TWO_SUM_LINES: [&str; 4] = ["seen = {}", "for i, n in enumerate(nums):", "if target - n in seen:", "return [seen[target - n], i]"];
+const TWO_SUM_INDENTS: [usize; 4] = [8, 8, 12, 16];
+
+/// The document after `typed` lines, with the next one open at the indent the editor gives a new line and `tail` already on it.
+fn document_at(typed: usize, tail: &str) -> String {
+    let mut text = String::from(TWO_SUM_HEAD);
+    for n in 0..typed {
+        text += &format!("\n{}{}", " ".repeat(TWO_SUM_INDENTS[n]), TWO_SUM_LINES[n]);
+    }
+    if typed < 4 {
+        text += &format!("\n{}{tail}", " ".repeat(TWO_SUM_INDENTS[typed]));
+    }
+    text
+}
+
+fn hierarchy(text: &str) -> String {
+    format!("<hierarchy>{}</hierarchy>", editor_screen(text))
+}
+
+/// The screens in the order the test case's calls ask for them, `(a part of the adb call that brings the screen, the screen)`: the
+/// route, the reset dialog, the editor holding the starter code, then after each Enter and toolbar key the document it gives.
+fn typing_screens() -> Vec<(&'static str, String)> {
+    let route = format!("<hierarchy>{}{}</hierarchy>", r#"<node resource-id="ProblemEditorRunLocalButton" bounds="[100,640][200,700]" />"#, r#"<node resource-id="ProblemEditorResetButton" bounds="[300,640][400,700]" />"#);
+    let dialog = r#"<hierarchy><node resource-id="ResetCodeDialog-Confirm" bounds="[300,500][400,560]" /></hierarchy>"#;
+    vec![
+        ("exp://", route.clone()),
+        ("input tap", dialog.into()),
+        ("input tap", route),
+        ("input tap", hierarchy(TWO_SUM_HEAD)),
+        ("keyevent 66", hierarchy(&document_at(0, ""))),
+        ("input tap", hierarchy(&document_at(0, "seen ="))),
+        ("keyevent 66", hierarchy(&document_at(1, ""))),
+        ("input tap", hierarchy(&document_at(1, "for i, n in enumerate(nums):"))),
+        ("keyevent 66", hierarchy(&document_at(2, ""))),
+        ("keyevent 66", hierarchy(&document_at(3, ""))),
+        ("return", hierarchy(&document_at(4, ""))),
+        ("input tap 350 585", hierarchy(&document_at(3, ""))),
+        ("input tap 400 585", hierarchy(&document_at(4, ""))),
+    ]
+}
+
+/// Runs e2e/editor-typing.lua (two-sum part 1) on a stub device that serves `screens`.
+fn editor_typing(prefix: &str, screens: &[(&str, String)]) -> (SlotSandbox, RunResult) {
+    let s = sandbox(prefix);
+    s.file("e2e/editor-typing.lua", std::fs::read(repo_root().join("e2e/editor-typing.lua")).unwrap());
+    s.file("ui.xml", r#"<hierarchy><node resource-id="" text="Expo Go" bounds="[0,0][480,80]" /></hierarchy>"#);
+    let lines: Vec<String> = screens.iter().enumerate().map(|(n, (part, xml))| format!("{part}|{}", s.file(&format!("screen-{n}.xml"), xml.as_str()))).collect();
+    let seq_file = s.file("screens", lines.join("\n") + "\n");
+    let out_dir = s.repo.join("out").display().to_string();
+    // a run that waits on a condition (a lost Enter) is not cut off by the runner's 15 s on a loaded machine
+    let r = android_within(
+        &s,
+        &["test", "e2e/editor-typing.lua", "--no-record", "--env", "problem=two-sum", "--env", "part=1", "--env", "base=exp://u.expo.dev/p/group/g/--", "--env", &format!("out={out_dir}")],
+        &[("STUB_UI_SEQ", &seq_file), ("STUB_IME_LOWERS_ON", "input tap 460 585")],
+        Some(Duration::from_secs(180)),
+    );
+    (s, r)
+}
+
+fn adb_calls_with(s: &SlotSandbox, needle: &str) -> usize {
+    s.calls("adb").iter().filter(|c| c.contains(needle)).count()
+}
+
+#[test]
+fn a_part_is_typed_from_the_apps_own_copy_of_the_document_whatever_the_web_views_tree_holds() {
+    // Given a device whose web view has no text in its accessibility tree at all (the state of runs 44047720113, 44618453035 and
+    // 44907690601) and whose app copy of the document follows each key
+    let screens = typing_screens();
+
+    // When the test case types the part
+    let (s, r) = editor_typing("wf-flow-android-typing-copy-", &screens);
+
+    // Then the run passes with each Enter pressed once, the first one included, and no line typed twice
+    let text = out(&r);
+    assert_eq!(r.exit_code, 0, "{text}");
+    assert_eq!(adb_calls_with(&s, "input keyevent 66"), 4, "{:?}", s.calls("adb"));
+    assert_eq!(adb_calls_with(&s, "input text 'return"), 1, "{:?}", s.calls("adb"));
+}
+
+#[test]
+fn an_enter_the_editor_lost_fails_at_that_line_and_is_never_pressed_again() {
+    // Given a device whose document does not gain a line after the second Enter
+    let mut screens = typing_screens();
+    screens[6].1 = hierarchy(&document_at(0, "seen = {}"));
+
+    // When the test case types the part
+    let (s, r) = editor_typing("wf-flow-android-typing-lost-enter-", &screens);
+
+    // Then it fails naming the Enter before the next line is typed, and the key was pressed twice in all (the first line's and this one)
+    let text = out(&r);
+    assert_ne!(r.exit_code, 0, "{text}");
+    assert!(text.contains("the Enter reached the editor"), "{text}");
+    assert_eq!(adb_calls_with(&s, "input keyevent 66"), 2, "{:?}", s.calls("adb"));
+    assert_eq!(adb_calls_with(&s, "for%si"), 0, "{:?}", s.calls("adb"));
+}
+
+#[test]
+fn a_device_with_no_copy_of_the_document_fails_before_any_key_and_says_so() {
+    // Given a device whose editor screen has the web view's node but not the app's copy of the document
+    let mut screens = typing_screens();
+    for (_, xml) in screens.iter_mut().skip(3) {
+        *xml = xml.replace("CodeEditorText", "CodeEditorOther");
+    }
+
+    // When the test case types the part
+    let (s, r) = editor_typing("wf-flow-android-typing-no-copy-", &screens);
+
+    // Then it fails saying the text is not readable, and presses no Enter
+    let text = out(&r);
+    assert_ne!(r.exit_code, 0, "{text}");
+    assert!(text.contains("the editor's text is not readable"), "{text}");
+    assert_eq!(adb_calls_with(&s, "input keyevent 66"), 0, "{:?}", s.calls("adb"));
 }
 
 /// A stand-in for the on-device UI server: answers `/ping` while the started-marker file exists (or always without one), and the
@@ -1053,11 +1196,11 @@ fn the_cold_start_ends_at_once_on_expo_gos_error_screen_with_what_its_error_log_
 
 #[test]
 fn the_cold_start_opens_the_link_it_is_told_and_an_update_is_told_it_bare() {
-    // Given Expo Go showing the app's first frame (its debug button), and an update's base with its link without /--
+    // Given Expo Go showing the app's first frame (the Blind 75 menu button), and an update's base with its link without /--
     let s = sandbox("wf-flow-android-bare-open-");
     s.file("e2e/warm-app.lua", std::fs::read(crate::support::repo_root().join("e2e/warm-app.lua")).unwrap());
     s.file("ui.xml", r#"<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><hierarchy rotation="0">
-<node index="0" text="" resource-id="DebugFab" class="android.widget.Button" bounds="[400,900][460,960]" clickable="true" />
+<node index="0" text="" resource-id="LeetcodeListMenuButton" class="android.widget.Button" bounds="[400,900][460,960]" clickable="true" />
 </hierarchy>"#);
     let (update, out_dir) = ("exp://u.expo.dev/p/group/g", s.repo.join("warm").display().to_string());
     let open = |extra: &[&str]| {
@@ -1090,7 +1233,7 @@ fn an_android_test_case_run_without_a_base_stops_before_it_opens_any_link() {
         s.file(&format!("e2e/{script}.lua"), std::fs::read(repo_root().join(format!("e2e/{script}.lua"))).unwrap());
     }
     s.file("ui.xml", r#"<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><hierarchy rotation="0">
-<node index="0" text="" resource-id="DebugFab" class="android.widget.Button" bounds="[400,900][460,960]" clickable="true" />
+<node index="0" text="" resource-id="LeetcodeListMenuButton" class="android.widget.Button" bounds="[400,900][460,960]" clickable="true" />
 </hierarchy>"#);
     let out_env = format!("out={}", s.repo.join("warm").display());
     let run = |script: &str, extra: &[&str]| {

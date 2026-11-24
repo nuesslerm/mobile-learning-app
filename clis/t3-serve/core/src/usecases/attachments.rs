@@ -103,14 +103,14 @@ impl Service {
     }
 
     /// `<payload>.<signature>`, both base64url, over the claims.
-    fn sign(&self, claims: &Value) -> Result<String, String> {
+    pub(super) fn sign(&self, claims: &Value) -> Result<String, String> {
         let payload = URL_SAFE_NO_PAD.encode(claims.to_string());
         let signature = hmac_sha256(&self.signing_key()?, payload.as_bytes());
         Ok(format!("{payload}.{}", URL_SAFE_NO_PAD.encode(signature)))
     }
 
     /// The claims of a token this server signed for `kind` that has not expired, else none: a wrong, altered, expired or foreign token alike.
-    fn verify(&self, token: &str, kind: &str) -> Option<Value> {
+    pub(super) fn verify(&self, token: &str, kind: &str) -> Option<Value> {
         let (payload, signature) = token.split_once('.')?;
         if signature.contains('.') {
             return None;

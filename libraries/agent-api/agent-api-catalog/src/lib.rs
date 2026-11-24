@@ -16,17 +16,26 @@ pub const MODELS_LIST: Method = Method::new(GROUP, "models.list");
 pub const AGENTS_DETECT: Method = Method::new(GROUP, "agents.detect");
 pub const SKILLS_LIST: Method = Method::new(GROUP, "skills.list");
 pub const COMMANDS_LIST: Method = Method::new(GROUP, "commands.list");
+/// The sessions the agent CLIs keep in an executor's own home (the host CLI session vault).
+pub const SESSIONS_LIST: Method = Method::new(GROUP, "sessions.list");
+/// Whether the service can turn a recording into text, and with which engine.
+pub const SPEECH_STATUS: Method = Method::new(GROUP, "speech.status");
+/// The words in one recording (the service's own speech engine: no executor is asked).
+pub const SPEECH_TRANSCRIBE: Method = Method::new(GROUP, "speech.transcribe");
 
 /// Every method of the group.
-pub const METHODS: &[Method] = &[MODELS_LIST, AGENTS_DETECT, SKILLS_LIST, COMMANDS_LIST];
+pub const METHODS: &[Method] = &[MODELS_LIST, AGENTS_DETECT, SKILLS_LIST, COMMANDS_LIST, SESSIONS_LIST, SPEECH_STATUS, SPEECH_TRANSCRIBE];
 
 /// The executor actions each method may ask, in the order it asks them. `models.list` answers from the table alone, and `commands.list` asks
 /// only when it is given a workspace (the skills the driver reads are commands too).
-pub const ACTIONS: &[(Method, &[&str])] = &[(MODELS_LIST, &[]), (AGENTS_DETECT, &["cli_detect"]), (SKILLS_LIST, &["skill_scan"]), (COMMANDS_LIST, &["skill_scan"])];
+pub const ACTIONS: &[(Method, &[&str])] = &[(MODELS_LIST, &[]), (AGENTS_DETECT, &["cli_detect"]), (SKILLS_LIST, &["skill_scan"]), (COMMANDS_LIST, &["skill_scan"]), (SESSIONS_LIST, &["session_scan"]), (SPEECH_STATUS, &[]), (SPEECH_TRANSCRIBE, &[])];
 
 /// The drivers a request may name (`agent.threads` calls them `instance_id`): the ids of the service's driver table, which a test of the
 /// service holds equal.
 pub const DRIVERS: [&str; 3] = ["opencode", "claudeAgent", "codex"];
+
+/// The tools `agents.detect` reports besides the drivers' CLIs, in this order: git, and the GitHub and GitLab CLIs.
+pub const TOOLS: [&str; 3] = ["git", "gh", "glab"];
 
 /// The skills directories (`exec_fs::SKILL_DIRS`) each driver reads, in the order its skills are listed.
 pub fn skill_dirs(driver: &str) -> &'static [&'static str] {
@@ -41,7 +50,10 @@ pub mod code {
     /// `agents.detect` names an executor that is not attached.
     pub const UNKNOWN_EXECUTOR: &str = "UNKNOWN_EXECUTOR";
 
-    pub const ALL: [&str; 1] = [UNKNOWN_EXECUTOR];
+    /// The service has no speech engine, or it failed on the recording.
+    pub const SPEECH_UNAVAILABLE: &str = "SPEECH_UNAVAILABLE";
+
+    pub const ALL: [&str; 2] = [UNKNOWN_EXECUTOR, SPEECH_UNAVAILABLE];
 }
 
 pub mod message {
@@ -118,7 +130,7 @@ pub struct ModelsResult {
     pub default_interaction_mode: String,
 }
 
-/// `agents.detect`: which agent CLIs `executor` (the only one attached when absent) has. The service keeps an answer a short while;
+/// `agents.detect`: which agent CLIs and tools `executor` (the only one attached when absent) has. The service keeps an answer a short while;
 /// `refresh` asks the executor again.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -144,10 +156,26 @@ impl DetectParams {
 }
 
 /// What the executor found for one driver's CLI (`program`). `version` and `path` are the executor's (`cli_detect`); a CLI that is there but
-/// did not answer has `error` and no version; one that is not there has only `installed: false`.
+/// did not answer has `error` and no version. A driver whose CLI is not there is not listed; `installed` is always true in an answer.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DetectedAgent {
     pub driver: String,
+    pub program: String,
+    pub installed: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    /// Whether the CLI holds a login at the executor (its credential file is in the executor's home); none for a CLI that is not installed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signed_in: Option<bool>,
+}
+
+/// What the executor found for one of `TOOLS`, read as a driver's CLI is.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DetectedTool {
     pub program: String,
     pub installed: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -162,23 +190,36 @@ pub struct DetectedAgent {
 pub struct DetectResult {
     /// The executor that was asked, by the name it attached under.
     pub executor: String,
-    /// One entry per driver, in the order of `DRIVERS`.
+    /// One entry per driver whose CLI the executor has, in the order of `DRIVERS`.
     pub agents: Vec<DetectedAgent>,
+    /// One entry per program of `TOOLS`, in that order.
+    #[serde(default)]
+    pub tools: Vec<DetectedTool>,
     /// When the executor answered (an answer the service kept says when it was got, not when it was asked for).
     pub checked_at_ms: u64,
 }
 
-/// `skills.list`: the skills of `workspace` and of its executor's own home.
+/// `skills.list`: the skills of `workspace` and of its executor's own home. `dirs` and `home_dirs` name the skill directories to read below
+/// each (relative, at most 64 each; the executor's three by default).
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SkillsParams {
     pub workspace: String,
+    #[serde(default)]
+    pub dirs: Option<Vec<String>>,
+    #[serde(default)]
+    pub home_dirs: Option<Vec<String>>,
 }
 
 impl SkillsParams {
     pub fn parse(params: &Value) -> Result<SkillsParams, ParamError> {
         let p: SkillsParams = read(params)?;
         check_name("workspace", &p.workspace)?;
+        for (key, dirs) in [("dirs", &p.dirs), ("home_dirs", &p.home_dirs)] {
+            if dirs.as_ref().is_some_and(|d| d.len() > 64 || d.iter().any(|x| x.is_empty() || x.starts_with('/') || x.split('/').any(|part| part == ".."))) {
+                return Err(ParamError(format!("`{key}` must be at most 64 relative directories")));
+            }
+        }
         Ok(p)
     }
 }
@@ -190,7 +231,7 @@ pub enum Scope {
     Home,
 }
 
-/// A skill as `skill_scan` found it. `dir` is the skills directory it lies in (`.claude/skills`, `.agents/skills`, `.codex/skills`); `path` is
+/// A skill as `skill_scan` found it. `dir` is the scanned skills directory it lies in (by default `.claude/skills`, `.agents/skills`, `.codex/skills`); `path` is
 /// its `SKILL.md`, relative to the workspace's executor root, or `~/<dir>/<name>/SKILL.md` for the executor's home.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Skill {
@@ -202,11 +243,21 @@ pub struct Skill {
     pub path: String,
 }
 
+/// A skill directory that exists, whether or not it holds a skill.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SkillDir {
+    pub scope: Scope,
+    pub dir: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SkillsResult {
     pub skills: Vec<Skill>,
     /// The executor stopped at its most (`skill_scan`'s `SKILLS_MAX`): there are more.
     pub truncated: bool,
+    /// The scanned directories that exist (none from an executor older than this list).
+    #[serde(default)]
+    pub present: Vec<SkillDir>,
 }
 
 /// `commands.list`: the commands `driver` offers in a chat, and, given `workspace`, the skills of that workspace and its executor's home that the
@@ -258,6 +309,137 @@ pub struct CommandsResult {
     pub commands: Vec<Command>,
 }
 
+/// The CLIs whose sessions `sessions.list` reads: the drivers that keep session files in the executor's home.
+pub const SESSION_AGENTS: [&str; 2] = ["claude", "codex"];
+
+/// `sessions.list`: the sessions the agent CLIs keep in an executor's own home, newest file first. `executor` names the executor (none is the
+/// only one attached), `agents` the CLIs to read (default both), `limit` the most to return (default 100, at most 500).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SessionsParams {
+    #[serde(default)]
+    pub executor: Option<String>,
+    #[serde(default)]
+    pub agents: Option<Vec<String>>,
+    #[serde(default)]
+    pub limit: Option<u64>,
+}
+
+impl SessionsParams {
+    pub fn parse(params: &Value) -> Result<SessionsParams, ParamError> {
+        let p: SessionsParams = read(params)?;
+        if let Some(executor) = &p.executor {
+            check_name("executor", executor)?;
+        }
+        if let Some(agents) = &p.agents {
+            let mut seen: Vec<&str> = Vec::new();
+            for agent in agents {
+                if !SESSION_AGENTS.contains(&agent.as_str()) || seen.contains(&agent.as_str()) {
+                    return Err(ParamError(format!("agents is a list of {} without repeats", SESSION_AGENTS.join(" and "))));
+                }
+                seen.push(agent);
+            }
+            if agents.is_empty() {
+                return Err(ParamError(format!("agents is a list of {} without repeats", SESSION_AGENTS.join(" and "))));
+            }
+        }
+        Ok(p)
+    }
+}
+
+/// One session file of a CLI. `path` is the file as `~/<path>`: where the executor's home is never leaves it. The times are the ISO strings the
+/// file holds; `modified_ms` is the file's own modification time.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct VaultSession {
+    pub agent: String,
+    pub session_id: String,
+    pub path: String,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub branch: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    pub modified_ms: u64,
+    pub message_count: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_prompt: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_prompt: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SessionsResult {
+    /// The executor that was asked, by the name it attached under.
+    pub executor: String,
+    pub sessions: Vec<VaultSession>,
+    /// The executor stopped at `limit`: there are more.
+    pub truncated: bool,
+}
+
+/// The recording formats `speech.transcribe` takes (the engines read them through ffmpeg or the sidecar).
+pub const SPEECH_FORMATS: [&str; 6] = ["wav", "webm", "m4a", "mp3", "ogg", "flac"];
+
+/// The most base64 text one `speech.transcribe` carries (a few minutes of speech); a longer recording is cut into more calls by the caller.
+pub const SPEECH_AUDIO_MAX: usize = 24 << 20;
+
+/// `speech.status`: no params.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SpeechStatusParams {}
+
+impl SpeechStatusParams {
+    pub fn parse(params: &Value) -> Result<SpeechStatusParams, ParamError> {
+        read(params)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpeechStatusResult {
+    pub available: bool,
+    /// `sidecar`, `groq` or `whisper-cpp`: the engine the service's environment names.
+    pub engine: String,
+}
+
+/// `speech.transcribe`: `audio` is the recording, base64 (standard alphabet), in `format` (`wav` by default).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SpeechTranscribeParams {
+    pub audio: String,
+    #[serde(default)]
+    pub format: Option<String>,
+}
+
+impl SpeechTranscribeParams {
+    pub fn parse(params: &Value) -> Result<SpeechTranscribeParams, ParamError> {
+        let p: SpeechTranscribeParams = read(params)?;
+        check_name("audio", &p.audio)?;
+        if p.audio.len() > SPEECH_AUDIO_MAX {
+            return Err(ParamError(format!("`audio` is longer than {SPEECH_AUDIO_MAX} bytes of base64")));
+        }
+        if p.format.as_deref().is_some_and(|f| !SPEECH_FORMATS.contains(&f)) {
+            return Err(ParamError(format!("format is one of {}", SPEECH_FORMATS.join(", "))));
+        }
+        Ok(p)
+    }
+
+    pub fn format(&self) -> &str {
+        self.format.as_deref().unwrap_or("wav")
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpeechTranscribeResult {
+    pub text: String,
+    /// How long the engine took, in milliseconds.
+    pub took_ms: u64,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -270,6 +452,9 @@ mod tests {
             "agents.detect" => DetectParams::parse(params).map(drop),
             "skills.list" => SkillsParams::parse(params).map(drop),
             "commands.list" => CommandsParams::parse(params).map(drop),
+            "sessions.list" => SessionsParams::parse(params).map(drop),
+            "speech.status" => SpeechStatusParams::parse(params).map(drop),
+            "speech.transcribe" => SpeechTranscribeParams::parse(params).map(drop),
             other => panic!("{other} is no method of the group"),
         }
     }
@@ -281,6 +466,9 @@ mod tests {
             "agents.detect" => read(serde_json::from_value::<DetectResult>(result.clone()).map(drop)),
             "skills.list" => read(serde_json::from_value::<SkillsResult>(result.clone()).map(drop)),
             "commands.list" => read(serde_json::from_value::<CommandsResult>(result.clone()).map(drop)),
+            "sessions.list" => read(serde_json::from_value::<SessionsResult>(result.clone()).map(drop)),
+            "speech.status" => read(serde_json::from_value::<SpeechStatusResult>(result.clone()).map(drop)),
+            "speech.transcribe" => read(serde_json::from_value::<SpeechTranscribeResult>(result.clone()).map(drop)),
             other => panic!("{other} is no method of the group"),
         }
     }
@@ -329,7 +517,9 @@ mod tests {
         for (method, actions) in ACTIONS {
             assert!(actions.iter().all(|a| known.contains(a)), "{}: {actions:?}", method.name());
         }
-        assert_eq!(ACTIONS.iter().flat_map(|(_, a)| a.iter().copied()).collect::<std::collections::BTreeSet<_>>(), [exec_fs::SKILL_SCAN, exec_proc::CLI_DETECT].into());
+        assert_eq!(ACTIONS.iter().flat_map(|(_, a)| a.iter().copied()).collect::<std::collections::BTreeSet<_>>(), [exec_fs::SESSION_SCAN, exec_fs::SKILL_SCAN, exec_proc::CLI_DETECT].into());
+        // And the tools reported are the ones the executor's `cli_detect` looks for besides the agent CLIs
+        assert_eq!(TOOLS, exec_proc::TOOL_CLIS);
         // And every recorded exchange asks no action outside its row, a success of a method that has some asks them all, and a method with none asks none
         for fixture in &fixtures() {
             let row = ACTIONS.iter().find(|(m, _)| m.name() == fixture.method).map(|(_, a)| *a).unwrap();
@@ -365,11 +555,12 @@ mod tests {
         let fixture = recorded.iter().find(|f| f.method == "agents.detect").unwrap();
         for exchange in fixture.exchanges.iter().filter(|e| e.succeeds() && e.request["params"].get("executor").is_none()) {
             let result: DetectResult = serde_json::from_value(exchange.response["result"].clone()).unwrap();
-            // Then the drivers come in the table's order, and a driver is installed exactly when its program is one the executor was set up with, with that version
-            assert_eq!(result.agents.iter().map(|a| a.driver.as_str()).collect::<Vec<_>>(), DRIVERS);
+            // Then the listed drivers are in the table's order, and they are exactly the ones whose program the executor was set up with, with that version
+            let expected: Vec<&str> = DRIVERS.iter().copied().filter(|d| FIXTURE_CLIS.iter().any(|(program, _)| *program == if *d == "claudeAgent" { "claude" } else { d })).collect();
+            assert_eq!(result.agents.iter().map(|a| a.driver.as_str()).collect::<Vec<_>>(), expected);
             for agent in &result.agents {
                 let set_up = FIXTURE_CLIS.iter().find(|(program, _)| *program == agent.program);
-                assert_eq!((agent.installed, agent.version.as_deref()), (set_up.is_some(), set_up.map(|(_, v)| *v)), "{}", agent.program);
+                assert_eq!((agent.installed, agent.version.as_deref()), (true, set_up.map(|(_, v)| *v)), "{}", agent.program);
             }
         }
     }
@@ -405,10 +596,18 @@ mod tests {
         ];
         // Then each says what is wrong
         assert_eq!(bad[0], "driver is one of opencode, claudeAgent, codex");
+        assert!(SessionsParams::parse(&json!({"agents": ["opencode"]})).is_err() && SessionsParams::parse(&json!({"agents": ["codex", "codex"]})).is_err() && SessionsParams::parse(&json!({"agents": []})).is_err());
+        assert_eq!(SessionsParams::parse(&json!({"agents": ["claude"], "limit": 5})).unwrap().limit, Some(5));
+        assert_eq!(SessionsParams::parse(&json!({"executor": " "})).unwrap_err().0, "executor is required");
         assert!(bad[1].contains("driver") && bad[2].contains("cwd"), "{bad:?}");
         assert_eq!((bad[3].as_str(), bad[4].as_str()), ("executor is required", "workspace is required"));
         // And a detection that names nothing is for the only executor, not refreshed; a null params is the same
         assert_eq!(DetectParams::parse(&json!({})), Ok(DetectParams { executor: None, refresh: None }));
         assert!(!DetectParams::parse(&Value::Null).unwrap().refresh() && DetectParams::parse(&json!({"refresh": true})).unwrap().refresh());
+        // And a recording needs audio in a format the engines read, wav when it names none
+        assert_eq!(SpeechTranscribeParams::parse(&json!({"audio": ""})).unwrap_err().0, "audio is required");
+        assert_eq!(SpeechTranscribeParams::parse(&json!({"audio": "AAAA", "format": "aiff"})).unwrap_err().0, "format is one of wav, webm, m4a, mp3, ogg, flac");
+        assert_eq!(SpeechTranscribeParams::parse(&json!({"audio": "AAAA"})).unwrap().format(), "wav");
+        assert!(SpeechStatusParams::parse(&json!({"x": 1})).is_err() && SpeechStatusParams::parse(&Value::Null).is_ok());
     }
 }

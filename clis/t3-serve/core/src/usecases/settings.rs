@@ -5,7 +5,7 @@ use super::queries::{field, QueryFailure};
 use super::service::Service;
 use crate::ports::{AgentError, Follow, Op};
 use serde_json::{json, Map, Value};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
@@ -35,9 +35,21 @@ pub struct Held {
     pub(super) projects: Mutex<()>,
     /// The review guides being written or that failed, by pull request (`Running` and `Failed` as T3's run union has them).
     pub(super) guide_runs: Mutex<HashMap<String, Value>>,
+    /// The pull request refresh epoch: an invalidate that tells readers bumps it, and the refresh stream sends each new value.
+    refreshes: std::sync::atomic::AtomicU64,
+    /// The host readings the resource history rows answer from; each read of a history takes one more, so the ring holds what was asked for.
+    pub(super) telemetry: Mutex<VecDeque<super::desk_admin::Reading>>,
 }
 
 impl Held {
+    pub(super) fn bump_refresh(&self) {
+        self.refreshes.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    pub(crate) fn refresh_epoch(&self) -> u64 {
+        self.refreshes.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
     fn session(&self, instance: &str) -> Option<(String, String)> {
         self.sessions.lock().unwrap_or_else(|e| e.into_inner()).get(instance).cloned()
     }
@@ -253,6 +265,7 @@ impl Service {
     /// `provider.auth.start`: the CLI's login begins and the state names the address (and the code) the person opens.
     pub fn provider_auth_start(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let instance = field(payload, "instanceId")?;
+        self.configured_instance(instance, "start")?;
         let method = payload.get("methodId").and_then(Value::as_str).filter(|m| !m.is_empty()).map(str::to_string);
         let started = self.account(instance, "start", &Op::AuthStart { provider: instance.into(), method })?;
         let (auth, method) = (started["auth"]["auth"].as_str().unwrap_or_default(), started["auth"]["method"].as_str().unwrap_or_default());
@@ -265,6 +278,7 @@ impl Service {
     /// signed in by its own flow.
     pub fn provider_auth_respond(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let (instance, flow) = (field(payload, "instanceId")?, field(payload, "flowId")?);
+        self.configured_instance(instance, "respond")?;
         let response = payload.get("response").filter(|r| r.is_object()).ok_or_else(|| QueryFailure::Defect("Missing key\n  at [\"response\"]".into()))?;
         let op = match response["type"].as_str() {
             Some("terminal") => Op::AuthRespond { auth: flow.into(), text: response["data"].as_str().unwrap_or_default().trim_end_matches(['\r', '\n']).to_string() },
@@ -281,6 +295,7 @@ impl Service {
     /// login to end. A device-code login has no address to hand over, so it only waits.
     pub fn provider_auth_complete(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let (instance, flow, callback) = (field(payload, "instanceId")?, field(payload, "flowId")?, field(payload, "callbackUrl")?);
+        self.configured_instance(instance, "complete")?;
         let paste = self.held().session(instance).is_some_and(|(auth, method)| auth == flow && method == "paste");
         if paste {
             self.account(instance, "complete", &Op::AuthRespond { auth: flow.into(), text: pasted_code(callback) })?;
@@ -292,6 +307,7 @@ impl Service {
     /// `provider.auth.cancel`: the login stops.
     pub fn provider_auth_cancel(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let (instance, flow) = (field(payload, "instanceId")?, field(payload, "flowId")?);
+        self.configured_instance(instance, "cancel")?;
         let cancelled = self.account(instance, "cancel", &Op::AuthCancel { auth: flow.into() })?;
         Ok(self.state_of(instance, &cancelled))
     }
@@ -299,6 +315,7 @@ impl Service {
     /// `provider.auth.logout`: the provider's directory is emptied of its login, and the provider is idle again.
     pub fn provider_auth_logout(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let instance = field(payload, "instanceId")?;
+        self.configured_instance(instance, "logout")?;
         self.account(instance, "logout", &Op::AccountsLogout { provider: instance.into() })?;
         self.held().forget(instance);
         self.log("provider.auth.logout", &[("instance", instance.to_string())]);
@@ -309,6 +326,7 @@ impl Service {
     /// the stream opened.
     pub fn open_auth_stream(&self, payload: &Value) -> Result<(AuthFold, Value), QueryFailure> {
         let instance = field(payload, "instanceId")?;
+        self.configured_instance(instance, "subscribe")?;
         Ok((AuthFold { instance: instance.into() }, self.current_auth_state(instance)))
     }
 
@@ -346,7 +364,7 @@ impl Service {
     /// `provider.chatgpt.reconnect-profile`: a ChatGPT profile is something T3's own desktop keeps; the Codex CLI behind this server keeps its
     /// login in its own directory and offers none to reconnect.
     pub fn chatgpt_reconnect(&self, payload: &Value) -> Result<Value, QueryFailure> {
-        field(payload, "instanceId")?;
+        self.configured_instance(field(payload, "instanceId")?, "export")?;
         Ok(Value::Null)
     }
 
@@ -362,30 +380,83 @@ impl Service {
         let Some(instance) = payload.get("instanceId").and_then(Value::as_str).filter(|i| !i.is_empty()) else {
             return Err(QueryFailure::Error(json!({"_tag": "UsageLimitSourceError", "detail": "This server has no usage limit sources, only providers"})));
         };
-        self.agent().run(&Op::ResetCredit { provider: instance.into() }).map_err(|e| QueryFailure::Error(json!({"_tag": "UsageLimitSourceError", "detail": e.message()})))?;
-        Ok(json!({"outcome": "reset"}))
-    }
-
-    fn catalog_models(&self) -> Vec<(String, String)> {
-        self.0.catalog.models().into_iter().map(|m| (m.slug, m.name)).collect()
+        if self.configured_instance(instance, "consume-reset-credit").is_err() {
+            return Err(QueryFailure::Error(json!({"_tag": "ProviderSetupError", "instanceId": instance, "operation": "consume-reset-credit", "detail": "Provider instance not found."})));
+        }
+        let spent = self.agent().run(&Op::ResetCredit { provider: instance.into() }).map_err(|e| QueryFailure::Error(json!({"_tag": "UsageLimitSourceError", "detail": e.message()})))?;
+        // The account's own answer: a credit that was not spent is the account saying so, not a reset
+        match spent["outcome"].as_str() {
+            Some("reset") => Ok(json!({"outcome": "reset"})),
+            other => Err(QueryFailure::Error(json!({"_tag": "UsageLimitSourceError", "detail": format!("The account did not reset a limit: {}", other.unwrap_or("no outcome").replace('_', " "))}))),
+        }
     }
 
     /// `server.refreshProviders`: the accounts group looks again at the providers (one, or all), and the answer is the providers as signed in or
     /// out.
     pub fn refresh_providers(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let instance = payload.get("instanceId").and_then(Value::as_str).filter(|i| !i.is_empty());
-        self.account(instance.unwrap_or_default(), "refresh", &Op::AccountsRefresh { provider: instance.map(str::to_string) })?;
-        let listed = self.account(instance.unwrap_or_default(), "refresh", &Op::AccountsList)?;
-        let logins: Vec<(String, String)> = listed["providers"].as_array().into_iter().flatten().filter_map(|p| Some((p["provider"].as_str()?.to_string(), p["status"].as_str()?.to_string()))).collect();
-        let models = self.catalog_models();
-        let models: Vec<Model> = models.iter().map(|(slug, name)| Model { slug, name }).collect();
-        Ok(json!({"providers": wire::providers_with_logins(&models, &iso(self.now_ms()), &logins)}))
+        if instance.is_some_and(|i| self.configured_instance(i, "refresh").is_err()) {
+            return Ok(json!({"providers": []}));
+        }
+        let models = self.0.catalog.models();
+        let models: Vec<_> = models.iter().map(|m| Model { slug: &m.slug, name: &m.name }).collect();
+        let checked_at = iso(self.now_ms());
+        let mut providers = wire::providers(&models, &checked_at);
+        self.apply_provider_catalog(&mut providers);
+        if let Some((instance, cwd)) = t3_contracts::payload::workspace_provider_refresh(payload) {
+            if let Some(provider) = providers.iter_mut().find(|row| row["instanceId"] == instance) {
+                self.set_workspace_catalog(provider, cwd, &checked_at);
+            }
+        } else {
+            self.account(instance.unwrap_or_default(), "refresh", &Op::AccountsRefresh { provider: instance.map(str::to_string) })?;
+            let listed = self.account(instance.unwrap_or_default(), "refresh", &Op::AccountsList)?;
+            let logins: Vec<(String, String)> = listed["providers"].as_array().into_iter().flatten().filter_map(|p| Some((p["provider"].as_str()?.to_string(), p["status"].as_str()?.to_string()))).collect();
+            wire::apply_provider_logins(&mut providers, &logins);
+        }
+        Ok(json!({"providers": providers}))
+    }
+
+    fn set_workspace_catalog(&self, provider: &mut Value, cwd: &str, checked_at: &str) {
+        let Some(driver) = provider["driver"].as_str() else { return };
+        let catalog = match self.0.agent.run(&Op::ProviderCommands { root: cwd.into(), driver: driver.into() }) {
+            Ok(catalog) => catalog,
+            Err(error) => {
+                self.log("catalog.workspace.failed", &[("error", error.message())]);
+                return;
+            }
+        };
+        let mut skills = Vec::new();
+        let mut slash_commands = Vec::new();
+        for command in catalog["commands"].as_array().into_iter().flatten() {
+            let Some(name) = command["name"].as_str().filter(|name| !name.trim().is_empty()) else { continue };
+            let mut item = json!({"name": name});
+            if let Some(description) = command["description"].as_str().filter(|description| !description.trim().is_empty()) {
+                item["description"] = description.into();
+            }
+            match command["kind"].as_str() {
+                Some("skill") => {
+                    let Some(path) = command["path"].as_str().filter(|path| !path.trim().is_empty()) else { continue };
+                    item["path"] = path.into();
+                    item["enabled"] = true.into();
+                    skills.push(item);
+                }
+                Some("command") => {
+                    if let Some(hint) = command["argument_hint"].as_str().filter(|hint| !hint.trim().is_empty()) {
+                        item["input"] = json!({"hint": hint});
+                    }
+                    slash_commands.push(item);
+                }
+                _ => {}
+            }
+        }
+        provider["workspaceSnapshots"] = json!([{"cwd": cwd, "checkedAt": checked_at, "slashCommands": slash_commands, "skills": skills}]);
     }
 
     /// `server.updateProvider`: a provider's CLI is part of the service's image, so a version is updated by shipping the image.
     pub fn update_provider(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let provider = field(payload, "provider")?;
-        Err(QueryFailure::Error(json!({"_tag": "ServerProviderUpdateError", "provider": provider, "reason": "The provider CLIs are part of the service's image; ship a new image to update one"})))
+        let reason = if self.configured_instance(provider, "update").is_ok() { "The provider CLIs are part of the service's image; ship a new image to update one" } else { "This provider does not support one-click updates." };
+        Err(QueryFailure::Error(json!({"_tag": "ServerProviderUpdateError", "provider": provider, "reason": reason})))
     }
 
     /// `server.getUsageSummary`: one source per provider, from what the accounts group knows of each. No token or cost bucket is kept: the CLIs
@@ -404,9 +475,11 @@ impl Service {
         let sources: Vec<Value> = summary["providers"].as_array().into_iter().flatten().filter_map(|row| {
             let instance = row["provider"].as_str()?;
             let kind = usage_kind(instance)?;
-            let message = match (&row["usage"], row["status"].as_str()) {
-                (Value::Object(usage), _) => Some(format!("{} of {} {}", usage["used"], usage["limit"].as_u64().map_or("an unknown limit".to_string(), |l| l.to_string()), usage["unit"].as_str().unwrap_or_default())),
-                (_, Some("signed_in")) => Some("The provider reports no usage".to_string()),
+            let window = |name: &str, label: &str| row["limits"][name]["used_percent"].as_f64().map(|used| format!("{used}% of the {label} limit used"));
+            let message = match (&row["limits"], row["limits_error"].as_str(), row["status"].as_str()) {
+                (Value::Object(_), ..) => Some([window("session", "session"), window("weekly", "weekly")].into_iter().flatten().collect::<Vec<_>>().join(", ")).filter(|m| !m.is_empty()).or_else(|| Some("The account reports no windows".to_string())),
+                (_, Some(why), _) => Some(format!("The account could not be asked: {why}")),
+                (_, _, Some("signed_in")) => Some("The provider reports no usage".to_string()),
                 _ => Some("The provider is signed out".to_string()),
             };
             Some(json!({
@@ -440,11 +513,59 @@ impl Service {
     /// `server.getDatabaseStorage`: how big t3 serve's own database is and how much of it a vacuum would give back; null when it cannot be read.
     fn storage_status(&self) -> Value {
         match self.0.storage.sample() {
-            Ok(s) => json!({"databaseBytes": s.database_bytes, "reclaimableBytes": s.reclaimable_bytes, "incrementalVacuumEnabled": s.incremental_vacuum, "compactCommand": format!("sqlite3 {} VACUUM", s.path)}),
+            Ok(s) => json!({"databaseBytes": s.database_bytes, "reclaimableBytes": s.reclaimable_bytes, "canReclaim": s.incremental_vacuum && s.reclaimable_bytes > 0, "incrementalVacuumEnabled": s.incremental_vacuum, "compactCommand": format!("sqlite3 {} VACUUM", s.path)}),
             Err(e) => {
                 self.log("storage.unreadable", &[("message", e)]);
                 Value::Null
             }
+        }
+    }
+
+    /// What a clean-up of the storage t3 keeps outside its database reports: this server keeps none (no archive of attachments, logs or
+    /// worktrees of its own that a sweep could remove), so every clean-up finds nothing to remove, keep or fail.
+    fn storage_cleanup_report(&self, trigger: &str) -> Value {
+        let now = iso(self.now_ms());
+        json!({"trigger": trigger, "startedAt": now, "finishedAt": now, "bytesFreed": 0, "omittedCount": 0, "counts": {"removed": 0, "kept": 0, "failed": 0}, "entries": []})
+    }
+
+    /// `server.runStorageCleanup`: a manual clean-up, which finds nothing.
+    pub fn run_storage_cleanup(&self) -> Value {
+        self.storage_cleanup_report("manual")
+    }
+
+    /// `server.getStorageCleanupReport`: the report of the last clean-up the stream opens with; no sweep ever found anything.
+    pub fn storage_cleanup_stream(&self) -> Vec<Value> {
+        vec![self.storage_cleanup_report("automatic")]
+    }
+
+    /// `agentSessions.scan`: the projects the sessions of the CLIs on the executor's host were run in, found by the agent API's `sessions.list`.
+    pub fn scan_agent_sessions(&self) -> Value {
+        let scanned_at = iso(self.now_ms());
+        match self.agent().run(&Op::Catalog { method: "sessions.list", params: json!({"limit": 500}) }) {
+            Ok(found) => self.session_candidates(found["sessions"].as_array().map(Vec::as_slice).unwrap_or_default(), scanned_at),
+            Err(e) => {
+                self.log("agent.sessions.scan.failed", &[("error", e.message())]);
+                json!({"candidates": [], "scannedAt": scanned_at})
+            }
+        }
+    }
+
+    /// `cloud.getRelayClientStatus`: the relay client is not installed on this server, and `version` is the one the pin installs.
+    pub fn relay_client_status(&self) -> Value {
+        json!({"status": "missing", "version": wire::RELAY_CLIENT_VERSION})
+    }
+
+    /// `server.signalProcess`: no process identity is ever listed by this server, so none the phone selected still matches.
+    pub fn signal_process(&self, payload: &Value) -> Value {
+        let (pid, signal) = (payload["pid"].clone(), payload["signal"].clone());
+        json!({"pid": pid, "signal": signal, "signaled": false, "message": {"_tag": "Some", "value": format!("Process {pid} no longer matches the selected process identity.")}})
+    }
+
+    /// The provider instance's refusal when it is not one of the configured instances (the pin: it was removed since the phone listed it).
+    fn configured_instance(&self, instance: &str, operation: &str) -> Result<(), QueryFailure> {
+        match wire::providers(&[], "").iter().any(|p| p["instanceId"] == instance) {
+            true => Ok(()),
+            false => Err(refusal(instance, operation, "This provider instance is no longer available.")),
         }
     }
 

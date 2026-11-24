@@ -1,0 +1,73 @@
+{
+  "suite": "editorsettingsmenu",
+  "step": "final-given-text-with-spaces-when-show-whitespace-is-224b40",
+  "scheme": "dark",
+  "snapshot": "editorsettingsmenu/final-given-text-with-spaces-when-show-whitespace-is-224b40.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemEditorScreen",
+      "ProblemEditorHeader",
+      "ProblemEditorHeaderBack",
+      "ProblemEditorHeaderTitle",
+      "ProblemEditorHeaderSubtitle",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
+      "ProblemEditorInfoButton",
+      "ProblemEditorMenuButton",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
+      "EditorSettingsButtonBackdrop",
+      "EditorSettingsButtonContent",
+      "EditorSettingsViewSection",
+      "EditorSettingsFontSize",
+      "EditorSettingsFontSizeCheck",
+      "EditorSettingsWhitespace",
+      "EditorSettingsWhitespaceCheck",
+      "EditorSettingsWrap",
+      "EditorSettingsWrapCheck",
+      "EditorSettingsToolsSection",
+      "EditorSettingsTabs",
+      "EditorSettingsTabsCheck",
+      "EditorSettingsSymbolBar",
+      "EditorSettingsSymbolBarCheck",
+      "EditorSettingsFormat",
+      "EditorSettingsFormatCheck"
+    ],
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit\nFont size: 14px\nShow Whitespace\nLine wrap\nTabs: 4\nSymbol Bar\nFormat Code"
+  },
+  "timings": {
+    "render_ms": 248
+  },
+  "name": "editorsettingsmenu/final-given-text-with-spaces-when-show-whitespace-is-224b40.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

@@ -19,6 +19,8 @@ fn failure_text(failure: Failure) -> String {
     match failure {
         Failure::Defect(message) | Failure::Refused { message, .. } => message,
         Failure::ProjectNotEmpty { project_id, .. } => wire::project_not_empty(&project_id),
+        Failure::ThreadMissing { thread_id, .. } => format!("No orchestration projection exists for thread {thread_id}."),
+        Failure::PreviouslyRejected { command_id, reason, .. } => format!("Command {command_id} was previously rejected: {reason}"),
     }
 }
 

@@ -1,59 +1,71 @@
 import { useDependencyOverrides } from '@lib/app-di';
 import { appConfig } from '@lib/app-config';
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 
-import type { AudioRecordingPort, LeetCodePorts } from '../contracts/ports';
-import { useExpoAudioRecordingPort } from '../data/ExpoAudioRecorderAdapter';
+import type { AudioRecordingPort, LeetCodePortOverrides, LeetCodePorts } from '../domain/ports';
+import { resolveLeetCodeFlags } from '../domain/featureFlags';
+import { createWebViewEditorBridge } from '../data/editor/cm6/webViewEditorBridge';
+import { ExpoAudioRecorderProvider, useExpoAudioRecordingPort } from '../data/ExpoAudioRecorderAdapter';
+import { createGatewayCodeRunner } from '../data/gatewayCodeRunner';
+import { createSelectingCodeRunner } from '../data/selectingCodeRunner';
+import { useOptionalDeviceCodeRunner } from '../data/runner/DeviceRunnerProvider';
+import { createUnavailableCodeRunner } from '../data/unavailableCodeRunner';
 import { createLiveVoiceEditTransport } from '../data/voiceEditTransport';
 import { createLiveLeetCodeGateway } from '../data/webBridgeClient';
+import { LeetCodeContainerProvider } from '../state/ports';
+import { useRunnerSettingStore, whenRunnerSettingHydrated } from '../state/runnerSettingStore';
 
 const DEFAULT_BACKEND_BASE_URL = 'http://localhost:8789';
 
 export function createDefaultContainer(
-  overrides: Partial<LeetCodePorts> & { audio: AudioRecordingPort }
+  overrides: LeetCodePortOverrides & { audio: AudioRecordingPort }
 ): LeetCodePorts {
+  const gateway =
+    overrides.gateway ??
+    createLiveLeetCodeGateway(
+      appConfig.leetcodeBackendBaseUrl ?? DEFAULT_BACKEND_BASE_URL
+    );
+  const deviceRunner = overrides.deviceRunner ?? createUnavailableCodeRunner();
   return {
-    gateway:
-      overrides.gateway ??
-      createLiveLeetCodeGateway(
-        appConfig.leetcodeBackendBaseUrl ?? DEFAULT_BACKEND_BASE_URL
-      ),
+    clock: overrides.clock ?? (() => performance.now()),
+    editorBridge: overrides.editorBridge ?? createWebViewEditorBridge(),
+    gateway,
     voice: overrides.voice ?? createLiveVoiceEditTransport(),
     audio: overrides.audio,
+    flags: resolveLeetCodeFlags(
+      { aiEdit: process.env.EXPO_PUBLIC_LEETCODE_AI_EDIT, cursorPad: process.env.EXPO_PUBLIC_LEETCODE_CURSOR_PAD },
+      overrides.flags
+    ),
+    deviceRunner,
+    runner:
+      overrides.runner ??
+      createSelectingCodeRunner({
+        choose: async () => {
+          await whenRunnerSettingHydrated();
+          return useRunnerSettingStore.getState().runner;
+        },
+        current: () => useRunnerSettingStore.getState().runner,
+        runners: { backend: createGatewayCodeRunner(gateway), device: deviceRunner },
+      }),
   };
 }
 
-const LeetCodeContainerContext = createContext<LeetCodePorts | null>(null);
-
-export function LeetCodeContainerProvider({
-  value,
-  children,
-}: {
-  value: LeetCodePorts;
-  children: ReactNode;
-}) {
-  return (
-    <LeetCodeContainerContext.Provider value={value}>
-      {children}
-    </LeetCodeContainerContext.Provider>
-  );
-}
-
-export function useLeetCodePorts(): LeetCodePorts {
-  const ports = useContext(LeetCodeContainerContext);
-  if (!ports) {
-    throw new Error('LeetCodeContainerProvider missing');
-  }
-  return ports;
-}
-
-// Must render inside ExpoAudioRecorderProvider: the audio port comes from its context.
-export function LeetCodeLiveContainer({ children }: { children: ReactNode }) {
-  const o = useDependencyOverrides<LeetCodePorts>('leetcode');
+function LeetCodePortsFromOverrides({ children }: { children: ReactNode }) {
+  const o = useDependencyOverrides<LeetCodePortOverrides>('leetcode');
   const audio = useExpoAudioRecordingPort();
+  // the on-device runner the root provides, when the tree has one
+  const device = useOptionalDeviceCodeRunner();
   const ports = useMemo(
-    () => createDefaultContainer({ ...o, audio: o.audio ?? audio }),
-    [o, audio]
+    () => createDefaultContainer({ ...o, audio: o.audio ?? audio, deviceRunner: o.deviceRunner ?? device }),
+    [o, audio, device]
   );
   return <LeetCodeContainerProvider value={ports}>{children}</LeetCodeContainerProvider>;
+}
+
+export function LeetCodeLiveContainer({ children }: { children: ReactNode }) {
+  return (
+    <ExpoAudioRecorderProvider>
+      <LeetCodePortsFromOverrides>{children}</LeetCodePortsFromOverrides>
+    </ExpoAudioRecorderProvider>
+  );
 }

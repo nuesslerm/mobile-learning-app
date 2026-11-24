@@ -1,0 +1,60 @@
+{
+  "action": "codex_app_server_request",
+  "exchanges": [
+    {
+      "name": "refuses a method that is none of the account methods",
+      "request": {
+        "id": "a1",
+        "tool": "codex_app_server_request",
+        "args": {
+          "method": "thread/start"
+        }
+      },
+      "response": {
+        "id": "a1",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`method` is one of account/read, account/rateLimits/read, account/rateLimitResetCredit/consume, not \"thread/start\""
+        }
+      }
+    },
+    {
+      "name": "refuses params that are not an object",
+      "request": {
+        "id": "a2",
+        "tool": "codex_app_server_request",
+        "args": {
+          "method": "account/read",
+          "params": []
+        }
+      },
+      "response": {
+        "id": "a2",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`params` must be an object"
+        }
+      }
+    },
+    {
+      "name": "refuses a Codex the executor does not have",
+      "request": {
+        "id": "a3",
+        "tool": "codex_app_server_request",
+        "args": {
+          "method": "account/read"
+        }
+      },
+      "response": {
+        "id": "a3",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "codex is not installed here"
+        }
+      }
+    }
+  ]
+}

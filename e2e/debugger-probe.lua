@@ -15,11 +15,13 @@ os.execute("mkdir -p " .. out)
 
 local function buffer() local e = device:get_element({id='CodeEditorInput'}) return e and e.text or "" end
 
+-- Reset code is in the header menu.
+
 device:open_link(base .. "/")
 device:assert_visible({id='LeetcodeListItem'})
 device:scroll_until_visible{element={text='.*Two Sum.*'}, direction='DOWN'}
 device:tap_on({text='.*Two Sum.*'})
-device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=240000})
+device:assert_visible({id='ProblemEditorScreen'}, {timeout=240000})
 
 -- the only way a user lowers the keyboard: Done at the end of the toolbar rail
 local function done()
@@ -43,7 +45,9 @@ done()
 
 device:clear_logs()
 device:take_screenshot(out .. "/before-reset.png")
-device:tap_on({id='ProblemEditorResetButton'})
+device:tap_on({id='ProblemEditorMenuButton'})
+device:extended_wait_until{visible={id='ProblemEditorMenuResetCode'}, timeout=10000, label='the menu'}
+device:tap_on({id='ProblemEditorMenuResetCode'})
 device:assert_visible({id='ResetCodeDialog-Confirm'})
 device:take_screenshot(out .. "/reset-dialog.png")
 device:tap_on({id='ResetCodeDialog-Confirm'})

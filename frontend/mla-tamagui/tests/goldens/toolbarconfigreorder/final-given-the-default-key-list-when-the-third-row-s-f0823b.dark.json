@@ -1,0 +1,49 @@
+{
+  "suite": "toolbarconfigreorder",
+  "step": "final-given-the-default-key-list-when-the-third-row-s-f0823b",
+  "scheme": "dark",
+  "snapshot": "toolbarconfigreorder/final-given-the-default-key-list-when-the-third-row-s-f0823b.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 1544,
+    "page_height": 1544
+  },
+  "summary": {
+    "testids": [
+      "ToolbarConfigScreen",
+      "ToolbarScroll",
+      "ReorderableList",
+      "ReorderableList-AnimatedView1",
+      "ToolbarConfigRow",
+      "ToolbarRemove",
+      "ToolbarKeyPreview",
+      "ToolbarConfigRowName",
+      "ReorderableListHandle",
+      "ToolbarCustomSection",
+      "ToolbarLabelInput-Field",
+      "ToolbarLabelInput",
+      "ToolbarInsertInput-Field",
+      "ToolbarInsertInput",
+      "ToolbarAddCustom",
+      "ToolbarReset"
+    ],
+    "text": "Long-press the handle to drag · tap − to remove\nParentheses\nIndent\nDedent\nBrackets\nBraces\n\"\nDouble quote\n'\nSingle quote\n:\nColon\n=\nEquals\n_\nUnderscore\n.\nDot\nToggle comment\nNew line (auto-indent)\nCursor left\nCursor right\nUndo\nRedo\nCreate custom key\nKey label (shown on the bar)\nText to insert\nAdd custom key\nReset to default"
+  },
+  "timings": {
+    "render_ms": 269
+  },
+  "name": "toolbarconfigreorder/final-given-the-default-key-list-when-the-third-row-s-f0823b.dark",
+  "image": {
+    "width": 360,
+    "height": 1470
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

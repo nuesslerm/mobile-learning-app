@@ -7,7 +7,7 @@ import type { Json } from '../protocol.ts'
 import type { Api, Endpoint, RowPayloads } from './types.ts'
 
 export const API_DIR = { orca: 'clis/orca-serve/cassettes/orca-api', t3: 'clis/t3-serve/cassettes/t3-api' } as const
-export const SET_DIR = { orca: 'clis/orca-serve/cassettes/orca-scenarios', t3: 'clis/t3-serve/cassettes/t3-scenarios' } as const
+export const SET_DIR = { orca: 'clis/orca-serve/cassettes/orca-v1.4.259-scenarios', t3: 'clis/t3-serve/cassettes/t3-v0.1.9-scenarios' } as const
 
 type CrawlCase = { id: string; row: string; input: Json; tags: string[] }
 

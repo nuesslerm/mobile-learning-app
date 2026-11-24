@@ -38,24 +38,27 @@ on:
       flags:
         type: string
         required: false
-      # `wf test plan --json` from the CI plan job: when given, this job runs its <platform>-e2e-tests stage
+      # `wf ci plan tests --json` from the CI plan job: when given, this job runs its <platform>-e2e-tests stage
       plan:
         type: string
         required: false
-      # how the same run's eas-update job ended (success, failure, cancelled, skipped; empty on a dispatch): which update the
-      # android update units may load
+      # how the same run's eas-update job ended (success, failure, cancelled, skipped; empty on a dispatch), or `wait`: the job started beside the eas-update-e2e job and
+      # reads how it ended just before its tests: which update the android update units may load
       eas_update:
         type: string
         required: false
+      # this job's part of the platform's tests (`wf test run --shard <shard>/<shards>`, the tests dealt over the stage's weights), so a slow suite runs on several devices
+      shard:
+        type: number
+        default: 1
+      shards:
+        type: number
+        default: 1
       runner:
         type: string
         default: '"ubuntu-24.04"'
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN:
-        required: false
-      TS_HOSTED_OAUTH_CLIENT_ID:
-        required: false
-      TS_HOSTED_OAUTH_CLIENT_SECRET:
         required: false
   workflow_dispatch:
     inputs:
@@ -84,20 +87,14 @@ on:
 permissions:
   contents: read
 
-env:
-  # the flow-tests job of the CI run saves the pnpm store; these jobs never repeat the pack
-  WF_PNPM_SAVE_JOB: flow-tests
-  # vm-ops-api's CI port; the android lease (`wf android start-device`) is an exec-script and stays on the admin port, as in deploy.yml
-  WF_VM_CI_PORT: "8081"
-
 jobs:
   e2e-tests:
-    name: ${{ inputs.platform }}-e2e-tests
+    name: ${{ inputs.platform }}-e2e-tests${{ inputs.shards > 1 && format(' ({0}/{1})', inputs.shard, inputs.shards) || '' }}
     runs-on: ${{ fromJSON(inputs.runner || '"ubuntu-24.04"') }}
-    # the browser job also builds the export (about 4 min)
-    timeout-minutes: ${{ inputs.platform == 'browser' && 40 || 30 }}
+    # both jobs build the backends, cold; the browser job also builds the export (about 4 min); the Android one boots the device
+    timeout-minutes: 70
     concurrency:
-      group: e2e-tests-${{ inputs.platform }}
+      group: e2e-tests-${{ inputs.platform }}-${{ inputs.shard }}-${{ github.sha }}
       cancel-in-progress: false
     env:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
@@ -118,7 +115,10 @@ jobs:
       WF_ANDROID_SERIAL: emulator-5554
       WF_ANDROID_PROVIDER: emulator
       WF_ANDROID_STUB_HOST: 10.0.2.2
-      WF_ANDROID_HOSTS: leetcode-backend-prod remote-chat-agent-prod vm-ops-api-main
+      # the leetcode token the EAS Update of branch e2e baked in (pipeline.yml eas-update); the backend started here takes it
+      E2E_LEETCODE_BEARER: e2e-loopback-bearer
+      # the Android tests load that variant, which dials the runner's backends as 10.0.2.2:8787 and :8789
+      WF_EAS_UPDATE_BRANCH: ${{ inputs.platform == 'android' && 'e2e' || 'dev' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -126,29 +126,37 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/setup-job
         with:
-          job: ${{ inputs.platform }}-e2e-tests
+          job: ${{ inputs.platform }}-e2e-tests-${{ inputs.shard }}
           keep-android: ${{ inputs.platform == 'android' }}
           apt-packages: ${{ inputs.platform == 'android' && 'ffmpeg libpulse0 libnss3 libxkbcommon0 libgl1' || 'ffmpeg' }}
-          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
-          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
-      - name: Chromium for the browser harness
-        if: inputs.platform == 'browser'
-        run: |
-          # `install --with-deps` re-checks the browser and the system packages on every call (5-8 s): only a new Playwright version needs it
-          version=$(pnpm --filter @lib/browser-client exec playwright --version | tr -c '0-9a-z.\n' '_')
-          marker="$HOME/.cache/ms-playwright/.installed-$version"
-          [ -f "$marker" ] || { pnpm --filter @lib/browser-client exec playwright install --with-deps chromium && mkdir -p "$(dirname "$marker")" && touch "$marker"; }
-          # the device-frame page every browser run opens; a fresh runner has none
-          pnpm --filter @tooling/browser-harness run build
-          # a daemon left by an earlier job runs that job's wf; this job's runs start one from this commit's
-          wf browser stop || echo "no browser daemon was running"
+          # the tests reach only backends this job starts on loopback
+          tailnet: 'false'
+      # absent when the eas-update job was skipped or this is a dispatch: the tests then fall back to the pointer's own source
+      - name: Download the EAS pointers of this run
+        id: eas_pointer
+        if: ${{ inputs.eas_update != '' && inputs.eas_update != 'wait' }}
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: eas-pointer
+          path: ${{ runner.temp }}/eas-pointer
+      - name: Point the tests at the downloaded EAS pointers
+        if: ${{ steps.eas_pointer.outcome == 'success' }}
+        run: echo "WF_EAS_POINTER_DIR=$RUNNER_TEMP/eas-pointer" >> "$GITHUB_ENV"
+      # the Nx tasks of each e2e test are cached (tooling/nx/e2e-tests.js): the replay below and the run read the local cache this restores, and the save after the run keeps the tests that passed
+      - uses: ./.github/actions/nx-cache
+        timeout-minutes: 5
+        continue-on-error: true
+        with:
+          mode: restore
+          stage: ${{ inputs.platform }}-e2e-tests-${{ inputs.shard || 1 }}of${{ inputs.shards || 1 }}
       - name: Which e2e tests
         id: pick
         shell: bash
         run: |
           if [ -n "$PLAN" ]; then
             printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
-            select="--stage $PLATFORM-e2e-tests --plan $RUNNER_TEMP/plan.json${{ inputs.fresh && ' --fresh' || '' }}"
+            select="--stage $PLATFORM-e2e-tests --plan $RUNNER_TEMP/plan.json${{ inputs.fresh && ' --fresh' || '' }}${{ inputs.shards > 1 && format(' --shard {0}/{1}', inputs.shard, inputs.shards) || '' }}"
             # Nx replays every focused test whose feature code, test case and app shell are unchanged; the rest run
             # shellcheck disable=SC2086
             wf test run $select --probe | tee "$RUNNER_TEMP/probe.json"
@@ -157,18 +165,47 @@ jobs:
           else
             if [ -n "$TESTS" ]; then select="$TESTS"; elif [ "$ALL" = "true" ]; then select=--all; else select="--changed --base ${BASE:-$SHA~1}"; fi
             # shellcheck disable=SC2086
-            n=$(wf test plan $select --platform "$PLATFORM" --sha "$SHA" --json | jq '[.tests[] | select(.selected)] | length')
+            n=$(wf ci plan tests $select --platform "$PLATFORM" --sha "$SHA" --json | jq '[.tests[] | select(.selected)] | length')
             select="$select --platform $PLATFORM"
           fi
           echo "select=$select" >> "$GITHUB_OUTPUT"
           echo "any=$([ "$n" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "$n $PLATFORM e2e test(s) to run, selected by: $select"
-      # 23 Oct: a created remote-chat-agent stack made every unit that calls it wait out its own timeout (21 minutes); a service the
-      # tests call that is down now fails here in under a minute, naming it, before the export is built or the device boots.
-      - name: The services the tests call answer
+      # no test calls a deployed service: the leetcode backend, rca-service, its opencode server and the speech sidecar are
+      # built or installed here and started on loopback (each one's health answered before the export bakes their urls). The vm-ops url
+      # bakes as a closed port, so the screen that needs it shows its offline state. voice-edit and tamil-writing call the real model
+      # through opencode with the vault's OPENCODE_GO_API_KEY.
+      - uses: ./.github/actions/sccache-cache
         if: steps.pick.outputs.any == 'true'
-        timeout-minutes: 3
-        run: wf vm ops probe --wait 45 remote-chat-agent leetcode-backend
+        with:
+          mode: restore
+          stage: ${{ inputs.platform }}-e2e-tests
+          shard: ${{ inputs.shard }}
+      - uses: ./.github/actions/install-test-deps
+        if: steps.pick.outputs.any == 'true'
+        with:
+          opencode: 'true'
+      - name: The speech sidecar's python packages
+        if: steps.pick.outputs.any == 'true'
+        run: |
+          python3 -m venv "$RUNNER_TEMP/stt-venv"
+          "$RUNNER_TEMP/stt-venv/bin/pip" install --quiet -r backend/remote-chat-agent/stt/requirements.txt
+      - name: The backends on this runner
+        if: steps.pick.outputs.any == 'true'
+        timeout-minutes: 25
+        env:
+          STT_PYTHON: ${{ runner.temp }}/stt-venv/bin/python
+        run: |
+          # from the vault at step time, never the step's env:, which the log header prints; the verb hands it to opencode alone
+          OPENCODE_GO_API_KEY=$(wf secret get OPENCODE_GO_API_KEY --backend bitwarden 2>/dev/null) || { echo "::error::the vault gave no OPENCODE_GO_API_KEY for the opencode server"; exit 1; }
+          echo "::add-mask::$OPENCODE_GO_API_KEY"
+          export OPENCODE_GO_API_KEY
+          # the model loads (and, cold, downloads) at the sidecar's start
+          # the Android update dials the runner as 10.0.2.2 on the production ports, so those are the ports there
+          ports=$([ "$PLATFORM" = android ] && echo "--rca-port 8787 --leetcode-port 8789" || true)
+          # shellcheck disable=SC2086
+          wf test backends up --only stt,opencode-server,rca-service,leetcode-backend $ports --wait 240 | tee "$RUNNER_TEMP/backends.json"
+          jq -e '.ok' "$RUNNER_TEMP/backends.json" >/dev/null
       - name: The emulator's host setup
         if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
         run: |
@@ -181,11 +218,26 @@ jobs:
         run: |
           sudo=$([ "$(id -u)" = 0 ] || echo sudo)
           command -v ffmpeg >/dev/null || { $sudo dpkg --configure -a; $sudo apt-get update -qq && $sudo apt-get install -y -qq ffmpeg; }
-      - name: Restore the app build state
+      # Chromium installs beside the web export (the export needs no browser and no apt): the install starts here, after the apt steps above have released
+      # the dpkg lock, and the step after the export joins it. A step's own children are killed when it ends, so it detaches (as plan's preflight does).
+      - uses: ./.github/actions/playwright-cache
         if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
-        continue-on-error: true
-        timeout-minutes: 5
-        run: wf cache restore metro
+        with:
+          mode: restore
+      - name: Start the Chromium install for the browser harness
+        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
+        run: |
+          rm -f "$RUNNER_TEMP/chromium.rc"
+          # the cached packages install with dpkg and the mirror path is bounded and keeps its downloads for the save (playwright-cache/install.sh)
+          # shellcheck disable=SC2016
+          printf '%s\n' 'bash .github/actions/playwright-cache/install.sh > "$RUNNER_TEMP/chromium.log" 2>&1' 'echo $? > "$RUNNER_TEMP/chromium.rc"' > "$RUNNER_TEMP/chromium-run.sh"
+          env -u RUNNER_TRACKING_ID setsid nohup bash "$RUNNER_TEMP/chromium-run.sh" > /dev/null 2>&1 &
+      - uses: ./.github/actions/metro-cache
+        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
+        with:
+          mode: restore
+          scope: export
+          suffix: web
       - name: Export the web app
         if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
         timeout-minutes: 15
@@ -196,17 +248,15 @@ jobs:
           EXPO_PUBLIC_BETTERSTACK_HOST: ${{ vars.EXPO_PUBLIC_BETTERSTACK_HOST }}
         run: |
           set -o pipefail
-          hosts=$(wf vm net resolve leetcode-backend-prod remote-chat-agent-prod vm-ops-api-main)
-          host() { jq -er --arg n "$1" '.[$n]' <<<"$hosts" || { echo "::error::no tailnet name answers for $1" >&2; return 1; }; }
-          EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL="http://$(host leetcode-backend-prod):8789"
-          EXPO_PUBLIC_AGENT_BASE_URL="http://$(host remote-chat-agent-prod):8787"
-          EXPO_PUBLIC_VM_OPS_API_BASE_URL="http://$(host vm-ops-api-main):8080"
-          export EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL EXPO_PUBLIC_AGENT_BASE_URL EXPO_PUBLIC_VM_OPS_API_BASE_URL
-          # from the vault at step time (the runner's container env no longer holds it), never the step's env:, which the log header prints
-          EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN=$(wf secret get VM_GATEWAY_AUTH_SEED --backend bitwarden 2>/dev/null) || { echo "::error::the vault gave no VM_GATEWAY_AUTH_SEED to bake in as the backend token"; exit 1; }
-          echo "::add-mask::$EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN"
-          export EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN
-          # the app's BetterStack forwarder, as the EAS Update bakes it (deploy.yml): the browser runs log through the same Logger
+          # the urls and the token `wf test backends up` made for this run (the token is the backend's own bearer, never in a file the repo keeps)
+          while IFS=$'\t' read -r name value; do
+            case "$name" in *TOKEN) echo "::add-mask::$value" ;; esac
+            export "$name=$value"
+          done < <(jq -er '.backends[].env | to_entries[] | select(.key | startswith("EXPO_PUBLIC_")) | [.key, .value] | @tsv' "$RUNNER_TEMP/backends.json")
+          [ -n "${EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL:-}" ] && [ -n "${EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN:-}" ] || { echo "::error::the started backends gave no leetcode url and token to bake in"; exit 1; }
+          [ -n "${EXPO_PUBLIC_AGENT_BASE_URL:-}" ] || { echo "::error::the started backends gave no rca-service url to bake in"; exit 1; }
+          export EXPO_PUBLIC_VM_OPS_API_BASE_URL=http://127.0.0.1:1
+          # the app's BetterStack forwarder, as the EAS Update bakes it: the browser runs log through the same Logger
           # path; half a pair bakes in neither
           [ -n "${EXPO_PUBLIC_BETTERSTACK_TOKEN:-}" ] || EXPO_PUBLIC_BETTERSTACK_TOKEN=$(wf secret get EXPO_PUBLIC_BETTERSTACK_TOKEN --backend bitwarden 2>/dev/null) || EXPO_PUBLIC_BETTERSTACK_TOKEN=""
           [ -n "${EXPO_PUBLIC_BETTERSTACK_HOST:-}" ] || EXPO_PUBLIC_BETTERSTACK_HOST=$(wf secret get BETTERSTACK_INGEST_HOST --backend bitwarden 2>/dev/null) || EXPO_PUBLIC_BETTERSTACK_HOST=""
@@ -222,13 +272,31 @@ jobs:
             echo "### Web export"
             jq -r '"\(if .reused then "Kept" else "Built" end) the export of inputs `\(.inputs)` (commit `\(.sha[:9])`), build \(.buildS) s, flags `\(.flags)`; baked: \(.baked | keys | join(", "))"' "$RUNNER_TEMP/export.json"
             jq -r '"Memory of the build: largest process \(.memory.peakRssMb // "-") MB, VM MemAvailable low \(.memory.vmMemAvailableMinMb // "-") MB"' "$RUNNER_TEMP/export.json"
-            echo "Metro transform cache on this runner: $(du -sm frontend/mla-tamagui/node_modules/.cache/metro 2>/dev/null | cut -f1) MB"
+            echo "Metro transform cache on this runner: $(du -sm frontend/mla-tamagui/node_modules/.cache/app-build/metro 2>/dev/null | cut -f1) MB"
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Save the app build state
+      - uses: ./.github/actions/metro-cache
+        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true' && success()
+        with:
+          mode: save
+          scope: export
+          suffix: web
+          save: ${{ inputs.shard == 1 }}
+      - name: Chromium for the browser harness
         if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
-        continue-on-error: true
-        timeout-minutes: 5
-        run: wf cache save metro
+        timeout-minutes: 10
+        run: |
+          until [ -f "$RUNNER_TEMP/chromium.rc" ]; do sleep 2; done
+          cat "$RUNNER_TEMP/chromium.log"
+          [ "$(cat "$RUNNER_TEMP/chromium.rc")" = 0 ] || { echo "::error::the Chromium install failed"; exit 1; }
+          # the device-frame page every browser run opens; a fresh runner has none
+          pnpm --filter @tooling/browser-harness run build
+          # a daemon left by an earlier job runs that job's wf; this job's runs start one from this commit's
+          wf browser stop || echo "no browser daemon was running"
+      - uses: ./.github/actions/playwright-cache
+        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true' && success()
+        with:
+          mode: save
+          save: ${{ inputs.shard == 1 }}
       - name: Bring the device up
         # The device holds about 1.3 GB under test; it runs only for this job, and only when an Android test runs
         # (docs/gaps/vm-memory-saturation.md).
@@ -246,6 +314,40 @@ jobs:
             jq -e '.boot.completed == true and .boot.activityService == true and .restartProven == true and .disabledTotal >= 40' "$RUNNER_TEMP/device-features.json"
           fi
       # runs the misses and replays the cached passes, whose earlier runs (bundles included) go in the summary
+      # `wait`: this job started beside the run's eas-update-e2e job (its 13 minutes overlap this job's setup and the device's boot) and the first update unit is the
+      # first to read its pointer, so the job waits for it here, where it is needed, and takes how it ended as WF_EAS_UPDATE_RESULT
+      - name: Wait for this run's EAS Update
+        id: eas_wait
+        if: ${{ inputs.eas_update == 'wait' && steps.pick.outputs.any == 'true' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          result=""
+          for _ in $(seq 1 150); do
+            # a refused call (rate limit, network) prints its error body on stdout: only a conclusion GitHub names ends the wait, anything else polls again
+            if answer=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '[.jobs[] | select(.name | endswith("eas-update-e2e"))][0].conclusion // empty' 2>/dev/null); then
+              case "$answer" in success|failure|cancelled|skipped|timed_out|neutral|action_required|stale) result=$answer; break;; esac
+            else
+              echo "the Actions API refused the poll; asking again"
+            fi
+            sleep 10
+          done
+          [ -n "$result" ] || result=timed_out
+          echo "the EAS Update of this run ended: $result"
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+          echo "WF_EAS_UPDATE_RESULT=$result" >> "$GITHUB_ENV"
+      - name: Download the EAS pointers of this run (after the wait)
+        id: eas_pointer_late
+        if: ${{ steps.eas_wait.outputs.result == 'success' }}
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: eas-pointer
+          path: ${{ runner.temp }}/eas-pointer
+      - name: Point the tests at the downloaded EAS pointers (after the wait)
+        if: ${{ steps.eas_pointer_late.outcome == 'success' }}
+        run: echo "WF_EAS_POINTER_DIR=$RUNNER_TEMP/eas-pointer" >> "$GITHUB_ENV"
       - name: Run the e2e tests
         if: steps.pick.outputs.any == 'true' || steps.pick.outputs.replay > 0
         # bash with pipefail: the step fails when wf test run does, not when tee does
@@ -255,6 +357,31 @@ jobs:
         run: |
           # shellcheck disable=SC2086
           wf test run $SELECT --sha "$SHA" --out "$RUNNER_TEMP/e2e-runs" -- $FLAGS | tee "$RUNNER_TEMP/e2e-tests.jsonl"
+      - uses: ./.github/actions/nx-cache
+        timeout-minutes: 5
+        continue-on-error: true
+        # a run with test flags (--update-goldens skips the golden compare) passes under the hash of an unflagged one, so it is never stored
+        if: ${{ !cancelled() && !inputs.flags && (steps.pick.outputs.any == 'true' || steps.pick.outputs.replay > 0) }}
+        with:
+          mode: save
+          stage: ${{ inputs.platform }}-e2e-tests-${{ inputs.shard || 1 }}of${{ inputs.shards || 1 }}
+      - name: Upload the run bundles
+        if: ${{ !cancelled() && (steps.pick.outputs.any == 'true' || steps.pick.outputs.replay > 0) }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-runs-${{ inputs.platform }}-e2e-${{ inputs.shard }}
+          path: ${{ runner.temp }}/test-runs
+          retention-days: 10
+          if-no-files-found: ignore
+      - name: Stop the backends
+        if: always() && steps.pick.outputs.any == 'true'
+        run: wf test backends down
+      - uses: ./.github/actions/sccache-cache
+        if: ${{ !cancelled() && steps.pick.outputs.any == 'true' }}
+        with:
+          mode: save
+          stage: ${{ inputs.platform }}-e2e-tests
+          shard: ${{ inputs.shard }}
       - name: Take the device down
         if: always() && inputs.platform == 'android' && steps.pick.outputs.any == 'true'
         run: wf android stop-device --local
@@ -270,6 +397,13 @@ jobs:
           {
             echo "### $PLATFORM e2e tests for ${SHA:0:9}"
             if [ -s "$RUNNER_TEMP/e2e-runs/summary.json" ]; then
-              jq -r '(.units // [])[] | "- \([.test] + (.args // []) | join(" ")): \(.verdict)\(if .cached then " (replayed)" else "" end) in \(.durationS // 0) s\(if .bundle then " · [bundle](\(.bundle))" else "" end)\(if (.note // "") != "" then " · \(.note)" else "" end)\(if .next then " · next: \(.next)" else "" end)"' "$RUNNER_TEMP/e2e-runs/summary.json"
+              jq -r '(.units // [])[] | "- \([.test] + (.args // []) | join(" ")): \(.verdict)\(if .cached then " (replayed)" else "" end) in \(.durationS // 0) s\(if .bundle then " · bundle `\(.bundle)`" else "" end)\(if (.note // "") != "" then " · \(.note)" else "" end)\(if .next then " · next: \(.next)" else "" end)"' "$RUNNER_TEMP/e2e-runs/summary.json"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+      # the job's runner samples and the CI database rows its wf commands kept (the Nx tasks and unit spans of each e2e test, which the shard weights and the shard
+      # report read); without this the report job never saw a browser or Android test, and no row of either stage reached CI_UNITS or NX_TASKS
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() }}
+        with:
+          mode: upload
+          job: ${{ inputs.platform }}-e2e-tests-${{ inputs.shard }}

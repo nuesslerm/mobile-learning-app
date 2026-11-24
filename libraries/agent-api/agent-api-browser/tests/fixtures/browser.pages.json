@@ -1,0 +1,26 @@
+{
+  "method": "browser.pages",
+  "exchanges": [
+    {
+      "name": "lists no page for an executor that opened none, with its limits",
+      "request": {
+        "id": 1,
+        "method": "browser.pages",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "pages": [],
+          "max_pages": 3,
+          "idle_limit_ms": 300000
+        }
+      },
+      "actions": [
+        "browser_list"
+      ]
+    }
+  ]
+}

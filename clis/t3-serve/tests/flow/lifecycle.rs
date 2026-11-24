@@ -72,9 +72,8 @@ fn every_forwarded_command_asks_the_agent_api_for_its_method_and_an_accepted_one
         (cmd("thread.user-input.dismiss", json!({"requestId": "i1"})), Op::InputDismiss { thread: t(), request: "i1".into() }),
         (cmd("checkpoint.rollback", json!({"checkpointId": "r1", "scopeId": "s", "restoreFiles": false})), Op::ThreadRollback { thread: t(), turn: "r1".into(), restore_files: false }),
         (cmd("provider-session.detach", json!({"providerSessionId": "s1"})), Op::ThreadDetach { thread: t(), session: "s1".into() }),
-        (cmd("subagent.stop", json!({"runId": "r1", "subagentId": "n1"})), Op::WorkflowStop { thread: t(), turn: "r1".into(), workflow: Some("n1".into()) }),
-        (json!({"type": "thread.fork", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {}}), Op::ThreadFork { thread: t(), fork: "f1".into(), turn: None, title: None }),
-        (json!({"type": "thread.merge_back", "commandId": "c-merge", "sourceThreadId": "f1", "targetThreadId": "t1", "sourcePoint": {}}), Op::ThreadMergeBack { thread: "f1".into(), into: t(), turn: None }),
+        (json!({"type": "thread.fork", "createdBy": "user", "creationSource": "mobile", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {"type": "latest_stable"}}), Op::ThreadFork { thread: t(), fork: "f1".into(), turn: None, title: None }),
+        (json!({"type": "thread.merge_back", "createdBy": "user", "creationSource": "mobile", "commandId": "c-merge", "sourceThreadId": "f1", "targetThreadId": "t1", "sourcePoint": {"type": "latest_stable"}}), Op::ThreadMergeBack { thread: "f1".into(), into: t(), turn: None }),
         (cmd("thread.delete", json!({"onlyIfUnused": true})), Op::ThreadDelete { thread: t(), only_if_unused: true }),
     ];
     for (command, expected) in table {
@@ -86,11 +85,10 @@ fn every_forwarded_command_asks_the_agent_api_for_its_method_and_an_accepted_one
         let asked: Vec<Op> = ops(&h)[before..].to_vec();
         assert_eq!(asked.last(), Some(&expected), "{kind}");
     }
-    // And the rows carry what was accepted: the fork is a thread of the family, the archive was undone and the delete removed the thread
+    // And the rows carry what was accepted: the fork is a thread of the family, the archive was undone and the delete marked the thread deleted, as the real server's projection of a deleted thread does
     let fork = row(&mut rpc, "f1");
     assert_eq!((fork["lineage"]["parentThreadId"].as_str(), fork["lineage"]["relationshipToParent"].as_str()), (Some("t1"), Some("fork")));
-    let gone = rpc.call("orchestration.getThreadProjection", json!({"threadId": "t1"}));
-    assert_eq!(failure(&gone)["_tag"], "NotFoundError");
+    assert!(row(&mut rpc, "t1")["deletedAt"].is_string());
 }
 
 #[test]
@@ -109,6 +107,25 @@ fn a_settle_that_was_accepted_marks_the_row_and_one_the_agent_api_refused_is_its
     // Then T3 answers a dispatch error with that message, and no event was recorded
     assert_eq!(failure(&refused)["message"], message.as_str());
     assert_eq!((h.service.engine().read(|s| s.last_sequence), row(&mut rpc, "t1")["archivedAt"].is_null()), (sequence, true));
+}
+
+#[test]
+fn a_snoozed_thread_projection_carries_limit_recovery_null_and_a_fork_with_no_source_point_is_the_decoders_defect() {
+    // Given a thread, and an agent API that accepts everything
+    let (h, mut rpc) = started();
+    // When the thread is snoozed, and a fork and a merge back name a source point that is no member of the union
+    success(&dispatch(&mut rpc, cmd("thread.snooze", json!({"snoozedUntil": "2030-01-01T00:00:00.000Z"}))));
+    let before = ops(&h).len();
+    let mut point = |kind: &str, source: &str, target: &str| dispatch(&mut rpc, json!({"type": kind, "commandId": format!("c-{kind}"), "createdBy": "user", "creationSource": "web", "sourceThreadId": source, "targetThreadId": target, "sourcePoint": {}}));
+    let (fork, merge) = (point("thread.fork", "t1", "t2"), point("thread.merge_back", "t2", "t1"));
+    // Then the projection's thread row has the key the snooze sets, and both commands are refused as defects without asking the agent API
+    let thread = row(&mut rpc, "t1");
+    assert_eq!((thread["limitRecovery"].clone(), thread["snoozedUntil"].is_null()), (Value::Null, false));
+    assert!(thread.as_object().unwrap().contains_key("limitRecovery"));
+    for exit in [&fork, &merge] {
+        assert!(exit["cause"][0]["defect"].as_str().unwrap().ends_with("at [\"sourcePoint\"]"), "{exit}");
+    }
+    assert_eq!(ops(&h).len(), before);
 }
 
 #[test]
@@ -151,7 +168,6 @@ fn the_device_state_commands_are_kept_in_the_agent_apis_state_by_what_changed() 
         (cmd("thread.runtime-mode.set", json!({"runtimeMode": "approval-required"})), "thread.settings:t1", "runtimeMode", json!("approval-required")),
         (cmd("thread.interaction-mode.set", json!({"interactionMode": "plan"})), "thread.settings:t1", "interactionMode", json!("plan")),
         (cmd("thread.model-selection.set", json!({"modelSelection": {"instanceId": "opencode", "model": "m2"}})), "thread.settings:t1", "modelSelection", json!({"instanceId": "opencode", "model": "m2"})),
-        (cmd("thread.mark-unread", json!({})), "thread.visits:t1", "lastVisitedAt", Value::Null),
     ];
     for (command, key, field, value) in cases {
         let kind = command["type"].as_str().unwrap().to_string();
@@ -168,10 +184,53 @@ fn the_device_state_commands_are_kept_in_the_agent_apis_state_by_what_changed() 
 }
 
 #[test]
+fn a_thread_is_marked_unread_only_once_a_run_of_it_completed_and_the_visit_is_then_forgotten_in_the_agent_apis_state() {
+    // Given a thread nobody ran
+    let (_h, mut rpc) = started();
+    // When it is marked unread
+    let refused = dispatch(&mut rpc, cmd("thread.mark-unread", json!({})));
+    // Then T3's refusal names it and the thread is unchanged
+    assert!(failure(&refused)["message"].as_str().unwrap().contains("has no completed run to mark unread"), "{refused}");
+    // And given a thread whose run completed
+    let (h, mut rpc, _) = with_turn();
+    // When it is marked unread
+    success(&dispatch(&mut rpc, cmd("thread.mark-unread", json!({}))));
+    // Then the visit the agent API keeps is empty
+    let kept = h.agent.ops.lock().unwrap().iter().rev().find_map(|o| match o {
+        Op::StateSet { key, value, .. } if key == "thread.visits:t1" => Some(value.clone()),
+        _ => None,
+    });
+    assert_eq!(kept.map(|v| v["lastVisitedAt"].clone()), Some(Value::Null));
+}
+
+#[test]
+fn titles_and_link_metadata_answer_for_the_threads_t3_holds_and_leave_the_rest_out() {
+    // Given threads t1 and a fork f1
+    let (_h, mut rpc) = started();
+    success(&dispatch(&mut rpc, json!({"type": "thread.fork", "createdBy": "user", "creationSource": "mobile", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {"type": "latest_stable"}})));
+    // When the client asks for the titles and the link metadata of t1, f1 and an unknown thread
+    let titles = rpc.call("orchestration.getThreadTitles", json!({"threadIds": ["t1", "f1", "nobody"]}));
+    let meta = rpc.call("orchestration.getThreadLinkMetadata", json!({"threadIds": ["t1", "nobody"]}));
+    // Then the unknown thread is absent, each known one carries its title (and project), and ids that are not a list are a decode defect
+    assert_eq!(success(&titles).as_object().unwrap().len(), 2);
+    assert_eq!(success(&titles)["t1"], "Thread t1");
+    assert_eq!(success(&meta), &json!({"t1": {"title": "Thread t1", "projectId": "p1"}}));
+    assert!(rpc.call("orchestration.getThreadTitles", json!({"threadIds": "t1"}))["cause"][0]["defect"].is_string());
+    // And a thread t3 holds has no native child work, an unknown thread is the query's declared error
+    assert_eq!(success(&rpc.call("orchestration.getNativeChildWork", json!({"threadId": "t1"}))), &json!({"children": []}));
+    let missing = rpc.call("orchestration.getNativeChildWork", json!({"threadId": "nobody"}));
+    assert_eq!(missing["cause"][0]["error"]["_tag"], "OrchestrationV2GetNativeChildWorkError", "{missing}");
+    assert_eq!(missing["cause"][0]["error"]["cause"]["cause"]["message"], "No orchestration projection exists for thread nobody.", "{missing}");
+    // And the prompt suggestion stream holds the single frame of no suggestion
+    let stream = rpc.send("orchestration.subscribePromptSuggestion", json!({"threadId": "t1"}));
+    assert_eq!(rpc.chunk(&stream), [Value::Null]);
+}
+
+#[test]
 fn search_family_and_the_shelf_answer_t3s_shapes_from_what_the_agent_api_found() {
     // Given threads t1 and a fork f1, and an agent API that finds t1 by title and by a message, knows the family and holds both on the shelf
     let (h, mut rpc) = started();
-    success(&dispatch(&mut rpc, json!({"type": "thread.fork", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {}})));
+    success(&dispatch(&mut rpc, json!({"type": "thread.fork", "createdBy": "user", "creationSource": "mobile", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {"type": "latest_stable"}})));
     let hits = SearchResult {
         matches: vec![
             SearchHit { thread: "t1".into(), title: "Thread t1".into(), source: HitSource::Title, snippet: None, at_ms: None },
@@ -255,7 +314,7 @@ fn with_turn() -> (Harness, Rpc, Value) {
         AgentEventKind::ToolFinished { id: "k".into(), ok: true },
         AgentEventKind::Text("done".into()),
     ];
-    success(&dispatch(&mut rpc, json!({"type": "message.dispatch", "commandId": "c-m", "threadId": "t1", "message": {"messageId": "m1", "text": "go"}})));
+    success(&dispatch(&mut rpc, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m", "threadId": "t1", "messageId": "m1", "text": "go"})));
     let projection = settled(&mut rpc, "t1");
     (h, rpc, projection)
 }
@@ -287,7 +346,7 @@ fn a_force_stop_and_a_workflow_stop_name_the_turn_of_the_run_and_a_workflow_that
     let quiet = rpc.call("orchestration.stopWorkflow", json!({"threadId": "t1", "subagentId": "n1"}));
     assert_eq!(failure(&quiet)["reason"], "not-running");
     assert!(ops(&h).is_empty());
-    success(&dispatch(&mut rpc, json!({"type": "message.dispatch", "commandId": "c-m", "threadId": "t1", "message": {"messageId": "m1", "text": "go"}})));
+    success(&dispatch(&mut rpc, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m", "threadId": "t1", "messageId": "m1", "text": "go"})));
     let run = h.service.engine().active_run("t1").unwrap();
     // The turn the run is gets recorded once the agent has started it, so wait for that before naming it
     let recorded = std::time::Instant::now() + std::time::Duration::from_secs(5);
@@ -304,18 +363,41 @@ fn a_force_stop_and_a_workflow_stop_name_the_turn_of_the_run_and_a_workflow_that
 }
 
 #[test]
-fn a_workflow_script_is_never_read_and_a_secret_answer_finds_no_request_and_is_sent_nowhere() {
-    // Given a thread
+fn a_workflow_script_is_read_below_the_executors_claude_projects_and_every_refusal_names_its_reason() {
+    // Given a thread, and an executor that reads one script, finds another outside its projects root, and has no root for a third
     let (h, mut rpc) = started();
-    // When scripts of each kind of path are asked for, and secrets are answered, one malformed
-    let absolute = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/home/u/.claude/projects/x/wf.js"}));
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::WorkflowScript { path, .. } if path.ends_with("/wf.js") => Some(Ok(json!({"data": "ZXhwb3J0IGNvbnN0IGEgPSAx", "offset": 0, "bytes": 18, "total_bytes": 18, "eof": true}))),
+        Op::WorkflowScript { path, .. } if path.ends_with("/long.js") => Some(Ok(json!({"data": "eA==", "offset": 0, "bytes": 1, "total_bytes": 9, "eof": false}))),
+        Op::WorkflowScript { path, .. } if path.starts_with("/etc") => Some(Err(AgentError::Refused { code: "PATH_OUTSIDE_ROOT".into(), message: format!("{path} is outside the root") })),
+        Op::WorkflowScript { path, .. } if path.ends_with("/none.js") => Some(Err(AgentError::Refused { code: "NOT_FOUND".into(), message: "the Claude projects root is unavailable".into() })),
+        Op::WorkflowScript { .. } => Some(Err(AgentError::Refused { code: "NOT_FOUND".into(), message: "missing does not exist".into() })),
+        _ => None,
+    }));
+    // When scripts of each kind of path are asked for
+    let read = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/home/u/.claude/projects/x/wf.js"}));
+    let cut = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/home/u/.claude/projects/x/long.js"}));
+    let outside = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/etc/passwd.js"}));
+    let no_root = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/home/u/.claude/projects/x/none.js"}));
+    let missing = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/home/u/.claude/projects/x/gone.js"}));
     let relative = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "wf.js"}));
     let wrong = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/etc/passwd"}));
+    // Then the script is its text, a cut one says so, each refusal has its reason, and a bad path never reached the executor
+    assert_eq!(success(&read), &json!({"scriptPath": "/home/u/.claude/projects/x/wf.js", "contents": "export const a = 1", "truncated": false}));
+    assert_eq!(success(&cut)["truncated"], json!(true));
+    assert_eq!([&outside, &no_root, &missing, &relative, &wrong].map(|e| failure(e)["reason"].as_str().unwrap().to_string()), ["outside-root", "root-unavailable", "not-found", "invalid-path", "invalid-path"]);
+    assert_eq!(ops(&h).len(), 5);
+}
+
+#[test]
+fn a_secret_answer_finds_no_request_and_is_sent_nowhere() {
+    // Given a thread
+    let (h, mut rpc) = started();
+    // When secrets are answered, one malformed
     let saved = rpc.call("secrets.answerRequest", json!({"threadId": "t1", "turnItemId": "i1", "answer": {"type": "save", "secret": "hunter2"}}));
     let declined = rpc.call("secrets.answerRequest", json!({"threadId": "t1", "turnItemId": "i1", "answer": {"type": "decline"}}));
     let malformed = rpc.call("secrets.answerRequest", json!({"threadId": "t1", "turnItemId": "i1", "answer": {"type": "save"}}));
-    // Then a .js path has no root, anything else is an invalid path, the secret has no request, a malformed answer is a defect, and nothing reached the agent API
-    assert_eq!([&absolute, &relative, &wrong].map(|e| failure(e)["reason"].as_str().unwrap().to_string()), ["root-unavailable", "invalid-path", "invalid-path"]);
+    // Then the secret has no request, a malformed answer is a defect, and nothing reached the agent API
     assert_eq!([&saved, &declined].map(|e| failure(e)["reason"].as_str().unwrap().to_string()), ["not_found", "not_found"]);
     assert!(malformed["cause"][0]["defect"].is_string());
     assert!(ops(&h).is_empty());
@@ -344,4 +426,38 @@ fn the_archived_shell_and_the_two_snapshots_a_phone_fetches_over_http_read_the_r
     assert_eq!(shell.body["snapshotSequence"], success(&archived)["snapshotSequence"]);
     assert_eq!((bounded.status, bounded.body["projection"]["thread"]["id"].as_str(), bounded.body["hasMoreHistory"].as_bool()), (200, Some("t2"), Some(false)));
     assert_eq!((missing.status, ungated.status), (404, 401));
+}
+
+#[test]
+fn a_rollback_that_arrives_before_the_run_is_linked_to_its_turn_waits_for_the_link_instead_of_naming_the_run() {
+    // Given a thread, and a run whose link to the agent's turn is written a moment after the phone names the run
+    let (h, mut rpc) = started();
+    let store = h.store.clone();
+    let writer = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(150));
+        store.set("agent-run:r7", "turn-7").unwrap();
+    });
+
+    // When the phone rolls the thread back to a checkpoint of that run
+    success(&dispatch(&mut rpc, cmd("checkpoint.rollback", json!({"checkpointId": "r7", "scopeId": "s"}))));
+    writer.join().unwrap();
+
+    // Then the agent API was asked to roll back the turn of the run, not the run id
+    assert_eq!(ops(&h).last(), Some(&Op::ThreadRollback { thread: "t1".into(), turn: "turn-7".into(), restore_files: true }));
+}
+
+#[test]
+fn a_subagent_stop_is_refused_as_the_real_server_does_and_the_agent_api_is_not_asked() {
+    // Given a thread with a turn that runs until it is stopped
+    let (h, mut rpc) = started();
+    h.agent.hold.store(true, std::sync::atomic::Ordering::SeqCst);
+    success(&dispatch(&mut rpc, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m", "threadId": "t1", "messageId": "m1", "text": "go"})));
+    let before = ops(&h).len();
+
+    // When the phone stops a subagent of the running run
+    let stop = dispatch(&mut rpc, cmd("subagent.stop", json!({"runId": "r1", "subagentId": "n1"})));
+
+    // Then the refusal is T3's and the agent API was asked nothing
+    assert_eq!(failure(&stop)["detail"], "The requested native subagent cannot be stopped on this run.");
+    assert_eq!(ops(&h).len(), before);
 }

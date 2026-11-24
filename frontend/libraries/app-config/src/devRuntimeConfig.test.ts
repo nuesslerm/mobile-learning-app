@@ -12,6 +12,7 @@ const { mockLaunchArgumentsValue } = vi.hoisted(() => ({
   mockLaunchArgumentsValue: vi.fn(),
 }));
 
+// oxlint-disable-next-line no-restricted-properties -- app-config reads the launch args and a JSON file at import; its unit deletes these mocks
 vi.mock('./nativeLaunchArgs', () => ({
   LaunchArguments: { value: mockLaunchArgumentsValue },
 }));
@@ -82,6 +83,7 @@ describe('devRuntimeConfig', () => {
     // Launch arg is absent → fall back to the bundled file, which carries a
     // route from ALLOWED_ROUTES. The schema must accept it as-is so the
     // boot lands on the requested screen (no devRuntimeConfigError).
+    // oxlint-disable-next-line no-restricted-properties -- app-config reads the launch args and a JSON file at import; its unit deletes these mocks
     vi.doMock('../dev-runtime-config.json', () => ({
       default: { initial_route: '/leetcode/two-sum', feature_flags: {} },
     }));
@@ -101,6 +103,7 @@ describe('devRuntimeConfig', () => {
     // path that is NOT in ALLOWED_ROUTES. The schema must reject it and
     // expose devRuntimeConfigError so the layout renders AppBootErrorBoundary
     // instead of silently booting on the Home tab.
+    // oxlint-disable-next-line no-restricted-properties -- app-config reads the launch args and a JSON file at import; its unit deletes these mocks
     vi.doMock('../dev-runtime-config.json', () => ({
       default: { initial_route: '/not-a-real-route', feature_flags: {} },
     }));
@@ -122,6 +125,7 @@ describe('devRuntimeConfig', () => {
     // carries a valid route plus a query string. Query strings are NOT
     // accepted on any route in the new list, so the schema must reject it
     // with devRuntimeConfigError set.
+    // oxlint-disable-next-line no-restricted-properties -- app-config reads the launch args and a JSON file at import; its unit deletes these mocks
     vi.doMock('../dev-runtime-config.json', () => ({
       default: { initial_route: '/leetcode/two-sum?foo=bar', feature_flags: {} },
     }));
@@ -166,6 +170,7 @@ describe('devRuntimeConfig', () => {
   it('falls back to safe defaults when the bundled file is malformed (AC4)', async () => {
     // Simulate a corrupted/malformed-shape dev-runtime-config.json. The module
     // must degrade to safe defaults at runtime instead of crashing init.
+    // oxlint-disable-next-line no-restricted-properties -- app-config reads the launch args and a JSON file at import; its unit deletes these mocks
     vi.doMock('../dev-runtime-config.json', () => ({
       default: { initial_route: 42, feature_flags: 'not-a-record' },
     }));
@@ -195,6 +200,7 @@ describe('devRuntimeConfig', () => {
     // `AppBootErrorBoundary` instead of booting on the (app) Home tab with
     // `initialRoute: null`. Asserting the error is exposed (not swallowed) is
     // what makes the boot page actually appear in practice.
+    // oxlint-disable-next-line no-restricted-properties -- app-config reads the launch args and a JSON file at import; its unit deletes these mocks
     vi.doMock('../dev-runtime-config.json', () => ({
       default: {
         initial_route: '/storybook?story=composites-headers-header--sticky',
@@ -222,6 +228,7 @@ describe('devRuntimeConfig', () => {
     // time, so the message and the program-exposed `allowedRoutes` field
     // always agree — there is no hardcoded route/path string anywhere in
     // the source.
+    // oxlint-disable-next-line no-restricted-properties -- app-config reads the launch args and a JSON file at import; its unit deletes these mocks
     vi.doMock('../dev-runtime-config.json', () => ({
       default: {
         initial_route: '/features/leetcode/ui/ProblemEditorScreenV2',

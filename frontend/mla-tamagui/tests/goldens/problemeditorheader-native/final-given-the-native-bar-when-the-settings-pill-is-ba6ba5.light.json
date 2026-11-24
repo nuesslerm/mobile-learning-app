@@ -1,0 +1,68 @@
+{
+  "suite": "problemeditorheader-native",
+  "step": "final-given-the-native-bar-when-the-settings-pill-is-ba6ba5",
+  "scheme": "light",
+  "snapshot": "problemeditorheader-native/final-given-the-native-bar-when-the-settings-pill-is-ba6ba5.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 412,
+    "height": 837,
+    "page_height": 837
+  },
+  "summary": {
+    "testids": [
+      "ProblemEditorScreen",
+      "NativeHeader",
+      "NativeHeaderLeft",
+      "NativeHeaderItem-Back to the problem list",
+      "NativeHeaderTitle",
+      "ScreenHeaderGlassTitle",
+      "ScreenHeaderGlassTitleText",
+      "ScreenHeaderGlassTitleSubtitle",
+      "NativeHeaderRight",
+      "NativeHeaderMenuHost-Editor settings",
+      "NativeHeaderItem-Editor settings",
+      "NativeHeaderSpacing",
+      "NativeHeaderItem-Problem description",
+      "NativeHeaderMenuHost-More actions",
+      "NativeHeaderItem-More actions",
+      "NativeHeaderMenu-More actions",
+      "NativeHeaderMenuItem-Version history",
+      "NativeHeaderMenuDescription-Version history",
+      "NativeHeaderMenuItem-Reset code",
+      "NativeHeaderMenuItem-Login",
+      "NativeHeaderMenuDescription-Login",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit"
+    ],
+    "text": "Back to the problem list\nTwo Sum\nArray & Hashing · Easy\nPython\nProblem description\nMore actions\nVersion historyNo versions yet\nReset code\nLoginLeetCode\nPython\nConsole\nSubmit"
+  },
+  "timings": {
+    "render_ms": 265
+  },
+  "name": "problemeditorheader-native/final-given-the-native-bar-when-the-settings-pill-is-ba6ba5.light",
+  "image": {
+    "width": 360,
+    "height": 731
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

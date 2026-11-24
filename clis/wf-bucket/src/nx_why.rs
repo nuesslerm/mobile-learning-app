@@ -1,5 +1,5 @@
-//! Why an Nx task missed the cache (issue #364, owner 8 Nov): every run leaves, per task, the input digests Nx hashed, in the
-//! verification-artifacts bucket (`verification/nx-inputs/<target>.json`, the last few runs of each task). A miss is then explained against the
+//! Why an Nx task missed the cache (issue #364, owner 8 Nov): every run leaves, per task, the input digests Nx hashed, in a
+//! local directory (`WF_NX_WHY_DIR`, `nx-inputs/<target>.json`, the last few runs of each task) that CI carries between runs with the Actions cache. A miss is then explained against the
 //! nearest earlier entry of the same task: a file, an env var (by name, never by value), a runtime tool, `expired` (an earlier run stored this
 //! very hash) or `never-stored` (no earlier run, or the run that computed this hash failed and stored nothing). Digests only: Nx's own
 //! per-input hashes, and the npm packages folded into one group per task (listed once per distinct group, in `groups`).
@@ -12,7 +12,7 @@ use std::process::{Command, Stdio};
 use std::time::SystemTime;
 
 const SCRIPT: &str = include_str!("nx_hashes.mjs");
-pub const PREFIX: &str = "verification/nx-inputs";
+pub const PREFIX: &str = "nx-inputs";
 /// Entries kept per task: enough to find the nearest earlier run without growing the shard without bound.
 const KEEP: usize = 6;
 const SHOWN: usize = 12;
@@ -71,14 +71,14 @@ pub fn run_tasks(home: &Path, since: SystemTime) -> Vec<RunTask> {
         .collect()
 }
 
-/// Whether a run explains and records its misses: always where `WF_NX_WHY=1`, never where it is `0`, else where the environment can
-/// reach the bucket (a CI job, or a shell holding the write link).
+/// Whether a run explains and records its misses: always where `WF_NX_WHY=1`, never where it is `0`, else where the environment
+/// is a CI job.
 pub fn enabled() -> bool {
     let var = |key: &str| std::env::var(key).ok().filter(|v| !v.is_empty());
     match var("WF_NX_WHY").as_deref() {
         Some("0") => false,
         Some(_) => true,
-        None => var("GITHUB_RUN_ID").is_some() || var("VERIFICATION_ARTIFACTS_PAR_URL").is_some(),
+        None => var("GITHUB_RUN_ID").is_some(),
     }
 }
 
@@ -180,16 +180,23 @@ fn shard_name(target: &str) -> String {
     target.chars().map(|c| if c.is_ascii_alphanumeric() || c == '.' || c == '-' { c } else { '_' }).collect()
 }
 
-fn shard_url(base: &str, target: &str) -> String {
-    format!("{base}/{PREFIX}/{}.json", shard_name(target))
+/// Where the shards live: `WF_NX_WHY_DIR`, else `~/.cache/wf-nx-why`.
+pub fn history_dir() -> std::path::PathBuf {
+    let var = |key: &str| std::env::var_os(key).filter(|v| !v.is_empty());
+    var("WF_NX_WHY_DIR").map(Into::into).unwrap_or_else(|| Path::new(&var("HOME").unwrap_or_default()).join(".cache/wf-nx-why"))
+}
+
+fn shard_path(target: &str) -> std::path::PathBuf {
+    history_dir().join(PREFIX).join(format!("{}.json", shard_name(target)))
 }
 
 /// The target's shard (`{tasks: {<task>: [entry]}, groups: {<digest>: {<package>: <digest>}}}`); a target never recorded has an empty one.
 fn read_shard(target: &str) -> Result<Value, String> {
-    let url = shard_url(&crate::artifacts::public_base(), target);
-    match crate::artifacts::read_public(&url)? {
-        None => Ok(json!({ "schema": 1, "tasks": {}, "groups": {} })),
-        Some(text) => serde_json::from_str::<Value>(&text).ok().filter(|v| v["tasks"].is_object()).ok_or_else(|| format!("{url} is not an input shard; it was left as it is")),
+    let path = shard_path(target);
+    match std::fs::read_to_string(&path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(json!({ "schema": 1, "tasks": {}, "groups": {} })),
+        Err(e) => Err(format!("cannot read {}: {e}", path.display())),
+        Ok(text) => serde_json::from_str::<Value>(&text).ok().filter(|v| v["tasks"].is_object()).ok_or_else(|| format!("{} is not an input shard; it was left as it is", path.display())),
     }
 }
 
@@ -378,13 +385,14 @@ fn store(shard: &mut Value, target: &str, mine: &[&Current]) -> Result<(), Strin
     if let Some(groups) = shard["groups"].as_object_mut() {
         groups.retain(|digest, _| used.contains(digest));
     }
-    let par = crate::artifacts::par_url()?;
-    crate::artifacts::put_par(&format!("{par}{PREFIX}/{}.json", shard_name(target)), shard.to_string().as_bytes(), "application/json")
+    let path = shard_path(target);
+    std::fs::create_dir_all(path.parent().unwrap_or(Path::new("."))).map_err(|e| format!("cannot create {}: {e}", path.display()))?;
+    std::fs::write(&path, shard.to_string()).map_err(|e| format!("cannot write {}: {e}", path.display()))
 }
 
-/// Explains every miss of `tasks` against the bucket's history and, with `record`, stores this run's entries (hits too: a hit proves
-/// the hash is in the cache). `{schema, ok, run, source, misses: [{task, hash, verdict, because, against, changed[]}], recorded}`; the
-/// verdicts are `input-changed`, `expired` and `never-stored`.
+/// Explains every miss of `tasks` against the local history and, with `record`, stores this run's entries (hits too: a hit proves
+/// the hash is in the cache). `{schema, ok, run, source, restore, misses: [{task, hash, verdict, because, reason, reasonDetail, facts, against, changed[]}], recorded}`;
+/// the verdicts are `input-changed`, `expired` and `never-stored`, the reasons those of `miss_reason::Reason`.
 pub fn report(root: &Path, tasks: &[RunTask], record: bool) -> Value {
     let id = identity(root);
     let currents = match currents(root, tasks, &id) {
@@ -393,6 +401,7 @@ pub fn report(root: &Path, tasks: &[RunTask], record: bool) -> Value {
     };
     let mut misses = Vec::new();
     let mut recorded = json!(false);
+    let restored = crate::nx_store::restored();
     let mut targets: Vec<&str> = currents.iter().map(|c| target_of(&c.task.task)).collect();
     targets.sort_unstable();
     targets.dedup();
@@ -408,6 +417,7 @@ pub fn report(root: &Path, tasks: &[RunTask], record: bool) -> Value {
         };
         for c in mine.iter().filter(|c| c.task.ran) {
             let mut why = explain(root, &c.task.task, &c.now, &earlier_of(&shard, &c.task.task));
+            attach_reason(&mut why, &c.task, restored.as_ref());
             if let Some(computed) = &c.computed {
                 why["hasherDisagrees"] = json!(format!("the hasher computed {computed} for this task, Nx ran it under {}: the input table may not be what Nx hashed", c.now.hash));
             }
@@ -420,7 +430,30 @@ pub fn report(root: &Path, tasks: &[RunTask], record: bool) -> Value {
             }
         }
     }
-    json!({ "schema": 1, "ok": problems.is_empty(), "run": id.0, "source": id.2, "misses": misses, "recorded": recorded, "problems": problems })
+    let restore = restored.as_ref().map(|r| json!({ "outcome": r.outcome, "matchedKey": r.matched_key, "reason": r.reason, "entries": r.entries.len(), "dbRows": r.db_rows, "walBytes": r.wal_bytes, "dbNote": r.db_note }));
+    json!({ "schema": 2, "ok": problems.is_empty(), "run": id.0, "source": id.2, "restore": restore, "misses": misses, "recorded": recorded, "problems": problems })
+}
+
+/// Gives a miss its `reason` (`wf_bucket::miss_reason`: restore-failed, restored-but-reran, never-stored ...), the sentence that names the evidence and the
+/// `facts` it rests on. A task whose hash an earlier run of this history stored (`expired`) is read as executed by this lineage; the earlier save is not known here.
+fn attach_reason(why: &mut Value, task: &RunTask, restored: Option<&crate::nx_store::Snapshot>) {
+    use crate::miss_reason::{classify, Earlier, Facts, Relation, Restore, Save};
+    let earlier = if why["verdict"] == "expired" {
+        vec![Earlier { run: why["against"]["run"].as_str().unwrap_or_default().to_string(), relation: Relation::SameLineage, save: Save::Unrecorded }]
+    } else {
+        Vec::new()
+    };
+    let facts = Facts {
+        task: task.task.clone(),
+        restore: restored.map(|r| Restore { outcome: r.outcome.clone(), matched_key: r.matched_key.clone(), reason: r.reason.clone() }),
+        dir_has_hash: restored.and_then(|r| r.has_dir(&task.hash)),
+        db_has_hash: restored.and_then(|r| r.has_db(&task.hash)),
+        earlier,
+    };
+    let (reason, detail) = classify(&facts);
+    why["reason"] = json!(reason.as_str());
+    why["reasonDetail"] = json!(detail);
+    why["facts"] = json!({ "dirHasHash": facts.dir_has_hash, "dbHasHash": facts.db_has_hash, "restore": facts.restore.as_ref().map(|r| json!({ "outcome": r.outcome, "matchedKey": r.matched_key })) });
 }
 
 /// `report` for tasks that have not run: the hash each would run under, explained as a miss (`wf test run --probe`).

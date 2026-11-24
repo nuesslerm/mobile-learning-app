@@ -1,0 +1,71 @@
+{
+  "suite": "problemeditorheader-native",
+  "step": "final-given-a-run-in-flight-when-it-finishes-then-th-462def",
+  "scheme": "dark",
+  "snapshot": "problemeditorheader-native/final-given-a-run-in-flight-when-it-finishes-then-th-462def.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 412,
+    "height": 837,
+    "page_height": 837
+  },
+  "summary": {
+    "testids": [
+      "ProblemEditorScreen",
+      "NativeHeader",
+      "NativeHeaderLeft",
+      "NativeHeaderItem-Back to the problem list",
+      "NativeHeaderTitle",
+      "ScreenHeaderGlassTitle",
+      "ScreenHeaderGlassTitleText",
+      "ScreenHeaderGlassTitleSubtitle",
+      "NativeHeaderRight",
+      "NativeHeaderMenuHost-Editor settings",
+      "NativeHeaderItem-Editor settings",
+      "NativeHeaderSpacing",
+      "NativeHeaderItem-Problem description",
+      "NativeHeaderMenuHost-More actions",
+      "NativeHeaderItem-More actions",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleSheetHandle",
+      "ConsoleSheet",
+      "ConsoleTabs",
+      "SegmentedThumb",
+      "ConsoleTabs-testcase",
+      "ConsoleTabs-result",
+      "ConsoleBody",
+      "ConsolePanel-result",
+      "ConsoleResultVerdict",
+      "ConsoleResultCounts",
+      "ConsoleResultRuntime",
+      "ConsoleFooter",
+      "ConsoleFooterReset",
+      "ConsoleFooterRun",
+      "ConsoleFooterSubmit"
+    ],
+    "text": "Back to the problem list\nTwo Sum\nArray & Hashing · Easy\nPython\nProblem description\nMore actions\nPython\nTestcase\nRun Result\nAccepted\n5 / 5 testcases passed\nRuntime 0 ms\nReset\nSubmit"
+  },
+  "timings": {
+    "render_ms": 280
+  },
+  "name": "problemeditorheader-native/final-given-a-run-in-flight-when-it-finishes-then-th-462def.dark",
+  "image": {
+    "width": 360,
+    "height": 731
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

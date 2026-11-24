@@ -48,6 +48,7 @@ function crates(root, manifest) {
     ];
     const flow = m.package.metadata?.flow ?? {};
     const integration = m.package.metadata?.integration ?? {};
+    const contract = m.package.metadata?.contract ?? {};
     return {
       name: m.package.name,
       dir: relative(root, resolve(root, dir)),
@@ -63,13 +64,31 @@ function crates(root, manifest) {
         shared: flow.shared ?? [],
         groups: flow.groups ?? {},
       },
+      // `[package.metadata.contract] groups` (`{<group> = [files from the crate dir]}`, a module of `tests/nx_contract.rs` each)
+      contract: { groups: contract.groups ?? {} },
       // what only the integration tests read: a chain that runs other crates' binaries and the files that name its rows
       integration: {
         inputs: integration.inputs ?? [],
         uses: integration.uses ?? [],
+        // when set, the crate files the integration task is keyed by (from the crate dir) instead of every file of the crate
+        sources: integration.sources ?? [],
+        groups: integration.groups ?? {},
       },
+      // `[package.metadata.integration.replay]`: `sets` (a candidate's recorded sets, replayed by feature), `rows` (a mapping crate that is one
+      // feature) and one table of `rows` and `files` (from the crate dir) per named feature of a larger crate
+      replay: replayOf(integration.replay ?? {}),
     };
   });
+}
+
+function replayOf(replay) {
+  const features = [
+    ...(replay.rows ? [{ name: null, rows: replay.rows, files: [] }] : []),
+    ...Object.entries(replay)
+      .filter(([, v]) => v && typeof v === 'object' && !Array.isArray(v))
+      .map(([name, v]) => ({ name, rows: v.rows ?? [], files: v.files ?? [] })),
+  ];
+  return { sets: replay.sets ?? [], features };
 }
 
 // the pnpm package a directory sits in, if any
@@ -192,6 +211,21 @@ const hasUnitTests = (root, dir) => {
   );
 };
 
+// a runnable doctest: a fenced block in a doc comment that is not `text`, `json`, `ignore` or another language
+const hasDocTests = (root, dir) => {
+  const src = join(root, dir, 'src');
+  return (
+    existsSync(join(src, 'lib.rs')) &&
+    readdirSync(src, { recursive: true }).some(
+      (f) =>
+        f.endsWith('.rs') &&
+        /^\s*\/\/[/!]\s*```(rust|no_run|should_panic|compile_fail|edition\d+)?\s*$/m.test(
+          readFileSync(join(src, f), 'utf8')
+        )
+    )
+  );
+};
+
 const packageJson = (root, dir) =>
   JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'));
 
@@ -219,13 +253,20 @@ const namesCrate = (entry) => !/[/.*]/.test(entry);
 
 const unique = (inputs) => [...new Map(inputs.map((i) => [JSON.stringify(i), i])).values()];
 
-const rustTask = (inputs, command) => ({
-  executor: 'nx:run-commands',
-  cache: true,
-  inputs,
-  outputs: [],
-  options: { cwd: '{workspaceRoot}', command },
-});
+// Where a task that runs integration tests leaves its run records (`<suite>/report.json`, `<suite>/trace.json`): a folder of its own in the
+// workspace, so its Nx outputs carry them and a cache hit restores what the run wrote (a shard that replays everything still publishes them)
+const RECORDS = '.agents/tmp/test-output';
+const rustTask = (inputs, command, records) => {
+  // `{workspaceRoot}` is valid only at the start of an option, and the tests run in their crate's directory: the command takes the absolute path from its cwd
+  const dir = records ? `${RECORDS}/${records}` : null;
+  return {
+    executor: 'nx:run-commands',
+    cache: true,
+    inputs,
+    outputs: dir ? [`{workspaceRoot}/${dir}`] : [],
+    options: { cwd: '{workspaceRoot}', command: dir ? `D="$PWD/${dir}" && rm -rf "$D" && WF_TEST_OUTPUT_DIR="$D" ${command}` : command },
+  };
+};
 
 // package.json files are matched too, though only read: Nx re-runs a plugin when a file it matched changed, and a script's
 // `cargo -p <crate>` is a dependency
@@ -294,7 +335,11 @@ exports.createNodes = [
     const extra = (c, declared, tests) => {
       const usesOf = (key, list) => list.map(named(`${c.name}: [package.metadata.${key}] uses`));
       const used = tests
-        ? [...usesOf('flow', c.flow.uses), ...(tests === 'integration' ? usesOf('integration', c.integration.uses) : [])]
+        ? [
+            ...usesOf('flow', c.flow.uses),
+            ...(tests === 'integration' ? usesOf('integration', c.integration.uses) : []),
+            ...(tests === 'e2e' ? usesOf('e2e', c.e2e?.uses ?? []) : []),
+          ]
         : [];
       const slices = new Map([[c.manifest, [c.name]]]);
       for (const u of used) slices.set(u.manifest, [...(slices.get(u.manifest) ?? []), u.name]);
@@ -340,36 +385,125 @@ exports.createNodes = [
       const tier = platformTier(root, c) ? ['platform'] : [];
       const checks = [...OWN, ...tier, ...extra(c, [], false)];
       const unit = hasUnitTests(root, c.dir)
-        ? { 'cargo-unit': rustTask(checks, `cargo test --locked -p ${c.name} ${existsSync(join(root, c.dir, 'src', 'lib.rs')) ? '--lib' : '--bins'} --manifest-path ${c.manifest}`) }
+        ? { 'cargo-unit': rustTask(checks, `cargo test --locked -p ${c.name} ${existsSync(join(root, c.dir, 'src', 'lib.rs')) ? '--lib' : '--bins'} --manifest-path ${c.manifest}${hasDocTests(root, c.dir) ? ` && cargo test --locked -p ${c.name} --doc --manifest-path ${c.manifest}` : ''}`) }
         : {};
       const clippy = {
-        'cargo-clippy': rustTask(checks, `cargo clippy --locked -p ${c.name} --all-targets --manifest-path ${c.manifest} -- -D warnings`),
+        'cargo-clippy': rustTask([...checks, 'archRules'], `cargo clippy --locked -p ${c.name} --all-targets --manifest-path ${c.manifest} -- -D warnings`),
       };
       const own = (f) => join(c.dir, f);
-      const testTarget = (file, command, inputs) =>
-        !pkg && existsSync(join(root, c.dir, 'tests', file)) ? rustTask(inputs, command) : null;
+      const testTarget = (file, command, inputs, records) =>
+        !pkg && existsSync(join(root, c.dir, 'tests', file)) ? rustTask(inputs, command, records) : null;
+      // a group's own module and files leave the rest's inputs (and another group's), so an edit to `tests/flow/<group>.rs` reruns that group alone
+      const groupOwn = (g) => [`tests/flow/${g}.rs`, `tests/flow/${g}/**`, ...c.flow.groups[g].filter((e) => !namesCrate(e))];
+      const withoutFlowGroups = (except) =>
+        Object.keys(c.flow.groups)
+          .filter((g) => g !== except)
+          .flatMap((g) => groupOwn(g).flatMap((f) => [{ fileset: `!{projectRoot}/${f}` }, { fileset: `!{workspaceRoot}/${own(f)}` }]));
       const flowCommand = `cargo test --locked -p ${c.name} --test flow --manifest-path ${c.manifest}`;
-      const flow = testTarget('flow.rs', flowCommand, [...OWN, ...tier, ...extra(c, [], 'flow')]);
+      // `[package.metadata.flow] groups`: `cargo-flow` is the rest of the suite, its command skips every group's module (the same skips as `flow_entries` in test_plan.rs)
+      const flowSkips = Object.keys(c.flow.groups).map((g) => `--skip ${g}::`);
+      const flow = testTarget('flow.rs', [flowCommand, ...(flowSkips.length ? ['--', ...flowSkips] : [])].join(' '), [...OWN, ...tier, ...extra(c, [], 'flow'), ...withoutFlowGroups(null)]);
       // the built binaries as a black box with every dependency a fake, one test at a time on a port of its own, after the services are deployed
-      const integration = testTarget('integration.rs', `cargo test --locked -p ${c.name} --test integration --manifest-path ${c.manifest} -- --test-threads=1`, [...OWN, ...tier, ...extra(c, [], 'integration')]);
+      const integrationCommand = `cargo test --locked -p ${c.name} --test integration --manifest-path ${c.manifest} -- --test-threads=1`;
+      // `[package.metadata.integration.groups]` (`{<group> = {filter, files}}`): a slow part of the suite (`filter`, a libtest filter) is one
+      // `cargo-integration-<group>` task keyed by its own `files` (from the crate dir); neither it nor `cargo-integration`, which skips
+      // every group's filter, is keyed by the files of the other groups.
+      // when `sources` is set (F36) the task is keyed by those crate files, not by every file of the crate
+      const narrowed = c.integration.sources.length > 0;
+      // a `!{projectRoot}` set with no `{projectRoot}` set beside it makes Nx hash the whole project, so a narrowed task names its files by `{workspaceRoot}` alone
+      const integrationGroups = Object.keys(c.integration.groups);
+      const groupFiles = (g) => c.integration.groups[g].files.map(own);
+      // `rust` and the crate's declared inputs name its files as `{projectRoot}` and `{workspaceRoot}` sets, and a `!` set takes only its own kind
+      const withoutGroups = (except) =>
+        integrationGroups
+          .filter((g) => g !== except)
+          .flatMap((g) =>
+            c.integration.groups[g].files.flatMap((f) => [...(narrowed ? [] : [{ fileset: `!{projectRoot}/${f}` }]), { fileset: `!{workspaceRoot}/${own(f)}` }])
+          );
+      const baseInputs = narrowed ? ['nativeToolchain', '^rustProduction', OWN[2]] : OWN;
+      const sourceFiles = narrowed ? ['Cargo.toml', ...c.integration.sources].map(own) : [];
+      const integration = testTarget(
+        'integration.rs',
+        [integrationCommand, ...integrationGroups.map((g) => `--skip ${c.integration.groups[g].filter}`), ...(c.replay.sets.length ? ['--skip replay_features::'] : [])].join(' '),
+        [...baseInputs, ...tier, ...extra(c, sourceFiles, 'integration'), ...withoutGroups(null)],
+        `${c.name}/cargo-integration`
+      );
+      const integrationTargets = integration
+        ? Object.fromEntries(
+            integrationGroups.map((g) => [
+              `cargo-integration-${g}`,
+              rustTask([...baseInputs, ...tier, ...extra(c, [...sourceFiles, ...groupFiles(g)], 'integration'), ...withoutGroups(g)], `${integrationCommand} ${c.integration.groups[g].filter}`, `${c.name}/cargo-integration-${g}`),
+            ])
+          )
+        : {};
+      // A candidate's replay by feature (`[package.metadata.integration.replay]`): each mapping crate under it is a task `replay-<crate>` (a named
+      // feature of a larger crate `replay-<crate>-<feature>`) keyed by the candidate's wiring, the cassettes, the deps no mapping crate names and the
+      // crate's own closure, so an edit to one mapping crate reruns its rows alone; a named feature is keyed by its crate's files beside the other
+      // features' (a file of another feature alone does not move it).
+      const mappers = c.replay.sets.length ? [...all.values()].filter((m) => m.dir.startsWith(`${c.dir}/`) && m.replay.features.length) : [];
+      const mapperNames = new Set(mappers.map((m) => m.name));
+      const replayTargets = Object.fromEntries(
+        mappers.flatMap((m) =>
+          m.replay.features.map((f) => {
+            const id = f.name ? `${m.name}-${f.name}` : m.name;
+            const scoped = m.replay.features.some((x) => x.files.length);
+            // a feature without files holds the crate's every file; one with files leaves out the files of the others
+            const others = f.files.length ? m.replay.features.filter((x) => x !== f).flatMap((x) => x.files).filter((g) => !f.files.includes(g)) : [];
+            const closureRoots = [...deps.filter((d) => d.name !== c.name && !mapperNames.has(d.name)), ...(scoped ? m.deps.filter((d) => all.has(d)).map((d) => all.get(d)) : [m])];
+            const reached = closure(closureRoots).filter((d) => d.name !== c.name && !(scoped && d.name === m.name));
+            const mFiles = scoped ? [join(m.dir, 'Cargo.toml'), join(m.dir, 'src/**'), ...others.map((g) => `!${join(m.dir, g)}`)] : [];
+            return [
+              `replay-${id}`,
+              rustTask(
+                [
+                  ...(narrowed ? ['nativeToolchain'] : [OWN[0]]),
+                  { externalDependencies: [] },
+                  ...tier,
+                  { input: 'rustProduction', projects: [...new Set(reached.map(projectOf))] },
+                  ...extra(c, [...sourceFiles, ...mFiles], 'integration'),
+                ],
+                `${integrationCommand} replay_features::${id.replaceAll('-', '_')}::`,
+                `${c.name}/replay-${id}`
+              ),
+            ];
+          })
+        )
+      );
       // a real Chromium or other real dependency the flow tests double: one test at a time, after the services are deployed
-      const e2e = testTarget('e2e.rs', `cargo test --locked -p ${c.name} --test e2e --manifest-path ${c.manifest} -- --test-threads=1`, checks);
-      // the same suite without the parity tests (a test whose path names `parity` compares a live model with another): minutes of model
+      const e2eChecks = [...OWN, ...tier, ...extra(c, [], 'e2e')];
+      const e2e = testTarget('e2e.rs', `cargo test --locked -p ${c.name} --test e2e --manifest-path ${c.manifest} -- --test-threads=1`, e2eChecks);
+      // the same suite without the compare tests (a test whose path names `compare` compares a live model with another): minutes of model
       // time that only a change to the crate itself, or a full plan, is worth
-      const e2eSmoke = testTarget('e2e.rs', `cargo test --locked -p ${c.name} --test e2e --manifest-path ${c.manifest} -- --test-threads=1 --skip parity`, checks);
+      const e2eSmoke = testTarget('e2e.rs', `cargo test --locked -p ${c.name} --test e2e --manifest-path ${c.manifest} -- --test-threads=1 --skip compare`, e2eChecks);
       // the deployed service asked over its real interface: its result is a fact about the VM, so no cache replays it
       const verifyDeployed = testTarget('deployed_verification.rs', `cargo test --locked -p ${c.name} --test deployed_verification --manifest-path ${c.manifest} -- --ignored --test-threads=1`, checks);
       if (verifyDeployed) verifyDeployed.cache = false;
       // the Nx cache's contract, proved against the real Nx on a copy of the repository: minutes of work, so a task of its own that
-      // `wf test plan` selects only when a file that can move the contract changed. What decides a task's inputs is an input of it.
-      const contract = testTarget('nx_contract.rs', `cargo test --locked -p ${c.name} --test nx_contract --manifest-path ${c.manifest}`, [
+      // `wf ci plan tests` selects only when a file that can move the contract changed. What decides a task's inputs is an input of it.
+      // `[package.metadata.contract] groups` (`{<group> = [files]}`, a module of `tests/nx_contract.rs` each): `cargo-contract` is the rest of the suite, its
+      // command skips every group's module and its inputs leave out their files; a `cargo-contract-<group>` task leaves out the other groups' files.
+      const contractGroups = Object.keys(c.contract.groups);
+      const contractCommand = `cargo test --locked -p ${c.name} --test nx_contract --manifest-path ${c.manifest}`;
+      const withoutContractGroups = (except) =>
+        contractGroups
+          .filter((g) => g !== except)
+          .flatMap((g) => c.contract.groups[g].flatMap((f) => [{ fileset: `!{projectRoot}/${f}` }, { fileset: `!{workspaceRoot}/${own(f)}` }]));
+      const contractInputs = [
         ...checks,
         { fileset: '{workspaceRoot}/nx.json' },
         { fileset: '{workspaceRoot}/.nxignore' },
         { fileset: '{workspaceRoot}/tooling/nx/**/*' },
         { fileset: '{workspaceRoot}/**/project.json' },
         { fileset: '{workspaceRoot}/**/package.json' },
-      ]);
+      ];
+      const contract = testTarget(
+        'nx_contract.rs',
+        [contractCommand, ...(contractGroups.length ? ['--', ...contractGroups.map((g) => `--skip ${g}::`)] : [])].join(' '),
+        [...contractInputs, ...withoutContractGroups(null)]
+      );
+      const contractTargets = contract
+        ? Object.fromEntries(contractGroups.map((g) => [`cargo-contract-${g}`, rustTask([...contractInputs, ...withoutContractGroups(g)], `${contractCommand} ${g}::`)]))
+        : {};
       // A crate whose e2e suite is slow lists its groups in `[package.metadata.e2e]` (`groups`: a module of `tests/e2e.rs` each,
       // `shared`: files every group reads, `src`: the crate sources the suite exercises, `extra`: other repo files, all from the
       // crate dir): one `cargo-e2e-<group>` task each, keyed by those files alone, so a change reruns only the groups it can move.
@@ -384,7 +518,7 @@ exports.createNodes = [
               '^rustProduction',
               { externalDependencies: [] },
               ...tier,
-              ...extra(c, ['Cargo.toml', 'tests/e2e.rs', `tests/e2e/${g}.rs`, ...(c.e2e.shared ?? []), ...(c.e2e.src ?? []), ...(c.e2e.extra ?? [])].map(own), false),
+              ...extra(c, ['Cargo.toml', 'tests/e2e.rs', `tests/e2e/${g}.rs`, ...(c.e2e.shared ?? []), ...(c.e2e.src ?? []), ...(c.e2e.extra ?? [])].map(own), 'e2e'),
             ],
             options: { cwd: '{workspaceRoot}', command: `${e2e.options.command} ${g}::` },
           },
@@ -416,11 +550,14 @@ exports.createNodes = [
         })
       );
       const targets = {
-        ...(flow && !flowGroups.length ? { 'cargo-flow': flow } : {}),
+        ...(flow ? { 'cargo-flow': flow } : {}),
         ...flowTargets,
         ...(integration ? { 'cargo-integration': integration } : {}),
+        ...integrationTargets,
+        ...(integration ? replayTargets : {}),
         ...(verifyDeployed ? { 'cargo-verify-deployed': verifyDeployed } : {}),
         ...(contract ? { 'cargo-contract': contract } : {}),
+        ...contractTargets,
         ...(e2e && !groups.length ? { 'cargo-e2e': e2e } : {}),
         ...groupTargets,
         ...(e2eSmoke ? { 'cargo-e2e-smoke': e2eSmoke } : {}),

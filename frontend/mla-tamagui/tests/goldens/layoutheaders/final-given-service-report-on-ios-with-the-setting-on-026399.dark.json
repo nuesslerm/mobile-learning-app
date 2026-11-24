@@ -1,0 +1,60 @@
+{
+  "suite": "layoutheaders",
+  "step": "final-given-service-report-on-ios-with-the-setting-on-026399",
+  "scheme": "dark",
+  "snapshot": "layoutheaders/final-given-service-report-on-ios-with-the-setting-on-026399.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "NativeHeader",
+      "NativeHeaderLeft",
+      "NativeHeaderItem-Go back",
+      "NativeHeaderTitle",
+      "ScreenHeaderGlassTitle",
+      "ScreenHeaderGlassTitleText",
+      "NativeHeaderRight",
+      "ServiceReportScreen",
+      "ServiceReportScreen-NotConfiguredAdmonition",
+      "AdmonitionUi-Title",
+      "AdmonitionUi-Body",
+      "ServiceReportScreen-RefreshButton"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nGo back\nService Report\nNot configured yet\nEXPO_PUBLIC_HEALTH_REPORTS_ORDS_BASE_URL / EXPO_PUBLIC_HEALTH_REPORTS_ORDS_PASSWORD are not set — the health-reports Autonomous DB has not been provisioned yet.\nRefresh"
+  },
+  "timings": {
+    "render_ms": 222
+  },
+  "name": "layoutheaders/final-given-service-report-on-ios-with-the-setting-on-026399.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

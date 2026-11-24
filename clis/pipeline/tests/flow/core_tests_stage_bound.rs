@@ -1,0 +1,320 @@
+//! The core-tests step runs two stages side by side. A hung stage must end by our own hand, with a log that names it, before the step's own limit cancels the job without one.
+use crate::workflow_steps::{read, running_as_root, step_script, Scratch};
+use std::time::{Duration, Instant};
+
+const STEP: &str = "Flow, typecheck, lint and unit tests";
+
+struct Run {
+    code: Option<i32>,
+    out: String,
+    took: Duration,
+}
+
+/// Runs the step's real script with stub stages. `flow` is the body of the flow stage; the unit stage prints two lines and passes.
+fn step(s: &Scratch, flow: &str, as_user: bool) -> Run {
+    s.stub("wf", &format!("case \"$*\" in\n  *--stage\\ flow-tests*) {flow};;\n  *--stage\\ typecheck-lint-unit-tests*) echo unit-line-1; echo unit-line-2;;\nesac"));
+    let script = step_script(&read(".github/workflows/pipeline.yml"), STEP);
+    std::fs::write(s.path("temp/plan.json"), "{}").unwrap();
+    let env = [("RUN_FLOW", "true"), ("RUN_UNIT", "true"), ("SHARD", "1"), ("COUNT", "1"), ("FRESH", "false"), ("STAGE_LIMIT_S", "4"), ("STAGE_KILL_S", "1")];
+    let started = Instant::now();
+    let out = s.run(&script, &env, as_user, false);
+    Run { code: out.status.code(), out: format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr)), took: started.elapsed() }
+}
+
+fn running(pattern: &str) -> bool {
+    std::process::Command::new("pgrep").args(["-f", pattern]).output().map(|o| !o.stdout.is_empty()).unwrap_or(false)
+}
+
+fn a_hung_stage_is_killed_by_the_step_with_a_diagnostic_block(as_user: bool) {
+    // Given a flow stage that prints, starts a test binary that holds the stage's output, and hangs; the other stage passes
+    let s = Scratch::new();
+    let name = format!("hung-test-{}", s.root.file_name().unwrap().to_string_lossy().replace('.', ""));
+    std::fs::copy("/bin/sleep", s.bin.join(&name)).unwrap();
+    let flow = format!("for i in $(seq 1 60); do echo \"flow line $i\"; done; {name} 600 & exec sleep 600");
+
+    // When the step runs with a 4 second stage limit
+    let run = step(&s, &flow, as_user);
+
+    // Then it ended by its own hand, well inside the bounds, and failed (not the 124 or 137 of an outer kill)
+    assert!(run.took < Duration::from_secs(30), "took {:?}\n{}", run.took, run.out);
+    assert!(matches!(run.code, Some(c) if c != 0 && c != 124 && c != 137), "{:?}\n{}", run.code, run.out);
+
+    // And the log names the stage, shows its process tree with the test binary, the test binaries, and the last 40 lines of its output (the output was also streamed live, so only the block is judged)
+    assert!(run.out.contains("::error title=stage timed out::flow-tests"), "{}", run.out);
+    let tree = run.out.split("process tree").nth(1).unwrap_or_else(|| panic!("no process tree in the log:\n{}", run.out));
+    assert!(tree.contains(&name), "the tree names the hung binary:\n{}", run.out);
+    let alive = run.out.split("what was running in it").nth(1).and_then(|t| t.split("the last 40 lines").next()).unwrap_or_else(|| panic!("no running block:\n{}", run.out));
+    assert!(alive.contains(&name), "the processes without a child name the hung binary:\n{}", run.out);
+    let tail = run.out.split("the last 40 lines of its output").nth(1).and_then(|t| t.split("left in its session").next()).unwrap_or_else(|| panic!("no output block in the log:\n{}", run.out));
+    assert!(tail.contains("flow line 60\n") && tail.contains("flow line 21\n") && !tail.contains("flow line 20\n"), "{tail}");
+
+    // And the other stage's output and its pass are in the log, with no timeout named for it
+    assert!(run.out.contains("unit-line-1") && run.out.contains("unit-line-2"), "{}", run.out);
+    assert!(!run.out.contains("stage timed out::typecheck-lint-unit-tests"), "{}", run.out);
+
+    // And nothing of the hung stage is left running
+    assert!(!running(&name), "the hung test binary survived the step");
+}
+
+#[test]
+fn a_hung_stage_is_killed_by_the_step_within_its_bound_and_the_log_names_it_as_root() {
+    a_hung_stage_is_killed_by_the_step_with_a_diagnostic_block(false);
+}
+
+#[test]
+fn a_hung_stage_is_killed_by_the_step_within_its_bound_and_the_log_names_it_as_an_unprivileged_user() {
+    if !running_as_root() {
+        // the run above is already the unprivileged one
+        return;
+    }
+    a_hung_stage_is_killed_by_the_step_with_a_diagnostic_block(true);
+}
+
+fn two_healthy_stages_pass(as_user: bool) {
+    // Given a flow stage that prints and passes, and a unit stage that does
+    let s = Scratch::new();
+
+    // When the step runs
+    let run = step(&s, "echo flow-line-1", as_user);
+
+    // Then it succeeds at once and both stages' output is in the log
+    assert_eq!(run.code, Some(0), "{}", run.out);
+    assert!(run.took < Duration::from_secs(15), "{:?}", run.took);
+    assert!(run.out.contains("flow-line-1") && run.out.contains("unit-line-2"), "{}", run.out);
+    assert!(!run.out.contains("::error"), "{}", run.out);
+}
+
+#[test]
+fn two_healthy_stages_pass_the_step_as_root() {
+    two_healthy_stages_pass(false);
+}
+
+#[test]
+fn two_healthy_stages_pass_the_step_as_an_unprivileged_user() {
+    if running_as_root() {
+        two_healthy_stages_pass(true);
+    }
+}
+
+#[test]
+fn a_stage_that_fails_fails_the_step_and_is_named_without_the_timeout_block() {
+    // Given a flow stage that exits 1 at once
+    let s = Scratch::new();
+
+    // When the step runs
+    let run = step(&s, "echo broken; exit 1", false);
+
+    // Then the step fails, the stage is named, and no timeout block is printed
+    assert_eq!(run.code, Some(1), "{}", run.out);
+    assert!(run.out.contains("::error title=flow-tests::the flow-tests stage failed on this machine"), "{}", run.out);
+    assert!(!run.out.contains("stage timed out"), "{}", run.out);
+}
+
+#[test]
+fn the_stage_limit_is_one_constant_under_the_step_limit_and_the_kill_grace_fits_before_it() {
+    // Given the core-tests step
+    let text = read(".github/workflows/pipeline.yml");
+    let head = &text[text.find(&format!("- name: {STEP}")).unwrap()..];
+    let head = head.split("run: |").next().unwrap();
+
+    // When its limits are read
+    let num = |key: &str| -> u32 { head.split(&format!("{key}: ")).nth(1).unwrap_or_else(|| panic!("no {key}")).split_whitespace().next().unwrap().trim_matches('\'').parse().unwrap() };
+    let (step_min, stage_s, grace_s) = (num("timeout-minutes"), num("STAGE_LIMIT_S"), num("STAGE_KILL_S"));
+
+    // Then a stage, its kill grace and the diagnostics fit with a minute to spare inside the step's own limit
+    assert!(stage_s + grace_s + 60 <= step_min * 60, "stage {stage_s} s + grace {grace_s} s vs step {step_min} min");
+    assert!(stage_s >= 15 * 60, "an honest cold run takes up to 15 minutes: {stage_s} s");
+}
+
+#[test]
+fn a_job_that_runs_out_of_memory_has_its_largest_process_killed_and_named_in_the_log() {
+    // Given a checkout holding the guard, and a flow stage that starts a process holding 200 MB from the checkout, then hangs
+    let s = Scratch::new();
+    let guard = s.path("checkout/.github/actions/hosted-setup");
+    std::fs::create_dir_all(&guard).unwrap();
+    std::fs::write(guard.join("memguard.sh"), read(".github/actions/hosted-setup/memguard.sh")).unwrap();
+    let hog = s.path("checkout/hog-of-the-job.py");
+    std::fs::write(&hog, "import time\nx = bytearray(200_000_000)\ntime.sleep(600)\n").unwrap();
+    let flow = format!("python3 {} & echo $! > {}; exec sleep 600", hog.display(), s.path("hog.pid").display());
+    s.stub("wf", &format!("case \"$*\" in\n  *--stage\\ flow-tests*) {flow};;\n  *--stage\\ typecheck-lint-unit-tests*) echo unit-line;;\nesac"));
+    let script = step_script(&read(".github/workflows/pipeline.yml"), STEP);
+    std::fs::write(s.path("temp/plan.json"), "{}").unwrap();
+    let root = s.path("checkout");
+    let env = [
+        ("RUN_FLOW", "true"),
+        ("RUN_UNIT", "true"),
+        ("SHARD", "1"),
+        ("COUNT", "1"),
+        ("FRESH", "false"),
+        ("STAGE_LIMIT_S", "6"),
+        ("STAGE_KILL_S", "1"),
+        ("MEMGUARD_FLOOR_MB", "99999999"),
+        ("GITHUB_WORKSPACE", root.to_str().unwrap()),
+    ];
+
+    // When the step runs on a machine that is always under the floor
+    let out = s.run(&script, &env, false, false);
+    let text = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+
+    // Then the log says the memory ran out, lists the largest processes, and names the process it killed
+    assert!(text.contains("::error title=machine exhausted::"), "{text}");
+    assert!(text.contains("the largest processes"), "{text}");
+    assert!(text.contains("memguard: killed pid") && text.contains("hog-of-the-job.py"), "{text}");
+
+    // And the process is gone
+    let pid = std::fs::read_to_string(s.path("hog.pid")).unwrap();
+    assert!(!std::path::Path::new(&format!("/proc/{}", pid.trim())).exists() || std::fs::read_to_string(format!("/proc/{}/stat", pid.trim())).map(|t| t.contains(") Z")).unwrap_or(true), "the hog survived");
+
+    // And the guard does not outlive the step
+    assert!(!running(&format!("{}/memguard.sh", guard.display())), "the guard survived the step");
+}
+
+#[test]
+fn a_guard_with_a_token_keeps_one_check_run_with_the_machines_state_and_completes_it_when_the_job_ends() {
+    // Given a `gh` that records its calls and answers a check run id, a stage log, and the guard started with a token and a name
+    let s = Scratch::new();
+    let calls = s.path("gh.calls");
+    s.stub("gh", &format!("echo \"$@\" >> {}\ncase \"$*\" in *POST*) echo 77;; esac", calls.display()));
+    std::fs::create_dir_all(s.path("stages")).unwrap();
+    std::fs::write(s.path("stages/flow-tests.log"), "line one\ncrate-x: test the_last_test_of_the_stage ... ok\n::add-mask::ThisIsAMaskedValueOfTwentyFourChars\ncrate-x: test with_a_secret_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA ... ok\n").unwrap();
+    std::fs::write(s.path("guard.sh"), read(".github/actions/hosted-setup/memguard.sh")).unwrap();
+    let path = format!("{}:{}", s.bin.display(), std::env::var("PATH").unwrap_or_default());
+    let mut guard = std::process::Command::new("bash")
+        .arg(s.path("guard.sh"))
+        .args(["0", s.path("guard.log").to_str().unwrap(), s.path("stages").to_str().unwrap()])
+        .env("PATH", path)
+        .env("GH_TOKEN", "not-a-token")
+        .env("GITHUB_REPOSITORY", "owner/repo")
+        .env("GITHUB_SHA", "abc123")
+        .env("HEARTBEAT_NAME", "core-tests 3/6")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+
+    // When it runs for a moment and the job ends (the step stops it with SIGTERM)
+    std::thread::sleep(Duration::from_millis(1500));
+    let _ = std::process::Command::new("kill").args(["-TERM", &guard.id().to_string()]).status();
+    let _ = guard.wait();
+    let text = std::fs::read_to_string(&calls).unwrap_or_default();
+
+    // Then one check run was created for the commit under the job's name, and its first text holds the machine's state and the stage log's tail
+    assert_eq!(text.lines().filter(|l| l.contains("POST") && l.contains("repos/owner/repo/check-runs")).count(), 1, "{text}");
+    assert!(text.contains("name=heartbeat core-tests 3/6") && text.contains("head_sha=abc123"), "{text}");
+    assert!(text.contains("MemAvailable") && text.contains("disk free (MB)") && text.contains("the_last_test_of_the_stage") && text.contains("busiest by cpu"), "{text}");
+
+    // And nothing masked reaches it: no masked-value line, no long token-like string, no process arguments
+    assert!(!text.contains("add-mask") && !text.contains("ThisIsAMaskedValue"), "{text}");
+    assert!(!text.contains("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), "{text}");
+
+    // And it was completed when the job ended, never left running
+    assert!(text.lines().any(|l| l.contains("PATCH") && l.contains("check-runs/77") && l.contains("status=completed") && l.contains("conclusion=neutral")), "{text}");
+}
+
+#[test]
+fn a_guard_without_a_token_posts_nothing() {
+    // Given a `gh` that records its calls and a guard started without a token
+    let s = Scratch::new();
+    let calls = s.path("gh.calls");
+    s.stub("gh", &format!("echo \"$@\" >> {}", calls.display()));
+    std::fs::write(s.path("guard.sh"), read(".github/actions/hosted-setup/memguard.sh")).unwrap();
+    let path = format!("{}:{}", s.bin.display(), std::env::var("PATH").unwrap_or_default());
+    let mut guard = std::process::Command::new("bash")
+        .arg(s.path("guard.sh"))
+        .args(["0", s.path("guard.log").to_str().unwrap()])
+        .env("PATH", path)
+        .env_remove("GH_TOKEN")
+        .env("GITHUB_REPOSITORY", "owner/repo")
+        .env("GITHUB_SHA", "abc123")
+        .env("HEARTBEAT_NAME", "core-tests 3/6")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+
+    // When it runs for a moment and is stopped
+    std::thread::sleep(Duration::from_millis(1200));
+    let _ = std::process::Command::new("kill").args(["-TERM", &guard.id().to_string()]).status();
+    let _ = guard.wait();
+
+    // Then gh was never called
+    assert!(!calls.exists(), "{}", std::fs::read_to_string(&calls).unwrap_or_default());
+}
+
+fn step_with(s: &Scratch, flow: &str, extra: &[(&str, &str)], as_user: bool) -> Run {
+    s.stub("wf", &format!("case \"$*\" in\n  *--stage\\ flow-tests*) {flow};;\n  *--stage\\ typecheck-lint-unit-tests*) echo unit-line;;\nesac"));
+    let script = step_script(&read(".github/workflows/pipeline.yml"), STEP);
+    std::fs::write(s.path("temp/plan.json"), "{}").unwrap();
+    let mut env = vec![("RUN_FLOW", "true"), ("RUN_UNIT", "true"), ("SHARD", "1"), ("COUNT", "1"), ("FRESH", "false"), ("STAGE_LIMIT_S", "6"), ("STAGE_KILL_S", "1")];
+    env.extend_from_slice(extra);
+    let started = Instant::now();
+    let out = s.run(&script, &env, as_user, false);
+    Run { code: out.status.code(), out: format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr)), took: started.elapsed() }
+}
+
+#[test]
+fn the_stages_run_in_a_memory_cgroup_limited_to_a_share_of_the_machine() {
+    // Given a cgroup root (a plain directory stands in for the kernel's), a limit of half the memory, and a flow stage that reports the cgroup it runs in
+    let s = Scratch::new();
+    let root = s.path("cgroup");
+    std::fs::create_dir_all(&root).unwrap();
+    let flow = "echo \"in-cgroup: $STAGE_CGROUP\"; test -f \"$STAGE_CGROUP/memory.max\" && echo limit-file-present";
+
+    // When the step runs
+    let run = step_with(&s, flow, &[("STAGE_MEMORY_PCT", "50"), ("CGROUP_ROOT", root.to_str().unwrap())], false);
+
+    // Then it passes, says the limit, and the cgroup got a numeric limit of about half the machine's memory, group kill, and the stages' pids
+    assert_eq!(run.code, Some(0), "{}", run.out);
+    assert!(run.out.contains("stage memory limit:") && run.out.contains("limit-file-present"), "{}", run.out);
+    let dir = std::fs::read_dir(&root).unwrap().filter_map(Result::ok).map(|e| e.path()).find(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with("wf-stages-"))).expect("a cgroup directory");
+    let limit: u64 = std::fs::read_to_string(dir.join("memory.max")).unwrap().trim().parse().unwrap();
+    let total_kb: u64 = std::fs::read_to_string("/proc/meminfo").unwrap().lines().find(|l| l.starts_with("MemTotal")).unwrap().split_whitespace().nth(1).unwrap().parse().unwrap();
+    let half = total_kb * 1024 / 2;
+    assert!(limit.abs_diff(half) < half / 50, "limit {limit} vs half of the memory {half}");
+    assert_eq!(std::fs::read_to_string(dir.join("memory.oom.group")).unwrap().trim(), "1");
+    assert!(!std::fs::read_to_string(dir.join("cgroup.procs")).unwrap().trim().is_empty(), "no stage joined the cgroup");
+    assert!(run.out.contains("stage memory: peak"), "{}", run.out);
+}
+
+fn a_stage_the_kernel_killed_for_its_memory_fails_the_step(as_user: bool) {
+    // Given a flow stage that passes but whose cgroup reports one process killed by the memory limit
+    let s = Scratch::new();
+    let root = s.path("cgroup");
+    std::fs::create_dir_all(&root).unwrap();
+    std::fs::set_permissions(&root, std::os::unix::fs::PermissionsExt::from_mode(0o777)).unwrap();
+    let flow = "echo flow-line; printf 'low 0\\nmax 0\\noom 1\\noom_kill 1\\n' > \"$STAGE_CGROUP/memory.events\"";
+
+    // When the step runs
+    let run = step_with(&s, flow, &[("STAGE_MEMORY_PCT", "50"), ("CGROUP_ROOT", root.to_str().unwrap())], as_user);
+
+    // Then the step fails and names the memory limit as the reason
+    assert_eq!(run.code, Some(1), "{}", run.out);
+    assert!(run.out.contains("::error title=stage killed by the memory limit"), "{}", run.out);
+    assert!(run.out.contains("1 process(es) killed by it"), "{}", run.out);
+}
+
+#[test]
+fn a_stage_the_kernel_killed_for_its_memory_fails_the_step_and_says_so_as_root() {
+    a_stage_the_kernel_killed_for_its_memory_fails_the_step(false);
+}
+
+#[test]
+fn a_stage_the_kernel_killed_for_its_memory_fails_the_step_and_says_so_as_an_unprivileged_user() {
+    if running_as_root() {
+        a_stage_the_kernel_killed_for_its_memory_fails_the_step(true);
+    }
+}
+
+#[test]
+fn a_cgroup_that_cannot_be_made_is_a_warning_and_the_stages_still_run() {
+    // Given a cgroup root that cannot be written
+    let s = Scratch::new();
+
+    // When the step runs
+    let run = step_with(&s, "echo flow-line", &[("STAGE_MEMORY_PCT", "50"), ("CGROUP_ROOT", "/proc/no-such-cgroup-root")], false);
+
+    // Then the step passes, the log carries a warning, and the stage's output is there
+    assert_eq!(run.code, Some(0), "{}", run.out);
+    assert!(run.out.contains("::warning title=no stage memory limit"), "{}", run.out);
+    assert!(run.out.contains("flow-line"), "{}", run.out);
+}

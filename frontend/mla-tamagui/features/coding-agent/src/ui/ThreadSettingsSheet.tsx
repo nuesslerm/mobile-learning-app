@@ -9,10 +9,9 @@ import {
   View,
 } from '@lib/tamagui-design-system';
 import { Sheet, SheetHeader } from '@lib/tamagui-design-system/ui/sheet';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useState } from 'react';
 
-import { CODING_AGENT_TOKEN_STORAGE_KEY } from '../data/codingAgentConfig';
+import { useCodingAgentPorts } from '../state/ports';
 import {
   INTERACTION_MODE_OPTIONS,
   RUNTIME_MODE_OPTIONS,
@@ -20,7 +19,7 @@ import {
   type ModelSelection,
   type RuntimeMode,
 } from '../domain';
-import { useThreadCommands } from '../integration/useThreadCommands';
+import { useThreadCommands } from '../state/useThreadCommands';
 import { useComposerStore } from '../state/composerStore';
 import { useGatewayStore } from '../state/gatewayStore';
 import { useServerConfigStore } from '../state/serverConfigStore';
@@ -50,13 +49,15 @@ export function ThreadSettingsSheet(): React.ReactElement | null {
   const { setModelSelection, setRuntimeMode, setInteractionMode } =
     useThreadCommands(threadId ?? ('' as ThreadId));
 
+  const { tokenStore } = useCodingAgentPorts();
   const [token, setToken] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     let live = true;
-    AsyncStorage.getItem(CODING_AGENT_TOKEN_STORAGE_KEY)
+    tokenStore
+      .read()
       .then((value) => {
         if (live) setToken(value ?? '');
       })
@@ -67,7 +68,7 @@ export function ThreadSettingsSheet(): React.ReactElement | null {
     return () => {
       live = false;
     };
-  }, [open]);
+  }, [open, tokenStore]);
 
   useEffect(() => {
     if (!open || probe !== null || loading) return;
@@ -89,9 +90,9 @@ export function ThreadSettingsSheet(): React.ReactElement | null {
     setSaving(true);
     try {
       if (token.length === 0) {
-        await AsyncStorage.removeItem(CODING_AGENT_TOKEN_STORAGE_KEY);
+        await tokenStore.clear();
       } else {
-        await AsyncStorage.setItem(CODING_AGENT_TOKEN_STORAGE_KEY, token);
+        await tokenStore.write(token);
       }
       Logger.info('coding-agent.settings.token_saved', {
         cleared: token.length === 0,

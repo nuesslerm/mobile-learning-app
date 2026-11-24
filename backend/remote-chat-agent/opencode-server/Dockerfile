@@ -28,7 +28,7 @@
 ARG AGENT_BASE_TAG=latest
 FROM docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-base:${AGENT_BASE_TAG}
 
-# the version the parity e2e tests of `wf offload ask` run `opencode run` at (clis/offload/tests/e2e): a run on this server behaves as they check
+# the version the parity e2e tests of `wf rca ask` run `opencode run` at (clis/rca/tests/e2e): a run on this server behaves as they check
 ARG OPENCODE_VERSION=1.19.0
 RUN --mount=type=cache,target=/root/.npm npm install -g opencode-ai@${OPENCODE_VERSION}
 
@@ -67,3 +67,5 @@ COPY backend/remote-chat-agent/opencode-server/docker-entrypoint.sh /usr/local/b
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["opencode", "serve", "--hostname", "0.0.0.0", "--port", "4096"]
+# 13 Nov: touched on purpose to prove a gradual redeploy: only this image changes, so only the opencode sidecar is recreated.
+# 13 Nov (2): touched again, after the smoke step stopped moving running sidecars: this change must recreate the opencode sidecar and nothing else.

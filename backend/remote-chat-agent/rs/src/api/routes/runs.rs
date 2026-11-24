@@ -86,11 +86,11 @@ pub async fn post(Call { app, req, body }: Call) -> Response {
         attach: asked.attach.unwrap_or_default().into_iter().map(String::from).collect(),
         command: asked.command.map(String::from),
     };
-    let (client, commands, ledgers, fs, hosts) = (app.opencode.clone(), app.commands.clone(), app.ledgers.clone(), app.files.clone(), app.hosts.clone());
+    let (client, commands, ledgers, fs, hosts, ids) = (app.opencode.clone(), app.commands.clone(), app.ledgers.clone(), app.files.clone(), app.hosts.clone(), app.orch.engine.ids());
     let cwd = request.cwd.clone().unwrap_or_default();
     // The run is a blocking walk through `rca-core`'s `run_once`; it gets a thread of its own and drives the async calls it makes.
     let handle = tokio::runtime::Handle::current();
-    match tokio::task::spawn_blocking(move || runs::run(&handle, &client, commands.as_ref(), ledgers.as_ref(), &fs, hosts.as_ref(), &request)).await {
+    match tokio::task::spawn_blocking(move || runs::run(&handle, &client, commands.as_ref(), ledgers.as_ref(), &fs, hosts.as_ref(), &request, ids.as_ref())).await {
         Ok(Ok(result)) => respond(200, &result),
         Ok(Err(runs::Refused::Invalid(why))) => respond(400, &json!({ "error": why, "code": "INVALID_REQUEST" })),
         Ok(Err(runs::Refused::Ledger(why))) => {
@@ -119,7 +119,7 @@ pub async fn purge(Call { app, req, .. }: Call) -> Response {
     }
 }
 
-/// `GET /runs/log[?limit=n]`: the run log as text, for `wf offload ask --stats` and `--savings`.
+/// `GET /runs/log[?limit=n]`: the run log as text, for `wf rca ask --stats` and `--savings`.
 pub async fn log(Call { app, req, .. }: Call) -> Response {
     if !authorised_strict(&app, &req) {
         return unauthorized();
@@ -137,9 +137,9 @@ pub async fn clear_cooldown(Call { app, req, body }: Call) -> Response {
         return respond(400, &json!({ "error": "pool is required", "code": "INVALID_REQUEST" }));
     };
     let handle = tokio::runtime::Handle::current();
-    let ledgers = app.ledgers.clone();
+    let (client, ledgers) = (app.opencode.clone(), app.ledgers.clone());
     let asked = pool.clone();
-    match tokio::task::spawn_blocking(move || runs::clear_cooldown(&handle, ledgers.as_ref(), &asked)).await {
+    match tokio::task::spawn_blocking(move || runs::clear_cooldown(&handle, &client, ledgers.as_ref(), &asked)).await {
         Ok(Ok(was_cold)) => respond(200, &json!({ "pool": pool, "wasCold": was_cold })),
         Ok(Err(why)) => respond(503, &json!({ "error": why, "code": "LEDGER_UNAVAILABLE" })),
         Err(_) => respond(500, &json!({ "error": "Internal error", "code": "INTERNAL_ERROR" })),

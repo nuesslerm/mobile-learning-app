@@ -1,0 +1,44 @@
+{
+  "schema": "mimic-rules/1",
+  "rules": [
+    {
+      "kind": "uuid-ordinal"
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "addedAt": "<volatile:addedAt>"
+      }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "fetchedAt": "<volatile:fetchedAt>"
+      }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "sortOrder": "<volatile:sortOrder>"
+      }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "hiddenAt": "<volatile:hiddenAt>"
+      }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "createdAt": "<volatile:createdAt>"
+      }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "updatedAt": "<volatile:updatedAt>"
+      }
+    }
+  ]
+}

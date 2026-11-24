@@ -20,18 +20,45 @@ fn binary() -> PathBuf {
 
 /// `args` run as `<binary> mimic <args>` with no stdin, so a verb that prompted would hang the test; `wf` finds wf-mimic on its PATH.
 pub fn mimic(args: &[&str], env: &[(&str, &Path)]) -> Run {
+    mimic_in(None, args, env)
+}
+
+/// `mimic` run inside `cwd`: the verbs that reach the state ref use that directory's git `origin`.
+pub fn mimic_in(cwd: Option<&Path>, args: &[&str], env: &[(&str, &Path)]) -> Run {
+    run_of(prepared(cwd, args, env).output().unwrap())
+}
+
+/// As `mimic`, with the verb's stderr redirected into `log` the way a CI step's `2> file` does, so what the verb itself writes there can be read back.
+pub fn mimic_logging_stderr(args: &[&str], env: &[(&str, &Path)], log: &Path) -> Run {
+    let mut command = prepared(None, args, env);
+    command.stderr(std::fs::File::create(log).unwrap());
+    let mut run = run_of(command.output().unwrap());
+    run.stderr = std::fs::read_to_string(log).unwrap_or_default();
+    run
+}
+
+fn prepared(cwd: Option<&Path>, args: &[&str], env: &[(&str, &Path)]) -> Command {
     let beside = Path::new(env!("CARGO_BIN_EXE_wf-mimic")).parent().expect("a directory").display().to_string();
     let path = format!("{beside}:{}", std::env::var("PATH").unwrap_or_default());
     let mut command = Command::new(binary());
+    if let Some(cwd) = cwd {
+        command.current_dir(cwd);
+    }
     command.arg("mimic").args(args).env("PATH", path).env_remove("WF_TEST_OUTPUT_DIR").stdin(Stdio::null());
     // hermetic: a vault of the machine running the tests must never be reached (a publish would write to the real bucket)
     for (k, _) in std::env::vars_os().filter(|(k, _)| k.to_str().is_some_and(|k| k.starts_with("BWS_") || k.starts_with("VERIFICATION_ARTIFACTS_") || k == "SECRETS_BACKEND")) {
         command.env_remove(k);
     }
+    // and not a runner unless a test says so: under GitHub Actions a fetched value is announced as `::add-mask::<value>` on stderr, which the tests' "no value in what was printed" would read as a leak;
+    // with CI=true and a vault token in the environment a read goes to the vault alone and ignores an injected variable
+    command.env_remove("GITHUB_ACTIONS").env_remove("CI");
     for (k, v) in env {
         command.env(k, v);
     }
-    let out = command.output().unwrap();
+    command
+}
+
+fn run_of(out: std::process::Output) -> Run {
     let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
     let line = stdout.lines().rev().find(|l| l.starts_with('{')).unwrap_or("null");
     let json = serde_json::from_str(line).unwrap_or_else(|e| panic!("{e}: {stdout}\n{}", String::from_utf8_lossy(&out.stderr)));

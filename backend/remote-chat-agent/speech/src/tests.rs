@@ -81,3 +81,24 @@ async fn given_a_missing_recording_when_transcribed_then_a_whisper_error_names_t
     assert_eq!(error.name, "WhisperError");
     assert!(error.message.starts_with("Audio file not found"));
 }
+
+#[tokio::test]
+async fn given_an_engine_that_fails_once_when_transcribed_then_the_recording_is_posted_again_and_the_second_answer_is_used() {
+    let dir = tempfile::tempdir().unwrap();
+    let (speech, outbound, env) = speech(dir.path());
+    env.set("STT_URL", "http://sidecar/stt");
+    let calls = std::sync::atomic::AtomicUsize::new(0);
+    outbound.answer(move |_| if calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 0 { Ok((503, json!({ "error": "busy" }))) } else { Ok((200, json!({ "transcript": "hello" }))) });
+    let result = speech.transcribe(&recording(dir.path())).await.unwrap();
+    assert_eq!((result.transcript.as_str(), outbound.to("http://sidecar/stt").len()), ("hello", 2));
+}
+
+#[tokio::test]
+async fn given_an_engine_that_rejects_the_audio_when_transcribed_then_it_is_not_asked_again() {
+    let dir = tempfile::tempdir().unwrap();
+    let (speech, outbound, env) = speech(dir.path());
+    env.set("STT_URL", "http://sidecar/stt");
+    outbound.answer(|_| Ok((400, json!({ "error": "bad audio" }))));
+    let error = speech.transcribe(&recording(dir.path())).await.unwrap_err();
+    assert_eq!((error.message.starts_with("sidecar STT 400:"), outbound.to("http://sidecar/stt").len()), (true, 1));
+}

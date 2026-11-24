@@ -26,7 +26,7 @@ Rules (owner decisions, 2026-10-04):
 
 ## P1 Contract and units
 - [x] `contract.md`: `wf browser` driver commands (name, arguments, result), the lab module API with its gate and sentinel `__device_lab_v1__`, the static guard rules (this commit)
-- [x] `units.jsonl`: 39 units, `wf cheap-flow check device-lab --local` reported `ok: 39 units`. After the greenfield cutover the checker is `wf offload plan --check device-lab`, which also wants 1-3 files per unit; the milestone and gate units now name theirs.
+- [x] `units.jsonl`: 39 units, `wf cheap-flow check device-lab --local` reported `ok: 39 units`. After the greenfield cutover the checker is `wf rca plan --check device-lab`, which also wants 1-3 files per unit; the milestone and gate units now name theirs.
 
 ## P2 Lab export gate
 - [x] `EXPO_PUBLIC_DEVICE_LAB` gate in `app/_layout.tsx` (gated `require`) and `export:web`; a flagless export has no sentinel, a flagged export carries it (this commit). Evidence:

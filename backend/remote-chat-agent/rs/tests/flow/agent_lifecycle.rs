@@ -26,7 +26,7 @@ fn write(path: &str, content: &str) -> Value {
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_thread_launched_with_a_prompt_when_it_is_forked_searched_and_merged_back_then_each_answers_from_the_engine_and_the_follower_is_sent_the_events() {
     // Given a CLI that writes a file and says something, a thread launched with its first turn, and a mapper following it
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("the plan is ready")]).then_calling("k1", "write_file", write("notes/plan.txt", "plan")), Turn::replaying(&[said("the fork found a bug")]), Turn::replaying(&[said("back in the parent")])]);
     let mut agent = chain.agent().await;
@@ -51,8 +51,8 @@ async fn given_a_thread_launched_with_a_prompt_when_it_is_forked_searched_and_me
     let family = agent.ask("thread.family", json!({"thread": "k"})).await;
     let found = agent.ask("thread.search", json!({"query": "bug"})).await;
     // Then the CLI got the fork's work as context, the family is the root and both threads, and the search finds the fork by what it said
-    let starts = chain.cli.invocations("claude");
-    assert!(starts[2].argv.iter().any(|a| a.starts_with("Context carried over from the side thread k") && a.contains("look for bugs")), "{:?}", starts[2].argv);
+    let asked = chain.cli.claude_prompts("claude");
+    assert!(asked[2].starts_with("Context carried over from the side thread k") && asked[2].contains("look for bugs"), "{asked:?}");
     assert_eq!((family["result"]["root"].clone(), family["result"]["threads"].as_array().unwrap().len()), (json!("p"), 2));
     assert_eq!(found["result"]["matches"].as_array().unwrap().iter().map(|m| m["thread"].clone()).collect::<Vec<_>>(), [json!("k")]);
     // And the follower of the parent was sent the merge and its consumption among the turn's events, each of them of the parent
@@ -64,7 +64,7 @@ async fn given_a_thread_launched_with_a_prompt_when_it_is_forked_searched_and_me
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_threads_when_settled_archived_and_deleted_then_the_shelves_and_the_follower_see_each_and_a_delete_ends_the_turn_that_runs() {
     // Given an idle thread with a turn that ran, one that runs, and a follower of the first
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("done")]), Turn::replaying(&[said("working")]).hanging()]);
     let mut agent = chain.agent().await;
@@ -74,7 +74,7 @@ async fn given_threads_when_settled_archived_and_deleted_then_the_shelves_and_th
     until_idle(&mut agent, "a").await;
     create(&mut agent, "busy").await;
     start_turn(&mut agent, "busy").await;
-    eventually("the running turn's CLI started", || chain.cli.invocations("claude").len() == 2).await;
+    eventually("the running turn's CLI started", || chain.cli.claude_prompts("claude").len() == 2).await;
     // When a is settled, snoozed to a time that is past, archived twice, brought back and archived again
     let settled = agent.ask("thread.settle", json!({"thread": "a", "state": "settled"})).await;
     let past = agent.ask("thread.settle", json!({"thread": "a", "state": "snoozed", "until_ms": 5})).await;
@@ -110,12 +110,12 @@ async fn given_threads_when_settled_archived_and_deleted_then_the_shelves_and_th
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_failed_turn_a_workflow_and_a_conversation_when_retried_stopped_and_detached_then_each_acts_on_the_process_and_the_next_turn() {
-    // Given a CLI that fails once, then announces conversation s-3 and says something, and then stays up
-    let env = Env::process(&[]);
+    // Given a CLI that fails once, then says something, and then stays up
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![
         Turn::replaying(&[]).exiting(1).complaining("not logged in"),
-        Turn::replaying(&[json!({"type": "system", "subtype": "init", "session_id": "s-3"}).to_string(), said("recovered")]),
+        Turn::replaying(&[said("recovered")]),
         Turn::replaying(&[said("resumed")]).hanging(),
         Turn::replaying(&[said("fresh")]),
     ]);
@@ -130,36 +130,40 @@ async fn given_a_failed_turn_a_workflow_and_a_conversation_when_retried_stopped_
     // Then the retry is a new turn of the failed one's prompt that completed, and the failed turn cannot be retried again
     assert_eq!(retried["result"]["retry_of"], json!(failed));
     assert_ne!(retried["result"]["turn"], json!(failed));
-    assert!(chain.cli.invocations("claude")[1].argv.contains(&"make a note".to_string()));
+    assert_eq!(chain.cli.claude_prompts("claude")[1], "make a note");
     assert_eq!(agent.ask("turn.retry", json!({"thread": "t1", "turn": failed})).await["error"]["code"], json!("NOT_RETRYABLE"));
     // When the next turn runs, a workflow of another turn is stopped, then the running turn's
     let next = start_turn(&mut agent, "t1").await["result"]["turn"].as_str().unwrap().to_string();
-    while chain.cli.invocations("claude").len() < 3 {
+    while chain.cli.claude_prompts("claude").len() < 3 {
         tokio::time::sleep(std::time::Duration::from_millis(10)).await;
     }
     let wrong = agent.ask("workflow.stop", json!({"thread": "t1", "turn": "turn-0"})).await;
     let stopped = agent.ask("workflow.stop", json!({"thread": "t1", "turn": next, "workflow": "agent-1"})).await;
     until_idle(&mut agent, "t1").await;
-    // Then that turn resumed the conversation the retry announced, the wrong turn was refused, and the stop ended the turn interrupted
-    assert!(chain.cli.invocations("claude")[2].argv.windows(2).any(|w| w == ["--resume", "s-3"]), "{:?}", chain.cli.invocations("claude")[2].argv);
+    // Then the retry started a process that resumed the conversation of the first (the failed turn's process was gone) and that turn ran on it, the wrong turn was refused, and the stop ended the turn interrupted
+    let argv = chain.cli.invocations("claude").into_iter().map(|s| s.argv).collect::<Vec<_>>();
+    assert!(argv.len() == 2 && argv[1].contains(&"--resume".to_string()) && argv[0].contains(&"--session-id".to_string()), "{argv:?}");
+    let kept = argv[0][argv[0].iter().position(|a| a == "--session-id").unwrap() + 1].clone();
+    assert!(argv[1].windows(2).any(|w| w == ["--resume", kept.as_str()]), "{argv:?}");
     assert_eq!((wrong["error"]["code"].clone(), stopped["result"]["turn"].clone()), (json!("NO_TURN"), json!(next)));
     let history = agent.ask("thread.history", json!({"thread": "t1"})).await;
     let last = history["result"]["events"].as_array().unwrap().last().unwrap().clone();
     assert_eq!((last["type"].clone(), last["reason"].clone()), (json!("turn.finished"), json!("interrupted")));
     // When the conversation is detached, and the next turn runs
-    let detached = agent.ask("thread.detach", json!({"thread": "t1", "session": "s-3"})).await;
-    let other = agent.ask("thread.detach", json!({"thread": "t1", "session": "s-3"})).await;
+    let detached = agent.ask("thread.detach", json!({"thread": "t1", "session": kept})).await;
+    let other = agent.ask("thread.detach", json!({"thread": "t1", "session": kept})).await;
     start_turn(&mut agent, "t1").await;
     until_idle(&mut agent, "t1").await;
     // Then the detach names the session, a second one is refused, and the next turn started a conversation of its own
-    assert_eq!((detached["result"]["session"].clone(), other["error"]["code"].clone()), (json!("s-3"), json!("SESSION_NOT_OWNED")));
-    assert!(!chain.cli.invocations("claude")[3].argv.contains(&"--resume".to_string()));
+    assert_eq!((detached["result"]["session"].clone(), other["error"]["code"].clone()), (json!(kept), json!("SESSION_NOT_OWNED")));
+    let started = chain.cli.invocations("claude");
+    assert!(started.len() == 3 && !started[2].argv.contains(&"--resume".to_string()) && started[2].argv.contains(&"--session-id".to_string()), "{started:?}");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_thread_with_a_transcript_when_an_item_is_read_and_the_thread_is_rolled_back_then_the_item_is_the_row_of_its_seq_and_a_rollback_that_restores_files_is_refused_without_a_checkpoint_and_restores_with_one() {
     // Given a thread whose turn wrote a file and said it, then a second turn
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("writing")]).then_calling("k1", "write_file", write("notes/a.txt", "a")).then_line(&said("wrote it")), Turn::replaying(&[said("more")])]);
     let mut agent = chain.agent().await;
@@ -205,7 +209,7 @@ async fn given_a_thread_with_a_transcript_when_an_item_is_read_and_the_thread_is
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_a_devices_pins_order_and_auto_settle_choices_when_the_service_starts_again_then_the_state_group_gives_them_back_and_they_are_not_the_threads() {
     // Given a thread, and the choices a device keeps for its list of threads: pins, their order, the order of the active ones and auto-settle
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let svc = service(&env, Options::default());
     let port = svc.listen().await;
     let token = svc.mint("phone").await;

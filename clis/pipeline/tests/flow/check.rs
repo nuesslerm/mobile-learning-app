@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn git(dir: &Path, args: &[&str]) -> String {
-    let out = Command::new("git").args(["-c", "user.email=t@example.com", "-c", "user.name=t", "-c", "commit.gpgsign=false"]).args(args).current_dir(dir).output().unwrap();
+    let out = crate::support::git_command().args(["-c", "user.email=t@example.com", "-c", "user.name=t", "-c", "commit.gpgsign=false"]).args(args).current_dir(dir).output().unwrap();
     assert!(out.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&out.stderr));
     String::from_utf8_lossy(&out.stdout).trim().to_string()
 }
@@ -77,6 +77,8 @@ impl Workspace {
             let deps: serde_json::Map<String, Value> = deps.iter().map(|d| (d.to_string(), json!("workspace:*"))).collect();
             w.put(&format!("{dir}/package.json"), &json!({ "name": name, "dependencies": deps }).to_string());
         }
+        let outside: Vec<&str> = PACKAGES.iter().map(|(_, dir, _)| *dir).filter(|dir| !dir.starts_with("frontend/")).collect();
+        w.put("clis/pipeline/data/ts-packages.json", &json!({ "allowed": outside }).to_string());
         let mut ls = vec![json!({ "name": "root", "path": w.repo.path() })];
         ls.extend(PACKAGES.iter().map(|(name, dir, _)| json!({ "name": name, "path": w.repo.path().join(dir) })));
         std::fs::write(w.stub.path().join("ls.json"), Value::Array(ls).to_string()).unwrap();
@@ -172,7 +174,7 @@ fn lint(pkgs: &[&str]) -> String {
 }
 
 fn gate(pkgs: &[&str]) -> String {
-    nx("typecheck,test:unit,test:flow", pkgs)
+    nx("typecheck,test:unit", pkgs)
 }
 
 #[test]
@@ -192,7 +194,7 @@ fn the_staged_gate_runs_through_nx() {
     assert!(r.stdout.contains("msg=\"pre-commit-jobs\""));
     // And what Nx replayed is said, so a recommit shows what the cache served
     assert!(r.stdout.contains("verify: nx lint over 1 projects: 1 of 2 tasks replayed from the cache\n"), "{}", r.stdout);
-    assert!(r.stdout.contains("verify: nx typecheck,test:unit,test:flow over 3 projects: 1 of 2 tasks replayed from the cache\n"), "{}", r.stdout);
+    assert!(r.stdout.contains("verify: nx typecheck,test:unit over 3 projects: 1 of 2 tasks replayed from the cache\n"), "{}", r.stdout);
 
     // Given files in the git index, Then added and modified code is gated, and deletions and non-code are not
     w.put("libraries/b/gone.ts", "old\n");
@@ -236,7 +238,59 @@ fn the_staged_gate_runs_through_nx() {
     assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), bundle.clone()]);
     let stale = json!([{ "match": "check:editor-bundle", "code": 4 }]);
     assert_eq!(w.staged(&["--files", "frontend/libraries/logging/src/z.ts"], stale, &[]).exit_code, 4);
-    assert_eq!(w.calls(), [LS.to_string(), lint_root, bundle]);
+    assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), bundle.clone()]);
+
+    // And so does a change to anything else the page imports: the CodeMirror host and the editor API
+    for imported in [
+        "frontend/mla-tamagui/features/leetcode/data/editor/cm6/cm6Host.ts",
+        "frontend/mla-tamagui/features/leetcode/data/editor/cm6/languageExtensions.ts",
+        "frontend/libraries/code-editor-api/src/core/engine.ts",
+    ] {
+        w.put(imported, "export {};\n");
+        assert_eq!(w.staged(&["--files", imported], json!([]), &[]).exit_code, 0, "{imported}");
+        assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), bundle.clone()], "{imported}");
+    }
+
+    // Given a change to the Pyodide runner's generated page or vendored files, Then its freshness check runs before the gate too, and a stale one stops it
+    let page = "frontend/mla-tamagui/features/leetcode/data/pyodide/pyodidePage.ts";
+    w.put(page, "export {};\n");
+    let pyodide = nx("check:pyodide", &["mla-tamagui"]);
+    assert_eq!(w.staged(&["--files", page], json!([]), &[]).exit_code, 0);
+    assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), pyodide.clone()]);
+    let stale = json!([{ "match": "check:pyodide", "code": 4 }]);
+    assert_eq!(w.staged(&["--files", page], stale, &[]).exit_code, 4);
+    assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), pyodide.clone()]);
+
+    // Given a change to the JavaScript runner's generated page or to the worker harness it carries, Then its freshness check runs before the gate too, and a stale one stops it
+    let js_runner = nx("check:js-runner", &["mla-tamagui"]);
+    for source in [
+        "frontend/mla-tamagui/features/leetcode/data/javascript/jsPage.ts",
+        "frontend/mla-tamagui/features/leetcode/data/javascript/harness/values.ts",
+        "frontend/mla-tamagui/features/leetcode/data/runner/judgeProtocol.ts",
+        "frontend/mla-tamagui/scripts/js-runner-build.mjs",
+    ] {
+        w.put(source, "export {};\n");
+        assert_eq!(w.staged(&["--files", source], json!([]), &[]).exit_code, 0, "{source}");
+        assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), js_runner.clone()], "{source}");
+        let stale = json!([{ "match": "check:js-runner", "code": 4 }]);
+        assert_eq!(w.staged(&["--files", source], stale, &[]).exit_code, 4, "{source}");
+        assert_eq!(w.calls(), [LS.to_string(), lint_root.clone(), js_runner.clone()], "{source}");
+    }
+
+    // Given a change under data/javascript/__tests__ only, Then the page is not rebuilt for it and its check does not run
+    let test_file = "frontend/mla-tamagui/features/leetcode/data/javascript/__tests__/judge.values.test.ts";
+    w.put(test_file, "export {};\n");
+    assert_eq!(w.staged(&["--files", test_file], json!([]), &[]).exit_code, 0);
+    assert!(!w.calls().contains(&js_runner), "{:?}", w.calls());
+
+    // Given a change to the rpc library the editor page, the Pyodide page and the JavaScript page all bundle, Then all three freshness checks run: each generated page carries a copy of it
+    let rpc = "frontend/libraries/webview-rpc/src/core/server.ts";
+    w.put(rpc, "export {};\n");
+    let r = w.staged(&["--files", rpc], json!([]), &[]);
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    assert!(w.calls().contains(&pyodide), "{:?}", w.calls());
+    assert!(w.calls().contains(&bundle), "{:?}", w.calls());
+    assert!(w.calls().contains(&js_runner), "{:?}", w.calls());
 
     // Given a gated budget over its limit, Then lint ran, the gate did not, and the failure names the budget
     w.put("CLAUDE.md", &"x".repeat(10_000));
@@ -283,7 +337,7 @@ fn the_staged_gate_gives_nx_the_build_cache_and_writes_to_it_only_from_a_clean_c
     git(&["add", "-A"]);
     git(&["commit", "-qm", "base"]);
     git(&["update-ref", "refs/remotes/origin/dev", "HEAD"]);
-    let (bucket, links) = fake_bucket(&["h-lint", "h-typechecktestunittestflow"]);
+    let (bucket, links) = fake_bucket(&["h-lint", "h-typechecktestunit"]);
     let gate = |extra: &[(&'static str, &'static str)]| {
         bucket.clear();
         let mut env = borrowed(&links);
@@ -441,7 +495,7 @@ fn the_e2e_summary_step_lists_a_replayed_pass_that_lacks_a_fresh_units_fields() 
         [
             "### android e2e tests for ef90df980",
             "- editor-typing: pass (replayed) in 0 s",
-            "- voice-edit chunk=1: pass in 41.5 s · [bundle](https://b.example/x)",
+            "- voice-edit chunk=1: pass in 41.5 s · bundle `https://b.example/x`",
             "- tamil-writing part=write: fail in 3.25 s · no ink · next: look",
         ]
     );
@@ -478,7 +532,7 @@ fn no_ci_step_writes_a_file_into_the_checkout_that_git_does_not_ignore() {
                 continue;
             }
             for target in write.captures_iter(script).map(|c| c[1].to_string()) {
-                let ignored = Command::new("git").args(["check-ignore", "-q", &target]).current_dir(&root).status().unwrap().success();
+                let ignored = crate::support::git_command().args(["check-ignore", "-q", &target]).current_dir(&root).status().unwrap().success();
                 if !ignored {
                     offenders.push(format!("{}:{}: {target}", file.strip_prefix(&root).unwrap().display(), n + 1));
                 }
@@ -530,13 +584,13 @@ fn the_simplicity_budget_measures_the_repo_and_fails_only_on_gated_limits_unless
     };
     let on = |r: &RunResult, re: &str| Regex::new(re).unwrap().is_match(&format!("{}{}", r.stdout, r.stderr));
 
-    // Given a repo within every budget, Then seventeen info lines print on stdout and it exits 0
+    // Given a repo within every budget, Then every budget prints an info line on stdout and it exits 0
     reset();
     let r = budget(&[]);
     assert_eq!((r.exit_code, r.stderr.as_str()), (0, ""));
     let out: Vec<&str> = r.stdout.trim().split('\n').collect();
-    assert_eq!(out.len(), 18);
-    let expected = [("pre-commit-jobs", 2, 5, true), ("root-claude-md-bytes", 7_300, 9_216, true), ("known-gaps-lines", 53, 200, true), ("concepts-dangling-links", 0, 0, true), ("backend-core-io-violations", 0, 0, true), ("cargo-dep-violations", 0, 0, true), ("blast-radius-violations", 0, 0, true), ("workspace-crossing-violations", 0, 0, true), ("ci-scope-violations", 0, 0, true), ("unpinned-third-party-actions", 0, 0, true), ("env-file-in-artifacts", 0, 0, true), ("secrets-inherit", 0, 0, true), ("handrolled-recorder-violations", 0, 0, true), ("cargo-task-npm-inputs", 0, 0, true), ("versioned-library-path-deps", 0, 0, true), ("wf-kit-lines", 0, 1200, true), ("root-scripts", 2, 15, false), ("agent-hooks", 1, 4, false)];
+    assert_eq!(out.len(), 19);
+    let expected = [("pre-commit-jobs", 2, 5, true), ("root-claude-md-bytes", 7_300, 9_216, true), ("known-gaps-lines", 53, 200, true), ("concepts-dangling-links", 0, 0, true), ("backend-core-io-violations", 0, 0, true), ("core-ambient-calls", 0, 0, true), ("unused-workspace-dep-violations", 0, 0, true), ("workspace-crossing-violations", 0, 0, true), ("ts-package-violations", 0, 0, true), ("ci-scope-violations", 0, 0, true), ("unpinned-third-party-actions", 0, 0, true), ("env-file-in-artifacts", 0, 0, true), ("secrets-inherit", 0, 0, true), ("handrolled-recorder-violations", 0, 0, true), ("cargo-task-npm-inputs", 0, 0, true), ("versioned-library-path-deps", 0, 0, true), ("wf-kit-lines", 0, 1200, true), ("root-scripts", 2, 15, false), ("agent-hooks", 1, 4, false)];
     for (line, (name, value, limit, gated)) in out.iter().zip(expected) {
         assert!(measured("info", name, value, limit, gated).is_match(line), "{line}");
     }
@@ -547,7 +601,7 @@ fn the_simplicity_budget_measures_the_repo_and_fails_only_on_gated_limits_unless
     assert_eq!(r.exit_code, 1);
     assert!(on(&r, r#"level=warn source=verify\.budget msg="root-claude-md-bytes over budget" value=9217 limit=9216 gated=true"#), "{}", r.stderr);
     assert!(r.stderr.contains("wf: simplicity budget exceeded: root-claude-md-bytes 9217>9216"));
-    assert_eq!(r.stdout.trim().split('\n').count(), 17);
+    assert_eq!(r.stdout.trim().split('\n').count(), 18);
     put(root, "CLAUDE.md", &"x".repeat(9_216));
     let r = budget(&[]);
     assert!(r.exit_code == 0 && on(&r, r#"msg="root-claude-md-bytes" value=9216 "#), "{}", r.stdout);
@@ -647,41 +701,6 @@ fn the_simplicity_budget_measures_the_repo_and_fails_only_on_gated_limits_unless
     // Then the one finding is counted once, not once for the member and once for the rule
     let r = budget(&[]);
     assert!(r.exit_code == 1 && on(&r, r#"msg="backend-core-io-violations over budget" value=1 limit=0 gated=true"#), "{}", r.stderr);
-    std::fs::remove_dir_all(root.join("backend")).unwrap();
-
-    // Given a pure crate (named by a does-io rule) on an adapter library, and the same library used by a crate no rule names
-    put(root, "backend/arch-rules/svc-core-crate-does-no-io.yml", &rule("svc-core-crate-does-no-io", "**/svc/core/src/**/*.rs", "does-io"));
-    put(root, "backend/svc/core/Cargo.toml", "[package]\nname = \"svc-core\"\n[dependencies]\nservice-kit = { path = \"../../service-kit\" }\n");
-    put(root, "backend/svc/rs/Cargo.toml", "[package]\nname = \"svc\"\n[dependencies]\nservice-kit = { path = \"../../service-kit\" }\n");
-    put(root, "backend/service-kit/Cargo.toml", "[package]\nname = \"service-kit\"\n");
-    // Then only the pure crate is a finding, and it is named
-    let r = budget(&[]);
-    assert!(r.exit_code == 1 && on(&r, r#"msg="cargo-dep-violations over budget" value=1 limit=0 gated=true"#), "{}", r.stderr);
-    assert!(r.stderr.contains("the pure crate svc-core depends on the adapter library service-kit"), "{}", r.stderr);
-    std::fs::remove_dir_all(root.join("backend")).unwrap();
-
-    // Given the exec testkit as a dev-dependency of rca-exec and rca-service, and an adapter library with only a contract crate below it
-    put(root, "clis/exec-testkit/Cargo.toml", "[package]\nname = \"exec-testkit\"\n");
-    put(root, "clis/rca-exec/Cargo.toml", "[package]\nname = \"rca-exec\"\n[dev-dependencies]\nexec-testkit = { path = \"../exec-testkit\" }\n");
-    put(root, "backend/remote-chat-agent/rs/Cargo.toml", "[package]\nname = \"rca-service\"\n[dev-dependencies]\nexec-testkit = { path = \"../../../clis/exec-testkit\" }\n");
-    put(root, "libraries/agent-api/agent-api-proto/Cargo.toml", "[package]\nname = \"agent-api-proto\"\n");
-    put(root, "libraries/agent-api/agent-api-client/Cargo.toml", "[package]\nname = \"agent-api-client\"\n[dependencies]\nagent-api-proto = { path = \"../agent-api-proto\" }\n");
-    put(root, "clis/t3-serve/core/Cargo.toml", "[package]\nname = \"t3-core\"\n[dependencies]\nagent-api-client = { path = \"../../../libraries/agent-api/agent-api-client\" }\n");
-    put(root, "clis/t3-serve/vcs/Cargo.toml", "[package]\nname = \"t3-vcs\"\n[dependencies]\nt3-core = { path = \"../core\" }\n");
-    // Then nothing is counted
-    assert!(on(&budget(&[]), r#"msg="cargo-dep-violations" value=0 "#));
-    // And the testkit as a normal dependency of a mapper, and the client library dev-depending on the area crate that consumes it through the core, are one finding each
-    put(root, "clis/t3-serve/core/Cargo.toml", "[package]\nname = \"t3-core\"\n[dependencies]\nagent-api-client = { path = \"../../../libraries/agent-api/agent-api-client\" }\nexec-testkit = { path = \"../../exec-testkit\" }\n");
-    put(root, "libraries/agent-api/agent-api-client/Cargo.toml", "[package]\nname = \"agent-api-client\"\n[dependencies]\nagent-api-proto = { path = \"../agent-api-proto\" }\n[dev-dependencies]\nt3-vcs = { path = \"../../../clis/t3-serve/vcs\" }\n");
-    let r = budget(&[]);
-    assert!(r.exit_code == 1 && on(&r, r#"msg="cargo-dep-violations over budget" value=2 limit=0 gated=true"#), "{}", r.stderr);
-    assert!(r.stderr.contains("t3-core depends on exec-testkit outside dev-dependencies") && r.stderr.contains("the adapter library agent-api-client depends on t3-vcs, which consumes it"), "{}", r.stderr);
-    // And a manifest that cannot be read is a finding too, so a broken one cannot hide a rule
-    put(root, "clis/t3-serve/core/Cargo.toml", "[package\nname = ");
-    let r = budget(&[]);
-    assert!(on(&r, r#"msg="cargo-dep-violations over budget" value=1 limit=0 gated=true"#) && r.stderr.contains("clis/t3-serve/core/Cargo.toml cannot be read"), "{}", r.stderr);
-    std::fs::remove_dir_all(root.join("clis")).unwrap();
-    std::fs::remove_dir_all(root.join("libraries")).unwrap();
     std::fs::remove_dir_all(root.join("backend")).unwrap();
 
     // Given libraries.json naming service-kit, a service that depends on it by path and a library manifest that does so beside a version and registry
@@ -785,7 +804,7 @@ fn the_pushed_gate_plans_the_push_runs_every_sandbox_stage_and_stops_the_push_on
     executable(
         &stub,
         &format!(
-            "#!/bin/sh\necho \"$* | nx=${{NX_CACHE_DIRECTORY:-shared}} push=${{WF_PUSH_TO_DEV:-no}}\" >> {}\n[ -z \"$STUB_UNSEEDED\" ] || case \"$*\" in *\"--stage flow-tests\"*) echo 'wf: build cache reads only for this run, dirty: 1 file' >&2;; esac\ncase \"$*\" in\n  *\"secret get OPENCODE_GO_API_KEY\"*) [ -z \"$STUB_NOKEY\" ] && echo model-key || exit 1;;\n  *\"test plan\"*) echo '{{\"stages\":{{}}}}';;\n  *--probe*) echo '{{\"ok\":true,\"ran\":[],\"cached\":[]}}';;\n  *\"--stage flow-tests\"*) [ -n \"$STUB_PASS\" ] || exit 1;;\nesac\n",
+            "#!/bin/sh\necho \"$* | nx=${{NX_CACHE_DIRECTORY:-shared}} push=${{WF_PUSH_TO_DEV:-no}}\" >> {}\n[ -z \"$STUB_UNSEEDED\" ] || case \"$*\" in *\"--stage flow-tests\"*) echo 'wf: build cache reads only for this run, dirty: 1 file' >&2;; esac\ncase \"$*\" in\n  *\"secret get OPENCODE_GO_API_KEY\"*) [ -z \"$STUB_NOKEY\" ] && echo model-key || exit 1;;\n  *\"ci plan tests\"*) echo '{{\"stages\":{{}}}}';;\n  *--probe*) echo '{{\"ok\":true,\"ran\":[],\"cached\":[]}}';;\n  *\"--stage flow-tests\"*) [ -n \"$STUB_PASS\" ] || exit 1;;\nesac\n",
             log.display()
         ),
     );
@@ -805,7 +824,7 @@ fn the_pushed_gate_plans_the_push_runs_every_sandbox_stage_and_stops_the_push_on
     // Then the push is planned against origin/dev, the four stages run in CI's order (the red one does not skip the rest), nothing is
     // written to the shared cache, a browser stage that is all replays asks for no export, and the gate exits 1 naming the stage
     let lines: Vec<&str> = calls.lines().collect();
-    assert!(lines[0].starts_with("test plan --changed --base origin/dev --json"), "{calls}");
+    assert!(lines[0].starts_with("ci plan tests --changed --base origin/dev --json"), "{calls}");
     let stages: Vec<&str> = lines.iter().filter(|l| l.contains("test run --stage") && !l.contains("--probe")).map(|l| l.split_whitespace().nth(3).unwrap()).collect();
     assert_eq!(stages, ["typecheck-lint-unit-tests", "flow-tests", "integration-tests", "browser-e2e-tests", "cli-e2e-tests"], "{calls}");
     assert!(lines.iter().all(|l| l.ends_with("push=no")) && !calls.contains("vm net"), "{calls}");
@@ -897,7 +916,7 @@ fn the_pushed_gate_refuses_a_push_to_dev_that_lacks_a_main_commit_and_proceeds_o
     git(root, &["checkout", "-q", "dev"]);
     let log = root.join("calls.log");
     let stub = root.join("stub-wf");
-    executable(&stub, &format!("#!/bin/sh\necho \"$*\" >> {}\ncase \"$*\" in *\"test plan\"*) echo '{{\"stages\":{{}}}}';; *--probe*) echo '{{\"ok\":true,\"ran\":[],\"cached\":[]}}';; esac\n", log.display()));
+    executable(&stub, &format!("#!/bin/sh\necho \"$*\" >> {}\ncase \"$*\" in *\"ci plan tests\"*) echo '{{\"stages\":{{}}}}';; *--probe*) echo '{{\"ok\":true,\"ran\":[],\"cached\":[]}}';; esac\n", log.display()));
     let run = |lines: &str| {
         let _ = std::fs::write(&log, "");
         let opts = RunOpts::default().cwd(root).clean_env().env("WF_PUSHED_EXE", stub.to_str().unwrap()).env("WF_PUSH_CLI_E2E", "0").input(lines);
@@ -905,7 +924,7 @@ fn the_pushed_gate_refuses_a_push_to_dev_that_lacks_a_main_commit_and_proceeds_o
         (r, std::fs::read_to_string(&log).unwrap_or_default())
     };
 
-    let rev = |name: &str| String::from_utf8(std::process::Command::new("git").args(["rev-parse", name]).current_dir(root).output().unwrap().stdout).unwrap().trim().to_string();
+    let rev = |name: &str| String::from_utf8(crate::support::git_command().args(["rev-parse", name]).current_dir(root).output().unwrap().stdout).unwrap().trim().to_string();
     let (dev_sha, main_sha) = (rev("dev"), rev("main"));
 
     // When the gate runs for a push to dev
@@ -928,14 +947,14 @@ fn the_pushed_gate_refuses_a_push_to_dev_that_lacks_a_main_commit_and_proceeds_o
     let (_, calls) = run("refs/heads/x aaa refs/heads/claude/x bbb\n");
 
     // Then the rule is for dev only: the push is planned
-    assert!(calls.contains("test plan"), "{calls}");
+    assert!(calls.contains("ci plan tests"), "{calls}");
 
     // When dev merges main and the gate runs again for a push to dev
     git(root, &["merge", "-q", "--no-edit", "main"]);
     let (r, calls) = run(&format!("refs/heads/dev {} refs/heads/dev bbb\n", rev("dev")));
 
     // Then the gate proceeds to plan and run its stages
-    assert!(calls.contains("test plan") && calls.contains("test run --stage"), "{calls}");
+    assert!(calls.contains("ci plan tests") && calls.contains("test run --stage"), "{calls}");
     assert!(!r.stderr.contains("does not contain origin/main"), "{}", r.stderr);
 }
 
@@ -951,7 +970,7 @@ fn the_pushed_gate_prepares_the_export_for_a_browser_stage_that_would_run_even_w
     executable(
         &stub,
         &format!(
-            "#!/bin/sh\necho \"$* | api=${{EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL:-none}}\" >> {}\ncase \"$*\" in\n  *\"test plan\"*) echo '{{\"stages\":{{}}}}';;\n  *--probe*) echo '{{\"ok\":true,\"ran\":[\"editor-typing\"],\"cached\":[]}}';;\n  *\"vm ops probe\"*|*\"vm net resolve\"*) exit 1;;\n  *\"secret get VM_GATEWAY_AUTH_SEED\"*) echo token-value;;\n  *\"secret get\"*) exit 1;;\nesac\n",
+            "#!/bin/sh\necho \"$* | api=${{EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL:-none}}\" >> {}\ncase \"$*\" in\n  *\"ci plan tests\"*) echo '{{\"stages\":{{}}}}';;\n  *--probe*) echo '{{\"ok\":true,\"ran\":[\"editor-typing\"],\"cached\":[]}}';;\n  *\"vm ops probe\"*|*\"vm net resolve\"*) exit 1;;\n  *\"secret get VM_GATEWAY_AUTH_SEED\"*) echo token-value;;\n  *\"secret get\"*) exit 1;;\nesac\n",
             log.display()
         ),
     );
@@ -1100,7 +1119,7 @@ fn the_pushed_gate_reports_per_stage_whether_the_run_seeded_the_shared_cache() {
     let stub = root.join("stub-wf");
     executable(
         &stub,
-        "#!/bin/sh\ncase \"$*\" in *\"--stage flow-tests\"*) echo 'wf: build cache reads only for this run, dirty: 1 file' >&2;; esac\ncase \"$*\" in\n  *\"test plan\"*) echo '{\"stages\":{}}';;\n  *--probe*) echo '{\"ok\":true,\"ran\":[],\"cached\":[]}';;\nesac\n",
+        "#!/bin/sh\ncase \"$*\" in *\"--stage flow-tests\"*) echo 'wf: build cache reads only for this run, dirty: 1 file' >&2;; esac\ncase \"$*\" in\n  *\"ci plan tests\"*) echo '{\"stages\":{}}';;\n  *--probe*) echo '{\"ok\":true,\"ran\":[],\"cached\":[]}';;\nesac\n",
     );
     let source = MockServer::start(None);
 
@@ -1135,7 +1154,7 @@ fn the_pushed_gate_refuses_a_stage_whose_acknowledged_writes_the_store_does_not_
     let stub = root.join("stub-wf");
     executable(
         &stub,
-        "#!/bin/sh\ncase \"$*\" in\n  *\"--stage flow-tests\"*) echo 'wf: build cache {\"seeded\":{\"checked\":10,\"present\":7}}' >&2;;\n  *\"--stage integration-tests\"*) echo 'wf: build cache {\"seeded\":{\"checked\":4,\"present\":4}}' >&2;;\nesac\ncase \"$*\" in\n  *\"test plan\"*) echo '{\"stages\":{}}';;\n  *--probe*) echo '{\"ok\":true,\"ran\":[],\"cached\":[]}';;\nesac\n",
+        "#!/bin/sh\ncase \"$*\" in\n  *\"--stage flow-tests\"*) echo 'wf: build cache {\"seeded\":{\"checked\":10,\"present\":7}}' >&2;;\n  *\"--stage integration-tests\"*) echo 'wf: build cache {\"seeded\":{\"checked\":4,\"present\":4}}' >&2;;\nesac\ncase \"$*\" in\n  *\"ci plan tests\"*) echo '{\"stages\":{}}';;\n  *--probe*) echo '{\"ok\":true,\"ran\":[],\"cached\":[]}';;\nesac\n",
     );
 
     // When a push to dev runs every stage
@@ -1162,7 +1181,7 @@ fn the_pushed_gate_deletes_a_passed_stages_test_executables_and_keeps_a_failed_s
     executable(
         &stub,
         &format!(
-            "#!/bin/sh\ncase \"$*\" in\n  *\"test plan\"*) echo '{{\"stages\":{{}}}}';;\n  *--probe*) echo '{{\"ok\":true,\"ran\":[],\"cached\":[]}}';;\n  *\"test run --stage\"*) s=$4; printf '#!/bin/sh\\n' > {d}/$s-0123456789abcdef; chmod +x {d}/$s-0123456789abcdef; echo lib > {d}/lib$s-0123456789abcdef.rlib; [ \"$s\" = flow-tests ] && [ -n \"$STUB_FAIL\" ] && exit 1;;\nesac\nexit 0\n",
+            "#!/bin/sh\ncase \"$*\" in\n  *\"ci plan tests\"*) echo '{{\"stages\":{{}}}}';;\n  *--probe*) echo '{{\"ok\":true,\"ran\":[],\"cached\":[]}}';;\n  *\"test run --stage\"*) s=$4; printf '#!/bin/sh\\n' > {d}/$s-0123456789abcdef; chmod +x {d}/$s-0123456789abcdef; echo lib > {d}/lib$s-0123456789abcdef.rlib; [ \"$s\" = flow-tests ] && [ -n \"$STUB_FAIL\" ] && exit 1;;\nesac\nexit 0\n",
             d = deps.display()
         ),
     );

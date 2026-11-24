@@ -7,7 +7,7 @@ mod ci;
 mod dotenv;
 mod groups;
 mod job_scopes;
-mod parity;
+mod scope_compare;
 mod registry;
 mod scope;
 mod sync_env;
@@ -16,7 +16,12 @@ mod vault;
 mod verify;
 mod writers;
 
-pub use writers::update_secret_value;
+/// See `ci::announce_off`.
+pub fn announce_masks_off() {
+    ci::announce_off(true);
+}
+
+pub use writers::{rotate_login, update_secret_value, Rotation};
 
 use wf_kit::args::{parse, parse_none, Parsed};
 use backend::Backend;
@@ -434,21 +439,21 @@ fn cmd_verify_scope(p: &Parsed, scope: &str) -> Result<i32, String> {
     Ok(if report.ok() { 0 } else { 1 })
 }
 
-/// `wf secret parity --json`: per CI scope, the registry keys the token's project holds and a nonce-keyed hash of each value. Run it
+/// `wf secret scope-compare --json`: per CI scope, the registry keys the token's project holds and a nonce-keyed hash of each value. Run it
 /// on two runner kinds with the same `--nonce` and diff the output; no value is printed.
-fn cmd_parity(p: Parsed) -> Result<i32, String> {
+fn cmd_scope_compare(p: Parsed) -> Result<i32, String> {
     let nonce = match p.opts.get("nonce") {
         Some(n) if n.len() >= 16 => n.clone(),
         Some(_) => {
             err("--nonce must be at least 16 characters\n");
             return Ok(1);
         }
-        None => parity::fresh_nonce()?,
+        None => scope_compare::fresh_nonce()?,
     };
     cache::refresh_this_run();
     let mut ctx = Ctx::new(p.opts.get("backend").map(String::as_str))?;
     let registry = ctx.registry.clone();
-    let (report, ok) = parity::report(&registry, ctx.backend.as_mut(), &nonce)?;
+    let (report, ok) = scope_compare::report(&registry, ctx.backend.as_mut(), &nonce)?;
     out(&format!("{}\n", serde_json::to_string_pretty(&report).map_err(|e| e.to_string())?));
     Ok(if ok { 0 } else { 1 })
 }
@@ -539,10 +544,11 @@ pub fn run(args: &[String]) -> Option<i32> {
         }
         "verify" => parse_none(rest, &["for", "scope", "backend"], &[]),
         "scope-check" => parse_none(rest, &["workflows", "jobs"], &["json"]),
-        "parity" => parse_none(rest, &["nonce", "backend"], &["json"]),
+        "scope-compare" => parse_none(rest, &["nonce", "backend"], &["json"]),
         "cache" => parse(rest, &[], &[]).filter(|p| p.positional == ["clear"]),
         "set" => parse(rest, &[], &[]).filter(|p| (1..=2).contains(&p.positional.len())),
         "delete" => parse(rest, &[], &[]).filter(|p| p.positional.len() == 1),
+        "rotate-login" => parse(rest, &["from"], &[]).filter(|p| p.positional.len() == 1 && writers::LOGINS.iter().any(|(name, _)| *name == p.positional[0])),
         "push-notes" => parse_none(rest, &[], &["apply", "verbose"]),
         "create" => parse(rest, &["value", "value-from"], &["value-stdin", "placeholder", "apply"]).filter(|p| p.positional.len() == 2),
         "update" => parse(rest, &["value"], &["value-stdin", "apply"]).filter(|p| p.positional.len() == 1),
@@ -558,13 +564,14 @@ pub fn run(args: &[String]) -> Option<i32> {
         "sync-env" => cmd_sync_env(parsed),
         "verify" => cmd_verify(parsed),
         "scope-check" => job_scopes::cmd(&parsed),
-        "parity" => cmd_parity(parsed),
+        "scope-compare" => cmd_scope_compare(parsed),
         "cache" => {
             out(&format!("Removed {} cached vault copy(ies)\n", cache::clear()));
             Ok(0)
         }
         "set" => writers::cmd_set(parsed),
         "delete" => writers::cmd_delete(parsed),
+        "rotate-login" => writers::cmd_rotate_login(parsed),
         "push-notes" => writers::cmd_push_notes(parsed),
         "create" => writers::cmd_create(parsed),
         "update" => writers::cmd_update(parsed),
@@ -607,6 +614,14 @@ pub fn load_values(keys: &[&str]) -> HashMap<String, Option<String>> {
         out.insert((*k).to_string(), value.filter(|v| !v.is_empty()));
     }
     out
+}
+
+/// Every registry value the default backend holds, for a scan that must refuse a file containing one. An unreadable vault is an error:
+/// a scan that silently compared against nothing would pass everything.
+pub fn all_values() -> Result<Vec<String>, String> {
+    let mut ctx = Ctx::new(None)?;
+    ctx.load()?;
+    Ok(ctx.registry.iter().filter_map(|e| ctx.env.get(&e.env_var)).filter(|v| !v.is_empty()).collect())
 }
 
 /// One registry secret through the default backend, for commands outside `wf secret` that need a value.

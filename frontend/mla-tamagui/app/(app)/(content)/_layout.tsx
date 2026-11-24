@@ -1,5 +1,8 @@
-import { ScreenHeader } from '@lib/tamagui-design-system';
+import { useScreenHeaderOptions } from '@lib/tamagui-design-system';
 import { router, Stack } from 'expo-router';
+import { useDrawerProgress } from 'expo-router/drawer';
+import { StyleSheet } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 /**
  * The inner Stack every drawer destination lives in.
@@ -8,34 +11,43 @@ import { router, Stack } from 'expo-router';
  * of this Stack's header rather than stacking two.
  */
 export default function ContentLayout() {
+  const drawerProgress = useDrawerProgress();
+  const pageStyle = useAnimatedStyle(() => ({
+    borderRadius: 28 * drawerProgress.value,
+    transform: [{ scale: 1 - 0.06 * drawerProgress.value }],
+  }));
+  const shadeStyle = useAnimatedStyle(() => ({
+    opacity: 0.24 * drawerProgress.value,
+  }));
+  const serviceReportHeader = useScreenHeaderOptions({
+    glass: true,
+    testID: 'ServiceReportHeader',
+    title: 'Service Report',
+    onBack: () => router.back(),
+  });
+  return (
+    <Animated.View style={[styles.page, pageStyle]}>
+      <ContentStack serviceReportHeader={serviceReportHeader} />
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, styles.shade, shadeStyle]}
+      />
+    </Animated.View>
+  );
+}
+
+function ContentStack({
+  serviceReportHeader,
+}: {
+  serviceReportHeader: ReturnType<typeof useScreenHeaderOptions>;
+}) {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="showcase" options={{ title: 'Design system' }} />
-      <Stack.Screen
-        name="coding-agent/index"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="coding-agent/[threadId]"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="coding-agent/runs/[runId]"
-        options={{ headerShown: false }}
-      />
-      {/* Both Tamil screens carry their own header: the course screen a
-          collapsing hero, the lesson screen a ScreenHeader whose title is the
-          lesson's own Tamil name. */}
-      <Stack.Screen name="tamil/index" options={{ headerShown: false }} />
-      <Stack.Screen name="tamil/[lessonId]" options={{ headerShown: false }} />
-      <Stack.Screen name="tamil/review" options={{ headerShown: false }} />
-      <Stack.Screen name="tamil/tracks/index" options={{ headerShown: false }} />
-      <Stack.Screen name="tamil/tracks/[trackId]" options={{ headerShown: false }} />
-      {/* Left unregistered, expo-router draws its own bar with the route's
-          file name -- "tamil/write/[characterId]" sat above the screen's
-          real header. */}
-      <Stack.Screen name="tamil/write/[subjectId]" options={{ headerShown: false }} />
+      <Stack.Screen name="showcase" options={{ headerShown: false, title: 'Design system' }} />
+      <Stack.Screen name="coding-agent" options={{ headerShown: false }} />
+      {/* The Tamil screens carry their own headers; the tamil/ layout mounts the feature's container and owns the nested Stack. */}
+      <Stack.Screen name="tamil" options={{ headerShown: false }} />
       {/* settings and service-report are files in THIS group, so their
           screens register here. Registered on the root Stack instead, expo-router
           reports `No route named "settings" exists in nested children` and the
@@ -62,30 +74,16 @@ export default function ContentLayout() {
         options={{ headerShown: false }}
       />
       <Stack.Screen name="settings/about" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="dashboards/index"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="dashboards/infra"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="dashboards/agents"
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="dashboards" options={{ headerShown: false }} />
       <Stack.Screen
         name="service-report"
-        options={{
-          header: () => (
-            <ScreenHeader
-              testID="ServiceReportHeader"
-              title="Service Report"
-              onBack={() => router.back()}
-            />
-          ),
-        }}
+        options={serviceReportHeader}
       />
     </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  page: { flex: 1, overflow: 'hidden', borderCurve: 'continuous' },
+  shade: { backgroundColor: '#000' },
+});

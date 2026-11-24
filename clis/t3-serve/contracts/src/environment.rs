@@ -16,6 +16,10 @@ pub enum EnvironmentError {
     InvalidHistoryCursor,
     TranscriptTooLarge,
     ThreadNotFound,
+    /// A request the route refuses for a reason of the closed set: `invalid_audio`, `speech_unavailable`, `invalid_command`.
+    RequestInvalid(&'static str),
+    /// The server failed on a request that was well formed.
+    Internal,
 }
 
 impl EnvironmentError {
@@ -23,8 +27,9 @@ impl EnvironmentError {
         match self {
             EnvironmentError::CredentialMissing | EnvironmentError::CredentialInvalid => 401,
             EnvironmentError::ScopeRequired(_) => 403,
-            EnvironmentError::InvalidHistoryCursor | EnvironmentError::TranscriptTooLarge => 400,
+            EnvironmentError::InvalidHistoryCursor | EnvironmentError::TranscriptTooLarge | EnvironmentError::RequestInvalid(_) => 400,
             EnvironmentError::ThreadNotFound => 404,
+            EnvironmentError::Internal => 500,
         }
     }
 
@@ -42,6 +47,8 @@ impl EnvironmentError {
             EnvironmentError::InvalidHistoryCursor => json!({"_tag": "EnvironmentRequestInvalidError", "code": "invalid_request", "reason": "invalid_history_cursor", "traceId": trace_id}),
             EnvironmentError::TranscriptTooLarge => json!({"_tag": "EnvironmentRequestInvalidError", "code": "invalid_request", "reason": "thread_transcript_too_large", "traceId": trace_id}),
             EnvironmentError::ThreadNotFound => json!({"_tag": "EnvironmentResourceNotFoundError", "code": "not_found", "reason": "thread_not_found", "traceId": trace_id}),
+            EnvironmentError::Internal => json!({"_tag": "EnvironmentInternalError", "code": "internal_error", "reason": "internal_error", "traceId": trace_id}),
+            EnvironmentError::RequestInvalid(reason) => json!({"_tag": "EnvironmentRequestInvalidError", "code": "invalid_request", "reason": reason, "traceId": trace_id}),
         }
     }
 }

@@ -13,7 +13,7 @@
       "count": 20
     },
     "variant": {
-      "path": "/showcase",
+      "path": "/showcase?item=chip",
       "testIds": [
         "Showcase-CodingAgent-ChipPlan",
         "Showcase-CodingAgent-ChipBuild"

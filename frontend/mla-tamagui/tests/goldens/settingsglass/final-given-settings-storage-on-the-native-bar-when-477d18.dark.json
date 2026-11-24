@@ -1,0 +1,63 @@
+{
+  "suite": "settingsglass",
+  "step": "final-given-settings-storage-on-the-native-bar-when-477d18",
+  "scheme": "dark",
+  "snapshot": "settingsglass/final-given-settings-storage-on-the-native-bar-when-477d18.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "StorageSettingsScreen",
+      "NativeHeader",
+      "NativeHeaderLeft",
+      "NativeHeaderItem-Go back",
+      "NativeHeaderTitle",
+      "ScreenHeaderGlassTitle",
+      "ScreenHeaderGlassTitleText",
+      "NativeHeaderRight",
+      "StorageSettingsScreen-ScrollView",
+      "StorageSettingsScreen-Group",
+      "StorageSettingsScreen-Tiles",
+      "StatTile-Root",
+      "StorageSettingsScreen-ClearRow",
+      "StorageSettingsScreen-ClearCacheButton",
+      "StorageSettingsScreen-Note"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nGo back\nStorage\n48.2 MB\nBUNDLE CACHE\n128.7 MB\nIMAGE CACHE\nClear cache\nLocal only — this screen is not connected to an account service."
+  },
+  "timings": {
+    "render_ms": 226
+  },
+  "name": "settingsglass/final-given-settings-storage-on-the-native-bar-when-477d18.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

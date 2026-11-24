@@ -21,3 +21,6 @@ tungstenite = { version = "0.30", default-features = false, features = ["handsha
 [dev-dependencies]
 agent-api-agent = { path = "../agent-api-agent", features = ["testing"] }
 agent-api-proto = { path = "../agent-api-proto", features = ["testing"] }
+
+[package.metadata.arch]
+type = "library"

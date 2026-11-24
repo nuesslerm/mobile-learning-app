@@ -25,6 +25,18 @@ steps per job, slowest tests, test suites, Nx runs (critical path, recoverable
 time), deploy phases, the cache hits, misses, puts and latencies per job and the
 flow tests' crates (replayed or ran).
 
+For a hosted workflow a Trend section follows the job chart: this run's wall, critical path and queue against the median of the last 20 successful runs of the
+same workflow in the sealed CI database (CI_DB_KEY; WF_CI_SEALED_FILE names a sealed file instead), the longest job of the critical path with its slowest step,
+and line charts of the wall time of those runs. It is left out when the database cannot be read.
+
+When the sampler's files cover the run's steps, "Where the idle time is" follows: the five steps with the most idle seconds (CPU under 25% of the samples over the
+step) with their job, idle time, share of the run's idle and a category from a fixed list of step names (setup, install, cache, test wait, e2e boot, teardown, other),
+and the overhead share (setup, install, runner start and stop, teardown over all step seconds) against the median of the same workflow's last 20 successful runs. "What
+to do" then has one line for each signal that is amber or red, from one fixed table (clis/pipeline/src/ci_actions.rs): wall time against that median (10% / 25%
+slower), overhead share (30% / 45%), idle share (35% / 55%), parallel efficiency (0.75 / 0.6, higher is better), queue wait in total (20 s / 60 s), a job's Nx replay
+against the median of those runs (10 / 30 points under), I/O wait average (10% / 20%) and sustained pressure (share of a job's seconds in 30 s stretches over 20% memory or I/O pressure, 2% / 10%); each line names the lever. A green signal has no
+line. The blocks and lines that need the database or the step data are left out when it cannot be read or has none, and nothing else changes.
+
 The report goes in the job summary ($GITHUB_STEP_SUMMARY) and as THE CI comment
 of the pull request of the branch: the only one, last on the page, which is this
 run's own (`wf ci live` keeps it up to date while the run executes, with the

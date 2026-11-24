@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { TamilWriteScreen, tamilPageParams } from '@/features/tamil-writing';
+import { TamilWriteScreen } from '../../ui/TamilWriteScreen';
+import { tamilPageParams } from '../../di/pageParams';
 
 export const generateStaticParams = tamilPageParams.subjects;
 

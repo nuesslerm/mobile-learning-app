@@ -625,9 +625,9 @@ bearer token (`VM_OPS_API_AUTH_TOKEN`, constant-time-compared in `backend/vm-ops
 same posture as any other public API secured by a credential rather than a
 network boundary.
 
-**How code changes reach the VM without SSH.** CI (`.github/workflows/deploy.yml`)
+**How code changes reach the VM without SSH.** CI (`.github/workflows/pipeline.yml`)
 ships vm-ops-api as its first deploy leg: the job builds and pushes `vm-ops-api-rs` and the
-watchdog as `sha-<short>` on the runner's builder sidecar, then
+watchdog as `sha-<short>` on the hosted runner, then
 `wf ship vm-ops-api --ref <sha> --redeploy-only --tag sha-<short> --wait-serving`
 calls `POST /redeploy?ref=<sha>&tag=sha-<short>`; vm-ops-api (the Rust service, image
 `vm-ops-api-rs`) builds nothing, it proves the pushed image as a throwaway container and
@@ -774,28 +774,6 @@ Every unknown path answers `401` without a token and `404` with one; the
 dev-bridge routes of metro-runner are gone (22 Oct), so they are unknown paths. vm-ops-api deploys nothing on its own: there is no trunk
 poll; every deploy is a CI leg.
 
-### Building the 4 production apps locally when CI can't
-
-`.github/workflows/build-images.yml` is the only thing that ever pushes new
-images for the real backend apps (`leetcode-backend`,
-`remote-chat-agent`, `leetcode-auth-cookie-capture`)
-— unlike `vm-ops-api`, they had no manual build+push fallback, so a CI outage
-(e.g. a GitHub Actions billing issue) means no new image for any of them,
-indefinitely. `scripts/build-and-push-image.sh` (repo root) is that fallback:
-same Dockerfile, same repo-root context, same `sha-<short>`/`latest` tag
-scheme as CI, buildable from any machine with Docker — including this
-sandbox, which needed a sandbox-only, non-committed CA-trust patch (see the
-script) to get past the proxy's TLS interception during `npm`/`apt` fetches.
-
-```bash
-./scripts/build-and-push-image.sh leetcode-backend
-# -> pushes nuesslerm/leetcode-backend:sha-<short> and :latest
-```
-
-Docker's own layer cache (not a rewritten Dockerfile) is what makes repeat
-builds on the same daemon incremental — only layers after a real source
-change get rebuilt; the expensive toolchain/corepack layer stays cached.
-
 ### First-time provisioning via `/services/:app/redeploy`
 
 None of the four apps had ever actually been deployed to a VM
@@ -815,9 +793,9 @@ This repo is private, so an unauthenticated `raw.githubusercontent.com` fetch
 404s (confirmed directly) — provisioning needs **`VM_PROVISION_GITHUB_TOKEN`**,
 a fine-grained PAT scoped to **`Contents: Read` only**, on this one repo, set
 via `wf secret set VM_PROVISION_GITHUB_TOKEN` (see the secrets registry entry
-for the exact GitHub UI steps). Deliberately much narrower than `GITHUB_TOKEN`
-(remote-chat-agent's clone/push/PR credential) — provisioning has no business
-holding write/PR/actions scope. Without it, provisioning a not-yet-deployed
+for the exact GitHub UI steps). It is now the one GitHub credential (rca's old
+`GITHUB_TOKEN` is deleted from the vault), so grant it only the scopes its
+consumers need. Without it, provisioning a not-yet-deployed
 app fails with a clear `GET ... -> 404`; redeploying an already-provisioned
 app is unaffected.
 

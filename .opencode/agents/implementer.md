@@ -1,5 +1,5 @@
 ---
-description: Implements one well-specified unit of coding work (named files, one imperative task, constraints, a grep-verifiable end state) and reports what changed. Used by wf offload ask --agent implementer and the git-state worker implement step of `wf offload plan` (rca).
+description: Implements one well-specified unit of coding work (named files, one imperative task, constraints, a grep-verifiable end state) and reports what changed. Used by wf rca ask --agent implementer and the git-state worker implement step of `wf rca plan` (rca).
 mode: subagent
 model: minimax/MiniMax-M3
 temperature: 0.1

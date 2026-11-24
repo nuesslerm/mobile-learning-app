@@ -1,7 +1,7 @@
 //! The chain's processes and the phone that drives them. The service, the executor and the mapper are real processes; the executor and the mapper
 //! reach the service through a `Tap`, so every agent API call the mapper makes and every tool the service asks the executor is seen.
 use crate::support::*;
-use exec_testkit::{Case, HostedClis, RcaExec, RcaService, ScriptedCli, Suite, Tap, TempRepo};
+use exec_testkit::{Case, RcaExec, RcaService, ScriptedCli, Suite, Tap, TempRepo};
 use std::collections::BTreeSet;
 use std::io::{BufRead, BufReader};
 use std::net::SocketAddr;
@@ -14,7 +14,13 @@ pub static SUITE: Suite = Suite::new("t3-serve-integration", "t3");
 
 /// The service's secret: the executor channel's, and the operator's who mints the mapper's bearer.
 pub const SECRET: &str = "chain-service-secret";
-const BIN: &str = env!("CARGO_BIN_EXE_t3-serve");
+/// The `t3-serve` binary: the one `T3_SERVE_BIN` names (the chain launcher's `--t3-serve`), else the one cargo built beside the test.
+fn bin() -> String {
+    std::env::var("T3_SERVE_BIN").unwrap_or_else(|_| match option_env!("CARGO_BIN_EXE_t3-serve") {
+        Some(path) => path.to_string(),
+        None => panic!("no t3-serve beside this program: pass --t3-serve"),
+    })
+}
 const METHODS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/plans/rca-parity/coverage/t3-methods.json");
 
 /// How long a turn of the scripted CLI may take to settle.
@@ -72,6 +78,31 @@ impl Direct {
     }
 }
 
+/// The real agent CLIs of a chain, read from the environment `wf mimic exec` built: the names, the directory of the pinned binaries, the home the
+/// executor runs in and the variables (credentials, or `CODEX_HOME`) it hands the executor. This crate never resolves a credential itself.
+pub struct Real {
+    pub names: Vec<String>,
+    pub bin: PathBuf,
+    pub home: PathBuf,
+    pub env: Vec<(String, String)>,
+}
+
+/// The mode of this run from `get` (the environment): `Ok(None)` for scripted, the real CLIs otherwise, or the name of the variable that is missing.
+pub fn real_from(get: &dyn Fn(&str) -> Option<String>) -> Result<Option<Real>, String> {
+    let list = |name: &str| get(name).map(|v| v.split(',').map(str::trim).filter(|s| !s.is_empty()).map(String::from).collect::<Vec<_>>()).unwrap_or_default();
+    let names = list("T3_CHAIN_REAL_CLIS");
+    if names.is_empty() {
+        return Ok(None);
+    }
+    let need = |name: &str| get(name).filter(|v| !v.is_empty()).ok_or_else(|| format!("{name} is not set: start the chain through `wf mimic exec`"));
+    let env = list("T3_CHAIN_EXECUTOR_ENV").into_iter().map(|k| need(&k).map(|v| (k, v))).collect::<Result<Vec<_>, _>>()?;
+    Ok(Some(Real { names, bin: PathBuf::from(need("MIMIC_REAL_CLI_DIR")?), home: PathBuf::from(need("T3_CHAIN_CLI_HOME")?), env }))
+}
+
+pub fn real_from_env() -> Result<Option<Real>, String> {
+    real_from(&|k| std::env::var(k).ok())
+}
+
 pub struct Chain {
     pub tap: Tap,
     pub cli: ScriptedCli,
@@ -79,12 +110,9 @@ pub struct Chain {
     pub service: RcaService,
     pub addr: SocketAddr,
     pub state: tempfile::TempDir,
-    /// Where the executor puts the worktrees it makes, and the one directory outside its root it may list (`alpha`, `beta`, and a file).
-    pub base: PathBuf,
-    pub shared: PathBuf,
-    /// The fake `gh` and `glab` first on the executor's `PATH`, for the chains that read and act on hosted source control.
-    pub hosted: Option<HostedClis>,
     _dirs: tempfile::TempDir,
+    /// The real CLIs of this chain, when the launcher asked for them.
+    pub real: Option<Real>,
     server: Child,
     errlog: PathBuf,
     _exec: RcaExec,
@@ -99,26 +127,18 @@ pub struct Phone {
 }
 
 impl Chain {
-    /// The service with the scripted CLIs first on its `PATH`, the executor attached for workspace `w1` through the tap on a new repository, and
+    /// The service, and the executor with the scripted CLIs first on its `PATH` (a turn's CLI runs where the workspace is), attached for workspace `w1` through the tap on a new repository, and
     /// `t3-serve serve` pointed at the tap with a bearer the operator minted. It returns once serve says it listens.
     pub fn start() -> Chain {
-        Chain::start_with(None)
+        Chain::start_with_env(&[])
     }
 
-    /// `start` with the executor's `PATH` led by the fake `gh` and `glab` (`Chain::hosted`).
-    pub fn start_hosted() -> Chain {
-        Chain::start_with(Some(HostedClis::install()))
-    }
-
-    /// The fake `gh` and `glab` of a chain made by `start_hosted`.
-    pub fn clis(&self) -> &HostedClis {
-        self.hosted.as_ref().expect("the chain was started with start_hosted")
-    }
-
-    fn start_with(hosted: Option<HostedClis>) -> Chain {
+    /// `start`, with `env` also in the service's environment (the address of its speech sidecar).
+    pub fn start_with_env(env: &[(&str, &str)]) -> Chain {
+        let real = real_from_env().unwrap_or_else(|e| panic!("the real CLIs of this chain: {e}"));
         let cli = ScriptedCli::install();
         let repo = TempRepo::new();
-        let service = RcaService::start(SECRET, &cli.path());
+        let service = RcaService::start_with_env(SECRET, &cli.path(), env);
         let tap = Tap::to(service.addr());
         let dirs = tempfile::Builder::new().prefix("t3-serve-dirs-").tempdir().unwrap();
         let root = std::fs::canonicalize(dirs.path()).unwrap();
@@ -128,39 +148,46 @@ impl Chain {
         }
         std::fs::write(shared.join("notes.txt"), "not a directory").unwrap();
         let flags = ["--worktree-base", base.to_str().unwrap(), "--browse-allow", shared.to_str().unwrap()];
-        let exec = match &hosted {
-            Some(clis) => RcaExec::serve_on(&tap.url(), "w1", &repo, SECRET, &flags, &clis.path()),
-            None => RcaExec::serve_with(&tap.url(), "w1", &repo, SECRET, &flags),
+        let exec = match &real {
+            None => RcaExec::serve_on(&tap.url(), "w1", &repo, SECRET, &flags, &cli.path()),
+            Some(real) => {
+                // the real binaries come first on the executor's PATH and the scripted ones stay behind them for the names not run for real
+                let path = std::env::join_paths(std::iter::once(real.bin.clone()).chain(std::env::split_paths(&cli.path()))).expect("a PATH of two directories");
+                let mut env = real.env.clone();
+                // Claude Code refuses its skip-permissions flag as root unless it is told it runs in a sandbox
+                if std::process::Command::new("id").arg("-u").output().is_ok_and(|o| o.stdout.starts_with(b"0\n")) {
+                    env.push(("IS_SANDBOX".into(), "1".into()));
+                }
+                RcaExec::serve_with_env(&tap.url(), "w1", &repo, SECRET, &flags, &path, Some(&real.home), &env)
+            }
         };
         let bearer = service.mint("t3 chain");
         let state = tempfile::Builder::new().prefix("t3-serve-chain-").tempdir().unwrap();
         let errlog = state.path().join("serve.err");
         let (server, addr) = spawn_serve(state.path(), &errlog, &tap.url(), &bearer);
-        Chain { tap, cli, repo, service, addr, state, base, shared, hosted, _dirs: dirs, server, errlog, _exec: exec }
-    }
-
-    /// `t3-serve serve` stopped and started again on the same state directory and the same service, as a restart of the server is: what it kept in its
-    /// own store stays, what it held in memory is gone, and a phone pairs and connects again (the address is new).
-    pub fn restart_serve(&mut self) {
-        let _ = self.server.kill();
-        let _ = self.server.wait();
-        let bearer = self.service.mint("t3 chain restarted");
-        let (server, addr) = spawn_serve(self.state.path(), &self.errlog, &self.tap.url(), &bearer);
-        self.server = server;
-        self.addr = addr;
+        Chain { tap, cli, repo, service, addr, state, _dirs: dirs, real, server, errlog, _exec: exec }
     }
 
     /// A pairing code minted by a separate `t3-serve pair` on the server's state directory, as an operator hands one to a phone, with the scopes the
     /// phone is to get.
     pub fn pair_with(&self, scopes: &[String]) -> String {
-        let mut command = Command::new(BIN);
+        let mut command = Command::new(bin());
         command.args(["t3", "pair", "--state-dir"]).arg(self.state.path());
         if !scopes.is_empty() {
             command.args(["--scope", &scopes.join(",")]);
         }
-        let out = command.stdin(Stdio::null()).output().unwrap();
+        let out = without_credentials(&mut command).stdin(Stdio::null()).output().unwrap();
         assert!(out.status.success(), "{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
         serde_json::from_slice::<Value>(&out.stdout).unwrap()["code"].as_str().unwrap().to_string()
+    }
+
+    /// The command `pair_with` runs, for a `wf mimic replay --mint` that pairs the phone it plays: the scopes it is to get, on this server's state directory.
+    pub fn pair_command(&self, scopes: &[String]) -> String {
+        let mut command = format!("{} t3 pair --state-dir {}", bin(), self.state.path().display());
+        if !scopes.is_empty() {
+            command.push_str(&format!(" --scope {}", scopes.join(",")));
+        }
+        command
     }
 
     pub fn direct(&self) -> Direct {
@@ -181,13 +208,29 @@ impl Drop for Chain {
     }
 }
 
+/// The variables `wf mimic exec` hands the executor only: the mapper and its pairing command never need an agent CLI's credential.
+const CREDENTIAL_VARS: [&str; 6] = ["CLAUDE_CODE_OAUTH_TOKEN", "CODEX_OAUTH_JSON_B64", "CODEX_HOME", "OPENCODE_API_KEY", "OPENCODE_GO_API_KEY", "T3_CHAIN_EXECUTOR_ENV"];
+
+fn without_credentials(command: &mut Command) -> &mut Command {
+    let named = std::env::var("T3_CHAIN_EXECUTOR_ENV").unwrap_or_default();
+    for name in CREDENTIAL_VARS.into_iter().chain(named.split(',').filter(|n| !n.trim().is_empty())) {
+        command.env_remove(name.trim());
+    }
+    command
+}
+
+/// The address guest links point at; sharing itself stays off until the owner turns the setting on.
+pub const GUEST_HOST: &str = "guests.example";
+
 /// `t3-serve serve` on `state` pointed at the service through the tap, listening once it says so.
 fn spawn_serve(state: &std::path::Path, errlog: &std::path::Path, tap_url: &str, bearer: &str) -> (Child, SocketAddr) {
-    let mut server = Command::new(BIN)
+    let mut command = Command::new(bin());
+    let mut server = without_credentials(&mut command)
         .args(["t3", "serve", "--port", "0", "--state-dir"])
         .arg(state)
         .args(["--rca-url", tap_url, "--rca-workspace", "w1"])
         .env("T3_RCA_BEARER", bearer)
+        .env("T3_GUEST_HOST", GUEST_HOST)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(std::fs::OpenOptions::new().create(true).append(true).open(errlog).unwrap())
@@ -283,10 +326,23 @@ impl Phone {
         }
     }
 
+    /// Waits until the provider's turn has shown something on the thread's rows: a steer is refused before that, as T3 refuses it.
+    pub fn begun(&mut self, thread: &str) {
+        let deadline = Instant::now() + SETTLE;
+        loop {
+            let projection = success(&self.calls.call("orchestration.getThreadProjection", json!({"threadId": thread}))).clone();
+            if projection["turnItems"].as_array().is_some_and(|items| items.iter().any(|i| i["type"] == "assistant_message")) {
+                return;
+            }
+            assert!(Instant::now() < deadline, "{thread}'s turn never showed output");
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    }
+
     /// A message to `thread` as one call of the trace, which ends when the run it started has: served when the command was accepted and the
     /// run completed, so the call's window holds the whole turn (the agent API calls, the executor's tools).
     pub fn message(&mut self, case: &mut Case, chain: &Chain, thread: &str, command_id: &str, text: &str) -> Value {
-        let command = json!({"type": "message.dispatch", "commandId": command_id, "threadId": thread, "message": {"messageId": format!("m-{command_id}"), "text": text}});
+        let command = json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": command_id, "threadId": thread, "messageId": format!("m-{command_id}"), "text": text});
         case.call(&chain.tap, &rows(&["rpc:orchestration.dispatchCommand", "command:message.dispatch"]), || {
             let exit = self.calls.call("orchestration.dispatchCommand", command);
             let projection = self.settled(thread);
@@ -302,6 +358,24 @@ impl Phone {
         case.call(&chain.tap, &rows(&["rpc:orchestration.dispatchCommand", &row]), || {
             let exit = self.calls.call("orchestration.dispatchCommand", command);
             (exit["_tag"] == "Success", exit)
+        })
+    }
+
+    /// A command whose work goes on after it is accepted (a preparation that makes a worktree, then starts a run): served when it was accepted and
+    /// the thread reached `expect` within the settle time, so the window holds the executor actions of all of it.
+    pub fn command_until(&mut self, case: &mut Case, chain: &Chain, command: Value, thread: &str, expect: impl Fn(&Value) -> bool) -> Value {
+        let kind = command["type"].as_str().expect("a command has a type").to_string();
+        let row = format!("command:{kind}");
+        case.call(&chain.tap, &rows(&["rpc:orchestration.dispatchCommand", &row]), || {
+            let exit = self.calls.call("orchestration.dispatchCommand", command);
+            let deadline = Instant::now() + SETTLE;
+            loop {
+                let projection = success(&self.calls.call("orchestration.getThreadProjection", json!({"threadId": thread}))).clone();
+                if expect(&projection) || Instant::now() > deadline {
+                    return (exit["_tag"] == "Success" && expect(&projection), projection);
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
         })
     }
 
@@ -335,7 +409,48 @@ impl Phone {
         let root = chain.repo.path().display().to_string();
         let project = json!({"type": "project.create", "commandId": "c-p1", "projectId": "p1", "title": "Chain", "workspaceRoot": root});
         success(&self.call(case, chain, &["rpc:projects.mutate", "mutation:project.create"], "projects.mutate", project));
-        let thread = json!({"type": "thread.create", "commandId": "c-t1", "threadId": "t1", "projectId": "p1", "title": "Notes", "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}});
+        let thread = json!({"type": "thread.create", "commandId": "c-t1", "threadId": "t1", "projectId": "p1", "title": "Notes", "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}, "createdBy": "user", "creationSource": "mobile", "runtimeMode": "full-access", "interactionMode": "default", "branch": null, "worktreePath": null});
         success(&self.call(case, chain, &["rpc:orchestration.dispatchCommand", "command:thread.create"], "orchestration.dispatchCommand", thread));
+    }
+}
+
+/// The driver that plays a replay against `chain`: its address, its workspace folder and a pairing with the scopes the recorded session was
+/// granted. The chain is the test's; the driver never starts or stops it.
+pub fn chain_driver(chain: &std::rc::Rc<Chain>, scopes: Vec<String>, prelude: Vec<mimic_script_core::case::Entry>, session: bool) -> mimic_script_host::ScriptDriver {
+    let workspace = std::fs::canonicalize(chain.repo.path()).unwrap().display().to_string();
+    let paired = chain.clone();
+    crate::support::mimic_t3::driver(chain.addr, workspace, std::rc::Rc::new(move || paired.pair_with(&scopes)), prelude, session)
+}
+
+// R15 cache probe: A
+
+#[test]
+fn given_credentials_in_the_environment_when_the_mapper_commands_are_built_then_none_reaches_them() {
+    // Given a command and the variables the launcher hands the executor
+    let mut command = Command::new("true");
+    command.env("CLAUDE_CODE_OAUTH_TOKEN", "v").env("CODEX_HOME", "/h").env("T3_CHAIN_EXECUTOR_ENV", "CLAUDE_CODE_OAUTH_TOKEN,CODEX_HOME").env("T3_RCA_BEARER", "b");
+    // When the credentials are removed
+    without_credentials(&mut command);
+    // Then each is unset for the child and the bearer the mapper needs is kept
+    let set: std::collections::HashMap<_, _> = command.get_envs().map(|(k, v)| (k.to_string_lossy().into_owned(), v.is_some())).collect();
+    assert_eq!((set["CLAUDE_CODE_OAUTH_TOKEN"], set["CODEX_HOME"], set["T3_CHAIN_EXECUTOR_ENV"], set["T3_RCA_BEARER"]), (false, false, false, true));
+}
+
+#[test]
+fn given_the_environment_of_the_launcher_when_it_is_read_then_scripted_by_default_and_a_missing_variable_is_named() {
+    // Given an environment as a map, When the rig reads it
+    let read = |vars: &[(&str, &str)]| {
+        let map: std::collections::HashMap<String, String> = vars.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+        real_from(&move |k| map.get(k).cloned())
+    };
+    // Then no names means scripted, and the names with their directory, home and variables mean real
+    assert!(read(&[]).unwrap().is_none() && read(&[("T3_CHAIN_REAL_CLIS", "")]).unwrap().is_none());
+    let all = [("T3_CHAIN_REAL_CLIS", "claude,codex"), ("MIMIC_REAL_CLI_DIR", "/bin"), ("T3_CHAIN_CLI_HOME", "/home"), ("T3_CHAIN_EXECUTOR_ENV", "CLAUDE_CODE_OAUTH_TOKEN,CODEX_HOME"), ("CLAUDE_CODE_OAUTH_TOKEN", "v1"), ("CODEX_HOME", "/home/.codex")];
+    let real = read(&all).unwrap().unwrap();
+    assert_eq!((real.names, real.env.len(), real.bin, real.home), (vec!["claude".into(), "codex".into()], 2, PathBuf::from("/bin"), PathBuf::from("/home")));
+    // And each missing variable is named, never a value
+    for gone in ["MIMIC_REAL_CLI_DIR", "T3_CHAIN_CLI_HOME", "CODEX_HOME"] {
+        let rest: Vec<_> = all.iter().filter(|(k, _)| *k != gone).copied().collect();
+        assert!(read(&rest).err().unwrap().contains(gone), "{gone}");
     }
 }

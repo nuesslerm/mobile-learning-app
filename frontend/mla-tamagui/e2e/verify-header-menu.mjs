@@ -83,7 +83,7 @@ await withServedApp(
       if (!content) return { open: false };
       const r = content.getBoundingClientRect();
       const w = appDoc.defaultView;
-      const rows = ['ProblemEditorMenuFormat','ProblemEditorMenuHistory','ProblemEditorMenuLogin']
+      const rows = ['ProblemEditorMenuHistory','ProblemEditorMenuLogin']
         .map((id) => {
           const el = q(id);
           if (!el) return { id, present: false };

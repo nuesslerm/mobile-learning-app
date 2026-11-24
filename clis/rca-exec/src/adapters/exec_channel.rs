@@ -174,7 +174,7 @@ fn serve(mut socket: WebSocket<TcpStream>, ex: Arc<dyn ToolExecutor>, stop: &Ato
                             Ok(result) => result_frame(&id, &result),
                             Err(e) => error_frame(&id, e.code.as_str(), &e.message),
                         }));
-                    } else if exec_pty::LONG.contains(&tool.as_str()) || exec_git::LONG.contains(&tool.as_str()) || exec_hosted::LONG.contains(&tool.as_str()) || exec_preview::LONG.contains(&tool.as_str()) {
+                    } else if exec_proc::LONG.contains(&tool.as_str()) || exec_pty::LONG.contains(&tool.as_str()) || exec_git::LONG.contains(&tool.as_str()) || exec_hosted::LONG.contains(&tool.as_str()) || exec_preview::LONG.contains(&tool.as_str()) || exec_browser::LONG.contains(&tool.as_str()) {
                         // A stream that stays open takes a thread of its own: a pool worker held by each would starve the other requests.
                         inflight.lock().unwrap().insert(id.clone());
                         longs.push(std::thread::spawn({ let (ex, out, inflight) = (ex.clone(), out_tx.clone(), inflight.clone()); move || run_job(&Job { id, tool, args }, ex.as_ref(), &out, &inflight) }));
@@ -194,7 +194,7 @@ fn serve(mut socket: WebSocket<TcpStream>, ex: Arc<dyn ToolExecutor>, stop: &Ato
                 break Ok(());
             }
             Ok(_) => {}
-            Err(WsError::Io(e)) if matches!(e.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut) => {}
+            Err(WsError::Io(e)) if idle(&e) => {}
             Err(WsError::ConnectionClosed | WsError::AlreadyClosed) => break Ok(()),
             Err(e) => break Err(e.to_string()),
         }
@@ -209,4 +209,23 @@ fn serve(mut socket: WebSocket<TcpStream>, ex: Arc<dyn ToolExecutor>, stop: &Ato
         let _ = w.join();
     }
     outcome.map(|()| close_code)
+}
+
+/// A read that ended with nothing to read: the poll timeout ran out, or a signal (a child exiting) interrupted the call. The channel is still open.
+fn idle(e: &std::io::Error) -> bool {
+    matches!(e.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut | std::io::ErrorKind::Interrupted)
+}
+
+#[cfg(test)]
+mod idle_tests {
+    use super::idle;
+    use std::io::{Error, ErrorKind};
+
+    #[test]
+    fn given_the_ways_a_socket_read_ends_without_data_when_classified_then_only_a_dead_socket_is_not_idle() {
+        // Given a read timeout, a would-block, a signal that interrupted the call (EINTR) and a reset connection
+        // When each is classified, Then the first three leave the channel serving and the reset ends it
+        assert!(idle(&Error::from(ErrorKind::TimedOut)) && idle(&Error::from(ErrorKind::WouldBlock)) && idle(&Error::from_raw_os_error(4)));
+        assert!(!idle(&Error::from(ErrorKind::ConnectionReset)));
+    }
 }

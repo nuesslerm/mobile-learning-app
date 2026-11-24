@@ -1,0 +1,7 @@
+Usage: wf rca login logout <provider>
+
+Signs the provider out at the workspace host (its CLI's logout, then its credential file is
+gone) and prints the provider's new status.
+
+Options:
+  -h, --help  display help for command

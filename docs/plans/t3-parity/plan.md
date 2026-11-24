@@ -199,7 +199,7 @@ Each step lands on `dev` alone, with Given/When/Then tests, and says which tier 
 | 9. Remaining providers, long tail | managed `cursor`, `grok`, `pi`, `muse`, `fx`, `antigravity`, ACP registry; guest share, peer links, MCP apps | each driver passes against a fake CLI |
 | 10. Cutover and drift | second pinned version path, flag-guarded replacement of the npm T3 on 3773, retire `t3code-serve.sh` | owner decision; flag off returns to today without data loss |
 
-Rule for every phase: advertise a capability flag only when its feature passes goldens. Each phase becomes a `units.jsonl` through `/cf-plan`; serde types, RPC stubs and the coverage generator are mechanical (`wf offload plan`); the V2 decider and projector, auth, credential isolation and the rca refactor stay on Claude. The section 7 steps run alongside, step 1 to 3 before phase 3.
+Rule for every phase: advertise a capability flag only when its feature passes goldens. Each phase becomes a `units.jsonl` through `/cf-plan`; serde types, RPC stubs and the coverage generator are mechanical (`wf rca plan`); the V2 decider and projector, auth, credential isolation and the rca refactor stay on Claude. The section 7 steps run alongside, step 1 to 3 before phase 3.
 
 ## 9. Verification ladder and the owner's phone
 

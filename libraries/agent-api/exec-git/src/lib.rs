@@ -39,6 +39,7 @@ pub const GIT_BLOB: &str = "git_blob";
 pub const GIT_WATCH: &str = "git_watch";
 pub const GIT_INIT: &str = "git_init";
 pub const GIT_CHECKPOINT: &str = "git_checkpoint";
+pub const GIT_IGNORED: &str = "git_ignored";
 
 /// The actions that stay open after their request: `git_watch` streams the status until a `cancel` names it (or `max_events` is reached).
 pub const LONG: &[&str] = &[GIT_WATCH];
@@ -108,7 +109,7 @@ pub const ACTIONS: &[Action] = &[
         properties: &[WORKTREE, Property { name: "base", kind: "string", about: "The revision to compare against" }, Property { name: "head", kind: "string", about: "The revision compared" }, Property { name: "limit", kind: "integer", about: "At most this many commits (default 50)" }],
         required: &["base", "head"],
     },
-    Action { name: GIT_UPSTREAM, about: "The current branch's upstream and how far it is ahead and behind, and the configured remotes.", properties: &[WORKTREE], required: &[] },
+    Action { name: GIT_UPSTREAM, about: "The current branch's upstream and how far it is ahead and behind, the configured remotes, and the branch origin's HEAD points at.", properties: &[WORKTREE], required: &[] },
     Action { name: GIT_STAGE, about: "Stage the paths: additions, changes and deletions.", properties: &[WORKTREE, PATHS], required: &["paths"] },
     Action { name: GIT_UNSTAGE, about: "Unstage the paths, leaving the working tree as it is.", properties: &[WORKTREE, PATHS], required: &["paths"] },
     Action {
@@ -180,9 +181,9 @@ pub const ACTIONS: &[Action] = &[
     },
     Action {
         name: GIT_BLOB,
-        about: "The content of a file at a revision, base64, without checking anything out.",
-        properties: &[WORKTREE, Property { name: "rev", kind: "string", about: "The revision" }, Property { name: "path", kind: "string", about: "The file's path in that revision" }, Property { name: "max_bytes", kind: "integer", about: "Read at most this many bytes (default 1 MiB)" }],
-        required: &["rev", "path"],
+        about: "The content of a file at a revision, or as staged in the index (stage 0) when no revision is named, base64, without checking anything out.",
+        properties: &[WORKTREE, Property { name: "rev", kind: "string", about: "The revision (the index when absent)" }, Property { name: "path", kind: "string", about: "The file's path in that revision" }, Property { name: "max_bytes", kind: "integer", about: "Read at most this many bytes (default 1 MiB)" }],
+        required: &["path"],
     },
     Action {
         name: GIT_WATCH,
@@ -206,6 +207,12 @@ pub const ACTIONS: &[Action] = &[
         about: "Record the working tree as it is now (tracked and untracked files, not ignored ones) as a commit under `refs/rca/checkpoints/<thread>/<turn>`, built on a private index: the repository's index, branch, HEAD and files are never touched. Restore it with `git_discard` (`scope` all, `untracked`, `source` that ref).",
         properties: &[WORKTREE, Property { name: "thread", kind: "string", about: "The thread the checkpoint belongs to: letters, digits, `.`, `_` and `-`" }, Property { name: "turn", kind: "string", about: "The turn that is about to start: letters, digits, `.`, `_` and `-`; a checkpoint of the same turn is replaced" }],
         required: &["thread", "turn"],
+    },
+    Action {
+        name: GIT_IGNORED,
+        about: "The files git ignores in the working tree, as `path` and `size` sorted by path: a directory that holds only ignored files is skipped, as are links and anything that is no regular file.",
+        properties: &[WORKTREE, Property { name: "limit", kind: "integer", about: "At most this many files (default 200)" }],
+        required: &[],
     },
 ];
 

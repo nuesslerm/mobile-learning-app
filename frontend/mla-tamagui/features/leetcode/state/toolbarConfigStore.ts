@@ -138,7 +138,19 @@ export const useToolbarConfigStore = create<ToolbarConfigState>()(
     }),
     {
       name: 'leetcode-toolbar-config',
-      version: 1,
+      version: 2,
+      // v1 stored the Rename key, which only logged and is gone: a stored list that still names it would fail the schema
+      // and take the person's other keys with it
+      migrate: (persisted, version) => {
+        const stored = persisted as { items?: unknown } | null;
+        if (version >= 2 || !stored || !Array.isArray(stored.items)) return persisted as ToolbarConfigState;
+        return {
+          ...stored,
+          items: stored.items.filter(
+            (item) => !(item && typeof item === 'object' && 'id' in item && item.id === 'RenameSymbol')
+          ),
+        } as ToolbarConfigState;
+      },
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         items: state.items,

@@ -4,21 +4,16 @@
 //! The tokened `linkUrl` is returned to the authorized caller and never logged (it is a bearer secret). There is no
 //! `/auth/persist`: a captured credential goes back to agent-shell as a file through vm-ops-api (see `relay`), and the
 //! caller that started the login may fetch the same files with `/auth/credential` (the sandbox is no agent-shell).
-use super::descriptor::{self, assemble_credential, builtin, env_or_vault, Descriptor};
+use super::descriptor::{self, assemble_credential, builtin, env_or_vault, Descriptor, OutputSecret};
 use super::desktop::Launcher;
 use super::engine::Engine;
 use super::log;
-use axum::body::Bytes;
+use super::http::{self, Reply};
 use base64::Engine as _;
-use axum::extract::State;
-use axum::http::header::CONTENT_TYPE;
-use axum::http::{HeaderMap, Method, StatusCode, Uri};
-use axum::response::{IntoResponse, Response};
-use axum::serve::ListenerExt;
-use axum::Router;
 use serde_json::{json, Value};
+use std::net::TcpListener;
 use std::sync::Arc;
-use tower_http::limit::RequestBodyLimitLayer;
+use tiny_http::Request;
 
 const MAX_BODY: usize = 1024 * 1024;
 
@@ -89,6 +84,9 @@ fn credential_state(descriptor: &Descriptor, copy: bool, user: &str) -> (u16, Va
     if copy && descriptor.copy.is_empty() {
         return error(400, "this login declares nothing to copy");
     }
+    if let Some(output_secret) = &descriptor.output_secret {
+        return output_secret_state(descriptor, output_secret);
+    }
     if !crate::auth::is_authenticated(descriptor, Some(user)) {
         let check = crate::auth::check_output(descriptor, Some(user));
         return (200, if check.is_empty() { json!({ "ready": false }) } else { json!({ "ready": false, "check": check }) });
@@ -104,6 +102,21 @@ fn credential_state(descriptor: &Descriptor, copy: bool, user: &str) -> (u16, Va
         }
     }
     (200, json!({ "ready": true, "files": files }))
+}
+
+const MAX_LOGIN_OUTPUT: u64 = 1024 * 1024;
+
+/// A login whose credential is printed by its command: ready once the command's output matches the descriptor's pattern, and
+/// the reply then carries the match as `outputSecret {key, value}` for the caller to store. The value is only ever in the
+/// reply to the authorized caller, never in a log line, an error or the session's status.
+fn output_secret_state(descriptor: &Descriptor, output_secret: &OutputSecret) -> (u16, Value) {
+    use std::io::Read;
+    let mut output = String::new();
+    let read = std::fs::File::open(super::desktop::login_log_path(&descriptor.id)).and_then(|f| f.take(MAX_LOGIN_OUTPUT).read_to_string(&mut output));
+    match read.ok().and_then(|_| output_secret.find(&output)) {
+        Some(value) => (200, json!({ "ready": true, "outputSecret": { "key": output_secret.key, "value": value } })),
+        None => (200, json!({ "ready": false })),
+    }
 }
 
 /// Logs the tool out of this container: revokes it where the tool can (gcloud), deletes every credential file its descriptor
@@ -128,27 +141,22 @@ fn error(status: u16, message: &str) -> (u16, Value) {
     (status, json!({ "error": message }))
 }
 
-/// What `control` needs of a request: its method, path and headers.
+/// What `control` needs of a request: its method, path and the two auth headers.
 struct Call {
-    method: Method,
+    method: String,
     path: String,
-    headers: HeaderMap,
-}
-
-impl Call {
-    fn header(&self, name: &str) -> Option<&str> {
-        self.headers.get(name)?.to_str().ok()
-    }
+    secret: Option<String>,
+    owner: Option<String>,
 }
 
 fn control(call: &Call, body: &Value, deps: &Deps) -> (u16, Value) {
-    if call.method != Method::POST {
+    if call.method != "POST" {
         return error(404, "not found");
     }
-    if !call.header("x-auth-trigger-secret").is_some_and(|s| same_secret(s, &deps.trigger_secret)) {
+    if !call.secret.as_deref().is_some_and(|s| same_secret(s, &deps.trigger_secret)) {
         return error(401, "unauthorized");
     }
-    if !call.header("x-auth-owner-id").is_some_and(|o| deps.owners.iter().any(|a| a == o)) {
+    if !call.owner.as_deref().is_some_and(|o| deps.owners.iter().any(|a| a == o)) {
         return error(403, "forbidden");
     }
     match call.path.as_str() {
@@ -180,6 +188,7 @@ fn control(call: &Call, body: &Value, deps: &Deps) -> (u16, Value) {
             if let Err(detail) = persist(&session.descriptor, &deps.launcher) {
                 return (502, json!({ "error": "capture completed but the credential could not be stored", "detail": detail }));
             }
+            let _ = std::fs::remove_file(super::desktop::login_log_path(&session.descriptor.id));
             deps.engine.mark_complete(&session_id);
             (200, json!({ "ok": true, "persisted": persisted }))
         }
@@ -206,37 +215,27 @@ fn control(call: &Call, body: &Value, deps: &Deps) -> (u16, Value) {
     }
 }
 
-fn json_response(status: u16, body: &Value) -> Response {
-    (StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), [(CONTENT_TYPE, "application/json")], body.to_string()).into_response()
-}
-
-/// The blocking engine and launcher (they wait on the desktop and on Chromium) run off the async workers.
-async fn blocking<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static) -> Option<T> {
-    tokio::task::spawn_blocking(work).await.ok()
-}
-
-async fn control_route(State(deps): State<Arc<Deps>>, method: Method, uri: Uri, headers: HeaderMap, body: Bytes) -> Response {
-    let call = Call { method, path: uri.path().to_string(), headers };
-    let parsed = serde_json::from_slice::<Value>(&body).unwrap_or_else(|_| json!({}));
-    match blocking(move || control(&call, &parsed, &deps)).await {
-        Some((status, out)) => json_response(status, &out),
-        None => json_response(500, &json!({ "error": "internal error" })),
-    }
-}
-
-pub fn router(deps: Arc<Deps>) -> Router {
-    Router::new()
-        .fallback(control_route)
-        .layer(RequestBodyLimitLayer::new(MAX_BODY))
-        .with_state(deps)
+fn handle(deps: &Deps, mut request: Request) {
+    let reply = match http::read_body(&mut request, MAX_BODY) {
+        None => Reply::empty(413),
+        Some(bytes) => {
+            let call = Call {
+                method: request.method().as_str().to_string(),
+                path: http::split_url(request.url()).0.to_string(),
+                secret: http::header(&request, "x-auth-trigger-secret").map(str::to_string),
+                owner: http::header(&request, "x-auth-owner-id").map(str::to_string),
+            };
+            let parsed = serde_json::from_slice::<Value>(&bytes).unwrap_or_else(|_| json!({}));
+            let (status, out) = control(&call, &parsed, deps);
+            Reply::new(status, "application/json", out.to_string())
+        }
+    };
+    http::respond(request, reply);
 }
 
 /// Serves requests until the process ends.
-pub async fn serve(listener: tokio::net::TcpListener, deps: Arc<Deps>) {
-    let listener = listener.tap_io(|tcp| {
-        let _ = tcp.set_nodelay(true);
-    });
-    if let Err(e) = axum::serve(listener, router(deps)).await {
-        log::error("vnc_auth.listener.stopped", &[("err", e.to_string())]);
+pub fn serve(listener: TcpListener, deps: Arc<Deps>) {
+    if let Err(e) = http::serve(listener, move |request| handle(&deps, request)) {
+        log::error("vnc_auth.listener.stopped", &[("err", e)]);
     }
 }

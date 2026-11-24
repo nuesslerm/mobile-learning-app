@@ -1,0 +1,75 @@
+{
+  "platform": "browser",
+  "step": 27,
+  "last_action": "tap_on{id='ConsoleBarSubmit'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:38745/mla-tamagui/leetcode/valid-parentheses?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgaXNWYWxpZChzZWxmLCBzOiBzdHIpIC0-IGJvb2w6CiAgICAgICAgcmV0dXJuIFRydWUK",
+    "title": "",
+    "testids": [
+      "ProblemEditorHeader",
+      "ProblemEditorHeaderBack",
+      "ProblemEditorHeaderTitle",
+      "ProblemEditorHeaderSubtitle",
+      "ProblemEditorHeaderActions",
+      "ProblemEditorInfoButton",
+      "ProblemEditorMenuButton",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleSheet",
+      "ConsoleTabs",
+      "SegmentedThumb",
+      "ConsoleTabs-testcase",
+      "ConsoleTabs-result",
+      "ConsoleBody",
+      "ConsolePanel-result",
+      "ConsoleResultVerdict",
+      "ConsoleResultCounts",
+      "ConsoleResultFocus",
+      "ConsoleResultInput-s-Card",
+      "ConsoleResultInput-s-Caption",
+      "ConsoleResultInput-s-Toggle",
+      "ConsoleResultInput-s",
+      "ConsoleResultOutput-Card",
+      "ConsoleResultOutput-Caption",
+      "ConsoleResultOutput-Toggle",
+      "ConsoleResultOutput",
+      "ConsoleResultExpected-Card",
+      "ConsoleResultExpected-Caption",
+      "ConsoleResultExpected-Toggle",
+      "ConsoleResultExpected",
+      "ConsoleFooter",
+      "ConsoleFooterReset",
+      "ConsoleFooterRun",
+      "ConsoleFooterSubmit",
+      "ConsoleSheetHandle",
+      "PyodideHostWebView"
+    ],
+    "text": "Valid Parentheses\nStack · Easy\nPython\nTestcase\nRun Result\nWrong Answer\n8 / 15 testcases passed\ns\n\"(]\"\nOutput\ntrue\nExpected\nfalse\nReset\nSubmit"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 33584,
+    "capture_ms": 285
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "console-submit-wrong-answer",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

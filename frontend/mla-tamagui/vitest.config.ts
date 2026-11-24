@@ -112,6 +112,8 @@ export default defineConfig({
     // feature packages nested in features/ run their own tests
     exclude: [
       ...configDefaults.exclude,
+      // run by the flow config
+      '**/*.flow.test.*',
       ...featurePackages().map((dir) => `${dir}/**`),
     ],
     include: [

@@ -1,30 +1,36 @@
 {
   "schema": 1,
   "app": "t3",
-  "generatedBy": "wf parity coverage --app t3",
+  "generatedBy": "wf mimic coverage --app t3",
   "pin": {
     "file": "tooling/t3-conformance/t3-pin.json",
-    "version": "0.1.6",
-    "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e"
+    "version": "0.1.9",
+    "commit": "24e77473ecf41bc1f7142529c7911c1c1aae1d76"
   },
   "counts": {
     "catalog": {
-      "rpc": 208,
-      "subscriptions": 27,
-      "commands": 55,
+      "rpc": 218,
+      "subscriptions": 29,
+      "commands": 56,
       "mutations": 3,
-      "http": 38
+      "http": 54
     },
     "phone": {
-      "rpc": 149,
-      "subscriptions": 20,
+      "rpc": 156,
+      "subscriptions": 22,
       "commands": 40,
       "mutations": 3,
-      "http": 13
+      "http": 23
     },
     "files": {
-      "reached": 1407,
-      "phone": 1001
+      "reached": 1485,
+      "phone": 1049
+    },
+    "desktop": {
+      "files": 1519,
+      "rows": 290,
+      "desktopOnly": 71,
+      "ipcChannels": 140
     }
   },
   "flags": {
@@ -32,15 +38,15 @@
       "note": "an RPC client indexed by a variable: a generic dispatcher whose methods are counted where their tags are bound",
       "sites": [
         {
-          "site": "packages/client-runtime/src/rpc/client.ts:200",
+          "site": "packages/client-runtime/src/rpc/client.ts:207",
           "method": "tag"
         },
         {
-          "site": "packages/client-runtime/src/rpc/client.ts:225",
+          "site": "packages/client-runtime/src/rpc/client.ts:240",
           "method": "tag"
         },
         {
-          "site": "packages/client-runtime/src/rpc/client.ts:284",
+          "site": "packages/client-runtime/src/rpc/client.ts:300",
           "method": "tag"
         }
       ]
@@ -53,7 +59,7 @@
           "target": "chooser.uploadUrl"
         },
         {
-          "site": "apps/mobile/src/features/files/ZipArchiveView.tsx:197",
+          "site": "apps/mobile/src/features/files/ZipArchiveView.tsx:202",
           "target": "url"
         },
         {
@@ -61,35 +67,35 @@
           "target": "url"
         },
         {
-          "site": "apps/mobile/src/features/threads/ThreadMarkdownImage.tsx:48",
+          "site": "apps/mobile/src/features/threads/ThreadMarkdownImage.tsx:52",
           "target": "uri"
         },
         {
-          "site": "apps/mobile/src/lib/attachmentDocument.ts:50",
+          "site": "apps/mobile/src/lib/attachmentDocument.ts:51",
           "target": "target"
         },
         {
-          "site": "packages/client-runtime/src/device/stream.ts:721",
+          "site": "packages/client-runtime/src/device/stream.ts:720",
           "target": "httpUrl(videoPath)"
         },
         {
-          "site": "packages/client-runtime/src/device/stream.ts:839",
+          "site": "packages/client-runtime/src/device/stream.ts:838",
           "target": "httpUrl(`/helper/${device}/stream.mjpeg`)"
         },
         {
-          "site": "packages/client-runtime/src/device/stream.ts:863",
+          "site": "packages/client-runtime/src/device/stream.ts:862",
           "target": "httpUrl(`/api?device=${device}`)"
         },
         {
-          "site": "packages/client-runtime/src/device/stream.ts:890",
+          "site": "packages/client-runtime/src/device/stream.ts:889",
           "target": "webRtcUrl('close')"
         },
         {
-          "site": "packages/client-runtime/src/device/stream.ts:1012",
+          "site": "packages/client-runtime/src/device/stream.ts:1011",
           "target": "webRtcUrl('offer')"
         },
         {
-          "site": "packages/client-runtime/src/projectFaviconCache.ts:99",
+          "site": "packages/client-runtime/src/projectFaviconCache.ts:102",
           "target": "url"
         }
       ]
@@ -107,11 +113,11 @@
         },
         {
           "dir": "apps/mobile/modules/t3-highlights",
-          "nativeFiles": 2
+          "nativeFiles": 4
         },
         {
           "dir": "apps/mobile/modules/t3-native-controls",
-          "nativeFiles": 17
+          "nativeFiles": 20
         },
         {
           "dir": "apps/mobile/modules/t3-review-diff",
@@ -123,7 +129,15 @@
         },
         {
           "dir": "apps/mobile/modules/t3-terminal",
+          "nativeFiles": 13
+        },
+        {
+          "dir": "apps/mobile/modules/t3-voice-transcription",
           "nativeFiles": 10
+        },
+        {
+          "dir": "apps/mobile/modules/t3-web-socket",
+          "nativeFiles": 1
         },
         {
           "dir": "apps/mobile/modules/t3-widget-expiry",
@@ -138,9 +152,10 @@
       "kind": "command",
       "name": "checkpoint.rollback",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:922",
-        "packages/client-runtime/src/operations/commands.ts:951"
+        "packages/client-runtime/src/operations/commands.ts:926",
+        "packages/client-runtime/src/operations/commands.ts:955"
       ]
     },
     {
@@ -172,10 +187,11 @@
       "kind": "command",
       "name": "message.dispatch",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:467",
-        "packages/client-runtime/src/operations/commands.ts:736",
-        "packages/client-runtime/src/operations/commands.ts:764"
+        "packages/client-runtime/src/operations/commands.ts:469",
+        "packages/client-runtime/src/operations/commands.ts:738",
+        "packages/client-runtime/src/operations/commands.ts:767"
       ]
     },
     {
@@ -207,8 +223,9 @@
       "kind": "command",
       "name": "prepared-run.retry",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:1063"
+        "packages/client-runtime/src/operations/commands.ts:1067"
       ]
     },
     {
@@ -216,8 +233,9 @@
       "kind": "command",
       "name": "provider-session.detach",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:969"
+        "packages/client-runtime/src/operations/commands.ts:973"
       ]
     },
     {
@@ -231,8 +249,9 @@
       "kind": "command",
       "name": "queue.resume",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:1030"
+        "packages/client-runtime/src/operations/commands.ts:1034"
       ]
     },
     {
@@ -240,8 +259,9 @@
       "kind": "command",
       "name": "queued-message.promote-to-steer",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:1041"
+        "packages/client-runtime/src/operations/commands.ts:1045"
       ]
     },
     {
@@ -249,8 +269,9 @@
       "kind": "command",
       "name": "queued-run.cancel",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:1053"
+        "packages/client-runtime/src/operations/commands.ts:1057"
       ]
     },
     {
@@ -258,8 +279,9 @@
       "kind": "command",
       "name": "queued-run.edit",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:1079"
+        "packages/client-runtime/src/operations/commands.ts:1083"
       ]
     },
     {
@@ -273,8 +295,9 @@
       "kind": "command",
       "name": "queued-run.start",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:1031"
+        "packages/client-runtime/src/operations/commands.ts:1035"
       ]
     },
     {
@@ -282,8 +305,9 @@
       "kind": "command",
       "name": "run.interrupt",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:871"
+        "packages/client-runtime/src/operations/commands.ts:875"
       ]
     },
     {
@@ -291,9 +315,10 @@
       "kind": "command",
       "name": "runtime-request.respond",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:882",
-        "packages/client-runtime/src/operations/commands.ts:895"
+        "packages/client-runtime/src/operations/commands.ts:886",
+        "packages/client-runtime/src/operations/commands.ts:899"
       ]
     },
     {
@@ -301,9 +326,10 @@
       "kind": "command",
       "name": "subagent.stop",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:796",
-        "packages/client-runtime/src/operations/commands.ts:807"
+        "packages/client-runtime/src/operations/commands.ts:800",
+        "packages/client-runtime/src/operations/commands.ts:811"
       ]
     },
     {
@@ -311,8 +337,9 @@
       "kind": "command",
       "name": "thread.active.reorder",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:540"
+        "packages/client-runtime/src/operations/commands.ts:542"
       ]
     },
     {
@@ -320,8 +347,9 @@
       "kind": "command",
       "name": "thread.archive",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:483"
+        "packages/client-runtime/src/operations/commands.ts:485"
       ]
     },
     {
@@ -335,8 +363,9 @@
       "kind": "command",
       "name": "thread.auto-settle.set",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:517"
+        "packages/client-runtime/src/operations/commands.ts:519"
       ]
     },
     {
@@ -344,8 +373,9 @@
       "kind": "command",
       "name": "thread.create",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:400"
+        "packages/client-runtime/src/operations/commands.ts:402"
       ]
     },
     {
@@ -359,8 +389,9 @@
       "kind": "command",
       "name": "thread.delete",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:434"
+        "packages/client-runtime/src/operations/commands.ts:436"
       ]
     },
     {
@@ -368,9 +399,10 @@
       "kind": "command",
       "name": "thread.fork",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:983",
-        "packages/client-runtime/src/operations/commands.ts:999"
+        "packages/client-runtime/src/operations/commands.ts:1003",
+        "packages/client-runtime/src/operations/commands.ts:987"
       ]
     },
     {
@@ -378,8 +410,9 @@
       "kind": "command",
       "name": "thread.guest-message.dismiss",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:460"
+        "packages/client-runtime/src/operations/commands.ts:462"
       ]
     },
     {
@@ -387,8 +420,9 @@
       "kind": "command",
       "name": "thread.guest-share.close",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:445"
+        "packages/client-runtime/src/operations/commands.ts:447"
       ]
     },
     {
@@ -396,8 +430,9 @@
       "kind": "command",
       "name": "thread.interaction-mode.set",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:662"
+        "packages/client-runtime/src/operations/commands.ts:664"
       ]
     },
     {
@@ -405,8 +440,9 @@
       "kind": "command",
       "name": "thread.mark-unread",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:603"
+        "packages/client-runtime/src/operations/commands.ts:605"
       ]
     },
     {
@@ -414,8 +450,9 @@
       "kind": "command",
       "name": "thread.merge_back",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:1015"
+        "packages/client-runtime/src/operations/commands.ts:1019"
       ]
     },
     {
@@ -423,8 +460,9 @@
       "kind": "command",
       "name": "thread.metadata.update",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:622"
+        "packages/client-runtime/src/operations/commands.ts:624"
       ]
     },
     {
@@ -432,8 +470,9 @@
       "kind": "command",
       "name": "thread.model-selection.set",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:638"
+        "packages/client-runtime/src/operations/commands.ts:640"
       ]
     },
     {
@@ -441,8 +480,9 @@
       "kind": "command",
       "name": "thread.pin",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:503"
+        "packages/client-runtime/src/operations/commands.ts:505"
       ]
     },
     {
@@ -450,8 +490,9 @@
       "kind": "command",
       "name": "thread.pin.reorder",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:529"
+        "packages/client-runtime/src/operations/commands.ts:531"
       ]
     },
     {
@@ -465,10 +506,11 @@
       "kind": "command",
       "name": "thread.pull-request.link",
       "phone": true,
+      "desktop": true,
       "sites": [
         "apps/mobile/src/features/threads/useLinkedPullRequestActions.ts:84",
-        "packages/client-runtime/src/operations/commands.ts:1098",
-        "packages/client-runtime/src/operations/commands.ts:1111"
+        "packages/client-runtime/src/operations/commands.ts:1102",
+        "packages/client-runtime/src/operations/commands.ts:1115"
       ]
     },
     {
@@ -482,9 +524,10 @@
       "kind": "command",
       "name": "thread.pull-request.unlink",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:1103",
-        "packages/client-runtime/src/operations/commands.ts:1134",
+        "packages/client-runtime/src/operations/commands.ts:1107",
+        "packages/client-runtime/src/operations/commands.ts:1138",
         "packages/client-runtime/src/threadPullRequestCompatibility.ts:35"
       ]
     },
@@ -493,10 +536,11 @@
       "kind": "command",
       "name": "thread.pull-request.watch",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:1117",
-        "packages/client-runtime/src/operations/commands.ts:1125",
-        "packages/client-runtime/src/operations/commands.ts:857"
+        "packages/client-runtime/src/operations/commands.ts:1121",
+        "packages/client-runtime/src/operations/commands.ts:1129",
+        "packages/client-runtime/src/operations/commands.ts:861"
       ]
     },
     {
@@ -504,8 +548,9 @@
       "kind": "command",
       "name": "thread.runtime-mode.set",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:651"
+        "packages/client-runtime/src/operations/commands.ts:653"
       ]
     },
     {
@@ -513,8 +558,9 @@
       "kind": "command",
       "name": "thread.settle",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:495"
+        "packages/client-runtime/src/operations/commands.ts:497"
       ]
     },
     {
@@ -522,8 +568,9 @@
       "kind": "command",
       "name": "thread.snooze",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:568"
+        "packages/client-runtime/src/operations/commands.ts:570"
       ]
     },
     {
@@ -531,9 +578,16 @@
       "kind": "command",
       "name": "thread.stop",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:823"
+        "packages/client-runtime/src/operations/commands.ts:827"
       ]
+    },
+    {
+      "id": "command:thread.tag.set",
+      "kind": "command",
+      "name": "thread.tag.set",
+      "phone": false
     },
     {
       "id": "command:thread.title.regeneration.complete",
@@ -546,8 +600,9 @@
       "kind": "command",
       "name": "thread.unarchive",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:489"
+        "packages/client-runtime/src/operations/commands.ts:491"
       ]
     },
     {
@@ -555,8 +610,9 @@
       "kind": "command",
       "name": "thread.unpin",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:550"
+        "packages/client-runtime/src/operations/commands.ts:552"
       ]
     },
     {
@@ -564,8 +620,9 @@
       "kind": "command",
       "name": "thread.unsettle",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:557"
+        "packages/client-runtime/src/operations/commands.ts:559"
       ]
     },
     {
@@ -573,8 +630,9 @@
       "kind": "command",
       "name": "thread.unsnooze",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:579"
+        "packages/client-runtime/src/operations/commands.ts:581"
       ]
     },
     {
@@ -582,8 +640,9 @@
       "kind": "command",
       "name": "thread.user-input.dismiss",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:910"
+        "packages/client-runtime/src/operations/commands.ts:914"
       ]
     },
     {
@@ -591,8 +650,9 @@
       "kind": "command",
       "name": "thread.visit",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:590"
+        "packages/client-runtime/src/operations/commands.ts:592"
       ]
     },
     {
@@ -601,7 +661,8 @@
       "name": "auth.browserSession",
       "phone": false,
       "method": "POST",
-      "path": "/api/auth/browser-session"
+      "path": "/api/auth/browser-session",
+      "desktop": true
     },
     {
       "id": "http:auth.pairingCredential",
@@ -610,9 +671,10 @@
       "phone": true,
       "method": "POST",
       "path": "/api/auth/pairing-token",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/peerPairingCode.ts:51",
-        "packages/client-runtime/src/state/peerPairingCode.ts:54"
+        "packages/client-runtime/src/state/peerPairingCode.ts:61",
+        "packages/client-runtime/src/state/peerPairingCode.ts:63"
       ]
     },
     {
@@ -621,7 +683,8 @@
       "name": "auth.revokeClient",
       "phone": false,
       "method": "POST",
-      "path": "/api/auth/clients/revoke"
+      "path": "/api/auth/clients/revoke",
+      "desktop": true
     },
     {
       "id": "http:auth.revokeOtherClients",
@@ -629,7 +692,8 @@
       "name": "auth.revokeOtherClients",
       "phone": false,
       "method": "POST",
-      "path": "/api/auth/clients/revoke-others"
+      "path": "/api/auth/clients/revoke-others",
+      "desktop": true
     },
     {
       "id": "http:auth.revokePairingLink",
@@ -637,7 +701,8 @@
       "name": "auth.revokePairingLink",
       "phone": false,
       "method": "POST",
-      "path": "/api/auth/pairing-links/revoke"
+      "path": "/api/auth/pairing-links/revoke",
+      "desktop": true
     },
     {
       "id": "http:auth.session",
@@ -646,9 +711,10 @@
       "phone": true,
       "method": "GET",
       "path": "/api/auth/session",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/session.ts:63",
-        "packages/client-runtime/src/state/session.ts:65"
+        "packages/client-runtime/src/state/session.ts:64",
+        "packages/client-runtime/src/state/session.ts:66"
       ]
     },
     {
@@ -658,9 +724,10 @@
       "phone": true,
       "method": "POST",
       "path": "/oauth/token",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/authorization/remote.ts:128",
-        "packages/client-runtime/src/authorization/remote.ts:156"
+        "packages/client-runtime/src/authorization/remote.ts:130",
+        "packages/client-runtime/src/authorization/remote.ts:158"
       ]
     },
     {
@@ -670,9 +737,10 @@
       "phone": true,
       "method": "POST",
       "path": "/api/auth/websocket-ticket",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/authorization/remote.ts:229",
-        "packages/client-runtime/src/authorization/remote.ts:260"
+        "packages/client-runtime/src/authorization/remote.ts:230",
+        "packages/client-runtime/src/authorization/remote.ts:261"
       ]
     },
     {
@@ -682,9 +750,10 @@
       "phone": true,
       "method": "POST",
       "path": "/api/auth/websocket-ticket/:use",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/authorization/remote.ts:230",
-        "packages/client-runtime/src/authorization/remote.ts:261",
+        "packages/client-runtime/src/authorization/remote.ts:231",
+        "packages/client-runtime/src/authorization/remote.ts:262",
         "packages/client-runtime/src/state/deviceHubAccess.ts:43"
       ]
     },
@@ -712,7 +781,7 @@
       "method": "POST",
       "path": "/api/connect/link-proof",
       "sites": [
-        "apps/mobile/src/features/cloud/linkEnvironment.ts:190"
+        "apps/mobile/src/features/cloud/linkEnvironment.ts:192"
       ]
     },
     {
@@ -739,7 +808,7 @@
       "method": "POST",
       "path": "/api/connect/relay-config",
       "sites": [
-        "apps/mobile/src/features/cloud/linkEnvironment.ts:225"
+        "apps/mobile/src/features/cloud/linkEnvironment.ts:227"
       ]
     },
     {
@@ -764,7 +833,8 @@
       "name": "mcpOAuth.approval",
       "phone": false,
       "method": "POST",
-      "path": "/oauth/mcp/approval"
+      "path": "/oauth/mcp/approval",
+      "desktop": true
     },
     {
       "id": "http:mcpOAuth.authorizationServer",
@@ -788,7 +858,8 @@
       "name": "mcpOAuth.decision",
       "phone": false,
       "method": "POST",
-      "path": "/oauth/mcp/decision"
+      "path": "/oauth/mcp/decision",
+      "desktop": true
     },
     {
       "id": "http:mcpOAuth.mcpProtectedResource",
@@ -829,6 +900,7 @@
       "phone": true,
       "method": "GET",
       "path": "/.well-known/t3/environment",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/environment/descriptor.ts:15"
       ]
@@ -840,6 +912,7 @@
       "phone": true,
       "method": "GET",
       "path": "/api/orchestration/shell",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/shellSnapshotHttp.ts:49",
         "packages/client-runtime/src/state/shellSnapshotHttp.ts:53"
@@ -852,6 +925,7 @@
       "phone": true,
       "method": "GET",
       "path": "/api/orchestration/threads/:threadId/bounded",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/boundedThreadSnapshotHttp.ts:44",
         "packages/client-runtime/src/state/boundedThreadSnapshotHttp.ts:47"
@@ -864,6 +938,7 @@
       "phone": true,
       "method": "GET",
       "path": "/api/orchestration/threads/:threadId/history",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/threadHistoryHttp.ts:41",
         "packages/client-runtime/src/state/threadHistoryHttp.ts:44"
@@ -884,6 +959,7 @@
       "phone": true,
       "method": "GET",
       "path": "/api/orchestration/threads/:threadId/transcript",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/threadTranscriptHttp.ts:25",
         "packages/client-runtime/src/state/threadTranscriptHttp.ts:28"
@@ -912,10 +988,194 @@
       "phone": true,
       "method": "POST",
       "path": "/api/pull-requests/diff",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestDiffHttp.ts:54",
         "packages/client-runtime/src/state/pullRequestDiffHttp.ts:56"
       ]
+    },
+    {
+      "id": "http:voice.cancelModelDownload",
+      "kind": "http",
+      "name": "voice.cancelModelDownload",
+      "phone": true,
+      "method": "POST",
+      "path": "/api/voice/models/cancel",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/voice-input/environment.ts:224",
+        "packages/client-runtime/src/voice-input/environment.ts:225"
+      ]
+    },
+    {
+      "id": "http:voice.cloudKeys",
+      "kind": "http",
+      "name": "voice.cloudKeys",
+      "phone": true,
+      "method": "GET",
+      "path": "/api/voice/cloud/keys",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/voice-input/environment.ts:79",
+        "packages/client-runtime/src/voice-input/environment.ts:80"
+      ]
+    },
+    {
+      "id": "http:voice.cloudModels",
+      "kind": "http",
+      "name": "voice.cloudModels",
+      "phone": true,
+      "method": "GET",
+      "path": "/api/voice/cloud/openrouter/models",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/voice-input/environment.ts:88",
+        "packages/client-runtime/src/voice-input/environment.ts:89"
+      ]
+    },
+    {
+      "id": "http:voice.downloadModel",
+      "kind": "http",
+      "name": "voice.downloadModel",
+      "phone": true,
+      "method": "POST",
+      "path": "/api/voice/models/download",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/voice-input/environment.ts:202",
+        "packages/client-runtime/src/voice-input/environment.ts:204"
+      ]
+    },
+    {
+      "id": "http:voice.linkModels",
+      "kind": "http",
+      "name": "voice.linkModels",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/voice/models/link",
+      "desktop": true
+    },
+    {
+      "id": "http:voice.models",
+      "kind": "http",
+      "name": "voice.models",
+      "phone": true,
+      "method": "GET",
+      "path": "/api/voice/models",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/voice-input/environment.ts:192",
+        "packages/client-runtime/src/voice-input/environment.ts:193"
+      ]
+    },
+    {
+      "id": "http:voice.postProcess",
+      "kind": "http",
+      "name": "voice.postProcess",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/voice/post-process",
+      "desktop": true
+    },
+    {
+      "id": "http:voice.prepareModel",
+      "kind": "http",
+      "name": "voice.prepareModel",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/voice/models/prepare"
+    },
+    {
+      "id": "http:voice.removeModel",
+      "kind": "http",
+      "name": "voice.removeModel",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/voice/models/remove",
+      "desktop": true
+    },
+    {
+      "id": "http:voice.selectModel",
+      "kind": "http",
+      "name": "voice.selectModel",
+      "phone": true,
+      "method": "POST",
+      "path": "/api/voice/models/select",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/voice-input/environment.ts:212",
+        "packages/client-runtime/src/voice-input/environment.ts:213"
+      ]
+    },
+    {
+      "id": "http:voice.setCloudKey",
+      "kind": "http",
+      "name": "voice.setCloudKey",
+      "phone": true,
+      "method": "POST",
+      "path": "/api/voice/cloud/:provider/key",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/voice-input/environment.ts:118",
+        "packages/client-runtime/src/voice-input/environment.ts:120"
+      ]
+    },
+    {
+      "id": "http:voice.status",
+      "kind": "http",
+      "name": "voice.status",
+      "phone": true,
+      "method": "GET",
+      "path": "/api/voice/status",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/voice-input/environment.ts:70",
+        "packages/client-runtime/src/voice-input/environment.ts:71"
+      ]
+    },
+    {
+      "id": "http:voice.transcribe",
+      "kind": "http",
+      "name": "voice.transcribe",
+      "phone": true,
+      "method": "POST",
+      "path": "/api/voice/transcribe",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/voice-input/environment.ts:238",
+        "packages/client-runtime/src/voice-input/environment.ts:242"
+      ]
+    },
+    {
+      "id": "http:voice.transcribeCloud",
+      "kind": "http",
+      "name": "voice.transcribeCloud",
+      "phone": true,
+      "method": "POST",
+      "path": "/api/voice/cloud/:provider/transcribe",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/voice-input/environment.ts:142",
+        "packages/client-runtime/src/voice-input/environment.ts:144"
+      ]
+    },
+    {
+      "id": "http:voice.updateAcceleration",
+      "kind": "http",
+      "name": "voice.updateAcceleration",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/voice/acceleration",
+      "desktop": true
+    },
+    {
+      "id": "http:voice.updateModelUnloadTimeout",
+      "kind": "http",
+      "name": "voice.updateModelUnloadTimeout",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/voice/model-unload-timeout",
+      "desktop": true
     },
     {
       "id": "http:webhooks.webhookGet",
@@ -954,10 +1214,11 @@
       "kind": "mutation",
       "name": "project.create",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:314",
-        "packages/client-runtime/src/operations/commands.ts:346",
-        "packages/client-runtime/src/operations/projects.ts:296"
+        "packages/client-runtime/src/operations/commands.ts:316",
+        "packages/client-runtime/src/operations/commands.ts:348",
+        "packages/client-runtime/src/operations/projects.ts:338"
       ]
     },
     {
@@ -965,9 +1226,10 @@
       "kind": "mutation",
       "name": "project.delete",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:333",
-        "packages/client-runtime/src/operations/commands.ts:389"
+        "packages/client-runtime/src/operations/commands.ts:335",
+        "packages/client-runtime/src/operations/commands.ts:391"
       ]
     },
     {
@@ -975,9 +1237,10 @@
       "kind": "mutation",
       "name": "project.update",
       "phone": true,
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:324",
-        "packages/client-runtime/src/operations/commands.ts:365"
+        "packages/client-runtime/src/operations/commands.ts:326",
+        "packages/client-runtime/src/operations/commands.ts:367"
       ]
     },
     {
@@ -985,14 +1248,16 @@
       "kind": "rpc",
       "name": "agentSessions.import",
       "phone": false,
-      "scope": "orchestration:operate"
+      "scope": "orchestration:operate",
+      "desktop": true
     },
     {
       "id": "rpc:agentSessions.scan",
       "kind": "rpc",
       "name": "agentSessions.scan",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:assets.createUrl",
@@ -1000,9 +1265,9 @@
       "name": "assets.createUrl",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/assets.ts:140",
-        "packages/client-runtime/src/state/assets.ts:164"
+        "packages/client-runtime/src/state/assets.ts:259"
       ]
     },
     {
@@ -1011,8 +1276,9 @@
       "name": "assets.persistChatAttachments",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:295"
+        "packages/client-runtime/src/operations/commands.ts:297"
       ]
     },
     {
@@ -1021,6 +1287,7 @@
       "name": "attachments.createUploadUrl",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/attachments.ts:26"
       ]
@@ -1031,6 +1298,7 @@
       "name": "attachments.delete",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/attachments.ts:30"
       ]
@@ -1040,7 +1308,8 @@
       "kind": "rpc",
       "name": "cloud.getRelayClientStatus",
       "phone": false,
-      "scope": "relay:read"
+      "scope": "relay:read",
+      "desktop": true
     },
     {
       "id": "rpc:cloud.installRelayClient",
@@ -1048,7 +1317,8 @@
       "name": "cloud.installRelayClient",
       "phone": false,
       "subscription": true,
-      "scope": "relay:write"
+      "scope": "relay:write",
+      "desktop": true
     },
     {
       "id": "rpc:device.action",
@@ -1056,6 +1326,7 @@
       "name": "device.action",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:89"
       ]
@@ -1066,6 +1337,7 @@
       "name": "device.close",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:71"
       ]
@@ -1076,6 +1348,7 @@
       "name": "device.configure",
       "phone": true,
       "scope": "settings:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:45"
       ]
@@ -1086,6 +1359,7 @@
       "name": "device.detail",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:83"
       ]
@@ -1095,7 +1369,8 @@
       "kind": "rpc",
       "name": "device.easAccount",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:device.list",
@@ -1103,6 +1378,7 @@
       "name": "device.list",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:59"
       ]
@@ -1113,6 +1389,7 @@
       "name": "device.open",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:65"
       ]
@@ -1123,6 +1400,7 @@
       "name": "device.shutdown",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:77"
       ]
@@ -1132,14 +1410,16 @@
       "kind": "rpc",
       "name": "device.simlockIdentity",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:device.testHost",
       "kind": "rpc",
       "name": "device.testHost",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:filesystem.browse",
@@ -1147,8 +1427,9 @@
       "name": "filesystem.browse",
       "phone": true,
       "scope": "filesystem:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/filesystem.ts:123"
+        "packages/client-runtime/src/state/filesystem.ts:152"
       ]
     },
     {
@@ -1157,8 +1438,9 @@
       "name": "filesystem.getMetadata",
       "phone": true,
       "scope": "filesystem:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/fileMetadata.ts:144"
+        "packages/client-runtime/src/state/fileMetadata.ts:145"
       ]
     },
     {
@@ -1167,8 +1449,9 @@
       "name": "git.preparePullRequestThread",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/git.ts:18"
+        "packages/client-runtime/src/state/git.ts:20"
       ]
     },
     {
@@ -1176,7 +1459,8 @@
       "kind": "rpc",
       "name": "git.resolvePullRequest",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:git.runStackedAction",
@@ -1185,6 +1469,7 @@
       "phone": true,
       "subscription": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/vcsAction.ts:487"
       ]
@@ -1194,7 +1479,8 @@
       "kind": "rpc",
       "name": "guestShare.create",
       "phone": false,
-      "scope": "access:write"
+      "scope": "access:write",
+      "desktop": true
     },
     {
       "id": "rpc:mcpApps.callTool",
@@ -1202,6 +1488,7 @@
       "name": "mcpApps.callTool",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/mcpApps.ts:13"
       ]
@@ -1212,6 +1499,7 @@
       "name": "mcpApps.readResource",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/mcpApps.ts:26"
       ]
@@ -1222,6 +1510,7 @@
       "name": "mcpApps.toolInfo",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/mcpApps.ts:17",
         "packages/client-runtime/src/state/mcpApps.ts:22"
@@ -1233,6 +1522,7 @@
       "name": "mcpApps.updateModelContext",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/mcpApps.ts:30"
       ]
@@ -1243,9 +1533,10 @@
       "name": "orchestration.dispatchCommand",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:278",
-        "packages/client-runtime/src/state/orchestration.ts:70"
+        "packages/client-runtime/src/operations/commands.ts:280",
+        "packages/client-runtime/src/state/orchestration.ts:149"
       ]
     },
     {
@@ -1254,8 +1545,9 @@
       "name": "orchestration.forceStopThread",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/orchestration.ts:112"
+        "packages/client-runtime/src/state/orchestration.ts:207"
       ]
     },
     {
@@ -1264,8 +1556,9 @@
       "name": "orchestration.getArchivedShellSnapshot",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/orchestration.ts:145"
+        "packages/client-runtime/src/state/orchestration.ts:241"
       ]
     },
     {
@@ -1274,8 +1567,20 @@
       "name": "orchestration.getFullThreadDiff",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/orchestration.ts:122"
+        "packages/client-runtime/src/state/orchestration.ts:218"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.getNativeChildWork",
+      "kind": "rpc",
+      "name": "orchestration.getNativeChildWork",
+      "phone": true,
+      "scope": "orchestration:read",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/state/orchestration.ts:197"
       ]
     },
     {
@@ -1284,9 +1589,10 @@
       "name": "orchestration.getOlderSettledThreads",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/olderSettledThreads.ts:230",
-        "packages/client-runtime/src/state/olderSettledThreads.ts:248"
+        "packages/client-runtime/src/state/olderSettledThreads.ts:245",
+        "packages/client-runtime/src/state/olderSettledThreads.ts:263"
       ]
     },
     {
@@ -1295,8 +1601,20 @@
       "name": "orchestration.getThreadFamily",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/threadFamilies.ts:110"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.getThreadLinkMetadata",
+      "kind": "rpc",
+      "name": "orchestration.getThreadLinkMetadata",
+      "phone": true,
+      "scope": "orchestration:read",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/state/orchestration.ts:112"
       ]
     },
     {
@@ -1305,8 +1623,20 @@
       "name": "orchestration.getThreadProjection",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:281"
+        "packages/client-runtime/src/operations/commands.ts:283"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.getThreadTitles",
+      "kind": "rpc",
+      "name": "orchestration.getThreadTitles",
+      "phone": true,
+      "scope": "orchestration:read",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/state/orchestration.ts:114"
       ]
     },
     {
@@ -1315,8 +1645,9 @@
       "name": "orchestration.getTurnDiff",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/orchestration.ts:97"
+        "packages/client-runtime/src/state/orchestration.ts:185"
       ]
     },
     {
@@ -1325,9 +1656,11 @@
       "name": "orchestration.getTurnItem",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/orchestration.ts:116",
-        "packages/client-runtime/src/state/threads.ts:835"
+        "packages/client-runtime/src/state/orchestration.ts:59",
+        "packages/client-runtime/src/state/orchestration.ts:66",
+        "packages/client-runtime/src/state/threads.ts:860"
       ]
     },
     {
@@ -1336,8 +1669,9 @@
       "name": "orchestration.getWorkflowScript",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/orchestration.ts:102"
+        "packages/client-runtime/src/state/orchestration.ts:190"
       ]
     },
     {
@@ -1345,7 +1679,8 @@
       "kind": "rpc",
       "name": "orchestration.getWorktreeThreadIds",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:orchestration.launchThread",
@@ -1353,8 +1688,9 @@
       "name": "orchestration.launchThread",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:712"
+        "packages/client-runtime/src/operations/commands.ts:714"
       ]
     },
     {
@@ -1362,7 +1698,8 @@
       "kind": "rpc",
       "name": "orchestration.searchThread",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:orchestration.searchThreadStream",
@@ -1370,7 +1707,8 @@
       "name": "orchestration.searchThreadStream",
       "phone": false,
       "subscription": true,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:orchestration.searchThreads",
@@ -1378,9 +1716,10 @@
       "name": "orchestration.searchThreads",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/olderSettledThreads.ts:389",
-        "packages/client-runtime/src/state/orchestration.ts:139"
+        "packages/client-runtime/src/state/olderSettledThreads.ts:404",
+        "packages/client-runtime/src/state/orchestration.ts:235"
       ]
     },
     {
@@ -1389,8 +1728,9 @@
       "name": "orchestration.stopWorkflow",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/orchestration.ts:108"
+        "packages/client-runtime/src/state/orchestration.ts:203"
       ]
     },
     {
@@ -1400,8 +1740,21 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/orchestration.ts:85"
+        "packages/client-runtime/src/state/orchestration.ts:165"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.subscribePromptSuggestion",
+      "kind": "rpc",
+      "name": "orchestration.subscribePromptSuggestion",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/state/orchestration.ts:179"
       ]
     },
     {
@@ -1411,9 +1764,10 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/orchestration.ts:74",
-        "packages/client-runtime/src/state/shell.ts:363"
+        "packages/client-runtime/src/state/orchestration.ts:153",
+        "packages/client-runtime/src/state/shell.ts:452"
       ]
     },
     {
@@ -1423,9 +1777,10 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/orchestration.ts:78",
-        "packages/client-runtime/src/state/threads.ts:938"
+        "packages/client-runtime/src/state/orchestration.ts:157",
+        "packages/client-runtime/src/state/threads.ts:975"
       ]
     },
     {
@@ -1434,6 +1789,7 @@
       "name": "peerLinks.answerRequest",
       "phone": true,
       "scope": "access:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/peerLinks.ts:36"
       ]
@@ -1444,6 +1800,7 @@
       "name": "peerLinks.link",
       "phone": true,
       "scope": "access:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/peerLinks.ts:23"
       ]
@@ -1454,6 +1811,7 @@
       "name": "peerLinks.list",
       "phone": true,
       "scope": "access:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/peerLinks.ts:15"
       ]
@@ -1463,7 +1821,8 @@
       "kind": "rpc",
       "name": "peerLinks.unlink",
       "phone": false,
-      "scope": "access:write"
+      "scope": "access:write",
+      "desktop": true
     },
     {
       "id": "rpc:preview.adjust",
@@ -1471,6 +1830,7 @@
       "name": "preview.adjust",
       "phone": true,
       "scope": "preview:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/preview.ts:56"
       ]
@@ -1480,7 +1840,8 @@
       "kind": "rpc",
       "name": "preview.clearProfile",
       "phone": false,
-      "scope": "preview:operate"
+      "scope": "preview:operate",
+      "desktop": true
     },
     {
       "id": "rpc:preview.close",
@@ -1488,6 +1849,7 @@
       "name": "preview.close",
       "phone": true,
       "scope": "preview:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/preview.ts:62"
       ]
@@ -1498,6 +1860,7 @@
       "name": "preview.list",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/preview.ts:26"
       ]
@@ -1508,6 +1871,7 @@
       "name": "preview.open",
       "phone": true,
       "scope": "preview:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/preview.ts:44"
       ]
@@ -1517,14 +1881,16 @@
       "kind": "rpc",
       "name": "preview.reportProfiles",
       "phone": false,
-      "scope": "preview:operate"
+      "scope": "preview:operate",
+      "desktop": true
     },
     {
       "id": "rpc:preview.reportStatus",
       "kind": "rpc",
       "name": "preview.reportStatus",
       "phone": false,
-      "scope": "preview:operate"
+      "scope": "preview:operate",
+      "desktop": true
     },
     {
       "id": "rpc:preview.resize",
@@ -1532,6 +1898,7 @@
       "name": "preview.resize",
       "phone": true,
       "scope": "preview:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/preview.ts:50"
       ]
@@ -1541,7 +1908,8 @@
       "kind": "rpc",
       "name": "preview.stopLocalServer",
       "phone": false,
-      "scope": "terminal:operate"
+      "scope": "terminal:operate",
+      "desktop": true
     },
     {
       "id": "rpc:projectClone.cancel",
@@ -1549,8 +1917,9 @@
       "name": "projectClone.cancel",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/sourceControl.ts:56"
+        "packages/client-runtime/src/state/sourceControl.ts:60"
       ]
     },
     {
@@ -1559,8 +1928,9 @@
       "name": "projectClone.retry",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/sourceControl.ts:65"
+        "packages/client-runtime/src/state/sourceControl.ts:69"
       ]
     },
     {
@@ -1569,8 +1939,9 @@
       "name": "projectClone.start",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/sourceControl.ts:45"
+        "packages/client-runtime/src/state/sourceControl.ts:49"
       ]
     },
     {
@@ -1579,6 +1950,7 @@
       "name": "projects.createFromThread",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/projectCommands.ts:206"
       ]
@@ -1589,6 +1961,7 @@
       "name": "projects.createNew",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/projectCommands.ts:200"
       ]
@@ -1599,6 +1972,7 @@
       "name": "projects.ensureScratch",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/projectCommands.ts:179"
       ]
@@ -1609,6 +1983,7 @@
       "name": "projects.listEntries",
       "phone": true,
       "scope": "filesystem:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/projectCommands.ts:122",
         "packages/client-runtime/src/state/projectCommands.ts:127"
@@ -1619,7 +1994,8 @@
       "kind": "rpc",
       "name": "projects.listIgnoredFiles",
       "phone": false,
-      "scope": "filesystem:read"
+      "scope": "filesystem:read",
+      "desktop": true
     },
     {
       "id": "rpc:projects.mutate",
@@ -1627,8 +2003,9 @@
       "name": "projects.mutate",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/operations/commands.ts:339"
+        "packages/client-runtime/src/operations/commands.ts:341"
       ]
     },
     {
@@ -1637,6 +2014,7 @@
       "name": "projects.readFile",
       "phone": true,
       "scope": "filesystem:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/projectCommands.ts:138",
         "packages/client-runtime/src/state/projectCommands.ts:143"
@@ -1647,7 +2025,8 @@
       "kind": "rpc",
       "name": "projects.searchContents",
       "phone": false,
-      "scope": "filesystem:read"
+      "scope": "filesystem:read",
+      "desktop": true
     },
     {
       "id": "rpc:projects.searchEntries",
@@ -1655,6 +2034,7 @@
       "name": "projects.searchEntries",
       "phone": true,
       "scope": "filesystem:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/projectCommands.ts:112",
         "packages/client-runtime/src/state/projectCommands.ts:116"
@@ -1666,6 +2046,7 @@
       "name": "projects.writeFile",
       "phone": true,
       "scope": "filesystem:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/projectCommands.ts:212",
         "packages/client-runtime/src/state/projectCommands.ts:220"
@@ -1677,8 +2058,9 @@
       "name": "provider.auth.cancel",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1237"
+        "packages/client-runtime/src/state/server.ts:1274"
       ]
     },
     {
@@ -1687,8 +2069,9 @@
       "name": "provider.auth.complete",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1217"
+        "packages/client-runtime/src/state/server.ts:1254"
       ]
     },
     {
@@ -1697,8 +2080,20 @@
       "name": "provider.auth.logout",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1241"
+        "packages/client-runtime/src/state/server.ts:1282"
+      ]
+    },
+    {
+      "id": "rpc:provider.auth.removeMethod",
+      "kind": "rpc",
+      "name": "provider.auth.removeMethod",
+      "phone": true,
+      "scope": "providers:manage",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1278"
       ]
     },
     {
@@ -1707,8 +2102,9 @@
       "name": "provider.auth.respond",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1213"
+        "packages/client-runtime/src/state/server.ts:1250"
       ]
     },
     {
@@ -1717,8 +2113,9 @@
       "name": "provider.auth.start",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1205"
+        "packages/client-runtime/src/state/server.ts:1242"
       ]
     },
     {
@@ -1728,8 +2125,9 @@
       "phone": true,
       "subscription": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1200"
+        "packages/client-runtime/src/state/server.ts:1237"
       ]
     },
     {
@@ -1738,7 +2136,8 @@
       "name": "provider.chatgpt.handoff.subscribe",
       "phone": false,
       "subscription": true,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:provider.chatgpt.import-profile",
@@ -1746,8 +2145,9 @@
       "name": "provider.chatgpt.import-profile",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1225"
+        "packages/client-runtime/src/state/server.ts:1262"
       ]
     },
     {
@@ -1756,8 +2156,9 @@
       "name": "provider.chatgpt.reconnect-profile",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1221"
+        "packages/client-runtime/src/state/server.ts:1258"
       ]
     },
     {
@@ -1766,8 +2167,9 @@
       "name": "provider.consumeResetCredit",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1360"
+        "packages/client-runtime/src/state/server.ts:1403"
       ]
     },
     {
@@ -1775,21 +2177,24 @@
       "kind": "rpc",
       "name": "provider.install.cancel",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:provider.install.remove",
       "kind": "rpc",
       "name": "provider.install.remove",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:provider.install.start",
       "kind": "rpc",
       "name": "provider.install.start",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:provider.install.subscribe",
@@ -1797,7 +2202,8 @@
       "name": "provider.install.subscribe",
       "phone": false,
       "subscription": true,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:provider.uploadFeedback",
@@ -1805,8 +2211,9 @@
       "name": "provider.uploadFeedback",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/threadCommands.ts:372"
+        "packages/client-runtime/src/state/threadCommands.ts:380"
       ]
     },
     {
@@ -1815,10 +2222,11 @@
       "name": "pullRequests.activity",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:40",
-        "packages/client-runtime/src/state/pullRequests.ts:218",
-        "packages/client-runtime/src/state/pullRequests.ts:219"
+        "packages/client-runtime/src/state/pullRequests.ts:446",
+        "packages/client-runtime/src/state/pullRequests.ts:447"
       ]
     },
     {
@@ -1827,10 +2235,11 @@
       "name": "pullRequests.changeBreakdown",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:44",
-        "packages/client-runtime/src/state/pullRequests.ts:448",
-        "packages/client-runtime/src/state/pullRequests.ts:449"
+        "packages/client-runtime/src/state/pullRequests.ts:831",
+        "packages/client-runtime/src/state/pullRequests.ts:832"
       ]
     },
     {
@@ -1839,10 +2248,11 @@
       "name": "pullRequests.checks",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:331",
         "packages/client-runtime/src/state/pullRequestRouting.ts:39",
-        "packages/client-runtime/src/state/pullRequests.ts:392"
+        "packages/client-runtime/src/state/pullRequests.ts:775"
       ]
     },
     {
@@ -1851,10 +2261,11 @@
       "name": "pullRequests.comment",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:54",
-        "packages/client-runtime/src/state/pullRequests.ts:492",
-        "packages/client-runtime/src/state/pullRequests.ts:493"
+        "packages/client-runtime/src/state/pullRequests.ts:888",
+        "packages/client-runtime/src/state/pullRequests.ts:889"
       ]
     },
     {
@@ -1863,6 +2274,7 @@
       "name": "pullRequests.detail",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:37",
         "packages/client-runtime/src/state/pullRequestRouting.ts:463",
@@ -1875,10 +2287,11 @@
       "name": "pullRequests.diffFileContents",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:42",
-        "packages/client-runtime/src/state/pullRequests.ts:419",
-        "packages/client-runtime/src/state/pullRequests.ts:420"
+        "packages/client-runtime/src/state/pullRequests.ts:802",
+        "packages/client-runtime/src/state/pullRequests.ts:803"
       ]
     },
     {
@@ -1887,10 +2300,11 @@
       "name": "pullRequests.filesViewed",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:43",
-        "packages/client-runtime/src/state/pullRequests.ts:441",
-        "packages/client-runtime/src/state/pullRequests.ts:442"
+        "packages/client-runtime/src/state/pullRequests.ts:824",
+        "packages/client-runtime/src/state/pullRequests.ts:825"
       ]
     },
     {
@@ -1899,8 +2313,9 @@
       "name": "pullRequests.filterOptions",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/pullRequests.ts:382"
+        "packages/client-runtime/src/state/pullRequests.ts:764"
       ]
     },
     {
@@ -1909,9 +2324,10 @@
       "name": "pullRequests.generateReviewGuide",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/pullRequests.ts:606",
-        "packages/client-runtime/src/state/pullRequests.ts:607"
+        "packages/client-runtime/src/state/pullRequests.ts:1013",
+        "packages/client-runtime/src/state/pullRequests.ts:1014"
       ]
     },
     {
@@ -1920,10 +2336,11 @@
       "name": "pullRequests.invalidate",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:214",
         "packages/client-runtime/src/state/pullRequestRouting.ts:243",
-        "packages/client-runtime/src/state/pullRequests.ts:670"
+        "packages/client-runtime/src/state/pullRequests.ts:1079"
       ]
     },
     {
@@ -1932,10 +2349,11 @@
       "name": "pullRequests.labelCandidates",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:46",
-        "packages/client-runtime/src/state/pullRequests.ts:260",
-        "packages/client-runtime/src/state/pullRequests.ts:261"
+        "packages/client-runtime/src/state/pullRequests.ts:590",
+        "packages/client-runtime/src/state/pullRequests.ts:591"
       ]
     },
     {
@@ -1944,9 +2362,10 @@
       "name": "pullRequests.linkedThreads",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/pullRequests.ts:345",
-        "packages/client-runtime/src/state/pullRequests.ts:354"
+        "packages/client-runtime/src/state/pullRequests.ts:710",
+        "packages/client-runtime/src/state/pullRequests.ts:719"
       ]
     },
     {
@@ -1955,8 +2374,9 @@
       "name": "pullRequests.list",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/pullRequests.ts:361"
+        "packages/client-runtime/src/state/pullRequests.ts:727"
       ]
     },
     {
@@ -1965,8 +2385,9 @@
       "name": "pullRequests.listStats",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/pullRequests.ts:375"
+        "packages/client-runtime/src/state/pullRequests.ts:757"
       ]
     },
     {
@@ -1975,10 +2396,11 @@
       "name": "pullRequests.preview",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:38",
-        "packages/client-runtime/src/state/pullRequests.ts:239",
-        "packages/client-runtime/src/state/pullRequests.ts:240"
+        "packages/client-runtime/src/state/pullRequests.ts:552",
+        "packages/client-runtime/src/state/pullRequests.ts:553"
       ]
     },
     {
@@ -1987,10 +2409,11 @@
       "name": "pullRequests.replyToThread",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:57",
-        "packages/client-runtime/src/state/pullRequests.ts:522",
-        "packages/client-runtime/src/state/pullRequests.ts:523"
+        "packages/client-runtime/src/state/pullRequests.ts:918",
+        "packages/client-runtime/src/state/pullRequests.ts:919"
       ]
     },
     {
@@ -1999,6 +2422,7 @@
       "name": "pullRequests.reportState",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:231"
       ]
@@ -2009,10 +2433,11 @@
       "name": "pullRequests.requestReviewers",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:60",
-        "packages/client-runtime/src/state/pullRequests.ts:530",
-        "packages/client-runtime/src/state/pullRequests.ts:531"
+        "packages/client-runtime/src/state/pullRequests.ts:928",
+        "packages/client-runtime/src/state/pullRequests.ts:929"
       ]
     },
     {
@@ -2021,9 +2446,10 @@
       "name": "pullRequests.reviewGuide",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/pullRequests.ts:269",
-        "packages/client-runtime/src/state/pullRequests.ts:270"
+        "packages/client-runtime/src/state/pullRequests.ts:599",
+        "packages/client-runtime/src/state/pullRequests.ts:600"
       ]
     },
     {
@@ -2032,10 +2458,11 @@
       "name": "pullRequests.reviewerCandidates",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:45",
-        "packages/client-runtime/src/state/pullRequests.ts:279",
-        "packages/client-runtime/src/state/pullRequests.ts:280"
+        "packages/client-runtime/src/state/pullRequests.ts:609",
+        "packages/client-runtime/src/state/pullRequests.ts:610"
       ]
     },
     {
@@ -2044,6 +2471,7 @@
       "name": "pullRequests.routing",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:345"
       ]
@@ -2054,6 +2482,7 @@
       "name": "pullRequests.routingIdentity",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:419"
       ]
@@ -2064,10 +2493,11 @@
       "name": "pullRequests.runAction",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:52",
-        "packages/client-runtime/src/state/pullRequests.ts:337",
-        "packages/client-runtime/src/state/pullRequests.ts:469"
+        "packages/client-runtime/src/state/pullRequests.ts:674",
+        "packages/client-runtime/src/state/pullRequests.ts:852"
       ]
     },
     {
@@ -2076,6 +2506,7 @@
       "name": "pullRequests.setFilesViewed",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:305",
         "packages/client-runtime/src/state/pullRequestRouting.ts:307",
@@ -2088,10 +2519,11 @@
       "name": "pullRequests.setLabels",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:61",
-        "packages/client-runtime/src/state/pullRequests.ts:616",
-        "packages/client-runtime/src/state/pullRequests.ts:617"
+        "packages/client-runtime/src/state/pullRequests.ts:1023",
+        "packages/client-runtime/src/state/pullRequests.ts:1024"
       ]
     },
     {
@@ -2100,10 +2532,11 @@
       "name": "pullRequests.setReaction",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:58",
-        "packages/client-runtime/src/state/pullRequests.ts:659",
-        "packages/client-runtime/src/state/pullRequests.ts:660"
+        "packages/client-runtime/src/state/pullRequests.ts:1068",
+        "packages/client-runtime/src/state/pullRequests.ts:1069"
       ]
     },
     {
@@ -2112,10 +2545,11 @@
       "name": "pullRequests.setThreadResolution",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:59",
-        "packages/client-runtime/src/state/pullRequests.ts:652",
-        "packages/client-runtime/src/state/pullRequests.ts:653"
+        "packages/client-runtime/src/state/pullRequests.ts:1061",
+        "packages/client-runtime/src/state/pullRequests.ts:1062"
       ]
     },
     {
@@ -2124,10 +2558,11 @@
       "name": "pullRequests.stack",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:36",
-        "packages/client-runtime/src/state/pullRequests.ts:177",
-        "packages/client-runtime/src/state/pullRequests.ts:178"
+        "packages/client-runtime/src/state/pullRequests.ts:405",
+        "packages/client-runtime/src/state/pullRequests.ts:406"
       ]
     },
     {
@@ -2136,10 +2571,11 @@
       "name": "pullRequests.submitReview",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:56",
-        "packages/client-runtime/src/state/pullRequests.ts:515",
-        "packages/client-runtime/src/state/pullRequests.ts:516"
+        "packages/client-runtime/src/state/pullRequests.ts:911",
+        "packages/client-runtime/src/state/pullRequests.ts:912"
       ]
     },
     {
@@ -2149,8 +2585,9 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/pullRequests.ts:123"
+        "packages/client-runtime/src/state/pullRequests.ts:325"
       ]
     },
     {
@@ -2159,10 +2596,11 @@
       "name": "pullRequests.summary",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:35",
         "packages/client-runtime/src/state/pullRequestRouting.ts:508",
-        "packages/client-runtime/src/state/pullRequests.ts:150"
+        "packages/client-runtime/src/state/pullRequests.ts:356"
       ]
     },
     {
@@ -2171,10 +2609,11 @@
       "name": "pullRequests.threadComments",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:41",
-        "packages/client-runtime/src/state/pullRequests.ts:402",
-        "packages/client-runtime/src/state/pullRequests.ts:403"
+        "packages/client-runtime/src/state/pullRequests.ts:785",
+        "packages/client-runtime/src/state/pullRequests.ts:786"
       ]
     },
     {
@@ -2183,10 +2622,11 @@
       "name": "pullRequests.update",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:53",
-        "packages/client-runtime/src/state/pullRequests.ts:484",
-        "packages/client-runtime/src/state/pullRequests.ts:485"
+        "packages/client-runtime/src/state/pullRequests.ts:880",
+        "packages/client-runtime/src/state/pullRequests.ts:881"
       ]
     },
     {
@@ -2195,10 +2635,11 @@
       "name": "pullRequests.updateComment",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:55",
-        "packages/client-runtime/src/state/pullRequests.ts:499",
-        "packages/client-runtime/src/state/pullRequests.ts:500"
+        "packages/client-runtime/src/state/pullRequests.ts:895",
+        "packages/client-runtime/src/state/pullRequests.ts:896"
       ]
     },
     {
@@ -2206,7 +2647,8 @@
       "kind": "rpc",
       "name": "review.getBranchCommits",
       "phone": false,
-      "scope": "filesystem:read"
+      "scope": "filesystem:read",
+      "desktop": true
     },
     {
       "id": "rpc:review.getDiffFileContents",
@@ -2214,8 +2656,9 @@
       "name": "review.getDiffFileContents",
       "phone": true,
       "scope": "filesystem:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/review.ts:93"
+        "packages/client-runtime/src/state/review.ts:116"
       ]
     },
     {
@@ -2224,9 +2667,11 @@
       "name": "review.getDiffPreview",
       "phone": true,
       "scope": "filesystem:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/review.ts:36",
-        "packages/client-runtime/src/state/review.ts:73"
+        "packages/client-runtime/src/state/review.ts:51",
+        "packages/client-runtime/src/state/review.ts:59"
       ]
     },
     {
@@ -2235,8 +2680,9 @@
       "name": "scheduledTasks.delete",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1529"
+        "packages/client-runtime/src/state/server.ts:1574"
       ]
     },
     {
@@ -2244,14 +2690,16 @@
       "kind": "rpc",
       "name": "scheduledTasks.getWebhookDelivery",
       "phone": false,
-      "scope": "orchestration:operate"
+      "scope": "orchestration:operate",
+      "desktop": true
     },
     {
       "id": "rpc:scheduledTasks.listWebhookDeliveries",
       "kind": "rpc",
       "name": "scheduledTasks.listWebhookDeliveries",
       "phone": false,
-      "scope": "orchestration:operate"
+      "scope": "orchestration:operate",
+      "desktop": true
     },
     {
       "id": "rpc:scheduledTasks.rotateWebhookToken",
@@ -2259,8 +2707,9 @@
       "name": "scheduledTasks.rotateWebhookToken",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1542"
+        "packages/client-runtime/src/state/server.ts:1587"
       ]
     },
     {
@@ -2269,8 +2718,9 @@
       "name": "scheduledTasks.runNow",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1538"
+        "packages/client-runtime/src/state/server.ts:1583"
       ]
     },
     {
@@ -2279,8 +2729,9 @@
       "name": "scheduledTasks.setEnabled",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1523"
+        "packages/client-runtime/src/state/server.ts:1568"
       ]
     },
     {
@@ -2290,8 +2741,9 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1299"
+        "packages/client-runtime/src/state/server.ts:1340"
       ]
     },
     {
@@ -2300,8 +2752,9 @@
       "name": "scheduledTasks.upsert",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1517"
+        "packages/client-runtime/src/state/server.ts:1562"
       ]
     },
     {
@@ -2310,8 +2763,9 @@
       "name": "secrets.answerRequest",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1554"
+        "packages/client-runtime/src/state/server.ts:1599"
       ]
     },
     {
@@ -2319,14 +2773,16 @@
       "kind": "rpc",
       "name": "server.acceptAcpRegistryUrlAuth",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:server.checkOtlpEndpoint",
       "kind": "rpc",
       "name": "server.checkOtlpEndpoint",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:server.commitDesktopUpdate",
@@ -2334,10 +2790,11 @@
       "name": "server.commitDesktopUpdate",
       "phone": true,
       "scope": "environment:maintain",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/connection/outdatedHostUpdate.ts:191",
-        "packages/client-runtime/src/state/server.ts:1042",
-        "packages/client-runtime/src/state/server.ts:962"
+        "packages/client-runtime/src/state/server.ts:1046",
+        "packages/client-runtime/src/state/server.ts:966"
       ]
     },
     {
@@ -2345,14 +2802,16 @@
       "kind": "rpc",
       "name": "server.deleteAcpRegistrySession",
       "phone": false,
-      "scope": "orchestration:operate"
+      "scope": "orchestration:operate",
+      "desktop": true
     },
     {
       "id": "rpc:server.disableAcpRegistryProvider",
       "kind": "rpc",
       "name": "server.disableAcpRegistryProvider",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:server.discoverSourceControl",
@@ -2360,6 +2819,7 @@
       "name": "server.discoverSourceControl",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/sourceControl.ts:22"
       ]
@@ -2378,8 +2838,9 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1139"
+        "packages/client-runtime/src/state/server.ts:1169"
       ]
     },
     {
@@ -2387,35 +2848,40 @@
       "kind": "rpc",
       "name": "server.getHostResources",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.getNpmRelease",
       "kind": "rpc",
       "name": "server.getNpmRelease",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.getProcessDiagnostics",
       "kind": "rpc",
       "name": "server.getProcessDiagnostics",
       "phone": false,
-      "scope": "diagnostics:read"
+      "scope": "diagnostics:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.getProcessResourceHistory",
       "kind": "rpc",
       "name": "server.getProcessResourceHistory",
       "phone": false,
-      "scope": "diagnostics:read"
+      "scope": "diagnostics:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.getResourceTelemetryHistory",
       "kind": "rpc",
       "name": "server.getResourceTelemetryHistory",
       "phone": false,
-      "scope": "diagnostics:read"
+      "scope": "diagnostics:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.getStorageCleanupReport",
@@ -2423,14 +2889,16 @@
       "name": "server.getStorageCleanupReport",
       "phone": false,
       "subscription": true,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.getTraceDiagnostics",
       "kind": "rpc",
       "name": "server.getTraceDiagnostics",
       "phone": false,
-      "scope": "diagnostics:read"
+      "scope": "diagnostics:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.getUsageSummary",
@@ -2438,10 +2906,11 @@
       "name": "server.getUsageSummary",
       "phone": true,
       "scope": "diagnostics:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1305",
-        "packages/client-runtime/src/state/server.ts:1309",
-        "packages/client-runtime/src/state/server.ts:1315"
+        "packages/client-runtime/src/state/server.ts:1346",
+        "packages/client-runtime/src/state/server.ts:1350",
+        "packages/client-runtime/src/state/server.ts:1356"
       ]
     },
     {
@@ -2449,35 +2918,48 @@
       "kind": "rpc",
       "name": "server.importAcpRegistrySession",
       "phone": false,
-      "scope": "orchestration:operate"
+      "scope": "orchestration:operate",
+      "desktop": true
     },
     {
       "id": "rpc:server.listAcpRegistryProviders",
       "kind": "rpc",
       "name": "server.listAcpRegistryProviders",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.listAcpRegistrySessions",
       "kind": "rpc",
       "name": "server.listAcpRegistrySessions",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
+    },
+    {
+      "id": "rpc:server.listTextGeneratorModels",
+      "kind": "rpc",
+      "name": "server.listTextGeneratorModels",
+      "phone": false,
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:server.logoutAcpRegistry",
       "kind": "rpc",
       "name": "server.logoutAcpRegistry",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:server.prepareAcpRegistryAgent",
       "kind": "rpc",
       "name": "server.prepareAcpRegistryAgent",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:server.prepareTriage",
@@ -2485,8 +2967,9 @@
       "name": "server.prepareTriage",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1185"
+        "packages/client-runtime/src/state/server.ts:1215"
       ]
     },
     {
@@ -2495,9 +2978,18 @@
       "name": "server.probe",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/rpc/session.ts:409"
+        "packages/client-runtime/src/rpc/session.ts:434"
       ]
+    },
+    {
+      "id": "rpc:server.reclaimDatabaseSpace",
+      "kind": "rpc",
+      "name": "server.reclaimDatabaseSpace",
+      "phone": false,
+      "scope": "environment:maintain",
+      "desktop": true
     },
     {
       "id": "rpc:server.refreshProviders",
@@ -2505,9 +2997,10 @@
       "name": "server.refreshProviders",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1369",
-        "packages/client-runtime/src/state/server.ts:1371"
+        "packages/client-runtime/src/state/server.ts:1412",
+        "packages/client-runtime/src/state/server.ts:1414"
       ]
     },
     {
@@ -2516,8 +3009,9 @@
       "name": "server.refreshUsageRates",
       "phone": true,
       "scope": "diagnostics:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1563"
+        "packages/client-runtime/src/state/server.ts:1608"
       ]
     },
     {
@@ -2525,7 +3019,8 @@
       "kind": "rpc",
       "name": "server.removeKeybinding",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:server.reportClientActivity",
@@ -2533,8 +3028,9 @@
       "name": "server.reportClientActivity",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "apps/mobile/src/connection/background-activity.ts:66"
+        "apps/mobile/src/connection/background-activity.ts:68"
       ]
     },
     {
@@ -2542,42 +3038,48 @@
       "kind": "rpc",
       "name": "server.retryResourceTelemetry",
       "phone": false,
-      "scope": "diagnostics:read"
+      "scope": "diagnostics:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.runStorageCleanup",
       "kind": "rpc",
       "name": "server.runStorageCleanup",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:server.searchAcpRegistry",
       "kind": "rpc",
       "name": "server.searchAcpRegistry",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.setAcpRegistryProvider",
       "kind": "rpc",
       "name": "server.setAcpRegistryProvider",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:server.signalProcess",
       "kind": "rpc",
       "name": "server.signalProcess",
       "phone": false,
-      "scope": "environment:maintain"
+      "scope": "environment:maintain",
+      "desktop": true
     },
     {
       "id": "rpc:server.uninstallAcpRegistryManagedBinary",
       "kind": "rpc",
       "name": "server.uninstallAcpRegistryManagedBinary",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:server.updateProvider",
@@ -2585,8 +3087,9 @@
       "name": "server.updateProvider",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1405"
+        "packages/client-runtime/src/state/server.ts:1450"
       ]
     },
     {
@@ -2595,9 +3098,10 @@
       "name": "server.updateServer",
       "phone": true,
       "scope": "environment:maintain",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/connection/outdatedHostUpdate.ts:171",
-        "packages/client-runtime/src/state/server.ts:936"
+        "packages/client-runtime/src/state/server.ts:940"
       ]
     },
     {
@@ -2607,9 +3111,10 @@
       "phone": true,
       "subscription": true,
       "scope": "environment:maintain",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/connection/outdatedHostUpdate.ts:145",
-        "packages/client-runtime/src/state/server.ts:896"
+        "packages/client-runtime/src/state/server.ts:900"
       ]
     },
     {
@@ -2618,8 +3123,9 @@
       "name": "server.updateSettings",
       "phone": true,
       "scope": "settings:write",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1171"
+        "packages/client-runtime/src/state/server.ts:1201"
       ]
     },
     {
@@ -2627,14 +3133,16 @@
       "kind": "rpc",
       "name": "server.upsertKeybinding",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:shell.openInEditor",
       "kind": "rpc",
       "name": "shell.openInEditor",
       "phone": false,
-      "scope": "orchestration:operate"
+      "scope": "orchestration:operate",
+      "desktop": true
     },
     {
       "id": "rpc:sourceControl.appAccess",
@@ -2642,6 +3150,7 @@
       "name": "sourceControl.appAccess",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/sourceControl.ts:26",
         "packages/client-runtime/src/state/sourceControl.ts:31"
@@ -2660,8 +3169,9 @@
       "name": "sourceControl.lookupRepository",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/sourceControl.ts:39"
+        "packages/client-runtime/src/state/sourceControl.ts:43"
       ]
     },
     {
@@ -2670,8 +3180,9 @@
       "name": "sourceControl.publishRepository",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/sourceControl.ts:91"
+        "packages/client-runtime/src/state/sourceControl.ts:95"
       ]
     },
     {
@@ -2680,8 +3191,9 @@
       "name": "sourceControl.signInCancel",
       "phone": true,
       "scope": "settings:write",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/sourceControl.ts:83"
+        "packages/client-runtime/src/state/sourceControl.ts:87"
       ]
     },
     {
@@ -2690,8 +3202,9 @@
       "name": "sourceControl.signInStart",
       "phone": true,
       "scope": "settings:write",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/sourceControl.ts:75"
+        "packages/client-runtime/src/state/sourceControl.ts:79"
       ]
     },
     {
@@ -2700,16 +3213,26 @@
       "name": "sourceControl.signInWait",
       "phone": true,
       "scope": "settings:write",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/sourceControl.ts:79"
+        "packages/client-runtime/src/state/sourceControl.ts:83"
       ]
+    },
+    {
+      "id": "rpc:sourceControl.star",
+      "kind": "rpc",
+      "name": "sourceControl.star",
+      "phone": false,
+      "scope": "source-control:write",
+      "desktop": true
     },
     {
       "id": "rpc:sourceControl.starred",
       "kind": "rpc",
       "name": "sourceControl.starred",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:subscribeAuthAccess",
@@ -2717,7 +3240,8 @@
       "name": "subscribeAuthAccess",
       "phone": false,
       "subscription": true,
-      "scope": "access:read"
+      "scope": "access:read",
+      "desktop": true
     },
     {
       "id": "rpc:subscribeDeviceState",
@@ -2726,6 +3250,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:41"
       ]
@@ -2736,7 +3261,8 @@
       "name": "subscribeDiscoveredLocalServers",
       "phone": false,
       "subscription": true,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:subscribePreviewEvents",
@@ -2745,6 +3271,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/preview.ts:31"
       ]
@@ -2756,8 +3283,9 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/sourceControl.ts:87"
+        "packages/client-runtime/src/state/sourceControl.ts:91"
       ]
     },
     {
@@ -2767,6 +3295,7 @@
       "phone": true,
       "subscription": true,
       "scope": "diagnostics:read",
+      "desktop": true,
       "sites": [
         "apps/mobile/src/connection/background-activity-scopes.ts:40"
       ]
@@ -2778,10 +3307,11 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/rpc/client.ts:282",
-        "packages/client-runtime/src/rpc/session.ts:269",
-        "packages/client-runtime/src/rpc/session.ts:403"
+        "packages/client-runtime/src/rpc/client.ts:298",
+        "packages/client-runtime/src/rpc/session.ts:294",
+        "packages/client-runtime/src/rpc/session.ts:428"
       ]
     },
     {
@@ -2791,9 +3321,10 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/server.ts:1009",
-        "packages/client-runtime/src/state/server.ts:599"
+        "packages/client-runtime/src/state/server.ts:1013",
+        "packages/client-runtime/src/state/server.ts:601"
       ]
     },
     {
@@ -2803,8 +3334,21 @@
       "phone": true,
       "subscription": true,
       "scope": "terminal:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:84"
+      ]
+    },
+    {
+      "id": "rpc:subscribeVcsBranch",
+      "kind": "rpc",
+      "name": "subscribeVcsBranch",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/rpc/client.ts:457"
       ]
     },
     {
@@ -2814,9 +3358,11 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "apps/mobile/src/connection/background-activity-scopes.ts:43",
-        "packages/client-runtime/src/state/vcs.ts:289"
+        "packages/client-runtime/src/rpc/client.ts:474",
+        "packages/client-runtime/src/state/vcs.ts:320"
       ]
     },
     {
@@ -2826,8 +3372,9 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/vcs.ts:322"
+        "packages/client-runtime/src/state/vcs.ts:353"
       ]
     },
     {
@@ -2837,6 +3384,7 @@
       "phone": true,
       "subscription": true,
       "scope": "terminal:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:69"
       ]
@@ -2847,6 +3395,7 @@
       "name": "terminal.clear",
       "phone": true,
       "scope": "terminal:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:108"
       ]
@@ -2857,6 +3406,7 @@
       "name": "terminal.close",
       "phone": true,
       "scope": "terminal:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:114"
       ]
@@ -2868,6 +3418,7 @@
       "phone": true,
       "subscription": true,
       "scope": "terminal:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:59"
       ]
@@ -2878,6 +3429,7 @@
       "name": "terminal.open",
       "phone": true,
       "scope": "terminal:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:92"
       ]
@@ -2888,6 +3440,7 @@
       "name": "terminal.resize",
       "phone": true,
       "scope": "terminal:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:102"
       ]
@@ -2898,6 +3451,7 @@
       "name": "terminal.write",
       "phone": true,
       "scope": "terminal:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:98"
       ]
@@ -2908,8 +3462,9 @@
       "name": "vcs.createRef",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/vcs.ts:338"
+        "packages/client-runtime/src/state/vcs.ts:369"
       ]
     },
     {
@@ -2919,7 +3474,7 @@
       "phone": true,
       "scope": "source-control:write",
       "sites": [
-        "packages/client-runtime/src/state/vcs.ts:315"
+        "packages/client-runtime/src/state/vcs.ts:346"
       ]
     },
     {
@@ -2927,7 +3482,8 @@
       "kind": "rpc",
       "name": "vcs.init",
       "phone": false,
-      "scope": "source-control:write"
+      "scope": "source-control:write",
+      "desktop": true
     },
     {
       "id": "rpc:vcs.listRefs",
@@ -2935,9 +3491,10 @@
       "name": "vcs.listRefs",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/vcs.ts:146",
-        "packages/client-runtime/src/state/vcs.ts:283"
+        "packages/client-runtime/src/state/vcs.ts:163",
+        "packages/client-runtime/src/state/vcs.ts:301"
       ]
     },
     {
@@ -2946,8 +3503,20 @@
       "name": "vcs.pull",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/vcs.ts:301"
+        "packages/client-runtime/src/state/vcs.ts:332"
+      ]
+    },
+    {
+      "id": "rpc:vcs.refreshBranch",
+      "kind": "rpc",
+      "name": "vcs.refreshBranch",
+      "phone": true,
+      "scope": "orchestration:read",
+      "desktop": true,
+      "sites": [
+        "packages/client-runtime/src/rpc/client.ts:501"
       ]
     },
     {
@@ -2956,8 +3525,9 @@
       "name": "vcs.refreshStatus",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/vcs.ts:308"
+        "packages/client-runtime/src/state/vcs.ts:339"
       ]
     },
     {
@@ -2965,7 +3535,8 @@
       "kind": "rpc",
       "name": "vcs.removeWorktree",
       "phone": false,
-      "scope": "source-control:write"
+      "scope": "source-control:write",
+      "desktop": true
     },
     {
       "id": "rpc:vcs.switchRef",
@@ -2973,8 +3544,9 @@
       "name": "vcs.switchRef",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/vcs.ts:345"
+        "packages/client-runtime/src/state/vcs.ts:376"
       ]
     },
     {
@@ -2983,8 +3555,9 @@
       "name": "worktreeSetup.cancel",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
-        "packages/client-runtime/src/state/vcs.ts:327"
+        "packages/client-runtime/src/state/vcs.ts:358"
       ]
     }
   ]

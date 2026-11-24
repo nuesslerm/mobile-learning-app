@@ -1,0 +1,85 @@
+{
+  "action": "cli_update",
+  "exchanges": [
+    {
+      "name": "runs the CLI's own update and answers its output and the version it reports",
+      "setup": {
+        "clis": {
+          "claude": "2.1.7 (Claude Code)"
+        }
+      },
+      "request": {
+        "id": "u0",
+        "tool": "cli_update",
+        "args": {
+          "program": "claude"
+        }
+      },
+      "response": {
+        "id": "u0",
+        "ok": true,
+        "result": {
+          "program": "claude",
+          "ok": true,
+          "exit_code": 0,
+          "output": "2.1.7 (Claude Code)",
+          "version": "2.1.7 (Claude Code)"
+        }
+      }
+    },
+    {
+      "name": "refuses codex, which has no update command of its own",
+      "request": {
+        "id": "u1",
+        "tool": "cli_update",
+        "args": {
+          "program": "codex"
+        }
+      },
+      "response": {
+        "id": "u1",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "codex has no update command of its own; update it with the package manager that installed it"
+        }
+      }
+    },
+    {
+      "name": "refuses a program that is no agent CLI",
+      "request": {
+        "id": "u2",
+        "tool": "cli_update",
+        "args": {
+          "program": "sh"
+        }
+      },
+      "response": {
+        "id": "u2",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`program` is one of claude, codex, opencode, not \"sh\""
+        }
+      }
+    },
+    {
+      "name": "refuses an agent CLI the executor does not have",
+      "request": {
+        "id": "u3",
+        "tool": "cli_update",
+        "args": {
+          "program": "claude"
+        }
+      },
+      "response": {
+        "id": "u3",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "claude is not installed here"
+        }
+      }
+    }
+  ]
+}

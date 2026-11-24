@@ -1,27 +1,36 @@
 //! `wf mimic record|replay|diff|verify`: parse the line, run the core over the disk and a driver, print one JSON object (schema
 //! `mimic-<verb>/1`). Exit 0 clean, 1 findings, 2 usage or environment; nothing prompts and every failure names its `next` step.
+#[path = "chain_launch.rs"]
+mod chain_launch;
+#[path = "coverage_verb.rs"]
+mod coverage_verb;
 #[path = "crawl_verb.rs"]
 mod crawl_verb;
 #[path = "stabilize_verb.rs"]
 mod stabilize_verb;
 #[path = "bundle_verb.rs"]
 mod bundle_verb;
-#[path = "job_verb.rs"]
-mod job_verb;
-#[path = "provision_verb.rs"]
-mod provision_verb;
-#[path = "trigger_verb.rs"]
-mod trigger_verb;
+#[path = "capture_verb.rs"]
+mod capture_verb;
+#[path = "provision_phase.rs"]
+mod provision_phase;
+#[path = "scan_verb.rs"]
+mod scan_verb;
+#[path = "exec_verb.rs"]
+mod exec_verb;
+#[path = "projects_verb.rs"]
+mod projects_verb;
 
-use crate::adapters::{FsCheckpoint, FsStore, StdioDriver};
+use crate::adapters::{open_driver, FsCheckpoint, FsStore};
 use crate::config::{relative, Config, Target};
 use mimic_core::allowlist::Allowlist;
 use mimic_core::cassette::{Current, Kind, ToolInfo};
 use mimic_core::corpus::{corpus_hash, expand, Case, CorpusSpec};
 use mimic_core::import::{self as legacy, Legacy};
-use mimic_core::differ::{diff_cassettes, Label, Verdict};
+use mimic_core::differ::{diff_cassettes, Label, Severity, Verdict};
+use mimic_core::gaps;
 use mimic_core::fixtures::{scan, FixtureFile, FixtureRules};
-use mimic_core::ports::{CassetteSet, Store, StoreError};
+use mimic_core::ports::{CassetteSet, Driver, DriverError, Hello, Observed, Request, Store, StoreError};
 use mimic_core::rules::RuleSet;
 use mimic_core::ports::Checkpoint;
 use mimic_core::record::{record_planned, DoubleRun, Plan, Progress};
@@ -32,17 +41,17 @@ use std::path::{Path, PathBuf};
 use wf_kit::args::{parse_spec, Parsed, Positional, Spec};
 
 const RECORD: Spec = Spec { values: &["target", "seed", "recorded-on", "source", "stand-in", "chunk", "batch", "write-chunk", "stability", "max-minutes"], flags: &["keep-raw", "allow-nondeterministic", "resume", "fresh"], positional: Positional::Exactly(1), ..Spec::NONE };
-const REPLAY: Spec = Spec { values: &["target", "candidate", "only", "allowlist", "suite"], positional: Positional::Exactly(1), ..Spec::NONE };
+const REPLAY: Spec = Spec { values: &["target", "candidate", "only", "rows", "gaps", "allowlist", "suite", "addr", "workspace", "mint", "cli-dir", "work-root", "root"], positional: Positional::Exactly(1), ..Spec::NONE };
 const DIFF: Spec = Spec { values: &["allowlist"], positional: Positional::Exactly(2), ..Spec::NONE };
 const IMPORT: Spec = Spec { values: &["out", "root", "allowlist", "pin"], positional: Positional::Exactly(2), ..Spec::NONE };
 const EXPORT: Spec = Spec { values: &["out"], positional: Positional::Exactly(2), ..Spec::NONE };
 const CRAWL: Spec = Spec { values: &["root"], flags: &["all", "check", "fresh"], positional: Positional::Any, ..Spec::NONE };
 const STABILIZE: Spec = Spec { values: &["allowlist", "min-pct", "report"], flags: &["write"], positional: Positional::Any, ..Spec::NONE };
 const REMASK: Spec = Spec { positional: Positional::Exactly(1), ..Spec::NONE };
-const TRIGGER: Spec = Spec { values: &["message", "file", "root"], positional: Positional::None, ..Spec::NONE };
-const PROVISION: Spec = Spec { values: &["work-root", "root", "when"], flags: &["check", "force"], positional: Positional::Exactly(1), ..Spec::NONE };
-const JOB: Spec = Spec { values: &["chunk", "budget", "out", "summary", "run", "candidate", "work-root", "root"], flags: &["fresh"], positional: Positional::Exactly(2), ..Spec::NONE };
-const PUBLISH: Spec = Spec { values: &["run", "root", "summary"], positional: Positional::Any, ..Spec::NONE };
+const CAPTURE: Spec = Spec { values: &["provision", "chunk", "budget", "out", "summary", "run", "candidate", "rows", "work-root", "root", "agents-cache"], flags: &["fresh", "check", "force", "publish"], positional: Positional::Exactly(2), ..Spec::NONE };
+const EXEC: Spec = Spec { values: &["clis", "cli-dir", "scan"], flags: &["skip-when-empty"], positional: Positional::Any, ..Spec::NONE };
+const RECORD_PROJECTS: Spec = Spec { values: &["run-id", "stale-minutes", "state", "gh"], flags: &["teardown"], positional: Positional::Exactly(1), ..Spec::NONE };
+const SCAN: Spec = Spec { values: &["clis"], positional: Positional::Any, ..Spec::NONE };
 const FETCH: Spec = Spec { values: &["set", "root"], positional: Positional::Exactly(1), ..Spec::NONE };
 const VERIFY: Spec = Spec { values: &["root", "fixtures", "rules"], flags: &["all", "live", "files"], positional: Positional::Any, ..Spec::NONE };
 
@@ -72,6 +81,8 @@ fn finish(schema: &str, done: Done) -> Option<i32> {
 pub fn run(args: &[String]) -> Option<i32> {
     let (verb, rest) = args.split_first()?;
     match verb.as_str() {
+        "coverage" => coverage_verb::coverage(rest),
+        "track" => coverage_verb::track(rest),
         "record" => finish("mimic-record/1", record(&parse_spec(rest, &RECORD)?)),
         "replay" => finish("mimic-replay/1", replay(&parse_spec(rest, &REPLAY)?)),
         "diff" => finish("mimic-diff/1", diff(&parse_spec(rest, &DIFF)?)),
@@ -85,10 +96,10 @@ pub fn run(args: &[String]) -> Option<i32> {
         "crawl" => finish("mimic-crawl/1", crawl_verb::crawl_verb(&parse_spec(rest, &CRAWL)?)),
         "stabilize" => finish("mimic-stability/1", stabilize_verb::stabilize_verb(&parse_spec(rest, &STABILIZE)?)),
         "remask" => finish("mimic-remask/1", stabilize_verb::remask_verb(&parse_spec(rest, &REMASK)?)),
-        "trigger" => finish("mimic-trigger/1", trigger_verb::trigger_verb(&parse_spec(rest, &TRIGGER)?)),
-        "provision" => finish("mimic-provision/1", provision_verb::provision_verb(&parse_spec(rest, &PROVISION)?)),
-        "job" => finish("mimic-job/1", job_verb::job_verb(&parse_spec(rest, &JOB)?)),
-        "publish" => finish("mimic-publish/1", bundle_verb::publish_verb(&parse_spec(rest, &PUBLISH)?)),
+        "capture" => finish("mimic-capture/1", capture_verb::capture_verb(&parse_spec(rest, &CAPTURE)?)),
+        "record-projects" => finish("mimic-record-projects/1", projects_verb::record_projects(&parse_spec(rest, &RECORD_PROJECTS)?)),
+        "scan" => finish("mimic-scan/1", scan_verb::scan_verb(&parse_spec(rest, &SCAN)?)),
+        "exec" => finish("mimic-exec/1", exec_verb::exec_verb(&parse_spec(rest, &EXEC)?)),
         "fetch" => finish("mimic-fetch/1", bundle_verb::fetch_verb(&parse_spec(rest, &FETCH)?)),
         "import" => finish("mimic-import/1", import(&parse_spec(rest, &IMPORT)?)),
         "export" => finish("mimic-export/1", export(&parse_spec(rest, &EXPORT)?)),
@@ -217,7 +228,7 @@ fn record(p: &Parsed) -> Done {
     if batch > 1 && !command.env.iter().any(|(k, _)| k == "MIMIC_DRIVER_CONCURRENCY") {
         command.env.push(("MIMIC_DRIVER_CONCURRENCY".into(), batch.to_string()));
     }
-    let mut driver = StdioDriver::new(command);
+    let mut driver = open_driver(reference, command).map_err(|e| fail(e, "fix [reference] in mimic.toml"))?;
     let mut checkpoint = FsCheckpoint::new(&set.dir);
     let again = format!("wf mimic record {} --resume", set.dir.display());
     if p.flag("fresh") {
@@ -232,7 +243,7 @@ fn record(p: &Parsed) -> Done {
         meta.target = meta.target.map(|t| mimic_core::cassette::Target { pin_hash: None, ..t });
         meta.source.get_or_insert_with(|| format!("stand-in: {what}"));
     }
-    let progress = record_planned(&mut driver, &cases, &rules, Some(&spec), meta, &plan, &mut checkpoint).map_err(|e| {
+    let progress = record_planned(&mut *driver, &cases, &rules, Some(&spec), meta, &plan, &mut checkpoint).map_err(|e| {
         let saved = if checkpoint.exists() { format!("; what was recorded is saved: {again}") } else { String::new() };
         fail(e.to_string(), format!("check the [reference] command of mimic.toml runs and speaks mimic-driver/1 (wf mimic --help){saved}"))
     })?;
@@ -244,6 +255,16 @@ fn record(p: &Parsed) -> Done {
             return Ok((out, 0));
         }
     };
+    // every case ending in the same error means the reference was never reached (a host that did not start, a pairing refused): that is no recording
+    let ended: std::collections::BTreeSet<Option<String>> = recording.set.cassette.interactions.iter().map(|i| (i.outcome.status == mimic_core::cassette::Status::Error).then(|| i.outcome.code.clone().unwrap_or_default())).collect();
+    if recording.set.cassette.interactions.len() > 1 && ended.len() == 1 {
+        if let Some(Some(code)) = ended.into_iter().next() {
+            return Err(fail(
+                format!("every one of the {} cases ended in the error {code:?}: the reference was not reached, nothing was written", cases.len()),
+                "read the driver's stderr in the job log (a sidecar says why a connect failed), fix what keeps the reference from answering, and record again",
+            ));
+        }
+    }
     let mut store = FsStore::new(set.dir.parent().unwrap_or(Path::new(".")));
     let mut warnings: Vec<String> = Vec::new();
     let mut raw_path = None;
@@ -300,41 +321,181 @@ fn replay(p: &Parsed) -> Done {
     let (name, candidate) = pick(&cfg, p.val("candidate"))?;
     let pin_hash = content.cassette.header.provenance.target.as_ref().and_then(|t| t.pin_hash.clone());
     let (allow, mut warnings) = allowlist(p.val("allowlist").map(PathBuf::from).or_else(|| cfg.allowlist.clone()), pin_hash.as_deref())?;
-    let only = ids(p, "only");
+    let mut only = ids(p, "only");
     if let Some(only) = &only {
         let unknown: Vec<&String> = only.iter().filter(|id| !content.cassette.interactions.iter().any(|i| &i.id == *id)).collect();
         if !unknown.is_empty() {
             return Err(fail(format!("--only names interactions the cassette does not have: {unknown:?}"), format!("wf mimic replay {}", set.dir.display())));
         }
     }
+    // --rows: the interactions of the rows that start with a prefix (a milestone's slice), narrowed by --only when both are given
+    let prefixes = ids(p, "rows");
+    if let Some(prefixes) = &prefixes {
+        let chosen: Vec<String> = content.cassette.interactions.iter().filter(|i| i.row.as_deref().is_some_and(|r| prefixes.iter().any(|x| r.starts_with(x.as_str())))).map(|i| i.id.clone()).filter(|id| only.as_ref().is_none_or(|o| o.contains(id))).collect();
+        if chosen.is_empty() {
+            return Err(fail(format!("--rows {} names no row of the cassette (a row is `rpc:git.diff`, `http:voice.status`: the prefix matches from its start)", prefixes.join(",")), format!("wf mimic replay {}", set.dir.display())));
+        }
+        only = Some(chosen);
+    }
+    let gaps_mode = match p.val("gaps") {
+        None => None,
+        Some(m @ ("check" | "write")) => Some(m),
+        Some(other) => return Err(fail(format!("--gaps takes check or write, not {other:?}"), format!("wf mimic replay {} --gaps check", set.dir.display()))),
+    };
     let started = wf_kit::time::now_ms();
-    let mut driver = StdioDriver::new(candidate.spec.clone());
-    let verdict = replay_set(&content, &mut driver, &allow, &cfg.diff, only.as_deref()).map_err(|e| fail(e.to_string(), "fix rules.json"))?;
+    let chain = start_chain(candidate, p, &cfg, &set, &content)?;
+    let candidate = &with_server(chain.as_ref().map_or(candidate, |(target, _)| target), p)?;
+    let mut driver = open_driver(candidate, candidate.spec.clone()).map_err(|e| fail(e, "fix [candidate] in mimic.toml"))?;
+    // a session's own setup (the pairing, its first project and thread) is not an interaction: it runs before the first window opens
+    if candidate.script.as_ref().is_some_and(|s| s.session && s.prelude.is_some()) {
+        let _ = driver.run(&Request { id: "session-start".into(), op: Some("script".into()), input: json!({"script": [], "prelude": "session"}) });
+    }
+    let mut timed = Timed { inner: &mut *driver, windows: Vec::new() };
+    let verdict = replay_set(&content, &mut timed, &allow, &cfg.diff, only.as_deref()).map_err(|e| fail(e.to_string(), "fix rules.json"))?;
+    let windows = timed.windows;
     let rows = evidence(&verdict, &content.cassette);
     let mut evidence_paths = json!({"report": null, "trace": null});
     if let Some(suite) = p.val("suite") {
-        let (report, trace) = write_suite(suite, &set.name, &content, &verdict, started).map_err(|e| fail(e, "set WF_TEST_OUTPUT_DIR to a writable directory"))?;
+        let (report, trace) = write_suite(suite, &set.name, &content, &verdict, started, &windows).map_err(|e| fail(e, "set WF_TEST_OUTPUT_DIR to a writable directory"))?;
         evidence_paths = json!({"report": report.display().to_string(), "trace": trace.display().to_string()});
     }
     warnings.extend(verdict.unused_allowlist.iter().map(|u| format!("allowlist entry {u} matched nothing: stale or over-broad")));
-    let ok = verdict.ok();
+    // --gaps: the differences are compared with (check) or written to (write) the set's known-gaps.json, for the chosen interactions only
+    let chosen: Vec<String> = only.clone().unwrap_or_else(|| content.cassette.interactions.iter().map(|i| i.id.clone()).collect());
+    let mut gaps_out = Value::Null;
+    let mut gaps_ok = true;
+    if let Some(mode) = gaps_mode {
+        let path = set.dir.join("known-gaps.json");
+        let listed = match std::fs::read_to_string(&path) {
+            Ok(text) => gaps::listed(&serde_json::from_str(&text).map_err(|e| fail(format!("{}: {e}", path.display()), "fix known-gaps.json"))?).map_err(|e| fail(format!("{}: {e}", path.display()), "fix known-gaps.json"))?,
+            Err(_) => Default::default(),
+        };
+        let name_of = |v: &serde_json::Value| v.as_str().unwrap_or_default().to_string();
+        let found: Vec<gaps::Found> = verdict
+            .results
+            .iter()
+            .map(|r| gaps::Found {
+                id: r.id.clone(),
+                lines: r
+                    .diffs
+                    .iter()
+                    .filter(|d| d.severity != Severity::None)
+                    .map(|d| format!("{} {} {}", d.path, name_of(&json!(d.kind)), name_of(&json!(d.severity))))
+                    .chain(r.error.as_ref().map(|e| format!("error {e}")))
+                    .collect(),
+            })
+            .collect();
+        if mode == "check" {
+            let slice: std::collections::BTreeMap<String, Vec<String>> = listed.iter().filter(|(id, _)| chosen.contains(id)).map(|(k, v)| (k.clone(), v.clone())).collect();
+            let (new, stale) = gaps::compare(&found, &slice);
+            gaps_ok = new.is_empty() && stale.is_empty();
+            gaps_out = json!({"mode": "check", "listed": slice.len(), "new": new, "stale": stale});
+        } else {
+            let mut merged: std::collections::BTreeMap<String, Vec<String>> = listed.into_iter().filter(|(id, _)| !chosen.contains(id)).collect();
+            merged.extend(found.iter().filter(|f| !f.lines.is_empty()).map(|f| (f.id.clone(), f.lines.clone())));
+            let all: Vec<gaps::Found> = merged.iter().map(|(id, lines)| gaps::Found { id: id.clone(), lines: lines.clone() }).collect();
+            let text = serde_json::to_string_pretty(&gaps::file(&all)).map_err(|e| fail(e.to_string(), "report a bug"))? + "\n";
+            std::fs::write(&path, text).map_err(|e| fail(format!("{}: {e}", path.display()), "make known-gaps.json writable"))?;
+            gaps_out = json!({"mode": "write", "listed": merged.len(), "wrote": path.display().to_string()});
+        }
+    }
+    let ok = if gaps_mode.is_some() { gaps_ok } else { verdict.ok() };
     wf_kit::logfmt::mcp("info", "mimic", "replay.done", &[("set", set.name.clone()), ("severity", format!("{:?}", verdict.severity))]);
     let first = labelled(&verdict).first().map(|r| r.id.clone());
     let next = match (&first, ok) {
         (_, true) => "nothing to do".to_string(),
+        _ if gaps_mode == Some("check") => format!("review the new and stale differences, then wf mimic replay {} --candidate {name} --gaps write (with the same --rows or --only)", set.dir.display()),
         (Some(id), _) => format!("wf mimic replay {} --candidate {name} --only {id}  (fix the candidate, or allowlist the path with a reason)", set.dir.display()),
         _ => "see results".to_string(),
     };
     let out = json!({
         "ok": ok, "set": set.name, "candidate": name, "severity": verdict.severity, "summary": verdict.summary, "results": labelled(&verdict),
-        "shrunk": verdict.shrunk, "evidence_rows": rows.len(), "unused_allowlist": verdict.unused_allowlist, "evidence": evidence_paths, "warnings": warnings, "next": next,
+        "shrunk": verdict.shrunk, "chosen": only.as_ref().map(Vec::len), "gaps": gaps_out, "evidence_rows": rows.len(), "unused_allowlist": verdict.unused_allowlist, "evidence": evidence_paths, "warnings": warnings, "next": next,
     });
     Ok((out, i32::from(!ok)))
 }
 
+/// The call with the wall-clock window (`startMs`, `endMs`) its interaction ran in, for a caller that attributes what a tap saw to it.
+fn with_window(mut call: Value, windows: &[(String, i64, i64)], id: &str) -> Value {
+    if let Some((_, start, end)) = windows.iter().find(|(w, _, _)| w == id) {
+        call["startMs"] = json!(start);
+        call["endMs"] = json!(end);
+    }
+    call
+}
+
+/// A driver that notes when each of its requests ran.
+struct Timed<'a> {
+    inner: &'a mut dyn Driver,
+    windows: Vec<(String, i64, i64)>,
+}
+
+impl Driver for Timed<'_> {
+    fn hello(&mut self) -> Result<Hello, DriverError> {
+        self.inner.hello()
+    }
+
+    fn run(&mut self, request: &Request) -> Result<Observed, DriverError> {
+        let start = wf_kit::time::now_ms();
+        let observed = self.inner.run(request);
+        self.windows.push((request.id.clone(), start, wf_kit::time::now_ms()));
+        observed
+    }
+
+    fn reset(&mut self) -> Result<(), DriverError> {
+        self.inner.reset()
+    }
+}
+
+/// `--addr`, `--workspace`, `--mint` (a command that prints one credential) and `--cli-dir` (the directory of scripted agent CLIs the server's `PATH` starts first, which `cli.script` writes into) fill a `target = "url"` candidate: the server the caller started.
+/// A `chain` candidate: the launch command started, and the target it makes (a url target on the address it printed, paired with the scopes the
+/// recorded session was granted). The chain stops when the returned launcher drops.
+fn start_chain(candidate: &Target, p: &Parsed, cfg: &Config, set: &SetRef, content: &CassetteSet) -> Result<Option<(Target, chain_launch::Launched)>, Fail> {
+    // an orca candidate whose caller already holds a pairing link (ORCA_PAIRING_URI) plays against that server, like --addr for a url target
+    let paired = |s: &crate::config::ScriptSpec| s.orca && std::env::var_os("ORCA_PAIRING_URI").is_some_and(|v| !v.is_empty());
+    let Some(spec) = candidate.script.as_ref().filter(|s| !s.launch.is_empty() && p.val("addr").is_none() && !paired(s)) else { return Ok(None) };
+    let vars = cfg.provision.as_ref().map(|prov| provision_phase::vars(p, &set.name, &set.dir, prov));
+    let argv: Vec<String> = spec.launch.iter().map(|a| vars.as_ref().map_or_else(|| a.clone(), |v| crate::provision::expand(a, v))).collect();
+    let launched = chain_launch::launch(&argv, &spec.dir, &crate::child_env::ChildEnv::base().pass(&cfg.declared_pass()), std::time::Duration::from_millis(spec.ready_ms)).map_err(|e| fail(e, "build what the launch command starts (the set's provision steps, `when = \"replay\"`) and fix [candidate.<n>.script] launch"))?;
+    let scope = content.cassette.interactions.iter().flat_map(|i| i.steps.iter()).find_map(|s| s.payload["body"]["scope"].as_str().map(|v| v.replace(' ', ",")));
+    let mut target = candidate.clone();
+    if let Some(s) = target.script.as_mut().filter(|s| s.orca) {
+        let pairing = launched.pairing.clone().ok_or_else(|| fail("the chain launcher of an orca candidate printed no pairing link", "make the launch command print {\"pairing\": <link>} in its listening line"))?;
+        s.env_set = vec![("ORCA_PAIRING_URI".to_string(), pairing)];
+        s.cli_dir = launched.cli_dir.clone().or(s.cli_dir.take());
+        return Ok(Some((target, launched)));
+    }
+    if let Some(s) = target.script.as_mut() {
+        s.addr = Some(launched.addr.clone());
+        s.workspace = Some(launched.workspace.clone());
+        s.mint = launched.mint.split_whitespace().map(String::from).chain(scope.into_iter().flat_map(|v| ["--scope".to_string(), v])).collect();
+        s.cli_dir = launched.cli_dir.clone().or(s.cli_dir.take());
+    }
+    Ok(Some((target, launched)))
+}
+
+fn with_server(candidate: &Target, p: &Parsed) -> Result<Target, Fail> {
+    let mut target = candidate.clone();
+    if ["addr", "workspace", "mint", "cli-dir"].iter().all(|f| p.val(f).is_none()) {
+        return Ok(target);
+    }
+    match target.script.as_mut() {
+        Some(s) if !s.spawn && !s.orca => {
+            s.addr = p.val("addr").map(String::from).or(s.addr.take());
+            s.workspace = p.val("workspace").map(String::from).or(s.workspace.take());
+            if let Some(mint) = p.val("mint") {
+                s.mint = mint.split_whitespace().map(String::from).collect();
+            }
+            s.cli_dir = p.val("cli-dir").map(PathBuf::from).or(s.cli_dir.take());
+            Ok(target)
+        }
+        _ => Err(fail("--addr, --workspace, --mint and --cli-dir fill a candidate whose script target is \"url\"", "drop the flags, or make the candidate `driver = \"script\"` with `target = \"url\"`")),
+    }
+}
+
 /// `$WF_TEST_OUTPUT_DIR/<suite>/{report.json, trace.json}`: the harness run record and the method trace (`method-trace/1`) with the
-/// `diff` label and parity `row` of every interaction and the cassette's provenance `kind`, which `wf parity coverage --traces` reads.
-fn write_suite(suite: &str, set: &str, content: &CassetteSet, verdict: &Verdict, started: i64) -> Result<(PathBuf, PathBuf), String> {
+/// `diff` label and parity `row` of every interaction and the cassette's provenance `kind`, which `wf mimic coverage --traces` reads.
+fn write_suite(suite: &str, set: &str, content: &CassetteSet, verdict: &Verdict, started: i64, windows: &[(String, i64, i64)]) -> Result<(PathBuf, PathBuf), String> {
     let base = std::env::var_os("WF_TEST_OUTPUT_DIR").filter(|d| !d.is_empty()).ok_or("--suite needs WF_TEST_OUTPUT_DIR")?;
     let dir = PathBuf::from(base).join(suite);
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
@@ -343,7 +504,7 @@ fn write_suite(suite: &str, set: &str, content: &CassetteSet, verdict: &Verdict,
     // one test per interaction: a row is served by a passing test, so one drifting interaction must not fail the others
     let kind = &content.cassette.header.provenance.kind;
     let tests: Vec<Value> = verdict.results.iter().map(|r| json!({"test": format!("{set}::{}", r.id), "cassette": kind, "verdict": if passed(r.label) { "pass" } else { "fail" }, "ms": 0,
-        "calls": [{"id": r.id, "rows": r.row.iter().collect::<Vec<_>>(), "ok": passed(r.label), "diff": r.label, "agent": [], "executor": []}]})).collect();
+        "calls": [with_window(json!({"id": r.id, "rows": r.row.iter().collect::<Vec<_>>(), "ok": passed(r.label), "diff": r.label, "agent": [], "executor": []}), windows, &r.id)]})).collect();
     let app = content.cassette.header.provenance.target.as_ref().map_or("mimic", |t| t.name.as_str());
     let trace = json!({"schema": "method-trace/1", "app": app, "suite": suite, "sha": Value::Null, "complete": true, "tests": tests});
     let cases: Vec<Value> = verdict.results.iter().map(|r| json!({"name": r.id, "verdict": if passed(r.label) { "pass" } else { "fail" }, "ms": 0,
@@ -466,8 +627,8 @@ fn verify_one(set: &SetRef, live: bool, named: bool) -> Value {
 fn live_check(cfg: &Config, set: &SetRef, content: &CassetteSet, rules: &RuleSet, spec: &CorpusSpec, cases: &[Case]) -> Result<Value, String> {
     let reference = cfg.reference.as_ref().ok_or("--live needs a [reference] in mimic.toml")?;
     let target = reference.provenance()?;
-    let mut driver = StdioDriver::new(reference.spec.clone());
-    let recording = record_set(&mut driver, cases, rules, Some(spec), meta(cfg, &set.dir, (Some("verify --live"), None), spec, target)).map_err(|e| e.to_string())?;
+    let mut driver = open_driver(reference, reference.spec.clone())?;
+    let recording = record_set(&mut *driver, cases, rules, Some(spec), meta(cfg, &set.dir, (Some("verify --live"), None), spec, target)).map_err(|e| e.to_string())?;
     let pin_hash = content.cassette.header.provenance.target.as_ref().and_then(|t| t.pin_hash.clone());
     let (allow, _) = allowlist(cfg.allowlist.clone(), pin_hash.as_deref()).map_err(|f| f.error)?;
     let verdict = diff_cassettes(&content.cassette, &recording.set.cassette, &allow, &cfg.diff);

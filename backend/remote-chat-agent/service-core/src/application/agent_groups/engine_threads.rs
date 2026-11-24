@@ -7,23 +7,27 @@ use async_trait::async_trait;
 use super::engine_lifecycle::{body, cursor, engine_shelf, hit_of, queue_item, shelf_result, state_of};
 use agent_api_agent::lifecycle::{self, ThreadState};
 use agent_api_agent::queue::QueueItem;
-use rca_group_agent::{Command as Lifecycle, Decided, EngineError, Follow, NewThread, Page, Refused, Subscription, ThreadEngine};
+use rca_group_agent::{Command as Lifecycle, Decided, EngineError, Follow, NewThread, Page, RecordedHook, Refused, Subscription, ThreadEngine};
 use remote_chat_agent_core::application::engine::{Engine, NeutralView, NEUTRAL_EVENT};
 use remote_chat_agent_core::domain::types::{Body, Command, Event, Session, ThreadItem};
 use serde_json::{Map, Value};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
 /// Who the engine's events say made them.
 const ACTOR: &str = "agent-api";
 
+type SettledHook = Arc<dyn Fn(&str) + Send + Sync>;
+
 pub struct EngineThreads {
     engine: Arc<Engine>,
+    settled: Mutex<Option<SettledHook>>,
+    recorded: Mutex<Option<RecordedHook>>,
 }
 
 impl EngineThreads {
     pub fn new(engine: Arc<Engine>) -> EngineThreads {
-        EngineThreads { engine }
+        EngineThreads { engine, settled: Mutex::new(None), recorded: Mutex::new(None) }
     }
 }
 
@@ -32,10 +36,20 @@ impl EngineThreads {
     /// (the engine settles it in the thread's view already), so whoever follows the thread hears that it ended. Returns how many turns it settled.
     pub fn start(&self) -> Result<usize, String> {
         let mut settled = 0;
+        let hook = match self.settled.lock() {
+            Ok(hook) => hook.clone(),
+            Err(poisoned) => {
+                tracing::warn!(event = "agent_threads.settled_hook_poisoned");
+                poisoned.into_inner().clone()
+            }
+        };
         for stale in self.engine.start()? {
             let Some(latest) = self.engine.neutral_thread(&stale.thread_id)?.and_then(|view| view.thread.latest_turn) else { continue };
-            self.record(&stale.thread_id, Some(&latest.turn_id), ThreadEvent::TurnFinished { reason: agent_api_agent::FinishReason::Interrupted }).map_err(|e| e.0)?;
+            self.record(&stale.thread_id, Some(&latest.turn_id), ThreadEvent::TurnFinished { reason: agent_api_agent::FinishReason::Interrupted, cause: Some(agent_api_agent::FinishCause::Restart) }).map_err(|e| e.0)?;
             settled += 1;
+            if let Some(hook) = &hook {
+                hook(&stale.thread_id);
+            }
         }
         Ok(settled)
     }
@@ -138,13 +152,29 @@ impl ThreadEngine for EngineThreads {
     }
 
     fn record(&self, thread: &str, turn: Option<&str>, event: ThreadEvent) -> Result<u64, EngineError> {
+        let heard = event.clone();
         let body = Body::NeutralEvent { turn_id: turn.map(String::from), event: serde_json::to_value(&event).map_err(failed)? };
         let receipt = self.engine.dispatch(Command { command_id: format!("agent-api:event:{}", self.engine.new_id()), thread_id: thread.to_string(), body }, ACTOR).map_err(failed)?;
-        receipt.events.first().and_then(|event| u64::try_from(event.sequence).ok()).ok_or_else(|| failed(format!("the engine recorded no event for thread {thread}")))
+        let seq = receipt.events.first().and_then(|event| u64::try_from(event.sequence).ok()).ok_or_else(|| failed(format!("the engine recorded no event for thread {thread}")))?;
+        let hook = self.recorded.lock().unwrap_or_else(|p| p.into_inner()).clone();
+        if let Some(hook) = hook {
+            hook(thread, turn, &heard);
+        }
+        Ok(seq)
     }
 
     fn new_id(&self) -> String {
         self.engine.new_id()
+    }
+
+    fn on_recorded(&self, hook: RecordedHook) {
+        *self.recorded.lock().unwrap_or_else(|p| p.into_inner()) = Some(hook);
+    }
+
+    fn on_settled(&self, hook: SettledHook) {
+        if let Ok(mut slot) = self.settled.lock() {
+            *slot = Some(hook);
+        }
     }
 
     fn decide(&self, thread: &str, command: Lifecycle) -> Result<Decided, EngineError> {
@@ -182,12 +212,12 @@ impl ThreadEngine for EngineThreads {
         Ok(self.engine.neutral_thread(thread).map_err(failed)?.and_then(|t| t.lifecycle.pending_merge_back).map(|p| (p.source, p.context)))
     }
 
-    fn provider_session(&self, thread: &str) -> Result<Option<String>, EngineError> {
-        Ok(self.engine.neutral_thread(thread).map_err(failed)?.and_then(|t| t.thread.session).and_then(|s| s.provider_session_id))
+    fn provider_session(&self, thread: &str, driver: &str) -> Result<Option<String>, EngineError> {
+        Ok(self.engine.neutral_thread(thread).map_err(failed)?.and_then(|t| t.thread.session).filter(|s| s.cli == driver).and_then(|s| s.provider_session_id))
     }
 
     fn set_session(&self, thread: &str, driver: &str, turn: &str, session: &str) -> Result<(), EngineError> {
-        if self.provider_session(thread)?.as_deref() == Some(session) {
+        if self.provider_session(thread, driver)?.as_deref() == Some(session) {
             return Ok(());
         }
         // `running` for the turn that announced it: the thread's turn is settled by its own finish, which comes next
@@ -235,7 +265,7 @@ mod tests {
         let mut subscription = threads.follow("a", 0).unwrap().expect("a is a thread");
         let second = say(&threads, "a", "u1", "two");
         say(&threads, "b", "u2", "more of the other");
-        let third = threads.record("a", Some("u1"), ThreadEvent::TurnFinished { reason: FinishReason::Completed }).unwrap();
+        let third = threads.record("a", Some("u1"), ThreadEvent::TurnFinished { reason: FinishReason::Completed, cause: None }).unwrap();
         // Then the replay is a's two events and the live ones are a's later two, all with the numbers the engine gave them and none of b's
         assert_eq!(subscription.replay.iter().map(|e| e.seq).collect::<Vec<_>>(), [started, first]);
         assert_eq!(subscription.last_seq, first);
@@ -278,7 +308,7 @@ mod tests {
         // When a turn starts and then ends
         let started = threads.record("a", Some("u1"), ThreadEvent::TurnStarted {}).unwrap();
         let running = threads.get("a").unwrap().unwrap();
-        let finished = threads.record("a", Some("u1"), ThreadEvent::TurnFinished { reason: FinishReason::Failed }).unwrap();
+        let finished = threads.record("a", Some("u1"), ThreadEvent::TurnFinished { reason: FinishReason::Failed, cause: None }).unwrap();
         let idle = threads.get("a").unwrap().unwrap();
         // Then the view runs it with the start's seq as newest, and is idle again with the finish's
         assert_eq!((running.status, running.turn.as_deref(), running.last_seq), (Status::Running, Some("u1"), started));
@@ -304,6 +334,8 @@ mod tests {
         let events = after.history("a", 0, 10).unwrap().unwrap().events;
         let last = events.last().unwrap();
         assert_eq!((last.kind.as_str(), last.data["reason"].clone(), last.turn.as_deref()), ("turn.finished", serde_json::json!("interrupted"), Some("u1")));
+        // And the finish names the restart as its cause, which a user's stop never does
+        assert_eq!(last.data["cause"], serde_json::json!("restart"));
         assert!(last.seq > said);
         let view = after.get("a").unwrap().unwrap();
         assert_eq!((view.status, view.turn, view.last_seq), (Status::Idle, None, last.seq));

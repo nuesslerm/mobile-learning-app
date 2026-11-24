@@ -1,0 +1,45 @@
+# The crawl set's provisioning: t3.toml, and the release's own self-description beside the set (`crawl t3 --runtime runtime`). How a runner provisions the pinned T3 release for `wf mimic record` (`wf mimic capture --help` documents the schema). The driver downloads the
+# release the pin names into T3_RELEASE_CACHE and refuses it when the pin and the release's SHA256SUMS do not both name the tarball's hash.
+workdir = "t3"
+
+[toolchain]
+node = "24"
+rust = "stable"
+
+[env]
+T3_RELEASE_CACHE = "{work}/release-cache"
+MIMIC_CLI_DIR = "{work}/scripted-clis"
+
+# The scripted agent CLIs both sides see (docs/plans mimic decision 5): exec-testkit's `scripted-cli` under the names `claude`, `codex` and `opencode`.
+[[step]]
+name = "build-scripted-cli"
+cwd = "{repo}"
+run = ["cargo", "build", "--locked", "--manifest-path", "libraries/agent-api/Cargo.toml", "--target-dir", "{work}/scripted-target", "-p", "exec-testkit", "--bin", "scripted-cli"]
+timeout_minutes = 45
+
+[[step]]
+name = "scripted-cli-dir"
+cwd = "{work}"
+run = ["mkdir", "-p", "scripted-clis"]
+
+[[step]]
+name = "scripted-cli-claude"
+cwd = "{work}"
+run = ["cp", "scripted-target/debug/scripted-cli", "scripted-clis/claude"]
+
+[[step]]
+name = "scripted-cli-codex"
+cwd = "{work}"
+run = ["cp", "scripted-target/debug/scripted-cli", "scripted-clis/codex"]
+
+[[step]]
+name = "scripted-cli-opencode"
+cwd = "{work}"
+run = ["cp", "scripted-target/debug/scripted-cli", "scripted-clis/opencode"]
+
+# What source cannot show (decision B1c): the release binary's --help of every subcommand and /.well-known/t3/environment of a server it starts.
+[[step]]
+name = "capture-runtime"
+cwd = "{repo}"
+run = ["node", "tooling/mimic-drivers/src/cli.ts", "capture-runtime", "t3", "{set}/runtime"]
+timeout_minutes = 10

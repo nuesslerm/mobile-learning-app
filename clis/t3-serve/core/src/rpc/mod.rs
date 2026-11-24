@@ -2,6 +2,8 @@
 //! Scope checks come first, from the table in `t3-contracts`; an RPC this server does not build answers a declared failure.
 use crate::domain::command::Family;
 use crate::ports::AgentError;
+use crate::usecases::desk_admin::Admin;
+use crate::usecases::desk_threads::{self, Desk};
 use crate::usecases::engine::{thread_event_frame, Failure, Published, Subscription};
 use crate::usecases::launch::LaunchFailure;
 use crate::usecases::queries::QueryFailure;
@@ -27,6 +29,8 @@ enum Kind {
     Shell,
     Thread(String),
     Idle,
+    /// The pull request refresh stream, with the last epoch it has reached (a new follower starts at the current one: the recorded host sends it no replay).
+    Refreshes(u64),
     Followed { _stop: StopSetup },
 }
 
@@ -103,6 +107,15 @@ impl Connection {
                 s.floor = seq;
             }
         }
+        let epoch = self.svc.pr_refresh_epoch();
+        for s in self.streams.iter_mut() {
+            if let Kind::Refreshes(seen) = &mut s.kind {
+                if epoch > *seen {
+                    *seen = epoch;
+                    s.pacer.push(json!(epoch));
+                }
+            }
+        }
         let snapshots: Vec<(Value, Value)> = self.setups.try_iter().collect();
         for (id, snapshot) in snapshots {
             if let Some(stream) = self.streams.iter_mut().find(|s| s.id == id && matches!(s.kind, Kind::Followed { .. })) {
@@ -122,7 +135,7 @@ impl Connection {
             match s.pacer.next_chunk() {
                 Some(values) => out.push(rpc::chunk(&s.id, values)),
                 None if s.ending && s.pacer.drained() => {
-                    out.push(rpc::exit_success(&s.id, None));
+                    out.push(rpc::exit_success(&s.id, Some(Value::Null)));
                     s.id = Value::Null;
                 }
                 None => {}
@@ -140,7 +153,12 @@ impl Connection {
     }
 
     fn request(&mut self, id: Value, tag: &str, payload: &Value) -> Vec<Value> {
-        match required_scopes(tag) {
+        let scopes = if tag == "server.refreshProviders" && t3_contracts::payload::workspace_provider_refresh(payload).is_some() {
+            required_scopes("orchestration.getThreadProjection")
+        } else {
+            required_scopes(tag)
+        };
+        match scopes {
             None => {
                 self.svc.log("rpc.unsupported", &[("tag", tag.to_string()), ("known", "false".into())]);
                 return vec![rpc::exit_defect(&id, &format!("Unknown request tag: {tag}"))];
@@ -151,6 +169,10 @@ impl Connection {
                     return vec![rpc::exit_failure(&id, wire::authorization_error(missing))];
                 }
             }
+        }
+        if let Some(message) = t3_contracts::payload::defect(tag, payload) {
+            self.svc.log("rpc.payload.undecodable", &[("tag", tag.to_string())]);
+            return vec![rpc::exit_defect(&id, &message)];
         }
         let after = payload.get("afterSequence").and_then(Value::as_u64);
         let marker = payload.get("requestCompletionMarker").and_then(Value::as_bool).unwrap_or(false);
@@ -195,18 +217,23 @@ impl Connection {
                         self.open(id, Kind::Thread(thread.to_string()), floor, synchronized(frames));
                         vec![]
                     }
-                    Err(_) => vec![rpc::exit_failure(&id, wire::not_found_error("thread", thread))],
+                    Err(_) => vec![rpc::exit_failure(&id, wire::thread_projection_error(thread))],
                 }
             }
             "orchestration.getThreadProjection" => {
                 let thread = payload.get("threadId").and_then(Value::as_str).unwrap_or("");
                 match self.svc.engine().thread_projection(thread) {
                     Some(p) => vec![rpc::exit_success(&id, Some(p))],
-                    None => vec![rpc::exit_failure(&id, wire::not_found_error("thread", thread))],
+                    None => vec![rpc::exit_failure(&id, wire::thread_projection_error(thread))],
                 }
             }
             "orchestration.dispatchCommand" | "projects.mutate" => {
                 let project = tag == "projects.mutate";
+                let kind = command.get("type").and_then(Value::as_str).unwrap_or("");
+                if let Some(Err(message)) = command.as_object().filter(|_| !project).and_then(|body| t3_contracts::payload::command_decoded(kind, body)) {
+                    self.svc.log("rpc.command.undecodable", &[("tag", tag.to_string())]);
+                    return vec![rpc::exit_defect(&id, &message)];
+                }
                 match self.svc.dispatch(if project { Family::Project } else { Family::Thread }, command) {
                     Ok(done) => vec![rpc::exit_success(&id, Some(done.row.unwrap_or_else(|| json!({"sequence": done.sequence}))))],
                     Err(Failure::Defect(message)) => {
@@ -215,12 +242,25 @@ impl Connection {
                     }
                     Err(Failure::Refused { command_id, command_type, message }) => {
                         self.svc.log("rpc.command.refused", &[("type", command_type.clone()), ("message", message.clone())]);
-                        let error = if project { wire::project_mutation_error(&command_id, wire::PROJECT_MUTATION_FAILED) } else { wire::dispatch_error(&command_id, &command_type, &message) };
+                        let missing = message.strip_prefix("project ").and_then(|m| m.strip_suffix(" does not exist"));
+                        let error = match (project, missing) {
+                            (true, Some(missing)) => wire::project_not_found_error(&command_id, missing),
+                            (true, None) => wire::project_mutation_error(&command_id, wire::PROJECT_MUTATION_FAILED),
+                            (false, _) => wire::dispatch_error(&command_id, &command_type, &message),
+                        };
                         vec![rpc::exit_failure(&id, error)]
+                    }
+                    Err(Failure::ThreadMissing { command_id, command_type, thread_id }) => {
+                        self.svc.log("rpc.command.refused", &[("type", command_type.clone()), ("message", wire::projection_load_failed(&thread_id))]);
+                        vec![rpc::exit_failure(&id, if project { wire::project_mutation_error(&command_id, wire::PROJECT_MUTATION_FAILED) } else { wire::dispatch_thread_missing(&command_id, &command_type, &thread_id) })]
+                    }
+                    Err(Failure::PreviouslyRejected { command_id, command_type, reason }) => {
+                        self.svc.log("rpc.command.refused", &[("type", command_type.clone()), ("message", reason.clone())]);
+                        vec![rpc::exit_failure(&id, if project { wire::project_mutation_error(&command_id, wire::PROJECT_MUTATION_FAILED) } else { wire::dispatch_previously_rejected(&command_id, &command_type, &reason) })]
                     }
                     Err(Failure::ProjectNotEmpty { command_id, project_id }) => {
                         self.svc.log("rpc.command.refused", &[("type", "project.delete".into()), ("message", wire::project_not_empty(&project_id))]);
-                        vec![rpc::exit_failure(&id, wire::project_mutation_error(&command_id, &wire::project_not_empty(&project_id)))]
+                        vec![rpc::exit_failure(&id, wire::project_not_empty_error(&command_id, &project_id))]
                     }
                 }
             }
@@ -232,11 +272,14 @@ impl Connection {
                 }
                 Err(LaunchFailure::Refused(error)) => vec![rpc::exit_failure(&id, error)],
             },
-            "orchestration.getTurnItem" | "orchestration.searchThreads" | "orchestration.getThreadFamily" | "orchestration.getOlderSettledThreads" | "orchestration.forceStopThread" | "orchestration.getWorkflowScript" => {
+            "orchestration.getTurnItem" | "orchestration.searchThreads" | "orchestration.getThreadFamily" | "orchestration.getThreadTitles" | "orchestration.getNativeChildWork" | "orchestration.getThreadLinkMetadata" | "orchestration.getOlderSettledThreads" | "orchestration.forceStopThread" | "orchestration.getWorkflowScript" => {
                 let answer = match tag {
                     "orchestration.getTurnItem" => self.svc.turn_item(payload),
                     "orchestration.searchThreads" => self.svc.search_threads(payload),
                     "orchestration.getThreadFamily" => self.svc.thread_family(payload),
+                    "orchestration.getThreadTitles" => self.svc.thread_titles(payload),
+                    "orchestration.getNativeChildWork" => self.svc.native_child_work(payload),
+                    "orchestration.getThreadLinkMetadata" => self.svc.thread_link_metadata(payload),
                     "orchestration.getOlderSettledThreads" => self.svc.older_settled(payload),
                     "orchestration.forceStopThread" => self.svc.force_stop(payload),
                     _ => self.svc.workflow_script(payload),
@@ -250,7 +293,15 @@ impl Connection {
             "peerLinks.unlink" => vec![self.answered(&id, tag, self.svc.peer_links_unlink(payload).map(Some))],
             "peerLinks.link" => vec![self.answered(&id, tag, Err(self.svc.peer_links_link(payload)))],
             "peerLinks.answerRequest" => vec![self.answered(&id, tag, Err(self.svc.peer_links_answer(payload)))],
+            "guestShare.create" => vec![self.answered(&id, tag, self.svc.guest_share_create(payload).map(Some))],
             "secrets.answerRequest" => vec![self.answered(&id, tag, self.svc.answer_secret(payload).map(|()| None))],
+            "orchestration.subscribePromptSuggestion" => match self.svc.prompt_suggestion(payload) {
+                Ok(frames) => {
+                    self.open(id, Kind::Idle, 0, frames);
+                    vec![]
+                }
+                Err(failure) => vec![self.answered(&id, tag, Err(failure))],
+            },
             "orchestration.subscribeCommandOutput" => match self.svc.command_output(payload) {
                 Ok(frames) => {
                     self.open(id, Kind::Idle, 0, frames);
@@ -325,6 +376,17 @@ impl Connection {
                 };
                 vec![self.answered(&id, tag, answer.map(Some))]
             }
+            "vcs.init" => vec![self.answered(&id, tag, self.svc.vcs_init(payload).map(|()| Some(Value::Null)))],
+            "vcs.refreshBranch" => vec![self.answered(&id, tag, self.svc.vcs_refresh_branch(payload).map(|()| Some(Value::Null)))],
+            "subscribeVcsBranch" => match self.svc.open_vcs_branch(payload) {
+                Ok((fold, first)) => {
+                    let stop = Arc::new(AtomicBool::new(false));
+                    self.svc.follow_vcs_status(fold, id.clone(), self.setup_tx.clone(), stop.clone());
+                    self.open(id, Kind::Followed { _stop: StopSetup(stop) }, 0, vec![first]);
+                    vec![]
+                }
+                Err(failure) => vec![self.answered(&id, tag, Err(failure))],
+            },
             "subscribeVcsStatus" => match self.svc.open_vcs_status(payload) {
                 Ok((fold, first)) => {
                     let stop = Arc::new(AtomicBool::new(false));
@@ -353,7 +415,7 @@ impl Connection {
                 }
                 Err(failure) => vec![self.answered(&id, tag, Err(failure))],
             },
-            "provider.auth.start" | "provider.auth.respond" | "provider.auth.complete" | "provider.auth.cancel" | "provider.auth.logout" | "provider.chatgpt.reconnect-profile" | "provider.chatgpt.import-profile" | "provider.consumeResetCredit" | "server.refreshProviders" | "server.updateProvider" | "server.updateSettings" | "server.getUsageSummary" | "server.refreshUsageRates" | "server.getHostResources" => {
+            "provider.auth.start" | "provider.auth.respond" | "provider.auth.complete" | "provider.auth.cancel" | "provider.auth.logout" | "provider.chatgpt.reconnect-profile" | "provider.chatgpt.import-profile" | "provider.consumeResetCredit" | "server.refreshProviders" | "server.updateProvider" | "server.updateSettings" | "server.getUsageSummary" | "server.refreshUsageRates" | "server.getHostResources" | "server.prepareTriage" => {
                 let answer = match tag {
                     "provider.auth.start" => self.svc.provider_auth_start(payload),
                     "provider.auth.respond" => self.svc.provider_auth_respond(payload),
@@ -368,6 +430,7 @@ impl Connection {
                     "server.updateSettings" => self.svc.update_settings(payload),
                     "server.getUsageSummary" => self.svc.usage_summary(payload),
                     "server.refreshUsageRates" => Ok(self.svc.refresh_usage_rates()),
+                    "server.prepareTriage" => self.svc.prepare_triage(payload),
                     _ => self.svc.host_resources(),
                 };
                 vec![self.answered(&id, tag, answer.map(Some))]
@@ -411,7 +474,7 @@ impl Connection {
                 };
                 vec![self.answered(&id, tag, answer.map(Some))]
             }
-            "pullRequests.comment" | "pullRequests.updateComment" | "pullRequests.replyToThread" | "pullRequests.setThreadResolution" | "pullRequests.setReaction" | "pullRequests.requestReviewers" | "pullRequests.setLabels" | "pullRequests.submitReview" | "pullRequests.update" | "pullRequests.runAction" | "pullRequests.setFilesViewed" | "sourceControl.signInCancel" | "pullRequests.invalidate" | "pullRequests.reportState" => {
+            "pullRequests.comment" | "pullRequests.updateComment" | "pullRequests.replyToThread" | "pullRequests.setThreadResolution" | "pullRequests.setReaction" | "pullRequests.requestReviewers" | "pullRequests.setLabels" | "pullRequests.submitReview" | "pullRequests.update" | "pullRequests.runAction" | "pullRequests.setFilesViewed" | "sourceControl.signInCancel" | "pullRequests.reportState" => {
                 let answer = match tag {
                     "pullRequests.comment" => self.svc.pr_comment(payload),
                     "pullRequests.updateComment" => self.svc.pr_update_comment(payload),
@@ -425,9 +488,13 @@ impl Connection {
                     "pullRequests.runAction" => self.svc.pr_run_action(payload),
                     "pullRequests.setFilesViewed" => self.svc.pr_set_files_viewed(payload),
                     "sourceControl.signInCancel" => self.svc.sc_sign_in_cancel(payload),
-                    _ => Ok(()),
+                    _ => self.svc.pr_report_state(payload),
                 };
                 vec![self.answered(&id, tag, answer.map(|()| None))]
+            }
+            "pullRequests.invalidate" => {
+                self.svc.pr_invalidate(payload);
+                vec![rpc::exit_success(&id, Some(Value::Null))]
             }
             "pullRequests.stack" => vec![self.answered(&id, tag, self.svc.pr_stack(payload).map(Some))],
             "pullRequests.reviewGuide" => vec![self.answered(&id, tag, self.svc.pr_review_guide(payload).map(Some))],
@@ -436,8 +503,26 @@ impl Connection {
             "git.preparePullRequestThread" => vec![self.answered(&id, tag, self.svc.git_prepare_pull_request_thread(payload).map(Some))],
             "server.discoverSourceControl" => vec![rpc::exit_success(&id, Some(self.svc.discover_source_control()))],
             "pullRequests.subscribeRefreshes" => {
-                self.open(id, Kind::Idle, 0, vec![json!(0)]);
+                let epoch = self.svc.pr_refresh_epoch();
+                self.open(id, Kind::Refreshes(epoch), 0, vec![]);
                 vec![]
+            }
+            "server.getStorageCleanupReport" => {
+                self.open(id, Kind::Idle, 0, self.svc.storage_cleanup_stream());
+                vec![]
+            }
+            "agentSessions.scan" => vec![rpc::exit_success(&id, Some(self.svc.scan_agent_sessions()))],
+            "cloud.getRelayClientStatus" => vec![rpc::exit_success(&id, Some(self.svc.relay_client_status()))],
+            "server.runStorageCleanup" => vec![rpc::exit_success(&id, Some(self.svc.run_storage_cleanup()))],
+            "server.signalProcess" => vec![rpc::exit_success(&id, Some(self.svc.signal_process(payload)))],
+            "device.close" | "preview.clearProfile" | "preview.reportProfiles" => vec![rpc::exit_success(&id, Some(Value::Null))],
+            "orchestration.getWorktreeThreadIds" | "scheduledTasks.listWebhookDeliveries" | "scheduledTasks.getWebhookDelivery" => {
+                let answer = match tag {
+                    "orchestration.getWorktreeThreadIds" => self.svc.worktree_thread_ids(payload),
+                    "scheduledTasks.listWebhookDeliveries" => self.svc.scheduled_webhook_deliveries(payload),
+                    _ => self.svc.scheduled_webhook_delivery(payload),
+                };
+                vec![self.answered(&id, tag, answer.map(Some))]
             }
             "subscribeProjectClones" => {
                 let (fold, first) = self.svc.open_project_clones();
@@ -449,7 +534,7 @@ impl Connection {
             "attachments.createUploadUrl" | "attachments.delete" | "assets.createUrl" | "assets.persistChatAttachments" => {
                 let answer = match tag {
                     "attachments.createUploadUrl" => self.svc.attachment_upload_url(payload).map(Some),
-                    "attachments.delete" => self.svc.attachment_delete(payload).map(|()| None),
+                    "attachments.delete" => self.svc.attachment_delete(payload).map(|()| Some(Value::Null)),
                     "assets.createUrl" => self.svc.asset_create_url(payload).map(Some),
                     _ => self.svc.persist_chat_attachments(payload).map(Some),
                 };
@@ -460,7 +545,7 @@ impl Connection {
                     "preview.open" => self.svc.preview_open(payload).map(Some),
                     "preview.resize" => self.svc.preview_resize(payload).map(Some),
                     "preview.adjust" => self.svc.preview_adjust(payload).map(Some),
-                    "preview.close" => self.svc.preview_close(payload).map(|()| None),
+                    "preview.close" => self.svc.preview_close(payload).map(|()| Some(Value::Null)),
                     "preview.list" => self.svc.preview_list(payload).map(Some),
                     _ => self.svc.preview_report_status(payload).map(|()| None),
                 };
@@ -502,6 +587,26 @@ impl Connection {
                 self.open(id, Kind::Followed { _stop: StopSetup(stop) }, 0, vec![first]);
                 vec![]
             }
+            _ if crate::usecases::desk_admin::handles(tag) => match self.svc.desk_admin(tag, payload, &self.principal) {
+                Ok(Admin::Answer(result)) => vec![rpc::exit_success(&id, Some(result))],
+                Ok(Admin::Open(frames)) => {
+                    self.open(id, Kind::Idle, 0, frames);
+                    vec![]
+                }
+                Err(failure) => vec![self.answered(&id, tag, Err(failure))],
+            },
+            _ if crate::usecases::desk_vcs::handles(tag) => vec![self.answered(&id, tag, self.svc.desk_vcs(tag, payload).map(Some))],
+            _ if desk_threads::handles(tag) => match self.svc.desk_threads(tag, payload) {
+                Ok(Desk::Answer(result)) => vec![rpc::exit_success(&id, Some(result))],
+                Ok(Desk::Finite(frames)) => {
+                    self.open(id, Kind::Idle, 0, frames);
+                    if let Some(stream) = self.streams.last_mut() {
+                        stream.ending = true;
+                    }
+                    vec![]
+                }
+                Err(failure) => vec![self.answered(&id, tag, Err(failure))],
+            },
             other => {
                 self.svc.log("rpc.unsupported", &[("tag", other.to_string()), ("known", "true".into())]);
                 vec![rpc::exit_failure(&id, wire::unsupported_error(other))]
@@ -528,8 +633,10 @@ impl Connection {
     fn files(&mut self, id: Value, tag: &str, payload: &Value) -> Vec<Value> {
         let text = |key: &str| payload.get(key).and_then(Value::as_str);
         let root = text("cwd").map(str::to_string).or_else(|| text("projectId").and_then(|p| self.svc.engine().project_root(p))).unwrap_or_default();
-        let path = text("relativePath").or_else(|| text("path")).or_else(|| text("directory")).unwrap_or("");
+        let path = text("directoryPath").or_else(|| text("relativePath")).or_else(|| text("path")).or_else(|| text("directory")).unwrap_or("");
         let agent = self.svc.agent();
+        // asked only when the call failed: a missing workspace folder is told from other failures by one more listing, which a call that worked must not pay
+        let missing = || !root.is_empty() && agent.list_dir(&root, "").is_err();
         let fail = |e: AgentError| vec![rpc::exit_failure(&id, wire::host_error(&e.message()))];
         let ok = |v: Value| vec![rpc::exit_success(&id, Some(v))];
         match tag {
@@ -539,10 +646,12 @@ impl Connection {
                     let rows: Vec<Value> = entries.iter().map(|e| json!({"path": join(&e.name), "kind": if e.directory { "directory" } else { "file" }, "parentPath": if path.is_empty() { Value::Null } else { json!(path) }})).collect();
                     ok(json!({"entries": rows, "truncated": false}))
                 }
+                Err(_) if missing() => vec![rpc::exit_failure(&id, wire::workspace_root_missing("ProjectListEntriesError", "list", &root, json!({})))],
                 Err(e) => fail(e),
             },
             "projects.readFile" => match agent.read_file(&root, path) {
                 Ok(contents) => ok(json!({"relativePath": path, "contents": contents})),
+                Err(_) if missing() => vec![rpc::exit_failure(&id, wire::read_file_root_missing(&root, path))],
                 Err(e) => fail(e),
             },
             _ => fail(AgentError::Failed(format!("{tag} is not a file RPC"))),

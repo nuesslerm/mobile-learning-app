@@ -8,12 +8,12 @@ use t3_core::ports::{AgentApi, AgentEventKind, AgentThread, AgentTurn, EventStor
 use t3_serve::adapters::rca::agent_event;
 
 fn dispatch_message(rpc: &mut Rpc, command_id: &str, text: &str) {
-    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "commandId": command_id, "threadId": "t1", "message": {"messageId": format!("m-{command_id}"), "text": text}})));
+    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": command_id, "threadId": "t1", "messageId": format!("m-{command_id}"), "text": text})));
 }
 
 /// A run t3 recorded and no runner ever started: the state a crash right after a message leaves. The run's id.
 fn crashed_run(h: &Harness, text: &str) -> String {
-    let command = json!({"type": "message.dispatch", "commandId": "c-crash", "threadId": "t1", "message": {"messageId": "m-crash", "text": text}});
+    let command = json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-crash", "threadId": "t1", "messageId": "m-crash", "text": text});
     let dispatched = h.service.engine().dispatch(Family::Thread, &command).expect("a message on the seeded thread");
     match dispatched.effect {
         Some(Effect::Launch(launch)) => launch.run_id,
@@ -23,9 +23,9 @@ fn crashed_run(h: &Harness, text: &str) -> String {
 
 /// What rca did for the turn while t3 was not following: the thread made and the turn started, its events in the thread's log.
 fn rca_runs(h: &Harness, text: &str) -> String {
-    let thread = AgentThread { thread_id: "t1".into(), instance_id: "opencode".into(), model: None };
+    let thread = AgentThread { thread_id: "t1".into(), instance_id: "opencode".into(), model: None, worktree: None };
     h.agent.ensure_thread(&thread).unwrap();
-    let turn = AgentTurn { thread_id: "t1".into(), instance_id: "opencode".into(), model: None, prompt: text.into(), runtime_mode: "full-access".into(), interaction_mode: "default".into() , attachments: vec![]};
+    let turn = AgentTurn { thread_id: "t1".into(), instance_id: "opencode".into(), model: None, prompt: text.into(), runtime_mode: "full-access".into(), interaction_mode: "default".into() , attachments: vec![], worktree: None};
     h.agent.start_turn(&turn).unwrap()
 }
 
@@ -93,7 +93,7 @@ fn the_recorded_turns_of_the_contract_become_the_threads_rows_a_failing_tool_a_l
     dispatch_message(&mut rpc, "c-2", "again");
     let p = settled(&mut rpc, "t1");
     let AgentEventKind::Failure(logged) = second[1].clone() else { panic!("the second turn opens with its failure") };
-    assert_eq!((p["runs"][1]["status"].as_str(), p["runs"][1]["error"].as_str()), (Some("failed"), Some(logged.as_str())));
+    assert_eq!((p["runs"][1]["status"].as_str(), last_error(&h, "t1").as_deref()), (Some("failed"), Some(logged.as_str())));
     assert_eq!(texts(&p).len(), 3, "the user's second message and no answer");
     // And the thread is idle with both runs recorded
     assert_eq!((p["runs"].as_array().unwrap().len(), shell_status(&mut rpc).as_str()), (2, "idle"));
@@ -183,7 +183,7 @@ fn a_run_whose_turn_was_never_started_is_failed_when_t3_serve_starts_again_and_t
     restarted.service.resume_runs();
     let p = settled(&mut rpc, "t1");
     // Then the run is failed saying why, and no turn was started
-    assert_eq!((p["runs"][0]["status"].as_str(), p["runs"][0]["error"].as_str()), (Some("failed"), Some("t3 serve stopped before the turn was started")));
+    assert_eq!((p["runs"][0]["status"].as_str(), last_error(&restarted, "t1").as_deref()), (Some("failed"), Some("t3 serve stopped before the turn was started")));
     assert!(h.agent.turns.lock().unwrap().is_empty());
 }
 

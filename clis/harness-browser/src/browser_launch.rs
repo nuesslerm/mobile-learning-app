@@ -153,7 +153,7 @@ pub fn open(args: &Value) -> Res<Session> {
     let launch_env: Vec<(String, String)> =
         args.get("launchEnv").and_then(Value::as_object).into_iter().flatten().filter_map(|(k, v)| v.as_str().map(|v| (k.clone(), v.to_string()))).collect();
     let exe = find_chromium().ok_or("no Chromium found (set WF_CHROMIUM or install one with Playwright)")?;
-    let launched = launch(&exe, &chrome_args, &launch_env, headless)?;
+    let launched = launch(&exe, &chrome_args, &launch_env, headless, false)?;
     let attach = (|| -> Res<Attached> {
         let mut page = Attached::attach(&launched.endpoint)?;
         let version = page.browser_version()?;

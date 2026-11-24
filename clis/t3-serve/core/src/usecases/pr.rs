@@ -188,13 +188,32 @@ impl Service {
         })
     }
 
-    fn project(&self, operation: &str, id: &str) -> Result<Project, QueryFailure> {
-        self.projects_named(&[id.to_string()]).into_iter().next().ok_or_else(|| QueryFailure::Error(json!({"_tag": OPERATION, "operation": operation, "detail": format!("project {id} was not found"), "reason": "not-found"})))
+    /// The project a pull request reference names. A project the server lacks has no provider to serve it; a reference that names the account
+    /// it expects is first routed by that account's identity, which no project can give (but `routing` and `reportState` do not route first),
+    /// and a review guide cannot tell the host of a pull request of no project.
+    fn project(&self, operation: &str, reference: &Value) -> Result<Project, QueryFailure> {
+        let id = field(reference, "projectId")?;
+        self.projects_named(&[id.to_string()]).into_iter().next().ok_or_else(|| {
+            let routed_first = text(reference, "expectedAccountId").is_some() && !["routing", "reportState"].contains(&operation);
+            if routed_first {
+                QueryFailure::Error(json!({"_tag": OPERATION, "operation": "routeIdentity", "detail": "The signed-in account could not be verified before starting the operation."}))
+            } else if operation == "reviewGuide" {
+                QueryFailure::Error(json!({"_tag": OPERATION, "operation": operation, "detail": "Could not identify this pull request's host."}))
+            } else {
+                QueryFailure::Error(json!({"_tag": UNAVAILABLE, "reason": "provider-unsupported"}))
+            }
+        })
+    }
+
+    /// A project whose directory has no remote has no repository identity for a provider to serve, so a list whose repository lookup failed
+    /// leaves it out as T3 does, instead of reporting the lookup's failure for it.
+    fn has_no_remote(&self, project: &Project) -> bool {
+        self.agent().run(&Op::GitUpstream { root: project.root.clone() }).is_ok_and(|u| u["remotes"].as_array().is_some_and(Vec::is_empty))
     }
 
     /// The pull request a `PullRequestRef` names: its project's directory, its provider and repository.
     pub(super) fn target(&self, operation: &str, payload: &Value) -> Result<Target, QueryFailure> {
-        let project = self.project(operation, field(payload, "projectId")?)?;
+        let project = self.project(operation, payload)?;
         let host = text(payload, "host").map(str::to_string);
         Ok(Target { provider: provider_of(host.as_deref()), host, repo: text(payload, "repository").map(str::to_string), project })
     }
@@ -262,7 +281,7 @@ impl Service {
         });
         let (mut entries, mut errors, mut viewers) = (Vec::new(), Vec::new(), Map::new());
         let projects = self.projects_named(&ids);
-        let configured = projects.len() as u64;
+        let mut configured = projects.len() as u64;
         for project in projects {
             let target = Target { provider, host: host.clone(), repo: None, project };
             let fail = |e: QueryFailure, target: &Target| match e {
@@ -271,6 +290,10 @@ impl Service {
             };
             let repo = match self.ask_hosted("list", &target, "sourceControl.lookupRepository", json!({})) {
                 Ok(answer) => text(&answer["repo"], "slug").unwrap_or_default().to_string(),
+                Err(_) if self.has_no_remote(&target.project) => {
+                    configured -= 1;
+                    continue;
+                }
                 Err(e) => {
                     errors.push(fail(e, &target));
                     continue;
@@ -320,7 +343,7 @@ impl Service {
     pub fn pr_list_stats(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let mut stats = Vec::new();
         for reference in payload["refs"].as_array().into_iter().flatten() {
-            let target = self.target("listStats", reference)?;
+            let Ok(target) = self.target("listStats", reference) else { continue };
             let files = self.ask_hosted("listStats", &target, "pr.files", json!({"number": Self::number(reference)?}))?;
             let sum = |key: &str| files["files"].as_array().into_iter().flatten().map(|f| f[key].as_u64().unwrap_or(0)).sum::<u64>();
             stats.push(json!({"projectId": target.project.id, "repository": target.repo.clone().unwrap_or_default(), "number": Self::number(reference)?, "additions": sum("additions"), "deletions": sum("deletions")}));
@@ -337,7 +360,10 @@ impl Service {
         let wanted = |name: &str| query.as_ref().is_none_or(|q| name.to_lowercase().contains(q));
         for project in self.projects_named(&ids) {
             let target = Target { provider: provider_of(host.as_deref()), host: host.clone(), repo: None, project };
-            let repo = self.ask_hosted("filterOptions", &target, "sourceControl.lookupRepository", json!({}))?;
+            let repo = match self.ask_hosted("filterOptions", &target, "sourceControl.lookupRepository", json!({})) {
+                Err(_) if self.has_no_remote(&target.project) => continue,
+                other => other?,
+            };
             let target = Target { repo: text(&repo["repo"], "slug").map(str::to_string), ..target };
             if text(payload, "kind") == Some("authors") {
                 let users = self.ask_hosted("filterOptions", &target, "pr.reviewerCandidates", json!({}))?;
@@ -349,7 +375,7 @@ impl Service {
         }
         found_labels.dedup_by(|a, b| a["name"] == b["name"]);
         authors.dedup_by(|a, b| a["login"] == b["login"]);
-        Ok(json!({"labels": found_labels, "authors": authors, "truncated": false}))
+        Ok(json!({"labels": found_labels, "authors": authors, "references": [], "truncated": false}))
     }
 
     /// `pullRequests.summary`
@@ -606,12 +632,12 @@ impl Service {
         Ok(json!({"patch": diff["diff"].as_str().unwrap_or_default(), "truncated": diff["truncated"].as_bool().unwrap_or(false), "nextCursor": null}))
     }
 
-    /// `POST /api/pull-requests/diff`: the same read as an HTTP route, behind the environment gate (protocol, bearer, scope) with the JSON error the route declares.
+    /// `POST /api/pull-requests/diff`: the same read as an HTTP route, behind the environment gate (protocol, bearer, scope) with a bare 400 for a body the route's schema refuses.
     pub fn pull_request_diff_http(&self, request: &EnvironmentRequest, body: &[u8]) -> Result<Value, Refusal> {
         self.environment_gate("pullRequests.diff", request)?;
-        let payload: Value = serde_json::from_slice(body).map_err(|_| Refusal { status: 400, body: json!({"_tag": "BadRequest", "message": "the body is a JSON pull request reference"}) })?;
+        let payload: Value = serde_json::from_slice(body).map_err(|_| Refusal::bare(400))?;
         self.pr_diff(&payload).map_err(|failure| match failure {
-            QueryFailure::Defect(message) => Refusal { status: 400, body: json!({"_tag": "BadRequest", "message": message}) },
+            QueryFailure::Defect(_) => Refusal::bare(400),
             QueryFailure::Error(error) => Refusal { status: if error["_tag"] == UNAVAILABLE { 503 } else { 502 }, body: error },
         })
     }
@@ -688,8 +714,26 @@ impl Service {
 
     /// `pullRequests.filesViewed`: the marks this server keeps in the agent API's `state` (the CLIs reach no host store of them).
     pub fn pr_files_viewed(&self, payload: &Value) -> Result<Value, QueryFailure> {
+        self.project("filesViewed", payload)?;
         let files: Vec<Value> = self.viewed_files(payload)?.into_iter().map(|(path, state)| json!({"path": path, "state": state})).collect();
         Ok(json!({"files": files, "truncated": false}))
+    }
+
+    /// `pullRequests.reportState`: nothing is kept of a pull request's state (t3 serve keeps no pull request cache), but the project must be one a provider serves.
+    pub fn pr_report_state(&self, payload: &Value) -> Result<(), QueryFailure> {
+        self.project("reportState", &payload["reference"]).map(drop)
+    }
+
+    /// `pullRequests.invalidate`: nothing is cached, so it only tells the readers (a files-viewed-only one tells none, as the host's does not).
+    pub fn pr_invalidate(&self, payload: &Value) {
+        if payload["filesViewedOnly"].as_bool() != Some(true) {
+            self.2.bump_refresh();
+        }
+    }
+
+    /// The refresh epoch the stream of `pullRequests.subscribeRefreshes` has reached; 0 until a reader was told.
+    pub fn pr_refresh_epoch(&self) -> u64 {
+        self.2.refresh_epoch()
     }
 
     pub fn pr_set_files_viewed(&self, payload: &Value) -> Result<(), QueryFailure> {

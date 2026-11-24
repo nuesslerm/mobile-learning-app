@@ -1,3 +1,3 @@
-# The registry of the shared libraries (libraries.json): a public bucket, read with a plain GET (no tailnet, no credential). Lockfiles record this URL.
+# The registry of the shared libraries (libraries.json): the registry/ directory of this public repository on dev, read with a plain GET through raw.githubusercontent.com (no tailnet, no credential). Lockfiles record this URL.
 [registries.mla]
-index = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+index = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"

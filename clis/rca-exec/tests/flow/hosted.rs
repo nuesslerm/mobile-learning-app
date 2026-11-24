@@ -2,7 +2,7 @@
 //! real process with the argv, stdin, environment and directory the executor chooses, and prints what the real CLIs print (written from their
 //! documented JSON and text output). No account, token or network is involved.
 use exec_hosted::testing::{fixtures, Exchange, Fixture};
-use exec_hosted::{ACTIONS, AUTH_LOGIN_CANCEL, AUTH_LOGIN_START, AUTH_LOGIN_WAIT, OUTPUT_CAP, PR_COMMENT, PR_DIFF, PR_LABELS, PR_LIST, PR_VIEW, REPO_CLONE, REPO_PUBLISH};
+use exec_hosted::{ACTIONS, AUTH_LOGIN_CANCEL, AUTH_LOGIN_START, AUTH_LOGIN_WAIT, OUTPUT_CAP, PR_COMMENT, PR_DIFF, PR_COMMENTS, PR_LABELS, PR_LIST, PR_REVIEWS, PR_THREADS, PR_VIEW, PR_FILE_VIEWED, REPO_CLONE, REPO_PUBLISH, REPO_REMOTES};
 use exec_proto::{Code, ExecResult, Stream};
 use exec_testkit::{HostedClis, Rule, TempRepo};
 use rca_exec::adapters::local_executor::LocalExecutor;
@@ -13,6 +13,24 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 const LOGIN_ACTIONS: [&str; 3] = [AUTH_LOGIN_START, AUTH_LOGIN_WAIT, AUTH_LOGIN_CANCEL];
+// Publishing to GitLab ends with a real `git push` (its own test below); GitLab keeps a file's viewed mark in the browser.
+const GITHUB_ONLY: [&str; 15] = [
+    REPO_PUBLISH,
+    PR_FILE_VIEWED,
+    exec_hosted::PROJECT_LIST,
+    exec_hosted::PROJECT_RESOLVE,
+    exec_hosted::PROJECT_VIEWS,
+    exec_hosted::PROJECT_FIELD_SET,
+    exec_hosted::PROJECT_FIELD_CLEAR,
+    exec_hosted::COMMENT_ADD,
+    exec_hosted::COMMENT_EDIT,
+    exec_hosted::COMMENT_DELETE,
+    exec_hosted::REPO_ISSUE_TYPES,
+    exec_hosted::ISSUE_TYPE_SET,
+    exec_hosted::ISSUE_UPDATE,
+    exec_hosted::REPO_STARRED,
+    exec_hosted::REPO_STAR,
+];
 
 struct Bench {
     root: PathBuf,
@@ -91,14 +109,12 @@ fn given_every_recorded_exchange_when_replayed_through_the_executor_then_the_res
 #[test]
 fn given_the_actions_of_the_contract_when_the_fixtures_are_read_then_each_action_is_answered_for_both_providers_and_every_response_is_shaped() {
     let all = fixtures();
-    // Publishing to GitLab ends with a real `git push`: its own test below.
-    let github_only = [REPO_PUBLISH];
     for action in ACTIONS.iter().filter(|a| !LOGIN_ACTIONS.contains(&a.name)) {
         let fixture = all.iter().find(|f| f.action == action.name).unwrap_or_else(|| panic!("{} has no fixture", action.name));
         for exchange in &fixture.exchanges {
             assert_eq!(exchange.request["tool"], action.name, "{}", exchange.name);
         }
-        for provider in ["github", "gitlab"].iter().filter(|p| !(github_only.contains(&action.name) && **p == "gitlab")) {
+        for provider in ["github", "gitlab"].iter().filter(|p| !(GITHUB_ONLY.contains(&action.name) && **p == "gitlab")) {
             let answered = fixture.exchanges.iter().any(|e| e.request["args"]["provider"] == *provider && e.response["ok"] == true);
             assert!(answered, "{} has no succeeding {provider} exchange", action.name);
         }
@@ -120,13 +136,13 @@ fn no_start(b: &Bench) {
 }
 
 const FREE_TEXT: [&str; 4] = ["title", "body", "description", "search"];
-const LABEL_KEYS: [&str; 3] = ["label", "labels", "add"];
+const LABEL_KEYS: [&str; 5] = ["label", "labels", "add", "add_labels", "remove_labels"];
 
 #[test]
 fn given_every_argument_of_every_action_when_it_carries_text_a_cli_or_shell_could_misread_then_the_request_is_refused_and_no_program_starts() {
     for action in ACTIONS.iter().filter(|a| !LOGIN_ACTIONS.contains(&a.name)) {
         for provider in ["github", "gitlab"] {
-            if action.name == REPO_PUBLISH && provider == "gitlab" {
+            if GITHUB_ONLY.contains(&action.name) && provider == "gitlab" {
                 continue;
             }
             for property in action.properties {
@@ -134,7 +150,7 @@ fn given_every_argument_of_every_action_when_it_carries_text_a_cli_or_shell_coul
                 let hostile: Vec<Value> = match property.kind {
                     "integer" => vec![json!(-1), json!("7; rm -rf /"), json!(1.5), json!(true)],
                     "boolean" => continue,
-                    _ if property.name == "dest" || property.name == "dir" => vec![json!("-x"), json!("a\u{0}b")],
+                    _ if matches!(property.name, "dest" | "dir" | "path" | "old_path") => vec![json!("-x"), json!("a\u{0}b")],
                     _ if FREE_TEXT.contains(&property.name) && property.name == "body" => vec![json!("a\u{0}b")],
                     _ if FREE_TEXT.contains(&property.name) => vec![json!("a\nb"), json!("a\u{0}b"), json!("")],
                     _ if LABEL_KEYS.contains(&property.name) || (property.name == "remove" && action.name == PR_LABELS) => vec![json!("-x"), json!("--web"), json!("a\nb"), json!("a,b")],
@@ -163,7 +179,7 @@ fn given_free_text_that_starts_like_an_option_when_a_request_carries_it_then_it_
     let sentinel = "--sentinel-flag value";
     for action in ACTIONS.iter().filter(|a| !LOGIN_ACTIONS.contains(&a.name)) {
         for provider in ["github", "gitlab"] {
-            if action.name == REPO_PUBLISH && provider == "gitlab" {
+            if GITHUB_ONLY.contains(&action.name) && provider == "gitlab" {
                 continue;
             }
             let b = bench();
@@ -372,11 +388,25 @@ fn given_a_machine_that_is_not_signed_in_or_a_repository_that_does_not_exist_whe
     assert_eq!(missing.code, Code::NotFound, "{missing:?}");
 }
 
+#[test]
+fn given_a_label_removal_when_the_label_is_gone_then_it_succeeds_and_when_the_host_refuses_it_fails() {
+    let b = bench();
+    let args = json!({"provider": "github", "repo": "octo/hello", "number": 7, "remove_labels": ["wip"]});
+    let delete = ["api", "--method=DELETE", "repos/octo/hello/issues/7/labels/wip"];
+    // Given the label is already gone (HTTP 404)
+    b.clis.rules(&[Rule { stderr: "gh: Label does not exist (HTTP 404)\n".into(), exit_code: 1, ..rule("gh", &delete) }], &[]);
+    // When it is removed Then the update is done
+    assert_eq!(call(&b.ex, "a", exec_hosted::ISSUE_UPDATE, args.clone()).unwrap(), json!({"done": true}));
+    // And given the host refuses (HTTP 403) Then the update fails
+    b.clis.rules(&[Rule { stderr: "gh: Resource not accessible (HTTP 403)\n".into(), exit_code: 1, ..rule("gh", &delete) }], &[]);
+    assert!(call(&b.ex, "b", exec_hosted::ISSUE_UPDATE, args).is_err());
+}
+
 fn login_rules(program: &str, args: &[&str], stderr: &str, sleep_ms: u64, hang: bool, exit_code: i32) -> Rule {
     Rule { stderr: stderr.into(), sleep_ms, hang, exit_code, ..rule(program, args) }
 }
 
-const GH_LOGIN: [&str; 5] = ["auth", "login", "--web", "--hostname=github.com", "--git-protocol=https"];
+const GH_LOGIN: [&str; 6] = ["auth", "login", "--web", "--hostname=github.com", "--git-protocol=https", "--scopes=project,read:org"];
 const GH_PROMPT: &str = "! First copy your one-time code: ABCD-1234\nOpen this URL to continue in your web browser: https://github.com/login/device\n";
 
 #[test]
@@ -453,4 +483,180 @@ fn given_a_gitlab_publish_when_the_repository_is_created_then_the_branch_is_push
     assert_eq!(out["url"], "https://gitlab.com/grp/proj");
     assert_eq!(Path::new(&clis.starts("glab")[0].cwd), std::fs::canonicalize(repo.path()).unwrap());
     assert_eq!(git(remote.path(), &["rev-parse", "main"]), repo.head());
+}
+
+#[test]
+fn given_a_directory_that_is_no_repository_when_its_remotes_are_listed_then_git_refuses_and_no_cli_starts() {
+    // Given a root with no repository in it or above it
+    let b = bench();
+    b.clis.rules(&[], &[]);
+    for provider in ["github", "gitlab"] {
+        // When its remotes are listed
+        let refused = call(&b.ex, "r", REPO_REMOTES, json!({"provider": provider})).unwrap_err();
+        // Then git's own refusal comes back, and neither gh nor glab started
+        assert!(refused.message.contains("not a git repository"), "{provider}: {refused:?}");
+        no_start(&b);
+    }
+}
+
+fn graphql_rule(connection: &str, nodes: Value) -> Rule {
+    let stdout = json!({"data": {"repository": {"pullRequest": {connection: {"nodes": nodes}}}}});
+    Rule { prefix: true, stdout: stdout.to_string(), ..rule("gh", &["api", "graphql"]) }
+}
+
+fn read(b: &Bench, tool: &str, rule: Rule) -> Value {
+    b.clis.rules(&[rule], &[]);
+    call(&b.ex, "r", tool, json!({"provider": "github", "repo": "octo/hello", "number": 12})).unwrap()
+}
+
+#[test]
+fn given_graphql_comment_nodes_when_the_comments_are_read_then_avatar_bot_mark_database_id_and_reactions_are_answered_in_the_hosts_order() {
+    let b = bench();
+    // Given a human with reactions out of order, a bot, a deleted account and a null database id
+    let nodes = json!([
+        {"id": "IC_1", "databaseId": 77, "author": {"__typename": "User", "login": "ada", "avatarUrl": "https://a/ada.png"}, "body": "hi", "createdAt": "2026-01-02T03:04:05Z", "url": "https://x/1", "viewerDidAuthor": true,
+         "reactionGroups": [{"content": "EYES", "viewerHasReacted": false, "reactors": {"totalCount": 2}}, {"content": "ROCKET", "viewerHasReacted": true, "reactors": {"totalCount": 0}}, {"content": "THUMBS_UP", "viewerHasReacted": true, "reactors": {"totalCount": 3}}]},
+        {"id": "IC_2", "databaseId": null, "author": {"__typename": "Bot", "login": "ci-bot", "avatarUrl": "https://a/bot.png"}, "body": "built", "createdAt": "2026-01-02T03:04:06Z", "url": "https://x/2", "reactionGroups": []},
+        {"id": "IC_3", "databaseId": 79, "viewerDidAuthor": false, "author": null, "body": "gone", "createdAt": "2026-01-02T03:04:07Z", "url": "https://x/3"}
+    ]);
+    // When read
+    let out = read(&b, PR_COMMENTS, graphql_rule("comments", nodes));
+    let c = out["comments"].as_array().unwrap();
+    // Then the node id stays the id, and the extra fields are the CLI's
+    assert_eq!((c[0]["id"].clone(), c[0]["database_id"].clone(), c[0]["avatar_url"].clone(), c[0]["is_bot"].clone(), c[0]["viewer_did_author"].clone(), c[0]["reaction_subject_id"].clone()), (json!("IC_1"), json!(77), json!("https://a/ada.png"), json!(false), json!(true), json!("IC_1")));
+    assert_eq!(c[0]["reactions"], json!([{"content": "+1", "count": 3, "viewer_has_reacted": true}, {"content": "eyes", "count": 2, "viewer_has_reacted": false}]));
+    // And a bot is marked, a null database id stays null, a deleted author has no login or avatar and is no bot
+    assert_eq!((c[1]["is_bot"].clone(), c[1]["database_id"].clone(), c[1]["reactions"].clone()), (json!(true), Value::Null, json!([])));
+    assert_eq!((c[2]["author"].clone(), c[2]["avatar_url"].clone(), c[2]["is_bot"].clone(), c[2]["database_id"].clone()), (Value::Null, Value::Null, json!(false), json!(79)));
+}
+
+#[test]
+fn given_the_old_gh_json_row_when_the_comments_and_reviews_are_read_then_the_new_fields_are_absent_and_the_old_ones_unchanged() {
+    let b = bench();
+    // Given a row with only author.login
+    let old = json!([{"id": "IC_9", "author": {"login": "ada"}, "body": "old", "createdAt": "2026-01-02T03:04:05Z", "url": "https://x/9"}]);
+    // When read
+    let out = read(&b, PR_COMMENTS, graphql_rule("comments", old));
+    // Then
+    let c = &out["comments"][0];
+    assert_eq!((c["id"].clone(), c["author"].clone(), c["body"].clone()), (json!("IC_9"), json!("ada"), json!("old")));
+    assert!(["database_id", "avatar_url", "is_bot", "viewer_did_author", "reaction_subject_id", "reactions"].iter().all(|k| c.get(k).is_none()), "{c}");
+    // And a review reads the same way and keeps its submission time
+    let reviews = json!([{"id": "PRR_1", "databaseId": 5, "author": {"__typename": "Bot", "login": "rev", "avatarUrl": "https://a/r.png"}, "state": "APPROVED", "body": "", "submittedAt": "2026-01-02T03:04:05Z"}]);
+    let out = read(&b, PR_REVIEWS, graphql_rule("reviews", reviews));
+    let r = &out["reviews"][0];
+    assert_eq!((r["id"].clone(), r["database_id"].clone(), r["is_bot"].clone(), r["state"].clone()), (json!("PRR_1"), json!(5), json!(true), json!("approved")));
+    assert!(r["submitted_at_ms"].is_number());
+}
+
+#[test]
+fn given_graphql_thread_nodes_when_the_threads_are_read_then_lines_side_hunk_and_comment_extras_are_answered() {
+    let b = bench();
+    // Given a thread whose comments carry a node id and a database id, and one old thread comment with only a database id
+    let nodes = json!({"data": {"repository": {"pullRequest": {"reviewThreads": {"nodes": [{
+        "id": "PRRT_1", "isResolved": false, "isOutdated": true, "path": "a.rs", "line": 9, "startLine": 7, "originalLine": 8, "originalStartLine": 6, "diffSide": "RIGHT",
+        "rootHunk": {"nodes": [{"diffHunk": "@@ -1 +1 @@\n-a\n+b"}]},
+        "comments": {"nodes": [
+            {"id": "PRRC_1", "databaseId": 41, "author": {"__typename": "User", "login": "ada", "avatarUrl": "https://a/ada.png"}, "body": "x", "createdAt": "2026-01-02T03:04:05Z", "url": "https://x/c1", "viewerDidAuthor": true,
+             "reactionGroups": [{"content": "HEART", "viewerHasReacted": true, "reactors": {"totalCount": 1}}]},
+            {"databaseId": 42, "author": {"login": "bob"}, "body": "y", "createdAt": "2026-01-02T03:04:06Z", "url": "https://x/c2"}]}
+    }]}}}}});
+    // When read
+    let out = read(&b, PR_THREADS, Rule { prefix: true, stdout: nodes.to_string(), ..rule("gh", &["api", "graphql"]) });
+    // Then
+    let t = &out["threads"][0];
+    assert_eq!((t["start_line"].clone(), t["original_line"].clone(), t["original_start_line"].clone(), t["diff_side"].clone(), t["root_diff_hunk"].clone()), (json!(7), json!(8), json!(6), json!("RIGHT"), json!("@@ -1 +1 @@\n-a\n+b")));
+    let (a, o) = (&t["comments"][0], &t["comments"][1]);
+    assert_eq!((a["id"].clone(), a["database_id"].clone(), a["viewer_did_author"].clone(), a["reactions"].clone()), (json!("PRRC_1"), json!(41), json!(true), json!([{"content": "heart", "count": 1, "viewer_has_reacted": true}])));
+    // And the old row keeps its database id as the id and has no extras
+    assert_eq!(o["id"], "42");
+    assert!(["database_id", "reaction_subject_id", "avatar_url", "reactions"].iter().all(|k| o.get(k).is_none()), "{o}");
+}
+
+fn page_rule(cursor: Option<&str>, connection: &str, nodes: Value, more: Option<&str>) -> Rule {
+    let mut args = vec!["api", "graphql", "-f=owner=octo", "-f=name=hello", "-F=number=12"];
+    let flag = cursor.map(|c| format!("-f=cursor={c}"));
+    args.extend(flag.as_deref());
+    let stdout = json!({"data": {"repository": {"pullRequest": {connection: {"nodes": nodes, "pageInfo": {"hasNextPage": more.is_some(), "endCursor": more}}}}}});
+    Rule { prefix: true, stdout: stdout.to_string(), ..rule("gh", &args) }
+}
+
+fn comment(id: &str, body: &str) -> Value {
+    json!({"id": id, "databaseId": 1, "author": {"__typename": "User", "login": "ada", "avatarUrl": "https://a/ada.png"}, "body": body, "createdAt": "2026-01-02T03:04:05Z", "url": "https://x/1", "viewerDidAuthor": false, "reactionGroups": []})
+}
+
+#[test]
+fn given_a_page_that_ends_where_the_request_began_when_the_comments_are_read_then_the_read_is_refused_after_two_requests() {
+    let b = bench();
+    // Given a first page that points at C1, and a page after C1 that claims more and ends at C1 again
+    b.clis.rules(&[page_rule(Some("C1"), "comments", json!([comment("IC_2", "b")]), Some("C1")), page_rule(None, "comments", json!([comment("IC_1", "a")]), Some("C1"))], &[]);
+    // When read
+    let err = call(&b.ex, "r", PR_COMMENTS, json!({"provider": "github", "repo": "octo/hello", "number": 12})).unwrap_err();
+    // Then the conversation is refused, not answered cut or looped over
+    assert!(err.message.contains("cursor did not advance"), "{}", err.message);
+    assert_eq!(b.clis.argvs().len(), 2);
+}
+
+#[test]
+fn given_a_node_shown_on_two_pages_when_the_comments_are_read_then_it_is_answered_once_in_its_first_place() {
+    let b = bench();
+    // Given a node that the second page shows again, with its newer text
+    b.clis.rules(&[page_rule(Some("C1"), "comments", json!([comment("IC_1", "edited"), comment("IC_2", "b")]), None), page_rule(None, "comments", json!([comment("IC_1", "a")]), Some("C1"))], &[]);
+    // When read
+    let out = call(&b.ex, "r", PR_COMMENTS, json!({"provider": "github", "repo": "octo/hello", "number": 12})).unwrap();
+    // Then
+    let bodies: Vec<&str> = out["comments"].as_array().unwrap().iter().map(|c| c["body"].as_str().unwrap()).collect();
+    assert_eq!(bodies, ["edited", "b"]);
+}
+
+#[test]
+fn given_a_thread_with_more_comments_whose_further_page_does_not_advance_when_the_threads_are_read_then_the_read_is_refused() {
+    let b = bench();
+    // Given a thread that says more comments follow CC1, and a further page that ends at CC1 again
+    let thread = json!([{"id": "PRRT_1", "isResolved": false, "isOutdated": false, "path": "a.rs", "line": 1, "comments": {"nodes": [comment("PRRC_1", "a")], "pageInfo": {"hasNextPage": true, "endCursor": "CC1"}}}]);
+    let more = json!({"data": {"node": {"id": "PRRT_1", "comments": {"nodes": [comment("PRRC_2", "b")], "pageInfo": {"hasNextPage": true, "endCursor": "CC1"}}}}});
+    b.clis.rules(&[Rule { prefix: true, stdout: more.to_string(), ..rule("gh", &["api", "graphql", "-f=thread=PRRT_1", "-f=cursor=CC1"]) }, page_rule(None, "reviewThreads", thread, None)], &[]);
+    // When read
+    let err = call(&b.ex, "r", PR_THREADS, json!({"provider": "github", "repo": "octo/hello", "number": 12})).unwrap_err();
+    // Then
+    assert!(err.message.contains("cursor did not advance"), "{}", err.message);
+}
+
+#[test]
+fn given_a_review_thread_named_by_its_node_id_alone_when_it_is_resolved_then_github_needs_no_number_and_gitlab_refuses_before_starting() {
+    // Given the recorded GitHub resolve, asked without the pull request's number
+    let b = bench();
+    let mut args = baseline(exec_hosted::PR_RESOLVE_THREAD, "github");
+    args.as_object_mut().unwrap().remove("number");
+    let recorded = fixtures().into_iter().find(|f| f.action == exec_hosted::PR_RESOLVE_THREAD).unwrap().exchanges.into_iter().find(|e| e.request["args"]["provider"] == "github" && e.response["ok"] == true).unwrap();
+    b.clis.replay(&recorded.cli, &[]);
+    // When it is resolved
+    let resolved = call(&b.ex, "r1", exec_hosted::PR_RESOLVE_THREAD, args.clone());
+    // Then gh resolves it by the thread id
+    assert!(resolved.is_ok(), "{resolved:?}");
+    assert_eq!(b.clis.argvs().len(), 1);
+    // And the same request for GitLab is refused for the missing number, with nothing started
+    let g = bench();
+    let mut gitlab = baseline(exec_hosted::PR_RESOLVE_THREAD, "gitlab");
+    gitlab.as_object_mut().unwrap().remove("number");
+    let refused = call(&g.ex, "r2", exec_hosted::PR_RESOLVE_THREAD, gitlab).unwrap_err();
+    assert!(refused.message.contains("`number`"), "{refused:?}");
+    no_start(&g);
+}
+
+#[test]
+fn given_a_request_to_turn_auto_merge_on_when_it_runs_on_github_then_it_goes_through_the_enable_mutation_and_gh_never_merges() {
+    // Given the recorded exchanges that turn auto-merge on for GitHub, one of them for a pull request GitHub says is clean
+    let recorded = fixtures().into_iter().find(|f| f.action == exec_hosted::PR_AUTO_MERGE).unwrap();
+    let turned_on: Vec<&Exchange> = recorded.exchanges.iter().filter(|e| e.request["args"]["provider"] == "github" && e.request["args"]["enabled"] == true).collect();
+    assert!(turned_on.len() >= 3);
+    for exchange in turned_on {
+        // When the executor runs it
+        let (response, starts, _) = replay(exchange);
+        // Then the pull request is read for its node id, the enable mutation is the last program started, and no start is `gh pr merge`
+        assert_eq!(response, exchange.response, "{}", exchange.name);
+        let argv = |s: &Value| s.as_array().unwrap().iter().map(|a| a.as_str().unwrap().to_string()).collect::<Vec<_>>();
+        assert!(starts.iter().map(argv).all(|a| !(a[1] == "pr" && a[2] == "merge")), "{}: {starts:?}", exchange.name);
+        assert_eq!(&argv(starts.last().unwrap())[1..3], ["api", "graphql"], "{}", exchange.name);
+    }
 }

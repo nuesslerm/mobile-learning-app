@@ -1,0 +1,93 @@
+{
+  "suite": "symbolbar",
+  "step": "final-given-the-caret-after-x-when-the-key-is-ab9656",
+  "scheme": "light",
+  "snapshot": "symbolbar/final-given-the-caret-after-x-when-the-key-is-ab9656.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "EditorHelperRails",
+      "ConsoleActionBar",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
+      "EditorSymbolBar",
+      "SymbolBarTab",
+      "SymbolBarGroup-g1",
+      "SymbolBarKey-g1-0",
+      "SymbolBarKey-g1-1",
+      "SymbolBarKey-g1-2",
+      "SymbolBarKey-g1-3",
+      "SymbolBarGroup-g2",
+      "SymbolBarKey-g2-0",
+      "SymbolBarKey-g2-1",
+      "SymbolBarKey-g2-2",
+      "SymbolBarKey-g2-3",
+      "SymbolBarGroup-g3",
+      "SymbolBarKey-g3-0",
+      "SymbolBarKey-g3-1",
+      "SymbolBarKey-g3-2",
+      "SymbolBarKey-g3-3",
+      "SymbolBarGroup-g4",
+      "SymbolBarKey-g4-0",
+      "SymbolBarKey-g4-1",
+      "SymbolBarKey-g4-2",
+      "SymbolBarKey-g4-3",
+      "SymbolBarGroup-g5",
+      "SymbolBarKey-g5-0",
+      "SymbolBarKey-g5-1",
+      "SymbolBarKey-g5-2",
+      "SymbolBarKey-g5-3",
+      "SymbolBarGroup-g6",
+      "SymbolBarKey-g6-0",
+      "SymbolBarKey-g6-1",
+      "SymbolBarKey-g6-2",
+      "SymbolBarKey-g6-3",
+      "SymbolBarGroup-g7",
+      "SymbolBarKey-g7-0",
+      "SymbolBarKey-g7-1",
+      "SymbolBarKey-g7-2",
+      "SymbolBarKey-g7-3",
+      "SymbolBarGroup-g8",
+      "SymbolBarKey-g8-0",
+      "SymbolBarKey-g8-1",
+      "SymbolBarKey-g8-2",
+      "SymbolBarKey-g8-3",
+      "SymbolBarDismiss",
+      "EditorActionToolbar"
+    ],
+    "text": "Python\nConsole\nSubmit\nTab\n#\n$\n^\n%\n&\n|\n?\n!\n\\\n@\n~\n_\n+\n-\n*\n/\n'\n\"\n`\n=\n{\n}\n[\n]\n(\n)\n<\n>\n.\n:\n,\n;\nHide\nUndo\nRedo\nCopy\nPaste\nDone"
+  },
+  "timings": {
+    "render_ms": 265
+  },
+  "name": "symbolbar/final-given-the-caret-after-x-when-the-key-is-ab9656.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

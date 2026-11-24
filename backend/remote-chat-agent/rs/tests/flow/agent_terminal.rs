@@ -242,7 +242,8 @@ async fn replay(fixture: &agent_api_proto::testing::Fixture) {
         // The exchange's actions are among the ones the method declares
         let declared: Vec<&str> = rca_group_terminal::SERVED.iter().find(|s| s.method.name() == fixture.method).map(|s| s.actions.to_vec()).unwrap();
         assert!(exchange.actions.iter().all(|a| declared.contains(&a.as_str())), "{}: {} calls {:?}, the table declares {declared:?}", fixture.method, exchange.name, exchange.actions);
-        // Each exchange starts from a clean service: the terminal it left is closed
+        // Each exchange starts from a clean service: a sleep it left is woken and the terminals it left are closed
+        let _ = agent.ask("terminal.wake", json!({"workspace": "w1"})).await;
         for t in ["t1", "t2"] {
             let _ = agent.ask("terminal.close", json!({"workspace": "w1", "terminal": t})).await;
         }

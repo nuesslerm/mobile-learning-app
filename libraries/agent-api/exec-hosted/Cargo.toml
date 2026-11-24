@@ -15,3 +15,6 @@ testing = ["exec-proto/testing", "dep:serde"]
 exec-proto = { path = "../exec-proto" }
 serde_json = { version = "1", features = ["preserve_order"] }
 serde = { version = "1", features = ["derive"], optional = true }
+
+[package.metadata.arch]
+type = "rust-contract"

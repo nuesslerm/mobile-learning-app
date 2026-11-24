@@ -11,6 +11,8 @@ pub use t3_serve::testing::{Harness, ENVIRONMENT_ID, START_MS};
 pub struct Reply {
     pub status: u16,
     pub body: Value,
+    /// The status line and headers as sent, lower-cased.
+    pub head: String,
 }
 
 pub fn http(addr: SocketAddr, method: &str, path: &str, headers: &[(&str, &str)], body: &str) -> Reply {
@@ -25,7 +27,7 @@ pub fn http(addr: SocketAddr, method: &str, path: &str, headers: &[(&str, &str)]
     stream.read_to_string(&mut raw).unwrap();
     let (head, body) = raw.split_once("\r\n\r\n").unwrap_or((&raw, ""));
     let status = head.split(' ').nth(1).and_then(|s| s.parse().ok()).unwrap_or(0);
-    Reply { status, body: serde_json::from_str(body).unwrap_or(Value::Null) }
+    Reply { status, body: serde_json::from_str(body).unwrap_or(Value::Null), head: head.to_ascii_lowercase() }
 }
 
 pub const GRANT: &str = "urn:ietf:params:oauth:grant-type:token-exchange";
@@ -142,7 +144,7 @@ pub fn failure(exit: &Value) -> &Value {
 }
 
 pub fn thread_create(command_id: &str, thread: &str, project: &str) -> Value {
-    json!({"type": "thread.create", "commandId": command_id, "threadId": thread, "projectId": project, "title": format!("Thread {thread}")})
+    json!({"type": "thread.create", "commandId": command_id, "threadId": thread, "projectId": project, "title": format!("Thread {thread}"), "createdBy": "user", "creationSource": "mobile", "modelSelection": {"instanceId": "opencode", "model": "gpt-5"}, "runtimeMode": "full-access", "interactionMode": "default", "branch": null, "worktreePath": null})
 }
 
 pub fn project_create(command_id: &str, project: &str) -> Value {
@@ -153,6 +155,11 @@ pub fn project_create(command_id: &str, project: &str) -> Value {
 pub fn forget_seeding(h: &Harness) {
     h.agent.ops.lock().unwrap().clear();
     h.agent.calls.lock().unwrap().clear();
+}
+
+/// The error the thread's last run ended with, as the shell row keeps it.
+pub fn last_error(h: &Harness, thread: &str) -> Option<String> {
+    h.service.engine().read(|s| s.threads[thread]["lastError"].as_str().map(str::to_string))
 }
 
 /// A project `p1` with a thread `t1`: sequences 1 and 2.

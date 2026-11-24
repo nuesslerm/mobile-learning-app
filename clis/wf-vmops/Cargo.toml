@@ -44,3 +44,6 @@ wf-testkit = { path = "../wf-testkit" }
 tempfile = "3"
 # This crate's own flow tests use the fake it ships.
 wf-vmops = { path = ".", features = ["testing"] }
+
+[package.metadata.arch]
+type = "cli-crate"

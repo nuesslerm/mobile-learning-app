@@ -45,21 +45,19 @@ fn row(probe: &str, needs: &str, status: u16, granted: bool) -> Value {
     json!({ "probe": probe, "needs": needs, "granted": yes(granted), "status": status })
 }
 
-/// The report of every probe; `ok` needs a token GitHub accepts that reads the repository's contents and its runners.
+/// The report of every probe; `ok` needs a token GitHub accepts that reads the repository's contents.
 pub fn report(github: &dyn GithubReads, token: &str) -> Result<Value, String> {
     let user = github.get(token, "/user")?;
     let repo = github.get(token, &format!("/repos/{REPO}"))?;
-    let runners = github.get(token, &format!("/repos/{REPO}/actions/runners"))?;
     let contents = github.get(token, &format!("/repos/{REPO}/contents/README.md"))?;
     let flag = |name: &str| repo.body["permissions"][name] == json!(true);
     let probes = vec![
         row("token-accepted", "a live token (not expired or revoked)", user.status, user.status != 401),
         row("repository-read", "Metadata: read", repo.status, repo.status == 200),
         row("contents-read", "Contents: read", contents.status, contents.status == 200),
-        row("administration-read", "Administration: read (runner registration needs write, which no read-only call proves)", runners.status, runners.status == 200),
     ];
     let granted = |name: &str| probes.iter().any(|p| p["probe"] == name && p["granted"] == "yes");
-    let ok = ["token-accepted", "contents-read", "administration-read"].iter().all(|n| granted(n));
+    let ok = ["token-accepted", "contents-read"].iter().all(|n| granted(n));
     Ok(json!({
         "ok": ok,
         "repo": REPO,

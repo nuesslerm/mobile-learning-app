@@ -25,7 +25,7 @@ import {
   type ServiceUptimeSummary,
   type SpanLine,
   type TestTierResult,
-} from '../contracts';
+} from '../domain';
 import {
   Admonition,
   Badge,

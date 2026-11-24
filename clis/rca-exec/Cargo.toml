@@ -11,7 +11,7 @@ description = "`rca-exec` (`wf exec`): the executor that runs at a workspace, co
 # the crates would leave them out of the hash, because Nx drops the crate projects from a glob that spans them.
 [package.metadata.flow]
 uses = ["exec-testkit"]
-inputs = ["../../libraries/agent-api/exec-fs/tests/fixtures/**", "../../libraries/agent-api/exec-proc/tests/fixtures/**", "../../libraries/agent-api/exec-git/tests/fixtures/**", "../../libraries/agent-api/exec-pty/tests/fixtures/**", "../../libraries/agent-api/exec-hosted/tests/cassettes/**", "../../libraries/agent-api/exec-preview/tests/fixtures/**"]
+inputs = ["../../libraries/agent-api/exec-fs/tests/fixtures/**", "../../libraries/agent-api/exec-proc/tests/fixtures/**", "../../libraries/agent-api/exec-git/tests/fixtures/**", "../../libraries/agent-api/exec-pty/tests/fixtures/**", "../../libraries/agent-api/exec-hosted/tests/cassettes/**", "../../libraries/agent-api/exec-preview/tests/fixtures/**", "../../libraries/agent-api/exec-browser/tests/fixtures/**"]
 
 # The domain's unit tests (`src/domain.rs`) run as `cargo test --lib`.
 [lib]
@@ -31,10 +31,11 @@ exec-git = { path = "../../libraries/agent-api/exec-git" }
 exec-pty = { path = "../../libraries/agent-api/exec-pty" }
 exec-hosted = { path = "../../libraries/agent-api/exec-hosted" }
 exec-preview = { path = "../../libraries/agent-api/exec-preview" }
+exec-browser = { path = "../../libraries/agent-api/exec-browser" }
+cdp = { path = "../cdp" }
 serde_json = { version = "1", features = ["preserve_order"] }
 base64 = "0.22"
 libc = "0.2"
-regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 
 [dev-dependencies]
@@ -44,6 +45,11 @@ exec-proc = { path = "../../libraries/agent-api/exec-proc", features = ["testing
 exec-git = { path = "../../libraries/agent-api/exec-git", features = ["testing"] }
 exec-hosted = { path = "../../libraries/agent-api/exec-hosted", features = ["testing"] }
 exec-preview = { path = "../../libraries/agent-api/exec-preview", features = ["testing"] }
+exec-browser = { path = "../../libraries/agent-api/exec-browser", features = ["testing"] }
 exec-pty = { path = "../../libraries/agent-api/exec-pty", features = ["testing"] }
 tempfile = "3"
+serde = "1"
 exec-testkit = { path = "../../libraries/agent-api/exec-testkit" }
+
+[package.metadata.arch]
+type = "rust-single-hexagon"

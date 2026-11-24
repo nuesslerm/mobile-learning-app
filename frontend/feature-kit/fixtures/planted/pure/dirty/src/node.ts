@@ -1,0 +1,2 @@
+import 'node:path';
+export {};

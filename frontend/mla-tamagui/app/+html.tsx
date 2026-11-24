@@ -1,4 +1,4 @@
-import { ScrollViewStyleReset } from 'expo-router/html';
+import { ScrollViewStyleReset, useServerDocumentContext } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 
 const VIEWPORT_CONTENT =
@@ -11,17 +11,24 @@ const VIEWPORT_CONTENT =
 // margin for free -- which is exactly the freebie a Tamagui app does not get.
 const RESET = 'body{margin:0}';
 
+// SDK 58 no longer splices the entry scripts, stylesheets and fonts into the HTML text: it hands them to the root as
+// head and body nodes, so a root that renders neither ships a page whose JavaScript never loads.
 export default function Root({ children }: PropsWithChildren) {
+  const { htmlAttributes, bodyAttributes, headNodes, bodyNodes } = useServerDocumentContext();
   return (
-    <html lang="en">
+    <html lang="en" {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content={VIEWPORT_CONTENT} />
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{ __html: RESET }} />
+        {headNodes}
       </head>
-      <body>{children}</body>
+      <body {...bodyAttributes}>
+        {children}
+        {bodyNodes}
+      </body>
     </html>
   );
 }

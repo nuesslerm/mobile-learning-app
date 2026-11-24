@@ -23,17 +23,17 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
       "ProblemEditorTextEditStartButton",
       "ProblemEditorVoiceStartButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInput",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "ProblemPlanTab",
       "ProblemPlanSteps",
       "ProblemPlanStep-0",
@@ -53,7 +53,7 @@
     "text": "Plan\nCode\n1\nAlpha first\npending\nAdd"
   },
   "timings": {
-    "render_ms": 278
+    "render_ms": 254
   },
   "name": "plantab/final-given-two-plan-steps-when-delete-is-pressed-on-6aac28.dark",
   "image": {

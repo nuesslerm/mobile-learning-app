@@ -9,25 +9,42 @@ inputs:
 runs:
   using: composite
   steps:
+    # ffmpeg from the pinned static build when it is asked for: the apt package took 4 to 6 minutes of a browser or device job (run 44567666031)
+    - uses: ./.github/actions/install-ffmpeg
+      if: ${{ contains(inputs.packages, 'ffmpeg') }}
     - shell: bash
       env:
         PACKAGES: ${{ inputs.packages }}
       run: |
         missing=""
-        for p in $PACKAGES; do dpkg -s "$p" >/dev/null 2>&1 || missing="$missing $p"; done
+        for p in $PACKAGES; do { [ "$p" = ffmpeg ] && command -v ffmpeg >/dev/null; } || dpkg -s "$p" >/dev/null 2>&1 || missing="$missing $p"; done
         if [ -z "$missing" ]; then echo "apt: nothing to install ($PACKAGES)"; exit 0; fi
         sudo dpkg --configure -a
         getent hosts archive.ubuntu.com >/dev/null || { echo "::error::no Ubuntu mirror resolves from this runner"; exit 1; }
         opts=(-o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
+        # The runner's default mirror (a mirror+file: list) is the one that has answered 400 or timed out for minutes on end: after the first failure the sources point at one
+        # mirror directly, and each later attempt at another.
+        current="mirror+file:/etc/apt/apt-mirrors.txt"
+        swap() {
+          for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; do
+            [ -f "$f" ] && sudo sed -i "s#${current}#${1}#g" "$f"
+          done
+          current="$1"
+        }
+        mirrors=(http://mirrors.edge.kernel.org/ubuntu/ http://archive.ubuntu.com/ubuntu/ http://mirror.us.leaseweb.net/ubuntu/)
         ok=false
         for attempt in 1 2 3 4; do
           # shellcheck disable=SC2086
           if sudo timeout 150 apt-get update -qq "${opts[@]}" && sudo timeout 240 apt-get install -y -qq "${opts[@]}" $missing; then ok=true; break; fi
           echo "apt: attempt $attempt failed"
-          if [ "$attempt" = 2 ] && [ -f /etc/apt/apt-mirrors.txt ]; then
-            echo "apt: falling back to archive.ubuntu.com"
-            echo "http://archive.ubuntu.com/ubuntu/ priority:1" | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          # what a run with no installation candidate (every mirror, run 44961066640) was missing: the sources apt read and how many lists it fetched
+          grep -rhE '^(URIs|deb) ' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null | sort -u | head -8 | sed 's/^/apt: source: /' || true
+          echo "apt: lists fetched: $(find /var/lib/apt/lists -maxdepth 1 -name '*_Packages*' 2>/dev/null | wc -l)"
+          next="${mirrors[$((attempt - 1))]:-}"
+          if [ -n "$next" ]; then
+            echo "apt: switching the sources to $next"
+            swap "$next"
           fi
-          sleep $((attempt * 15))
+          sleep $((attempt * 5))
         done
         [ "$ok" = true ] || { echo "::error::apt could not install:$missing"; exit 1; }

@@ -27,7 +27,7 @@ fn started(wt_path: &str) -> (Harness, Rpc) {
     let h = Harness::start();
     let mut rpc = connect_with(&h, all_scopes());
     seed(&mut rpc);
-    let in_worktree = json!({"type": "thread.create", "commandId": "c-t2", "threadId": "t2", "projectId": "p1", "title": "In a worktree", "worktreePath": wt_path, "branch": "feature/setup"});
+    let in_worktree = json!({"type": "thread.create", "commandId": "c-t2", "threadId": "t2", "projectId": "p1", "title": "In a worktree", "worktreePath": wt_path, "branch": "feature/setup", "createdBy": "user", "creationSource": "mobile", "runtimeMode": "full-access", "interactionMode": "default", "modelSelection": {"instanceId": "codex", "model": "gpt-5"}});
     success(&rpc.call("orchestration.dispatchCommand", in_worktree));
     forget_seeding(&h);
     (h, rpc)
@@ -78,7 +78,7 @@ fn browsing_lists_the_directories_of_the_partial_paths_directory_that_start_with
     let prefixed = rpc.call("filesystem.browse", json!({"partialPath": format!("{parent}/{}", start.to_uppercase())}));
     let relative = rpc.call("filesystem.browse", json!({"partialPath": "sr", "cwd": "/workspace/demo"}));
     let asked = ops(&h).len();
-    let no_project = rpc.call("filesystem.browse", json!({"partialPath": "sr"}));
+    let no_project = rpc.call("filesystem.browse", json!({"partialPath": "./sr"}));
     let windows = rpc.call("filesystem.browse", json!({"partialPath": "C:\\Users"}));
     // Then the directories are listed whole for the slash, files are never listed, and a prefix keeps the directories it starts (whatever its case)
     let names = |exit: &Value| success(exit)["entries"].as_array().unwrap().iter().map(|e| e["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
@@ -91,13 +91,37 @@ fn browsing_lists_the_directories_of_the_partial_paths_directory_that_start_with
     let browses: Vec<Op> = ops(&h).into_iter().take(asked).collect();
     assert_eq!(browses[0], Op::FileBrowse { root: String::new(), path: parent.clone(), show_hidden: false });
     assert_eq!(browses[2], Op::FileBrowse { root: "/workspace/demo".into(), path: ".".into(), show_hidden: false });
-    // And a relative path with no project and a Windows path are refused with the RPC's own reasons before the agent API is asked
+    // And an explicit relative path with no project and a Windows path are refused with the RPC's own reasons before the agent API is asked
     assert_eq!((failure(&no_project)["failure"].as_str(), failure(&windows)["failure"].as_str()), (Some("current_project_required"), Some("windows_path_unsupported")));
     assert_eq!(ops(&h).len(), asked);
+    // And a plain relative name with no project is read in the executor's own directory, as the pin reads it in its working directory
+    let bare = rpc.call("filesystem.browse", json!({"partialPath": "sr"}));
+    assert!(success(&bare)["entries"].is_array());
+    assert_eq!(ops(&h).last(), Some(&Op::FileBrowse { root: String::new(), path: ".".into(), show_hidden: false }));
     // And an agent API that refuses the directory is read_directory_failed with its message
     reply(&h, "file.browse", Err(AgentError::Failed(error_of("files-edit", "file.browse"))));
     let outside = rpc.call("filesystem.browse", json!({"partialPath": "/etc/"}));
     assert_eq!((failure(&outside)["failure"].as_str(), failure(&outside)["message"].as_str().map(str::to_string)), (Some("read_directory_failed"), Some(error_of("files-edit", "file.browse"))));
+}
+
+#[test]
+fn a_folder_the_executor_does_not_have_is_the_pins_workspace_root_refusal_for_a_listing_a_read_and_a_search_and_an_unregistered_one_cannot_be_written() {
+    // Given an executor that has no such folder
+    let (h, mut rpc) = started("/base/wt");
+    *h.agent.dir_error.lock().unwrap() = Some(AgentError::Failed("no such directory".into()));
+    // When the phone lists, reads, searches and writes in a folder that is no project of this server
+    let listed = rpc.call("projects.listEntries", json!({"cwd": "/nowhere"}));
+    let read = rpc.call("projects.readFile", json!({"cwd": "/nowhere", "relativePath": "a.txt"}));
+    let searched = rpc.call("projects.searchEntries", json!({"cwd": "/nowhere", "query": "a", "limit": 3}));
+    let written = rpc.call("projects.writeFile", json!({"cwd": "/nowhere", "relativePath": "a.txt", "contents": "x"}));
+    // Then each is its own RPC's error with the failure the pin gives and the cause that names the folder
+    let tags = |exit: &Value| (failure(exit)["_tag"].as_str().map(str::to_string), failure(exit)["failure"].as_str().map(str::to_string), failure(exit)["cause"]["name"].as_str().map(str::to_string));
+    assert_eq!(tags(&listed), (Some("ProjectListEntriesError".into()), Some("workspace_root_not_found".into()), Some("WorkspaceRootNotExistsError".into())));
+    assert_eq!(tags(&searched), (Some("ProjectSearchEntriesError".into()), Some("workspace_root_not_found".into()), Some("WorkspaceRootNotExistsError".into())));
+    assert_eq!(tags(&read), (Some("ProjectReadFileError".into()), Some("operation_failed".into()), Some("WorkspaceFileSystemOperationError".into())));
+    assert_eq!(tags(&written), (Some("ProjectWriteFileError".into()), Some("workspace_path_outside_root".into()), Some("UnknownWorkspaceError".into())));
+    // And nothing was written
+    assert!(!ops(&h).iter().any(|op| matches!(op, Op::FileWrite { .. })));
 }
 
 #[test]
@@ -161,7 +185,7 @@ fn the_diff_of_a_thread_is_the_agent_apis_diff_of_its_directory_and_only_the_thr
     // Given a thread on the project root and one in a worktree, each with one finished turn, and an agent API that diffs as recorded
     let (h, mut rpc) = started("/base/wt");
     for thread in ["t1", "t2"] {
-        success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "commandId": format!("c-m-{thread}"), "threadId": thread, "message": {"messageId": format!("m-{thread}"), "text": "go"}})));
+        success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": format!("c-m-{thread}"), "threadId": thread, "messageId": format!("m-{thread}"), "text": "go"})));
         settled(&mut rpc, thread);
     }
     let turn_diff = recorded("files-edit", "turn.diff", "shows the changes");
@@ -181,16 +205,16 @@ fn the_diff_of_a_thread_is_the_agent_apis_diff_of_its_directory_and_only_the_thr
     assert_eq!(success(&turns), &json!({"threadId": "t1", "fromTurnCount": 0, "toTurnCount": 1, "diff": turn_diff["diff"]}));
     assert_eq!(success(&whole), &json!({"threadId": "t2", "fromTurnCount": 0, "toTurnCount": 1, "diff": thread_diff["diff"]}));
     assert_eq!(ops(&h)[..asked].iter().filter(|o| matches!(o, Op::TurnDiff { .. } | Op::ThreadDiff { .. })).cloned().collect::<Vec<_>>(), [Op::TurnDiff { root: "/workspace/demo".into(), base: "HEAD".into() }, Op::ThreadDiff { root: "/base/wt".into() }]);
-    // And a range that does not start at the thread's start or end at its last finished turn, a request to ignore whitespace and an unknown
-    // thread are the RPC's declared errors saying so, and none asked the agent API; a range that runs backwards is a defect
+    // And a range that does not start at the thread's start or end at its last finished turn and a request to ignore whitespace are the RPC's
+    // declared errors saying so, an unknown thread's whole diff is empty (the pin's answer for a thread it has none of), none asked the agent
+    // API, and a range that runs backwards is a defect
     for refused in [&later, &short] {
         let message = failure(refused)["message"].as_str().unwrap();
         assert!(message.contains("no revision is recorded"), "{message}");
     }
     assert!(failure(&blind)["message"].as_str().unwrap().contains("whitespace"));
-    assert!(failure(&stranger)["message"].as_str().unwrap().contains("not found"));
+    assert_eq!(success(&stranger), &json!({"threadId": "nope", "fromTurnCount": 0, "toTurnCount": 1, "diff": ""}));
     assert_eq!(failure(&later)["_tag"], "OrchestrationGetTurnDiffError");
-    assert_eq!(failure(&stranger)["_tag"], "OrchestrationGetFullThreadDiffError");
     assert_eq!(backwards["cause"][0]["_tag"], "Die");
     assert_eq!(ops(&h).len(), asked);
 }

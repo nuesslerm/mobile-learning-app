@@ -13,6 +13,7 @@ doctest = false
 [dependencies]
 async-trait.workspace = true
 futures-util.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
 agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
@@ -32,3 +33,6 @@ rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
 
 [features]
 testing = ["agent-api-git/testing", "agent-api-accounts/testing"]
+
+[package.metadata.arch]
+type = "rust-group"

@@ -1,0 +1,29 @@
+{
+  "method": "pr.setAutoMerge",
+  "exchanges": [
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "pr.setAutoMerge",
+        "params": {
+          "number": 1,
+          "enabled": true,
+          "method": "octopus",
+          "provider": "github",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`method` must be one of `merge`, `squash`, `rebase`"
+        }
+      },
+      "actions": [
+        "hosted_pr_auto_merge"
+      ]
+    }
+  ]
+}

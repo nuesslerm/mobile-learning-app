@@ -1,34 +1,21 @@
-Usage: wf test [options] <plan|run|prepare|drift|publish|results|goldens> [args]
+Usage: wf test [options] <run|prepare|backends|drift|publish|results|goldens> [args]
 
 The e2e tests: scripted Lua tests in e2e/<name>.lua, each run through its harness (`wf android test` / `wf browser test`).
-A runbook is something else: plain text an agent drives. There is no queue: CI's plan job writes the plan once and
+A runbook is something else: plain text an agent drives. There is no queue: CI's plan job (`wf ci plan`) writes the plan once and
 each stage job (flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deployment-verification-tests, browser-e2e-tests, android-e2e-tests) runs its part
 with `wf test run --stage`.
 
 Actions:
-  plan                   every test a change needs, by CI stage; runs nothing. Scope: --all, --changed [--base <ref>] (default
-                         HEAD~1; `last-green`: the newest commit on dev whose CI passed, via gh), or e2e test names; [--sha S]. Package tests (flow test:flow, integration
-                         test:integration, typecheck, lint, unit test:unit, deployment-verification test:verify:deployed) follow pnpm's
-                         dependency graph from the changed files; flow and integration run in the flow-tests stage. The
-                         workspace root gets a typecheck when a file outside every package changed. Every focused e2e test is
-                         planned, whatever changed (`platform: android, browser` makes it a test on each harness);
-                         --platform android|browser keeps one harness's. --force all|<a,b>: also plans every test (all), or
-                         the tests of the named packages, crates and e2e tests, whatever changed (why: forced). --json
-                         prints {sha, base, stages: {<stage>: [{kind: flow|integration|typecheck|lint|unit|deployment-verification,
-                         package, dir, script, command, why[]} | {kind: flow, crate, dir, manifest, command, why[]} | {kind: e2e,
-                         platform, name, script, against, units[], why[]}]}, tests[]}; `why` says what picked it ("focused",
-                         "changed", "depends on lib (pnpm)"). --github-output also appends
-                         plan=<json> and <stage_with_underscores>=<count> to $GITHUB_OUTPUT
   run --stage <stage> [--plan <file>] [--parallel <n>] [--shard <i>/<n>] [--probe] [--fresh]
                          run one stage of a plan (default: plan HEAD~1..HEAD) through the workspace's Nx cache: a task whose
                          inputs hash the same as an earlier pass is replayed, the rest run. A package stage runs each kind's
                          target over its packages (`nx run-many -t <script> -p a,b --parallel <n>`, default 4; the flow call also runs
-                         the crates' `cargo-flow`; the integration-tests stage runs test:integration and a crate's `cargo-integration`, the cli-e2e-tests stage the crates' `cargo-e2e` (a crate reached only through a dependency runs `cargo-e2e-smoke`: the same suite without its parity tests, or nothing when its suite is the live-model parity one, `tests/e2e/parity.rs`), one project at a time),
+                         the crates' `cargo-flow`; the integration-tests stage runs test:integration and a crate's `cargo-integration`, the cli-e2e-tests stage the crates' `cargo-e2e` (a crate reached only through a dependency runs `cargo-e2e-smoke`: the same suite without its compare tests, or nothing when its suite is the live-model compare one, `tests/e2e/compare.rs`), one project at a time),
                          every kind even after a red one, and prints {ok, stage, kinds:[{kind, target, projects, verdict,
                          durationS}], expectedRevisions}; the deployment-verification-tests stage also hands its tests WF_EXPECTED_REVISIONS
                          ({service: commit}) and lists them as expectedRevisions [{app, commit, why}]: the pushed commit, or the
                          commit the service's running image was built from while the push left its package graph alone (the rule
-                         of `wf ship --changed`), and the pushed one when the service cannot be asked. An e2e stage hands its
+                         of `wf ci plan legs`), and the pushed one when the service cannot be asked. An e2e stage hands its
                          focused tests to `nx run-many -t e2e-<platform>`: a test runs
                          when its script, goldens, features (header `features:`, their libraries), the app shell,
                          lockfile or patches changed (a service has its own deployment verification), and otherwise replays its last pass with that
@@ -44,13 +31,13 @@ Actions:
                          in this process; [--platform android|browser] [--sha S] [--out DIR] [--serial S] [-- <test flags>]. A test whose header has
                          `units: k=v; k=v k2=v2` runs once per unit, its pairs handed to the script as --env (keeps each run
                          short). An Android run takes the device lease and loads the EAS Update CI published on branch dev (`against: update`;
-                         latest-dev.json in the verification bucket; base exp://u.expo.dev/<projectId>/group/<group>/--, which a cold
+                         latest-dev.json from the run's eas-pointer dir, else eas/latest-dev.json in refs/wf/state; base exp://u.expo.dev/<projectId>/group/<group>/--, which a cold
                          start opens bare). A test whose `against:` is not its harness's target is refused before anything runs,
                          naming the header line that fixes it. An Android run is an error, never a fall back to a dev server, when
                          WF_EAS_UPDATE_RESULT
                          (how this push's eas-update job ended) says failure or cancelled, when the pointer does not name this
                          push's commit after a success, or, when this push published none (skipped, or empty on a dispatch), when the
-                         app's package graph changed since the pointer's commit (the rule `wf ship --changed` decides to publish by), or
+                         app's package graph changed since the pointer's commit (the rule `wf ci plan legs` decides to publish by), or
                          when the update has no Android build, does not open on /, or lacks the baked lab flag, backend and agent
                          hosts and backend token, or when EAS does not serve its group to an Android device (the manifest is asked
                          when the pointer saw no 200), or when a tailnet name it baked in is no longer what `wf vm net resolve`
@@ -76,6 +63,25 @@ Actions:
                          plain URLs and flags as they are and anything else as set:<8 hex of its hash>, memory is the build's largest
                          process and, with WF_VM_SAMPLE_SECS, the VM's low MemAvailable; or {ok: false, error, next}. `wf test run` refuses
                          an export whose inputs differ from the tree's; a run's result names the baked keys and a digest, never the values.
+  backends up [--only stt,opencode-server,rca-service,leetcode-backend] [--no-build] [--wait <s>] [--dir <dir>] [--rca-port <n>] [--leetcode-port <n>] [--stt-port <n>] [--opencode-port <n>]
+  backends down [--dir <dir>]
+                         the services the e2e tests need, on this machine, so no test reaches a deployed one. up builds rca-service
+                         and leetcode-backend-rs (`cargo build --locked` into <CARGO_TARGET_DIR or target>/<name>-build; RCA_SERVICE_BIN or
+                         LEETCODE_BACKEND_BIN names a prebuilt one, --no-build refuses to build), starts each detached in its own process group
+                         on a free loopback port (or --rca-port / --leetcode-port) with secrets made for this run, waits up to --wait (default 60) s for
+                         its GET /health, and prints {ok, dir, backends:[{name, url, host, port, pid, health, bin, log, env}]} (start order: stt, opencode-server, rca-service, leetcode-backend); env is
+                         what a test or an app export is pointed at it with (RCA_HOST, RCA_PORT, CHAT_AGENT_API_SECRET, WF_TAILNET_SOCKS, SECRETS_BACKEND,
+                         EXPO_PUBLIC_AGENT_BASE_URL; EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL and _TOKEN; E2E_LEETCODE_BEARER names the token instead of a random one, for an update baked before the backend started). rca-service reaches an opencode server only
+                         through OPENCODE_SERVER_URL (and _PASSWORD): a bare up takes them from the caller's environment and starts neither of the two below; --only
+                         names them. opencode-server is `opencode serve` of the PATH (OPENCODE_BIN) with the config of backend/remote-chat-agent/opencode-server and
+                         OPENCODE_GO_API_KEY of the caller's environment as its only key (given to the child alone, never printed or written; a missing one fails
+                         naming it), asked at /app; stt is the faster-whisper sidecar (STT_SERVER names the script, STT_PYTHON the python that has its
+                         requirements, STT_MODEL the model, default tiny.en). Started before rca-service, they are the OPENCODE_SERVER_URL, OPENCODE_CWD and
+                         STT_URL it is started with. The same
+                         JSON is the state file <dir>/backends.json (default .agents/tmp/e2e-backends, mode 0600: it holds the secrets) with each log
+                         beside it. A backend that ends or does not answer stops the ones already started and prints {ok: false, error, next}, exit 1; a second
+                         up while they run is refused. down stops each recorded process that is still the program that was started (SIGTERM to its group,
+                         SIGKILL after 5 s) and prints {ok, dir, stopped:[{name, pid, how: term|kill|gone}]}; with nothing running it is ok and stops none
   drift [--save <file> | --against <file> [--blocking] | --pins] [--targets t,t] [--projects p,p]
                          the Nx task hashes of this checkout, which decide whether a sandbox pass replays on CI; runs nothing.
                          Bare: {ok, tasks, runtime, hashes}. --save writes this side's table ({runtime, tasks: {<project>:<target>:
@@ -95,13 +101,13 @@ Actions:
                          <dir> is a harness run's test output dir (report.json), a flow report dir (.flow-report) or an e2e run dir
                          (result.json). bundle.json (schema 1) lists every file's public URL, report {html,json},
                          screenshots[], recordings[], debug, timing, traces[] (the method-hit traces, trace.json, of an
-                         integration chain: `wf parity coverage --traces` reads them), metrics, and the run's screen, warning
+                         integration chain: `wf mimic coverage --traces` reads them), metrics, and the run's screen, warning
                          count and timingSummary; every recording and the report page are read back from the bucket (readBack). `cache`
                          is what the build-cache shim did in the runs that stopped in the last 15 minutes and no bundle carried yet:
                          {runs, hits, misses, puts, skipped, requests, bytes, degraded, latencyMs: {get, put, exists: {n, sumMs, avgMs, maxMs}}}, null when none did.
                          verification/test-runs/index.json lists the newest 500 runs (read through the public URL and merged,
                          never replaced). --no-record skips the row; --ran-on <host> names the runner (default WF_SITE or the
-                         hostname). Needs VERIFICATION_ARTIFACTS_PAR_URL (env or vault). Prints {runId, base, bundle, report, cache,
+                         hostname). Prints {runId, base, bundle, report, cache,
                          files, bytes, index, recorded}.
   results                read what publish wrote; runs nothing. --query "<terms>" filters the test_runs table and the bundle
                          index, joined on runId (index runs first, completed from their row; table runs the index no longer
@@ -141,8 +147,7 @@ An e2e test is a Lua file whose first lines are a header:
 A Lua file without one is a helper. Focus alone decides what CI runs: every focused test runs on every push (--changed),
 and only focused tests run at all (--all, or by name); focus the tests you work on and unfocus the rest.
 
-JSON: plan {"sha","tests":[{"name","script","platform","against","focus","selected"}]};
-run: one {"unit","verdict","durationS","bundle","note"} per run, then {"ok","sha","out","units":[{test, args, verdict,
+JSON: run: one {"unit","verdict","durationS","bundle","note"} per run, then {"ok","sha","out","units":[{test, args, verdict,
 note, next?, durationS, timing {wallS, byVerb}, report, recording[], bundle, base,
 updateGroup, updateCommit (update units), export {dir, sha, inputs, builtAt, buildS, baked} (browser units), attempt, dir,
 logTail}], "warms":[{the cold starts, one run each, with the same target fields}]}

@@ -14,7 +14,7 @@ inputs:
     description: restic and sqlite3, for the deploy flow tests
     default: "false"
   opencode:
-    description: The opencode binary the offload parity e2e runs
+    description: The opencode binary the rca compare e2e runs
     default: "false"
   bun:
     description: bun
@@ -34,16 +34,22 @@ inputs:
 runs:
   using: composite
   steps:
-    # bun is a GitHub release download that answered 504 in bursts: two more tries after a failed one
+    # bun is a GitHub release download that answered 504 in bursts: two more tries after a failed one; an exact bun-version skips the tag listing of api.github.com, which a rate limit answered 403
     - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      with:
+        bun-version: 1.4.5
       if: ${{ inputs.bun == 'true' }}
       id: bun
       continue-on-error: true
     - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      with:
+        bun-version: 1.4.5
       if: ${{ inputs.bun == 'true' && steps.bun.outcome == 'failure' }}
       id: bun-retry
       continue-on-error: true
     - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      with:
+        bun-version: 1.4.5
       if: ${{ inputs.bun == 'true' && steps.bun.outcome == 'failure' && steps.bun-retry.outcome == 'failure' }}
     # a hosted runner's apt mirror stalled one shard for 17 minutes (run 42737343615): a stalled connection retries instead of waiting
     - name: apt retries and timeouts
@@ -52,38 +58,72 @@ runs:
       run: |
         sudo=$([ "$(id -u)" = 0 ] || echo sudo)
         printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | $sudo tee /etc/apt/apt.conf.d/80ci-retries >/dev/null
+    # the two shallow clones take 56 s in every job that reads references/ (bench, run 43558013495): their git objects are cached by the pinned commits
+    - name: Key of the reference trees' git objects
+      id: refs-key
+      if: ${{ inputs.references == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') }}
+      shell: bash
+      run: echo "key=refs-$(git ls-tree HEAD references/orca references/t3code | sha1sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+    - name: Restore the reference trees' git objects
+      id: refs-cache
+      if: ${{ inputs.references == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') }}
+      continue-on-error: true
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: .git/modules/references
+        key: ${{ steps.refs-key.outputs.key }}
+    - uses: ./.github/actions/cache-summary
+      if: ${{ inputs.references == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') }}
+      with:
+        layer: references
+        outcome: ${{ steps.refs-cache.outcome }}
+        key: ${{ steps.refs-key.outputs.key }}
+        hit: ${{ steps.refs-cache.outputs.cache-hit }}
+        matched-key: ${{ steps.refs-cache.outputs.cache-matched-key }}
+        paths: .git/modules/references
     - name: Reference trees
       if: ${{ inputs.references == 'true' }}
       shell: bash
-      run: git submodule update --init --recommend-shallow --depth 1 references/orca references/t3code
+      run: |
+        # an automatic gc rewrites a pack while the cache save archives it (the bench save failed on that)
+        git config --global gc.auto 0
+        git config --global maintenance.auto false
+        git submodule update --init --recommend-shallow --depth 1 --filter=blob:none references/orca references/t3code
+        pnpm run submodule:trim
+    - name: Save the reference trees' git objects
+      if: ${{ inputs.references == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && steps.refs-cache.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: .git/modules/references
+        key: ${{ steps.refs-key.outputs.key }}
+    # The Chromium build and the system packages' .deb files, cached by the Playwright version and the runner image (playwright-cache), so a run installs
+    # them from disk and the apt mirror's stalls stop being a cost; a miss takes the mirror path of the script and saves what it fetched.
+    - uses: ./.github/actions/playwright-cache
+      if: ${{ inputs.playwright == 'true' }}
+      with:
+        mode: restore
     - name: Chromium for Playwright
       if: ${{ inputs.playwright == 'true' }}
       shell: bash
-      run: |
-        # `install --with-deps` checks the browser and the system packages on every call: only a new Playwright version needs it
-        version=$(pnpm --filter @lib/browser-client exec playwright --version | tr -c '0-9a-z.\n' '_')
-        marker="$HOME/.cache/ms-playwright/.installed-$version"
-        [ -f "$marker" ] && exit 0
-        # apt can stall on a mirror with no output for the rest of the job: bound each try, kill the stuck apt, try again
-        sudo=$([ "$(id -u)" = 0 ] || echo sudo)
-        for attempt in 1 2 3; do
-          if timeout -k 10 420 pnpm --filter @lib/browser-client exec playwright install --with-deps chromium; then
-            mkdir -p "$(dirname "$marker")" && touch "$marker"; exit 0
-          fi
-          echo "playwright: attempt $attempt failed or stalled"
-          $sudo pkill -9 -x apt-get || true; $sudo pkill -9 -x dpkg || true; $sudo dpkg --configure -a || true
-        done
-        exit 1
+      run: bash .github/actions/playwright-cache/install.sh
+    - uses: ./.github/actions/playwright-cache
+      if: ${{ inputs.playwright == 'true' && success() }}
+      with:
+        mode: save
     - name: Device-frame page
       if: ${{ inputs.browser-harness == 'true' }}
       shell: bash
       run: pnpm --filter @tooling/browser-harness run build
-    - name: ffmpeg
+    # The pinned static build (see install-ffmpeg); apt stays the fallback when it is unavailable.
+    - uses: ./.github/actions/install-ffmpeg
       if: ${{ inputs.ffmpeg == 'true' }}
+      id: ffmpeg
+    - name: ffmpeg from apt
+      if: ${{ inputs.ffmpeg == 'true' && steps.ffmpeg.outputs.installed != 'true' }}
       shell: bash
       run: |
         sudo=$([ "$(id -u)" = 0 ] || echo sudo)
-        command -v ffmpeg >/dev/null || { $sudo dpkg --configure -a; $sudo apt-get update -qq && $sudo apt-get install -y -qq ffmpeg; }
+        $sudo dpkg --configure -a; timeout 240 $sudo apt-get update -qq && timeout 300 $sudo apt-get install -y -qq ffmpeg
     - name: restic and sqlite3
       if: ${{ inputs.restic-sqlite == 'true' }}
       shell: bash
@@ -93,7 +133,10 @@ runs:
     - name: opencode
       if: ${{ inputs.opencode == 'true' }}
       shell: bash
-      run: command -v opencode >/dev/null || npm install -g opencode-ai@1.19.0
+      run: |
+        # the pin lives in the fixture the e2e test holds opencode to
+        v=$(jq -r .opencodeVersion clis/rca/tests/flow/fixtures/opencode-run-options.json)
+        [ "$(opencode --version 2>/dev/null)" = "$v" ] || npm install -g "opencode-ai@$v"
     - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
       if: ${{ inputs.java == 'true' }}
       with:
@@ -111,3 +154,7 @@ runs:
         # shellcheck disable=SC2012
         ls "$HOME/.rustup/toolchains/"*"/bin" | tr '\n' ' '; echo; cargo --version
         echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+    # the build-cache shim serves compiles from the bucket through its own WebDAV endpoint, so sccache needs no key here; a failed download leaves compiles uncached
+    - uses: ./.github/actions/install-sccache
+      if: ${{ inputs.rust == 'true' }}
+      continue-on-error: true

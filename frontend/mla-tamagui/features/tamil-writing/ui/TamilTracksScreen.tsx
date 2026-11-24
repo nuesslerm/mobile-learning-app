@@ -44,6 +44,7 @@ export function TamilTracksScreen() {
   return (
     <View flex={1} bg="$background" testID="TamilTracksScreen">
       <ScreenHeader
+        glass
         title="Write it large"
         subtitle="Pick a track"
         onBack={() => router.back()}

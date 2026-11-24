@@ -46,6 +46,16 @@ pub fn provider_env(driver: Driver, root: &str, inherited: &[(String, String)]) 
     env
 }
 
+/// Where a turn's CLI reaches the model gateway, and the token that opens it for this turn and this provider. The token is no provider key.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GatewayRoute {
+    /// The gateway's id of the provider (`anthropic`, `openai`, `opencode-go`, ...), which names the provider block opencode is given.
+    pub provider: String,
+    /// `<service>/gateway/<provider>`: what the CLI appends its own route to.
+    pub base_url: String,
+    pub token: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::driver::DRIVERS;

@@ -4,7 +4,7 @@ Fill an empty local pnpm store from the bucket before `pnpm install`, or (kind m
 (frontend/mla-tamagui/node_modules/.cache/app-build: Metro's transform cache and tsc's build info) before an export or a typecheck, so a
 recreated VM or a fresh checkout fetches nothing it already has. It does nothing
 when the local store (metro: the app-build directory) is not empty, as it is on a runner whose checkout persists, and then asks the bucket nothing. Needs only
-the read link (BUILD_CACHE_READ_PAR_URL: the environment, then the vault). The
+the read stores (BUILD_CACHE_READ_STORES or BUILD_CACHE_READ_PAR_URL: the environment, then the vault). The
 store is the path `pnpm store path` prints, so npm_config_store_dir applies. The
 object is unpacked beside the store and moved into place whole, so a download or
 archive that breaks leaves the store as it was.

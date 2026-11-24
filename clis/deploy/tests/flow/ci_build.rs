@@ -15,6 +15,7 @@ fn fake_docker(s: &Ship) {
          echo \"DOCKER_HOST=$DOCKER_HOST\" >> \"$STUB_DIR/docker.env\"\n\
          case \"$*\" in *--password-stdin*|*\" -\") { cat; echo --; } >> \"$STUB_DIR/docker.stdin\";; esac\n\
          if [ -n \"$DOCKER_FAIL_ON\" ]; then case \"$*\" in *\"$DOCKER_FAIL_ON\"*) echo \"fake daemon: failed\" >&2; exit 7;; esac; fi\n\
+         if [ -n \"$DOCKER_FLAKY_BUILDS\" ]; then case \"$*\" in \"buildx build\"*) n=$(cat \"$STUB_DIR/flaky.count\" 2>/dev/null || echo 0); n=$((n+1)); echo $n > \"$STUB_DIR/flaky.count\"; if [ $n -le $DOCKER_FLAKY_BUILDS ]; then echo \"registry: 504 Gateway Time-out\" >&2; exit 9; fi;; esac; fi\n\
          case \"$*\" in\n\
            \"buildx inspect\"*|\"context inspect\"*) exit 1;;\n\
            \"buildx imagetools inspect\"*) for h in $DOCKER_HAS; do case \"$*\" in *\"$h\"*) exit 0;; esac; done; exit 1;;\n\
@@ -94,17 +95,16 @@ fn a_failed_push_stops_the_build_without_leaking_the_credential_and_a_bad_comman
     // Given a daemon that refuses a build, When the app is built, Then it fails with the exit code and builds no later image
     let s = Ship::new();
     fake_docker(&s);
-    let r = build(&s, "remote-chat-agent", &[("DOCKER_FAIL_ON", "remote-chat-agent-stt")]);
+    let r = build(&s, "remote-chat-agent", &[("DOCKER_FAIL_ON", "remote-chat-agent-stt"), ("WF_BUILD_RETRY_DELAY_MS", "1")]);
     assert_eq!(r.exit_code, 1);
     assert!(r.stderr.contains("docker buildx build failed with exit code 7"), "{}", r.stderr);
     assert!(calls(&s).iter().all(|c| !c.contains("opencode-server")));
     assert!(!r.stdout.contains(TOKEN) && !r.stderr.contains(TOKEN));
 
-    // Given no credential, an unknown app, an app with no image or an unsafe tag, Then it fails before any docker call
+    // Given no credential, an unknown app or an unsafe tag, Then it fails before any docker call
     for (args, message) in [
         (vec!["ship", "build", "remote-chat-agent", "--tag", "t1"], "DOCKERHUB_TOKEN is not set"),
         (vec!["ship", "build", "nope", "--tag", "t1"], "nope builds no image"),
-        (vec!["ship", "build", "ci-runner", "--tag", "t1"], "ci-runner builds no image"),
         (vec!["ship", "build", "reporting-service", "--tag", "a b"], "unsafe tag"),
     ] {
         let s = Ship::new();
@@ -135,41 +135,16 @@ fn with_cache_push_each_built_image_exports_its_layer_cache_to_the_registry_ref_
 
 #[test]
 fn the_images_flag_names_what_an_app_builds_without_a_credential_or_a_docker_call() {
-    // Given no credential and a docker stub, When an app with images and an app with none are asked
+    // Given no credential and a docker stub, When an app with images is asked
     let s = Ship::new();
     fake_docker(&s);
     let with = s.wf(&["ship", "build", "remote-chat-agent", "--images"], &[]);
-    let none = s.wf(&["ship", "build", "ci-runner", "--images"], &[]);
 
-    // Then each answers one JSON line with its images (empty for the imageless app), and docker was never called
+    // Then it answers one JSON line with its images, and docker was never called
     let names = |r: &RunResult| serde_json::from_str::<serde_json::Value>(r.stdout.trim()).unwrap()["images"].clone();
-    assert_eq!((with.exit_code, none.exit_code), (0, 0), "{}{}", with.stderr, none.stderr);
+    assert_eq!(with.exit_code, 0, "{}", with.stderr);
     assert_eq!(names(&with), serde_json::json!(["remote-chat-agent", "remote-chat-agent-stt", "opencode-server"]));
-    assert_eq!(names(&none), serde_json::json!([]));
     assert!(calls(&s).is_empty());
-}
-
-#[test]
-fn a_tls_daemon_named_by_the_environment_gets_a_docker_context_the_builder_is_created_on_and_a_plain_one_gets_none() {
-    // Given a stub docker and an app to build
-    let s = Ship::new();
-    fake_docker(&s);
-
-    // When it is built against a TLS daemon (DOCKER_TLS_VERIFY and DOCKER_CERT_PATH, as the runner has for its builder sidecar)
-    let r = build(&s, "leetcode-backend", &[("DOCKER_TLS_VERIFY", "1"), ("DOCKER_CERT_PATH", "/certs/client")]);
-
-    // Then a context carrying the TLS files is created and the buildx builder is created on it
-    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
-    let log = calls(&s);
-    assert!(log.iter().any(|l| l == "context create ci-sidecar --docker host=tcp://127.0.0.1:2376,ca=/certs/client/ca.pem,cert=/certs/client/cert.pem,key=/certs/client/key.pem"), "{log:?}");
-    assert!(log.iter().any(|l| l.starts_with("buildx create --name ci-builder") && l.ends_with(" ci-sidecar")), "{log:?}");
-
-    // And a plain daemon needs no context
-    let plain = Ship::new();
-    fake_docker(&plain);
-    let r = build(&plain, "leetcode-backend", &[]);
-    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
-    assert!(calls(&plain).iter().all(|l| !l.starts_with("context ")), "{:?}", calls(&plain));
 }
 
 fn promote(s: &Ship, args: &[&str], env: &[(&str, &str)]) -> RunResult {
@@ -216,7 +191,7 @@ fn a_promotion_without_a_tag_or_a_credential_or_for_an_app_without_images_calls_
     for (args, env_token, message) in [
         (vec!["vm-ops-api"], true, "ship promote needs --tag <tag>"),
         (vec!["vm-ops-api", "--tag", "a b"], true, "unsafe tag"),
-        (vec!["ci-runner", "--tag", "t1"], true, "ci-runner builds no image"),
+        (vec!["nope", "--tag", "t1"], true, "nope builds no image"),
         (vec!["vm-ops-api", "--tag", "t1"], false, "DOCKERHUB_TOKEN is not set"),
     ] {
         let s = Ship::new();
@@ -295,3 +270,33 @@ fn with_fresh_every_image_is_rebuilt_without_the_layer_cache_even_when_the_regis
     assert!(r.stdout.contains("\"reused\": false") && !r.stdout.contains("\"reused\": true"), "{}", r.stdout);
 }
 
+
+#[test]
+fn a_build_that_meets_a_registry_504_twice_is_run_again_and_proceeds_on_the_third_attempt() {
+    // Given a registry that answers 504 to the first two builds of an image and then succeeds
+    let s = Ship::new();
+    fake_docker(&s);
+
+    // When the app is built
+    let r = build(&s, "leetcode-backend", &[("DOCKER_FLAKY_BUILDS", "2"), ("WF_BUILD_RETRY_DELAY_MS", "1")]);
+
+    // Then the same build ran three times, the verb succeeded and the image is reported pushed
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    assert_eq!(calls(&s).iter().filter(|c| c.starts_with("buildx build")).count(), 3);
+    assert!(r.stdout.contains("\"pushed\": true"), "{}", r.stdout);
+}
+
+#[test]
+fn a_build_the_registry_never_answers_is_attempted_four_times_and_then_fails_with_the_registry_error() {
+    // Given a registry that always answers 504
+    let s = Ship::new();
+    fake_docker(&s);
+
+    // When the app is built
+    let r = build(&s, "leetcode-backend", &[("DOCKER_FLAKY_BUILDS", "99"), ("WF_BUILD_RETRY_DELAY_MS", "1")]);
+
+    // Then it tried four times, failed, and the registry's 504 is in the output
+    assert_eq!(r.exit_code, 1);
+    assert_eq!(calls(&s).iter().filter(|c| c.starts_with("buildx build")).count(), 4);
+    assert!(r.stderr.contains("504 Gateway Time-out") && r.stderr.contains("docker buildx build failed with exit code 9"), "{}", r.stderr);
+}

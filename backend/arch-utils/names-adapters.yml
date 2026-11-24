@@ -1,0 +1,21 @@
+id: names-adapters
+language: rust
+# A path or a `use` that reaches the crate's `adapters` layer (the single-hexagon shape), spelled as `names-infrastructure` spells its layer.
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: '^(crate|super)(::super)*::adapters\b'
+    - kind: scoped_use_list
+      regex: '^(crate|super)(::super)*::\{'
+      has:
+        kind: use_list
+        has:
+          any:
+            - kind: identifier
+              regex: '^adapters$'
+            - kind: scoped_identifier
+              regex: '^adapters::'
+            - kind: scoped_use_list
+              regex: '^adapters::'
+            - kind: use_as_clause
+              regex: '^adapters\b'

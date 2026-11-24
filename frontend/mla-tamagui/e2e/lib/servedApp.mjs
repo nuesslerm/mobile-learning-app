@@ -288,7 +288,7 @@ export async function withServedApp(opts, run) {
     const goto = async (path = '') => {
       await container.navigate({
         name: opts.name,
-        url: `http://127.0.0.1:${opts.port}/${BASE_PATH}/${path}?cb=${token}-${Date.now()}`,
+        url: `http://127.0.0.1:${opts.port}/${BASE_PATH}/${path}${path.includes('?') ? '&' : '?'}cb=${token}-${Date.now()}`,
       });
       await new Promise((r) => setTimeout(r, 1500));
     };

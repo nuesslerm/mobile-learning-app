@@ -1,0 +1,105 @@
+{
+  "method": "git.ignored",
+  "exchanges": [
+    {
+      "name": "lists the ignored files with their sizes",
+      "before": [
+        {
+          "id": 90,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": ".gitignore",
+            "content": "*.log\n"
+          }
+        },
+        {
+          "id": 91,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "debug.log",
+            "content": "abc\n"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "git.ignored",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "files": [
+            {
+              "path": "debug.log",
+              "size": 4
+            }
+          ],
+          "truncated": false
+        }
+      },
+      "actions": [
+        "git_ignored"
+      ]
+    },
+    {
+      "name": "stops at the limit",
+      "before": [
+        {
+          "id": 90,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": ".gitignore",
+            "content": "*.log\n"
+          }
+        },
+        {
+          "id": 91,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "debug.log",
+            "content": "abc\n"
+          }
+        },
+        {
+          "id": 92,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "trace.log",
+            "content": "xy\n"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "git.ignored",
+        "params": {
+          "workspace": "w1",
+          "limit": 1
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "files": [
+            {
+              "path": "debug.log",
+              "size": 4
+            }
+          ],
+          "truncated": true
+        }
+      },
+      "actions": [
+        "git_ignored"
+      ]
+    }
+  ]
+}

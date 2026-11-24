@@ -9,7 +9,7 @@ const repo = path.resolve(__dirname, '../../../../..');
 const classified = JSON.parse(fs.readFileSync(path.join(repo, 'docs/plans/device-lab/platform-forks.json'), 'utf8')).files as Record<string, Entry>;
 
 const ROOTS = ['frontend/mla-tamagui', 'libraries', 'features'];
-const SKIP = /(^|\/)(node_modules|dist|\.expo|\.serve-tmp[^/]*|__tests__|tests|e2e|eslint-plugin-mobile-learn)(\/|$)|\.test\.tsx?$/;
+const SKIP = /(^|\/)(node_modules|dist|\.expo|\.serve-tmp[^/]*|__tests__|tests|e2e|lint-rules)(\/|$)|\.test\.tsx?$/;
 const CODE = /\.(ts|tsx)$/;
 const FORK_FILE = /\.(web|native)\.tsx?$/;
 const USES_PLATFORM = /\bPlatform\.(OS|select)\b/;

@@ -1,6 +1,6 @@
 //! The Gem sync as `.github/workflows/repomix-gemini-context.yml` runs it, black box: the thin `knowledge` binary started the way the
 //! workflow starts it (the destination in `GEMINI_CONTEXT_REMOTE`, the job's summary file in `GITHUB_STEP_SUMMARY`), over a repository whose
-//! `pnpm` (repomix) and `wf offload ask` are stubs on PATH, in the sequence the workflow produces: a full run, then the runs after it.
+//! `pnpm` (repomix) and `wf rca ask` are stubs on PATH, in the sequence the workflow produces: a full run, then the runs after it.
 //! Nothing real is reachable. The destination is a `local:` folder: rclone's Drive backend cannot be pointed at a loopback fake, so the Drive
 //! hop itself is proven by the live runs, each of which writes a proof line (file id, size, modified time) to its job summary.
 //! The flow tests (`tests/flow.rs`) pass `--remote` and test one behaviour each; these follow the workflow's own environment and sequence.

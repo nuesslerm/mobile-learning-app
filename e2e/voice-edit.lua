@@ -1,16 +1,18 @@
 --[[---
-platform: android, browser
-against: android=update, browser=export
+platform: browser
+against: browser=export
 timeout: 180
 units: chunk=1; chunk=2; chunk=3; chunk=4; chunk=5; chunk=6; chunk=7; chunk=8
-focus: true
 features: leetcode, coding-agent
 ---]]
+-- Paused: voice and AI edit entry points are flagged off (domain/featureFlags.ts). Add focus: true and bake EXPO_PUBLIC_LEETCODE_AI_EDIT=1 into the export or update to run it again.
 -- device-lab voice edit: a problem solved by short spoken edits, one small change per turn. A prepared speech clip is the
--- microphone; the backend transcribes and plans for real. Deterministic mode takes the instructions from the list below.
--- With --env agent=1 a local agent picks each next small edit from the current code instead (non-deterministic mode); the
--- script keeps the guard (at most 18 words, no whole-solution ask), speaks it, applies it and gates every turn.
--- wf android|browser test e2e/voice-edit.lua --env out=<dir> --env problem=valid-palindrome [--env agent=1]
+-- microphone; the app's three backend calls (transcribe, plan, edit stats) are answered by network stubs, so the test needs no
+-- backend: the plan answers are committed in features/leetcode/testing/voiceStubs. With --env live=1 the real backend
+-- transcribes and plans instead (what the agent-driven runbooks use). Deterministic mode takes the instructions from the list below.
+-- With --env agent=1 (which needs live=1) a local agent picks each next small edit from the current code instead (non-deterministic
+-- mode); the script keeps the guard (at most 18 words, no whole-solution ask), speaks it, applies it and gates every turn.
+-- wf android|browser test e2e/voice-edit.lua --env out=<dir> --env problem=valid-palindrome [--env live=1] [--env agent=1]
 local android = device.platform == "android"
 local out = env.out or (".agents/tmp/runs/voice-edit-" .. device.platform)
 local base = env.base or (not android and "http://127.0.0.1:8800/mla-tamagui" or nil)
@@ -50,6 +52,9 @@ local function base64url(s)
   return table.concat(out)
 end
 local use_agent = env.agent == "1"
+-- Android keeps the live backend: its stub server answered all three requests but two hosted units failed (a typed blur over the bridge, a plan that never arrived), see issue 86 E3
+local stubbed = env.live ~= "1" and not android
+assert_true(not (use_agent and env.live ~= "1"), "agent=1 needs live=1: a canned plan cannot answer a free-form edit")
 local function exists(path) local f = io.open(path, "rb"); if f then f:close() end return f ~= nil end
 -- the sandbox keeps the speech tool in its scratch folder, the VM worker on the shared workspace volume
 local piper = env.piper or (exists(".agents/tmp/voice/tts-venv/bin/piper") and ".agents/tmp/voice/tts-venv/bin/piper" or "/workspace/home/voice/piper")
@@ -106,14 +111,45 @@ local function speak(say, n)
   return wav
 end
 
+-- The backend's three answers. A later stub for the same method and pattern wins, so each turn re-declares the first two with its own answer.
+local PLAN_DIR = "frontend/mla-tamagui/features/leetcode/testing/voiceStubs/"
+local function stub_stats() device:add_network_stub("POST", "*/api/edit-stats", { json_body = { ok = true } }) end
+local function stub_turn(say, n)
+  local file = PLAN_DIR .. problem .. "/" .. n .. ".plan.json"
+  local f = assert(io.open(file, "rb"), "no plan answer for turn " .. n .. ": " .. file)
+  local answer = f:read("*a"); f:close()
+  assert_true(answer:find(say, 1, true), ("%s does not answer what turn %d says"):format(file, n))
+  device:add_network_stub("POST", "*/api/voice-transcribe", { json_body = { transcript = say }, delay = 150 })
+  device:add_network_stub("POST", "*/api/voice-plan", { body_file = file, headers = { ["content-type"] = "application/json" }, delay = 400 })
+end
+-- stubbed requests answered since `from` (a count taken at the turn's start)
+local function stub_hits(from)
+  local all, seen = device:get_network_stub_hits(), { transcribe = 0, plan = 0, stats = 0 }
+  for i = from + 1, #all do
+    local url = all[i].url
+    if url:find("/api/voice-transcribe", 1, true) then seen.transcribe = seen.transcribe + 1
+    elseif url:find("/api/voice-plan", 1, true) then seen.plan = seen.plan + 1
+    elseif url:find("/api/edit-stats", 1, true) then seen.stats = seen.stats + 1 end
+  end
+  return seen
+end
+-- the code after turn n of valid-palindrome: the next seed, and for the last turn the rename of `left`
+local function code_after(n)
+  if problem ~= "valid-palindrome" then return nil end
+  local seed = SEED[problem][n + 1]
+  if seed then return seed end
+  return n == 8 and (SEED[problem][8]:gsub("left", "lo")) or nil
+end
+
 device:clear_logs()
+if stubbed then stub_stats() end
 local seeded = chunk and chunk > 1
 -- the screen opens by deep link, seeded or not, on every platform (owner, 16 Oct); the app may be the one already running
 -- a reused app may still show this screen: a link to it remounts it a moment later, so the first wait would pass on the
 -- old one (18 Oct); the app leaves for Settings first (a link to "/" does not navigate a running Expo Go)
-if android and device:get_element({id='ProblemEditorRunLocalButton'}) then
+if android and device:get_element({id='ProblemEditorScreen'}) then
   device:open_link(base .. "/settings")
-  device:assert_not_visible({id='ProblemEditorRunLocalButton'})
+  device:assert_not_visible({id='ProblemEditorScreen'})
 end
 run_flow("open route", function()
   local link = base .. "/leetcode/" .. problem
@@ -123,7 +159,15 @@ run_flow("open route", function()
     link = link .. "?seed64=" .. base64url(seed)
   end
   device:open_link(link)
-  wait_route({id='ProblemEditorRunLocalButton'}, 240)
+  wait_route({id='ProblemEditorScreen'}, 240)
+  -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: wait for the first route.change
+  if not android then
+    device:extended_wait_until{condition=function()
+      for _, l in ipairs(device:get_logs{level='info'}) do
+        if l:find('route.change', 1, true) then return true end
+      end
+    end, timeout=60000, interval=250, label='the page hydrated'}
+  end
 end)
 local autofocused = not android and device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true} -- the web editor autofocuses on open and its keyboard covers Reset
 -- The toolbar is wider than the screen: a user swipes it until the key is on screen, then taps it.
@@ -135,7 +179,10 @@ local function done() -- the only way a user dismisses the keyboard: Done at the
 end
 if autofocused then done() end
 if not seeded then
-device:tap_on({id='ProblemEditorResetButton'})
+-- Reset code is in the header menu with the console on
+device:tap_on({id='ProblemEditorMenuButton'})
+device:extended_wait_until{visible={id='ProblemEditorMenuResetCode'}, timeout=10000, label='the menu'}
+device:tap_on({id='ProblemEditorMenuResetCode'})
 -- the dialog is not in Android's accessibility tree (known gap): there the button is tapped where the dialog draws it
 if android and not device:extended_wait_until{visible={id='ResetCodeDialog-Confirm'}, timeout=3000, optional=true} then
   -- read its Reset button's blue off the screen: a tap before the dialog is drawn lands on the editor and raises the keyboard
@@ -174,6 +221,8 @@ while true do
   if not say then break end
   guard(say)
   device:clear_logs()
+  local hits_before = stubbed and #device:get_network_stub_hits() or 0
+  if stubbed then stub_turn(say, n) end
   local wav = speak(say, n)
   local fh = assert(io.open(wav, "rb")); local size = fh:seek("end"); fh:close()
   local clip_s = math.max(1, (size - 44) / 44100) -- piper writes 22.05 kHz 16-bit mono
@@ -206,10 +255,18 @@ while true do
     -- the recorder can end by itself once the clip is over: then the review is already coming and Send is gone
     if device:get_element({id='ProblemEditorVoiceToolbar-Send'}) then device:tap_on({id='ProblemEditorVoiceToolbar-Send'}, {optional=true}) end
   end
-  local heard
+  local heard, transcribe_logged
+  local function info_log() return table.concat(device:get_logs{level='info'}, "\n") end
   run_flow("transcribe", function()
-    device:assert_visible({id='ProblemEditorVoiceReviewSheet-TranscriptInput'}, {timeout=60000, label='transcribed'}) -- the transcription is a real backend call
+    device:assert_visible({id='ProblemEditorVoiceReviewSheet-TranscriptInput'}, {timeout=60000, label='transcribed'}) -- a stub answers in 150 ms; with live=1 the transcription is a real backend call
     heard = text_of("ProblemEditorVoiceReviewSheet-TranscriptInput")
+    if stubbed then assert_true((heard or ""):match("^%s*(.-)%s*$") == say, ("turn %d: the review sheet shows %q, not what the stub answered"):format(n, tostring(heard))) end
+    -- read while the line is fresh: on the cold first chunk the app's startup logging fills the device log buffer before the plan answers, and the line is gone by the end of the turn
+    transcribe_logged = device:extended_wait_until{condition=function() return info_log():find("voice_edit.transcribe.response", 1, true) end, timeout=10000, optional=true}
+    -- a stray tap on the transcript can raise the keyboard, which leaves Send below the lifted sheet: Back lowers the keyboard and keeps the sheet
+    if android and not device:extended_wait_until{visible={id='ProblemEditorVoiceReviewSheet-Send'}, timeout=3000, optional=true} and device:get_device_state('keyboard').visible then
+      device:back()
+    end
     -- the sheet slides up: its input is in the tree before Send is on screen
     device:assert_visible({id='ProblemEditorVoiceReviewSheet-Send'}, {timeout=30000})
   end)
@@ -217,7 +274,7 @@ while true do
   device:tap_on({id='ProblemEditorVoiceReviewSheet-Send'})
   local outcome = "applied"
   run_flow("plan", function()
-    -- planning is a real backend call too
+    -- planning is a stub's answer after 400 ms (the strip may be gone before the script looks: the speculative plan started at the transcript); with live=1 a real backend call
     if not device:extended_wait_until{not_visible={id='ProblemEditorVoiceReviewSheet-TranscriptInput'}, timeout=60000, optional=true} then outcome = "timeout" end
     -- the sheet closes when planning starts; the edit lands when the "Thinking" strip goes (the planner takes 10 to 25 s)
     if device:extended_wait_until{visible={id='ProblemEditorVoiceProcessing'}, timeout=4000, optional=true}
@@ -232,13 +289,28 @@ while true do
   assert_true(outcome == "applied", ("turn %d: outcome %s"):format(n, outcome))
   assert_true(#w == 0, ("turn %d: JS warning: %s"):format(n, tostring(w[1])))
   -- BetterStack holds these lines for the session: a turn that applied must have logged its transcription and its plan (a rename plans locally)
-  local function info_log() return table.concat(device:get_logs{level='info'}, "\n") end
   local function planned() local t = info_log() return t:find("voice_edit.plan.response", 1, true) or t:find("voice_edit.plan.local", 1, true) end
-  -- the strip can go before the planner answers: its line is awaited, not read once
-  device:extended_wait_until{condition=planned, timeout=30000, optional=true}
+  -- the strip can go before the planner answers: its line is awaited, not read once. A plan that failed (the banner reads "Server error (500)")
+  -- logs voice_edit.plan.error and never the response line: no wait makes it appear, so the wait stays short.
+  local plan_logged = device:extended_wait_until{condition=planned, timeout=30000, optional=true}
   local info = info_log()
-  assert_true(info:find("voice_edit.transcribe.response", 1, true), ("turn %d: no transcribe.response line in the app log"):format(n))
-  assert_true(planned(), ("turn %d: no plan.response or plan.local line in the app log"):format(n))
+  assert_true(transcribe_logged or info:find("voice_edit.transcribe.response", 1, true), ("turn %d: no transcribe.response line in the app log"):format(n))
+  assert_true(plan_logged or planned(), ("turn %d: no plan.response or plan.local line in the app log"):format(n))
+  if stubbed then
+    -- every voice request of the turn was answered by a stub (a rename plans locally, but the speculative request still goes out); the stats row is sent after the turn ends
+    local function answered() local h = stub_hits(hits_before) return h.transcribe >= 1 and h.plan >= 1 and h.stats >= 1 end
+    device:extended_wait_until{condition=answered, timeout=10000, optional=true}
+    local h = stub_hits(hits_before)
+    assert_true(h.transcribe == 1 and h.plan == 1 and h.stats >= 1,
+      ("turn %d: stubbed requests transcribe %d, plan %d, edit-stats %d (want 1, 1, at least 1)"):format(n, h.transcribe, h.plan, h.stats))
+    -- the Android accessibility text of the editor is not relied on
+    local want = not android and not use_agent and code_after(n) or nil
+    if want then
+      local function landed() return buffer() == want end
+      device:extended_wait_until{condition=landed, timeout=5000, optional=true}
+      assert_true(landed(), ("turn %d: the editor holds\n%s\nwant\n%s"):format(n, tostring(buffer()), want))
+    end
+  end
 end
 
 local final = not chunk or last >= #(PLAN[problem] or {})
@@ -249,11 +321,13 @@ if not final then
 end
 if device:get_element({id='EditorHelperRails'}) then done() end -- the keyboard covers the run buttons
 run_flow("run local", function()
-device:tap_on({id='ProblemEditorRunLocalButton'})
-device:assert_visible({id='ProblemEditorRunOutcomeTotals'}, {timeout=120000}) -- the local run executes the code in the page and may load a runtime first
+device:tap_on({id='ConsoleBarSubmit'})
+device:assert_visible({id='ConsoleResultCounts'}, {timeout=120000}) -- the local run executes the code in the page and may load a runtime first
 end)
-local totals = text_of("ProblemEditorRunOutcomeTotals")
+local totals = text_of("ConsoleResultCounts")
 device:take_screenshot(("%s/%s-final.png"):format(out, problem))
 local f = assert(io.open(out .. "/result.json", "w")); f:write(json.encode({ problem = problem, turns = turns, run_local = totals, agent = use_agent })); f:close()
-assert_true(totals and totals:match("passed"), "Run Local did not pass: " .. tostring(totals))
+-- every case, not just a totals line: "0 / 12 test cases passed" contains the word too
+local got, of = (totals or ""):match("(%d+) / (%d+)")
+assert_true(got and got == of, "Run Local did not pass every case: " .. tostring(totals))
 log("voice edit " .. problem .. ": pass", totals)

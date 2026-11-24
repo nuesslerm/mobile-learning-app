@@ -1,7 +1,7 @@
 ---
 title: Test types — what each covers, what it doubles, one example each
 date: 2026-09-05
-updated: 2026-10-24
+updated: 2026-11-17
 category: testing
 tags: [testing, vitest, e2e, runbooks, visual, verification]
 problem_type: knowledge
@@ -19,7 +19,7 @@ Every test in this repo is one of these types, and a report names the type that 
 | Integration | The real service, started as it runs in production (its binary or process) | The traffic to the services around it, mocked: fake servers, stub binaries on `PATH`, mock upstreams | `backend/vm-ops-api/integration/`: the real vm-ops-api process over real HTTP, with its Docker Engine and its `docker` and `wf` binaries doubled (a fake Engine on a Unix socket and stubs on `PATH`) |
 | Deployment verification | A deployed service on the VM, with its real dependencies, through its public interface | Nothing | remote-chat-agent's `test:verify:deployed`: POST /api/chat to the deployed agent, expect an SSE stream with no error |
 | Browser / Android e2e | The real app, driven like a user: a web export of the tree that the run serves on loopback (`wf test prepare --web`) for Chromium, the EAS Update CI published for the commit (`against: update`) on `rdl`, the one Android device | Nothing (a network stub only where the test says so) | `e2e/editor-typing.lua`: open two-sum, type with the keyboard, tap Done, Run Local, check the result |
-| Runbook | A plain-text, step-by-step test written as Given/When/Then, executed entirely by an agent against the deployed system and recorded (`wf offload ask --runbook <name>`) | Nothing | `docs/runbooks/device-lab-codemirror-typing.md`: the CodeMirror typing gate, every step run and checked by an agent |
+| Runbook | A plain-text, step-by-step test written as Given/When/Then, executed entirely by an agent against the deployed system and recorded (`wf rca ask --runbook <name>`) | Nothing | `docs/runbooks/device-lab-codemirror-typing.md`: the CodeMirror typing gate, every step run and checked by an agent |
 
 Order of importance and of reporting, top-down: runbook, browser / Android e2e, deployment verification, integration, flow, unit.
 
@@ -47,8 +47,18 @@ Worked example, `backend/remote-chat-agent` (Rust):
 - flow: the axum `Router` driven with `tower::ServiceExt::oneshot`, the agent backend, event store and clock replaced by fakes in `src/testing/`. No socket, no spawned process.
 - integration: `tests/blackbox` starts the real `rca-service` binary, points it at `fakeOpencode.ts` (a fake server) and talks to it over real HTTP and WebSocket.
 - e2e: `wf vm exec` probes the deployed `remote-chat-agent` on the VM with the real vault and the real opencode.
+- e2e with a real CLI and model, no deployed service: `backend/remote-chat-agent/host/tests/real_codex_session.rs`, the Codex live session against the real `codex app-server` on a second Codex login, run on `dev` by the `codex-session-proof` job through `wf mimic exec --clis real:codex-ci` (`real-codex-session.md`).
 
 Naming trap in Rust: Cargo calls every file under `tests/` an "integration test", but those run in-process against the crate's public API, which is a flow test here. Name them `tests/flow*.rs`, never `tests/integration*.rs`; integration tests in this repo are the black-box suites started as real processes; a package runs its suite as its `test:integration` script. A new integration suite is written in Rust: a crate of its own whose tests start the service's process, or, in a `clis/wf-*` crate, a `tests/integration.rs` for the journeys that need a real process the flow tests double (a Chromium, ffmpeg): its `cargo-integration` Nx task runs one test at a time. CI runs every integration test in the `deployment-verification-tests` stage, after the CLIs are built and the services deployed, never in `flow-tests`. A real Chromium in a flow test is a violation of the flow rule: move the test.
+
+## Replay and behaviour tests: the parity oracle
+
+The phone apps' parity (T3 Code and Orca over rca) is not proved by a test its author wrote from reading the reference source: that can pass while the real server answers otherwise. The oracle is a **replay** of a **recorded set** (the real server's own answers, made on a hosted runner) against `t3-serve` or `orca-serve` over the real `rca-service` and `rca-exec`. It is an integration test (real binaries, the agent CLIs scripted on `PATH`, no real model) whose expected values come from the real server, split into one `replay-<crate>` Nx task per rca feature crate.
+
+- A row is **served** when its replay is clean or allowlisted and the trace shows the call reached rca; the decision says `"oracle": "mimic"`.
+- A **behaviour test** keeps only what no recording can show (a pty's output, a restart, a clock, an interaction no recorded set holds). Its row carries an `unrecordable` reason in the decisions file, and the test is named for the behaviour, not a milestone.
+- `wf mimic coverage --check` fails a served row with neither an oracle nor that reason; `--by-oracle` lists each served row with its class (a to d).
+- A replay is integration evidence of the mapper against a recording. It is not deployment verification: say which type ran (`wf mimic replay` and the behaviour tests are integration, a recording of the real server is the reference, not a run of the deployed service).
 
 ## Test behavior, not the implementation
 
@@ -71,11 +81,11 @@ A test says what happens, not what is written. Not "the registry has a `check` f
 
 ## `units.jsonl` `tier` → gate
 
-A unit's `tier` is REQUIRED (`TIERS` in `clis/offload/src/worker_plan.rs` = `unit, contract, flow, integration, e2e, visual`); a missing or unknown tier fails the plan. The per-tier gate templates the planner fills:
+A unit's `tier` is REQUIRED (`TIERS` in `clis/rca/src/worker_plan.rs` = `unit, contract, flow, integration, e2e, visual`); a missing or unknown tier fails the plan. The per-tier gate templates the planner fills:
 
 - `unit` / `contract` / `flow` → vitest glob. `e2e` / `visual` never carry a vitest gate.
 - `integration` → the package's `test:integration` script, scoped to the test file; CI's `integration-tests` stage runs the whole script through the Nx cache, after the deploy, and a new suite is written in Rust.
-- `e2e` → a runbook step (`wf offload ask --runbook <name>`) or a `wf browser` gate against the VM.
+- `e2e` → a runbook step (`wf rca ask --runbook <name>`) or a `wf browser` gate against the VM.
 - `visual` → `judge` (a vision-capable model) plus a `judgeInput` ending in `.png|.jpg|.jpeg|.webp`; both required.
 
 `buildUnitPrompt` renders `TIER: <tier> -- <guidance>` right after `CONSTRAINTS`; `formatCheck` prints `[<tier>]` next to each id; `formatManifest` adds a `tiers: unit N · flow M · e2e K` histogram line after the header (only tiers with count > 0, in enum order).
@@ -86,11 +96,11 @@ Top-down: runbook, browser / Android e2e, deployment verification, integration, 
 
 ## Where each tier runs
 
-Every tier but a browser e2e test runs on the VM in a session worktree (`/workspace/sessions/<key>`), by owner direction, because the VM is the reference environment. The sandbox lints, orchestrates via `wf vm` and `wf offload plan`, and runs a browser e2e test against a web export of the tree served on loopback (`wf test prepare --web`, then `wf test run <test> --platform browser`: no dev server, no worktree, no backend baked in). E2E and visual run where the system is: an Android e2e test loads the EAS Update CI published, and a runbook runs through a `wf vm exec` script running `wf offload ask --runbook` (an automated step that drives the real entry point and records screenshots). A local sandbox path remains the documented fallback for e2e and visual when the VM is unreachable, but a broken sandbox must not change a verdict: if the VM run is required by the unit's tier and the sandbox cannot stand in for it, the verdict is the VM's result and the sandbox path is recorded as a fallback attempt, not a substitute.
+Every tier but a browser e2e test runs on the VM in a session worktree (`/workspace/sessions/<key>`), by owner direction, because the VM is the reference environment. The sandbox lints, orchestrates via `wf vm` and `wf rca plan`, and runs a browser e2e test against a web export of the tree served on loopback (`wf test prepare --web`, then `wf test run <test> --platform browser`: no dev server, no worktree, no backend baked in). E2E and visual run where the system is: an Android e2e test loads the EAS Update CI published, and a runbook runs through a `wf vm exec` script running `wf rca ask --runbook` (an automated step that drives the real entry point and records screenshots). A local sandbox path remains the documented fallback for e2e and visual when the VM is unreachable, but a broken sandbox must not change a verdict: if the VM run is required by the unit's tier and the sandbox cannot stand in for it, the verdict is the VM's result and the sandbox path is recorded as a fallback attempt, not a substitute.
 
 ## See also
 
 - Cheap-flow planner: `.agents/skills/cf-plan/SKILL.md` — how to choose a tier; half-done work gates at `unit`/`flow`, a finished UI unit gates at `visual`.
 - Cheap-flow worker: `.agents/skills/cf-plan/SKILL.md` (Run the plan) — manifest reads the `tiers:` line.
 - Evidence handling: `docs/archive/README.md` — evidence referenced again is published with a link, not pasted inline.
-- Doctrine source: `docs/archive/README.md`; tier enum: `clis/offload/src/worker_plan.rs`.
+- Doctrine source: `docs/archive/README.md`; tier enum: `clis/rca/src/worker_plan.rs`.

@@ -326,7 +326,7 @@ await withServedApp(
     }
 
     // ---- showcase DiffView rows (second step) ---------------------------
-    await goto('showcase');
+    await goto('showcase?item=diff-view');
     let diffReady = null;
     for (let attempt = 0; attempt < 20; attempt++) {
       await sleep(400);

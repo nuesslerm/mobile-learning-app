@@ -1,9 +1,9 @@
 import {
   sortReportsByGeneratedAtDesc,
   type HealthReport,
-} from '../contracts';
+} from '../domain';
 
-import type { HealthReportHistoryResult } from '../data/ordsClient';
+import type { HealthReportHistoryResult, ServiceReportPorts } from '../domain/ports';
 
 /**
  * Static fixture data for tests. Stands in for a real ORDS fetch so
@@ -137,4 +137,22 @@ export function createFixtureFetchHealthReportHistory(): () => Promise<HealthRep
     reports: sortReportsByGeneratedAtDesc(FIXTURE_HEALTH_REPORTS),
     skippedRowCount: 0,
   });
+}
+
+/** Every service-report port as an in-memory double: the fixture history and an empty, accepting comment thread. */
+export function createFixturePorts(): ServiceReportPorts {
+  const comments: { id: number; screenshotKey: string; author?: string; commentText: string; createdAt: string }[] = [];
+  return {
+    healthReports: { fetchHistory: createFixtureFetchHealthReportHistory() },
+    goldenComments: {
+      fetch: async (screenshotKey) => ({
+        status: 'ready',
+        comments: comments.filter((comment) => comment.screenshotKey === screenshotKey),
+      }),
+      post: async (input) => {
+        comments.push({ id: comments.length + 1, createdAt: new Date().toISOString(), ...input });
+        return { status: 'ok' };
+      },
+    },
+  };
 }

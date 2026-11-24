@@ -2,22 +2,40 @@
   "method": "provider.resetCredit",
   "exchanges": [
     {
-      "name": "gives back the credit the model API reset",
+      "name": "spends a credit of the provider's account and gives the outcome",
       "request": {
         "id": 1,
         "method": "provider.resetCredit",
         "params": {
-          "provider": "codex"
+          "provider": "codex",
+          "idempotency_key": "00000000-0000-4000-8000-000000000001"
         }
       },
       "response": {
         "id": 1,
         "result": {
           "provider": "codex",
-          "credit": {
-            "remaining": 3,
-            "unit": "resets"
-          }
+          "outcome": "reset"
+        }
+      },
+      "actions": [
+        "codex_app_server_request"
+      ]
+    },
+    {
+      "name": "a provider whose account has no credit to spend is refused",
+      "request": {
+        "id": 1,
+        "method": "provider.resetCredit",
+        "params": {
+          "provider": "claudeAgent"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "NOT_SUPPORTED",
+          "message": "claudeAgent has no reset credit to spend"
         }
       }
     },
@@ -35,6 +53,24 @@
         "error": {
           "code": "UNKNOWN_PROVIDER",
           "message": "gemini is not a provider; the providers are opencode, claudeAgent, codex"
+        }
+      }
+    },
+    {
+      "name": "a key that is not text is refused",
+      "request": {
+        "id": 1,
+        "method": "provider.resetCredit",
+        "params": {
+          "provider": "codex",
+          "idempotency_key": 3
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "idempotency_key must be a non-empty string of at most 128 bytes"
         }
       }
     }

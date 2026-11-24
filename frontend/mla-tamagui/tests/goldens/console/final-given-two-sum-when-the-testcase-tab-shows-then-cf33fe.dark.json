@@ -1,0 +1,79 @@
+{
+  "suite": "console",
+  "step": "final-given-two-sum-when-the-testcase-tab-shows-then-cf33fe",
+  "scheme": "dark",
+  "snapshot": "console/final-given-two-sum-when-the-testcase-tab-shows-then-cf33fe.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleSheetHandle",
+      "ConsoleSheet",
+      "ConsoleTabs",
+      "SegmentedThumb",
+      "ConsoleTabs-testcase",
+      "ConsoleTabs-result",
+      "ConsoleBody",
+      "ConsolePanel-testcase",
+      "ConsoleChips",
+      "ConsoleChipScroll",
+      "ConsoleChip-1",
+      "ConsoleChip-2",
+      "ConsoleChip-3",
+      "ConsoleChip-4",
+      "ConsoleChip-5",
+      "ConsoleChip-6",
+      "ConsoleChip-7",
+      "ConsoleChip-8",
+      "ConsoleChip-9",
+      "ConsoleChip-10",
+      "ConsoleChip-11",
+      "ConsoleChip-12",
+      "ConsoleChipAdd",
+      "ConsoleChipEdit",
+      "ConsoleFields",
+      "ConsoleField-nums-Card",
+      "ConsoleField-nums-Caption",
+      "ConsoleField-nums-Toggle",
+      "ConsoleField-nums",
+      "ConsoleField-target-Card",
+      "ConsoleField-target-Caption",
+      "ConsoleField-target-Toggle",
+      "ConsoleField-target",
+      "ConsoleFooter",
+      "ConsoleFooterReset",
+      "ConsoleFooterRun",
+      "ConsoleFooterSubmit"
+    ],
+    "text": "Python\nTestcase\nRun Result\nCase 1\nCase 2\nCase 3\nCase 4\nCase 5\nCase 6\nCase 7\nCase 8\nCase 9\nCase 10\nCase 11\nCase 12\nnums\n[2,7,11,15]\ntarget\n9\nReset\nSubmit"
+  },
+  "timings": {
+    "render_ms": 261
+  },
+  "name": "console/final-given-two-sum-when-the-testcase-tab-shows-then-cf33fe.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

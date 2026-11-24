@@ -103,3 +103,27 @@ mod replay {
         assert_eq!((code, bad["severity"].clone()), (1, json!("drift")), "{bad}");
     }
 }
+
+#[test]
+fn given_the_manifest_of_the_real_pinned_bundle_when_a_host_loads_it_alone_then_it_is_held_and_answered_whole() {
+    // Given the manifest the real host answered (149 assets, 10 catalogs), with no asset on disk
+    let recorded = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../cassettes/orca-v1.4.259-recorded/interactions.jsonl")).unwrap();
+    let line = recorded.lines().find(|l| l.contains(r#""id":"orca-mobileWeb.bundle.manifest""#)).unwrap();
+    let answered: serde_json::Value = serde_json::from_str::<serde_json::Value>(line).unwrap()["steps"][1]["payload"]["result"].clone();
+    struct Alone(serde_json::Value);
+    impl orca_map_mobile::BundleSource for Alone {
+        fn manifest(&self) -> Result<Option<serde_json::Value>, String> {
+            Ok(Some(self.0.clone()))
+        }
+        fn digest(&self, _: &str) -> Result<(u64, String), String> {
+            Err("no asset".into())
+        }
+        fn read(&self, _: &str, _: u64, _: usize) -> Result<Vec<u8>, String> {
+            Err("no asset".into())
+        }
+    }
+    // When the area loads it
+    let area = orca_map_mobile::MobileWebArea::new(Box::new(Alone(answered["manifest"].clone())));
+    // Then it is held, with no problem
+    assert_eq!((area.held(), area.problem()), (true, None));
+}

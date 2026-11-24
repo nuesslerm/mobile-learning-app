@@ -147,7 +147,7 @@ fn ask_claude(prompt: &str, timeout: Duration) -> Result<Agent, String> {
 }
 
 fn ask_opencode(prompt: String, timeout: Duration) -> Result<Agent, String> {
-    let d = offload::dispatch_run::dispatch_read_only(prompt, timeout.as_millis() as u64, "agent-proof").ok_or("the opencode ladder has no rung this binary drives")?;
+    let d = rca::dispatch_run::dispatch_read_only(prompt, timeout.as_millis() as u64, "agent-proof").ok_or("the opencode ladder has no rung this binary drives")?;
     if !d.ok {
         let trail: Vec<String> = d.attempts.iter().map(|(m, _, r)| format!("{m} ({r})")).collect();
         return Err(format!("opencode dispatch failed after {}", trail.join(", ")));

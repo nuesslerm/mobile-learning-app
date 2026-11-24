@@ -7,18 +7,6 @@ use std::path::{Path, PathBuf};
 use remote_chat_agent_core::domain::ids::iso_from_ms;
 pub use remote_chat_agent_render::js::{js_string, truthy};
 
-/// A random (version 4) UUID, as `crypto.randomUUID`.
-pub fn uuid_v4() -> String {
-    uuid::Uuid::new_v4().to_string()
-}
-
-/// `n` random bytes (at most 16) as lowercase hex.
-pub fn random_hex(n: usize) -> String {
-    let mut hex = uuid::Uuid::new_v4().simple().to_string();
-    hex.truncate(2 * n.min(16));
-    hex
-}
-
 /// Milliseconds since the Unix epoch, from the system clock.
 pub fn now_ms() -> u64 {
     u64::try_from(time::OffsetDateTime::now_utc().unix_timestamp_nanos() / 1_000_000).unwrap_or(0)

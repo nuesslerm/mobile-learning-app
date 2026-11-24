@@ -26,9 +26,7 @@ Several overlays are **not** migrated yet and are still siblings mounted by
 whatever opens them, driven by component state rather than a route, among
 them `frontend/mla-tamagui/features/leetcode/ui/AlternativePicker.tsx` and the
 voice-edit `frontend/mla-tamagui/features/leetcode/ui/VoiceReviewSheet.tsx`
-(both mounted by `ProblemEditorScreen.tsx` from the voice-edit phase), and the
-debug log sheet `frontend/mla-tamagui/app-shell/DebugLogSheet.tsx` (a
-`useState` in `DebugFab.tsx`; the old dev-tools `DebugSheet` is gone).
+(both mounted by `ProblemEditorScreen.tsx` from the voice-edit phase).
 Migrate them with this same recipe. `LanguageSheet` (`ui/LanguagePicker.tsx`) is also a
 sibling, rendered at the end of `ProblemEditorScreen`'s own tree on purpose:
 it does not portal, so it only covers what comes before it (see its comment).
@@ -210,12 +208,12 @@ const handleResetCode = React.useCallback(() => {
 }, [problem, lang, snapshot]);
 ```
 
-Rename's in-app trigger is **not wired yet**. `handleRenameSymbol` in
-`ProblemEditorScreen.tsx` only logs `editor_v2.rename_symbol_request`; nothing
-calls `useRenameSymbolRequestStore.getState().request(...)` or pushes
-`/leetcode/<id>/rename`, so the toolbar's rename action never opens the
-overlay, the route is reachable only by URL, and the store's payload is always
-`null`. When it is wired it takes the same shape: request
+Rename's in-app trigger **does not exist**. The toolbar's Rename button and the
+screen's handler (which only logged `editor_v2.rename_symbol_request`) were
+removed in C4 of issue 86 because they did nothing; nothing calls
+`useRenameSymbolRequestStore.getState().request(...)` or pushes
+`/leetcode/<id>/rename`, so the route is reachable only by URL and the store's
+payload is always `null`. When a trigger is added it takes this shape: request
 `{ problemId, target, onConfirm, onCancel }`, then push
 `/leetcode/<id>/rename?symbol=<encoded symbol>`.
 

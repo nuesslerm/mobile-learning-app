@@ -1,62 +1,86 @@
 --[[---
-platform: android
-against: update
+platform: browser
+against: browser=export
 timeout: 60
-focus: true
 features: leetcode
 ---]]
--- Run Local against a stubbed leetcode-backend (wire format of webBridgeClient.ts fetchRunLocal: {ok, results}): the stub's 3 of 3 (the live backend runs 12 cases) proves the canned
--- answer reached the screen, and no request left the device (Android: the stub server behind the DNAT rule answered it).
+-- Submit on the console against a stubbed leetcode-backend (wire format of webBridgeClient.ts fetchRunLocal: {ok, results}): the stub's 3 of 3 (the live backend
+-- runs 12 cases) proves the canned answer reached the Run Result tab, and no request left the device. Browser only: the Android unit is not registered.
 -- wf browser test e2e/stubbed-run-local.lua --env base=http://127.0.0.1:8800/mla-tamagui
--- wf android test e2e/stubbed-run-local.lua --env base=exp://u.expo.dev/<projectId>/group/<group>/--
-local android = device.platform == "android"
-local base = env.base or (not android and "http://127.0.0.1:8800/mla-tamagui" or nil)
-assert_true(base, "pass --env base=<update link>; wf test run does")
-device:add_network_stub("POST", "*/api/leetcode/run", { body_file = "e2e/stubs/leetcode-run-two-sum.json", headers = { ["content-type"] = "application/json" } })
--- a reused app may still show this screen: a link to it remounts it a moment later, so the first wait would pass on the
--- old one (18 Oct); the app leaves for Settings first (a link to "/" does not navigate a running Expo Go)
-if android and device:get_element({id='ProblemEditorRunLocalButton'}) then
-  device:open_link(base .. "/settings")
-  device:assert_not_visible({id='ProblemEditorRunLocalButton'})
+local base = env.base or "http://127.0.0.1:8800/mla-tamagui"
+local function stub_run() device:add_network_stub("POST", "*/api/leetcode/run", { body_file = "e2e/stubs/leetcode-run-two-sum.json", headers = { ["content-type"] = "application/json" } }) end
+stub_run()
+
+local function logged(needle)
+  for _, l in ipairs(device:get_logs{level='info'}) do
+    if l:find(needle, 1, true) then return true end
+  end
+  return false
 end
-run_flow("open route", function()
-  device:open_link(base .. "/leetcode/two-sum")
-  device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=60000})
+
+-- Run on the device by default (issue 86, B5); this test is about the server path, so the server is chosen on the problem list,
+-- and the default is put back at the end: later tests expect it. The static page paints its buttons before its scripts have hydrated them, and a tap
+-- before that is lost: it is repeated until the screen logs it
+local function tap_choice(id, event)
+  device:open_link(base .. "/")
+  device:assert_visible({id=id}, {timeout=60000})
+  device:clear_logs()
+  for _ = 1, 10 do
+    device:scroll_until_visible{element={id=id}, direction='DOWN', timeout=30000}
+    device:tap_on({id=id})
+    if device:extended_wait_until{condition=function() return logged(event) end, timeout=2000, interval=250, optional=true} then return end
+  end
+  error("the choice " .. id .. " never reached the screen")
+end
+
+run_flow("choose the server", function()
+  tap_choice('LeetcodeListRunnerBackend', 'leetcode.list.runner_tap')
 end)
--- the web export's first load hydrates a cold deep link with React #419 (docs/gaps/web-export-cold-deep-link-hydration-418.md); the stubbed interaction itself must stay clean
-device:clear_logs()
-device:assert_screenshot("two-sum-before-run")
--- the editor may open focused with the keyboard over the action row; Done at the end of the toolbar lowers it (on Android
--- the editor often opens unfocused, with no keyboard and no toolbar to lower)
-if not (android and not device:get_device_state('keyboard').visible) then
-  device:scroll_until_visible{element={id='EditorAction-Done'}, direction='RIGHT', from={id='EditorActionToolbar'}}
-  device:tap_on({id='EditorAction-Done'})
-  device:assert_not_visible({id='EditorHelperRails'})
-end
--- a reused app may still show an earlier run's outcome on this screen, so the stubbed one is waited for, not the first
-local shown
-run_flow("run local", function()
-  device:tap_on({id='ProblemEditorRunLocalButton'})
-  shown = device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals', text='.*3 / 3.*'}, timeout=30000, optional=true}
+local ok, failure = pcall(function()
+  run_flow("open route", function()
+    device:open_link(base .. "/leetcode/two-sum")
+    device:assert_visible({id='ProblemEditorScreen'}, {timeout=60000})
+  end)
+  -- the web export's first load hydrates a cold deep link with React #419 (docs/gaps/web-export-cold-deep-link-hydration-418.md); the stubbed interaction itself must stay clean
+  device:clear_logs()
+  -- the editor may open focused with the keyboard over the dock, and a slow page focuses it late: focus is waited for, a tap on the part of the
+  -- language row the taller rail does not cover lowers the keyboard, and the shot is taken of the settled screen
+  device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true}
+  if device:get_element({id='EditorHelperRails'}) then
+    local row, rail = device:get_element({id='ProblemEditorDiffRow'}).bounds, device:get_element({id='EditorHelperRails'}).bounds
+    device:tap_on({point=('%d,%d'):format((row.left + row.right) // 2, (row.top + math.min(row.bottom, rail.top - 4)) // 2)})
+    device:assert_not_visible({id='EditorHelperRails'})
+  end
+  device:assert_screenshot("two-sum-before-run")
+  local function editor_text()
+    local t = (device:get_element({id='CodeEditorInput'}) or {}).text
+    if t and t ~= "" then return t end
+  end
+  local code_before = editor_text()
+  assert_true(code_before and code_before:find("def twoSum", 1, true), "the editor does not hold the starter before the run: " .. tostring(code_before))
+  local shown
+  run_flow("submit", function()
+    stub_run()
+    device:tap_on({id='ConsoleBarSubmit'})
+    shown = device:extended_wait_until{visible={id='ConsoleResultCounts', text='.*3 / 3.*'}, timeout=12000, optional=true}
+  end)
+  local now = device:get_element({id='ConsoleResultCounts'})
+  local totals = (shown and shown.text) or (now and now.text) or ""
+  log("totals", totals)
+  assert_true(shown, "the stubbed 3 of 3 is not on screen: " .. totals)
+  assert_true(editor_text() == code_before, "the run changed the code in the editor")
+  device:assert_visible({text='.*Accepted.*'}, {timeout=5000, label='stubbed run shown as Accepted'})
+  assert_true(not device:extended_wait_until{visible={text='.*Unknown error.*'}, timeout=1000, optional=true}, "the app could not read the stubbed answer")
+  device:assert_screenshot("two-sum-stubbed-result")
+  local hits = device:get_network_stub_hits()
+  assert_true(#hits == 1, "expected one stubbed request, got " .. #hits)
+  log(json.encode(hits[1]))
+  local w = device:get_logs()
+  assert_true(#w == 0, "JS warnings after the load: " .. table.concat(w, " | "))
+  -- BetterStack holds the run's result line for the session: a run that reached the screen must have logged it
+  local info = table.concat(device:get_logs{level='info'}, "\n")
+  assert_true(info:find("editor_v2.console.run_end", 1, true), "no editor_v2.console.run_end line in the app log")
 end)
-local now = device:get_element({id='ProblemEditorRunOutcomeTotals'})
-local totals = (shown and shown.text) or (now and now.text) or ""
-log("totals", totals)
-if android and not shown then
-  -- where the request went: the app's own log of the run and the device's open connections (8789 = 0x2255)
-  local rn = device:get_logs{level='debug'}
-  log("rn log", table.concat(rn, "\n", math.max(1, #rn - 29)))
-  log("tcp", (device:run_shell("cat /proc/net/tcp /proc/net/tcp6 | grep -iE ':2255|:2253' | head -20")))
-end
-assert_true(shown, "the stubbed 3 of 3 is not on screen: " .. totals)
-device:assert_visible({text='.*Accepted.*'}, {timeout=5000, label='stubbed run shown as Accepted'})
-assert_true(not device:extended_wait_until{visible={text='.*Unknown error.*'}, timeout=1000, optional=true}, "the app could not read the stubbed answer")
-device:assert_screenshot("two-sum-stubbed-result")
-local hits = device:get_network_stub_hits()
-assert_true(#hits == 1, "expected one stubbed request, got " .. #hits)
-log(json.encode(hits[1]))
-local w = device:get_logs()
-assert_true(#w == 0, "JS warnings after the load: " .. table.concat(w, " | "))
--- BetterStack holds the run's result line for the session: a run that reached the screen must have logged it
-local info = table.concat(device:get_logs{level='info'}, "\n")
-assert_true(info:find("editor_v2.run_local.result", 1, true), "no run_local.result line in the app log")
+-- the default goes back whatever failed above: later tests expect it
+pcall(function() tap_choice('LeetcodeListRunnerDevice', 'leetcode.list.runner_tap') end)
+if not ok then error(failure, 0) end

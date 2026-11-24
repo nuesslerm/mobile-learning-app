@@ -1,15 +1,14 @@
-//! The CI plan as `wf test plan` and `wf test run --stage` serve it: `plan` picks what a change reaches, `run --stage` runs a planned
+//! The CI plan as `wf ci plan tests` and `wf test run --stage` serve it: `plan` picks what a change reaches, `run --stage` runs a planned
 //! stage through Nx, and `drift --pins` checks the pinned tools. `pnpm`, `nx` and `gh` are stubs (what Nx itself runs and replays is
 //! `nx_cache.rs`); the repository's own `e2e` scripts, workflows and `mise.toml` are read as they are.
 use crate::support::otlp::gauges;
-use crate::support::{create_stub, last_json, MockReply, MockServer, RunResult, SlotSandbox};
+use crate::support::{create_stub, last_json, MockServer, RunResult, SlotSandbox};
 use serde_json::{json, Value};
 use std::path::PathBuf;
-use std::process::Command;
 
 /// A temp tree with a small pnpm workspace in a git repo of two commits, focused e2e tests and a fake harness.
-struct Workspace {
-    s: SlotSandbox,
+pub(crate) struct Workspace {
+    pub(crate) s: SlotSandbox,
     root: PathBuf,
 }
 
@@ -49,12 +48,13 @@ case "$projects" in *e2e-shaky*) exit 1;; esac
 exit 0"#;
 
 impl Workspace {
-    fn new(prefix: &str) -> Workspace {
+    pub(crate) fn new(prefix: &str) -> Workspace {
         let s = SlotSandbox::new(prefix);
         s.stub("pnpm", PNPM);
         s.stub("nx", NX);
         let root = s.repo.parent().unwrap().join("ws");
         let w = Workspace { s, root };
+        w.write("home/.keep", "");
         w.write("repo/package.json", r#"{"name":"ws","scripts":{"typecheck":"tsc"}}"#);
         w.write("repo/libraries/lib/package.json", r#"{"name":"lib","scripts":{"typecheck":"tsc","test:unit":"vitest"}}"#);
         w.write("repo/frontend/app/package.json", r#"{"name":"app","dependencies":{"lib":"workspace:*"},"scripts":{"test:flow":"vitest","typecheck":"tsc","lint":"eslint"}}"#);
@@ -83,12 +83,12 @@ impl Workspace {
         std::fs::write(p, text).unwrap();
     }
 
-    fn path(&self, sub: &str) -> String {
+    pub(crate) fn path(&self, sub: &str) -> String {
         self.root.join(sub).display().to_string()
     }
 
     fn git(&self, args: &[&str]) -> String {
-        let out = Command::new("git").args(args).current_dir(self.root.join("repo")).env("GIT_AUTHOR_NAME", "t").env("GIT_AUTHOR_EMAIL", "t@t").env("GIT_COMMITTER_NAME", "t").env("GIT_COMMITTER_EMAIL", "t@t").output().unwrap();
+        let out = crate::support::git_command().args(args).current_dir(self.root.join("repo")).env("GIT_AUTHOR_NAME", "t").env("GIT_AUTHOR_EMAIL", "t@t").env("GIT_COMMITTER_NAME", "t").env("GIT_COMMITTER_EMAIL", "t@t").output().unwrap();
         String::from_utf8_lossy(&out.stdout).trim().to_string()
     }
 
@@ -98,22 +98,26 @@ impl Workspace {
     }
 
     /// `wf <args>` on this workspace, with `extra` environment last.
-    fn wf(&self, args: &[&str], extra: &[(&str, String)]) -> RunResult {
+    pub(crate) fn wf(&self, args: &[&str], extra: &[(&str, String)]) -> RunResult {
         let mut envs = vec![
             ("WF_TEST_E2E_DIR", self.path("e2e")),
             ("WF_TEST_REPO", self.path("repo")),
+            // a commit with explicit paths runs the hook with the real repository's temporary index in the environment
+            ("GIT_INDEX_FILE", self.path("repo/.git/index")),
             ("WF_NX_BIN", self.s.bin_dir.join("nx").display().to_string()),
+            // the nx stub leaves its run.json under HOME, and the test process's one shared home would hand one test the file another test's stage just wrote
+            ("HOME", self.path("home")),
         ];
         envs.extend(extra.iter().cloned());
         let refs: Vec<(&str, &str)> = envs.iter().map(|(k, v)| (*k, v.as_str())).collect();
         self.s.run(args, &refs)
     }
 
-    /// `wf test plan --changed --base <base> --json --github-output`: the plan (also saved as plan.json) and the GITHUB_OUTPUT text.
-    fn plan(&self, base: &str) -> (Value, String) {
+    /// `wf ci plan tests --changed --base <base> --json --github-output`: the plan (also saved as plan.json) and the GITHUB_OUTPUT text.
+    pub(crate) fn plan(&self, base: &str) -> (Value, String) {
         let out = self.path("gh-output");
         let _ = std::fs::remove_file(&out);
-        let r = self.wf(&["test", "plan", "--changed", "--base", base, "--json", "--github-output"], &[("GITHUB_OUTPUT", out.clone())]);
+        let r = self.wf(&["ci", "plan", "tests", "--changed", "--base", base, "--json", "--github-output"], &[("GITHUB_OUTPUT", out.clone())]);
         assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
         let v: Value = serde_json::from_str(r.stdout.trim()).unwrap_or_else(|_| panic!("{}{}", r.stdout, r.stderr));
         std::fs::write(self.path("plan.json"), v.to_string()).unwrap();
@@ -215,9 +219,9 @@ fn ci_plans_the_stages_a_change_reaches_and_runs_each_planned_stage() {
     let first = w.git(&["rev-parse", "HEAD~2"]);
     w.s.stub("gh", &format!("echo 0123456789abcdef0123456789abcdef01234567\necho {first}"));
     let repo = [("GITHUB_REPOSITORY", "o/r".to_string())];
-    let green = w.wf(&["test", "plan", "--changed", "--base", "last-green", "--json"], &repo);
+    let green = w.wf(&["ci", "plan", "tests", "--changed", "--base", "last-green", "--json"], &repo);
     w.s.stub("gh", "exit 1");
-    let no_gh = w.wf(&["test", "plan", "--changed", "--base", "last-green", "--json"], &repo);
+    let no_gh = w.wf(&["ci", "plan", "tests", "--changed", "--base", "last-green", "--json"], &repo);
     // Then the base is the newest green ancestor, and without gh it is the commit before
     let v: Value = serde_json::from_str(green.stdout.trim()).unwrap_or_else(|_| panic!("{}{}", green.stdout, green.stderr));
     assert_eq!(v["base"], first.as_str());
@@ -285,14 +289,14 @@ fn the_repos_android_tests_run_against_the_update_and_the_browser_ones_against_t
     // Given the repository's own e2e tests
     let s = SlotSandbox::new("wf-flow-headers-");
     let e2e = crate::support::repo_root().join("e2e").display().to_string();
-    let r = s.run(&["test", "plan", "--all", "--json"], &[("WF_TEST_E2E_DIR", e2e.as_str()), ("WF_TEST_REPO", s.repo.display().to_string().as_str())]);
+    let r = s.run(&["ci", "plan", "tests", "--all", "--json"], &[("WF_TEST_E2E_DIR", e2e.as_str()), ("WF_TEST_REPO", s.repo.display().to_string().as_str())]);
     // When they are planned
     let v: Value = serde_json::from_str(r.stdout.trim()).unwrap_or_else(|_| panic!("{}{}", r.stdout, r.stderr));
     let rows: Vec<(&str, &str, &str, bool)> = v["tests"].as_array().unwrap().iter().map(|t| (t["name"].as_str().unwrap(), t["platform"].as_str().unwrap(), t["against"].as_str().unwrap(), t["focus"] == true)).collect();
     // Then every focused Android test loads the update CI publishes, every browser test the export, and no test, focused or not,
     // is against the dev Metro (the debugger probe is a browser test now)
     let names = |platform: &str, against: &str, focus: bool| rows.iter().filter(|r| r.1 == platform && r.2 == against && r.3 == focus).map(|r| r.0).collect::<Vec<_>>();
-    assert_eq!(names("android", "update", true), ["editor-typing", "stubbed-run-local", "tamil-writing", "voice-edit"], "{rows:?}");
+    assert_eq!(names("android", "update", true), ["tamil-writing"], "{rows:?}");
     assert_eq!(names("android", "update", false), ["stop-probe"], "{rows:?}");
     assert!(rows.iter().all(|r| r.2 != "metro"), "a test is still against the dev Metro: {rows:?}");
     assert!(rows.contains(&("debugger-probe", "browser", "export", false)) && !rows.iter().any(|r| r.0 == "debugger-probe" && r.1 == "android"), "{rows:?}");
@@ -372,6 +376,56 @@ fn no_workflow_or_action_sets_the_nx_cache_environment_wf_gives_nx() {
         .collect();
     // Then none does: wf starts the shim, resolves the links from the vault and says whether a run may write
     assert!(named.is_empty(), "{named:#?}");
+}
+
+fn pipeline_job(text: &str, job: &str) -> String {
+    let head = format!("\n  {job}:\n");
+    let start = text.find(&head).unwrap_or_else(|| panic!("no job {job}")) + 1;
+    let rest = &text[start + head.len() - 1..];
+    let end = rest.lines().skip(1).scan(0, |at, l| { *at += l.len() + 1; Some((*at, l)) }).find(|(_, l)| l.starts_with("  ") && !l.starts_with("   ") && l.trim_end().ends_with(':') && !l.trim_start().starts_with('#')).map(|(at, l)| at - l.len() - 1);
+    rest[..end.unwrap_or(rest.len())].to_string()
+}
+
+fn pipeline_line(block: &str, key: &str) -> String {
+    block.lines().find(|l| l.starts_with(&format!("    {key}:"))).unwrap_or_else(|| panic!("no {key}")).to_string()
+}
+
+#[test]
+fn a_red_test_stage_does_not_hide_the_e2e_jobs_but_still_blocks_the_deploy_but_not_the_production_update() {
+    // Given the pipeline workflow
+    let text = std::fs::read_to_string(crate::support::repo_root().join(".github/workflows/pipeline.yml")).unwrap();
+    let tests = ["core-tests", "integration-tests", "cli-e2e-tests"];
+    // When the jobs that ship are read
+    for job in ["deploy", "clis"] {
+        let block = pipeline_job(&text, job);
+        let cond = pipeline_line(&block, "if");
+        let needs = pipeline_line(&block, "needs");
+        // Then they still wait on, and are skipped by, a red test, and neither parity job is a condition of shipping
+        for t in tests {
+            assert!(cond.contains(&format!("contains(fromJSON('[\"success\",\"skipped\"]'), needs.{t}.result)")), "{job} if: {cond}");
+            assert!(needs.contains(t), "{job} needs: {needs}");
+        }
+        assert!(!cond.contains("parity") && !needs.contains("parity"), "{job}");
+    }
+    // When the jobs that report e2e evidence are read
+    for job in ["eas-update", "browser-e2e-tests", "android-e2e-tests", "deployment-verification-tests"] {
+        let cond = pipeline_line(&pipeline_job(&text, job), "if");
+        // Then a red test stage no longer skips them
+        for t in tests {
+            assert!(!cond.contains(&format!("needs.{t}.result")), "{job} if: {cond}");
+        }
+    }
+    // And the production EAS Update step, the one phones open, ships the head of dev whatever the tests say
+    let eas = pipeline_job(&text, "eas-update");
+    let step = &eas[eas.find("- name: Publish the EAS Update\n").expect("production step")..];
+    let step_if = step.lines().find(|l| l.trim_start().starts_with("if:")).unwrap();
+    assert!(step_if.contains("needs.plan.outputs.is_head == 'true'"), "{step_if}");
+    for t in tests {
+        assert!(!step_if.contains(&format!("needs.{t}.result")), "{step_if}");
+    }
+    // And the one job that dials a deployed service still needs a successful deploy unless no leg was planned
+    let dvt = pipeline_line(&pipeline_job(&text, "deployment-verification-tests"), "if");
+    assert!(dvt.contains("needs.deploy.result == 'success' || needs.plan.outputs.legs == '[]'"), "{dvt}");
 }
 
 #[test]
@@ -520,7 +574,7 @@ fn a_package_that_opts_in_to_crate_projects_is_planned_when_a_crate_it_builds_or
 }
 
 #[test]
-fn a_crate_with_flow_groups_is_planned_one_flow_entry_per_group_and_the_stage_runs_each_group_s_target() {
+fn a_crate_with_flow_groups_is_planned_the_rest_and_one_flow_entry_per_group_and_the_stage_runs_each_group_s_target() {
     // Given a cargo workspace whose crate splits its flow tests into groups, and a commit that changes the crate
     let w = Workspace::new("wf-flow-plan-groups-");
     let manifest = "[package]\nname = \"app\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[package.metadata.flow]\ngroups = { threads = [], vcs = [\"tests/fixtures/vcs/**\"] }\n";
@@ -535,9 +589,11 @@ fn a_crate_with_flow_groups_is_planned_one_flow_entry_per_group_and_the_stage_ru
 
     // When the commit is planned
     let (v, _) = w.plan("HEAD~1");
-    // Then the crate's flow tests are one entry per group, each its own Nx target, filtered to the group's module
+    // Then the crate's flow tests are the rest (every group's module skipped) and one entry per group, each its own Nx target, filtered to the group's module
     let planned: Vec<(String, String, String)> = v["stages"]["flow-tests"].as_array().unwrap().iter().map(|t| (t["group"].as_str().unwrap_or("-").to_string(), t["target"].as_str().unwrap_or("-").to_string(), t["command"].as_str().unwrap_or_default().to_string())).collect();
-    let expected: Vec<(String, String, String)> = groups.iter().map(|g| (g.clone(), format!("cargo-flow-{g}"), format!("cargo test --locked -p app --test flow --manifest-path tools/Cargo.toml {g}::"))).collect();
+    let skips: String = format!(" --{}", groups.iter().map(|g| format!(" --skip {g}::")).collect::<String>());
+    let rest = ("-".to_string(), "-".to_string(), format!("cargo test --locked -p app --test flow --manifest-path tools/Cargo.toml{skips}"));
+    let expected: Vec<(String, String, String)> = std::iter::once(rest).chain(groups.iter().map(|g| (g.clone(), format!("cargo-flow-{g}"), format!("cargo test --locked -p app --test flow --manifest-path tools/Cargo.toml {g}::")))).collect();
     assert_eq!(planned, expected, "{v}");
 
     // When the flow stage runs from that plan
@@ -547,6 +603,191 @@ fn a_crate_with_flow_groups_is_planned_one_flow_entry_per_group_and_the_stage_ru
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
     let targets = groups.iter().map(|g| format!(",cargo-flow-{g}")).collect::<String>();
     assert_eq!(w.s.calls("nx"), [format!("run-many -t test:flow,cargo-flow{targets} -p crate-app --parallel=4 --outputStyle=stream")]);
+}
+
+#[test]
+fn a_change_to_one_flow_group_s_module_plans_the_rest_and_every_group_for_nx_to_replay_and_a_change_to_a_support_file_plans_the_same() {
+    // Given a crate with two flow groups, a module of one of them changed in one commit and the shared support in the next
+    let w = Workspace::new("wf-flow-plan-group-change-");
+    w.write("repo/tools/Cargo.toml", "[workspace]\nmembers = [\"app\"]\nresolver = \"2\"\n");
+    w.write("repo/tools/app/Cargo.toml", "[package]\nname = \"app\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[package.metadata.flow]\nshared = [\"tests/flow/support/**\"]\n\n[package.metadata.flow.groups]\nthreads = []\nvcs = []\n");
+    w.write("repo/tools/app/tests/flow.rs", "mod threads;\nmod vcs;\nmod support;\n");
+    w.write("repo/tools/app/tests/flow/threads.rs", "\n");
+    w.write("repo/tools/app/tests/flow/vcs.rs", "\n");
+    w.write("repo/tools/app/tests/flow/support/mod.rs", "\n");
+    w.write("repo/tools/app/src/main.rs", "fn main() {}\n");
+    w.commit("a grouped crate");
+    let targets = |v: &Value| -> Vec<String> { v["stages"]["flow-tests"].as_array().unwrap().iter().map(|t| t["target"].as_str().unwrap_or("cargo-flow").to_string()).collect() };
+    let all = ["cargo-flow", "cargo-flow-threads", "cargo-flow-vcs"].map(String::from).to_vec();
+    w.write("repo/tools/app/tests/flow/threads.rs", "// edited\n");
+    w.commit("edit one group's module");
+    // When the module's commit is planned
+    let (module, _) = w.plan("HEAD~1");
+    w.write("repo/tools/app/tests/flow/support/mod.rs", "// edited\n");
+    w.commit("edit the support");
+    let (support, _) = w.plan("HEAD~1");
+    // Then each plan holds the rest and both groups: the crate's entries are all planned, the Nx cache keys (`nx_crates.rs`) rerun only what the file moves
+    assert_eq!(targets(&module), all, "{module}");
+    assert_eq!(targets(&support), all, "{support}");
+}
+
+#[test]
+fn a_crate_with_contract_groups_is_planned_the_rest_of_its_contract_suite_and_one_entry_per_group_that_skip_and_filter_the_same_modules() {
+    // Given a cargo workspace whose crate splits its Nx contract binary into two groups, and a commit that changes the crate
+    let w = Workspace::new("wf-contract-plan-groups-");
+    w.write("repo/tools/Cargo.toml", "[workspace]\nmembers = [\"app\"]\nresolver = \"2\"\n");
+    w.write("repo/tools/app/Cargo.toml", "[package]\nname = \"app\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[package.metadata.contract.groups]\nslow_a = [\"tests/flow/slow_a.rs\"]\nslow_b = [\"tests/flow/slow_b.rs\"]\n");
+    w.write("repo/tools/app/tests/nx_contract.rs", "mod slow_a;\nmod slow_b;\nmod other;\n");
+    w.write("repo/tools/app/src/main.rs", "fn main() {}\n");
+    w.commit("a crate with a contract suite");
+    w.write("repo/tools/app/src/main.rs", "fn main() { }\n");
+    w.commit("change the crate");
+
+    // When the commit is planned
+    let (v, _) = w.plan("HEAD~1");
+
+    // Then the contract tests are the rest (both modules skipped) and one entry per group filtered to its module, each group its own Nx target
+    let planned: Vec<(String, String, String)> = v["stages"]["flow-tests"].as_array().unwrap().iter().filter(|t| t["kind"] == "contract").map(|t| (t["group"].as_str().unwrap_or("-").to_string(), t["target"].as_str().unwrap_or("-").to_string(), t["command"].as_str().unwrap_or_default().to_string())).collect();
+    let base = "cargo test --locked -p app --test nx_contract --manifest-path tools/Cargo.toml";
+    let expected = vec![
+        ("-".to_string(), "-".to_string(), format!("{base} -- --skip slow_a:: --skip slow_b::")),
+        ("slow_a".to_string(), "cargo-contract-slow_a".to_string(), format!("{base} slow_a::")),
+        ("slow_b".to_string(), "cargo-contract-slow_b".to_string(), format!("{base} slow_b::")),
+    ];
+    assert_eq!(planned, expected, "{v}");
+}
+
+/// A candidate crate `cand` replaying two recorded sets by feature, with the mapping crates `cand/map-a`, `cand/map-b` (which depends on `map-a`) and
+/// `cand/map-big` (two named features, one with the files that can move it, one without files).
+fn replay_workspace(prefix: &str) -> Workspace {
+    let w = Workspace::new(prefix);
+    let ws = "[workspace]\nmembers = [\"cand\", \"cand/map-a\", \"cand/map-b\", \"cand/map-big\"]\nresolver = \"2\"\n";
+    let lib = |name: &str, deps: &str, meta: &str| format!("[package]\nname = \"{name}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\n{deps}\n{meta}");
+    w.write("repo/tools/Cargo.toml", ws);
+    w.write("repo/tools/cand/Cargo.toml", &lib("cand", "map-a = { path = \"map-a\" }\nmap-b = { path = \"map-b\" }\nmap-big = { path = \"map-big\" }\n", "[package.metadata.integration]\ninputs = [\"cassettes/**\"]\n\n[package.metadata.integration.replay]\nsets = [\"set-1\", \"set-2\"]\n"));
+    w.write("repo/tools/cand/map-a/Cargo.toml", &lib("map-a", "", "[package.metadata.integration.replay]\nrows = [\"rpc:a.\"]\n"));
+    w.write("repo/tools/cand/map-b/Cargo.toml", &lib("map-b", "map-a = { path = \"../map-a\" }\n", "[package.metadata.integration.replay]\nrows = [\"rpc:b.\"]\n"));
+    w.write("repo/tools/cand/map-big/Cargo.toml", &lib("map-big", "", "[package.metadata.integration.replay.alpha]\nrows = [\"rpc:alpha.\"]\nfiles = [\"src/alpha.rs\"]\n\n[package.metadata.integration.replay.rest]\nrows = [\"rpc:rest.\"]\n"));
+    for (c, f) in [("cand", "main.rs"), ("cand/map-a", "lib.rs"), ("cand/map-b", "lib.rs"), ("cand/map-big", "lib.rs"), ("cand/map-big", "alpha.rs"), ("cand/map-big", "beta.rs")] {
+        w.write(&format!("repo/tools/{c}/src/{f}"), "\n");
+    }
+    w.write("repo/tools/cand/tests/integration.rs", "\n");
+    w.write("repo/tools/cand/cassettes/set-1/interactions.jsonl", "{\"row\":\"rpc:a.one\"}\n{\"row\":\"rpc:alpha.x\"}\n");
+    w.write("repo/tools/cand/cassettes/set-2/interactions.jsonl", "{\"row\":\"rpc:b.one\"}\n{\"row\":\"rpc:a.two\"}\n{\"row\":\"rpc:rest.y\"}\n");
+    w.commit("a candidate with mapping crates");
+    w
+}
+
+/// The replay entries of a plan: `(target, sets, why)`.
+fn replays(v: &Value) -> Vec<(String, Vec<String>, String)> {
+    let mut out: Vec<(String, Vec<String>, String)> = v["stages"]["integration-tests"].as_array().unwrap().iter().filter(|t| t["replay"].is_object()).map(|t| (t["target"].as_str().unwrap().to_string(), t["replay"]["sets"].as_array().unwrap().iter().map(|s| s.as_str().unwrap().to_string()).collect(), t["why"][0].as_str().unwrap().to_string())).collect();
+    out.sort();
+    out
+}
+
+#[test]
+fn a_change_to_one_mapping_crate_plans_the_replay_of_its_rows_alone_over_the_sets_that_hold_them() {
+    // Given a candidate with three mapping crates, each naming its rows, and a commit that changes one
+    let w = replay_workspace("wf-replay-plan-changed-");
+    w.write("repo/tools/cand/map-b/src/lib.rs", "// changed\n");
+    w.commit("change map-b");
+    // When it is planned
+    let (v, _) = w.plan("HEAD~1");
+    // Then one replay entry is planned, as the Nx task `replay-map-b`, over the one set that holds its rows, and the rest of the suite skips every replay
+    let r = replays(&v);
+    assert_eq!(r.iter().map(|(t, s, _)| (t.as_str(), s.clone())).collect::<Vec<_>>(), [("replay-map-b", vec!["set-2".to_string()])], "{v}");
+    let all = v["stages"]["integration-tests"].as_array().unwrap();
+    let entry = all.iter().find(|t| t["target"] == "replay-map-b").unwrap();
+    assert_eq!(entry["command"], "cargo test --locked -p cand --test integration --manifest-path tools/Cargo.toml -- --test-threads=1 replay_features::map_b::", "{entry}");
+    assert_eq!(entry["replay"]["verbs"][0], "wf mimic replay tools/cand/cassettes/set-2 --rows rpc:b. --gaps check", "{entry}");
+    assert!(all.iter().any(|t| t["group"].is_null() && t["command"].as_str().unwrap().ends_with("--skip replay_features::")), "{v}");
+}
+
+#[test]
+fn a_change_to_a_crate_a_mapping_crate_depends_on_plans_the_replays_of_its_dependents() {
+    // Given a commit that changes map-a, which map-b depends on
+    let w = replay_workspace("wf-replay-plan-dependent-");
+    w.write("repo/tools/cand/map-a/src/lib.rs", "// changed\n");
+    w.commit("change map-a");
+    // When it is planned, Then map-a's and map-b's replays are planned (map-b through its dependency), and map-big's are not
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(replays(&v).iter().map(|(t, _, _)| t.as_str()).collect::<Vec<_>>(), ["replay-map-a", "replay-map-b"], "{v}");
+}
+
+#[test]
+fn a_change_to_a_cassette_or_the_candidates_own_files_plans_every_replay_and_a_full_plan_does_too() {
+    // Given a commit that changes a cassette
+    let w = replay_workspace("wf-replay-plan-cassette-");
+    w.write("repo/tools/cand/cassettes/set-1/interactions.jsonl", "{\"row\":\"rpc:a.one\"}\n");
+    w.commit("edit a cassette");
+    // When it is planned, Then every feature has its replay
+    let every = ["replay-map-a", "replay-map-b", "replay-map-big-alpha", "replay-map-big-rest"];
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(replays(&v).iter().map(|(t, _, _)| t.as_str()).collect::<Vec<_>>(), every, "{v}");
+    // And so does a change to the candidate's own sources
+    w.write("repo/tools/cand/src/main.rs", "// changed\n");
+    w.commit("change the candidate");
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(replays(&v).iter().map(|(t, _, _)| t.as_str()).collect::<Vec<_>>(), every, "{v}");
+    // And a full plan
+    let r = w.wf(&["ci", "plan", "tests", "--all", "--json"], &[]);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    let all: Value = serde_json::from_str(r.stdout.trim()).unwrap();
+    assert_eq!(replays(&all).iter().map(|(t, _, _)| t.as_str()).collect::<Vec<_>>(), every, "{all}");
+}
+
+#[test]
+fn a_change_confined_to_the_files_of_one_named_feature_plans_that_feature_and_the_one_without_files() {
+    // Given a crate with two named features, one naming src/alpha.rs, and a commit that changes that file
+    let w = replay_workspace("wf-replay-plan-files-");
+    w.write("repo/tools/cand/map-big/src/alpha.rs", "// changed\n");
+    w.commit("change alpha");
+    // When it is planned, Then alpha replays, and the feature without files does with it, and no other crate's
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(replays(&v).iter().map(|(t, _, _)| t.as_str()).collect::<Vec<_>>(), ["replay-map-big-alpha", "replay-map-big-rest"], "{v}");
+    // And a file no feature names replays both
+    w.write("repo/tools/cand/map-big/src/beta.rs", "// changed\n");
+    w.commit("change beta");
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(replays(&v).iter().map(|(t, _, _)| t.as_str()).collect::<Vec<_>>(), ["replay-map-big-alpha", "replay-map-big-rest"], "{v}");
+}
+
+#[test]
+fn a_crate_with_integration_groups_is_planned_the_rest_and_a_group_entry_each_and_the_shards_deal_the_groups_out() {
+    // Given a cargo workspace whose crate names two parts of its integration suite as groups, and a commit that changes the crate
+    let w = Workspace::new("wf-integration-plan-groups-");
+    let manifest = "[package]\nname = \"app\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[package.metadata.integration.groups]\nnorth = { filter = \"sets::north::\", files = [\"tests/sets/north/**\"] }\nsouth = { filter = \"sets::south::\", files = [\"tests/sets/south/**\"] }\n";
+    w.write("repo/tools/Cargo.toml", "[workspace]\nmembers = [\"app\"]\nresolver = \"2\"\n");
+    w.write("repo/tools/app/Cargo.toml", manifest);
+    w.write("repo/tools/app/tests/integration.rs", "mod sets;\n");
+    w.write("repo/tools/app/src/main.rs", "fn main() {}\n");
+    w.commit("a grouped crate");
+    w.write("repo/tools/app/src/main.rs", "fn main() {\n}\n");
+    w.commit("change it");
+
+    // When the commit is planned
+    let (v, _) = w.plan("HEAD~1");
+    // Then the suite is one entry that skips both sets, and one entry per set, each its own Nx target, filtered to the set's tests
+    let planned: Vec<(String, String, String)> = v["stages"]["integration-tests"].as_array().unwrap().iter().map(|t| (t["group"].as_str().unwrap_or("-").to_string(), t["target"].as_str().unwrap_or("-").to_string(), t["command"].as_str().unwrap_or_default().to_string())).collect();
+    let command = "cargo test --locked -p app --test integration --manifest-path tools/Cargo.toml -- --test-threads=1";
+    let expected = [
+        ("-", "-", format!("{command} --skip sets::north:: --skip sets::south::")),
+        ("north", "cargo-integration-north", format!("{command} sets::north::")),
+        ("south", "cargo-integration-south", format!("{command} sets::south::")),
+    ];
+    assert_eq!(planned, expected.map(|(g, t, c)| (g.to_string(), t.to_string(), c)), "{v}");
+
+    // When the first and the second of two shards run the stage from that plan
+    let nx_of = |shard: &str| {
+        w.s.forget("nx");
+        let r = w.wf(&["test", "run", "--stage", "integration-tests", "--plan", &w.path("plan.json"), "--shard", shard], &[]);
+        assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+        w.s.calls("nx")
+    };
+    let (first, second) = (nx_of("1/2"), nx_of("2/2"));
+    // Then the suite and the south set run in the first, with the crate's whole-suite task, and the north set alone in the second, without it
+    assert_eq!(first, ["run-many -t test:integration,cargo-integration,cargo-integration-south -p crate-app --parallel=1 --outputStyle=stream"]);
+    assert_eq!(second, ["run-many -t cargo-integration-north -p crate-app --parallel=1 --outputStyle=stream"]);
 }
 
 #[test]
@@ -573,7 +814,7 @@ fn drift_against_another_environment_reports_how_many_tasks_hash_differently() {
 
 #[test]
 fn a_probe_says_why_each_test_it_would_run_misses_against_the_earlier_runs_of_that_test() {
-    // Given the plan's android tests, a hasher stub that gives each its input digests, and a bucket whose history holds an earlier run of
+    // Given the plan's android tests, a hasher stub that gives each its input digests, and a history directory that holds an earlier run of
     // `typing` with another env digest and none of `shaky`
     let w = Workspace::new("wf-flow-probe-why-");
     w.plan("HEAD~1");
@@ -582,12 +823,13 @@ fn a_probe_says_why_each_test_it_would_run_misses_against_the_earlier_runs_of_th
     let table = json!({ "runtime": {}, "tasks": { "e2e-typing:e2e-android": { "hash": "H1", "inputs": inputs("2") }, "e2e-shaky:e2e-android": { "hash": "H2", "inputs": { "e2e-shaky:e2e/shaky.lua": "1" } } } });
     std::fs::write(w.path("table.json"), table.to_string()).unwrap();
     create_stub(&node, &format!("cat {}", w.path("table.json")));
-    let bucket = MockServer::start(None);
+    let history = w.path("nx-why");
     let earlier = json!({ "schema": 1, "groups": {}, "tasks": { "e2e-typing:e2e-android": [{ "run": "9", "sha": "", "ts": 1_700_000_000_000i64, "source": "ci", "hash": "H0", "outcome": "ran", "passed": true, "inputs": inputs("1"), "npm": null, "runtime": {} }] } });
-    bucket.routes(&[("GET /o/verification/nx-inputs/e2e-android.json", MockReply::json(200, earlier))]);
+    std::fs::create_dir_all(format!("{history}/nx-inputs")).unwrap();
+    std::fs::write(format!("{history}/nx-inputs/e2e-android.json"), earlier.to_string()).unwrap();
 
     // When the stage is probed
-    let probe = w.wf(&["test", "run", "--stage", "android-e2e-tests", "--plan", &w.path("plan.json"), "--probe"], &[("WF_NODE", node.display().to_string()), ("VERIFICATION_ARTIFACTS_READ_URL", format!("http://127.0.0.1:{}/o", bucket.port))]);
+    let probe = w.wf(&["test", "run", "--stage", "android-e2e-tests", "--plan", &w.path("plan.json"), "--probe"], &[("WF_NODE", node.display().to_string()), ("WF_NX_WHY_DIR", history.clone())]);
 
     // Then each test that would run says why: typing names the env var that changed, shaky was never stored, and nothing was written
     assert_eq!(probe.exit_code, 0, "{}{}", probe.stdout, probe.stderr);
@@ -595,5 +837,132 @@ fn a_probe_says_why_each_test_it_would_run_misses_against_the_earlier_runs_of_th
     let of = |task: &str| why.as_array().unwrap().iter().find(|m| m["task"] == task).unwrap_or_else(|| panic!("no verdict for {task}: {why}")).clone();
     assert_eq!((of("e2e-typing:e2e-android")["verdict"].clone(), of("e2e-typing:e2e-android")["changed"][0]["name"].clone()), (json!("input-changed"), json!("EXPO_PUBLIC_AGENT_BASE_URL")), "{why}");
     assert_eq!(of("e2e-shaky:e2e-android")["verdict"], "never-stored", "{why}");
-    assert!(bucket.requests().iter().all(|r| r.method == "GET"), "a probe records nothing: {:?}", bucket.requests());
+    let kept: Value = serde_json::from_str(&std::fs::read_to_string(format!("{history}/nx-inputs/e2e-android.json")).unwrap()).unwrap();
+    assert_eq!(kept["tasks"]["e2e-typing:e2e-android"].as_array().map(Vec::len), Some(1), "a probe records nothing: {kept}");
+}
+
+#[test]
+fn given_the_pipeline_when_the_sharded_test_jobs_are_read_then_runs_of_the_same_inputs_share_one_group_whose_pending_job_may_be_replaced_but_no_running_job_is_cancelled() {
+    // Given the pipeline workflow
+    let text = std::fs::read_to_string(crate::support::repo_root().join(".github/workflows/pipeline.yml")).unwrap();
+    // When the concurrency groups of the sharded test jobs are read
+    for (job, keys) in [("core-tests", "core_shard_keys"), ("integration-tests", "integration_shard_keys"), ("cli-e2e-tests", "cli_e2e_shard_keys")] {
+        let block = pipeline_job(&text, job);
+        let group = block.lines().find(|l| l.trim_start().starts_with("group:")).unwrap_or_else(|| panic!("no group in {job}"));
+        // Then the group holds the caller workflow and the shard's input key, not the run id: identical work of one workflow waits as a pending job that a newer run may replace (the owner accepts it),
+        // a fix with other inputs starts at once, and a job that already runs is never cancelled
+        assert!(group.contains(keys) && group.contains("github.workflow") && group.contains("matrix.shard, fromJSON") && !group.contains("run_id"), "{job}: {group}");
+        assert!(block.contains("cancel-in-progress: false") && !block.contains("cancel-in-progress: true"), "{job}: a running job is never cancelled");
+    }
+}
+
+#[test]
+fn given_the_pipeline_when_the_report_job_reads_the_plan_then_the_shard_keys_of_every_keyed_stage_reach_the_steps_that_record_the_groups() {
+    // Given the pipeline workflow
+    let text = std::fs::read_to_string(crate::support::repo_root().join(".github/workflows/pipeline.yml")).unwrap();
+    let report = pipeline_job(&text, "report");
+    // When the two steps that write CI_JOBS rows and the comment are read
+    // Then each is given the keys of the integration, core and cli e2e shards, which the recorded group strings are built from
+    for var in ["WF_CI_SHARD_KEYS: ${{ needs.plan.outputs.integration_shard_keys }}", "WF_CI_CORE_SHARD_KEYS: ${{ needs.plan.outputs.core_shard_keys }}", "WF_CI_CLI_E2E_SHARD_KEYS: ${{ needs.plan.outputs.cli_e2e_shard_keys }}"] {
+        assert_eq!(report.matches(var).count(), 2, "{var}");
+    }
+}
+
+/// A cargo workspace of the chain `chain` (an integration suite whose traces refresh the `demo` coverage table) and the unrelated `other`, with the
+/// table's `pending` count.
+fn evidence_workspace(prefix: &str, pending: u64) -> Workspace {
+    let w = Workspace::new(prefix);
+    let lib = |name: &str, meta: &str| format!("[package]\nname = \"{name}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n{meta}");
+    w.write("repo/tools/Cargo.toml", "[workspace]\nmembers = [\"chain\", \"other\"]\nresolver = \"2\"\n");
+    w.write("repo/tools/chain/Cargo.toml", &lib("chain", "\n[package.metadata.integration]\nevidence = \"demo\"\n"));
+    w.write("repo/tools/other/Cargo.toml", &lib("other", ""));
+    for f in ["chain/src/main.rs", "chain/tests/integration.rs", "other/src/main.rs"] {
+        w.write(&format!("repo/tools/{f}"), "fn main() {}\n");
+    }
+    w.write("repo/docs/plans/rca-parity/coverage/demo.json", &json!({ "summary": { "rows": 9, "served": 9 - pending, "pending": pending } }).to_string());
+    w.commit("a chain and an unrelated crate");
+    w
+}
+
+fn integration_crates(v: &Value) -> Vec<(String, String)> {
+    v["stages"]["integration-tests"].as_array().unwrap().iter().map(|t| (t["crate"].as_str().unwrap().to_string(), t["why"][0].as_str().unwrap().to_string())).collect()
+}
+
+#[test]
+fn a_chain_whose_traces_would_serve_pending_rows_is_planned_for_a_change_that_does_not_reach_it_and_is_never_proven_so_its_bundle_is_published_every_time() {
+    // Given a coverage table with two pending rows and a commit that changes only the unrelated crate
+    let w = evidence_workspace("wf-evidence-plan-pending-", 2);
+    w.write("repo/tools/other/src/main.rs", "fn main() {\n}\n");
+    w.commit("change the unrelated crate");
+
+    // When the commit is planned
+    let (v, _) = w.plan("HEAD~1");
+
+    // Then the chain's suite is planned once, for the rows, and nothing of the unrelated crate's is
+    assert_eq!(integration_crates(&v), [("chain".to_string(), "2 pending row(s) of the demo coverage table wait for the trace bundle of this suite".to_string())], "{v}");
+    // And no shard holding it is skipped as proven, whatever the cache says
+    let r = w.wf(&["ci", "proven", "--stage", "integration-tests", "--count", "1", "--plan", &w.path("plan.json"), "--no-lookup"], &[]);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    let proven = last_json(&r);
+    assert_eq!((proven["run"].clone(), proven["proven"].clone()), (json!([1]), json!([])), "{proven}");
+}
+
+#[test]
+fn a_chain_whose_table_has_every_row_served_is_still_planned_for_a_change_that_does_not_reach_it() {
+    // Given a coverage table with every row served, and a commit that changes only the unrelated crate
+    let w = evidence_workspace("wf-evidence-plan-served-", 0);
+    w.write("repo/tools/other/src/main.rs", "fn main() {\n}\n");
+    w.commit("change the unrelated crate");
+    // When it is planned, Then the chain's suite is planned once, to keep the evidence current
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(integration_crates(&v), [("chain".to_string(), "its trace bundle keeps the demo coverage table's evidence current".to_string())], "{v}");
+
+    // And a commit that changes the chain plans it for the change, not for the table
+    w.write("repo/tools/chain/src/main.rs", "fn main() {\n}\n");
+    w.commit("change the chain");
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(integration_crates(&v), [("chain".to_string(), "changed".to_string())], "{v}");
+}
+
+#[test]
+fn a_chain_naming_an_evidence_table_that_does_not_exist_is_planned_and_says_so() {
+    // Given a chain whose `evidence` names no table, and a commit that changes only the unrelated crate
+    let w = evidence_workspace("wf-evidence-plan-typo-", 0);
+    w.write("repo/docs/plans/rca-parity/coverage/demo.json", "not json");
+    w.commit("break the table");
+    w.write("repo/tools/other/src/main.rs", "fn main() {\n}\n");
+    w.commit("change the unrelated crate");
+    // When it is planned, Then the chain is planned and the reason names the missing table
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(integration_crates(&v), [("chain".to_string(), "the demo coverage table named by `evidence` is missing or unreadable, so its rows cannot be shown served".to_string())], "{v}");
+}
+
+#[test]
+fn a_chain_a_change_reaches_is_planned_once_when_its_table_has_pending_rows() {
+    // Given pending rows and a commit that changes the chain itself
+    let w = evidence_workspace("wf-evidence-plan-reached-", 3);
+    w.write("repo/tools/chain/src/main.rs", "fn main() {\n}\n");
+    w.commit("change the chain");
+    // When it is planned, Then the chain's suite has one entry, for the change
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(integration_crates(&v), [("chain".to_string(), "changed".to_string())], "{v}");
+}
+
+#[test]
+fn given_the_nx_cache_action_when_its_keys_are_read_then_a_lineage_is_one_workflows_and_a_cold_workflow_falls_back_to_any_entry_of_the_shard() {
+    // Given the nx-cache action, which three callers workflows share through pipeline.yml with the same stage and shard count
+    let text = std::fs::read_to_string(crate::support::repo_root().join(".github/actions/nx-cache/action.yml")).unwrap();
+    let keys: Vec<&str> = text.lines().map(str::trim).filter(|l| l.starts_with("key: nx-")).collect();
+    let stage = "nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-";
+    let own = "${{ steps.lineage.outputs.workflow }}-";
+    // When the restore and save keys are read
+    // Then both name the workflow, so a sibling workflow's save does not become this one's newest entry
+    assert_eq!(keys.len(), 2, "{keys:?}");
+    assert!(keys.iter().all(|k| k.contains(&format!("{stage}{own}${{{{ github.run_id }}}}"))), "{keys:?}");
+    // And the restore tries the workflow's own entries first, then any workflow's, so the first run of a workflow still starts warm
+    let own_at = text.find(&format!("          {stage}{own}\n")).expect("own restore key");
+    let any_at = text.find(&format!("          {stage}\n")).expect("any restore key");
+    assert!(own_at < any_at);
+    // And the workflow name is reduced to key-safe characters, since a caller's name holds characters such as `+`
+    assert!(text.contains("tr -c 'A-Za-z0-9_-' '-'"));
 }

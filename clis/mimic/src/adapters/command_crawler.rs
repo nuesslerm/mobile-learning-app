@@ -1,8 +1,8 @@
 //! The `Crawler` port over a child process: the command prints one `mimic-crawl-report/1` object on stdout (the driver's `crawl` verb,
-//! which reads the pinned reference's source on Node). The child inherits the environment, so `MIMIC_T3_ROOT` and `MIMIC_ORCA_ROOT` reach it.
+//! which reads the pinned reference's source on Node). The child gets a `ChildEnv` (the allowlist covers `MIMIC_*`), so `MIMIC_T3_ROOT` and `MIMIC_ORCA_ROOT` reach it.
 use super::StdioSpec;
 use mimic_core::crawl::{CrawlError, Crawler, Report};
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 
 pub struct CommandCrawler {
     spec: StdioSpec,
@@ -17,8 +17,8 @@ impl CommandCrawler {
 impl Crawler for CommandCrawler {
     fn crawl(&mut self) -> Result<Report, CrawlError> {
         let (program, args) = self.spec.command.split_first().ok_or_else(|| CrawlError("the crawl command is empty".into()))?;
-        let mut command = Command::new(program);
-        command.args(args).envs(self.spec.env.iter().map(|(k, v)| (k, v))).stdin(Stdio::null());
+        let mut command = crate::child_env::ChildEnv::base().pass(&self.spec.pass).with(self.spec.env.iter().cloned()).command(program);
+        command.args(args).stdin(Stdio::null());
         if let Some(cwd) = &self.spec.cwd {
             command.current_dir(cwd);
         }

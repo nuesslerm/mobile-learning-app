@@ -1,6 +1,6 @@
 //! Behavior of the pure compute the service renders with. Given/When/Then, through the public API only.
 
-use crate::{docx::docx_text, highlight, js, md::md_to_html, tamil};
+use crate::{docx::docx_text, js, md::md_to_html, tamil};
 use serde_json::json;
 use std::io::{Cursor, Write};
 
@@ -55,28 +55,6 @@ fn given_a_zip_without_the_main_part_when_read_then_the_error_names_the_docx() {
 #[test]
 fn given_bytes_that_are_no_zip_when_read_then_it_is_an_error() {
     assert!(docx_text(b"plain text").is_err());
-}
-
-#[test]
-fn given_file_names_when_the_language_is_asked_then_the_extension_decides_case_blind() {
-    assert_eq!(highlight::language_for_file("src/App.TSX"), "typescript");
-    assert_eq!(highlight::language_for_file("main.rs"), "rust");
-    assert_eq!(highlight::language_for_file("notes.unknown"), "text");
-}
-
-#[test]
-fn given_rust_lines_when_highlighted_then_one_html_line_each_with_the_keyword_marked_and_text_escaped() {
-    let lines = vec!["fn main() {".to_string(), "    let a = 1 < 2;".to_string()];
-    let out = highlight::highlight_lines(&lines, "rust");
-    assert_eq!(out.len(), 2);
-    assert!(out[0].contains("<span") && out[0].contains("fn"), "{}", out[0]);
-    assert!(out[1].contains("&lt;") && !out[1].contains(" < "), "{}", out[1]);
-}
-
-#[test]
-fn given_an_unknown_language_when_highlighted_then_the_lines_come_back_escaped_and_plain() {
-    let out = highlight::highlight_lines(&["<b>&".to_string()], "text");
-    assert_eq!(out, vec!["&lt;b&gt;&amp;".to_string()]);
 }
 
 #[test]

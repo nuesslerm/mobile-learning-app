@@ -23,20 +23,20 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
       "ProblemEditorDiffToggle",
       "ProblemEditorDiffToggle-Indicator",
       "ProblemEditorDiffToggle-Label",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
       "ProblemEditorTextEditStartButton",
       "ProblemEditorVoiceStartButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInput",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "ProblemPlanTab",
       "ProblemPlanSteps",
       "ProblemPlanStep-0",
@@ -56,7 +56,7 @@
     "text": "Plan\nCode\n1\nReturn whether the cleaned string is a palindrome.\nlines 3–3\nAdd"
   },
   "timings": {
-    "render_ms": 259
+    "render_ms": 317
   },
   "name": "plantab/final-given-a-pending-step-when-realize-is-pressed-t-34098c.light",
   "image": {

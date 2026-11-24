@@ -23,6 +23,13 @@ pub struct CatalogModel {
     pub name: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct CatalogProvider {
+    pub driver: String,
+    pub signed_in: Option<bool>,
+    pub models: Vec<CatalogModel>,
+}
+
 /// The models the `rca` provider lists in `ServerConfig`.
 pub trait ModelCatalog: Send + Sync {
     fn models(&self) -> Vec<CatalogModel>;
@@ -108,6 +115,16 @@ pub trait AuthStore: Send + Sync {
     fn put_ticket(&self, hash: &str, ticket: &TicketRecord, expires_at: Millis) -> StoreResult<()>;
     /// Single use; a ticket past its expiry or already redeemed is `None`.
     fn consume_ticket(&self, hash: &str, now: Millis) -> StoreResult<Option<TicketRecord>>;
+    /// Deletes the bearer with this id and the tickets it minted; whether there was one.
+    fn revoke_token(&self, id: &str) -> StoreResult<bool>;
+    /// Deletes every live bearer but the one with this id; how many.
+    fn revoke_other_tokens(&self, keep_id: &str, now: Millis) -> StoreResult<usize>;
+    /// Deletes a pairing code nobody redeemed yet, by the id the mint answered with; whether there was one.
+    fn revoke_grant(&self, id: &str) -> StoreResult<bool>;
+    /// The bearers that have not expired by `now`.
+    fn list_tokens(&self, now: Millis) -> StoreResult<Vec<TokenRecord>>;
+    /// The pairing codes nobody redeemed and that have not expired by `now`, each with the hash its id is a prefix of.
+    fn list_grants(&self, now: Millis) -> StoreResult<Vec<(String, GrantRecord, Millis)>>;
 }
 
 /// Small durable values: the environment id.
@@ -151,6 +168,8 @@ pub struct AgentThread {
     pub thread_id: String,
     pub instance_id: String,
     pub model: Option<String>,
+    /// The worktree the thread works in, when it has one: its turns run in the workspace that worktree is (the executor's own when none matches).
+    pub worktree: Option<String>,
 }
 
 /// One turn to run on a thread: the message and the thread's modes.
@@ -164,6 +183,8 @@ pub struct AgentTurn {
     pub interaction_mode: String,
     /// Ids of the attachments kept by the agent API (`upload.put`) that the turn's workspace is given before the CLI starts.
     pub attachments: Vec<String>,
+    /// The worktree the thread works in, when it has one: the turn runs in the workspace that worktree is.
+    pub worktree: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -241,7 +262,8 @@ pub enum Op {
     ApprovalAnswer { thread: String, approval: String, decision: String },
     InputAnswer { thread: String, request: String, answer: String },
     InputDismiss { thread: String, request: String },
-    QueueAdd { thread: String, item: String, prompt: String },
+    QueueAdd { thread: String, item: String, prompt: String, model: Option<String> },
+    ProviderCommands { root: String, driver: String },
     QueueEdit { thread: String, item: String, prompt: String },
     QueueMove { thread: String, item: String, before: Option<String> },
     QueueDelete { thread: String, item: String },
@@ -274,6 +296,8 @@ pub enum Op {
     /// A directory made in the executor's tree (`files.edit`): `path` is under the executor's root, relative or absolute. `parents` makes the
     /// missing ones and accepts a directory that exists; without it the name is claimed and a taken one is refused (`ALREADY_EXISTS`).
     FileMkdir { path: String, parents: bool },
+    /// A Claude workflow script, read at the executor below its `~/.claude/projects` (at most `length` bytes).
+    WorkflowScript { path: String, length: u64 },
     /// A repository made in the directory `path` below the executor's root (`git` group), with `files` (path, content) written as new files and
     /// committed under `message` when there are any. The answer says why a commit did not happen (`commit_error`).
     GitInit { path: String, initial_branch: Option<String>, files: Vec<(String, String)>, message: Option<String> },
@@ -287,6 +311,8 @@ pub enum Op {
     /// The changes under `root` since the revision it is at.
     ThreadDiff { root: String },
     WorktreeCreate { root: String, worktree: String, branch: String, base: Option<String> },
+    /// The worktree at the directory `root` removed, whatever it holds (`worktree.remove`, forced), with its branch kept.
+    WorktreeRemove { root: String },
     WorktreeSetupCancel { root: String },
     /// The terminals of a project's directory: `terminal` is the name in the agent API (T3's thread and terminal ids joined), `cwd` the
     /// directory the shell starts in.
@@ -317,6 +343,8 @@ pub enum Op {
     GitStage { root: String, paths: Vec<String> },
     GitCommit { root: String, message: String },
     GitPush { root: String, set_upstream: bool },
+    /// The files git ignores in the project's directory, with their sizes (`files`, `truncated`).
+    GitIgnored { root: String },
     /// The provider CLIs and their logins (`accounts` group). A reply names a status and a login prompt, never a token.
     AccountsList,
     AccountsRefresh { provider: Option<String> },
@@ -328,6 +356,8 @@ pub enum Op {
     AccountsLogout { provider: String },
     UsageSummary,
     ResetCredit { provider: String },
+    /// The last events the service wrote itself (`service` group), at or above `min_level` (`info`, `warn` or `error`).
+    ServiceLogs { limit: u32, min_level: &'static str },
     /// A request of the hosted source control groups (`pr.*`, `clone.*`, `sourceControl.*`): `method` is the agent API method, `root` the
     /// project's directory (it picks the workspace) and `params` the method's params without the workspace.
     Hosted { method: &'static str, root: String, params: Value },
@@ -339,6 +369,10 @@ pub enum Op {
     /// A request of the `preview.sessions` group (`preview.open`, `preview.resize`, ..., `preview.subscribe` for where the stream stands): `method` is
     /// the agent API method.
     Preview { method: &'static str, params: Value },
+    /// A request of the catalog group's speech methods (`speech.status`, `speech.transcribe`): the service's own engine, the executor is never asked.
+    Speech { method: &'static str, params: Value },
+    /// A request of the catalog group that reads the executor's own host (`sessions.list`): `method` is the agent API method.
+    Catalog { method: &'static str, params: Value },
 }
 
 impl Op {
@@ -349,6 +383,7 @@ impl Op {
             Op::InputAnswer { .. } => "input.answer",
             Op::InputDismiss { .. } => "input.dismiss",
             Op::QueueAdd { .. } => "queue.add",
+            Op::ProviderCommands { .. } => "commands.list",
             Op::QueueEdit { .. } => "queue.edit",
             Op::QueueMove { .. } => "queue.move",
             Op::QueueDelete { .. } => "queue.delete",
@@ -375,6 +410,7 @@ impl Op {
             Op::FileWrite { .. } => "file.write",
             Op::FileBrowse { .. } => "file.browse",
             Op::FileMkdir { .. } => "file.mkdir",
+            Op::WorkflowScript { .. } => "file.readChunk",
             Op::GitInit { .. } => "git.init",
             Op::WorkspaceCreate { .. } => "workspace.create",
             Op::WorkspaceRemove { .. } => "workspace.remove",
@@ -382,6 +418,7 @@ impl Op {
             Op::TurnDiff { .. } => "turn.diff",
             Op::ThreadDiff { .. } => "thread.diff",
             Op::WorktreeCreate { .. } => "worktree.create",
+            Op::WorktreeRemove { .. } => "worktree.remove",
             Op::WorktreeSetupCancel { .. } => "worktree.setup.cancel",
             Op::TerminalOpen { .. } => "terminal.open",
             Op::TerminalWrite { .. } => "terminal.write",
@@ -403,6 +440,7 @@ impl Op {
             Op::GitStage { .. } => "git.stage",
             Op::GitCommit { .. } => "git.commit",
             Op::GitPush { .. } => "git.push",
+            Op::GitIgnored { .. } => "git.ignored",
             Op::AccountsList => "provider.list",
             Op::AccountsRefresh { .. } => "provider.refresh",
             Op::AccountsSelect { .. } => "provider.select",
@@ -413,7 +451,8 @@ impl Op {
             Op::AccountsLogout { .. } => "provider.logout",
             Op::UsageSummary => "usage.summary",
             Op::ResetCredit { .. } => "provider.resetCredit",
-            Op::Hosted { method, .. } | Op::Schedule { method, .. } | Op::Attachment { method, .. } | Op::Preview { method, .. } => method,
+            Op::ServiceLogs { .. } => "service.logs",
+            Op::Hosted { method, .. } | Op::Schedule { method, .. } | Op::Attachment { method, .. } | Op::Preview { method, .. } | Op::Speech { method, .. } | Op::Catalog { method, .. } => method,
         }
     }
 }
@@ -454,6 +493,9 @@ pub trait AgentApi: Send + Sync {
     /// of anything, and what needs the agent API says so when it is asked for.
     fn configured(&self) -> bool {
         true
+    }
+    fn catalog_providers(&self) -> Result<Vec<CatalogProvider>, AgentError> {
+        Ok(Vec::new())
     }
     /// One request of `Op`: the contract's result.
     fn run(&self, op: &Op) -> Result<Value, AgentError>;

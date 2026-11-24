@@ -17,11 +17,14 @@ type Locked<'a> = (&'a str, Option<&'a str>, &'a [&'a str]);
 const SVC_FLOW: &str = "@fx/svc test:flow";
 const SVC_INTEGRATION: &str = "@fx/svc test:integration";
 const CHAIN_FLOW: &str = "test chain flow";
-const CHAIN_INTEGRATION: &str = "test chain integration";
+const CHAIN_INTEGRATION: &str = "test chain integration !sets::north:: !sets::south::";
+const CHAIN_NORTH: &str = "test chain integration sets::north::";
+const CHAIN_SOUTH: &str = "test chain integration sets::south::";
 const KIT_FLOW: &str = "test kit flow";
 const HELPER_FLOW: &str = "test helper flow";
 const ALPHA: &str = "test tool flow alpha::";
 const BETA: &str = "test tool flow beta::";
+const TOOL_REST: &str = "test tool flow !alpha:: !beta::";
 const CLIPPED: [&str; 9] = ["kit", "assets-gen", "tool", "tool-alpha", "chain", "helper", "helper-plugin", "svc", "svc-core"];
 
 fn ran(items: &[&str]) -> Ran {
@@ -52,6 +55,16 @@ fn lock(entries: &[Locked]) -> String {
         }
     }
     text
+}
+
+/// The remote chat agent's own `test:integration` up to its cargo call (the task's folder for the run records, removed first, and the variable
+/// that points the suites at it), then a stand-in suite that leaves a trace there and logs the run, as the real cargo test would.
+fn svc_integration_script(rca: &Value) -> String {
+    let real = rca["scripts"]["test:integration"].as_str().expect("the remote chat agent has a test:integration script");
+    let setup = &real[..real.find("cargo ").expect("the script runs cargo")];
+    let suite = r#"echo "@fx/svc test:integration" >> "$RAN_LOG"; mkdir -p "$WF_TEST_OUTPUT_DIR/svc-suite"; printf "{}" > "$WF_TEST_OUTPUT_DIR/svc-suite/trace.json"; printf "{}" > "$WF_TEST_OUTPUT_DIR/svc-suite/report.json""#;
+    // the trailing comment is the cargo call the Nx plugin reads the crate from (`-p <crate>`)
+    format!("{setup}sh -c '{suite}' # cargo test --locked -p svc --test integration --manifest-path Cargo.toml")
 }
 
 /// Three cargo workspaces: `clis` (kit, tool with flow groups, and tool-alpha and assets-gen nested in what tool reads, and chain, whose
@@ -87,8 +100,12 @@ impl Fixture {
             &aside.join("bin/cargo"),
             r#"[ "$1" = metadata ] && { echo 'the Nx graph must not need cargo' >&2; exit 1; }
 sub="$1"; shift; p=""; t=""; f=""
-while [ $# -gt 0 ]; do case "$1" in -p) p="$2"; shift;; --test) t=" $2"; shift;; --lib|--bins) t=" unit";; --manifest-path) shift;; --) break;; -*) ;; *) f=" $1";; esac; shift; done
+while [ $# -gt 0 ]; do case "$1" in -p) p="$2"; shift;; --test) t=" $2"; shift;; --lib|--bins) t=" unit";; --manifest-path) shift;; --skip) f="$f !$2"; shift;; --) break;; -*) ;; *) f=" $1";; esac; shift; done
+# a test run's own arguments after `--`: its filters, and what it skips as `!<filter>`
+if [ "$sub" = test ] && [ "$1" = -- ]; then shift; while [ $# -gt 0 ]; do case "$1" in --skip) f="$f !$2"; shift;; -*) ;; *) f="$f $1";; esac; shift; done; fi
 echo "$sub $p$t$f" >> "$RAN_LOG"
+# an integration run leaves its suite's trace where the task was told to (`WF_TEST_OUTPUT_DIR`), the way the real suites do
+if [ "$sub" = test ] && [ -n "$WF_TEST_OUTPUT_DIR" ]; then mkdir -p "$WF_TEST_OUTPUT_DIR/$p-suite"; printf '{"suite":"%s","filter":"%s"}' "$p" "$f" > "$WF_TEST_OUTPUT_DIR/$p-suite/trace.json"; printf '{"schema":1}' > "$WF_TEST_OUTPUT_DIR/$p-suite/report.json"; mkdir -p "$WF_TEST_OUTPUT_DIR/wf-mimic-$p/feature/set"; printf '{"schema":1}' > "$WF_TEST_OUTPUT_DIR/wf-mimic-$p/feature/set/report.json"; fi
 "#,
         );
 
@@ -106,8 +123,8 @@ echo "$sub $p$t$f" >> "$RAN_LOG"
             &manifest("tool", "kit = { path = \"../kit\" }\ntool-alpha = { path = \"alpha\" }\n", "\n[package.metadata.flow]\ninputs = [\"../assets/**\"]\nuses = [\"helper\"]\nshared = [\"tests/flow/support/**\"]\ngroups = { alpha = [\"tool-alpha\"], beta = [\"tests/fixtures/beta/**\"] }\n"),
         );
         put_file(&ws, "clis/tool/src/main.rs", "fn main() {}\n");
-        put_file(&ws, "clis/tool/tests/flow.rs", "mod alpha;\nmod beta;\nmod support;\n");
-        for module in ["alpha", "beta"] {
+        put_file(&ws, "clis/tool/tests/flow.rs", "mod alpha;\nmod beta;\nmod misc;\nmod support;\n");
+        for module in ["alpha", "beta", "misc"] {
             put_file(&ws, &format!("clis/tool/tests/flow/{module}.rs"), "#[test]\nfn runs() {}\n");
         }
         put_file(&ws, "clis/tool/tests/flow/support/mod.rs", "pub fn tool() {}\n");
@@ -116,10 +133,12 @@ echo "$sub $p$t$f" >> "$RAN_LOG"
         put_file(&ws, "clis/tool/alpha/src/lib.rs", "pub fn alpha() {}\n");
         // a chain: its integration tests run the service of another workspace and the helper of a third (as t3-serve's run rca-service and the scripted
         // CLI that exec-testkit builds from its own workspace) and name their rows in a table, its flow tests read none of them
-        put_file(&ws, "clis/chain/Cargo.toml", &manifest("chain", "", "\n[package.metadata.integration]\ninputs = [\"../rows/**\"]\nuses = [\"svc\", \"helper\"]\n"));
+        put_file(&ws, "clis/chain/Cargo.toml", &manifest("chain", "", "\n[package.metadata.integration]\ninputs = [\"../rows/**\"]\nuses = [\"svc\", \"helper\"]\n\n[package.metadata.integration.groups]\nnorth = { filter = \"sets::north::\", files = [\"tests/sets/north/**\"] }\nsouth = { filter = \"sets::south::\", files = [\"tests/sets/south/**\"] }\n"));
         put_file(&ws, "clis/chain/src/main.rs", "fn main() {}\n");
         put_file(&ws, "clis/chain/tests/flow.rs", "#[test]\nfn chains() {}\n");
         put_file(&ws, "clis/chain/tests/integration.rs", "#[test]\nfn runs_the_chain() {}\n");
+        put_file(&ws, "clis/chain/tests/sets/north/case.json", "{}\n");
+        put_file(&ws, "clis/chain/tests/sets/south/case.json", "{}\n");
         put_file(&ws, "clis/rows/table.json", "{}\n");
 
         put_file(&ws, "libraries/Cargo.toml", "[workspace]\nmembers = [\"helper\", \"helper/plugin\"]\nresolver = \"2\"\n");
@@ -136,7 +155,7 @@ echo "$sub $p$t$f" >> "$RAN_LOG"
         let script = |name: &str, original: &str| format!("echo '@fx/svc {name}' >> \"$RAN_LOG\" # {original}");
         let scripts = json!({
             "test:flow": script("test:flow", "cargo test --locked -p svc --test flow --manifest-path Cargo.toml"),
-            "test:integration": script("test:integration", "cargo test --locked -p svc --test integration --manifest-path Cargo.toml"),
+            "test:integration": svc_integration_script(&rca),
         });
         put_file(&ws, "backend/svc/package.json", &serde_json::to_string_pretty(&json!({ "name": "@fx/svc", "private": true, "scripts": scripts, "nx": rca["nx"] })).unwrap());
         put_file(&ws, "backend/svc/Cargo.toml", "[workspace]\nmembers = [\"core\", \"rs\"]\nresolver = \"2\"\n");
@@ -173,9 +192,10 @@ echo "$sub $p$t$f" >> "$RAN_LOG"
         let f = Fixture { _dir: dir, ws, aside, platform: Cell::new("linux-x64") };
         let flow = |c: &str| json!({ "kind": "flow", "crate": c });
         let chain = json!({ "kind": "integration", "crate": "chain" });
+        let set = |g: &str| json!({ "kind": "integration", "crate": "chain", "group": g, "target": format!("cargo-integration-{g}") });
         let group = |g: &str| json!({ "kind": "flow", "crate": "tool", "group": g, "target": format!("cargo-flow-{g}") });
-        f.plan("flow-tests", json!([{ "kind": "flow", "package": "@fx/svc" }, flow("kit"), flow("chain"), flow("helper"), group("alpha"), group("beta")]));
-        f.plan("integration-tests", json!([{ "kind": "integration", "package": "@fx/svc" }, chain]));
+        f.plan("flow-tests", json!([{ "kind": "flow", "package": "@fx/svc" }, flow("kit"), flow("chain"), flow("helper"), flow("tool"), group("alpha"), group("beta")]));
+        f.plan("integration-tests", json!([{ "kind": "integration", "package": "@fx/svc" }, chain, set("north"), set("south")]));
         let units = ["kit", "svc-core"].map(|c| json!({ "kind": "unit", "crate": c }));
         f.plan("typecheck-lint-unit-tests", Value::Array(units.into_iter().chain(CLIPPED.map(|c| json!({ "kind": "clippy", "crate": c }))).collect()));
         f
@@ -189,12 +209,14 @@ echo "$sub $p$t$f" >> "$RAN_LOG"
     fn stage(&self, stage: &str) -> (RunResult, Ran) {
         let log = self.aside.join("ran.log");
         let _ = std::fs::remove_file(&log);
+        std::fs::create_dir_all(self.aside.join("home")).unwrap();
         let plan = self.aside.join(format!("{stage}.json"));
         let opts = RunOpts::default()
             .bin_dir(&self.aside.join("bin"))
             .cwd(&self.ws)
             .timeout(Duration::from_secs(300))
             .env("WF_TEST_REPO", &self.ws.display().to_string())
+            .env("HOME", &self.aside.join("home").display().to_string())
             .env("RAN_LOG", &log.display().to_string())
             .env("NX_DAEMON", "false")
             .env("FX_PLATFORM", self.platform.get())
@@ -251,11 +273,15 @@ echo "$sub $p$t$f" >> "$RAN_LOG"
 }
 
 fn every_flow() -> Ran {
-    ran(&[SVC_FLOW, KIT_FLOW, CHAIN_FLOW, HELPER_FLOW, ALPHA, BETA])
+    ran(&[SVC_FLOW, KIT_FLOW, CHAIN_FLOW, HELPER_FLOW, TOOL_REST, ALPHA, BETA])
 }
 
 fn every_integration() -> Ran {
-    ran(&[SVC_INTEGRATION, CHAIN_INTEGRATION])
+    ran(&[SVC_INTEGRATION, CHAIN_INTEGRATION, CHAIN_NORTH, CHAIN_SOUTH])
+}
+
+fn chain_integration() -> Ran {
+    ran(&[CHAIN_INTEGRATION, CHAIN_NORTH, CHAIN_SOUTH])
 }
 
 fn every_check() -> Ran {
@@ -316,7 +342,7 @@ fn a_declared_glob_leaves_out_the_crates_nested_under_it() {
     f.check_cases(
         "flow-tests",
         vec![
-            ("a data file the flow tests declare", "clis/assets/logo.txt", ran(&[ALPHA, BETA])),
+            ("a data file the flow tests declare", "clis/assets/logo.txt", ran(&[TOOL_REST, ALPHA, BETA])),
             ("a crate nested in that dir, which tool does not build", "clis/assets/gen/src/lib.rs", ran(&[])),
             ("a crate nested in a used crate's dir, which that crate does not build", "libraries/helper/plugin/src/lib.rs", ran(&[])),
         ],
@@ -339,12 +365,13 @@ fn a_flow_group_runs_again_only_for_its_module_the_shared_files_and_the_crates_i
             ("one group's module", "clis/tool/tests/flow/alpha.rs", ran(&[ALPHA])),
             ("the other group's module", "clis/tool/tests/flow/beta.rs", ran(&[BETA])),
             ("a fixture only one group names", "clis/tool/tests/fixtures/beta/case.json", ran(&[BETA])),
-            ("the crate one group names", "clis/tool/alpha/src/lib.rs", ran(&[ALPHA])),
-            ("the support every group shares", "clis/tool/tests/flow/support/mod.rs", ran(&[ALPHA, BETA])),
-            ("the suite's module list", "clis/tool/tests/flow.rs", ran(&[ALPHA, BETA])),
-            ("the crate's own source", "clis/tool/src/main.rs", ran(&[ALPHA, BETA])),
-            ("the crate's manifest", "clis/tool/Cargo.toml", ran(&[ALPHA, BETA])),
-            ("a dependency no group names", "clis/kit/src/lib.rs", ran(&[KIT_FLOW, ALPHA, BETA])),
+            ("the crate one group names", "clis/tool/alpha/src/lib.rs", ran(&[TOOL_REST, ALPHA])),
+            ("a module in no group", "clis/tool/tests/flow/misc.rs", ran(&[TOOL_REST])),
+            ("the support every group shares", "clis/tool/tests/flow/support/mod.rs", ran(&[TOOL_REST, ALPHA, BETA])),
+            ("the suite's module list", "clis/tool/tests/flow.rs", ran(&[TOOL_REST, ALPHA, BETA])),
+            ("the crate's own source", "clis/tool/src/main.rs", ran(&[TOOL_REST, ALPHA, BETA])),
+            ("the crate's manifest", "clis/tool/Cargo.toml", ran(&[TOOL_REST, ALPHA, BETA])),
+            ("a dependency no group names", "clis/kit/src/lib.rs", ran(&[KIT_FLOW, TOOL_REST, ALPHA, BETA])),
             ("another crate's flow test", "clis/kit/tests/flow.rs", ran(&[KIT_FLOW])),
         ],
     );
@@ -359,13 +386,13 @@ fn a_rust_task_keys_on_the_lockfile_entries_its_crate_reaches_and_on_the_whole_f
     let lockfile = |file: &str, from: &str, to: &str, stage: &str, expected: Ran| f.with_replace(file, from, to, || assert_eq!(f.runs(stage), expected, "{stage}: {file} {from} -> {to}"));
 
     // When a registry crate only tool-alpha uses moves, Then the tasks of tool-alpha and of tool, which builds it, run; kit's do not
-    lockfile("clis/Cargo.lock", "checksum = \"aaa\"", "checksum = \"aab\"", "flow-tests", ran(&[ALPHA, BETA]));
+    lockfile("clis/Cargo.lock", "checksum = \"aaa\"", "checksum = \"aab\"", "flow-tests", ran(&[TOOL_REST, ALPHA, BETA]));
     lockfile("clis/Cargo.lock", "checksum = \"aaa\"", "checksum = \"aab\"", "typecheck-lint-unit-tests", checks(&[], &["tool-alpha", "tool"]));
     // When kit's registry crate moves, Then kit's tasks run, and tool's, which builds kit
-    lockfile("clis/Cargo.lock", "checksum = \"bbb\"", "checksum = \"bbc\"", "flow-tests", ran(&[KIT_FLOW, ALPHA, BETA]));
+    lockfile("clis/Cargo.lock", "checksum = \"bbb\"", "checksum = \"bbc\"", "flow-tests", ran(&[KIT_FLOW, TOOL_REST, ALPHA, BETA]));
     lockfile("clis/Cargo.lock", "checksum = \"bbb\"", "checksum = \"bbc\"", "typecheck-lint-unit-tests", checks(&["kit"], &["kit", "tool"]));
     // When the lockfile no longer parses, Then every task of its workspace runs: a slice it cannot read is the whole file
-    lockfile("clis/Cargo.lock", "[[package]]", "[[package", "flow-tests", ran(&[KIT_FLOW, CHAIN_FLOW, ALPHA, BETA]));
+    lockfile("clis/Cargo.lock", "[[package]]", "[[package", "flow-tests", ran(&[KIT_FLOW, CHAIN_FLOW, TOOL_REST, ALPHA, BETA]));
     lockfile("clis/Cargo.lock", "[[package]]", "[[package", "typecheck-lint-unit-tests", checks(&["kit"], &["kit", "assets-gen", "chain", "tool", "tool-alpha"]));
     // When only a comment of the lockfile changes, Then nothing runs
     f.check_cases("flow-tests", vec![("a comment in the lockfile", "clis/Cargo.lock", ran(&[]))]);
@@ -381,7 +408,7 @@ fn a_flow_test_keys_on_the_crates_it_uses_and_a_misspelled_one_stops_the_graph()
     f.seed("flow-tests", every_flow());
     f.seed("integration-tests", every_integration());
     f.seed("typecheck-lint-unit-tests", every_check());
-    let users = ran(&[HELPER_FLOW, ALPHA, BETA, SVC_FLOW]);
+    let users = ran(&[HELPER_FLOW, TOOL_REST, ALPHA, BETA, SVC_FLOW]);
 
     // When a file helper builds from changes, Then every flow suite that uses it runs
     f.check_cases(
@@ -425,9 +452,11 @@ fn an_integration_chain_keys_on_the_binaries_it_runs_in_other_workspaces_and_the
     f.check_cases(
         "integration-tests",
         vec![
-            ("the chain's source", "clis/chain/src/main.rs", ran(&[CHAIN_INTEGRATION])),
-            ("the chain's integration test", "clis/chain/tests/integration.rs", ran(&[CHAIN_INTEGRATION])),
-            ("the table it names its rows from", "clis/rows/table.json", ran(&[CHAIN_INTEGRATION])),
+            ("the chain's source", "clis/chain/src/main.rs", chain_integration()),
+            ("the chain's integration test", "clis/chain/tests/integration.rs", chain_integration()),
+            ("the table it names its rows from", "clis/rows/table.json", chain_integration()),
+            ("the files of one of its sets", "clis/chain/tests/sets/north/case.json", ran(&[CHAIN_NORTH])),
+            ("the files of another set", "clis/chain/tests/sets/south/case.json", ran(&[CHAIN_SOUTH])),
             ("the service binary's source, in another workspace", "backend/svc/rs/src/main.rs", every_integration()),
             ("a crate the service builds", "backend/svc/core/src/lib.rs", every_integration()),
             ("the service workspace's manifest", "backend/svc/Cargo.toml", every_integration()),
@@ -461,7 +490,7 @@ fn an_integration_chain_keys_on_the_binaries_it_runs_in_other_workspaces_and_the
             ("the table the integration tests name", "clis/rows/table.json", ran(&[])),
             ("the chain's own source", "clis/chain/src/main.rs", ran(&[CHAIN_FLOW])),
             ("the chain's flow test", "clis/chain/tests/flow.rs", ran(&[CHAIN_FLOW])),
-            ("the helper the chain's integration tests run", "libraries/helper/src/main.rs", ran(&[HELPER_FLOW, ALPHA, BETA, SVC_FLOW])),
+            ("the helper the chain's integration tests run", "libraries/helper/src/main.rs", ran(&[HELPER_FLOW, TOOL_REST, ALPHA, BETA, SVC_FLOW])),
         ],
     );
 
@@ -470,6 +499,46 @@ fn an_integration_chain_keys_on_the_binaries_it_runs_in_other_workspaces_and_the
         let (r, did) = f.stage("integration-tests");
         assert_eq!((r.exit_code, did), (1, ran(&[])), "{}\n{}", r.stdout, r.stderr);
         assert!(r.stderr.contains("chain: [package.metadata.integration] uses names \"svcs\""), "{}", r.stderr);
+    });
+}
+
+#[test]
+fn an_integration_task_replayed_from_the_cache_restores_the_trace_its_run_left() {
+    // Given an integration chain that ran once and left the trace of its suites in the task's own folder
+    let f = Fixture::new();
+    assert_eq!(f.runs("integration-tests"), every_integration(), "the first run runs every task");
+    let records = f.ws.join(".agents/tmp/test-output");
+    let traces = |dir: &std::path::Path| -> Vec<String> {
+        let mut found: Vec<String> = ["chain/cargo-integration/chain-suite", "chain/cargo-integration-north/chain-suite", "chain/cargo-integration-south/chain-suite", "remote-chat-agent/test-integration/svc-suite"]
+            .iter()
+            .filter(|rel| dir.join(rel).join("trace.json").is_file() && dir.join(rel).join("report.json").is_file())
+            .map(|rel| rel.to_string())
+            .collect();
+        found.sort();
+        found
+    };
+    let written = traces(&records);
+    assert!(written.contains(&"chain/cargo-integration-north/chain-suite".to_string()), "each task writes its own folder: {written:?}");
+    assert!(written.contains(&"chain/cargo-integration/chain-suite".to_string()), "{written:?}");
+    assert!(written.contains(&"remote-chat-agent/test-integration/svc-suite".to_string()), "a package crate's script leaves its records in the folder its outputs name: {written:?}");
+    let north = std::fs::read_to_string(records.join("chain/cargo-integration-north/chain-suite/trace.json")).unwrap();
+    assert!(north.contains("sets::north::"), "the group's folder holds the group's own run: {north}");
+
+    // When the workspace loses the records (a fresh runner) and the stage runs again, every task replaying from the cache
+    std::fs::remove_dir_all(&records).unwrap();
+    assert_eq!(f.runs("integration-tests"), ran(&[]), "nothing changed, nothing runs");
+
+    // Then the cache hit restored the same traces, so the shard still has them to publish
+    assert_eq!(traces(&records), written, "a replayed task restores its trace");
+    assert_eq!(std::fs::read_to_string(records.join("chain/cargo-integration-north/chain-suite/trace.json")).unwrap(), north);
+
+    // And a replay's record, which sits two levels under its suite folder (wf-mimic-<crate>/<feature>/<set>/), is restored with its report.json, the file `wf test publish` needs
+    assert!(records.join("chain/cargo-integration-north/wf-mimic-chain/feature/set/report.json").is_file(), "a nested record keeps its report.json through the cache");
+
+    // And a changed task runs again and rewrites only its own folder
+    f.with_edit("clis/chain/tests/sets/north/case.json", || {
+        assert_eq!(f.runs("integration-tests"), ran(&[CHAIN_NORTH]));
+        assert_eq!(traces(&records), written);
     });
 }
 

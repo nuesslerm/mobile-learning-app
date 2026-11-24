@@ -1,0 +1,100 @@
+{
+  "schema": "mimic-known-gaps/2",
+  "groups": [
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit._tag",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value extra drift"
+      ],
+      "ids": [
+        "t3-command-thread.guest-share.close",
+        "t3-command-thread.pin",
+        "t3-command-thread.settle"
+      ]
+    },
+    {
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type extra drift",
+        "steps.http:ret:_.[2].payload.headers.vary extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-voice.setCloudKey",
+        "t3-http-voice.transcribeCloud"
+      ]
+    },
+    {
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type changed drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-connect.relayConfig"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
+      ],
+      "ids": [
+        "t3-rpc-device.list"
+      ]
+    },
+    {
+      "class": "kind at steps.ws:s2c:*.[*].payload.exit.value.fetchedAt",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.fetchedAt kind breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.knownModels changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.source changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.status changed drift"
+      ],
+      "ids": [
+        "t3-rpc-server.refreshUsageRates"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values.[*].payload.environment.capabilities.cloudVoiceTranscription",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.fileAttachments missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.freshContext missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.mcpApprovalCodes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.mcpHostedApproval missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.modelCatalogRefresh missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.oneTimeSchedules missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.scheduledTaskThreadModes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.vcsBranchStatus missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.voiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.databaseMigration changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.fileAttachments missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.freshContext missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.mcpApprovalCodes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.mcpHostedApproval missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.modelCatalogRefresh missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.oneTimeSchedules missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.scheduledTaskThreadModes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.vcsBranchStatus missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.voiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.databaseMigration changed drift"
+      ],
+      "ids": [
+        "t3-rpc-subscribeServerLifecycle"
+      ]
+    }
+  ]
+}

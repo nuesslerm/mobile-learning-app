@@ -55,6 +55,38 @@
           ]
         }
       }
+    },
+    {
+      "name": "reports the branch origin's HEAD points at once git recorded it",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true,
+        "remote_head": true
+      },
+      "request": {
+        "id": "upst19",
+        "tool": "git_upstream",
+        "args": {}
+      },
+      "response": {
+        "id": "upst19",
+        "ok": true,
+        "result": {
+          "branch": "main",
+          "has_upstream": true,
+          "upstream": "origin/main",
+          "remote": "origin",
+          "ahead": 0,
+          "behind": 0,
+          "remotes": [
+            "origin"
+          ],
+          "origin_head": "origin/main"
+        }
+      }
     }
   ]
 }

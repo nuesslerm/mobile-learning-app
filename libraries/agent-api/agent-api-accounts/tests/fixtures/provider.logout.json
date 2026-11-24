@@ -38,7 +38,12 @@
             ]
           }
         }
-      }
+      },
+      "actions": [
+        "login_cancel",
+        "logout",
+        "cli_detect"
+      ]
     }
   ]
 }

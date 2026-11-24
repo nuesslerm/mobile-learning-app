@@ -19,3 +19,6 @@ serde_json = { version = "1", features = ["preserve_order"] }
 
 [dev-dependencies]
 agent-api-proto = { path = "../agent-api-proto", features = ["testing"] }
+
+[package.metadata.arch]
+type = "rust-contract"

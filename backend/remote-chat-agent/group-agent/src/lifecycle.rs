@@ -122,7 +122,7 @@ impl AgentLifecycleGroup {
         }
     }
 
-    /// Ends the turn the workflow runs in: the CLIs are one process per turn, so the process is the workflow.
+    /// Ends the turn the workflow runs in: interrupting the turn is what stops the workflow.
     fn workflow_stop(&self, params: &Value) -> Answer {
         let p = WorkflowStopParams::parse(params)?;
         let events = self.runner.decide(&p.thread, Command::WorkflowStop { turn: p.turn.clone(), workflow: p.workflow })?;

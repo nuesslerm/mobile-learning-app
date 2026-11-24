@@ -161,3 +161,76 @@ fn given_a_peer_that_pings_but_never_authenticates_when_the_deadline_passes_then
     assert_eq!((closed.code, closed.reason.as_str()), (4002, "E2EE handshake timeout"));
     assert!(h.agent.calls().is_empty());
 }
+
+fn probe_phone(h: &Harness, legacy: bool) -> (PhoneClient, String) {
+    let mut phone = if legacy { PhoneClient::open_legacy(h.addr, h.host_public, &h.device.token) } else { paired(h) };
+    let id = phone.send_request("probe.wire", json!({}));
+    (phone, id)
+}
+
+fn phone_gets_json_then_binary_then_json_in_order(legacy: bool) {
+    // Given a stream that emits a JSON frame, a binary frame and a JSON frame
+    let h = Harness::start_with_probe(recorded_status());
+    // When the phone opens it
+    let (mut phone, id) = probe_phone(&h, legacy);
+    let first = phone.recv_sealed().expect("the opening frame");
+    let binary = phone.recv_sealed_binary().expect("the binary frame");
+    let last = phone.recv_sealed().expect("the closing frame");
+    // Then the sealed binary message opens to the exact bytes, between the two text frames, in order
+    let number = first["result"]["streamNumber"].as_u64().unwrap() as u32;
+    assert_eq!((first["id"].as_str(), first["result"]["type"].as_str()), (Some(id.as_str()), Some("subscribed")));
+    assert_eq!(binary, [vec![0x74, 1, 0, 0], number.to_le_bytes().to_vec(), PROBE_PAYLOAD.to_vec()].concat());
+    assert_eq!(last["result"]["type"], "after");
+}
+
+#[test]
+fn given_a_stream_with_a_binary_frame_when_a_v2_phone_opens_it_then_the_frame_arrives_sealed_and_in_order() {
+    phone_gets_json_then_binary_then_json_in_order(false);
+}
+
+#[test]
+fn given_a_stream_with_a_binary_frame_when_a_legacy_phone_opens_it_then_the_frame_arrives_sealed_and_in_order() {
+    phone_gets_json_then_binary_then_json_in_order(true);
+}
+
+fn sealed_binary_reaches_the_stream(legacy: bool) {
+    // Given a phone with the probe stream open
+    let h = Harness::start_with_probe(recorded_status());
+    let (mut phone, _) = probe_phone(&h, legacy);
+    let number = phone.recv_sealed().unwrap()["result"]["streamNumber"].as_u64().unwrap() as u32;
+    phone.recv_sealed_binary().unwrap();
+    phone.recv_sealed().unwrap();
+    // When it sends a sealed binary frame addressed to the stream, and one addressed to no stream
+    let frame = |n: u32| [vec![0x74, 1, 9, 0], n.to_le_bytes().to_vec(), vec![42]].concat();
+    phone.send_sealed_binary(&frame(number + 100));
+    phone.send_sealed_binary(&frame(number));
+    // Then only the first reaches the stream, and the socket still answers requests
+    assert_eq!(phone.call("status.get", json!({"probe": true}))["ok"], true);
+    assert_eq!(h.probe_inbound.lock().unwrap().clone(), vec![frame(number)]);
+}
+
+#[test]
+fn given_an_open_stream_when_a_v2_phone_sends_a_sealed_binary_frame_then_it_reaches_the_stream() {
+    sealed_binary_reaches_the_stream(false);
+}
+
+#[test]
+fn given_an_open_stream_when_a_legacy_phone_sends_a_sealed_binary_frame_then_it_reaches_the_stream() {
+    sealed_binary_reaches_the_stream(true);
+}
+
+#[test]
+fn given_an_authenticated_phone_when_it_sends_binary_frames_that_do_not_open_then_the_fifth_closes_4003_and_none_reaches_a_stream() {
+    // Given a phone with the probe stream open
+    let h = Harness::start_with_probe(recorded_status());
+    let (mut phone, _) = probe_phone(&h, false);
+    phone.recv_sealed().unwrap();
+    // When it sends five binary frames that are not sealed
+    for _ in 0..5 {
+        phone.send_binary(vec![7u8; 64]);
+    }
+    // Then the host closes 4003 and the stream saw nothing
+    let closed = phone.wait_closed();
+    assert_eq!((closed.code, closed.reason.as_str()), (4003, "Too many decryption failures"));
+    assert!(h.probe_inbound.lock().unwrap().is_empty());
+}

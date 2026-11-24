@@ -2,7 +2,46 @@
   "method": "usage.summary",
   "exchanges": [
     {
-      "name": "shows each provider and its usage where something reports it",
+      "name": "shows each provider and, for the ones signed in, the limits their own account answers or why it could not",
+      "before": [
+        {
+          "id": 1,
+          "method": "provider.auth.start",
+          "params": {
+            "provider": "codex"
+          }
+        },
+        {
+          "id": 2,
+          "method": "provider.auth.complete",
+          "params": {
+            "auth": "auth-1"
+          }
+        },
+        {
+          "id": 3,
+          "method": "provider.auth.start",
+          "params": {
+            "provider": "claudeAgent",
+            "method": "paste"
+          }
+        },
+        {
+          "id": 4,
+          "method": "provider.auth.respond",
+          "params": {
+            "auth": "auth-2",
+            "text": "pasted-code-1"
+          }
+        },
+        {
+          "id": 5,
+          "method": "provider.auth.complete",
+          "params": {
+            "auth": "auth-2"
+          }
+        }
+      ],
       "request": {
         "id": 1,
         "method": "usage.summary",
@@ -15,21 +54,50 @@
             {
               "provider": "opencode",
               "status": "signed_out",
-              "usage": null
+              "limits": null,
+              "limits_error": null
             },
             {
               "provider": "claudeAgent",
-              "status": "signed_out",
-              "usage": null
+              "status": "signed_in",
+              "limits": null,
+              "limits_error": "claude holds no login here"
             },
             {
               "provider": "codex",
-              "status": "signed_out",
-              "usage": null
+              "status": "signed_in",
+              "limits": {
+                "session": {
+                  "used_percent": 40.0,
+                  "window_minutes": 300,
+                  "resets_at_ms": 1900000000000
+                },
+                "weekly": {
+                  "used_percent": 10.0,
+                  "window_minutes": 10080,
+                  "resets_at_ms": 1900500000000
+                },
+                "plan": null,
+                "credits": {
+                  "available": 2,
+                  "total_earned": null,
+                  "next_expires_ms": null
+                },
+                "updated_ms": 0
+              },
+              "limits_error": null
             }
           ]
         }
-      }
+      },
+      "actions": [
+        "cli_detect",
+        "claude_account_request",
+        "codex_app_server_request"
+      ],
+      "volatile": [
+        "/result/providers/2/limits/updated_ms"
+      ]
     }
   ]
 }

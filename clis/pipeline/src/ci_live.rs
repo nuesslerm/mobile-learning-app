@@ -1,18 +1,40 @@
 //! `wf ci live`: updates the one comment a CI run keeps on its pull request, which is the run's report as it stands (the same text `wf ci
 //! comment` leaves when the run ends): every job that starts or finishes brings it up to date, so the pull request shows where the CI is,
-//! with the stats of the stages done, without opening Actions. The comment is the last on the page: the other runs' CI comments are deleted
-//! and this run's is edited in place (`ci_comment::sync_live`).
+//! with the stats of the stages done, without opening Actions. This run's comment is edited in place and the CI comments of older heads are pruned (`ci_comment::sync_live`).
 use crate::ci_comment::{open_pr, redact, report, sync_live, var, Env};
 use serde_json::{json, Value};
+use std::sync::mpsc;
+use std::time::Duration;
 use wf_kit::args::{parse_spec, Positional, Spec};
 
 const SPEC: Spec = Spec { flags: &[], positional: Positional::AtMost(1), ..Spec::NONE };
 
 fn attempt() -> Result<Value, String> {
     let env = Env::read()?;
-    let Some(pr) = open_pr(&env)? else { return Ok(json!({ "ok": true, "posted": false, "reason": "no open pull request for the branch" })) };
-    let (action, id) = sync_live(&env, pr, &report(&env)?.body)?;
+    let Some((pr, head)) = open_pr(&env)? else { return Ok(json!({ "ok": true, "posted": false, "reason": "no open pull request for the branch" })) };
+    if let Some(head) = head.as_deref().filter(|h| *h != env.sha) {
+        return Ok(json!({ "ok": true, "posted": false, "reason": format!("superseded: head moved to {}", head.chars().take(7).collect::<String>()) }));
+    }
+    let (action, id) = sync_live(&env, pr, head.as_deref(), &report(&env)?.body)?;
     Ok(json!({ "ok": true, "posted": true, "action": action, "commentId": id }))
+}
+
+fn bound() -> Duration {
+    Duration::from_millis(var("WF_CI_LIVE_BOUND_MS").and_then(|v| v.parse().ok()).unwrap_or(15_000))
+}
+
+/// The comment is cosmetic: a slow GitHub (each request may wait 60 s) must not hold the job, so the worker is abandoned at the bound.
+fn bounded(limit: Duration) -> Result<Value, String> {
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(attempt());
+    });
+    rx.recv_timeout(limit).unwrap_or_else(|_| Err(format!("gave up after {}s: GitHub did not finish answering, the live comment is skipped", limit.as_secs_f32())))
+}
+
+/// The comment brought up to date once, bounded, as the answer of the verb: used by `wf ci failed` so a red step shows in the run's comment at once.
+pub(crate) fn refresh() -> Value {
+    bounded(bound()).unwrap_or_else(|reason| json!({ "ok": false, "posted": false, "reason": redact(&reason, &var("GITHUB_TOKEN").unwrap_or_default()) }))
 }
 
 /// `wf ci live [start]` (`start` is the same, spelled for the job that begins the run). A failure to comment is reported and never fails
@@ -23,7 +45,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         wf_kit::wf_err!("wf ci live: `start` or nothing, not {}", p.positional[0]);
         return Some(2);
     }
-    let out = attempt().unwrap_or_else(|reason| {
+    let out = bounded(bound()).unwrap_or_else(|reason| {
         let reason = redact(&reason, &var("GITHUB_TOKEN").unwrap_or_default());
         eprintln!("wf ci live: {reason}");
         json!({ "ok": false, "posted": false, "reason": reason })

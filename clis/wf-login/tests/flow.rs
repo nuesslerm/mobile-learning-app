@@ -9,3 +9,6 @@ mod rig;
 
 #[path = "flow/auth.rs"]
 mod auth;
+
+#[path = "flow/link.rs"]
+mod link;

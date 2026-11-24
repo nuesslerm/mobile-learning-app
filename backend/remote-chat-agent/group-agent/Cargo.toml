@@ -27,6 +27,8 @@ rca-agent-core = { path = "../agent-core" }
 rca-cli-driver = { path = "../cli-driver" }
 rca-exec-channel = { path = "../exec-channel" }
 exec-proto = { path = "../../../libraries/agent-api/exec-proto" }
+futures-util.workspace = true
+uuid.workspace = true
 # A turn starts from a checkpoint of the workspace's files, and a rollback restores it: the names of those executor actions
 exec-git = { path = "../../../libraries/agent-api/exec-git" }
 
@@ -34,3 +36,7 @@ exec-git = { path = "../../../libraries/agent-api/exec-git" }
 rca-cli-driver = { path = "../cli-driver", features = ["testing"] }
 rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
 agent-api-agent = { path = "../../../libraries/agent-api/agent-api-agent", features = ["testing"] }
+
+[package.metadata.arch]
+type = "rust-group"
+modules = ["checkpoint", "gateway", "group", "host", "lifecycle", "neutral", "port", "queue", "refusal", "requests", "runner", "staging", "testing", "turns"]

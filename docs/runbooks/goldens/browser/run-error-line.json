@@ -1,0 +1,56 @@
+{
+  "platform": "browser",
+  "step": 5,
+  "last_action": "tap_on{id='ConsoleResultLine'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:8818/mla-tamagui/leetcode/two-sum?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgdHdvU3VtKHNlbGYsIG51bXM6IExpc3RbaW50XSwgdGFyZ2V0OiBpbnQpIC0-IExpc3RbaW50XToKICAgICAgICAjIG5vdGUgMQogICAgICAgICMgbm90ZSAyCiAgICAgICAgIyBub3RlIDMKICAgICAgICAjIG5vdGUgNAogICAgICAgICMgbm90ZSA1CiAgICAgICAgIyBub3RlIDYKICAgICAgICAjIG5vdGUgNwogICAgICAgICMgbm90ZSA4CiAgICAgICAgIyBub3RlIDkKICAgICAgICAjIG5vdGUgMTAKICAgICAgICAjIG5vdGUgMTEKICAgICAgICAjIG5vdGUgMTIKICAgICAgICAjIG5vdGUgMTMKICAgICAgICAjIG5vdGUgMTQKICAgICAgICAjIG5vdGUgMTUKICAgICAgICAjIG5vdGUgMTYKICAgICAgICAjIG5vdGUgMTcKICAgICAgICAjIG5vdGUgMTgKICAgICAgICAjIG5vdGUgMTkKICAgICAgICAjIG5vdGUgMjAKICAgICAgICAjIG5vdGUgMjEKICAgICAgICAjIG5vdGUgMjIKICAgICAgICAjIG5vdGUgMjMKICAgICAgICAjIG5vdGUgMjQKICAgICAgICAjIG5vdGUgMjUKICAgICAgICAjIG5vdGUgMjYKICAgICAgICAjIG5vdGUgMjcKICAgICAgICAjIG5vdGUgMjgKICAgICAgICAjIG5vdGUgMjkKICAgICAgICAjIG5vdGUgMzAKICAgICAgICAjIG5vdGUgMzEKICAgICAgICAjIG5vdGUgMzIKICAgICAgICAjIG5vdGUgMzMKICAgICAgICAjIG5vdGUgMzQKICAgICAgICAjIG5vdGUgMzUKICAgICAgICAjIG5vdGUgMzYKICAgICAgICAjIG5vdGUgMzcKICAgICAgICAjIG5vdGUgMzgKICAgICAgICAjIG5vdGUgMzkKICAgICAgICAjIG5vdGUgNDAKICAgICAgICBpZiBudW1zID09IFszLCAyLCA0XToKICAgICAgICAgICAgcmFpc2UgSW5kZXhFcnJvcignYm9vbScpCiAgICAgICAgc2VlbiA9IHt9CiAgICAgICAgZm9yIGksIG4gaW4gZW51bWVyYXRlKG51bXMpOgogICAgICAgICAgICBpZiB0YXJnZXQgLSBuIGluIHNlZW46CiAgICAgICAgICAgICAgICByZXR1cm4gW3NlZW5bdGFyZ2V0IC0gbl0sIGldCiAgICAgICAgICAgIHNlZW5bbl0gPSBpCiAgICAgICAgcmV0dXJuIFtdCg",
+    "title": "",
+    "testids": [
+      "ProblemEditorHeader",
+      "ProblemEditorHeaderBack",
+      "ProblemEditorHeaderTitle",
+      "ProblemEditorHeaderSubtitle",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
+      "ProblemEditorInfoButton",
+      "ProblemEditorMenuButton",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
+      "PyodideHostWebView"
+    ],
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 20789,
+    "capture_ms": 126
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "run-error-line",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

@@ -15,7 +15,7 @@ async fn given_a_picker_when_it_asks_for_agent_clis_models_mcp_servers_skills_an
     assert_eq!(clis["data"].as_array().unwrap().iter().map(|c| c["id"].as_str().unwrap()).collect::<Vec<_>>(), ["opencode", "claude", "codex"]);
     assert_eq!(clis["data"][0], json!({ "id": "opencode", "description": "opencode serve, reached over HTTP. No heavy local dependency.", "available": true, "selected": true }));
     assert_eq!(clis["data"][1]["description"], "claude CLI, driven in-process via the Anthropic Agent SDK.");
-    assert_eq!(clis["data"][2]["description"], "codex CLI, driven in-process via its app-server subprocess mode.");
+    assert_eq!(clis["data"][2]["description"], "codex CLI, driven as a long-lived `codex app-server` session.");
     for other in &clis["data"].as_array().unwrap()[1..] {
         assert!(other["available"].is_boolean() && other["selected"] == false);
     }

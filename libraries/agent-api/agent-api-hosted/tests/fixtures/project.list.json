@@ -1,0 +1,54 @@
+{
+  "method": "project.list",
+  "exchanges": [
+    {
+      "name": "no workspace is named, so an executor whose gh is signed in answers",
+      "request": {
+        "id": 1,
+        "method": "project.list",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "login": "ada",
+          "projects": [
+            {
+              "id": "PVT_u1",
+              "owner": "ada",
+              "owner_type": "user",
+              "number": 1,
+              "title": "Roadmap",
+              "url": "https://github.com/users/ada/projects/1",
+              "source": "viewer"
+            }
+          ]
+        }
+      },
+      "actions": [
+        "hosted_project_list"
+      ]
+    },
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 2,
+        "method": "project.list",
+        "params": {
+          "workspace": "w1",
+          "host": "-x"
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`host` must be a host name, with an optional port"
+        }
+      },
+      "actions": [
+        "hosted_project_list"
+      ]
+    }
+  ]
+}

@@ -2,21 +2,22 @@
 //! whose `meta` holds an `orca` object (what the phone sent that rca has no field for: the project and workspace it named, its recurrence text, timezone and
 //! start), so a schedule another client made is not listed. rca runs a prompt in an existing workspace at a time of day on some weekdays at a fixed UTC offset;
 //! what it cannot run (a worktree per run, a precheck command, an hourly or minute recurrence, a timezone that needs a database, a reused session, a task source,
-//! a grace for missed runs) is refused by name and never saved as something else. `automation.runs` stays pending: rca keeps a schedule's last run, no history.
+//! a grace for missed runs) is refused by name and never saved as something else. `automation.runs` reads the runs rca keeps (`schedule.runs`).
 use agent_api_proto::Method as AgentMethod;
-use agent_api_schedules::{DELETE, LIST, RUN_NOW, UPSERT};
+use agent_api_schedules::{DELETE, LIST, RUNS, RUN_NOW, UPSERT};
 use orca_core::wire::{Failure, METHOD_NOT_FOUND, RUNTIME_ERROR};
 use orca_core::{AgentError, Area, Ctx, Kind, Method};
 use serde_json::{json, Value};
 
 mod automation;
 mod recurrence;
+mod runs_page;
 
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 
 /// The agent methods this crate sends.
-pub const USES: &[AgentMethod] = &[LIST, UPSERT, DELETE, RUN_NOW];
+pub const USES: &[AgentMethod] = &[LIST, UPSERT, DELETE, RUN_NOW, RUNS];
 
 const METHODS: &[Method] = &[
     Method { name: "automation.list", kind: Kind::Unary },
@@ -25,6 +26,7 @@ const METHODS: &[Method] = &[
     Method { name: "automation.update", kind: Kind::Unary },
     Method { name: "automation.delete", kind: Kind::Unary },
     Method { name: "automation.runNow", kind: Kind::Unary },
+    Method { name: "automation.runs", kind: Kind::Unary },
 ];
 
 pub struct SchedulesArea;
@@ -47,6 +49,7 @@ impl Area for SchedulesArea {
             "automation.update" => automation::update(agent, params),
             "automation.delete" => automation::delete(agent, params),
             "automation.runNow" => automation::run_now(agent, params),
+            "automation.runs" => automation::runs(agent, params, ctx.request_id),
             other => Err(Failure::new(METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
         }
     }

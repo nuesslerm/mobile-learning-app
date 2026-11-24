@@ -1,0 +1,96 @@
+[
+  {
+    "type": "dependency",
+    "from": "src/appConfig.ts",
+    "to": "../logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "pure-no-workspace-package"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/devRuntimeConfig.ts",
+    "to": "../logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "pure-no-workspace-package"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/nativeLaunchArgs.ts",
+    "to": "../logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "pure-no-workspace-package"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/appConfig.ts",
+    "to": "../../../node_modules/.pnpm/expo-router@58.0.32_f01dd1c38c595c93f8ddc36fc378cc99/node_modules/expo-router/build/index.js",
+    "unresolvedTo": "expo-router",
+    "dependencyTypes": [
+      "npm-dev",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "pure-npm-allow-list"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/devRuntimeConfig.ts",
+    "to": "../../../node_modules/.pnpm/expo-router@58.0.32_f01dd1c38c595c93f8ddc36fc378cc99/node_modules/expo-router/build/index.js",
+    "unresolvedTo": "expo-router",
+    "dependencyTypes": [
+      "npm-dev",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "pure-npm-allow-list"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/nativeLaunchArgs.ts",
+    "to": "expo-native-launch-arguments",
+    "unresolvedTo": "expo-native-launch-arguments",
+    "dependencyTypes": [
+      "unknown"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "pure-npm-allow-list"
+    }
+  }
+]

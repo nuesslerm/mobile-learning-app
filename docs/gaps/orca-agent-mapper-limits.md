@@ -35,8 +35,16 @@ and `skills.discover` over `agent.catalog`, narrower than the host: the models a
 answers `origin: "probe"` at once and `waitForListing` and `savedOnly` change nothing; `setOption` takes the `model` key only (a turn takes no
 effort or permission mode of the phone's); detection asks the only attached executor (workspaces carry no executor name), a project detection
 (`project`) is refused, and `refreshAgents` hydrates no shell PATH (`shellHydrationOk: false`); `skills.discover` reads the three skills
-directories of the executor, with `updatedAt` null and a source's `exists` meaning it holds skills. `detectRemoteAgents` answers for an executor id where the pinned host refuses every ssh connection (`SshHostNotServedError`); that is an intended extension, as an executor is the machine here, and an unknown id gets the host's "Remote connection dropped" text. The rows are served with chain evidence in `clis/orca-serve/tests/integration/agent_catalog_m7b.rs`.
-`preflight.check` is not offered (decisions file), a deferred choice and not an impossibility. Alternative: extend `cli_detect` to git, gh and glab (the same
-no-shell version probe) and answer the git, gh and glab fields from it; Bitbucket and Azure DevOps and every signed-in state would still need new probes,
-so the phone's source-control onboarding keeps showing them as unavailable without it. Until the owner confirms, the proposed default stands. The orcad oracle (VM and CI
-emulator, not run) would compare these reply field sets with a real Orca host's.
+directories of the executor, with `updatedAt` null and a source's `exists` meaning it holds skills. `detectRemoteAgents` answers for an executor id where the pinned host refuses every ssh connection (`SshHostNotServedError`); that is an intended extension, as an executor is the machine here, and an unknown id gets the host's "Remote connection dropped" text. The rows are served with chain evidence in `clis/orca-serve/tests/integration/agent_catalog.rs`.
+`preflight.check` is served (issue #83, O1): git, gh and glab come from the executor's `cli_detect` (through `agents.detect`'s `tools`), and gh's and
+glab's sign-in from `sourceControl.discover` at the root workspace's host, asked only for an installed CLI. Bitbucket, Azure DevOps and Gitea are the
+host's own answer for a machine where none is configured, since rca keeps no credentials for them. Known differences: the host also counts gh as signed
+in when `auth status` exits 1 but prints `Active account: true`, and it tries more than one copy of a program on the path.
+
+## Speech models list (19 Nov, issue #83 O1)
+
+The recorded host lists one model, the cloud `openai-gpt-transcribe` row, because its local recognizer is not installed in the recording; `speech.models.list` and `speech.dictation.setup` here list rca's own engine (`rca-whisper`, ready) when the service has one. The five fields of the first model differ in every replay of those rows (`known-gaps.json` of both Orca sets). Dictation needs the engine and the person's setting: `start` answers `voice_dictation_disabled` as the host does until `setup` enables it. The cloud rows (`speech.openAiKey.*`) stay not offered.
+
+## Issue rows (19 Nov, issue #83 O2)
+
+`github.createIssue`, `github.updateIssue`, `github.addIssueComment` and the three `gitlab.*` twins are served over rca's `issue.*` methods (`issue.create`, `issue.setState`, `issue.edit`, `issue.comment`). rca sets no assignees when it opens an issue and changes neither the labels nor the assignees of one, so a request that asks for those is the host's `{ok: false}` with that sentence, answered before anything is changed (`labels` on a new issue are sent, to GitHub as `--label` and to GitLab as `labels`). The host's `addIssueComment` answers the new comment from the API's own reply; rca's `issue.comment` answers the address on GitHub and the note on GitLab, so the GitHub comment's id is read from the address (`#issuecomment-<id>`), its author is `You` and its time is the request's. An `updateIssue` that changes nothing asks rca for one issue list to resolve the repository, as the host resolves it before it sees there is nothing to do. The recorded host's answers hold only the paths where the repository is not found or not resolved; the success shapes are written from the host's source.

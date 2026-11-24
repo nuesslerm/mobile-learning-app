@@ -55,6 +55,10 @@ impl OrdsTransport for Http {
 impl Ledgers for OrdsLedgers {
     fn open(&self, runtime: &Handle, _cwd: &str) -> Result<Box<dyn CooldownStore>, String> {
         if self.base_url.is_empty() || self.password.is_empty() {
+            // a service started by a test (`RCA_LEDGER_FILE`) keeps the cooldowns in a file instead of the shared database
+            if let Some(file) = std::env::var_os("RCA_LEDGER_FILE").filter(|f| !f.is_empty()) {
+                return Ok(Box::new(rca_ladder::file_store::FileLedgerStore::new(file)));
+            }
             return Err("POOL_COOLDOWNS_ORDS_BASE_URL and HEALTH_REPORTS_ORDS_PASSWORD must be set: the pool cooldowns live in the shared database".into());
         }
         let http = Http { runtime: runtime.clone(), client: self.client.clone(), user: self.user.clone(), password: self.password.clone() };

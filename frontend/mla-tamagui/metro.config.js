@@ -26,6 +26,9 @@ config.cacheStores = [new FileStore({ root: path.join(__dirname, 'node_modules',
 config.resolver.unstable_enableSymlinks = true;
 config.resolver.unstable_enablePackageExports = true;
 
+// Pyodide ships as assets: the interpreter and its library archive, and two text files renamed .bin so they are not bundled as source.
+config.resolver.assetExts = [...config.resolver.assetExts, 'wasm', 'bin'];
+
 // Shrinks Metro's crawl/watch surface for this monorepo -- see
 // mobile-learning-app/metro.config.js's matching block for the full
 // rationale (why `dist/**` and nested node_modules are deliberately left
@@ -100,6 +103,16 @@ function isSingleton(moduleName) {
 const WHEEL_PICKER_DIR = `${path.sep}@quidone${path.sep}react-native-wheel-picker${path.sep}`;
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (
+    platform !== 'web' &&
+    moduleName === 'expo-router/build/global-state/router-store' &&
+    context.originModulePath.includes(`${path.sep}@buoy-gg${path.sep}route-events${path.sep}`)
+  ) {
+    return {
+      type: 'sourceFile',
+      filePath: path.join(__dirname, 'app-shell/buoyRouterStore.tsx'),
+    };
+  }
   if (moduleName === 'date-fns' && context.originModulePath.includes(WHEEL_PICKER_DIR)) {
     return { type: 'empty' };
   }

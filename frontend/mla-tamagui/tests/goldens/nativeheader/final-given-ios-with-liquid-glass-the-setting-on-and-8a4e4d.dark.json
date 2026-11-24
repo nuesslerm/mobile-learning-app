@@ -1,0 +1,46 @@
+{
+  "suite": "nativeheader",
+  "step": "final-given-ios-with-liquid-glass-the-setting-on-and-8a4e4d",
+  "scheme": "dark",
+  "snapshot": "nativeheader/final-given-ios-with-liquid-glass-the-setting-on-and-8a4e4d.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "NativeHeader",
+      "NativeHeaderLeft",
+      "NativeHeaderItem-Go back",
+      "NativeHeaderTitle",
+      "ScreenHeaderGlassTitle",
+      "ScreenHeaderGlassTitleText",
+      "ScreenHeaderGlassTitleSubtitle",
+      "NativeHeaderRight",
+      "NativeHeaderMenuHost-Editor settings",
+      "NativeHeaderItem-Editor settings",
+      "NativeHeaderSpacing",
+      "NativeHeaderItem-Info",
+      "Body"
+    ],
+    "text": "Go back\nAppearance\nSettings\nEditor settings\nInfo\nBody"
+  },
+  "timings": {
+    "render_ms": 211
+  },
+  "name": "nativeheader/final-given-ios-with-liquid-glass-the-setting-on-and-8a4e4d.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

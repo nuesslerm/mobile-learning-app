@@ -16,7 +16,7 @@ pub fn status(catalog: &Catalog, checkout: &dyn Checkout, source: Option<&dyn In
         .iter()
         .map(|library| {
             let registry = catalog.registry(&library.registry);
-            let readable = registry.is_some_and(|r| r.publish.as_deref() == Some("bucket-sparse"));
+            let readable = registry.is_some_and(|r| matches!(r.publish.as_deref(), Some("bucket-sparse" | "git-sparse")));
             let (released, note) = if library.kind != "rust" {
                 (Vec::new(), Some("npm libraries are not read by status yet".to_string()))
             } else if !readable {

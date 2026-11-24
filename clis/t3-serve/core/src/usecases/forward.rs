@@ -2,6 +2,7 @@
 //! thread's rows. A command that a person's device keeps (pins, visits, modes, the order of the lists) is also kept in the agent API's `state`.
 use super::service::Service;
 use crate::domain::command::Command;
+use crate::domain::decider::{provider_turn_running, queued_may_start};
 use crate::ports::{AgentError, AgentThread, Op};
 use serde_json::{json, Value};
 
@@ -17,7 +18,6 @@ pub const FORWARDED: [&str; 31] = [
     "thread.fork",
     "thread.merge_back",
     "subagent.stop",
-    "prepared-run.retry",
     "provider-session.detach",
     "queue.resume",
     "queued-run.start",
@@ -38,6 +38,7 @@ pub const FORWARDED: [&str; 31] = [
     "thread.pull-request.link",
     "thread.pull-request.unlink",
     "thread.pull-request.watch",
+    "thread.tag.set",
 ];
 
 /// Commands kept in `state` as well, by the key of the value that changed.
@@ -73,7 +74,7 @@ impl Service {
     pub(crate) fn thread_for_agent(&self, id: &str) -> Option<AgentThread> {
         self.engine().read(|state| {
             let shell = state.threads.get(id)?;
-            Some(AgentThread { thread_id: id.to_string(), instance_id: text(&Value::Object(shell.clone()), "providerInstanceId").unwrap_or_default(), model: shell["modelSelection"]["model"].as_str().map(str::to_string) })
+            Some(AgentThread { thread_id: id.to_string(), instance_id: text(&Value::Object(shell.clone()), "providerInstanceId").unwrap_or_default(), model: shell["modelSelection"]["model"].as_str().map(str::to_string), worktree: shell["worktreePath"].as_str().filter(|p| !p.is_empty()).map(str::to_string) })
         })
     }
 
@@ -93,7 +94,7 @@ impl Service {
     }
 
     fn turn_of(&self, run: &str) -> Option<String> {
-        self.turn_of_run(run)
+        self.turn_of_started_run(run)
     }
 
     fn ask(&self, op: &Op) -> Result<Value, String> {
@@ -121,19 +122,21 @@ impl Service {
             "thread.unsnooze" => vec![Op::ThreadSettle { thread, state: "awake", until_ms: None, at_ms: None }],
             "thread.fork" => vec![Op::ThreadFork { thread: run("sourceThreadId")?, fork: run("targetThreadId")?, turn: None, title: item("title") }],
             "thread.merge_back" => vec![Op::ThreadMergeBack { thread: run("sourceThreadId")?, into: run("targetThreadId")?, turn: None }],
-            "subagent.stop" => {
-                let run_id = run("runId")?;
-                vec![Op::WorkflowStop { thread, turn: self.turn_of(&run_id).unwrap_or(run_id), workflow: item("subagentId") }]
-            }
-            "prepared-run.retry" => return Err(format!("Run {} has no failed workspace preparation to retry.", run("runId")?)),
+            // the projection lists no subagent (rca runs no provider-native ones), so the real server refuses every stop and leaves the run running
+            "subagent.stop" => return Err("The requested native subagent cannot be stopped on this run.".into()),
             "provider-session.detach" => vec![Op::ThreadDetach { thread, session: run("providerSessionId")? }],
             "queue.resume" => vec![Op::QueueResume { thread, item: None }],
+            "queued-run.start" if !self.engine().read(|state| queued_may_start(state, &thread)) => return Err("A queued user message can only be sent now while the thread is stopped.".into()),
             "queued-run.start" => vec![Op::QueueResume { thread, item: Some(run("runId")?) }],
             "queued-run.reorder" => vec![Op::QueueMove { thread, item: run("runId")?, before: cmd.str("beforeRunId").map(str::to_string) }],
             "queued-run.cancel" => vec![Op::QueueDelete { thread, item: run("runId")? }],
             "queued-run.edit" => vec![Op::QueueEdit { thread, item: run("runId")?, prompt: cmd.body.get("text").and_then(Value::as_str).unwrap_or_default().to_string() }],
             "queued-message.promote-to-steer" => {
                 let target = run("targetRunId")?;
+                let waiting = self.engine().read(|state| state.entities.get(&thread).is_some_and(|e| e.runs.iter().any(|r| r["id"] == target.as_str() && r["status"] == "running")) && !provider_turn_running(state, &thread, &target));
+                if waiting {
+                    return Err(format!("No running provider turn found for active run {target}."));
+                }
                 vec![Op::TurnSteer { thread, turn: Some(self.turn_of(&target).unwrap_or(target)), item: Some(run("queuedRunId")?) }]
             }
             "runtime-request.respond" => {
@@ -143,6 +146,13 @@ impl Service {
                     (None, Some(answers)) => vec![Op::InputAnswer { thread, request, answer: answer_text(answers) }],
                     (None, None) => return Err("runtime-request.respond needs a decision or answers".into()),
                 }
+            }
+            "thread.tag.set" => {
+                let tag = run("tag")?;
+                if tag.is_empty() || tag.len() > 64 || tag.contains(':') {
+                    return Err("tag must be 1 to 64 characters without a colon".into());
+                }
+                vec![Op::StateSet { scope: "t3".into(), key: format!("thread.tag:{thread}:{tag}"), value: json!({"tagged": cmd.body.get("tagged").and_then(Value::as_bool).unwrap_or(false)}) }]
             }
             "thread.user-input.dismiss" => vec![Op::InputDismiss { thread, request: run("requestId")? }],
             "checkpoint.rollback" => {

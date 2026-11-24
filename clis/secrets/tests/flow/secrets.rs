@@ -22,6 +22,7 @@ const READ: &str = EDIT;
 /// is logged with its token, and a write fails with STUB_WRITE_FAIL.
 const STUB_BWS: &str = r#"echo "$* | token=$BWS_ACCESS_TOKEN url=$BWS_SERVER_URL" >> "$STUB_DIR/bws.log"
 if [ "$1 $2" = "secret list" ]; then
+  if [ -n "$STUB_FAIL_ONCE" ] && [ ! -f "$STUB_DIR/failed-once" ]; then touch "$STUB_DIR/failed-once"; echo "Received error message from server: [500 Internal Server Error]" >&2; exit 1; fi
   [ -n "$STUB_VAULT_DOWN" ] && { echo "[503 Service Unavailable]" >&2; exit 1; }
   f="$STUB_DIR/list-$BWS_ACCESS_TOKEN.json"
   if [ -f "$f" ]; then cat "$f"; else echo "[401 Unauthorized]" >&2; exit 1; fi
@@ -118,6 +119,20 @@ impl Vault {
 
 fn listed(token: &str) -> String {
     format!("secret list --output json | token={token} url=")
+}
+
+#[test]
+fn given_the_vault_answers_500_once_when_a_secret_is_read_then_the_listing_is_retried_and_answers() {
+    // Given a vault that fails the first listing with a 500 and holds the key
+    let v = Vault::new();
+    v.holds(READ, json!([groq()]));
+
+    // When the key is read
+    let got = v.read(&["get", GROQ], &[("STUB_FAIL_ONCE", "1")]);
+
+    // Then the value is printed after a second listing
+    assert_eq!((got.exit_code, got.stdout.as_str()), (0, "gsk_abcdefghijkl\n"), "{}", got.stderr);
+    assert_eq!(v.calls(), [listed(READ), listed(READ)]);
 }
 
 #[test]
@@ -637,7 +652,7 @@ fn read(rel: &str) -> String {
 fn the_value_revealing_subcommands_are_refused_to_agents_by_both_guards_and_no_default_file_holds_a_vault_key() {
     // Given the subcommands that print a real secret value: get and env (list is masked, sync-env redacts by default)
     // When the exposure guard script's list is read
-    let source = read("scripts/guards/block-secret-exposure.mjs");
+    let source = read("libraries/hook-runtime/src/guards/block-secret-exposure.mjs");
     let list = Regex::new(r"WF_SECRETS_VALUE_REVEALING_SUBCOMMANDS\s*=\s*\[([^\]]*)\]").unwrap().captures(&source).map(|c| c[1].to_string()).unwrap_or_default();
     let mut scripted: Vec<String> = Regex::new(r"'([^']+)'").unwrap().captures_iter(&list).map(|m| m[1].to_string()).collect();
     scripted.sort();
@@ -645,7 +660,7 @@ fn the_value_revealing_subcommands_are_refused_to_agents_by_both_guards_and_no_d
     assert_eq!(scripted, VALUE_REVEALING_SUBCOMMANDS.map(String::from));
 
     // When the guard judges each redirected to a file, and each discarded beside an unrelated dump
-    let blocks = |command: &str| Command::new("node").arg(repo_root().join("scripts/guards/block-secret-exposure.mjs")).env("GUARD_COMMAND", command).status().unwrap().success();
+    let blocks = |command: &str| Command::new("node").arg(repo_root().join("libraries/hook-runtime/src/guards/block-secret-exposure.mjs")).env("GUARD_COMMAND", command).status().unwrap().success();
     for subcommand in VALUE_REVEALING_SUBCOMMANDS {
         // Then only the redirect is blocked
         assert_eq!((blocks(&format!("wf secret {subcommand} KEY > /tmp/leak.txt")), blocks(&format!("wf secret {subcommand} KEY >/dev/null; head -c 40 README.md"))), (true, false), "{subcommand}");
@@ -865,4 +880,148 @@ fn verify_of_a_group_skips_the_key_the_app_reads_only_on_the_vm() {
     let report: Value = serde_json::from_str(&r.stdout).unwrap();
     assert_eq!(finding(&report, "VM_PROVISION_GITHUB_TOKEN"), Value::Null, "{report}");
     assert_ne!(finding(&report, "VM_OPS_API_AUTH_TOKEN"), Value::Null, "{report}");
+}
+
+fn compose_files(dir: &std::path::Path, out: &mut Vec<PathBuf>) {
+    for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().to_string();
+        if path.is_dir() {
+            if name != "node_modules" && name != "target" && !name.starts_with('.') {
+                compose_files(&path, out);
+            }
+        } else if name.starts_with("docker-compose") && name.ends_with(".yml") {
+            out.push(path);
+        }
+    }
+}
+
+#[test]
+fn the_vault_holds_no_github_token_key_and_no_compose_file_hands_one_to_a_container() {
+    // Given the registry after the owner deleted rca's GITHUB_TOKEN, and every compose file under backend/ and infra/
+    let mut files = Vec::new();
+    for dir in ["backend", "infra"] {
+        compose_files(&repo_root().join(dir), &mut files);
+    }
+    let token = Regex::new(r"(^|[^A-Za-z0-9_])(GITHUB_TOKEN|GH_TOKEN)\b").unwrap();
+
+    // When the registry's keys and env vars, and each compose file's lines, are searched for either name
+    let named: Vec<String> = registry().iter().filter(|(k, e)| matches!(k.as_str(), "GITHUB_TOKEN" | "GH_TOKEN") || matches!(e["envVar"].as_str(), Some("GITHUB_TOKEN" | "GH_TOKEN"))).map(|(k, _)| k.clone()).collect();
+    let passed: Vec<String> = files
+        .iter()
+        .flat_map(|f| std::fs::read_to_string(f).unwrap().lines().filter(|l| !l.trim_start().starts_with('#') && token.is_match(l)).map(|l| format!("{}: {}", f.strip_prefix(repo_root()).unwrap().display(), l.trim())).collect::<Vec<_>>())
+        .collect();
+
+    // Then VM_PROVISION_GITHUB_TOKEN is the only GitHub credential: no such key, and no container receives one
+    assert!(!files.is_empty());
+    assert!(named.is_empty(), "{named:?}");
+    assert!(passed.is_empty(), "{passed:?}");
+    assert!(registry().contains_key("VM_PROVISION_GITHUB_TOKEN"));
+}
+
+fn b64(text: &str) -> String {
+    let out = std::process::Command::new("sh").arg("-c").arg(format!("printf %s '{text}' | base64 -w0")).output().unwrap();
+    String::from_utf8(out.stdout).unwrap()
+}
+
+#[test]
+fn given_a_login_codex_refreshed_in_ci_when_it_is_rotated_then_only_a_changed_refresh_token_is_written_to_the_one_key_and_no_value_is_printed() {
+    // Given a vault whose CI deploy credential reads the Codex login, and the file a CI run left
+    let v = Vault::new();
+    let old = r#"{"tokens":{"access_token":"at-old","refresh_token":"rt-old","account_id":"acct-1"}}"#;
+    let fresh = r#"{"tokens":{"access_token":"at-new","refresh_token":"rt-new","account_id":"acct-1"}}"#;
+    let foreign = r#"{"tokens":{"access_token":"at-x","refresh_token":"rt-x","account_id":"acct-2"}}"#;
+    v.holds("ci-token", json!([{ "id": "cx", "key": "CODEX_OAUTH_JSON_B64", "value": b64(old) }, groq()]));
+    let (left, same, junk) = (v.dir.path().join("left.json"), v.dir.path().join("same.json"), v.dir.path().join("junk.json"));
+    std::fs::write(&left, fresh).unwrap();
+    std::fs::write(&same, old).unwrap();
+    std::fs::write(&junk, r#"{"tokens":{"access_token":"","refresh_token":"x"}}"#).unwrap();
+    let other = v.dir.path().join("other.json");
+    std::fs::write(&other, foreign).unwrap();
+    let ci = [("BWS_CI_DEPLOY_ACCESS_TOKEN", "ci-token")];
+    let rotate = |file: &std::path::Path| v.wf(&["rotate-login", "codex", "--from", &file.display().to_string()], &ci, None);
+
+    // When the refreshed login, the unchanged one and a file that is no login are rotated
+    let changed = rotate(&left);
+    let written = v.writes();
+    v.forget();
+    let unchanged = rotate(&same);
+    let untouched = v.writes();
+    v.forget();
+    let refused = rotate(&junk);
+    v.forget();
+    let stranger = rotate(&other);
+    let stranger_writes = v.writes();
+
+    // Then the changed refresh token is written as base64 to that one secret by id with the CI credential, saying neither value; the same one writes nothing; the junk file is refused before the vault is asked
+    assert_eq!((changed.exit_code, changed.stdout.as_str()), (0, "CODEX_OAUTH_JSON_B64: updated\n"), "{}", changed.stderr);
+    assert_eq!(written, [format!("secret edit --value {} --output none -- cx | token=ci-token url=", b64(fresh))]);
+    assert!(!changed.stdout.contains("rt-new") && !changed.stderr.contains("rt-new"));
+    assert_eq!((unchanged.exit_code, unchanged.stdout.as_str()), (0, "CODEX_OAUTH_JSON_B64: unchanged\n"));
+    assert!(untouched.is_empty(), "{untouched:?}");
+    assert_eq!(refused.exit_code, 1);
+    assert!(refused.stderr.contains("is not a ChatGPT login"), "{}", refused.stderr);
+    // And a login of another account is refused after the vault was read, and nothing was written
+    assert_eq!(stranger.exit_code, 1);
+    assert!(stranger.stderr.contains("another account") && stranger_writes.is_empty(), "{}", stranger.stderr);
+}
+
+#[test]
+fn given_the_second_codex_login_when_a_run_leaves_a_refreshed_one_then_it_is_written_to_its_own_key_and_the_owners_login_is_never_touched() {
+    // Given a vault holding the owner's login and the second one, and the file a CI run left of the second
+    let v = Vault::new();
+    let (owner, second) = (r#"{"tokens":{"access_token":"at-owner","refresh_token":"rt-owner","account_id":"acct-1"}}"#, r#"{"tokens":{"access_token":"at-ci","refresh_token":"rt-ci","account_id":"acct-2"}}"#);
+    let fresh = r#"{"tokens":{"access_token":"at-ci2","refresh_token":"rt-ci2","account_id":"acct-2"}}"#;
+    v.holds("ci-token", json!([{ "id": "cx", "key": "CODEX_OAUTH_JSON_B64", "value": b64(owner) }, { "id": "cc", "key": "CODEX_CI_OAUTH_JSON_B64", "value": b64(second) }]));
+    let left = v.dir.path().join("left.json");
+    std::fs::write(&left, fresh).unwrap();
+    let ci = [("BWS_CI_DEPLOY_ACCESS_TOKEN", "ci-token")];
+    let from = left.display().to_string();
+
+    // When the refreshed login is rotated under codex-ci, and an unknown login name is given
+    let changed = v.wf(&["rotate-login", "codex-ci", "--from", &from], &ci, None);
+    let written = v.writes();
+    v.forget();
+    let unknown = v.wf(&["rotate-login", "claude", "--from", &from], &ci, None);
+
+    // Then only the second login's secret is written, as base64 by id, saying neither value, and an unknown name is refused before the vault is asked
+    assert_eq!((changed.exit_code, changed.stdout.as_str()), (0, "CODEX_CI_OAUTH_JSON_B64: updated\n"), "{}", changed.stderr);
+    assert_eq!(written, [format!("secret edit --value {} --output none -- cc | token=ci-token url=", b64(fresh))]);
+    assert!(!changed.stdout.contains("rt-ci2") && !changed.stderr.contains("rt-ci2"));
+    assert_ne!(unknown.exit_code, 0);
+    assert!(v.calls().is_empty(), "{:?}", v.calls());
+}
+
+#[test]
+fn given_a_rotated_codex_login_when_the_next_run_reads_the_vault_then_it_starts_from_the_rotated_login_and_a_second_refresh_is_written_in_turn() {
+    // Given a vault with the old Codex login, and a run that refreshed it
+    let v = Vault::new();
+    let old = r#"{"tokens":{"access_token":"at-old","refresh_token":"rt-old","account_id":"acct-1"}}"#;
+    let first = r#"{"tokens":{"access_token":"at-one","refresh_token":"rt-one","account_id":"acct-1"}}"#;
+    let second = r#"{"tokens":{"access_token":"at-two","refresh_token":"rt-two","account_id":"acct-1"}}"#;
+    v.holds("ci-token", json!([{ "id": "cx", "key": "CODEX_OAUTH_JSON_B64", "value": b64(old) }]));
+    let ci = [("BWS_CI_DEPLOY_ACCESS_TOKEN", "ci-token")];
+    let (one, two) = (v.dir.path().join("one.json"), v.dir.path().join("two.json"));
+    std::fs::write(&one, first).unwrap();
+    std::fs::write(&two, second).unwrap();
+    let rotate = |file: &std::path::Path| v.wf(&["rotate-login", "codex", "--from", &file.display().to_string()], &ci, None);
+
+    // When the refreshed login is rotated and the vault then holds what was written, the same run's login is rotated again, and the next run's refresh follows
+    let written = rotate(&one);
+    let wrote = v.writes();
+    v.forget();
+    v.holds("ci-token", json!([{ "id": "cx", "key": "CODEX_OAUTH_JSON_B64", "value": b64(first) }]));
+    let again = rotate(&one);
+    let nothing = v.writes();
+    v.forget();
+    let next = rotate(&two);
+    let next_writes = v.writes();
+
+    // Then the first rotation wrote the first login, the repeat found the vault already holding it (the next run starts from it), and the second refresh is the one written next
+    assert_eq!((written.exit_code, written.stdout.as_str()), (0, "CODEX_OAUTH_JSON_B64: updated\n"), "{}", written.stderr);
+    assert_eq!(wrote, [format!("secret edit --value {} --output none -- cx | token=ci-token url=", b64(first))]);
+    assert_eq!((again.exit_code, again.stdout.as_str()), (0, "CODEX_OAUTH_JSON_B64: unchanged\n"), "{}", again.stderr);
+    assert!(nothing.is_empty(), "{nothing:?}");
+    assert_eq!((next.exit_code, next.stdout.as_str()), (0, "CODEX_OAUTH_JSON_B64: updated\n"), "{}", next.stderr);
+    assert_eq!(next_writes, [format!("secret edit --value {} --output none -- cx | token=ci-token url=", b64(second))]);
 }

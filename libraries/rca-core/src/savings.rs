@@ -1,4 +1,4 @@
-//! `wf offload ask --savings` (`use-cases/dispatch/savings.ts`): what delegating to the cheap models avoided.
+//! `wf rca ask --savings` (`use-cases/dispatch/savings.ts`): what delegating to the cheap models avoided.
 use crate::run_log::RunLogEntry;
 use crate::stats::{js_num, js_round, pad_end, pad_start, to_fixed3};
 use serde::{Deserialize, Serialize};

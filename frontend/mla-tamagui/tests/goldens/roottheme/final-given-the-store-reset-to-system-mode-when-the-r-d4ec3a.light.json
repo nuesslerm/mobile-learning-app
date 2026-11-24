@@ -10,13 +10,12 @@
   "screen": {
     "width": 378,
     "height": 1704,
-    "page_height": 5228
+    "page_height": 5980
   },
   "summary": {
     "testids": [
       "AppDrawer",
       "AppDrawerTitle",
-      "AppDrawerSubtitle",
       "DrawerItemHome",
       "DrawerItemHomeLabel",
       "DrawerItemShowcase",
@@ -44,6 +43,24 @@
       "LeetcodeListAuthLabel",
       "LeetcodeListAuthValue",
       "LeetcodeListSignIn",
+      "LeetcodeListRunnerRow",
+      "LeetcodeListRunnerLabel",
+      "LeetcodeListRunnerHint",
+      "LeetcodeListRunner",
+      "LeetcodeListRunnerBackend",
+      "LeetcodeListRunnerDevice",
+      "LeetcodeListAutocompleteRow",
+      "LeetcodeListAutocompleteLabel",
+      "LeetcodeListAutocompleteHint",
+      "LeetcodeListAutocomplete",
+      "LeetcodeListAutocompleteOff",
+      "LeetcodeListAutocompleteOn",
+      "LeetcodeListBlockViewRow",
+      "LeetcodeListBlockViewLabel",
+      "LeetcodeListBlockViewHint",
+      "LeetcodeListBlockView",
+      "LeetcodeListBlockViewOff",
+      "LeetcodeListBlockViewOn",
       "LeetcodeListSectionTitle",
       "LeetcodeListSection",
       "LeetcodeListItem",
@@ -53,14 +70,12 @@
       "LeetcodeListMenuButtonCompact",
       "LeetcodeListCompactTitle",
       "LeetcodeListCompactCount",
-      "LeetcodeListCompactCountText",
-      "DebugFabWrap",
-      "DebugFab"
+      "LeetcodeListCompactCountText"
     ],
-    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\n🟢 LIVE\n72 PROBLEMS\nBlind 75\nMaster the patterns. Ace the interview. 🚀\nNot signed in\nSign in to LeetCode to unlock account features.\nSign in\nArray & Hashing\n1. Two Sum\nEASY\n217. Contains Duplicate\nEASY\n242. Valid Anagram\nEASY\n49. Group Anagrams\nMEDIUM\n347. Top K Frequent Elements\nMEDIUM\n271. Encode "
+    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\n🟢 LIVE\n76 PROBLEMS\nBlind 75\nMaster the patterns. Ace the interview. 🚀\nNot signed in\nSign in to LeetCode to unlock account features.\nSign in\nRun code\nOn this device runs Python with no network. Other languages run on the server.\nServer\nThis device\nSuggestions\nThe editor offers names as you type, above the lin"
   },
   "timings": {
-    "render_ms": 414
+    "render_ms": 526
   },
   "name": "roottheme/final-given-the-store-reset-to-system-mode-when-the-r-d4ec3a.light",
   "image": {

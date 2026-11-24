@@ -1,0 +1,46 @@
+{
+  "suite": "headermenuparity",
+  "step": "final-given-the-same-tree-when-an-option-picked-in-a-88ad10",
+  "scheme": "dark",
+  "snapshot": "headermenuparity/final-given-the-same-tree-when-an-option-picked-in-a-88ad10.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "NativeHeader",
+      "NativeHeaderLeft",
+      "NativeHeaderTitle",
+      "ScreenHeaderGlassTitle",
+      "ScreenHeaderGlassTitleText",
+      "NativeHeaderRight",
+      "NativeHeaderMenuHost-Editor settings",
+      "NativeHeaderItem-Editor settings",
+      "NativeHeaderMenu-Editor settings",
+      "NativeHeaderMenuItem-Line wrap",
+      "NativeHeaderMenuItem-Font size",
+      "NativeHeaderMenuItem-Symbol Bar",
+      "NativeHeaderMenuItem-Format Code"
+    ],
+    "text": "Editor\nEditor settings\nLine wrap\nFont size\nSymbol Bar\nFormat Code"
+  },
+  "timings": {
+    "render_ms": 235
+  },
+  "name": "headermenuparity/final-given-the-same-tree-when-an-option-picked-in-a-88ad10.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

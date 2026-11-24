@@ -1,14 +1,27 @@
-//! The real adapter of the CLI driver's `Spawner`: provider CLIs as tokio child processes. A CLI of a provider starts with that provider's
+//! The real adapter of the CLI driver's `Linker`: provider CLIs as tokio child processes. A CLI of a provider starts with that provider's
 //! environment alone (`provider_env`): the shared variables, its own prefixed credentials and its directory under the providers' root, so it
 //! cannot reach another provider's login nor the service's own secret.
 use async_trait::async_trait;
-use rca_cli_driver::application::ports::{Running, Spawner};
-use rca_cli_driver::domain::{driver_of_command, provider_env};
+use rca_cli_driver::application::ports::{Link, Linker, Running};
+use rca_cli_driver::domain::{driver_of_command, provider_env, Driver};
 use std::path::Path;
 use std::process::Stdio;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
+
+/// How long a CLI's output may stay quiet after it exited before what still holds its pipes is killed, and how long such a drain may go on.
+const EXIT_QUIET_GRACE: Duration = Duration::from_millis(300);
+const EXIT_DRAIN_CAP: Duration = Duration::from_secs(2);
+
+/// Ends the process group `pid` leads (a child started by `provider_command` leads its own); a pid that leads none is a no-op.
+fn kill_group(pid: i32) {
+    // SAFETY: a negative pid addresses the process group the child leads; the call only sends a signal.
+    unsafe {
+        libc::kill(-pid, libc::SIGKILL);
+    }
+}
 
 /// The environment of this process as pairs, for `provider_env` to choose from.
 pub fn inherited() -> Vec<(String, String)> {
@@ -17,12 +30,18 @@ pub fn inherited() -> Vec<(String, String)> {
 
 pub struct Processes {
     root: String,
+    inherited: Option<Vec<(String, String)>>,
 }
 
 impl Processes {
     /// Provider CLIs keep their logins under `root`.
     pub fn at(root: impl Into<String>) -> Processes {
-        Processes { root: root.into() }
+        Processes { root: root.into(), inherited: None }
+    }
+
+    /// As `at`, with `inherited` as the environment the CLIs choose from instead of this process's own at each spawn.
+    pub fn with_inherited(root: impl Into<String>, inherited: Vec<(String, String)>) -> Processes {
+        Processes { root: root.into(), inherited: Some(inherited) }
     }
 }
 
@@ -38,6 +57,7 @@ pub fn supervise(mut child: Child, merge_stderr: bool) -> Result<Supervised, Str
     let mut stdout = BufReader::new(child.stdout.take().ok_or("no stdout")?).lines();
     let mut stderr = child.stderr.take().ok_or("no stderr")?;
     let stdin = child.stdin.take();
+    let pid = child.id().and_then(|id| i32::try_from(id).ok());
     let (lines_tx, lines_rx) = tokio::sync::mpsc::channel::<String>(64);
     let (kill_tx, mut kill_rx) = tokio::sync::mpsc::channel::<()>(1);
     let (done_tx, done_rx) = tokio::sync::oneshot::channel::<Result<(), String>>();
@@ -73,17 +93,38 @@ pub fn supervise(mut child: Child, merge_stderr: bool) -> Result<Supervised, Str
             }
             text
         });
+        let mut exited = None;
         loop {
             tokio::select! {
                 line = stdout.next_line() => match line {
                     Ok(Some(line)) => { if lines_tx.send(line).await.is_err() { killed = true; let _ = child.kill().await; break; } }
                     _ => break,
                 },
+                status = child.wait() => { exited = Some(status); break; }
                 _ = kill_rx.recv() => { killed = true; let _ = child.kill().await; break; }
             }
         }
+        // The CLI is gone but a process it left running may hold the pipes open: hand over what was printed until the output has been quiet
+        // for the grace, then end the group, so the turn ends with the CLI and not with the daemon.
+        if exited.is_some() && !killed {
+            let started = tokio::time::Instant::now();
+            // The cap is checked before each read: a read that is always ready never times out, so a flooding process would keep the drain going.
+            while started.elapsed() < EXIT_DRAIN_CAP {
+                let wait = EXIT_QUIET_GRACE.min(EXIT_DRAIN_CAP.saturating_sub(started.elapsed()));
+                match tokio::time::timeout(wait, stdout.next_line()).await {
+                    Ok(Ok(Some(line))) => { if lines_tx.send(line).await.is_err() { break; } }
+                    _ => break,
+                }
+            }
+        }
         drop(lines_tx);
-        let status = child.wait().await;
+        let status = match exited {
+            Some(status) => status,
+            None => child.wait().await,
+        };
+        if let Some(pid) = pid {
+            kill_group(pid);
+        }
         if let Ok(text) = (&mut err_pipe).await {
             tail = text.chars().rev().take(400).collect::<Vec<_>>().into_iter().rev().collect();
         }
@@ -107,20 +148,34 @@ pub fn supervise(mut child: Child, merge_stderr: bool) -> Result<Supervised, Str
 
 /// `command` with the environment of the provider it starts (none of the service's own, when it starts no provider's CLI beyond the shared
 /// variables of `provider_env`'s rule) and the working directory `cwd`.
-pub fn provider_command(root: &str, program: &str, args: &[String], cwd: &Path) -> Command {
+pub fn provider_command(root: &str, inherited: &[(String, String)], program: &str, args: &[String], cwd: &Path) -> Command {
     let mut command = Command::new(program);
-    command.args(args).current_dir(cwd);
+    command.args(args).current_dir(cwd).process_group(0);
     if let Some(driver) = driver_of_command(program, args) {
-        command.env_clear().envs(provider_env(driver, root, &inherited()));
+        command.env_clear().envs(provider_env(driver, root, inherited));
     }
     command
 }
 
 #[async_trait]
-impl Spawner for Processes {
-    async fn spawn(&self, program: &str, args: &[String], cwd: &Path) -> Result<Running, String> {
-        let mut command = provider_command(&self.root, program, args, cwd);
-        let child = command.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true).spawn().map_err(|e| e.kind().to_string())?;
-        Ok(supervise(child, false)?.running)
+impl Linker for Processes {
+    /// The driver's CLI as the live process it has a mode for, with the flags of its conversation after its own, its input open, leading a process group of
+    /// its own that dies with it.
+    async fn open(&self, driver: Driver, cwd: &Path, flags: &[String]) -> Result<Link, String> {
+        let words = driver.server_args().ok_or_else(|| format!("{} has no server mode", driver.id()))?;
+        let args: Vec<String> = words.iter().map(|w| w.to_string()).chain(flags.iter().cloned()).collect();
+        let live;
+        let inherited = match &self.inherited {
+            Some(vars) => vars,
+            None => {
+                live = inherited();
+                &live
+            }
+        };
+        let mut command = provider_command(&self.root, inherited, driver.program(), &args, cwd);
+        let child = command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true).spawn().map_err(|e| e.kind().to_string())?;
+        let Supervised { running, input } = supervise(child, false)?;
+        let input = input.ok_or("no input")?;
+        Ok(Link { running, send: Arc::new(move |line| input.send(line).is_ok()) })
     }
 }

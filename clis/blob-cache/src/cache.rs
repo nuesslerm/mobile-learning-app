@@ -296,16 +296,24 @@ impl<S: BlobStore> Cache<S> {
         if self.admit(1, 0).is_err() {
             return Generation::default();
         }
-        match self.store.get(&Key::generation_pointer()) {
-            Ok(found) => {
-                if let Some(bytes) = &found {
-                    self.lock().meter.received(bytes.len() as u64);
+        // One transient failure of this lookup must not send the whole run cold and trip the breaker: it is retried twice.
+        let mut tries = 0;
+        loop {
+            match self.store.get(&Key::generation_pointer()) {
+                Ok(found) => {
+                    if let Some(bytes) = &found {
+                        self.lock().meter.received(bytes.len() as u64);
+                    }
+                    return Generation::parse(found.as_deref());
                 }
-                Generation::parse(found.as_deref())
-            }
-            Err(error) => {
-                self.failed(&error);
-                Generation::default()
+                Err(StoreError::Unreachable(_)) if tries < 2 => {
+                    tries += 1;
+                    std::thread::sleep(std::time::Duration::from_millis(200 * tries));
+                }
+                Err(error) => {
+                    self.failed(&error);
+                    return Generation::default();
+                }
             }
         }
     }

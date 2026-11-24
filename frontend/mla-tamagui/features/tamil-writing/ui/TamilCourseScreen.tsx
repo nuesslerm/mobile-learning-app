@@ -7,7 +7,7 @@ import { Fragment, useCallback, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
-import { TamilCourse } from '../data/tamilCourse';
+import { TamilCourse } from '../domain/course';
 import { lessonProgress, type LessonProgress } from '../domain/mastery';
 import type { TamilLesson } from '../domain/lessons';
 import { useTamilProgressStore } from '../state/tamilProgressStore';

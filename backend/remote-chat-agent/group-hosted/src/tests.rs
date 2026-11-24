@@ -38,6 +38,8 @@ fn rig(channel: Arc<dyn ExecutorChannel>, account: Option<&str>) -> Rig {
     let credentials = Arc::new(ScriptedCredentials::new(account, "ABCD-1234"));
     let groups: Vec<Arc<dyn Group>> = vec![
         Arc::new(HostedPrGroup::new(executors.clone())),
+        Arc::new(HostedIssueGroup::new(executors.clone())),
+        Arc::new(HostedProjectGroup::new(executors.clone())),
         Arc::new(HostedCloneGroup::new(executors.clone())),
         Arc::new(HostedAuthGroup::new(executors, credentials.clone())),
     ];
@@ -117,7 +119,7 @@ async fn settle() {
 
 #[test]
 fn given_the_groups_when_compared_with_the_contract_then_each_serves_its_methods_in_order_naming_the_actions_of_their_specs() {
-    // Given the three groups
+    // Given the four groups
     let r = rig(ScriptedChannel::new(|_, _| ok(json!({}))), None);
     let rows: Vec<(Method, Vec<&str>)> = r.api.served().map(|s| (s.method, s.actions.to_vec())).collect();
     // Then the rows are the contract's methods in order, with the actions of their specs
@@ -125,8 +127,8 @@ fn given_the_groups_when_compared_with_the_contract_then_each_serves_its_methods
     for spec in api::all_specs() {
         assert_eq!(rows.iter().find(|r| r.0 == spec.method).unwrap().1, spec.actions, "{}", spec.method.name());
     }
-    // And every group is complete, so service.status lists all three
-    assert_eq!(r.api.listed().iter().map(|g| g.as_str()).collect::<Vec<_>>(), ["hosted.pr", "hosted.clone", "hosted.auth"]);
+    // And every group is complete, so service.status lists all four
+    assert_eq!(r.api.listed().iter().map(|g| g.as_str()).collect::<Vec<_>>(), ["hosted.pr", "hosted.issue", "hosted.project", "hosted.clone", "hosted.auth"]);
 }
 
 #[tokio::test]
@@ -335,4 +337,119 @@ async fn given_an_executor_that_fails_the_clone_or_a_start_without_its_params_wh
     assert_eq!(channel.calls()[0].1["provider"], "github");
     assert_eq!((no_repo["error"]["message"].clone(), no_dest["error"]["message"].clone()), (json!("repo is required"), json!("dest is required")));
     assert_eq!(channel.calls().len(), 1);
+}
+
+/// An executor whose gh status is `signed_in` with `scopes`, and that answers any other action with a marker naming it and itself.
+fn executor(name: &'static str, signed_in: bool, scopes: &'static [&'static str]) -> Arc<ScriptedChannel> {
+    ScriptedChannel::new(move |tool, _| match tool {
+        exec_hosted::AUTH_STATUS => ok(json!({"provider": "github", "installed": true, "signed_in": signed_in, "host": "github.com", "account": "ada", "scopes": scopes})),
+        other => ok(json!({"action": other, "by": name})),
+    })
+}
+
+fn two_executors(first: Arc<ScriptedChannel>, second: Arc<ScriptedChannel>) -> Rig {
+    let executors: Arc<Registry> = Arc::default();
+    executors.open_executor("e1", "root1", first).unwrap();
+    executors.open_executor("e2", "root2", second).unwrap();
+    let executors: Arc<dyn Executors> = executors;
+    let groups: Vec<Arc<dyn Group>> = vec![Arc::new(HostedPrGroup::new(executors.clone())), Arc::new(HostedIssueGroup::new(executors.clone())), Arc::new(HostedProjectGroup::new(executors))];
+    Rig { api: AgentApi::new(groups).unwrap(), credentials: Arc::new(ScriptedCredentials::new(None, "")) }
+}
+
+#[tokio::test]
+async fn given_two_executors_when_a_request_names_no_workspace_then_it_goes_to_the_one_whose_gh_is_signed_in() {
+    // Given an executor that is signed out and one that is signed in
+    let (signed_out, signed_in) = (executor("e1", false, &[]), executor("e2", true, &["repo", "project"]));
+    let r = two_executors(signed_out.clone(), signed_in.clone());
+    // When the projects are listed with no workspace
+    let answer = r.ask(api::project::LIST, json!({})).await;
+    // Then the signed-in executor answered, and the signed-out one was asked its status only
+    assert_eq!(answer, json!({"id": 1, "result": {"action": exec_hosted::PROJECT_LIST, "by": "e2"}}));
+    assert_eq!(signed_out.calls().iter().map(|c| c.0.as_str()).collect::<Vec<_>>(), [exec_hosted::AUTH_STATUS]);
+    assert_eq!(signed_in.calls().iter().map(|c| c.0.as_str()).collect::<Vec<_>>(), [exec_hosted::AUTH_STATUS, exec_hosted::PROJECT_LIST]);
+    // And the status was asked for the provider of the method, and the request's own params reached the executor without a workspace
+    assert_eq!(signed_in.calls()[0].1, json!({"provider": "github"}));
+    assert_eq!(signed_in.calls()[1].1, json!({"provider": "github"}));
+}
+
+#[tokio::test]
+async fn given_two_signed_in_executors_when_a_project_method_names_no_workspace_then_the_one_holding_the_project_scope_is_asked_and_none_holding_it_is_refused() {
+    // Given the first executor signed in without the project scope and the second with it
+    let r = two_executors(executor("e1", true, &["repo"]), executor("e2", true, &["repo", "project"]));
+    // When a project is asked with no workspace
+    let project = r.ask(api::project::RESOLVE, json!({"owner": "acme", "owner_type": "organization"})).await;
+    // Then the scoped executor answered
+    assert_eq!(project["result"]["by"], "e2");
+    // And with nobody holding the scope it is refused naming the scope, and no action ran
+    let (a, b) = (executor("e1", true, &["repo"]), executor("e2", true, &["repo"]));
+    let r = two_executors(a.clone(), b.clone());
+    let none = r.ask(api::project::RESOLVE, json!({"owner": "acme", "owner_type": "organization"})).await;
+    assert_eq!(none["error"]["code"], "PROVIDER_SCOPE_MISSING");
+    assert!(none["error"]["message"].as_str().unwrap().contains("missing required scope project"));
+    assert!(a.calls().iter().chain(b.calls().iter()).all(|c| c.0 == exec_hosted::AUTH_STATUS));
+}
+
+#[tokio::test]
+async fn given_two_signed_in_executors_when_a_repository_write_names_no_workspace_then_it_is_refused_and_one_signed_in_executor_is_asked() {
+    // Given two signed-in executors
+    let (a, b) = (executor("e1", true, &["repo"]), executor("e2", true, &["repo"]));
+    let r = two_executors(a.clone(), b.clone());
+    // When a comment on a repository is added with no workspace
+    let comment = r.ask(api::project::COMMENT_ADD, json!({"repo": "octo/hello", "number": 1, "body": "x"})).await;
+    // Then the caller is told to name the workspace and nothing was written
+    assert_eq!(comment["error"]["code"], "INVALID_PARAMS");
+    assert!(a.calls().iter().chain(b.calls().iter()).all(|c| c.0 == exec_hosted::AUTH_STATUS));
+    // And with one signed-in executor the same request goes to it
+    let r = two_executors(executor("e1", false, &[]), executor("e2", true, &["repo"]));
+    assert_eq!(r.ask(api::project::COMMENT_ADD, json!({"repo": "octo/hello", "number": 1, "body": "x"})).await["result"]["by"], "e2");
+}
+
+#[tokio::test]
+async fn given_no_executor_signed_in_or_a_request_that_cannot_run_without_a_workspace_when_asked_then_it_is_refused_and_no_action_runs() {
+    let (a, b) = (executor("e1", false, &[]), executor("e2", false, &[]));
+    let r = two_executors(a.clone(), b.clone());
+    // When a project is listed with no workspace and nobody is signed in
+    let none = r.ask(api::project::LIST, json!({})).await;
+    // Then it is NO_EXECUTOR naming the provider, and only statuses were asked
+    assert_eq!((none["error"]["code"].clone(), none["error"]["message"].clone()), (json!("NO_EXECUTOR"), json!("no attached executor is signed in to github")));
+    assert!(a.calls().iter().chain(b.calls().iter()).all(|c| c.0 == exec_hosted::AUTH_STATUS));
+    // And a method of a repository with no workspace and no repo is the workspace refusal, and one the scope does not allow likewise, though a signed-in executor exists
+    let r = two_executors(executor("e1", true, &["project"]), executor("e2", true, &["project"]));
+    assert_eq!(r.ask(api::issue::VIEW, json!({"number": 1})).await["error"], json!({"code": "INVALID_PARAMS", "message": "workspace is required"}));
+    assert_eq!(r.ask(api::project::COMMENT_ADD, json!({"number": 1, "body": "x"})).await["error"]["code"], "INVALID_PARAMS");
+    // And a request with a workspace still goes to the owner of the workspace, signed in or not
+    let own = r.ask(api::project::LIST, json!({"workspace": "root2"})).await;
+    assert_eq!(own["result"]["by"], "e2");
+}
+
+#[tokio::test]
+async fn given_a_pull_request_method_with_a_repo_and_no_workspace_when_asked_then_the_signed_in_executor_reads_that_repository() {
+    // Given an executor signed in to GitHub
+    let signed_in = executor("e2", true, &["repo"]);
+    let r = two_executors(executor("e1", false, &[]), signed_in.clone());
+    // When pr.view names a repository and no workspace, and the GitLab twin names GitLab's provider by default
+    let view = r.ask(pr::VIEW, json!({"repo": "octo/hello", "number": 5})).await;
+    let labels = r.ask(pr::LABEL_CANDIDATES, json!({"repo": "octo/hello"})).await;
+    // Then the executor read it with that repository
+    assert_eq!((view["result"]["by"].clone(), labels["result"]["action"].clone()), (json!("e2"), json!(exec_hosted::REPO_LABELS)));
+    assert_eq!(signed_in.calls()[1].1, json!({"repo": "octo/hello", "number": 5, "provider": "github"}));
+}
+
+#[tokio::test]
+async fn given_every_project_method_when_called_then_the_executor_is_asked_its_action_with_the_forwarded_params_and_the_result_comes_back_as_it_came() {
+    let channel = ScriptedChannel::new(|tool, _| ok(json!({"action": tool})));
+    let r = rig(channel.clone(), None);
+    for spec in api::project::SPECS {
+        let mut params = json!({"workspace": "root", "token": "ghp_x"});
+        for name in api::properties_of(spec.actions[0]) {
+            if name != "provider" {
+                params[name] = json!("v");
+            }
+        }
+        let answer = r.ask(spec.method, params).await;
+        assert_eq!(answer, json!({"id": 1, "result": {"action": spec.actions[0]}}), "{}", spec.method.name());
+        let (tool, args) = channel.calls().pop().unwrap();
+        assert_eq!((tool.as_str(), args["provider"].clone()), (spec.actions[0], json!("github")), "{}", spec.method.name());
+        assert!(args.get("token").is_none() && args.get("workspace").is_none(), "{args}");
+    }
 }

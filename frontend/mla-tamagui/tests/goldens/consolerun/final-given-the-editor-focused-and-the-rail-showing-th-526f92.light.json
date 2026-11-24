@@ -1,0 +1,69 @@
+{
+  "suite": "consolerun",
+  "step": "final-given-the-editor-focused-and-the-rail-showing-th-526f92",
+  "scheme": "light",
+  "snapshot": "consolerun/final-given-the-editor-focused-and-the-rail-showing-th-526f92.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleSheetHandle",
+      "ConsoleSheet",
+      "ConsoleTabs",
+      "SegmentedThumb",
+      "ConsoleTabs-testcase",
+      "ConsoleTabs-result",
+      "ConsoleBody",
+      "ConsolePanel-result",
+      "ConsoleResultVerdict",
+      "ConsoleResultRuntime",
+      "ConsoleResultFocus",
+      "ConsoleResultInput-case-Card",
+      "ConsoleResultInput-case-Caption",
+      "ConsoleResultInput-case-Toggle",
+      "ConsoleResultInput-case",
+      "ConsoleResultOutput-Card",
+      "ConsoleResultOutput-Caption",
+      "ConsoleResultOutput-Toggle",
+      "ConsoleResultOutput",
+      "ConsoleResultExpected-Card",
+      "ConsoleResultExpected-Caption",
+      "ConsoleResultExpected-Toggle",
+      "ConsoleResultExpected",
+      "ConsoleFooter",
+      "ConsoleFooterReset",
+      "ConsoleFooterRun",
+      "ConsoleFooterSubmit"
+    ],
+    "text": "Python\nTestcase\nRun Result\nAccepted\nRuntime 1 ms\ncase\n0\nOutput\n0\nExpected\n0\nReset\nSubmit"
+  },
+  "timings": {
+    "render_ms": 228
+  },
+  "name": "consolerun/final-given-the-editor-focused-and-the-rail-showing-th-526f92.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

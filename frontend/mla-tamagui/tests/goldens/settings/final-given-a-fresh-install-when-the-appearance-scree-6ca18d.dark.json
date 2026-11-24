@@ -1,0 +1,93 @@
+{
+  "suite": "settings",
+  "step": "final-given-a-fresh-install-when-the-appearance-scree-6ca18d",
+  "scheme": "dark",
+  "snapshot": "settings/final-given-a-fresh-install-when-the-appearance-scree-6ca18d.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 941,
+    "page_height": 941
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "AppearanceSettingsScreen",
+      "AppearanceSettingsScreenHeader",
+      "AppearanceSettingsScreenHeaderBack",
+      "AppearanceSettingsScreenHeaderTitle",
+      "AppearanceSettingsScreen-ScrollView",
+      "AppearanceSettingsScreen-ModeControl",
+      "AppearanceSettingsScreen-ModeControl-system",
+      "AppearanceSettingsScreen-ModeControl-light",
+      "AppearanceSettingsScreen-ModeControl-dark",
+      "AppearanceSettingsScreen-NativeHeaders",
+      "AppearanceSettingsScreen-NativeHeadersLabel",
+      "AppearanceSettingsScreen-NativeHeadersHint",
+      "AppearanceSettingsScreen-NativeHeadersControl",
+      "AppearanceSettingsScreen-NativeHeadersControl-off",
+      "AppearanceSettingsScreen-NativeHeadersControl-on",
+      "AppearanceSettingsScreen-ThemeGrid",
+      "AppearanceSettingsScreen-ThemeTile-ios-native",
+      "AppearanceSettingsScreen-ThemeTilePress-ios-native",
+      "AppearanceSettingsScreen-ThemeTileSwatches-ios-native",
+      "AppearanceSettingsScreen-ThemeTilePrimary-ios-native",
+      "AppearanceSettingsScreen-ThemeTileAccent-ios-native",
+      "AppearanceSettingsScreen-ThemeTileColor6-ios-native",
+      "AppearanceSettingsScreen-ThemeTileLabelRow-ios-native",
+      "AppearanceSettingsScreen-ThemeTileLabel-ios-native",
+      "AppearanceSettingsScreen-ThemeTile-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTilePress-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileSwatches-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTilePrimary-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileAccent-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileColor6-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileLabelRow-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileLabel-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTile-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTilePress-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileSwatches-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTilePrimary-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileAccent-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileColor6-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileLabelRow-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileLabel-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTile-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTilePress-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTileSwatches-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTilePrimary-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTileAccent-ocean-breeze"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nAppearance\nSystem\nLight\nDark\nNative headers\nUse the iOS system header. Turn off for the app's own header.\nOff\nOn\niOS Native\nMonochrome Pro\nClassic Duolingo\nOcean Breeze\nForest Fresh\nDesert Dawn\nPastel Pop\nMidnight Neon\nRoyal Purple\nChess Wood\nSunset Vibes\nLeetCode Slate"
+  },
+  "timings": {
+    "render_ms": 534
+  },
+  "name": "settings/final-given-a-fresh-install-when-the-appearance-scree-6ca18d.dark",
+  "image": {
+    "width": 360,
+    "height": 896
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

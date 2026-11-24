@@ -15,6 +15,7 @@
 //   Race/Exclusive: at most one child activates; Pan wins once movement passes
 //         slop, else Tap. Simultaneous: every child runs. enabled(false) never fires.
 const React = require('react');
+const RN = require('react-native-web');
 
 const TAP_SLOP = 10;
 const HANDLERS = ['onBegin', 'onStart', 'onUpdate', 'onChange', 'onEnd', 'onFinalize', 'onTouchesDown', 'onTouchesMove', 'onTouchesUp'];
@@ -31,6 +32,7 @@ const CONFIG = [
   'hitSlop',
   'activeOffsetX',
   'activeOffsetY',
+  'activateAfterLongPress',
   'failOffsetX',
   'failOffsetY',
   'simultaneousWithExternalGesture',
@@ -243,6 +245,8 @@ module.exports = {
   },
   GestureDetector,
   GestureHandlerRootView,
+  // the library's own ScrollView is a native scroller; the DOM one has the same `scrollTo`
+  ScrollView: RN.ScrollView,
   Directions: { RIGHT: 1, LEFT: 2, UP: 4, DOWN: 8 },
   State: {
     UNDETERMINED: 0,

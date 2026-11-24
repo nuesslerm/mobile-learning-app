@@ -24,7 +24,7 @@ test = false
 [dependencies]
 wf-kit = { path = "../wf-kit" }
 wf-harness = { path = "../wf-harness" }
-offload = { path = "../offload" }
+rca = { path = "../rca" }
 rca-core = { version = "0.1", registry = "mla" }
 cli-http = { path = "../http" }
 serde_json = { version = "1", features = ["preserve_order"] }
@@ -39,3 +39,6 @@ wf-testkit = { path = "../wf-testkit" }
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
 wf-harness = { path = "../wf-harness", features = ["testing"] }
 tempfile = "3"
+
+[package.metadata.arch]
+type = "cli-crate"

@@ -1,0 +1,93 @@
+{
+  "suite": "showcase",
+  "step": "final-given-the-showcase-when-the-item-button-is-tapp-28e50a",
+  "scheme": "dark",
+  "snapshot": "showcase/final-given-the-showcase-when-the-item-button-is-tapp-28e50a.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 1704,
+    "page_height": 2290
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "ShowcaseNavigation",
+      "ShowcaseNavigationBack",
+      "ShowcaseNavigationTitle",
+      "ShowcaseItemButton",
+      "ShowcaseItemTitle",
+      "ShowcaseText",
+      "ShowcaseText-TamaguiLabel",
+      "ShowcaseText-Tamagui",
+      "ShowcaseText-ExpoUiLabel",
+      "ShowcaseText-ExpoUi",
+      "ShowcaseItemSheet",
+      "ShowcaseItemSheetHeader",
+      "ShowcaseItemSheetHeaderClose",
+      "ShowcaseItemGroup-basics",
+      "ShowcaseItemList-basics",
+      "ShowcaseItem-text",
+      "ShowcaseItem-badge",
+      "ShowcaseItem-button",
+      "ShowcaseItem-icon-button",
+      "ShowcaseItem-icon",
+      "ShowcaseItem-separator",
+      "ShowcaseItem-spinner",
+      "ShowcaseItemGroup-inputs",
+      "ShowcaseItemList-inputs",
+      "ShowcaseItem-text-field",
+      "ShowcaseItem-switch",
+      "ShowcaseItem-segmented-control",
+      "ShowcaseItem-chip",
+      "ShowcaseItemGroup-surfaces",
+      "ShowcaseItemList-surfaces",
+      "ShowcaseItem-card",
+      "ShowcaseItem-list",
+      "ShowcaseItem-stat-tile",
+      "ShowcaseItemGroup-overlays",
+      "ShowcaseItemList-overlays",
+      "ShowcaseItem-alert-dialog",
+      "ShowcaseItem-prompt-dialog",
+      "ShowcaseItem-sheet",
+      "ShowcaseItem-glass-picker",
+      "ShowcaseItemGroup-navigation",
+      "ShowcaseItemList-navigation",
+      "ShowcaseItem-drawer",
+      "ShowcaseItemGroup-coding-agent",
+      "ShowcaseItemList-coding-agent",
+      "ShowcaseItem-code-block",
+      "ShowcaseItem-markdown"
+    ],
+    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nBrowse components\nBasics\nText\nTamagui\nHeading 1\nHeading 2\nBody text\nMuted text\nSMALL LABEL\nExpo UI\nHeading 1\nHeading 2\nBody text\nChoose a component\nBasics\nText\nBadge\nButton\nIconButton\nIcon\nSeparator\nSpinner\nInputs\nTextField\nSwitch\nSegmentedControl\nChip\nLists and surfaces\nCard\nLists\nStatTile\nOverl"
+  },
+  "timings": {
+    "render_ms": 263
+  },
+  "name": "showcase/final-given-the-showcase-when-the-item-button-is-tapp-28e50a.dark",
+  "image": {
+    "width": 360,
+    "height": 1623
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

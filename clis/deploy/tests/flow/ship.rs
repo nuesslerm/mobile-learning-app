@@ -1,6 +1,6 @@
 //! `wf ship`: planning what changed since each service's running commit, the status of every service, the promotion of `latest` (its `sh` script is compared byte for byte with `fixtures/deploy-scripts`), a
 //! redeploy of a tag, and an EAS Update. vm-ops-api is a fake behind a fake tailnet; `git` and `pnpm` are argv-recording stubs.
-use crate::support::{create_stub, fixtures_dir, repo_root, run_wf, with_stubs, MockReply, MockServer, RunOpts, RunResult};
+use crate::support::{create_stub, fixtures_dir, repo_root, run_wf, with_stubs, RunOpts, RunResult};
 use wf_vmops::testing::{answers, FakeVm, CI_VM_SEED, VM_SEED};
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
@@ -9,15 +9,15 @@ use pipeline::copy_closure::{copy_problems, copy_sources};
 use std::time::Duration;
 
 const BASE: &str = "http://vm-ops-api-main:8080";
-const ALL_APPS: [&str; 8] = ["vm-ops-api", "remote-chat-agent", "leetcode-backend", "leetcode-auth-cookie-capture", "reporting-service", "t3-serve", "orca-serve", "vnc-auth-session"];
+const ALL_APPS: [&str; 9] = ["vm-ops-api", "remote-chat-agent", "leetcode-backend", "leetcode-auth-cookie-capture", "reporting-service", "t3-serve", "orca-serve", "vnc-auth-session", "agent-shell"];
 /// The exec-script job a promotion starts, with the id the start route mints.
 const JOB1: &str = "0b9f5c2e-8a1d-4c3e-9f7a-000000000001";
 
 pub(crate) struct Ship {
     pub(crate) vm: FakeVm,
     pub(crate) dir: tempfile::TempDir,
-    /// The verification bucket the plan reads the branch's latest-update pointer from: no pointer until `latest_update` serves one.
-    bucket: MockServer,
+    /// The pointer dir the plan reads the branch's latest-update pointer from (`WF_EAS_POINTER_DIR`): no pointer until `latest_update` writes one.
+    pointers: std::path::PathBuf,
 }
 
 impl Ship {
@@ -30,6 +30,7 @@ impl Ship {
         create_stub(
             &dir.path().join("bin/git"),
             "echo \"$*\" >> \"$STUB_DIR/git.log\"\n\
+             [ -n \"$GIT_PASSTHROUGH\" ] && exec /usr/bin/git \"$@\"\n\
              case \"$1\" in\n\
              cat-file) exit \"${GIT_KNOWN:-0}\";;\n\
              diff) [ -n \"$GIT_DIFF_FAIL\" ] && exit 128; while [ \"$1\" != -- ]; do shift; done; shift\n\
@@ -50,20 +51,27 @@ impl Ship {
              eval \"out=\\${PNPM_OUT_$sha-\\$PNPM_OUT}\"\n\
              printf \"%s\" \"$out\"",
         );
-        Self { vm: FakeVm::start(), dir, bucket: MockServer::start(None) }
+        let pointers = dir.path().join("pointers");
+        std::fs::create_dir(&pointers).unwrap();
+        Self { vm: FakeVm::start(), dir, pointers }
     }
 
     /// The pointer `wf ship eas --pointer` stored: the update of branch dev published from `commit`.
     fn latest_update(&self, commit: &str) {
-        self.latest_pointer(MockReply::json(200, json!({ "branch": "dev", "commit": commit, "group": "g-1" })));
+        self.latest_pointer(Some(&json!({ "branch": "dev", "commit": commit, "group": "g-1" }).to_string()));
     }
 
-    fn latest_pointer(&self, reply: MockReply) {
-        self.bucket.routes(&[("GET /o/verification/eas-updates/latest-dev.json", reply)]);
+    /// The branch pointer file holding `body`, or none at all.
+    fn latest_pointer(&self, body: Option<&str>) {
+        let file = self.pointers.join("latest-dev.json");
+        match body {
+            Some(text) => std::fs::write(file, text).unwrap(),
+            None => drop(std::fs::remove_file(file)),
+        }
     }
 
     fn opts(&self, env: &[(&str, &str)]) -> RunOpts {
-        let mut opts = self.vm.opts().bin_dir(&self.dir.path().join("bin")).cwd(self.dir.path()).timeout(Duration::from_secs(120)).env("STUB_DIR", &self.dir.path().display().to_string()).env("REAL_REPO", &repo_root().display().to_string()).env("WF_DEPLOY_POLL_MS", "10").env("WF_DEPLOY_RETRY_MS", "10").env("VERIFICATION_ARTIFACTS_READ_URL", &format!("http://127.0.0.1:{}/o", self.bucket.port));
+        let mut opts = self.vm.opts().bin_dir(&self.dir.path().join("bin")).cwd(self.dir.path()).timeout(Duration::from_secs(120)).env("STUB_DIR", &self.dir.path().display().to_string()).env("REAL_REPO", &repo_root().display().to_string()).env("WF_DEPLOY_POLL_MS", "10").env("WF_DEPLOY_RETRY_MS", "10").env("WF_EAS_POINTER_DIR", &self.pointers.display().to_string());
         for (key, value) in env {
             opts = opts.env(key, value);
         }
@@ -77,7 +85,7 @@ impl Ship {
         }
         // a build names its images' hashes in the script a golden holds, so it takes a fixed one; a plan hashes the real tree
         let fixed = [("STUB_HASH", "0123456789abcdef01234567")];
-        let env: Vec<(&str, &str)> = env.iter().copied().chain(fixed.into_iter().filter(|_| !args.contains(&"--changed"))).collect();
+        let env: Vec<(&str, &str)> = env.iter().copied().chain(fixed.into_iter().filter(|_| !args.contains(&"legs"))).collect();
         run_wf(args, &self.opts(&env))
     }
 
@@ -126,7 +134,23 @@ const PLANNED: [(&str, &str); 7] = [("remote-chat-agent", "remote-chat-agent"), 
 fn running(vm_ops_commit: &str) -> Vec<String> {
     let mut replies: Vec<String> = PLANNED.iter().map(|(app, image)| ps(app, &format!("reg/{image}:sha-abc123"))).collect();
     replies.push(health(vm_ops_commit));
+    // the plan asks about agent-shell last
+    replies.push(ps("agent-shell", "reg/agent-shell:sha-abc123"));
     replies
+}
+
+/// The calls `running` answers, in its order: the plan asks every service at once, so an answer belongs to its path, never to its place in the arrival order.
+fn running_paths() -> Vec<String> {
+    let mut paths: Vec<String> = PLANNED.iter().map(|(app, _)| format!("GET /services/{app}/ps")).collect();
+    paths.push("GET /health".to_string());
+    paths.push("GET /services/agent-shell/ps".to_string());
+    paths
+}
+
+/// Makes the fake answer `replies` (laid out as `running` lays them out) by path.
+fn answer(s: &Ship, replies: &[String]) {
+    let table: Vec<(String, String)> = running_paths().into_iter().zip(replies.iter().cloned()).collect();
+    s.vm.replies_by_path(&table);
 }
 
 /// The planned legs: each app with why it ships.
@@ -148,28 +172,32 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
     let s = Ship::new();
 
     // Given --force, When the plan is made, Then every service is planned (no Metro server) without asking anything
-    let r = s.wf(&["ship", "--changed", "--force"], &[]);
+    let r = s.wf(&["ci", "plan", "legs", "--force"], &[]);
     assert_eq!((r.exit_code, apps(&r.stdout)), (0, ALL_APPS.map(String::from).to_vec()));
     assert_eq!(why(&r.stdout, "vnc-auth-session"), ["--force"]);
     assert!(s.vm.requests().is_empty());
     // and with --github-output the legs and the update's publish flag are appended to the workflow's output file
     let gh_output = s.dir.path().join("gh-output");
-    let r = s.wf(&["ship", "--changed", "--force", "--github-output"], &[("GITHUB_OUTPUT", &gh_output.display().to_string())]);
+    let r = s.wf(&["ci", "plan", "legs", "--force", "--github-output"], &[("GITHUB_OUTPUT", &gh_output.display().to_string())]);
     let plan: Value = serde_json::from_str(&r.stdout).unwrap();
     assert_eq!(std::fs::read_to_string(&gh_output).unwrap(), format!("legs={}\neas_update=true\n", plan["legs"]));
-    assert_eq!((plan["easUpdate"].clone(), s.bucket.requests().len()), (json!({ "publish": true, "why": ["--force"] }), 0));
+    assert_eq!(plan["easUpdate"], json!({ "publish": true, "why": ["--force"] }));
 
     // Given every service and vm-ops-api run commits whose image inputs hash the same as HEAD's (the stub reads each as HEAD), When the plan is made
     let mut replies: Vec<String> = PLANNED.iter().zip(["abc123", "abc123", "def456", "abc123", "abc123", "abc123", "abc123", "fed789"]).map(|((app, image), sha)| ps(app, &format!("reg/{image}:sha-{sha}"))).collect();
     replies.push(health("aaaaaaa"));
-    s.vm.replies(&replies);
+    replies.push(ps("agent-shell", "reg/agent-shell:sha-abc123"));
+    answer(&s, &replies);
     s.latest_update("abc123");
-    let r = s.wf(&["ship", "--changed"], &[("PNPM_OUT", "[{\"name\":\"@app/unrelated\"}]")]);
+    let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[{\"name\":\"@app/unrelated\"}]")]);
     // Then nothing is scheduled and no update is published, only the latest update's commit is asked of pnpm, and the dev Metro's bridge is not asked
     assert_eq!((r.exit_code, r.stdout.as_str()), (0, "{\"legs\":[],\"easUpdate\":{\"publish\":false,\"why\":[]}}\n"));
-    assert_eq!(s.bucket.requests().iter().map(|q| format!("{} {}", q.method, q.url)).collect::<Vec<_>>(), ["GET /o/verification/eas-updates/latest-dev.json"]);
     assert_eq!(s.log("pnpm.log"), ["--filter ...[abc123] --changed-files-ignore-pattern=**/__tests__/** --changed-files-ignore-pattern=**/*.test.* --changed-files-ignore-pattern=**/*.md list --depth -1 --json"]);
-    assert_eq!(s.url(PLANNED.len() + 1), format!("{BASE}/health"), "the double answers what the plan asks");
+    let mut asked: Vec<String> = s.vm.requests().iter().map(|q| q.url.clone()).collect();
+    asked.sort();
+    let mut wanted: Vec<String> = running_paths().iter().map(|key| key.trim_start_matches("GET ").to_string()).collect();
+    wanted.sort();
+    assert_eq!(asked, wanted, "the plan asks every service once and vm-ops-api's health");
     assert!(s.vm.requests().iter().all(|q| !q.url.contains("dev-bridge") && !q.url.contains("metro-runner")), "{:?}", s.vm.requests().iter().map(|q| q.url.clone()).collect::<Vec<_>>());
     let signed = &s.vm.requests()[0];
     s.vm.assert_signed(signed, "GET", &signed.url, "");
@@ -177,8 +205,8 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
     // Given an unreachable service and a running commit the checkout cannot hash (the empty tree has no Dockerfile)
     let mut replies = running("abc123");
     replies[2] = answers::reply(502, &answers::engine_down());
-    s.vm.replies(&replies);
-    let r = s.wf(&["ship", "--changed"], &[("PNPM_OUT", "[]"), ("GIT_AS", "4b825dc642cb6eb9a060e54bf8d69288fbee4904")]);
+    answer(&s, &replies);
+    let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]"), ("GIT_AS", "4b825dc642cb6eb9a060e54bf8d69288fbee4904")]);
     // Then each is planned with why, the unreachable one with a warning
     assert_eq!(apps(&r.stdout), ALL_APPS.map(String::from).to_vec());
     assert!(why(&r.stdout, "leetcode-backend")[0].starts_with("its image inputs at abc123 cannot be hashed:"), "{}", r.stdout);
@@ -189,8 +217,8 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
     assert_eq!(copy_problems(&root, "clis/vnc-auth-capture/Dockerfile", &["clis/vnc-auth-capture/listener"], &["clis/secrets/src/data/registry.json"]).unwrap(), Vec::<String>::new());
 
     // Given running commits the checkout does not know, Then every service is planned as changed without hashing or asking pnpm
-    s.vm.replies(&running("abc123"));
-    let r = s.wf(&["ship", "--changed"], &[("GIT_KNOWN", "1"), ("PNPM_OUT", "[]")]);
+    answer(&s, &running("abc123"));
+    let r = s.wf(&["ci", "plan", "legs"], &[("GIT_KNOWN", "1"), ("PNPM_OUT", "[]")]);
     assert_eq!(apps(&r.stdout), ALL_APPS.map(String::from).to_vec());
     assert_eq!(why(&r.stdout, "leetcode-backend"), ["its running commit abc123 is not in this checkout"]);
     assert!(s.log("pnpm.log").is_empty() && !s.log("git.log").iter().any(|l| l.starts_with("ls-tree")), "{:?}", s.log("git.log"));
@@ -209,21 +237,21 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
     show("HEAD", "pnpm-lock.yaml", &pnpm_lock("aaa", "3.1.0"));
     show("aaaaaaa", "pnpm-lock.yaml", &pnpm_lock("aaa", "3.0.0"));
     s.latest_update("aaaaaaa");
-    s.vm.replies(&running("aaaaaaa"));
-    let r = s.wf(&["ship", "--changed"], &[("PNPM_OUT", "[]"), ("GIT_CHANGED", "pnpm-lock.yaml")]);
+    answer(&s, &running("aaaaaaa"));
+    let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]"), ("GIT_CHANGED", "pnpm-lock.yaml")]);
     let plan: Value = serde_json::from_str(&r.stdout).unwrap();
     assert_eq!((r.exit_code, plan["legs"].clone(), plan["easUpdate"].clone()), (0, json!([]), json!({ "publish": false, "why": [] })), "{}{}", r.stdout, r.stderr);
 
     // Given it re-patched a package the app bundles, Then the update is published with the dependency that moved
     show("aaaaaaa", "pnpm-lock.yaml", &pnpm_lock("bbb", "3.1.0"));
-    s.vm.replies(&running("aaaaaaa"));
-    let r = s.wf(&["ship", "--changed"], &[("PNPM_OUT", "[]"), ("GIT_CHANGED", "pnpm-lock.yaml")]);
+    answer(&s, &running("aaaaaaa"));
+    let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]"), ("GIT_CHANGED", "pnpm-lock.yaml")]);
     let plan: Value = serde_json::from_str(&r.stdout).unwrap();
     assert_eq!(plan["easUpdate"], json!({ "publish": true, "why": ["1 of its locked dependencies moved: sonner-native"] }), "{plan}");
 
     // Given --since, When the plan is made, Then that commit stands in for every running one and vm-ops-api is not asked
     s.vm.replies::<&str>(&[]);
-    let r = s.wf(&["ship", "--changed", "--since", "abc123"], &[("PNPM_OUT", "[]")]);
+    let r = s.wf(&["ci", "plan", "legs", "--since", "abc123"], &[("PNPM_OUT", "[]")]);
     assert_eq!((r.exit_code, apps(&r.stdout)), (0, Vec::<String>::new()), "{}", r.stderr);
     assert_eq!(s.log("pnpm.log"), ["--filter ...[abc123] --changed-files-ignore-pattern=**/__tests__/** --changed-files-ignore-pattern=**/*.test.* --changed-files-ignore-pattern=**/*.md list --depth -1 --json"]);
     assert!(s.vm.requests().is_empty(), "{:?}", s.vm.requests().iter().map(|r| r.url.clone()).collect::<Vec<_>>());
@@ -238,9 +266,9 @@ fn a_service_with_no_running_container_is_planned_whatever_changed() {
     let created = [("remote-chat-agent", "created", "Created", "reg/remote-chat-agent:sha-abc123"), ("remote-chat-agent-tailscale", "created", "Created", "tailscale/tailscale:v1.102.2")];
     let mut replies = running("abc123");
     replies[0] = answers::reply(200, &answers::ps("remote-chat-agent", &created));
-    s.vm.replies(&replies);
+    answer(&s, &replies);
     // When the plan is made with nothing changed
-    let r = s.wf(&["ship", "--changed"], &[("PNPM_OUT", "[]")]);
+    let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]")]);
     // Then only that service ships, because its tag names an image nothing runs
     assert_eq!((r.exit_code, apps(&r.stdout)), (0, vec!["remote-chat-agent".to_string()]), "{}{}", r.stdout, r.stderr);
     assert_eq!(why(&r.stdout, "remote-chat-agent"), ["its running commit is unknown"]);
@@ -248,8 +276,8 @@ fn a_service_with_no_running_container_is_planned_whatever_changed() {
 
     // and once its own container runs again at that commit, nothing ships
     replies[0] = ps("remote-chat-agent", "reg/remote-chat-agent:sha-abc123");
-    s.vm.replies(&replies);
-    let r = s.wf(&["ship", "--changed"], &[("PNPM_OUT", "[]")]);
+    answer(&s, &replies);
+    let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]")]);
     assert_eq!((r.exit_code, apps(&r.stdout)), (0, Vec::<String>::new()), "{}{}", r.stdout, r.stderr);
 }
 
@@ -257,8 +285,8 @@ fn a_service_with_no_running_container_is_planned_whatever_changed() {
 fn the_update_is_published_whenever_the_app_moved_since_the_pointer_whatever_the_services_run() {
     let s = Ship::new();
     let plan = |s: &Ship, env: &[(&str, &str)]| -> (RunResult, Value) {
-        s.vm.replies(&running("aaaaaaa"));
-        let r = s.wf(&["ship", "--changed"], env);
+        answer(s, &running("aaaaaaa"));
+        let r = s.wf(&["ci", "plan", "legs"], env);
         let v = serde_json::from_str(r.stdout.trim()).unwrap_or(Value::Null);
         (r, v)
     };
@@ -277,28 +305,13 @@ fn the_update_is_published_whenever_the_app_moved_since_the_pointer_whatever_the
     assert_eq!((apps(&v.to_string()), v["easUpdate"]["publish"].clone()), (Vec::<String>::new(), json!(false)), "{v}");
 
     // Given a pointer the plan cannot read: none yet, not JSON, and one that names no commit
-    for (what, reply) in [("no pointer yet", MockReply::json(404, json!({}))), ("a body that is no JSON", MockReply::text(200, "<html>")), ("a pointer with no commit", MockReply::json(200, json!({ "group": "g-1" })))] {
-        s.latest_pointer(reply);
+    for (what, body) in [("no pointer yet", None), ("a body that is no JSON", Some("<html>")), ("a pointer with no commit", Some("{\"group\":\"g-1\"}"))] {
+        s.latest_pointer(body);
         let (r, v) = plan(&s, &[("PNPM_OUT", "[]")]);
         // Then the update is published (the tests refuse to guess too, and nothing else would ever repair it), and the plan goes on
         assert_eq!((r.exit_code, publish(&v)), (0, (json!([]), json!(true))), "{what}: {}{}", r.stdout, r.stderr);
         assert!(v["easUpdate"]["why"][0].as_str().unwrap().starts_with("the commit of the latest update is unknown:"), "{what}: {v}");
     }
-    // and a bucket that fails once is asked again, one that is down is asked three times and a missing pointer once
-    s.bucket.clear();
-    s.bucket.queue(vec![MockReply::json(503, json!({})), MockReply::json(200, json!({ "branch": "dev", "commit": "abc123", "group": "g-1" }))], false);
-    let (_, v) = plan(&s, &[("PNPM_OUT", "[]"), ("WF_EAS_POINTER_BACKOFF_MS", "10")]);
-    assert_eq!((s.bucket.requests().len(), v["easUpdate"]["publish"].clone()), (2, json!(false)), "{v}");
-    s.bucket.clear();
-    s.bucket.queue(vec![MockReply::json(503, json!({})); 3], false);
-    let (_, v) = plan(&s, &[("PNPM_OUT", "[]"), ("WF_EAS_POINTER_BACKOFF_MS", "10")]);
-    assert_eq!((s.bucket.requests().len(), v["easUpdate"]["publish"].clone()), (3, json!(true)), "{v}");
-    assert!(v["easUpdate"]["why"][0].as_str().unwrap().contains("(3 tries)"), "{v}");
-    s.bucket.queue(vec![], false);
-    s.bucket.clear();
-    s.latest_pointer(MockReply::json(404, json!({})));
-    plan(&s, &[("PNPM_OUT", "[]")]);
-    assert_eq!(s.bucket.requests().len(), 1);
 
     // Given pnpm cannot list what changed since the pointer's commit (it prints an error object and exits 1)
     s.latest_update("bad1234");
@@ -309,8 +322,8 @@ fn the_update_is_published_whenever_the_app_moved_since_the_pointer_whatever_the
     assert!(why.starts_with("cannot tell whether the app changed since the latest update (bad1234): pnpm exited 1 listing the packages changed since bad1234: {\"error\":{\"code\":\"ERR_PNPM_FILTER_CHANGED\"") , "{why}");
 
     // Given a pointer whose update baked in tailnet names, and a tailnet that answers another name for one
-    let baked = |hosts: Value| MockReply::json(200, json!({ "branch": "dev", "commit": "abc123", "group": "g-1", "hosts": hosts }));
-    s.latest_pointer(baked(json!(["leetcode-backend-prod-1", "remote-chat-agent-prod", "u.expo.dev"])));
+    let baked = |hosts: Value| json!({ "branch": "dev", "commit": "abc123", "group": "g-1", "hosts": hosts }).to_string();
+    s.latest_pointer(Some(&baked(json!(["leetcode-backend-prod-1", "remote-chat-agent-prod", "u.expo.dev"]))));
     let (r, v) = plan(&s, &[("PNPM_OUT", "[]"), ("WF_TEST_TAILNET_NAMES", "leetcode-backend-prod,remote-chat-agent-prod")]);
     // Then the update is published for that, naming both names, though nothing in the app changed
     assert_eq!((r.exit_code, publish(&v), v["easUpdate"]["why"].clone()), (0, (json!([]), json!(true)), json!(["the tailnet name leetcode-backend-prod-1 the update baked in is now leetcode-backend-prod"])), "{}{}", r.stdout, r.stderr);
@@ -319,11 +332,11 @@ fn the_update_is_published_whenever_the_app_moved_since_the_pointer_whatever_the
         let (_, v) = plan(&s, &[("PNPM_OUT", "[]"), ("WF_TEST_TAILNET_NAMES", names)]);
         assert_eq!(v["easUpdate"], json!({ "publish": false, "why": [] }), "{names:?}");
     }
-    // and --since stands in for the pointer: the bucket and the tailnet are not asked
-    s.bucket.clear();
+    // and --since stands in for the pointer: with no pointer stored and a tailnet name that moved, nothing is published
+    s.latest_pointer(None);
     s.vm.replies::<&str>(&[]);
-    let r = s.wf(&["ship", "--changed", "--since", "abc123"], &[("PNPM_OUT", "[]"), ("WF_TEST_TAILNET_NAMES", "leetcode-backend-prod")]);
-    assert_eq!((r.exit_code, s.bucket.requests().len()), (0, 0), "{}{}", r.stdout, r.stderr);
+    let r = s.wf(&["ci", "plan", "legs", "--since", "abc123"], &[("PNPM_OUT", "[]"), ("WF_TEST_TAILNET_NAMES", "leetcode-backend-prod")]);
+    assert_eq!((r.exit_code, serde_json::from_str::<Value>(&r.stdout).unwrap()["easUpdate"]["publish"].clone()), (0, json!(false)), "{}{}", r.stdout, r.stderr);
 }
 
 #[test]
@@ -354,7 +367,7 @@ fn ship_status_reports_every_service_and_vm_ops_api_and_retire_removes_an_app() 
 
     // Given no app names, Then every known app is asked about, in order, then health and the redeploy state, and nothing is asked
     // of the Metro (its container is no app of the sweep, and the dev-bridge is not read)
-    let apps = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"];
+    let apps = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"];
     let mut replies: Vec<String> = apps.iter().map(|app| answers::reply(200, &answers::ps(app, &[]))).collect();
     replies.extend([answers::reply(200, &status), answers::reply(200, &history)]);
     s.vm.replies(&replies);
@@ -495,6 +508,42 @@ fn the_retired_build_only_flag_is_refused_as_an_unknown_option_that_names_the_ci
 const AS_CI_JOB: [(&str, &str); 2] = [("WF_VM_CI_PORT", "8081"), ("VM_OPS_API_CI_AUTH_TOKEN", CI_VM_SEED)];
 
 #[test]
+fn a_gradual_redeploy_names_only_the_services_whose_image_inputs_changed() {
+    let s = Ship::new();
+    let running = |opencode_image: &str| {
+        answers::reply(200, &answers::ps("remote-chat-agent", &[
+            ("remote-chat-agent", "running", "Up 2 hours", "reg/remote-chat-agent:sha-abc123"),
+            ("remote-chat-agent-opencode", "running", "Up 2 hours", opencode_image),
+            ("remote-chat-agent-stt", "running", "Up 2 hours", "reg/remote-chat-agent-stt:sha-abc123"),
+        ]))
+    };
+    let up = answers::reply(200, &redeployed("remote-chat-agent", "sha-def456", "def456"));
+    let redeploy = ["ship", "remote-chat-agent", "--ref", "def456", "--redeploy-only", "--tag", "sha-def456"];
+
+    // Given every image runs a commit whose inputs hash the same as the target's, When the tag is redeployed
+    s.vm.replies_then_last(&[running("reg/opencode-server:sha-abc123"), up.clone()]);
+    let r = s.wf(&redeploy, &[("STUB_HASH", "same")]);
+
+    // Then no service is named (tags present and empty), so every service keeps the tag it runs
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-def456&ref=def456&tags="));
+
+    // Given opencode runs a tag that is no commit, so it cannot be shown unchanged, When the tag is redeployed
+    s.vm.replies_then_last(&[running("reg/opencode-server:latest"), up.clone()]);
+    let r = s.wf(&redeploy, &[("STUB_HASH", "same")]);
+
+    // Then opencode alone is named: the app's own service and stt keep the tag they run
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-def456&ref=def456&tags=opencode%3Asha-def456"));
+
+    // Given the checkout cannot hash the running commits (the empty tree has no Dockerfile), When the tag is redeployed, Then every service moves: no tags are sent
+    s.vm.replies_then_last(&[running("reg/opencode-server:sha-abc123"), up]);
+    let r = s.wf(&redeploy, &[("GIT_AS", "4b825dc642cb6eb9a060e54bf8d69288fbee4904")]);
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-def456&ref=def456"));
+}
+
+#[test]
 fn a_ci_job_redeploys_over_the_ci_port_with_the_ci_seed_and_a_caller_without_a_ci_port_uses_the_admin_port_and_seed() {
     let s = Ship::new();
     let up = redeployed("leetcode-backend", "sha-1234567", "dev");
@@ -538,11 +587,12 @@ fn a_redeploy_of_a_tag_is_sent_once_retried_only_when_unanswered_and_a_bad_comma
     let s = Ship::new();
 
     // Given a tag, When it is redeployed from a ref, Then that tag is asked for and the reply printed
+    // (remote-chat-agent runs three images, so its running containers are asked first: none are listed here, so every service moves)
     let up = redeployed("remote-chat-agent", "v1", "main");
-    s.vm.replies_then_last(&[answers::reply(200, &up)]);
+    s.vm.replies_then_last(&[answers::reply(200, &answers::ps("remote-chat-agent", &[])), answers::reply(200, &up)]);
     let r = s.wf(&["ship", "remote-chat-agent", "--ref", "main", "--redeploy-only", "--tag", "v1"], &[]);
     assert_eq!((r.exit_code, r.stdout.clone()), (0, format!("{}\n", serde_json::to_string_pretty(&up).unwrap())));
-    assert_eq!(s.url(1), format!("{BASE}/services/remote-chat-agent/redeploy?tag=v1&ref=main"));
+    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=v1&ref=main"));
 
     // Given no tag, Then latest is redeployed; Given characters that need encoding, Then they are form-encoded, and a tag
     // docker refuses is refused
@@ -640,27 +690,25 @@ const NPX_EXPORTS_AND_UPLOADS: &str = "#!/bin/sh\necho \"$* | lab=$EXPO_PUBLIC_D
     eas-cli) sleep 0.2; echo '[{\"id\":\"u1\",\"group\":\"g-all\",\"platform\":\"ios\"},{\"id\":\"u2\",\"group\":\"g-all\",\"platform\":\"android\"}]';;\nesac";
 
 struct Eas {
-    /// A bucket that takes the source maps and the summaries.
-    bucket: crate::support::MockServer,
+    /// The run's pointer dir: where the source maps and the summaries are written.
+    dir: tempfile::TempDir,
     /// u.expo.dev: the group's manifest is not served at first, then it is.
     updates: crate::support::MockServer,
 }
 
 impl Eas {
     fn new() -> Self {
-        let bucket = crate::support::MockServer::start(None);
-        bucket.queue(vec![crate::support::MockReply::json(200, json!({}))], true);
+        let dir = tempfile::Builder::new().prefix("wf-flow-eas-pointer-").tempdir().unwrap();
         let updates = crate::support::MockServer::start(None);
         updates.queue(vec![crate::support::MockReply::json(404, json!({ "error": "no update" })), crate::support::MockReply::json(200, json!({}))], true);
-        Eas { bucket, updates }
+        Eas { dir, updates }
     }
 
     fn run(&self, bin: &Path, cwd: &Path, args: &[&str], token: Option<&str>, env: &[(&str, &str)]) -> (RunResult, Vec<String>) {
         let mut full = vec!["ship", "eas"];
         full.extend_from_slice(args);
         let mut opts = RunOpts::default().bin_dir(bin).cwd(cwd).clean_env().env("SECRETS_BACKEND", "macos").env("SECRETS_LOG_BETTERSTACK", "false")
-            .env("VERIFICATION_ARTIFACTS_PAR_URL", &format!("http://127.0.0.1:{}/p/", self.bucket.port))
-            .env("VERIFICATION_ARTIFACTS_READ_URL", "http://bucket.test/o")
+            .env("WF_EAS_POINTER_DIR", &self.dir.path().display().to_string())
             .env("WF_EAS_UPDATES_URL", &format!("http://127.0.0.1:{}", self.updates.port));
         if let Some(token) = token {
             opts = opts.env("EXPO_TOKEN", token);
@@ -674,12 +722,30 @@ impl Eas {
         (r, calls)
     }
 
-    fn put(&self, path: &str) -> Option<Value> {
-        self.bucket.requests().iter().find(|q| q.method == "PUT" && q.url == path).map(|q| serde_json::from_str(&q.body).unwrap_or(Value::Null))
+    fn stored(&self, rel: &str) -> Option<Value> {
+        std::fs::read_to_string(self.dir.path().join(rel)).ok().map(|t| serde_json::from_str(&t).unwrap_or(Value::Null))
     }
 
-    fn puts(&self) -> Vec<String> {
-        self.bucket.requests().iter().filter(|q| q.method == "PUT").map(|q| q.url.clone()).collect()
+    fn files(&self) -> Vec<String> {
+        fn walk(root: &Path, dir: &Path, out: &mut Vec<String>) {
+            for e in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+                if e.path().is_dir() {
+                    walk(root, &e.path(), out);
+                } else {
+                    out.push(e.path().strip_prefix(root).unwrap().to_string_lossy().into_owned());
+                }
+            }
+        }
+        let mut out = Vec::new();
+        walk(self.dir.path(), self.dir.path(), &mut out);
+        out.sort();
+        out
+    }
+
+    fn clear(&self) {
+        for e in std::fs::read_dir(self.dir.path()).unwrap().flatten() {
+            let _ = if e.path().is_dir() { std::fs::remove_dir_all(e.path()) } else { std::fs::remove_file(e.path()) };
+        }
     }
 }
 
@@ -724,24 +790,26 @@ fn ship_eas_publishes_the_app_as_an_eas_update_through_its_publish_script() {
             assert_eq!((h("expo-platform"), h("expo-protocol-version"), h("accept")), ("android".into(), "1".into(), "multipart/mixed,application/expo+json,application/json".into()));
             assert!(config.contains(&format!("runtimeVersion: '{}'", h("expo-runtime-version"))), "the runtime version comes from app.config.js: {:?}", h("expo-runtime-version"));
         }
-        // and its source map is in the bucket under the update group, so a device stack maps back to file:line
-        assert_eq!(summary["maps"]["uploaded"], 1, "{summary}");
-        assert!(eas.put("/p/verification/eas-updates/g-123/_expo/static/js/ios/entry-abc.hbc.map").is_some(), "{:?}", eas.puts());
+        // and its source map is in the pointer dir under the update group, so a device stack maps back to file:line
+        assert_eq!(summary["maps"]["stored"], 1, "{summary}");
+        assert!(eas.dir.path().join("g-123/_expo/static/js/ios/entry-abc.hbc.map").is_file(), "{:?}", eas.files());
         // and with --pointer the summary is stored twice: under the group, and as the branch's latest update, which the e2e tests read
         for key in ["g-123/summary.json", "latest-feature-x.json"] {
-            let stored = eas.put(&format!("/p/verification/eas-updates/{key}")).unwrap_or_else(|| panic!("no PUT of {key}"));
+            let stored = eas.stored(key).unwrap_or_else(|| panic!("{key} is not written: {:?}", eas.files()));
             assert_eq!((stored["group"].clone(), stored["platforms"].clone(), stored["timing"]["servedS"].as_f64()), (json!("g-123"), json!(["ios", "android"]), Some(served)), "{key}");
+            assert_eq!(stored["pointers"], Value::Null, "the file is the line before its own pointers were added: {key}");
         }
-        assert_eq!(summary["pointers"]["latest"], "http://bucket.test/o/verification/eas-updates/latest-feature-x.json", "{summary}");
+        let latest = eas.dir.path().join("latest-feature-x.json").display().to_string();
+        assert_eq!(summary["pointers"]["latest"], json!(latest), "{summary}");
 
         // Given no options, Then the route is the root, the branch and message have defaults, the script picks the platform,
         // and no branch pointer is written
-        eas.bucket.clear();
+        eas.clear();
         let (r, calls) = eas.run(&ctx.bin_dir, &ctx.cwd, &[], Some("tok"), &[]);
         assert_eq!(r.exit_code, 0);
         assert_eq!(calls.len(), 1);
         assert!(calls[0].starts_with("--filter mla-tamagui run publish:eas -- --initial-route / --branch ") && calls[0].contains(" --message ") && !calls[0].contains("--platform"), "{}", calls[0]);
-        assert!(!eas.puts().iter().any(|u| u.contains("/latest-")) && last_json(&r)["pointers"]["latest"].is_null(), "{:?}", eas.puts());
+        assert!(!eas.files().iter().any(|u| u.contains("latest-")) && last_json(&r)["pointers"]["latest"].is_null(), "{:?}", eas.files());
 
         // Given --frontend, Then that package is published
         let (_, calls) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--frontend", "other-app", "--branch", "b", "--message", "m"], Some("tok"), &[]);
@@ -784,66 +852,80 @@ fn a_default_publish_is_asked_for_as_its_own_platform_and_leaves_the_branch_poin
         let platforms: BTreeSet<String> = eas.updates.requests().iter().map(|q| q.headers.get("expo-platform").cloned().unwrap_or_default()).collect();
         assert_eq!(platforms, BTreeSet::from(["ios".to_string()]));
         // And only the group's summary is stored: latest-dev.json, which the Android job loads, still names CI's last publish
-        assert!(eas.put("/p/verification/eas-updates/g-ios/summary.json").is_some(), "{:?}", eas.puts());
-        assert!(eas.put("/p/verification/eas-updates/latest-dev.json").is_none(), "{:?}", eas.puts());
-        assert_eq!(summary["pointers"], json!({ "summary": "http://bucket.test/o/verification/eas-updates/g-ios/summary.json" }), "{summary}");
+        assert!(eas.stored("g-ios/summary.json").is_some() && eas.stored("latest-dev.json").is_none(), "{:?}", eas.files());
+        assert_eq!(summary["pointers"], json!({ "summary": eas.dir.path().join("g-ios/summary.json").display().to_string() }), "{summary}");
     });
+}
+
+fn real_git(dir: &std::path::Path, args: &[&str]) {
+    let out = std::process::Command::new("/usr/bin/git").args(args).current_dir(dir).output().unwrap();
+    assert!(out.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&out.stderr));
 }
 
 #[test]
 fn latest_prints_the_update_the_branch_pointer_names_and_publishes_nothing() {
     let s = Ship::new();
-    // Given the pointer names CI's last publish of dev, and no EXPO_TOKEN or publish script anywhere
+    // Given a checkout whose origin holds the state ref with CI's last publish of dev, and no EXPO_TOKEN or publish script anywhere
+    let origin = tempfile::tempdir().unwrap();
+    real_git(origin.path(), &["init", "--bare", "--quiet", "origin.git"]);
+    real_git(s.dir.path(), &["init", "--quiet"]);
+    real_git(s.dir.path(), &["remote", "add", "origin", origin.path().join("origin.git").to_str().unwrap()]);
     let link = "https://expo.dev/accounts/a/projects/p/updates/g-ci";
-    s.latest_pointer(MockReply::json(200, json!({ "published": true, "branch": "dev", "commit": "abc1234", "group": "g-ci", "platforms": ["ios", "android"], "link": link, "env": ["EXPO_PUBLIC_DEVICE_LAB"] })));
-    // When the latest update is asked for, by default and for dev by name
-    let by_default = s.wf(&["ship", "eas", "--latest"], &[]);
-    let by_name = s.wf(&["ship", "eas", "--latest", "--branch", "dev"], &[]);
-    // Then one JSON line carries the link to open in Expo Go with its group and commit, and nothing was built, published or stored
+    let pointer = (json!({ "published": true, "branch": "dev", "commit": "abc1234", "group": "g-ci", "platforms": ["ios", "android"], "link": link, "env": ["EXPO_PUBLIC_DEVICE_LAB"] })).to_string();
+    let env = [("GIT_PASSTHROUGH", "1"), ("WF_EAS_POINTER_DIR", "")];
+    // When the latest update is asked for before and after CI pushed the pointer, by default and for dev by name
+    let before = s.wf(&["ship", "eas", "--latest"], &env);
+    crate::support::state_put(s.dir.path(), "eas/latest-dev.json", &pointer);
+    let by_default = s.wf(&["ship", "eas", "--latest"], &env);
+    let by_name = s.wf(&["ship", "eas", "--latest", "--branch", "dev"], &env);
+    // Then with no pointer it fails in the same JSON shape with the reason and the next step
+    let failed = last_json(&before);
+    assert_eq!(before.exit_code, 1, "{}{}", before.stdout, before.stderr);
+    assert!(failed["ok"] == json!(false) && failed["error"].as_str().is_some_and(|e| e.contains("is not in refs/wf/state yet")) && failed["next"].as_str().is_some_and(|n| n.contains("wf ship eas --initial-route")), "{failed}");
+    // and with it one JSON line carries the link to open in Expo Go with its group and commit, and nothing was built, published or stored
     let line = json!({ "branch": "dev", "commit": "abc1234", "group": "g-ci", "platforms": ["ios", "android"], "link": link });
     assert_eq!((by_default.exit_code, last_json(&by_default)), (0, line.clone()), "{}{}", by_default.stdout, by_default.stderr);
     assert_eq!((by_name.exit_code, last_json(&by_name)), (0, line), "{}{}", by_name.stdout, by_name.stderr);
-    assert!(s.vm.requests().is_empty() && s.bucket.requests().iter().all(|q| q.method == "GET"), "{:?}", s.bucket.requests().iter().map(|q| format!("{} {}", q.method, q.url)).collect::<Vec<_>>());
-
-    // When the bucket has no pointer yet
-    s.latest_pointer(MockReply::json(404, json!({})));
-    let none = s.wf(&["ship", "eas", "--latest"], &[]);
-    // Then it fails in the same JSON shape with the reason and the next step
-    let failed = last_json(&none);
-    assert_eq!(none.exit_code, 1, "{}{}", none.stdout, none.stderr);
-    assert!(failed["ok"] == json!(false) && failed["error"].as_str().is_some_and(|e| e.contains("HTTP 404")) && failed["next"].as_str().is_some_and(|n| n.contains("wf ship eas --initial-route")), "{failed}");
+    assert!(s.vm.requests().is_empty());
 
     // When a publishing option rides along, Then it is a usage error that read nothing
-    let before = s.bucket.requests().len();
-    let mixed = s.wf(&["ship", "eas", "--latest", "--pointer"], &[]);
+    let mixed = s.wf(&["ship", "eas", "--latest", "--pointer"], &env);
     assert_eq!(mixed.exit_code, 2, "{}{}", mixed.stdout, mixed.stderr);
-    assert!(mixed.stderr.contains("--latest only reads the pointer") && s.bucket.requests().len() == before, "{}", mixed.stderr);
+    assert!(mixed.stderr.contains("--latest only reads the pointer"), "{}", mixed.stderr);
 }
 
 #[test]
-fn with_pointer_a_branch_pointer_that_was_not_stored_fails_the_publish() {
+fn with_pointer_a_branch_pointer_that_was_not_written_fails_the_publish() {
     let eas = Eas::new();
-    // Given a bucket that takes the source map but answers 500 to the summaries
-    eas.bucket.queue(vec![], false);
-    eas.bucket.routes(&[
-        ("PUT /p/verification/eas-updates/g-123/_expo/static/js/ios/entry-abc.hbc.map", crate::support::MockReply::json(200, json!({}))),
-        ("PUT /p/verification/eas-updates/g-123/summary.json", crate::support::MockReply::json(500, json!({ "code": "InternalError" }))),
-    ]);
     with_stubs(&[("pnpm", PNPM_PUBLISHES)], |ctx| {
         with_app_config(&ctx.cwd, "mla-tamagui");
+        // Given a pointer dir that cannot take files (its path is a file)
+        let blocked = ctx.cwd.join("not-a-dir");
+        std::fs::write(&blocked, "x").unwrap();
+        let blocked = blocked.display().to_string();
         // When CI publishes with --pointer
-        let (r, _) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--platform", "all", "--pointer"], Some("tok"), &[]);
-        // Then the update is reported, but the run fails naming the stale pointer, so the Android job is not handed an older update
+        let (r, _) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--platform", "all", "--pointer"], Some("tok"), &[("WF_EAS_POINTER_DIR", &blocked)]);
+        // Then the update is reported, but the run fails naming the pointer, so the Android job is not handed an older update
         assert_eq!(r.exit_code, 1, "{}{}", r.stdout, r.stderr);
         let summary = last_json(&r);
-        assert!(summary["group"] == "g-123" && summary["pointers"]["error"].as_str().is_some_and(|e| e.contains("500")), "{summary}");
-        assert!(r.stderr.contains("verification/eas-updates/latest-dev.json still names an earlier one") && r.stderr.contains("500"), "{}", r.stderr);
-        assert!(eas.put("/p/verification/eas-updates/latest-dev.json").is_none(), "{:?}", eas.puts());
+        assert!(summary["group"] == "g-123" && summary["pointers"]["error"].is_string(), "{summary}");
+        assert!(r.stderr.contains("latest-dev.json was not written"), "{}", r.stderr);
 
         // When the same publish runs without --pointer, Then the failed summary is reported but the publish counts as done
-        let (r, _) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--platform", "all"], Some("tok"), &[]);
+        let (r, _) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--platform", "all"], Some("tok"), &[("WF_EAS_POINTER_DIR", &blocked)]);
         assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
         assert!(last_json(&r)["pointers"]["error"].is_string(), "{}", r.stdout);
+
+        // Given no pointer dir at all, Then --pointer is a usage error that publishes nothing, and a publish without it stores nothing
+        let (r, calls) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--pointer"], Some("tok"), &[("WF_EAS_POINTER_DIR", "")]);
+        assert!(r.exit_code == 2 && r.stderr.contains("--pointer needs --pointer-dir") && calls.is_empty(), "{}{}", r.stdout, r.stderr);
+        let (r, _) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--platform", "all"], Some("tok"), &[("WF_EAS_POINTER_DIR", "")]);
+        assert!(r.exit_code == 0 && last_json(&r)["pointers"] == json!({}) && eas.files().is_empty(), "{}{}", r.stdout, r.stderr);
+
+        // Given --pointer-dir, Then it wins over the environment
+        let other = ctx.cwd.join("other-dir");
+        let (r, _) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--platform", "all", "--pointer", "--pointer-dir", &other.display().to_string()], Some("tok"), &[]);
+        assert!(r.exit_code == 0 && other.join("latest-dev.json").is_file() && eas.files().is_empty(), "{}{}", r.stdout, r.stderr);
     });
 }
 
@@ -865,7 +947,7 @@ fn an_update_eas_never_serves_is_reported_as_not_served_and_still_stored() {
         assert!(error.contains("not served within 2 s") && error.contains("HTTP 404"), "{summary}");
         // And the summaries are stored with that error, so the pointer's reader sees it too
         for key in ["g-123/summary.json", "latest-dev.json"] {
-            let stored = eas.put(&format!("/p/verification/eas-updates/{key}")).unwrap_or_else(|| panic!("no PUT of {key}"));
+            let stored = eas.stored(key).unwrap_or_else(|| panic!("{key} is not written"));
             assert_eq!(stored["served"]["error"].as_str(), Some(error), "{key}");
         }
     });
@@ -901,7 +983,7 @@ fn the_publish_script_exports_ios_and_android_for_all_with_the_env_baked_in_and_
         }
         assert_eq!(summary["hosts"], json!(["leetcode-backend-prod"]), "{summary}");
         // And no value is published: the token is in neither the line nor the stored pointer
-        let stored = eas.put("/p/verification/eas-updates/latest-dev.json").expect("the dev pointer is stored");
+        let stored = eas.stored("latest-dev.json").expect("the dev pointer is written");
         assert!(!r.stdout.contains("flow-token-value") && !stored.to_string().contains("flow-token-value"), "{}", r.stdout);
     });
 }
@@ -1037,21 +1119,60 @@ fn a_change_to_one_compose_project_moves_the_deploy_hash_of_that_app_alone() {
     let clone = tempfile::tempdir().unwrap();
     let status = std::process::Command::new("git").args(["clone", "-q", "--shared", "--no-checkout"]).arg(repo_root()).arg(clone.path()).status().unwrap();
     assert!(status.success());
-    let hashes = |rev: &str| -> Vec<(String, String)> { ALL_APPS.iter().chain(["agent-shell"].iter()).map(|app| (app.to_string(), pipeline::image_hash::leg_hash(Some(clone.path()), rev, app).unwrap())).collect() };
+    let hashes = |rev: &str| -> Vec<(String, String)> { ALL_APPS.iter().map(|app| (app.to_string(), pipeline::image_hash::leg_hash(Some(clone.path()), rev, app).unwrap())).collect() };
     let before = hashes("HEAD");
 
     // When only the compose file of agent-shell changes
     let changed = commit_touching(clone.path(), "infra/oracle-cloud/agent-shell/docker-compose.prod.yml");
     let after = hashes(&changed);
 
-    // Then agent-shell's deploy hash moves and no other app's does (the runner has its own project, so its compose file is not an input of any app)
+    // Then agent-shell's deploy hash moves and no other app's does
     let moved: Vec<&str> = before.iter().zip(&after).filter(|(b, a)| b.1 != a.1).map(|(b, _)| b.0.as_str()).collect();
     assert_eq!(moved, ["agent-shell"]);
+}
 
-    // And a change to the runner's compose file moves no app's hash at all
-    let runner = commit_touching(clone.path(), "infra/oracle-cloud/ci-runner/docker-compose.prod.yml");
-    let after_runner = hashes(&runner);
-    assert_eq!(before, after_runner);
+#[test]
+fn a_change_to_the_tools_layer_of_agent_shell_moves_its_image_hash_and_leaves_its_sessions_and_dind_images_alone() {
+    // Given a throwaway clone of this repository at its HEAD (no checkout)
+    let clone = tempfile::tempdir().unwrap();
+    let status = std::process::Command::new("git").args(["clone", "-q", "--shared", "--no-checkout"]).arg(repo_root()).arg(clone.path()).status().unwrap();
+    assert!(status.success());
+    let images = ["agent-shell", "agent-shell-sessions", "agent-shell-dind"];
+    let hashes = |rev: &str| -> Vec<String> { images.iter().map(|image| pipeline::image_hash::hash(Some(clone.path()), rev, image).unwrap()).collect() };
+    let moved = |before: &[String], after: &[String]| -> Vec<&'static str> { images.iter().copied().zip(before.iter().zip(after)).filter(|(_, (b, a))| b != a).map(|(image, _)| image).collect() };
+    let before = hashes("HEAD");
+
+    // When only the tools Dockerfile changes, Then only the tools image moves
+    let tools = commit_touching(clone.path(), "infra/oracle-cloud/agent-shell/Dockerfile");
+    assert_eq!(moved(&before, &hashes(&tools)), ["agent-shell"]);
+
+    // When the entrypoint the three roles share changes, Then all three move
+    let entrypoint = commit_touching(clone.path(), "infra/oracle-cloud/agent-shell/entrypoint.sh");
+    assert_eq!(moved(&before, &hashes(&entrypoint)), images);
+
+    // When only the sessions Dockerfile changes (its pinned tools tag, say), Then only the sessions image moves
+    let sessions = commit_touching(clone.path(), "infra/oracle-cloud/agent-shell/Dockerfile.sessions");
+    assert_eq!(moved(&before, &hashes(&sessions)), ["agent-shell-sessions"]);
+}
+
+#[test]
+fn an_app_serves_the_commit_its_own_image_was_built_from_when_only_a_sidecar_image_changed() {
+    // Given a throwaway clone of this repository at its HEAD (no checkout)
+    let clone = tempfile::tempdir().unwrap();
+    let status = std::process::Command::new("git").args(["clone", "-q", "--shared", "--no-checkout"]).arg(repo_root()).arg(clone.path()).status().unwrap();
+    assert!(status.success());
+    let unchanged = |rev: &str, image: &str| pipeline::image_hash::unchanged_between(Some(clone.path()), "HEAD", rev, image);
+
+    // When only the opencode image's Dockerfile changes, Then remote-chat-agent's own image is unchanged and opencode's is not
+    let opencode = commit_touching(clone.path(), "backend/remote-chat-agent/opencode-server/Dockerfile");
+    assert_eq!((unchanged(&opencode, "remote-chat-agent"), unchanged(&opencode, "opencode-server")), (true, false));
+
+    // When the app's own Dockerfile changes, Then its own image is changed
+    let own = commit_touching(clone.path(), "backend/remote-chat-agent/Dockerfile");
+    assert!(!unchanged(&own, "remote-chat-agent"));
+
+    // And a commit the clone does not know cannot be shown unchanged
+    assert!(!unchanged("0000000000000000000000000000000000000000", "remote-chat-agent"));
 }
 
 /// The commit of this repository that `HEAD` names, which `wf ship vm-ops-api --ref HEAD` resolves to the same 40 characters.
@@ -1106,10 +1227,10 @@ fn vm_ops_api_redeploys_a_tag_ci_already_pushed_without_building_and_still_prove
 }
 
 #[test]
-fn redeploy_only_with_smoke_proves_the_pushed_tag_before_the_swap_and_an_app_without_an_image_has_nothing_to_prove() {
+fn redeploy_only_with_smoke_proves_the_pushed_tag_before_the_swap_and_smoke_without_redeploy_only_is_refused() {
     // Given a service with a smoke test
     let s = Ship::new();
-    s.vm.replies_then_last(&[&gate_up("remote-chat-agent")[..], &[answers::reply(200, &redeployed("remote-chat-agent", "sha-abc", "dev"))]].concat());
+    s.vm.replies_then_last(&[&gate_up("remote-chat-agent")[..], &[answers::reply(200, &answers::ps("remote-chat-agent", &[])), answers::reply(200, &redeployed("remote-chat-agent", "sha-abc", "dev"))]].concat());
 
     // When its pushed tag is redeployed with --smoke
     let r = s.wf(&["ship", "remote-chat-agent", "--redeploy-only", "--smoke", "--ref", "dev", "--tag", "sha-abc"], &[]);
@@ -1118,7 +1239,7 @@ fn redeploy_only_with_smoke_proves_the_pushed_tag_before_the_swap_and_an_app_wit
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
     assert_eq!(s.url(1), format!("{BASE}/services/remote-chat-agent/smoke?tag=sha-abc&ref=dev"));
     assert_eq!(s.url(3), format!("{BASE}/services/remote-chat-agent/smoke/stop"));
-    assert_eq!(s.url(4), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-abc&ref=dev"));
+    assert_eq!(s.url(5), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-abc&ref=dev"));
 
     // Given a smoke test that fails, Then nothing is redeployed
     let s = Ship::new();
@@ -1127,11 +1248,7 @@ fn redeploy_only_with_smoke_proves_the_pushed_tag_before_the_swap_and_an_app_wit
     assert_eq!(r.exit_code, 1, "{}", r.stderr);
     assert!(s.vm.requests().iter().all(|q| !q.url.contains("/redeploy")), "{:?}", s.vm.requests().iter().map(|q| q.url.clone()).collect::<Vec<_>>());
 
-    // Given an app with no image, Then --smoke sends only the redeploy; and --smoke without --redeploy-only is refused
-    let s = Ship::new();
-    s.vm.replies_then_last(&[answers::reply(200, &redeployed("ci-runner", "sha-abc", "dev"))]);
-    let r = s.wf(&["ship", "ci-runner", "--redeploy-only", "--smoke", "--ref", "dev", "--tag", "sha-abc"], &[]);
-    assert_eq!((r.exit_code, s.vm.requests().len()), (0, 1), "{}", r.stderr);
+    // Given --smoke without --redeploy-only, Then it is refused
     let r = s.wf(&["ship", "remote-chat-agent", "--smoke", "--ref", "dev"], &[]);
     assert!(r.exit_code == 1 && r.stderr.contains("--smoke applies to --redeploy-only"), "{}", r.stderr);
 }

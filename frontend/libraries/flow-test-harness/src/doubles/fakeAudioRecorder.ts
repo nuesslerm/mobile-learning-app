@@ -1,4 +1,4 @@
-// Structural mirror of features/leetcode/contracts/ports.ts `AudioRecordingPort` —
+// Structural mirror of features/leetcode/domain/ports.ts `AudioRecordingPort` —
 // the double stays import-free of mla-tamagui and is pure state/push logic.
 type FakeAudioRecording = {
   uri: string;

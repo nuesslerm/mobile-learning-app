@@ -23,7 +23,7 @@ pub mod results;
 pub mod testing;
 mod wire;
 
-pub use events::{FileOp, FinishReason, OutputStream, Role, ThreadEvent, Usage};
+pub use events::{FileOp, FinishCause, FinishReason, OutputStream, Role, ThreadEvent, Usage};
 pub use params::{CreateParams, GetParams, HistoryParams, InterruptParams, ListParams, StartParams, SubscribeParams, TranscriptParams};
 pub use results::{HistoryResult, InterruptResult, ListResult, StartResult, Status, SubscribeResult, ThreadView, TranscriptItem, TranscriptResult};
 
@@ -51,11 +51,13 @@ pub mod code {
     pub const NO_TURN: &str = "NO_TURN";
     /// `turn.start` naming a driver the service does not run.
     pub const UNKNOWN_DRIVER: &str = "UNKNOWN_DRIVER";
+    /// `turn.start` naming a driver whose CLI the workspace's executor does not have.
+    pub const CLI_NOT_INSTALLED: &str = "CLI_NOT_INSTALLED";
     /// The service could not read or write its thread log; nothing was changed that the answer does not say.
     pub const THREADS_UNAVAILABLE: &str = "THREADS_UNAVAILABLE";
 
     /// Every code the group answers with itself.
-    pub const ALL: [&str; 5] = [THREAD_NOT_FOUND, TURN_RUNNING, NO_TURN, UNKNOWN_DRIVER, THREADS_UNAVAILABLE];
+    pub const ALL: [&str; 6] = [THREAD_NOT_FOUND, TURN_RUNNING, NO_TURN, UNKNOWN_DRIVER, CLI_NOT_INSTALLED, THREADS_UNAVAILABLE];
 }
 
 /// The message each code is answered with, so the service and the recorded exchanges say the same.
@@ -78,6 +80,10 @@ pub mod message {
 
     pub fn unknown_driver(driver: &str) -> String {
         format!("no driver named {driver}")
+    }
+
+    pub fn cli_not_installed(program: &str, executor_workspace: &str) -> String {
+        format!("{program} is not installed on the executor of workspace {executor_workspace}")
     }
 }
 
@@ -139,8 +145,10 @@ mod tests {
                     let parsed = Request::from_value(request).unwrap_or_else(|_| panic!("{what}: not a request"));
                     assert!(METHODS.iter().any(|m| m.name() == parsed.method), "{what}: {}", parsed.method);
                 }
-                // (a turn that starts is the exception: the executor records the files first, with `git_checkpoint`)
-                let expected: &[&str] = if method == "turn.start" && exchange.succeeds() { &["git_checkpoint"] } else { &[] };
+                // (a turn that starts is the exception: the executor records the files first, with `git_checkpoint`, after detecting the CLI)
+                // (and one refused for a missing CLI asks only the detection: nothing is recorded, no checkpoint taken)
+                let cli_missing = exchange.response["error"]["code"] == "CLI_NOT_INSTALLED";
+                let expected: &[&str] = if method == "turn.start" && exchange.succeeds() { &["cli_detect", "git_checkpoint"] } else if cli_missing { &["cli_detect"] } else { &[] };
                 assert_eq!((exchange.request["method"].as_str(), exchange.actions.iter().map(String::as_str).collect::<Vec<_>>()), (Some(method), expected.to_vec()), "{what}");
                 if exchange.succeeds() {
                     // And a success is a request the params accept and a result the type reads
@@ -158,6 +166,13 @@ mod tests {
                         "TURN_RUNNING" => assert_eq!(text, message::turn_running(thread), "{what}"),
                         "NO_TURN" => assert_eq!(text, message::no_turn(thread, params["turn"].as_str()), "{what}"),
                         "UNKNOWN_DRIVER" => assert_eq!(text, message::unknown_driver(params["driver"].as_str().unwrap()), "{what}"),
+                        "CLI_NOT_INSTALLED" => {
+                            let program = match params["driver"].as_str().unwrap_or_default() {
+                                "claudeAgent" => "claude",
+                                other => other,
+                            };
+                            assert_eq!(text, message::cli_not_installed(program, params["workspace"].as_str().unwrap()), "{what}");
+                        }
                         _ => assert_eq!(text, format!("no executor is attached for workspace {}", params["workspace"].as_str().unwrap()), "{what}"),
                     }
                 }

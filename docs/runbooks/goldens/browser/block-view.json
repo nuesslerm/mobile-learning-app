@@ -1,0 +1,66 @@
+{
+  "platform": "browser",
+  "step": 12,
+  "last_action": "tap_on{id='ProblemWorkspaceTab-blocks'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:8818/mla-tamagui/leetcode/two-sum?seed64=Y2xhc3MgU29sdXRpb246CiAgICBkZWYgdHdvU3VtKHNlbGYsIG51bXMsIHRhcmdldCk6CiAgICAgICAgaWYgbnVtczoKICAgICAgICAgICAgYSA9IDEKICAgICAgICAgICAgYiA9IDIKICAgICAgICByZXR1cm4gYQo",
+    "title": "",
+    "testids": [
+      "ProblemEditorHeader",
+      "ProblemEditorHeaderBack",
+      "ProblemEditorHeaderTitle",
+      "ProblemEditorHeaderSubtitle",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
+      "ProblemEditorInfoButton",
+      "ProblemEditorMenuButton",
+      "ProblemWorkspaceTabs",
+      "ProblemWorkspaceTab-code",
+      "ProblemWorkspaceTab-blocks",
+      "ProblemWorkspaceBlocks",
+      "ProblemEditorBlockView",
+      "BlockPalette",
+      "BlockPaletteItem-if",
+      "BlockPaletteItem-for",
+      "BlockPaletteItem-while",
+      "BlockPaletteItem-def",
+      "BlockPaletteItem-return",
+      "BlockViewRows",
+      "BlockRow-0",
+      "BlockHandle-0",
+      "BlockRow-1",
+      "BlockRow-2",
+      "BlockHandle-2",
+      "BlockRow-3",
+      "BlockRow-4",
+      "BlockHandle-4",
+      "BlockRow-5",
+      "BlockHandle-5",
+      "BlockRow-6",
+      "BlockHandle-6",
+      "BlockRow-7",
+      "PyodideHostWebView"
+    ],
+    "text": "Two Sum\nArray & Hashing · Easy\nCode\nBlocks\nif\nfor\nwhile\ndef\nreturn\nclass Solution:\ndef twoSum(self, nums, target):\nif nums:\na = 1\nb = 2\nreturn a\nwhile condition:\npass"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 25536,
+    "capture_ms": 130
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "block-view",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

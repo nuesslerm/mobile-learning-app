@@ -1,0 +1,2 @@
+import './composites/c';
+export {};

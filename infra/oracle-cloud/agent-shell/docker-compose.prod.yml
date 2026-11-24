@@ -173,7 +173,7 @@ services:
     logging: *logging
 
   agent-dind:
-    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${IMAGE_TAG:-latest}
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell-dind:${DIND_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: agent-shell-dind
     network_mode: service:tailscale
     # The ONLY service that runs the nested dockerd (Dockerfile's own
@@ -227,7 +227,7 @@ services:
     volumes: [droid-socket:/run/dind, droid-data:/var/lib/docker]
 
   agent-sessions:
-    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${IMAGE_TAG:-latest}
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell-sessions:${SESSIONS_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: agent-shell-sessions
     network_mode: service:tailscale
     environment:
@@ -252,11 +252,10 @@ services:
     logging: *logging
 
   app:
-    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${IMAGE_TAG:-latest}
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${APP_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: agent-shell
-    # Agent sessions run their builds, recordings and tests here. Under contention the cores go by share: the ci-runner project's gh-runner has 256, the other
-    # containers 1024, so work here outranked CI four to one (6 Nov: an agent's VM jobs held 120 percent of the 200 for 80 minutes and two
-    # CI runs timed out). 128 puts it below CI; an idle VM still lets it use every core.
+    # Agent sessions run their builds, recordings and tests here. Under contention the cores go by share: the other containers have 1024, so 128
+    # keeps agent jobs below the services (6 Nov: an agent's VM jobs held 120 percent of the 200 for 80 minutes); an idle VM still lets it use every core.
     cpu_shares: 128
     network_mode: service:tailscale
     # NOT privileged -- the nested dockerd now lives in `agent-dind`, and
@@ -313,7 +312,7 @@ services:
     logging: *logging
 
 volumes:
-  # The ci-runner project writes it; every project that runs `wf` declares it external. Both provisioning paths create it first.
+  # The clis install (vm-ops-api's POST /clis/install) writes it; every project that runs `wf` declares it external. Both provisioning paths create it first.
   clis:
     external: true
     name: clis

@@ -7,6 +7,7 @@ assert_true(base, "pass --env base=<update link>; wf test run does")
 -- what the start opens: the app's root under base, unless the caller names the link (an EAS Update opens bare: its
 -- manifest answers 404 with a /--/ path after it, CI run 39593152492)
 local link = env.open or (base .. "/")
+local ready = {id=env.ready or 'LeetcodeListMenuButton'}
 local out = env.out or ".agents/tmp/warm-app"
 os.execute("mkdir -p " .. out)
 
@@ -36,7 +37,7 @@ run_flow("first bundle", function()
   device:open_link(link)
   local deadline = os.time() + 300
   -- the wait returns as the frame shows; a dialog that holds the start is answered between probes
-  while not device:extended_wait_until{visible={id='DebugFab'}, timeout=3000, optional=true} do
+  while not device:extended_wait_until{visible=ready, timeout=3000, optional=true} do
     expo_go_failed()
     if device:get_element({text='.*Continue.*'}) then device:tap_on({text='.*Continue.*'}) end
     if device:get_element({text='.*Reload.*'}) then device:back() end

@@ -243,6 +243,27 @@ fn the_login_stream_says_where_the_login_stands_and_each_state_it_passes_through
 }
 
 #[test]
+fn a_workspace_provider_refresh_lists_its_skills_and_slash_commands() {
+    let h = Harness::start();
+    let mut rpc = connect_with(&h, PairingRequest { scopes: vec!["orchestration:read".into()], ..PairingRequest::default() });
+    reply(&h, "commands.list", Ok(json!({"driver": "codex", "commands": [
+        {"name": "proof", "kind": "skill", "path": ".agents/skills/proof/SKILL.md", "description": "Print a test marker"},
+        {"name": "clear", "kind": "command", "description": "Clear the chat"}
+    ]})));
+
+    let answer = rpc.call("server.refreshProviders", json!({"instanceId": "codex", "cwd": "/work/proj", "workspaceSnapshotsOnDemand": true}));
+    let rows = success(&answer)["providers"].as_array().unwrap();
+    let codex = rows.iter().find(|row| row["instanceId"] == "codex").unwrap();
+    let snapshot = &codex["workspaceSnapshots"][0];
+    assert_eq!(snapshot["cwd"], "/work/proj");
+    assert_eq!(snapshot["skills"], json!([{"name": "proof", "enabled": true, "path": ".agents/skills/proof/SKILL.md", "description": "Print a test marker"}]));
+    assert_eq!(snapshot["slashCommands"], json!([{"name": "clear", "description": "Clear the chat"}]));
+    assert_eq!(ops(&h), [Op::ProviderCommands { root: "/work/proj".into(), driver: "codex".into() }]);
+    let refresh = rpc.call("server.refreshProviders", json!({"instanceId": "codex"}));
+    assert_eq!(failure(&refresh)["_tag"], "EnvironmentAuthorizationError");
+}
+
+#[test]
 fn refreshing_the_providers_asks_the_accounts_group_to_look_again_and_shows_each_as_signed_in_or_out_with_the_login_offered() {
     // Given the recorded list with codex signed in
     let (h, mut rpc) = started();
@@ -265,8 +286,12 @@ fn refreshing_the_providers_asks_the_accounts_group_to_look_again_and_shows_each
     }
     // When the agent API refuses a provider it does not know
     reply(&h, "provider.refresh", Err(refused("provider.refresh", "a provider that is none")));
-    let unknown = rpc.call("server.refreshProviders", json!({"instanceId": "gemini"}));
-    // Then it is a ProviderSetupError with its words
+    let unknown = rpc.call("server.refreshProviders", json!({"instanceId": "claudeAgent"}));
+    // And an instance that is not configured shows no provider, without asking the agent API
+    forget_ops(&h);
+    let removed = rpc.call("server.refreshProviders", json!({"instanceId": "gemini"}));
+    assert_eq!((success(&removed), ops(&h).len()), (&json!({"providers": []}), 0));
+    // Then the refusal is a ProviderSetupError with its words
     assert_eq!((failure(&unknown)["_tag"].as_str(), failure(&unknown)["detail"].as_str().map(|d| d.starts_with("gemini is not a provider"))), (Some("ProviderSetupError"), Some(true)));
 }
 
@@ -301,22 +326,28 @@ fn the_usage_summary_has_a_source_for_each_provider_the_accounts_group_lists_and
 }
 
 #[test]
-fn a_reset_credit_the_model_api_gave_back_is_a_reset_and_a_refusal_is_the_usage_source_error_with_the_agent_apis_words() {
-    // Given the recorded credit reset for codex
+fn a_reset_credit_the_account_spent_is_a_reset_and_any_other_outcome_or_refusal_is_the_usage_source_error_with_the_accounts_words() {
+    // Given the recorded credit spend for codex
     let (h, mut rpc) = started();
-    reply(&h, "provider.resetCredit", Ok(recorded("provider.resetCredit", "gives back the credit")));
+    reply(&h, "provider.resetCredit", Ok(recorded("provider.resetCredit", "spends a credit")));
     // When the phone consumes it
     let reset = rpc.call("provider.consumeResetCredit", json!({"instanceId": "codex"}));
     // Then the agent API was asked for codex and the outcome is a reset
     assert_eq!(ops(&h), [Op::ResetCredit { provider: "codex".into() }]);
     assert_eq!(success(&reset), &json!({"outcome": "reset"}));
+    // When the account says there was nothing to reset
+    reply(&h, "provider.resetCredit", Ok(json!({"provider": "codex", "outcome": "nothing_to_reset"})));
+    let nothing = rpc.call("provider.consumeResetCredit", json!({"instanceId": "codex"}));
+    assert_eq!((failure(&nothing)["_tag"].as_str(), failure(&nothing)["detail"].as_str()), (Some("UsageLimitSourceError"), Some("The account did not reset a limit: nothing to reset")));
     // When the agent API refuses, and when the request names a usage limit source this server does not have
     forget_ops(&h);
     reply(&h, "provider.resetCredit", Err(refused("provider.resetCredit", "a provider that is none")));
-    let refused_reset = rpc.call("provider.consumeResetCredit", json!({"instanceId": "gemini"}));
+    let refused_reset = rpc.call("provider.consumeResetCredit", json!({"instanceId": "claudeAgent"}));
+    let gone_instance = rpc.call("provider.consumeResetCredit", json!({"instanceId": "gemini"}));
     let source = rpc.call("provider.consumeResetCredit", json!({"sourceId": "s", "accountId": "a", "creditId": "c"}));
     // Then each is a UsageLimitSourceError, and the source request did not reach the agent API
     assert_eq!((failure(&refused_reset)["_tag"].as_str(), failure(&refused_reset)["detail"].as_str().map(|d| d.starts_with("gemini is not a provider"))), (Some("UsageLimitSourceError"), Some(true)));
+    assert_eq!((failure(&gone_instance)["_tag"].as_str(), failure(&gone_instance)["detail"].as_str(), failure(&gone_instance)["operation"].as_str()), (Some("ProviderSetupError"), Some("Provider instance not found."), Some("consume-reset-credit")));
     assert_eq!(failure(&source)["_tag"], json!("UsageLimitSourceError"));
     assert_eq!(ops(&h).len(), 1);
 }
@@ -327,7 +358,7 @@ fn a_provider_update_and_the_chatgpt_profile_rows_are_refused_with_their_reason_
     let (h, mut rpc) = started();
     // When the phone asks for a provider update, imports a ChatGPT profile, opens a handoff and asks to reconnect a profile
     let update = rpc.call("server.updateProvider", json!({"provider": "codex"}));
-    let import = rpc.call("provider.chatgpt.import-profile", json!({"instanceId": "codex", "profile": {}}));
+    let import = rpc.call("provider.chatgpt.import-profile", json!({"instanceId": "codex", "profile": {"registration": {"clientId": "oaiapp_a"}, "credentials": {"clientId": "a", "accessToken": "a", "refreshToken": null, "idToken": "a", "issuer": "a", "expiresAt": 0, "earliestRefreshAt": null, "scopes": [], "subject": "a", "email": null}}}));
     let handoff = rpc.call("provider.chatgpt.handoff.subscribe", json!({"instanceId": "codex", "environmentId": ENVIRONMENT_ID, "attemptId": "a", "returnUrl": "https://x.test", "profile": null}));
     let reconnect = rpc.call("provider.chatgpt.reconnect-profile", json!({"instanceId": "codex", "methodId": "chatgpt"}));
     // Then the update is the declared error with the reason, the import and the handoff are setup errors that say no token is taken, and a
@@ -385,7 +416,7 @@ fn the_database_storage_stream_says_how_big_the_database_is_and_what_a_vacuum_gi
     let id = watch.send("server.getDatabaseStorage", json!({}));
     let first = watch.chunk(&id);
     // Then the first status is the reading, with the command that compacts that file
-    assert_eq!(first, [json!({"databaseBytes": sample.database_bytes, "reclaimableBytes": sample.reclaimable_bytes, "incrementalVacuumEnabled": sample.incremental_vacuum, "compactCommand": format!("sqlite3 {} VACUUM", sample.path)})]);
+    assert_eq!(first, [json!({"databaseBytes": sample.database_bytes, "reclaimableBytes": sample.reclaimable_bytes, "canReclaim": sample.incremental_vacuum && sample.reclaimable_bytes > 0, "incrementalVacuumEnabled": sample.incremental_vacuum, "compactCommand": format!("sqlite3 {} VACUUM", sample.path)})]);
     // When the database grows
     *h.storage.0.lock().unwrap() = Ok(StorageSample { database_bytes: sample.database_bytes * 2, ..sample.clone() });
     // Then the stream says so, and only once the size changed
@@ -404,4 +435,52 @@ fn the_database_storage_stream_says_how_big_the_database_is_and_what_a_vacuum_gi
     let mut other = connect_with(&h, PairingRequest { scopes: t3_contracts::scopes::ALL_SCOPES.iter().map(|s| s.to_string()).collect(), ..PairingRequest::default() });
     let again = other.send("server.getDatabaseStorage", json!({}));
     assert_eq!(other.chunk(&again), [Value::Null]);
+}
+
+fn file_writes(h: &Harness) -> Vec<(String, String)> {
+    ops(h).into_iter().filter_map(|op| if let Op::FileWrite { path, content, .. } = op { Some((path, content)) } else { None }).collect()
+}
+
+#[test]
+fn a_triage_session_is_a_playbook_and_the_services_own_log_written_at_the_executor_and_the_prompt_links_the_playbook() {
+    // Given a service that keeps two events in its log
+    let (h, mut rpc) = started();
+    reply(&h, "service.logs", Ok(json!({"lines": [{"at_ms": 1, "level": "info", "event": "server.listening", "meta": {"port": 8080}}, {"at_ms": 2, "level": "warn", "event": "exec.channel.closed", "meta": {"executor": "e1"}}], "kept": 40})));
+    // When the phone asks to prepare a triage and says what it is
+    let answer = rpc.call("server.prepareTriage", json!({"client": {"label": "Pixel", "appVersion": "1.4.2", "os": "android"}}));
+    // Then the log is asked of the service, at info and above, and both files are written under one folder named for the time
+    let prompt = success(&answer)["prompt"].as_str().unwrap().to_string();
+    assert_eq!(ops(&h)[0], Op::ServiceLogs { limit: 500, min_level: "info" });
+    let written = file_writes(&h);
+    let folder = written[0].0.rsplit_once('/').unwrap().0.to_string();
+    assert!(folder.starts_with("triage/20") && written.iter().all(|(path, _)| path.starts_with(&folder)), "{written:?}");
+    assert_eq!((written[0].0.ends_with("/service-logs.jsonl"), written[1].0.ends_with("/triage-playbook.md")), (true, true));
+    // And the log file holds one event a line as the service wrote it, and the playbook names the client, says what the log holds and fetches nothing from outside
+    let lines: Vec<&str> = written[0].1.lines().collect();
+    assert_eq!((lines.len(), lines[1].contains("exec.channel.closed")), (2, true));
+    let playbook = &written[1].1;
+    assert!(playbook.contains("Pixel version 1.4.2 on android") && playbook.contains("the last 2 of the 40 events the service keeps"), "{playbook}");
+    assert!(!playbook.contains("github.com") && playbook.contains("no third-party source were fetched"), "{playbook}");
+    // And the prompt links the playbook at the absolute path the executor serves
+    assert_eq!(prompt, format!("Read [triage-playbook.md](/workspace/{folder}/triage-playbook.md) and follow it. "));
+}
+
+#[test]
+fn a_triage_when_the_log_cannot_be_read_still_writes_a_playbook_that_says_so_and_a_refused_write_is_the_prepare_error_and_a_client_is_required() {
+    // Given a service whose log cannot be read
+    let (h, mut rpc) = started();
+    reply(&h, "service.logs", Err(AgentError::Failed("service.logs is not served".into())));
+    // When a triage is prepared, then again with the executor refusing to write, and once with no client
+    let degraded = rpc.call("server.prepareTriage", json!({"client": {}}));
+    let playbook = file_writes(&h).into_iter().find(|(path, _)| path.ends_with("triage-playbook.md")).unwrap().1;
+    forget_ops(&h);
+    h.agent.responder.lock().unwrap().replace(Box::new(|op| matches!(op, Op::FileWrite { .. }).then(|| Err(AgentError::Failed("disk full".into())))));
+    let refused_write = rpc.call("server.prepareTriage", json!({"client": {"label": "x"}}));
+    let none = rpc.call("server.prepareTriage", json!({}));
+    // Then the first still answers a prompt, and its playbook says the log was empty and why and names an unknown client
+    assert!(success(&degraded)["prompt"].as_str().unwrap().starts_with("Read [triage-playbook.md]("));
+    assert!(playbook.contains("empty: the service's log could not be read (service.logs is not served)") && playbook.contains("an unknown client"), "{playbook}");
+    // And the refused write is the pin's prepare error, and a payload with no client is the decoder's defect
+    assert_eq!((failure(&refused_write)["_tag"].as_str(), failure(&refused_write)["cause"].as_str()), (Some("ServerPrepareTriageError"), Some("disk full")));
+    assert_eq!(none["cause"][0]["defect"], "Missing key\n  at [\"client\"]");
 }

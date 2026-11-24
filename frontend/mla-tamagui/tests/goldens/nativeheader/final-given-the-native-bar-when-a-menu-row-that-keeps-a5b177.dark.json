@@ -1,0 +1,48 @@
+{
+  "suite": "nativeheader",
+  "step": "final-given-the-native-bar-when-a-menu-row-that-keeps-a5b177",
+  "scheme": "dark",
+  "snapshot": "nativeheader/final-given-the-native-bar-when-a-menu-row-that-keeps-a5b177.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "NativeHeader",
+      "NativeHeaderLeft",
+      "NativeHeaderItem-Go back",
+      "NativeHeaderTitle",
+      "ScreenHeaderGlassTitle",
+      "ScreenHeaderGlassTitleText",
+      "ScreenHeaderGlassTitleSubtitle",
+      "NativeHeaderRight",
+      "NativeHeaderMenuHost-Editor settings",
+      "NativeHeaderItem-Editor settings",
+      "NativeHeaderMenu-Editor settings",
+      "NativeHeaderMenuItem-Line wrap",
+      "NativeHeaderSpacing",
+      "NativeHeaderItem-Info",
+      "Body"
+    ],
+    "text": "Go back\nAppearance\nSettings\nEditor settings\nLine wrap\nInfo\nBody"
+  },
+  "timings": {
+    "render_ms": 229
+  },
+  "name": "nativeheader/final-given-the-native-bar-when-a-menu-row-that-keeps-a5b177.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

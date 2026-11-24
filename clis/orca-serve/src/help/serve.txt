@@ -26,4 +26,4 @@ Options:
   --healthcheck        ask the server of this configuration for /health and exit 0 when it answers 200
 
 Environment:
-  ORCA_RCA_BEARER      the device bearer for rca's agent API (wf offload bearers mint --label orca); required
+  ORCA_RCA_BEARER      the device bearer for rca's agent API (wf rca bearers mint --label orca); required

@@ -1,0 +1,18 @@
+{
+  "transcript": "rename the variable best to area",
+  "alternatives": [
+    {
+      "id": "stub-1",
+      "label": "Rename best to area",
+      "summary": "Rename the variable best to area.",
+      "confidence": 0.95,
+      "commands": [
+        {
+          "type": "renameSymbol",
+          "position": 86,
+          "newName": "area"
+        }
+      ]
+    }
+  ]
+}

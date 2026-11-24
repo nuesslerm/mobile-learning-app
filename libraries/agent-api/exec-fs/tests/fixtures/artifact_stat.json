@@ -1,0 +1,51 @@
+{
+  "action": "artifact_stat",
+  "exchanges": [
+    {
+      "name": "describes a file of the root: its canonical path, kind, size, times, identity and a fingerprint of its content",
+      "setup": {"files": {"notes.txt": "hello\n"}},
+      "request": {"id": "a1", "tool": "artifact_stat", "args": {"path": "notes.txt"}},
+      "response": {"id": "a1", "ok": true, "result": {"path": "/root/notes.txt", "kind": "file", "size": 6, "modified_ms": 0, "changed_ms": 0, "identity": "0:0:6:0.0:0.0", "fingerprint": "a9bc80cca21f28b3", "binary": false}},
+      "volatile": ["/result/path", "/result/modified_ms", "/result/changed_ms", "/result/identity"]
+    },
+    {
+      "name": "tells a binary file by a zero byte near its start",
+      "setup": {"files": {"data.bin": "ab\u0000cd"}},
+      "request": {"id": "a2", "tool": "artifact_stat", "args": {"path": "data.bin"}},
+      "response": {"id": "a2", "ok": true, "result": {"path": "/root/data.bin", "kind": "file", "size": 5, "modified_ms": 0, "changed_ms": 0, "identity": "0:0:5:0.0:0.0", "fingerprint": "0000000000000000", "binary": true}},
+      "volatile": ["/result/path", "/result/modified_ms", "/result/changed_ms", "/result/identity", "/result/fingerprint"]
+    },
+    {
+      "name": "gives a directory no fingerprint",
+      "setup": {"files": {"d/a.txt": "x"}},
+      "request": {"id": "a3", "tool": "artifact_stat", "args": {"path": "d"}},
+      "response": {"id": "a3", "ok": true, "result": {"path": "/root/d", "kind": "dir", "size": 0, "modified_ms": 0, "changed_ms": 0, "identity": "0:0:0:0.0:0.0", "fingerprint": null, "binary": false}},
+      "volatile": ["/result/path", "/result/size", "/result/modified_ms", "/result/changed_ms", "/result/identity"]
+    },
+    {
+      "name": "refuses an absolute path outside the places the executor was allowed, with no word of whether it exists",
+      "request": {"id": "a4", "tool": "artifact_stat", "args": {"path": "/etc/hostname"}},
+      "response": {"id": "a4", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "/etc/hostname is outside the root"}}
+    },
+    {
+      "name": "refuses an absolute path that is not there and is outside the same way",
+      "request": {"id": "a5", "tool": "artifact_stat", "args": {"path": "/nowhere-at-all/x"}},
+      "response": {"id": "a5", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "/nowhere-at-all/x is outside the root"}}
+    },
+    {
+      "name": "refuses a relative path that leaves the root",
+      "request": {"id": "a6", "tool": "artifact_stat", "args": {"path": "../x"}},
+      "response": {"id": "a6", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "../x is outside the root"}}
+    },
+    {
+      "name": "refuses a path of the root that does not exist",
+      "request": {"id": "a7", "tool": "artifact_stat", "args": {"path": "missing.txt"}},
+      "response": {"id": "a7", "ok": false, "error": {"code": "NOT_FOUND", "message": "missing.txt does not exist"}}
+    },
+    {
+      "name": "refuses a path that is not a string",
+      "request": {"id": "a8", "tool": "artifact_stat", "args": {"path": 5}},
+      "response": {"id": "a8", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`path` must be a string"}}
+    }
+  ]
+}

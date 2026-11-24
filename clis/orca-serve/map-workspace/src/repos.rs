@@ -60,7 +60,15 @@ pub(crate) fn repo_row(agent: &dyn AgentApi, t: &Target) -> Result<Value, Failur
     row.insert("kind".into(), "git".into());
     row.extend(object(agent, &repo_key(&t.workspace))?);
     row.insert("id".into(), t.workspace.clone().into());
-    row.insert("path".into(), t.root_path.clone().into());
+    let path = if t.kind == "root" && t.root_path.is_empty() {
+        // RCA omits the executor root path in repo.list. Orca's picker requires a path.
+        crate::worktrees::checkouts(agent, &t.workspace).ok()
+            .and_then(|rows| rows.into_iter().find(|row| row.is_main).map(|row| row.path))
+            .unwrap_or_default()
+    } else {
+        t.root_path.clone()
+    };
+    row.insert("path".into(), path.into());
     Ok(Value::Object(row))
 }
 
@@ -68,7 +76,8 @@ fn display_name(row: &Value) -> &str {
     row["displayName"].as_str().unwrap_or_default()
 }
 
-pub(crate) fn list(agent: &dyn AgentApi) -> Result<Value, Failure> {
+pub(crate) fn list(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    orca_core::wire::string_field(params, "afterSnapshotId")?;
     let rows = repo_targets(agent)?.iter().map(|t| repo_row(agent, t)).collect::<Result<Vec<_>, _>>()?;
     Ok(json!({"repos": rows}))
 }
@@ -91,7 +100,7 @@ pub(crate) fn host_setups(agent: &dyn AgentApi) -> Result<Value, Failure> {
     for t in repo_targets(agent)? {
         let row = repo_row(agent, &t)?;
         out.push(json!({
-            "id": format!("setup:{}", t.workspace), "projectId": t.workspace, "hostId": "local", "repoId": t.workspace, "path": t.root_path,
+            "id": format!("setup:{}", t.workspace), "projectId": t.workspace, "hostId": "local", "repoId": t.workspace, "path": row["path"],
             "displayName": display_name(&row), "kind": row["kind"], "setupState": "ready", "setupMethod": "legacy-repo",
             "createdAt": row["addedAt"], "updatedAt": row["addedAt"],
         }));
@@ -106,6 +115,7 @@ pub(crate) fn groups(agent: &dyn AgentApi) -> Result<Value, Failure> {
 pub(crate) fn update(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let t = repo_of(agent, params)?;
     let updates = params.get("updates").and_then(Value::as_object).ok_or_else(|| Failure::invalid("Missing repo updates"))?;
+    let turn = orca_core::kept_state_turn();
     let mut meta = object(agent, &repo_key(&t.workspace))?;
     for (k, v) in updates.iter().filter(|(k, _)| !matches!(k.as_str(), "id" | "path")) {
         if v.is_null() {
@@ -115,6 +125,7 @@ pub(crate) fn update(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
         }
     }
     put(agent, &repo_key(&t.workspace), Value::Object(meta))?;
+    drop(turn);
     Ok(json!({"repo": repo_row(agent, &t)?}))
 }
 
@@ -136,6 +147,7 @@ pub(crate) fn save_sparse_preset(agent: &dyn AgentApi, params: &Value) -> Result
     let name = text(params, "name").filter(|s| !s.is_empty()).ok_or_else(|| Failure::invalid("Missing preset name"))?;
     let dirs: Vec<&str> = params["directories"].as_array().map(|a| a.iter().filter_map(Value::as_str).collect()).ok_or_else(|| Failure::invalid("Missing preset directories"))?;
     let key = presets_key(&t.workspace);
+    let _turn = orca_core::kept_state_turn();
     let mut all = array(agent, &key)?;
     let now = now_ms();
     let id = text(params, "id").filter(|s| !s.is_empty()).map(str::to_string).unwrap_or_else(|| format!("preset-{}", all.len() + 1));

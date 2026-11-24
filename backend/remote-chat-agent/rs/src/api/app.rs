@@ -32,6 +32,8 @@ pub struct AgentApi {
     pub groups: rca_agent_core::AgentApi,
     /// The schedules the `schedules` groups answer for, which the clock tick and the webhook route reach too.
     pub schedules: Arc<rca_service_core::application::agent_groups::Schedules>,
+    /// The model gateway `/gateway` answers for.
+    pub model_gateway: Arc<rca_group_gateway::Gateway>,
 }
 
 pub struct Config {
@@ -56,6 +58,16 @@ pub struct Config {
     pub requests_per_minute: u32,
     /// Where the state streams' `seq` counts from: above any `seq` an earlier run gave out, so a follower of one is reset.
     pub state_seq_base: u64,
+    /// `AGENT_PUBLIC_URL`: the address of this service as a workspace host reaches it, which a CLI there is told for the service's tool server.
+    pub agent_public_url: Option<String>,
+    /// `RCA_CODEX_IDLE_SECS`: how long Codex's server at a workspace host may stay up with no turn running (zero: for ever).
+    pub codex_idle: Duration,
+    /// `RCA_CLAUDE_IDLE_SECS`: the same for a Claude Code process.
+    pub claude_idle: Duration,
+    /// `RCA_OPENCODE_IDLE_SECS`: the same for opencode's server.
+    pub opencode_idle: Duration,
+    /// `RCA_BROWSER`: whether the `browser` group answers or refuses every method.
+    pub browser: bool,
 }
 
 impl Config {
@@ -73,6 +85,11 @@ impl Config {
             heartbeat: ws::HEARTBEAT_INTERVAL,
             edit_stats_flush: edit_stats::FLUSH_EVERY,
             requests_per_minute: crate::api::routes::REQUESTS_PER_MINUTE,
+            agent_public_url: s.agent_public_url,
+            codex_idle: Duration::from_secs(s.codex_idle_secs),
+            claude_idle: Duration::from_secs(s.claude_idle_secs),
+            opencode_idle: Duration::from_secs(s.opencode_idle_secs),
+            browser: s.browser,
             state_seq_base: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_micros() as u64),
         }
     }
@@ -114,6 +131,8 @@ pub struct App {
     pub bearers: Arc<dyn DeviceBearers>,
     /// What answers the MCP tools that wait for a person.
     pub service_tools: Arc<dyn ServiceTools>,
+    /// The model gateway the CLIs of API-key turns call (`/gateway/{provider}`).
+    pub model_gateway: Arc<rca_group_gateway::Gateway>,
     /// The agent API's thread engine, which `start` brings up and settles the turns a crash left running.
     agent_threads: Arc<EngineThreads>,
     /// Where a CLI of this host reaches a thread's MCP server (the port the listener bound, once it did).
@@ -130,8 +149,8 @@ impl App {
         let orch = ports.orch;
         let planner = Planner::new(client.clone());
         let ws = Arc::new(ws::Context { orch: Arc::clone(&orch), opencode: client.clone(), version: "1.0.0", secret: config.api_secret.clone(), heartbeat: config.heartbeat });
-        let edit_stats = EditStats::new(&ports.env.settings(), Arc::clone(&ports.outbound), config.edit_stats_flush, rca_service_core::application::edit_stats::host_name(ports.files.as_ref()));
-        Self { config, env: ports.env, opencode: client, commands: ports.commands, outbound: ports.outbound, ledgers: ports.ledgers, files: ports.files, hosts: ports.hosts, documents: ports.documents, speech: ports.speech, edit_stats, orch, gateway: ports.gateway, planner, executors: agent_api.executors, sockets: agent_api.sockets, agent_socket: agent_api.agent_socket, agent_groups: agent_api.groups, schedules: agent_api.schedules, bearers: agent_api.bearers, service_tools: agent_api.tools, agent_threads: agent_api.threads, mcp: agent_api.mcp, ws }
+        let edit_stats = EditStats::new(&ports.env.settings(), Arc::clone(&ports.outbound), config.edit_stats_flush, rca_service_core::application::edit_stats::host_name(ports.files.as_ref()), client.clone());
+        Self { config, env: ports.env, opencode: client, commands: ports.commands, outbound: ports.outbound, ledgers: ports.ledgers, files: ports.files, hosts: ports.hosts, documents: ports.documents, speech: ports.speech, edit_stats, orch, gateway: ports.gateway, planner, executors: agent_api.executors, sockets: agent_api.sockets, agent_socket: agent_api.agent_socket, agent_groups: agent_api.groups, schedules: agent_api.schedules, bearers: agent_api.bearers, service_tools: agent_api.tools, model_gateway: agent_api.model_gateway, agent_threads: agent_api.threads, mcp: agent_api.mcp, ws }
     }
 
     /// Loads the threads on disk and interrupts the turns a crash left running.

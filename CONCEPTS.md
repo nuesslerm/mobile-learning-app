@@ -100,17 +100,33 @@ A test that starts the built program as a black box (the real binary or process,
 
 It differs from a flow test, which calls the entry point in-process and replaces dependencies in code, and from an e2e test, which replaces nothing. Table and worked example: `docs/solutions/testing/verification-ladder.md`.
 
+## Recorded set
+
+The cassettes of one recorded session of a real server at its pin, named `<app>-v<version>-<kind>` (`t3-v0.1.9-recorded-1`, `orca-v1.4.259-scenarios`): the phone's calls with the real server's answers, made on a hosted runner by one step interpreter that also replays them. Beside it, `known-gaps.json` lists every difference a replay still shows, each as drift or breaking. A set's provenance kind says whether it was `recorded` from the real server; only a `recorded` set can serve a row. Doctrine: `docs/plans/mimic/plan.md`, `docs/plans/rca-parity/plan.md` section 5.
+
+## Replay
+
+`wf mimic replay <set> --rows <prefix,...> --gaps check`: the recorded calls run against the candidate (`t3-serve` or `orca-serve` over the real `rca-service` and `rca-exec`, with the scripted agent CLI of both sides) and each answer is labelled clean, allowlisted, drift or breaking. A replay is the parity oracle: a phone row is served when its replay is clean or allowlisted and the method-hit trace shows the call reached rca (`"oracle": "mimic"` in the decisions file). Replays are split by rca feature crate (`replay-<crate>` Nx tasks), so a change to one mapper crate reruns its own rows.
+
+## Child environment
+
+The environment of every process `wf mimic capture` starts (a provisioning step, git, the record, verify and replay children, the reference and its sidecar, a candidate launcher), built in one place (`clis/mimic/src/child_env.rs`): an allowlist of the caller's variables (paths, locale, toolchain homes, the repository's own `MIMIC_*`/`WF_*` knobs) minus any name that looks like a credential, plus what the set declares by name (`env_pass`, `[reference] env_from_vault = { VARIABLE = "REGISTRY_KEY" }`). A set that runs an agent CLI for real names it in its provision block (`real_agents`, with a pin of version and sha256 per platform); the provision installs it into `{work}/real-clis` and the host stops scripting it. Nothing is inherited, and `BWS_*` and `GITHUB_*` never enter a child. Secret isolation is this property of how the verb launches processes, not of where a workflow step ends: a key the set declares reaches the reference alone, and a recording that holds its exact value is held back before anything is uploaded.
+
+## Behaviour test
+
+A test of what the candidate does that no recording can show: a pty's output, a restart, a clock, an interaction no recorded set holds. It is a flow or integration test named for the behaviour it checks (`terminal_pty`, `thread_surface`), never for a milestone. It serves a row only through an `unrecordable` reason in the decisions file that says why no recording shows it (class (d) of `wf mimic coverage --by-oracle`); a row with neither a replay nor that reason is not served, and `wf mimic coverage --check` fails it.
+
 ## E2E test
 
-A test of the same entry point against the real running production environment: the VM, the real vault, the real services and network. Nothing is replaced. It runs through runbooks (`wf offload ask --runbook`) and `wf vm exec`, and it is the tier that catches the real environment disagreeing with the assumptions the lower tiers encode. See `docs/solutions/testing/verification-ladder.md`.
+A test of the same entry point against the real running production environment: the VM, the real vault, the real services and network. Nothing is replaced. It runs through runbooks (`wf rca ask --runbook`) and `wf vm exec`, and it is the tier that catches the real environment disagreeing with the assumptions the lower tiers encode. See `docs/solutions/testing/verification-ladder.md`.
 
-## Verification artifacts bucket
+## Run bundle
 
-The OCI Object Storage bucket (`mobile-learning-verification-artifacts`) that every `e2e`/`visual` unit group's closing step publishes into (today via `wf check --deployed <sha> --publish`, which renders the verify report to `verification/verify/dev/<sha>/`), holding the run's logs, screenshots, and judge verdicts behind a PAR; the printed public URL is the durable pointer a report cites, independent of whatever the VM-side artifact store retains.
+The folder `wf test publish` writes for one test run (report, screenshots, recordings, timing, `bundle.json`) and the workflow uploads as the `test-run-<runId>` GitHub Actions artifact (retention 10 days); the run page of the workflow is the durable pointer a report cites. Small cross-run files (the EAS Update pointer, `test-runs/index.json`) live under the `refs/wf/state` git ref (`wf bucket state read|write`). The OCI verification-artifacts bucket that held them was deleted with the OCI infrastructure.
 
 ## Sandbox-only orchestrator
 
-The git-state worker in the sandbox (`wf offload plan --site sandbox`) that dispatches mechanical work to the opencode agents and runs `unit`/`contract`/`flow`/`integration` gates in the local sandbox or laptop where the repository is checked out; it also runs a browser `e2e` gate itself, against a served web export (`wf test prepare --web`, then `wf test run <test> --platform browser`); an Android `e2e` runs only in CI, and a `visual` check or a runbook travels to the VM through a `wf vm exec` script running `wf offload ask --runbook` for the verdict to bind.
+The git-state worker in the sandbox (`wf rca plan --site sandbox`) that dispatches mechanical work to the opencode agents and runs `unit`/`contract`/`flow`/`integration` gates in the local sandbox or laptop where the repository is checked out; it also runs a browser `e2e` gate itself, against a served web export (`wf test prepare --web`, then `wf test run <test> --platform browser`); an Android `e2e` runs only in CI, and a `visual` check or a runbook travels to the VM through a `wf vm exec` script running `wf rca ask --runbook` for the verdict to bind.
 
 ## Pty Session
 
@@ -120,11 +136,11 @@ Reserved for cases where the terminal *rendering* is the thing under test — an
 
 ## Model ladder
 
-The single, git-reviewed file (`libraries/rca-core/plugins/ladder/data/model-ladders.json`) that names every provider pool, every model with its `strength / vision / automatic` triple, and one ordered ladder per `Shape = implementer:${Tier} | judge:text | judge:vision | document | runbook` — the seam the `wf offload plan` worker and `wf offload ask` surfaces route through, replacing the old hard-coded `MODEL_ROTATION` and the parallel `CHEAP_MODELS` list whose disagreement was a failure mode in itself.
+The single, git-reviewed file (`libraries/rca-core/plugins/ladder/data/model-ladders.json`) that names every provider pool, every model with its `strength / vision / automatic` triple, and one ordered ladder per `Shape = implementer:${Tier} | judge:text | judge:vision | document | runbook` — the seam the `wf rca plan` worker and `wf rca ask` surfaces route through, replacing the old hard-coded `MODEL_ROTATION` and the parallel `CHEAP_MODELS` list whose disagreement was a failure mode in itself.
 
 A `Shape` is what the caller is doing, not which agent or which CLI: cf-plan passes `implementer:${unit.tier}`, the judge gate passes `judge:text` / `judge:vision`, `run-prose.ts` passes `document` and reports `bad-output` (reply not a document) so the chain rotates instead of retrying the same model. The `Shape` is what chooses the start rung and what decides whether a `fatal` stops the loop; a per-unit `models` list is a pin (it replaces the ladder, cold-filtered), not an allowlist, mirroring the `models`-replaces-rotation rule from `cf-check.md`. `automatic: false` rungs (`claude-opus-5`, `claude-fable-5-1`) are invisible to automatic dispatch and reachable only by an explicit `models` pin — never-Opus is a property of the ladder, not a check at the call site.
 
-The ladder's runtime behaviour is four contracts: a failure classifier (`cap | crash | timeout | wrote-nothing | bad-output | fatal`) where only `fatal` stops the loop and `cap` marks the pool cold, an escalation gate that promotes one strength level on a second identical failure class in a row (skipping equal-strength rungs), a per-pool cooldown ledger that learns its window from real recoveries (`observeOk` shrinks `learnedResetMs`, a cap after recovery grows it by 25 %), and a stats-driven start rung that begins at the cheapest model with `okRate >= 0.8 && runs >= 5` for the shape when there is enough evidence, else the first rung. The console reconcile (`wf offload ask --stats --reconcile`) is the audit trail against the OpenCode Console CSV — drift between the local ledger and the console is the bug we would otherwise only learn from a missing row in the next plan. Doctrine: the model-chain doc under `docs/solutions/workflow/`.
+The ladder's runtime behaviour is four contracts: a failure classifier (`cap | crash | timeout | wrote-nothing | bad-output | fatal`) where only `fatal` stops the loop and `cap` marks the pool cold, an escalation gate that promotes one strength level on a second identical failure class in a row (skipping equal-strength rungs), a per-pool cooldown ledger that learns its window from real recoveries (`observeOk` shrinks `learnedResetMs`, a cap after recovery grows it by 25 %), and a stats-driven start rung that begins at the cheapest model with `okRate >= 0.8 && runs >= 5` for the shape when there is enough evidence, else the first rung. The console reconcile (`wf rca ask --stats --reconcile`) is the audit trail against the OpenCode Console CSV — drift between the local ledger and the console is the bug we would otherwise only learn from a missing row in the next plan. Doctrine: the model-chain doc under `docs/solutions/workflow/`.
 
 ## Image-Baked CLI
 

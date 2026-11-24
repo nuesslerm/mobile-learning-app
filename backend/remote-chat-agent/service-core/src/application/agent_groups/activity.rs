@@ -12,20 +12,6 @@ pub trait ActivityClock: Send + Sync {
     fn now_ms(&self) -> u64;
 }
 
-pub struct SystemClock;
-
-impl ActivityClock for SystemClock {
-    fn now_ms(&self) -> u64 {
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64)
-    }
-}
-
-impl rca_group_terminal::Clock for SystemClock {
-    fn now_ms(&self) -> u64 {
-        ActivityClock::now_ms(self)
-    }
-}
-
 const SERVED: [Served; 1] = [Served::service(activity::CLIENT_ACTIVITY, &[])];
 
 #[derive(Debug, Clone, PartialEq)]

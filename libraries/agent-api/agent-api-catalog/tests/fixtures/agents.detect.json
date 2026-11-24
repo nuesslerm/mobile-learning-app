@@ -2,7 +2,7 @@
   "method": "agents.detect",
   "exchanges": [
     {
-      "name": "asks the only executor which agent CLIs it has and what version each is, a driver whose CLI is missing not installed",
+      "name": "asks the only executor which agent CLIs it has and what version each is, and leaves out a driver whose CLI is missing",
       "request": {
         "id": 1,
         "method": "agents.detect",
@@ -14,23 +14,36 @@
           "executor": "w1",
           "agents": [
             {
-              "driver": "opencode",
-              "program": "opencode",
-              "installed": false
-            },
-            {
               "driver": "claudeAgent",
               "program": "claude",
               "installed": true,
               "path": "/executor/bin/claude",
-              "version": "2.1.7 (Claude Code)"
+              "version": "2.1.7 (Claude Code)",
+              "signed_in": false
             },
             {
               "driver": "codex",
               "program": "codex",
               "installed": true,
               "path": "/executor/bin/codex",
-              "version": "codex-cli 0.9.1"
+              "version": "codex-cli 0.9.1",
+              "signed_in": false
+            }
+          ],
+          "tools": [
+            {
+              "program": "git",
+              "installed": true,
+              "path": "/usr/bin/git",
+              "version": "git version 2.43.0"
+            },
+            {
+              "program": "gh",
+              "installed": false
+            },
+            {
+              "program": "glab",
+              "installed": false
             }
           ],
           "checked_at_ms": 1700000000000
@@ -41,8 +54,12 @@
       ],
       "volatile": [
         "/result/checked_at_ms",
+        "/result/agents/0/path",
         "/result/agents/1/path",
-        "/result/agents/2/path"
+        "/result/tools/0/path",
+        "/result/tools/0/version",
+        "/result/tools/1",
+        "/result/tools/2"
       ]
     },
     {
@@ -61,23 +78,36 @@
           "executor": "w1",
           "agents": [
             {
-              "driver": "opencode",
-              "program": "opencode",
-              "installed": false
-            },
-            {
               "driver": "claudeAgent",
               "program": "claude",
               "installed": true,
               "path": "/executor/bin/claude",
-              "version": "2.1.7 (Claude Code)"
+              "version": "2.1.7 (Claude Code)",
+              "signed_in": false
             },
             {
               "driver": "codex",
               "program": "codex",
               "installed": true,
               "path": "/executor/bin/codex",
-              "version": "codex-cli 0.9.1"
+              "version": "codex-cli 0.9.1",
+              "signed_in": false
+            }
+          ],
+          "tools": [
+            {
+              "program": "git",
+              "installed": true,
+              "path": "/usr/bin/git",
+              "version": "git version 2.43.0"
+            },
+            {
+              "program": "gh",
+              "installed": false
+            },
+            {
+              "program": "glab",
+              "installed": false
             }
           ],
           "checked_at_ms": 1700000000000
@@ -88,8 +118,12 @@
       ],
       "volatile": [
         "/result/checked_at_ms",
+        "/result/agents/0/path",
         "/result/agents/1/path",
-        "/result/agents/2/path"
+        "/result/tools/0/path",
+        "/result/tools/0/version",
+        "/result/tools/1",
+        "/result/tools/2"
       ]
     },
     {

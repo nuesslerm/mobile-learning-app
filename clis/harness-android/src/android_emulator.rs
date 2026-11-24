@@ -8,7 +8,7 @@ pub const SERIAL: &str = "emulator-5554";
 pub const STUB_HOST: &str = "10.0.2.2";
 /// The AOSP image, not google_apis: no Gboard (its autocorrect rewrote what the editor tests typed) and no Google apps, as on the redroid.
 const IMAGE: &str = "system-images;android-34;default;x86_64";
-const EXPO_GO_URL: &str = "https://github.com/expo/expo-go-releases/releases/download/Expo-Go-57.0.9/Expo-Go-57.0.9.apk";
+const EXPO_GO_URL: &str = "https://github.com/expo/expo-go-releases/releases/download/Expo-Go-58.0.5/Expo-Go-58.0.5.apk";
 
 /// Whether `WF_ANDROID_PROVIDER` names the SDK emulator (a local process) rather than the VM's redroid (`redroid`, the default).
 pub fn selected() -> Result<bool, String> {

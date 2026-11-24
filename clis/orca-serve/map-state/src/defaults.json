@@ -23,7 +23,7 @@
    "goose": "",
    "grok": "--permission-mode bypassPermissions",
    "hermes": "--yolo",
-   "kimi": "--yolo",
+   "kimi": "--auto",
    "kiro": "--trust-all-tools",
    "mistral-vibe": "--agent auto-approve",
    "muse": "--yolo",
@@ -102,7 +102,33 @@
   "worktreeVisibilityDefaults": {
    "external": "hide"
   },
-  "zcodePlanSite": "zai"
+  "zcodePlanSite": "zai",
+  "nativeChatCiResultLines": true,
+  "voice": {
+   "enabled": false,
+   "sttModel": ""
+  },
+  "workspaceCleanupPolicy": {
+   "automationRuns": {
+    "enabled": false
+   },
+   "inactive": {
+    "action": "archive",
+    "afterDays": 30,
+    "enabled": false
+   },
+   "keepWhen": "any-local-files",
+   "merged": {
+    "enabled": false
+   },
+   "orchestrationWorkers": {
+    "enabled": false
+   },
+   "unchanged": {
+    "afterDays": 1,
+    "enabled": false
+   }
+  }
  },
  "ui": {
   "_explorerDisplayRootMigrated": true,
@@ -168,6 +194,7 @@
    "grok",
    "cursor",
    "zcode",
+   "muse",
    "ssh",
    "resource-usage",
    "ports"
@@ -226,6 +253,10 @@
    "ports",
    "inline-agents",
    "host"
-  ]
+  ],
+  "gitGraphFiltersByWorktree": {},
+  "statusBarUsageFormat": {
+   "template": ""
+  }
  }
 }

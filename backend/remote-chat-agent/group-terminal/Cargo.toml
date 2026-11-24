@@ -24,3 +24,6 @@ exec-pty = { path = "../../../libraries/agent-api/exec-pty" }
 
 [dev-dependencies]
 rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
+
+[package.metadata.arch]
+type = "rust-group"

@@ -74,6 +74,10 @@ const TABLE: &[(&[&str], &[&str])] = &[
             "orchestration.getThreadProjection",
             "orchestration.getArchivedShellSnapshot",
             "orchestration.getThreadFamily",
+            "orchestration.getThreadTitles",
+            "orchestration.getNativeChildWork",
+            "orchestration.subscribePromptSuggestion",
+            "orchestration.getThreadLinkMetadata",
             "orchestration.getWorktreeThreadIds",
             "orchestration.getOlderSettledThreads",
             "orchestration.getTurnItem",
@@ -96,7 +100,7 @@ const TABLE: &[(&[&str], &[&str])] = &[
     (&["projects.writeFile"], FS_WRITE),
     (&["terminal.observe", "subscribeTerminalMetadata"], TERM_READ),
     (&["terminal.open", "terminal.attach", "terminal.write", "terminal.resize", "terminal.clear", "terminal.close"], TERM_OPERATE),
-    (&["vcs.refreshStatus", "vcs.listRefs", "subscribeVcsStatus", "subscribeWorktreeSetup", "review.getBranchCommits", "review.getDiffPreview", "review.getDiffFileContents", "git.resolvePullRequest", "subscribeProjectClones", "sourceControl.lookupRepository", "sourceControl.appAccess", "sourceControl.starred"], READ),
+    (&["vcs.refreshStatus", "vcs.refreshBranch", "subscribeVcsBranch", "vcs.listRefs", "subscribeVcsStatus", "subscribeWorktreeSetup", "review.getBranchCommits", "review.getDiffPreview", "review.getDiffFileContents", "git.resolvePullRequest", "subscribeProjectClones", "sourceControl.lookupRepository", "sourceControl.appAccess", "sourceControl.starred"], READ),
     (
         &[
             "vcs.pull",
@@ -116,11 +120,12 @@ const TABLE: &[(&[&str], &[&str])] = &[
             "sourceControl.signInStart",
             "sourceControl.signInWait",
             "sourceControl.signInCancel",
+            "sourceControl.star",
         ],
         SOURCE_WRITE,
     ),
     (&["server.discoverSourceControl"], READ),
-    (&["server.updateSettings", "server.upsertKeybinding", "server.removeKeybinding"], SETTINGS),
+    (&["server.updateSettings", "server.upsertKeybinding", "server.removeKeybinding", "server.listTextGeneratorModels"], SETTINGS),
     (
         &[
             "server.refreshProviders",
@@ -130,6 +135,7 @@ const TABLE: &[(&[&str], &[&str])] = &[
             "provider.auth.respond",
             "provider.auth.cancel",
             "provider.auth.logout",
+            "provider.auth.removeMethod",
             "provider.auth.subscribe",
             "provider.install.start",
             "provider.install.cancel",

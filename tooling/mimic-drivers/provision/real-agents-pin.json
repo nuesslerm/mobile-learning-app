@@ -1,0 +1,52 @@
+{
+  "opencode": {
+    "version": "1.19.0",
+    "release": "https://github.com/anomalyco/opencode/releases/download/v1.19.0",
+    "platforms": {
+      "linux-x64": {
+        "bytes": 60685698,
+        "sha256": "7bb9e61ad6feacf2e89c10a6a2c1840e3de4220bb50ba1fc7110f31806076aec"
+      },
+      "linux-arm64": {
+        "bytes": 60493623,
+        "sha256": "e9841d43d3e1a8f36ed2691592d3b8b4fb097e606c8b559a277a1b845840e26b"
+      }
+    }
+  },
+  "claude": {
+    "version": "2.1.327",
+    "release": "https://registry.npmjs.org/@anthropic-ai",
+    "platforms": {
+      "linux-x64": {
+        "bytes": 172287003,
+        "sha256": "689e2d16ad7beaeff567cb996b0046db47d33e25e3a3806b169080e6646437bc",
+        "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-x64/-/claude-code-linux-x64-2.1.327.tgz",
+        "bin": "package/claude"
+      },
+      "linux-arm64": {
+        "bytes": 173096301,
+        "sha256": "94bca39f5a7d9da9bf3b042591ef46554d9c9c4c8db684140bf31a7cbcc12b6d",
+        "url": "https://registry.npmjs.org/@anthropic-ai/claude-code-linux-arm64/-/claude-code-linux-arm64-2.1.327.tgz",
+        "bin": "package/claude"
+      }
+    }
+  },
+  "codex": {
+    "version": "0.170.0",
+    "release": "https://registry.npmjs.org/@openai/codex",
+    "platforms": {
+      "linux-x64": {
+        "bytes": 168279228,
+        "sha256": "67c4bccce8e6c3a2b9ae0e586750e0efac7e0b8cd85e6b4734ad474317d2cc32",
+        "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.170.0-linux-x64.tgz",
+        "bin": "package/vendor/x86_64-unknown-linux-musl/bin/codex"
+      },
+      "linux-arm64": {
+        "bytes": 173169777,
+        "sha256": "72a1b05ee522eb7b57a96ad60d26056da8adda20c630f54079c53dd8c292613a",
+        "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.170.0-linux-arm64.tgz",
+        "bin": "package/vendor/aarch64-unknown-linux-musl/bin/codex"
+      }
+    }
+  }
+}

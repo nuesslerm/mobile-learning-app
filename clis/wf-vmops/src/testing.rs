@@ -18,6 +18,14 @@ pub struct FakeVm {
     pub public_pem: String,
 }
 
+fn parse_reply(raw: &str) -> MockReply {
+    if raw == "drop" {
+        return MockReply { drop: true, ..Default::default() };
+    }
+    let at = raw.rfind('\n').expect("body\\nstatus");
+    MockReply { status: Some(raw[at + 1..].parse().unwrap()), body: Some(Value::String(raw[..at].to_string())), ..Default::default() }
+}
+
 impl FakeVm {
     pub fn start() -> Self {
         let server = MockServer::start(None);
@@ -37,16 +45,18 @@ impl FakeVm {
         self.queue(bodies, true);
     }
 
+    /// Answers each `METHOD /path` with its own reply (written `body\n<status>`) whatever order the calls arrive in, for a caller that
+    /// asks several services at once; earlier requests and replies are forgotten.
+    pub fn replies_by_path<K: AsRef<str>, S: AsRef<str>>(&self, table: &[(K, S)]) {
+        self.server.clear();
+        self.server.queue(Vec::new(), false);
+        let routes: Vec<(&str, MockReply)> = table.iter().map(|(key, raw)| (key.as_ref(), parse_reply(raw.as_ref()))).collect();
+        self.server.routes(&routes);
+    }
+
     fn queue<S: AsRef<str>>(&self, bodies: &[S], repeat_last: bool) {
         self.server.clear();
-        let parse = |raw: &str| {
-            if raw == "drop" {
-                return MockReply { drop: true, ..Default::default() };
-            }
-            let at = raw.rfind('\n').expect("body\\nstatus");
-            MockReply { status: Some(raw[at + 1..].parse().unwrap()), body: Some(Value::String(raw[..at].to_string())), ..Default::default() }
-        };
-        self.server.queue(bodies.iter().map(|raw| parse(raw.as_ref())).collect(), repeat_last);
+        self.server.queue(bodies.iter().map(|raw| parse_reply(raw.as_ref())).collect(), repeat_last);
     }
 
     /// A clean environment with the vault off and the vm-ops-api credentials and tailnet proxy of this fake.
@@ -134,7 +144,7 @@ pub mod answers {
 
     /// Any app route for a name outside the seven managed apps.
     pub fn unknown_app() -> Value {
-        json!({ "error": "unknown app", "knownApps": ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"] })
+        json!({ "error": "unknown app", "knownApps": ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"] })
     }
 
     /// The 502 of a handler that threw.

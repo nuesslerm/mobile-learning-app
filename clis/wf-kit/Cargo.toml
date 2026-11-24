@@ -16,3 +16,6 @@ signal-hook = "0.4"
 tempfile = "3"
 libc = "0.2"
 nix = { version = "0.31", default-features = false, features = ["hostname"] }
+
+[package.metadata.arch]
+type = "library"

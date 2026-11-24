@@ -3,7 +3,6 @@
 mod client_events;
 mod pairing;
 mod status;
-mod streams;
 mod trackers;
 
 pub use pairing::PairingArea;
@@ -15,6 +14,7 @@ use serde_json::{json, Value};
 pub const STATUS_GET: &str = "status.get";
 pub const HOST_PLATFORM: &str = "host.platform";
 pub const CLIENT_CAPABILITIES_UPDATE: &str = "runtime.clientCapabilities.update";
+pub const STATS_SUMMARY: &str = "stats.summary";
 pub const CLIENT_EVENTS_SUBSCRIBE: &str = "runtime.clientEvents.subscribe";
 pub const CLIENT_EVENTS_UNSUBSCRIBE: &str = "runtime.clientEvents.unsubscribe";
 
@@ -25,12 +25,10 @@ pub const MIN_COMPATIBLE_RUNTIME_CLIENT_VERSION: u64 = 2;
 const METHODS: &[Method] = &[
     Method { name: STATUS_GET, kind: Kind::Unary },
     Method { name: HOST_PLATFORM, kind: Kind::Unary },
+    Method { name: STATS_SUMMARY, kind: Kind::Unary },
     Method { name: CLIENT_CAPABILITIES_UPDATE, kind: Kind::Unary },
     Method { name: CLIENT_EVENTS_SUBSCRIBE, kind: Kind::Streaming },
     Method { name: CLIENT_EVENTS_UNSUBSCRIBE, kind: Kind::Unary },
-    Method { name: streams::ACCOUNTS_UNSUBSCRIBE, kind: Kind::Unary },
-    Method { name: streams::NOTIFICATIONS_UNSUBSCRIBE, kind: Kind::Unary },
-    Method { name: streams::TERMINAL_UNSUBSCRIBE, kind: Kind::Unary },
     Method { name: "linear.status", kind: Kind::Unary },
     Method { name: "linear.selectWorkspace", kind: Kind::Unary },
     Method { name: "linear.listTeams", kind: Kind::Unary },
@@ -64,9 +62,11 @@ impl Area for SettingsArea {
         match method {
             STATUS_GET => Ok(status::get(ctx, params)),
             HOST_PLATFORM => Ok(json!({ "platform": ctx.host.platform })),
+            // rca keeps no count of the agents it ran or the pull requests it opened for a phone: the answer is the one the pinned host gives before it has recorded anything
+            STATS_SUMMARY => Ok(json!({"firstEventAt": null, "totalAgentTimeMs": 0, "totalAgentsSpawned": 0, "totalPRsCreated": 0})),
             CLIENT_CAPABILITIES_UPDATE => status::update_client_capabilities(ctx, params),
             CLIENT_EVENTS_UNSUBSCRIBE => client_events::unsubscribe(ctx, params),
-            other => streams::call(other, params).or_else(|| trackers::call(other, params)).unwrap_or_else(|| Err(Failure::new(wire::METHOD_NOT_FOUND, format!("Unknown method: {other}")))),
+            other => trackers::call(other, params).unwrap_or_else(|| Err(Failure::new(wire::METHOD_NOT_FOUND, format!("Unknown method: {other}")))),
         }
     }
 

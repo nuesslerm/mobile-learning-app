@@ -1,7 +1,5 @@
 {
   "$schema": "./src/dev-runtime-config.schema.json",
   "initial_route": null,
-  "feature_flags": {
-    "debug_overlay": true
-  }
+  "feature_flags": {}
 }

@@ -155,7 +155,7 @@ async fn given_a_route_that_carries_a_token_in_its_path_when_it_is_called_then_n
     let (ingest, base) = start_ingest().await;
     let (dispatch, telemetry) = telemetry::build(source(), secrets(), Some(Destination::new(base, "tok-123")));
     let hook = Router::new().route("/hooks/{id}/{token}", post(|| async { StatusCode::ACCEPTED }));
-    let token = "wh_0123456789abcdef";
+    let token = "test-token-not-a-secret";
     let uri = format!("/hooks/sched-1/{token}");
 
     let request_uri = uri.clone();

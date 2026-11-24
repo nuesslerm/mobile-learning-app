@@ -1,0 +1,48 @@
+{
+  "method": "project.clearField",
+  "exchanges": [
+    {
+      "name": "no workspace is named, so an executor whose gh is signed in answers",
+      "request": {
+        "id": 1,
+        "method": "project.clearField",
+        "params": {
+          "project": "PVT_o1",
+          "item": "PVTI_1",
+          "field": "PVTF_1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "done": true
+        }
+      },
+      "actions": [
+        "hosted_project_field_clear"
+      ]
+    },
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 2,
+        "method": "project.clearField",
+        "params": {
+          "project": "PVT_o1",
+          "item": "a b",
+          "field": "PVTF_1"
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`item` must be an id of letters, digits, `_`, `-`, `=`"
+        }
+      },
+      "actions": [
+        "hosted_project_field_clear"
+      ]
+    }
+  ]
+}

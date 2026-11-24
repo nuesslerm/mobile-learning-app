@@ -65,7 +65,7 @@ async function walk(ctx, device, scheme) {
 
   await settle(1200);
   await capture(ctx, device, scheme, 'Problem list — cold start',
-    'The Blind 75 hero over the grouped inset list. 72 problems in 11 categories, straight from the catalog.');
+    'The Blind 75 hero over the grouped inset list. 76 problems in 16 categories, straight from the catalog.');
 
   await ctx.evalInApp(`(() => {
     const sv = appDoc.querySelector('[data-testid="LeetcodeListScroll"]');
@@ -213,23 +213,6 @@ async function walk(ctx, device, scheme) {
   await settle(900);
   await capture(ctx, device, scheme, 'Version history',
     'A version saved automatically before the language switch discarded the buffer. Reset used to be genuinely irreversible here — its dialog still says "This cannot be undone" because, until this store existed, it was true.');
-
-  // Same reason as above -- and the debug FAB is global, so any route will do.
-  await ctx.goto('');
-  await waitFor(ctx, `!!appDoc.querySelector('[data-testid="DebugFab"]')`);
-
-  // DebugFabWrap is the GestureDetector's Animated.View (the tap target);
-  // the inner DebugFab button is wrapped in a pointerEvents="none" YStack,
-  // so elementFromPoint at the button's centre returns DebugFabWrap instead.
-  // Tapping the wrap directly drives the same gesture the user does.
-  await ctx.tapInApp('[data-testid="DebugFabWrap"]');
-  await waitFor(ctx, `(() => {
-    const el = appDoc.querySelector('[data-testid="DebugLogSheet"]');
-    return !!el && el.getBoundingClientRect().top < appDoc.defaultView.innerHeight - 40;
-  })()`);
-  await settle(1200);
-  await capture(ctx, device, scheme, 'Bottom sheet — debug log',
-    'The live tail: dense hairline-separated rows, newest first. App #1 renders each line as a bordered card with four different font sizes.');
 }
 
 /**

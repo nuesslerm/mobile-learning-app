@@ -16,12 +16,11 @@ path = "src/main.rs"
 
 [dependencies]
 wf-kit = { path = "../wf-kit" }
-offload = { path = "../offload" }
+rca = { path = "../rca" }
 wf-bench = { path = "../wf-bench" }
 knowledge = { path = "../knowledge" }
 wf-bucket = { path = "../wf-bucket" }
 wf-lib = { path = "../lib" }
-parity = { path = "../parity" }
 wf-harness = { path = "../wf-harness" }
 harness-flow = { path = "../harness-flow" }
 wf-login = { path = "../wf-login" }
@@ -32,10 +31,8 @@ wf-vmops = { path = "../wf-vmops" }
 serde_json = { version = "1", features = ["preserve_order"] }
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
 agent-config-sync = { path = "../agent-config-sync" }
-rca-core = { version = "0.1", registry = "mla" }
 cli-http = { path = "../http" }
 telemetry = { version = "0.1", registry = "mla", features = ["cli"] }
-nix = { version = "0.31", default-features = false, features = ["signal"] }
 
 [dev-dependencies]
 wf-testkit = { path = "../wf-testkit", features = ["tls"] }
@@ -44,3 +41,6 @@ wf-harness = { path = "../wf-harness", features = ["testing"] }
 base64 = "0.22"
 tempfile = "3"
 
+
+[package.metadata.arch]
+type = "cli-crate"

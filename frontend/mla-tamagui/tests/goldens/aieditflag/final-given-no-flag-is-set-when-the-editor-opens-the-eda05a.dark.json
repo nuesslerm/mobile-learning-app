@@ -1,0 +1,62 @@
+{
+  "suite": "aieditflag",
+  "step": "final-given-no-flag-is-set-when-the-editor-opens-the-eda05a",
+  "scheme": "dark",
+  "snapshot": "aieditflag/final-given-no-flag-is-set-when-the-editor-opens-the-eda05a.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemEditorScreen",
+      "ProblemEditorHeader",
+      "ProblemEditorHeaderBack",
+      "ProblemEditorHeaderTitle",
+      "ProblemEditorHeaderSubtitle",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
+      "ProblemEditorInfoButton",
+      "ProblemEditorMenuButton",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
+      "ProblemEditorMenuButtonBackdrop",
+      "ProblemEditorMenuButtonContent",
+      "ProblemEditorMenuHistory",
+      "ProblemEditorMenuResetCode",
+      "ProblemEditorMenuLogin"
+    ],
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit\nVersion history\nNo versions yet\nReset code\nLogin\nLeetCode"
+  },
+  "timings": {
+    "render_ms": 316
+  },
+  "name": "aieditflag/final-given-no-flag-is-set-when-the-editor-opens-the-eda05a.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

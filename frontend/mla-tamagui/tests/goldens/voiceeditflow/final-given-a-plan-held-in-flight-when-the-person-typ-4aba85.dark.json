@@ -1,0 +1,62 @@
+{
+  "suite": "voiceeditflow",
+  "step": "final-given-a-plan-held-in-flight-when-the-person-typ-4aba85",
+  "scheme": "dark",
+  "snapshot": "voiceeditflow/final-given-a-plan-held-in-flight-when-the-person-typ-4aba85.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemWorkspaceTabs",
+      "ProblemWorkspaceTab-plan",
+      "ProblemWorkspaceTab-code",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorTextEditStartButton",
+      "ProblemEditorVoiceStartButton",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
+      "ProblemEditorVoiceErrorBanner",
+      "ProblemEditorVoiceErrorText",
+      "ProblemEditorVoiceErrorHint",
+      "ProblemPlanTab",
+      "ProblemPlanSteps",
+      "ProblemPlanComposer",
+      "ProblemPlanMicButton",
+      "ProblemPlanTextInput",
+      "ProblemPlanAddButton"
+    ],
+    "text": "Plan\nCode\nPython\nConsole\nSubmit\nThe code changed while the edit was being planned. Say it again.\nTap to dismiss"
+  },
+  "timings": {
+    "render_ms": 249
+  },
+  "name": "voiceeditflow/final-given-a-plan-held-in-flight-when-the-person-typ-4aba85.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "suite": "screenheader",
+  "step": "final-given-a-very-long-title-when-rendered-then-it-a94c56",
+  "scheme": "light",
+  "snapshot": "screenheader/final-given-a-very-long-title-when-rendered-then-it-a94c56.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "Bar",
+      "BarBack",
+      "BarTitle",
+      "BarSubtitle",
+      "BarGroup0",
+      "BarInfo"
+    ],
+    "text": "Longest Substring Without Repeating Characters, With a Very Long Name\nArray & Hashing · Easy"
+  },
+  "timings": {
+    "render_ms": 255
+  },
+  "name": "screenheader/final-given-a-very-long-title-when-rendered-then-it-a94c56.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

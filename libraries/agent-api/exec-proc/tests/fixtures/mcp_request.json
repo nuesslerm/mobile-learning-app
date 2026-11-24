@@ -1,0 +1,245 @@
+{
+  "action": "mcp_request",
+  "exchanges": [
+    {
+      "name": "lists the tools of a stdio server the workspace declares, with the tool's ui resource marker",
+      "setup": {
+        "files": {
+          ".mcp.json": "{\"mcpServers\": {\"app\": {\"command\": \"sh\", \"args\": [\"server.sh\"], \"env\": {\"APP_KEY\": \"never-returned\"}}, \"remote\": {\"url\": \"https://example.invalid/mcp\"}}}",
+          "server.sh": "read init\nprintf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"tools\":{},\"resources\":{}},\"serverInfo\":{\"name\":\"scripted\",\"version\":\"0\"}}}'\nread initialized\nread request\nprintf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"tools\":[{\"name\":\"echo\",\"description\":\"Echoes its text\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\"}}},\"_meta\":{\"ui\":{\"resourceUri\":\"ui://app/echo\"}}}]}}'\n"
+        }
+      },
+      "request": {
+        "id": "m1",
+        "tool": "mcp_request",
+        "args": {
+          "server": "app",
+          "method": "tools/list"
+        }
+      },
+      "response": {
+        "id": "m1",
+        "ok": true,
+        "result": {
+          "result": {
+            "tools": [
+              {
+                "name": "echo",
+                "description": "Echoes its text",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "_meta": {
+                  "ui": {
+                    "resourceUri": "ui://app/echo"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "calls a tool and returns the server's result",
+      "setup": {
+        "files": {
+          ".mcp.json": "{\"mcpServers\": {\"app\": {\"command\": \"sh\", \"args\": [\"server.sh\"], \"env\": {\"APP_KEY\": \"never-returned\"}}, \"remote\": {\"url\": \"https://example.invalid/mcp\"}}}",
+          "server.sh": "read init\nprintf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"tools\":{},\"resources\":{}},\"serverInfo\":{\"name\":\"scripted\",\"version\":\"0\"}}}'\nread initialized\nread request\nprintf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"hi\"}],\"isError\":false}}'\n"
+        }
+      },
+      "request": {
+        "id": "m2",
+        "tool": "mcp_request",
+        "args": {
+          "server": "app",
+          "method": "tools/call",
+          "params": {
+            "name": "echo",
+            "arguments": {
+              "text": "hi"
+            }
+          }
+        }
+      },
+      "response": {
+        "id": "m2",
+        "ok": true,
+        "result": {
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "hi"
+              }
+            ],
+            "isError": false
+          }
+        }
+      }
+    },
+    {
+      "name": "reads a ui resource",
+      "setup": {
+        "files": {
+          ".mcp.json": "{\"mcpServers\": {\"app\": {\"command\": \"sh\", \"args\": [\"server.sh\"], \"env\": {\"APP_KEY\": \"never-returned\"}}, \"remote\": {\"url\": \"https://example.invalid/mcp\"}}}",
+          "server.sh": "read init\nprintf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"tools\":{},\"resources\":{}},\"serverInfo\":{\"name\":\"scripted\",\"version\":\"0\"}}}'\nread initialized\nread request\nprintf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"contents\":[{\"uri\":\"ui://app/echo\",\"mimeType\":\"text/html\",\"text\":\"<p>echo</p>\"}]}}'\n"
+        }
+      },
+      "request": {
+        "id": "m3",
+        "tool": "mcp_request",
+        "args": {
+          "server": "app",
+          "method": "resources/read",
+          "params": {
+            "uri": "ui://app/echo"
+          }
+        }
+      },
+      "response": {
+        "id": "m3",
+        "ok": true,
+        "result": {
+          "result": {
+            "contents": [
+              {
+                "uri": "ui://app/echo",
+                "mimeType": "text/html",
+                "text": "<p>echo</p>"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "answers a fixed IO_ERROR message and not the server's own error text",
+      "setup": {
+        "files": {
+          ".mcp.json": "{\"mcpServers\": {\"app\": {\"command\": \"sh\", \"args\": [\"server.sh\"], \"env\": {\"APP_KEY\": \"never-returned\"}}, \"remote\": {\"url\": \"https://example.invalid/mcp\"}}}",
+          "server.sh": "read init\nprintf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"tools\":{},\"resources\":{}},\"serverInfo\":{\"name\":\"scripted\",\"version\":\"0\"}}}'\nread initialized\nread request\nprintf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":2,\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}'\n"
+        }
+      },
+      "request": {
+        "id": "m4",
+        "tool": "mcp_request",
+        "args": {
+          "server": "app",
+          "method": "tools/call",
+          "params": {
+            "name": "nope"
+          }
+        }
+      },
+      "response": {
+        "id": "m4",
+        "ok": false,
+        "error": {
+          "code": "IO_ERROR",
+          "message": "the server refused the request"
+        }
+      }
+    },
+    {
+      "name": "refuses a server that is not declared",
+      "setup": {
+        "files": {
+          ".mcp.json": "{\"mcpServers\": {\"app\": {\"command\": \"sh\", \"args\": [\"server.sh\"], \"env\": {\"APP_KEY\": \"never-returned\"}}, \"remote\": {\"url\": \"https://example.invalid/mcp\"}}}",
+          "server.sh": "read init\nprintf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"tools\":{},\"resources\":{}},\"serverInfo\":{\"name\":\"scripted\",\"version\":\"0\"}}}'\nread initialized\nread request\nprintf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"tools\":[{\"name\":\"echo\",\"description\":\"Echoes its text\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\"}}},\"_meta\":{\"ui\":{\"resourceUri\":\"ui://app/echo\"}}}]}}'\n"
+        }
+      },
+      "request": {
+        "id": "m5",
+        "tool": "mcp_request",
+        "args": {
+          "server": "gone",
+          "method": "tools/list"
+        }
+      },
+      "response": {
+        "id": "m5",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": ".mcp.json declares no server \"gone\""
+        }
+      }
+    },
+    {
+      "name": "refuses a server with a url: only stdio servers are started",
+      "setup": {
+        "files": {
+          ".mcp.json": "{\"mcpServers\": {\"app\": {\"command\": \"sh\", \"args\": [\"server.sh\"], \"env\": {\"APP_KEY\": \"never-returned\"}}, \"remote\": {\"url\": \"https://example.invalid/mcp\"}}}",
+          "server.sh": "read init\nprintf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"tools\":{},\"resources\":{}},\"serverInfo\":{\"name\":\"scripted\",\"version\":\"0\"}}}'\nread initialized\nread request\nprintf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"tools\":[{\"name\":\"echo\",\"description\":\"Echoes its text\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\"}}},\"_meta\":{\"ui\":{\"resourceUri\":\"ui://app/echo\"}}}]}}'\n"
+        }
+      },
+      "request": {
+        "id": "m6",
+        "tool": "mcp_request",
+        "args": {
+          "server": "remote",
+          "method": "tools/list"
+        }
+      },
+      "response": {
+        "id": "m6",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "server \"remote\" is not a stdio server; only stdio servers are started here"
+        }
+      }
+    },
+    {
+      "name": "refuses a workspace without .mcp.json",
+      "setup": {},
+      "request": {
+        "id": "m7",
+        "tool": "mcp_request",
+        "args": {
+          "server": "app",
+          "method": "tools/list"
+        }
+      },
+      "response": {
+        "id": "m7",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "the workspace has no .mcp.json"
+        }
+      }
+    },
+    {
+      "name": "refuses a method it does not send",
+      "setup": {
+        "files": {
+          ".mcp.json": "{\"mcpServers\": {\"app\": {\"command\": \"sh\", \"args\": [\"server.sh\"], \"env\": {\"APP_KEY\": \"never-returned\"}}, \"remote\": {\"url\": \"https://example.invalid/mcp\"}}}",
+          "server.sh": "read init\nprintf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{\"tools\":{},\"resources\":{}},\"serverInfo\":{\"name\":\"scripted\",\"version\":\"0\"}}}'\nread initialized\nread request\nprintf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"tools\":[{\"name\":\"echo\",\"description\":\"Echoes its text\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\"}}},\"_meta\":{\"ui\":{\"resourceUri\":\"ui://app/echo\"}}}]}}'\n"
+        }
+      },
+      "request": {
+        "id": "m8",
+        "tool": "mcp_request",
+        "args": {
+          "server": "app",
+          "method": "prompts/list"
+        }
+      },
+      "response": {
+        "id": "m8",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`method` is one of tools/list, tools/call, resources/read, not \"prompts/list\""
+        }
+      }
+    }
+  ]
+}

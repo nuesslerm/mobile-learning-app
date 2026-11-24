@@ -1,0 +1,21 @@
+{
+  "version": "0.1.6",
+  "conformedStable": "0.1.6",
+  "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e",
+  "protocol": 2,
+  "databaseMigration": 76,
+  "release": "https://github.com/pingdotgg/t3code/releases/download/v0.1.6",
+  "platforms": {
+    "linux-x64": {
+      "bytes": 123152548,
+      "sha256": "7cf31da90dee41f524dd5b679ebb6d404637ca5d9dc6fd8bc019511d57bb77e6"
+    },
+    "linux-arm64": {
+      "bytes": 118909565,
+      "sha256": "b708f059200776f50623a766854841e40eda0bb67614211cf8b6909295ce20da"
+    }
+  },
+  "npm": {
+    "integrity": "sha512-Gxiu4vniyTDKcXlyzA8yRQ7/xDB7DXork97rFbX66NXH7NGV8NJPBZi0/+tEMS8KmkUK4rVmPH9zMFKiWe30mg=="
+  }
+}

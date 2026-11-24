@@ -3,7 +3,7 @@ Usage: wf vm net resolve [options] <name...>
 The name each tailnet host answers to now: the base name, else the first of
 <name>-1 .. <name>-5 that resolves (a name drifts to a suffix while a stale
 record holds it). Resolves through this machine's resolver, so run it where
-MagicDNS answers (the VM's runner, a machine on the tailnet).
+MagicDNS answers (a VM app, a machine on the tailnet).
 
 Options:
   -h, --help  display help for command

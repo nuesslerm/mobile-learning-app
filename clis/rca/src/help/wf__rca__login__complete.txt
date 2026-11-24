@@ -1,0 +1,9 @@
+Usage: wf rca login complete [--wait <seconds>] <auth>
+
+Waits until the login ends (succeeded, failed or cancelled) or the wait is over (300 s by
+default, at most the service's cap) and prints its state; a login that succeeded left the
+CLI signed in at the workspace host.
+
+Options:
+  --wait <seconds>  how long to wait (default 300)
+  -h, --help        display help for command

@@ -43,16 +43,19 @@ pub fn find_chromium() -> Option<PathBuf> {
     None
 }
 
-/// Launches `exe` with `args` (plus the profile and debugging port), `env` added to the environment.
-pub fn launch(exe: &Path, args: &[String], env: &[(String, String)], headless: bool) -> Result<Launched, String> {
+/// Launches `exe` with `args` (plus the profile and debugging port), `env` added to the environment; `sandbox` false adds `--no-sandbox`.
+pub fn launch(exe: &Path, args: &[String], env: &[(String, String)], headless: bool, sandbox: bool) -> Result<Launched, String> {
     let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.subsec_nanos());
     let profile = std::env::temp_dir().join(format!("wf-browser-{}-{nanos}", std::process::id()));
     let mut cmd = Command::new(exe);
     if headless {
         cmd.arg("--headless=new");
     }
+    if !sandbox {
+        cmd.arg("--no-sandbox");
+    }
     // a sideways touch drag at the start of a scroller is otherwise Chromium's swipe-back gesture: it navigated the device frame away
-    cmd.args(["--no-sandbox", "--no-first-run", "--no-default-browser-check", "--remote-debugging-port=0", "--disable-features=OverscrollHistoryNavigation", "--overscroll-history-navigation=0"])
+    cmd.args(["--no-first-run", "--no-default-browser-check", "--remote-debugging-port=0", "--disable-features=OverscrollHistoryNavigation", "--overscroll-history-navigation=0"])
         .arg(format!("--user-data-dir={}", profile.display()))
         .args(args)
         .arg("about:blank")

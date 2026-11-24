@@ -11,6 +11,7 @@ import { TamaguiProvider } from '../../../primitives';
 // runtime in jsdom. The chart's own logic under test -- series wiring, the
 // threshold label overlay, the empty state -- lives outside the canvas, so the
 // canvas is stubbed with inert geometry and the real component still runs.
+// oxlint-disable-next-line no-restricted-properties -- mocks a platform or native module the library reaches without a port; Phase 4 gives it one and deletes the mock
 vi.mock('victory-native', () => {
   return {
     CartesianChart: ({
@@ -38,6 +39,7 @@ vi.mock('victory-native', () => {
   };
 });
 
+// oxlint-disable-next-line no-restricted-properties -- mocks a platform or native module the library reaches without a port; Phase 4 gives it one and deletes the mock
 vi.mock('@shopify/react-native-skia', () => {
   return {
     DashPathEffect: () => null,

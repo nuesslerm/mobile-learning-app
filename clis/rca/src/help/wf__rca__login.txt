@@ -1,0 +1,16 @@
+Usage: wf rca login [options] [command]
+
+The agent CLIs' own logins (claude, codex, opencode) at the workspace host, run over the
+rca service's agent socket: no SSH, no T3 or Orca needed
+
+Options:
+  -h, --help                      display help for command
+
+Commands:
+  start [options] <provider>      Start a provider's login and print its address and code
+  respond <auth> <text>           Paste a code into a login that waits for one
+  complete [options] <auth>       Wait until a login ends and print how
+  cancel <auth>                   End a running login
+  status                          List each provider and whether it is signed in
+  logout <provider>               Sign a provider out
+  help [command]                  display help for command

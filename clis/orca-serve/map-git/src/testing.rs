@@ -1,4 +1,4 @@
-//! A double of rca's git group: one repository held in memory, answering the methods of `USES` in the shapes of the contract (`agent-api-git`) and
+//! A double of rca's git group (and the hosted group's `pr.remotes`): one repository held in memory, answering the methods of `USES` in the shapes of the contract (`agent-api-git`) and
 //! changing as git would (a staged file leaves the working tree's column, a commit empties the index, a push publishes the branch). The chain
 //! runs the real service and executor against the same calls, so a shape that drifts fails there.
 use orca_core::testing::ScriptedAgent;
@@ -31,6 +31,12 @@ struct State {
     rebase_stops_on: Option<String>,
     model_down: bool,
     asked_model: Vec<Vec<String>>,
+    asked_pull_request: Vec<Value>,
+    branch_ahead: u32,
+    blobs: Vec<(String, String, Vec<u8>)>,
+    unmerged: Vec<String>,
+    urls: Vec<(String, String)>,
+    remotes_error: Option<String>,
 }
 
 #[derive(Clone)]
@@ -55,6 +61,12 @@ impl Default for Repos {
             rebase_stops_on: None,
             model_down: false,
             asked_model: Vec::new(),
+            asked_pull_request: Vec::new(),
+            branch_ahead: 0,
+            blobs: Vec::new(),
+            unmerged: Vec::new(),
+            urls: Vec::new(),
+            remotes_error: None,
         })))
     }
 }
@@ -68,6 +80,38 @@ fn sha(n: usize) -> String {
 }
 
 impl Repos {
+    /// The file `path` as commit `rev` holds it.
+    pub fn blob(&self, rev: &str, path: &str, bytes: &[u8]) -> &Self {
+        self.0.lock().unwrap().blobs.push((rev.into(), path.into(), bytes.to_vec()));
+        self
+    }
+
+    /// The file `path` as staged in the index (stage 0).
+    pub fn staged(&self, path: &str, bytes: &[u8]) -> &Self {
+        self.blob("", path, bytes)
+    }
+
+    /// A remote with its fetch URL, as the hosted group's `pr.remotes` lists it.
+    pub fn remote_url(&self, name: &str, url: &str) -> &Self {
+        let mut s = self.0.lock().unwrap();
+        s.urls.push((name.into(), url.into()));
+        s.remotes.push(name.into());
+        drop(s);
+        self
+    }
+
+    /// `pr.remotes` refused with git's words (the folder is no repository).
+    pub fn remotes_fail(&self, message: &str) -> &Self {
+        self.0.lock().unwrap().remotes_error = Some(message.into());
+        self
+    }
+
+    /// A conflicted path, which the index holds only in its unmerged stages.
+    pub fn unmerged(&self, path: &str) -> &Self {
+        self.0.lock().unwrap().unmerged.push(path.into());
+        self
+    }
+
     /// A file in git's two status columns (`.` for none, `?` for both of an untracked file).
     pub fn file(&self, path: &str, index: &str, worktree: &str) -> &Self {
         self.0.lock().unwrap().files.push(File { path: path.into(), index: index.into(), worktree: worktree.into(), conflicted: false });
@@ -129,6 +173,17 @@ impl Repos {
         self.0.lock().unwrap().asked_model.clone()
     }
 
+    /// The branch holds `n` commits its base lacks.
+    pub fn branch_ahead(&self, n: u32) -> &Self {
+        self.0.lock().unwrap().branch_ahead = n;
+        self
+    }
+
+    /// The params each pull request generation was asked with (the workspace left out).
+    pub fn pull_request_asked(&self) -> Vec<Value> {
+        self.0.lock().unwrap().asked_pull_request.clone()
+    }
+
     pub fn columns(&self, path: &str) -> Option<(String, String)> {
         self.0.lock().unwrap().files.iter().find(|f| f.path == path).map(|f| (f.index.clone(), f.worktree.clone()))
     }
@@ -179,7 +234,43 @@ impl Repos {
             s.asked_model.push(staged.clone());
             Ok(json!({"message": format!("feat: change {}", staged.join(", ")), "model": "double-model"}))
         });
+        on("git.generatePullRequestFields", |s, p| {
+            if s.model_down {
+                return Err(refused("MODEL_API_UNAVAILABLE", "no model is configured"));
+            }
+            if s.branch_ahead == 0 {
+                return Err(refused("NO_BRANCH_CHANGES", format!("the branch has no commit that {} lacks", p["base"].as_str().unwrap_or_default())));
+            }
+            let mut asked = p.clone();
+            asked.as_object_mut().unwrap().remove("workspace");
+            s.asked_pull_request.push(asked);
+            let title = p["title"].as_str().filter(|t| !t.is_empty()).map_or_else(|| format!("Merge {} into {}", s.branch, p["base"].as_str().unwrap_or_default()), String::from);
+            Ok(json!({"base": p["base"], "title": title, "body": "## Problem\n\nx\n\n## Solution\n\ny", "draft": p["draft"], "model": "double-model"}))
+        });
         on("git.compare", compare);
+        on("pr.remotes", |s, _| match &s.remotes_error {
+            Some(m) => Err(refused("IO_ERROR", m.clone())),
+            None => Ok(json!({"remotes": s.urls.iter().map(|(n, u)| json!({"name": n, "url": u})).collect::<Vec<_>>()})),
+        });
+        on("git.blob", |s, p| {
+            use base64::Engine;
+            let path = required(p, "path")?;
+            let rev = p["rev"].as_str();
+            let max = p["max_bytes"].as_u64().unwrap_or(1 << 20) as usize;
+            if rev.is_none() && s.unmerged.iter().any(|u| u == path) {
+                return Err(refused("NOT_A_FILE", format!("{path} is not merged in the index")));
+            }
+            let place = rev.map_or("in the index".to_string(), |r| format!("at {r}"));
+            let (_, _, bytes) = s.blobs.iter().find(|(r, f, _)| r == rev.unwrap_or("") && f == path).ok_or_else(|| refused("NOT_FOUND", format!("{path} does not exist {place}")))?;
+            let taken = &bytes[..bytes.len().min(max)];
+            let mut out = json!({"path": path, "size": bytes.len(), "data": base64::engine::general_purpose::STANDARD.encode(taken), "truncated": taken.len() < bytes.len(), "binary": bytes.iter().take(8000).any(|b| *b == 0)});
+            if let Some(rev) = rev {
+                let mut with_rev = serde_json::Map::from_iter([("rev".to_string(), json!(rev))]);
+                with_rev.extend(out.as_object().cloned().unwrap_or_default());
+                out = Value::Object(with_rev);
+            }
+            Ok(out)
+        });
         on("git.stage", |s, p| edit(s, p, stage));
         on("git.unstage", |s, p| edit(s, p, unstage));
         on("git.discard", |s, p| {

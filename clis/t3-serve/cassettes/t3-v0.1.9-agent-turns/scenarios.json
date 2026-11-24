@@ -1,0 +1,169 @@
+{
+ "schema": "mimic-scenarios/1",
+ "app": "t3",
+ "source": "clis/t3-serve/cassettes/t3-api",
+ "counts": {
+  "endpoints": 10,
+  "scenarios": 10,
+  "populated": 10,
+  "emptyOnly": 0
+ },
+ "scenarios": [
+  {
+   "id": "t3-agent-run.interrupt",
+   "kind": "story",
+   "rows": [
+    "command:run.interrupt"
+   ],
+   "note": "interrupt the run of a turn that is still running"
+  },
+  {
+   "id": "t3-agent-thread.stop",
+   "kind": "story",
+   "rows": [
+    "command:thread.stop"
+   ],
+   "note": "stop a thread whose turn is still running"
+  },
+  {
+   "id": "t3-agent-queued-run.edit",
+   "kind": "story",
+   "rows": [
+    "command:queued-run.edit"
+   ],
+   "note": "edit a message queued behind a running turn"
+  },
+  {
+   "id": "t3-agent-queued-run.cancel",
+   "kind": "story",
+   "rows": [
+    "command:queued-run.cancel"
+   ],
+   "note": "cancel a message queued behind a running turn"
+  },
+  {
+   "id": "t3-agent-queued-run.reorder",
+   "kind": "story",
+   "rows": [
+    "command:queued-run.reorder"
+   ],
+   "note": "move the second queued message before the first"
+  },
+  {
+   "id": "t3-agent-queued-run.start",
+   "kind": "story",
+   "rows": [
+    "command:queued-run.start",
+    "command:run.interrupt"
+   ],
+   "note": "interrupt the running turn and hold the queue, then start the first queued message by hand"
+  },
+  {
+   "id": "t3-agent-queued-message.promote-to-steer",
+   "kind": "story",
+   "rows": [
+    "command:queued-message.promote-to-steer"
+   ],
+   "note": "promote a queued message to steer the running turn"
+  },
+  {
+   "id": "t3-agent-thread.snooze",
+   "kind": "story",
+   "rows": [
+    "command:thread.snooze"
+   ],
+   "note": "snooze a thread of Claude that has no turn"
+  },
+  {
+   "id": "t3-agent-thread.fork",
+   "kind": "story",
+   "rows": [
+    "command:thread.fork"
+   ],
+   "note": "fork a thread of Claude that has no turn"
+  },
+  {
+   "id": "t3-agent-thread.merge_back",
+   "kind": "story",
+   "rows": [
+    "command:thread.fork",
+    "command:thread.merge_back"
+   ],
+   "note": "fork a thread of Claude that has no turn and merge the fork back"
+  }
+ ],
+ "coverage": [
+  {
+   "row": "command:run.interrupt",
+   "state": "populated",
+   "via": [
+    "t3-agent-run.interrupt",
+    "t3-agent-queued-run.start"
+   ]
+  },
+  {
+   "row": "command:thread.stop",
+   "state": "populated",
+   "via": [
+    "t3-agent-thread.stop"
+   ]
+  },
+  {
+   "row": "command:queued-run.edit",
+   "state": "populated",
+   "via": [
+    "t3-agent-queued-run.edit"
+   ]
+  },
+  {
+   "row": "command:queued-run.cancel",
+   "state": "populated",
+   "via": [
+    "t3-agent-queued-run.cancel"
+   ]
+  },
+  {
+   "row": "command:queued-run.reorder",
+   "state": "populated",
+   "via": [
+    "t3-agent-queued-run.reorder"
+   ]
+  },
+  {
+   "row": "command:queued-run.start",
+   "state": "populated",
+   "via": [
+    "t3-agent-queued-run.start"
+   ]
+  },
+  {
+   "row": "command:queued-message.promote-to-steer",
+   "state": "populated",
+   "via": [
+    "t3-agent-queued-message.promote-to-steer"
+   ]
+  },
+  {
+   "row": "command:thread.snooze",
+   "state": "populated",
+   "via": [
+    "t3-agent-thread.snooze"
+   ]
+  },
+  {
+   "row": "command:thread.fork",
+   "state": "populated",
+   "via": [
+    "t3-agent-thread.fork",
+    "t3-agent-thread.merge_back"
+   ]
+  },
+  {
+   "row": "command:thread.merge_back",
+   "state": "populated",
+   "via": [
+    "t3-agent-thread.merge_back"
+   ]
+  }
+ ]
+}

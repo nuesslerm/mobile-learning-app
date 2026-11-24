@@ -1,0 +1,30 @@
+[package]
+name = "rca-group-gateway"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The model gateway between the agent CLIs at the workspace host and the model providers: a pipeline of request stages (credential injection, same-protocol reroute, an optional compression stage) over the ports TokenStore, KeySource, Upstream and Compressor; the CLI holds a per-turn token and never the provider's key"
+
+[lib]
+name = "rca_group_gateway"
+path = "src/lib.rs"
+doctest = false
+
+[features]
+# The doubles of the ports, for the service crate's tests
+testing = []
+
+[dependencies]
+async-trait.workspace = true
+futures-util.workspace = true
+serde.workspace = true
+serde_json = { workspace = true, features = ["raw_value"] }
+rca-agent-core = { path = "../agent-core" }
+
+[dev-dependencies]
+rca-group-gateway = { path = ".", features = ["testing"] }
+tokio.workspace = true
+tokio-stream.workspace = true
+
+[package.metadata.arch]
+type = "rust-group"

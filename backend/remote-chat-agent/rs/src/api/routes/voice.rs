@@ -6,7 +6,7 @@ use super::upload::{self, Form};
 use super::{respond, truthy, Call};
 use crate::api::app::App;
 use rca_service_core::application::edit_stats::empty_row;
-use rca_service_core::domain::util::{js_string, random_hex};
+use rca_service_core::domain::util::js_string;
 use axum::extract::multipart::MultipartRejection;
 use axum::extract::Multipart;
 use axum::extract::State;
@@ -57,10 +57,10 @@ fn base36(mut n: u64) -> String {
     digits.iter().rev().collect()
 }
 
-fn server_edit_id() -> String {
-    let hex = random_hex(6);
+fn server_edit_id(app: &App) -> String {
+    let hex = app.orch.engine.ids().hex(6);
     let suffix: String = (0..6).map(|i| char::from_digit(u32::from(u8::from_str_radix(&hex[i * 2..i * 2 + 2], 16).unwrap_or(0)) % 36, 36).unwrap_or('0')).collect();
-    format!("srv-{}-{suffix}", base36(log::now_ms()))
+    format!("srv-{}-{suffix}", base36(app.opencode.now_ms()))
 }
 
 /// The recording's file name inside its temporary directory: the last segment of what the client sent, else `recording.wav`.
@@ -69,8 +69,8 @@ fn safe_name(filename: Option<&str>) -> String {
 }
 
 /// The client's per-turn id when it sent a sensible one, else a server-made one; and the source when it is one we know.
-fn identity(edit_id: Option<&str>, source: Option<&str>) -> (String, Option<&'static str>) {
-    let id = edit_id.filter(|id| !id.is_empty() && utf16_len(id) <= 64).map(str::to_string).unwrap_or_else(server_edit_id);
+fn identity(app: &App, edit_id: Option<&str>, source: Option<&str>) -> (String, Option<&'static str>) {
+    let id = edit_id.filter(|id| !id.is_empty() && utf16_len(id) <= 64).map(str::to_string).unwrap_or_else(|| server_edit_id(app));
     (id, dsl::edit_source(source))
 }
 
@@ -186,7 +186,7 @@ pub async fn transcribe(State(app): State<Arc<App>>, form: Result<Multipart, Mul
         Ok(upload) => upload,
         Err(response) => return response,
     };
-    let (edit_id, source) = identity(form.field("editId"), form.field("source"));
+    let (edit_id, source) = identity(&app, form.field("editId"), form.field("source"));
     let chunk = chunk_index(form.field("chunkIndex"));
     let mut row = empty_row(&edit_id, "server", if chunk.is_none() { "transcribe" } else { "transcribe-chunk" });
     row.insert("source".into(), json!(source.unwrap_or("voice")));
@@ -230,7 +230,7 @@ pub async fn plan(Call { app, body, .. }: Call) -> Response {
         return respond(400, &json!({ "error": "Missing currentCode" }));
     };
     let language = language_of(body.get("language").filter(|v| !v.is_null()).map(js_string));
-    let (edit_id, source) = identity(body.get("editId").and_then(Value::as_str), body.get("source").and_then(Value::as_str));
+    let (edit_id, source) = identity(&app, body.get("editId").and_then(Value::as_str), body.get("source").and_then(Value::as_str));
     let mut row = empty_row(&edit_id, "server", "plan");
     row.insert("source".into(), json!(source));
     row.insert("transcript_chars".into(), json!(utf16_len(&transcript)));
@@ -268,7 +268,7 @@ pub async fn edit(State(app): State<Arc<App>>, form: Result<Multipart, Multipart
         return respond(400, &json!({ "error": "Missing currentCode" }));
     };
     let language = form.field("language").map(str::to_string).unwrap_or_else(|| "typescript".into());
-    let (edit_id, source) = identity(form.field("editId"), form.field("source"));
+    let (edit_id, source) = identity(&app, form.field("editId"), form.field("source"));
     let mut row = empty_row(&edit_id, "server", "edit");
     row.insert("source".into(), json!(source.unwrap_or("voice")));
     let started = Instant::now();

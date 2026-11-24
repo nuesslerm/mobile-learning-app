@@ -1,7 +1,6 @@
 //! `ToolExecutor` on the local disk, rooted at the served directory and, when one is set, its worktree base. A path is relative to the
 //! root or absolute under the root or the base; it is confined to that one directory: no `..`, symlinks resolved component by component (a
 //! link that leaves it, or dangles, is `PATH_OUTSIDE_ROOT`). Only `browse` reads elsewhere, and only inside its allowlist.
-use regex::Regex;
 use std::collections::HashMap;
 use std::fs;
 use std::io::{Read, Seek, SeekFrom};
@@ -14,16 +13,19 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use crate::domain::ToolExecutor;
 use base64::Engine;
-use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EditFile, EntriesResult, Entry, EntryKind, Found, FoundEntry, ListDir, MakeDir, Match, PutBlob, ReadChunk, ReadFile, ReadResult, Search, SearchEntries, SearchKind, Skill, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
+use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, EntryKind, FoundEntry, ListDir, MakeDir, PutBlob, PutTemp, ReadChunk, ReadFile, ReadResult, SearchEntries, SecretFilePut, SessionScan, SessionsFound, Skill, SkillDir, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
 use exec_git::{GitCall, GitDiff, GitOp, Resolution, SetupEvent, SetupResult, SetupStep, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeRemove, WorktreeSetup};
-use exec_proc::{CliDetect, CliFound, RunCommand, RunResult};
+use exec_proc::{ClaudeAnswer, ClaudeRequest, CliDetect, CliFound, CliUpdated, CodexAnswer, CodexRequest, UpdateProgram, LoginCancel, LoginProgram, LoginSend, LoginState, LoginStatus, McpAnswer, McpRequest, ProcSample, RunCommand, RunResult, SessionEnded, SessionOpen, SessionSend};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyOpen, PtyOpened, PtyResize, PtyWrite};
 use crate::adapters::git::{Repo, Watches};
+use crate::adapters::opencode_bridge::Bridge;
 use crate::adapters::hosted::Hosted;
 use crate::hosted::plan::Paths;
 use exec_hosted::{HostedCall, HostedOp};
+use crate::adapters::browser::BrowserTable;
 use crate::adapters::preview::PreviewTable;
 use crate::adapters::pty::{PtyTable, Spawn};
+use exec_browser::{BrowserOp, Policy};
 use exec_preview::PreviewOp;
 use serde_json::Value;
 use exec_proto::{Code, ExecError, ExecResult, Stream};
@@ -31,9 +33,12 @@ use exec_proto::{Code, ExecError, ExecResult, Stream};
 pub const OUTPUT_CAP: usize = 1 << 20;
 pub const READ_CAP: usize = 1 << 20;
 pub const LIST_CAP: usize = 5000;
-pub const MATCH_CAP: usize = 500;
-const SEARCH_FILE_CAP: u64 = 2 << 20;
 const SCAN_CAP: usize = 200_000;
+/// How long a command's pipes may stay quiet after it exited before what still holds them is killed, how long such a drain may go on in all,
+/// and how long the pipes get to hand over what is buffered after that kill.
+const EXIT_QUIET_GRACE: Duration = Duration::from_millis(300);
+const EXIT_DRAIN_CAP: Duration = Duration::from_secs(2);
+const SWEEP_DRAIN: Duration = Duration::from_millis(500);
 /// What an entry search does not descend into.
 const PRUNED: [&str; 2] = [".git", "node_modules"];
 
@@ -41,6 +46,7 @@ pub struct LocalExecutor {
     root: PathBuf,
     worktree_base: Option<PathBuf>,
     browse_allow: Vec<PathBuf>,
+    artifact_allow: Vec<PathBuf>,
     running: Mutex<HashMap<String, Arc<AtomicBool>>>,
     setups: Mutex<HashMap<String, Arc<AtomicBool>>>,
     ptys: PtyTable,
@@ -49,7 +55,11 @@ pub struct LocalExecutor {
     watches: Watches,
     hosted: Hosted,
     previews: PreviewTable,
+    browser: BrowserTable,
     cli_path: Option<String>,
+    logins: crate::adapters::logins::Logins,
+    sessions: crate::adapters::sessions::Sessions,
+    claude_usage_url: String,
     version_timeout: Duration,
     skill_home: Option<PathBuf>,
 }
@@ -72,7 +82,7 @@ fn outside(path: &str) -> ExecError {
 impl LocalExecutor {
     pub fn new(root: &Path) -> Result<LocalExecutor, String> {
         let root = fs::canonicalize(root).map_err(|e| format!("executor root {}: {e}", root.display()))?;
-        Ok(LocalExecutor { root, worktree_base: None, browse_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), cli_path: None, version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
+        Ok(LocalExecutor { root, worktree_base: None, browse_allow: Vec::new(), artifact_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), browser: BrowserTable::default(), cli_path: None, logins: Default::default(), sessions: Default::default(), claude_usage_url: exec_proc::CLAUDE_USAGE_URL.to_string(), version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
     }
 
     /// Widens confinement to the directory worktrees are made in (created when missing).
@@ -98,6 +108,26 @@ impl LocalExecutor {
         Ok(self)
     }
 
+    /// Directories whose files the artifact actions serve besides the root and the worktree base. None by default: with none, a file outside the root
+    /// is refused as outside it, so the terminal-artifact grant is off until the host's owner names where it reaches.
+    pub fn with_artifact_allow(mut self, dirs: &[PathBuf]) -> Result<LocalExecutor, String> {
+        for dir in dirs {
+            self.artifact_allow.push(fs::canonicalize(dir).map_err(|e| format!("artifact allowlist {}: {e}", dir.display()))?);
+        }
+        Ok(self)
+    }
+
+    /// The canonical path of an artifact, or why it is not served.
+    fn artifact_path(&self, path: &str, within: Option<&str>) -> ExecResult<PathBuf> {
+        let narrowed = within.map(|w| self.resolve(w)).transpose()?;
+        let bounds: Vec<&Path> = match &narrowed {
+            Some(dir) => vec![dir.as_path()],
+            None => std::iter::once(&self.root).chain(&self.worktree_base).map(PathBuf::as_path).collect(),
+        };
+        let places: Vec<&Path> = bounds.into_iter().chain(self.artifact_allow.iter().map(PathBuf::as_path)).collect();
+        crate::adapters::artifacts::locate(path, || self.resolve(path), &places)
+    }
+
     /// The shell a pty starts (default: the executor's `$SHELL` when absolute, else `/bin/sh`).
     pub fn with_pty_shell(mut self, shell: &Path) -> Result<LocalExecutor, String> {
         if !shell.is_absolute() || !shell.is_file() {
@@ -119,9 +149,25 @@ impl LocalExecutor {
         self
     }
 
+    /// What the browser's pages may reach beyond the public internet (`host:port` pairs), how long a page may sit unused and how many may be open.
+    pub fn with_browser(mut self, policy: Policy, idle: Duration, max_pages: usize, chromium: Option<PathBuf>) -> LocalExecutor {
+        let table = BrowserTable::new(policy, idle, max_pages);
+        self.browser = match chromium {
+            Some(exe) => table.with_chromium(exe),
+            None => table,
+        };
+        self
+    }
+
     /// The `PATH` `cli_detect` looks for the agent CLIs on, in place of the executor's own (tests put their scripted CLIs on it).
     pub fn with_cli_path(mut self, path: &str) -> LocalExecutor {
         self.cli_path = Some(path.to_string());
+        self
+    }
+
+    /// Where the Claude account's usage is read in place of Anthropic's (a test serves it on a local port).
+    pub fn with_claude_usage_url(mut self, url: &str) -> LocalExecutor {
+        self.claude_usage_url = url.to_string();
         self
     }
 
@@ -139,6 +185,45 @@ impl LocalExecutor {
 
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    /// A file below the executor's own `~/.claude/projects` (a link is followed and its target must stay below it), whatever the workspace.
+    fn claude_projects_file(&self, path: &str) -> ExecResult<PathBuf> {
+        if !Path::new(path).is_absolute() {
+            return Err(ExecError::invalid_args(format!("{path} must be an absolute path")));
+        }
+        let root = self.skill_home.as_ref().and_then(|h| fs::canonicalize(h.join(".claude").join("projects")).ok()).ok_or_else(|| ExecError::new(Code::NotFound, "the Claude projects root is unavailable"))?;
+        let resolved = fs::canonicalize(path).map_err(|e| io_at(path, e))?;
+        if !resolved.starts_with(&root) {
+            return Err(outside(path));
+        }
+        if !fs::metadata(&resolved).map_err(|e| io_at(path, e))?.is_file() {
+            return Err(ExecError::new(Code::NotAFile, format!("{path} is not a regular file")));
+        }
+        Ok(resolved)
+    }
+
+    /// Where the CLI is, the path it is found on and the home its login is kept in, or why it cannot be run.
+    fn login_target(&self, program: &str) -> ExecResult<(PathBuf, String, PathBuf)> {
+        let search = self.cli_path.clone().or_else(|| std::env::var("PATH").ok()).unwrap_or_default();
+        let path = find_program(program, &search).ok_or_else(|| ExecError::new(Code::NotFound, format!("{program} is not installed here")))?;
+        let home = crate::adapters::logins::home_of(self.skill_home.as_ref()).ok_or_else(|| ExecError::new(Code::Io, "the executor has no home"))?;
+        // The CLI's own tools (a shell, a browser opener) are found on the executor's usual path after the directory the CLIs were told to be in
+        let env_path = match &self.cli_path {
+            Some(own) => format!("{own}:{}", std::env::var("PATH").unwrap_or_default()),
+            None => search,
+        };
+        Ok((path, env_path, home))
+    }
+
+    /// The path the executor's tools are found on and its home, for a request that needs no agent CLI (the Claude usage read, which only needs `curl`).
+    fn tools_target(&self) -> ExecResult<((), String, PathBuf)> {
+        let home = crate::adapters::logins::home_of(self.skill_home.as_ref()).ok_or_else(|| ExecError::new(Code::Io, "the executor has no home"))?;
+        let env_path = match &self.cli_path {
+            Some(own) => format!("{own}:{}", std::env::var("PATH").unwrap_or_default()),
+            None => std::env::var("PATH").unwrap_or_default(),
+        };
+        Ok(((), env_path, home))
     }
 
     fn resolve(&self, path: &str) -> ExecResult<PathBuf> {
@@ -177,6 +262,13 @@ impl LocalExecutor {
     fn stop(&self, id: &str) {
         self.running.lock().unwrap().remove(id);
     }
+}
+
+/// A session's process as `drive` serves it: the name its input is kept under, how it is told the process started, and the bridge of an HTTP server.
+struct Live<'a> {
+    name: &'a str,
+    started: &'a mut dyn FnMut(Value),
+    bridge: Option<Arc<Bridge>>,
 }
 
 enum Chunk {
@@ -255,14 +347,15 @@ fn kill_group(pid: i32) {
 
 /// Adds the skills below `base`'s skill directories to `found`: a directory per skill holding `SKILL.md`, in directory-name order. A link
 /// that leaves `jail` is skipped, so a skill never reads a file the executor was not given. `label` names a path in the answer.
-fn scan_skills(base: &Path, jail: &Path, scope: SkillScope, label: &dyn Fn(&Path) -> String, found: &mut SkillsFound) {
+fn scan_skills(base: &Path, jail: &Path, dirs: &[String], scope: SkillScope, label: &dyn Fn(&Path) -> String, found: &mut SkillsFound) {
     let inside = |p: &Path| fs::canonicalize(p).is_ok_and(|c| c.starts_with(jail));
-    for dir in exec_fs::SKILL_DIRS {
+    for dir in dirs {
         let skills_dir = base.join(dir);
         if !inside(&skills_dir) {
             continue;
         }
         let Ok(read) = fs::read_dir(&skills_dir) else { continue };
+        found.present.push(SkillDir { scope, dir: dir.clone() });
         let mut names: Vec<String> = read.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
         names.sort();
         for name in names {
@@ -277,10 +370,25 @@ fn scan_skills(base: &Path, jail: &Path, scope: SkillScope, label: &dyn Fn(&Path
             }
             if found.skills.len() >= exec_fs::SKILLS_MAX {
                 found.truncated = true;
-                return;
+                continue;
             }
             let (title, description) = exec_fs::front_matter(&String::from_utf8_lossy(&head));
             found.skills.push(Skill { name: title.unwrap_or_else(|| name.chars().take(exec_fs::SKILL_NAME_MAX).collect()), description, scope, dir: dir.to_string(), path: label(&file) });
+        }
+    }
+}
+
+/// Every `*.jsonl` file below `dir`, at most `depth` directories deep, with its modification time in milliseconds. A link is not followed.
+fn session_files(dir: &Path, depth: usize, out: &mut Vec<(PathBuf, u64)>) {
+    let Ok(read) = fs::read_dir(dir) else { return };
+    for entry in read.flatten() {
+        let Ok(kind) = entry.file_type() else { continue };
+        let path = entry.path();
+        if kind.is_dir() && depth > 0 {
+            session_files(&path, depth - 1, out);
+        } else if kind.is_file() && path.extension().is_some_and(|e| e == "jsonl") {
+            let modified = entry.metadata().ok().and_then(|m| m.modified().ok()).and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0, |d| d.as_millis() as u64);
+            out.push((path, modified));
         }
     }
 }
@@ -294,51 +402,41 @@ impl ToolExecutor for LocalExecutor {
         let mut cmd = Command::new("sh");
         cmd.arg("-c").arg(&args.command).current_dir(cwd).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).process_group(0);
         cmd.envs(args.env.iter().map(|(k, v)| (k, v)));
-        let cancelled = Arc::new(AtomicBool::new(false));
-        self.running.lock().unwrap().insert(id.to_string(), cancelled.clone());
-        let mut child = match cmd.spawn() {
-            Ok(c) => c,
-            Err(e) => {
-                self.stop(id);
-                return Err(io(e));
-            }
+        self.drive(id, cmd, Some(Duration::from_millis(args.timeout_ms)), OUTPUT_CAP, None, output)
+    }
+
+    fn session_open(&self, id: &str, args: &SessionOpen, output: &mut dyn FnMut(Stream, &str), events: &mut dyn FnMut(Value)) -> ExecResult<SessionEnded> {
+        let (path, search, home) = self.login_target(&args.program)?;
+        let cwd = match &args.cwd {
+            Some(c) => self.resolve(c)?,
+            None => self.root.clone(),
         };
-        let pid = child.id() as i32;
-        let (tx, rx) = mpsc::channel();
-        pump(child.stdout.take().expect("piped"), Stream::Stdout, tx.clone());
-        pump(child.stderr.take().expect("piped"), Stream::Stderr, tx);
-        let deadline = Instant::now() + Duration::from_millis(args.timeout_ms);
-        let (mut sent, mut truncated, mut timed_out, mut killed) = (0usize, false, false, false);
-        let mut forward = |chunk: Chunk, sent: &mut usize, truncated: &mut bool| {
-            let Chunk::Data(stream, bytes) = chunk;
-            let room = OUTPUT_CAP.saturating_sub(*sent);
-            if bytes.len() > room {
-                *truncated = true;
+        let mut cmd = Command::new(path);
+        cmd.args(args.argv()).current_dir(cwd).env("PATH", search).env("HOME", home).env("NO_COLOR", "1").stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).process_group(0);
+        // opencode is spoken to over HTTP: its credential is made here and goes to its environment only, the service gets a bridge
+        let bridge = if args.program == "opencode" {
+            let bridge = Bridge::new()?;
+            cmd.envs(bridge.env());
+            // SAFETY: Linux's prctl runs alone between fork and exec to stop the server if its parent dies.
+            #[cfg(target_os = "linux")]
+            unsafe {
+                cmd.pre_exec(|| {
+                    libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL);
+                    Ok(())
+                });
             }
-            let take = &bytes[..bytes.len().min(room)];
-            if !take.is_empty() {
-                *sent += take.len();
-                output(stream, &String::from_utf8_lossy(take));
-            }
+            Some(bridge)
+        } else {
+            None
         };
-        loop {
-            match rx.recv_timeout(Duration::from_millis(20)) {
-                Ok(chunk) => forward(chunk, &mut sent, &mut truncated),
-                Err(RecvTimeoutError::Disconnected) => break,
-                Err(RecvTimeoutError::Timeout) => {}
-            }
-            if !killed && (cancelled.load(Ordering::SeqCst) || Instant::now() >= deadline) {
-                timed_out = !cancelled.load(Ordering::SeqCst);
-                killed = true;
-                kill_group(pid);
-            }
-        }
-        let status = child.wait().map_err(io)?;
-        self.stop(id);
-        // A background process that kept the group alive past the pipes must not outlive the action.
-        kill_group(pid);
-        let exit_code = status.code().unwrap_or_else(|| 128 + status.signal().unwrap_or(0));
-        Ok(RunResult { exit_code, timed_out, cancelled: cancelled.load(Ordering::SeqCst), truncated })
+        self.sessions.reserve(&args.session)?;
+        let ended = self.drive(id, cmd, None, usize::MAX, Some(Live { name: &args.session, started: events, bridge }), output);
+        self.sessions.release(&args.session);
+        ended.map(|r| SessionEnded { exit_code: r.exit_code, cancelled: r.cancelled })
+    }
+
+    fn session_send(&self, args: &SessionSend) -> ExecResult<usize> {
+        self.sessions.send(&args.session, &args.line)
     }
 
     fn read_file(&self, args: &ReadFile) -> ExecResult<ReadResult> {
@@ -371,23 +469,6 @@ impl ToolExecutor for LocalExecutor {
         }
         fs::write(&path, args.content.as_bytes()).map_err(|e| io_at(&args.path, e))?;
         Ok(args.content.len())
-    }
-
-    fn edit_file(&self, args: &EditFile) -> ExecResult<usize> {
-        if args.old.is_empty() {
-            return Err(ExecError::new(Code::InvalidArgs, "`old` must not be empty"));
-        }
-        let path = self.resolve(&args.path)?;
-        let text = fs::read_to_string(&path).map_err(|e| io_at(&args.path, e))?;
-        let count = text.matches(&args.old).count();
-        if count == 0 {
-            return Err(ExecError::new(Code::EditNotFound, format!("`old` does not occur in {}", args.path)));
-        }
-        if count > 1 && !args.replace_all {
-            return Err(ExecError::new(Code::EditAmbiguous, format!("`old` occurs {count} times in {}; add context or set replace_all", args.path)));
-        }
-        fs::write(&path, text.replace(&args.old, &args.new)).map_err(|e| io_at(&args.path, e))?;
-        Ok(count)
     }
 
     fn git_diff(&self, args: &GitDiff) -> ExecResult<String> {
@@ -433,56 +514,6 @@ impl ToolExecutor for LocalExecutor {
         Ok(out)
     }
 
-    fn search(&self, args: &Search) -> ExecResult<Found> {
-        let base = self.resolve(&args.path)?;
-        let glob = args.glob.as_deref().map(glob_regex).transpose()?;
-        let mut matches = Vec::new();
-        let mut truncated = false;
-        let mut files = Vec::new();
-        self.walk(&base, &base, usize::MAX, &[".git"], &mut |p, m| {
-            if m.is_file() {
-                files.push(p.to_path_buf());
-            }
-            true
-        })
-        .map_err(|e| io_at(&args.path, e))?;
-        let wanted = |p: &Path| glob.as_ref().is_none_or(|g| g.is_match(&p.strip_prefix(&base).unwrap_or(p).to_string_lossy()) || p.file_name().is_some_and(|n| g.is_match(&n.to_string_lossy())));
-        match args.kind {
-            SearchKind::Files => {
-                let pattern = glob_regex(&args.pattern)?;
-                for p in files {
-                    let shown = p.strip_prefix(&base).unwrap_or(&p).to_string_lossy().into_owned();
-                    if (pattern.is_match(&shown) || p.file_name().is_some_and(|n| pattern.is_match(&n.to_string_lossy()))) && wanted(&p) {
-                        if matches.len() >= MATCH_CAP {
-                            truncated = true;
-                            break;
-                        }
-                        matches.push(Match { path: self.rel(&p), line: None, text: None });
-                    }
-                }
-            }
-            SearchKind::Content => {
-                let re = Regex::new(&args.pattern).map_err(|e| ExecError::new(Code::InvalidArgs, format!("bad pattern: {e}")))?;
-                'files: for p in files.into_iter().filter(|p| wanted(p)) {
-                    if fs::metadata(&p).map_or(true, |m| m.len() > SEARCH_FILE_CAP) {
-                        continue;
-                    }
-                    let Ok(text) = fs::read_to_string(&p) else { continue };
-                    for (i, line) in text.lines().enumerate() {
-                        if re.is_match(line) {
-                            if matches.len() >= MATCH_CAP {
-                                truncated = true;
-                                break 'files;
-                            }
-                            matches.push(Match { path: self.rel(&p), line: Some(i + 1), text: Some(line.chars().take(500).collect()) });
-                        }
-                    }
-                }
-            }
-        }
-        Ok(Found { matches, truncated })
-    }
-
     fn stat(&self, args: &Stat) -> ExecResult<StatResult> {
         let meta = fs::metadata(self.resolve(&args.path)?).map_err(|e| io_at(&args.path, e))?;
         let modified_ms = meta.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map_or(0, |d| d.as_millis() as u64);
@@ -490,7 +521,7 @@ impl ToolExecutor for LocalExecutor {
     }
 
     fn read_chunk(&self, args: &ReadChunk) -> ExecResult<ChunkResult> {
-        let path = self.resolve(&args.path)?;
+        let path = if args.scope.is_some() { self.claude_projects_file(&args.path)? } else { self.resolve(&args.path)? };
         if path.is_dir() {
             return Err(ExecError::new(Code::NotAFile, format!("{} is a directory", args.path)));
         }
@@ -539,6 +570,23 @@ impl ToolExecutor for LocalExecutor {
         Ok(bytes.len() as u64)
     }
 
+    fn put_temp(&self, args: &PutTemp) -> ExecResult<(String, u64)> {
+        use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
+        let bytes = base64::engine::general_purpose::STANDARD.decode(&args.data).map_err(|_| ExecError::invalid_args("`data` must be base64"))?;
+        if bytes.len() as u64 > exec_fs::BLOB_MAX {
+            return Err(ExecError::invalid_args(format!("`data` is longer than {} bytes", exec_fs::BLOB_MAX)));
+        }
+        // a folder of its own, made here (never one that was there): the file in it cannot be a link someone left
+        let dir = (0..16)
+            .map(|_| std::env::temp_dir().join(format!("rca-paste-{}", unique())))
+            .find(|dir| fs::DirBuilder::new().mode(0o700).create(dir).is_ok())
+            .ok_or_else(|| ExecError::new(Code::Io, "no folder could be made in the temporary directory"))?;
+        let path = dir.join(&args.name);
+        let mut file = fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&path).map_err(|e| io_at(&args.name, e))?;
+        std::io::Write::write_all(&mut file, &bytes).map_err(|e| io_at(&args.name, e))?;
+        Ok((path.to_string_lossy().into_owned(), bytes.len() as u64))
+    }
+
     fn make_dir(&self, args: &MakeDir) -> ExecResult<bool> {
         let path = self.resolve(&args.path)?;
         if args.parents && path.is_dir() {
@@ -550,6 +598,47 @@ impl ToolExecutor for LocalExecutor {
             _ => io_at(&args.path, e),
         })?;
         Ok(true)
+    }
+
+    fn secret_file_put(&self, args: &SecretFilePut) -> ExecResult<u64> {
+        use std::os::unix::fs::OpenOptionsExt;
+        let path = self.resolve(&args.path)?;
+        let made = path.parent().filter(|p| !p.exists());
+        if let Some(parent) = made {
+            fs::create_dir_all(parent).map_err(|e| io_at(&args.path, e))?;
+        }
+        // create_new is O_EXCL: a path that exists, a link included, is refused and never followed; the mode is set at creation, so no moment is wider
+        let file = fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&path).map_err(|e| match e.kind() {
+            std::io::ErrorKind::AlreadyExists => ExecError::new(Code::AlreadyExists, format!("{} already exists", args.path)),
+            _ => io_at(&args.path, e),
+        });
+        let mut file = match file {
+            Ok(file) => file,
+            Err(e) => {
+                if let Some(parent) = made {
+                    let _ = fs::remove_dir(parent);
+                }
+                return Err(e);
+            }
+        };
+        if let Err(e) = std::io::Write::write_all(&mut file, args.value.as_bytes()) {
+            drop(file);
+            let _ = fs::remove_file(&path);
+            return Err(io_at(&args.path, e));
+        }
+        Ok(args.value.len() as u64)
+    }
+
+    fn artifact_stat(&self, args: &exec_fs::ArtifactStat) -> ExecResult<exec_fs::ArtifactStatResult> {
+        crate::adapters::artifacts::stat(args, &self.artifact_path(&args.path, args.within.as_deref())?)
+    }
+
+    fn artifact_read(&self, args: &exec_fs::ArtifactRead) -> ExecResult<ChunkResult> {
+        crate::adapters::artifacts::read(args, &self.artifact_path(&args.path, args.within.as_deref())?)
+    }
+
+    fn artifact_write(&self, args: &exec_fs::ArtifactWrite) -> ExecResult<exec_fs::ArtifactWriteResult> {
+        crate::adapters::artifacts::write(args, &self.artifact_path(&args.path, args.within.as_deref())?)
     }
 
     fn browse(&self, args: &Browse) -> ExecResult<BrowseResult> {
@@ -583,17 +672,70 @@ impl ToolExecutor for LocalExecutor {
             .programs
             .iter()
             .map(|program| match find_program(program, &search) {
-                None => CliFound { program: program.clone(), installed: false, path: None, version: None, error: None },
+                None => CliFound { program: program.clone(), installed: false, path: None, version: None, error: None, signed_in: None },
                 Some(path) => {
                     let found = probe_version(&path, &search, self.version_timeout);
                     let (version, error) = match found {
                         Ok(version) => (version, None),
                         Err(error) => (None, Some(error)),
                     };
-                    CliFound { program: program.clone(), installed: true, path: Some(path.to_string_lossy().into_owned()), version, error }
+                    let signed_in = exec_proc::AGENT_CLIS.contains(&program.as_str()).then(|| crate::adapters::logins::home_of(self.skill_home.as_ref()).is_some_and(|home| crate::adapters::logins::signed_in(&home, program)));
+                    CliFound { program: program.clone(), installed: true, path: Some(path.to_string_lossy().into_owned()), version, error, signed_in }
                 }
             })
             .collect())
+    }
+
+    fn login_start(&self, args: &LoginProgram) -> ExecResult<String> {
+        let (path, search, home) = self.login_target(&args.program)?;
+        self.logins.start(args, &path, &search, &home)
+    }
+
+    fn login_send(&self, args: &LoginSend) -> ExecResult<()> {
+        self.logins.send(&args.flow, &args.text)
+    }
+
+    fn login_status(&self, args: &LoginStatus) -> ExecResult<LoginState> {
+        let home = crate::adapters::logins::home_of(self.skill_home.as_ref()).ok_or_else(|| ExecError::new(Code::Io, "the executor has no home"))?;
+        self.logins.status(&args.flow, args.after, &home)
+    }
+
+    fn login_cancel(&self, args: &LoginCancel) -> ExecResult<bool> {
+        Ok(self.logins.cancel(&args.flow))
+    }
+
+    fn logout(&self, args: &LoginProgram) -> ExecResult<bool> {
+        let (path, search, home) = self.login_target(&args.program)?;
+        self.logins.logout(args, &path, &search, &home)
+    }
+
+    fn cli_update(&self, args: &UpdateProgram) -> ExecResult<CliUpdated> {
+        let (path, search, home) = self.login_target(&args.program)?;
+        let (exit_code, output) = crate::adapters::provider_account::update(args, &path, &search, &home, Duration::from_millis(exec_proc::UPDATE_TIMEOUT_MS))?;
+        let version = probe_version(&path, &search, self.version_timeout).ok().flatten();
+        Ok(CliUpdated { program: args.program.clone(), ok: exit_code == 0, exit_code, output, version })
+    }
+
+    fn codex_app_server_request(&self, args: &CodexRequest) -> ExecResult<CodexAnswer> {
+        let (path, search, home) = self.login_target("codex")?;
+        crate::adapters::provider_account::codex(args, &path, &search, &home)
+    }
+
+    fn claude_account_request(&self, _: &ClaudeRequest) -> ExecResult<ClaudeAnswer> {
+        let (_, search, home) = self.tools_target()?;
+        crate::adapters::provider_account::claude_usage(&self.claude_usage_url, &search, &home)
+    }
+
+    fn proc_sample(&self) -> ExecResult<ProcSample> {
+        crate::adapters::sampling::sample(Path::new("/proc"), std::process::id())
+    }
+
+    fn mcp_request(&self, args: &McpRequest) -> ExecResult<McpAnswer> {
+        let config = self.resolve(exec_proc::MCP_CONFIG).map_err(|_| ExecError::new(Code::NotFound, format!("the workspace has no {}", exec_proc::MCP_CONFIG)))?;
+        let text = fs::read_to_string(&config).map_err(|_| ExecError::new(Code::NotFound, format!("the workspace has no {}", exec_proc::MCP_CONFIG)))?;
+        let server = crate::adapters::mcp::server_of(&text, &args.server)?;
+        let ((), search, home) = self.tools_target()?;
+        crate::adapters::mcp::request(args, &server, &self.root, &search, &home)
     }
 
     fn skill_scan(&self, args: &SkillScan) -> ExecResult<SkillsFound> {
@@ -602,12 +744,53 @@ impl ToolExecutor for LocalExecutor {
             return Err(ExecError::invalid_args(format!("{} is not a directory", args.root)));
         }
         let jail = std::iter::once(&self.root).chain(&self.worktree_base).find(|j| root.starts_with(j)).unwrap_or(&self.root);
-        let mut found = SkillsFound { skills: Vec::new(), truncated: false };
-        scan_skills(&root, jail, SkillScope::Workspace, &|p| self.rel(p), &mut found);
+        let mut found = SkillsFound { skills: Vec::new(), truncated: false, present: Vec::new() };
+        scan_skills(&root, jail, &args.dirs, SkillScope::Workspace, &|p| self.rel(p), &mut found);
         if let Some(home) = args.home.then(|| self.skill_home.as_ref().and_then(|h| fs::canonicalize(h).ok())).flatten() {
-            scan_skills(&home, &home, SkillScope::Home, &|p| format!("~/{}", p.strip_prefix(&home).unwrap_or(p).to_string_lossy()), &mut found);
+            scan_skills(&home, &home, &args.home_dirs, SkillScope::Home, &|p| format!("~/{}", p.strip_prefix(&home).unwrap_or(p).to_string_lossy()), &mut found);
         }
         Ok(found)
+    }
+
+    fn session_scan(&self, args: &SessionScan) -> ExecResult<SessionsFound> {
+        let Some(home) = self.skill_home.as_ref().and_then(|h| fs::canonicalize(h).ok()) else { return Ok(SessionsFound { sessions: Vec::new(), truncated: false }) };
+        let mut files: Vec<(&str, PathBuf, u64)> = Vec::new();
+        for agent in &args.agents {
+            let (base, depth) = if agent == "claude" { (".claude/projects", 1) } else { (".codex/sessions", 3) };
+            let mut found = Vec::new();
+            session_files(&home.join(base), depth, &mut found);
+            files.extend(found.into_iter().filter(|(p, _)| fs::canonicalize(p).is_ok_and(|c| c.starts_with(&home))).map(|(p, m)| (agent.as_str(), p, m)));
+        }
+        files.sort_by(|a, b| b.2.cmp(&a.2).then_with(|| a.1.cmp(&b.1)));
+        let truncated = files.len() > args.limit;
+        let mut sessions = Vec::new();
+        for (agent, path, modified_ms) in files.into_iter().take(args.limit) {
+            let Ok(opened) = fs::File::open(&path) else { continue };
+            let mut head = Vec::new();
+            if opened.take(exec_fs::SESSION_READ_MAX).read_to_end(&mut head).is_err() {
+                continue;
+            }
+            let d = exec_fs::digest(agent, &String::from_utf8_lossy(&head));
+            let stem = path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+            let session_id = d.session_id.unwrap_or_else(|| stem.clone());
+            let title = d.title.unwrap_or_else(|| stem.clone());
+            sessions.push(exec_fs::VaultSession {
+                agent: agent.to_string(),
+                session_id,
+                path: format!("~/{}", path.strip_prefix(&home).unwrap_or(&path).to_string_lossy()),
+                title,
+                cwd: d.cwd,
+                branch: d.branch,
+                model: d.model,
+                created_at: d.created_at,
+                updated_at: d.updated_at,
+                modified_ms,
+                message_count: d.message_count,
+                first_prompt: d.first_prompt,
+                last_prompt: d.last_prompt,
+            });
+        }
+        Ok(SessionsFound { sessions, truncated })
     }
 
     fn search_entries(&self, args: &SearchEntries) -> ExecResult<EntriesResult> {
@@ -795,6 +978,21 @@ impl ToolExecutor for LocalExecutor {
         }
     }
 
+    fn browser_op(&self, op: &BrowserOp) -> ExecResult<Value> {
+        let b = &self.browser;
+        let out = match op {
+            BrowserOp::Open { key, url } => exec_proto::to_value(&b.open(key, url.as_deref())?),
+            BrowserOp::Goto { key, url } => exec_proto::to_value(&b.goto(key, url)?),
+            BrowserOp::History { key, direction } => exec_proto::to_value(&b.history(key, *direction)?),
+            BrowserOp::Eval { key, expression } => exec_proto::to_value(&b.eval(key, expression)?),
+            BrowserOp::Screenshot { key } => exec_proto::to_value(&b.screenshot(key)?),
+            BrowserOp::Input { key, input } => exec_proto::to_value(&b.input(key, input)?),
+            BrowserOp::Close { key } => exec_proto::to_value(&b.close(key)),
+            BrowserOp::List => exec_proto::to_value(&b.list()),
+        };
+        Ok(out)
+    }
+
     fn hosted_op(&self, id: &str, op: &HostedOp) -> ExecResult<Value> {
         // A directory a clone or a publish names is held to the root and the worktree base like any other path.
         let mut paths = Paths::default();
@@ -847,6 +1045,106 @@ impl ToolExecutor for LocalExecutor {
 }
 
 impl LocalExecutor {
+    /// Runs `cmd` to its end as one action `id`: its output goes to `output` (at most `cap` bytes), `cancel(id)` or the end of `limit` kills its
+    /// group, and a process left holding the pipes after it exited is killed once they have been quiet. A `session` is given the child's input
+    /// and told when the child has started.
+    fn drive(&self, id: &str, mut cmd: Command, limit: Option<Duration>, cap: usize, session: Option<Live<'_>>, output: &mut dyn FnMut(Stream, &str)) -> ExecResult<RunResult> {
+        let cancelled = Arc::new(AtomicBool::new(false));
+        self.running.lock().unwrap().insert(id.to_string(), cancelled.clone());
+        let mut child = match cmd.spawn() {
+            Ok(c) => c,
+            Err(e) => {
+                self.stop(id);
+                return Err(io(e));
+            }
+        };
+        let pid = child.id() as i32;
+        let bridge = session.as_ref().and_then(|live| live.bridge.clone());
+        if let Some(Live { name, started, .. }) = session {
+            match &bridge {
+                Some(bridge) => self.sessions.attach_http(name, Arc::clone(bridge)),
+                None => {
+                    if let Some(input) = child.stdin.take() {
+                        self.sessions.attach(name, input);
+                    }
+                }
+            }
+            started(serde_json::json!({"kind": "session.started"}));
+        }
+        let (tx, rx) = mpsc::channel();
+        match &bridge {
+            Some(bridge) => {
+                let lines = tx.clone();
+                bridge.watch(child.stdout.take().expect("piped"), Arc::new(move |line| {
+                    let _ = lines.send(Chunk::Data(Stream::Stdout, format!("{line}\n").into_bytes()));
+                }));
+            }
+            None => pump(child.stdout.take().expect("piped"), Stream::Stdout, tx.clone()),
+        }
+        pump(child.stderr.take().expect("piped"), Stream::Stderr, tx);
+        let deadline = limit.map(|limit| Instant::now() + limit);
+        let (mut sent, mut truncated, mut timed_out, mut killed) = (0usize, false, false, false);
+        let mut forward = |chunk: Chunk, sent: &mut usize, truncated: &mut bool| {
+            let Chunk::Data(stream, bytes) = chunk;
+            let room = cap.saturating_sub(*sent);
+            if bytes.len() > room {
+                *truncated = true;
+            }
+            let take = &bytes[..bytes.len().min(room)];
+            if !take.is_empty() {
+                *sent += take.len();
+                let text = String::from_utf8_lossy(take);
+                match &bridge {
+                    Some(bridge) => output(stream, &bridge.scrub(&text)),
+                    None => output(stream, &text),
+                }
+            }
+        };
+        let (mut exited_at, mut last_data, mut swept_at) = (None::<Instant>, Instant::now(), None::<Instant>);
+        loop {
+            match rx.recv_timeout(Duration::from_millis(20)) {
+                Ok(chunk) => {
+                    forward(chunk, &mut sent, &mut truncated);
+                    last_data = Instant::now();
+                }
+                Err(RecvTimeoutError::Disconnected) => break,
+                Err(RecvTimeoutError::Timeout) => {}
+            }
+            let now = Instant::now();
+            if !killed && (cancelled.load(Ordering::SeqCst) || deadline.is_some_and(|d| now >= d)) {
+                timed_out = !cancelled.load(Ordering::SeqCst);
+                killed = true;
+                kill_group(pid);
+            }
+            // A background process holding the pipes open keeps them from closing after the command exited: once the output has been quiet
+            // for the grace (or the drain has lasted its cap) the group is killed, and the pipes get a moment to hand over what is buffered.
+            if exited_at.is_none() && child.try_wait().map_err(io)?.is_some() {
+                (exited_at, last_data) = (Some(now), now);
+                // nothing more is said for a server that is gone: the lines its bridge holds the output open with end here
+                if let Some(bridge) = &bridge {
+                    bridge.close();
+                }
+            }
+            if let (Some(exited), None) = (exited_at, swept_at) {
+                if now.duration_since(last_data) >= EXIT_QUIET_GRACE || now.duration_since(exited) >= EXIT_DRAIN_CAP {
+                    kill_group(pid);
+                    swept_at = Some(now);
+                }
+            }
+            if swept_at.is_some_and(|at| now.duration_since(at) >= SWEEP_DRAIN) {
+                break;
+            }
+        }
+        let status = child.wait().map_err(io)?;
+        if let Some(bridge) = &bridge {
+            bridge.close();
+        }
+        self.stop(id);
+        kill_group(pid);
+        let exit_code = status.code().unwrap_or_else(|| 128 + status.signal().unwrap_or(0));
+        Ok(RunResult { exit_code, timed_out, cancelled: cancelled.load(Ordering::SeqCst), truncated })
+    }
+
     /// `<worktree base>/<name>`; the name is one plain segment (checked by the contract), so the path stays under the base.
     fn worktree_path(&self, name: &str) -> ExecResult<PathBuf> {
         let base = self.worktree_base.as_ref().ok_or_else(|| ExecError::new(Code::Io, "this executor has no worktree base (start it with --worktree-base)"))?;
@@ -914,26 +1212,9 @@ impl LocalExecutor {
     }
 }
 
-/// `*` within a segment, `**` across segments, `?` one character; everything else literal.
-fn glob_regex(glob: &str) -> ExecResult<Regex> {
-    let mut re = String::from("^");
-    let mut chars = glob.chars().peekable();
-    while let Some(c) = chars.next() {
-        match c {
-            '*' if chars.peek() == Some(&'*') => {
-                chars.next();
-                if chars.peek() == Some(&'/') {
-                    chars.next();
-                    re.push_str("(?:.*/)?");
-                } else {
-                    re.push_str(".*");
-                }
-            }
-            '*' => re.push_str("[^/]*"),
-            '?' => re.push_str("[^/]"),
-            c => re.push_str(&regex::escape(&c.to_string())),
-        }
-    }
-    re.push('$');
-    Regex::new(&re).map_err(|e| ExecError::new(Code::InvalidArgs, format!("bad glob: {e}")))
+/// A name no other folder of this process took: the clock, the process and a count.
+fn unique() -> String {
+    static COUNT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos());
+    format!("{nanos:x}-{:x}-{:x}", std::process::id(), COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
 }

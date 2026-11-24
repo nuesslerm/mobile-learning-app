@@ -1,0 +1,7 @@
+Usage: wf rca login status
+
+Lists each provider with its status (signed_in, signed_out or authenticating), the login
+methods its CLI offers and which one new turns use by default.
+
+Options:
+  -h, --help  display help for command

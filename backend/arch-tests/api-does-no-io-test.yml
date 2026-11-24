@@ -1,0 +1,12 @@
+id: api-does-no-io
+valid:
+  - "use axum::Router;"
+  - "use std::net::SocketAddr;"
+  - "use std::net::{IpAddr, SocketAddr};"
+  - "use std::sync::Arc;"
+invalid:
+  - "use std::fs;"
+  - "fn f() { let v = std::env::var(\"X\"); }"
+  - "use tokio::net::TcpListener;"
+  - "use std::net::TcpStream;"
+  - "use reqwest::Client;"

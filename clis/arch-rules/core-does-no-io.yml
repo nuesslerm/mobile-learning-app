@@ -1,0 +1,21 @@
+id: core-does-no-io
+language: rust
+severity: error
+message: A flat core crate (a package of type rust-flat-core) is pure; it does no file, socket, process or environment access. An adapter crate implements the port it declares.
+files:
+  # BEGIN generated:ast-grep-files
+  - "**/backend/remote-chat-agent/agent-core/src/**/*.rs"
+  - "**/backend/remote-chat-agent/exec-channel/src/**/*.rs"
+  - "**/libraries/rca-core/src/**/*.rs"
+  - "**/mimic/core/src/**/*.rs"
+  - "**/mimic/coverage/src/**/*.rs"
+  - "**/mimic/plan/src/**/*.rs"
+  - "**/mimic/script/core/src/**/*.rs"
+  - "**/orca-serve/core/src/**/*.rs"
+  - "**/t3-serve/core/src/**/*.rs"
+  # END generated:ast-grep-files
+ignores:
+  - "**/libraries/rca-core/src/file_store.rs"
+rule:
+  matches: does-io
+  not: { inside: { kind: mod_item, stopBy: end, has: { field: name, regex: '^tests?$' } } }

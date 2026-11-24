@@ -1,7 +1,7 @@
 {
   "name": "@lib/rn-agentation",
   "version": "0.0.0",
-  "description": "Tap-to-annotate visual feedback for AI coding agents — React Native (Expo Go) + Expo web. Captures component source file:line and emits agent-ready markdown.",
+  "description": "Tap-to-annotate visual feedback for AI coding agents \u2014 React Native (Expo Go) + Expo web. Captures component source file:line and emits agent-ready markdown.",
   "type": "module",
   "main": "./src/index.ts",
   "react-native": "./src/index.ts",
@@ -16,7 +16,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs --ignore-known"
   },
   "peerDependencies": {
     "@react-native-async-storage/async-storage": "*",
@@ -31,8 +32,9 @@
   "devDependencies": {
     "@typescript/native": "catalog:",
     "@react-native-async-storage/async-storage": "2.2.0",
-    "expo-clipboard": "~57.0.1",
-    "zustand": "^5.0.14"
+    "expo-clipboard": "~58.0.4",
+    "zustand": "^5.0.14",
+    "dependency-cruiser": "^17.4.3"
   },
   "engines": {
     "node": ">=18.0.0"

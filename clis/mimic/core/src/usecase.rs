@@ -1,5 +1,5 @@
 //! The use cases over the ports: record a reference into a cassette set, replay a set against a candidate, verify a set's freshness and
-//! turn a verdict into the evidence rows `wf parity coverage` ingests. No I/O: everything crosses a port.
+//! turn a verdict into the evidence rows `wf mimic coverage` ingests. No I/O: everything crosses a port.
 use crate::allowlist::Allowlist;
 use crate::cassette::{Cassette, Check, CheckStatus, Current, Interaction, Kind, Problem, Target, ToolInfo};
 use crate::corpus::{Case, CorpusSpec, TAG_PROPERTY, TAG_SHRINK, TAG_SHRINK_OF};
@@ -137,7 +137,7 @@ pub struct EvidenceRow {
     pub provenance: Kind,
 }
 
-/// One row per interaction that names a parity row: `wf parity coverage` counts it as served only when `diff` is clean or allowlisted
+/// One row per interaction that names a parity row: `wf mimic coverage` counts it as served only when `diff` is clean or allowlisted
 /// and `provenance` is recorded.
 pub fn evidence(verdict: &Verdict, cassette: &Cassette) -> Vec<EvidenceRow> {
     verdict

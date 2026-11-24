@@ -1,4 +1,4 @@
-//! Run statistics and the `wf offload ask --stats` renderings (`plugins/ledger/stats.ts`).
+//! Run statistics and the `wf rca ask --stats` renderings (`plugins/ledger/stats.ts`).
 use crate::run_log::{RunLogEntry, RunTokens};
 use crate::time::parse;
 use serde::{Deserialize, Serialize};
@@ -250,7 +250,7 @@ fn fmt_group(g: &RunGroupStats) -> String {
     .join(" ")
 }
 
-/// The `wf offload ask --stats` table.
+/// The `wf rca ask --stats` table.
 pub fn format_stats(s: &RunStats) -> String {
     let header = [
         pad_end("group", 40),

@@ -1,17 +1,29 @@
-//! Session ids: `<agent>_<token>`, the lane the phone's `isStructuredAgentSessionIdFor` checks (a token of letters, digits and underscores).
+//! Session IDs include mobile-generated UUIDs and the older agent-prefixed IDs.
 use std::collections::hash_map::RandomState;
 use std::hash::{BuildHasher, Hasher};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static SEQ: AtomicU64 = AtomicU64::new(0);
 
-pub(crate) fn is_session_id_for(agent: &str, session: &str) -> bool {
+fn is_legacy_session_id_for(agent: &str, session: &str) -> bool {
     session.strip_prefix(agent).and_then(|r| r.strip_prefix('_')).is_some_and(|t| !t.is_empty() && t.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_'))
 }
 
-/// Any agent's session id: `<agent>_<token>`.
+fn is_uuid(session: &str) -> bool {
+    session.len() == 36 && session.bytes().enumerate().all(|(i, byte)| {
+        match i {
+            8 | 13 | 18 | 23 => byte == b'-',
+            _ => byte.is_ascii_hexdigit(),
+        }
+    })
+}
+
+pub(crate) fn is_session_id_for(agent: &str, session: &str) -> bool {
+    is_uuid(session) || is_legacy_session_id_for(agent, session)
+}
+
 pub(crate) fn is_session_id(session: &str) -> bool {
-    session.split_once('_').is_some_and(|(agent, _)| !agent.is_empty() && agent.bytes().all(|b| b.is_ascii_alphanumeric()) && is_session_id_for(agent, session))
+    is_uuid(session) || session.split_once('_').is_some_and(|(agent, _)| !agent.is_empty() && agent.bytes().all(|b| b.is_ascii_alphanumeric()) && is_legacy_session_id_for(agent, session))
 }
 
 fn parts() -> (u32, u16, u16, u16, u64) {

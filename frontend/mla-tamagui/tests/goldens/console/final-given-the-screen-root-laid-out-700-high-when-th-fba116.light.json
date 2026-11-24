@@ -1,0 +1,48 @@
+{
+  "suite": "console",
+  "step": "final-given-the-screen-root-laid-out-700-high-when-th-fba116",
+  "scheme": "light",
+  "snapshot": "console/final-given-the-screen-root-laid-out-700-high-when-th-fba116.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 400,
+    "height": 837,
+    "page_height": 837
+  },
+  "summary": {
+    "testids": [
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit"
+    ],
+    "text": "Python\nConsole\nSubmit"
+  },
+  "timings": {
+    "render_ms": 241
+  },
+  "name": "console/final-given-the-screen-root-laid-out-700-high-when-th-fba116.light",
+  "image": {
+    "width": 360,
+    "height": 753
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

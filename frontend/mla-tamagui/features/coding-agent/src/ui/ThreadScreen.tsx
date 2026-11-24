@@ -5,10 +5,10 @@ import { Logger } from '@lib/logging';
 import { ScreenHeader, Text, View } from '@lib/tamagui-design-system';
 import { Settings } from '@lib/tamagui-design-system/icons';
 
-import { useGateway } from '../integration/useGateway';
-import { useThreadCommands } from '../integration/useThreadCommands';
-import { useThreadFeed } from '../integration/useThreadFeed';
-import { useThreadSubscription } from '../integration/useThreadSubscription';
+import { useGateway } from '../state/useGateway';
+import { useThreadCommands } from '../state/useThreadCommands';
+import { useThreadFeed } from '../state/useThreadFeed';
+import { useThreadSubscription } from '../state/useThreadSubscription';
 import { useThreadSettingsRequestStore } from '../state/threadSettingsRequestStore';
 import { ConnectionBanner } from './ConnectionBanner';
 import { PendingApprovalCard } from './PendingApprovalCard';
@@ -43,12 +43,14 @@ export function ThreadScreen({
   return (
     <View flex={1} testID="ThreadScreen">
       <ScreenHeader
+        glass
         title="Coding agent"
         subtitle={shownId}
         onBack={() => router.back()}
         actions={[
           {
             icon: Settings,
+            sfSymbol: 'gearshape',
             accessibilityLabel: 'Thread settings',
             onPress: openSettings,
             testID: 'ThreadSettingsButton',

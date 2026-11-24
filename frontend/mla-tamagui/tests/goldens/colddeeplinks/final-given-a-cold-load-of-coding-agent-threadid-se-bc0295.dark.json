@@ -36,7 +36,7 @@
     "text": "Thread settings\nModel\nRuntime mode\nSupervised\nAuto-accept edits\nAuto\nFull access\nInteraction mode\nBuild\nPlan\nAPI token\nSave token"
   },
   "timings": {
-    "render_ms": 464
+    "render_ms": 208
   },
   "name": "colddeeplinks/final-given-a-cold-load-of-coding-agent-threadid-se-bc0295.dark",
   "image": {

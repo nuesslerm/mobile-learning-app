@@ -1,0 +1,73 @@
+{
+  "suite": "blockview",
+  "step": "block-view-rows",
+  "scheme": "dark",
+  "snapshot": "blockview/block-view-rows.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemWorkspaceTabs",
+      "ProblemWorkspaceTab-code",
+      "ProblemWorkspaceTab-blocks",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorActions",
+      "ProblemEditorFormatButton",
+      "ProblemEditorRunLocalButton",
+      "ProblemEditorRunButton",
+      "ProblemEditorResetButton",
+      "ProblemEditorTestInputZone",
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
+      "ProblemEditorTestInput",
+      "ProblemWorkspaceBlocks",
+      "ProblemEditorBlockView",
+      "BlockPalette",
+      "BlockPaletteItem-if",
+      "BlockPaletteItem-for",
+      "BlockPaletteItem-while",
+      "BlockPaletteItem-def",
+      "BlockPaletteItem-return",
+      "BlockViewRows",
+      "BlockRow-0",
+      "BlockHandle-0",
+      "BlockRow-1",
+      "BlockHandle-1",
+      "BlockRow-2",
+      "BlockHandle-2",
+      "BlockRow-3",
+      "BlockHandle-3",
+      "BlockRow-4",
+      "BlockHandle-4"
+    ],
+    "text": "Code\nBlocks\nif\nfor\nwhile\ndef\nreturn\ndef f(x):\nif x:\na = 1\nb = 2\nreturn b"
+  },
+  "timings": {
+    "render_ms": 296
+  },
+  "name": "blockview/block-view-rows.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

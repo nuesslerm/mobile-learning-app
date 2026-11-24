@@ -22,7 +22,7 @@ import type {
   OrchestrationShellListener,
   OrchestrationStatusListener,
   OrchestrationThreadListener,
-} from '../../data/orchestrationGateway';
+} from '../../domain/ports';
 
 export class FakeGateway implements OrchestrationGateway {
   dispatched: ClientOrchestrationCommand[] = [];

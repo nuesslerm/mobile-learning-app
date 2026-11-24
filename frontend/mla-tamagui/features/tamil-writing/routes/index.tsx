@@ -1,4 +1,4 @@
-import { TamilCourseScreen } from '@/features/tamil-writing';
+import { TamilCourseScreen } from '../ui/TamilCourseScreen';
 
 export default function TamilCourseRoute() {
   return <TamilCourseScreen />;

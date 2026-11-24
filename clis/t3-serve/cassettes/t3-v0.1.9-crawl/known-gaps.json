@@ -1,0 +1,1863 @@
+{
+  "schema": "mimic-known-gaps/2",
+  "groups": [
+    {
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type extra drift",
+        "steps.http:ret:_.[2].payload.headers.vary extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-connect.health-invalid-drop-proof",
+        "t3-http-connect.health-invalid-wrong-type-proof",
+        "t3-http-connect.linkProof-invalid-drop-challenge",
+        "t3-http-connect.linkProof-invalid-wrong-type-challenge",
+        "t3-http-connect.preferences-invalid-drop-publishAgentActivity",
+        "t3-http-connect.preferences-invalid-wrong-type-publishAgentActivity",
+        "t3-http-connect.relayConfig-invalid-drop-relayUrl",
+        "t3-http-connect.relayConfig-invalid-wrong-type-relayUrl",
+        "t3-http-connect.t3MintCredential-invalid-drop-proof",
+        "t3-http-connect.t3MintCredential-invalid-wrong-type-proof",
+        "t3-http-mcpOAuth.approval-invalid-wrong-type-response-type",
+        "t3-http-mcpOAuth.decision-boundary-full",
+        "t3-http-mcpOAuth.decision-invalid-drop-authorization",
+        "t3-http-mcpOAuth.decision-invalid-wrong-type-authorization",
+        "t3-http-mcpOAuth.decision-valid-min",
+        "t3-http-mcpOAuth.register-invalid-wrong-type-client-name",
+        "t3-http-orchestration.threadSnapshot-empty-empty-object",
+        "t3-http-orchestration.threadSnapshot-invalid-no-payload",
+        "t3-http-projects.mutate-valid-min",
+        "t3-http-voice.linkModels-invalid-drop-path",
+        "t3-http-voice.linkModels-invalid-wrong-type-path",
+        "t3-http-voice.postProcess-boundary-full",
+        "t3-http-voice.postProcess-invalid-drop-options",
+        "t3-http-voice.postProcess-invalid-wrong-type-options",
+        "t3-http-voice.removeModel-invalid-drop-modelId",
+        "t3-http-voice.removeModel-invalid-wrong-type-modelId",
+        "t3-http-voice.setCloudKey-invalid-drop-key",
+        "t3-http-voice.setCloudKey-invalid-no-payload",
+        "t3-http-voice.setCloudKey-invalid-wrong-type-key",
+        "t3-http-voice.setCloudKey-valid-min",
+        "t3-http-voice.transcribeCloud-invalid-no-payload",
+        "t3-http-voice.transcribeCloud-invalid-wrong-type",
+        "t3-http-voice.transcribeCloud-valid-min",
+        "t3-http-voice.updateAcceleration-invalid-drop-acceleration",
+        "t3-http-voice.updateAcceleration-invalid-wrong-type-acceleration",
+        "t3-http-voice.updateModelUnloadTimeout-invalid-drop-timeout",
+        "t3-http-voice.updateModelUnloadTimeout-invalid-wrong-type-timeout"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause.message",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.name changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift"
+      ],
+      "ids": [
+        "t3-command-message.dispatch-invalid-wrong-type-commandId",
+        "t3-command-message.dispatch-valid-min",
+        "t3-command-prepared-run.release-invalid-wrong-type-commandId",
+        "t3-command-prepared-run.release-valid-min",
+        "t3-command-prepared-run.retry-invalid-wrong-type-commandId",
+        "t3-command-prepared-run.retry-valid-min",
+        "t3-command-provider-session.detach-invalid-wrong-type-commandId",
+        "t3-command-provider-session.detach-valid-min",
+        "t3-command-queued-run.start-invalid-wrong-type-commandId",
+        "t3-command-run.interrupt-valid-min",
+        "t3-command-runtime-request.respond-boundary-full",
+        "t3-command-runtime-request.respond-invalid-wrong-type-commandId",
+        "t3-command-runtime-request.respond-valid-min",
+        "t3-command-thread.delete-valid-min",
+        "t3-command-thread.pin-invalid-wrong-type-commandId",
+        "t3-command-thread.pin-valid-min",
+        "t3-command-thread.runtime-mode.set-invalid-wrong-type-commandId",
+        "t3-command-thread.settle-valid-min",
+        "t3-command-thread.unsnooze-invalid-wrong-type-commandId",
+        "t3-command-thread.user-input.dismiss-valid-min",
+        "t3-rpc-orchestration.dispatchCommand-valid-min"
+      ]
+    },
+    {
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type changed drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-connect.health-invalid-no-payload",
+        "t3-http-connect.linkProof-invalid-no-payload",
+        "t3-http-connect.preferences-invalid-no-payload",
+        "t3-http-connect.relayConfig-invalid-no-payload",
+        "t3-http-connect.t3MintCredential-invalid-no-payload",
+        "t3-http-mcpOAuth.approval-invalid-no-payload",
+        "t3-http-mcpOAuth.decision-invalid-no-payload",
+        "t3-http-mcpOAuth.register-invalid-no-payload",
+        "t3-http-mcpOAuth.token-boundary-full",
+        "t3-http-mcpOAuth.token-invalid-no-payload",
+        "t3-http-mcpOAuth.token-invalid-wrong-type-grant-type",
+        "t3-http-mcpOAuth.token-valid-min",
+        "t3-http-projects.mutate-invalid-no-payload",
+        "t3-http-projects.mutate-invalid-wrong-type",
+        "t3-http-voice.linkModels-invalid-no-payload",
+        "t3-http-voice.postProcess-invalid-no-payload",
+        "t3-http-voice.removeModel-invalid-no-payload",
+        "t3-http-voice.updateAcceleration-invalid-no-payload",
+        "t3-http-voice.updateModelUnloadTimeout-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
+      ],
+      "ids": [
+        "t3-rpc-device.configure-boundary-full",
+        "t3-rpc-device.configure-invalid-no-payload",
+        "t3-rpc-device.configure-valid-min",
+        "t3-rpc-device.list-invalid-no-payload",
+        "t3-rpc-device.list-valid-min",
+        "t3-rpc-server.acceptAcpRegistryUrlAuth-valid-min",
+        "t3-rpc-server.searchAcpRegistry-valid-min",
+        "t3-rpc-server.uninstallAcpRegistryManagedBinary-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.reason",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-server.deleteAcpRegistrySession-valid-min",
+        "t3-rpc-server.disableAcpRegistryProvider-valid-min",
+        "t3-rpc-server.importAcpRegistrySession-boundary-full",
+        "t3-rpc-server.importAcpRegistrySession-valid-min",
+        "t3-rpc-server.listAcpRegistryProviders-valid-min",
+        "t3-rpc-server.listAcpRegistrySessions-boundary-full",
+        "t3-rpc-server.listAcpRegistrySessions-valid-min",
+        "t3-rpc-server.logoutAcpRegistry-valid-min",
+        "t3-rpc-server.setAcpRegistryProvider-boundary-full",
+        "t3-rpc-server.setAcpRegistryProvider-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.reason",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.threadId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-mcpApps.callTool-invalid-wrong-type-threadId",
+        "t3-rpc-mcpApps.callTool-valid-min",
+        "t3-rpc-mcpApps.readResource-invalid-wrong-type-threadId",
+        "t3-rpc-mcpApps.readResource-valid-min",
+        "t3-rpc-mcpApps.toolInfo-invalid-wrong-type-threadId",
+        "t3-rpc-mcpApps.toolInfo-valid-min",
+        "t3-rpc-mcpApps.updateModelContext-boundary-full",
+        "t3-rpc-mcpApps.updateModelContext-invalid-wrong-type-threadId",
+        "t3-rpc-mcpApps.updateModelContext-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body._tag",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body._tag missing breaking",
+        "steps.http:ret:_.[2].payload.body.message changed drift",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-connect.health-valid-min",
+        "t3-http-connect.linkProof-valid-min",
+        "t3-http-connect.preferences-boundary-full",
+        "t3-http-connect.relayConfig-boundary-full",
+        "t3-http-connect.relayConfig-valid-min",
+        "t3-http-connect.t3MintCredential-valid-min",
+        "t3-http-mcpOAuth.approval-boundary-full",
+        "t3-http-mcpOAuth.approval-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.reason",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-device.easAccount-boundary-full",
+        "t3-rpc-device.easAccount-invalid-no-payload",
+        "t3-rpc-device.easAccount-valid-min",
+        "t3-rpc-device.simlockIdentity-boundary-full",
+        "t3-rpc-device.simlockIdentity-invalid-no-payload",
+        "t3-rpc-device.simlockIdentity-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body._tag",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body._tag missing breaking",
+        "steps.http:ret:_.[2].payload.body.code changed drift",
+        "steps.http:ret:_.[2].payload.body.reason missing breaking",
+        "steps.http:ret:_.[2].payload.body.traceId missing breaking",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-voice.linkModels-valid-min",
+        "t3-http-voice.postProcess-valid-min",
+        "t3-http-voice.prepareModel-empty-empty-object",
+        "t3-http-voice.prepareModel-invalid-no-payload",
+        "t3-http-voice.removeModel-boundary-limit-modelId",
+        "t3-http-voice.removeModel-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause.message",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.normalizedCwd changed drift"
+      ],
+      "ids": [
+        "t3-rpc-projects.listEntries-boundary-full",
+        "t3-rpc-projects.listEntries-valid-min",
+        "t3-rpc-projects.listIgnoredFiles-valid-min",
+        "t3-rpc-projects.searchEntries-boundary-full",
+        "t3-rpc-projects.searchEntries-boundary-limit-limit",
+        "t3-rpc-projects.searchEntries-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.instanceId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-provider.auth.removeMethod-valid-min",
+        "t3-rpc-provider.install.cancel-valid-min",
+        "t3-rpc-provider.install.remove-valid-min",
+        "t3-rpc-provider.install.start-valid-min",
+        "t3-rpc-provider.install.subscribe-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.authorization_servers",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.authorization_servers missing breaking",
+        "steps.http:ret:_.[2].payload.body.bearer_methods_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.resource missing breaking",
+        "steps.http:ret:_.[2].payload.body.resource_name missing breaking",
+        "steps.http:ret:_.[2].payload.body.scopes_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-mcpOAuth.mcpProtectedResource-empty-empty-object",
+        "t3-http-mcpOAuth.mcpProtectedResource-invalid-no-payload",
+        "t3-http-mcpOAuth.protectedResource-empty-empty-object",
+        "t3-http-mcpOAuth.protectedResource-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.values missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit extra drift"
+      ],
+      "ids": [
+        "t3-rpc-subscribeDeviceState-invalid-no-payload",
+        "t3-rpc-subscribeDeviceState-valid-min",
+        "t3-rpc-subscribeResourceTelemetry-invalid-no-payload",
+        "t3-rpc-subscribeResourceTelemetry-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect extra drift"
+      ],
+      "ids": [
+        "t3-command-thread.created.record-invalid-wrong-type-commandId",
+        "t3-command-thread.created.record-valid-min",
+        "t3-rpc-server.reclaimDatabaseSpace-invalid-no-payload",
+        "t3-rpc-server.reclaimDatabaseSpace-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.threadId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-provider.uploadFeedback-boundary-full",
+        "t3-rpc-provider.uploadFeedback-invalid-wrong-type-threadId",
+        "t3-rpc-provider.uploadFeedback-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.hostId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.hostId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-device.action-boundary-full",
+        "t3-rpc-device.open-boundary-full",
+        "t3-rpc-device.shutdown-boundary-full"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.projectId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.projectId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-agentSessions.import-boundary-full",
+        "t3-rpc-agentSessions.import-invalid-wrong-type-projectId",
+        "t3-rpc-agentSessions.import-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason changed drift"
+      ],
+      "ids": [
+        "t3-rpc-sourceControl.signInCancel-valid-min",
+        "t3-rpc-sourceControl.signInStart-valid-min",
+        "t3-rpc-sourceControl.signInWait-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.values.[*].configuredUrlProbing",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].configuredUrlProbing changed drift"
+      ],
+      "ids": [
+        "t3-rpc-subscribeDiscoveredLocalServers-boundary-full",
+        "t3-rpc-subscribeDiscoveredLocalServers-invalid-no-payload",
+        "t3-rpc-subscribeDiscoveredLocalServers-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.capabilities.cloudVoiceTranscription",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[0].payload.body.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.fileAttachments missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.freshContext missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.mcpApprovalCodes missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.mcpHostedApproval missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.modelCatalogRefresh missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.oneTimeSchedules missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.scheduledTaskThreadModes missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.vcsBranchStatus missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.voiceTranscription missing breaking",
+        "steps.http:ret:_.[0].payload.body.databaseMigration changed drift"
+      ],
+      "ids": [
+        "t3-http-metadata.descriptor-empty-empty-object",
+        "t3-http-metadata.descriptor-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.cache-control missing breaking",
+        "steps.http:ret:_.[2].payload.headers.content-security-policy missing breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type changed drift",
+        "steps.http:ret:_.[2].payload.headers.referrer-policy missing breaking",
+        "steps.http:ret:_.[2].payload.headers.x-content-type-options missing breaking",
+        "steps.http:ret:_.[2].payload.headers.x-frame-options missing breaking",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-mcpOAuth.authorize-empty-empty-object",
+        "t3-http-mcpOAuth.authorize-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.acceleration",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.acceleration missing breaking",
+        "steps.http:ret:_.[2].payload.body.benchmarkTier missing breaking",
+        "steps.http:ret:_.[2].payload.body.gpuDevices missing breaking",
+        "steps.http:ret:_.[2].payload.body.languages missing breaking",
+        "steps.http:ret:_.[2].payload.body.model missing breaking",
+        "steps.http:ret:_.[2].payload.body.modelId missing breaking",
+        "steps.http:ret:_.[2].payload.body.modelUnloadTimeout missing breaking",
+        "steps.http:ret:_.[2].payload.body.size missing breaking",
+        "steps.http:ret:_.[2].payload.body.state missing breaking",
+        "steps.http:ret:_.[2].payload.body.supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.supportsBufferedStreaming missing breaking",
+        "steps.http:ret:_.[2].payload.body.supportsLanguageDetection missing breaking",
+        "steps.http:ret:_.[2].payload.body.supportsModelLinking missing breaking",
+        "steps.http:ret:_.[2].payload.body.supportsStreaming missing breaking",
+        "steps.http:ret:_.[2].payload.body.supportsTranslation missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-voice.updateAcceleration-valid-min",
+        "t3-http-voice.updateModelUnloadTimeout-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.authorization_endpoint",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.authorization_endpoint missing breaking",
+        "steps.http:ret:_.[2].payload.body.authorization_response_iss_parameter_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.code_challenge_methods_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.grant_types_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.issuer missing breaking",
+        "steps.http:ret:_.[2].payload.body.registration_endpoint missing breaking",
+        "steps.http:ret:_.[2].payload.body.response_types_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.scopes_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.token_endpoint missing breaking",
+        "steps.http:ret:_.[2].payload.body.token_endpoint_auth_methods_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-mcpOAuth.authorizationServer-empty-empty-object",
+        "t3-http-mcpOAuth.authorizationServer-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.cause missing breaking",
+        "steps.http:ret:_.[2].payload.body.checkedAt missing breaking",
+        "steps.http:ret:_.[2].payload.body.fix missing breaking",
+        "steps.http:ret:_.[2].payload.body.hint missing breaking",
+        "steps.http:ret:_.[2].payload.body.reason missing breaking",
+        "steps.http:ret:_.[2].payload.body.status missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-connect.checkReachability-empty-empty-object",
+        "t3-http-connect.checkReachability-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.cloudUserId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.cloudUserId missing breaking",
+        "steps.http:ret:_.[2].payload.body.holdWebhooksWhileOffline missing breaking",
+        "steps.http:ret:_.[2].payload.body.linkRevoked missing breaking",
+        "steps.http:ret:_.[2].payload.body.linkableHere missing breaking",
+        "steps.http:ret:_.[2].payload.body.linked missing breaking",
+        "steps.http:ret:_.[2].payload.body.managedTunnelActive missing breaking",
+        "steps.http:ret:_.[2].payload.body.publishAgentActivity missing breaking",
+        "steps.http:ret:_.[2].payload.body.reachability missing breaking",
+        "steps.http:ret:_.[2].payload.body.relayIssuer missing breaking",
+        "steps.http:ret:_.[2].payload.body.relayUrl missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-connect.linkState-empty-empty-object",
+        "t3-http-connect.linkState-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.endpointRuntimeStatus",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.endpointRuntimeStatus missing breaking",
+        "steps.http:ret:_.[2].payload.body.ok missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-connect.unlink-empty-empty-object",
+        "t3-http-connect.unlink-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.error",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.error missing breaking",
+        "steps.http:ret:_.[2].payload.body.error_description missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-mcpOAuth.register-boundary-full",
+        "t3-http-mcpOAuth.register-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.models",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.models missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-voice.cloudModels-empty-empty-object",
+        "t3-http-voice.cloudModels-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.openai",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.openai missing breaking",
+        "steps.http:ret:_.[2].payload.body.openrouter missing breaking",
+        "steps.http:ret:_.[2].payload.body.xai missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-voice.cloudKeys-empty-empty-object",
+        "t3-http-voice.cloudKeys-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.values missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit extra drift",
+        "steps.ws:s2c:1.[1] missing breaking"
+      ],
+      "ids": [
+        "t3-rpc-cloud.installRelayClient-invalid-no-payload",
+        "t3-rpc-cloud.installRelayClient-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.argumentCount",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.argumentCount missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.command missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.exitCode missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.failureKind missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.stderrLength missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.stderrTruncated missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-vcs.init-boundary-full",
+        "t3-rpc-vcs.init-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.command missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-vcs.removeWorktree-boundary-full",
+        "t3-rpc-vcs.removeWorktree-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.failure missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.limit missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.normalizedCwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.queryLength missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-projects.searchContents-boundary-limit-query",
+        "t3-rpc-projects.searchContents-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-device.list-boundary-full",
+        "t3-rpc-device.testHost-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.hostId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.hostId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.hostLabel missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-device.action-valid-min",
+        "t3-rpc-device.shutdown-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.hostId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.hostId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.platform missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-device.open-invalid-wrong-type-threadId",
+        "t3-rpc-device.open-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause.cause.message",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.cause.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.resolvedPath changed drift"
+      ],
+      "ids": [
+        "t3-rpc-projects.readFile-boundary-full",
+        "t3-rpc-projects.readFile-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.provider changed drift"
+      ],
+      "ids": [
+        "t3-rpc-projectClone.start-invalid-wrong-type-projectId",
+        "t3-rpc-projectClone.start-valid-min"
+      ]
+    },
+    {
+      "class": "extra at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.message",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift"
+      ],
+      "ids": [
+        "t3-rpc-preview.adjust-invalid-wrong-type-threadId",
+        "t3-rpc-preview.adjust-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.commonFailures",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.commonFailures changed breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.error.value extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.failureCount changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.firstSpanAt._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.firstSpanAt.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.interruptionCount changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.lastSpanAt._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.lastSpanAt.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.latestFailures changed breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.latestWarningAndErrorLogs changed breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.logLevelCounts.INFO missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.logLevelCounts.WARN missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.scannedFilePaths changed breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.slowSpanCount changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.slowestSpans changed breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.topSpansByCount changed breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.traceFilePath changed drift"
+      ],
+      "ids": [
+        "t3-rpc-server.getTraceDiagnostics-invalid-no-payload",
+        "t3-rpc-server.getTraceDiagnostics-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value.environment.capabilities.cloudVoiceTranscription",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.fileAttachments missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.freshContext missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.mcpApprovalCodes missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.mcpHostedApproval missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.modelCatalogRefresh missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.oneTimeSchedules missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.scheduledTaskThreadModes missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.vcsBranchStatus missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.voiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.environment.databaseMigration changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings changed breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[13].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[13].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[13].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[13].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[13].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[13].whenAst.name extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[14].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[14].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[15].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[15].whenAst.name missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[15].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[15].whenAst.node extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[16].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[16].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[16].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[16].whenAst missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[17].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[17].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[17].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[17].whenAst extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[18].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[18].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[18].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[18].whenAst missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[19].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[19].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[19].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[19].whenAst extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[20].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[20].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[21].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[21].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[22].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[23].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[23].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[24].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[24].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[25].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[25].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[25].whenAst.name missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[25].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[25].whenAst.node extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[26].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[26].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[27].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[27].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[27].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[28].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[28].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[28].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[29].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[29].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[29].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[30].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[30].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[31].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[31].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[31].whenAst missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[32].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[32].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[32].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[32].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[32].whenAst extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[33].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[33].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[33].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[34].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[34].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[34].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[34].shortcut.modKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[34].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[34].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[34].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[34].whenAst.name extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[35].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[35].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[35].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[35].shortcut.modKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[35].whenAst.name missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[35].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[35].whenAst.left extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[35].whenAst.right extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[36].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[36].whenAst.right.name changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[37].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[38].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[38].whenAst.right.name missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[38].whenAst.right.type changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[38].whenAst.right.node extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[39].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[39].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[39].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[39].whenAst.left missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[39].whenAst.right missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[39].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[39].whenAst.node extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[40].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[40].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[41].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[41].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[42].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[42].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[42].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[43].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[43].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[43].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[43].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[43].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[43].whenAst.left extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[43].whenAst.right extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[44].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[44].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[44].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[44].whenAst.left missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[44].whenAst.right missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[44].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[44].whenAst.node extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[45].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[45].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[46].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[46].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[47].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[47].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[48].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[48].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[49].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[49].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[50].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[50].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[51].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[51].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[52].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[52].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[52].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[52].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[52].whenAst.name extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[53].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[53].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[54].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[54].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[54].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[54].whenAst missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[55].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[55].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[55].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[56].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[56].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[57].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[57].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[57].whenAst extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[58].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[58].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[59].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[59].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[60].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[60].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[60].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[60].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[60].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[60].whenAst.left extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[60].whenAst.right extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[61].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[61].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[61].whenAst.left.node.name changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[61].whenAst.right.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[61].whenAst.right.type changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[61].whenAst.right.name extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[62].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[62].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[63].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[63].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[64].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[64].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[65].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[65].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[66].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[66].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[67].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[67].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[68].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[68].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[69].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[69].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[70].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[70].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[70].whenAst.left.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[70].whenAst.left.type changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[70].whenAst.left.name extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[71].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[71].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[72].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[72].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[73].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[73].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[74].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[74].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[75].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[75].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[76].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[76].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[77].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[77].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[78].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[78].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[79].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[79].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[79].shortcut.modKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[79].whenAst.left missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[79].whenAst.right missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[79].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[79].whenAst.name extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[80].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[80].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[81].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[81].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[82].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[82].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[82].shortcut.modKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[82].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[83].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[83].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[84].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[84].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[85].command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[85].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.remoteOpenTargets changed breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.secretRequestReferences missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.threadLinkMetadata missing breaking"
+      ],
+      "ids": [
+        "t3-rpc-server.getConfig-invalid-no-payload",
+        "t3-rpc-server.getConfig-valid-min"
+      ]
+    },
+    {
+      "class": "kind at steps.ws:s2c:*.[*].payload.exit.value.fetchedAt",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.fetchedAt kind breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.knownModels changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.source changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.status changed drift"
+      ],
+      "ids": [
+        "t3-rpc-server.refreshUsageRates-invalid-no-payload",
+        "t3-rpc-server.refreshUsageRates-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.prompt",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.prompt changed drift"
+      ],
+      "ids": [
+        "t3-rpc-server.prepareTriage-boundary-full",
+        "t3-rpc-server.prepareTriage-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.parentPath",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.parentPath changed drift"
+      ],
+      "ids": [
+        "t3-rpc-filesystem.browse-boundary-full",
+        "t3-rpc-filesystem.browse-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.revision",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.revision changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.serverEpoch changed drift"
+      ],
+      "ids": [
+        "t3-rpc-preview.list-invalid-wrong-type-threadId",
+        "t3-rpc-preview.list-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.tabId",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.tabId changed drift"
+      ],
+      "ids": [
+        "t3-rpc-preview.open-invalid-wrong-type-threadId",
+        "t3-rpc-preview.open-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values.[*].config.environment.capabilities.cloudVoiceTranscription",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.fileAttachments missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.freshContext missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.mcpApprovalCodes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.mcpHostedApproval missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.modelCatalogRefresh missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.oneTimeSchedules missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.scheduledTaskThreadModes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.vcsBranchStatus missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.voiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.databaseMigration changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings changed breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].whenAst.name extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[14].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[14].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[15].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[15].whenAst.name missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[15].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[15].whenAst.node extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[16].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[16].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[16].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[16].whenAst missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[17].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[17].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[17].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[17].whenAst extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[18].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[18].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[18].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[18].whenAst missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[19].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[19].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[19].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[19].whenAst extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[20].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[20].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[21].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[21].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[22].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[23].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[23].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[24].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[24].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[25].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[25].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[25].whenAst.name missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[25].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[25].whenAst.node extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[26].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[26].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[27].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[27].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[27].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[28].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[28].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[28].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[29].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[29].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[29].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[30].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[30].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[31].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[31].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[31].whenAst missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[32].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[32].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[32].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[32].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[32].whenAst extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[33].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[33].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[33].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].shortcut.modKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].whenAst.name extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].shortcut.modKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].whenAst.name missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].whenAst.left extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].whenAst.right extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[36].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[36].whenAst.right.name changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[37].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[38].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[38].whenAst.right.name missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[38].whenAst.right.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[38].whenAst.right.node extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[39].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[39].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[39].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[39].whenAst.left missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[39].whenAst.right missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[39].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[39].whenAst.node extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[40].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[40].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[41].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[41].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[42].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[42].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[42].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[43].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[43].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[43].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[43].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[43].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[43].whenAst.left extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[43].whenAst.right extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[44].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[44].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[44].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[44].whenAst.left missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[44].whenAst.right missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[44].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[44].whenAst.node extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[45].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[45].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[46].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[46].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[47].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[47].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[48].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[48].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[49].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[49].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[50].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[50].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[51].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[51].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[52].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[52].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[52].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[52].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[52].whenAst.name extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[53].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[53].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[54].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[54].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[54].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[54].whenAst missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[55].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[55].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[55].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[56].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[56].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[57].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[57].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[57].whenAst extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[58].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[58].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[59].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[59].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[60].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[60].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[60].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[60].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[60].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[60].whenAst.left extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[60].whenAst.right extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[61].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[61].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[61].whenAst.left.node.name changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[61].whenAst.right.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[61].whenAst.right.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[61].whenAst.right.name extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[62].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[62].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[63].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[63].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[64].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[64].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[65].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[65].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[66].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[66].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[67].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[67].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[68].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[68].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[69].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[69].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[70].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[70].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[70].whenAst.left.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[70].whenAst.left.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[70].whenAst.left.name extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[71].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[71].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[72].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[72].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[73].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[73].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[74].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[74].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[75].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[75].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[76].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[76].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[77].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[77].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[78].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[78].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[79].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[79].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[79].shortcut.modKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[79].whenAst.left missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[79].whenAst.right missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[79].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[79].whenAst.name extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[80].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[80].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[81].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[81].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[82].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[82].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[82].shortcut.modKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[82].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[83].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[83].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[84].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[84].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[85].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[85].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.remoteOpenTargets changed breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.secretRequestReferences missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.settings.projectSettingsFolded changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.threadLinkMetadata missing breaking"
+      ],
+      "ids": [
+        "t3-rpc-subscribeServerConfig-invalid-no-payload",
+        "t3-rpc-subscribeServerConfig-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values.[*].resolvedRepositoryIdentityRoots",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].kind changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].resolvedRepositoryIdentityRoots missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].snapshot missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].sequence extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].project extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[1].kind changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[1].project missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].location extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[1].thread extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[2].kind changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[2].thread missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[2].threadId extra drift"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.subscribeShell-boundary-full",
+        "t3-rpc-orchestration.subscribeShell-boundary-limit-afterSequence"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.values.[*].payload.clientSessions",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.clientSessions changed breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.clientSessions.[0].client.deviceType changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.clientSessions.[0].client.ipAddress missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.clientSessions.[0].client.os missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.clientSessions.[0].sessionId changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.pairingLinks changed breaking"
+      ],
+      "ids": [
+        "t3-rpc-subscribeAuthAccess-invalid-no-payload",
+        "t3-rpc-subscribeAuthAccess-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values.[*].payload.environment.capabilities.cloudVoiceTranscription",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.fileAttachments missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.freshContext missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.mcpApprovalCodes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.mcpHostedApproval missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.modelCatalogRefresh missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.oneTimeSchedules missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.scheduledTaskThreadModes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.vcsBranchStatus missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.voiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.databaseMigration changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.fileAttachments missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.freshContext missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.mcpApprovalCodes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.mcpHostedApproval missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.modelCatalogRefresh missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.oneTimeSchedules missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.scheduledTaskThreadModes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.vcsBranchStatus missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.voiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.databaseMigration changed drift"
+      ],
+      "ids": [
+        "t3-rpc-subscribeServerLifecycle-invalid-no-payload",
+        "t3-rpc-subscribeServerLifecycle-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.values.[*].snapshot.archivedThreads",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].snapshot.archivedThreads changed breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].snapshot.threads changed breaking"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.subscribeShell-invalid-no-payload",
+        "t3-rpc-orchestration.subscribeShell-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.cloudUserId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.cloudUserId missing breaking",
+        "steps.http:ret:_.[2].payload.body.holdWebhooksWhileOffline missing breaking",
+        "steps.http:ret:_.[2].payload.body.linkRevoked missing breaking",
+        "steps.http:ret:_.[2].payload.body.linked missing breaking",
+        "steps.http:ret:_.[2].payload.body.managedTunnelActive missing breaking",
+        "steps.http:ret:_.[2].payload.body.publishAgentActivity missing breaking",
+        "steps.http:ret:_.[2].payload.body.relayIssuer missing breaking",
+        "steps.http:ret:_.[2].payload.body.relayUrl missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-connect.preferences-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.http:ret:_.[*].payload.body.id",
+      "severity": "drift",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.id changed drift",
+        "steps.http:ret:_.[2].payload.headers.cache-control extra drift",
+        "steps.http:ret:_.[2].payload.headers.pragma extra drift"
+      ],
+      "ids": [
+        "t3-http-auth.pairingCredential-valid-min"
+      ]
+    },
+    {
+      "class": "extra at steps.ws:s2c:*.[*]",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0] extra drift"
+      ],
+      "ids": [
+        "t3-rpc-server.discoverSourceControl-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit missing breaking",
+        "steps.ws:s2c:1.[0].payload.values extra drift"
+      ],
+      "ids": [
+        "t3-rpc-subscribeServerConfig-invalid-wrong-type-environmentThemes"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-git.resolvePullRequest-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.provider missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-sourceControl.cloneRepository-boundary-full"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-server.prepareAcpRegistryAgent-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-server.listTextGeneratorModels-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.provider missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-sourceControl.cloneRepository-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause.cause.cause.message",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.cause.cause.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.cause.message changed drift"
+      ],
+      "ids": [
+        "t3-rpc-projects.writeFile-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation changed drift"
+      ],
+      "ids": [
+        "t3-rpc-pullRequests.generateReviewGuide-boundary-full"
+      ]
+    },
+    {
+      "class": "extra at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.provider",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.provider extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.requirement extra drift"
+      ],
+      "ids": [
+        "t3-rpc-pullRequests.routingIdentity-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.availableMemoryBytes",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.availableMemoryBytes changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.cpuUtilization changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sampledAt changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.totalMemoryBytes changed drift"
+      ],
+      "ids": [
+        "t3-rpc-server.getHostResources-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "kind at steps.ws:s2c:*.[*].payload.exit.value.cpuUtilization",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.availableMemoryBytes changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.cpuUtilization kind breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.sampledAt changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.totalMemoryBytes changed drift"
+      ],
+      "ids": [
+        "t3-rpc-server.getHostResources-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.workspaceRoot",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.workspaceRoot changed drift"
+      ],
+      "ids": [
+        "t3-rpc-projects.createNew-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.values",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values changed breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.fileAttachments missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.freshContext missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.mcpApprovalCodes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.mcpHostedApproval missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.modelCatalogRefresh missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.oneTimeSchedules missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.scheduledTaskThreadModes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.vcsBranchStatus missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.voiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.databaseMigration changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings changed breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].whenAst.name extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[14].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[14].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[15].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[15].whenAst.name missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[15].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[15].whenAst.node extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[16].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[16].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[16].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[16].whenAst missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[17].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[17].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[17].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[17].whenAst extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[18].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[18].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[18].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[18].whenAst missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[19].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[19].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[19].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[19].whenAst extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[20].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[20].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[21].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[21].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[22].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[23].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[23].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[24].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[24].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[25].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[25].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[25].whenAst.name missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[25].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[25].whenAst.node extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[26].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[26].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[27].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[27].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[27].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[28].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[28].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[28].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[29].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[29].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[29].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[30].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[30].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[31].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[31].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[31].whenAst missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[32].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[32].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[32].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[32].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[32].whenAst extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[33].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[33].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[33].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].shortcut.modKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[34].whenAst.name extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].shortcut.modKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].whenAst.name missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].whenAst.left extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[35].whenAst.right extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[36].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[36].whenAst.right.name changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[37].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[38].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[38].whenAst.right.name missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[38].whenAst.right.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[38].whenAst.right.node extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[39].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[39].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[39].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[39].whenAst.left missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[39].whenAst.right missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[39].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[39].whenAst.node extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[40].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[40].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[41].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[41].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[42].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[42].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[42].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[43].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[43].shortcut.altKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[43].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[43].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[43].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[43].whenAst.left extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[43].whenAst.right extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[44].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[44].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[44].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[44].whenAst.left missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[44].whenAst.right missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[44].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[44].whenAst.node extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[45].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[45].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[46].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[46].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[47].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[47].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[48].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[48].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[49].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[49].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[50].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[50].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[51].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[51].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[52].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[52].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[52].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[52].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[52].whenAst.name extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[53].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[53].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[54].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[54].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[54].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[54].whenAst missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[55].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[55].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[55].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[56].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[56].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[57].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[57].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[57].whenAst extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[58].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[58].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[59].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[59].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[60].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[60].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[60].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[60].whenAst.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[60].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[60].whenAst.left extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[60].whenAst.right extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[61].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[61].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[61].whenAst.left.node.name changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[61].whenAst.right.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[61].whenAst.right.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[61].whenAst.right.name extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[62].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[62].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[63].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[63].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[64].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[64].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[65].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[65].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[66].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[66].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[67].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[67].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[68].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[68].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[69].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[69].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[70].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[70].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[70].whenAst.left.node missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[70].whenAst.left.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[70].whenAst.left.name extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[71].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[71].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[72].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[72].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[73].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[73].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[74].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[74].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[75].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[75].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[76].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[76].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[77].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[77].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[78].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[78].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[79].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[79].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[79].shortcut.modKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[79].whenAst.left missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[79].whenAst.right missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[79].whenAst.type changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[79].whenAst.name extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[80].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[80].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[81].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[81].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[82].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[82].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[82].shortcut.modKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[82].shortcut.shiftKey changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[83].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[83].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[84].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[84].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[85].command changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[85].shortcut.key changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.remoteOpenTargets changed breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.secretRequestReferences missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.settings.projectSettingsFolded changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.threadLinkMetadata missing breaking"
+      ],
+      "ids": [
+        "t3-rpc-subscribeServerConfig-boundary-full"
+      ]
+    }
+  ]
+}

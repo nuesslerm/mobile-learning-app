@@ -1,6 +1,8 @@
 //! Flow test of the rate limit layer: the real router and layer driven in-process, the caller's address supplied the way the
 //! server's connect info would. Given/When/Then.
 
+#![cfg(feature = "rate-limit")]
+
 use axum::body::Body;
 use axum::extract::ConnectInfo;
 use axum::http::{Request, StatusCode};

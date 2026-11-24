@@ -128,6 +128,7 @@ fn given_a_pairing_link_when_the_server_runs_then_the_phone_connects_authenticat
     assert_eq!(status["result"]["machineName"], "flow host");
     assert_eq!(status["result"]["pairedDeviceId"], offer.paired_device_id.clone().unwrap().as_str());
     assert!(status["result"].get("degradations").is_none(), "{status}");
+    assert_eq!((status["result"]["authoritativeWindowId"].clone(), status["result"]["terminalWindowsShell"].clone()), (json!(0), json!("powershell.exe")));
     assert!(rca.methods.lock().unwrap().iter().filter(|m| *m == "service.status").count() >= 2, "startup check and status.get both asked");
     assert!(rca.bearers.lock().unwrap().iter().all(|b| b.as_deref() == Some(&format!("Bearer {BEARER}"))), "every call to rca carried the bearer");
     let mut health = TcpStream::connect(server.addr).unwrap();

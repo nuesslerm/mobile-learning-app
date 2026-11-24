@@ -1,0 +1,22 @@
+{
+  "action": "browser_close",
+  "exchanges": [
+    {
+      "name": "closes nothing under a key that was never opened",
+      "request": {
+        "id": "b1",
+        "tool": "browser_close",
+        "args": {
+          "key": "t1"
+        }
+      },
+      "response": {
+        "id": "b1",
+        "ok": true,
+        "result": {
+          "closed": false
+        }
+      }
+    }
+  ]
+}

@@ -470,7 +470,7 @@ function fetchRaw(repoPath) {
 }
 
 // Puts the Rust `wf` on PATH for a human SSHed in over Termius and for the redeploy sibling's secrets sync: a link to the
-// VM's one build on the `clis` volume, which the runner's clis workflow fills (/opt/clis/current in the containers). Until
+// VM's one build on the `clis` volume, which the pipeline's clis job fills through vm-ops-api (/opt/clis/current in the containers). Until
 // the first Deploy fills it the link dangles; it resolves at each exec, so nothing needs reinstalling. Best-effort: a
 // failure here must never fail the rest of provisioning.
 function installGlobalWf() {
@@ -485,9 +485,9 @@ function installGlobalWf() {
   }
 }
 
-// A fresh VM has an empty `clis` volume and every redeploy sibling needs `wf` from it, while the CI that fills it needs the runner a
-// redeploy registers. This breaks the cycle: the newest arm64 build artifact of the repository becomes the `bootstrap` tree and
-// `current` points at it, until the first clis job publishes its own. Best-effort: without it `wf ship ci-runner` fails with `wf: not found`.
+// A fresh VM has an empty `clis` volume and every redeploy sibling needs `wf` from it, while the CI job that fills it goes through a
+// vm-ops-api redeploy. This breaks the cycle: the newest arm64 build artifact of the repository becomes the `bootstrap` tree and
+// `current` points at it, until the first clis job publishes its own. Best-effort: without it a redeploy sibling fails with `wf: not found`.
 function seedClis() {
   try {
     const mount = execFileSync('docker', ['volume', 'inspect', '-f', '{{.Mountpoint}}', 'clis'], { timeout: 15_000 }).toString().trim();
@@ -592,7 +592,7 @@ async function provisionApp(app, failedState) {
     if (v) lines.push(`$${k}=$${JSON.stringify(v)}`);
   }
   lines.push(`HOST_LABEL=$${JSON.stringify(HOST_LABEL)}`);
-  // .env.local last, as every redeploy appends it: it carries the vault token and region the runner and wf need.
+  // .env.local last, as every redeploy appends it: it carries the vault token and region wf needs.
   const local = `$${app.dir}/.env.local`;
   if (fs.existsSync(local)) lines.push(fs.readFileSync(local, 'utf8').trim());
   // Per-app image tag override. Every compose file resolves
@@ -613,8 +613,8 @@ async function provisionApp(app, failedState) {
   execFileSync('docker', ['compose', '-f', app.composeFile, 'pull'], { cwd: app.dir, stdio: 'inherit', timeout: 5 * 60_000 });
   log(`$${app.name}: pulled, starting...`);
   // The shared agent workspace is declared `external: true` by agent-shell and
-  // remote-chat-agent, and the wf build volume `clis` by agent-shell and ci-runner
-  // (which writes it), so both must exist before any can start. Idempotent and
+  // remote-chat-agent, and the wf build volume `clis` by agent-shell,
+  // so both must exist before any can start. Idempotent and
   // harmless for every other app.
   for (const volume of ['agent-workspace', 'clis']) {
     try { execFileSync('docker', ['volume', 'create', volume], { stdio: 'ignore', timeout: 15_000 }); } catch {}
@@ -742,7 +742,7 @@ HOST_LABEL=${host_label} node /home/ubuntu/provision-apps.js 2>&1 | tee /home/ub
 # --- Git commit identity -----------------------------------------------------
 # remote-chat-agent commits from worktrees it creates; without a global identity
 # `git commit` fails outright with "Author identity unknown". Set it for the
-# `ubuntu` user (the one the agent + any self-hosted runner execute as).
+# `ubuntu` user (the one the agent executes as).
 sudo -u ubuntu git config --global user.name "${git_user_name}"
 sudo -u ubuntu git config --global user.email "${git_user_email}"
 # Worktrees live under paths the agent owns; mark them safe so git does not

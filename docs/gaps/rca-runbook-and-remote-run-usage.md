@@ -1,19 +1,19 @@
 ---
 status: open
-area: offload
+area: rca
 paths:
-  - "clis/offload/src/dispatch_run.rs"
-  - "clis/offload/src/runbook.rs"
+  - "clis/rca/src/dispatch_run.rs"
+  - "clis/rca/src/runbook.rs"
   - "backend/remote-chat-agent/service-core/src/application/runs.rs"
 opened: 2026-10-27
 last_verified: 2026-10-30
 links: []
 ---
-# `wf offload ask --runbook` still drives a local opencode, and a remote run reports no token usage
+# `wf rca ask --runbook` still drives a local opencode, and a remote run reports no token usage
 
 ## What is broken
 
-Every other `wf offload` mode runs on the rca service (`POST /runs`, `GET /runs/log`, `POST /runs/cooldowns/clear`). Two things are left:
+Every other `wf rca` mode runs on the rca service (`POST /runs`, `GET /runs/log`, `POST /runs/cooldowns/clear`). Two things are left:
 
 - `--runbook` runs `dispatch_local` (the old in-process ladder and `opencode run` child), because the runbook agent drives a browser and a device from a real checkout, and the service has only a staging directory of the files it was sent. Its `preflight`, `--live` tee and local ledger code live on only for this path.
 - A remote run's answer now carries the token usage (`usage`), but the service's run-log row still has no tokens or cost, so `--stats` of the service's log shows them as zero for remote rows.
@@ -27,7 +27,7 @@ Every other `wf offload` mode runs on the rca service (`POST /runs`, `GET /runs/
 - `runs.rs` returning the usage opencode reports per attempt, and writing it to the run-log row the way the local path did.
 - The agent-shell `vm-ledger` routes are unused by `wf` now and can go with the next vm-ops-api change (`/cooldowns` is gone).
 
-## Where a remote run still differs from `opencode run` (found by the parity e2e, `clis/offload/tests/e2e/parity*.rs`)
+## Where a remote run still differs from `opencode run` (found by the compare e2e, `clis/rca/tests/e2e/compare*.rs`)
 
 - A plugin or tool that writes with a relative path writes relative to the opencode server's working directory, not the project's: use the `directory` the plugin gets. Process environment (`{env:NAME}` in a config, `process.env`) is the service's, not the caller's.
 - A local MCP server is sent with the project only when it runs a script of the project with `node`, `bun`, `python3` or `sh`; one that installs a package first (`npx`) is dropped from the config the service gets. LSP servers and `OPENCODE_*` environment settings of the caller are not carried.

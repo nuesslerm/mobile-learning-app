@@ -58,7 +58,7 @@ knowledge                    docs/solutions knowledge index (rank, index, stale)
   index                      Rebuild the docs/solutions index; with --gemini, build one ARCHITECTURE.md + repomix bundle and upload it over one Drive file for the Gemini Gem
   rank                       Rank docs/solutions learnings relevant to these files
   stale                      List learnings not touched in --days
-offload                      Work on the cheap-model ladder: ask, stats, plan, worker, ladder
+rca                          Work on the cheap-model ladder: ask, stats, plan, worker, ladder
   ask                        Run one prompt on the cheap-model ladder (rca): an argument, --prompt, --prompt-
   plan                       Run docs/plans/<slug>/units.jsonl on git-leased worktrees (the git-state worker)
   stats                      The run-log summary of the cheap-model ladder
@@ -66,8 +66,6 @@ offload                      Work on the cheap-model ladder: ask, stats, plan, w
     clear-cooldown           Drop a pool from the cooldown list so the ladder tries it again
     sync-pricing             Refresh model-pricing.json from the OpenRouter model list
   api                        A script is plain Lua 5.4 with these globals
-parity                       How far the agent API mappers are from parity with the pinned phone apps
-  coverage                   Scan the pinned phone app and build its coverage table (--check compares)
 secret                       Manage secrets (macOS Keychain locally; Bitwarden in production — pick with --ba
   cache                      Remove the local copy of the vault
   create                     Create a vault secret, using its registry description as the note
@@ -80,13 +78,14 @@ secret                       Manage secrets (macOS Keychain locally; Bitwarden i
     capture                  Run an ARBITRARY interactive login on the shared VNC desktop from a JSON spec: o
     done                     Signal that an interactive login is finished
     launch-url               Navigate the shared VNC desktop's browser to <url> (e.g. a magic-link URL copied
-    list                     List tools with a known auth descriptor
+    list                     List tools with a known auth descriptor, each with its login mode (link: the tool's own link; vnc: the shared desktop's browser) and the vault secret its login lands in
     listener                 Run the auth-session listener (inside the shared desktop container): mints the t
   move                       Move a vault secret to another project in place, keeping its key, value, note an
   push-notes                 Sync each secret's registry description into its Bitwarden note (one-way: regist
   registry                   Secrets registry maintenance
     sync                     Rebuild wf after editing registry.json (the registry is compiled into it), then 
   rename                     Rename a vault secret in place, preserving its id (so UUID-addressed consumers k
+  rotate-login               Write the login a CI run refreshed back to the vault (codex, codex-ci)
   set                        Store secret (reads from stdin if value omitted) — macOS backend only
   sync-env                   Resolve keys (or --for <app>) through the active backend and write a .env — the 
   update                     Replace an EXISTING vault secret's value in place, keeping its key, note, projec
@@ -140,13 +139,13 @@ vm                           The VM: run a script in agent-shell, read logs, rec
 | `wf test metrics` | wf test publish (it posts the row) |
 | `wf test record` | nothing: bundles are the record |
 | `wf test enqueue / queue verbs` | the e2e-tests job in CI, or wf test run |
-| `wf test plan --latest` | `wf test results --query "<terms>"` |
-| the top-level `ask`, `plan` and `worker` | wf offload ask, wf offload plan, wf offload worker |
+| `wf ci plan tests --latest` | `wf test results --query "<terms>"` |
+| the top-level `ask`, `plan` and `worker` | wf rca ask, wf rca plan, wf rca worker |
 | the old `worker visual` | wf check --visual |
 | the `repo` group's `bench` verbs | wf bench ... |
 | the `repo` group's `knowledge` verbs | wf knowledge ... |
 | the `repo` group's `sync [--check]`, and the top-level `mcp-guard` | wf agent-config sync [--check], wf agent-config mcp-guard |
-| the `repo` group's `ladder` verbs | wf offload ladder ... |
+| the `repo` group's `ladder` verbs | wf rca ladder ... |
 | the `repo` group's `bundle [--check]` | pnpm --filter mla-tamagui run build:editor-bundle (check:editor-bundle) |
 | `wf run <script>` | wf android test <lua> / wf browser test <lua> |
 | android run, browser run (renamed; each an unknown verb since H8) | wf android test <lua>, wf browser test <lua> (`--env`, `--test-output-dir`, `--logpoint` on the browser only; `--goldens` is gone) |
@@ -461,7 +460,7 @@ Usage: `wf android start-device [--name N] [--screen WxH@dpi] [--port P] [--with
 | Option | Meaning |
 |---|---|
 | `--screen <WxH@dpi>` | screen (default: 480x1040@213: a Galaxy S25 in dp, 360 x 780, fewer pixels than 540x960@240) |
-| `--expo-go` | install Expo Go 57.0.9 once booted (also on a device that is already running) |
+| `--expo-go` | install Expo Go 58.0.5 once booted (also on a device that is already running) |
 | `--with <features>` | keep these features on, comma separated (camera,files,...) |
 | `--slim` | apply the slim set to a device that is already running |
 | `--stock` | enable every package again (no slimming) |
@@ -491,7 +490,7 @@ JSON line. Not lease-guarded: nobody holds a lease on a device that is not runni
 
 Options:
   --screen <WxH@dpi>     screen (default: 480x1040@213: a Galaxy S25 in dp, 360 x 780, fewer pixels than 540x960@240)
-  --expo-go              install Expo Go 57.0.9 once booted (also on a device that is already running)
+  --expo-go              install Expo Go 58.0.5 once booted (also on a device that is already running)
   --with <features>      keep these features on, comma separated (camera,files,...)
   --slim                 apply the slim set to a device that is already running
   --stock                enable every package again (no slimming)
@@ -1024,6 +1023,174 @@ Stops the daemon and every session in it, or exits 1 when none runs. Frozen as s
 
 ## cache
 
+### `wf bucket`
+
+A blob store of your own: any always-on host can serve the objects the build cache and the verification artifacts keep
+
+Usage: `wf bucket [options] [command]`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf bucket [options] [command]
+
+A blob store of your own: any always-on host can serve the objects the build
+cache and the verification artifacts keep, over HTTP with bearer tokens.
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  serve [options]             Serve GET, HEAD and PUT under /o/<key> from a
+                              directory
+  state [options] [command]   Read and write small cross-run files kept in
+                              the repository (refs/wf/state)
+  help [command]              display help for command
+```
+
+</details>
+
+#### `wf bucket serve`
+
+Serve GET, HEAD and PUT under /o/<key> from a directory
+
+Usage: `wf bucket serve [options]`
+
+Examples:
+
+```sh
+wf bucket serve --dir ~/blobs --listen 127.0.0.1:8080 --read-token-file ~/.blob-read --write-token-file ~/.blob-write
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf bucket serve [options]
+
+Serve a directory as a blob store: GET, HEAD and PUT on /o/<key>. Meant for a
+host that stays on (a laptop only when it is wired in as a store: a stable
+address, a token, a network rule for the runners). It never lists a directory
+and never deletes.
+
+Auth: Authorization: Bearer <token>. GET and HEAD take the read token or the
+write token, PUT takes the write token. A missing or wrong token is 401. The
+tokens are read from files; they are never logged and never in a URL.
+
+Answers:
+  200  stored (PUT), or the object (GET, HEAD)
+  400  a key that is empty, absolute, has a segment starting with a dot (so
+       `..` too), or holds a character outside [A-Za-z0-9._-/]
+  401  no token or the wrong one
+  404  no such object (a prefix is never an object)
+  405  any other method (DELETE included)
+  412  PUT with If-None-Match: * on a key that already exists; the first
+       writer wins
+  413  an object over --max-object-mb
+
+A PUT is written beside its key and moved into place, so a reader never sees a
+half-written object. A PUT body is held in memory while it arrives.
+
+Output: one JSON line on stdout when ready, {ok, listen, dir}; listen is the
+address actually bound (use port 0 to pick a free one). The server then runs
+until it is stopped. A failure prints {ok: false, error} and exits 1; a
+malformed line exits 2.
+
+Options:
+  --dir <dir>                 the directory that holds the objects (created)
+  --listen <addr>             host:port to bind, e.g. 127.0.0.1:8080
+  --read-token-file <file>    file holding the read token
+  --write-token-file <file>   file holding the write token
+  --max-object-mb <n>         largest object accepted, in MB (default 1024)
+  -h, --help                  display help for command
+```
+
+</details>
+
+#### `wf bucket state`
+
+Read and write small cross-run files kept in the repository (refs/wf/state)
+
+Usage: `wf bucket state [options] [command]`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf bucket state [options] [command]
+
+The state ref: small cross-run files (the EAS pointer, the run index) kept in
+the repository as an orphan history under refs/wf/state of origin. A ref that
+is neither a branch nor a tag starts no workflow when pushed. Run it inside a
+checkout of the repository; the push needs the job's token to hold contents:
+write (the eas-update job does).
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  read <path>                 Print a file of the state ref
+  write [options] <path>      Commit a file to the state ref and push it
+  help [command]              display help for command
+```
+
+</details>
+
+#### `wf bucket state read`
+
+Print a file of the state ref
+
+Usage: `wf bucket state read [options] <path>`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf bucket state read [options] <path>
+
+Print the file at <path> of the tip of refs/wf/state on origin. Only the tip
+commit and its trees are fetched, into a scratch repository (no history, no
+other file, nothing written to the checkout); git then pulls just this one
+file. A write keeps the ref to one commit (the tip it read, with its change), so
+the ref holds one sealed database; a plain fetch of an older, longer history cost
+minutes. Each git call is bounded by WF_STATE_READ_TIMEOUT_S (default 90).
+
+Output: one JSON line, {ok, found, path, content}. A ref that does not exist
+yet, or a path that is not in it, is {ok: true, found: false}: nothing was
+stored, which is not an error. Any other failure (no network, no checkout)
+prints {ok: false, error} and exits 1, so a caller never replaces a file it
+could not read.
+
+Options:
+  -h, --help                  display help for command
+```
+
+</details>
+
+#### `wf bucket state write`
+
+Commit a file to the state ref and push it
+
+Usage: `wf bucket state write [options] <path>`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf bucket state write [options] <path>
+
+Commit a file to refs/wf/state and push it, creating the ref (an orphan
+history) the first time. The body is read from --file, else stdin. The push is
+fast-forward only: when another job moved the ref first, the tip is fetched and
+the commit redone on it, up to 5 times, so no writer's files are lost.
+
+Output: one JSON line, {ok, path, commit, ref}. A failure prints {ok: false,
+error} and exits 1.
+
+Options:
+  --file <file>               read the body from this file instead of stdin
+  --message <text>            the commit message (default: state: <path>)
+  -h, --help                  display help for command
+```
+
+</details>
+
 ### `wf cache`
 
 The build cache: one OCI Object Storage bucket holds every cache layer, and the sandbox and CI share it
@@ -1035,8 +1202,8 @@ Usage: `wf cache [options] [command]`
 ```text
 Usage: wf cache [options] [command]
 
-The build cache: one OCI Object Storage bucket holds every cache layer, and the
-sandbox and CI share it. Nothing is cached on the VM, so a recreated VM finds it
+The build cache: one blob store (or several, chosen in config; see Stores below)
+holds every cache layer, and the sandbox and CI share it. Nothing is cached on the VM, so a recreated VM finds it
 all. A store that is unreachable, over budget or refused makes a run cold, never
 red.
 
@@ -1050,8 +1217,8 @@ Layers (one prefix, one expiry and one verb each; `docs/solutions/ci/cache-layer
 `wf test run --stage` and `wf check --staged` start a loopback shim that gives
 Nx the bucket (NX_SELF_HOSTED_REMOTE_CACHE_SERVER, a token per run, and
 127.0.0.1,localhost added to NO_PROXY) and stop it when Nx exits. It needs
-BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL (the environment, then
-the vault); when either does not resolve nothing starts and Nx uses its local
+the stores below (the environment, then the vault); when they do not resolve, or
+every entry is disabled, nothing starts and Nx uses its local
 cache alone, as it does under `wf test run --fresh`. The same shim also serves Rust
 compiles when `sccache` is on PATH: it adds RUSTC_WRAPPER=sccache, CARGO_INCREMENTAL=0
 (sccache refuses incremental compiles), a WebDAV endpoint on the loopback and its
@@ -1059,6 +1226,32 @@ own server port to the Nx child, and prints `wf: compile cache {...}` and
 `wf: sccache {hits, misses}` when it stops. A compile's key includes the target
 directory path, so keep CARGO_TARGET_DIR the same between runs. WF_BLOB_CACHE=off, or
 "enabled": false in clis/blob-cache/data/budget.json, turns the cache off.
+
+Stores: the backend is a choice made in config, not in code. BUILD_CACHE_READ_STORES
+and BUILD_CACHE_WRITE_STORES (the environment, then the vault) each hold a comma
+list, and one entry names one store by its URL scheme:
+  par+https://<link ending /o/>    an OCI pre-authenticated request; the link is the
+                                   credential
+  dav+https://host:port/o/         the bearer server of `wf bucket serve`
+                                   (BLOB_DAV_READ_TOKEN, BLOB_DAV_WRITE_TOKEN)
+  s3://bucket/prefix?endpoint=https://host&region=R&path_style=1&conditional=0
+                                   Cloudflare R2, Hetzner Object Storage, B2, AWS,
+                                   MinIO, over SigV4 (BLOB_S3_READ_CREDENTIAL and
+                                   BLOB_S3_WRITE_CREDENTIAL, each ACCESS_KEY_ID:SECRET_ACCESS_KEY)
+  file:///dir                      a directory on this machine
+A credential is never part of a URL (one that is gets the entry refused) and never
+printed. region defaults to auto; path_style=1 puts the bucket in the path instead
+of the host name; plain http is accepted only for a loopback host.
+With several entries every one is a real member: a read tries them in order and
+returns the first hit, a write goes to every one. The write list names the same
+stores in the same order as the read list, and it resolves only where a write is
+allowed (a push to dev). It is not a fallback chain: a declared store that is
+unreachable is an error that names it, and `wf ci preflight` fails on it.
+An entry written with a leading - (`-s3://b/p?endpoint=https://host`) is disabled,
+which is the same as not declared: nothing contacts it. A list whose entries are
+all disabled declares no store, which is what WF_BLOB_CACHE=off means. With
+neither list set, BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL are read
+as a one-entry par+https list, so nothing existing changes.
 
 A run writes only when the tree is clean (untracked files count; under
 `wf check --staged` what is staged does not), HEAD is an ancestor of origin/dev,
@@ -1146,17 +1339,17 @@ Run a command with the Nx task cache served from the bucket: a loopback server
 starts, NX_SELF_HOSTED_REMOTE_CACHE_SERVER and a per-run token go into the
 command's environment (and 127.0.0.1,localhost into NO_PROXY), and the server
 stops when the command exits. The command's exit code is this verb's. Needs
-BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL (the environment, then the
-vault); without them the command runs on Nx's local cache alone. A run writes only
+the build cache stores (BUILD_CACHE_READ_STORES and BUILD_CACHE_WRITE_STORES, or the
+legacy BUILD_CACHE_*_PAR_URL; the environment, then the vault); without them the command runs on Nx's local cache alone. A run writes only
 from a clean tree on origin/dev with pinned tools (see `wf cache --help`).
 
 With --why (first, before the command), every task Nx ran in the command is
-explained against the bucket's history of that task (verification/nx-inputs/):
+explained against the history of that task kept in WF_NX_WHY_DIR (default ~/.cache/wf-nx-why; CI carries it with the Actions cache):
 the nearest earlier run and the inputs that differ (a file, an env var by name and
 never by value, a runtime tool), `expired` (an earlier run stored this very hash),
 or `never-stored` (no earlier run, or the run that computed the hash failed and
 stored nothing); this run's own inputs are recorded for the next miss. A task that
-failed says it stored nothing. Writing needs VERIFICATION_ARTIFACTS_PAR_URL.
+failed says it stored nothing.
 
 Output: the command's own, then one stderr line `wf: build cache {...}` and, with
 --why, one `wf: nx why {schema, ok, run, source, misses: [{task, hash, verdict,
@@ -1170,6 +1363,159 @@ Arguments:
 Options:
   --why       explain each task the command ran against its earlier runs
   -h, --help  display help for command
+```
+
+</details>
+
+#### `wf cache event`
+
+Record one restore or save of a CI cache layer in CI_CACHE_EVENTS; loud when it failed, never a failed job
+
+Usage: `wf cache event [options] <layer> <phase>`
+
+Examples:
+
+```sh
+wf cache event nx restore --outcome error --key "$KEY" --reason "actions/cache/restore failed"
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf cache event [options] <layer> <phase>
+
+Record one restore or save of a cache layer in a CI job: a row of CI_CACHE_EVENTS in
+the job's database (the report job merges it into the sealed one), a `cache.event`
+line on stderr, the gauges ci.cache.events{layer,phase-outcome} and, for a problem,
+ci.cache.problems{layer,reason}. The cache actions call it right after
+actions/cache, whose step is continue-on-error so that a failed restore never fails
+the job: this is where the failure stops being silent. It exits 0 whatever it finds
+(1 only for a command line it cannot read), and outside a CI job (no WF_CI_DB, no
+RUNNER_TEMP) it records nothing.
+
+Loud, not red: for outcome error or timeout it prints a workflow annotation on
+stdout, before its JSON, and a red line in the job's step summary:
+
+  ::error title=cache restore failed::layer=nx key=<key> reason=<text>
+  ::error title=cache save failed::layer=<layer> key=<key> reason=<text>
+
+A restore of the nx layer that matched a key and left 0 entries in ~/.nx/*/cache is an
+error too ("matched <key> and restored 0 entries"). A save of the nx layer that was
+skipped while the job ran and passed tasks is an error, because those results are
+lost to the next run (`wf cache gate nx` decides saves and never skips one while a task ran,
+so it only happens over the size limit):
+
+  ::error title=cache save skipped::layer=nx key=<key> reason=<why>; <n> task(s) ran and passed, and their results are not saved
+
+Layers: nx, sccache, pnpm, metro, playwright, references; a name with a stage after
+the layer (`sccache-flow-tests`) is that layer with that stage, any other name is the
+layer `other`. The lineage columns come from the job (GITHUB_WORKFLOW, GITHUB_JOB,
+GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT) and --stage: a stage ending in `-<n>of<m>` is the
+stage and its shard (`core-tests-1of3`).
+
+For the nx layer a restore also takes a snapshot of Nx's local cache (the entries of
+~/.nx/*/cache, the hashes in the cache_outputs table of ~/.nx/*/databases/*.db, the
+size of the -wal file) into $RUNNER_TEMP/nx-cache.restore.json and exports
+WF_CACHE_RESTORE_FILE, WF_CACHE_STAGE and WF_CACHE_RESTORED_KEY to the job. A task
+that ran later is recorded (NX_TASKS) with whether its hash was in the restored
+directory and in the table, which is what tells "the entry was there and Nx ran the
+task anyway" from "the entry was never there".
+
+Output: one JSON object {ok, recorded, layer, phase, outcome, reason, problem,
+annotation, event: {run, attempt, workflow, job, stage, shard, layer, phase,
+keyRequested, keyMatched, matchKind, sizeBytes, durationMs, outcome, reason, entries,
+dbRows, walBytes}}. problem is null, or restore-error, restore-timeout, restore-empty,
+save-error, save-timeout or save-skipped-tasks-ran.
+
+Arguments:
+  layer       the cache layer, or layer-stage (nx, sccache-flow-tests, pnpm, ...)
+  phase       restore or save
+
+Options:
+  --outcome <o>        ok, miss, timeout, error or skipped (required): from the
+                       cache step's `outcome` (failure is error, cancelled is
+                       timeout) and its cache-hit and cache-matched-key outputs
+  --key <key>          the key asked for (a save: the key saved under)
+  --matched-key <key>  the key the restore matched, empty for none
+  --hit <true|false>   the restore's cache-hit output: an exact match
+  --match-kind <k>     exact, restore-key or none (default: from --hit and --matched-key)
+  --stage <name>       the stage, with its shard when it has one (core-tests-1of3)
+  --shard <name>       the shard, when the stage name does not carry it
+  --size-bytes <n>     the size of what was moved (default: measured over --path)
+  --duration-ms <n>    how long the step took
+  --started-ms <n>     when the step started (epoch ms): the duration is measured from it
+  --reason <text>      what a failure, a timeout or a skipped save says for itself
+  --entries <n>        entries in the cache directory (default for nx: counted)
+  --entries-before <n> entries when the restore ended, for the save's decision
+  --snapshot-file <p>  where the nx snapshot goes (default $RUNNER_TEMP/nx-cache.restore.json)
+  --path <p>...        the directories the layer moves, to measure their size
+  -h, --help           display help for command
+```
+
+</details>
+
+#### `wf cache gate`
+
+Decide whether a CI job's Nx cache is saved: a task ran, or Nx's table or entries changed
+
+Usage: `wf cache gate [options] <layer>`
+
+Examples:
+
+```sh
+wf cache gate nx --max-mb "$MAX_MB" --key "$KEY" --stage "$STAGE"
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf cache gate [options] <layer>
+
+Decide whether a CI job's Nx cache (layer nx, the only one) is saved after its test
+stage. The nx-cache action calls it in save mode and saves when the step output it
+writes says save=true. It always exits 0 (1 only for a command line it cannot read).
+
+Why not count entries: a task that re-runs over an entry the restore already held
+rewrites the same directory, so the count stays equal, and the row Nx wrote to the
+cache_outputs table (Nx serves a hit from that table, in
+~/.nx/<id>/databases/*.db, WAL mode) was never uploaded; the next run restored the
+same state and ran the same task again.
+
+The verb flushes the WAL first (PRAGMA wal_checkpoint(TRUNCATE) on every
+~/.nx/*/databases/*.db, so the archive's database file holds the rows), then saves
+when any of these holds, against the snapshot the restore left
+($WF_CACHE_RESTORE_FILE, else $RUNNER_TEMP/nx-cache.restore.json, else an empty
+restore):
+  - a task of this job's ledger ran (was not a hit) and passed
+  - the row count of cache_outputs changed
+  - the newest created_at of cache_outputs moved
+  - the listing of ~/.nx/*/cache changed
+It does not save when ~/.nx/*/cache and ~/.nx/*/databases together exceed --max-mb
+(a warning; and an error annotation when tasks ran, see `wf cache event`), or when
+nothing changed.
+
+Every skip is recorded as a row of CI_CACHE_EVENTS (phase save, outcome skipped,
+the reason); a save carries its reason through the action's `Record the save` step
+(the step output `why`). A skip while tasks ran and passed prints
+`::error title=cache save skipped::` (problem save-skipped-tasks-ran).
+
+Writes to $GITHUB_OUTPUT: save=true|false and why=<reason>; one line to
+$GITHUB_STEP_SUMMARY.
+
+Output: one JSON object {ok, save, reason, mb, maxMb, tasksRan, restoreSnapshot,
+entries: {before, now, added, removed}, dbRows: {before, now}, dbCreated: {before,
+now}, checkpoint: [{db, frames, error}], event}. event is the recorded skip (see
+`wf cache event`) or null.
+
+Arguments:
+  layer       nx
+
+Options:
+  --max-mb <n>           the size above which nothing is saved (default 3072)
+  --key <key>            the key the save would use, for the recorded skip
+  --stage <name>         the stage and shard (default $WF_CACHE_STAGE)
+  --snapshot-file <p>    the restore's snapshot (default as above)
+  -h, --help             display help for command
 ```
 
 </details>
@@ -1385,9 +1731,9 @@ Start a new, empty generation: every reader and writer moves to it at once, with
 no list and no delete, and the old entries expire by the bucket's lifecycle. Use
 it for a cached wrong result. The generation is one number in meta/generation, so
 a purge starts every kind over; <kind> (nx, sccache, pnpm or metro) names what it is for and is
-checked. Needs both links, BUILD_CACHE_READ_PAR_URL to read the number and
-BUILD_CACHE_WRITE_PAR_URL to write the next one (the environment, then the
-vault). Unlike a run it does not ask for a clean tree on origin/dev: it writes no
+checked. Needs both planes of the build cache stores (BUILD_CACHE_READ_STORES to read the number and
+BUILD_CACHE_WRITE_STORES to write the next one to every store, or the legacy
+BUILD_CACHE_*_PAR_URL; the environment, then the vault). Unlike a run it does not ask for a clean tree on origin/dev: it writes no
 task result, and a purge is how a wrong one is discarded.
 
 Output: one JSON object on stdout {ok, kind, generation}. A failure prints
@@ -1423,7 +1769,7 @@ Fill an empty local pnpm store from the bucket before `pnpm install`, or (kind m
 (frontend/mla-tamagui/node_modules/.cache/app-build: Metro's transform cache and tsc's build info) before an export or a typecheck, so a
 recreated VM or a fresh checkout fetches nothing it already has. It does nothing
 when the local store (metro: the app-build directory) is not empty, as it is on a runner whose checkout persists, and then asks the bucket nothing. Needs only
-the read link (BUILD_CACHE_READ_PAR_URL: the environment, then the vault). The
+the read stores (BUILD_CACHE_READ_STORES or BUILD_CACHE_READ_PAR_URL: the environment, then the vault). The
 store is the path `pnpm store path` prints, so npm_config_store_dir applies. The
 object is unpacked beside the store and moved into place whole, so a download or
 archive that breaks leaves the store as it was.
@@ -1475,7 +1821,8 @@ these hold, and asks the bucket nothing until the first three do:
   the local store has content
   the lockfile's sha256 differs from the one in the sidecar, or the object is
     missing (it expired by lifecycle)
-Needs both links (BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL).
+Needs both planes of the build cache stores (BUILD_CACHE_READ_STORES and
+BUILD_CACHE_WRITE_STORES, or the legacy BUILD_CACHE_*_PAR_URL); the object goes to every store.
 
 Any problem with the bucket is a cold run: exit 0. Only a step on this machine
 that failed (pnpm missing, tar failed) exits 1.
@@ -1605,7 +1952,7 @@ Options:
 
 ### `wf ci`
 
-What a workflow tells people about its own run: `wf ci comment` posts what failed in a red CI run on the pushed commit, `wf ci live` keeps the run's one pull request comment up to date, `wf ci tidy` frees the runner's disk, `wf ci preflight` checks first that everything the run needs is live, `wf ci audit` is the nightly audit of CI on dev (never a gate) and `wf ci cache-health` fails a run whose cache layers broke.
+What a workflow tells people about its own run: `wf ci comment` posts what failed in a red CI run on the pushed commit, `wf ci live` keeps the run's one pull request comment up to date, `wf ci tidy` frees the runner's disk, `wf ci preflight` checks first that everything the run needs is live, `wf ci audit` is the nightly audit of CI on dev (never a gate), `wf ci cache-health` fails a run whose cache layers broke and `wf ci db` keeps the sealed CI database.
 
 Usage: `wf ci [options] [command]`
 
@@ -1620,28 +1967,142 @@ wf ci
 ```text
 Usage: wf ci [options] [command]
 
-What a workflow tells people about its own run: `wf ci comment` posts what
+What a workflow decides and tells people about its own run: `wf ci plan` plans the tests, deploy legs and capture jobs of a push, `wf ci comment` posts what
 failed in a red CI run on the pushed commit, `wf ci live` keeps the run's one pull
 request comment up to date, `wf ci tidy` frees the runner's disk, `wf ci preflight` checks first that
 everything the run needs is live, `wf ci audit` is the nightly audit of CI on dev
-(never a gate) and `wf ci cache-health` fails a run whose cache layers broke.
+(never a gate), `wf ci timings` and `wf ci progress` read what a run's jobs took, `wf ci cache-health` fails a run whose cache layers broke and `wf ci db`
+keeps the sealed CI database (test runs, usage of the commands, health reports, the ledger).
 
 Options:
   -h, --help           display help for command
 
 Commands:
+  plan <what> [options] Plan a push: tags, tests, legs, mimic.
   live [start]         Update the run's one comment on the pull request.
   tidy [options]       Free the runner's disk when it is filling.
   preflight [options]  Check at the start that the cache, secrets, services and
                        runner are live and valid.
   audit [options]      Nightly audit of CI on dev: one JSON verdict with the
                        findings and their next steps; never fails a push.
+  timings [options]    What a run's jobs and steps took; --send makes them gauges.
+  progress [options]   A running run: the jobs not done, their step and time.
   cache-health [options]
                        Fail the run when a cache layer degraded, lost or
                        refused a write.
+  db <merge|record|query>
+                       The sealed CI database on the state ref.
   comment [options]    Comment on the pushed commit what failed in this CI run,
                        with the cause from each failed job's log.
   help [command]       display help for command
+```
+
+</details>
+
+### `wf ci plan`
+
+Everything the pipeline decides before its jobs run, in one place: the commit tags, the tests by stage, the deploy legs and the capture jobs of a marker.
+
+Usage: `wf ci plan <tags|tests|legs|mimic> [options]`
+
+Examples:
+
+```sh
+wf ci plan tags --sha "$GITHUB_SHA" --github-output
+wf ci plan tests --changed --base last-green --github-output
+wf ci plan legs --github-output
+wf ci plan mimic --file - --github-output < message.txt
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci plan <tags|tests|shard-keys|needs|shard-weights|legs|mimic> [options]
+
+Everything the pipeline decides before its jobs run, in one place; the plan job of
+pipeline.yml and the mimic-record and track-contracts workflows call it. Each
+subcommand prints one JSON object (exit 0) or {schema: "ci-plan/1", ok: false, error,
+next} (exit 2 for a refusal); with --github-output it also appends the step outputs
+its jobs read to $GITHUB_OUTPUT.
+
+                         --area mobile|cli|backend keeps one area's tests (the app and the workspace root, clis/, the rest) for a core workflow of its own.
+  shard-weights [--write] [--sealed-file <path>] [--out <path>]
+                         the flow, typecheck, integration, cli-e2e, browser and Android units' costs as the CI database measured them (the shard runner's own
+                         spans, `CI_UNITS`; a unit with none falls back to its Nx tasks, `NX_TASKS`; the median over runs, in seconds), merged into
+                         data/shard-weights.json; without --write it only prints them.
+  shard-weights --report [--run <id>] [--send] [--sealed-file <path>]
+                         the split of one run (default the newest in CI_UNITS) set against what it measured: per stage and re-dealt shard (spans do not
+                         record their shard) the seconds the committed weights predicted and the seconds the units took, as JSON and a markdown `table`; --send also gives them as the gauges
+                         ci.shard.predicted_s and ci.shard.actual_s. The run's comment carries the same table.
+  shard-keys --stage <s> --count <n> --plan <file> [--units]
+                         one key per shard (a JSON array) from the crates it runs, the same in every commit that plans the same crates: the
+                         integration shards' concurrency group: the crates plus a fingerprint of their inputs, so a later commit with the same crates and inputs queues
+                         behind the earlier one and a changed crate starts at once. [--repo <dir>] for the repository. --units prints each shard's unit names instead
+                         (a JSON array of arrays), so the shards' union can be set against the plan's whole list.
+  needs --stage core --shard <i> --count <n> --plan <file> [--github-output]
+                         the tools the core-tests machine of shard i installs, {playwright, ffmpeg, restic-sqlite, bun, java, rust, references, opencode,
+                         browser-harness} as booleans: the union over the units of flow shard i and typecheck-lint-unit-tests shard count+1-i (data/test-needs.json);
+                         a unit the data does not list needs every tool. --github-output appends the same keys to $GITHUB_OUTPUT.
+  tests [options]        every test a change needs, by CI stage; runs nothing. Scope: --all, --changed [--base <ref>] (default
+                         HEAD~1; `last-green`: the newest commit on dev whose CI passed, via gh), or e2e test names; [--sha S]. Package tests (flow test:flow, integration
+                         test:integration, typecheck, lint, unit test:unit, deployment-verification test:verify:deployed) follow pnpm's
+                         dependency graph from the changed files; flow and integration run in the flow-tests stage. The
+                         workspace root gets a typecheck when a file outside every package changed. Every focused e2e test is
+                         planned, whatever changed (`platform: android, browser` makes it a test on each harness);
+                         --platform android|browser keeps one harness's. --force all|<a,b>: also plans every test (all), or
+                         the tests of the named packages, crates and e2e tests, whatever changed (why: forced). --json
+                         prints {sha, base, stages: {<stage>: [{kind: flow|integration|typecheck|lint|unit|deployment-verification,
+                         package, dir, script, command, why[]} | {kind: flow, crate, dir, manifest, command, why[]} | {kind: e2e,
+                         platform, name, script, against, units[], why[]}]}, tests[]}; `why` says what picked it ("focused",
+                         "changed", "depends on lib (pnpm)"). --github-output also appends
+                         plan=<json> and <stage_with_underscores>=<count> to $GITHUB_OUTPUT
+  legs [--force] [--also <a,b>] [--since <sha>] [--github-output]
+                         print which services a push must deploy, each with why, and
+                         whether it publishes an EAS Update: {"legs":[{"app","why":[...]}],
+                         "easUpdate":{"publish","why":[...]}}. A service is planned when the hash of its
+                         images and compose project differs between the commit it runs and HEAD
+                         (or that commit is unknown or not in the checkout). The update is published when the
+                         app's package graph (and the lockfile entries it reaches) changed since
+                         the commit of the branch's latest-dev.json pointer (eas/ in refs/wf/state), when a tailnet name
+                         that update baked in has moved, or when that commit cannot be read or
+                         the changed packages cannot be listed; a rotated backend token is not
+                         seen, publish it with --force (--force: all legs and the update; --also <a,b>: those services too, changed or not;
+                         --since <sha>: compare with that commit instead of what
+                         each service runs and the pointer names, asking vm-ops-api and the
+                         state ref nothing, so no tailnet name is checked either; --github-output:
+                         append legs= and eas_update= to $GITHUB_OUTPUT)
+  tags [--sha <commit>] [--services <a,b>] [--fresh] [--github-output]
+                         the tags of the commit message (default HEAD): [ci:flow,unit,service,browser,android]
+                         limits the test jobs, [services:changed] (default) plans what the push changed,
+                         [services:all] every test and service, [services:a,b] also the tests and legs of those
+                         names (--services adds names), [cache:no] or --fresh runs everything without the caches.
+                         Prints {ci, run: {flow, unit, service, browser, android}, services, force_tests,
+                         force_ship, fresh, warnings}; --github-output appends run_<job>=, force_tests=,
+                         force_ship= and fresh=
+  mimic [--message <text> | --file <path|-> | --sha <commit>] [--root <dir>] [--github-output]
+                         the capture jobs of the marker in a commit message (default: HEAD), one per set; the
+                         grammar and the checks are those of mimic-plan-core. A message without a marker plans
+                         nothing ({go: false}).
+                         Marker grammar (one marker per message, on a line of its own that begins with `[`;
+                         prose that mentions it mid-line starts nothing):
+                           [record <set>... [chunk=<minutes>] [fresh]]    record each set's reference on a hosted runner
+                           [replay <set>... [rows=<prefix,...>]]          replay each set against its candidates, publish
+                                                                          the diff; rows= limits it to the rows that start
+                                                                          with a prefix and checks the known gaps of that slice
+                           <set>      a cassette set: its directory name, or its path from the repository root;
+                                      the directory holds a mimic.toml (a bare name that matches two is refused)
+                           chunk=<n>  minutes per `wf mimic record --max-minutes` call, 1 to 60 (default 10)
+                           fresh      drop the checkpoint of an earlier run: the record starts over
+                         At most 8 sets. A malformed marker, an unknown set, a record of a set without a
+                         [reference], a corpus and a [provision] block, or a replay of a set without a
+                         cassette and a [candidate] fails with the rule it breaks (exit 2).
+                         Prints {go, action: record|replay|null, chunk?, fresh?, rows?, sets: [names],
+                         matrix: {include: [{name, dir, provision, drivers, node, python, go, rust, checkpoint,
+                         candidates}]}, warnings, next}; --github-output appends go=, action=, chunk=, rows=,
+                         fresh= and matrix=
+
+Options:
+  -h, --help           display help for command
 ```
 
 </details>
@@ -1702,6 +2163,55 @@ Options:
 
 </details>
 
+### `wf ci prune`
+
+Delete the CI comments of older heads from the pull request.
+
+Usage: `wf ci prune [options]`
+
+Examples:
+
+```sh
+wf ci prune --pr 82 --dry-run
+wf ci prune --pr 82
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci prune [options]
+
+Removes the CI comments of heads the pull request has moved past, so the pull
+request carries only the latest head's comment of each workflow. A comment is
+deleted only when it is the Actions bot's (github-actions[bot]), its first line
+is exactly a CI marker, its run's head sha is known (GET actions/runs/<id>) and
+differs from the pull request's head, and its workflow is the caller's or a
+retired one (a flavor no ci-hosted*.yml label produces). A comment of another
+current workflow is left for that workflow's own run; a comment whose run cannot
+be resolved is kept. Human comments are never touched. `wf ci live` and
+`wf ci comment` run the same pass after they write their own comment.
+
+At most 25 comments are deleted per call (the output says "cap reached");
+WF_CI_PRUNE=off disables the pass. A failure is reported in the output and never
+fails the step: exit 0 always.
+
+Environment: GITHUB_TOKEN (pull-requests: write), GITHUB_REPOSITORY;
+optional GITHUB_REF_NAME (the branch whose pull request it is), GITHUB_RUN_ID
+(the calling run, whose own comment is never deleted), GITHUB_WORKSPACE (where
+.github/workflows is read for the current labels), GITHUB_API_URL.
+
+Output: one JSON line {ok, dryRun, head, deleted: [{id, scope, flavor, run, sha,
+why}], kept: [{id, why}], errors}.
+
+Options:
+  --pr <n>    the pull request (default: the open one of the branch)
+  --dry-run   list what would be deleted and send no DELETE
+  --commits   also prune the commit comments of the pull request's commits
+  -h, --help  display help for command
+```
+
+</details>
+
 ### `wf ci live`
 
 Update the run's one comment on the pull request.
@@ -1729,7 +2239,7 @@ the runner for the run, so an update downloads each only once.
 
 The comment is the last on the page: the CI comments of other runs are deleted,
 this run's is edited in place and made when the run has none. Every job of the CI
-calls it when it starts, the preflight job first (`start` is the same, spelled for
+calls it when it starts, the wf-build job first (`start` is the same, spelled for
 that job), and the report job ends the run with `wf ci comment`.
 
 Nothing is posted when the branch has no open pull request. A failure to comment
@@ -1779,8 +2289,9 @@ to finish is not live and valid. Checks run in parallel:
   env             GITHUB_TOKEN, GITHUB_REPOSITORY, GITHUB_RUN_ID, GITHUB_SHA
   secrets         every secret of the `ci` group (groups.json) is present and
                   usable (`wf secret verify --for ci`)
-  build-cache     both links resolve, and a probe object is written through the
-                  write link and read back through the read link
+  build-cache     every declared store resolves, a probe object is written to
+                  all of them and read back from each; an unreachable store
+                  fails and names itself, no store declared passes
   ledger          the database answers and the ledger's tables exist (a
                   warning only: the audit skips its task checks without it)
   vm-ops-api      a signed /health answers over the tailnet (every deploy leg
@@ -1790,9 +2301,6 @@ to finish is not live and valid. Checks run in parallel:
   runner-disk     10 GB free on the checkout's volume
   runner-memory   1 GB available
   github          the token is valid and 200 API calls are left
-  runner-version  the gh-runner image compose pins is not a minor behind GitHub's latest
-                  runner release (a warning only: a runner left behind restarts in a
-                  loop trying to update and its jobs store no log)
 
 Prints one JSON line {ok, failed: [names], checks: [{check, ok, required,
 detail, next}]} and a table in the job summary; exit 1 when a required check
@@ -1807,6 +2315,220 @@ Options:
   --skip <names>  comma separated checks to leave out (workspace, toolchain,
                   env, secrets, build-cache, ledger, services, runner, github)
   -h, --help      display help for command
+```
+
+</details>
+
+### `wf ci timings`
+
+What a run's jobs and steps took; --send makes them gauges
+
+Usage: `wf ci timings [--run <id>] [--send]`
+
+Examples:
+
+```sh
+wf ci timings --run 44567666031
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci timings [--run <id>] [--send]
+
+What a run's jobs took, from the Actions API: for each finished job its duration, the time it waited for a
+runner and its steps of 5 seconds or more; for each stage with several shards the spread (the slowest shard less
+the fastest) and the slowest shard; the run's wall time; the run's profile (runner seconds, peak and average concurrent jobs, queue waits, critical path, parallel efficiency). Prints one JSON line {ok, run, sent, timings, profile}. The jobs (with queued_s and the runner), every step and the profile are kept as rows of CI_JOBS, CI_STEPS and CI_RUN_PROFILE. With
+--send the same numbers go as gauges to the Better Stack source of the cache gauges (ci.job.duration_s,
+ci.job.queue_s, ci.step.duration_s, ci.stage.spread_s, ci.run.wall_s, ci.run.runner_s, peak_jobs, avg_jobs, queue_s_total, queue_s_max, critical_path_s, parallel_efficiency), best effort: a refusing or missing source
+costs a log line and never fails the run. In a CI run the run, repository and token are the run's own; elsewhere
+pass --run <id> with GITHUB_TOKEN (or `gh` signed in) and GITHUB_REPOSITORY (or an origin remote on GitHub).
+
+Options:
+  --run <id>  the run to read (default GITHUB_RUN_ID)
+  --send      also send the gauges
+  -h, --help  display help for command
+```
+
+</details>
+
+### `wf ci progress`
+
+A running run: the jobs not done, their step and time
+
+Usage: `wf ci progress [--run <id>]`
+
+Examples:
+
+```sh
+wf ci progress --run 44567666031
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci progress [--run <id>]
+
+A run that is going, in one call: how many jobs are done, running and not started, and for each job that is
+not done the step it is in, its elapsed time, the time it has waited for a runner, and what the same job took in
+the last green run of the branch. Prints one JSON line {ok, run, head, status, conclusion, progress}. The
+Actions API shows no log of a running job, so the step is the finest grain; the per-unit rows of the test stages
+(wf ci timings, the CI database) say more once a job ends.
+
+Options:
+  --run <id>  the run to read (default GITHUB_RUN_ID)
+  -h, --help  display help for command
+```
+
+</details>
+
+### `wf ci resources`
+
+What each job's runner did and what each Nx task saw of it
+
+Usage: `wf ci resources [--stats <dir>] [--ledgers <dir>] [--run <id>] [--send]`
+
+Examples:
+
+```sh
+wf ci resources --stats "$RUNNER_TEMP/runner-stats" --send
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci resources [--stats <dir>] [--ledgers <dir>] [--run <id>] [--send]
+
+What each job's runner did while it ran, from the sampler's stats-<job>.jsonl files (the report job downloads them to
+WF_CI_RUNNER_STATS_DIR): one row per job in CI_JOB_RESOURCES (cores, CPU average / p95 / max, I/O wait, memory and swap
+peaks, load, PSI cpu / memory / io peaks, disk read and write MB, duration, idle_s with the CPU under 25%, saturated_s with
+the CPU over 90% or CPU pressure over 20). The tasks Nx ran in a job (the NX_TASKS rows in the job's own database,
+<--ledgers>/ci-db-<job>/rows.sqlite, default $RUNNER_TEMP/ci-db) are joined with the samples over their interval:
+CI_TASK_RESOURCES holds, per task, seconds, its share of the stage's CPU seconds (Nx reports CPU per run, so it is split by
+milliseconds), cores_used, how many tasks ran at once, and the CPU average and memory peak the job showed meanwhile. The
+steps `wf ci timings` kept in the job-local database (CI_STEPS of the run) are laid over the same samples (a sample covers
+the seconds before its timestamp): CI_STEP_RESOURCES holds, per step, duration_s, idle_s (CPU under 25%), saturated_s and
+iowait_avg; a step no sample covers has no row, and a database with no CI_STEPS yet gives none. The job's samples are the
+file named after the job (`core-tests (1/3)` is stats-core-tests-1.jsonl). The job is the artifact's name, taken from the
+data. The rows go to the job-local database (`wf ci db merge` carries them on, each once).
+Prints one JSON line {ok, run, sent, jobs, tasks, steps}. With --send the same numbers go as gauges (ci.job.cpu_avg, cpu_p95,
+cpu_max, iowait_avg, mem_peak_mb, swap_peak_mb, psi_cpu_max, psi_mem_max, psi_io_max, idle_s, saturated_s; scope = job,
+name = workflow; and ci.step.idle_s for each step over 30 s; scope = job, name = step), best effort.
+
+Options:
+  --stats <dir>    the directory of stats-<job>.jsonl files (default WF_CI_RUNNER_STATS_DIR)
+  --ledgers <dir>  the directory of ci-db-<job>/rows.sqlite files (default $RUNNER_TEMP/ci-db)
+  --run <id>       the run the rows belong to (default GITHUB_RUN_ID)
+  --send           also send the gauges
+  -h, --help       display help for command
+```
+
+</details>
+
+### `wf ci concurrency`
+
+Busy and queued runner slots of the account against the cap of 20
+
+Usage: `wf ci concurrency [--phase start|end] [--run <id>]`
+
+Examples:
+
+```sh
+wf ci concurrency --phase start
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci concurrency [--phase start|end] [--run <id>]
+
+How many of the account's runner slots are taken right now, from the Actions API: the jobs in progress (busy) and queued
+of the repository's in-progress and queued runs, per workflow and in all (workflow `all`), against the cap of 20
+concurrent jobs (WF_CI_RUNNER_CAP overrides it). One row per workflow in CI_CONCURRENCY (TS, RUN_ID, PHASE, WORKFLOW,
+BUSY, QUEUED, RUNS_ACTIVE, CAP, HEADROOM; headroom is the account's, the cap less every busy job) in the job-local
+database, and the gauges ci.runners.busy, ci.runners.queued and ci.runners.headroom (scope = workflow, name = phase).
+Prints one JSON line {ok, run, phase, cap, busy, queued, runs_active, headroom, workflows}. Best effort: it always exits 0,
+an unreadable API is {ok:false, error, next}. The repository and token are the run's own (GITHUB_REPOSITORY, GITHUB_TOKEN).
+
+Options:
+  --phase <start|end>  where in the run the reading is taken (default start)
+  --run <id>           the run the row belongs to (default GITHUB_RUN_ID)
+  -h, --help           display help for command
+```
+
+</details>
+
+### `wf ci proven`
+
+The shards of a stage that already passed on the same inputs
+
+Usage: `wf ci proven --stage <stage> --count <n> --plan <file> [--fresh] [--no-lookup] [--github-output]`
+
+Examples:
+
+```sh
+wf ci proven --stage integration-tests --count 4 --plan plan.json --github-output
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci proven --stage <stage> --count <n> --plan <file> [--fresh] [--no-lookup] [--github-output]
+
+Which shards of a test stage already passed on the same inputs, so the workflow gives them no runner. A shard passed when a job marked it: the
+marker is a GitHub Actions cache entry named `proven-<stage>-<fingerprint>` that the shard's job saves after it passed (never a push of the
+state ref, which a job cannot do), and this verb asks the Actions cache API for it, on the run's own ref (GITHUB_REF). The fingerprint is the shard's
+key (its crates, what they depend on, the lock file) and the git object ids of what every test reads (.github, nx.json, mise.toml,
+rust-toolchain.toml, tooling, e2e). A shard of packages, a shard with no unit and a shard of a crate that declares `package.metadata.flow` inputs always run:
+their key does not cover what they read. --fresh (a run with the caches off) and --no-lookup prove nothing. An unreadable API proves nothing either.
+Prints one JSON line {schema: "ci-proven/1", ok, stage, count, run: [shards to run], proven: [shards to skip], shards: [{shard, key, proven, why}], warnings}.
+With --github-output it appends <stage_with_underscores>_run_shards=<json list> and <stage_with_underscores>_proof_keys=<json list, "" first so the 1-based
+matrix shard indexes it, "" for a shard that cannot be marked> to $GITHUB_OUTPUT. The repository and token are the run's own (GITHUB_REPOSITORY, GITHUB_TOKEN).
+
+Options:
+  --stage <stage>      the stage whose shards are asked about (integration-tests, cli-e2e-tests, ...)
+  --count <n>          how many shards the stage is dealt over
+  --plan <file>        the plan (`wf ci plan tests --json`)
+  --repo <dir>         the checkout the fingerprints are read from (default the current repository)
+  --fresh              prove nothing: every shard runs
+  --no-lookup          prove nothing, but still print the keys
+  --github-output      also write the step outputs
+  -h, --help           display help for command
+```
+
+</details>
+
+### `wf ci failed`
+
+The step of the running job that went red, read live
+
+Usage: `wf ci failed [--runner <name>] [--run <id>] [--notify]`
+
+Examples:
+
+```sh
+wf ci failed --runner "GitHub Actions 7"
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci failed [--runner <name>] [--run <id>] [--notify]
+
+The step of the job you are in that went red, read live from the Actions API while the job (and the rest of its steps) still runs; a
+job's log text is only published when it ends, its steps are not. The job is the running one on this runner (RUNNER_NAME). Prints one JSON line
+{ok, run, job, url, failed_steps, annotations, task, logged, live, notified}. When a step is red it
+  - sends the log line `ci.job.failed` (run, job, step, task, excerpt, sha, scrubbed, annotations) to the OTLP logs ingest (logged),
+  - refreshes the run's pull request comment (`wf ci live`), which then shows the job as "failing now" (live),
+  - with --notify, posts the same fields as one JSON body to CI_FAILURE_HOOK_URL (environment, else the vault); without a URL that is a no-op (notified: null).
+annotations is how many error annotations the API shows for the running job (null: unreadable). Exit 0 always: a report from inside a failing job
+is never a second failure. WF_CI_LOGS=off skips the log line.
+
+Options:
+  --runner <name>  the runner whose running job to read (default RUNNER_NAME)
+  --run <id>       the run (default GITHUB_RUN_ID)
+  --notify         post to CI_FAILURE_HOOK_URL
+  -h, --help       display help for command
 ```
 
 </details>
@@ -1864,6 +2586,114 @@ exit stays 0: a failure to report never fails the run.
 
 Options:
   -h, --help  display help for command
+```
+
+</details>
+
+### `wf ci cache-misses`
+
+Why each task of this run ran instead of replaying, and the replay rate per stage.
+
+Usage: `wf ci cache-misses [options]`
+
+Examples:
+
+```sh
+wf ci cache-misses --send
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci cache-misses [options]
+
+Give every Nx task of this CI run that ran instead of replaying one reason, and
+say how often a hash that had already been executed replayed. Run it in the
+report job, after the jobs' databases are downloaded (WF_CI_LEDGERS): it opens
+the sealed CI database (CI_DB_KEY, or WF_CI_SEALED_FILE), merges this run's job
+files over it in a private copy, and decides each reason from what the jobs
+recorded (NX_TASKS: workflow, cache stage, whether the restored cache directory
+and Nx's cache_outputs table held the hash; CI_CACHE_EVENTS: the restores and
+saves). `wf ci db merge` stores the same reasons in NX_TASKS.MISS_REASON and
+MISS_DETAIL.
+
+Reasons (one per task that ran):
+  never-stored             no earlier run executed this hash: the inputs changed
+  restore-failed           the job's Nx cache restore failed; it ran on an empty cache
+  restore-timeout          the restore timed out
+  earlier-save-skipped     an earlier run of this workflow and shard executed the hash
+                           and its save gate skipped the save
+  earlier-save-failed      the same, and the save failed or the job ended before it
+  restored-but-reran       the restored directory and Nx's table held the hash, and
+                           the task ran anyway
+  restored-without-db-row  the directory held it, Nx's table had no row for it
+  restored-older-entry     the restore matched an entry older than the run that stored it
+  stored-entry-missing     the save landed, the restore is not older, the hash is gone
+  stored-by-other-shard    only another shard of the cache partition executed it
+  stored-by-other-workflow only another workflow executed it
+  uncacheable-by-design    the target is declared cache: false
+  unknown                  the lineage or the saves of the earlier run were not recorded
+
+Everything but never-stored and uncacheable-by-design is cache work that went to
+waste. Prints one JSON object {ok, run, ran, breakdown: [{reason, tasks, seconds,
+avoidable}], misses: [{run, job, cacheStage, task, hash, ms, reason, detail}],
+problems: [{job, layer, phase, outcome, key, reason}], rates: [{stage, tasks, replayed,
+inputsChanged, seenBefore, exactReplayPercent}]}, and for an avoidable miss one line
+`::warning title=cache misses under a hash that ran before::<n> task(s), <time> lost:
+<reason> x<n> (<time>), ...`. A run it cannot read says so ({ok: null, reason}); it
+always exits 0.
+
+Options:
+  --send      send the gauges ci.nx.miss_tasks{stage,reason}, ci.nx.miss_s{stage,reason}
+              and ci.nx.exact_replay_ratio{stage}
+  -h, --help  display help for command
+```
+
+</details>
+
+### `wf ci db`
+
+The sealed CI database on the state ref: what CI used to send to HEALTH_RPT through ORDS.
+
+Usage: `wf ci db <merge|record|query> [--sealed-file <path>] ...`
+
+Examples:
+
+```sh
+wf ci db query "SELECT JOB, AVG(SECS) FROM CI_JOBS GROUP BY JOB"
+wf ci db merge "$RUNNER_TEMP"/ci-db/*/rows.sqlite
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci db <merge|record|query> [--sealed-file <path>] ...
+
+The CI database: what CI used to send to HEALTH_RPT through ORDS (test runs,
+usage of the commands, health reports, the ledger of tasks and jobs), kept as one SQLite
+file sealed with XChaCha20-Poly1305 under CI_DB_KEY on the state ref
+(refs/wf/state, ci/ci.sqlite.sealed).
+
+  merge <rows.sqlite>...   fold the jobs' local databases into the sealed one
+                           and push it (the report job); a row already held is
+                           kept once
+  record <table> <json>    add one JSON row to this job's local database
+                           (WF_CI_DB, else $RUNNER_TEMP/wf-ci-db/rows.sqlite on
+                           a hosted runner); tables TEST_RESULTS, WF_USAGE,
+                           HEALTH_REPORTS
+  query <sql>              run one statement on an unsealed copy and print its
+                           rows as JSON
+
+Tables (real columns, so plain SQL works): TEST_RESULTS (one row per published
+test run: verdict, duration_s, harness, suite_or_runbook, sha, tests_total...),
+WF_USAGE (one per wf command: command, exit_code, duration_ms, error), NX_TASKS
+(one per Nx task of a run: task, hash, outcome ran or hit, ms, passed) and
+CI_JOBS (one per job: secs, queued). A JSON key with no column is kept in EXTRA.
+
+Options:
+  --sealed-file <path>     read and write a sealed file instead of the state ref
+
+Output: one JSON object; `ok` false with `error` and `next` on a failure.
 ```
 
 </details>
@@ -2147,12 +2977,12 @@ Commands:
 
 Attach this directory to the rca service as an executor: open
 
-Usage: `wf exec serve --rca-url <url> --workspace <id> --root <dir> [--executor <id>] [--worktree-base <dir>] [--browse-allow <dirs>] [--reconnect] [--git-hooks] [--secret-env NAME]`
+Usage: `wf exec serve --rca-url <url> --workspace <id> --root <dir> [--executor <id>] [--worktree-base <dir>] [--browse-allow <dirs>] [--reconnect] [--reconnect-for <secs>] [--git-hooks] [--secret-env NAME]`
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf exec serve --rca-url <url> --workspace <id> --root <dir> [--executor <id>] [--worktree-base <dir>] [--browse-allow <dirs>] [--reconnect] [--git-hooks] [--secret-env NAME]
+Usage: wf exec serve --rca-url <url> --workspace <id> --root <dir> [--executor <id>] [--worktree-base <dir>] [--browse-allow <dirs>] [--reconnect] [--reconnect-for <secs>] [--git-hooks] [--secret-env NAME]
 
 Attach this directory to the rca service as an executor: open
 GET /exec/v2/executors?workspace=<id> (a WebSocket, Authorization: Bearer) and
@@ -2178,12 +3008,21 @@ Options:
                               --root and --worktree-base
   --reconnect                 When the channel drops (not a close with 4001), open
                               it again for the same executor: its ptys go on and
-                              rca re-attaches to them by byte offset
+                              rca re-attaches to them by byte offset; the pause
+                              doubles from 200 ms to 5 s
+  --reconnect-for <secs>      How long --reconnect keeps trying (default 900); then
+                              it prints {"event":"gave_up"} and exits 1
   --git-hooks                 Let the repository's own hooks run in the git actions
                               (commit, merge, rebase, checkout, ...); off by default
   --secret-env <NAME>         The environment variable holding the bearer (default
                               CHAT_AGENT_API_SECRET); the value is never printed
   -h, --help                  display help for command
+
+Environment only (no option):
+  RCA_EXEC_ARTIFACT_ALLOW     Colon-separated directories whose files the artifact
+                              actions (terminal-printed files) serve besides what
+                              lies below the workspace; unset or empty, they serve
+                              the workspace only. Each must exist.
 
 Output, one JSON object per line: {ok: true, event: "attached", workspace,
 executor, root, worktreeBase, rcaUrl} once the channel is open, then on a clean
@@ -2329,8 +3168,8 @@ npm-tarball are named but not built yet.
 The bucket registry (alias mla) is a public bucket (read without listing) that holds only the
 index at index/ (config.json and one file per crate) and the .crate files at
 crates/<name>/<version>.crate. The libraries are public source, so a release publishes only
-files git tracks, committed, from a HEAD origin/dev already holds, with no credential-shaped
-string in them; anything else stops the release before it uploads. Readers (Cargo, `status`)
+files git tracks, committed, from a HEAD origin/dev already holds, that the manifest's `include` names, with no
+credential-shaped string and no vault value in them; anything else stops the release before it uploads. Readers (Cargo, `status`)
 fetch it with a plain GET (indexUrl); Cargo's config.json sends downloads to
 <bucket>/crates/. Writers (`release`, `prune`) write with LIBS_INDEX_WRITE_PAR_URL (a
 pre-authenticated write link ending in /o/). `prune` also needs the operator's `oci` CLI and ~/.oci.
@@ -2369,6 +3208,9 @@ and when that fails the manifest is put back. A version is never replaced: a
 second release of a version is refused before anything is touched, and a fix is
 a new version.
 
+git-sparse: the bucket-sparse layout under registry/ of this repository (crates/, index/, index/config.json): the
+entry is written, committed and pushed to dev, readers fetch it at indexUrl (raw.githubusercontent.com). The checkout must
+hold the registry as origin/dev does; a failed commit or push removes what was written. No link is needed.
 bucket-sparse: `cargo package` the crate, upload crates/<name>/<version>.crate
 with an if-absent write, append the version to the crate's sparse index file
 (index/1/a, index/2/ab, index/3/a/abc, index/ab/cd/abcd...; the current file is read
@@ -2376,9 +3218,12 @@ with a plain GET) and write index/config.json, all in the one public bucket. con
 `dl` is <bucket base>/crates/{crate}/{version}.crate, derived from indexUrl; it holds no
 bucket link and no api field. Before anything is touched the release refuses: a HEAD that
 origin/dev does not hold, a file of the package that git does not track or that differs
-from HEAD, and any file with a credential-shaped string (a private key, a GitHub, AWS or
-Slack token, a JWT, an Oracle id): the bucket is public, so it may hold only what the
-public repository holds. After a release, commit and push the bumped manifest before the next.
+from HEAD, a manifest without an `include` list (a library ships only the paths it names), any
+file with a credential-shaped string (a private key, a GitHub, AWS, Slack or provider key, a
+JWT, a bearer token, a signed link, an Oracle id, a secret-named value assigned a literal) and any
+file holding a value the vault holds (the vault must be readable): the bucket is public, so it may
+hold only what the public repository holds. A hit is fixed by reading the value at runtime, never by
+skipping the release. After a release, commit and push the bumped manifest before the next.
 cargo-publish: `cargo publish --registry <alias>` with the registry and its token
 passed in the environment of that one child. A library whose own dependencies on
 other libraries are still paths is refused by cargo packaging: release in
@@ -2610,7 +3455,7 @@ Pass = the script exits 0. Exit 0 when it passed, 1 otherwise.
 Arms:
   sonnet     claude -p --model sonnet --output-format json (no tools, no MCP,
              outside the repo); cost and tokens from its JSON
-  opencode   the cheap-model ladder (`wf offload ask`'s rotation, read-only, caller
+  opencode   the cheap-model ladder (`wf rca ask`'s rotation, read-only, caller
              agent-proof); the first rung that answers
   scripted   no agent: runs --script (default
              e2e/agent-proof.lua), the floor
@@ -2754,12 +3599,12 @@ Usage: `wf knowledge index [options]`
 | Option | Meaning |
 |---|---|
 | `--write` | write the docs/solutions index file instead of printing it |
-| `--gemini` | build the Gemini Gem context bundle (repomix --compress skeleton, ARCHITECTURE.md drafted by `wf offload ask`, the full repomix pack, one upload) |
+| `--gemini` | build the Gemini Gem context bundle (repomix --compress skeleton, ARCHITECTURE.md drafted by `wf rca ask`, the full repomix pack, one upload) |
 | `--remote <dest>` | --gemini: <drive-folder-id>/<file-name> (credential: the gcloud login with Drive access) or local:<dir>/<file-name> (default: $GEMINI_CONTEXT_REMOTE) |
 | `--prompt <path>` | --gemini: the ARCHITECTURE.md prompt (default: "docs/gemini-context/architecture-prompt.md") |
 | `--cache-dir <path>` | --gemini: gitignored scratch dir for the skeleton, the pack and the bundle (default: ".gemini-context-cache") |
 | `--manifest <path>` | --gemini: committed record of the last upload (default: "docs/gemini-context/manifest.json") |
-| `--no-summary` | --gemini: reuse the cached ARCHITECTURE.md, skip the model |
+| `--no-summary` | --gemini: reuse the cached ARCHITECTURE.md, skip the model (no cache: falls back to a full summary run) |
 | `--dry-run` | --gemini: build the bundle, skip the upload and the manifest |
 
 Examples:
@@ -2780,7 +3625,7 @@ repomix bundle and upload it over one Drive file for the Gemini Gem
 Options:
   --write             write the docs/solutions index file instead of printing it
   --gemini            build the Gemini Gem context bundle (repomix --compress
-                      skeleton, ARCHITECTURE.md drafted by `wf offload ask`, the
+                      skeleton, ARCHITECTURE.md drafted by `wf rca ask`, the
                       full repomix pack, one upload)
   --remote <dest>     --gemini: <drive-folder-id>/<file-name> (credential: the
                       gcloud login with Drive access) or local:<dir>/<file-name>
@@ -2791,7 +3636,7 @@ Options:
                       pack and the bundle (default: ".gemini-context-cache")
   --manifest <path>   --gemini: committed record of the last upload (default:
                       "docs/gemini-context/manifest.json")
-  --no-summary        --gemini: reuse the cached ARCHITECTURE.md, skip the model
+  --no-summary        --gemini: reuse the cached ARCHITECTURE.md, skip the model (no cache: falls back to a full summary run)
   --dry-run           --gemini: build the bundle, skip the upload and the
                       manifest
   -h, --help          display help for command
@@ -2859,24 +3704,24 @@ Options:
 
 </details>
 
-## offload
+## rca
 
-### `wf offload`
+### `wf rca`
 
 Work on the cheap-model ladder, and the ladder's administration
 
-Usage: `wf offload [options] [command]`
+Usage: `wf rca [options] [command]`
 
 Examples:
 
 ```sh
-wf offload
+wf rca
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload [options] [command]
+Usage: wf rca [options] [command]
 
 Work on the cheap-model ladder, and the ladder's administration
 
@@ -2894,15 +3739,17 @@ Commands:
                            sync-pricing
   sessions                 The sessions the rca service keeps: rm
   bearers                  The rca service's device bearers: mint, list, revoke
+  login                    The agent CLIs' logins at the workspace host: start,
+                           respond, complete, cancel, status, logout
 ```
 
 </details>
 
-### `wf offload ask`
+### `wf rca ask`
 
 Run one prompt on the cheap-model ladder (rca): an argument, --prompt, --prompt-file, or - for stdin.
 
-Usage: `wf offload ask [options] [prompt]`
+Usage: `wf rca ask [options] [prompt]`
 
 | Option | Meaning |
 |---|---|
@@ -2914,15 +3761,15 @@ Usage: `wf offload ask [options] [prompt]`
 Examples:
 
 ```sh
-wf offload ask --runbook persistent-session-services
-wf offload ask and the Anthropic credential policy
-wf offload ask --savings
+wf rca ask --runbook persistent-session-services
+wf rca ask and the Anthropic credential policy
+wf rca ask --savings
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload ask [options] [prompt]
+Usage: wf rca ask [options] [prompt]
 
 Run one prompt on the cheap-model ladder (rca): an argument, --prompt,
 --prompt-file, or - for stdin.
@@ -2937,25 +3784,25 @@ Options:
 
 </details>
 
-### `wf offload stats`
+### `wf rca stats`
 
-The run-log summary of the cheap-model ladder (the same as `wf offload ask --stats`)
+The run-log summary of the cheap-model ladder (the same as `wf rca ask --stats`)
 
-Usage: `wf offload stats [options]`
+Usage: `wf rca stats [options]`
 
 Examples:
 
 ```sh
-wf offload stats --json
+wf rca stats --json
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload stats [options]
+Usage: wf rca stats [options]
 
 The run-log summary of the cheap-model ladder: okRate, p50 and cost per shape,
-tier, model and pool (the same as `wf offload ask --stats`)
+tier, model and pool (the same as `wf rca ask --stats`)
 
 Options:
   --json      output machine-readable JSON lines
@@ -2964,11 +3811,11 @@ Options:
 
 </details>
 
-### `wf offload plan`
+### `wf rca plan`
 
 Run docs/plans/<slug>/units.jsonl on git-leased worktrees (the git-state worker); --check only validates the plan, --status shows each unit.
 
-Usage: `wf offload plan [options] <slug>`
+Usage: `wf rca plan [options] <slug>`
 
 | Option | Meaning |
 |---|---|
@@ -2983,15 +3830,15 @@ Usage: `wf offload plan [options] <slug>`
 Examples:
 
 ```sh
-wf offload plan --check device-lab
-wf offload plan --site sandbox
-wf offload plan vm-puppeteer
+wf rca plan --check device-lab
+wf rca plan --site sandbox
+wf rca plan vm-puppeteer
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload plan [options] <slug>
+Usage: wf rca plan [options] <slug>
 
 Run docs/plans/<slug>/units.jsonl on git-leased worktrees (the git-state
 worker); --check only validates the plan, --status shows each unit.
@@ -3011,24 +3858,24 @@ Options:
 
 </details>
 
-### `wf offload sessions`
+### `wf rca sessions`
 
-The sessions the rca service keeps for `wf offload ask`
+The sessions the rca service keeps for `wf rca ask`
 
-Usage: `wf offload sessions [options] [command]`
+Usage: `wf rca sessions [options] [command]`
 
 Examples:
 
 ```sh
-wf offload sessions
+wf rca sessions
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload sessions [options] [command]
+Usage: wf rca sessions [options] [command]
 
-The sessions the rca service keeps for `wf offload ask`
+The sessions the rca service keeps for `wf rca ask`
 
 Options:
   -h, --help       display help for command
@@ -3040,25 +3887,25 @@ Commands:
 
 </details>
 
-### `wf offload sessions rm`
+### `wf rca sessions rm`
 
 Drop every session a caller made
 
-Usage: `wf offload sessions rm [options]`
+Usage: `wf rca sessions rm [options]`
 
 Examples:
 
 ```sh
-wf offload sessions rm --caller e2e-run-1
+wf rca sessions rm --caller e2e-run-1
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload sessions rm --caller <name>
+Usage: wf rca sessions rm --caller <name>
 
 Drops every session the caller `<name>` made on the rca service (the `--caller`
-of `wf offload ask`): each is deleted from opencode, which gives its memory
+of `wf rca ask`): each is deleted from opencode, which gives its memory
 back, and its kept directory is removed. A test that is done with its sessions
 says so instead of leaving them to the service's expiry (three hours idle).
 
@@ -3072,22 +3919,22 @@ Options:
 
 </details>
 
-### `wf offload bearers`
+### `wf rca bearers`
 
 The device bearers of the rca service's agent API socket
 
-Usage: `wf offload bearers [options] [command]`
+Usage: `wf rca bearers [options] [command]`
 
 Examples:
 
 ```sh
-wf offload bearers
+wf rca bearers
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload bearers [options] [command]
+Usage: wf rca bearers [options] [command]
 
 The device bearers of the rca service's agent API socket
 
@@ -3103,22 +3950,22 @@ Commands:
 
 </details>
 
-### `wf offload bearers mint`
+### `wf rca bearers mint`
 
 Mint a device bearer and print its token, once
 
-Usage: `wf offload bearers mint --label <name>`
+Usage: `wf rca bearers mint --label <name>`
 
 Examples:
 
 ```sh
-wf offload bearers mint --label t3
+wf rca bearers mint --label t3
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload bearers mint --label <name>
+Usage: wf rca bearers mint --label <name>
 
 Mints a device bearer on the rca service and prints its token: the one credential
 a mapper (wf t3 serve) or a phone opens the agent API socket (/agent/v1/socket)
@@ -3137,22 +3984,22 @@ Options:
 
 </details>
 
-### `wf offload bearers list`
+### `wf rca bearers list`
 
 List the device bearers that were not revoked
 
-Usage: `wf offload bearers list`
+Usage: `wf rca bearers list`
 
 Examples:
 
 ```sh
-wf offload bearers list
+wf rca bearers list
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload bearers list
+Usage: wf rca bearers list
 
 Lists the device bearers of the rca service that were not revoked, oldest first:
 their id, label and creation time, never a token.
@@ -3166,24 +4013,24 @@ Options:
 
 </details>
 
-### `wf offload bearers revoke`
+### `wf rca bearers revoke`
 
 Revoke a device bearer
 
-Usage: `wf offload bearers revoke <id>`
+Usage: `wf rca bearers revoke <id>`
 
 Examples:
 
 ```sh
-wf offload bearers revoke bearer-1a2b3c4d5e6f
+wf rca bearers revoke bearer-1a2b3c4d5e6f
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload bearers revoke <id>
+Usage: wf rca bearers revoke <id>
 
-Revokes the device bearer with that id (from `wf offload bearers list`): its token
+Revokes the device bearer with that id (from `wf rca bearers list`): its token
 opens the agent API socket no longer, from the next connection on. A socket that
 is open stays open until it closes.
 
@@ -3196,23 +4043,220 @@ Options:
 
 </details>
 
-### `wf offload ladder`
+### `wf rca login`
 
-The cheap-model ladder's administration
+The agent CLIs' own logins at the workspace host, over the rca service's agent socket
 
-Usage: `wf offload ladder [options] [command]`
+Usage: `wf rca login [options] [command]`
 
 Examples:
 
 ```sh
-wf offload ladder sync-pricing
-wf offload ladder clear-cooldown minimax
+wf rca login
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload ladder [options] [command]
+Usage: wf rca login [options] [command]
+
+The agent CLIs' own logins (claude, codex, opencode) at the workspace host, run over the
+rca service's agent socket: no SSH, no T3 or Orca needed
+
+Options:
+  -h, --help                      display help for command
+
+Commands:
+  start [options] <provider>      Start a provider's login and print its address and code
+  respond <auth> <text>           Paste a code into a login that waits for one
+  complete [options] <auth>       Wait until a login ends and print how
+  cancel <auth>                   End a running login
+  status                          List each provider and whether it is signed in
+  logout <provider>               Sign a provider out
+  help [command]                  display help for command
+```
+
+</details>
+
+### `wf rca login start`
+
+Start a provider's login and print its address and code
+
+Usage: `wf rca login start [--method <name>] <provider>`
+
+Examples:
+
+```sh
+wf rca login start codex
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf rca login start [--method <name>] <provider>
+
+Starts the provider's own login (claude, codex or opencode: claudeAgent, codex, opencode)
+at the workspace host and prints {ok, result: {auth, status, url, code}} once its prompt
+is printed. Open the url, enter the code (or `respond` with the pasted code), then
+`complete <auth>`. The service secret (CHAT_AGENT_API_SECRET) mints a bearer for the call
+and revokes it after; RCA_AGENT_BEARER reuses one. Exit 0, 1 on a refusal ({ok: false,
+error, code, next}), 2 on a malformed line.
+
+Options:
+  --method <name>  device_code or paste, when the CLI offers both
+  -h, --help       display help for command
+```
+
+</details>
+
+### `wf rca login respond`
+
+Paste a code into a login that waits for one
+
+Usage: `wf rca login respond <auth> <text>`
+
+Examples:
+
+```sh
+wf rca login respond auth-1 ABCD-1234
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf rca login respond <auth> <text>
+
+Sends the code a person pasted to a login that waits for one (a paste login), one line.
+Prints {ok, result: {auth, status, ...}}.
+
+Options:
+  -h, --help  display help for command
+```
+
+</details>
+
+### `wf rca login complete`
+
+Wait until a login ends and print how
+
+Usage: `wf rca login complete [--wait <seconds>] <auth>`
+
+Examples:
+
+```sh
+wf rca login complete auth-1 --wait 120
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf rca login complete [--wait <seconds>] <auth>
+
+Waits until the login ends (succeeded, failed or cancelled) or the wait is over (300 s by
+default, at most the service's cap) and prints its state; a login that succeeded left the
+CLI signed in at the workspace host.
+
+Options:
+  --wait <seconds>  how long to wait (default 300)
+  -h, --help        display help for command
+```
+
+</details>
+
+### `wf rca login cancel`
+
+End a running login
+
+Usage: `wf rca login cancel <auth>`
+
+Examples:
+
+```sh
+wf rca login cancel auth-1
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf rca login cancel <auth>
+
+Ends a running login. Prints {ok, result: {auth, status: "cancelled"}}.
+
+Options:
+  -h, --help  display help for command
+```
+
+</details>
+
+### `wf rca login status`
+
+List each provider and whether it is signed in
+
+Usage: `wf rca login status`
+
+Examples:
+
+```sh
+wf rca login status
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf rca login status
+
+Lists each provider with its status (signed_in, signed_out or authenticating), the login
+methods its CLI offers and which one new turns use by default.
+
+Options:
+  -h, --help  display help for command
+```
+
+</details>
+
+### `wf rca login logout`
+
+Sign a provider out
+
+Usage: `wf rca login logout <provider>`
+
+Examples:
+
+```sh
+wf rca login logout codex
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf rca login logout <provider>
+
+Signs the provider out at the workspace host (its CLI's logout, then its credential file is
+gone) and prints the provider's new status.
+
+Options:
+  -h, --help  display help for command
+```
+
+</details>
+
+### `wf rca ladder`
+
+The cheap-model ladder's administration
+
+Usage: `wf rca ladder [options] [command]`
+
+Examples:
+
+```sh
+wf rca ladder sync-pricing
+wf rca ladder clear-cooldown minimax
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf rca ladder [options] [command]
 
 The cheap-model ladder's administration
 
@@ -3227,22 +4271,22 @@ Commands:
 
 </details>
 
-#### `wf offload ladder clear-cooldown`
+#### `wf rca ladder clear-cooldown`
 
 Drop a pool from the cooldown list so the ladder tries it again
 
-Usage: `wf offload ladder clear-cooldown [options] <pool>`
+Usage: `wf rca ladder clear-cooldown [options] <pool>`
 
 Examples:
 
 ```sh
-wf offload ladder clear-cooldown
+wf rca ladder clear-cooldown
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload ladder clear-cooldown [options] <pool>
+Usage: wf rca ladder clear-cooldown [options] <pool>
 
 Drop a pool from the cooldown list so the ladder tries it again
 
@@ -3252,22 +4296,22 @@ Options:
 
 </details>
 
-#### `wf offload ladder sync-pricing`
+#### `wf rca ladder sync-pricing`
 
 Refresh model-pricing.json from the OpenRouter model list
 
-Usage: `wf offload ladder sync-pricing [options]`
+Usage: `wf rca ladder sync-pricing [options]`
 
 Examples:
 
 ```sh
-wf offload ladder sync-pricing
+wf rca ladder sync-pricing
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload ladder sync-pricing [options]
+Usage: wf rca ladder sync-pricing [options]
 
 Refresh model-pricing.json from the OpenRouter model list
 
@@ -3300,6 +4344,8 @@ reference's whole API and a request corpus from its pinned source; `stabilize` i
 the mask rules that make several recordings of one corpus equal; `remask` applies a
 changed rules.json to a committed set and re-seals it; `import` and `export`
 convert legacy CLI fixtures into an imported set and prove the conversion lossless.
+`coverage` and `track` keep the phone apps' coverage tables (docs/plans/rca-parity/plan.md
+section 5) and follow the pins of the real servers the sets are recorded from.
 
 This is the separate binary wf-mimic: `wf mimic ...` runs `wf-mimic mimic ...`
 in its place, found beside wf, else on PATH, so a change here rebuilds
@@ -3320,6 +4366,12 @@ mimic.toml (paths relative to the file):
   allowlist = "allowlist.json"     (optional; entries may carry "pin_hash")
   [reference]                      the pinned program a record runs
   driver = "stdio"                 command = ["node", "driver.mjs"]
+  driver = "script"                the step interpreter plays the corpus's `script` cases itself (docs/plans/mimic/step-language.md):
+  [reference.script]               target = "spawn" (the release the pin names, verified by sha256, started in a hermetic host)
+                                   or "url" (addr = "127.0.0.1:7000", workspace = "/w", mint = ["cmd"] prints a credential)
+                                   or "orca" (the phone's own client in a sidecar: sidecar = ["node", "cli.ts", "sidecar", "orca"],
+                                   env_pass = ["ORCA_PAIRING_URI"] names the variables it gets, never a value);
+                                   cache, cli_dir (default $MIMIC_CLI_DIR, else $T3_CLI_DIR), prelude = "prelude.json", session, ready_ms, settle_ms, first_answer_ms, quiet_cap_ms
   cwd, env, timeout_ms             name, version, commit
   pin = "pin.json"                 version_pointer = "/version", commit_pointer
   [candidate.<name>]               the program a replay runs (same keys)
@@ -3329,10 +4381,10 @@ mimic.toml (paths relative to the file):
                                    channel, tag, chunk, values, once, squash (see wf mimic diff)
   [record]                         batch, write_chunk, stability_pct (the flags of wf mimic record)
   live_when_named = "why"          in [reference]: `verify --all --live` skips it, `verify <set> --live` runs it
-  [record]                         allow_nondeterministic (default false), args: what `wf mimic job record`
+  [record]                         allow_nondeterministic (default false), args: what `wf mimic capture record`
                                    adds to the record call of the set
-  [provision] / provision_file     how a runner installs the reference (wf mimic provision --help); the
-                                   VM runs it for a [record <set>] commit marker (wf mimic trigger --help)
+  [provision] / provision_file     how a runner installs the reference (wf mimic capture --help); the
+                                   VM runs it for a [record <set>] commit marker (`wf ci plan mimic --help`)
 
 Every verb prints one JSON object on stdout with "schema": "mimic-<verb>/1",
 "ok", "warnings" and "next" (the one command to run next), never prompts, and
@@ -3347,10 +4399,11 @@ Commands:
   replay [options] <set>      Run the cassette's inputs against a candidate and diff
   diff [options] <a> <b>      Diff two cassette sets
   verify [options] [set...]   Check sets are fresh and intact (offline)
-  trigger [options]           Read the marker of a commit message into the capture jobs it asks for
-  provision [options] <set>   Install a set's reference as its [provision] block says
-  job [options] <record|replay> <set>  One capture job: chunked record, or replay and diff table
-  publish [options] <set>...  Upload recorded sets to the bucket as one run
+  coverage [options]          Scan the pinned reference and write, or check, the app's method list and coverage table
+  track <verb> [options]      Is the pinned reference the newest release of the real server: check, bump, plan, report
+  capture [options] <record|replay> <set>  Provision a set's reference, then run its chunked record or replay and diff table
+  scan [options] <dir...>     Scan a real-agent run's output for the exact values of its credentials
+  exec [options] -- <command...>  Run a command with the real agent CLIs' credentials, then scan its output
   fetch [options] <run-id|latest>  Download a published run into this checkout
   import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set
   export [options] <format> <set>  Rebuild the legacy files of an imported set and check their hashes
@@ -3443,9 +4496,22 @@ Options:
   --target <file>             mimic.toml to use (default <set>/mimic.toml)
   --candidate <name>          the [candidate.<name>] to run (default: the only one)
   --only <id,...>             replay these interactions only
+  --rows <prefix,...>         replay the interactions of the rows that start with a prefix (rpc:git.,http:voice.): a milestone's slice;
+                              with --only, the ids of both; "chosen" in the output says how many
+  --gaps check|write          compare the differences with the set's known-gaps.json (check: a difference not listed, or a listed gap that no
+                              longer differs as listed, fails) or write them there (write: the chosen interactions' groups are replaced,
+                              the others kept); only the chosen interactions (--rows, --only) are compared. "gaps" holds the result
   --allowlist <file>          replace the allowlist of mimic.toml
+  --addr <host:port>          a `target = "url"` candidate: the server to play against, when it is started by the caller and has no
+                              fixed address (mimic.toml needs no addr then)
+  --workspace <path>          the server's workspace folder, as seen by the server (masked in steps)
+  --mint "<command> <arg>..." the command that prints one credential per pairing, split on spaces (its JSON `credential`, `token`, `code`
+                              or plain output is used)
+  --cli-dir <dir>             the directory of scripted agent CLIs the server's PATH starts first (a `target = "url"` candidate): a case's
+                              `cli.script` step writes the turns of its agent CLI there
   --suite <name>              write $WF_TEST_OUTPUT_DIR/<name>/report.json and
-                              trace.json (method-trace/1 with each call's row and diff, and its test's cassette kind)
+                              trace.json (method-trace/1 with each call's row and diff, its wall-clock window startMs/endMs, and
+                              its test's cassette kind; a session's own setup runs before the first window opens)
   -h, --help                  display help for command
 
 Output (schema mimic-replay/1):
@@ -3522,7 +4588,7 @@ mobile app and of the CLI, the CLI's own command specs) and writes beside it:
 `wf mimic record` then runs corpus.json against the real server.
 
 The completeness guard fails (exit 1, nothing written) when the pinned source's own
-listing (the committed catalog, written by `wf parity coverage`) names an endpoint the
+listing (the committed catalog, written by `wf mimic coverage`) names an endpoint the
 crawl lacks ("lags-source"), an endpoint has no case and no skip reason ("uncovered"),
 a schema-derived endpoint lacks a valid or an invalid case ("missing-class"), a case names
 no endpoint, the inventory's class counts differ from the cases, or the crawl was made
@@ -3763,64 +4829,81 @@ Output (schema mimic-export/1):
 
 </details>
 
-### `wf mimic trigger`
+### `wf mimic capture`
 
-Read the marker of a commit message and say which capture jobs it asks for. The
+The capture of one set on a runner, in four phases, in one call.
 
-Usage: `wf mimic trigger [options]`
-
-<details><summary>Full help</summary>
-
-```text
-Usage: wf mimic trigger [options]
-
-Read the marker of a commit message and say which capture jobs it asks for. The
-record-references workflow runs this on the head commit of every push to dev
-whose message carries a marker; it is the one place the marker is parsed.
-
-Marker grammar (one marker per message, on a line of its own that begins with `[`;
-prose that mentions it mid-line, and a message without one, start nothing):
-  [record <set>... [chunk=<minutes>] [fresh]]    record each set's reference on the VM runner
-  [replay <set>...]                              replay each set against its candidates, publish the diff
-  <set>      a cassette set: its directory name, or its path from the repository root;
-             the directory holds a mimic.toml (a bare name that matches two is refused)
-  chunk=<n>  minutes per `wf mimic record --max-minutes` call, 1 to 60 (default 10)
-  fresh      drop the checkpoint of an earlier run: the record starts over
-  At most 8 sets. A malformed marker, an unknown set, a record of a set without a
-  [reference], a corpus and a [provision] block, or a replay of a set without a
-  cassette and a [candidate] fails with the reason (exit 2).
-
-Options:
-  --message <text>            the commit message
-  --file <path>               read it from a file, or - for stdin
-  --root <dir>                the repository root the sets are searched under (default: this checkout)
-  -h, --help                  display help for command
-
-Output (schema mimic-trigger/1):
-  {schema, ok, go, action: record|replay|null, chunk?, fresh?, sets: [names],
-  matrix: {include: [{name, dir, provision, drivers, node, python, go, rust, checkpoint,
-  candidates}]}, warnings, next}   (the workflow reads each matrix key by name)
-```
-
-</details>
-
-### `wf mimic provision`
-
-Install the reference of a set on this machine as the [provision] block of its
-
-Usage: `wf mimic provision [options] <set>`
+Usage: `wf mimic capture [options] <record|replay> <set>`
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf mimic provision [options] <set>
+Usage: wf mimic capture [options] <record|replay> <set>
 
-Install the reference of a set on this machine as the [provision] block of its
-mimic.toml says (or the file its provision_file names, which sets of one app
-share: `//path` is from the repository root, any other path from the mimic.toml): the pinned source fetched at its commit, then each [[step]] in order,
-each bounded by its timeout. Programs run with this environment minus every
-variable that looks like a credential; their output goes to stderr. A work
-directory that holds the same provisioning (same block, same commit) is reused.
+The capture of one set on a runner, in four phases, in one call.
+
+1. provision (--provision auto|only|skip, default auto): install the reference of the set
+   as the [provision] block of its mimic.toml says (or the file its provision_file names,
+   which sets of one app share: `//path` is from the repository root, any other path from
+   the mimic.toml): the pinned source fetched at its commit, then each [[step]] of the
+   action in order, each bounded by its timeout. Everything provisioning runs is third-party
+   code, so it runs in a child environment (see below) and its output goes to stderr. A work directory whose
+   marker key matches (same block, same commit, same action) is reused: auto skips it.
+   only provisions and stops (no capture); skip never provisions and refuses, naming the
+   command to run, a work directory with no marker or another one. A set without a
+   [provision] block has nothing to provision (only refuses it).
+2. capture, every child in the child environment below, plus the [env] of the [provision]
+   block and the variables the set names (env_pass). record: runs `wf mimic record <set> --resume --max-minutes <chunk>`
+   again and again (each call is a bounded chunk that leaves its checkpoint under
+   <set>/raw/checkpoint) until the record is complete or --budget is spent. A complete
+   record has raw/ deleted, is verified offline and is scanned for token-shaped values (a
+   Bearer token, a JWT): any of them holds the set back (exit 1), because it is published
+   to a bucket anyone can read. For a set that allows nondeterminism, a verify that fails
+   only on stability accounting (the tags against stability-allowlist.json) does not hold
+   the set back: it is reported as `verify.accounting_deferred`, and `wf mimic verify` at the
+   commit is the check that the allowlist names the tagged ids. An incomplete one exits 1
+   with the checkpoint kept and "incomplete": true; push the marker again to resume. The
+   checkpoint is bound to the provision block (with its source commit), the corpus and the
+   reference pin: one bound to anything else, or to nothing, is dropped and the record
+   starts over (--fresh does so on purpose). A checkpoint with a token-shaped value in it is
+   not uploaded ("checkpoint_upload": false). A wf-mimic whose `record` lacks --resume or
+   --max-minutes fails at once with that message (exit 2). The [record] table of the set's
+   mimic.toml sets allow_nondeterministic (default false: a stability check is kept) and
+   extra `record` args.
+   replay: replays the set against each of its [candidate.<name>] (or --candidate) and
+   tabulates severity, counts and the first difference of every non-clean interaction;
+   exit 1 when any candidate differs. A candidate of target "chain" is started by its replay
+   from the launch command of the set (build it with a `when = "replay"` step); a target "orca"
+   candidate with a launch command gets the pairing link the launcher prints, in its sidecar only.
+3. candidate stop: a chain candidate stops when its replay ends.
+4. publish (--publish, a record that is complete and was not held back): after the reference is
+   gone, the masked set (the json, jsonl, toml, txt and md files, never raw/ or a dot file) is
+   committed to the state ref (refs/wf/state of origin) as one run, so another checkout can
+   `wf mimic fetch` it with git alone: records/sets/<set>/, the manifest (every file's size and
+   sha256) at records/runs/<run>.json and the run at records/latest/<set>.json. Only the newest
+   run of a set keeps its files; caps 60 MB a file, 200 MB a run. The push needs a token that
+   may write refs (contents: write in a workflow); a refused push is a warning (`publish.ok`
+   false), not a red record, because the set is also a workflow artifact.
+Both actions append a markdown summary to --summary (default $GITHUB_STEP_SUMMARY).
+
+Child environment (one allowlist, no inheritance): every program this verb starts (a provisioning
+step, git, the record, verify and replay children, the reference and its sidecar, a candidate
+launcher) gets PATH, HOME, locale, temp and CA settings, toolchain homes (CARGO_*, RUSTUP_*,
+PNPM_*, NODE_*, GO*), and the MIMIC_*, WF_*, T3_* and GIT_CONFIG_* variables, minus any name that
+looks like a credential (TOKEN, SECRET, PASSWORD, *_KEY, ...), plus what the set declares by
+name: env_pass of a script target (the variables its sidecar gets) and `[reference]
+env_from_vault = { OPENCODE_API_KEY = "OPENCODE_GO_API_KEY" }`: the variable the reference's program
+reads and the registry key that holds its value. The verb reads the registry keys in memory from
+the vault with secrets::load_values (and so from no other source) for a record only and puts the
+variable in the environment of the reference's launcher and the reference alone; a replay or
+--check never reads one. BWS_* and GITHUB_* enter no child, declared or not. A declared key that
+the vault does not hold fails the record naming the key (never a value). Before anything is
+uploaded the raw recording and the masked set are scanned for the exact value of every declared
+key as well as for token shapes; a value found holds the set back (exit 1) naming the key and the
+file, never the value, and the output of every child has the value replaced by the key's name.
+`env_from_vault` is for `[reference]` only and both names are UPPER_SNAKE. A reference the host
+starts itself (a spawned T3) cannot take it, or real agent CLIs, before mimic-script-host 0.1.9
+is adopted: a record of such a set is refused before anything starts.
 
 Block (paths relative to the file that declares them):
   [toolchain]                     what the runner sets up first, each checked against the tool:
@@ -3832,7 +4915,13 @@ Block (paths relative to the file that declares them):
   [source]                        optional: the reference's own repository
     repo = "https://..."          https, no credentials
     commit = "<40 hex>"           or: pin = "<pin file>", commit_pointer = "/commit"
-  [env]                           NAME = "value" the record sees; no credentials
+  [env]                           NAME = "value" the capture sees; no credentials
+  real_agents = ["opencode"]      agent CLIs the reference runs for real (claude and codex stay
+  real_agents_pin = "<pin file>"  scripted): a record installs each into {work}/real-clis from the
+                                  pin file ({"opencode": {"version", "release", "platforms":
+                                  {"linux-x64": {"sha256"}, "linux-arm64": {"sha256"}}}}), the asset
+                                  <release>/<name>-<platform>.tar.gz, refused unless it hashes to the
+                                  pin; the pin file is required (a floating download is no pin)
   [[step]]                        name, run = ["program", "arg"...] (no shell),
     cwd, when, timeout_minutes    cwd defaults to {source} (else {work}); when is record
                                   (default), replay (builds the candidate) or always;
@@ -3841,115 +4930,161 @@ Block (paths relative to the file that declares them):
   Placeholders in env values, run and cwd: {repo} (the checkout), {work}, {source}, {set}.
 
 Options:
-  --when <record|replay>      which steps run (default record)
-  --work-root <dir>           where work directories live (default $MIMIC_WORK_ROOT, else ~/.cache/mimic-work)
-  --root <dir>                the checkout {repo} names (default: this one)
-  --check                     validate the block and print what would run; install nothing
-  --force                     start the work directory over
-  -h, --help                  display help for command
-
-Output (schema mimic-provision/1):
-  {schema, ok, set, when, work, source?: {repo, commit, dir}, toolchain, env, key,
-  steps: [names], cached?, ran?: [{name, seconds}], checked?, warnings, next}
-```
-
-</details>
-
-### `wf mimic job`
-
-One capture job of the record-references workflow, for a set that is already
-
-Usage: `wf mimic job [options] <record|replay> <set>`
-
-<details><summary>Full help</summary>
-
-```text
-Usage: wf mimic job [options] <record|replay> <set>
-
-One capture job of the record-references workflow, for a set that is already
-provisioned (wf mimic provision).
-
-record: runs `wf mimic record <set> --resume --max-minutes <chunk>` again and again
-(each call is a bounded chunk that leaves its checkpoint under <set>/raw/checkpoint)
-until the record is complete or --budget is spent. A complete record has raw/
-deleted, is verified offline and is scanned for token-shaped values (a Bearer
-token, a JWT): any of them holds the set back (exit 1), because it is published
-to a bucket anyone can read. For a set that allows nondeterminism, a verify that fails
-only on stability accounting (the tags against stability-allowlist.json) does not hold
-the set back: it is reported as `verify.accounting_deferred`, and `wf mimic verify` at the
-commit is the check that the allowlist names the tagged ids. An incomplete one exits 1 with the checkpoint kept
-and "incomplete": true; push the marker again to resume. The checkpoint is bound to
-the provision block (with its source commit), the corpus and the reference pin: one
-bound to anything else, or to nothing, is dropped and the record starts over (--fresh
-does so on purpose). A checkpoint with a token-shaped value in it is not uploaded
-("checkpoint_upload": false). A wf-mimic whose `record` lacks --resume or
---max-minutes fails at once with that message (exit 2). The [record] table of
-the set's mimic.toml sets allow_nondeterministic (default false: a stability check is
-kept) and extra `record` args; the [env] of the [provision] block reaches the record
-(and replay) through this job alone.
-replay: replays the set against each of its [candidate.<name>] (or --candidate) and
-tabulates severity, counts and the first difference of every non-clean interaction;
-exit 1 when any candidate differs.
-Both append a markdown summary to --summary (default $GITHUB_STEP_SUMMARY).
-
-Options:
+  --provision <auto|only|skip>  phase 1 (default auto)
+  --check                     validate the block and print what would run; install and capture nothing
+  --force                     provision: start the work directory over
   --chunk <minutes>           record: minutes per call, 1 to 60 (default 10)
   --budget <minutes>          record: stop starting chunks after this long (default 100)
   --fresh                     record: delete the checkpoint first
+  --publish                   record: publish the complete, clean set to the state ref (phase 4)
   --candidate <name>          replay: only this candidate
+  --rows <prefix,...>         replay: only the rows that start with a prefix, and check the known gaps of that slice
   --out <dir>                 replay: write <set>.replay.json here
-  --work-root <dir>           where the provisioned work directories are ({work}, default $MIMIC_WORK_ROOT)
+  --work-root <dir>           where work directories live (default $MIMIC_WORK_ROOT, else ~/.cache/mimic-work)
+  --agents-cache <dir>        provision: a directory of release assets (by file name) used instead of the download; still checked against the pin
   --root <dir>                the checkout {repo} names (default: this one)
   --summary <file>            where the markdown summary is appended
   --run <id>                  the run id to name (default $GITHUB_RUN_ID, else local)
   -h, --help                  display help for command
 
-Output (schema mimic-job/1):
-  record: {schema, ok, action, set, dir, run, complete, incomplete?, checkpoint_upload?, checkpoint_leaks?, chunks: [{n, seconds, complete,
+Output (schema mimic-capture/1):
+  provision: {state: ran|cached|skipped|checked|none, work, source?: {repo, commit, dir}, toolchain, env, key, steps: [names], ran?: [{name, seconds}]}
+  record: {schema, ok, action, set, dir, run, captured, provision, complete, incomplete?, checkpoint_upload?, checkpoint_leaks?, chunks: [{n, seconds, complete,
   interactions}], chunk_minutes, interactions, nondeterministic, stable_pct, wall_seconds,
-  raw_removed?, verify?: {ok, exit}, leaks?: [text], error?, warnings, next}
-  replay: {schema, ok, action, set, dir, run, candidates: [{candidate, severity, summary}],
+  raw_removed?, verify?: {ok, exit}, leaks?: [text], publish?: {ok, run?, sets?, files?, bytes?, fetch?, error?, next?}, error?, warnings, next}
+  replay: {schema, ok, action, set, dir, run, captured, provision, candidates: [{candidate, severity, summary}],
   differences, wall_seconds, warnings, next}
+  --check and --provision only: {schema, ok, action, set, dir, captured: false, provision, warnings, next}
 ```
 
 </details>
 
-### `wf mimic publish`
+### `wf mimic record-projects`
 
-Upload recorded sets to the verification-artifacts bucket as one run, so another
+Record the hosted_project_* actions of rca-exec (project list, resolve, views, field set and
 
-Usage: `wf mimic publish [options] <set>...`
+Usage: `wf mimic record-projects [options] <set-dir>`
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf mimic publish [options] <set>...
+Usage: wf mimic record-projects [options] <set-dir>
 
-Upload recorded sets to the verification-artifacts bucket as one run, so another
-checkout can fetch them over plain HTTPS (an agent session cannot reach the
-GitHub Actions API, and an Actions artifact needs a login to download). Uploads
-the json, jsonl, toml, txt and md files of each set, never raw/ or a dot file,
-each under verification/record-references/<run>/<set>/, then the manifest (every
-file's size and sha256), then latest/<set>.json. A set without a cassette.json is
-refused. The write link is VERIFICATION_ARTIFACTS_PAR_URL (the vault, or the
-environment); it is never printed. Caps: 60 MB a file, 200 MB a run.
+Record the hosted_project_* actions of rca-exec (project list, resolve, views, field set and
+clear) against a throwaway GitHub Projects v2 board, into the recorded set <set-dir>
+(provenance.kind recorded; every gh call's argv, stdin, stdout and exit code is what the
+real gh did). Setup creates a board named mla-recording-test-<run id> on the token's user
+account (with a text field, a number field and a draft item); the run asks the real
+executor for each action with a recording gh on its PATH; teardown deletes the board
+whatever the run did; a guard first deletes any mla-recording-test-* board older than
+--stale-minutes and no other. The token is GH_PROJECTS_RECORD_TOKEN (the environment, else
+the vault), read in memory and given to gh only as GH_TOKEN; a recorded value that holds it
+stops the write. A token without the scope project or read:org fails naming the scope
+(X-OAuth-Scopes of `gh api -i user`; a fine-grained token sends none). The set is written
+only when every action answered as expected.
 
 Options:
-  --run <id>                  the run id (default $GITHUB_RUN_ID, else local)
-  --root <dir>                the checkout the sets' paths are recorded against (default: this one)
-  --summary <file>            append the fetch and commit commands here (default $GITHUB_STEP_SUMMARY)
-  -h, --help                  display help for command
+  --teardown           only the guard and the deletion of the board the state file names (for an `if: always()` step)
+  --stale-minutes <n>  age after which an mla-recording-test-* board is deleted (default 60)
+  --run-id <id>        names the board (default $GITHUB_RUN_ID, else the pid)
+  --state <file>       where the board of the run is noted for --teardown (default $TMPDIR/mimic-record-projects.state.json)
+  --gh <path>          the gh to run (default the first on PATH)
+  -h, --help           display help for command
 
-Output (schema mimic-publish/1):
-  {schema, ok, run, sets: [{name, dir, files: [{path, bytes, sha256}]}], files, bytes,
-  fetch, warnings, next}
+Output (schema mimic-record-projects/1):
+  {schema, ok, set, dir, mode, scopes, board: {title, number, deleted}?, stale: {deleted, kept, error?},
+   actions: [{id, tool, name, ok, expected_ok, code}], recorded, files, error, problems, warnings, next}
+Exit 0 recorded (or torn down), 1 an action, the teardown or the guard failed, 2 no token, a missing scope or no gh.
+```
+
+</details>
+
+### `wf mimic scan`
+
+Scan the output of a chain run that used real agent CLIs for the exact value of each
+
+Usage: `wf mimic scan [options] <dir...>`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf mimic scan [options] <dir...>
+
+Scan the output of a chain run that used real agent CLIs for the exact value of each
+credential it held (and for token shapes) before anything is published. The CLIs that
+ran for real are named by --clis or T3_CHAIN_CLIS (scripted, real, or real:claude,codex,
+opencode); their values are read in memory (the vault, or the caller's environment
+without one) and compared against every file under each directory. Nothing is printed
+but the file and the registry key of a finding, never a value. A run with no real CLI
+is skipped only when it is said to be scripted: with neither --clis nor T3_CHAIN_CLIS the
+scan fails (exit 2) instead of guessing.
+
+Options:
+  --clis <mode>        scripted | real | real:<names> (required unless $T3_CHAIN_CLIS is set)
+  -h, --help           display help for command
+
+Output (schema mimic-scan/1):
+  {schema, ok, real_clis, scanned, findings: ["<file> holds the value of <KEY>"], warnings, next}
+Exit 0 clean or skipped, 1 findings (hold the output back), 2 no mode, a missing key or a bad directory.
+```
+
+</details>
+
+### `wf mimic exec`
+
+Run a command (a test that drives real agent CLIs, such as the T3 chain's integration
+
+Usage: `wf mimic exec [options] -- <command...>`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf mimic exec [options] -- <command...>
+
+Run a command (a test that drives real agent CLIs, such as the T3 chain's integration
+tests) with the credentials of the CLIs it is to run for real, then scan what the run
+wrote. The credentials are read in memory (the vault, or the caller's environment
+without one) and reach only the command: each CLI's own variable, and for Codex a
+CODEX_HOME holding its decoded login, in a directory removed afterwards. The command
+gets the default-deny child environment plus T3_CHAIN_REAL_CLIS (names),
+T3_CHAIN_EXECUTOR_ENV (the variables to hand its executor), T3_CHAIN_CLI_HOME and
+MIMIC_REAL_CLI_DIR; the test crate reads those and never resolves a credential. The
+command's stdout goes to this verb's stderr, so stdout is one JSON object.
+The modes are --clis or T3_CHAIN_CLIS: scripted (nothing resolved, nothing scanned), real,
+or real:claude,codex,opencode. With neither the verb fails (exit 2) instead of guessing.
+`codex-ci` is the second Codex login (CODEX_CI_OAUTH_JSON_B64), named on its own because
+`real` is the other three: it is restored to <home>/providers/codex/auth.json (the file
+0600, the directory 0700) and CODEX_HOME names that directory, so the service's own
+process adapter finds it. Codex refreshes it while it runs and the refresh token is
+single-use, so this verb writes a changed login back to the vault itself after the
+command, whatever the command's result (the CI deploy credential, in this process alone;
+`wf secret rotate-login codex-ci`'s rules: a login of another account is refused, an
+unchanged one writes nothing). A write-back that fails is a failure (the vault's login
+is dead until `wf secret login codex-ci` runs again). It cannot be named with codex.
+One executor process runs every real CLI, so each can read the others' environment
+variables there (a known gap, docs/gaps/t3-chain-real-clis.md).
+
+Options:
+  --clis <mode>        scripted | real | real:<names> (required unless $T3_CHAIN_CLIS is set)
+  --cli-dir <dir>      the directory of the pinned CLI binaries (default $MIMIC_REAL_CLI_DIR)
+  --scan <dirs>        comma-separated directories to scan after the run, besides $WF_TEST_OUTPUT_DIR
+  --skip-when-empty    a named credential that holds no value skips the run (exit 0, "skipped" says why,
+                       the command never starts) instead of failing with exit 2
+  -h, --help           display help for command
+
+Output (schema mimic-exec/1):
+  {schema, ok, ran, real_clis, command, exit, scanned, findings: ["<file> holds the value of <KEY>"], codex_login_rotated,
+   login_written_back: {"<KEY>": "updated" | "unchanged" | "refused" | "failed"}, warnings, next}
+  (a skipped run is {schema, ok: true, ran: false, skipped, ...} without exit)
+Exit 0 the command passed and the output is clean, 1 the command failed or a finding (hold the output back),
+2 no mode or command, a missing key or CLI directory. A rotated Codex login is a warning, never printed.
 ```
 
 </details>
 
 ### `wf mimic fetch`
 
-Download a published run (wf mimic publish) into this checkout: every file of
+Download a published run (wf mimic capture record --publish) into this checkout: every file of
 
 Usage: `wf mimic fetch [options] <run-id|latest>`
 
@@ -3958,10 +5093,10 @@ Usage: `wf mimic fetch [options] <run-id|latest>`
 ```text
 Usage: wf mimic fetch [options] <run-id|latest>
 
-Download a published run (wf mimic publish) into this checkout: every file of
-every set is read from the bucket's public URL, its sha256 is checked against the
-manifest, and it is written to the set's directory (paths from the checkout root,
-never outside it). A file that does not match writes nothing more. `latest` takes
+Download a published run (wf mimic capture record --publish) into this checkout: every file of
+every set is read from the state ref (git fetch of refs/wf/state), its sha256 is
+checked against the manifest, and it is written to the set's directory (paths from
+the checkout root, never outside it). A run that a newer one replaced is refused. A file that does not match writes nothing more. `latest` takes
 the newest run of --set. Then verify the set and commit it.
 
 Options:
@@ -3975,58 +5110,23 @@ Output (schema mimic-fetch/1):
 
 </details>
 
-## parity
-
-### `wf parity`
-
-How far the agent API mappers are from parity with the pinned phone apps
-
-Usage: `wf parity [options] [command]`
-
-<details><summary>Full help</summary>
-
-```text
-Usage: wf parity [options] [command]
-
-How far the agent API mappers are from parity with the pinned phone apps
-(docs/plans/rca-parity/plan.md section 5): every method, command type, HTTP
-call and subscription the phone reaches is a row in a coverage table under
-docs/plans/rca-parity/coverage/, and parity is reached when no row is pending.
-It is also the standalone binary `wf-parity` (`wf-parity parity coverage ...`).
-
-Every line on stdout is one JSON object and no verb prompts. A failed check or
-a refusal prints {ok: false, ...} and exits 1; a malformed line exits 2.
-
-Options:
-  -h, --help                  display help for command
-
-Commands:
-  coverage [options]          Scan the pinned reference and write, or check,
-                              the app's method list and coverage table
-  track <verb> [options]      Is the pinned reference the newest release of the
-                              real server: check, bump, plan
-  help [command]              display help for command
-```
-
-</details>
-
-### `wf parity coverage`
+### `wf mimic coverage`
 
 Scan the pinned phone app and build its coverage table
 
-Usage: `wf parity coverage --app t3|orca [--check] [--traces <dir|bundle>] [--root <dir>] [--base <rev>]`
+Usage: `wf mimic coverage --app t3|orca [--check] [--by-oracle] [--traces <dir|bundle>] [--rows <prefix,...>] [--root <dir>] [--base <rev>]`
 
 Examples:
 
 ```sh
-wf parity coverage --app t3
-wf parity coverage --app orca --check
+wf mimic coverage --app t3
+wf mimic coverage --app orca --check
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf parity coverage --app t3|orca [--check] [--traces <dir|bundle>] [--root <dir>] [--base <rev>]
+Usage: wf mimic coverage --app t3|orca [--check] [--by-oracle] [--traces <dir|bundle>] [--rows <prefix,...>] [--root <dir>] [--base <rev>]
 
 Scan the pinned phone app and build its coverage table. The reference is
 references/t3code (pinned by tooling/t3-conformance/t3-pin.json) or
@@ -4051,7 +5151,11 @@ A row whose decision says `"oracle": "mimic"` is served only by a `wf mimic repl
 cassette never serves it. Its evidence entry then names `oracle`, `diff` and
 `cassette`, and the table's note shows them.
 
---traces refreshes the evidence from a chain run: the test output dir
+A served row needs `"oracle": "mimic"` or an `unrecordable` reason in its decision
+(why no recording can show it); a row with neither fails the check (rule
+served-without-oracle), and the evidence file keeps only those rows.
+
+--traces refreshes the evidence from a run: the test output dir
 (WF_TEST_OUTPUT_DIR, every <suite>/trace.json under it), one trace.json, or the
 bundle.json `wf test publish` made of the run (a path or its URL; its `traces`
 list is read). A write rewrites <app>-evidence.json and the tables from it; a
@@ -4060,6 +5164,26 @@ evidence stands, so a check never needs the run. The evidence records where the
 traces were read only as a URL or a path inside the repository (--traces paths
 under the root are made relative); an absolute or scratch path is left out, and
 a checked-in file that has one fails the check.
+
+--by-oracle prints, in place of the table, which test serves each served row and
+whether a recording could. It reads the checked-in <app>.json, the decisions, the
+row labels of the interactions of every set under clis/<app>-serve/cassettes whose
+provenance kind is `recorded` and the set's known-gaps.json (no server runs), and
+writes docs/plans/rca-parity/coverage/<app>-oracle.md. Each served row has a class:
+a = recorded, with no gap listed or only drift gaps; b = recorded, with a gap listed
+as breaking; c = no interaction in any recorded set; d = no recording can show it
+(the row's decision has an `unrecordable` reason, or its test is on the
+`unrecordableTests` list of <app>-decisions.json, which starts empty). The md also
+lists, per behaviour test file in clis/<app>-serve/tests/integration, the host state
+its source sets up that the mimic driver cannot: a scripted agent turn
+(Script::of, .script(, Turn::), the gh double (start_hosted, HostedClis), a restart
+(restart_serve), a clock and a service started with its own environment
+(start_with_env, e.g. a model API double); comments are skipped. With --check nothing is written
+and a differing md fails (rule stale; chain-source-missing when evidence names a
+test file that is gone). It takes only --app, --check and --root. Output: {ok, app,
+mode, by: "oracle", served, counts: {a, b, c, d}, chainCounts (the same for the
+rows a behaviour test serves), recordedSets, chainTests: [{file, rows, tests,
+hostState}], problems, wrote}.
 
 Without the reference checked out, the table is rebuilt from the checked-in
 method list. A reference checked out at another commit than its pin is refused
@@ -4077,8 +5201,14 @@ Options:
                               served without evidence, the evidence names a row
                               the table does not serve, a trace names a row the
                               phone does not reach, or pending rose
-  --traces <dir|bundle>       The method-hit traces of a chain run: a test output
+  --by-oracle                 Classify each served row by what a recording shows
+                              and scan the behaviour tests' host state
+                              (<app>-oracle.md)
+  --traces <dir|bundle>       The method-hit traces of a run: a test output
                               dir, a trace.json, or a bundle.json (path or URL)
+  --rows <prefix,...>         With --traces: refresh only the rows whose id starts
+                              with a prefix; the evidence of the other rows stays
+                              as checked in and only these rows' problems show
   --root <dir>                The repository root (default: the git top level)
   --base <rev>                What pending is compared with (default HEAD when
                               the table is dirty, else HEAD^); a commit since it
@@ -4092,7 +5222,7 @@ served, pending, notOffered, excluded, flagged, answeredByMapper, byKind,
 pendingByMilestone}, evidence: {file, rows, refreshedFrom (a URL or a repository path, else null)}, problems: [{rule,
 message, rows}], wrote (write mode)}.
 Rules: stale, unassigned, untargeted, incomplete-decision,
-served-without-evidence, stale-evidence, unknown-trace-row, stale-decision,
+served-without-evidence, served-without-oracle, stale-evidence, unknown-trace-row, stale-decision,
 pending-rose, scratch-trace-path. A write reports the
 problems and exits 0; --check exits 1 on any. A refusal prints {ok: false,
 app, error, next} and exits 1.
@@ -4100,33 +5230,33 @@ app, error, next} and exits 1.
 
 </details>
 
-### `wf parity track`
+### `wf mimic track`
 
 Follow the real servers the phone apps are conformed to
 
-Usage: `wf parity track check|bump --app t3|orca [--root <dir>]`
+Usage: `wf mimic track check|bump --app t3|orca [--root <dir>]`
 
 Examples:
 
 ```sh
-wf parity track check --app t3
-wf parity track bump --app orca
-wf parity track plan --message "[track t3 orca]"
-wf parity track report --plan plan.json --inputs out --out report
+wf mimic track check --app t3
+wf mimic track bump --app orca
+wf mimic track plan --message "[track t3 orca]"
+wf mimic track report --plan plan.json --inputs out --out report
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf parity track check|bump --app t3|orca [--root <dir>]
-       wf parity track plan (--message <text> | --file <path|->) [--root <dir>]
-       wf parity track report --plan <plan.json> --inputs <dir> --out <dir> [--run <id>] [--sha <commit>]
+Usage: wf mimic track check|bump --app t3|orca [--root <dir>]
+       wf mimic track plan (--message <text> | --file <path|->) [--root <dir>]
+       wf mimic track report --plan <plan.json> --inputs <dir> --out <dir> [--run <id>] [--sha <commit>]
 
 Follow the real servers the phone apps are conformed to. T3 is the npm package
 `t3` (pinned in tooling/t3-conformance/t3-pin.json, its release on
 github.com/pingdotgg/t3code); Orca is the newest GitHub release of
 stablyai/orca (tooling/orca-conformance/orca-pin.json). No verb prompts and
-every line on stdout is one JSON object (schema parity-track/1).
+every line on stdout is one JSON object (schema mimic-track/1).
 
 check   Compare the pin with the newest release. A pin that is behind is data,
         not a failure (exit 0):
@@ -4143,12 +5273,12 @@ plan    Read the [track <app>... [chunk=<minutes>] [fresh]] marker of a commit
         it names and print {schema, ok, go, apps, chunk, fresh, drifted,
         verdicts: [the check verdicts], record_marker, next}. record_marker is
         the [record <set>...] marker of the sets of the drifted apps, for
-        `wf mimic trigger --message`, or null when no pin is behind. sets lists
+        `wf ci plan mimic --message`, or null when no pin is behind. sets lists
         the sets it names.
 report  Fold a tracker run into one drift report. --inputs holds the capture
-        outputs (<set>.record.json and <set>.replay.json of `wf mimic job`,
-        coverage-<app>.json of `wf parity coverage`); --out gets
-        drift-report.json {schema parity-track-report/1, ok, run, sha, apps:
+        outputs (<set>.record.json and <set>.replay.json of `wf mimic capture`,
+        coverage-<app>.json of `wf mimic coverage`); --out gets
+        drift-report.json {schema mimic-track-report/1, ok, run, sha, apps:
         [{app, pinned, latest, drifted, status: current|incomplete|
         discrepancies|needs-work|clean, sets: [{set, recorded, replay}],
         coverage}], next}, summary.md, and report.json + report.html (a
@@ -4273,6 +5403,8 @@ Commands:
   set <KEY> [value]                     Store secret (reads from stdin if value
                                         omitted) — macOS backend only
   delete <KEY>                          Remove secret — macOS backend only
+  rotate-login [options] <provider>     Write the login a CI run refreshed back to
+                                        the vault (codex, codex-ci)
   env [options]                         Print KEY=value lines for all available
                                         secrets (eval-safe)
   sync-env [options] [keys...]          Resolve keys (or --for <app>) through
@@ -4289,7 +5421,7 @@ Commands:
   scope-check [options]                 Check each CI job's keys against
                                         their scopes (open jobs read no
                                         ci-deploy key) — JSON, never a value
-  parity [options]                      Per CI scope, the keys the vault holds
+  scope-compare [options]               Per CI scope, the keys the vault holds
                                         against the registry and a keyed hash
                                         of each value, to compare two runner
                                         kinds — JSON, never a value
@@ -4606,19 +5738,23 @@ Options:
 
 ### `wf secret login`
 
-Capture interactive tool logins (claude, codex, gcloud, ...): `wf secret login <tool>` starts the login in the shared VNC desktop's browser, prints the link to open on any device (a phone is enough) and waits until the login finished. The login stays on the VM and agent-shell gets its credential; `--copy` also writes the files the tool's config declares copyable to this machine's home. A tool whose config names a vault secret (gcloud) also has it set when the login finishes, and emptied by `--clear` (both need the vault write token).
+Log a tool in (claude, codex, ...) by its own link: `wf secret login <tool>` runs the tool's login here, prints the link to open on any device (a phone is enough) and, where the tool shows one, the one-time code, waits until the login finished and stores the credential in the vault: codex and codex-ci the base64 of `auth.json`, claude the token `claude setup-token` prints as the plain string (both need the vault write token and the secret to exist, else create it with `wf secret create`). Neither the token nor the file is ever printed; the login's private directory (owner-only, in memory) is removed afterwards. `claude` asks for the code its web page shows: paste it when run in a terminal, or run `wf secret login claude --code <code>` from another shell, which hands it to the waiting login through a private control file. A tool with no link login (opencode, gemini, gcloud, leetcode), and any tool given `--vnc`, logs in through the shared VNC desktop's browser instead: the login stays on the VM and agent-shell gets its credential. `--copy` also writes the files the tool's config declares copyable to this machine's home. `--clear` empties the tool's vault secrets first (and removes its copyable files here).
 
 Usage: `wf secret login [options] [command]`
 
 | Option | Meaning |
 |---|---|
-| `--copy` | also copy the finished login's credential files to this machine |
-| `--clear` | log the tool out first (its credential files here and in the VM, a revoke where the tool has one, the login browser's cookies), so the login starts from nothing |
+| `--copy` | also write the finished login's credential file to this machine's home (not for claude, which leaves no file) |
+| `--clear` | log the tool out first (its credential files here, its vault secrets and, with `--vnc`, the VM's files and login browser's cookies), so the login starts from nothing |
+| `--vnc` | log in through the shared VNC desktop's browser, not by the tool's own link (the only mode of a tool with no link login) |
+| `--code <code>` | hand the code the web page shows to the waiting `wf secret login <tool>` (claude), then return |
 
 Examples:
 
 ```sh
+wf secret login codex
 wf secret login claude
+wf secret login claude --code <code>
 wf secret login gcloud --clear --copy
 ```
 
@@ -4627,23 +5763,37 @@ wf secret login gcloud --clear --copy
 ```text
 Usage: wf secret login [options] [command]
 
-Capture interactive tool logins (claude, codex, gcloud, ...): `wf secret login
-<tool>` starts the login in the shared VNC desktop's browser, prints the link to
-open on any device (a phone is enough) and waits until the login finished. The
-login stays on the VM and agent-shell gets its credential; `--copy` also writes
-the files the tool's config declares copyable to this machine's home. A tool
-whose config names a vault secret (gcloud) also has it set when the login
-finishes, and emptied by --clear (both need the vault write token).
+Log a tool in (claude, codex, ...) by its own link: `wf secret login <tool>`
+runs the tool's login here, prints the link to open on any device (a phone is
+enough) and, where the tool shows one, the one-time code, waits until the login
+finished and stores the credential in the vault: codex and codex-ci the base64
+of auth.json, claude the token `claude setup-token` prints as the plain string
+(both need the vault write token and the secret to exist, else create it with
+`wf secret create`). Neither the token nor the file is ever printed; the
+login's private directory (owner-only, in memory) is removed afterwards.
+`claude` asks for the code its web page shows: paste it when run in a terminal,
+or run `wf secret login claude --code <code>` from another shell, which hands
+it to the waiting login through a private control file. A tool with no link
+login (opencode, gemini, gcloud, leetcode), and any tool given `--vnc`, logs in
+through the shared VNC desktop's browser instead: the login stays on the VM and
+agent-shell gets its credential. `--copy` also writes the files the tool's
+config declares copyable to this machine's home. `--clear` empties the tool's
+vault secrets first (and removes its copyable files here).
 
 Options:
-  --copy      also copy the finished login's credential files to this machine
-  --clear     log the tool out first (its credential files here and in the VM,
-              a revoke where the tool has one, the login browser's cookies), so
-              the login starts from nothing
-  -h, --help  display help for command
+  --copy         also write the finished login's credential file to this
+                 machine's home (not for claude, which leaves no file)
+  --clear        log the tool out first (its credential files here, its vault
+                 secrets and, with --vnc, the VM's files and login browser's
+                 cookies), so the login starts from nothing
+  --vnc          log in through the shared VNC desktop's browser, not by the
+                 tool's own link (the only mode of a tool with no link login)
+  --code <code>  hand the code the web page shows to the waiting
+                 `wf secret login <tool>` (claude), then return
+  -h, --help     display help for command
 
 Commands:
-  list        List tools with a known auth descriptor
+  list        List tools with a known auth descriptor, each with its login mode (link or vnc) and the vault secret its login lands in
   capture     Run an ARBITRARY interactive login on the shared VNC desktop from a
               JSON spec and capture the credential out of the browser
   done        Signal that an interactive login is finished (what actually
@@ -4748,7 +5898,7 @@ Options:
 
 #### `wf secret login list`
 
-List tools with a known auth descriptor
+List tools with a known auth descriptor, each with its login mode (link: the tool's own link; vnc: the shared desktop's browser) and the vault secret its login lands in
 
 Usage: `wf secret login list [options]`
 
@@ -4763,7 +5913,7 @@ wf secret login list
 ```text
 Usage: wf secret login list [options]
 
-List tools with a known auth descriptor
+List tools with a known auth descriptor, each with its login mode (link: the tool's own link; vnc: the shared desktop's browser) and the vault secret its login lands in
 
 Options:
   -h, --help  display help for command
@@ -4952,11 +6102,11 @@ Options:
 
 </details>
 
-### `wf secret parity`
+### `wf secret scope-compare`
 
 For each CI scope (ci-open, ci-deploy), list the registry keys, the keys the scope's vault project holds, the ones it lacks, a hash of each name list and a keyed hash (HMAC-SHA256 of key name and value under the nonce) of every value held. Run it on two runner kinds with the same `--nonce` and diff the JSON. Prints JSON and never a value. Exits 1 when a scope lacks a registry key, except a key that only deploy groups list as optional (listed as missingOptional).
 
-Usage: `wf secret parity [options]`
+Usage: `wf secret scope-compare [options]`
 
 | Option | Meaning |
 |---|---|
@@ -4967,13 +6117,13 @@ Usage: `wf secret parity [options]`
 Examples:
 
 ```sh
-wf secret parity --json --nonce "$RUN_NONCE" > parity-$RUNNER_NAME.json
+wf secret scope-compare --json --nonce "$RUN_NONCE" > scopes-$RUNNER_NAME.json
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf secret parity [options]
+Usage: wf secret scope-compare [options]
 
 For each CI scope (ci-open, ci-deploy), list the registry keys, the keys the
 scope's vault project holds, the ones it lacks, a hash of each name list, and a
@@ -4990,6 +6140,41 @@ Options:
                     random one for this run, printed in the output)
   --backend <name>  override the active backend (macos | bitwarden)
   -h, --help        display help for command
+```
+
+</details>
+
+### `wf secret rotate-login`
+
+Write the Codex login a CI run left back to the vault (CODEX_OAUTH_JSON_B64 for codex, CODEX_CI_OAUTH_JSON_B64 for codex-ci), with the CI deploy credential, and only that key. The file must be a ChatGPT login (tokens.access_token and tokens.refresh_token) of the account the vault holds; an unchanged refresh token writes nothing, and no value is ever printed.
+
+Usage: `wf secret rotate-login [options] <codex|codex-ci>`
+
+| Option | Meaning |
+|---|---|
+| `--from <path>` | the auth.json the run left |
+
+Examples:
+
+```sh
+wf secret rotate-login codex --from "$f"
+wf secret rotate-login codex-ci --from "$f"
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf secret rotate-login [options] <codex|codex-ci>
+
+Write the Codex login a CI run left back to the vault (CODEX_OAUTH_JSON_B64 for
+codex, CODEX_CI_OAUTH_JSON_B64 for codex-ci), with the CI deploy credential, and
+only that key. The file must be a ChatGPT login (tokens.access_token and
+tokens.refresh_token) of the account the vault holds; an unchanged refresh
+token writes nothing, and no value is ever printed.
+
+Options:
+  --from <path>  the auth.json the run left
+  -h, --help     display help for command
 ```
 
 </details>
@@ -5163,7 +6348,6 @@ Usage: `wf ship [options] [service...]`
 | `--smoke` | With --redeploy-only: first run the pushed tag as a throwaway container and probe it (nothing is swapped on a failure); CI's deploy legs use it after `wf ship build`. vm-ops-api always proves its own image first |
 | `--wipe-state` | Also wipe the tailscale-state volume |
 | `--recreate-all` | Recreate every container of the service, sidecars included |
-| `--changed` | Print which services a push must deploy, each with why, and whether it publishes an EAS Update: {"legs":[{"app","why":[...]}],"easUpdate":{"publish","why":[...]}}. A service is planned when the hash of its images and compose project differs between the commit it runs and HEAD (or that commit is unknown or not in the checkout). The update is published when the app's package graph (and the lockfile entries it reaches) changed since the commit of the branch's latest-dev.json pointer, when a tailnet name that update baked in has moved, or when that commit cannot be read or the changed packages cannot be listed; a rotated backend token is not seen, publish it with --force (--force: all legs and the update; --also <a,b>: those services too, changed or not; --since <sha>: compare with that commit instead of what each service runs and the pointer names, asking vm-ops-api and the bucket nothing, so no tailnet name is checked either; --github-output: append legs= and eas_update= to $GITHUB_OUTPUT) |
 | `--status` | Deployer state: vm-ops-api /health and the container status of each service |
 
 Examples:
@@ -5178,8 +6362,10 @@ wf ship leetcode-backend --ref dev --redeploy-only --tag sha-1a2b3c4d
 Usage: wf ship [options] [service...]
 
 Redeploy a service through vm-ops-api at a tag CI pushed. Nothing here builds an image: CI builds and pushes every image of a push to dev on the runner (`wf ship build <app> --tag <tag>`, see `wf ship build --help`), and `wf ship <service> --ref <sha> --redeploy-only --tag sha-<8>` redeploys what it pushed. A hand build is docker buildx in agent-shell's own docker, never into a production tag.
-`wf ship ci-runner --ref <ref>` mints a one-hour runner registration token with VM_PROVISION_GITHUB_TOKEN and redeploys the runner with it as RUNNER_TOKEN, plus a one-hour single-use tag:ci-self-hosted Tailscale key as TS_CI_RUNNER_AUTH_KEY so the runner node joins with its own tag (when no key can be minted it prints one line and the runner keeps joining with the shared key); the PAT and both values go nowhere else and are never printed. With --wipe-state the runner's volumes (its tailnet identity and registration) are wiped first, which moves an existing node onto the new tag; a key already in TS_CI_RUNNER_AUTH_KEY in the environment is sent as is instead of minted (mint it where the Tailscale credentials are readable).
-A redeploy prints the seconds of each of its steps (`phase <name>: <n> s`): with --smoke, a smoke test (the pushed image run once as a throwaway container on a spare port beside the live one; a failure prints that container's log and swaps nothing) and a tailnet probe; the pull and swap; and, with --wait-serving, one bounded /health check. An app with no image (ci-runner) redeploys at latest.
+For an app that runs several images (remote-chat-agent, agent-shell) a redeploy is gradual: it asks the running containers which commit each service's image was built
+from, hashes each image at that commit and at --ref, and sends `tags=service:tag` for the services whose image changed only (possibly none), so the others keep the tag
+they run and are not recreated. A commit that cannot be read or hashed moves the service; --recreate-all and --wipe-state move every service to --tag.
+A redeploy prints the seconds of each of its steps (`phase <name>: <n> s`): with --smoke, a smoke test (the pushed image run once as a throwaway container on a spare port beside the live one; a failure prints that container's log and swaps nothing) and a tailnet probe; the pull and swap; and, with --wait-serving, one bounded /health check.
 `wf ship vm-ops-api --ref <commit> --redeploy-only --tag <tag>` (--ref must name a commit) asks POST /redeploy?ref=<sha>&tag=<tag> to prove the image and swap vm-ops-api itself in; a swap that fails is recorded in /redeploy/status and --wait-serving reports it at once.
 --wait-serving: the deploy is done only when the service serves the --ref commit (its /health), within 2 minutes; a service with no /health (vnc-auth-session, leetcode-auth-cookie-capture) is confirmed by the sha tag of its running image. CI's deploy legs use it.
 
@@ -5200,20 +6386,6 @@ Options:
                    `wf ship promote <app> --tag <tag>`, which needs no route.
   --wipe-state     Also wipe the tailscale-state volume
   --recreate-all   Recreate every container of the service, sidecars included
-  --changed        Print which services a push must deploy, each with why, and
-                   whether it publishes an EAS Update: {"legs":[{"app","why":[...]}],
-                   "easUpdate":{"publish","why":[...]}}. A service is planned when the hash of its
-                   images and compose project differs between the commit it runs and HEAD
-                   (or that commit is unknown or not in the checkout). The update is published when the
-                   app's package graph (and the lockfile entries it reaches) changed since
-                   the commit of the branch's latest-dev.json pointer, when a tailnet name
-                   that update baked in has moved, or when that commit cannot be read or
-                   the changed packages cannot be listed; a rotated backend token is not
-                   seen, publish it with --force (--force: all legs and the update;
-                   --since <sha>: compare with that commit instead of what
-                   each service runs and the pointer names, asking vm-ops-api and the
-                   bucket nothing, so no tailnet name is checked either; --github-output:
-                   append legs= and eas_update= to $GITHUB_OUTPUT)
   --status         Deployer state: vm-ops-api /health and the container status
                    of each service
   -h, --help       display help for command
@@ -5322,8 +6494,8 @@ Usage: wf ship build [options] <app>
 
 Build the images of an app, and the sidecar images its compose pulls on the same
 tag, with the docker CLI against whatever DOCKER_HOST names, and push them to
-docker.io/nuesslerm. In CI that is the builder sidecar of the VM runner, or the
-local daemon of a hosted runner (the build-image action). It never touches the VM
+docker.io/nuesslerm. In CI that is the local daemon of the hosted runner (the
+build-image action). It never touches the VM
 or vm-ops-api. An image whose input hash (nx-<hash>) is already in the registry is
 re-tagged for the commit, never rebuilt. Prints one JSON line:
 {"app","tag","commit","images":[{"image","ref","reused","pushed"}]}.
@@ -5525,7 +6697,7 @@ default.
 
 With --rca-url (http://host:port) turns and project files go through the rca
 service's agent API (/agent/v1/socket), opened with the device bearer in
-T3_RCA_BEARER (wf offload bearers mint --label t3); the service secret is not
+T3_RCA_BEARER (wf rca bearers mint --label t3); the service secret is not
 used. A message starts a turn (thread.create, turn.start, thread.subscribe on
 agent.threads) and the thread's events become its messages, tool calls and run;
 history and transcript reads first catch the thread up from thread.history, and
@@ -5555,6 +6727,11 @@ Options:
   --rca-url <url>      the rca service, http://host:port (T3_RCA_URL)
   --rca-workspace <id> the rca workspace turns and files act in (T3_RCA_WORKSPACE)
   -h, --help           display help for command
+
+Environment only (no option):
+  T3_GUEST_HOST        the public address guest links point at; unset or empty,
+                       guestShare.create answers connect_unavailable, so guest
+                       links are off (they also need the guestSharingEnabled setting)
 ```
 
 </details>
@@ -5602,55 +6779,42 @@ Options:
 
 ### `wf test`
 
-The e2e tests: scripted Lua tests in e2e/<name>.lua, each run through its harness (`wf android test` / `wf browser test`). A runbook is something else: plain text an agent drives. There is no queue: CI's plan job writes the plan once and each stage job (flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deployment-verification-tests, browser-e2e-tests, android-e2e-tests) runs its part with `wf test run --stage`.
+The e2e tests: scripted Lua tests in e2e/<name>.lua, each run through its harness (`wf android test` / `wf browser test`). A runbook is something else: plain text an agent drives. There is no queue: CI's plan job (`wf ci plan`) writes the plan once and each stage job (flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deployment-verification-tests, browser-e2e-tests, android-e2e-tests) runs its part with `wf test run --stage`.
 
-Usage: `wf test [options] <plan|run|export|publish|results|goldens> [args]`
+Usage: `wf test [options] <run|prepare|backends|publish|results|goldens> [args]`
 
 Examples:
 
 ```sh
-wf test plan --changed --json
 wf test prepare --web
 wf test run --all
 wf test run editor-typing --platform browser
 wf test run editor-typing -- --update-goldens
 wf test publish .agents/tmp/runs/<run-dir>
+wf test backends up
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf test [options] <plan|run|export|drift|publish|results|goldens> [args]
+Usage: wf test [options] <run|prepare|backends|drift|publish|results|goldens> [args]
 
 The e2e tests: scripted Lua tests in e2e/<name>.lua, each run through its harness (`wf android test` / `wf browser test`).
-A runbook is something else: plain text an agent drives. There is no queue: CI's plan job writes the plan once and
+A runbook is something else: plain text an agent drives. There is no queue: CI's plan job (`wf ci plan`) writes the plan once and
 each stage job (flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deployment-verification-tests, browser-e2e-tests, android-e2e-tests) runs its part
 with `wf test run --stage`.
 
 Actions:
-  plan                   every test a change needs, by CI stage; runs nothing. Scope: --all, --changed [--base <ref>] (default
-                         HEAD~1; `last-green`: the newest commit on dev whose CI passed, via gh), or e2e test names; [--sha S]. Package tests (flow test:flow, integration
-                         test:integration, typecheck, lint, unit test:unit, deployment-verification test:verify:deployed) follow pnpm's
-                         dependency graph from the changed files; flow and integration run in the flow-tests stage. The
-                         workspace root gets a typecheck when a file outside every package changed. Every focused e2e test is
-                         planned, whatever changed (`platform: android, browser` makes it a test on each harness);
-                         --platform android|browser keeps one harness's. --force all|<a,b>: also plans every test (all), or
-                         the tests of the named packages, crates and e2e tests, whatever changed (why: forced). --json
-                         prints {sha, base, stages: {<stage>: [{kind: flow|integration|typecheck|lint|unit|deployment-verification,
-                         package, dir, script, command, why[]} | {kind: flow, crate, dir, manifest, command, why[]} | {kind: e2e,
-                         platform, name, script, against, units[], why[]}]}, tests[]}; `why` says what picked it ("focused",
-                         "changed", "depends on lib (pnpm)"). --github-output also appends
-                         plan=<json> and <stage_with_underscores>=<count> to $GITHUB_OUTPUT
   run --stage <stage> [--plan <file>] [--parallel <n>] [--shard <i>/<n>] [--probe] [--fresh]
                          run one stage of a plan (default: plan HEAD~1..HEAD) through the workspace's Nx cache: a task whose
                          inputs hash the same as an earlier pass is replayed, the rest run. A package stage runs each kind's
                          target over its packages (`nx run-many -t <script> -p a,b --parallel <n>`, default 4; the flow call also runs
-                         the crates' `cargo-flow`; the integration-tests stage runs test:integration and a crate's `cargo-integration`, the cli-e2e-tests stage the crates' `cargo-e2e` (a crate reached only through a dependency runs `cargo-e2e-smoke`: the same suite without its parity tests, or nothing when its suite is the live-model parity one, `tests/e2e/parity.rs`), one project at a time),
+                         the crates' `cargo-flow`; the integration-tests stage runs test:integration and a crate's `cargo-integration`, the cli-e2e-tests stage the crates' `cargo-e2e` (a crate reached only through a dependency runs `cargo-e2e-smoke`: the same suite without its compare tests, or nothing when its suite is the live-model compare one, `tests/e2e/compare.rs`), one project at a time),
                          every kind even after a red one, and prints {ok, stage, kinds:[{kind, target, projects, verdict,
                          durationS}], expectedRevisions}; the deployment-verification-tests stage also hands its tests WF_EXPECTED_REVISIONS
                          ({service: commit}) and lists them as expectedRevisions [{app, commit, why}]: the pushed commit, or the
                          commit the service's running image was built from while the push left its package graph alone (the rule
-                         of `wf ship --changed`), and the pushed one when the service cannot be asked. An e2e stage hands its
+                         of `wf ci plan legs`), and the pushed one when the service cannot be asked. An e2e stage hands its
                          focused tests to `nx run-many -t e2e-<platform>`: a test runs
                          when its script, goldens, features (header `features:`, their libraries), the app shell, backends
                          (header `backends:`), lockfile or patches changed, and otherwise replays its last pass with that
@@ -5666,13 +6830,13 @@ Actions:
                          in this process; [--platform android|browser] [--sha S] [--out DIR] [--serial S] [-- <test flags>]. A test whose header has
                          `units: k=v; k=v k2=v2` runs once per unit, its pairs handed to the script as --env (keeps each run
                          short). An Android run takes the device lease and loads the EAS Update CI published on branch dev (`against: update`;
-                         latest-dev.json in the verification bucket; base exp://u.expo.dev/<projectId>/group/<group>/--, which a cold
+                         latest-dev.json from the run's eas-pointer dir, else eas/latest-dev.json in refs/wf/state; base exp://u.expo.dev/<projectId>/group/<group>/--, which a cold
                          start opens bare). A test whose `against:` is not its harness's target is refused before anything runs,
                          naming the header line that fixes it. An Android run is an error, never a fall back to a dev server, when
                          WF_EAS_UPDATE_RESULT
                          (how this push's eas-update job ended) says failure or cancelled, when the pointer does not name this
                          push's commit after a success, or, when this push published none (skipped, or empty on a dispatch), when the
-                         app's package graph changed since the pointer's commit (the rule `wf ship --changed` decides to publish by), or
+                         app's package graph changed since the pointer's commit (the rule `wf ci plan legs` decides to publish by), or
                          when the update has no Android build, does not open on /, or lacks the baked lab flag, backend and agent
                          hosts and backend token, or when EAS does not serve its group to an Android device (the manifest is asked
                          when the pointer saw no 200), or when a tailnet name it baked in is no longer what `wf vm net resolve`
@@ -5698,6 +6862,25 @@ Actions:
                          plain URLs and flags as they are and anything else as set:<8 hex of its hash>, memory is the build's largest
                          process and, with WF_VM_SAMPLE_SECS, the VM's low MemAvailable; or {ok: false, error, next}. `wf test run` refuses
                          an export whose inputs differ from the tree's; a run's result names the baked keys and a digest, never the values.
+  backends up [--only stt,opencode-server,rca-service,leetcode-backend] [--no-build] [--wait <s>] [--dir <dir>] [--rca-port <n>] [--leetcode-port <n>] [--stt-port <n>] [--opencode-port <n>]
+  backends down [--dir <dir>]
+                         the services the e2e tests need, on this machine, so no test reaches a deployed one. up builds rca-service
+                         and leetcode-backend-rs (`cargo build --locked` into <CARGO_TARGET_DIR or target>/<name>-build; RCA_SERVICE_BIN or
+                         LEETCODE_BACKEND_BIN names a prebuilt one, --no-build refuses to build), starts each detached in its own process group
+                         on a free loopback port (or --rca-port / --leetcode-port) with secrets made for this run, waits up to --wait (default 60) s for
+                         its GET /health, and prints {ok, dir, backends:[{name, url, host, port, pid, health, bin, log, env}]} (start order: stt, opencode-server, rca-service, leetcode-backend); env is
+                         what a test or an app export is pointed at it with (RCA_HOST, RCA_PORT, CHAT_AGENT_API_SECRET, WF_TAILNET_SOCKS, SECRETS_BACKEND,
+                         EXPO_PUBLIC_AGENT_BASE_URL; EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL and _TOKEN; E2E_LEETCODE_BEARER names the token instead of a random one, for an update baked before the backend started). rca-service reaches an opencode server only
+                         through OPENCODE_SERVER_URL (and _PASSWORD): a bare up takes them from the caller's environment and starts neither of the two below; --only
+                         names them. opencode-server is `opencode serve` of the PATH (OPENCODE_BIN) with the config of backend/remote-chat-agent/opencode-server and
+                         OPENCODE_GO_API_KEY of the caller's environment as its only key (given to the child alone, never printed or written; a missing one fails
+                         naming it), asked at /app; stt is the faster-whisper sidecar (STT_SERVER names the script, STT_PYTHON the python that has its
+                         requirements, STT_MODEL the model, default tiny.en). Started before rca-service, they are the OPENCODE_SERVER_URL, OPENCODE_CWD and
+                         STT_URL it is started with. The same
+                         JSON is the state file <dir>/backends.json (default .agents/tmp/e2e-backends, mode 0600: it holds the secrets) with each log
+                         beside it. A backend that ends or does not answer stops the ones already started and prints {ok: false, error, next}, exit 1; a second
+                         up while they run is refused. down stops each recorded process that is still the program that was started (SIGTERM to its group,
+                         SIGKILL after 5 s) and prints {ok, dir, stopped:[{name, pid, how: term|kill|gone}]}; with nothing running it is ok and stops none
   drift [--save <file> | --against <file> | --pins] [--targets t,t] [--projects p,p]
                          the Nx task hashes of this checkout, which decide whether a sandbox pass replays on CI; runs nothing.
                          Bare: {ok, tasks, runtime, hashes}. --save writes this side's table ({runtime, tasks: {<project>:<target>:
@@ -5716,13 +6899,13 @@ Actions:
                          <dir> is a harness run's test output dir (report.json), a flow report dir (.flow-report) or an e2e run dir
                          (result.json). bundle.json (schema 1) lists every file's public URL, report {html,json},
                          screenshots[], recordings[], debug, timing, traces[] (the method-hit traces, trace.json, of an
-                         integration chain: `wf parity coverage --traces` reads them), metrics, and the run's screen, warning
+                         integration chain: `wf mimic coverage --traces` reads them), metrics, and the run's screen, warning
                          count and timingSummary; every recording and the report page are read back from the bucket (readBack). `cache`
                          is what the build-cache shim did in the runs that stopped in the last 15 minutes and no bundle carried yet:
                          {runs, hits, misses, puts, skipped, requests, bytes, degraded, latencyMs: {get, put, exists: {n, sumMs, avgMs, maxMs}}}, null when none did.
                          verification/test-runs/index.json lists the newest 500 runs (read through the public URL and merged,
                          never replaced). --no-record skips the row; --ran-on <host> names the runner (default WF_SITE or the
-                         hostname). Needs VERIFICATION_ARTIFACTS_PAR_URL (env or vault). Prints {runId, base, bundle, report, cache,
+                         hostname). Prints {runId, base, bundle, report, cache,
                          files, bytes, index, recorded}.
   results                read what publish wrote; runs nothing. --query "<terms>" filters the test_runs table and the bundle
                          index, joined on runId (index runs first, completed from their row; table runs the index no longer
@@ -5814,6 +6997,8 @@ Commands:
                          replayed at container start
   creds                  OCI credentials for Terraform
   terraform              Terraform for infra/oracle-cloud
+  stock [options]        Hetzner Cloud server types orderable now, and what
+                         changed since the last run
   net                    Tailnet devices and the auth key
   ops                    Operate vm-ops-api itself (health, self-redeploy)
   help [command]         display help for command
@@ -6417,7 +7602,7 @@ Options:
 
 #### `wf vm net resolve`
 
-The name each tailnet host answers to now: the base name, else the first of `<name>-1` .. `<name>-5` that resolves (a name drifts to a suffix while a stale record holds it). Resolves through this machine's resolver, so run it where MagicDNS answers (the VM's runner, a machine on the tailnet).
+The name each tailnet host answers to now: the base name, else the first of `<name>-1` .. `<name>-5` that resolves (a name drifts to a suffix while a stale record holds it). Resolves through this machine's resolver, so run it where MagicDNS answers (a VM app, a machine on the tailnet).
 
 Usage: `wf vm net resolve [options] <name...>`
 
@@ -6435,7 +7620,7 @@ Usage: wf vm net resolve [options] <name...>
 The name each tailnet host answers to now: the base name, else the first of
 <name>-1 .. <name>-5 that resolves (a name drifts to a suffix while a stale
 record holds it). Resolves through this machine's resolver, so run it where
-MagicDNS answers (the VM's runner, a machine on the tailnet).
+MagicDNS answers (a VM app, a machine on the tailnet).
 
 Options:
   -h, --help  display help for command
@@ -6517,9 +7702,6 @@ Commands:
                               pipe it)
   ci-port [options]           Check that the CI port answers /health with the
                               CI seed and 404s an admin-only route
-  runner-check [options]      Check, inside a CI job on the self-hosted runner,
-                              that the job has the builder sidecar and nothing
-                              of the host (booleans only)
   redeploy-self [tag]         Have vm-ops-api build its OWN image at the dev
                               head and swap itself in, fire-and-forget (poll
                               `wf vm ops health` afterward to confirm)
@@ -6844,56 +8026,6 @@ Example:
 
 </details>
 
-#### `wf vm ops runner-check`
-
-Read-only. Run inside a CI job on the self-hosted runner, it checks that the job has the builder sidecar and none of the host: (a) DOCKER_HOST is set and `docker info` through it answers with a server name; (b) the host docker socket does not exist; (c) PID 1's environment (names only, read from /proc/1/environ) holds no ACCESS_TOKEN, no VM_PROVISION_GITHUB_TOKEN and no BWS_ variable other than the job token BWS_CI_DEPLOY_ACCESS_TOKEN; (d) a TCP connect to the agent-shell dind address (AGENT_SHELL_DIND_ADDR, host:port) is refused or times out. No such address is configured today, so the probe is skipped and the output says so.
-
-Usage: `wf vm ops runner-check [options]`
-
-Examples:
-
-```sh
-wf vm ops runner-check --json
-```
-
-<details><summary>Full help</summary>
-
-```text
-Usage: wf vm ops runner-check [options]
-
-Read-only. Run inside a CI job on the self-hosted runner, it checks that the job
-has the builder sidecar and none of the host: (a) DOCKER_HOST is set and
-`docker info` through it answers with a server name; (b) the host docker socket
-does not exist; (c) PID 1's environment (names only, read from /proc/1/environ)
-holds no ACCESS_TOKEN, no VM_PROVISION_GITHUB_TOKEN and no BWS_ variable other
-than the job token BWS_CI_DEPLOY_ACCESS_TOKEN;
-(d) a TCP connect to the agent-shell dind address (AGENT_SHELL_DIND_ADDR,
-host:port) is refused or times out. No such address is configured today, so
-the probe is skipped and the output says so.
-
-Options:
-  --proc-root <dir>          Read <dir>/1/environ instead of /proc/1/environ
-                             (tests)
-  --docker-sock-path <path>  Check this path instead of /var/run/docker.sock
-                             (tests)
-  --json                     Accepted; the output is always JSON
-  -h, --help                 display help for command
-
-Output: one JSON line on stdout {ok, docker_host_answers, docker_server,
-host_docker_sock_absent, pid1_env_readable, pid1_env_clean,
-pid1_offending_names?, agent_shell_dind_unreachable, agent_shell_dind_probe?,
-must_not_reach?};
-names and booleans, never a value. Exit 0 when every required check holds
-(an unreadable PID 1 environment fails), else 1.
-
-Environment: DOCKER_HOST, AGENT_SHELL_DIND_ADDR (optional), RUNNER_CHECK_MUST_NOT_REACH (optional: comma-separated host:port a job must not reach, e.g. the admin port of vm-ops-api; each answers unreachable, reachable or unresolved in `must_not_reach`, and anything but unreachable fails, because a name that does not resolve proves nothing).
-
-Example:
-  wf vm ops runner-check --json
-```
-
-</details>
-
 #### `wf vm ops token-permissions`
 
 Asks GitHub, with read-only GETs, what VM_PROVISION_GITHUB_TOKEN may do on nuesslerm/expo-hello-world-app-2: /user (is the token accepted, when does it expire), /repos/{repo} (Metadata and the permissions block), /actions/runners (a 200 proves Administration: read) and /contents/README.md (Contents: read). Nothing is created. Run it on agent-shell, which holds the token; it is the VM-side check that replaced the runner's verify of this key.
@@ -6937,7 +8069,7 @@ Example (from anywhere on the tailnet; the script is one line):
 
 #### `wf vm ops cancel-run`
 
-Cancels CI runs of dev, of both flavors (deploy.yml, self-hosted, and ci-hosted.yml, GitHub-hosted), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token cannot. Where that token is not in the environment (a sandbox), the verb runs itself on agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run (its run number as the Actions tab shows it, or its id); it must exist among the latest 100 runs of dev and not have completed. --queued cancels every run that is still waiting for a runner (queued, waiting, pending, requested) and leaves running ones alone. --all cancels every run that has not finished.
+Cancels CI runs of dev (ci-hosted-backend-core.yml), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token cannot. Where that token is not in the environment (a sandbox), the verb runs itself on agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run (its run number as the Actions tab shows it, or its id); it must exist among the latest 100 runs of dev and not have completed. --queued cancels every run that is still waiting for a runner (queued, waiting, pending, requested) and leaves running ones alone. --all cancels every run that has not finished.
 
 Usage: `wf vm ops cancel-run (--run <number> | --queued | --all) [options]`
 
@@ -6952,8 +8084,7 @@ wf vm ops cancel-run --all
 ```text
 Usage: wf vm ops cancel-run (--run <number> | --queued | --all) [options]
 
-Cancels CI runs of dev, of both flavors (deploy.yml, self-hosted, and ci-hosted.yml,
-GitHub-hosted), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token
+Cancels CI runs of dev (ci-hosted-backend-core.yml), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token
 cannot. Where that token is not in the environment (a sandbox), the verb runs itself on
 agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run
 (its run number as the Actions tab shows it, or its id); it must exist among the
@@ -7276,6 +8407,73 @@ Options:
   --app <name>  only this app
   --local       the agent-shell side (see backup)
   -h, --help    display help for command
+```
+
+</details>
+
+### `wf vm stock`
+
+Asks the Hetzner Cloud API which server types can be ordered right now and where, so a scheduler can tell the owner when one becomes orderable. A plan counts as available when the API marks it available in any of its locations (Hetzner's own indicator, not a guarantee). With --state the previous result is read first and rewritten after, and the plans whose overall availability flipped, appeared or vanished are listed. The token comes from HCLOUD_READ_TOKEN in the environment, else from the vault; it is read-only and never printed or kept in the state file.
+
+Usage: `wf vm stock [options]`
+
+| Option | Meaning |
+|---|---|
+| `--provider <name>` | Cloud provider (default hetzner, the only one; any other is refused before any request) |
+| `--family <list>` | Comma list of families by name prefix: cx, cax, cpx, ccx (default cx,cax: the cost-optimized x86 and Arm lines) |
+| `--min-vcpu <n>` | Only plans with at least n vCPU (default 0) |
+| `--min-ram-gb <n>` | Only plans with at least n GB of RAM (default 0) |
+| `--api <url>` | The API root (default https://api.hetzner.cloud/v1) |
+| `--state <file>` | The last result: read before the run, rewritten after it |
+
+Examples:
+
+```sh
+wf vm stock --state /tmp/hetzner-stock.json
+wf vm stock --family cx,cax --min-vcpu 4 --min-ram-gb 8 --state /tmp/hetzner-stock.json
+wf vm stock --family cpx,ccx --min-vcpu 4
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf vm stock [options]
+
+Asks the Hetzner Cloud API which server types can be ordered right now and where,
+so a scheduler can tell the owner when one becomes orderable. A plan counts as
+available when the API marks it available in any of its locations (Hetzner's own
+indicator, not a guarantee). With --state the previous result is read first and
+rewritten after, and the plans whose overall availability flipped, appeared or
+vanished are listed.
+
+The token comes from HCLOUD_READ_TOKEN in the environment, else from the vault. It
+is a read-only Hetzner Cloud token: the verb only lists server types and never
+creates, changes or deletes anything. It is never printed or kept in the state file.
+
+Options:
+  --provider <name>    Cloud provider (default hetzner, the only one; any other is
+                       refused before any request)
+  --family <list>      Comma list of families by name prefix: cx, cax, cpx, ccx
+                       (default cx,cax: the cost-optimized x86 and Arm lines)
+  --min-vcpu <n>       Only plans with at least n vCPU (default 0)
+  --min-ram-gb <n>     Only plans with at least n GB of RAM (default 0)
+  --api <url>          The API root (default https://api.hetzner.cloud/v1)
+  --state <file>       The last result: read before the run, rewritten after it
+  -h, --help           display help for command
+
+Output: one JSON object on stdout {ok, provider, source: "api", plans: [{name,
+arch, category, vcpu, ramGb, diskGb, priceMonthExVatEur, locations: {name: bool},
+available, availableIn: [names]}], available: [names], summary}; with --state also
+changed: [{name, was, now, locations}] and firstRun (true when there was no
+previous result, then changed is empty). Exit 0 whenever the API answered; exit 1
+with {ok: false, error} when the token is missing or refused, the API answers an
+error or not at all, its answer has no server types, or the provider is unknown.
+Uses the proxy environment.
+
+Examples:
+  wf vm stock --state /tmp/hetzner-stock.json
+  wf vm stock --family cx,cax --min-vcpu 4 --min-ram-gb 8 --state /tmp/hetzner-stock.json
+  wf vm stock --family cpx,ccx --min-vcpu 4
 ```
 
 </details>

@@ -18,6 +18,7 @@ jobs:
     if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') }}
     permissions:
       actions: read
+      checks: write
       contents: write
       issues: write
       pull-requests: write
@@ -25,7 +26,7 @@ jobs:
     with:
       runner: '"ubuntu-24.04"'
       deploy_runner: '"ubuntu-24.04-arm"'
-      shards: ${{ fromJSON(vars.HOSTED_SHARDS || '6') }}
+      shards: 6
       ship: false
       deploy: false
       e2e: false

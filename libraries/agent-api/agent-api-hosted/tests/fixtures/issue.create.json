@@ -1,0 +1,27 @@
+{
+  "method": "issue.create",
+  "exchanges": [
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "issue.create",
+        "params": {
+          "repo": "octo/hello",
+          "provider": "github",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`title` is required"
+        }
+      },
+      "actions": [
+        "hosted_issue_create"
+      ]
+    }
+  ]
+}

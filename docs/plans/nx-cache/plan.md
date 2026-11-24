@@ -17,11 +17,11 @@ The CI run at f0e3d213c took 34.5 min, one job after another on the VM's single 
 
 | Job | Minutes | What decides what runs |
 | --- | --- | --- |
-| plan | 0.3 | `wf test plan --changed --base last-green` |
+| plan | 0.3 | `wf ci plan tests --changed --base last-green` |
 | typecheck-lint-unit-tests | 3.5 | pnpm's dependency graph from the changed files |
 | flow-tests | 5.0 | pnpm graph; cargo path dependencies for crates no pnpm package wraps |
 | clis (the wf build) | 1.3 | always |
-| deploy legs | 2.2 | `wf ship --changed`: content hash of the images since the running image's commit (N3; before it the package graph, with `ctx-<tree>` reuse) |
+| deploy legs | 2.2 | `wf ci plan legs`: content hash of the images since the running image's commit (N3; before it the package graph, with `ctx-<tree>` reuse) |
 | deployment-verification-tests | 0.5 | pnpm graph |
 | browser and Android e2e | 3.8 + 16 | every focused test (owner, 18 Oct) |
 
@@ -121,7 +121,7 @@ Done when: after a VM recreate, the first CI run replays unchanged projects from
 1. One `image` target per service (inputs: the Docker build context the Dockerfile copies, the Dockerfile, the base
    image tag). Its hash replaces the `ctx-<tree>` tags. An image tagged `nx-<hash>` that already exists in the registry
    is never rebuilt.
-2. `wf ship --changed` compares the running image's hash label with the current one, not the package graph since a
+2. `wf ci plan legs` compares the running image's hash label with the current one, not the package graph since a
    commit. Metro keeps its own check: alive, and at a commit whose app inputs hash the same.
 
 Done when: a push that changes no service's inputs builds and deploys nothing, and one service change rebuilds exactly

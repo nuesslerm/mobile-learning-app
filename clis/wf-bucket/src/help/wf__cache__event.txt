@@ -1,0 +1,68 @@
+Usage: wf cache event [options] <layer> <phase>
+
+Record one restore or save of a cache layer in a CI job: a row of CI_CACHE_EVENTS in
+the job's database (the report job merges it into the sealed one), a `cache.event`
+line on stderr, the gauges ci.cache.events{layer,phase-outcome} and, for a problem,
+ci.cache.problems{layer,reason}. The cache actions call it right after
+actions/cache, whose step is continue-on-error so that a failed restore never fails
+the job: this is where the failure stops being silent. It exits 0 whatever it finds
+(1 only for a command line it cannot read), and outside a CI job (no WF_CI_DB, no
+RUNNER_TEMP) it records nothing.
+
+Loud, not red: for outcome error or timeout it prints a workflow annotation on
+stdout, before its JSON, and a red line in the job's step summary:
+
+  ::error title=cache restore failed::layer=nx key=<key> reason=<text>
+  ::error title=cache save failed::layer=<layer> key=<key> reason=<text>
+
+A restore of the nx layer that matched a key and left 0 entries in ~/.nx/*/cache is an
+error too ("matched <key> and restored 0 entries"). A save of the nx layer that was
+skipped while the job ran and passed tasks is an error, because those results are
+lost to the next run (`wf cache gate nx` decides saves and never skips one while a task ran,
+so it only happens over the size limit):
+
+  ::error title=cache save skipped::layer=nx key=<key> reason=<why>; <n> task(s) ran and passed, and their results are not saved
+
+Layers: nx, sccache, pnpm, metro, playwright, references; a name with a stage after
+the layer (`sccache-flow-tests`) is that layer with that stage, any other name is the
+layer `other`. The lineage columns come from the job (GITHUB_WORKFLOW, GITHUB_JOB,
+GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT) and --stage: a stage ending in `-<n>of<m>` is the
+stage and its shard (`core-tests-1of3`).
+
+For the nx layer a restore also takes a snapshot of Nx's local cache (the entries of
+~/.nx/*/cache, the hashes in the cache_outputs table of ~/.nx/*/databases/*.db, the
+size of the -wal file) into $RUNNER_TEMP/nx-cache.restore.json and exports
+WF_CACHE_RESTORE_FILE, WF_CACHE_STAGE and WF_CACHE_RESTORED_KEY to the job. A task
+that ran later is recorded (NX_TASKS) with whether its hash was in the restored
+directory and in the table, which is what tells "the entry was there and Nx ran the
+task anyway" from "the entry was never there".
+
+Output: one JSON object {ok, recorded, layer, phase, outcome, reason, problem,
+annotation, event: {run, attempt, workflow, job, stage, shard, layer, phase,
+keyRequested, keyMatched, matchKind, sizeBytes, durationMs, outcome, reason, entries,
+dbRows, walBytes}}. problem is null, or restore-error, restore-timeout, restore-empty,
+save-error, save-timeout or save-skipped-tasks-ran.
+
+Arguments:
+  layer       the cache layer, or layer-stage (nx, sccache-flow-tests, pnpm, ...)
+  phase       restore or save
+
+Options:
+  --outcome <o>        ok, miss, timeout, error or skipped (required): from the
+                       cache step's `outcome` (failure is error, cancelled is
+                       timeout) and its cache-hit and cache-matched-key outputs
+  --key <key>          the key asked for (a save: the key saved under)
+  --matched-key <key>  the key the restore matched, empty for none
+  --hit <true|false>   the restore's cache-hit output: an exact match
+  --match-kind <k>     exact, restore-key or none (default: from --hit and --matched-key)
+  --stage <name>       the stage, with its shard when it has one (core-tests-1of3)
+  --shard <name>       the shard, when the stage name does not carry it
+  --size-bytes <n>     the size of what was moved (default: measured over --path)
+  --duration-ms <n>    how long the step took
+  --started-ms <n>     when the step started (epoch ms): the duration is measured from it
+  --reason <text>      what a failure, a timeout or a skipped save says for itself
+  --entries <n>        entries in the cache directory (default for nx: counted)
+  --entries-before <n> entries when the restore ended, for the save's decision
+  --snapshot-file <p>  where the nx snapshot goes (default $RUNNER_TEMP/nx-cache.restore.json)
+  --path <p>...        the directories the layer moves, to measure their size
+  -h, --help           display help for command

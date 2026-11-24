@@ -30,17 +30,17 @@ telemetry = { version = "0.1", registry = "mla", features = ["oneshot"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 base64 = "0.22"
 form_urlencoded = "1"
+tiny_http = "0.12"
 getrandom = "0.4"
 uuid = { version = "1", features = ["v4"] }
-tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "net", "io-util", "macros", "time"] }
-axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
-tower-http = { version = "0.6", default-features = false, features = ["cors", "limit"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
 
 [dev-dependencies]
 wf-testkit = { path = "../wf-testkit" }
 # The tests double vm-ops-api with the fake wf-vmops ships.
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
-regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
 tempfile = "3"
-tiny_http = "0.12"
 ureq = { version = "3", default-features = false }
+
+[package.metadata.arch]
+type = "cli-crate"

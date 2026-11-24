@@ -1,0 +1,18 @@
+{
+  "transcript": "inside that check, return visited at target minus n and i as a list",
+  "alternatives": [
+    {
+      "id": "stub-1",
+      "label": "Return the pair",
+      "summary": "Inside that check, return visited at target minus n and i as a list.",
+      "confidence": 0.95,
+      "commands": [
+        {
+          "type": "insertAfterLine",
+          "line": 5,
+          "text": "                return [visited[target - n], i]"
+        }
+      ]
+    }
+  ]
+}

@@ -14,37 +14,26 @@
   },
   "summary": {
     "testids": [
-      "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
-      "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInput",
-      "ProblemPlanTab",
-      "ProblemPlanSteps",
-      "ProblemPlanComposer",
-      "ProblemPlanMicButton",
-      "ProblemPlanTextInput",
-      "ProblemPlanAddButton"
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset"
+    "text": "Python\nConsole\nSubmit"
   },
   "timings": {
-    "render_ms": 266
+    "render_ms": 297
   },
   "name": "problemeditor/final-given-a-base64url-seed-in-the-route-params-of-a-8013cc.dark",
   "image": {

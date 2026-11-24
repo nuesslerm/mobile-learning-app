@@ -2,9 +2,13 @@ import {
   routerHarness,
   screen,
   userEvent,
+  waitFor,
 } from '@lib/flow-test-harness';
-import { usePresetThemeStore } from '@lib/tamagui-design-system';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  useNativeHeaderStore,
+  usePresetThemeStore,
+} from '@lib/tamagui-design-system';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { app } from './app';
 
@@ -50,18 +54,13 @@ describe('Settings flow (index and appearance screens)', () => {
     expect(router.calls()).toHaveLength(1);
   });
 
-  it('given the Appearance screen with preset tiles, when a preset tile is pressed, then setActiveTheme was called with that preset id and the store holds it', async () => {
-    const setActiveTheme = vi.spyOn(
-      usePresetThemeStore.getState(),
-      'setActiveTheme'
-    );
+  it('given the Appearance screen with preset tiles, when a preset tile is pressed, then the store holds that preset as the active theme', async () => {
     await app.render('/settings/appearance');
 
     await userEvent.click(
       screen.getByTestId('AppearanceSettingsScreen-ThemeTilePress-forest-fresh')
     );
 
-    expect(setActiveTheme).toHaveBeenCalledWith('forest-fresh');
     expect(usePresetThemeStore.getState().activeThemeId).toBe('forest-fresh');
   });
 
@@ -79,5 +78,49 @@ describe('Settings flow (index and appearance screens)', () => {
     expect(
       opaqueBackground('AppearanceSettingsScreen-ModeControl-system')
     ).toBe(false);
+  });
+});
+
+describe('the Native headers row on the Appearance screen', () => {
+  beforeEach(() => {
+    useNativeHeaderStore.setState({ enabled: true });
+  });
+
+  it('given a fresh install, when the Appearance screen renders, then native headers are on', async () => {
+    await app.render('/settings/appearance');
+
+    expect(useNativeHeaderStore.getState().enabled).toBe(true);
+    expect(
+      screen.getByTestId('AppearanceSettingsScreen-NativeHeadersControl-on')
+    ).not.toBeNull();
+  });
+
+  it('given the setting on, when Off is tapped, then the setting is off and On turns it back on', async () => {
+    await app.render('/settings/appearance');
+
+    await userEvent.click(
+      screen.getByTestId('AppearanceSettingsScreen-NativeHeadersControl-off')
+    );
+    await waitFor(() =>
+      expect(useNativeHeaderStore.getState().enabled).toBe(false)
+    );
+    await userEvent.click(
+      screen.getByTestId('AppearanceSettingsScreen-NativeHeadersControl-on')
+    );
+
+    await waitFor(() =>
+      expect(useNativeHeaderStore.getState().enabled).toBe(true)
+    );
+  });
+
+  it('given the Appearance screen, when it renders, then the hint names the iOS system header and the off switch', async () => {
+    await app.render('/settings/appearance');
+
+    const hint = screen.getByTestId(
+      'AppearanceSettingsScreen-NativeHeadersHint'
+    );
+
+    expect(hint.textContent).toContain('iOS system header');
+    expect(hint.textContent).toContain("app's own header");
   });
 });

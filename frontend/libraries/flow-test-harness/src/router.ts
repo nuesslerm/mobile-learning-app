@@ -3,11 +3,19 @@
 // screen navigated to.
 export type RouterCall = ['push' | 'replace' | 'navigate', string] | ['back'];
 
+/** A react-navigation theme as the root's ThemeProvider receives it. */
+export interface NavigationThemeValue {
+  dark: boolean;
+  colors: Record<string, string>;
+}
+
 interface FlowRouterState {
   calls: RouterCall[];
   params: Record<string, string | undefined>;
   pathname?: string;
   listeners?: Set<() => void>;
+  stackHeadersRendered?: boolean;
+  theme?: NavigationThemeValue;
 }
 
 const g = globalThis as { __flowRouter?: FlowRouterState };
@@ -44,6 +52,16 @@ export function routerHarness(): RouterHarness {
     lastPush: () => state().calls.filter((c) => c[0] === 'push').map((c) => c[1] as string).at(-1),
     reset: resetRouterHarness,
   };
+}
+
+/** Draws the `options.header` of a Stack.Screen (a screen's, or a layout's whose name ends the pathname); call it before the render. */
+export function setStackHeadersRendered(rendered: boolean): void {
+  state().stackHeadersRendered = rendered;
+}
+
+/** What the last mounted ThemeProvider received; undefined before one mounts. */
+export function navigationTheme(): NavigationThemeValue | undefined {
+  return state().theme;
 }
 
 export function resetRouterHarness(): void {

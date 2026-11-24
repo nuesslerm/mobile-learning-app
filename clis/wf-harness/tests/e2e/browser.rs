@@ -501,7 +501,15 @@ fn the_device_verbs_find_clip_tap_and_read_a_framed_page_without_writing_to_it()
     let (refused, why) = verb(&["input-text", "x"]);
     let keyboard_down = result(&["get-device-state", "keyboard"]);
     result(&["tap-on", "--id", "Name"]);
-    let keyboard_up = result(&["get-device-state", "keyboard"]);
+    // the tap raises the keyboard asynchronously, so a loaded runner may read it before it is up
+    let mut keyboard_up = result(&["get-device-state", "keyboard"]);
+    for _ in 0..50 {
+        if keyboard_up["visible"] == true {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        keyboard_up = result(&["get-device-state", "keyboard"]);
+    }
     result(&["input-text", "Q"]);
     result(&["tap-on", "--text", "warn"]);
     let late = result(&["extended-wait-until", "--visible", "--id", "Late", "--timeout", "5000"]);

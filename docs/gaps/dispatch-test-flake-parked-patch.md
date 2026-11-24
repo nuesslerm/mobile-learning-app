@@ -20,7 +20,7 @@ parked in `.agents/tmp/parked/secrets-timeout.patch`. That path is gitignored an
 committed, so it exists only on the machine that parked it, if anywhere; it is not in this checkout.
 
 On 2026-10-08 that suite, the TypeScript dispatch core and `runCliArgs` were deleted. Dispatch is now
-`wf offload ask` (`clis/offload/src/dispatch_run.rs`, covered by `clis/offload/tests/flow/ask.rs`), and the `bws` calls
+`wf rca ask` (`clis/rca/src/dispatch_run.rs`, covered by `clis/rca/tests/flow/ask.rs`), and the `bws` calls
 `runCliArgs` made go through `run_cli` in `clis/secrets/src/secrets/backend.rs` and `run_bws` in
 `clis/secrets/src/secrets/vault.rs`, both of which still wait on the child with no timeout.
 

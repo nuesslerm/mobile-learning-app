@@ -5,6 +5,9 @@
  * A plain in-app feature: one package, no separate mocks or implementation package.
  */
 
+// The on-device runner: the app root mounts it so the interpreter outlives the screens
+export { DeviceRunnerRoot } from './di/DeviceRunnerRoot';
+
 // Screens (ui layer)
 export { ProblemListScreen } from './ui/ProblemListScreen';
 
@@ -12,12 +15,14 @@ export { ProblemListScreen } from './ui/ProblemListScreen';
 export { useLeetCodeAuthStore } from './state/authStore';
 export { usePlanStore } from './plan';
 
-// Port contracts -- pure types consumed by screens and harness doubles
+// Ports -- pure types consumed by screens and harness doubles
 export type {
+  CodeRunnerPort,
   LeetCodeGatewayPort,
+  LeetCodePortOverrides,
   LeetCodePorts,
   VoiceEditTransportPort,
-} from './contracts/ports';
+} from './domain/ports';
 
 // Domain types and schemas
 export type { RunResponse } from './domain';

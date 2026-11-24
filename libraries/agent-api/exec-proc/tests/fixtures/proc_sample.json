@@ -1,0 +1,34 @@
+{
+  "action": "proc_sample",
+  "exchanges": [
+    {
+      "name": "samples the executor's own process and what runs below it; the numbers depend on the machine and are compared by presence",
+      "request": {
+        "id": "p1",
+        "tool": "proc_sample",
+        "args": {}
+      },
+      "response": {
+        "id": "p1",
+        "ok": true,
+        "result": {
+          "sampled_at_ms": 1,
+          "ticks_per_second": 100,
+          "processes": [],
+          "count": 1,
+          "total_rss_kib": 1,
+          "total_cpu_ticks": 1,
+          "truncated": false
+        }
+      },
+      "volatile": [
+        "/result/sampled_at_ms",
+        "/result/ticks_per_second",
+        "/result/processes",
+        "/result/count",
+        "/result/total_rss_kib",
+        "/result/total_cpu_ticks"
+      ]
+    }
+  ]
+}

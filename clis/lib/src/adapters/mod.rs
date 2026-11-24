@@ -3,5 +3,6 @@ pub mod bucket_sparse;
 pub mod cargo;
 pub mod cargo_publish;
 pub mod git;
+pub mod git_sparse;
 pub mod guard;
 pub mod index_source;

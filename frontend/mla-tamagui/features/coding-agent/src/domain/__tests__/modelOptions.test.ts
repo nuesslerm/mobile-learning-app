@@ -21,7 +21,7 @@ import {
   INTERACTION_MODE_OPTIONS,
   RUNTIME_MODE_OPTIONS,
 } from '../threadSettings';
-import type { ModelSelection } from '../../contracts/orchestration';
+import type { ModelSelection } from '../orchestration';
 
 function makeDescriptor(
   overrides: Partial<ServerProbeModelDescriptor>

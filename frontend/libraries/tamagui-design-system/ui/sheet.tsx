@@ -3,8 +3,10 @@ import BottomSheet, {
   BottomSheetFlatList,
   BottomSheetScrollView,
   type BottomSheetBackdropProps,
+  type BottomSheetBackgroundProps,
 } from '@gorhom/bottom-sheet';
 import { Logger } from '@lib/logging';
+import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable, type GlassColorScheme } from 'expo-glass-effect';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -14,10 +16,15 @@ import {
   StyleSheet,
   Text as RNText,
   View,
+  type ColorValue,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { X } from '../icons';
 import { useOpenSheetStore } from '../lib/openSheetStore';
+import { useKeyboardFrame } from '../lib/keyboard/useKeyboardFrame';
 import { useTheme } from '../primitives';
 
 import { Icon } from './icon';
@@ -28,6 +35,18 @@ export type SheetProps = {
   children: ReactNode;
   /** Percentages of screen height, largest first. */
   snapPoints?: number[];
+  topInset?: number;
+  floating?: boolean;
+  floatingHorizontalInset?: number;
+  /** Distance from the window's bottom edge for a floating sheet. Defaults to the safe area plus 8 points. */
+  floatingBottomInset?: number;
+  cornerRadius?: number;
+  glassColorScheme?: GlassColorScheme;
+  glassTintColor?: ColorValue;
+  /** Controls whether the sheet itself is a single accessibility element. */
+  accessible?: boolean;
+  /** Keep the bottom inset fixed. A form's scroll view handles the keyboard overlap. */
+  keyboardOverlay?: boolean;
   /**
    * Hands the vertical drag to whatever the body renders instead of the sheet.
    * Pass it when the body holds a scrollable that is NOT one of gorhom's own
@@ -36,6 +55,16 @@ export type SheetProps = {
    * one loses. The handle and the backdrop still dismiss.
    */
   disableContentPanningGesture?: boolean;
+  /**
+   * 'dim' (default) is a modal sheet with a tappable dimmed layer. 'none' draws no layer and lets touches through the container to
+   * what is behind the sheet: a non-modal panel the page above it stays usable beside.
+   */
+  backdrop?: 'dim' | 'none';
+  backdropOpacity?: number;
+  /** Makes the drag handle a button with this label (`${testID}Handle`) that closes the sheet and exposes a dismiss action. */
+  handleLabel?: string;
+  handleIndicatorStyle?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
   testID: string;
 };
 
@@ -86,10 +115,11 @@ function useMountedAfterFirstFrame(): boolean {
  * sits at index 0, where the stock backdrop never renders -- leaving nothing to
  * tap and no way out.
  */
-function renderBackdrop(props: BottomSheetBackdropProps) {
+function renderBackdrop(props: BottomSheetBackdropProps, opacity?: number) {
   return (
     <BottomSheetBackdrop
       {...props}
+      opacity={opacity}
       appearsOnIndex={0}
       disappearsOnIndex={-1}
       pressBehavior="close"
@@ -102,7 +132,7 @@ function renderBackdrop(props: BottomSheetBackdropProps) {
  * The keyboard toolbar rail reads this and unmounts; see openSheetStore for why
  * a z-index cannot do that job.
  */
-function usePublishSheetOpen(open: boolean): void {
+export function usePublishSheetOpen(open: boolean): void {
   useEffect(() => {
     if (!open) return;
     const { open: openSheet, close: closeSheet } = useOpenSheetStore.getState();
@@ -131,16 +161,55 @@ function useDismissKeyboardWhileOpen(open: boolean): void {
   }, [open]);
 }
 
+function LabeledHandle({ label, testID, indicatorStyle, onDismiss }: {
+  label: string;
+  testID: string;
+  indicatorStyle: StyleProp<ViewStyle>;
+  onDismiss: () => void;
+}) {
+  return (
+    <Pressable
+      testID={`${testID}Handle`}
+      accessibilityRole="button"
+      aria-label={label}
+      accessibilityActions={[{ name: 'dismiss', label }]}
+      onAccessibilityAction={(event) => {
+        if (event.nativeEvent.actionName === 'dismiss') onDismiss();
+      }}
+      onPress={onDismiss}
+      hitSlop={8}
+      style={styles.handle}
+    >
+      <View style={[styles.handleBar, indicatorStyle]} />
+    </Pressable>
+  );
+}
+
 export function Sheet({
   open,
   onOpenChange,
   children,
   snapPoints = [85, 50],
+  topInset,
+  floating = false,
+  floatingHorizontalInset = 12,
+  floatingBottomInset,
+  cornerRadius,
+  glassColorScheme,
+  glassTintColor,
+  accessible,
+  keyboardOverlay = false,
   disableContentPanningGesture = false,
+  backdrop = 'dim',
+  backdropOpacity,
+  handleLabel,
+  handleIndicatorStyle,
+  contentStyle,
   testID,
 }: SheetProps) {
   const theme = useTheme();
   const ref = useRef<BottomSheet>(null);
+  const useGlass = Platform.OS === 'ios' && isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
   // gorhom computes the sheet's total available height from the LAST entry
   // of the `snapPoints` array it is given (`highestDetentPosition =
   // detents[detents.length - 1]`), which only lands on the tallest point when
@@ -190,13 +259,68 @@ export function Sheet({
   // control the sheet exists to offer.
   useDismissKeyboardWhileOpen(open);
 
+  // The sheet's bottom edge goes up to the keyboard's top (`bottomInset`). Opening a sheet puts the keyboard away, so a keyboard that
+  // rises while one is open is for a field in it. gorhom's own lift is not relied on: it only acts for its own input, and on the CI
+  // emulator it did not move the sheet at all (Expo Go, edge to edge); the keyboard source is the one the toolbar rail follows. The same
+  // code runs on web, where the browser tests and the flow tests see it.
+  //
+  // The sheet gets smaller by the keyboard's height (its percent points are of the room that is left), so a sheet with a field should
+  // be tall enough for that room: VoiceReviewSheet takes 95% in its text mode. Changing the snap points while the sheet is open is not
+  // an option: it takes the focus from the field (the keyboard goes down again).
+  const keyboard = useKeyboardFrame();
+  const insets = useSafeAreaInsets();
+  // Android's keyboard events leave out the navigation bar that the keyboard also covers (the toolbar rail adds it the same way), and
+  // the sheet's container ends at the bottom of the window
+  const keyboardLift = open && keyboard.visible && !keyboardOverlay
+    ? keyboard.height + (Platform.OS === 'android' ? insets.bottom : 0)
+    : 0;
+  const bottomInset = floating
+    ? Math.max(keyboardLift, floatingBottomInset ?? insets.bottom + 8)
+    : keyboardLift;
+
   const mounted = useMountedAfterFirstFrame();
+  const indicatorColor = theme.color8?.val ?? '#999';
+  const renderHandle = useCallback(
+    () => (
+      <LabeledHandle
+        label={handleLabel ?? ''}
+        testID={testID}
+        indicatorStyle={[{ backgroundColor: indicatorColor }, handleIndicatorStyle]}
+        onDismiss={handleClose}
+      />
+    ),
+    [handleLabel, testID, indicatorColor, handleIndicatorStyle, handleClose]
+  );
+  const renderGlassBackground = useCallback(
+    ({ style }: BottomSheetBackgroundProps) => (
+      <GlassView
+        glassEffectStyle="regular"
+        colorScheme={glassColorScheme}
+        tintColor={glassTintColor}
+        style={[
+          style,
+          styles.glassBackground,
+          cornerRadius === undefined ? null : {
+            borderRadius: cornerRadius,
+            borderTopLeftRadius: cornerRadius,
+            borderTopRightRadius: cornerRadius,
+          },
+        ]}
+      />
+    ),
+    [cornerRadius, glassColorScheme, glassTintColor]
+  );
+  const renderDimBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => renderBackdrop(props, backdropOpacity),
+    [backdropOpacity]
+  );
 
   if (!mounted || !open) return null;
 
   return (
     <BottomSheet
       ref={ref}
+      accessible={accessible}
       index={index}
       snapPoints={points}
       onClose={handleClose}
@@ -205,18 +329,33 @@ export function Sheet({
       enableContentPanningGesture={!disableContentPanningGesture}
       // Dynamic sizing fights explicit snap points; app #1 hardcodes it off.
       enableDynamicSizing={false}
-      backdropComponent={renderBackdrop}
-      keyboardBehavior="interactive"
+      backdropComponent={backdrop === 'none' ? undefined : renderDimBackdrop}
+      // gorhom's web container is a full-size absolute div that would swallow every tap meant for what is behind a sheet with no backdrop
+      {...(backdrop === 'none' ? { containerStyle: styles.passThrough } : {})}
+      {...(handleLabel ? { handleComponent: renderHandle } : {})}
+      keyboardBehavior={keyboardOverlay ? 'extend' : 'interactive'}
       // gorhom default is 'none', which leaves the keyboard up over the sheet.
       keyboardBlurBehavior="restore"
+      topInset={topInset}
+      bottomInset={bottomInset}
+      detached={floating}
+      style={floating ? { marginHorizontal: floatingHorizontalInset } : undefined}
       android_keyboardInputMode="adjustResize"
       // color2, NOT `background`: a sheet painted in the page's own background
       // is invisible on the dark theme -- on a device the only things that read
       // as a sheet at all were the handle and one hairline divider, over what
       // looked like empty screen. This is the same elevated surface the header
       // menu's card uses.
-      backgroundStyle={{ backgroundColor: theme.color2?.val ?? '#fff' }}
-      handleIndicatorStyle={{ backgroundColor: theme.color8?.val ?? '#999' }}
+      backgroundComponent={useGlass ? renderGlassBackground : undefined}
+      backgroundStyle={[
+        !useGlass && { backgroundColor: theme.color2?.val ?? '#fff' },
+        floating && styles.floatingBackground,
+        cornerRadius === undefined ? null : { borderRadius: cornerRadius },
+      ]}
+      handleIndicatorStyle={[
+        { backgroundColor: floating ? 'rgba(127, 127, 127, 0.65)' : indicatorColor },
+        handleIndicatorStyle,
+      ]}
       // RNGH's web pan handler drops its default min-distance activation as
       // soon as ANY custom offset is set, so a sheet configured with only a
       // horizontal fail-offset ends up with no activation criterion at all and
@@ -226,7 +365,7 @@ export function Sheet({
         ? { activeOffsetY: [-15, 15] as [number, number] }
         : {})}
     >
-      <View testID={testID} style={styles.frame}>
+      <View testID={testID} style={[styles.frame, contentStyle]}>
         {children}
       </View>
     </BottomSheet>
@@ -248,6 +387,10 @@ export type SheetHeaderProps = {
    */
   onClose?: () => void;
   closeAccessibilityLabel?: string;
+  /** Beside the title on the left (a Reset pill). With either slot the row centres its items vertically. */
+  leading?: ReactNode;
+  /** Beside the title on the right, before the close control (a Done pill). */
+  trailing?: ReactNode;
   testID: string;
 };
 
@@ -256,18 +399,27 @@ export function SheetHeader({
   children,
   onClose,
   closeAccessibilityLabel = 'Close',
+  leading,
+  trailing,
   testID,
 }: SheetHeaderProps) {
   const theme = useTheme();
   const border = theme.borderColor?.val ?? 'rgba(128,128,128,0.35)';
-  const chip = theme.color4?.val ?? 'rgba(128,128,128,0.22)';
+  const chip = theme.color3?.val ?? 'rgba(128,128,128,0.22)';
+  const hasSlots = leading != null || trailing != null;
 
   return (
     <View
       testID={testID}
-      style={[styles.header, { borderBottomColor: border }]}
+      style={[
+        styles.header,
+        hasSlots && styles.headerWithSlots,
+        { borderBottomColor: border },
+      ]}
     >
+      {leading != null ? <View style={styles.slot}>{leading}</View> : null}
       <View style={styles.headerBody}>{children}</View>
+      {trailing != null ? <View style={styles.slot}>{trailing}</View> : null}
       {onClose ? (
         <Pressable
           testID={`${testID}Close`}
@@ -294,6 +446,11 @@ export function SheetHeader({
 }
 
 const styles = StyleSheet.create({
+  passThrough: { pointerEvents: 'box-none' },
+  floatingBackground: { borderRadius: 28 },
+  glassBackground: { pointerEvents: 'none', borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  handle: { alignItems: 'center', justifyContent: 'center', paddingTop: 10, paddingBottom: 10 },
+  handleBar: { width: 36, height: 4, borderRadius: 2 },
   frame: { flex: 1, paddingHorizontal: 16, paddingTop: 4, gap: 12 },
   header: {
     flexDirection: 'row',
@@ -302,7 +459,9 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  headerWithSlots: { alignItems: 'center' },
   headerBody: { flex: 1, minWidth: 0 },
+  slot: { flexShrink: 0 },
   close: {
     width: 32,
     height: 32,

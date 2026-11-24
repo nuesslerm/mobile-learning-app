@@ -1,14 +1,15 @@
-//! `wf test publish <dir>`: one run of any harness becomes a run bundle in the verification-artifacts bucket, the standard
-//! evidence a reporting job picks up: `bundle.json` (schema 1) with every file's public URL, the report (HTML and JSON),
-//! screenshots, recordings, the debugger hits, the timing lines and the metrics row, under `test-runs/<runId>/`, listed
-//! newest first in `verification/test-runs/index.json`. The same call posts the run's `HEALTH_RPT.TEST_RUNS` row with the bundle's
+//! `wf test publish <dir>`: one run of any harness becomes a run bundle in a local folder, the standard evidence a workflow
+//! uploads as a GitHub Actions artifact: `bundle.json` (schema 1) with every file's path inside the bundle, the report (HTML and
+//! JSON), screenshots, recordings, the debugger hits, the timing lines and the metrics row, under `<out>/<runId>/`, listed
+//! newest first in `<out>/index.json`. `<out>` is `--out`, else `WF_TEST_RUNS_DIR`, else `$RUNNER_TEMP/test-runs`. The same call posts the run's `HEALTH_RPT.TEST_RUNS` row with the bundle's
 //! report URL as `report_path`, so the dashboards and the reporter see one record per run. The bundle's `cache` block is what the
 //! build-cache shim did since the last publish (`cache_runs`), `null` when no shim ran. Its `traces` list the method-hit traces
-//! (`trace.json`) of an integration chain beside its run record, which `wf parity coverage --traces` reads.
+//! (`trace.json`) of an integration chain beside its run record, which `wf mimic coverage --traces` reads, and `traceRuns` each trace's run
+//! (`suite`, `sha`, `complete`, `tests`, `passed`).
 use crate::test_metrics;
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
-use wf_bucket::artifacts::{content_type_for, existing_index, par_url, public_base, put_par, TEST_RUNS_PREFIX};
+use wf_bucket::artifacts::content_type_for;
 use wf_bucket::cache_runs;
 
 const SCHEMA: u64 = 1;
@@ -105,9 +106,9 @@ fn pick(files: &[(String, u64)], pred: impl Fn(&str) -> bool) -> Vec<&str> {
     files.iter().map(|(r, _)| r.as_str()).filter(|r| pred(r)).collect()
 }
 
-/// The bundle's manifest, before upload: every file with the URL it will have.
+/// The bundle's manifest, every file with its path inside the bundle.
 fn bundle_json(run_id: &str, kind: &Kind, row: &Map<String, Value>, files: &[(String, u64)], notes: &[String], base: &str, published_at: &str) -> Value {
-    let url = |rel: &str| format!("{base}/{rel}");
+    let url = |rel: &str| rel.to_string();
     let report_html = pick(files, |r| r == "report.html" || r == "rec/report.html" || r == "index.html").first().map(|r| url(r));
     let report_json = pick(files, |r| r == "report.json" || r == "rec/report.json").first().map(|r| url(r));
     let kind_name = match kind {
@@ -139,6 +140,24 @@ fn bundle_json(run_id: &str, kind: &Kind, row: &Map<String, Value>, files: &[(St
     })
 }
 
+/// What each method-hit trace of the bundle says about its run (`suite`, `sha`, `complete`, `tests`, `passed`), so a coverage refresh and a
+/// reader see which runs the bundle holds without opening every trace. A trace that is not `method-trace/1` JSON is listed with a `problem`.
+fn trace_runs(dir: &Path, files: &[(String, u64)]) -> Vec<Value> {
+    pick(files, |r| r == "trace.json" || r.ends_with("/trace.json"))
+        .into_iter()
+        .map(|rel| {
+            let trace = std::fs::read_to_string(dir.join(rel)).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).filter(|t| t["schema"] == "method-trace/1");
+            match trace {
+                Some(t) => {
+                    let tests = t["tests"].as_array().cloned().unwrap_or_default();
+                    json!({ "path": rel, "app": t["app"], "suite": t["suite"], "sha": t["sha"], "complete": t["complete"] == true, "tests": tests.len(), "passed": tests.iter().filter(|x| x["verdict"] == "pass").count() })
+                }
+                None => json!({ "path": rel, "problem": "not a method-trace/1 file" }),
+            }
+        })
+        .collect()
+}
+
 /// The index entry a reporter lists runs by.
 /// The facts a gate reads without opening the report: the screen (with its density on Android), the speed, the warnings and
 /// the timing.
@@ -150,17 +169,12 @@ fn add_run_facts(bundle: &mut Value, report: &Value) {
     bundle["timingSummary"] = report["timing"].clone();
 }
 
-/// Each recording and the report page, fetched back from where the bundle says it lives.
-fn read_back(bundle: &Value) -> Value {
-    let mut urls: Vec<String> = bundle["recordings"].as_array().into_iter().flatten().filter_map(|u| u.as_str().map(str::to_string)).collect();
-    urls.extend(bundle["report"]["html"].as_str().map(str::to_string));
-    let failed: Vec<&String> = urls
-        .iter()
-        .filter(|u| {
-            !cli_http::Request::get(u).header("Range", "bytes=0-1023").timeout(std::time::Duration::from_secs(30)).send().is_ok_and(|r| matches!(r.status, 200 | 206) && !r.body.is_empty())
-        })
-        .collect();
-    json!({ "ok": failed.is_empty() && !bundle["recordings"].as_array().is_none_or(Vec::is_empty), "checked": urls.len(), "failed": failed })
+/// Each recording and the report page, checked on disk where the bundle was written.
+fn read_back(bundle: &Value, root: &Path) -> Value {
+    let mut paths: Vec<String> = bundle["recordings"].as_array().into_iter().flatten().filter_map(|u| u.as_str().map(str::to_string)).collect();
+    paths.extend(bundle["report"]["html"].as_str().map(str::to_string));
+    let failed: Vec<&String> = paths.iter().filter(|p| !std::fs::metadata(root.join(p)).is_ok_and(|m| m.len() > 0)).collect();
+    json!({ "ok": failed.is_empty() && !bundle["recordings"].as_array().is_none_or(Vec::is_empty), "checked": paths.len(), "failed": failed })
 }
 
 /// What an index entry keeps of a run's timing for charts over time: the phases, sleep and Lua time, and the eight most
@@ -177,7 +191,7 @@ fn index_entry(bundle: &Value) -> Value {
     json!({
         "runId": bundle["runId"], "kind": bundle["kind"], "harness": bundle["harness"], "suiteOrRunbook": bundle["suiteOrRunbook"], "sha": bundle["sha"],
         "verdict": bundle["verdict"], "durationS": bundle["durationS"], "publishedAt": bundle["publishedAt"],
-        "bundle": format!("{}/bundle.json", bundle["base"].as_str().unwrap_or("")), "report": bundle["report"]["html"],
+        "bundle": format!("{}/bundle.json", bundle["runId"].as_str().unwrap_or("")), "report": bundle["report"]["html"],
         "screenshots": bundle["screenshots"].as_array().map_or(0, Vec::len), "recordings": bundle["recordings"].as_array().map_or(0, Vec::len), "traces": bundle["traces"].as_array().map_or(0, Vec::len),
         "args": bundle["args"], "screen": bundle["screen"], "warnings": bundle["warnings"], "wallS": bundle["timingSummary"]["wallS"],
         "byVerb": bundle["timingSummary"]["byVerb"].as_array().map_or(0, Vec::len), "readBack": bundle["readBack"]["ok"],
@@ -202,26 +216,45 @@ fn merged_index(existing: Option<&str>, entry: Value) -> Value {
 pub struct Published {
     pub(crate) run_id: String,
     pub base: String,
+    pub folder: String,
+    index: String,
     pub(crate) bundle: Value,
     pub(crate) files: usize,
     bytes: u64,
     recorded: Value,
 }
 
-/// Uploads the run in `dir` and, unless `record` is false, posts its metrics row with the bundle's report as `report_path`.
-pub fn publish(dir: &Path, ran_on: &str, record: bool) -> Result<Published, String> {
+/// The folder the bundles are written to: `out`, else `WF_TEST_RUNS_DIR`, else `$RUNNER_TEMP/test-runs`.
+fn out_dir(out: Option<&str>) -> PathBuf {
+    let env = |k: &str| std::env::var(k).ok().filter(|v| !v.is_empty());
+    out.map(PathBuf::from).or_else(|| env("WF_TEST_RUNS_DIR").map(PathBuf::from)).unwrap_or_else(|| env("RUNNER_TEMP").map_or_else(|| std::env::temp_dir().join("wf-test-runs"), |t| PathBuf::from(t).join("test-runs")))
+}
+
+/// Where a person opens the run's artifacts: the Actions run page in CI, else the bundle's folder.
+fn run_page(folder: &Path) -> String {
+    let env = |k: &str| std::env::var(k).ok().filter(|v| !v.is_empty());
+    match (env("GITHUB_SERVER_URL"), env("GITHUB_REPOSITORY"), env("GITHUB_RUN_ID")) {
+        (Some(server), Some(repo), Some(id)) => format!("{}/{repo}/actions/runs/{id}", server.trim_end_matches('/')),
+        _ => folder.display().to_string(),
+    }
+}
+
+/// Writes the run in `dir` as a bundle under `out/<runId>/` and, unless `record` is false, posts its metrics row with the run page as `report_path`.
+pub fn publish(dir: &Path, ran_on: &str, record: bool, out: Option<&str>) -> Result<Published, String> {
     let kind = kind_of(dir)?;
     let mut row = row_of(dir, &kind, ran_on)?;
     let run_id = row.get("run_id").and_then(Value::as_str).filter(|s| !s.is_empty()).ok_or("the run has no run_id")?.to_string();
-    let par = par_url()?;
     let (files, notes) = files_of(dir);
-    let base = format!("{}/{TEST_RUNS_PREFIX}/{run_id}", public_base());
+    let root = out_dir(out);
+    let folder = root.join(&run_id);
+    let base = run_page(&folder);
     let published_at = rca_core::time::iso(now_ms());
-    // the row inside the bundle and the posted one both name the bucket's report, never the runner's local path
+    // the row inside the bundle and the posted one both name the run page, never the runner's local path
     if let Some(rel) = files.iter().map(|(r, _)| r.as_str()).find(|r| *r == "report.html" || *r == "rec/report.html" || *r == "index.html") {
-        row.insert("report_path".into(), json!(format!("{base}/{rel}")));
+        row.insert("report_path".into(), json!(format!("{base}#{run_id}/{rel}")));
     }
     let mut bundle = bundle_json(&run_id, &kind, &row, &files, &notes, &base, &published_at);
+    bundle["traceRuns"] = json!(trace_runs(dir, &files));
     let taken = cache_runs::pending(now_ms());
     bundle["cache"] = cache_runs::block(&taken);
     if let Some(rel) = files.iter().map(|(r, _)| r.as_str()).find(|r| *r == "report.json" || *r == "rec/report.json") {
@@ -231,18 +264,22 @@ pub fn publish(dir: &Path, ran_on: &str, record: bool) -> Result<Published, Stri
     }
     let mut bytes = 0u64;
     for (rel, n) in &files {
-        let body = std::fs::read(dir.join(rel)).map_err(|e| format!("{rel}: {e}"))?;
-        put_par(&format!("{par}{TEST_RUNS_PREFIX}/{run_id}/{rel}"), &body, content_type_for(rel))?;
+        let to = folder.join(rel);
+        if let Some(parent) = to.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| format!("{}: {e}", parent.display()))?;
+        }
+        std::fs::copy(dir.join(rel), &to).map_err(|e| format!("{rel}: {e}"))?;
         bytes += n;
     }
-    bundle["readBack"] = read_back(&bundle);
-    put_par(&format!("{par}{TEST_RUNS_PREFIX}/{run_id}/bundle.json"), serde_json::to_string_pretty(&bundle).map_err(|e| e.to_string())?.as_bytes(), "application/json")?;
-    let index = merged_index(existing_index()?.as_deref(), index_entry(&bundle));
-    put_par(&format!("{par}{TEST_RUNS_PREFIX}/index.json"), index.to_string().as_bytes(), "application/json")?;
+    bundle["readBack"] = read_back(&bundle, &folder);
+    std::fs::write(folder.join("bundle.json"), serde_json::to_string_pretty(&bundle).map_err(|e| e.to_string())?).map_err(|e| format!("{}/bundle.json: {e}", folder.display()))?;
+    let index_path = root.join("index.json");
+    let index = merged_index(std::fs::read_to_string(&index_path).ok().as_deref(), index_entry(&bundle));
+    std::fs::write(&index_path, index.to_string()).map_err(|e| format!("{}: {e}", index_path.display()))?;
     cache_runs::consume(&taken);
-    row.insert("note".into(), json!(format!("bundle {base}/bundle.json{}", row.get("note").and_then(Value::as_str).filter(|n| !n.is_empty()).map(|n| format!("; {n}")).unwrap_or_default())));
+    row.insert("note".into(), json!(format!("bundle {run_id}/bundle.json in {base}{}", row.get("note").and_then(Value::as_str).filter(|n| !n.is_empty()).map(|n| format!("; {n}")).unwrap_or_default())));
     let recorded = if record { test_metrics::post_best_effort(&row) } else { json!({ "posted": false, "reason": "no-record" }) };
-    Ok(Published { run_id, base, bundle, files: files.len(), bytes, recorded })
+    Ok(Published { run_id, base, folder: folder.display().to_string(), index: index_path.display().to_string(), bundle, files: files.len(), bytes, recorded })
 }
 
 fn now_ms() -> i64 {
@@ -250,15 +287,15 @@ fn now_ms() -> i64 {
 }
 
 /// `wf test publish <dir> [--no-record] [--ran-on <host>]`: the JSON summary on stdout, 1 with `error` and `next` on failure.
-pub(crate) fn run(dir: &str, record: bool, ran_on: Option<&str>) -> i32 {
+pub(crate) fn run(dir: &str, record: bool, ran_on: Option<&str>, out: Option<&str>) -> i32 {
     let ran_on = ran_on.map(str::to_string).unwrap_or_else(|| std::env::var("WF_SITE").unwrap_or_else(|_| wf_kit::proc::hostname()));
-    match publish(Path::new(dir), &ran_on, record) {
+    match publish(Path::new(dir), &ran_on, record, out) {
         Ok(p) => {
-            println!("{}", json!({ "runId": p.run_id, "base": p.base, "bundle": format!("{}/bundle.json", p.base), "report": p.bundle["report"]["html"], "cache": p.bundle["cache"], "files": p.files, "bytes": p.bytes, "index": format!("{}/{TEST_RUNS_PREFIX}/index.json", public_base()), "recorded": p.recorded }));
+            println!("{}", json!({ "runId": p.run_id, "base": p.base, "dir": p.folder, "bundle": format!("{}/bundle.json", p.folder), "report": p.bundle["report"]["html"], "cache": p.bundle["cache"], "files": p.files, "bytes": p.bytes, "index": p.index, "recorded": p.recorded }));
             0
         }
         Err(e) => {
-            println!("{}", json!({ "error": e, "next": "wf test publish <dir> wants a harness run record dir (report.json), a flow report dir or a queue job dir (result.json), and VERIFICATION_ARTIFACTS_PAR_URL" }));
+            println!("{}", json!({ "error": e, "next": "wf test publish <dir> [--out <folder>] wants a harness run record dir (report.json), a flow report dir or a queue job dir (result.json), and a writable output folder (--out, WF_TEST_RUNS_DIR or RUNNER_TEMP)" }));
             1
         }
     }

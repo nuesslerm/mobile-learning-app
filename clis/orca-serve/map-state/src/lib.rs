@@ -7,18 +7,32 @@
 use agent_api_proto::Method as AgentMethod;
 use agent_api_state::SET;
 use orca_core::wire::{Failure, METHOD_NOT_FOUND};
-use orca_core::{Area, Ctx, Kind, Method};
+use orca_core::{AgentApi, Area, Ctx, Kind, Method};
 use serde_json::{json, Value};
 
 mod quick;
+mod session_options;
 mod settings;
 mod store;
 mod ui;
+mod ui_cleanup;
+mod ui_params;
+mod ui_state;
+mod ui_values;
+
+/// What a mapping crate that keeps a value of its own under the scope `orca` sends.
+pub use agent_api_state::SET as STATE_SET;
+
+/// Keeps `value` under `key` of the scope `orca`, for a mapping crate that holds phone-owned state (the front tab of a worktree).
+pub fn keep(agent: &dyn AgentApi, key: &str, value: Value) -> Result<(), Failure> {
+    store::write(agent, key, value)
+}
 
 pub const SETTINGS_GET: &str = "settings.get";
 pub const SETTINGS_UPDATE: &str = "settings.update";
 pub const SETTINGS_GET_QUICK_COMMANDS: &str = "settings.getTerminalQuickCommands";
 pub const SETTINGS_UPDATE_QUICK_COMMANDS: &str = "settings.updateTerminalQuickCommands";
+pub const SETTINGS_MUTATE_NATIVE_CHAT_SESSION_OPTIONS: &str = "settings.mutateNativeChatSessionOptions";
 pub const UI_GET: &str = "ui.get";
 pub const UI_SET: &str = "ui.set";
 
@@ -30,6 +44,7 @@ const METHODS: &[Method] = &[
     Method { name: SETTINGS_UPDATE, kind: Kind::Unary },
     Method { name: SETTINGS_GET_QUICK_COMMANDS, kind: Kind::Unary },
     Method { name: SETTINGS_UPDATE_QUICK_COMMANDS, kind: Kind::Unary },
+    Method { name: SETTINGS_MUTATE_NATIVE_CHAT_SESSION_OPTIONS, kind: Kind::Unary },
     Method { name: UI_GET, kind: Kind::Unary },
     Method { name: UI_SET, kind: Kind::Unary },
 ];
@@ -52,7 +67,8 @@ impl Area for StateArea {
             SETTINGS_UPDATE => settings::update(agent, params),
             SETTINGS_GET_QUICK_COMMANDS => Ok(json!({"terminalQuickCommands": quick::list(agent)?})),
             SETTINGS_UPDATE_QUICK_COMMANDS => quick::update(agent, params),
-            UI_GET => Ok(json!({"ui": store::with_defaults(store::UI, store::read_object(agent, store::UI)?)})),
+            SETTINGS_MUTATE_NATIVE_CHAT_SESSION_OPTIONS => session_options::mutate(agent, params),
+            UI_GET => ui::get(agent),
             UI_SET => ui::set(agent, params),
             other => Err(Failure::new(METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
         }

@@ -3,18 +3,24 @@ name = "pipeline"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "The pipeline: which tests, deploy legs and gates a change needs (`wf test plan`, `wf test run --stage`, `wf test drift`, `wf check --staged` and `--budget`, the legs of `wf ship --changed`), and what a run leaves for people to read (`wf ci comment`, `wf test publish`, the run bundles and metrics rows), and `pnpm --filter mla-tamagui run build:editor-bundle` until it is dissolved"
+description = "The pipeline: which tests, deploy legs and gates a change needs (`wf ci plan tests`, `wf test run --stage`, `wf test drift`, `wf check --staged` and `--budget`, the legs of `wf ci plan legs`), and what a run leaves for people to read (`wf ci comment`, `wf test publish`, the run bundles and metrics rows), and `pnpm --filter mla-tamagui run build:editor-bundle` until it is dissolved"
 
 # The flow tests hold the Nx cache's contract, so what shapes the graph or a task's hash is their input (keep in step with
 # shapes_the_nx_graph in src/test_plan.rs); the static scans read the workflows and mise.toml.
 [package.metadata.flow]
 inputs = ["../secrets/src/data/registry.json", "../../nx.json", "../../.nxignore", "../../.gitignore", "../../tooling/nx/**/*", "../../e2e/*.lua", "../../**/package.json", "../../**/project.json", "../../**/Cargo.toml", "../../.github/**/*", "../../mise.toml"]
 
+# The Nx contract binary (tests/nx_contract.rs) holds most of the suite's test time: two of its modules are units the shards deal out (`crate-pipeline/<group>`)
+# beside the rest, which skips them. A group lists the files only it reads, from the crate dir.
+[package.metadata.contract.groups]
+nx_cache = ["tests/flow/nx_cache.rs"]
+nx_crates = ["tests/flow/nx_crates.rs"]
+
 # The tests are one flow binary (tests/flow.rs) driving the thin binary below; the lib has no unit tests (plan D3).
 [lib]
 doctest = false
 
-# Serves only `wf check --staged|--budget`, `wf test plan|run --stage|drift` and `pnpm --filter mla-tamagui run build:editor-bundle`, which is all this crate's flow tests
+# Serves only `wf check --staged|--budget`, `wf ci plan tests|run --stage|drift` and `pnpm --filter mla-tamagui run build:editor-bundle`, which is all this crate's flow tests
 # spawn and what `check --staged` runs through the executable.
 [[bin]]
 name = "pipeline"
@@ -24,6 +30,7 @@ test = false
 [dependencies]
 wf-kit = { path = "../wf-kit" }
 wf-bucket = { path = "../wf-bucket" }
+mimic-plan-core = { path = "../mimic/plan" }
 blob-cache = { path = "../blob-cache" }
 wf-vmops = { path = "../wf-vmops" }
 libc = "0.2"
@@ -47,3 +54,8 @@ wf-testkit = { path = "../wf-testkit" }
 # The tests of `wf test run --stage` double vm-ops-api with the fake this crate ships.
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
 tempfile = "3"
+# The telemetry flow tests seed a job's local database (NX_TASKS rows) the way a job leaves it.
+rusqlite = { version = "0.37", features = ["bundled"] }
+
+[package.metadata.arch]
+type = "cli-crate"

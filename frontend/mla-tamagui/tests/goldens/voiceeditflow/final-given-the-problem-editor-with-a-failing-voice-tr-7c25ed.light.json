@@ -23,17 +23,17 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
       "ProblemEditorTextEditStartButton",
       "ProblemEditorVoiceStartButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInput",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "ProblemEditorVoiceErrorBanner",
       "ProblemEditorVoiceErrorText",
       "ProblemEditorVoiceErrorHint",
@@ -44,10 +44,10 @@
       "ProblemPlanTextInput",
       "ProblemPlanAddButton"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nplanner exploded while planning\nTap to dismiss"
+    "text": "Plan\nCode\nPython\nConsole\nSubmit\nplanner exploded while planning\nTap to dismiss"
   },
   "timings": {
-    "render_ms": 250
+    "render_ms": 245
   },
   "name": "voiceeditflow/final-given-the-problem-editor-with-a-failing-voice-tr-7c25ed.light",
   "image": {

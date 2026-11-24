@@ -2,7 +2,7 @@ name: Gemini Gem context
 
 # The Gem's knowledge is a family of Google Docs in one Drive folder (`repomix-context-00-architecture` = ARCHITECTURE.md, then the repomix pack in
 # parts of at most 900k characters), each overwritten in place and read back. Nightly (02:23 UTC) the cached form runs: the pack is rebuilt and the cached
-# ARCHITECTURE.md draft reused, no model call. Sundays (03:37 UTC) the full form drafts ARCHITECTURE.md anew with a read-only `wf offload ask` over the
+# ARCHITECTURE.md draft reused, no model call. Sundays (03:37 UTC) the full form drafts ARCHITECTURE.md anew with a read-only `wf rca ask` over the
 # tailnet. Both run on a GitHub-hosted runner; GitHub starts a schedule hours late and only from main. By hand (dispatch, `mode`) or from
 # scheduled-triggers.yml for an EMPTY commit to dev tagged `[gem-sync]` (full) or `[gem-sync cached]`. Runs queue in the concurrency group below.
 # The Drive login (GCLOUD_DRIVE_CREDENTIALS_DB_B64, vault) is written in the last two steps of this one job, after every build, and nowhere else.
@@ -34,7 +34,7 @@ jobs:
   sync:
     name: Build and upload the Gem bundle
     if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') }}
-    runs-on: ${{ fromJSON(vars.RUNNER_TAG_GEM_SYNC || '["ubuntu-24.04"]') }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
       contents: read
@@ -107,7 +107,7 @@ jobs:
           fi
           gcloud config set account "$account"
       - name: Upload the bundle
-        # The full form's ARCHITECTURE.md draft is a read-only `wf offload ask`, served by the rca service (remote-chat-agent) over the tailnet:
+        # The full form's ARCHITECTURE.md draft is a read-only `wf rca ask`, served by the rca service (remote-chat-agent) over the tailnet:
         # the service owns opencode, the model keys and the shared cooldowns, so this job has none of them. The cached form calls no model.
         env:
           SECRETS_BACKEND: bitwarden

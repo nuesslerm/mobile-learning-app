@@ -58,6 +58,16 @@ pub fn record(args: &[String], code: i32, started: Instant, version: &str) {
             eprintln!("wf: the last usage row was not recorded: {}", reason.trim());
         }
     }
+    // on a hosted runner the row also goes to the job's CI database, which the report job merges into the sealed one
+    let local = wf_bucket::ci_db::local_path().is_some();
+    if local {
+        let error = wf_kit::usage::last_error().filter(|_| code != 0);
+        if let serde_json::Value::Object(map) = row(args, code, started.elapsed(), error.as_deref(), get("HOME").as_deref(), version) {
+            if let Err(e) = wf_bucket::ci_db::record("WF_USAGE", &map) {
+                eprintln!("wf: usage row not kept in the CI database: {e}");
+            }
+        }
+    }
     if [URL_KEY, PASSWORD_KEY].iter().any(|k| get(k).is_none()) {
         // a command served by its help ends before the env files are read
         wf_kit::env_file::load();
@@ -72,6 +82,9 @@ pub fn record(args: &[String], code: i32, started: Instant, version: &str) {
     }
     let missing: Vec<&str> = [URL_KEY, PASSWORD_KEY].into_iter().filter(|k| get(k).is_none()).collect();
     if !missing.is_empty() {
+        if local {
+            return;
+        }
         eprintln!("wf: usage row not recorded: {} unset (put them in ~/.config/wf/.env or the vault, or set WF_USAGE=off)", missing.join(" and "));
         return;
     }

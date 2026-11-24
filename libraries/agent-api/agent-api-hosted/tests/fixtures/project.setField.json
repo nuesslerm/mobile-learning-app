@@ -1,0 +1,52 @@
+{
+  "method": "project.setField",
+  "exchanges": [
+    {
+      "name": "no workspace is named, so an executor whose gh is signed in answers",
+      "request": {
+        "id": 1,
+        "method": "project.setField",
+        "params": {
+          "project": "PVT_o1",
+          "item": "PVTI_1",
+          "field": "PVTF_1",
+          "kind": "single_select",
+          "value": "f75ad846"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "done": true
+        }
+      },
+      "actions": [
+        "hosted_project_field_set"
+      ]
+    },
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 2,
+        "method": "project.setField",
+        "params": {
+          "project": "PVT_o1",
+          "item": "PVTI_1",
+          "field": "PVTF_1",
+          "kind": "date",
+          "value": "tomorrow"
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`value` must be a date as YYYY-MM-DD"
+        }
+      },
+      "actions": [
+        "hosted_project_field_set"
+      ]
+    }
+  ]
+}

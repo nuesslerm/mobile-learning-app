@@ -1,0 +1,33 @@
+Usage: wf ci db <merge|record|query> [--sealed-file <path>] ...
+
+The CI database: what CI used to send to HEALTH_RPT through ORDS (test runs,
+usage of the commands, health reports, the ledger of tasks and jobs), kept as one SQLite
+file sealed with XChaCha20-Poly1305 under CI_DB_KEY on the state ref
+(refs/wf/state, ci/ci.sqlite.sealed).
+
+  merge <rows.sqlite>...   fold the jobs' local databases into the sealed one
+                           and push it (the report job); a row already held is
+                           kept once; each task that ran in the merged runs is
+                           given its reason (NX_TASKS.MISS_REASON, MISS_DETAIL)
+  record <table> <json>    add one JSON row to this job's local database
+                           (WF_CI_DB, else $RUNNER_TEMP/wf-ci-db/rows.sqlite on
+                           a hosted runner); tables TEST_RESULTS, WF_USAGE,
+                           HEALTH_REPORTS
+  query <sql>              run one statement on an unsealed copy and print its
+                           rows as JSON
+
+Tables (real columns, so plain SQL works): TEST_RESULTS (one row per published
+test run: verdict, duration_s, harness, suite_or_runbook, sha, tests_total...),
+WF_USAGE (one per wf command: command, exit_code, duration_ms, error), NX_TASKS
+(one per Nx task of a run: task, hash, outcome ran or hit, ms, passed; workflow, gh_job, cache_stage, attempt, restored_key, dir_has_hash, db_has_hash;
+and for a task that ran its miss_reason and miss_detail: `wf ci cache-misses --help`), CI_CACHE_EVENTS (one per restore or save of a cache layer: run,
+job, workflow, stage, shard, layer, phase, key_requested, key_matched, match_kind, size_bytes, duration_ms, outcome ok|miss|timeout|error|skipped, reason, entries,
+db_rows, wal_bytes; `wf cache event --help`) and
+CI_JOBS (one per job: secs, queued, queued_s, runner), CI_METRICS (every gauge reading both transports received) and CI_UNITS (one per test unit of a
+weighted stage: stage, unit, started_ms, ended_ms, ms, outcome running|ran|hit|failed; job-local, folded in by the merge), CI_TESTS (one per slow or failed test: stage, unit, suite, test, ms, outcome ok|failed, basis serial|gap|reported). The parallelism telemetry (docs/solutions/ci/parallelism-telemetry.md):
+CI_JOB_RESOURCES, CI_TASK_RESOURCES, CI_STEPS, CI_STEP_RESOURCES (per step: duration_s, idle_s, saturated_s, iowait_avg), CI_RUN_PROFILE and CI_CONCURRENCY. A JSON key with no column is kept in EXTRA.
+
+Options:
+  --sealed-file <path>     read and write a sealed file instead of the state ref
+
+Output: one JSON object; `ok` false with `error` and `next` on a failure.

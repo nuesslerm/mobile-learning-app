@@ -1,13 +1,14 @@
-//! `AgentApi` over rca's agent API (`GET /agent/v1/socket`, a device bearer), through `agent-api-client`. Each call opens a socket of its own.
-use agent_api_client::{Client, Config, Error};
+//! `AgentApi` over rca's agent API (`GET /agent/v1/socket`, a device bearer), through `agent-api-client`. Each call opens a socket of its own; a
+//! followed stream keeps one for as long as it lives.
+use agent_api_client::{Client, Config, Error, Subscribe};
 use agent_api_proto::{GroupName, Method, PROTOCOL};
 use agent_api_service::{StatusResult, STATUS};
-use orca_core::{AgentApi, AgentError, ServiceStatus};
+use orca_core::{AgentApi, AgentError, EventStream, ServiceStatus, StreamEvent};
 use serde_json::{json, Value};
 
 pub struct RcaAgent {
     authority: String,
-    /// A device bearer: the one credential this server holds for rca (`wf offload bearers mint`).
+    /// A device bearer: the one credential this server holds for rca (`wf rca bearers mint`).
     bearer: String,
 }
 
@@ -20,7 +21,7 @@ const BASE_GROUPS: &[&str] = &["service", "state"];
 /// The groups of `BASE_GROUPS` and of every method a mapping crate declares in its `USES`, so a new method cannot drift from the startup check.
 pub fn needed_groups() -> Vec<&'static str> {
     let mut groups: Vec<&'static str> = BASE_GROUPS.to_vec();
-    for m in orca_map_workspace::USES.iter().chain(orca_map_agent::USES).chain(orca_map_terminal::USES).chain(orca_map_git::USES).chain(orca_map_accounts::USES).chain(orca_map_state::USES).chain(orca_map_hosted::USES).chain(orca_map_schedules::USES) {
+    for m in orca_map_workspace::USES.iter().chain(orca_map_agent::USES).chain(orca_map_terminal::USES).chain(orca_map_git::USES).chain(orca_map_accounts::USES).chain(orca_map_state::USES).chain(orca_map_hosted::USES).chain(orca_map_schedules::USES).chain(orca_map_browser::USES) {
         let g = m.group().as_str();
         if g != "workspace" && !groups.contains(&g) {
             groups.push(g);
@@ -34,6 +35,17 @@ fn failed(e: Error) -> AgentError {
         AgentError::Refused { code: e.code, message: e.message }
     } else {
         AgentError::Failed(e.to_string())
+    }
+}
+
+/// A stream on the one socket of its client, which reopens it and resumes after the last seq seen when it drops.
+struct Followed {
+    client: Client,
+}
+
+impl EventStream for Followed {
+    fn next(&mut self, wait: std::time::Duration) -> Result<Option<StreamEvent>, AgentError> {
+        Ok(self.client.next_event(wait).map_err(failed)?.map(|e| StreamEvent { seq: e.seq, kind: e.kind, data: Value::Object(e.data) }))
     }
 }
 
@@ -91,6 +103,12 @@ impl AgentApi for RcaAgent {
     fn request(&self, method: &'static str, params: Value) -> Result<Value, AgentError> {
         // The client sends the method's name only; the group of a `Method` is for the service's side.
         self.open()?.call(Method::new(GroupName::new("orca"), method), params).map_err(failed)
+    }
+
+    fn follow(&self, method: &'static str, topic: &str, params: Value, seq_param: &'static str) -> Result<(Value, Box<dyn EventStream>), AgentError> {
+        let mut client = self.open()?;
+        let answer = client.subscribe(Subscribe::new(topic, Method::new(GroupName::new("orca"), method), params, seq_param)).map_err(failed)?;
+        Ok((answer, Box::new(Followed { client })))
     }
 }
 

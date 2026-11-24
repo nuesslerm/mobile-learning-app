@@ -1,0 +1,18 @@
+{
+  "transcript": "return best after the loop",
+  "alternatives": [
+    {
+      "id": "stub-1",
+      "label": "Return best",
+      "summary": "Return best after the loop.",
+      "confidence": 0.95,
+      "commands": [
+        {
+          "type": "insertAfterLine",
+          "line": 11,
+          "text": "        return best"
+        }
+      ]
+    }
+  ]
+}

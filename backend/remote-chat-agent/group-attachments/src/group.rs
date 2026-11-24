@@ -8,7 +8,7 @@ use serde::Serialize;
 use serde_json::Value;
 use std::sync::Arc;
 
-pub const SERVED: [Served; 4] = [Served::service(api::UPLOAD_PUT, &[]), Served::service(api::GET, &[]), Served::service(api::DELETE, &[]), Served::service(api::STAGE, &[exec_fs::PUT_BLOB])];
+pub const SERVED: [Served; 4] = [Served::service(api::UPLOAD_PUT, &[]), Served::service(api::GET, &[]), Served::service(api::DELETE, &[]), Served::service(api::STAGE, &[exec_fs::PUT_BLOB, exec_fs::PUT_TEMP])];
 
 pub struct AttachmentsGroup {
     attachments: Arc<Attachments>,

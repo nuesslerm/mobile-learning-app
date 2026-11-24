@@ -1,4 +1,6 @@
 import type { RunResponse } from '../domain';
+import { createWebViewEditorBridge } from './editor/cm6/webViewEditorBridge';
+import { createGatewayCodeRunner } from './gatewayCodeRunner';
 import type {
   EditAlternative,
   VoiceEditResponse,
@@ -9,7 +11,7 @@ import type {
   LeetCodeGatewayPort,
   LeetCodePorts,
   VoiceEditTransportPort,
-} from '../contracts/ports';
+} from '../domain/ports';
 
 // Two Sum starter code (TypeScript) the plan alternatives edit.
 const TWO_SUM_RUN: RunResponse = {
@@ -185,10 +187,15 @@ function createFixtureAudio(): AudioRecordingPort {
   };
 }
 
-export function createFixturePorts(): LeetCodePorts {
+export function createFixturePorts(): Omit<LeetCodePorts, 'flags'> {
+  const gateway = createFixtureGateway();
   return {
-    gateway: createFixtureGateway(),
+    clock: () => performance.now(),
+    editorBridge: createWebViewEditorBridge(),
+    gateway,
     voice: createFixtureVoice(),
     audio: createFixtureAudio(),
+    runner: createGatewayCodeRunner(gateway),
+    deviceRunner: createGatewayCodeRunner(gateway),
   };
 }

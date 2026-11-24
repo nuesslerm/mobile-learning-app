@@ -1,5 +1,5 @@
 //! The agent API's per-device state as one JSON file (`{scope: {key: value}}`), written beside the target and renamed over it.
-use rca_service_core::domain::util::random_hex;
+use super::ambient::random_hex;
 use rca_service_core::application::agent_groups::StateStore;
 use serde_json::{Map, Value};
 use std::path::PathBuf;

@@ -1,0 +1,22 @@
+{
+  "action": "browser_list",
+  "exchanges": [
+    {
+      "name": "lists no page for an executor that opened none, with its limits",
+      "request": {
+        "id": "b1",
+        "tool": "browser_list",
+        "args": {}
+      },
+      "response": {
+        "id": "b1",
+        "ok": true,
+        "result": {
+          "pages": [],
+          "max_pages": 3,
+          "idle_limit_ms": 300000
+        }
+      }
+    }
+  ]
+}

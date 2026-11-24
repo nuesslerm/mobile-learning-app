@@ -1,0 +1,67 @@
+{
+  "suite": "dashboardsglass",
+  "step": "final-given-dashboards-on-the-native-bar-when-the-ba-d4ade8",
+  "scheme": "light",
+  "snapshot": "dashboardsglass/final-given-dashboards-on-the-native-bar-when-the-ba-d4ade8.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "DashboardsIndexScreen",
+      "NativeHeader",
+      "NativeHeaderLeft",
+      "NativeHeaderItem-Go back",
+      "NativeHeaderTitle",
+      "ScreenHeaderGlassTitle",
+      "ScreenHeaderGlassTitleText",
+      "NativeHeaderRight",
+      "DashboardsIndexScreen-ScrollView",
+      "DashboardsIndexScreen-Group",
+      "DashboardsRow-Infrastructure",
+      "DashboardsRow-InfrastructureContent",
+      "DashboardsRow-InfrastructureIcon",
+      "DashboardsRow-InfrastructureLabel",
+      "DashboardsRow-Agents",
+      "DashboardsRow-AgentsContent",
+      "DashboardsRow-AgentsIcon",
+      "DashboardsRow-AgentsLabel",
+      "DashboardsIndexScreen-DataAgeLine"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nGo back\nDashboards\nInfrastructure\nAgents\nReporting service is not configured."
+  },
+  "timings": {
+    "render_ms": 213
+  },
+  "name": "dashboardsglass/final-given-dashboards-on-the-native-bar-when-the-ba-d4ade8.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

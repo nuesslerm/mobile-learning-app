@@ -1,0 +1,45 @@
+{
+  "suite": "layoutheaders",
+  "step": "final-given-leetcode-login-on-ios-with-the-setting-on-b9d462",
+  "scheme": "light",
+  "snapshot": "layoutheaders/final-given-leetcode-login-on-ios-with-the-setting-on-b9d462.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "NativeHeader",
+      "NativeHeaderLeft",
+      "NativeHeaderItem-Go back",
+      "NativeHeaderTitle",
+      "ScreenHeaderGlassTitle",
+      "ScreenHeaderGlassTitleText",
+      "ScreenHeaderGlassTitleSubtitle",
+      "NativeHeaderRight",
+      "LoginScreen",
+      "LoginScreenStatus",
+      "LoginScreenMessage",
+      "LoginScreenExplainer"
+    ],
+    "text": "Go back\nSign in\nLeetCode\nNot connected — run a login-capture session.\nSigning in happens out-of-band, run by an operator via a separate login-capture session. This screen only shows whether leetcode-backend currently has a valid LeetCode session."
+  },
+  "timings": {
+    "render_ms": 266
+  },
+  "name": "layoutheaders/final-given-leetcode-login-on-ios-with-the-setting-on-b9d462.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

@@ -34,7 +34,7 @@
 #   slow    -- exit 0, but print one line every second for
 #              MOCK_OPENCODE_SLOW_SECONDS (default 90) before finishing --
 #              deterministic, opencode-outage-independent way to exercise
-#              wf offload ask's progress heartbeat (dispatch.ts's
+#              wf rca ask's progress heartbeat (dispatch.ts's
 #              onEvent option), instead of depending on a real dispatch
 #              happening to run long enough (real opencode is flaky/fast-
 #              failing in a way a mock can't be, see known-gaps.md #37).

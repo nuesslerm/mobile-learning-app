@@ -8,6 +8,7 @@ use agent_api_agent::ThreadEvent;
 use agent_api_proto::{GroupName, Response};
 use async_trait::async_trait;
 use rca_agent_core::{Call, Group, Served};
+use rca_cli_driver::domain::Verdict;
 use rca_exec_channel::mcp::{ServiceTools, APPROVAL_PROMPT, ASK_USER};
 use serde_json::{json, Value};
 use std::collections::{HashMap, HashSet};
@@ -100,6 +101,16 @@ fn deny(why: &str, interrupt: bool) -> Value {
     content(answer.to_string(), false)
 }
 
+/// What a live session is told of the person's decision.
+fn verdict_of(decision: Decision) -> Verdict {
+    match decision {
+        Decision::Accept => Verdict::Accept,
+        Decision::AcceptForSession => Verdict::AcceptForSession,
+        Decision::Decline => Verdict::Decline,
+        Decision::Cancel => Verdict::Cancel,
+    }
+}
+
 impl Runner {
     /// The turn the thread runs, for the envelope of what it asks.
     fn asking_turn(&self, thread: &str) -> Option<String> {
@@ -160,6 +171,10 @@ impl ServiceTools for Runner {
             other => content(format!("this service answers no tool {other}"), true),
         }
     }
+
+    fn admits(&self, thread: &str, token: &str) -> bool {
+        self.admits_mcp(thread, token)
+    }
 }
 
 pub struct AgentRequestsGroup {
@@ -174,7 +189,10 @@ impl AgentRequestsGroup {
     fn approval_answer(&self, params: &Value) -> Answer {
         let p = ApprovalAnswerParams::parse(params)?;
         let events = self.runner.decide(&p.thread, Command::ApprovalAnswer { approval: p.approval.clone(), decision: p.decision })?;
-        self.runner.waiting().resolve(&p.thread, &p.approval, Reply::Approval(p.decision));
+        // The ask is a tool call of the service's tool server that waits, or a request of a live session that waits on the CLI
+        if !self.runner.waiting().resolve(&p.thread, &p.approval, Reply::Approval(p.decision)) {
+            self.runner.answer_session(&p.thread, &p.approval, verdict_of(p.decision));
+        }
         if p.decision == Decision::Cancel {
             self.runner.interrupt(&p.thread, None);
         }
@@ -184,14 +202,19 @@ impl AgentRequestsGroup {
     fn input_answer(&self, params: &Value) -> Answer {
         let p = InputAnswerParams::parse(params)?;
         let events = self.runner.decide(&p.thread, Command::InputAnswer { request: p.request.clone(), answer: p.answer.clone() })?;
-        self.runner.waiting().resolve(&p.thread, &p.request, Reply::Input(p.answer));
+        // The question is a tool call of the service's tool server that waits, or one a live session asked
+        if !self.runner.waiting().resolve(&p.thread, &p.request, Reply::Input(p.answer.clone())) {
+            self.runner.answer_input_session(&p.thread, &p.request, Some(p.answer));
+        }
         to_value(&AnswerResult { seq: self.runner.seq_of(&p.thread, &events)?, thread: p.thread, request: p.request })
     }
 
     fn input_dismiss(&self, params: &Value) -> Answer {
         let p = InputDismissParams::parse(params)?;
         let events = self.runner.decide(&p.thread, Command::InputDismiss { request: p.request.clone() })?;
-        self.runner.waiting().resolve(&p.thread, &p.request, Reply::Dismissed);
+        if !self.runner.waiting().resolve(&p.thread, &p.request, Reply::Dismissed) {
+            self.runner.answer_input_session(&p.thread, &p.request, None);
+        }
         to_value(&AnswerResult { seq: self.runner.seq_of(&p.thread, &events)?, thread: p.thread, request: p.request })
     }
 }

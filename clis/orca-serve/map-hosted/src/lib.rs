@@ -1,39 +1,105 @@
 //! Orca's hosted source control rows over rca's `hosted.pr` group, which asks the executor machine's own `gh` and `glab`: the pull request rows of
 //! `github.*`, the merge request rows of `gitlab.*` and the `worktree.resolvePrBase` and `worktree.resolveMrBase` start points (the request's head fetched
-//! by `git.fetch` into a ref of its own). A row's `repo` selector names an rca workspace, and a request names no repository, so the executor uses the one
+//! by `git.fetch` into a ref of its own), `hostedReview.getCreationEligibility`, read from the remotes, the default base and the sign-in, and `hostedReview.create`, which rechecks those
+//! with the branch's own state before `pr.create` or `mr.create`. A row's `repo` selector names an rca workspace, and a request names no repository, so the executor uses the one
 //! the workspace's remote names (a `prRepo` or `projectRef` of the phone names another). A row the CLIs cannot do, or whose answer needs what rca does
-//! not hold (issues and work items, projects, inline comments, closing, auto-merge, rate limits, accounts), is not mapped and stays pending.
-use agent_api_git::FETCH;
-use agent_api_hosted::pr;
+//! not hold (projects, rate limits, accounts), is not mapped and stays pending.
+use agent_api_git::{BLOB, FETCH, REFS, STATUS, UPSTREAM_STATUS};
+use agent_api_hosted::{auth, issue as issue_api, pr};
 use agent_api_proto::Method as AgentMethod;
 use orca_core::wire::{Failure, METHOD_NOT_FOUND, RUNTIME_ERROR};
 use orca_core::{AgentApi, AgentError, Area, Ctx, Kind, Method};
 use serde_json::{json, Map, Value};
 
+mod failure;
 mod base;
 mod checks;
+mod ci;
+mod create;
+mod detail;
+mod eligibility;
 mod github;
 mod gitlab;
+mod issue;
+mod project;
+mod review;
+mod slug;
 mod time;
+mod work;
 
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 
-/// The agent methods this crate sends: the `pr.*` and `mr.*` ones it reaches, and the fetch of a request's head.
-pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, FETCH];
+/// The agent methods this crate sends: the `pr.*` and `mr.*` ones it reaches, the fetch of a request's head, the git reads and the sign-in status of
+/// review eligibility and creation, and the review template creation reads.
+pub const USES: &[AgentMethod] = &[agent_api_hosted::project::LIST, agent_api_hosted::project::RESOLVE, agent_api_hosted::project::VIEWS, agent_api_hosted::project::SET_FIELD, agent_api_hosted::project::CLEAR_FIELD, agent_api_hosted::project::COMMENT_ADD, agent_api_hosted::project::COMMENT_EDIT, agent_api_hosted::project::COMMENT_DELETE, agent_api_hosted::project::ISSUE_TYPES, agent_api_hosted::project::SET_ISSUE_TYPE, agent_api_hosted::project::UPDATE_ISSUE, pr::RUN_RERUN, pr::CHECK_DETAILS, pr::SET_AUTO_MERGE, issue_api::VIEW, issue_api::COMMENTS, pr::FILES, pr::MR_FILES, pr::MR_COMMENTS, pr::MR_THREADS, issue_api::SEARCH, issue_api::COUNT, issue_api::TODOS, issue_api::CREATE, issue_api::EDIT, issue_api::SET_STATE, issue_api::COMMENT, issue_api::LIST, pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::RESOLVE_THREAD, pr::FILE_VIEWED, pr::REPLY, pr::REVIEW_COMMENT, pr::SET_STATE, pr::MR_SET_STATE, pr::MR_COMMENT, pr::COMMENTS, pr::REVIEWS, pr::THREADS, pr::REMOTES, pr::MR_LIST, pr::CREATE, pr::MR_CREATE, auth::DISCOVER, FETCH, BLOB, REFS, UPSTREAM_STATUS, STATUS, orca_map_workspace::FILE_READ];
+
+/// `pr.remotes`, for a mapping crate that reads a workspace's remotes and their fetch URLs.
+pub const PR_REMOTES: AgentMethod = pr::REMOTES;
+/// `sourceControl.discover`, for a mapping crate that asks whether gh or glab is signed in at a workspace's host.
+pub const AUTH_DISCOVER: AgentMethod = auth::DISCOVER;
+pub use slug::hosted_commit_url;
 
 const METHODS: &[Method] = &[
     Method { name: "github.prForBranch", kind: Kind::Unary },
     Method { name: "github.prChecks", kind: Kind::Unary },
+    Method { name: "github.listLabels", kind: Kind::Unary },
+    Method { name: "github.repoSlug", kind: Kind::Unary },
+    Method { name: "github.listAssignableUsers", kind: Kind::Unary },
+    Method { name: "github.resolveReviewThread", kind: Kind::Unary },
+    Method { name: "github.setPRFileViewed", kind: Kind::Unary },
+    Method { name: "github.addPRReviewComment", kind: Kind::Unary },
+    Method { name: "github.addPRReviewCommentReply", kind: Kind::Unary },
+    Method { name: "github.updatePRState", kind: Kind::Unary },
+    Method { name: "gitlab.updateMRState", kind: Kind::Unary },
+    Method { name: "gitlab.addMRComment", kind: Kind::Unary },
     Method { name: "github.mergePR", kind: Kind::Unary },
+    Method { name: "github.rerunPRChecks", kind: Kind::Unary },
+    Method { name: "github.setPRAutoMerge", kind: Kind::Unary },
+    Method { name: "github.prCheckDetails", kind: Kind::Unary },
     Method { name: "github.updatePRTitle", kind: Kind::Unary },
     Method { name: "github.updatePR", kind: Kind::Unary },
     Method { name: "github.markPRReadyForReview", kind: Kind::Unary },
     Method { name: "github.markPRDraft", kind: Kind::Unary },
     Method { name: "github.requestPRReviewers", kind: Kind::Unary },
     Method { name: "github.removePRReviewers", kind: Kind::Unary },
+    Method { name: "github.prComments", kind: Kind::Unary },
+    Method { name: "github.prFileContents", kind: Kind::Unary },
+    Method { name: "hostedReview.forBranch", kind: Kind::Unary },
+    Method { name: "hostedReview.getCreationEligibility", kind: Kind::Unary },
+    Method { name: "hostedReview.create", kind: Kind::Unary },
     Method { name: "gitlab.mergeMR", kind: Kind::Unary },
     Method { name: "gitlab.updateMR", kind: Kind::Unary },
+    Method { name: "github.createIssue", kind: Kind::Unary },
+    Method { name: "github.updateIssue", kind: Kind::Unary },
+    Method { name: "github.addIssueComment", kind: Kind::Unary },
+    Method { name: "gitlab.createIssue", kind: Kind::Unary },
+    Method { name: "gitlab.updateIssue", kind: Kind::Unary },
+    Method { name: "gitlab.addIssueComment", kind: Kind::Unary },
+    Method { name: "github.countWorkItems", kind: Kind::Unary },
+    Method { name: "github.listWorkItems", kind: Kind::Unary },
+    Method { name: "gitlab.listWorkItems", kind: Kind::Unary },
+    Method { name: "gitlab.todos", kind: Kind::Unary },
+    Method { name: "github.workItem", kind: Kind::Unary },
+    Method { name: "github.workItemByOwnerRepo", kind: Kind::Unary },
+    Method { name: "github.workItemDetails", kind: Kind::Unary },
+    Method { name: "gitlab.workItemDetails", kind: Kind::Unary },
+    Method { name: "gitlab.workItemByPath", kind: Kind::Unary },
+    Method { name: "github.project.listAccessible", kind: Kind::Unary },
+    Method { name: "github.project.listLabelsBySlug", kind: Kind::Unary },
+    Method { name: "github.project.listAssignableUsersBySlug", kind: Kind::Unary },
+    Method { name: "github.project.listIssueTypesBySlug", kind: Kind::Unary },
+    Method { name: "github.project.resolveRef", kind: Kind::Unary },
+    Method { name: "github.project.listViews", kind: Kind::Unary },
+    Method { name: "github.project.workItemDetailsBySlug", kind: Kind::Unary },
+    Method { name: "github.project.updateItemField", kind: Kind::Unary },
+    Method { name: "github.project.clearItemField", kind: Kind::Unary },
+    Method { name: "github.project.updateIssueBySlug", kind: Kind::Unary },
+    Method { name: "github.project.updatePullRequestBySlug", kind: Kind::Unary },
+    Method { name: "github.project.updateIssueTypeBySlug", kind: Kind::Unary },
+    Method { name: "github.project.addIssueCommentBySlug", kind: Kind::Unary },
+    Method { name: "github.project.updateIssueCommentBySlug", kind: Kind::Unary },
+    Method { name: "github.project.deleteIssueCommentBySlug", kind: Kind::Unary },
     Method { name: "worktree.resolvePrBase", kind: Kind::Unary },
     Method { name: "worktree.resolveMrBase", kind: Kind::Unary },
 ];
@@ -50,19 +116,83 @@ impl Area for HostedArea {
     }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
-        let target = Target::of(ctx.agent, params)?;
+        if project::is_row(method) {
+            project::check(method, params)?;
+            return project::call(&Target::account(ctx.agent), method, params);
+        }
+        let repo_list = matches!(method, "github.listLabels" | "github.listAssignableUsers" | "github.resolveReviewThread" | "github.setPRFileViewed" | "github.addPRReviewComment" | "github.addPRReviewCommentReply" | "github.updatePRState" | "gitlab.updateMRState" | "gitlab.addMRComment" | "github.repoSlug" | "hostedReview.getCreationEligibility" | "hostedReview.create");
+        let issue_row = matches!(method, "github.createIssue" | "github.updateIssue" | "github.addIssueComment" | "gitlab.createIssue" | "gitlab.updateIssue" | "gitlab.addIssueComment" | "github.countWorkItems" | "github.listWorkItems" | "gitlab.listWorkItems" | "gitlab.todos") || detail::is_row(method);
+        let ci_row = matches!(method, "github.rerunPRChecks" | "github.setPRAutoMerge" | "github.prCheckDetails");
+        if ci_row {
+            ci::check_params(method, params)?;
+        } else if method == "github.addPRReviewComment" {
+            github::check_review_comment_params(params)?;
+        } else if method == "gitlab.addMRComment" {
+            gitlab::check_comment(params)?;
+        } else if method == "github.setPRFileViewed" {
+            github::check_file_viewed_params(params)?;
+        } else if method == "hostedReview.getCreationEligibility" {
+            eligibility::check_params(params)?;
+        } else if method == "hostedReview.create" {
+            create::check_params(params)?;
+            if let Some(unsupported) = create::gate(params) {
+                return Ok(unsupported);
+            }
+        } else if detail::is_row(method) {
+            detail::check(method, params)?;
+        } else if repo_list && method != "github.repoSlug" {
+            github::check_label_params(params)?;
+        }
+        let target = match Target::of(ctx.agent, params) {
+            Err(f) if f.code == "selector_not_found" && method.starts_with("worktree.resolve") => return Ok(json!({"error": "Repo not found", "errorCode": "repoNotFound"})),
+            Err(f) if f.code == "selector_not_found" && (repo_list || issue_row || ci_row) => return Err(Failure::new("repo_not_found", "repo_not_found")),
+            other => other?,
+        };
         match method {
             "github.prForBranch" => github::pr_for_branch(&target, params),
             "github.prChecks" => github::pr_checks(&target, params),
+            "github.listLabels" => github::list_labels(&target, params),
+            "github.repoSlug" => github::repo_slug(&target),
+            "github.listAssignableUsers" => github::list_assignable_users(&target, params),
+            "github.resolveReviewThread" => github::resolve_thread(&target, params),
+            "github.setPRFileViewed" => github::file_viewed(&target, params),
+            "github.addPRReviewComment" => github::review_comment(&target, params),
+            "github.addPRReviewCommentReply" => github::reply_to_comment(&target, params),
+            "github.updatePRState" => github::set_state(&target, params),
+            "gitlab.updateMRState" => gitlab::set_state(&target, params),
+            "gitlab.addMRComment" => gitlab::comment(&target, params),
             "github.mergePR" => github::merge(&target, params),
+            "github.rerunPRChecks" => ci::rerun(&target, params),
+            "github.setPRAutoMerge" => ci::auto_merge(&target, params),
+            "github.prCheckDetails" => ci::check_details(&target, params),
             "github.updatePRTitle" => github::update_title(&target, params),
             "github.updatePR" => github::update(&target, params),
             "github.markPRReadyForReview" => github::ready(&target, params, false),
             "github.markPRDraft" => github::ready(&target, params, true),
             "github.requestPRReviewers" => github::reviewers(&target, params, "add"),
             "github.removePRReviewers" => github::reviewers(&target, params, "remove"),
+            "github.prComments" => review::pr_comments(&target, params),
+            "github.prFileContents" => review::file_contents(&target, params),
+            "hostedReview.forBranch" => review::for_branch(&target, params),
+            "hostedReview.getCreationEligibility" => eligibility::eligibility(&target, params),
+            "hostedReview.create" => create::create(&target, params),
             "gitlab.mergeMR" => gitlab::merge(&target, params),
             "gitlab.updateMR" => gitlab::update(&target, params),
+            "github.createIssue" => issue::create(issue::Host::Github, &target, params),
+            "github.updateIssue" => issue::update(issue::Host::Github, &target, params),
+            "github.addIssueComment" => issue::comment(issue::Host::Github, &target, params),
+            "gitlab.createIssue" => issue::create(issue::Host::Gitlab, &target, params),
+            "gitlab.updateIssue" => issue::update(issue::Host::Gitlab, &target, params),
+            "gitlab.addIssueComment" => issue::comment(issue::Host::Gitlab, &target, params),
+            "github.countWorkItems" => work::count(&target, params),
+            "github.listWorkItems" => work::list_github(&target, params),
+            "gitlab.listWorkItems" => work::list_gitlab(&target, params),
+            "gitlab.todos" => work::todos(&target, params),
+            "github.workItem" => detail::github_work_item(&target, params),
+            "github.workItemByOwnerRepo" => detail::github_by_owner_repo(&target, params),
+            "github.workItemDetails" => detail::github_details(&target, params),
+            "gitlab.workItemDetails" => detail::gitlab_details(&target, params),
+            "gitlab.workItemByPath" => detail::gitlab_by_path(&target, params),
             "worktree.resolvePrBase" => base::resolve(&target, params, false),
             "worktree.resolveMrBase" => base::resolve(&target, params, true),
             other => Err(Failure::new(METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
@@ -73,7 +203,8 @@ impl Area for HostedArea {
 /// The repository a request names: the agent API and the rca workspace its `repo` selector resolved to.
 pub(crate) struct Target<'a> {
     agent: &'a dyn AgentApi,
-    workspace: String,
+    /// None for a row that names no repository of the phone's: rca routes it to an executor whose gh is signed in.
+    workspace: Option<String>,
 }
 
 pub(crate) fn refusal(error: AgentError) -> Failure {
@@ -88,7 +219,12 @@ pub(crate) fn refusal(error: AgentError) -> Failure {
 impl<'a> Target<'a> {
     fn of(agent: &'a dyn AgentApi, params: &Value) -> Result<Target<'a>, Failure> {
         let selector = text(params, "repo").ok_or_else(|| Failure::invalid("Missing repo selector"))?;
-        Ok(Target { agent, workspace: orca_map_workspace::resolve(agent, selector)?.workspace })
+        Ok(Target { agent, workspace: Some(orca_map_workspace::resolve(agent, selector)?.workspace) })
+    }
+
+    /// The agent API with no workspace: the account's own executor answers.
+    pub(crate) fn account(agent: &'a dyn AgentApi) -> Target<'a> {
+        Target { agent, workspace: None }
     }
 
     /// The group's answer, with a refusal kept as the executor words it.
@@ -97,12 +233,19 @@ impl<'a> Target<'a> {
             Value::Object(map) => map,
             _ => Map::new(),
         };
-        params.insert("workspace".into(), json!(self.workspace));
+        if let Some(workspace) = &self.workspace {
+            params.insert("workspace".into(), json!(workspace));
+        }
         self.agent.request(method.name(), Value::Object(params))
     }
 
     pub(crate) fn ask(&self, method: AgentMethod, args: Value) -> Result<Value, Failure> {
         self.try_ask(method, args).map_err(refusal)
+    }
+
+    /// The same agent API acting in another workspace (a worktree of the repository).
+    pub(crate) fn with_workspace(&self, workspace: String) -> Target<'a> {
+        Target { agent: self.agent, workspace: Some(workspace) }
     }
 }
 
@@ -127,7 +270,7 @@ pub(crate) fn outcome(result: Result<Value, AgentError>) -> Result<Value, Failur
     }
 }
 
-/// The executor's repository args of a request that names its own: `prRepo` (`owner`, `repo`, `host`) of GitHub's rows or `projectRef` (`host`, `path`)
+/// The executor's repository args of a request that names its own: `prRepo` or `ownerRepo` (`owner`, `repo`, `host`) of GitHub's rows or `projectRef` (`host`, `path`)
 /// of GitLab's.
 pub(crate) fn repo_args(params: &Value, key: &str) -> Result<Map<String, Value>, Failure> {
     let mut args = Map::new();
@@ -135,7 +278,7 @@ pub(crate) fn repo_args(params: &Value, key: &str) -> Result<Map<String, Value>,
         None | Some(Value::Null) => return Ok(args),
         Some(named) => named,
     };
-    let (path, host) = if key == "prRepo" {
+    let (path, host) = if key == "prRepo" || key == "ownerRepo" {
         let (owner, repo) = (text(named, "owner").ok_or_else(|| Failure::invalid("prRepo has no owner"))?, text(named, "repo").ok_or_else(|| Failure::invalid("prRepo has no repo"))?);
         (format!("{owner}/{repo}"), text(named, "host"))
     } else {

@@ -7,7 +7,7 @@ use std::path::Path;
 use toml::Value;
 
 /// Crates a core must not depend on: an HTTP server or client, a socket protocol, an OS directory lookup.
-const IO_CRATES: &[&str] = &["reqwest", "axum", "hyper", "hyper-util", "tokio-tungstenite", "tower", "tower-http", "clap", "dirs"];
+pub(crate) const IO_CRATES: &[&str] = &["reqwest", "axum", "hyper", "hyper-util", "tokio-tungstenite", "tower", "tower-http", "clap", "dirs"];
 
 /// tokio features that reach a file, a socket, a child process or a signal.
 const IO_FEATURES: &[&str] = &["fs", "io-util", "net", "process", "signal", "full"];
@@ -75,11 +75,11 @@ fn count_workspace(manifest: &Path, checked: &mut BTreeSet<std::path::PathBuf>) 
 /// Where the ast-grep rules live. A rule that matches `does-io` keeps the code its `files` globs name from doing I/O (the wire-contract crates
 /// of `libraries/agent-api`, `rca-exec`'s domain module), and the manifest of each crate those globs name is held to the same dependency rule
 /// as a core's.
-const RULES_DIR: &str = "backend/arch-rules";
+const RULES_DIRS: [&str; 2] = ["backend/arch-rules", "clis/arch-rules"];
 
 /// The text of every rule file under `root` that matches `does-io`, in file-name order.
 fn purity_rules(root: &Path) -> Vec<String> {
-    let mut files: Vec<_> = std::fs::read_dir(root.join(RULES_DIR)).map(|dir| dir.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "yml")).collect()).unwrap_or_default();
+    let mut files: Vec<_> = RULES_DIRS.iter().flat_map(|d| std::fs::read_dir(root.join(d)).map(|dir| dir.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "yml")).collect::<Vec<_>>()).unwrap_or_default()).collect();
     files.sort();
     files.iter().filter_map(|f| std::fs::read_to_string(f).ok()).filter(|yml| yml.lines().any(|l| l.trim() == "matches: does-io")).collect()
 }
@@ -109,8 +109,8 @@ fn ignored_crates(yml: &str) -> Vec<Vec<String>> {
 }
 
 /// The crate directories a rule glob stands for, with `*` standing for any one directory: what precedes `/src/` without its leading `**/`.
-/// None for a glob that is no crate's sources. ast-grep reads a glob relative to `backend/` (where `sgconfig.yml` is), so a crate of a service
-/// is spelled from there (`**/remote-chat-agent/agent-core/src/**/*.rs`) and one outside it from the repository root (`**/libraries/...`).
+/// None for a glob that is no crate's sources. ast-grep reads a glob relative to the directory of its `sgconfig.yml` (`backend/` or `clis/`), so a crate
+/// below one is spelled from there (`**/remote-chat-agent/agent-core/src/**/*.rs`) and one outside it from the repository root (`**/libraries/...`).
 fn crate_dirs_of(glob: &str) -> Option<Vec<String>> {
     let (before, _) = glob.split_once("/src/")?;
     Some(before.trim_start_matches("**/").split('/').map(String::from).collect())
@@ -137,9 +137,9 @@ fn expand(root: &Path, segments: &[String]) -> Vec<std::path::PathBuf> {
 }
 
 /// The registry of pure crates: the directories the purity rules' globs name, sorted and without repeats. The one list every check of a pure crate
-/// reads (the ast-grep rules, this module's manifest rule, the crate-against-crate rules of `cargo_deps`), so a crate is added in one place.
+/// reads (the ast-grep rules, this module's manifest rule), so a crate is added in one place.
 pub(crate) fn registry_dirs(root: &Path) -> Vec<std::path::PathBuf> {
-    let bases = [root.to_path_buf(), root.join("backend")];
+    let bases = [root.to_path_buf(), root.join("backend"), root.join("clis")];
     let named = |segments: &Vec<String>| bases.iter().flat_map(|base| expand(base, segments)).collect::<Vec<_>>();
     let mut crates: Vec<std::path::PathBuf> = Vec::new();
     for yml in purity_rules(root) {
@@ -229,7 +229,7 @@ mod tests {
             std::fs::create_dir_all(&dir).unwrap();
             std::fs::write(dir.join("Cargo.toml"), "[package]\nname = \"x\"\n").unwrap();
         }
-        let rules = root.path().join(RULES_DIR);
+        let rules = root.path().join(RULES_DIRS[0]);
         std::fs::create_dir_all(&rules).unwrap();
         let yml = "id: x\nfiles:\n  - \"**/libraries/agent-api/*/src/**/*.rs\"\nignores:\n  - \"**/libraries/agent-api/*/src/testing.rs\"\n  # a comment between two ignores\n  - \"**/libraries/agent-api/client/src/**\"\n  - \"**/libraries/agent-api/kit/src/**/*.rs\"\nrule:\n  matches: does-io\n";
         std::fs::write(rules.join("x.yml"), yml).unwrap();
@@ -249,5 +249,48 @@ mod tests {
 
         // When the rule runs, Then nothing is reported
         assert!(violations(&workspace, &cores).is_empty());
+    }
+}
+
+/// What the purity rule cannot see: a use case that asks the system for the time, a random id or a file's existence instead of a port.
+const AMBIENT_CALLS: &[&str] = &["SystemTime::now", "Instant::now", "Uuid::new_v4", ".exists()"];
+
+const AMBIENT_CORE: &str = "backend/remote-chat-agent/service-core/src";
+
+fn ambient_in(dir: &Path) -> usize {
+    let Ok(entries) = std::fs::read_dir(dir) else { return 0 };
+    entries
+        .flatten()
+        .map(|e| {
+            let path = e.path();
+            if path.is_dir() {
+                ambient_in(&path)
+            } else if path.extension().is_some_and(|x| x == "rs") && path.file_name().is_some_and(|n| n != "testing.rs") {
+                std::fs::read_to_string(&path).map(|text| text.lines().map(|l| AMBIENT_CALLS.iter().filter(|c| l.contains(**c)).count()).sum()).unwrap_or(0)
+            } else {
+                0
+            }
+        })
+        .sum()
+}
+
+/// Direct clock, randomness and file-probe calls in `service-core` (the budget `core-ambient-calls` only shrinks, as each moves behind a port).
+pub fn ambient_calls(root: &Path) -> usize {
+    ambient_in(&root.join(AMBIENT_CORE))
+}
+
+#[cfg(test)]
+mod ambient_tests {
+    use super::*;
+
+    #[test]
+    fn given_a_core_with_clock_and_random_calls_when_counted_then_each_call_counts_and_testing_rs_is_skipped() {
+        let root = std::env::temp_dir().join(format!("ambient-{}", std::process::id()));
+        let src = root.join(AMBIENT_CORE);
+        std::fs::create_dir_all(src.join("application")).expect("dirs");
+        std::fs::write(src.join("application/a.rs"), "let a = Instant::now();\nlet b = Uuid::new_v4(); let c = SystemTime::now();\n").expect("write");
+        std::fs::write(src.join("testing.rs"), "let a = Instant::now();\n").expect("write");
+        assert_eq!(ambient_calls(&root), 3);
+        std::fs::remove_dir_all(&root).ok();
     }
 }

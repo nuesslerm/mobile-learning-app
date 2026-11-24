@@ -16,6 +16,7 @@ testing = []
 
 [dependencies]
 async-trait.workspace = true
+base64.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
@@ -30,3 +31,6 @@ exec-proc = { path = "../../../libraries/agent-api/exec-proc" }
 tokio.workspace = true
 rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
 rca-group-catalog = { path = ".", features = ["testing"] }
+
+[package.metadata.arch]
+type = "rust-group"

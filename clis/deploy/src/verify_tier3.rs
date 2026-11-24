@@ -1,14 +1,13 @@
 //! `wf check --deployed <sha>`: tier 1 (typecheck and unit/flow tests of the affected packages in a clean worktree of the sha),
-//! the deploy gate (each service's /health reports the sha), tier 3 (backend e2e, EAS update), the report in the artifacts
-//! bucket, the PR description block, and a fix unit when tier 3 fails; `--dry-run` prints that plan without any network.
-use wf_bucket::artifacts::{content_type_for, public_base, put_par, read_public, OCI_BUCKET_BASE};
+//! the deploy gate (each service's /health reports the sha), tier 3 (backend e2e, EAS update), the report in the state ref
+//! (`refs/wf/state`), the PR description block, and a fix unit when tier 3 fails; `--dry-run` prints that plan without any network.
+use wf_bucket::state;
 use wf_kit::args::{parse_spec, Positional, Spec};
 use wf_kit::proc::{capture, git_out, Out};
 use wf_kit::root::repo_root;
 use pipeline::verify::{affected, apps_for_paths, filters, is_code, workspace_packages, APP_PATHS, FRONTEND_APP, GATE_STEPS, HTTP_HEALTH_APPS};
 use wf_vmops::services::{health_url, running_commit, VM_OPS_API};
 use wf_vmops::vmops::{request_json, tailnet_via, Opts};
-use regex::Regex;
 use serde_json::{json, Map, Value};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -18,8 +17,6 @@ type Res<T> = Result<T, String>;
 
 const INSTALL_STEP: &str = "pnpm install --prefer-offline --frozen-lockfile";
 const OUTPUT_TAIL: usize = 2048;
-const REPORT_EPIC: &str = "verify";
-const REPORT_BRANCH: &str = "dev";
 const PR_BLOCK_START: &str = "<!-- wf-verify -->";
 const PR_BLOCK_END: &str = "<!-- /wf-verify -->";
 
@@ -73,55 +70,18 @@ fn git(root: &Path, args: &[&str]) -> Res<String> {
     Ok(o.stdout)
 }
 
-/* ---------- OCI object store ---------- */
-
-fn bucket() -> Res<(String, String)> {
-    let prefix = std::env::var("GOLDEN_SCREENSHOTS_BUCKET_URL_PREFIX").ok().filter(|p| !p.is_empty()).ok_or("GOLDEN_SCREENSHOTS_BUCKET_URL_PREFIX is unset; it holds the golden-screenshots bucket URL prefix (terraform output golden_screenshots_bucket_url_prefix)")?;
-    let re = Regex::new(r"^https://objectstorage\.([^.]+)\.oraclecloud\.com/n/([^/]+)/b/([^/]+)/o/$").unwrap();
-    re.captures(&prefix).map(|m| (m[2].to_string(), m[3].to_string())).ok_or_else(|| format!("GOLDEN_SCREENSHOTS_BUCKET_URL_PREFIX does not look like a bucket URL prefix (expected .../n/<namespace>/b/<bucket>/o/, got \"{prefix}\")"))
-}
+/* ---------- the state ref ---------- */
 
 fn scratch_dir() -> Res<PathBuf> {
     tempfile::Builder::new().prefix("wf-verify-").tempdir().map(tempfile::TempDir::keep).map_err(|e| e.to_string())
 }
 
-fn oci_put(key: &str, body: &str) -> Res<()> {
-    let (namespace, bucket) = bucket()?;
-    let dir = scratch_dir()?;
-    let file = dir.join("body");
-    let result = std::fs::write(&file, body).map_err(|e| e.to_string()).and_then(|()| {
-        let args = s(&["os", "object", "put", "--namespace-name", &namespace, "--bucket-name", &bucket, "--name", key, "--file", &file.to_string_lossy(), "--force"]);
-        let o = capture("oci", &args, None, None);
-        if o.code == 0 {
-            Ok(())
-        } else {
-            Err(format!("Command failed: oci os object put\n{}", o.stderr))
-        }
-    });
-    let _ = std::fs::remove_dir_all(&dir);
-    result
-}
-
-/// The object's text, or None when it does not exist; any other failure is an error.
-fn oci_get(key: &str) -> Res<Option<String>> {
-    let (namespace, bucket) = bucket()?;
-    let dir = scratch_dir()?;
-    let file = dir.join("body");
-    let args = s(&["os", "object", "get", "--namespace-name", &namespace, "--bucket-name", &bucket, "--name", key, "--file", &file.to_string_lossy()]);
-    let o = capture("oci", &args, None, None);
-    let result = if o.code == 0 {
-        std::fs::read_to_string(&file).map(Some).map_err(|e| e.to_string())
-    } else if Regex::new(r#"ObjectNotFound|"status":\s*404"#).unwrap().is_match(&o.stderr) {
-        Ok(None)
-    } else {
-        Err(format!("Command failed: oci os object get\n{}", o.stderr))
-    };
-    let _ = std::fs::remove_dir_all(&dir);
-    result
+fn state_put(key: &str, body: &str) -> Res<()> {
+    state::write(&[(key, body.as_bytes())], &format!("verify: {key}")).map(|_| ())
 }
 
 fn read_tier(sha: &str, tier: i64) -> Res<Option<Value>> {
-    match oci_get(&format!("verify/{sha}.tier{tier}.json"))? {
+    match state::read(&format!("verify/{sha}.tier{tier}.json"))? {
         Some(text) if !text.is_empty() => serde_json::from_str(&text).map(Some).map_err(|e| e.to_string()),
         _ => Ok(None),
     }
@@ -270,7 +230,7 @@ pub(crate) fn wait_serving(app: &str, sha: &str, timeout: Duration, failed: impl
             Ok(c) => c,
             Err(why) => return Ok(format!("not confirmed: {why}")),
         };
-        if let Some(c) = reported.as_deref().filter(|c| commit_matches(Some(c), sha) || descends_from(c, sha)) {
+        if let Some(c) = reported.as_deref().filter(|c| commit_matches(Some(c), sha) || descends_from(c, sha) || own_image_unchanged(app, c, sha)) {
             return Ok(format!("serving {c} after {} s", started.elapsed().as_secs()));
         }
         if let Some(why) = failed() {
@@ -281,6 +241,13 @@ pub(crate) fn wait_serving(app: &str, sha: &str, timeout: Duration, failed: impl
         }
         std::thread::sleep(Duration::from_secs(10));
     }
+}
+
+/// Whether the commit `app` serves was built from the same inputs of the app's own image as `sha`: a gradual redeploy that moved only a sidecar
+/// leaves the app's own service on the commit it was built from, and that is the commit it should serve.
+fn own_image_unchanged(app: &str, serving: &str, sha: &str) -> bool {
+    let Some(own) = pipeline::image_hash::service_images(app).first() else { return false };
+    pipeline::image_hash::unchanged_between(None, serving, sha, own.image)
 }
 
 fn commit_matches(reported: Option<&str>, sha: &str) -> bool {
@@ -389,7 +356,7 @@ fn latest_update(root: &Path, branch: &str) -> Value {
             }
             None => Value::Null,
         },
-        Err(e) if e.contains("HTTP 404") => Value::Null,
+        Err(e) if e.contains(pipeline::eas::NO_POINTER) => Value::Null,
         Err(e) => json!({ "error": e }),
     }
 }
@@ -423,14 +390,13 @@ fn update_html(update: &Value) -> String {
     })
 }
 
-fn pr_block(report: &Value, url: Option<&str>) -> String {
+fn pr_block(report: &Value) -> String {
     let tiers = &report["tiers"];
     let sha8: String = report["sha"].as_str().unwrap_or("").chars().take(8).collect();
-    let link = url.map_or(String::new(), |u| format!(" · [report]({u})"));
     [
         PR_BLOCK_START.to_string(),
         format!("**Try it:** {}", update_md(&report["update"])),
-        format!("**Verify:** `dev@{sha8}` · flow {} · visual {} · e2e {}{link}", mark(&tiers[0]), mark(&tiers[1]), mark(&tiers[2])),
+        format!("**Verify:** `dev@{sha8}` · flow {} · visual {} · e2e {}", mark(&tiers[0]), mark(&tiers[1]), mark(&tiers[2])),
         PR_BLOCK_END.to_string(),
     ]
     .join("\n")
@@ -470,46 +436,18 @@ fn rewrite_pr_block(pr: u64, block: &str) -> Option<String> {
 
 /* ---------- publishing the report ---------- */
 
-fn publish_report(report: &Value, par: &str) -> Res<String> {
+/// The report as a page beside its JSON, in a local directory (`RUNNER_TEMP` on a runner): the report itself is already in the
+/// state ref at `verify/<sha>.json`, so no page is hosted.
+fn publish_report(report: &Value) -> Res<PathBuf> {
     let sha = report["sha"].as_str().unwrap_or("");
+    let base = std::env::var_os("RUNNER_TEMP").map_or_else(std::env::temp_dir, PathBuf::from);
+    let dir = base.join("verify").join(sha);
+    std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     let rels = [("index.html", render_report_html(report)), ("report.json", serde_json::to_string_pretty(report).map_err(|e| e.to_string())?)];
     for (rel, body) in &rels {
-        let key = format!("verification/{REPORT_EPIC}/{REPORT_BRANCH}/{sha}/{rel}");
-        put_par(&format!("{par}{key}"), body.as_bytes(), content_type_for(rel))?;
+        std::fs::write(dir.join(rel), body).map_err(|e| format!("{}: {e}", dir.join(rel).display()))?;
     }
-    let url = format!("{OCI_BUCKET_BASE}/verification/{REPORT_EPIC}/{REPORT_BRANCH}/{sha}/index.html");
-    let manifest_key = format!("verification/{REPORT_EPIC}/index.json");
-    let existing: Vec<Value> = read_public(&format!("{}/{manifest_key}", public_base()))?
-        .and_then(|t| serde_json::from_str::<Value>(&t).ok())
-        .and_then(|v| {
-            let runs = v["runs"].as_array()?.clone();
-            runs.iter().all(|r| ["branch", "runId", "publishedAt", "url"].iter().all(|k| r[*k].is_string())).then_some(runs)
-        })
-        .unwrap_or_default();
-    let entry = json!({ "branch": REPORT_BRANCH, "runId": sha, "publishedAt": rca_core::time::iso(now_ms()), "url": url });
-    let mut runs = vec![entry];
-    runs.extend(existing.into_iter().filter(|r| !(r["branch"] == json!(REPORT_BRANCH) && r["runId"] == json!(sha))));
-    put_par(&format!("{par}{manifest_key}"), json!({ "runs": runs }).to_string().as_bytes(), "application/json")?;
-    put_par(&format!("{par}verification/{REPORT_EPIC}/index.html"), epic_index_html(&runs).as_bytes(), "text/html")?;
-    Ok(url)
-}
-
-fn escape_html(t: &str) -> String {
-    t.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;").replace('\'', "&#39;")
-}
-
-fn epic_index_html(runs: &[Value]) -> String {
-    let mut sorted: Vec<&Value> = runs.iter().collect();
-    sorted.sort_by(|a, b| b["publishedAt"].as_str().cmp(&a["publishedAt"].as_str()));
-    let links: Vec<String> = sorted
-        .iter()
-        .map(|r| format!("      <li><a href=\"{}\">{} / {} ({})</a></li>", escape_html(r["url"].as_str().unwrap_or("")), escape_html(r["branch"].as_str().unwrap_or("")), escape_html(r["runId"].as_str().unwrap_or("")), escape_html(r["publishedAt"].as_str().unwrap_or(""))))
-        .collect();
-    format!(
-        "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\">\n    <title>Verification artifacts: {e}</title>\n  </head>\n  <body>\n    <h1>Verification artifacts: {e}</h1>\n    <ul>\n{}\n    </ul>\n  </body>\n</html>\n",
-        links.join("\n"),
-        e = escape_html(REPORT_EPIC)
-    )
+    Ok(dir.join("index.html"))
 }
 
 /* ---------- the fix unit ---------- */
@@ -578,7 +516,7 @@ fn validate(given: &str, p: &wf_kit::args::Parsed, root: &Path) -> Result<Valida
 struct Outcome {
     report: Option<Value>,
     report_key: Option<String>,
-    report_url: Option<String>,
+    report_file: Option<PathBuf>,
     apps: Vec<String>,
     notes: Vec<String>,
     fix_unit: Option<(String, String, Vec<String>)>,
@@ -590,11 +528,11 @@ fn run_tier3(root: &Path, f: &Flags, say: &mut dyn FnMut(&str)) -> Res<Outcome> 
     let paths: Vec<String> = git(root, &["diff", "--name-only", &f.base, sha])?.split('\n').filter(|p| !p.is_empty()).map(str::to_string).collect();
     let apps: Vec<&'static str> = apps_for_paths(&paths);
     let publish_eas = f.publish_eas.unwrap_or_else(|| apps.contains(&FRONTEND_APP));
-    let mut outcome = Outcome { report: None, report_key: None, report_url: None, apps: apps.iter().map(|a| a.to_string()).collect(), notes: vec![], fix_unit: None, exit_code: 0 };
+    let mut outcome = Outcome { report: None, report_key: None, report_file: None, apps: apps.iter().map(|a| a.to_string()).collect(), notes: vec![], fix_unit: None, exit_code: 0 };
 
     let tier1 = if f.skip_tier1 { None } else { Some(run_tier1(root, sha, &paths)?) };
     if let Some(t) = &tier1 {
-        oci_put(&format!("verify/{sha}.tier1.json"), &t.to_string())?;
+        state_put(&format!("verify/{sha}.tier1.json"), &t.to_string())?;
     }
     let started = now_ms();
 
@@ -669,14 +607,13 @@ fn run_tier3(root: &Path, f: &Flags, say: &mut dyn FnMut(&str)) -> Res<Outcome> 
         "update": update,
     });
     let key = format!("verify/{sha}.json");
-    oci_put(&key, &serde_json::to_string_pretty(&report).map_err(|e| e.to_string())?)?;
+    state_put(&key, &serde_json::to_string_pretty(&report).map_err(|e| e.to_string())?)?;
     outcome.report_key = Some(key);
     if f.publish {
-        let par = secrets::load_values(&["VERIFICATION_ARTIFACTS_PAR_URL"]).get("VERIFICATION_ARTIFACTS_PAR_URL").cloned().flatten().ok_or("VERIFICATION_ARTIFACTS_PAR_URL could not be resolved (`wf secret set VERIFICATION_ARTIFACTS_PAR_URL`)")?;
-        outcome.report_url = Some(publish_report(&report, &par)?);
+        outcome.report_file = Some(publish_report(&report)?);
     }
     if let Some(pr) = f.pr {
-        let block = pr_block(&report, outcome.report_url.as_deref());
+        let block = pr_block(&report);
         if let Some(why) = rewrite_pr_block(pr, &block) {
             outcome.notes.push(format!("PR #{pr} not updated ({why}); block printed instead:\n{block}"));
         }
@@ -730,10 +667,10 @@ fn render(o: &Outcome) -> String {
         out.push('\n');
     }
     if let Some(k) = &o.report_key {
-        out.push_str(&format!("report: oci {k}\n"));
+        out.push_str(&format!("report: state {k}\n"));
     }
-    if let Some(u) = &o.report_url {
-        out.push_str(&format!("report html: {u}\n"));
+    if let Some(f) = &o.report_file {
+        out.push_str(&format!("report html: {}\n", f.display()));
     }
     for n in &o.notes {
         out.push_str(&format!("note: {n}\n"));
@@ -752,7 +689,7 @@ fn outcome_json(o: &Outcome) -> Value {
         "ok": true,
         "report": o.report.clone().unwrap_or(Value::Null),
         "reportKey": o.report_key,
-        "reportUrl": o.report_url,
+        "reportFile": o.report_file,
         "apps": o.apps,
         "plan": [],
         "notes": o.notes,
@@ -840,7 +777,7 @@ fn tier1_plan(root: &Path, sha: &str, changed: &[String]) -> Option<Vec<String>>
             plan.push(format!("tier 1: {}: {c}", GATE_STEPS[i]));
         }
     }
-    plan.push(format!("oci os object put verify/{sha}.tier1.json"));
+    plan.push(format!("write verify/{sha}.tier1.json to refs/wf/state"));
     Some(plan)
 }
 
@@ -892,13 +829,13 @@ pub fn dry_run(args: &[String]) -> Option<i32> {
         "eas update: skipped (no frontend change or --no-publish-eas)".into()
     });
     plan.push(if skip_tier1 {
-        "read tier 1 + tier 2 records: OCI verify/<sha>.tier1.json, verify/<sha>.tier2.json".into()
+        "read tier 1 + tier 2 records: refs/wf/state verify/<sha>.tier1.json, verify/<sha>.tier2.json".into()
     } else {
-        "read tier 2 record: OCI verify/<sha>.tier2.json".into()
+        "read tier 2 record: refs/wf/state verify/<sha>.tier2.json".into()
     });
-    plan.push(format!("oci os object put verify/{sha}.json"));
+    plan.push(format!("write verify/{sha}.json to refs/wf/state"));
     if p.flags.iter().any(|f| f == "publish") {
-        plan.push(format!("PUT report HTML to verification/verify/dev/{sha}/index.html"));
+        plan.push("write the report HTML to a local file".to_string());
     }
     if let Some(n) = pr {
         plan.push(format!("rewrite PR #{n} description block"));

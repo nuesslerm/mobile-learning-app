@@ -11,15 +11,21 @@
     "./composites/*": "./composites/*.tsx",
     "./theme": "./theme/index.ts",
     "./theme/*": "./theme/*.ts",
-    "./primitives": "./primitives.tsx"
+    "./primitives": "./primitives.tsx",
+    "./lib/skiaWeb": {
+      "browser": "./lib/skiaWeb.web.ts",
+      "default": "./lib/skiaWeb.ts"
+    },
+    "./lib/*": "./lib/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings && depcruise ui composites theme lib primitives.tsx icons.ts index.ts --config .dependency-cruiser.cjs --ignore-known",
     "test": "vitest run --root ../../.. frontend/libraries/tamagui-design-system/tests",
     "test:unit": "vitest run --root ../../.. frontend/libraries/tamagui-design-system/tests"
   },
   "dependencies": {
+    "@expo/ui": "~58.0.29",
     "@gluestack-ui/core": "^5.0.15",
     "@gluestack-ui/utils": "^5.0.6",
     "@gorhom/bottom-sheet": "^5.2.14",
@@ -42,19 +48,25 @@
     "@tamagui/z-index-stack": "^2.7.7",
     "lucide-react-native": "^1.17.0",
     "react-native-markdown-display": "7.0.2",
+    "react-native-svg": "15.16.0",
+    "victory-native": "42.0.1",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@typescript/native": "catalog:",
-    "@lib/eslint-plugin-mobile-learn": "workspace:*",
+    "@lib/lint-rules": "workspace:*",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@typescript/native": "catalog:",
+    "dependency-cruiser": "^17.4.3",
+    "expo-glass-effect": "~58.0.5",
+    "expo-router": "~58.0.32",
     "oxlint": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-native": "catalog:",
-    "react-native-reanimated": "4.5.1",
-    "react-native-safe-area-context": "~5.7.0",
+    "react-native-reanimated": "4.7.1",
+    "react-native-safe-area-context": "~5.11.1",
     "typescript": "catalog:"
   }
 }

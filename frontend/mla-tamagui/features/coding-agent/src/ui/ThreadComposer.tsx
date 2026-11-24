@@ -14,7 +14,7 @@ import {
   View,
 } from '@lib/tamagui-design-system';
 
-import { useThreadCommands } from '../integration/useThreadCommands';
+import { useThreadCommands } from '../state/useThreadCommands';
 import {
   EMPTY_QUEUE,
   getDefaultInteractionMode,

@@ -1,0 +1,43 @@
+{
+  "action": "session_send",
+  "exchanges": [
+    {
+      "name": "refuses a line for a session that is not open",
+      "request": {
+        "id": "n1",
+        "tool": "session_send",
+        "args": {
+          "session": "s-99",
+          "line": "{\"id\":1,\"method\":\"initialize\"}"
+        }
+      },
+      "response": {
+        "id": "n1",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no session s-99 is open here"
+        }
+      }
+    },
+    {
+      "name": "refuses text that is more than one line",
+      "request": {
+        "id": "n2",
+        "tool": "session_send",
+        "args": {
+          "session": "s-99",
+          "line": "a\nb"
+        }
+      },
+      "response": {
+        "id": "n2",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`line` is one line of at most 1048576 bytes"
+        }
+      }
+    }
+  ]
+}

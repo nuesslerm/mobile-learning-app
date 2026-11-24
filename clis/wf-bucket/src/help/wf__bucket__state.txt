@@ -1,0 +1,15 @@
+Usage: wf bucket state [options] [command]
+
+The state ref: small cross-run files (the EAS pointer, the run index) kept in
+the repository as an orphan history under refs/wf/state of origin. A ref that
+is neither a branch nor a tag starts no workflow when pushed. Run it inside a
+checkout of the repository; the push needs the job's token to hold contents:
+write (the eas-update job does).
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  read <path>                 Print a file of the state ref
+  write [options] <path>      Commit a file to the state ref and push it
+  help [command]              display help for command

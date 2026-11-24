@@ -2,11 +2,12 @@
 -- wf browser test e2e/web-goldens.lua --env base=http://127.0.0.1:8080 [--env ready=<testID>] [--update-goldens]
 -- Serve a local `pnpm --filter mla-tamagui run export:web` (dist/) at base; goldens land in docs/runbooks/goldens/browser/.
 local base = env.base or "http://127.0.0.1:8080"
-local ready = {id=env.ready or 'DebugFab'}
+local ready = {id=env.ready or 'LeetcodeListMenuButton'}
 
 device:clear_logs()
 device:open_link(base .. "/")
 device:assert_visible(ready, {timeout=60000})
+device:assert_not_visible({id='DebugFab'})
 local home = device:assert_screenshot("web-home")
 log(json.encode({ golden = "web-home", verdict = home.verdict, match_percentage = home.match_percentage }))
 

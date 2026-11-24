@@ -39,3 +39,6 @@ tempfile = "3"
 [dev-dependencies]
 wf-lib = { path = ".", features = ["testing"] }
 wf-testkit = { path = "../wf-testkit" }
+
+[package.metadata.arch]
+type = "cli-crate"

@@ -1,0 +1,78 @@
+{
+  "method": "notification.since",
+  "exchanges": [
+    {
+      "name": "answers the epoch and no entries from a service that made none",
+      "request": {
+        "id": 1,
+        "method": "notification.since",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "epoch": "<volatile>",
+          "notifications": []
+        }
+      },
+      "volatile": [
+        "/result/epoch"
+      ]
+    },
+    {
+      "name": "a seq and an epoch of another run still get what is kept, which is nothing yet",
+      "request": {
+        "id": 1,
+        "method": "notification.since",
+        "params": {
+          "after_seq": 7,
+          "epoch": "another-run"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "epoch": "<volatile>",
+          "notifications": []
+        }
+      },
+      "volatile": [
+        "/result/epoch"
+      ]
+    },
+    {
+      "name": "a field the contract does not have is refused",
+      "request": {
+        "id": 1,
+        "method": "notification.since",
+        "params": {
+          "scope": "x"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "unknown field `scope`"
+        }
+      }
+    },
+    {
+      "name": "a seq that is no number is refused",
+      "request": {
+        "id": 1,
+        "method": "notification.since",
+        "params": {
+          "after_seq": "3"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "after_seq must be a non-negative integer"
+        }
+      }
+    }
+  ]
+}

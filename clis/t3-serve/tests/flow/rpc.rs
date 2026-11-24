@@ -200,7 +200,7 @@ fn archive_unarchive_and_delete_move_the_thread_between_the_shell_lists_and_out(
     assert_eq!(seen, [("thread.removed", Some("active")), ("thread.updated", Some("active")), ("thread.removed", Some("active"))]);
     // And its stream is a declared not-found now
     let thread = rpc.call("orchestration.subscribeThread", json!({"threadId": "t1"}));
-    assert_eq!(tag_of(failure(&thread)), "NotFoundError");
+    assert_eq!(tag_of(failure(&thread)), "OrchestrationV2GetThreadProjectionError");
     let again = rpc.call("orchestration.dispatchCommand", json!({"type": "thread.archive", "commandId": "c-9", "threadId": "t1"}));
     assert_eq!(tag_of(failure(&again)), "OrchestrationV2DispatchCommandError");
 }
@@ -219,7 +219,7 @@ fn a_project_can_be_created_updated_and_archived_and_a_thread_needs_a_live_proje
     rpc.chunk(&shell);
     rpc.call("projects.mutate", json!({"type": "project.update", "commandId": "c-2", "projectId": "p1", "title": "Renamed"}));
     let renamed = rpc.chunk(&shell);
-    rpc.call("projects.mutate", json!({"type": "project.archive", "commandId": "c-3", "projectId": "p1"}));
+    rpc.call("projects.mutate", json!({"type": "project.update", "commandId": "c-3", "projectId": "p1", "archived": true}));
     let archived = rpc.chunk(&shell);
 
     // Then the shell sees the rename as a project update and the archive as a removal
@@ -274,10 +274,12 @@ fn an_rpc_the_server_does_not_build_answers_a_declared_failure_and_the_socket_li
     // Given a session with the default scopes
     let h = Harness::start();
     let mut rpc = connect(&h);
+    rpc.call("projects.mutate", project_create("c-p", "p1"));
+    rpc.call("orchestration.dispatchCommand", thread_create("c-t", "t1", "p1"));
 
     // When it calls an RPC of the mcp apps family, a stream RPC, unknown tags (one under a known family's prefix) and an unsupported command type
-    let terminal = rpc.call("mcpApps.callTool", json!({}));
-    let stream = rpc.call("mcpApps.readResource", json!({}));
+    let terminal = rpc.call("mcpApps.callTool", json!({"threadId": "t1", "itemId": "i1", "name": "n", "arguments": {}}));
+    let stream = rpc.call("mcpApps.readResource", json!({"threadId": "t1", "itemId": "i1", "uri": "u"}));
     let nonsense = rpc.call("nonsense.method", json!({}));
     assert_eq!(nonsense["cause"][0]["defect"], "Unknown request tag: nonsense.method");
     let pull_request = rpc.call("pullRequests.noSuchMethod", json!({}));
@@ -374,4 +376,58 @@ fn a_malformed_frame_a_ping_and_an_interrupt_are_each_answered_without_closing_t
     assert_eq!((ended["requestId"].clone(), ended["exit"]["cause"][0]["_tag"].clone()), (shell.clone(), json!("Interrupt")));
     rpc.call("orchestration.dispatchCommand", thread_create("c-t2", "t2", "p1"));
     assert!(rpc.try_recv(QUIET).is_none());
+}
+
+#[test]
+fn a_command_of_a_thread_the_server_does_not_hold_is_refused_with_the_pins_cause_and_a_repeat_of_its_id_is_previously_rejected() {
+    // Given a session and no thread
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+
+    // When it dispatches a thread command for a thread that is not there, twice under one command id, and a command that is not built
+    let first = rpc.call("orchestration.dispatchCommand", json!({"type": "thread.archive", "commandId": "c-1", "threadId": "ghost"}));
+    let repeat = rpc.call("orchestration.dispatchCommand", json!({"type": "thread.unarchive", "commandId": "c-1", "threadId": "ghost"}));
+    let unbuilt = rpc.call("orchestration.dispatchCommand", json!({"type": "checkpoint.rollback", "commandId": "c-2", "threadId": "ghost", "checkpointId": "k", "scopeId": "s", "restoreFiles": true}));
+
+    // Then the first names the missing projection through the cause chain, with detail repeating message
+    let error = failure(&first);
+    assert_eq!(error["detail"], error["message"]);
+    assert_eq!(error["message"], "No orchestration projection exists for thread ghost.");
+    assert_eq!((error["cause"]["name"].as_str(), error["cause"]["message"].as_str(), error["cause"]["cause"]["name"].as_str()), (Some("OrchestratorProjectionError"), Some("Failed to load orchestration projection for thread ghost."), Some("ProjectionStoreThreadNotFoundError")));
+    // And the repeat is refused as previously rejected, quoting the first refusal, whatever its type
+    let again = failure(&repeat);
+    assert_eq!((again["commandType"].as_str(), again["cause"]["name"].as_str()), (Some("thread.unarchive"), Some("OrchestratorCommandPreviouslyRejectedError")));
+    assert_eq!(again["message"], "Command c-1 was previously rejected: Failed to load orchestration projection for thread ghost.");
+    // And a command type this server does not build answers the same missing projection
+    assert_eq!(failure(&unbuilt)["cause"]["name"], "OrchestratorProjectionError");
+}
+
+#[test]
+fn a_project_mutation_under_the_id_of_a_refused_thread_command_is_judged_on_its_own_and_names_the_missing_project() {
+    // Given a thread command refused under the id c-1
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    rpc.call("orchestration.dispatchCommand", json!({"type": "thread.archive", "commandId": "c-1", "threadId": "ghost"}));
+    // When a project command of the same id deletes a project the server does not hold
+    let delete = rpc.call("projects.mutate", json!({"type": "project.delete", "commandId": "c-1", "projectId": "nope"}));
+    // Then the refusal names the missing project, not the earlier thread command
+    let error = failure(&delete);
+    assert_eq!((error["cause"]["name"].as_str(), error["cause"]["message"].as_str()), (Some("ProjectNotFoundError"), Some("Project nope was not found.")));
+}
+
+#[test]
+fn a_refusal_for_any_other_reason_carries_the_dispatch_error_cause() {
+    // Given a thread that is not archived
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    rpc.call("projects.mutate", project_create("c-p", "p1"));
+    rpc.call("orchestration.dispatchCommand", thread_create("c-t", "t1", "p1"));
+
+    // When it is unarchived
+    let refused = rpc.call("orchestration.dispatchCommand", json!({"type": "thread.unarchive", "commandId": "c-u", "threadId": "t1"}));
+
+    // Then the cause is the dispatcher's, naming the command and its id
+    let error = failure(&refused);
+    assert_eq!(error["detail"], error["message"]);
+    assert_eq!((error["cause"]["name"].as_str(), error["cause"]["message"].as_str()), (Some("OrchestratorDispatchError"), Some("Failed to dispatch orchestration command thread.unarchive (c-u).")));
 }

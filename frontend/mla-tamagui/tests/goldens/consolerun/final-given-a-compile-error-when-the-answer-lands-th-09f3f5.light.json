@@ -1,0 +1,59 @@
+{
+  "suite": "consolerun",
+  "step": "final-given-a-compile-error-when-the-answer-lands-th-09f3f5",
+  "scheme": "light",
+  "snapshot": "consolerun/final-given-a-compile-error-when-the-answer-lands-th-09f3f5.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorTapAway",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ConsoleSheetHandle",
+      "ConsoleSheet",
+      "ConsoleTabs",
+      "SegmentedThumb",
+      "ConsoleTabs-testcase",
+      "ConsoleTabs-result",
+      "ConsoleBody",
+      "ConsolePanel-result",
+      "ConsoleResultVerdict",
+      "ConsoleResultCounts",
+      "ConsoleResultError",
+      "ConsoleResultErrorText",
+      "ConsoleResultLine",
+      "ConsoleFooter",
+      "ConsoleFooterReset",
+      "ConsoleFooterRun",
+      "ConsoleFooterSubmit"
+    ],
+    "text": "Python\nTestcase\nRun Result\nCompile Error\n0 / 0 testcases passed\nSyntaxError: invalid syntax\nLine 2 (Solution.py)\nReset\nSubmit"
+  },
+  "timings": {
+    "render_ms": 227
+  },
+  "name": "consolerun/final-given-a-compile-error-when-the-answer-lands-th-09f3f5.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

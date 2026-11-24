@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 /// The cached targets: the package scripts the stages run, the crates' flow and integration tests and the focused e2e tests.
-const TARGETS: &str = "lint,typecheck,test:unit,test:flow,test:integration,cargo-flow,cargo-integration,cargo-e2e,cargo-e2e-ask,cargo-e2e-parity,cargo-e2e-parity_features,cargo-e2e-parity_capabilities,cargo-e2e-smoke,cargo-unit,cargo-clippy,e2e-browser,e2e-android,export:web,export:eas,cargo-contract,cargo-verify-deployed,check:editor-bundle";
+const TARGETS: &str = "lint,typecheck,test:unit,test:flow,test:integration,cargo-flow,cargo-integration,replay-orca-core,replay-orca-map-accounts,replay-orca-map-agent,replay-orca-map-browser,replay-orca-map-git,replay-orca-map-hosted,replay-orca-map-mobile,replay-orca-map-schedules,replay-orca-map-settings,replay-orca-map-state,replay-orca-map-terminal,replay-orca-map-workspace,replay-t3-core-attachments,replay-t3-core-core,replay-t3-core-preview,replay-t3-core-pull_requests,replay-t3-core-schedules,replay-t3-core-terminal,replay-t3-core-vcs,replay-t3-core-workspace,cargo-e2e,cargo-e2e-ask,cargo-e2e-parity,cargo-e2e-parity_features,cargo-e2e-parity_capabilities,cargo-e2e-smoke,cargo-unit,cargo-clippy,e2e-browser,e2e-android,export:web,export:eas,cargo-contract,cargo-verify-deployed,check:editor-bundle,check:pyodide,check:js-runner";
 
 const SPEC: Spec = Spec { values: &["save", "against", "targets", "projects"], flags: &["pins", "blocking"], positional: Positional::None, ..Spec::NONE };
 

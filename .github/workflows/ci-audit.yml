@@ -1,7 +1,8 @@
 name: CI audit
 
 # The audit of CI on dev (`wf ci audit`, thresholds in .github/ci-audit.json, procedure docs/runbooks/nightly-audit.md): the runs of the last 24 hours
-# of deploy.yml and ci-hosted.yml judged for waste (VM CPU-seconds, cache health, the pnpm store, the Nx hit ratio, hash drift, waits and idle gaps).
+# of the six hosted workflows (the six ci-hosted-*.yml) judged for waste (cache health, the pnpm store, the Nx hit ratio, hash drift, waits and idle gaps,
+# jobs of one concurrency group that overlapped, jobs cancelled after they started).
 # The weekly run (and a dispatch with replay=true) also replays the two package test stages on dev's head through the Nx cache and with --fresh: a kind
 # that passes cached and fails fresh is a stale or poisoned entry, so the cache moves to a new generation (`wf cache purge nx`). The job prints one JSON verdict
 # (schema in `wf ci audit --help`), uploads it as the artifact ci-audit.json and never fails on a finding: the nightly Claude clock reads it.
@@ -44,10 +45,11 @@ jobs:
   audit:
     name: audit
     if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') }}
-    runs-on: ${{ fromJSON(vars.RUNNER_TAG_CI_AUDIT || '["ubuntu-24.04"]') }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 150
     permissions:
-      contents: read
+      # write: the ledger it records goes to the sealed CI database on refs/wf/state (wf ci db)
+      contents: write
       actions: read
     env:
       BWS_SERVER_URL: https://vault.bitwarden.eu
@@ -103,6 +105,8 @@ jobs:
           jq -c '{ok, runs: (.runs | length), findings: (.findings | length)}' "$RUNNER_TEMP/ci-audit/ci-audit.json"
       # The Nx cache replay check: what the toolchain below needs is what the package tests need.
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.5
         if: ${{ steps.mode.outputs.replay == 'true' }}
       - run: pnpm --filter @lib/browser-client exec playwright install --with-deps chromium
         if: ${{ steps.mode.outputs.replay == 'true' }}
@@ -130,7 +134,7 @@ jobs:
         run: |
           out="$RUNNER_TEMP/audit"
           date +%s > "$out/started"
-          wf test plan --all --sha "$(git rev-parse HEAD)" --json > "$out/plan.json"
+          wf ci plan tests --all --sha "$(git rev-parse HEAD)" --json > "$out/plan.json"
           jq -r '.stages | to_entries[] | select(.key == "flow-tests" or .key == "typecheck-lint-unit-tests") | "\(.key): \(.value | length) test(s)"' "$out/plan.json"
       # Once through the cache (a replay where an entry exists), once with --fresh. Each prints {ok, stage, kinds:[{kind, projects, verdict}]}.
       - name: Both stages, cached and fresh
@@ -190,6 +194,14 @@ jobs:
           [ -f "$RUNNER_TEMP/audit/report.json" ] || { echo "no replay report: the run stopped before the comparison"; exit 0; }
           rm -f "$RUNNER_TEMP/audit/started"
           WF_SITE=ci wf test publish "$RUNNER_TEMP/audit"
+      - name: Upload the replay check's run bundle
+        if: ${{ !cancelled() && steps.mode.outputs.replay == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-runs-ci-audit
+          path: ${{ runner.temp }}/test-runs
+          retention-days: 10
+          if-no-files-found: ignore
       # One verdict: the replay check's lines join the findings, then the summary and the artifact.
       - name: The verdict
         if: ${{ !cancelled() }}

@@ -12,10 +12,15 @@ path = "src-rs/lib.rs"
 name = "agent-config-sync"
 path = "src-rs/main.rs"
 
+# Serves only `wf agent-config`, with the verb word in front like the router, for wf-lazy; `agent-config-sync` above takes the words after it.
+[[bin]]
+name = "agent-config"
+path = "src-rs/bin/agent-config.rs"
+
 [dependencies]
 wf-kit = { path = "../wf-kit" }
 serde_json = { version = "1", features = ["preserve_order"] }
-regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
 toml = { version = "0.8", default-features = false, features = ["parse"] }
 nix = { version = "0.31", default-features = false, features = ["user"] }
 clap = { version = "4", default-features = false, features = ["std", "error-context", "usage"] }

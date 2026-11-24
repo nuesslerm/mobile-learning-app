@@ -1,11 +1,10 @@
 [
   {"name": "vm-ops-api", "repoPath": "infra/oracle-cloud/vm-ops-api", "composeFile": "docker-compose.yml"},
   {"name": "agent-shell", "repoPath": "infra/oracle-cloud/agent-shell", "composeFile": "docker-compose.prod.yml", "stateVolumes": [{"name": "agent-workspace", "excludes": ["./rca-asks", "./repos", "./tools", "./cache", "./home/.npm", "./home/.cache", "./home/.rustup", "./home/wf-bin", "target", "node_modules", ".pnpm-store"], "maxBytes": 1000000000}]},
-  {"name": "ci-runner", "repoPath": "infra/oracle-cloud/ci-runner", "composeFile": "docker-compose.prod.yml"},
   {"name": "leetcode-backend", "repoPath": "backend/leetcode-backend", "composeFile": "docker-compose.prod.yml", "stateVolumes": [{"name": "leetcode-backend-data", "maxBytes": 50000000}]},
   {"name": "remote-chat-agent", "repoPath": "backend/remote-chat-agent", "composeFile": "docker-compose.prod.yml"},
   {"name": "leetcode-auth-cookie-capture", "repoPath": "backend/leetcode-auth-cookie-capture", "composeFile": "docker-compose.capture.yml"},
-  {"name": "vnc-auth-session", "repoPath": "clis/vnc-auth-capture", "composeFile": "docker-compose.auth.yml", "stateVolumes": [{"name": "vnc-auth-credentials", "maxBytes": 200000000}]},
+  {"name": "vnc-auth-session", "repoPath": "clis/vnc-auth-capture", "composeFile": "docker-compose.auth.yml", "stateVolumes": [{"name": "vnc-auth-credentials", "excludes": ["./.npm", "./.cache", "./.opencode"], "maxBytes": 200000000}]},
   {"name": "reporting-service", "repoPath": "backend/reporting-service", "composeFile": "docker-compose.prod.yml"},
   {"name": "t3-serve", "repoPath": "clis/t3-serve", "composeFile": "docker-compose.prod.yml"},
   {"name": "orca-serve", "repoPath": "clis/orca-serve", "composeFile": "docker-compose.prod.yml", "stateVolumes": [{"name": "orca-state", "maxBytes": 50000000}]}

@@ -1,14 +1,15 @@
 ---
-status: open
+status: resolved
 area: mla-tamagui-e2e
 paths:
-  - "frontend/mla-tamagui/e2e/verify-debug-sheet.mjs"
   - "frontend/libraries/tamagui-design-system/ui/button.tsx"
 opened: 2026-10-04
-last_verified: 2026-10-20
+last_verified: 2026-11-24
 links: []
 ---
 # `verify-debug-sheet` cannot press a Tamagui Button, so `ds.button.press` never logs
+
+The app removed its debug sheet and the browser check that exercised it on 24 November 2026.
 
 ## What is broken
 

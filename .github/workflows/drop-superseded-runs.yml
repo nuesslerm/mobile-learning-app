@@ -1,0 +1,43 @@
+name: Drop superseded record runs
+
+# One-time clean-up of the record runs the new recording replaced (issue #83). The agent's token cannot delete a run
+# (`Resource not accessible by integration`), so this job holds `actions: write` and runs when this file is pushed to dev.
+# It refuses any id whose workflow is not Track contracts or Mimic record, that is not finished, that is the kept run, or that is newer
+# than the kept run, and it prints what it deleted. Deleting a run that is already gone is not an error.
+on:
+  push:
+    branches: [dev]
+    paths:
+      - .github/workflows/drop-superseded-runs.yml
+
+permissions:
+  actions: write
+
+jobs:
+  drop:
+    name: Delete the listed runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      KEPT: '43651197829'
+      IDS: '43647841263 43646614226 43620036551 43618813891 43578711208 43403225970 43381101825 43377614300 43377063908 43376252721 43344949695 43344510022'
+    steps:
+      - name: Delete them
+        run: |
+          api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs"
+          hdr=(-H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json")
+          kept_at=$(curl -fsS "${hdr[@]}" "$api/$KEPT" | jq -r .created_at)
+          [ -n "$kept_at" ] && [ "$kept_at" != null ] || { echo "the kept run $KEPT is not readable: nothing is deleted"; exit 1; }
+          for id in $IDS; do
+            [ "$id" != "$KEPT" ] || { echo "refused $id: it is the kept run"; continue; }
+            code=$(curl -sS -o /tmp/run.json -w '%{http_code}' "${hdr[@]}" "$api/$id")
+            if [ "$code" = 404 ]; then echo "run $id is already gone"; continue; fi
+            [ "$code" = 200 ] || { echo "run $id: GET answered $code"; exit 1; }
+            name=$(jq -r .name /tmp/run.json); status=$(jq -r .status /tmp/run.json); at=$(jq -r .created_at /tmp/run.json)
+            case "$name" in "Track contracts"|"Mimic record") ;; *) echo "refused $id: workflow $name"; continue;; esac
+            [ "$status" = completed ] || { echo "refused $id: $status"; continue; }
+            [[ "$at" < "$kept_at" ]] || { echo "refused $id: newer than the kept run"; continue; }
+            curl -fsS -X DELETE "${hdr[@]}" "$api/$id" > /dev/null
+            echo "deleted $id ($name, $at)"
+          done

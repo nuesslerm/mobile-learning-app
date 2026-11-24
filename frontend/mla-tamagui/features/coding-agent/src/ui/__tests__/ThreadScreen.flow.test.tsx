@@ -1,5 +1,5 @@
-import { FIXTURE_THREADS } from '../../domain';
-import { createFixtureGateway } from '@feature/coding-agent/testing';
+import { FIXTURE_THREADS } from '../../testing';
+import { createFixturePorts } from '@feature/coding-agent/testing';
 import {
   act,
   routerHarness,
@@ -19,7 +19,7 @@ function renderThread(
   options: { theme?: 'light' | 'dark' } = {}
 ): Promise<Awaited<ReturnType<typeof app.render>>> {
   return app.render(`/coding-agent/${threadId}`, {
-    overrides: { 'coding-agent': { gateway: createFixtureGateway() } },
+    overrides: { 'coding-agent': createFixturePorts() },
     theme: options.theme,
   });
 }

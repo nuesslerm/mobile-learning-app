@@ -1,0 +1,210 @@
+{
+  "version": 1,
+  "note": "Findings of `wf check --layout` that exist today. The file only shrinks: an entry that no longer occurs must be removed, and an entry added since HEAD fails the check. `wf check --layout --write-known` rewrites it from the current findings.",
+  "known": [
+    {
+      "pass": "membership",
+      "package": "backend/remote-chat-agent/render",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "backend/vm-ops-api/integration",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/agent-config-sync",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/vnc-auth-capture",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/feature-kit",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/app-config",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/app-di",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/flow-test-harness",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/gesture-geometry",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/lint-rules",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/logging",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/remote-chat-agent-contracts",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/rn-agentation",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/tamagui-design-system",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/voice-edit-dsl",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/mla-tamagui",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "infra/oracle-cloud/watchdog",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/browser-client",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/hook-runtime",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/rca-core/plugins/ladder",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "tooling/browser-harness/contracts",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "tooling/browser-harness/data",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "tooling/browser-harness/di",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "tooling/browser-harness/ui",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "tooling/browser-harness/use-cases",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "tooling/browser-harness",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "tooling/mimic-drivers",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "placement",
+      "package": "clis/rca-exec",
+      "message": "src/help is not part of type rust-single-hexagon; allowed: lib.rs, domain, domain.rs, adapters, adapters.rs, bin, bin.rs",
+      "reason": "layout predates its type: fixed or retyped in a later H item"
+    },
+    {
+      "pass": "placement",
+      "package": "clis/rca-exec",
+      "message": "src/help_table.rs is not part of type rust-single-hexagon; allowed: lib.rs, domain, domain.rs, adapters, adapters.rs, bin, bin.rs",
+      "reason": "layout predates its type: fixed or retyped in a later H item"
+    },
+    {
+      "pass": "placement",
+      "package": "clis/rca-exec",
+      "message": "src/hosted is not part of type rust-single-hexagon; allowed: lib.rs, domain, domain.rs, adapters, adapters.rs, bin, bin.rs",
+      "reason": "layout predates its type: fixed or retyped in a later H item"
+    },
+    {
+      "pass": "placement",
+      "package": "clis/rca-exec",
+      "message": "src/verbs.rs is not part of type rust-single-hexagon; allowed: lib.rs, domain, domain.rs, adapters, adapters.rs, bin, bin.rs",
+      "reason": "layout predates its type: fixed or retyped in a later H item"
+    },
+    {
+      "pass": "placement",
+      "package": "libraries/agent-api/agent-api-agent",
+      "message": "src/lifecycle is not part of type rust-contract; allowed: *.rs, testing",
+      "reason": "layout predates its type: fixed or retyped in a later H item"
+    },
+    {
+      "pass": "placement",
+      "package": "libraries/agent-api/agent-api-agent",
+      "message": "src/queue is not part of type rust-contract; allowed: *.rs, testing",
+      "reason": "layout predates its type: fixed or retyped in a later H item"
+    },
+    {
+      "pass": "placement",
+      "package": "libraries/agent-api/agent-api-agent",
+      "message": "src/requests is not part of type rust-contract; allowed: *.rs, testing",
+      "reason": "layout predates its type: fixed or retyped in a later H item"
+    }
+  ]
+}

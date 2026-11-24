@@ -36,6 +36,12 @@ export function installCrashHandler(target: CrashTarget = globalThis as CrashTar
     const earlier = utils.getGlobalHandler();
     let fatalPending = false;
     utils.setGlobalHandler((error, isFatal) => {
+      // Expo's web async-require imports a split route synchronously and loads its chunk when that throws, and the
+      // earlier handler throws: a chunk miss is control flow, handed on at once and not logged as a crash.
+      if (isChunkMiss(error)) {
+        earlier(error, isFatal);
+        return;
+      }
       if (isFatal !== true) {
         try {
           void crash('error', error);
@@ -67,6 +73,10 @@ export function installCrashHandler(target: CrashTarget = globalThis as CrashTar
   });
   target.addEventListener?.('error', (event) => void crash('error', event.error ?? event.message));
   target.addEventListener?.('unhandledrejection', (event) => void crash('rejection', event.reason));
+}
+
+function isChunkMiss(error: unknown): boolean {
+  return process.env.EXPO_OS === 'web' && error instanceof Error && /^Requiring unknown module "\d+"/.test(error.message);
 }
 
 // an object's own toString may be missing or throw (`throw Object.create(null)`); the crash handler must not throw itself

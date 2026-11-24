@@ -1,0 +1,53 @@
+{
+  "suite": "showcase",
+  "step": "final-given-the-navigation-drawer-example-when-the-dr-a13b6a",
+  "scheme": "light",
+  "snapshot": "showcase/final-given-the-navigation-drawer-example-when-the-dr-a13b6a.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "ShowcaseNavigation",
+      "ShowcaseNavigationBack",
+      "ShowcaseNavigationTitle",
+      "ShowcaseItemButton",
+      "ShowcaseItemTitle",
+      "ShowcaseOpenDrawer"
+    ],
+    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nBrowse components\nNavigation\nNavigation drawer\nThe page moves aside to reveal app navigation. Tap the page to close it.\nOpen drawer"
+  },
+  "timings": {
+    "render_ms": 209
+  },
+  "name": "showcase/final-given-the-navigation-drawer-example-when-the-dr-a13b6a.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

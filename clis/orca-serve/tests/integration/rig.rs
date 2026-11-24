@@ -1,6 +1,6 @@
 //! The chain's processes and the phone that drives them. The service, the executor and `orca-serve` are real processes; the executor and
 //! `orca-serve` reach the service through a `Tap`, so every agent API call the mapper makes is seen.
-use exec_testkit::{Case, HostedClis, RcaExec, RcaService, ScriptedCli, Suite, Tap, TempRepo};
+use exec_testkit::{Case, RcaExec, RcaService, ScriptedCli, Suite, Tap, TempRepo};
 use orca_crypto::pairing::PairingOffer;
 use orca_serve::testing::PhoneClient;
 use serde_json::{json, Value};
@@ -15,7 +15,13 @@ pub static SUITE: Suite = Suite::new("orca-serve-integration", "orca");
 
 /// The service's secret: the executor channel's, and the operator's who mints the mapper's bearer.
 pub const SECRET: &str = "chain-service-secret";
-const BIN: &str = env!("CARGO_BIN_EXE_orca-serve");
+/// The `orca-serve` binary: the one `ORCA_SERVE_BIN` names (the chain launcher's `--orca-serve`), else the one cargo built beside the test.
+fn bin() -> String {
+    std::env::var("ORCA_SERVE_BIN").unwrap_or_else(|_| match option_env!("CARGO_BIN_EXE_orca-serve") {
+        Some(path) => path.to_string(),
+        None => panic!("no orca-serve beside this program: pass --orca-serve"),
+    })
+}
 const METHODS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/plans/rca-parity/coverage/orca-methods.json");
 
 fn known_rows() -> &'static BTreeSet<String> {
@@ -46,13 +52,12 @@ pub struct Chain {
     /// The executor's repository: what the phone lists and reads is on this disk.
     pub repo: TempRepo,
     /// Where the executor puts the worktrees it makes.
-    pub base: PathBuf,
     _base: tempfile::TempDir,
     /// The executor's own home: its user-level skills are read from here.
     pub home: tempfile::TempDir,
     _exec: RcaExec,
-    /// The fake `gh` and `glab` first on the executor's `PATH`, for the chains that act on hosted source control.
-    hosted: Option<HostedClis>,
+    /// The bundle directory `start_recorded` made, kept on disk while the chain runs.
+    _bundle: Option<tempfile::TempDir>,
 }
 
 impl Chain {
@@ -63,22 +68,36 @@ impl Chain {
         Chain::start_with_env(web, &[])
     }
 
+    /// `start` with the bundle the real host held, as far as the recorded manifest call shows it: that call reads no asset, and no recorded call asks for a window.
+    /// The one provision of it, for the replay tests and the chain launcher alike.
+    pub fn start_recorded() -> Chain {
+        let recorded = Path::new(env!("CARGO_MANIFEST_DIR")).join("cassettes/orca-v1.4.259-recorded/interactions.jsonl");
+        let held = std::fs::read_to_string(&recorded).unwrap_or_else(|e| panic!("{}: {e}", recorded.display()));
+        let line = held.lines().find(|l| l.contains(r#""row":"rpc:mobileWeb.bundle.manifest""#)).expect("the recorded set holds the manifest call");
+        let manifest = serde_json::from_str::<Value>(line).unwrap()["steps"][1]["payload"]["result"]["manifest"].to_string();
+        let bundle = tempfile::tempdir().expect("a directory for the bundle");
+        std::fs::write(bundle.path().join("manifest.json"), manifest).expect("the manifest is written");
+        let mut chain = Chain::start(Some(bundle.path()));
+        chain._bundle = Some(bundle);
+        chain
+    }
+
     /// `start`, with `env` also in the service's environment.
     pub fn start_with_env(web: Option<&Path>, env: &[(&str, &str)]) -> Chain {
-        Chain::start_full(web, env, None)
+        Chain::start_full(web, env, false)
     }
 
-    /// `start` with the executor's `PATH` led by the fake `gh` and `glab` (`Chain::clis`).
-    pub fn start_hosted() -> Chain {
-        Chain::start_full(None, &[], Some(HostedClis::install()))
+    /// `start` for a test that crashes the service: the service keeps its threads under `state` and the executor reconnects when the service is back.
+    pub fn start_restartable(state: &Path) -> Chain {
+        Chain::start_full(None, &[("RCA_STATE_DIR", state.to_str().expect("a utf-8 state path"))], true)
     }
 
-    /// The fake `gh` and `glab` the executor runs: what they print is set here, and what they were started with is read back.
-    pub fn clis(&self) -> &HostedClis {
-        self.hosted.as_ref().expect("the chain was started with start_hosted")
+    /// Kills the service and starts it again over its own home and port, as a crash and a restart do; the turn it was running is gone with it.
+    pub fn restart_service(&mut self) {
+        self.service.restart();
     }
 
-    fn start_full(web: Option<&Path>, env: &[(&str, &str)], hosted: Option<HostedClis>) -> Chain {
+    fn start_full(web: Option<&Path>, env: &[(&str, &str)], reconnect: bool) -> Chain {
         let cli = ScriptedCli::install();
         let repo = TempRepo::new();
         let service = RcaService::start_with_env(SECRET, &cli.path(), env);
@@ -86,12 +105,15 @@ impl Chain {
         let base_dir = tempfile::Builder::new().prefix("orca-chain-worktrees-").tempdir().unwrap();
         let base = base_dir.path().to_path_buf();
         let home = tempfile::Builder::new().prefix("orca-chain-home-").tempdir().unwrap();
-        let exec = RcaExec::serve_with_home(&tap.url(), "w1", &repo, SECRET, &["--worktree-base", base.to_str().unwrap()], &hermetic_path(&cli, hosted.as_ref()), Some(home.path()));
+        // What names `RCA_EXEC_` in `env` is the executor's own (the hosts its browser may reach), and where it finds Chromium; the rest the service's.
+        let exec_env: Vec<(String, String)> = env.iter().filter(|(k, _)| k.starts_with("RCA_EXEC_") || *k == "PLAYWRIGHT_BROWSERS_PATH").map(|(k, v)| (k.to_string(), v.to_string())).collect();
+        let flags: Vec<&str> = ["--worktree-base", base.to_str().unwrap()].into_iter().chain(reconnect.then_some("--reconnect")).collect();
+        let exec = RcaExec::serve_with_env(&tap.url(), "w1", &repo, SECRET, &flags, &hermetic_path(&cli), Some(home.path()), &exec_env);
         let bearer = service.mint("orca chain");
         let state = tempfile::Builder::new().prefix("orca-chain-").tempdir().unwrap();
         let errlog = state.path().join("serve.err");
         let (server, addr) = spawn_serve(state.path(), &errlog, &tap.url(), &bearer, web);
-        Chain { tap, service, addr, state, errlog, server, cli, repo, base, _base: base_dir, home, _exec: exec, hosted }
+        Chain { tap, service, addr, state, errlog, server, cli, repo, _base: base_dir, home, _exec: exec, _bundle: None }
     }
 
     /// A pairing link minted by a separate `orca-serve pair` on the server's state directory, as an operator hands one to a phone.
@@ -101,7 +123,7 @@ impl Chain {
 
     /// The link itself, for a client that takes it from its environment (the scripted phone of the mimic driver).
     pub fn pair_url(&self) -> String {
-        let out = Command::new(BIN).args(["pair", "--endpoint", &format!("ws://{}", self.addr), "--state-dir"]).arg(self.state.path()).stdin(Stdio::null()).output().unwrap();
+        let out = Command::new(bin()).args(["pair", "--endpoint", &format!("ws://{}", self.addr), "--state-dir"]).arg(self.state.path()).stdin(Stdio::null()).output().unwrap();
         assert!(out.status.success(), "{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
         let printed: Value = serde_json::from_slice(&out.stdout).unwrap();
         printed["url"].as_str().expect("pair prints the link").to_string()
@@ -128,7 +150,7 @@ impl Drop for Chain {
 }
 
 fn spawn_serve(state: &Path, errlog: &Path, tap_url: &str, bearer: &str, web: Option<&Path>) -> (Child, SocketAddr) {
-    let mut command = Command::new(BIN);
+    let mut command = Command::new(bin());
     command.args(["serve", "--port", "0", "--state-dir"]).arg(state).args(["--rca-url", tap_url, "--label", "chain host"]).env("ORCA_RCA_BEARER", bearer);
     if let Some(dir) = web {
         command.arg("--mobile-web-dir").arg(dir);
@@ -144,6 +166,8 @@ fn spawn_serve(state: &Path, errlog: &Path, tap_url: &str, bearer: &str, web: Op
 /// A paired phone past the v2 handshake. Its calls are windows on the chain's tap.
 pub struct Phone {
     client: PhoneClient,
+    /// Streams the phone has seen end: binary frames they sent before their end can still be queued behind it.
+    ended: Vec<u32>,
 }
 
 impl Phone {
@@ -157,7 +181,7 @@ impl Phone {
             let authenticated = ready.is_ok().then(|| client.authenticate(&offer.device_token));
             (authenticated.as_ref().is_some_and(|a| a.as_ref().is_ok_and(|a| a["type"] == "e2ee_authenticated")), authenticated)
         });
-        Phone { client }
+        Phone { client, ended: Vec::new() }
     }
 
     /// A request as one call of the trace: served when the host answered `ok`.
@@ -205,13 +229,109 @@ impl Phone {
         self.client.next_stream_frame(id)
     }
 
-    pub fn raw(&mut self) -> &mut PhoneClient {
-        &mut self.client
+    /// The closing frame of a stream, after which the phone drops what the stream sent before it that is still queued.
+    pub fn end_of(&mut self, stream: &TerminalStream) -> Value {
+        let end = self.client.next_stream_frame(&stream.request);
+        self.ended.push(stream.number);
+        end
     }
 }
 
 pub struct Direct {
     client: agent_api_client::Client,
+}
+
+/// A terminal stream the phone opened with the binary stream and output credit: the request that carries its text frames, the number its binary
+/// frames carry, the token that acknowledges and resumes it, and the JSON answer it opened with.
+pub struct TerminalStream {
+    pub request: String,
+    pub number: u32,
+    pub token: String,
+    pub opened: Value,
+}
+
+/// What the phone read of a stream's snapshot or output: the text, and the UTF-16 units of the Output frames, which is what it acknowledges.
+#[derive(Default)]
+pub struct Heard {
+    pub text: String,
+    pub units: u64,
+}
+
+pub fn phone_client_params(handle: &str, resume: Option<(&str, u64)>) -> Value {
+    let mut params = json!({"terminal": handle, "client": {"id": "chain-phone", "type": "mobile"}, "capabilities": {"terminalBinaryStream": 1, "outputAck": 1}});
+    if let Some((token, units)) = resume {
+        params["resume"] = json!({"streamToken": token, "units": units});
+    }
+    params
+}
+
+impl Phone {
+    /// `terminal.subscribe` as the phone makes it, as one call of the trace: served when the host opens a stream with `subscribed`.
+    pub fn subscribe_terminal(&mut self, case: &mut Case, chain: &Chain, handle: &str, resume: Option<(&str, u64)>) -> TerminalStream {
+        let (request, opened) = self.subscribe(case, chain, &["rpc:terminal.subscribe"], "terminal.subscribe", phone_client_params(handle, resume));
+        let result = &opened["result"];
+        assert_eq!(result["type"], json!("subscribed"), "{opened}");
+        TerminalStream { request, number: result["streamId"].as_u64().expect("a stream number") as u32, token: result["streamToken"].as_str().expect("a stream token").to_string(), opened }
+    }
+
+    /// The next binary frame of the stream, decoded with the mapper's own codec.
+    fn terminal_frame(&mut self, stream: &TerminalStream) -> (u8, u64, Vec<u8>) {
+        loop {
+            let bytes = self.client.next_binary().expect("the socket stays open");
+            let frame = orca_map_terminal::binary::decode(&bytes).expect("a terminal frame");
+            if self.ended.contains(&frame.stream) {
+                continue;
+            }
+            assert_eq!(frame.stream, stream.number, "a frame of another stream");
+            return (frame.opcode, frame.seq, frame.payload.to_vec());
+        }
+    }
+
+    /// The snapshot the stream opens with, from its start frame to its end frame.
+    pub fn snapshot(&mut self, stream: &TerminalStream) -> String {
+        use orca_map_terminal::binary::op;
+        let (opcode, _, _) = self.terminal_frame(stream);
+        assert_eq!(opcode, op::SNAPSHOT_START);
+        let mut text = Vec::new();
+        loop {
+            let (opcode, _, payload) = self.terminal_frame(stream);
+            match opcode {
+                op::SNAPSHOT_CHUNK => text.extend(payload),
+                op::SNAPSHOT_END => return String::from_utf8_lossy(&text).into_owned(),
+                other => panic!("opcode {other} inside a snapshot"),
+            }
+        }
+    }
+
+    /// Output frames until their text holds `needle`.
+    pub fn output_until(&mut self, stream: &TerminalStream, needle: &str) -> Heard {
+        use orca_map_terminal::binary::op;
+        let mut heard = Heard::default();
+        while !heard.text.contains(needle) {
+            let (opcode, _, payload) = self.terminal_frame(stream);
+            if opcode == op::OUTPUT {
+                let text = String::from_utf8(payload).expect("Output frames carry text");
+                heard.units += text.encode_utf16().count() as u64;
+                heard.text.push_str(&text);
+            }
+        }
+        heard
+    }
+
+    /// The Resized announcement of the stream, past any output before it.
+    pub fn resized(&mut self, stream: &TerminalStream) -> Value {
+        loop {
+            let (opcode, _, payload) = self.terminal_frame(stream);
+            if opcode == orca_map_terminal::binary::op::RESIZED {
+                return serde_json::from_slice(&payload).expect("a JSON body");
+            }
+        }
+    }
+
+    /// An Input, Resize or Unsubscribe frame to the stream.
+    pub fn send_terminal_frame(&mut self, stream: &TerminalStream, opcode: u8, payload: &[u8]) {
+        self.client.send_sealed_binary(&orca_map_terminal::binary::encode(opcode, stream.number, 0, payload));
+    }
 }
 
 /// How long the chain waits for rca to log what a scripted turn does.
@@ -264,16 +384,10 @@ pub fn answered(case: &Case, method: &str, ok: bool) {
     assert!(window.iter().any(|(m, o)| m == method && *o == ok), "{method} was not {} in the call's window: {window:?}", if ok { "answered" } else { "refused" });
 }
 
-/// That the executor ran `action` successfully in the last call's window.
-pub fn ran(case: &Case, action: &str) -> bool {
-    case.calls().last().unwrap()["executor"].as_array().unwrap().iter().any(|h| h["tool"] == action && h["ok"] == true)
-}
-
 /// The scripted CLIs first, then the host's PATH without any directory that holds a real agent CLI, so a CLI taken away is missing.
-fn hermetic_path(cli: &exec_testkit::ScriptedCli, hosted: Option<&HostedClis>) -> std::ffi::OsString {
+fn hermetic_path(cli: &exec_testkit::ScriptedCli) -> std::ffi::OsString {
     let agents = ["claude", "codex", "opencode"];
     let mut dirs = vec![cli.dir().to_path_buf()];
-    dirs.extend(hosted.map(|h| h.dir().to_path_buf()));
     dirs.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()).filter(|d| !agents.iter().any(|a| d.join(a).exists())));
     std::env::join_paths(dirs).expect("a PATH")
 }

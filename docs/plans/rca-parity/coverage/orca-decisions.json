@@ -4,8 +4,11 @@
   "notes": {
     "milestones": "Row id or `prefix*` to the milestone of docs/plans/rca-parity/plan.md section 6 in which the row becomes served; the longest match wins. aiVault.* and orchestration.party* stay pending until decision 1 (by M7); pairing.* until decision 1 (by M5).",
     "reverify": "Row id to why a trace hit does not serve it yet: the host answers without doing the work. A call that only passes by refusing or by an empty answer never counts; remove the note in the commit that makes the answer functional and reverified through the chain.",
-    "traceNoise": "Row id or `prefix*` to why a trace may name a row the phone does not reach (the crawl drives the whole host surface): `wf parity coverage --traces` does not report such a row as unknown-trace-row. A row the phone reaches never needs one, and a mistyped row a test names is not noise.",
-    "decisions": "Rows with a state other than pending: not-offered needs a reason and a decidedBy milestone, excluded a reason. Flagged (ORCA_SIDEBAR_INPUTS_IS_MAIN) and off-allowlist rows are classed by the scan itself. No row is marked served here: served needs run-bundle evidence. A row may carry `\"oracle\": \"mimic\"` (docs/plans/mimic/plan.md): only a `wf mimic replay --suite` trace whose call is labelled clean or allowlisted on a `recorded` cassette serves it, never a chain test."
+    "traceNoise": "Row id or `prefix*` to why a trace may name a row the phone does not reach (the crawl drives the whole host surface): `wf mimic coverage --traces` does not report such a row as unknown-trace-row. A row the phone reaches never needs one, and a mistyped row a test names is not noise.",
+    "unrecordable": "A served row no recording can show (a pty's output, a restart, a clock, an interaction no recorded set holds): a row decision with an `unrecordable` reason, or the top-level `unrecordableTests` map of `file::test` (or `file::*`) to the reason; `wf mimic coverage --by-oracle` classes it (d). A served row with neither `\"oracle\": \"mimic\"` nor this reason fails `wf mimic coverage --check` (rule served-without-oracle).",
+    "decisions": "Rows with a state other than pending: not-offered needs a reason and a decidedBy milestone, excluded a reason. Flagged (ORCA_SIDEBAR_INPUTS_IS_MAIN) and off-allowlist rows are classed by the scan itself. No row is marked served here: served needs run-bundle evidence. A row may carry `\"oracle\": \"mimic\"` (docs/plans/mimic/plan.md): only a `wf mimic replay --suite` trace whose call is labelled clean or allowlisted on a `recorded` cassette serves it, never a behaviour test.",
+    "knownGapReasons": "Why a recorded case stays a listed breaking gap instead of being fixed: rpc:ui.set (crawl ids orca-ui.set-valid-min and orca-ui.set-boundary-full, `ui.jiraSavedFilterState` missing): the crawl sets it with ui.mutateJiraSavedFilters, a method the phone never calls (orca-methods.json: phone false, allowlist execution-host). The table test `every_served_method_is_a_phone_row...` is kept without an exception list: a served non-phone row would let the table claim methods nothing in the product reaches, and the exception would be this one row's. Serving the method only to replay one crawl field is not parity of anything the phone does, so the two cases stay gap-listed (breaking) until the crawl stops depending on the order of a desktop-only write.",
+    "browser": "O2 exec-browser (20 Nov): thirteen phone rows (goto, reload, back, forward, tabCreate, keypress, keyboardInsertText, mouseMove, mouseDown, mouseUp, mouseClick, mouseWheel, screencast.ack) are answered through rca's `browser` group by the executor's headless Chromium (CDP through `clis/cdp`), `screencast.ack` crediting nothing because no screencast is ever open. The group is OFF by default in the service (`RCA_BROWSER=1` turns it on) and refuses every method with `BROWSER_DISABLED`, which the mapper answers as the recorded host does without a desktop browser (`browser_unavailable`): the VM memory cap for Chromium is still a Blocked item of issue #83 (`docs/gaps/vm-memory-saturation.md`), so the flag stays off on the VM until that cap exists; a page cap of 3 per executor and an idle close of 5 minutes (the browser stops with its last page) are the executor's own limits. A page address is http or https only, with no credentials, and no loopback, unspecified, link-local, metadata, private or shared-address host unless the executor's `RCA_EXEC_BROWSER_ALLOW` names `host:port`; the executor launches its Chromium in the Chrome sandbox (`RCA_EXEC_BROWSER_NO_SANDBOX` set adds `--no-sandbox`, for a container that cannot run it, CI and the tests) through its own filtering proxy (`--proxy-server`, `--proxy-bypass-list=<-loopback>` so loopback is not exempt), so every connection the browser makes (a page, a redirect, a subresource, a page script's WebSocket or fetch) is an HTTP CONNECT or plain HTTP request the proxy judges: it resolves the name itself once, refuses the connection when the name does not resolve or any answer is loopback, unspecified, multicast, link-local (the metadata addresses 169.254.0.0/16 and fd00:ec2::254), private, shared (100.64.0.0/10), 192.0.0.0/24, 198.18.0.0/15 or reserved (an IPv4 address inside a mapped, compatible, NAT64 64:ff9b::/96 or 6to4 2002::/16 IPv6 address is judged as that IPv4 address), or an internal name, unless `RCA_EXEC_BROWSER_ALLOW` names that `host:port`, and connects to the address it checked, so a DNS answer that changes between the check and the connection is not followed; WebRTC UDP outside the proxy is disabled. The page address is also checked before each navigation. Not served from the request: `expectUrl` (refused by name), a browser profile, a split pane, a client placement, and a key chord such as Control+Shift+K (refused by name; single characters and Enter, Backspace, Tab, Escape, the arrows, Home and End are pressed)."
   },
   "milestones": {
     "transport:*": "M5",
@@ -16,8 +19,11 @@
     "rpc:mobileRelay.*": "M5",
     "rpc:mobileRelay.projectSections": "M6",
     "rpc:pairing.*": "M5",
-    "http:mobile/src/transport/mobile-relay-resume-director.ts#1": "M5",
+    "http:mobile/src/transport/relay/mobile-relay-resume-director.ts#1": "M5",
     "http:mobile/src/diagnostics/connection-diagnostics-submission.ts#1": "M5",
+    "rpc:agentActivity.clear": "M7",
+    "rpc:agentActivity.setRead": "M7",
+    "rpc:stats.summary": "M10",
     "rpc:files.*": "M6",
     "rpc:markdown.*": "M6",
     "rpc:worktree.*": "M6",
@@ -81,169 +87,1060 @@
     "rpc:linear.*": "M12",
     "rpc:jira.*": "M12",
     "rpc:speech.*": "M12",
-    "rpc:notifications.*": "M12"
+    "rpc:notifications.*": "M12",
+    "rpc:ssh.*": "M12"
   },
   "targets": {},
+  "unrecordableTests": {
+    "terminal_pty::a_phone_streams_a_real_shell_over_the_binary_stream_types_into_it_and_resumes_with_only_what_it_missed_and_the_stream_ends_when_it_asks": "a pty's output: the headless orcad has no open app window and answers every terminal row with that refusal, so no recording holds the bytes a shell prints, what typed input runs, a resumed stream or a resize; the recorded replay serves the rows and this test keeps the pty check"
+  },
   "decisions": {
-    "rpc:ssh.connect": {"state": "not-offered", "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach", "decidedBy": "M12"},
-    "rpc:ssh.getState": {"state": "not-offered", "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach", "decidedBy": "M12"},
-    "rpc:pairing.getEndpoints": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation (decision 1): a product choice, not something the chain cannot prove (the pinned host lets a directly paired phone call it): a phone is paired with this one host by its own offer, which already carries the endpoint; there is no desktop whose other addresses it could list", "decidedBy": "M5"},
-    "rpc:pairing.provisionRelay": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation (decision 1): provisioning a relay credential needs a relay service, which this host does not run", "decidedBy": "M5"},
-    "http:mobile/src/transport/mobile-relay-resume-director.ts#1": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation (decision 1): the phone posts /v1/resolve to the relay director a pairing offer names (directorUrl), which only pairing.provisionRelay mints, and that is not offered; a directly paired phone never calls it, and this host runs no director", "decidedBy": "M5"},
-    "http:mobile/src/diagnostics/connection-diagnostics-submission.ts#1": {"state": "excluded", "reason": "proposed default awaiting owner confirmation: the phone posts its redacted connection report to the constant https://www.onorca.dev/v1/feedback after an explicit tap; no host is involved, as with the other fixed third-party fetches"},
-    "rpc:ssh.listTargetSummaries": {"state": "not-offered", "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach", "decidedBy": "M12"},
-    "rpc:files.open": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation: it opens an editor tab in the desktop's own window and this host has no desktop; the phone reads a file with files.read and files.readPreview", "decidedBy": "M6"},
-    "rpc:files.openDiff": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation: it opens a diff tab in the desktop's own window and this host has no desktop", "decidedBy": "M6"},
-    "rpc:markdown.readTab": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation: it reads a markdown editor tab of the desktop by its tab id and this host has no tab; the phone's own fallback reads the file with files.read", "decidedBy": "M6"},
-    "rpc:markdown.saveTab": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation: it saves a markdown editor tab of the desktop by its tab id and this host has no tab to save", "decidedBy": "M6"},
-    "http:mobile/src/app-update/app-store-update-source.ts#1": {"state": "excluded", "reason": "third-party fetch: the phone asks the App Store lookup API for its own update; no host is involved"},
-    "http:mobile/src/app-update/github-release-update-source.ts#1": {"state": "excluded", "reason": "third-party fetch: the phone lists Orca's release tags on the GitHub API for its own update; no host is involved"},
-    "http:mobile/src/app-update/github-release-update-source.ts#2": {"state": "excluded", "reason": "third-party fetch: the phone reads an Orca release on the GitHub API for its own update; no host is involved"},
-    "http:mobile/src/components/MobileAgentIcon.tsx#1": {"state": "excluded", "reason": "third-party fetch: an agent icon loads a site favicon from Google; no host is involved"},
-    "http:mobile/src/diagnostics/use-troubleshoot-diagnostics.ts#1": {"state": "excluded", "reason": "third-party fetch: the troubleshooter probes DNS over dns.google; no host is involved"},
-    "rpc:aiVault.listSessions": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation (decision 1): it lists the session files the CLIs keep in the host's own home directory, which rca does not keep; the chats of this host are rca threads, which agentSession.* already serves", "decidedBy": "M7"},
-    "rpc:aiVault.prepareSessionResume": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation (decision 1): it prepares the resume of a CLI session file from the host's disk for a desktop terminal to open; rca has no such file and no desktop terminal", "decidedBy": "M7"},
-    "rpc:orchestration.partyLocation": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation (decision 1): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate", "decidedBy": "M7"},
-    "rpc:orchestration.partyOpen": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation (decision 1): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database", "decidedBy": "M7"},
-    "rpc:orchestration.workerAutoClose": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation (decision 1): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers", "decidedBy": "M7"},
-    "rpc:orchestration.workerKeepOpen": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation (decision 1): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers", "decidedBy": "M7"},
-    "rpc:preflight.check": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation: it reports whether git, gh, glab, Bitbucket and Azure DevOps are installed and signed in on the host's own machine; the executor's detection (cli_detect) covers the agent CLIs only, so any answer would invent the rest and pass by saying so; a deferred choice, not an impossibility: extending cli_detect to git, gh and glab would let the chain prove it (docs/gaps/orca-agent-mapper-limits.md)", "decidedBy": "M7"},
-    "rpc:agentSession.reveal": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation: it shows the chat's tab in the desktop's own window and this host has no desktop", "decidedBy": "M7"},
-    "rpc:mobileWeb.bundle.chunk": {"oracle": "mimic"},
-    "rpc:folderWorkspace.list": {"oracle": "mimic"},
-    "rpc:host.platform": {"oracle": "mimic"},
-    "rpc:nativeChat.unsubscribe": {"oracle": "mimic"},
-    "rpc:projectGroup.list": {"oracle": "mimic"},
-    "rpc:runtime.clientEvents.unsubscribe": {"oracle": "mimic"},
-    "rpc:agentSession.readVisual": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation: it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read", "decidedBy": "M7"}
+    "rpc:pairing.getEndpoints": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): a product choice, not something the chain cannot prove (the pinned host lets a directly paired phone call it): a phone is paired with this one host by its own offer, which already carries the endpoint; there is no desktop whose other addresses it could list",
+      "decidedBy": "M5"
+    },
+    "rpc:pairing.provisionRelay": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): provisioning a relay credential needs a relay service, which this host does not run",
+      "decidedBy": "M5"
+    },
+    "http:mobile/src/transport/relay/mobile-relay-resume-director.ts#1": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): the phone posts /v1/resolve to the relay director a pairing offer names (directorUrl), which only pairing.provisionRelay mints, and that is not offered; a directly paired phone never calls it, and this host runs no director",
+      "decidedBy": "M5"
+    },
+    "http:mobile/src/diagnostics/connection-diagnostics-submission.ts#1": {
+      "state": "excluded",
+      "reason": "owner-confirmed (decision 7): the phone posts its redacted connection report to the constant https://www.onorca.dev/v1/feedback after an explicit tap; no host is involved, as with the other fixed third-party fetches"
+    },
+    "http:mobile/src/app-update/app-store-update-source.ts#1": {
+      "state": "excluded",
+      "reason": "third-party fetch: the phone asks the App Store lookup API for its own update; no host is involved"
+    },
+    "http:mobile/src/app-update/github-release-update-source.ts#1": {
+      "state": "excluded",
+      "reason": "third-party fetch: the phone lists Orca's release tags on the GitHub API for its own update; no host is involved"
+    },
+    "http:mobile/src/app-update/github-release-update-source.ts#2": {
+      "state": "excluded",
+      "reason": "third-party fetch: the phone reads an Orca release on the GitHub API for its own update; no host is involved"
+    },
+    "http:mobile/src/components/MobileAgentIcon.tsx#1": {
+      "state": "excluded",
+      "reason": "third-party fetch: an agent icon loads a site favicon from Google; no host is involved"
+    },
+    "http:mobile/src/diagnostics/use-troubleshoot-diagnostics.ts#1": {
+      "state": "excluded",
+      "reason": "third-party fetch: the troubleshooter probes DNS over dns.google; no host is involved"
+    },
+    "rpc:preflight.check": {
+      "oracle": "mimic"
+    },
+    "rpc:mobileWeb.bundle.chunk": {
+      "oracle": "mimic"
+    },
+    "rpc:pairing.exchangeTicket": {
+      "oracle": "mimic"
+    },
+    "rpc:folderWorkspace.list": {
+      "oracle": "mimic"
+    },
+    "rpc:host.platform": {
+      "oracle": "mimic"
+    },
+    "rpc:nativeChat.unsubscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:projectGroup.list": {
+      "oracle": "mimic"
+    },
+    "rpc:runtime.clientEvents.unsubscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.readVisual": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read",
+      "decidedBy": "M7"
+    },
+    "rpc:browser.goto": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.reload": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.back": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.forward": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.tabCreate": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.keypress": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.keyboardInsertText": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.mouseMove": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.mouseDown": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.mouseUp": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.mouseClick": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.mouseWheel": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.screencast.ack": {
+      "oracle": "mimic"
+    },
+    "rpc:browser.dialogAccept": {
+      "state": "not-offered",
+      "reason": "Agent decision of 20 Nov (O2, exec-browser): the executor drives a page over CDP and keeps no dialog state. Chromium holds a page's JavaScript dialog (alert, confirm, prompt, beforeunload) open and every other command on that page waits behind it, so answering one needs the page to report it (`Page.javascriptDialogOpening`) and a command that answers while another waits; `exec-browser` keeps neither, so there is never an open dialog for the phone to accept or dismiss. Not built, remainder of O2.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.dialogDismiss": {
+      "state": "not-offered",
+      "reason": "Agent decision of 20 Nov (O2, exec-browser): the executor drives a page over CDP and keeps no dialog state. Chromium holds a page's JavaScript dialog (alert, confirm, prompt, beforeunload) open and every other command on that page waits behind it, so answering one needs the page to report it (`Page.javascriptDialogOpening`) and a command that answers while another waits; `exec-browser` keeps neither, so there is never an open dialog for the phone to accept or dismiss. Not built, remainder of O2.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.screencast": {
+      "state": "not-offered",
+      "reason": "Agent decision of 20 Nov (O2, exec-browser): a screencast is a stream of JPEG frames in 0x62 binary frames that the phone credits with `browser.screencast.ack`; `exec-browser` answers one picture per call (`browser_screenshot`) and has no frame stream, so the subscription is not offered. Not built, remainder of O2.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.screencast.unsubscribe": {
+      "state": "not-offered",
+      "reason": "Agent decision of 20 Nov (O2, exec-browser): it ends a screencast subscription, and this host opens none (`browser.screencast` is not offered), so there is no subscription to end; the recorded host answers it `browser_unavailable` only because it has no browser.",
+      "decidedBy": "M12"
+    },
+    "rpc:clipboard.abortImageUpload": {
+      "oracle": "mimic"
+    },
+    "rpc:clipboard.appendImageUploadChunk": {
+      "oracle": "mimic"
+    },
+    "rpc:clipboard.commitImageUpload": {
+      "oracle": "mimic"
+    },
+    "rpc:clipboard.saveImageAsTempFile": {
+      "oracle": "mimic"
+    },
+    "rpc:clipboard.startImageUpload": {
+      "oracle": "mimic"
+    },
+    "rpc:notifications.getMissedSince": {
+      "oracle": "mimic"
+    },
+    "rpc:notifications.registerPush": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
+    },
+    "rpc:notifications.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:notifications.testPush": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
+    },
+    "rpc:notifications.unregisterPush": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
+    },
+    "rpc:notifications.unsubscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:speech.dictation.cancel": {
+      "oracle": "mimic"
+    },
+    "rpc:speech.dictation.chunk": {
+      "oracle": "mimic"
+    },
+    "rpc:speech.dictation.finish": {
+      "oracle": "mimic"
+    },
+    "rpc:speech.dictation.setup": {
+      "oracle": "mimic"
+    },
+    "rpc:speech.dictation.start": {
+      "oracle": "mimic"
+    },
+    "rpc:speech.models.delete": {
+      "oracle": "mimic"
+    },
+    "rpc:speech.models.download": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.partyLocation": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate",
+      "decidedBy": "M7"
+    },
+    "rpc:orchestration.partyOpen": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database",
+      "decidedBy": "M7"
+    },
+    "rpc:orchestration.workerAutoClose": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers",
+      "decidedBy": "M7"
+    },
+    "rpc:orchestration.workerKeepOpen": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers",
+      "decidedBy": "M7"
+    },
+    "rpc:agentSession.cancelUsageLimitContinue": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it cancels the host's scheduled continue after a provider usage limit; rca keeps no scheduled continue of a turn, so there is nothing to cancel. Building one needs a recording of a turn stopped by a usage limit, from a limited login only the owner holds (docs/gaps/orca-interruption-causes-and-usage-limit-continue.md).",
+      "decidedBy": "M12"
+    },
+    "rpc:agentSession.threadGoal": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it sets or clears a thread goal in the host's structured-session store, and rca's thread has no goal.",
+      "decidedBy": "M12"
+    },
+    "rpc:git.diff": {
+      "oracle": "mimic"
+    },
+    "rpc:agentActivity.setRead": {
+      "oracle": "mimic"
+    },
+    "rpc:agentActivity.clear": {
+      "oracle": "mimic"
+    },
+    "rpc:git.remoteCommitUrl": {
+      "oracle": "mimic"
+    },
+    "rpc:accounts.consumeCodexResetCredit": {
+      "oracle": "mimic"
+    },
+    "rpc:git.discoverCommitMessageModels": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: models.list exists but rca's commit message generation uses the one model its environment configures and ignores the phone's pick, so an offered list would change nothing; reverify when git.generateCommitMessage takes a model. Revisited 20 Nov (issue #83 O2, plan docs/plans/rca-offer-more/plan.md): still not offered, for a second reason: the host answers `{success, capability, models, defaultModelId, catalogOrigin}` from the models its agent CLI reports for the agent id (a probe or the spec catalog), the recordings hold no success (every recorded call is selector_not_found, `invalid_argument` or `Unknown TUI agent`), and the service's model API (`ModelApi`) takes no model and reports no catalog, so a list built here would be invented and its capability and thinking levels have no source.",
+      "decidedBy": "M12"
+    },
+    "rpc:git.generatePullRequestFields": {
+      "oracle": "mimic"
+    },
+    "rpc:settings.getAgentLaunch": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the answer projects launch choices, permission mode and command overrides of settings that rca neither keeps nor reads at launch, so reporting permissionMode 'yolo' and per-agent flags would state behaviour no rca turn follows.",
+      "decidedBy": "M12"
+    },
+    "rpc:github.addPRReviewComment": {
+      "oracle": "mimic"
+    },
+    "rpc:github.rerunPRChecks": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's hosted group lists and views workflow runs (pr.runs, pr.run) but has no rerun action, so a rerun would be answered without starting any run. Reverify when a hosted_run_rerun executor action exists.",
+      "decidedBy": "M12"
+    },
+    "rpc:github.setPRFileViewed": {
+      "oracle": "mimic"
+    },
+    "rpc:github.updatePRState": {
+      "oracle": "mimic"
+    },
+    "rpc:gitlab.updateMRState": {
+      "oracle": "mimic"
+    },
+    "rpc:automation.runs": {
+      "oracle": "mimic"
+    },
+    "rpc:github.listWorkItems": {
+      "oracle": "mimic"
+    },
+    "rpc:github.countWorkItems": {
+      "oracle": "mimic"
+    },
+    "rpc:github.workItem": {
+      "oracle": "mimic"
+    },
+    "rpc:github.workItemByOwnerRepo": {
+      "oracle": "mimic"
+    },
+    "rpc:github.workItemDetails": {
+      "oracle": "mimic"
+    },
+    "rpc:github.createIssue": {
+      "oracle": "mimic"
+    },
+    "rpc:github.updateIssue": {
+      "oracle": "mimic"
+    },
+    "rpc:github.addIssueComment": {
+      "oracle": "mimic"
+    },
+    "rpc:github.listAssignableUsers": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.listAccessible": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.resolveRef": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.viewTable": {
+      "state": "not-offered",
+      "reason": "decided 20 Nov under issue 83 O4: the view table (fields with typed values, items with field values, the view filter, grouping, sort and layout) needs a hosted action that reads a project view through GraphQL, which rca does not have, and no success shape of it was ever recorded, so an answer would come from Orca's source alone. docs/gaps/orca-github-project-rows.md",
+      "decidedBy": "M12"
+    },
+    "rpc:github.project.listViews": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.updateItemField": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.clearItemField": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.workItemDetailsBySlug": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.listAssignableUsersBySlug": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.listIssueTypesBySlug": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.listLabelsBySlug": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.updateIssueBySlug": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.updatePullRequestBySlug": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.updateIssueTypeBySlug": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.addIssueCommentBySlug": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.updateIssueCommentBySlug": {
+      "oracle": "mimic"
+    },
+    "rpc:github.project.deleteIssueCommentBySlug": {
+      "oracle": "mimic"
+    },
+    "rpc:gitlab.listWorkItems": {
+      "oracle": "mimic"
+    },
+    "rpc:gitlab.workItemDetails": {
+      "oracle": "mimic"
+    },
+    "rpc:gitlab.workItemByPath": {
+      "oracle": "mimic"
+    },
+    "rpc:gitlab.createIssue": {
+      "oracle": "mimic"
+    },
+    "rpc:gitlab.updateIssue": {
+      "oracle": "mimic"
+    },
+    "rpc:gitlab.addIssueComment": {
+      "oracle": "mimic"
+    },
+    "rpc:gitlab.todos": {
+      "oracle": "mimic"
+    },
+    "rpc:linear.status": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca has no Linear client and holds no Linear key or sign-in, so there is no Linear connection, issue, team or workspace to offer; an always-not-connected answer would be an empty answer built without the provider. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:linear.connect": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:linear.selectWorkspace": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:linear.listTeams": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:linear.teamStates": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:linear.listIssues": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:linear.searchIssues": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:linear.getIssue": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:linear.issueComments": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:linear.createIssue": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:linear.updateIssue": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:linear.addIssueComment": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:jira.status": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca has no Jira client and holds no Atlassian sign-in or token, so there is no Jira site or issue to offer; a constant not-connected answer would be an empty answer built without the provider. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:jira.getIssue": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:jira.issueComments": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:jira.listIssues": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:jira.searchIssues": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "decidedBy": "M12"
+    },
+    "rpc:terminal.ackOutput": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.openInputSession": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.getAutoRestoreFit": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host keeps how long a phone-fitted terminal stays fitted before the desktop size is restored; rca has no desktop size to restore and no timer that resizes a pty back, so a kept value would change nothing.",
+      "decidedBy": "M12"
+    },
+    "rpc:terminal.setAutoRestoreFit": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host keeps how long a phone-fitted terminal stays fitted before the desktop size is restored; rca has no desktop size to restore and no timer that resizes a pty back, so a kept value would change nothing.",
+      "decidedBy": "M12"
+    },
+    "rpc:worktree.activate": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.ps": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.sleep": {
+      "oracle": "mimic"
+    },
+    "rpc:github.setPRAutoMerge": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host enables auto-merge through the GraphQL mutation after refusing a PR that is already clean, because `gh pr merge --auto` can merge at once, and rca's pr.merge is that command and has no way to turn auto-merge off, so serving it could merge a pull request the phone only meant to queue.",
+      "decidedBy": "M12"
+    },
+    "rpc:github.repoSlug": {
+      "oracle": "mimic"
+    },
+    "rpc:github.prCheckDetails": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it reads a check run's annotations, output text, steps and job log tail, and rca's pr.run gives the jobs of a run only, so the answer would be an empty shell of the host's.",
+      "decidedBy": "M12"
+    },
+    "rpc:hostedReview.create": {
+      "oracle": "mimic"
+    },
+    "rpc:gitlab.addMRComment": {
+      "oracle": "mimic"
+    },
+    "rpc:accounts.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:accounts.unsubscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:git.cancelGenerateCommitMessage": {
+      "oracle": "mimic"
+    },
+    "rpc:git.cancelGeneratePullRequestFields": {
+      "oracle": "mimic"
+    },
+    "rpc:hostedReview.getCreationEligibility": {
+      "oracle": "mimic"
+    },
+    "rpc:github.addPRReviewCommentReply": {
+      "oracle": "mimic"
+    },
+    "rpc:github.resolveReviewThread": {
+      "oracle": "mimic"
+    },
+    "rpc:accounts.list": {
+      "oracle": "mimic"
+    },
+    "rpc:accounts.selectClaude": {
+      "oracle": "mimic"
+    },
+    "rpc:accounts.selectCodex": {
+      "oracle": "mimic"
+    },
+    "rpc:accounts.selectCodexForTarget": {
+      "oracle": "mimic"
+    },
+    "rpc:agent.launch": {
+      "oracle": "mimic"
+    },
+    "rpc:agent.launchReplay": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.cancel": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.commands": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.conversationCommand": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.create": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.currentRequests": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.history": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.hold": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.item": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.options": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.queuedMessageDelete": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.queuedMessageEditHold": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.queuedMessageMove": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.queuedMessageSend": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.queuedMessageUpdate": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.queuedMessagesResume": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.release": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.respondToApproval": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.respondToQuestion": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.send": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.setOption": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.unsubscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSessionAttachment.uploadAppend": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSessionAttachment.uploadStart": {
+      "oracle": "mimic"
+    },
+    "rpc:automation.create": {
+      "oracle": "mimic"
+    },
+    "rpc:automation.delete": {
+      "oracle": "mimic"
+    },
+    "rpc:automation.list": {
+      "oracle": "mimic"
+    },
+    "rpc:automation.runNow": {
+      "oracle": "mimic"
+    },
+    "rpc:automation.show": {
+      "oracle": "mimic"
+    },
+    "rpc:automation.update": {
+      "oracle": "mimic"
+    },
+    "rpc:files.createFile": {
+      "oracle": "mimic"
+    },
+    "rpc:files.list": {
+      "oracle": "mimic"
+    },
+    "rpc:files.read": {
+      "oracle": "mimic"
+    },
+    "rpc:files.readChatImage": {
+      "oracle": "mimic"
+    },
+    "rpc:files.readChunk": {
+      "oracle": "mimic"
+    },
+    "rpc:files.readDir": {
+      "oracle": "mimic"
+    },
+    "rpc:files.readPreview": {
+      "oracle": "mimic"
+    },
+    "rpc:files.searchPaths": {
+      "oracle": "mimic"
+    },
+    "rpc:files.stat": {
+      "oracle": "mimic"
+    },
+    "rpc:git.abortMerge": {
+      "oracle": "mimic"
+    },
+    "rpc:git.abortRebase": {
+      "oracle": "mimic"
+    },
+    "rpc:git.branchCompare": {
+      "oracle": "mimic"
+    },
+    "rpc:git.bulkStage": {
+      "oracle": "mimic"
+    },
+    "rpc:git.bulkUnstage": {
+      "oracle": "mimic"
+    },
+    "rpc:git.checkout": {
+      "oracle": "mimic"
+    },
+    "rpc:git.commit": {
+      "oracle": "mimic"
+    },
+    "rpc:git.commitCompare": {
+      "oracle": "mimic"
+    },
+    "rpc:git.completeMerge": {
+      "oracle": "mimic"
+    },
+    "rpc:git.discard": {
+      "oracle": "mimic"
+    },
+    "rpc:git.fastForward": {
+      "oracle": "mimic"
+    },
+    "rpc:git.fetch": {
+      "oracle": "mimic"
+    },
+    "rpc:git.generateCommitMessage": {
+      "oracle": "mimic"
+    },
+    "rpc:git.history": {
+      "oracle": "mimic"
+    },
+    "rpc:git.localBranches": {
+      "oracle": "mimic"
+    },
+    "rpc:git.pull": {
+      "oracle": "mimic"
+    },
+    "rpc:git.push": {
+      "oracle": "mimic"
+    },
+    "rpc:git.rebaseFromBase": {
+      "oracle": "mimic"
+    },
+    "rpc:git.resolveConflict": {
+      "oracle": "mimic"
+    },
+    "rpc:git.stage": {
+      "oracle": "mimic"
+    },
+    "rpc:git.status": {
+      "oracle": "mimic"
+    },
+    "rpc:git.unstage": {
+      "oracle": "mimic"
+    },
+    "rpc:git.upstreamStatus": {
+      "oracle": "mimic"
+    },
+    "rpc:github.markPRDraft": {
+      "oracle": "mimic"
+    },
+    "rpc:github.markPRReadyForReview": {
+      "oracle": "mimic"
+    },
+    "rpc:github.mergePR": {
+      "oracle": "mimic"
+    },
+    "rpc:github.prChecks": {
+      "oracle": "mimic"
+    },
+    "rpc:github.prForBranch": {
+      "oracle": "mimic"
+    },
+    "rpc:github.removePRReviewers": {
+      "oracle": "mimic"
+    },
+    "rpc:github.requestPRReviewers": {
+      "oracle": "mimic"
+    },
+    "rpc:github.updatePR": {
+      "oracle": "mimic"
+    },
+    "rpc:github.updatePRTitle": {
+      "oracle": "mimic"
+    },
+    "rpc:gitlab.mergeMR": {
+      "oracle": "mimic"
+    },
+    "rpc:gitlab.updateMR": {
+      "oracle": "mimic"
+    },
+    "rpc:mobileRelay.hosts.list": {
+      "oracle": "mimic"
+    },
+    "rpc:mobileRelay.hosts.worktrees": {
+      "oracle": "mimic"
+    },
+    "rpc:mobileWeb.bundle.range": {
+      "oracle": "mimic"
+    },
+    "rpc:nativeChat.readSession": {
+      "oracle": "mimic"
+    },
+    "rpc:preflight.detectAgents": {
+      "oracle": "mimic"
+    },
+    "rpc:preflight.detectRemoteAgents": {
+      "oracle": "mimic"
+    },
+    "rpc:preflight.refreshAgents": {
+      "oracle": "mimic"
+    },
+    "rpc:project.list": {
+      "oracle": "mimic"
+    },
+    "rpc:projectHostSetup.list": {
+      "oracle": "mimic"
+    },
+    "rpc:repo.baseRefDefault": {
+      "oracle": "mimic"
+    },
+    "rpc:repo.hooks": {
+      "oracle": "mimic"
+    },
+    "rpc:repo.list": {
+      "oracle": "mimic"
+    },
+    "rpc:repo.saveSparsePreset": {
+      "oracle": "mimic"
+    },
+    "rpc:repo.searchRefs": {
+      "oracle": "mimic"
+    },
+    "rpc:repo.sparsePresets": {
+      "oracle": "mimic"
+    },
+    "rpc:repo.update": {
+      "oracle": "mimic"
+    },
+    "rpc:runtime.clientEvents.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:settings.get": {
+      "oracle": "mimic"
+    },
+    "rpc:settings.getTerminalQuickCommands": {
+      "oracle": "mimic"
+    },
+    "rpc:settings.updateTerminalQuickCommands": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.clearBuffer": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.close": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.list": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.rename": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.send": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.unsubscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:ui.get": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.create": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.list": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.listRetiredNames": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.prefetchCreateBase": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.resolveMrBase": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.resolvePrBase": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.rm": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.set": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.show": {
+      "oracle": "mimic"
+    },
+    "transport:e2ee.handshake": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.rewind": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.sendRecorded": {
+      "oracle": "mimic"
+    },
+    "rpc:files.pathsExist": {
+      "oracle": "mimic"
+    },
+    "rpc:git.branchDiff": {
+      "oracle": "mimic"
+    },
+    "rpc:git.commitDiff": {
+      "oracle": "mimic"
+    },
+    "rpc:github.prFileContents": {
+      "oracle": "mimic"
+    },
+    "rpc:hostedReview.forBranch": {
+      "oracle": "mimic"
+    },
+    "rpc:mobileWeb.bundle.brotliRange": {
+      "oracle": "mimic"
+    },
+    "rpc:mobileWeb.bundle.localeCatalog": {
+      "oracle": "mimic"
+    },
+    "rpc:nativeChat.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:session.tabs.activate": {
+      "oracle": "mimic"
+    },
+    "rpc:session.tabs.close": {
+      "oracle": "mimic"
+    },
+    "rpc:session.tabs.createTerminal": {
+      "oracle": "mimic"
+    },
+    "rpc:session.tabs.list": {
+      "oracle": "mimic"
+    },
+    "rpc:session.tabs.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:session.tabs.unsubscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:stats.summary": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.focus": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.read": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.setDisplayMode": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.updateViewport": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.modelCatalog": {
+      "unrecordable": "decided 18 Nov: orca-serve accepts agent-session.structured.v1, as the pinned phone declares it and refusing it breaks the phone (the owner's revocation 08cb07e removed an allowlist that hid the difference, not the accepting). The recorded orcad refuses the declaration, so the recorded answer is structured_agent_session_unsupported (clientCapabilityMissing) where this server answers the call itself: that difference is a known gap, and the mapper's flow tests (clis/orca-serve/map-agent/tests/flow.rs) and the chain tests (tests/integration/agent_catalog.rs) keep the behaviour. Reversible by refusing the declaration in map-settings"
+    },
+    "rpc:agentSessionAttachment.read": {
+      "unrecordable": "decided 18 Nov: orca-serve accepts agent-session.structured.v1, as the pinned phone declares it and refusing it breaks the phone (the owner's revocation 08cb07e removed an allowlist that hid the difference, not the accepting). The recorded orcad refuses the declaration, so the recorded answer is structured_agent_session_unsupported (clientCapabilityMissing) where this server answers the call itself: that difference is a known gap, and the mapper's flow tests (clis/orca-serve/map-agent/tests/flow.rs) and the chain tests (tests/integration/agent_catalog.rs) keep the behaviour. Reversible by refusing the declaration in map-settings"
+    },
+    "rpc:agentSessionAttachment.readTextChunk": {
+      "unrecordable": "decided 18 Nov: orca-serve accepts agent-session.structured.v1, as the pinned phone declares it and refusing it breaks the phone (the owner's revocation 08cb07e removed an allowlist that hid the difference, not the accepting). The recorded orcad refuses the declaration, so the recorded answer is structured_agent_session_unsupported (clientCapabilityMissing) where this server answers the call itself: that difference is a known gap, and the mapper's flow tests (clis/orca-serve/map-agent/tests/flow.rs) and the chain tests (tests/integration/agent_catalog.rs) keep the behaviour. Reversible by refusing the declaration in map-settings"
+    },
+    "rpc:agentSessionAttachment.uploadAbort": {
+      "unrecordable": "decided 18 Nov: orca-serve accepts agent-session.structured.v1, as the pinned phone declares it and refusing it breaks the phone (the owner's revocation 08cb07e removed an allowlist that hid the difference, not the accepting). The recorded orcad refuses the declaration, so the recorded answer is structured_agent_session_unsupported (clientCapabilityMissing) where this server answers the call itself: that difference is a known gap, and the mapper's flow tests (clis/orca-serve/map-agent/tests/flow.rs) and the chain tests (tests/integration/agent_catalog.rs) keep the behaviour. Reversible by refusing the declaration in map-settings"
+    },
+    "rpc:agentSessionAttachment.uploadCommit": {
+      "unrecordable": "decided 18 Nov: orca-serve accepts agent-session.structured.v1, as the pinned phone declares it and refusing it breaks the phone (the owner's revocation 08cb07e removed an allowlist that hid the difference, not the accepting). The recorded orcad refuses the declaration, so the recorded answer is structured_agent_session_unsupported (clientCapabilityMissing) where this server answers the call itself: that difference is a known gap, and the mapper's flow tests (clis/orca-serve/map-agent/tests/flow.rs) and the chain tests (tests/integration/agent_catalog.rs) keep the behaviour. Reversible by refusing the declaration in map-settings"
+    },
+    "rpc:settings.update": {
+      "oracle": "mimic"
+    },
+    "rpc:ui.set": {
+      "oracle": "mimic"
+    },
+    "rpc:status.get": {
+      "oracle": "mimic"
+    },
+    "rpc:github.listLabels": {
+      "oracle": "mimic"
+    },
+    "rpc:mobileRelay.projectSections": {
+      "oracle": "mimic"
+    },
+    "rpc:mobileWeb.bundle.manifest": {
+      "oracle": "mimic"
+    },
+    "rpc:skills.discover": {
+      "oracle": "mimic"
+    },
+    "rpc:github.prComments": {
+      "state": "not-offered",
+      "reason": "decided 18 Nov: the host lists the transient, signed links of a comment's body images and honours a noCache option; rca keeps no read cache and cannot keep signed links beyond their short life, so the call answers the comments with an empty image list and the replay shows only the repo_not_found and schema cases. Reversible by keeping the links through the hosted group",
+      "decidedBy": "M11"
+    },
+    "rpc:speech.models.list": {
+      "oracle": "mimic"
+    },
+    "rpc:ssh.connect": {
+      "oracle": "mimic"
+    },
+    "rpc:ssh.getState": {
+      "oracle": "mimic"
+    },
+    "rpc:ssh.listTargetSummaries": {
+      "unrecordable": "the recorded orcad has no SSH target configured and lists none, where this host lists its attached executor as the one target (a known gap in cassettes/orca-v1.4.259-recorded/known-gaps.json); the mapper's flow test (map-workspace/tests/flow.rs) and the chain test (tests/integration/layout_vault.rs) keep the behaviour, a shape taken from the pinned source"
+    },
+    "rpc:files.open": {
+      "oracle": "mimic"
+    },
+    "rpc:files.openDiff": {
+      "oracle": "mimic"
+    },
+    "rpc:markdown.readTab": {
+      "oracle": "mimic"
+    },
+    "rpc:markdown.saveTab": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.reveal": {
+      "oracle": "mimic"
+    },
+    "rpc:aiVault.listSessions": {
+      "oracle": "mimic"
+    },
+    "rpc:aiVault.prepareSessionResume": {
+      "oracle": "mimic"
+    },
+    "rpc:settings.mutateNativeChatSessionOptions": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.agents": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner (only the 18 Nov structured-session decision is the owner's); it takes the row out of oracle comparison. decided 18 Nov: orca-serve accepts agent-session.structured.v1, as the pinned phone declares it and refusing it breaks the phone. The recorded orcad refuses the declaration, so the recorded answer is structured_agent_session_unsupported (clientCapabilityMissing) where this server answers the call itself: that difference is a known gap, and the chain tests (clis/orca-serve/tests/integration/agent_catalog.rs, agent_sessions.rs) keep the behaviour. Reversible by refusing the declaration in map-settings"
+    },
+    "rpc:agentSession.subscribeStatus": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner (only the 18 Nov structured-session decision is the owner's); it takes the row out of oracle comparison. decided 18 Nov: orca-serve accepts agent-session.structured.v1, as the pinned phone declares it and refusing it breaks the phone. The recorded orcad refuses the declaration, so the recorded answer is structured_agent_session_unsupported (clientCapabilityMissing) where this server answers the call itself: that difference is a known gap, and the chain tests (clis/orca-serve/tests/integration/agent_catalog.rs, agent_sessions.rs) keep the behaviour. Reversible by refusing the declaration in map-settings"
+    },
+    "rpc:agentSession.createSupport": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner (only the 18 Nov structured-session decision is the owner's); it takes the row out of oracle comparison. the recording of this row failed: its scenario's worktree.create was refused by the recorded orcad (Invalid worktree name), so createSupport was never sent and no recording holds its answer; and under the 18 Nov decision (orca-serve accepts agent-session.structured.v1, which the recorded orcad refuses) the recorded answer would be the structured refusal where this server answers. The chain test (clis/orca-serve/tests/integration/agent_catalog.rs) keeps the behaviour"
+    },
+    "rpc:runtime.clientCapabilities.update": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner (only the 18 Nov structured-session decision is the owner's); it takes the row out of oracle comparison. decided 18 Nov: orca-serve accepts agent-session.structured.v1, which the phone declares through this call. The recorded orcad refuses a valid declaration (client_capabilities_update_unsupported) where this server echoes it, and answers a malformed one with invalid_argument as this server does (the recorded crawl and the flow test in tests/flow/status.rs agree on those): the valid-declaration difference is a known gap, and the chain test (tests/integration/agent_sessions.rs) keeps the behaviour. Reversible by refusing the declaration in map-settings"
+    },
+    "rpc:agentSession.continueInterrupted": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recorded crawl holds only the five validation shapes of this call (clean replays that run no turn); no recording shows a valid call over a turn the host really cut short, which needs the host restarted mid-turn. The chain test (tests/integration/interrupted.rs) keeps the behaviour against this server's own restart; that it matches the host is unrecorded (docs/gaps/orca-interruption-causes-and-usage-limit-continue.md)"
+    },
+    "rpc:files.readTerminalArtifact": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recorded crawl and scenarios hold only schema-derived calls with a made-up grant id, which the host refuses; no recording shows a granted file, so the success shapes are authored from the pinned source (references/orca/src/main/runtime/terminal/artifacts). Agent decision under the safer-option rule, awaiting the owner's terminal-artifact sign-off: the row is served, and a file outside the executor's root is granted only where the executor's owner named a directory (RCA_EXEC_ARTIFACT_ALLOW, empty by default, so nothing outside the root is served); reversible by emptying that one setting. The chain test (tests/integration/terminal_artifacts.rs) keeps the behaviour against the real executor (docs/gaps/orca-terminal-artifact-grants-authored-shapes.md)"
+    },
+    "rpc:files.readTerminalArtifactPreview": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recorded crawl and scenarios hold only schema-derived calls with a made-up grant id, which the host refuses; no recording shows a granted file, so the success shapes are authored from the pinned source (references/orca/src/main/runtime/terminal/artifacts). Agent decision under the safer-option rule, awaiting the owner's terminal-artifact sign-off: the row is served, and a file outside the executor's root is granted only where the executor's owner named a directory (RCA_EXEC_ARTIFACT_ALLOW, empty by default, so nothing outside the root is served); reversible by emptying that one setting. The chain test (tests/integration/terminal_artifacts.rs) keeps the behaviour against the real executor (docs/gaps/orca-terminal-artifact-grants-authored-shapes.md)"
+    },
+    "rpc:files.writeTerminalArtifact": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recorded crawl and scenarios hold only schema-derived calls with a made-up grant id, which the host refuses; no recording shows a granted file, so the success shapes are authored from the pinned source (references/orca/src/main/runtime/terminal/artifacts). Agent decision under the safer-option rule, awaiting the owner's terminal-artifact sign-off: the row is served, and a file outside the executor's root is granted only where the executor's owner named a directory (RCA_EXEC_ARTIFACT_ALLOW, empty by default, so nothing outside the root is served); reversible by emptying that one setting. The chain test (tests/integration/terminal_artifacts.rs) keeps the behaviour against the real executor (docs/gaps/orca-terminal-artifact-grants-authored-shapes.md)"
+    },
+    "rpc:files.resolveTerminalPath": {
+      "unrecordable": "PROVISIONAL, the per-row unrecordable classification is the implementer's and awaits the owner. The recorded crawl and scenarios hold only schema-derived calls with a made-up grant id, which the host refuses; no recording shows a granted file, so the success shapes are authored from the pinned source (references/orca/src/main/runtime/terminal/artifacts). Agent decision under the safer-option rule, awaiting the owner's terminal-artifact sign-off: the row is served, and a file outside the executor's root is granted only where the executor's owner named a directory (RCA_EXEC_ARTIFACT_ALLOW, empty by default, so nothing outside the root is served); reversible by emptying that one setting. The chain test (tests/integration/terminal_artifacts.rs) keeps the behaviour against the real executor (docs/gaps/orca-terminal-artifact-grants-authored-shapes.md)"
+    }
   },
   "reverify": {
-    "rpc:accounts.consumeCodexResetCredit": "reverify when a model API can spend a reset credit (M10): rca's provider.resetCredit is refused NOT_SUPPORTED by the real model API the service is configured with (it has no credit to reset), so the phone's spend would only ever be a refusal",
-    "rpc:accounts.subscribe": "reverify when the accounts group streams changes of its providers (M10): provider.auth.subscribe follows one login session, not the list, so a snapshot stream would be an answer built once and never pushed again",
-    "rpc:accounts.unsubscribe": "reverify with accounts.subscribe (M10): it ends the stream that row opens, and there is none to end",
-    "rpc:automation.runs": "reverify when the schedules group lists a schedule's runs (M12 served the other automation rows): schedule.list keeps only a schedule's last run (last_run_ms, status and error), and the runs themselves are events on the `schedules` stream, a tail of 256 that does not survive a restart, so a page of runs with a cursor would be one made up from the last",
-    "rpc:browser.back": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page history to go back in",
-    "rpc:browser.dialogAccept": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page whose dialog could be accepted",
-    "rpc:browser.dialogDismiss": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page whose dialog could be dismissed",
-    "rpc:browser.forward": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page history to go forward in",
-    "rpc:browser.goto": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to navigate",
-    "rpc:browser.keyboardInsertText": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to insert text into",
-    "rpc:browser.keypress": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to type into",
-    "rpc:browser.mouseClick": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to click",
-    "rpc:browser.mouseDown": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to press on",
-    "rpc:browser.mouseMove": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to move over",
-    "rpc:browser.mouseUp": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to release on",
-    "rpc:browser.mouseWheel": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to scroll",
-    "rpc:browser.reload": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to reload",
-    "rpc:browser.screencast": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there are no frames of a page to stream",
-    "rpc:browser.screencast.unsubscribe": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no frame stream to end",
-    "rpc:browser.tabCreate": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so a tab would be opened that shows nothing",
-    "rpc:clipboard.abortImageUpload": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; there is no stored upload to drop",
-    "rpc:clipboard.appendImageUploadChunk": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the chunks would only be held in the mapper",
-    "rpc:clipboard.commitImageUpload": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the committed image would have no path on the executor to answer",
-    "rpc:clipboard.saveImageAsTempFile": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the image would have no temp file on the executor to name",
-    "rpc:clipboard.startImageUpload": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the upload would only be held in the mapper",
-    "rpc:files.readTerminalArtifact": "reverify with terminal.* (M8): a terminal artifact is authorised by a grant the terminal itself issued, so a plain file read would pass without proving the grant [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]",
-    "rpc:files.readTerminalArtifactPreview": "reverify with terminal.* (M8): a terminal artifact is authorised by a grant the terminal itself issued, so a plain file read would pass without proving the grant [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]",
-    "rpc:files.resolveTerminalPath": "reverify with terminal.* (M8): the path is resolved against the terminal's own working directory, which only a terminal session knows [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]",
-    "rpc:files.writeTerminalArtifact": "reverify with terminal.* (M8): a terminal artifact is written under a grant the terminal itself issued, so a plain file write would pass without proving the grant [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]",
-    "rpc:git.branchDiff": "reverify with git.blob (M9 not built): it gives one file's text at the merge base and at the head oid of a branch comparison, which git.blob can read by revision, but this mapper sends no git.blob yet; build it and check both sides against git show of each oid in the chain",
-    "rpc:git.cancelGenerateCommitMessage": "reverify when git.generateCommitMessage can be cancelled (M10): the group's generation is one request that runs to its end and has no cancel, so an accepted cancel would stop nothing",
-    "rpc:git.cancelGeneratePullRequestFields": "reverify with git.generatePullRequestFields (M10): there is no generation of pull request text to cancel",
-    "rpc:git.commitDiff": "reverify with git.blob (M9 not built): it gives one file's text at a commit's parent and at the commit, which git.blob can read by revision, but this mapper sends no git.blob yet; build it and check both sides against git show of each oid in the chain, with a root commit's original side empty",
-    "rpc:git.diff": "reverify with a diff that gives both sides' contents (M9 built none): the phone reads one file's original and modified text, the original being the index for an unstaged diff and HEAD for a staged one, and git.blob reads a revision, never the index, so any answer built from the patch text or from HEAD alone would pass without proving the index side",
-    "rpc:git.discoverCommitMessageModels": "reverify when the service lists its models (M10): rca's git.ai group writes with the one model its environment configures and no method lists models, so any list would be invented",
-    "rpc:git.generatePullRequestFields": "reverify when the git.ai group writes pull request text (M10): it has git.generateCommitMessage alone, and a title and body built by the mapper from the commit message would pass without a model",
-    "rpc:git.remoteCommitUrl": "reverify when the group reports a remote's address (M9): git.upstreamStatus lists the remotes' names and never their URLs, so the web address of a commit cannot be built, and any other answer would pass without reading the remote",
-    "rpc:github.addIssueComment": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so addIssueComment would be an answer built without the provider's issues",
-    "rpc:github.addPRReviewComment": "reverify when the hosted group can post a comment on a file line (M11): pr.comment is a conversation comment and pr.reply answers an existing thread, so the phone's inline comment would be posted as another kind of comment",
-    "rpc:github.addPRReviewCommentReply": "reverify when the reply's answer can be built (M11): the phone names the review comment by its numeric id while pr.reply takes a review thread's id (pr.threads), and the host answers the posted comment (author, time, url) which pr.reply does not return",
-    "rpc:github.countWorkItems": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so countWorkItems would be an answer built without the provider's issues",
-    "rpc:github.createIssue": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so createIssue would be an answer built without the provider's issues",
-    "rpc:github.listAssignableUsers": "reverify when rca gains a repository assignees action (hosted_repo_assignees over `gh api repos/{owner}/{repo}/assignees`; M12 built none): assignable users of issues are not the reviewer candidates pr.reviewerCandidates lists (reviewers and assignees are different sets on GitHub)",
-    "rpc:github.listLabels": "reverify when mapped over pr.labelCandidates (M11): it answers the repository's labels with their colors, and the candidates give names; not mapped in this milestone",
-    "rpc:github.listWorkItems": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so listWorkItems would be an answer built without the provider's issues",
-    "rpc:github.prCheckDetails": "reverify when the hosted group reads a check's annotations and log summary (M11): pr.checks gives a check's name, state and link only, so the details would be empty",
-    "rpc:github.prFileContents": "reverify when mapped over git.blob (M11): the two sides of a changed file are read at the pull request's head and merge base after the fetch that worktree.resolvePrBase makes, with the host's binary and size answers; not mapped in this milestone",
-    "rpc:github.project.addIssueCommentBySlug": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.clearItemField": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.deleteIssueCommentBySlug": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.listAccessible": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.listAssignableUsersBySlug": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.listIssueTypesBySlug": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.listLabelsBySlug": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.listViews": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.resolveRef": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.updateIssueBySlug": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.updateIssueCommentBySlug": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.updateIssueTypeBySlug": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.updateItemField": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.updatePullRequestBySlug": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.viewTable": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.project.workItemDetailsBySlug": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data",
-    "rpc:github.repoSlug": "reverify when mapped over sourceControl.lookupRepository of hosted.auth (M11): it needs the machine's gh sign-in to name the workspace's repository, and a null for a signed-out machine would pass without the work; not mapped in this milestone",
-    "rpc:github.rerunPRChecks": "reverify when the hosted group can rerun checks (M11): it lists and views runs (run.list, run.view) but has no rerun action",
-    "rpc:github.resolveReviewThread": "reverify when rca can find a thread's pull request (M11): the phone sends the thread id alone, pr.resolveThread needs the pull request's number too, and rca keeps no thread to pull request index",
-    "rpc:github.setPRAutoMerge": "reverify when the hosted group can turn auto-merge off (M11): pr.merge with auto enables it but no action disables it, so enabled: false would answer without doing it, and the host's answer carries the repository's merge method settings",
-    "rpc:github.setPRFileViewed": "reverify when the hosted group can mark a file viewed (M11): GitHub's viewed mark is a GraphQL mutation by the pull request's node id and path, and no hosted action sets it",
-    "rpc:github.updateIssue": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so updateIssue would be an answer built without the provider's issues",
-    "rpc:github.updatePRState": "reverify when the hosted group can close and reopen a pull request (M11): pr.edit changes the title, body and base only, so a closed state would be answered without closing it",
-    "rpc:github.workItem": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so workItem would be an answer built without the provider's issues",
-    "rpc:github.workItemByOwnerRepo": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so workItemByOwnerRepo would be an answer built without the provider's issues",
-    "rpc:github.workItemDetails": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so workItemDetails would be an answer built without the provider's issues",
-    "rpc:gitlab.addIssueComment": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so addIssueComment would be an answer built without the provider's issues",
-    "rpc:gitlab.addMRComment": "reverify when mr.comment answers the posted comment (M11): the host's answer is {ok, comment} with the note's author, time and id, and the group answers only done",
-    "rpc:gitlab.createIssue": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so createIssue would be an answer built without the provider's issues",
-    "rpc:gitlab.listWorkItems": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so listWorkItems would be an answer built without the provider's issues",
-    "rpc:gitlab.todos": "reverify when rca gains a GitLab to-dos action (hosted_todo_list over `glab api todos`; M12 built none): a GitLab to-do is a notification of the provider's own, and the hosted group reads none",
-    "rpc:gitlab.updateIssue": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so updateIssue would be an answer built without the provider's issues",
-    "rpc:gitlab.updateMRState": "reverify when the hosted group can close and reopen a merge request (M11): mr.edit changes the title, description and target branch only, so a closed state would be answered without closing it",
-    "rpc:gitlab.workItemByPath": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so workItemByPath would be an answer built without the provider's issues",
-    "rpc:gitlab.workItemDetails": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so workItemDetails would be an answer built without the provider's issues",
-    "rpc:hostedReview.create": "reverify when mapped over pr.create with a chain over a pushed branch (M11): the phone's creation flow pushes the branch first, then creates the review and, for the stacked form, a chain of them; the answer needs the created review's number and url; not mapped in this milestone",
-    "rpc:hostedReview.forBranch": "reverify when the provider-neutral review summary is built (M11): github.prForBranch is the GitHub form of it and is served, but this row answers for either provider with the host's review shape; not mapped in this milestone",
-    "rpc:hostedReview.getCreationEligibility": "reverify when mapped over git.upstreamStatus and pr.list (M11): it says whether the branch is pushed, ahead of its base and has no review yet, which needs those three reads and the host's reason codes; not mapped in this milestone",
-    "rpc:jira.getIssue": "reverify when rca has a Jira client (an issue family over Jira Cloud's REST API with the person's Atlassian sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no Jira issue to read",
-    "rpc:jira.issueComments": "reverify when rca has a Jira client (an issue family over Jira Cloud's REST API with the person's Atlassian sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Jira comments to read",
-    "rpc:jira.listIssues": "reverify when rca has a Jira client (an issue family over Jira Cloud's REST API with the person's Atlassian sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Jira issues to list",
-    "rpc:jira.searchIssues": "reverify when rca has a Jira client (an issue family over Jira Cloud's REST API with the person's Atlassian sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Jira issues to search",
-    "rpc:jira.status": "reverify when rca has a Jira client (an issue family over Jira Cloud's REST API with the person's Atlassian sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no connection to report",
-    "rpc:linear.addIssueComment": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no Linear issue to comment on",
-    "rpc:linear.connect": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no Linear sign-in to complete",
-    "rpc:linear.createIssue": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no Linear issue to create",
-    "rpc:linear.getIssue": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no Linear issue to read",
-    "rpc:linear.issueComments": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Linear comments to read",
-    "rpc:linear.listIssues": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Linear issues to list",
-    "rpc:linear.listTeams": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Linear teams to list",
-    "rpc:linear.searchIssues": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Linear issues to search",
-    "rpc:linear.selectWorkspace": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no Linear workspace to select",
-    "rpc:linear.status": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no connection to report",
-    "rpc:linear.teamStates": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Linear workflow states to list",
-    "rpc:linear.updateIssue": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no Linear issue to change",
-    "rpc:notifications.getMissedSince": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no numbered feed to read what a phone missed from",
+    "rpc:browser.dialogAccept": "reverify when `exec-browser` keeps dialog state: a page's open dialog reported by `Page.javascriptDialogOpening` and answered by `Page.handleJavaScriptDialog` while another command waits",
+    "rpc:browser.dialogDismiss": "reverify when `exec-browser` keeps dialog state: a page's open dialog reported by `Page.javascriptDialogOpening` and answered by `Page.handleJavaScriptDialog` while another command waits",
+    "rpc:browser.screencast": "reverify when `exec-browser` keeps a frame stream: JPEG frames from `Page.startScreencast` sent in 0x62 binary frames and credited by `browser.screencast.ack`",
+    "rpc:browser.screencast.unsubscribe": "reverify when `exec-browser` keeps a frame stream: JPEG frames from `Page.startScreencast` sent in 0x62 binary frames and credited by `browser.screencast.ack`",
     "rpc:notifications.registerPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so a push token would be stored for nothing to send to",
-    "rpc:notifications.subscribe": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to open",
     "rpc:notifications.testPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no sender to deliver a test push",
-    "rpc:notifications.unregisterPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no stored push token to remove",
-    "rpc:notifications.unsubscribe": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to end",
-    "rpc:settings.getAgentLaunch": "reverify with the agent launch settings (M10): the answer is a projection (launch choices, permissions, command overrides, environment) of settings rca does not keep, and settings.update keeps only the keys of the pinned schema as sent",
-    "rpc:settings.mutateNativeChatSessionOptions": "reverify when a launch reads the picks (M10): the host keeps the model and effort a phone picks per agent as launch defaults, and nothing in rca reads such a default, so a kept pick would change no launch",
-    "rpc:speech.dictation.cancel": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation to cancel",
-    "rpc:speech.dictation.chunk": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation to feed audio into",
-    "rpc:speech.dictation.finish": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation to end with a transcript",
-    "rpc:speech.dictation.setup": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation engine to set up",
-    "rpc:speech.dictation.start": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation to start",
-    "rpc:speech.models.delete": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no model store to delete from",
-    "rpc:speech.models.download": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no model store to download into",
-    "rpc:speech.models.list": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there are no speech models on the executor to list",
-    "rpc:worktree.activate": "reverify with terminal.* and the agent groups (M8): it wakes a worktree's agents and terminals, and a state flag alone would pass without proving that [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]",
-    "rpc:worktree.ps": "reverify with the agent and terminal groups (M7/M8): the row lists worktrees with their agent and terminal activity, and an answer that is only the worktree list would pass without proving the activity half [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]",
-    "rpc:worktree.sleep": "reverify with terminal.* and the agent groups (M8): it stops a worktree's agents and terminals, and a state flag alone would pass without proving that [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]"
+    "rpc:notifications.unregisterPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no stored push token to remove"
   },
   "traceNoise": {
     "rpc:layout.*": "the desktop window's workspace layout (apply, snapshots, held panes, view reports, subscribe): the scan finds no phone caller, and the recorded crawl drives the host's whole method surface, so its trace names them without a phone row to serve",
     "rpc:sidebarInputs.*": "the desktop sidebar's inputs (activity, desktop and review facts, paired server rows, workspace rows and creations, temporal, report view): no phone caller in the scan; the crawl names them, and the two phone rows (read, repoIcons) are flagged rows the scan classes itself",
     "rpc:sidebarSession.begin": "opens the desktop sidebar's input session: no phone caller in the scan, named by the crawl alone",
-    "rpc:session.readTerminalScrollback": "reads a terminal's scrollback for the desktop's execution host: no phone caller in the scan (the phone reads a terminal through terminal.subscribe, a pending M8 row), named by the crawl alone"
+    "rpc:session.readTerminalScrollback": "reads a terminal's scrollback for the desktop's execution host: no phone caller in the scan (the phone reads a terminal through terminal.subscribe, a pending M8 row), named by the crawl alone",
+    "rpc:runtimeEnvironment.wakeRecipeVm": "wakes the desktop's recipe VM for a remote runtime environment: registered but with no phone caller in the scan, named by the crawl alone"
   }
 }

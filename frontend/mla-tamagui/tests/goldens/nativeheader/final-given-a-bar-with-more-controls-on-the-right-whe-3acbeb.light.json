@@ -1,0 +1,48 @@
+{
+  "suite": "nativeheader",
+  "step": "final-given-a-bar-with-more-controls-on-the-right-whe-3acbeb",
+  "scheme": "light",
+  "snapshot": "nativeheader/final-given-a-bar-with-more-controls-on-the-right-whe-3acbeb.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 444,
+    "height": 837,
+    "page_height": 837
+  },
+  "summary": {
+    "testids": [
+      "NativeHeader",
+      "NativeHeaderLeft",
+      "NativeHeaderItem-Go back",
+      "NativeHeaderTitle",
+      "ScreenHeaderGlassTitle",
+      "ScreenHeaderGlassTitleText",
+      "ScreenHeaderGlassTitleSubtitle",
+      "NativeHeaderRight",
+      "NativeHeaderMenuHost-Editor settings",
+      "NativeHeaderItem-Editor settings",
+      "NativeHeaderSpacing",
+      "NativeHeaderItem-Info",
+      "NativeHeaderItem-BarShare",
+      "NativeHeaderItem-BarSave",
+      "Body"
+    ],
+    "text": "Go back\nAppearance\nSettings\nEditor settings\nInfo\nBarShare\nBarSave\nBody"
+  },
+  "timings": {
+    "render_ms": 265
+  },
+  "name": "nativeheader/final-given-a-bar-with-more-controls-on-the-right-whe-3acbeb.light",
+  "image": {
+    "width": 360,
+    "height": 679
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

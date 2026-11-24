@@ -15,10 +15,25 @@ pub(crate) struct Envelope {
 }
 
 impl Envelope {
+    /// The methods whose input is a union of shapes refuse a missing or mistyped envelope as the union, with no detail.
+    pub fn read_union(params: &Value) -> Result<Envelope, Failure> {
+        if !params["envelope"].is_object() {
+            return Err(Failure::invalid("Invalid input"));
+        }
+        Envelope::read(params)
+    }
+
     pub fn read(params: &Value) -> Result<Envelope, Failure> {
         let e = &params["envelope"];
+        if !e.is_object() {
+            return Err(Failure::invalid(format!("Invalid input: expected object, received {}", params.get("envelope").map_or("undefined", orca_core::wire::received))));
+        }
         let text = |k: &str| e[k].as_str().filter(|s| !s.is_empty()).map(str::to_string).ok_or_else(|| Failure::invalid(format!("Invalid envelope: missing {k}")));
-        Ok(Envelope { session: text("sessionId")?, op: text("clientOperationId")?, fingerprint: text("payloadFingerprint")? })
+        let session = text("sessionId")?;
+        if !crate::ids::is_session_id(&session) {
+            return Err(Failure::invalid("Invalid agent session id"));
+        }
+        Ok(Envelope { session, op: text("clientOperationId")?, fingerprint: text("payloadFingerprint")? })
     }
 }
 
@@ -62,4 +77,11 @@ pub(crate) fn refused_with(code: &str, message: &str, details: Value) -> Value {
         r["reason"] = reason.clone();
     }
     json!({"ok": false, "refusal": r})
+}
+
+/// Whether the session's ledger holds an answer for the client message id that is no refusal: the phone that lost a send's reply asks this
+/// instead of searching the history pages it loaded. A refusal, an id never seen and an unreadable ledger are not recorded.
+pub(crate) fn send_recorded(agent: &dyn AgentApi, session: &str, client_message_id: &str) -> Result<bool, Failure> {
+    let Some(Value::Object(ledger)) = state_get(agent, &key(session))? else { return Ok(false) };
+    Ok(ledger.get(client_message_id).is_some_and(|entry| entry["answer"]["ok"] != false))
 }

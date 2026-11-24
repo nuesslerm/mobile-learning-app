@@ -1,0 +1,62 @@
+name: mobile_build+publish+release-testing
+
+# mobile_build+publish+release-testing: pipeline.yml with `stages: e2e`, a run of its own on every push: the production EAS Update, the Android e2e update, the browser suite against a web export built on its
+# runner and the Android suite on the SDK emulator against its own backends. None of them waits for the tests, the deploy or the other CI workflows. Its pull request comment is its own.
+on:
+  push:
+    branches: [dev]
+
+# One run per commit: a push never waits for an older run (a red shard of the older one is fixed and re-run at once), and a still-pending shard may be replaced by a newer run of
+# the same inputs (that run then ends cancelled or superseded); every other run is measured to its end. What must not overlap is serialised per job (deploy per app) and what ships first checks that its commit is still the head of dev.
+concurrency:
+  group: ci-hosted-mobile-build-${{ github.sha }}
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  checks: write
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  # The push event's file lists are null, so the commits API says whether the commit changed a file: one that changed none starts the pipeline
+  # only with a [services:...] or [cache:...] tag (the other empty commits are triggers of other workflows, see scheduled-triggers.yml).
+  trigger:
+    name: Does this commit start the pipeline
+    if: ${{ vars.HOSTED_CI != 'off' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    outputs:
+      go: ${{ steps.go.outputs.go }}
+    steps:
+      - name: Count the files the commit changed
+        id: go
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          files=$(curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA" | jq '.files | length')
+          if [ "$files" != 0 ] || printf '%s' "$MESSAGE" | grep -qE '\[(services|cache):'; then go=true; else go=false; fi
+          echo "the commit changes $files file(s): go=$go"
+          echo "go=$go" >> "$GITHUB_OUTPUT"
+  run:
+    needs: trigger
+    if: ${{ needs.trigger.outputs.go == 'true' }}
+    uses: ./.github/workflows/pipeline.yml
+    with:
+      runner: '"ubuntu-24.04"'
+      deploy_runner: '"ubuntu-24.04-arm"'
+      shards: 1
+      ship: true
+      # no VM since 13 Nov (the Oracle account was terminated): the deploy legs need it, so they run only when the repository variable says on; the e2e suites need nothing deployed
+      deploy: false
+      e2e: true
+      stages: e2e
+      label: mobile_build+publish+release-testing
+    secrets:
+      BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+      TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+      TS_HOSTED_OAUTH_CLIENT_SECRET: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}

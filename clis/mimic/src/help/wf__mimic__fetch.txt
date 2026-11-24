@@ -1,9 +1,9 @@
 Usage: wf mimic fetch [options] <run-id|latest>
 
-Download a published run (wf mimic publish) into this checkout: every file of
-every set is read from the bucket's public URL, its sha256 is checked against the
-manifest, and it is written to the set's directory (paths from the checkout root,
-never outside it). A file that does not match writes nothing more. `latest` takes
+Download a published run (wf mimic capture record --publish) into this checkout: every file of
+every set is read from the state ref (git fetch of refs/wf/state), its sha256 is
+checked against the manifest, and it is written to the set's directory (paths from
+the checkout root, never outside it). A run that a newer one replaced is refused. A file that does not match writes nothing more. `latest` takes
 the newest run of --set. Then verify the set and commit it.
 
 Options:

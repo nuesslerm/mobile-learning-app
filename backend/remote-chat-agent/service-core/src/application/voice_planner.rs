@@ -7,11 +7,11 @@ use crate::domain::voice_dsl::{self as dsl, Alternative};
 use crate::application::one_shot::{self, Failure, Reply, Turn, Usage};
 use super::opencode_client::Client;
 use super::settings::Settings;
-use fancy_regex::Regex;
+use regex::Regex;
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 /// opencode's built-in tool ids, every one switched off: the planner returns one JSON object and never calls a tool, but without
 /// this map opencode prefills the whole catalogue on every turn only for it to be ignored.
@@ -92,7 +92,7 @@ impl Planner {
         let tools: Map<String, Value> = DISABLED_TOOLS.iter().map(|t| ((*t).to_string(), json!(false))).collect();
         let cwd = self.client.env().opencode_cwd();
         let turn = Turn { session_id, cwd: cwd.clone(), model: Some(model.clone()), system: Some(dsl::system_prompt(variant).to_string()), tools: Some(tools), agent: agent.map(str::to_string), file_part: None, ..Turn::default() };
-        let result = one_shot::run(&self.client, prompt, &turn, Some(Instant::now() + budget)).await;
+        let result = one_shot::run(&self.client, prompt, &turn, Some(self.client.now_ms() + budget.as_millis() as u64)).await;
         if let Err(Failure::Budget { session_id }) = &result {
             // Stop the model, not just the wait for it: an abandoned turn keeps billing and keeps the held session busy.
             one_shot::abort(&self.client, session_id, &cwd).await;
@@ -110,7 +110,7 @@ impl Planner {
         // A held session carries one prompt variant and one agent: never mixed.
         let key = format!("{}/{}#{variant}#{}", model.0, model.1, agent.as_deref().unwrap_or("-"));
         let prompt = dsl::user_prompt(variant, transcript, code, language);
-        let started = Instant::now();
+        let started = self.client.now_ms();
 
         let held = self.sessions.lock().unwrap_or_else(|e| e.into_inner()).get(&key).filter(|s| s.turns < max_turns).map(|s| s.session_id.clone());
         let reusable = held.is_some();
@@ -123,6 +123,15 @@ impl Planner {
             Err(Failure::Session { .. }) if reusable => {
                 self.sessions.lock().unwrap_or_else(|e| e.into_inner()).remove(&key);
                 session_reused = false;
+                self.run_turn(&prompt, None, variant, agent.as_deref(), &model, budget).await.map_err(|e| self.failed(&key, e, budget_ms))?
+            }
+            // The provider can fail a turn once and answer the next (an empty turn, a stall, a refused or dropped request): one more turn on a fresh
+            // session, after a pause, is cheaper than a 500 the speaker has to repeat. A timeout or a missing directory is not retried.
+            Err(e) if retryable(&e) => {
+                tracing::warn!(error = %e.message(), "voice_plan.turn_retried");
+                self.sessions.lock().unwrap_or_else(|e| e.into_inner()).remove(&key);
+                session_reused = false;
+                tokio::time::sleep(RETRY_PAUSE).await;
                 self.run_turn(&prompt, None, variant, agent.as_deref(), &model, budget).await.map_err(|e| self.failed(&key, e, budget_ms))?
             }
             Err(e) => return Err(self.failed(&key, e, budget_ms)),
@@ -159,7 +168,7 @@ impl Planner {
         Ok(Planned {
             transcript: parsed.transcript,
             alternatives,
-            meta: Meta { model: format!("{}/{}", model.0, model.1), variant: variant.to_string(), agent, session_reused, usage: turn.usage, ms: started.elapsed().as_millis() as u64, retried },
+            meta: Meta { model: format!("{}/{}", model.0, model.1), variant: variant.to_string(), agent, session_reused, usage: turn.usage, ms: self.client.now_ms().saturating_sub(started), retried },
         })
     }
 
@@ -173,6 +182,15 @@ impl Planner {
     }
 }
 
+/// The pause before the retry of a turn the provider failed.
+const RETRY_PAUSE: Duration = Duration::from_millis(500);
+
+/// Whether a failed turn is worth one more try: the provider's own errors, an empty or stalled turn and the network, not the caller's time
+/// budget and not a configuration that no second turn changes.
+fn retryable(failure: &Failure) -> bool {
+    !matches!(failure, Failure::Budget { .. } | Failure::DirectoryNotVisible { .. })
+}
+
 fn fenced() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| Regex::new(r"```(?:json)?\s*([\s\S]*?)\s*```").unwrap_or_else(|e| panic!("bad pattern: {e}")))
@@ -180,7 +198,7 @@ fn fenced() -> &'static Regex {
 
 /// The JSON of a reply: inside a fence when there is one, else from the first `{` to the last `}`, else the whole text.
 fn json_text(text: &str) -> &str {
-    if let Ok(Some(caps)) = fenced().captures(text) {
+    if let Some(caps) = fenced().captures(text) {
         if let Some(m) = caps.get(1) {
             return m.as_str();
         }

@@ -2,7 +2,7 @@
 //! log), then a batch of the items each new rca event changed. The stream asks rca for the events after the one it reached, at most every
 //! `POLL` interval; a failed ask is tried again on the next one.
 use crate::fold::fold;
-use crate::journal::{self, cursor, current_work, events_after, page, EPOCH, FENCE};
+use crate::journal::{self, cursor_at, current_work, epoch_of, events_after, page, FENCE};
 use crate::session::now_ms;
 use orca_core::wire::Failure;
 use orca_core::{AgentApi, Ctx, Subscription};
@@ -30,7 +30,7 @@ pub(crate) fn base(connection: &str, session: &str) -> String {
 
 fn batch(session: &str, folded: &crate::fold::Folded, after: u64) -> Value {
     let items: Vec<Value> = folded.items.iter().filter(|i| i.revision > after).map(|i| i.render()).collect();
-    let mut frame = json!({"type": "batch", "sessionId": session, "batch": {"cursor": cursor(folded.last_seq), "items": items, "removedItemIds": [], "submissions": []}, "fence": FENCE, "hostNow": now_ms()});
+    let mut frame = json!({"type": "batch", "sessionId": session, "batch": {"cursor": cursor_at(&epoch_of(folded), folded.last_seq), "items": items, "removedItemIds": [], "submissions": []}, "fence": FENCE, "hostNow": now_ms()});
     if let (Some(f), Some(w)) = (frame.as_object_mut(), current_work(folded).as_object()) {
         f.extend(w.clone());
     }
@@ -38,7 +38,7 @@ fn batch(session: &str, folded: &crate::fold::Folded, after: u64) -> Value {
 }
 
 pub(crate) fn open(ctx: &mut Ctx, params: &Value) -> Result<Box<dyn Subscription>, Failure> {
-    let session = crate::session::text(params, "sessionId").ok_or_else(|| Failure::invalid("Invalid session id"))?.to_string();
+    let session = crate::session::agent_session_id(params)?.to_string();
     let agent = ctx.agent_handle.clone();
     crate::journal::view(agent.as_ref(), &session)?;
     let (events, _) = events_after(agent.as_ref(), &session, 0)?;
@@ -48,7 +48,7 @@ pub(crate) fn open(ctx: &mut Ctx, params: &Value) -> Result<Box<dyn Subscription
         None => json!({"type": "snapshot", "sessionId": session, "page": page(&session, &folded, "tail", None, journal::DEFAULT_LIMIT), "fence": FENCE, "hostNow": now_ms()}),
         Some(c) => {
             let at = c["sequence"].as_u64().unwrap_or(0);
-            let reset = if c["epoch"] != EPOCH { Some("epoch_changed") } else if at > folded.last_seq { Some("cursor_ahead") } else { None };
+            let reset = if c["epoch"] != epoch_of(&folded).as_str() { Some("epoch_changed") } else if at > folded.last_seq { Some("cursor_ahead") } else { None };
             match reset {
                 Some(reason) => json!({"type": "reset", "sessionId": session, "reset": reason, "page": page(&session, &folded, "tail", None, journal::DEFAULT_LIMIT), "fence": FENCE}),
                 None => batch(&session, &folded, at),

@@ -76,6 +76,8 @@ fn uint(object: &Map<String, Value>, key: &str) -> Result<u64, Failure> {
 fn string<'a>(object: &'a Map<String, Value>, key: &str, max: usize) -> Result<&'a str, Failure> {
     match object.get(key).and_then(Value::as_str) {
         Some(s) if !s.is_empty() && s.chars().count() <= max => Ok(s),
+        _ if !object.contains_key(key) => Err(Failure::invalid("Invalid input: expected string, received undefined")),
+        _ if !object[key].is_string() => Err(Failure::invalid(format!("Invalid input: expected string, received {}", orca_core::wire::received(&object[key])))),
         _ => Err(Failure::invalid(format!("Invalid input: {key} must be 1 to {max} characters"))),
     }
 }
@@ -130,6 +132,26 @@ pub(crate) fn parse_path(path: &str) -> Option<(String, String)> {
 
 fn store_path(id: &str, name: &str) -> String {
     format!("{STORE_ROOT}/{id}/{name}")
+}
+
+fn staged_path_key(path: &str) -> String {
+    use sha2::{Digest, Sha256};
+    format!("clipboard-image:{:x}", Sha256::digest(path.as_bytes()))
+}
+
+pub(crate) fn remember_staged_image(agent: &dyn AgentApi, path: &str, id: &str, name: &str) -> Result<(), Failure> {
+    crate::agent::state_set(agent, &staged_path_key(path), json!(store_path(id, name)))
+}
+
+fn image_path(agent: &dyn AgentApi, path: &str) -> Result<Option<(String, String)>, Failure> {
+    if let Some(attachment) = parse_path(path) {
+        return Ok(Some(attachment));
+    }
+    if !path.starts_with('/') || !path.rsplit('/').nth(1).is_some_and(|dir| dir.starts_with("rca-paste-")) {
+        return Ok(None);
+    }
+    let stored = crate::agent::state_get(agent, &staged_path_key(path))?;
+    Ok(stored.as_ref().and_then(Value::as_str).and_then(parse_path))
 }
 
 fn base64_ok(text: &str) -> bool {
@@ -235,7 +257,7 @@ fn window(agent: &dyn AgentApi, id: &str, offset: u64, length: u64) -> Result<Op
 
 /// The whole of an image attachment as the phone's preview reply, or the host's uniform refusal.
 fn image_preview(agent: &dyn AgentApi, path: &str, refusal: &str) -> Result<Value, Failure> {
-    let (id, name) = parse_path(path).ok_or_else(|| plain(refusal))?;
+    let (id, name) = image_path(agent, path)?.ok_or_else(|| plain(refusal))?;
     let mime = orca_map_workspace::image_mime(&name).ok_or_else(|| plain(refusal))?;
     let limit = orca_map_workspace::previewable_limit() as u64;
     let (view, mut bytes) = window(agent, &id, 0, CHUNK_MAX)?.ok_or_else(|| plain(refusal))?;
@@ -290,12 +312,12 @@ pub(crate) fn read_text_chunk(agent: &dyn AgentApi, params: &Value) -> Result<Va
     Ok(json!({"size": size, "snapshot": snapshot, "contentBase64": STANDARD.encode(&bytes), "bytesRead": read, "eof": offset + read == size}))
 }
 
-/// The attachment ids a send body names, in order: an `image-ref` by a path of this host's store. A url is refused.
-pub(crate) fn image_ids(blocks: &[&Value]) -> Result<Vec<String>, Failure> {
+/// Attachment ids from the store or from a photo staged by the clipboard upload.
+pub(crate) fn image_ids(agent: &dyn AgentApi, blocks: &[&Value]) -> Result<Vec<String>, Failure> {
     blocks
         .iter()
         .map(|b| match (b["path"].as_str(), b["url"].as_str()) {
-            (Some(path), None) => parse_path(path).map(|(id, _)| id).ok_or_else(|| Failure::invalid("Image path is not an attachment of this host")),
+            (Some(path), None) => image_path(agent, path)?.map(|(id, _)| id).ok_or_else(|| Failure::invalid("Image path is not an attachment of this host")),
             _ => Err(Failure::invalid("Image urls are not served by this host: upload the image as an attachment")),
         })
         .collect()

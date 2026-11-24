@@ -1,0 +1,157 @@
+{
+ "schema": "mimic-scenarios/1",
+ "app": "t3",
+ "source": "clis/t3-serve/cassettes/t3-api",
+ "counts": {
+  "endpoints": 10,
+  "scenarios": 8,
+  "populated": 10,
+  "emptyOnly": 0
+ },
+ "scenarios": [
+  {
+   "id": "t3-method-queued-run.start",
+   "kind": "story",
+   "rows": [
+    "command:run.interrupt",
+    "command:queued-run.start"
+   ],
+   "note": "interrupt the running turn and hold the queue, then start the first queued message by hand"
+  },
+  {
+   "id": "t3-method-thread.fork",
+   "kind": "story",
+   "rows": [
+    "command:thread.fork"
+   ],
+   "note": "fork a thread of Claude that has no turn from its latest stable point"
+  },
+  {
+   "id": "t3-method-thread.merge_back",
+   "kind": "story",
+   "rows": [
+    "command:thread.fork",
+    "command:thread.merge_back"
+   ],
+   "note": "fork a thread of Claude that has no turn and merge the fork back"
+  },
+  {
+   "id": "t3-method-thread.create",
+   "kind": "story",
+   "rows": [
+    "command:thread.create"
+   ],
+   "note": "create a thread of Claude in the prelude project"
+  },
+  {
+   "id": "t3-method-project.create",
+   "kind": "story",
+   "rows": [
+    "mutation:project.create"
+   ],
+   "note": "create a project in a folder below the workspace that does not exist yet"
+  },
+  {
+   "id": "t3-method-project.delete",
+   "kind": "story",
+   "rows": [
+    "mutation:project.create",
+    "mutation:project.delete"
+   ],
+   "note": "create a project below the workspace and delete it"
+  },
+  {
+   "id": "t3-method-vcs.refreshBranch",
+   "kind": "story",
+   "rows": [
+    "rpc:vcs.init",
+    "rpc:vcs.refreshBranch"
+   ],
+   "note": "make the workspace a repository, then refresh its branch"
+  },
+  {
+   "id": "t3-method-subscribeVcsBranch",
+   "kind": "story",
+   "rows": [
+    "rpc:vcs.init",
+    "rpc:subscribeVcsBranch"
+   ],
+   "note": "make the workspace a repository, then subscribe to its branch"
+  }
+ ],
+ "coverage": [
+  {
+   "row": "command:run.interrupt",
+   "state": "populated",
+   "via": [
+    "t3-method-queued-run.start"
+   ]
+  },
+  {
+   "row": "command:queued-run.start",
+   "state": "populated",
+   "via": [
+    "t3-method-queued-run.start"
+   ]
+  },
+  {
+   "row": "command:thread.fork",
+   "state": "populated",
+   "via": [
+    "t3-method-thread.fork",
+    "t3-method-thread.merge_back"
+   ]
+  },
+  {
+   "row": "command:thread.merge_back",
+   "state": "populated",
+   "via": [
+    "t3-method-thread.merge_back"
+   ]
+  },
+  {
+   "row": "command:thread.create",
+   "state": "populated",
+   "via": [
+    "t3-method-thread.create"
+   ]
+  },
+  {
+   "row": "mutation:project.create",
+   "state": "populated",
+   "via": [
+    "t3-method-project.create",
+    "t3-method-project.delete"
+   ]
+  },
+  {
+   "row": "mutation:project.delete",
+   "state": "populated",
+   "via": [
+    "t3-method-project.delete"
+   ]
+  },
+  {
+   "row": "rpc:vcs.init",
+   "state": "populated",
+   "via": [
+    "t3-method-vcs.refreshBranch",
+    "t3-method-subscribeVcsBranch"
+   ]
+  },
+  {
+   "row": "rpc:vcs.refreshBranch",
+   "state": "populated",
+   "via": [
+    "t3-method-vcs.refreshBranch"
+   ]
+  },
+  {
+   "row": "rpc:subscribeVcsBranch",
+   "state": "populated",
+   "via": [
+    "t3-method-subscribeVcsBranch"
+   ]
+  }
+ ]
+}

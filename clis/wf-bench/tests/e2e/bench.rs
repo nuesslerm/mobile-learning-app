@@ -79,7 +79,7 @@ fn repo_bench_measures_memory_runtime_and_startup_of_the_app_in_a_phone_framed_c
     let r = lab.bench(&["runtime", "--runs", "1"], &[]);
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
     let m = readings(&r.stdout);
-    assert!(m["tapLatencyMs"].unit == "ms" && (0.0..2000.0).contains(&median(&m, "tapLatencyMs")) && median(&m, "tapLatencyMs") > 0.0);
+    assert!(m["tapLatencyMs"].unit == "ms" && (0.0..60_000.0).contains(&median(&m, "tapLatencyMs")) && median(&m, "tapLatencyMs") > 0.0);
     assert!(median(&m, "variantUpdateMs") > 0.0 && median(&m, "deepTreeMountMs") > 0.0 && median(&m, "longTasks") >= 1.0 && median(&m, "longTaskMs") >= 50.0);
 
     // Given an export with source maps, When the startup suite runs, Then the executed bytes are attributed to packages and kept

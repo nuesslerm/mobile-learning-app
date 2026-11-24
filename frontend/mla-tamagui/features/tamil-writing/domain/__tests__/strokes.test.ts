@@ -7,6 +7,7 @@ import {
   inkLength,
   pointsToPath,
   pointsToSmoothPath,
+  strokesToSvg,
   type Stroke,
 } from '../strokes';
 
@@ -161,5 +162,24 @@ describe('pointsToSmoothPath', () => {
       { x: 9, y: 1 },
     ]);
     expect(path.endsWith('9 1')).toBe(true);
+  });
+});
+
+describe('strokesToSvg', () => {
+  it('Given a line and a single tap, When the ink is made an SVG, Then both are drawn, the tap as a dot as wide as the stroke', () => {
+    const line: Stroke = [
+      { x: 10, y: 100 },
+      { x: 80, y: 100 },
+    ];
+    const tap: Stroke = [{ x: 40, y: 60 }];
+
+    const svg = strokesToSvg([line, tap], CANVAS, 8);
+
+    expect(svg).toContain('<path');
+    expect(svg).toContain('<circle cx="40" cy="60" r="4" fill="#000"/>');
+  });
+
+  it('Given no strokes, When the ink is made an SVG, Then it is a blank page', () => {
+    expect(strokesToSvg([], CANVAS)).not.toMatch(/<path|<circle/);
   });
 });

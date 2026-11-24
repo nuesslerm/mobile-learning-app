@@ -7,7 +7,7 @@ import {
 } from '@lib/tamagui-design-system';
 import { Plug, RefreshCw } from '@lib/tamagui-design-system/icons';
 
-import type { OrchestrationGatewayStatus } from '../data/orchestrationGateway';
+import type { OrchestrationGatewayStatus } from '../domain/ports';
 import { useGatewayStore } from '../state/gatewayStore';
 
 const STATUS_LABEL: Partial<Record<OrchestrationGatewayStatus, string>> = {

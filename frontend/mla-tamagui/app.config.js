@@ -51,6 +51,7 @@ function expoConfig(_config) {
       },
       plugins: [
         'expo-router',
+        'expo-font',
         // Without it a dev or EAS build has no NSMicrophoneUsageDescription: iOS closes the app the first time the
         // voice editor records. Expo Go supplies its own string, which is why nothing failed there.
         [
@@ -81,9 +82,9 @@ function expoConfig(_config) {
       updates: {
         url: 'https://u.expo.dev/5d273b55-a8fc-4e4a-bae7-14d1a9f7eb57',
       },
-      // Matches the SDK of Expo Go (57), and it is what makes an update loadable in Expo Go
+      // Matches the SDK of Expo Go (58), and it is what makes an update loadable in Expo Go
       // rather than only in a custom dev client.
-      runtimeVersion: 'exposdk:57.0.0',
+      runtimeVersion: 'exposdk:58.0.0',
     },
   };
 }

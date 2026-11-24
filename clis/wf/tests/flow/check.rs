@@ -81,3 +81,85 @@ fn dead_refs_names_each_path_link_package_command_verb_method_and_script_that_is
     let r = staged();
     assert!(r.exit_code == 1 && r.stdout.contains("clis/gone/src/x.ts"), "{}", r.stdout);
 }
+
+fn arch_repo(prefix: &str) -> tempfile::TempDir {
+    let repo = tempfile::Builder::new().prefix(prefix).tempdir().unwrap();
+    let root = repo.path();
+    git(root, &["init", "-q"]);
+    put(root, "sgconfig.yml", "ruleDirs:\n  - arch-rules\ntestConfigs:\n  - testDir: arch-tests\n");
+    put(root, "arch-rules/a.yml", "id: a\nlanguage: rust\nignores:\n  - \"**/one.rs\"\nrule:\n  pattern: x\n");
+    put(root, "arch-tests/a-test.yml", "id: a\nvalid:\n  - y\ninvalid:\n  - x\n");
+    put(root, "app/.dependency-cruiser-known-violations.json", r#"[{"from":"a","to":"b","rule":{"name":"r"}}]"#);
+    git(root, &["add", "-A"]);
+    git(root, &["commit", "-q", "-m", "base"]);
+    let head = git(root, &["rev-parse", "HEAD"]);
+    git(root, &["update-ref", "refs/remotes/origin/dev", &head]);
+    repo
+}
+
+fn arch(root: &Path) -> (i32, Value) {
+    let r = run_wf(&["check", "--arch"], &RunOpts::default().cwd(root));
+    (r.exit_code, serde_json::from_str(r.stdout.trim()).unwrap_or(Value::Null))
+}
+
+fn kinds(v: &Value) -> Vec<String> {
+    v["findings"].as_array().unwrap().iter().map(|f| format!("{}:{}", f["kind"].as_str().unwrap(), f["file"].as_str().unwrap())).collect()
+}
+
+#[test]
+fn arch_passes_a_rule_set_whose_baselines_hold_and_whose_rules_are_all_tested() {
+    // Given a rule with a valid and an invalid case and baselines equal to the merge-base
+    let repo = arch_repo("wf-flow-arch-clean-");
+
+    // When the rule set is checked
+    let (code, v) = arch(repo.path());
+
+    // Then it passes
+    assert_eq!(code, 0, "{v}");
+    assert!(kinds(&v).is_empty());
+}
+
+#[test]
+fn arch_fails_a_baseline_or_ignores_list_that_grew_and_one_that_names_a_wildcard() {
+    // Given one more baseline entry, one more ignores entry and a wildcard ignore, staged on top of the merge-base
+    let repo = arch_repo("wf-flow-arch-ratchet-");
+    let root = repo.path();
+    put(root, "app/.dependency-cruiser-known-violations.json", r#"[{"from":"a","to":"b","rule":{"name":"r"}},{"from":"c","to":"d","rule":{"name":"r"}}]"#);
+    put(root, "arch-rules/a.yml", "id: a\nlanguage: rust\nignores:\n  - \"**/one.rs\"\n  - \"src/*.rs\"\nrule:\n  pattern: x\n");
+    git(root, &["add", "-A"]);
+
+    // When the rule set is checked
+    let (code, v) = arch(root);
+
+    // Then each growth and the wildcard are named, and the exit code is 1
+    assert_eq!(code, 1);
+    assert_eq!(kinds(&v), vec!["grew:app/.dependency-cruiser-known-violations.json", "wildcard:arch-rules/a.yml", "grew:arch-rules/a.yml"]);
+}
+
+#[test]
+fn arch_fails_a_rule_with_no_test_and_a_test_with_no_invalid_case() {
+    // Given a second rule with no test and a third whose test has no invalid case
+    let repo = arch_repo("wf-flow-arch-untested-");
+    let root = repo.path();
+    put(root, "arch-rules/b.yml", "id: b\nlanguage: rust\nrule:\n  pattern: x\n");
+    put(root, "arch-rules/c.yml", "id: c\nlanguage: rust\nrule:\n  pattern: x\n");
+    put(root, "arch-tests/c-test.yml", "id: c\nvalid:\n  - y\n");
+    git(root, &["add", "-A"]);
+
+    // When the rule set is checked
+    let (code, v) = arch(root);
+
+    // Then both are named, and the exit code is 1
+    assert_eq!(code, 1);
+    assert_eq!(kinds(&v), vec!["untested:arch-rules/b.yml", "untested:arch-tests/c-test.yml"]);
+}
+
+#[test]
+fn the_layout_help_says_a_pass_proves_shape_and_edges_only() {
+    // Given the binary
+    // When a caller asks for the help of the check verb
+    let help = run_wf(&["check", "--help"], &RunOpts::default().clean_env());
+    // Then the layout flag states what a pass proves
+    let text = help.stdout.split_whitespace().collect::<Vec<_>>().join(" ");
+    assert!(text.contains("A pass proves shape and edges only"), "{text}");
+}

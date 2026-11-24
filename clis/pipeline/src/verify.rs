@@ -141,17 +141,17 @@ fn measure(root: &Path) -> Option<Vec<Budget>> {
     for found in &library_paths {
         wf_kit::wf_err!("wf: path dependency on a versioned library ({found}): use `version = \"<x.y>\", registry = \"<alias>\"` as libraries.json says; to edit a library against a service, use cargo `--config patch.mla.<name>.path` (wf lib --help)");
     }
-    let cargo_deps = crate::cargo_deps::violations(root);
-    for found in &cargo_deps {
-        wf_kit::wf_err!("wf: crate dependency rule broken ({found}): see docs/plans/rca-parity/plan.md section 3, Rules");
-    }
-    let blast_radius = crate::blast_radius::check(root).findings;
-    for found in &blast_radius {
-        wf_kit::wf_err!("wf: blast radius rule broken ({found})");
+    let unused_workspace_deps = crate::workspace_deps::check(root);
+    for found in &unused_workspace_deps {
+        wf_kit::wf_err!("wf: workspace dependency rule broken ({found})");
     }
     let crossings = crate::workspace_crossings::check(root).findings;
     for found in &crossings {
         wf_kit::wf_err!("wf: workspace crossing rule broken ({found})");
+    }
+    let ts_packages = crate::ts_packages::check(root).findings;
+    for found in &ts_packages {
+        wf_kit::wf_err!("wf: ts package rule broken ({found})");
     }
     let cargo_inputs = crate::cargo_inputs::check(root).findings;
     for found in &cargo_inputs {
@@ -184,13 +184,14 @@ fn measure(root: &Path) -> Option<Vec<Budget>> {
         Budget { name: "concepts-dangling-links", value: dangling_links(root, "CONCEPTS.md")?, limit: 0, gated: true },
         // A core does no I/O: no I/O crate, and no tokio I/O feature, in its manifest or in the workspace tokio it inherits.
         Budget { name: "backend-core-io-violations", value: crate::core_purity::count(root), limit: 0, gated: true },
-        // The plan's dependency rules between crates: exec-testkit is a dev-dependency of its few users only (`TESTKIT_USERS` in `cargo_deps`), and an adapter library
-        // depends on nothing that consumes it (Cargo allows that cycle through a dev-dependency).
-        Budget { name: "cargo-dep-violations", value: cargo_deps.len(), limit: 0, gated: true },
-        // A crate's blast radius stays within its checked-in budget, and no low-level crate depends on a heavy one (`blast_radius`).
-        Budget { name: "blast-radius-violations", value: blast_radius.len(), limit: 0, gated: true },
+        // `service-core` asks the system for time, random ids and file existence directly in this many places; each moves behind a port, so the limit only goes down.
+        Budget { name: "core-ambient-calls", value: crate::core_purity::ambient_calls(root), limit: 0, gated: true },
+        // No crate declares a workspace crate its sources never name (`workspace_deps`).
+        Budget { name: "unused-workspace-dep-violations", value: unused_workspace_deps.len(), limit: 0, gated: true },
         // A path dependency across a Cargo workspace boundary is on the checked-in list, and the list only shrinks (`workspace_crossings`).
         Budget { name: "workspace-crossing-violations", value: crossings.len(), limit: 0, gated: true },
+        // A TypeScript package lives in frontend/ unless it is on the checked-in list, and the list only shrinks (`ts_packages`).
+        Budget { name: "ts-package-violations", value: ts_packages.len(), limit: 0, gated: true },
         // No CI job asks for a key past its class: an open job reads ci-open and public keys, no job reads a vm key (`wf secret scope-check`).
         Budget { name: "ci-scope-violations", value: scope_check.len(), limit: 0, gated: true },
         // Every third-party action is pinned to a commit sha, so a moved tag cannot change what a job runs (`workflow_hygiene`).
@@ -263,11 +264,33 @@ pub fn is_code(f: &str) -> bool {
     [".ts", ".tsx", ".mts", ".cts", ".js", ".mjs", ".cjs", ".json"].iter().any(|e| f.ends_with(e))
 }
 
+/// What the editor page's bundle is built from: the page source and every module it imports (the host, the editor API and the
+/// bridge under it, logging), so a change to any of them stales `cm6Bundle.ts` until it is rebuilt.
 fn is_cm6_input(f: &str) -> bool {
     f == "pnpm-lock.yaml"
-        || f == "frontend/mla-tamagui/features/leetcode/code-editor/core/cm6Bundle.ts"
-        || f == "frontend/mla-tamagui/features/leetcode/code-editor/core/cm6Bundle.src.ts"
+        || f.starts_with("frontend/mla-tamagui/features/leetcode/data/editor/cm6/")
+        || f.starts_with("frontend/mla-tamagui/features/leetcode/domain/editor/")
+        || f.starts_with("frontend/libraries/code-editor-api/src/")
+        || f.starts_with("frontend/libraries/webview-rpc/src/")
         || f.starts_with("frontend/libraries/logging/")
+}
+
+fn is_pyodide_input(f: &str) -> bool {
+    f == "pnpm-lock.yaml"
+        || f == "frontend/mla-tamagui/scripts/pyodide-bundle.mjs"
+        || f.starts_with("frontend/mla-tamagui/features/leetcode/data/pyodide/")
+        || f.starts_with("frontend/libraries/webview-rpc/")
+}
+
+/// What the JavaScript runner's page is built from: its sources and the worker harness (not its tests), the judge protocol it shares
+/// with the other runners, the bridge, and the two build scripts.
+fn is_js_runner_input(f: &str) -> bool {
+    f == "pnpm-lock.yaml"
+        || f == "frontend/mla-tamagui/scripts/js-runner-build.mjs"
+        || f == "frontend/mla-tamagui/scripts/js-runner-bundle.mjs"
+        || f == "frontend/mla-tamagui/features/leetcode/data/runner/judgeProtocol.ts"
+        || (f.starts_with("frontend/mla-tamagui/features/leetcode/data/javascript/") && !f.contains("/__tests__/"))
+        || f.starts_with("frontend/libraries/webview-rpc/src/")
 }
 
 pub struct Package {
@@ -362,14 +385,14 @@ fn run_nx(nx: &Path, root: &Path, targets: &str, projects: &[String], env: &[(&s
     ran.code
 }
 
-/// Typecheck, unit and flow tests of every package a staged code file reaches (the file's package and what depends on it).
+/// Typecheck and unit tests of every package a staged code file reaches (the file's package and what depends on it). The flow suites run in CI: the owner cut them from the pre-commit gate (23 Nov 2026), which took 6 to 25 minutes a commit.
 fn run_gate(nx: &Path, root: &Path, files: &[String], packages: &[Package], env: &[(&str, String)]) -> i32 {
     let affected = affected(files, packages);
     if affected.is_empty() {
         println!("verify: no workspace package affected");
         return 0;
     }
-    run_nx(nx, root, "typecheck,test:unit,test:flow", &affected, env)
+    run_nx(nx, root, "typecheck,test:unit", &affected, env)
 }
 
 /// The projects that own a staged file: a file's lint is its own project's, not its dependents'. A file no package owns belongs
@@ -541,7 +564,10 @@ fn fixture_gate(root: &Path, files: &[String]) -> i32 {
     0
 }
 
-/// `check --staged [--files ...]`: lint, the budget, `dead_refs`, the editor bundle and the tests of what is staged (or named).
+/// A generated page: whether a staged file is one it is built from, and the Nx target that checks it fresh.
+type PageGate = (fn(&str) -> bool, &'static str);
+
+/// `check --staged [--files ...]`: lint, the budget, `dead_refs`, the editor bundle, the Pyodide bundle, the JavaScript runner's page and the tests of what is staged (or named).
 pub fn staged(args: &[String], dead_refs: DeadRefs) -> Option<i32> {
     let p = parse_spec(args, &STAGED)?;
     let files_arg: Option<Vec<String>> = p.flag("files").then(|| p.values("files").into_iter().map(str::to_string).collect());
@@ -588,10 +614,15 @@ pub fn staged(args: &[String], dead_refs: DeadRefs) -> Option<i32> {
     if fixtures != 0 {
         return Some(fixtures);
     }
-    if files.iter().any(|f| is_cm6_input(f)) {
+    // the generated pages: each is checked fresh when a file it is built from is staged
+    let pages: [PageGate; 3] = [(is_cm6_input, "check:editor-bundle"), (is_pyodide_input, "check:pyodide"), (is_js_runner_input, "check:js-runner")];
+    for (is_input, target) in pages {
+        if !files.iter().any(|f| is_input(f)) {
+            continue;
+        }
         let code = match &gate {
-            Some(g) => run_nx(&g.nx, &root, "check:editor-bundle", &["mla-tamagui".to_string()], &g.env()),
-            None => exec("pnpm --filter mla-tamagui run check:editor-bundle"),
+            Some(g) => run_nx(&g.nx, &root, target, &["mla-tamagui".to_string()], &g.env()),
+            None => exec(&format!("pnpm --filter mla-tamagui run {target}")),
         };
         if code != 0 {
             return Some(if lint_code != 0 { lint_code } else { code });
@@ -606,14 +637,13 @@ pub fn staged(args: &[String], dead_refs: DeadRefs) -> Option<i32> {
 
 /* ---------- the apps a path reaches ---------- */
 
-pub const APP_PATHS: [(&str, &str); 14] = [
+pub const APP_PATHS: [(&str, &str); 13] = [
     ("frontend/mla-tamagui", "mla-tamagui"),
     ("infra/oracle-cloud/vm-ops-api", "vm-ops-api"),
     ("infra/oracle-cloud/watchdog", "vm-ops-api"),
     ("backend/watchdog", "vm-ops-api"),
     ("backend/vm-ops-api", "vm-ops-api"),
     ("infra/oracle-cloud/agent-shell", "agent-shell"),
-    ("infra/oracle-cloud/ci-runner", "ci-runner"),
     ("clis/vnc-auth-capture", "vnc-auth-session"),
     ("backend/leetcode-backend", "leetcode-backend"),
     ("backend/remote-chat-agent", "remote-chat-agent"),
@@ -643,26 +673,34 @@ pub fn apps_for_paths(paths: &[String]) -> Vec<&'static str> {
     apps
 }
 
-pub const BUDGET: Spec = Spec { flags: &["budget", "strict", "blast-radius", "unused-deps", "workspace-crossings", "cargo-inputs"], positional: Positional::None, ..Spec::NONE };
+pub const BUDGET: Spec = Spec { flags: &["budget", "strict", "unused-workspace-deps", "unused-deps", "workspace-crossings", "ts-packages", "cargo-inputs"], positional: Positional::None, ..Spec::NONE };
 
 /// `check --budget [--strict]`.
 pub fn budget(args: &[String]) -> Option<i32> {
     let p = parse_spec(args, &BUDGET)?;
     let strict = p.flag("strict");
     let root = repo_root();
-    if p.flag("blast-radius") {
-        let report = crate::blast_radius::check(&root);
-        println!("{}", report.json);
-        for found in &report.findings {
-            wf_kit::wf_err!("wf: blast radius rule broken ({found})");
+    if p.flag("unused-workspace-deps") {
+        let findings = crate::workspace_deps::check(&root);
+        println!("{}", serde_json::json!({ "findings": findings }));
+        for found in &findings {
+            wf_kit::wf_err!("wf: workspace dependency rule broken ({found})");
         }
-        return Some(i32::from(!report.findings.is_empty()));
+        return Some(i32::from(!findings.is_empty()));
     }
     if p.flag("workspace-crossings") {
         let report = crate::workspace_crossings::check(&root);
         println!("{}", report.json);
         for found in &report.findings {
             wf_kit::wf_err!("wf: workspace crossing rule broken ({found})");
+        }
+        return Some(i32::from(!report.findings.is_empty()));
+    }
+    if p.flag("ts-packages") {
+        let report = crate::ts_packages::check(&root);
+        println!("{}", report.json);
+        for found in &report.findings {
+            wf_kit::wf_err!("wf: ts package rule broken ({found})");
         }
         return Some(i32::from(!report.findings.is_empty()));
     }
@@ -675,7 +713,7 @@ pub fn budget(args: &[String]) -> Option<i32> {
         return Some(i32::from(!report.findings.is_empty()));
     }
     if p.flag("unused-deps") {
-        let found = crate::blast_radius::unused_dependencies(&root);
+        let found = crate::workspace_deps::unused_dependencies(&root);
         println!("{}", serde_json::json!({ "unused": found, "note": "a word scan of each crate's sources: a dependency used only through a macro or a feature is a candidate to check" }));
         return Some(0);
     }

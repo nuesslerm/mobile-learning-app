@@ -11,7 +11,6 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Ports {
-    pub spawner: Arc<dyn rca_cli_driver::application::ports::Spawner>,
     /// opencode as every use case asks it: the port, the clock and the environment it reads.
     pub client: Client,
     /// The engine behind the thread view, `/api/control` and `/api/question`.

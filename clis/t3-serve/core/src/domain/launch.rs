@@ -11,8 +11,8 @@ use sha2::{Digest, Sha256};
 pub enum Workspace {
     Root { branch: Option<String> },
     ExistingWorktree { path: String, branch: Option<String> },
-    /// A worktree the server would create from `baseRef`.
-    NewWorktree,
+    /// A worktree made from `base_ref` for the launch's first run, which waits for it.
+    NewWorktree { base_ref: String, branch: Option<String>, start_from_origin: bool },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -83,8 +83,12 @@ impl LaunchRequest {
             Some("root") => Workspace::Root { branch },
             Some("existing_worktree") => Workspace::ExistingWorktree { path: text(strategy, &["workspaceStrategy", "worktreePath"])?, branch },
             Some("worktree") => {
-                text(strategy, &["workspaceStrategy", "baseRef"])?;
-                Workspace::NewWorktree
+                let base_ref = text(strategy, &["workspaceStrategy", "baseRef"])?;
+                let start_from_origin = match strategy.get("startFromOrigin") {
+                    None => false,
+                    Some(flag) => flag.as_bool().ok_or_else(|| expected("boolean", &["workspaceStrategy", "startFromOrigin"]))?,
+                };
+                Workspace::NewWorktree { base_ref, branch, start_from_origin }
             }
             _ => return Err(expected("\"root\" | \"existing_worktree\" | \"worktree\"", &["workspaceStrategy", "type"])),
         };
@@ -120,10 +124,11 @@ impl LaunchRequest {
     }
 }
 
-/// A launch this server does not build, refused before anything is written: the pin creates the worktree and stores the files.
+/// A launch this server does not build, refused before anything is written: a worktree is prepared for the run the first message starts, so a
+/// launch without one has nothing to prepare it for.
 pub fn unsupported(req: &LaunchRequest) -> Option<&'static str> {
-    if req.workspace == Workspace::NewWorktree {
-        return Some("worktree launches are not supported by this server; launch on the project root or an existing worktree");
+    if matches!(req.workspace, Workspace::NewWorktree { .. }) && req.initial_message.is_none() {
+        return Some("a worktree launch needs its first message: the worktree is prepared for the run that message starts");
     }
     None
 }
@@ -167,7 +172,7 @@ pub fn claim(req: &LaunchRequest, thread_id: &str) -> Value {
     let (branch, worktree) = match &req.workspace {
         Workspace::Root { branch } => (branch.clone(), None),
         Workspace::ExistingWorktree { path, branch } => (branch.clone(), Some(path.clone())),
-        Workspace::NewWorktree => (None, None),
+        Workspace::NewWorktree { branch, .. } => (branch.clone(), None),
     };
     let mut command = json!({
         "commandId": req.command_id,
@@ -198,13 +203,24 @@ pub fn initial_message(req: &LaunchRequest, thread_id: &str) -> Option<Value> {
     if !m.attachments.is_empty() {
         message["attachments"] = json!(m.attachments);
     }
-    Some(json!({
+    let mut command = json!({
         "type": "message.dispatch",
         "commandId": format!("{}:initial-message", req.command_id),
         "threadId": thread_id,
         "message": message,
         "createdBy": "user",
         "creationSource": req.creation_source,
-    }))
+    });
+    if let Workspace::NewWorktree { base_ref, branch, start_from_origin } = &req.workspace {
+        let mut strategy = json!({"type": "worktree", "baseRef": base_ref});
+        if let Some(branch) = branch {
+            strategy["branch"] = json!(branch);
+        }
+        if *start_from_origin {
+            strategy["startFromOrigin"] = json!(true);
+        }
+        command["dispatchMode"] = json!({"type": "defer_start", "workspaceStrategy": strategy});
+    }
+    Some(command)
 }
 

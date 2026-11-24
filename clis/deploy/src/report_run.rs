@@ -600,9 +600,22 @@ pub fn run(args: &[String]) -> Option<i32> {
         eprint!("\nWritten to {out}\n");
     }
     if publish_flag {
+        // on a hosted runner the report goes to the job's CI database too, and ORDS being gone is then no failure
+        let kept = match report.as_object().map(|r| wf_bucket::ci_db::record("HEALTH_REPORTS", r)) {
+            Some(Ok(true)) => {
+                eprint!("\nKept in the CI database\n");
+                true
+            }
+            Some(Err(e)) => {
+                wf_kit::wf_err!("wf: the report was not kept in the CI database: {e}");
+                false
+            }
+            _ => false,
+        };
         let outcome = load_ords().and_then(|cfg| publish(&cfg, &report).map(|()| cfg.url));
         match outcome {
             Ok(url) => eprint!("\nPublished to {url}\n"),
+            Err(e) if kept => eprint!("\nNot published to ORDS: {e}\n"),
             Err(e) => {
                 wf_kit::wf_err!("wf: {e}");
                 return Some(1);

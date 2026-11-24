@@ -108,10 +108,13 @@ await session.drag('slider-thumb', { x: 0, y: 0.5 }, { x: 1, y: 0.5 });
 The editor is the real one. On web the app renders CodeMirror in an iframe
 (`lib/webview/ReactNativeWebView.web.tsx`, the page from `editorHtml.ts` with the
 real CM6 bundle), and flow tests run exactly that page inside jsdom.
-`session.editor()` waits until it has hydrated, then drives it through the
-bundle's own web test driver `window.__editor__`, the API the Playwright e2e
-tier uses. Every change goes through CodeMirror, so the app receives the same
-bridge messages a user's typing produces. No test sends a bridge message.
+`session.editor()` waits until the page's typed editor API is ready, then drives
+the editor through it (`window.__editorEngine__`, the API the app's own toolbar,
+runner and voice edit use): a client makes the calls and a document mirror gives
+synchronous reads of the text and the selection. Every change goes through
+CodeMirror, so the app receives the same bridge messages a user's typing
+produces. Focus and what the editor draws (the diff and error marks) are read from
+the iframe's DOM. No test sends a bridge message.
 
 ```ts
 const editor = await session.editor();
@@ -120,6 +123,12 @@ await editor.type('return []');
 expect(editor.text()).toContain('return []');
 expect(editor.diffRanges()).toEqual(['return [1, 2]']); // CodeMirror's .cm-diff-change marks
 ```
+
+`editor.keys(text)` types keystrokes through the editor's input handlers, and `editor.completions()`, `editor.completionOpen()` and `editor.pickCompletion(label)` read and press the suggestion list. `editor.tree()`, `editor.statementAt(pos)` and `editor.enclosingBlock(pos)` read the syntax tree the editor holds, through the same typed API. `editor.marks()` lists the marks the typed API holds (hidden ones too), `editor.errorLines()` is the text CodeMirror draws under `.cm-run-error` and `editor.revealedLine()` is the 1-based line of the last range the API revealed (the engine's record of it, since jsdom has no layout to scroll). `editor.apply(steps, options)` makes one call of steps through the typed API (the node steps `moveNode`, `wrapNode`, `deleteNode`... among them, `{preview: true}` to ask what a call would do) and answers the reply as it is, so a refusal is asserted on and not thrown; it waits for the mirror only when the call changed the text. `editor.undo()` undoes the last change and says whether there was one. `editor.config()` reads the config the editor has now (language, tab size, palette) and `editor.press('Enter')` presses a key on CodeMirror's content element, so its own keymap and the language's grammar act on it.
+
+### Golden capture is an extension
+
+The final screen of every test is written as a golden snapshot by `src/vitest/goldens.ts`, which `flowTestConfig` adds to `setupFiles` only when `FLOW_GOLDENS_OUT` is set (`wf flow run` sets it). A plain `vitest run` with a package's flow config skips it and runs about twice as fast on editor screens (the capture waits a second for the editor to go quiet). Explicit `session.screenshot(name)` calls still write.
 
 ### Rendering like the web export
 
@@ -256,14 +265,16 @@ captures it (a canvas's paths, markdown, chart marks).
 | --- | --- |
 | `react-native-gesture-handler` | ships untranspiled Flow syntax jsdom cannot parse; drives the real gesture callbacks from DOM pointer events |
 | `react-native-reanimated` | has no worklet runtime in jsdom; values and animations collapse to plain numbers |
-| `@gorhom/bottom-sheet` | a native sheet needs native layout and gesture runtimes; renders passthrough Views with a `data-sheet` marker (and `data-active-offset-y` when the web-only pan window is set) |
+| `@gorhom/bottom-sheet` | a native sheet needs native layout and gesture runtimes; renders passthrough Views with a `data-sheet` marker (`data-active-offset-y` when the web-only pan window is set, `data-keyboard-lift`: how far the design-system Sheet lifts its bottom edge for the keyboard) |
 | `react-native-safe-area-context` | supplies the insets and frame a device would: an iPhone 15 Pro's (59 top, 34 bottom) unless a test calls `setSafeAreaDevice('iphone-se' \| 'ipad-pro-11' \| 'none')`; the setup file resets it after every test |
 | `react-native-screens` | ships Flow-typed entry points jsdom cannot parse; its web overlay is a plain wrapper |
 | `react-native-markdown-display` | renders the markdown source as plain text |
 | `lucide-react-native` | real icons: per-icon imports load for real, and barrel imports are rewritten to each icon's own module (the barrel costs seconds of transform per suite); only non-icon names fall back to an inert stub |
 | `victory-native` | draws through skia, which has no jsdom runtime; chart logic outside the canvas stays real, marks are inert |
 | `@shopify/react-native-skia` | draws through CanvasKit, which has no jsdom runtime; the Canvas is a real element holding an SVG, and each primitive (Path, Circle, Rect, Text, Group) is drawn as its SVG twin with its paint, and keeps its geometry as data attributes |
-| `expo-router` | records navigation and mounts the current route through the router harness; inside a drawer, `useNavigation().getParent()` is the drawer and takes `OPEN_DRAWER`/`CLOSE_DRAWER`/`TOGGLE_DRAWER` |
+| `expo-router` | records navigation and mounts the current route through the router harness; inside a drawer, `useNavigation().getParent()` is the drawer and takes `OPEN_DRAWER`/`CLOSE_DRAWER`/`TOGGLE_DRAWER`; the navigator's header has no DOM, so a test opts in with `setStackHeadersRendered(true)` (before the render; a reset after each test turns it off) and gets the `options.header` of a screen's `Stack.Screen` where it sits and of a layout's `Stack.Screen` whose name ends the pathname above the slot (`[param]` matches one segment, `index` never); `ThemeProvider` renders only its children and records its value for `navigationTheme()`, `DefaultTheme` and `DarkTheme` are react-navigation's colours |
+| `expo-router` native header twin (`nativeHeaderTwin.cjs`) | a screen's native navigation bar (react-native-screens header items and a UIMenu) has nothing to run in jsdom; with `setStackHeadersRendered(true)` the options of a Stack.Screen that carry `unstable_headerLeftItems`, `unstable_headerRightItems` or a `headerTitle` and no `header` draw as DOM: items are buttons named `NativeHeaderItem-<accessibilityLabel or label>` with `data-shares-background`, `data-hides-shared-background` and the icon's SF Symbol name as data, a spacing item is a gap, a custom item shows its element, a menu opens a `role=menu` list (a row with a state is a `menuitemcheckbox` with `aria-checked`, a destructive row, a description, an inline submenu is a `role=group` section), an action with `keepsMenuPresented` leaves it open, a non-inline submenu replaces the list in place by a header row that returns, and a kept-open pick inside a submenu returns to the root because expo-router documents that such an action recreates the menu. The bar carries `data-options-version`, how many times its Stack.Screen's options object was replaced (a bar rebuilt from a new object is what recreates an open UIMenu on a phone). It proves wiring and the documented behaviour only: never glass, the morph, or how UIKit rebuilds a menu when its state changes (a phone shows those) |
+| `expo-glass-effect` | the real package is plain JavaScript off iOS (a View, and `false` from both availability checks), so it would load in jsdom and never take the native branch; the stub answers `isLiquidGlassAvailable()` and `isGlassEffectAPIAvailable()` from `setLiquidGlass(true)` (false by default, reset after each test), and a `GlassView` or `GlassContainer` then carries `data-glass-style`, `data-glass-tint`, `data-glass-interactive`, `data-glass-color-scheme` or `data-glass-container` and `data-glass-spacing`; it shows that the branch ran, never glass |
 | `expo-router/drawer` (.mjs) | the navigator is expo-router's runtime and its vendored react-navigation ships Flow syntax; the drawer is the real `react-native-drawer-layout` view (resolved from the package's own expo-router), closed until a screen or the drawer content opens it, so goldens show the screen as a phone does |
 | `expo-audio` | cannot load under jsdom and is never exercised — the recorder port is injected via the double |
 | `@react-native-async-storage/async-storage` | an in-memory map on `globalThis`, seeded and inspected through the storage harness |

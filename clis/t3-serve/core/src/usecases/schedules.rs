@@ -23,7 +23,10 @@ fn error(message: impl Into<String>, task: Option<&str>) -> QueryFailure {
 }
 
 fn refused(e: &AgentError, task: Option<&str>) -> QueryFailure {
-    error(e.message(), task)
+    match e {
+        AgentError::Refused { code, .. } if code == "SCHEDULE_NOT_FOUND" => error("Schedule task not found.", task),
+        _ => error(e.message(), task),
+    }
 }
 
 /// The agent API's schedule for the phone's, or why rca cannot keep it.
@@ -142,8 +145,26 @@ impl Service {
     /// `scheduledTasks.delete`
     pub fn scheduled_delete(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let id = field(payload, "id")?;
-        self.schedule_op("schedule.delete", None, json!({"id": id})).map_err(|e| refused(&e, Some(id)))?;
+        match self.schedule_op("schedule.delete", None, json!({"id": id})) {
+            // Deleting what is not there is done, as the pin has it
+            Err(AgentError::Refused { code, .. }) if code == "SCHEDULE_NOT_FOUND" => {}
+            other => drop(other.map_err(|e| refused(&e, Some(id)))?),
+        }
         Ok(json!({"id": id}))
+    }
+
+    /// `scheduledTasks.listWebhookDeliveries`: rca records no delivery of a webhook (a call to its URL starts the run and nothing more), so
+    /// every task, known or not, has none.
+    pub fn scheduled_webhook_deliveries(&self, payload: &Value) -> Result<Value, QueryFailure> {
+        field(payload, "id")?;
+        Ok(json!({"deliveries": []}))
+    }
+
+    /// `scheduledTasks.getWebhookDelivery`: with no delivery recorded, none is found.
+    pub fn scheduled_webhook_delivery(&self, payload: &Value) -> Result<Value, QueryFailure> {
+        let id = field(payload, "id")?;
+        field(payload, "deliveryId")?;
+        Err(error("Webhook delivery not found.", Some(id)))
     }
 
     /// `scheduledTasks.runNow`: the task's turn started; the run is the thread's and the subscription's.

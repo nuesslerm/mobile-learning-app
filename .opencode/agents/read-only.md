@@ -1,5 +1,5 @@
 ---
-description: Answers from the prompt and the files sent with it; it cannot edit files or run commands. Used by wf offload ask --agent read-only for the callers that must not change a checkout (the Gem draft, the visual judge).
+description: Answers from the prompt and the files sent with it; it cannot edit files or run commands. Used by wf rca ask --agent read-only for the callers that must not change a checkout (the Gem draft, the visual judge).
 mode: primary
 permission:
   edit: deny

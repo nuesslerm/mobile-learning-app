@@ -4,6 +4,7 @@ use serde_json::{json, Map, Value};
 use std::collections::BTreeMap;
 use t3_contracts::history::projected_rows;
 use t3_contracts::rows::{project_defaults, thread_defaults, thread_projection_row};
+use t3_contracts::runs;
 use t3_contracts::time::iso;
 
 #[derive(Debug, Clone, Default)]
@@ -11,6 +12,7 @@ pub struct Entities {
     pub runs: Vec<Value>,
     pub messages: Vec<Value>,
     pub turn_items: Vec<Value>,
+    pub provider_turns: Vec<Value>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -19,6 +21,10 @@ pub struct State {
     pub projects: BTreeMap<String, Map<String, Value>>,
     pub threads: BTreeMap<String, Map<String, Value>>,
     pub entities: BTreeMap<String, Entities>,
+    /// Per thread, the projection keys an event has set that the base row leaves out.
+    pub projection_extras: BTreeMap<String, Map<String, Value>>,
+    /// Deleted threads: the real server still answers their projection, with `deletedAt` set.
+    pub deleted: BTreeMap<String, Map<String, Value>>,
 }
 
 /// What folding one event did to the shell.
@@ -31,14 +37,108 @@ pub struct Applied {
 
 /// The event as the thread stream sends it.
 pub fn event_json(e: &StoredEvent) -> Value {
+    let payload = match e.kind.as_str() {
+        "turn-item.updated" => turn_item_wire(&e.payload),
+        "message.updated" => message_wire(&e.payload),
+        "run.created" | "run.updated" => run_wire(&e.payload),
+        _ => e.payload.clone(),
+    };
     json!({
         "id": e.event_id,
         "threadId": e.thread_id,
         "providerInstanceId": e.payload.get("providerInstanceId").cloned().unwrap_or(Value::Null),
         "occurredAt": iso(e.occurred_at),
         "type": e.kind,
-        "payload": e.payload,
+        "payload": payload,
     })
+}
+
+fn run_wire(value: &Value) -> Value {
+    let mut run = value.clone();
+    let (Some(id), Some(fields)) = (value["id"].as_str(), run.as_object_mut()) else { return run };
+    fields.entry("rootNodeId").or_insert_with(|| json!(runs::node_id(id)));
+    fields.entry("activeAttemptId").or_insert_with(|| json!(runs::attempt_id(id)));
+    for field in ["providerThreadId", "checkpointId", "contextHandoffId"] {
+        fields.entry(field).or_insert(Value::Null);
+    }
+    run
+}
+
+fn message_wire(value: &Value) -> Value {
+    let mut message = value.clone();
+    if let Some(fields) = message.as_object_mut() {
+        fields.entry("nodeId").or_insert_with(|| value["runId"].as_str().map_or(Value::Null, |run| json!(runs::node_id(run))));
+        fields.entry("attachments").or_insert_with(|| json!([]));
+        fields.entry("streaming").or_insert_with(|| json!(false));
+        if value["role"] == "assistant" {
+            fields.entry("createdBy").or_insert_with(|| json!("agent"));
+            fields.entry("creationSource").or_insert_with(|| json!("provider"));
+        }
+    }
+    message
+}
+
+pub(crate) fn turn_item_wire(value: &Value) -> Value {
+    let mut item = value.clone();
+    let Some(fields) = item.as_object_mut() else { return item };
+    let streaming = value["status"] == "streaming";
+    if streaming {
+        fields.insert("status".into(), json!("running"));
+    }
+    fields.entry("nodeId").or_insert_with(|| value["runId"].as_str().map_or(Value::Null, |run| json!(runs::node_id(run))));
+    for field in ["providerThreadId", "providerTurnId", "nativeItemRef", "parentItemId"] {
+        fields.entry(field).or_insert(Value::Null);
+    }
+    fields.entry("title").or_insert_with(|| value["name"].clone());
+    fields.entry("startedAt").or_insert_with(|| value["createdAt"].clone());
+    fields.entry("completedAt").or_insert_with(|| {
+        if matches!(value["status"].as_str(), Some("completed" | "failed" | "cancelled" | "interrupted")) {
+            value["updatedAt"].clone()
+        } else {
+            Value::Null
+        }
+    });
+    match value["type"].as_str() {
+        Some("assistant_message" | "reasoning" | "proposed_plan") => {
+            fields.entry("streaming").or_insert_with(|| json!(streaming));
+        }
+        Some("command_execution") => {
+            let input = &value["input"];
+            if !input.is_string() {
+                let command = input["command"].as_str().map(str::to_string)
+                    .unwrap_or_else(|| if input.is_null() { String::new() } else { input.to_string() });
+                fields.insert("input".into(), json!(command));
+            }
+            if value["output"].is_null() {
+                fields.remove("output");
+            }
+        }
+        Some("error") if fields.get("failure").is_none() => {
+            fields.insert("failure".into(), json!({
+                "class": "provider_error",
+                "message": value["message"].as_str().unwrap_or("The provider failed"),
+                "code": null,
+                "retryable": null,
+            }));
+        }
+        _ => {}
+    }
+    item
+}
+
+/// The keys of a thread row that the real projection carries only after an event of that kind set them: the recorded pin leaves `pinOrderKey` out, the unpin and the settle carry it as null.
+fn projection_extras(kind: &str) -> &'static [&'static str] {
+    match kind {
+        "thread.settled" => &["activeOrderKey", "pinOrderKey", "pinnedAt", "unsettledAt"],
+        "thread.unsettled" => &["unsettledAt"],
+        "thread.pinned" => &["pinnedAt"],
+        "thread.unpinned" => &["pinOrderKey", "pinnedAt"],
+        "thread.auto-settle-set" => &["autoSettleDisabledAt"],
+        "thread.snoozed" => &["limitRecovery"],
+        "thread.unarchived" => &["guestShare", "titleRegeneration"],
+        "thread.metadata-updated" => &["titleRegeneration"],
+        _ => &[],
+    }
 }
 
 fn merge(into: &mut Map<String, Value>, patch: &Value) {
@@ -114,8 +214,14 @@ impl State {
             }
             "thread.deleted" => {
                 if let Some(id) = &e.thread_id {
-                    applied.removed_from = self.threads.remove(id).map(|s| location(&s));
+                    let removed = self.threads.remove(id);
+                    if let Some(mut shell) = removed.clone() {
+                        shell.insert("deletedAt".into(), Value::String(iso(e.occurred_at)));
+                        self.deleted.insert(id.clone(), shell);
+                    }
+                    applied.removed_from = removed.map(|s| location(&s));
                     self.entities.remove(id);
+                    self.projection_extras.entry(id.clone()).or_default().insert("titleRegeneration".into(), e.payload.get("titleRegeneration").cloned().unwrap_or(Value::Null));
                 }
             }
             kind if kind.starts_with("thread.") => {
@@ -129,16 +235,24 @@ impl State {
                             applied.shell_changed |= shell.insert(k.clone(), v.clone()).as_ref() != Some(v);
                         }
                     }
+                    if let Some(id) = &e.thread_id {
+                        let extras = self.projection_extras.entry(id.clone()).or_default();
+                        for key in projection_extras(kind) {
+                            extras.insert((*key).into(), e.payload.get(*key).or_else(|| shell.get(*key)).cloned().unwrap_or(Value::Null));
+                        }
+                    }
                 }
             }
             "run.created" | "run.updated" => {
                 if let Some(id) = &e.thread_id {
                     let entities = self.entities.entry(id.clone()).or_default();
                     upsert(&mut entities.runs, &e.payload);
-                    if let Some(shell) = self.threads.get_mut(id) {
+                    let provider_thread = entities.runs.first().map(|first| runs::provider_thread_id(first["providerInstanceId"].as_str().unwrap_or(""), first["id"].as_str().unwrap_or("")));
+                    let waiting = matches!(e.payload["status"].as_str(), Some("queued" | "cancelled"));
+                    if let (false, Some(shell)) = (waiting, self.threads.get_mut(id)) {
                         let run = &e.payload;
                         let running = run["status"] == "running";
-                        let set = [
+                        let mut set = vec![
                             ("status", json!(if running { "running" } else { "idle" })),
                             ("activeRunId", if running { run["id"].clone() } else { Value::Null }),
                             ("latestRunId", run["id"].clone()),
@@ -147,13 +261,27 @@ impl State {
                             ("latestRunCompletedAt", run["completedAt"].clone()),
                             ("latestRunStopRequested", json!(run["stopRequested"] == true)),
                             ("lastError", run.get("error").cloned().unwrap_or(Value::Null)),
+                            ("activeProviderThreadId", provider_thread.map_or(Value::Null, Value::from)),
                             ("updatedAt", updated_at),
                         ];
+                        if e.kind == "run.created" {
+                            set.push(("lastVisitedAt", run["requestedAt"].clone()));
+                        }
                         set.into_iter().for_each(|(k, v)| {
                             shell.insert(k.into(), v);
                         });
                         applied.shell_changed = true;
                     }
+                }
+            }
+            "message.removed" => {
+                if let Some(entities) = e.thread_id.as_ref().and_then(|id| self.entities.get_mut(id)) {
+                    entities.messages.retain(|m| m["id"] != e.payload["id"]);
+                }
+            }
+            "provider-turn.updated" => {
+                if let Some(id) = &e.thread_id {
+                    upsert(&mut self.entities.entry(id.clone()).or_default().provider_turns, &e.payload);
                 }
             }
             "message.updated" => {
@@ -165,7 +293,10 @@ impl State {
                             shell.insert("latestUserMessageAt".into(), e.payload["createdAt"].clone());
                             shell.insert("latestUserAuthoredMessageAt".into(), e.payload["createdAt"].clone());
                         }
-                        shell.insert("latestVisibleMessage".into(), json!({"id": e.payload["id"], "role": e.payload["role"], "text": e.payload["text"], "createdAt": e.payload["createdAt"]}));
+                        shell.insert("latestVisibleMessage".into(), json!({
+                            "id": e.payload["id"], "role": e.payload["role"], "text": e.payload["text"],
+                            "updatedAt": e.payload.get("updatedAt").unwrap_or(&updated_at),
+                        }));
                         shell.insert("updatedAt".into(), updated_at);
                         applied.shell_changed = true;
                     }
@@ -224,30 +355,51 @@ impl State {
     }
 
     pub fn thread_projection(&self, id: &str) -> Option<Value> {
-        let shell = self.threads.get(id)?;
+        self.projection_of(self.threads.get(id)?, id)
+    }
+
+    /// A projection read, which still answers for a deleted thread.
+    pub fn thread_projection_read(&self, id: &str) -> Option<Value> {
+        self.projection_of(self.threads.get(id).or_else(|| self.deleted.get(id))?, id)
+    }
+
+    pub fn run_rows(&self, shell: &Map<String, Value>, id: &str, runs: &[Value]) -> runs::Rows {
+        let workspace = shell["worktreePath"].as_str().or_else(|| shell["projectId"].as_str().and_then(|p| self.projects.get(p)).and_then(|p| p["workspaceRoot"].as_str()));
+        runs::derive(id, shell, runs, workspace)
+    }
+
+    fn projection_of(&self, shell: &Map<String, Value>, id: &str) -> Option<Value> {
         let empty = Entities::default();
         let entities = self.entities.get(id).unwrap_or(&empty);
+        let rows = self.run_rows(shell, id, &entities.runs);
         let mut out = Map::new();
-        out.insert("thread".into(), thread_projection_row(shell));
-        let list = |items: &Vec<Value>| Value::Array(items.clone());
+        let mut thread = thread_projection_row(shell);
+        if let Some(row) = thread.as_object_mut() {
+            row.insert("activeProviderThreadId".into(), rows.active_provider_thread.clone());
+            if let Some(extras) = self.projection_extras.get(id) {
+                row.extend(extras.clone());
+            }
+        }
+        out.insert("thread".into(), thread);
+        let items: Vec<Value> = entities.turn_items.iter().map(turn_item_wire).collect();
         let none = || json!([]);
         for (key, value) in [
-            ("runs", list(&entities.runs)),
-            ("attempts", none()),
-            ("nodes", none()),
+            ("runs", Value::Array(rows.runs)),
+            ("attempts", Value::Array(rows.attempts)),
+            ("nodes", Value::Array(rows.nodes)),
             ("subagents", none()),
-            ("providerSessions", none()),
-            ("providerThreads", none()),
-            ("providerTurns", none()),
+            ("providerSessions", Value::Array(rows.provider_sessions)),
+            ("providerThreads", Value::Array(rows.provider_threads)),
+            ("providerTurns", json!(entities.provider_turns)),
             ("runtimeRequests", none()),
-            ("messages", list(&entities.messages)),
+            ("messages", Value::Array(entities.messages.iter().map(message_wire).collect())),
             ("plans", none()),
-            ("turnItems", list(&entities.turn_items)),
-            ("checkpointScopes", none()),
+            ("visibleTurnItems", Value::Array(projected_rows(id, &items))),
+            ("turnItems", Value::Array(items)),
+            ("checkpointScopes", Value::Array(rows.checkpoint_scopes)),
             ("checkpoints", none()),
-            ("contextHandoffs", none()),
+            ("contextHandoffs", Value::Array(rows.context_handoffs)),
             ("contextTransfers", none()),
-            ("visibleTurnItems", Value::Array(projected_rows(id, &entities.turn_items))),
         ] {
             out.insert(key.into(), value);
         }

@@ -37,7 +37,8 @@ fn cmd(kind: &str, thread: &str, extra: Value) -> Value {
 
 fn wait_started(chain: &Chain, program: &str, count: usize) {
     let started = std::time::Instant::now();
-    while chain.cli.invocations(program).len() < count {
+    let seen = || if program == "claude" { chain.cli.claude_prompts(program).len() } else { chain.cli.invocations(program).len() };
+    while seen() < count {
         assert!(started.elapsed() < std::time::Duration::from_secs(30), "the CLI never started {count} times: {}", chain.evidence());
         std::thread::sleep(std::time::Duration::from_millis(50));
     }
@@ -64,7 +65,7 @@ fn settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_
     exec_testkit::case!(SUITE, |case| {
         // Given a thread whose Claude Code announced a conversation and wrote a note, and rca's shelves read through the side door
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[init("sess-1"), said("writing the note")]).then_calling("k1", "write_file", json!({"path": "notes/a.txt", "content": "hello", "create_dirs": true})).then_line(&said("done"))]));
+        chain.cli.script("claude", &Script::of(vec![Turn::replaying(&[init("sess-1"), said("writing the note")]).then_calling("k1", "write_file", json!({"path": "notes/a.txt", "content": "hello", "create_dirs": true})).then_line(&said("done"))]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         phone.seed(case, &chain);
@@ -98,29 +99,33 @@ fn settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_
         success(&phone.command(case, &chain, cmd("thread.unarchive", "t1", json!({}))));
         assert!(answered(case, "thread.archive") && shelf(&mut rca, "archived").is_empty());
         // When the thread is forked, the fork is merged back, and the next message runs: rca carries the fork's context into it
-        success(&phone.command(case, &chain, json!({"type": "thread.fork", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {}})));
+        success(&phone.command(case, &chain, json!({"type": "thread.fork", "createdBy": "user", "creationSource": "mobile", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {"type": "latest_stable"}})));
         assert!(answered(case, "thread.fork"), "{:?}", asked(case));
         let family = rca.call("agent.lifecycle", "thread.family", json!({"thread": "f1"})).expect("rca knows the family");
         assert_eq!(family["threads"].as_array().unwrap().iter().map(|t| t["thread"]["id"].as_str().unwrap()).collect::<Vec<_>>(), ["t1", "f1"]);
-        success(&phone.command(case, &chain, json!({"type": "thread.merge_back", "commandId": "c-merge", "sourceThreadId": "f1", "targetThreadId": "t1", "sourcePoint": {}})));
+        success(&phone.command(case, &chain, json!({"type": "thread.merge_back", "createdBy": "user", "creationSource": "mobile", "commandId": "c-merge", "sourceThreadId": "f1", "targetThreadId": "t1", "sourcePoint": {"type": "latest_stable"}})));
         assert!(answered(case, "thread.mergeBack"), "{:?}", asked(case));
-        let projection = phone.command_settled(case, &chain, json!({"type": "message.dispatch", "commandId": "c-m2", "threadId": "t1", "message": {"messageId": "m2", "text": "again"}}), "t1", completed(2));
+        let projection = phone.command_settled(case, &chain, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m2", "threadId": "t1", "messageId": "m2", "text": "again"}), "t1", completed(2));
         // Then the turn ran Claude Code resuming the conversation it announced, and the executor wrote the note again
         let (agent, executor) = last_window(case);
-        assert!(agent.contains(&("turn.start".to_string(), true)) && hit(&executor, "tool", "write_file").is_some_and(|h| h["ok"] == true), "{agent:?} {executor}");
+        assert!(agent.contains(&("turn.start".to_string(), true)) && hit(&executor, "tool", "session_send").is_some_and(|h| h["ok"] == true), "{agent:?} {executor}");
         assert!(projection["runs"].as_array().unwrap().len() == 2);
-        let starts = chain.cli.invocations("claude");
-        assert_eq!(starts.len(), 2);
-        assert!(starts[1].argv.windows(2).any(|w| w == ["--resume", "sess-1"]), "{:?}", starts[1].argv);
+        // (the second message went to the live process the first one started: one process, two messages)
+        assert_eq!((chain.cli.invocations("claude").len(), chain.cli.claude_prompts("claude").len()), (1, 2));
         assert_eq!(rca.events("t1", "thread.merge_consumed").len(), 1);
+        // When the phone marks the thread unread now that a run of it completed
+        success(&phone.command(case, &chain, cmd("thread.mark-unread", "t1", json!({}))));
+        // Then rca's state group holds a visit that is empty
+        assert!(answered(case, "state.set"), "{:?}", asked(case));
+        assert_eq!(state_value(&mut rca, "thread.visits:t1")["lastVisitedAt"], Value::Null);
         // When the phone detaches the provider session and sends another message
         success(&phone.command(case, &chain, cmd("provider-session.detach", "t1", json!({"providerSessionId": "sess-1"}))));
         assert!(answered(case, "thread.detach"), "{:?}", asked(case));
-        phone.command_settled(case, &chain, json!({"type": "message.dispatch", "commandId": "c-m3", "threadId": "t1", "message": {"messageId": "m3", "text": "fresh"}}), "t1", completed(3));
-        // Then Claude Code started a new conversation: no --resume
+        phone.command_settled(case, &chain, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m3", "threadId": "t1", "messageId": "m3", "text": "fresh"}), "t1", completed(3));
+        // Then Claude Code started a new process with a new conversation: its own id, no --resume
         let starts = chain.cli.invocations("claude");
-        assert_eq!(starts.len(), 3);
-        assert!(!starts[2].argv.iter().any(|a| a == "--resume"), "{:?}", starts[2].argv);
+        assert_eq!(starts.len(), 2);
+        assert!(starts[1].argv.iter().any(|a| a == "--session-id") && !starts[1].argv.iter().any(|a| a == "--resume"), "{:?}", starts[1].argv);
         // When the fork is deleted
         success(&phone.command(case, &chain, cmd("thread.delete", "f1", json!({}))));
         // Then rca answered the delete and the fork is gone from rca and from the shell the phone reads
@@ -139,7 +144,7 @@ fn queued(rca: &mut Direct, thread: &str) -> Vec<(String, String)> {
 }
 
 fn message(id: &str, thread: &str, text: &str) -> Value {
-    json!({"type": "message.dispatch", "commandId": format!("c-{id}"), "threadId": thread, "message": {"messageId": id, "text": text}})
+    json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": format!("c-{id}"), "threadId": thread, "messageId": id, "text": text})
 }
 
 #[test]
@@ -147,13 +152,14 @@ fn queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_s
     exec_testkit::case!(SUITE, |case| {
         // Given a thread whose first turn stays, then a steered turn that writes steered.txt and a queued turn that writes queued.txt
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![stays(), writes("steered.txt", "steered"), writes("queued.txt", "from the queue")]));
+        chain.cli.script("claude", &Script::of(vec![stays(), writes("steered.txt", "steered"), writes("queued.txt", "from the queue")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         phone.seed(case, &chain);
         success(&phone.command(case, &chain, message("m1", "t1", "work")));
         wait_started(&chain, "claude", 1);
         let run = phone.run_of("t1");
+        phone.begun("t1");
         // And three messages queued behind it (a phone cannot queue one yet, so rca is asked directly)
         for (item, prompt) in [("q1", "first queued"), ("q2", "the steer text"), ("q3", "to cancel")] {
             rca.call("agent.queue", "queue.add", json!({"thread": "t1", "item": item, "prompt": prompt})).expect("rca queues it");
@@ -184,13 +190,13 @@ fn queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_s
         // Then rca steered the turn, and the executor wrote the steered file and, when the turn ended, the next queued item's file
         let (agent, executor) = last_window(case);
         assert!(agent.contains(&("turn.steer".to_string(), true)), "{agent:?}");
-        assert_eq!(executor.as_array().unwrap().iter().filter(|h| h["tool"] == "write_file" && h["ok"] == true).count(), 2, "{executor}");
+        assert!(hit(&executor, "tool", "session_send").is_some_and(|h| h["ok"] == true), "{executor}");
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("steered.txt")).unwrap(), "steered");
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("queued.txt")).unwrap(), "from the queue");
-        // And the CLI was started a second time with the steer text and a third time for the queued item, with nothing left queued
-        let starts = chain.cli.invocations("claude");
-        assert!(starts[1].argv.iter().any(|a| a.contains("the steer text")), "{:?}", starts[1].argv);
-        assert!(starts[2].argv.iter().any(|a| a.contains("edited queued")), "{:?}", starts[2].argv);
+        // And the one live process was sent the steer text and then the queued item, with nothing left queued
+        let prompts = chain.cli.claude_prompts("claude");
+        assert_eq!(chain.cli.invocations("claude").len(), 1);
+        assert!(prompts[1].contains("the steer text") && prompts[2].contains("edited queued"), "{prompts:?}");
         assert!(queued(&mut rca, "t1").is_empty());
         // (the turn rca started for the queued item is not a run of the phone's rows yet: they hold the one run the message started)
         assert_eq!(projection["runs"].as_array().unwrap().len(), 1);
@@ -214,7 +220,7 @@ fn a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_star
     exec_testkit::case!(SUITE, |case| {
         // Given a thread whose first turn stays and whose later turns write queued.txt, and three messages queued behind the running turn
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![stays(), writes("queued.txt", "from the queue")]));
+        chain.cli.script("claude", &Script::of(vec![stays(), writes("queued.txt", "from the queue")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         phone.seed(case, &chain);
@@ -237,7 +243,7 @@ fn a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_star
         assert!(result["outcome"].is_string() && result.get("sharedWithThreadIds").is_none_or(Value::is_array), "{result}");
         // And the queue is held: nothing starts by itself and all three items are still queued
         std::thread::sleep(std::time::Duration::from_millis(1500));
-        assert_eq!(chain.cli.invocations("claude").len(), 1);
+        assert_eq!(chain.cli.claude_prompts("claude").len(), 1);
         assert_eq!(queued(&mut rca, "t1").len(), 3);
         // When the thread is archived and the phone starts a queued run
         success(&phone.command(case, &chain, cmd("thread.archive", "t1", json!({}))));
@@ -256,8 +262,8 @@ fn a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_star
         // Then rca resumed that item, the executor wrote the queued file for it, and the CLI ran with that item's text
         let (agent, executor) = last_window(case);
         assert!(agent.contains(&("queue.resume".to_string(), true)), "{agent:?}");
-        assert!(hit(&executor, "tool", "write_file").is_some_and(|h| h["ok"] == true), "{executor}");
-        assert!(chain.cli.invocations("claude")[1].argv.iter().any(|a| a.contains("two")), "{:?}", chain.cli.invocations("claude")[1].argv);
+        assert!(hit(&executor, "tool", "session_send").is_some_and(|h| h["ok"] == true), "{executor}");
+        assert!(chain.cli.claude_prompts("claude")[1].contains("two"), "{:?}", chain.cli.claude_prompts("claude"));
     });
 }
 
@@ -266,7 +272,7 @@ fn resuming_a_held_queue_starts_its_items_one_after_the_other_through_rca_with_t
     exec_testkit::case!(SUITE, |case| {
         // Given a thread force stopped with two items queued behind its turn, so the queue is held
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![stays(), writes("first.txt", "one"), writes("second.txt", "two")]));
+        chain.cli.script("claude", &Script::of(vec![stays(), writes("first.txt", "one"), writes("second.txt", "two")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         phone.seed(case, &chain);
@@ -287,21 +293,21 @@ fn resuming_a_held_queue_starts_its_items_one_after_the_other_through_rca_with_t
         // Then rca answered the resume, both items ran in order through the CLI, and the executor wrote each item's file
         let (agent, executor) = last_window(case);
         assert!(agent.contains(&("queue.resume".to_string(), true)), "{agent:?}");
-        assert_eq!(executor.as_array().unwrap().iter().filter(|h| h["tool"] == "write_file" && h["ok"] == true).count(), 2, "{executor}");
+        assert!(hit(&executor, "tool", "session_send").is_some_and(|h| h["ok"] == true), "{executor}");
         assert_eq!((std::fs::read_to_string(chain.repo.path().join("first.txt")).unwrap(), std::fs::read_to_string(chain.repo.path().join("second.txt")).unwrap()), ("one".to_string(), "two".to_string()));
         assert!(queued(&mut rca, "t1").is_empty());
-        let starts = chain.cli.invocations("claude");
-        assert_eq!(starts.len(), 3);
-        assert!(starts[1].argv.iter().any(|a| a.contains("one")) && starts[2].argv.iter().any(|a| a.contains("two")), "{starts:?}");
+        let prompts = chain.cli.claude_prompts("claude");
+        assert_eq!(prompts.len(), 3);
+        assert!(prompts[1].contains("one") && prompts[2].contains("two"), "{prompts:?}");
     });
 }
 
 #[test]
-fn a_workflow_stop_and_a_subagent_stop_each_end_the_running_turn_through_rca_and_a_stop_with_nothing_running_is_not_asked_of_rca() {
+fn a_workflow_stop_ends_the_running_turn_through_rca_a_stop_with_nothing_running_is_not_asked_of_rca_and_a_subagent_stop_is_refused_with_the_turn_still_running() {
     exec_testkit::case!(SUITE, |case| {
         // Given a thread whose CLI starts a turn and stays, each time
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![stays()]));
+        chain.cli.script("claude", &Script::of(vec![stays()]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         phone.seed(case, &chain);
         // When the phone stops a workflow of a thread that runs nothing
@@ -321,14 +327,16 @@ fn a_workflow_stop_and_a_subagent_stop_each_end_the_running_turn_through_rca_and
         // Then rca was asked to stop the turn's workflow and answered, and the run is no longer running
         assert!(answered(case, "workflow.stop"), "{:?}", asked(case));
         assert!(stopped["_tag"] == "Success" && !first.is_empty());
-        // When another turn starts and the phone stops it with the subagent command
+        // When another turn starts and the phone stops a subagent of it
         success(&phone.command(case, &chain, message("m2", "t1", "work again")));
         wait_started(&chain, "claude", 2);
         let second = nth_run(&mut phone, "t1", 2);
-        phone.command_settled(case, &chain, cmd("subagent.stop", "t1", json!({"runId": second, "subagentId": "n1"})), "t1", none_running);
-        // Then rca stopped that turn's workflow too, and the CLI of each turn is gone
-        assert!(answered(case, "workflow.stop"), "{:?}", asked(case));
-        assert_eq!(chain.cli.invocations("claude").len(), 2);
+        let refused = phone.command(case, &chain, cmd("subagent.stop", "t1", json!({"runId": second, "subagentId": "n1"})));
+        // Then T3's refusal is the answer, rca was not asked to stop anything, and the turn keeps running
+        assert_eq!(failure(&refused)["message"], "The requested native subagent cannot be stopped on this run.");
+        assert!(!answered(case, "workflow.stop"), "{:?}", asked(case));
+        let projection = success(&phone.calls.call("orchestration.getThreadProjection", json!({"threadId": "t1"}))).clone();
+        assert!(!none_running(&projection), "{projection}");
     });
 }
 
@@ -377,7 +385,7 @@ fn a_turn_waits_for_the_phones_approval_or_answer_and_runs_on_only_when_it_gets_
                 asking("approval_prompt", json!({"tool_name": "write_file", "input": {"path": "a.txt"}}), "a.txt"),
                 asking("ask_user", json!({"question": "which one?", "options": ["a", "b"]}), "b.txt"),
                 asking("ask_user", json!({"question": "sure?"}), "c.txt"),
-            ]),
+            ]).printing_version("0.0.0-flow"),
         );
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
@@ -391,9 +399,8 @@ fn a_turn_waits_for_the_phones_approval_or_answer_and_runs_on_only_when_it_gets_
         let accept = cmd("runtime-request.respond", "t1", json!({"requestId": id, "decision": "accept"}));
         phone.command_settled(case, &chain, accept, "t1", completed(1));
         // Then rca took the answer, the turn went on and the executor wrote, and the log says what was decided
-        let (agent, executor) = last_window(case);
+        let (agent, _) = last_window(case);
         assert!(agent.contains(&("approval.answer".to_string(), true)), "{agent:?}");
-        assert!(hit(&executor, "tool", "write_file").is_some_and(|h| h["ok"] == true), "{executor}");
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("a.txt")).unwrap(), "after the answer");
         assert_eq!(rca.events("t1", "approval.answered").len(), 1);
         assert!(tool_output(&mut rca, "t1", "ask1").contains("allow"), "the tool was not told to allow");
@@ -442,8 +449,7 @@ fn the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_si
             (cmd("thread.unpin", "t1", json!({})), "thread.pins:t1", "pinnedAt", Some(Value::Null)),
             (cmd("thread.active.reorder", "t1", json!({"orderKey": "k3"})), "thread.activeOrder:t1", "orderKey", Some(json!("k3"))),
             (cmd("thread.auto-settle.set", "t1", json!({"enabled": false})), "thread.autoSettle:t1", "autoSettleDisabledAt", None),
-            (cmd("thread.visit", "t1", json!({})), "thread.visits:t1", "lastVisitedAt", None),
-            (cmd("thread.mark-unread", "t1", json!({})), "thread.visits:t1", "lastVisitedAt", None),
+            (cmd("thread.visit", "t1", json!({"visitedAt": "2031-01-01T00:00:00.000Z"})), "thread.visits:t1", "lastVisitedAt", None),
             (cmd("thread.metadata.update", "t1", json!({"title": "Renamed"})), "thread.settings:t1", "title", Some(json!("Renamed"))),
             (cmd("thread.runtime-mode.set", "t1", json!({"runtimeMode": "approval-required"})), "thread.settings:t1", "runtimeMode", Some(json!("approval-required"))),
             (cmd("thread.interaction-mode.set", "t1", json!({"interactionMode": "plan"})), "thread.settings:t1", "interactionMode", Some(json!("plan"))),
@@ -478,7 +484,7 @@ fn a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_wh
             .then_calling("k1", "write_file", json!({"path": "notes/a.txt", "content": "hello from the model", "create_dirs": true}))
             .then_calling("k2", "run_command", json!({"command": "printf 'out-%s' whales"}))
             .then_line(&said("done"));
-        chain.cli.script("claude", &Script::of(vec![turn]));
+        chain.cli.script("claude", &Script::of(vec![turn]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let mut rca = chain.direct();
         phone.seed(case, &chain);
@@ -486,7 +492,7 @@ fn a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_wh
         let tool = projection["turnItems"].as_array().unwrap().iter().find(|i| i["name"] == "run_command").expect("the turn left its command row").clone();
         // And the executor ran the command to completion
         let (_, executor) = last_window(case);
-        assert_eq!(hit(&executor, "tool", "run_command"), Some(&json!({"tool": "run_command", "ok": true})), "the command did not run through rca-exec: {executor}");
+        assert_eq!(hit(&executor, "tool", "session_send"), Some(&json!({"tool": "session_send", "ok": true})), "the CLI did not run through rca-exec: {executor}");
         let item = tool["id"].as_str().unwrap();
         // When the phone fetches the item and subscribes to its output
         let fetched = phone.call(case, &chain, &["rpc:orchestration.getTurnItem"], "orchestration.getTurnItem", json!({"threadId": "t1", "itemId": item}));
@@ -504,10 +510,19 @@ fn a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_wh
         assert_eq!((matches[0]["threadId"].as_str(), matches[0]["projectId"].as_str(), matches[0]["source"].as_str()), (Some("t1"), Some("p1"), Some("user")));
         assert!(matches[0]["snippet"].as_str().is_some_and(|s| s.contains("whales")), "{matches:?}");
         // When the thread is forked, the family of the fork is asked for, and the fork is archived and the archived snapshot read
-        success(&phone.command(case, &chain, json!({"type": "thread.fork", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {}})));
+        success(&phone.command(case, &chain, json!({"type": "thread.fork", "createdBy": "user", "creationSource": "mobile", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {"type": "latest_stable"}})));
         let family = phone.call(case, &chain, &["rpc:orchestration.getThreadFamily"], "orchestration.getThreadFamily", json!({"threadId": "f1"}));
         assert!(answered(case, "thread.family"), "{:?}", asked(case));
         assert_eq!(success(&family)["threads"].as_array().unwrap().iter().map(|t| t["id"].as_str().unwrap()).collect::<Vec<_>>(), ["t1", "f1"]);
+        // And the titles and the link metadata of both threads come from what t3 holds, an unknown thread left out
+        let titles = phone.call(case, &chain, &["rpc:orchestration.getThreadTitles"], "orchestration.getThreadTitles", json!({"threadIds": ["t1", "f1", "nobody"]}));
+        assert_eq!(success(&titles).as_object().map(|t| t.len()), Some(2), "{titles:?}");
+        let link = phone.call(case, &chain, &["rpc:orchestration.getThreadLinkMetadata"], "orchestration.getThreadLinkMetadata", json!({"threadIds": ["t1", "nobody"]}));
+        assert_eq!((success(&link)["t1"]["projectId"].as_str(), success(&link).as_object().map(|t| t.len())), (Some("p1"), Some(1)), "{link:?}");
+        let children = phone.call(case, &chain, &["rpc:orchestration.getNativeChildWork"], "orchestration.getNativeChildWork", json!({"threadId": "t1"}));
+        assert_eq!(success(&children), &json!({"children": []}), "{children:?}");
+        let (_, suggestion) = phone.stream(case, &chain, &["rpc:orchestration.subscribePromptSuggestion"], "orchestration.subscribePromptSuggestion", json!({"threadId": "t1"}));
+        assert_eq!(suggestion, [Value::Null]);
         success(&phone.command(case, &chain, cmd("thread.archive", "f1", json!({}))));
         let archived = phone.call(case, &chain, &["rpc:orchestration.getArchivedShellSnapshot"], "orchestration.getArchivedShellSnapshot", json!({}));
         // Then the snapshot holds the fork alone, and the shell over HTTP lists the thread live and the fork archived at the same sequence
@@ -539,7 +554,7 @@ fn older_settled_threads_are_paged_from_rcas_shelf_until_the_limit_of_the_asked_
             })
             .collect();
         for (id, project, at) in &threads {
-            let create = json!({"type": "thread.create", "commandId": format!("c-{id}"), "threadId": id, "projectId": project, "title": id, "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}});
+            let create = json!({"type": "thread.create", "commandId": format!("c-{id}"), "threadId": id, "projectId": project, "title": id, "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}, "createdBy": "user", "creationSource": "mobile", "runtimeMode": "full-access", "interactionMode": "default", "branch": null, "worktreePath": null});
             success(&phone.calls.call("orchestration.dispatchCommand", create));
             success(&phone.calls.call("orchestration.dispatchCommand", json!({"type": "thread.settle", "commandId": format!("c-settle-{id}"), "threadId": id, "settledAt": at})));
         }
@@ -571,21 +586,82 @@ fn the_requests_rca_cannot_serve_yet_are_refused_with_t3s_words_and_a_refusal_ne
     exec_testkit::case!(SUITE, |case| {
         // Given a thread that ran a turn
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello")]));
+        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         phone.seed(case, &chain);
-        let projection = phone.message(case, &chain, "t1", "c-m1", "make a note");
-        let run = projection["runs"][0]["id"].as_str().unwrap().to_string();
-        // When a prepared run is retried, a workflow script and a secret are asked for
-        let retry = phone.command(case, &chain, cmd("prepared-run.retry", "t1", json!({"runId": run})));
-        assert!(asked(case).is_empty());
-        assert_eq!(failure(&retry)["message"], format!("Run {run} has no failed workspace preparation to retry."));
+        phone.message(case, &chain, "t1", "c-m1", "make a note");
+        // When a workflow script and a secret are asked for
         let script = phone.call(case, &chain, &["rpc:orchestration.getWorkflowScript"], "orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/home/u/.claude/projects/x/wf.js"}));
-        assert_eq!((failure(&script)["reason"].as_str(), asked(case).is_empty()), (Some("root-unavailable"), true));
+        // The script is read at the executor, which here has no Claude projects directory: rca was asked and its refusal is T3's reason
+        assert_eq!((failure(&script)["reason"].as_str(), asked(case).is_empty()), (Some("root-unavailable"), false));
         let secret = phone.call(case, &chain, &["rpc:secrets.answerRequest"], "secrets.answerRequest", json!({"threadId": "t1", "turnItemId": "i1", "answer": {"type": "decline"}}));
-        // Then each is T3's own refusal, rca was never asked, and no call of them is a served one
+        // Then each is T3's own refusal, rca was asked only for the script, and no call of them is a served one
         assert_eq!((failure(&secret)["reason"].as_str(), asked(case).is_empty()), (Some("not_found"), true));
-        let refused: Vec<&Value> = case.calls().iter().filter(|c| c["rows"].as_array().unwrap().iter().any(|r| ["command:prepared-run.retry", "rpc:orchestration.getWorkflowScript", "rpc:secrets.answerRequest"].contains(&r.as_str().unwrap()))).collect();
-        assert!(refused.len() == 3 && refused.iter().all(|c| c["ok"] == false), "{refused:?}");
+        let refused: Vec<&Value> = case.calls().iter().filter(|c| c["rows"].as_array().unwrap().iter().any(|r| ["rpc:orchestration.getWorkflowScript", "rpc:secrets.answerRequest"].contains(&r.as_str().unwrap()))).collect();
+        assert!(refused.len() == 2 && refused.iter().all(|c| c["ok"] == false), "{refused:?}");
+    });
+}
+
+#[test]
+fn a_launch_on_a_new_worktree_fails_when_its_branch_is_taken_and_a_retry_prepares_it_through_the_service_and_the_executor_and_runs_the_turn_in_it() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a repository that already has the branch the launch asks for, and a scripted Claude that writes a note
+        let chain = Chain::start();
+        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello")]).printing_version("0.0.0-flow"));
+        chain.repo.git(&["branch", "feature/taken"]);
+        let mut phone = Phone::connect(case, &chain);
+        phone.seed(case, &chain);
+        let launch = json!({
+            "commandId": "c-wt", "creationSource": "mobile", "projectId": "p1", "threadId": "t-wt", "title": "On a worktree", "modelSelection": {"instanceId": "claudeAgent", "model": "opus"},
+            "runtimeMode": "full-access", "interactionMode": "default", "workspaceStrategy": {"type": "worktree", "baseRef": "main", "branch": "feature/taken"},
+            "initialMessage": {"messageId": "m-wt", "text": "make a note", "attachments": []},
+        });
+        // When the phone launches on a new worktree
+        let answer = case.call(&chain.tap, &rows(&["rpc:orchestration.launchThread"]), || {
+            let exit = phone.calls.call("orchestration.launchThread", launch);
+            (exit["_tag"] == "Success", exit)
+        });
+        // Then the launch is answered and the run ends failed with the executor's reason, and the thread names no worktree
+        assert_eq!(success(&answer)["threadId"], "t-wt");
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(40);
+        let failed = loop {
+            let projection = success(&phone.calls.call("orchestration.getThreadProjection", json!({"threadId": "t-wt"}))).clone();
+            if projection["runs"][0]["status"] == "failed" || std::time::Instant::now() > deadline {
+                break projection;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        };
+        let error = failed["turnItems"].as_array().unwrap().iter().find(|i| i["type"] == "error").cloned().expect("an error row");
+        assert_eq!((failed["runs"][0]["status"].as_str(), error["failure"]["code"].as_str(), failed["thread"]["worktreePath"].is_null()), (Some("failed"), Some("workspace_preparation_failed"), true), "{failed}");
+        assert!(chain.cli.invocations("claude").is_empty(), "no turn started before the workspace was ready");
+        // And when the branch is gone and the phone retries the preparation of that run, the worktree is made, recorded on the thread, and the turn runs in it
+        chain.repo.git(&["branch", "-D", "feature/taken"]);
+        let run = failed["runs"][0]["id"].as_str().unwrap().to_string();
+        let done = phone.command_until(case, &chain, cmd("prepared-run.retry", "t-wt", json!({"runId": run})), "t-wt", |p| p["runs"][0]["status"] == "completed");
+        let worktree = done["thread"]["worktreePath"].as_str().expect("the thread records its worktree").to_string();
+        assert!(std::path::Path::new(&worktree).join(".git").exists(), "{worktree} is no checkout");
+        assert_eq!((done["thread"]["branch"].as_str(), chain.cli.invocations("claude").len()), (Some("feature/taken"), 1));
+        assert_eq!(std::fs::canonicalize(&chain.cli.invocations("claude")[0].cwd).unwrap(), std::fs::canonicalize(&worktree).unwrap(), "the CLI started in the worktree");
+    });
+}
+
+#[test]
+fn a_triage_session_is_written_at_the_executor_from_the_services_own_log_and_the_prompt_links_the_playbook() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a service that has run (it wrote events when the phone connected), and a phone allowed to maintain the environment
+        let chain = Chain::start();
+        let scopes: Vec<String> = t3_contracts::scopes::ALL_SCOPES.iter().map(|s| s.to_string()).collect();
+        let mut phone = Phone::connect_with(case, &chain, &scopes);
+        // When the phone prepares a triage and says what it is
+        let answer = phone.call(case, &chain, &["rpc:server.prepareTriage"], "server.prepareTriage", json!({"client": {"label": "Pixel", "appVersion": "1.4.2", "os": "android"}}));
+        // Then the prompt links the playbook at a path the executor holds, and the log file next to it holds the service's own events
+        let prompt = success(&answer)["prompt"].as_str().unwrap().to_string();
+        let path = prompt.strip_prefix("Read [triage-playbook.md](").and_then(|rest| rest.strip_suffix(") and follow it. ")).unwrap_or_else(|| panic!("{prompt}"));
+        let playbook = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("{path}: {e}"));
+        assert!(playbook.contains("Pixel version 1.4.2 on android") && playbook.contains("service-logs.jsonl"), "{playbook}");
+        let logs = std::fs::read_to_string(std::path::Path::new(path).with_file_name("service-logs.jsonl")).unwrap();
+        let events: Vec<Value> = logs.lines().map(|l| serde_json::from_str(l).unwrap()).collect();
+        assert!(!events.is_empty() && events.iter().all(|e| e["event"].is_string() && e["level"].is_string()), "{logs}");
+        assert!(events.iter().any(|e| e["event"] == "server.listening"), "{logs}");
     });
 }

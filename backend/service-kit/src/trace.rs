@@ -3,12 +3,10 @@
 
 use axum::extract::MatchedPath;
 use axum::http::{Request, Response};
-use opentelemetry_http::HeaderExtractor;
 use std::time::{Duration, Instant};
 use tower_http::classify::{ServerErrorsAsFailures, SharedClassifier};
 use tower_http::trace::{DefaultOnBodyChunk, DefaultOnEos, DefaultOnFailure, DefaultOnRequest, MakeSpan, OnResponse, TraceLayer};
 use tracing::{field, Span};
-use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 /// A route whose last segment is a `{token}` carries a credential in its URL: log the route, never the path.
 pub fn loggable_path<'a>(route: &'a str, path: &'a str) -> &'a str {
@@ -26,17 +24,15 @@ impl<B> MakeSpan<B> for RequestSpan {
     fn make_span(&mut self, request: &Request<B>) -> Span {
         let path = request.uri().path();
         let route = request.extensions().get::<MatchedPath>().map_or(path, MatchedPath::as_str);
-        let span = tracing::info_span!(
+        tracing::info_span!(
             "request",
             otel.name = %format_args!("{} {}", request.method(), loggable_path(route, path)),
             http.method = %request.method(),
             http.route = %route,
             http.status_code = field::Empty,
             otel.status_code = field::Empty,
-        );
-        let parent = opentelemetry::global::get_text_map_propagator(|propagator| propagator.extract(&HeaderExtractor(request.headers())));
-        span.set_parent(parent);
-        span
+            traceparent = request.headers().get("traceparent").and_then(|value| value.to_str().ok()),
+        )
     }
 }
 

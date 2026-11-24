@@ -1,0 +1,24 @@
+{
+  "action": "browser_eval",
+  "exchanges": [
+    {
+      "name": "finds no page under a key that was never opened",
+      "request": {
+        "id": "b1",
+        "tool": "browser_eval",
+        "args": {
+          "key": "t1",
+          "expression": "1+1"
+        }
+      },
+      "response": {
+        "id": "b1",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no page is open for key t1"
+        }
+      }
+    }
+  ]
+}

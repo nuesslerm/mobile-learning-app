@@ -64,7 +64,7 @@ nohup tailscaled \
 
 # 2. Join with the tagged VM auth key from the vault.
 #    Capture it in a variable: libraries/hook-runtime/src/deny.json
-#    (scripts/guards/block-secret-exposure.mjs) blocks redirecting a fetched
+#    (libraries/hook-runtime/src/guards/block-secret-exposure.mjs) blocks redirecting a fetched
 #    secret to a file, but lets the fetch share a Bash call with other commands.
 TS_AUTHKEY=$(SECRETS_BACKEND=bitwarden wf secret get TS_VM_AUTH_KEY)
 

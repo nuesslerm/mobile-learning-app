@@ -22,3 +22,6 @@ agent-api-proto = { path = ".", features = ["testing"] }
 # The integration test runs the wf-mimic binary of the clis workspace (from WF_MIMIC_BIN, or built from clis): a change to that crate reruns it.
 [package.metadata.integration]
 uses = ["wf-mimic"]
+
+[package.metadata.arch]
+type = "rust-contract"

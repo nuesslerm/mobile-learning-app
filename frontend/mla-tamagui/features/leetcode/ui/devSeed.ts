@@ -7,3 +7,9 @@ export function devSeed({ seed, seed64 }: { seed?: string; seed64?: string }): s
   const b64 = seed64.replace(/-/g, '+').replace(/_/g, '/');
   return atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
 }
+
+// A dev link names the language the editor opens in (with its seed), so a test can start on JavaScript; anything else is ignored.
+export function devLang(lang?: string): 'javascript' | undefined {
+  if (!__DEV__ && process.env.EXPO_PUBLIC_DEVICE_LAB !== '1') return undefined;
+  return lang === 'javascript' ? lang : undefined;
+}

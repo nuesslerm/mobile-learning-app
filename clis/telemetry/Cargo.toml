@@ -1,17 +1,19 @@
 [package]
 name = "telemetry"
-version = "0.1.2"
+version = "0.1.4"
 edition = "2021"
 publish = false
+# What a published crate holds: fixtures, cassettes and tests stay out unless named here (`wf lib release` refuses a manifest without it).
+include = ["src/**", "contract/**", "Cargo.toml"]
 
 # Its own workspace and lockfile: every consumer takes it from the mla registry, so a clis member of the same name would make `-p telemetry` ambiguous.
 [workspace]
 
 [features]
-# The process-wide `tracing` subscriber of a long-running service: console lines, OTLP logs and spans.
-service = ["dep:tracing", "dep:tracing-subscriber", "dep:tracing-opentelemetry", "opentelemetry/trace", "opentelemetry_sdk/trace", "opentelemetry-otlp/trace"]
+# The process-wide `tracing` subscriber of a long-running service: console lines, OTLP logs and spans (hand-written OTLP/HTTP JSON over `ureq`, one export thread).
+service = ["oneshot", "dep:tracing", "dep:tracing-subscriber"]
 # One record at a time, blocking, for a CLI.
-oneshot = ["dep:futures-executor"]
+oneshot = ["dep:ureq"]
 # `logger emit`, the shell scripts' logger, as a library (`wf log emit`) and as the static `logger` binary.
 cli = ["oneshot"]
 
@@ -19,7 +21,7 @@ cli = ["oneshot"]
 callsite = []
 
 # Gauges to an OTLP/HTTP metrics source, one request per batch (`OtlpMetricsSink`).
-metrics = ["opentelemetry/metrics", "opentelemetry_sdk/metrics", "opentelemetry-otlp/metrics"]
+metrics = ["dep:ureq"]
 
 # The in-memory `MetricsSink` double for other crates' tests.
 testing = []
@@ -33,16 +35,18 @@ name = "callsite-check"
 required-features = ["callsite"]
 
 [dependencies]
-opentelemetry = { version = "0.30", default-features = false, features = ["logs"] }
-opentelemetry_sdk = { version = "0.30", default-features = false, features = ["logs"] }
-opentelemetry-otlp = { version = "0.30", default-features = false, features = ["http-json", "logs", "reqwest-blocking-client", "reqwest-rustls"] }
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl"] }
 serde_json = "1"
-futures-executor = { version = "0.3", optional = true }
+ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier"], optional = true }
 tracing = { version = "0.1", optional = true }
-tracing-opentelemetry = { version = "0.31", optional = true }
 tracing-subscriber = { version = "0.3", optional = true, features = ["env-filter", "json"] }
 
 # The flow test needs the one-shot records and the call-site check, which a plain `cargo test -p telemetry --test flow` would not enable.
 [dev-dependencies]
+rcgen = { version = "0.14.10", default-features = false, features = ["ring", "pem"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+tempfile = "3"
 telemetry = { path = ".", features = ["oneshot", "callsite", "metrics", "testing"] }
+
+[package.metadata.arch]
+type = "library"

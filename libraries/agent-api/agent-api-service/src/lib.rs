@@ -5,17 +5,22 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 pub mod activity;
+pub mod logs;
+pub mod notifications;
+pub mod panes;
 #[cfg(feature = "testing")]
 pub mod testing;
 
 pub const GROUP: GroupName = GroupName::new("service");
 
 pub const STATUS: Method = Method::new(GROUP, "service.status");
+/// The last events the service wrote itself (`logs`).
+pub const LOGS: Method = Method::new(GROUP, "service.logs");
 
 pub use activity::CLIENT_ACTIVITY;
 
-/// Every method of the crate: `service.status` of the `service` group and `service.clientActivity` of the `service.activity` sub-group.
-pub const METHODS: &[Method] = &[STATUS, CLIENT_ACTIVITY];
+/// Every method of the crate: `service.status` and `service.logs` of the `service` group and `service.clientActivity` of the `service.activity` sub-group.
+pub const METHODS: &[Method] = &[STATUS, LOGS, CLIENT_ACTIVITY];
 
 /// The result of `service.status`: a group is listed only when every method of it is served.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -58,7 +63,7 @@ mod tests {
         let request = status_request(1);
         // Then it asks for service.status and the method belongs to the service group
         assert_eq!((request.method.as_str(), STATUS.group()), (STATUS.name(), GROUP));
-        assert_eq!(METHODS, [STATUS, CLIENT_ACTIVITY]);
+        assert_eq!(METHODS, [STATUS, LOGS, CLIENT_ACTIVITY]);
         assert_eq!(CLIENT_ACTIVITY.group(), activity::GROUP);
     }
 }

@@ -9,8 +9,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const appDir = join(dirname(fileURLToPath(import.meta.url)), '..');
-const SOURCE = 'features/leetcode/code-editor/core/cm6Bundle.src.ts';
-const OUTPUT = 'features/leetcode/code-editor/core/cm6Bundle.ts';
+const SOURCE = 'features/leetcode/data/editor/cm6/cm6Bundle.src.ts';
+const OUTPUT = 'features/leetcode/data/editor/cm6/cm6Bundle.ts';
 
 // Runs before the bundle: the WebView has no Node or Metro globals for the logger to read.
 const SHIM = [

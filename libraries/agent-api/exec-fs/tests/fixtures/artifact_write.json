@@ -1,0 +1,45 @@
+{
+  "action": "artifact_write",
+  "exchanges": [
+    {
+      "name": "replaces the content of a file of the root and answers the new size, identity and fingerprint",
+      "setup": {"files": {"notes.txt": "hello\n"}},
+      "request": {"id": "w1", "tool": "artifact_write", "args": {"path": "notes.txt", "content": "changed\n", "fingerprint": "a9bc80cca21f28b3"}},
+      "response": {"id": "w1", "ok": true, "result": {"path": "/root/notes.txt", "bytes": 8, "identity": "0:0:8:0.0:0.0", "fingerprint": "617edd5024bb1003"}},
+      "volatile": ["/result/path", "/result/identity"]
+    },
+    {
+      "name": "refuses a write whose fingerprint is not the file's any more and leaves the file as it was",
+      "setup": {"files": {"notes.txt": "hello\n"}},
+      "request": {"id": "w2", "tool": "artifact_write", "args": {"path": "notes.txt", "content": "x", "fingerprint": "0000000000000001"}},
+      "response": {"id": "w2", "ok": false, "error": {"code": "CHANGED", "message": "notes.txt changed since it was granted"}}
+    },
+    {
+      "name": "refuses a write whose identity is not the file's any more",
+      "setup": {"files": {"notes.txt": "hello\n"}},
+      "request": {"id": "w3", "tool": "artifact_write", "args": {"path": "notes.txt", "content": "x", "identity": "1:2:3:4.5:6.7"}},
+      "response": {"id": "w3", "ok": false, "error": {"code": "CHANGED", "message": "notes.txt changed since it was granted"}}
+    },
+    {
+      "name": "never creates a file",
+      "request": {"id": "w4", "tool": "artifact_write", "args": {"path": "new.txt", "content": "x"}},
+      "response": {"id": "w4", "ok": false, "error": {"code": "NOT_FOUND", "message": "new.txt does not exist"}}
+    },
+    {
+      "name": "refuses an absolute path outside the places the executor was allowed",
+      "request": {"id": "w5", "tool": "artifact_write", "args": {"path": "/etc/hostname", "content": "x"}},
+      "response": {"id": "w5", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "/etc/hostname is outside the root"}}
+    },
+    {
+      "name": "refuses a directory",
+      "setup": {"files": {"d/a.txt": "x"}},
+      "request": {"id": "w6", "tool": "artifact_write", "args": {"path": "d", "content": "x"}},
+      "response": {"id": "w6", "ok": false, "error": {"code": "NOT_A_FILE", "message": "d is not a regular file"}}
+    },
+    {
+      "name": "refuses content that is not a string",
+      "request": {"id": "w7", "tool": "artifact_write", "args": {"path": "notes.txt", "content": 5}},
+      "response": {"id": "w7", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`content` must be a string"}}
+    }
+  ]
+}

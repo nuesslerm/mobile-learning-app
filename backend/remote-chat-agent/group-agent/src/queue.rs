@@ -81,9 +81,9 @@ impl AgentQueueGroup {
         to_value(&ResumeResult { thread: p.thread, held: false, started, seq })
     }
 
-    fn steer(&self, params: &Value) -> Answer {
+    async fn steer(&self, params: &Value) -> Answer {
         let p = SteerParams::parse(params)?;
-        let (turn, events) = self.runner.steer(&p.thread, p.turn, p.prompt, p.item)?;
+        let (turn, events) = self.runner.steer(&p.thread, p.turn, p.prompt, p.item).await?;
         to_value(&SteerResult { seq: self.runner.seq_of(&p.thread, &events)?, thread: p.thread, turn })
     }
 }
@@ -107,7 +107,7 @@ impl Group for AgentQueueGroup {
             "queue.move" => self.move_item(params),
             "queue.delete" => self.delete(params),
             "queue.resume" => self.resume(params).await,
-            "turn.steer" => self.steer(params),
+            "turn.steer" => self.steer(params).await,
             other => unreachable!("{other} is no method of agent.queue (SERVED)"),
         };
         respond(id, answer)

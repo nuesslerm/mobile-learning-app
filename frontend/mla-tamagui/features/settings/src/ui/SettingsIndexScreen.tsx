@@ -6,6 +6,7 @@ import {
   ScreenHeader,
   Text,
   usePresetThemeStore,
+  useScrollUnder,
   View,
 } from '@lib/tamagui-design-system';
 import {
@@ -18,17 +19,20 @@ import {
 import { ScrollView } from 'react-native';
 
 import { SettingsRow } from './SettingsRow';
-import { backTo } from './backTo';
+import { backTo } from '@lib/tamagui-design-system/lib/backTo';
 
 export function SettingsIndexScreen() {
   const activeThemeId = usePresetThemeStore((s) => s.activeThemeId);
   const activePreset =
     (activeThemeId ? getPresetThemeById(activeThemeId) : undefined) ??
     getDefaultTheme();
+  const scrollUnder = useScrollUnder(true);
 
   return (
     <View flex={1} bg="$background" testID="SettingsIndexScreen">
       <ScreenHeader
+        glass
+        transparent
         testID="SettingsIndexScreenHeader"
         title="Settings"
         onBack={() => {
@@ -37,6 +41,7 @@ export function SettingsIndexScreen() {
         }}
       />
       <ScrollView
+        {...scrollUnder}
         testID="SettingsIndexScreen-ScrollView"
         contentContainerStyle={{ paddingVertical: 16, gap: 12 }}
       >

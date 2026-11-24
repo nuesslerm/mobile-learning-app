@@ -60,13 +60,13 @@ async fn watching(chain: &Chain) -> (Agent, Agent) {
 }
 
 fn prompts(chain: &Chain) -> Vec<String> {
-    chain.cli.invocations("claude").iter().filter_map(|start| start.argv.iter().find(|a| a.contains("on schedule")).cloned()).collect()
+    chain.cli.claude_prompts("claude").into_iter().filter(|a| a.contains("on schedule")).collect()
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_due_schedule_when_the_clock_passes_it_then_the_agent_group_runs_its_turn_and_the_stream_records_the_run_from_start_to_success() {
     // Given the real chain, a CLI whose turn says one thing, a mapper following the schedules stream and a schedule that runs every minute
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("hello from the schedule")])]);
     let (mut watcher, mut agent) = watching(&chain).await;
@@ -100,7 +100,7 @@ async fn given_a_due_schedule_when_the_clock_passes_it_then_the_agent_group_runs
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_schedule_that_was_disabled_when_the_clock_passes_it_then_no_turn_starts_and_run_now_starts_one_anyway() {
     // Given an enabled schedule that is then disabled through the socket
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("hello from the schedule")])]);
     let (mut watcher, mut agent) = watching(&chain).await;
@@ -130,7 +130,7 @@ async fn given_a_schedule_that_was_disabled_when_the_clock_passes_it_then_no_tur
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_webhook_schedule_when_requests_arrive_without_a_bearer_then_a_wrong_token_is_401_and_seen_by_the_schedule_and_the_right_token_runs_the_rendered_prompt() {
     // Given a webhook schedule whose prompt names a field of the body, its token, and a mapper following the stream
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("reviewed")])]);
     let (mut watcher, mut agent) = watching(&chain).await;
@@ -167,7 +167,7 @@ async fn given_a_webhook_schedule_when_requests_arrive_without_a_bearer_then_a_w
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_a_webhook_schedule_when_the_service_restarts_then_the_schedule_and_its_token_survive_and_the_file_holds_a_digest_never_the_token() {
     // Given a webhook schedule saved on one service
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let first = service(&env, Options::default());
     let port = first.listen().await;
     let mut agent = Agent::open(port, &first.mint("flow mapper").await).await;
@@ -188,6 +188,35 @@ async fn given_a_webhook_schedule_when_the_service_restarts_then_the_schedule_an
     let let_in = second.send(post(&format!("/hooks/v1/schedules/hook/{token}")).raw_json("{}")).await;
     assert_eq!((let_in.status, let_in.json()["error"].clone()), (StatusCode::BAD_GATEWAY, json!("NO_EXECUTOR")), "{}", let_in.text());
     assert_eq!(second.send(post("/hooks/v1/schedules/hook/other")).await.status, StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn given_a_schedule_whose_runs_were_refused_when_the_service_restarts_then_schedule_runs_still_answers_them_newest_first() {
+    // Given a schedule run twice by hand on a service with no executor attached, so each run is refused and kept as failed
+    let env = Env::new(&[]);
+    let first = service(&env, Options::default());
+    let port = first.listen().await;
+    let mut agent = Agent::open(port, &first.mint("flow mapper").await).await;
+    agent.ask("schedule.upsert", schedule("nightly", every_minute(), "say hello on schedule")).await;
+    for _ in 0..2 {
+        first.clock.advance(1000);
+        let refused = agent.ask("schedule.runNow", json!({"id": "nightly"})).await;
+        assert_eq!(refused["error"]["code"], json!("NO_EXECUTOR"), "{refused}");
+    }
+    // When a second service starts on the same home and its runs are asked for
+    let second = service(&env, Options::default());
+    let port = second.listen().await;
+    let mut again = Agent::open(port, &second.mint("flow mapper").await).await;
+    let runs = again.ask("schedule.runs", json!({"id": "nightly"})).await;
+    // Then both runs are answered, newest first, each failed with the refusal and at the time it was asked
+    let kept: Vec<(Value, Value, Value, Value)> = runs["result"]["runs"].as_array().unwrap_or_else(|| panic!("{runs}")).iter().map(|r| (r["run"].clone(), r["source"].clone(), r["at_ms"].clone(), r["state"].clone())).collect();
+    let id = |r: &Value| r["run"].as_str().unwrap().to_string();
+    let ids: Vec<String> = runs["result"]["runs"].as_array().unwrap().iter().map(id).collect();
+    assert_eq!(kept, [(json!(ids[0]), json!("manual"), json!(SCHEDULE_EPOCH_MS + 2000), json!("failed")), (json!(ids[1]), json!("manual"), json!(SCHEDULE_EPOCH_MS + 1000), json!("failed"))]);
+    assert_ne!(ids[0], ids[1]);
+    // And every schedule's runs are the same two, and a schedule that is gone has none to answer
+    assert_eq!(again.ask("schedule.runs", json!({})).await["result"]["runs"].as_array().map(Vec::len), Some(2));
+    assert_eq!(again.ask("schedule.runs", json!({"id": "gone"})).await["error"]["code"], json!("SCHEDULE_NOT_FOUND"));
 }
 
 use std::os::unix::fs::PermissionsExt;

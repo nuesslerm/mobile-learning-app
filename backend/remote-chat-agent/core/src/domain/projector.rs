@@ -2,7 +2,7 @@
 //! thread keeps, settles the latest turn when its session leaves running, and keeps the latest diff per turn on the side.
 
 use super::lifecycle::{self, Lifecycle, Lineage, OpenRequest, TurnRecord};
-use super::types::*;
+use super::types::{Activity, Event, LatestTurn, MAX_THREAD_ACTIVITIES, MAX_THREAD_MESSAGES, MAX_THREAD_PROPOSED_PLANS, Message, ModelSelection, ProposedPlan, Session, Thread};
 use serde_json::Value;
 use std::collections::HashMap;
 

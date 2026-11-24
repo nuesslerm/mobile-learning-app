@@ -8,8 +8,13 @@ import { Fragment, useCallback, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
-import { ProblemCatalog } from '../data/problemCatalog';
+import { ProblemCatalog } from '../domain/problemCatalog';
 import { useLeetCodeAuthStore } from '../state/authStore';
+import { useLeetCodeFlag } from '../state/useLeetCodeFlag';
+import { AutocompleteSettingRow } from './AutocompleteSettingRow';
+import { BlockViewSettingRow } from './BlockViewSettingRow';
+import { CursorHandleSettingRow } from './editor/CursorHandleSettingRow';
+import { RunnerSettingRow } from './RunnerSettingRow';
 
 const CONTENT_STYLE = { paddingBottom: 24 } as const;
 
@@ -139,6 +144,7 @@ function HeroChip({
 
 export function ProblemListScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
+  const cursorPad = useLeetCodeFlag('cursorPad');
   const categories = useMemo(() => ProblemCatalog.getCategories(), []);
   const total = useMemo(() => ProblemCatalog.getAll().length, []);
   const navigation = useNavigation();
@@ -224,6 +230,10 @@ export function ProblemListScreen(): React.ReactElement {
         scrollViewTestID="LeetcodeListScroll"
       >
         <AuthRow />
+        <RunnerSettingRow />
+        <AutocompleteSettingRow />
+        {cursorPad ? <CursorHandleSettingRow /> : null}
+        <BlockViewSettingRow />
         {categories.map((category) => (
           <Fragment key={category.id}>
             <Text

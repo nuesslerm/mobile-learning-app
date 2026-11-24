@@ -14,15 +14,13 @@
   },
   "summary": {
     "testids": [
-      "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
-      "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
       "ProblemEditorActions",
@@ -30,24 +28,18 @@
       "ProblemEditorRunLocalButton",
       "ProblemEditorRunButton",
       "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
       "ProblemEditorRunOutcome",
       "ProblemEditorRunOutcomeStatus",
       "ProblemEditorRunOutcomeTotals",
       "ProblemEditorTestInputZone",
-      "ProblemEditorTestInput",
-      "ProblemPlanTab",
-      "ProblemPlanSteps",
-      "ProblemPlanComposer",
-      "ProblemPlanMicButton",
-      "ProblemPlanTextInput",
-      "ProblemPlanAddButton"
+      "ProblemEditorTestInputHint",
+      "ProblemEditorRunInputButton",
+      "ProblemEditorTestInput"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nAccepted\n5 / 5 test cases passed"
+    "text": "Python\nFormat\nRun Local\nRun\nReset\nAccepted\n5 / 5 test cases passed\nOne JSON value per line: nums, target\nRun input"
   },
   "timings": {
-    "render_ms": 240
+    "render_ms": 227
   },
   "name": "problemeditor/run-accepted.dark",
   "image": {

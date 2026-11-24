@@ -2,7 +2,8 @@
 //! `<id>/meta.json`, readable by the service's user only), the system clock, and ids from the system's randomness.
 use agent_api_attachments::{valid_id, AttachmentView};
 use rca_service_core::application::agent_groups::{AttachmentClock, AttachmentIds, BlobPut, BlobStore};
-use rca_service_core::domain::util::{now_ms, random_hex};
+use super::ambient::random_hex;
+use rca_service_core::domain::util::now_ms;
 use std::fs;
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};

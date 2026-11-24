@@ -20,7 +20,7 @@ const URL_LINE: &str = "Open https://login.example.test/device to sign in.";
 const CODE_LINE: &str = "Enter the code ABCD-1234 there.";
 const PASTE_LINE: &str = "Open https://login.example.test/device and paste the code.";
 /// The variables a scripted CLI keeps the value of: the provider variables of every provider, and the service's own.
-const WATCHED: [&str; 9] = ["CLAUDE_CONFIG_DIR", "CODEX_HOME", "XDG_DATA_HOME", "XDG_CONFIG_HOME", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "KIMI_API_KEY", "CHAT_AGENT_API_SECRET", "GH_TOKEN"];
+const WATCHED: [&str; 10] = ["HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME", "XDG_DATA_HOME", "XDG_CONFIG_HOME", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "KIMI_API_KEY", "CHAT_AGENT_API_SECRET", "GH_TOKEN"];
 
 /// What the service's environment holds that no provider but its own may see, as a deployed service has it.
 fn service_env(env: &Env) {
@@ -31,17 +31,12 @@ fn service_env(env: &Env) {
 
 /// Codex's login: prints the address and the code, waits a moment as a person would, then keeps its token in `CODEX_HOME`.
 fn codex_login(token: &str) -> Turn {
-    Turn::default().then_line(URL_LINE).then_line(CODE_LINE).then_sleeping(500).then_writing_credential("CODEX_HOME", "auth.json", &format!("{{\"access_token\":\"{token}\"}}")).logging_env(&WATCHED).listing_env(&["CODEX_HOME"])
+    Turn::default().then_line(URL_LINE).then_line(CODE_LINE).then_sleeping(500).then_writing_credential("HOME", ".codex/auth.json", &format!("{{\"access_token\":\"{token}\"}}")).logging_env(&WATCHED).listing_env(&[])
 }
 
 /// Claude's paste login: prints the address, reads the pasted code and keeps it as its token in `CLAUDE_CONFIG_DIR`.
 fn claude_login() -> Turn {
-    Turn::default().then_line(PASTE_LINE).then_reading_a_line().then_writing_credential("CLAUDE_CONFIG_DIR", ".credentials.json", "{\"access_token\":\"{paste}\"}").logging_env(&WATCHED).listing_env(&["CLAUDE_CONFIG_DIR"])
-}
-
-/// opencode's paste login: keeps the pasted code as its token below its XDG data home, where opencode keeps `auth.json`.
-fn opencode_login() -> Turn {
-    Turn::default().then_line(PASTE_LINE).then_reading_a_line().then_writing_credential("XDG_DATA_HOME", "opencode/auth.json", "{\"access_token\":\"{paste}\"}").logging_env(&WATCHED).listing_env(&["XDG_DATA_HOME", "XDG_CONFIG_HOME"])
+    Turn::default().then_line(PASTE_LINE).then_reading_a_line().then_writing_credential("HOME", ".claude/.credentials.json", "{\"access_token\":\"{paste}\"}").logging_env(&WATCHED).listing_env(&[])
 }
 
 /// A turn that says one thing and keeps what it could see: the provider variables and the files of the directories it was told of.
@@ -94,11 +89,11 @@ fn start(chain: &Chain, program: &str, index: usize) -> exec_testkit::Invocation
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_fake_device_flow_when_a_provider_signs_in_and_a_turn_runs_then_the_cli_wrote_its_login_to_its_own_directory_and_the_turn_ran_in_it_with_no_reply_carrying_a_token() {
     // Given a service with every provider's credentials in its environment, and Claude's CLI scripted to log in by paste and then to say one thing
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     service_env(&env);
     let chain = chain(&env).await;
-    let root = env.providers_root();
-    chain.cli.script("claude", &Script::of(vec![claude_login(), watching(Turn::replaying(&[said("hello")]), &["CLAUDE_CONFIG_DIR"])]));
+    let root = chain.host_home.clone();
+    chain.cli.script("claude", &Script::of(vec![claude_login(), watching(Turn::replaying(&[said("hello")]), &["CLAUDE_CONFIG_DIR"])]).printing_version("0.0.0-flow"));
     let (mut agent, mut seen) = (chain.agent().await, Seen::default());
     // When Claude signs in by pasting a code (the CLI keeps it as its token), and a turn then runs on it
     sign_in_claude(&mut agent, &mut seen, "pasted-secret-code-1").await;
@@ -107,14 +102,12 @@ async fn given_a_fake_device_flow_when_a_provider_signs_in_and_a_turn_runs_then_
     seen.ask(&mut agent, "turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "claudeAgent", "prompt": "hi"})).await;
     let events = agent.events_through("turn.finished").await;
     // Then the CLI itself wrote the login below the directory the service named for it, and the pasted code is in that file only
-    assert_eq!(credential_text(&root, "claude", ".credentials.json"), "{\"access_token\":\"pasted-secret-code-1\"}");
+    assert_eq!(credential_text(&root, ".claude", ".credentials.json"), "{\"access_token\":\"pasted-secret-code-1\"}");
     let (login, turn) = (start(&chain, "claude", 0), start(&chain, "claude", 1));
     assert_eq!(login.argv, ["auth", "login"]);
-    assert_eq!(login.env["CLAUDE_CONFIG_DIR"], Some(root.join("claude").to_string_lossy().into_owned()));
-    // And the turn ran with the same directory as its config, and that directory held the login when it started
-    assert_eq!(turn.env["CLAUDE_CONFIG_DIR"], login.env["CLAUDE_CONFIG_DIR"]);
-    assert_eq!(turn.listing["CLAUDE_CONFIG_DIR"], [".credentials.json"]);
-    assert_eq!(turn.cwd, env.home.to_string_lossy());
+    assert_eq!(login.env["HOME"], Some(root.to_string_lossy().into_owned()));
+    // And the turn ran at the workspace host's root, with the host's own environment
+    assert_eq!(turn.cwd, chain.repo.path().to_string_lossy());
     // And the provider reads signed in and selected, the turn finished, and no frame the mapper saw holds the pasted code or any key
     let listed = seen.ask(&mut agent, "provider.list", json!({})).await;
     assert_eq!(listed["result"]["selected"], json!("claudeAgent"));
@@ -126,67 +119,13 @@ async fn given_a_fake_device_flow_when_a_provider_signs_in_and_a_turn_runs_then_
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
-async fn given_two_providers_signed_in_when_each_runs_a_turn_then_neither_sees_the_others_login_variables_or_files_nor_the_services_secrets() {
-    // Given every provider's credentials and the service's secrets in the service's environment, Claude signed in by a pasted code and opencode
-    // by another (Codex runs no remote turn yet, so the second provider that can is opencode)
-    let env = Env::process(&[]);
-    service_env(&env);
-    let chain = chain(&env).await;
-    let root = env.providers_root();
-    chain.cli.script("opencode", &Script::of(vec![opencode_login(), watching(Turn::replaying(&exec_testkit::recordings::named("opencode-text").lines), &["XDG_DATA_HOME", "XDG_CONFIG_HOME"])]));
-    chain.cli.script("claude", &Script::of(vec![claude_login(), watching(Turn::replaying(&[said("hello")]), &["CLAUDE_CONFIG_DIR"])]));
-    let (mut agent, mut seen) = (chain.agent().await, Seen::default());
-    for (provider, code) in [("opencode", "opencode-paste-token-5"), ("claudeAgent", "claude-paste-token-7")] {
-        let started = auth(&seen.ask(&mut agent, "provider.auth.start", json!({"provider": provider, "method": "paste"})).await);
-        seen.ask(&mut agent, "provider.auth.respond", json!({"auth": started["auth"], "text": code})).await;
-        let done = auth(&seen.ask(&mut agent, "provider.auth.complete", json!({"auth": started["auth"]})).await);
-        assert_eq!(done["status"], json!("succeeded"), "{provider}: {done}");
-    }
-    // When a turn runs on each provider
-    for (thread, driver) in [("to", "opencode"), ("tl", "claudeAgent")] {
-        let made = agent.ask("thread.create", json!({"thread": thread, "title": "T", "workspace": "w1", "driver": driver})).await;
-        assert!(made.get("result").is_some(), "{made}");
-        agent.ask("thread.subscribe", json!({"thread": thread})).await;
-        let started = agent.ask("turn.start", json!({"thread": thread, "workspace": "w1", "driver": driver, "prompt": "hi"})).await;
-        assert!(started.get("result").is_some(), "{driver}: {started}");
-        let events = agent.events_through("turn.finished").await;
-        assert_eq!(events.last().unwrap().data["reason"], json!("completed"), "{driver}");
-    }
-    let (opencode, claude) = (start(&chain, "opencode", 1), start(&chain, "claude", 1));
-    let (opencode_dir, claude_dir) = (root.join("opencode").to_string_lossy().into_owned(), root.join("claude").to_string_lossy().into_owned());
-    // Then opencode's process was told only its own data and config directories, and listed only its own login file
-    assert_eq!((opencode.env["XDG_DATA_HOME"].clone(), opencode.env["XDG_CONFIG_HOME"].clone()), (Some(format!("{opencode_dir}/data")), Some(format!("{opencode_dir}/config"))));
-    assert_eq!((opencode.env["CLAUDE_CONFIG_DIR"].clone(), opencode.env["CODEX_HOME"].clone()), (None, None));
-    assert_eq!((opencode.listing["XDG_DATA_HOME"].clone(), opencode.listing["XDG_CONFIG_HOME"].clone()), (vec!["opencode/auth.json".to_string()], Vec::new()));
-    // And Claude's process only its own directory, with its own login file in it
-    assert_eq!((claude.env["CLAUDE_CONFIG_DIR"].clone(), claude.env["CODEX_HOME"].clone()), (Some(claude_dir.clone()), None));
-    assert_eq!((claude.env["XDG_DATA_HOME"].clone(), claude.env["XDG_CONFIG_HOME"].clone()), (None, None));
-    assert_eq!(claude.listing["CLAUDE_CONFIG_DIR"], [".credentials.json"]);
-    // And neither environment names the other's directory or holds the other provider's key
-    let values = |run: &exec_testkit::Invocation| run.env.values().flatten().cloned().collect::<Vec<String>>();
-    assert!(values(&opencode).iter().all(|v| !v.contains(&claude_dir) && v != "anthropic-key-value" && v != "openai-key-value"), "{:?}", opencode.env);
-    assert!(values(&claude).iter().all(|v| !v.contains(&opencode_dir) && v != "openai-key-value" && v != "kimi-key-value"), "{:?}", claude.env);
-    // And neither holds the service's secret or a GitHub token, each keeps its own provider's key (opencode the model API key it reads) and no other
-    for run in [&opencode, &claude] {
-        for name in ["CHAT_AGENT_API_SECRET", "GH_TOKEN"] {
-            assert_eq!(run.env[name], None, "{} holds {name}", run.program);
-        }
-    }
-    assert_eq!((opencode.env["KIMI_API_KEY"].clone(), opencode.env["ANTHROPIC_API_KEY"].clone()), (Some("kimi-key-value".into()), None));
-    assert_eq!((claude.env["ANTHROPIC_API_KEY"].clone(), claude.env["KIMI_API_KEY"].clone()), (Some("anthropic-key-value".into()), None));
-    // And the two logins are in files of their own, and neither pasted code is in any reply
-    assert!(credential_text(&root, "opencode", "data/opencode/auth.json").contains("opencode-paste-token-5") && !credential_text(&root, "claude", ".credentials.json").contains("opencode-paste-token-5"));
-    assert!(!seen.mentions("opencode-paste-token-5") && !seen.mentions("claude-paste-token-7"));
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_provider_signed_in_when_it_logs_out_then_its_login_file_is_gone_and_the_other_providers_stay() {
     // Given Codex and Claude signed in
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
-    let root = env.providers_root();
-    chain.cli.script("codex", &Script::of(vec![codex_login("codex-token-3")]));
-    chain.cli.script("claude", &Script::of(vec![claude_login()]));
+    let root = chain.host_home.clone();
+    chain.cli.script("codex", &Script::of(vec![codex_login("codex-token-3")]).printing_version("0.0.0-flow"));
+    chain.cli.script("claude", &Script::of(vec![claude_login()]).printing_version("0.0.0-flow"));
     let (mut agent, mut seen) = (chain.agent().await, Seen::default());
     sign_in_codex(&mut agent, &mut seen).await;
     sign_in_claude(&mut agent, &mut seen, "claude-token-4").await;
@@ -194,7 +133,7 @@ async fn given_a_provider_signed_in_when_it_logs_out_then_its_login_file_is_gone
     let out = seen.ask(&mut agent, "provider.logout", json!({"provider": "codex"})).await;
     // Then its login file is gone from the volume, Claude's stays, and the list says so
     assert_eq!(out["result"]["provider"]["status"], json!("signed_out"));
-    assert!(!root.join("codex/auth.json").exists() && root.join("claude/.credentials.json").exists());
+    assert!(!root.join(".codex/auth.json").exists() && root.join(".claude/.credentials.json").exists());
     let listed = seen.ask(&mut agent, "provider.list", json!({})).await;
     let status = |name: &str| listed["result"]["providers"].as_array().unwrap().iter().find(|p| p["provider"] == name).unwrap()["status"].clone();
     assert_eq!((status("codex"), status("claudeAgent")), (json!("signed_out"), json!("signed_in")));
@@ -203,9 +142,9 @@ async fn given_a_provider_signed_in_when_it_logs_out_then_its_login_file_is_gone
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_login_command_that_fails_when_it_ends_then_the_session_says_why_and_the_provider_stays_signed_out() {
     // Given Codex's login scripted to print its address and then to fail with an error, as a login whose code expired does
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
-    chain.cli.script("codex", &Script::of(vec![Turn::default().then_line(URL_LINE).complaining("error: the device code expired").exiting(1)]));
+    chain.cli.script("codex", &Script::of(vec![Turn::default().then_line(URL_LINE).complaining("error: the device code expired").exiting(1)]).printing_version("0.0.0-flow"));
     let (mut agent, mut seen) = (chain.agent().await, Seen::default());
     // When Codex's login starts and its command fails
     let started = auth(&seen.ask(&mut agent, "provider.auth.start", json!({"provider": "codex"})).await);
@@ -213,7 +152,7 @@ async fn given_a_login_command_that_fails_when_it_ends_then_the_session_says_why
     // Then the session failed with the error output of the command, and Codex holds no login
     assert_eq!(done["status"], json!("failed"));
     assert!(done["error"].as_str().unwrap().contains("the device code expired"), "{done}");
-    assert!(!env.providers_root().join("codex/auth.json").exists());
+    assert!(!chain.host_home.join(".codex/auth.json").exists());
 }
 
 fn contract_methods() -> BTreeSet<&'static str> {
@@ -228,8 +167,10 @@ fn recorded() -> Vec<Fixture> {
 /// token is kept after half a second), Claude by paste.
 async fn replay_rig(env: &Env) -> Chain {
     let chain = chain(env).await;
-    chain.cli.script("codex", &Script::of(vec![codex_login("recorded-codex-token")]));
-    chain.cli.script("claude", &Script::of(vec![claude_login()]));
+    // The app-server answers and the update command are authored doubles: no real Codex or Claude binary was run for the recorded exchanges
+    let limits = json!({"rateLimits": {"primary": {"usedPercent": 40, "windowDurationMins": 300, "resetsAt": 1_900_000_000}, "secondary": {"usedPercent": 10, "windowDurationMins": 10080, "resetsAt": 1_900_500_000}}, "rateLimitResetCredits": {"availableCount": 2}});
+    chain.cli.script("codex", &Script::of(vec![codex_login("recorded-codex-token")]).printing_version("0.0.0-flow").answering_app_server("account/rateLimits/read", json!({"result": limits})).answering_app_server("account/rateLimitResetCredit/consume", json!({"result": {"outcome": "reset"}})));
+    chain.cli.script("claude", &Script::of(vec![claude_login()]).printing_version("0.0.0-flow").on_command("update", Turn::default().then_line("Updated to 0.0.0-flow")));
     chain
 }
 
@@ -250,7 +191,7 @@ async fn every_method_of_accounts_and_git_ai_has_recorded_exchanges_that_are_ans
     }
     // When each fixture is replayed on a service of its own, a staged change in the repository for the git.ai exchanges
     for fixture in &fixtures {
-        let env = Env::process(&[]);
+        let env = Env::new(&[]);
         let chain = replay_rig(&env).await;
         chain.repo.write("README.md", "temp repo\nedited\n");
         chain.repo.git(&["add", "README.md"]);
@@ -276,7 +217,7 @@ async fn every_method_of_accounts_and_git_ai_has_recorded_exchanges_that_are_ans
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_staged_change_in_the_repository_when_a_message_is_generated_then_the_model_is_given_the_real_diff_and_nothing_is_committed() {
     // Given a repository with one staged edit, and the service's model double
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.repo.write("README.md", "temp repo\nedited by the flow\n");
     chain.repo.git(&["add", "README.md"]);
@@ -299,9 +240,42 @@ async fn given_a_staged_change_in_the_repository_when_a_message_is_generated_the
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_a_branch_with_a_commit_when_pull_request_fields_are_generated_then_the_model_is_given_the_patch_from_the_merge_base_and_nothing_moves() {
+    // Given a topic branch with one commit, and a commit on main after the branch left it
+    let env = Env::new(&[]);
+    let chain = chain(&env).await;
+    chain.repo.git(&["checkout", "-q", "-b", "topic"]);
+    chain.repo.write("notes.txt", "kept on the branch\n");
+    chain.repo.git(&["add", "notes.txt"]);
+    chain.repo.git(&["commit", "-q", "-m", "add notes"]);
+    chain.repo.git(&["checkout", "-q", "main"]);
+    chain.repo.write("main-only.txt", "main moved on\n");
+    chain.repo.git(&["add", "main-only.txt"]);
+    chain.repo.git(&["commit", "-q", "-m", "main moves on"]);
+    chain.repo.git(&["checkout", "-q", "topic"]);
+    let head = chain.repo.head();
+    let mut agent = chain.agent().await;
+    // When the fields are generated against main
+    let answered = agent.ask("git.generatePullRequestFields", json!({"workspace": "w1", "base": "main", "title": "", "body": "", "draft": false})).await;
+    // Then the answer is the model's fields, and the model was given the commit, the file and the branch's own patch, not what main gained
+    assert_eq!(answered["result"]["title"], json!("Describe the temp repo"), "{answered}");
+    let asked: Vec<Completion> = chain.models().requests();
+    assert_eq!(asked.len(), 1);
+    for part in ["- add notes", "notes.txt", "+kept on the branch"] {
+        assert!(asked[0].prompt.contains(part), "{part}: {}", asked[0].prompt);
+    }
+    assert!(!asked[0].prompt.contains("main-only.txt"), "{}", asked[0].prompt);
+    // And the head did not move, and a base git does not know is refused by the executor's words, without the model
+    assert_eq!(chain.repo.head(), head);
+    let unknown = agent.ask("git.generatePullRequestFields", json!({"workspace": "w1", "base": "nope"})).await;
+    assert!(unknown.get("error").is_some(), "{unknown}");
+    assert_eq!(chain.models().requests().len(), 1);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_nothing_staged_when_a_message_is_generated_then_it_is_refused_without_asking_the_model() {
     // Given a clean repository
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     let mut agent = chain.agent().await;
     // When a message is asked for the staged change
@@ -339,7 +313,7 @@ async fn ask_for_text(api: &HttpModelApi) -> Result<rca_group_accounts::Complete
 }
 
 #[tokio::test]
-async fn given_no_key_or_a_failing_endpoint_when_a_completion_is_asked_then_it_is_unavailable_with_why_and_usage_and_credit_are_not_offered() {
+async fn given_no_key_or_a_failing_endpoint_when_a_completion_is_asked_then_it_is_unavailable_with_why() {
     // Given an API with no key, and one whose service answers 500, 200 with no message, and 200 with no JSON
     let (keyless, silent) = http_model("https://models.example.test/v1", None);
     let (api, outbound) = http_model("https://models.example.test/v1", Some("k"));
@@ -360,7 +334,4 @@ async fn given_no_key_or_a_failing_endpoint_when_a_completion_is_asked_then_it_i
     assert_eq!(reason(server), "the model API answered 500");
     assert_eq!(reason(empty), "the model API answered with no message");
     assert!(reason(down).contains("connection refused"));
-    // And usage is not reported and a credit cannot be reset
-    assert_eq!(api.usage("codex").await, Ok(None));
-    assert!(matches!(api.reset_credit("codex").await, Err(ModelError::NotSupported(_))));
 }

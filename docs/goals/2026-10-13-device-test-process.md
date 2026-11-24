@@ -28,9 +28,9 @@ criteria:
     command: |-
       cargo test --manifest-path clis/Cargo.toml --release -p wf --test flow -- pipeline::ci_plans pipeline::focused_e2e_tests 2>&1 | grep -q '^test result: ok. 2 passed'
   - id: b3.manifest
-    description: 'The e2e tests (e2e/*.lua) declare platform and against in their header, and `wf test plan --all` lists at least four with a script, platform and target.'
+    description: 'The e2e tests (e2e/*.lua) declare platform and against in their header, and `wf ci plan tests --all` lists at least four with a script, platform and target.'
     command: |-
-      wf test plan --all --json | jq -e '(.tests | length) >= 4 and (.tests | all(.script != null and .platform != null and .against != null))'
+      wf ci plan tests --all --json | jq -e '(.tests | length) >= 4 and (.tests | all(.script != null and .platform != null and .against != null))'
   - id: b4.workflow
     description: 'A GitHub workflow on the vm runner runs the focused e2e tests a push reaches (`wf test run --changed`) as Deploy''s last job and posts an e2e-tests status.'
     command: |-

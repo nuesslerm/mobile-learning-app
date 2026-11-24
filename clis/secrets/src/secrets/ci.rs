@@ -10,7 +10,7 @@ use std::sync::Mutex;
 pub const DEPLOY_TOKEN_VAR: &str = "BWS_CI_DEPLOY_ACCESS_TOKEN";
 
 /// The cache and artifact links that can overwrite shared objects (docs/solutions/ci/job-secret-needs.md).
-const WRITE_URL_KEYS: [&str; 2] = ["BUILD_CACHE_WRITE_PAR_URL", "VERIFICATION_ARTIFACTS_PAR_URL"];
+const WRITE_URL_KEYS: [&str; 4] = ["BUILD_CACHE_WRITE_PAR_URL", "BUILD_CACHE_WRITE_STORES", "BLOB_S3_WRITE_CREDENTIAL", "BLOB_DAV_WRITE_TOKEN"];
 
 fn var(name: &str) -> Option<String> {
     std::env::var(name).ok().filter(|v| !v.is_empty())
@@ -40,8 +40,7 @@ pub fn scope_token(scope: Scope) -> Option<String> {
     token_var(scope).and_then(var)
 }
 
-/// A CI run that was given at least one scope token reads by scope; with none it reads as it always did (the VM runner's
-/// container-level token) until that token is removed.
+/// A CI run that was given at least one scope token reads by scope; with none it reads unscoped, as agent-shell and the sandbox do.
 pub fn scoped_mode() -> bool {
     in_ci() && (scope_token(Scope::CiOpen).is_some() || scope_token(Scope::CiDeploy).is_some())
 }
@@ -87,6 +86,12 @@ pub fn refusal(entry: &Entry) -> Option<String> {
 
 static MASK_TO_STDOUT: AtomicBool = AtomicBool::new(false);
 static MASKED: Mutex<Option<HashSet<String>>> = Mutex::new(None);
+static ANNOUNCE_OFF: AtomicBool = AtomicBool::new(false);
+
+/// A caller whose stdout and stderr land in files it scans for values turns the announcement off: the line would put the value in the file.
+pub fn announce_off(off: bool) {
+    ANNOUNCE_OFF.store(off, Ordering::Relaxed);
+}
 
 /// `sync-env` writes a file and prints no value, so it announces masks on stdout; every other verb (`get` and `env` print values,
 /// `verify` prints JSON) and every library caller whose stdout another program parses announces on stderr, which the runner reads for
@@ -97,7 +102,7 @@ pub fn mask_on_stdout(on: bool) {
 
 /// `::add-mask::` for each line of `value`, once per distinct line, flushed before the caller can use the value.
 pub fn announce(value: &str) {
-    if !in_actions() {
+    if !in_actions() || ANNOUNCE_OFF.load(Ordering::Relaxed) {
         return;
     }
     let mut seen = MASKED.lock().unwrap_or_else(|e| e.into_inner());

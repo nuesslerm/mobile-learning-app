@@ -21,7 +21,6 @@ regex = { version = "1", default-features = false, features = ["std", "perf", "u
 regex-syntax = { version = "0.8", default-features = false, features = ["std"] }
 base64 = "0.22"
 png = { version = "0.17", default-features = false }
-tiny_http = "0.12"
 mime_guess = "2"
 nix = { version = "0.31", default-features = false, features = ["signal", "process"] }
 signal-hook = "0.4"
@@ -31,3 +30,6 @@ tempfile = "3"
 
 [dev-dependencies]
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
+
+[package.metadata.arch]
+type = "cli-crate"

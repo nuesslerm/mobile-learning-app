@@ -3,6 +3,13 @@ language: rust
 severity: error
 message: An infrastructure module may not use the api layer; the api calls infrastructure, never the reverse.
 files:
-  - "**/infrastructure/**/*.rs"
+  # BEGIN generated:ast-grep-files
+  - "**/leetcode-auth-cookie-capture/rs/src/infrastructure/**/*.rs"
+  - "**/leetcode-backend/rs/src/infrastructure/**/*.rs"
+  - "**/remote-chat-agent/rs/src/infrastructure/**/*.rs"
+  - "**/reporting-service/rs/src/infrastructure/**/*.rs"
+  - "**/vm-ops-api/rs/src/infrastructure/**/*.rs"
+  - "**/watchdog/rs/src/infrastructure/**/*.rs"
+  # END generated:ast-grep-files
 rule:
   matches: names-api

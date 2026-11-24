@@ -1,0 +1,93 @@
+{
+  "suite": "tamilglass",
+  "step": "final-given-tamil-uyir-1-on-the-native-bar-when-the-155485",
+  "scheme": "light",
+  "snapshot": "tamilglass/final-given-tamil-uyir-1-on-the-native-bar-when-the-155485.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 1064,
+    "page_height": 1064
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "TamilLessonScreen",
+      "NativeHeader",
+      "NativeHeaderLeft",
+      "NativeHeaderItem-Go back",
+      "NativeHeaderTitle",
+      "ScreenHeaderGlassTitle",
+      "ScreenHeaderGlassTitleText",
+      "ScreenHeaderGlassTitleSubtitle",
+      "NativeHeaderRight",
+      "NativeHeaderItem-Reset this lesson",
+      "TamilLessonScroll",
+      "TamilPracticePosition",
+      "TamilPracticeMasteryDots",
+      "TamilPracticeMasteryDot0",
+      "TamilPracticeMasteryDot1",
+      "TamilPracticeMasteryDot2",
+      "TamilPracticePrevious",
+      "TamilPracticeLessonBar",
+      "TamilPracticeLessonBarFill",
+      "TamilPracticeLessonBarTrack",
+      "TamilPracticeNext",
+      "TamilPracticeCharacterCard",
+      "TamilPracticeGlyph",
+      "TamilPracticeTransliteration",
+      "TamilPracticeTamilName",
+      "TamilPracticeSound",
+      "TamilPracticeStrokeHint",
+      "TamilPracticeExample",
+      "TamilPracticeStrokeCoach",
+      "TamilPracticeStrokeStep",
+      "TamilPracticeStrokeGuideHint",
+      "TamilPracticeCanvas",
+      "TamilPracticeCanvasSurface",
+      "TamilPracticeCanvasOutline",
+      "TamilPracticeCanvasActiveGuide",
+      "TamilPracticeCanvasStartDot",
+      "TamilPracticeCanvasDirectionArrow",
+      "TamilPracticeFeedback",
+      "TamilPracticeToggleGuide",
+      "TamilPracticeUndo",
+      "TamilPracticeClear",
+      "TamilPracticeWriteBig",
+      "TamilPracticeAgain",
+      "TamilPracticeGotIt",
+      "TamilLessonDescription"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nGo back\nஉயிர் எழுத்து I\nVowels: அ to ஊ\nReset this lesson\nLetter 1 of 6\nஅ\na\nஅகரம்\nshort \"a\", as in about\nUpper hook first, then the long vertical with its foot curling right.\nஅம்மா · ammā · mother\nStroke 1 of 2\nFrom the top centre, across to the right, curving clockwise.\nWrite it large, with instructi"
+  },
+  "timings": {
+    "render_ms": 251
+  },
+  "name": "tamilglass/final-given-tamil-uyir-1-on-the-native-bar-when-the-155485.light",
+  "image": {
+    "width": 360,
+    "height": 1013
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

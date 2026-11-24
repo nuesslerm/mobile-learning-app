@@ -1,0 +1,77 @@
+name: Playwright cache
+description: >-
+  Chromium and the .deb files of its system packages, cached by the Playwright version and the runner image, so a job installs them from disk (dpkg, no
+  mirror) and an apt mirror that stalls stops costing minutes. Restore runs before the install (`install.sh` beside this file), save after it, and a
+  save happens only when the exact key missed and the install left both the browser and the packages. It does nothing when the Actions cache is not a
+  backend (CACHE_BACKENDS) and on a runner with no image version (a container job), whose packages another image would not take.
+inputs:
+  mode:
+    description: restore or save
+    required: true
+  save:
+    description: Whether this job may save (one shard per key does, the others only restore)
+    default: "true"
+runs:
+  using: composite
+  steps:
+    - name: Key of the Playwright cache
+      id: key
+      if: ${{ inputs.mode == 'restore' && contains(env.CACHE_BACKENDS || 'gha', 'gha') }}
+      shell: bash
+      run: |
+        # no ImageVersion (a container job): no key, so debs built for one image are never restored onto another
+        [ -n "${ImageVersion:-}" ] || exit 0
+        version=$(pnpm --filter @lib/browser-client exec playwright --version | tr -c '0-9a-z.\n' '_')
+        echo "key=playwright-$version-$ImageVersion-$(uname -m)" >> "$GITHUB_OUTPUT"
+    - name: Restore Chromium and the system packages
+      id: restore
+      if: ${{ inputs.mode == 'restore' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && steps.key.outputs.key != '' }}
+      continue-on-error: true
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: |
+          ~/.cache/ms-playwright
+          ~/playwright-debs
+        key: ${{ steps.key.outputs.key }}
+    - name: Remember the key for the save
+      if: ${{ inputs.mode == 'restore' && steps.key.outputs.key != '' }}
+      shell: bash
+      env:
+        KEY: ${{ steps.key.outputs.key }}
+        HIT: ${{ steps.restore.outputs.cache-hit }}
+      run: printf 'KEY=%s\nHIT=%s\n' "$KEY" "$HIT" > "$RUNNER_TEMP/playwright-cache.env"
+    - uses: ./.github/actions/cache-summary
+      if: ${{ inputs.mode == 'restore' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && steps.key.outputs.key != '' }}
+      with:
+        layer: playwright
+        outcome: ${{ steps.restore.outcome }}
+        key: ${{ steps.key.outputs.key }}
+        hit: ${{ steps.restore.outputs.cache-hit }}
+        matched-key: ${{ steps.restore.outputs.cache-matched-key }}
+        paths: ~/.cache/ms-playwright ~/playwright-debs
+    - name: Prepare the save
+      id: prep
+      if: ${{ inputs.mode == 'save' && inputs.save == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') }}
+      shell: bash
+      run: |
+        f="$RUNNER_TEMP/playwright-cache.env"
+        [ -f "$f" ] || exit 0
+        . "$f"
+        [ "$HIT" != true ] || exit 0
+        sudo=$([ "$(id -u)" = 0 ] || echo sudo)
+        $sudo rm -f /etc/apt/apt.conf.d/81ci-debs
+        rm -rf "$HOME/playwright-debs/partial" "$HOME/playwright-debs/lock"
+        # an install that downloaded nothing (marker exit, image with the packages) would save an entry no later run can use
+        if ls "$HOME"/playwright-debs/*.deb >/dev/null 2>&1 && [ -n "$(ls -A "$HOME/.cache/ms-playwright" 2>/dev/null)" ]; then
+          # the marker would tell a fresh runner the system packages are installed
+          rm -f "$HOME"/.cache/ms-playwright/.installed-*
+          { echo "save=true"; echo "key=$KEY"; } >> "$GITHUB_OUTPUT"
+        fi
+    - name: Save the Playwright cache
+      if: ${{ inputs.mode == 'save' && steps.prep.outputs.save == 'true' }}
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: |
+          ~/.cache/ms-playwright
+          ~/playwright-debs
+        key: ${{ steps.prep.outputs.key }}

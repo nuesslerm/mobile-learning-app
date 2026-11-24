@@ -1,0 +1,15 @@
+{
+ "schema": "mimic-stability-allowlist/1",
+ "entries": [
+  {
+   "id": "t3-rpc-server.getDatabaseStorage",
+   "cause": "text-change",
+   "reason": "the answer carries the host's database size and the runner's cache path of the `t3 doctor` command, which differ between two records"
+  },
+  {
+   "id": "t3-rpc-subscribeResourceTelemetry",
+   "cause": "volatile",
+   "reason": "tagged nondeterministic by the record on the hermetic host: the answer carries live host state (a size, a path, a process or provider fact) that a second record does not repeat"
+  }
+ ]
+}

@@ -1,6 +1,7 @@
 //! The settings, quick-command and UI rows through the `Host` dispatcher with rca's state doubled: each change is read back by the row that reads it,
 //! and by a second connection of the same rca (what a restart of the server finds).
 use orca_core::testing::{RevocablePrincipals, ScriptedAgent};
+use orca_core::AgentApi as _;
 use orca_core::{Connection, Host, HostInfo, ServiceStatus};
 use orca_map_state::StateArea;
 use serde_json::{json, Value};
@@ -83,6 +84,17 @@ fn given_no_setting_kept_when_the_phone_reads_and_updates_settings_then_the_patc
 }
 
 #[test]
+fn given_a_machine_name_with_spaces_when_the_phone_renames_the_host_then_it_is_kept_trimmed_and_read_back_after_a_restart() {
+    // Given nothing kept
+    let mut rig = Rig::new();
+    // When the phone renames the host with a name padded by spaces
+    let renamed = rig.ok("settings.update", json!({"machineName": "  Studio  "}));
+    // Then the answer holds the trimmed name over the defaults, and a server started afterwards reads it
+    assert_eq!(renamed["settings"], over_defaults("settings", json!({"machineName": "Studio"})));
+    assert_eq!(rig.after_restart().ok("settings.get", json!({}))["settings"]["machineName"], json!("Studio"));
+}
+
+#[test]
 fn given_settings_the_schema_refuses_when_updated_then_each_is_refused_and_nothing_is_kept() {
     let mut rig = Rig::new();
     for (patch, says) in [
@@ -90,7 +102,8 @@ fn given_settings_the_schema_refuses_when_updated_then_each_is_refused_and_nothi
         (json!({"compactWorktreeCards": "yes"}), "Invalid value for setting compactWorktreeCards"),
         (json!({"defaultTaskViewPreset": "everything"}), "Invalid value for setting defaultTaskViewPreset"),
         (json!({"defaultRepoSelection": [1]}), "Invalid value for setting defaultRepoSelection"),
-        (json!({"compactWorktreeCards": true, "machineName": "x"}), "set where it runs"),
+        (json!({"compactWorktreeCards": true, "machineName": 7}), "Invalid value for setting machineName"),
+        (json!({"machineName": "a".repeat(256)}), "Invalid value for setting machineName"),
         (json!("a string"), "takes an object"),
     ] {
         // When the phone sends the patch, Then it is refused as an invalid argument saying why, and the valid part of it was not kept either
@@ -165,7 +178,7 @@ fn given_a_kept_value_of_the_wrong_shape_when_it_is_read_then_the_call_is_refuse
     rig.agent.set_state("orca", "terminalQuickCommands", json!({"a": 1}));
     // When the phone reads either, or updates over them
     // Then each is refused saying what is wrong
-    for (method, params, says) in [("ui.get", json!({}), "not an object"), ("ui.set", json!({"a": 1}), "not an object"), ("settings.getTerminalQuickCommands", json!({}), "not a list")] {
+    for (method, params, says) in [("ui.get", json!({}), "not an object"), ("ui.set", json!({"sidebarWidth": 1}), "not an object"), ("settings.getTerminalQuickCommands", json!({}), "not a list")] {
         let (code, message) = rig.err(method, params);
         assert_eq!(code, "runtime_error", "{method}");
         assert!(message.contains(says), "{method}: {message}");
@@ -187,4 +200,87 @@ fn given_the_orca_pin_when_the_kept_copy_of_its_defaults_is_checked_then_it_is_t
     assert_eq!(provenance["orcaCommit"], pin["commit"], "the Orca pin moved: src/defaults.json was copied at another commit");
     assert_eq!(provenance["orcaVersion"], pin["version"]);
     assert_eq!(provenance["defaultsSha256"], json!(digest), "src/defaults.json differs from the copy recorded in src/defaults.provenance.json");
+}
+
+#[test]
+fn given_ui_values_of_the_wrong_kind_or_unknown_when_set_then_the_wrong_kind_is_dropped_and_an_unknown_key_refuses_the_call() {
+    let mut rig = Rig::new();
+    // When a wrong-typed value, an unknown tour id and a pairing-local key come with a good one, and params are null
+    let set = rig.ok("ui.set", json!({"lastActiveRepoId": 7, "contextualToursSeenIds": ["nope", "tasks"], "sidebarOpen": true, "sidebarWidth": 320}));
+    let null = rig.ok("ui.set", Value::Null);
+    // Then only the good value and the known tour id are kept, the local key is never answered, and null params answer the state
+    assert_eq!(set["ui"], over_defaults("ui", json!({"contextualToursSeenIds": ["tasks"], "sidebarWidth": 320})));
+    assert_eq!(null, set);
+    // And an unknown key refuses the call without a write
+    let writes = rig.writes();
+    let (code, message) = rig.err("ui.set", json!({"nope": 1}));
+    assert_eq!((code.as_str(), message.as_str()), ("invalid_argument", "Unrecognized key: \"nope\""));
+    assert_eq!(rig.writes(), writes);
+}
+
+#[test]
+fn given_ui_values_outside_their_range_when_set_then_each_is_normalised_as_orca_does() {
+    let mut rig = Rig::new();
+    // When widths, the board opacity, host ids, workspace statuses and card properties are set out of range
+    let set = rig.ok(
+        "ui.set",
+        json!({"combinedDiffFileTreeWidth": 0, "markdownTocPanelWidth": 9000, "workspaceBoardOpacity": 0, "workspaceBoardColumnWidth": 10, "visibleWorkspaceHostIds": ["a", "ssh:x", "ssh:x"],
+               "workspaceStatuses": [{"id": "A b", "label": "  Hello   world "}, {"id": "A b", "label": "x", "color": "rose", "icon": "flag"}], "worktreeCardProperties": ["host", "ci"], "featureTipsSeenIds": ["orca-cli", "x"]}),
+    );
+    // Then the clamps, the host list, the unique ids and the fixed card pair show in the answer; the tips list with an unknown id is dropped whole
+    let ui = &set["ui"];
+    assert_eq!((&ui["combinedDiffFileTreeWidth"], &ui["markdownTocPanelWidth"], &ui["workspaceBoardOpacity"], &ui["workspaceBoardColumnWidth"]), (&json!(200), &json!(600), &json!(0.2), &json!(220)));
+    assert_eq!((&ui["visibleWorkspaceHostIds"], &ui["workspaceHostScope"]), (&json!(["ssh:x"]), &json!("ssh:x")));
+    assert_eq!(
+        ui["workspaceStatuses"],
+        json!([{"id": "a-b", "label": "Hello world", "color": "neutral", "icon": "circle-dot"}, {"id": "x", "label": "x", "color": "rose", "icon": "flag"}])
+    );
+    assert_eq!(ui["worktreeCardProperties"], json!(["status", "unread", "ci", "host"]));
+    assert_eq!(ui["featureTipsSeenIds"], json!([]));
+}
+
+#[test]
+fn given_model_picks_when_applied_then_the_model_is_the_agents_default_with_its_options_kept_per_model_and_bad_input_is_refused_as_the_host_words_it() {
+    // Given a fresh host
+    let mut rig = Rig::new();
+    // When two picks are applied for claude: an effort on opus, then the model sonnet that is not adopted as the default
+    let first = rig.ok("settings.mutateNativeChatSessionOptions", json!({"type": "apply-picks", "agent": "claude", "picks": [{"modelId": "opus", "optionId": "effort", "value": "high"}]}));
+    rig.ok("settings.mutateNativeChatSessionOptions", json!({"type": "apply-picks", "agent": "claude", "picks": [{"modelId": "sonnet", "optionId": "effort", "value": "low", "adoptModelAsLaunchDefault": false}]}));
+    // Then the answer is ok, and the settings keep opus as the default with both models' values
+    assert_eq!(first, json!({"ok": true}));
+    let kept = rig.ok("settings.get", json!({}))["settings"]["nativeChatSessionOptions"].clone();
+    assert_eq!(kept, json!({"claude": {"model": "opus", "valuesByModel": {"opus": {"effort": "high"}, "sonnet": {"effort": "low"}}}}));
+    // And a restarted server reads the same, a clear is a no-op, and unknown agents and shapes are refused
+    assert_eq!(rig.after_restart().ok("settings.get", json!({}))["settings"]["nativeChatSessionOptions"], kept);
+    let writes = rig.writes();
+    assert_eq!(rig.ok("settings.mutateNativeChatSessionOptions", json!({"type": "clear-model-if-missing", "agent": "claude", "availableModelIds": ["x"]})), json!({"ok": true}));
+    assert_eq!(rig.writes(), writes);
+    let apply = |agent: &str| json!({"type": "apply-picks", "agent": agent, "picks": [{"modelId": "a", "optionId": "model", "value": "a"}]});
+    assert_eq!(rig.err("settings.mutateNativeChatSessionOptions", apply("a")), ("invalid_argument".to_string(), "Unknown agent".to_string()));
+    assert_eq!(rig.err("settings.mutateNativeChatSessionOptions", json!({"type": "apply-picks"})).1, "Invalid input: expected string, received undefined");
+    assert_eq!(rig.err("settings.mutateNativeChatSessionOptions", json!({})).1, "Invalid discriminator value. Expected 'apply-picks' | 'clear-model-if-missing'");
+    assert_eq!(rig.err("settings.mutateNativeChatSessionOptions", Value::Null).1, "Invalid discriminator value. Expected 'apply-picks' | 'clear-model-if-missing'");
+    assert_eq!(rig.err("settings.mutateNativeChatSessionOptions", json!("wrong")).1, "Invalid input: expected object, received string");
+}
+
+#[test]
+fn given_two_phones_changing_settings_at_once_when_both_read_the_kept_settings_first_then_both_changes_are_kept() {
+    // Given two connections of one host whose reads of the kept settings overlap
+    let scripted = Arc::new(ScriptedAgent::serving(ServiceStatus { protocol: 1, version: "v".into(), commit: "c".into(), groups: vec![] }));
+    let agent: Arc<dyn orca_core::AgentApi> = Arc::new(orca_core::testing::OverlappingReads::over(scripted.clone(), std::time::Duration::from_millis(300)));
+    let host = Host::new("rt".into(), vec![Box::new(StateArea)], agent, Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+    // When each phone changes a different setting at the same moment
+    let phones: Vec<_> = [json!({"compactWorktreeCards": true}), json!({"defaultTaskViewPreset": "prs"})]
+        .into_iter()
+        .map(|patch| {
+            let mut conn = host.connection("dev", "tok", vec![]);
+            std::thread::spawn(move || serde_json::from_str::<Value>(&conn.on_message(&json!({"id": "r1", "method": "settings.update", "params": patch}).to_string())[0]).unwrap())
+        })
+        .collect();
+    for phone in phones {
+        assert_eq!(phone.join().unwrap()["ok"], true);
+    }
+    // Then the kept settings hold both
+    let kept = scripted.state_get("orca", "settings").unwrap().unwrap();
+    assert_eq!((kept["compactWorktreeCards"].clone(), kept["defaultTaskViewPreset"].clone()), (json!(true), json!("prs")));
 }

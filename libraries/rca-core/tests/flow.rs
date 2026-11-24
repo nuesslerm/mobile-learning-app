@@ -1,4 +1,4 @@
-//! Flows through the public API `wf offload ask` and `wf` build on, replaying `tests/flow/golden/rca-core.json`: the
+//! Flows through the public API `wf rca ask` and `wf` build on, replaying `tests/flow/golden/rca-core.json`: the
 //! `--stats` report, the `--savings` report, and the opencode process contract.
 #[path = "flow/golden.rs"]
 mod golden;

@@ -36,7 +36,7 @@ fn a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_th
     exec_testkit::case!(SUITE, |case| {
         // Given the chain, a CLI whose turn writes notes/a.txt through its MCP tool, and a paired phone with its streams open on the thread
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello from the model")]));
+        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello from the model")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         assert_eq!(success(&phone.call(case, &chain, &["rpc:server.probe"], "server.probe", json!({}))), &json!({}));
         phone.stream(case, &chain, &["rpc:subscribeServerConfig"], "subscribeServerConfig", json!({}));
@@ -47,15 +47,15 @@ fn a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_th
         let (thread_stream, _) = phone.stream(case, &chain, &["rpc:orchestration.subscribeThread"], "orchestration.subscribeThread", json!({"threadId": "t1"}));
         // When the phone sends a message and the run it starts ends
         let projection = phone.message(case, &chain, "t1", "c-m1", "make a note");
-        // Then the file is in the repository, written by the executor, and not in the directory the service runs from
+        // Then the file is in the repository, written by the CLI running at the workspace host, and not in the directory the service runs from
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("notes/a.txt")).unwrap(), "hello from the model");
         assert_eq!(chain.repo.git(&["status", "--porcelain"]), "?? notes/");
         assert!(!chain.service.home().join("notes").exists());
-        // And the message's window shows where it went: the agent API calls in order, each answered, and the tool the executor ran
+        // And the message's window shows where it went: the agent API calls in order, each answered, and the command the executor ran for the CLI
         let (agent, executor) = last_window(case);
         assert_eq!(agent, [("thread.create".to_string(), true), ("turn.start".to_string(), true), ("thread.subscribe".to_string(), true)]);
-        assert_eq!(hit(&executor, "tool", "write_file"), Some(&json!({"tool": "write_file", "ok": true})), "the write did not go through rca-exec: {executor}");
-        // And the CLI was started once, in the service's directory, and the thread holds both sides of the turn with a completed run
+        assert_eq!(hit(&executor, "tool", "session_send"), Some(&json!({"tool": "session_send", "ok": true})), "the CLI did not run through rca-exec: {executor}");
+        // And the CLI was started once, at the workspace host's root, and the thread holds both sides of the turn with a completed run
         assert_eq!(chain.cli.invocations("claude").len(), 1);
         let texts: Vec<(&str, &str)> = projection["messages"].as_array().unwrap().iter().map(|m| (m["role"].as_str().unwrap(), m["text"].as_str().unwrap())).collect();
         assert_eq!(texts.first(), Some(&("user", "make a note")));
@@ -74,7 +74,7 @@ fn what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_ex
     exec_testkit::case!(SUITE, |case| {
         // Given a thread whose turn wrote notes/a.txt
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello from the model")]));
+        chain.cli.script("claude", &Script::of(vec![writes("notes/a.txt", "hello from the model")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         phone.seed(case, &chain);
         phone.message(case, &chain, "t1", "c-m1", "make a note");
@@ -89,9 +89,9 @@ fn what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_ex
         assert!(kinds.contains(&"user_message") && kinds.contains(&"command_execution"), "{kinds:?}");
         assert_eq!(page.body["items"].as_array().unwrap().iter().map(|r| r["item"]["id"].clone()).collect::<Vec<_>>(), items.iter().map(|r| r["item"]["id"].clone()).collect::<Vec<_>>());
         // When the phone lists the notes directory and reads the file the model wrote
-        let listed = phone.call(case, &chain, &["rpc:projects.listEntries"], "projects.listEntries", json!({"projectId": "p1", "relativePath": "notes"}));
+        let listed = phone.call(case, &chain, &["rpc:projects.listEntries"], "projects.listEntries", json!({"cwd": chain.repo.path().display().to_string(), "directoryPath": "notes"}));
         let (listing_agent, listing_executor) = last_window(case);
-        let read = phone.call(case, &chain, &["rpc:projects.readFile"], "projects.readFile", json!({"projectId": "p1", "relativePath": "notes/a.txt"}));
+        let read = phone.call(case, &chain, &["rpc:projects.readFile"], "projects.readFile", json!({"cwd": chain.repo.path().display().to_string(), "relativePath": "notes/a.txt"}));
         let (read_agent, read_executor) = last_window(case);
         // Then the entries and the contents are the repository's, and each call went agent API, then executor
         assert_eq!(success(&listed)["entries"][0]["path"], "notes/a.txt");
@@ -106,7 +106,7 @@ fn a_launch_creates_the_thread_runs_its_first_message_through_rca_and_answers_wi
     exec_testkit::case!(SUITE, |case| {
         // Given a project on the repository and a CLI whose turn writes launched.txt
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![writes("launched.txt", "from a launch")]));
+        chain.cli.script("claude", &Script::of(vec![writes("launched.txt", "from a launch")]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         let project = json!({"type": "project.create", "commandId": "c-p1", "projectId": "p1", "title": "Chain", "workspaceRoot": chain.repo.path().display().to_string()});
         success(&phone.call(case, &chain, &["rpc:projects.mutate", "mutation:project.create"], "projects.mutate", project));
@@ -125,10 +125,10 @@ fn a_launch_creates_the_thread_runs_its_first_message_through_rca_and_answers_wi
         // Then the answer names the new thread and it is not a resumption, and the executor wrote the first message's file in the repository
         assert_eq!((success(&answer.0)["threadId"].as_str(), success(&answer.0)["resumed"].as_bool()), (Some("t-new"), Some(false)));
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("launched.txt")).unwrap(), "from a launch");
-        // And the launch's window holds the agent API calls of the turn and the executor's write
+        // And the launch's window holds the agent API calls of the turn and the executor's run of the CLI
         let (agent, executor) = last_window(case);
         assert_eq!(agent.iter().map(|(m, ok)| (m.as_str(), *ok)).collect::<Vec<_>>(), [("thread.create", true), ("turn.start", true), ("thread.subscribe", true)]);
-        assert!(hit(&executor, "tool", "write_file").is_some_and(|h| h["ok"] == true), "{executor}");
+        assert!(hit(&executor, "tool", "session_send").is_some_and(|h| h["ok"] == true), "{executor}");
         // And the thread holds the message and a completed run
         assert_eq!((answer.1["thread"]["id"].as_str(), answer.1["runs"][0]["status"].as_str()), (Some("t-new"), Some("completed")));
     });
@@ -139,28 +139,28 @@ fn an_interrupt_and_a_stop_each_end_the_turn_the_cli_is_running_by_telling_rca_t
     exec_testkit::case!(SUITE, |case| {
         // Given a thread whose CLI starts a turn and stays
         let chain = Chain::start();
-        chain.cli.script("claude", &Script::of(vec![stays()]));
+        chain.cli.script("claude", &Script::of(vec![stays()]).printing_version("0.0.0-flow"));
         let mut phone = Phone::connect(case, &chain);
         phone.seed(case, &chain);
-        for (n, (command, row)) in [("run.interrupt", "command:run.interrupt"), ("thread.stop", "command:thread.stop")].into_iter().enumerate() {
+        for (n, (command, row, method)) in [("run.interrupt", "command:run.interrupt", "turn.interrupt"), ("thread.stop", "command:thread.stop", "thread.forceStop")].into_iter().enumerate() {
             // When a message starts a turn, the CLI is running, and the phone sends the command
-            let message = json!({"type": "message.dispatch", "commandId": format!("c-m{n}"), "threadId": "t1", "message": {"messageId": format!("m{n}"), "text": "work"}});
+            let message = json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": format!("c-m{n}"), "threadId": "t1", "messageId": format!("m{n}"), "text": "work"});
             success(&phone.call(case, &chain, &["rpc:orchestration.dispatchCommand", "command:message.dispatch"], "orchestration.dispatchCommand", message));
             let started = std::time::Instant::now();
-            while chain.cli.invocations("claude").len() < n + 1 {
+            while chain.cli.claude_prompts("claude").len() < n + 1 {
                 assert!(started.elapsed() < std::time::Duration::from_secs(30), "the CLI never started: {}", chain.evidence());
                 std::thread::sleep(std::time::Duration::from_millis(50));
             }
-            let stop = json!({"type": command, "commandId": format!("c-s{n}"), "threadId": "t1"});
+            let stop = json!({"type": command, "commandId": format!("c-s{n}"), "threadId": "t1", "runId": "r1"});
             let projection = case.call(&chain.tap, &rows(&["rpc:orchestration.dispatchCommand", row]), || {
                 let exit = phone.calls.call("orchestration.dispatchCommand", stop);
                 let projection = phone.settled("t1");
                 let interrupted = projection["runs"].as_array().and_then(|r| r.last()).is_some_and(|r| r["status"] == "interrupted");
                 (exit["_tag"] == "Success" && interrupted, projection)
             });
-            // Then rca was told to interrupt the turn and answered it, and the run ended interrupted
+            // Then rca was told to interrupt the turn (a stop forces it, which holds the queue) and answered it, and the run ended interrupted
             let (agent, _) = last_window(case);
-            assert!(agent.contains(&("turn.interrupt".to_string(), true)), "{command}: {agent:?}");
+            assert!(agent.contains(&(method.to_string(), true)), "{command}: {agent:?}");
             assert_eq!(projection["runs"].as_array().unwrap().last().unwrap()["status"], "interrupted", "{command}");
         }
     });
@@ -199,12 +199,10 @@ fn a_project_is_renamed_and_deleted_and_the_shell_the_phone_reads_afterwards_no_
 fn the_imported_session_of_the_real_server_replays_through_mimic_against_t3_serve_over_the_whole_chain_with_no_difference_the_imported_allowlist_does_not_name() {
     exec_testkit::case!(SUITE, |_case| {
         // Given the chain, and the set imported from the goldens of t3@0.1.6 with its imported allowlist
-        let chain = Chain::start();
-        let pair = |scopes: Vec<String>| chain.pair_with(&scopes);
+        let chain = std::rc::Rc::new(Chain::start());
         let (set, allow) = (mimic_t3::load_set(mimic_t3::SET), mimic_t3::load_allowlist(mimic_t3::SET));
-        let workspace = std::fs::canonicalize(chain.repo.path()).unwrap().display().to_string();
         // When the client side of every interaction is replayed against `t3-serve serve`, wired to the real rca-service and rca-exec
-        let mut candidate = mimic_t3::Candidate { addr: chain.addr, pair: &pair, scopes: mimic_t3::granted_scopes(&set), workspace: &workspace };
+        let mut candidate = chain_driver(&chain, mimic_t3::granted_scopes(&set), Vec::new(), false);
         let verdict = mimic_core::usecase::replay(&set, &mut candidate, &allow, &mimic_core::presets::t3_diff_options(), None).expect("the replay runs");
         // Then every masked answer equals the recorded one, apart from the divergences the allowlist names
         let found = mimic_t3::differences(&verdict);

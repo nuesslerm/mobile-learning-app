@@ -50,13 +50,19 @@ const FORWARDED: [&str; 4] = ["offset", "limit", "depth", "base"];
 /// The params copied unchanged to the executor for `method`, beside its path.
 fn forwarded_keys(method: Method) -> &'static [&'static str] {
     match method {
-        edit::FILE_READ_CHUNK => &["offset", "length"],
+        edit::FILE_READ_CHUNK => &["offset", "length", "scope"],
         edit::FILE_WRITE => &["content", "create_dirs"],
         edit::FILE_CREATE => &["content", "create_dirs"],
         edit::FILE_STAT => &[],
         edit::FILE_SEARCH => &["query", "limit"],
         edit::FILE_BROWSE => &["show_hidden"],
         edit::FILE_MKDIR => &["parents"],
+        edit::FILE_PUT_SECRET => &["value"],
+        edit::ARTIFACT_STAT => &[],
+        edit::ARTIFACT_READ => &["offset", "length", "identity", "fingerprint"],
+        edit::ARTIFACT_WRITE => &["content", "identity", "fingerprint"],
+        edit::PROCESS_SAMPLE => &[],
+        edit::MCP_REQUEST => &["server", "method", "params", "timeout_ms"],
         edit::TURN_DIFF | edit::THREAD_DIFF => &["base"],
         _ => &FORWARDED,
     }
@@ -149,18 +155,26 @@ impl ListResult {
 
 /// The params of a `file.*` method (or of `turn.diff`, `thread.diff`): the workspace it acts in and the path (absent for a diff of the whole
 /// tree and for `file.search`, which searches all of the workspace).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct FileParams {
     pub workspace: String,
     pub path: Option<String>,
     forwarded: Vec<(&'static str, Value)>,
 }
 
+/// The `value` of `file.putSecret` is a secret: no `{:?}` of the params shows it.
+impl std::fmt::Debug for FileParams {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let shown: Vec<(&str, &Value)> = self.forwarded.iter().map(|(k, v)| (*k, if *k == "value" { &Value::Null } else { v })).collect();
+        f.debug_struct("FileParams").field("workspace", &self.workspace).field("path", &self.path).field("forwarded", &shown).finish()
+    }
+}
+
 impl FileParams {
     pub fn parse(method: Method, params: &Value) -> Result<FileParams, ParamError> {
         let Some(workspace) = text(params, "workspace") else { return Err(ParamError("workspace is required".into())) };
         let path = params.get("path").and_then(Value::as_str);
-        let pathless = matches!(method, FILE_DIFF | edit::FILE_SEARCH | edit::TURN_DIFF | edit::THREAD_DIFF);
+        let pathless = matches!(method, FILE_DIFF | edit::FILE_SEARCH | edit::TURN_DIFF | edit::THREAD_DIFF | edit::PROCESS_SAMPLE | edit::MCP_REQUEST);
         if path.is_none() && !pathless {
             return Err(ParamError("path is required".into()));
         }
@@ -168,9 +182,14 @@ impl FileParams {
             edit::FILE_WRITE if !params.get("content").is_some_and(Value::is_string) => return Err(ParamError("content is required".into())),
             edit::FILE_SEARCH if text(params, "query").is_none() => return Err(ParamError("query is required".into())),
             edit::TURN_DIFF if text(params, "base").is_none() => return Err(ParamError("base is required".into())),
+            edit::ARTIFACT_WRITE if !params.get("content").is_some_and(Value::is_string) => return Err(ParamError("content is required".into())),
+            edit::FILE_PUT_SECRET if !params.get("value").is_some_and(Value::is_string) => return Err(ParamError("value is required".into())),
+            edit::MCP_REQUEST if text(params, "server").is_none() => return Err(ParamError("server is required".into())),
+            edit::MCP_REQUEST if text(params, "method").is_none() => return Err(ParamError("method is required".into())),
             _ => {}
         }
         let forwarded = forwarded_keys(method).iter().filter_map(|key| params.get(*key).map(|value| (*key, value.clone()))).collect();
+        let path = path.filter(|_| !matches!(method, edit::PROCESS_SAMPLE | edit::MCP_REQUEST));
         Ok(FileParams { workspace: workspace.to_string(), path: path.map(str::to_string), forwarded })
     }
 
@@ -228,12 +247,32 @@ mod tests {
     }
 
     #[test]
+    fn given_the_params_of_the_secret_the_sample_and_the_mcp_request_when_read_then_each_forwards_only_its_keys_and_no_debug_text_shows_the_secret() {
+        // Given params with every key these three forward, and a stray one
+        let all = json!({"workspace": "w", "path": "p", "value": "s3cr3t", "server": "app", "method": "tools/call", "params": {"name": "x"}, "timeout_ms": 500, "other": 1});
+        // When each is read, Then the executor is given its own keys: the sample none, the secret its path and value, the request no path
+        let args = |method| FileParams::parse(method, &all).unwrap().executor_args();
+        assert_eq!(args(edit::PROCESS_SAMPLE), json!({}));
+        assert_eq!(args(edit::FILE_PUT_SECRET), json!({"path": "p", "value": "s3cr3t"}));
+        assert_eq!(FileParams::parse(edit::MCP_REQUEST, &json!({"workspace": "w", "server": "app", "method": "tools/list"})).unwrap().executor_args(), json!({"server": "app", "method": "tools/list"}));
+        // And the sample and the request need no path, the secret needs one and a string value, the request a server and a method
+        assert!(FileParams::parse(edit::PROCESS_SAMPLE, &json!({"workspace": "w"})).is_ok());
+        assert_eq!(FileParams::parse(edit::FILE_PUT_SECRET, &json!({"workspace": "w", "path": "p"})).unwrap_err().0, "value is required");
+        assert_eq!(FileParams::parse(edit::FILE_PUT_SECRET, &json!({"workspace": "w", "path": "p", "value": 5})).unwrap_err().0, "value is required");
+        assert_eq!(FileParams::parse(edit::MCP_REQUEST, &json!({"workspace": "w", "method": "tools/list"})).unwrap_err().0, "server is required");
+        assert_eq!(FileParams::parse(edit::MCP_REQUEST, &json!({"workspace": "w", "server": "app"})).unwrap_err().0, "method is required");
+        // And no text a program formats from the parsed secret params shows the value
+        let shown = format!("{:?}", FileParams::parse(edit::FILE_PUT_SECRET, &all).unwrap());
+        assert!(!shown.contains("s3cr3t") && shown.contains("\"p\""), "{shown}");
+    }
+
+    #[test]
     fn given_the_params_of_the_edit_methods_when_read_then_each_requires_what_it_cannot_do_without_and_forwards_only_its_own_keys() {
         // Given params with every key any method forwards, and a stray one
-        let all = json!({"workspace": "w", "path": "p", "content": "c", "create_dirs": true, "offset": 1, "length": 2, "limit": 3, "query": "q", "base": "b", "show_hidden": true, "depth": 4, "other": 5});
+        let all = json!({"workspace": "w", "path": "p", "content": "c", "create_dirs": true, "offset": 1, "length": 2, "limit": 3, "query": "q", "base": "b", "show_hidden": true, "depth": 4, "scope": "claudeProjects", "other": 5});
         // When each method's params are read, Then the executor is given its own keys and path only
         let args = |method| FileParams::parse(method, &all).unwrap().executor_args();
-        assert_eq!(args(edit::FILE_READ_CHUNK), json!({"path": "p", "offset": 1, "length": 2}));
+        assert_eq!(args(edit::FILE_READ_CHUNK), json!({"path": "p", "offset": 1, "length": 2, "scope": "claudeProjects"}));
         assert_eq!(args(edit::FILE_WRITE), json!({"path": "p", "content": "c", "create_dirs": true}));
         assert_eq!(args(edit::FILE_CREATE), json!({"path": "p", "content": "c", "create_dirs": true}));
         assert_eq!(args(edit::FILE_STAT), json!({"path": "p"}));

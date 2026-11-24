@@ -263,7 +263,7 @@ pub fn run(args: &[String]) -> Option<i32> {
     }
     drop_stale_graph(&root);
 
-    let planned = me(&root, &["test", "plan", "--changed", "--base", &base, "--json"]).stderr(Stdio::inherit()).output();
+    let planned = me(&root, &["ci", "plan", "tests", "--changed", "--base", &base, "--json"]).stderr(Stdio::inherit()).output();
     let plan = match planned {
         Ok(o) if o.status.success() => o.stdout,
         Ok(o) => {

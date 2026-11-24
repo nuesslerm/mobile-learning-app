@@ -190,10 +190,12 @@ fn top<T: Clone>(items: &[T], n: usize, key: impl Fn(&T) -> f64) -> Vec<T> {
 }
 
 /// The first things to read: how the wall time splits into work and waiting, and the single biggest job, wait, step, suite, test and task.
-pub fn where_time_went(jobs: &[JobTime], facts: &[(String, LogFacts)]) -> String {
+/// With `so_far` the jobs still running count up to now, and the wall says it is not final.
+pub fn where_time_went(jobs: &[JobTime], facts: &[(String, LogFacts)], so_far: bool) -> String {
     let Some((wall, busy, idle)) = busy_and_idle(jobs) else { return String::new() };
-    let mut out = String::from("\n### ⏱️ Where the time went\n\n");
-    out.push_str(&format!("- **{} wall** = {} of jobs running + **{} waiting between them** (the jobs run one at a time on one runner)\n", span(wall), span(busy), span(idle)));
+    let mut out = format!("\n{}\n\n", crate::ci_skeleton::WHERE_TIME);
+    let wall_word = if so_far { "wall so far" } else { "wall" };
+    out.push_str(&format!("- **{} {wall_word}** = {} of jobs running + **{} waiting between them** (a stretch counts once, however many jobs ran in it)\n", span(wall), span(busy), span(idle)));
     let slow = top(&jobs.iter().filter_map(|j| Some((j.name.clone(), j.secs()?))).collect::<Vec<_>>(), 3, |(_, s)| *s as f64);
     if !slow.is_empty() {
         let list = slow.iter().map(|(n, s)| format!("**{n}** {} ({}% of the run)", span(*s), (*s as f64 * 100.0 / wall.max(1) as f64).round())).collect::<Vec<_>>().join(", ");
@@ -252,7 +254,7 @@ pub fn cache_section(rows: &[CacheFacts], facts: &[(String, LogFacts)]) -> Strin
     let nx = sum2(&|r| r.nx);
     let scc = sum2(&|r| r.sccache.map(|s| (s.0, s.0 + s.1)));
     let layers = sum2(&|r| r.layers);
-    let mut out = String::from("\n### 🗄️ Cache\n\n");
+    let mut out = format!("\n{}\n\n", crate::ci_skeleton::CACHE);
     out.push_str(&format!("**Whole run:** build cache {} · Nx tasks replayed {} · sccache {} · docker layers cached {}\n\n", pct(build.0, build.1), pct(nx.0, nx.1), pct(scc.0, scc.1), pct(layers.0, layers.1)));
     out.push_str("| Job | Nx tasks | Build cache | sccache | Layers |\n|---|---|---|---|---|\n");
     for r in rows {
@@ -277,13 +279,19 @@ pub fn cache_section(rows: &[CacheFacts], facts: &[(String, LogFacts)]) -> Strin
     out
 }
 
-/// The collapsed blocks: every slow step per job, the slowest tests and suites, the Nx runs and deploy phases.
-pub fn detail_blocks(jobs: &[JobTime], facts: &[(String, LogFacts)]) -> String {
-    let mut out = String::new();
+/// Every slow step per job as one collapsed table: the section "Slowest steps per job" holds it for this run and for the previous one. Empty when no job has a step of
+/// five seconds or more.
+pub fn slowest_steps(jobs: &[JobTime]) -> String {
     let rows: Vec<String> = jobs.iter().filter(|j| !j.steps.is_empty()).map(|j| format!("| {} | {} |\n", crate::ci_comment::cell(&j.name), j.steps.iter().take(6).map(|(s, t)| format!("{} {}", crate::ci_comment::cell(s), span(*t))).collect::<Vec<_>>().join("<br>"))).collect();
-    if !rows.is_empty() {
-        out.push_str(&format!("\n<details><summary>Slowest steps per job</summary>\n\n| Job | Steps (five seconds or more) |\n|---|---|\n{}\n</details>\n", rows.concat()));
+    if rows.is_empty() {
+        return String::new();
     }
+    format!("\n{}\n\n<details><summary>{} job{} with steps of five seconds or more</summary>\n\n| Job | Steps (five seconds or more) |\n|---|---|\n{}\n</details>\n", crate::ci_skeleton::SLOWEST_STEPS, rows.len(), if rows.len() == 1 { "" } else { "s" }, rows.concat())
+}
+
+/// The collapsed blocks: the slowest tests and suites, the Nx runs and deploy phases.
+pub fn detail_blocks(facts: &[(String, LogFacts)]) -> String {
+    let mut out = String::new();
     let tests: Vec<(String, String, f64)> = facts.iter().flat_map(|(_, f)| f.tests.clone()).collect();
     let tests = top(&tests, 15, |t| t.2);
     if !tests.is_empty() {
@@ -310,17 +318,21 @@ pub fn detail_blocks(jobs: &[JobTime], facts: &[(String, LogFacts)]) -> String {
     out
 }
 
-/// What the Nx stages cost on the two-core VM: CPU seconds, the share of both cores they kept busy, and the bytes they wrote, per job.
-pub fn cost_block(facts: &[(String, LogFacts)]) -> String {
+/// What the Nx stages cost on the runner: CPU seconds, the share of its cores they kept busy (when the sampler said how many it has), and the bytes they wrote, per job.
+pub fn cost_block(facts: &[(String, LogFacts)], cores: Option<u32>) -> String {
     let rows: Vec<String> = facts
         .iter()
         .flat_map(|(job, f)| f.nx_cost.iter().map(move |(target, cpu, written, secs)| (job, target, *cpu, *written, *secs)))
-        .map(|(job, target, cpu, written, secs)| format!("| {job} | {target} | {cpu:.0} s | {:.0}% | {} | {secs:.0} s |\n", cpu / (secs * 2.0).max(0.1) * 100.0, bytes(written as f64)))
+        .map(|(job, target, cpu, written, secs)| {
+            let share = cores.map_or(String::new(), |c| format!("{:.0}% | ", cpu / (secs * f64::from(c)).max(0.1) * 100.0));
+            format!("| {job} | {target} | {cpu:.0} s | {share}{} | {secs:.0} s |\n", bytes(written as f64))
+        })
         .collect();
     if rows.is_empty() {
         return String::new();
     }
-    format!("\n<details><summary>CPU and disk writes per Nx stage (children of the stage, 2 cores)</summary>\n\n| Job | Stage | CPU | Of both cores | Written | Wall |\n|---|---|---|---|---|---|\n{}\n</details>\n", rows.concat())
+    let (of, head, rule) = cores.map_or((String::new(), "", ""), |c| (format!(", {c} cores"), "Of all cores | ", "---|"));
+    format!("\n<details><summary>CPU and disk writes per Nx stage (children of the stage{of})</summary>\n\n| Job | Stage | CPU | {head}Written | Wall |\n|---|---|---|{rule}---|---|\n{}\n</details>\n", rows.concat())
 }
 
 #[cfg(test)]
@@ -349,7 +361,7 @@ mod tests {
     fn given_jobs_run_one_after_another_when_the_time_is_split_then_the_gaps_between_them_are_the_waiting() {
         let jobs = [job("a", 0, 100, 0), job("b", 160, 400, 60), job("c", 400, 450, 0)];
         assert_eq!(busy_and_idle(&jobs), Some((450, 390, 60)));
-        let text = where_time_went(&jobs, &[("b".to_string(), facts(LOG))]);
+        let text = where_time_went(&jobs, &[("b".to_string(), facts(LOG))], false);
         assert!(text.contains("7m 30s wall") && text.contains("1m 00s waiting between them"), "{text}");
         assert!(text.contains("**b** 4m 00s") && text.contains("Waited for the runner: **b** 1m 00s"), "{text}");
         assert!(text.contains("slow::one") && text.contains("crate-a:cargo-flow"), "{text}");

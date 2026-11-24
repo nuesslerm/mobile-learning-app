@@ -1,3 +1,4 @@
+import { View } from '@lib/tamagui-design-system';
 import { Drawer } from 'expo-router/drawer';
 import type { ViewStyle } from 'react-native';
 import { Platform, useWindowDimensions } from 'react-native';
@@ -22,17 +23,20 @@ export default function AppLayout() {
       : Math.min(width * 0.78, 320);
 
   return (
-    <Drawer
-      drawerContent={(props) => <AppDrawerContent {...props} />}
-      screenOptions={{
-        headerShown: false,
-        drawerType: 'slide',
-        drawerStyle: { width: drawerWidth },
-        overlayColor: 'transparent',
-        swipeEdgeWidth: 40,
-      }}
-    >
-      <Drawer.Screen name="(content)" />
-    </Drawer>
+    <View flex={1} bg="$background" style={{ zIndex: 0 }}>
+      <Drawer
+        drawerContent={(props) => <AppDrawerContent {...props} />}
+        screenOptions={{
+          headerShown: false,
+          drawerType: 'back',
+          drawerStyle: { width: drawerWidth },
+          sceneStyle: { backgroundColor: 'transparent' },
+          overlayColor: 'transparent',
+          swipeEdgeWidth: 40,
+        }}
+      >
+        <Drawer.Screen name="(content)" />
+      </Drawer>
+    </View>
   );
 }

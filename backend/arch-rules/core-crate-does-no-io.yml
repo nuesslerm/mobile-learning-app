@@ -1,0 +1,35 @@
+id: core-crate-does-no-io
+language: rust
+severity: error
+message: "A core crate (a package of type rust-core, or one that declares `pure = true` in its arch table) is pure; it does no file, socket, process or environment access. The service crate (rs) implements the ports it declares."
+note: "The globs are generated from package-types.json (`wf check --layout --write`). `wf check --budget` reads them to check these crates' manifests too (core_purity, `backend-core-io-violations`), so keep one glob per line."
+files:
+  # BEGIN generated:ast-grep-files
+  - "**/leetcode-auth-cookie-capture/core/src/**/*.rs"
+  - "**/leetcode-backend/core/src/**/*.rs"
+  - "**/remote-chat-agent/cli-driver/src/**/*.rs"
+  - "**/remote-chat-agent/core/src/**/*.rs"
+  - "**/remote-chat-agent/group-accounts/src/**/*.rs"
+  - "**/remote-chat-agent/group-agent/src/**/*.rs"
+  - "**/remote-chat-agent/group-attachments/src/**/*.rs"
+  - "**/remote-chat-agent/group-browser/src/**/*.rs"
+  - "**/remote-chat-agent/group-catalog/src/**/*.rs"
+  - "**/remote-chat-agent/group-gateway/src/**/*.rs"
+  - "**/remote-chat-agent/group-git/src/**/*.rs"
+  - "**/remote-chat-agent/group-hosted/src/**/*.rs"
+  - "**/remote-chat-agent/group-preview/src/**/*.rs"
+  - "**/remote-chat-agent/group-schedules/src/**/*.rs"
+  - "**/remote-chat-agent/group-state/src/**/*.rs"
+  - "**/remote-chat-agent/group-terminal/src/**/*.rs"
+  - "**/remote-chat-agent/group-workspace/src/**/*.rs"
+  - "**/remote-chat-agent/service-core/src/**/*.rs"
+  - "**/reporting-service/core/src/**/*.rs"
+  - "**/vm-ops-api/core/src/**/*.rs"
+  - "**/watchdog/core/src/**/*.rs"
+  # END generated:ast-grep-files
+ignores:
+  # A snapshot reader of the tests; the module is only compiled for them.
+  - "**/vm-ops-api/core/src/application/scripts/golden.rs"
+rule:
+  matches: does-io
+  not: { inside: { kind: mod_item, stopBy: end, has: { field: name, regex: '(^|_)tests?$' } } }

@@ -11,6 +11,8 @@ pub const LOG_DEFAULT: usize = 50;
 pub const LOG_MAX: usize = 500;
 pub const REFS_DEFAULT: usize = 500;
 pub const REFS_MAX: usize = 5000;
+pub const IGNORED_DEFAULT: usize = 200;
+pub const IGNORED_MAX: usize = 5000;
 /// The most files a status lists; `truncated` says there were more.
 pub const STATUS_FILES_CAP: usize = 5000;
 pub const PATHS_MAX: usize = 1000;
@@ -219,10 +221,11 @@ pub enum GitCall {
     Merge { step: Step, target: Option<String>, strategy: MergeStrategy, message: Option<String> },
     Rebase { step: Step, onto: Option<String> },
     ConflictResolve { path: String, resolution: Resolution, content: Option<String> },
-    Blob { rev: String, path: String, max_bytes: u64 },
+    Blob { rev: Option<String>, path: String, max_bytes: u64 },
     Watch { interval_ms: u64, max_events: Option<u64> },
     Init { path: String, initial_branch: Option<String>, files: Vec<InitFile>, message: String },
     Checkpoint { thread: String, turn: String },
+    Ignored { limit: usize },
 }
 
 /// A first file of `git_init`: `path` is inside the new repository.
@@ -350,7 +353,7 @@ impl GitOp {
                 if path == "." {
                     return Err(ExecError::invalid_args("`path` must name a file"));
                 }
-                Ok(GitCall::Blob { rev: required_rev(a, "rev")?, path, max_bytes })
+                Ok(GitCall::Blob { rev: rev(a, "rev")?, path, max_bytes })
             },
             crate::GIT_WATCH => |a| {
                 let interval_ms = opt_uint(a, "interval_ms")?.unwrap_or(WATCH_DEFAULT_MS);
@@ -383,6 +386,7 @@ impl GitOp {
                 crate::checkpoint_id("turn", &turn)?;
                 Ok(GitCall::Checkpoint { thread, turn })
             },
+            crate::GIT_IGNORED => |a| Ok(GitCall::Ignored { limit: limit(a, IGNORED_DEFAULT, IGNORED_MAX)? }),
             _ => return None,
         };
         Some(parse_target(args).and_then(|worktree| make(args).map(|call| GitOp { worktree, call })))
@@ -412,6 +416,7 @@ impl GitOp {
             GitCall::Watch { .. } => crate::GIT_WATCH,
             GitCall::Init { .. } => crate::GIT_INIT,
             GitCall::Checkpoint { .. } => crate::GIT_CHECKPOINT,
+            GitCall::Ignored { .. } => crate::GIT_IGNORED,
         }
     }
 }
@@ -504,6 +509,18 @@ pub struct CommitInfo {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IgnoredFile {
+    pub path: String,
+    pub size: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IgnoredFiles {
+    pub files: Vec<IgnoredFile>,
+    pub truncated: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LogResult {
     pub commits: Vec<CommitInfo>,
     pub truncated: bool,
@@ -551,6 +568,9 @@ pub struct UpstreamStatus {
     pub behind: u32,
     /// The names of the repository's configured remotes.
     pub remotes: Vec<String>,
+    /// The remote-tracking branch `refs/remotes/origin/HEAD` points at, e.g. `origin/main`; none when git never recorded it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub origin_head: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -642,7 +662,9 @@ pub struct Resolved {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BlobResult {
-    pub rev: String,
+    /// The revision read; absent for the index.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rev: Option<String>,
     pub path: String,
     pub size: u64,
     /// The bytes, base64 (the first `max_bytes` of them).
@@ -861,6 +883,9 @@ mod tests {
         assert!(parse(crate::GIT_WATCH, json!({"max_events": 0})).is_err());
         assert!(parse(crate::GIT_BLOB, json!({"rev": "HEAD", "path": "."})).is_err());
         assert!(parse(crate::GIT_BLOB, json!({"rev": "HEAD", "path": "a", "max_bytes": BLOB_MAX + 1})).is_err());
+        // And a blob with no revision is the index, while an empty revision is refused
+        assert_eq!(parse(crate::GIT_BLOB, json!({"path": "a"})).unwrap().call, GitCall::Blob { rev: None, path: "a".into(), max_bytes: BLOB_DEFAULT });
+        assert!(parse(crate::GIT_BLOB, json!({"rev": "", "path": "a"})).unwrap_err().message.contains("`rev`"));
         // And a worktree is a plain name, for every action
         assert_eq!(parse(crate::GIT_STATUS, json!({"worktree": "wt"})).unwrap().worktree.as_deref(), Some("wt"));
         assert!(parse(crate::GIT_STATUS, json!({"worktree": "../x"})).unwrap_err().message.contains("`name`"));

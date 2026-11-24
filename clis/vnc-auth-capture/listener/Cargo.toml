@@ -19,3 +19,6 @@ opt-level = "z"
 codegen-units = 16
 panic = "abort"
 strip = true
+
+[package.metadata.arch]
+type = "cli-crate"

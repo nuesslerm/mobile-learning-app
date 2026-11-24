@@ -11,7 +11,7 @@
 
 import { z } from 'zod';
 
-import { testCaseSchema } from './execution';
+import { testCaseSchema } from './run/execution';
 
 export const difficultySchema = z.enum(['easy', 'medium', 'hard']);
 export type Difficulty = z.infer<typeof difficultySchema>;
@@ -22,8 +22,20 @@ export const nodeTypeSchema = z.enum([
   'TreeNode',
   'TreeNode_by_val',
   'TreeNode_val',
+  'GraphNode',
+  'ListNode_cycle_pos',
 ]);
 export type NodeType = z.infer<typeof nodeTypeSchema>;
+
+/** A key of a case that is not an argument of the method: it tells the harness how to build the argument before it (`pos` links a list's tail back to a node). */
+export const isHarnessOnly = (type: NodeType | undefined): boolean => type === 'ListNode_cycle_pos';
+
+/** How a problem that is not one `Solution` method is run: `design` is a list of operations on one fresh instance of `className`, `roundTrip` is the input through `encode` and then, on a new instance, `decode`. */
+export const harnessSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('design'), className: z.string() }),
+  z.object({ kind: z.literal('roundTrip'), className: z.string(), encode: z.string(), decode: z.string() }),
+]);
+export type Harness = z.infer<typeof harnessSchema>;
 
 export const problemSchema = z.object({
   id: z.string(),
@@ -37,6 +49,9 @@ export const problemSchema = z.object({
   constraints: z.string(),
   starterCode: z.record(z.string(), z.string()),
   methodName: z.string().nullable(),
+  /** The parameter the solution mutates instead of returning (`-> None` problems): the harness compares it. */
+  inPlaceParam: z.string().optional(),
+  harness: harnessSchema.optional(),
   paramTypes: z.record(z.string(), nodeTypeSchema),
   returnType: nodeTypeSchema.nullable(),
   testCases: z.array(testCaseSchema).nullable(),

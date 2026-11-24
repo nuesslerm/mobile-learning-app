@@ -4,9 +4,9 @@ Start a new, empty generation: every reader and writer moves to it at once, with
 no list and no delete, and the old entries expire by the bucket's lifecycle. Use
 it for a cached wrong result. The generation is one number in meta/generation, so
 a purge starts every kind over; <kind> (nx, sccache, pnpm or metro) names what it is for and is
-checked. Needs both links, BUILD_CACHE_READ_PAR_URL to read the number and
-BUILD_CACHE_WRITE_PAR_URL to write the next one (the environment, then the
-vault). Unlike a run it does not ask for a clean tree on origin/dev: it writes no
+checked. Needs both planes of the build cache stores (BUILD_CACHE_READ_STORES to read the number and
+BUILD_CACHE_WRITE_STORES to write the next one to every store, or the legacy
+BUILD_CACHE_*_PAR_URL; the environment, then the vault). Unlike a run it does not ask for a clean tree on origin/dev: it writes no
 task result, and a purge is how a wrong one is discarded.
 
 Output: one JSON object on stdout {ok, kind, generation}. A failure prints

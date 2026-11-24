@@ -196,12 +196,14 @@ export function strokesToSvg(
 ): string {
   const width = Math.max(1, Math.round(canvas.width));
   const height = Math.max(1, Math.round(canvas.height));
+  // A tap is one point: it is the pulli of ம், and a stroke dropped here is a mark the marker never sees.
   const paths = strokes
-    .filter((stroke) => stroke.length >= 2)
-    .map(
-      (stroke) =>
-        `<path d="${pointsToSmoothPath(stroke)}" fill="none" stroke="#000" ` +
-        `stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`
+    .filter((stroke) => stroke.length >= 1)
+    .map((stroke) =>
+      stroke.length === 1
+        ? `<circle cx="${stroke[0].x}" cy="${stroke[0].y}" r="${strokeWidth / 2}" fill="#000"/>`
+        : `<path d="${pointsToSmoothPath(stroke)}" fill="none" stroke="#000" ` +
+          `stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`
     )
     .join('');
   return (

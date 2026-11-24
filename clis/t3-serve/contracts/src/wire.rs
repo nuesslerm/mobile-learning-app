@@ -118,8 +118,54 @@ pub fn authorization_error(permission: &str) -> Value {
     })
 }
 
+/// `OrchestrationV2DispatchCommandError`: `detail` repeats `message`, and `cause` is the failure the pin's dispatcher wrapped.
+fn dispatch_failure(command_id: &str, command_type: &str, message: &str, cause: Value) -> Value {
+    json!({"_tag": "OrchestrationV2DispatchCommandError", "commandId": command_id, "commandType": command_type, "detail": message, "message": message, "cause": cause})
+}
+
 pub fn dispatch_error(command_id: &str, command_type: &str, message: &str) -> Value {
-    json!({"_tag": "OrchestrationV2DispatchCommandError", "commandId": command_id, "commandType": command_type, "message": message})
+    if command_type == "queued-run.edit" {
+        let cause = json!({"cause": message, "message": format!("Orchestration command {command_type} ({command_id}) was rejected before commit."), "name": "OrchestratorCommandRejectedError"});
+        return dispatch_failure(command_id, command_type, message, cause);
+    }
+    let cause = json!({"cause": message, "message": format!("Failed to dispatch orchestration command {command_type} ({command_id})."), "name": "OrchestratorDispatchError"});
+    dispatch_failure(command_id, command_type, message, cause)
+}
+
+/// What the pin's projection store fails with for a thread it holds no projection of: the cause every thread-bound error nests.
+pub fn projection_missing_cause(thread_id: &str) -> Value {
+    json!({"cause": {"message": format!("No orchestration projection exists for thread {thread_id}."), "name": "ProjectionStoreThreadNotFoundError"}, "message": projection_load_failed(thread_id), "name": "OrchestratorProjectionError"})
+}
+
+/// The error `tag` declares for a thread that has no projection: the missing cause, with `extra`'s fields beside it.
+pub fn thread_missing_error(tag: &str, thread_id: &str, extra: Value) -> Value {
+    let mut error = json!({"_tag": tag, "cause": projection_missing_cause(thread_id)});
+    if let (Some(into), Some(from)) = (error.as_object_mut(), extra.as_object()) {
+        into.extend(from.clone());
+    }
+    error
+}
+
+/// `OrchestrationV2GetThreadProjectionError`: what reading or subscribing to a thread's projection fails with when it has none.
+pub fn thread_projection_error(thread_id: &str) -> Value {
+    thread_missing_error("OrchestrationV2GetThreadProjectionError", thread_id, json!({"message": format!("Failed to load orchestration V2 thread {thread_id}"), "threadId": thread_id}))
+}
+
+/// What the pin's dispatcher fails with for a command of a thread it holds no projection of.
+pub fn dispatch_thread_missing(command_id: &str, command_type: &str, thread_id: &str) -> Value {
+    let message = format!("No orchestration projection exists for thread {thread_id}.");
+    dispatch_failure(command_id, command_type, &message, projection_missing_cause(thread_id))
+}
+
+/// The outer message of `dispatch_thread_missing`'s cause, which a later dispatch of the same command id quotes.
+pub fn projection_load_failed(thread_id: &str) -> String {
+    format!("Failed to load orchestration projection for thread {thread_id}.")
+}
+
+/// A command id whose first dispatch was refused is refused again with the first refusal's message (`reason`).
+pub fn dispatch_previously_rejected(command_id: &str, command_type: &str, reason: &str) -> Value {
+    let message = format!("Command {command_id} was previously rejected: {reason}");
+    dispatch_failure(command_id, command_type, &message, json!({"message": message, "name": "OrchestratorCommandPreviouslyRejectedError"}))
 }
 
 /// `orchestration.launchThread`'s declared error.
@@ -148,6 +194,63 @@ pub fn project_not_empty(project_id: &str) -> String {
     format!("Project {project_id} is not empty.")
 }
 
+/// The refusal of a delete of a project that holds threads: the message is the cause's, as the pin passes it through.
+pub fn project_not_empty_error(command_id: &str, project_id: &str) -> Value {
+    let message = project_not_empty(project_id);
+    json!({"_tag": "ProjectMutationError", "commandId": command_id, "message": message, "cause": {"message": message, "name": "ProjectNotEmptyError"}})
+}
+
+/// The refusal of a mutation of a project the pin holds none of: the generic message, with the cause that names the project.
+pub fn project_not_found_error(command_id: &str, project_id: &str) -> Value {
+    json!({"_tag": "ProjectMutationError", "commandId": command_id, "message": PROJECT_MUTATION_FAILED, "cause": {"message": format!("Project {project_id} was not found."), "name": "ProjectNotFoundError"}})
+}
+
+/// What a file RPC says for a workspace folder that does not exist: the RPC's own error `tag` with the pin's failure code, the folder as given
+/// and the cause that names it. `verb` is how the pin words the operation ("list", "search"); `extra` holds the fields only that RPC has.
+pub fn workspace_root_missing(tag: &str, verb: &str, cwd: &str, extra: Value) -> Value {
+    let mut error = json!({
+        "_tag": tag,
+        "cwd": cwd,
+        "failure": "workspace_root_not_found",
+        "message": format!("Failed to {verb} workspace entries in '{cwd}'."),
+        "normalizedCwd": cwd,
+        "cause": {"message": format!("Workspace root does not exist: {cwd}"), "name": "WorkspaceRootNotExistsError"},
+    });
+    if let (Some(into), Some(from)) = (error.as_object_mut(), extra.as_object()) {
+        into.extend(from.clone());
+    }
+    error
+}
+
+/// `projects.readFile` in a folder that does not exist: the operation that failed is the resolution of the folder itself.
+pub fn read_file_root_missing(cwd: &str, relative_path: &str) -> Value {
+    let resolved = format!("{}/{relative_path}", cwd.trim_end_matches('/'));
+    json!({
+        "_tag": "ProjectReadFileError",
+        "cwd": cwd,
+        "failure": "operation_failed",
+        "message": format!("Failed to read workspace file '{relative_path}' in '{cwd}'."),
+        "operation": "realpath-workspace-root",
+        "operationPath": relative_path,
+        "relativePath": relative_path,
+        "resolvedPath": resolved,
+        "cause": {
+            "name": "WorkspaceFileSystemOperationError",
+            "message": format!("Workspace file operation 'realpath-workspace-root' failed at '{relative_path}' for resolved path '{resolved}' (requested as '{relative_path}' in '{cwd}')."),
+            "cause": {"name": "Error", "message": format!("ENOENT: no such file or directory, realpath '{cwd}'")},
+        },
+    })
+}
+
+/// `projects.writeFile` in a folder that is no project, managed worktree or thread worktree of this server.
+pub fn write_file_unknown_workspace(cwd: &str, relative_path: &str, missing: bool) -> Value {
+    let mut cause = json!({"name": "UnknownWorkspaceError", "message": format!("'{cwd}' is not a registered project, a managed worktree, or a thread's worktree.")});
+    if missing {
+        cause["cause"] = json!({"name": "PlatformError", "message": format!("NotFound: FileSystem.realPath ({cwd})"), "cause": {"name": "Error", "message": format!("ENOENT: no such file or directory, lstat '{cwd}'")}});
+    }
+    json!({"_tag": "ProjectWriteFileError", "cwd": cwd, "failure": "workspace_path_outside_root", "message": format!("Failed to write workspace file '{relative_path}' in '{cwd}'."), "relativePath": relative_path, "cause": cause})
+}
+
 /// A file or turn operation the execution host refused or could not do.
 pub fn host_error(message: &str) -> Value {
     json!({"_tag": "ExecutionHostError", "message": message})
@@ -156,6 +259,9 @@ pub fn host_error(message: &str) -> Value {
 pub fn not_found_error(what: &str, id: &str) -> Value {
     json!({"_tag": "NotFoundError", "message": format!("{what} {id} was not found."), "id": id})
 }
+
+/// The version of the relay client the pin installs, which `cloud.getRelayClientStatus` names while none is installed.
+pub const RELAY_CLIENT_VERSION: &str = "2026.10.4";
 
 /// What every RPC this server does not build answers: the method's declared error is not known to us, so one generic tagged error.
 pub fn unsupported_error(tag: &str) -> Value {
@@ -204,16 +310,14 @@ pub fn providers(models: &[Model], checked_at: &str) -> Vec<Value> {
 
 /// The provider instances as `server.refreshProviders` shows them once the accounts group has said which are signed in: the login can be
 /// started on each, and `auth.status` follows the login (`status` is the accounts group's `signed_in`, `signed_out` or `authenticating`).
-pub fn providers_with_logins(models: &[Model], checked_at: &str, logins: &[(String, String)]) -> Vec<Value> {
-    let mut list = providers(models, checked_at);
-    for provider in &mut list {
+pub fn apply_provider_logins(list: &mut [Value], logins: &[(String, String)]) {
+    for provider in list {
         let status = logins.iter().find(|(instance, _)| provider["instanceId"] == instance.as_str()).map(|(_, status)| status.as_str());
         provider["setup"]["canAuthenticate"] = json!(true);
         if let Some(status) = status {
             provider["auth"]["status"] = json!(if status == "signed_in" { "authenticated" } else { "unauthenticated" });
         }
     }
-    list
 }
 
 /// `ServerSettings` before anything was changed: the template's.

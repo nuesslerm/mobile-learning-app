@@ -1,0 +1,40 @@
+{
+  "suite": "screenheader",
+  "step": "while-busy",
+  "scheme": "light",
+  "snapshot": "screenheader/while-busy.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "Bar",
+      "BarBack",
+      "BarTitle",
+      "BarSubtitle",
+      "BarBusy",
+      "BarGroup0",
+      "BarInfo"
+    ],
+    "text": "Two Sum\nArray & Hashing · Easy"
+  },
+  "timings": {
+    "render_ms": 210
+  },
+  "name": "screenheader/while-busy.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

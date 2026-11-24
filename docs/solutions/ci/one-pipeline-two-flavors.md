@@ -15,13 +15,14 @@ tags: [ci, pipeline, concurrency, hosted, vm, wf-build, deploy]
 
 # The CI pipeline
 
-`.github/workflows/pipeline.yml` is one reusable workflow, called by `ci-hosted.yml` ("CI (GitHub-hosted)": ships, deploys, runs the device suites) on every push to `dev` and by `cold-ci.yml` weekly. It runs on GitHub-hosted runners, up to 20 jobs at once (free plan limit). The self-hosted flavor (`deploy.yml`, the VM's own runner, one job at a time) was deleted on 2026-11-13; the VM runner container still serves `vm-state-backup.yml`.
+`.github/workflows/pipeline.yml` is one reusable workflow, called by `ci-hosted-backend-core.yml` ("CI (GitHub-hosted)": ships, deploys, runs the device suites) on every push to `dev` and by `cold-ci.yml` weekly. It runs on GitHub-hosted runners, up to 20 jobs at once (free plan limit). The self-hosted flavor (`deploy.yml`, the VM's own runner, one job at a time) and the VM runner itself were removed on 2026-11-13.
 
 | | |
 | --- | --- |
-| Test shards | `HOSTED_SHARDS` (default 6) |
+| Test shards | the caller's `shards:` (3, 4 for the integration tests, 6 for the cold CI); the variable `HOSTED_SHARDS` is not read |
 | `wf-build` legs | x64 and arm64 |
 | Image builds | in parallel, `max-parallel: 20` |
+| Deploy legs | one at a time (`max-parallel: 1`): parallel compose pulls on the VM race in containerd's content store (`failed commit on ref ... no such file or directory`) |
 | Device | the SDK emulator on the runner (`WF_ANDROID_PROVIDER=emulator`) |
 
 ## Job order
@@ -33,19 +34,15 @@ flowchart TD
     x64["x64"]
     arm["arm64 (hosted only)"]
   end
-  wfb --> preflight
-  wfb --> plan
-  plan --> flow["flow-tests (shards)"]
-  plan --> tc["typecheck-lint-unit-tests (shards)"]
+  wfb --> plan["plan<br/>plan, preflight, head of dev"]
+  plan --> core["core-tests (shards)<br/>flow-tests + typecheck-lint-unit-tests"]
   plan --> integ["integration-tests"]
   plan --> clie2e["cli-e2e-tests"]
   plan --> dbuild["deploy-build (one leg per app)"]
-  flow --> clis["clis<br/>publish to the VM volume"]
-  tc --> clis
+  core --> clis["clis<br/>publish to the VM volume"]
   integ --> clis
   clie2e --> clis
-  flow --> deploy["deploy (one leg per app)"]
-  tc --> deploy
+  core --> deploy["deploy (one leg per app)"]
   integ --> deploy
   dbuild --> deploy
   clis --> eas["eas-update"]
@@ -63,14 +60,14 @@ flowchart TD
 
 Three waves:
 
-1. **Build and plan.** `wf-build` builds this commit's `wf` (the Rust CLI that wraps every `clis/*` crate) once per kind of machine. `preflight` and `plan` run beside each other once it is done.
-2. **Tests and builds together.** Flow, typecheck/lint/unit, integration, cli-e2e and the image builds start at once. A build never waits for a test and a test never waits for a check. A red test discards the work already done.
-3. **Everything irreversible, then the end-to-end tests.** `clis` publishes binaries, `deploy` redeploys, `eas-update` publishes the phone bundle. All three need green tests. Deployment verification and the browser and Android e2e tests need the deploy and the EAS update.
+1. **Build and plan.** `wf-build` builds this commit's `wf` (the Rust CLI that wraps every `clis/*` crate) once per kind of machine. `plan` runs once it is done; the preflight and the head-of-dev check are steps of it, running beside the plan steps.
+2. **Tests and builds together.** `core-tests` (the flow stage and the typecheck/lint/unit stage side by side on each machine), integration, cli-e2e and the image builds start at once. A build never waits for a test and a test never waits for a check. A red test discards the work already done.
+3. **Everything irreversible, then the end-to-end tests.** `clis` publishes binaries, `deploy` redeploys, `eas-update` publishes the phone bundle. `clis` and `deploy` need green tests; `eas-update` needs only `plan` and `wf-build` and starts beside the tests (its pointer is written by `eas-promote` after green tests). Deployment verification and the browser and Android e2e tests need the deploy and the EAS update.
 
 ## What each machine-building job is
 
 - **`wf-build`** builds `wf` for the machine that runs the next jobs. On hosted, the arm64 leg exists because `deploy` runs `wf ship` on `ubuntu-24.04-arm` (it builds the arm64 images the VM runs). It is one matrix job, not two jobs: the legs share every step and differ only in the runner.
-- **`clis`** publishes the `wf`, `t3-serve`, `rca-exec` and `wf-mimic` binaries (the ones `wf-build` built, arm64 and x64) as the `wf-latest` release, after the secret-shape scan, with a sha256. It is the same job on every flavor and runs only after the tests are green and only when the run ships (`ship`: the repository variable `SHIP_FLAVOR`, `vm` unless it says `hosted`, picks which flavor ships a push, so the two callers differ only in their runner). The VM's `clis-sync` container (the `ci-runner` compose project) pulls the release within a minute, checks the sha256 and installs it on the `clis` volume as `/opt/clis/<clis tree>`, then points `current` at it; no runner writes that volume, and a cloud session installs the same release with `.agents/setup.sh`.
+- **`clis`** publishes the `wf`, `t3-serve`, `rca-exec` and `wf-mimic` binaries (the ones `wf-build` built, arm64 and x64) as the `wf-latest` release, after the secret-shape scan, with a sha256. It runs only after the tests are green and only when the run ships. A cloud session installs the release with `.agents/setup.sh`.
 - **`deploy-build`** builds and pushes the container images of one app (the `build-image` action). Pushing a tag is harmless; moving `latest` happens only in `deploy`, on the trunk.
 
 ## Deploy legs
@@ -90,11 +87,13 @@ sequenceDiagram
 
 `vm-ops-api` is the first leg because every other leg redeploys through it, and its swap drops their in-flight requests ("Peer disconnected"). The other legs build in parallel and wait only just before their redeploy. On the VM the wait is a no-op because legs already run one at a time.
 
+`cli-e2e-tests` joins no tailnet: `setup-job` and `hosted-setup` take `tailnet: 'false'` and no Tailscale secrets, because the rca e2e starts its own rca-service and opencode on the runner. Every other job keeps the default `true`.
+
 Image builds fetch the shared libraries from the public libs bucket over plain HTTPS, so a build container on a hosted runner needs no tailnet name or `--add-host` (the registry proxy and `WF_BUILD_ADD_HOSTS` are gone).
 
 ## Concurrency groups
 
-- The workflow group is `ci-hosted-<ref>`; the deploy lock is `hosted-deploy-<app>`.
+- The caller's workflow group is `<file stem>-<sha>` (runs of different commits overlap, so a red shard is fixed and re-run at once); the deploy lock is `hosted-deploy-<app>` (no workflow in it: the VM is shared); the `head` job gates the deploy and the production EAS publish on the commit still being the head of `dev`.
 - GitHub replaces a *pending* run in a group and never a running one, so a newer push supersedes a queued run only.
 - The deploy lock is per app with `cancel-in-progress: false`: two deploys of one app never overlap, deploys of different apps do.
 
@@ -115,6 +114,6 @@ Numbers of the first cold hosted run and the VM warm-cache run: `hosted-minutes.
 ## Not done yet
 
 - One green full cold hosted run of this structure with every deploy leg (tracked in issue #367).
-- Cold runs come from the `[cache:no]` commit tag: `wf ci audit` judges a run cold when its head commit carries it (or when it was dispatched by hand). The weekly cold run is `cold-ci.yml` (schedule and dispatch, hosted flavor, nothing deployed or shipped): it calls this pipeline with the `fresh` and `services: all` inputs, which do what the `[cache:no]` and `[services:all]` tags do for a commit that carries none, and `wf ci audit` judges a scheduled run cold.
+- Cold runs come from the `[cache:no]` commit tag: `wf ci audit` judges a run cold when its head commit carries it (or when it was dispatched by hand). The weekly cold run is `cold-ci.yml` (schedule and dispatch, nothing deployed or shipped): it calls this pipeline with the `fresh` and `services: all` inputs, which do what the `[cache:no]` and `[services:all]` tags do for a commit that carries none, and `wf ci audit` judges a scheduled run cold.
 
 Related: `ci-pipeline-on-the-vm.md` (the VM pipeline in detail), `hosted-minutes.md` (billing and timings), `job-secret-needs.md` (vault scope per job; `clis/secrets/src/data/job-scopes.json`), `cache-layers.md`.

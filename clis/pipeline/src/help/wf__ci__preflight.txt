@@ -11,20 +11,16 @@ to finish is not live and valid. Checks run in parallel:
   env             GITHUB_TOKEN, GITHUB_REPOSITORY, GITHUB_RUN_ID, GITHUB_SHA
   secrets         every secret of the `ci` group (groups.json) is present and
                   usable (`wf secret verify --for ci`)
-  build-cache     both links resolve, and a probe object is written through the
-                  write link and read back through the read link
+  build-cache     every declared store resolves, a probe object is written to
+                  all of them and read back from each; an unreachable store
+                  fails and names itself, no store declared passes
   ledger          the database answers and the ledger's tables exist (a
                   warning only: the budget skips its task checks without it)
   vm-ops-api      a signed /health answers over the tailnet (every deploy leg
                   goes through it)
   reporting-service, remote-chat-agent
                   /health answers (remote-chat-agent is a warning only)
-  runner-disk     10 GB free on the checkout's volume
-  runner-memory   1 GB available
   github          the token is valid and 200 API calls are left
-  runner-version  the gh-runner image compose pins is not a minor behind GitHub's latest
-                  runner release (a warning only: a runner left behind restarts in a
-                  loop trying to update and its jobs store no log)
 
 Prints one JSON line {ok, failed: [names], checks: [{check, ok, required,
 detail, next}]} and a table in the job summary; exit 1 when a required check
@@ -37,5 +33,5 @@ WF_BLOB_CACHE=off.
 
 Options:
   --skip <names>  comma separated checks to leave out (workspace, toolchain,
-                  env, secrets, build-cache, ledger, services, runner, github)
+                  env, secrets, build-cache, ledger, services, github)
   -h, --help      display help for command

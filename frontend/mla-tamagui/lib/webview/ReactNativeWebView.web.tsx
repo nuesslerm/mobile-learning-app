@@ -1,7 +1,7 @@
 import { Logger } from '@lib/logging';
 import { View } from '@lib/tamagui-design-system';
 import * as React from 'react';
-import { type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 const BRIDGE_FLAG = '__RN_WEBVIEW_BRIDGE__';
 const INJECT_FLAG = '__RN_WEBVIEW_INJECT__';
@@ -46,7 +46,7 @@ type WebViewProps = {
 
 const BRIDGE_SCRIPT = `<script>(function(){window.ReactNativeWebView={postMessage:function(data){window.parent.postMessage({${JSON.stringify(
   BRIDGE_FLAG
-)}:true,data:String(data)},'*');}};window.addEventListener('message',function(event){var payload=event.data||{};if(payload[${JSON.stringify(
+)}:true,data:String(data)},'*');}};window.addEventListener('message',function(event){var payload=event.data||{};if((event.source===window.parent||event.source===null)&&payload[${JSON.stringify(
   INJECT_FLAG
 )}]===true){(0,eval)(String(payload.script||''));}});})();</script>`;
 const FILL_FRAME = { width: '100%', height: '100%', borderWidth: 0 } as const;
@@ -109,7 +109,7 @@ const WebView = React.forwardRef<WebViewHandle, WebViewProps>(
     const html = mounted && source?.html ? withBridge(source.html) : undefined;
 
     return (
-      <View testID={testID} style={[{ overflow: 'hidden' }, style]}>
+      <View testID={testID} style={[{ overflow: 'hidden' }, StyleSheet.flatten(style)]}>
         <iframe
           ref={frameRef}
           src={mounted ? source?.uri : undefined}

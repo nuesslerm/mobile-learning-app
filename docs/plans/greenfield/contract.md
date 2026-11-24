@@ -140,7 +140,7 @@ export function knowledgeFor(files: string[], records: (GapRecord | Learning)[])
 ```
 - `wf knowledge for <files…>`: the result of `knowledgeFor`, as markdown links.
 - `wf knowledge index`: regenerates `docs/known-gaps.md`; the budget check fails above 200 lines.
-- `wf knowledge stale`: lists gaps with `last_verified` more than 30 days old, so `wf offload plan` can enqueue re-verify units.
+- `wf knowledge stale`: lists gaps with `last_verified` more than 30 days old, so `wf rca plan` can enqueue re-verify units.
 - **Closing a gap** happens only through `/cf-compound <slug>`. One commit writes or updates the learning with `from_gap: <slug>` and deletes the gap file.
 
 ## Health contract

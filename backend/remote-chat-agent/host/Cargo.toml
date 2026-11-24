@@ -12,6 +12,7 @@ doctest = false
 
 [dependencies]
 async-trait.workspace = true
+libc = "0.2"
 rca-cli-driver = { path = "../cli-driver" }
 rca-core = { version = "0.1", registry = "mla" }
 rca-ladder = { version = "0.1", registry = "mla" }
@@ -28,3 +29,6 @@ rca-service-core = { path = "../service-core", features = ["testing"] }
 remote-chat-agent-core = { path = "../core", features = ["testing"] }
 tempfile.workspace = true
 tokio = { workspace = true, features = ["fs", "io-util", "process", "rt-multi-thread"] }
+
+[package.metadata.arch]
+type = "rust-flat-adapter"

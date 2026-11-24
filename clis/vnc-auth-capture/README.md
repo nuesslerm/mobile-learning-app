@@ -43,6 +43,8 @@ the listener's cargo closure equal. Run the listener flow tests against this bui
 The flow tests are the `the_listener_*` journeys of `clis/wf-login/tests/flow/auth.rs` (the real binary,
 the real Chromium).
 
+The agent sandbox joins the tailnet with `wf vm net up` (userspace tailscaled, socks5 `localhost:1055`, device `sandbox-agent`); the owner's phone is on the same tailnet.
+
 ## Security — operator checklist (defense in depth)
 
 The threat model treats the VNC frame, the credential, and the tokened link as
@@ -165,6 +167,49 @@ Things worth knowing before writing one:
 - **`wf secret login done` is not a formality** for a browser-only credential — it is
   the only moment the cookie can be taken. Until it runs, nothing has been
   stored anywhere.
+
+## Secrets a login command prints (`outputSecret`) and vault mirrors (`vault`)
+
+Two descriptor fields land a finished login in the vault (`wf secret login <tool>` writes it, so
+that machine needs the vault write token and the key must exist in the vault; both fields name
+registry keys):
+
+```jsonc
+{
+  "id": "claude",
+  "loginCmd": "script -qec 'stty cols 500; claude setup-token' /dev/null",
+  // The login command PRINTS the secret and writes no file: the first capture group of
+  // `pattern`, matched against the command's output, is stored as the PLAIN string (not
+  // base64) under `vaultKey`.
+  "outputSecret": { "pattern": "(sk-ant-oat\\d{2}-[A-Za-z0-9_-]+)\\s", "vaultKey": "CLAUDE_CODE_OAUTH_TOKEN" }
+}
+```
+
+```jsonc
+{ "id": "codex", "loginCmd": "codex login", "copy": ["~/.codex/auth.json"],
+  // The base64 of one of the `copy` files; `--clear` empties it.
+  "vault": { "key": "CODEX_OAUTH_JSON_B64", "file": "~/.codex/auth.json" } }
+```
+
+`outputSecret` in detail:
+
+- The command's output goes to `/tmp/vnc-auth-login-<id>.log` (`VNC_AUTH_LOGIN_LOG_DIR` moves
+  the directory), created owner-only before the command starts. Terminal escape sequences and
+  carriage returns are stripped before the pattern runs, so it sees what a person would read.
+- The pattern needs a capture group (checked when the descriptor is parsed, like an invalid
+  regex) and should end in a terminator such as `\s`, or a token still being printed matches
+  early as a prefix.
+- The login counts as finished when the pattern matches. The listener answers `/auth/credential`
+  with `outputSecret {key, value}` to the authorized caller only; the caller stores the value
+  under the descriptor's own `vaultKey` (never a key the reply names), and the listener
+  removes the log file on `/auth/done`. The value is in no listener log line, no error text
+  (the vault's error is scrubbed of it) and no printed line: the caller prints `vault secret
+  <key> updated`. It is the only copy of the credential, so a vault write that fails (no write
+  token, key missing) fails the login with an error that names the key and never the value.
+- `claude setup-token` needs a terminal: without one it prints nothing and waits. Hence the
+  `script` wrapper (util-linux, a pty) and `stty cols 500`, so the token is never wrapped over
+  two lines. The command still finds the browser through `$BROWSER=chromium` with
+  `DISPLAY=:99`, so its URL opens in the already running kiosk Chromium.
 
 ## Driving the desktop's browser
 

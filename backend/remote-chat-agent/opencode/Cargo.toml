@@ -16,7 +16,6 @@ testing = ["dep:axum", "dep:tokio"]
 [dependencies]
 async-trait.workspace = true
 axum = { workspace = true, optional = true }
-eventsource-stream.workspace = true
 futures-util.workspace = true
 rca-service-core = { path = "../service-core" }
 remote-chat-agent-core = { path = "../core" }
@@ -29,3 +28,6 @@ rca-service-core = { path = "../service-core", features = ["testing"] }
 remote-chat-agent-core = { path = "../core", features = ["testing"] }
 axum.workspace = true
 tokio = { workspace = true, features = ["net", "rt-multi-thread"] }
+
+[package.metadata.arch]
+type = "rust-flat-adapter"

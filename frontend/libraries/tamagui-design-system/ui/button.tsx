@@ -15,7 +15,8 @@ export type ButtonVariant =
   | 'secondary'
   | 'outline'
   | 'ghost'
-  | 'link';
+  | 'link'
+  | 'success';
 
 export type ButtonProps = Omit<TamaguiButtonProps, 'variant'> & {
   variant?: ButtonVariant;
@@ -50,6 +51,7 @@ const VARIANT_PROPS: Record<ButtonVariant, Partial<TamaguiButtonProps>> = {
   },
   ghost: { bg: 'transparent', borderWidth: 0, color: '$color' },
   link: { bg: 'transparent', borderWidth: 0, color: '$blue10' },
+  success: { bg: '$success', color: 'white' },
 };
 
 export function Button({

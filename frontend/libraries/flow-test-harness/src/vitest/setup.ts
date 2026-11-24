@@ -1,17 +1,16 @@
 // Runs before every flow-test file: browser polyfills jsdom lacks and the
 // cleanup that keeps one test's DOM and router calls out of the next.
-import { createHash } from 'node:crypto';
-
-import { act, cleanup } from '@testing-library/react';
-import { afterAll, afterEach, vi } from 'vitest';
+import { cleanup, configure } from '@testing-library/react';
+import { afterAll, afterEach } from 'vitest';
 
 import {
-  layoutBoxes,
   layoutRegistry,
   resetLayouts,
   type LayoutWatcher,
 } from '../interactions/layout';
-import { snapshotPage, takeWrittenSnapshots } from '../interactions/snapshot';
+import { takeWrittenSnapshots } from '../interactions/snapshot';
+import { resetLiquidGlass } from '../glass';
+import { flowMatchMedia, resetReducedMotion } from '../reducedMotion';
 import { resetRouterHarness } from '../router';
 import { resetSafeArea } from '../safeArea';
 import { installFrameFidelity } from './frames';
@@ -22,19 +21,10 @@ import { resetStorageHarness } from '../storage';
   globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
 installFrameFidelity();
+// A wait on a condition returns the moment it holds, so its cap only ends a hang: it is set far past what a loaded machine takes (1 s by default).
+configure({ asyncUtilTimeout: 20_000 });
 
-if (!window.matchMedia) {
-  window.matchMedia = (query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: () => undefined,
-    removeListener: () => undefined,
-    addEventListener: () => undefined,
-    removeEventListener: () => undefined,
-    dispatchEvent: () => false,
-  });
-}
+if (!window.matchMedia) window.matchMedia = flowMatchMedia;
 if (!(window as any).ResizeObserver) {
   // Recording stub: react-native-web's onLayout relies on ResizeObserver, and
   // the layout driver (interactions/layout.ts) fires the observers it records.
@@ -130,65 +120,18 @@ function scrollElement(
 Element.prototype.scrollTo = scrollElement;
 Element.prototype.scroll = scrollElement;
 
-// Every flow test's final screen is a golden; the hash keeps two long names with one prefix apart.
-function finalStep(testName: string): string {
-  const hash = createHash('sha1').update(testName).digest('hex').slice(0, 6);
-  return `final-${testName.slice(0, 48)}-${hash}`;
-}
-
-const QUIET_MS = 300;
-const EDITOR_QUIET_MS = 1000;
-const SETTLE_CAP_MS = 3000;
-
-// A test may end with renders still queued (CodeMirror highlights in idle time); the golden waits for a quiet DOM.
-async function settle(): Promise<void> {
-  if (vi.isFakeTimers()) return;
-  const frames = Array.from(
-    document.querySelectorAll('iframe'),
-    (f) => f.contentDocument
-  );
-  const docs = [document, ...frames.filter((d): d is Document => d !== null)];
-  let last = Date.now();
-  const observers = docs.map((d) => {
-    const o = new MutationObserver(() => {
-      last = Date.now();
-    });
-    o.observe(d, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      characterData: true,
-    });
-    return o;
-  });
-  // a language switch loads its parser asynchronously, with no DOM change until the colours arrive
-  const quiet = docs.some((d) => d.querySelector('.cm-editor'))
-    ? EDITOR_QUIET_MS
-    : QUIET_MS;
-  const started = Date.now();
-  await act(async () => {
-    while (Date.now() - last < quiet && Date.now() - started < SETTLE_CAP_MS) {
-      await new Promise((resolve) => setTimeout(resolve, 25));
-    }
-  });
-  observers.forEach((o) => o.disconnect());
-}
-
 const warnings = installWarningGate();
 // registered first so it runs last (hooks unwind as a stack) and also sees what the cleanup below prints
 afterEach(() => warnings.check());
 afterAll(() => warnings.check());
 
 afterEach(async (ctx) => {
-  // every test's last screen is a screenshot; `wf flow run` paints them, and compares them under --goldens
-  if (document.body.childElementCount > 0) {
-    await settle();
-    snapshotPage(finalStep(ctx.task.name), { layouts: layoutBoxes() });
-  }
   const snapshots = takeWrittenSnapshots();
   if (snapshots.length > 0) ctx.task.meta.flowSnapshots = snapshots;
   cleanup();
   resetRouterHarness();
+  resetLiquidGlass();
+  resetReducedMotion();
   resetStorageHarness();
   resetLayouts();
   resetSafeArea();

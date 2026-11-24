@@ -38,6 +38,56 @@
           "server"
         ]
       }
+    },
+    "basic-memory": {
+      "default": {
+        "type": "local",
+        "enabled": false,
+        "command": [
+          "uvx",
+          "basic-memory==1.0.0",
+          "mcp"
+        ]
+      },
+      "opencode": {
+        "type": "local",
+        "enabled": false,
+        "command": [
+          "uvx",
+          "basic-memory==1.0.0",
+          "mcp"
+        ],
+        "environment": {
+          "BASIC_MEMORY_NO_PROMOS": "1",
+          "BASIC_MEMORY_HOME": "__PROJECT_ROOT__/.agents/tmp/basic-memory",
+          "BASIC_MEMORY_CONFIG_DIR": "__PROJECT_ROOT__/.agents/tmp/basic-memory-config"
+        }
+      },
+      "claude": {
+        "type": "stdio",
+        "command": "uvx",
+        "args": [
+          "basic-memory==1.0.0",
+          "mcp"
+        ],
+        "env": {
+          "BASIC_MEMORY_NO_PROMOS": "1",
+          "BASIC_MEMORY_HOME": "__PROJECT_ROOT__/.agents/tmp/basic-memory",
+          "BASIC_MEMORY_CONFIG_DIR": "__PROJECT_ROOT__/.agents/tmp/basic-memory-config"
+        }
+      },
+      "codex": {
+        "command": "uvx",
+        "args": [
+          "basic-memory==1.0.0",
+          "mcp"
+        ],
+        "env": {
+          "BASIC_MEMORY_NO_PROMOS": "1",
+          "BASIC_MEMORY_HOME": "__PROJECT_ROOT__/.agents/tmp/basic-memory",
+          "BASIC_MEMORY_CONFIG_DIR": "__PROJECT_ROOT__/.agents/tmp/basic-memory-config"
+        }
+      }
     }
   }
 }

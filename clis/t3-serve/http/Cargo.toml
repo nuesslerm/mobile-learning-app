@@ -14,3 +14,6 @@ t3-core = { path = "../core" }
 t3-contracts = { path = "../contracts" }
 serde_json = { version = "1", features = ["preserve_order"] }
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+
+[package.metadata.arch]
+type = "cli-crate"

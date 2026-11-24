@@ -10,10 +10,13 @@ doctest = false
 
 # The flow tests run the scripted program as the process it is, and read the cassette set of the recordings.
 [package.metadata.flow]
-inputs = ["cassettes/**", "../../../docs/gaps/exec-testkit-recordings-not-from-real-clis.md"]
+inputs = ["cassettes/**", "transcripts/**", "../../../docs/gaps/exec-testkit-recordings-not-from-real-clis.md"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 tempfile = "3"
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+
+[package.metadata.arch]
+type = "rust-testkit"

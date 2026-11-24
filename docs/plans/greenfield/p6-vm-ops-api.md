@@ -17,7 +17,7 @@ Most "Callers" entries refer to `clis/workflow-cli/src/data/vmops/client.ts`. Th
 |---|---|---|---|---|---|
 | GET /architecture[/*] | 3392–3437 | 46 | Serves static diagrams, no auth | docs only | DROP (arch-diagrams is on the deletion list) |
 | GET /expo-go | 3442–3456 (+page 3337–3378) | 57 | Expo Go tap-through page | `wf android install-expo`, PR links | KEEP |
-| GET /opencode-log, /api/runs, /api/runs/:id, /:runId | 3463–3535 | 73 | Live dispatch dashboard (read side) | browser, features/coding-agent | KEEP? (`wf offload ask --live`) |
+| GET /opencode-log, /api/runs, /api/runs/:id, /:runId | 3463–3535 | 73 | Live dispatch dashboard (read side) | browser, features/coding-agent | KEEP? (`wf rca ask --live`) |
 | POST /opencode-log/:id/{start,line,finish} | 3340–3422 | 85 | Dashboard write side | wf `opencodeLog.ts`, remote-chat-agent `vmopsLog.ts` | KEEP? |
 | GET /health | 3562–3576 | 15 | Liveness, sha, image tag | wf report health, infra-ops, cloud-init, watchdog | KEEP (add `commit`, `startedAt`) |
 | GET /provision-refs | 3578–3592 | 15 | Lists sticky refs | wf report health | KEEP (small) |
@@ -33,7 +33,7 @@ Most "Callers" entries refer to `clis/workflow-cli/src/data/vmops/client.ts`. Th
 | GET /services/:app/{workspace-check, toolchain-check} | 4310–4425 | 116 | Diagnostics | docs only | DROP |
 | GET agent-shell/wf-smoke-test | 4429–4461 | 33 | Smoke test | e2e-wf-smoke.sh only | MERGE into exec-script |
 | POST exec-script, GET exec-script/:id, POST exec-script/:id/cancel | 4465–4708 | 244 | Async script jobs in agent-shell | wf `execScript`, `installDep`, `runScript`, e2e templates | KEEP (`wf vm exec`) |
-| POST/GET vm-jobs, GET vm-jobs/:id, POST vm-jobs/:id/cancel | 4712–4890 | 179 | Job queue | wf `startVmJob`, `pollVmJob`, `listVmJobs`, `cancelVmJob` | KEEP? (replaced by `wf offload worker` later) |
+| POST/GET vm-jobs, GET vm-jobs/:id, POST vm-jobs/:id/cancel | 4712–4890 | 179 | Job queue | wf `startVmJob`, `pollVmJob`, `listVmJobs`, `cancelVmJob` | KEEP? (replaced by `wf rca worker` later) |
 | GET agent-shell/vm-ledger/:name | 4894–4930 | 37 | Reads a ledger file | `wf vm` `sessionScript.ts` | KEEP |
 | GET agent-deps-smoke-test, opencode-state-check, mounts, dns-check, login-env-check, heartbeat-test, remote-login-smoke-test, opencode-auth-check | 4934–5272, 5565–5619, 6202–6249 | ~450 | Diagnostics | none (heartbeat.sh comment only) | DROP |
 | GET /services/:app/verify-betterstack | 5125–5156 (+verify-betterstack.js 170) | 205 | Log-pipeline probe | none (the watchdog has its own) | DROP |
@@ -46,7 +46,7 @@ Most "Callers" entries refer to `clis/workflow-cli/src/data/vmops/client.ts`. Th
 | POST /redeploy | 6643–6655 | 13 | Self-redeploy | `wf vm ops redeploy-self` | MERGE into the redeploy unit |
 | GET /redeploy/status | 6659–6717 | 59 | Self-redeploy result | wf client, cloud-init | KEEP |
 | GET /debug/host-dns-check | 6721–6757 | 37 | Diagnostic | none | DROP |
-| POST /services/:app/redeploy | 6761–6918 | 158 | Pulls and restarts an app | wf release/redeploy, cloud-init, `redeploy-app.sh`, `scripts/build-and-push-image.sh` | KEEP |
+| POST /services/:app/redeploy | 6761–6918 | 158 | Pulls and restarts an app | wf release/redeploy, cloud-init, `redeploy-app.sh`, the deleted `build-and-push-image.sh` (repo root) | KEEP |
 | POST /services/:app/bootstrap-token | 6922–7003 | 82 | Writes the BWS token to `.env.local` | `wf vm ops push-bootstrap-token` | KEEP? (secrets) |
 | POST /services/:app/stop | 7007–7067 | 61 | Stops a container | none | DROP |
 | POST/GET /scripts, GET /scripts/:name | 7071–7108, 7214–7276 | 105 | Staged scripts for manual SSH | none | DROP |
@@ -60,7 +60,7 @@ Most "Callers" entries refer to `clis/workflow-cli/src/data/vmops/client.ts`. Th
 | Trunk deployer | 7504–8315 | 812 | KEEP (add stage timeouts) |
 | Dev-bridge GC | 8318–8372 | 55 | KEEP |
 | Session GC | 8374–8420 | 47 | KEEP |
-| vm-jobs launcher | 8466–8863 (+vm-jobs.js 290) | ~690 | KEEP? (moves to `wf offload worker`) |
+| vm-jobs launcher | 8466–8863 (+vm-jobs.js 290) | ~690 | KEEP? (moves to `wf rca worker`) |
 | Usage spool drain | 2108–2260, 2233 (+usage.js 142) | ~290 | DROP |
 
 ### Shared helpers the KEEP routes need

@@ -1,0 +1,72 @@
+{
+  "suite": "showcase",
+  "step": "final-given-the-ios-form-sheet-when-its-field-opens-t-fa225b",
+  "scheme": "dark",
+  "snapshot": "showcase/final-given-the-ios-form-sheet-when-its-field-opens-t-fa225b.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 1126,
+    "page_height": 1126
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "ShowcaseNavigation",
+      "ShowcaseNavigationBack",
+      "ShowcaseNavigationTitle",
+      "ShowcaseItemButton",
+      "ShowcaseItemTitle",
+      "ShowcaseSheet",
+      "ShowcaseSheet-TamaguiLabel",
+      "ShowcaseSheet-Tamagui",
+      "ShowcaseSheetOpenDefault",
+      "ShowcaseSheetOpenCompact",
+      "ShowcaseSheetOpenNoBackdrop",
+      "ShowcaseSheetOpenScroll",
+      "ShowcaseSheetOpenForm",
+      "ShowcaseSheet-ExpoUiLabel",
+      "ShowcaseSheet-ExpoUi",
+      "ShowcaseExpoSheetOpenDefault",
+      "ShowcaseExpoSheetOpenCompact",
+      "ShowcaseExpoSheetOpenNoBackdrop",
+      "ShowcaseExpoSheetOpenScroll",
+      "ShowcaseExpoSheetOpenForm",
+      "ShowcaseSheetForm",
+      "ShowcaseSheetFormHeader",
+      "ShowcaseSheetFormHeaderClose",
+      "ShowcaseSheetFormField-Field",
+      "ShowcaseSheetFormField"
+    ],
+    "text": "Learning workspace\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nBrowse components\nOverlays\nBottom sheet\nTamagui\nTwo snap points\nCompact sheet\nKeep the page interactive\nScrolling body\nWith a text field\nExpo UI\nTwo snap points\nCompact sheet\nKeep the page interactive\nScrolling body\nWith a text field\nWith a text field\nName"
+  },
+  "timings": {
+    "render_ms": 234
+  },
+  "name": "showcase/final-given-the-ios-form-sheet-when-its-field-opens-t-fa225b.dark",
+  "image": {
+    "width": 360,
+    "height": 1072
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

@@ -74,7 +74,7 @@ fn defaults(d: &MockDaemon, s: &SlotSandbox) {
     d.rule("outerEval", "dpr: devicePixelRatio", vec![evaluated(json!({ "width": 393, "height": 852, "dpr": 3 }))]);
     d.rule("outerEval", "__mcpFakeMicState", vec![evaluated(json!({ "queued": [], "consumed": ["clip.wav"] }))]);
     d.rule("outerEval", "testids", vec![evaluated(json!({ "url": "http://x/", "title": "x", "testids": ["Go"], "text": "Go" }))]);
-    d.rule("shellEval", "getStatus", vec![evaluated(json!({ "visible": true, "bounds": null }))]);
+    d.rule("shellEval", "getStatus", vec![evaluated(json!({ "visible": true, "bounds": { "left": 0, "top": 582, "right": 393, "bottom": 852 } }))]);
     d.rule("waitObserve", "setTimeout(look,100)", vec![json!({ "result": json!({ "hit": go }).to_string() })]);
     d.rule("waitObserve", "", vec![json!({ "result": "{\"seen\":true,\"ms\":3}" })]);
     d.rule("screenshot", "", vec![json!({ "path": shot })]);
@@ -137,7 +137,7 @@ fn the_wait_verbs_return_on_the_event() {
             d.clear_rules();
             let flip = |before: Value, after: Value| vec![before.clone(), before.clone(), before, after];
             d.rule("screenshot", "", flip(json!({ "path": white }), json!({ "path": blue })));
-            d.rule("shellEval", "getStatus", flip(evaluated(json!({ "visible": true, "bounds": null })), evaluated(json!({ "visible": false, "bounds": null }))));
+            d.rule("shellEval", "getStatus", flip(evaluated(json!({ "visible": true, "bounds": { "left": 0, "top": 582, "right": 393, "bottom": 852 } })), evaluated(json!({ "visible": false, "bounds": null }))));
             d.rule("outerEval", "__mcpFakeMicState", flip(evaluated(json!({ "queued": ["c.wav"], "consumed": [] })), evaluated(json!({ "queued": [], "consumed": ["c.wav"] }))));
             defaults(&d, &s);
             d
@@ -166,6 +166,24 @@ fn the_wait_verbs_return_on_the_event() {
             let _ = std::fs::remove_file(s.bin_dir.join(format!("adb.{kind}")));
         }
     }
+}
+
+#[test]
+fn a_keyboard_the_shell_reports_up_but_has_not_drawn_yet_is_read_again_until_it_has_a_rectangle() {
+    // Given a device frame whose shell says the keyboard is up while the page has not drawn it yet, for the first three reads
+    let s = sandbox("wf-flow-harness-keyboard-drawn-");
+    let d = daemon(&s);
+    d.clear_rules();
+    let drawn = json!({ "visible": true, "bounds": { "left": 0, "top": 582, "right": 393, "bottom": 852 } });
+    let undrawn = json!({ "visible": true, "bounds": null });
+    d.rule("shellEval", "getStatus", vec![evaluated(undrawn.clone()), evaluated(undrawn.clone()), evaluated(undrawn), evaluated(drawn.clone())]);
+    defaults(&d, &s);
+    // When a script reads the keyboard once
+    let r = script(&s, "browser", "log(json.encode(device:get_device_state('keyboard')))", &[], &[]);
+    // Then it reads until the rectangle is there, and returns the drawn keyboard
+    assert_eq!(r.exit_code, 0, "{}", out(&r));
+    assert_eq!(logged(&r), drawn, "{}", out(&r));
+    assert_eq!(d.count("shellEval", "getStatus"), 4);
 }
 
 #[test]
@@ -438,9 +456,16 @@ fn a_browser_script_drives_the_daemon_waits_by_observer_and_reports() {
     let broken_observers = of("waitObserve");
     absent(&d, vec!["{\"seen\":false,\"ms\":1000}", "{\"seen\":false,\"ms\":1000}", "{\"seen\":true,\"ms\":40}"]);
     let late = browser("device:open_link('http://x/'); device:assert_visible({id='Go'})", &[], &[("WF_WAIT_BUDGET_MS", "2000")]);
+    // and when the page is busy for a slice (a long synchronous script holds its main thread) and then shows it
+    d.clear_rules();
+    d.rule("waitObserve", "", vec![json!({ "error": "wait-observe: the page script never reported" }), json!({ "result": "{\"seen\":true,\"ms\":40}" })]);
+    defaults(&d, &s);
+    let busy = browser("device:open_link('http://x/'); device:assert_visible({id='Go'})", &[], &[("WF_WAIT_BUDGET_MS", "2000")]);
     d.clear_rules();
     defaults(&d, &s);
-    // Then both fail: the first as broken with the budget, its line and a final screenshot, the second as slow
+    // Then a busy page is asked again, not failed: the wait passes
+    assert_eq!(busy.exit_code, 0, "{}", out(&busy));
+    // And both fail: the first as broken with the budget, its line and a final screenshot, the second as slow
     assert_eq!(broken.exit_code, 1);
     assert!(broken.stderr.contains("t.lua:1: assert_visible{id='Go'} timed out after 2000 ms -- broken"), "{}", broken.stderr);
     assert!(!broken_shots.is_empty(), "no final screenshot");

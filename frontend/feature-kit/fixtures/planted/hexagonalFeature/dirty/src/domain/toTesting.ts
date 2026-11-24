@@ -1,0 +1,2 @@
+import '../testing/double';
+export {};

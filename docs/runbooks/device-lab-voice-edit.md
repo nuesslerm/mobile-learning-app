@@ -12,6 +12,8 @@ Gate G1 of the device-lab spec ([`spec.md`](../plans/device-lab/spec.md) §7). I
 [`e2e/voice-edit.lua`](../../e2e/voice-edit.lua) (first written as [`voice-edit-iterative-solve.md`](../archive/README.md)) on the device-lab render, the way a person
 would run it, and records every problem on video.
 
+The script itself answers the app's three backend calls (voice-transcribe, voice-plan, edit-stats) from network stubs, with the plan answers committed in `frontend/mla-tamagui/features/leetcode/testing/voiceStubs/`, so the browser e2e needs no backend (issue 86, E3; the Android run still uses the live backend). This runbook is the live check that remains: it needs the backends below and is the only run that shows whisper's and the planner's real quality. `--env live=1` points the script at them too, and `--env agent=1` requires it.
+
 An agent runs it step by step through `wf browser`, on a commit that is already on `origin/dev`, and writes the run to `docs/runbooks/.results/device-lab-voice-edit.json` (`runbook`, `sha`, `ranAt`, `verdict`, `evidence`). A commit not yet on `origin/dev` would leave the recorded sha orphaned by a later rebase.
 It needs the phase 3 driver work: touch
 taps (I13), the input log and `wf browser check-taps`.

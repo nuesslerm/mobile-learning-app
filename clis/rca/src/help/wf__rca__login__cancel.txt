@@ -1,0 +1,6 @@
+Usage: wf rca login cancel <auth>
+
+Ends a running login. Prints {ok, result: {auth, status: "cancelled"}}.
+
+Options:
+  -h, --help  display help for command

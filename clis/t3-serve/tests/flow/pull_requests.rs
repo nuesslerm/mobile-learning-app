@@ -1,8 +1,8 @@
 //! The M11 rows through the real router over the agent double: the pull request reads and actions, the source control sign-in, the clones and
 //! the thread links. The double answers the neutral shape the executor's `hosted_*` actions produce (`rca-exec` `hosted::shape`); what a request
-//! becomes (the `Op::Hosted` the agent API is asked, its method and params) and what the phone is told are both asserted. The chain
-//! (`tests/integration/hosted_m11.rs`) runs the same calls through the real service and executor with fake `gh` and `glab`.
+//! becomes (the `Op::Hosted` the agent API is asked, its method and params) and what the phone is told are both asserted.
 use super::support::*;
+use std::time::Duration;
 use std::sync::Mutex;
 use t3_core::ports::{AgentError, AgentEventKind, Finish, Op};
 
@@ -45,6 +45,61 @@ fn neutral_pr() -> Value {
 
 fn refused(code: &str, message: &str) -> Result<Value, AgentError> {
     Err(AgentError::Refused { code: code.into(), message: message.into() })
+}
+
+fn gone_ref() -> Value {
+    with(pr_ref(1), json!({"projectId": "gone"}))
+}
+
+#[test]
+fn a_project_without_a_remote_or_a_pull_request_of_a_project_the_server_lacks_is_left_out_of_the_lists_and_refused_by_the_reads_that_need_a_provider() {
+    // Given the project's directory has no remote and its repository cannot be looked up
+    let (h, mut rpc) = started();
+    reply(&h, "git.upstreamStatus", Ok(json!({"remotes": []})));
+    reply(&h, "sourceControl.lookupRepository", refused("CLI_NOT_INSTALLED", "gh is not installed"));
+    // When the phone lists pull requests, asks for the filter options and the stats of a pull request of a project the server lacks
+    let listed = rpc.call("pullRequests.list", json!({"state": "all"}));
+    let options = rpc.call("pullRequests.filterOptions", json!({"kind": "labels"}));
+    let stats = rpc.call("pullRequests.listStats", json!({"refs": [gone_ref()]}));
+    // Then the project is not listed as failing, only the lookup was asked of the host, and the stats are empty
+    assert_eq!((success(&listed)["errors"].clone(), success(&listed)["providers"].clone(), success(&options)["references"].clone(), success(&stats)["stats"].clone()), (json!([]), json!([]), json!([]), json!([])));
+    assert!(hosted(&h).iter().all(|(method, _)| method == "sourceControl.lookupRepository"));
+    // And with a remote the same lookup failure is the project's listed error
+    reply(&h, "git.upstreamStatus", Ok(json!({"remotes": ["origin"]})));
+    let remote = rpc.call("pullRequests.list", json!({"state": "all"}));
+    assert_eq!(success(&remote)["errors"].as_array().map(Vec::len), Some(1));
+    // And when it reads the files viewed or reports the state of a pull request of a project the server lacks
+    let gone = gone_ref();
+    let viewed = rpc.call("pullRequests.filesViewed", gone.clone());
+    let reported = rpc.call("pullRequests.reportState", json!({"reference": gone, "state": "open"}));
+    // Then each is the unavailable error the provider-less project gets
+    let unavailable = json!({"_tag": "PullRequestUnavailableError", "reason": "provider-unsupported"});
+    assert_eq!((failure(&viewed).clone(), failure(&reported).clone()), (unavailable.clone(), unavailable));
+    // And a reference that names the account it expects is routed by that account first, which a project the server lacks cannot give
+    let routed = rpc.call("pullRequests.summary", with(pr_ref(1), json!({"projectId": "gone", "expectedAccountId": "octocat"})));
+    assert_eq!(failure(&routed), &json!({"_tag": "PullRequestOperationError", "operation": "routeIdentity", "detail": "The signed-in account could not be verified before starting the operation."}));
+    // And the routing read and the report of a state do not route first, and a review guide cannot tell the host
+    let routing = rpc.call("pullRequests.routing", with(pr_ref(1), json!({"projectId": "gone", "expectedAccountId": "octocat"})));
+    let guide = rpc.call("pullRequests.reviewGuide", gone_ref());
+    assert_eq!((failure(&routing).clone(), failure(&guide).clone()), (json!({"_tag": "PullRequestUnavailableError", "reason": "provider-unsupported"}), json!({"_tag": "PullRequestOperationError", "operation": "reviewGuide", "detail": "Could not identify this pull request's host."})));
+}
+
+#[test]
+fn a_provider_the_registry_does_not_hold_is_refused_with_the_registrys_words_before_any_host_is_asked_and_is_signed_out() {
+    // Given a provider T3's registry does not know
+    let (h, mut rpc) = started();
+    let said = |step: &str| format!("Source control provider zz failed in {step}: No zz source control provider is registered.");
+    // When the phone looks a repository up, publishes one, starts a clone and asks for its access
+    let lookup = rpc.call("sourceControl.lookupRepository", json!({"provider": "zz", "repository": REPO}));
+    let publish = rpc.call("sourceControl.publishRepository", json!({"provider": "zz", "repository": REPO, "cwd": ROOT, "visibility": "private"}));
+    let clone = rpc.call("projectClone.start", json!({"projectId": "pc", "title": "Clone", "destinationPath": "/workspace/pc", "provider": "zz", "repository": REPO}));
+    let access = rpc.call("sourceControl.appAccess", json!({"provider": "zz", "host": "zz", "repository": REPO}));
+    // Then the three refusals carry the fixed detail and the registry's message, nothing was asked of the host and no project was made, and the access is signed out
+    for (exit, operation, step) in [(&lookup, "lookupRepository", "getRepositoryCloneUrls"), (&publish, "publishRepository", "createRepository"), (&clone, "cloneRepository", "getRepositoryCloneUrls")] {
+        let error = failure(exit);
+        assert_eq!((error["_tag"].as_str(), error["operation"].as_str(), error["provider"].as_str(), error["detail"].as_str(), error["cause"]["message"].as_str().map(str::to_string)), (Some("SourceControlRepositoryError"), Some(operation), Some("zz"), Some("The source control operation could not be completed."), Some(said(step))));
+    }
+    assert_eq!((hosted(&h).len(), h.service.engine().read(|s| s.projects.contains_key("pc")), success(&access)["status"].clone()), (0, false, json!("signed-out")));
 }
 
 #[test]
@@ -131,10 +186,10 @@ fn a_missing_cli_and_a_missing_sign_in_are_the_unavailable_error_with_their_reas
         assert_eq!((error["_tag"].as_str().unwrap(), error["reason"].as_str()), expected, "{code}");
         assert!(error["requirement"].as_str().or(error["detail"].as_str()).unwrap().contains("said so"));
     }
-    // And a project the server does not have is not found, with nothing asked of the agent API
+    // And a project the server does not have has no provider to serve it, with nothing asked of the agent API
     let before = hosted(&h).len();
     let exit = rpc.call("pullRequests.summary", with(pr_ref(12), json!({"projectId": "nope"})));
-    assert_eq!((failure(&exit)["reason"].clone(), hosted(&h).len()), (json!("not-found"), before));
+    assert_eq!((failure(&exit).clone(), hosted(&h).len()), (json!({"_tag": "PullRequestUnavailableError", "reason": "provider-unsupported"}), before));
 }
 
 #[test]
@@ -669,4 +724,32 @@ fn a_review_guide_is_refused_while_guides_are_off_or_no_model_is_set_a_second_as
     rpc.call("pullRequests.generateReviewGuide", pr_ref(12));
     let nonsense = finished_guide(&mut rpc);
     assert_eq!((nonsense["run"]["_tag"].clone(), nonsense["run"]["detail"].clone()), (json!("Failed"), json!("The model's answer holds no JSON object.")));
+}
+
+#[test]
+fn an_invalidate_that_tells_readers_sends_the_refresh_stream_a_new_epoch_and_a_files_viewed_only_one_sends_none() {
+    // Given a client following the pull request refresh stream, which has sent nothing yet
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    let id = rpc.send("pullRequests.subscribeRefreshes", json!({}));
+    assert!(rpc.try_recv(Duration::from_millis(300)).is_none());
+
+    // When a pull request is invalidated for its files viewed only, and then every pull request is invalidated twice
+    let quiet = rpc.call("pullRequests.invalidate", json!({"filesViewedOnly": true}));
+    let silent = rpc.try_recv(Duration::from_millis(300));
+    let first = rpc.call("pullRequests.invalidate", json!({}));
+    let one = rpc.chunk(&id);
+    let second = rpc.call("pullRequests.invalidate", json!({}));
+    let two = rpc.chunk(&id);
+
+    // Then each invalidate answers null, the files-viewed-only one sends the stream nothing, and the others send epochs 1 and 2
+    assert_eq!((success(&quiet), success(&first), success(&second)), (&Value::Null, &Value::Null, &Value::Null));
+    assert!(silent.is_none());
+    assert_eq!((one, two), (vec![json!(1)], vec![json!(2)]));
+
+    // And a client that follows later is sent nothing until the next invalidate, which is epoch 3
+    let late = rpc.send("pullRequests.subscribeRefreshes", json!({}));
+    assert!(rpc.try_recv(Duration::from_millis(300)).is_none());
+    rpc.call("pullRequests.invalidate", json!({}));
+    assert_eq!((rpc.chunk(&id), rpc.chunk(&late)), (vec![json!(3)], vec![json!(3)]));
 }

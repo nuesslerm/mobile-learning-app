@@ -1,6 +1,6 @@
-//! A double of rca's `schedules` group: schedules in memory, saved and run as the service does. A save is read by the contract's own parser, so a request
+//! A double of rca's `schedules` group: schedules in memory, saved and run as the service does, and their runs kept. A save is read by the contract's own parser, so a request
 //! without what the contract requires is refused as the service refuses it, never read as an empty value.
-use agent_api_schedules::{RunNowResult, RunSource, RunState, RunStatus, RunView, Schedule, TaskView, UpsertParams};
+use agent_api_schedules::{RunNowResult, RunSource, RunState, RunStatus, RunView, RunsParams, Schedule, TaskView, UpsertParams};
 use orca_core::testing::ScriptedAgent;
 use orca_core::AgentError;
 use serde_json::{json, Value};
@@ -14,6 +14,7 @@ struct State {
     tasks: Vec<TaskView>,
     runs: u64,
     run_error: Option<String>,
+    history: Vec<RunView>,
 }
 
 #[derive(Clone, Default)]
@@ -48,6 +49,16 @@ impl Schedules {
         self.0.lock().unwrap().run_error = Some(error.into());
     }
 
+    /// A run of schedule `id` kept as the service keeps one: it began at `at_ms` and is in `state` (with `error` for a failed or skipped one). Its id.
+    pub fn ran(&self, id: &str, at_ms: u64, state: RunState, source: RunSource, error: Option<&str>) -> String {
+        let mut s = self.0.lock().unwrap();
+        s.runs += 1;
+        let run = format!("run-{}", s.runs);
+        let thread = matches!(state, RunState::Started | RunState::Succeeded).then(|| format!("thread-{}", s.runs));
+        s.history.push(RunView { run: run.clone(), schedule: id.into(), source, at_ms, state, thread, turn: None, error: error.map(str::to_string) });
+        run
+    }
+
     /// Makes `agent` answer the methods of `USES` from these schedules.
     pub fn install(&self, agent: &ScriptedAgent) {
         let me = self.clone();
@@ -58,6 +69,21 @@ impl Schedules {
         agent.reply("schedule.delete", move |p| me.delete(p));
         let me = self.clone();
         agent.reply("schedule.runNow", move |p| me.run_now(p));
+        let me = self.clone();
+        agent.reply("schedule.runs", move |p| me.runs(p));
+    }
+
+    fn runs(&self, p: &Value) -> Result<Value, AgentError> {
+        let params = RunsParams::parse(p).map_err(|e| refused("INVALID_PARAMS", e.0))?;
+        let s = self.0.lock().unwrap();
+        if let Some(id) = &params.id {
+            if !s.tasks.iter().any(|t| &t.id == id) {
+                return Err(refused("SCHEDULE_NOT_FOUND", format!("no schedule has the id {id}")));
+            }
+        }
+        let mut runs: Vec<RunView> = s.history.iter().filter(|r| params.id.as_ref().is_none_or(|id| &r.schedule == id)).cloned().collect();
+        runs.sort_by(|a, b| b.at_ms.cmp(&a.at_ms).then_with(|| a.run.cmp(&b.run)));
+        Ok(json!({"runs": runs}))
     }
 
     fn upsert(&self, p: &Value) -> Result<Value, AgentError> {
@@ -90,6 +116,7 @@ impl Schedules {
         if s.tasks.len() == before {
             return Err(refused("SCHEDULE_NOT_FOUND", format!("no schedule has the id {id}")));
         }
+        s.history.retain(|r| r.schedule != id);
         Ok(json!({"id": id}))
     }
 
@@ -105,7 +132,9 @@ impl Schedules {
         task.last_run_error = error.clone();
         task.run_count += 1;
         let run = RunView { run: format!("run-{n}"), schedule: id.into(), source: RunSource::Manual, at_ms: NOW_MS, state, thread: error.is_none().then(|| format!("thread-{n}")), turn: None, error };
-        Ok(serde_json::to_value(RunNowResult { task: task.clone(), run }).unwrap())
+        let task = task.clone();
+        s.history.push(run.clone());
+        Ok(serde_json::to_value(RunNowResult { task, run }).unwrap())
     }
 }
 

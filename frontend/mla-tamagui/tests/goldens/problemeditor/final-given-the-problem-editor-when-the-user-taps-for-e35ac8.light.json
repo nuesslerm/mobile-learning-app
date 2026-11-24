@@ -14,37 +14,35 @@
   },
   "summary": {
     "testids": [
-      "ProblemWorkspaceTabs",
-      "ProblemWorkspaceTab-plan",
-      "ProblemWorkspaceTab-code",
       "ProblemEditorScreen",
+      "ProblemEditorHeader",
+      "ProblemEditorHeaderBack",
+      "ProblemEditorHeaderTitle",
+      "ProblemEditorHeaderSubtitle",
+      "ProblemEditorHeaderGroup0",
+      "EditorSettingsButton",
+      "ProblemEditorHeaderGroup1",
+      "ProblemEditorInfoButton",
+      "ProblemEditorMenuButton",
       "ProblemEditorToolbarTarget",
       "ProblemEditorScroll",
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
-      "ProblemEditorTextEditStartButton",
-      "ProblemEditorVoiceStartButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInput",
-      "ProblemPlanTab",
-      "ProblemPlanSteps",
-      "ProblemPlanComposer",
-      "ProblemPlanMicButton",
-      "ProblemPlanTextInput",
-      "ProblemPlanAddButton"
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit"
     ],
-    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset"
+    "text": "Two Sum\nArray & Hashing · Easy\nPython\nConsole\nSubmit"
   },
   "timings": {
-    "render_ms": 261
+    "render_ms": 257
   },
   "name": "problemeditor/final-given-the-problem-editor-when-the-user-taps-for-e35ac8.light",
   "image": {

@@ -1,0 +1,25 @@
+{
+  "method": "browser.close",
+  "exchanges": [
+    {
+      "name": "closes nothing under a key that was never opened",
+      "request": {
+        "id": 1,
+        "method": "browser.close",
+        "params": {
+          "workspace": "w1",
+          "thread": "t1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "closed": false
+        }
+      },
+      "actions": [
+        "browser_close"
+      ]
+    }
+  ]
+}

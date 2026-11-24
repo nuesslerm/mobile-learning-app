@@ -3,7 +3,7 @@
 pub const ALL: [(&str, &str); 3] = [
     ("opencode", "opencode serve, reached over HTTP. No heavy local dependency."),
     ("claude", "claude CLI, driven in-process via the Anthropic Agent SDK."),
-    ("codex", "codex CLI, driven in-process via its app-server subprocess mode."),
+    ("codex", "codex CLI, driven as a long-lived `codex app-server` session."),
 ];
 
 pub fn is_cli(id: &str) -> bool {

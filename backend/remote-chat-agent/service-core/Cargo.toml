@@ -26,8 +26,7 @@ serde_json.workspace = true
 time = { workspace = true, features = ["macros"] }
 tokio.workspace = true
 tracing.workspace = true
-uuid.workspace = true
-fancy-regex = "0.19.2"
+regex = "1"
 serde_path_to_error = "0.1"
 rca-core = { version = "0.1", registry = "mla" }
 rca-ladder = { version = "0.1", registry = "mla" }
@@ -44,6 +43,7 @@ rca-group-git = { path = "../group-git" }
 rca-group-hosted = { path = "../group-hosted" }
 rca-group-schedules = { path = "../group-schedules" }
 rca-group-preview = { path = "../group-preview" }
+rca-group-browser = { path = "../group-browser" }
 rca-group-attachments = { path = "../group-attachments" }
 rca-group-catalog = { path = "../group-catalog" }
 agent-api-attachments = { path = "../../../libraries/agent-api/agent-api-attachments" }
@@ -53,10 +53,7 @@ agent-api-service = { path = "../../../libraries/agent-api/agent-api-service" }
 agent-api-state = { path = "../../../libraries/agent-api/agent-api-state" }
 agent-api-agent = { path = "../../../libraries/agent-api/agent-api-agent" }
 agent-api-workspace = { path = "../../../libraries/agent-api/agent-api-workspace" }
-exec-proto = { path = "../../../libraries/agent-api/exec-proto" }
-exec-fs = { path = "../../../libraries/agent-api/exec-fs" }
 exec-git = { path = "../../../libraries/agent-api/exec-git" }
-exec-pty = { path = "../../../libraries/agent-api/exec-pty" }
 agent-api-terminal = { path = "../../../libraries/agent-api/agent-api-terminal" }
 agent-api-git = { path = "../../../libraries/agent-api/agent-api-git" }
 
@@ -66,6 +63,7 @@ rca-group-preview = { path = "../group-preview", features = ["testing"] }
 rca-group-attachments = { path = "../group-attachments", features = ["testing"] }
 rca-group-catalog = { path = "../group-catalog", features = ["testing"] }
 agent-api-preview = { path = "../../../libraries/agent-api/agent-api-preview" }
+agent-api-browser = { path = "../../../libraries/agent-api/agent-api-browser" }
 agent-api-attachments = { path = "../../../libraries/agent-api/agent-api-attachments" }
 agent-api-catalog = { path = "../../../libraries/agent-api/agent-api-catalog" }
 agent-api-hosted = { path = "../../../libraries/agent-api/agent-api-hosted" }
@@ -75,3 +73,6 @@ rca-group-agent = { path = "../group-agent", features = ["testing"] }
 rca-group-state = { path = "../group-state", features = ["testing"] }
 remote-chat-agent-core = { path = "../core", features = ["testing"] }
 tokio.workspace = true
+
+[package.metadata.arch]
+type = "rust-core"

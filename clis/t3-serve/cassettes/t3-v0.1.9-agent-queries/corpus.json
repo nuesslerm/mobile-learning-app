@@ -1,0 +1,17 @@
+{
+  "schema": "mimic-corpus/1",
+  "seed": 0,
+  "generators": [
+    {
+      "kind": "corpus",
+      "name": "t3-agent-queries",
+      "op": "script",
+      "cases": [
+      {"id":"t3-query-getThreadTitles","row":"rpc:orchestration.getThreadTitles","op":"script","input":{"prelude":"session","script":[{"ws-send":{"_tag":"Request","id":"c1","tag":"orchestration.dispatchCommand","payload":{"branch":null,"commandId":"cmd-c1","createdBy":"user","creationSource":"mobile","interactionMode":"default","modelSelection":{"instanceId":"claudeAgent","model":"sonnet"},"projectId":"conformance-project","runtimeMode":"full-access","threadId":"agent-thread","title":"Agent thread","type":"thread.create","worktreePath":null},"headers":[]},"await":"exit"},{"ws-send":{"_tag":"Request","id":"s1","tag":"orchestration.getThreadTitles","payload":{"threadIds":["agent-thread"]},"headers":[]}},{"ws-close":{}}],"settle_ms":400},"tags":["input:scenario","state:fresh","kind:story"]},
+      {"id":"t3-query-getThreadLinkMetadata","row":"rpc:orchestration.getThreadLinkMetadata","op":"script","input":{"prelude":"session","script":[{"ws-send":{"_tag":"Request","id":"c1","tag":"orchestration.dispatchCommand","payload":{"branch":null,"commandId":"cmd-c1","createdBy":"user","creationSource":"mobile","interactionMode":"default","modelSelection":{"instanceId":"claudeAgent","model":"sonnet"},"projectId":"conformance-project","runtimeMode":"full-access","threadId":"agent-thread","title":"Agent thread","type":"thread.create","worktreePath":null},"headers":[]},"await":"exit"},{"ws-send":{"_tag":"Request","id":"s1","tag":"orchestration.getThreadLinkMetadata","payload":{"threadIds":["agent-thread"]},"headers":[]}},{"ws-close":{}}],"settle_ms":400},"tags":["input:scenario","state:fresh","kind:story"]},
+      {"id":"t3-query-getNativeChildWork","row":"rpc:orchestration.getNativeChildWork","op":"script","input":{"prelude":"session","script":[{"ws-send":{"_tag":"Request","id":"c1","tag":"orchestration.dispatchCommand","payload":{"branch":null,"commandId":"cmd-c1","createdBy":"user","creationSource":"mobile","interactionMode":"default","modelSelection":{"instanceId":"claudeAgent","model":"sonnet"},"projectId":"conformance-project","runtimeMode":"full-access","threadId":"agent-thread","title":"Agent thread","type":"thread.create","worktreePath":null},"headers":[]},"await":"exit"},{"ws-send":{"_tag":"Request","id":"s1","tag":"orchestration.getNativeChildWork","payload":{"threadId":"agent-thread"},"headers":[]}},{"ws-close":{}}],"settle_ms":400},"tags":["input:scenario","state:fresh","kind:story"]},
+      {"id":"t3-query-subscribePromptSuggestion","row":"rpc:orchestration.subscribePromptSuggestion","op":"script","input":{"prelude":"session","script":[{"ws-send":{"_tag":"Request","id":"c1","tag":"orchestration.dispatchCommand","payload":{"branch":null,"commandId":"cmd-c1","createdBy":"user","creationSource":"mobile","interactionMode":"default","modelSelection":{"instanceId":"claudeAgent","model":"sonnet"},"projectId":"conformance-project","runtimeMode":"full-access","threadId":"agent-thread","title":"Agent thread","type":"thread.create","worktreePath":null},"headers":[]},"await":"exit"},{"ws-send":{"_tag":"Request","id":"s1","tag":"orchestration.subscribePromptSuggestion","payload":{"threadId":"agent-thread"},"headers":[]}},{"ws-close":{}}],"settle_ms":400},"tags":["input:scenario","state:fresh","kind:story"]}
+      ]
+    }
+  ]
+}

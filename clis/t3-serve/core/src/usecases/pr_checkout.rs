@@ -108,6 +108,9 @@ impl Service {
     pub fn git_prepare_pull_request_thread(&self, payload: &Value) -> Result<Value, QueryFailure> {
         const OP: &str = "preparePullRequestThread";
         let cwd = field(payload, "cwd")?;
+        if super::vcs::outside_repository(cwd) {
+            return Err(super::vcs::manager_unrouted(OP, cwd));
+        }
         let manager = |detail: &str| QueryFailure::Error(json!({"_tag": MANAGER, "operation": OP, "cwd": cwd, "detail": detail}));
         let as_manager = |e: AgentError| manager(&e.message());
         let (number, host) = parse_reference(field(payload, "reference")?).ok_or_else(|| manager("Enter a pull request number or the address of one."))?;

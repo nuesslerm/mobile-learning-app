@@ -1,0 +1,348 @@
+{
+ "evidence": {
+  "playwright": "rca-exec flow/browser.rs asserts cdp::launch::find_chromium(); @app/remote-chat-agent flow/agent_threads.rs chain_browser starts the executor Chromium; harness-browser src (unit) launches via find_chromium",
+  "browser-harness": "harness-browser src/browser_daemon.rs opens tooling/browser-harness/dist",
+  "ffmpeg": "no unit of the core stage runs a real ffmpeg (cdp, voice and video_check use doubles or no test); the wf-harness browser e2e that records video is not a core stage",
+  "restic-sqlite": "deploy flow/vm_state.rs and vm_state_boot.rs run the real restic and sqlite3",
+  "bun": "no unit of the core stage spawns bun (only ci_setup_cost.rs reads the workflow text)",
+  "java": "wf-harness flow/maestro.rs runs the selector patterns through java when it is on PATH",
+  "rust": "every crate runs cargo test or clippy, and so does a package whose test script says cargo (the backend services, watchdog flow, service-kit, remote-chat-agent) ; pipeline is listed (it spawns git, pnpm, node and stubs, and the Nx contract only computes the graph and hashes)",
+  "references": "orca-serve flow/status.rs, orca-map-agent src/attach.rs and mimic-drivers test/crawl.test.ts, corpus.test.ts and equivalence.test.ts read references/orca or references/t3code when present",
+  "opencode": "exec-testkit flow/model.rs runs the real `opencode run`; rca src/dispatch_run.rs spawns it (kept on)"
+ },
+ "exempt": {
+  "@app/remote-chat-agent": {
+   "ffmpeg": "FFMPEG_PATH names a script double in a temp home (flow/voice.rs)"
+  },
+  "@lib/browser-client": {
+   "playwright": "WF_CHROMIUM is handed to a stub daemon, no browser starts"
+  },
+  "cdp": {
+   "ffmpeg": "fake_ffmpeg and fake_chromium doubles",
+   "playwright": "find_chromium is defined here and its flow tests launch a fake_chromium script"
+  },
+  "harness-core": {
+   "ffmpeg": "video_check spawns ffmpeg but no unit test runs it"
+  },
+  "mimic-coverage-core": {
+   "references": "reads the reference tree of the root it is given, tests build a temp tree"
+  },
+  "pipeline": {
+   "playwright": "the Nx cache tests point PLAYWRIGHT_BROWSERS_PATH at temp dirs and only hash the Chromium build, no browser starts",
+   "bun": "reads the workflow text for its setup-bun steps",
+   "ffmpeg": "a list of program names in test_plan.rs, no ffmpeg runs",
+   "references": "check.rs plants a temp references tree",
+   "browser-harness": "the guard test holds the pattern strings",
+   "java": "the guard test holds the pattern strings",
+   "opencode": "the guard test holds the pattern strings; e2e_backends tests stub the binary"
+  },
+  "rca-exec": {
+   "opencode": "the real-opencode test in flow/sessions.rs is #[ignore]"
+  },
+  "wf-mimic": {
+   "references": "the coverage tests build a temp reference tree"
+  },
+  "wf-testkit": {
+   "playwright": "only forwards PLAYWRIGHT_BROWSERS_PATH to the child it runs"
+  }
+ },
+ "units": {
+  "@app/leetcode-auth-cookie-capture": [
+   "rust"
+  ],
+  "@app/leetcode-backend": [
+   "rust"
+  ],
+  "@app/remote-chat-agent": [
+   "playwright",
+   "rust"
+  ],
+  "@app/remote-chat-agent-contracts": [],
+  "@backend/reporting-service": [
+   "rust"
+  ],
+  "@backend/vm-ops-api": [
+   "rust"
+  ],
+  "@cli/harness-contracts": [],
+  "@cli/harness-data": [],
+  "@cli/harness-di": [],
+  "@cli/harness-ui": [],
+  "@cli/harness-use-cases": [],
+  "@feature/coding-agent": [],
+  "@feature/service-report": [],
+  "@feature/settings": [],
+  "@infra/watchdog": [
+   "rust"
+  ],
+  "@lib/app-config": [],
+  "@lib/app-di": [],
+  "@lib/browser-client": [],
+  "@lib/code-editor-api": [],
+  "@lib/feature-kit": [],
+  "@lib/flow-test-harness": [],
+  "@lib/gesture-geometry": [],
+  "@lib/hook-runtime": [],
+  "@lib/lint-rules": [],
+  "@lib/logging": [],
+  "@lib/rn-agentation": [],
+  "@lib/service-kit": [
+   "rust"
+  ],
+  "@lib/tamagui-design-system": [],
+  "@lib/voice-edit-dsl": [],
+  "@lib/webview-rpc": [],
+  "@tooling/browser-harness": [],
+  "agent-api-accounts": [
+   "rust"
+  ],
+  "agent-api-agent": [
+   "rust"
+  ],
+  "agent-api-attachments": [
+   "rust"
+  ],
+  "agent-api-browser": [
+   "rust"
+  ],
+  "agent-api-catalog": [
+   "rust"
+  ],
+  "agent-api-client": [
+   "rust"
+  ],
+  "agent-api-git": [
+   "rust"
+  ],
+  "agent-api-hosted": [
+   "rust"
+  ],
+  "agent-api-preview": [
+   "rust"
+  ],
+  "agent-api-proto": [
+   "rust"
+  ],
+  "agent-api-schedules": [
+   "rust"
+  ],
+  "agent-api-service": [
+   "rust"
+  ],
+  "agent-api-state": [
+   "rust"
+  ],
+  "agent-api-terminal": [
+   "rust"
+  ],
+  "agent-api-workspace": [
+   "rust"
+  ],
+  "agent-config-sync": [
+   "rust"
+  ],
+  "blob-cache": [
+   "rust"
+  ],
+  "cdp": [
+   "rust"
+  ],
+  "cli-http": [
+   "rust"
+  ],
+  "deploy": [
+   "restic-sqlite",
+   "rust"
+  ],
+  "exec-browser": [
+   "rust"
+  ],
+  "exec-fs": [
+   "rust"
+  ],
+  "exec-git": [
+   "rust"
+  ],
+  "exec-hosted": [
+   "rust"
+  ],
+  "exec-preview": [
+   "rust"
+  ],
+  "exec-proc": [
+   "rust"
+  ],
+  "exec-proto": [
+   "rust"
+  ],
+  "exec-pty": [
+   "rust"
+  ],
+  "exec-testkit": [
+   "rust",
+   "opencode"
+  ],
+  "expo-hello-world-app-2-workspace": [],
+  "harness-android": [
+   "rust"
+  ],
+  "harness-browser": [
+   "playwright",
+   "browser-harness",
+   "rust"
+  ],
+  "harness-core": [
+   "rust"
+  ],
+  "harness-flow": [
+   "rust"
+  ],
+  "knowledge": [
+   "rust"
+  ],
+  "mimic-core": [
+   "rust"
+  ],
+  "mimic-coverage-core": [
+   "rust"
+  ],
+  "mimic-drivers": [
+   "references"
+  ],
+  "mimic-plan-core": [
+   "rust"
+  ],
+  "mimic-script-core": [
+   "rust"
+  ],
+  "mimic-script-host": [
+   "rust"
+  ],
+  "mimic-script-net": [
+   "rust"
+  ],
+  "mimic-script-orca": [
+   "rust"
+  ],
+  "mla-tamagui": [],
+  "orca-core": [
+   "rust"
+  ],
+  "orca-crypto": [
+   "rust"
+  ],
+  "orca-map-accounts": [
+   "rust"
+  ],
+  "orca-map-agent": [
+   "rust",
+   "references"
+  ],
+  "orca-map-browser": [
+   "rust"
+  ],
+  "orca-map-git": [
+   "rust"
+  ],
+  "orca-map-hosted": [
+   "rust"
+  ],
+  "orca-map-mobile": [
+   "rust"
+  ],
+  "orca-map-schedules": [
+   "rust"
+  ],
+  "orca-map-settings": [
+   "rust"
+  ],
+  "orca-map-state": [
+   "rust"
+  ],
+  "orca-map-terminal": [
+   "rust"
+  ],
+  "orca-map-workspace": [
+   "rust"
+  ],
+  "orca-serve": [
+   "rust",
+   "references"
+  ],
+  "pipeline": [
+   "rust"
+  ],
+  "rca": [
+   "rust",
+   "opencode"
+  ],
+  "rca-core": [
+   "rust"
+  ],
+  "rca-exec": [
+   "playwright",
+   "rust"
+  ],
+  "rca-ladder": [
+   "rust"
+  ],
+  "secrets": [
+   "rust"
+  ],
+  "t3-contracts": [
+   "rust"
+  ],
+  "t3-core": [
+   "rust"
+  ],
+  "t3-http": [
+   "rust"
+  ],
+  "t3-serve": [
+   "rust"
+  ],
+  "t3-store": [
+   "rust"
+  ],
+  "telemetry": [
+   "rust"
+  ],
+  "watchdog-core": [
+   "rust"
+  ],
+  "wf": [
+   "rust"
+  ],
+  "wf-bench": [
+   "rust"
+  ],
+  "wf-bucket": [
+   "rust"
+  ],
+  "wf-harness": [
+   "java",
+   "rust"
+  ],
+  "wf-kit": [
+   "rust"
+  ],
+  "wf-lazy": [
+   "rust"
+  ],
+  "wf-lib": [
+   "rust"
+  ],
+  "wf-login": [
+   "rust"
+  ],
+  "wf-mimic": [
+   "rust"
+  ],
+  "wf-testkit": [
+   "rust"
+  ],
+  "wf-vmops": [
+   "rust"
+  ]
+ }
+}

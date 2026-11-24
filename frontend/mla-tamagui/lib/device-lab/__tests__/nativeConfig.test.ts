@@ -17,6 +17,8 @@ const expo = (typeof config === 'function' ? config() : config).expo as { plugin
 
 /** Dependencies that ship a config plugin this app deliberately does not list, and why. */
 const UNLISTED = new Map<string, string>([
+  ['expo-asset', 'no assets are embedded natively: the plugin only embeds them, and the app loads its bundled files at runtime'],
+  ['expo-file-system', 'no file-sharing or document-picker options in use'],
   ['expo-font', 'no `fonts` are embedded natively: the plugin only embeds them'],
   ['expo-system-ui', 'no plugin options in use; userInterfaceStyle is a top-level key'],
   ['expo-updates', 'configured through the top-level `updates` and `runtimeVersion` keys'],

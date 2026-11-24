@@ -1,4 +1,4 @@
-//! The writes of an opencode run's log: `wf offload ask --live` posts a start, lines as they come and a finish, each as JSON. A run id is
+//! The writes of an opencode run's log: `wf rca ask --live` posts a start, lines as they come and a finish, each as JSON. A run id is
 //! validated by the route that reached it; the store takes it as it is.
 use crate::application::ports::{Clock, RunLog, StateError};
 use crate::domain::js::iso_string;

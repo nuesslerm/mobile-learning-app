@@ -12,7 +12,7 @@ module.exports = {
   default: AnimatedNS,
   Animated: passthrough,
   useSharedValue: val, useAnimatedStyle: (fn) => (typeof fn === 'function' ? fn() : {}), useDerivedValue: (fn) => val(fn()),
-  useAnimatedScrollHandler: () => noop, useAnimatedReaction: noop, useAnimatedRef: () => ({ current: null }),
+  useAnimatedScrollHandler: () => noop, useAnimatedReaction: noop, useFrameCallback: noop, useAnimatedRef: () => ({ current: null }),
   withTiming: (v) => v, withSpring: (v) => v, withDelay: (_d, v) => v, withSequence: (...a) => a[a.length - 1], withRepeat: (v) => v,
   runOnJS: (fn) => fn, runOnUI: (fn) => fn, interpolate: (v) => v, Extrapolation: { CLAMP: 'clamp' }, Easing: new Proxy({}, { get: () => (x) => x }),
   createAnimatedComponent: (c) => c, cancelAnimation: noop, useAnimatedProps: (fn) => (typeof fn === 'function' ? fn() : {}),

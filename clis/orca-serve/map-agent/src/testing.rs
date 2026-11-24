@@ -72,6 +72,12 @@ impl Threads {
         self.0.lock().unwrap().get_mut(thread).unwrap().running = None;
     }
 
+    /// Ends the running turn as the service's restart does for a turn it found running: interrupted, with the restart as the cause.
+    pub fn cut_by_restart(&self, thread: &str) {
+        self.push(thread, json!({"type": "turn.finished", "reason": "interrupted", "cause": "restart"}));
+        self.0.lock().unwrap().get_mut(thread).unwrap().running = None;
+    }
+
     /// The prompts of the queue, in the order they start.
     pub fn queued(&self, thread: &str) -> Vec<String> {
         self.0.lock().unwrap().get(thread).map(|t| t.queue.iter().map(|(_, p)| p.clone()).collect()).unwrap_or_default()
@@ -88,7 +94,7 @@ impl Threads {
 
     /// Makes `agent` answer the methods of `USES` from this thread set (`repo.list` comes from the workspace double).
     pub fn install(&self, agent: &ScriptedAgent) {
-        for method in ["thread.create", "thread.get", "thread.history", "turn.start", "thread.forceStop", "queue.add", "queue.list", "queue.edit", "queue.move", "queue.delete", "queue.resume", "turn.steer", "approval.answer", "input.answer", "input.dismiss", "upload.put", "attachment.get"] {
+        for method in ["thread.create", "thread.list", "thread.rollback", "thread.get", "thread.history", "turn.start", "thread.forceStop", "queue.add", "queue.list", "queue.edit", "queue.move", "queue.delete", "queue.resume", "turn.steer", "approval.answer", "input.answer", "input.dismiss", "upload.put", "attachment.get", "attachment.stage"] {
             let me = self.clone();
             agent.reply(method, move |p| me.answer(method, p));
         }
@@ -100,6 +106,14 @@ impl Threads {
             json!({"id": id, "name": meta["name"], "mime_type": meta["mime_type"], "kind": meta["kind"], "size_bytes": bytes.len(), "sha256": digest, "created_at_ms": 0})
         };
         let mut kept = self.1.lock().unwrap();
+        if method == "attachment.stage" {
+            let files = p["ids"].as_array().into_iter().flatten().filter_map(Value::as_str).map(|id| {
+                let (meta, bytes) = kept.get(id).ok_or_else(|| refused("ATTACHMENT_NOT_FOUND", format!("no attachment has the id {id}")))?;
+                let name = meta["name"].as_str().unwrap_or_default();
+                Ok(json!({"id": id, "name": name, "path": if p["temp"] == true { format!("/tmp/rca-paste-{id}/{}", agent_api_attachments::safe_file_name(name)) } else { agent_api_attachments::staged_path(id, name) }, "size_bytes": bytes.len()}))
+            });
+            return Ok(json!({"files": files.collect::<Result<Vec<_>, AgentError>>()?}));
+        }
         if method == "upload.put" {
             let id = p["id"].as_str().unwrap_or_default().to_string();
             let bytes = STANDARD.decode(p["data"].as_str().unwrap_or_default()).map_err(|_| refused("INVALID_PARAMS", "data is not base64".into()))?;
@@ -132,8 +146,14 @@ impl Threads {
     }
 
     fn answer(&self, method: &str, p: &Value) -> Result<Value, AgentError> {
-        if matches!(method, "upload.put" | "attachment.get") {
+        if matches!(method, "upload.put" | "attachment.get" | "attachment.stage") {
             return self.attachment(method, p);
+        }
+        if method == "thread.list" {
+            let all = self.0.lock().unwrap();
+            let mut ids: Vec<&String> = all.keys().collect();
+            ids.sort();
+            return Ok(json!({"threads": ids.into_iter().map(|id| self.view(id, &all[id])).collect::<Vec<_>>()}));
         }
         let id = p["thread"].as_str().unwrap_or_default().to_string();
         if method == "thread.create" {
@@ -170,6 +190,24 @@ impl Threads {
                 self.push(&id, json!({"type": "turn.started"}));
                 self.push(&id, json!({"type": "message.delta", "role": "user", "text": p["prompt"]}));
                 Ok(json!({"thread": id, "turn": turn}))
+            }
+            "thread.rollback" => {
+                if snapshot.running.is_some() {
+                    return Err(refused("TURN_RUNNING", format!("thread {id} has a running turn")));
+                }
+                let kept = p["turn"].as_str().unwrap_or_default().to_string();
+                let mut turns: Vec<String> = Vec::new();
+                for e in &snapshot.events {
+                    if let Some(turn) = e["turn"].as_str() {
+                        if !turns.iter().any(|t| t == turn) {
+                            turns.push(turn.to_string());
+                        }
+                    }
+                }
+                let at = turns.iter().position(|t| *t == kept).ok_or_else(|| refused("TURN_NOT_FOUND", format!("no turn {kept}")))?;
+                let dropped: Vec<String> = turns[at + 1..].to_vec();
+                self.push(&id, json!({"type": "thread.rolled_back", "to_turn": kept, "dropped": dropped, "restored_files": false}));
+                Ok(json!({"thread": id, "to_turn": kept, "dropped": dropped}))
             }
             "thread.forceStop" => {
                 let Some(turn) = snapshot.running else { return Err(refused("NO_TURN", format!("thread {id} has no running turn"))) };
@@ -272,8 +310,15 @@ pub struct Catalog(Arc<Mutex<CatalogState>>);
 #[derive(Default)]
 struct CatalogState {
     programs: Vec<String>,
+    tools: Vec<String>,
+    signed_in: Vec<String>,
+    discover_refused: bool,
+    discovers: Vec<Value>,
     skills: Vec<Value>,
+    sessions: Vec<Value>,
     detections: Vec<Value>,
+    speech: Option<String>,
+    heard: Vec<(usize, String)>,
 }
 
 const EXECUTOR: &str = "m1";
@@ -283,6 +328,29 @@ impl Catalog {
     pub fn has(&self, programs: &[&str]) -> &Catalog {
         self.0.lock().unwrap().programs = programs.iter().map(|p| p.to_string()).collect();
         self
+    }
+
+    /// The tools the executor has (`git`, `gh`, `glab`); the others are missing.
+    pub fn has_tools(&self, tools: &[&str]) -> &Catalog {
+        self.0.lock().unwrap().tools = tools.iter().map(|p| p.to_string()).collect();
+        self
+    }
+
+    /// The providers (`github`, `gitlab`) whose CLI is signed in at the workspace host.
+    pub fn signed_in(&self, providers: &[&str]) -> &Catalog {
+        self.0.lock().unwrap().signed_in = providers.iter().map(|p| p.to_string()).collect();
+        self
+    }
+
+    /// Makes `sourceControl.discover` refused, as the host answers when `auth status` fails.
+    pub fn discover_refused(&self) -> &Catalog {
+        self.0.lock().unwrap().discover_refused = true;
+        self
+    }
+
+    /// The `sourceControl.discover` requests: their params, in order.
+    pub fn discovers(&self) -> Vec<Value> {
+        self.0.lock().unwrap().discovers.clone()
     }
 
     /// A skill the executor found: `scope` is `workspace` or `home`, `dir` its skills directory.
@@ -296,6 +364,13 @@ impl Catalog {
         self
     }
 
+    /// A CLI session file the executor found in its home.
+    pub fn session(&self, agent: &str, id: &str, cwd: &str, title: &str, modified_ms: u64) -> &Catalog {
+        let path = format!("~/.{agent}/sessions/{id}.jsonl");
+        self.0.lock().unwrap().sessions.push(json!({"agent": agent, "session_id": id, "path": path, "title": title, "cwd": cwd, "modified_ms": modified_ms, "message_count": 2, "first_prompt": title, "last_prompt": "and then"}));
+        self
+    }
+
     /// The `agents.detect` requests the executor was asked: their params, in order.
     pub fn detections(&self) -> Vec<Value> {
         self.0.lock().unwrap().detections.clone()
@@ -305,8 +380,19 @@ impl Catalog {
         EXECUTOR
     }
 
+    /// The service has a speech engine that hears every recording as `text`.
+    pub fn says(&self, text: &str) -> &Catalog {
+        self.0.lock().unwrap().speech = Some(text.to_string());
+        self
+    }
+
+    /// The recordings `speech.transcribe` was given: the bytes of their base64 and their format.
+    pub fn heard(&self) -> Vec<(usize, String)> {
+        self.0.lock().unwrap().heard.clone()
+    }
+
     pub fn install(&self, agent: &ScriptedAgent) {
-        for method in ["models.list", "agents.detect", "skills.list", "commands.list"] {
+        for method in ["models.list", "agents.detect", "skills.list", "sessions.list", "commands.list", "sourceControl.discover", "speech.status", "speech.transcribe"] {
             let me = self.clone();
             agent.reply(method, move |p| me.answer(method, p));
         }
@@ -331,6 +417,14 @@ impl Catalog {
         let mut state = self.0.lock().unwrap();
         match method {
             "models.list" => Ok(Self::models(p["driver"].as_str().unwrap_or_default())),
+            "speech.status" => Ok(json!({"available": state.speech.is_some(), "engine": if state.speech.is_some() { "whisper-cpp" } else { "none" }})),
+            "speech.transcribe" => match state.speech.clone() {
+                Some(text) => {
+                    state.heard.push((p["audio"].as_str().unwrap_or_default().len(), p["format"].as_str().unwrap_or_default().to_string()));
+                    Ok(json!({"text": text, "took_ms": 0}))
+                }
+                None => Err(refused("SPEECH_UNAVAILABLE", "the service has no speech engine".into())),
+            },
             "agents.detect" => {
                 if p["executor"].as_str().is_some_and(|e| e != EXECUTOR) {
                     return Err(refused("UNKNOWN_EXECUTOR", format!("no executor named {} is attached", p["executor"].as_str().unwrap_or_default())));
@@ -338,22 +432,50 @@ impl Catalog {
                 state.detections.push(p.clone());
                 let agents: Vec<Value> = [("opencode", "opencode"), ("claudeAgent", "claude"), ("codex", "codex")]
                     .iter()
-                    .map(|(driver, program)| {
-                        let there = state.programs.iter().any(|x| x == program);
-                        if there {
-                            json!({"driver": driver, "program": program, "installed": true, "path": format!("/usr/bin/{program}"), "version": "1.0.0"})
-                        } else {
-                            json!({"driver": driver, "program": program, "installed": false})
-                        }
+                    .filter(|(_, program)| state.programs.iter().any(|x| x == program))
+                    .map(|(driver, program)| json!({"driver": driver, "program": program, "installed": true, "path": format!("/usr/bin/{program}"), "version": "1.0.0"}))
+                    .collect();
+                let tools: Vec<Value> = ["git", "gh", "glab"]
+                    .iter()
+                    .map(|program| match state.tools.iter().any(|x| x == program) {
+                        true => json!({"program": program, "installed": true, "path": format!("/usr/bin/{program}"), "version": "1.0.0"}),
+                        false => json!({"program": program, "installed": false}),
                     })
                     .collect();
-                Ok(json!({"executor": EXECUTOR, "agents": agents, "checked_at_ms": 1}))
+                Ok(json!({"executor": EXECUTOR, "agents": agents, "tools": tools, "checked_at_ms": 1}))
+            }
+            "sourceControl.discover" => {
+                state.discovers.push(p.clone());
+                let provider = p["provider"].as_str().filter(|p| matches!(*p, "github" | "gitlab")).ok_or_else(|| refused("INVALID_PARAMS", "provider is github or gitlab".into()))?;
+                if state.discover_refused {
+                    return Err(refused("IO_ERROR", "gh auth status failed".into()));
+                }
+                let signed = state.signed_in.iter().any(|s| s == provider);
+                let host = if provider == "github" { "github.com" } else { "gitlab.com" };
+                Ok(json!({"providers": [{"provider": provider, "installed": true, "signed_in": signed, "host": host, "account": signed.then_some("octo"), "scopes": []}]}))
+            }
+            "sessions.list" => {
+                let limit = p["limit"].as_u64().unwrap_or(100) as usize;
+                let all: Vec<Value> = state.sessions.to_vec();
+                Ok(json!({"executor": EXECUTOR, "sessions": all.iter().take(limit).cloned().collect::<Vec<_>>(), "truncated": all.len() > limit}))
             }
             "skills.list" => {
                 if p["workspace"].as_str().is_none_or(|w| w.is_empty()) {
                     return Err(refused("INVALID_PARAMS", "workspace is required".into()));
                 }
-                Ok(json!({"skills": state.skills, "truncated": false}))
+                let default: Vec<Value> = [".claude/skills", ".agents/skills", ".codex/skills"].iter().map(|d| json!(d)).collect();
+                let named = |key: &str| p[key].as_array().cloned().unwrap_or_else(|| default.clone());
+                let (dirs, home_dirs) = (named("dirs"), named("home_dirs"));
+                let wanted = |s: &Value| if s["scope"] == "home" { home_dirs.contains(&s["dir"]) } else { dirs.contains(&s["dir"]) };
+                let skills: Vec<Value> = state.skills.iter().filter(|s| wanted(s)).cloned().collect();
+                let mut present: Vec<Value> = Vec::new();
+                for s in &state.skills {
+                    let row = json!({"scope": s["scope"], "dir": s["dir"]});
+                    if wanted(s) && !present.contains(&row) {
+                        present.push(row);
+                    }
+                }
+                Ok(json!({"skills": skills, "truncated": false, "present": present}))
             }
             _ => {
                 let driver = p["driver"].as_str().unwrap_or_default();

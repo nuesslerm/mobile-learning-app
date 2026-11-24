@@ -11,9 +11,9 @@
     "dev": "cargo run --release --locked -p rca-service --manifest-path Cargo.toml",
     "build": "cargo build --release --locked -p rca-service --manifest-path Cargo.toml",
     "typecheck": "tsc --noEmit",
-    "test:unit": "cargo test --locked -p remote-chat-agent-render -p remote-chat-agent-opencode -p remote-chat-agent-speech -p remote-chat-agent-host -p remote-chat-agent-core -p rca-cli-driver -p rca-exec-channel -p rca-agent-core -p rca-group-agent -p rca-group-workspace -p rca-group-state -p rca-group-accounts -p rca-group-terminal -p rca-group-git -p rca-group-hosted -p rca-group-schedules -p rca-group-attachments -p rca-group-catalog -p rca-group-preview -p rca-service-core --lib --manifest-path Cargo.toml",
-    "test:flow": "cargo test --locked -p rca-service --test flow --manifest-path Cargo.toml",
-    "test:integration": "cargo test --locked -p rca-service --test integration --manifest-path Cargo.toml",
+    "test:unit": "cargo test --locked -p remote-chat-agent-render -p remote-chat-agent-opencode -p remote-chat-agent-speech -p remote-chat-agent-host -p remote-chat-agent-core -p rca-cli-driver -p rca-exec-channel -p rca-agent-core -p rca-group-agent -p rca-group-workspace -p rca-group-state -p rca-group-accounts -p rca-group-terminal -p rca-group-git -p rca-group-hosted -p rca-group-schedules -p rca-group-gateway -p rca-group-attachments -p rca-group-catalog -p rca-group-preview -p rca-service-core --lib --manifest-path Cargo.toml",
+    "test:flow": "cargo test --locked -p rca-service --test flow --test log_lines --manifest-path Cargo.toml",
+    "test:integration": "D=\"$PWD/../../.agents/tmp/test-output/remote-chat-agent/test-integration\" && rm -rf \"$D\" && WF_TEST_OUTPUT_DIR=\"$D\" cargo test --locked -p rca-service --test integration --manifest-path Cargo.toml",
     "test:e2e": "vitest run tests/e2e --config vitest.e2e.config.ts",
     "test:verify:deployed": "REMOTE_CHAT_AGENT_BASE_URL=${REMOTE_CHAT_AGENT_BASE_URL:-http://remote-chat-agent-prod:8787} vitest run tests/e2e --config vitest.e2e.config.ts && cargo test --locked -p rca-service --test deployed_verification --manifest-path Cargo.toml -- --ignored",
     "bench:service": "vitest run --config vitest.bench.config.ts",
@@ -22,6 +22,23 @@
   "nx": {
     "cargoCrates": true,
     "targets": {
+      "lint": {
+        "inputs": [
+          "withoutDeployFiles"
+        ]
+      },
+      "typecheck": {
+        "inputs": [
+          "withoutDeployFiles",
+          "^production"
+        ]
+      },
+      "test:unit": {
+        "inputs": [
+          "withoutDeployFiles",
+          "^production"
+        ]
+      },
       "test:flow": {
         "inputs": [
           "cargoFlow",
@@ -38,6 +55,9 @@
           {
             "externalDependencies": []
           }
+        ],
+        "outputs": [
+          "{workspaceRoot}/.agents/tmp/test-output/remote-chat-agent/test-integration"
         ]
       }
     }

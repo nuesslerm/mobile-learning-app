@@ -144,6 +144,28 @@ async fn given_a_workspace_that_is_a_directory_when_its_files_are_asked_for_then
 }
 
 #[tokio::test]
+async fn given_a_directory_workspace_when_an_artifact_is_asked_for_then_the_executor_is_told_to_serve_only_that_directory_and_the_root_workspace_is_not_narrowed() {
+    use agent_api_workspace::edit;
+    // Given an executor, a workspace "proj" that is its directory apps/web, and its root workspace
+    let channel = executor();
+    let rig = rig(channel.clone());
+    rig.ask(agent_api_workspace::WORKSPACE_CREATE, json!({"workspace": "proj", "path": "apps/web"})).await;
+    // When an artifact is stat, read and written in each, by an absolute path and by a relative one
+    for (workspace, path) in [("proj", "/srv/other/b.txt"), ("proj", "a.txt"), ("root", "/srv/other/b.txt")] {
+        rig.ask(edit::ARTIFACT_STAT, json!({"workspace": workspace, "path": path})).await;
+        rig.ask(edit::ARTIFACT_READ, json!({"workspace": workspace, "path": path})).await;
+        rig.ask(edit::ARTIFACT_WRITE, json!({"workspace": workspace, "path": path, "content": "x"})).await;
+    }
+    // Then every call below the directory carries it as the bound, the relative path is placed under it, and the root workspace's calls carry no bound
+    let calls = channel.calls();
+    let seen: Vec<(Value, Value)> = calls.iter().map(|(_, args)| (args["path"].clone(), args["within"].clone())).collect();
+    let (proj_abs, proj_rel, root_abs) = (&seen[0..3], &seen[3..6], &seen[6..9]);
+    assert!(proj_abs.iter().all(|s| *s == (json!("/srv/other/b.txt"), json!("apps/web"))));
+    assert!(proj_rel.iter().all(|s| *s == (json!("apps/web/a.txt"), json!("apps/web"))));
+    assert!(root_abs.iter().all(|s| *s == (json!("/srv/other/b.txt"), Value::Null)));
+}
+
+#[tokio::test]
 async fn given_the_root_workspace_when_a_path_is_named_then_it_goes_to_the_executor_as_it_came_and_its_refusals_keep_their_code() {
     // Given an executor that refuses a path outside its root, and its root workspace
     let channel = ScriptedChannel::new(|_, args| match args["path"].as_str() {
@@ -172,7 +194,8 @@ async fn given_workspaces_created_and_removed_when_asked_then_names_are_unique_r
     // Given two executors attached and a directory workspace made on the first
     let executors: Arc<Registry> = Arc::default();
     executors.open_executor("e1", "root", executor()).unwrap();
-    executors.open_executor("e2", "other", executor()).unwrap();
+    let second = executor();
+    executors.open_executor("e2", "other", second.clone()).unwrap();
     let rig = rig_with(executors);
     use agent_api_workspace::{WORKSPACE_CREATE, WORKSPACE_REMOVE};
     // When a workspace is created without naming an executor, with several attached
@@ -207,6 +230,14 @@ async fn given_workspaces_created_and_removed_when_asked_then_names_are_unique_r
     assert_eq!(gone["result"], json!({"workspace": "p", "removed": true}));
     assert_eq!(code(&rig.ask(agent_api_workspace::FILE_READ, json!({"workspace": "p", "path": "x"})).await), json!("NO_EXECUTOR"));
     assert_eq!(rig.ask(agent_api_workspace::LIST, json!({})).await["result"]["workspaces"], json!(["other", "root"]));
+    // When the second executor is gone, its root is removable, the first executor's root still is not
+    let second: Arc<dyn ExecutorChannel> = second;
+    rig.executors.release("e2", &second);
+    let orphan = rig.ask(WORKSPACE_REMOVE, json!({"workspace": "other"})).await;
+    let kept = rig.ask(WORKSPACE_REMOVE, json!({"workspace": "root"})).await;
+    // Then the orphaned root is forgotten and the attached one is refused
+    assert_eq!(orphan["result"], json!({"workspace": "other", "removed": true}));
+    assert_eq!(code(&kept), json!("NOT_REMOVABLE"));
 }
 
 #[tokio::test]
@@ -440,4 +471,27 @@ async fn given_an_executor_that_cannot_start_the_setup_when_the_worktree_is_crea
     assert_eq!(answer["result"]["running"], false);
     eventually("the finished event", || pushed.kinds().len() == 1).await;
     assert_eq!(pushed.kinds(), [(1, "setup.finished".to_string())]);
+}
+
+#[tokio::test]
+async fn given_a_secret_a_sample_and_an_mcp_request_when_asked_in_the_root_and_in_a_directory_then_the_executor_gets_their_args_and_only_the_request_is_held_to_the_root() {
+    // Given an executor with its root workspace and a workspace "proj" that is its directory apps/web
+    let channel = executor();
+    let rig = rig(channel.clone());
+    rig.ask(agent_api_workspace::WORKSPACE_CREATE, json!({"workspace": "proj", "path": "apps/web"})).await;
+    use agent_api_workspace::edit;
+    // When a secret is put in the directory, the executor is sampled from it, and a server is asked in the root
+    let put = rig.ask(edit::FILE_PUT_SECRET, json!({"workspace": "proj", "path": ".rca/key", "value": "s3cr3t"})).await;
+    let sample = rig.ask(edit::PROCESS_SAMPLE, json!({"workspace": "proj"})).await;
+    let asked = rig.ask(edit::MCP_REQUEST, json!({"workspace": "root", "server": "app", "method": "tools/call", "params": {"name": "x"}, "timeout_ms": 500})).await;
+    // And a server is asked in the directory
+    let refused = rig.ask(edit::MCP_REQUEST, json!({"workspace": "proj", "server": "app", "method": "tools/list"})).await;
+    // Then the secret's path is under the directory, the sample carries no args, the request carries its four, and the directory's request is refused unasked
+    let calls = channel.calls();
+    assert!([&put, &sample, &asked].iter().all(|a| a.get("result").is_some()));
+    assert_eq!(calls[0], ("secret_file_put".to_string(), json!({"path": "apps/web/.rca/key", "value": "s3cr3t"})));
+    assert_eq!(calls[1], ("proc_sample".to_string(), json!({})));
+    assert_eq!(calls[2], ("mcp_request".to_string(), json!({"server": "app", "method": "tools/call", "params": {"name": "x"}, "timeout_ms": 500})));
+    assert_eq!((code(&refused), calls.len()), (json!("INVALID_PARAMS"), 3));
+    assert_eq!(refused["error"]["message"], json!("mcp.request runs in an executor's root workspace only"));
 }

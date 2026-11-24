@@ -18,16 +18,16 @@ type Publisher = fn(&Path, &str, bool) -> Result<String, String>;
 
 static PUBLISHER: OnceLock<Publisher> = OnceLock::new();
 
-/// Sets what `--publish` calls: the full `wf` has the bucket client, this crate does not.
+/// Sets what `--publish` calls: the full `wf` writes bundles, this crate does not.
 pub fn set_publisher(publisher: Publisher) {
     assert!(PUBLISHER.set(publisher).is_ok(), "run::set_publisher runs once, at start");
 }
 
-/// Uploads a finished run's directory through the publisher `wf` set, and returns the bundle's base URL.
+/// Writes a finished run's bundle through the publisher `wf` set, and returns the bundle's folder.
 pub fn publish(dir: &Path, ran_on: &str, record: bool) -> Result<String, String> {
     match PUBLISHER.get() {
         Some(publish) => publish(dir, ran_on, record),
-        None => Err("this binary has no bucket client".to_string()),
+        None => Err("this binary has no bundle writer".to_string()),
     }
 }
 
@@ -124,7 +124,7 @@ fn harness(platform: &dyn Platform, args: &[String]) -> Option<i32> {
             println!("report: {}", page.display());
             if p.flag("publish") {
                 let _publish = crate::spans::begin("phase", "publish", None);
-                // the run becomes a bundle in the bucket, and that posts the row with the bundle's report as report_path
+                // the run becomes a local bundle for the workflow's artifact upload, and that posts the row with the bundle's report as report_path
                 let published = publish(Path::new(&dir), &std::env::var("WF_SITE").unwrap_or_else(|_| wf_kit::proc::hostname()), true);
                 match published {
                     Ok(base) => println!("bundle: {base}/bundle.json"),

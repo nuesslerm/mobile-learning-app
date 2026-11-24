@@ -11,29 +11,32 @@ use agent_api_proto::{thread_topic, Event, GroupName, Method, PROTOCOL};
 use agent_api_service::activity::ClientActivityParams;
 use agent_api_service::{StatusResult, CLIENT_ACTIVITY, STATUS};
 use agent_api_accounts as accounts;
+use agent_api_catalog as catalog;
 use agent_api_git as git;
 use agent_api_preview as preview;
 use agent_api_schedules as schedules;
 use agent_api_attachments as attachments;
 use agent_api_hosted as hosted;
 use agent_api_terminal as terminal;
-use agent_api_workspace::{code as workspace_code, edit, worktrees, FILE_LIST, FILE_READ, WORKSPACE, WORKSPACE_CREATE, WORKSPACE_REMOVE};
+use agent_api_workspace::{code as workspace_code, edit, worktrees, FILE_LIST, FILE_READ, REPO_LIST, WORKSPACE, WORKSPACE_CREATE, WORKSPACE_REMOVE};
 use exec_fs::{EntryKind, ListResult, ReadResult};
 use serde_json::{json, Value};
+use std::sync::OnceLock;
 use std::time::{Duration, Instant};
-use t3_core::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, DirEntry, Finish, Follow, History, Op, SetupBatch, SetupEvent, TerminalBatch, TerminalEvent, TerminalSummary};
+use t3_core::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThread, AgentTurn, CatalogModel, CatalogProvider, DirEntry, Finish, Follow, History, Op, SetupBatch, SetupEvent, TerminalBatch, TerminalEvent, TerminalSummary};
 
 pub struct RcaAgent {
     authority: String,
-    /// A device bearer, which is the one credential this mapper holds for rca (`wf offload bearers mint`).
+    /// A device bearer, which is the one credential this mapper holds for rca (`wf rca bearers mint`).
     bearer: String,
     /// The rca workspace whose executor works where the projects' files are: every turn and file call acts there.
     workspace: String,
+    providers: OnceLock<Vec<CatalogProvider>>,
 }
 
 /// Every agent method this mapper calls. The start check below and the calls both read this one list, and a flow asserts that the methods
 /// the adapter really sends are exactly these, so the groups a mapper needs are the groups it uses.
-pub const USES: [Method; 132] = [
+pub const USES: [Method; 144] = [
     STATUS,
     THREAD_CREATE,
     THREAD_SUBSCRIBE,
@@ -76,7 +79,9 @@ pub const USES: [Method; 132] = [
     edit::TURN_DIFF,
     edit::THREAD_DIFF,
     worktrees::WORKTREE_CREATE,
+    worktrees::WORKTREE_REMOVE,
     worktrees::WORKTREE_LIST,
+    REPO_LIST,
     worktrees::SETUP_SUBSCRIBE,
     worktrees::SETUP_CANCEL,
     terminal::OPEN,
@@ -101,6 +106,7 @@ pub const USES: [Method; 132] = [
     git::COMMIT,
     git::PUSH,
     git::INIT,
+    git::IGNORED,
     git::SUBSCRIBE,
     WORKSPACE_CREATE,
     WORKSPACE_REMOVE,
@@ -140,6 +146,8 @@ pub const USES: [Method; 132] = [
     hosted::pr::REVIEWER_CANDIDATES,
     hosted::auth::DISCOVER,
     hosted::auth::APP_ACCESS,
+    hosted::auth::STARRED,
+    hosted::auth::STAR,
     hosted::auth::LOOKUP_REPOSITORY,
     hosted::auth::PUBLISH_REPOSITORY,
     hosted::auth::SIGN_IN_START,
@@ -166,6 +174,13 @@ pub const USES: [Method; 132] = [
     preview::sessions::CLOSE,
     preview::sessions::LIST,
     preview::watch::SUBSCRIBE,
+    catalog::SPEECH_STATUS,
+    catalog::SPEECH_TRANSCRIBE,
+    catalog::SESSIONS_LIST,
+    catalog::AGENTS_DETECT,
+    catalog::MODELS_LIST,
+    catalog::COMMANDS_LIST,
+    agent_api_service::LOGS,
 ];
 
 /// The groups the mapper calls that `service.status` does not list: `workspace` is served, but its owner methods `workspace.activate` and
@@ -228,7 +243,7 @@ pub fn agent_event(event: &Event) -> Result<AgentEvent, AgentError> {
         ThreadEvent::ToolOutput { call, data, .. } => AgentEventKind::ToolOutput { id: call, data },
         ThreadEvent::ToolFinished { call, ok, .. } => AgentEventKind::ToolFinished { id: call, ok },
         ThreadEvent::Error { message, .. } => AgentEventKind::Failure(message),
-        ThreadEvent::TurnFinished { reason } => AgentEventKind::TurnFinished(match reason {
+        ThreadEvent::TurnFinished { reason, .. } => AgentEventKind::TurnFinished(match reason {
             FinishReason::Completed => Finish::Completed,
             FinishReason::Interrupted => Finish::Interrupted,
             FinishReason::Failed => Finish::Failed,
@@ -242,7 +257,7 @@ impl RcaAgent {
     /// `url` is `http://host:port`; anything else is refused at startup.
     pub fn new(url: &str, bearer: &str, workspace: &str) -> Result<RcaAgent, String> {
         let authority = url.strip_prefix("http://").map(|r| r.trim_end_matches('/').to_string()).filter(|a| !a.is_empty() && !a.contains('/'));
-        authority.map(|authority| RcaAgent { authority, bearer: bearer.to_string(), workspace: workspace.to_string() }).ok_or_else(|| format!("rca url {url} must be http://host:port"))
+        authority.map(|authority| RcaAgent { authority, bearer: bearer.to_string(), workspace: workspace.to_string(), providers: OnceLock::new() }).ok_or_else(|| format!("rca url {url} must be http://host:port"))
     }
 
     fn open(&self) -> Result<Client, Error> {
@@ -269,8 +284,7 @@ impl RcaAgent {
         client.call(method, params).map_err(failed)
     }
 
-    /// The workspace `root` is in and `path` under it: the worktree whose directory `root` is or is below (the repository's worktrees, as git
-    /// lists them, each a workspace named by its directory), else the configured workspace with `root` joined to the path.
+    /// Use a separate workspace only when RCA registered the Git worktree.
     fn place(&self, client: &mut Client, root: &str, path: &str) -> Result<(String, String), AgentError> {
         let own = |path: &str| (self.workspace.clone(), under(root, path));
         if root.is_empty() {
@@ -278,10 +292,23 @@ impl RcaAgent {
         }
         let listed = client.call(worktrees::WORKTREE_LIST, json!({"workspace": self.workspace})).unwrap_or_default();
         let found = listed["worktrees"].as_array().into_iter().flatten().filter(|w| w["is_main"] != true).filter_map(|w| w["path"].as_str()).filter(|p| root == *p || root.strip_prefix(p).is_some_and(|rest| rest.starts_with('/'))).max_by_key(|p| p.len());
-        Ok(match found {
-            Some(dir) => (dir.rsplit('/').next().unwrap_or_default().to_string(), under(root[dir.len()..].trim_start_matches('/'), path)),
-            None => own(path),
-        })
+        let Some(dir) = found else { return Ok(own(path)) };
+        let registered = Self::call(client, REPO_LIST, json!({}))?;
+        let workspace = registered["repos"].as_array().into_iter().flatten()
+            .find(|row| row["kind"] == "worktree" && row["path"] == dir)
+            .and_then(|row| row["workspace"].as_str());
+        Ok(workspace.map_or_else(|| own(path), |workspace| {
+            (workspace.into(), under(root[dir.len()..].trim_start_matches('/'), path))
+        }))
+    }
+
+    /// The workspace a turn runs in: the one the thread's worktree is, else the executor's own (a worktree the agent API does not list is no workspace
+    /// of its own).
+    fn turn_workspace(&self, client: &mut Client, worktree: Option<&str>) -> String {
+        match worktree {
+            Some(path) => self.place(client, path, "").map(|(workspace, _)| workspace).unwrap_or_else(|_| self.workspace.clone()),
+            None => self.workspace.clone(),
+        }
     }
 
     /// A `file.*` call on `root`/`path` of the workspace.
@@ -304,6 +331,7 @@ impl RcaAgent {
         // A path to give the executor only when the directory is below the workspace's own
         let below = |path: String| Some(path).filter(|p| p != ".");
         Ok(Some(match op {
+            Op::ProviderCommands { root, driver } => (catalog::COMMANDS_LIST, json!({"driver": driver, "workspace": self.place(client, root, "")?.0})),
             Op::FileStat { root, path } => {
                 let (workspace, path) = at(client, root, path)?;
                 (edit::FILE_STAT, json!({"workspace": workspace, "path": path}))
@@ -316,6 +344,7 @@ impl RcaAgent {
                 let (workspace, path) = at(client, root, path)?;
                 (edit::FILE_BROWSE, json!({"workspace": workspace, "path": path, "show_hidden": show_hidden}))
             }
+            Op::WorkflowScript { path, length } => (edit::FILE_READ_CHUNK, json!({"workspace": self.workspace, "path": path, "length": length, "scope": "claudeProjects"})),
             Op::FileMkdir { path, parents } => (edit::FILE_MKDIR, json!({"workspace": self.workspace, "path": path, "parents": parents})),
             Op::GitInit { path, initial_branch, files, message } => {
                 let mut params = json!({"workspace": self.workspace, "path": path});
@@ -361,6 +390,10 @@ impl RcaAgent {
                     params["base"] = json!(base);
                 }
                 (worktrees::WORKTREE_CREATE, params)
+            }
+            Op::WorktreeRemove { root } => {
+                let (workspace, _) = self.place(client, root, "")?;
+                (worktrees::WORKTREE_REMOVE, json!({"workspace": workspace, "force": true}))
             }
             Op::WorktreeSetupCancel { root } => {
                 let (workspace, _) = self.place(client, root, "")?;
@@ -417,6 +450,7 @@ impl RcaAgent {
             Op::GitBlob { root, rev, path } => (git::BLOB, json!({"workspace": self.place(client, root, "")?.0, "rev": rev, "path": path})),
             Op::GitStage { root, paths } => (git::STAGE, json!({"workspace": self.place(client, root, "")?.0, "paths": paths})),
             Op::GitCommit { root, message } => (git::COMMIT, json!({"workspace": self.place(client, root, "")?.0, "message": message})),
+            Op::GitIgnored { root } => (git::IGNORED, json!({"workspace": self.place(client, root, "")?.0})),
             Op::GitPush { root, set_upstream } => (git::PUSH, json!({"workspace": self.place(client, root, "")?.0, "set_upstream": set_upstream})),
             Op::Hosted { method, root, params } => {
                 let found = hosted::all_methods().into_iter().find(|m| m.name() == *method).ok_or_else(|| AgentError::Failed(format!("{method} is no hosted method of the agent API")))?;
@@ -445,7 +479,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         }
         Op::InputAnswer { thread, request, answer } => (requests::INPUT_ANSWER, requests::InputAnswerParams { thread: same(thread), request: same(request), answer: same(answer) }.to_value()),
         Op::InputDismiss { thread, request } => (requests::INPUT_DISMISS, requests::InputDismissParams { thread: same(thread), request: same(request) }.to_value()),
-        Op::QueueAdd { thread, item, prompt } => (queue::QUEUE_ADD, queue::AddParams { thread: same(thread), item: Some(same(item)), prompt: same(prompt), ..Default::default() }.to_value()),
+        Op::QueueAdd { thread, item, prompt, model } => (queue::QUEUE_ADD, queue::AddParams { thread: same(thread), item: Some(same(item)), prompt: same(prompt), model: model.clone(), ..Default::default() }.to_value()),
         Op::QueueEdit { thread, item, prompt } => (queue::QUEUE_EDIT, queue::EditParams { thread: same(thread), item: same(item), prompt: same(prompt) }.to_value()),
         Op::QueueMove { thread, item, before } => (queue::QUEUE_MOVE, queue::MoveParams { thread: same(thread), item: same(item), before: before.clone() }.to_value()),
         Op::QueueDelete { thread, item } => (queue::QUEUE_DELETE, queue::DeleteParams { thread: same(thread), item: same(item) }.to_value()),
@@ -487,6 +521,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::AccountsLogout { provider } => (accounts::PROVIDER_LOGOUT, json!({"provider": provider})),
         Op::UsageSummary => (accounts::USAGE_SUMMARY, json!({})),
         Op::ResetCredit { provider } => (accounts::RESET_CREDIT, json!({"provider": provider})),
+        Op::ServiceLogs { limit, min_level } => (agent_api_service::LOGS, json!({"limit": limit, "min_level": min_level})),
         Op::Schedule { method, root: None, params } => {
             let found = schedules::METHODS.iter().find(|m| m.name() == *method).copied().ok_or_else(|| AgentError::Failed(format!("{method} is no schedules method of the agent API")))?;
             (found, params.clone())
@@ -499,11 +534,19 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
             let found = attachments::METHODS.iter().find(|m| m.name() == *method).copied().ok_or_else(|| AgentError::Failed(format!("{method} is no attachments method of the agent API")))?;
             (found, params.clone())
         }
+        Op::Speech { method, params } => {
+            let found = [catalog::SPEECH_STATUS, catalog::SPEECH_TRANSCRIBE].into_iter().find(|m| m.name() == *method).ok_or_else(|| AgentError::Failed(format!("{method} is no speech method of the agent API")))?;
+            (found, params.clone())
+        }
+        Op::Catalog { method, params } => {
+            let found = [catalog::SESSIONS_LIST].into_iter().find(|m| m.name() == *method).ok_or_else(|| AgentError::Failed(format!("{method} is no host-reading method of the agent API")))?;
+            (found, params.clone())
+        }
         Op::WorkspaceCreate { workspace, path } => (WORKSPACE_CREATE, json!({"workspace": workspace, "path": path})),
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::FileStat { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::ProviderCommands { .. } | Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeRemove { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::GitIgnored { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -515,13 +558,13 @@ fn is_accounts(op: &Op) -> bool {
 
 /// The requests whose refusals keep the service's own codes (`CLI_NOT_INSTALLED`, `PROVIDER_NOT_SIGNED_IN`, the executor's).
 fn is_hosted(op: &Op) -> bool {
-    matches!(op, Op::Hosted { .. } | Op::Schedule { .. } | Op::Attachment { .. } | Op::Preview { .. })
+    matches!(op, Op::Hosted { .. } | Op::Schedule { .. } | Op::Attachment { .. } | Op::Preview { .. } | Op::Speech { .. } | Op::Catalog { .. })
 }
 
 /// The requests about directories and workspaces whose refusals keep the codes the app tells apart (`ALREADY_EXISTS`, `PATH_OUTSIDE_ROOT`,
 /// `WORKSPACE_EXISTS`).
 fn keeps_code(op: &Op) -> bool {
-    matches!(op, Op::FileMkdir { .. } | Op::FileBrowse { .. } | Op::WorkspaceCreate { .. } | Op::WorkspaceRemove { .. })
+    matches!(op, Op::FileMkdir { .. } | Op::WorkflowScript { .. } | Op::FileBrowse { .. } | Op::WorkspaceCreate { .. } | Op::WorkspaceRemove { .. })
 }
 
 fn strip_nulls(mut value: Value) -> Value {
@@ -536,6 +579,29 @@ fn unreadable(method: &str) -> impl Fn(serde_json::Error) -> AgentError + '_ {
 }
 
 impl AgentApi for RcaAgent {
+    fn catalog_providers(&self) -> Result<Vec<CatalogProvider>, AgentError> {
+        if let Some(providers) = self.providers.get() {
+            return Ok(providers.clone());
+        }
+        let mut client = self.connect()?;
+        let detected = Self::call(&mut client, catalog::AGENTS_DETECT, json!({"executor": self.workspace}))?;
+        let mut providers = Vec::new();
+        for row in detected["agents"].as_array().into_iter().flatten() {
+            let Some(driver) = row["driver"].as_str().filter(|d| catalog::DRIVERS.contains(d)) else { continue };
+            if row["installed"] != true { continue; }
+            let listing = Self::call(&mut client, catalog::MODELS_LIST, json!({"driver": driver}))?;
+            let models = listing["models"].as_array().into_iter().flatten().filter_map(|model| Some(CatalogModel {
+                slug: model["id"].as_str()?.into(),
+                name: model["label"].as_str()?.into(),
+            })).collect();
+            providers.push(CatalogProvider { driver: driver.into(), signed_in: row["signed_in"].as_bool(), models });
+        }
+        if !providers.is_empty() {
+            let _ = self.providers.set(providers.clone());
+        }
+        Ok(providers)
+    }
+
     fn run(&self, op: &Op) -> Result<Value, AgentError> {
         let mut client = self.connect()?;
         let (method, params) = match self.placed(&mut client, op)? {
@@ -555,7 +621,8 @@ impl AgentApi for RcaAgent {
 
     fn ensure_thread(&self, thread: &AgentThread) -> Result<u64, AgentError> {
         let mut client = self.connect()?;
-        let params = CreateParams { thread: Some(thread.thread_id.clone()), title: None, workspace: Some(self.workspace.clone()), driver: Some(thread.instance_id.clone()), model: thread.model.clone() };
+        let workspace = self.turn_workspace(&mut client, thread.worktree.as_deref());
+        let params = CreateParams { thread: Some(thread.thread_id.clone()), title: None, workspace: Some(workspace), driver: Some(thread.instance_id.clone()), model: thread.model.clone() };
         let created = Self::call(&mut client, THREAD_CREATE, params.to_value())?;
         Ok(ThreadView::from_result(&created).map_err(|e| AgentError::Failed(format!("rca answered thread.create with {}", e.0)))?.last_seq)
     }
@@ -565,7 +632,7 @@ impl AgentApi for RcaAgent {
         let modes = |mode: &str| Some(mode.to_string()).filter(|m| !m.is_empty());
         let start = StartParams {
             thread: turn.thread_id.clone(),
-            workspace: self.workspace.clone(),
+            workspace: self.turn_workspace(&mut client, turn.worktree.as_deref()),
             driver: turn.instance_id.clone(),
             model: turn.model.clone(),
             prompt: turn.prompt.clone(),

@@ -1,5 +1,5 @@
 # The one definition of a docker-in-docker daemon, shared by every project that runs one (`extends: {file: ../dind.yml, service: dind}`):
-# ci-runner's `builder` and `droid`, agent-shell's `agent-droid`. A daemon adds only its name and two volumes, `<name>-socket:/run/dind`
+# agent-shell's `agent-droid`. A daemon adds only its name and two volumes, `<name>-socket:/run/dind`
 # (its client mounts that volume, wherever it likes) and `<name>-data:/var/lib/docker`. Every daemon listens on that unix socket and on no
 # port, shares the project's tailscale network namespace (so a device's adb port stays on 127.0.0.1) and answers the same healthcheck.
 # vm-ops-api provisions this file one level above each app's directory, the place it has in the repo.

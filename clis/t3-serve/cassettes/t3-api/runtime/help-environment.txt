@@ -1,0 +1,17 @@
+DESCRIPTION
+  Link other T3 Code environments, so agents here can work there.
+
+USAGE
+  t3 environment <subcommand> [flags]
+
+GLOBAL FLAGS
+  --help, -h                                                          Show help information
+  --version, -v                                                       Show version information
+  --wizard                                                            Start wizard mode for a command
+  --completions <bash|zsh|fish|powershell|sh|pwsh>                    Print shell completion script (choices: bash, zsh, fish, powershell, sh, pwsh)
+  --log-level <all|trace|debug|info|warn|warning|error|fatal|none>    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
+
+SUBCOMMANDS
+  link      Link another T3 Code environment, so agents here can work there. It shows up there under Settings → Connections, where it can be revoked.
+  list      List linked environments and whether each answers now.
+  unlink    Forget a linked environment here. Revoke it in that environment's Connections to end its session there too.

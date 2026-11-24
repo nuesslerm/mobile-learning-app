@@ -13,6 +13,9 @@ pub struct TaskRun {
     pub outcome: &'static str,
     pub ms: i64,
     pub passed: bool,
+    /// Nx's own interval of the task (epoch ms; 0 when the source has none).
+    pub started_ms: i64,
+    pub ended_ms: i64,
 }
 
 fn millis(stamp: &Value) -> Option<i64> {
@@ -30,9 +33,10 @@ pub fn parse(raw: &str) -> Vec<TaskRun> {
         .iter()
         .filter_map(|t| {
             let (task, hash) = (t["taskId"].as_str()?, t["hash"].as_str()?);
-            let ms = millis(&t["endTime"]).zip(millis(&t["startTime"])).map_or(0, |(end, start)| (end - start).max(0));
+            let (started_ms, ended_ms) = (millis(&t["startTime"]).unwrap_or(0), millis(&t["endTime"]).unwrap_or(0));
+            let ms = if started_ms > 0 && ended_ms > 0 { (ended_ms - started_ms).max(0) } else { 0 };
             let outcome = if t["cacheStatus"].as_str().is_some_and(|s| s == "cache-miss") { "ran" } else { "hit" };
-            Some(TaskRun { task: task.to_string(), hash: hash.to_string(), outcome, ms, passed: t["status"].as_i64() == Some(0) })
+            Some(TaskRun { task: task.to_string(), hash: hash.to_string(), outcome, ms, passed: t["status"].as_i64() == Some(0), started_ms, ended_ms })
         })
         .collect()
 }
@@ -50,23 +54,48 @@ pub fn from_log(log: &str) -> Vec<TaskRun> {
                 outcome: if t["outcome"] == "ran" { "ran" } else { "hit" },
                 ms: t["ms"].as_i64()?,
                 passed: t["passed"].as_bool()?,
+                started_ms: 0,
+                ended_ms: 0,
             })
         })
         .collect()
 }
 
-/// The tasks of the newest `run.json` under `home` written at or after `since`.
-pub fn read(home: &Path, since: SystemTime) -> Vec<TaskRun> {
-    let Ok(workspaces) = std::fs::read_dir(home.join(".nx")) else { return Vec::new() };
+/// The newest `run.json` under `home` written at or after `since`, with its time.
+fn newest(home: &Path, since: SystemTime) -> Option<(SystemTime, std::path::PathBuf)> {
+    let workspaces = std::fs::read_dir(home.join(".nx")).ok()?;
     // File times come from a coarser kernel clock than the `since` the caller read, so a run.json written right after `since` can carry an earlier time.
     let since = since.checked_sub(std::time::Duration::from_millis(100)).unwrap_or(since);
-    let newest = workspaces
+    workspaces
         .filter_map(Result::ok)
         .map(|w| w.path().join("cache/run.json"))
         .filter_map(|p| Some((std::fs::metadata(&p).ok()?.modified().ok()?, p)))
         .filter(|(at, _)| *at >= since)
-        .max_by_key(|(at, _)| *at);
-    newest.and_then(|(_, path)| std::fs::read_to_string(path).ok()).map(|raw| parse(&raw)).unwrap_or_default()
+        .max_by_key(|(at, _)| *at)
+}
+
+/// The target of an Nx task id `<project>:<target>`: the project has no colon, the target may (`mla-tamagui:test:flow` runs `test:flow`).
+pub(crate) fn target_of(task: &str) -> &str {
+    task.split_once(':').map_or("", |(_, target)| target)
+}
+
+/// The tasks of the newest `run.json` under `home` written at or after `since`.
+#[cfg(test)]
+fn read(home: &Path, since: SystemTime) -> Vec<TaskRun> {
+    newest(home, since).and_then(|(_, path)| std::fs::read_to_string(path).ok()).map(|raw| parse(&raw)).unwrap_or_default()
+}
+
+/// The `run.json` (path and time) this process already reported: a later target that leaves none within the clock slack must not report it again.
+static REPORTED: std::sync::Mutex<Option<(std::path::PathBuf, SystemTime)>> = std::sync::Mutex::new(None);
+
+fn read_unreported(home: &Path, since: SystemTime) -> Vec<TaskRun> {
+    let Some((at, path)) = newest(home, since) else { return Vec::new() };
+    let mut reported = REPORTED.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    if reported.as_ref().is_some_and(|(p, t)| *p == path && *t == at) {
+        return Vec::new();
+    }
+    *reported = Some((path.clone(), at));
+    std::fs::read_to_string(path).ok().map(|raw| parse(&raw)).unwrap_or_default()
 }
 
 /// How many of the tasks ran and how many a cache replayed, and the share replayed (a run of no tasks replayed all it had).
@@ -79,8 +108,16 @@ pub fn replay_ratio(tasks: &[TaskRun]) -> (usize, usize, f64) {
 /// What every `run_many` of this process has run and replayed per stage: the gauges are the stage's, not the last kind's.
 static STAGE_TOTALS: std::sync::Mutex<std::collections::BTreeMap<String, (usize, usize)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
 
-/// The stage's event and gauges: `ci.nx.tasks{stage,outcome}` and `ci.nx.replay_ratio{stage}`.
-fn report(stage: &str, target: &str, tasks: &[TaskRun]) {
+/// A task shorter than this is not a gauge of its own: the series would be hundreds and say nothing.
+const TASK_GAUGE_MIN_MS: i64 = 2_000;
+
+/// The tasks Nx ran (not replayed) that took long enough to be worth a series: the per-unit durations the weighted shards are set from.
+pub fn slow_tasks(tasks: &[TaskRun]) -> Vec<(&str, f64)> {
+    tasks.iter().filter(|t| t.outcome == "ran" && t.ms >= TASK_GAUGE_MIN_MS).map(|t| (t.task.as_str(), t.ms as f64 / 1000.0)).collect()
+}
+
+/// The stage's event and gauges: `ci.nx.tasks{stage,outcome}`, `ci.nx.replay_ratio{stage}` and `ci.nx.task_s{stage,task}` for each task that ran for 2 s or more.
+fn report(stage: &str, target: &str, tasks: &[TaskRun], units: &[wf_bucket::ci_db::UnitSpan], tests: &[wf_bucket::ci_db::TestRow]) {
     use wf_bucket::ci_metrics::{event, Gauges, ALL};
     let (ran, hit, _) = replay_ratio(tasks);
     let (stage_ran, stage_hit) = {
@@ -92,20 +129,39 @@ fn report(stage: &str, target: &str, tasks: &[TaskRun]) {
     };
     let ratio = if stage_ran + stage_hit == 0 { 1.0 } else { stage_hit as f64 / (stage_ran + stage_hit) as f64 };
     event("info", "nx.stage.summary", &[("stage", stage.to_string()), ("target", target.to_string()), ("ran", ran.to_string()), ("replayed", hit.to_string()), ("replay_ratio", format!("{ratio:.2}"))]);
-    Gauges::new().set("ci.nx.tasks", stage, "ran", stage_ran as f64).set("ci.nx.tasks", stage, "hit", stage_hit as f64).set("ci.nx.replay_ratio", stage, ALL, ratio).send();
+    let mut gauges = Gauges::new();
+    gauges.set("ci.nx.tasks", stage, "ran", stage_ran as f64).set("ci.nx.tasks", stage, "hit", stage_hit as f64).set("ci.nx.replay_ratio", stage, ALL, ratio);
+    for (task, seconds) in slow_tasks(tasks) {
+        gauges.set("ci.nx.task_s", stage, task, seconds);
+    }
+    crate::ci_units::gauges(&mut gauges, units);
+    crate::ci_tests::gauges(&mut gauges, tests);
+    gauges.send();
 }
 
 /// Prints the ledger line of the Nx run that started at `since` (nothing when it left no `run.json`).
-pub fn emit(since: SystemTime, stage: &str, target: &str) {
-    let Some(home) = std::env::var_os("HOME") else { return };
-    let tasks = read(Path::new(&home), since);
+pub(crate) fn emit(since: SystemTime, stage: &str, target: &str, cpu_seconds: f64, seen: &[crate::ci_tests::Seen]) {
+    let Some(home) = std::env::var_os("HOME") else {
+        crate::ci_tests::persist(stage, target, seen, &[]);
+        return;
+    };
+    let mut tasks = read_unreported(Path::new(&home), since);
+    // the two stages of a core-tests job share one run.json: keep this run's own targets
+    if std::env::var("GITHUB_JOB").is_ok_and(|j| j == "core-tests") {
+        let own: Vec<&str> = target.split(',').collect();
+        tasks.retain(|t| own.contains(&target_of(&t.task)));
+    }
+    let replayed: Vec<&str> = tasks.iter().filter(|t| t.outcome == "hit").map(|t| t.task.as_str()).collect();
+    let tests = crate::ci_tests::persist(stage, target, seen, &replayed);
     if tasks.is_empty() {
         return;
     }
     let list: Vec<Value> = tasks.iter().map(|t| json!({ "task": t.task, "hash": t.hash, "outcome": t.outcome, "ms": t.ms, "passed": t.passed })).collect();
     eprintln!("wf: nx ledger {}", json!({ "tasks": list }));
-    record(&tasks);
-    report(stage, target, &tasks);
+    record(stage, &tasks, cpu_seconds);
+    let units = crate::ci_units::spans(&std::env::var("GITHUB_RUN_ID").unwrap_or_default(), stage, &tasks);
+    crate::ci_units::record(&units);
+    report(stage, target, &tasks, &units, &tests);
     why(since, "stage");
 }
 
@@ -123,14 +179,64 @@ pub fn why(since: SystemTime, kind: &str) {
     }
 }
 
+/// The share of `cpu_seconds` (the CPU the whole `nx run-many` used, which Nx reports per run and never per task) that a task that ran gets: its share of the milliseconds
+/// the ran tasks took. A replayed task used none.
+fn cpu_share(tasks: &[TaskRun], task: &TaskRun, cpu_seconds: f64) -> f64 {
+    let total: i64 = tasks.iter().filter(|t| t.outcome == "ran").map(|t| t.ms).sum();
+    if task.outcome != "ran" || total <= 0 {
+        return 0.0;
+    }
+    cpu_seconds * task.ms as f64 / total as f64
+}
+
 /// Writes the tasks to the ledger from the job itself, keyed like the rows `wf ci audit` merges later, so the ledger holds every run's tasks
 /// whether or not GitHub keeps the job's log (it has not, since 31 Oct 00:19 UTC).
-fn record(tasks: &[TaskRun]) {
+fn record(stage: &str, tasks: &[TaskRun], cpu_seconds: f64) {
     let var = |key: &str| std::env::var(key).ok().filter(|v| !v.is_empty());
     let (Some(run), Some(sha)) = (var("GITHUB_RUN_ID"), var("GITHUB_SHA")) else { return };
-    let job = var("GITHUB_JOB").unwrap_or_default();
+    // core-tests runs two stages in one job; the shard weights read the stage as the job
+    let job = crate::ci_units::job_of(stage);
     let ts = wf_kit::time::now_ms() as i64;
     let rows: Vec<crate::ci_ledger::Observed> = tasks.iter().map(|t| crate::ci_ledger::Observed { run: run.clone(), sha: sha.clone(), ts, job: job.clone(), task: t.task.clone(), hash: t.hash.clone(), outcome: t.outcome.to_string(), ms: t.ms, passed: t.passed }).collect();
+    // where this job's Nx cache came from (set by `wf cache event nx restore`), so a miss can be told apart by workflow, shard and what the restore held
+    let restored = wf_bucket::nx_store::restored();
+    let (stage_key, restored_key) = (var(wf_bucket::nx_store::STAGE_ENV), var(wf_bucket::nx_store::KEY_ENV));
+    let (workflow, gh_job, attempt) = (var("GITHUB_WORKFLOW"), var("GITHUB_JOB"), var("GITHUB_RUN_ATTEMPT"));
+    // A CI job writes to its own local database and the report job merges it into the sealed one: a job's token cannot push the state ref (the push was refused
+    // five times per stage, 403, and cost seconds each time), and the sealed database never held these rows.
+    let local: Vec<wf_bucket::ci_db::LedgerTask> = rows
+        .iter()
+        .zip(tasks)
+        .map(|(o, t)| wf_bucket::ci_db::LedgerTask {
+            run: o.run.clone(),
+            sha: o.sha.clone(),
+            ts: o.ts,
+            job: o.job.clone(),
+            task: o.task.clone(),
+            hash: o.hash.clone(),
+            outcome: o.outcome.to_string(),
+            ms: o.ms,
+            passed: o.passed,
+            started_ms: t.started_ms,
+            ended_ms: t.ended_ms,
+            cpu_s: cpu_share(tasks, t, cpu_seconds),
+            workflow: workflow.clone(),
+            gh_job: gh_job.clone(),
+            cache_stage: stage_key.clone(),
+            attempt: attempt.clone(),
+            restored_key: restored_key.clone(),
+            dir_has_hash: restored.as_ref().and_then(|r| r.has_dir(&o.hash)),
+            db_has_hash: restored.as_ref().and_then(|r| r.has_db(&o.hash)),
+        })
+        .collect();
+    match wf_bucket::ci_db::record_tasks_local(&local) {
+        Ok(true) => return,
+        Ok(false) => {}
+        Err(reason) => {
+            wf_kit::wf_err!("wf: nx ledger not recorded: {reason}");
+            return;
+        }
+    }
     if let Err(reason) = crate::ci_ledger::open().and_then(|ledger| ledger.record_tasks(&rows)) {
         wf_kit::wf_err!("wf: nx ledger not recorded: {reason}");
     }
@@ -151,10 +257,31 @@ mod tests {
     }
 
     #[test]
+    fn given_a_run_summary_when_parsed_then_each_task_keeps_nx_own_interval_in_epoch_milliseconds() {
+        let tasks = parse(RUN);
+        assert_eq!((tasks[0].started_ms, tasks[0].ended_ms), (1_793_388_852_295, 1_793_388_854_488));
+    }
+
+    #[test]
+    fn given_a_stage_that_used_cpu_when_the_seconds_are_shared_then_a_task_that_ran_gets_its_share_of_the_milliseconds_and_a_replay_none() {
+        let task = |name: &str, outcome: &'static str, ms: i64| TaskRun { task: name.into(), hash: "1".into(), outcome, ms, passed: true, started_ms: 0, ended_ms: 0 };
+        let tasks = [task("a:test", "ran", 30_000), task("b:test", "ran", 10_000), task("c:test", "hit", 5_000)];
+        let shares: Vec<f64> = tasks.iter().map(|t| cpu_share(&tasks, t, 80.0)).collect();
+        assert_eq!(shares, [60.0, 20.0, 0.0]);
+    }
+
+    #[test]
     fn given_ledger_lines_in_a_log_when_read_then_every_task_comes_back_with_its_hash_and_outcome() {
         let log = "2026-10-30T10:00:00.0000000Z wf: nx ledger {\"tasks\":[{\"task\":\"a:lint\",\"hash\":\"7\",\"outcome\":\"ran\",\"ms\":900,\"passed\":true}]}\nnoise\nwf: nx ledger {\"tasks\":[{\"task\":\"b:lint\",\"hash\":\"8\",\"outcome\":\"hit\",\"ms\":5,\"passed\":true}]}\n";
         let tasks = from_log(log);
         assert_eq!(tasks.iter().map(|t| (t.task.as_str(), t.hash.as_str(), t.outcome)).collect::<Vec<_>>(), [("a:lint", "7", "ran"), ("b:lint", "8", "hit")]);
+    }
+
+    #[test]
+    fn given_ran_and_replayed_tasks_when_the_slow_ones_are_picked_then_only_a_task_that_ran_for_two_seconds_or_more_is_a_series_in_seconds() {
+        let task = |name: &str, outcome: &'static str, ms: i64| TaskRun { task: name.into(), hash: "1".into(), outcome, ms, passed: true, started_ms: 0, ended_ms: 0 };
+        let tasks = [task("a:cargo-flow", "ran", 41_500), task("b:cargo-flow", "ran", 1_999), task("c:cargo-flow", "hit", 90_000), task("d:test:flow", "ran", 2_000)];
+        assert_eq!(slow_tasks(&tasks), [("a:cargo-flow", 41.5), ("d:test:flow", 2.0)]);
     }
 
     #[test]
@@ -166,5 +293,23 @@ mod tests {
         std::fs::write(dir.join("run.json"), RUN).unwrap();
         assert_eq!(read(home.path(), SystemTime::UNIX_EPOCH).len(), 2);
         assert!(read(home.path(), SystemTime::now() + std::time::Duration::from_secs(60)).is_empty());
+    }
+
+    #[test]
+    fn given_a_run_json_already_reported_when_a_later_target_starts_within_the_clock_slack_and_writes_none_then_its_tasks_are_not_reported_again() {
+        let home = tempfile::tempdir().unwrap();
+        let dir = home.path().join(".nx/abc/cache");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("run.json"), RUN).unwrap();
+        assert_eq!(read_unreported(home.path(), SystemTime::UNIX_EPOCH).len(), 2);
+        assert!(read_unreported(home.path(), SystemTime::now()).is_empty());
+    }
+
+    #[test]
+    fn given_an_nx_task_id_when_its_target_is_read_then_a_target_with_a_colon_is_whole() {
+        assert_eq!(target_of("mla-tamagui:test:flow"), "test:flow");
+        assert_eq!(target_of("@feature/settings:test:unit"), "test:unit");
+        assert_eq!(target_of("crate-wf:cargo-flow"), "cargo-flow");
+        assert_eq!(target_of("noproject"), "");
     }
 }

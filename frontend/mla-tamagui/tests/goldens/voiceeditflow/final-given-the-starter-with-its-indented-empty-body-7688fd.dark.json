@@ -23,20 +23,20 @@
       "ProblemEditorEditorZone",
       "ProblemEditorInput",
       "CodeEditorInput",
+      "ProblemEditorTapAway",
       "ProblemEditorDiffRow",
       "ProblemEditorLanguagePicker-Trigger",
       "ProblemEditorDiffToggle",
       "ProblemEditorDiffToggle-Indicator",
       "ProblemEditorDiffToggle-Label",
-      "ProblemEditorActions",
-      "ProblemEditorFormatButton",
-      "ProblemEditorRunLocalButton",
-      "ProblemEditorRunButton",
-      "ProblemEditorResetButton",
       "ProblemEditorTextEditStartButton",
       "ProblemEditorVoiceStartButton",
-      "ProblemEditorTestInputZone",
-      "ProblemEditorTestInput",
+      "ConsoleDock",
+      "ConsoleBar",
+      "ConsoleBarOpen",
+      "ConsoleBarReset",
+      "ConsoleBarRun",
+      "ConsoleBarSubmit",
       "ProblemPlanTab",
       "ProblemPlanSteps",
       "ProblemPlanComposer",
@@ -44,10 +44,10 @@
       "ProblemPlanTextInput",
       "ProblemPlanAddButton"
     ],
-    "text": "Plan\nCode\nPython\nDiff\nFormat\nRun Local\nRun\nReset"
+    "text": "Plan\nCode\nPython\nDiff\nConsole\nSubmit"
   },
   "timings": {
-    "render_ms": 274
+    "render_ms": 267
   },
   "name": "voiceeditflow/final-given-the-starter-with-its-indented-empty-body-7688fd.dark",
   "image": {

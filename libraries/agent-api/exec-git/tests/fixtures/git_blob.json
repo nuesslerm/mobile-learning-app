@@ -143,6 +143,63 @@
       }
     },
     {
+      "name": "reads the file as staged, not as edited, when no revision is named",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "changed\n"
+        }
+      },
+      "request": {
+        "id": "blob93",
+        "tool": "git_blob",
+        "args": {
+          "path": "a.txt"
+        }
+      },
+      "response": {
+        "id": "blob93",
+        "ok": true,
+        "result": {
+          "path": "a.txt",
+          "size": 4,
+          "data": "b25lCg==",
+          "truncated": false,
+          "binary": false
+        }
+      }
+    },
+    {
+      "name": "refuses a path the index does not have",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "new.txt": "x\n"
+        }
+      },
+      "request": {
+        "id": "blob94",
+        "tool": "git_blob",
+        "args": {
+          "path": "new.txt"
+        }
+      },
+      "response": {
+        "id": "blob94",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "new.txt does not exist in the index"
+        }
+      }
+    },
+    {
       "name": "refuses an option given as the revision",
       "setup": {
         "files": {

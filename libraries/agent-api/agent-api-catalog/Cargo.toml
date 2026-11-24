@@ -20,3 +20,6 @@ serde_json = { version = "1", features = ["preserve_order"] }
 agent-api-proto = { path = "../agent-api-proto", features = ["testing"] }
 exec-fs = { path = "../exec-fs" }
 exec-proc = { path = "../exec-proc" }
+
+[package.metadata.arch]
+type = "rust-contract"

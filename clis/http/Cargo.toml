@@ -14,3 +14,6 @@ form_urlencoded = "1.2.2"
 
 [dev-dependencies]
 tiny_http = "0.12"
+
+[package.metadata.arch]
+type = "library"

@@ -11,7 +11,7 @@ import { Resolver, indexSource, variants } from '../src/crawl/effect.ts'
 import { inputs, value } from '../src/crawl/shape.ts'
 import { fromZod, type Zod } from '../src/crawl/zod.ts'
 import { cliSpecs } from '../src/crawl/orca.ts'
-import { helpCommands, t3Crawl, t3Root } from '../src/crawl/t3.ts'
+import { helpCommands, routes, t3Crawl, t3Root } from '../src/crawl/t3.ts'
 
 const schema = z.object({ name: z.string().min(2).max(8), count: z.number().int().min(1).max(5), flag: z.boolean().optional(), tags: z.array(z.string()).min(1), mode: z.enum(['a', 'b']) })
 const accepts = (p: unknown) => schema.safeParse(p).success
@@ -90,4 +90,14 @@ test('Given the pinned Orca tree, When it is crawled, Then every catalog row is 
   assert.deepEqual(catalog('orca').filter((r) => !have.has(r.id)).map((r) => r.id), [], 'the crawl lags the source')
   for (const e of report.endpoints.filter((e) => e.streaming)) assert.ok(e.skipped, `${e.id} is streaming and says why it is not asked`)
   for (const e of report.endpoints.filter((e) => e.input === 'schema')) assert.ok(report.cases.some((c) => c.row === e.id && c.tags.includes('class:valid')), `${e.id} has a valid case`)
+})
+
+test('Given HTTP groups declared with and without export, When the routes are read, Then each endpoint belongs to its own group', () => {
+  const text = [
+    'class PullsApi extends HttpApiGroup.make("pullRequests").add(HttpApiEndpoint.get("list", "/pulls")) {}',
+    'export class VoiceApi extends HttpApiGroup.make("voice").add(HttpApiEndpoint.get("status", "/voice/status")) {}',
+    'export class Api extends HttpApi.make("environment").add(PullsApi).add(VoiceApi) {}',
+  ].join('\n')
+  const found = routes([text], new Resolver(indexSource([text]))).map((r) => `${r.group}.${r.name}`)
+  assert.deepEqual(found, ['pullRequests.list', 'voice.status'])
 })

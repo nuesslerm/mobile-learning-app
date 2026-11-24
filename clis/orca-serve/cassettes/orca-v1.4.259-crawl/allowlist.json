@@ -1,0 +1,254 @@
+{
+  "ignored": [
+    {
+      "path": "result.appVersion",
+      "reason": "the version of the server answering: the recording host is Orca 1.4.259, this server reports its own build",
+      "phase": "R10",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.machineName",
+      "reason": "the name of the machine answering: the recording host is a CI runner, this server reports its own host name",
+      "phase": "R10",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.pairedDeviceId",
+      "reason": "the id minted for the phone at pairing, which differs between any two pairings",
+      "phase": "R10",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.deviceScope",
+      "reason": "the scope of the token the phone paired with: the recording sidecar paired with a runtime-scope token, while this server stamps a paired phone as mobile",
+      "phase": "R10",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    }
+  ],
+  "omitted": [
+    {
+      "path": "ui.featureInteractions.agent-orchestration",
+      "reason": "how often the recording host's operator used a feature: state of the host the pin was recorded on, which this server does not hold",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.hostScope",
+      "reason": "the hosts the recording machine knows of (its own `local` is omitted from the scope), which this server does not federate",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.snapshotId",
+      "reason": "an opaque revision token of the recording host's repo list",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.degradations",
+      "reason": "the recording host's own degraded capabilities (it has no browser backend); this server reports a degradation only when rca does not answer",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.desktopWindowStatus",
+      "reason": "whether the recording host has a desktop window; this server has none and reports none",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.hostDescriptor",
+      "reason": "the installation id and machine binding of the recording host",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.hostMachine",
+      "reason": "the kind and model of the recording machine",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.remoteUpdateSupport",
+      "reason": "how the recording host updates itself; this server is redeployed, not self-updated",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "codex.systemDefault",
+      "reason": "the system-wide Codex login of the recording host, which rca does not read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.antigravity",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.antigravityAccounts",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.cursor",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.cursorAuthConfigured",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.gemini",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.grok",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.grokAuthConfigured",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.kimi",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.minimax",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.minimaxApiKeyConfigured",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.minimaxCookieConfigured",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.muse",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.opencodeGo",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.opencodeGoApiKeyConfigured",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.zcode",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.zcodePlanApiKeyConfigured",
+      "reason": "the usage and sign-in state of a provider CLI on the recording host, which rca does not run or read",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "rateLimits.claude.usageMetadata",
+      "reason": "how the recording host probed Claude's credentials (its sources and failure kind), which rca does not run",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.worktreeCreateIdempotency",
+      "reason": "the dedupe window of the recording host's worktree.create; this server keeps no create-result window and so does not claim one",
+      "phase": "R10",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    }
+  ],
+  "shapeOnly": [
+    {
+      "path": "result.repos",
+      "reason": "the repos the host holds are its own state: the recording host had none, the chain's has its workspace",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.projects",
+      "reason": "the projects the host holds are its own state: the recording host had none, the chain's has its workspace",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.setups",
+      "reason": "the project setups the host holds are its own state: the recording host had none, the chain's has its workspace",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.worktrees",
+      "reason": "the worktrees the host holds are its own state: the recording host had none, the chain's has its workspace",
+      "phase": "R2a",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.totalCount",
+      "reason": "the count of the worktrees or terminals the host holds is its own state: the recording host had none, the chain's has its workspace",
+      "phase": "R7",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.capabilities",
+      "reason": "the capability strings this host advertises: this server lists only the capabilities its mapped rows serve, the recording host lists everything it implements",
+      "phase": "R10",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.sources.path",
+      "reason": "where a skill root lies is the answering host's own state: the recording host's home and process folder, the chain's executor home (named below ~, which the executor never discloses) and its workspaces",
+      "phase": "O0",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.sources.id",
+      "reason": "a repo root's id hashes the repo's path, which is the answering host's own state (the recording host's process folder, the chain's workspaces)",
+      "phase": "O0",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.sources.label",
+      "reason": "a repo root's label names the repo's folder, which is the answering host's own state (the recording host's process folder, the chain's workspaces)",
+      "phase": "O0",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.models",
+      "reason": "the speech models the host lists are its own state: the recording host's local recognizer is not installed, so it lists only its OpenAI row, where this server lists rca's own speech engine (rca-whisper, ready) when the service has one",
+      "phase": "O1",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    }
+  ]
+}

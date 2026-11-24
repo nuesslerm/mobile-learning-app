@@ -6,6 +6,8 @@ import {
 } from '@lib/flow-test-harness';
 import { describe, expect, it } from 'vitest';
 
+import { ProblemCatalog } from '../../features/leetcode/domain/problemCatalog';
+
 import { app } from './app';
 
 // The home route imports the leetcode feature barrel, which statically pulls in
@@ -34,6 +36,16 @@ describe('ProblemListScreen flow (blind75 catalog)', () => {
     const firstItemTitle = screen.getAllByTestId('LeetcodeListItemTitle')[0];
     expect(firstItemTitle.textContent).toBeTruthy();
     expect(firstItemTitle.textContent).toMatch(/\d+\./);
+  });
+
+  it('given the catalog, when the list renders, then the hero chip counts every problem in it', async () => {
+    await app.render('/');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('LeetcodeListHeroCountText').textContent).toBe(
+        `${ProblemCatalog.getAll().length} PROBLEMS`
+      );
+    });
   });
 
   it('given a problem row from the blind75 catalog, when tapped, then the app pushes the problem route with the problem id', async () => {

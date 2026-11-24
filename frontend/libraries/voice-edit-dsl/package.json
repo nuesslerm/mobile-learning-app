@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs --ignore-known"
   },
   "dependencies": {
     "zod": "^4.4.3"
@@ -27,7 +28,8 @@
     }
   },
   "devDependencies": {
-    "@typescript/native": "catalog:"
+    "@typescript/native": "catalog:",
+    "dependency-cruiser": "^17.4.3"
   },
   "exports": {
     ".": "./src/index.ts"

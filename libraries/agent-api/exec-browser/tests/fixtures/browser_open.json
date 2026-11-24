@@ -1,0 +1,80 @@
+{
+  "action": "browser_open",
+  "exchanges": [
+    {
+      "name": "refuses an address that is not a web page before any browser starts",
+      "request": {
+        "id": "b1",
+        "tool": "browser_open",
+        "args": {
+          "key": "t1",
+          "url": "file:///etc/passwd"
+        }
+      },
+      "response": {
+        "id": "b1",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`url` must be an http or https address of at most 2048 bytes: the scheme is not http or https"
+        }
+      }
+    },
+    {
+      "name": "refuses the cloud metadata address",
+      "request": {
+        "id": "b1",
+        "tool": "browser_open",
+        "args": {
+          "key": "t1",
+          "url": "http://169.254.169.254/latest/meta-data/"
+        }
+      },
+      "response": {
+        "id": "b1",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`url` points at 169.254.169.254:80, an address the executor does not let a page reach"
+        }
+      }
+    },
+    {
+      "name": "refuses a loopback address the executor's allowlist does not name",
+      "request": {
+        "id": "b1",
+        "tool": "browser_open",
+        "args": {
+          "key": "t1",
+          "url": "http://127.0.0.1:4000/"
+        }
+      },
+      "response": {
+        "id": "b1",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`url` points at 127.0.0.1:4000, an address the executor does not let a page reach"
+        }
+      }
+    },
+    {
+      "name": "refuses a key with a character outside the set",
+      "request": {
+        "id": "b1",
+        "tool": "browser_open",
+        "args": {
+          "key": "a b"
+        }
+      },
+      "response": {
+        "id": "b1",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`key` must be 1 to 128 letters, digits, dots, dashes, underscores or colons"
+        }
+      }
+    }
+  ]
+}

@@ -21,7 +21,7 @@ fn repo_bench_cli_times_every_startup_target_of_a_binary_and_counts_the_reposito
         run_wf(&full, &RunOpts::default().cwd(dir.path()).env("WF_BIN", &subject_path))
     };
     let row = |target: &str, runs: usize, failures: usize| Regex::new(&format!(r"^{} \| {runs} \| [\d.]+ \| [\d.]+ \| [\d.]+ \| [\d.]+ \| [\d.]+ \| {failures}$", regex::escape(target))).unwrap();
-    let startup = [("--version", 0), ("--help", 2), ("secret --help", 2), ("offload ask --help", 2), ("ship --changed --help", 2), ("check --help", 2)];
+    let startup = [("--version", 0), ("--help", 2), ("secret --help", 2), ("rca ask --help", 2), ("ci plan --help", 2), ("check --help", 2)];
 
     // When a binary is benched twice per target, Then one row per startup target reports its timings and counts its failures
     let r = bench(&["--runs", "2"]);
@@ -39,7 +39,7 @@ fn repo_bench_cli_times_every_startup_target_of_a_binary_and_counts_the_reposito
     let r = bench(&["--runs", "1", "--live"]);
     let targets: Vec<&str> = r.stdout.split('\n').skip(2).map(|l| l.split(" | ").next().unwrap()).collect();
     let at = |name: &str| targets.iter().position(|t| *t == name).unwrap_or_else(|| panic!("no {name} in {targets:?}"));
-    assert!(at("offload ask --stats") > at("check --help") && targets.contains(&"ship --changed"));
+    assert!(at("rca ask --stats") > at("check --help") && targets.contains(&"ci plan legs"));
 
     // Given --out, Then the JSON report holds every target without a footprint
     let out = dir.path().join("report.json");

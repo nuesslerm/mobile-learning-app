@@ -1,0 +1,14 @@
+Usage: wf ci concurrency [--phase start|end] [--run <id>]
+
+How many of the account's runner slots are taken right now, from the Actions API: the jobs in progress (busy) and queued
+of the repository's in-progress and queued runs, per workflow and in all (workflow `all`), against the cap of 20
+concurrent jobs (WF_CI_RUNNER_CAP overrides it). One row per workflow in CI_CONCURRENCY (TS, RUN_ID, PHASE, WORKFLOW,
+BUSY, QUEUED, RUNS_ACTIVE, CAP, HEADROOM; headroom is the account's, the cap less every busy job) in the job-local
+database, and the gauges ci.runners.busy, ci.runners.queued and ci.runners.headroom (scope = workflow, name = phase).
+Prints one JSON line {ok, run, phase, cap, busy, queued, runs_active, headroom, workflows}. Best effort: it always exits 0,
+an unreadable API is {ok:false, error, next}. The repository and token are the run's own (GITHUB_REPOSITORY, GITHUB_TOKEN).
+
+Options:
+  --phase <start|end>  where in the run the reading is taken (default start)
+  --run <id>           the run the row belongs to (default GITHUB_RUN_ID)
+  -h, --help           display help for command

@@ -28,6 +28,7 @@ export {
   SegmentedControl,
   type SegmentedControlProps,
 } from './ui/segmented-control';
+export { Switch, type SwitchProps } from './ui/switch';
 export {
   Tabs,
   TabsContent,
@@ -86,15 +87,30 @@ export {
 } from './composites/diff-view';
 export {
   ScreenHeader,
+  useScreenHeaderOptions,
   type ScreenHeaderAction,
   type ScreenHeaderProps,
 } from './composites/screen-header';
+export type {
+  HeaderActionSpec,
+  HeaderGroup,
+  ScreenHeaderSpec,
+} from './composites/native-header/header-spec';
+export type {
+  HeaderMenuSpec,
+  MenuActionNode,
+  MenuConfirmNode,
+  MenuNode,
+  MenuSectionNode,
+  MenuSubmenuNode,
+  SfSymbolName,
+} from './composites/native-header/header-menu-spec';
+export { validateMenuTree } from './composites/native-header/header-menu-spec';
 export { useHeaderHeightStore } from './lib/headerHeightStore';
-export {
-  HeaderMenu,
-  type HeaderMenuItem,
-  type HeaderMenuProps,
-} from './composites/header-menu';
+export { DEFAULT_NATIVE_HEADERS, useNativeHeaderStore } from './lib/nativeHeaderStore';
+export { useNativeHeaderPath } from './composites/native-header/use-header-env';
+export { useScrollUnder } from './composites/native-header/use-scroll-under';
+export { MenuPanel, type MenuPanelProps } from './composites/menu-panel';
 export {
   KEYBOARD_TOOLBAR_Z,
   KeyboardToolbarAwareScrollView,
@@ -110,6 +126,7 @@ export {
   type UseKeyboardToolbarTargetOptions,
 } from './composites/keyboard-toolbar';
 export { useKeyboardFrame } from './lib/keyboard/useKeyboardFrame';
+export { useReducedMotion } from './lib/reducedMotion/useReducedMotion';
 export type { KeyboardFrame } from './lib/keyboard/types';
 export { useKeyboardStore } from './lib/keyboardStore';
 export { createOverlayRequestStore } from './lib/overlayRequestStore';
