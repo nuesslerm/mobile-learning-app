@@ -135,6 +135,8 @@ function SkiaTracingCanvas(): React.ReactElement {
   const {
     glyph,
     strokes,
+    pen,
+    strokePens,
     onStroke,
     onSizeChange,
     showGuide = true,
@@ -297,8 +299,8 @@ function SkiaTracingCanvas(): React.ReactElement {
               <TestablePath
                 key={index}
                 path={makePath(pointsToSmoothPath(stroke))}
-                color={inkColor}
-                strokeWidth={STROKE_WIDTH}
+                color={strokePens?.[index]?.color ?? inkColor}
+                strokeWidth={strokePens?.[index]?.width ?? STROKE_WIDTH}
                 style="stroke"
                 strokeCap="round"
                 strokeJoin="round"
@@ -307,8 +309,8 @@ function SkiaTracingCanvas(): React.ReactElement {
             {current ? (
               <TestablePath
                 path={makePath(pointsToSmoothPath(current))}
-                color={inkColor}
-                strokeWidth={STROKE_WIDTH}
+                color={pen?.color ?? inkColor}
+                strokeWidth={pen?.width ?? STROKE_WIDTH}
                 style="stroke"
                 strokeCap="round"
                 strokeJoin="round"

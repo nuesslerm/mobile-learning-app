@@ -174,7 +174,8 @@ export function getWritingSubject(subjectId: string): WritingSubject | undefined
     const found = track.subjects.find((subject) => subject.id === subjectId);
     if (found) return found;
   }
-  return undefined;
+  const character = TAMIL_CHARACTERS.find((item) => item.id === subjectId);
+  return character ? letterSubject(character) : undefined;
 }
 
 /** The track a subject sits in, and its neighbours, for "next" on the pad. */

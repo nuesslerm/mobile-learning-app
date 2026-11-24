@@ -23,6 +23,8 @@ export type TracingCanvasProps = {
   glyph: string;
   /** Strokes to render. The parent owns them, so it can refuse one. */
   strokes: readonly Stroke[];
+  pen?: { color: string; width: number };
+  strokePens?: readonly { color: string; width: number }[];
   /** A finished stroke. The parent decides whether to keep it. */
   onStroke: (stroke: Stroke) => void;
   onSizeChange?: (size: CanvasSize) => void;
@@ -88,6 +90,8 @@ function strokeReducer(state: StrokeState, action: StrokeAction): StrokeState {
 export function TracingCanvasSvg({
   glyph,
   strokes,
+  pen,
+  strokePens,
   onStroke,
   onSizeChange,
   showGuide = true,
@@ -245,8 +249,8 @@ export function TracingCanvasSvg({
               <Path
                 key={index}
                 d={pointsToSmoothPath(stroke)}
-                stroke={inkColor}
-                strokeWidth={STROKE_WIDTH}
+                stroke={strokePens?.[index]?.color ?? inkColor}
+                strokeWidth={strokePens?.[index]?.width ?? STROKE_WIDTH}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"
@@ -255,8 +259,8 @@ export function TracingCanvasSvg({
             {current ? (
               <Path
                 d={pointsToSmoothPath(current)}
-                stroke={inkColor}
-                strokeWidth={STROKE_WIDTH}
+                stroke={pen?.color ?? inkColor}
+                strokeWidth={pen?.width ?? STROKE_WIDTH}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="none"

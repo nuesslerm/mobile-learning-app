@@ -36,6 +36,7 @@ Commands:
   agent-config                The .agents/ contract rendered into every tool's
                               config: sync
   bench                       App benchmarks, CLI cold start and the agent-proof
+  content                     Generate offline practice from source material
   knowledge                   The docs knowledge index: rank, index, stale,
                               locate; the Gemini repack
   cache                       The build cache in blob storage, shared by the

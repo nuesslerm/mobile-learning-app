@@ -25,7 +25,7 @@ describe('Tamil routes opened cold from the web export', () => {
   });
 
   it('given the write route, when the export lists its pages, then every letter and word has its own', () => {
-    const subjects = [...new Set(TRACKS.flatMap((track) => track.subjects.map((subject) => subject.id)))].sort();
+    const subjects = [...new Set([...TamilCourse.getAllCharacterIds(), ...TRACKS.flatMap((track) => track.subjects.map((subject) => subject.id))])].sort();
     expect(listedIds(writeRoute, 'subjectId')).toEqual(subjects);
   });
 

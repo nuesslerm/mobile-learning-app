@@ -9,17 +9,17 @@ describe('App drawer', () => {
   it('given any drawer screen, when it renders, then the drawer is mounted but closed', async () => {
     await app.render('/tamil');
     await waitFor(() => {
-      expect(screen.getByTestId('TamilCourseScreen')).toBeTruthy();
+      expect(screen.getByTestId('TamilLibrary')).toBeTruthy();
     });
 
     expect(screen.getByTestId('AppDrawer')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Tamil writing' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Tamil' })).toBeNull();
     expect(closeDrawer()).toBeNull();
-    expect(screen.getByTestId('TamilCourseScreen').closest('[aria-hidden="true"]')).toBeNull();
+    expect(screen.getByTestId('TamilLibrary').closest('[aria-hidden="true"]')).toBeNull();
   });
 
   it('given the course screen, when its menu button is tapped, then the drawer reveals the active destination', async () => {
-    const session = await app.render('/tamil');
+    const session = await app.render('/tamil/alphabet');
     await waitFor(() => {
       expect(screen.getByTestId('TamilCourseMenuButton')).toBeTruthy();
     });
@@ -30,24 +30,24 @@ describe('App drawer', () => {
       expect(closeDrawer()).toBeTruthy();
     });
     expect(screen.getByTestId('TamilCourseScreen').closest('[aria-hidden="true"]')).not.toBeNull();
-    expect(screen.getByTestId('DrawerItemTamilLabel').textContent).toBe('Tamil writing');
-    expect(screen.getByRole('button', { name: 'Tamil writing', current: 'page' })).toBeTruthy();
+    expect(screen.getByTestId('DrawerItemTamilLabel').textContent).toBe('Tamil');
+    expect(screen.getByRole('button', { name: 'Tamil', current: 'page' })).toBeTruthy();
   });
 
   it('given the open drawer, when a destination is tapped, then the drawer closes and the app pushes that route', async () => {
-    const session = await app.render('/');
+    const session = await app.render('/tamil/alphabet');
     await waitFor(() => {
-      expect(screen.getByTestId('LeetcodeListMenuButton')).toBeTruthy();
+      expect(screen.getByTestId('TamilCourseMenuButton')).toBeTruthy();
     });
-    await session.tap('LeetcodeListMenuButton');
+    await session.tap('TamilCourseMenuButton');
     await waitFor(() => {
       expect(closeDrawer()).toBeTruthy();
     });
 
-    await session.tap('DrawerItemTamil');
+    await session.tap('DrawerItemSettings');
 
     await waitFor(() => {
-      expect(routerHarness().lastPush()).toBe('/tamil');
+      expect(routerHarness().lastPush()).toBe('/settings');
       expect(closeDrawer()).toBeNull();
     });
   });

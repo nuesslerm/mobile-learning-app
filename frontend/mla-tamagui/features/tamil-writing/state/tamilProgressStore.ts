@@ -1,8 +1,7 @@
 import { Logger } from '@lib/logging';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { z } from 'zod';
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
 
 import {
   MASTERY_MIN,
@@ -15,7 +14,7 @@ import {
  * What the learner has written, and how it went.
  *
  * Progress is the whole point of a course, so it outlives the process: a
- * letter's rung and the attempt counts persist to AsyncStorage, keyed by the
+ * letter's rung and the attempt counts are persisted by the injected storage, keyed by the
  * character ids in `domain/characters.ts` (which is why those ids are stable).
  */
 
@@ -23,6 +22,7 @@ const characterProgressSchema = z.object({
   mastery: z.number(),
   attempts: z.number(),
   lastPracticedAt: z.number(),
+  attemptId: z.string().optional(),
 });
 
 const persistedSchema = z.object({
@@ -35,7 +35,7 @@ type CharacterProgress = z.infer<typeof characterProgressSchema>;
 type TamilProgressState = {
   characters: Record<string, CharacterProgress>;
   totalAttempts: number;
-  recordAttempt: (characterId: string, outcome: PracticeOutcome) => void;
+  recordAttempt: (characterId: string, outcome: PracticeOutcome, attemptId?: string) => void;
   masteryOf: (characterId: string) => number;
   masteryMap: () => Record<string, number>;
   resetLesson: (characterIds: readonly string[]) => void;
@@ -54,10 +54,11 @@ export const useTamilProgressStore = create<TamilProgressState>()(
       characters: {},
       totalAttempts: 0,
 
-      recordAttempt: (characterId, outcome) => {
+      recordAttempt: (characterId, outcome, attemptId) => {
         if (!characterId) return;
 
         const current = get().characters[characterId] ?? EMPTY_PROGRESS;
+        if (attemptId && current.attemptId === attemptId) return set({});
         const mastery = nextMastery(current.mastery, outcome);
 
         Logger.info('tamil.practice.attempt', {
@@ -67,7 +68,7 @@ export const useTamilProgressStore = create<TamilProgressState>()(
           to: mastery,
         });
 
-        set((state) => ({
+        return set((state) => ({
           totalAttempts: state.totalAttempts + 1,
           characters: {
             ...state.characters,
@@ -75,6 +76,7 @@ export const useTamilProgressStore = create<TamilProgressState>()(
               mastery,
               attempts: current.attempts + 1,
               lastPracticedAt: Date.now(),
+              attemptId,
             },
           },
         }));
@@ -111,7 +113,8 @@ export const useTamilProgressStore = create<TamilProgressState>()(
     {
       name: 'tamil-writing-progress',
       version: 1,
-      storage: createJSONStorage(() => AsyncStorage),
+      skipHydration: true,
+      storage: { getItem: () => null, setItem: () => undefined, removeItem: () => undefined },
       partialize: (state) => ({
         characters: state.characters,
         totalAttempts: state.totalAttempts,

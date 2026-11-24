@@ -31,7 +31,7 @@ const DESTINATIONS = [
     testID: 'DrawerItemCodingAgent',
   },
   {
-    label: 'Tamil writing',
+    label: 'Tamil',
     href: '/tamil',
     icon: PenLine,
     testID: 'DrawerItemTamil',
@@ -68,7 +68,7 @@ export function AppDrawerContent(props: DrawerContentComponentProps) {
               pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
             const selection = Platform.OS === 'web'
               ? { 'aria-current': selected ? ('page' as const) : undefined }
-              : { accessibilityState: { selected } };
+              : { 'aria-selected': selected };
 
             return (
               <XStack

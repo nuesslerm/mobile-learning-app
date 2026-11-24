@@ -6,9 +6,9 @@ units: part=vowels letters=1-2; part=vowels letters=3-4; part=vowels letters=5-6
 focus: true
 features: tamil-writing
 ---]]
--- device-lab Tamil writing: traced letters (guide), a write path (template) and three words, with the marker answered by a stub: no test starts or needs a backend.
+-- device-lab Tamil writing: traced letters (guide), a write path (template) and three words with local self-check.
 -- wf android|browser test e2e/tamil-writing.lua --env out=<dir> [--env base=<exp://u.expo.dev/<projectId>/group/<group>/-- | http://127.0.0.1:8800/mla-tamagui>] [--env package=host.exp.exponent]
--- Gates: every traced letter at least 90% on the line, write path and words "LOOKS RIGHT" from the stubbed marker (one retry per word), zero JS warnings
+-- Gates: every traced letter at least 90% on the line, write path and words show "Practice complete" after self-check, zero JS warnings
 -- per lesson and word. Input is touch only (the strokes follow the pad's own guide/template). The test records itself.
 local android = device.platform == "android"
 local out = env.out or (".agents/tmp/runs/tamil-writing-" .. device.platform)
@@ -148,45 +148,16 @@ end
 local function writepad(name)
   device:clear_logs()
   open_route("/tamil/write/" .. name, {id='TamilWriteCanvasSurface'}, 240)
-  device:assert_visible({id='TamilWriteCheck'}, {timeout=30000})
-  local verdict
-  for attempt = 1, 3 do
-    -- a miss on the previous attempt can leave the page scrolled either way: as it is, then up, then down, then fail by name
-    local traced = false
-    for _, move in ipairs({ function() end, scroll_up, scroll_down }) do
-      move()
-      if device:draw_strokes_on({id='TamilWriteCanvasSurface'}, {source='template', human=true, optional=true}) then traced = true; break end
-    end
-    if not traced then device:draw_strokes_on({id='TamilWriteCanvasSurface'}, {source='template', human=true}) end
-    device:take_screenshot(("%s/%s-a%d-ink.png"):format(out, name, attempt))
-    -- scroll_until_visible drags from the screen's centre, which is the pad: the page is dragged at its left edge instead
-    if not device:get_element({id='TamilWriteCheck'}) then scroll_down() end
-    device:tap_on({id='TamilWriteCheck'})
-    device:extended_wait_until{visible={id='TamilWriteVerdictBadge'}, timeout=90000, optional=true} -- the stubbed marker answers; a miss is read as "no verdict" below
-    device:take_screenshot(("%s/%s-a%d-verdict.png"):format(out, name, attempt))
-    verdict = text_of("TamilWriteVerdictBadge") or "no verdict"
-    local w = device:get_logs()
-    if #w > 0 then
-      log(("JS warning on %s attempt %d: %s"):format(name, attempt, w[1]))
-      if android then local l = device:get_logs{level='debug'}; log(table.concat(l, '\n', math.max(1, #l - 39))) end -- the component stack, for the gap file
-    end
-    -- the judge's own reason is recorded in full (the screen clamps it to two lines) so a miss can be read as fair or not
-    local reason = text_of("TamilWriteVerdictSummary") or ""
-    rec(("%s/attempt%d"):format(name, attempt), verdict .. (reason ~= "" and (" -- " .. reason) or ""), verdict:match("LOOKS RIGHT") ~= nil)
-    if verdict:match("LOOKS RIGHT") then break end
-    if device:get_element({id='TamilWriteClear'}) then device:tap_on({id='TamilWriteClear'}) end
-  end
-  local final_ok = verdict ~= nil and verdict:match("LOOKS RIGHT") ~= nil
-  rec(name .. "/final", verdict or "no verdict", final_ok) -- the judge is a live model: up to three attempts, the last one decides
-  -- the phone's own account of the real call, as BetterStack holds it for the session: an answered check logs its outcome (the echo flushes about once a second)
-  local logged = device:extended_wait_until{condition=function()
-    for _, line in ipairs(device:get_logs{level='info'}) do
-      if line:find('tamil.write.checked', 1, true) then return true end
-    end
-  end, timeout=5000, interval=250, optional=true}
-  rec(name .. "/checked-log", logged and "tamil.write.checked logged" or "no tamil.write.checked line", logged and true or false)
+  device:assert_visible({id='TamilWriteDone'}, {timeout=30000})
+  device:draw_strokes_on({id='TamilWriteCanvasSurface'}, {source='template', human=true})
+  device:take_screenshot(("%s/%s-ink.png"):format(out, name))
+  device:tap_on({id='TamilWriteDone'})
+  device:assert_visible({id='TamilWriteVerdict'}, {timeout=10000})
+  device:take_screenshot(("%s/%s-complete.png"):format(out, name))
+  local result = text_of("TamilWriteVerdict")
+  rec(name .. "/final", result or "no result", result == "Practice complete")
   warnings_gate(name)
-  return final_ok
+  return result == "Practice complete"
 end
 
 -- a unit runs one part (`--env part=vowels|consonant|write|words`), the vowels a few letters at a time (`--env letters=3-4`)
@@ -197,10 +168,6 @@ local from, to = tostring(env.letters or "1-6"):match("^(%d+)-(%d+)$")
 assert_true(from ~= nil, "letters is a range like 3-4, not " .. tostring(env.letters))
 if runs("vowels") then lesson("uyir-1", tonumber(from), tonumber(to)) end
 if runs("consonant") then lesson("uyirmei-k", 1, 1) end
--- POST /api/tamil/check is the marker (remote-chat-agent, a vision model): the stub answers LOOKS RIGHT, so the pads, strokes and verdict badge are what the test proves
-if runs("write") or runs("words") then
-  device:add_network_stub("POST", "*/api/tamil/check", { json_body = { ok = true, score = 96, summary = "Stubbed verdict: the marker is not reached, so no test needs a backend." } })
-end
 local ok_write = not runs("write") or writepad("uyir-a")
 local ok_words = true
 if runs("words") then
@@ -218,5 +185,5 @@ for _, s in ipairs(steps) do
   if not s.ok and not s.step:match("/attempt%d$") then hard[#hard + 1] = s.step .. " " .. tostring(s.value) end
 end
 assert_true(#hard == 0, "failed steps: " .. table.concat(hard, "; "))
-assert_true(ok_write and ok_words, "a write-path attempt never reached LOOKS RIGHT")
+assert_true(ok_write and ok_words, "a write-path self-check never reached Practice complete")
 log("tamil writing: pass")
