@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { CM6_BUNDLE_JS } from '../cm6Bundle';
 
 // A feature that grows the page raises this in the same commit with a decision; a trim lowers it.
-const BUDGET_CHARS = 662_693;
+// The canvas caret and code-column highlight add 21 characters.
+const BUDGET_CHARS = 662_714;
 
 describe('the editor bundle size', () => {
   it('given the committed CodeMirror bundle, when its length is read, then it is within the budget', () => {
